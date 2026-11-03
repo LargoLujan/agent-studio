@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -19,6 +20,13 @@ namespace AgentStudio.Memory.Journal;
 /// <c>bitacora</c> must be real folders of the project and the day a file with a single name there, checked through the
 /// handle that appends (ADR-0010, addenda of 2026-10-18). A link left there refuses the record, so the agent is never
 /// launched (<see cref="Application.Providers.JournalingAgentProvider"/>), and nothing is written through it.
+/// <para>
+/// An anchored launch (<see cref="PromptJournalEntry.Anchor"/>, docs/17 D-02 and its addendum of 2026-11-03) is named with the
+/// day of its line in both of its lines: <c>(… · entrada 2026-11-03/P-0001)</c> at the end of the entry and
+/// <c> · entrada `2026-11-03/P-0001`</c> at the end of its result (<see cref="JournalResultAnchor"/>), which goes to the file
+/// of the day the agent ended. The journal keeps the line of each anchored entry until its result is written, and then
+/// gives its receipt (<see cref="JournalReceipt"/>): the SHA-256 of the two lines exactly as written.
+/// </para>
 /// </summary>
 public sealed partial class MarkdownDailyJournal(string projectRoot, IProjectStorageFiles files, TimeProvider timeProvider) : IPromptJournal
 {
@@ -50,6 +58,9 @@ public sealed partial class MarkdownDailyJournal(string projectRoot, IProjectSto
 
     private readonly SemaphoreSlim _gate = new(1, 1);
 
+    /// <summary>The line of each anchored entry this journal wrote whose result is still to come: what its receipt covers.</summary>
+    private readonly ConcurrentDictionary<JournalEntryId, string> _anchoredLines = new();
+
     public async Task<JournalEntryId> RecordPromptAsync(PromptJournalEntry entry, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(entry);
@@ -61,14 +72,21 @@ public sealed partial class MarkdownDailyJournal(string projectRoot, IProjectSto
         {
             // Sequence calculation and append happen under one exclusive file lock, so other processes cannot
             // take the same id in between.
-            return await WithLockedFileAsync(
+            var (id, line) = await WithLockedFileAsync(
                 day,
                 stream =>
                 {
                     var id = new JournalEntryId(day, NextSequence(stream));
-                    return (id, FormatEntry(id, local, entry));
+                    var line = FormatEntry(id, local, entry);
+                    return ((id, line), line);
                 },
                 ct).ConfigureAwait(false);
+            if (entry.Anchor is not null)
+            {
+                _anchoredLines[id] = line;
+            }
+
+            return id;
         }
         finally
         {
@@ -76,21 +94,39 @@ public sealed partial class MarkdownDailyJournal(string projectRoot, IProjectSto
         }
     }
 
-    public async Task RecordOutcomeAsync(JournalEntryId id, PromptOutcome outcome, CancellationToken ct)
+    public Task RecordOutcomeAsync(JournalEntryId id, PromptOutcome outcome, CancellationToken ct) => RecordReceiptedOutcomeAsync(id, outcome, ct);
+
+    /// <summary>
+    /// Appends the result line to the file of the day the agent ended and, for an anchored entry whose line this journal
+    /// wrote, returns its receipt: the SHA-256 of that line and this one, joined by <c>\n</c>, exactly as written. A result
+    /// that cannot be written lets go of the line of its entry: there is nothing to give a receipt of.
+    /// </summary>
+    public async Task<JournalReceipt?> RecordReceiptedOutcomeAsync(JournalEntryId id, PromptOutcome outcome, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(outcome);
         var local = ToLocal(outcome.At);
         var day = DateOnly.FromDateTime(local.DateTime);
+        var result = FormatOutcome(id, local, outcome);
 
-        await _gate.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            await WithLockedFileAsync(day, _ => (0, FormatOutcome(id, local, outcome)), ct).ConfigureAwait(false);
+            await _gate.WaitAsync(ct).ConfigureAwait(false);
+            try
+            {
+                await WithLockedFileAsync(day, _ => (0, result), ct).ConfigureAwait(false);
+            }
+            finally
+            {
+                _gate.Release();
+            }
         }
-        finally
+        catch
         {
-            _gate.Release();
+            _anchoredLines.TryRemove(id, out _);
+            throw;
         }
+
+        return outcome.Anchor is not null && _anchoredLines.TryRemove(id, out var line) ? JournalReceipt.Of(id, line, result) : null;
     }
 
     private static string FormatEntry(JournalEntryId id, DateTimeOffset local, PromptJournalEntry entry)
@@ -112,6 +148,12 @@ public sealed partial class MarkdownDailyJournal(string projectRoot, IProjectSto
         if (!string.IsNullOrWhiteSpace(entry.DebateId))
         {
             refs.Add("debate " + Collapse(entry.DebateId));
+        }
+
+        // An anchored launch names its entry with its day, as its result line will (docs/17 D-02, addendum of 2026-11-03).
+        if (entry.Anchor is not null)
+        {
+            refs.Add("entrada " + id.Qualified());
         }
 
         if (refs.Count > 0)
@@ -136,11 +178,12 @@ public sealed partial class MarkdownDailyJournal(string projectRoot, IProjectSto
             sb.Append(" · ").Append(SanitizeSummary(outcome.Note));
         }
 
-        // Last, after the free note, whose backticks were replaced: the AgentRunStarted the launch was announced with
-        // (docs/17 D-02), the contract the derivation of the journal reads.
+        // Last, after the free note, whose backticks were replaced: the AgentRunStarted the launch was announced with and
+        // the entry with its day, since after midnight the result goes to the next day's file (docs/17 D-02, addendum of
+        // 2026-11-03), the contract the derivation of the journal reads.
         if (outcome.Anchor is { } anchor)
         {
-            sb.Append(" · ").Append(JournalResultAnchor.Format(anchor));
+            sb.Append(" · ").Append(JournalResultAnchor.Format(anchor, id));
         }
 
         return sb.ToString();

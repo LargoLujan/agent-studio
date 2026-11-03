@@ -205,11 +205,12 @@ public sealed class Phase5CompositionTests
             started.Select(s => s.Task!.Value.Value).Order(StringComparer.Ordinal),
             clis.LaunchesOf(unit).Select(r => r.TaskId!).Order(StringComparer.Ordinal));
 
-        // The prompt journal of the project has each of them, tagged #debate and naming the debate (D-45), on its CLI.
+        // The prompt journal of the project has each of them, tagged #debate and naming the debate (D-45), on its CLI; an
+        // anchored launch also names its entry with its day (docs/17 D-02, addendum of 2026-11-03).
         var journal = Phase5Checks.JournalLines(repo.Root);
         foreach (var launch in started)
         {
-            var line = Assert.Single(journal, l => l.Contains($"(tarea {launch.Task} · debate {unit})", StringComparison.Ordinal));
+            var line = Assert.Single(journal, l => l.Contains($"(tarea {launch.Task} · debate {unit} · entrada ", StringComparison.Ordinal));
             Assert.Contains("#debate", line, StringComparison.Ordinal);
             Assert.Contains($" · {launch.Provider.Value}/", line, StringComparison.Ordinal);
         }

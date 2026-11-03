@@ -485,7 +485,11 @@ public sealed class MemoryDerivationTests
 
         Assert.DoesNotContain(result.Recorded, e => e.Kind == MemoryKind.DailySummary);
         Assert.DoesNotContain(await world.MemoryAsync(), e => e.Kind == MemoryKind.DailySummary);
-        Assert.All(result.Recorded, e => Assert.Contains(e.Kind, DerivedKinds));
+        Assert.All(result.Recorded, e => Assert.Contains(e.Kind, (MemoryKind[])[.. DerivedKinds, MemoryKind.JournalEntry]));
+
+        // Since Phase 12 its entry is anchored as memory (docs/17 D-02): with no receipt, as text Agent Studio did not write.
+        var entry = Assert.Single(result.Recorded, e => e.Kind == MemoryKind.JournalEntry);
+        Assert.Equal((MemoryOrigin.Agent, MemoryTrust.Quarantined), (entry.Origin, entry.Trust));
     }
 
     // ---- idempotency (D-18, D-19) ----

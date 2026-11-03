@@ -206,15 +206,19 @@ public sealed class ProjectMemory(IDecisionRecorder recorder, IMemoryStore store
             throw new ArgumentException($"Memory entry '{superseded}' cannot be superseded: the decision log never announced it, or its row is missing or changed.", nameof(prepared));
         }
 
+        var payload = MemoryRecordedPayload.Announcing(prepared.Id, prepared.Kind, prepared.Origin, prepared.Sha256, prepared.Source, prepared.Supersedes);
         var announcement = await recorder.RecordAsync(
             projectId,
             SystemActor,
             DecisionKind.MemoryRecorded,
             $"Memoria registrada: {MemoryLabels.Kind(prepared.Kind)} ({MemoryLabels.Origin(prepared.Origin)})",
-            MemoryRecordedPayload.Announcing(prepared.Id, prepared.Kind, prepared.Origin, prepared.Sha256, prepared.Source, prepared.Supersedes),
+            payload,
             cancellationToken: ct).ConfigureAwait(false);
         var row = prepared.ToRow(announcement.RecordedAt);
         await store.AppendAsync(projectId, row, ct).ConfigureAwait(false);
+
+        // The trust the log gives a new announcement: a journal entry Agent Studio did not write is in quarantine unless
+        // the journal of the project or of its day is trusted (docs/17 D-02), not a proposal.
         return new MemoryEntry(
             row.Id,
             row.Kind,
@@ -224,7 +228,7 @@ public sealed class ProjectMemory(IDecisionRecorder recorder, IMemoryStore store
             row.Source,
             row.CreatedAt,
             row.ContentSha256,
-            row.Origin == MemoryOrigin.Agent ? MemoryTrust.Proposed : MemoryTrust.Trusted,
+            ledger.TrustOf(new MemoryAnnouncement(announcement.Sequence, announcement.RecordedAt, payload)),
             row.Supersedes,
             null);
     }

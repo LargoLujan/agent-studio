@@ -930,7 +930,7 @@ public sealed class DebateRun : IDebateRun
             Interlocked.Decrement(ref _inFlight);
         }
 
-        var finished = await _recorder.RecordTurnFinishedAsync(turn.Task, attempt, status, outcome?.ExitCode, outcome?.SessionId, error, seen, seat.Label, ct).ConfigureAwait(false);
+        var finished = await _recorder.RecordTurnFinishedAsync(turn.Task, attempt, status, outcome?.ExitCode, outcome?.SessionId, error, seen, seat.Label, outcome?.Journal, ct).ConfigureAwait(false);
         Emit(new DebateTurnFinished(Now(), seat.Label, setting.Round, attempt, status));
 
         // The answer stays in this turn, sealed, until its round closes: nothing of it reaches the store or the log now.

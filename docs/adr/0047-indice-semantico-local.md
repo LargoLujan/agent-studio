@@ -70,14 +70,17 @@
   8. **La bitácora como memoria anclada** (D-02, decisión 9):
      - **Cada entrada,** con su línea «Resultado» y sus líneas «Hecho», se anuncia como memoria `JournalEntry`. Su fuente es
        `bitacora:<día>#sha256:<hash del texto de la entrada>`, así que derivar dos veces no duplica nada y cambiar el
-       fichero después no cambia lo anclado.
+       fichero después no cambia lo anclado. *(Corregido por la [adenda del 2026-11-03](#adenda-2026-11-03-el-casado-exige-el-recibo-de-lo-que-se-escribió):
+       las líneas «Hecho» y lo demás que va debajo de una entrada del producto son una entrada aparte, nunca `System`.)*
      - **Lo que escribió Agent Studio** termina su línea «Resultado» con el `AgentRunStarted` del lanzamiento:
        `` · ejecución `<run>` · tarea `<task>` · intento <n> `` (`JournalResultAnchor`). Lo pasan en la petición el motor,
        las ejecuciones auxiliares, los turnos de debate y el juez (`AgentRunRequest.Anchor`). La nota libre que va antes no
        puede imitarlo: el escritor cambia sus acentos graves.
      - **El casado:** la derivación casa cada entrada con un `AgentRunStarted` del registro verificado con la misma
        ejecución, tarea e intento (y el mismo agente y proveedor). Cada arranque casa con una sola entrada. Lo que casa
-       tiene origen `System` y es de confianza.
+       tiene origen `System` y es de confianza. *(Corregido por la [adenda del 2026-11-03](#adenda-2026-11-03-el-casado-exige-el-recibo-de-lo-que-se-escribió):
+       ejecución, tarea e intento están en el fichero a la vista de cualquiera, así que el casado exige el recibo del texto
+       exacto que escribió Agent Studio.)*
      - **Lo demás** tiene origen `Agent`, que para esta categoría significa «texto que Agent Studio no escribió»: el hook de
        desarrollo, una entrada que no casa o la de un tercero. Queda en cuarentena hasta que lo aceptas: por entrada (una
        revisión), por día o con «Confiar en la bitácora de este proyecto». Esas dos últimas son una entrada nueva del
@@ -125,3 +128,63 @@
     `%LOCALAPPDATA%` (punto 2 de ADR-0018). El modelo se vuelve a verificar al cargarlo, y el índice no decide la
     confianza de nada.
   - **Sin medir:** la int8 en una CPU sin AVX2 o en ARM64.
+
+## Adenda (2026-11-03): el casado exige el recibo de lo que se escribió
+
+La revisión independiente del P0 encontró cuatro huecos en la confianza de la bitácora. WP1 los cierra así:
+
+1. **Un historial heredado no trae confianza.** `JournalTrustChanged` no pertenece a ninguna ejecución, así que una
+   `agentstudio.db` plantada con «Confiar en la bitácora» habría vuelto de confianza toda la bitácora al aceptar su historial
+   (A-01). Ahora una decisión sobre la bitácora solo cuenta si se registró después del último `origin-accepted`, y el casado
+   solo vale con ejecuciones propias del registro (`DerivationLog.OwnRuns`), como el resto de lo derivado.
+2. **El casado autentica el texto.** La ejecución, la tarea y el intento de una línea «Resultado» se pueden copiar, porque el
+   fichero está versionado. Por eso:
+   - **Recibo.** Cuando Agent Studio escribe la línea «Resultado» de un lanzamiento anclado, el escritor da el SHA-256 del texto
+     exacto de la entrada: su línea y su línea «Resultado», unidas por un salto de línea (`JournalReceipt`). Quien registra el
+     final del lanzamiento (el motor, las ejecuciones auxiliares, los turnos de debate y el juez) lo guarda en
+     `AgentRunFinished` (`AgentRunFinishedPayload.Journal`, que solo se escribe si existe: ningún payload guardado cambia).
+   - **El casado exige el recibo:** una entrada es `System` solo si es una entrada del producto con una sola línea
+     «Resultado», que nombra esa misma entrada, y el `AgentRunFinished` de esa ejecución, tarea e intento, en una ejecución
+     propia, tiene el recibo con su día, su número y el SHA-256 de su texto. Copiar el final en otra entrada, o cambiar la
+     entrada antes o después de derivarla, da otro hash.
+   - **Si dos entradas reclaman el mismo lanzamiento, ninguna casa:** ni dos entradas nuevas, ni una nueva frente a otra que
+     ya está en la memoria.
+   - **`System` solo para la línea de la entrada y su línea «Resultado».** Las líneas «Hecho» y lo demás que va debajo de una
+     entrada del producto son una entrada aparte (`… · notas`), de origen `Agent`, con la confianza de la bitácora (por día o
+     del proyecto), nunca `System`.
+   - **Los arranques de antes de la Fase 12 no se reclaman nunca:** su `AgentRunFinished` no tiene recibo.
+   - **La bitácora se lee antes que el registro.** Un lanzamiento que termina entre las dos lecturas (una ejecución auxiliar
+     no cuenta como actividad del proyecto) escribió su línea «Resultado» antes que su recibo, así que el registro leído
+     después lo tiene. Y si aun así una entrada se ancló como `Agent` porque su recibo no había llegado, en una derivación
+     posterior pasa a `System` y sustituye a la primera: lo que la memoria ya tiene se reconoce por su origen y su fuente, no
+     solo por su fuente.
+3. **Medianoche.** El resultado va al fichero del día en que termina el agente, y su `P-NNNN` no decía de qué día era. Ahora
+   las dos líneas nombran la entrada con su día: la línea de la entrada termina con `(… · entrada 2026-11-03/P-0001)` y la
+   línea «Resultado» con `` · entrada `2026-11-03/P-0001` ``, detrás del intento (`JournalResultAnchor.Format(anchor, entry)`).
+   La derivación junta el resultado escrito en el fichero del día siguiente con su entrada, y el resumen diario lo cuenta
+   como un resultado del día en que se escribe sin atribuírselo a la entrada de ese día que tenga el mismo número.
+4. **La confianza de una entrada de la bitácora la calcula el registro, con una precedencia explícita**
+   (`MemoryLedger.JournalTrustOf`). Entre niveles manda el más concreto: la entrada, después su día y después el proyecto.
+   Dentro de un nivel manda la decisión más reciente, como en el resto de la memoria: una «Aceptar» posterior a una retirada
+   de la misma entrada la devuelve. En orden:
+   - la última revisión de la propia entrada (aceptada, rechazada o retirada; una aceptación que llegó con un historial
+     heredado no cuenta);
+   - lo heredado queda en cuarentena y se revisa una a una;
+   - lo que escribió Agent Studio, con su recibo, es de confianza;
+   - lo demás sigue la última decisión sobre su día y, si no la hay, la última sobre el proyecto.
+
+   Sin ninguna, una entrada de la bitácora está en **cuarentena** (`Quarantined`), nunca es una propuesta (`Proposed`). La
+   fuente `bitacora:<día>#sha256:<hash>` se lee de vuelta con `MemorySources.TryParseJournal`.
+
+Qué queda igual: la bitácora entra como memoria anclada con su confianza, cada entrada por el hash de su texto, sin
+exportarse a Markdown, y lo demás de esta ADR.
+
+**Residuales, los dos del lado de la cuarentena (nunca dan confianza de más):**
+
+- **Un «Resultado» copiado rebaja la entrada legítima.** Si alguien copia la línea «Resultado» de una entrada en otro sitio
+  de la bitácora (otro día, o bajo otra entrada) antes de que esa entrada se ancle, dos entradas reclaman el mismo
+  lanzamiento, o la legítima pasa a tener dos resultados, y ninguna es `System`: la legítima queda en cuarentena hasta que la
+  aceptes. Ya anclada, una copia posterior no le cambia nada.
+- **Un lanzamiento sin final no deja recibo.** Una entrada cuyo lanzamiento no pudo empezar (la petición falló antes de
+  arrancar), o cuyo final se cortó antes de escribirse (la app murió entre la línea «Resultado» y `AgentRunFinished`), no
+  tiene recibo, porque no hay final que lo lleve: queda en cuarentena.

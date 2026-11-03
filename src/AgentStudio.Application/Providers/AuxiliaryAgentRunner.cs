@@ -179,6 +179,7 @@ public sealed class AuxiliaryAgentRunner(IDecisionRecorder decisions, IEvidenceS
             {
                 RunId = run.Value,
                 V = AgentRunFinishedPayload.UsageVersion,
+                Journal = outcome.Journal,
             },
             cancellationToken: CancellationToken.None);
 

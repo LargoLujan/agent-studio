@@ -10,6 +10,7 @@ using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Evidence;
 using AgentStudio.Domain.Judging;
 using AgentStudio.Domain.Providers;
+using AgentStudio.Infrastructure.Persistence;
 using AgentStudio.Memory.Derivation;
 using AgentStudio.Orchestration.Engine;
 using static AgentStudio.Tests.Domain.TestData;
@@ -351,7 +352,7 @@ public sealed class DebateDerivationTests
         await debate.OpenAsync(Question, DebateMode.Free);
         await debate.CloseAsync(DebateOutcome.Resolved, JudgingPanel.Single, null);
         var activity = new OrchestrationActivity();
-        var derivation = new MemoryDerivation(world.World.Instance.Recorder, world.World.Instance.Evidence, world.World.Spy, world.World.Memory, activity);
+        var derivation = new MemoryDerivation(world.World.Instance.Recorder, world.World.Instance.Evidence, world.World.Spy, world.World.Memory, activity, new ProjectStorageFiles());
         var log = (await world.LogAsync()).Count;
         var held = activity.TryEnter(world.Project.ProjectId, kind)!;
 

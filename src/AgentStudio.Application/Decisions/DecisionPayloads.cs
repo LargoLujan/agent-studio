@@ -460,6 +460,14 @@ public sealed record AgentRunFinishedPayload(
 
     /// <summary>The class of the end: the recorded one, or for an end recorded without one the one its status implies (<see cref="AttemptEndSnapshot.ImpliedBy"/>).</summary>
     public AttemptEndSnapshot ResolvedEnd() => End ?? AttemptEndSnapshot.ImpliedBy(Status);
+
+    /// <summary>
+    /// The receipt of the journal entry of this launch (docs/17 D-02, addendum of 2026-11-03): the entry and the SHA-256 of
+    /// the exact text the journal wrote for it (<see cref="AgentRunOutcome.Journal"/>). The derivation of the journal as memory
+    /// gives <c>System</c> only to the entry with that text. Null when the journal wrote none: an end of before Phase 12, a
+    /// launch that could not start, a journal without receipts. Written only when there is one, so no stored payload changes.
+    /// </summary>
+    public JournalReceipt? Journal { get; init; }
 }
 
 /// <summary>The counters of a test run as a payload carries them: only what was measured, never a computed verdict.</summary>

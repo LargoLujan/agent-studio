@@ -32,8 +32,12 @@ namespace AgentStudio.Application.Providers;
 /// </para>
 /// <para>
 /// When the request carries the <c>AgentRunStarted</c> it was announced with (<see cref="AgentRunRequest.Anchor"/>), the
-/// result line ends with its run, task and attempt (<see cref="JournalResultAnchor"/>, docs/17 D-02), even when the launch
-/// itself failed: the derivation of the journal as memory matches the entry with that start.
+/// line of the entry names it with its day and the result line ends with its run, task, attempt and entry
+/// (<see cref="JournalResultAnchor"/>, docs/17 D-02), even when the launch itself failed. When the run ends, the receipt
+/// of the entry the journal gives (<see cref="JournalReceipt"/>, the SHA-256 of the exact text it wrote) goes with the
+/// outcome (<see cref="AgentRunOutcome.Journal"/>), so whoever records the end keeps it in <c>AgentRunFinished</c>: the
+/// derivation of the journal as memory gives <c>System</c> only to the entry with that text. A launch that fails to start
+/// has no outcome to carry it, so its entry is never matched.
 /// </para>
 /// </remarks>
 public sealed class JournalingAgentProvider(
@@ -88,7 +92,10 @@ public sealed class JournalingAgentProvider(
             Summarize(request),
             tags,
             request.TaskId,
-            request.DebateId);
+            request.DebateId)
+        {
+            Anchor = request.Anchor,
+        };
 
         // Fail closed: if this throws, the agent is never started.
         var id = await journal.RecordPromptAsync(entry, cancellationToken).ConfigureAwait(false);
@@ -163,7 +170,8 @@ public sealed class JournalingAgentProvider(
         return text.ToString();
     }
 
-    private async Task TryRecordOutcomeAsync(
+    /// <summary>Records the outcome of the entry; returns its receipt, or null (none, or the journal could not write it).</summary>
+    private async Task<JournalReceipt?> TryRecordOutcomeAsync(
         JournalEntryId id,
         DateTimeOffset startedAt,
         AgentRunStatus status,
@@ -199,11 +207,12 @@ public sealed class JournalingAgentProvider(
             var outcome = new PromptOutcome(now, status, now - startedAt, input, output, note) { Anchor = anchor };
 
             // The outcome must be written even when the caller cancelled the run.
-            await journal.RecordOutcomeAsync(id, outcome, CancellationToken.None).ConfigureAwait(false);
+            return await journal.RecordReceiptedOutcomeAsync(id, outcome, CancellationToken.None).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"Prompt journal: could not record the outcome of {id}: {ex.Message}");
+            return null;
         }
     }
 
@@ -338,10 +347,11 @@ public sealed class JournalingAgentProvider(
                 throw;
             }
 
-            // Wait for the pump so the last usage is final before the outcome is written.
+            // Wait for the pump so the last usage is final before the outcome is written. The receipt of the entry goes
+            // with the outcome, for whoever records the end of the launch (docs/17 D-02).
             await WaitForPumpAsync().ConfigureAwait(false);
-            await RecordOnceAsync(result.Status, result.Error, result.End).ConfigureAwait(false);
-            return result;
+            var receipt = await RecordOnceAsync(result.Status, result.Error, result.End).ConfigureAwait(false);
+            return receipt is null ? result : result with { Journal = receipt };
         }
 
         /// <summary>
@@ -360,11 +370,11 @@ public sealed class JournalingAgentProvider(
             }
         }
 
-        private async Task RecordOnceAsync(AgentRunStatus status, string? note, AgentRunEnd? end = null)
+        private async Task<JournalReceipt?> RecordOnceAsync(AgentRunStatus status, string? note, AgentRunEnd? end = null)
         {
             if (Interlocked.Exchange(ref _outcomeRecorded, 1) != 0)
             {
-                return;
+                return null;
             }
 
             TokenUsage? usage;
@@ -373,7 +383,7 @@ public sealed class JournalingAgentProvider(
                 usage = _lastUsage;
             }
 
-            await _owner.TryRecordOutcomeAsync(_id, _startedAt, status, usage, note, _resumed, _anchor, end).ConfigureAwait(false);
+            return await _owner.TryRecordOutcomeAsync(_id, _startedAt, status, usage, note, _resumed, _anchor, end).ConfigureAwait(false);
         }
     }
 }

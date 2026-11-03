@@ -14,6 +14,7 @@ using AgentStudio.Domain.Judging;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Domain.Work;
+using AgentStudio.Infrastructure.Persistence;
 using AgentStudio.Memory.Derivation;
 using AgentStudio.Tests.Memory.Store;
 using static AgentStudio.Tests.Domain.TestData;
@@ -89,8 +90,9 @@ internal sealed class DerivationWorld : IDisposable
 
     public void Dispose() => World.Dispose();
 
+    /// <summary>The derivation reads the journal of the project through the checked storage, as the app does.</summary>
     private static MemoryDerivation Create(MemoryWorld world) =>
-        new(world.Instance.Recorder, world.Instance.Evidence, world.Spy, world.Memory, world.Activity);
+        new(world.Instance.Recorder, world.Instance.Evidence, world.Spy, world.Memory, world.Activity, new ProjectStorageFiles());
 }
 
 /// <summary>

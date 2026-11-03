@@ -85,11 +85,13 @@ public sealed class ProjectMemoryUpkeep
                 : string.Create(CultureInfo.InvariantCulture, $"{derived.Recorded.Count} entradas nuevas derivadas del registro"));
         }
 
+        // A problem is a text of an agent whose evidence is not what the log anchored, or a day of the journal that could
+        // not be read safely (docs/17 D-02): nothing of either went to the memory.
         if (derived.Problems.Count > 0)
         {
             parts.Add(derived.Problems.Count == 1
-                ? "1 texto de agente sin citar (su evidencia no cuadra con el registro)"
-                : string.Create(CultureInfo.InvariantCulture, $"{derived.Problems.Count} textos de agente sin citar (su evidencia no cuadra con el registro)"));
+                ? "1 texto sin guardar en la memoria (no cuadra con el registro o es un día de la bitácora que no se pudo leer)"
+                : string.Create(CultureInfo.InvariantCulture, $"{derived.Problems.Count} textos sin guardar en la memoria (no cuadran con el registro o son días de la bitácora que no se pudieron leer)"));
         }
 
         return parts.Count == 0 ? null : $"Memoria: {string.Join("; ", parts)}.";

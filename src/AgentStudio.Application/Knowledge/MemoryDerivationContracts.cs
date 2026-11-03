@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using AgentStudio.Application.Projects;
 using AgentStudio.Domain.Common;
@@ -52,6 +53,38 @@ public static class MemorySources
         }
 
         return string.Create(CultureInfo.InvariantCulture, $"{JournalPrefix}{day:yyyy-MM-dd}#sha256:{entrySha256}");
+    }
+
+    /// <summary>
+    /// Reads a source of <see cref="Journal"/> back: its day and the SHA-256 of the text of its entry. False for anything
+    /// else (another kind of source, a day that is not a date, a hash that is not 64 lowercase hex characters), so
+    /// <c>TryParseJournal(Journal(day, hash))</c> always gives <c>day</c> and <c>hash</c> back.
+    /// </summary>
+    public static bool TryParseJournal(string? source, out DateOnly day, [NotNullWhen(true)] out string? entrySha256)
+    {
+        const string DayFormat = "yyyy-MM-dd";
+        const string HashMarker = "#sha256:";
+        day = default;
+        entrySha256 = null;
+        var start = JournalPrefix.Length;
+        if (source is null
+            || source.Length != start + DayFormat.Length + HashMarker.Length + ContentHash.HexLength
+            || !source.StartsWith(JournalPrefix, StringComparison.Ordinal)
+            || !source.AsSpan(start + DayFormat.Length).StartsWith(HashMarker, StringComparison.Ordinal)
+            || !DateOnly.TryParseExact(source.AsSpan(start, DayFormat.Length), DayFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
+        {
+            return false;
+        }
+
+        var hash = source[(start + DayFormat.Length + HashMarker.Length)..];
+        if (!ContentHash.IsSha256Hex(hash))
+        {
+            return false;
+        }
+
+        day = parsed;
+        entrySha256 = hash;
+        return true;
     }
 
     /// <summary>The source that cites the evidence <paramref name="evidence"/> with the SHA-256 the log anchored for it.</summary>

@@ -40,6 +40,16 @@ namespace AgentStudio.Memory.Derivation;
 /// its integrity alert, like the text of an agent.</item>
 /// <item><b>Inherited history.</b> Runs older than the last history accepted as a new origin are not derived: what they say
 /// was not recorded here, and memory announced now would be trusted (D-20).</item>
+/// <item><b>The journal</b> (docs/17 D-02; ADR-0047 and its addendum of 2026-11-03). After the facts of the log, each entry
+/// of the journal (<c>.agentstudio/bitacora/</c>, read through the checked storage before the log, <see cref="JournalFiles"/>) becomes a
+/// <see cref="MemoryKind.JournalEntry"/>, entry by entry, with <see cref="MemorySources.Journal"/> as its source: the day and
+/// the SHA-256 of its text, so deriving again takes nothing twice and changing the file afterwards never changes what was
+/// anchored (<see cref="JournalEntries"/>). What Agent Studio wrote, and the receipt of its launch in a run of its own
+/// vouches for, is <see cref="MemoryOrigin.System"/>; anything else is <see cref="MemoryOrigin.Agent"/>, in quarantine until a
+/// person accepts it or trusts the journal (<see cref="JournalFacts"/>, <see cref="JournalTrust"/>). A day that cannot be
+/// read safely is listed in <see cref="MemoryDerivationResult.Problems"/> and raises an integrity alert, once
+/// (<see cref="JournalUnreadableAlert"/>). The journal is data: nothing of it is interpreted, and it is never exported to
+/// Markdown (<see cref="MemoryKinds.IsExported"/>).</item>
 /// </list>
 /// </summary>
 /// <remarks>
@@ -54,7 +64,14 @@ namespace AgentStudio.Memory.Derivation;
 /// announces it as a new entry and the old announcement stays without a row.
 /// </para>
 /// </remarks>
-public sealed class MemoryDerivation(IDecisionRecorder recorder, IEvidenceStore evidence, IMemoryStore store, IProjectMemory memory, IRunActivity activity) : IMemoryDerivation
+/// <param name="journal">Reads the days of the journal with the policy of the storage of the project.</param>
+public sealed class MemoryDerivation(
+    IDecisionRecorder recorder,
+    IEvidenceStore evidence,
+    IMemoryStore store,
+    IProjectMemory memory,
+    IRunActivity activity,
+    IProjectStorageReader journal) : IMemoryDerivation
 {
     /// <summary>The action of the approval of a plan, as the orchestrator records it when the run starts (<c>Orchestrator.RecordStartAsync</c>).</summary>
     public const string PlanApprovalAction = "plan.approve";
@@ -76,6 +93,9 @@ public sealed class MemoryDerivation(IDecisionRecorder recorder, IEvidenceStore 
 
     /// <summary>The integrity alert of an evidence the memory would quote that is missing or is not the content the log anchored.</summary>
     public const string EvidenceTamperedAlert = "memory.evidence-tampered";
+
+    /// <summary>The integrity alert of a day of the journal (or its folder) that could not be read safely: a link, a second name, too large.</summary>
+    public const string JournalUnreadableAlert = "memory.journal-unreadable";
 
     /// <summary>Agent Studio raises the alerts, as it signs every memory announcement.</summary>
     private static readonly Actor SystemActor = new(ActorKind.System, "agent-studio");
@@ -102,13 +122,16 @@ public sealed class MemoryDerivation(IDecisionRecorder recorder, IEvidenceStore 
                 return MemoryDerivationResult.NotDerived(DerivationTexts.BusyReason);
             }
 
+            // The journal first, then the log: a launch that ends in between (an auxiliary run is no activity of the
+            // project) wrote its result line before the receipt its end keeps, so the log read after the files has it.
+            var read = JournalFiles.Read(journal, project.RootPath);
             var state = await recorder.LoadAsync(projectId, ct).ConfigureAwait(false);
             if (!state.Verification.IsValid)
             {
                 return MemoryDerivationResult.NotDerived(state.Unanchored is not null ? DerivationTexts.UnanchoredReason : DerivationTexts.NotVerifiedReason(state.Verification));
             }
 
-            return await DeriveAsync(project, state.Entries, ct).ConfigureAwait(false);
+            return await DeriveAsync(project, state.Entries, read, ct).ConfigureAwait(false);
         }
         finally
         {
@@ -116,11 +139,13 @@ public sealed class MemoryDerivation(IDecisionRecorder recorder, IEvidenceStore 
         }
     }
 
-    private async Task<MemoryDerivationResult> DeriveAsync(ProjectContext project, IReadOnlyList<DecisionEntry> entries, CancellationToken ct)
+    private async Task<MemoryDerivationResult> DeriveAsync(ProjectContext project, IReadOnlyList<DecisionEntry> entries, JournalRead read, CancellationToken ct)
     {
         var projectId = project.ProjectId;
         var log = DerivationLog.Of(entries);
-        var known = await KnownAsync(projectId, entries, ct).ConfigureAwait(false);
+        var ledger = MemoryLedger.From(entries);
+        var rows = await store.SearchAsync(projectId, new MemorySearch(), ct).ConfigureAwait(false);
+        var known = Known(ledger, rows);
         var raised = log.AlertMessages(EvidenceTamperedAlert);
         var recorded = new List<MemoryEntry>();
         var already = new List<string>();
@@ -192,14 +217,80 @@ public sealed class MemoryDerivation(IDecisionRecorder recorder, IEvidenceStore 
             }
         }
 
+        if (await DeriveJournalAsync(project, read, log, ledger, rows, recorded, already, problems, ct).ConfigureAwait(false) is { } stoppedInJournal)
+        {
+            return Stop(stoppedInJournal);
+        }
+
         return new MemoryDerivationResult(recorded, already, problems);
     }
 
     /// <summary>
-    /// Raises the integrity alert <paramref name="message"/> outside every run unless the log already holds it (once per
-    /// problem). Returns why the derivation stops (a run started, or the log stopped verifying), or null.
+    /// The entries of the journal (docs/17 D-02): what cannot be read safely is a problem with its alert, once; each entry
+    /// the memory does not hold yet is recorded with its origin and the version it supersedes (<see cref="JournalFacts"/>).
+    /// Returns why it stopped (a run started, or the log stopped verifying), or null.
     /// </summary>
-    private async Task<string?> RaiseOnceAsync(string projectId, string message, HashSet<string> raised, CancellationToken ct)
+    private async Task<string?> DeriveJournalAsync(
+        ProjectContext project,
+        JournalRead read,
+        DerivationLog log,
+        MemoryLedger ledger,
+        IReadOnlyList<MemoryRow> rows,
+        List<MemoryEntry> recorded,
+        List<string> already,
+        List<string> problems,
+        CancellationToken ct)
+    {
+        var projectId = project.ProjectId;
+        var raised = log.AlertMessages(JournalUnreadableAlert);
+        foreach (var problem in read.Problems)
+        {
+            problems.Add(problem.Problem);
+            if (await RaiseOnceAsync(projectId, JournalUnreadableAlert, DerivationTexts.JournalAlertSummary, problem.Alert, raised, ct).ConfigureAwait(false) is { } stopped)
+            {
+                return stopped;
+            }
+        }
+
+        foreach (var fact in JournalFacts.Of(JournalEntries.Parse(read.Days), log, ledger, rows))
+        {
+            if (fact.Known)
+            {
+                already.Add(fact.Source);
+                continue;
+            }
+
+            if (activity.IsBusy(projectId))
+            {
+                return DerivationTexts.StoppedReason;
+            }
+
+            try
+            {
+                var draft = new MemoryDraft(MemoryKind.JournalEntry, fact.Topic, fact.Entry.Text, fact.Origin, fact.Source, fact.Supersedes);
+                recorded.Add(await memory.RecordAsync(project, draft, ct).ConfigureAwait(false));
+            }
+            catch (DecisionLogIntegrityException)
+            {
+                return DerivationTexts.BrokenMidwayReason;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Raises the integrity alert <paramref name="message"/> of an evidence outside every run unless the log already holds it
+    /// (once per problem). Returns why the derivation stops (a run started, or the log stopped verifying), or null.
+    /// </summary>
+    private Task<string?> RaiseOnceAsync(string projectId, string message, HashSet<string> raised, CancellationToken ct) =>
+        RaiseOnceAsync(projectId, EvidenceTamperedAlert, DerivationTexts.AlertSummary, message, raised, ct);
+
+    /// <summary>
+    /// Raises the integrity alert <paramref name="code"/> with <paramref name="message"/> outside every run unless the log
+    /// already holds it (once per problem). Returns why the derivation stops (a run started, or the log stopped verifying), or null.
+    /// </summary>
+    private async Task<string?> RaiseOnceAsync(string projectId, string code, string summary, string message, HashSet<string> raised, CancellationToken ct)
     {
         if (raised.Contains(message))
         {
@@ -217,8 +308,8 @@ public sealed class MemoryDerivation(IDecisionRecorder recorder, IEvidenceStore 
                 projectId,
                 SystemActor,
                 DecisionKind.AuditAlertRaised,
-                DerivationTexts.AlertSummary,
-                new AuditAlertPayload(EvidenceTamperedAlert, [], message) { RunId = DecisionPayload.NoRun },
+                summary,
+                new AuditAlertPayload(code, [], message) { RunId = DecisionPayload.NoRun },
                 cancellationToken: ct).ConfigureAwait(false);
         }
         catch (DecisionLogIntegrityException)
@@ -266,10 +357,10 @@ public sealed class MemoryDerivation(IDecisionRecorder recorder, IEvidenceStore 
     /// The facts already in the memory: the origin and the source of each entry the log announced (outside every run) that
     /// has its row. An announcement without a row is not among them, so recording the fact again completes it.
     /// </summary>
-    private async Task<HashSet<(MemoryOrigin Origin, string Source)>> KnownAsync(string projectId, IReadOnlyList<DecisionEntry> entries, CancellationToken ct)
+    private static HashSet<(MemoryOrigin Origin, string Source)> Known(MemoryLedger ledger, IReadOnlyList<MemoryRow> rows)
     {
-        var rows = (await store.SearchAsync(projectId, new MemorySearch(), ct).ConfigureAwait(false)).Select(r => r.Id).ToHashSet(StringComparer.Ordinal);
-        return [.. MemoryLedger.From(entries).Announcements.Where(a => rows.Contains(a.Payload.Entry)).Select(a => (a.Payload.Origin, a.Payload.Source))];
+        var withRow = rows.Select(r => r.Id).ToHashSet(StringComparer.Ordinal);
+        return [.. ledger.Announcements.Where(a => withRow.Contains(a.Payload.Entry)).Select(a => (a.Payload.Origin, a.Payload.Source))];
     }
 
     /// <summary>
