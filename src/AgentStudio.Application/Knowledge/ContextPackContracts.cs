@@ -27,6 +27,13 @@ public enum ContextTier
 
     /// <summary>Everything else, by relevance.</summary>
     Other,
+
+    /// <summary>
+    /// What the journal tells of earlier days (its anchored entries, <see cref="MemoryKind.JournalEntry"/>), by relevance
+    /// (docs/17 D-02; ADR-0047): the last tier, so it is the first left out when there is no room and never displaces
+    /// anything above it.
+    /// </summary>
+    History,
 }
 
 /// <summary>

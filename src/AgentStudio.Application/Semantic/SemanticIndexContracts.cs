@@ -227,7 +227,10 @@ public sealed record EmbedderOpening(IEmbedder? Embedder, EmbeddingModelStatus S
 /// </summary>
 public interface IEmbedderSource : IDisposable
 {
-    /// <summary>The state of the files, checked now (sizes and hashes); it loads nothing.</summary>
+    /// <summary>
+    /// The state of the files (sizes and hashes); it loads nothing. Each file is hashed the first time in a run of the app,
+    /// and again only when its path, its size or its time of last write (UTC) changes, or after the model is installed again.
+    /// </summary>
     EmbeddingModelStatus Check();
 
     /// <summary>The embedder of the verified model, loaded the first time; null with the reason when there is none.</summary>
@@ -283,6 +286,13 @@ public interface ISemanticIndexStore
     Task<IReadOnlyList<SemanticFragment>> ReadAsync(ProjectContext project, IReadOnlyList<string> fragmentIds, CancellationToken ct);
 
     /// <summary>
+    /// The fragments with these ids as the index holds them, each with its vector and the fingerprint of its model when it
+    /// has one (<see cref="IndexedFragment"/>), in that order; an id the index does not hold is skipped. It is what the
+    /// snapshot of the planner's tool takes its vectors from (<see cref="ISemanticIndex.SnapshotAsync"/>, WP3).
+    /// </summary>
+    Task<IReadOnlyList<IndexedFragment>> ReadIndexedAsync(ProjectContext project, IReadOnlyList<string> fragmentIds, CancellationToken ct);
+
+    /// <summary>
     /// The lexical list: FTS5 over the texts for <paramref name="terms"/> (<see cref="LexicalTerms.From"/>), each quoted as a
     /// phrase with its quotes doubled and joined by <c>OR</c>, ranked by <c>bm25</c>, the best first, ties by time (newest
     /// first) and id; at most <paramref name="top"/>. No terms, no list.
@@ -294,7 +304,7 @@ public interface ISemanticIndexStore
     /// <paramref name="modelFingerprint"/>, the best first, ties by time (newest first) and id; at most <paramref name="top"/>.
     /// Fragments without a vector of that model are not in it.
     /// </summary>
-    Task<IReadOnlyList<RankedCandidate>> SearchVectorsAsync(ProjectContext project, ReadOnlyMemory<float> query, string modelFingerprint, int top, CancellationToken ct);
+    Task<IReadOnlyList<SimilarCandidate>> SearchVectorsAsync(ProjectContext project, ReadOnlyMemory<float> query, string modelFingerprint, int top, CancellationToken ct);
 
     /// <summary>Deletes the whole index of the project (its folder): nothing is lost, the next refresh rebuilds it.</summary>
     Task DeleteAsync(ProjectContext project, CancellationToken ct);
@@ -345,12 +355,26 @@ public static class SemanticSearchTexts
 /// <list type="bullet">
 /// <item><see cref="Kinds"/>: the categories of memory (null, all); <see cref="IncludeLog"/>: whether the fragments of the
 /// log's entries may come too.</item>
-/// <item><see cref="TrustedOnly"/>: only what may reach a prompt (trusted, and not superseded). The packer and the MCP
-/// snapshot never ask for anything else; the «Memoria» document may, to show the rest with its trust.</item>
+/// <item><see cref="TrustedOnly"/>: only what may reach a prompt (<see cref="MayReachAPrompt"/>: trusted, not superseded,
+/// and never a daily summary). The packer and the MCP snapshot never ask for anything else; the «Memoria» document may, to
+/// show the rest with its trust.</item>
 /// </list>
 /// </summary>
 public sealed record SemanticQuery(string Text, int Top = 10)
 {
+    /// <summary>
+    /// Whether <paramref name="entry"/> may reach a prompt through the index, which is all a <see cref="TrustedOnly"/> search
+    /// and the snapshot of the planner's tool ever give (<see cref="ISemanticIndex.SnapshotAsync"/>): trusted, not
+    /// superseded, and never a daily summary (<see cref="MemoryKind.DailySummary"/>) whatever its origin, since it quotes the
+    /// «Hecho» lines of the journal and ADR-0023 keeps it out of the prompts. The journal reaches them only as its anchored
+    /// entries (<see cref="MemoryKind.JournalEntry"/>), with their own trust.
+    /// </summary>
+    public static bool MayReachAPrompt(MemoryEntry entry)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+        return entry.Trust == MemoryTrust.Trusted && entry.SupersededBy is null && entry.Kind != MemoryKind.DailySummary;
+    }
+
     public IReadOnlyList<MemoryKind>? Kinds { get; init; }
 
     public bool IncludeLog { get; init; } = true;
@@ -412,7 +436,8 @@ public interface ISemanticIndex
     Task<SemanticIndexStatus> StatusAsync(ProjectContext project, CancellationToken ct);
 
     /// <summary>
-    /// The trusted fragments of the project for the planner's MCP tool (D-06), newest first and at most
+    /// The fragments of the project that may reach a prompt (<see cref="SemanticQuery.MayReachAPrompt"/>: trusted, not
+    /// superseded and never a daily summary) for the planner's MCP tool (D-06), newest first and at most
     /// <paramref name="maxFragments"/>, with their vectors when they have one of the current model.
     /// </summary>
     Task<ProjectHistorySnapshot> SnapshotAsync(ProjectContext project, int maxFragments, CancellationToken ct);

@@ -72,7 +72,7 @@ public static class LexicalTerms
 
     private static string Fold(string term)
     {
-        var decomposed = term.ToLowerInvariant().Normalize(NormalizationForm.FormD);
+        var decomposed = WithoutLoneSurrogates(term).ToLowerInvariant().Normalize(NormalizationForm.FormD);
         var folded = new StringBuilder(decomposed.Length);
         foreach (var c in decomposed)
         {
@@ -83,5 +83,34 @@ public static class LexicalTerms
         }
 
         return folded.ToString();
+    }
+
+    /// <summary>
+    /// <paramref name="term"/> with each lone surrogate (half of a pair, without the other half) replaced by U+FFFD:
+    /// normalization refuses them, and a pasted text or a JSON <c>\uD800</c> can bring one.
+    /// </summary>
+    private static string WithoutLoneSurrogates(string term)
+    {
+        StringBuilder? clean = null;
+        for (var i = 0; i < term.Length; i++)
+        {
+            var c = term[i];
+            if (char.IsHighSurrogate(c) && i + 1 < term.Length && char.IsLowSurrogate(term[i + 1]))
+            {
+                clean?.Append(c).Append(term[i + 1]);
+                i++;
+            }
+            else if (char.IsSurrogate(c))
+            {
+                clean ??= new StringBuilder(term.Length).Append(term, 0, i);
+                clean.Append('\uFFFD');
+            }
+            else
+            {
+                clean?.Append(c);
+            }
+        }
+
+        return clean?.ToString() ?? term;
     }
 }

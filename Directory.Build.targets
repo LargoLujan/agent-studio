@@ -1,0 +1,18 @@
+<Project>
+
+  <!-- The natives of ONNX Runtime (Phase 12; ADR-0047, addendum of 2026-11-03). Microsoft.ML.OnnxRuntime carries its
+       native runtime for seven platforms (android, ios, linux-arm64, linux-x64, osx-arm64, win-arm64 and win-x64; about
+       237 MB), and a build or a publish without a RuntimeIdentifier copies them all under runtimes/. Agent Studio is a
+       Windows app (WPF), so only the two platforms it runs on are kept: win-x64 and win-arm64 (about 34 MB). The
+       deps.json is written from the same items, so it lists only those. A build or a publish for one RuntimeIdentifier
+       already takes only that one, flat in the output. -->
+  <Target Name="KeepOnlyWindowsOnnxRuntimeNatives" AfterTargets="ResolvePackageAssets" Condition="'$(RuntimeIdentifier)' == ''">
+    <ItemGroup>
+      <RuntimeTargetsCopyLocalItems Remove="@(RuntimeTargetsCopyLocalItems)"
+                                    Condition="'%(RuntimeTargetsCopyLocalItems.NuGetPackageId)' == 'Microsoft.ML.OnnxRuntime'
+                                               and '%(RuntimeTargetsCopyLocalItems.RuntimeIdentifier)' != 'win-x64'
+                                               and '%(RuntimeTargetsCopyLocalItems.RuntimeIdentifier)' != 'win-arm64'" />
+    </ItemGroup>
+  </Target>
+
+</Project>

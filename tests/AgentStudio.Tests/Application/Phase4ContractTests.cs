@@ -137,7 +137,8 @@ public sealed class Phase4ContractTests
     public void The_packer_packs_by_tiers_and_its_pack_is_recorded_by_reference()
     {
         Assert.Equal(["PackAsync"], MethodNames(typeof(IContextPacker)));
-        Assert.Equal(["MandatoryRequirement", "Decision", "PendingTask", "DesirableRequirement", "KnownIssue", "Other"], Enum.GetNames<ContextTier>());
+        // Phase 12 (docs/17 D-02; ADR-0047) appends the journal's own tier, the last one.
+        Assert.Equal(["MandatoryRequirement", "Decision", "PendingTask", "DesirableRequirement", "KnownIssue", "Other", "History"], Enum.GetNames<ContextTier>());
         var kept = new ContextItem("RQ-01", ContextTier.MandatoryRequirement, "requirement", "User", "Añadir Multiply", HashA);
         var left = new ContextItem("mem-9", ContextTier.Other, "Change", "System", "Un cambio antiguo", HashB);
         var pack = new ContextPack([kept], [left], 15, MetricValue<long>.EstimatedBySystem(4, "estimate: 4 chars/token"), new string('c', 64));

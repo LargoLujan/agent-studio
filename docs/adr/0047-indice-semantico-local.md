@@ -188,3 +188,32 @@ exportarse a Markdown, y lo demás de esta ADR.
 - **Un lanzamiento sin final no deja recibo.** Una entrada cuyo lanzamiento no pudo empezar (la petición falló antes de
   arrancar), o cuyo final se cortó antes de escribirse (la app murió entre la línea «Resultado» y `AgentRunFinished`), no
   tiene recibo, porque no hay final que lo lleve: queda en cuarentena.
+
+## Adenda · 2026-11-03 · los nativos de ONNX Runtime: siete plataformas, y solo se copian las dos de Windows
+
+La consecuencia «El paquete de ONNX Runtime trae el nativo de cinco plataformas (unos 128 MB)» se quedaba corta, y la
+decisión no espera al instalador (Fase 7).
+
+- **Lo medido** (`Microsoft.ML.OnnxRuntime` 1.31.1): trae el nativo de siete plataformas, no de cinco. Son android
+  (53 MB), ios (57 MB), linux-arm64 (25 MB), linux-x64 (29 MB), osx-arm64 (43 MB), win-arm64 (17 MB) y win-x64 (17 MB):
+  237 MB en la salida. Una compilación o una publicación sin `RuntimeIdentifier` los copia todos en `runtimes/`.
+- **La decisión:** Agent Studio es una app de Windows (WPF), así que solo se copian los dos nativos que puede usar,
+  win-x64 y win-arm64 (34 MB).
+  - Lo hace `Directory.Build.targets`, en la raíz, para cualquier proyecto que reciba el paquete. Justo después de
+    `ResolvePackageAssets` quita de `RuntimeTargetsCopyLocalItems` los nativos de ONNX Runtime de los demás RID. Así no
+    se copian ni se publican, y `deps.json` tampoco los nombra.
+  - Una publicación por RID (`-r win-x64`) ya llevaba solo el suyo, en la raíz de la salida, y no cambia.
+- **Antes y después** (MB, medido el 2026-11-03):
+
+  | Salida | Antes | Después |
+  |---|---|---|
+  | Desktop (Debug) | 337 | 133 |
+  | Pruebas (Debug) | 358 | 154 |
+  | Publicación de Desktop sin RID (Release) | 336 | 132 |
+  | Publicación de Desktop con `-r win-x64` (Release, dependiente del framework) | 85 | 85 |
+
+- **Comprobado en x64:** con la salida recortada, las pruebas del modelo real (`OnnxEmbedderLocalModelTests`, LocalTools)
+  dan los ids de `sentencepiece` en 56 de 56 frases y los vectores de onnxruntime en Python (coseno de 0,9999 o más).
+  El de win-arm64 se copia, pero sigue sin probar, como ya decía «Sin medir».
+- **Lo que queda en `runtimes/`** (67 MB): los dos nativos de ONNX Runtime (34 MB), `e_sqlite3` de SQLite para 21 RID
+  (31 MB) y `WebView2Loader` para tres (0,5 MB). Recortar los de otros paquetes es otra decisión, fuera de esta adenda.
