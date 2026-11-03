@@ -1,0 +1,19 @@
+﻿<Application x:Class="AgentStudio.Desktop.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Themes/Dark.xaml"/>
+                <!-- The orchestrator canvas (Nodify), in this order (ADR-0015, pattern 7): Nodify's controls and colours,
+                     its focus visuals (based on the styles just above, so they must be siblings here), and the canvas
+                     templates and panels of Themes/Nodify.xaml, which use the tokens. MainWindow repaints Nodify's colour
+                     keys from the tokens (NodifyThemeTokens) before any canvas is created. -->
+                <ResourceDictionary Source="pack://application:,,,/Nodify;component/Themes/Dark.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/Nodify;component/Themes/FocusVisual.xaml"/>
+                <ResourceDictionary Source="Themes/Nodify.xaml"/>
+                <ResourceDictionary Source="Themes/DocumentTemplates.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>AgentStudio.Infrastructure</RootNamespace>
+    <!-- Required by the LibraryImport source generator (Job Object and ConPTY P/Invoke). -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AgentStudio.Application\AgentStudio.Application.csproj" />
+    <PackageReference Include="Microsoft.Data.Sqlite" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Persistence\Schema\*.sql" LogicalName="AgentStudio.Schema.%(Filename)%(Extension)" />
+  </ItemGroup>
+
+</Project>

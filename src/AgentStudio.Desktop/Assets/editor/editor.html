@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:; worker-src blob:; connect-src 'self'; base-uri 'none'; form-action 'none'">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Editor</title>
+    <style>
+        html, body { margin: 0; height: 100%; overflow: hidden; background: #0A1020; }
+        #editor, #diff { position: absolute; inset: 0; }
+        #diff { display: none; }
+    </style>
+</head>
+<body>
+    <div id="editor"></div>
+    <div id="diff"></div>
+    <script src="../monaco/vs/loader.js"></script>
+    <script src="editor.js"></script>
+</body>
+</html>

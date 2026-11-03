@@ -1,0 +1,20 @@
+<UserControl x:Class="AgentStudio.Desktop.Views.FileTextView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:AgentStudio.Desktop.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:FileDocumentViewModel}">
+    <!-- Plain read-only viewer. The editor integration replaces the DataTemplate that points here
+         (Themes/DocumentTemplates.xaml), not this view model. -->
+    <Grid Background="{StaticResource BackgroundBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Row="0" Style="{StaticResource ErrorText}" Margin="12,10" Text="{Binding ErrorMessage}"/>
+        <TextBox Grid.Row="1" Style="{StaticResource MonoViewer}" Text="{Binding Text, Mode=OneWay}"
+                 AutomationProperties.Name="Contenido del fichero"/>
+    </Grid>
+</UserControl>

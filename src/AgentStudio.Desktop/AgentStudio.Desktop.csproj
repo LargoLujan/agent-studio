@@ -1,0 +1,111 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The Windows SDK of build 22000 (docs/16 D-13, ADR-0037): its projection brings UserConsentVerifierInterop, with which
+       a desktop window asks Windows Hello, and that interop needs Windows 11 (build 22000) to run. Only this project and
+       the test project, which references it, target a version of the SDK: the domain, the contracts and the modules stay
+       in net10.0 (ADR-0001). -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.22000.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>AgentStudio.Desktop</RootNamespace>
+    <AssemblyTitle>Agent Studio</AssemblyTitle>
+  </PropertyGroup>
+
+  <!-- The icon in the notification area (docs/16 D-14, ADR-0036): System.Windows.Forms.NotifyIcon, part of the desktop
+       shared framework the app already runs on, so no package and no file more in the output. Only Background/NotifyIconTray
+       uses Windows Forms: the global usings the SDK adds for it would make MessageBox, Application, Color or Point ambiguous
+       with WPF's all over the project, so they are removed. -->
+  <PropertyGroup>
+    <UseWindowsForms>true</UseWindowsForms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Dirkster.AvalonDock" />
+    <PackageReference Include="Dirkster.AvalonDock.Themes.VS2013" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.Web.WebView2" />
+    <PackageReference Include="Nodify" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Assets\**" />
+  </ItemGroup>
+
+  <!-- Editor assets: the page is versioned; Monaco is downloaded (see tools/assets/fetch-monaco.ps1). -->
+  <PropertyGroup>
+    <MonacoFetchScript>$(MSBuildThisFileDirectory)..\..\tools\assets\fetch-monaco.ps1</MonacoFetchScript>
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);AS0001</WarningsNotAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="Assets\editor\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <Target Name="FetchMonaco" BeforeTargets="BeforeBuild" Condition="!Exists('$(MSBuildThisFileDirectory)Assets\monaco\vs\loader.js')">
+    <Exec Command="pwsh -NoProfile -ExecutionPolicy Bypass -File &quot;$(MonacoFetchScript)&quot;"
+          ContinueOnError="true" IgnoreExitCode="true" IgnoreStandardErrorWarningFormat="true">
+      <Output TaskParameter="ExitCode" PropertyName="MonacoFetchExitCode" />
+    </Exec>
+    <Warning Code="AS0001" Condition="'$(MonacoFetchExitCode)' != '0'"
+             Text="Could not download the Monaco editor resources (exit code $(MonacoFetchExitCode)). The code editor will show 'Editor no disponible' until you run tools/assets/fetch-monaco.ps1 (needs pwsh and network access)." />
+  </Target>
+
+  <!-- Monaco is generated, so it is added after the (possible) download rather than through a static glob. -->
+  <Target Name="IncludeMonacoContent" AfterTargets="FetchMonaco" BeforeTargets="BeforeBuild">
+    <ItemGroup>
+      <Content Include="Assets\monaco\**" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
+
+  <!-- Terminal (xterm.js in WebView2). The page ships in Assets\terminal; xterm itself is downloaded (MIT, not versioned)
+       by tools\assets\fetch-xterm.ps1 into Assets\xterm and copied next to the page as Assets\terminal\xterm\. -->
+  <PropertyGroup>
+    <XtermAssetsDir>$(MSBuildThisFileDirectory)Assets\xterm\</XtermAssetsDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="Assets\terminal\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <Target Name="FetchXtermAssets" BeforeTargets="BeforeBuild" Condition="!Exists('$(XtermAssetsDir)xterm.js')">
+    <Exec Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)..\..\tools\assets\fetch-xterm.ps1&quot;"
+          IgnoreExitCode="true" IgnoreStandardErrorWarningFormat="true" ContinueOnError="true" />
+    <Message Importance="high" Condition="!Exists('$(XtermAssetsDir)xterm.js')"
+             Text="xterm assets could not be downloaded; the terminal will show an error at runtime. Run tools\assets\fetch-xterm.ps1." />
+  </Target>
+
+  <!-- Evaluated at execution time so files downloaded by the target above are included in the very first build. -->
+  <Target Name="IncludeXtermAssets" BeforeTargets="AssignTargetPaths" DependsOnTargets="FetchXtermAssets">
+    <ItemGroup>
+      <XtermAssetFile Include="$(XtermAssetsDir)**" />
+      <Content Include="@(XtermAssetFile)" Link="Assets\terminal\xterm\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AgentStudio.Application\AgentStudio.Application.csproj" />
+    <ProjectReference Include="..\AgentStudio.Orchestration\AgentStudio.Orchestration.csproj" />
+    <ProjectReference Include="..\AgentStudio.Debate\AgentStudio.Debate.csproj" />
+    <ProjectReference Include="..\AgentStudio.Observability\AgentStudio.Observability.csproj" />
+    <ProjectReference Include="..\AgentStudio.Memory\AgentStudio.Memory.csproj" />
+    <ProjectReference Include="..\AgentStudio.Security\AgentStudio.Security.csproj" />
+    <ProjectReference Include="..\AgentStudio.Providers\AgentStudio.Providers.csproj" />
+    <ProjectReference Include="..\AgentStudio.Infrastructure\AgentStudio.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <!-- The read-only MCP server of the assisted skill recommender (docs/14 D-30) ships next to the app, where
+       SkillsScreenServices.DefaultServerExecutable expects it: referencing the executable project copies its apphost,
+       its runtimeconfig, its deps.json and its dependencies into the output, as the test project already does. No code
+       of the app uses its types: Claude Code launches it over stdio from an auxiliary read-only run. -->
+  <ItemGroup>
+    <ProjectReference Include="..\AgentStudio.SkillsMcp\AgentStudio.SkillsMcp.csproj" />
+  </ItemGroup>
+
+</Project>

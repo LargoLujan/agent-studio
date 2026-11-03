@@ -1,0 +1,222 @@
+<UserControl x:Class="AgentStudio.Desktop.Views.Debate.VerdictCardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:debate="clr-namespace:AgentStudio.Desktop.Debate"
+             xmlns:orchestratorViews="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=debate:VerdictCardViewModel}">
+    <!-- The card of a verdict (docs/15 D-42, docs/03 §6), common to runs, debates and audits: the outcome and its rule,
+         the disposition of the judgment and its waiver (warning colour), the verdicts (two side by side in a panel), the
+         labels the judge did not see, and «Impugnar», «Decidir yo» and «Crear tareas correctivas», each only when given.
+         Every coloured dot repeats something the words already say. Bindings only. -->
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="Card.BoolToVisibility"/>
+        <orchestratorViews:ToneToBrushConverter x:Key="Card.ToneToBrush"/>
+        <orchestratorViews:NullToVisibilityConverter x:Key="Card.NotNullToVisibility"/>
+        <Style x:Key="Card.ListTitle" TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,8,0,2"/>
+        </Style>
+        <DataTemplate x:Key="Card.Line">
+            <TextBlock Style="{StaticResource BodyText}" FontSize="12" Margin="8,1,0,1" Text="{Binding StringFormat='• {0}'}"/>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Border Style="{StaticResource InnerCard}" Padding="12,10" AutomationProperties.Name="{Binding Title}">
+        <StackPanel>
+            <TextBlock Style="{StaticResource SectionTitleText}" Text="{Binding Title}"/>
+            <DockPanel Margin="0,6,0,0">
+                <Ellipse DockPanel.Dock="Left" Width="10" Height="10" Margin="0,4,8,0" VerticalAlignment="Top"
+                         Fill="{Binding OutcomeTone, Converter={StaticResource Card.ToneToBrush}}"/>
+                <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{Binding OutcomeText}"
+                           AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="Resultado del juicio"/>
+            </DockPanel>
+            <TextBlock Style="{StaticResource BodyText}" Margin="18,2,0,0" Text="{Binding ChosenProposalText}"
+                       Visibility="{Binding ChosenProposalText, Converter={StaticResource Card.NotNullToVisibility}}"/>
+            <TextBlock Style="{StaticResource SecondaryText}" Margin="0,6,0,0" Text="{Binding Disposition, StringFormat='Disposición de la revisión: {0}'}"
+                       Visibility="{Binding Disposition, Converter={StaticResource Card.NotNullToVisibility}}"/>
+            <TextBlock Style="{StaticResource BodyText}" FontSize="12" Margin="0,6,0,0" Text="{Binding JudgingText}"
+                       Visibility="{Binding JudgingText, Converter={StaticResource Card.NotNullToVisibility}}"/>
+            <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding JudgingHelp}"
+                       Visibility="{Binding JudgingHelp, Converter={StaticResource Card.NotNullToVisibility}}"/>
+            <TextBlock Style="{StaticResource BodyText}" FontSize="12" Margin="0,4,0,0" Foreground="{StaticResource WarningBrush}" Text="{Binding WaiverText}"
+                       Visibility="{Binding WaiverText, Converter={StaticResource Card.NotNullToVisibility}}"
+                       AutomationProperties.Name="Dispensa"/>
+            <TextBlock Style="{StaticResource BodyText}" FontSize="12" Margin="0,4,0,0" Foreground="{StaticResource WarningBrush}" Text="{Binding RequirementsNote}"
+                       Visibility="{Binding RequirementsNote, Converter={StaticResource Card.NotNullToVisibility}}"/>
+
+            <!-- The verdicts, side by side in a cross-vendor panel. -->
+            <ItemsControl Margin="0,10,0,0" ItemsSource="{Binding Verdicts}" Focusable="False" AutomationProperties.Name="Veredictos">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Rows="1"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type debate:VerdictPanelViewModel}">
+                        <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,0,8,0"
+                                Background="{StaticResource SurfaceBrush}" AutomationProperties.Name="{Binding Id, StringFormat='Veredicto {0}'}">
+                            <StackPanel>
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Content="Impugnar"
+                                            Command="{Binding ChallengeCommand}"
+                                            Visibility="{Binding CanBeChallenged, Converter={StaticResource Card.BoolToVisibility}}"
+                                            ToolTip="Abre un debate de revisión sobre este veredicto: el juez no es infalible. Nada se registra hasta que lo confirmes."
+                                            AutomationProperties.Name="{Binding Id, StringFormat='Impugnar {0}'}"/>
+                                    <TextBlock Style="{StaticResource BodyText}" FontFamily="{StaticResource MonoFont}" FontWeight="SemiBold" Text="{Binding Id}"/>
+                                </DockPanel>
+                                <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding JudgeText}"/>
+                                <DockPanel Margin="0,6,0,0">
+                                    <Ellipse DockPanel.Dock="Left" Width="9" Height="9" Margin="0,4,6,0" VerticalAlignment="Top"
+                                             Fill="{Binding DecisionTone, Converter={StaticResource Card.ToneToBrush}}"/>
+                                    <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{Binding DecisionText}"/>
+                                </DockPanel>
+                                <TextBlock Style="{StaticResource BodyText}" FontSize="12" Margin="0,2,0,0" Text="{Binding ChosenProposalText}"
+                                           Visibility="{Binding ChosenProposalText, Converter={StaticResource Card.NotNullToVisibility}}"/>
+                                <TextBlock Style="{StaticResource BodyText}" FontSize="12" Margin="0,4,0,0" Text="{Binding Summary}"/>
+                                <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="{Binding ConfidenceText}"/>
+                                <DockPanel Margin="0,4,0,0">
+                                    <Ellipse DockPanel.Dock="Left" Width="7" Height="7" Margin="0,5,6,0" VerticalAlignment="Top"
+                                             Fill="{Binding ValidationTone, Converter={StaticResource Card.ToneToBrush}}"/>
+                                    <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding ValidationText}"/>
+                                </DockPanel>
+                                <ItemsControl ItemsSource="{Binding Issues}" Focusable="False" Visibility="{Binding HasIssues, Converter={StaticResource Card.BoolToVisibility}}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type debate:IssueRow}">
+                                            <TextBlock Style="{StaticResource ProblemText}" Margin="8,1,0,1">
+                                                <Run Text="{Binding Text, Mode=OneWay}"/>
+                                                <Run Text="·"/>
+                                                <Run Text="{Binding Code, Mode=OneWay}" FontFamily="{StaticResource MonoFont}"/>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding CorrectedText}"
+                                           Visibility="{Binding CorrectedText, Converter={StaticResource Card.NotNullToVisibility}}"/>
+                                <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding HumanText}"/>
+                                <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding IssuedText}"/>
+
+                                <TextBlock Style="{StaticResource Card.ListTitle}" Text="Comparación de las propuestas"
+                                           Visibility="{Binding HasComparison, Converter={StaticResource Card.BoolToVisibility}}"/>
+                                <ItemsControl ItemsSource="{Binding Comparison}" Focusable="False">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type debate:ComparisonRow}">
+                                            <TextBlock Style="{StaticResource BodyText}" FontSize="12" Margin="8,1,0,1">
+                                                <Run Text="{Binding Proposal, Mode=OneWay}" FontWeight="SemiBold"/>
+                                                <Run Text="· fuertes:"/>
+                                                <Run Text="{Binding Strengths, Mode=OneWay}"/>
+                                                <Run Text="· débiles:"/>
+                                                <Run Text="{Binding Weaknesses, Mode=OneWay}"/>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <TextBlock Style="{StaticResource Card.ListTitle}" Text="{Binding CountsText, StringFormat='Requisitos   {0}'}"/>
+                                <ItemsControl ItemsSource="{Binding Assessments}" Focusable="False" AutomationProperties.Name="Requisitos">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type debate:AssessmentRow}">
+                                            <StackPanel Margin="8,2,0,2">
+                                                <DockPanel>
+                                                    <Ellipse DockPanel.Dock="Left" Width="7" Height="7" Margin="0,5,6,0" VerticalAlignment="Top"
+                                                             Fill="{Binding Tone, Converter={StaticResource Card.ToneToBrush}}"/>
+                                                    <TextBlock Style="{StaticResource BodyText}" FontSize="12">
+                                                        <Run Text="{Binding Glyph, Mode=OneWay}"/>
+                                                        <Run Text="{Binding Requirement, Mode=OneWay}" FontFamily="{StaticResource MonoFont}" FontWeight="SemiBold"/>
+                                                        <Run Text="{Binding Status, Mode=OneWay}"/>
+                                                        <Run Text="·"/>
+                                                        <Run Text="{Binding Statement, Mode=OneWay, TargetNullValue='(texto no disponible)'}"/>
+                                                    </TextBlock>
+                                                </DockPanel>
+                                                <TextBlock Style="{StaticResource SecondaryText}" Margin="13,0,0,0" Text="{Binding Rationale}"/>
+                                                <TextBlock Style="{StaticResource SecondaryText}" Margin="13,0,0,0" FontSize="11" Text="{Binding Evidence}"/>
+                                                <TextBlock Style="{StaticResource SecondaryText}" Margin="13,0,0,0" FontSize="11" FontStyle="Italic" Text="{Binding JudgeAssessment}"
+                                                           Visibility="{Binding JudgeAssessment, Converter={StaticResource Card.NotNullToVisibility}}"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <TextBlock Style="{StaticResource Card.ListTitle}" Text="Hallazgos"
+                                           Visibility="{Binding HasFindings, Converter={StaticResource Card.BoolToVisibility}}"/>
+                                <ItemsControl ItemsSource="{Binding Findings}" Focusable="False">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type debate:FindingRow}">
+                                            <DockPanel Margin="8,1,0,1">
+                                                <Ellipse DockPanel.Dock="Left" Width="7" Height="7" Margin="0,5,6,0" VerticalAlignment="Top"
+                                                         Fill="{Binding Tone, Converter={StaticResource Card.ToneToBrush}}"/>
+                                                <TextBlock Style="{StaticResource BodyText}" FontSize="12">
+                                                    <Run Text="{Binding Severity, Mode=OneWay}" FontWeight="SemiBold"/>
+                                                    <Run Text="·"/>
+                                                    <Run Text="{Binding Category, Mode=OneWay}"/>
+                                                    <Run Text="·"/>
+                                                    <Run Text="{Binding Description, Mode=OneWay}"/>
+                                                    <Run Text="·" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                                    <Run Text="{Binding References, Mode=OneWay}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                                </TextBlock>
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <TextBlock Style="{StaticResource Card.ListTitle}" Text="Objeciones pendientes"
+                                           Visibility="{Binding HasPendingObjections, Converter={StaticResource Card.BoolToVisibility}}"/>
+                                <ItemsControl ItemsSource="{Binding PendingObjections}" Focusable="False" ItemTemplate="{StaticResource Card.Line}"/>
+                                <TextBlock Style="{StaticResource Card.ListTitle}" Text="Riesgos"
+                                           Visibility="{Binding HasRisks, Converter={StaticResource Card.BoolToVisibility}}"/>
+                                <ItemsControl ItemsSource="{Binding Risks}" Focusable="False" ItemTemplate="{StaticResource Card.Line}"/>
+                                <TextBlock Style="{StaticResource Card.ListTitle}" Text="Acciones correctivas"
+                                           Visibility="{Binding HasCorrectiveActions, Converter={StaticResource Card.BoolToVisibility}}"/>
+                                <ItemsControl ItemsSource="{Binding CorrectiveActions}" Focusable="False" ItemTemplate="{StaticResource Card.Line}"/>
+                                <TextBlock Style="{StaticResource ErrorText}" FontSize="12" Text="{Binding ChallengeError}"/>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- The labels of the blind dossier and who was behind them (D-15). -->
+            <StackPanel Margin="0,8,0,0" Visibility="{Binding HasLabels, Converter={StaticResource Card.BoolToVisibility}}">
+                <TextBlock Style="{StaticResource Card.ListTitle}" Text="Correspondencia de las etiquetas (el juez no la vio: el dossier va a ciegas)"/>
+                <ItemsControl ItemsSource="{Binding Labels}" Focusable="False">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type debate:LabelRow}">
+                            <TextBlock Style="{StaticResource BodyText}" FontSize="12" Margin="8,1,0,1">
+                                <Run Text="{Binding Label, Mode=OneWay}" FontFamily="{StaticResource MonoFont}" FontWeight="SemiBold"/>
+                                <Run Text="{Binding Role, Mode=OneWay}"/>
+                                <Run Text="→"/>
+                                <Run Text="{Binding Agent, Mode=OneWay}" FontFamily="{StaticResource MonoFont}"/>
+                                <Run Text="·"/>
+                                <Run Text="{Binding Where, Mode=OneWay}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            </TextBlock>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
+            <!-- «Decidir yo» (D-26): only when the judgment needs a person and there is a debate to record it. -->
+            <Border Margin="0,10,0,0" Padding="10,8" BorderBrush="{StaticResource WarningBrush}" BorderThickness="1" CornerRadius="6"
+                    Visibility="{Binding CanDecide, Converter={StaticResource Card.BoolToVisibility}}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="Decidir yo"/>
+                    <TextBlock Style="{StaticResource SecondaryText}" Text="Tu resolución queda en el registro, atada a los veredictos y con tu comentario: el debate se cierra con la regla «decisión tuya»."/>
+                    <WrapPanel Margin="0,6,0,0">
+                        <ComboBox MinWidth="170" Margin="0,0,8,6" ItemsSource="{Binding DecisionOptions}" SelectedItem="{Binding SelectedDecision}" DisplayMemberPath="Label"
+                                  AutomationProperties.Name="Tu decisión"/>
+                        <ComboBox MinWidth="120" Margin="0,0,8,6" ItemsSource="{Binding ProposalOptions}" SelectedItem="{Binding SelectedProposal}" DisplayMemberPath="Label"
+                                  AutomationProperties.Name="Propuesta elegida"/>
+                    </WrapPanel>
+                    <TextBox Style="{StaticResource MultilineFieldTextBox}" Text="{Binding Comment, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Por qué decides esto"/>
+                    <Button Style="{StaticResource ToolbarPrimaryButton}" HorizontalAlignment="Left" Margin="0,6,0,0" Content="Decidir yo" Command="{Binding DecideCommand}"/>
+                </StackPanel>
+            </Border>
+            <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="0,4,0,0" Text="{Binding DecisionStatus, TargetNullValue=''}" AutomationProperties.LiveSetting="Polite"/>
+            <Button Style="{StaticResource ToolbarButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Content="Crear tareas correctivas" Command="{Binding CreateCorrectiveTasksCommand}"
+                    Visibility="{Binding CanCreateCorrectiveTasks, Converter={StaticResource Card.BoolToVisibility}}"
+                    ToolTip="Abre el orquestador con una petición nueva que cita las acciones correctivas como datos. Nada se planifica ni se ejecuta sin ti."/>
+            <TextBlock Style="{StaticResource ErrorText}" Text="{Binding ErrorMessage}" AutomationProperties.LiveSetting="Assertive"/>
+        </StackPanel>
+    </Border>
+</UserControl>

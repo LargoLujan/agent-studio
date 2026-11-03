@@ -1,0 +1,215 @@
+{
+  "GeneratedAt": "2026-10-15 22:46:59 +02:00",
+  "Environment": {
+    "OperatingSystem": "Microsoft Windows 10.0.26300",
+    "Runtime": ".NET 10.0.11",
+    "LogicalProcessors": 16,
+    "RenderTier": 2,
+    "DpiScale": 1.25,
+    "WindowSizePixels": "window client 1859x984 px at 120 dpi, off-screen; pictures rendered at 120 dpi",
+    "NodifyVersion": "7.3.0+d3b84436b9cc0d8d8e3b053a90deb86a1ac94eb4"
+  },
+  "MachineLoad": [
+    "run start: 52 %",
+    "benchmark start: 90 %",
+    "benchmark end: 29 %"
+  ],
+  "Theme": null,
+  "SmallGraphColdLoad": null,
+  "Benchmark": {
+    "Nodes": 200,
+    "Connections": 300,
+    "ContainersRendered": 200,
+    "WiresRendered": 300,
+    "PlanSizeLoad20Nodes": {
+      "ViewModelBuildMs": 23.9,
+      "FirstFrameMs": 389.3,
+      "FullyDrawnMs": 391.5
+    },
+    "FirstLoad": {
+      "ViewModelBuildMs": 191.6,
+      "FirstFrameMs": 2995.2,
+      "FullyDrawnMs": 2995.3
+    },
+    "WarmReloads": [
+      {
+        "ViewModelBuildMs": 98.9,
+        "FirstFrameMs": 2333.9,
+        "FullyDrawnMs": 2334
+      },
+      {
+        "ViewModelBuildMs": 87.7,
+        "FirstFrameMs": 1905.6,
+        "FullyDrawnMs": 1905.7
+      },
+      {
+        "ViewModelBuildMs": 102.1,
+        "FirstFrameMs": 1522.7,
+        "FullyDrawnMs": 1522.8
+      },
+      {
+        "ViewModelBuildMs": 101.5,
+        "FirstFrameMs": 1626.3,
+        "FullyDrawnMs": 1626.4
+      }
+    ],
+    "DomainGraphRebuildMs": 6.79,
+    "CycleProbeMs": 6.74,
+    "WorkingSetMbBefore": 150.4,
+    "WorkingSetMbAfter": 238.6,
+    "FitZoom": 0.311,
+    "Frames": [
+      {
+        "Scenario": "baseline, 12 nodes: pan at fit zoom",
+        "Frames": 161,
+        "Seconds": 3,
+        "AverageFps": 53.6,
+        "MeanFrameMs": 18.65,
+        "MedianFrameMs": 16.66,
+        "P95FrameMs": 33.31,
+        "MaxFrameMs": 43.15,
+        "FramesOver20Ms": 20,
+        "FramesOver33Ms": 1
+      },
+      {
+        "Scenario": "200 nodes: scripted pan at fit zoom (everything in view)",
+        "Frames": 174,
+        "Seconds": 3,
+        "AverageFps": 57.9,
+        "MeanFrameMs": 17.26,
+        "MedianFrameMs": 16.66,
+        "P95FrameMs": 16.67,
+        "MaxFrameMs": 33.31,
+        "FramesOver20Ms": 7,
+        "FramesOver33Ms": 0
+      },
+      {
+        "Scenario": "200 nodes: scripted zoom sweep (x1.8 each way)",
+        "Frames": 162,
+        "Seconds": 3.01,
+        "AverageFps": 53.7,
+        "MeanFrameMs": 18.61,
+        "MedianFrameMs": 16.66,
+        "P95FrameMs": 33.31,
+        "MaxFrameMs": 33.33,
+        "FramesOver20Ms": 19,
+        "FramesOver33Ms": 0
+      },
+      {
+        "Scenario": "200 nodes: scripted pan at 100% (a fifth of the graph in view)",
+        "Frames": 174,
+        "Seconds": 3.01,
+        "AverageFps": 57.8,
+        "MeanFrameMs": 17.29,
+        "MedianFrameMs": 16.66,
+        "P95FrameMs": 16.67,
+        "MaxFrameMs": 33.31,
+        "FramesOver20Ms": 7,
+        "FramesOver33Ms": 0
+      },
+      {
+        "Scenario": "200 nodes: right-button drag pan at fit zoom (mouse messages)",
+        "Frames": 166,
+        "Seconds": 3.01,
+        "AverageFps": 55.1,
+        "MeanFrameMs": 18.14,
+        "MedianFrameMs": 16.66,
+        "P95FrameMs": 33.31,
+        "MaxFrameMs": 33.33,
+        "FramesOver20Ms": 15,
+        "FramesOver33Ms": 0
+      },
+      {
+        "Scenario": "200 nodes: mouse wheel zoom (wheel messages)",
+        "Frames": 113,
+        "Seconds": 3.02,
+        "AverageFps": 37.5,
+        "MeanFrameMs": 26.7,
+        "MedianFrameMs": 33.29,
+        "P95FrameMs": 33.33,
+        "MaxFrameMs": 50,
+        "FramesOver20Ms": 63,
+        "FramesOver33Ms": 5
+      },
+      {
+        "Scenario": "200 nodes: left-drag of a node at fit zoom, its wires follow (mouse messages)",
+        "Frames": 166,
+        "Seconds": 3.01,
+        "AverageFps": 55.1,
+        "MeanFrameMs": 18.14,
+        "MedianFrameMs": 16.66,
+        "P95FrameMs": 33.3,
+        "MaxFrameMs": 47.01,
+        "FramesOver20Ms": 14,
+        "FramesOver33Ms": 1
+      },
+      {
+        "Scenario": "200 nodes: scripted pan at fit zoom with Nodify's rendering optimisation forced on (threshold 100)",
+        "Frames": 171,
+        "Seconds": 3.01,
+        "AverageFps": 56.8,
+        "MeanFrameMs": 17.62,
+        "MedianFrameMs": 16.66,
+        "P95FrameMs": 33.31,
+        "MaxFrameMs": 33.31,
+        "FramesOver20Ms": 10,
+        "FramesOver33Ms": 0
+      }
+    ]
+  },
+  "Experiment": null,
+  "Checks": [
+    {
+      "Area": "bench",
+      "Name": "200 nodes and 300 wires are rendered",
+      "Passed": true,
+      "Detail": "200 containers, 300 wires; first load 2995 ms to first frame, 2995 ms fully drawn; 4 warm reloads fully drawn in 1523-2334 ms"
+    },
+    {
+      "Area": "bench",
+      "Name": "the cycle probe still refuses a back edge on the 200/300 graph",
+      "Passed": true,
+      "Detail": "Ciclo: N155 → N164 → N155; rebuild 6,79 ms, probe 6,74 ms (mean of 20)"
+    },
+    {
+      "Area": "bench",
+      "Name": "pan with all 200 nodes in view stays interactive (at least 30 frames per second)",
+      "Passed": true,
+      "Detail": "57,9 fps, median 16,66 ms, p95 16,67 ms, 0 frames over 33 ms"
+    },
+    {
+      "Area": "bench",
+      "Name": "a right-button drag pan with 200 nodes stays interactive (at least 30 frames per second)",
+      "Passed": true,
+      "Detail": "55,1 fps, p95 33,31 ms"
+    },
+    {
+      "Area": "session",
+      "Name": "the harness window never took the foreground while somebody was using the machine",
+      "Passed": true,
+      "Detail": "one while nobody had touched the machine for 1415 s, handed back at once"
+    },
+    {
+      "Area": "session",
+      "Name": "the harness window is never left as the foreground window",
+      "Passed": true,
+      "Detail": "1 takeover(s), the foreground belongs to another window at the end"
+    },
+    {
+      "Area": "session",
+      "Name": "no tool tip, menu or other popup window was ever created",
+      "Passed": true,
+      "Detail": "one native window (the off-screen host) existed at every checkpoint"
+    }
+  ],
+  "Skipped": [],
+  "ForegroundTakeovers": [
+    "nobody had touched the machine for 1415 s; handed back: True"
+  ],
+  "Screenshots": [
+    "fase3-spike-nodify-200.png"
+  ],
+  "Fatal": null,
+  "Passed": 7,
+  "Failed": 0
+}

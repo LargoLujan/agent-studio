@@ -1,0 +1,1 @@
+codex app-server --listen stdio:// · stdin: {"method":"initialize","id":1,"params":{"clientInfo":{"name":"agent_studio","title":"Agent Studio","version":"0.0.0"}}} | {"method":"initialized","params":{}} | {"method":"account/rateLimits/read","id":2,"params":{"excludeResetCreditDetails":true}}

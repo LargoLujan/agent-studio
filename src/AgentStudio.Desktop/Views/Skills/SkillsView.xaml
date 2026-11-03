@@ -1,0 +1,390 @@
+<UserControl x:Class="AgentStudio.Desktop.Views.Skills.SkillsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:skills="clr-namespace:AgentStudio.Desktop.Skills"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=skills:SkillsDocumentViewModel}"
+             Background="{StaticResource BackgroundBrush}">
+  <!-- The «Skills» document (docs/14 D-26 and D-29, docs/10 section 8): the tree of sectors, the card of the selected skill
+       with its switches, health and cost, and the two recommendations. Bindings only; it uses the tokens of Dark.xaml and
+       defines here what else it needs, so it renders with the base theme alone. -->
+  <UserControl.Resources>
+    <Style x:Key="Skills.OptionalText" TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
+      <Style.Triggers>
+        <Trigger Property="Text" Value="">
+          <Setter Property="Visibility" Value="Collapsed"/>
+        </Trigger>
+        <Trigger Property="Text" Value="{x:Null}">
+          <Setter Property="Visibility" Value="Collapsed"/>
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+
+    <Style x:Key="Skills.WarningText" TargetType="TextBlock" BasedOn="{StaticResource BodyText}">
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="Foreground" Value="{StaticResource WarningBrush}"/>
+      <Setter Property="Margin" Value="0,2,0,2"/>
+    </Style>
+
+    <Style x:Key="Skills.OptionalWarningText" TargetType="TextBlock" BasedOn="{StaticResource Skills.WarningText}">
+      <Style.Triggers>
+        <Trigger Property="Text" Value="">
+          <Setter Property="Visibility" Value="Collapsed"/>
+        </Trigger>
+        <Trigger Property="Text" Value="{x:Null}">
+          <Setter Property="Visibility" Value="Collapsed"/>
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+
+    <BooleanToVisibilityConverter x:Key="Skills.BoolToVisibility"/>
+
+    <!-- «Ver el detalle»: a toggle with the look of the secondary buttons, from the tokens of Dark.xaml only. -->
+    <Style x:Key="Skills.DetailToggle" TargetType="ToggleButton">
+      <Setter Property="FontFamily" Value="{StaticResource UiFont}"/>
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Padding" Value="10,3"/>
+      <Setter Property="Margin" Value="12,0,0,0"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="FocusVisualStyle" Value="{StaticResource {x:Static SystemParameters.FocusVisualStyleKey}}"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ToggleButton">
+            <Border x:Name="Root" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Root" Property="Background" Value="{StaticResource SurfaceRaisedBrush}"/>
+              </Trigger>
+              <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="Root" Property="Background" Value="{StaticResource SurfaceRaisedBrush}"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="Skills.SectionText" TargetType="TextBlock" BasedOn="{StaticResource SectionTitleText}">
+      <Setter Property="Margin" Value="0,14,0,6"/>
+    </Style>
+
+    <!-- The health of a skill: green (sana), amber (aviso), red (crítico), grey (sin comprobar). -->
+    <Style x:Key="Skills.HealthDot" TargetType="Ellipse">
+      <Setter Property="Width" Value="9"/>
+      <Setter Property="Height" Value="9"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="Fill" Value="{StaticResource BorderStrongBrush}"/>
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding HealthStatus}" Value="Healthy">
+          <Setter Property="Fill" Value="{StaticResource SuccessBrush}"/>
+        </DataTrigger>
+        <DataTrigger Binding="{Binding HealthStatus}" Value="Warning">
+          <Setter Property="Fill" Value="{StaticResource WarningBrush}"/>
+        </DataTrigger>
+        <DataTrigger Binding="{Binding HealthStatus}" Value="Critical">
+          <Setter Property="Fill" Value="{StaticResource ErrorBrush}"/>
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <Style x:Key="Skills.CheckDot" TargetType="Ellipse" BasedOn="{StaticResource Skills.HealthDot}">
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Status}" Value="Healthy">
+          <Setter Property="Fill" Value="{StaticResource SuccessBrush}"/>
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Status}" Value="Warning">
+          <Setter Property="Fill" Value="{StaticResource WarningBrush}"/>
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Status}" Value="Critical">
+          <Setter Property="Fill" Value="{StaticResource ErrorBrush}"/>
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <Style x:Key="Skills.Field" TargetType="TextBox">
+      <Setter Property="FontFamily" Value="{StaticResource UiFont}"/>
+      <Setter Property="FontSize" Value="13"/>
+      <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+      <Setter Property="Background" Value="{StaticResource SurfaceRaisedBrush}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CaretBrush" Value="{StaticResource TextPrimaryBrush}"/>
+      <Setter Property="Padding" Value="6,4"/>
+      <Setter Property="VerticalContentAlignment" Value="Center"/>
+      <Setter Property="FocusVisualStyle" Value="{StaticResource {x:Static SystemParameters.FocusVisualStyleKey}}"/>
+    </Style>
+
+    <Style x:Key="Skills.Switch" TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
+      <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+      <Setter Property="FontFamily" Value="{StaticResource UiFont}"/>
+      <Setter Property="FontSize" Value="13"/>
+      <Setter Property="VerticalContentAlignment" Value="Center"/>
+      <Style.Triggers>
+        <Trigger Property="IsEnabled" Value="False">
+          <Setter Property="Opacity" Value="0.5"/>
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+
+    <!-- A recommended skill: the whole row shows it in the tree. -->
+    <Style x:Key="Skills.ItemButton" TargetType="Button">
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+      <Setter Property="FocusVisualStyle" Value="{StaticResource {x:Static SystemParameters.FocusVisualStyleKey}}"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="Root" Background="Transparent" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="4,6">
+              <ContentPresenter HorizontalAlignment="Stretch"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Root" Property="Background" Value="{StaticResource SurfaceRaisedBrush}"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <DataTemplate x:Key="Skills.RecommendationTemplate" DataType="{x:Type skills:SkillRecommendationItemViewModel}">
+      <Button Style="{StaticResource Skills.ItemButton}" Command="{Binding ShowCommand}"
+              AutomationProperties.Name="{Binding Name}" ToolTip="Ver su ficha en el árbol">
+        <StackPanel>
+          <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{Binding Name}"/>
+          <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding Detail}"/>
+        </StackPanel>
+      </Button>
+    </DataTemplate>
+
+    <DataTemplate x:Key="Skills.WarningTemplate">
+      <TextBlock Style="{StaticResource Skills.WarningText}" Text="{Binding}"/>
+    </DataTemplate>
+
+    <!-- The card of the selected skill. -->
+    <DataTemplate DataType="{x:Type skills:SkillDetailViewModel}">
+      <StackPanel>
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" AutomationProperties.Name="Salud de la skill">
+            <Ellipse Style="{StaticResource Skills.HealthDot}" Margin="0,0,6,0"/>
+            <TextBlock Style="{StaticResource BodyText}" Text="{Binding HealthLabel}"/>
+          </StackPanel>
+          <TextBlock Style="{StaticResource TitleText}" FontSize="18" Text="{Binding Name}"/>
+        </DockPanel>
+        <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding SectorTitle}"/>
+        <TextBlock Style="{StaticResource BodyText}" Margin="0,8,0,0" Text="{Binding Summary}"/>
+        <TextBlock Style="{StaticResource SecondaryText}" Margin="0,8,0,0" FontFamily="{StaticResource MonoFont}" Text="{Binding SourceText}"
+                   AutomationProperties.Name="Fuente de la skill"/>
+        <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding ModeText}"/>
+        <TextBlock Style="{StaticResource BodyText}" Margin="0,6,0,0" Text="{Binding TagsText}" AutomationProperties.Name="Etiquetas"/>
+        <ItemsControl Margin="0,6,0,0" ItemsSource="{Binding Warnings}" ItemTemplate="{StaticResource Skills.WarningTemplate}" Focusable="False"/>
+
+        <TextBlock Style="{StaticResource Skills.SectionText}" Text="Activación"/>
+        <ItemsControl ItemsSource="{Binding Scopes}" Focusable="False" AutomationProperties.Name="Activación por ámbito">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate DataType="{x:Type skills:SkillScopeViewModel}">
+              <DockPanel Margin="0,0,0,6">
+                <CheckBox DockPanel.Dock="Left" MinWidth="190" Style="{StaticResource Skills.Switch}" Content="{Binding Title}"
+                          IsChecked="{Binding IsChecked, Mode=OneWay}" IsEnabled="{Binding CanToggle}" Command="{Binding ToggleCommand}"
+                          AutomationProperties.Name="{Binding Title}"
+                          AutomationProperties.HelpText="Añade una decisión tuya para este ámbito; la anterior queda en el historial"/>
+                <TextBlock DockPanel.Dock="Left" Style="{StaticResource SecondaryText}" Width="96" Margin="8,0,0,0" VerticalAlignment="Center" Text="{Binding DecisionText}"/>
+                <TextBlock Style="{StaticResource Skills.OptionalText}" Margin="8,0,0,0" VerticalAlignment="Center" Text="{Binding EffectiveText}"/>
+              </DockPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <TextBlock Style="{StaticResource SecondaryText}"
+                   Text="Activar añade una decisión tuya y no borra las anteriores: manda la del ámbito más concreto (Agente, luego Proyecto, luego Global). Sin ninguna, la skill está desactivada."/>
+
+        <TextBlock Style="{StaticResource Skills.SectionText}" Text="Coste de contexto"/>
+        <TextBlock Style="{StaticResource BodyText}" Text="{Binding CostText}" AutomationProperties.Name="Coste de contexto estimado"/>
+
+        <TextBlock Style="{StaticResource Skills.SectionText}" Text="Salud (comprobaciones locales, sin red)"/>
+        <ItemsControl ItemsSource="{Binding Checks}" Focusable="False" AutomationProperties.Name="Comprobaciones de salud">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate DataType="{x:Type skills:SkillCheckViewModel}">
+              <DockPanel Margin="0,0,0,4">
+                <Ellipse DockPanel.Dock="Left" Style="{StaticResource Skills.CheckDot}" Margin="0,4,8,0" VerticalAlignment="Top"/>
+                <TextBlock DockPanel.Dock="Left" Style="{StaticResource BodyText}" Width="150" Text="{Binding Title}"/>
+                <TextBlock DockPanel.Dock="Left" Style="{StaticResource SecondaryText}" Width="96" Text="{Binding StatusLabel}"/>
+                <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding Message}"/>
+              </DockPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </DataTemplate>
+  </UserControl.Resources>
+
+  <DockPanel>
+    <!-- Title, summary and search. -->
+    <Border DockPanel.Dock="Top" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16,10">
+      <DockPanel>
+        <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Margin="12,0,0,0" Content="Recargar" Command="{Binding RefreshCommand}"
+                AutomationProperties.Name="Recargar el catálogo" ToolTip="Vuelve a leer el índice, la plantilla de agentes y las decisiones"/>
+        <TextBox DockPanel.Dock="Right" Width="300" Style="{StaticResource Skills.Field}" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                 AutomationProperties.Name="Buscar skills" ToolTip="Busca por nombre, resumen y etiquetas, sin distinguir mayúsculas ni acentos"/>
+        <TextBlock DockPanel.Dock="Right" Style="{StaticResource SecondaryText}" Margin="0,0,8,0" VerticalAlignment="Center" Text="Buscar"/>
+        <StackPanel VerticalAlignment="Center">
+          <TextBlock Style="{StaticResource SectionTitleText}" Text="Catálogo de skills"/>
+          <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding Summary}" AutomationProperties.Name="Resumen del catálogo"/>
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- What is missing and what the catalog warns about: the few notices in full; the warnings of the index about its entries
+         (often dozens) in one line with their count, and their detail on demand in a box of limited height, so the catalog
+         below stays in view. -->
+    <StackPanel DockPanel.Dock="Top" Margin="16,8,16,0">
+      <ItemsControl ItemsSource="{Binding Notices}" ItemTemplate="{StaticResource Skills.WarningTemplate}"
+                    Focusable="False" AutomationProperties.Name="Avisos del catálogo"/>
+      <DockPanel>
+        <ToggleButton DockPanel.Dock="Right" Style="{StaticResource Skills.DetailToggle}" Content="{Binding CatalogWarningsToggleText}"
+                      IsChecked="{Binding ShowCatalogWarnings}"
+                      Visibility="{Binding HasCatalogWarningDetail, Converter={StaticResource Skills.BoolToVisibility}}"
+                      AutomationProperties.Name="Detalle de los avisos del índice"
+                      AutomationProperties.HelpText="Muestra u oculta cada aviso del índice de skills"/>
+        <TextBlock Style="{StaticResource Skills.OptionalWarningText}" VerticalAlignment="Center" Text="{Binding CatalogWarningsSummary}"
+                   AutomationProperties.Name="Resumen de los avisos del índice"/>
+      </DockPanel>
+      <Border Margin="0,4,0,0" Padding="10,6" CornerRadius="6" BorderThickness="1" Background="{StaticResource SurfaceBrush}"
+              BorderBrush="{StaticResource BorderBrush}" Visibility="{Binding ShowCatalogWarnings, Converter={StaticResource Skills.BoolToVisibility}}">
+        <ScrollViewer MaxHeight="160" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+          <ItemsControl ItemsSource="{Binding CatalogWarnings}" Focusable="False" AutomationProperties.Name="Avisos del índice de skills">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <TextBlock Style="{StaticResource SecondaryText}" Margin="0,1" Text="{Binding}"/>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </Border>
+    </StackPanel>
+
+    <Grid Margin="16,10,16,16">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="300"/>
+        <ColumnDefinition Width="*" MinWidth="360"/>
+        <ColumnDefinition Width="380"/>
+      </Grid.ColumnDefinitions>
+
+      <!-- The tree of sectors. -->
+      <Border Grid.Column="0" Style="{StaticResource Card}" Padding="6">
+        <TreeView ItemsSource="{Binding Sectors}" Background="Transparent" BorderThickness="0" AutomationProperties.Name="Skills por sector">
+          <TreeView.ItemContainerStyle>
+            <Style TargetType="TreeViewItem">
+              <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+              <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+              <Setter Property="Padding" Value="2,3"/>
+            </Style>
+          </TreeView.ItemContainerStyle>
+          <TreeView.Resources>
+            <HierarchicalDataTemplate DataType="{x:Type skills:SkillSectorNodeViewModel}" ItemsSource="{Binding Skills}">
+              <HierarchicalDataTemplate.ItemContainerStyle>
+                <Style TargetType="TreeViewItem">
+                  <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
+                  <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                  <Setter Property="Padding" Value="2,2"/>
+                </Style>
+              </HierarchicalDataTemplate.ItemContainerStyle>
+              <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" TextWrapping="NoWrap" Text="{Binding Header}"/>
+            </HierarchicalDataTemplate>
+            <DataTemplate DataType="{x:Type skills:SkillItemViewModel}">
+              <StackPanel Orientation="Horizontal" ToolTip="{Binding ToolTip}" AutomationProperties.Name="{Binding Name}">
+                <Ellipse Style="{StaticResource Skills.HealthDot}" Margin="0,0,6,0"/>
+                <TextBlock Style="{StaticResource BodyText}" TextWrapping="NoWrap" Text="{Binding Name}"/>
+                <!-- Where it is active, as a pill that reads on the selection highlight too. -->
+                <Border Margin="8,0,0,0" Padding="5,0" VerticalAlignment="Center" CornerRadius="4" BorderThickness="1"
+                        Background="{StaticResource SurfaceRaisedBrush}" BorderBrush="{StaticResource AccentBrush}">
+                  <Border.Style>
+                    <Style TargetType="Border">
+                      <Style.Triggers>
+                        <DataTrigger Binding="{Binding ActiveBadge}" Value="">
+                          <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </Border.Style>
+                  <TextBlock Style="{StaticResource BodyText}" FontSize="11" TextWrapping="NoWrap" Text="{Binding ActiveBadge}"/>
+                </Border>
+              </StackPanel>
+            </DataTemplate>
+          </TreeView.Resources>
+        </TreeView>
+      </Border>
+
+      <!-- The card of the selected skill. -->
+      <Border Grid.Column="1" Style="{StaticResource Card}" Margin="12,0">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+          <Grid>
+            <TextBlock Text="Elige una skill del árbol para ver su ficha: fuente, salud, coste y activación.">
+              <TextBlock.Style>
+                <Style TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
+                  <Setter Property="Visibility" Value="Collapsed"/>
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding Detail}" Value="{x:Null}">
+                      <Setter Property="Visibility" Value="Visible"/>
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </TextBlock.Style>
+            </TextBlock>
+            <ContentControl Content="{Binding Detail}" Focusable="False"/>
+          </Grid>
+        </ScrollViewer>
+      </Border>
+
+      <!-- The recommendations and the cost of each agent. -->
+      <Border Grid.Column="2" Style="{StaticResource Card}">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+          <StackPanel>
+            <TextBlock Style="{StaticResource SectionTitleText}" Text="Recomendar para una tarea"/>
+            <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,6" Text="{Binding StackText, StringFormat=Stack del proyecto: {0}}"
+                       AutomationProperties.Name="Stack del proyecto"/>
+            <TextBox Style="{StaticResource Skills.Field}" MinHeight="54" AcceptsReturn="True" TextWrapping="Wrap" VerticalContentAlignment="Top"
+                     Text="{Binding TaskText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Tarea para la que recomendar skills"/>
+            <Button Style="{StaticResource GhostButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Content="Recomendar (determinista, sin cuota)"
+                    Command="{Binding RecommendCommand}" AutomationProperties.Name="Recomendar"/>
+            <TextBlock Style="{StaticResource Skills.OptionalText}" Margin="0,6,0,0" Text="{Binding RecommendationStatus}"/>
+            <ItemsControl Margin="0,4,0,0" ItemsSource="{Binding Recommendations}" ItemTemplate="{StaticResource Skills.RecommendationTemplate}"
+                          Focusable="False" AutomationProperties.Name="Recomendaciones deterministas"/>
+
+            <TextBlock Style="{StaticResource Skills.SectionText}" Text="Pedir a un agente"/>
+            <CheckBox Style="{StaticResource Skills.Switch}" IsChecked="{Binding IsAssistedAllowed}" AutomationProperties.Name="Permitir la recomendación asistida">
+              <TextBlock TextWrapping="Wrap" Text="Permitir la recomendación asistida (gasta cuota de Claude)"/>
+            </CheckBox>
+            <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0"
+                       Text="Cada uso pide tu OK. Claude (haiku) consulta el catálogo con el servidor MCP local de solo lectura, sin red ni ficheros, y solo propone."/>
+            <Button Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Content="Pedir a un agente"
+                    Command="{Binding AskAgentCommand}" AutomationProperties.Name="Pedir a un agente"/>
+            <TextBlock Style="{StaticResource Skills.OptionalText}" Margin="0,6,0,0" Text="{Binding AssistedStatus}" AutomationProperties.Name="Estado de la recomendación asistida"/>
+            <ItemsControl Margin="0,4,0,0" ItemsSource="{Binding AssistedRecommendations}" ItemTemplate="{StaticResource Skills.RecommendationTemplate}"
+                          Focusable="False" AutomationProperties.Name="Recomendaciones del agente"/>
+            <ItemsControl ItemsSource="{Binding AssistedWarnings}" ItemTemplate="{StaticResource Skills.WarningTemplate}" Focusable="False"/>
+
+            <TextBlock Style="{StaticResource Skills.SectionText}" Text="Lo que recibe cada agente"/>
+            <ItemsControl ItemsSource="{Binding AgentCosts}" Focusable="False" AutomationProperties.Name="Coste por agente">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type skills:AgentCostViewModel}">
+                  <TextBlock Style="{StaticResource BodyText}" Margin="0,0,0,3" Text="{Binding Text}"/>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Style="{StaticResource ErrorText}" Margin="0,6,0,0" Text="{Binding ActivationProblem}"/>
+          </StackPanel>
+        </ScrollViewer>
+      </Border>
+    </Grid>
+  </DockPanel>
+</UserControl>

@@ -1,0 +1,22 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!--
+    Task statuses. Five come straight from the app tokens (Themes/Dark.xaml); AwaitingApproval, Cancelled and Skipped
+    need three new ones, which WP6 adds to Dark.xaml. The colour never carries the status alone: every node also
+    spells it out in its footer.
+  -->
+  <Color x:Key="StatusAwaitingApprovalColor">#B692F6</Color>
+  <Color x:Key="StatusCancelledColor">#A38891</Color>
+  <Color x:Key="StatusSkippedColor">#5E6E8C</Color>
+
+  <SolidColorBrush x:Key="Status.PendingBrush" Color="{StaticResource TextSecondaryColor}"/>
+  <SolidColorBrush x:Key="Status.RunningBrush" Color="{StaticResource AccentHoverColor}"/>
+  <SolidColorBrush x:Key="Status.BlockedBrush" Color="{StaticResource WarningColor}"/>
+  <SolidColorBrush x:Key="Status.AwaitingApprovalBrush" Color="{StaticResource StatusAwaitingApprovalColor}"/>
+  <SolidColorBrush x:Key="Status.CompletedBrush" Color="{StaticResource SuccessColor}"/>
+  <SolidColorBrush x:Key="Status.FailedBrush" Color="{StaticResource ErrorColor}"/>
+  <SolidColorBrush x:Key="Status.CancelledBrush" Color="{StaticResource StatusCancelledColor}"/>
+  <SolidColorBrush x:Key="Status.SkippedBrush" Color="{StaticResource StatusSkippedColor}"/>
+
+</ResourceDictionary>

@@ -1,0 +1,129 @@
+<UserControl x:Class="AgentStudio.Desktop.Views.Orchestrator.PreparationView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:orchestrator="clr-namespace:AgentStudio.Desktop.Orchestrator"
+             xmlns:preparation="clr-namespace:AgentStudio.Desktop.Orchestrator.Preparation"
+             xmlns:views="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=orchestrator:OrchestratorDocumentViewModel}">
+    <!-- The preparation of a run (F3-8, steps 0 and 1): the literal request, the frozen requirements, the agents of the
+         project and its verification profile. A one-line summary stays when the band is hidden. The three sections share the
+         width in columns while each has room, the requirements alone on top and the other two under them when it is
+         narrower, and one under another when narrower still (AdaptiveColumnsPanel): never a horizontal scroll bar. -->
+    <UserControl.Resources>
+        <!-- The band takes at most 45 % of the height of the tab (between 180 and 380): the canvas stays in sight. -->
+        <views:ShareOfLengthConverter x:Key="Preparation.MaxHeight" Factor="0.45" Minimum="180" Maximum="380"/>
+    </UserControl.Resources>
+    <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,8">
+        <DockPanel>
+            <DockPanel DockPanel.Dock="Top">
+                <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Margin="12,0,0,0" Content="{Binding PreparationToggleText}"
+                        Command="{Binding TogglePreparationCommand}" AutomationProperties.Name="Mostrar u ocultar la preparación"/>
+                <TextBlock DockPanel.Dock="Left" Style="{StaticResource SectionTitleText}" Margin="0,0,12,0" VerticalAlignment="Center" Text="Preparación"/>
+                <TextBlock Style="{StaticResource SecondaryText}" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                           Text="{Binding PreparationSummary}" ToolTip="{Binding PreparationSummary}" AutomationProperties.Name="Resumen de la preparación"/>
+            </DockPanel>
+
+            <ScrollViewer x:Name="Sections" Margin="0,8,0,0" VerticalAlignment="Top" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False"
+                          MaxHeight="{Binding ViewportHeight, RelativeSource={RelativeSource AncestorType=ScrollViewer}, Converter={StaticResource Preparation.MaxHeight}, FallbackValue=380}"
+                          Visibility="{Binding IsPreparationExpanded, Converter={StaticResource Orchestrator.BoolToVisibility}}">
+                <views:AdaptiveColumnsPanel x:Name="Columns" ColumnSpacing="22" RowSpacing="16" Margin="0,0,4,0">
+
+                    <!-- The request and the requirements. -->
+                    <StackPanel x:Name="RequirementsSection" views:AdaptiveColumnsPanel.Weight="2" MinWidth="320">
+                        <TextBlock Style="{StaticResource SectionTitleText}" Text="Requisitos"/>
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="Petición, literal: el orquestador planifica para ella y la ejecución la registra"/>
+                        <TextBox Style="{StaticResource MultilineFieldTextBox}" MinHeight="44" MaxHeight="88"
+                                 Text="{Binding RequestText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Petición"
+                                 AutomationProperties.HelpText="Lo que quieres que se haga, literal: el orquestador planifica para ello y la ejecución lo registra"/>
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="Requisitos (los congelas tú; el orquestador solo puede sugerirlos)"/>
+                        <views:RequirementsEditorView DataContext="{Binding Requirements}"/>
+                    </StackPanel>
+
+                    <!-- The agents of the project: each with its CLI, its tools, its model and whether it gets the memory. -->
+                    <StackPanel x:Name="AgentsSection" views:AdaptiveColumnsPanel.Weight="1.4" MinWidth="300">
+                        <TextBlock Style="{StaticResource SectionTitleText}" Text="Plantilla de agentes"/>
+                        <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="{Binding RosterNotice}"
+                                   Visibility="{Binding RosterNotice, Converter={StaticResource Orchestrator.HasTextToVisibility}}"/>
+                        <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,8"
+                                   Text="El juez corre en un vendor distinto del orquestador y de los ejecutores (ADR-0014): el validador del plan lo comprueba. Un modelo nuevo vale desde la próxima planificación o ejecución."/>
+                        <ItemsControl ItemsSource="{Binding Roster.Agents}" Focusable="False" AutomationProperties.Name="Agentes del proyecto">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type preparation:AgentMemoryViewModel}">
+                                    <Border Background="{StaticResource SurfaceRaisedBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                                            CornerRadius="6" Padding="10,7" Margin="0,0,0,6">
+                                        <StackPanel>
+                                            <TextBlock Style="{StaticResource BodyText}">
+                                                <Run Text="{Binding Name, Mode=OneWay}" FontWeight="SemiBold"/>
+                                                <Run Text="·" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                                <Run Text="{Binding Id, Mode=OneWay}" FontFamily="{StaticResource MonoFont}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                            </TextBlock>
+                                            <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding Line}"/>
+
+                                            <!-- G1: the model of the agent; «Otro modelo…» opens a box to type it. -->
+                                            <DockPanel Margin="0,6,0,0">
+                                                <TextBlock DockPanel.Dock="Left" Style="{StaticResource SecondaryText}" Margin="0,0,8,0" VerticalAlignment="Center" Text="Modelo"/>
+                                                <ComboBox ItemsSource="{Binding ModelOptions}" SelectedItem="{Binding SelectedModel}" DisplayMemberPath="Label"
+                                                          MaxWidth="260" HorizontalAlignment="Left" MinWidth="170"
+                                                          IsEnabled="{Binding CanChangeModel}"
+                                                          ToolTip="{Binding ModelText}" ToolTipService.ShowOnDisabled="True"
+                                                          AutomationProperties.Name="{Binding Name, StringFormat='Modelo de {0}'}"
+                                                          AutomationProperties.HelpText="{Binding ModelText}"/>
+                                            </DockPanel>
+                                            <StackPanel Margin="0,6,0,0" Visibility="{Binding IsTypingModel, Converter={StaticResource Orchestrator.BoolToVisibility}}">
+                                                <DockPanel>
+                                                    <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Margin="6,0,0,0" Content="Cancelar"
+                                                            Command="{Binding CancelTypedModelCommand}"/>
+                                                    <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarPrimaryButton}" Margin="6,0,0,0" Content="Usar"
+                                                            Command="{Binding UseTypedModelCommand}"/>
+                                                    <TextBox Style="{StaticResource FieldTextBox}" FontFamily="{StaticResource MonoFont}"
+                                                             Text="{Binding TypedModel, UpdateSourceTrigger=PropertyChanged}"
+                                                             AutomationProperties.Name="{Binding Name, StringFormat='Nombre del modelo de {0}'}"/>
+                                                </DockPanel>
+                                                <TextBlock Style="{StaticResource ErrorText}" FontSize="12" Text="{Binding TypedModelProblem}"
+                                                           AutomationProperties.LiveSetting="Polite"/>
+                                            </StackPanel>
+
+                                            <!-- «Memoria del proyecto» (docs/14 D-23): the judge has no switch, it never receives memory. -->
+                                            <CheckBox Style="{StaticResource FieldCheckBox}" Margin="0,6,0,0" Content="Recibe la memoria del proyecto"
+                                                      IsChecked="{Binding ReceivesMemory}" IsEnabled="{Binding CanEdit}"
+                                                      Visibility="{Binding CanReceiveMemory, Converter={StaticResource Orchestrator.BoolToVisibility}}"
+                                                      AutomationProperties.Name="{Binding Name, StringFormat='Memoria del proyecto de {0}'}"
+                                                      AutomationProperties.HelpText="{Binding MemoryText}"/>
+                                            <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="{Binding MemoryText}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding Roster.Notice, TargetNullValue=''}"
+                                   AutomationProperties.LiveSetting="Polite"/>
+                        <TextBlock Style="{StaticResource ErrorText}" Text="{Binding Roster.ErrorMessage}" AutomationProperties.LiveSetting="Assertive"/>
+                    </StackPanel>
+
+                    <!-- The trusted verification profile. -->
+                    <StackPanel x:Name="ProfileSection" views:AdaptiveColumnsPanel.Weight="1.2" MinWidth="260">
+                        <TextBlock Style="{StaticResource SectionTitleText}" Text="Perfil de verificación"/>
+                        <TextBlock Style="{StaticResource BodyText}" Margin="0,4,0,0" Text="{Binding ProfileText}" AutomationProperties.Name="Perfil de verificación"/>
+                        <ItemsControl ItemsSource="{Binding ProfileSteps}" Margin="0,6,0,0" Focusable="False" AutomationProperties.Name="Pasos del perfil">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Style="{StaticResource SecondaryText}" Margin="0,0,0,3" FontFamily="{StaticResource MonoFont}" Text="{Binding}"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <StackPanel Margin="0,6,0,0" Visibility="{Binding ShowsProfileProposal, Converter={StaticResource Orchestrator.BoolToVisibility}}">
+                            <Button Style="{StaticResource ToolbarPrimaryButton}" HorizontalAlignment="Left" Content="Usar perfil propuesto"
+                                    Command="{Binding UseProposedProfileCommand}"
+                                    ToolTip="Lo guarda en .agentstudio/verification.json: desde entonces es el perfil del proyecto"/>
+                            <TextBlock Style="{StaticResource SecondaryText}"
+                                       Text="Se guarda en .agentstudio/verification.json, excluido de git. Sin este paso no se aplica nada."/>
+                        </StackPanel>
+                    </StackPanel>
+                </views:AdaptiveColumnsPanel>
+            </ScrollViewer>
+        </DockPanel>
+    </Border>
+</UserControl>

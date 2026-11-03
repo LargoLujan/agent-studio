@@ -1,0 +1,138 @@
+<UserControl x:Class="AgentStudio.Desktop.Views.Orchestrator.NodePropertiesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:canvas="clr-namespace:AgentStudio.Desktop.Orchestrator.Canvas"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=canvas:NodeEditorViewModel}">
+    <!-- Properties of the selected node: every field of its TaskSpec the canvas does not draw. Read-only while a run
+         follows the plan. Every field updates the node as it is typed, so the validator follows. -->
+    <StackPanel IsEnabled="{Binding IsEditable}">
+        <TextBlock Style="{StaticResource SectionTitleText}" Text="{Binding Header}"/>
+        <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,0" Text="Solo lectura: el plan se está ejecutando."
+                   Visibility="{Binding IsReadOnly, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
+
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Título"/>
+        <TextBox Style="{StaticResource FieldTextBox}" Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"
+                 AutomationProperties.Name="Título de la tarea"/>
+
+        <StackPanel Visibility="{Binding ShowsAgent, Converter={StaticResource Orchestrator.BoolToVisibility}}">
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Agente"/>
+            <ComboBox ItemsSource="{Binding AgentOptions}" SelectedItem="{Binding SelectedAgent}" DisplayMemberPath="Label"
+                      AutomationProperties.Name="Agente"/>
+        </StackPanel>
+
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Objetivo"/>
+        <TextBox Style="{StaticResource MultilineFieldTextBox}" Text="{Binding Objective, UpdateSourceTrigger=PropertyChanged}"
+                 AutomationProperties.Name="Objetivo"/>
+
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Instrucciones"/>
+        <TextBox Style="{StaticResource MultilineFieldTextBox}" Text="{Binding Instructions, UpdateSourceTrigger=PropertyChanged}"
+                 AutomationProperties.Name="Instrucciones"/>
+
+        <StackPanel Visibility="{Binding ShowsWorkspace, Converter={StaticResource Orchestrator.BoolToVisibility}}">
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Espacio de trabajo"/>
+            <ComboBox ItemsSource="{Binding WorkspaceOptions}" SelectedItem="{Binding SelectedWorkspace}" DisplayMemberPath="Label"
+                      AutomationProperties.Name="Espacio de trabajo"/>
+        </StackPanel>
+
+        <StackPanel Visibility="{Binding ShowsWriteScope, Converter={StaticResource Orchestrator.BoolToVisibility}}">
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Alcance de escritura (una entrada por línea; una carpeta termina en /)"/>
+            <TextBox Style="{StaticResource MultilineFieldTextBox}" FontFamily="{StaticResource MonoFont}"
+                     Text="{Binding WriteScopeText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Alcance de escritura"/>
+        </StackPanel>
+
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Requisitos que cubre"/>
+        <TextBlock Text="El proyecto no tiene requisitos congelados.">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding CoverOptions.Count}" Value="0">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
+        <ItemsControl ItemsSource="{Binding CoverOptions}" Focusable="False" AutomationProperties.Name="Requisitos que cubre">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type canvas:CheckOption}">
+                    <CheckBox Style="{StaticResource FieldCheckBox}" IsChecked="{Binding IsChecked}">
+                        <TextBlock Text="{Binding Label}" TextWrapping="Wrap"/>
+                    </CheckBox>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <StackPanel Visibility="{Binding ShowsSteps, Converter={StaticResource Orchestrator.BoolToVisibility}}">
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Pasos de verificación (del perfil del proyecto)"/>
+            <ItemsControl ItemsSource="{Binding StepOptions}" Focusable="False" AutomationProperties.Name="Pasos de verificación">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type canvas:CheckOption}">
+                        <CheckBox Style="{StaticResource FieldCheckBox}" IsChecked="{Binding IsChecked}">
+                            <TextBlock Text="{Binding Label}" TextWrapping="Wrap"/>
+                        </CheckBox>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+
+        <StackPanel Visibility="{Binding ShowsTool, Converter={StaticResource Orchestrator.BoolToVisibility}}">
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Herramienta (un paso del perfil)"/>
+            <ComboBox ItemsSource="{Binding ToolOptions}" SelectedItem="{Binding SelectedTool}" DisplayMemberPath="Label"
+                      AutomationProperties.Name="Herramienta"/>
+        </StackPanel>
+
+        <StackPanel Visibility="{Binding ShowsCondition, Converter={StaticResource Orchestrator.BoolToVisibility}}">
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Qué comprueba la condición"/>
+            <ComboBox ItemsSource="{Binding PredicateKindOptions}" SelectedItem="{Binding SelectedPredicateKind}" DisplayMemberPath="Label"
+                      AutomationProperties.Name="Predicado de la condición"/>
+            <StackPanel Visibility="{Binding PredicateNeedsTask, Converter={StaticResource Orchestrator.BoolToVisibility}}">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Sobre la tarea (una antecesora)"/>
+                <ComboBox ItemsSource="{Binding PredicateTaskOptions}" SelectedItem="{Binding SelectedPredicateTask}" DisplayMemberPath="Label"
+                          AutomationProperties.Name="Tarea que lee la condición"/>
+            </StackPanel>
+            <StackPanel Visibility="{Binding PredicateNeedsKeyAndValue, Converter={StaticResource Orchestrator.BoolToVisibility}}">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Salida (clave) y valor esperado"/>
+                <TextBox Style="{StaticResource FieldTextBox}" Text="{Binding PredicateKey, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Clave de la salida"/>
+                <TextBox Style="{StaticResource FieldTextBox}" Margin="0,6,0,0" Text="{Binding PredicateValue, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Valor esperado"/>
+            </StackPanel>
+            <StackPanel Visibility="{Binding PredicateNeedsPrefix, Converter={StaticResource Orchestrator.BoolToVisibility}}">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Prefijo de ruta (vacío: cualquier cambio)"/>
+                <TextBox Style="{StaticResource FieldTextBox}" FontFamily="{StaticResource MonoFont}"
+                         Text="{Binding PredicatePrefix, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Prefijo de ruta"/>
+            </StackPanel>
+            <TextBlock Style="{StaticResource SecondaryText}" Margin="0,6,0,0" TextWrapping="Wrap"
+                       Text="Une la salida Sí o la salida No a la tarea que debe correr en cada caso."/>
+        </StackPanel>
+
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Cuándo puede empezar"/>
+        <ComboBox ItemsSource="{Binding JoinOptions}" SelectedItem="{Binding SelectedJoin}" DisplayMemberPath="Label"
+                  AutomationProperties.Name="Política de unión"/>
+
+        <StackPanel Visibility="{Binding HasExtraDependencies, Converter={StaticResource Orchestrator.BoolToVisibility}}">
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Dependencias que el lienzo no puede dibujar"/>
+            <ItemsControl ItemsSource="{Binding ExtraDependencyTexts}" Focusable="False">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Style="{StaticResource ProblemText}" Text="{Binding}"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Button Style="{StaticResource ToolbarButton}" HorizontalAlignment="Left" Margin="0,6,0,0" Content="Quitarlas"
+                    Command="{Binding RemoveExtraDependenciesCommand}"/>
+        </StackPanel>
+
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Reintentos"/>
+        <TextBox Style="{StaticResource FieldTextBox}" Width="90" HorizontalAlignment="Left"
+                 Text="{Binding MaxRetriesText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Reintentos"/>
+        <TextBlock Style="{StaticResource ErrorText}" FontSize="12" Text="{Binding RetriesError}"/>
+
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Tiempo límite en minutos (vacío: el del motor)"/>
+        <TextBox Style="{StaticResource FieldTextBox}" Width="90" HorizontalAlignment="Left"
+                 Text="{Binding TimeoutMinutesText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Tiempo límite en minutos"/>
+        <TextBlock Style="{StaticResource ErrorText}" FontSize="12" Text="{Binding TimeoutError}"/>
+    </StackPanel>
+</UserControl>

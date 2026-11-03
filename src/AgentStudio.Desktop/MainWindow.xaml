@@ -1,0 +1,210 @@
+﻿<Window x:Class="AgentStudio.Desktop.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:xcad="https://github.com/Dirkster99/AvalonDock"
+        xmlns:dockThemes="clr-namespace:AvalonDock.Themes;assembly=AvalonDock.Themes.VS2013"
+        xmlns:vm="clr-namespace:AgentStudio.Desktop.ViewModels"
+        xmlns:views="clr-namespace:AgentStudio.Desktop.Views"
+        xmlns:lockviews="clr-namespace:AgentStudio.Desktop.Views.Lock"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
+        Title="Agent Studio" Height="800" Width="1280" MinWidth="900" MinHeight="560"
+        Background="{StaticResource BackgroundBrush}"
+        WindowStartupLocation="CenterScreen">
+    <Window.InputBindings>
+        <!-- Go to file. The editor and the terminal (WebView2) hand Ctrl+P to the window before the page sees it. -->
+        <KeyBinding Key="P" Modifiers="Ctrl" Command="{Binding GoToFileCommand}"/>
+        <!-- Phase 5: «Debates» and «Auditar proyecto completo». -->
+        <KeyBinding Key="D" Modifiers="Ctrl+Shift" Command="{Binding OpenDebatesCommand}"/>
+        <KeyBinding Key="A" Modifiers="Ctrl+Shift" Command="{Binding OpenAuditCommand}"/>
+        <!-- «Terminal»: Ctrl and the key to the right of «L» (Oem3, VK_OEM_3), «Ñ» on a Spanish keyboard and «`» on a US one,
+             the key Visual Studio Code uses for its terminal. It is not a dead key on either, and WebView2 hands it to the window
+             like Ctrl+P. -->
+        <KeyBinding Key="Oem3" Modifiers="Ctrl" Command="{Binding ToggleTerminalCommand}"/>
+        <!-- Phase 8: «Bloquear» (Ctrl+Alt+L and Ctrl+Shift+B) is added by MainWindow when the lock is composed. While the interface is locked,
+             every shortcut of the window is taken out: Ctrl+P must not open the list of files over the lock screen. -->
+    </Window.InputBindings>
+    <Window.Resources>
+        <!-- The provider summary of the top bar is a flat button: it shows or hides Auto Doctor. -->
+        <Style x:Key="SummaryButton" TargetType="Button" BasedOn="{StaticResource GhostButton}">
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="8,4"/>
+        </Style>
+    </Window.Resources>
+    <Grid>
+    <!-- The content of the window. Locked (docs/16 D-13, ADR-0037), it is hidden and disabled and the lock screen takes its
+         place: the editor and the terminal are WebView2 windows, which no WPF layer can cover. -->
+    <Grid x:Name="ShellContent">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Top bar: project, open folder, provider summary. -->
+        <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,0,1" Padding="12,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,16,0" MinWidth="160">
+                    <TextBlock x:Name="ProjectNameText" Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{Binding ProjectName}"
+                               AutomationProperties.Name="{Binding ProjectAccessibleName}"/>
+                    <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding ProjectPathDisplay}" TextTrimming="CharacterEllipsis"
+                               TextWrapping="NoWrap" MaxWidth="360" ToolTip="{Binding ProjectPath}"
+                               FontFamily="{StaticResource MonoFont}"/>
+                </StackPanel>
+                <Button Grid.Column="1" Style="{StaticResource PrimaryButton}" Padding="14,6" Content="Abrir carpeta"
+                        Command="{Binding OpenFolderCommand}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <Button Grid.Column="2" Style="{StaticResource GhostButton}" Content="Inicio"
+                        Command="{Binding ShowWelcomeCommand}" VerticalAlignment="Center" ToolTip="Mostrar la pestaña de bienvenida"/>
+                <Button x:Name="GoToFileButton" Grid.Column="3" Style="{StaticResource GhostButton}" Content="Ir al fichero" Margin="8,0,0,0"
+                        Command="{Binding GoToFileCommand}" VerticalAlignment="Center"
+                        ToolTip="{Binding GoToFileToolTip}" ToolTipService.ShowOnDisabled="True"
+                        AutomationProperties.Name="Ir al fichero"/>
+                <Button Grid.Column="4" Style="{StaticResource GhostButton}" Content="Auditar proyecto completo" Margin="8,0,0,0"
+                        Command="{Binding OpenAuditCommand}" VerticalAlignment="Center"
+                        ToolTip="Audita el commit HEAD del proyecto con la verificación del sistema y un juez independiente (Ctrl+Mayús+A)"
+                        AutomationProperties.Name="Auditar proyecto completo"/>
+                <!-- The providers in use (a parked one does not count, ADR-0009); pressed, it shows Auto Doctor with the detail. -->
+                <Button x:Name="ProviderSummaryButton" Grid.Column="6" Style="{StaticResource SummaryButton}" VerticalAlignment="Center"
+                        Command="{Binding ToggleAutoDoctorCommand}"
+                        ToolTip="Muestra u oculta Auto Doctor, con el detalle de cada proveedor"
+                        AutomationProperties.Name="{Binding ProviderSummary.Text}"
+                        AutomationProperties.HelpText="Muestra u oculta Auto Doctor, con el detalle de cada proveedor">
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse Style="{StaticResource StatusDot}" Margin="0,0,8,0" VerticalAlignment="Center" DataContext="{Binding ProviderSummary}"/>
+                        <TextBlock Style="{StaticResource BodyText}" Text="{Binding ProviderSummary.Text}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <!-- «Bloquear» (docs/16 D-13, F8-10): MainWindow gives it the command of the lock screen when the lock is composed. -->
+                <Button x:Name="LockButton" Grid.Column="7" Style="{StaticResource GhostButton}" Content="Bloquear" Margin="16,0,0,0"
+                        VerticalAlignment="Center" Visibility="Collapsed"
+                        ToolTip="Bloquea la interfaz: el trabajo sigue y las aprobaciones esperan; se desbloquea con Windows Hello (Ctrl+Alt+L o Ctrl+Mayús+B)"
+                        AutomationProperties.Name="Bloquear la interfaz"/>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Activity bar: what works, each entry a panel or a screen. The list itself takes no focus: the keyboard ring goes
+                 on the button that has it, never around the whole bar. -->
+            <Border Grid.Column="0" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="0,0,1,0">
+                <ItemsControl x:Name="ActivityBar" ItemsSource="{Binding Activities}" Margin="0,4" Focusable="False">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:ActivityItemViewModel}">
+                            <Button Style="{StaticResource ActivityButton}" Content="{Binding Glyph}"
+                                    IsEnabled="{Binding IsEnabled, Mode=OneTime}"
+                                    Command="{Binding Command}" CommandParameter="{Binding}"
+                                    ToolTip="{Binding ToolTip}" ToolTipService.ShowOnDisabled="True"
+                                    AutomationProperties.Name="{Binding Title}"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Border>
+
+            <xcad:DockingManager x:Name="DockManager" Grid.Column="1"
+                                 DocumentsSource="{Binding Documents}"
+                                 ActiveContent="{Binding ActiveContent, Mode=TwoWay}"
+                                 AllowMixedOrientation="True">
+                <xcad:DockingManager.Theme>
+                    <dockThemes:Vs2013DarkTheme/>
+                </xcad:DockingManager.Theme>
+                <xcad:DockingManager.LayoutItemContainerStyle>
+                    <Style TargetType="{x:Type xcad:LayoutItem}">
+                        <!-- The title with «●» while there are unsaved changes; the title of the document stays as it is. -->
+                        <Setter Property="Title" Value="{Binding Model.TabTitle}"/>
+                        <Setter Property="ToolTip" Value="{Binding Model.FilePath}"/>
+                        <Setter Property="CloseCommand" Value="{Binding Model.CloseCommand}"/>
+                        <Setter Property="ContentId" Value="{Binding Model.ContentId}"/>
+                    </Style>
+                </xcad:DockingManager.LayoutItemContainerStyle>
+
+                <!-- Default layout (projects without a saved one): explorer left, documents centre with most of the room,
+                     terminal below; Auto Doctor and the journal folded on the right edge, where a click (on their tab, on their
+                     entry of the activity bar, or on the provider summary for Auto Doctor) opens them over the documents, and
+                     the pin docks them. -->
+                <xcad:LayoutRoot>
+                    <xcad:LayoutPanel Orientation="Horizontal">
+                        <xcad:LayoutAnchorablePane DockWidth="240">
+                            <xcad:LayoutAnchorable ContentId="panel:explorer" Title="Explorador" CanFloat="True">
+                                <views:ExplorerView x:Name="ExplorerPanel"/>
+                            </xcad:LayoutAnchorable>
+                        </xcad:LayoutAnchorablePane>
+                        <xcad:LayoutPanel Orientation="Vertical">
+                            <xcad:LayoutDocumentPane/>
+                            <xcad:LayoutAnchorablePane DockHeight="180">
+                                <xcad:LayoutAnchorable ContentId="panel:terminal" Title="Terminal" CanFloat="True">
+                                    <!-- MainWindow puts a TerminalControl here when a TerminalViewModel is available. -->
+                                    <ContentControl x:Name="TerminalHost" Background="{StaticResource BackgroundBrush}">
+                                        <TextBlock Style="{StaticResource SecondaryText}" Margin="12"
+                                                   Text="Terminal no disponible."/>
+                                    </ContentControl>
+                                </xcad:LayoutAnchorable>
+                            </xcad:LayoutAnchorablePane>
+                        </xcad:LayoutPanel>
+                    </xcad:LayoutPanel>
+                    <xcad:LayoutRoot.RightSide>
+                        <xcad:LayoutAnchorSide>
+                            <xcad:LayoutAnchorGroup>
+                                <xcad:LayoutAnchorable ContentId="panel:autodoctor" Title="Auto Doctor" CanFloat="True"
+                                                       AutoHideWidth="340" CanShowOnHover="False">
+                                    <views:AutoDoctorView x:Name="AutoDoctorPanel"/>
+                                </xcad:LayoutAnchorable>
+                                <xcad:LayoutAnchorable ContentId="panel:journal" Title="Bitácora de hoy" CanFloat="True"
+                                                       AutoHideWidth="420" CanShowOnHover="False">
+                                    <views:JournalView x:Name="JournalPanel"/>
+                                </xcad:LayoutAnchorable>
+                            </xcad:LayoutAnchorGroup>
+                        </xcad:LayoutAnchorSide>
+                    </xcad:LayoutRoot.RightSide>
+                </xcad:LayoutRoot>
+            </xcad:DockingManager>
+        </Grid>
+
+        <!-- Status bar. Only facts the app really knows; no placeholder metrics. -->
+        <Border Grid.Row="2" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,1,0,0" Padding="12,4">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock TextTrimming="CharacterEllipsis">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
+                            <Setter Property="Text" Value="{Binding StatusMessage}"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding StatusMessage}" Value="{x:Null}">
+                                    <Setter Property="Text" Value="{Binding ProjectPathDisplay}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <!-- The version and the commit the app was built from, to tell the installed build apart. -->
+                <TextBlock x:Name="VersionText" Grid.Column="1" Style="{StaticResource SecondaryText}" Margin="16,0,0,0"
+                           Text="{Binding AppVersion}" ToolTip="Versión de Agent Studio y commit del que se compiló"/>
+            </Grid>
+        </Border>
+    </Grid>
+
+    <!-- The lock screen, in place of the content while the interface is locked (LockScreenViewModel; MainWindow shows it). -->
+    <lockviews:LockScreenView x:Name="LockScreen" Visibility="Collapsed"/>
+    </Grid>
+</Window>

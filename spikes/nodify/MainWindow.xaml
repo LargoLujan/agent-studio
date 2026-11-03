@@ -1,0 +1,14 @@
+<Window x:Class="NodifySpike.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="clr-namespace:NodifySpike.Views"
+        xmlns:vm="clr-namespace:NodifySpike.ViewModels"
+        Title="Spike D6 · lienzo Nodify 7.3.0"
+        Width="1500" Height="800"
+        Background="{StaticResource BackgroundBrush}"
+        UseLayoutRounding="True" SnapsToDevicePixels="True">
+  <Window.DataContext>
+    <vm:CanvasViewModel/>
+  </Window.DataContext>
+  <views:CanvasView x:Name="CanvasHost"/>
+</Window>

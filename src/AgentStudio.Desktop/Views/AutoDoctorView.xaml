@@ -1,0 +1,142 @@
+<UserControl x:Class="AgentStudio.Desktop.Views.AutoDoctorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:AgentStudio.Desktop.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:ProviderDiagnosticsViewModel}">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+
+        <!-- The status dot, neutral for a provider parked by a decision (ADR-0009): neither ready nor a problem. -->
+        <Style x:Key="ProviderDot" TargetType="Ellipse" BasedOn="{StaticResource StatusDot}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Status}" Value="Parked">
+                    <Setter Property="Fill" Value="{StaticResource BorderStrongBrush}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- «Detalles» of a row: a chevron that turns when the details are shown. -->
+        <Style x:Key="DetailsToggle" TargetType="ToggleButton">
+            <Setter Property="FontFamily" Value="{StaticResource IconFont}"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+            <Setter Property="Width" Value="28"/>
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Content" Value="&#xE76C;"/>
+            <Setter Property="FocusVisualStyle" Value="{StaticResource {x:Static SystemParameters.FocusVisualStyleKey}}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Root" Background="Transparent" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource SurfaceRaisedBrush}"/>
+                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter Property="Content" Value="&#xE70D;"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Background="{StaticResource SurfaceBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="12,10,12,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Style="{StaticResource SectionTitleText}" Text="Proveedores"/>
+                <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,0"
+                           Text="{Binding LastCheckedAt, StringFormat='Última comprobación: {0:HH:mm:ss}', TargetNullValue='Última comprobación: —'}"/>
+            </StackPanel>
+            <Button Grid.Column="1" Style="{StaticResource GhostButton}" Padding="10,4"
+                    Content="Volver a comprobar" Command="{Binding RefreshCommand}" VerticalAlignment="Center"
+                    ToolTip="Comprueba otra vez cada proveedor: instalación, versión y sesión, sin gastar cuota"/>
+        </Grid>
+
+        <ProgressBar Grid.Row="1" Style="{StaticResource AccentProgress}" Margin="12,8,12,0"
+                     Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}"/>
+
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,8,0,0" Focusable="False">
+            <StackPanel Margin="12,0,12,12">
+                <TextBlock Style="{StaticResource ErrorText}" Margin="0,0,0,8" Text="{Binding ErrorMessage}"/>
+                <TextBlock Style="{StaticResource SecondaryText}" Text="No hay proveedores registrados"
+                           Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}"/>
+
+                <!-- One row per provider: its dot, its name, and its version and session (or «Aparcado») on one line; what else
+                     the check found (installation, method, path, notes) is folded under «Detalles». -->
+                <ItemsControl x:Name="ProviderList" ItemsSource="{Binding Providers}" Focusable="False">
+                    <ItemsControl.ItemContainerStyle>
+                        <Style TargetType="ContentPresenter">
+                            <Setter Property="AutomationProperties.Name" Value="{Binding Name}"/>
+                        </Style>
+                    </ItemsControl.ItemContainerStyle>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:ProviderStatusItem}">
+                            <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,6">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Ellipse Style="{StaticResource ProviderDot}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <TextBlock Grid.Column="1" Style="{StaticResource BodyText}" FontWeight="SemiBold" VerticalAlignment="Center"
+                                                   Text="{Binding Name}"/>
+                                        <TextBlock Grid.Column="2" Style="{StaticResource SecondaryText}" Margin="10,0,4,0" VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis" Text="{Binding Summary}" ToolTip="{Binding Summary}"/>
+                                        <ToggleButton x:Name="DetailsButton" Grid.Column="3" Style="{StaticResource DetailsToggle}"
+                                                      ToolTip="Detalles: instalación, método, ruta y notas de la comprobación"
+                                                      AutomationProperties.Name="{Binding Name, StringFormat='Detalles de {0}'}"/>
+                                    </Grid>
+                                    <StackPanel Margin="18,6,0,2"
+                                                Visibility="{Binding IsChecked, ElementName=DetailsButton, Converter={StaticResource BoolToVisibility}}">
+                                        <TextBlock Style="{StaticResource OptionalSecondaryText}" TextWrapping="Wrap" Margin="0,0,0,4"
+                                                   Text="{Binding ParkedNote, TargetNullValue=''}"/>
+                                        <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap">
+                                            <Run Text="{Binding Installation, Mode=OneWay, StringFormat='Instalación: {0}'}"/>
+                                            <Run Text="·"/>
+                                            <Run Text="{Binding Version, Mode=OneWay, StringFormat='Versión: {0}'}"/>
+                                            <Run Text="·"/>
+                                            <Run Text="{Binding Authentication, Mode=OneWay, StringFormat='Sesión: {0}'}"/>
+                                            <Run Text="·"/>
+                                            <Run Text="{Binding Method, Mode=OneWay, StringFormat='Método: {0}'}"/>
+                                        </TextBlock>
+                                        <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"
+                                                   FontFamily="{StaticResource MonoFont}" Text="{Binding ExecutablePath}" ToolTip="{Binding ExecutablePath}"/>
+                                        <ItemsControl ItemsSource="{Binding Notes}" Margin="0,2,0,0" Focusable="False">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{Binding}"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

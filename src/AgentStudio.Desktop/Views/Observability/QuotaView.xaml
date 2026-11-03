@@ -1,0 +1,78 @@
+<UserControl x:Class="AgentStudio.Desktop.Views.Observability.QuotaView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:observability="clr-namespace:AgentStudio.Desktop.Observability"
+             xmlns:orchestratorViews="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=observability:QuotaViewModel}">
+    <!-- The subscription quota of each provider (docs/14 D-14 to D-16): Claude from what its runs announce, with how old
+         each window is; Codex only with the opt-in of the settings; Gemini «no expuesto». Bindings only. -->
+    <UserControl.Resources>
+        <orchestratorViews:NullToVisibilityConverter x:Key="Quota.NotNullToVisibility"/>
+
+        <DataTemplate DataType="{x:Type observability:ProviderQuota}">
+            <StackPanel>
+                <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{Binding Name}"/>
+                <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding Status}"/>
+                <ItemsControl ItemsSource="{Binding Windows}" Focusable="False" Margin="0,4,0,0">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type observability:QuotaWindowRow}">
+                            <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,4"
+                                    AutomationProperties.Name="{Binding Utilization.Text}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource BodyText}">
+                                        <Run Text="{Binding Name, Mode=OneWay}"/><Run Text=": "/><Run Text="{Binding Utilization.Shown, Mode=OneWay}" FontWeight="SemiBold"/>
+                                    </TextBlock>
+                                    <TextBlock Style="{StaticResource SecondaryText}">
+                                        <Run Text="{Binding Utilization.Origin, Mode=OneWay}"/>
+                                        <Run Text="·"/>
+                                        <Run Text="{Binding Seen, Mode=OneWay}"/>
+                                    </TextBlock>
+                                    <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding Resets, TargetNullValue=''}"/>
+                                    <TextBlock Style="{StaticResource BodyText}" FontSize="12" Foreground="{StaticResource WarningBrush}" Text="{Binding Reached}"
+                                               Visibility="{Binding Reached, Converter={StaticResource Quota.NotNullToVisibility}}"/>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <ItemsControl ItemsSource="{Binding Notes}" Focusable="False">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="{Binding}"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <ItemsControl ItemsSource="{Binding Warnings}" Focusable="False">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Style="{StaticResource BodyText}" FontSize="12" Margin="0,4,0,0" Foreground="{StaticResource WarningBrush}" Text="{Binding}"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <StackPanel>
+        <TextBlock Style="{StaticResource SectionTitleText}" Text="Cuota de suscripción"/>
+        <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,8"
+                   Text="La utilización es siempre la del proveedor: Agent Studio no la calcula ni la adivina."/>
+        <Border Style="{StaticResource InnerCard}" Padding="10,8">
+            <ContentPresenter Content="{Binding Claude}" AutomationProperties.Name="Cuota de Claude Code"/>
+        </Border>
+        <Border Style="{StaticResource InnerCard}" Padding="10,8">
+            <StackPanel>
+                <ContentPresenter Content="{Binding Codex}" AutomationProperties.Name="Cuota de Codex CLI"/>
+                <Button Style="{StaticResource ToolbarButton}" Margin="0,8,0,0" HorizontalAlignment="Left" Content="Consultar cuota de Codex"
+                        Command="{Binding ReadCodexCommand}"
+                        ToolTip="Una lectura del app-server de Codex (account/rateLimits/read) con su sesión, sin turno del modelo. Solo con tu permiso en «Ajustes»."/>
+            </StackPanel>
+        </Border>
+        <Border Style="{StaticResource InnerCard}" Padding="10,8" Margin="0">
+            <ContentPresenter Content="{Binding Gemini}" AutomationProperties.Name="Cuota de Gemini CLI"/>
+        </Border>
+    </StackPanel>
+</UserControl>

@@ -1,0 +1,6 @@
+{"type": "thread.started", "thread_id": "01a13f54-2acb-7083-bf00-5619afbca959"}
+{"type": "item.completed", "item": {"id": "item_0", "type": "error", "message": "Ignoring unknown `features` requirement `ultrafast_mode` from requirements layers: enterprise-managed requirements Fast mode access (rbac-fast-mode), enterprise-managed requirements Ultra Fast mode access (rbac-ultrafast-mode)"}}
+{"type": "item.completed", "item": {"id": "item_1", "type": "error", "message": "Ignoring unknown `features` requirement `ultrafast_mode` from requirements layers: enterprise-managed requirements Fast mode access (rbac-fast-mode), enterprise-managed requirements Ultra Fast mode access (rbac-ultrafast-mode)"}}
+{"type": "turn.started"}
+{"type": "item.completed", "item": {"id": "item_2", "type": "agent_message", "text": "{\"respuesta\":\"OK\",\"numero\":42}"}}
+{"type": "turn.completed", "usage": {"input_tokens": 18483, "cached_input_tokens": 0, "cache_write_input_tokens": 0, "output_tokens": 19, "reasoning_output_tokens": 0}}

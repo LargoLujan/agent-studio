@@ -1,0 +1,285 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:nodify="https://miroiu.github.io/nodify"
+                    xmlns:canvas="clr-namespace:AgentStudio.Desktop.Orchestrator.Canvas"
+                    xmlns:views="clr-namespace:AgentStudio.Desktop.Views.Orchestrator">
+
+    <!--
+        Theme of the orchestrator screen (ADR-0015, pattern 7). App.xaml merges, in this order: the app tokens
+        (Themes/Dark.xaml), Nodify's Themes/Dark.xaml, Nodify's Themes/FocusVisual.xaml and this file. The two Nodify
+        dictionaries must be siblings at the application level, not merged in here: the implicit styles of FocusVisual.xaml
+        are BasedOn the Nodify style visible when they load, and nested here they would see Nodify's built-in theme
+        (fixed DodgerBlue and orange frames) instead of the one in its Dark.xaml. Nodify's colour keys are then repainted
+        from the app tokens in code (NodifyThemeTokens.Apply), because XAML aliases of a resource crash the .NET 10 markup
+        compiler (MC1000).
+        Here: 2. status colours and brushes; 3. canvas templates (connectors, nodes, wires, pending wire); 4. fields and
+        texts of the side panels.
+        WCAG 2.x AA of every pair drawn here: tests/AgentStudio.Tests/Desktop/Contrast/NodifyThemeContrastTests.cs.
+    -->
+
+    <!-- 2. Task statuses. Five come from the app tokens; AwaitingApproval, Cancelled and Skipped need three colours of
+         their own (ADR-0015 assigns them to Dark.xaml; they live here until that file is free to change). The colour
+         never carries the status alone: every node and every monitor row also spells it out. -->
+    <Color x:Key="StatusAwaitingApprovalColor">#B692F6</Color>
+    <Color x:Key="StatusCancelledColor">#A38891</Color>
+    <Color x:Key="StatusSkippedColor">#5E6E8C</Color>
+
+    <SolidColorBrush x:Key="Status.PendingBrush" Color="{StaticResource TextSecondaryColor}"/>
+    <SolidColorBrush x:Key="Status.RunningBrush" Color="{StaticResource AccentColor}"/>
+    <SolidColorBrush x:Key="Status.BlockedBrush" Color="{StaticResource WarningColor}"/>
+    <SolidColorBrush x:Key="Status.AwaitingApprovalBrush" Color="{StaticResource StatusAwaitingApprovalColor}"/>
+    <SolidColorBrush x:Key="Status.CompletedBrush" Color="{StaticResource SuccessColor}"/>
+    <SolidColorBrush x:Key="Status.FailedBrush" Color="{StaticResource ErrorColor}"/>
+    <SolidColorBrush x:Key="Status.CancelledBrush" Color="{StaticResource StatusCancelledColor}"/>
+    <SolidColorBrush x:Key="Status.SkippedBrush" Color="{StaticResource StatusSkippedColor}"/>
+
+    <BooleanToVisibilityConverter x:Key="Orchestrator.BoolToVisibility"/>
+    <views:FalseToVisibilityConverter x:Key="Orchestrator.FalseToVisibility"/>
+    <views:StatusToBrushConverter x:Key="Orchestrator.StatusToBrush"/>
+    <views:ToneToBrushConverter x:Key="Orchestrator.ToneToBrush"/>
+    <views:HasTextToVisibilityConverter x:Key="Orchestrator.HasTextToVisibility"/>
+    <views:NullToVisibilityConverter x:Key="Orchestrator.NotNullToVisibility"/>
+    <views:NullToVisibilityConverter x:Key="Orchestrator.NullToVisibility" Invert="True"/>
+
+    <!-- A validator message or a failure, next to a node or in a panel. -->
+    <Style x:Key="ProblemText" TargetType="TextBlock" BasedOn="{StaticResource BodyText}">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Foreground" Value="{StaticResource ErrorBrush}"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+    </Style>
+    <!-- 3. Canvas. [P1] Connectors: Nodify only updates Anchor while IsConnected is true, so both are bound here once for
+         every connector. The branch outputs of a condition are coloured Sí = success, No = error and labelled. -->
+    <Style TargetType="{x:Type nodify:NodeInput}" BasedOn="{StaticResource {x:Type nodify:NodeInput}}">
+        <Setter Property="Anchor" Value="{Binding Anchor, Mode=OneWayToSource}"/>
+        <Setter Property="IsConnected" Value="{Binding IsConnected}"/>
+        <Setter Property="Header" Value="{Binding Label}"/>
+        <Setter Property="AutomationProperties.Name" Value="{Binding AutomationName}"/>
+    </Style>
+
+    <Style TargetType="{x:Type nodify:NodeOutput}" BasedOn="{StaticResource {x:Type nodify:NodeOutput}}">
+        <Setter Property="Anchor" Value="{Binding Anchor, Mode=OneWayToSource}"/>
+        <Setter Property="IsConnected" Value="{Binding IsConnected}"/>
+        <Setter Property="Header" Value="{Binding Label}"/>
+        <Setter Property="AutomationProperties.Name" Value="{Binding AutomationName}"/>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Branch}" Value="yes">
+                <Setter Property="BorderBrush" Value="{StaticResource SuccessBrush}"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Branch}" Value="no">
+                <Setter Property="BorderBrush" Value="{StaticResource ErrorBrush}"/>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- [P2] Node parts: header = id and kind, content = title and the validator's messages, footer = status (dot and
+         text; the dot repeats the border). -->
+    <DataTemplate x:Key="NodeHeaderTemplate" DataType="{x:Type canvas:NodeViewModel}">
+        <DockPanel LastChildFill="True">
+            <TextBlock DockPanel.Dock="Left" Text="{Binding Id}" Margin="0,0,8,0" FontFamily="{StaticResource MonoFont}"
+                       FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+            <TextBlock Text="{Binding KindLabel}" Style="{StaticResource SecondaryText}" TextWrapping="NoWrap"
+                       TextTrimming="CharacterEllipsis"/>
+        </DockPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="NodeContentTemplate" DataType="{x:Type canvas:NodeViewModel}">
+        <StackPanel MaxWidth="230">
+            <TextBlock Text="{Binding Title}" Style="{StaticResource BodyText}" FontWeight="SemiBold" MaxHeight="38"
+                       TextTrimming="CharacterEllipsis" TextWrapping="Wrap"/>
+            <StackPanel Margin="0,6,0,0" Visibility="{Binding HasProblems, Converter={StaticResource Orchestrator.BoolToVisibility}}">
+                <TextBlock Style="{StaticResource ProblemText}" FontWeight="SemiBold" Text="{Binding ProblemSummary}"/>
+                <ItemsControl ItemsSource="{Binding Problems}" Focusable="False">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Style="{StaticResource ProblemText}" Margin="0,2,0,0" Text="{Binding}"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="NodeFooterTemplate" DataType="{x:Type canvas:NodeViewModel}">
+        <StackPanel Orientation="Horizontal">
+            <Ellipse Width="9" Height="9" Margin="0,0,7,0" VerticalAlignment="Center"
+                     Fill="{Binding Status, Converter={StaticResource Orchestrator.StatusToBrush}}"/>
+            <TextBlock Text="{Binding StatusLabel}" Style="{StaticResource SecondaryText}" TextWrapping="NoWrap"/>
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- [P2] Node shell: the whole border carries the status colour; Debate is dimmed (disabled until Phase 5). The
+         selection frame belongs to the ItemContainer (accent), so a selected node shows both. -->
+    <Style x:Key="NodeShell" TargetType="{x:Type nodify:Node}" BasedOn="{StaticResource {x:Type nodify:Node}}">
+        <Setter Property="MinWidth" Value="230"/>
+        <Setter Property="BorderThickness" Value="2"/>
+        <Setter Property="BorderBrush" Value="{Binding Status, Converter={StaticResource Orchestrator.StatusToBrush}}"/>
+        <Setter Property="ContentPadding" Value="10,6"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="Header" Value="{Binding}"/>
+        <Setter Property="HeaderTemplate" Value="{StaticResource NodeHeaderTemplate}"/>
+        <Setter Property="Content" Value="{Binding}"/>
+        <Setter Property="ContentTemplate" Value="{StaticResource NodeContentTemplate}"/>
+        <Setter Property="Footer" Value="{Binding}"/>
+        <Setter Property="FooterTemplate" Value="{StaticResource NodeFooterTemplate}"/>
+        <Setter Property="Input" Value="{Binding Inputs}"/>
+        <Setter Property="Output" Value="{Binding Outputs}"/>
+        <Setter Property="AutomationProperties.Name" Value="{Binding AutomationName}"/>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsDisabled}" Value="True">
+                <Setter Property="Opacity" Value="0.5"/>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <DataTemplate DataType="{x:Type canvas:NodeViewModel}">
+        <nodify:Node Style="{StaticResource NodeShell}"/>
+    </DataTemplate>
+
+    <!-- [P3] Wires: the Sí and No wires of a condition are coloured and labelled; a selected wire is thicker. Nodify 7.3
+         (BaseConnection.OnRender) draws the label box only when TextBackground is set, and fills it with the wire's
+         Stroke, not with TextBackground; so the label text is dark on the branch colours and white on the accent (a
+         light label on green or red would be about 1.6:1). Plain wires have no label. -->
+    <Style x:Key="Wire" TargetType="{x:Type nodify:Connection}" BasedOn="{StaticResource {x:Type nodify:Connection}}">
+        <Setter Property="StrokeThickness" Value="2"/>
+        <Setter Property="Text" Value="{Binding Source.Label}"/>
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="TextBackground" Value="{StaticResource BackgroundBrush}"/>
+        <Setter Property="nodify:BaseConnection.IsSelectable" Value="True"/>
+        <Setter Property="AutomationProperties.Name" Value="{Binding AutomationName}"/>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Branch}" Value="yes">
+                <Setter Property="Stroke" Value="{StaticResource SuccessBrush}"/>
+                <Setter Property="Fill" Value="{StaticResource SuccessBrush}"/>
+                <Setter Property="Foreground" Value="{StaticResource BackgroundBrush}"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Branch}" Value="no">
+                <Setter Property="Stroke" Value="{StaticResource ErrorBrush}"/>
+                <Setter Property="Fill" Value="{StaticResource ErrorBrush}"/>
+                <Setter Property="Foreground" Value="{StaticResource BackgroundBrush}"/>
+            </DataTrigger>
+            <Trigger Property="nodify:BaseConnection.IsSelected" Value="True">
+                <Setter Property="Stroke" Value="{StaticResource AccentBrush}"/>
+                <Setter Property="Fill" Value="{StaticResource AccentBrush}"/>
+                <Setter Property="Foreground" Value="{StaticResource OnAccentBrush}"/>
+                <Setter Property="StrokeThickness" Value="4"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <DataTemplate x:Key="WireTemplate" DataType="{x:Type canvas:ConnectionViewModel}">
+        <nodify:Connection Style="{StaticResource Wire}" Source="{Binding Source.Anchor}" Target="{Binding Target.Anchor}"/>
+    </DataTemplate>
+
+    <!-- [P4] Pending wire: while dragging, Nodify writes Source and PreviewTarget into the view model (one way to source).
+         The view model answers with PreviewText and IsPreviewError, drawn next to the cursor; the wire turns red when the
+         drop would be refused. The drop goes through NodifyEditor.ConnectionCompletedCommand. -->
+    <ControlTemplate x:Key="PendingWireControlTemplate" TargetType="{x:Type nodify:PendingConnection}">
+        <Canvas>
+            <nodify:LineConnection Source="{TemplateBinding SourceAnchor}" Target="{TemplateBinding TargetAnchor}"
+                                   Stroke="{TemplateBinding Stroke}" StrokeThickness="{TemplateBinding StrokeThickness}"
+                                   StrokeDashArray="{TemplateBinding StrokeDashArray}" Direction="{TemplateBinding Direction}"
+                                   Spacing="0" ArrowSize="0 0" SourceOffsetMode="None" TargetOffsetMode="None"/>
+            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}"
+                    Canvas.Left="{Binding TargetAnchor.X, RelativeSource={RelativeSource TemplatedParent}}"
+                    Canvas.Top="{Binding TargetAnchor.Y, RelativeSource={RelativeSource TemplatedParent}}"
+                    Visibility="{Binding Content, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource Orchestrator.HasTextToVisibility}}"
+                    CornerRadius="4" Margin="16">
+                <ContentPresenter/>
+            </Border>
+        </Canvas>
+    </ControlTemplate>
+
+    <Style x:Key="PendingWire" TargetType="{x:Type nodify:PendingConnection}" BasedOn="{StaticResource {x:Type nodify:PendingConnection}}">
+        <Setter Property="Template" Value="{StaticResource PendingWireControlTemplate}"/>
+        <Setter Property="StrokeThickness" Value="2"/>
+        <Setter Property="Padding" Value="8,4"/>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsPreviewError}" Value="True">
+                <Setter Property="Stroke" Value="{StaticResource ErrorBrush}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource ErrorBrush}"/>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <DataTemplate x:Key="PendingWireTemplate" DataType="{x:Type canvas:PendingConnectionViewModel}">
+        <nodify:PendingConnection Style="{StaticResource PendingWire}" IsTabStop="False" IsHitTestVisible="False"
+                                  Source="{Binding Source, Mode=OneWayToSource}"
+                                  PreviewTarget="{Binding PreviewTarget, Mode=OneWayToSource}"
+                                  Content="{Binding PreviewText}"
+                                  EnablePreview="True" EnableSnapping="True" AllowOnlyConnectors="True">
+            <nodify:PendingConnection.ContentTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding}" Style="{StaticResource BodyText}" TextWrapping="NoWrap"/>
+                </DataTemplate>
+            </nodify:PendingConnection.ContentTemplate>
+        </nodify:PendingConnection>
+    </DataTemplate>
+
+    <!-- 4. Side panels. Text fields: the BorderStrong outline (>= 3:1 on every surface) marks the field; with the
+         keyboard focus the outline turns accent and thicker. -->
+    <Style x:Key="FieldTextBox" TargetType="TextBox">
+        <Setter Property="FontFamily" Value="{StaticResource UiFont}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="CaretBrush" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="Background" Value="{StaticResource BackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="6,4"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border x:Name="Root" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4" SnapsToDevicePixels="True">
+                        <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" Focusable="False"
+                                      HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Auto"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                            <Setter TargetName="Root" Property="BorderThickness" Value="2"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Root" Property="Opacity" Value="0.55"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="MultilineFieldTextBox" TargetType="TextBox" BasedOn="{StaticResource FieldTextBox}">
+        <Setter Property="AcceptsReturn" Value="True"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+        <Setter Property="MinHeight" Value="56"/>
+        <Setter Property="MaxHeight" Value="140"/>
+    </Style>
+
+    <!-- WPF's check box draws its own light box; only its label needs the theme's text colour. -->
+    <Style x:Key="FieldCheckBox" TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="FontFamily" Value="{StaticResource UiFont}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Margin" Value="0,2,0,2"/>
+    </Style>
+
+    <Style x:Key="FieldLabel" TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
+        <Setter Property="Margin" Value="0,10,0,4"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+    </Style>
+
+
+    <Style x:Key="ToolbarButton" TargetType="Button" BasedOn="{StaticResource GhostButton}">
+        <Setter Property="Padding" Value="10,5"/>
+        <Setter Property="Margin" Value="0,0,6,6"/>
+        <Setter Property="FontSize" Value="12"/>
+    </Style>
+
+    <Style x:Key="ToolbarPrimaryButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+        <Setter Property="Padding" Value="12,5"/>
+        <Setter Property="Margin" Value="0,0,6,6"/>
+        <Setter Property="FontSize" Value="12"/>
+    </Style>
+</ResourceDictionary>

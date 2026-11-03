@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <!-- Strict CSP: only files from this virtual host, no network, no eval. xterm.js writes <style> elements for theming,
+       hence 'unsafe-inline' for styles only. -->
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Terminal</title>
+  <link rel="stylesheet" href="xterm/xterm.css">
+  <link rel="stylesheet" href="terminal.css">
+</head>
+<body>
+  <div id="terminal"></div>
+  <div id="error" hidden></div>
+  <script src="xterm/xterm.js"></script>
+  <script src="xterm/addon-fit.js"></script>
+  <script src="terminal.js"></script>
+</body>
+</html>

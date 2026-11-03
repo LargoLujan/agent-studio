@@ -1,0 +1,139 @@
+<UserControl x:Class="AgentStudio.Desktop.Views.WelcomeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:AgentStudio.Desktop.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:WelcomeDocumentViewModel}">
+    <UserControl.Resources>
+        <!-- A row of a list that is a button. GhostButton centres its content; a row keeps it to the left, across the row. -->
+        <Style x:Key="ListRowButton" TargetType="Button" BasedOn="{StaticResource GhostButton}">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Root" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource SurfaceRaisedBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Shown only without a project, and only with one. -->
+        <Style x:Key="WithoutProject" TargetType="FrameworkElement">
+            <Setter Property="Visibility" Value="Visible"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding HasProject}" Value="True">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="WithProject" TargetType="FrameworkElement">
+            <Setter Property="Visibility" Value="Collapsed"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding HasProject}" Value="True">
+                    <Setter Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="{StaticResource BackgroundBrush}">
+        <StackPanel Margin="40,32" MaxWidth="640" HorizontalAlignment="Left">
+            <TextBlock Style="{StaticResource TitleText}" Text="Agent Studio"/>
+
+            <!-- Without a project: open one. -->
+            <StackPanel x:Name="StartPanel" Style="{StaticResource WithoutProject}">
+                <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,24" TextWrapping="Wrap"
+                           Text="Abre la carpeta de un proyecto para ver sus ficheros, su bitácora y el estado de los proveedores."/>
+                <Button Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"
+                        Content="Abrir carpeta" Command="{Binding OpenFolderCommand}"/>
+            </StackPanel>
+
+            <!-- With a project: the ways into it, with their shortcuts. -->
+            <StackPanel x:Name="ProjectPanel" Style="{StaticResource WithProject}">
+                <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="Proyecto abierto"/>
+                <TextBlock x:Name="ProjectNameText" Style="{StaticResource SectionTitleText}" Margin="0,2,0,0" Text="{Binding ProjectName}"
+                           AutomationProperties.Name="{Binding ProjectName, StringFormat='Proyecto abierto: {0}'}"/>
+                <TextBlock Style="{StaticResource SecondaryText}" FontFamily="{StaticResource MonoFont}" TextTrimming="CharacterEllipsis"
+                           Text="{Binding ProjectPathDisplay}"/>
+
+                <TextBlock Style="{StaticResource SectionTitleText}" Margin="0,28,0,12" Text="En este proyecto"/>
+                <ItemsControl x:Name="ProjectActionsList" ItemsSource="{Binding ProjectActions}" Focusable="False">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:WelcomeActionViewModel}">
+                            <Button Style="{StaticResource ListRowButton}" Command="{Binding Command}"
+                                    AutomationProperties.Name="{Binding Title}" AutomationProperties.HelpText="{Binding Description}"
+                                    AutomationProperties.AcceleratorKey="{Binding Shortcut}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{Binding Title}"/>
+                                        <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding Description}" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" Style="{StaticResource SecondaryText}" FontFamily="{StaticResource MonoFont}"
+                                               Margin="16,0,0,0" VerticalAlignment="Center" Text="{Binding Shortcut}"/>
+                                </Grid>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Button Style="{StaticResource GhostButton}" HorizontalAlignment="Left" Margin="0,8,0,0"
+                        Content="Abrir otra carpeta" Command="{Binding OpenFolderCommand}"/>
+            </StackPanel>
+
+            <TextBlock Style="{StaticResource SectionTitleText}" Margin="0,32,0,12" Text="Proyectos recientes"/>
+            <TextBlock Text="Todavía no has abierto ningún proyecto.">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding RecentProjects.Count}" Value="0">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+            <ItemsControl x:Name="RecentProjectsList" ItemsSource="{Binding RecentProjects}" Focusable="False">
+                <!-- A screen reader names each entry by its project, not by the type (nor the record) behind it. -->
+                <ItemsControl.ItemContainerStyle>
+                    <Style TargetType="ContentPresenter">
+                        <Setter Property="AutomationProperties.Name" Value="{Binding Name}"/>
+                    </Style>
+                </ItemsControl.ItemContainerStyle>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type vm:RecentProjectItem}">
+                        <Button Style="{StaticResource ListRowButton}"
+                                Command="{Binding DataContext.OpenRecentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                CommandParameter="{Binding Path}"
+                                AutomationProperties.Name="{Binding Name}" AutomationProperties.HelpText="{Binding DisplayPath}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{Binding Name}"/>
+                                <TextBlock Style="{StaticResource SecondaryText}" FontFamily="{StaticResource MonoFont}"
+                                           Text="{Binding DisplayPath}" TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -1,0 +1,224 @@
+<UserControl x:Class="AgentStudio.Desktop.Views.Debate.DebateRoomView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:debate="clr-namespace:AgentStudio.Desktop.Debate"
+             xmlns:monitor="clr-namespace:AgentStudio.Desktop.Orchestrator.Monitor"
+             xmlns:views="clr-namespace:AgentStudio.Desktop.Views.Debate"
+             xmlns:orchestratorViews="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=debate:DebateRoomViewModel}">
+    <!-- The room of a debate (docs/15 D-41, docs/03 §4): header with mode, phase, round, time and tokens with their
+         origin; the participants and the agents behind their labels; the contributions by round with their replies and
+         quotes (which open their evidence; the unresolved ones in the warning colour); a round in course is sealed and has
+         no text; the actions only ask the debate. At the end, the card of the verdict. Bindings only. -->
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="Room.BoolToVisibility"/>
+        <orchestratorViews:ToneToBrushConverter x:Key="Room.ToneToBrush"/>
+        <orchestratorViews:NullToVisibilityConverter x:Key="Room.NotNullToVisibility"/>
+        <DataTemplate x:Key="Room.Line">
+            <TextBlock Style="{StaticResource BodyText}" FontSize="12" Margin="8,1,0,1" Text="{Binding StringFormat='• {0}'}"/>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <ScrollViewer Background="{StaticResource SurfaceBrush}" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+        <StackPanel Margin="12,10,12,12">
+            <!-- Header. -->
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top"
+                            Visibility="{Binding IsLive, Converter={StaticResource Room.BoolToVisibility}}">
+                    <Button Style="{StaticResource ToolbarButton}" Content="Pedir juicio ahora" Command="{Binding RequestJudgmentCommand}"
+                            ToolTip="Manda el debate a juicio con lo publicado. Si un turno falló dos veces, es «Pedir juicio con lo que hay»."/>
+                    <Button Style="{StaticResource ToolbarButton}" Content="Ejecutar pruebas" Command="{Binding RunTestsCommand}"
+                            ToolTip="El perfil de verificación de confianza sobre el commit del objeto, aislado a integridad Low. No gasta cuota."/>
+                    <Button Style="{StaticResource ToolbarButton}" Content="Abortar" Command="{Binding AbortCommand}"
+                            ToolTip="Cancela los turnos en curso y cierra el debate como abortado."/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Ellipse Width="10" Height="10" Margin="0,0,8,0" VerticalAlignment="Center" Fill="{Binding PhaseTone, Converter={StaticResource Room.ToneToBrush}}"/>
+                    <TextBlock Style="{StaticResource SectionTitleText}" Text="{Binding Title}"/>
+                    <TextBlock Style="{StaticResource BodyText}" Margin="12,0,0,0" VerticalAlignment="Center" Text="{Binding PhaseText}"
+                               AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="Fase del debate"/>
+                    <TextBlock Style="{StaticResource SecondaryText}" Margin="12,0,0,0" VerticalAlignment="Center" Text="{Binding RoundText}"/>
+                    <TextBlock Style="{StaticResource SecondaryText}" Margin="12,0,0,0" VerticalAlignment="Center" FontFamily="{StaticResource MonoFont}" Text="{Binding DebateId}"/>
+                </StackPanel>
+            </DockPanel>
+            <TextBlock Style="{StaticResource BodyText}" Margin="0,8,0,0" Text="{Binding Question, StringFormat='Pregunta: {0}'}"
+                       Visibility="{Binding Question, Converter={StaticResource Room.NotNullToVisibility}}"/>
+            <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,0">
+                <Run Text="{Binding SubjectText, Mode=OneWay}"/>
+                <Run Text="·"/>
+                <Run Text="{Binding RequirementsText, Mode=OneWay, TargetNullValue='requisitos sin leer'}"/>
+            </TextBlock>
+            <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding JudgesText}" Visibility="{Binding JudgesText, Converter={StaticResource Room.NotNullToVisibility}}"/>
+            <WrapPanel Margin="0,6,0,0">
+                <TextBlock Style="{StaticResource SecondaryText}" Margin="0,0,16,0" Text="{Binding TimeText}"/>
+                <TextBlock Style="{StaticResource SecondaryText}" Margin="0,0,16,0" Text="{Binding TokensText}" AutomationProperties.Name="Tokens del debate"/>
+                <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding RunsText}"/>
+            </WrapPanel>
+            <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Margin="0,8,0,0" Foreground="{StaticResource AccentBrush}" Text="{Binding SealedText}"
+                       Visibility="{Binding SealedText, Converter={StaticResource Room.NotNullToVisibility}}"
+                       AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="Ronda sellada"/>
+            <TextBlock Style="{StaticResource BodyText}" FontSize="12" Margin="0,6,0,0" Foreground="{StaticResource WarningBrush}" Text="{Binding AwaitingText}"
+                       Visibility="{Binding AwaitingText, Converter={StaticResource Room.NotNullToVisibility}}" AutomationProperties.LiveSetting="Assertive"/>
+            <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="{Binding JudgmentText}" Visibility="{Binding JudgmentText, Converter={StaticResource Room.NotNullToVisibility}}"/>
+            <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="0,4,0,0" Text="{Binding ResultSummary, TargetNullValue=''}"/>
+            <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="0,4,0,0" Text="{Binding StatusMessage, TargetNullValue=''}" AutomationProperties.LiveSetting="Polite"/>
+            <TextBlock Style="{StaticResource ErrorText}" Margin="0,4,0,0" Text="{Binding ErrorMessage}" AutomationProperties.LiveSetting="Assertive"/>
+            <ItemsControl ItemsSource="{Binding Problems}" Focusable="False">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Style="{StaticResource ProblemText}" Text="{Binding}"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- Participants: the correspondence the judge does not see. -->
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Participantes"/>
+            <ItemsControl ItemsSource="{Binding Participants}" Focusable="False" AutomationProperties.Name="Participantes">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type debate:DebateParticipantRow}">
+                        <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8,4" Margin="0,0,8,6"
+                                Background="{StaticResource SurfaceRaisedBrush}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource BodyText}" FontSize="12" VerticalAlignment="Center">
+                                    <Run Text="{Binding Label, Mode=OneWay}" FontFamily="{StaticResource MonoFont}" FontWeight="SemiBold"/>
+                                    <Run Text="{Binding Role, Mode=OneWay}"/>
+                                    <Run Text="·" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <Run Text="{Binding Where, Mode=OneWay}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                </TextBlock>
+                                <Button Style="{StaticResource ToolbarButton}" Margin="8,0,0,0" Content="Reintentar turno"
+                                        Visibility="{Binding DataContext.IsAwaitingFailedTurn, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource Room.BoolToVisibility}}"
+                                        Command="{Binding DataContext.RetryTurnCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                                        AutomationProperties.Name="{Binding Label, StringFormat='Reintentar el turno de {0}'}"/>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- Contributions by round. -->
+            <ItemsControl ItemsSource="{Binding Rounds}" Focusable="False" AutomationProperties.Name="Contribuciones por ronda">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type debate:DebateRoundViewModel}">
+                        <StackPanel Margin="0,8,0,0">
+                            <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,4" Text="{Binding Title}"/>
+                            <ItemsControl ItemsSource="{Binding Contributions}" Focusable="False">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type debate:DebateContributionViewModel}">
+                                        <Border Style="{StaticResource InnerCard}" Padding="10,8" Margin="0,0,0,8" AutomationProperties.Name="{Binding Header}">
+                                            <StackPanel>
+                                                <DockPanel>
+                                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource SecondaryText}" FontFamily="{StaticResource MonoFont}" FontSize="11" Text="{Binding HashText}"/>
+                                                    <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{Binding Header}"/>
+                                                </DockPanel>
+                                                <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding RepliesText}" Visibility="{Binding RepliesText, Converter={StaticResource Room.NotNullToVisibility}}"/>
+                                                <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Margin="0,4,0,0" Text="{Binding Summary}"
+                                                           Visibility="{Binding Summary, Converter={StaticResource Room.NotNullToVisibility}}"/>
+                                                <TextBlock Style="{StaticResource BodyText}" FontSize="12" Margin="0,2,0,0" Text="{Binding Argument}"
+                                                           Visibility="{Binding Argument, Converter={StaticResource Room.NotNullToVisibility}}"/>
+                                                <ItemsControl ItemsSource="{Binding Claims}" Focusable="False" ItemTemplate="{StaticResource Room.Line}" Margin="0,2,0,0"
+                                                              Visibility="{Binding HasClaims, Converter={StaticResource Room.BoolToVisibility}}"/>
+                                                <ItemsControl ItemsSource="{Binding Quotes}" Focusable="False" Margin="0,2,0,0"
+                                                              Visibility="{Binding HasQuotes, Converter={StaticResource Room.BoolToVisibility}}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <TextBlock Style="{StaticResource SecondaryText}" Margin="8,1,0,1" FontFamily="{StaticResource MonoFont}" FontSize="11" Text="{Binding}"/>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                                <ItemsControl ItemsSource="{Binding Unresolved}" Focusable="False"
+                                                              Visibility="{Binding HasUnresolved, Converter={StaticResource Room.BoolToVisibility}}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <TextBlock Style="{StaticResource BodyText}" FontSize="12" Margin="8,1,0,1" Foreground="{StaticResource WarningBrush}" Text="{Binding}"/>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                                <ItemsControl ItemsSource="{Binding Cites}" Focusable="False" Margin="0,4,0,0"
+                                                              Visibility="{Binding HasCites, Converter={StaticResource Room.BoolToVisibility}}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <WrapPanel/>
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate DataType="{x:Type debate:CitedEvidence}">
+                                                            <Button Style="{StaticResource ToolbarButton}" Content="{Binding Id}"
+                                                                    Command="{Binding DataContext.OpenEvidenceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Id}"
+                                                                    ToolTip="Abre la evidencia citada si sus bytes siguen dando el SHA-256 de su registro."
+                                                                    AutomationProperties.Name="{Binding Id, StringFormat='Abrir la evidencia {0}'}"/>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                                <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding ConcedesText}" Visibility="{Binding ConcedesText, Converter={StaticResource Room.NotNullToVisibility}}"/>
+                                                <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding FinishedText}" Visibility="{Binding FinishedText, Converter={StaticResource Room.NotNullToVisibility}}"/>
+                                                <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding RedactionsText}" Visibility="{Binding RedactionsText, Converter={StaticResource Room.NotNullToVisibility}}"/>
+                                                <TextBlock Style="{StaticResource BodyText}" FontSize="12" Foreground="{StaticResource WarningBrush}" Text="{Binding TextProblem}"
+                                                           Visibility="{Binding TextProblem, Converter={StaticResource Room.NotNullToVisibility}}"/>
+                                                <TextBlock Style="{StaticResource SecondaryText}" FontSize="11" Margin="0,4,0,0" Text="{Binding AnsweredText}"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- An evidence opened from a contribution. -->
+            <Border Style="{StaticResource InnerCard}" Padding="10,8" Margin="0,8,0,8"
+                    Visibility="{Binding OpenedEvidence, Converter={StaticResource Room.NotNullToVisibility}}">
+                <StackPanel DataContext="{Binding OpenedEvidence}">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Content="Cerrar"
+                                Command="{Binding DataContext.CloseEvidenceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                        <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold">
+                            <Run Text="{Binding Id, Mode=OneWay}" FontFamily="{StaticResource MonoFont}"/>
+                            <Run Text="{Binding Title, Mode=OneWay}"/>
+                        </TextBlock>
+                    </DockPanel>
+                    <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding Description}"/>
+                    <DockPanel>
+                        <Ellipse DockPanel.Dock="Left" Width="7" Height="7" Margin="0,5,6,0" VerticalAlignment="Top"
+                                 Fill="{Binding HashTone, Converter={StaticResource Room.ToneToBrush}}"/>
+                        <TextBlock Style="{StaticResource SecondaryText}" FontFamily="{StaticResource MonoFont}" FontSize="11" Text="{Binding HashText}"/>
+                    </DockPanel>
+                    <TextBox Style="{StaticResource MultilineFieldTextBox}" Margin="0,6,0,0" IsReadOnly="True" FontFamily="{StaticResource MonoFont}" MaxHeight="260"
+                             Text="{Binding Text, Mode=OneWay}" Visibility="{Binding Text, Converter={StaticResource Room.NotNullToVisibility}}"
+                             AutomationProperties.Name="Contenido de la evidencia"/>
+                </StackPanel>
+            </Border>
+
+            <!-- «Añadir evidencia» (D-27): a note of yours, which the next round and the judge see. -->
+            <StackPanel Margin="0,8,0,0" Visibility="{Binding IsLive, Converter={StaticResource Room.BoolToVisibility}}">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Añadir evidencia (una nota tuya: la verán la ronda siguiente y el juez)"/>
+                <TextBox Style="{StaticResource FieldTextBox}" Text="{Binding NoteTitle, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Título de la evidencia"/>
+                <TextBox Style="{StaticResource MultilineFieldTextBox}" Margin="0,6,0,0" Text="{Binding NoteText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Texto de la evidencia"/>
+                <Button Style="{StaticResource ToolbarButton}" HorizontalAlignment="Left" Margin="0,6,0,0" Content="Añadir evidencia" Command="{Binding AddEvidenceCommand}"/>
+            </StackPanel>
+
+            <!-- The verdict. -->
+            <views:VerdictCardView Margin="0,8,0,0" DataContext="{Binding Card}" Visibility="{Binding Converter={StaticResource Room.NotNullToVisibility}}"/>
+
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Actividad"/>
+            <ItemsControl ItemsSource="{Binding Activity}" Focusable="False" AutomationProperties.Name="Actividad del debate">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type monitor:ActivityEntry}">
+                        <TextBlock Style="{StaticResource BodyText}" FontSize="12" TextWrapping="Wrap">
+                            <Run Text="{Binding Time, Mode=OneWay}" FontFamily="{StaticResource MonoFont}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <Run Text="{Binding Text, Mode=OneWay}"/>
+                        </TextBlock>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

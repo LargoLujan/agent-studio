@@ -1,0 +1,25 @@
+22:48:44.671 environment: EnvironmentInfo { OperatingSystem = Microsoft Windows 10.0.26300, Runtime = .NET 10.0.11, LogicalProcessors = 16, RenderTier = 2, DpiScale = 1,25, WindowSizePixels = window client 1859x984 px at 120 dpi, off-screen; pictures rendered at 120 dpi, NodifyVersion = 7.3.0+d3b84436b9cc0d8d8e3b053a90deb86a1ac94eb4 }
+22:48:45.481 machine CPU load, run start: 36 %
+22:48:45.508 taking the keyboard focus: nobody has touched the machine for 37 s: a takeover, if Windows allows one, disturbs nobody and is handed back at once
+22:48:45.586 WARNING the harness window became the foreground window (1); nobody had touched the machine for 37,1 s; it came from 0x2A80114; handed back: True; the foreground is now 0x2A80114
+22:48:45.665 the focus call (and the hand-back, if any) took 79,1 ms; Win32 focus on the off-screen window: False; foreground at the start 0x2A80114, after showing the host 0x2A80114, now 0x2A80114
+22:48:46.483 machine CPU load, benchmark start: 24 %
+22:48:51.189 plan-size graph (20 nodes, 25 wires): RenderTimes { ViewModelBuildMs = 17,2, FirstFrameMs = 142,2, FullyDrawnMs = 143,7 }
+22:49:02.705 first load: RenderTimes { ViewModelBuildMs = 65,4, FirstFrameMs = 1420,1, FullyDrawnMs = 1420,2 }; warm reloads: RenderTimes { ViewModelBuildMs = 48,5, FirstFrameMs = 1380,3, FullyDrawnMs = 1380,3 }; RenderTimes { ViewModelBuildMs = 52,4, FirstFrameMs = 1318,1, FullyDrawnMs = 1318,2 }; RenderTimes { ViewModelBuildMs = 102,6, FirstFrameMs = 1312, FullyDrawnMs = 1312,1 }; RenderTimes { ViewModelBuildMs = 75,4, FirstFrameMs = 1220,3, FullyDrawnMs = 1220,4 }
+22:49:02.716 PASS [bench] 200 nodes and 300 wires are rendered - 200 containers, 300 wires; first load 1420 ms to first frame, 1420 ms fully drawn; 4 warm reloads fully drawn in 1220-1380 ms
+22:49:02.966 PASS [bench] the cycle probe still refuses a back edge on the 200/300 graph - Ciclo: N155 → N164 → N155; rebuild 7,36 ms, probe 3,89 ms (mean of 20)
+22:49:04.039 screenshot fase3-spike-nodify-200.png (1859x984)
+22:49:28.807 frames: FrameStats { Scenario = baseline, 12 nodes: pan at fit zoom, Frames = 180, Seconds = 3,01, AverageFps = 59,8, MeanFrameMs = 16,71, MedianFrameMs = 16,66, P95FrameMs = 16,66, MaxFrameMs = 35,95, FramesOver20Ms = 2, FramesOver33Ms = 1 }
+22:49:28.807 frames: FrameStats { Scenario = 200 nodes: scripted pan at fit zoom (everything in view), Frames = 172, Seconds = 3, AverageFps = 57,3, MeanFrameMs = 17,44, MedianFrameMs = 16,67, P95FrameMs = 16,67, MaxFrameMs = 100, FramesOver20Ms = 5, FramesOver33Ms = 1 }
+22:49:28.807 frames: FrameStats { Scenario = 200 nodes: scripted zoom sweep (x1.8 each way), Frames = 167, Seconds = 3, AverageFps = 55,6, MeanFrameMs = 17,99, MedianFrameMs = 16,67, P95FrameMs = 16,67, MaxFrameMs = 183,33, FramesOver20Ms = 5, FramesOver33Ms = 1 }
+22:49:28.807 frames: FrameStats { Scenario = 200 nodes: scripted pan at 100% (a fifth of the graph in view), Frames = 140, Seconds = 3,03, AverageFps = 46,2, MeanFrameMs = 21,66, MedianFrameMs = 16,66, P95FrameMs = 33,31, MaxFrameMs = 33,33, FramesOver20Ms = 42, FramesOver33Ms = 0 }
+22:49:28.807 frames: FrameStats { Scenario = 200 nodes: right-button drag pan at fit zoom (mouse messages), Frames = 157, Seconds = 3,01, AverageFps = 52,2, MeanFrameMs = 19,17, MedianFrameMs = 16,67, P95FrameMs = 33,33, MaxFrameMs = 166,67, FramesOver20Ms = 15, FramesOver33Ms = 2 }
+22:49:28.807 frames: FrameStats { Scenario = 200 nodes: mouse wheel zoom (wheel messages), Frames = 100, Seconds = 3,03, AverageFps = 33, MeanFrameMs = 30,31, MedianFrameMs = 33,29, P95FrameMs = 50, MaxFrameMs = 116,67, FramesOver20Ms = 55, FramesOver33Ms = 21 }
+22:49:28.807 frames: FrameStats { Scenario = 200 nodes: left-drag of a node at fit zoom, its wires follow (mouse messages), Frames = 131, Seconds = 3,01, AverageFps = 43,6, MeanFrameMs = 22,95, MedianFrameMs = 16,67, P95FrameMs = 33,33, MaxFrameMs = 66,67, FramesOver20Ms = 44, FramesOver33Ms = 4 }
+22:49:28.807 frames: FrameStats { Scenario = 200 nodes: scripted pan at fit zoom with Nodify's rendering optimisation forced on (threshold 100), Frames = 137, Seconds = 3,01, AverageFps = 45,5, MeanFrameMs = 21,96, MedianFrameMs = 16,67, P95FrameMs = 33,33, MaxFrameMs = 250, FramesOver20Ms = 30, FramesOver33Ms = 2 }
+22:49:29.630 machine CPU load, benchmark end: 95 %
+22:49:29.631 PASS [bench] pan with all 200 nodes in view stays interactive (at least 30 frames per second) - 57,3 fps, median 16,67 ms, p95 16,67 ms, 1 frames over 33 ms
+22:49:29.631 PASS [bench] a right-button drag pan with 200 nodes stays interactive (at least 30 frames per second) - 52,2 fps, p95 33,33 ms
+22:49:29.637 PASS [session] the harness window never took the foreground while somebody was using the machine - one while nobody had touched the machine for 37 s, handed back at once
+22:49:29.638 PASS [session] the harness window is never left as the foreground window - 1 takeover(s), the foreground belongs to another window at the end
+22:49:29.638 PASS [session] no tool tip, menu or other popup window was ever created - one native window (the off-screen host) existed at every checkpoint

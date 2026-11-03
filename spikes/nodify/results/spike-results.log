@@ -1,0 +1,96 @@
+22:32:23.839 environment: EnvironmentInfo { OperatingSystem = Microsoft Windows 10.0.26300, Runtime = .NET 10.0.11, LogicalProcessors = 16, RenderTier = 2, DpiScale = 1,25, WindowSizePixels = window client 1859x984 px at 120 dpi, off-screen; pictures rendered at 120 dpi, NodifyVersion = 7.3.0+d3b84436b9cc0d8d8e3b053a90deb86a1ac94eb4 }
+22:32:24.655 machine CPU load, run start: 71 %
+22:32:24.713 taking the keyboard focus: nobody has touched the machine for 539 s: a takeover, if Windows allows one, disturbs nobody and is handed back at once
+22:32:24.861 WARNING the harness window became the foreground window (1); nobody had touched the machine for 539,3 s; it came from 0x109C4; handed back: True; the foreground is now 0x109C4
+22:32:25.016 the focus call (and the hand-back, if any) took 149,5 ms; Win32 focus on the off-screen window: False; foreground at the start 0x109C4, after showing the host 0x109C4, now 0x109C4
+22:32:25.672 12-node sample, cold load in a fresh process: RenderTimes { ViewModelBuildMs = 102,8, FirstFrameMs = 635,2, FullyDrawnMs = 637,6 }
+22:32:26.442 PASS [small] 12 nodes and 11 wires are rendered - 12 containers, 11 wires
+22:32:26.456 PASS [small] all 7 node kinds are shown - AgentWork, ToolRun, Condition, Integration, Review, HumanApproval, Debate
+22:32:26.467 PASS [small] all 8 statuses are shown - Completed, Running, Skipped, Pending, Failed, Blocked, Cancelled, AwaitingApproval
+22:32:26.469 PASS [small] the Condition has two output connectors (Sí/No) with a wire each - T3.Sí->T4; T3.No->T5
+22:32:26.796 PASS [theme] every Nodify colour key is remapped from an app token - 50 keys: 46 from tokens, 4 transparent, 0 left in Nodify colours 
+22:32:26.803 PASS [theme] Nodify colour keys equal their tokens - 46 keys checked
+22:32:26.806 PASS [theme] live Nodify controls read the token colours - Node, editor, container and connector brushes match
+22:32:26.940 PASS [theme] canvas background pixel equals the BackgroundColor token - rendered #0A1020, token #0A1020
+22:32:26.940 PASS [theme] node header pixel equals the SurfaceRaisedColor token - rendered #16223D, token #16223D
+22:32:27.094 screenshot fase3-spike-nodify.png (1859x984)
+22:32:27.103 PASS [a11y] the editor is named for screen readers - name 'Lienzo del orquestador', focusable True, tab stop True
+22:32:27.105 PASS [a11y] templates set AutomationProperties.Name on every node container and connector - 12/12 containers, 25/25 connectors
+22:32:29.420 UIA tree: 174 elements; named like a node: 12; example T1, Trabajo de agente, Implementar Calc.Multiply, Completada / ControlType.DataItem
+22:32:29.420 PASS [a11y] UI Automation exposes every node by id, kind, title and status - 12/12 nodes found in a tree of 174 elements; e.g. 'T1, Trabajo de agente, Implementar Calc.Multiply, Completada' as ControlType.DataItem; keyboard-focusable: 12
+22:32:31.120 PASS [small] a drag onto the disabled Debate node is refused with an explanation - wires 11->11, hover text 'Debate: disponible en la Fase 5.'
+22:32:31.692 the focus call (and the hand-back, if any) took 0,1 ms; Win32 focus on the off-screen window: True; foreground at the start 0x109C4, after showing the host 0x109C4, now 0x109C4
+22:32:31.694 PASS [input] the editor has keyboard focus - focus within the editor: True; focused element NodifyEditor; Win32 focus on the off-screen window: True
+22:32:31.700 PASS [create] the Debate palette button is disabled - IsEnabled False, tooltip 'Disponible en la Fase 5: el validador del plan rechaza los nodos Debate.'
+22:32:31.915 PASS [create] clicking the disabled Debate button creates nothing - 0 nodes
+22:32:32.159 PASS [create] palette click creates a AgentWork node - 1 nodes, last T1
+22:32:32.368 PASS [create] palette click creates a Condition node - 2 nodes, last T2
+22:32:32.568 PASS [create] palette click creates a ToolRun node - 3 nodes, last T3
+22:32:32.786 PASS [create] palette click creates a Review node - 4 nodes, last T4
+22:32:33.000 PASS [create] palette click creates a HumanApproval node - 5 nodes, last T5
+22:32:33.190 PASS [create] palette click creates a Integration node - 6 nodes, last T6
+22:32:33.420 PASS [create] ids are unique and the new node is selected - ids T1,T2,T3,T4,T5,T6, selected 1
+22:32:35.896 PASS [status] each of the 8 statuses recolours the node border live and updates its label - Pendiente, En curso, Bloqueada, Espera aprobación, Completada, Fallida, Cancelada, Omitida
+22:32:38.586 PASS [input] left-drag moves T6 - pressed on T6; started (947,618), target (450,640), landed (461,626): within 14px (client pixels; the node snaps to the 10-unit grid and Nodify measures the drag from its start threshold)
+22:32:41.257 PASS [input] left-drag moves T5 - pressed on T5; started (918,589), target (1300,352), landed (1261,363): within 39px (client pixels; the node snaps to the 10-unit grid and Nodify measures the drag from its start threshold)
+22:32:44.401 PASS [input] left-drag moves T3 - pressed on T3; started (858,529), target (875,240), landed (861,263): within 23px (client pixels; the node snaps to the 10-unit grid and Nodify measures the drag from its start threshold)
+22:32:47.581 PASS [input] left-drag moves T2 - pressed on T2; started (828,499), target (450,352), landed (474,351): within 24px (client pixels; the node snaps to the 10-unit grid and Nodify measures the drag from its start threshold)
+22:32:50.028 PASS [input] left-drag moves T1 - pressed on T1; started (798,469), target (50,352), landed (74,363): within 24px (client pixels; the node snaps to the 10-unit grid and Nodify measures the drag from its start threshold)
+22:32:52.565 PASS [input] left-drag moves T4 - pressed on T4; started (888,559), target (875,514), landed (887,526): within 12px (client pixels; the node snaps to the 10-unit grid and Nodify measures the drag from its start threshold)
+22:32:54.153 PASS [input] drag T1.out -> T2.in creates a wire - drag started True; wires 0->1; notice ''
+22:32:55.521 PASS [input] drag T2.Sí -> T3.in creates a wire - drag started True; wires 1->2; notice ''
+22:32:56.988 PASS [input] drag T2.No -> T4.in creates a wire - drag started True; wires 2->3; notice ''
+22:32:58.406 PASS [input] drag T3.out -> T5.in creates a wire - drag started True; wires 3->4; notice ''
+22:32:59.799 PASS [input] drag T4.out -> T5.in creates a second wire into the same input (fan-in) - drag started True; wires 4->5; notice ''
+22:33:01.250 PASS [input] drag T4.out -> T6.in creates a wire - drag started True; wires 5->6; notice ''
+22:33:01.253 PASS [input] the Condition's two outputs carry the Sí and No branches - T2.Sí->T3; T2.No->T4
+22:33:02.650 PASS [input] a duplicate wire is not created - drag started True; wires 6->6; notice ''
+22:33:04.122 PASS [input] an output cannot be dragged onto an output - drag started True; wires 6->6; notice ''
+22:33:05.449 PASS [input] a node cannot be connected to itself - drag started True; wires 6->6; notice 'Conexión rechazada. Ciclo: T2 → T2'
+22:33:05.450 PASS [cycle] the self-connection is reported as a cycle by the domain - notice 'Conexión rechazada. Ciclo: T2 → T2'
+22:33:07.408 screenshot fase3-spike-nodify-ciclo.png (1859x984)
+22:33:07.592 PASS [cycle] while dragging, the cycle is announced next to the cursor - preview text 'Ciclo: T1 → T2 → T3 → T5 → T1', error style True
+22:33:07.592 PASS [cycle] dropping it creates no wire - wires 6->6
+22:33:07.592 PASS [cycle] a visible message names the cycle path - banner 'Conexión rechazada. Ciclo: T1 → T2 → T3 → T5 → T1'
+22:33:07.897 PASS [cycle] the banner is rendered - visible at 294x18 DIPs
+22:33:08.257 screenshot fase3-spike-nodify-rechazo.png (1859x984)
+22:33:09.730 PASS [select] a rubber band selects the nodes it touches (T3, T4) - selected T3,T4
+22:33:09.983 PASS [select] a click selects one node - selected T1
+22:33:10.379 PASS [select] Ctrl+click adds a node to the selection - Ctrl seen by WPF True; selected T1,T2
+22:33:10.593 PASS [select] a click on empty canvas clears the selection - selected 0
+22:33:10.819 PASS [select] a click on a wire selects it - selected wires 1: T3->T5
+22:33:11.108 PASS [delete] Delete removes the selected wire - wires 6->5
+22:33:11.108 PASS [delete] its connectors are released (IsConnected updated) - T3.out connected False, T5.in connected True (T4 still feeds it)
+22:33:11.487 PASS [delete] Delete on a node removes it and every wire attached to it (cascade) - nodes 6->5, wires 5->2 (3 attached); notice 'Eliminados 1 nodos y 3 conexiones.'
+22:33:11.490 PASS [delete] no connector is left marked as connected without a wire - IsConnected matches the wires for every connector
+22:33:11.705 PASS [delete] the domain graph rebuilt from the canvas is consistent after the cascade - 5 tasks
+22:33:13.191 PASS [pan] right-drag pans the viewport - viewport moved by (200,60) for a (-200,-60) drag
+22:33:14.357 PASS [zoom] the mouse wheel zooms in and out - zoom 1,00 -> in 2,00 -> out 0,50; status bar '50 %'
+22:33:14.905 PASS [keyboard] Tab from the toolbar enters the canvas - focus on ItemContainer
+22:33:15.278 PASS [keyboard] an arrow key moves the focus to a node - focused T1 (ItemContainer)
+22:33:15.727 PASS [keyboard] the focused node shows the dashed focus ring in the TextPrimary token colour - 226 ring pixels around T1
+22:33:15.886 screenshot fase3-spike-nodify-foco.png (1859x984)
+22:33:16.085 PASS [keyboard] Space selects the focused node - selected T1
+22:33:16.386 PASS [keyboard] arrow + Space builds a multi-selection - focused T6, selected T1,T6
+22:33:16.522 PASS [keyboard] Escape clears the selection - selected 0
+22:33:16.825 PASS [keyboard] Delete removes the keyboard-selected node and its wires - nodes 5->4, wires 2->1 (1 attached)
+22:33:17.659 machine CPU load, benchmark start: 100 %
+22:33:22.765 plan-size graph (20 nodes, 25 wires): RenderTimes { ViewModelBuildMs = 42, FirstFrameMs = 347,1, FullyDrawnMs = 347,1 }
+22:33:55.571 first load: RenderTimes { ViewModelBuildMs = 126,9, FirstFrameMs = 3376,2, FullyDrawnMs = 3376,4 }; warm reloads: RenderTimes { ViewModelBuildMs = 114,2, FirstFrameMs = 8568,4, FullyDrawnMs = 8568,5 }; RenderTimes { ViewModelBuildMs = 247,3, FirstFrameMs = 3905,2, FullyDrawnMs = 3905,3 }; RenderTimes { ViewModelBuildMs = 154,3, FirstFrameMs = 3948,7, FullyDrawnMs = 3948,9 }; RenderTimes { ViewModelBuildMs = 280,2, FirstFrameMs = 5170,8, FullyDrawnMs = 5170,9 }
+22:33:55.590 PASS [bench] 200 nodes and 300 wires are rendered - 200 containers, 300 wires; first load 3376 ms to first frame, 3376 ms fully drawn; 4 warm reloads fully drawn in 3905-8569 ms
+22:33:56.183 PASS [bench] the cycle probe still refuses a back edge on the 200/300 graph - Ciclo: N155 → N164 → N155; rebuild 13,15 ms, probe 15,30 ms (mean of 20)
+22:33:58.201 screenshot fase3-spike-nodify-200.png (1859x984)
+22:34:23.257 frames: FrameStats { Scenario = baseline, 12 nodes: pan at fit zoom, Frames = 147, Seconds = 3,01, AverageFps = 48,9, MeanFrameMs = 20,47, MedianFrameMs = 16,66, P95FrameMs = 33,32, MaxFrameMs = 49,96, FramesOver20Ms = 33, FramesOver33Ms = 3 }
+22:34:23.257 frames: FrameStats { Scenario = 200 nodes: scripted pan at fit zoom (everything in view), Frames = 133, Seconds = 3, AverageFps = 44,3, MeanFrameMs = 22,59, MedianFrameMs = 16,67, P95FrameMs = 33,33, MaxFrameMs = 99,96, FramesOver20Ms = 38, FramesOver33Ms = 6 }
+22:34:23.257 frames: FrameStats { Scenario = 200 nodes: scripted zoom sweep (x1.8 each way), Frames = 130, Seconds = 3,01, AverageFps = 43,3, MeanFrameMs = 23,12, MedianFrameMs = 16,67, P95FrameMs = 49,98, MaxFrameMs = 66,65, FramesOver20Ms = 40, FramesOver33Ms = 8 }
+22:34:23.257 frames: FrameStats { Scenario = 200 nodes: scripted pan at 100% (a fifth of the graph in view), Frames = 162, Seconds = 3, AverageFps = 54, MeanFrameMs = 18,53, MedianFrameMs = 16,66, P95FrameMs = 33,3, MaxFrameMs = 50, FramesOver20Ms = 18, FramesOver33Ms = 1 }
+22:34:23.257 frames: FrameStats { Scenario = 200 nodes: right-button drag pan at fit zoom (mouse messages), Frames = 110, Seconds = 3,01, AverageFps = 36,6, MeanFrameMs = 27,34, MedianFrameMs = 16,67, P95FrameMs = 50, MaxFrameMs = 66,67, FramesOver20Ms = 47, FramesOver33Ms = 20 }
+22:34:23.257 frames: FrameStats { Scenario = 200 nodes: mouse wheel zoom (wheel messages), Frames = 90, Seconds = 3,03, AverageFps = 29,7, MeanFrameMs = 33,67, MedianFrameMs = 33,28, P95FrameMs = 66,67, MaxFrameMs = 116,67, FramesOver20Ms = 54, FramesOver33Ms = 25 }
+22:34:23.257 frames: FrameStats { Scenario = 200 nodes: left-drag of a node at fit zoom, its wires follow (mouse messages), Frames = 123, Seconds = 3,04, AverageFps = 40,4, MeanFrameMs = 24,74, MedianFrameMs = 16,67, P95FrameMs = 50, MaxFrameMs = 112,5, FramesOver20Ms = 43, FramesOver33Ms = 10 }
+22:34:23.257 frames: FrameStats { Scenario = 200 nodes: scripted pan at fit zoom with Nodify's rendering optimisation forced on (threshold 100), Frames = 128, Seconds = 3, AverageFps = 42,6, MeanFrameMs = 23,45, MedianFrameMs = 16,67, P95FrameMs = 49,98, MaxFrameMs = 66,67, FramesOver20Ms = 44, FramesOver33Ms = 8 }
+22:34:24.084 machine CPU load, benchmark end: 100 %
+22:34:24.085 PASS [bench] pan with all 200 nodes in view stays interactive (at least 30 frames per second) - 44,3 fps, median 16,67 ms, p95 33,33 ms, 6 frames over 33 ms
+22:34:24.086 PASS [bench] a right-button drag pan with 200 nodes stays interactive (at least 30 frames per second) - 36,6 fps, p95 50 ms
+22:34:24.095 PASS [session] the harness window never took the foreground while somebody was using the machine - one while nobody had touched the machine for 539 s, handed back at once
+22:34:24.096 PASS [session] the harness window is never left as the foreground window - 1 takeover(s), the foreground belongs to another window at the end
+22:34:24.097 PASS [session] no tool tip, menu or other popup window was ever created - one native window (the off-screen host) existed at every checkpoint

@@ -1,0 +1,61 @@
+<UserControl x:Class="AgentStudio.Desktop.Views.Observability.ObservabilitySettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:observability="clr-namespace:AgentStudio.Desktop.Observability"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=observability:ObservabilitySettingsViewModel}"
+             AutomationProperties.Name="{x:Static observability:ObservabilitySettingsViewModel.Title}">
+    <!-- «Contexto y cuota», a section of «Ajustes» (docs/14 D-11 and D-15): the global context thresholds and the Codex opt-in.
+         «Guardar» is the document's, for every section at once; until then the previous ones stay in force. Bindings only. -->
+    <UserControl.Resources>
+        <Style x:Key="ContextSettings.Field" TargetType="StackPanel">
+            <Setter Property="Margin" Value="0,0,28,0"/>
+        </Style>
+    </UserControl.Resources>
+
+    <StackPanel>
+        <TextBlock Style="{StaticResource SectionTitleText}" Text="{x:Static observability:ObservabilitySettingsViewModel.Title}"/>
+        <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,0"
+                   Text="Cuándo avisa el monitor de que se llena el contexto de una tarea, y si Agent Studio puede leer la cuota de Codex."/>
+
+        <TextBlock Style="{StaticResource FieldLabel}" Margin="0,14,0,6" Text="Umbrales de salud del contexto (% de la ventana del modelo)"/>
+        <WrapPanel>
+            <StackPanel Style="{StaticResource ContextSettings.Field}">
+                <TextBlock Style="{StaticResource SecondaryText}" Text="Aviso"/>
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                    <TextBox Style="{StaticResource FieldTextBox}" Width="64" Text="{Binding WarningText, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="Umbral de aviso, en porcentaje"/>
+                    <TextBlock Style="{StaticResource SecondaryText}" Margin="6,0,0,0" VerticalAlignment="Center" Text="%"/>
+                </StackPanel>
+            </StackPanel>
+            <StackPanel Style="{StaticResource ContextSettings.Field}">
+                <TextBlock Style="{StaticResource SecondaryText}" Text="Compresión recomendada"/>
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                    <TextBox Style="{StaticResource FieldTextBox}" Width="64" Text="{Binding CompressText, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="Umbral de compresión recomendada, en porcentaje"/>
+                    <TextBlock Style="{StaticResource SecondaryText}" Margin="6,0,0,0" VerticalAlignment="Center" Text="%"/>
+                </StackPanel>
+            </StackPanel>
+            <StackPanel Style="{StaticResource ContextSettings.Field}">
+                <TextBlock Style="{StaticResource SecondaryText}" Text="Crítico"/>
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                    <TextBox Style="{StaticResource FieldTextBox}" Width="64" Text="{Binding CriticalText, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="Umbral crítico, en porcentaje"/>
+                    <TextBlock Style="{StaticResource SecondaryText}" Margin="6,0,0,0" VerticalAlignment="Center" Text="%"/>
+                </StackPanel>
+            </StackPanel>
+        </WrapPanel>
+        <TextBlock Style="{StaticResource SecondaryText}" Margin="0,6,0,0" Text="{x:Static observability:ObservabilitySettingsViewModel.RuleText}"/>
+        <TextBlock Style="{StaticResource ErrorText}" Margin="0,6,0,0" Text="{Binding ErrorMessage}" AutomationProperties.LiveSetting="Assertive"/>
+
+        <!-- A string as the content of a check box never wraps: a wrapping TextBlock does, and the name is set by hand. -->
+        <CheckBox Style="{StaticResource FieldCheckBox}" Margin="0,16,0,0" IsChecked="{Binding CodexQuotaReadEnabled}"
+                  AutomationProperties.Name="Leer la cuota de Codex"
+                  AutomationProperties.HelpText="{x:Static observability:ObservabilitySettingsViewModel.CodexExplanation}">
+            <TextBlock TextWrapping="Wrap" Text="Leer la cuota de Codex"/>
+        </CheckBox>
+        <TextBlock Style="{StaticResource SecondaryText}" Margin="22,2,0,0" Text="{x:Static observability:ObservabilitySettingsViewModel.CodexExplanation}"/>
+    </StackPanel>
+</UserControl>

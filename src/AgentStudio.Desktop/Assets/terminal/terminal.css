@@ -1,0 +1,21 @@
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #0a1020;
+}
+
+#terminal {
+  position: absolute;
+  inset: 0;
+  padding: 6px 0 0 8px;
+  box-sizing: border-box;
+}
+
+#error {
+  position: absolute;
+  inset: 0;
+  padding: 16px;
+  color: #ff5c6c;
+  font: 14px "Segoe UI", sans-serif;
+}

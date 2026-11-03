@@ -1,0 +1,41 @@
+<UserControl x:Class="AgentStudio.Desktop.Views.Memory.DailySummaryView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:memory="clr-namespace:AgentStudio.Desktop.Memory"
+             xmlns:orchestratorViews="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=memory:DailySummaryViewModel}">
+    <!-- «Resumen del día» (docs/14 D-31): deterministic, from the journal read through the checked storage; no agent and
+         no quota. Today's is provisional; a closed day goes to the memory once. Bindings only. -->
+    <UserControl.Resources>
+        <orchestratorViews:NullToVisibilityConverter x:Key="DailySummary.NotNullToVisibility"/>
+    </UserControl.Resources>
+
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Top">
+            <TextBlock Style="{StaticResource SectionTitleText}" Text="Resumen del día"/>
+            <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,6"
+                       Text="Lo calcula Agent Studio a partir de la bitácora, sin agentes ni cuota: cuenta y lista, no redacta."/>
+            <WrapPanel>
+                <Button Style="{StaticResource ToolbarButton}" Content="Día anterior" Command="{Binding PreviousDayCommand}"/>
+                <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="4,0,10,6" Text="{Binding DayText}"
+                           AutomationProperties.LiveSetting="Polite"/>
+                <Button Style="{StaticResource ToolbarButton}" Content="Día siguiente" Command="{Binding NextDayCommand}"/>
+                <Button Style="{StaticResource ToolbarPrimaryButton}" Content="Resumir el día" Command="{Binding SummarizeCommand}"/>
+            </WrapPanel>
+            <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding Status, TargetNullValue=''}" AutomationProperties.LiveSetting="Polite"/>
+            <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding Counts, TargetNullValue=''}"/>
+            <TextBlock Style="{StaticResource ErrorText}" Text="{Binding ErrorMessage}" AutomationProperties.LiveSetting="Assertive"/>
+        </StackPanel>
+        <!-- Empty, the box says what to do to fill it (or why it cannot be filled), instead of saying nothing. -->
+        <Grid Margin="0,8,0,0">
+            <TextBox Style="{StaticResource MonoViewer}" MinHeight="120" TextWrapping="Wrap" HorizontalScrollBarVisibility="Disabled"
+                     Text="{Binding Summary, Mode=OneWay}" AutomationProperties.Name="Resumen del día"
+                     AutomationProperties.HelpText="{Binding EmptyHint}"/>
+            <TextBlock Style="{StaticResource SecondaryText}" Margin="14,10,14,0" VerticalAlignment="Top" IsHitTestVisible="False"
+                       Text="{Binding EmptyHint}" Visibility="{Binding EmptyHint, Converter={StaticResource DailySummary.NotNullToVisibility}}"/>
+        </Grid>
+    </DockPanel>
+</UserControl>

@@ -1,0 +1,712 @@
+{
+  "schema": "agentstudio-usage/1",
+  "generatedAt": "2026-10-26T09:00:00.000Z",
+  "zone": "Europe/Madrid",
+  "filters": {
+    "from": "2026-10-24T00:00:00.000Z",
+    "to": "2026-10-27T00:00:00.000Z",
+    "groupBy": [
+      "Provider"
+    ],
+    "providers": null,
+    "vendors": null,
+    "models": null,
+    "agents": null,
+    "purposes": null,
+    "runs": null
+  },
+  "projects": [
+    {
+      "projectId": "6f1c2b0e-0000-4000-8000-000000000001",
+      "root": null,
+      "included": true,
+      "attempts": 3,
+      "reason": null
+    },
+    {
+      "projectId": "6f1c2b0e-0000-4000-8000-000000000002",
+      "root": "C:\\repos\\beta",
+      "included": false,
+      "attempts": 0,
+      "reason": "El registro no verifica (entrada 3): The entry content does not match its hash (it was modified)."
+    }
+  ],
+  "journal": {
+    "journalPrompts": 4,
+    "recordedAttempts": 3,
+    "difference": 1,
+    "warnings": [
+      "Bitácora: 4 prompts; registro: 3 intentos. Diferencia de 1 prompt, que no se suma (pruebas en vivo, versiones anteriores o intentos que no llegaron al proveedor)."
+    ]
+  },
+  "attempts": [
+    {
+      "projectId": "6f1c2b0e-0000-4000-8000-000000000001",
+      "runId": "20261025-a1b2c3",
+      "taskId": "T1, «parte 2»",
+      "attempt": 2,
+      "purpose": "Executor",
+      "agent": "ejecutor",
+      "provider": "claude-code",
+      "vendor": "anthropic",
+      "configuredModel": "claude-sonnet-5-5",
+      "reportedModel": "claude-sonnet-5-5",
+      "model": "claude-sonnet-5-5",
+      "breakdown": "por modelo (2)",
+      "sessionId": "s1",
+      "recordedVersion": 2,
+      "outcome": "Succeeded",
+      "recordedAt": "2026-10-24T22:29:15.500Z",
+      "recordedAtLocal": "2026-10-25T00:29:15.500+02:00",
+      "launchedAt": "2026-10-24T22:29:17.500Z",
+      "launchedAtLocal": "2026-10-25T00:29:17.500+02:00",
+      "finishedAt": "2026-10-24T22:30:00.000Z",
+      "finishedAtLocal": "2026-10-25T00:30:00.000+02:00",
+      "durationMilliseconds": {
+        "value": 42500,
+        "origin": "MeasuredBySystem",
+        "source": "medido por Agent Studio desde el arranque del proceso"
+      },
+      "own": {
+        "inputTokens": {
+          "value": 600,
+          "origin": "ReportedByProvider",
+          "source": "claude result.usage"
+        },
+        "cacheReadInputTokens": {
+          "value": 300,
+          "origin": "ReportedByProvider",
+          "source": "claude result.usage"
+        },
+        "cacheWriteInputTokens": {
+          "value": 100,
+          "origin": "ReportedByProvider",
+          "source": "claude result.usage"
+        },
+        "outputTokens": {
+          "value": 60,
+          "origin": "ReportedByProvider",
+          "source": "claude result.usage"
+        },
+        "reasoningOutputTokens": {
+          "value": null,
+          "origin": "NotExposed",
+          "source": "claude no informa del razonamiento"
+        },
+        "costUsd": {
+          "value": 0.06,
+          "origin": "EstimatedByProvider",
+          "source": "estimación del CLI"
+        }
+      },
+      "sessionTotal": {
+        "inputTokens": {
+          "value": 1600,
+          "origin": "ReportedByProvider",
+          "source": "claude result.usage"
+        },
+        "cacheReadInputTokens": {
+          "value": 500,
+          "origin": "ReportedByProvider",
+          "source": "claude result.usage"
+        },
+        "cacheWriteInputTokens": {
+          "value": 400,
+          "origin": "ReportedByProvider",
+          "source": "claude result.usage"
+        },
+        "outputTokens": {
+          "value": 160,
+          "origin": "ReportedByProvider",
+          "source": "claude result.usage"
+        },
+        "reasoningOutputTokens": {
+          "value": null,
+          "origin": "NotExposed",
+          "source": "claude no informa del razonamiento"
+        },
+        "costUsd": {
+          "value": 0.16,
+          "origin": "EstimatedByProvider",
+          "source": "estimación del CLI"
+        }
+      },
+      "perModel": [
+        {
+          "model": "claude-sonnet-5-5",
+          "costBasis": "list",
+          "contextWindow": {
+            "value": 1000000,
+            "origin": "ReportedByProvider",
+            "source": "claude result.modelUsage"
+          },
+          "figures": {
+            "inputTokens": {
+              "value": 500,
+              "origin": "ReportedByProvider",
+              "source": "claude result.modelUsage"
+            },
+            "cacheReadInputTokens": {
+              "value": 300,
+              "origin": "ReportedByProvider",
+              "source": "claude result.modelUsage"
+            },
+            "cacheWriteInputTokens": {
+              "value": 100,
+              "origin": "ReportedByProvider",
+              "source": "claude result.modelUsage"
+            },
+            "outputTokens": {
+              "value": 50,
+              "origin": "ReportedByProvider",
+              "source": "claude result.modelUsage"
+            },
+            "reasoningOutputTokens": {
+              "value": null,
+              "origin": "NotExposed",
+              "source": "claude no informa del razonamiento"
+            },
+            "costUsd": {
+              "value": 0.05,
+              "origin": "EstimatedByProvider",
+              "source": "estimación del CLI"
+            }
+          }
+        },
+        {
+          "model": "claude-haiku-4-5",
+          "costBasis": "list",
+          "contextWindow": {
+            "value": 200000,
+            "origin": "ReportedByProvider",
+            "source": "claude result.modelUsage"
+          },
+          "figures": {
+            "inputTokens": {
+              "value": 100,
+              "origin": "ReportedByProvider",
+              "source": "claude result.modelUsage"
+            },
+            "cacheReadInputTokens": {
+              "value": 0,
+              "origin": "ReportedByProvider",
+              "source": "claude result.modelUsage"
+            },
+            "cacheWriteInputTokens": {
+              "value": 0,
+              "origin": "ReportedByProvider",
+              "source": "claude result.modelUsage"
+            },
+            "outputTokens": {
+              "value": 10,
+              "origin": "ReportedByProvider",
+              "source": "claude result.modelUsage"
+            },
+            "reasoningOutputTokens": {
+              "value": null,
+              "origin": "NotExposed",
+              "source": "claude no informa del razonamiento"
+            },
+            "costUsd": {
+              "value": 0.01,
+              "origin": "EstimatedByProvider",
+              "source": "estimación del CLI"
+            }
+          }
+        }
+      ],
+      "contextPeak": {
+        "model": "claude-sonnet-5-5",
+        "usedTokens": {
+          "value": 30822,
+          "origin": "ReportedByProvider",
+          "source": "claude assistant.message.usage"
+        },
+        "contextWindow": {
+          "value": 1000000,
+          "origin": "ReportedByProvider",
+          "source": "claude result.modelUsage"
+        }
+      },
+      "compactions": {
+        "value": 1,
+        "origin": "MeasuredBySystem",
+        "source": "compactaciones observadas por Agent Studio (compact_boundary)"
+      }
+    },
+    {
+      "projectId": "6f1c2b0e-0000-4000-8000-000000000001",
+      "runId": "20261025-a1b2c3",
+      "taskId": null,
+      "attempt": 1,
+      "purpose": "Judge",
+      "agent": "juez",
+      "provider": "codex-cli",
+      "vendor": "openai",
+      "configuredModel": "gpt-6",
+      "reportedModel": null,
+      "model": "gpt-6",
+      "breakdown": "sin desglose (el CLI no lo da)",
+      "sessionId": "th1",
+      "recordedVersion": 2,
+      "outcome": "Succeeded",
+      "recordedAt": "2026-10-25T22:29:28.000Z",
+      "recordedAtLocal": "2026-10-25T23:29:28.000+01:00",
+      "launchedAt": "2026-10-25T22:29:30.000Z",
+      "launchedAtLocal": "2026-10-25T23:29:30.000+01:00",
+      "finishedAt": "2026-10-25T22:30:00.000Z",
+      "finishedAtLocal": "2026-10-25T23:30:00.000+01:00",
+      "durationMilliseconds": {
+        "value": 30000,
+        "origin": "MeasuredBySystem",
+        "source": "medido por Agent Studio desde el arranque del proceso"
+      },
+      "own": {
+        "inputTokens": {
+          "value": 900,
+          "origin": "ReportedByProvider",
+          "source": "codex turn.completed.usage"
+        },
+        "cacheReadInputTokens": {
+          "value": 100,
+          "origin": "ReportedByProvider",
+          "source": "codex turn.completed.usage"
+        },
+        "cacheWriteInputTokens": {
+          "value": 0,
+          "origin": "ReportedByProvider",
+          "source": "codex turn.completed.usage"
+        },
+        "outputTokens": {
+          "value": 90,
+          "origin": "ReportedByProvider",
+          "source": "codex turn.completed.usage"
+        },
+        "reasoningOutputTokens": {
+          "value": 30,
+          "origin": "ReportedByProvider",
+          "source": "codex turn.completed.usage"
+        },
+        "costUsd": {
+          "value": null,
+          "origin": "NotExposed",
+          "source": "codex exec --json does not report cost"
+        }
+      },
+      "sessionTotal": null,
+      "perModel": [],
+      "contextPeak": {
+        "model": null,
+        "usedTokens": {
+          "value": null,
+          "origin": "NotExposed",
+          "source": "el CLI no informa de la ocupación del contexto"
+        },
+        "contextWindow": {
+          "value": null,
+          "origin": "NotExposed",
+          "source": "el CLI no informa de la ocupación del contexto"
+        }
+      },
+      "compactions": {
+        "value": null,
+        "origin": "NotExposed",
+        "source": "el CLI no informa de compactaciones"
+      }
+    },
+    {
+      "projectId": "6f1c2b0e-0000-4000-8000-000000000001",
+      "runId": "20261025-a1b2c3",
+      "taskId": "T2",
+      "attempt": 1,
+      "purpose": null,
+      "agent": "ejecutor",
+      "provider": "claude-code",
+      "vendor": "anthropic",
+      "configuredModel": "claude-sonnet-5-5",
+      "reportedModel": null,
+      "model": "claude-sonnet-5-5",
+      "breakdown": "sin desglose (registro anterior a la Fase 4)",
+      "sessionId": null,
+      "recordedVersion": 1,
+      "outcome": "Interrupted",
+      "recordedAt": "2026-10-25T23:29:28.000Z",
+      "recordedAtLocal": "2026-10-26T00:29:28.000+01:00",
+      "launchedAt": null,
+      "launchedAtLocal": null,
+      "finishedAt": "2026-10-25T23:30:00.000Z",
+      "finishedAtLocal": "2026-10-26T00:30:00.000+01:00",
+      "durationMilliseconds": {
+        "value": null,
+        "origin": "Missing",
+        "source": "intento interrumpido: no se sabe cuándo terminó"
+      },
+      "own": {
+        "inputTokens": {
+          "value": null,
+          "origin": "Missing",
+          "source": "intento sin resultado: su gasto no se recupera"
+        },
+        "cacheReadInputTokens": {
+          "value": null,
+          "origin": "Missing",
+          "source": "intento sin resultado: su gasto no se recupera"
+        },
+        "cacheWriteInputTokens": {
+          "value": null,
+          "origin": "Missing",
+          "source": "intento sin resultado: su gasto no se recupera"
+        },
+        "outputTokens": {
+          "value": null,
+          "origin": "Missing",
+          "source": "intento sin resultado: su gasto no se recupera"
+        },
+        "reasoningOutputTokens": {
+          "value": null,
+          "origin": "Missing",
+          "source": "intento sin resultado: su gasto no se recupera"
+        },
+        "costUsd": {
+          "value": null,
+          "origin": "Missing",
+          "source": "intento sin resultado: su gasto no se recupera"
+        }
+      },
+      "sessionTotal": null,
+      "perModel": [],
+      "contextPeak": {
+        "model": null,
+        "usedTokens": {
+          "value": null,
+          "origin": "Missing",
+          "source": "intento interrumpido: no se sabe"
+        },
+        "contextWindow": {
+          "value": null,
+          "origin": "Missing",
+          "source": "intento interrumpido: no se sabe"
+        }
+      },
+      "compactions": {
+        "value": null,
+        "origin": "Missing",
+        "source": "intento interrumpido: no se sabe"
+      }
+    }
+  ],
+  "aggregates": [
+    {
+      "key": [],
+      "totals": {
+        "attempts": 3,
+        "rateLimited": 0,
+        "limitReached": 0,
+        "durationMilliseconds": {
+          "value": 72500,
+          "origin": "MeasuredBySystem",
+          "reported": 2,
+          "missing": 1,
+          "sources": [
+            "intento interrumpido: no se sabe cuándo terminó",
+            "medido por Agent Studio desde el arranque del proceso"
+          ]
+        },
+        "inputTokens": {
+          "value": 1500,
+          "origin": "ReportedByProvider",
+          "reported": 2,
+          "missing": 1,
+          "sources": [
+            "claude result.usage",
+            "codex turn.completed.usage",
+            "intento sin resultado: su gasto no se recupera"
+          ]
+        },
+        "cacheReadInputTokens": {
+          "value": 400,
+          "origin": "ReportedByProvider",
+          "reported": 2,
+          "missing": 1,
+          "sources": [
+            "claude result.usage",
+            "codex turn.completed.usage",
+            "intento sin resultado: su gasto no se recupera"
+          ]
+        },
+        "cacheWriteInputTokens": {
+          "value": 100,
+          "origin": "ReportedByProvider",
+          "reported": 2,
+          "missing": 1,
+          "sources": [
+            "claude result.usage",
+            "codex turn.completed.usage",
+            "intento sin resultado: su gasto no se recupera"
+          ]
+        },
+        "outputTokens": {
+          "value": 150,
+          "origin": "ReportedByProvider",
+          "reported": 2,
+          "missing": 1,
+          "sources": [
+            "claude result.usage",
+            "codex turn.completed.usage",
+            "intento sin resultado: su gasto no se recupera"
+          ]
+        },
+        "reasoningOutputTokens": {
+          "value": 30,
+          "origin": "ReportedByProvider",
+          "reported": 1,
+          "missing": 2,
+          "sources": [
+            "claude no informa del razonamiento",
+            "codex turn.completed.usage",
+            "intento sin resultado: su gasto no se recupera"
+          ]
+        },
+        "costUsd": {
+          "value": 0.06,
+          "origin": "EstimatedByProvider",
+          "reported": 1,
+          "missing": 2,
+          "sources": [
+            "codex exec --json does not report cost",
+            "estimación del CLI",
+            "intento sin resultado: su gasto no se recupera"
+          ]
+        },
+        "contextPeak": {
+          "model": "claude-sonnet-5-5",
+          "usedTokens": {
+            "value": 30822,
+            "origin": "ReportedByProvider",
+            "source": "claude assistant.message.usage"
+          },
+          "contextWindow": {
+            "value": 1000000,
+            "origin": "ReportedByProvider",
+            "source": "claude result.modelUsage"
+          }
+        },
+        "compactions": {
+          "value": 1,
+          "origin": "MeasuredBySystem",
+          "reported": 1,
+          "missing": 2,
+          "sources": [
+            "compactaciones observadas por Agent Studio (compact_boundary)",
+            "el CLI no informa de compactaciones",
+            "intento interrumpido: no se sabe"
+          ]
+        }
+      }
+    },
+    {
+      "key": [
+        {
+          "dimension": "Provider",
+          "value": "claude-code"
+        }
+      ],
+      "totals": {
+        "attempts": 2,
+        "rateLimited": 0,
+        "limitReached": 0,
+        "durationMilliseconds": {
+          "value": 42500,
+          "origin": "MeasuredBySystem",
+          "reported": 1,
+          "missing": 1,
+          "sources": [
+            "intento interrumpido: no se sabe cuándo terminó",
+            "medido por Agent Studio desde el arranque del proceso"
+          ]
+        },
+        "inputTokens": {
+          "value": 600,
+          "origin": "ReportedByProvider",
+          "reported": 1,
+          "missing": 1,
+          "sources": [
+            "claude result.usage",
+            "intento sin resultado: su gasto no se recupera"
+          ]
+        },
+        "cacheReadInputTokens": {
+          "value": 300,
+          "origin": "ReportedByProvider",
+          "reported": 1,
+          "missing": 1,
+          "sources": [
+            "claude result.usage",
+            "intento sin resultado: su gasto no se recupera"
+          ]
+        },
+        "cacheWriteInputTokens": {
+          "value": 100,
+          "origin": "ReportedByProvider",
+          "reported": 1,
+          "missing": 1,
+          "sources": [
+            "claude result.usage",
+            "intento sin resultado: su gasto no se recupera"
+          ]
+        },
+        "outputTokens": {
+          "value": 60,
+          "origin": "ReportedByProvider",
+          "reported": 1,
+          "missing": 1,
+          "sources": [
+            "claude result.usage",
+            "intento sin resultado: su gasto no se recupera"
+          ]
+        },
+        "reasoningOutputTokens": {
+          "value": null,
+          "origin": "Missing",
+          "reported": 0,
+          "missing": 2,
+          "sources": [
+            "claude no informa del razonamiento",
+            "intento sin resultado: su gasto no se recupera"
+          ]
+        },
+        "costUsd": {
+          "value": 0.06,
+          "origin": "EstimatedByProvider",
+          "reported": 1,
+          "missing": 1,
+          "sources": [
+            "estimación del CLI",
+            "intento sin resultado: su gasto no se recupera"
+          ]
+        },
+        "contextPeak": {
+          "model": "claude-sonnet-5-5",
+          "usedTokens": {
+            "value": 30822,
+            "origin": "ReportedByProvider",
+            "source": "claude assistant.message.usage"
+          },
+          "contextWindow": {
+            "value": 1000000,
+            "origin": "ReportedByProvider",
+            "source": "claude result.modelUsage"
+          }
+        },
+        "compactions": {
+          "value": 1,
+          "origin": "MeasuredBySystem",
+          "reported": 1,
+          "missing": 1,
+          "sources": [
+            "compactaciones observadas por Agent Studio (compact_boundary)",
+            "intento interrumpido: no se sabe"
+          ]
+        }
+      }
+    },
+    {
+      "key": [
+        {
+          "dimension": "Provider",
+          "value": "codex-cli"
+        }
+      ],
+      "totals": {
+        "attempts": 1,
+        "rateLimited": 0,
+        "limitReached": 0,
+        "durationMilliseconds": {
+          "value": 30000,
+          "origin": "MeasuredBySystem",
+          "reported": 1,
+          "missing": 0,
+          "sources": [
+            "medido por Agent Studio desde el arranque del proceso"
+          ]
+        },
+        "inputTokens": {
+          "value": 900,
+          "origin": "ReportedByProvider",
+          "reported": 1,
+          "missing": 0,
+          "sources": [
+            "codex turn.completed.usage"
+          ]
+        },
+        "cacheReadInputTokens": {
+          "value": 100,
+          "origin": "ReportedByProvider",
+          "reported": 1,
+          "missing": 0,
+          "sources": [
+            "codex turn.completed.usage"
+          ]
+        },
+        "cacheWriteInputTokens": {
+          "value": 0,
+          "origin": "ReportedByProvider",
+          "reported": 1,
+          "missing": 0,
+          "sources": [
+            "codex turn.completed.usage"
+          ]
+        },
+        "outputTokens": {
+          "value": 90,
+          "origin": "ReportedByProvider",
+          "reported": 1,
+          "missing": 0,
+          "sources": [
+            "codex turn.completed.usage"
+          ]
+        },
+        "reasoningOutputTokens": {
+          "value": 30,
+          "origin": "ReportedByProvider",
+          "reported": 1,
+          "missing": 0,
+          "sources": [
+            "codex turn.completed.usage"
+          ]
+        },
+        "costUsd": {
+          "value": null,
+          "origin": "NotExposed",
+          "reported": 0,
+          "missing": 1,
+          "sources": [
+            "codex exec --json does not report cost"
+          ]
+        },
+        "contextPeak": {
+          "model": null,
+          "usedTokens": {
+            "value": null,
+            "origin": "NotExposed",
+            "source": "el CLI no informa de la ocupación del contexto"
+          },
+          "contextWindow": {
+            "value": null,
+            "origin": "NotExposed",
+            "source": "el CLI no informa de la ocupación del contexto"
+          }
+        },
+        "compactions": {
+          "value": null,
+          "origin": "NotExposed",
+          "reported": 0,
+          "missing": 1,
+          "sources": [
+            "el CLI no informa de compactaciones"
+          ]
+        }
+      }
+    }
+  ]
+}

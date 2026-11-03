@@ -1,0 +1,149 @@
+<UserControl x:Class="AgentStudio.Desktop.Views.Audit.ProjectAuditView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:audit="clr-namespace:AgentStudio.Desktop.Audit"
+             xmlns:debate="clr-namespace:AgentStudio.Desktop.Debate"
+             xmlns:monitor="clr-namespace:AgentStudio.Desktop.Orchestrator.Monitor"
+             xmlns:debateViews="clr-namespace:AgentStudio.Desktop.Views.Debate"
+             xmlns:orchestratorViews="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=audit:ProjectAuditDocumentViewModel}">
+    <!-- «Auditar proyecto completo» (docs/15 D-28 to D-31 and D-43, Ctrl+Shift+A): the preparation (requirements, judge,
+         declared authors, the exact configuration and the estimate, without writing anything) and then the conformity
+         report: whether it can be trusted and why, the commit, the verification of HEAD, the problems the system lists
+         without a judge and the card of the verdict. Bindings only. -->
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="Audit.BoolToVisibility"/>
+        <orchestratorViews:ToneToBrushConverter x:Key="Audit.ToneToBrush"/>
+        <orchestratorViews:NullToVisibilityConverter x:Key="Audit.NotNullToVisibility"/>
+        <DataTemplate x:Key="Audit.Problem">
+            <TextBlock Style="{StaticResource ProblemText}" Text="{Binding}"/>
+        </DataTemplate>
+        <DataTemplate x:Key="Audit.Warning">
+            <TextBlock Style="{StaticResource BodyText}" FontSize="12" Foreground="{StaticResource WarningBrush}" Text="{Binding}"/>
+        </DataTemplate>
+        <DataTemplate x:Key="Audit.Line">
+            <TextBlock Style="{StaticResource SecondaryText}" FontFamily="{StaticResource MonoFont}" FontSize="11" Margin="8,1,0,1" Text="{Binding}"/>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid Background="{StaticResource SurfaceBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,10">
+            <StackPanel>
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Content="Volver a auditar" Command="{Binding AuditAgainCommand}"
+                            Visibility="{Binding ShowsReport, Converter={StaticResource Audit.BoolToVisibility}}"
+                            ToolTip="Vuelve a la preparación y la pide otra vez: HEAD y el registro pueden haber cambiado."/>
+                    <TextBlock Style="{StaticResource SectionTitleText}" VerticalAlignment="Center" Text="{Binding Title}"/>
+                </DockPanel>
+                <ItemsControl ItemsSource="{Binding Notices}" Focusable="False" ItemTemplate="{StaticResource Audit.Warning}" AutomationProperties.Name="Avisos"/>
+                <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding StatusMessage, TargetNullValue=''}" AutomationProperties.LiveSetting="Polite"/>
+                <TextBlock Style="{StaticResource ErrorText}" Text="{Binding ErrorMessage}" AutomationProperties.LiveSetting="Assertive"/>
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+            <StackPanel Margin="12,10,12,12">
+                <!-- Preparation. -->
+                <StackPanel Visibility="{Binding ShowsPreparation, Converter={StaticResource Audit.BoolToVisibility}}">
+                    <TextBlock Style="{StaticResource BodyText}" Text="{Binding RequirementsText}"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Juez (nunca del vendor que produjo el código: la regla de los productores no se dispensa)"/>
+                    <ComboBox HorizontalAlignment="Left" MinWidth="320" ItemsSource="{Binding Judges}" SelectedItem="{Binding SelectedJudge}" DisplayMemberPath="Label" AutomationProperties.Name="Juez de la auditoría"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Autores que declaras (el registro no sabe quién escribió lo que no hizo Agent Studio)"/>
+                    <ItemsControl ItemsSource="{Binding Authors}" Focusable="False" AutomationProperties.Name="Autores declarados">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type audit:AuthorChoiceViewModel}">
+                                <CheckBox Style="{StaticResource FieldCheckBox}" Margin="0,2,16,2" Content="{Binding Name}" IsChecked="{Binding IsDeclared}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <ItemsControl Margin="0,6,0,0" ItemsSource="{Binding Problems}" Focusable="False" ItemTemplate="{StaticResource Audit.Problem}"
+                                  Visibility="{Binding HasProblems, Converter={StaticResource Audit.BoolToVisibility}}"/>
+                    <Button Style="{StaticResource ToolbarButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Content="Preparar" Command="{Binding PrepareCommand}"
+                            ToolTip="Calcula el juez, el perfil y la estimación. No gasta cuota ni escribe nada."/>
+
+                    <Border Style="{StaticResource InnerCard}" Padding="10,8" Margin="0,8,0,0" Visibility="{Binding HasProposal, Converter={StaticResource Audit.BoolToVisibility}}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource BodyText}" Text="{Binding HeadText}"/>
+                            <TextBlock Style="{StaticResource BodyText}" FontSize="12" Foreground="{StaticResource WarningBrush}" Text="{Binding UncommittedText}"
+                                       Visibility="{Binding UncommittedText, Converter={StaticResource Audit.NotNullToVisibility}}"/>
+                            <TextBlock Style="{StaticResource BodyText}" FontSize="12" Margin="0,4,0,0" Text="{Binding JudgeText}"/>
+                            <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding ProducersText}"/>
+                            <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="{Binding ProfileText}"/>
+                            <ItemsControl ItemsSource="{Binding ProfileSteps}" Focusable="False" ItemTemplate="{StaticResource Audit.Line}"/>
+                            <ItemsControl ItemsSource="{Binding SkippedSteps}" Focusable="False" ItemTemplate="{StaticResource Audit.Warning}"/>
+                            <ItemsControl ItemsSource="{Binding ProposalProblems}" Focusable="False" ItemTemplate="{StaticResource Audit.Problem}"/>
+                            <TextBlock Style="{StaticResource BodyText}" FontSize="12" Margin="0,4,0,0" Text="{Binding EstimateText}"/>
+                            <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding AuditMode}"/>
+                            <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="{Binding ApprovalText, StringFormat='Aprobación que se te pedirá: {0}'}"/>
+                            <Button Style="{StaticResource ToolbarPrimaryButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Content="Auditar" Command="{Binding AuditCommand}"
+                                    ToolTip="Te pide aprobación y audita el commit HEAD."/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- The conformity report (D-31). -->
+                <StackPanel DataContext="{Binding Report}" Visibility="{Binding Converter={StaticResource Audit.NotNullToVisibility}}">
+                    <TextBlock Style="{StaticResource SectionTitleText}" Text="{Binding Title}"/>
+                    <DockPanel Margin="0,6,0,0">
+                        <Ellipse DockPanel.Dock="Left" Width="10" Height="10" Margin="0,4,8,0" VerticalAlignment="Top" Fill="{Binding TrustTone, Converter={StaticResource Audit.ToneToBrush}}"/>
+                        <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{Binding TrustText}" AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="Fiabilidad del informe"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,4,0,0">
+                        <Ellipse DockPanel.Dock="Left" Width="8" Height="8" Margin="0,5,8,0" VerticalAlignment="Top" Fill="{Binding DispositionTone, Converter={StaticResource Audit.ToneToBrush}}"/>
+                        <TextBlock Style="{StaticResource BodyText}" FontSize="12" Text="{Binding DispositionText}"/>
+                    </DockPanel>
+                    <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="{Binding IntegrityText}"/>
+                    <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding CommitText}"/>
+                    <TextBlock Style="{StaticResource BodyText}" FontSize="12" Foreground="{StaticResource WarningBrush}" Text="{Binding UncommittedText}"
+                               Visibility="{Binding UncommittedText, Converter={StaticResource Audit.NotNullToVisibility}}"/>
+                    <TextBlock Style="{StaticResource BodyText}" FontSize="12" Margin="0,4,0,0" Foreground="{StaticResource WarningBrush}" Text="{Binding EscalationText}"
+                               Visibility="{Binding EscalationText, Converter={StaticResource Audit.NotNullToVisibility}}"/>
+
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Verificación de HEAD (capturada por el sistema)" Visibility="{Binding HasVerification, Converter={StaticResource Audit.BoolToVisibility}}"/>
+                    <ItemsControl ItemsSource="{Binding Verification}" Focusable="False">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type audit:VerificationRow}">
+                                <StackPanel Margin="8,1,0,4">
+                                    <TextBlock Style="{StaticResource BodyText}" FontSize="12" Text="{Binding Title}"/>
+                                    <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding Description}"/>
+                                    <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding Tests, TargetNullValue=''}"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Problemas pendientes (los lista el sistema, sin juez)" Visibility="{Binding HasPending, Converter={StaticResource Audit.BoolToVisibility}}"/>
+                    <ItemsControl ItemsSource="{Binding Pending}" Focusable="False" ItemTemplate="{StaticResource Audit.Warning}"/>
+
+                    <debateViews:VerdictCardView Margin="0,10,0,0" DataContext="{Binding Card}" Visibility="{Binding Converter={StaticResource Audit.NotNullToVisibility}}"/>
+                </StackPanel>
+
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Actividad del juez y de la verificación"
+                           Visibility="{Binding HasActivity, Converter={StaticResource Audit.BoolToVisibility}}"/>
+                <ItemsControl ItemsSource="{Binding Activity}" Focusable="False" AutomationProperties.Name="Actividad de la auditoría">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type monitor:ActivityEntry}">
+                            <TextBlock Style="{StaticResource BodyText}" FontSize="12">
+                                <Run Text="{Binding Time, Mode=OneWay}" FontFamily="{StaticResource MonoFont}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <Run Text="{Binding Text, Mode=OneWay}"/>
+                            </TextBlock>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

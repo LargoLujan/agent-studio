@@ -1,0 +1,335 @@
+using System.Collections.Concurrent;
+using AgentStudio.Application.Persistence;
+using AgentStudio.Application.Security;
+using AgentStudio.Domain.Decisions;
+
+namespace AgentStudio.Application.Decisions;
+
+/// <summary>
+/// The single writer of each project's decision log. It keeps the log of a project in memory, loaded from the store and
+/// verified, and a lock per project, so entries get contiguous sequence numbers and a valid chain whatever the number
+/// of concurrent callers. Projects do not wait for each other.
+/// </summary>
+/// <remarks>
+/// <list type="bullet">
+/// <item>The sequence number and the hash come from <see cref="DecisionLog"/>, never from the database.</item>
+/// <item>The time of an entry is the later of "now" and the last entry, because the log refuses a chronology that goes back.</item>
+/// <item>If the store fails, what the recorder believes may be ahead of (or, after a lost reply, behind) the store. It
+/// forgets the in-memory log and reads it again from the store on the next call, so the failed entry's sequence is reused
+/// if it was not stored and continued after if it was.</item>
+/// <item>A stored log that does not verify is never extended.</item>
+/// <item>With an <see cref="IDecisionLogAnchorStore"/> (ADR-0010, addendum), the head of the log is also kept outside the
+/// project and every load is checked against it, so a log cut short, rewritten with recomputed hashes or extended by
+/// someone else no longer verifies, nor does one whose anchor cannot be read. Each entry is announced in the anchor
+/// before it is stored (<see cref="DecisionLogAnchor.NextHash"/>), and the anchor moves to it once it is stored: an entry
+/// that reached the store just before the process died is still recognised, and one whose announcement cannot be
+/// written is not stored at all. Without an anchor store only the chain is checked.</item>
+/// <item>The anchor belongs to the project's location (ADR-0010, addendum of 2026-10-18). A log with entries and no anchor
+/// for its location (the folder was moved or copied, or the log written elsewhere) is not trusted either:
+/// <see cref="DecisionLogState.Unanchored"/> says so, and only a person can accept it as a new origin
+/// (<see cref="AcceptAsNewOriginAsync"/>). An empty one is a new project, which its first entry anchors. An anchor of the
+/// location that belongs to another project id is no trust: it is accepted only when the log is empty (nobody's entries
+/// to accept: the history that lived there is gone).</item>
+/// <item>The store is told of every anchor the log verified against (<see cref="IDecisionLogAnchorStore.ConfirmAsync"/>),
+/// and only then may it move one kept under an old name to the project's location (ADR-0010, addendum P-04): a copy whose
+/// log does not verify never takes the anchor of the original. If it cannot be moved, the log is not trusted on that load.</item>
+/// </list>
+/// </remarks>
+public sealed class DecisionRecorder(IDecisionLogStore store, TimeProvider timeProvider, IDecisionLogAnchorStore? anchors = null) : IDecisionRecorder, IDecisionLogOrigin
+{
+    /// <summary>The code of the alert that records a history accepted as a new origin.</summary>
+    public const string OriginAcceptedAlert = "decision-log.origin-accepted";
+
+    /// <summary>Who signs the alert and the question of an acceptance: the system, as the approval gate does.</summary>
+    private static readonly Actor SystemActor = new(ActorKind.System, "agent-studio");
+
+    private readonly ConcurrentDictionary<string, ProjectWriter> _writers = new(StringComparer.Ordinal);
+
+    public async Task<DecisionLogState> LoadAsync(string projectId, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
+        var writer = _writers.GetOrAdd(projectId, _ => new ProjectWriter());
+        await writer.Gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            // Always from the store: this is the check made when a project is opened, and it also catches changes made behind our back.
+            var log = await ReadLogAsync(projectId, cancellationToken).ConfigureAwait(false);
+            var (verification, unanchored) = await VerifyAsync(projectId, log, cancellationToken).ConfigureAwait(false);
+            writer.Adopt(verification.IsValid ? log : null);
+            return new DecisionLogState(log.Entries, verification) { Unanchored = unanchored };
+        }
+        finally
+        {
+            writer.Gate.Release();
+        }
+    }
+
+    /// <summary>
+    /// Accepts the history the person was shown as the new origin of the log. The entries go first and the anchor last,
+    /// with no announcement: if the process dies in between, the history is still without an anchor and the person is
+    /// asked again, so no history is ever anchored without its acceptance in the log.
+    /// </summary>
+    public async Task<DecisionLogState> AcceptAsNewOriginAsync(string projectId, ApprovalRequest request, ApprovalDecision decision, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(decision);
+        if (anchors is null)
+        {
+            throw new InvalidOperationException("There is no anchor store: every log is checked by its chain alone, so no history waits to be accepted as a new origin.");
+        }
+
+        if (!string.Equals(request.Action, UnanchoredHistory.AcceptAction, StringComparison.Ordinal) || request.Binding is null)
+        {
+            throw new InvalidOperationException($"The request is not one to accept a history as a new origin ({UnanchoredHistory.AcceptAction}, bound to the history shown).");
+        }
+
+        if (!decision.Approved || string.IsNullOrWhiteSpace(decision.DecidedBy) || !string.Equals(decision.Answers, request.Binding, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Only the approval a person gave to this very history accepts it as a new origin, and this decision is not that: nothing was written.");
+        }
+
+        var writer = _writers.GetOrAdd(projectId, _ => new ProjectWriter());
+        await writer.Gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var log = await ReadLogAsync(projectId, cancellationToken).ConfigureAwait(false);
+            var (verification, unanchored) = await VerifyAsync(projectId, log, cancellationToken).ConfigureAwait(false);
+            if (unanchored is null)
+            {
+                throw new InvalidOperationException(verification.IsValid
+                    ? $"The decision log of project '{projectId}' is anchored at its location: there is nothing to accept."
+                    : $"The decision log of project '{projectId}' cannot be accepted as a new origin: {verification.Problem}");
+            }
+
+            if (!string.Equals(unanchored.Binding(projectId), request.Binding, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException($"The decision log of project '{projectId}' changed since it was shown to the person: nothing was accepted, it has to be asked again.");
+            }
+
+            var now = timeProvider.GetUtcNow();
+            var at = log.Entries is [.., var last] && now < last.RecordedAt ? last.RecordedAt : now;
+            var run = request.RunId ?? string.Empty;
+            try
+            {
+                await store.AppendAsync(projectId, log.Append(
+                    at,
+                    SystemActor,
+                    DecisionKind.AuditAlertRaised,
+                    "Historial aceptado como nuevo origen",
+                    DecisionPayloadSerializer.Serialize(new AuditAlertPayload(OriginAcceptedAlert, [], AcceptanceMessage(projectId, unanchored, decision.DecidedBy)) { RunId = run })), cancellationToken).ConfigureAwait(false);
+                await store.AppendAsync(projectId, log.Append(
+                    at,
+                    SystemActor,
+                    DecisionKind.ApprovalRequested,
+                    $"Aprobación pedida ({request.Risk}): {request.Action}",
+                    DecisionPayloadSerializer.Serialize(new ApprovalRequestedPayload(request.Action, request.Description, request.Risk, null, request.AffectedPaths ?? []) { RunId = run })), cancellationToken).ConfigureAwait(false);
+                var granted = log.Append(
+                    at,
+                    new Actor(ActorKind.User, decision.DecidedBy),
+                    DecisionKind.ApprovalGranted,
+                    $"Aprobado por {decision.DecidedBy}: {request.Action}",
+                    DecisionPayloadSerializer.Serialize(ApprovalAnswers.Payload(request.Action, true, decision.DecidedBy, decision.Comment, null, decision.Verification, run)));
+                await store.AppendAsync(projectId, granted, cancellationToken).ConfigureAwait(false);
+
+                var anchor = new DecisionLogAnchor(granted.Sequence, granted.Hash);
+                await anchors.WriteAsync(projectId, anchor, cancellationToken).ConfigureAwait(false);
+                writer.Adopt(log);
+                return new DecisionLogState(log.Entries, log.Verify(anchor));
+            }
+            catch
+            {
+                writer.Adopt(null);
+                throw;
+            }
+        }
+        finally
+        {
+            writer.Gate.Release();
+        }
+    }
+
+    public async Task<DecisionEntry> RecordAsync(
+        string projectId,
+        Actor actor,
+        DecisionKind kind,
+        string summary,
+        DecisionPayload payload,
+        long? corrects = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
+        ArgumentNullException.ThrowIfNull(actor);
+        ArgumentException.ThrowIfNullOrWhiteSpace(summary);
+        ArgumentNullException.ThrowIfNull(payload);
+        var payloadJson = DecisionPayloadSerializer.Serialize(payload);
+
+        var writer = _writers.GetOrAdd(projectId, _ => new ProjectWriter());
+        await writer.Gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            if (writer.Log is null)
+            {
+                var loaded = await ReadLogAsync(projectId, cancellationToken).ConfigureAwait(false);
+                var (verification, _) = await VerifyAsync(projectId, loaded, cancellationToken).ConfigureAwait(false);
+                if (!verification.IsValid)
+                {
+                    throw new DecisionLogIntegrityException(projectId, verification);
+                }
+
+                writer.Adopt(loaded);
+            }
+
+            var log = writer.Log!;
+            var now = timeProvider.GetUtcNow();
+            var at = writer.LastRecordedAt is { } last && now < last ? last : now;
+
+            // Append validates before it changes anything, so a refused entry (a bad correction) leaves the log as it was.
+            var entry = log.Append(at, actor, kind, summary, payloadJson, corrects);
+            try
+            {
+                if (anchors is not null)
+                {
+                    // Announced first: if the process dies once the entry is stored, the anchor still recognises it.
+                    await anchors.WriteAsync(projectId, new DecisionLogAnchor(entry.Sequence - 1, entry.PreviousHash, entry.Hash), cancellationToken).ConfigureAwait(false);
+                }
+
+                await store.AppendAsync(projectId, entry, cancellationToken).ConfigureAwait(false);
+            }
+            catch
+            {
+                writer.Adopt(null);
+                throw;
+            }
+
+            writer.LastRecordedAt = entry.RecordedAt;
+            await SettleAnchorAsync(projectId, entry).ConfigureAwait(false);
+            return entry;
+        }
+        finally
+        {
+            writer.Gate.Release();
+        }
+    }
+
+    private async Task<DecisionLog> ReadLogAsync(string projectId, CancellationToken cancellationToken) =>
+        DecisionLog.Load(await store.ReadAllAsync(projectId, cancellationToken).ConfigureAwait(false));
+
+    /// <summary>
+    /// The chain, and the log against the anchor of its location when there is one: a log that verifies against it is
+    /// confirmed to the store. An anchor that cannot be read or confirmed, or that is another project's, is no trust.
+    /// With no anchor for the location, an empty log is a new project and a log with entries is not trusted, which only a
+    /// person can change. The second value is set when a person may accept the log as a new origin: its chain holds and
+    /// no anchor recognises it here.
+    /// </summary>
+    private async Task<(DecisionLogVerification Verification, UnanchoredHistory? Unanchored)> VerifyAsync(string projectId, DecisionLog log, CancellationToken cancellationToken)
+    {
+        if (anchors is null)
+        {
+            return (log.Verify(), null);
+        }
+
+        var chain = log.Verify();
+        DecisionLogAnchor? anchor;
+        try
+        {
+            anchor = await anchors.ReadAsync(projectId, cancellationToken).ConfigureAwait(false);
+        }
+        catch (DecisionLogAnchorMismatchException ex)
+        {
+            if (!chain.IsValid)
+            {
+                return (chain, null);
+            }
+
+            // The detected attack when the log has entries (its id was rewritten); when it has none, there is nobody's
+            // history to accept: what lived here is gone, and a person may start a new one.
+            var empty = log.Entries.Count == 0;
+            var problem = $"{ex.Message} The log of this database can only be trusted against the anchor of its location."
+                + (empty ? " It is empty: only a person can accept starting a new history here." : string.Empty);
+            return (new DecisionLogVerification(false, null, problem), empty && ex.AnchoredProjectId is { } previous ? new UnanchoredHistory(0, DecisionLog.GenesisHash, previous, ex.AnchoredEntryCount) : null);
+        }
+        catch (Exception ex) when (ex is InvalidDataException or IOException or UnauthorizedAccessException)
+        {
+            return chain.IsValid
+                ? (new DecisionLogVerification(false, null, $"The anchor of the decision log outside the project cannot be read, so the log cannot be trusted: {ex.Message}"), null)
+                : (chain, null);
+        }
+
+        if (anchor is not null)
+        {
+            var verification = log.Verify(anchor);
+            if (verification.IsValid)
+            {
+                try
+                {
+                    // Only a log that verified against the anchor lets the store move it to the location (P-04).
+                    await anchors.ConfirmAsync(projectId, anchor, cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (ex is InvalidDataException or IOException or UnauthorizedAccessException)
+                {
+                    return (new DecisionLogVerification(false, null, $"The anchor of the decision log outside the project cannot be kept at the project's location, so the log cannot be trusted: {ex.Message}"), null);
+                }
+            }
+
+            return (verification, null);
+        }
+
+        var count = log.Entries.Count;
+        if (!chain.IsValid || count == 0)
+        {
+            return (chain, null);
+        }
+
+        return (
+            new DecisionLogVerification(
+                false,
+                null,
+                $"The decision log has {count} entries, but there is no anchor outside the project for its location: the project was moved or copied there, or its log was written elsewhere. Only a person can accept it as the new origin of the log."),
+            new UnanchoredHistory(count, log.HeadHash));
+    }
+
+    /// <summary>What the alert of an acceptance says: what was accepted, why it had no anchor, and who accepted it.</summary>
+    private static string AcceptanceMessage(string projectId, UnanchoredHistory history, string decidedBy) =>
+        history.PreviousProjectId is { } previous
+            ? $"The anchor of this location belonged to project '{previous}' ({history.PreviousEntryCount} entries), and the log of project '{projectId}' was empty: that history is no longer here. {decidedBy} accepted starting a new history as the origin of the log."
+            : $"The decision log of project '{projectId}' had {history.EntryCount} entries, head {history.HeadHash}, and no anchor outside the project for its location. {decidedBy} accepted it as the new origin of the log.";
+
+    /// <summary>
+    /// Moves the anchor to the entry just stored. If that fails the entry stays recognised by its announcement, and the
+    /// next append writes the anchor again (or fails before storing anything), so the failure is not the caller's: the
+    /// entry is stored.
+    /// </summary>
+    private async Task SettleAnchorAsync(string projectId, DecisionEntry entry)
+    {
+        if (anchors is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await anchors.WriteAsync(projectId, new DecisionLogAnchor(entry.Sequence, entry.Hash), CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // The announcement written before the entry still covers it (see above).
+        }
+    }
+
+    private sealed class ProjectWriter
+    {
+        public SemaphoreSlim Gate { get; } = new(1, 1);
+
+        /// <summary>The log as this writer believes it is stored; null when it must be read again.</summary>
+        public DecisionLog? Log { get; private set; }
+
+        public DateTimeOffset? LastRecordedAt { get; set; }
+
+        public void Adopt(DecisionLog? log)
+        {
+            Log = log;
+            LastRecordedAt = log is { Entries: [.., var last] } ? last.RecordedAt : null;
+        }
+    }
+}

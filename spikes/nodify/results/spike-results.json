@@ -1,0 +1,617 @@
+{
+  "GeneratedAt": "2026-10-15 22:32:23 +02:00",
+  "Environment": {
+    "OperatingSystem": "Microsoft Windows 10.0.26300",
+    "Runtime": ".NET 10.0.11",
+    "LogicalProcessors": 16,
+    "RenderTier": 2,
+    "DpiScale": 1.25,
+    "WindowSizePixels": "window client 1859x984 px at 120 dpi, off-screen; pictures rendered at 120 dpi",
+    "NodifyVersion": "7.3.0+d3b84436b9cc0d8d8e3b053a90deb86a1ac94eb4"
+  },
+  "MachineLoad": [
+    "run start: 71 %",
+    "benchmark start: 100 %",
+    "benchmark end: 100 %"
+  ],
+  "Theme": {
+    "NodifyColourKeys": 50,
+    "RemappedFromTokens": 46,
+    "TransparentOnPurpose": 4,
+    "UnmappedKeys": [],
+    "LiveElementMismatches": [],
+    "CanvasBackgroundToken": "#0A1020",
+    "CanvasBackgroundPixel": "#0A1020",
+    "NodeHeaderToken": "#16223D",
+    "NodeHeaderPixel": "#16223D"
+  },
+  "SmallGraphColdLoad": {
+    "ViewModelBuildMs": 102.8,
+    "FirstFrameMs": 635.2,
+    "FullyDrawnMs": 637.6
+  },
+  "Benchmark": {
+    "Nodes": 200,
+    "Connections": 300,
+    "ContainersRendered": 200,
+    "WiresRendered": 300,
+    "PlanSizeLoad20Nodes": {
+      "ViewModelBuildMs": 42,
+      "FirstFrameMs": 347.1,
+      "FullyDrawnMs": 347.1
+    },
+    "FirstLoad": {
+      "ViewModelBuildMs": 126.9,
+      "FirstFrameMs": 3376.2,
+      "FullyDrawnMs": 3376.4
+    },
+    "WarmReloads": [
+      {
+        "ViewModelBuildMs": 114.2,
+        "FirstFrameMs": 8568.4,
+        "FullyDrawnMs": 8568.5
+      },
+      {
+        "ViewModelBuildMs": 247.3,
+        "FirstFrameMs": 3905.2,
+        "FullyDrawnMs": 3905.3
+      },
+      {
+        "ViewModelBuildMs": 154.3,
+        "FirstFrameMs": 3948.7,
+        "FullyDrawnMs": 3948.9
+      },
+      {
+        "ViewModelBuildMs": 280.2,
+        "FirstFrameMs": 5170.8,
+        "FullyDrawnMs": 5170.9
+      }
+    ],
+    "DomainGraphRebuildMs": 13.15,
+    "CycleProbeMs": 15.3,
+    "WorkingSetMbBefore": 189.9,
+    "WorkingSetMbAfter": 238.1,
+    "FitZoom": 0.311,
+    "Frames": [
+      {
+        "Scenario": "baseline, 12 nodes: pan at fit zoom",
+        "Frames": 147,
+        "Seconds": 3.01,
+        "AverageFps": 48.9,
+        "MeanFrameMs": 20.47,
+        "MedianFrameMs": 16.66,
+        "P95FrameMs": 33.32,
+        "MaxFrameMs": 49.96,
+        "FramesOver20Ms": 33,
+        "FramesOver33Ms": 3
+      },
+      {
+        "Scenario": "200 nodes: scripted pan at fit zoom (everything in view)",
+        "Frames": 133,
+        "Seconds": 3,
+        "AverageFps": 44.3,
+        "MeanFrameMs": 22.59,
+        "MedianFrameMs": 16.67,
+        "P95FrameMs": 33.33,
+        "MaxFrameMs": 99.96,
+        "FramesOver20Ms": 38,
+        "FramesOver33Ms": 6
+      },
+      {
+        "Scenario": "200 nodes: scripted zoom sweep (x1.8 each way)",
+        "Frames": 130,
+        "Seconds": 3.01,
+        "AverageFps": 43.3,
+        "MeanFrameMs": 23.12,
+        "MedianFrameMs": 16.67,
+        "P95FrameMs": 49.98,
+        "MaxFrameMs": 66.65,
+        "FramesOver20Ms": 40,
+        "FramesOver33Ms": 8
+      },
+      {
+        "Scenario": "200 nodes: scripted pan at 100% (a fifth of the graph in view)",
+        "Frames": 162,
+        "Seconds": 3,
+        "AverageFps": 54,
+        "MeanFrameMs": 18.53,
+        "MedianFrameMs": 16.66,
+        "P95FrameMs": 33.3,
+        "MaxFrameMs": 50,
+        "FramesOver20Ms": 18,
+        "FramesOver33Ms": 1
+      },
+      {
+        "Scenario": "200 nodes: right-button drag pan at fit zoom (mouse messages)",
+        "Frames": 110,
+        "Seconds": 3.01,
+        "AverageFps": 36.6,
+        "MeanFrameMs": 27.34,
+        "MedianFrameMs": 16.67,
+        "P95FrameMs": 50,
+        "MaxFrameMs": 66.67,
+        "FramesOver20Ms": 47,
+        "FramesOver33Ms": 20
+      },
+      {
+        "Scenario": "200 nodes: mouse wheel zoom (wheel messages)",
+        "Frames": 90,
+        "Seconds": 3.03,
+        "AverageFps": 29.7,
+        "MeanFrameMs": 33.67,
+        "MedianFrameMs": 33.28,
+        "P95FrameMs": 66.67,
+        "MaxFrameMs": 116.67,
+        "FramesOver20Ms": 54,
+        "FramesOver33Ms": 25
+      },
+      {
+        "Scenario": "200 nodes: left-drag of a node at fit zoom, its wires follow (mouse messages)",
+        "Frames": 123,
+        "Seconds": 3.04,
+        "AverageFps": 40.4,
+        "MeanFrameMs": 24.74,
+        "MedianFrameMs": 16.67,
+        "P95FrameMs": 50,
+        "MaxFrameMs": 112.5,
+        "FramesOver20Ms": 43,
+        "FramesOver33Ms": 10
+      },
+      {
+        "Scenario": "200 nodes: scripted pan at fit zoom with Nodify's rendering optimisation forced on (threshold 100)",
+        "Frames": 128,
+        "Seconds": 3,
+        "AverageFps": 42.6,
+        "MeanFrameMs": 23.45,
+        "MedianFrameMs": 16.67,
+        "P95FrameMs": 49.98,
+        "MaxFrameMs": 66.67,
+        "FramesOver20Ms": 44,
+        "FramesOver33Ms": 8
+      }
+    ]
+  },
+  "Experiment": null,
+  "Checks": [
+    {
+      "Area": "small",
+      "Name": "12 nodes and 11 wires are rendered",
+      "Passed": true,
+      "Detail": "12 containers, 11 wires"
+    },
+    {
+      "Area": "small",
+      "Name": "all 7 node kinds are shown",
+      "Passed": true,
+      "Detail": "AgentWork, ToolRun, Condition, Integration, Review, HumanApproval, Debate"
+    },
+    {
+      "Area": "small",
+      "Name": "all 8 statuses are shown",
+      "Passed": true,
+      "Detail": "Completed, Running, Skipped, Pending, Failed, Blocked, Cancelled, AwaitingApproval"
+    },
+    {
+      "Area": "small",
+      "Name": "the Condition has two output connectors (Sí/No) with a wire each",
+      "Passed": true,
+      "Detail": "T3.Sí->T4; T3.No->T5"
+    },
+    {
+      "Area": "theme",
+      "Name": "every Nodify colour key is remapped from an app token",
+      "Passed": true,
+      "Detail": "50 keys: 46 from tokens, 4 transparent, 0 left in Nodify colours "
+    },
+    {
+      "Area": "theme",
+      "Name": "Nodify colour keys equal their tokens",
+      "Passed": true,
+      "Detail": "46 keys checked"
+    },
+    {
+      "Area": "theme",
+      "Name": "live Nodify controls read the token colours",
+      "Passed": true,
+      "Detail": "Node, editor, container and connector brushes match"
+    },
+    {
+      "Area": "theme",
+      "Name": "canvas background pixel equals the BackgroundColor token",
+      "Passed": true,
+      "Detail": "rendered #0A1020, token #0A1020"
+    },
+    {
+      "Area": "theme",
+      "Name": "node header pixel equals the SurfaceRaisedColor token",
+      "Passed": true,
+      "Detail": "rendered #16223D, token #16223D"
+    },
+    {
+      "Area": "a11y",
+      "Name": "the editor is named for screen readers",
+      "Passed": true,
+      "Detail": "name 'Lienzo del orquestador', focusable True, tab stop True"
+    },
+    {
+      "Area": "a11y",
+      "Name": "templates set AutomationProperties.Name on every node container and connector",
+      "Passed": true,
+      "Detail": "12/12 containers, 25/25 connectors"
+    },
+    {
+      "Area": "a11y",
+      "Name": "UI Automation exposes every node by id, kind, title and status",
+      "Passed": true,
+      "Detail": "12/12 nodes found in a tree of 174 elements; e.g. 'T1, Trabajo de agente, Implementar Calc.Multiply, Completada' as ControlType.DataItem; keyboard-focusable: 12"
+    },
+    {
+      "Area": "small",
+      "Name": "a drag onto the disabled Debate node is refused with an explanation",
+      "Passed": true,
+      "Detail": "wires 11->11, hover text 'Debate: disponible en la Fase 5.'"
+    },
+    {
+      "Area": "input",
+      "Name": "the editor has keyboard focus",
+      "Passed": true,
+      "Detail": "focus within the editor: True; focused element NodifyEditor; Win32 focus on the off-screen window: True"
+    },
+    {
+      "Area": "create",
+      "Name": "the Debate palette button is disabled",
+      "Passed": true,
+      "Detail": "IsEnabled False, tooltip 'Disponible en la Fase 5: el validador del plan rechaza los nodos Debate.'"
+    },
+    {
+      "Area": "create",
+      "Name": "clicking the disabled Debate button creates nothing",
+      "Passed": true,
+      "Detail": "0 nodes"
+    },
+    {
+      "Area": "create",
+      "Name": "palette click creates a AgentWork node",
+      "Passed": true,
+      "Detail": "1 nodes, last T1"
+    },
+    {
+      "Area": "create",
+      "Name": "palette click creates a Condition node",
+      "Passed": true,
+      "Detail": "2 nodes, last T2"
+    },
+    {
+      "Area": "create",
+      "Name": "palette click creates a ToolRun node",
+      "Passed": true,
+      "Detail": "3 nodes, last T3"
+    },
+    {
+      "Area": "create",
+      "Name": "palette click creates a Review node",
+      "Passed": true,
+      "Detail": "4 nodes, last T4"
+    },
+    {
+      "Area": "create",
+      "Name": "palette click creates a HumanApproval node",
+      "Passed": true,
+      "Detail": "5 nodes, last T5"
+    },
+    {
+      "Area": "create",
+      "Name": "palette click creates a Integration node",
+      "Passed": true,
+      "Detail": "6 nodes, last T6"
+    },
+    {
+      "Area": "create",
+      "Name": "ids are unique and the new node is selected",
+      "Passed": true,
+      "Detail": "ids T1,T2,T3,T4,T5,T6, selected 1"
+    },
+    {
+      "Area": "status",
+      "Name": "each of the 8 statuses recolours the node border live and updates its label",
+      "Passed": true,
+      "Detail": "Pendiente, En curso, Bloqueada, Espera aprobación, Completada, Fallida, Cancelada, Omitida"
+    },
+    {
+      "Area": "input",
+      "Name": "left-drag moves T6",
+      "Passed": true,
+      "Detail": "pressed on T6; started (947,618), target (450,640), landed (461,626): within 14px (client pixels; the node snaps to the 10-unit grid and Nodify measures the drag from its start threshold)"
+    },
+    {
+      "Area": "input",
+      "Name": "left-drag moves T5",
+      "Passed": true,
+      "Detail": "pressed on T5; started (918,589), target (1300,352), landed (1261,363): within 39px (client pixels; the node snaps to the 10-unit grid and Nodify measures the drag from its start threshold)"
+    },
+    {
+      "Area": "input",
+      "Name": "left-drag moves T3",
+      "Passed": true,
+      "Detail": "pressed on T3; started (858,529), target (875,240), landed (861,263): within 23px (client pixels; the node snaps to the 10-unit grid and Nodify measures the drag from its start threshold)"
+    },
+    {
+      "Area": "input",
+      "Name": "left-drag moves T2",
+      "Passed": true,
+      "Detail": "pressed on T2; started (828,499), target (450,352), landed (474,351): within 24px (client pixels; the node snaps to the 10-unit grid and Nodify measures the drag from its start threshold)"
+    },
+    {
+      "Area": "input",
+      "Name": "left-drag moves T1",
+      "Passed": true,
+      "Detail": "pressed on T1; started (798,469), target (50,352), landed (74,363): within 24px (client pixels; the node snaps to the 10-unit grid and Nodify measures the drag from its start threshold)"
+    },
+    {
+      "Area": "input",
+      "Name": "left-drag moves T4",
+      "Passed": true,
+      "Detail": "pressed on T4; started (888,559), target (875,514), landed (887,526): within 12px (client pixels; the node snaps to the 10-unit grid and Nodify measures the drag from its start threshold)"
+    },
+    {
+      "Area": "input",
+      "Name": "drag T1.out -> T2.in creates a wire",
+      "Passed": true,
+      "Detail": "drag started True; wires 0->1; notice ''"
+    },
+    {
+      "Area": "input",
+      "Name": "drag T2.Sí -> T3.in creates a wire",
+      "Passed": true,
+      "Detail": "drag started True; wires 1->2; notice ''"
+    },
+    {
+      "Area": "input",
+      "Name": "drag T2.No -> T4.in creates a wire",
+      "Passed": true,
+      "Detail": "drag started True; wires 2->3; notice ''"
+    },
+    {
+      "Area": "input",
+      "Name": "drag T3.out -> T5.in creates a wire",
+      "Passed": true,
+      "Detail": "drag started True; wires 3->4; notice ''"
+    },
+    {
+      "Area": "input",
+      "Name": "drag T4.out -> T5.in creates a second wire into the same input (fan-in)",
+      "Passed": true,
+      "Detail": "drag started True; wires 4->5; notice ''"
+    },
+    {
+      "Area": "input",
+      "Name": "drag T4.out -> T6.in creates a wire",
+      "Passed": true,
+      "Detail": "drag started True; wires 5->6; notice ''"
+    },
+    {
+      "Area": "input",
+      "Name": "the Condition's two outputs carry the Sí and No branches",
+      "Passed": true,
+      "Detail": "T2.Sí->T3; T2.No->T4"
+    },
+    {
+      "Area": "input",
+      "Name": "a duplicate wire is not created",
+      "Passed": true,
+      "Detail": "drag started True; wires 6->6; notice ''"
+    },
+    {
+      "Area": "input",
+      "Name": "an output cannot be dragged onto an output",
+      "Passed": true,
+      "Detail": "drag started True; wires 6->6; notice ''"
+    },
+    {
+      "Area": "input",
+      "Name": "a node cannot be connected to itself",
+      "Passed": true,
+      "Detail": "drag started True; wires 6->6; notice 'Conexión rechazada. Ciclo: T2 → T2'"
+    },
+    {
+      "Area": "cycle",
+      "Name": "the self-connection is reported as a cycle by the domain",
+      "Passed": true,
+      "Detail": "notice 'Conexión rechazada. Ciclo: T2 → T2'"
+    },
+    {
+      "Area": "cycle",
+      "Name": "while dragging, the cycle is announced next to the cursor",
+      "Passed": true,
+      "Detail": "preview text 'Ciclo: T1 → T2 → T3 → T5 → T1', error style True"
+    },
+    {
+      "Area": "cycle",
+      "Name": "dropping it creates no wire",
+      "Passed": true,
+      "Detail": "wires 6->6"
+    },
+    {
+      "Area": "cycle",
+      "Name": "a visible message names the cycle path",
+      "Passed": true,
+      "Detail": "banner 'Conexión rechazada. Ciclo: T1 → T2 → T3 → T5 → T1'"
+    },
+    {
+      "Area": "cycle",
+      "Name": "the banner is rendered",
+      "Passed": true,
+      "Detail": "visible at 294x18 DIPs"
+    },
+    {
+      "Area": "select",
+      "Name": "a rubber band selects the nodes it touches (T3, T4)",
+      "Passed": true,
+      "Detail": "selected T3,T4"
+    },
+    {
+      "Area": "select",
+      "Name": "a click selects one node",
+      "Passed": true,
+      "Detail": "selected T1"
+    },
+    {
+      "Area": "select",
+      "Name": "Ctrl+click adds a node to the selection",
+      "Passed": true,
+      "Detail": "Ctrl seen by WPF True; selected T1,T2"
+    },
+    {
+      "Area": "select",
+      "Name": "a click on empty canvas clears the selection",
+      "Passed": true,
+      "Detail": "selected 0"
+    },
+    {
+      "Area": "select",
+      "Name": "a click on a wire selects it",
+      "Passed": true,
+      "Detail": "selected wires 1: T3->T5"
+    },
+    {
+      "Area": "delete",
+      "Name": "Delete removes the selected wire",
+      "Passed": true,
+      "Detail": "wires 6->5"
+    },
+    {
+      "Area": "delete",
+      "Name": "its connectors are released (IsConnected updated)",
+      "Passed": true,
+      "Detail": "T3.out connected False, T5.in connected True (T4 still feeds it)"
+    },
+    {
+      "Area": "delete",
+      "Name": "Delete on a node removes it and every wire attached to it (cascade)",
+      "Passed": true,
+      "Detail": "nodes 6->5, wires 5->2 (3 attached); notice 'Eliminados 1 nodos y 3 conexiones.'"
+    },
+    {
+      "Area": "delete",
+      "Name": "no connector is left marked as connected without a wire",
+      "Passed": true,
+      "Detail": "IsConnected matches the wires for every connector"
+    },
+    {
+      "Area": "delete",
+      "Name": "the domain graph rebuilt from the canvas is consistent after the cascade",
+      "Passed": true,
+      "Detail": "5 tasks"
+    },
+    {
+      "Area": "pan",
+      "Name": "right-drag pans the viewport",
+      "Passed": true,
+      "Detail": "viewport moved by (200,60) for a (-200,-60) drag"
+    },
+    {
+      "Area": "zoom",
+      "Name": "the mouse wheel zooms in and out",
+      "Passed": true,
+      "Detail": "zoom 1,00 -> in 2,00 -> out 0,50; status bar '50 %'"
+    },
+    {
+      "Area": "keyboard",
+      "Name": "Tab from the toolbar enters the canvas",
+      "Passed": true,
+      "Detail": "focus on ItemContainer"
+    },
+    {
+      "Area": "keyboard",
+      "Name": "an arrow key moves the focus to a node",
+      "Passed": true,
+      "Detail": "focused T1 (ItemContainer)"
+    },
+    {
+      "Area": "keyboard",
+      "Name": "the focused node shows the dashed focus ring in the TextPrimary token colour",
+      "Passed": true,
+      "Detail": "226 ring pixels around T1"
+    },
+    {
+      "Area": "keyboard",
+      "Name": "Space selects the focused node",
+      "Passed": true,
+      "Detail": "selected T1"
+    },
+    {
+      "Area": "keyboard",
+      "Name": "arrow + Space builds a multi-selection",
+      "Passed": true,
+      "Detail": "focused T6, selected T1,T6"
+    },
+    {
+      "Area": "keyboard",
+      "Name": "Escape clears the selection",
+      "Passed": true,
+      "Detail": "selected 0"
+    },
+    {
+      "Area": "keyboard",
+      "Name": "Delete removes the keyboard-selected node and its wires",
+      "Passed": true,
+      "Detail": "nodes 5->4, wires 2->1 (1 attached)"
+    },
+    {
+      "Area": "bench",
+      "Name": "200 nodes and 300 wires are rendered",
+      "Passed": true,
+      "Detail": "200 containers, 300 wires; first load 3376 ms to first frame, 3376 ms fully drawn; 4 warm reloads fully drawn in 3905-8569 ms"
+    },
+    {
+      "Area": "bench",
+      "Name": "the cycle probe still refuses a back edge on the 200/300 graph",
+      "Passed": true,
+      "Detail": "Ciclo: N155 → N164 → N155; rebuild 13,15 ms, probe 15,30 ms (mean of 20)"
+    },
+    {
+      "Area": "bench",
+      "Name": "pan with all 200 nodes in view stays interactive (at least 30 frames per second)",
+      "Passed": true,
+      "Detail": "44,3 fps, median 16,67 ms, p95 33,33 ms, 6 frames over 33 ms"
+    },
+    {
+      "Area": "bench",
+      "Name": "a right-button drag pan with 200 nodes stays interactive (at least 30 frames per second)",
+      "Passed": true,
+      "Detail": "36,6 fps, p95 50 ms"
+    },
+    {
+      "Area": "session",
+      "Name": "the harness window never took the foreground while somebody was using the machine",
+      "Passed": true,
+      "Detail": "one while nobody had touched the machine for 539 s, handed back at once"
+    },
+    {
+      "Area": "session",
+      "Name": "the harness window is never left as the foreground window",
+      "Passed": true,
+      "Detail": "1 takeover(s), the foreground belongs to another window at the end"
+    },
+    {
+      "Area": "session",
+      "Name": "no tool tip, menu or other popup window was ever created",
+      "Passed": true,
+      "Detail": "one native window (the off-screen host) existed at every checkpoint"
+    }
+  ],
+  "Skipped": [],
+  "ForegroundTakeovers": [
+    "nobody had touched the machine for 539 s; handed back: True"
+  ],
+  "Screenshots": [
+    "fase3-spike-nodify.png",
+    "fase3-spike-nodify-ciclo.png",
+    "fase3-spike-nodify-rechazo.png",
+    "fase3-spike-nodify-foco.png",
+    "fase3-spike-nodify-200.png"
+  ],
+  "Fatal": null,
+  "Passed": 71,
+  "Failed": 0
+}

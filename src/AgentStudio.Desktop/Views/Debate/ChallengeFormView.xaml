@@ -1,0 +1,112 @@
+<UserControl x:Class="AgentStudio.Desktop.Views.Debate.ChallengeFormView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:debate="clr-namespace:AgentStudio.Desktop.Debate"
+             xmlns:orchestratorViews="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=debate:ChallengeFormViewModel}">
+    <!-- «Impugnar» (docs/15 D-38 and D-39): your reasons (a note of yours) and the adversarial revision they open, on the
+         requirements of the challenged verdict, judged by another judge that the service picks. Nothing is recorded until
+         «Impugnar», which asks your approval. Bindings only. -->
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="Challenge.BoolToVisibility"/>
+        <orchestratorViews:ToneToBrushConverter x:Key="Challenge.ToneToBrush"/>
+        <orchestratorViews:NullToVisibilityConverter x:Key="Challenge.NotNullToVisibility"/>
+    </UserControl.Resources>
+
+    <ScrollViewer Background="{StaticResource SurfaceBrush}" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+        <StackPanel Margin="12,10,12,12">
+            <TextBlock Style="{StaticResource SectionTitleText}" Text="Impugnar un veredicto"/>
+            <TextBlock Style="{StaticResource BodyText}" Margin="0,6,0,0" Text="{Binding VerdictText}" Visibility="{Binding VerdictText, Converter={StaticResource Challenge.NotNullToVisibility}}"/>
+            <DockPanel Margin="0,4,0,0" Visibility="{Binding ChallengeText, Converter={StaticResource Challenge.NotNullToVisibility}}">
+                <Ellipse DockPanel.Dock="Left" Width="8" Height="8" Margin="0,5,6,0" VerticalAlignment="Top" Fill="{Binding ChallengeTone, Converter={StaticResource Challenge.ToneToBrush}}"/>
+                <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding ChallengeText}"/>
+            </DockPanel>
+            <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="{Binding RequirementsText}" Visibility="{Binding RequirementsText, Converter={StaticResource Challenge.NotNullToVisibility}}"/>
+            <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0"
+                       Text="La revisión es adversarial: el proponente defiende el veredicto y el crítico, tu impugnación. Nunca entrega sola: si da la vuelta hacia una aprobación, la aceptas tú."/>
+
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Tus razones (se guardan como nota tuya y abren la ronda 1 del crítico)"/>
+            <TextBox Style="{StaticResource MultilineFieldTextBox}" Text="{Binding Reasons, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Razones de la impugnación"/>
+
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Pregunta de la revisión"/>
+            <TextBox Style="{StaticResource MultilineFieldTextBox}" Text="{Binding Question, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Pregunta de la revisión"/>
+
+            <WrapPanel Margin="0,4,0,0">
+                <StackPanel Margin="0,0,16,0">
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Defiende el veredicto (proponente)"/>
+                    <ComboBox MinWidth="280" ItemsSource="{Binding Candidates}" SelectedItem="{Binding Proponent}" DisplayMemberPath="Label" AutomationProperties.Name="Proponente"/>
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Defiende la impugnación (crítico)"/>
+                    <ComboBox MinWidth="280" ItemsSource="{Binding Candidates}" SelectedItem="{Binding Critic}" DisplayMemberPath="Label" AutomationProperties.Name="Crítico"/>
+                </StackPanel>
+            </WrapPanel>
+
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Jueces candidatos (el servicio hereda quién puede juzgar y cambia de juez)"/>
+            <ItemsControl ItemsSource="{Binding Judges}" Focusable="False" AutomationProperties.Name="Jueces">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type debate:JudgeChoiceViewModel}">
+                        <CheckBox Style="{StaticResource FieldCheckBox}" IsChecked="{Binding IsIncluded}" AutomationProperties.Name="{Binding Name}">
+                            <TextBlock Style="{StaticResource BodyText}" FontSize="12">
+                                <Run Text="{Binding Name, Mode=OneWay}" FontFamily="{StaticResource MonoFont}"/>
+                                <Run Text="·" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <Run Text="{Binding Where, Mode=OneWay}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            </TextBlock>
+                        </CheckBox>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Límites"/>
+            <WrapPanel>
+                <TextBlock Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="0,0,6,0" Text="Rondas"/>
+                <TextBox Style="{StaticResource FieldTextBox}" Width="60" Margin="0,0,16,0" Text="{Binding MaxRounds, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Rondas como mucho"/>
+                <TextBlock Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="0,0,6,0" Text="Minutos"/>
+                <TextBox Style="{StaticResource FieldTextBox}" Width="60" Margin="0,0,16,0" Text="{Binding MaxMinutes, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Minutos como mucho"/>
+                <TextBlock Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="0,0,6,0" Text="Tokens"/>
+                <TextBox Style="{StaticResource FieldTextBox}" Width="110" Text="{Binding MaxTokens, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Tokens como mucho"/>
+            </WrapPanel>
+
+            <ItemsControl Margin="0,8,0,0" ItemsSource="{Binding Problems}" Focusable="False" Visibility="{Binding HasProblems, Converter={StaticResource Challenge.BoolToVisibility}}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Style="{StaticResource ProblemText}" Text="{Binding}"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Button Style="{StaticResource ToolbarButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Content="Preparar" Command="{Binding PrepareCommand}"
+                    ToolTip="Pide al servicio de impugnación quién juzga la revisión y la estimación. No gasta cuota ni escribe nada."/>
+
+            <Border Style="{StaticResource InnerCard}" Padding="10,8" Margin="0,8,0,0" Visibility="{Binding HasProposal, Converter={StaticResource Challenge.BoolToVisibility}}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{Binding ArrangementText}"/>
+                    <TextBlock Style="{StaticResource BodyText}" FontSize="12" Margin="0,4,0,0" Foreground="{StaticResource WarningBrush}" Text="{Binding WaiverText}"
+                               Visibility="{Binding WaiverText, Converter={StaticResource Challenge.NotNullToVisibility}}"/>
+                    <TextBlock Style="{StaticResource BodyText}" FontSize="12" Margin="0,4,0,0" Text="{Binding EstimateText}"/>
+                    <ItemsControl ItemsSource="{Binding Notes}" Focusable="False">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <ItemsControl ItemsSource="{Binding ProposalProblems}" Focusable="False">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Style="{StaticResource ProblemText}" Text="{Binding}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="{Binding ApprovalText, StringFormat='Aprobación que se te pedirá: {0}'}"/>
+                    <Button Style="{StaticResource ToolbarPrimaryButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Content="Impugnar" Command="{Binding ChallengeCommand}"
+                            ToolTip="Registra la impugnación (tus razones como evidencia) y abre la revisión, tras tu aprobación."/>
+                </StackPanel>
+            </Border>
+            <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="0,6,0,0" Text="{Binding StatusMessage, TargetNullValue=''}" AutomationProperties.LiveSetting="Polite"/>
+            <TextBlock Style="{StaticResource ErrorText}" Margin="0,4,0,0" Text="{Binding ErrorMessage}" AutomationProperties.LiveSetting="Assertive"/>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

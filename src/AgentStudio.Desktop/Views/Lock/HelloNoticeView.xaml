@@ -1,0 +1,32 @@
+<UserControl x:Class="AgentStudio.Desktop.Views.Lock.HelloNoticeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:approvals="clr-namespace:AgentStudio.Desktop.Orchestrator.Approvals"
+             xmlns:orchestrator="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=approvals:ApprovalDialogViewModel}">
+    <!-- What a critical approval says of Windows Hello (docs/16 D-13, F8-11): that it is asked after «Aprobar», or a warning
+         that it is not there and the answer decides alone. Collapsed when Hello plays no part. Its DataContext is anything
+         with HelloNotice, HasHelloNotice and HelloNoticeTone:
+         - the approval question (ApprovalDialogViewModel). ApprovalView does not show it yet: the integration places it there,
+           between the confirmation CheckBox and the buttons;
+         - the «Orquestador» document (OrchestratorDocumentViewModel), whose plan review (OrchestratorView) shows it under the
+           warning about writers at medium integrity.
+         Bindings only. -->
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="Lock.BoolToVisibility"/>
+        <orchestrator:ToneToBrushConverter x:Key="Lock.ToneToBrush"/>
+    </UserControl.Resources>
+
+    <Border Margin="0,12,0,0" Padding="10,8" CornerRadius="6" BorderThickness="1"
+            Visibility="{Binding HasHelloNotice, Converter={StaticResource Lock.BoolToVisibility}}"
+            BorderBrush="{Binding HelloNoticeTone, Converter={StaticResource Lock.ToneToBrush}}">
+        <DockPanel>
+            <TextBlock DockPanel.Dock="Left" FontFamily="{StaticResource IconFont}" FontSize="16" Margin="0,1,8,0" VerticalAlignment="Top"
+                       Foreground="{Binding HelloNoticeTone, Converter={StaticResource Lock.ToneToBrush}}" Text="&#xE928;"/>
+            <TextBlock Style="{StaticResource BodyText}" Text="{Binding HelloNotice}" AutomationProperties.Name="Windows Hello"/>
+        </DockPanel>
+    </Border>
+</UserControl>
