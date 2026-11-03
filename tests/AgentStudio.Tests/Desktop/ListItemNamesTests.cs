@@ -1,10 +1,12 @@
 using System.Windows.Automation.Peers;
 using System.Windows.Controls;
 using AgentStudio.Application.Execution;
+using AgentStudio.Application.Knowledge;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Desktop.Audit;
 using AgentStudio.Desktop.Background;
 using AgentStudio.Desktop.Debate;
+using AgentStudio.Desktop.Memory;
 using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Orchestrator;
 using AgentStudio.Desktop.Orchestrator.Canvas;
@@ -17,6 +19,7 @@ using AgentStudio.Domain.Metrics;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Skills;
 using AgentStudio.Domain.Work;
+using AgentStudio.Tests.Desktop.Memory;
 using AgentStudio.Tests.Desktop.Orchestrator;
 using AgentStudio.Tests.Domain.Orchestration;
 using CommunityToolkit.Mvvm.Input;
@@ -82,6 +85,11 @@ public sealed class ListItemNamesTests
             new AgentStudio.Application.Knowledge.MemoryEntry("m-1", AgentStudio.Application.Knowledge.MemoryKind.Decision, "Pruebas", "Las pruebas usan xUnit.", AgentStudio.Application.Knowledge.MemoryOrigin.User, "registro", DateTimeOffset.UnixEpoch, "sha", AgentStudio.Application.Knowledge.MemoryTrust.Trusted, null, null),
             TimeZoneInfo.Utc),
             "Decisión · Pruebas · De confianza"),
+
+        // «Memoria» (Phase 12): its results, the days of the journal and the files of the model.
+        (new LogFragmentViewModel(MemorySearchSamples.LogHit(57, "registro · veredicto", "Veredicto: R1 cumplido.", 1, null), TimeZoneInfo.Utc), "Registro · veredicto · 18/10/2026 07:30"),
+        (new JournalDayViewModel(new DateOnly(2026, 10, 28), 2, false), "miércoles 28/10/2026 · 2 entradas en cuarentena"),
+        (new ModelFileLine("sentencepiece.bpe.model", "5,1 MB", "https://huggingface.co/intfloat/multilingual-e5-small"), "sentencepiece.bpe.model · 5,1 MB"),
     ];
 
     private static Figure Count { get; } = MetricText.Measured(3);

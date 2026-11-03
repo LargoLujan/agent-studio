@@ -123,7 +123,7 @@ public sealed class SkillsMcpProcessTests : IDisposable
     }
 
     /// <summary>The server with redirected stdio and no window or shell; each argument is passed as it is.</summary>
-    private static Process Start(string[] arguments, string workingDirectory)
+    internal static Process Start(string[] arguments, string workingDirectory)
     {
         var info = new ProcessStartInfo(ServerExecutable)
         {
@@ -142,7 +142,7 @@ public sealed class SkillsMcpProcessTests : IDisposable
         return Process.Start(info)!;
     }
 
-    private static void Stop(Process process)
+    internal static void Stop(Process process)
     {
         if (!process.HasExited)
         {

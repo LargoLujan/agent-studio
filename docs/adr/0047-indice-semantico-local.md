@@ -5,8 +5,9 @@
   [spike de embeddings](../investigacion/2026-10-30-spike-embeddings.md). **Enmienda** [ADR-0023](0023-empaquetado-de-contexto-por-niveles.md):
   la relevancia de los niveles 5 y 6 pasa a ser híbrida, y la bitácora entra en el último. **Amplía**
   [ADR-0022](0022-memoria-append-only-anclada.md) con la categoría `JournalEntry`, su confianza y la decisión de confiar
-  en la bitácora. **No cambia** [ADR-0024](0024-recomendador-asistido-con-mcp-local.md): el servidor MCP no carga el
-  modelo. El P0 de la Fase 12 deja los contratos, el formato de la bitácora y los paquetes; WP1 a WP4 y la integración
+  en la bitácora. **Amplía** [ADR-0024](0024-recomendador-asistido-con-mcp-local.md) (su adenda del 2026-11-03): el
+  mismo servidor MCP ofrece una tercera herramienta, `search_project_history`, con el argumento `--history`, y sigue sin
+  cargar el modelo. El P0 de la Fase 12 deja los contratos, el formato de la bitácora y los paquetes; WP1 a WP4 y la integración
   hacen el resto (docs/17 §9.2). El número sigue la reserva de docs/16 (0038 a 0046, Fases 6 a 11).
 - **Contexto:**
   - P19 pide recuperar lo de días anteriores cuando se vacía el contexto. Hoy la memoria se busca con FTS5, que no lematiza
@@ -107,8 +108,8 @@
   - **FTS5 con un lematizador de castellano:** no da significado («test en rojo» no encuentra «pruebas que fallan»).
   - **La bitácora en crudo en el prompt:** contenido del repositorio sin anclar. Descartada.
   - **El modelo también en el servidor MCP:** 0,4 s de carga y unos 134 MB en cada sesión del planificador, más nativo
-    cargado por un proceso que lanza el CLI, y ampliaría ADR-0024. El paquete del planificador ya trae la relevancia
-    híbrida.
+    cargado por un proceso que lanza el CLI, y ampliaría todavía más ADR-0024, cuya adenda solo añade la herramienta. El
+    paquete del planificador ya trae la relevancia híbrida.
   - **Las palabras vacías en la lista por palabras, como decía D-05:** el spike midió que empeoran la fusión.
 - **Consecuencias:**
   - **Coste del modelo:** 123 MB de descarga una vez y unos 134 MB de memoria con el modelo cargado. Cargar el tokenizador

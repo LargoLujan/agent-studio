@@ -365,7 +365,9 @@ instrucciones plantadas. Por eso no se lee el fichero en crudo al lanzar a nadie
   de `AgentRunStarted`. Es lo primero que se hace.
 - **El planificador, bajo demanda:** una herramienta `search_project_history(query, top ≤ 10)` en el servidor MCP local de
   solo lectura, con el patrón de `search_skills`: una instantánea de lo de confianza que escribe Agent Studio, sin acceso
-  a la base. Solo en lanzamientos que no escriben, sin shell y sin red: nunca en un ejecutor (docs/14 D-30 no cambia).
+  a la base. Solo en lanzamientos que no escriben, sin shell y sin red: nunca en un ejecutor. Esa regla de docs/14 D-30
+  no cambia, pero el servidor sí: gana esta tercera herramienta y el argumento `--history` (adenda de ADR-0024 del
+  2026-11-03).
   Antes de usarla, la medición de siempre con una ejecución corta y tu OK (decisión 9).
 - **Tú:** «Buscar» en el documento «Memoria» usa la búsqueda híbrida y muestra la bitácora.
 - **Tus sesiones de desarrollo, si quieres:** el mismo servidor, con su instantánea, puede servir a las sesiones de Claude

@@ -202,7 +202,12 @@ public sealed class SkillsMcpServerTests
     [InlineData("--snapshot", @"C:\runs\snapshot.json", "--extra")]
     [InlineData("--otro", @"C:\runs\snapshot.json")]
     [InlineData("--snapshot", "   ")]
-    public void The_only_command_line_is_the_absolute_path_of_its_snapshot(params string[] args)
+    [InlineData("--snapshot", @"C:\runs\snapshot.json", "--snapshot", @"C:\runs\otra.json")]
+    [InlineData("--history", @"C:\runs\history.json", "--history", @"C:\runs\otra.json")]
+    [InlineData("--history", "relativo.json")]
+    [InlineData("--history", @"C:\runs\history.json", "--snapshot", "relativo.json")]
+    [InlineData("--history", @"C:\runs\history.json", "--snapshot")]
+    public void The_only_command_line_is_the_absolute_path_of_each_snapshot_once(params string[] args)
     {
         Assert.False(Program.TryParseArguments(args, out _, out var problem));
         Assert.False(string.IsNullOrWhiteSpace(problem));
@@ -211,8 +216,20 @@ public sealed class SkillsMcpServerTests
     [Fact]
     public void An_absolute_snapshot_path_is_accepted()
     {
-        Assert.True(Program.TryParseArguments(["--snapshot", @"C:\runs\a b\snapshot.json"], out var path, out _));
-        Assert.Equal(@"C:\runs\a b\snapshot.json", path);
+        Assert.True(Program.TryParseArguments(["--snapshot", @"C:\runs\a b\snapshot.json"], out var arguments, out _));
+        Assert.Equal(new ServerArguments(@"C:\runs\a b\snapshot.json", null), arguments);
+    }
+
+    [Fact]
+    public void The_history_alone_or_with_the_catalog_in_either_order_is_accepted()
+    {
+        Assert.True(Program.TryParseArguments(["--history", @"C:\runs\a b\history.json"], out var history, out _));
+        Assert.True(Program.TryParseArguments(["--history", @"C:\runs\h.json", "--snapshot", @"C:\runs\s.json"], out var both, out _));
+        Assert.True(Program.TryParseArguments(["--snapshot", @"C:\runs\s.json", "--history", @"C:\runs\h.json"], out var bothAgain, out _));
+
+        Assert.Equal(new ServerArguments(null, @"C:\runs\a b\history.json"), history);
+        Assert.Equal(new ServerArguments(@"C:\runs\s.json", @"C:\runs\h.json"), both);
+        Assert.Equal(both, bothAgain);
     }
 
     [Fact]
