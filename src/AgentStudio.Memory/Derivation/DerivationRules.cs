@@ -155,7 +155,7 @@ internal static class DerivationRules
                     DerivationTexts.PlanTopic(run),
                     source,
                     item.Sequence,
-                    DerivationTexts.PlanDecision(item.Entry.Actor, answer, granted, plan, tasks, run, item.Entry.RecordedAt)));
+                    DerivationTexts.PlanDecision(item.Entry.Actor, granted, plan, tasks, run, item.Entry.RecordedAt)));
                 if (granted && plan is not null && log.ProposedPlan(plan)?.RawPlanEvidence is { } raw && log.Anchor(raw) is { } anchor)
                 {
                     facts.Add(new AgentQuote(MemoryKind.Decision, DerivationTexts.PlanSummaryTopic(run), item.Sequence, run, anchor, QuotedText.PlanSummary, null));
@@ -168,7 +168,7 @@ internal static class DerivationRules
                     DerivationTexts.DeliveryTopic(run),
                     source,
                     item.Sequence,
-                    DerivationTexts.DeliveryDecision(item.Entry.Actor, answer, granted, DeliveryRequest(items, item.Sequence)?.AffectedPaths.Count, run, item.Entry.RecordedAt)));
+                    DerivationTexts.DeliveryDecision(item.Entry.Actor, granted, DeliveryRequest(items, item.Sequence)?.AffectedPaths.Count, run, item.Entry.RecordedAt)));
             }
             else if (string.Equals(answer.Action, MemoryDerivation.RevisionAcceptanceAction, StringComparison.Ordinal))
             {
@@ -177,7 +177,7 @@ internal static class DerivationRules
                     DerivationTexts.RevisionAcceptanceTopic(run),
                     source,
                     item.Sequence,
-                    DerivationTexts.RevisionAcceptance(item.Entry.Actor, answer, granted, run, item.Entry.RecordedAt)));
+                    DerivationTexts.RevisionAcceptance(item.Entry.Actor, granted, run, item.Entry.RecordedAt)));
             }
             else if (string.Equals(answer.Action, MemoryDerivation.ReplanDismissalAction, StringComparison.Ordinal))
             {
@@ -186,7 +186,7 @@ internal static class DerivationRules
                     DerivationTexts.ReplanTopic(run),
                     source,
                     item.Sequence,
-                    DerivationTexts.ReplanDismissal(item.Entry.Actor, answer, granted, run, item.Entry.RecordedAt)));
+                    DerivationTexts.ReplanDismissal(item.Entry.Actor, granted, run, item.Entry.RecordedAt)));
             }
         }
     }

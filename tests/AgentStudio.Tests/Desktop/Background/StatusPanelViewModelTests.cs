@@ -49,6 +49,8 @@ public sealed class StatusPanelViewModelTests
             card.Agents);
         Assert.Equal("Tareas: 4 en curso · 1 espera aprobación · 1 bloqueada · 1 completada", card.Tasks);
         Assert.Equal("Presupuesto: 5 de 12 ejecuciones de agente", card.Budget);
+        Assert.Equal("5 de 12", card.BudgetBar!.ValueText);
+        Assert.Equal(5d / 12, card.BudgetBar!.Fraction!.Value, 6);
         Assert.Equal(["T3 · Esperando cuota hasta las 14:05"], card.Blocks);
         Assert.Equal(["T5 espera tu aprobación: delivery.ff"], card.Approvals);
         Assert.Empty(card.Errors);
@@ -80,7 +82,16 @@ public sealed class StatusPanelViewModelTests
         Assert.Equal("no expuesto", card.Context[1].Text);
         Assert.Contains("estimado por Agent Studio", card.Context[2].Text, StringComparison.Ordinal);
         Assert.Equal(Tone.Warning, card.Context[2].Tone);
-        Assert.Equal(new ContextBarRow("T7 Añadir pruebas", null, "sin observaciones todavía", Tone.Neutral), card.Context[3]);
+        Assert.Equal(new ContextBarRow("T7 Añadir pruebas", null, "sin observaciones todavía", Tone.Neutral) { Bar = card.Context[3].Bar }, card.Context[3]);
+
+        // The bars are the monitor's own (docs/18 P3): an empty track that says why when there is no percentage.
+        Assert.Equal(card.Context.Select(c => monitor.Tasks.Single(t => c.Task.StartsWith(t.Id.Value + " ", StringComparison.Ordinal)).ContextBar), card.Context.Select(c => c.Bar));
+        Assert.Equal(["no expuesto", "sin observaciones todavía"], new[] { card.Context[1].Bar!.ValueText, card.Context[3].Bar!.ValueText });
+        Assert.True(card.Context[2].Bar!.IsEstimate);
+
+        // Before the header of the run is read, the budget says the runs used and that its maximum is not known.
+        Assert.False(card.BudgetBar!.HasValue);
+        Assert.Equal("5 ejecuciones de agente usadas · máximo sin dato", card.BudgetBar!.Text);
     }
 
     [Fact]

@@ -11,7 +11,9 @@
 > [sección 17](#17-fase-5-debates-juez-auditorías-e-impugnación), con lo que se desvía de docs/15 §5. Y con el paquete P0 de
 > la Fase 8 (la clase del final de un intento, payloads v3, opciones de la cabecera, presencia del usuario, energía, ajustes y
 > TFM; diseño en [16](16-ampliacion-plataforma-de-proyectos.md) §4.5): lo resume la
-> [sección 18](#18-fase-8-trabajo-desatendido), con lo que se desvía de docs/16.
+> [sección 18](#18-fase-8-trabajo-desatendido), con lo que se desvía de docs/16. Y con la tanda 2 (2026-11-03: barras en
+> tiempo real y pulido del recorrido en vivo; [18](18-peticiones-y-pendientes.md)): lo resume la
+> [sección 19](#19-tanda-2-barras-en-tiempo-real-y-pulido-2026-11-03).
 
 ## 1. Mapa
 
@@ -25,6 +27,8 @@
 | Fase 4 en el mismo fichero: `ModelUsage`, `TokenUsage` (caché escrita, razonamiento, desglose y turnos), `ContextObserved`, `CompactionObserved`, `ProviderCapabilities.ReportsContextOccupancy`, `McpServerSpec` y `AgentRunRequest.McpServers` | ídem | Contrato | Fase 4 (`Providers`, WP1) |
 | `IAuxiliaryAgentRunner`, `AuxiliaryAgentRunner`, `AuxiliaryRunRequest`, `AuxiliaryRunResult` | `src/AgentStudio.Application/Providers/AuxiliaryAgentRunner.cs` | Implementado | — (es la implementación) |
 | `IQuotaObservations`, `IProviderQuotaReader`, `QuotaObservation`, `QuotaReadResult` | `src/AgentStudio.Application/Providers/QuotaContracts.cs` | Contrato | Fase 4 (`Observability`, WP2; `Providers`, WP1) |
+| Tanda 2: `IAgentRunEnds`, `AgentRunEnded`, `AgentRunEnds` | `src/AgentStudio.Application/Providers/AgentRunEnds.cs` | Implementado | — (es la implementación; la avisa `QuotaObservingAgentProvider`) |
+| Tanda 2: `SharedQuotaReader` (decorador de `IProviderQuotaReader`) | `src/AgentStudio.Application/Providers/SharedQuotaReader.cs` | Implementado | — (envuelve a `CodexAppServerQuotaReader` en `AddCodexQuotaReader`) |
 | `IDecisionLogStore`, `IEvidenceStore`, `IRequirementStore`, `IPlanStore`, `IRunRegistry`, `IVerdictStore`, `IAgentRoster` | `src/AgentStudio.Application/Persistence/StoreContracts.cs` | Contrato (esquema SQLite implementado: migraciones 0001 y 0002) | Fase 3 (`Infrastructure`, WP2) |
 | `IProjectWorkspace`, `ProjectContext` | `src/AgentStudio.Application/Projects/ProjectContracts.cs` | Contrato | Fase 3 (`Infrastructure`, WP2) |
 | `IDecisionRecorder`, `DecisionRecorder`, `DecisionPayload` y sus payloads versionados, `DecisionPayloadSerializer` | `src/AgentStudio.Application/Decisions/` | Implementado | — (es la implementación; el almacén es el de WP2) |
@@ -431,6 +435,11 @@ public interface IOrchestrationRun : IAsyncDisposable      // misma forma que IA
   `Cancelled`. «Interrumpida» no es un bloqueo: el grafo está bien y solo falta reanudar.
 - Eventos: `TaskStatusChangedEvent`, `TaskQueuedEvent` (en cola del proveedor), `AgentActivityEvent`,
   `EvidenceCapturedEvent`, `GraphHealthEvent`, `ApprovalPendingEvent`, `RunPhaseChangedEvent` y `RunFinishedEvent`.
+  Desde la tanda 2, `TaskQueuedEvent` también sale al lanzar la revisión del juez, aunque no haya cola: dice en qué
+  proveedor corre, para que su contexto diga «no expuesto» desde el principio si es Codex
+  ([§19](#19-tanda-2-barras-en-tiempo-real-y-pulido-2026-11-03)).
+- `RunSnapshot` lleva, desde la tanda 2, `MaxAgentRuns`: el presupuesto de la ejecución, para enseñar las ejecuciones
+  usadas frente a él.
 - `OrchestrationPaths(WorktreeRoot, DossierRoot, SkillSessionRoot)` son las carpetas de trabajo, todas bajo
   `%LOCALAPPDATA%\AgentStudio`; las decide `Desktop`, porque `Orchestration` y `Debate` no pueden usar el código de
   `Providers`.
@@ -1250,3 +1259,85 @@ atómica.
   al cerrarse no escribe nada al reanudarse, así que el motivo de los `TaskStatusChanged` no bastaba para distinguir la
   reanudación por consentimiento de la tuya. Su texto y el hash de una entrada están fijados en `Phase8PayloadTests`, con un
   script de PowerShell fuera del repositorio como implementación independiente de la forma canónica.
+
+## 19. Tanda 2: barras en tiempo real y pulido (2026-11-03)
+
+Lo que la tanda 2 añade o cambia en los contratos. WP-F son las barras en tiempo real (P3, P36 y P37 de
+[18](18-peticiones-y-pendientes.md)); WP-G, el pulido del recorrido en vivo (V25 a V27, V29 a V31 y A1-bis). Ningún
+payload del registro cambia de versión, y no hay migración.
+
+### 19.1 El final de cada ejecución de agente (`Application/Providers/AgentRunEnds.cs`, nuevo)
+
+```csharp
+public sealed record AgentRunEnded(ProviderId Provider, AgentRunStatus? Status);   // Status nulo: no terminó bien
+public interface IAgentRunEnds { event EventHandler<AgentRunEnded>? Ended; }
+public sealed class AgentRunEnds : IAgentRunEnds { public void Notify(AgentRunEnded ended); }
+```
+
+- Dice que una ejecución de agente terminó, y de qué proveedor. Cubre todas las del proceso: orquestación, debate,
+  auditoría, juez y auxiliares.
+- Lo avisa `QuotaObservingAgentProvider`, que ya ve todas. Recibe un `AgentRunEnds?` opcional, y
+  `AgentProviderPipeline.Compose(…, AgentRunEnds? ends)` y `ProjectAgentProviders` se lo pasan. Sin registro de cuota no
+  hay decorador y no se avisa nada: la cuota leída después no tendría dónde guardarse.
+- El evento salta en el hilo en el que terminó la ejecución. Un suscriptor que falla no toca la ejecución ni a los demás
+  suscriptores.
+- `AddAgentStudioObservability` registra uno para todo el proceso (`AgentRunEnds` e `IAgentRunEnds`).
+- Lo oye `QuotaViewModel` (Desktop), con un `IAgentRunEnds?` nuevo en su constructor: tras una ejecución de Codex, lee la
+  cuota con el permiso y como mucho una vez cada 5 minutos (`CodexReadInterval`).
+
+### 19.2 Una sola lectura de cuota para todos (`Application/Providers/SharedQuotaReader.cs`, nuevo)
+
+- `SharedQuotaReader : IProviderQuotaReader` envuelve al lector que lee de verdad (`Inner`). Lo que se pide mientras hay
+  una lectura en marcha recibe esa misma lectura. Una petición que llega después de terminar la anterior es una lectura
+  nueva.
+- Quien cancela solo deja de esperar: nunca cancela la lectura de los demás. El lector tiene su propio tiempo límite.
+- La lectura corre en el grupo de hilos: nada de su parte síncrona (leer el ajuste, buscar el ejecutable, arrancar el
+  proceso) corre en el hilo de quien la pide.
+- `AddCodexQuotaReader` registra el lector de Codex ya envuelto. El motor (al esperar un límite) y las pantallas
+  comparten la misma instancia.
+
+### 19.3 Orquestación (`Application/Orchestration`)
+
+- **`RunSnapshot(…, int? MaxAgentRuns = null)`**: el presupuesto de la ejecución (`RunOptions.MaxAgentRuns`), para que el
+  monitor y la bandeja enseñen las ejecuciones usadas frente a él. Es nulo si quien construye el snapshot no lo dice (un
+  doble, un lector antiguo); entonces la barra dice «máximo sin dato».
+- **`TaskQueuedEvent` también para la revisión.** El motor lo emite al lanzar la revisión del juez, con el proveedor del
+  juez, antes de su intento. No hay cola: es el aviso de en qué proveedor corre, para que la pantalla siga su contexto
+  como el de un agente de ese proveedor («no expuesto» en Codex desde el principio).
+
+### 19.4 Contexto en vivo (`Observability/Context`)
+
+- **`ModelWindowTable`** (nuevo): la tabla base de ventanas por modelo, versión `ModelWindowTable.Version`
+  (`2026-10-30`). `WindowFor(model, provider)` da una ventana «estimado por Agent Studio» que nombra la tabla y su
+  versión, «no expuesto» para Codex y «sin dato» para un modelo que no conoce. `Normalize` quita la fecha que añade el
+  CLI y conserva el sufijo `[1m]`. Ver la adenda del 2026-11-03 de
+  [ADR-0021](adr/0021-salud-del-contexto-por-paso.md).
+- **`ModelWindowCatalog`**: `WithBaseline(table)`, `Baseline` (sin nada aprendido, con la tabla debajo) y
+  `BaselineTable`. Lo aprendido del registro gana a la tabla.
+- **`ContextHealthTracker`**: mismo contrato. Ahora lo usan las pantallas: uno por intento en el monitor y uno en la
+  planificación.
+
+### 19.5 Escritorio (`Desktop`; no son puertos, pero las pantallas dependen de ellos)
+
+| Pieza | Fichero | Qué es |
+|---|---|---|
+| `MetricBar`, `MetricBarReading`, `MetricBarLevel` | `Controls/MetricBar.xaml(.cs)`, `Controls/MetricBarReading.cs` | El control común de las barras y lo que muestra: `Label`, `Value` y `Maximum`, `ValueText`, `Origin` y `OriginKind`, `IsEstimate`, `Level` y `LevelText`, `Detail`, **`Age`** («vista hace 12 min», junto a la cifra en todas sus formas, también la corta) y `Marks` (los umbrales). `Text` es la línea entera; `CompactText`, la de la barra de estado; `AccessibleName`, la de UI Automation, que también es su `ToString()` |
+| `MetricBars` | `Observability/MetricBars.cs` | Construye las lecturas: `Context`, `NoObservation`, `Empty`, `Quota`, **`QuotaAfterReset`** (una ventana cuyo reinicio ya pasó: vacía, «se reinició a las…, sin dato nuevo», la cifra vieja en el detalle), `Budget` y `Tokens` |
+| `ContextWindowCatalogs` | `Observability/ContextWindowCatalogs.cs` | Las ventanas de cada proyecto sobre la tabla base, leídas de su registro (`IProjectLogReader`) en el grupo de hilos, una lectura a la vez por proyecto. Una lectura que falla o un registro que no se fía no borra lo aprendido |
+| `StatusStripViewModel` | `ViewModels/StatusStripViewModel.cs` | Las barras de la barra de estado: contexto de la tarea en curso más llena, Claude 5 h y 7 días, Codex con el permiso, y presupuesto. Se rehacen como mucho cada 250 ms. Bloqueado, vacía |
+| `ApprovalTitles` | `Orchestrator/Approvals/ApprovalTitles.cs` | El título en castellano de cada acción que pide aprobación («Entregar a tu rama»), con las constantes de los módulos como clave. El identificador sigue en el registro y en `ApprovalRequest.Action`; el diálogo lo enseña como línea secundaria (`ActionDetail`) |
+| `ApprovalDialogViewModel(…, string? projectName)` y `ApprovalPromptService(…, Func<string, string?>? projectNames)` | `Orchestrator/Approvals/` | El proyecto se nombra por su carpeta; sin nombre, no se nombra (nunca su id) |
+| `IKeepAwakeLease` | `Background/KeepAwake.cs` | Un permiso de «mantener despierto» que dice por qué se suelta (`Release(why)`), para el registro de la app (V26) |
+| `MarkdownLite`, `MarkdownFlowDocument` y `MarkdownToFlowDocumentConverter`, `RichTextDocument`, `JournalExcerpt` | `Markdown/` | La bitácora legible (V31): la parte del Markdown que usa la bitácora, convertida en un documento de solo lectura, y lo que se dibuja de un día largo |
+| `ToString()` de los elementos de listas | Varios (A1-bis) | Cada registro o clase que sale como elemento de una lista o un selector da su etiqueta, que UI Automation usa como nombre |
+
+### 19.6 Textos de la bitácora, la memoria y la entrega
+
+- **`MarkdownDailyJournal.Preamble` y `ResultPreamble`** (internos): las dos líneas que la app escribe bajo el título de
+  un día que crea ([docs/11 §1](11-bitacora.md#1-dónde-y-cómo); adenda de
+  [ADR-0008](adr/0008-bitacora-obligatoria.md)). `DailySummaryBuilder` reconoce las del hook y las de la app.
+- **`DerivationTexts`** (interno): las entradas que la memoria deriva del registro dicen «La persona…» y la hora en UTC,
+  escrita: «el 29/10/2026 a las 22:40 UTC» (V27). Son deterministas: el mismo registro da el mismo texto en cualquier
+  equipo. Las entradas ya ancladas conservan su texto.
+- **`DeliveryService`** (`Orchestration/Integration`): la descripción de la entrega cuenta los ficheros con «Cambia 1
+  fichero.», «Cambian N ficheros.» o «No cambia ningún fichero.».

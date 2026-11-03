@@ -654,6 +654,32 @@ public sealed record MemoryReviewedPayload(string Entry, MemoryReview Decision, 
         new(entry, decision, decidedBy, comment) { RunId = NoRun };
 }
 
+/// <summary>
+/// A person trusted the journal of the project or of one day of it, or withdrew that trust (docs/17 D-02, «Confiar en la
+/// bitácora de este proyecto»): <paramref name="Day"/> is the day for <see cref="JournalTrustScope.Day"/> and null for the
+/// whole project. It covers the journal entries Agent Studio did not write; it belongs to no run.
+/// </summary>
+public sealed record JournalTrustChangedPayload(JournalTrustScope Scope, DateOnly? Day, bool Trusted, string DecidedBy, string? Comment) : DecisionPayload
+{
+    /// <summary>The decision of a person about the trust of the journal, outside every run.</summary>
+    /// <exception cref="ArgumentException">A day for the project, none for a day, or no one decided.</exception>
+    public static JournalTrustChangedPayload Deciding(JournalTrustScope scope, DateOnly? day, bool trusted, string decidedBy, string? comment)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(decidedBy);
+        if (!Enum.IsDefined(scope))
+        {
+            throw new ArgumentOutOfRangeException(nameof(scope), scope, "Unknown scope of a decision about the journal.");
+        }
+
+        if ((scope == JournalTrustScope.Day) != day.HasValue)
+        {
+            throw new ArgumentException("A decision about one day of the journal names its day, and one about the whole project names none.", nameof(day));
+        }
+
+        return new JournalTrustChangedPayload(scope, day, trusted, decidedBy, comment) { RunId = NoRun };
+    }
+}
+
 /// <summary>What was chosen when the app was left with a run going (docs/16 D-16, F8-9).</summary>
 public enum RunExitChoice
 {

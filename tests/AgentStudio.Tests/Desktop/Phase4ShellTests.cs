@@ -22,8 +22,9 @@ namespace AgentStudio.Tests.Desktop;
 /// <summary>
 /// The shell with the Phase 4 screens (docs/14 section 9, «Integración»): «Skills» opens the catalog of the open project,
 /// «Consumo» and «Memoria» are one tab each for the session and follow the open project, the user's context thresholds
-/// reach every orchestrator, and the end of a run reads the Codex quota (only with the opt-in) and lets «Memoria» export
-/// again. Nothing is shown and no CLI is launched: the ports are fakes.
+/// reach every orchestrator, the end of a run lets «Memoria» export again, and the end of a run of Codex (whatever started
+/// it) reads the Codex quota, only with the opt-in (docs/18 P37). Nothing is shown and no CLI is launched: the ports are
+/// fakes, and the app-server of Codex is a double.
 /// </summary>
 public sealed class Phase4ShellTests : IDisposable
 {
@@ -43,20 +44,22 @@ public sealed class Phase4ShellTests : IDisposable
         UsageDashboardViewModel Usage,
         MemoryViewModel MemoryScreen,
         FakeMemoryDerivation Derivation,
-        FakeMemoryExporter Exporter);
+        FakeMemoryExporter Exporter,
+        AgentStudio.Application.Providers.AgentRunEnds RunEnds);
 
     private Shell Create(RecordingSettingsStore? settings = null)
     {
         var store = settings ?? new RecordingSettingsStore();
         var report = new FakeUsageReport();
         var codex = new FakeQuotaReader();
+        var runEnds = new AgentStudio.Application.Providers.AgentRunEnds();
         var usage = new UsageDashboardViewModel(
             report,
             new FakeUsageExporter(),
             new FakeSaveFilePicker(null),
             store,
             _clock,
-            new QuotaViewModel(new FakeQuotaObservations(), codex, _clock),
+            new QuotaViewModel(new FakeQuotaObservations(), codex, _clock, runEnds),
             new ObservabilitySettingsViewModel(store));
         var memory = new FakeProjectMemory();
         var activity = new FakeRunActivity();
@@ -82,7 +85,7 @@ public sealed class Phase4ShellTests : IDisposable
             usage,
             memoryScreen,
             new ProjectMemoryUpkeep(new FakeProjectWorkspace(), derivation, exporter));
-        return new Shell(main, report, codex, memory, activity, usage, memoryScreen, derivation, exporter);
+        return new Shell(main, report, codex, memory, activity, usage, memoryScreen, derivation, exporter, runEnds);
     }
 
     private static Task RunActivityAsync(MainViewModel main, string id)
@@ -227,8 +230,9 @@ public sealed class Phase4ShellTests : IDisposable
     }
 
     [Fact]
-    public async Task The_end_of_a_run_reads_the_Codex_quota_with_the_opt_in_and_lets_memory_export_again()
+    public async Task The_end_of_a_run_lets_memory_export_again_and_reads_no_quota_when_no_codex_ran()
     {
+        // P37: the quota of Codex follows the end of a run of Codex, not the end of any orchestration.
         var shell = Create(new RecordingSettingsStore(AppSettings.Default with { CodexQuotaReadEnabled = true }));
         await shell.Main.OpenProjectAsync(_temp.CreateDirectory("calc"));
         await RunActivityAsync(shell.Main, "memory");
@@ -254,7 +258,43 @@ public sealed class Phase4ShellTests : IDisposable
         Assert.False(monitor.IsActive);
         Assert.True(exportAsked >= 2, "The memory screen was not told that the run ended.");
         Assert.Null(shell.MemoryScreen.ExportBlocked);
+        Assert.Equal(0, shell.Codex.Reads);
+    }
+
+    [Fact]
+    public async Task The_end_of_a_codex_run_reads_the_Codex_quota_once_with_the_opt_in_and_never_twice_within_five_minutes()
+    {
+        var shell = Create(new RecordingSettingsStore(AppSettings.Default with { CodexQuotaReadEnabled = true }));
+
+        // A run of Claude asks nothing; a run of Codex, whatever started it, reads the quota with the app-server (a double here).
+        shell.RunEnds.Notify(new AgentStudio.Application.Providers.AgentRunEnded(AgentStudio.Domain.Providers.ProviderId.ClaudeCode, AgentStudio.Application.Providers.AgentRunStatus.Succeeded));
+        await shell.Usage.Quota.CodexReadAfterRun;
+        Assert.Equal(0, shell.Codex.Reads);
+
+        shell.RunEnds.Notify(new AgentStudio.Application.Providers.AgentRunEnded(AgentStudio.Domain.Providers.ProviderId.CodexCli, AgentStudio.Application.Providers.AgentRunStatus.Succeeded));
+        await shell.Usage.Quota.CodexReadAfterRun;
         Assert.Equal(1, shell.Codex.Reads);
+
+        _clock.Advance(TimeSpan.FromMinutes(2));
+        shell.RunEnds.Notify(new AgentStudio.Application.Providers.AgentRunEnded(AgentStudio.Domain.Providers.ProviderId.CodexCli, null));
+        await shell.Usage.Quota.CodexReadAfterRun;
+        Assert.Equal(1, shell.Codex.Reads);
+
+        _clock.Advance(TimeSpan.FromMinutes(4));
+        shell.RunEnds.Notify(new AgentStudio.Application.Providers.AgentRunEnded(AgentStudio.Domain.Providers.ProviderId.CodexCli, AgentStudio.Application.Providers.AgentRunStatus.Failed));
+        await shell.Usage.Quota.CodexReadAfterRun;
+        Assert.Equal(2, shell.Codex.Reads);
+    }
+
+    [Fact]
+    public async Task Without_the_opt_in_the_end_of_a_codex_run_launches_nothing()
+    {
+        var shell = Create();
+
+        shell.RunEnds.Notify(new AgentStudio.Application.Providers.AgentRunEnded(AgentStudio.Domain.Providers.ProviderId.CodexCli, AgentStudio.Application.Providers.AgentRunStatus.Succeeded));
+        await shell.Usage.Quota.CodexReadAfterRun;
+
+        Assert.Equal(0, shell.Codex.Reads);
     }
 
     [Fact]

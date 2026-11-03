@@ -4,6 +4,7 @@ using AgentStudio.Desktop.Lock;
 using AgentStudio.Desktop.Orchestrator;
 using AgentStudio.Desktop.Orchestrator.Approvals;
 using AgentStudio.Domain.Decisions;
+using AgentStudio.Orchestration.Integration;
 using AgentStudio.Security.Approvals;
 using AgentStudio.Tests.Debate.Fakes;
 using AgentStudio.Tests.Desktop.Lock;
@@ -179,10 +180,14 @@ public sealed class ApprovalPromptServiceTests
         Assert.Equal("Riesgo crítico", question.RiskLabel);
         Assert.Equal(Tone.Error, question.RiskTone);
         Assert.Equal("Fusionar en main", question.Action);
+        Assert.Equal("Fusionar en main", question.Title);
+        Assert.Null(question.ActionDetail);
         Assert.Equal("Rutas afectadas (2)", question.PathsHeader);
         Assert.Equal(["src/Calc/Calc.cs", "tests/Calc.Tests/CalcTests.cs"], question.AffectedPaths);
         Assert.Equal("Lo pide el agente «orquestador».", question.RequestedBy);
-        Assert.Equal("Origen: ejecución 20260101-abc123 · tarea T5 · proyecto p-1", question.Origin);
+
+        // Without the name of its project, the question names none: never its id.
+        Assert.Equal("Origen: ejecución 20260101-abc123 · tarea T5", question.Origin);
 
         Assert.False(question.ApproveCommand.CanExecute(null));
         question.IsConfirmed = true;
@@ -192,6 +197,73 @@ public sealed class ApprovalPromptServiceTests
         question.DenyCommand.Execute(null);
         Assert.Equal(new ApprovalAnswer(true, null), question.Answer);
         Assert.Equal(2, answered);
+    }
+
+    /// <summary>
+    /// V25, seen live: the delivery was titled «deliver-integration» and its origin named the project by its GUID. The title
+    /// is a plain sentence, the identifier the log records stays as a technical detail, and the project goes by its name.
+    /// </summary>
+    [Fact]
+    public async Task A_delivery_is_asked_with_a_plain_title_and_the_name_of_its_project_never_its_id()
+    {
+        const string guid = "0688cd79-3afe-4ff1-9536-962396f6853f";
+        var delivery = new ApprovalRequest(
+            DeliveryService.ApprovalAction,
+            "Entregar la ejecución 20261030-abc123: avanzar tu rama main. Cambian 2 ficheros.",
+            RiskLevel.Critical,
+            null,
+            ["src/Calc.cs", "tests/CalcTests.cs"],
+            ProjectId: guid,
+            RunId: "20261030-abc123");
+        var dialog = Answers(approved: false);
+        var prompt = new ApprovalPromptService(dialog, new FakeTimeProvider(T0), new InlineSynchronizationContext(), projectNames: id => id == guid ? "calc" : null);
+
+        var decision = await prompt.AskAsync(delivery, CancellationToken.None);
+
+        Assert.False(decision.Approved);
+        var question = Assert.Single(dialog.Shown);
+        Assert.Equal("Entregar a tu rama", question.Title);
+        Assert.Equal("deliver-integration", question.Action);
+        Assert.Equal("Acción en el registro: deliver-integration", question.ActionDetail);
+        Assert.Equal("Origen: proyecto calc · ejecución 20261030-abc123", question.Origin);
+        Assert.DoesNotContain(guid, question.Origin, StringComparison.Ordinal);
+
+        // A project the app does not know (not open here) is not named at all.
+        var unknown = new ApprovalDialogViewModel(delivery);
+        Assert.Equal("Origen: ejecución 20261030-abc123", unknown.Origin);
+    }
+
+    /// <summary>Every action the app asks about has a title in plain Spanish; a request written as a sentence keeps it.</summary>
+    [Theory]
+    [InlineData("deliver-integration", "Entregar a tu rama")]
+    [InlineData("discard-run-work", "Descartar el trabajo de una ejecución")]
+    [InlineData("plan.approve", "Aprobar el plan")]
+    [InlineData("orchestration.human-approval", "Aprobar una tarea del plan")]
+    [InlineData("orchestration.review-escalation", "Decidir sobre una revisión")]
+    [InlineData("audit.run", "Auditar el proyecto")]
+    [InlineData("debate.open", "Abrir un debate")]
+    [InlineData("debate.resume", "Reanudar un debate")]
+    [InlineData("debate.human-resolution", "Decidir el resultado del debate")]
+    [InlineData("verdict.revision.accept", "Aceptar la revisión de un veredicto")]
+    [InlineData("replan.dismiss", "Descartar la petición de replanificar")]
+    [InlineData("skills.recomendacion-asistida", "Pedir a un agente que recomiende skills")]
+    [InlineData("decision-log.accept-origin", "Aceptar el historial como nuevo origen")]
+    [InlineData("algo.que-no-conoce", ApprovalTitles.Unknown)]
+    [InlineData("Borrar el worktree T1", "Borrar el worktree T1")]
+    public void Every_action_has_a_plain_title(string action, string title)
+    {
+        Assert.Equal(title, ApprovalTitles.For(action));
+        Assert.Equal(title, new ApprovalDialogViewModel(Merge with { Action = action }).Title);
+    }
+
+    [Fact]
+    public async Task Windows_hello_names_the_action_by_its_title()
+    {
+        var hello = FakeUserPresenceVerifier.Answering(UserPresenceResult.Verified);
+
+        await Prompt(Answers(approved: true), hello).AskAsync(Merge with { Action = DeliveryService.ApprovalAction }, CancellationToken.None);
+
+        Assert.Equal("Agent Studio: confirma que eres tú para aprobar «Entregar a tu rama».", Assert.Single(hello.Messages));
     }
 
     [Fact]

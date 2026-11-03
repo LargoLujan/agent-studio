@@ -78,15 +78,28 @@ public sealed class DecisionKindCompatibilityTests
     private static readonly string[] Phase8Kinds = ["RunExitChosen", "RunDispatchChanged", "AccessChecked", "RunResumed"];
 
     [Fact]
-    public void Phase_8_kinds_come_after_the_phase_5_ones_and_nothing_else_was_added()
+    public void Phase_8_kinds_come_after_the_phase_5_ones()
     {
         var before = ExistingKinds.Length + Phase3Kinds.Length + Phase4Kinds.Length + Phase5Kinds.Length;
         for (var i = 0; i < Phase8Kinds.Length; i++)
         {
             Assert.Equal(Phase8Kinds[i], ((DecisionKind)(before + i)).ToString());
         }
+    }
 
-        Assert.Equal(before + Phase8Kinds.Length, Enum.GetValues<DecisionKind>().Length);
+    /// <summary>Phase 12 (docs/17 D-02): the decision «Confiar en la bitácora de este proyecto», appended after Phase 8.</summary>
+    private static readonly string[] Phase12Kinds = ["JournalTrustChanged"];
+
+    [Fact]
+    public void Phase_12_kinds_come_after_the_phase_8_ones_and_nothing_else_was_added()
+    {
+        var before = ExistingKinds.Length + Phase3Kinds.Length + Phase4Kinds.Length + Phase5Kinds.Length + Phase8Kinds.Length;
+        for (var i = 0; i < Phase12Kinds.Length; i++)
+        {
+            Assert.Equal(Phase12Kinds[i], ((DecisionKind)(before + i)).ToString());
+        }
+
+        Assert.Equal(before + Phase12Kinds.Length, Enum.GetValues<DecisionKind>().Length);
     }
 
     [Fact]

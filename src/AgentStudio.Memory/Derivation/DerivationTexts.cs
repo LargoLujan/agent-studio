@@ -14,14 +14,25 @@ namespace AgentStudio.Memory.Derivation;
 
 /// <summary>
 /// The texts of the derived memory, in Spanish (docs/14 D-18 and D-20, docs/15 D-46). A system entry is built only from
-/// structured fields of the log: identifiers, enums, counters, hashes, commits, refs and paths the system measured, the name
-/// of who decided, and the messages the system itself wrote (alerts, the vendor note of a verdict). Never from free text an
-/// agent may have written into a payload: the reason of a transition (it quotes the agent's summary), the title of a task,
-/// the reason of the close of a debate (it may be the summary of the judge), the message of a request to replan that a judge
-/// made, or the comment of a person. The only text it quotes is the question of a debate the person wrote, read as the log
-/// anchored it (<see cref="WithQuestion"/>). Nothing depends on the culture or the zone of the machine, so the same log gives
-/// the same text. A unit of the log is named as what it is: a run, a debate (<c>deb-…</c>) or an audit (<c>aud-…</c>).
+/// structured fields of the log: identifiers, enums, counters, hashes, commits, refs and paths the system measured, who
+/// decided (a person or the system, never the id the app records a person with), and the messages the system itself wrote
+/// (alerts, the vendor note of a verdict). Never from free text an agent may have written into a payload: the reason of a
+/// transition (it quotes the agent's summary), the title of a task, the reason of the close of a debate (it may be the
+/// summary of the judge), the message of a request to replan that a judge made, or the comment of a person. The only text it
+/// quotes is the question of a debate the person wrote, read as the log anchored it (<see cref="WithQuestion"/>).
 /// </summary>
+/// <remarks>
+/// A time is said in UTC, explicitly, in plain Spanish: «el 29/10/2026 a las 22:40 UTC» (V27). The text is anchored by its
+/// hash and packed into the prompts of the agents, so it never depends on the zone or the culture of the machine (ADR-0022,
+/// docs/14 D-19): the same log gives the same text and the same entry anywhere, and the hour repeated when the clocks go
+/// back is two different times. The screens show the local time of an entry beside it. A unit of the log is named as what
+/// it is: a run, a debate (<c>deb-…</c>) or an audit (<c>aud-…</c>).
+/// <para>
+/// Compatibility: an entry is derived once per source (<c>MemoryDerivation</c> skips a source the log already announced with
+/// its row), and its content is anchored by its hash when it is announced, so the entries recorded before (with the id of
+/// the person and the ISO date) keep their text and their anchor; only the new ones use these words.
+/// </para>
+/// </remarks>
 internal static partial class DerivationTexts
 {
     /// <summary>The most paths an entry lists; the rest are counted.</summary>
@@ -48,19 +59,19 @@ internal static partial class DerivationTexts
 
     public static string PlanSummaryTopic(string run) => $"Resumen del plan aprobado de la ejecución {run}";
 
-    public static string PlanDecision(Actor actor, ApprovalAnsweredPayload answer, bool granted, string? planHash, int tasks, string run, DateTimeOffset at)
+    public static string PlanDecision(Actor actor, bool granted, string? planHash, int tasks, string run, DateTimeOffset at)
     {
         var plan = planHash is { Length: >= 12 } ? "el plan " + planHash[..12] : "el plan";
         var size = granted && tasks > 0 ? $" ({Count(tasks, "tarea", "tareas")})" : string.Empty;
-        return $"{Who(actor, answer)} {(granted ? "aprobó" : "denegó")} {plan} de la ejecución {run}{size} el {When(at)}.";
+        return $"{Who(actor)} {(granted ? "aprobó" : "denegó")} {plan} de la ejecución {run}{size} el {When(at)}.";
     }
 
     public static string DeliveryTopic(string run) => $"Entrega de la ejecución {run}";
 
-    public static string DeliveryDecision(Actor actor, ApprovalAnsweredPayload answer, bool granted, int? changedPaths, string run, DateTimeOffset at) =>
+    public static string DeliveryDecision(Actor actor, bool granted, int? changedPaths, string run, DateTimeOffset at) =>
         granted
-            ? $"{Who(actor, answer)} aprobó entregar la ejecución {run} a su rama el {When(at)}{(changedPaths is { } paths ? ": " + Changes(paths) : string.Empty)}."
-            : $"{Who(actor, answer)} denegó entregar la ejecución {run} a su rama el {When(at)}.";
+            ? $"{Who(actor)} aprobó entregar la ejecución {run} a su rama el {When(at)}{(changedPaths is { } paths ? ": " + Changes(paths) : string.Empty)}."
+            : $"{Who(actor)} denegó entregar la ejecución {run} a su rama el {When(at)}.";
 
     // ---- PendingTask ----
 
@@ -77,18 +88,18 @@ internal static partial class DerivationTexts
 
     /// <summary>Who challenged which verdict, when, and the revision it opened; the reasons are named by their evidence, never quoted.</summary>
     public static string Challenge(Actor actor, VerdictChallengedPayload challenge, string unit, DateTimeOffset at) =>
-        $"{Person(actor, challenge.ChallengedBy)} impugnó el veredicto {challenge.Verdict} {OfUnit(unit)} el {When(at)}; "
+        $"{Person(actor)} impugnó el veredicto {challenge.Verdict} {OfUnit(unit)} el {When(at)}; "
         + $"la revisión es el debate {challenge.RevisionDebate} y sus razones están en la evidencia {challenge.Reasons.Value}.";
 
     public static string RevisionAcceptanceTopic(string unit) => $"Aceptación de una revisión {InUnit(unit)}";
 
-    public static string RevisionAcceptance(Actor actor, ApprovalAnsweredPayload answer, bool granted, string unit, DateTimeOffset at) =>
-        $"{Who(actor, answer)} {(granted ? "aceptó" : "no aceptó")} la revisión de un veredicto impugnado {InUnit(unit)} el {When(at)}.";
+    public static string RevisionAcceptance(Actor actor, bool granted, string unit, DateTimeOffset at) =>
+        $"{Who(actor)} {(granted ? "aceptó" : "no aceptó")} la revisión de un veredicto impugnado {InUnit(unit)} el {When(at)}.";
 
     public static string ReplanTopic(string unit) => $"Petición de replanificar {Unit(unit)}";
 
-    public static string ReplanDismissal(Actor actor, ApprovalAnsweredPayload answer, bool granted, string unit, DateTimeOffset at) =>
-        $"{Who(actor, answer)} {(granted ? "descartó" : "no descartó")} la petición de replanificar {Unit(unit)} el {When(at)}.";
+    public static string ReplanDismissal(Actor actor, bool granted, string unit, DateTimeOffset at) =>
+        $"{Who(actor)} {(granted ? "descartó" : "no descartó")} la petición de replanificar {Unit(unit)} el {When(at)}.";
 
     // ---- DebateSummary ----
 
@@ -263,15 +274,19 @@ internal static partial class DerivationTexts
 
     // ---- pieces ----
 
-    /// <summary>Who decided: the person who answered, or the system when no person's answer counted (the gate denied).</summary>
-    private static string Who(Actor actor, ApprovalAnsweredPayload answer) =>
-        actor.Kind == ActorKind.User && !string.IsNullOrWhiteSpace(answer.DecidedBy)
-            ? answer.DecidedBy.Trim()
-            : "Agent Studio, sin una respuesta válida de una persona,";
+    /// <summary>
+    /// Who decided: «La persona» when a person answered, or the system when no person's answer counted (the gate denied). Never
+    /// the id the app records a person with (<c>user</c>, V27): the text is read by the person and packed into the prompts of
+    /// the agents, where «Aprobaste…» would read as if the agent had approved.
+    /// </summary>
+    private static string Who(Actor actor) =>
+        actor.Kind == ActorKind.User ? PersonSubject : "Agent Studio, sin una respuesta válida de una persona,";
 
-    /// <summary>The person a payload names when a person signed the entry; otherwise the system.</summary>
-    private static string Person(Actor actor, string name) =>
-        actor.Kind == ActorKind.User && !string.IsNullOrWhiteSpace(name) ? name.Trim() : "Agent Studio";
+    /// <summary>The person when a person signed the entry; otherwise the system.</summary>
+    private static string Person(Actor actor) => actor.Kind == ActorKind.User ? PersonSubject : "Agent Studio";
+
+    /// <summary>A person, as the subject of a sentence of the memory.</summary>
+    private const string PersonSubject = "La persona";
 
     /// <summary>Whether a unit of the log is an orchestration run (not a debate nor an audit).</summary>
     private static bool IsRun(string unit) =>
@@ -343,7 +358,9 @@ internal static partial class DerivationTexts
     [GeneratedRegex(@"^[\p{L}\p{N}_.:-]{1,80}$", RegexOptions.CultureInvariant)]
     private static partial Regex Label();
 
-    private static string When(DateTimeOffset at) => at.UtcDateTime.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) + " UTC";
+    /// <summary>A moment in UTC, said so: «29/10/2026 a las 22:40 UTC». Never in the zone of the machine (the text is anchored).</summary>
+    private static string When(DateTimeOffset at) =>
+        at.UtcDateTime.ToString("dd/MM/yyyy 'a las' HH:mm", CultureInfo.InvariantCulture) + " UTC";
 
     private static string Unfinished(TaskCreatedPayload task, TaskStatusChangedPayload? last)
     {

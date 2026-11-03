@@ -20,6 +20,15 @@
          On net10.0 it only brings ModelContextProtocol.Core 2.2.0, Microsoft.Extensions.AI.Abstractions 10.8.3 (MIT) and
          Microsoft.Extensions.{Caching,Hosting,Logging}.Abstractions 10.0.10, below the pins above. -->
     <PackageVersion Include="ModelContextProtocol" Version="2.2.0" />
+    <!-- Local embeddings of the semantic index (Phase 12, docs/17 D-03; ADR-0047). Verified on nuget.org on 2026-10-30:
+         Microsoft.ML.OnnxRuntime 1.31.1 is the latest stable (listed, published 2026-10-28, no deprecation nor known
+         vulnerability); its license is the MIT text shipped in the package (LICENSE, a file, not an SPDX expression),
+         like its only dependency Microsoft.ML.OnnxRuntime.Managed 1.31.1 (net8.0 asset; brings System.Numerics.Tensors
+         9.0.0, MIT). The package carries the native onnxruntime.dll of every runtime it supports.
+         Microsoft.ML.Tokenizers 2.0.1 is the latest stable (published 2026-10-15; 3.0 is a preview); license MIT
+         (nuspec expression); net8.0 asset; on net10.0 it only brings Google.Protobuf 3.30.2 (BSD-3-Clause). -->
+    <PackageVersion Include="Microsoft.ML.OnnxRuntime" Version="1.31.1" />
+    <PackageVersion Include="Microsoft.ML.Tokenizers" Version="2.0.1" />
     <!-- Node editor canvas (Phase 3, WP6). Latest stable on nuget.org on 2026-10-15; license MIT (nuspec expression);
          ships a net10.0-windows7.0 asset group. -->
     <PackageVersion Include="Nodify" Version="7.3.0" />

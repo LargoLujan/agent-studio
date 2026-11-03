@@ -39,18 +39,20 @@ public static class DependencyInjection
     /// Registers the reader of the Codex quota (docs/14 D-15) behind <see cref="IProviderQuotaReader"/>: the app-server's
     /// <c>account/rateLimits/read</c>, only with the user's opt-in. <paramref name="optedIn"/> gives the function that reads
     /// that setting (it lives in the desktop settings), asked on every read; without it nothing is looked up nor launched.
-    /// Needs an <see cref="IExecutableLocator"/>, both process runners and a <see cref="TimeProvider"/>.
+    /// The engine and the screens share it, and reads asked at the same time are one (<see cref="SharedQuotaReader"/>, docs/18
+    /// P37), off the thread that asks. Needs an <see cref="IExecutableLocator"/>, both process runners and a
+    /// <see cref="TimeProvider"/>.
     /// </summary>
     public static IServiceCollection AddCodexQuotaReader(this IServiceCollection services, Func<IServiceProvider, Func<bool>> optedIn)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(optedIn);
-        services.AddSingleton<IProviderQuotaReader>(sp => new CodexAppServerQuotaReader(
+        services.AddSingleton<IProviderQuotaReader>(sp => new SharedQuotaReader(new CodexAppServerQuotaReader(
             sp.GetRequiredService<IExecutableLocator>(),
             sp.GetRequiredService<IStreamingProcessRunner>(),
             sp.GetRequiredService<IProcessRunner>(),
             optedIn(sp),
-            sp.GetRequiredService<TimeProvider>()));
+            sp.GetRequiredService<TimeProvider>())));
         return services;
     }
 }

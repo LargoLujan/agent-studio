@@ -17,12 +17,16 @@ namespace AgentStudio.Providers.Composition;
 public static class AgentProviderPipeline
 {
     /// <param name="quota">The user's record of quota observations; null composes without it.</param>
-    public static IAgentProvider Compose(IAgentProvider adapter, IPromptJournal journal, TimeProvider time, int? maxConcurrent = null, IQuotaObservations? quota = null)
+    /// <param name="ends">
+    /// Notes the end of every run with its provider (docs/18 P37), with the quota observation; null notes nothing. The quota of
+    /// Codex read after a run of Codex goes to the same record, so without one nothing is noted either.
+    /// </param>
+    public static IAgentProvider Compose(IAgentProvider adapter, IPromptJournal journal, TimeProvider time, int? maxConcurrent = null, IQuotaObservations? quota = null, AgentRunEnds? ends = null)
     {
         ArgumentNullException.ThrowIfNull(adapter);
         ArgumentNullException.ThrowIfNull(journal);
         ArgumentNullException.ThrowIfNull(time);
-        var observed = quota is null ? adapter : new QuotaObservingAgentProvider(adapter, quota);
+        var observed = quota is null ? adapter : new QuotaObservingAgentProvider(adapter, quota, ends);
         var journaled = new JournalingAgentProvider(observed, journal, time);
         return new ConcurrencyLimitedAgentProvider(journaled, maxConcurrent);
     }

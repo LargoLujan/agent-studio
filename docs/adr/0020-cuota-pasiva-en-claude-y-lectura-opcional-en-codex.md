@@ -88,3 +88,27 @@
     ([ADR-0003](0003-integracion-por-clis-oficiales.md)).
   - El decorador de cuota se compone solo si hay un `IQuotaObservations` registrado. Hasta que la integración registre el
     de WP2, los proveedores se componen sin él.
+
+## Adenda · 2026-11-03 · tanda 2: quién pide la lectura tras una ejecución de Codex (P37 de docs/18)
+
+La decisión no cambia. El revisor de docs/17 §0.2 vio que la lectura «una vez al terminar cada ejecución de Codex» no
+existía: solo se leía a petición y cuando el motor esperaba un límite. La tanda 2 responde a «quién lo llama».
+
+- **La señal.** El pipeline de proveedores avisa del final de cada ejecución de agente, con su proveedor: `IAgentRunEnds`
+  y `AgentRunEnded` (Application). Lo hace `QuotaObservingAgentProvider`, que ya ve todas las ejecuciones, también las
+  auxiliares, los debates y el juez. El aviso no lanza nada: solo dice que una ejecución terminó.
+- **Quién lee.** `QuotaViewModel` (Desktop) oye la señal. Tras una ejecución de Codex lee la cuota solo si:
+  - tienes activado «Leer la cuota de Codex»;
+  - la última lectura tiene más de 5 minutos.
+
+  Una ejecución de Claude no pide nada.
+- **Una sola lectura para todos.** El motor (al cortar un límite un intento de Codex) y las pantallas pueden pedir la
+  cuota a la vez. `SharedQuotaReader` envuelve al lector del app-server: lo que se pide mientras hay una lectura en
+  marcha espera esa misma lectura, y el app-server se lanza una vez. Quien deja de esperar no cancela la lectura de los
+  demás. La lectura corre en el grupo de hilos, nunca en el de la interfaz.
+- **Una cuota cuyo reinicio ya pasó no enseña su cifra como actual.** La barra sale vacía y dice «se reinició a las 15:00,
+  sin dato nuevo». La cifra de antes del reinicio solo queda en el detalle («antes del reinicio: 47 %»), y el límite
+  alcanzado deja de mostrarse.
+- **Sigue sin haber sondeo.** La barra de estado relee cada minuto el registro de cuota del perfil
+  (`quota.jsonl`) para que la antigüedad («vista hace 12 min») sea cierta. Eso es leer un fichero: nunca lanza el
+  app-server.

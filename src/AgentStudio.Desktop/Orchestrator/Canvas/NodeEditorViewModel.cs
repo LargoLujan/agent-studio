@@ -20,7 +20,11 @@ public sealed record EditorOptions(
 }
 
 /// <summary>One choice of a list (agent, workspace, join policy, tool, predicate kind or task).</summary>
-public sealed record Choice<T>(T Value, string Label);
+public sealed record Choice<T>(T Value, string Label)
+{
+    /// <summary>What a screen reader says of the choice (A1-bis): its label, never the members of the record.</summary>
+    public override string ToString() => Label;
+}
 
 /// <summary>One entry of a check list (a requirement the task covers, a verification step it runs).</summary>
 public sealed partial class CheckOption : ObservableObject

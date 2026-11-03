@@ -57,6 +57,9 @@ public static class DecisionPayloadSerializer
         [DecisionKind.RunDispatchChanged] = typeof(RunDispatchChangedPayload),
         [DecisionKind.AccessChecked] = typeof(AccessCheckedPayload),
         [DecisionKind.RunResumed] = typeof(RunResumedPayload),
+
+        // Phase 12 (docs/17 D-02): the trust of the journal, outside every run.
+        [DecisionKind.JournalTrustChanged] = typeof(JournalTrustChangedPayload),
     };
 
     private static readonly JsonSerializerOptions Options = CreateOptions();

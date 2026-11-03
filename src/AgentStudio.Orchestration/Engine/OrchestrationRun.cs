@@ -542,7 +542,7 @@ internal sealed class OrchestrationRun : IOrchestrationRun
                 break;
             case EndKind.ApprovalNeeded:
                 await MoveAsync(id, WorkTaskStatus.AwaitingApproval, end.Reason).ConfigureAwait(false);
-                StartApproval(_ctx.Specs[id], flight.Attempt, "orchestration.review-escalation", $"La revisión de la tarea {id} necesita tu decisión: {end.Reason}");
+                StartApproval(_ctx.Specs[id], flight.Attempt, Orchestrator.ReviewEscalationAction, $"La revisión de la tarea {id} necesita tu decisión: {end.Reason}");
                 break;
             case EndKind.Approved:
                 await MoveAsync(id, WorkTaskStatus.Completed, end.Reason).ConfigureAwait(false);
@@ -849,7 +849,7 @@ internal sealed class OrchestrationRun : IOrchestrationRun
                 case WorkTaskKind.HumanApproval:
                     var approvalAttempt = NextAttempt(spec.Id);
                     await MoveAsync(spec.Id, WorkTaskStatus.AwaitingApproval, "Esperando la aprobación del usuario.").ConfigureAwait(false);
-                    StartApproval(spec, approvalAttempt, "orchestration.human-approval", HumanApprovalText(spec));
+                    StartApproval(spec, approvalAttempt, Orchestrator.HumanApprovalAction, HumanApprovalText(spec));
                     changed = true;
                     break;
                 case WorkTaskKind.AgentWork:
@@ -870,8 +870,8 @@ internal sealed class OrchestrationRun : IOrchestrationRun
         {
             var spec = _ctx.Specs[task.Id];
             var (action, text) = spec.Kind == WorkTaskKind.Review
-                ? ("orchestration.review-escalation", $"La revisión de la tarea {spec.Id} necesita tu decisión.")
-                : ("orchestration.human-approval", HumanApprovalText(spec));
+                ? (Orchestrator.ReviewEscalationAction, $"La revisión de la tarea {spec.Id} necesita tu decisión.")
+                : (Orchestrator.HumanApprovalAction, HumanApprovalText(spec));
             StartApproval(spec, _ledger.Attempts.GetValueOrDefault(spec.Id, 1), action, text);
             changed = true;
         }
@@ -1018,6 +1018,13 @@ internal sealed class OrchestrationRun : IOrchestrationRun
         if (spec.Kind == WorkTaskKind.Review)
         {
             _ledger.AgentRunsUsed++;
+
+            // The judge runs on its provider like any agent: the screens learn which before it runs, so the context of a judge
+            // on Codex says «no expuesto» from the start (docs/03 §5.1).
+            if (ProviderOf(spec) is { } reviewer)
+            {
+                Emit(new TaskQueuedEvent(Now, id, reviewer));
+            }
         }
 
         await MoveAsync(id, WorkTaskStatus.Running, $"Arranca el intento {attempt}.").ConfigureAwait(false);
@@ -1493,5 +1500,6 @@ internal sealed class OrchestrationRun : IOrchestrationRun
                 _ledger.Blocks.GetValueOrDefault(t.Id)?.ToString(),
                 [.. t.CompletionEvidence]))],
             health,
-            _ledger.AgentRunsUsed);
+            _ledger.AgentRunsUsed,
+            _ctx.Options.MaxAgentRuns);
 }

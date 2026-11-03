@@ -505,15 +505,16 @@ le falta algo de esta tabla (segmentos, marcas de los umbrales y del máximo, el
 
 | Dónde | Barra | Dato | Origen | Sin dato |
 |---|---|---|---|---|
-| Tarjeta y nodo del agente | Contexto del paso en curso | `ContextObserved` del último paso (Claude), frente a la ventana del modelo | Al terminar, exacto e informado por el CLI. En vivo, estimado por Agent Studio con la tabla base de la tanda 2 o con la ventana aprendida | Codex `exec`: «no expuesto», sin barra |
+| Tarjeta y nodo del agente | Contexto del paso en curso | `ContextObserved` del último paso (Claude), frente a la ventana del modelo | Al terminar, exacto e informado por el CLI. En vivo, estimado por Agent Studio con la tabla base de la tanda 2 o con la ventana aprendida | Codex `exec`: «no expuesto», con la pista vacía |
 | Tarjeta y nodo del agente | Consumo de la ejecución | Tokens de sus intentos terminados (entrada, caché y salida) | `AgentRunFinished` | «sin intentos todavía» |
 | Tarjeta y nodo del agente | Presupuesto | Ejecuciones usadas frente al máximo (`MaxAgentRuns`) | Medido por Agent Studio | — |
 | Cabecera de la tira | Cuota de la cuenta, una por proveedor | Las ventanas de 5 horas y de 7 días | Claude, informado; Codex, con tu opt-in | «no expuesto» |
 | Nodo de la tarea | Contexto | Como el del agente, por tarea | Ídem | Ídem |
 | Inspector del agente | Contexto por partes | D-13 | Ídem | Ídem |
 
-- **Una barra solo cuando hay un porcentaje.** «No expuesto» y «sin observaciones todavía» no tienen barra, como en el
-  panel de la bandeja.
+- **La barra está siempre, también sin porcentaje** (cambiado el 2026-11-03, con la tanda 2 integrada). Sin cifra, la
+  pista se dibuja vacía y las palabras dicen por qué: «no expuesto», «sin observaciones todavía», «sin empezar» o los tokens
+  sin ventana. Nunca es una barra a cero. Así lo hacen ya el monitor, la barra de estado y el panel de la bandeja.
 - **Cada barra dice su origen** en el texto y en su nombre accesible. Lo estimado lleva «~» y una trama: no se distingue
   solo por el color.
 - **«El contexto que se pone máximo»:** la barra marca la ventana del modelo (el máximo) y los umbrales de aviso,
@@ -1135,9 +1136,10 @@ clientes y los mensajes que salen de códigos.
 | payload, `RunId` y otros nombres internos | no aparecen |
 
 - **La guía vale para todos los idiomas,** y cada traducción tiene su glosario.
-- **Ejemplos del recorrido en vivo** que la revisión arregla si siguen abiertos: el título «deliver-integration» y el GUID
-  del proyecto en el diálogo de aprobación (V25), el texto de «Mantener despierto» (V26) y «user aprobó el plan» en la
-  memoria (V27).
+- **Ejemplos del recorrido en vivo:** el título «deliver-integration» y el GUID del proyecto en el diálogo de aprobación
+  (V25), el texto de «Mantener despierto» (V26) y «user aprobó el plan» en la memoria (V27) ya se corrigieron en la
+  tanda 2 (WP-G). Quedan para esta revisión los que anota [18](18-peticiones-y-pendientes.md) §3 «Para la Fase 14»:
+  «Succeeded» en la bitácora, el párrafo denso del diálogo de entrega y las horas en UTC de Memoria.
 
 **D-53 · La claridad se mide (P12).**
 
@@ -1536,7 +1538,7 @@ sugerencias mientras montas, contestar las dudas de los agentes y que lo crític
 | F13-3 | El nodo del repositorio enseña rama, HEAD, remotos limpios, cambios sin confirmar, stack y carpetas principales, sin red. Una URL con credenciales nunca se enseña ni se guarda con ellas | Pruebas con repositorios temporales y una URL `https://usuario:token@…` |
 | F13-4 | La ficha del proyecto y las instrucciones de cada agente llegan a sus prompts como datos con su huella, y nunca al juez | Pruebas del prompt |
 | F13-5 | La regla `WriteScopeOutsideAgentArea`: con carpetas asignadas, el alcance de cada tarea cabe en las de su agente; sin carpetas, todo el proyecto | Pruebas del validador |
-| F13-6 | Las barras de la tanda 2 en nodos y tarjetas: contexto (con la ventana aprendida en vivo), consumo, presupuesto y cuota, cada una con su origen; sin barra para «no expuesto»; la de contexto por partes, con su desglose en `AgentRunStarted` | Pruebas de ViewModel con un registro preparado, y render |
+| F13-6 | Las barras de la tanda 2 en nodos y tarjetas: contexto (con la ventana aprendida en vivo), consumo, presupuesto y cuota, cada una con su origen; «no expuesto» con la pista vacía y las palabras, nunca una barra a cero; la de contexto por partes, con su desglose en `AgentRunStarted` | Pruebas de ViewModel con un registro preparado, y render |
 | F13-7 | El estado vivo llega agrupado (4 veces por segundo y nodo como mucho). Con 40 nodos, 12 cables animados y una ráfaga de eventos, el hilo de la interfaz no se bloquea más de 50 ms. «Reducir movimiento» y la opción de Windows apagan las animaciones | Prueba de rendimiento fuera de pantalla |
 | F13-8 | Accesible: nombres completos, cambios de estado anunciados, conectar y desconectar con el teclado y barras con valor | Pruebas con `AutomationPeer` |
 | F13-9 | El analizador: los códigos de D-18, cada uno con su prueba; los arreglos de un clic se deshacen; nunca gasta cuota | Pruebas del dominio y de ViewModel |

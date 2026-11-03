@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.IO;
 using AgentStudio.Application.Projects;
+using AgentStudio.Desktop.Markdown;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -16,10 +17,67 @@ namespace AgentStudio.Desktop.ViewModels;
 /// <param name="reader">The checked reader of <c>.agentstudio</c>; null when the shell was composed without it.</param>
 public sealed partial class JournalViewModel(TimeProvider timeProvider, IProjectStorageReader? reader = null) : ObservableObject
 {
+    /// <summary>
+    /// The most lines the readable view draws (V31): laying out a document blocks the UI thread for a time that grows with
+    /// its length, so a longer day shows its latest entries, and all of it as plain text on demand.
+    /// </summary>
+    public const int ReadableLines = 200;
+
+    /// <summary>The most characters the readable view draws.</summary>
+    public const int ReadableCharacters = 40_000;
+
     private string? _projectPath;
 
+    /// <summary>The day as read, whole; never changed.</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PlainText))]
     private string _text = string.Empty;
+
+    /// <summary>What the readable view draws of <see cref="Text"/>: all of it, or its title and its latest entries when it is long.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(RenderedText), nameof(IsTrimmed), nameof(TrimNote))]
+    private JournalExcerpt _excerpt = JournalExcerpt.Empty;
+
+    /// <summary>The whole day as plain text (fast, and complete) instead of the readable view of its latest entries.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowReadable), nameof(TrimNote), nameof(ToggleText), nameof(PlainText))]
+    private bool _showPlainText;
+
+    public string RenderedText => Excerpt.Text;
+
+    /// <summary>
+    /// What the plain viewer holds: the whole day once «Ver todo» is asked, nothing before. A text box takes its text even
+    /// while it is not shown, and a long day cost as much as the readable view (about a second for 5,000 lines).
+    /// </summary>
+    public string PlainText => ShowPlainText ? Text : string.Empty;
+
+    public bool IsTrimmed => Excerpt.IsTrimmed;
+
+    public bool ShowReadable => !ShowPlainText;
+
+    /// <summary>Why not all of the day is drawn, and how to see it; null when all of it is.</summary>
+    public string? TrimNote => !Excerpt.IsTrimmed ? null
+        : ShowPlainText ? "Se ve el día completo como texto, sin formato."
+        : Excerpt.ShownEntries > 0
+            ? string.Create(CultureInfo.InvariantCulture, $"Bitácora larga: se ven las {Excerpt.ShownEntries} entradas más recientes de {Excerpt.TotalEntries}.")
+            : string.Create(CultureInfo.InvariantCulture, $"Bitácora larga: se ven las últimas {Excerpt.ShownLines} líneas de {Excerpt.TotalLines}.");
+
+    public string ToggleText => ShowPlainText ? "Ver legible" : "Ver todo";
+
+    partial void OnTextChanged(string value)
+    {
+        Excerpt = JournalExcerpt.Of(value, ReadableLines, ReadableCharacters);
+
+        // A day short enough is drawn whole: the plain text has nothing more to show, and no way back would be offered.
+        if (!Excerpt.IsTrimmed)
+        {
+            ShowPlainText = false;
+        }
+    }
+
+    /// <summary>«Ver todo» (the whole day as plain text) and back to the readable view.</summary>
+    [RelayCommand]
+    private void TogglePlainText() => ShowPlainText = !ShowPlainText;
 
     /// <summary>Honest empty / error state; null when the journal was shown.</summary>
     [ObservableProperty]
@@ -35,6 +93,7 @@ public sealed partial class JournalViewModel(TimeProvider timeProvider, IProject
     public async Task SetProjectAsync(string? projectPath)
     {
         _projectPath = projectPath;
+        ShowPlainText = false;
         await RefreshAsync();
     }
 

@@ -4,6 +4,7 @@ using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Providers;
 using AgentStudio.Application.Security;
+using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Orchestrator;
 using AgentStudio.Desktop.Orchestrator.Monitor;
 using AgentStudio.Domain.Common;
@@ -443,10 +444,121 @@ public sealed class RunMonitorViewModelTests
     [Fact]
     public async Task Without_a_window_the_occupancy_goes_in_tokens_and_is_not_judged()
     {
-        var monitor = await FollowOpenAsync(RunningAgentTask(), new AgentActivityEvent(T0, Tid("T1"), Context(30_822, null)));
+        // A model neither the log of the project nor the base table knows: only its tokens (docs/14 D-10).
+        var monitor = await FollowOpenAsync(RunningAgentTask(), new AgentActivityEvent(T0, Tid("T1"), Context(30_822, null, model: "modelo-desconocido")));
 
-        Assert.Equal("Contexto: 30.822 tokens · exacto · informado por el CLI · sin porcentaje: la ventana no se conoce todavía · claude-sonnet-5-5 · sin evaluar", monitor.Tasks[0].Context);
+        Assert.Equal("Contexto: 30.822 tokens · exacto · informado por el CLI · sin porcentaje: la ventana no se conoce todavía · modelo-desconocido · sin evaluar", monitor.Tasks[0].Context);
         Assert.Equal(Tone.Neutral, monitor.Tasks[0].ContextTone);
+        Assert.False(monitor.Tasks[0].ContextBar!.HasValue);
+        Assert.Equal("30.822 tokens", monitor.Tasks[0].ContextBar!.ValueText);
+    }
+
+    [Fact]
+    public async Task With_the_base_table_the_first_step_of_a_new_project_already_has_an_estimated_percentage()
+    {
+        // P36: Claude reports the window only with the result; until then the base table gives it, as an estimate.
+        var monitor = await FollowOpenAsync(RunningAgentTask(), new AgentActivityEvent(T0, Tid("T1"), Context(470_000, null)));
+
+        Assert.Equal("Contexto: ~47 % · estimado por Agent Studio · 470.000 de ~1.000.000 tokens · claude-sonnet-5-5 · sano", monitor.Tasks[0].Context);
+        var bar = monitor.Tasks[0].ContextBar!;
+        Assert.True(bar.IsEstimate);
+        Assert.Equal(47, bar.Value!.Value, 6);
+        Assert.Contains("tabla base", bar.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_simulated_stream_raises_the_live_percentage_during_the_attempt_and_the_result_makes_it_exact()
+    {
+        // P36: the tracker of the attempt follows the stream step by step; nothing waits for the end of the attempt.
+        var context = new QueueSynchronizationContext();
+        var monitor = NewMonitor(context);
+        var run = new FakeRun(FakeRun.SnapshotOf(RunPhase.Running, FakeRun.View("T1")));
+        monitor.Attach(run);
+        var percentages = new List<double?>();
+
+        async Task StepAsync(params OrchestrationEvent[] events)
+        {
+            var before = context.Pending;
+            run.Emit(events);
+            await WaitUntilAsync(() => context.Pending >= before + events.Length);
+            context.RunAll();
+            percentages.Add(monitor.Tasks[0].ContextBar?.Value);
+        }
+
+        await StepAsync(new TaskQueuedEvent(T0, Tid("T1"), ProviderId.ClaudeCode), new TaskStatusChangedEvent(T0, Tid("T1"), WorkTaskStatus.Pending, WorkTaskStatus.Running, "Despachada"));
+        Assert.Equal(MetricBars.NoObservationYet, monitor.Tasks[0].ContextBar!.ValueText);
+
+        await StepAsync(new AgentActivityEvent(T0, Tid("T1"), Context(100_000, null)));
+        await StepAsync(new AgentActivityEvent(T0, Tid("T1"), Context(300_000, null)));
+        await StepAsync(new AgentActivityEvent(T0, Tid("T1"), Context(720_000, null)));
+
+        Assert.Equal([null, 10, 30, 72], percentages.Select(p => p is { } v ? Math.Round(v) : (double?)null));
+        Assert.True(monitor.Tasks[0].ContextBar!.IsEstimate);
+        Assert.Equal(ContextHealthLevel.Warning, monitor.Tasks[0].ContextLevel);
+
+        var usage = new TokenUsage(
+            MetricValue<long>.Exact(1_000, "claude result.usage"),
+            MetricValue<long>.Exact(50, "claude result.usage"),
+            MetricValue<long>.Exact(0, "claude result.usage"),
+            MetricValue<long>.NotExposed("per model"),
+            MetricValue<decimal>.Estimated(0.01m, "claude total_cost_usd"))
+        {
+            PerModel = [new ModelUsage("claude-sonnet-5-5", MetricValue<long>.Exact(1, "m"), MetricValue<long>.Exact(1, "m"), MetricValue<long>.Exact(0, "m"), MetricValue<long>.Exact(0, "m"), MetricValue<decimal>.Estimated(0m, "m"), MetricValue<long>.Exact(1_000_000, "claude result.modelUsage"), "list")],
+        };
+        await StepAsync(new AgentActivityEvent(T0, Tid("T1"), new UsageReported(T0, usage)));
+
+        var exact = monitor.Tasks[0].ContextBar!;
+        Assert.False(exact.IsEstimate);
+        Assert.Equal("exacto · informado por el CLI", exact.Origin);
+        Assert.Equal("Tokens del último intento: 1.000 de entrada y 50 de salida · exacto · informado por el CLI", monitor.Tasks[0].TokensText);
+    }
+
+    [Fact]
+    public async Task A_judge_on_codex_is_not_exposed_from_the_start_of_its_review()
+    {
+        // The engine queues a review on the provider of its judge before it runs it, as it queues agent work
+        // (ApprovalReviewAndIntegrationTests.The_review_is_queued_on_the_provider_of_its_judge_before_it_runs).
+        var monitor = await FollowOpenAsync(
+            new FakeRun(FakeRun.SnapshotOf(RunPhase.Running, FakeRun.View("T1", WorkTaskKind.Review))),
+            new TaskQueuedEvent(T0, Tid("T1"), ProviderId.CodexCli),
+            new TaskStatusChangedEvent(T0, Tid("T1"), WorkTaskStatus.Pending, WorkTaskStatus.Running, "Arranca el intento 1."));
+
+        Assert.Equal("Contexto: no expuesto", monitor.Tasks[0].Context);
+        Assert.Equal("no expuesto", monitor.Tasks[0].ContextBar!.ValueText);
+        Assert.False(monitor.Tasks[0].ContextBar!.HasValue);
+    }
+
+    [Fact]
+    public async Task A_window_the_project_learned_wins_over_the_base_table_for_the_next_attempt()
+    {
+        var context = new QueueSynchronizationContext();
+        var monitor = NewMonitor(context);
+        monitor.ContextWindows = global::AgentStudio.Tests.Observability.Context.ModelWindowCatalogTestData.Learned(("claude-sonnet-5-5", 400_000));
+        var run = new FakeRun(FakeRun.SnapshotOf(RunPhase.Running, FakeRun.View("T1")));
+        monitor.Attach(run);
+        OrchestrationEvent[] events =
+        [
+            new TaskStatusChangedEvent(T0, Tid("T1"), WorkTaskStatus.Pending, WorkTaskStatus.Running, "Despachada"),
+            new AgentActivityEvent(T0, Tid("T1"), Context(300_000, null)),
+        ];
+        run.Emit(events);
+        await WaitUntilAsync(() => context.Pending >= events.Length);
+        context.RunAll();
+
+        Assert.Equal(75, monitor.Tasks[0].ContextBar!.Value!.Value, 6);
+        Assert.Contains("ventana vista en una ejecución anterior", monitor.Tasks[0].ContextBar!.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_budget_of_the_run_is_a_bar_of_the_agent_runs_used_against_its_maximum()
+    {
+        var run = new FakeRun(FakeRun.SnapshotOf(RunPhase.Running, FakeRun.View("T1")) with { AgentRunsUsed = 3, MaxAgentRuns = 12 });
+
+        var monitor = await FollowOpenAsync(run);
+
+        Assert.Equal("3 de 12", monitor.BudgetBar!.ValueText);
+        Assert.Equal(0.25, monitor.BudgetBar!.Fraction!.Value, 6);
+        Assert.Equal("exacto · medido por Agent Studio", monitor.BudgetBar!.Origin);
     }
 
     [Fact]

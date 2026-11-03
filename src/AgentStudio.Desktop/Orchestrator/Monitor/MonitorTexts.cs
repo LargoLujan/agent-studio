@@ -219,3 +219,28 @@ public static class EvidenceText
         ? null
         : string.Create(CultureInfo.InvariantCulture, $"{summary.Passed} correctas, {summary.Failed} fallidas, {summary.Skipped} omitidas");
 }
+
+/// <summary>The tokens a CLI reported at the end of an attempt, as the monitor shows them for its task (docs/18 P3).</summary>
+public static class MonitorTokens
+{
+    /// <summary>
+    /// «Tokens del último intento: 61.222 de entrada y 50 de salida · exacto · informado por el CLI», with the weakest origin of
+    /// the two figures; a figure that is not there says so instead of a zero. They are what the CLI reports: for some, the
+    /// total of the session; the usage of the attempt itself is in «Consumo».
+    /// </summary>
+    public static string Line(TokenUsage usage)
+    {
+        ArgumentNullException.ThrowIfNull(usage);
+        var input = MetricText.Tokens(usage.InputTokens);
+        var output = MetricText.Tokens(usage.OutputTokens);
+        if (input.Value is null && output.Value is null)
+        {
+            return "Tokens del último intento: " + MetricText.Origin(MetricOrigins.Weakest(usage.InputTokens.Origin, usage.OutputTokens.Origin));
+        }
+
+        // The origin of the figures that are there: one that is missing shows a dash, and does not make the other «sin dato».
+        var known = new[] { usage.InputTokens, usage.OutputTokens }.Where(v => v.HasValue && v.Origin.CarriesValue()).Select(v => v.Origin).ToArray();
+        var origin = MetricText.Origin(MetricOrigins.Weakest(known));
+        return $"Tokens del último intento: {input.Shown} de entrada y {output.Shown} de salida · {origin}";
+    }
+}

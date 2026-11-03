@@ -245,3 +245,14 @@
   - **El foco inicial.** El panel de la bandeja y la pregunta de salir, abiertos desde la bandeja, se activan desde fuera
     de la app, y WPF daba el teclado a la ventana y no a un control. Ahora lo recibe su primer control (en la pregunta,
     «Cancelar»), así que `Esc` e `Intro` responden enseguida (B5/B9; [docs/12 §9](../12-accesibilidad-tema-oscuro.md#9-ampliación-de-la-tanda-1-2026-10-30)).
+- **Adenda (2026-11-03, tanda 2).** La decisión no cambia: el panel sigue siendo una proyección. Cambia esto:
+  - **La barra del contexto está siempre** (P3 de [docs/18](../18-peticiones-y-pendientes.md)). La tabla de la decisión 7
+    decía «sin porcentaje no hay barra». Ahora cada tarea en curso con agente tiene su barra, la del control común
+    (`MetricBar`). Sin porcentaje, la pista se dibuja vacía y las palabras dicen por qué: «no expuesto», «sin observaciones
+    todavía» o los tokens sin ventana. Nunca es una barra a cero.
+  - **La barra sale del seguimiento del intento**, no solo del último paso: el panel lee `MonitorTaskViewModel.ContextBar`,
+    que el monitor construye con su `ContextHealthTracker` (ADR-0021, adenda del 2026-11-03).
+  - **También son barras** el presupuesto (ejecuciones usadas frente a `MaxAgentRuns`), cada ventana de la cuota y los
+    tokens de un debate frente a su límite. Si falta el máximo, el texto lo dice.
+  - **El registro de la app dice por qué se suelta «Mantener despierto»** (V26): «ya no hay trabajo en marcha», «se desactivó
+    el ajuste…» o «Agent Studio se cierra». Antes repetía por qué se había pedido.

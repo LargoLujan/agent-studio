@@ -1,0 +1,251 @@
+using System.Windows;
+using System.Windows.Automation;
+using System.Windows.Automation.Peers;
+using System.Windows.Automation.Provider;
+using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Shapes;
+
+namespace AgentStudio.Desktop.Controls;
+
+/// <summary>
+/// The common bar of the app (docs/18 P3, tanda 2): context, quota, budget and tokens against their maximum, always with the
+/// value in words, its origin and its level (<see cref="MetricBarReading"/>). Every screen that shows a percentage uses it
+/// (the status bar, the monitor, the panel of the tray, «Consumo», the planning and the debate room), and the team strip of
+/// Phase 13 reuses it (docs/17 D-12).
+/// <list type="bullet">
+/// <item>Without a value the track is drawn empty, and the words say why: never a bar at zero.</item>
+/// <item>An estimate carries «~», «estimado» and a pattern on its fill: never told apart by colour alone.</item>
+/// <item>UI Automation: a progress bar whose name is the whole line (what is measured, the value, its origin, its level
+/// and the detail), with the RangeValue pattern (read-only) while there is a value.</item>
+/// </list>
+/// </summary>
+public partial class MetricBar : UserControl
+{
+    /// <summary>The key of the brush of the pattern of an estimate, in the resources of the control.</summary>
+    public const string HatchStripeKey = "MetricBar.HatchStripe";
+
+    /// <summary>The key of the brush of the marks of the thresholds, in the resources of the control.</summary>
+    public const string MarkKey = "MetricBar.Mark";
+
+    public static readonly DependencyProperty ReadingProperty = DependencyProperty.Register(
+        nameof(Reading), typeof(MetricBarReading), typeof(MetricBar), new PropertyMetadata(null, OnLookChanged));
+
+    public static readonly DependencyProperty IsCompactProperty = DependencyProperty.Register(
+        nameof(IsCompact), typeof(bool), typeof(MetricBar), new PropertyMetadata(false, OnLookChanged));
+
+    public static readonly DependencyProperty TrackWidthProperty = DependencyProperty.Register(
+        nameof(TrackWidth), typeof(double), typeof(MetricBar), new PropertyMetadata(120d, OnLookChanged));
+
+    public static readonly DependencyProperty ShowsLabelProperty = DependencyProperty.Register(
+        nameof(ShowsLabel), typeof(bool), typeof(MetricBar), new PropertyMetadata(true, OnLookChanged));
+
+    public static readonly DependencyProperty LabelWidthProperty = DependencyProperty.Register(
+        nameof(LabelWidth), typeof(double), typeof(MetricBar), new PropertyMetadata(double.NaN, OnLookChanged));
+
+    public static readonly DependencyProperty ShowsToolTipProperty = DependencyProperty.Register(
+        nameof(ShowsToolTip), typeof(bool), typeof(MetricBar), new PropertyMetadata(true, OnLookChanged));
+
+    /// <summary>The tooltip now is the one the bar put there (its whole line), not one the screen gave.</summary>
+    private bool _ownToolTip;
+
+    public MetricBar()
+    {
+        InitializeComponent();
+        Update();
+    }
+
+    /// <summary>What the bar shows; without one, an empty track that says «sin dato».</summary>
+    public MetricBarReading? Reading
+    {
+        get => (MetricBarReading?)GetValue(ReadingProperty);
+        set => SetValue(ReadingProperty, value);
+    }
+
+    /// <summary>The short form of the status bar: the value with its origin in one word; the whole line goes to the tooltip.</summary>
+    public bool IsCompact
+    {
+        get => (bool)GetValue(IsCompactProperty);
+        set => SetValue(IsCompactProperty, value);
+    }
+
+    /// <summary>The width of the track, in device-independent pixels (120 by default).</summary>
+    public double TrackWidth
+    {
+        get => (double)GetValue(TrackWidthProperty);
+        set => SetValue(TrackWidthProperty, value);
+    }
+
+    /// <summary>Whether the label goes before the track (true by default); off where the screen already says what is measured.</summary>
+    public bool ShowsLabel
+    {
+        get => (bool)GetValue(ShowsLabelProperty);
+        set => SetValue(ShowsLabelProperty, value);
+    }
+
+    /// <summary>A fixed width for the label, to line up several bars; automatic by default.</summary>
+    public double LabelWidth
+    {
+        get => (double)GetValue(LabelWidthProperty);
+        set => SetValue(LabelWidthProperty, value);
+    }
+
+    /// <summary>
+    /// Whether the bar puts its whole line in its own tooltip (true by default); off where a container says more in its
+    /// tooltip (the status bar, whose tooltip has the detail of every bar).
+    /// </summary>
+    public bool ShowsToolTip
+    {
+        get => (bool)GetValue(ShowsToolTipProperty);
+        set => SetValue(ShowsToolTipProperty, value);
+    }
+
+    /// <summary>The reading drawn now: <see cref="Reading"/>, or the empty one when there is none.</summary>
+    internal MetricBarReading Shown => Reading ?? Unknown;
+
+    private static MetricBarReading Unknown { get; } = new() { Label = string.Empty, ValueText = "sin dato", Origin = "sin dato" };
+
+    /// <summary>
+    /// The key of the theme brush that fills a bar of <paramref name="level"/>: the colour of the level, which the words of the
+    /// bar always say too. The contrast tests read the colours through these keys.
+    /// </summary>
+    public static string FillKey(MetricBarLevel level) => level switch
+    {
+        MetricBarLevel.Healthy => "SuccessBrush",
+        MetricBarLevel.Warning or MetricBarLevel.Compression => "WarningBrush",
+        MetricBarLevel.Critical => "ErrorBrush",
+        _ => "AccentBrush",
+    };
+
+    protected override AutomationPeer OnCreateAutomationPeer() => new MetricBarAutomationPeer(this);
+
+    private static void OnLookChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        var bar = (MetricBar)d;
+        var before = e.Property == ReadingProperty ? e.OldValue as MetricBarReading : bar.Reading;
+        bar.Update();
+        if (e.Property == ReadingProperty)
+        {
+            bar.Announce(before);
+        }
+    }
+
+    private void Update()
+    {
+        var reading = Shown;
+        LabelText.Text = reading.Label;
+        LabelText.Visibility = ShowsLabel && !string.IsNullOrWhiteSpace(reading.Label) ? Visibility.Visible : Visibility.Collapsed;
+        LabelColumn.Width = double.IsNaN(LabelWidth) || !ShowsLabel ? GridLength.Auto : new GridLength(LabelWidth);
+        Track.Width = TrackWidth;
+        Track.Height = IsCompact ? 8 : 10;
+
+        var fraction = reading.Fraction ?? 0;
+        FillColumn.Width = new GridLength(fraction, GridUnitType.Star);
+        RestColumn.Width = new GridLength(1 - fraction, GridUnitType.Star);
+        var filled = reading.HasValue && fraction > 0;
+        Fill.Fill = TryFindResource(FillKey(reading.Level)) as Brush;
+        Fill.Visibility = filled ? Visibility.Visible : Visibility.Collapsed;
+        Hatch.Visibility = filled && reading.IsEstimate ? Visibility.Visible : Visibility.Collapsed;
+        DrawMarks(reading);
+
+        // The value stands out; after it, the rest of the line: in the short form, the origin in one word, the level written
+        // when the colour says one, and the age of the figure.
+        ValueRun.Text = reading.ValueText;
+        var line = IsCompact ? reading.CompactText : reading.Text;
+        OriginRun.Text = line.Length > reading.ValueText.Length && line.StartsWith(reading.ValueText, StringComparison.Ordinal)
+            ? line[reading.ValueText.Length..]
+            : string.Empty;
+        ValueLine.TextWrapping = IsCompact ? TextWrapping.NoWrap : TextWrapping.Wrap;
+        ValueLine.TextTrimming = IsCompact ? TextTrimming.CharacterEllipsis : TextTrimming.None;
+        if (ShowsToolTip)
+        {
+            ToolTip = string.IsNullOrWhiteSpace(reading.Label) && string.IsNullOrWhiteSpace(reading.Detail) ? null : reading.AccessibleName;
+            _ownToolTip = true;
+        }
+        else if (_ownToolTip)
+        {
+            // Only the tooltip the bar put there goes: one the screen gave stays.
+            ClearValue(ToolTipProperty);
+            _ownToolTip = false;
+        }
+    }
+
+    /// <summary>A mark of one pixel at each threshold: decoration over the words, which say the level.</summary>
+    private void DrawMarks(MetricBarReading reading)
+    {
+        MarksLayer.Children.Clear();
+        var brush = TryFindResource(MarkKey) as Brush;
+        foreach (var mark in reading.Marks.Where(m => m > 0 && m < 1))
+        {
+            var holder = new Grid { IsHitTestVisible = false };
+            holder.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(mark, GridUnitType.Star) });
+            holder.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1 - mark, GridUnitType.Star) });
+            var line = new Rectangle { Width = 1, HorizontalAlignment = HorizontalAlignment.Left, Fill = brush };
+            Grid.SetColumn(line, 1);
+            holder.Children.Add(line);
+            MarksLayer.Children.Add(holder);
+        }
+    }
+
+    /// <summary>Tells UI Automation that the value and the name changed, when anything listens.</summary>
+    private void Announce(MetricBarReading? before)
+    {
+        if (UIElementAutomationPeer.FromElement(this) is not MetricBarAutomationPeer peer)
+        {
+            return;
+        }
+
+        var after = Shown;
+        if (before?.AccessibleName != after.AccessibleName)
+        {
+            peer.RaisePropertyChangedEvent(AutomationElementIdentifiers.NameProperty, before?.AccessibleName ?? string.Empty, after.AccessibleName);
+        }
+
+        if (before?.Value != after.Value && after.Value is { } value)
+        {
+            peer.RaisePropertyChangedEvent(RangeValuePatternIdentifiers.ValueProperty, before?.Value ?? 0d, value);
+        }
+    }
+
+    /// <summary>
+    /// The bar for UI Automation: a progress bar named with its whole line, without the inner texts as children (the name
+    /// already says them), and with the RangeValue pattern, read-only, only while there is a value: a bar without one is
+    /// never read as zero.
+    /// </summary>
+    private sealed class MetricBarAutomationPeer(MetricBar owner) : FrameworkElementAutomationPeer(owner), IRangeValueProvider
+    {
+        public double Value => owner.Shown.Value ?? 0;
+
+        public bool IsReadOnly => true;
+
+        public double Maximum => owner.Shown.Maximum;
+
+        public double Minimum => 0;
+
+        public double LargeChange => 0;
+
+        public double SmallChange => 0;
+
+        public override object GetPattern(PatternInterface patternInterface) =>
+            patternInterface == PatternInterface.RangeValue && owner.Shown.HasValue ? this : base.GetPattern(patternInterface);
+
+        public void SetValue(double value) => throw new ElementNotEnabledException("A metric bar only shows a value: it cannot be set.");
+
+        protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.ProgressBar;
+
+        protected override string GetClassNameCore() => nameof(MetricBar);
+
+        protected override string GetNameCore() =>
+            AutomationProperties.GetName(owner) is { Length: > 0 } given ? given : owner.Shown.AccessibleName;
+
+        protected override string GetItemStatusCore() => owner.Shown.Origin;
+
+        protected override string GetHelpTextCore() => owner.Shown.Detail ?? string.Empty;
+
+        protected override List<AutomationPeer>? GetChildrenCore() => null;
+
+        protected override bool IsContentElementCore() => true;
+
+        protected override bool IsControlElementCore() => true;
+    }
+}

@@ -23,7 +23,11 @@ public enum ExitChoice
 }
 
 /// <summary>One piece of work going on, as the exit question lists it: «monorepo · Ejecución 2026… · En ejecución · 2 intentos en curso».</summary>
-public sealed record ExitWorkLine(string Project, string Title, string State, bool CanPause);
+public sealed record ExitWorkLine(string Project, string Title, string State, bool CanPause)
+{
+    /// <summary>What a screen reader says of the line (A1-bis): «monorepo · Ejecución 2026… · En ejecución», never the members of the record.</summary>
+    public override string ToString() => $"{Project} · {Title} · {State}";
+}
 
 /// <summary>
 /// The question of the managed exit: what is going on, and whether «Seguir en la bandeja» is one of the answers (it is

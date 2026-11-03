@@ -30,6 +30,11 @@ namespace AgentStudio.Application.Providers;
 /// <c>clase ContextExhausted</c>… An end with the class its status implies by itself (a success, a cancellation, a failure
 /// nobody recognised) adds nothing, so the line of every such end is written as before.
 /// </para>
+/// <para>
+/// When the request carries the <c>AgentRunStarted</c> it was announced with (<see cref="AgentRunRequest.Anchor"/>), the
+/// result line ends with its run, task and attempt (<see cref="JournalResultAnchor"/>, docs/17 D-02), even when the launch
+/// itself failed: the derivation of the journal as memory matches the entry with that start.
+/// </para>
 /// </remarks>
 public sealed class JournalingAgentProvider(
     IAgentProvider inner,
@@ -96,11 +101,11 @@ public sealed class JournalingAgentProvider(
         catch (Exception ex)
         {
             var status = ex is OperationCanceledException ? AgentRunStatus.Cancelled : AgentRunStatus.Failed;
-            await TryRecordOutcomeAsync(id, startedAt, status, null, ex.Message, resumed: false).ConfigureAwait(false);
+            await TryRecordOutcomeAsync(id, startedAt, status, null, ex.Message, resumed: false, request.Anchor).ConfigureAwait(false);
             throw;
         }
 
-        return new JournaledRun(this, run, id, startedAt, resumed: !string.IsNullOrWhiteSpace(request.ResumeSessionId));
+        return new JournaledRun(this, run, id, startedAt, resumed: !string.IsNullOrWhiteSpace(request.ResumeSessionId), request.Anchor);
     }
 
     private static string AgentTag(AgentRunRequest request) =>
@@ -165,6 +170,7 @@ public sealed class JournalingAgentProvider(
         TokenUsage? usage,
         string? note,
         bool resumed,
+        AgentRunAnchor? anchor,
         AgentRunEnd? end = null)
     {
         try
@@ -190,7 +196,7 @@ public sealed class JournalingAgentProvider(
             }
 
             note = parts.Count == 0 ? note : string.Join(" · ", parts);
-            var outcome = new PromptOutcome(now, status, now - startedAt, input, output, note);
+            var outcome = new PromptOutcome(now, status, now - startedAt, input, output, note) { Anchor = anchor };
 
             // The outcome must be written even when the caller cancelled the run.
             await journal.RecordOutcomeAsync(id, outcome, CancellationToken.None).ConfigureAwait(false);
@@ -217,6 +223,7 @@ public sealed class JournalingAgentProvider(
         private readonly JournalEntryId _id;
         private readonly DateTimeOffset _startedAt;
         private readonly bool _resumed;
+        private readonly AgentRunAnchor? _anchor;
         private readonly Lock _usageLock = new();
         private readonly Channel<AgentEvent> _channel = Channel.CreateUnbounded<AgentEvent>(
             new UnboundedChannelOptions { SingleReader = true, SingleWriter = true });
@@ -227,13 +234,14 @@ public sealed class JournalingAgentProvider(
         private AgentRunOutcome? _finishedOutcome;
         private int _outcomeRecorded;
 
-        public JournaledRun(JournalingAgentProvider owner, IAgentRun run, JournalEntryId id, DateTimeOffset startedAt, bool resumed)
+        public JournaledRun(JournalingAgentProvider owner, IAgentRun run, JournalEntryId id, DateTimeOffset startedAt, bool resumed, AgentRunAnchor? anchor)
         {
             _owner = owner;
             _run = run;
             _id = id;
             _startedAt = startedAt;
             _resumed = resumed;
+            _anchor = anchor;
             _pump = Task.Run(PumpAsync);
             Completion = ObserveCompletionAsync();
         }
@@ -365,7 +373,7 @@ public sealed class JournalingAgentProvider(
                 usage = _lastUsage;
             }
 
-            await _owner.TryRecordOutcomeAsync(_id, _startedAt, status, usage, note, _resumed, end).ConfigureAwait(false);
+            await _owner.TryRecordOutcomeAsync(_id, _startedAt, status, usage, note, _resumed, _anchor, end).ConfigureAwait(false);
         }
     }
 }

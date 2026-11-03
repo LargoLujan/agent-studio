@@ -46,6 +46,13 @@ namespace AgentStudio.Memory.Derivation;
 /// <see cref="IRunActivity"/> only says whether the project is busy now: a run that starts between that answer and the
 /// write sees the write, which <see cref="IProjectMemory.RecordAsync"/> then holds until the run ends. The window is the
 /// same few milliseconds <see cref="ProjectMemory"/> accepts.
+/// <para>
+/// The texts say their times in UTC (<see cref="DerivationTexts"/>): nothing of the zone of the machine reaches the content
+/// that is anchored, so an announcement the app left without its row (it died between the two steps) is completed with the
+/// same entry wherever and whenever it is derived again. The one exception is an announcement left without its row by a
+/// version with other words (before V27): recording it again gives another text, so <see cref="IProjectMemory.RecordAsync"/>
+/// announces it as a new entry and the old announcement stays without a row.
+/// </para>
 /// </remarks>
 public sealed class MemoryDerivation(IDecisionRecorder recorder, IEvidenceStore evidence, IMemoryStore store, IProjectMemory memory, IRunActivity activity) : IMemoryDerivation
 {

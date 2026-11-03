@@ -9,6 +9,7 @@ using AgentStudio.Desktop.Memory;
 using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Services;
 using AgentStudio.Desktop.Settings;
+using AgentStudio.Desktop.ViewModels;
 using AgentStudio.Domain.Providers;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -25,6 +26,12 @@ internal static class ObservabilityUiServices
     /// with. They register no port of their own: each port is taken when the composition root registered it
     /// (<see cref="PlatformServices.AddPlatformServices"/>), and without it the screen says what is missing. The quota
     /// reader is the one of Codex among the registered readers; the others are «no expuesto» and are not read.
+    /// <para>
+    /// Tanda 2 (docs/18 P3, P36 and P37): the quota follows the ends of the agent runs (<see cref="IAgentRunEnds"/>), so the
+    /// quota of Codex is read after a run of Codex with the opt-in; the context windows each project learned
+    /// (<see cref="ContextWindowCatalogs"/>, over <see cref="IProjectLogReader"/>) reach the monitors; and the bars of the
+    /// status bar (<see cref="StatusStripViewModel"/>) follow the quota and the monitors, on the UI thread.
+    /// </para>
     /// </summary>
     internal static IServiceCollection AddObservabilityUiServices(this IServiceCollection services)
     {
@@ -35,7 +42,11 @@ internal static class ObservabilityUiServices
             .AddSingleton(provider => new QuotaViewModel(
                 provider.GetService<IQuotaObservations>(),
                 provider.GetServices<IProviderQuotaReader>().FirstOrDefault(reader => reader.Provider == ProviderId.CodexCli),
-                Time(provider)))
+                Time(provider),
+                provider.GetService<IAgentRunEnds>(),
+                UiContext()))
+            .AddSingleton(provider => new ContextWindowCatalogs(provider.GetService<IProjectLogReader>()))
+            .AddSingleton(provider => new StatusStripViewModel(provider.GetRequiredService<QuotaViewModel>(), Time(provider), UiContext()))
             .AddSingleton(provider => new UsageDashboardViewModel(
                 provider.GetService<IUsageReport>(),
                 provider.GetService<IUsageExporter>(),
@@ -65,4 +76,11 @@ internal static class ObservabilityUiServices
     }
 
     private static TimeProvider Time(IServiceProvider provider) => provider.GetService<TimeProvider>() ?? TimeProvider.System;
+
+    /// <summary>
+    /// The UI thread's context, whatever thread resolves the screen: the quota read after a run of Codex and the bars of the
+    /// status bar are applied on the dispatcher. Null without an application (a composition in a test).
+    /// </summary>
+    private static System.Windows.Threading.DispatcherSynchronizationContext? UiContext() =>
+        System.Windows.Application.Current?.Dispatcher is { } dispatcher ? new System.Windows.Threading.DispatcherSynchronizationContext(dispatcher) : null;
 }

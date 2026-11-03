@@ -58,6 +58,9 @@ public sealed class DecisionPayloadTests
         new AuditAlertPayload("Stalled", [Tid("T3")], "Sin actividad desde hace 10 minutos") { RunId = Run },
         MemoryRecordedPayload.Announcing("mem-1", MemoryKind.Decision, MemoryOrigin.System, HashA, "registro:20261015-a1b2c3#12"),
         MemoryReviewedPayload.Deciding("mem-1", MemoryReview.Accepted, "manuel", "de acuerdo"),
+
+        // Phase 12 (docs/17 D-02): the trust of the journal, outside every run.
+        JournalTrustChangedPayload.Deciding(JournalTrustScope.Day, new DateOnly(2026, 10, 29), trusted: true, "manuel", "Son mis prompts."),
         .. DebatePayloadTests.Samples,
         .. Phase8PayloadTests.Samples,
     ];

@@ -11,6 +11,7 @@ using AgentStudio.Desktop.Orchestrator;
 using AgentStudio.Desktop.Orchestrator.Approvals;
 using AgentStudio.Desktop.Orchestrator.Canvas;
 using AgentStudio.Desktop.Orchestrator.Session;
+using AgentStudio.Desktop.ViewModels;
 using AgentStudio.Infrastructure.Persistence;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -43,7 +44,8 @@ internal static class OrchestrationUiServices
                 provider.GetService<TimeProvider>() ?? TimeProvider.System,
                 UiContext(),
                 provider.GetService<ReinforcedConfirmation>(),
-                provider.GetService<IInterfaceLock>()))
+                provider.GetService<IInterfaceLock>(),
+                ProjectNames(provider.GetService<ProjectDatabases>())))
             .AddSingleton<ICanvasLayoutStore, FileCanvasLayoutStore>()
             .AddSingleton(provider => new OrchestrationBackend(
                 provider.GetService<IOrchestrator>(),
@@ -67,6 +69,13 @@ internal static class OrchestrationUiServices
                 provider.GetService<TimeProvider>() ?? TimeProvider.System,
                 provider.GetService<ReinforcedConfirmation>()));
     }
+
+    /// <summary>
+    /// The name an approval question gives a project (V25): the folder of a project this instance has open, as the window
+    /// and the welcome name it; null for any other, and then the question names none. Never its id.
+    /// </summary>
+    internal static Func<string, string?>? ProjectNames(ProjectDatabases? databases) =>
+        databases is null ? null : id => databases.Find(id) is { } open ? RecentProjectItem.From(open.RootPath).Name : null;
 
     /// <summary>
     /// The UI thread's context, whatever thread resolves the prompt (the approval gate may be built off the UI thread):

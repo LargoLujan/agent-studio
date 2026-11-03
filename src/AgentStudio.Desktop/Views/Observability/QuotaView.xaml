@@ -5,6 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:observability="clr-namespace:AgentStudio.Desktop.Observability"
              xmlns:orchestratorViews="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
+             xmlns:controls="clr-namespace:AgentStudio.Desktop.Controls"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=observability:QuotaViewModel}">
     <!-- The subscription quota of each provider (docs/14 D-14 to D-16): Claude from what its runs announce, with how old
@@ -22,14 +23,12 @@
                             <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,4"
                                     AutomationProperties.Name="{Binding Utilization.Text}">
                                 <StackPanel>
-                                    <TextBlock Style="{StaticResource BodyText}">
-                                        <Run Text="{Binding Name, Mode=OneWay}"/><Run Text=": "/><Run Text="{Binding Utilization.Shown, Mode=OneWay}" FontWeight="SemiBold"/>
-                                    </TextBlock>
-                                    <TextBlock Style="{StaticResource SecondaryText}">
-                                        <Run Text="{Binding Utilization.Origin, Mode=OneWay}"/>
-                                        <Run Text="·"/>
-                                        <Run Text="{Binding Seen, Mode=OneWay}"/>
-                                    </TextBlock>
+                                    <!-- The window, and its utilization as a bar (docs/18 P3): the provider's own figure with its
+                                         origin; a limit reached is critical. Then how old it is and when it resets. -->
+                                    <TextBlock Style="{StaticResource BodyText}" Text="{Binding Name}"/>
+                                    <controls:MetricBar Margin="0,3,0,2" ShowsLabel="False" TrackWidth="160" Reading="{Binding Bar}"
+                                                        Visibility="{Binding Bar, Converter={StaticResource Quota.NotNullToVisibility}}"/>
+                                    <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding Seen}"/>
                                     <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding Resets, TargetNullValue=''}"/>
                                     <TextBlock Style="{StaticResource BodyText}" FontSize="12" Foreground="{StaticResource WarningBrush}" Text="{Binding Reached}"
                                                Visibility="{Binding Reached, Converter={StaticResource Quota.NotNullToVisibility}}"/>

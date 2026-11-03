@@ -173,6 +173,19 @@ public sealed class AuxiliaryAgentRunnerTests
         Assert.Equal(new ActorKind[] { ActorKind.System, ActorKind.System }, world.Entries.Select(e => e.Actor.Kind));
     }
 
+    /// <summary>docs/17 D-02: the launch carries the start just recorded, so the journal can name it at the end of its result line.</summary>
+    [Fact]
+    public async Task The_launch_carries_the_start_it_was_announced_with()
+    {
+        var world = new World();
+
+        var result = await world.RunAsync();
+
+        var started = world.Payload<AgentRunStartedPayload>(DecisionKind.AgentRunStarted);
+        Assert.Equal(new AgentRunAnchor(result.Run.Value, null, 1), Assert.Single(world.Provider.Requests).Anchor);
+        Assert.Equal((started.RunId, started.Task, started.Attempt), (result.Run.Value, null, 1));
+    }
+
     [Fact]
     public async Task The_end_is_recorded_in_version_2_with_launch_time_usage_context_peak_compactions_and_answer()
     {

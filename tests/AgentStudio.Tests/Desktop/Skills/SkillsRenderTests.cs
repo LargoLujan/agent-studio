@@ -136,6 +136,72 @@ public sealed class SkillsRenderTests
         Assert.True(treeTopExpanded < 400, $"With the detail open the tree starts at {treeTopExpanded:0} px.");
     }
 
+    /// <summary>
+    /// V29, seen live: with the window at 1280×768 the column of the recommendations was cut on the right («Permitir la
+    /// recomendación asistida (» and nothing more). At the width that window leaves to a document (970 px, with the Explorer
+    /// open) everything fits side by side; narrower, the recommendations go under the card. Never cut, never a horizontal
+    /// scroll bar.
+    /// </summary>
+    [Theory]
+    [InlineData(970, 640, "skills-1280x768.png", false)]
+    [InlineData(600, 640, "skills-estrecho.png", true)]
+    public async Task The_columns_fit_the_width_and_the_recommendations_go_under_the_card_when_it_is_narrow(double width, double height, string picture, bool stacked)
+    {
+        var (toggleRight, cardRight, recommendationsRight, recommendationsTop, cardBottom, horizontalBars, tallestScope) = await WpfHost.RunAsync(async () =>
+        {
+            var world = new SkillsWorld();
+            world.Activations.Decisions.Add(new SkillActivation(new SkillId("spark-optimization"), SkillScopeKind.Project, ProjectId, true));
+            var document = world.Document();
+            await document.OpenAsync(CancellationToken.None);
+            document.Sectors.SelectMany(s => s.Skills).Single(s => s.Id == "spark-optimization").IsSelected = true;
+            document.TaskText = "Optimizar un trabajo de Spark que escribe tablas Delta";
+            document.RecommendCommand.Execute(null);
+
+            var view = new SkillsView { DataContext = document };
+            OffscreenRender.SaveIfRequested(OffscreenRender.Render(view, width, height), picture);
+            var toggle = Descendants<CheckBox>(view).Single(c => AutomationName(c) == "Permitir la recomendación asistida");
+            var recommendations = (FrameworkElement)view.FindName("RecommendationsCard");
+            var card = Descendants<ContentControl>(view).Single(c => c.Content is SkillDetailViewModel);
+            var cardBorder = Ancestor<Border>(card, b => b.Style == (Style)view.FindResource("Card"));
+            var scopes = Descendants<ItemsControl>(view).Single(i => AutomationName(i) == "Activación por ámbito");
+
+            // The tree keeps its own horizontal scroll for a long name, as it always had: the columns are what were cut.
+            var tree = Descendants<ScrollViewer>(Descendants<TreeView>(view).Single()).ToHashSet();
+            return (
+                Right(toggle, view),
+                Right(cardBorder, view),
+                Right(recommendations, view),
+                recommendations.TranslatePoint(new Point(0, 0), view).Y,
+                cardBorder.TranslatePoint(new Point(0, cardBorder.ActualHeight), view).Y,
+                Descendants<ScrollViewer>(view).Count(s => !tree.Contains(s) && s.ComputedHorizontalScrollBarVisibility == Visibility.Visible),
+                Descendants<WrapPanel>(scopes).Max(p => p.ActualHeight));
+        });
+
+        // What is in effect goes under its scope when the card is narrow, never in a sliver that wraps letter by letter.
+        Assert.True(tallestScope < 60, $"A row of «Activación» is {tallestScope:0} px high.");
+        Assert.True(toggleRight <= width - 16, $"«Permitir la recomendación asistida» ends at {toggleRight:0} px in a view of {width:0} px: it is cut.");
+        Assert.True(recommendationsRight <= width - 16 + 0.5, $"The recommendations end at {recommendationsRight:0} px in a view of {width:0} px.");
+        Assert.True(cardRight <= width - 16 + 0.5, $"The card ends at {cardRight:0} px in a view of {width:0} px.");
+        Assert.Equal(0, horizontalBars);
+        Assert.Equal(stacked, recommendationsTop >= cardBottom);
+    }
+
+    private static double Right(FrameworkElement element, UIElement view) => element.TranslatePoint(new Point(element.ActualWidth, 0), view).X;
+
+    private static T Ancestor<T>(DependencyObject element, Func<T, bool> match)
+        where T : DependencyObject
+    {
+        for (var current = VisualTreeHelper.GetParent(element); current is not null; current = VisualTreeHelper.GetParent(current))
+        {
+            if (current is T found && match(found))
+            {
+                return found;
+            }
+        }
+
+        throw new InvalidOperationException($"No {typeof(T).Name} above the element matches.");
+    }
+
     private static string AutomationName(DependencyObject element) => System.Windows.Automation.AutomationProperties.GetName(element);
 
     private static IEnumerable<T> Descendants<T>(DependencyObject root)

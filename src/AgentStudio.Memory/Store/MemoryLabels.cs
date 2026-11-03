@@ -17,6 +17,7 @@ internal static class MemoryLabels
         MemoryKind.DebateSummary => "resumen de debate",
         MemoryKind.Verdict => "veredicto",
         MemoryKind.DailySummary => "resumen diario",
+        MemoryKind.JournalEntry => "entrada de la bitácora",
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown memory category."),
     };
 

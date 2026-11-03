@@ -318,6 +318,35 @@ public sealed class ApprovalReviewAndIntegrationTests
         Assert.Equal(2, run.Snapshot().AgentRunsUsed);
     }
 
+    [Fact]
+    public async Task The_review_is_queued_on_the_provider_of_its_judge_before_it_runs()
+    {
+        // docs/03 §5.1 and docs/18 P3: the monitor learns the provider of an attempt from its queue, so the context of a judge
+        // on Codex is «no expuesto» from its start, not «sin observaciones todavía».
+        using var harness = new EngineHarness();
+        harness.Claude.Script("ejecutor", "T1", 1, AgentScript.Completed(("src/Calc/Calc.cs", "Multiply")));
+
+        await using var run = await harness.StartAsync(F38Plan());
+        var events = new List<OrchestrationEvent>();
+        var reading = Task.Run(
+            async () =>
+            {
+                await foreach (var e in run.Events.WithCancellation(TestContext.Current.CancellationToken))
+                {
+                    events.Add(e);
+                }
+            },
+            TestContext.Current.CancellationToken);
+        await run.CompleteAsync(harness);
+        await reading.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+
+        var judge = Roster().Single(a => a.Id == new AgentId("juez")).Model.Provider;
+        var queued = Assert.Single(events.OfType<TaskQueuedEvent>(), e => e.Task == new TaskId("R1"));
+        Assert.Equal(judge, queued.Provider);
+        var running = events.FindIndex(e => e is TaskStatusChangedEvent { To: WorkTaskStatus.Running } change && change.Task == new TaskId("R1"));
+        Assert.True(events.IndexOf(queued) < running, "The review was queued after it started running.");
+    }
+
     [Theory]
     [InlineData(ReviewDisposition.ChangesRequested)]
     [InlineData(ReviewDisposition.Rejected)]

@@ -149,7 +149,11 @@ public sealed partial class DebateCriterionViewModel : ObservableObject
 }
 
 /// <summary>A run of the project that can be the subject of a debate.</summary>
-public sealed record RunChoice(RunId Id, string Label, string RequirementSetHash);
+public sealed record RunChoice(RunId Id, string Label, string RequirementSetHash)
+{
+    /// <summary>What a screen reader says of the choice (A1-bis): its label, never the members of the record.</summary>
+    public override string ToString() => Label;
+}
 
 /// <summary>A debate the form opened: its run, the proposal you approved (none for a debate resumed), and what the room needs to know of it.</summary>
 public sealed record OpenedDebate(IDebateRun Run, DebateProposal? Proposal, DebateRoomContext Context);

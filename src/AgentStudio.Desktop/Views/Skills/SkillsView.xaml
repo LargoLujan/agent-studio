@@ -4,6 +4,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:skills="clr-namespace:AgentStudio.Desktop.Skills"
+             xmlns:layout="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=skills:SkillsDocumentViewModel}"
              Background="{StaticResource BackgroundBrush}">
@@ -192,15 +193,16 @@
         <TextBlock Style="{StaticResource Skills.SectionText}" Text="Activación"/>
         <ItemsControl ItemsSource="{Binding Scopes}" Focusable="False" AutomationProperties.Name="Activación por ámbito">
           <ItemsControl.ItemTemplate>
+            <!-- One line when the card is wide; narrower, what is in effect goes under it instead of in a sliver (V29). -->
             <DataTemplate DataType="{x:Type skills:SkillScopeViewModel}">
-              <DockPanel Margin="0,0,0,6">
-                <CheckBox DockPanel.Dock="Left" MinWidth="190" Style="{StaticResource Skills.Switch}" Content="{Binding Title}"
+              <WrapPanel Margin="0,0,0,6">
+                <CheckBox MinWidth="190" Style="{StaticResource Skills.Switch}" Content="{Binding Title}"
                           IsChecked="{Binding IsChecked, Mode=OneWay}" IsEnabled="{Binding CanToggle}" Command="{Binding ToggleCommand}"
                           AutomationProperties.Name="{Binding Title}"
                           AutomationProperties.HelpText="Añade una decisión tuya para este ámbito; la anterior queda en el historial"/>
-                <TextBlock DockPanel.Dock="Left" Style="{StaticResource SecondaryText}" Width="96" Margin="8,0,0,0" VerticalAlignment="Center" Text="{Binding DecisionText}"/>
+                <TextBlock Style="{StaticResource SecondaryText}" Width="96" Margin="8,0,0,0" VerticalAlignment="Center" Text="{Binding DecisionText}"/>
                 <TextBlock Style="{StaticResource Skills.OptionalText}" Margin="8,0,0,0" VerticalAlignment="Center" Text="{Binding EffectiveText}"/>
-              </DockPanel>
+              </WrapPanel>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
@@ -216,9 +218,11 @@
             <DataTemplate DataType="{x:Type skills:SkillCheckViewModel}">
               <DockPanel Margin="0,0,0,4">
                 <Ellipse DockPanel.Dock="Left" Style="{StaticResource Skills.CheckDot}" Margin="0,4,8,0" VerticalAlignment="Top"/>
-                <TextBlock DockPanel.Dock="Left" Style="{StaticResource BodyText}" Width="150" Text="{Binding Title}"/>
-                <TextBlock DockPanel.Dock="Left" Style="{StaticResource SecondaryText}" Width="96" Text="{Binding StatusLabel}"/>
-                <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding Message}"/>
+                <WrapPanel>
+                  <TextBlock Style="{StaticResource BodyText}" Width="150" Text="{Binding Title}"/>
+                  <TextBlock Style="{StaticResource SecondaryText}" Width="96" Text="{Binding StatusLabel}"/>
+                  <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding Message}"/>
+                </WrapPanel>
               </DockPanel>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
@@ -272,11 +276,13 @@
       </Border>
     </StackPanel>
 
+    <!-- V29: three fixed columns (300 + 360 + 380) were cut on the right in a window of 1280 px. The tree takes a share of the
+         width between 220 and 320 px; the card and the recommendations go side by side when both get their minimum, and the
+         recommendations under the card when not (AdaptiveColumnsPanel): never cut, never a horizontal scroll bar. -->
     <Grid Margin="16,10,16,16">
       <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="300"/>
-        <ColumnDefinition Width="*" MinWidth="360"/>
-        <ColumnDefinition Width="380"/>
+        <ColumnDefinition Width="2*" MinWidth="220" MaxWidth="320"/>
+        <ColumnDefinition Width="5*"/>
       </Grid.ColumnDefinitions>
 
       <!-- The tree of sectors. -->
@@ -324,67 +330,69 @@
         </TreeView>
       </Border>
 
-      <!-- The card of the selected skill. -->
-      <Border Grid.Column="1" Style="{StaticResource Card}" Margin="12,0">
-        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
-          <Grid>
-            <TextBlock Text="Elige una skill del árbol para ver su ficha: fuente, salud, coste y activación.">
-              <TextBlock.Style>
-                <Style TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
-                  <Setter Property="Visibility" Value="Collapsed"/>
-                  <Style.Triggers>
-                    <DataTrigger Binding="{Binding Detail}" Value="{x:Null}">
-                      <Setter Property="Visibility" Value="Visible"/>
-                    </DataTrigger>
-                  </Style.Triggers>
-                </Style>
-              </TextBlock.Style>
-            </TextBlock>
-            <ContentControl Content="{Binding Detail}" Focusable="False"/>
-          </Grid>
-        </ScrollViewer>
-      </Border>
+      <layout:AdaptiveColumnsPanel x:Name="CardAndRecommendations" Grid.Column="1" Margin="12,0,0,0" FillHeight="True" ColumnSpacing="12" RowSpacing="12">
+        <!-- The card of the selected skill. -->
+        <Border Style="{StaticResource Card}" MinWidth="320" layout:AdaptiveColumnsPanel.Weight="2" layout:AdaptiveColumnsPanel.RowWeight="3">
+          <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+            <Grid>
+              <TextBlock Text="Elige una skill del árbol para ver su ficha: fuente, salud, coste y activación.">
+                <TextBlock.Style>
+                  <Style TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding Detail}" Value="{x:Null}">
+                        <Setter Property="Visibility" Value="Visible"/>
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </TextBlock.Style>
+              </TextBlock>
+              <ContentControl Content="{Binding Detail}" Focusable="False"/>
+            </Grid>
+          </ScrollViewer>
+        </Border>
 
-      <!-- The recommendations and the cost of each agent. -->
-      <Border Grid.Column="2" Style="{StaticResource Card}">
-        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
-          <StackPanel>
-            <TextBlock Style="{StaticResource SectionTitleText}" Text="Recomendar para una tarea"/>
-            <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,6" Text="{Binding StackText, StringFormat=Stack del proyecto: {0}}"
-                       AutomationProperties.Name="Stack del proyecto"/>
-            <TextBox Style="{StaticResource Skills.Field}" MinHeight="54" AcceptsReturn="True" TextWrapping="Wrap" VerticalContentAlignment="Top"
-                     Text="{Binding TaskText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Tarea para la que recomendar skills"/>
-            <Button Style="{StaticResource GhostButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Content="Recomendar (determinista, sin cuota)"
-                    Command="{Binding RecommendCommand}" AutomationProperties.Name="Recomendar"/>
-            <TextBlock Style="{StaticResource Skills.OptionalText}" Margin="0,6,0,0" Text="{Binding RecommendationStatus}"/>
-            <ItemsControl Margin="0,4,0,0" ItemsSource="{Binding Recommendations}" ItemTemplate="{StaticResource Skills.RecommendationTemplate}"
-                          Focusable="False" AutomationProperties.Name="Recomendaciones deterministas"/>
+        <!-- The recommendations and the cost of each agent. -->
+        <Border x:Name="RecommendationsCard" Style="{StaticResource Card}" MinWidth="300" layout:AdaptiveColumnsPanel.Weight="1" layout:AdaptiveColumnsPanel.RowWeight="2">
+          <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+            <StackPanel>
+              <TextBlock Style="{StaticResource SectionTitleText}" Text="Recomendar para una tarea"/>
+              <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,6" Text="{Binding StackText, StringFormat=Stack del proyecto: {0}}"
+                         AutomationProperties.Name="Stack del proyecto"/>
+              <TextBox Style="{StaticResource Skills.Field}" MinHeight="54" AcceptsReturn="True" TextWrapping="Wrap" VerticalContentAlignment="Top"
+                       Text="{Binding TaskText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Tarea para la que recomendar skills"/>
+              <Button Style="{StaticResource GhostButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Content="Recomendar (determinista, sin cuota)"
+                      Command="{Binding RecommendCommand}" AutomationProperties.Name="Recomendar"/>
+              <TextBlock Style="{StaticResource Skills.OptionalText}" Margin="0,6,0,0" Text="{Binding RecommendationStatus}"/>
+              <ItemsControl Margin="0,4,0,0" ItemsSource="{Binding Recommendations}" ItemTemplate="{StaticResource Skills.RecommendationTemplate}"
+                            Focusable="False" AutomationProperties.Name="Recomendaciones deterministas"/>
 
-            <TextBlock Style="{StaticResource Skills.SectionText}" Text="Pedir a un agente"/>
-            <CheckBox Style="{StaticResource Skills.Switch}" IsChecked="{Binding IsAssistedAllowed}" AutomationProperties.Name="Permitir la recomendación asistida">
-              <TextBlock TextWrapping="Wrap" Text="Permitir la recomendación asistida (gasta cuota de Claude)"/>
-            </CheckBox>
-            <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0"
-                       Text="Cada uso pide tu OK. Claude (haiku) consulta el catálogo con el servidor MCP local de solo lectura, sin red ni ficheros, y solo propone."/>
-            <Button Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Content="Pedir a un agente"
-                    Command="{Binding AskAgentCommand}" AutomationProperties.Name="Pedir a un agente"/>
-            <TextBlock Style="{StaticResource Skills.OptionalText}" Margin="0,6,0,0" Text="{Binding AssistedStatus}" AutomationProperties.Name="Estado de la recomendación asistida"/>
-            <ItemsControl Margin="0,4,0,0" ItemsSource="{Binding AssistedRecommendations}" ItemTemplate="{StaticResource Skills.RecommendationTemplate}"
-                          Focusable="False" AutomationProperties.Name="Recomendaciones del agente"/>
-            <ItemsControl ItemsSource="{Binding AssistedWarnings}" ItemTemplate="{StaticResource Skills.WarningTemplate}" Focusable="False"/>
+              <TextBlock Style="{StaticResource Skills.SectionText}" Text="Pedir a un agente"/>
+              <CheckBox Style="{StaticResource Skills.Switch}" IsChecked="{Binding IsAssistedAllowed}" AutomationProperties.Name="Permitir la recomendación asistida">
+                <TextBlock TextWrapping="Wrap" Text="Permitir la recomendación asistida (gasta cuota de Claude)"/>
+              </CheckBox>
+              <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0"
+                         Text="Cada uso pide tu OK. Claude (haiku) consulta el catálogo con el servidor MCP local de solo lectura, sin red ni ficheros, y solo propone."/>
+              <Button Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Content="Pedir a un agente"
+                      Command="{Binding AskAgentCommand}" AutomationProperties.Name="Pedir a un agente"/>
+              <TextBlock Style="{StaticResource Skills.OptionalText}" Margin="0,6,0,0" Text="{Binding AssistedStatus}" AutomationProperties.Name="Estado de la recomendación asistida"/>
+              <ItemsControl Margin="0,4,0,0" ItemsSource="{Binding AssistedRecommendations}" ItemTemplate="{StaticResource Skills.RecommendationTemplate}"
+                            Focusable="False" AutomationProperties.Name="Recomendaciones del agente"/>
+              <ItemsControl ItemsSource="{Binding AssistedWarnings}" ItemTemplate="{StaticResource Skills.WarningTemplate}" Focusable="False"/>
 
-            <TextBlock Style="{StaticResource Skills.SectionText}" Text="Lo que recibe cada agente"/>
-            <ItemsControl ItemsSource="{Binding AgentCosts}" Focusable="False" AutomationProperties.Name="Coste por agente">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate DataType="{x:Type skills:AgentCostViewModel}">
-                  <TextBlock Style="{StaticResource BodyText}" Margin="0,0,0,3" Text="{Binding Text}"/>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-            <TextBlock Style="{StaticResource ErrorText}" Margin="0,6,0,0" Text="{Binding ActivationProblem}"/>
-          </StackPanel>
-        </ScrollViewer>
-      </Border>
+              <TextBlock Style="{StaticResource Skills.SectionText}" Text="Lo que recibe cada agente"/>
+              <ItemsControl ItemsSource="{Binding AgentCosts}" Focusable="False" AutomationProperties.Name="Coste por agente">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate DataType="{x:Type skills:AgentCostViewModel}">
+                    <TextBlock Style="{StaticResource BodyText}" Margin="0,0,0,3" Text="{Binding Text}"/>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBlock Style="{StaticResource ErrorText}" Margin="0,6,0,0" Text="{Binding ActivationProblem}"/>
+            </StackPanel>
+          </ScrollViewer>
+        </Border>
+      </layout:AdaptiveColumnsPanel>
     </Grid>
   </DockPanel>
 </UserControl>

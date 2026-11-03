@@ -6,6 +6,7 @@ using System.Text;
 using AgentStudio.Application.Coordination;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Projects;
+using AgentStudio.Desktop.Controls;
 using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Orchestrator;
 using AgentStudio.Desktop.Orchestrator.Monitor;
@@ -256,6 +257,17 @@ public sealed partial class DebateRoomViewModel : ObservableObject
 
     [ObservableProperty]
     private string? _runsText;
+
+    /// <summary>
+    /// The tokens of the debate against its maximum (docs/18 P3), with their origin and «parcial» when turns did not report
+    /// them; without a maximum, the tokens alone on an empty track. Null without a debate.
+    /// </summary>
+    [ObservableProperty]
+    private MetricBarReading? _tokensBar;
+
+    /// <summary>The agent runs of the debate against its budget (docs/18 P3), measured by Agent Studio; null without a debate.</summary>
+    [ObservableProperty]
+    private MetricBarReading? _runsBar;
 
     /// <summary>«Ronda 2: 2 turnos en curso, sellados hasta que terminen todos»; null when no turn runs.</summary>
     [ObservableProperty]
@@ -683,6 +695,11 @@ public sealed partial class DebateRoomViewModel : ObservableObject
         TimeText = $"Tiempo: {MetricText.DurationText((long)snapshot.Elapsed.TotalMilliseconds)} de {MetricText.DurationText((long)snapshot.Limits.MaxDuration.TotalMilliseconds)} · {MetricText.Origin(MetricOrigin.MeasuredBySystem)} (reloj del sistema)";
         TokensText = TokensLine(snapshot);
         RunsText = $"Ejecuciones: {MetricText.Integer(snapshot.AgentRuns)} de {MetricText.Integer(snapshot.MaxAgentRuns)} · {MetricText.Origin(MetricOrigin.MeasuredBySystem)}";
+        var partial = snapshot.Tokens.Count > 0 && snapshot.ReportedTurns < snapshot.Tokens.Count
+            ? string.Create(CultureInfo.InvariantCulture, $"parcial ({snapshot.ReportedTurns} de {snapshot.Tokens.Count} turnos informados)")
+            : null;
+        TokensBar = MetricBars.Tokens("Tokens del debate", snapshot.Tokens, snapshot.Limits.MaxTotalTokens, partial);
+        RunsBar = MetricBars.Budget("Ejecuciones", snapshot.AgentRuns, snapshot.MaxAgentRuns, "ejecuciones de agente del debate frente a su máximo");
         SetParticipants(snapshot.Participants);
         SetContributions(snapshot.Contributions);
         SealedText = snapshot.TurnsInFlight switch
@@ -849,6 +866,8 @@ public sealed partial class DebateRoomViewModel : ObservableObject
         TimeText = null;
         TokensText = null;
         RunsText = null;
+        TokensBar = null;
+        RunsBar = null;
         SealedText = null;
         Awaiting = null;
         AwaitingText = null;

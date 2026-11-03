@@ -6,6 +6,7 @@
              xmlns:monitor="clr-namespace:AgentStudio.Desktop.Orchestrator.Monitor"
              xmlns:orchestratorViews="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
              xmlns:debateViews="clr-namespace:AgentStudio.Desktop.Views.Debate"
+             xmlns:controls="clr-namespace:AgentStudio.Desktop.Controls"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=monitor:RunMonitorViewModel}">
     <!-- The monitor of a run: phase, graph health, tasks (with queue, block reason and last activity), activity log and
@@ -31,9 +32,9 @@
                                    AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="Fase de la ejecución"/>
                         <TextBlock Style="{StaticResource SecondaryText}" Margin="0,0,12,0" VerticalAlignment="Center"
                                    FontFamily="{StaticResource MonoFont}" Text="{Binding RunId}"/>
-                        <TextBlock Style="{StaticResource SecondaryText}" VerticalAlignment="Center"
-                                   Visibility="{Binding IsAttached, Converter={StaticResource Orchestrator.BoolToVisibility}}"
-                                   Text="{Binding AgentRunsUsed, StringFormat='Ejecuciones de agente: {0}'}"/>
+                        <!-- The budget of the run (docs/18 P3): the agent runs used against its maximum, measured by Agent Studio. -->
+                        <controls:MetricBar VerticalAlignment="Center" TrackWidth="90" Reading="{Binding BudgetBar}"
+                                            Visibility="{Binding IsAttached, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
                     </WrapPanel>
                     <WrapPanel orchestratorViews:AdaptiveColumnsPanel.Weight="1.2" MinWidth="260" HorizontalAlignment="Right" VerticalAlignment="Top">
                         <!-- A run read back from its log takes no command: only its delivery and «Cerrar». -->
@@ -223,14 +224,15 @@
                                                        AutomationProperties.Name="{Binding FailureLine, StringFormat='Error del paso: {0}'}"/>
                                             <TextBlock Style="{StaticResource OptionalSecondaryText}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
                                                        Text="{Binding LastActivity}"/>
-                                            <!-- The context of the latest step (docs/14 D-12): the dot carries the level, the words carry
-                                                 everything (percentage with its origin, tokens, window, model, level, compactions). -->
-                                            <DockPanel Visibility="{Binding Context, Converter={StaticResource Orchestrator.NotNullToVisibility}}">
-                                                <Ellipse DockPanel.Dock="Left" Width="7" Height="7" Margin="0,5,6,0" VerticalAlignment="Top"
-                                                         Fill="{Binding ContextTone, Converter={StaticResource Orchestrator.ToneToBrush}}"/>
-                                                <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap"
-                                                           Text="{Binding Context}" AutomationProperties.Name="{Binding Context}"/>
-                                            </DockPanel>
+                                            <!-- The context of the latest step of the attempt (docs/14 D-12, docs/18 P3), always for a task
+                                                 that runs an agent: the bar with its percentage, origin and level (an empty track that says
+                                                 why when there is none), and under it the tokens against the window, the model and the
+                                                 compactions of the CLI. Then the tokens the CLI reported at the end of the last attempt. -->
+                                            <controls:MetricBar Margin="0,3,0,0" TrackWidth="120" Reading="{Binding ContextBar}"
+                                                                Visibility="{Binding ContextBar, Converter={StaticResource Orchestrator.NotNullToVisibility}}"
+                                                                AutomationProperties.Name="{Binding Context}"/>
+                                            <TextBlock Style="{StaticResource OptionalSecondaryText}" TextWrapping="Wrap" Text="{Binding ContextDetail}"/>
+                                            <TextBlock Style="{StaticResource OptionalSecondaryText}" TextWrapping="Wrap" Text="{Binding TokensText, TargetNullValue=''}"/>
                                             <TextBlock Style="{StaticResource BodyText}" FontSize="12" Foreground="{StaticResource WarningBrush}"
                                                        Visibility="{Binding PendingApproval, Converter={StaticResource Orchestrator.NotNullToVisibility}}"
                                                        Text="{Binding PendingApproval, StringFormat='Espera tu aprobación: {0}'}"/>

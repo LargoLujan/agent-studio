@@ -187,6 +187,8 @@ public sealed class Phase8PayloadTests
                 "WorktreeCreated", "WorktreeRemoved", "MemoryRecorded", "MemoryReviewed", "DebateOpened", "DebateContributionRecorded", "DebateRoundClosed",
                 "DebateClosed", "VerdictChallenged", "ProjectAuditStarted", "ProjectAuditFinished", "RunExitChosen", "RunDispatchChanged", "AccessChecked",
                 "RunResumed",
+                // Phase 12 appends after the Phase 8 kinds.
+                "JournalTrustChanged",
             ],
             Enum.GetNames<DecisionKind>());
     }

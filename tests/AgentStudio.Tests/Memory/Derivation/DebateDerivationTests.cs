@@ -54,7 +54,7 @@ public sealed class DebateDerivationTests
         Assert.Equal(MemorySources.LogEntry(Debate, closed.Sequence), summary.Source);
         Assert.Equal($"Debate {Debate} (revisión de arquitectura)", summary.Topic);
         Assert.Equal(
-            $"Debate {Debate} (revisión de arquitectura), abierto el 2026-01-01 10:00 UTC y cerrado el 2026-01-01 10:00 UTC. "
+            $"Debate {Debate} (revisión de arquitectura), abierto el 01/01/2026 a las 10:00 UTC y cerrado el 01/01/2026 a las 10:00 UTC. "
             + "Resultado: resuelto (juez único); propuesta elegida: P1. Veredictos: v-deb-1 (aprobado, válido). "
             + $"Pregunta: «{Question}»",
             summary.Content);
@@ -260,7 +260,7 @@ public sealed class DebateDerivationTests
         Assert.Equal(MemoryKind.Decision, challenged.Kind);
         Assert.Equal($"Impugnación del veredicto v0 de la ejecución {Run}", challenged.Topic);
         Assert.Equal(
-            $"manuel impugnó el veredicto v0 de la ejecución {Run} el 2026-01-01 10:00 UTC; la revisión es el debate {Revision} y sus razones están en la evidencia {reasons.Id.Value}.",
+            $"La persona impugnó el veredicto v0 de la ejecución {Run} el 01/01/2026 a las 10:00 UTC; la revisión es el debate {Revision} y sus razones están en la evidencia {reasons.Id.Value}.",
             challenged.Content);
 
         var verdict = Assert.Single(result.Recorded, e => e.Source == MemorySources.LogEntry(Run, revised.Sequence));
@@ -274,7 +274,7 @@ public sealed class DebateDerivationTests
 
         var acceptance = Assert.Single(result.Recorded, e => e.Source == MemorySources.LogEntry(Run, accepted.Sequence));
         Assert.Equal((MemoryKind.Decision, $"Aceptación de una revisión en la ejecución {Run}"), (acceptance.Kind, acceptance.Topic));
-        Assert.Equal($"manuel aceptó la revisión de un veredicto impugnado en la ejecución {Run} el 2026-01-01 10:00 UTC.", acceptance.Content);
+        Assert.Equal($"La persona aceptó la revisión de un veredicto impugnado en la ejecución {Run} el 01/01/2026 a las 10:00 UTC.", acceptance.Content);
 
         // The reasons and the comment of the person are named, never quoted (the whole marker, which no random id can contain).
         Assert.All(result.Recorded, e => Assert.DoesNotContain("Razones-de-la-persona", e.Content, StringComparison.Ordinal));
@@ -307,15 +307,15 @@ public sealed class DebateDerivationTests
         var auditor = Assert.Single(result.Recorded, e => e.Source == MemorySources.LogEntry(Run, audited.Sequence));
         Assert.Equal((MemoryKind.KnownError, MemoryOrigin.System, $"Petición de replanificar la ejecución {Run}"), (auditor.Kind, auditor.Origin, auditor.Topic));
         Assert.Equal(
-            $"El auditor del orquestador pidió replanificar la ejecución {Run} el 2026-01-01 10:00 UTC (hallazgos: orchestrator.review-omitted, orchestrator.approval-missing; tareas: T7). "
+            $"El auditor del orquestador pidió replanificar la ejecución {Run} el 01/01/2026 a las 10:00 UTC (hallazgos: orchestrator.review-omitted, orchestrator.approval-missing; tareas: T7). "
             + "Detalle del registro: Review task 'T7' was required and did not run.",
             auditor.Content);
         var judge = Assert.Single(result.Recorded, e => e.Source == MemorySources.LogEntry(Run, judged.Sequence));
-        Assert.Equal($"El juez juez-revision de la revisión del orquestador pidió replanificar la ejecución {Run} el 2026-01-01 10:00 UTC (1 hallazgo; tareas: T7; veredicto r9).", judge.Content);
+        Assert.Equal($"El juez juez-revision de la revisión del orquestador pidió replanificar la ejecución {Run} el 01/01/2026 a las 10:00 UTC (1 hallazgo; tareas: T7; veredicto r9).", judge.Content);
         Assert.All(result.Recorded, e => Assert.DoesNotContain("8b2", e.Content, StringComparison.Ordinal));
         var dismissal = Assert.Single(result.Recorded, e => e.Source == MemorySources.LogEntry(Run, dismissed.Sequence));
         Assert.Equal((MemoryKind.Decision, $"Petición de replanificar la ejecución {Run}"), (dismissal.Kind, dismissal.Topic));
-        Assert.Equal($"manuel descartó la petición de replanificar la ejecución {Run} el 2026-01-01 10:00 UTC.", dismissal.Content);
+        Assert.Equal($"La persona descartó la petición de replanificar la ejecución {Run} el 01/01/2026 a las 10:00 UTC.", dismissal.Content);
     }
 
     [Fact]

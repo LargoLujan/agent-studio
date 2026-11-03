@@ -2,8 +2,12 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using AgentStudio.Application.Knowledge;
+using AgentStudio.Application.Providers;
 using AgentStudio.Domain.Decisions;
+using AgentStudio.Domain.Metrics;
+using AgentStudio.Domain.Providers;
 using AgentStudio.Infrastructure.Persistence;
+using AgentStudio.Memory.Journal;
 using AgentStudio.Memory.Summary;
 using AgentStudio.Tests.Infrastructure.Persistence;
 using AgentStudio.Tests.Memory.Store;
@@ -75,6 +79,22 @@ public sealed class DailySummaryTests
         Assert.Equal("Resumen del 2026-03-10", recorded.Topic);
         Assert.Equal(result.Summary, recorded.Content);
         Assert.Equal($"bitacora/2026-03-10.md#sha256:{result.JournalSha256}", recorded.Source);
+    }
+
+    /// <summary>V31: the lines the app writes under the title of a day it creates are part of the format, as the hook's are.</summary>
+    [Fact]
+    public async Task A_day_the_app_created_has_no_unrecognised_lines()
+    {
+        using var world = await WorldAtAsync(DayAfter);
+        var journal = new MarkdownDailyJournal(world.Project.RootPath, new ProjectStorageFiles(), world.Clock);
+        var at = new DateTimeOffset(2026, 3, 10, 9, 5, 7, TimeSpan.FromHours(2));
+        var id = await journal.RecordPromptAsync(new PromptJournalEntry(at, "Orquestador", ProviderId.ClaudeCode, "opus", "Resumen (intento 1)", ["tests"], "T-12"), Ct);
+        await journal.RecordOutcomeAsync(id, new PromptOutcome(at.AddSeconds(3), AgentRunStatus.Succeeded, TimeSpan.FromSeconds(3), MetricValue<long>.Exact(1200, "claude"), MetricValue<long>.Exact(340, "claude")), Ct);
+
+        var result = await Service(world).SummarizeAsync(world.Project, Day, Ct);
+
+        Assert.Equal((1, 0), (result.Prompts, result.UnrecognizedLines));
+        Assert.Contains("Registro automático de Agent Studio", await File.ReadAllTextAsync(DayFile(world, Day), Ct), StringComparison.Ordinal);
     }
 
     [Fact]

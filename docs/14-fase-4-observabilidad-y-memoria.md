@@ -380,6 +380,16 @@ Nunca se deriva la ocupación de `result.usage`. En `02-herramienta` daría 61 2
 - Hasta que llega `result`, la ventana es la última vista para ese modelo en el registro del proyecto, con la
   etiqueta «estimado por Agent Studio (ventana vista en una ejecución anterior)».
 - Sin ninguna anterior, la ocupación sale en tokens, sin porcentaje, hasta el final.
+- **Desde la tanda 2 (2026-11-03), una tabla base de ventanas por modelo** (`ModelWindowTable`, versión `2026-10-30`;
+  [ADR-0021](adr/0021-salud-del-contexto-por-paso.md), adenda del 2026-11-03). Si el registro no ha visto el modelo, la
+  ventana sale de esta tabla. Así la primera ejecución de un proyecto ya tiene porcentaje desde su primer paso.
+  - Siempre es «estimado por Agent Studio», y el origen nombra la tabla y su versión. Nunca dice «exacto».
+  - Lo aprendido del registro del proyecto manda sobre la tabla, y la ventana que da el CLI manda sobre las dos.
+  - Un modelo que la tabla no conoce sigue sin porcentaje: solo tokens.
+  - Codex no tiene entradas: su contexto sigue «no expuesto».
+  - Las ventanas de cada proyecto se leen de su registro fuera del hilo de la interfaz (`ContextWindowCatalogs`), al
+    abrir su monitor y al terminar cada ejecución. Mientras tanto se usa la tabla sola. Una lectura que falla no borra lo
+    aprendido.
 
 **D-11 · Umbrales configurables.**
 
@@ -399,6 +409,20 @@ Nunca se deriva la ocupación de `result.usage`. En `02-herramienta` daría 61 2
   k entradas». Es la «posible pérdida de información» de la sección 10, junto con las compactaciones.
 - Nunca se habla de la «comprensión» del modelo.
 
+**Desde la tanda 2 (2026-11-03): barras siempre visibles y en tiempo real** (P3 y P36 de
+[18](18-peticiones-y-pendientes.md)).
+
+- **Un solo control**, `MetricBar`, para el contexto en vivo, la cuota y el presupuesto: la cifra, su origen y su nivel
+  escritos junto a la barra. Lo estimado lleva «~», la palabra «estimado» y una trama. En el panel de consumo, el pico de
+  contexto de cada grupo y de cada intento sigue como cifra, sin barra; allí las barras son las ventanas de la cuota.
+- **La barra está siempre, también sin porcentaje.** Sin cifra, la pista se dibuja vacía y las palabras dicen por qué:
+  «no expuesto», «sin observaciones todavía», «sin empezar» o los tokens con «sin porcentaje». Nunca es una barra a cero.
+- **En vivo, de verdad.** El monitor crea un `ContextHealthTracker` por intento, y la planificación otro para el
+  orquestador. Antes ese seguimiento no lo usaba ninguna pantalla.
+- **En la barra de estado** ya no va la tarea seleccionada, sino la tarea en curso más llena: «Contexto · T1, la más
+  llena de 3». Sin tareas en curso, «sin tareas en curso».
+- **Sigue pendiente** el «contexto empaquetado» en la barra de estado (P31 de [18](18-peticiones-y-pendientes.md)).
+
 **D-13 · Corrección del analizador de Claude.**
 
 - La ventana se empareja con el modelo del paso, no con el de `init`.
@@ -416,6 +440,13 @@ Nunca se deriva la ocupación de `result.usage`. En `02-herramienta` daría 61 2
 - La cuota es de la cuenta, no del proyecto: por eso va en el perfil.
 - El panel muestra la última observación de cada ventana con su antigüedad («vista hace 12 min»), como «exacto ·
   informado por el CLI». No hay ninguna llamada extra.
+- **Desde la tanda 2 (2026-11-03):**
+  - **La antigüedad va junto a la cifra** en toda barra de cuota, también en la forma corta de la barra de estado:
+    «47 % exacto · vista hace 12 min». La cuota es lo que dijo el proveedor en un momento dado, no lo que hay ahora.
+  - **Una ventana cuyo reinicio ya pasó** no enseña su cifra como actual. La barra sale vacía y dice «se reinició a las
+    15:00, sin dato nuevo». La cifra de antes queda en el detalle («antes del reinicio: 47 %»).
+  - La barra de estado relee el registro de cuota cada minuto y cuando un CLI anuncia su cuota. Releer el fichero no
+    gasta nada.
 
 **D-15 · Codex: lectura del app-server.**
 
@@ -454,6 +485,14 @@ Agent Studio espera la respuesta de `id` 2, con un tiempo máximo de 20 s, y ter
     servidores MCP de tu configuración sin un hilo está **sin verificar** (§13).
 - **Cuándo:** desactivado por defecto. Con tu opt-in, bajo demanda («Consultar cuota de Codex») y una vez al terminar
   cada ejecución de Codex. Nunca en segundo plano en esta fase.
+  - **Cómo se cumple desde la tanda 2 (2026-11-03; P37 de [18](18-peticiones-y-pendientes.md)).** Hasta entonces la
+    lectura tras cada ejecución no existía. Ahora el pipeline de proveedores avisa del final de cada ejecución con su
+    proveedor (`IAgentRunEnds`). Tras una de Codex, la cuota que enseñan «Consumo», la barra de estado y la bandeja
+    (`QuotaViewModel`, una para toda la app) se lee si tienes el permiso y la última lectura tiene más de 5 minutos.
+  - **Una sola lectura para todos.** El motor (cuando un límite corta un intento de Codex) y las pantallas pueden pedirla
+    a la vez. `SharedQuotaReader` hace que sea una sola: el app-server se lanza una vez y cada uno recibe la respuesta.
+    Nunca corre en el hilo de la interfaz ([ADR-0020](adr/0020-cuota-pasiva-en-claude-y-lectura-opcional-en-codex.md),
+    adenda del 2026-11-03).
 - **Versión:** la respuesta se fija por versión del CLI con una captura grabada (F4-4). Con otra versión se muestra
   «versión de Codex no probada», como hace Auto Doctor (F2-7).
 - **Regla y términos:**

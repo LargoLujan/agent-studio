@@ -11,6 +11,7 @@ using AgentStudio.Desktop.Orchestrator.Canvas;
 using AgentStudio.Desktop.Orchestrator.Session;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Common;
+using AgentStudio.Domain.Metrics;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Domain.Work;
@@ -231,6 +232,44 @@ public sealed class OrchestratorDocumentViewModelTests
         Assert.Equal("Plan propuesto por el orquestador con problemas: 1 problema en el plan. Se le pidió una corrección.", document.ProposalStatus);
         Assert.Equal(["Usa Read: src/Calc/Calc.cs"], document.PlanningActivity);
         Assert.False(document.ApproveCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task While_it_plans_the_context_of_the_orchestrator_is_a_live_bar_estimated_until_its_result_makes_it_exact()
+    {
+        // docs/18 P3 and P36: «Lo que hace el orquestador» shows its context step by step, with the base table until Claude
+        // reports the window with its result.
+        var engine = new FakeOrchestrator();
+        var seen = new List<string?>();
+        OrchestratorDocumentViewModel? planning = null;
+        engine.Plan = (_, progress, _) =>
+        {
+            progress?.Report(new ContextObserved(T0, "claude-opus-5-5", MetricValue<long>.Exact(120_000, "claude assistant.usage"), MetricValue<long>.Missing("llega con el resultado")));
+            seen.Add(planning?.PlanningContext?.ValueText);
+            progress?.Report(new ContextObserved(T0, "claude-opus-5-5", MetricValue<long>.Exact(240_000, "claude assistant.usage"), MetricValue<long>.Missing("llega con el resultado")));
+            seen.Add(planning?.PlanningContext?.ValueText);
+            progress?.Report(new UsageReported(T0, new TokenUsage(
+                MetricValue<long>.Exact(240_000, "claude result.usage"),
+                MetricValue<long>.Exact(900, "claude result.usage"),
+                MetricValue<long>.Exact(0, "claude result.usage"),
+                MetricValue<long>.NotExposed("per model"),
+                MetricValue<decimal>.Estimated(0.1m, "claude total_cost_usd"))
+            {
+                PerModel = [new ModelUsage("claude-opus-5-5", MetricValue<long>.Exact(1, "m"), MetricValue<long>.Exact(1, "m"), MetricValue<long>.Exact(0, "m"), MetricValue<long>.Exact(0, "m"), MetricValue<decimal>.Estimated(0m, "m"), MetricValue<long>.Exact(1_000_000, "claude result.modelUsage"), "list")],
+            }));
+            return Task.FromResult(new PlanProposal(Run, PlanFixtures.Plan(), [], Corrected: false, AgentRunStatus.Succeeded, null, null));
+        };
+        var document = await OpenAsync(Backends.Complete(engine));
+        planning = document;
+        document.RequestText = "Añadir Calc.Multiply";
+
+        await document.RequestPlanCommand.ExecuteAsync(null);
+
+        Assert.Equal(["~12 %", "~24 %"], seen);
+        var bar = document.PlanningContext!;
+        Assert.Equal("Contexto del orquestador", bar.Label);
+        Assert.Equal("24 %", bar.ValueText);
+        Assert.Equal("exacto · informado por el CLI", bar.Origin);
     }
 
     [Fact]

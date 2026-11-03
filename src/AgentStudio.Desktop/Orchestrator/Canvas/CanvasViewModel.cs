@@ -26,12 +26,18 @@ public sealed record PaletteItem(WorkTaskKind Kind)
     public string Hint => IsAvailable
         ? $"Añadir un nodo «{NodeKinds.Label(Kind)}»"
         : $"Aplazado: {NodeKinds.UnavailableReason}. El validador del plan rechaza los nodos de debate.";
+
+    /// <summary>What a screen reader says of the entry (A1-bis): its label, never the members of the record.</summary>
+    public override string ToString() => Label;
 }
 
 /// <summary>One entry of the status legend under the canvas.</summary>
 public sealed record StatusLegendItem(WorkTaskStatus Status)
 {
     public string Label => TaskStatusText.Label(Status);
+
+    /// <summary>What a screen reader says of the entry (A1-bis): its label, never the members of the record.</summary>
+    public override string ToString() => Label;
 }
 
 /// <summary>

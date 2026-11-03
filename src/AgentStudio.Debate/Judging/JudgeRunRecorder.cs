@@ -106,6 +106,13 @@ public sealed class JudgeRunRecorder(
             cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>The start <see cref="RunStartingAsync"/> records: the run of the scope, its entry task and the attempt (docs/17 D-02).</summary>
+    public AgentRunAnchor? AnchorOf(JudgeRunStart start)
+    {
+        ArgumentNullException.ThrowIfNull(start);
+        return new AgentRunAnchor(scope.Run, scope.EntryTask?.Value, start.Attempt);
+    }
+
     public async Task RunFinishedAsync(JudgeRunEnd end, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(end);

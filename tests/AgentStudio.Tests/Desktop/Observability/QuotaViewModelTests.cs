@@ -22,6 +22,67 @@ public sealed class QuotaViewModelTests
         new(ProviderId.CodexCli, window, MetricValue<double>.Exact(utilization, "codex account/rateLimits/read"), length, null, Now, "codex account/rateLimits/read") { Label = label };
 
     [Fact]
+    public async Task The_read_of_codex_never_runs_on_the_thread_that_asks()
+    {
+        // The reader loads the settings, looks the executable up and starts a process before its first wait: not on the UI thread.
+        var readOn = 0;
+        var reader = new FakeQuotaReader(() =>
+        {
+            readOn = Environment.CurrentManagedThreadId;
+            return new QuotaReadResult(QuotaReadStatus.Read, []);
+        });
+
+        var askedOn = await WpfHost.RunAsync(async () =>
+        {
+            var quota = new QuotaViewModel(new FakeQuotaObservations(), reader, new FakeClock(Now)) { CodexOptedIn = true };
+            var ui = Environment.CurrentManagedThreadId;
+            await quota.ReadCodexCommand.ExecuteAsync(null);
+            return ui;
+        });
+
+        Assert.Equal(1, reader.Reads);
+        Assert.NotEqual(askedOn, readOn);
+    }
+
+    [Fact]
+    public async Task A_window_whose_reset_passed_since_it_was_seen_is_never_shown_as_its_old_figure()
+    {
+        // Seen at 7:00 at 92 %, its 5 hours reset at 9:30: at 10:00 that figure says nothing of now.
+        var clock = new FakeClock(Now);
+        var observations = new FakeQuotaObservations
+        {
+            Latest = { Claude("five_hour", 0.92, TimeSpan.FromHours(3), resetsAt: Now.AddMinutes(-30)) },
+        };
+        var quota = new QuotaViewModel(observations, null, clock);
+
+        await quota.RefreshAsync();
+
+        var row = Assert.Single(quota.Claude.Windows);
+        Assert.False(row.Bar!.HasValue);
+        Assert.Equal("se reinició a las 09:30, sin dato nuevo", row.Bar.ValueText);
+        Assert.Equal("se reinició hoy a las 09:30", row.Resets);
+        Assert.Contains("antes del reinicio: 92 %", row.Bar.Detail, StringComparison.Ordinal);
+        Assert.DoesNotContain("exacto", row.Bar.CompactText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_window_not_reset_yet_shows_its_figure_with_how_old_it_is_next_to_it()
+    {
+        var observations = new FakeQuotaObservations
+        {
+            Latest = { Claude("five_hour", 0.47, TimeSpan.FromMinutes(12), resetsAt: Now.AddHours(2)) },
+        };
+        var quota = new QuotaViewModel(observations, null, new FakeClock(Now));
+
+        await quota.RefreshAsync();
+
+        var bar = Assert.Single(quota.Claude.Windows).Bar!;
+        Assert.Equal(47, bar.Value!.Value, 6);
+        Assert.Equal("47 % exacto · vista hace 12 min", bar.CompactText);
+        Assert.Equal("se reinicia hoy a las 12:00", bar.Detail);
+    }
+
+    [Fact]
     public async Task Claude_windows_show_their_utilization_with_its_origin_and_how_old_they_are()
     {
         var observations = new FakeQuotaObservations

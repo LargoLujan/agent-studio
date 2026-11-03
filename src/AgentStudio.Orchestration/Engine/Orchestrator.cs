@@ -175,6 +175,12 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
     /// <summary>The action of the approval of a plan, recorded when its run starts (the memory derivation reads it).</summary>
     public const string PlanApprovalAction = "plan.approve";
 
+    /// <summary>The action of the approval a «human approval» task of the plan asks for.</summary>
+    public const string HumanApprovalAction = "orchestration.human-approval";
+
+    /// <summary>The action of the approval a review that needs a person asks for (the review escalation of a task).</summary>
+    public const string ReviewEscalationAction = "orchestration.review-escalation";
+
     private readonly EnginePorts _ports;
     private readonly Planner _planner;
 

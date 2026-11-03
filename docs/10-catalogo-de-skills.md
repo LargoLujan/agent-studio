@@ -179,6 +179,10 @@ Se abre como el documento «Skills» desde la barra de actividad. Captura hecha 
   un agente» con su permiso apagado por defecto, el estado de la última petición, lo que propuso el agente con su razón y
   los avisos de lo descartado. Pulsar una recomendación la selecciona en el árbol; nada se activa solo.
 - **Lo que recibe cada agente:** sus skills activas con copia local y su coste estimado por ejecución.
+- **Columnas que se adaptan** (tanda 2, 2026-11-03; V29). Antes eran tres columnas fijas, y en una ventana de 1280 px la
+  de las recomendaciones se cortaba por la derecha. Ahora el árbol ocupa entre 220 y 320 px. La ficha y las
+  recomendaciones van una al lado de otra si caben las dos; si no, las recomendaciones bajan debajo de la ficha. Nada se
+  corta y no hay barra de desplazamiento horizontal.
 
 ## 9. Estado y fases
 

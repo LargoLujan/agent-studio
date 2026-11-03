@@ -258,6 +258,8 @@ public sealed class DeliveryServiceTests
         Assert.Equal(["src/Calc/Calc.cs"], request.AffectedPaths);
         Assert.Contains("main", request.Description, StringComparison.Ordinal);
         Assert.Contains("--ff-only", request.Description, StringComparison.Ordinal);
+        Assert.Contains(" Cambia 1 fichero. ", request.Description, StringComparison.Ordinal);
+        Assert.DoesNotContain("(s)", request.Description, StringComparison.Ordinal);
         Assert.Equal([(_repo.Base, integration)], _worktrees.ChangedPathsCalls);
 
         var delivery = Assert.Single(_worktrees.Deliveries);
@@ -266,6 +268,23 @@ public sealed class DeliveryServiceTests
         Assert.Equal(integration, result.ResultCommit);
         Assert.Equal("main", result.TargetBranch);
         Assert.Equal(integration, _repo.UserHead);
+    }
+
+    /// <summary>V25: the question says how many files change in plain Spanish, never «fichero(s)».</summary>
+    [Theory]
+    [InlineData(2, " Cambian 2 ficheros. ")]
+    [InlineData(1, " Cambia 1 fichero. ")]
+    [InlineData(0, " No cambia ningún fichero. ")]
+    public async Task The_question_of_a_delivery_counts_the_files_that_change_in_words(int files, string expected)
+    {
+        await IntegrationAsync();
+        _worktrees.ChangedPaths = [.. Enumerable.Range(1, files).Select(i => $"src/Calc/F{i}.cs")];
+
+        await DeliverAsync();
+
+        var request = Assert.Single(_gate.Requests);
+        Assert.Contains(expected, request.Description, StringComparison.Ordinal);
+        Assert.DoesNotContain("(s)", request.Description, StringComparison.Ordinal);
     }
 
     [Fact]

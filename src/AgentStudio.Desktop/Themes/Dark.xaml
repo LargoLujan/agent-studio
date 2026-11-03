@@ -272,6 +272,26 @@
         <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
     </Style>
 
+    <!-- Read-only document viewer (the journal, V31): Markdown shown as a document. Like MonoViewer it has a reading caret
+         (the keyboard moves and selects with it) and the same translucent selection; it prints nothing and finds nothing of
+         its own, so Ctrl+P and Ctrl+F reach the window. -->
+    <Style x:Key="ReadingViewer" TargetType="RichTextBox">
+        <Setter Property="IsReadOnly" Value="True"/>
+        <Setter Property="IsReadOnlyCaretVisible" Value="True"/>
+        <Setter Property="IsUndoEnabled" Value="False"/>
+        <Setter Property="AcceptsTab" Value="False"/>
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="Background" Value="{StaticResource BackgroundBrush}"/>
+        <Setter Property="CaretBrush" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="SelectionBrush" Value="{StaticResource AccentBrush}"/>
+        <Setter Property="SelectionOpacity" Value="0.4"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisualInset}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="8,8,8,10"/>
+        <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+        <Setter Property="HorizontalScrollBarVisibility" Value="Disabled"/>
+    </Style>
+
     <!-- Slim dark scrollbars (the default ones are light grey). -->
     <Style TargetType="ScrollBar">
         <Setter Property="Background" Value="Transparent"/>
@@ -334,6 +354,15 @@
                 </Setter>
             </Trigger>
         </Style.Triggers>
+    </Style>
+
+    <!-- The corner between the two scroll bars (V30): WPF's own template fills it with SystemColors.Control, a light square
+         on a dark surface. The template is kept; only that brush becomes the surface colour, for the scroll viewers that take
+         the implicit style. A scroll viewer with a style of its own keeps its look. -->
+    <Style TargetType="ScrollViewer">
+        <Style.Resources>
+            <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="{StaticResource SurfaceColor}"/>
+        </Style.Resources>
     </Style>
 
     <Style x:Key="AccentProgress" TargetType="ProgressBar">

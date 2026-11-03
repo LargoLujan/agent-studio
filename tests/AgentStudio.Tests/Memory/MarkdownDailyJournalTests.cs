@@ -35,8 +35,12 @@ public sealed class MarkdownDailyJournalTests : IDisposable
 
     private static DateTimeOffset At(int h, int m, int s) => new(2026, 3, 10, h, m, s, Plus2);
 
+    /// <summary>
+    /// The title of the hook, and under it what the app writes (V31): its requests and their results, not the «Hecho» lines
+    /// Claude adds in the repository of Agent Studio, which mean nothing in the project of a user.
+    /// </summary>
     [Fact]
-    public async Task First_record_creates_the_file_with_the_hook_header()
+    public async Task First_record_creates_the_file_with_the_title_and_says_what_the_app_writes()
     {
         var journal = NewJournal();
 
@@ -45,9 +49,10 @@ public sealed class MarkdownDailyJournalTests : IDisposable
         var lines = Lines("2026-03-10");
         Assert.Equal("# Bitácora · 2026-03-10", lines[0]);
         Assert.Equal(string.Empty, lines[1]);
-        Assert.Equal("Registro automático de cada prompt (hook `UserPromptSubmit`): hora · sesión · tags · extracto.", lines[2]);
-        Assert.Equal("Al cerrar cada petición, Claude añade debajo una línea «Hecho:» con el resultado.", lines[3]);
+        Assert.Equal("Registro automático de Agent Studio: una línea por cada petición a un agente (hora · número · quién · proveedor/modelo · etiquetas · resumen).", lines[2]);
+        Assert.Equal("Cuando el agente termina, se añade una línea «Resultado» con el estado, la duración y los tokens.", lines[3]);
         Assert.Equal(string.Empty, lines[4]);
+        Assert.DoesNotContain(lines, l => l.Contains("Hecho", StringComparison.Ordinal) || l.Contains("hook", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -118,7 +123,8 @@ public sealed class MarkdownDailyJournalTests : IDisposable
             new PromptOutcome(new DateTimeOffset(2026, 3, 11, 0, 0, 1, Plus2), AgentRunStatus.Succeeded, TimeSpan.FromSeconds(2), unavailable, unavailable),
             ct);
 
-        Assert.DoesNotContain(Lines("2026-03-10"), l => l.Contains("Resultado", StringComparison.Ordinal));
+        // The lines under the title name the «Resultado» lines; none is in the first day.
+        Assert.DoesNotContain(Lines("2026-03-10"), l => l.TrimStart().StartsWith("- Resultado", StringComparison.Ordinal));
         var next = Lines("2026-03-11");
         Assert.Equal("# Bitácora · 2026-03-11", next[0]);
         Assert.Contains(next, l => l.StartsWith("  - Resultado P-0001 · 00:00:01 · Succeeded", StringComparison.Ordinal));

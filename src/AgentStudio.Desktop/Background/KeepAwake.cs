@@ -120,8 +120,20 @@ public sealed class ExecutionStateThread : IExecutionState, IDisposable
 }
 
 /// <summary>
+/// A lease of «mantener despierto» that can say why it ends, for the app's log (V26): the log said why the computer was
+/// kept awake when it was let sleep again, not why it was let go. Disposing it releases it too, without a reason.
+/// </summary>
+public interface IKeepAwakeLease : IDisposable
+{
+    /// <summary>Releases the lease, as disposing it does, saying why for the log; a lease already released does nothing.</summary>
+    void Release(string why);
+}
+
+/// <summary>
 /// «Mantener despierto» (the port of P0, docs/16 D-40): any number of leases at once; the computer is kept awake from the
-/// first and may sleep again when the last is released. Each lease is released once, however often it is disposed.
+/// first and may sleep again when the last is released. Each lease is released once, however often it is disposed. Its
+/// leases are <see cref="IKeepAwakeLease"/>: the log says that the computer may sleep again only when the last one goes,
+/// and why it went when its holder says so.
 /// </summary>
 public sealed class KeepAwakeService : IKeepAwake
 {
@@ -170,18 +182,33 @@ public sealed class KeepAwakeService : IKeepAwake
         return new Lease(this, reason);
     }
 
-    private void Release(string reason)
+    /// <param name="reason">Why the lease was taken.</param>
+    /// <param name="why">Why it ends, when its holder said so; null when it was only disposed.</param>
+    private void Release(string reason, string? why)
     {
+        int left;
         lock (_gate)
         {
             _held--;
+            left = _held;
             if (_held == 0)
             {
                 Ask(false, reason);
             }
         }
 
-        _log?.LogInformation("The computer may sleep again ({Reason} ended).", reason);
+        if (left > 0)
+        {
+            _log?.LogInformation("A request to keep the computer awake ended ({Why}); other requests still hold it: {Left}.", why ?? reason, left);
+        }
+        else if (why is not null)
+        {
+            _log?.LogInformation("The computer may sleep again: {Why}.", why);
+        }
+        else
+        {
+            _log?.LogInformation("The computer may sleep again: the request to keep it awake was released ({Reason}).", reason);
+        }
     }
 
     /// <summary>Asks Windows; a refusal or a thread that does not answer is written in the app's log, never ignored.</summary>
@@ -204,15 +231,23 @@ public sealed class KeepAwakeService : IKeepAwake
         }
     }
 
-    private sealed class Lease(KeepAwakeService owner, string reason) : IDisposable
+    private sealed class Lease(KeepAwakeService owner, string reason) : IKeepAwakeLease
     {
         private int _released;
 
-        public void Dispose()
+        public void Dispose() => End(null);
+
+        public void Release(string why)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(why);
+            End(why);
+        }
+
+        private void End(string? why)
         {
             if (Interlocked.Exchange(ref _released, 1) == 0)
             {
-                owner.Release(reason);
+                owner.Release(reason, why);
             }
         }
     }
@@ -222,11 +257,22 @@ public sealed class KeepAwakeService : IKeepAwake
 /// Keeps the computer awake while there is work going on and the setting «Impedir la suspensión mientras hay trabajo» is on
 /// (<c>PreventSleepWhileWorking</c>, D-40): one lease, taken when both hold and released as soon as one does not. The
 /// setting is read when this starts and again on <see cref="Refresh"/> (the shell calls it when the settings are saved).
+/// The log says why the lease is taken and, when it is released, why (V26): the work ended, the setting was turned off or
+/// the app is closing.
 /// </summary>
 public sealed class KeepAwakeWhileWorking : IDisposable
 {
     /// <summary>Why the computer is kept awake, for the app's log.</summary>
     public const string Reason = "hay trabajo en marcha y el ajuste «Impedir la suspensión mientras hay trabajo» está activo";
+
+    /// <summary>Why the computer may sleep again when no work goes on any more, for the app's log.</summary>
+    public const string NoWorkReason = "ya no hay trabajo en marcha";
+
+    /// <summary>Why the computer may sleep again when the setting was turned off, for the app's log.</summary>
+    public const string SettingOffReason = "se desactivó el ajuste «Impedir la suspensión mientras hay trabajo»";
+
+    /// <summary>Why the computer may sleep again when the app stops following the work, for the app's log.</summary>
+    public const string ClosingReason = "Agent Studio se cierra";
 
     private readonly BackgroundWorkRegistry _work;
     private readonly IKeepAwake _keepAwake;
@@ -268,8 +314,24 @@ public sealed class KeepAwakeWhileWorking : IDisposable
 
         _disposed = true;
         _work.Changed -= OnChanged;
-        _lease?.Dispose();
-        _lease = null;
+        if (_lease is { } lease)
+        {
+            _lease = null;
+            Release(lease, ClosingReason);
+        }
+    }
+
+    /// <summary>Releases <paramref name="lease"/> saying why, when the lease can say it; otherwise only disposes it.</summary>
+    private static void Release(IDisposable lease, string why)
+    {
+        if (lease is IKeepAwakeLease explained)
+        {
+            explained.Release(why);
+        }
+        else
+        {
+            lease.Dispose();
+        }
     }
 
     private void OnChanged(object? sender, EventArgs e) => Evaluate();
@@ -289,7 +351,7 @@ public sealed class KeepAwakeWhileWorking : IDisposable
         else if (!hold && _lease is { } lease)
         {
             _lease = null;
-            lease.Dispose();
+            Release(lease, _isEnabled ? NoWorkReason : SettingOffReason);
         }
     }
 }

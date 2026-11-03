@@ -178,6 +178,65 @@ public sealed class JournalViewModelTests
         Assert.Contains("bitacora", journal.StatusMessage, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// The review of V31: laying out the readable view takes seconds for a long day (5,000 lines), on the UI thread, when a
+    /// project opens. A long day draws its title and its latest entries, whole; all of it is there as plain text, on demand.
+    /// </summary>
+    [Fact]
+    public async Task A_long_day_draws_its_latest_entries_and_shows_all_of_it_as_plain_text_on_demand()
+    {
+        var day = LongDay(entries: 2500);
+        var reader = new FakeStorageReader { Files = { ["bitacora/2026-10-15.md"] = day } };
+        var journal = new JournalViewModel(Clock(), reader);
+
+        await journal.SetProjectAsync(Root);
+
+        Assert.Equal(day, journal.Text);
+        Assert.True(journal.IsTrimmed);
+        Assert.True(journal.ShowReadable);
+        var lines = journal.RenderedText.Split('\n');
+        Assert.True(lines.Length <= JournalViewModel.ReadableLines, $"The readable view draws {lines.Length} lines.");
+        Assert.Equal("# Bitácora · 2026-10-15", lines[0]);
+        Assert.StartsWith("- **09:00:00** · P-", lines[5], StringComparison.Ordinal);
+        Assert.Contains("«petición 2500»", journal.RenderedText, StringComparison.Ordinal);
+        Assert.DoesNotContain("«petición 1»", journal.RenderedText, StringComparison.Ordinal);
+        var shown = lines.Count(l => l.StartsWith("- ", StringComparison.Ordinal));
+        Assert.Equal($"Bitácora larga: se ven las {shown} entradas más recientes de 2500.", journal.TrimNote);
+        Assert.Equal("Ver todo", journal.ToggleText);
+
+        // The plain viewer takes the whole day only when it is asked for: a text box pays for its text even when hidden.
+        Assert.Equal(string.Empty, journal.PlainText);
+
+        journal.TogglePlainTextCommand.Execute(null);
+
+        Assert.True(journal.ShowPlainText);
+        Assert.False(journal.ShowReadable);
+        Assert.Equal(day, journal.PlainText);
+        Assert.Equal("Ver legible", journal.ToggleText);
+        Assert.Equal("Se ve el día completo como texto, sin formato.", journal.TrimNote);
+
+        // Another project starts readable again; a short day is drawn whole, with nothing to toggle.
+        reader.Files["bitacora/2026-10-15.md"] = LongDay(entries: 3);
+        await journal.SetProjectAsync(Root);
+        Assert.False(journal.ShowPlainText);
+        Assert.False(journal.IsTrimmed);
+        Assert.Null(journal.TrimNote);
+        Assert.Equal(journal.Text, journal.RenderedText);
+    }
+
+    /// <summary>A day as the app writes it: the title, the two lines under it and one entry with its result per request.</summary>
+    internal static string LongDay(int entries)
+    {
+        var text = new StringBuilder("# Bitácora · 2026-10-15\n\nRegistro automático de Agent Studio.\nCuando el agente termina, se añade una línea «Resultado».\n\n");
+        for (var i = 1; i <= entries; i++)
+        {
+            text.Append(System.Globalization.CultureInfo.InvariantCulture, $"- **09:00:00** · P-{i:0000} · Ejecutor · claude-code/haiku · #prompt · «petición {i}»\n")
+                .Append(System.Globalization.CultureInfo.InvariantCulture, $"  - Resultado P-{i:0000} · 09:00:01 · Succeeded · 1,0 s · tokens no disponibles\n");
+        }
+
+        return text.ToString();
+    }
+
     /// <summary>The app's composition over temporary folders, with the clock of these tests.</summary>
     private static ServiceProvider ComposedApp(TempDirectory temp)
     {

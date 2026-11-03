@@ -387,6 +387,9 @@ public partial class MainWindow : Window
         {
             _background.IsLocked = locked;
         }
+
+        // The bars of the status bar name tasks of the project and the quota of the account: locked, they show nothing.
+        _viewModel.StatusStrip.IsLocked = locked;
     }
 
     private void SuspendShortcuts()

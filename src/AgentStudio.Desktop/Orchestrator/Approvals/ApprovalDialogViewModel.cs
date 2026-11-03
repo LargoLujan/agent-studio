@@ -17,6 +17,7 @@ public sealed record ApprovalAnswer(bool Approved, string? Comment);
 public sealed partial class ApprovalDialogViewModel : ObservableObject
 {
     private readonly UserPresenceAvailability? _availability;
+    private readonly string? _projectName;
 
     /// <param name="request">What is asked.</param>
     /// <param name="confirmation">
@@ -25,12 +26,21 @@ public sealed partial class ApprovalDialogViewModel : ObservableObject
     /// (<see cref="ApprovalVerification.WindowsHelloUnavailable"/>, with <paramref name="availability"/> saying why).
     /// </param>
     /// <param name="availability">What Windows said of Windows Hello, when it was asked.</param>
-    public ApprovalDialogViewModel(ApprovalRequest request, ApprovalVerification confirmation = ApprovalVerification.Dialog, UserPresenceAvailability? availability = null)
+    /// <param name="projectName">
+    /// The name the screens give the project of the request (its folder); null when it is not known, and then the question
+    /// names no project: its id means nothing to a person.
+    /// </param>
+    public ApprovalDialogViewModel(
+        ApprovalRequest request,
+        ApprovalVerification confirmation = ApprovalVerification.Dialog,
+        UserPresenceAvailability? availability = null,
+        string? projectName = null)
     {
         ArgumentNullException.ThrowIfNull(request);
         Request = request;
         Confirmation = confirmation;
         _availability = availability;
+        _projectName = string.IsNullOrWhiteSpace(projectName) ? null : projectName.Trim();
     }
 
     public ApprovalRequest Request { get; }
@@ -53,7 +63,17 @@ public sealed partial class ApprovalDialogViewModel : ObservableObject
     /// <summary>A warning when Windows Hello is not there; neutral when it is asked.</summary>
     public Tone HelloNoticeTone => Confirmation == ApprovalVerification.WindowsHelloUnavailable ? Tone.Warning : Tone.Neutral;
 
+    /// <summary>The identifier of the action, as the log records it.</summary>
     public string Action => Request.Action;
+
+    /// <summary>What is asked, as a plain sentence (<see cref="ApprovalTitles"/>): the title of the question, never the identifier.</summary>
+    public string Title => ApprovalTitles.For(Request.Action);
+
+    /// <summary>
+    /// The identifier the log records the action with, as a technical detail under the question; null when the action is
+    /// already a sentence (then the title is that sentence).
+    /// </summary>
+    public string? ActionDetail => ApprovalTitles.IsIdentifier(Request.Action) ? $"Acción en el registro: {Request.Action.Trim()}" : null;
 
     public string Description => Request.Description;
 
@@ -79,12 +99,20 @@ public sealed partial class ApprovalDialogViewModel : ObservableObject
 
     public string? RequestedBy => Request.RequestedBy is { } agent ? $"Lo pide el agente «{agent}»." : null;
 
-    /// <summary>Project, run and task the action belongs to, when the request says.</summary>
+    /// <summary>
+    /// Project, run and task the action belongs to, when the request says. The project goes by its name, and is left out
+    /// when its name is not known: the id of a project is never shown.
+    /// </summary>
     public string? Origin
     {
         get
         {
             var parts = new List<string>();
+            if (Request.ProjectId is not null && _projectName is { } project)
+            {
+                parts.Add($"proyecto {project}");
+            }
+
             if (Request.RunId is { } run)
             {
                 parts.Add($"ejecución {run}");
@@ -93,11 +121,6 @@ public sealed partial class ApprovalDialogViewModel : ObservableObject
             if (Request.TaskId is { } task)
             {
                 parts.Add($"tarea {task}");
-            }
-
-            if (Request.ProjectId is { } project)
-            {
-                parts.Add($"proyecto {project}");
             }
 
             return parts.Count == 0 ? null : "Origen: " + string.Join(" · ", parts);

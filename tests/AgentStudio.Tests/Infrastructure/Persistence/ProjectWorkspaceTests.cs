@@ -106,6 +106,23 @@ public sealed class ProjectWorkspaceTests : IDisposable
         Assert.Equal(Path.GetFullPath(Path.Combine(_folder.DataDirectory, "tmp")), storage.TempDirectory);
     }
 
+    /// <summary>V25: the screens name a project by its folder; finding it never throws, for a project not open here either.</summary>
+    [Fact]
+    public async Task Finding_a_project_gives_its_storage_while_it_is_open_and_nothing_otherwise()
+    {
+        var instance = await ProjectInstance.OpenAsync(_folder.Root);
+        var id = instance.ProjectId;
+
+        Assert.Equal(Path.GetFullPath(_folder.Root), instance.Databases.Find(id)?.RootPath);
+        Assert.Null(instance.Databases.Find("never-opened"));
+        Assert.Null(instance.Databases.Find(" "));
+
+        instance.Databases.Close(id);
+        Assert.Null(instance.Databases.Find(id));
+        instance.Dispose();
+        Assert.Null(instance.Databases.Find(id));
+    }
+
     [Fact]
     public async Task A_database_that_holds_more_than_one_project_is_refused()
     {

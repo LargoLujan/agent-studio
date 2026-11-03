@@ -1,0 +1,53 @@
+<UserControl x:Class="AgentStudio.Desktop.Controls.MetricBar"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Focusable="False" IsTabStop="False" UseLayoutRounding="True" SnapsToDevicePixels="True">
+    <!-- The common bar of every percentage of consumption, context, quota and budget (docs/18 P3, tanda 2): a track and a fill
+         with the value against its maximum, the value in words («62 %», «~62 %»), where it comes from and the level of the
+         thresholds. Every colour repeats what the words say. An estimate carries «~», the word «estimado» and a pattern; without
+         a value the track is drawn empty and the words say why («no expuesto», «sin dato»). Only the tokens of the theme are
+         used (Themes/Dark.xaml); the contrast of every pair is measured in tests/…/Contrast/MetricBarContrastTests.cs.
+         - Track: the darkest surface (BackgroundBrush), outlined with BorderStrongBrush so an empty one is seen on any surface.
+         - Fill: SuccessBrush (sano), WarningBrush (aviso and compresión recomendada), ErrorBrush (crítico or a limit reached),
+           AccentBrush (nothing to judge); MetricBar.FillKey says which, and each is >= 3:1 against the track.
+         - Pattern of an estimate: light diagonal stripes over the fill, an extra cue to «~» and «estimado». -->
+    <UserControl.Resources>
+        <SolidColorBrush x:Key="MetricBar.HatchStripe" Color="{StaticResource TextPrimaryColor}" Opacity="0.4"/>
+        <DrawingBrush x:Key="MetricBar.Hatch" TileMode="Tile" Stretch="None"
+                      Viewport="0,0,6,6" ViewportUnits="Absolute" Viewbox="0,0,6,6" ViewboxUnits="Absolute">
+            <DrawingBrush.Drawing>
+                <GeometryDrawing Brush="{StaticResource MetricBar.HatchStripe}" Geometry="M0,6 L6,0 L6,2 L2,6 Z M0,0 L2,0 L0,2 Z"/>
+            </DrawingBrush.Drawing>
+        </DrawingBrush>
+        <SolidColorBrush x:Key="MetricBar.Mark" Color="{StaticResource TextPrimaryColor}" Opacity="0.85"/>
+    </UserControl.Resources>
+
+    <Grid x:Name="LayoutRoot">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition x:Name="LabelColumn" Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <TextBlock x:Name="LabelText" Grid.Column="0" Style="{StaticResource SecondaryText}" Margin="0,0,8,0"
+                   VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+
+        <Border x:Name="Track" Grid.Column="1" Width="120" Height="10" VerticalAlignment="Center"
+                Background="{StaticResource BackgroundBrush}" BorderBrush="{StaticResource BorderStrongBrush}"
+                BorderThickness="1" CornerRadius="2">
+            <Grid x:Name="TrackInterior" ClipToBounds="True">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition x:Name="FillColumn" Width="0*"/>
+                    <ColumnDefinition x:Name="RestColumn" Width="1*"/>
+                </Grid.ColumnDefinitions>
+                <Rectangle x:Name="Fill" Grid.Column="0" Visibility="Collapsed"/>
+                <Rectangle x:Name="Hatch" Grid.Column="0" Fill="{StaticResource MetricBar.Hatch}" Visibility="Collapsed"/>
+                <Grid x:Name="MarksLayer" Grid.Column="0" Grid.ColumnSpan="2" IsHitTestVisible="False"/>
+            </Grid>
+        </Border>
+
+        <TextBlock x:Name="ValueLine" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource SecondaryText}">
+            <Run x:Name="ValueRun" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/><Run x:Name="OriginRun"/>
+        </TextBlock>
+    </Grid>
+</UserControl>

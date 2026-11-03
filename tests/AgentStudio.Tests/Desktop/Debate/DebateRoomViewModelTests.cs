@@ -74,6 +74,25 @@ public sealed class DebateRoomViewModelTests
     }
 
     [Fact]
+    public void The_tokens_and_the_runs_of_the_debate_are_bars_against_their_maximum_with_their_origin()
+    {
+        var exact = NewRoom();
+        var estimated = NewRoom();
+
+        exact.Attach(new FakeDebateRun(Snapshot(tokens: Tokens(84_000), reportedTurns: 3)), Project, Context);
+        estimated.Attach(new FakeDebateRun(Snapshot(tokens: Tokens(91_500, MetricOrigin.EstimatedBySystem), reportedTurns: 2)), Project, Context);
+
+        Assert.Equal(84_000d / 400_000, exact.TokensBar!.Fraction!.Value, 6);
+        Assert.Equal("84.000 de 400.000 tokens", exact.TokensBar!.ValueText);
+        Assert.Equal("exacto · informado por el CLI", exact.TokensBar!.Origin);
+        Assert.True(estimated.TokensBar!.IsEstimate);
+        Assert.StartsWith("~91.500", estimated.TokensBar!.ValueText, StringComparison.Ordinal);
+        Assert.Contains("parcial (2 de 3 turnos informados)", estimated.TokensBar!.Detail, StringComparison.Ordinal);
+        Assert.Equal("3 de 10", exact.RunsBar!.ValueText);
+        Assert.Equal(0.3, exact.RunsBar!.Fraction!.Value, 6);
+    }
+
+    [Fact]
     public void Contributions_are_grouped_by_round_with_their_reply_quotes_and_what_could_not_be_resolved()
     {
         var room = NewRoom();

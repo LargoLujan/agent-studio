@@ -105,7 +105,8 @@ public sealed class AuxiliaryAgentRunner(IDecisionRecorder decisions, IEvidenceS
         IAgentRun agentRun;
         try
         {
-            agentRun = await provider.StartAsync(request.Request, ct).ConfigureAwait(false);
+            // The request carries the start just recorded, so the journal can name it (docs/17 D-02).
+            agentRun = await provider.StartAsync(request.Request with { Anchor = new AgentRunAnchor(run.Value, null, 1) }, ct).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {

@@ -132,16 +132,22 @@ public sealed class ApprovalPromptService : IApprovalPrompt
     private readonly SynchronizationContext? _ui;
     private readonly ReinforcedConfirmation? _confirmation;
     private readonly IInterfaceLock? _lock;
+    private readonly Func<string, string?>? _projectNames;
 
     /// <param name="uiContext">The UI thread's context; defaults to the creating thread's context.</param>
     /// <param name="confirmation">Windows Hello for the critical approvals; without it, the dialog alone decides, as before Phase 8.</param>
     /// <param name="interfaceLock">The lock of the interface the questions wait on; without it, they never wait.</param>
+    /// <param name="projectNames">
+    /// The name the screens give a project, by its id (its folder), or null when it does not know it; it must not throw.
+    /// Without it, or for a project it does not know, the question names no project (never its id).
+    /// </param>
     public ApprovalPromptService(
         IApprovalDialog dialog,
         TimeProvider time,
         SynchronizationContext? uiContext = null,
         ReinforcedConfirmation? confirmation = null,
-        IInterfaceLock? interfaceLock = null)
+        IInterfaceLock? interfaceLock = null,
+        Func<string, string?>? projectNames = null)
     {
         ArgumentNullException.ThrowIfNull(dialog);
         ArgumentNullException.ThrowIfNull(time);
@@ -150,6 +156,7 @@ public sealed class ApprovalPromptService : IApprovalPrompt
         _ui = uiContext ?? SynchronizationContext.Current;
         _confirmation = confirmation;
         _lock = interfaceLock;
+        _projectNames = projectNames;
     }
 
     /// <exception cref="OperationCanceledException">The request was cancelled or expired before the person answered.</exception>
@@ -186,7 +193,8 @@ public sealed class ApprovalPromptService : IApprovalPrompt
         // A lock, a cancellation or an expiry that came while the question was on its way to the UI thread (or while Windows
         // said whether Hello is there) opens no window: the question is withdrawn before it is shown.
         asking.ThrowIfCancellationRequested();
-        var answer = await _dialog.ShowAsync(new ApprovalDialogViewModel(request, plan.Confirmation, plan.Availability), asking).ConfigureAwait(true);
+        var question = new ApprovalDialogViewModel(request, plan.Confirmation, plan.Availability, ProjectName(request));
+        var answer = await _dialog.ShowAsync(question, asking).ConfigureAwait(true);
 
         // The window also closes when the request is cancelled, expires or the interface locks: that is no answer.
         asking.ThrowIfCancellationRequested();
@@ -207,7 +215,7 @@ public sealed class ApprovalPromptService : IApprovalPrompt
 
         // After a yes, Windows Hello: only a confirmation approves. One that comes once the question was withdrawn, expired
         // or locked away is no answer (ConfirmAsync throws).
-        var hello = await _confirmation!.ConfirmAsync(HelloAnswers.ApprovalMessage(request.Action), asking).ConfigureAwait(true);
+        var hello = await _confirmation!.ConfirmAsync(HelloAnswers.ApprovalMessage(question.Title), asking).ConfigureAwait(true);
         return hello switch
         {
             { Confirmed: true } => new ApprovalDecision(true, DecidedBy, _time.GetUtcNow(), answer.Comment, Verification: ApprovalVerification.WindowsHello),
@@ -215,6 +223,10 @@ public sealed class ApprovalPromptService : IApprovalPrompt
             _ => Unconfirmed(HelloAnswers.ApprovalNotConfirmed(hello.Result ?? UserPresenceResult.Canceled)),
         };
     }
+
+    /// <summary>The name of the project of <paramref name="request"/>, when the request names one and it is known.</summary>
+    private string? ProjectName(ApprovalRequest request) =>
+        request.ProjectId is { } id && _projectNames is { } names ? names(id) : null;
 
     private ApprovalDecision Deny(string reason, ApprovalVerification verification) =>
         new(false, DecidedBy, _time.GetUtcNow(), reason, Verification: verification);

@@ -14,13 +14,24 @@
 ```markdown
 # Bitácora · 2026-10-15
 
-Registro automático de cada prompt (hook `UserPromptSubmit`): hora · sesión · tags · extracto.
-Al cerrar cada petición, Claude añade debajo una línea «Hecho:» con el resultado.
+Registro automático de Agent Studio: una línea por cada petición a un agente (hora · número · quién · proveedor/modelo · etiquetas · resumen).
+Cuando el agente termina, se añade una línea «Resultado» con el estado, la duración y los tokens.
 
 - **11:42:07** · P-0007 · Backend · codex-cli/gpt-5 · #prompt #agente-backend #orquestacion · «Implementar el servicio de pedidos» (tarea T-12)
   - Resultado P-0007 · 11:44:31 · Succeeded · 144,2 s · tokens 18.300 → 2.150 (exactos)
 - **11:45:02** · P-0008 · Juez · gemini-cli/gemini-2.5-pro · #prompt #juez #auditoria · «Auditar proyecto completo»
 ```
+
+**Las dos líneas de debajo del título** las escribe quien crea el día, y cada escritor explica lo suyo (desde la tanda 2,
+2026-11-03; V31 y adenda de [ADR-0008](adr/0008-bitacora-obligatoria.md)). Las de arriba son las de Agent Studio. El
+hook de este repositorio escribe las suyas:
+
+```markdown
+Registro automático de cada prompt (hook `UserPromptSubmit`): hora · sesión · tags · extracto.
+Al cerrar cada petición, Claude añade debajo una línea «Hecho:» con el resultado.
+```
+
+Antes de la tanda 2, la app también escribía estas dos del hook. Los días ya escritos así no se tocan.
 
 ## 2. Qué lo hace obligatorio
 
@@ -34,7 +45,8 @@ Al cerrar cada petición, Claude añade debajo una línea «Hecho:» con el resu
    extracto de 160 caracteres. Nunca bloquea el prompt. `CLAUDE.md` pide a Claude añadir la línea «Hecho:» al cerrar
    cada petición.
 
-Ambos escriben el mismo formato de cabecera y conviven en el mismo fichero.
+Ambos escriben el mismo título y conviven en el mismo fichero. Las dos líneas de debajo del título son las de quien crea
+el día ([§1](#1-dónde-y-cómo)).
 
 ## 3. Tags de identificación
 
@@ -72,7 +84,9 @@ Decisión en [ADR-0025](adr/0025-resumen-diario-determinista.md). Lo hace `Daily
 - **Los dos escritores.** Se reconocen las entradas del producto (`P-NNNN`) y sus líneas «Resultado», las del hook (con
   `sesión`, y también las escritas a mano sin sesión y con una palabra en lugar de la hora) y las líneas «Hecho» en todas
   sus formas (`Hecho:`, `Hecho (en curso):`, `Hecho (00:27, cierre):`…). Los títulos, las dos líneas de debajo y las
-  líneas en blanco son parte del formato; de lo demás (notas, líneas rotas) solo se da el número.
+  líneas en blanco son parte del formato; de lo demás (notas, líneas rotas) solo se da el número. Desde la tanda 2, las
+  líneas de debajo del título pueden ser las del hook (también las que escribía la app antes) o las nuevas de la app: se
+  reconocen las cuatro, y ninguna cuenta como «sin reconocer».
 - **Qué dice.** Los prompts por actor, proveedor y modelo; los resultados por estado y su duración total; los tokens,
   «exactos» solo si todos los prompts del producto dieron cifras exactas y «parcial» si no; los fallos y límites; las
   cinco etiquetas más frecuentes; y las líneas «Hecho», literales y escapadas. Todo lo que sale de la bitácora va
@@ -97,3 +111,27 @@ Decisión en [ADR-0025](adr/0025-resumen-diario-determinista.md). Lo hace `Daily
 | `IPromptJournal`, `MarkdownDailyJournal`, `JournalingAgentProvider` | Implementado en este incremento, con tests |
 | Registro obligatorio de proveedores reales a través del decorador | Fase 2, al llegar los adaptadores |
 | Resúmenes diarios | Fase 4 (WP3): `DailySummaryService` y la lectura comprobada de la bitácora, con tests. El panel y la vista de «Bitácora de hoy» por la lectura comprobada son de WP5 |
+| Ancla de la línea «Resultado» (Fase 12) | P0 de la Fase 12: el formato, el escritor y su paso por el motor, las auxiliares, los debates y el juez, con tests ([§8](#8-la-línea-resultado-nombra-su-arranque-fase-12)) |
+| Líneas propias de la app bajo el título (tanda 2, V31) | Integrado el 2026-11-03, con tests del escritor y del resumen diario; pendiente de verificar en vivo |
+| «Bitácora de hoy» como documento legible (tanda 2, V31) | Integrado el 2026-11-03: títulos, listas, negrita y código, sin las barras invertidas del escapado. Un día largo enseña sus entradas más recientes, y «Ver todo», el día completo como texto. Pendiente de verificar en vivo ([docs/03 §2](03-pantallas-y-navegacion.md#2-ventana-principal)) |
+
+## 8. La línea «Resultado» nombra su arranque (Fase 12)
+
+Decisión en [ADR-0047](adr/0047-indice-semantico-local.md) (docs/17 D-02). Desde la Fase 12, la bitácora entra en la
+memoria del proyecto como `JournalEntry`. Para saber qué escribió Agent Studio, el escritor del producto termina la línea
+«Resultado» con el `AgentRunStarted` del lanzamiento:
+
+```markdown
+  - Resultado P-0007 · 11:44:31 · Succeeded · 144,2 s · tokens 18.300 → 2.150 (exactos) · ejecución `20261015-a1b2c3` · tarea `T-12` · intento 1
+  - Resultado P-0008 · 11:50:02 · Failed · 3,0 s · tokens no disponibles · boom · ejecución `aux-20261015-0a1b2c` · intento 1
+```
+
+- **Va al final**, detrás de la nota: `` · ejecución `<ejecución>` ``, después `` · tarea `<tarea>` `` si el arranque
+  tiene tarea, y después `` · intento <n> ``. La ejecución y la tarea se escriben con `Uri.EscapeDataString`, así que
+  cualquier valor se recupera tal cual.
+- **La nota no puede imitarla:** el escritor cambia los acentos graves de la nota, y el ancla los necesita alrededor de la
+  ejecución. La lee y la escribe una sola pieza, `JournalResultAnchor`.
+- **El resumen diario no cambia:** su línea «Resultado» ya admitía un añadido. Una prueba lo comprueba con la bitácora de
+  ejemplo y con un día escrito por el propio escritor, con el ancla y sin ella.
+- **Las entradas sin ancla** son las de antes de la Fase 12, las del hook y las de un lanzamiento que nadie anunció (una
+  sonda). Como memoria quedan en cuarentena hasta que las aceptes.

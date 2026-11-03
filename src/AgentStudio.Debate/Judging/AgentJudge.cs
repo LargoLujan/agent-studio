@@ -93,6 +93,12 @@ public interface IJudgeRunObserver
     Task RunStartingAsync(JudgeRunStart start, CancellationToken cancellationToken);
 
     Task RunFinishedAsync(JudgeRunEnd end, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The <c>AgentRunStarted</c> that <see cref="RunStartingAsync"/> recorded for <paramref name="start"/>, which the
+    /// launch carries so the journal can name it (docs/17 D-02); null when the observer records none.
+    /// </summary>
+    AgentRunAnchor? AnchorOf(JudgeRunStart start) => null;
 }
 
 /// <summary>
@@ -246,7 +252,12 @@ public sealed class AgentJudge : IJudge
     {
         if (_launch.Observer is { } observer)
         {
-            await observer.RunStartingAsync(new JudgeRunStart(attempt, request, _provider.Provider, _provider.Vendor), cancellationToken).ConfigureAwait(false);
+            var start = new JudgeRunStart(attempt, request, _provider.Provider, _provider.Vendor);
+            await observer.RunStartingAsync(start, cancellationToken).ConfigureAwait(false);
+            if (observer.AnchorOf(start) is { } anchor)
+            {
+                request = request with { Anchor = anchor };
+            }
         }
 
         IAgentRun run;

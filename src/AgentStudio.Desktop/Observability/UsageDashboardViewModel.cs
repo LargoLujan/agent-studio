@@ -31,7 +31,11 @@ public enum UsagePeriod
 }
 
 /// <summary>One choice of a list on screen.</summary>
-public sealed record Option<T>(T Value, string Label);
+public sealed record Option<T>(T Value, string Label)
+{
+    /// <summary>What a screen reader says of the option (A1-bis): its label, never the members of the record.</summary>
+    public override string ToString() => Label;
+}
 
 /// <summary>A dimension the report can group by, and whether the user picked it.</summary>
 public sealed partial class DimensionOption(UsageDimension dimension, string label) : ObservableObject

@@ -17,3 +17,21 @@
   obligatorio de verdad).
 - **Consecuencias:** si el disco no es escribible, Agent Studio no lanza agentes (preferible a trabajar sin registro);
   el extracto del prompt de desarrollo queda en el repo (repo privado, uso personal).
+
+## Adenda · 2026-11-03 · tanda 2: cada escritor explica lo suyo bajo el título (V31)
+
+La decisión no cambia: un fichero por día, el mismo título y entradas que conviven en el mismo fichero. Cambia el punto 3,
+«el mismo formato de cabecera».
+
+- **Antes**, Agent Studio copiaba bajo el título las dos líneas del hook. Hablaban de la sesión, el extracto y las líneas
+  «Hecho:» que añade Claude en este repositorio. En la bitácora de otro proyecto no tenían sentido.
+- **Ahora** el título es el mismo (`# Bitácora · AAAA-MM-DD`), y quien crea el día escribe debajo sus propias dos líneas.
+  Las de Agent Studio (`MarkdownDailyJournal`) dicen lo que hace la app:
+  - «Registro automático de Agent Studio: una línea por cada petición a un agente (hora · número · quién ·
+    proveedor/modelo · etiquetas · resumen).»
+  - «Cuando el agente termina, se añade una línea «Resultado» con el estado, la duración y los tokens.»
+- **El hook** sigue escribiendo las suyas.
+- **La lectura reconoce las cuatro:** el resumen diario (`DailySummaryBuilder`) da por parte del formato las dos del hook
+  (que la app también escribía antes) y las dos nuevas de la app. Un día antiguo y uno nuevo se resumen igual, sin líneas
+  «sin reconocer».
+- **Los días ya escritos no se tocan:** la bitácora es append-only.

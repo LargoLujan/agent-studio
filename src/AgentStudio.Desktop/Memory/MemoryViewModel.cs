@@ -27,6 +27,7 @@ public static class MemoryTexts
         MemoryKind.DebateSummary => "Resumen de debate",
         MemoryKind.Verdict => "Veredicto",
         MemoryKind.DailySummary => "Resumen diario",
+        MemoryKind.JournalEntry => "Bitácora",
         _ => kind.ToString(),
     };
 

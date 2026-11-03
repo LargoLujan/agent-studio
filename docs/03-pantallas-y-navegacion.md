@@ -72,6 +72,14 @@ debajo.
 - **Bitácora de hoy:** se lee con la lectura comprobada de `.agentstudio` (`IProjectStorageReader`, que en la aplicación
   compuesta es `ProjectStorageFiles` de la persistencia): un día de la bitácora que sea un enlace, o una carpeta del camino
   que lo sea, se rechaza y no se muestra nada de él. Sin esa lectura el panel lo dice y no abre ningún fichero del proyecto.
+  - **Se lee como un documento** (tanda 2, 2026-11-03; V31): títulos, listas con sus líneas de debajo, negrita y código,
+    sin las marcas del Markdown ni las barras invertidas del escapado. Es de solo lectura, con un cursor de lectura para
+    moverse y seleccionar con el teclado.
+  - **Un día largo** (más de 200 líneas o 40 000 caracteres) enseña su título y sus entradas más recientes, enteras. Una
+    línea lo dice: «Bitácora larga: se ven las 25 entradas más recientes de 310.». «Ver todo» enseña el día completo como
+    texto sin formato, y «Ver legible» vuelve.
+  - **`Ctrl+P` y `Ctrl+F` no se quedan en la bitácora:** el visor no imprime ni busca, así que `Ctrl+P` llega a la
+    ventana y abre «Ir al fichero».
 - **Zona central superior:** documentos en pestañas (editor Monaco, orquestador visual, grafo, gestión de agentes,
   Debate Arena, monitor de tareas). Se pueden partir en vertical u horizontal.
   - Una pestaña con cambios sin guardar lleva «●» detrás del título, y un lector de pantalla oye «…, con cambios sin
@@ -96,11 +104,34 @@ debajo.
 - **La ventana recuerda su sitio:** el tamaño, la posición y si estaba maximizada se guardan al salir de verdad (no al
   ocultarla en la bandeja) y se recuperan al arrancar, si caen en un monitor conectado. Si no, la ventana se abre
   centrada con su tamaño por defecto.
-- **Barra de estado:** a la izquierda, el último mensaje de la app o, si no hay ninguno, la ruta del proyecto; a la
-  derecha, la versión y el commit del que se compiló la app («v1.0.0 · 87f7a07»), para saber qué compilación está
-  instalada. Las métricas del boceto, con su procedencia («(estimado)» o «no expuesto»), y el contexto de la tarea
-  seleccionada en el monitor (docs/14 D-12) no están todavía en ella: las barras en tiempo real son la tanda 2
-  ([18](18-peticiones-y-pendientes.md), P3).
+- **Barra de estado:** a la izquierda, el último mensaje de la app o, si no hay ninguno, la ruta del proyecto (420 px como
+  mucho, cortado con «…»; entero en su tooltip); a la derecha, la versión y el commit del que se compiló la app («v1.0.0 ·
+  87f7a07»), para saber qué compilación está instalada. En medio, desde la tanda 2 (2026-11-03), **las barras en tiempo
+  real**, siempre a la vista ([18](18-peticiones-y-pendientes.md), P3):
+
+  ```text
+  Contexto · T1 [███░] ~62 % estimado · sano   Claude 5 h [██░░] 47 % exacto · vista hace 12 min
+  Claude 7 días [█░░░] 18 % exacto · vista hace 12 min   Presupuesto [██░░] 5 de 12 exacto
+  ```
+
+  - **Contexto:** el de la tarea en curso. Con varias, el de la más llena, y lo dice: «Contexto · T1, la más llena de 3».
+    Sin ninguna, la barra vacía con «sin tareas en curso».
+  - **Cuota de tu cuenta:** «Claude 5 h» y «Claude 7 días», tal como las anuncian sus ejecuciones («sin dato» hasta la
+    primera). Las ventanas de Codex solo salen con «Leer la cuota de Codex» activado en «Ajustes» («sin leer» si todavía
+    no hay lectura).
+  - **Presupuesto:** las ejecuciones de agente usadas frente al máximo de la ejecución en curso (la más gastada, si hay
+    varias). Sin ejecución en curso no sale.
+  - **Cada barra en corto:** la cifra con su origen en una palabra («exacto», «estimado», «no expuesto»), el nivel escrito
+    cuando el color dice uno («sano», «crítico», «presupuesto agotado») y la antigüedad junto a la cifra («vista hace
+    12 min»). El color nunca va solo.
+  - **Una ventana de la cuota cuyo reinicio ya pasó** no enseña la cifra de antes como si fuera de ahora: la barra sale
+    vacía y dice «se reinició a las 15:00, sin dato nuevo».
+  - **El tooltip** da el detalle de cada barra, una línea por barra. Si la ventana es estrecha, las barras pasan a una
+    segunda línea: ninguna se esconde.
+  - **Tiempo real sin frenar la interfaz:** las barras se rehacen como mucho cada 250 ms. La cuota se relee del registro
+    de tu perfil cada minuto (para que su antigüedad sea cierta) y cuando un CLI la anuncia.
+  - **Con la interfaz bloqueada** no sale ninguna barra.
+  - Sigue pendiente el «contexto empaquetado» (docs/14 D-12; P31 de [18](18-peticiones-y-pendientes.md)).
 - **Bienvenida** (pestaña «Inicio»): sin proyecto, invita a abrir una carpeta y lista los proyectos recientes. Con un
   proyecto abierto enseña su nombre y su ruta y, en «En este proyecto», accesos a lo que se puede hacer en él, cada uno con
   una frase y su atajo: Orquestador, Ir al fichero (`Ctrl+P`), Debates (`Ctrl+Shift+D`), Auditar proyecto completo
@@ -145,7 +176,7 @@ La app vive en la bandeja mientras no salgas: cerrar la ventana ya no corta lo q
   monorepo · Ejecución … ▸ Pausar                    │   Tareas: 4 en curso · 1 espera aprobación · 1 bloqueada     │
                            Reanudar                  │   T1 [████░░░░] 47 % · exacto · informado por el CLI · …     │
                            Detener (cancela…)        │   T6 [███████░] ~90 % · estimado por Agent Studio · …        │
-  ─────────────────────────                          │   T2 no expuesto                                             │
+  ─────────────────────────                          │   T2 [░░░░░░░░] no expuesto                                  │
   Bloquear                                           │   Entrada: 1.200.000 · exacto · … (de 4 intentos terminados) │
   Salir                                              │   Presupuesto: 5 de 12 ejecuciones de agente                 │
                                                      │   T5 espera tu aprobación: delivery.ff                       │
@@ -156,11 +187,14 @@ La app vive en la bandeja mientras no salgas: cerrar la ventana ya no corta lo q
 
 - **El panel** es una proyección, por proyecto con trabajo, de lo que ya existe ([ADR-0036](adr/0036-vida-de-la-app-y-bandeja.md),
   decisión 7): del monitor, la fase, las tareas, los bloqueos con su motivo, lo que espera tu aprobación y los errores, y
-  la línea de contexto de cada tarea en curso con una barra solo cuando hay porcentaje («no expuesto» y «sin observaciones
-  todavía» no tienen barra); de la cabecera de la ejecución, el orquestador, el juez y los agentes en marcha con su
-  proveedor y su modelo (y el que informó el CLI), y el presupuesto; del consumo, los tokens de los intentos terminados con
-  su origen; de los debates, su snapshot; de las auditorías, solo que están en curso. La cuota va una vez, porque es de tu
-  cuenta, con su reinicio y su antigüedad. Se oculta al perder el foco o con Esc.
+  la barra de contexto de cada tarea en curso; de la cabecera de la ejecución, el orquestador, el juez y los agentes en
+  marcha con su proveedor y su modelo (y el que informó el CLI), y el presupuesto; del consumo, los tokens de los intentos
+  terminados con su origen; de los debates, su snapshot; de las auditorías, solo que están en curso. La cuota va una vez,
+  porque es de tu cuenta, con su reinicio y su antigüedad. Se oculta al perder el foco o con Esc.
+- **Barras en el panel** (tanda 2, 2026-11-03): el contexto de cada tarea en curso, el presupuesto, cada ventana de la
+  cuota y los tokens de un debate frente a su límite son barras del control común, con su cifra, su origen y su nivel
+  escritos. Una tarea sin porcentaje también tiene barra: la pista sale vacía y dice por qué («no expuesto», «sin
+  observaciones todavía»). Nunca es una barra a cero. Antes, «no expuesto» y «sin observaciones todavía» no tenían barra.
 - **Bloqueado** (WP4), el panel solo dice cuánto sigue en marcha y cuánto espera por ti, el tooltip añade «bloqueado» y el
   menú no nombra proyectos ni deja pausar, detener, abrir los registros ni salir. En su lugar dice, por ejemplo,
   «Bloqueado: 1 trabajo en marcha; desbloquea para verlo» («para verlos» con varios).
@@ -179,7 +213,8 @@ La app vive en la bandeja mientras no salgas: cerrar la ventana ya no corta lo q
   - «Cancelar» no sale ni escribe nada.
 - **Mantener despierto:** con el ajuste `PreventSleepWhileWorking` («Impedir la suspensión mientras hay trabajo», en la
   sección «Trabajo desatendido» de «Ajustes»), el equipo no se suspende por inactividad mientras hay trabajo; tú puedes
-  suspenderlo igual. Se vuelve a leer al guardar los ajustes.
+  suspenderlo igual. Se vuelve a leer al guardar los ajustes. Desde la tanda 2 (V26), el registro de la app dice por qué
+  se suelta: «ya no hay trabajo en marcha», «se desactivó el ajuste…» o «Agent Studio se cierra».
 - **Ocultar en la bandeja** oculta también los paneles flotantes (Windows solo los oculta al minimizar la ventana), y
   vuelven con ella, salvo que la interfaz esté bloqueada.
 - **Una orden del menú que la ejecución ya no aplica** («Pausar», «Reanudar» o «Detener» de una ejecución que terminó, se
@@ -309,7 +344,8 @@ para que el validador lo explique.
 
 - «Pedir plan al orquestador» envía la petición literal, los requisitos congelados, la plantilla y el perfil al agente
   orquestador (gasta cuota). El plan propuesto aparece en el lienzo con sus problemas ya visibles y los riesgos que
-  señala.
+  señala. Mientras planifica, «Lo que hace el orquestador» enseña la barra «Contexto del orquestador», paso a paso, con
+  su origen y su nivel (tanda 2; «no expuesto» si el orquestador corriera en Codex).
 - «Validar» muestra los mensajes de `PlanValidator` junto a cada nodo y en el panel, en castellano a partir de su
   código, y desde entonces siguen cada cambio. Un clic en un mensaje selecciona su nodo.
 - «Aprobar plan» (solo con el plan válido) y «Rechazar» producen la `ApprovalDecision` del usuario. La aprobación vale
@@ -344,10 +380,25 @@ tenías abierto) la sigue este monitor aunque nunca abrieras la pestaña, con su
 puede pausar y queda su elección al salir. Si el monitor ya sigue otra ejecución, la sigue la bandeja con un monitor propio
 y la barra de estado lo dice.
 
+**Barras del monitor** (tanda 2, 2026-11-03). Junto a la fase va la barra del presupuesto: las ejecuciones de agente
+usadas frente al máximo de la ejecución, «medido por Agent Studio». Cada tarea que ejecuta un agente (trabajo, revisión
+del juez) tiene su barra de contexto, que sigue el intento paso a paso ([sección 5.1](#51-contexto-de-cada-tarea-monitor-de-la-ejecución)).
+
 **Aprobaciones (F3-7).** Cuando la puerta de aprobación pregunta, aparece un diálogo modal con el riesgo, la acción, la
 descripción, quién lo pide, el origen y las rutas afectadas, y los botones «Denegar» y «Aprobar». Solo «Aprobar»
 aprueba: cerrar la ventana, Esc, cancelar, que caduque o que no se pueda mostrar cuentan como denegar. Una acción
 crítica exige además marcar «Entiendo que es una acción crítica y quiero aprobarla».
+
+Desde la tanda 2 (2026-11-03; V25), el diálogo habla como una persona:
+
+- **El título es una frase**, no el identificador de la acción: «Entregar a tu rama», «Aprobar el plan», «Abrir un
+  debate», «Auditar el proyecto»… (`ApprovalTitles`). Una acción que la app no conoce sale como «Una acción necesita tu
+  aprobación».
+- **El identificador** («deliver-integration», el que guarda el registro) va debajo, en una línea secundaria: «Acción en
+  el registro: …».
+- **El proyecto va por el nombre de su carpeta**, nunca por su id. Si no se sabe el nombre, el origen no nombra proyecto.
+- **La entrega cuenta los ficheros en castellano:** «Cambia 1 fichero.», «Cambian 3 ficheros.» o «No cambia ningún
+  fichero.», en lugar de «fichero(s)».
 
 **Motor.** La app compone el motor real con todos sus puertos: worktrees, almacenes SQLite, skills, verificación,
 integración, juez y puerta de aprobación. La pestaña dice «Motor de orquestación conectado» en cuanto hay un proyecto
@@ -416,7 +467,9 @@ de evidencias…) se dice arriba, y no se ofrece nada que lo necesite.
   impugnación tras tu aprobación y abre la revisión en la sala. Una impugnación en curso no se repite.
 - **La sala.**
   - Cabecera: modo, fase, ronda, objeto, requisitos congelados, jueces (no participan), tiempo con el reloj del
-    sistema, tokens con su origen («~» si hay estimaciones y «parcial (n de m informados)») y ejecuciones.
+    sistema, tokens con su origen («~» si hay estimaciones y «parcial (n de m informados)») y ejecuciones. Desde la
+    tanda 2, los tokens frente a su límite y las ejecuciones frente a su máximo son barras; sin límite de tokens, la
+    barra sale vacía, con los tokens y «sin límite».
   - **Una ronda en curso está sellada:** «Ronda 2: 2 turnos en curso, sellados hasta que terminen todos», sin texto.
     Lo publicado se ve por ronda, en orden, con su réplica, resumen, argumento, afirmaciones, citas, concesiones, si se
     marcó terminada, los secretos redactados y la hora de su respuesta.
@@ -444,6 +497,16 @@ Cada cifra lleva una de las etiquetas de [14 D-03](14-fase-4-observabilidad-y-me
 «no expuesto» y «sin dato». Lo estimado lleva «~» y nunca dice «exacto»; lo que no está nunca sale como un cero; y una suma
 a la que le faltan valores dice «parcial (n de m)».
 
+**Las barras** (tanda 2, 2026-11-03; P3 de [18](18-peticiones-y-pendientes.md)). El contexto en vivo, la cuota y el
+presupuesto son barras del mismo control (`MetricBar`), en la barra de estado, el monitor, el panel de la bandeja, la
+planificación y la sala de debate. En «Consumo», las barras son las ventanas de la cuota; el contexto máximo de cada grupo
+y de cada intento sigue como cifra, sin barra.
+
+- la cifra, su origen y su nivel van escritos junto a la barra, y su antigüedad cuando la tiene («vista hace 12 min»);
+- lo estimado lleva «~», la palabra «estimado» y una trama sobre el relleno;
+- en una barra de contexto, las marcas finas de la pista son los umbrales de aviso, compresión recomendada y crítico;
+- sin cifra, la pista se dibuja vacía y las palabras dicen por qué. Nunca es una barra a cero.
+
 ### 5.1 Contexto de cada tarea (monitor de la ejecución)
 
 ```text
@@ -467,6 +530,22 @@ a la que le faltan valores dice «parcial (n de m)».
   expone dice «no expuesto». Una tarea con agente que ha empezado sin ninguna observación dice «sin observaciones
   todavía»; las demás no tienen línea.
 - Cada compactación del CLI deja una línea en la actividad y se cuenta en la tarea como posible pérdida de información.
+
+Desde la tanda 2 (2026-11-03; P3 y P36 de [18](18-peticiones-y-pendientes.md)):
+
+- **El contexto se sigue en vivo.** Cada intento tiene su seguimiento, que juzga cada paso con la mejor ventana que
+  conoce. Por este orden: la que da el CLI; la vista en una ejecución anterior del proyecto; y la de la **tabla base de
+  ventanas por modelo** de Agent Studio. Las dos últimas son «estimado por Agent Studio» y llevan «~». Así hay
+  porcentaje desde el primer paso, también en la primera ejecución de un proyecto. Al llegar el resultado, la cifra pasa a
+  exacta. Un modelo que la tabla no conoce sale en tokens, sin porcentaje
+  ([ADR-0021](adr/0021-salud-del-contexto-por-paso.md), adenda del 2026-11-03).
+- **Toda tarea con agente tiene barra**, también sin porcentaje:
+  - «sin empezar», mientras la tarea espera;
+  - «sin observaciones todavía», si ya empezó y no ha llegado ningún paso;
+  - «no expuesto», si corre en Codex, desde el principio. Vale también para la revisión del juez: el motor dice en qué
+    proveedor corre antes de lanzarla.
+- **El detalle** va debajo de la barra: los tokens frente a la ventana, el modelo, de dónde sale una ventana estimada y
+  las compactaciones.
 
 ### 5.2 Consumo, cuota y ajustes (documentos «Consumo» y «Ajustes»)
 
@@ -514,6 +593,14 @@ su propio documento, «Ajustes», que se describe al final de este apartado.
   al empezar cada ejecución, sin llamadas extra. Codex, desactivado hasta el opt-in de los ajustes: con él, «Consultar
   cuota de Codex» y una lectura al terminar cada ejecución de Codex, nunca dos en 5 minutos; muestra el plan, y aparte,
   en color de aviso, «versión de Codex no probada» o que el uso ordinario no está permitido. Gemini, «no expuesto».
+  - **Cada ventana es una barra** (tanda 2, 2026-11-03), con la cifra del proveedor, su origen, su reinicio y su
+    antigüedad junto a la cifra. Un límite que el proveedor da por alcanzado sale en el color de crítico y escrito.
+  - **Una ventana cuyo reinicio ya pasó** no enseña la cifra de antes como actual: la barra sale vacía y dice «se reinició
+    a las 15:00, sin dato nuevo». La cifra vieja solo queda en el detalle («antes del reinicio: 47 %»).
+  - **La lectura tras una ejecución de Codex ya existe** (P37 de [18](18-peticiones-y-pendientes.md)). Antes solo se leía
+    a petición. La pide el final de cada ejecución de Codex, venga de donde venga (orquestación, debate, auditoría o
+    juez). Si el motor y la pantalla la piden a la vez, es una sola lectura, y nunca corre en el hilo de la interfaz
+    ([ADR-0020](adr/0020-cuota-pasiva-en-claude-y-lectura-opcional-en-codex.md), adenda del 2026-11-03).
 - **Una nota** bajo la cuota dice dónde se cambian los umbrales y el permiso de Codex: en «Ajustes». «Consumo» ya no
   tiene ningún ajuste ni ningún «Guardar» (salvo «Guardar como» al exportar).
 
@@ -596,6 +683,11 @@ su propio documento, «Ajustes», que se describe al final de este apartado.
   tema, origen (sistema, tú o agente), fecha, fuente y lo que sustituyen. Se buscan por palabras y por categoría: el
   buscador tiene la etiqueta «Buscar por palabras» y, vacío, la pista «contenido, tema o fuente…»; `Intro` o «Buscar»
   aplican la búsqueda.
+- **Lo que la app deriva del registro se lee como una frase** (tanda 2, 2026-11-03; V27): «La persona aprobó el plan
+  1fd546931ee8 de la ejecución 20261029-c4a1f2 (3 tareas) el 29/10/2026 a las 22:40 UTC.». Ya no dice «user aprobó…»,
+  el id con el que el registro guarda a una persona. La hora va en UTC, y lo dice, porque el texto queda anclado y llega a
+  los prompts: el mismo registro da el mismo texto en cualquier equipo. La pantalla enseña al lado la hora local de la
+  entrada. Las entradas ya derivadas antes conservan su texto.
 - **Aceptar** o **rechazar** una propuesta de un agente o una entrada en cuarentena; **retirar** una de confianza. Cada
   decisión es tuya y va al registro de decisiones; durante una ejecución o una planificación queda «En cola» y se
   registra al terminar ([ADR-0022](adr/0022-memoria-append-only-anclada.md)).
@@ -859,9 +951,9 @@ historial del orquestador o en el dosier del juez.
 3. **Tooltip.** Al pasar el cursor por el icono: «Agent Studio · 1 ejecución…», con horas pero sin el nombre del proyecto ni
    el id de la ejecución, y nunca más de 127 caracteres.
 4. **Panel.** Clic izquierdo: el panel aparece junto al reloj, encima de la barra de tareas, con el proyecto, la fase, los
-   agentes con proveedor y modelo, las tareas, una barra de contexto por tarea en curso (y «no expuesto» sin barra en una
-   de Codex), los tokens con su origen, el presupuesto y la cuota con su reinicio y «vista hace…». Clic fuera o Esc lo
-   ocultan; otro clic en el icono lo cierra.
+   agentes con proveedor y modelo, las tareas, una barra de contexto por tarea en curso (en una de Codex, la pista vacía
+   con «no expuesto»), los tokens con su origen, el presupuesto como barra y la cuota con su reinicio y «vista hace…».
+   Clic fuera o Esc lo ocultan; otro clic en el icono lo cierra.
 5. **Menú.** Botón derecho: «Abrir Agent Studio» trae la ventana; «Abrir proyecto» ofrece los recientes y «Abrir
    carpeta…»; «Abrir los registros» abre `%LOCALAPPDATA%\AgentStudio\logs`; «Pausar» deja el monitor «En pausa»,
    «Reanudar» lo vuelve a poner en marcha y «Detener» la cancela, como sus botones del monitor.
@@ -885,7 +977,8 @@ historial del orquestador o en el dosier del juez.
 12. **Mantener despierto.** Abre «Ajustes» (el último icono de la barra lateral), marca «Impedir la suspensión mientras hay
     trabajo» en la sección «Trabajo desatendido» y pulsa «Guardar»; con una ejecución en marcha, el log de la app anota
     «The computer is kept awake…» y el equipo no se suspende por inactividad (con una consola de administrador, `powercfg /requests` muestra Agent Studio en `SYSTEM`); al
-    terminar la ejecución, el log anota que puede volver a dormir. Desmárcala y guarda: se suelta en ese momento.
+    terminar la ejecución, el log anota que puede volver a dormir y por qué («The computer may sleep again: ya no hay
+    trabajo en marcha.»). Desmárcala y guarda: se suelta en ese momento, y el log dice que se desactivó el ajuste.
 13. **Suspensión.** Suspende el equipo con una ejecución en marcha y despiértalo: con la integración de WP1, la ejecución no
     cancela su intento por abandono y las esperas se recalculan.
 14. **Bloqueo** (con WP4). «Bloquear» desde el menú: el tooltip dice «bloqueado», el panel solo cuenta lo que sigue en

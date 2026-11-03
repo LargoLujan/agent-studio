@@ -222,6 +222,25 @@ public sealed class ThemeContrastTests
         t.Add("MonoViewer.text", "Visor de ficheros y bitácora: texto sobre el fondo", ContrastKind.NormalText, "Foreground", viewerText, "Background", viewerBg);
         t.Add("MonoViewer.caret", "Visor de ficheros y bitácora: cursor de texto (indicador de foco del visor)", ContrastKind.FocusIndicator, "CaretBrush", caret, "Background", viewerBg);
 
+        // The readable journal (V31): a read-only rich text box over its Markdown, with the reading caret of MonoViewer and a
+        // translucent selection painted over the text (docs/12 §2.3: 4.5:1 for the default text under it, 3:1 for the others).
+        var reader = ThemeResources.Style("ReadingViewer");
+        var readerText = Of(ThemeResources.SetterBrush(reader, Control.ForegroundProperty), "ReadingViewer.Foreground");
+        var readerBg = Of(ThemeResources.SetterBrush(reader, Control.BackgroundProperty), "ReadingViewer.Background");
+        var readerCaret = Of(ThemeResources.SetterBrush(reader, TextBoxBase.CaretBrushProperty), "ReadingViewer.CaretBrush");
+        var readerSelection = Of(ThemeResources.SetterBrush(reader, TextBoxBase.SelectionBrushProperty), "ReadingViewer.SelectionBrush");
+        var readerOpacity = (byte)Math.Round(255 * (double)reader.Setters.OfType<Setter>().Single(s => s.Property == TextBoxBase.SelectionOpacityProperty).Value);
+        var selected = readerSelection with { A = readerOpacity };
+        var secondaryText = Token("TextSecondaryColor");
+        var codeFill = Token("SurfaceRaisedColor");
+        t.Add("ReadingViewer.text", "Bitácora: texto sobre el fondo", ContrastKind.NormalText, "Foreground", readerText, "Background", readerBg);
+        t.Add("ReadingViewer.secondary", "Bitácora: cabecera y líneas de debajo de cada entrada («Resultado», «Hecho»)", ContrastKind.NormalText, "TextSecondaryColor", secondaryText, "Background", readerBg);
+        t.Add("ReadingViewer.code", "Bitácora: código sobre su fondo", ContrastKind.NormalText, "Foreground", readerText, "SurfaceRaisedColor", codeFill);
+        t.Add("ReadingViewer.code.secondary", "Bitácora: código en una línea secundaria", ContrastKind.NormalText, "TextSecondaryColor", secondaryText, "SurfaceRaisedColor", codeFill);
+        t.Add("ReadingViewer.caret", "Bitácora: cursor de lectura (indicador de foco)", ContrastKind.FocusIndicator, "CaretBrush", readerCaret, "Background", readerBg);
+        t.Add("ReadingViewer.selection", "Bitácora: texto seleccionado (la selección se pinta encima, translúcida)", ContrastKind.NormalText, "Foreground bajo la selección", Wcag.Over(selected, readerText), "Background bajo la selección", Wcag.Over(selected, readerBg));
+        t.Add("ReadingViewer.selection.secondary", "Bitácora: línea secundaria seleccionada", ContrastKind.TextOnHighlight, "TextSecondaryColor bajo la selección", Wcag.Over(selected, secondaryText), "Background bajo la selección", Wcag.Over(selected, readerBg));
+
         // Status dots as the style paints them, on the two surfaces they sit on.
         var dot = ThemeResources.Style("StatusDot");
         var dotStates = new List<(string Name, Brush Fill)> { ("Predeterminado", ThemeResources.SetterBrush(dot, Shape.FillProperty)) };

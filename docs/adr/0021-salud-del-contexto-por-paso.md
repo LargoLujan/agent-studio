@@ -109,3 +109,39 @@
     - `system/compact_boundary` está documentado en los tipos del SDK, pero no aparece en las capturas grabadas: se prueba
       con una línea sintética.
     - Una ventana aprendida puede quedar vieja si el proveedor cambia la de un modelo: por eso es una estimación.
+
+## Adenda · 2026-11-03 · tanda 2: la tabla base de ventanas por modelo (P3 y P36 de docs/18)
+
+La medida por paso, los umbrales y lo «no expuesto» no cambian. Cambia una cosa que esta decisión descartaba: el
+porcentaje sobre una ventana supuesta cuando no se conoce ninguna (Alternativas, «un número inventado»).
+
+- **Por qué cambia.** Pediste que el contexto se vea siempre como una barra en tiempo real. Claude Code solo da la ventana
+  de un modelo al terminar el intento. Sin una ventana de partida, la primera ejecución de un proyecto enseñaba tokens sin
+  porcentaje hasta el final, que es justo cuando la barra ya no sirve.
+- **Qué se añade.** `ModelWindowTable` (`src/AgentStudio.Observability/Context/ModelWindowTable.cs`): la ventana que
+  Agent Studio supone para cada modelo de Claude y para los alias de `claude --model` (`opus`, `sonnet`, `fable`,
+  `opusplan` y `haiku`). Su versión es su fecha, `2026-10-30`, y en el código están sus fuentes: la captura de Claude Code
+  2.1.290 y el catálogo de modelos de Anthropic.
+- **El orden de la decisión 4 pasa a ser:**
+  1. la ventana que trae el paso;
+  2. la última que el CLI dio en esta ejecución para ese modelo (exacta);
+  3. la última vista para ese modelo en el registro del proyecto («estimado por Agent Studio (ventana vista en una
+     ejecución anterior)»);
+  4. **la de la tabla base**, también «estimado por Agent Studio», con la tabla y su versión en el origen;
+  5. ninguna: solo los tokens, sin porcentaje, y el nivel desconocido.
+- **Los límites que la hacen aceptable:**
+  - Nunca es exacta. Lo que dice el CLI y lo aprendido del registro siempre ganan.
+  - Un modelo que la tabla no conoce no tiene ventana: sigue saliendo en tokens, como antes.
+  - Codex no tiene entradas: `codex exec` no da la ocupación, así que su contexto sigue «no expuesto» y nunca se le
+    inventa una ventana.
+  - `haiku` toma la ventana más pequeña de su familia (200 000). Una estimación corta enseña el contexto más lleno de lo
+    que está y avisa antes, nunca después.
+  - Hay que ponerla al día cuando salga un modelo nuevo. Aun así, el primer intento con un modelo nuevo enseña al
+    proyecto su ventana real.
+- **Dónde se usa.** El seguimiento en vivo ya no es solo una pieza probada: el monitor crea un `ContextHealthTracker` por
+  intento, y la planificación otro para el orquestador. Los dos usan las ventanas del proyecto con la tabla debajo
+  (`ContextWindowCatalogs`, en `Desktop/Observability`). Esa pieza lee el registro de cada proyecto fuera del hilo de la
+  interfaz, una lectura a la vez por proyecto. Lo vuelve a leer al terminar cada ejecución. Una lectura que falla, o un
+  registro que no verifica, no borra lo aprendido.
+- **Consecuencia que cambia.** «Sin ejecuciones anteriores, enseña solo tokens hasta el final» deja de valer para los
+  modelos de la tabla: desde el primer paso hay un porcentaje «~», estimado, que pasa a exacto al llegar el resultado.

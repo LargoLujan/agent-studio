@@ -17,12 +17,14 @@ namespace AgentStudio.Providers.Composition;
 /// The user's record of quota observations (docs/14 D-14), shared by every project: the quota belongs to the account. When
 /// the composition registers none, the providers are composed without it.
 /// </param>
+/// <param name="ends">The ends of the agent runs of the process (docs/18 P37); when the composition registers none, nothing is noted.</param>
 public sealed class ProjectAgentProviders(
     IExecutableLocator locator,
     IStreamingProcessRunner runner,
     IPromptJournalFactory journals,
     TimeProvider time,
-    IQuotaObservations? quota = null) : IProjectAgentProviders
+    IQuotaObservations? quota = null,
+    AgentRunEnds? ends = null) : IProjectAgentProviders
 {
     private readonly ConcurrentDictionary<string, Lazy<IReadOnlyList<IAgentProvider>>> _byProject =
         new(StringComparer.OrdinalIgnoreCase);
@@ -43,6 +45,6 @@ public sealed class ProjectAgentProviders(
             new CodexCliAgentProvider(locator, runner, time),
             new GeminiCliAgentProvider(locator, runner),
         ];
-        return [.. adapters.Select(adapter => AgentProviderPipeline.Compose(adapter, journal, time, quota: quota))];
+        return [.. adapters.Select(adapter => AgentProviderPipeline.Compose(adapter, journal, time, quota: quota, ends: ends))];
     }
 }

@@ -17,17 +17,39 @@ public sealed record LearnedWindow(string Model, long Tokens, DateTimeOffset See
 /// model are learned, from the breakdown by model and the context peak of <c>AgentRunFinished</c> version 2. A version 1
 /// window is never learned: the parser of Phase 3 paired it with the model announced by <c>init</c>, not with the model
 /// of the steps (D-13). A log that does not verify, or that no anchor recognises, teaches nothing.
+/// <para>
+/// With a base table (<see cref="WithBaseline"/>, tanda 2), a model never seen in the log takes the window of the table,
+/// also «estimado por Agent Studio» and naming the table and its version: what the log learned always wins over it.
+/// </para>
 /// </summary>
 public sealed class ModelWindowCatalog
 {
     private readonly Dictionary<string, LearnedWindow> _windows;
+    private readonly ModelWindowTable? _baseline;
 
-    private ModelWindowCatalog(Dictionary<string, LearnedWindow> windows)
+    private ModelWindowCatalog(Dictionary<string, LearnedWindow> windows, ModelWindowTable? baseline = null)
     {
         _windows = windows;
+        _baseline = baseline;
     }
 
+    /// <summary>No window learned and no base table: a model has a window only once the CLI reports it in the attempt.</summary>
     public static ModelWindowCatalog Empty { get; } = new(new Dictionary<string, LearnedWindow>(StringComparer.Ordinal));
+
+    /// <summary>
+    /// No window learned, with the base table of this version (<see cref="ModelWindowTable.Current"/>): what a screen uses
+    /// until the log of its project was read, so the first run of a new project has a percentage from its first step.
+    /// </summary>
+    public static ModelWindowCatalog Baseline { get; } = Empty.WithBaseline(ModelWindowTable.Current);
+
+    /// <summary>The base table a model never seen in the log falls back to; null when there is none.</summary>
+    public ModelWindowTable? BaselineTable => _baseline;
+
+    /// <summary>
+    /// The same windows learned, falling back to <paramref name="table"/> (the base table of this version by default) for a
+    /// model the log has not seen.
+    /// </summary>
+    public ModelWindowCatalog WithBaseline(ModelWindowTable? table = null) => new(_windows, table ?? ModelWindowTable.Current);
 
     /// <summary>The last window seen for each model.</summary>
     public IReadOnlyCollection<LearnedWindow> Windows => _windows.Values;
@@ -46,11 +68,19 @@ public sealed class ModelWindowCatalog
         return snapshot.IsTrusted ? Learn(snapshot.Entries) : Empty;
     }
 
-    /// <summary>The window learned for <paramref name="model"/>, as an estimate of Agent Studio; missing when none was seen.</summary>
+    /// <summary>
+    /// The window learned for <paramref name="model"/>, as an estimate of Agent Studio; else, with a base table, the window of
+    /// the table (an estimate too, or «no expuesto» for a model of Codex); missing when none is known.
+    /// </summary>
     public MetricValue<long> WindowFor(string? model)
     {
         if (model is null || !_windows.TryGetValue(model, out var window))
         {
+            if (_baseline?.WindowFor(model) is { } fromTable && (fromTable.HasValue || fromTable.Origin == MetricOrigin.NotExposed))
+            {
+                return fromTable;
+            }
+
             return MetricValue<long>.Missing(model is null ? "sin modelo del paso: no se conoce la ventana" : $"no se ha visto ninguna ventana de {model}");
         }
 

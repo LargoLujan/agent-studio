@@ -7,7 +7,9 @@ using AgentStudio.Application.Projects;
 using AgentStudio.Application.Providers;
 using AgentStudio.Application.Security;
 using AgentStudio.Application.Verification;
+using AgentStudio.Desktop.Controls;
 using AgentStudio.Desktop.Lock;
+using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Orchestrator.Approvals;
 using AgentStudio.Desktop.Orchestrator.Canvas;
 using AgentStudio.Desktop.Orchestrator.Monitor;
@@ -17,7 +19,9 @@ using AgentStudio.Desktop.ViewModels;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Orchestration;
+using AgentStudio.Domain.Providers;
 using AgentStudio.Domain.Work;
+using AgentStudio.Observability.Context;
 using AgentStudio.Orchestration.Verification;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -25,7 +29,11 @@ using CommunityToolkit.Mvvm.Input;
 namespace AgentStudio.Desktop.Orchestrator;
 
 /// <summary>A validator message in the plan panel; selecting it selects its node.</summary>
-public sealed record PlanProblem(TaskId? Task, string Text);
+public sealed record PlanProblem(TaskId? Task, string Text)
+{
+    /// <summary>What a screen reader says of the entry (A1-bis): its text, never the members of the record.</summary>
+    public override string ToString() => Text;
+}
 
 /// <summary>A previous run of the project, as the engine lists it.</summary>
 public sealed partial class RunListItem(RunSummary summary, string when) : ObservableObject
@@ -50,6 +58,9 @@ public sealed partial class RunListItem(RunSummary summary, string when) : Obser
     /// <summary>The monitor shows this run, read back from its log.</summary>
     [ObservableProperty]
     private bool _isViewed;
+
+    /// <summary>What a screen reader says of the entry (A1-bis): its state, when and its id, never the name of the type.</summary>
+    public override string ToString() => $"{PhaseLabel} · {When} · {Summary.Id}";
 }
 
 /// <summary>
@@ -420,6 +431,17 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel
 
     /// <summary>What the orchestrator agent did while planning.</summary>
     public ObservableCollection<string> PlanningActivity { get; } = [];
+
+    /// <summary>
+    /// The context of the orchestrator agent while it plans (docs/18 P3), followed step by step from its events (P36) with the
+    /// windows the project knows: a bar with its origin and level, an empty track that says why when there is no percentage.
+    /// Null until a plan is asked.
+    /// </summary>
+    [ObservableProperty]
+    private MetricBarReading? _planningContext;
+
+    /// <summary>Follows the context of the planning in course (or the last one); null before the first.</summary>
+    private ContextHealthTracker? _planningTracker;
 
     /// <summary>The validator's verdict on the plan as drawn now (recomputed on every change).</summary>
     public IReadOnlyList<PlanViolation> Violations { get; private set; } = [];
@@ -817,6 +839,11 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel
         BusyText = "El orquestador está preparando el plan…";
         ErrorMessage = null;
         PlanningActivity.Clear();
+
+        // Claude Code reports the context of each step; codex exec and Gemini do not, and theirs is «no expuesto» (docs/14 D-09).
+        var provider = orchestrator.Model.Provider;
+        _planningTracker = new ContextHealthTracker(Monitor.ContextThresholds, Monitor.ContextWindows, provider, reportsContextOccupancy: MetricBars.ReportsContext(provider));
+        PlanningContext = MetricBars.Context(PlanningContextLabel, _planningTracker.Current, Monitor.ContextThresholds);
         try
         {
             var request = new PlanningRequest(project, RequestText.Trim(), requirements, context.Roster, orchestrator.Id, profile, Limits);
@@ -1458,6 +1485,20 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel
     /// <summary>A run whose resume was refused for its writers at medium integrity, and the hash of the plan it started with.</summary>
     private sealed record FollowUp(RunId Run, string PlanHash);
 
+    /// <summary>What the bar of the context of the planning is called.</summary>
+    private const string PlanningContextLabel = "Contexto del orquestador";
+
+    /// <summary>An event of the planning reaches its tracker, and the bar follows it, judged with the thresholds of now.</summary>
+    private void ObservePlanning(AgentEvent value)
+    {
+        if (_planningTracker is not { } tracker || value is not (ContextObserved or UsageReported or CompactionObserved or RunFinished))
+        {
+            return;
+        }
+
+        PlanningContext = MetricBars.Context(PlanningContextLabel, tracker.Observe(value), Monitor.ContextThresholds);
+    }
+
     /// <summary>The planning progress, applied on the UI context like the monitor's events.</summary>
     private sealed class UiProgress(OrchestratorDocumentViewModel owner) : IProgress<AgentEvent>
     {
@@ -1465,6 +1506,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel
         {
             void Apply()
             {
+                owner.ObservePlanning(value);
                 if (AgentActivityText.Describe(value, owner._time.LocalTimeZone) is { } text)
                 {
                     owner.PlanningActivity.Add(text);

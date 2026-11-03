@@ -147,6 +147,29 @@ public sealed class QuotaObservingAgentProviderTests
     }
 
     [Fact]
+    public async Task The_end_of_every_run_is_noted_with_its_provider_and_its_status_even_when_nobody_reads_the_events()
+    {
+        // P37: the read of the Codex quota after a run of Codex hangs on this; a subscriber that throws touches nothing.
+        var ends = new AgentRunEnds();
+        var seen = new List<AgentRunEnded>();
+        ends.Ended += (_, _) => throw new InvalidOperationException("A screen that fails.");
+        ends.Ended += (_, ended) => seen.Add(ended);
+        var provider = AgentProviderPipeline.Compose(new Adapter(CaptureEvents()), new Journal(), new Memory.FakeClock(At), quota: new Observations(), ends: ends);
+
+        await using (var run = await provider.StartAsync(Request(), TestContext.Current.CancellationToken))
+        {
+            Assert.Equal(AgentRunStatus.Succeeded, (await run.Completion).Status);
+        }
+
+        for (var i = 0; i < 200 && seen.Count == 0; i++)
+        {
+            await Task.Delay(5, TestContext.Current.CancellationToken);
+        }
+
+        Assert.Equal([new AgentRunEnded(ProviderId.ClaudeCode, AgentRunStatus.Succeeded)], seen);
+    }
+
+    [Fact]
     public async Task A_quota_record_that_cannot_be_written_never_touches_the_run()
     {
         var events = CaptureEvents();
@@ -225,7 +248,7 @@ public sealed class QuotaObservingAgentProviderTests
         // (a single GetService would return only the last one registered).
         var readers = services.GetServices<IProviderQuotaReader>().ToList();
         Assert.Equal([ProviderId.CodexCli, ProviderId.GeminiCli], readers.Select(r => r.Provider).OrderBy(p => p.Value, StringComparer.Ordinal));
-        Assert.IsType<AgentStudio.Providers.Cli.Codex.AppServer.CodexAppServerQuotaReader>(Assert.Single(readers, r => r.Provider == ProviderId.CodexCli));
+        Assert.IsType<AgentStudio.Providers.Cli.Codex.AppServer.CodexAppServerQuotaReader>(Assert.IsType<SharedQuotaReader>(Assert.Single(readers, r => r.Provider == ProviderId.CodexCli)).Inner);
 
         // The providers of a project keep the quota their runs announce in the record of WP2.
         Assert.All(services.GetRequiredService<IProjectAgentProviders>().For(temp.Path), p => Assert.True(AgentProviderPipeline.IsQuotaObserved(p), $"{p.Provider} skips the quota record"));

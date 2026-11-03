@@ -18,6 +18,9 @@ namespace AgentStudio.Desktop.Debate;
 public sealed record AgentChoice(AgentDefinition Agent)
 {
     public string Label => $"{Agent.Id} · {NewDebateViewModel.Where(Agent.Model)}";
+
+    /// <summary>What a screen reader says of the choice (A1-bis): its label, never the members of the record.</summary>
+    public override string ToString() => Label;
 }
 
 /// <summary>

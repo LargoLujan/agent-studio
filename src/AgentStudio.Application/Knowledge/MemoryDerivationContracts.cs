@@ -9,12 +9,14 @@ namespace AgentStudio.Application.Knowledge;
 /// <summary>
 /// How a memory entry derived from the decision log cites what it says (docs/14 D-18). Every derived fact has exactly one
 /// source, and a source never changes (the log and the evidence are append-only), so deriving twice never duplicates an
-/// entry. Two forms:
+/// entry. Three forms:
 /// <list type="bullet">
 /// <item><c>registro:&lt;run&gt;#&lt;sequence&gt;</c>: an entry of the decision log, by the run it belongs to and its
 /// sequence in the project's log (for example <c>registro:20261015-a1b2c3#42</c>).</item>
 /// <item><c>evidencia:&lt;id&gt;#sha256:&lt;hash&gt;</c>: a piece of evidence, by its id and the SHA-256 that its
 /// <c>EvidenceRegistered</c> entry anchored. It is the source of every text an agent wrote.</item>
+/// <item><c>bitacora:&lt;day&gt;#sha256:&lt;hash&gt;</c>: an entry of the journal (Phase 12, docs/17 D-02), by its day and
+/// the SHA-256 of its text (<see cref="Journal"/>).</item>
 /// </list>
 /// </summary>
 public static class MemorySources
@@ -31,6 +33,25 @@ public static class MemorySources
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sequence);
         return string.Create(CultureInfo.InvariantCulture, $"{LogEntryPrefix}{runId}#{sequence}");
+    }
+
+    /// <summary>The start of a source that is an entry of the journal (docs/17 D-02).</summary>
+    public const string JournalPrefix = "bitacora:";
+
+    /// <summary>
+    /// The source of a journal entry (<see cref="MemoryKind.JournalEntry"/>): <c>bitacora:&lt;yyyy-MM-dd&gt;#sha256:&lt;hash&gt;</c>,
+    /// the local day of its file and the SHA-256 of the text of the entry as the derivation reads it (its lines, with
+    /// their result and «Hecho» lines). The hash is the identity: deriving the same entry twice records nothing the second
+    /// time, and an entry changed in the file afterwards is another entry, which never changes what was anchored.
+    /// </summary>
+    public static string Journal(DateOnly day, string entrySha256)
+    {
+        if (!ContentHash.IsSha256Hex(entrySha256))
+        {
+            throw new ArgumentException("The hash of a journal entry must be 64 lowercase hex characters.", nameof(entrySha256));
+        }
+
+        return string.Create(CultureInfo.InvariantCulture, $"{JournalPrefix}{day:yyyy-MM-dd}#sha256:{entrySha256}");
     }
 
     /// <summary>The source that cites the evidence <paramref name="evidence"/> with the SHA-256 the log anchored for it.</summary>

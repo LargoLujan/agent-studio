@@ -16,8 +16,8 @@ namespace AgentStudio.Memory.Summary;
 /// <item><b>The development hook</b> (<c>.claude/hooks/bitacora.ps1</c>): <c>- **HH:mm:ss** · sesión `xxxxxxxx` · #tags · «extracto»</c>,
 /// also with a word instead of the time and without a session, as the entries journaled by hand; and the «Hecho» lines
 /// Claude adds under them (<c>Hecho:</c>, <c>Hecho (en curso):</c>, <c>Hecho (00:27, cierre):</c>…).</item>
-/// <item>Headings, the two lines under the title and blank lines are part of the format. Anything else (notes, broken
-/// lines) is only counted.</item>
+/// <item>Headings, the two lines under the title (the hook's, or the app's since V31) and blank lines are part of the
+/// format. Anything else (notes, broken lines) is only counted.</item>
 /// </list>
 /// The summary lists the prompts by actor, provider and model; the results by status, with their total duration; the
 /// tokens, exact only when every prompt of the product gave exact figures and «parcial» otherwise; the failures and
@@ -36,6 +36,15 @@ internal static partial class DailySummaryBuilder
     private const string Intro = "Resumen determinista de la bitácora del día: solo cuenta y cita, no interpreta.";
     private const string Preamble = "Registro automático de cada prompt (hook `UserPromptSubmit`): hora · sesión · tags · extracto.";
     private const string DonePreamble = "Al cerrar cada petición, Claude añade debajo una línea «Hecho:» con el resultado.";
+
+    /// <summary>The lines under the title: the hook's, which the app also wrote before V31, and the app's.</summary>
+    private static readonly HashSet<string> Preambles = new(StringComparer.Ordinal)
+    {
+        Preamble,
+        DonePreamble,
+        Journal.MarkdownDailyJournal.Preamble,
+        Journal.MarkdownDailyJournal.ResultPreamble,
+    };
 
     private static readonly string[] Statuses = ["Succeeded", "Failed", "Cancelled", "LimitReached", "RateLimited"];
     private static readonly string[] Failures = ["Failed", "LimitReached", "RateLimited"];
@@ -156,7 +165,7 @@ internal static partial class DailySummaryBuilder
         foreach (var raw in journal.Split('\n'))
         {
             var line = raw.TrimEnd('\r');
-            if (line.Trim().Length == 0 || Heading().IsMatch(line) || line == Preamble || line == DonePreamble)
+            if (line.Trim().Length == 0 || Heading().IsMatch(line) || Preambles.Contains(line))
             {
                 continue;
             }

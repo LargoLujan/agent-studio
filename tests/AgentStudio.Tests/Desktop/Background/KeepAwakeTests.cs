@@ -164,6 +164,65 @@ public sealed class KeepAwakeTests
         Assert.Empty(state.Requests);
     }
 
+    /// <summary>
+    /// V26, seen live: letting the computer sleep again, the log repeated why it had been kept awake. It says why it is let
+    /// go: the work ended, the setting was turned off or the app is closing.
+    /// </summary>
+    [Fact]
+    public void Letting_the_computer_sleep_again_the_log_says_why_and_not_why_it_was_kept_awake()
+    {
+        var log = new RecordingLogger<KeepAwakeService>();
+        var keepAwake = new KeepAwakeService(new FakeExecutionState(), log);
+        using var registry = Registry();
+        var enabled = true;
+        var whileWorking = new KeepAwakeWhileWorking(registry, keepAwake, () => enabled);
+        var run = new FakeWork(BackgroundWorkKind.Run, ProjectA, "20261021-aaaaaa") { AttemptsInFlight = 1 };
+        registry.Track(run);
+
+        run.Move(active: false);
+        run.Move(active: true);
+        enabled = false;
+        whileWorking.Refresh();
+        enabled = true;
+        whileWorking.Refresh();
+        whileWorking.Dispose();
+
+        var lines = Information(log);
+        Assert.Equal(3, lines.Count(l => l == $"The computer is kept awake: {KeepAwakeWhileWorking.Reason}"));
+        var released = lines.Where(l => !l.StartsWith("The computer is kept awake", StringComparison.Ordinal)).ToList();
+        Assert.Equal(
+            [
+                "The computer may sleep again: ya no hay trabajo en marcha.",
+                "The computer may sleep again: se desactivó el ajuste «Impedir la suspensión mientras hay trabajo».",
+                "The computer may sleep again: Agent Studio se cierra.",
+            ],
+            released);
+        Assert.DoesNotContain(released, l => l.Contains(KeepAwakeWhileWorking.Reason, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void The_log_says_the_computer_may_sleep_again_only_when_the_last_lease_goes()
+    {
+        var log = new RecordingLogger<KeepAwakeService>();
+        var keepAwake = new KeepAwakeService(new FakeExecutionState(), log);
+        var first = keepAwake.Hold("ejecución 20261021-aaaaaa");
+        var second = Assert.IsAssignableFrom<IKeepAwakeLease>(keepAwake.Hold("debate deb-20261021-bbbbbb"));
+
+        first.Dispose();
+        second.Release("el debate terminó");
+        second.Release("otra vez");
+
+        Assert.False(keepAwake.IsHeld);
+        Assert.Equal(
+            [
+                "The computer is kept awake: ejecución 20261021-aaaaaa",
+                "The computer is kept awake: debate deb-20261021-bbbbbb",
+                "A request to keep the computer awake ended (ejecución 20261021-aaaaaa); other requests still hold it: 1.",
+                "The computer may sleep again: el debate terminó.",
+            ],
+            Information(log));
+    }
+
     [Fact]
     public void Disposing_releases_the_lease()
     {
@@ -180,6 +239,9 @@ public sealed class KeepAwakeTests
         Assert.False(keepAwake.IsHeld);
         Assert.Equal([true, false], state.Requests);
     }
+
+    private static List<string> Information(RecordingLogger<KeepAwakeService> log) =>
+        [.. log.Entries.Where(e => e.Level == Microsoft.Extensions.Logging.LogLevel.Information).Select(e => e.Message)];
 
     private sealed class FakeExecutionState : IExecutionState
     {

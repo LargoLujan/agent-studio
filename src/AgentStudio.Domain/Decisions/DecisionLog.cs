@@ -115,6 +115,15 @@ public enum DecisionKind
     /// header and why (it was waiting for quota, a close nobody asked for cut it, or Windows ended the session).
     /// </summary>
     RunResumed,
+
+    // Phase 12 (the semantic index, docs/17 D-02). Appended after the Phase 8 kinds, so no stored hash changes. It belongs
+    // to no run: its payload carries an empty run id, like the entries of the memory.
+
+    /// <summary>
+    /// A person trusted the journal of the project, or of one day of it, or withdrew that trust: the journal entries Agent
+    /// Studio did not write leave quarantine, or go back to it.
+    /// </summary>
+    JournalTrustChanged,
 }
 
 public sealed record DecisionEntry(

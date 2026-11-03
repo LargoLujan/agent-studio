@@ -24,7 +24,7 @@ public static class MemoryContent
     }
 }
 
-/// <summary>Categories of project memory (master prompt, section 14).</summary>
+/// <summary>Categories of project memory (master prompt, section 14). Stored by name: new ones are appended.</summary>
 public enum MemoryKind
 {
     Architecture,
@@ -37,6 +37,29 @@ public enum MemoryKind
     DebateSummary,
     Verdict,
     DailySummary,
+
+    /// <summary>
+    /// One entry of the journal (<c>.agentstudio/bitacora/</c>), with its result and its «Hecho» lines, anchored as memory
+    /// (docs/17 D-02, Phase 12) so the journal never reaches a prompt as a raw file of the repository. Its source is
+    /// <see cref="MemorySources.Journal"/>. What Agent Studio wrote, and matches the <c>AgentRunStarted</c> its result line
+    /// names (<see cref="JournalResultAnchor"/>), has <see cref="MemoryOrigin.System"/> and is trusted; anything else (the
+    /// development hook, an entry that does not match, a third party's) has <see cref="MemoryOrigin.Agent"/> and is in
+    /// quarantine until a person accepts it, by entry or by day, or trusts the journal of the project
+    /// (<see cref="IJournalTrust"/>). It enters a prompt last, by relevance, and it is not exported to Markdown
+    /// (<see cref="MemoryKinds.IsExported"/>): its source already is Markdown in the repository.
+    /// </summary>
+    JournalEntry,
+}
+
+/// <summary>What the categories of memory imply beyond their name.</summary>
+public static class MemoryKinds
+{
+    /// <summary>
+    /// Whether the entries of <paramref name="kind"/> go to the Markdown export (docs/14 D-22): every category but
+    /// <see cref="MemoryKind.JournalEntry"/>, whose source is the journal itself, already Markdown and versioned in the
+    /// repository (docs/17 D-02): exporting it would write the journal back into the repository a second time.
+    /// </summary>
+    public static bool IsExported(MemoryKind kind) => kind != MemoryKind.JournalEntry;
 }
 
 /// <summary>
@@ -51,7 +74,11 @@ public enum MemoryOrigin
     /// <summary>The user wrote it.</summary>
     User,
 
-    /// <summary>It quotes text an agent wrote (a plan summary, the open issues of a report, a judge's summary).</summary>
+    /// <summary>
+    /// It quotes text an agent wrote (a plan summary, the open issues of a report, a judge's summary). For a
+    /// <see cref="MemoryKind.JournalEntry"/> it means text Agent Studio did not write (the development hook, a person, a
+    /// third party): never trusted by itself, whatever the rules of the journal say (docs/17 D-02).
+    /// </summary>
     Agent,
 }
 
@@ -81,7 +108,11 @@ public enum MemoryTrust
     /// <summary>Text of an agent nobody reviewed yet: neither prompts nor the export.</summary>
     Proposed,
 
-    /// <summary>Inherited from a history accepted as a new origin: neither prompts nor the export until it is reviewed.</summary>
+    /// <summary>
+    /// Inherited from a history accepted as a new origin: neither prompts nor the export until it is reviewed. Also a
+    /// journal entry Agent Studio did not write (<see cref="MemoryKind.JournalEntry"/> with <see cref="MemoryOrigin.Agent"/>)
+    /// until a person accepts it or trusts the journal of the project or of its day (docs/17 D-02).
+    /// </summary>
     Quarantined,
 
     /// <summary>A person rejected it.</summary>
@@ -193,4 +224,39 @@ public sealed record MemoryExportResult(bool Exported, IReadOnlyList<string> Fil
 public interface IMemoryExporter
 {
     Task<MemoryExportResult> ExportAsync(ProjectContext project, CancellationToken ct);
+}
+
+/// <summary>What a decision about the trust of the journal covers (docs/17 D-02).</summary>
+public enum JournalTrustScope
+{
+    /// <summary>The whole journal of the project, the days to come included, until it is withdrawn («Confiar en la bitácora de este proyecto»).</summary>
+    Project,
+
+    /// <summary>One day of the journal: its entries, those derived later included.</summary>
+    Day,
+}
+
+/// <summary>
+/// How far the journal of a project is trusted now: whether the whole project is, the days that are (in order), and how
+/// many journal entries remain in quarantine.
+/// </summary>
+public sealed record JournalTrustState(bool ProjectTrusted, IReadOnlyList<DateOnly> TrustedDays, int QuarantinedEntries);
+
+/// <summary>
+/// The decision «Confiar en la bitácora de este proyecto», and the same by days (docs/17 D-02; WP1 implements it and WP4
+/// puts it on screen). Each change is a <c>JournalTrustChanged</c> entry of the log, out of every run and by a person;
+/// withdrawing it is another one, and the journal entries it covered go back to quarantine. It only covers the journal
+/// entries Agent Studio did not write (<see cref="MemoryOrigin.Agent"/>): what Agent Studio wrote is trusted by its match,
+/// and an entry inherited from a history accepted as a new origin is still reviewed one by one. Accepting a single entry
+/// is a review (<see cref="IProjectMemory.ReviewAsync"/>). Writing follows the rules of the memory: it fails closed on a
+/// log that does not verify and waits while a run or a planning of the project goes on.
+/// </summary>
+public interface IJournalTrust
+{
+    Task<JournalTrustState> ReadAsync(ProjectContext project, CancellationToken ct);
+
+    /// <param name="day">The day, for <see cref="JournalTrustScope.Day"/>; null for the whole project.</param>
+    /// <param name="trusted">True to trust, false to withdraw the trust.</param>
+    /// <exception cref="ArgumentException">A day for the project, or none for a day.</exception>
+    Task SetAsync(ProjectContext project, JournalTrustScope scope, DateOnly? day, bool trusted, string decidedBy, string? comment, CancellationToken ct);
 }

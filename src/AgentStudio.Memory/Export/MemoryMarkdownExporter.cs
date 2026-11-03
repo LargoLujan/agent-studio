@@ -55,14 +55,16 @@ public sealed class MemoryMarkdownExporter(ProjectMemory memory, IProjectStorage
 
         var snapshot = await memory.SnapshotAsync(project.ProjectId, ct).ConfigureAwait(false);
         var zone = timeProvider.LocalTimeZone;
-        var trusted = snapshot.Entries.Where(e => e.Trust == MemoryTrust.Trusted).ToList();
+        // The journal entries stay out (docs/17 D-02): their source already is the journal, Markdown in the repository.
+        var trusted = snapshot.Entries.Where(e => e.Trust == MemoryTrust.Trusted && MemoryKinds.IsExported(e.Kind)).ToList();
+        var announced = snapshot.Announced.Where(a => MemoryKinds.IsExported(a.Payload.Kind)).ToList();
         var documents = new List<(string Name, string Text)>();
-        foreach (var month in snapshot.Announced.Select(a => MonthOf(a.At, zone)).Distinct().Order())
+        foreach (var month in announced.Select(a => MonthOf(a.At, zone)).Distinct().Order())
         {
             documents.Add((AgentStudioFiles.ChronologicalMemoryFile(month), Chronological(month, [.. trusted.Where(e => MonthOf(e.CreatedAt, zone) == month)], zone)));
         }
 
-        foreach (var kind in Enum.GetValues<MemoryKind>().Where(k => snapshot.Announced.Any(a => a.Payload.Kind == k)))
+        foreach (var kind in Enum.GetValues<MemoryKind>().Where(k => announced.Any(a => a.Payload.Kind == k)))
         {
             documents.Add((AgentStudioFiles.ThematicMemoryFile(kind), Thematic(kind, [.. trusted.Where(e => e.Kind == kind && e.SupersededBy is null)], zone)));
         }

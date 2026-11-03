@@ -93,7 +93,7 @@ public sealed class Phase4CompositionTests
         // The quota readers: Codex's app-server reader next to Gemini's «no expuesto», one per provider (D-15, D-16).
         var readers = container.GetServices<IProviderQuotaReader>().ToList();
         Assert.Equal([ProviderId.CodexCli, ProviderId.GeminiCli], readers.Select(r => r.Provider).OrderBy(p => p.Value, StringComparer.Ordinal));
-        var codex = Assert.IsType<CodexAppServerQuotaReader>(Assert.Single(readers, r => r.Provider == ProviderId.CodexCli));
+        var codex = Assert.IsType<CodexAppServerQuotaReader>(Assert.IsType<SharedQuotaReader>(Assert.Single(readers, r => r.Provider == ProviderId.CodexCli)).Inner);
         Assert.Same(NotExposedQuotaReader.Gemini, Assert.Single(readers, r => r.Provider == ProviderId.GeminiCli));
 
         // Without the opt-in the Codex reader asks the setting and stops there: nothing is looked up nor launched.
@@ -151,7 +151,7 @@ public sealed class Phase4CompositionTests
         Assert.Equal(Path.Combine(folders.Local.BaseDirectory, "usage", "quota.jsonl"), quotaLog);
 
         // A new install has no opt-in saved: the reader of the composition answers without launching anything.
-        var codex = Assert.IsType<CodexAppServerQuotaReader>(Assert.Single(container.GetServices<IProviderQuotaReader>(), r => r.Provider == ProviderId.CodexCli));
+        var codex = Assert.IsType<CodexAppServerQuotaReader>(Assert.IsType<SharedQuotaReader>(Assert.Single(container.GetServices<IProviderQuotaReader>(), r => r.Provider == ProviderId.CodexCli)).Inner);
         Assert.Equal(QuotaReadStatus.NotOptedIn, (await codex.ReadAsync(Ct)).Status);
         Assert.Equal(0, processes.Calls);
         Assert.False(File.Exists(quotaLog));

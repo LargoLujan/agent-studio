@@ -191,6 +191,11 @@ public sealed record TaskView(
     string? BlockReason,
     IReadOnlyList<EvidenceId> Evidence);
 
-public sealed record RunSnapshot(RunId Id, RunPhase Phase, IReadOnlyList<TaskView> Tasks, GraphHealthReport Health, int AgentRunsUsed);
+/// <summary>
+/// The state of a run at one moment: its phase, its tasks, the health of its graph and the agent runs it used. Tanda 2
+/// (docs/18 P3): <paramref name="MaxAgentRuns"/> is the budget of the run (<see cref="RunOptions.MaxAgentRuns"/>), so a screen
+/// shows the runs used against it; null when whoever built the snapshot did not say it (a double, an older reader).
+/// </summary>
+public sealed record RunSnapshot(RunId Id, RunPhase Phase, IReadOnlyList<TaskView> Tasks, GraphHealthReport Health, int AgentRunsUsed, int? MaxAgentRuns = null);
 
 public sealed record RunResult(RunId Id, RunPhase Phase, GraphHealthReport Health, string? IntegrationCommit, string? VerdictId, string Summary);

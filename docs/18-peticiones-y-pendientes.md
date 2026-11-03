@@ -13,7 +13,7 @@ Estados: **en curso** (hay un paquete trabajando en ello), **planificado** (tien
 |---|---|---|---|
 | P1 | «Instálalo en el equipo, toma el control y haz las pruebas.» | Hecho | Publicada en `%LOCALAPPDATA%\Programs\AgentStudio` con acceso directo en el menú Inicio; recorrido en vivo con UI Automation y capturas |
 | P2 | «Haz las pruebas que dices más un testeo de todos los elementos del IDE: que todo funcione, tenga sentido y sea visualmente sencillo pero completo y profesional. Si tienes que añadir más pruebas, hazlas. Al final dime qué has visto mejorado y qué ha sido retocado.» | En curso | Hallazgos en §3; arreglos en la tanda 1 (WP-A a WP-E) |
-| P3 | «Todos los porcentajes de consumo de tokens, contexto y demás siempre son barras visibles en tiempo real. El contexto siempre es visible.» | Planificado | Tanda 2: un control de barra común, tabla base de ventanas por modelo para que haya barra desde la primera ejecución, y barras en la barra de estado, el monitor, el panel de la bandeja, Consumo y el lienzo |
+| P3 | «Todos los porcentajes de consumo de tokens, contexto y demás siempre son barras visibles en tiempo real. El contexto siempre es visible.» | Hecho (verificado en vivo el 2026-11-03; retoques V32 a V39 en §3) | Tanda 2 (WP-F), integrada el 2026-11-03: un control de barra común (`MetricBar`), siempre visible también sin porcentaje; la tabla base de ventanas por modelo, para que haya porcentaje desde la primera ejecución; y barras en la barra de estado, el monitor, el panel de la bandeja, Consumo, la planificación y la sala de debate. Las del lienzo llegan con la Fase 13 ([17](17-constructor-visual-de-agentes.md) D-12). Pantallas en [03](03-pantallas-y-navegacion.md) §2, §2.1 y §5 |
 | P4 | Interfaz visual dinámica para montar orquestador, juez y agentes, como un pipeline de Fabric o un videojuego con elementos animados que se conectan. Debe enseñar a qué repositorio de git se conecta cada uno y lo principal de cada proyecto (contexto, URL…) y dar sugerencias en vivo mientras se monta. | Pendiente de diseño | [17](17-constructor-visual-de-agentes.md) |
 | P5 | Consumo y contexto de cada elemento siempre visibles, con su máximo, y barras dinámicas por elemento. | Pendiente de diseño (se apoya en P3) | [17](17-constructor-visual-de-agentes.md) |
 | P6 | Cuando interviene el juez, un análisis adicional (un botón) de si el contexto fue escaso o si se consumió algo sin sentido, y de cómo ahorrar tokens. | Pendiente de diseño | [17](17-constructor-visual-de-agentes.md) |
@@ -41,7 +41,8 @@ Estados: **en curso** (hay un paquete trabajando en ello), **planificado** (tien
    - WP-C: ajustes y vistas;
    - WP-D: motor, plan y verificación;
    - WP-E: interfaz del Orquestador.
-2. **Tanda 2:** barras en tiempo real (P3), con un dueño único de todas las barras.
+2. **Tanda 2:** barras en tiempo real (P3), con un dueño único de todas las barras. Integrada el 2026-11-03 y recorrida en
+   vivo ese día (§3, «Recorrido en vivo de la tanda 2»); sus retoques van en la tanda 2b.
 3. **Índice semántico** de la bitácora y la memoria (P19).
 4. **Revisión contigo** de la propuesta [17](17-constructor-visual-de-agentes.md), con sus decisiones abiertas.
 5. **Implementación** por paquetes de lo que decidas de P4 a P18, incluida la Fase 9 (P16).
@@ -122,14 +123,80 @@ Automation y capturas, y hubo cinco ejecuciones reales (Claude haiku ejecuta, Co
 |---|---|---|
 | V21 | Aviso de «cambios sin confirmar» provocado por la bitácora de la propia app | WP-D |
 
+**Pulido (tanda 2, WP-G, integrada el 2026-11-03)**
+
+| Id | Hallazgo | Paquete |
+|---|---|---|
+| V25 | Diálogo de aprobación: el título es el identificador crudo «deliver-integration», el proyecto sale como GUID y pone «fichero(s)» | WP-G · corregido y verificado en vivo el 2026-11-03: título en castellano («Entregar a tu rama»), el identificador como línea secundaria, el proyecto por el nombre de su carpeta y «Cambia 1 fichero» o «Cambian N ficheros» ([03](03-pantallas-y-navegacion.md) §3) |
+| V26 | Texto del log de «Mantener despierto» | WP-G · corregido, pendiente de verificar en vivo: el log dice por qué se suelta |
+| V27 | La memoria dice «user aprobó el plan» | WP-G · corregido y verificado en vivo el 2026-11-03: «La persona aprobó el plan … el 29/10/2026 a las 22:40 UTC», determinista ([03](03-pantallas-y-navegacion.md) §5.3) |
+| V29 | Skills: con la ventana a 1280 px, la columna de las recomendaciones se corta por la derecha | WP-G · corregido, pendiente de verificar en vivo: columnas que se adaptan ([10](10-catalogo-de-skills.md) §8) |
+| V30 | Skills: un cuadrado claro donde se cruzan las dos barras de desplazamiento | WP-G · corregido, pendiente de verificar en vivo: el rincón va en el color de superficie ([12](12-accesibilidad-tema-oscuro.md) §10) |
+| V31 | «Bitácora de hoy» enseña el Markdown crudo («\\(intento 1\\)», «\*\*00:01:27\*\*»), y la cabecera que escribe la app habla del hook y de las líneas «Hecho:» | WP-G · corregido y verificado en vivo el 2026-11-03 (el refresco solo queda en V32): se lee como documento, un día largo enseña sus entradas más recientes con «Ver todo», `Ctrl+P` llega a «Ir al fichero», y la app escribe su propia cabecera ([03](03-pantallas-y-navegacion.md) §2, [11](11-bitacora.md) §1) |
+| A1-bis | Las opciones del modelo de un agente se leen en UI Automation como «ModelOption { Label = haiku, … }» | WP-G · corregido en parte: en vivo quedan 11 tipos (V34): más de 20 tipos de elementos de listas dan su etiqueta como nombre accesible ([12](12-accesibilidad-tema-oscuro.md) §10) |
+
 **Pendiente de repartir**
 
 | Id | Hallazgo |
 |---|---|
-| V25 | Diálogo de aprobación: el título es el identificador crudo «deliver-integration», el proyecto sale como GUID y pone «fichero(s)» |
-| V26 | Texto del log de «Mantener despierto» |
-| V27 | La memoria dice «user aprobó el plan» |
 | H1 | Windows Hello sin la persona delante: la aprobación espera, y el diálogo de Windows no admite entrada simulada |
+
+### Recorrido en vivo de la tanda 2 (2026-11-03)
+
+App instalada desde la integración (45e3ec9) y una ejecución real en `C:\AgentStudioDemo\calc`: plan con el orquestador
+(haiku), `Calc.Divide` implementado, integración, revisión del juez (Codex) y entrega con aprobación crítica (`main`
+avanzó a d5d835d).
+
+**Visto funcionar:**
+
+- **Barra de estado:**
+  - siempre visible, con el contexto, la cuota de Claude (5 h y 7 días) y el presupuesto;
+  - la cuota caducada sale como pista vacía («se reinició el 30/10 a las 19:20, sin dato nuevo»), con la cifra anterior y
+    su antigüedad en la ayuda;
+  - recoge en vivo la cuota que anuncia la planificación (de «sin dato nuevo» a 54 % y 55 %).
+- **Planificación:** la barra del orquestador pasa de «sin observaciones» a «~10 % estimado» y luego a «10 % exacto»
+  (20.193 de 200.000).
+- **Monitor:**
+  - presupuesto «1 de 12» y «2 de 12»;
+  - contexto por tarea, de «~1 % estimado» a «1 % exacto»;
+  - el juez de Codex sale «no expuesto», con su motivo.
+- **Panel de la bandeja y Consumo:** barras de cuota con su nivel y su antigüedad.
+- **Diálogo de entrega (V25):**
+  - título «Entregar a tu rama», «Cambian 2 ficheros» y «Origen: proyecto calc»;
+  - el identificador como línea secundaria;
+  - el foco en «Denegar».
+- **Memoria (V27):** «La persona aprobó el plan … el 03/11/2026 a las 07:47 UTC».
+- **Bitácora (V31):**
+  - la app escribe su cabecera nueva;
+  - el panel se lee como documento (sin `\(`), y `Ctrl+P` desde el visor abre «Ir al fichero».
+
+**Retoques (tanda 2b)**
+
+| Id | Hallazgo | Gravedad |
+|---|---|---|
+| V32 | «Bitácora de hoy» no se refresca sola: tras la ejecución seguía diciendo «No hay bitácora de hoy» hasta pulsar «Actualizar» | Media |
+| V33 | Durante la planificación, la barra de estado dice «Contexto: sin tareas en curso» aunque el orquestador tiene su barra en vivo: el contexto de lo que corre debe verse siempre (P3) | Media |
+| V34 | A1-bis incompleto: 11 tipos siguen dando en UI Automation su nombre técnico o el texto del record. En el monitor: `ActivityEntry`, `EvidenceEntry`, `AssessmentRow` y `MonitorTaskViewModel`. En la preparación: `AgentMemoryViewModel` y `RequirementDraftViewModel`. En el lienzo: `ConnectorViewModel`. En los debates: `VerdictPanelViewModel`. En Consumo: `DimensionOption` y `UsageGroupRow`. En Memoria: `MemoryEntryViewModel` | Media |
+| V35 | El resumen del monitor repite «Terminó bien: 3 tareas completadas y 0 omitidas.» | Baja |
+| V36 | En Consumo, la fila de una cuota caducada repite «se reinició el …» (estado y línea de debajo) | Baja |
+| V37 | Las barras ocultas (sin lectura) se exponen en UI Automation como «: sin dato» | Baja |
+| V38 | Durante una ejecución la barra de estado salta a dos líneas a 1920 px (el presupuesto baja a la segunda) | Baja |
+| V39 | En Consumo, el contexto máximo por grupo y por intento sigue como cifra, sin barra (P3) | Baja |
+
+**Para la Fase 14 (lenguaje sencillo, P12):**
+
+- la bitácora del producto escribe «Succeeded» y «claude-code/-» (modelo predeterminado);
+- el párrafo del diálogo de entrega es denso;
+- Memoria da las horas en UTC y el resto de la app en hora local;
+- las entradas de memoria anteriores a WP-G conservan «user aprobó» (están guardadas y no se reescriben).
+
+**Para la Fase 13 (P4):** con el lienzo y la preparación abiertos, al monitor le queda una fila de tareas a 1080 px.
+
+**Queda por verificar en vivo:**
+
+- **P37:** la lectura de Codex tras cada ejecución de Codex; el permiso está apagado.
+- **V26:** el log de «Mantener despierto».
+- **V29 y V30:** Skills a 1280 px y el rincón de las barras de desplazamiento.
 
 ### Verificado en vivo (Fase 8, lista de docs/03 §8)
 
@@ -364,12 +431,12 @@ Ordenados por importancia. «Ya en 18» es lo que ya recogen §1 a §3.
 |---|---|---|---|
 | P2 | Fallos graves del recorrido (B6, B10, B8, B2, B1 y G1) y los menores | Alta | Ya en 18 (§3, tanda 1) |
 | P22 | Escribir el documento 17 | Hecho | [17](17-constructor-visual-de-agentes.md), integrado el 2026-10-30: 65 decisiones (D-01 a D-65), las Fases 12 a 15 y las decisiones abiertas de su §12, pendientes de repasarlas contigo (paso 4 de §2) |
-| P36 | Las ventanas de contexto aprendidas no se usan en vivo: ningún código crea `ModelWindowCatalog` ni `ContextHealthTracker`, y Claude solo informa la ventana al terminar el intento. Durante un paso no hay porcentaje | Alta | Hallazgo de 17 §0.2. Entra en la tanda 2 (barras, P3) |
-| P37 | La lectura de la cuota de Codex «una vez tras cada ejecución», que promete el ajuste, no existe: solo se lee a petición y al esperar un límite | Media | Hallazgo de 17 §0.2. Implementarla o corregir el texto. Entra en la tanda 2 |
+| P36 | Las ventanas de contexto aprendidas no se usan en vivo: ningún código crea `ModelWindowCatalog` ni `ContextHealthTracker`, y Claude solo informa la ventana al terminar el intento. Durante un paso no hay porcentaje | Hecho (verificado en vivo el 2026-11-03; retoques V32 a V39 en §3) | Tanda 2 (WP-F), integrada el 2026-11-03: un `ContextHealthTracker` por intento en el monitor y otro en la planificación, con las ventanas de cada proyecto leídas fuera del hilo de la interfaz y la tabla base debajo (adenda de ADR-0021) |
+| P37 | La lectura de la cuota de Codex «una vez tras cada ejecución», que promete el ajuste, no existe: solo se lee a petición y al esperar un límite | Hecho (pendiente de verificar en vivo) | Tanda 2 (WP-F), integrada el 2026-11-03: implementada. El final de cada ejecución de Codex la pide (`IAgentRunEnds`), solo con el permiso y como mucho una vez cada 5 minutos, y las lecturas a la vez son una (`SharedQuotaReader`; adenda de ADR-0020) |
 | P38 | Hay dos aprobaciones fuera de `ApprovalGate`: el consentimiento de skills (no deja `ApprovalGranted`) y «Aprobar plan» del lienzo. Con el ajuste apagado, lo crítico lo decide solo el diálogo, y lo destructivo nunca pide Hello | Alta | Hallazgo de 17 §0.2. Cruza con P18 (Hello siempre) |
 | P39 | «Reintentar» no envía texto al agente bloqueado, así que hoy no hay forma de contestar su duda. Y cinco campos de `AgentDefinition` no gobiernan nada: `PathGrants`, `SystemInstructions`, `Objectives`, `MaxRounds` y `MaxTotalTokens` | Media | Hallazgo de 17 §0.2. Cruza con P9 (preguntas) y P10 (configurar agentes) |
 | P23 | Las 93 pruebas que fallan a integridad Low. Hasta adaptarlas, «Auditar proyecto completo» no puede aprobar este repositorio | Alta | Nuevo (08 F5) |
-| P3 | Barras de consumo y contexto en tiempo real | Alta | Ya en 18 |
+| P3 | Barras de consumo y contexto en tiempo real | Hecho (verificado en vivo el 2026-11-03; retoques V32 a V39 en §3) | Ya en 18. Tanda 2 (WP-F), integrada el 2026-11-03 |
 | P19 | Índice semántico de la bitácora y la memoria | Alta | Ya en 18. Enmienda ADR-0023 (§4.3) |
 | P24 | Tus demostraciones (lista debajo), y llevar a 08 lo visto en vivo el 30-10 | Alta | Nuevo. Cruza con P17 |
 | P16 | Fase 9 (F9-1 a F9-10) | Alta | Ya en 18 |
@@ -430,7 +497,7 @@ Detalle de P34, lo aplazado:
 | P | Precedente o choque |
 |---|---|
 | P1 | Comprobado: la carpeta y el acceso directo existen. No es F7-6 (P27) |
-| P3 | Precedente: la ampliación §7 pedía «ocupación del contexto mediante barras» (F8-8). Hoy solo hay barra en el panel de la bandeja, y solo cuando hay porcentaje |
+| P3 | Precedente: la ampliación §7 pedía «ocupación del contexto mediante barras» (F8-8). Hasta la tanda 2 solo había barra en el panel de la bandeja, y solo con porcentaje; desde el 2026-11-03 hay barras siempre en la barra de estado, el monitor, la bandeja, Consumo, la planificación y la sala de debate |
 | P9 | Precedente: las «aprobaciones interactivas por herramienta dentro del CLI», aplazadas en 13 §1 |
 | P10 | Ver §4.3. El orden entre agentes ya lo comprueban `PlanValidator` (F3-1) y el auditor (F5-6) |
 | P11 | Choca con la convención de `CLAUDE.md` (la interfaz va en castellano): pasará a «castellano por defecto, más idiomas» |

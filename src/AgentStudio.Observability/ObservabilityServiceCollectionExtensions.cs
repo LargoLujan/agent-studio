@@ -20,7 +20,10 @@ public static class ObservabilityServiceCollectionExtensions
     /// It needs what other modules register: <c>IProjectLogReader</c> and <c>IProjectStorageReader</c> (Infrastructure),
     /// through which every log and every day of the journal is read. It uses the container's <see cref="TimeProvider"/>,
     /// and registers <see cref="TimeProvider.System"/> only when there is none. The context health tracker is not a
-    /// service: one is made per run, with the thresholds of the settings and a <c>ModelWindowCatalog</c> of the project.
+    /// service: the screens that follow an attempt make one for it (the monitor of a run and the planning, docs/18 P36),
+    /// with the thresholds of the settings and the <c>ModelWindowCatalog</c> of the project over the base table of windows.
+    /// Tanda 2 (P37): it also registers the ends of the agent runs of the process (<see cref="AgentRunEnds"/>), which the
+    /// provider pipeline notes with the quota observation, so the quota of Codex can be read after a run of Codex.
     /// </remarks>
     public static IServiceCollection AddAgentStudioObservability(this IServiceCollection services, QuotaLogOptions? quota = null)
     {
@@ -29,6 +32,8 @@ public static class ObservabilityServiceCollectionExtensions
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton(quota ?? new QuotaLogOptions());
         services.TryAddSingleton<IQuotaObservations>(sp => new JsonlQuotaObservations(sp.GetRequiredService<QuotaLogOptions>()));
+        services.TryAddSingleton<AgentRunEnds>();
+        services.TryAddSingleton<IAgentRunEnds>(sp => sp.GetRequiredService<AgentRunEnds>());
         services.TryAddSingleton<UsageProjector>();
         services.TryAddSingleton<IUsageReport>(sp => sp.GetRequiredService<UsageProjector>());
         services.TryAddSingleton<IUsageExporter>(sp => new UsageExporter(sp.GetRequiredService<TimeProvider>()));

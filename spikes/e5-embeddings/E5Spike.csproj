@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Throwaway harness of the embeddings spike (docs/investigacion/2026-10-30-spike-embeddings.md). It lives OUTSIDE
+       AgentStudio.slnx and is never built by it. Unlike the Low IL spike it keeps the central package versions on purpose:
+       what it measures is exactly the Microsoft.ML.OnnxRuntime and Microsoft.ML.Tokenizers pinned in the root
+       Directory.Packages.props (and the Microsoft.Data.Sqlite of the app, for FTS5). Analysis and warnings-as-errors are
+       off, as in the other spikes: the real code (WP2 and WP3 of Phase 12) lives in the solution under the strict rules.
+       The model is never part of the repository: the README says how to download it, with its SHA-256. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>E5Spike</RootNamespace>
+    <AssemblyName>E5Spike</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+    <RunAnalyzers>false</RunAnalyzers>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" />
+    <PackageReference Include="Microsoft.ML.Tokenizers" />
+    <PackageReference Include="Microsoft.Data.Sqlite" />
+  </ItemGroup>
+
+</Project>

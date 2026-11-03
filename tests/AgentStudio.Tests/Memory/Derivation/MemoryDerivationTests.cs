@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IO;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Knowledge;
@@ -26,6 +27,13 @@ public sealed class MemoryDerivationTests
 
     private static readonly MemoryKind[] DerivedKinds = [MemoryKind.Decision, MemoryKind.PendingTask, MemoryKind.KnownError, MemoryKind.Change, MemoryKind.Verdict];
 
+    /// <summary>A local zone one hour ahead of UTC, as Madrid in winter.</summary>
+    private static readonly TimeZoneInfo PlusOne = TimeZoneInfo.CreateCustomTimeZone("test+1", TimeSpan.FromHours(1), "test+1", "test+1");
+
+    private static readonly TimeZoneInfo PlusTwo = TimeZoneInfo.CreateCustomTimeZone("test+2", TimeSpan.FromHours(2), "test+2", "test+2");
+
+    private static readonly TimeZoneInfo MinusFive = TimeZoneInfo.CreateCustomTimeZone("test-5", TimeSpan.FromHours(-5), "test-5", "test-5");
+
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     // ---- Decision ----
@@ -38,6 +46,9 @@ public sealed class MemoryDerivationTests
         var (hash, raw) = await run.PlanAsync("Añadir Calc.Multiply con sus pruebas.");
         var approval = await run.StartAsync(hash, "manuel", ("T1", WorkTaskKind.AgentWork), ("T2", WorkTaskKind.Integration));
 
+        // V27: a person is «La persona», never the id the app records them with, and the time is UTC, said so: the local zone
+        // of the app (Madrid in winter here, as the machine of the tests) never reaches what is anchored.
+        world.World.Clock.SetLocalTimeZone(PlusOne);
         var result = await world.DeriveAsync();
 
         Assert.True(result.Completed);
@@ -45,7 +56,7 @@ public sealed class MemoryDerivationTests
         Assert.Equal(MemoryTrust.Trusted, fact.Trust);
         Assert.Equal(MemorySources.LogEntry(RunA, approval.Sequence), fact.Source);
         Assert.Equal($"Plan de la ejecución {RunA}", fact.Topic);
-        Assert.Equal($"manuel aprobó el plan {hash[..12]} de la ejecución {RunA} (2 tareas) el 2026-01-01 10:00 UTC.", fact.Content);
+        Assert.Equal($"La persona aprobó el plan {hash[..12]} de la ejecución {RunA} (2 tareas) el 01/01/2026 a las 10:00 UTC.", fact.Content);
         var summary = Assert.Single(result.Recorded, e => e is { Kind: MemoryKind.Decision, Origin: MemoryOrigin.Agent });
         Assert.Equal(MemoryTrust.Proposed, summary.Trust);
         Assert.Equal("Añadir Calc.Multiply con sus pruebas.", summary.Content);
@@ -54,6 +65,84 @@ public sealed class MemoryDerivationTests
 
         // The summary reaches no prompt until a person accepts it.
         Assert.Equal([fact.Id], (await world.TrustedAsync()).Select(e => e.Id));
+    }
+
+    // ---- V27: what is anchored never depends on the zone of the app (ADR-0022, docs/14 D-19) ----
+
+    [Fact]
+    public async Task The_same_log_gives_the_same_entry_whatever_the_zone_of_the_app()
+    {
+        var entries = new List<MemoryEntry>();
+        foreach (var zone in new[] { PlusTwo, MinusFive })
+        {
+            using var world = await DerivationWorld.CreateAsync();
+            world.World.Clock.SetLocalTimeZone(zone);
+            var run = world.Run(RunA);
+            var (hash, _) = await run.PlanAsync("Añadir Calc.Multiply con sus pruebas.");
+            await run.StartAsync(hash, "manuel", ("T1", WorkTaskKind.AgentWork));
+
+            entries.Add(Assert.Single((await world.DeriveAsync()).Recorded, e => e is { Kind: MemoryKind.Decision, Origin: MemoryOrigin.System }));
+        }
+
+        // The same text, so the same hash and the same entry: in UTC, said so.
+        Assert.Equal(entries[0].Content, entries[1].Content);
+        Assert.Equal(entries[0].Id, entries[1].Id);
+        Assert.EndsWith(" el 01/01/2026 a las 10:00 UTC.", entries[0].Content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_hour_repeated_when_the_clocks_go_back_is_two_different_times()
+    {
+        // In Madrid, on 25/10/2026 the clocks go back from 03:00 to 02:00: 00:30 and 01:30 UTC are both 02:30 there.
+        var madrid = TimeZoneInfo.FindSystemTimeZoneById("Romance Standard Time");
+        var first = new DateTimeOffset(2026, 10, 25, 0, 30, 0, TimeSpan.Zero);
+        var second = first.AddHours(1);
+        Assert.Equal(TimeZoneInfo.ConvertTime(first, madrid).ToString("HH:mm", CultureInfo.InvariantCulture), TimeZoneInfo.ConvertTime(second, madrid).ToString("HH:mm", CultureInfo.InvariantCulture));
+
+        using var world = await DerivationWorld.CreateAsync();
+        world.World.Clock.SetLocalTimeZone(madrid);
+        var texts = new List<string>();
+        foreach (var (id, at) in new[] { (RunA, first), (RunB, second) })
+        {
+            var run = world.Run(id);
+            var (hash, _) = await run.PlanAsync("Añadir Calc.Multiply con sus pruebas.");
+            world.World.Clock.SetUtcNow(at);
+            await run.StartAsync(hash, "manuel", ("T1", WorkTaskKind.AgentWork));
+        }
+
+        texts.AddRange((await world.DeriveAsync()).Recorded.Where(e => e is { Kind: MemoryKind.Decision, Origin: MemoryOrigin.System }).Select(e => e.Content));
+
+        Assert.Equal(2, texts.Count);
+        Assert.Contains(texts, t => t.EndsWith(" el 25/10/2026 a las 00:30 UTC.", StringComparison.Ordinal) && t.Contains(RunA, StringComparison.Ordinal));
+        Assert.Contains(texts, t => t.EndsWith(" el 25/10/2026 a las 01:30 UTC.", StringComparison.Ordinal) && t.Contains(RunB, StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// The case of the review: the app died between the announcement of an entry and its row, and the next derivation runs
+    /// with the app in another zone. It completes the same entry: no second announcement, no announcement left without a row.
+    /// </summary>
+    [Fact]
+    public async Task An_announcement_left_without_its_row_is_completed_with_the_same_entry_after_the_zone_changed()
+    {
+        using var world = await DerivationWorld.CreateAsync();
+        var run = world.Run(RunA);
+        var (hash, _) = await run.PlanAsync("Añadir Calc.Multiply con sus pruebas.");
+        var approval = await run.StartAsync(hash, "manuel", ("T1", WorkTaskKind.AgentWork));
+        var source = MemorySources.LogEntry(RunA, approval.Sequence);
+        world.World.Clock.SetLocalTimeZone(PlusTwo);
+        world.World.Spy.FailNextAppend = true;
+
+        await Assert.ThrowsAsync<IOException>(() => world.DeriveAsync());
+
+        world.World.Clock.SetLocalTimeZone(MinusFive);
+        var completed = Assert.Single((await world.DeriveAsync()).Recorded, e => e.Source == source);
+
+        var announced = (await world.World.EntriesAsync(DecisionKind.MemoryRecorded))
+            .Select(e => DecisionPayloadSerializer.Deserialize<MemoryRecordedPayload>(e.PayloadJson))
+            .Where(p => p.Source == source)
+            .ToList();
+        Assert.Equal(completed.Id, Assert.Single(announced).Entry);
+        Assert.Contains(await world.MemoryAsync(), e => e.Id == completed.Id);
     }
 
     [Fact]
@@ -122,9 +211,9 @@ public sealed class MemoryDerivationTests
         Assert.All(decisions, d => Assert.Equal((MemoryOrigin.System, MemoryTrust.Trusted), (d.Origin, d.Trust)));
         var yes = Assert.Single(decisions, d => d.Source == MemorySources.LogEntry(RunA, granted.Sequence));
         Assert.Equal($"Entrega de la ejecución {RunA}", yes.Topic);
-        Assert.Equal($"manuel aprobó entregar la ejecución {RunA} a su rama el 2026-01-01 10:00 UTC: cambian 2 ficheros.", yes.Content);
+        Assert.Equal($"La persona aprobó entregar la ejecución {RunA} a su rama el 01/01/2026 a las 10:00 UTC: cambian 2 ficheros.", yes.Content);
         var no = Assert.Single(decisions, d => d.Source == MemorySources.LogEntry(RunB, denied.Sequence));
-        Assert.Equal($"manuel denegó entregar la ejecución {RunB} a su rama el 2026-01-01 10:00 UTC.", no.Content);
+        Assert.Equal($"La persona denegó entregar la ejecución {RunB} a su rama el 01/01/2026 a las 10:00 UTC.", no.Content);
         Assert.DoesNotContain(result.Recorded, e => e.Content.Contains("4e9", StringComparison.Ordinal));
     }
 
@@ -193,8 +282,8 @@ public sealed class MemoryDerivationTests
         var pending = Assert.Single(result.Recorded, e => e.Kind == MemoryKind.PendingTask);
         Assert.Equal(
             $"Al terminar la ejecución {RunA} (fallida) quedaron sin completar 2 tareas: "
-            + "T1 (trabajo de agente): bloqueada, tras 1 intento, motivo: límite de uso del proveedor hasta el 2026-10-15 10:05 UTC (espera estimada); "
-            + "T2 (trabajo de agente): bloqueada, tras 1 intento, motivo: límite de uso del proveedor hasta el 2026-10-15 11:00 UTC.",
+            + "T1 (trabajo de agente): bloqueada, tras 1 intento, motivo: límite de uso del proveedor hasta el 15/10/2026 a las 10:05 UTC (espera estimada); "
+            + "T2 (trabajo de agente): bloqueada, tras 1 intento, motivo: límite de uso del proveedor hasta el 15/10/2026 a las 11:00 UTC.",
             pending.Content);
     }
 

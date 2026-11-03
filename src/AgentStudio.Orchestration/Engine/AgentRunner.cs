@@ -114,8 +114,10 @@ internal static class AgentRunner
         {
             try
             {
-                // The wait in the provider's queue honours both tokens: a run stopped while queued never starts.
-                run = await invocation.Provider.StartAsync(invocation.Request, launch.Token).ConfigureAwait(false);
+                // The wait in the provider's queue honours both tokens: a run stopped while queued never starts. The request
+                // carries the start just recorded, so the journal can name it (docs/17 D-02).
+                var anchored = invocation.Request with { Anchor = new AgentRunAnchor(recorder.RunValue, invocation.Task?.Value, invocation.Attempt) };
+                run = await invocation.Provider.StartAsync(anchored, launch.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (abort.IsCancellationRequested)
             {

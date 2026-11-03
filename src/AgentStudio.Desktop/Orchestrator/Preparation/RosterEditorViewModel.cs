@@ -11,7 +11,11 @@ using CommunityToolkit.Mvvm.Input;
 namespace AgentStudio.Desktop.Orchestrator.Preparation;
 
 /// <summary>One choice of the model of an agent: the CLI's default (<see cref="Model"/> null), a name, or «Otro modelo…» to type one.</summary>
-public sealed record ModelOption(string Label, string? Model, bool IsOther = false);
+public sealed record ModelOption(string Label, string? Model, bool IsOther = false)
+{
+    /// <summary>What a screen reader says of the option (A1-bis): its label, never the members of the record.</summary>
+    public override string ToString() => Label;
+}
 
 /// <summary>
 /// The models an agent of the template can be given (G1): the default of its CLI, the names the CLI is known to take, and any

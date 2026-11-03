@@ -4,10 +4,23 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:AgentStudio.Desktop.ViewModels"
+             xmlns:markdown="clr-namespace:AgentStudio.Desktop.Markdown"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:JournalViewModel}">
+    <UserControl.Resources>
+        <!-- V31: the journal is Markdown; it is shown read (titles, lists, bold, code, no escapes), never as its raw text. -->
+        <markdown:MarkdownToFlowDocumentConverter x:Key="Journal.Markdown"
+                                                  Foreground="{StaticResource TextPrimaryBrush}"
+                                                  SecondaryForeground="{StaticResource TextSecondaryBrush}"
+                                                  CodeBackground="{StaticResource SurfaceRaisedBrush}"
+                                                  FontFamily="{StaticResource UiFont}"
+                                                  CodeFontFamily="{StaticResource MonoFont}"/>
+        <BooleanToVisibilityConverter x:Key="Journal.BoolToVisibility"/>
+    </UserControl.Resources>
+
     <Grid Background="{StaticResource SurfaceBrush}">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
@@ -32,7 +45,29 @@
             <Button Grid.Column="1" Style="{StaticResource GhostButton}" Content="Actualizar" Command="{Binding RefreshCommand}"/>
         </Grid>
 
-        <TextBox Grid.Row="1" Style="{StaticResource MonoViewer}" TextWrapping="Wrap" HorizontalScrollBarVisibility="Disabled"
-                 Text="{Binding Text, Mode=OneWay}" AutomationProperties.Name="Bitácora de hoy"/>
+        <!-- A long day draws only its latest entries (the layout runs on the UI thread); all of it, as plain text, on demand. -->
+        <DockPanel Grid.Row="1" Margin="12,0,12,8" Visibility="{Binding IsTrimmed, Converter={StaticResource Journal.BoolToVisibility}}">
+            <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Margin="8,0,0,0" Content="{Binding ToggleText}"
+                    Command="{Binding TogglePlainTextCommand}"/>
+            <TextBlock Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Text="{Binding TrimNote}"
+                       AutomationProperties.LiveSetting="Polite"/>
+        </DockPanel>
+
+        <!-- Read-only, with a reading caret like the plain viewer. It prints and finds nothing: Ctrl+P (go to file) and Ctrl+F
+             go on to the window. -->
+        <RichTextBox x:Name="JournalDocument" Grid.Row="2" Style="{StaticResource ReadingViewer}"
+                     markdown:RichTextDocument.Document="{Binding RenderedText, Converter={StaticResource Journal.Markdown}}"
+                     Visibility="{Binding ShowReadable, Converter={StaticResource Journal.BoolToVisibility}}"
+                     AutomationProperties.Name="Bitácora de hoy">
+            <RichTextBox.CommandBindings>
+                <CommandBinding Command="ApplicationCommands.Print" CanExecute="LetTheWindowHaveIt"/>
+                <CommandBinding Command="ApplicationCommands.Find" CanExecute="LetTheWindowHaveIt"/>
+            </RichTextBox.CommandBindings>
+        </RichTextBox>
+
+        <TextBox x:Name="JournalText" Grid.Row="2" Style="{StaticResource MonoViewer}" TextWrapping="Wrap" HorizontalScrollBarVisibility="Disabled"
+                 Text="{Binding PlainText, Mode=OneWay}"
+                 Visibility="{Binding ShowPlainText, Converter={StaticResource Journal.BoolToVisibility}}"
+                 AutomationProperties.Name="Bitácora de hoy, como texto"/>
     </Grid>
 </UserControl>

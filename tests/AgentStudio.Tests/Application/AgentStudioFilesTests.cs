@@ -12,7 +12,8 @@ public sealed class AgentStudioFilesTests
     [Fact]
     public void The_memory_export_has_one_file_per_category_and_one_per_month_and_nothing_else()
     {
-        Assert.Equal(Enum.GetValues<MemoryKind>().Length, AgentStudioFiles.ThematicMemoryFiles.Distinct(StringComparer.Ordinal).Count());
+        Assert.Equal(Enum.GetValues<MemoryKind>().Count(MemoryKinds.IsExported), AgentStudioFiles.ThematicMemoryFiles.Distinct(StringComparer.Ordinal).Count());
+        Assert.Equal(10, AgentStudioFiles.ThematicMemoryFiles.Count);
         Assert.Equal("tema-errores-conocidos.md", AgentStudioFiles.ThematicMemoryFile(MemoryKind.KnownError));
         Assert.Equal("cronologico-2026-10.md", AgentStudioFiles.ChronologicalMemoryFile(new DateOnly(2026, 10, 1)));
         Assert.All(AgentStudioFiles.ThematicMemoryFiles, name => Assert.True(AgentStudioFiles.IsMemoryExportFile(name), name));
@@ -22,6 +23,19 @@ public sealed class AgentStudioFilesTests
         Assert.False(AgentStudioFiles.IsMemoryExportFile("cronologico-2026-13.md"));
         Assert.False(AgentStudioFiles.IsMemoryExportFile("Tema-veredictos.md"));
         Assert.False(AgentStudioFiles.IsMemoryExportFile("tema-veredictos.md.bak"));
+    }
+
+    /// <summary>
+    /// Phase 12 (docs/17 D-02): a journal entry anchored as memory is not exported, since its source already is the journal
+    /// in the repository; it has no thematic file, and nothing under the memory folder is taken for one.
+    /// </summary>
+    [Fact]
+    public void The_journal_entries_have_no_file_in_the_memory_export()
+    {
+        Assert.False(MemoryKinds.IsExported(MemoryKind.JournalEntry));
+        Assert.All(Enum.GetValues<MemoryKind>().Where(k => k != MemoryKind.JournalEntry), kind => Assert.True(MemoryKinds.IsExported(kind), kind.ToString()));
+        Assert.Throws<ArgumentOutOfRangeException>(() => AgentStudioFiles.ThematicMemoryFile(MemoryKind.JournalEntry));
+        Assert.False(AgentStudioFiles.IsMemoryExportFile("tema-bitacora.md"));
     }
 
     [Theory]

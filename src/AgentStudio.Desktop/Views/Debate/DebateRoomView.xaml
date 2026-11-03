@@ -7,6 +7,7 @@
              xmlns:monitor="clr-namespace:AgentStudio.Desktop.Orchestrator.Monitor"
              xmlns:views="clr-namespace:AgentStudio.Desktop.Views.Debate"
              xmlns:orchestratorViews="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
+             xmlns:controls="clr-namespace:AgentStudio.Desktop.Controls"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=debate:DebateRoomViewModel}">
     <!-- The room of a debate (docs/15 D-41, docs/03 §4): header with mode, phase, round, time and tokens with their
@@ -53,9 +54,13 @@
             </TextBlock>
             <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding JudgesText}" Visibility="{Binding JudgesText, Converter={StaticResource Room.NotNullToVisibility}}"/>
             <WrapPanel Margin="0,6,0,0">
-                <TextBlock Style="{StaticResource SecondaryText}" Margin="0,0,16,0" Text="{Binding TimeText}"/>
-                <TextBlock Style="{StaticResource SecondaryText}" Margin="0,0,16,0" Text="{Binding TokensText}" AutomationProperties.Name="Tokens del debate"/>
-                <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding RunsText}"/>
+                <TextBlock Style="{StaticResource SecondaryText}" Margin="0,0,16,0" VerticalAlignment="Center" Text="{Binding TimeText}"/>
+                <!-- The tokens of the debate against its maximum and its agent runs against its budget, as bars (docs/18 P3),
+                     each with its origin; «parcial» when turns did not report their tokens. -->
+                <controls:MetricBar Margin="0,0,16,0" TrackWidth="110" Reading="{Binding TokensBar}"
+                                    Visibility="{Binding TokensBar, Converter={StaticResource Room.NotNullToVisibility}}"/>
+                <controls:MetricBar TrackWidth="90" Reading="{Binding RunsBar}"
+                                    Visibility="{Binding RunsBar, Converter={StaticResource Room.NotNullToVisibility}}"/>
             </WrapPanel>
             <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Margin="0,8,0,0" Foreground="{StaticResource AccentBrush}" Text="{Binding SealedText}"
                        Visibility="{Binding SealedText, Converter={StaticResource Room.NotNullToVisibility}}"

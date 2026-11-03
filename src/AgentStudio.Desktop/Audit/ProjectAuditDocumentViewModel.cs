@@ -33,7 +33,11 @@ public sealed partial class AuthorChoiceViewModel(VendorId vendor, Action change
 }
 
 /// <summary>One piece of the verification of HEAD, as the report lists it.</summary>
-public sealed record VerificationRow(string Title, string Description, string? Tests);
+public sealed record VerificationRow(string Title, string Description, string? Tests)
+{
+    /// <summary>What a screen reader says of the row (A1-bis): its title, never the members of the record.</summary>
+    public override string ToString() => Title;
+}
 
 /// <summary>
 /// The conformity report of an audit (docs/15 D-31): whether it can be trusted and why, the commit audited and the changes

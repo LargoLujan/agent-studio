@@ -13,6 +13,14 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
   </ItemGroup>
 
+  <!-- The local embeddings of the semantic index (Phase 12, docs/17 D-03; ADR-0047): ONNX Runtime and the SentencePiece
+       tokenizer, used only by Embeddings/Onnx (WP2). The model itself is never part of the build: it is downloaded once,
+       with the user's OK, to %LOCALAPPDATA%\AgentStudio\models. -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" />
+    <PackageReference Include="Microsoft.ML.Tokenizers" />
+  </ItemGroup>
+
   <ItemGroup>
     <EmbeddedResource Include="Persistence\Schema\*.sql" LogicalName="AgentStudio.Schema.%(Filename)%(Extension)" />
   </ItemGroup>

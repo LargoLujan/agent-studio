@@ -74,6 +74,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
     private readonly BackgroundWorkRegistry? _work;
     private readonly IConsentedResumes? _resumes;
     private readonly SettingsDocumentViewModel? _settingsDocument;
+    private readonly ContextWindowCatalogs? _contextWindows;
     private readonly SynchronizationContext? _ui;
 
     /// <summary>The «Debates» documents whose debates the registry of the work follows, with the debate each one follows now.</summary>
@@ -96,6 +97,9 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
 
     /// <summary>Monitors of runs the scheduler resumed while the monitor of their document followed another run: the tray follows them.</summary>
     private readonly List<RunMonitorViewModel> _backgroundMonitors = [];
+
+    /// <summary>The project of each of <see cref="_backgroundMonitors"/>, whose learned windows reach it.</summary>
+    private readonly Dictionary<RunMonitorViewModel, string> _backgroundRoots = [];
     private AppSettings _settings = AppSettings.Default;
     private WelcomeDocumentViewModel? _welcome;
     private SkillsDocumentViewModel? _skills;
@@ -121,6 +125,14 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
     /// the monitor of their «Orquestador». Without it nothing resumes by itself.
     /// </param>
     /// <param name="settingsDocument">The «Ajustes» document of the session; without it the activity is not offered.</param>
+    /// <param name="statusStrip">
+    /// The bars of the status bar (docs/18 P3): the context of the tasks in course, the quota and the budget. Without it the shell
+    /// makes one over what it has.
+    /// </param>
+    /// <param name="contextWindows">
+    /// The context windows each project learned (P36), which every monitor judges the live context with; without it, the base
+    /// table alone.
+    /// </param>
     public MainViewModel(
         IAppSettingsStore settingsStore,
         IFolderPicker folderPicker,
@@ -138,7 +150,9 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         RunReviewServices? review = null,
         BackgroundWorkRegistry? work = null,
         IConsentedResumes? resumes = null,
-        SettingsDocumentViewModel? settingsDocument = null)
+        SettingsDocumentViewModel? settingsDocument = null,
+        StatusStripViewModel? statusStrip = null,
+        ContextWindowCatalogs? contextWindows = null)
     {
         ArgumentNullException.ThrowIfNull(settingsStore);
         ArgumentNullException.ThrowIfNull(folderPicker);
@@ -168,7 +182,9 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         _work = work;
         _resumes = resumes;
         _settingsDocument = settingsDocument;
+        _contextWindows = contextWindows;
         _ui = SynchronizationContext.Current;
+        StatusStrip = statusStrip ?? new StatusStripViewModel(usage?.Quota, TimeProvider.System, _ui);
         if (resumes is not null)
         {
             resumes.Resumed += OnRunResumed;
@@ -200,6 +216,12 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
     }
 
     public ProviderDiagnosticsViewModel Diagnostics { get; }
+
+    /// <summary>
+    /// The bars of the status bar of the window (docs/18 P3): the context of the tasks in course, the quota of the account and
+    /// the budget of the runs, always in view, in real time.
+    /// </summary>
+    public StatusStripViewModel StatusStrip { get; }
 
     public ExplorerViewModel Explorer { get; }
 
@@ -562,6 +584,11 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         document.Monitor.Finished += (_, _) => OnRunFinished(document.ProjectRoot);
         document.RunHandedOff += OnRunHandedOff;
 
+        // The live bars (docs/18 P3 and P36): the status bar follows this monitor, and its attempts are judged with the
+        // windows the project learned.
+        StatusStrip.Track(document.Monitor);
+        LearnContextWindows(document.ProjectRoot, document.Monitor);
+
         // The tray, its panel, the managed exit and «mantener despierto» follow the runs of this document (ADR-0036), with the
         // project of the run followed (the scheduler may attach one before the tab opened the project) or of the tab.
         _work?.TrackRun(document.ProjectRoot, document.Monitor, () => document.Monitor.Project ?? document.Context?.Project);
@@ -678,31 +705,25 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
 
     /// <summary>
     /// A run of an orchestrator finished: its memory is derived from the log and exported (D-18 and D-22), «Memoria» offers
-    /// its export again and shows what was derived, and the Codex quota is read (D-15: only with the opt-in, and at most
-    /// once per interval; the judge of every run is Codex).
+    /// its export again and shows what was derived, and the monitors of the project learn the windows its attempts reported.
+    /// The quota of Codex is not read here: it is read after each run of Codex itself, whatever started it (an orchestration, a
+    /// debate, an audit), with the opt-in (docs/18 P37, <see cref="QuotaViewModel.CodexRunFinishedAsync"/>).
     /// </summary>
     private async void OnRunFinished(string projectRoot)
     {
         _memory?.RefreshRunActivity();
+        if (_contextWindows is { } windows)
+        {
+            // Its attempts may have reported windows the project had not seen: the next attempts are judged with them.
+            var monitors = _orchestrators.Values.Where(d => SameProject(d.ProjectRoot, projectRoot)).Select(d => d.Monitor)
+                .Concat(_backgroundRoots.Where(b => SameProject(b.Value, projectRoot)).Select(b => b.Key))
+                .ToList();
+            _ = ReadContextWindowsAsync(windows, projectRoot, monitors);
+        }
+
         if (await KeepMemoryAsync(projectRoot, afterRun: true) && _memory is not null && Documents.Contains(_memory) && SameProject(_memoryShown?.Path, projectRoot))
         {
             await _memory.RefreshCommand.ExecuteAsync(null);
-        }
-
-        if (_usage is null)
-        {
-            return;
-        }
-
-        try
-        {
-            await _usage.Quota.CodexRunFinishedAsync();
-        }
-#pragma warning disable CA1031 // An event handler of the UI: a failure is shown in the status bar, never thrown into the dispatcher.
-        catch (Exception ex)
-#pragma warning restore CA1031
-        {
-            StatusMessage = $"No se pudo leer la cuota de Codex al terminar la ejecución: {ex.Message}";
         }
     }
 
@@ -981,13 +1002,46 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
     private void FollowInBackground(string root, ProjectContext project, IOrchestrationRun run, bool? resumeConsent)
     {
         var monitor = new RunMonitorViewModel(TimeProvider.System, _ui);
+        if (_usage is not null)
+        {
+            monitor.ContextThresholds = _usage.Preferences.Thresholds;
+        }
+
+        LearnContextWindows(root, monitor);
         monitor.Attach(run, project);
         monitor.ResumeConsent = resumeConsent;
         _runsActive[monitor] = monitor.IsActive;
         monitor.PropertyChanged += OnMonitorPropertyChanged;
         monitor.Finished += (_, _) => OnRunFinished(root);
         _backgroundMonitors.Add(monitor);
+        _backgroundRoots[monitor] = root;
         _work?.TrackRun(root, monitor, () => project);
+        StatusStrip.Track(monitor);
+    }
+
+    /// <summary>
+    /// The windows a project learned reach its monitor (P36): the ones known now at once, and the ones read again from its log in
+    /// the background; a monitor never waits for them, and in the meantime it has the base table.
+    /// </summary>
+    private void LearnContextWindows(string projectRoot, RunMonitorViewModel monitor)
+    {
+        if (_contextWindows is not { } windows)
+        {
+            return;
+        }
+
+        monitor.ContextWindows = windows.Current(projectRoot);
+        _ = ReadContextWindowsAsync(windows, projectRoot, [monitor]);
+    }
+
+    /// <summary>Reads the log of the project again and gives its windows to <paramref name="monitors"/>, on the UI thread.</summary>
+    private static async Task ReadContextWindowsAsync(ContextWindowCatalogs windows, string projectRoot, IReadOnlyList<RunMonitorViewModel> monitors)
+    {
+        var catalog = await windows.RefreshAsync(projectRoot).ConfigureAwait(true);
+        foreach (var monitor in monitors)
+        {
+            monitor.ContextWindows = catalog;
+        }
     }
 
     /// <summary>

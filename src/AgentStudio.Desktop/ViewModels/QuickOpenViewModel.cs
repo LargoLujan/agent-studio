@@ -18,6 +18,9 @@ public sealed record QuickOpenItem(string RelativePath, string FullPath)
 
     /// <summary>The folders above the file, for display; empty for a file in the project root.</summary>
     public string Directory => Path.GetDirectoryName(RelativePath) ?? string.Empty;
+
+    /// <summary>What a screen reader says of the file in the list (A1-bis): its path in the project, never the members of the record.</summary>
+    public override string ToString() => RelativePath;
 }
 
 /// <summary>

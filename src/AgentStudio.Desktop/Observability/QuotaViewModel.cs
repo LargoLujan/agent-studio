@@ -1,5 +1,6 @@
 using System.Globalization;
 using AgentStudio.Application.Providers;
+using AgentStudio.Desktop.Controls;
 using AgentStudio.Domain.Providers;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -11,7 +12,20 @@ namespace AgentStudio.Desktop.Observability;
 /// <param name="Seen">How old the observation is: «vista hace 12 min».</param>
 /// <param name="Resets">When the window resets, in local time; null when the provider does not say.</param>
 /// <param name="Reached">The limit the provider says was reached; null when it says none.</param>
-public sealed record QuotaWindowRow(string Name, Figure Utilization, string Seen, string? Resets, string? Reached = null);
+public sealed record QuotaWindowRow(string Name, Figure Utilization, string Seen, string? Resets, string? Reached = null)
+{
+    /// <summary>The window as the provider names it (<c>five_hour</c>, <c>seven_day</c>, <c>codex/primary</c>…); null when not given.</summary>
+    public string? Window { get; init; }
+
+    /// <summary>The window in a few words, for the status bar: «5 h», «7 días».</summary>
+    public string ShortName { get; init; } = string.Empty;
+
+    /// <summary>The bar of the window (docs/18 P3): the utilization the provider gave, with its origin and its age.</summary>
+    public MetricBarReading? Bar { get; init; }
+
+    /// <summary>What UI Automation names the row with, as an item of the list of «Consumo»: the bar's whole line, or the words.</summary>
+    public override string ToString() => Bar?.AccessibleName ?? $"{Name}: {Utilization.Text} · {Seen}";
+}
 
 //// <summary>The quota of one provider: its name, where the figures come from (or why there are none), its windows and notes.</summary>
 public sealed record ProviderQuota(string Name, string Status, IReadOnlyList<QuotaWindowRow> Windows, IReadOnlyList<string> Notes)
@@ -35,6 +49,7 @@ public sealed partial class QuotaViewModel : ObservableObject
     private readonly IQuotaObservations? _observations;
     private readonly IProviderQuotaReader? _codex;
     private readonly TimeProvider _time;
+    private readonly SynchronizationContext? _ui;
     private IReadOnlyList<QuotaObservation> _latest = [];
     private string? _recordProblem;
     private QuotaReadResult? _lastRead;
@@ -44,13 +59,46 @@ public sealed partial class QuotaViewModel : ObservableObject
     /// <param name="observations">The user's quota record; null when the shell was composed without it.</param>
     /// <param name="codex">Reads the Codex quota from its app-server; null when it was not composed.</param>
     /// <param name="time">The clock of the ages and of the interval between reads.</param>
-    public QuotaViewModel(IQuotaObservations? observations, IProviderQuotaReader? codex, TimeProvider time)
+    /// <param name="runEnds">
+    /// The ends of the agent runs of the process (docs/18 P37): after each run of Codex the quota of Codex is read, with the
+    /// opt-in and never twice within <see cref="CodexReadInterval"/> (<see cref="CodexRunFinishedAsync"/>). Without it, only
+    /// «Consultar cuota de Codex» reads it.
+    /// </param>
+    /// <param name="uiContext">Where a read after a run is made; defaults to the creating thread's context.</param>
+    public QuotaViewModel(IQuotaObservations? observations, IProviderQuotaReader? codex, TimeProvider time, IAgentRunEnds? runEnds = null, SynchronizationContext? uiContext = null)
     {
         ArgumentNullException.ThrowIfNull(time);
         _observations = observations;
         _codex = codex;
         _time = time;
+        _ui = uiContext ?? SynchronizationContext.Current;
+        if (runEnds is not null)
+        {
+            runEnds.Ended += OnRunEnded;
+        }
+
         Rebuild();
+    }
+
+    /// <summary>Completes once the read asked by the end of the last run of Codex is done (or there was none to do).</summary>
+    public Task CodexReadAfterRun { get; private set; } = Task.CompletedTask;
+
+    /// <summary>A run ended on its own thread: a run of Codex asks for a read on the UI thread; any other run asks nothing.</summary>
+    private void OnRunEnded(object? sender, AgentRunEnded ended)
+    {
+        if (ended.Provider != ProviderId.CodexCli)
+        {
+            return;
+        }
+
+        if (_ui is null)
+        {
+            CodexReadAfterRun = CodexRunFinishedAsync();
+        }
+        else
+        {
+            _ui.Post(_ => CodexReadAfterRun = CodexRunFinishedAsync(), null);
+        }
     }
 
     public ProviderQuota Claude { get; private set; } = null!;
@@ -98,8 +146,9 @@ public sealed partial class QuotaViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Called once a Codex run finished (D-15): with the opt-in, the quota is read, unless the last read is younger than
-    /// <see cref="CodexReadInterval"/>. Without the opt-in nothing happens.
+    /// Called once a run of Codex finished (D-15, docs/18 P37; the provider pipeline says it through <see cref="IAgentRunEnds"/>):
+    /// with the opt-in, the quota is read (<c>account/rateLimits/read</c>, no turn of the model), unless the last read is younger
+    /// than <see cref="CodexReadInterval"/>. Without the opt-in nothing happens.
     /// </summary>
     public async Task CodexRunFinishedAsync()
     {
@@ -123,7 +172,9 @@ public sealed partial class QuotaViewModel : ObservableObject
         IsReadingCodex = true;
         try
         {
-            var result = await reader.ReadAsync(CancellationToken.None).ConfigureAwait(true);
+            // On the thread pool: the reader loads the settings, looks the executable up and starts a process before its first
+            // real wait, and none of that runs on the UI thread (the read after a run of Codex starts on it).
+            var result = await Task.Run(() => reader.ReadAsync(CancellationToken.None), CancellationToken.None).ConfigureAwait(true);
             _lastRead = result;
             if (result is { Status: QuotaReadStatus.Read, Observations.Count: > 0 } && _observations is { } record)
             {
@@ -212,13 +263,34 @@ public sealed partial class QuotaViewModel : ObservableObject
     [
         .. observations
             .OrderBy(o => o.Window, StringComparer.Ordinal)
-            .Select(o => new QuotaWindowRow(
-                WindowName(o),
-                MetricText.Percent(o.Utilization),
-                Seen(o.ObservedAt),
-                o.ResetsAt is { } at ? Resets(at) : null,
-                string.IsNullOrWhiteSpace(o.Reached) ? null : $"límite alcanzado: {o.Reached}")),
+            .Select(o =>
+            {
+                var name = WindowName(o);
+                var seen = Seen(o.ObservedAt);
+
+                // A window whose reset has passed since it was seen: its figure is of before the reset, never shown as now.
+                var reset = o.ResetsAt is { } at && at <= _time.GetUtcNow() ? at : (DateTimeOffset?)null;
+                var resets = o.ResetsAt is { } when ? Resets(when) : null;
+                var reached = reset is null && !string.IsNullOrWhiteSpace(o.Reached) ? $"límite alcanzado: {o.Reached}" : null;
+                return new QuotaWindowRow(name, MetricText.Percent(o.Utilization), seen, resets, reached)
+                {
+                    Window = o.Window,
+                    ShortName = ShortName(o),
+                    Bar = reset is { } past
+                        ? MetricBars.QuotaAfterReset(name, ResetClock(past), o.Utilization, seen)
+                        : MetricBars.Quota(name, o.Utilization, seen, resets, reached),
+                };
+            }),
     ];
+
+    /// <summary>The window in a few words for the status bar: «5 h» and «7 días» for Claude, the length of any other, or its name.</summary>
+    private static string ShortName(QuotaObservation observation) => observation.Window switch
+    {
+        "five_hour" => "5 h",
+        "seven_day" => "7 días",
+        _ when observation.Length is { } length => Length(length),
+        _ => observation.Label ?? WindowLabel(observation.Window),
+    };
 
     /// <summary>
     /// The name of a window of the subscription as every screen says it: «5 horas» and «7 días» (with the model when the
@@ -257,12 +329,19 @@ public sealed partial class QuotaViewModel : ObservableObject
             : string.Create(CultureInfo.InvariantCulture, $"vista hace {(int)age.TotalDays} días");
     }
 
+    /// <summary>When the window resets, or reset when that moment has passed: «se reinicia hoy a las 15:00», «se reinició el 04/11 a las 10:00».</summary>
     private string Resets(DateTimeOffset at)
     {
+        var verb = at <= _time.GetUtcNow() ? "se reinició" : "se reinicia";
         var local = TimeZoneInfo.ConvertTime(at, _time.LocalTimeZone);
-        var today = _time.GetLocalNow().Date;
-        return local.Date == today
-            ? $"se reinicia hoy a las {local.ToString("HH:mm", CultureInfo.InvariantCulture)}"
-            : $"se reinicia el {local.ToString("dd/MM", CultureInfo.InvariantCulture)} a las {local.ToString("HH:mm", CultureInfo.InvariantCulture)}";
+        return local.Date == _time.GetLocalNow().Date ? $"{verb} hoy {ResetClock(at)}" : $"{verb} {ResetClock(at)}";
+    }
+
+    /// <summary>The moment of a reset as people say it: «a las 15:00» today, «el 04/11 a las 10:00» another day.</summary>
+    private string ResetClock(DateTimeOffset at)
+    {
+        var local = TimeZoneInfo.ConvertTime(at, _time.LocalTimeZone);
+        var clock = local.ToString("HH:mm", CultureInfo.InvariantCulture);
+        return local.Date == _time.GetLocalNow().Date ? $"a las {clock}" : $"el {local.ToString("dd/MM", CultureInfo.InvariantCulture)} a las {clock}";
     }
 }

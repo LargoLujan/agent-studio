@@ -32,6 +32,11 @@
     <None Include="Memory/**/Fixtures/**/*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Observability/**/Fixtures/**/*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="SkillsMcp/**/Fixtures/**/*" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Phase 12 fixtures (docs/17 section 9.2): the question set of the hybrid search, sample journals and the reference
+         vectors of the embedder, so no package of the phase has to touch this file. -->
+    <None Include="Domain/**/Fixtures/**/*" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Infrastructure/**/Fixtures/**/*" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Integration/**/Fixtures/**/*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

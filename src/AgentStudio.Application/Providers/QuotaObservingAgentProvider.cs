@@ -17,9 +17,11 @@ namespace AgentStudio.Application.Providers;
 /// <item>The pipeline puts it inside the journal, whose pump reads the whole stream of every run, so it sees the quota of
 /// a run nobody reads (<c>AgentProviderPipeline</c>).</item>
 /// <item>What the provider does not say stays unsaid: Claude gives no length nor display name for its windows.</item>
+/// <item>Tanda 2 (docs/18 P37): with <paramref name="ends"/>, the end of every run is noted with its provider, so the quota of
+/// Codex is read once after a run of Codex (docs/14 D-15) when the user opted in. Nothing is launched here.</item>
 /// </list>
 /// </remarks>
-public sealed class QuotaObservingAgentProvider(IAgentProvider inner, IQuotaObservations observations) : IAgentProvider
+public sealed class QuotaObservingAgentProvider(IAgentProvider inner, IQuotaObservations observations, AgentRunEnds? ends = null) : IAgentProvider
 {
     public IAgentProvider Inner { get; } = inner ?? throw new ArgumentNullException(nameof(inner));
 
@@ -33,6 +35,16 @@ public sealed class QuotaObservingAgentProvider(IAgentProvider inner, IQuotaObse
     {
         ArgumentNullException.ThrowIfNull(observations);
         var run = await Inner.StartAsync(request, cancellationToken).ConfigureAwait(false);
+        if (ends is not null)
+        {
+            // Whoever reads the run or not, its completion says it ended.
+            _ = run.Completion.ContinueWith(
+                completed => ends.Notify(new AgentRunEnded(Provider, completed.IsCompletedSuccessfully ? completed.Result.Status : null)),
+                CancellationToken.None,
+                TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
+        }
+
         return new ObservedRun(run, this);
     }
 

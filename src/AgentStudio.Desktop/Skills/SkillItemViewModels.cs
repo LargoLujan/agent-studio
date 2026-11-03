@@ -32,6 +32,9 @@ public sealed partial class SkillSectorNodeViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _isExpanded = true;
+
+    /// <summary>What a screen reader says of the folder in the tree (A1-bis): its header, never the name of the type.</summary>
+    public override string ToString() => Header;
 }
 
 /// <summary>
@@ -79,6 +82,9 @@ public sealed partial class SkillItemViewModel : ObservableObject
     [ObservableProperty]
     private bool _isSelected;
 
+    /// <summary>What a screen reader says of the skill in the tree (A1-bis): its name, never the name of the type.</summary>
+    public override string ToString() => Name;
+
     partial void OnIsSelectedChanged(bool value)
     {
         if (value)
@@ -89,7 +95,11 @@ public sealed partial class SkillItemViewModel : ObservableObject
 }
 
 /// <summary>One check of the local health, with its Spanish title and label.</summary>
-public sealed record SkillCheckViewModel(string Code, string Title, SkillHealthStatus Status, string StatusLabel, string Message);
+public sealed record SkillCheckViewModel(string Code, string Title, SkillHealthStatus Status, string StatusLabel, string Message)
+{
+    /// <summary>What a screen reader says of the check (A1-bis): «Licencia: Sana», never the members of the record.</summary>
+    public override string ToString() => $"{Title}: {StatusLabel}";
+}
 
 /// <summary>
 /// The card of the selected skill (docs/14 D-26): source, tags, local health with its checks, estimated context cost,
@@ -160,6 +170,9 @@ public sealed class SkillScopeViewModel
     public bool CanToggle { get; init; }
 
     public IAsyncRelayCommand ToggleCommand { get; init; } = new AsyncRelayCommand(() => Task.CompletedTask);
+
+    /// <summary>What a screen reader says of the scope in its list (A1-bis): its title, never the name of the type.</summary>
+    public override string ToString() => Title;
 }
 
 /// <summary>What one agent of the roster gets: its skills that reach it (active and with a local copy) and their estimated cost.</summary>
@@ -167,10 +180,17 @@ public sealed record AgentCostViewModel(string Agent, int Skills, MetricValue<lo
 {
     /// <summary>«ejecutor: 2 skills · ~37 tokens por ejecución (estimado)».</summary>
     public string Text => $"{Agent}: {Skills} {(Skills == 1 ? "skill" : "skills")} · ~{Tokens.Value ?? 0} tokens por ejecución (estimado)";
+
+    /// <summary>What a screen reader says of the line (A1-bis): its text, never the members of the record.</summary>
+    public override string ToString() => Text;
 }
 
 /// <summary>A recommended skill (deterministic or of the agent), with its reasons, and how to show it in the tree.</summary>
-public sealed record SkillRecommendationItemViewModel(string SkillId, string Name, string Detail, IRelayCommand ShowCommand);
+public sealed record SkillRecommendationItemViewModel(string SkillId, string Name, string Detail, IRelayCommand ShowCommand)
+{
+    /// <summary>What a screen reader says of the recommendation (A1-bis): its name, never the members of the record.</summary>
+    public override string ToString() => Name;
+}
 
 /// <summary>The Spanish texts of the screen.</summary>
 internal static class SkillsTexts

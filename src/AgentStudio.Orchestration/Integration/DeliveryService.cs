@@ -1100,7 +1100,7 @@ public sealed class DeliveryService : IDeliveryService
         var description = mode == DeliveryMode.FastForwardOnly
             ? $"Entregar la ejecución {run.Value}: avanzar tu rama {target} de {Short(state.HeadCommit)} a {Short(integration)} ({runBranch}) con --ff-only."
             : $"Entregar la ejecución {run.Value}: fusionar {runBranch} ({Short(integration)}) en tu rama {target} ({Short(state.HeadCommit)}) con un commit de fusión.";
-        description += $" Cambian {changedPaths} fichero(s).";
+        description += " " + ChangedFiles(changedPaths);
 
         // R3-05: the delivery runs like any internal command. Say so, and give the exact command the user can run by
         // hand after reviewing, if they want their hooks or their signature.
@@ -1114,6 +1114,14 @@ public sealed class DeliveryService : IDeliveryService
 
         return description;
     }
+
+    /// <summary>How many files the delivery changes, in words: «Cambia 1 fichero.», «Cambian 3 ficheros.» or «No cambia ningún fichero.».</summary>
+    private static string ChangedFiles(int count) => count switch
+    {
+        <= 0 => "No cambia ningún fichero.",
+        1 => "Cambia 1 fichero.",
+        _ => $"Cambian {count} ficheros.",
+    };
 
     private static string MergeMessage(RunId run, string integration) =>
         $"Agent Studio: entrega de la ejecución {run.Value}\n\nIntegra {IntegrationNames.BranchName(run)} ({integration}).\n";

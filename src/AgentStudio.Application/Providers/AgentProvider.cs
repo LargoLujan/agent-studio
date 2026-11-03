@@ -78,7 +78,46 @@ public sealed record AgentRunRequest(
     string? SkillsDirectory = null,
     IReadOnlyList<McpServerSpec>? McpServers = null,
     bool PersistSession = true,
-    string? DebateId = null);
+    string? DebateId = null)
+{
+    /// <summary>
+    /// The <c>AgentRunStarted</c> this launch was announced with (docs/17 D-02), set by whoever recorded it just before the
+    /// launch: the prompt journal writes it at the end of the result line (<c>JournalResultAnchor</c>), so the journal
+    /// entry can be matched with the anchored start. Null for a launch nobody announced (a probe, a test): its entry then
+    /// never matches, and stays in quarantine as memory.
+    /// </summary>
+    public AgentRunAnchor? Anchor { get; init; }
+}
+
+/// <summary>
+/// What identifies the <c>AgentRunStarted</c> of one launch in the decision log (docs/17 D-02): the unit of the log it
+/// belongs to (<paramref name="Run"/>: the orchestration run, the debate <c>deb-…</c>, the audit <c>aud-…</c> or the
+/// auxiliary run <c>aux-…</c>), its task (<paramref name="Task"/>: null for the planner, the judge of a run and the
+/// auxiliary runs) and its attempt, exactly as that entry records them.
+/// </summary>
+public sealed record AgentRunAnchor
+{
+    /// <exception cref="ArgumentException">The run is blank, the task is blank but not null, or the attempt is not positive.</exception>
+    public AgentRunAnchor(string run, string? task, int attempt)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(run);
+        if (task is not null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(task);
+        }
+
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(attempt);
+        Run = run;
+        Task = task;
+        Attempt = attempt;
+    }
+
+    public string Run { get; }
+
+    public string? Task { get; }
+
+    public int Attempt { get; }
+}
 
 /// <summary>
 /// A local MCP server for one session (docs/14 D-30): its name in the session (the <c>mcp__&lt;name&gt;__</c> prefix of

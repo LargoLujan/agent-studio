@@ -6,6 +6,7 @@
              xmlns:orchestrator="clr-namespace:AgentStudio.Desktop.Orchestrator"
              xmlns:views="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
              xmlns:lockviews="clr-namespace:AgentStudio.Desktop.Views.Lock"
+             xmlns:controls="clr-namespace:AgentStudio.Desktop.Controls"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=orchestrator:OrchestratorDocumentViewModel}">
     <!-- The «Orquestador» tab: engine status, the preparation (request, frozen requirements, agents, verification
@@ -203,6 +204,9 @@
 
                             <StackPanel Margin="0,20,0,0">
                                 <TextBlock Style="{StaticResource SectionTitleText}" Margin="0,0,0,4" Text="Lo que hace el orquestador"/>
+                                <!-- Its context while it plans (docs/18 P3), step by step, with its origin and level. -->
+                                <controls:MetricBar Margin="0,0,0,6" TrackWidth="110" Reading="{Binding PlanningContext}"
+                                                    Visibility="{Binding PlanningContext, Converter={StaticResource Orchestrator.NotNullToVisibility}}"/>
                                 <TextBlock Text="Nada todavía.">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">

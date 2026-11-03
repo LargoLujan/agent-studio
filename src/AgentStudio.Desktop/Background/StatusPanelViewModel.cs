@@ -4,6 +4,7 @@ using AgentStudio.Application.Coordination;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Usage;
+using AgentStudio.Desktop.Controls;
 using AgentStudio.Desktop.Debate;
 using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Orchestrator;
@@ -29,13 +30,22 @@ public sealed record StatusPanelSources(IUsageReport? Usage = null, IRunRegistry
     public static StatusPanelSources None { get; } = new();
 }
 
-/// <summary>The bar of the context of one task in course: its fraction (null: no bar, only the text) and the text of the monitor.</summary>
+/// <summary>
+/// The context of one task in course: its fraction (null: an empty track, only the words), the text of the monitor and the
+/// bar the panel draws (<see cref="Bar"/>, the monitor's own, docs/18 P3).
+/// </summary>
 public sealed record ContextBarRow(string Task, double? Fraction, string Text, Tone Tone)
 {
     public bool HasBar => Fraction is not null;
 
     /// <summary>The fraction as a percentage for the bar, from 0 to 100.</summary>
     public double Percent => Math.Clamp((Fraction ?? 0) * 100, 0, 100);
+
+    /// <summary>The bar of the context of the task, as its monitor follows it; null when the task has none.</summary>
+    public MetricBarReading? Bar { get; init; }
+
+    /// <summary>What UI Automation names the row with, as an item of the list of the panel: the task and its whole line.</summary>
+    public override string ToString() => $"Contexto de {Task}: {Text}";
 }
 
 /// <summary>A figure with its name: «Entrada · 1.200.000 · exacto · informado por el CLI».</summary>
@@ -45,7 +55,14 @@ public sealed record FigureRow(string Name, Figure Figure)
 }
 
 /// <summary>A window of the quota of the account: «Claude Code · 5 horas · 47 % · … · se reinicia hoy a las 14:05 · vista hace 12 min».</summary>
-public sealed record QuotaRow(string Provider, string Text);
+public sealed record QuotaRow(string Provider, string Text)
+{
+    /// <summary>The bar of the window (docs/18 P3); null for a line that only says why there is none.</summary>
+    public MetricBarReading? Bar { get; init; }
+
+    /// <summary>What UI Automation names the row with, as an item of the list of the panel: the bar's whole line, or the words.</summary>
+    public override string ToString() => Bar?.AccessibleName ?? $"{Provider} · {Text}";
+}
 
 /// <summary>
 /// One piece of work as the panel shows it: its state, and for a run its agents, tasks, context, tokens, budget, blocks,
@@ -73,6 +90,12 @@ public sealed class WorkCardViewModel
     public string? TokensNote { get; init; }
 
     public string? Budget { get; init; }
+
+    /// <summary>The bar of the budget (docs/18 P3): the agent runs used against the maximum; null when not known.</summary>
+    public MetricBarReading? BudgetBar { get; init; }
+
+    /// <summary>The bar of the tokens of a debate against its maximum (docs/18 P3); null for a run.</summary>
+    public MetricBarReading? TokensBar { get; init; }
 
     public IReadOnlyList<string> Blocks { get; init; } = [];
 
@@ -284,12 +307,13 @@ public sealed partial class StatusPanelViewModel : ObservableObject
             Detail = monitor.PhaseDetail,
             Agents = RunAgents(monitor, header, usage, key is not null),
             Tasks = monitor.Tasks.Count == 0 ? "Tareas: sin dato" : "Tareas: " + TaskCounts(monitor.Tasks),
-            Context = [.. monitor.Tasks.Where(t => t.Status == WorkTaskStatus.Running && RunsAnAgent(t.Kind)).Select(t => Bar(t, monitor.ContextThresholds))],
+            Context = [.. monitor.Tasks.Where(t => t.Status == WorkTaskStatus.Running && RunsAnAgent(t.Kind)).Select(Bar)],
             Tokens = usage?.Totals is { } totals ? Figures(totals) : [],
             TokensNote = usage?.Note ?? (_sources.Usage is null ? "Tokens: sin dato (el consumo no está disponible en esta composición)." : "Tokens: sin dato todavía."),
             Budget = header is null
                 ? $"Presupuesto: {WorkTexts.Count(monitor.AgentRunsUsed, "ejecución de agente usada", "ejecuciones de agente usadas")} · máximo sin dato (sin la cabecera de la ejecución)"
                 : $"Presupuesto: {monitor.AgentRunsUsed.ToString(CultureInfo.InvariantCulture)} de {header.Options.MaxAgentRuns.ToString(CultureInfo.InvariantCulture)} ejecuciones de agente",
+            BudgetBar = MetricBars.Budget("Presupuesto", monitor.AgentRunsUsed, header?.Options.MaxAgentRuns ?? monitor.MaxAgentRuns, header is null && monitor.MaxAgentRuns is null ? "sin la cabecera de la ejecución" : null),
             Blocks = [.. monitor.Tasks.Where(t => t.IsBlocked).Select(t => $"{t.Id} · {t.StatusLabel}")],
             Errors = RunErrors(monitor),
             Approvals = [.. monitor.Tasks.Where(t => t.PendingApproval is not null).Select(t => $"{t.Id} espera tu aprobación: {t.PendingApproval}")],
@@ -370,21 +394,16 @@ public sealed partial class StatusPanelViewModel : ObservableObject
     private static bool RunsAnAgent(WorkTaskKind kind) => kind is WorkTaskKind.AgentWork or WorkTaskKind.Review or WorkTaskKind.Debate;
 
     /// <summary>
-    /// The bar of a task in course: the text is the monitor's own line, and the bar is the occupancy of the same step judged
-    /// by the same evaluator with the same thresholds; without a percentage (no window known, or the CLI does not expose it)
-    /// there is no bar, never one at zero.
+    /// The bar of a task in course: the monitor's own (docs/18 P3), which follows the attempt step by step with the windows the
+    /// project knows, and the monitor's own line as its text; without a percentage (no window known, or the CLI does not expose
+    /// it) the track is empty and the words say why, never a bar at zero.
     /// </summary>
-    private static ContextBarRow Bar(MonitorTaskViewModel task, ContextHealthThresholds thresholds)
+    private static ContextBarRow Bar(MonitorTaskViewModel task)
     {
         var label = $"{task.Id} {task.Title}";
-        if (task.LastContext is not { } step)
-        {
-            return new ContextBarRow(label, null, "sin observaciones todavía", Tone.Neutral);
-        }
-
-        var utilization = new ContextHealthEvaluator(thresholds).Evaluate(step.PromptTokens, step.ContextWindow).Utilization;
-        var text = task.Context is { } line && line.StartsWith("Contexto: ", StringComparison.Ordinal) ? line["Contexto: ".Length..] : task.Context ?? "sin dato";
-        return new ContextBarRow(label, utilization.Value, text, task.ContextTone);
+        var bar = task.ContextBar;
+        var text = task.Context is { } line && line.StartsWith("Contexto: ", StringComparison.Ordinal) ? line["Contexto: ".Length..] : task.Context ?? bar?.Text ?? "sin dato";
+        return new ContextBarRow(label, bar?.Fraction, text, task.ContextTone) { Bar = bar };
     }
 
     private static IReadOnlyList<string> RunErrors(RunMonitorViewModel monitor)
@@ -437,7 +456,9 @@ public sealed partial class StatusPanelViewModel : ObservableObject
             Agents = [.. snapshot.Participants.Select(p => $"{p.Label} · {p.Agent} · {DebateTexts.Role(p.Role)} · {DebateTexts.Provider(p.Provider)} · {(string.IsNullOrWhiteSpace(p.Model) ? "modelo predeterminado del CLI (no expuesto)" : $"modelo {p.Model}")}")],
             Tokens = [new FigureRow("Tokens", MetricText.Tokens(snapshot.Tokens))],
             TokensNote = "Del debate, por turno (como en la sala).",
+            TokensBar = MetricBars.Tokens("Tokens del debate", snapshot.Tokens, snapshot.Limits.MaxTotalTokens),
             Budget = $"Presupuesto: {snapshot.AgentRuns.ToString(CultureInfo.InvariantCulture)} de {snapshot.MaxAgentRuns.ToString(CultureInfo.InvariantCulture)} ejecuciones de agente",
+            BudgetBar = MetricBars.Budget("Presupuesto", snapshot.AgentRuns, snapshot.MaxAgentRuns),
             Blocks = awaiting is { Reason: DebateAwaitReason.ProviderLimit } limit
                 ? [limit.Until is { } until ? $"Límite de uso del proveedor hasta las {TimeZoneInfo.ConvertTime(until, _time.LocalTimeZone).ToString("HH:mm", CultureInfo.InvariantCulture)}" : DebateTexts.Await(limit.Reason)]
                 : [],
@@ -520,7 +541,7 @@ public sealed partial class StatusPanelViewModel : ObservableObject
                 }
 
                 parts.Add(window.Seen);
-                Quota.Add(new QuotaRow(provider.Name, string.Join(" · ", parts)));
+                Quota.Add(new QuotaRow(provider.Name, string.Join(" · ", parts)) { Bar = window.Bar is { } bar ? bar with { Label = $"{provider.Name} · {window.Name}" } : null });
             }
         }
 

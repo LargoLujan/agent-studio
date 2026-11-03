@@ -88,6 +88,23 @@ public sealed class ProjectDatabases : IDisposable
         throw new InvalidOperationException($"Project '{projectId}' is not open in this instance: open it with IProjectWorkspace.OpenAsync first.");
     }
 
+    /// <summary>
+    /// The storage of an open project, or null when this instance has not opened it, has closed it or is shut down. For
+    /// whoever only names a project (the screens show its folder, never its id) and must not fail when it is not open.
+    /// </summary>
+    public ProjectStorage? Find(string projectId)
+    {
+        if (string.IsNullOrWhiteSpace(projectId))
+        {
+            return null;
+        }
+
+        lock (_gate)
+        {
+            return !_disposed && _projects.TryGetValue(projectId, out var open) ? open.Storage : null;
+        }
+    }
+
     /// <summary>Releases the project: its lock file is removed and another instance may open it. Closing a project that is not open does nothing.</summary>
     public void Close(string projectId)
     {

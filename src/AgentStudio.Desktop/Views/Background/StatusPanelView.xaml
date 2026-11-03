@@ -5,6 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:background="clr-namespace:AgentStudio.Desktop.Background"
              xmlns:orchestratorViews="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
+             xmlns:controls="clr-namespace:AgentStudio.Desktop.Controls"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=background:StatusPanelViewModel}"
              Width="540" UseLayoutRounding="True"
@@ -16,6 +17,8 @@
         <BooleanToVisibilityConverter x:Key="Background.BoolToVisibility"/>
         <orchestratorViews:HasTextToVisibilityConverter x:Key="Background.HasText"/>
         <orchestratorViews:ToneToBrushConverter x:Key="Background.ToneToBrush"/>
+        <orchestratorViews:NullToVisibilityConverter x:Key="Background.NotNull"/>
+        <orchestratorViews:NullToVisibilityConverter x:Key="Background.IsNull" Invert="True"/>
 
         <DataTemplate x:Key="Background.Line">
             <TextBlock Style="{StaticResource SecondaryText}" Margin="0,1,0,0" Text="{Binding}"/>
@@ -33,19 +36,14 @@
             <Grid Margin="0,3,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="150"/>
-                    <ColumnDefinition Width="90"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Style="{StaticResource SecondaryText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
-                           Text="{Binding Task}" ToolTip="{Binding Task}"/>
-                <!-- A bar only with a percentage: without one there is no bar at zero, only the words. -->
-                <ProgressBar Grid.Column="1" Height="6" Margin="0,0,8,0" VerticalAlignment="Center" Minimum="0" Maximum="100"
-                             Value="{Binding Percent, Mode=OneWay}" BorderThickness="0"
-                             Background="{StaticResource BorderBrush}"
-                             Foreground="{Binding Tone, Converter={StaticResource Background.ToneToBrush}}"
-                             Visibility="{Binding HasBar, Converter={StaticResource Background.BoolToVisibility}}"
-                             AutomationProperties.Name="{Binding Text}"/>
-                <TextBlock Grid.Column="2" Style="{StaticResource BodyText}" FontSize="12" Text="{Binding Text}"/>
+                           VerticalAlignment="Center" Text="{Binding Task}" ToolTip="{Binding Task}"/>
+                <!-- The bar of the monitor (docs/18 P3): its percentage, origin and level; without a percentage an empty track
+                     and the words, never a bar at zero. The whole line of the monitor is its name and its tooltip. -->
+                <controls:MetricBar Grid.Column="1" ShowsLabel="False" TrackWidth="90" Reading="{Binding Bar}"
+                                    AutomationProperties.Name="{Binding Text, StringFormat='Contexto: {0}'}"/>
             </Grid>
         </DataTemplate>
 
@@ -81,12 +79,17 @@
                     </StackPanel>
 
                     <StackPanel Margin="18,6,0,0" Visibility="{Binding HasTokens, Converter={StaticResource Background.BoolToVisibility}}">
+                        <controls:MetricBar Margin="0,0,0,2" TrackWidth="90" LabelWidth="150" Reading="{Binding TokensBar}"
+                                            Visibility="{Binding TokensBar, Converter={StaticResource Background.NotNull}}"/>
                         <ItemsControl ItemsSource="{Binding Tokens}" Focusable="False" AutomationProperties.Name="Tokens"/>
                         <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="0,2,0,0" Text="{Binding TokensNote, TargetNullValue=''}"/>
                     </StackPanel>
 
+                    <!-- The budget (docs/18 P3): the agent runs used against the maximum, as a bar; the words when it is not known. -->
+                    <controls:MetricBar Margin="18,6,0,0" TrackWidth="90" LabelWidth="150" Reading="{Binding BudgetBar}"
+                                        Visibility="{Binding BudgetBar, Converter={StaticResource Background.NotNull}}"/>
                     <TextBlock Style="{StaticResource SecondaryText}" Margin="18,6,0,0" Text="{Binding Budget}"
-                               Visibility="{Binding Budget, Converter={StaticResource Background.HasText}}"/>
+                               Visibility="{Binding BudgetBar, Converter={StaticResource Background.IsNull}}"/>
 
                     <ItemsControl Margin="18,6,0,0" ItemsSource="{Binding Approvals}" ItemTemplate="{StaticResource Background.WarningLine}" Focusable="False"
                                   Visibility="{Binding HasApprovals, Converter={StaticResource Background.BoolToVisibility}}"
@@ -109,9 +112,17 @@
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type background:QuotaRow}">
-            <TextBlock Style="{StaticResource SecondaryText}" Margin="0,1,0,0">
-                <Run Foreground="{StaticResource TextPrimaryBrush}" Text="{Binding Provider, Mode=OneWay}"/><Run Text=" · "/><Run Text="{Binding Text, Mode=OneWay}"/>
-            </TextBlock>
+            <StackPanel Margin="0,2,0,0">
+                <!-- The window as a bar (docs/18 P3): the provider's own figure, with its origin; its reset and age under it. A
+                     line without a window (Codex without the opt-in, say) only says why. -->
+                <controls:MetricBar TrackWidth="90" LabelWidth="150" Reading="{Binding Bar}"
+                                    Visibility="{Binding Bar, Converter={StaticResource Background.NotNull}}"/>
+                <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="150,0,0,0" Text="{Binding Bar.Detail, FallbackValue='', TargetNullValue=''}"
+                           Visibility="{Binding Bar, Converter={StaticResource Background.NotNull}}"/>
+                <TextBlock Style="{StaticResource SecondaryText}" Margin="0,1,0,0" Visibility="{Binding Bar, Converter={StaticResource Background.IsNull}}">
+                    <Run Foreground="{StaticResource TextPrimaryBrush}" Text="{Binding Provider, Mode=OneWay}"/><Run Text=" · "/><Run Text="{Binding Text, Mode=OneWay}"/>
+                </TextBlock>
+            </StackPanel>
         </DataTemplate>
     </UserControl.Resources>
 

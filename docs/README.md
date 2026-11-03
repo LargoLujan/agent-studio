@@ -78,6 +78,7 @@ Especificación funcional: [referencias/prompt-maestro.md](referencias/prompt-ma
 | [0035](adr/0035-final-clasificado-y-renovacion-del-contexto.md) | El final clasificado de cada intento y la renovación del contexto con un traspaso que construye el sistema; nunca `--resume` de un intento interrumpido |
 | [0036](adr/0036-vida-de-la-app-y-bandeja.md) | La vida de la app y la bandeja: cerrar y seguir, el panel como proyección, la salida gestionada en el registro, la suspensión y el reloj |
 | [0037](adr/0037-windows-hello-y-bloqueo-de-la-interfaz.md) | Windows Hello en las aprobaciones críticas y un bloqueo de la interfaz que no detiene el trabajo; el SDK de Windows solo en Desktop (amplía ADR-0001) |
+| [0047](adr/0047-indice-semantico-local.md) | Índice semántico local (Fase 12): multilingual-e5-small int8 en tu equipo y sin red, descargado una vez con tu OK y su huella fijada; búsqueda híbrida (palabras sin palabras vacías y significado, RRF k = 60); la bitácora anclada como memoria con su confianza; el juez no lo recibe (enmienda ADR-0023 y amplía ADR-0022) |
 
 ## Investigación y evidencias
 
@@ -87,9 +88,14 @@ Especificación funcional: [referencias/prompt-maestro.md](referencias/prompt-ma
   skills cada CLI, fuentes de calidad, indicadores de salud y seguridad.
 - [investigacion/2026-10-15-candidatas-skills.md](investigacion/2026-10-15-candidatas-skills.md): **propuesta
   pendiente de aprobación** de skills para los sectores sin cobertura (arquitectura, documentación, backend).
+- [investigacion/2026-10-30-spike-embeddings.md](investigacion/2026-10-30-spike-embeddings.md): el spike del modelo del
+  índice semántico (Fase 12): tokenización, tamaño, velocidad en esta CPU y calidad en castellano de multilingual-e5-small,
+  con el arnés en [`spikes/e5-embeddings/`](../spikes/e5-embeddings/README.md).
 - [evidencias/fase0-auto-doctor.png](evidencias/fase0-auto-doctor.png): la app de la Fase 0 mostrando el estado real
   de los proveedores en la máquina de desarrollo.
 - [12-accesibilidad-tema-oscuro.md](12-accesibilidad-tema-oscuro.md): revisión de contraste AA y de foco de teclado del
   tema oscuro (F1-6), con los pares medidos antes y después y capturas
   [antes](evidencias/fase1-contraste-antes.png) y [después](evidencias/fase1-contraste-despues.png). Su §9 recoge la
-  ampliación de la tanda 1 (2026-10-30): estilos oscuros de los controles, barra de título oscura y foco inicial.
+  ampliación de la tanda 1 (2026-10-30): estilos oscuros de los controles, barra de título oscura y foco inicial. Su §10,
+  la de la tanda 2 (2026-11-03): la barra común de contexto, cuota y presupuesto, la bitácora legible y los nombres
+  accesibles de los elementos de las listas.

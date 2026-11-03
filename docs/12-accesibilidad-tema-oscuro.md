@@ -75,7 +75,8 @@ pulsado, desactivado). Fuentes inventariadas:
 | Test | Qué comprueba |
 |---|---|
 | `WcagMathTests` | La fórmula, contra valores publicados (negro sobre blanco 21:1, `#767676` sobre blanco 4,54:1, un caso que redondea a 4,5 y no pasa) |
-| `ThemeContrastTests` | Paleta y estilos: lee los `Setter` y los disparadores de plantilla de `PrimaryButton`, `GhostButton`, `ActivityButton`, `MonoViewer`, `StatusDot`, `ScrollBar`, los estilos de texto y los colores de selección del sistema |
+| `ThemeContrastTests` | Paleta y estilos: lee los `Setter` y los disparadores de plantilla de `PrimaryButton`, `GhostButton`, `ActivityButton`, `MonoViewer`, `StatusDot`, `ScrollBar`, los estilos de texto y los colores de selección del sistema. Desde la tanda 2, también `ReadingViewer`, el visor de la bitácora ([§10](#10-ampliación-de-la-tanda-2-2026-11-03)) |
+| `MetricBarContrastTests` | Tanda 2: la barra común (`MetricBar`) en cada superficie y cada nivel ([§10](#10-ampliación-de-la-tanda-2-2026-11-03)) |
 | `DockThemeContrastTests` | Los pares de AvalonDock tras aplicar `DockThemeTokens`, por nombre de pincel real |
 | `WebThemeContrastTests` | Extrae del `editor.js` y del `terminal.js` que se despliegan los literales `THEME_COLORS`, `THEME_RULES` y `TERMINAL_THEME`; comprueba contraste, que cada color espeja su token y que los fondos de las páginas y de los `WebView2` coinciden con `BackgroundColor` |
 | `FocusVisualTests` | El anillo de foco (contraste y grosor), que cada estilo enfocable lo use y que los controles sin estilo propio lo reciban |
@@ -323,7 +324,7 @@ oscuras mide 1,1 a 1,3:1, así que el foco de un botón secundario, de la barra 
 | «Abrir carpeta», «Volver a comprobar» (`PrimaryButton`) | Anillo exterior, `FocusVisualStyle` explícito | `FocusVisualTests` + [captura](evidencias/fase1-contraste-foco-despues.png) |
 | «Inicio», «Actualizar», proyectos recientes (`GhostButton`) | Anillo exterior | ídem |
 | Barra de actividad (`ActivityButton`) | Anillo interior y barra de acento de 2 px a la izquierda | `ActivityButton.focused`: 3,68:1 |
-| Visor de ficheros y bitácora (`MonoViewer`) | Anillo interior; además el cursor de texto, visible aunque sea de solo lectura | Test del estilo |
+| Visor de ficheros y bitácora (`MonoViewer`) | Anillo interior; además el cursor de texto, visible aunque sea de solo lectura. Desde la tanda 2, la bitácora se lee en `ReadingViewer` (mismo anillo y mismo cursor de lectura) y `MonoViewer` solo la enseña con «Ver todo» ([§10](#10-ampliación-de-la-tanda-2-2026-11-03)) | Test del estilo |
 | Botones y lista de shells del terminal (`Button`, `ComboBox` sin estilo propio) | Anillo exterior por estilo implícito: sus plantillas de WPF llevan su propio anillo y no usan la clave del sistema | `FocusVisualTests`, con una instancia real de cada tipo |
 | Filas del Explorador (`TreeViewItem`) | La propia selección: 3,68:1 con foco y 3,61:1 sin él. Desde la tanda 1 la fila ocupa todo el ancho del árbol ([§9](#9-ampliación-de-la-tanda-1-2026-10-30)) | `selection.*` y `ControlStylesContrastTests` |
 
@@ -339,7 +340,8 @@ icono de actividad, casilla y visor muestran el anillo.
   varios controles, pero no se ha recorrido la interfaz con un lector; Monaco y xterm.js tienen sus propios modos de
   accesibilidad por activar y probar. Desde la tanda 1 (hallazgo A1 de [18](18-peticiones-y-pendientes.md)) las pestañas
   de documentos y paneles, las de los paneles plegados en un lado y varias listas tienen nombre; el recorrido con un
-  lector sigue pendiente.
+  lector sigue pendiente. Desde la tanda 2, también los elementos de las listas y los selectores (A1-bis) y cada barra
+  ([§10](#10-ampliación-de-la-tanda-2-2026-11-03)).
 - **Mapa completo de teclado** (2.1.1, 2.4.3): todas las funciones sin ratón, orden de tabulación, atajos y su
   documentación, y la navegación por teclado de pestañas y paneles de AvalonDock (qué se enfoca al mover una pestaña).
 - **Modo de alto contraste de Windows**: el tema usa colores fijos y no sigue `SystemColors`.
@@ -407,3 +409,57 @@ llegue de verdad solo se ve en vivo: una ventana que no se enseña nunca se acti
 **Límites.** Ya no queda fuera del método la lista desplegable del terminal ([§2.5](#25-límites-del-método)): la cubre el
 estilo implícito de `ComboBox`. Sigue fuera lo que pinta Monaco por su cuenta. Nada de esto se ha recorrido todavía con
 un lector de pantalla ([§7](#7-fuera-de-alcance-hasta-la-fase-7)), y la tanda 1 está pendiente de verificar en vivo.
+
+## 10. Ampliación de la tanda 2 (2026-11-03)
+
+La tanda 2 trajo las barras en tiempo real (P3 de [18](18-peticiones-y-pendientes.md)) y un pulido del recorrido en vivo
+(V29 a V31 y A1-bis). Las cifras de [§1](#1-resultado) no cambian. Lo nuevo se mide con las mismas reglas de
+[§2](#2-método): texto 4,5:1; contornos, rellenos y foco 3:1; lo decorativo, exento y listado.
+
+**Zonas nuevas que se miden o se comprueban:**
+
+| Zona | Qué cubre | Dónde se comprueba |
+|---|---|---|
+| La barra común (`Controls/MetricBar.xaml`) | Contexto, cuota, presupuesto y tokens, en cada pantalla que los enseña como barra. Ver abajo | `MetricBarContrastTests` y las pruebas del control |
+| El visor de la bitácora (`ReadingViewer`, en `Dark.xaml`) | La bitácora se ve como documento: títulos, párrafos, listas, negrita y código. Ver abajo | `ThemeContrastTests` (pares `ReadingViewer.*`) y `JournalRenderTests` |
+| El rincón de las dos barras de desplazamiento (V30) | WPF lo pintaba con `SystemColors.Control`, un cuadrado claro en «Skills». El estilo implícito de `ScrollViewer` cambia solo ese pincel al color de superficie; la plantilla sigue siendo la de WPF, y un `ScrollViewer` con estilo propio no cambia | `ScrollViewerCornerTests` (render fuera de pantalla) |
+| Nombres de los elementos de las listas (A1-bis) | Ver abajo | `ListItemNamesTests` |
+
+**La barra común.**
+
+- **Contraste**, medido con los recursos reales (los tokens del tema y los pinceles del propio control):
+  - el borde de la pista (`BorderStrongBrush`) sobre la ventana, las barras y paneles, y las tarjetas: 3:1, para que una
+    barra vacía se vea en cualquier sitio;
+  - el relleno de cada nivel (sano, aviso, compresión recomendada, crítico y neutro) frente a la pista vacía: 3:1. También
+    con la trama de una estimación encima;
+  - la cifra y el texto del origen y el nivel, en las tres superficies: 4,5:1;
+  - exentas y listadas: las rayas de la trama sobre el relleno y las marcas de los umbrales sobre el relleno. Repiten lo
+    que ya dicen las palabras («~», «estimado», el nivel).
+- **Nada se dice solo con color.** El nivel va escrito («sano», «crítico», «presupuesto agotado»). Lo estimado lleva «~»,
+  la palabra «estimado» y una trama. Sin cifra, la pista sale vacía con el motivo escrito, nunca una barra a cero.
+- **Lector de pantalla.** UI Automation ve cada barra como una barra de progreso. Su nombre es la línea entera: qué mide,
+  la cifra, el origen, el nivel, la antigüedad y el detalle. Solo tiene valor (patrón `RangeValue`, de solo lectura)
+  cuando hay cifra: una barra vacía nunca se lee como cero. Al cambiar, avisa del nuevo nombre y del nuevo valor.
+- **El teclado no se para en ella:** no es un control que se pueda usar.
+
+**El visor de la bitácora.**
+
+- **Pares medidos:** el texto sobre el fondo; las líneas secundarias (la cabecera y las líneas «Resultado» y «Hecho»); el
+  código sobre su fondo, también en una línea secundaria; el cursor de lectura; y el texto seleccionado (la selección se
+  pinta encima, translúcida), tanto el principal como el secundario.
+- **Foco:** el mismo anillo interior y el mismo cursor de lectura que `MonoViewer`. El teclado se mueve y selecciona con
+  ese cursor.
+- **No imprime ni busca.** `Ctrl+P` y `Ctrl+F` siguen hasta la ventana, donde `Ctrl+P` es «Ir al fichero».
+- **Un día largo** solo dibuja sus entradas más recientes (200 líneas y 40 000 caracteres como mucho), porque dibujar un
+  documento largo bloquea la interfaz. Lo dice en una línea que el lector anuncia. «Ver todo» enseña el día completo en
+  `MonoViewer`, como texto sin formato. Es el único uso que le queda en la bitácora.
+
+**Nombres de los elementos de las listas (A1-bis).** En el recorrido en vivo, UI Automation leía la opción del modelo de
+un agente como «ModelOption { Label = haiku, … }». Un elemento de una lista que no es un control se nombra con su
+`ToString()`. Ahora más de 20 tipos de elementos dan su etiqueta: opciones de modelo y de agente, filtros, ejecuciones
+anteriores, la paleta y la leyenda del lienzo, problemas del plan, «Ir al fichero», proyectos recientes, el árbol y las
+comprobaciones de «Skills», shells, las líneas de la salida gestionada y las barras. La prueba los pone en una lista y en
+un selector, fuera de pantalla, y comprueba el nombre de cada uno.
+
+**Límites.** Igual que en la tanda 1: nada de esto se ha recorrido con un lector de pantalla, y la tanda 2 está pendiente
+de verificar en vivo.

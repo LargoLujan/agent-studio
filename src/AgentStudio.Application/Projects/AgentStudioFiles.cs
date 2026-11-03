@@ -42,8 +42,11 @@ public static class AgentStudioFiles
     /// <summary>The database files of the project (<c>agentstudio.db</c>, its <c>-wal</c> and <c>-shm</c> and its <c>.lock</c>), and nothing else.</summary>
     public static IReadOnlyList<string> DatabaseFiles { get; } = ["agentstudio.db", "agentstudio.db-wal", "agentstudio.db-shm", "agentstudio.db.lock"];
 
-    /// <summary>The file of the memory export of every category, in the order of <see cref="MemoryKind"/>: ten, no more.</summary>
-    public static IReadOnlyList<string> ThematicMemoryFiles { get; } = [.. Enum.GetValues<MemoryKind>().Select(ThematicMemoryFile)];
+    /// <summary>
+    /// The file of the memory export of every category that is exported (<see cref="MemoryKinds.IsExported"/>), in the order
+    /// of <see cref="MemoryKind"/>: ten, no more. The journal entries have none: their source already is the journal.
+    /// </summary>
+    public static IReadOnlyList<string> ThematicMemoryFiles { get; } = [.. Enum.GetValues<MemoryKind>().Where(MemoryKinds.IsExported).Select(ThematicMemoryFile)];
 
     /// <summary>The day of the journal of <paramref name="day"/>: <c>AAAA-MM-DD.md</c>.</summary>
     public static string JournalDayFile(DateOnly day) => day.ToString(JournalDayFormat, CultureInfo.InvariantCulture) + Markdown;
@@ -62,7 +65,7 @@ public static class AgentStudioFiles
     public static string ChronologicalMemoryFile(DateOnly month) => ChronologicalPrefix + month.ToString(MonthFormat, CultureInfo.InvariantCulture) + Markdown;
 
     /// <summary>The file of the memory export of one category: <c>tema-&lt;categoría&gt;.md</c>.</summary>
-    /// <exception cref="ArgumentOutOfRangeException">The category is not one of <see cref="MemoryKind"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The category is not one of <see cref="MemoryKind"/>, or it is not exported (<see cref="MemoryKind.JournalEntry"/>).</exception>
     public static string ThematicMemoryFile(MemoryKind kind) => ThematicPrefix + kind switch
     {
         MemoryKind.Architecture => "arquitectura",

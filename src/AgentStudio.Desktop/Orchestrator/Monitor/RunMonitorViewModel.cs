@@ -10,6 +10,7 @@ using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Providers;
 using AgentStudio.Application.Security;
+using AgentStudio.Desktop.Controls;
 using AgentStudio.Desktop.Debate;
 using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Orchestrator.Canvas;
@@ -18,8 +19,10 @@ using AgentStudio.Domain.Evidence;
 using AgentStudio.Domain.Judging;
 using AgentStudio.Domain.Metrics;
 using AgentStudio.Domain.Orchestration;
+using AgentStudio.Domain.Providers;
 using AgentStudio.Domain.Requirements;
 using AgentStudio.Domain.Work;
+using AgentStudio.Observability.Context;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -101,6 +104,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
     private ProjectContext? _project;
     private int _generation;
     private ContextHealthThresholds _contextThresholds = new();
+    private ModelWindowCatalog _contextWindows = ModelWindowCatalog.Baseline;
     private RunPhase? _finishedPhase;
     private IReadOnlyList<OrchestratorFinding> _findings = [];
 
@@ -123,6 +127,12 @@ public sealed partial class RunMonitorViewModel : ObservableObject
     /// <summary>Raised on the UI context once the run has finished (or its stream failed).</summary>
     public event EventHandler? Finished;
 
+    /// <summary>
+    /// Raised on the UI context when an agent of the run announced the quota of the account (Claude's <c>rate_limit_event</c>):
+    /// the user's record has it now, and the bars of the quota read it again (docs/14 D-14).
+    /// </summary>
+    public event EventHandler? QuotaAnnounced;
+
     public ObservableCollection<MonitorTaskViewModel> Tasks { get; } = [];
 
     /// <summary>What the agents and the run did, newest last; only the latest entries are kept.</summary>
@@ -139,6 +149,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsAttached))]
     [NotifyPropertyChangedFor(nameof(IsActive))]
+    [NotifyPropertyChangedFor(nameof(BudgetBar))]
     [NotifyCanExecuteChangedFor(nameof(PauseCommand))]
     [NotifyCanExecuteChangedFor(nameof(ResumeCommand))]
     [NotifyCanExecuteChangedFor(nameof(RetryBlockedCommand))]
@@ -295,7 +306,34 @@ public sealed partial class RunMonitorViewModel : ObservableObject
     private GraphHealthReport? _health;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(BudgetBar))]
     private int _agentRunsUsed;
+
+    /// <summary>The budget of the run (<c>MaxAgentRuns</c>), as its snapshot says it; null while it is not known.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(BudgetBar))]
+    private int? _maxAgentRuns;
+
+    /// <summary>
+    /// The bar of the budget of the run followed (docs/18 P3): the agent runs used against its maximum, measured by Agent
+    /// Studio; null while no run is followed.
+    /// </summary>
+    public MetricBarReading? BudgetBar => IsAttached ? MetricBars.Budget("Presupuesto", AgentRunsUsed, MaxAgentRuns) : null;
+
+    /// <summary>
+    /// The windows the context of the attempts is judged with (docs/14 D-10, P36): the ones learned from the log of the project
+    /// and the base table of this version. Until the shell gives the project's (read in the background), the base table alone,
+    /// so even the first run of a new project has a percentage from its first step. A new attempt takes the one in force then.
+    /// </summary>
+    public ModelWindowCatalog ContextWindows
+    {
+        get => _contextWindows;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _contextWindows = value;
+        }
+    }
 
     [ObservableProperty]
     private string? _resultSummary;
@@ -626,6 +664,12 @@ public sealed partial class RunMonitorViewModel : ObservableObject
                 var changed = TaskFor(change.Task);
                 changed.Status = change.To;
                 changed.Transitioned(change.To, change.Reason);
+                if (change.To == WorkTaskStatus.Running)
+                {
+                    // A new attempt: its context is followed from its first event (P36), with the windows the project knows.
+                    changed.StartAttempt(ContextThresholds, ContextWindows);
+                }
+
                 if (change.To == WorkTaskStatus.Failed)
                 {
                     ReadFailureLine(changed, change.Reason);
@@ -649,6 +693,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
 
             case TaskQueuedEvent queued:
                 var waiting = TaskFor(queued.Task);
+                waiting.Provider = queued.Provider;
                 if (waiting.Status == WorkTaskStatus.Pending)
                 {
                     waiting.QueuedOn = queued.Provider.Value;
@@ -659,13 +704,17 @@ public sealed partial class RunMonitorViewModel : ObservableObject
 
             case AgentActivityEvent activity:
                 var working = TaskFor(activity.Task);
-                if (activity.Event is ContextObserved observed)
-                {
-                    working.ObserveContext(observed, ContextThresholds);
-                }
-                else if (activity.Event is CompactionObserved)
+
+                // Every event of the attempt goes to its tracker: the steps, and the result, whose breakdown by model brings
+                // the exact window (docs/14 D-09 and D-10, P36).
+                working.Observe(activity.Event, ContextThresholds, ContextWindows);
+                if (activity.Event is CompactionObserved)
                 {
                     working.CountCompaction();
+                }
+                else if (activity.Event is QuotaReported)
+                {
+                    QuotaAnnounced?.Invoke(this, EventArgs.Empty);
                 }
 
                 if (AgentActivityText.Describe(activity.Event, _time.LocalTimeZone) is { } text)
@@ -1187,6 +1236,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
         Phase = snapshot.Phase;
         Health = snapshot.Health;
         AgentRunsUsed = snapshot.AgentRunsUsed;
+        MaxAgentRuns = snapshot.MaxAgentRuns;
     }
 
     /// <summary>
@@ -1206,6 +1256,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
         }
 
         AgentRunsUsed = snapshot.AgentRunsUsed;
+        MaxAgentRuns = snapshot.MaxAgentRuns ?? MaxAgentRuns;
         if (snapshot.Tasks.FirstOrDefault(t => t.Id == task.Id) is { } view)
         {
             if (view.Status == task.Status)
@@ -1275,6 +1326,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
         Health = null;
         IsFinished = false;
         AgentRunsUsed = 0;
+        MaxAgentRuns = null;
         ResultSummary = null;
         IntegrationCommit = null;
         VerdictId = null;
@@ -1320,6 +1372,11 @@ public sealed partial class MonitorTaskViewModel : ObservableObject
     private ContextReading? _context;
     private int _compactions;
 
+    /// <summary>Follows the context of the current attempt from its events (P36); null before the first attempt seen here.</summary>
+    private ContextHealthTracker? _tracker;
+    private ContextHealthState? _contextState;
+    private ContextHealthThresholds _thresholds = new();
+
     public MonitorTaskViewModel(TaskId id, string title, WorkTaskKind kind, TimeZoneInfo zone)
     {
         ArgumentNullException.ThrowIfNull(zone);
@@ -1342,9 +1399,25 @@ public sealed partial class MonitorTaskViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsQueued))]
     [NotifyPropertyChangedFor(nameof(IsBlocked))]
     [NotifyPropertyChangedFor(nameof(Context))]
+    [NotifyPropertyChangedFor(nameof(ContextBar))]
+    [NotifyPropertyChangedFor(nameof(ContextDetail))]
     [NotifyPropertyChangedFor(nameof(ReasonText))]
     [NotifyPropertyChangedFor(nameof(ShowsFailureLine))]
     private WorkTaskStatus _status;
+
+    /// <summary>
+    /// The provider the task was last queued on (<see cref="TaskQueuedEvent"/>), which runs its attempts: it says whether the
+    /// CLI reports the context. Null while no queue was seen here (a run attached while the task was running).
+    /// </summary>
+    [ObservableProperty]
+    private ProviderId? _provider;
+
+    /// <summary>
+    /// The tokens the CLI reported at the end of the last attempt of the task, with their origin (docs/14 D-03); null until an
+    /// attempt reports them. Its own usage is in «Consumo»: some CLIs report the total of their session, not of the attempt.
+    /// </summary>
+    [ObservableProperty]
+    private string? _tokensText;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StatusLabel))]
@@ -1513,10 +1586,105 @@ public sealed partial class MonitorTaskViewModel : ObservableObject
     public ContextHealthLevel? ContextLevel => _context?.Level;
 
     /// <summary>
-    /// The latest step of the task's agent as it came (<see cref="ContextObserved"/>), the figures <see cref="Context"/> is
-    /// read from; null without an observation. The status panel of the tray draws its bar from it (docs/16 D-15).
+    /// The latest step of the task's agent as it came (<see cref="ContextObserved"/>); null without an observation. The figures
+    /// shown are those of the tracker of the attempt, which judges the step with the window it knows (<see cref="ContextBar"/>).
     /// </summary>
     public ContextObserved? LastContext => _lastContext;
+
+    /// <summary>
+    /// The bar of the context of the task (docs/18 P3): always there for a task that runs an agent, null for any other. In
+    /// course, the occupancy of the last step of its attempt against the window of its model (exact once the CLI reports it,
+    /// an estimate before, from the windows learned in the project or the base table), and an empty track that says why when
+    /// there is no percentage: «sin observaciones todavía», «no expuesto» (Codex), «sin empezar».
+    /// </summary>
+    public MetricBarReading? ContextBar
+    {
+        get
+        {
+            if (!RunsAnAgent)
+            {
+                return null;
+            }
+
+            if (_contextState is { } state && (state.Steps > 0 || state.UsedTokens.Origin != MetricOrigin.Missing))
+            {
+                return MetricBars.Context("Contexto", state, _thresholds);
+            }
+
+            if (_lastContext is { } step)
+            {
+                return MetricBars.Context("Contexto", step.Model, step.PromptTokens, step.ContextWindow, _thresholds);
+            }
+
+            return FromLog ? MetricBars.Empty("Contexto", "sin dato", MetricOrigin.Missing, "vista reconstruida del registro: los pasos del agente no están en él")
+                : Status == WorkTaskStatus.Pending && _compactions == 0 ? MetricBars.Empty("Contexto", "sin empezar")
+                : MetricBars.NoObservation("Contexto");
+        }
+    }
+
+    /// <summary>
+    /// What the bar of the context does not say, under it: the tokens against the window and the model of the step, and the
+    /// compactions of the CLI (a possible loss of information); empty when there is nothing.
+    /// </summary>
+    public string ContextDetail
+    {
+        get
+        {
+            var compactions = _compactions switch
+            {
+                0 => null,
+                1 => "1 compactación del CLI (posible pérdida de información)",
+                var count => $"{count} compactaciones del CLI (posible pérdida de información)",
+            };
+            return string.Join(" · ", new[] { ContextBar?.Detail, compactions }.Where(p => !string.IsNullOrWhiteSpace(p)));
+        }
+    }
+
+    /// <summary>
+    /// A new attempt of the task: a new tracker follows its context (P36), with the windows the project knows and whether its
+    /// provider reports the context; what the previous attempt showed goes. Claude Code reports the occupancy of each step
+    /// (its adapter declares <see cref="ProviderCapabilities.ReportsContextOccupancy"/>; docs/14 D-09); Codex and Gemini do
+    /// not, and are «no expuesto» from the start (<see cref="MetricBars.ReportsContext"/>). A provider not seen here is
+    /// followed as one that may report it.
+    /// </summary>
+    internal void StartAttempt(ContextHealthThresholds thresholds, ModelWindowCatalog windows)
+    {
+        var provider = Provider ?? ProviderId.ClaudeCode;
+        _tracker = new ContextHealthTracker(thresholds, windows, provider, reportsContextOccupancy: MetricBars.ReportsContext(Provider));
+        _contextState = _tracker.Current;
+        _lastContext = null;
+        JudgeContext(thresholds);
+    }
+
+    /// <summary>
+    /// One event of the agent of the task: its tracker takes it (one is started when the attempt began before this monitor saw
+    /// it), and the context shown follows the tracker. The tokens of a result are noted with their origin.
+    /// </summary>
+    internal void Observe(AgentEvent agentEvent, ContextHealthThresholds thresholds, ModelWindowCatalog windows)
+    {
+        if (_tracker is null)
+        {
+            if (agentEvent is not (ContextObserved or UsageReported or CompactionObserved))
+            {
+                return;
+            }
+
+            StartAttempt(thresholds, windows);
+        }
+
+        _contextState = _tracker!.Observe(agentEvent);
+        switch (agentEvent)
+        {
+            case ContextObserved observed:
+                _lastContext = observed;
+                JudgeContext(thresholds);
+                break;
+            case UsageReported reported:
+                TokensText = MonitorTokens.Line(reported.Usage);
+                JudgeContext(thresholds);
+                break;
+        }
+    }
 
     /// <summary>The tone of the dot next to the context line: an unknown level is never «healthy».</summary>
     public Tone ContextTone => ContextLevel switch
@@ -1529,25 +1697,30 @@ public sealed partial class MonitorTaskViewModel : ObservableObject
 
     private bool RunsAnAgent => Kind is WorkTaskKind.AgentWork or WorkTaskKind.Review or WorkTaskKind.Debate;
 
-    internal void ObserveContext(ContextObserved observed, ContextHealthThresholds thresholds)
-    {
-        _lastContext = observed;
-        JudgeContext(thresholds);
-    }
-
     internal void CountCompaction()
     {
         _compactions++;
         OnPropertyChanged(nameof(Context));
+        OnPropertyChanged(nameof(ContextBar));
+        OnPropertyChanged(nameof(ContextDetail));
     }
 
-    /// <summary>Judges the latest step again (new thresholds, or a new step).</summary>
+    /// <summary>
+    /// Judges the context again (new thresholds, a new step, or the result with the exact window): the figures of the tracker
+    /// of the attempt, judged with the thresholds of now. Before any step of a provider that reports it, nothing is judged.
+    /// </summary>
     internal void JudgeContext(ContextHealthThresholds thresholds)
     {
-        _context = _lastContext is { } step ? ContextText.Read(step.Model, step.PromptTokens, step.ContextWindow, thresholds) : null;
+        ArgumentNullException.ThrowIfNull(thresholds);
+        _thresholds = thresholds;
+        _context = _contextState is { } state && (state.Steps > 0 || state.UsedTokens.Origin != MetricOrigin.Missing)
+            ? ContextText.Read(state.Model, state.UsedTokens, state.ContextWindow, thresholds)
+            : _lastContext is { } step ? ContextText.Read(step.Model, step.PromptTokens, step.ContextWindow, thresholds) : null;
         OnPropertyChanged(nameof(Context));
         OnPropertyChanged(nameof(ContextLevel));
         OnPropertyChanged(nameof(ContextTone));
+        OnPropertyChanged(nameof(ContextBar));
+        OnPropertyChanged(nameof(ContextDetail));
     }
 
     public string StatusLabel => Status switch

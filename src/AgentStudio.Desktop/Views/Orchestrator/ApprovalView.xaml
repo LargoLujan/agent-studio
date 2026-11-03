@@ -16,13 +16,16 @@
                 <TextBlock Style="{StaticResource SectionTitleText}" Text="{Binding RiskLabel}"/>
             </StackPanel>
 
+            <!-- V25: the title is a plain sentence; the identifier the log records goes last, as a technical detail. -->
             <TextBlock Style="{StaticResource BodyText}" FontSize="17" FontWeight="SemiBold" Margin="0,12,0,0"
-                       Text="{Binding Action}" AutomationProperties.Name="Acción"/>
+                       Text="{Binding Title}" AutomationProperties.Name="{Binding Title, StringFormat='Acción: {0}'}"/>
             <TextBlock Style="{StaticResource BodyText}" Margin="0,8,0,0" Text="{Binding Description}"/>
             <TextBlock Style="{StaticResource SecondaryText}" Margin="0,8,0,0" Text="{Binding RequestedBy}"
                        Visibility="{Binding RequestedBy, Converter={StaticResource Orchestrator.NotNullToVisibility}}"/>
             <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="{Binding Origin}"
                        Visibility="{Binding Origin, Converter={StaticResource Orchestrator.NotNullToVisibility}}"/>
+            <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,0" Text="{Binding ActionDetail}"
+                       Visibility="{Binding ActionDetail, Converter={StaticResource Orchestrator.NotNullToVisibility}}"/>
 
             <StackPanel Visibility="{Binding HasPaths, Converter={StaticResource Orchestrator.BoolToVisibility}}">
                 <TextBlock Style="{StaticResource FieldLabel}" Text="{Binding PathsHeader}"/>

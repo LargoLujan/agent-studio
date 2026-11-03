@@ -84,6 +84,43 @@ public sealed class ModelWindowCatalogTests
     }
 
     [Fact]
+    public void With_the_base_table_a_model_never_seen_takes_the_window_of_the_table_as_an_estimate()
+    {
+        var window = ModelWindowCatalog.Baseline.WindowFor("claude-opus-5-5");
+
+        Assert.Equal(1_000_000L, window.Value);
+        Assert.Equal(MetricOrigin.EstimatedBySystem, window.Origin);
+        Assert.Contains("tabla base", window.Source, StringComparison.Ordinal);
+        Assert.Same(ModelWindowTable.Current, ModelWindowCatalog.Baseline.BaselineTable);
+        Assert.Null(ModelWindowCatalog.Empty.BaselineTable);
+    }
+
+    [Fact]
+    public void What_the_log_learned_wins_over_the_base_table()
+    {
+        var log = new UsageLogBuilder().Start(Run, "T1", 1).Finish(Run, "T1", 1, session: "s1", usage: Claude(10, 0, 0, 1, 0m, Model("claude-sonnet-5-5", 10, 1, 0, 0, 0m, window: 400_000)));
+
+        var catalog = ModelWindowCatalog.FromLog(Verified(log)).WithBaseline();
+        var learned = catalog.WindowFor("claude-sonnet-5-5");
+        var fromTable = catalog.WindowFor("claude-haiku-4-5-20251001");
+
+        Assert.Equal(400_000L, learned.Value);
+        Assert.Contains("ventana vista en una ejecución anterior", learned.Source, StringComparison.Ordinal);
+        Assert.Equal(200_000L, fromTable.Value);
+        Assert.Contains("tabla base", fromTable.Source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void With_the_base_table_a_model_it_does_not_know_still_has_no_window()
+    {
+        var window = ModelWindowCatalog.Baseline.WindowFor("modelo-desconocido");
+
+        Assert.Equal(MetricOrigin.Missing, window.Origin);
+        Assert.Contains("modelo-desconocido", window.Source, StringComparison.Ordinal);
+        Assert.Equal(MetricOrigin.NotExposed, ModelWindowCatalog.Baseline.WindowFor("gpt-6-luna").Origin);
+    }
+
+    [Fact]
     public void A_model_never_seen_has_no_window()
     {
         var window = ModelWindowCatalog.Empty.WindowFor("claude-opus-5-5");

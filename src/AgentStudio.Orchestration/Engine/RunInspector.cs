@@ -74,7 +74,8 @@ internal sealed class RunInspector(EnginePorts ports)
                 interrupted.Contains(t.Id) ? BlockReason.Interrupted.ToString() : ledger.Blocks.GetValueOrDefault(t.Id)?.ToString(),
                 [.. t.CompletionEvidence]))],
             health,
-            ledger.AgentRunsUsed);
+            ledger.AgentRunsUsed,
+            record.Options.MaxAgentRuns);
 
         var history = History(entries, evidence, context);
         history.AddRange(interrupted.Select(task => new TaskStatusChangedEvent(lastAt, task, WorkTaskStatus.Running, WorkTaskStatus.Blocked, InterruptedReason)));

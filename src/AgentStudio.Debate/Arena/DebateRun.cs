@@ -861,7 +861,11 @@ public sealed class DebateRun : IDebateRun
             SkillsDirectory: null,
             McpServers: null,
             PersistSession: false,
-            DebateId: Id.Value);
+            DebateId: Id.Value)
+        {
+            // The start recorded above, so the journal can name it (docs/17 D-02).
+            Anchor = new AgentRunAnchor(_recorder.Debate.Value, turn.Task.Value, attempt),
+        };
 
         var seen = new AgentRunObservations(seat.Provider.Capabilities.ReportsContextOccupancy);
         AttemptOutcome status;

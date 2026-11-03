@@ -47,7 +47,11 @@ public interface ITerminalLauncher
 }
 
 /// <summary>A shell installed on this machine. <see cref="Id"/> is stable ("pwsh", "powershell", "cmd", "git-bash").</summary>
-public sealed record ShellInfo(string Id, string DisplayName, string Path, IReadOnlyList<string> DefaultArguments);
+public sealed record ShellInfo(string Id, string DisplayName, string Path, IReadOnlyList<string> DefaultArguments)
+{
+    /// <summary>Its name, as the list of shells shows it and a screen reader says it (A1-bis).</summary>
+    public override string ToString() => DisplayName;
+}
 
 /// <summary>Finds the shells available on this machine, in order of preference.</summary>
 public interface IShellLocator

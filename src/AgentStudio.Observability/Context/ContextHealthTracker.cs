@@ -27,8 +27,9 @@ public sealed record ContextHealthState(
 /// the run: in <c>02-herramienta</c> <c>result.usage</c> would give twice the last step.</item>
 /// <item>It is compared with the window of the model of that step: the one the step brings; else the last one the CLI
 /// gave for that model in this run (the breakdown of its result included), which is exact; else the one learned from
-/// an earlier run (<see cref="ModelWindowCatalog"/>), an estimate of Agent Studio; else none, and then only the tokens
-/// are known. The model announced when the session starts is never taken for the model of the steps (D-13).</item>
+/// an earlier run (<see cref="ModelWindowCatalog"/>), an estimate of Agent Studio; else, when the catalog has one, the
+/// window of the base table (<see cref="ModelWindowTable"/>), an estimate too; else none, and then only the tokens are
+/// known. The model announced when the session starts is never taken for the model of the steps (D-13).</item>
 /// <item>The utilization takes the weakest origin of its two figures (<see cref="ContextHealthEvaluator"/>), so an
 /// estimate is never shown as exact, and a figure that is not there gives the level <see cref="ContextHealthLevel.Unknown"/>,
 /// never «sano».</item>

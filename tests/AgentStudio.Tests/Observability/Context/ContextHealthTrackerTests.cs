@@ -243,4 +243,36 @@ public sealed class ContextHealthTrackerTests
         Assert.Null(state.Model);
         Assert.False(state.ContextWindow.HasValue);
     }
+
+    [Fact]
+    public void With_the_base_table_a_first_run_has_an_estimated_percentage_from_its_first_step_and_the_result_makes_it_exact()
+    {
+        // P36: a new project has learned nothing; Claude reports the window only with the result of the attempt.
+        var tracker = Claude(ModelWindowCatalog.Baseline);
+
+        var live = tracker.Observe(Step(250_000));
+
+        Assert.Equal(1_000_000L, live.ContextWindow.Value);
+        Assert.Equal(MetricOrigin.EstimatedBySystem, live.ContextWindow.Origin);
+        Assert.Equal(0.25, live.Health.Utilization.Value!.Value, 6);
+        Assert.Equal(MetricOrigin.EstimatedBySystem, live.Health.Utilization.Origin);
+        Assert.Equal(ContextHealthLevel.Healthy, live.Health.Level);
+
+        var final = tracker.Observe(Result((Sonnet, 1_000_000)));
+
+        Assert.Equal(MetricOrigin.ReportedByProvider, final.Health.Utilization.Origin);
+        Assert.Equal(0.25, final.Health.Utilization.Value!.Value, 6);
+    }
+
+    [Fact]
+    public void A_window_learned_from_the_log_wins_over_the_base_table()
+    {
+        var tracker = Claude(Learned((Sonnet, 200_000)).WithBaseline());
+
+        var state = tracker.Observe(Step(150_000));
+
+        Assert.Equal(200_000L, state.ContextWindow.Value);
+        Assert.Contains("ventana vista en una ejecución anterior", state.ContextWindow.Source, StringComparison.Ordinal);
+        Assert.Equal(ContextHealthLevel.Warning, state.Health.Level);
+    }
 }

@@ -10,8 +10,11 @@ namespace AgentStudio.Memory.Journal;
 
 /// <summary>
 /// Append-only daily prompt journal in Markdown: <c>&lt;projectRoot&gt;/.agentstudio/bitacora/yyyy-MM-dd.md</c>.
-/// Shares file and header format with the development hook <c>.claude/hooks/bitacora.ps1</c>, so both can write the
-/// same file. The day is the local day (per <see cref="TimeProvider.LocalTimeZone"/>) of the instant being recorded.
+/// Shares the file and the format of its title and its lines with the development hook <c>.claude/hooks/bitacora.ps1</c>,
+/// so both can write the same file. Whoever creates the day writes the two lines under the title, each saying what it
+/// writes: the app's (<see cref="Preamble"/> and <see cref="ResultPreamble"/>, V31) speak of the requests to the agents and
+/// their results, not of the «Hecho» lines Claude adds in the repository of Agent Studio. The daily summary knows both.
+/// The day is the local day (per <see cref="TimeProvider.LocalTimeZone"/>) of the instant being recorded.
 /// Every day is opened through <paramref name="files"/>, the policy of the project's storage: <c>.agentstudio</c> and
 /// <c>bitacora</c> must be real folders of the project and the day a file with a single name there, checked through the
 /// handle that appends (ADR-0010, addenda of 2026-10-18). A link left there refuses the record, so the agent is never
@@ -19,6 +22,14 @@ namespace AgentStudio.Memory.Journal;
 /// </summary>
 public sealed partial class MarkdownDailyJournal(string projectRoot, IProjectStorageFiles files, TimeProvider timeProvider) : IPromptJournal
 {
+    /// <summary>The first line under the title of a day the app creates: what each entry says.</summary>
+    internal const string Preamble =
+        "Registro automático de Agent Studio: una línea por cada petición a un agente (hora · número · quién · proveedor/modelo · etiquetas · resumen).";
+
+    /// <summary>The second line under the title of a day the app creates: what the result of a request says.</summary>
+    internal const string ResultPreamble =
+        "Cuando el agente termina, se añade una línea «Resultado» con el estado, la duración y los tokens.";
+
     private const string Folder = AgentStudioFiles.JournalFolder;
     private const int MaxSummaryLength = 200;
     private const int LockAttempts = 60;
@@ -123,6 +134,13 @@ public sealed partial class MarkdownDailyJournal(string projectRoot, IProjectSto
         if (!string.IsNullOrWhiteSpace(outcome.Note))
         {
             sb.Append(" · ").Append(SanitizeSummary(outcome.Note));
+        }
+
+        // Last, after the free note, whose backticks were replaced: the AgentRunStarted the launch was announced with
+        // (docs/17 D-02), the contract the derivation of the journal reads.
+        if (outcome.Anchor is { } anchor)
+        {
+            sb.Append(" · ").Append(JournalResultAnchor.Format(anchor));
         }
 
         return sb.ToString();
@@ -264,8 +282,8 @@ public sealed partial class MarkdownDailyJournal(string projectRoot, IProjectSto
                 {
                     text.Append("# Bitácora · ").Append(day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)).Append(Environment.NewLine)
                         .Append(Environment.NewLine)
-                        .Append("Registro automático de cada prompt (hook `UserPromptSubmit`): hora · sesión · tags · extracto.").Append(Environment.NewLine)
-                        .Append("Al cerrar cada petición, Claude añade debajo una línea «Hecho:» con el resultado.").Append(Environment.NewLine)
+                        .Append(Preamble).Append(Environment.NewLine)
+                        .Append(ResultPreamble).Append(Environment.NewLine)
                         .Append(Environment.NewLine);
                 }
                 else
