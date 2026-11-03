@@ -82,7 +82,7 @@ public enum ValidationState
 /// monitor of the run. Planning and running go through <see cref="OrchestrationSession"/>; without an engine the canvas
 /// still works and the screen says «Motor no disponible».
 /// </summary>
-public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel
+public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, IPlanningContext
 {
     public const string IdPrefix = "orchestrator:";
 
@@ -439,6 +439,13 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel
     /// </summary>
     [ObservableProperty]
     private MetricBarReading? _planningContext;
+
+    /// <summary>
+    /// The orchestrator is planning now (V33): the status bar shows <see cref="PlanningContext"/> meanwhile, as it shows the
+    /// context of a task in course.
+    /// </summary>
+    [ObservableProperty]
+    private bool _isPlanningInProgress;
 
     /// <summary>Follows the context of the planning in course (or the last one); null before the first.</summary>
     private ContextHealthTracker? _planningTracker;
@@ -844,6 +851,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel
         var provider = orchestrator.Model.Provider;
         _planningTracker = new ContextHealthTracker(Monitor.ContextThresholds, Monitor.ContextWindows, provider, reportsContextOccupancy: MetricBars.ReportsContext(provider));
         PlanningContext = MetricBars.Context(PlanningContextLabel, _planningTracker.Current, Monitor.ContextThresholds);
+        IsPlanningInProgress = true;
         try
         {
             var request = new PlanningRequest(project, RequestText.Trim(), requirements, context.Roster, orchestrator.Id, profile, Limits);
@@ -863,6 +871,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel
         finally
         {
             _planning = null;
+            IsPlanningInProgress = false;
             CancelPlanningCommand.NotifyCanExecuteChanged();
             IsBusy = false;
             BusyText = null;

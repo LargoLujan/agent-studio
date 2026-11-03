@@ -59,6 +59,9 @@ public sealed partial class ConnectorViewModel : ObservableObject
         _connectionCount = Math.Max(0, _connectionCount - 1);
         IsConnected = _connectionCount > 0;
     }
+
+    /// <summary>What a screen reader says of a connector of a node (V34): its title and its node.</summary>
+    public override string ToString() => AutomationName;
 }
 
 /// <summary>
@@ -100,4 +103,7 @@ public sealed class ConnectionViewModel
         Source.RemoveConnection();
         Target.RemoveConnection();
     }
+
+    /// <summary>What a screen reader says of a wire of the canvas (V34): the task it goes from and the one it goes to.</summary>
+    public override string ToString() => AutomationName;
 }

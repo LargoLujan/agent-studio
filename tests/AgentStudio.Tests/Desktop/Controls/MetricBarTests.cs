@@ -129,6 +129,73 @@ public sealed class MetricBarTests
         Assert.Equal("Contexto: no expuesto", name);
     }
 
+    /// <summary>
+    /// V37, seen live: the bars a screen collapses because there is nothing to show (a task without an agent, a quota window
+    /// without a bar) were read as «: sin dato». Hidden or collapsed, a bar is neither a control nor content; shown without a
+    /// reading it is still read, as «sin dato».
+    /// </summary>
+    [Fact]
+    public void A_hidden_bar_is_not_read_and_one_shown_without_a_reading_says_sin_dato()
+    {
+        var (hidden, hiddenWithReading, invisible, empty, named, shown) = WpfHost.Run(() =>
+        {
+            static (string Name, bool Control, bool Content) Read(MetricBar bar)
+            {
+                var peer = UIElementAutomationPeer.CreatePeerForElement(bar);
+                return (peer.GetName(), peer.IsControlElement(), peer.IsContentElement());
+            }
+
+            var named = new MetricBar();
+            AutomationProperties.SetName(named, "Contexto de T1");
+            return (
+                Read(new MetricBar { Visibility = Visibility.Collapsed }),
+                Read(new MetricBar { Reading = Exact(10), Visibility = Visibility.Collapsed }),
+                Read(new MetricBar { Visibility = Visibility.Hidden }),
+                Read(new MetricBar()),
+                Read(named),
+                Read(new MetricBar { Reading = Exact(10_000) }));
+        });
+
+        Assert.Equal((string.Empty, false, false), hidden);
+        Assert.False(hiddenWithReading.Control);
+        Assert.False(hiddenWithReading.Content);
+        Assert.Equal((string.Empty, false, false), invisible);
+        Assert.Equal(("sin dato", true, true), empty);
+        Assert.Equal(("Contexto de T1", true, true), named);
+        Assert.True(shown.Control);
+        Assert.StartsWith("Contexto: 1 %", shown.Name, StringComparison.Ordinal);
+    }
+
+    /// <summary>V37 in the monitor: a tool task has no context bar; its collapsed bar is not in the control view of the tasks.</summary>
+    [Fact]
+    public async Task In_the_monitor_the_collapsed_bar_of_a_task_without_an_agent_is_not_a_control()
+    {
+        var monitor = new AgentStudio.Desktop.Orchestrator.Monitor.RunMonitorViewModel(new Microsoft.Extensions.Time.Testing.FakeTimeProvider(AgentStudio.Tests.Domain.TestData.T0), new InlineSynchronizationContext());
+        var run = new FakeRun(FakeRun.SnapshotOf(
+            AgentStudio.Application.Orchestration.RunPhase.Running,
+            FakeRun.View("T1", AgentStudio.Domain.Work.WorkTaskKind.ToolRun, status: AgentStudio.Domain.Work.WorkTaskStatus.Running)));
+        monitor.Attach(run);
+        for (var i = 0; i < 400 && monitor.Tasks.Count == 0; i++)
+        {
+            await Task.Delay(5, TestContext.Current.CancellationToken);
+        }
+
+        var bars = WpfHost.Run(() =>
+        {
+            OrchestratorTheme.EnsureLoaded();
+            var view = new AgentStudio.Desktop.Views.Orchestrator.RunMonitorView { DataContext = monitor };
+            OffscreenRender.Render(view, 1100, 640);
+            return Descendants<MetricBar>(view)
+                .Where(b => b.Reading is null)
+                .Select(b => UIElementAutomationPeer.CreatePeerForElement(b))
+                .Select(p => (p.GetName(), p.IsControlElement()))
+                .ToList();
+        });
+
+        Assert.NotEmpty(bars);
+        Assert.All(bars, b => Assert.Equal((string.Empty, false), b));
+    }
+
     [Fact]
     public void The_value_cannot_be_set_through_ui_automation()
     {

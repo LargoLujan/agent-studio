@@ -60,7 +60,9 @@ public sealed class QuotaViewModelTests
         var row = Assert.Single(quota.Claude.Windows);
         Assert.False(row.Bar!.HasValue);
         Assert.Equal("se reinició a las 09:30, sin dato nuevo", row.Bar.ValueText);
-        Assert.Equal("se reinició hoy a las 09:30", row.Resets);
+
+        // V36: the bar says when it reset; the line under it does not say it again.
+        Assert.Null(row.Resets);
         Assert.Contains("antes del reinicio: 92 %", row.Bar.Detail, StringComparison.Ordinal);
         Assert.DoesNotContain("exacto", row.Bar.CompactText, StringComparison.Ordinal);
     }
@@ -78,7 +80,8 @@ public sealed class QuotaViewModelTests
 
         var bar = Assert.Single(quota.Claude.Windows).Bar!;
         Assert.Equal(47, bar.Value!.Value, 6);
-        Assert.Equal("47 % exacto · vista hace 12 min", bar.CompactText);
+        Assert.Equal("47 % exacto · hace 12 min", bar.CompactText);
+        Assert.EndsWith("vista hace 12 min", bar.Text, StringComparison.Ordinal);
         Assert.Equal("se reinicia hoy a las 12:00", bar.Detail);
     }
 

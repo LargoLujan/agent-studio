@@ -62,6 +62,9 @@ public sealed partial class CriterionDraftViewModel : ObservableObject
     }
 
     internal AcceptanceCriterion ToDomain() => new(Id.Trim(), Description.Trim(), Method);
+
+    /// <summary>What a screen reader says of an acceptance criterion being written (V34): its id and its description.</summary>
+    public override string ToString() => string.IsNullOrWhiteSpace(Description) ? Id : $"{Id}: {Description}";
 }
 
 /// <summary>One requirement being written: its id, its literal text, whether it is mandatory and its acceptance criteria.</summary>
@@ -129,6 +132,9 @@ public sealed partial class RequirementDraftViewModel : ObservableObject
         Statement.Trim(),
         IsMandatory ? RequirementPriority.Mandatory : RequirementPriority.Desirable,
         [.. Criteria.Select(c => c.ToDomain())]);
+
+    /// <summary>What a screen reader says of a requirement being written (V34): its id and its text.</summary>
+    public override string ToString() => string.IsNullOrWhiteSpace(Statement) ? Id : $"{Id}: {Statement}";
 }
 
 /// <summary>

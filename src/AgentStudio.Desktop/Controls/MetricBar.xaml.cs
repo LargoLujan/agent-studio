@@ -139,6 +139,10 @@ public partial class MetricBar : UserControl
         Track.Width = TrackWidth;
         Track.Height = IsCompact ? 8 : 10;
 
+        // The short form is tighter (V38): the bars of a run fit in one line of the status bar.
+        LabelText.Margin = new Thickness(0, 0, IsCompact ? 4 : 8, 0);
+        ValueLine.Margin = new Thickness(IsCompact ? 4 : 8, 0, 0, 0);
+
         var fraction = reading.Fraction ?? 0;
         FillColumn.Width = new GridLength(fraction, GridUnitType.Star);
         RestColumn.Width = new GridLength(1 - fraction, GridUnitType.Star);
@@ -150,10 +154,11 @@ public partial class MetricBar : UserControl
 
         // The value stands out; after it, the rest of the line: in the short form, the origin in one word, the level written
         // when the colour says one, and the age of the figure.
-        ValueRun.Text = reading.ValueText;
         var line = IsCompact ? reading.CompactText : reading.Text;
-        OriginRun.Text = line.Length > reading.ValueText.Length && line.StartsWith(reading.ValueText, StringComparison.Ordinal)
-            ? line[reading.ValueText.Length..]
+        var value = IsCompact && !reading.HasValue ? line : reading.ValueText;
+        ValueRun.Text = value;
+        OriginRun.Text = line.Length > value.Length && line.StartsWith(value, StringComparison.Ordinal)
+            ? line[value.Length..]
             : string.Empty;
         ValueLine.TextWrapping = IsCompact ? TextWrapping.NoWrap : TextWrapping.Wrap;
         ValueLine.TextTrimming = IsCompact ? TextTrimming.CharacterEllipsis : TextTrimming.None;
@@ -187,6 +192,18 @@ public partial class MetricBar : UserControl
         }
     }
 
+    /// <summary>The name the screen gave the bar; null when none.</summary>
+    private string? GivenName => AutomationProperties.GetName(this) is { Length: > 0 } given ? given : null;
+
+    /// <summary>
+    /// What UI Automation names the bar with (V37): the name the screen gave, else the whole line of its reading; without a
+    /// reading, «sin dato» while it is shown and nothing while it is hidden (never «: sin dato»).
+    /// </summary>
+    private string AccessibleName => GivenName ?? Reading?.AccessibleName ?? (Visibility == Visibility.Visible ? NoReadingName : string.Empty);
+
+    /// <summary>What a bar shown without a reading is called: what its track says.</summary>
+    private const string NoReadingName = "sin dato";
+
     /// <summary>Tells UI Automation that the value and the name changed, when anything listens.</summary>
     private void Announce(MetricBarReading? before)
     {
@@ -195,10 +212,14 @@ public partial class MetricBar : UserControl
             return;
         }
 
+        // The names as the peer gives them (V37): a name the screen gave, else the line of the reading, and none without one,
+        // never the «: sin dato» of the empty reading drawn.
         var after = Shown;
-        if (before?.AccessibleName != after.AccessibleName)
+        var nameBefore = GivenName ?? before?.AccessibleName ?? string.Empty;
+        var nameAfter = AccessibleName;
+        if (!string.Equals(nameBefore, nameAfter, StringComparison.Ordinal))
         {
-            peer.RaisePropertyChangedEvent(AutomationElementIdentifiers.NameProperty, before?.AccessibleName ?? string.Empty, after.AccessibleName);
+            peer.RaisePropertyChangedEvent(AutomationElementIdentifiers.NameProperty, nameBefore, nameAfter);
         }
 
         if (before?.Value != after.Value && after.Value is { } value)
@@ -211,9 +232,17 @@ public partial class MetricBar : UserControl
     /// The bar for UI Automation: a progress bar named with its whole line, without the inner texts as children (the name
     /// already says them), and with the RangeValue pattern, read-only, only while there is a value: a bar without one is
     /// never read as zero.
+    /// <para>
+    /// V37: a bar the screen hid or collapsed (a task without an agent, a quota window without a bar, a planning not started)
+    /// is not a control nor content while it is not shown. A bar shown without a reading is still read, as «sin dato» (or with
+    /// the name the screen gave it): never «: sin dato».
+    /// </para>
     /// </summary>
     private sealed class MetricBarAutomationPeer(MetricBar owner) : FrameworkElementAutomationPeer(owner), IRangeValueProvider
     {
+        /// <summary>The bar is drawn: not hidden nor collapsed by the screen.</summary>
+        private bool IsShown => owner.Visibility == Visibility.Visible;
+
         public double Value => owner.Shown.Value ?? 0;
 
         public bool IsReadOnly => true;
@@ -235,17 +264,16 @@ public partial class MetricBar : UserControl
 
         protected override string GetClassNameCore() => nameof(MetricBar);
 
-        protected override string GetNameCore() =>
-            AutomationProperties.GetName(owner) is { Length: > 0 } given ? given : owner.Shown.AccessibleName;
+        protected override string GetNameCore() => owner.AccessibleName;
 
-        protected override string GetItemStatusCore() => owner.Shown.Origin;
+        protected override string GetItemStatusCore() => owner.Reading?.Origin ?? string.Empty;
 
-        protected override string GetHelpTextCore() => owner.Shown.Detail ?? string.Empty;
+        protected override string GetHelpTextCore() => owner.Reading?.Detail ?? string.Empty;
 
         protected override List<AutomationPeer>? GetChildrenCore() => null;
 
-        protected override bool IsContentElementCore() => true;
+        protected override bool IsContentElementCore() => IsShown;
 
-        protected override bool IsControlElementCore() => true;
+        protected override bool IsControlElementCore() => IsShown;
     }
 }

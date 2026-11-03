@@ -584,9 +584,10 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         document.Monitor.Finished += (_, _) => OnRunFinished(document.ProjectRoot);
         document.RunHandedOff += OnRunHandedOff;
 
-        // The live bars (docs/18 P3 and P36): the status bar follows this monitor, and its attempts are judged with the
-        // windows the project learned.
+        // The live bars (docs/18 P3 and P36): the status bar follows this monitor and the planning of this document (V33), and
+        // its attempts are judged with the windows the project learned.
         StatusStrip.Track(document.Monitor);
+        StatusStrip.TrackPlanning(document);
         LearnContextWindows(document.ProjectRoot, document.Monitor);
 
         // The tray, its panel, the managed exit and «mantener despierto» follow the runs of this document (ADR-0036), with the
@@ -700,6 +701,12 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         if (wasActive != monitor.IsActive)
         {
             _memory?.RefreshRunActivity();
+        }
+
+        // A run that starts in the monitor of a closed tab (resumed by its consent) is in view in the status bar again.
+        if (monitor.IsActive)
+        {
+            StatusStrip.Track(monitor);
         }
     }
 
@@ -1075,6 +1082,13 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
     private void AddDocument(DocumentViewModel document)
     {
         Track(document);
+        if (document is OrchestratorDocumentViewModel orchestrator)
+        {
+            // Its tab is open again: the status bar follows its run and its planning (they were let go when it closed).
+            StatusStrip.Track(orchestrator.Monitor);
+            StatusStrip.TrackPlanning(orchestrator);
+        }
+
         if (!Documents.Contains(document))
         {
             document.CloseRequested += OnDocumentCloseRequested;
@@ -1139,6 +1153,13 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
 
         Documents.Remove(document);
         document.NotifyClosed();
+        if (document is OrchestratorDocumentViewModel orchestrator)
+        {
+            // The status bar lets go of its run and its planning, at once or once what runs in them ends.
+            StatusStrip.Release(orchestrator.Monitor);
+            StatusStrip.ReleasePlanning(orchestrator);
+        }
+
         if (ReferenceEquals(ActiveContent, document))
         {
             ActiveContent = Documents.LastOrDefault();

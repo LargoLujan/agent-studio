@@ -423,7 +423,7 @@ La tanda 2 trajo las barras en tiempo real (P3 de [18](18-peticiones-y-pendiente
 | La barra común (`Controls/MetricBar.xaml`) | Contexto, cuota, presupuesto y tokens, en cada pantalla que los enseña como barra. Ver abajo | `MetricBarContrastTests` y las pruebas del control |
 | El visor de la bitácora (`ReadingViewer`, en `Dark.xaml`) | La bitácora se ve como documento: títulos, párrafos, listas, negrita y código. Ver abajo | `ThemeContrastTests` (pares `ReadingViewer.*`) y `JournalRenderTests` |
 | El rincón de las dos barras de desplazamiento (V30) | WPF lo pintaba con `SystemColors.Control`, un cuadrado claro en «Skills». El estilo implícito de `ScrollViewer` cambia solo ese pincel al color de superficie; la plantilla sigue siendo la de WPF, y un `ScrollViewer` con estilo propio no cambia | `ScrollViewerCornerTests` (render fuera de pantalla) |
-| Nombres de los elementos de las listas (A1-bis) | Ver abajo | `ListItemNamesTests` |
+| Nombres de los elementos de las listas (A1-bis y V34) | Ver abajo | `ListItemNamesTests` y la guarda `ListItemTypesGuardTests` |
 
 **La barra común.**
 
@@ -440,6 +440,11 @@ La tanda 2 trajo las barras en tiempo real (P3 de [18](18-peticiones-y-pendiente
 - **Lector de pantalla.** UI Automation ve cada barra como una barra de progreso. Su nombre es la línea entera: qué mide,
   la cifra, el origen, el nivel, la antigüedad y el detalle. Solo tiene valor (patrón `RangeValue`, de solo lectura)
   cuando hay cifra: una barra vacía nunca se lee como cero. Al cambiar, avisa del nuevo nombre y del nuevo valor.
+- **Una barra oculta no se lee** (tanda 2b, V37). En vivo, las barras que una pantalla oculta porque no hay nada que
+  enseñar (una tarea sin agente, una ventana de cuota sin barra) salían en UI Automation como «: sin dato». Ahora:
+  - mientras está oculta o colapsada, no es control ni contenido;
+  - visible y sin lectura, sigue siendo control y se lee «sin dato» (o con el nombre que le dé la pantalla), como lo que
+    enseña su pista.
 - **El teclado no se para en ella:** no es un control que se pueda usar.
 
 **El visor de la bitácora.**
@@ -461,5 +466,44 @@ anteriores, la paleta y la leyenda del lienzo, problemas del plan, «Ir al fiche
 comprobaciones de «Skills», shells, las líneas de la salida gestionada y las barras. La prueba los pone en una lista y en
 un selector, fuera de pantalla, y comprueba el nombre de cada uno.
 
-**Límites.** Igual que en la tanda 1: nada de esto se ha recorrido con un lector de pantalla, y la tanda 2 está pendiente
-de verificar en vivo.
+**Todos los elementos de las listas (tanda 2b, V34).** El recorrido de la tanda 2 encontró 11 tipos más que UI Automation
+leía por su nombre técnico o por el texto del record, en el monitor, la preparación, el lienzo, los debates, «Consumo» y
+«Memoria». Ahora dan un nombre en castellano, y otros 25 tipos también:
+
+- **Los 11 del recorrido:**
+  - la actividad: «10:02:03 · T1 · Empezó el intento 1»;
+  - las evidencias: tarea, título, tipo y origen;
+  - las tareas del monitor: «T1 Implementar Calc.Divide · Pendiente»;
+  - los requisitos valorados por un veredicto: «R1: satisfecho»;
+  - los agentes y los requisitos de la preparación;
+  - los conectores del lienzo y los veredictos de un debate (decisión y juez);
+  - las dimensiones y los grupos de «Consumo»;
+  - las entradas de «Memoria»: categoría, tema y confianza.
+- **Los otros 25:** los hallazgos del auditor y de los veredictos, los intentos de «Consumo», el panel de la bandeja, el
+  historial y la sala de debates, los nodos y cables del lienzo, los documentos, el Explorador y las opciones de los
+  formularios.
+- **Prueba de guarda** (`ListItemTypesGuardTests`). Busca por reflexión los tipos que se pueden enseñar como elementos de
+  una lista:
+  - los elementos de las colecciones públicas, de instancia o estáticas, de cualquier tipo de la app, sean de la app o de
+    un módulo (Domain, Application, Orchestration…);
+  - los tipos de la app cuyo nombre acaba en Row, Entry, Option, Item o Line.
+
+  Falla si alguno se queda con el `ToString()` de `object` o con el que sintetiza un record. Así un tipo nuevo no vuelve
+  sin nombre. Por reflexión no se sabe qué colección está enlazada a una lista: por eso cada tipo encontrado da su nombre
+  o queda en la lista de excepciones con su motivo. No encuentra una lista enlazada a una propiedad sin tipo de colección
+  (`object`), ni una colección de un tipo de un módulo a la que se llegue desde otro tipo de un módulo.
+- **Excepciones**, cada una justificada en la prueba: 16 tipos que nunca son un elemento de una lista en pantalla.
+  - De la app (8):
+    - el análisis del Markdown de la bitácora y de las aportaciones de un debate;
+    - el JSON del borrador del lienzo;
+    - el menú del icono de la bandeja (Windows Forms);
+    - las preguntas que esperan al desbloqueo, que la pantalla de bloqueo enseña como texto.
+  - De los módulos (8): datos que las pantallas convierten en filas propias:
+    - el equipo y los requisitos del editor de nodos;
+    - las tareas y dependencias de un borrador;
+    - las infracciones del plan, que salen como problemas;
+    - los participantes y jueces de un debate;
+    - el resultado de una reanudación.
+
+**Límites.** Igual que en la tanda 1: nada de esto se ha recorrido con un lector de pantalla, y las tandas 2 y 2b están
+pendientes de verificar en vivo.

@@ -188,13 +188,16 @@
                 BorderThickness="0,1,0,0" Padding="12,4">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" MaxWidth="420"/>
+                    <ColumnDefinition Width="Auto" MaxWidth="180"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <!-- The bars, in order: the context, the quota and the budget. They wrap to a second line when the window is
-                     narrow, so none is ever hidden; the whole detail is in the tooltip and in the name of each bar. -->
-                <ItemsControl x:Name="StatusStripBars" Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Right"
+                     narrow, so none is ever hidden; the whole detail is in the tooltip and in the name of each bar. The four
+                     bars of a run fit in one line on a screen 1920 px wide at 100 % and 125 %, and at 150 % with the usual texts
+                     (V38, docs/18 §3): short texts, short tracks, 10 px between bars and the message on the left at most 180 px.
+                     The gap after the last bar is the margin of the version. -->
+                <ItemsControl x:Name="StatusStripBars" Grid.Column="1" Margin="6,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Right"
                               DataContext="{Binding StatusStrip}" ItemsSource="{Binding Bars}" Focusable="False" Background="Transparent"
                               Visibility="{Binding ShowsBars, Converter={StaticResource Shell.BoolToVisibility}}"
                               ToolTip="{Binding ToolTip}" ToolTipService.ShowDuration="60000"
@@ -206,11 +209,12 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <controls:MetricBar IsCompact="True" ShowsToolTip="False" TrackWidth="48" Margin="0,1,16,1" Reading="{Binding}"/>
+                            <controls:MetricBar IsCompact="True" ShowsToolTip="False" TrackWidth="36" Margin="10,1,0,1" Reading="{Binding}"/>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <!-- At most 420 px, cut with «…»: the whole message is in its tooltip. -->
+                <!-- At most 180 px (V38), cut with «…»: the whole message, or the whole path, is in its tooltip. The path of a
+                     project like «C:\Personal Projects\Agent Studio» fits whole. -->
                 <TextBlock x:Name="StatusMessageText" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
                            ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}">
                     <TextBlock.Style>
@@ -225,7 +229,7 @@
                     </TextBlock.Style>
                 </TextBlock>
                 <!-- The version and the commit the app was built from, to tell the installed build apart. -->
-                <TextBlock x:Name="VersionText" Grid.Column="2" Style="{StaticResource SecondaryText}" Margin="0,0,0,0" VerticalAlignment="Center"
+                <TextBlock x:Name="VersionText" Grid.Column="2" Style="{StaticResource SecondaryText}" Margin="12,0,0,0" VerticalAlignment="Center"
                            Text="{Binding AppVersion}" ToolTip="Versión de Agent Studio y commit del que se compiló"/>
             </Grid>
         </Border>

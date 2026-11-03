@@ -136,6 +136,44 @@ public sealed class JournalRenderTests
         TestContext.Current.SendDiagnosticMessage(string.Create(CultureInfo.InvariantCulture, $"A day of 5,000 lines drawn in {elapsed.TotalMilliseconds:0} ms ({paragraphs} entries)."));
     }
 
+    /// <summary>
+    /// The review of V32: each read of the day by itself put a new document and took the reader back to the top. Whoever reads
+    /// the end follows the new entries; whoever reads further up stays where they were.
+    /// </summary>
+    [Fact]
+    public void A_day_read_again_keeps_the_place_of_whoever_reads_it()
+    {
+        var (followsEnd, endGap, keptAt, wanted) = WpfHost.Run(() =>
+        {
+            var journal = new JournalViewModel(TimeProvider.System) { Text = JournalViewModelTests.LongDay(entries: 60), StatusMessage = null };
+            // A host of a fixed size, as the panel is: a later layout pass keeps the height, so the day scrolls.
+            var view = new JournalView { DataContext = journal };
+            var host = new Grid { Width = 600, Height = 300, Children = { view } };
+            OffscreenRender.Render(host, 600, 300);
+            var reader = Reader(view);
+
+            reader.ScrollToEnd();
+            reader.UpdateLayout();
+            journal.Text = JournalViewModelTests.LongDay(entries: 70);
+            WpfHost.FlushBindings();
+            reader.UpdateLayout();
+            var gap = reader.ExtentHeight - reader.ViewportHeight - reader.VerticalOffset;
+            var atEnd = reader.VerticalOffset > 0 && gap <= 1;
+
+            reader.ScrollToVerticalOffset(120);
+            reader.UpdateLayout();
+            var offset = reader.VerticalOffset;
+            journal.Text = JournalViewModelTests.LongDay(entries: 80);
+            WpfHost.FlushBindings();
+            reader.UpdateLayout();
+            return (atEnd, gap, reader.VerticalOffset, offset);
+        });
+
+        Assert.True(followsEnd, $"After a read the end was {endGap:0} px away: it did not follow the new entries ({keptAt}, {wanted}).");
+        Assert.Equal(120, wanted, 0.5);
+        Assert.Equal(wanted, keptAt, 0.5);
+    }
+
     private static RichTextBox Reader(JournalView view) => (RichTextBox)view.FindName("JournalDocument");
 
     /// <summary>

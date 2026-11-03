@@ -12,6 +12,7 @@ using AgentStudio.Desktop.Orchestrator.Monitor;
 using AgentStudio.Desktop.Orchestrator.Preparation;
 using AgentStudio.Desktop.Skills;
 using AgentStudio.Desktop.ViewModels;
+using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Metrics;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Skills;
@@ -62,7 +63,48 @@ public sealed class ListItemNamesTests
         (new QuotaWindowRow("5 horas", MetricText.Percent(MetricValue<double>.Exact(0.47, "claude rate_limit_event")), "vista hace 12 min", null)
             { Bar = MetricBars.Quota("5 horas", MetricValue<double>.Exact(0.47, "claude rate_limit_event"), "vista hace 12 min") },
             "5 horas: 47 % · exacto · informado por el CLI · vista hace 12 min"),
+
+        // V34, the walk of tanda 2 (2026-11-03): the 11 types still read by their type name or the text of their record.
+        (new ActivityEntry(DateTimeOffset.UnixEpoch, "10:02:03", "T1", "Empezó el intento 1"), "10:02:03 · T1 · Empezó el intento 1"),
+        (new EvidenceEntry("T1", "Pruebas (test)", "Ejecución de pruebas", "capturada por el sistema", "abc123def456", null),
+            "T1 · Pruebas (test) · Ejecución de pruebas · capturada por el sistema"),
+        (new AssessmentRow("✔", "satisfecho", Tone.Success, "R1", "Añadir Calc.Divide", "Pasa su prueba.", "ev-1", null), "R1: satisfecho"),
+        (new MonitorTaskViewModel(new TaskId("T1"), "Implementar Calc.Divide", WorkTaskKind.AgentWork, TimeZoneInfo.Utc), "T1 Implementar Calc.Divide · Pendiente"),
+        (Roster().Agents[0], Roster().Agents[0].Name),
+        (Requirements().Drafts[0], "R1: Add Calc.Multiply"),
+        (new ConnectorViewModel(new NodeViewModel(new TaskId("T2"), WorkTaskKind.AgentWork, "Integrar", default), ConnectorFlow.Input, "Entrada"), "Entrada de T2"),
+        (Card().Verdicts[0], $"{Card().Verdicts[0].DecisionText} · {Card().Verdicts[0].JudgeText}"),
+        (new DimensionOption(AgentStudio.Application.Usage.UsageDimension.Provider, "Proveedor"), "Proveedor"),
+        (new UsageGroupRow("Proveedor: claude-code", Count, Count, Count, Count, Count, Count, Count, Count, Count, Count, "sin dato", Count)
+            { ContextPeakBar = MetricBars.Empty(UsageDashboardViewModel.PeakLabel, "sin dato") },
+            "Proveedor: claude-code"),
+        (new AgentStudio.Desktop.Memory.MemoryEntryViewModel(
+            new AgentStudio.Application.Knowledge.MemoryEntry("m-1", AgentStudio.Application.Knowledge.MemoryKind.Decision, "Pruebas", "Las pruebas usan xUnit.", AgentStudio.Application.Knowledge.MemoryOrigin.User, "registro", DateTimeOffset.UnixEpoch, "sha", AgentStudio.Application.Knowledge.MemoryTrust.Trusted, null, null),
+            TimeZoneInfo.Utc),
+            "Decisión · Pruebas · De confianza"),
     ];
+
+    private static Figure Count { get; } = MetricText.Measured(3);
+
+    /// <summary>The agents of the default template, as the preparation lists them.</summary>
+    private static RosterEditorViewModel Roster()
+    {
+        var roster = new RosterEditorViewModel(null, () => Task.CompletedTask);
+        roster.Load(null, AgentStudio.Desktop.Orchestrator.Session.DefaultAgentRoster.Create());
+        return roster;
+    }
+
+    /// <summary>The requirements of the fixture, as the preparation lists them.</summary>
+    private static RequirementsEditorViewModel Requirements()
+    {
+        var editor = new RequirementsEditorViewModel(new AgentStudio.Desktop.Orchestrator.Session.OrchestrationSession(AgentStudio.Desktop.Orchestrator.Session.OrchestrationBackend.None), TimeProvider.System);
+        editor.Load(null, PlanFixtures.Requirements());
+        return editor;
+    }
+
+    /// <summary>The card of a panel of two judges that disagree, as the debates show it.</summary>
+    private static VerdictCardViewModel Card() =>
+        new(Debate.DebateSamples.PanelThatDisagrees, Debate.DebateSamples.Disagree, new VerdictCardContext("Veredicto del debate"), TimeZoneInfo.Utc);
 
     [Fact]
     public void Each_item_of_a_list_is_named_by_its_label_in_ui_automation()

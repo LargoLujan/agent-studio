@@ -78,9 +78,10 @@ internal static class ObservabilityUiServices
     private static TimeProvider Time(IServiceProvider provider) => provider.GetService<TimeProvider>() ?? TimeProvider.System;
 
     /// <summary>
-    /// The UI thread's context, whatever thread resolves the screen: the quota read after a run of Codex and the bars of the
-    /// status bar are applied on the dispatcher. Null without an application (a composition in a test).
+    /// The UI thread's context, whatever thread resolves the screen: the quota read after a run of Codex, the bars of the
+    /// status bar and the day «Bitácora de hoy» read again (ShellServices) are applied on the dispatcher. Null without an
+    /// application (a composition in a test).
     /// </summary>
-    private static System.Windows.Threading.DispatcherSynchronizationContext? UiContext() =>
+    internal static System.Windows.Threading.DispatcherSynchronizationContext? UiContext() =>
         System.Windows.Application.Current?.Dispatcher is { } dispatcher ? new System.Windows.Threading.DispatcherSynchronizationContext(dispatcher) : null;
 }

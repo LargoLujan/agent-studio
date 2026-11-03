@@ -80,6 +80,20 @@ debajo.
     texto sin formato, y «Ver legible» vuelve.
   - **`Ctrl+P` y `Ctrl+F` no se quedan en la bitácora:** el visor no imprime ni busca, así que `Ctrl+P` llega a la
     ventana y abre «Ir al fichero».
+  - **Se actualiza sola** (tanda 2b, V32). La app escribe el día al lanzar y al terminar cada agente, y el hook de Claude
+    Code desde fuera. El panel vigila la carpeta `bitacora` y vuelve a leer el día cuando lleva medio segundo sin cambios
+    (una ráfaga sin fin se lee cada 3 s como mucho); a medianoche pasa al día nuevo.
+    - **La vigilancia:** cada carpeta del camino que existe se vigila desde la de arriba. Así, borrar y volver a crear
+      `.agentstudio` (un checkout de otra rama, la demo creada de nuevo) no la deja muerta. Una carpeta que aún no existe, o
+      que no se puede vigilar, se reintenta cada 5 s, con «Actualizar» y al comprobar el día. Una carpeta del camino que sea
+      un enlace no se vigila.
+    - **Cada lectura**, también «Actualizar», va por una cola con un solo consumidor: una a la vez y fuera del hilo de la
+      interfaz. Lo que llega mientras se lee es una sola lectura más al terminar.
+    - **Lo leído** solo se muestra si el proyecto sigue abierto. Al abrir otro proyecto, o al cerrar la app, se deja de
+      vigilar.
+    - **El sitio de quien lee:** quien está al final sigue las entradas nuevas, y quien lee más arriba no se mueve.
+    - **Con «Ver todo»,** la relectura sola no recarga el texto completo (un día largo tarda un segundo). Una línea dice
+      «Hay entradas nuevas» con «Recargar»; «Actualizar» y volver a la vista legible también las enseñan.
 - **Zona central superior:** documentos en pestañas (editor Monaco, orquestador visual, grafo, gestión de agentes,
   Debate Arena, monitor de tareas). Se pueden partir en vertical u horizontal.
   - Una pestaña con cambios sin guardar lleva «●» detrás del título, y un lector de pantalla oye «…, con cambios sin

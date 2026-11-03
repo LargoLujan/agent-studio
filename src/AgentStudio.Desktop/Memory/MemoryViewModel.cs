@@ -107,6 +107,9 @@ public sealed partial class MemoryEntryViewModel : ObservableObject
 
     /// <summary>A trusted entry can be withdrawn (it is hidden; purging is Phase 7).</summary>
     public bool CanBeRetracted => Pending is null && Entry.Trust == MemoryTrust.Trusted;
+
+    /// <summary>What a screen reader says of an entry of the memory (V34): its category, its topic and its trust.</summary>
+    public override string ToString() => $"{KindLabel} · {Topic} · {TrustLabel}";
 }
 
 /// <summary>

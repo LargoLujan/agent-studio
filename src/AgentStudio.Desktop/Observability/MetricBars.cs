@@ -145,7 +145,10 @@ public static class MetricBars
         ArgumentNullException.ThrowIfNull(label);
         ArgumentException.ThrowIfNullOrWhiteSpace(resetAt);
         var figure = MetricText.Percent(before);
-        return Empty(label, $"se reinició {resetAt}, sin dato nuevo", MetricOrigin.Missing, Join("antes del reinicio: " + figure.Text, seen));
+
+        // The status bar says it short (V38); the moment of the reset stays in the line, the name and the tooltip.
+        return Empty(label, $"se reinició {resetAt}, sin dato nuevo", MetricOrigin.Missing, Join("antes del reinicio: " + figure.Text, seen))
+            with { ShortValueText = "se reinició · sin dato" };
     }
 
     /// <summary>

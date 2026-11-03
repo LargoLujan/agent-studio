@@ -27,10 +27,32 @@ public static class RichTextDocument
 
     private static void OnDocumentChanged(DependencyObject element, DependencyPropertyChangedEventArgs e)
     {
-        if (element is RichTextBox box)
+        if (element is not RichTextBox box)
         {
-            // A document belongs to one box: the converter builds a new one for each text.
-            box.Document = e.NewValue as FlowDocument ?? new FlowDocument();
+            return;
+        }
+
+        // V32: the journal is read again by itself while a run writes it. Whoever reads it keeps their place: at the end it
+        // follows the new entries, anywhere else it stays where it was. A first document starts at the top.
+        var replaced = e.OldValue is FlowDocument && box.ExtentHeight > 0;
+        var offset = box.VerticalOffset;
+        var atEnd = offset + box.ViewportHeight >= box.ExtentHeight - 1;
+
+        // A document belongs to one box: the converter builds a new one for each text.
+        box.Document = e.NewValue as FlowDocument ?? new FlowDocument();
+        if (!replaced)
+        {
+            return;
+        }
+
+        box.UpdateLayout();
+        if (atEnd)
+        {
+            box.ScrollToEnd();
+        }
+        else
+        {
+            box.ScrollToVerticalOffset(offset);
         }
     }
 }

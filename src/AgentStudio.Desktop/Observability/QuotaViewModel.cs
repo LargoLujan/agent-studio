@@ -10,7 +10,10 @@ namespace AgentStudio.Desktop.Observability;
 /// <summary>One window of a subscription as the panel shows it: its name, the utilization with its origin and how old it is.</summary>
 /// <param name="Name">«5 horas», «7 días», or the provider's name of the limit with the length of its window.</param>
 /// <param name="Seen">How old the observation is: «vista hace 12 min».</param>
-/// <param name="Resets">When the window resets, in local time; null when the provider does not say.</param>
+/// <param name="Resets">
+/// When the window resets, in local time; null when the provider does not say, and once the reset passed (its bar says
+/// then when it reset, V36).
+/// </param>
 /// <param name="Reached">The limit the provider says was reached; null when it says none.</param>
 public sealed record QuotaWindowRow(string Name, Figure Utilization, string Seen, string? Resets, string? Reached = null)
 {
@@ -268,9 +271,10 @@ public sealed partial class QuotaViewModel : ObservableObject
                 var name = WindowName(o);
                 var seen = Seen(o.ObservedAt);
 
-                // A window whose reset has passed since it was seen: its figure is of before the reset, never shown as now.
+                // A window whose reset has passed since it was seen: its figure is of before the reset, never shown as now. Its
+                // bar says when it reset, so the line under the bar does not say it again (V36).
                 var reset = o.ResetsAt is { } at && at <= _time.GetUtcNow() ? at : (DateTimeOffset?)null;
-                var resets = o.ResetsAt is { } when ? Resets(when) : null;
+                var resets = reset is null && o.ResetsAt is { } when ? Resets(when) : null;
                 var reached = reset is null && !string.IsNullOrWhiteSpace(o.Reached) ? $"límite alcanzado: {o.Reached}" : null;
                 return new QuotaWindowRow(name, MetricText.Percent(o.Utilization), seen, resets, reached)
                 {
@@ -329,12 +333,11 @@ public sealed partial class QuotaViewModel : ObservableObject
             : string.Create(CultureInfo.InvariantCulture, $"vista hace {(int)age.TotalDays} días");
     }
 
-    /// <summary>When the window resets, or reset when that moment has passed: «se reinicia hoy a las 15:00», «se reinició el 04/11 a las 10:00».</summary>
+    /// <summary>When the window resets, a moment still to come: «se reinicia hoy a las 15:00», «se reinicia el 04/11 a las 10:00».</summary>
     private string Resets(DateTimeOffset at)
     {
-        var verb = at <= _time.GetUtcNow() ? "se reinició" : "se reinicia";
         var local = TimeZoneInfo.ConvertTime(at, _time.LocalTimeZone);
-        return local.Date == _time.GetLocalNow().Date ? $"{verb} hoy {ResetClock(at)}" : $"{verb} {ResetClock(at)}";
+        return local.Date == _time.GetLocalNow().Date ? $"se reinicia hoy {ResetClock(at)}" : $"se reinicia {ResetClock(at)}";
     }
 
     /// <summary>The moment of a reset as people say it: «a las 15:00» today, «el 04/11 a las 10:00» another day.</summary>

@@ -52,6 +52,9 @@ public sealed record ContextBarRow(string Task, double? Fraction, string Text, T
 public sealed record FigureRow(string Name, Figure Figure)
 {
     public string Text => Figure.Text;
+
+    /// <summary>What a screen reader says of a figure of the panel (V34): its name and the figure with its origin.</summary>
+    public override string ToString() => $"{Name} · {Text}";
 }
 
 /// <summary>A window of the quota of the account: «Claude Code · 5 horas · 47 % · … · se reinicia hoy a las 14:05 · vista hace 12 min».</summary>
@@ -114,10 +117,17 @@ public sealed class WorkCardViewModel
     public bool HasErrors => Errors.Count > 0;
 
     public bool HasApprovals => Approvals.Count > 0;
+
+    /// <summary>What a screen reader says of a piece of work of the panel (V34): its title and its state.</summary>
+    public override string ToString() => $"{Title} · {State}";
 }
 
 /// <summary>One project with work going on, and its work.</summary>
-public sealed record ProjectStatusViewModel(string Name, string Root, IReadOnlyList<WorkCardViewModel> Work);
+public sealed record ProjectStatusViewModel(string Name, string Root, IReadOnlyList<WorkCardViewModel> Work)
+{
+    /// <summary>What a screen reader says of a project of the panel (V34): its name.</summary>
+    public override string ToString() => Name;
+}
 
 /// <summary>
 /// The status panel of the tray (docs/16 D-15, F8-8): a projection of what already exists, project by project, with

@@ -30,6 +30,9 @@ public sealed partial class AuthorChoiceViewModel(VendorId vendor, Action change
     private bool _isDeclared;
 
     partial void OnIsDeclaredChanged(bool value) => changed();
+
+    /// <summary>What a screen reader says of a vendor you may declare as an author (V34): its name.</summary>
+    public override string ToString() => Name;
 }
 
 /// <summary>One piece of the verification of HEAD, as the report lists it.</summary>

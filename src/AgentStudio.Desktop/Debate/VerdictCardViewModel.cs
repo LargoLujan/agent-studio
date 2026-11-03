@@ -43,19 +43,39 @@ public sealed record VerdictCardActions(
 /// <summary>One requirement as a verdict assessed it.</summary>
 /// <param name="Statement">The literal text of the requirement, from the frozen set; null when the set could not be read.</param>
 /// <param name="JudgeAssessment">«valoración del juez, no verificable por pruebas» (D-25), or null.</param>
-public sealed record AssessmentRow(string Glyph, string Status, Tone Tone, string Requirement, string? Statement, string Rationale, string Evidence, string? JudgeAssessment);
+public sealed record AssessmentRow(string Glyph, string Status, Tone Tone, string Requirement, string? Statement, string Rationale, string Evidence, string? JudgeAssessment)
+{
+    /// <summary>What a screen reader says of a requirement as a verdict assessed it (V34): the requirement and its status.</summary>
+    public override string ToString() => $"{Requirement}: {Status}";
+}
 
 /// <summary>One finding of a verdict, with its severity, category and what it cites.</summary>
-public sealed record FindingRow(string Severity, Tone Tone, string Category, string Description, string References);
+public sealed record FindingRow(string Severity, Tone Tone, string Category, string Description, string References)
+{
+    /// <summary>What a screen reader says of a finding of a verdict (V34): its severity, its category and its description.</summary>
+    public override string ToString() => $"{Severity} · {Category}: {Description}";
+}
 
 /// <summary>What the judge of a debate said of one proposal (D-25).</summary>
-public sealed record ComparisonRow(string Proposal, string Strengths, string Weaknesses);
+public sealed record ComparisonRow(string Proposal, string Strengths, string Weaknesses)
+{
+    /// <summary>What a screen reader says of what the judge said of a proposal (V34): the proposal.</summary>
+    public override string ToString() => Proposal;
+}
 
 /// <summary>A label of the blind dossier and who was behind it (D-15): the correspondence the judge did not see.</summary>
-public sealed record LabelRow(string Label, string Role, string Agent, string Where);
+public sealed record LabelRow(string Label, string Role, string Agent, string Where)
+{
+    /// <summary>What a screen reader says of a label of the blind dossier (V34): the label, its role and its agent.</summary>
+    public override string ToString() => $"{Label} · {Role} · {Agent}";
+}
 
 /// <summary>A rule of the validator a verdict broke: in Spanish, its stable code and the validator's own message.</summary>
-public sealed record IssueRow(string Text, string Code, string Detail);
+public sealed record IssueRow(string Text, string Code, string Detail)
+{
+    /// <summary>What a screen reader says of a rule a verdict broke (V34): the rule in Spanish.</summary>
+    public override string ToString() => Text;
+}
 
 /// <summary>
 /// One verdict as the card shows it (docs/03 §6): judge, decision, confidence, validation with its issues, whether it is a
@@ -247,6 +267,9 @@ public sealed partial class VerdictPanelViewModel : ObservableObject
 
         return parts.Count == 0 ? "sin referencias" : string.Join(" · ", parts);
     }
+
+    /// <summary>What a screen reader says of a verdict of the card (V34): its decision and its judge.</summary>
+    public override string ToString() => $"{DecisionText} · {JudgeText}";
 }
 
 /// <summary>

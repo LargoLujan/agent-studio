@@ -38,11 +38,18 @@ public sealed record DebateRoomContext(
 /// <summary>A participant as the room lists it: its label and role, and the agent, CLI, vendor and model behind them.</summary>
 public sealed record DebateParticipantRow(string Label, string Role, AgentId Agent, string Where)
 {
+    /// <summary>What a screen reader says of a participant of the room (V34): its label and its role.</summary>
+    public override string ToString() => $"{Label} · {Role}";
+
     public string AgentName => Agent.Value;
 }
 
 /// <summary>An evidence a contribution cites, as a button that opens it.</summary>
-public sealed record CitedEvidence(string Id);
+public sealed record CitedEvidence(string Id)
+{
+    /// <summary>What a screen reader says of an evidence a contribution cites (V34): the evidence.</summary>
+    public override string ToString() => $"Evidencia {Id}";
+}
 
 /// <summary>An evidence opened from a contribution: what it is, whether its bytes still give the SHA-256 of its record, and its text when they do.</summary>
 public sealed record EvidenceViewer(string Id, string Title, string Description, string HashText, Tone HashTone, string? Text);
@@ -129,10 +136,17 @@ public sealed class DebateContributionViewModel
 
     /// <summary>Why the text is not shown; null when it is.</summary>
     public string? TextProblem { get; }
+
+    /// <summary>What a screen reader says of a contribution of the room (V34): its label, its kind and its author.</summary>
+    public override string ToString() => Header;
 }
 
 /// <summary>The published contributions of one round.</summary>
-public sealed record DebateRoundViewModel(int Round, string Title, IReadOnlyList<DebateContributionViewModel> Contributions);
+public sealed record DebateRoundViewModel(int Round, string Title, IReadOnlyList<DebateContributionViewModel> Contributions)
+{
+    /// <summary>What a screen reader says of a round of the room (V34): its title.</summary>
+    public override string ToString() => Title;
+}
 
 /// <summary>
 /// The room of a debate (docs/15 D-41, docs/03 §4): the header (mode, phase, round, time and tokens with their origin, «~»
