@@ -1716,7 +1716,7 @@ Seis decisiones, todas de las que cambian el alcance. La recomendada va primero.
   - el motor estaba parado: no se probó `docker compose config` ni `ps --format json` con Compose v2.29.7;
   - publicar en `127.0.0.1` con Docker Desktop;
   - qué pide administrador al instalarlo o configurar WSL2;
-  - si tu uso en una universidad cuenta como «educación» en los términos de Docker: la página no lo aclara;
+  - qué licencia de Docker Desktop corresponde a tu uso: la página no lo aclara para todos los casos;
   - si Docker Desktop trae su propia regla de entrada del firewall, que haría alcanzable desde tu red un puerto publicado
     en todas las interfaces (D-11).
 - **Nombres `*.localhost`** fuera del navegador, y la importación en Postman del OpenAPI 3.1 que genera ASP.NET Core.
