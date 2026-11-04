@@ -188,7 +188,7 @@
                 BorderThickness="0,1,0,0" Padding="12,4">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" MaxWidth="180"/>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
@@ -213,16 +213,20 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <!-- At most 180 px (V38), cut with «…»: the whole message, or the whole path, is in its tooltip. The path of a
-                     project like «C:\Personal Projects\Agent Studio» fits whole. -->
-                <TextBlock x:Name="StatusMessageText" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
-                           ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}">
+                <!-- At most 180 px (V38), cut with «…» (the limit is on the text itself: a limit on its column only clipped it,
+                     without the «…»): the whole message, or the whole path, is in its tooltip and in its name
+                     for UI Automation, and a screen reader is told when it changes (Polite). The path of a project like
+                     «C:\Personal Projects\Agent Studio» fits whole. Whoever uses only the keyboard cannot reach the tooltip of a
+                     long message (docs/18 §3, V38). -->
+                <TextBlock x:Name="StatusMessageText" MaxWidth="180" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                           ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" AutomationProperties.LiveSetting="Polite"
+                           Binding.TargetUpdated="OnStatusMessageUpdated">
                     <TextBlock.Style>
                         <Style TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
-                            <Setter Property="Text" Value="{Binding StatusMessage}"/>
+                            <Setter Property="Text" Value="{Binding StatusMessage, NotifyOnTargetUpdated=True}"/>
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding StatusMessage}" Value="{x:Null}">
-                                    <Setter Property="Text" Value="{Binding ProjectPathDisplay}"/>
+                                    <Setter Property="Text" Value="{Binding ProjectPathDisplay, NotifyOnTargetUpdated=True}"/>
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>

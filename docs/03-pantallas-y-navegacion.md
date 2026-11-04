@@ -91,7 +91,12 @@ debajo.
       interfaz. Lo que llega mientras se lee es una sola lectura más al terminar.
     - **Lo leído** solo se muestra si el proyecto sigue abierto. Al abrir otro proyecto, o al cerrar la app, se deja de
       vigilar.
-    - **El sitio de quien lee:** quien está al final sigue las entradas nuevas, y quien lee más arriba no se mueve.
+    - **El sitio de quien lee**, mientras sigue el mismo proyecto y el mismo día:
+      - quien está al final sigue las entradas nuevas;
+      - quien lee más arriba se queda con la misma entrada arriba, también cuando un día largo suelta sus entradas más
+        antiguas por encima.
+
+      El primer día que se abre, y el de otro proyecto u otra fecha, empiezan arriba.
     - **Con «Ver todo»,** la relectura sola no recarga el texto completo (un día largo tarda un segundo). Una línea dice
       «Hay entradas nuevas» con «Recargar»; «Actualizar» y volver a la vista legible también las enseñan.
 - **Zona central superior:** documentos en pestañas (editor Monaco, orquestador visual, grafo, gestión de agentes,

@@ -212,6 +212,14 @@ public partial class MainWindow : Window
     /// the work, nor the names of the files with unsaved changes, may show over the lock screen. With the tray the window goes
     /// there; without it the close does nothing. An end of the session still ends the app, and writes what it writes.
     /// </summary>
+    /// <summary>
+    /// The message of the status bar changed (V38): it is cut at 180 px, so a screen reader is told (it is a polite live
+    /// region, and its name is the whole text).
+    /// </summary>
+    private void OnStatusMessageUpdated(object? sender, DataTransferEventArgs e) =>
+        System.Windows.Automation.Peers.UIElementAutomationPeer.CreatePeerForElement(StatusMessageText)
+            ?.RaiseAutomationEvent(System.Windows.Automation.Peers.AutomationEvents.LiveRegionChanged);
+
     private void OnClosing(object? sender, CancelEventArgs e)
     {
         if (_background is not { } background)

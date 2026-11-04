@@ -161,6 +161,13 @@ public sealed partial class JournalViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private bool _isBusy;
 
+    /// <summary>
+    /// What the day shown is of: its project and its file; null with nothing read. The view keeps the place of whoever reads
+    /// only while it stays the same (V32): another project or another day starts at the top.
+    /// </summary>
+    [ObservableProperty]
+    private string? _readScope;
+
     /// <summary>Path of today's journal for the current project, or null without project (shown, never opened directly).</summary>
     public string? CurrentFilePath =>
         _project is not { } project ? null : Path.Combine(project.Root, AgentStudioFiles.DataFolder, AgentStudioFiles.JournalFolder, TodaysFileName());
@@ -211,6 +218,7 @@ public sealed partial class JournalViewModel : ObservableObject, IDisposable
     {
         if (_project is null)
         {
+            ReadScope = null;
             Text = string.Empty;
             StatusMessage = "Abre una carpeta para ver su bitácora.";
             return Task.CompletedTask;
@@ -218,6 +226,7 @@ public sealed partial class JournalViewModel : ObservableObject, IDisposable
 
         if (_reader is null)
         {
+            ReadScope = null;
             Text = string.Empty;
             StatusMessage = "La bitácora no se puede leer: falta la lectura comprobada de .agentstudio (sin ella no se abre ningún fichero del proyecto).";
             return Task.CompletedTask;
@@ -311,6 +320,9 @@ public sealed partial class JournalViewModel : ObservableObject, IDisposable
             }
 
             Volatile.Write(ref _readFile, file);
+
+            // What the day shown is of goes first: the view keeps the place of whoever reads only within one project and day.
+            ReadScope = project.Root + "|" + file;
 
             // The snapshot of the plain viewer goes first, so a changed day reaches it with one notification.
             var reload = reloadPlain && ShowPlainText && !string.Equals(_plainText, text, StringComparison.Ordinal);

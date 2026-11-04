@@ -499,7 +499,12 @@ public sealed class JournalViewModelTests
             Assert.True(quiet >= JournalViewModel.SettleTime - TimeSpan.FromMilliseconds(50), $"A read came {quiet.TotalMilliseconds:0} ms after a change: the changes had not settled.");
         }
 
-        Assert.True(reads.Length <= 2, $"A burst of 6 changes was read {reads.Length} times.");
+        // One read after the last change; a loaded machine may space two changes by a whole quiet spell (a read between them
+        // is right then), or stretch the burst past the longest wait (one read more): each is allowed, as measured.
+        var quietGaps = changes.Zip(changes.Skip(1), (a, b) => System.Diagnostics.Stopwatch.GetElapsedTime(a, b))
+            .Count(gap => gap >= JournalViewModel.SettleTime - TimeSpan.FromMilliseconds(50));
+        var stretched = System.Diagnostics.Stopwatch.GetElapsedTime(changes[0], changes[^1]) >= JournalViewModel.LongestSettle ? 1 : 0;
+        Assert.True(reads.Length <= 1 + quietGaps + stretched, $"A burst of 6 changes was read {reads.Length} times ({quietGaps} quiet spells within it).");
     }
 
     /// <summary>A burst that never ends is still read while it goes on (at most <see cref="JournalViewModel.LongestSettle"/> of spells after its first change).</summary>
@@ -566,7 +571,9 @@ public sealed class JournalViewModelTests
         watcher.Change();
         await WaitUntilAsync(() => journal.Text == fourth);
         journal.TogglePlainTextCommand.Execute(null);
-        Assert.Contains("«petición 403»", journal.RenderedText, StringComparison.Ordinal);
+
+        // Without a UI thread the day is shown on the thread that read it: its readable part follows its text there.
+        await WaitUntilAsync(() => journal.RenderedText.Contains("«petición 403»", StringComparison.Ordinal));
         Assert.False(journal.HasNewEntries);
     }
 

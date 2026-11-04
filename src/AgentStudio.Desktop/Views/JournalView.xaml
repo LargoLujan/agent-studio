@@ -65,6 +65,7 @@
         <!-- Read-only, with a reading caret like the plain viewer. It prints and finds nothing: Ctrl+P (go to file) and Ctrl+F
              go on to the window. -->
         <RichTextBox x:Name="JournalDocument" Grid.Row="2" Style="{StaticResource ReadingViewer}"
+                     markdown:RichTextDocument.Scope="{Binding ReadScope}"
                      markdown:RichTextDocument.Document="{Binding RenderedText, Converter={StaticResource Journal.Markdown}}"
                      Visibility="{Binding ShowReadable, Converter={StaticResource Journal.BoolToVisibility}}"
                      AutomationProperties.Name="Bitácora de hoy">

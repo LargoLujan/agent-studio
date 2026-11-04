@@ -166,7 +166,10 @@ public sealed class JournalFolderWatcher(TimeProvider? time = null) : IJournalWa
             if (force || !alive || before != deepest)
             {
                 Close();
-                for (var level = 0; level <= deepest; level++)
+
+                // A folder made below the one just watched, before its watcher started, says nothing to it: once a level is
+                // watched, the folders are measured again and the watch goes on down while there are more.
+                for (var level = 0; level <= deepest && level <= Journal; level++)
                 {
                     if (Open(level) is not { } watcher)
                     {
@@ -174,6 +177,10 @@ public sealed class JournalFolderWatcher(TimeProvider? time = null) : IJournalWa
                     }
 
                     _watchers.Add(watcher);
+                    if (level == deepest)
+                    {
+                        deepest = Math.Max(deepest, DeepestFolder());
+                    }
                 }
             }
 

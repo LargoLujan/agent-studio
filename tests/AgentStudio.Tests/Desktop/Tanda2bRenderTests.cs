@@ -145,6 +145,43 @@ public sealed class Tanda2bRenderTests
         Assert.Empty(shown.Cut);
     }
 
+    /// <summary>
+    /// The re-review of V38: the message of the status bar is cut at 180 px, and whoever uses only the keyboard cannot reach
+    /// its tooltip. A screen reader reads it whole (its name is the whole text) and is told when it changes (polite).
+    /// </summary>
+    [Fact]
+    public void V38_the_message_cut_at_180_px_is_read_whole_and_announced()
+    {
+        const string Message = "La ejecución 20261103-abc123 se reanudó sola mientras su pestaña estaba ocupada o seguía otra ejecución: la sigue la bandeja.";
+        using var temp = new TempDirectory();
+        var (width, live, name) = WpfHost.Run(() =>
+        {
+            OrchestratorTheme.EnsureLoaded();
+            var clock = new FakeTimeProvider(T0);
+            var vm = new MainViewModel(
+                new InMemorySettingsStore(),
+                new FakeFolderPicker(),
+                new FakeUnsavedChangesPrompt(),
+                new ProviderDiagnosticsViewModel(new AgentStudio.Application.Diagnostics.ProviderDiagnostics([]), clock),
+                new ExplorerViewModel(),
+                new JournalViewModel(clock),
+                new QuickOpenViewModel());
+            var window = new MainWindow(vm, new FileLayoutStore(new AppDataPaths(temp.Combine("data"))));
+            var root = (FrameworkElement)window.Content;
+            vm.StatusMessage = Message;
+            OffscreenRender.Render(root, 1280, 700);
+            var text = (TextBlock)window.FindName("StatusMessageText");
+            return (
+                text.ActualWidth,
+                System.Windows.Automation.AutomationProperties.GetLiveSetting(text),
+                System.Windows.Automation.Peers.UIElementAutomationPeer.CreatePeerForElement(text).GetName());
+        });
+
+        Assert.True(width <= 180.5, $"The message takes {width:0} px.");
+        Assert.Equal(System.Windows.Automation.AutomationLiveSetting.Polite, live);
+        Assert.Equal(Message, name);
+    }
+
     /// <summary>The status bar of the main window during a run, drawn off screen at <paramref name="scale"/> % of a screen 1920 px wide.</summary>
     private static Task<StatusBarShown> StatusBarAsync(int scale, bool worst) =>
         StatusBarAsync(1920d * 100 / scale, $"tanda2b-barra-de-estado-1920-al-{scale}{(worst ? "-peor" : string.Empty)}.png", worst);

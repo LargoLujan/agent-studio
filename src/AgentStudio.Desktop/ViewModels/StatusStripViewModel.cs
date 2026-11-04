@@ -294,8 +294,11 @@ public sealed partial class StatusStripViewModel : ObservableObject, IDisposable
 
     private void OnTasksChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        if (e.Action == NotifyCollectionChangedAction.Reset && sender is IEnumerable<MonitorTaskViewModel> all)
+        if (e.Action == NotifyCollectionChangedAction.Reset)
         {
+            // A monitor that starts again (it attaches, inspects or lets go of a run) says Reset: the tasks of every monitor
+            // followed are kept, not only those of the one that changed.
+            var all = _monitors.SelectMany(m => m.Tasks).ToHashSet();
             foreach (var gone in _tasks.Where(t => !all.Contains(t)).ToList())
             {
                 gone.PropertyChanged -= OnTaskChanged;

@@ -119,6 +119,32 @@ public sealed class JournalFolderWatcherTests
     }
 
     /// <summary>
+    /// The re-review: when <c>bitacora</c> was made between measuring the folders and watching <c>.agentstudio</c>, nothing
+    /// said it, and only the retry 5 s later found it (5 of 15 times). The folders and the journal made at once, fifteen
+    /// times, with a clock that never retries: every write after them is said all the same.
+    /// </summary>
+    [Fact]
+    public async Task Folders_made_at_once_are_all_watched_without_waiting_for_a_retry()
+    {
+        using var temp = new TempDirectory();
+        var root = temp.CreateDirectory("calc");
+        var calls = new Calls();
+        using var watch = new JournalFolderWatcher(new Microsoft.Extensions.Time.Testing.FakeTimeProvider()).Watch(root, calls.Add);
+        var data = temp.Combine("calc", ".agentstudio");
+
+        for (var cycle = 1; cycle <= 15; cycle++)
+        {
+            await TryAsync(() => Directory.Delete(data, recursive: true), () => !Directory.Exists(data));
+            await TryAsync(() => Directory.CreateDirectory(Path.Combine(data, "bitacora")), () => Directory.Exists(Path.Combine(data, "bitacora")));
+            var before = await calls.QuietAsync();
+
+            File.AppendAllText(Path.Combine(data, "bitacora", "2026-10-15.md"), $"- ciclo {cycle}\n");
+
+            await calls.WaitAboveAsync(before);
+        }
+    }
+
+    /// <summary>
     /// A project whose folder is not there yet (or could not be watched) is tried again every
     /// <see cref="JournalFolderWatcher.RetryInterval"/>: once it is, its journal is watched.
     /// </summary>

@@ -406,6 +406,69 @@ public sealed partial class StatusStripViewModelTests
         Assert.Equal((1, 1), (main.StatusStrip.TrackedMonitors, main.StatusStrip.TrackedPlanners));
     }
 
+    /// <summary>
+    /// The re-review: a run that resumes in the monitor of a closed tab is followed again, and let go once it ends while its
+    /// tab stays closed (it was kept forever).
+    /// </summary>
+    [Fact]
+    public async Task A_run_resumed_in_a_closed_tab_is_followed_and_let_go_once_it_ends()
+    {
+        using var temp = new TempDirectory();
+        var clock = new FakeTimeProvider(Now);
+        var main = new MainViewModel(
+            new InMemorySettingsStore(),
+            new FakeFolderPicker(),
+            new FakeUnsavedChangesPrompt(),
+            new ProviderDiagnosticsViewModel(new AgentStudio.Application.Diagnostics.ProviderDiagnostics([]), clock),
+            new ExplorerViewModel(),
+            new JournalViewModel(clock),
+            new QuickOpenViewModel(),
+            orchestrators: new Orchestrators(clock));
+        await main.OpenProjectAsync(temp.CreateDirectory("calc"));
+        await main.OpenOrchestratorCommand.ExecuteAsync(null);
+        var orchestrator = Assert.Single(main.Documents.OfType<OrchestratorDocumentViewModel>());
+        Assert.True(await main.CloseDocumentAsync(orchestrator));
+        Assert.Equal(0, main.StatusStrip.TrackedMonitors);
+
+        // A run resumes in its monitor (by its consent), with the tab closed.
+        var run = new FakeRun(FakeRun.SnapshotOf(RunPhase.Running, FakeRun.View("T1", status: WorkTaskStatus.Running)));
+        orchestrator.Monitor.Attach(run);
+        Assert.True(orchestrator.Monitor.IsActive);
+        Assert.Equal(1, main.StatusStrip.TrackedMonitors);
+
+        run.Finish(new RunResult(new("20261103-abc123"), RunPhase.Succeeded, FakeRun.Healthy, null, null, "Terminó bien."));
+        await orchestrator.Monitor.Listening;
+        Assert.Equal(0, main.StatusStrip.TrackedMonitors);
+    }
+
+    /// <summary>
+    /// The re-review: a monitor that starts again (it attaches, inspects or lets go of a run) says Reset to its tasks, and the
+    /// strip stopped watching the tasks of the other monitors: their bars froze.
+    /// </summary>
+    [Fact]
+    public async Task A_monitor_that_starts_again_keeps_the_tasks_of_the_others_watched()
+    {
+        var clock = new FakeTimeProvider(Now);
+        var strip = new StatusStripViewModel(null, clock, null);
+        var idle = new RunMonitorViewModel(clock, new InlineSynchronizationContext());
+        var other = new RunMonitorViewModel(clock, new InlineSynchronizationContext());
+        var run = new FakeRun(FakeRun.SnapshotOf(RunPhase.Running, FakeRun.View("T9", status: WorkTaskStatus.Running)) with { AgentRunsUsed = 1, MaxAgentRuns = 12 });
+        other.Attach(run);
+        run.Emit(new AgentActivityEvent(Now, new("T9"), Step(100_000)));
+        await WaitAsync(() => other.Tasks[0].LastContext?.PromptTokens.Value == 100_000);
+        strip.Track(idle);
+        strip.Track(other);
+        Assert.Equal("~10 %", strip.Context.ValueText);
+
+        // The first monitor takes a run: its tasks start again (Reset).
+        idle.Attach(new FakeRun(FakeRun.SnapshotOf(RunPhase.Running, FakeRun.View("T1"))));
+
+        run.Emit(new AgentActivityEvent(Now, new("T9"), Step(870_000)));
+
+        // Its bar follows by itself (it froze at ~10 % before): the strip still watches the task of the other monitor.
+        await WaitAsync(() => strip.Context.ValueText == "~87 %");
+    }
+
     private sealed class Orchestrators(TimeProvider time) : AgentStudio.Desktop.Orchestrator.IOrchestratorDocumentFactory
     {
         public OrchestratorDocumentViewModel Create(string projectRoot) =>

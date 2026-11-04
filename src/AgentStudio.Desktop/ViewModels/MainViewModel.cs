@@ -703,10 +703,15 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
             _memory?.RefreshRunActivity();
         }
 
-        // A run that starts in the monitor of a closed tab (resumed by its consent) is in view in the status bar again.
+        // A run that starts in the monitor of a closed tab (resumed by its consent) is in view in the status bar again, and is
+        // let go once it ends while its tab stays closed.
         if (monitor.IsActive)
         {
             StatusStrip.Track(monitor);
+            if (_orchestrators.Values.FirstOrDefault(d => ReferenceEquals(d.Monitor, monitor)) is { } document && !Documents.Contains(document))
+            {
+                StatusStrip.Release(monitor);
+            }
         }
     }
 
