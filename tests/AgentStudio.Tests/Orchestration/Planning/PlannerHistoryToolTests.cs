@@ -142,6 +142,12 @@ public sealed class PlannerHistoryToolTests : IDisposable
         Assert.Equal("s-plan", harness.Claude.Starts[1].Request.ResumeSessionId);
         Assert.Equal(harness.Claude.Starts[0].Request.McpServers, harness.Claude.Starts[1].Request.McpServers);
         Assert.Equal([true, true], readable);
+
+        // The adapter of Claude takes the correction that resumes the session with the server too.
+        var resumed = ClaudeCodeArguments.Build(harness.Claude.Starts[1].Request, Guid.NewGuid().ToString(), null, _temp.Combine("settings.json"), _temp.Combine("mcp.json"));
+        Assert.Contains("--resume", resumed);
+        Assert.Contains("--mcp-config", resumed);
+        Assert.Contains(resumed, a => a.Contains("mcp__agentstudio__search_project_history", StringComparison.Ordinal));
         Assert.Equal(1, index.Snapshots);
         Assert.False(AnySnapshotLeft());
     }

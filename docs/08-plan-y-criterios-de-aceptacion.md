@@ -649,7 +649,7 @@ bitácora) por significado y no solo por palabras, sin red, sin cuota y sin que 
 | F12-8 | El juez y los auditores no reciben nada del índice: ni paquete ni herramienta | Prueba |
 | F12-9 | Con la decisión 9: `search_project_history` en el servidor MCP local, solo en lanzamientos de solo lectura, con la medición de docs/14 D-30 repetida | Pruebas y una ejecución corta real con tu OK |
 
-**Estado a 2026-11-04 (integrada en la rama `p12-composicion`, sin publicar).** Diseño en
+**Estado a 2026-11-04 (integrada en la rama de integración de la Fase 12, sin publicar).** Diseño en
 [17](17-constructor-visual-de-agentes.md) §3 y §9.2, con la decisión 9 (las tres recomendadas) del 2026-10-30. ADR-0047 y
 la adenda del 2026-11-03 de ADR-0024. Hubo un P0 (contratos, formato de la bitácora, paquetes y el spike del modelo) y
 cuatro paquetes en paralelo: WP1 (la bitácora como memoria), WP2 (embeddings y almacén), WP3 (búsqueda híbrida y
