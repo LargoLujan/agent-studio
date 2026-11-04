@@ -6,11 +6,13 @@ using AgentStudio.Tests.Memory.Store;
 namespace AgentStudio.Tests.Memory.Semantic;
 
 /// <summary>
-/// F12-4 (docs/17 §9.2; ADR-0047, decision 6): over a synthetic memory and journal of earlier days, 50 questions in
-/// Spanish. The hybrid search (bm25 and cosine fused with k = 60) must put the answer among the first five in 85 % of them
-/// or more, and at least 15 points more than FTS5 alone. The measures by words run always and fix their figures; the one
-/// with the real model runs only when the model is on disk and the local model is plugged in (<see cref="LocalModel"/>),
-/// and never downloads it.
+/// F12-4 (docs/17 §9.2; ADR-0047, decision 6, and the criterion the person chose on 2026-11-04, third addendum of that day):
+/// over a synthetic memory and journal of earlier days, 50 questions in Spanish by paraphrase and 15 by the metadata of the
+/// journal and by identifiers. The hybrid search (bm25 and cosine fused with k = 60, the identifiers first) is never worse
+/// than FTS5 as the memory searches today in any type of question (paraphrase, identifier with a meaning, metadata), and it
+/// finds the answer among the first five in at least 10 points more of all the questions. The measures by words run always
+/// and fix their figures; the one with the real model runs only when the model is on disk and the local model is plugged in
+/// (<see cref="LocalModel"/>), and never downloads it.
 /// </summary>
 public sealed class PreviousDaysQuestionsTests
 {
@@ -93,7 +95,7 @@ public sealed class PreviousDaysQuestionsTests
 
     [Fact]
     [Trait("Category", "LocalModel")]
-    public async Task With_the_local_model_the_hybrid_search_finds_the_answer_among_the_first_five_in_85_percent_and_15_points_more_than_words_alone()
+    public async Task With_the_local_model_the_hybrid_search_is_never_worse_than_words_alone_in_any_type_and_wins_ten_points_in_all()
     {
         var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         Assert.SkipUnless(
@@ -110,31 +112,26 @@ public sealed class PreviousDaysQuestionsTests
         var refresh = await index.RefreshAsync(world.Project, Ct);
         Assert.True(refresh.Completed, refresh.Reason);
 
-        var mode = SemanticSearchMode.Hybrid;
-        var hybrid = await set.ScoreAsync(ids, async question =>
+        var modes = new HashSet<SemanticSearchMode>();
+        var hybrid = await PreviousDays.ScoreAsync(ids, set.All, async question =>
         {
             var result = await index.SearchAsync(world.Project, new SemanticQuery(question, PreviousDays.Top), Ct);
-            mode = result.Mode;
+            modes.Add(result.Mode);
             return [.. result.Hits.Select(h => h.Entry!.Id)];
         });
-        var today = await set.ScoreAsync(ids, async question =>
+        var today = await PreviousDays.ScoreAsync(ids, set.All, async question =>
             [.. (await world.Memory.RecallAsync(world.Project, new MemoryQuery(question, MaxEntries: PreviousDays.Top), Ct)).Select(e => e.Id)]);
 
-        // The questions by metadata and identifiers: the hybrid search loses none of what FTS5 finds, of any type.
-        var byMetadata = await PreviousDays.ScoreAsync(ids, set.ByMetadata, async question =>
-            [.. (await index.SearchAsync(world.Project, new SemanticQuery(question, PreviousDays.Top), Ct)).Hits.Select(h => h.Entry!.Id)]);
-        var byMetadataToday = await PreviousDays.ScoreAsync(ids, set.ByMetadata, async question =>
-            [.. (await world.Memory.RecallAsync(world.Project, new MemoryQuery(question, MaxEntries: PreviousDays.Top), Ct)).Select(e => e.Id)]);
-        var lost = set.All.Select(q => q.Id)
-            .Where(q => !today.Missed.Concat(byMetadataToday.Missed).Contains(q) && hybrid.Missed.Concat(byMetadata.Missed).Contains(q))
-            .ToList();
+        var types = set.All.GroupBy(q => q.Type).Select(g => (Type: g.Key, Asked: g.Count(), Hybrid: g.Count(q => !hybrid.Missed.Contains(q.Id)), Today: g.Count(q => !today.Missed.Contains(q.Id)))).ToList();
+        var points = 100d * (hybrid.Found - today.Found) / set.All.Count;
+        var lost = set.All.Where(q => !today.Missed.Contains(q.Id) && hybrid.Missed.Contains(q.Id)).Select(q => q.Id).ToList();
 
         LocalModel.Report($"Híbrida: {hybrid}");
         LocalModel.Report($"FTS5 como hoy: {today}");
-        LocalModel.Report($"Por metadatos e identificadores, híbrida: {byMetadata}; FTS5 como hoy: {byMetadataToday}");
-        Assert.Equal(SemanticSearchMode.Hybrid, mode);
-        Assert.Empty(lost);
-        Assert.True(hybrid.Rate >= 0.85, $"Híbrida: {hybrid}");
-        Assert.True(hybrid.Found - today.Found >= 0.15 * set.Questions.Count, $"Híbrida: {hybrid}; FTS5 como hoy: {today}");
+        LocalModel.Report(string.Join("; ", types.Select(t => $"{t.Type}: híbrida {t.Hybrid}/{t.Asked}, FTS5 como hoy {t.Today}/{t.Asked}")));
+        LocalModel.Report(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"puntos de más en total: {points:F1}; de lo que FTS5 encuentra, la híbrida pierde: {(lost.Count == 0 ? "nada" : string.Join(" ", lost))}"));
+        Assert.Equal([SemanticSearchMode.Hybrid], modes);
+        Assert.All(types, t => Assert.True(t.Hybrid >= t.Today, $"{t.Type}: híbrida {t.Hybrid}/{t.Asked}, FTS5 como hoy {t.Today}/{t.Asked}"));
+        Assert.True(points >= 10, string.Create(System.Globalization.CultureInfo.InvariantCulture, $"Híbrida: {hybrid}; FTS5 como hoy: {today}; {points:F1} puntos"));
     }
 }

@@ -55,6 +55,22 @@ public sealed class JournalSearchTextTests
     }
 
     [Fact]
+    public void The_version_of_the_view_changes_by_itself_when_the_states_or_the_words_it_reads_change()
+    {
+        string[] words = [JournalTemplate.Done, JournalTemplate.Result, JournalTemplate.Session, JournalTemplate.Tokens, JournalTemplate.Run, JournalTemplate.Task, JournalTemplate.Entry, JournalTemplate.Attempt];
+
+        Assert.Equal(JournalSearchText.VersionOf(JournalSearchText.Rules, JournalTemplate.Statuses, words), JournalSearchText.Version);
+        Assert.StartsWith(JournalSearchText.Rules.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".", JournalSearchText.Version, StringComparison.Ordinal);
+
+        // A new state of a run, new rules, or another word of the template: another version, so the vectors of the journal
+        // are computed again by themselves.
+        Assert.NotEqual(JournalSearchText.Version, JournalSearchText.VersionOf(JournalSearchText.Rules, [.. JournalTemplate.Statuses, "Paused"], words));
+        Assert.NotEqual(JournalSearchText.Version, JournalSearchText.VersionOf(JournalSearchText.Rules + 1, JournalTemplate.Statuses, words));
+        Assert.NotEqual(JournalSearchText.Version, JournalSearchText.VersionOf(JournalSearchText.Rules, JournalTemplate.Statuses, [.. words, "Nota"]));
+        Assert.Equal(JournalSearchText.VersionOf(3, ["Failed"], ["Hecho"]), JournalSearchText.VersionOf(3, ["Failed"], ["Hecho"]));
+    }
+
+    [Fact]
     public void The_view_does_not_depend_on_the_ends_of_line_of_the_file()
     {
         const string Entry = "- **10:30:00** · P-0005 · Orquestador · claude-code/claude-opus-5 · #prompt · «Resumen final»\n  - Hecho: hecho de verdad.";

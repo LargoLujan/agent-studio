@@ -1,6 +1,8 @@
+using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using AgentStudio.Application.Knowledge;
+using AgentStudio.Domain.Common;
 
 namespace AgentStudio.Memory.Semantic;
 
@@ -26,10 +28,31 @@ namespace AgentStudio.Memory.Semantic;
 /// </summary>
 public static partial class JournalSearchText
 {
-    /// <summary>The version of these rules: it goes into the fingerprint of the vectors, so a change computes them again.</summary>
-    public const int Version = 2;
+    /// <summary>The version of the rules of the code; <see cref="Version"/> adds what they read from the template.</summary>
+    public const int Rules = 2;
 
+    // Before Version: a static initializer runs in the order of the text.
     private static readonly HashSet<string> Statuses = new(JournalTemplate.Statuses, StringComparer.Ordinal);
+
+    /// <summary>The words of the template the view reads: what it leaves out, line by line.</summary>
+    private static readonly string[] ViewWords =
+        [JournalTemplate.Done, JournalTemplate.Result, JournalTemplate.Session, JournalTemplate.Tokens, JournalTemplate.Run, JournalTemplate.Task, JournalTemplate.Entry, JournalTemplate.Attempt];
+
+    /// <summary>
+    /// The version of the view: the rules of the code and a short hash of the states and the words of the template it reads
+    /// (<see cref="VersionOf"/>). It goes into the fingerprint of the vectors of the journal, so a change of either, a new
+    /// state of a run included, computes them again by itself.
+    /// </summary>
+    public static string Version { get; } = VersionOf(Rules, JournalTemplate.Statuses, ViewWords);
+
+    /// <summary>The version of a view of <paramref name="rules"/> that reads <paramref name="statuses"/> and <paramref name="words"/>: <c>rules.hash</c>.</summary>
+    public static string VersionOf(int rules, IReadOnlyList<string> statuses, IReadOnlyList<string> words)
+    {
+        ArgumentNullException.ThrowIfNull(statuses);
+        ArgumentNullException.ThrowIfNull(words);
+        var hash = ContentHash.Sha256Hex(ContentHash.Canonical(["agent-studio/journal-view/1", .. statuses, "·", .. words]));
+        return string.Create(CultureInfo.InvariantCulture, $"{rules}.{hash[..12]}");
+    }
 
     /// <summary>The clean view of the content of a journal entry, its kept lines joined by <c>\n</c>; the content itself when nothing is left.</summary>
     public static string Of(string content)

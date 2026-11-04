@@ -607,3 +607,71 @@ decisión no espera al instalador (Fase 7).
   - La lista de palabras de la plantilla es una sola. Si la plantilla cambia, cambia la lista, y la prueba del escritor
     lo avisa.
   - Recalibrar como hasta ahora, con las 65 preguntas y la calibración, que deja dónde queda cada respuesta que falta.
+
+## Adenda (2026-11-04, tercera): F12-4 cambia de criterio, y los arreglos de la validación final
+
+- **Decisión de la persona (2026-11-04):** se acepta la búsqueda y F12-4 cambia. El criterio nuevo: «la híbrida nunca es
+  peor que FTS5 como hoy en ningún tipo de pregunta (paráfrasis, identificador con significado y metadatos) y gana al
+  menos 10 puntos en total con preguntas nuevas».
+  - Deja de exigir el 85 % y los 15 puntos sobre FTS5 en las 50 preguntas.
+  - La prueba Live de F12-4 lo comprueba sobre el conjunto de calibración: híbrida ≥ FTS5 por tipo, y al menos 10 puntos
+    más en total.
+- **Las tres medidas** (la respuesta entre las cinco primeras):
+
+  | Medida | Híbrida | FTS5 como hoy |
+  |---|---|---|
+  | Las 50 originales de F12-4 | 41/50 | 26/50 |
+  | Validación del revisor de la ronda 4, sobre 7730fc8 (51 preguntas)¹ | 47/51 | 48/51 |
+  | **Validación final ciega, sobre d80128e (60 preguntas nuevas)** | **43/60** | **35/60 (+13,3 puntos)** |
+
+  ¹ La ronda 5 no se volvió a medir en ese conjunto.
+
+  Por tipo, en la validación final:
+
+  | Tipo | Híbrida | FTS5 como hoy |
+  |---|---|---|
+  | Paráfrasis | 14/30 | 8/30 |
+  | Identificadores con significado | 15/15 | 15/15 |
+  | Metadatos | 14/15 | 12/15 |
+
+  En el conjunto de calibración (las 50 y las 15 de metadatos de la segunda adenda de este día), sin cambios tras los
+  arreglos de abajo:
+
+  | Tipo | Híbrida | FTS5 como hoy |
+  |---|---|---|
+  | Paráfrasis | 41/50 | 26/50 |
+  | Metadatos | 13/13 | 9/13 |
+  | Identificadores con significado | 2/2 | 2/2 |
+
+  La híbrida queda +29,2 puntos por encima en total y no pierde ninguna pregunta que FTS5 encuentre.
+- **Hallazgos de la validación final:**
+  - En paráfrasis, la fusión RRF queda por debajo de la búsqueda solo por vectores (17/30). Es una mejora pendiente, que
+    se medirá sobre la bitácora real.
+  - Las dos «pérdidas» frente a FTS5 solo coincidían en palabras vacías.
+- **Arreglos de la misma validación** (sin tocar el peso, k ni el corte):
+  1. **El día de un fragmento es el de su fuente**, con el que se compara un día de la búsqueda:
+     - para una entrada de la bitácora, el día de su fichero (`bitacora:<día>#sha256:…`), no el día en que se derivó;
+     - para el resto, el día en que se ancló en el huso de la persona, no en UTC.
+
+     Antes, una bitácora antigua derivada el 5 de noviembre entraba en «¿qué hicimos el 5/11?», y entre las 00:00 y las
+     02:00 de España el día salía corrido. El día del fichero se lee con el mismo formato que
+     `MemorySources.TryParseJournal`, de WP1; cuando se integre, el índice puede usarlo.
+  2. **Una búsqueda que solo pide sus identificadores no usa la lista por significado.** Se quitan sus identificadores,
+     las palabras vacías, las de la plantilla, las de pedir («dame», «dime», «muéstrame», «enséñame», «búscame»,
+     «tráeme», «quiero», «ver», «saber») y las que no tiene ningún fragmento. Si no queda nada, la búsqueda va solo con
+     la cabeza de identificadores y las palabras. Así «Dame lo de la P-0127» ya no trae vecinos. Su modo sigue siendo
+     híbrido y su corte, el del modelo.
+  3. **Una proporción no es un día.** Un `dd/mm` sin año no cuenta si lo sigue «de las», «de los» o un número («el 24/10
+     de las pruebas fallan»). El día y el mes son siempre del calendario.
+  4. **Más formatos de día**, con las mismas reglas:
+     - `29.10.2026` y `2026/10/18`;
+     - los meses abreviados, con o sin punto («20 de oct.», «sept», «set»);
+     - «al» y «días» como palabras de día («al 7/5», «los días 3/5»);
+     - los días de una lista después del primero («los días 3/5 y 7/5», «el 3/5, 4/5 y 7/5»).
+  5. **La versión de la vista de la bitácora cambia sola.** Lleva el número de sus reglas y un hash corto de los estados
+     y de las palabras de la plantilla que lee (`JournalSearchText.VersionOf`). Un estado nuevo de `AgentRunStatus`
+     recalcula los vectores de la bitácora sin que nadie suba el número.
+- **Consecuencias:**
+  - La fila F12-4 de docs/17 §9.2 sigue con el criterio de antes. La actualiza quien mantiene ese documento.
+  - La prueba Live de F12-4 pasa con el modelo en disco.
+  - La calibración sigue exigiendo que no se pierda ninguna pregunta que FTS5 encuentre.

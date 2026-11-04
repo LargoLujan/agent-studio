@@ -95,6 +95,12 @@ public sealed class SemanticIndex(IProjectMemory memory, ISemanticIndexStore sto
     private readonly SemanticSearchTuning _tuning = tuning ?? SemanticSearchTuning.Default;
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _gates = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<(string Id, string Sha256, long At), IReadOnlyList<SemanticFragment>> _cuts = new();
+    /// <summary>The words with which a search asks for something, folded: by themselves they ask nothing («dame», «muéstrame»).</summary>
+    private static readonly HashSet<string> RequestWords = new(StringComparer.Ordinal)
+    {
+        "dame", "dime", "muestra", "muestrame", "ensena", "ensename", "busca", "buscame", "trae", "traeme", "quiero", "ver", "saber",
+    };
+
     private readonly ConcurrentDictionary<string, string[]> _words = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, string> _pool = new(StringComparer.Ordinal);
 
@@ -205,7 +211,7 @@ public sealed class SemanticIndex(IProjectMemory memory, ISemanticIndexStore sto
             var ordered = head.Count == 0 ? fused : [.. head.Select(h => h.Rank), .. fused.Where(c => !head.Any(h => string.Equals(h.Rank.Id, c.Id, StringComparison.Ordinal)))];
             var identifiers = head.ToDictionary(h => h.Rank.Id, h => h.Identifier, StringComparer.Ordinal);
             var hits = await CheckedHitsAsync(project, reading.Anchored, ordered, query, altered, identifiers, ct).ConfigureAwait(false);
-            results.Add(new SemanticSearchResult(hits, lists.Reason is null ? SemanticSearchMode.Hybrid : SemanticSearchMode.WordsOnly, lists.Reason) { Cut = lists.Meaning?.Cut });
+            results.Add(new SemanticSearchResult(hits, lists.Reason is null ? SemanticSearchMode.Hybrid : SemanticSearchMode.WordsOnly, lists.Reason) { Cut = lists.Cut });
         }
 
         if (altered.Count > 0)
@@ -289,7 +295,7 @@ public sealed class SemanticIndex(IProjectMemory memory, ISemanticIndexStore sto
             ? ContentHash.Sha256Hex(ContentHash.Canonical(
                 "agent-studio/semantic-vectors/journal/1",
                 model.Fingerprint(),
-                JournalSearchText.Version.ToString(CultureInfo.InvariantCulture)))
+                JournalSearchText.Version))
             : model.Fingerprint();
     }
 
@@ -386,7 +392,8 @@ public sealed class SemanticIndex(IProjectMemory memory, ISemanticIndexStore sto
         foreach (var fragment in reading.Anchored.Fragments)
         {
             var words = WordsOf(fragment.Fragment);
-            var contained = lists.Identifiers.Where(i => SearchIdentifiers.Contains(i, words, fragment.Fragment, fragment.Entry.Id)).ToList();
+            var day = DayOf(fragment.Entry);
+            var contained = lists.Identifiers.Where(i => SearchIdentifiers.Contains(i, words, day, fragment.Entry.Id, fragment.Fragment.Part)).ToList();
             if (contained.Any(i => i.OpensTheHead))
             {
                 containing.Add((fragment, contained.Count, contained.First(i => i.OpensTheHead).Text));
@@ -400,6 +407,16 @@ public sealed class SemanticIndex(IProjectMemory memory, ISemanticIndexStore sto
             .ThenBy(c => c.Fragment.Fragment.Id, StringComparer.Ordinal)
             .Select(c => (c.Fragment, c.Identifier))];
     }
+
+    /// <summary>
+    /// The day of the source of <paramref name="entry"/>, the one a day of a search is compared with: for an entry of the
+    /// journal, the day of its file (<c>bitacora:yyyy-MM-dd#sha256:…</c>), not the day it was derived; for the rest, the day it
+    /// was anchored in the time zone of the person, not in UTC.
+    /// </summary>
+    private DateOnly DayOf(MemoryEntry entry) =>
+        entry.Kind == MemoryKind.JournalEntry && MemorySources.TryParseJournal(entry.Source, out var day, out _)
+            ? day
+            : DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(entry.CreatedAt, timeProvider.LocalTimeZone).DateTime);
 
     /// <summary>The words of <paramref name="fragment"/> (<see cref="FoldedWords"/>), cut once by its fingerprint, each word kept once.</summary>
     private string[] WordsOf(SemanticFragment fragment)
@@ -500,7 +517,9 @@ public sealed class SemanticIndex(IProjectMemory memory, ISemanticIndexStore sto
 
     /// <summary>
     /// The two lists of <paramref name="text"/> as the store gives them (their first <see cref="CandidatePool"/> places), the
-    /// text embedded once as a query, or why there is no semantic list, and its identifiers. A blank text has neither list.
+    /// text embedded once as a query, or why there is no semantic list, and its identifiers. A blank text has neither list. A
+    /// text that asks nothing but its identifiers (<see cref="AsksOnlyItsIdentifiers"/>) has no semantic list either: its
+    /// nearest fragments are about nothing it asks, and the cut does not tell them apart.
     /// </summary>
     private async Task<TextLists> ListsAsync(ProjectContext project, Reading reading, string text, CancellationToken ct)
     {
@@ -512,16 +531,32 @@ public sealed class SemanticIndex(IProjectMemory memory, ISemanticIndexStore sto
             return new TextLists(terms, identifiers, lexical, null, [], reading.Reason);
         }
 
+        var cut = _tuning.CutFor(embedder.Model.Fingerprint());
+        if (identifiers.Count > 0 && AsksOnlyItsIdentifiers(reading, text))
+        {
+            return new TextLists(terms, identifiers, lexical, null, [], null) { Cut = cut };
+        }
+
         var vectors = await EmbedAsync(embedder, [text.Trim()], EmbeddingRole.Query, ct).ConfigureAwait(false);
         if (vectors is null)
         {
             return new TextLists(terms, identifiers, lexical, null, [], WordsOnlyReason.ModelUnloadable);
         }
 
-        var meaning = new QueryMeaning(vectors[0], embedder.Model, _tuning.CutFor(embedder.Model.Fingerprint()));
+        var meaning = new QueryMeaning(vectors[0], embedder.Model, cut);
         var semantic = await NearestAsync(project, meaning, CandidatePool, ct).ConfigureAwait(false);
-        return new TextLists(terms, identifiers, lexical, meaning, semantic, null);
+        return new TextLists(terms, identifiers, lexical, meaning, semantic, null) { Cut = cut };
     }
+
+    /// <summary>
+    /// Whether <paramref name="text"/>, without its identifiers, has nothing left to search by meaning: once its function
+    /// words, the fixed words of the template, the words with which something is asked for («dame», «muéstrame»…) and the
+    /// words no anchored fragment has are gone, nothing is left («Dame lo de la P-0127»).
+    /// </summary>
+    private bool AsksOnlyItsIdentifiers(Reading reading, string text) =>
+        LexicalTerms.From(SearchIdentifiers.Without(text))
+            .All(t => JournalTemplate.Fold(t) is var folded
+                && (folded.Length == 0 || _tuning.TemplateWords.Contains(folded) || RequestWords.Contains(folded) || FrequencyOf(reading, t) == 0));
 
     /// <summary>
     /// The first <paramref name="top"/> places of the semantic list of <paramref name="meaning"/>: the vectors of any entry
@@ -838,6 +873,9 @@ public sealed class SemanticIndex(IProjectMemory memory, ISemanticIndexStore sto
         public IReadOnlyList<RankedCandidate>? WholeLexical { get; set; }
 
         public QueryMeaning? Meaning { get; } = meaning;
+
+        /// <summary>The cut of the model of the semantic list, when the search could use one (even if this text did not need it).</summary>
+        public MeaningOnlyCut? Cut { get; init; }
 
         public IReadOnlyList<SimilarCandidate> Semantic { get; } = semantic;
 

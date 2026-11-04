@@ -74,6 +74,81 @@ public sealed class SearchIdentifiersTests
         Assert.DoesNotContain(SearchIdentifiers.In("Implementar el lector de TRX hasta que pasen 3/5 pruebas y la fase 2/3"), i => i.OpensTheHead);
     }
 
+    [Theory]
+    [InlineData("el 24/10 de las pruebas fallan")]
+    [InlineData("del 3/5 de los tests en rojo")]
+    [InlineData("el 3/5 12 pruebas en verde")]
+    [InlineData("el 31/2")]
+    [InlineData("el 3/13")]
+    public void A_share_after_el_is_no_day_when_de_las_de_los_or_a_number_follows_it_and_never_one_that_is_not_in_the_calendar(string text)
+    {
+        Assert.Empty(Days(text));
+    }
+
+    [Theory]
+    [InlineData("el 24/10 se cerró la fase")]
+    [InlineData("¿qué pasó el 24/10?")]
+    [InlineData("el 24/10.")]
+    [InlineData("el 24/10 de 2026")]
+    public void The_same_day_with_anything_else_after_it_is_still_one(string text)
+    {
+        Assert.Equal([(10, 24)], Days(text));
+    }
+
+    [Theory]
+    [InlineData("lo del 29.10.2026", 2026, 10, 29)]
+    [InlineData("la entrega del 2026/10/18", 2026, 10, 18)]
+    [InlineData("el 20 de oct.", null, 10, 20)]
+    [InlineData("el 20 de oct", null, 10, 20)]
+    [InlineData("¿qué pasó el 3 de sept. de 2026?", 2026, 9, 3)]
+    [InlineData("el 1 de ene", null, 1, 1)]
+    [InlineData("hasta el 7 de dic.", null, 12, 7)]
+    [InlineData("al 7/5", null, 5, 7)]
+    public void The_other_ways_of_writing_a_day_are_days_too(string text, int? year, int month, int day)
+    {
+        var identifier = Assert.Single(SearchIdentifiers.In(text));
+
+        Assert.Equal(SearchIdentifierKind.Date, identifier.Kind);
+        Assert.Equal((year, month, day), (identifier.Year, identifier.Month, identifier.Day));
+    }
+
+    [Fact]
+    public void Every_day_of_a_list_is_one()
+    {
+        Assert.Equal([(5, 3), (5, 7)], Days("los días 3/5 y 7/5"));
+        Assert.Equal([(5, 3), (5, 7)], Days("del 3/5 al 7/5"));
+        Assert.Equal([(5, 3), (5, 4), (5, 7)], Days("el 3/5, 4/5 y 7/5"));
+        Assert.Empty(Days("3/5 y 7/5"));
+        Assert.Equal([(5, 3)], Days("el 3/5 y 7 pruebas"));
+    }
+
+    [Fact]
+    public void A_fragment_contains_a_day_written_short_and_the_day_of_its_source_is_what_its_time_is_compared_with()
+    {
+        var written = Fragment("Decisión: se revisa el 20 de oct. con el equipo.", T0);
+        Assert.True(Contains("el 20/10", FoldedWords.Of(written.Text), written));
+
+        // The index gives the day of the source: the time of the fragment says nothing by itself.
+        var late = Fragment("Cambio: sin fecha en el texto.", new DateTimeOffset(2026, 11, 5, 23, 30, 0, TimeSpan.Zero));
+        var words = FoldedWords.Of(late.Text);
+        var sixth = Assert.Single(SearchIdentifiers.In("el 6/11"));
+        Assert.True(SearchIdentifiers.Contains(sixth, words, new DateOnly(2026, 11, 6), EntryId, 0));
+        Assert.False(SearchIdentifiers.Contains(sixth, words, new DateOnly(2026, 11, 5), EntryId, 0));
+        Assert.False(SearchIdentifiers.Contains(sixth, words, null, EntryId, 0));
+    }
+
+    [Fact]
+    public void Without_its_identifiers_a_text_keeps_what_it_asks_besides_them()
+    {
+        const string Asked = "¿Qué pasó el 3/5 y el 7/5 en la P-0127?";
+
+        Assert.Equal(["¿Qué", "pasó", "el", "y", "el", "en", "la", "?"], SearchIdentifiers.Without(Asked).Split(' ', StringSplitOptions.RemoveEmptyEntries));
+        Assert.Equal(Asked.Length, SearchIdentifiers.Without(Asked).Length);
+        Assert.Equal("Dame lo de la", SearchIdentifiers.Without("Dame lo de la P-0127").TrimEnd());
+        Assert.Equal("pasan 3/5 pruebas", SearchIdentifiers.Without("pasan 3/5 pruebas"));
+        Assert.Equal(string.Empty, SearchIdentifiers.Without(null));
+    }
+
     [Fact]
     public void An_entry_with_its_day_is_one_identifier_and_the_days_keep_their_year_or_any()
     {
@@ -149,6 +224,10 @@ public sealed class SearchIdentifiersTests
     private static SemanticFragment Fragment(string text, DateTimeOffset at, int part = 0) =>
         new(FragmentSource.Memory(EntryId, HashA), part, text, at);
 
+    /// <summary>Whether <paramref name=fragment/> contains the one identifier of <paramref name=search/>, its time the day of its source.</summary>
     private static bool Contains(string search, IReadOnlyList<string> words, SemanticFragment fragment) =>
-        SearchIdentifiers.Contains(Assert.Single(SearchIdentifiers.In(search)), words, fragment, EntryId);
+        SearchIdentifiers.Contains(Assert.Single(SearchIdentifiers.In(search)), words, DateOnly.FromDateTime(fragment.At.UtcDateTime), EntryId, fragment.Part);
+
+    private static (int Month, int Day)[] Days(string text) =>
+        [.. SearchIdentifiers.In(text).Where(i => i.Kind == SearchIdentifierKind.Date).Select(i => (i.Month, i.Day))];
 }

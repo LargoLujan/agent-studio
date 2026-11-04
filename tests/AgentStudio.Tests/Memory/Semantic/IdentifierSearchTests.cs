@@ -180,6 +180,66 @@ public sealed class IdentifierSearchTests
         Assert.Equal((planning.Id, "P-0101"), (result.Hits[0].Entry!.Id, result.Hits[0].Identifier));
     }
 
+    [Fact]
+    public async Task The_day_of_an_entry_of_the_journal_is_the_day_of_its_file_and_not_the_day_it_was_derived()
+    {
+        using var world = await IndexWorld.CreateAsync();
+        world.World.Clock.SetUtcNow(new DateTimeOffset(2026, 11, 5, 10, 0, 0, TimeSpan.Zero));
+        const string Content = "- **11:40:22** · P-0102 · Backend · codex-cli/gpt-5 · #prompt · «Implementar el almacén»";
+        var old = await world.World.Memory.RecordAsync(
+            world.Project,
+            new MemoryDraft(MemoryKind.JournalEntry, "Bitácora del 2026-10-15 · P-0102", Content, MemoryOrigin.System, MemorySources.Journal(new DateOnly(2026, 10, 15), AgentStudio.Domain.Common.ContentHash.Sha256Hex(Content))),
+            Ct);
+        var anchoredToday = await world.RecordAsync(MemoryKind.Decision, "Despliegue", "Se despliega con blue green.");
+        await world.RefreshAsync();
+
+        // Derived on the 5th of November, the entry is of the 15th of October, the day of its file.
+        Assert.Equal([anchoredToday.Id], (await world.SearchAsync("¿Qué hicimos el 5/11?")).Hits.Where(h => h.Identifier is not null).Select(h => h.Entry!.Id));
+        Assert.Equal([old.Id], (await world.SearchAsync("¿Qué hicimos el 15/10?")).Hits.Where(h => h.Identifier is not null).Select(h => h.Entry!.Id));
+    }
+
+    [Fact]
+    public async Task The_day_of_any_other_entry_is_the_day_it_was_anchored_in_the_time_zone_of_the_person()
+    {
+        using var world = await IndexWorld.CreateAsync();
+        world.World.Clock.SetLocalTimeZone(TimeZoneInfo.CreateCustomTimeZone("test+2", TimeSpan.FromHours(2), "test+2", "test+2"));
+        world.World.Clock.SetUtcNow(new DateTimeOffset(2026, 11, 5, 23, 29, 0, TimeSpan.Zero));
+        var late = await world.RecordAsync(MemoryKind.Decision, "Despliegue", "Se despliega con blue green.");
+        await world.RefreshAsync();
+
+        // 23:30 in UTC is 01:30 of the 6th for the person.
+        Assert.Equal([late.Id], (await world.SearchAsync("¿Qué se decidió el 6/11?")).Hits.Where(h => h.Identifier is not null).Select(h => h.Entry!.Id));
+        Assert.DoesNotContain((await world.SearchAsync("¿Qué se decidió el 5/11?")).Hits, h => h.Identifier is not null);
+    }
+
+    [Fact]
+    public async Task A_search_that_asks_nothing_but_its_identifiers_does_not_search_by_meaning()
+    {
+        using var world = await IndexWorld.CreateAsync(new TestEmbedder(TestModels.Hashing, IndexWorld.Concepts), TestModels.Uncut);
+        var planning = await JournalAsync(world, October15, 127, "Planificar el índice semántico", "20261015-a1b2c3");
+        await ReadersAsync(world);
+        await world.RefreshAsync();
+        int Queries() => world.Embedder.Calls.Count(c => c.Role == EmbeddingRole.Query);
+        var before = Queries();
+
+        // Without a cut every neighbour by meaning would come: none does, and the question is not even embedded.
+        var only = await world.SearchAsync("Dame lo de la P-0127");
+        Assert.Equal([planning.Id], only.Hits.Select(h => h.Entry!.Id));
+        Assert.Equal(SemanticSearchMode.Hybrid, only.Mode);
+        Assert.Equal(before, Queries());
+
+        // With the cut of the model the search still says it has one.
+        var withCut = await world.With(TestModels.Tuning).SearchAsync(world.Project, new SemanticQuery("¿Qué salió de la ejecución 20261015-a1b2c3?"), Ct);
+        Assert.Equal((new MeaningOnlyCut(0.2f), (string?)null), (withCut.Cut, withCut.CutNotice));
+        Assert.Equal(before, Queries());
+
+        // A word to search by brings the meaning back.
+        var more = await world.SearchAsync("Dame lo de la P-0127 y el lector de pruebas");
+        Assert.Equal(planning.Id, more.Hits[0].Entry!.Id);
+        Assert.True(more.Hits.Count > 1, $"{more.Hits.Count} hits");
+        Assert.Equal(before + 1, Queries());
+    }
+
     // ---- the words of the template ----
 
     [Fact]
