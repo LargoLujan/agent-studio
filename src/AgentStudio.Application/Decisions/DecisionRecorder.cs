@@ -40,13 +40,19 @@ namespace AgentStudio.Application.Decisions;
 /// its file). If anything does not match, the whole log is read and verified, as with a store that cannot read its tail,
 /// and the anchor is checked on every load either way. So recording and recalling memory, which load the log each time,
 /// cost what the log grew, not what it holds. The verified log is this process's and per project, kept by the single
-/// writer of the project (the gate), like the log it appends to.</item>
+/// writer of the project (the gate), like the log it appends to. Every <see cref="IncrementalLoadsBeforeFullVerification"/>
+/// loads from the tail, one reads and verifies the whole log again, so a change no stamp can see (bytes written in place
+/// by another process, through SQLite's blob interface or in the file itself) is still found within that many loads, as
+/// it is at the next opening of the project.</item>
 /// </list>
 /// </remarks>
 public sealed class DecisionRecorder(IDecisionLogStore store, TimeProvider timeProvider, IDecisionLogAnchorStore? anchors = null) : IDecisionRecorder, IDecisionLogOrigin
 {
     /// <summary>The code of the alert that records a history accepted as a new origin.</summary>
     public const string OriginAcceptedAlert = "decision-log.origin-accepted";
+
+    /// <summary>How many loads verify only the tail of the log before one verifies the whole log again.</summary>
+    public const int IncrementalLoadsBeforeFullVerification = 256;
 
     /// <summary>Who signs the alert and the question of an acceptance: the system, as the approval gate does.</summary>
     private static readonly Actor SystemActor = new(ActorKind.System, "agent-studio");
@@ -232,15 +238,17 @@ public sealed class DecisionRecorder(IDecisionLogStore store, TimeProvider timeP
         DecisionLog log;
         DecisionLogVerification chain;
         string? stamp = null;
+        var incremental = false;
         if (store is IDecisionLogTailReader tails)
         {
-            var tail = writer is { Log: { } verified, Stamp: { } known }
+            var tail = writer is { Log: { } verified, Stamp: { } known, IncrementalLoads: < IncrementalLoadsBeforeFullVerification }
                 ? await tails.ReadTailAsync(projectId, new DecisionLogMark(verified.Count, verified.HeadHash, known), cancellationToken).ConfigureAwait(false)
                 : null;
             if (tail is { Continues: true } && writer.Log is { } prefix)
             {
                 (log, chain) = prefix.Extend(tail.Entries);
                 stamp = tail.Stamp;
+                incremental = true;
             }
             else
             {
@@ -257,7 +265,7 @@ public sealed class DecisionRecorder(IDecisionLogStore store, TimeProvider timeP
         }
 
         var (verification, unanchored) = await VerifyAsync(projectId, log, chain, cancellationToken).ConfigureAwait(false);
-        writer.Adopt(verification.IsValid ? log : null, stamp);
+        writer.Adopt(verification.IsValid ? log : null, stamp, incremental);
         return (log, verification, unanchored);
     }
 
@@ -372,12 +380,17 @@ public sealed class DecisionRecorder(IDecisionLogStore store, TimeProvider timeP
         /// <summary>The stamp of the store <see cref="Log"/> was read and verified with (<see cref="IDecisionLogTailReader"/>); null when it has none.</summary>
         public string? Stamp { get; private set; }
 
+        /// <summary>How many loads verified only the tail since the whole log was last verified.</summary>
+        public int IncrementalLoads { get; private set; }
+
         public DateTimeOffset? LastRecordedAt { get; set; }
 
-        public void Adopt(DecisionLog? log, string? stamp = null)
+        /// <param name="incremental">Whether this load verified only the tail; a whole verification starts the count again.</param>
+        public void Adopt(DecisionLog? log, string? stamp = null, bool incremental = false)
         {
             Log = log;
             Stamp = log is null ? null : stamp;
+            IncrementalLoads = log is not null && incremental ? IncrementalLoads + 1 : 0;
             LastRecordedAt = log is { Entries: [.., var last] } ? last.RecordedAt : null;
         }
     }

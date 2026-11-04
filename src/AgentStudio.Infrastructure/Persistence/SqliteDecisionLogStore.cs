@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Domain.Decisions;
 using Microsoft.Data.Sqlite;
@@ -16,14 +17,27 @@ namespace AgentStudio.Infrastructure.Persistence;
 /// It also reads only the tail of the log (<see cref="IDecisionLogTailReader"/>), in one read transaction, so the recorder
 /// verifies only what was appended since it last verified the log. The stamp is this opening of the project, the schema
 /// version of the database and the creation time of its file. The triggers keep <c>decision_log</c> append-only (no update,
-/// no delete, no replace), so changing an entry that is already there through SQLite means dropping one of them first,
+/// no delete, no replace), so changing an entry that is already there through SQL means dropping one of them first,
 /// which changes the schema version: the stamp then differs, and the recorder reads and verifies the whole log again, as
-/// it does after the project is opened again or its database file is another one. The marked entries must still be there,
-/// as many of them and the last with its hash; anything after them is the tail.
+/// it does after the project is opened again or its database file is another one. And the log continues only while those
+/// three triggers are exactly the ones of the schema (<see cref="AppendOnlyTriggers"/>): with one missing or rewritten, an
+/// entry could be changed later with no schema change at all, so every load reads and verifies the whole log until they are
+/// back. The marked entries must still be there, as many of them and the last with its hash; anything after them is the tail.
 /// </para>
 /// </summary>
-public sealed class SqliteDecisionLogStore(ProjectDatabases databases) : IDecisionLogStore, IDecisionLogTailReader
+public sealed partial class SqliteDecisionLogStore(ProjectDatabases databases) : IDecisionLogStore, IDecisionLogTailReader
 {
+    /// <summary>
+    /// The triggers that keep <c>decision_log</c> append-only, as the schema creates them (<c>0001_initial.sql</c>), with their
+    /// blanks collapsed: what <c>sqlite_master</c> must hold for the log to be read only from its tail.
+    /// </summary>
+    internal static readonly IReadOnlyDictionary<string, string> AppendOnlyTriggers = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["decision_log_no_update"] = "CREATE TRIGGER decision_log_no_update BEFORE UPDATE ON decision_log BEGIN SELECT RAISE(ABORT, 'decision_log is append-only'); END",
+        ["decision_log_no_delete"] = "CREATE TRIGGER decision_log_no_delete BEFORE DELETE ON decision_log BEGIN SELECT RAISE(ABORT, 'decision_log is append-only'); END",
+        ["decision_log_no_replace"] = "CREATE TRIGGER decision_log_no_replace BEFORE INSERT ON decision_log WHEN EXISTS (SELECT 1 FROM decision_log WHERE project_id = NEW.project_id AND sequence = NEW.sequence) BEGIN SELECT RAISE(ABORT, 'decision_log is append-only'); END",
+    };
+
     public async Task AppendAsync(string projectId, DecisionEntry entry, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(entry);
@@ -67,7 +81,10 @@ public sealed class SqliteDecisionLogStore(ProjectDatabases databases) : IDecisi
         {
             var schema = Convert.ToInt64(await version.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false), CultureInfo.InvariantCulture);
             var stamp = string.Create(CultureInfo.InvariantCulture, $"{opening}:{schema}:{File.GetCreationTimeUtc(storage.DatabasePath).Ticks}");
-            if (after is not null && (!string.Equals(stamp, after.Stamp, StringComparison.Ordinal) || !await ContinuesAsync(connection, transaction, projectId, after, cancellationToken).ConfigureAwait(false)))
+            if (after is not null
+                && (!string.Equals(stamp, after.Stamp, StringComparison.Ordinal)
+                    || !await AppendOnlyAsync(connection, transaction, cancellationToken).ConfigureAwait(false)
+                    || !await ContinuesAsync(connection, transaction, projectId, after, cancellationToken).ConfigureAwait(false)))
             {
                 return new DecisionLogTail(stamp, false, []);
             }
@@ -77,6 +94,31 @@ public sealed class SqliteDecisionLogStore(ProjectDatabases databases) : IDecisi
             return new DecisionLogTail(stamp, true, entries);
         }
     }
+
+    /// <summary>Whether the three triggers that keep the log append-only are in the database exactly as the schema creates them.</summary>
+    private static async Task<bool> AppendOnlyAsync(SqliteConnection connection, SqliteTransaction transaction, CancellationToken cancellationToken)
+    {
+        await using var select = Command(connection, """
+            SELECT name, sql FROM sqlite_master
+            WHERE type = 'trigger' AND name IN ('decision_log_no_update', 'decision_log_no_delete', 'decision_log_no_replace');
+            """, transaction);
+        var genuine = 0;
+        await using var reader = await select.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            if (!reader.IsDBNull(1)
+                && AppendOnlyTriggers.TryGetValue(reader.GetString(0), out var expected)
+                && string.Equals(Blanks().Replace(reader.GetString(1), " ").Trim().TrimEnd(';').TrimEnd(), expected, StringComparison.Ordinal))
+            {
+                genuine++;
+            }
+        }
+
+        return genuine == AppendOnlyTriggers.Count;
+    }
+
+    [GeneratedRegex(@"\s+", RegexOptions.CultureInvariant)]
+    private static partial Regex Blanks();
 
     /// <summary>Whether the first entries of the log are the marked ones: as many, and the last with the marked hash.</summary>
     private static async Task<bool> ContinuesAsync(SqliteConnection connection, SqliteTransaction transaction, string projectId, DecisionLogMark mark, CancellationToken cancellationToken)

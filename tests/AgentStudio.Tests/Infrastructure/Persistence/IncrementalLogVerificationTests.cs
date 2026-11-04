@@ -280,6 +280,78 @@ public sealed class IncrementalLogVerificationTests : IDisposable
     }
 
     [Fact]
+    public async Task With_a_trigger_dropped_every_load_verifies_the_whole_log_so_a_later_change_is_detected()
+    {
+        using var world = await OpenAsync();
+        await world.WriteAsync(6);
+        Assert.True((await world.LoadAsync()).Verification.IsValid);
+
+        // The trigger goes first, alone: the log still verifies, and nothing in the schema will change for what comes next.
+        world.Tamper("DROP TRIGGER decision_log_no_update;");
+        Assert.True((await world.LoadAsync()).Verification.IsValid);
+        Assert.True((await world.LoadAsync()).Verification.IsValid);
+        world.Tamper("UPDATE decision_log SET summary = 'Cambiada sin tocar el esquema' WHERE sequence = 3;");
+        var state = await world.LoadAsync();
+
+        Assert.False(state.Verification.IsValid);
+        Assert.Equal(3, state.Verification.FirstInvalidSequence);
+        Assert.Equal(4, world.Store.Whole); // with the trigger missing, no load trusts the tail
+    }
+
+    [Fact]
+    public async Task A_trigger_rewritten_with_the_same_name_but_another_body_is_not_trusted_to_keep_the_log()
+    {
+        using var world = await OpenAsync();
+        await world.WriteAsync(6);
+        Assert.True((await world.LoadAsync()).Verification.IsValid);
+
+        world.Tamper("DROP TRIGGER decision_log_no_update;", "CREATE TRIGGER decision_log_no_update BEFORE UPDATE ON decision_log WHEN 0 BEGIN SELECT RAISE(ABORT, 'decision_log is append-only'); END;");
+        Assert.True((await world.LoadAsync()).Verification.IsValid);
+        world.Tamper("UPDATE decision_log SET summary = 'Cambiada con el trigger cambiado' WHERE sequence = 2;");
+        var state = await world.LoadAsync();
+
+        Assert.False(state.Verification.IsValid);
+        Assert.Equal(2, state.Verification.FirstInvalidSequence);
+
+        // The genuine trigger back and the entry as it was: the log verifies again, and only its tail is read once more.
+        world.Tamper("DROP TRIGGER decision_log_no_update;", "UPDATE decision_log SET summary = 'Entrada 2' WHERE sequence = 2;", RestoreNoUpdate);
+        Assert.True((await world.LoadAsync()).Verification.IsValid);
+        var whole = world.Store.Whole;
+        Assert.True((await world.LoadAsync()).Verification.IsValid);
+        Assert.Equal(whole, world.Store.Whole);
+    }
+
+    [Fact]
+    public async Task Bytes_written_in_place_where_no_stamp_sees_them_are_found_within_the_bound_of_loads()
+    {
+        using var world = await OpenAsync();
+        await world.WriteAsync(4);
+        Assert.True((await world.LoadAsync()).Verification.IsValid);
+
+        // SQLite's blob interface writes into a value in place: no trigger runs and the schema does not change.
+        using (var connection = world.Instance.Connect())
+        {
+            using var rowid = connection.CreateCommand();
+            rowid.CommandText = "SELECT rowid FROM decision_log WHERE sequence = 2;";
+            using var blob = new SqliteBlob(connection, "decision_log", "summary", (long)rowid.ExecuteScalar()!, readOnly: false);
+            blob.Write("Entrada X"u8);
+        }
+
+        var loads = 0;
+        DecisionLogState state;
+        do
+        {
+            state = await world.LoadAsync();
+            loads++;
+        }
+        while (state.Verification.IsValid && loads <= DecisionRecorder.IncrementalLoadsBeforeFullVerification + 1);
+
+        Assert.False(state.Verification.IsValid);
+        Assert.Equal(2, state.Verification.FirstInvalidSequence);
+        Assert.InRange(loads, 1, DecisionRecorder.IncrementalLoadsBeforeFullVerification + 1);
+    }
+
+    [Fact]
     public async Task Opening_the_project_again_verifies_the_whole_log_again()
     {
         using var world = await OpenAsync();
