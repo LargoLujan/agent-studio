@@ -484,3 +484,126 @@ decisión no espera al instalador (Fase 7).
     `MeaningOnlyFloorCalibrationTests` y la prueba Live de F12-4 (`AGENTSTUDIO_E5_MODEL_DIR`,
     `AGENTSTUDIO_CALIBRATION_REPORT`). La calibración deja también dónde queda cada respuesta que falta en cada lista.
   - La cifra de la validación ciega la anota quien la tiene.
+
+## Adenda (2026-11-04, segunda): los identificadores exactos primero y las palabras de la plantilla fuera de la búsqueda
+
+- **Contexto:** una validación ciega de la adenda anterior encontró que la búsqueda perdía frente a FTS5 en las preguntas
+  por metadatos (fechas, ejecuciones, `P-NNNN`). Las pérdidas tenían el mismo mecanismo:
+  - la respuesta era la primera por palabras, porque contenía el identificador exacto, pero quedaba bajo el corte por
+    significado: solo puntuaba 1/61;
+  - otras entradas casaban con una palabra de la plantilla que traía la pregunta («ejecución», «#prompt», un CLI), que
+    está en menos de la mitad de los fragmentos y por eso pasaba el techo. Si además pasaban el corte, sumaban por las dos
+    listas y la adelantaban.
+
+  La revisión pidió además:
+  - contar las frecuencias sin traer filas del almacén;
+  - que una vista nueva de la bitácora no recalcule todos los vectores;
+  - corregir la huella de la instantánea;
+  - avisar cuando un modelo no tiene corte.
+
+  La cifra de la validación la anota quien la tiene.
+- **Decisión:**
+  1. **Los identificadores exactos van primero** (`SearchIdentifiers`). Se reconocen, tal como los escribe la búsqueda y
+     nunca dentro de otra palabra:
+     - las ejecuciones (`20261015-a1b2c3`, y con `deb-`, `aud-` o `aux-`);
+     - los números de la bitácora (`P-0102`), solos o con su día (`2026-10-15/P-0102`, que cuenta como uno solo);
+     - los días: ISO, `dd/mm/aaaa`, `dd-mm-aaaa` y «29 de octubre [de 2026]». Un día sin año vale para cualquier año. Un
+       `dd/mm` sin año solo cuenta si lleva delante «el», «del» o «día»: suelto, «3/5» es igual de probable que sea una
+       proporción («3/5 pruebas en verde») y no debe abrir la cabeza de un nivel;
+     - las tareas (`T2`, `T-12`);
+     - los ids de la memoria (`mem-…`, `mem:mem-…#n`).
+
+     Un fragmento contiene un identificador cuando lo escribe con sus palabras seguidas, como una frase de FTS5, o cuando
+     lo dicen sus datos: el día de su hora o el id de su entrada. Un número seguido de una hora (`P-0004 · 10:15`) no es
+     un día.
+
+     Delante de la fusión van como mucho 3 (`MaxIdentifierHits`), uno por entrada y entre lo que la búsqueda admite
+     (categorías y confianza), en este orden: más identificadores de la búsqueda, su puesto en la lista por palabras
+     (`bm25`), la más nueva y el id. La marca `SemanticHit.Identifier`. Funciona también sin modelo.
+
+     Una tarea sola no abre nada, porque los planes vuelven a numerar sus tareas: solo ordena lo que encontró otro
+     identificador. Los números `P-NNNN` vuelven a empezar cada día, así que uno solo puede traer entradas de varios días;
+     el tope y el día las ordenan.
+  2. **Las palabras fijas de la plantilla no buscan** (`JournalTemplate`, en `Application/Knowledge`). Es una sola lista
+     para la vista limpia y para la búsqueda:
+     - palabras clave: Bitácora, `#prompt`, Resultado, tokens, exactos, estimados, n/d, ejecución, tarea, intento, entrada,
+       sesión y Hecho;
+     - estados: los nombres de `AgentRunStatus`;
+     - CLI: los tres `ProviderId`.
+
+     La búsqueda quita de sus términos las palabras clave y los CLI, nunca del índice. Si no le queda otro término, busca
+     con ellas. El techo del 50 % se queda como red.
+     - Los estados no se quitan: con ellos fuera, «¿qué ejecución terminó en Failed?» perdía su respuesta, que FTS5
+       encuentra.
+     - Quién y el modelo no son cerrados en el producto (el nombre del agente en su equipo, el id del modelo), así que se
+       quedan como palabras. Son justo lo que distingue una pregunta por metadatos entre las entradas de un día.
+     - El escritor del producto (`MarkdownDailyJournal`, `JournalResultAnchor`) sigue escribiendo sus palabras, porque
+       WP1 cambia esos dos ficheros. Una prueba con el escritor real comprueba que usa las de la lista. Que use las
+       constantes queda para después de integrar WP1.
+  3. **Las frecuencias se cuentan sin preguntar al almacén.** Se cuentan sobre las palabras de los fragmentos anclados de
+     la lectura (`FoldedWords`, como `unicode61`), cortadas una vez por fragmento por su SHA-256. El almacén solo contesta
+     la lista por palabras: con 4 000 fragmentos, un paquete de tres niveles hace una sola búsqueda por palabras.
+  4. **La huella de un vector depende de su categoría** (`SemanticIndex.VectorFingerprint(model, kind)`):
+     - es la del modelo para cualquier entrada;
+     - para una de la bitácora lleva además la versión de su vista. Una vista nueva solo recalcula los vectores de la
+       bitácora;
+     - la lista por significado junta las dos búsquedas;
+     - la instantánea vuelve a nombrar el modelo, así que su documentación vuelve a ser cierta.
+  5. **Un modelo sin corte lo dice.** El texto es `SemanticSearchTexts.NoCut`, que empieza por «Sin corte de relevancia
+     para este modelo». Lo dan `SemanticSearchResult.CutNotice`, `ContextRelevance.CutNotice` (en `ContextPack.Relevance`)
+     y `SemanticIndexStatus.Cut` y `CutNotice`, que es el estado que lee «Memoria». Mostrarlo en «Memoria» es de WP4.
+- **Medidas** (modelo real, con los 36 distractores). Para decidir con metadatos se añadieron al conjunto 15 preguntas
+  (`preguntas_metadatos`, escritas antes de tocar la búsqueda): 13 de metadatos e identificadores opacos y 2 de
+  identificadores con significado (`ADR-0016`, FluentAssertions). No forman parte de F12-4.
+
+  | Búsqueda | Paráfrasis (F12-4) | Metadatos | Identificador con significado |
+  |---|---|---|---|
+  | **Híbrida (esta adenda)** | **41/50** | **13/13** | **2/2** |
+  | Híbrida sin los identificadores primero | 41/50 | 10/13 | 2/2 |
+  | El índice sin modelo | 25/50 | 13/13 | 2/2 |
+  | FTS5 como hoy | 26/50 | 9/13 | 2/2 |
+
+  - **Lo que encuentra FTS5:** la híbrida no pierde nada en ningún tipo; lo comprueban la calibración y la prueba Live.
+  - **El índice sin modelo** pierde q07 y q32 frente a FTS5, como antes de esta adenda, y q40, que FTS5 tampoco
+    encuentra.
+  - **El ruido** de los tres niveles por relevancia: 314 distractores (2,1 por nivel), respuesta en su nivel 37/37. Sin
+    corte: 1 800 y 38/50.
+
+  | Variante | Paráfrasis | Metadatos | Cambia |
+  |---|---|---|---|
+  | Sin quitar palabras de la plantilla | 41/50 | 12/13 | gana q40; pierde q45 y m11 |
+  | Palabras clave | 41/50 | 13/13 | — |
+  | Palabras clave y estados | 41/50 | 12/13 | pierde m11 |
+  | **Palabras clave y CLI (la elegida)** | **41/50** | **13/13** | — |
+  | Palabras clave, estados y CLI | 41/50 | 12/13 | pierde m11 |
+  | Identificadores primero: 0 / 1 / 2 / 3 / 5 | 41/50 | 10 / 13 / 13 / 13 / 13 | con 0 pierde m08, m12 y m13 |
+  | Techo: ninguno / 50 % / 25 % | 41/50 | 13/13 | — |
+
+  El corte, con todo esto:
+
+  | Corte | Paráfrasis | Distractores |
+  |---|---|---|
+  | Sin corte | 38/50 | 1 800 |
+  | Suelo 0,79 | 39/50 | 712 |
+  | Suelo 0,80 | 40/50 | 355 |
+  | Suelo 0,78 y margen 0,04 | 41/50 | 367 |
+  | **Suelo 0,79 y margen 0,04** | **41/50** | **314** |
+  | Suelo 0,80 y margen 0,04 | 42/50 | 202 |
+  | Suelo 0,79 y margen 0,03 | 42/50 | 172 (36/37 en su nivel) |
+
+  Todas las variantes del corte dan 13/13 en metadatos.
+- **Por qué:**
+  - **Tope 3:** de 1 a 5 da lo mismo, y 0 pierde tres. Se queda el 3 propuesto, que deja sitio a una entrada de otro día
+    con el mismo número.
+  - **Sin estados en la lista:** pierden m11 sin ganar nada.
+  - **Con los CLI:** no cambian nada en el conjunto y son palabras de la plantilla.
+  - **El techo y el corte siguen como estaban:** no cambian con esta adenda. Sus vecinos dan de 40 a 42.
+- **Hallazgo: F12-4 sigue en 41/50 (82 %).** Quitar «tarea» pierde q40 y quitar «ejecución» gana q45. Las que faltan
+  (q05, q09, q16, q17, q27, q40, q41, q42 y q49) siguen siendo de la causa de la primera adenda de 2026-11-04: RRF con
+  k = 60. El criterio de 43/50 no se cumple, y en el conjunto no se pierde nada frente a FTS5 en ningún tipo. Lo decide
+  quien fija el criterio; el peso y k no se tocan. La prueba Live de F12-4 queda en rojo por el 85 %.
+- **Consecuencias:**
+  - Una búsqueda que nombra un identificador lo trae primero, también en los niveles de un paquete cuyo foco lo nombra.
+  - La lista de palabras de la plantilla es una sola. Si la plantilla cambia, cambia la lista, y la prueba del escritor
+    lo avisa.
+  - Recalibrar como hasta ahora, con las 65 preguntas y la calibración, que deja dónde queda cada respuesta que falta.

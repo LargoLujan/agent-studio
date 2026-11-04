@@ -166,5 +166,22 @@
     { "id": "q48", "texto": "¿qué rapidez dio la medición de la búsqueda con diez mil trozos?", "respuesta": "J28" },
     { "id": "q49", "texto": "¿por qué la ventana de confirmación ya no muestra un identificador raro?", "respuesta": "J29" },
     { "id": "q50", "texto": "¿qué le faltaba al documento sobre el modelo de vectores?", "respuesta": "J30" }
+  ],
+  "preguntas_metadatos": [
+    { "id": "m01", "tipo": "metadatos", "texto": "¿Qué se pidió en la P-0113?", "respuesta": "J13" },
+    { "id": "m02", "tipo": "metadatos", "texto": "¿cómo terminó la P-0119?", "respuesta": "J19" },
+    { "id": "m03", "tipo": "metadatos", "texto": "¿Qué se planificó en la ejecución 20261019-a7b8c9?", "respuesta": "J09" },
+    { "id": "m04", "tipo": "metadatos", "texto": "¿Qué salió de la ejecución 20261023-b4c5d6?", "respuesta": "J18" },
+    { "id": "m05", "tipo": "metadatos", "texto": "¿Qué revisó el Documentador el 2026-10-29?", "respuesta": "J30" },
+    { "id": "m06", "tipo": "metadatos", "texto": "¿Qué probó el Tester el 24/10?", "respuesta": "J20" },
+    { "id": "m07", "tipo": "metadatos", "texto": "¿Qué hizo el Backend el 21 de octubre?", "respuesta": "J14" },
+    { "id": "m08", "tipo": "metadatos", "texto": "¿Qué dice la entrada 2026-10-18/P-0108?", "respuesta": "J08" },
+    { "id": "m09", "tipo": "metadatos", "texto": "¿En qué quedó la T5 del 22 de octubre?", "respuesta": "J15" },
+    { "id": "m10", "tipo": "metadatos", "texto": "¿Qué hizo claude-sonnet-5 el 27/10?", "respuesta": "J25" },
+    { "id": "m11", "tipo": "metadatos", "texto": "¿Qué ejecución terminó en Failed?", "respuesta": "J04" },
+    { "id": "m12", "tipo": "metadatos", "texto": "¿Qué dice {mem:M16}?", "respuesta": "M16" },
+    { "id": "m13", "tipo": "metadatos", "texto": "¿sigue vigente {mem:M20}?", "respuesta": "M20" },
+    { "id": "m14", "tipo": "identificador con significado", "texto": "¿Qué decía el ADR-0016?", "respuesta": "J03" },
+    { "id": "m15", "tipo": "identificador con significado", "texto": "¿Por qué no usamos FluentAssertions?", "respuesta": "M12" }
   ]
 }

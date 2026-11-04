@@ -32,9 +32,11 @@ namespace AgentStudio.Memory.Context;
 /// anchored is read once and the focus embedded once), which goes by words only when there is no model; without an index,
 /// by the full-text search of the memory (<c>bm25</c>), as before. If the index fails for any reason but a log that does
 /// not verify, the tiers fall back to the full-text search: the index is a cache that is rebuilt at will, and it never
-/// decides what may go in. The pack says how they were ranked (<see cref="ContextPack.Relevance"/>: hybrid, or by words
-/// only and why, <see cref="WordsOnlyReason.IndexUnavailable"/> when the index was not used), beside the ids, tiers and
-/// categories of what went in and of what was left out (<see cref="ContextPack.ToReference"/>, anchored by
+/// decides what may go in. In each tier, what contains exactly an identifier the focus names (a run, a number of the
+/// journal, a day, a memory id) goes first (ADR-0047, second addendum of 2026-11-04). The pack says how they were ranked
+/// (<see cref="ContextPack.Relevance"/>: hybrid, or by words only and why, <see cref="WordsOnlyReason.IndexUnavailable"/>
+/// when the index was not used, and <see cref="ContextRelevance.CutNotice"/> when the model has no cut), beside the ids,
+/// tiers and categories of what went in and of what was left out (<see cref="ContextPack.ToReference"/>, anchored by
 /// <c>AgentRunStarted</c>).</item>
 /// <item><b>Memory</b> only for an agent whose policy is <see cref="MemoryPolicy.ReadSelected"/>, and never for a judge or
 /// an auditor whatever its definition says: neither the memory nor the index is asked anything for them (F12-8). Only

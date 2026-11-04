@@ -255,10 +255,13 @@ public interface IEmbeddingModelInstaller
     Task<EmbeddingModelStatus> InstallAsync(EmbeddingModelDownloadConsent consent, IProgress<EmbeddingModelDownloadProgress>? progress, CancellationToken ct);
 }
 
-/// <summary>A fragment as the index keeps it: the fragment and, when the model embedded it, its vector and the model's fingerprint.</summary>
+/// <summary>
+/// A fragment as the index keeps it: the fragment and, when the model embedded it, its vector and the fingerprint of that
+/// vector (its model's, and for an entry of the journal also the version of the view its meaning is computed from).
+/// </summary>
 public sealed record IndexedFragment(SemanticFragment Fragment, float[]? Vector = null, string? ModelFingerprint = null);
 
-/// <summary>What the index holds of a fragment: its id, its fingerprint and the model of its vector (null without one).</summary>
+/// <summary>What the index holds of a fragment: its id, its fingerprint and the fingerprint of its vector (null without one).</summary>
 public sealed record IndexedFragmentState(string Id, string Sha256, string? ModelFingerprint);
 
 /// <summary>
@@ -363,6 +366,12 @@ public static class SemanticSearchTexts
         WordsOnlyReason.IndexUnavailable => "Solo por palabras: el índice semántico no se ha podido usar y se ha buscado en la memoria.",
         _ => throw new ArgumentOutOfRangeException(nameof(reason), reason, "Unknown reason for a search by words only."),
     };
+
+    /// <summary>
+    /// The notice of a search by meaning whose model has no cut calibrated (<see cref="MeaningOnlyCut"/>): everything the
+    /// meaning finds may come, however little it resembles the search (ADR-0047, addendum of 2026-11-04).
+    /// </summary>
+    public const string NoCut = "Sin corte de relevancia para este modelo: lo que encuentra el significado entra aunque se parezca poco.";
 }
 
 /// <summary>
@@ -402,7 +411,14 @@ public sealed record SemanticQuery(string Text, int Top = 10)
 /// «registro · veredicto»…), the memory entry it cites as recall gives it now (anchored, with its trust; null for a
 /// fragment of the log) and its place in the fusion.
 /// </summary>
-public sealed record SemanticHit(SemanticFragment Fragment, string Label, MemoryEntry? Entry, FusedCandidate Rank);
+public sealed record SemanticHit(SemanticFragment Fragment, string Label, MemoryEntry? Entry, FusedCandidate Rank)
+{
+    /// <summary>
+    /// The identifier of the search this hit contains exactly (a run, a number of the journal, a day, a memory id, as the
+    /// search wrote it), when it went first for it, before the fusion; null for the rest.
+    /// </summary>
+    public string? Identifier { get; init; }
+}
 
 /// <summary>
 /// The cut of the semantic list of a search (ADR-0047, addenda of 2026-11-03 and 2026-11-04): a fragment has a place by
@@ -417,7 +433,7 @@ public sealed record MeaningOnlyCut(float Minimum, float? Margin = null);
 /// <summary>
 /// The results of a search, best first, how it went and, when it went by words only, why. <see cref="Cut"/> is the cut its
 /// semantic list had: null when there was no semantic list, or when the model has none calibrated (then everything the
-/// meaning found could enter, and the search says so here).
+/// meaning found could enter, and <see cref="CutNotice"/> says so).
 /// </summary>
 public sealed record SemanticSearchResult(IReadOnlyList<SemanticHit> Hits, SemanticSearchMode Mode, WordsOnlyReason? Reason = null)
 {
@@ -425,6 +441,9 @@ public sealed record SemanticSearchResult(IReadOnlyList<SemanticHit> Hits, Seman
 
     /// <summary>What to tell the person about how the search went: null for a hybrid search.</summary>
     public string? Notice => Reason is { } reason ? SemanticSearchTexts.WordsOnly(reason) : null;
+
+    /// <summary>What to tell the person about the cut: <see cref="SemanticSearchTexts.NoCut"/> for a hybrid search without one; null otherwise.</summary>
+    public string? CutNotice => Mode == SemanticSearchMode.Hybrid && Cut is null ? SemanticSearchTexts.NoCut : null;
 }
 
 /// <summary>What a refresh did: fragments added, removed, embedded now and left as they were; and why it stopped, in Spanish, if it did.</summary>
@@ -433,8 +452,18 @@ public sealed record SemanticIndexRefresh(int Added, int Removed, int Embedded, 
     public bool Completed => Reason is null;
 }
 
-/// <summary>The state of the index of a project: its fragments, how many have a vector of the current model, and the model.</summary>
-public sealed record SemanticIndexStatus(int Fragments, int WithVectors, EmbeddingModelStatus Model);
+/// <summary>
+/// The state of the index of a project: its fragments, how many have a vector of the current model, the model, and the cut
+/// calibrated for it (<see cref="Cut"/>; null when the table has none, and then <see cref="CutNotice"/> says so while the
+/// model is ready).
+/// </summary>
+public sealed record SemanticIndexStatus(int Fragments, int WithVectors, EmbeddingModelStatus Model)
+{
+    public MeaningOnlyCut? Cut { get; init; }
+
+    /// <summary>What «Memoria» tells the person about the cut: <see cref="SemanticSearchTexts.NoCut"/> when the model is ready and has none; null otherwise.</summary>
+    public string? CutNotice => Model.IsReady && Cut is null ? SemanticSearchTexts.NoCut : null;
+}
 
 /// <summary>
 /// The semantic index of the projects (docs/17 D-01 to D-06; WP3): a local projection of what the decision log anchors,

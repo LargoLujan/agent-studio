@@ -17,7 +17,8 @@ public sealed class SemanticIndexTests
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    private static string Fingerprint => SemanticIndex.VectorFingerprint(TestModels.Hashing);
+    /// <summary>The fingerprint of the vectors of the test model for any entry but those of the journal: the model's.</summary>
+    private static string Fingerprint => SemanticIndex.VectorFingerprint(TestModels.Hashing, MemoryKind.Decision);
 
     private static string FragmentOf(MemoryEntry entry, int part = 0) => SemanticFragment.IdOf(FragmentSource.Memory(entry.Id, entry.ContentSha256), part);
 
@@ -133,7 +134,7 @@ public sealed class SemanticIndexTests
 
         Assert.Equal(new SemanticIndexRefresh(0, 0, 1, 0), await world.RefreshAsync());
 
-        Assert.All(await world.Store.ReadStateAsync(world.Project, Ct), s => Assert.Equal(SemanticIndex.VectorFingerprint(TestModels.HashingRevised), s.ModelFingerprint));
+        Assert.All(await world.Store.ReadStateAsync(world.Project, Ct), s => Assert.Equal(SemanticIndex.VectorFingerprint(TestModels.HashingRevised, MemoryKind.Decision), s.ModelFingerprint));
         Assert.Equal(0, (await world.Index.StatusAsync(world.Project, Ct)).WithVectors);
     }
 
@@ -213,7 +214,7 @@ public sealed class SemanticIndexTests
 
         Assert.Equal((SemanticSearchMode.WordsOnly, WordsOnlyReason.VectorsPending), (result.Mode, result.Reason));
         Assert.Equal(entry.Id, Assert.Single(result.Hits).Entry!.Id);
-        Assert.Equal(new SemanticIndexStatus(1, 0, world.Model.Check()), await world.Index.StatusAsync(world.Project, Ct));
+        Assert.Equal(new SemanticIndexStatus(1, 0, world.Model.Check()) { Cut = new MeaningOnlyCut(0.2f) }, await world.Index.StatusAsync(world.Project, Ct));
     }
 
     [Fact]
@@ -404,10 +405,10 @@ public sealed class SemanticIndexTests
         using var world = await IndexWorld.CreateAsync();
         for (var i = 0; i < 6; i++)
         {
-            await world.RecordAsync(MemoryKind.JournalEntry, $"Bitácora {i}", $"Resultado de la tarea {i}: revisada la pantalla {i}.");
+            await world.RecordAsync(MemoryKind.Change, $"Pantalla {i}", $"Revisada la pantalla {i} del panel.");
         }
 
-        var invoices = await world.RecordAsync(MemoryKind.JournalEntry, "Bitácora 6", "Resultado de la tarea 6: el módulo de facturas redondea mal.");
+        var invoices = await world.RecordAsync(MemoryKind.Change, "Pantalla 6", "Revisada la pantalla 6 del módulo de facturas.");
         await world.RefreshAsync();
         world.Model.State = EmbeddingModelState.Missing;
         var ceiling = world.With(TestModels.Tuning with { CommonTermFraction = 0.5 });
@@ -415,13 +416,44 @@ public sealed class SemanticIndexTests
         async Task<string[]> FoundAsync(SemanticIndex index, string text) =>
             [.. (await index.SearchAsync(world.Project, new SemanticQuery(text), Ct)).Hits.Select(h => h.Entry!.Id)];
 
-        // «tarea» and «resultado» are in the seven fragments, more than half: with the ceiling only «facturas» searches.
-        Assert.Equal(7, (await FoundAsync(world.Index, "resultado tarea facturas")).Length);
-        Assert.Equal([invoices.Id], await FoundAsync(ceiling, "resultado tarea facturas"));
+        // «pantalla» and «revisada» are in the seven fragments, more than half: with the ceiling only «facturas» searches.
+        Assert.Equal(7, (await FoundAsync(world.Index, "pantalla revisada facturas")).Length);
+        var before = world.Store.WordSearches.Count;
+        Assert.Equal([invoices.Id], await FoundAsync(ceiling, "pantalla revisada facturas"));
+
+        // The shares were counted over the words of the anchored fragments: the store answered the lexical list alone.
+        var searches = world.Store.WordSearches.Skip(before).ToList();
+        var lexical = Assert.Single(searches);
+        Assert.Equal(["facturas"], lexical.Terms);
+        Assert.Equal(SemanticIndex.CandidatePool, lexical.Top);
 
         // A search made only of such words still searches by them.
-        Assert.Equal(7, (await FoundAsync(ceiling, "resultado tarea")).Length);
-        Assert.Equal(SemanticSearchMode.WordsOnly, (await ceiling.SearchAsync(world.Project, new SemanticQuery("resultado tarea"), Ct)).Mode);
+        Assert.Equal(7, (await FoundAsync(ceiling, "pantalla revisada")).Length);
+        Assert.Equal(SemanticSearchMode.WordsOnly, (await ceiling.SearchAsync(world.Project, new SemanticQuery("pantalla revisada"), Ct)).Mode);
+    }
+
+    [Fact]
+    public async Task With_thousands_of_fragments_and_a_word_in_half_of_them_a_pack_asks_the_store_for_its_lexical_list_alone()
+    {
+        // 4 000 fragments, «pantalla» in almost all of them: the ceiling of the half counts it, and «informe», without a search
+        // of their own (F12-5).
+        var entries = Enumerable.Range(0, 4000)
+            .Select(i => Listed($"mem-p{i:D4}", i % 40 == 0 ? MemoryKind.KnownError : MemoryKind.Change, "Tema " + i, i % 40 == 0 ? $"Revisado el informe {i}." : $"Revisada la pantalla {i}."))
+            .ToList();
+        using var store = new TestSemanticStore();
+        var index = new SemanticIndex(new ListedMemory(entries), store, new TestEmbedderSource(new TestEmbedder(TestModels.Hashing)), TimeProvider.System, TestModels.Hashing, TestModels.Tuning with { CommonTermFraction = 0.5 });
+        await index.RefreshAsync(ListedMemory.Project, Ct);
+        var before = store.WordSearches.Count;
+
+        var tiers = await index.SearchManyAsync(
+            ListedMemory.Project,
+            [new SemanticQuery("pantalla informe 17", 50) { Kinds = [MemoryKind.KnownError] }, new SemanticQuery("pantalla informe 17", 50) { Kinds = [MemoryKind.Change] }, new SemanticQuery("pantalla informe 17", 50) { Kinds = [MemoryKind.JournalEntry] }],
+            Ct);
+
+        Assert.Equal(3, tiers.Count);
+        var lexical = Assert.Single(store.WordSearches.Skip(before));
+        Assert.Equal(["informe", "17"], lexical.Terms);
+        Assert.Equal("mem-p0017", tiers[1].Hits[0].Entry!.Id);
     }
 
     // ---- the floor of what only the meaning finds ----
@@ -776,7 +808,7 @@ public sealed class SemanticIndexTests
         await world.RecordAsync(MemoryKind.KnownError, "Overflow", "Multiply desborda con enteros grandes.");
         await world.RefreshAsync();
 
-        Assert.Equal(new SemanticIndexStatus(2, 0, world.Model.Check()), await world.Index.StatusAsync(world.Project, Ct));
+        Assert.Equal(new SemanticIndexStatus(2, 0, world.Model.Check()) { Cut = new MeaningOnlyCut(0.2f) }, await world.Index.StatusAsync(world.Project, Ct));
 
         world.Model.State = EmbeddingModelState.Ready;
         await world.RefreshAsync();

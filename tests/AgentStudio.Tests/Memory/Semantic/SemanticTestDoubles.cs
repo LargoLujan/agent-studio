@@ -219,6 +219,7 @@ internal sealed class TestSemanticStore : ISemanticIndexStore, IDisposable
     private readonly object _gate = new();
     private readonly HashSet<string> _hidden = new(StringComparer.Ordinal);
     private readonly List<string> _written = [];
+    private readonly List<(IReadOnlyList<string> Terms, int Top)> _wordSearches = [];
     private int _upserts;
 
     /// <summary>How many fragments were written (each fragment of each upsert counts).</summary>
@@ -316,6 +317,18 @@ internal sealed class TestSemanticStore : ISemanticIndexStore, IDisposable
         }
     }
 
+    /// <summary>Every search by words the store answered, with its terms and how many places it asked for, in order.</summary>
+    public IReadOnlyList<(IReadOnlyList<string> Terms, int Top)> WordSearches
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return [.. _wordSearches];
+            }
+        }
+    }
+
     public Task<IReadOnlyList<RankedCandidate>> SearchWordsAsync(ProjectContext project, IReadOnlyList<string> terms, int top, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(terms);
@@ -326,6 +339,7 @@ internal sealed class TestSemanticStore : ISemanticIndexStore, IDisposable
 
         lock (_gate)
         {
+            _wordSearches.Add(([.. terms], top));
             using var select = Command(project, """
                 SELECT f.id, f.at FROM fragments_fts JOIN fragments f ON f.rowid = fragments_fts.rowid
                 WHERE fragments_fts MATCH $match

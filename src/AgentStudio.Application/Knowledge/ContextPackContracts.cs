@@ -89,6 +89,9 @@ public sealed record ContextRelevance(SemanticSearchMode Mode, WordsOnlyReason? 
 
     /// <summary>What to tell the person about it, in Spanish: null for a hybrid ranking.</summary>
     public string? Notice => Reason is { } reason ? SemanticSearchTexts.WordsOnly(reason) : null;
+
+    /// <summary>What to tell the person about the cut: <see cref="SemanticSearchTexts.NoCut"/> for a hybrid ranking without one; null otherwise.</summary>
+    public string? CutNotice => Mode == SemanticSearchMode.Hybrid && Cut is null ? SemanticSearchTexts.NoCut : null;
 }
 
 /// <summary>Packs the context of an agent by tiers and fails closed (D-24).</summary>

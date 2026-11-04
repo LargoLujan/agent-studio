@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.RegularExpressions;
+using AgentStudio.Application.Knowledge;
 
 namespace AgentStudio.Memory.Semantic;
 
@@ -20,14 +21,15 @@ namespace AgentStudio.Memory.Semantic;
 /// <item>Any other line keeps its text, even one that starts like them («Resultado final…», «**Nota** · …»). List markers
 /// and the escapes of Markdown go everywhere.</item>
 /// </list>
-/// A text whose view is empty is used whole, so no entry is ever without a meaning.
+/// A text whose view is empty is used whole, so no entry is ever without a meaning. The words of the template are those of
+/// <see cref="JournalTemplate"/>, the one list the search shares.
 /// </summary>
 public static partial class JournalSearchText
 {
     /// <summary>The version of these rules: it goes into the fingerprint of the vectors, so a change computes them again.</summary>
     public const int Version = 2;
 
-    private static readonly HashSet<string> Statuses = new(StringComparer.Ordinal) { "Succeeded", "Failed", "Cancelled", "LimitReached", "RateLimited" };
+    private static readonly HashSet<string> Statuses = new(JournalTemplate.Statuses, StringComparer.Ordinal);
 
     /// <summary>The clean view of the content of a journal entry, its kept lines joined by <c>\n</c>; the content itself when nothing is left.</summary>
     public static string Of(string content)
@@ -37,8 +39,8 @@ public static partial class JournalSearchText
         foreach (var raw in content.Split('\n'))
         {
             var line = ListMarker().Replace(raw.Trim(), string.Empty);
-            var clean = line.StartsWith("Hecho", StringComparison.Ordinal) && Done().Match(line) is { Success: true } done ? done.Groups["text"].Value
-                : ResultLine().IsMatch(line) ? Note(line)
+            var clean = line.StartsWith(JournalTemplate.Done, StringComparison.Ordinal) && Done().Match(line) is { Success: true } done ? done.Groups["text"].Value
+                : ResultLine().Match(line) is { Success: true } result && Statuses.Contains(result.Groups["status"].Value) ? Note(line)
                 : EntryLine().IsMatch(line) ? Summary(line)
                 : line;
             clean = Unescape(clean).Trim();
@@ -67,10 +69,10 @@ public static partial class JournalSearchText
             && !Statuses.Contains(p)
             && !Time().IsMatch(p)
             && !Duration().IsMatch(p)
-            && !p.StartsWith("tokens ", StringComparison.Ordinal)
-            && !p.StartsWith("ejecución `", StringComparison.Ordinal)
-            && !p.StartsWith("tarea `", StringComparison.Ordinal)
-            && !p.StartsWith("entrada `", StringComparison.Ordinal)
+            && !p.StartsWith(JournalTemplate.Tokens + " ", StringComparison.Ordinal)
+            && !p.StartsWith(JournalTemplate.Run + " `", StringComparison.Ordinal)
+            && !p.StartsWith(JournalTemplate.Task + " `", StringComparison.Ordinal)
+            && !p.StartsWith(JournalTemplate.Entry + " `", StringComparison.Ordinal)
             && !Attempt().IsMatch(p)));
     }
 
@@ -99,15 +101,15 @@ public static partial class JournalSearchText
     [GeneratedRegex(@"^(?:[-*+]\s+)+")]
     private static partial Regex ListMarker();
 
-    [GeneratedRegex(@"^Hecho(?:\s*\([^)]*\))?\s*:\s*(?<text>.*)$")]
+    [GeneratedRegex("^" + JournalTemplate.Done + @"(?:\s*\([^)]*\))?\s*:\s*(?<text>.*)$")]
     private static partial Regex Done();
 
     /// <summary>The line of an entry as the app (<c>**HH:mm:ss** · P-NNNN · </c>) or the hook (<c>**HH:mm:ss** · sesión `…` · </c>) writes it.</summary>
-    [GeneratedRegex(@"^\*\*\d{2}:\d{2}:\d{2}\*\* · (?:P-\d+|sesión `[^`]+`) · ")]
+    [GeneratedRegex(@"^\*\*\d{2}:\d{2}:\d{2}\*\* · (?:P-\d+|" + JournalTemplate.Session + @" `[^`]+`) · ")]
     private static partial Regex EntryLine();
 
-    /// <summary>A result line as the app writes it: <c>Resultado P-NNNN · HH:mm:ss · status · </c>.</summary>
-    [GeneratedRegex(@"^Resultado P-\d+ · \d{2}:\d{2}:\d{2} · (?:Succeeded|Failed|Cancelled|LimitReached|RateLimited)(?: · |$)")]
+    /// <summary>A result line as the app writes it: <c>Resultado P-NNNN · HH:mm:ss · status · </c>, its status one of <see cref="JournalTemplate.Statuses"/>.</summary>
+    [GeneratedRegex("^" + JournalTemplate.Result + @" P-\d+ · \d{2}:\d{2}:\d{2} · (?<status>[A-Za-z]+)(?: · |$)")]
     private static partial Regex ResultLine();
 
     [GeneratedRegex(@"^\d{1,2}:\d{2}(?::\d{2})?$")]
@@ -116,6 +118,6 @@ public static partial class JournalSearchText
     [GeneratedRegex(@"^[\d.,]+\s*s$")]
     private static partial Regex Duration();
 
-    [GeneratedRegex(@"^intento \d+$")]
+    [GeneratedRegex("^" + JournalTemplate.Attempt + @" \d+$")]
     private static partial Regex Attempt();
 }

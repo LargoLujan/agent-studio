@@ -24,20 +24,27 @@ namespace AgentStudio.Memory.Semantic;
 /// <see cref="SemanticQuery.IncludeLog"/> changes nothing.</item>
 /// <item><b>The refresh</b> brings the index to what is anchored now: gone fragments out, new, changed or unreadable ones in
 /// (first without a vector, so the words find them at once), and then, with the local model, the vectors that are missing
-/// or are of another model, newest first, in batches of <see cref="EmbeddingBatch"/>. One refresh of a project at a time;
-/// a cancelled one leaves what it wrote, and the next one goes on from there.</item>
-/// <item><b>The search</b> (D-05): the lexical list is FTS5 and <c>bm25</c> over the terms of <see cref="LexicalTerms"/>
-/// (without function words, and without those in more than <see cref="SemanticSearchTuning.CommonTermFraction"/> of the
-/// fragments); with the model and at least one vector of it, the semantic list is the cosine with the <c>query:</c>
-/// embedding, and only what passes the cut of its model has a place in it (<see cref="SemanticSearchTuning.CutFor"/>, by the
-/// fingerprint of the model: a floor, and a margin below the best similarity of the search), whether the words find it too
-/// or not. So a fragment that only the meaning finds enters only above the cut, what the words find always enters by its
-/// lexical place, and a word in common never buys a place by meaning. A model the table does not know has no cut, and the
-/// result says so (<see cref="SemanticSearchResult.Cut"/>). Each list keeps its first <see cref="ListDepth"/> fragments among
-/// what the query admits, and both are fused by <see cref="HybridRanking.Fuse"/> (k = 60, the same weight, ties by the time
-/// of the entry and the id). An entry of the journal is searched by words over its whole text and by meaning over its clean
-/// view (<see cref="FragmentCutter.MeaningOf"/>). Without the model, or before any vector of it, it goes by words only and
-/// says why (<see cref="SemanticSearchResult.Notice"/>). Several searches
+/// or are of another model, newest first, in batches of <see cref="EmbeddingBatch"/>. A vector carries the fingerprint of
+/// its model, and one of the journal also the version of its view (<see cref="VectorFingerprint"/>), so a new view only
+/// computes again the vectors of the journal. One refresh of a project at a time; a cancelled one leaves what it wrote, and
+/// the next one goes on from there.</item>
+/// <item><b>The search</b> (D-05): the lexical list is FTS5 and <c>bm25</c> over the terms of <see cref="LexicalTerms"/>,
+/// without function words, without the fixed words of the template of the journal
+/// (<see cref="SemanticSearchTuning.TemplateWords"/>) unless the search has no other, and without those in more than
+/// <see cref="SemanticSearchTuning.CommonTermFraction"/> of the anchored fragments (counted over the words of each fragment,
+/// cut once, never by asking the store). With the model and at least one vector of it, the semantic list is the cosine with
+/// the <c>query:</c> embedding, and only what passes the cut of its model has a place in it
+/// (<see cref="SemanticSearchTuning.CutFor"/>, by the fingerprint of the model: a floor, and a margin below the best
+/// similarity of the search), whether the words find it too or not. So a fragment that only the meaning finds enters only
+/// above the cut, what the words find always enters by its lexical place, and a word in common never buys a place by
+/// meaning. A model the table does not know has no cut, and the result says so (<see cref="SemanticSearchResult.CutNotice"/>).
+/// Each list keeps its first <see cref="ListDepth"/> fragments among what the query admits, and both are fused by
+/// <see cref="HybridRanking.Fuse"/> (k = 60, the same weight, ties by the time of the entry and the id). Before the fusion
+/// go, at most <see cref="SemanticSearchTuning.MaxIdentifierHits"/>, the fragments that contain exactly an identifier of the
+/// search (a run, a number of the journal, a day, a memory id: <see cref="SearchIdentifiers"/>), by <c>bm25</c>
+/// (<see cref="SemanticHit.Identifier"/>). An entry of the journal is searched by words over its whole text and by meaning
+/// over its clean view (<see cref="FragmentCutter.MeaningOf"/>). Without the model, or before any vector of it, it goes by
+/// words only and says why (<see cref="SemanticSearchResult.Notice"/>). Several searches
 /// (<see cref="SearchManyAsync"/>, the tiers of a pack) share one reading of what is anchored and of the index, and each
 /// text is embedded once. A search first adds to the index, without vectors, the anchored fragments it does not hold (or
 /// holds unreadable), so what was anchored after the last refresh is still found by its words.</item>
@@ -78,6 +85,9 @@ public sealed class SemanticIndex(IProjectMemory memory, ISemanticIndexStore sto
     /// <summary>How many anchored entries the cache of their cuts keeps before it starts again.</summary>
     public const int MaxCachedEntries = 100_000;
 
+    /// <summary>How many fragments the cache of their words keeps before it starts again.</summary>
+    public const int MaxCachedFragments = 200_000;
+
     /// <summary>Why a refresh wrote nothing: the decision log does not verify.</summary>
     public const string UnverifiedLogReason = "El registro de decisiones no verifica: el índice no se actualiza hasta que verifique.";
 
@@ -85,6 +95,8 @@ public sealed class SemanticIndex(IProjectMemory memory, ISemanticIndexStore sto
     private readonly SemanticSearchTuning _tuning = tuning ?? SemanticSearchTuning.Default;
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _gates = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<(string Id, string Sha256, long At), IReadOnlyList<SemanticFragment>> _cuts = new();
+    private readonly ConcurrentDictionary<string, string[]> _words = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, string> _pool = new(StringComparer.Ordinal);
 
     /// <summary>Why a refresh stopped before computing every vector: the model failed on <paramref name="left"/> fragments.</summary>
     public static string EmbeddingFailedReason(int left) => left == 1
@@ -128,9 +140,8 @@ public sealed class SemanticIndex(IProjectMemory memory, ISemanticIndexStore sto
                 return new SemanticIndexRefresh(added.Count, gone.Count, 0, anchored.Fragments.Count - added.Count);
             }
 
-            var fingerprint = VectorFingerprint(embedder.Model);
             var pending = anchored.Fragments
-                .Where(f => addedIds.Contains(f.Fragment.Id) || !string.Equals(held[f.Fragment.Id].ModelFingerprint, fingerprint, StringComparison.Ordinal))
+                .Where(f => addedIds.Contains(f.Fragment.Id) || !string.Equals(held[f.Fragment.Id].ModelFingerprint, VectorFingerprint(embedder.Model, f.Entry.Kind), StringComparison.Ordinal))
                 .ToList();
             var embedded = new HashSet<string>(StringComparer.Ordinal);
             string? reason = null;
@@ -143,7 +154,7 @@ public sealed class SemanticIndex(IProjectMemory memory, ISemanticIndexStore sto
                     break;
                 }
 
-                await store.UpsertAsync(project, [.. batch.Select((f, i) => new IndexedFragment(f.Fragment, vectors[i], fingerprint))], ct).ConfigureAwait(false);
+                await store.UpsertAsync(project, [.. batch.Select((f, i) => new IndexedFragment(f.Fragment, vectors[i], VectorFingerprint(embedder.Model, f.Entry.Kind)))], ct).ConfigureAwait(false);
                 embedded.UnionWith(batch.Select(f => f.Fragment.Id));
             }
 
@@ -190,7 +201,10 @@ public sealed class SemanticIndex(IProjectMemory memory, ISemanticIndexStore sto
             var lexical = await LexicalAsync(project, reading, lists, query, ct).ConfigureAwait(false);
             var semantic = await SemanticAsync(project, reading, lists, query, ct).ConfigureAwait(false);
             var fused = HybridRanking.Fuse(lexical, semantic);
-            var hits = await CheckedHitsAsync(project, reading.Anchored, fused, query, altered, ct).ConfigureAwait(false);
+            var head = HeadOf(reading, lists, query, fused);
+            var ordered = head.Count == 0 ? fused : [.. head.Select(h => h.Rank), .. fused.Where(c => !head.Any(h => string.Equals(h.Rank.Id, c.Id, StringComparison.Ordinal)))];
+            var identifiers = head.ToDictionary(h => h.Rank.Id, h => h.Identifier, StringComparer.Ordinal);
+            var hits = await CheckedHitsAsync(project, reading.Anchored, ordered, query, altered, identifiers, ct).ConfigureAwait(false);
             results.Add(new SemanticSearchResult(hits, lists.Reason is null ? SemanticSearchMode.Hybrid : SemanticSearchMode.WordsOnly, lists.Reason) { Cut = lists.Meaning?.Cut });
         }
 
@@ -209,8 +223,11 @@ public sealed class SemanticIndex(IProjectMemory memory, ISemanticIndexStore sto
     {
         ArgumentNullException.ThrowIfNull(project);
         var held = await HeldAsync(project, ct).ConfigureAwait(false);
-        var fingerprint = VectorFingerprint(_model);
-        return new SemanticIndexStatus(held.Count, held.Values.Count(h => string.Equals(h.ModelFingerprint, fingerprint, StringComparison.Ordinal)), embedders.Check());
+        var fingerprints = Fingerprints(_model);
+        return new SemanticIndexStatus(held.Count, held.Values.Count(h => h.ModelFingerprint is { } fingerprint && fingerprints.Contains(fingerprint)), embedders.Check())
+        {
+            Cut = _tuning.CutFor(_model.Fingerprint()),
+        };
     }
 
     public async Task<ProjectHistorySnapshot> SnapshotAsync(ProjectContext project, int maxFragments, CancellationToken ct)
@@ -235,12 +252,13 @@ public sealed class SemanticIndex(IProjectMemory memory, ISemanticIndexStore sto
             }
         }
 
-        var fingerprint = VectorFingerprint(_model);
         var fragments = chosen
-            .Select(f => new HistoryFragment(f.Fragment.Id, SemanticLabels.Of(f.Entry.Kind), f.Fragment.At, f.Fragment.Text, VectorOf(held, f.Fragment, fingerprint)))
+            .Select(f => new HistoryFragment(f.Fragment.Id, SemanticLabels.Of(f.Entry.Kind), f.Fragment.At, f.Fragment.Text, VectorOf(held, f.Fragment, VectorFingerprint(_model, f.Entry.Kind))))
             .ToList();
         var withVectors = fragments.Any(f => f.Vector is not null);
-        return new ProjectHistorySnapshot(timeProvider.GetUtcNow(), withVectors ? fingerprint : null, withVectors ? _model.Dimensions : 0, fragments);
+
+        // Every vector is of the same model, the journal's computed from its clean view: the snapshot names the model.
+        return new ProjectHistorySnapshot(timeProvider.GetUtcNow(), withVectors ? _model.Fingerprint() : null, withVectors ? _model.Dimensions : 0, fragments);
     }
 
     public async Task DeleteAsync(ProjectContext project, CancellationToken ct)
@@ -259,43 +277,152 @@ public sealed class SemanticIndex(IProjectMemory memory, ISemanticIndexStore sto
     }
 
     /// <summary>
-    /// The fingerprint the vectors of the index carry: the model and the version of the view the meaning of an entry of the
-    /// journal is computed from (<see cref="JournalSearchText.Version"/>), so a new view, like a new model, computes them
-    /// again and they are never compared with the old ones.
+    /// The fingerprint of the vector of a fragment of <paramref name="kind"/>: the model's
+    /// (<see cref="EmbeddingModelDescriptor.Fingerprint"/>), and for an entry of the journal also the version of the clean
+    /// view its meaning is computed from (<see cref="JournalSearchText.Version"/>). So a new model computes every vector
+    /// again, and a new view only those of the journal; neither is ever compared with the old ones.
     /// </summary>
-    public static string VectorFingerprint(EmbeddingModelDescriptor model)
+    public static string VectorFingerprint(EmbeddingModelDescriptor model, MemoryKind kind)
     {
         ArgumentNullException.ThrowIfNull(model);
-        return ContentHash.Sha256Hex(ContentHash.Canonical(
-            "agent-studio/semantic-vectors/1",
-            model.Fingerprint(),
-            JournalSearchText.Version.ToString(CultureInfo.InvariantCulture)));
+        return kind == MemoryKind.JournalEntry
+            ? ContentHash.Sha256Hex(ContentHash.Canonical(
+                "agent-studio/semantic-vectors/journal/1",
+                model.Fingerprint(),
+                JournalSearchText.Version.ToString(CultureInfo.InvariantCulture)))
+            : model.Fingerprint();
     }
 
+    /// <summary>The two fingerprints the vectors of <paramref name="model"/> may carry: of any entry, and of an entry of the journal.</summary>
+    private static HashSet<string> Fingerprints(EmbeddingModelDescriptor model) =>
+        new(StringComparer.Ordinal) { VectorFingerprint(model, MemoryKind.Decision), VectorFingerprint(model, MemoryKind.JournalEntry) };
+
     /// <summary>
-    /// The terms of <paramref name="terms"/> that are in at most <see cref="SemanticSearchTuning.CommonTermFraction"/> of the
-    /// fragments the index holds, counted by the lexical search itself (as FTS5 counts them), and only as far as the ceiling:
-    /// a term in more is the template of the journal or a word of every entry, and it only brings noise. All of them without
-    /// a ceiling, or when it would drop them all (a search made only of such words still searches by them).
+    /// The terms of a search that go to its lexical list: without the fixed words of the template of the journal
+    /// (<see cref="SemanticSearchTuning.TemplateWords"/>) unless it has no other, and then without those in more than
+    /// <see cref="SemanticSearchTuning.CommonTermFraction"/> of the anchored fragments, unless that would drop them all. A
+    /// search made only of such words still searches by them.
     /// </summary>
-    private async Task<IReadOnlyList<string>> UncommonAsync(ProjectContext project, Reading reading, IReadOnlyList<string> terms, CancellationToken ct)
+    private IReadOnlyList<string> TermsOf(Reading reading, string text)
     {
-        if (_tuning.CommonTermFraction is not { } fraction || terms.Count == 0 || reading.Size == 0)
+        var all = LexicalTerms.From(text);
+        var content = all.Where(t => !_tuning.TemplateWords.Contains(JournalTemplate.Fold(t))).ToList();
+        var terms = content.Count > 0 ? content : all;
+        var size = reading.Anchored.Fragments.Count;
+        if (_tuning.CommonTermFraction is not { } fraction || terms.Count == 0 || size == 0)
         {
             return terms;
         }
 
-        var ceiling = (int)Math.Floor(fraction * reading.Size);
-        var uncommon = new List<string>(terms.Count);
-        foreach (var term in terms)
+        var ceiling = (int)Math.Floor(fraction * size);
+        var uncommon = terms.Where(t => FrequencyOf(reading, t) <= ceiling).ToList();
+        return uncommon.Count > 0 ? uncommon : terms;
+    }
+
+    /// <summary>
+    /// How many anchored fragments have <paramref name="term"/> (its words together, as an FTS5 phrase): counted over the
+    /// words of the reading, which are cut once per fragment, never by asking the store for its rows.
+    /// </summary>
+    private int FrequencyOf(Reading reading, string term)
+    {
+        var phrase = FoldedWords.Of(term);
+        var key = string.Join(' ', phrase);
+        if (reading.Frequencies.TryGetValue(key, out var count))
         {
-            if ((await store.SearchWordsAsync(project, [term], ceiling + 1, ct).ConfigureAwait(false)).Count <= ceiling)
+            return count;
+        }
+
+        count = phrase.Length == 0 ? 0 : reading.Anchored.Fragments.Count(f => FoldedWords.Contains(WordsOf(f.Fragment), phrase));
+        reading.Frequencies[key] = count;
+        return count;
+    }
+
+    /// <summary>
+    /// What goes first in <paramref name="query"/>: the fragments that contain exactly an identifier of its text
+    /// (<see cref="SearchIdentifiers"/>), one per entry, among what the query admits, at most
+    /// <see cref="SemanticSearchTuning.MaxIdentifierHits"/>. Those with more identifiers of the search first, then by their
+    /// place in its lexical list (<c>bm25</c>; what it does not have after), then the newest, then by id. A task alone opens
+    /// nothing: the plans number their tasks again. Each goes with its place in the fusion, or none.
+    /// </summary>
+    private List<(FusedCandidate Rank, string Identifier)> HeadOf(Reading reading, TextLists lists, SemanticQuery query, IReadOnlyList<FusedCandidate> fused)
+    {
+        if (_tuning.MaxIdentifierHits <= 0 || !lists.Identifiers.Any(i => i.OpensTheHead))
+        {
+            return [];
+        }
+
+        lists.Containing ??= Containing(reading, lists);
+        var head = new List<(FusedCandidate Rank, string Identifier)>(_tuning.MaxIdentifierHits);
+        var entries = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var (fragment, identifier) in lists.Containing)
+        {
+            if (!Admits(query, fragment.Entry) || !entries.Add(fragment.Entry.Id))
             {
-                uncommon.Add(term);
+                continue;
+            }
+
+            var rank = fused.FirstOrDefault(c => string.Equals(c.Id, fragment.Fragment.Id, StringComparison.Ordinal))
+                ?? new FusedCandidate(fragment.Fragment.Id, fragment.Fragment.At, 0d, null, null);
+            head.Add((rank, identifier));
+            if (head.Count == _tuning.MaxIdentifierHits)
+            {
+                break;
             }
         }
 
-        return uncommon.Count > 0 ? uncommon : terms;
+        return head;
+    }
+
+    /// <summary>The anchored fragments that contain an identifier of the text of <paramref name="lists"/> that opens the head, in the order of <see cref="HeadOf"/>, each with the first it contains.</summary>
+    private List<(AnchoredFragment Fragment, string Identifier)> Containing(Reading reading, TextLists lists)
+    {
+        var places = new Dictionary<string, int>(StringComparer.Ordinal);
+        for (var i = 0; i < lists.Lexical.Count; i++)
+        {
+            places.TryAdd(lists.Lexical[i].Id, i);
+        }
+
+        var containing = new List<(AnchoredFragment Fragment, int Count, string Identifier)>();
+        foreach (var fragment in reading.Anchored.Fragments)
+        {
+            var words = WordsOf(fragment.Fragment);
+            var contained = lists.Identifiers.Where(i => SearchIdentifiers.Contains(i, words, fragment.Fragment, fragment.Entry.Id)).ToList();
+            if (contained.Any(i => i.OpensTheHead))
+            {
+                containing.Add((fragment, contained.Count, contained.First(i => i.OpensTheHead).Text));
+            }
+        }
+
+        return [.. containing
+            .OrderByDescending(c => c.Count)
+            .ThenBy(c => places.GetValueOrDefault(c.Fragment.Fragment.Id, int.MaxValue))
+            .ThenByDescending(c => c.Fragment.Fragment.At)
+            .ThenBy(c => c.Fragment.Fragment.Id, StringComparer.Ordinal)
+            .Select(c => (c.Fragment, c.Identifier))];
+    }
+
+    /// <summary>The words of <paramref name="fragment"/> (<see cref="FoldedWords"/>), cut once by its fingerprint, each word kept once.</summary>
+    private string[] WordsOf(SemanticFragment fragment)
+    {
+        if (_words.TryGetValue(fragment.Sha256, out var words))
+        {
+            return words;
+        }
+
+        words = FoldedWords.Of(fragment.Text);
+        for (var i = 0; i < words.Length; i++)
+        {
+            words[i] = _pool.GetOrAdd(words[i], words[i]);
+        }
+
+        if (_words.Count >= MaxCachedFragments)
+        {
+            _words.Clear();
+            _pool.Clear();
+        }
+
+        _words.TryAdd(fragment.Sha256, words);
+        return words;
     }
 
     private static bool Admits(SemanticQuery query, MemoryEntry entry) =>
@@ -365,34 +492,51 @@ public sealed class SemanticIndex(IProjectMemory memory, ISemanticIndexStore sto
             return new Reading(anchored, size, null, ReasonOf(opening.Status.State));
         }
 
-        var fingerprint = VectorFingerprint(embedder.Model);
-        return held.Values.Any(h => string.Equals(h.ModelFingerprint, fingerprint, StringComparison.Ordinal))
+        var fingerprints = Fingerprints(embedder.Model);
+        return held.Values.Any(h => h.ModelFingerprint is { } fingerprint && fingerprints.Contains(fingerprint))
             ? new Reading(anchored, size, embedder, null)
             : new Reading(anchored, size, null, WordsOnlyReason.VectorsPending);
     }
 
     /// <summary>
     /// The two lists of <paramref name="text"/> as the store gives them (their first <see cref="CandidatePool"/> places), the
-    /// text embedded once as a query, or why there is no semantic list. A blank text has neither list.
+    /// text embedded once as a query, or why there is no semantic list, and its identifiers. A blank text has neither list.
     /// </summary>
     private async Task<TextLists> ListsAsync(ProjectContext project, Reading reading, string text, CancellationToken ct)
     {
-        var terms = await UncommonAsync(project, reading, LexicalTerms.From(text), ct).ConfigureAwait(false);
+        var terms = TermsOf(reading, text);
+        var identifiers = SearchIdentifiers.In(text);
         var lexical = terms.Count == 0 ? [] : await store.SearchWordsAsync(project, terms, CandidatePool, ct).ConfigureAwait(false);
         if (reading.Embedder is not { } embedder || string.IsNullOrWhiteSpace(text))
         {
-            return new TextLists(terms, lexical, null, [], reading.Reason);
+            return new TextLists(terms, identifiers, lexical, null, [], reading.Reason);
         }
 
         var vectors = await EmbedAsync(embedder, [text.Trim()], EmbeddingRole.Query, ct).ConfigureAwait(false);
         if (vectors is null)
         {
-            return new TextLists(terms, lexical, null, [], WordsOnlyReason.ModelUnloadable);
+            return new TextLists(terms, identifiers, lexical, null, [], WordsOnlyReason.ModelUnloadable);
         }
 
-        var meaning = new QueryMeaning(vectors[0], VectorFingerprint(embedder.Model), _tuning.CutFor(embedder.Model.Fingerprint()));
-        var semantic = await store.SearchVectorsAsync(project, meaning.Vector, meaning.Fingerprint, CandidatePool, ct).ConfigureAwait(false);
-        return new TextLists(terms, lexical, meaning, semantic, null);
+        var meaning = new QueryMeaning(vectors[0], embedder.Model, _tuning.CutFor(embedder.Model.Fingerprint()));
+        var semantic = await NearestAsync(project, meaning, CandidatePool, ct).ConfigureAwait(false);
+        return new TextLists(terms, identifiers, lexical, meaning, semantic, null);
+    }
+
+    /// <summary>
+    /// The first <paramref name="top"/> places of the semantic list of <paramref name="meaning"/>: the vectors of any entry
+    /// and those of the journal, which carry fingerprints of their own, merged as the store orders each (the best first, ties
+    /// by time, newest first, and id).
+    /// </summary>
+    private async Task<IReadOnlyList<SimilarCandidate>> NearestAsync(ProjectContext project, QueryMeaning meaning, int top, CancellationToken ct)
+    {
+        var any = await store.SearchVectorsAsync(project, meaning.Vector, VectorFingerprint(meaning.Model, MemoryKind.Decision), top, ct).ConfigureAwait(false);
+        var journal = await store.SearchVectorsAsync(project, meaning.Vector, VectorFingerprint(meaning.Model, MemoryKind.JournalEntry), top, ct).ConfigureAwait(false);
+        return [.. any.Concat(journal)
+            .OrderByDescending(c => c.Similarity)
+            .ThenByDescending(c => c.At)
+            .ThenBy(c => c.Id, StringComparer.Ordinal)
+            .Take(top)];
     }
 
     /// <summary>
@@ -442,7 +586,7 @@ public sealed class SemanticIndex(IProjectMemory memory, ISemanticIndexStore sto
         var admitted = Admitted(lists.Semantic.Select(c => (c.Id, c.Similarity)), reading.Anchored, query, minimum, ListDepth);
         if (admitted.Count < ListDepth && lists.Semantic.Count >= CandidatePool && reading.Size > CandidatePool && lists.Semantic[^1].Similarity >= minimum)
         {
-            lists.WholeSemantic ??= await store.SearchVectorsAsync(project, meaning.Vector, meaning.Fingerprint, reading.Size, ct).ConfigureAwait(false);
+            lists.WholeSemantic ??= await NearestAsync(project, meaning, reading.Size, ct).ConfigureAwait(false);
             admitted = Admitted(lists.WholeSemantic.Select(c => (c.Id, c.Similarity)), reading.Anchored, query, minimum, ListDepth);
         }
 
@@ -485,6 +629,7 @@ public sealed class SemanticIndex(IProjectMemory memory, ISemanticIndexStore sto
         IReadOnlyList<FusedCandidate> fused,
         SemanticQuery query,
         Dictionary<string, SemanticFragment> altered,
+        IReadOnlyDictionary<string, string> identifiers,
         CancellationToken ct)
     {
         var hits = new List<SemanticHit>();
@@ -501,7 +646,7 @@ public sealed class SemanticIndex(IProjectMemory memory, ISemanticIndexStore sto
             batch.Add((candidate, expected));
             if (batch.Count == VerificationBatch)
             {
-                await CheckAsync(project, batch, hits, altered, entries, query.Top, ct).ConfigureAwait(false);
+                await CheckAsync(project, batch, hits, altered, entries, identifiers, query.Top, ct).ConfigureAwait(false);
                 batch.Clear();
                 if (hits.Count == query.Top)
                 {
@@ -512,7 +657,7 @@ public sealed class SemanticIndex(IProjectMemory memory, ISemanticIndexStore sto
 
         if (batch.Count > 0)
         {
-            await CheckAsync(project, batch, hits, altered, entries, query.Top, ct).ConfigureAwait(false);
+            await CheckAsync(project, batch, hits, altered, entries, identifiers, query.Top, ct).ConfigureAwait(false);
         }
 
         return hits;
@@ -529,6 +674,7 @@ public sealed class SemanticIndex(IProjectMemory memory, ISemanticIndexStore sto
         List<SemanticHit> hits,
         Dictionary<string, SemanticFragment> altered,
         HashSet<string> entries,
+        IReadOnlyDictionary<string, string> identifiers,
         int top,
         CancellationToken ct)
     {
@@ -553,7 +699,7 @@ public sealed class SemanticIndex(IProjectMemory memory, ISemanticIndexStore sto
 
             if (hits.Count < top && entries.Add(expected.Entry.Id))
             {
-                hits.Add(new SemanticHit(expected.Fragment, SemanticLabels.Of(expected.Entry.Kind), expected.Entry, rank));
+                hits.Add(new SemanticHit(expected.Fragment, SemanticLabels.Of(expected.Entry.Kind), expected.Entry, rank) { Identifier = identifiers.GetValueOrDefault(rank.Id) });
             }
         }
     }
@@ -668,15 +814,24 @@ public sealed class SemanticIndex(IProjectMemory memory, ISemanticIndexStore sto
     /// One reading for a batch of searches: what is anchored, how many fragments the index holds, and the local model when its
     /// vectors can be used, or why not.
     /// </summary>
-    private sealed record Reading(Anchored Anchored, int Size, IEmbedder? Embedder, WordsOnlyReason? Reason);
+    private sealed record Reading(Anchored Anchored, int Size, IEmbedder? Embedder, WordsOnlyReason? Reason)
+    {
+        /// <summary>How many anchored fragments each phrase of the batch is in, by its words.</summary>
+        public Dictionary<string, int> Frequencies { get; } = new(StringComparer.Ordinal);
+    }
 
-    /// <summary>The embedding of a search, the fingerprint of the vectors it is compared with, and the cut of its model (null without one).</summary>
-    private sealed record QueryMeaning(float[] Vector, string Fingerprint, MeaningOnlyCut? Cut);
+    /// <summary>The embedding of a search, the model whose vectors it is compared with, and the cut of that model (null without one).</summary>
+    private sealed record QueryMeaning(float[] Vector, EmbeddingModelDescriptor Model, MeaningOnlyCut? Cut);
 
-    /// <summary>The two lists of one text of a batch, as the store gave them, and the whole ones once they were needed.</summary>
-    private sealed class TextLists(IReadOnlyList<string> terms, IReadOnlyList<RankedCandidate> lexical, QueryMeaning? meaning, IReadOnlyList<SimilarCandidate> semantic, WordsOnlyReason? reason)
+    /// <summary>The two lists of one text of a batch, as the store gave them, its identifiers, and the whole lists once they were needed.</summary>
+    private sealed class TextLists(IReadOnlyList<string> terms, IReadOnlyList<SearchIdentifier> identifiers, IReadOnlyList<RankedCandidate> lexical, QueryMeaning? meaning, IReadOnlyList<SimilarCandidate> semantic, WordsOnlyReason? reason)
     {
         public IReadOnlyList<string> Terms { get; } = terms;
+
+        public IReadOnlyList<SearchIdentifier> Identifiers { get; } = identifiers;
+
+        /// <summary>The anchored fragments with an identifier of the text, in the order they go first, once they were needed.</summary>
+        public List<(AnchoredFragment Fragment, string Identifier)>? Containing { get; set; }
 
         public IReadOnlyList<RankedCandidate> Lexical { get; } = lexical;
 

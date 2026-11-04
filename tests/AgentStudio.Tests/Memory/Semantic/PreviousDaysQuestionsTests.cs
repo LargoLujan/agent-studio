@@ -19,9 +19,10 @@ public sealed class PreviousDaysQuestionsTests
 
     /// <summary>
     /// The answers among the first five by the index without a model, as it is tuned (FTS5 over its fragments, the journal
-    /// with its whole text, without function words nor those in more than half of the fragments), with the distractors: 52 %.
+    /// with its whole text, without function words, the keywords of the template of the journal nor those in more than half
+    /// of the fragments), with the distractors: 50 %. Without «tarea» it misses q40, which FTS5 as today misses too.
     /// </summary>
-    private const int FoundByWordsInTheIndex = 26;
+    private const int FoundByWordsInTheIndex = 25;
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -50,6 +51,13 @@ public sealed class PreviousDaysQuestionsTests
         Assert.Equal(25, answers.Count(e => e.Kind == MemoryKind.JournalEntry));
         Assert.DoesNotContain(set.Entries, e => e.Kind == MemoryKind.DailySummary);
         Assert.All(set.Entries, e => Assert.InRange(e.Content.Length, 1, MemoryContent.MaxCharacters));
+
+        // Fifteen more, by the metadata of the journal and by identifiers, each answered by one entry: they are not F12-4.
+        Assert.Equal(15, set.ByMetadata.Count);
+        Assert.All(set.ByMetadata, q => Assert.Single(set.Entries, e => e.Key == q.Answer));
+        Assert.Equal(set.All.Count, set.All.Select(q => q.Id).Distinct(StringComparer.Ordinal).Count());
+        Assert.Equal(["identificador con significado", "metadatos"], set.ByMetadata.Select(q => q.Type).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal));
+        Assert.All(set.Questions, q => Assert.Equal(Question.Paraphrase, q.Type));
     }
 
     [Fact]
@@ -112,9 +120,20 @@ public sealed class PreviousDaysQuestionsTests
         var today = await set.ScoreAsync(ids, async question =>
             [.. (await world.Memory.RecallAsync(world.Project, new MemoryQuery(question, MaxEntries: PreviousDays.Top), Ct)).Select(e => e.Id)]);
 
+        // The questions by metadata and identifiers: the hybrid search loses none of what FTS5 finds, of any type.
+        var byMetadata = await PreviousDays.ScoreAsync(ids, set.ByMetadata, async question =>
+            [.. (await index.SearchAsync(world.Project, new SemanticQuery(question, PreviousDays.Top), Ct)).Hits.Select(h => h.Entry!.Id)]);
+        var byMetadataToday = await PreviousDays.ScoreAsync(ids, set.ByMetadata, async question =>
+            [.. (await world.Memory.RecallAsync(world.Project, new MemoryQuery(question, MaxEntries: PreviousDays.Top), Ct)).Select(e => e.Id)]);
+        var lost = set.All.Select(q => q.Id)
+            .Where(q => !today.Missed.Concat(byMetadataToday.Missed).Contains(q) && hybrid.Missed.Concat(byMetadata.Missed).Contains(q))
+            .ToList();
+
         LocalModel.Report($"Híbrida: {hybrid}");
         LocalModel.Report($"FTS5 como hoy: {today}");
+        LocalModel.Report($"Por metadatos e identificadores, híbrida: {byMetadata}; FTS5 como hoy: {byMetadataToday}");
         Assert.Equal(SemanticSearchMode.Hybrid, mode);
+        Assert.Empty(lost);
         Assert.True(hybrid.Rate >= 0.85, $"Híbrida: {hybrid}");
         Assert.True(hybrid.Found - today.Found >= 0.15 * set.Questions.Count, $"Híbrida: {hybrid}; FTS5 como hoy: {today}");
     }

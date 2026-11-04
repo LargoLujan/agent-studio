@@ -26,13 +26,25 @@ public sealed class MeaningOnlyFloorCalibrationTests
     private static readonly MeaningOnlyCut?[] Cuts =
     [
         null,
-        new(0.74f), new(0.76f), new(0.78f), new(0.79f), new(0.80f), new(0.82f), new(0.84f),
-        new(-1f, 0.03f), new(-1f, 0.04f), new(-1f, 0.05f),
+        new(0.78f), new(0.79f), new(0.80f),
         new(0.78f, 0.04f), new(0.79f, 0.03f), new(0.79f, 0.04f), new(0.79f, 0.05f), new(0.80f, 0.04f),
     ];
 
     /// <summary>The shares of the fragments above which a term of the question is ignored, null for no ceiling.</summary>
-    private static readonly double?[] CommonTermFractions = [null, 0.6, 0.5, 0.45, 0.4, 0.35, 0.3, 0.25, 0.2, 0.15, 0.1, 0.05];
+    private static readonly double?[] CommonTermFractions = [null, 0.5, 0.25];
+
+    /// <summary>How many fragments with an identifier of the question go first: 0 is the fusion alone.</summary>
+    private static readonly int[] IdentifierHits = [0, 1, 2, 3, 5];
+
+    /// <summary>The words of the template the lexical list leaves out: none, the keywords, with the states, with the CLIs (the index's), and all.</summary>
+    private static readonly (string Label, IReadOnlySet<string> Words)[] TemplateLists =
+    [
+        ("ninguna", new HashSet<string>(StringComparer.Ordinal)),
+        ("palabras clave", JournalTemplate.FoldAll(JournalTemplate.Keywords)),
+        ("palabras clave y estados", JournalTemplate.FoldAll([.. JournalTemplate.Keywords, .. JournalTemplate.Statuses])),
+        ("palabras clave y CLI (la del índice)", JournalTemplate.Words),
+        ("palabras clave, estados y CLI", JournalTemplate.FoldAll([.. JournalTemplate.Keywords, .. JournalTemplate.Statuses, .. JournalTemplate.Providers])),
+    ];
 
     private static readonly (ContextTierName Tier, MemoryKind[] Kinds)[] Tiers =
     [
@@ -70,11 +82,15 @@ public sealed class MeaningOnlyFloorCalibrationTests
         var refresh = await Index(production).RefreshAsync(world.Project, Ct);
         Assert.True(refresh.Completed, refresh.Reason);
 
-        var today = await set.ScoreAsync(ids, async question =>
+        var today = await PreviousDays.ScoreAsync(ids, set.All, async question =>
             [.. (await world.Memory.RecallAsync(world.Project, new MemoryQuery(question, MaxEntries: PreviousDays.Top), Ct)).Select(e => e.Id)]);
-        LocalModel.Report($"FTS5 como hoy: {today}; de la bitácora: {set.Questions.Count(q => entries[q.Answer].Kind == MemoryKind.JournalEntry && !today.Missed.Contains(q.Id))}/{set.Questions.Count(q => entries[q.Answer].Kind == MemoryKind.JournalEntry)}");
+        LocalModel.Report($"FTS5 como hoy: {ByType(set, today.Missed)}; fuera: {string.Join(" ", today.Missed)}");
         LocalModel.Report(await SimilaritiesAsync(set, keyOf, store, embedder, world.Project));
         LocalModel.Report(await FrequenciesAsync(set, store, world.Project));
+        var pinned = await MeasureAsync(set, ids, keyOf, entries, Index(production), world.Project);
+        var wordsOnly = await MeasureAsync(set, ids, keyOf, entries, Index(production, new MissingSource()), world.Project);
+        LocalModel.Report($"el índice tal como queda: {pinned}");
+        LocalModel.Report($"el índice sin modelo: {wordsOnly.Brief()}");
 
         var cuts = new Dictionary<string, Measure>(StringComparer.Ordinal);
         foreach (var cut in Cuts)
@@ -89,17 +105,30 @@ public sealed class MeaningOnlyFloorCalibrationTests
             var tuning = production with { CommonTermFraction = fraction };
             var hybrid = await MeasureAsync(set, ids, keyOf, entries, Index(tuning), world.Project);
             var words = await MeasureAsync(set, ids, keyOf, entries, Index(tuning, new MissingSource()), world.Project);
-            LocalModel.Report($"techo de términos comunes {Share(fraction)}: {hybrid}; solo por palabras en el índice: {words.Brief()}");
+            LocalModel.Report($"techo de términos comunes {Share(fraction)}: {hybrid.Brief()}{Flips(hybrid, pinned)}; sin modelo: {words.Brief()}{Flips(words, wordsOnly)}");
+        }
+
+        foreach (var (label, words) in TemplateLists)
+        {
+            var hybrid = await MeasureAsync(set, ids, keyOf, entries, Index(production with { TemplateWords = words }), world.Project);
+            var alone = await MeasureAsync(set, ids, keyOf, entries, Index(production with { TemplateWords = words }, new MissingSource()), world.Project);
+            LocalModel.Report($"plantilla fuera, {label}: {hybrid.Brief()}{Flips(hybrid, pinned)}; sin modelo: {alone.Brief()}{Flips(alone, wordsOnly)}");
+        }
+
+        foreach (var hits in IdentifierHits)
+        {
+            var hybrid = await MeasureAsync(set, ids, keyOf, entries, Index(production with { MaxIdentifierHits = hits }), world.Project);
+            LocalModel.Report(string.Create(CultureInfo.InvariantCulture, $"identificadores primero, hasta {hits}: {hybrid}{Flips(hybrid, pinned)}"));
         }
 
         LocalModel.Report(await RanksAsync(set, ids, Index(production), world.Project));
 
         // The rule of the calibration: with the tuning of the index, its cut keeps every answer F12-4 has without a cut and
-        // cuts the distractors, and the hybrid search loses none of the answers FTS5 finds as the memory searches today.
-        var pinned = await MeasureAsync(set, ids, keyOf, entries, Index(production), world.Project);
+        // cuts the distractors, and the hybrid search loses none of the answers FTS5 finds as the memory searches today, of
+        // any type.
         var none = cuts[Label(null)];
-        var lost = set.Questions.Select(q => q.Id).Where(q => !today.Missed.Contains(q) && pinned.Missed.Contains(q)).ToList();
-        LocalModel.Report($"el índice tal como queda: {pinned}; de lo que FTS5 como hoy encuentra, pierde: {(lost.Count == 0 ? "nada" : string.Join(" ", lost))}");
+        var lost = set.All.Select(q => q.Id).Where(q => !today.Missed.Contains(q) && pinned.Missed.Contains(q)).ToList();
+        LocalModel.Report($"de lo que FTS5 como hoy encuentra, la híbrida pierde: {(lost.Count == 0 ? "nada" : string.Join(" ", lost))}");
         Assert.Empty(lost);
         Assert.True(pinned.Found >= none.Found, $"El corte del modelo pierde aciertos: {pinned}; sin corte: {none}");
         Assert.True(pinned.Distractors < none.Distractors * 0.6, $"El corte del modelo no corta el ruido: {pinned}; sin corte: {none}");
@@ -107,6 +136,18 @@ public sealed class MeaningOnlyFloorCalibrationTests
 
         SemanticIndex Index(SemanticSearchTuning tuning, IEmbedderSource? source = null) =>
             new(memory, store, source ?? new FixedSource(embedder), world.Clock, tuning: tuning);
+    }
+
+    /// <summary>How many of each type of question came among the first five, given the ones that did not.</summary>
+    private static string ByType(PreviousDays set, IReadOnlyCollection<string> missed) =>
+        string.Join(", ", set.All.GroupBy(q => q.Type).Select(g => string.Create(CultureInfo.InvariantCulture, $"{g.Key} {g.Count(q => !missed.Contains(q.Id))}/{g.Count()}")));
+
+    /// <summary>The questions a setting finds and <paramref name="reference"/> does not, and the other way round.</summary>
+    private static string Flips(Measure measure, Measure reference)
+    {
+        var gained = reference.Missed.Except(measure.Missed, StringComparer.Ordinal).ToList();
+        var lost = measure.Missed.Except(reference.Missed, StringComparer.Ordinal).ToList();
+        return gained.Count == 0 && lost.Count == 0 ? string.Empty : $" (gana {string.Join(" ", gained)}; pierde {string.Join(" ", lost)})";
     }
 
     /// <summary>The table of cuts with <paramref name="cut"/> for the model, or with none.</summary>
@@ -122,10 +163,10 @@ public sealed class MeaningOnlyFloorCalibrationTests
     /// <summary>For each question whose answer is not among the first five, where it is: its place in the fused list and in each list.</summary>
     private static async Task<string> RanksAsync(PreviousDays set, IReadOnlyDictionary<string, string> ids, SemanticIndex index, ProjectContext project)
     {
-        var lines = new List<string> { "puestos de las respuestas que faltan (L: en la lista por palabras, S: en la del significado; delante, las cinco primeras):" };
-        foreach (var question in set.Questions)
+        var lines = new List<string> { "puestos de las respuestas que faltan (L: en la lista por palabras, S: en la del significado, I: primera por un identificador; delante, las cinco primeras):" };
+        foreach (var question in set.All)
         {
-            var all = await index.SearchAsync(project, new SemanticQuery(question.Text, 500), Ct);
+            var all = await index.SearchAsync(project, new SemanticQuery(question.TextWith(ids), 500), Ct);
             var place = all.Hits.Select((h, i) => (h, i)).FirstOrDefault(p => p.h.Entry!.Id == ids[question.Answer]);
             if (place.h is null)
             {
@@ -135,7 +176,7 @@ public sealed class MeaningOnlyFloorCalibrationTests
 
             if (place.i >= PreviousDays.Top)
             {
-                var above = string.Join(" ", all.Hits.Take(PreviousDays.Top).Select(h => $"(L{h.Rank.LexicalRank?.ToString(CultureInfo.InvariantCulture) ?? "-"},S{h.Rank.SemanticRank?.ToString(CultureInfo.InvariantCulture) ?? "-"})"));
+                var above = string.Join(" ", all.Hits.Take(PreviousDays.Top).Select(h => $"(L{h.Rank.LexicalRank?.ToString(CultureInfo.InvariantCulture) ?? "-"},S{h.Rank.SemanticRank?.ToString(CultureInfo.InvariantCulture) ?? "-"}{(h.Identifier is null ? string.Empty : ",I")})"));
                 lines.Add(string.Create(CultureInfo.InvariantCulture, $"{question.Id}: puesto {place.i + 1} (L{place.h.Rank.LexicalRank?.ToString(CultureInfo.InvariantCulture) ?? "-"}, S{place.h.Rank.SemanticRank?.ToString(CultureInfo.InvariantCulture) ?? "-"}); delante: {above}"));
             }
         }
@@ -173,7 +214,7 @@ public sealed class MeaningOnlyFloorCalibrationTests
         return string.Join(Environment.NewLine, lines);
     }
 
-    /// <summary>F12-4 and the noise of the tiers by relevance of a pack, for one setting.</summary>
+    /// <summary>What comes among the first five for every question of the set, by type, and the noise of the tiers by relevance of a pack for the 50 of F12-4, for one setting.</summary>
     private static async Task<Measure> MeasureAsync(
         PreviousDays set,
         IReadOnlyDictionary<string, string> ids,
@@ -191,6 +232,15 @@ public sealed class MeaningOnlyFloorCalibrationTests
         var answersInTier = 0;
         var answersWithTier = 0;
         var missed = new List<string>();
+        foreach (var question in set.ByMetadata)
+        {
+            var five = await index.SearchAsync(project, new SemanticQuery(question.TextWith(ids), PreviousDays.Top), Ct);
+            if (!five.Hits.Any(h => h.Entry!.Id == ids[question.Answer]))
+            {
+                missed.Add(question.Id);
+            }
+        }
+
         foreach (var question in set.Questions)
         {
             var answerKind = entries[question.Answer].Kind;
@@ -230,7 +280,7 @@ public sealed class MeaningOnlyFloorCalibrationTests
             }
         }
 
-        return new Measure(found, set.Questions.Count, journal, journalAsked, distractors, others, characters, answersInTier, answersWithTier, set.Questions.Count * Tiers.Length, missed);
+        return new Measure(found, set.Questions.Count, journal, journalAsked, distractors, others, characters, answersInTier, answersWithTier, set.Questions.Count * Tiers.Length, missed, ByType(set, missed));
     }
 
     /// <summary>
@@ -244,7 +294,7 @@ public sealed class MeaningOnlyFloorCalibrationTests
         QueryCache embedder,
         ProjectContext project)
     {
-        var fingerprint = SemanticIndex.VectorFingerprint(EmbeddingModels.MultilingualE5Small);
+        var e5 = EmbeddingModels.MultilingualE5Small;
         var answers = new List<float>();
         var bestOthers = new List<float>();
         var bestDistractors = new List<float>();
@@ -253,7 +303,14 @@ public sealed class MeaningOnlyFloorCalibrationTests
         foreach (var question in set.Questions)
         {
             var vector = (await embedder.EmbedAsync([question.Text], EmbeddingRole.Query, Ct))[0];
-            var list = await store.SearchVectorsAsync(project, vector, fingerprint, 10_000, Ct);
+
+            // The vectors of the journal carry a fingerprint of their own (the version of its view): both lists, merged.
+            var list = (await store.SearchVectorsAsync(project, vector, SemanticIndex.VectorFingerprint(e5, MemoryKind.Decision), 10_000, Ct))
+                .Concat(await store.SearchVectorsAsync(project, vector, SemanticIndex.VectorFingerprint(e5, MemoryKind.JournalEntry), 10_000, Ct))
+                .OrderByDescending(c => c.Similarity)
+                .ThenByDescending(c => c.At)
+                .ThenBy(c => c.Id, StringComparer.Ordinal)
+                .ToList();
             float Best(Func<string, bool> which) => list.Where(c => which(keyOf[EntryOf(c.Id)])).Select(c => c.Similarity).DefaultIfEmpty(-1f).Max();
             var answer = Best(k => k == question.Answer);
             var other = Best(k => k != question.Answer);
@@ -293,16 +350,17 @@ public sealed class MeaningOnlyFloorCalibrationTests
         int AnswersInTier,
         int AnswersWithTier,
         int Tiers,
-        IReadOnlyList<string> Missed)
+        IReadOnlyList<string> Missed,
+        string Types)
     {
-        /// <summary>F12-4 alone.</summary>
+        /// <summary>F12-4 and the questions by type alone.</summary>
         public string Brief() => string.Create(
             CultureInfo.InvariantCulture,
-            $"F12-4 {Found}/{Asked} (bitácora {JournalFound}/{JournalAsked}, memoria {Found - JournalFound}/{Asked - JournalAsked}); fuera: {string.Join(" ", Missed)}");
+            $"F12-4 {Found}/{Asked} (bitácora {JournalFound}/{JournalAsked}, memoria {Found - JournalFound}/{Asked - JournalAsked}); por tipo: {Types}; fuera: {string.Join(" ", Missed)}");
 
         public override string ToString() => string.Create(
             CultureInfo.InvariantCulture,
-            $"F12-4 {Found}/{Asked} (bitácora {JournalFound}/{JournalAsked}, memoria {Found - JournalFound}/{Asked - JournalAsked}); ruido: {Distractors} distractores ({(double)Distractors / Tiers:F2} por nivel), {Others} entradas que no son la respuesta ({(double)Others / Tiers:F2} por nivel, {Characters / Asked} caracteres por paquete); respuesta en su nivel {AnswersInTier}/{AnswersWithTier}; fuera de las cinco primeras: {string.Join(" ", Missed)}");
+            $"F12-4 {Found}/{Asked} (bitácora {JournalFound}/{JournalAsked}, memoria {Found - JournalFound}/{Asked - JournalAsked}); por tipo: {Types}; ruido: {Distractors} distractores ({(double)Distractors / Tiers:F2} por nivel), {Others} entradas que no son la respuesta ({(double)Others / Tiers:F2} por nivel, {Characters / Asked} caracteres por paquete); respuesta en su nivel {AnswersInTier}/{AnswersWithTier}; fuera de las cinco primeras: {string.Join(" ", Missed)}");
     }
 
     /// <summary>The anchored entries, as recall gave them once: every search reads them without reading the log again.</summary>

@@ -40,8 +40,9 @@ public static class ProjectHistoryNames
 public sealed record HistoryFragment(string Id, string Label, DateTimeOffset At, string Text, float[]? Vector = null);
 
 /// <summary>
-/// The trusted history of a project as the MCP server sees it (docs/17 D-06): when it was taken, the fingerprint and
-/// dimensions of the model of its vectors (null and 0 when none has one) and its fragments, newest first.
+/// The trusted history of a project as the MCP server sees it (docs/17 D-06): when it was taken, the fingerprint of the model
+/// of its vectors (<see cref="EmbeddingModelDescriptor.Fingerprint"/>; those of the journal are of the clean view of each
+/// entry, with the same model) and their dimensions (null and 0 when none has one), and its fragments, newest first.
 /// </summary>
 public sealed record ProjectHistorySnapshot(DateTimeOffset At, string? ModelFingerprint, int Dimensions, IReadOnlyList<HistoryFragment> Fragments);
 

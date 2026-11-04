@@ -190,6 +190,7 @@ public sealed class ContextPackerSemanticTests
         var unfloored = await new ContextPacker(world.World.Memory, world.With(TestModels.Uncut)).PackAsync(world.Project, request, Ct);
         Assert.True(unfloored.Items.Count > 30, $"{unfloored.Items.Count} items without the floor");
         Assert.Null(unfloored.Relevance!.Cut);
+        Assert.Equal(SemanticSearchTexts.NoCut, unfloored.Relevance.CutNotice);
     }
 
     [Fact]
