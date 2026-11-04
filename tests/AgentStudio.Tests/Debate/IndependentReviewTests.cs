@@ -8,6 +8,7 @@ using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Evidence;
 using AgentStudio.Domain.Judging;
 using AgentStudio.Domain.Providers;
+using AgentStudio.Tests.Application;
 using AgentStudio.Tests.Debate.Fakes;
 using AgentStudio.Tests.Domain;
 
@@ -285,6 +286,20 @@ public sealed class IndependentReviewTests
 
         Assert.Empty(outcome.Violations);
         Assert.Equal(expected, outcome.Disposition);
+    }
+
+    [Fact]
+    public async Task The_review_reads_the_whole_log_back_before_the_judge_is_launched()
+    {
+        using var world = await JudgingWorld.CreateAsync();
+        var spy = new LoadSpyRecorder(world.Recorder);
+        var (factory, _) = Scripted(d => Approval(world, d));
+
+        var outcome = await RunAsync(Review(world, factory, spy), Request(world));
+
+        // A critical moment (ADR-0010, addendum of 2026-11-04): a change no load from the tail can see is found here.
+        Assert.Equal(ReviewDisposition.Approved, outcome.Disposition);
+        Assert.Equal([LogLoad.Full], spy.Loads);
     }
 
     [Fact]

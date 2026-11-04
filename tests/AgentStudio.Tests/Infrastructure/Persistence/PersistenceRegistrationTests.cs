@@ -113,4 +113,51 @@ public sealed class PersistenceRegistrationTests : IDisposable
 
         Assert.Equal(id, reopened.ProjectId);
     }
+
+    [Fact]
+    public async Task A_project_closed_is_forgotten_by_the_recorder_so_the_first_entry_after_opening_it_again_rests_on_the_whole_log_read_again()
+    {
+        WholeReads? store = null;
+        await using var provider = Build(s => s.AddSingleton<IDecisionLogStore>(p => store = new WholeReads(new SqliteDecisionLogStore(p.GetRequiredService<ProjectDatabases>()))));
+        var workspace = provider.GetRequiredService<IProjectWorkspace>();
+        var recorder = provider.GetRequiredService<IDecisionRecorder>();
+        var project = await workspace.OpenAsync(_folder.Root, Ct);
+        await recorder.RecordAsync(project.ProjectId, System, DecisionKind.TaskAssigned, "Asignada", Payload(), cancellationToken: Ct);
+        await recorder.RecordAsync(project.ProjectId, System, DecisionKind.TaskAssigned, "Asignada otra vez", Payload(), cancellationToken: Ct);
+        Assert.Equal(1, store!.Count); // the second entry was appended to the log the recorder holds
+
+        provider.GetRequiredService<ProjectDatabases>().Close(project.ProjectId);
+        var reopened = await workspace.OpenAsync(_folder.Root, Ct);
+        var third = await recorder.RecordAsync(reopened.ProjectId, System, DecisionKind.TaskAssigned, "Tras abrirlo otra vez", Payload(), cancellationToken: Ct);
+
+        Assert.Equal(2, store.Count);
+        Assert.Equal(3, third.Sequence);
+        Assert.True((await recorder.LoadAsync(reopened.ProjectId, Ct)).Verification.IsValid);
+    }
+
+    /// <summary>The real store, counting the reads of the whole log (every one, or the tail read with no mark).</summary>
+    private sealed class WholeReads(SqliteDecisionLogStore inner) : IDecisionLogStore, IDecisionLogTailReader
+    {
+        private int _count;
+
+        public int Count => Volatile.Read(ref _count);
+
+        public Task AppendAsync(string projectId, DecisionEntry entry, CancellationToken cancellationToken) => inner.AppendAsync(projectId, entry, cancellationToken);
+
+        public Task<IReadOnlyList<DecisionEntry>> ReadAllAsync(string projectId, CancellationToken cancellationToken)
+        {
+            Interlocked.Increment(ref _count);
+            return inner.ReadAllAsync(projectId, cancellationToken);
+        }
+
+        public Task<DecisionLogTail> ReadTailAsync(string projectId, DecisionLogMark? after, CancellationToken cancellationToken)
+        {
+            if (after is null)
+            {
+                Interlocked.Increment(ref _count);
+            }
+
+            return inner.ReadTailAsync(projectId, after, cancellationToken);
+        }
+    }
 }

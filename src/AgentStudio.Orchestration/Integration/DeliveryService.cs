@@ -121,7 +121,8 @@ public sealed class DeliveryService : IDeliveryService
     {
         ArgumentNullException.ThrowIfNull(project);
         var runBranch = IntegrationNames.BranchName(run);
-        var log = await _decisions.LoadAsync(project.ProjectId, cancellationToken).ConfigureAwait(false);
+        // A critical moment: the whole log, verified from its first entry (ADR-0010, addendum of 2026-11-04).
+        var log = await _decisions.LoadAsync(project.ProjectId, LogLoad.Full, cancellationToken).ConfigureAwait(false);
         if (!log.Verification.IsValid)
         {
             return NotReady($"El registro de decisiones no está íntegro (entrada {log.Verification.FirstInvalidSequence}): no se entrega nada.");

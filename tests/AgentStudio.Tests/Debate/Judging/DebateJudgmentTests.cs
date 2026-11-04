@@ -15,6 +15,7 @@ using AgentStudio.Domain.Evidence;
 using AgentStudio.Domain.Judging;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Providers;
+using AgentStudio.Tests.Application;
 using AgentStudio.Tests.Debate.Fakes;
 using static AgentStudio.Tests.Domain.TestData;
 
@@ -97,6 +98,23 @@ public sealed class DebateJudgmentTests
         var dossier = judges[0].Evaluated[0];
         Assert.Equal((DebateWorld.Debate.Value, dossier.DecisionLogHeadHash, dossier.Requirements.ContentHash), (issued.RunId, issued.DecisionLogHeadHash, issued.RequirementSetHash));
         Assert.Contains("disposición IndependentJudge", issued.VendorNote, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_judgment_of_a_debate_reads_the_whole_log_before_anything_is_written()
+    {
+        using var world = await DebateWorld.CreateAsync();
+        await world.ChoiceDebateAsync(DebateWorld.OneVendor());
+        var (factory, _) = Scripted((_, judge, d) => Choosing(judge, d, "P1"));
+        var spy = new LoadSpyRecorder(world.World.Recorder);
+        var judgment = new DebateJudgment(spy, world.Builder, factory, world.World.Verdicts, world.World.Evidence, world.World.Clock);
+
+        var result = await judgment.JudgeAsync(world.World.ProjectContext, DebateWorld.Debate, null, Ct);
+
+        // The verdict of a debate is a critical moment (ADR-0010, addendum of 2026-11-04), as its dossier is.
+        Assert.Single(result.Verdicts);
+        Assert.Equal([LogLoad.Full], spy.Loads);
+        Assert.Equal(LogLoad.Full.ToString(), spy.Calls[0]);
     }
 
     [Fact]

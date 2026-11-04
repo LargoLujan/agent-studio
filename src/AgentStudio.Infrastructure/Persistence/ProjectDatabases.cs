@@ -72,6 +72,12 @@ public sealed class ProjectDatabases : IDisposable
     /// <summary>Serializes the opening of projects in this instance, so one folder is never locked twice by the same app.</summary>
     internal SemaphoreSlim OpenGate { get; } = new(1, 1);
 
+    /// <summary>
+    /// Raised with the id of a project once it is closed: whoever keeps something of it in memory lets it go (the decision
+    /// recorder forgets the log it verified, <c>DecisionRecorder.Forget</c>).
+    /// </summary>
+    public event Action<string>? Closed;
+
     /// <summary>The storage of an open project. Throws <see cref="InvalidOperationException"/> if this instance has not opened it.</summary>
     public ProjectStorage Get(string projectId)
     {
@@ -119,6 +125,7 @@ public sealed class ProjectDatabases : IDisposable
         }
 
         open.Lock.Dispose();
+        Closed?.Invoke(projectId);
     }
 
     public void Dispose()
@@ -146,6 +153,26 @@ public sealed class ProjectDatabases : IDisposable
 
     /// <summary>A new connection to the database of an open project. The caller disposes it.</summary>
     internal SqliteConnection Connect(string projectId) => SqliteSchema.Open(ConnectionString(Get(projectId).DatabasePath, create: false));
+
+    /// <summary>
+    /// What tells this opening of the project from any other one in this instance: a new value each time the project is
+    /// opened, so whatever was verified while it was open before is verified again (<see cref="SqliteDecisionLogStore"/>).
+    /// Throws <see cref="InvalidOperationException"/> if this instance has not opened it.
+    /// </summary>
+    internal string OpeningOf(string projectId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
+        lock (_gate)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (_projects.TryGetValue(projectId, out var open))
+            {
+                return open.Opening;
+            }
+        }
+
+        throw new InvalidOperationException($"Project '{projectId}' is not open in this instance: open it with IProjectWorkspace.OpenAsync first.");
+    }
 
     internal static string ConnectionString(string databasePath, bool create) => new SqliteConnectionStringBuilder
     {
@@ -179,9 +206,9 @@ public sealed class ProjectDatabases : IDisposable
                     $"Project '{storage.ProjectId}' is already open from '{other.Storage.RootPath}'; '{storage.RootPath}' holds a copy of its database.");
             }
 
-            _projects.Add(storage.ProjectId, new OpenProject(storage, projectLock));
+            _projects.Add(storage.ProjectId, new OpenProject(storage, projectLock, Guid.NewGuid().ToString("N")));
         }
     }
 
-    private sealed record OpenProject(ProjectStorage Storage, IDisposable Lock);
+    private sealed record OpenProject(ProjectStorage Storage, IDisposable Lock, string Opening);
 }

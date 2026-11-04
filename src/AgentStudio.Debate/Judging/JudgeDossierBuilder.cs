@@ -77,7 +77,8 @@ public sealed class JudgeDossierBuilder(
         var run = new RunId(request.RunId);
         var checks = new List<string>();
 
-        var log = await decisions.LoadAsync(projectId, cancellationToken).ConfigureAwait(false);
+        // A critical moment: the judge rests on the whole log, verified from its first entry (ADR-0010, addendum of 2026-11-04).
+        var log = await decisions.LoadAsync(projectId, LogLoad.Full, cancellationToken).ConfigureAwait(false);
         if (!log.Verification.IsValid)
         {
             checks.Add($"The decision log does not verify (entry {log.Verification.FirstInvalidSequence}): {log.Verification.Problem}");

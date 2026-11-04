@@ -99,7 +99,8 @@ public sealed class DebateDossierBuilder(
         var projectId = project.ProjectId;
         var checks = new List<string>();
 
-        var log = await decisions.LoadAsync(projectId, cancellationToken).ConfigureAwait(false);
+        // A critical moment: the judges of the debate rest on the whole log, verified from its first entry (ADR-0010, addendum of 2026-11-04).
+        var log = await decisions.LoadAsync(projectId, LogLoad.Full, cancellationToken).ConfigureAwait(false);
         if (!log.Verification.IsValid)
         {
             checks.Add(string.Create(CultureInfo.InvariantCulture, $"The decision log does not verify (entry {log.Verification.FirstInvalidSequence}): {log.Verification.Problem}"));

@@ -83,8 +83,9 @@ public sealed class DebateJudgment(
         ArgumentNullException.ThrowIfNull(project);
         var projectId = project.ProjectId;
 
-        // 1: the log the verdicts will be anchored to must be intact before anything is written.
-        var log = await decisions.LoadAsync(projectId, ct).ConfigureAwait(false);
+        // 1: the log the verdicts will be anchored to must be intact before anything is written: read whole, from its first
+        // entry (a critical moment, ADR-0010, addendum of 2026-11-04).
+        var log = await decisions.LoadAsync(projectId, LogLoad.Full, ct).ConfigureAwait(false);
         if (!log.Verification.IsValid)
         {
             return Unjudged(null);

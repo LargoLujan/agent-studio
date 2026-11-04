@@ -58,6 +58,9 @@ public sealed class ProjectMemory(IDecisionRecorder recorder, IMemoryStore store
 
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _gates = new(StringComparer.Ordinal);
 
+    /// <summary>The ledger of each project as last read, with how many entries of its log it covers and the hash of the last one.</summary>
+    private readonly ConcurrentDictionary<string, LedgerView> _ledgers = new(StringComparer.Ordinal);
+
     public async Task<MemoryEntry> RecordAsync(ProjectContext project, MemoryDraft draft, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(project);
@@ -277,13 +280,33 @@ public sealed class ProjectMemory(IDecisionRecorder recorder, IMemoryStore store
         return content[..cut] + Ellipsis;
     }
 
-    /// <summary>The log of the project, which must verify: memory never trusts, nor extends, one that does not.</summary>
+    /// <summary>
+    /// The log of the project, which must verify: memory never trusts, nor extends, one that does not. Its ledger is the one
+    /// read last, extended with what the log grew since (<see cref="MemoryLedger.Extend"/>): the last entry it covers still
+    /// has its hash, so by the chain the log up to there is the one it was read from. Otherwise it is read again whole. So a
+    /// write or a recall costs what the log grew, not what it holds. Ledgers never change, so concurrent recalls share them.
+    /// </summary>
     private async Task<MemoryLedger> LoadAsync(string projectId, CancellationToken ct)
     {
         var state = await recorder.LoadAsync(projectId, ct).ConfigureAwait(false);
-        return state.Verification.IsValid
-            ? MemoryLedger.From(state.Entries)
-            : throw new DecisionLogIntegrityException(projectId, state.Verification);
+        if (!state.Verification.IsValid)
+        {
+            throw new DecisionLogIntegrityException(projectId, state.Verification);
+        }
+
+        var entries = state.Entries;
+        var head = entries.Count == 0 ? DecisionLog.GenesisHash : entries[^1].Hash;
+        var known = _ledgers.GetValueOrDefault(projectId);
+        if (known is not null && known.Count == entries.Count && string.Equals(known.Head, head, StringComparison.Ordinal))
+        {
+            return known.Ledger;
+        }
+
+        var ledger = known is { Count: > 0 } && known.Count < entries.Count && string.Equals(entries[known.Count - 1].Hash, known.Head, StringComparison.Ordinal)
+            ? known.Ledger.Extend(entries, known.Count)
+            : MemoryLedger.From(entries);
+        _ledgers[projectId] = new LedgerView(entries.Count, head, ledger);
+        return ledger;
     }
 
     private async Task<Dictionary<string, MemoryRow>> RowsAsync(string projectId, CancellationToken ct) =>
@@ -362,6 +385,9 @@ public sealed class ProjectMemory(IDecisionRecorder recorder, IMemoryStore store
             gate.Release();
         }
     }
+
+    /// <summary>A ledger and the log it covers: how many entries, and the hash of the last one.</summary>
+    private sealed record LedgerView(int Count, string Head, MemoryLedger Ledger);
 
     /// <summary>A draft ready to be stored.</summary>
     private sealed record PreparedEntry(string Id, MemoryKind Kind, string Topic, string Content, MemoryOrigin Origin, string Source, string Sha256, string? Supersedes)

@@ -9,6 +9,7 @@ using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Evidence;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Domain.Work;
+using AgentStudio.Tests.Application;
 using AgentStudio.Tests.Debate.Fakes;
 using static AgentStudio.Tests.Domain.TestData;
 
@@ -24,6 +25,19 @@ public sealed class JudgeDossierBuilderTests
 
     private static Task<JudgeDossierPackage> BuildAsync(JudgingWorld world, long? maxEvidenceFileBytes = null) =>
         Builder(world, maxEvidenceFileBytes).BuildPackageAsync(ForRun, TestContext.Current.CancellationToken);
+
+    [Fact]
+    public async Task The_dossier_rests_on_the_whole_log_read_and_verified_from_its_first_entry()
+    {
+        using var world = await JudgingWorld.CreateAsync();
+        var spy = new LoadSpyRecorder(world.Recorder);
+
+        await new JudgeDossierBuilder(spy, world.Runs, world.Plans, world.Requirements, world.Evidence, new JudgingOptions(world.DossierRoot))
+            .BuildPackageAsync(ForRun, TestContext.Current.CancellationToken);
+
+        // A critical moment (ADR-0010, addendum of 2026-11-04): a change no load from the tail can see is found here.
+        Assert.Equal([LogLoad.Full], spy.Loads);
+    }
 
     [Fact]
     public async Task The_dossier_holds_what_the_stores_hold_for_the_run_and_nothing_else()

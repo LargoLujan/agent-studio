@@ -97,7 +97,10 @@ public sealed class ProjectAuditService(
         ArgumentNullException.ThrowIfNull(proposal.Request);
         var project = proposal.Request.Project;
         var projectId = project.ProjectId;
-        var log = await decisions.LoadAsync(projectId, ct).ConfigureAwait(false);
+
+        // Every load of an audit reads the whole log, verified from its first entry: its judge, its dossier and its report rest
+        // on it (critical moments, ADR-0010, addendum of 2026-11-04).
+        var log = await decisions.LoadAsync(projectId, LogLoad.Full, ct).ConfigureAwait(false);
         var audit = AuditIds.New(time, log.Entries);
         var pending = PendingProblems.From(log.Entries);
         if (!log.Verification.IsValid)
@@ -187,8 +190,9 @@ public sealed class ProjectAuditService(
                 return await FinishAsync(audit, material, Escalation(reason, material.Requirements.ContentHash, string.Empty), null, [], false, ReviewDisposition.NeedsHuman, verified, pending, []).ConfigureAwait(false);
             }
 
-            // The recorder appends to the log it holds in memory: only reading it back shows a change made in the store.
-            var log = await decisions.LoadAsync(projectId, ct).ConfigureAwait(false);
+            // The recorder appends to the log it holds in memory: only reading it back, whole and from its first entry, shows
+            // a change made in the store. The dossier of the judge is built on it.
+            var log = await decisions.LoadAsync(projectId, LogLoad.Full, ct).ConfigureAwait(false);
             if (!log.Verification.IsValid)
             {
                 var broken = $"El registro de decisiones dejó de verificar durante la auditoría ({Broken(log.Verification)}): no se lanza el juez y no se escribe nada más.";
@@ -334,7 +338,7 @@ public sealed class ProjectAuditService(
     {
         try
         {
-            var log = await decisions.LoadAsync(projectId, CancellationToken.None).ConfigureAwait(false);
+            var log = await decisions.LoadAsync(projectId, LogLoad.Full, CancellationToken.None).ConfigureAwait(false);
             if (!log.Verification.IsValid)
             {
                 return;
@@ -432,7 +436,8 @@ public sealed class ProjectAuditService(
         var projectId = project.ProjectId;
         var problems = new List<string>();
 
-        var log = await decisions.LoadAsync(projectId, ct).ConfigureAwait(false);
+        // Who produced code, and so who may judge (rule P), comes from the whole log.
+        var log = await decisions.LoadAsync(projectId, LogLoad.Full, ct).ConfigureAwait(false);
         var intact = log.Verification.IsValid;
         if (!intact)
         {
