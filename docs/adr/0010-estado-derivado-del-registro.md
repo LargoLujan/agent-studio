@@ -445,3 +445,56 @@ fallando, con su ejecutor como escritor Medium que nadie había visto ni aprobad
      arranca.
    - Un proceso concurrente del mismo usuario con integridad Medium puede reescribir el registro y su ancla (punto 2 de
      ADR-0018).
+
+## Adenda · 2026-11-04 · el registro se verifica a medida que crece
+
+**Problema.** Cada carga del registro (`DecisionRecorder.LoadAsync`) lo leía entero y recalculaba toda la cadena dos veces.
+La memoria carga el registro en cada `RecordAsync`, en cada revisión y en cada búsqueda (`RecallAsync`), y además
+reconstruía su libro (`MemoryLedger`) leyendo el JSON de todas las entradas. Grabar memoria era cuadrático: 2 000 entradas
+tardaron 144 s, y las 10 000 se pararon a los 14 minutos. También ponía en riesgo F12-5, porque el índice semántico
+recupera toda la memoria antes de cada búsqueda.
+
+**Decisión: verificación incremental, con una caché por proceso y por proyecto.**
+
+1. **El almacén lee la cola** (`IDecisionLogTailReader`, en `SqliteDecisionLogStore`). En una sola transacción de lectura
+   devuelve tres cosas:
+   - el sello del almacén: esta apertura del proyecto, la versión del esquema de la base y la fecha de creación de su
+     fichero;
+   - si las entradas hasta lo verificado siguen ahí (cuántas son y el hash de la última);
+   - y las entradas posteriores.
+2. **El escritor del registro verifica solo lo nuevo.** El registrador guarda el último registro verificado del proyecto
+   con su sello. Una carga verifica únicamente las entradas nuevas, encadenadas a la cabeza que ya verificó
+   (`DecisionLog.Extend`), y compara el ancla como siempre, sin recalcular la cadena (`DecisionLog.VerifyHead`). El ancla se
+   comprueba en cada carga.
+3. **Si algo no cuadra, se verifica entero, como antes:** el sello es otro, faltan entradas o la última verificada tiene
+   otro hash.
+4. **La memoria amplía su libro** con lo que creció el registro (`MemoryLedger.Extend`). El libro no cambia nunca: ampliarlo
+   da otro, así que las búsquedas simultáneas lo comparten.
+
+**Por qué se sigue detectando lo mismo.**
+- Los triggers de `decision_log` (sin update, sin delete, sin replace) impiden cambiar una entrada que ya está. Cambiarla
+  con SQL obliga a quitar uno, y eso cambia la versión del esquema aunque luego se vuelva a crear: el sello cambia y se
+  verifica todo.
+- Lo añadido después por otro escritor llega por la cola y lo detecta el ancla, como antes. Lo cortado del final, también.
+- Abrir otra vez el proyecto da otro sello, así que la verificación de la apertura es entera, como antes.
+- Lo prueban `IncrementalLogVerificationTests`, sin reabrir el proyecto, con otra conexión y con otro proceso (python y su
+  SQLite). `IncrementalMemoryLedgerTests` prueba que el libro ampliado es, en cada paso, el que se lee de cero.
+
+**Cifras** (Release, esta máquina):
+
+| | Antes | Después |
+|---|---|---|
+| Grabar 2 000 entradas | 140,9 s, de 54 a 98 ms por entrada | 94,3 s, plano en unos 47 ms |
+| Grabar 10 000 entradas | Parado a los 14 min | 495 s, plano en unos 50 ms |
+| Cargar el registro con 2 000 entradas | Unos 45 ms | 4 ms |
+| Cargar el registro con 10 000 entradas | Un cuarto de segundo | 7,6 ms |
+
+Lo que queda por entrada son las escrituras durables: el ancla con `flushToDisk` al anunciar y al asentar, y los commits
+de SQLite. No se tocan.
+
+**Residuales.**
+- Quien edite los bytes del fichero de la base sin pasar por SQLite, con el proyecto abierto, no cambia el sello: se
+  detecta al volver a abrir el proyecto, cuando la verificación es entera. Es el punto 2 de ADR-0018 (un proceso del mismo
+  usuario con integridad Medium puede reescribir el registro y su ancla).
+- Un almacén sin lectura de la cola (las pruebas en memoria) se sigue leyendo entero en cada carga.
+
