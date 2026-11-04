@@ -469,24 +469,64 @@ recupera toda la memoria antes de cada búsqueda.
 3. **Si algo no cuadra, se verifica entero, como antes:** el sello es otro, faltan entradas, la última verificada tiene
    otro hash, o los tres triggers que hacen el registro append-only no están exactamente como los crea el esquema (falta
    uno o tiene otro cuerpo). En ese último caso, cada carga verifica el registro entero hasta que vuelvan.
-4. **Cada 256 cargas desde la cola, una lo verifica entero** (`DecisionRecorder.IncrementalLoadsBeforeFullVerification`).
-   Así un cambio que ningún sello ve se encuentra a más tardar en esas 256 cargas, y siempre en la siguiente apertura del
-   proyecto. Es el caso de unos bytes escritos en su sitio por otro proceso, con la interfaz de blobs de SQLite o en el
-   propio fichero.
-5. **La memoria amplía su libro** con lo que creció el registro (`MemoryLedger.Extend`). El libro no cambia nunca: ampliarlo
+4. **Los momentos críticos leen el registro entero.** El contrato lo dice en cada llamada:
+   `IDecisionRecorder.LoadAsync(projectId, LogLoad.Full, ct)` lee y verifica todo desde la primera entrada, pase lo que
+   pase antes. Son los sitios donde una decisión o un agente se apoyan en el registro:
+   - la entrega (`DeliveryService.CheckAsync`);
+   - el dosier del juez (`JudgeDossierBuilder`) y la revisión independiente (`IndependentReview`);
+   - el arranque de una ejecución y sus reanudaciones (`Orchestrator.StartAsync`, `ResumeAsync` y la reanudación por
+     consentimiento);
+   - la planificación (`Planner`).
+
+   El resto de cargas son incrementales (`LogLoad.Incremental`, la sobrecarga sin `LogLoad`): las de una ejecución en
+   marcha, listar e inspeccionar ejecuciones, grabar y buscar memoria, los debates, las auditorías y las impugnaciones.
+5. **Una carga incremental verifica entero cada cierto tiempo.** Lo hace si la última verificación entera fue hace 5
+   minutos o más (`DecisionRecorder.IncrementalAgeBeforeFullVerification`, medido con el `TimeProvider`), y además cada 256
+   cargas desde la cola (`IncrementalLoadsBeforeFullVerification`). Al volver a abrir el proyecto, siempre.
+6. **Al cerrar un proyecto, el registrador olvida lo que verificó de él** (`DecisionRecorder.Forget`, que el contenedor
+   engancha a `ProjectDatabases.Closed`). La primera entrada tras volver a abrirlo se apoya en el registro leído entero otra
+   vez, y la caché no crece con los proyectos que se abrieron y se cerraron.
+7. **La memoria amplía su libro** con lo que creció el registro (`MemoryLedger.Extend`). El libro no cambia nunca: ampliarlo
    da otro, así que las búsquedas simultáneas lo comparten.
 
-**Por qué se sigue detectando lo mismo.**
-- Los triggers de `decision_log` (sin update, sin delete, sin replace) impiden cambiar una entrada que ya está. Cambiarla
-  con SQL obliga a quitar uno, y eso cambia la versión del esquema aunque luego se vuelva a crear: el sello cambia y se
-  verifica todo. Mientras falte o esté cambiado, ninguna carga se fía de la cola, así que un cambio posterior, que ya no
-  toca el esquema, también se ve en la carga siguiente.
-- Lo añadido después por otro escritor llega por la cola y lo detecta el ancla, como antes. Lo cortado del final, también.
-- Abrir otra vez el proyecto da otro sello, así que la verificación de la apertura es entera, como antes.
-- Lo prueban `IncrementalLogVerificationTests`, sin reabrir el proyecto, con otra conexión y con otro proceso (python y su
-  SQLite): un trigger quitado y después un cambio, un trigger con otro cuerpo, y bytes escritos en su sitio con la interfaz
-  de blobs, que aparecen dentro del límite de cargas. `IncrementalMemoryLedgerTests` prueba que el libro ampliado es, en
-  cada paso, el que se lee de cero.
+**Qué se detecta y cuándo.**
+- **En la carga siguiente**, como antes:
+  - un cambio con SQL, aunque se vuelva a crear el trigger que hubo que quitar, mientras la versión del esquema quede como la
+    dejó ese cambio (quitar y crear un trigger la sube);
+  - un trigger de `decision_log` quitado o con otro cuerpo: mientras siga así ninguna carga se fía de la cola, así que un
+    cambio posterior, que ya no toca el esquema, también se ve;
+  - lo añadido después por otro escritor, que llega por la cola y lo detecta el ancla, y lo cortado del final;
+  - abrir otra vez el proyecto, que da otro sello.
+- **En la siguiente verificación entera**, un cambio en su sitio que deja el sello igual:
+  - un cambio con SQL tras el que se vuelve a poner la versión del esquema (`PRAGMA schema_version = N`);
+  - el fichero sustituido por una copia preparada que conserva su fecha de creación (a mano, o por el *tunneling* de NTFS
+    si se sustituye en pocos segundos);
+  - unos bytes escritos en su sitio, con la interfaz de blobs de SQLite o en el propio fichero.
+
+  Esa verificación llega en el siguiente momento crítico, en la primera carga pasados 5 minutos desde la última verificación
+  entera, tras 256 cargas desde la cola o al volver a abrir el proyecto: lo que ocurra antes.
+- **Mientras tanto nadie en este proceso recibe las entradas cambiadas.** Una carga incremental sirve desde memoria lo que
+  ya verificó, y del almacén solo toma lo añadido después, verificado encadenado a esa cabeza y contra el ancla. Lo que se
+  escribe en ese tiempo se encadena a la cabeza verdadera, y la verificación entera encuentra la entrada cambiada.
+- Lo prueban:
+  - `IncrementalLogVerificationTests`, sin reabrir el proyecto, con otra conexión y con otro proceso (python y su SQLite): un
+    trigger quitado y después un cambio, un trigger con otro cuerpo, bytes escritos con la interfaz de blobs (aparecen
+    dentro del límite de cargas), y la versión del esquema falsificada o el fichero sustituido, que se encuentran en el
+    siguiente momento crítico y a los 5 minutos de reloj falso (a los 4:59, todavía no);
+  - `CriticalMomentsTests`: esos dos cambios, sobre los almacenes y el ancla reales, se encuentran en la entrega, en el
+    dosier del juez, al arrancar una ejecución y al planificar;
+  - `CriticalLogLoadsTests`, `JudgeDossierBuilderTests` e `IndependentReviewTests`: cada momento crítico pide la lectura
+    entera, y listar e inspeccionar ejecuciones, la incremental;
+  - `PersistenceRegistrationTests`: un proyecto cerrado se olvida;
+  - `IncrementalMemoryLedgerTests`: el libro ampliado es, en cada paso, el que se lee de cero.
+
+**Revisión de seguridad del 2026-11-04.** La primera versión de esta adenda decía que un cambio con SQL se veía siempre en la
+carga siguiente, porque quitar un trigger cambia la versión del esquema aunque luego se vuelva a crear. No es así. Quien
+puede escribir en la base puede volver a poner esa versión con `PRAGMA schema_version`, o sustituir el fichero por una copia
+preparada que conserva su fecha de creación. En los dos casos el sello no cambia, y solo una verificación entera lo ve. La
+revisión lo comprobó con un programa propio: antes de los puntos 4 a 6, solo lo encontraban la verificación entera de cada
+256 cargas o la reapertura del proyecto. Un sello que nadie pudiera falsificar exigiría un secreto fuera del alcance de ese
+proceso, y eso es lo que el punto 2 de ADR-0018 deja fuera.
 
 **Cifras** (Release, esta máquina):
 
@@ -496,14 +536,24 @@ recupera toda la memoria antes de cada búsqueda.
 | Grabar 10 000 entradas | Parado a los 14 min | 495 s, plano en unos 50 ms |
 | Cargar el registro con 2 000 entradas | Unos 45 ms | 4 ms |
 | Cargar el registro con 10 000 entradas | Un cuarto de segundo | 7,6 ms |
+| Leerlo entero en un momento crítico, con 2 000 entradas | Unos 45 ms (todas las cargas) | 20,9 ms |
 
 Lo que queda por entrada son las escrituras durables: el ancla con `flushToDisk` al anunciar y al asentar, y los commits
-de SQLite. No se tocan.
+de SQLite. No se tocan. La lectura entera se paga en los momentos críticos, que son pocos por ejecución, y como mucho una
+vez cada 5 minutos en las demás cargas de un proyecto con actividad. Con 10 000 entradas no se ha vuelto a medir: antes de
+esta adenda, cada carga, entera, costaba un cuarto de segundo, y la lectura entera de ahora recalcula la cadena una vez en
+lugar de dos.
 
 **Residuales.**
-- Unos bytes cambiados en su sitio sin SQL (la interfaz de blobs de SQLite o el fichero), con el proyecto abierto, no
-  cambian el sello. Se detectan en la siguiente verificación entera: a más tardar en 256 cargas, o al volver a abrir el
-  proyecto. Antes se detectaban en la carga siguiente. Es el punto 2 de ADR-0018: un proceso del mismo usuario con
-  integridad Medium puede reescribir el registro y también su ancla.
+- Un cambio en su sitio que deja el sello igual, con el proyecto abierto, ya no se ve en la carga siguiente. Es el caso del
+  SQL con la versión del esquema puesta como estaba, del fichero sustituido por una copia que conserva su fecha de creación
+  o de los bytes escritos con la interfaz de blobs de SQLite o en el fichero. Se ve en el siguiente momento crítico, a más
+  tardar en la primera carga pasados 5 minutos o 256 cargas desde la última verificación entera, o al volver a abrir el
+  proyecto. Mientras tanto nadie en este proceso recibe las entradas cambiadas: se sirve desde memoria lo verificado, así
+  que lo que se retrasa es el aviso, no lo que se lee.
+- Es el punto 2 de ADR-0018: un proceso del mismo usuario con integridad Medium puede reescribir el registro y también su
+  ancla. Lo que esta adenda cambia es cuándo se ve, nunca si se puede hacer.
+- Los debates (también el dosier de su juez), las auditorías y las impugnaciones cargan de forma incremental: trabajan sobre
+  lo verificado y ven el aviso en la siguiente verificación entera. La entrega que dependa de ellos vuelve a leer el registro
+  entero.
 - Un almacén sin lectura de la cola (las pruebas en memoria) se sigue leyendo entero en cada carga.
-

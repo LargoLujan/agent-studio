@@ -32,8 +32,9 @@
 | Tanda 2: `IAgentRunEnds`, `AgentRunEnded`, `AgentRunEnds` | `src/AgentStudio.Application/Providers/AgentRunEnds.cs` | Implementado | — (es la implementación; la avisa `QuotaObservingAgentProvider`) |
 | Tanda 2: `SharedQuotaReader` (decorador de `IProviderQuotaReader`) | `src/AgentStudio.Application/Providers/SharedQuotaReader.cs` | Implementado | — (envuelve a `CodexAppServerQuotaReader` en `AddCodexQuotaReader`) |
 | `IDecisionLogStore`, `IEvidenceStore`, `IRequirementStore`, `IPlanStore`, `IRunRegistry`, `IVerdictStore`, `IAgentRoster` | `src/AgentStudio.Application/Persistence/StoreContracts.cs` | Contrato (esquema SQLite implementado: migraciones 0001 y 0002) | Fase 3 (`Infrastructure`, WP2) |
+| `IDecisionLogTailReader`, `DecisionLogMark`, `DecisionLogTail` (2026-11-04) | `src/AgentStudio.Application/Persistence/DecisionLogTail.cs` | Implementado | `Infrastructure/Persistence/SqliteDecisionLogStore`; lo usa `DecisionRecorder` para verificar solo lo que creció el registro ([ADR-0010](adr/0010-estado-derivado-del-registro.md), adenda del 2026-11-04) |
 | `IProjectWorkspace`, `ProjectContext` | `src/AgentStudio.Application/Projects/ProjectContracts.cs` | Contrato | Fase 3 (`Infrastructure`, WP2) |
-| `IDecisionRecorder`, `DecisionRecorder`, `DecisionPayload` y sus payloads versionados, `DecisionPayloadSerializer` | `src/AgentStudio.Application/Decisions/` | Implementado | — (es la implementación; el almacén es el de WP2) |
+| `IDecisionRecorder` y `LogLoad` (2026-11-04), `DecisionRecorder`, `DecisionPayload` y sus payloads versionados, `DecisionPayloadSerializer` | `src/AgentStudio.Application/Decisions/` | Implementado | — (es la implementación; el almacén es el de WP2) |
 | `IOrchestrator`, `IOrchestrationRun`, `PlanningRequest`, `PlanProposal`, `RunRequest`, `RunOptions`, `RunSnapshot`, `OrchestrationEvent` | `src/AgentStudio.Application/Orchestration/` | Contrato. **Sustituye** al `IOrchestrator.ExecuteAsync(projectId, TaskGraph, …)` de la Fase 0, que nunca se implementó | Fase 3 (`Orchestration`, WP4) |
 | `IWorktreeManager`, `IIntegrator`, `IDeliveryService`, `IWorkspaceCleanup`; `UserRepositoryState` (con su comparación) | `src/AgentStudio.Application/Git/` | Contrato (`UserRepositoryState.Compare`: implementado) | Fase 3 (`Infrastructure/Git`, `Orchestration/Integration`, WP3) |
 | `IVerificationRunner`, `VerificationStep`, `VerificationProfile` | `src/AgentStudio.Application/Verification/VerificationContracts.cs` | Contrato | Fase 3 (`Orchestration/Verification`, WP3) |
@@ -194,6 +195,13 @@ la auditoría, el auditor del orquestador y la impugnación, en la [sección 17]
 
 - `IDecisionLogStore`: `AppendAsync` y `ReadAllAsync`. **No existe** operación de actualizar ni borrar, y la tabla
   SQLite lo impide además con triggers.
+- `IDecisionLogTailReader` (2026-11-04), que el almacén SQLite del registro también implementa:
+  `ReadTailAsync(projectId, DecisionLogMark? after)` lee en una sola transacción el sello del almacén (esta apertura del
+  proyecto, la versión del esquema y la fecha de creación del fichero), si las entradas hasta la marca siguen ahí (cuántas
+  son y el hash de la última, con los tres triggers append-only tal como los crea el esquema) y las entradas posteriores.
+  Devuelve `DecisionLogTail(Stamp, Continues, Entries)`; sin marca, el registro entero. Un sello igual no prueba que nada
+  cambiara: la versión del esquema se puede volver a poner a mano y el fichero se puede sustituir conservando su fecha de
+  creación. Por eso existen las lecturas enteras de `LogLoad.Full` ([sección 11](#11-registro-de-decisiones-y-payloads)).
 - `IEvidenceStore.CaptureAsync(draft, Stream content)`: el almacén calcula el hash a partir de los bytes; quien llama no
   puede inventarse un hash para una evidencia inexistente. `EvidenceDraft` gana `RunId`, `TaskId`, `Attempt` y
   `MediaType` (todos opcionales), e `IEvidenceStore.ListByRunAsync(projectId, runId)` devuelve la evidencia de una
@@ -358,9 +366,12 @@ reproducción.
 ## 11. Registro de decisiones y payloads
 
 ```csharp
+public enum LogLoad { Incremental, Full }
+
 public interface IDecisionRecorder
 {
-    Task<DecisionLogState> LoadAsync(string projectId, CancellationToken cancellationToken);   // lee, verifica y devuelve la cabeza
+    Task<DecisionLogState> LoadAsync(string projectId, CancellationToken cancellationToken);   // lee, verifica y devuelve la cabeza (Incremental)
+    Task<DecisionLogState> LoadAsync(string projectId, LogLoad load, CancellationToken cancellationToken);
     Task<DecisionEntry> RecordAsync(string projectId, Actor actor, DecisionKind kind, string summary,
         DecisionPayload payload, long? corrects = null, CancellationToken cancellationToken = default);
 }
@@ -375,6 +386,15 @@ public interface IDecisionRecorder
   llegó a guardarse, y se continúa tras ella si se guardó.
 - Un registro que no verifica (`LoadAsync` lo devuelve con su `Verification`) no se extiende:
   `RecordAsync` lanza `DecisionLogIntegrityException`.
+- Desde el 2026-11-04 verifica el registro a medida que crece ([ADR-0010](adr/0010-estado-derivado-del-registro.md),
+  adenda de esa fecha). Con un almacén que lee la cola (`IDecisionLogTailReader`), una carga `Incremental` lee y verifica
+  solo lo añadido desde lo último verificado, y comprueba el ancla en cada carga. `LogLoad.Full` lee y verifica el
+  registro entero desde su primera entrada. Lo piden los momentos críticos, donde una decisión o un agente se apoyan en el
+  registro: la entrega, el dosier del juez, la revisión independiente, el arranque y la reanudación de una ejecución, y la
+  planificación. Una carga incremental también verifica entero si la última verificación entera fue hace 5 minutos o más
+  (`IncrementalAgeBeforeFullVerification`, con el `TimeProvider`), tras 256 cargas desde la cola
+  (`IncrementalLoadsBeforeFullVerification`) y al volver a abrir el proyecto. Lo verificado se olvida al cerrar el
+  proyecto (`DecisionRecorder.Forget`, que el contenedor engancha a `ProjectDatabases.Closed`).
 
 **Formato de los payloads.** `DecisionPayloadSerializer` los escribe siempre igual, porque su texto entra en el hash:
 camelCase, compactos, enums por nombre, ids como cadenas, sin miembros nulos, texto sin escapar más de lo que exige JSON y
