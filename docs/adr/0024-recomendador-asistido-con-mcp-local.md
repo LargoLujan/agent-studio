@@ -154,4 +154,36 @@ desde esta fecha valen así:
   lanzamientos de solo lectura (el adaptador rechaza un servidor MCP en un perfil que escribe, tiene shell o red); nunca
   en un ejecutor, ni en el juez ni en los auditores (F12-8).
 - **Pendiente, en la integración de la Fase 12:** conectar la herramienta al lanzamiento del planificador y repetir con
-  ella la medición D-30 (F12-9), con tu OK.
+  ella la medición D-30 (F12-9), con tu OK. *(La conexión está hecha: ver la
+  [adenda del 2026-11-04](#adenda-2026-11-04-la-herramienta-del-historial-conectada-al-planificador-integración-de-la-fase-12).
+  La medición sigue pendiente.)*
+
+## Adenda (2026-11-04): la herramienta del historial, conectada al planificador (integración de la Fase 12)
+
+Lo que la adenda del 2026-11-03 dejaba pendiente ya está en el código: el lanzamiento del planificador lleva la herramienta.
+Las decisiones 3 a 5 valen para ella así:
+
+- **Quién la recibe:** solo el planificador, un agente `Orchestrator` con `ReadSelected` en la plantilla, en Claude Code y
+  en su lanzamiento de solo lectura (sin escrituras, shell ni red). Lo decide `IProjectHistoryTool`
+  (`Application/Semantic/ProjectHistoryTool.cs`) antes de leer el índice: a cualquier otro agente, o a un perfil que
+  escribe, no le escribe nada.
+  - Nunca la reciben un ejecutor, el juez o un auditor (F12-8). Solo los puertos del motor, el orquestador y el
+    planificador pueden llegar al puerto, y una prueba lo fija por reflexión.
+  - Codex rechaza los servidores MCP y Gemini no los lanza, así que con ellos el planificador trabaja sin la herramienta.
+    No es un error: la propuesta lo dice (`PlanProposal.HistoryToolNotice`).
+- **La instantánea** (decisión 3): Agent Studio escribe con `CreateNew` lo que puede llegar a un prompt
+  (`ISemanticIndex.SnapshotAsync`: de confianza y nunca un resumen diario, como mucho los 2 000 fragmentos más recientes) en
+  `%LOCALAPPDATA%\AgentStudio\history-snapshots\his-<aleatorio>\history.json`. Queda fuera del proyecto y del worktree
+  `_base` en el que lee el planificador. Se borra al terminar la planificación. Lo que deje un cierre a medias lo barre
+  una planificación posterior, pasado un día, como las carpetas de la recomendación asistida.
+  - Sin nada de confianza, no hay instantánea ni herramienta.
+  - Si el registro no verifica, la planificación se para, como con la memoria. Cualquier otro fallo deja al planificador
+    sin la herramienta, nunca sin planificar.
+- **El lanzamiento** (decisión 4): el servidor `agentstudio` con `--history <ruta>` y la regla
+  `mcp__agentstudio__search_project_history`, en los dos lanzamientos de una planificación, porque la corrección es otro
+  proceso del CLI. Si un lanzamiento ya llevara el servidor con `--snapshot`, se le añade `--history` y la regla:
+  un solo servidor (`ProjectHistoryLaunch.With`). El del planificador no lleva el catálogo, así que va con `--history`
+  solo. El prompt la nombra en una frase, y solo entonces. Ese prompt queda capturado como evidencia.
+- **Consentimiento** (decisión 5): no hay un OK por uso. La herramienta no lanza nada por sí misma: sus llamadas son parte
+  de la planificación que pidió la persona. La decisión 9 de docs/17 la autorizó, con su medición.
+- **Pendiente:** repetir la medición D-30 con la herramienta en una planificación corta real, con tu OK (F12-9).

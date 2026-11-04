@@ -687,21 +687,64 @@ su propio documento, «Ajustes», que se describe al final de este apartado.
 
 ```text
 ┌ Memoria del proyecto [buscar…        ] [Todas ▾] [Buscar]                                       [Exportar a Markdown] ┐
-│ Hay una ejecución o una planificación en curso: la exportación espera a que termine.                                  │
-├────────────────────────────────────────────────────────────────────┬ Resumen del día ─────────────────────────────────┤
-│ ● De confianza                                         [Retirar]   │ [Día anterior] domingo 18/10/2026 (hoy) [Día     │
-│   Decisión · plan · Sistema · 18/10/2026 09:30 · m-41              │ siguiente] [Resumir el día]                      │
-│   Plan aprobado: añadir Calc.Multiply con pruebas (3 tareas).      │ Provisional: el día no ha terminado, así que no  │
-│ ● Propuesta de un agente: sin revisar        [Aceptar] [Rechazar]  │ se guarda en la memoria.                         │
-│ ● En cuarentena: heredada de un historial…     [Aceptar] [Rechazar]│ 12 prompts · 2 líneas sin reconocer              │
-│ ● Retirada                                                         │ ## Prompts …                                     │
+│ Por significado y por palabras: 3 resultados, del más cercano al menos.                                               │
+├────────────────────────────────────────────────────────────────────┬ Búsqueda por significado ────────────────────────┤
+│ ● De confianza                                         [Retirar]   │ Activa: el modelo está descargado y comprobado,  │
+│   Error conocido · facturas · Sistema · 18/10/2026 09:30 · m-41    │ y los 120 fragmentos del índice tienen su        │
+│   Coincide por palabras y por significado                          │ significado calculado.                           │
+│   Test en rojo en el módulo de facturas.                           ├ Bitácora ────────────────────────────────────────┤
+│ ● En cuarentena: no la escribió Agent Studio…  [Aceptar] [Rechazar]│ 4 entradas de la bitácora esperan en cuarentena. │
+│   Bitácora · Bitácora del 2026-10-17 · P-0003 · Otro autor         │ [Confiar en la bitácora de este proyecto]        │
+│   Coincide por significado                                         │ Por días: viernes 17/10/2026 · 4 entradas en     │
+│ ● De confianza: lo escribió Agent Studio a partir del registro…    │ cuarentena [Confiar en este día]                 │
+│   Veredicto · Registro de decisiones, entrada 812                  ├ Resumen del día ─────────────────────────────────┤
+│                                                                    │ [Día anterior] domingo 18/10/2026 (hoy) …        │
 └────────────────────────────────────────────────────────────────────┴──────────────────────────────────────────────────┘
 ```
 
 - Las entradas de **toda confianza** (de confianza, propuesta, en cuarentena, rechazada y retirada), con su categoría,
-  tema, origen (sistema, tú o agente), fecha, fuente y lo que sustituyen. Se buscan por palabras y por categoría: el
-  buscador tiene la etiqueta «Buscar por palabras» y, vacío, la pista «contenido, tema o fuente…»; `Intro` o «Buscar»
-  aplican la búsqueda.
+  tema, origen (sistema, tú o agente), fecha, fuente y lo que sustituyen. Se filtran por categoría. Vacío, el buscador
+  tiene la pista «contenido, tema o fuente…»; `Intro` o «Buscar» aplican la búsqueda.
+- **La búsqueda por significado** (Fase 12, docs/17 D-05 y D-06; [ADR-0047](adr/0047-indice-semantico-local.md)). Con
+  palabras, «Buscar» va al índice semántico del proyecto, con lo de toda confianza:
+  - con el modelo y el significado de los fragmentos ya calculado, el buscador se llama «Buscar por significado y por
+    palabras». «Pruebas que fallan» encuentra «Test en rojo», y «prueba», «pruebas». La línea de debajo dice
+    «Por significado y por palabras: N resultados, del más cercano al menos.»;
+  - sin el modelo, o mientras el índice calcula el significado, se llama «Buscar por palabras» y la línea dice por qué:
+    «Solo por palabras: el modelo de búsqueda por significado no está descargado.», «… el índice aún está calculando el
+    significado de los fragmentos.», «… el modelo descargado no coincide con su huella y no se ha cargado.»…;
+  - cada resultado conserva su origen y su confianza, y dice por qué salió: «Coincide por palabras y por significado»,
+    «Coincide por palabras» o «Coincide por significado»;
+  - con ellos salen, de solo lectura, los textos que el sistema escribió desde el registro, con su fuente («Registro de
+    decisiones, entrada …») y «De confianza: lo escribió Agent Studio a partir del registro verificado»;
+  - sin palabras, o sin índice en la composición, la lista es la de siempre, por palabras.
+- **El panel «Búsqueda por significado»** dice el estado del modelo y del índice del proyecto: «Falta el modelo…» (y que
+  sin él la memoria se busca solo por palabras), «Activa: … los N fragmentos del índice tienen su significado calculado»,
+  «Activa a medias: M de N fragmentos…», o que el modelo no coincide con su huella o no se ha podido cargar.
+  - «Descargar el modelo de búsqueda (123 MB)» abre una confirmación: qué se descarga (el modelo multilingual-e5-small,
+    su licencia MIT, la revisión fijada y cada fichero con su tamaño), de dónde (solo de huggingface.co), dónde se guarda
+    (en `%LOCALAPPDATA%\AgentStudio\models\…`, fuera de tus proyectos) y que se comprueba la huella SHA-256 de cada
+    fichero. «Descargar 123 MB» o «No descargar». **Nada se descarga sin tu OK.**
+  - Durante la descarga, el progreso y «Cancelar la descarga». Lo que no verifica se borra y no queda nada a medias.
+  - Cuando termina con el modelo comprobado, el índice del proyecto calcula el significado de sus fragmentos en segundo
+    plano, con prioridad baja y sin bloquear la pantalla. El panel se pone al día cuando acaba; mientras tanto, la búsqueda
+    va por palabras.
+  - Después no hay red ni cuota: la búsqueda la calcula tu equipo. Al abrir un proyecto, si el modelo ya está, se carga en
+    segundo plano para que la primera búsqueda no espere.
+- **El panel «Bitácora»** (docs/17 D-02): la bitácora del proyecto también es memoria. Lo que anotó Agent Studio en sus
+  ejecuciones se comprueba con el registro y es de confianza. Lo demás (lo que anotan tus sesiones de desarrollo o lo que
+  llega con el repositorio) espera en cuarentena, y ningún agente lo recibe hasta que lo aceptes:
+  - una a una, con «Aceptar» en la lista: su origen dice «Agent Studio» u «Otro autor», y su confianza, «En cuarentena:
+    no la escribió Agent Studio. Acéptala, o confía en su día o en toda la bitácora»;
+  - por días, en «Por días»: cada día con entradas en cuarentena, o en el que confías, con «Confiar en este día» o
+    «Retirar la confianza»;
+  - para todo el proyecto, también los días que vengan, con «Confiar en la bitácora de este proyecto», que explica antes
+    qué pasa (úsalo si la bitácora es tuya y no te llega de terceros). Se retira con «Dejar de confiar en la bitácora de
+    este proyecto».
+
+  Cada decisión es tuya, va al registro (`JournalTrustChanged`) y se puede retirar. Durante una ejecución o una
+  planificación queda «En cola». Lo heredado de un historial aceptado como nuevo origen se revisa una a una. El juez nunca
+  recibe la bitácora.
 - **Lo que la app deriva del registro se lee como una frase** (tanda 2, 2026-11-03; V27): «La persona aprobó el plan
   1fd546931ee8 de la ejecución 20261029-c4a1f2 (3 tareas) el 29/10/2026 a las 22:40 UTC.». Ya no dice «user aprobó…»,
   el id con el que el registro guarda a una persona. La hora va en UTC, y lo dice, porque el texto queda anclado y llega a

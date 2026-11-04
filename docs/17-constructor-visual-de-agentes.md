@@ -286,11 +286,18 @@ instrucciones plantadas. Por eso no se lee el fichero en crudo al lanzar a nadie
   `JournalEntry`, con `MemoryRecorded` y su SHA-256. Se deriva al terminar cada ejecución y al abrir el proyecto, igual que
   el resto de la memoria, y la derivación es idempotente por la huella de la entrada.
 - **La confianza sale del registro, no de las fechas del fichero,** que cualquiera puede escribir:
-  - **lo que escribió Agent Studio** es de confianza. Su escritor de la bitácora añade la ejecución, la tarea y el intento al
-    final de la línea «Resultado» de cada entrada, donde el formato ya admite un añadido (` · …`,
-    `src/AgentStudio.Memory/Summary/DailySummaryBuilder.cs:238`), así que el resumen del día la sigue leyendo igual. La
-    derivación casa la entrada con su `AgentRunStarted`, que está anclado. Una entrada que dice ser de Agent Studio y no
-    casa, no lo es;
+  - **lo que escribió Agent Studio** es de confianza. Su escritor de la bitácora añade la ejecución, la tarea, el intento y
+    la entrada al final de la línea «Resultado» de cada entrada, donde el formato ya admite un añadido (` · …`,
+    `src/AgentStudio.Memory/Summary/DailySummaryBuilder.cs:238`), así que el resumen del día la sigue leyendo igual:
+    `` · ejecución `<run>` · tarea `<task>` · intento <n> · entrada `AAAA-MM-DD/P-NNNN` ``. La entrada lleva su día porque
+    un resultado que termina después de medianoche va al fichero del día siguiente, cuyos `P-NNNN` son otros; la línea de la
+    entrada también termina con `(… · entrada AAAA-MM-DD/P-NNNN)`. Como cualquiera puede copiar ese final en el fichero
+    versionado, el escritor da además un **recibo**: el SHA-256 del texto exacto de la entrada (su línea y su línea
+    «Resultado»), que quien registra el final del lanzamiento guarda en su `AgentRunFinished`. La derivación solo da origen
+    `System` a una entrada con una sola línea «Resultado» que se nombra a sí misma, cuyo `AgentRunFinished`, en una
+    ejecución propia, tiene el recibo con su día, su número y su hash, y que ninguna otra entrada reclama. Una entrada que
+    dice ser de Agent Studio y no lo cumple, no lo es. Las líneas «Hecho» y lo demás que va debajo son una entrada aparte,
+    nunca `System` (adenda del 2026-11-03 de ADR-0047);
   - **lo demás** (las entradas del hook de desarrollo, o las de un tercero que llegan con el repositorio o con un `pull`)
     queda en cuarentena hasta que lo aceptas: por días, o con «Confiar en la bitácora de este proyecto», una decisión tuya
     que queda en el registro y se puede retirar. Lo que ya estaba al aceptar un historial como nuevo origen, igual que la
@@ -1421,8 +1428,10 @@ guardado.
 | Qué | Cambio | Fase |
 |---|---|---|
 | `MemoryKind` | `JournalEntry` | 12 |
+| `DecisionKind` | `JournalTrustChanged`, detrás de `RunResumed`: «Confiar en la bitácora de este proyecto» y por días, una decisión de una persona fuera de toda ejecución, que se puede retirar (`JournalTrustChangedPayload`, `V = 1`). Solo cuenta si se registró después del último `origin-accepted` | 12 |
+| `AgentRunFinished` | El recibo de la bitácora (`Journal`: día, número y SHA-256 del texto exacto de la entrada), solo cuando lo hay: ningún payload guardado cambia | 12 |
 | `MemoryKind` | `ProjectBrief` | 13 |
-| `DecisionKind` | `QuestionAsked`, `QuestionAnswered` y `ProjectSetupApplied`, detrás de `RunResumed` | 13 |
+| `DecisionKind` | `QuestionAsked`, `QuestionAnswered` y `ProjectSetupApplied`, detrás de `JournalTrustChanged` | 13 |
 | `DecisionKind` | `ClientDocumentExported`, más los de la Fase 9 (docs/16 §4.6) | 14 |
 | `AgentRunPurpose` | `OrderReview`, `ConsumptionAnalysis` y `PreparationChat` | 13 |
 | `AgentRunPurpose` | `Help` y `ClientDocumentDraft` | 14 |

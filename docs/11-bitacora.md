@@ -111,27 +111,46 @@ Decisión en [ADR-0025](adr/0025-resumen-diario-determinista.md). Lo hace `Daily
 | `IPromptJournal`, `MarkdownDailyJournal`, `JournalingAgentProvider` | Implementado en este incremento, con tests |
 | Registro obligatorio de proveedores reales a través del decorador | Fase 2, al llegar los adaptadores |
 | Resúmenes diarios | Fase 4 (WP3): `DailySummaryService` y la lectura comprobada de la bitácora, con tests. El panel y la vista de «Bitácora de hoy» por la lectura comprobada son de WP5 |
-| Ancla de la línea «Resultado» (Fase 12) | P0 de la Fase 12: el formato, el escritor y su paso por el motor, las auxiliares, los debates y el juez, con tests ([§8](#8-la-línea-resultado-nombra-su-arranque-fase-12)) |
+| Ancla de la línea «Resultado» (Fase 12) | P0 de la Fase 12: el formato, el escritor y su paso por el motor, las auxiliares, los debates y el juez, con tests. WP1 añadió la entrada con su día (`AAAA-MM-DD/P-NNNN`) y el recibo en `AgentRunFinished`, y la derivación lo exige; integrado en la rama de la Fase 12 ([§8](#8-la-línea-resultado-nombra-su-arranque-fase-12)) |
+| La bitácora como memoria (Fase 12) | WP1 la ancla como `JournalEntry`, con su confianza; WP4 pone en «Memoria» la búsqueda y la decisión de confiar en ella, por días o para todo el proyecto. Integrado en la rama de la Fase 12, con tests; pendiente tu demostración |
 | Líneas propias de la app bajo el título (tanda 2, V31) | Integrado el 2026-11-03, con tests del escritor y del resumen diario; pendiente de verificar en vivo |
 | «Bitácora de hoy» como documento legible (tanda 2, V31) | Integrado el 2026-11-03: títulos, listas, negrita y código, sin las barras invertidas del escapado. Un día largo enseña sus entradas más recientes, y «Ver todo», el día completo como texto. Pendiente de verificar en vivo ([docs/03 §2](03-pantallas-y-navegacion.md#2-ventana-principal)) |
 
 ## 8. La línea «Resultado» nombra su arranque (Fase 12)
 
-Decisión en [ADR-0047](adr/0047-indice-semantico-local.md) (docs/17 D-02). Desde la Fase 12, la bitácora entra en la
-memoria del proyecto como `JournalEntry`. Para saber qué escribió Agent Studio, el escritor del producto termina la línea
-«Resultado» con el `AgentRunStarted` del lanzamiento:
+Decisión en [ADR-0047](adr/0047-indice-semantico-local.md) (docs/17 D-02), con su adenda del 2026-11-03. Desde la Fase
+12, la bitácora entra en la memoria del proyecto como `JournalEntry`. Para saber qué escribió Agent Studio, el escritor del
+producto termina la línea «Resultado» con el `AgentRunStarted` del lanzamiento y con la entrada de la que es el resultado:
 
 ```markdown
-  - Resultado P-0007 · 11:44:31 · Succeeded · 144,2 s · tokens 18.300 → 2.150 (exactos) · ejecución `20261015-a1b2c3` · tarea `T-12` · intento 1
-  - Resultado P-0008 · 11:50:02 · Failed · 3,0 s · tokens no disponibles · boom · ejecución `aux-20261015-0a1b2c` · intento 1
+- **11:42:07** · P-0007 · ejecutor · claude-code/sonnet · #prompt #orquestacion · «20261015-a1b2c3 · T-12 · intento 1: Tarea T-12» (tarea T-12 · entrada 2026-10-15/P-0007)
+  - Resultado P-0007 · 11:44:31 · Succeeded · 144,2 s · tokens 18.300 → 2.150 (exactos) · ejecución `20261015-a1b2c3` · tarea `T-12` · intento 1 · entrada `2026-10-15/P-0007`
+  - Resultado P-0001 · 00:00:12 · Failed · 3,0 s · tokens no disponibles · boom · ejecución `20261015-a1b2c3` · intento 2 · entrada `2026-10-15/P-0042`
 ```
 
-- **Va al final**, detrás de la nota: `` · ejecución `<ejecución>` ``, después `` · tarea `<tarea>` `` si el arranque
-  tiene tarea, y después `` · intento <n> ``. La ejecución y la tarea se escriben con `Uri.EscapeDataString`, así que
-  cualquier valor se recupera tal cual.
+- **El ancla va al final**, detrás de la nota: `` · ejecución `<ejecución>` ``, después `` · tarea `<tarea>` `` si el
+  arranque tiene tarea, después `` · intento <n> `` y, por último, `` · entrada `AAAA-MM-DD/P-NNNN` ``. La ejecución y la
+  tarea se escriben con `Uri.EscapeDataString`, así que cualquier valor se recupera tal cual.
+- **La entrada lleva su día.** Un resultado va al fichero del día en que termina el agente: después de medianoche está en
+  el del día siguiente, cuyos `P-NNNN` son otros (la segunda línea del ejemplo es el resultado, escrito pasada la medianoche,
+  de la entrada P-0042 del día anterior). La línea de la entrada también lo dice, al final del paréntesis:
+  `(… · entrada AAAA-MM-DD/P-NNNN)`. La derivación junta el resultado con su entrada, y el resumen diario lo cuenta como un
+  resultado del día en que se escribe, sin atribuírselo a la entrada de ese día que tenga el mismo número.
 - **La nota no puede imitarla:** el escritor cambia los acentos graves de la nota, y el ancla los necesita alrededor de la
-  ejecución. La lee y la escribe una sola pieza, `JournalResultAnchor`.
+  ejecución. La lee y la escribe una sola pieza, `JournalResultAnchor` (`Format(ancla, entrada)` y `TryParse`).
+- **El recibo.** El fichero está versionado y cualquiera puede copiar un final de línea, así que el ancla sola no prueba
+  nada. Al escribir la línea «Resultado» de un lanzamiento anclado, el escritor da el recibo de la entrada
+  (`JournalReceipt`): su día, su número y el SHA-256 de su texto exacto, su línea y su línea «Resultado» unidas por un salto
+  de línea. Quien registra el final del lanzamiento (el motor, las ejecuciones auxiliares, los turnos de debate y el juez)
+  lo guarda en su `AgentRunFinished`, solo si existe.
+- **Qué es de confianza.** Una entrada solo tiene origen `System` si es del producto, con una sola línea «Resultado» que la
+  nombra a ella, y el `AgentRunFinished` de esa ejecución, tarea e intento, en una ejecución propia del registro, tiene el
+  recibo con su día, su número y el hash de su texto. Copiar el final en otra entrada, o cambiar la entrada antes o después
+  de anclarla, da otro hash. Si dos entradas reclaman el mismo lanzamiento, ninguna lo consigue. Las líneas «Hecho» y lo
+  demás que va debajo de una entrada del producto son una entrada aparte (`… · notas`), de origen `Agent`.
 - **El resumen diario no cambia:** su línea «Resultado» ya admitía un añadido. Una prueba lo comprueba con la bitácora de
   ejemplo y con un día escrito por el propio escritor, con el ancla y sin ella.
-- **Las entradas sin ancla** son las de antes de la Fase 12, las del hook y las de un lanzamiento que nadie anunció (una
-  sonda). Como memoria quedan en cuarentena hasta que las aceptes.
+- **Las entradas sin ancla o sin recibo** son las de antes de la Fase 12, las del hook, las de un lanzamiento que nadie
+  anunció (una sonda) y las de un lanzamiento que no llegó a escribir su final. Como memoria quedan en cuarentena hasta que
+  las aceptes, una a una, por días o con «Confiar en la bitácora de este proyecto», en «Memoria»
+  ([docs/03 §5.3](03-pantallas-y-navegacion.md#53-memoria-del-proyecto-y-resumen-del-día-documento-memoria)).
