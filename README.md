@@ -13,6 +13,12 @@
 ![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)
 ![xUnit v3](https://img.shields.io/badge/tests-xUnit%20v3-5E2D79)
 
+<br>
+
+<img src="docs/media/agent-studio-demo.gif" alt="Agent Studio demo: IDE, orchestrator setup, debate with cross-vendor jury, project audit and usage" width="900">
+
+<sub>Fictional demo project; no AI agents were run for these screenshots. The interface is in Spanish.</sub>
+
 </div>
 
 > **Work in progress.** Agent Studio is under active construction: the orchestration engine, the independent judge, the
