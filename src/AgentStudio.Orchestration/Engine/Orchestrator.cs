@@ -8,6 +8,7 @@ using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Providers;
 using AgentStudio.Application.Security;
+using AgentStudio.Application.Semantic;
 using AgentStudio.Application.Skills;
 using AgentStudio.Application.Verification;
 using AgentStudio.Domain.Agents;
@@ -169,6 +170,11 @@ public sealed class OrchestrationActivity : IProjectActivity
 /// it. While a debate or an audit holds the project, the orchestrator does not plan, start or resume: it refuses before
 /// writing anything (one activity with agents per project). The orchestrator is not the activity itself: it needs the
 /// context packer, which needs the memory, which needs the activity.
+/// <para>
+/// Phase 12 (docs/17 D-06, F12-9): with a <see cref="IProjectHistoryTool"/>, the planner may look up what is trusted of
+/// the previous days with <c>search_project_history</c>, served by the local MCP server over a snapshot; only its read-only
+/// launch gets it, never an executor, the review or an auditor.
+/// </para>
 /// </remarks>
 public sealed class Orchestrator : IOrchestrator, IRunInspector
 {
@@ -205,7 +211,8 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
         IProjectActivity? activity = null,
         IEnumerable<IProviderProbe>? probes = null,
         IEnumerable<IProviderQuotaReader>? quotaReaders = null,
-        IPowerEvents? power = null)
+        IPowerEvents? power = null,
+        IProjectHistoryTool? history = null)
     {
         ArgumentNullException.ThrowIfNull(decisions);
         ArgumentNullException.ThrowIfNull(evidence);
@@ -227,6 +234,7 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
             Probes = [.. probes ?? []],
             QuotaReaders = [.. quotaReaders ?? []],
             Power = power,
+            History = history,
         };
         _planner = new Planner(_ports);
         Activity = activity ?? new OrchestrationActivity();

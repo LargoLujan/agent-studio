@@ -7,6 +7,7 @@ using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Providers;
 using AgentStudio.Application.Security;
+using AgentStudio.Application.Semantic;
 using AgentStudio.Application.Skills;
 using AgentStudio.Application.Verification;
 
@@ -53,6 +54,13 @@ internal sealed record EnginePorts(
     /// machine slept, which it leaves out of the silence of its attempts. Null: only the clock finds the sleep.
     /// </summary>
     public IPowerEvents? Power { get; init; }
+
+    /// <summary>
+    /// The planner's tool <c>search_project_history</c> (docs/17 D-06, F12-9): a snapshot of what is trusted, served by the
+    /// local MCP server with <c>--history</c>, only to a read-only launch of the planner. Null: the planner never has it.
+    /// Nothing else of the engine (an executor, the review, an auditor) ever reads it.
+    /// </summary>
+    public IProjectHistoryTool? History { get; init; }
 
     /// <summary>The composed provider (journal and concurrency limit included) of a CLI for a project, or null.</summary>
     public IAgentProvider? ProviderFor(string projectRoot, Domain.Providers.ProviderId provider) =>

@@ -4,6 +4,7 @@ using AgentStudio.Application.Git;
 using AgentStudio.Application.Knowledge;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Providers;
+using AgentStudio.Application.Semantic;
 using AgentStudio.Application.Skills;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Decisions;
@@ -20,6 +21,12 @@ namespace AgentStudio.Orchestration.Planning;
 /// <see cref="PlanSchema"/>; the answer is parsed strictly and judged by <see cref="PlanValidator"/>. A plan that does not
 /// parse or does not validate gets one correction, by resuming the agent's session with the problems as data; if it is
 /// still wrong the proposal goes to the user with its violations. Nothing runs until the user approves the plan.
+/// <para>
+/// Phase 12 (docs/17 D-06, F12-9): with the history tool of the ports, a planner with memory on Claude Code also gets the
+/// local MCP server over a snapshot of what is trusted (<c>--history</c>), in both of its runs, and its prompt says so in
+/// one sentence; the snapshot is deleted when the planning ends. Without it (another CLI, nothing trusted yet...) it plans
+/// as before, and the proposal says why (<see cref="PlanProposal.HistoryToolNotice"/>).
+/// </para>
 /// </summary>
 internal sealed class Planner(EnginePorts ports)
 {
@@ -78,6 +85,28 @@ internal sealed class Planner(EnginePorts ports)
             return Failed(run, $"No se lanza el orquestador: {ProjectMemoryPrompt.TooSmall(problem)}. Reduce los requisitos obligatorios o quita la memoria del orquestador en la plantilla.");
         }
 
+        // The history tool (docs/17 D-06), after the memory and before anything is written: a log that does not verify stops
+        // the planning here as it stops the memory; any other problem only leaves the planner without the tool.
+        using var history = ports.History is { } tool
+            ? await tool.OfferAsync(project, orchestrator, AgentRunner.ReadOnly(Tools), cancellationToken).ConfigureAwait(false)
+            : null;
+        var proposal = await PlanWithAsync(request, run, orchestrator, provider, schema, context, memory, history, progress, cancellationToken).ConfigureAwait(false);
+        return history?.Withheld is { } notice ? proposal with { HistoryToolNotice = notice } : proposal;
+    }
+
+    private async Task<PlanProposal> PlanWithAsync(
+        PlanningRequest request,
+        RunId run,
+        AgentDefinition orchestrator,
+        IAgentProvider provider,
+        string schema,
+        PlanContext context,
+        ContextPack? memory,
+        ProjectHistoryOffer? history,
+        IProgress<AgentEvent>? progress,
+        CancellationToken cancellationToken)
+    {
+        var project = request.Project;
         var recorder = new RunRecorder(ports.Decisions, ports.Evidence, project.ProjectId, run);
         var repository = await ports.Worktrees.InspectAsync(project.RootPath, cancellationToken).ConfigureAwait(false);
 
@@ -94,7 +123,7 @@ internal sealed class Planner(EnginePorts ports)
             $"Worktree _base en {lease.BaseCommit} para planificar",
             new WorktreeCreatedPayload(null, lease.Name, lease.Path, lease.RefName, lease.BaseCommit) { RunId = run.Value },
             cancellationToken).ConfigureAwait(false);
-        var session = new Session(ports, request, orchestrator, provider, recorder, guard, lease, schema, progress, memory);
+        var session = new Session(ports, request, orchestrator, provider, recorder, guard, lease, schema, progress, memory, history?.Server);
         var skills = await ports.Skills.ProvisionAsync(project.ProjectId, orchestrator, $"{run.Value}-plan", lease.Path, cancellationToken).ConfigureAwait(false);
         try
         {
@@ -116,7 +145,8 @@ internal sealed class Planner(EnginePorts ports)
 
     /// <summary>
     /// The (at most) two runs of one planning request. The memory goes with the first prompt; a correction that resumes the
-    /// session already has it, and one that cannot resume repeats the whole prompt, memory included.
+    /// session already has it, and one that cannot resume repeats the whole prompt, memory included. The history server, when
+    /// there is one, goes with both runs: each is a new process of the CLI.
     /// </summary>
     private sealed class Session(
         EnginePorts ports,
@@ -128,13 +158,14 @@ internal sealed class Planner(EnginePorts ports)
         WorktreeLease lease,
         string schema,
         IProgress<AgentEvent>? progress,
-        ContextPack? memory)
+        ContextPack? memory,
+        McpServerSpec? history)
     {
         private RunId Run => recorder.Run;
 
         public async Task<PlanProposal> RunAsync(PlanContext context, ProvisionedSkills skills, CancellationToken cancellationToken)
         {
-            var first = await AskAsync(1, PlannerPrompt.Build(request, Run, memory), null, memory, skills, cancellationToken).ConfigureAwait(false);
+            var first = await AskAsync(1, PlannerPrompt.Build(request, Run, memory, history is not null), null, memory, skills, cancellationToken).ConfigureAwait(false);
             if (first.Failure is { } failure)
             {
                 return failure;
@@ -160,7 +191,7 @@ internal sealed class Planner(EnginePorts ports)
             var resumed = first.SessionId is not null;
             var correction = resumed
                 ? PlannerPrompt.Correction(Run, problems)
-                : PlannerPrompt.Build(request, Run, memory) + Environment.NewLine + PlannerPrompt.Correction(Run, problems);
+                : PlannerPrompt.Build(request, Run, memory, history is not null) + Environment.NewLine + PlannerPrompt.Correction(Run, problems);
             var second = await AskAsync(2, correction, first.SessionId, resumed ? null : memory, skills, cancellationToken).ConfigureAwait(false);
             if (second.Failure is { } secondFailure)
             {
@@ -251,6 +282,11 @@ internal sealed class Planner(EnginePorts ports)
                 TaskId: null,
                 Tags: ["#orquestacion", $"#ejecucion-{Run}", $"#intento-{attempt}"],
                 SkillsDirectory: skills.Directory);
+            if (history is not null)
+            {
+                agentRequest = ProjectHistoryLaunch.With(agentRequest, history);
+            }
+
             var invocation = new AgentInvocation(
                 orchestrator,
                 provider,

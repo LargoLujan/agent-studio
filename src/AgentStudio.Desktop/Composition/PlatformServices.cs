@@ -40,7 +40,9 @@ internal static class PlatformServices
     /// persistence, skills, verification, integration, the independent review, the approval gate and the orchestrator;
     /// and the Phase 4 modules (docs/14 section 9, «Integración»): the usage projection with the quota record, the
     /// project memory with its context packer and export, the Codex quota reader (it reads only while the saved setting
-    /// says the user opted in, D-15) and the assisted skill recommendation with its read-only MCP server next to the app.
+    /// says the user opted in, D-15) and the assisted skill recommendation with its read-only MCP server next to the app;
+    /// and the Phase 12 index (docs/17 §9.2, «Integración»; <see cref="SemanticIndexServices"/>): the semantic index with
+    /// its store and its local model, the installer of the model and the planner's tool over the same MCP server.
     /// The engine works in <see cref="LocalDataPaths.Orchestration"/>; git is located with the executable locator at
     /// first use and gets the empty hooks folder under the worktree root (both inside the git layer). The skills catalog
     /// is the <c>catalog.json</c> of <paramref name="skillsIndexPath"/>, or none, and the global activation decisions live
@@ -65,6 +67,7 @@ internal static class PlatformServices
             .AddAgentStudioSkills(SkillCatalogFor(skillsIndexPath), new SkillActivationStoreOptions(Path.Combine(folders.Roaming.BaseDirectory, "skill-activations.jsonl")))
             .AddSkillProvisioner(paths)
             .AddAgentStudioSkillRecommendation(Path.Combine(folders.Local.BaseDirectory, "skill-recommendations"), SkillsScreenServices.DefaultServerExecutable)
+            .AddSemanticIndexServices(folders, SkillsScreenServices.DefaultServerExecutable)
             .AddAgentStudioVerification()
             .AddAgentStudioIntegration()
             .AddAgentStudioJudging()
