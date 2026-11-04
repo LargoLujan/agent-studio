@@ -14,9 +14,11 @@ namespace AgentStudio.Tests.Infrastructure.Persistence;
 /// <summary>
 /// The recorder verifies the log incrementally (<see cref="IDecisionLogTailReader"/>): after the first load it reads and
 /// verifies only what was appended, so loading a log of thousands of entries costs what it grew. A log changed behind its
-/// back must be detected exactly as when every load verified it whole: an entry changed before the last verified point
-/// (the store's stamp changes when a trigger is dropped), entries added after it by someone else (the anchor), entries cut
-/// off, a chain rewritten and its triggers restored, a project opened again, and a writer that is another process.
+/// back must still be detected: an entry changed before the last verified point (the store's stamp changes when a trigger
+/// is dropped), entries added after it by someone else (the anchor), entries cut off, a chain rewritten and its triggers
+/// restored, a project opened again, and a writer that is another process. A change that leaves the stamp as it was (the
+/// schema version forged back, the file replaced by a copy, bytes written in place) is found by the next whole
+/// verification: at a critical moment, five minutes after the last one, after the bound of loads, or on opening again.
 /// </summary>
 public sealed class IncrementalLogVerificationTests : IDisposable
 {
@@ -349,6 +351,84 @@ public sealed class IncrementalLogVerificationTests : IDisposable
         Assert.False(state.Verification.IsValid);
         Assert.Equal(2, state.Verification.FirstInvalidSequence);
         Assert.InRange(loads, 1, DecisionRecorder.IncrementalLoadsBeforeFullVerification + 1);
+    }
+
+    /// <summary>What makes a load verify the whole log after a change the stamp cannot see.</summary>
+    public enum WholeVerification
+    {
+        /// <summary>A load at a critical moment (<see cref="LogLoad.Full"/>).</summary>
+        CriticalMoment,
+
+        /// <summary>An ordinary load, once the last whole verification is five minutes old (<see cref="DecisionRecorder.IncrementalAgeBeforeFullVerification"/>).</summary>
+        FiveMinutesLater,
+    }
+
+    [Theory]
+    [InlineData(StampBlindChange.SchemaVersionForged, WholeVerification.CriticalMoment)]
+    [InlineData(StampBlindChange.SchemaVersionForged, WholeVerification.FiveMinutesLater)]
+    [InlineData(StampBlindChange.FileReplaced, WholeVerification.CriticalMoment)]
+    [InlineData(StampBlindChange.FileReplaced, WholeVerification.FiveMinutesLater)]
+    public async Task A_change_that_leaves_the_stamp_as_it_was_is_found_at_the_next_critical_moment_or_five_minutes_after_the_last_whole_verification(
+        StampBlindChange change,
+        WholeVerification whole)
+    {
+        using var world = await OpenAsync();
+        await world.WriteAsync(8);
+        Assert.True((await world.Recorder.LoadAsync(world.ProjectId, LogLoad.Full, Ct)).Verification.IsValid); // the five minutes start here
+        var reads = world.Store.Whole;
+
+        StampBlindTampering.Apply(world.Instance, change, "DROP TRIGGER decision_log_no_update;", "UPDATE decision_log SET summary = 'Entrada cambiada' WHERE sequence = 2;", RestoreNoUpdate);
+
+        // The tail cannot tell, and nobody in this process is given the changed entry: the log verified is served from memory.
+        var unseen = await world.LoadAsync();
+        Assert.True(unseen.Verification.IsValid);
+        Assert.Equal("Entrada 2", unseen.Entries[1].Summary);
+        Assert.Equal(reads, world.Store.Whole);
+
+        DecisionLogState state;
+        if (whole == WholeVerification.CriticalMoment)
+        {
+            state = await world.Recorder.LoadAsync(world.ProjectId, LogLoad.Full, Ct);
+        }
+        else
+        {
+            world.Instance.Clock.Advance(TimeSpan.FromMinutes(5) - TimeSpan.FromSeconds(1));
+            Assert.True((await world.LoadAsync()).Verification.IsValid);
+            world.Instance.Clock.Advance(TimeSpan.FromSeconds(1));
+            state = await world.LoadAsync();
+        }
+
+        Assert.False(state.Verification.IsValid);
+        Assert.Equal(2, state.Verification.FirstInvalidSequence);
+        Assert.Contains("modified", state.Verification.Problem, StringComparison.Ordinal);
+        Assert.Equal(reads + 1, world.Store.Whole);
+        await Assert.ThrowsAsync<DecisionLogIntegrityException>(() => world.Recorder.RecordAsync(world.ProjectId, System, DecisionKind.AuditAlertRaised, "no", new AuditAlertPayload("prueba", [], "no") { RunId = Run }, cancellationToken: Ct));
+    }
+
+    [Fact]
+    public async Task A_whole_verification_starts_the_five_minutes_again_and_a_load_from_the_tail_does_not()
+    {
+        using var world = await OpenAsync();
+        await world.WriteAsync(3);
+        Assert.True((await world.Recorder.LoadAsync(world.ProjectId, LogLoad.Full, Ct)).Verification.IsValid);
+        var reads = world.Store.Whole;
+
+        // Loads from the tail for four minutes do not move the start of the five minutes...
+        for (var minute = 1; minute <= 4; minute++)
+        {
+            world.Instance.Clock.Advance(TimeSpan.FromMinutes(1));
+            Assert.True((await world.LoadAsync()).Verification.IsValid);
+        }
+
+        Assert.Equal(reads, world.Store.Whole);
+        world.Instance.Clock.Advance(TimeSpan.FromMinutes(1));
+        Assert.True((await world.LoadAsync()).Verification.IsValid);
+        Assert.Equal(reads + 1, world.Store.Whole);
+
+        // ...and the whole verification of the fifth does: the next loads read the tail again.
+        world.Instance.Clock.Advance(TimeSpan.FromMinutes(4));
+        Assert.True((await world.LoadAsync()).Verification.IsValid);
+        Assert.Equal(reads + 1, world.Store.Whole);
     }
 
     [Fact]

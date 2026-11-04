@@ -18,11 +18,17 @@ namespace AgentStudio.Infrastructure.Persistence;
 /// verifies only what was appended since it last verified the log. The stamp is this opening of the project, the schema
 /// version of the database and the creation time of its file. The triggers keep <c>decision_log</c> append-only (no update,
 /// no delete, no replace), so changing an entry that is already there through SQL means dropping one of them first,
-/// which changes the schema version: the stamp then differs, and the recorder reads and verifies the whole log again, as
-/// it does after the project is opened again or its database file is another one. And the log continues only while those
-/// three triggers are exactly the ones of the schema (<see cref="AppendOnlyTriggers"/>): with one missing or rewritten, an
-/// entry could be changed later with no schema change at all, so every load reads and verifies the whole log until they are
-/// back. The marked entries must still be there, as many of them and the last with its hash; anything after them is the tail.
+/// which changes the schema version: left as it is, the stamp differs, and the recorder reads and verifies the whole log
+/// again, as it does after the project is opened again. And the log continues only while those three triggers are exactly
+/// the ones of the schema (<see cref="AppendOnlyTriggers"/>): with one missing or rewritten, an entry could be changed later
+/// with no schema change at all, so every load reads and verifies the whole log until they are back. The marked entries
+/// must still be there, as many of them and the last with its hash; anything after them is the tail.
+/// </para>
+/// <para>
+/// The stamp is no proof that nothing changed. Whoever can write to the database can set its schema version back
+/// (<c>PRAGMA schema_version</c>) or replace the file with a crafted copy that keeps its creation time, and bytes can be
+/// written in place: the stamp stays as it was. Those are found by the recorder's whole verifications (at the critical
+/// moments, after a time and a number of loads, and on opening the project again: ADR-0010, addendum of 2026-11-04).
 /// </para>
 /// </summary>
 public sealed partial class SqliteDecisionLogStore(ProjectDatabases databases) : IDecisionLogStore, IDecisionLogTailReader

@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Knowledge;
 
 namespace AgentStudio.Tests.Memory.Store;
@@ -67,6 +68,17 @@ public sealed class MemoryRecordingMeasurementTests
 
         loads.Stop();
         var load = loads.Elapsed / Loads;
+
+        // A load at a critical moment (a delivery, the dossier of a judge, the start of a run...) reads and verifies the whole
+        // log from its first entry, whatever was verified before (LogLoad.Full).
+        var fulls = Stopwatch.StartNew();
+        for (var i = 0; i < Loads; i++)
+        {
+            Assert.True((await world.Instance.Recorder.LoadAsync(world.Project.ProjectId, LogLoad.Full, Ct)).Verification.IsValid);
+        }
+
+        fulls.Stop();
+        var full = fulls.Elapsed / Loads;
         var recall = Stopwatch.StartNew();
         var found = await world.Memory.RecallAsync(world.Project, new MemoryQuery("plan 1234 revisión", MaxEntries: 10), Ct);
         recall.Stop();
@@ -79,6 +91,7 @@ public sealed class MemoryRecordingMeasurementTests
         report
             .AppendLine(CultureInfo.InvariantCulture, $"Total: {total.Elapsed.TotalSeconds:F1} s ({total.Elapsed.TotalMilliseconds / count:F2} ms por entrada); registro con {(await world.LogAsync()).Count} entradas.")
             .AppendLine(CultureInfo.InvariantCulture, $"Cargar y verificar el registro al final: {load.TotalMilliseconds:F2} ms de media en {Loads} cargas.")
+            .AppendLine(CultureInfo.InvariantCulture, $"Leer y verificar el registro entero, como en un momento crítico (LogLoad.Full): {full.TotalMilliseconds:F2} ms de media en {Loads} cargas.")
             .AppendLine(CultureInfo.InvariantCulture, $"Una búsqueda por palabras al final: {recall.Elapsed.TotalMilliseconds:F0} ms ({found.Count} resultados).")
             .AppendLine(CultureInfo.InvariantCulture, $"Recuperar toda la memoria, como el índice semántico antes de cada búsqueda: {everything.Elapsed.TotalMilliseconds:F0} ms ({all.Count} entradas).");
         TestContext.Current.TestOutputHelper?.WriteLine(report.ToString());
@@ -90,9 +103,10 @@ public sealed class MemoryRecordingMeasurementTests
         // Generous on purpose, so a busy machine does not fail it. Linear: the last tenth costs about what the first did
         // (each write is mostly the durable writes of the anchor and of SQLite), never three times as much. And a load of
         // the log verifies what it grew: read and verified whole, 2 000 entries took some 45 ms and 10 000 a quarter of a
-        // second, where reading the tail takes a few.
+        // second, where reading the tail takes a few. The whole read of a critical moment stays linear in the entries.
         Assert.True(laps[^1] < laps[0] * 3 + TimeSpan.FromSeconds(1), report.ToString());
         Assert.True(load < TimeSpan.FromMilliseconds(25), report.ToString());
+        Assert.True(full < TimeSpan.FromMilliseconds(100 + (0.25 * count)), report.ToString());
         Assert.True(total.Elapsed < TimeSpan.FromMilliseconds(100.0 * count), report.ToString());
     }
 }
