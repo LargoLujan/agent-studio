@@ -16,6 +16,7 @@ using AgentStudio.Domain.Evidence;
 using AgentStudio.Domain.Judging;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Providers;
+using AgentStudio.Tests.Application;
 using AgentStudio.Tests.Debate.Fakes;
 using static AgentStudio.Tests.Domain.TestData;
 
@@ -34,6 +35,20 @@ public sealed class DebateDossierBuilderTests
         Json(File.ReadAllText(Path.Combine(package.Files.Folder, file)));
 
     private static IEnumerable<string?> Strings(JsonElement array) => array.EnumerateArray().Select(e => e.GetString());
+
+    [Fact]
+    public async Task The_dossier_of_a_debate_rests_on_the_whole_log_read_and_verified_from_its_first_entry()
+    {
+        using var world = await DebateWorld.CreateAsync();
+        await world.ChoiceDebateAsync(DebateWorld.MixedPanel());
+        var spy = new LoadSpyRecorder(world.World.Recorder);
+        var builder = new DebateDossierBuilder(spy, world.Debates, world.World.Requirements, world.World.Evidence, world.World.Verdicts, DebateWorld.RunBuilder(world.World), new JudgingOptions(world.World.DossierRoot));
+
+        await builder.BuildPackageAsync(world.World.ProjectContext, DebateWorld.Debate, TestContext.Current.CancellationToken);
+
+        // What the judges of a debate see is a critical moment (ADR-0010, addendum of 2026-11-04).
+        Assert.Equal([LogLoad.Full], spy.Loads);
+    }
 
     [Fact]
     public async Task The_dossier_of_a_debate_names_its_participants_only_by_label_and_role()

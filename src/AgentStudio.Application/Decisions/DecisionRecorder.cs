@@ -45,8 +45,8 @@ namespace AgentStudio.Application.Decisions;
 /// <item><b>What the tail cannot see.</b> A change in place that leaves the stamp as it was (bytes written into the file or
 /// through SQLite's blob interface, or an entry changed with SQL and the schema version forged back, or the file replaced
 /// by a crafted copy) is not seen by a load from the tail. It is seen by the next whole verification: every load at the
-/// critical moments asks for one (<see cref="LogLoad.Full"/>: a delivery, the dossier of a judge, an independent review,
-/// the start of a run, a planning), and an incremental load makes one when the last was more than
+/// critical moments asks for one (<see cref="LogLoad.Full"/>: a delivery, what a judge sees, the start of a run, a
+/// planning, the close of a debate, an audit, a challenge), and an incremental load makes one when the last was at least
 /// <see cref="IncrementalAgeBeforeFullVerification"/> ago or after <see cref="IncrementalLoadsBeforeFullVerification"/>
 /// loads from the tail, and at the next opening of the project. Meanwhile nobody in this process is given the changed
 /// entries: what was verified is served from memory.</item>

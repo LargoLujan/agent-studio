@@ -167,14 +167,16 @@ public enum LogLoad
     /// <summary>
     /// What was appended since the writer last verified the log, chained to it, when the store can tell nothing else
     /// changed; otherwise, and at least every 5 minutes and every 256 loads, the whole log. For everything that is not a
-    /// critical moment: recording, recalling, listing.
+    /// critical moment: a run or a debate going on, recording and recalling memory, listing.
     /// </summary>
     Incremental,
 
     /// <summary>
     /// The whole log, read from storage and verified from its first entry, whatever was verified before. For the critical
-    /// moments, where a decision or an agent rests on the log: a delivery, the dossier of a judge, an independent review,
-    /// the start of a run and a planning.
+    /// moments, where a decision or an agent rests on the log, and everything a judge sees: a delivery, the dossier of a
+    /// judge and an independent review, the start of a run and its resumes, a planning, the dossier, the verdict and the
+    /// close of a debate, a project audit (its proposal, its dossier and its close) and a challenge (its preparation, its
+    /// <c>VerdictChallenged</c> and the acceptance of its revision).
     /// </summary>
     Full,
 }

@@ -471,15 +471,22 @@ recupera toda la memoria antes de cada búsqueda.
    uno o tiene otro cuerpo). En ese último caso, cada carga verifica el registro entero hasta que vuelvan.
 4. **Los momentos críticos leen el registro entero.** El contrato lo dice en cada llamada:
    `IDecisionRecorder.LoadAsync(projectId, LogLoad.Full, ct)` lee y verifica todo desde la primera entrada, pase lo que
-   pase antes. Son los sitios donde una decisión o un agente se apoyan en el registro:
+   pase antes. Son los sitios donde una decisión o un agente se apoyan en el registro, y todo lo que ve un juez:
    - la entrega (`DeliveryService.CheckAsync`);
    - el dosier del juez (`JudgeDossierBuilder`) y la revisión independiente (`IndependentReview`);
    - el arranque de una ejecución y sus reanudaciones (`Orchestrator.StartAsync`, `ResumeAsync` y la reanudación por
      consentimiento);
-   - la planificación (`Planner`).
+   - la planificación (`Planner`);
+   - en un debate, el dosier de su juez (`DebateDossierBuilder`), su veredicto (`DebateJudgment`) y su cierre
+     (`DebateClosed`, en `DebateRun`);
+   - la auditoría del proyecto (`ProjectAuditService`) en cada paso: la propuesta, que decide quién puede juzgar, el
+     arranque, el dosier de su juez y el cierre de una auditoría interrumpida;
+   - la impugnación de un veredicto (`VerdictChallengeService`): prepararla, que decide quién puede juzgar la revisión,
+     el `VerdictChallenged` que la ancla y la aceptación de su revisión, que la resuelve.
 
-   El resto de cargas son incrementales (`LogLoad.Incremental`, la sobrecarga sin `LogLoad`): las de una ejecución en
-   marcha, listar e inspeccionar ejecuciones, grabar y buscar memoria, los debates, las auditorías y las impugnaciones.
+   El resto de cargas son incrementales (`LogLoad.Incremental`, la sobrecarga sin `LogLoad`): las de una ejecución o un
+   debate en marcha, abrir y reanudar un debate, listar e inspeccionar ejecuciones y debates, grabar y buscar memoria, el
+   auditor del orquestador (que no es un juez: no da veredictos) y el estado de una impugnación que enseñan las pantallas.
 5. **Una carga incremental verifica entero cada cierto tiempo.** Lo hace si la última verificación entera fue hace 5
    minutos o más (`DecisionRecorder.IncrementalAgeBeforeFullVerification`, medido con el `TimeProvider`), y además cada 256
    cargas desde la cola (`IncrementalLoadsBeforeFullVerification`). Al volver a abrir el proyecto, siempre.
@@ -515,8 +522,10 @@ recupera toda la memoria antes de cada búsqueda.
     siguiente momento crítico y a los 5 minutos de reloj falso (a los 4:59, todavía no);
   - `CriticalMomentsTests`: esos dos cambios, sobre los almacenes y el ancla reales, se encuentran en la entrega, en el
     dosier del juez, al arrancar una ejecución y al planificar;
-  - `CriticalLogLoadsTests`, `JudgeDossierBuilderTests` e `IndependentReviewTests`: cada momento crítico pide la lectura
-    entera, y listar e inspeccionar ejecuciones, la incremental;
+  - `CriticalLogLoadsTests`, `JudgeDossierBuilderTests`, `IndependentReviewTests`, `ResumeAfterRestartTests`,
+    `DebateDossierBuilderTests`, `DebateJudgmentTests`, `DebateCoordinatorTests`, `ProjectAuditServiceTests` y
+    `VerdictChallengeServiceTests`: cada momento crítico pide la lectura entera, y listar e inspeccionar ejecuciones, una
+    ejecución o un debate en marcha y el estado de una impugnación, la incremental;
   - `PersistenceRegistrationTests`: un proyecto cerrado se olvida;
   - `IncrementalMemoryLedgerTests`: el libro ampliado es, en cada paso, el que se lee de cero.
 
@@ -553,7 +562,7 @@ lugar de dos.
   que lo que se retrasa es el aviso, no lo que se lee.
 - Es el punto 2 de ADR-0018: un proceso del mismo usuario con integridad Medium puede reescribir el registro y también su
   ancla. Lo que esta adenda cambia es cuándo se ve, nunca si se puede hacer.
-- Los debates (también el dosier de su juez), las auditorías y las impugnaciones cargan de forma incremental: trabajan sobre
-  lo verificado y ven el aviso en la siguiente verificación entera. La entrega que dependa de ellos vuelve a leer el registro
-  entero.
+- Una ejecución o un debate en marcha, abrir y reanudar un debate y el auditor del orquestador cargan de forma
+  incremental: trabajan sobre lo verificado y ven el aviso en la siguiente verificación entera. Lo que decide sobre ellos
+  (la revisión, el veredicto y el cierre de un debate, la entrega) vuelve a leer el registro entero.
 - Un almacén sin lectura de la cola (las pruebas en memoria) se sigue leyendo entero en cada carga.

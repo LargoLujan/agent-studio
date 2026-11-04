@@ -14,6 +14,7 @@ using AgentStudio.Domain.Judging;
 using AgentStudio.Domain.Metrics;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Providers;
+using AgentStudio.Tests.Application;
 using AgentStudio.Tests.Debate.Audit.Fixtures;
 using AgentStudio.Tests.Debate.Fakes;
 using static AgentStudio.Tests.Debate.Audit.Fixtures.AuditWorld;
@@ -49,7 +50,8 @@ internal sealed class ChallengeBench
         Template = new FakeTemplate(template ?? DefaultTemplate());
         Gate = new RecordingGate(world);
         Coordinator = new FakeCoordinator(world, Template);
-        Service = new VerdictChallengeService(World.Recorder, Verdicts, World.Requirements, World.Evidence, Template, Coordinator, Gate);
+        Recorder = new LoadSpyRecorder(World.Recorder);
+        Service = new VerdictChallengeService(Recorder, Verdicts, World.Requirements, World.Evidence, Template, Coordinator, Gate);
     }
 
     public PreparedRun World { get; }
@@ -61,6 +63,9 @@ internal sealed class ChallengeBench
     public RecordingGate Gate { get; }
 
     public FakeCoordinator Coordinator { get; }
+
+    /// <summary>The log of the world as the service reads and writes it, telling which loads it asks for.</summary>
+    public LoadSpyRecorder Recorder { get; }
 
     public VerdictChallengeService Service { get; }
 

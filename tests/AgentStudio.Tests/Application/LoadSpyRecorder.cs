@@ -8,19 +8,21 @@ namespace AgentStudio.Tests.Application;
 internal sealed class LoadSpyRecorder(IDecisionRecorder inner) : IDecisionRecorder
 {
     private readonly ConcurrentQueue<LogLoad> _loads = new();
+    private readonly ConcurrentQueue<string> _calls = new();
 
     /// <summary>Every load asked for, in order.</summary>
     public IReadOnlyList<LogLoad> Loads => [.. _loads];
 
-    public Task<DecisionLogState> LoadAsync(string projectId, CancellationToken cancellationToken)
-    {
-        _loads.Enqueue(LogLoad.Incremental);
-        return inner.LoadAsync(projectId, cancellationToken);
-    }
+    /// <summary>Every call, in order: the <see cref="LogLoad"/> of a load, or <c>Record:</c> and the kind of the entry recorded.</summary>
+    public IReadOnlyList<string> Calls => [.. _calls];
+
+    public Task<DecisionLogState> LoadAsync(string projectId, CancellationToken cancellationToken) =>
+        LoadAsync(projectId, LogLoad.Incremental, cancellationToken);
 
     public Task<DecisionLogState> LoadAsync(string projectId, LogLoad load, CancellationToken cancellationToken)
     {
         _loads.Enqueue(load);
+        _calls.Enqueue(load.ToString());
         return inner.LoadAsync(projectId, load, cancellationToken);
     }
 
@@ -31,6 +33,9 @@ internal sealed class LoadSpyRecorder(IDecisionRecorder inner) : IDecisionRecord
         string summary,
         DecisionPayload payload,
         long? corrects = null,
-        CancellationToken cancellationToken = default) =>
-        inner.RecordAsync(projectId, actor, kind, summary, payload, corrects, cancellationToken);
+        CancellationToken cancellationToken = default)
+    {
+        _calls.Enqueue("Record:" + kind);
+        return inner.RecordAsync(projectId, actor, kind, summary, payload, corrects, cancellationToken);
+    }
 }

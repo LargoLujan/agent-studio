@@ -101,6 +101,37 @@ public sealed class ProjectAuditServiceTests
         AssertNothingRan(bench, before);
     }
 
+    /// <summary>
+    /// An audit is a critical moment (ADR-0010, addendum of 2026-11-04): its proposal (who may judge), its start, the dossier
+    /// of its judge and its close all read the whole log.
+    /// </summary>
+    [Fact]
+    public async Task Every_load_of_an_audit_reads_the_whole_log()
+    {
+        using var bench = await ProjectWithClaudeRunAsync();
+        var proposal = await bench.PrepareAsync(bench.Request());
+        Assert.Equal([LogLoad.Full], bench.Recorder.Loads);
+
+        var report = await bench.AuditAsync(proposal);
+
+        Assert.True(report.IsTrustworthy);
+        Assert.Equal([LogLoad.Full, LogLoad.Full, LogLoad.Full, LogLoad.Full], bench.Recorder.Loads);
+    }
+
+    [Fact]
+    public async Task The_close_of_an_audit_that_throws_reads_the_whole_log_too()
+    {
+        using var bench = await ProjectWithClaudeRunAsync();
+        bench.Verdict = (_, _) => throw new InvalidOperationException("se cayó el juez");
+        var proposal = await bench.PrepareAsync(bench.Request());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => bench.AuditAsync(proposal));
+
+        Assert.Equal(DecisionKind.ProjectAuditFinished, bench.Entries[^1].Kind);
+        Assert.Equal(5, bench.Recorder.Loads.Count);
+        Assert.All(bench.Recorder.Loads, l => Assert.Equal(LogLoad.Full, l));
+    }
+
     [Fact]
     public async Task A_judged_audit_writes_its_unit_in_order_and_binds_the_approval_to_what_was_shown()
     {

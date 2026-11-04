@@ -1299,7 +1299,8 @@ public sealed class DebateRun : IDebateRun
     /// <exception cref="DomainRuleViolationException">The verdicts do not support that close.</exception>
     private async Task CloseAsync(PanelOutcome outcome, IReadOnlyList<Verdict> valid, string rule, string reason, CancellationToken ct)
     {
-        var log = await LoadLogAsync(ct).ConfigureAwait(false);
+        // A critical moment: the close rests on the whole log, verified from its first entry (ADR-0010, addendum of 2026-11-04).
+        var log = await LoadLogAsync(LogLoad.Full, ct).ConfigureAwait(false);
         var probe = DebateStateReplayer.Replay(Header(), log.Events(_context.StartedAt, _ => [])).Session
             ?? throw new InvalidOperationException("The header of the debate does not open: it cannot be closed.");
         probe.Close(outcome, valid);
@@ -1427,9 +1428,12 @@ public sealed class DebateRun : IDebateRun
 
     // ---- what the log says ----
 
-    private async Task<DebateLog> LoadLogAsync(CancellationToken ct)
+    /// <summary>The debate as the verified log has it, loaded incrementally: so is every load of a debate going on but its close (<see cref="CloseAsync"/>).</summary>
+    private Task<DebateLog> LoadLogAsync(CancellationToken ct) => LoadLogAsync(LogLoad.Incremental, ct);
+
+    private async Task<DebateLog> LoadLogAsync(LogLoad load, CancellationToken ct)
     {
-        var log = await _ports.Decisions.LoadAsync(_context.Project.ProjectId, ct).ConfigureAwait(false);
+        var log = await _ports.Decisions.LoadAsync(_context.Project.ProjectId, load, ct).ConfigureAwait(false);
         if (!log.Verification.IsValid)
         {
             throw new DecisionLogIntegrityException(_context.Project.ProjectId, log.Verification);

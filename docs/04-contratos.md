@@ -390,9 +390,11 @@ public interface IDecisionRecorder
   adenda de esa fecha). Con un almacén que lee la cola (`IDecisionLogTailReader`), una carga `Incremental` lee y verifica
   solo lo añadido desde lo último verificado, y comprueba el ancla en cada carga. `LogLoad.Full` lee y verifica el
   registro entero desde su primera entrada. Lo piden los momentos críticos, donde una decisión o un agente se apoyan en el
-  registro: la entrega, el dosier del juez, la revisión independiente, el arranque y la reanudación de una ejecución, y la
-  planificación. Una carga incremental también verifica entero si la última verificación entera fue hace 5 minutos o más
-  (`IncrementalAgeBeforeFullVerification`, con el `TimeProvider`), tras 256 cargas desde la cola
+  registro, y todo lo que ve un juez: la entrega, el dosier del juez, la revisión independiente, el arranque y la
+  reanudación de una ejecución, la planificación, el dosier, el veredicto y el cierre de un debate, la auditoría del
+  proyecto (propuesta, arranque, dosier y cierre) y la impugnación de un veredicto (prepararla, `VerdictChallenged` y la
+  aceptación de su revisión). Una carga incremental también verifica entero si la última verificación entera fue hace
+  5 minutos o más (`IncrementalAgeBeforeFullVerification`, con el `TimeProvider`), tras 256 cargas desde la cola
   (`IncrementalLoadsBeforeFullVerification`) y al volver a abrir el proyecto. Lo verificado se olvida al cerrar el
   proyecto (`DecisionRecorder.Forget`, que el contenedor engancha a `ProjectDatabases.Closed`).
 

@@ -283,6 +283,26 @@ public sealed class VerdictChallengeServiceTests
         Assert.Equal(ChallengeStatus.Pending, await bench.StatusAsync());
     }
 
+    /// <summary>
+    /// A challenge is a critical moment (ADR-0010, addendum of 2026-11-04): preparing it (who may judge the revision), the
+    /// <c>VerdictChallenged</c> that anchors it and the acceptance of its revision read the whole log; where it stands, which
+    /// only the screens show, reads its tail.
+    /// </summary>
+    [Fact]
+    public async Task A_challenge_reads_the_whole_log_to_be_prepared_anchored_and_resolved_and_its_tail_to_say_where_it_stands()
+    {
+        var (bench, revision) = await ChallengedAsync(VerdictDecision.ChangesRequested);
+        Assert.Equal([LogLoad.Full, LogLoad.Full, LogLoad.Full], bench.Recorder.Loads);
+        Assert.Contains(bench.Entries, e => e.Kind == DecisionKind.VerdictChallenged);
+        var ids = await bench.JudgeRevisionAsync(revision.Id.Value, RunVerdict, Run.Value, DebateOutcome.Resolved, JudgingPanel.Single, (Revisor, VerdictDecision.Approved, true));
+
+        await bench.AcceptAsync(ids[0]);
+        Assert.Equal(LogLoad.Full, bench.Recorder.Loads[^1]);
+        Assert.Equal(ChallengeStatus.Accepted, await bench.StatusAsync());
+
+        Assert.Equal([LogLoad.Full, LogLoad.Full, LogLoad.Full, LogLoad.Full, LogLoad.Incremental], bench.Recorder.Loads);
+    }
+
     [Fact]
     public async Task A_turn_towards_an_approval_counts_once_a_person_accepts_it_bound_to_that_verdict()
     {
