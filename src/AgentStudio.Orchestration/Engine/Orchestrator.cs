@@ -281,7 +281,7 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
         }
 
         var project = request.Project;
-        var log = await LoadVerifiedAsync(project.ProjectId, cancellationToken).ConfigureAwait(false);
+        var log = await LoadVerifiedAsync(project.ProjectId, LogLoad.Full, cancellationToken).ConfigureAwait(false);
 
         // The run header freezes the roster the store holds now, and RunStarted anchors it: it must be the one the user
         // validated and approved the plan with, or an agent edited in between (given Bash, say) would run as approved.
@@ -379,7 +379,7 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
         ArgumentNullException.ThrowIfNull(project);
         using var busy = Enter(project.ProjectId, ProjectActivityKind.Run);
         using var reservation = Reserve(project.ProjectId, run);
-        var log = await LoadVerifiedAsync(project.ProjectId, cancellationToken).ConfigureAwait(false);
+        var log = await LoadVerifiedAsync(project.ProjectId, LogLoad.Full, cancellationToken).ConfigureAwait(false);
         return await GoOnAsync(project, run, log, RunResumeCause.UserRequested, cancellationToken).ConfigureAwait(false);
     }
 
@@ -396,7 +396,7 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
         ArgumentNullException.ThrowIfNull(project);
         using var busy = Enter(project.ProjectId, ProjectActivityKind.Run);
         using var reservation = Reserve(project.ProjectId, run);
-        var log = await LoadVerifiedAsync(project.ProjectId, cancellationToken).ConfigureAwait(false);
+        var log = await LoadVerifiedAsync(project.ProjectId, LogLoad.Full, cancellationToken).ConfigureAwait(false);
         var (cause, reason) = _stoppedByError.TryGetValue(Key(project.ProjectId, run), out var error)
             ? (null, $"Se detuvo en esta sesión de la aplicación por un error del sistema ({error}): la reanudas tú.")
             : await _ports.Runs.FindAsync(project.ProjectId, run, cancellationToken).ConfigureAwait(false) is { } record
@@ -440,7 +440,7 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
     public async Task<IReadOnlyList<RunSummary>> ListRunsAsync(ProjectContext project, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(project);
-        var log = await LoadVerifiedAsync(project.ProjectId, cancellationToken).ConfigureAwait(false);
+        var log = await LoadVerifiedAsync(project.ProjectId, LogLoad.Incremental, cancellationToken).ConfigureAwait(false);
         var records = await _ports.Runs.ListAsync(project.ProjectId, cancellationToken).ConfigureAwait(false);
         var summaries = new List<RunSummary>();
         foreach (var record in records.OrderBy(r => r.CreatedAt))
@@ -484,7 +484,7 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
             throw new InvalidOperationException($"Run {run} is running in this process: the monitor that follows it shows it.");
         }
 
-        var log = await LoadVerifiedAsync(project.ProjectId, cancellationToken).ConfigureAwait(false);
+        var log = await LoadVerifiedAsync(project.ProjectId, LogLoad.Incremental, cancellationToken).ConfigureAwait(false);
         return await new RunInspector(_ports).InspectAsync(project, run, log.Entries, cancellationToken).ConfigureAwait(false);
     }
 
@@ -639,9 +639,14 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
     private static RunFinishedPayload? LastFinished(IReadOnlyList<(Domain.Decisions.DecisionEntry Entry, DecisionPayload Payload)> entries) =>
         entries.Select(e => e.Payload).OfType<RunFinishedPayload>().LastOrDefault();
 
-    private async Task<DecisionLogState> LoadVerifiedAsync(string projectId, CancellationToken cancellationToken)
+    /// <summary>
+    /// The verified log, or <see cref="DecisionLogIntegrityException"/>. <see cref="LogLoad.Full"/> for the start of a run and
+    /// its resumes, which launch agents on it (a critical moment, ADR-0010, addendum of 2026-11-04); incremental for listing
+    /// and inspecting.
+    /// </summary>
+    private async Task<DecisionLogState> LoadVerifiedAsync(string projectId, LogLoad load, CancellationToken cancellationToken)
     {
-        var log = await _ports.Decisions.LoadAsync(projectId, cancellationToken).ConfigureAwait(false);
+        var log = await _ports.Decisions.LoadAsync(projectId, load, cancellationToken).ConfigureAwait(false);
         if (!log.Verification.IsValid)
         {
             throw new DecisionLogIntegrityException(projectId, log.Verification);

@@ -161,14 +161,41 @@ public interface IDecisionLogAnchorStore
     Task ConfirmAsync(string projectId, DecisionLogAnchor anchor, CancellationToken cancellationToken) => Task.CompletedTask;
 }
 
+/// <summary>How much of the log a load reads from storage and verifies (ADR-0010, addendum of 2026-11-04).</summary>
+public enum LogLoad
+{
+    /// <summary>
+    /// What was appended since the writer last verified the log, chained to it, when the store can tell nothing else
+    /// changed; otherwise, and at least every 5 minutes and every 256 loads, the whole log. For everything that is not a
+    /// critical moment: recording, recalling, listing.
+    /// </summary>
+    Incremental,
+
+    /// <summary>
+    /// The whole log, read from storage and verified from its first entry, whatever was verified before. For the critical
+    /// moments, where a decision or an agent rests on the log: a delivery, the dossier of a judge, an independent review,
+    /// the start of a run and a planning.
+    /// </summary>
+    Full,
+}
+
 /// <summary>
 /// The only writer of a project's decision log. It keeps the chain consistent (sequence and time come from the domain
 /// object, never from the database) and serializes the payloads in one fixed format, because their text is part of the hash.
 /// </summary>
 public interface IDecisionRecorder
 {
-    /// <summary>Reads the whole log from storage and verifies its hash chain. A broken chain is returned, not thrown.</summary>
+    /// <summary>
+    /// Reads the log from storage and verifies its hash chain and its anchor (<see cref="LogLoad.Incremental"/>). A broken
+    /// chain is returned, not thrown.
+    /// </summary>
     Task<DecisionLogState> LoadAsync(string projectId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Reads the log from storage and verifies it as <paramref name="load"/> says: <see cref="LogLoad.Full"/> at the critical
+    /// moments, so a change no incremental check can see is caught there. A broken chain is returned, not thrown.
+    /// </summary>
+    Task<DecisionLogState> LoadAsync(string projectId, LogLoad load, CancellationToken cancellationToken);
 
     /// <summary>
     /// Appends one entry. Throws <see cref="DecisionLogIntegrityException"/> if the stored log does not verify. The entry

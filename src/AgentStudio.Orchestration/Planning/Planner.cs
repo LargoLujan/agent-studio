@@ -45,7 +45,8 @@ internal sealed class Planner(EnginePorts ports)
         }
 
         var project = request.Project;
-        var log = await ports.Decisions.LoadAsync(project.ProjectId, cancellationToken).ConfigureAwait(false);
+        // A critical moment: the plan rests on the whole log, verified from its first entry (ADR-0010, addendum of 2026-11-04).
+        var log = await ports.Decisions.LoadAsync(project.ProjectId, LogLoad.Full, cancellationToken).ConfigureAwait(false);
         if (!log.Verification.IsValid)
         {
             throw new DecisionLogIntegrityException(project.ProjectId, log.Verification);

@@ -40,10 +40,16 @@ namespace AgentStudio.Application.Decisions;
 /// its file). If anything does not match, the whole log is read and verified, as with a store that cannot read its tail,
 /// and the anchor is checked on every load either way. So recording and recalling memory, which load the log each time,
 /// cost what the log grew, not what it holds. The verified log is this process's and per project, kept by the single
-/// writer of the project (the gate), like the log it appends to. Every <see cref="IncrementalLoadsBeforeFullVerification"/>
-/// loads from the tail, one reads and verifies the whole log again, so a change no stamp can see (bytes written in place
-/// by another process, through SQLite's blob interface or in the file itself) is still found within that many loads, as
-/// it is at the next opening of the project.</item>
+/// writer of the project (the gate), like the log it appends to, and forgotten when the project is closed
+/// (<see cref="Forget"/>).</item>
+/// <item><b>What the tail cannot see.</b> A change in place that leaves the stamp as it was (bytes written into the file or
+/// through SQLite's blob interface, or an entry changed with SQL and the schema version forged back, or the file replaced
+/// by a crafted copy) is not seen by a load from the tail. It is seen by the next whole verification: every load at the
+/// critical moments asks for one (<see cref="LogLoad.Full"/>: a delivery, the dossier of a judge, an independent review,
+/// the start of a run, a planning), and an incremental load makes one when the last was more than
+/// <see cref="IncrementalAgeBeforeFullVerification"/> ago or after <see cref="IncrementalLoadsBeforeFullVerification"/>
+/// loads from the tail, and at the next opening of the project. Meanwhile nobody in this process is given the changed
+/// entries: what was verified is served from memory.</item>
 /// </list>
 /// </remarks>
 public sealed class DecisionRecorder(IDecisionLogStore store, TimeProvider timeProvider, IDecisionLogAnchorStore? anchors = null) : IDecisionRecorder, IDecisionLogOrigin
@@ -54,21 +60,33 @@ public sealed class DecisionRecorder(IDecisionLogStore store, TimeProvider timeP
     /// <summary>How many loads verify only the tail of the log before one verifies the whole log again.</summary>
     public const int IncrementalLoadsBeforeFullVerification = 256;
 
+    /// <summary>How long after a whole verification loads may still verify only the tail of the log.</summary>
+    public static readonly TimeSpan IncrementalAgeBeforeFullVerification = TimeSpan.FromMinutes(5);
+
     /// <summary>Who signs the alert and the question of an acceptance: the system, as the approval gate does.</summary>
     private static readonly Actor SystemActor = new(ActorKind.System, "agent-studio");
 
     private readonly ConcurrentDictionary<string, ProjectWriter> _writers = new(StringComparer.Ordinal);
 
-    public async Task<DecisionLogState> LoadAsync(string projectId, CancellationToken cancellationToken)
+    public Task<DecisionLogState> LoadAsync(string projectId, CancellationToken cancellationToken) =>
+        LoadAsync(projectId, LogLoad.Incremental, cancellationToken);
+
+    public async Task<DecisionLogState> LoadAsync(string projectId, LogLoad load, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
+        if (!Enum.IsDefined(load))
+        {
+            throw new ArgumentOutOfRangeException(nameof(load), load, "Unknown kind of load of the decision log.");
+        }
+
         var writer = _writers.GetOrAdd(projectId, _ => new ProjectWriter());
         await writer.Gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             // Always from the store: this is the check made when a project is opened, and it also catches changes made
-            // behind our back. Only what is new since the last verification is verified again (ReadVerifiedAsync).
-            var (log, verification, unanchored) = await ReadVerifiedAsync(projectId, writer, cancellationToken).ConfigureAwait(false);
+            // behind our back. Only what is new since the last verification is verified again, unless the load is a full
+            // one or the last full one is too old (ReadVerifiedAsync).
+            var (log, verification, unanchored) = await ReadVerifiedAsync(projectId, writer, load, cancellationToken).ConfigureAwait(false);
             return new DecisionLogState(log.Entries, verification) { Unanchored = unanchored };
         }
         finally
@@ -183,7 +201,7 @@ public sealed class DecisionRecorder(IDecisionLogStore store, TimeProvider timeP
         {
             if (writer.Log is null)
             {
-                var (_, verification, _) = await ReadVerifiedAsync(projectId, writer, cancellationToken).ConfigureAwait(false);
+                var (_, verification, _) = await ReadVerifiedAsync(projectId, writer, LogLoad.Incremental, cancellationToken).ConfigureAwait(false);
                 if (!verification.IsValid)
                 {
                     throw new DecisionLogIntegrityException(projectId, verification);
@@ -226,22 +244,36 @@ public sealed class DecisionRecorder(IDecisionLogStore store, TimeProvider timeP
         DecisionLog.Load(await store.ReadAllAsync(projectId, cancellationToken).ConfigureAwait(false));
 
     /// <summary>
+    /// Forgets what the writer of <paramref name="projectId"/> verified and holds: its next load reads and verifies the whole
+    /// log. The composition calls it when the project is closed, so a closed project keeps nothing in memory.
+    /// </summary>
+    public void Forget(string projectId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
+        _writers.TryRemove(projectId, out _);
+    }
+
+    /// <summary>
     /// The log as the store holds it now, verified against its anchor, which the writer adopts when it verifies (and
-    /// forgets when it does not). With a store that reads its tail and a log the writer verified before, only the entries
-    /// after that log are read and verified; anything else reads and verifies the whole log (see the remarks of the class).
+    /// forgets when it does not). With a store that reads its tail, a log the writer verified before, an incremental load
+    /// and a whole verification recent enough, only the entries after that log are read and verified; anything else reads
+    /// and verifies the whole log (see the remarks of the class).
     /// </summary>
     private async Task<(DecisionLog Log, DecisionLogVerification Verification, UnanchoredHistory? Unanchored)> ReadVerifiedAsync(
         string projectId,
         ProjectWriter writer,
+        LogLoad load,
         CancellationToken cancellationToken)
     {
+        var now = timeProvider.GetUtcNow();
         DecisionLog log;
         DecisionLogVerification chain;
         string? stamp = null;
         var incremental = false;
         if (store is IDecisionLogTailReader tails)
         {
-            var tail = writer is { Log: { } verified, Stamp: { } known, IncrementalLoads: < IncrementalLoadsBeforeFullVerification }
+            var recent = writer.VerifiedWholeAt is { } whole && now - whole < IncrementalAgeBeforeFullVerification;
+            var tail = load == LogLoad.Incremental && recent && writer is { Log: { } verified, Stamp: { } known, IncrementalLoads: < IncrementalLoadsBeforeFullVerification }
                 ? await tails.ReadTailAsync(projectId, new DecisionLogMark(verified.Count, verified.HeadHash, known), cancellationToken).ConfigureAwait(false)
                 : null;
             if (tail is { Continues: true } && writer.Log is { } prefix)
@@ -265,7 +297,7 @@ public sealed class DecisionRecorder(IDecisionLogStore store, TimeProvider timeP
         }
 
         var (verification, unanchored) = await VerifyAsync(projectId, log, chain, cancellationToken).ConfigureAwait(false);
-        writer.Adopt(verification.IsValid ? log : null, stamp, incremental);
+        writer.Adopt(verification.IsValid ? log : null, stamp, incremental, now);
         return (log, verification, unanchored);
     }
 
@@ -383,14 +415,19 @@ public sealed class DecisionRecorder(IDecisionLogStore store, TimeProvider timeP
         /// <summary>How many loads verified only the tail since the whole log was last verified.</summary>
         public int IncrementalLoads { get; private set; }
 
+        /// <summary>When <see cref="Log"/> was last read and verified whole; null when it was not (or there is no log).</summary>
+        public DateTimeOffset? VerifiedWholeAt { get; private set; }
+
         public DateTimeOffset? LastRecordedAt { get; set; }
 
         /// <param name="incremental">Whether this load verified only the tail; a whole verification starts the count again.</param>
-        public void Adopt(DecisionLog? log, string? stamp = null, bool incremental = false)
+        /// <param name="at">When the log was read; for a whole verification, the time the next ones are counted from.</param>
+        public void Adopt(DecisionLog? log, string? stamp = null, bool incremental = false, DateTimeOffset? at = null)
         {
             Log = log;
             Stamp = log is null ? null : stamp;
             IncrementalLoads = log is not null && incremental ? IncrementalLoads + 1 : 0;
+            VerifiedWholeAt = log is null ? null : incremental ? VerifiedWholeAt : at;
             LastRecordedAt = log is { Entries: [.., var last] } ? last.RecordedAt : null;
         }
     }

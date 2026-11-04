@@ -72,6 +72,12 @@ public sealed class ProjectDatabases : IDisposable
     /// <summary>Serializes the opening of projects in this instance, so one folder is never locked twice by the same app.</summary>
     internal SemaphoreSlim OpenGate { get; } = new(1, 1);
 
+    /// <summary>
+    /// Raised with the id of a project once it is closed: whoever keeps something of it in memory lets it go (the decision
+    /// recorder forgets the log it verified, <c>DecisionRecorder.Forget</c>).
+    /// </summary>
+    public event Action<string>? Closed;
+
     /// <summary>The storage of an open project. Throws <see cref="InvalidOperationException"/> if this instance has not opened it.</summary>
     public ProjectStorage Get(string projectId)
     {
@@ -119,6 +125,7 @@ public sealed class ProjectDatabases : IDisposable
         }
 
         open.Lock.Dispose();
+        Closed?.Invoke(projectId);
     }
 
     public void Dispose()
