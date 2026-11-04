@@ -58,11 +58,21 @@ public sealed class MemoryRecordingMeasurementTests
         }
 
         total.Stop();
+        const int Loads = 20;
+        var loads = Stopwatch.StartNew();
+        for (var i = 0; i < Loads; i++)
+        {
+            Assert.True((await world.Instance.Recorder.LoadAsync(world.Project.ProjectId, Ct)).Verification.IsValid);
+        }
+
+        loads.Stop();
+        var load = loads.Elapsed / Loads;
         var recall = Stopwatch.StartNew();
         var found = await world.Memory.RecallAsync(world.Project, new MemoryQuery("plan 1234 revisión", MaxEntries: 10), Ct);
         recall.Stop();
         report
             .AppendLine(CultureInfo.InvariantCulture, $"Total: {total.Elapsed.TotalSeconds:F1} s ({total.Elapsed.TotalMilliseconds / count:F2} ms por entrada); registro con {(await world.LogAsync()).Count} entradas.")
+            .AppendLine(CultureInfo.InvariantCulture, $"Cargar y verificar el registro al final: {load.TotalMilliseconds:F2} ms de media en {Loads} cargas.")
             .AppendLine(CultureInfo.InvariantCulture, $"Una búsqueda al final: {recall.Elapsed.TotalMilliseconds:F0} ms ({found.Count} resultados).");
         TestContext.Current.TestOutputHelper?.WriteLine(report.ToString());
         if (Environment.GetEnvironmentVariable(ReportVariable) is { Length: > 0 } file)
@@ -70,10 +80,12 @@ public sealed class MemoryRecordingMeasurementTests
             await File.AppendAllTextAsync(file, report.ToString() + Environment.NewLine, Ct);
         }
 
-        // Generous on purpose (a busy machine must not fail it): linear means the last tenth costs about what the first
-        // did, never the five times a quadratic log costs by then; and no write takes the tenth of a second the whole log
-        // took to verify at 2 000 entries.
-        Assert.True(laps[^1] < laps[0] * 5 + TimeSpan.FromSeconds(1), report.ToString());
+        // Generous on purpose, so a busy machine does not fail it. Linear: the last tenth costs about what the first did
+        // (each write is mostly the durable writes of the anchor and of SQLite), never three times as much. And a load of
+        // the log verifies what it grew: read and verified whole, 2 000 entries took some 45 ms and 10 000 a quarter of a
+        // second, where reading the tail takes a few.
+        Assert.True(laps[^1] < laps[0] * 3 + TimeSpan.FromSeconds(1), report.ToString());
+        Assert.True(load < TimeSpan.FromMilliseconds(25), report.ToString());
         Assert.True(total.Elapsed < TimeSpan.FromMilliseconds(100.0 * count), report.ToString());
     }
 }
