@@ -33,6 +33,14 @@ namespace AgentStudio.Application.Decisions;
 /// <item>The store is told of every anchor the log verified against (<see cref="IDecisionLogAnchorStore.ConfirmAsync"/>),
 /// and only then may it move one kept under an old name to the project's location (ADR-0010, addendum P-04): a copy whose
 /// log does not verify never takes the anchor of the original. If it cannot be moved, the log is not trusted on that load.</item>
+/// <item><b>Incremental.</b> Every load reads the store, but with a store that reads its tail (<see cref="IDecisionLogTailReader"/>)
+/// only what was appended since this writer last verified the log is read and verified, chained to the head it verified:
+/// in the same read the store says that the entries up to there are still the ones verified (as many, the last with the
+/// same hash) and that nothing else about it changed (its stamp: the opening of the project, the schema of the database,
+/// its file). If anything does not match, the whole log is read and verified, as with a store that cannot read its tail,
+/// and the anchor is checked on every load either way. So recording and recalling memory, which load the log each time,
+/// cost what the log grew, not what it holds. The verified log is this process's and per project, kept by the single
+/// writer of the project (the gate), like the log it appends to.</item>
 /// </list>
 /// </remarks>
 public sealed class DecisionRecorder(IDecisionLogStore store, TimeProvider timeProvider, IDecisionLogAnchorStore? anchors = null) : IDecisionRecorder, IDecisionLogOrigin
@@ -52,10 +60,9 @@ public sealed class DecisionRecorder(IDecisionLogStore store, TimeProvider timeP
         await writer.Gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            // Always from the store: this is the check made when a project is opened, and it also catches changes made behind our back.
-            var log = await ReadLogAsync(projectId, cancellationToken).ConfigureAwait(false);
-            var (verification, unanchored) = await VerifyAsync(projectId, log, cancellationToken).ConfigureAwait(false);
-            writer.Adopt(verification.IsValid ? log : null);
+            // Always from the store: this is the check made when a project is opened, and it also catches changes made
+            // behind our back. Only what is new since the last verification is verified again (ReadVerifiedAsync).
+            var (log, verification, unanchored) = await ReadVerifiedAsync(projectId, writer, cancellationToken).ConfigureAwait(false);
             return new DecisionLogState(log.Entries, verification) { Unanchored = unanchored };
         }
         finally
@@ -94,7 +101,7 @@ public sealed class DecisionRecorder(IDecisionLogStore store, TimeProvider timeP
         try
         {
             var log = await ReadLogAsync(projectId, cancellationToken).ConfigureAwait(false);
-            var (verification, unanchored) = await VerifyAsync(projectId, log, cancellationToken).ConfigureAwait(false);
+            var (verification, unanchored) = await VerifyAsync(projectId, log, log.Verify(), cancellationToken).ConfigureAwait(false);
             if (unanchored is null)
             {
                 throw new InvalidOperationException(verification.IsValid
@@ -170,14 +177,11 @@ public sealed class DecisionRecorder(IDecisionLogStore store, TimeProvider timeP
         {
             if (writer.Log is null)
             {
-                var loaded = await ReadLogAsync(projectId, cancellationToken).ConfigureAwait(false);
-                var (verification, _) = await VerifyAsync(projectId, loaded, cancellationToken).ConfigureAwait(false);
+                var (_, verification, _) = await ReadVerifiedAsync(projectId, writer, cancellationToken).ConfigureAwait(false);
                 if (!verification.IsValid)
                 {
                     throw new DecisionLogIntegrityException(projectId, verification);
                 }
-
-                writer.Adopt(loaded);
             }
 
             var log = writer.Log!;
@@ -216,20 +220,61 @@ public sealed class DecisionRecorder(IDecisionLogStore store, TimeProvider timeP
         DecisionLog.Load(await store.ReadAllAsync(projectId, cancellationToken).ConfigureAwait(false));
 
     /// <summary>
-    /// The chain, and the log against the anchor of its location when there is one: a log that verifies against it is
-    /// confirmed to the store. An anchor that cannot be read or confirmed, or that is another project's, is no trust.
-    /// With no anchor for the location, an empty log is a new project and a log with entries is not trusted, which only a
-    /// person can change. The second value is set when a person may accept the log as a new origin: its chain holds and
-    /// no anchor recognises it here.
+    /// The log as the store holds it now, verified against its anchor, which the writer adopts when it verifies (and
+    /// forgets when it does not). With a store that reads its tail and a log the writer verified before, only the entries
+    /// after that log are read and verified; anything else reads and verifies the whole log (see the remarks of the class).
     /// </summary>
-    private async Task<(DecisionLogVerification Verification, UnanchoredHistory? Unanchored)> VerifyAsync(string projectId, DecisionLog log, CancellationToken cancellationToken)
+    private async Task<(DecisionLog Log, DecisionLogVerification Verification, UnanchoredHistory? Unanchored)> ReadVerifiedAsync(
+        string projectId,
+        ProjectWriter writer,
+        CancellationToken cancellationToken)
+    {
+        DecisionLog log;
+        DecisionLogVerification chain;
+        string? stamp = null;
+        if (store is IDecisionLogTailReader tails)
+        {
+            var tail = writer is { Log: { } verified, Stamp: { } known }
+                ? await tails.ReadTailAsync(projectId, new DecisionLogMark(verified.Count, verified.HeadHash, known), cancellationToken).ConfigureAwait(false)
+                : null;
+            if (tail is { Continues: true } && writer.Log is { } prefix)
+            {
+                (log, chain) = prefix.Extend(tail.Entries);
+                stamp = tail.Stamp;
+            }
+            else
+            {
+                var all = await tails.ReadTailAsync(projectId, null, cancellationToken).ConfigureAwait(false);
+                log = DecisionLog.Load(all.Entries);
+                chain = log.Verify();
+                stamp = all.Stamp;
+            }
+        }
+        else
+        {
+            log = await ReadLogAsync(projectId, cancellationToken).ConfigureAwait(false);
+            chain = log.Verify();
+        }
+
+        var (verification, unanchored) = await VerifyAsync(projectId, log, chain, cancellationToken).ConfigureAwait(false);
+        writer.Adopt(verification.IsValid ? log : null, stamp);
+        return (log, verification, unanchored);
+    }
+
+    /// <summary>
+    /// The chain (<paramref name="chain"/>, already checked), and the log against the anchor of its location when there is
+    /// one: a log that verifies against it is confirmed to the store. An anchor that cannot be read or confirmed, or that is
+    /// another project's, is no trust. With no anchor for the location, an empty log is a new project and a log with
+    /// entries is not trusted, which only a person can change. The second value is set when a person may accept the log as
+    /// a new origin: its chain holds and no anchor recognises it here.
+    /// </summary>
+    private async Task<(DecisionLogVerification Verification, UnanchoredHistory? Unanchored)> VerifyAsync(string projectId, DecisionLog log, DecisionLogVerification chain, CancellationToken cancellationToken)
     {
         if (anchors is null)
         {
-            return (log.Verify(), null);
+            return (chain, null);
         }
 
-        var chain = log.Verify();
         DecisionLogAnchor? anchor;
         try
         {
@@ -244,7 +289,7 @@ public sealed class DecisionRecorder(IDecisionLogStore store, TimeProvider timeP
 
             // The detected attack when the log has entries (its id was rewritten); when it has none, there is nobody's
             // history to accept: what lived here is gone, and a person may start a new one.
-            var empty = log.Entries.Count == 0;
+            var empty = log.Count == 0;
             var problem = $"{ex.Message} The log of this database can only be trusted against the anchor of its location."
                 + (empty ? " It is empty: only a person can accept starting a new history here." : string.Empty);
             return (new DecisionLogVerification(false, null, problem), empty && ex.AnchoredProjectId is { } previous ? new UnanchoredHistory(0, DecisionLog.GenesisHash, previous, ex.AnchoredEntryCount) : null);
@@ -258,7 +303,7 @@ public sealed class DecisionRecorder(IDecisionLogStore store, TimeProvider timeP
 
         if (anchor is not null)
         {
-            var verification = log.Verify(anchor);
+            var verification = chain.IsValid ? log.VerifyHead(anchor) : chain;
             if (verification.IsValid)
             {
                 try
@@ -275,7 +320,7 @@ public sealed class DecisionRecorder(IDecisionLogStore store, TimeProvider timeP
             return (verification, null);
         }
 
-        var count = log.Entries.Count;
+        var count = log.Count;
         if (!chain.IsValid || count == 0)
         {
             return (chain, null);
@@ -321,14 +366,18 @@ public sealed class DecisionRecorder(IDecisionLogStore store, TimeProvider timeP
     {
         public SemaphoreSlim Gate { get; } = new(1, 1);
 
-        /// <summary>The log as this writer believes it is stored; null when it must be read again.</summary>
+        /// <summary>The log as this writer believes it is stored, verified; null when it must be read again.</summary>
         public DecisionLog? Log { get; private set; }
+
+        /// <summary>The stamp of the store <see cref="Log"/> was read and verified with (<see cref="IDecisionLogTailReader"/>); null when it has none.</summary>
+        public string? Stamp { get; private set; }
 
         public DateTimeOffset? LastRecordedAt { get; set; }
 
-        public void Adopt(DecisionLog? log)
+        public void Adopt(DecisionLog? log, string? stamp = null)
         {
             Log = log;
+            Stamp = log is null ? null : stamp;
             LastRecordedAt = log is { Entries: [.., var last] } ? last.RecordedAt : null;
         }
     }

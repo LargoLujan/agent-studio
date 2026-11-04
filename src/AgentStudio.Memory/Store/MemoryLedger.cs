@@ -16,7 +16,8 @@ internal sealed record MemoryIntegrityProblem(string Code, string Entry, string 
 /// announced and with what, how each was reviewed, where the last history accepted as a new origin begins, which
 /// integrity alerts of the memory were raised already, and how far the journal of the project is trusted (docs/17 D-02,
 /// ADR-0047: <c>JournalTrustChanged</c>, by project and by day). Every state of an entry is derived from here; a row only
-/// says what it holds.
+/// says what it holds. A ledger never changes once built: <see cref="Extend"/> gives a new one with what the log grew, so
+/// the memory reads its log once and then only what is appended to it (<see cref="ProjectMemory"/>).
 /// </summary>
 internal sealed class MemoryLedger
 {
@@ -30,6 +31,17 @@ internal sealed class MemoryLedger
 
     private MemoryLedger()
     {
+    }
+
+    /// <summary>A copy of <paramref name="other"/> that the copy can grow without changing it.</summary>
+    private MemoryLedger(MemoryLedger other)
+    {
+        _announcements = new Dictionary<string, MemoryAnnouncement>(other._announcements, StringComparer.Ordinal);
+        _reviews = other._reviews.ToDictionary(r => r.Key, r => new List<(long Sequence, MemoryReviewedPayload Review)>(r.Value), StringComparer.Ordinal);
+        _superseders = other._superseders.ToDictionary(s => s.Key, s => new List<MemoryAnnouncement>(s.Value), StringComparer.Ordinal);
+        _alerts = new HashSet<string>(other._alerts, StringComparer.Ordinal);
+        _journalDecisions = [.. other._journalDecisions];
+        _lastOriginAcceptance = other._lastOriginAcceptance;
     }
 
     /// <summary>
@@ -49,9 +61,33 @@ internal sealed class MemoryLedger
     /// </summary>
     public static MemoryLedger From(IReadOnlyList<DecisionEntry> entries)
     {
+        ArgumentNullException.ThrowIfNull(entries);
         var ledger = new MemoryLedger();
-        foreach (var entry in entries)
+        ledger.Read(entries, 0);
+        return ledger;
+    }
+
+    /// <summary>
+    /// A new ledger: this one with the entries of <paramref name="entries"/> from index <paramref name="from"/> on, which
+    /// must be the log this ledger was read from followed by what was appended to it (the caller checks it by the hash of
+    /// the last entry it read: the chain makes the rest the same). This ledger does not change.
+    /// </summary>
+    public MemoryLedger Extend(IReadOnlyList<DecisionEntry> entries, int from)
+    {
+        ArgumentNullException.ThrowIfNull(entries);
+        ArgumentOutOfRangeException.ThrowIfNegative(from);
+        var ledger = new MemoryLedger(this);
+        ledger.Read(entries, from);
+        return ledger;
+    }
+
+    /// <summary>Takes in the memory entries of <paramref name="entries"/> from <paramref name="from"/> on, then settles the trust of the journal.</summary>
+    private void Read(IReadOnlyList<DecisionEntry> entries, int from)
+    {
+        var ledger = this;
+        for (var i = from; i < entries.Count; i++)
         {
+            var entry = entries[i];
             switch (entry.Kind)
             {
                 case DecisionKind.JournalTrustChanged when Read<JournalTrustChangedPayload>(entry) is { RunId: DecisionPayload.NoRun } decision:
@@ -85,7 +121,6 @@ internal sealed class MemoryLedger
         }
 
         ledger.SettleJournalTrust();
-        return ledger;
     }
 
     /// <summary>
@@ -249,6 +284,8 @@ internal sealed class MemoryLedger
     /// </summary>
     private void SettleJournalTrust()
     {
+        JournalTrusted = false;
+        _journalDays.Clear();
         foreach (var (_, decision) in _journalDecisions.Where(d => !Inherited(d.Sequence)))
         {
             if (decision.Scope == JournalTrustScope.Project)

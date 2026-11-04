@@ -197,6 +197,18 @@ public sealed class DecisionLog
         }
     }
 
+    /// <summary>How many entries the log has, without copying them (<see cref="Entries"/> does).</summary>
+    public int Count
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _entries.Count;
+            }
+        }
+    }
+
     /// <summary>Rebuilds a log read from storage. Call <see cref="Verify"/> before trusting it.</summary>
     public static DecisionLog Load(IEnumerable<DecisionEntry> entries)
     {
@@ -237,6 +249,48 @@ public sealed class DecisionLog
         lock (_gate)
         {
             return VerifyUnsafe();
+        }
+    }
+
+    /// <summary>
+    /// This log followed by <paramref name="more"/>, the entries a store holds after its end, with the check of those
+    /// alone: their sequence, their chain from this log's head, their time and their hash, exactly as <see cref="Verify()"/>
+    /// checks each entry. It is for a log that already verified (the writer of the log keeps the one it verified last):
+    /// what it held is not checked again, so verifying a log as it grows costs what it grew, not what it holds. This log
+    /// does not change; with nothing more, the log returned is this one.
+    /// </summary>
+    public (DecisionLog Log, DecisionLogVerification Verification) Extend(IReadOnlyList<DecisionEntry> more)
+    {
+        ArgumentNullException.ThrowIfNull(more);
+        if (more.Count == 0)
+        {
+            return (this, DecisionLogVerification.Valid);
+        }
+
+        DecisionLog extended;
+        int from;
+        lock (_gate)
+        {
+            from = _entries.Count;
+            extended = new DecisionLog([.. _entries, .. more.OrderBy(e => e.Sequence)]);
+        }
+
+        lock (extended._gate)
+        {
+            return (extended, extended.VerifyFromUnsafe(from));
+        }
+    }
+
+    /// <summary>
+    /// The log against the head anchored outside the project (<see cref="Verify(DecisionLogAnchor?)"/>) without checking
+    /// the chain again: for a log whose chain verified already (by <see cref="Verify()"/> or <see cref="Extend"/>).
+    /// </summary>
+    public DecisionLogVerification VerifyHead(DecisionLogAnchor anchor)
+    {
+        ArgumentNullException.ThrowIfNull(anchor);
+        lock (_gate)
+        {
+            return VerifyAgainstUnsafe(anchor);
         }
     }
 
@@ -287,10 +341,13 @@ public sealed class DecisionLog
         return new DecisionLogVerification(false, anchored + 1, $"Entries {anchored + 1} to {count} were added after the head anchored outside the project (entry {anchored}): its writer did not write them.");
     }
 
-    private DecisionLogVerification VerifyUnsafe()
+    private DecisionLogVerification VerifyUnsafe() => VerifyFromUnsafe(0);
+
+    /// <summary>The checks of <see cref="Verify()"/> for the entries from index <paramref name="from"/> on, chained to the one before it.</summary>
+    private DecisionLogVerification VerifyFromUnsafe(int from)
     {
-        var expectedPrevious = GenesisHash;
-        for (var i = 0; i < _entries.Count; i++)
+        var expectedPrevious = from == 0 ? GenesisHash : _entries[from - 1].Hash;
+        for (var i = from; i < _entries.Count; i++)
         {
             var entry = _entries[i];
             if (entry.Sequence != i + 1)

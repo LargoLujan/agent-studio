@@ -1,3 +1,4 @@
+using System.Globalization;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Domain.Decisions;
 using Microsoft.Data.Sqlite;
@@ -11,8 +12,17 @@ namespace AgentStudio.Infrastructure.Persistence;
 /// stored as the same UTC round-trip text the hash covers, so a log read back verifies with the same head. Reading
 /// does not verify (that is <see cref="DecisionLog.Verify"/>'s job, called by the recorder); a row that is not even a
 /// valid entry is reported with its sequence.
+/// <para>
+/// It also reads only the tail of the log (<see cref="IDecisionLogTailReader"/>), in one read transaction, so the recorder
+/// verifies only what was appended since it last verified the log. The stamp is this opening of the project, the schema
+/// version of the database and the creation time of its file. The triggers keep <c>decision_log</c> append-only (no update,
+/// no delete, no replace), so changing an entry that is already there through SQLite means dropping one of them first,
+/// which changes the schema version: the stamp then differs, and the recorder reads and verifies the whole log again, as
+/// it does after the project is opened again or its database file is another one. The marked entries must still be there,
+/// as many of them and the last with its hash; anything after them is the tail.
+/// </para>
 /// </summary>
-public sealed class SqliteDecisionLogStore(ProjectDatabases databases) : IDecisionLogStore
+public sealed class SqliteDecisionLogStore(ProjectDatabases databases) : IDecisionLogStore, IDecisionLogTailReader
 {
     public async Task AppendAsync(string projectId, DecisionEntry entry, CancellationToken cancellationToken)
     {
@@ -42,13 +52,64 @@ public sealed class SqliteDecisionLogStore(ProjectDatabases databases) : IDecisi
     public async Task<IReadOnlyList<DecisionEntry>> ReadAllAsync(string projectId, CancellationToken cancellationToken)
     {
         await using var connection = databases.Connect(projectId);
+        return await ReadAfterAsync(connection, null, projectId, 0, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<DecisionLogTail> ReadTailAsync(string projectId, DecisionLogMark? after, CancellationToken cancellationToken)
+    {
+        var storage = databases.Get(projectId);
+        var opening = databases.OpeningOf(projectId);
+        await using var connection = databases.Connect(projectId);
+
+        // One snapshot for every read below: what the stamp says, the marked entries and the tail are of the same moment.
+        await using var transaction = connection.BeginTransaction(deferred: true);
+        await using (var version = Command(connection, "PRAGMA schema_version;", transaction))
+        {
+            var schema = Convert.ToInt64(await version.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false), CultureInfo.InvariantCulture);
+            var stamp = string.Create(CultureInfo.InvariantCulture, $"{opening}:{schema}:{File.GetCreationTimeUtc(storage.DatabasePath).Ticks}");
+            if (after is not null && (!string.Equals(stamp, after.Stamp, StringComparison.Ordinal) || !await ContinuesAsync(connection, transaction, projectId, after, cancellationToken).ConfigureAwait(false)))
+            {
+                return new DecisionLogTail(stamp, false, []);
+            }
+
+            var entries = await ReadAfterAsync(connection, transaction, projectId, after?.EntryCount ?? 0, cancellationToken).ConfigureAwait(false);
+            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+            return new DecisionLogTail(stamp, true, entries);
+        }
+    }
+
+    /// <summary>Whether the first entries of the log are the marked ones: as many, and the last with the marked hash.</summary>
+    private static async Task<bool> ContinuesAsync(SqliteConnection connection, SqliteTransaction transaction, string projectId, DecisionLogMark mark, CancellationToken cancellationToken)
+    {
+        await using var select = Command(connection, """
+            SELECT COUNT(*), MAX(CASE WHEN sequence = $mark THEN hash END)
+            FROM decision_log
+            WHERE project_id = $project AND sequence <= $mark;
+            """, transaction);
+        select.Parameters.AddWithValue("$project", projectId);
+        select.Parameters.AddWithValue("$mark", mark.EntryCount);
+        await using var reader = await select.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false) || reader.GetInt64(0) != mark.EntryCount)
+        {
+            return false;
+        }
+
+        return mark.EntryCount == 0
+            ? string.Equals(mark.HeadHash, DecisionLog.GenesisHash, StringComparison.Ordinal)
+            : !reader.IsDBNull(1) && string.Equals(reader.GetString(1), mark.HeadHash, StringComparison.Ordinal);
+    }
+
+    /// <summary>The entries of the log after <paramref name="after"/> (every entry from 0), in order.</summary>
+    private static async Task<IReadOnlyList<DecisionEntry>> ReadAfterAsync(SqliteConnection connection, SqliteTransaction? transaction, string projectId, long after, CancellationToken cancellationToken)
+    {
         await using var select = Command(connection, """
             SELECT sequence, recorded_at, actor_kind, actor_id, kind, summary, payload_json, corrects_sequence, previous_hash, hash
             FROM decision_log
-            WHERE project_id = $project
+            WHERE project_id = $project AND sequence > $after
             ORDER BY sequence;
-            """);
+            """, transaction);
         select.Parameters.AddWithValue("$project", projectId);
+        select.Parameters.AddWithValue("$after", after);
 
         var entries = new List<DecisionEntry>();
         await using var reader = await select.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
