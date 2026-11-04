@@ -24,7 +24,11 @@ public sealed record PlanDraft(
 /// The proposal of the orchestrator agent a draft came from: the run its planning allocated, and the hash of the plan as the
 /// agent proposed it, which the plan store keeps with its provenance.
 /// </summary>
-public sealed record PlanDraftProposal(RunId Run, string PlanHash, bool Corrected);
+/// <param name="HistoryToolNotice">
+/// Why the orchestrator planned without the search in the history (<c>PlanProposal.HistoryToolNotice</c>, Phase 12), so a
+/// draft brought back still says it; null when it had it, or for a draft of before.
+/// </param>
+public sealed record PlanDraftProposal(RunId Run, string PlanHash, bool Corrected, string? HistoryToolNotice = null);
 
 /// <summary>What the store found of the draft of a project.</summary>
 /// <param name="Draft">The draft this installation saved for this project, whole and within <see cref="PlanDraftLimits"/>; null otherwise.</param>

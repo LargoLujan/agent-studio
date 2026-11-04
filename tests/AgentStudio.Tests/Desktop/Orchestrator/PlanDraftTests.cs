@@ -224,6 +224,57 @@ public sealed class PlanDraftTests : IDisposable
     }
 
     [Fact]
+    public async Task Why_the_orchestrator_planned_without_the_history_search_is_said_with_the_proposal_and_comes_back_with_its_draft()
+    {
+        const string Codex = "El orquestador no tuvo la búsqueda en el historial: Codex no admite herramientas externas.";
+        var store = new MemoryCanvasStore();
+        var time = new FakeTimeProvider(T0);
+        var plan = PlanFixtures.Plan();
+        var plans = new FakePlanStore();
+        plans.Plans[plan.ContentHash] = plan;
+        var first = await OpenAsync(store, time, plans: plans);
+
+        // With the search, nothing is added; without it, the status of the proposal says why, after what it said before.
+        first.LoadProposal(ProposalOf(plan));
+        Assert.DoesNotContain("historial", first.ProposalStatus, StringComparison.Ordinal);
+        first.LoadProposal(ProposalOf(plan) with { HistoryToolNotice = Codex });
+        Assert.StartsWith("Plan propuesto por el orquestador", first.ProposalStatus, StringComparison.Ordinal);
+        Assert.EndsWith(" " + Codex, first.ProposalStatus, StringComparison.Ordinal);
+        Assert.Equal(Codex, store.Draft?.Proposal?.HistoryToolNotice);
+
+        // A proposal without a plan says it too.
+        first.LoadProposal(new PlanProposal(Planning, null, [], false, AgentRunStatus.Failed, "boom", null) { HistoryToolNotice = Codex });
+        Assert.EndsWith(" " + Codex, first.ProposalStatus, StringComparison.Ordinal);
+
+        // The draft keeps it: the tab opened again still says it.
+        first.LoadProposal(ProposalOf(plan) with { HistoryToolNotice = Codex });
+        first.FlushDraft();
+        var again = await OpenAsync(store, time, plans: plans);
+        Assert.Equal(Codex, again.Proposal?.HistoryToolNotice);
+        Assert.StartsWith("Borrador recuperado", again.ProposalStatus, StringComparison.Ordinal);
+        Assert.EndsWith(" " + Codex, again.ProposalStatus, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_file_keeps_why_the_orchestrator_planned_without_the_search_and_a_draft_of_before_reads_without_it()
+    {
+        var store = new FileCanvasLayoutStore(new ProjectStorageFiles());
+        var notice = "El orquestador no tuvo la búsqueda en el historial: está apagada en Ajustes («Búsqueda en el historial para el orquestador»).";
+        store.SaveDraft(_folder.Root, new PlanDraft("x", "s", [], [PlanFixtures.Spec("T1")], new PlanDraftProposal(Planning, new string('d', 64), Corrected: false, notice)));
+
+        Assert.Equal(notice, store.ReadDraft(_folder.Root).Draft?.Proposal?.HistoryToolNotice);
+
+        // A draft written before the search in the history has no notice: it reads as it did.
+        var file = store.GetLayoutPath(_folder.Root);
+        var root = JsonNode.Parse(File.ReadAllText(file))!.AsObject();
+        root["draft"]!["proposal"]!.AsObject().Remove("historyToolNotice");
+        File.WriteAllText(file, root.ToJsonString());
+        var before = store.ReadDraft(_folder.Root);
+        Assert.Null(before.Ignored);
+        Assert.Equal(new PlanDraftProposal(Planning, new string('d', 64), Corrected: false), before.Draft?.Proposal);
+    }
+
+    [Fact]
     public async Task The_draft_comes_back_when_the_tab_opens_again_unapproved_and_linked_to_its_proposal()
     {
         var store = new MemoryCanvasStore();

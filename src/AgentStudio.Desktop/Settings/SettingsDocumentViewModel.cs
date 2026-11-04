@@ -2,6 +2,7 @@ using System.Globalization;
 using System.IO;
 using AgentStudio.Desktop.Background;
 using AgentStudio.Desktop.Lock;
+using AgentStudio.Desktop.Memory;
 using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Services;
 using AgentStudio.Desktop.ViewModels;
@@ -15,7 +16,8 @@ namespace AgentStudio.Desktop.Settings;
 /// <list type="bullet">
 /// <item>«Contexto y cuota» (<see cref="Context"/>: the context thresholds and the Codex opt-in, docs/14 D-11 and D-15),
 /// «Trabajo desatendido» (<see cref="Unattended"/>: closing the window and keeping the computer awake, docs/16 D-14 and D-40)
-/// and «Windows Hello y bloqueo» (<see cref="Lock"/>, docs/16 D-13). A section that was not composed is not shown.</item>
+/// «Windows Hello y bloqueo» (<see cref="Lock"/>, docs/16 D-13) and «Memoria del proyecto» (<see cref="Memory"/>: the history
+/// search of the orchestrator, docs/17 D-06). A section that was not composed is not shown.</item>
 /// <item>«Guardar» checks every section first, with the rules of each, and saves nothing while one is wrong: each says why
 /// next to its fields, and the document says which. Then it writes all the preferences at once, with one
 /// <see cref="IAppSettingsStore.SavePreferences"/> (atomic), and only then each section takes what was saved and says so (its
@@ -48,12 +50,14 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
     /// <param name="unattended">«Trabajo desatendido»; null when Phase 8 was not composed.</param>
     /// <param name="lockSettings">«Windows Hello y bloqueo»; by default the one of <paramref name="unattended"/>, and null when neither has it.</param>
     /// <param name="time">The clock of «Ajustes guardados a las …»; the system's by default.</param>
+    /// <param name="memory">«Memoria del proyecto» (Phase 12: the history search of the orchestrator); null when it was not composed.</param>
     public SettingsDocumentViewModel(
         IAppSettingsStore store,
         ObservabilitySettingsViewModel context,
         UnattendedSettingsViewModel? unattended = null,
         LockSettingsViewModel? lockSettings = null,
-        TimeProvider? time = null)
+        TimeProvider? time = null,
+        MemorySettingsViewModel? memory = null)
         : base(DocumentId, "Ajustes")
     {
         ArgumentNullException.ThrowIfNull(store);
@@ -63,10 +67,17 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
         Context = context;
         Unattended = unattended;
         Lock = lockSettings ?? unattended?.Lock;
+        Memory = memory;
 
         // A change on screen, or a save (which changes what is in force, often without changing what is on screen).
         Context.PropertyChanged += OnSectionChanged;
         Context.Saved += OnSectionChanged;
+        if (Memory is not null)
+        {
+            Memory.PropertyChanged += OnSectionChanged;
+            Memory.Saved += OnSectionChanged;
+        }
+
         if (Unattended is not null)
         {
             Unattended.PropertyChanged += OnSectionChanged;
@@ -91,6 +102,9 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
 
     /// <summary>«Windows Hello y bloqueo»; null when it was not composed.</summary>
     public LockSettingsViewModel? Lock { get; }
+
+    /// <summary>«Memoria del proyecto»: the history search of the orchestrator; null when it was not composed.</summary>
+    public MemorySettingsViewModel? Memory { get; }
 
     /// <summary>«Ajustes guardados a las 14:05:12.»; null until a save succeeds, and after the next try.</summary>
     [ObservableProperty]
@@ -162,6 +176,11 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
                 preferences = Lock.Apply(preferences);
             }
 
+            if (Memory is not null)
+            {
+                preferences = Memory.Apply(preferences);
+            }
+
             _store.SavePreferences(preferences);
             saved = preferences;
         }
@@ -174,6 +193,7 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
         Context.Accept(saved);
         Unattended?.Accept(saved);
         Lock?.Accept(saved);
+        Memory?.Accept(saved);
         Notice = $"Ajustes guardados a las {_time.GetLocalNow().ToString("HH:mm:ss", CultureInfo.InvariantCulture)}.";
     }
 
@@ -183,6 +203,7 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
         Context.Revert();
         Unattended?.Revert();
         Lock?.Revert();
+        Memory?.Revert();
         Notice = null;
         ErrorMessage = null;
         IsDirty = HasChanges();
@@ -190,5 +211,5 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
 
     private void OnSectionChanged(object? sender, EventArgs e) => IsDirty = HasChanges();
 
-    private bool HasChanges() => Context.HasChanges || Unattended?.HasChanges == true || Lock?.HasChanges == true;
+    private bool HasChanges() => Context.HasChanges || Unattended?.HasChanges == true || Lock?.HasChanges == true || Memory?.HasChanges == true;
 }

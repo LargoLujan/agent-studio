@@ -214,6 +214,18 @@ public sealed class PlannerHistoryToolTests : IDisposable
             AssertWithoutTheTool(Assert.Single(harness.Claude.Starts).Request);
         }
 
+        // Turned off in «Ajustes»: no snapshot is written, and the proposal says so.
+        using (var harness = new EngineHarness())
+        {
+            harness.Claude.Script("orquestador", null, 1, new AgentScript { StructuredOutput = ValidPlan() });
+            var index = new SnapshotIndex(History());
+            var tool = new ProjectHistoryTool(index, new ProjectHistoryFolders(SnapshotsRoot), new ProjectHistoryToolOptions(ServerExecutable) { Enabled = () => false });
+            var proposal = await With(harness, tool).PlanAsync(Planning(harness, WithMemory), null, Ct);
+            Assert.Equal(ProjectHistoryTool.DisabledReason, proposal.HistoryToolNotice);
+            AssertWithoutTheTool(Assert.Single(harness.Claude.Starts).Request);
+            Assert.Equal(0, index.Snapshots);
+        }
+
         // Without the tool composed: no notice either.
         using (var harness = new EngineHarness())
         {

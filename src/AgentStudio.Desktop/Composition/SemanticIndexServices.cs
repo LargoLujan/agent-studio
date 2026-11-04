@@ -2,6 +2,7 @@ using System.IO;
 using System.Net.Http;
 using AgentStudio.Application.Semantic;
 using AgentStudio.Desktop.Memory;
+using AgentStudio.Desktop.Services;
 using AgentStudio.Infrastructure.Embeddings;
 using AgentStudio.Infrastructure.Embeddings.Onnx;
 using AgentStudio.Infrastructure.Persistence;
@@ -25,7 +26,8 @@ namespace AgentStudio.Desktop.Composition;
 /// the context packer of the memory ranks its tiers by relevance with the hybrid search (F12-7). Without the model,
 /// everything goes by words, as before.</item>
 /// <item>The planner's tool: the snapshots of what is trusted under <c>history-snapshots</c> of the local data of the app,
-/// and the local MCP server next to the app, which serves them with <c>--history</c> to a read-only launch of the planner.</item>
+/// and the local MCP server next to the app, which serves them with <c>--history</c> to a read-only launch of the planner,
+/// while the switch «Búsqueda en el historial para el orquestador» of «Ajustes» is on (it is by default).</item>
 /// </list>
 /// Anything registered before for these ports is kept.
 /// </summary>
@@ -52,10 +54,17 @@ internal static class SemanticIndexServices
         services.AddAgentStudioSemanticIndex();
 
         services.TryAddSingleton<IProjectHistoryFolders>(new ProjectHistoryFolders(Path.Combine(folders.Local.BaseDirectory, HistorySnapshotsFolder)));
-        services.TryAddSingleton(new ProjectHistoryToolOptions(serverExecutable));
+        services.TryAddSingleton(provider => new ProjectHistoryToolOptions(serverExecutable) { Enabled = () => HistorySearchEnabled(provider) });
         services.TryAddSingleton<IProjectHistoryTool, ProjectHistoryTool>();
         return services;
     }
+
+    /// <summary>
+    /// The switch «Búsqueda en el historial para el orquestador», as saved now (a change in «Ajustes» applies to the next
+    /// planning); on without settings, as by default.
+    /// </summary>
+    private static bool HistorySearchEnabled(IServiceProvider provider) =>
+        provider.GetService<IAppSettingsStore>()?.Load().PlannerHistoryToolEnabled != false;
 
     /// <summary>
     /// The HTTP client of the installer of the model, which belongs to whoever gives it (<see cref="HttpEmbeddingModelInstaller"/>):

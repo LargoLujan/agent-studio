@@ -1,6 +1,7 @@
 using System.IO;
 using AgentStudio.Desktop.Background;
 using AgentStudio.Desktop.Lock;
+using AgentStudio.Desktop.Memory;
 using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Services;
 using AgentStudio.Desktop.Settings;
@@ -277,6 +278,42 @@ public sealed class SettingsDocumentViewModelTests
         Assert.Equal(1, asked);
         Assert.Equal("No se pudieron guardar los ajustes: Disco lleno.", document.ErrorMessage);
         Assert.True(document.IsDirty);
+    }
+
+    [Fact]
+    public void The_history_search_of_the_orchestrator_is_on_by_default_and_turning_it_off_is_saved_with_the_rest()
+    {
+        var store = new CountingStore(AppSettings.Default.WithProjectOpened(@"C:\proyectos\calc"));
+        var memory = new MemorySettingsViewModel(store);
+        var document = new SettingsDocumentViewModel(store, new ObservabilitySettingsViewModel(store), time: new FakeTimeProvider(T0), memory: memory);
+        var saved = 0;
+        memory.Saved += (_, _) => saved++;
+
+        Assert.Same(memory, document.Memory);
+        Assert.True(AppSettings.Default.PlannerHistoryToolEnabled);
+        Assert.True(memory.PlannerHistoryToolEnabled && memory.HistorySearchOn);
+        Assert.False(document.IsDirty);
+        Assert.Equal("Búsqueda en el historial para el orquestador", MemorySettingsViewModel.HistorySearchLabel);
+        Assert.Contains("Si la apagas, planifica como antes", MemorySettingsViewModel.HistorySearchExplanation, StringComparison.Ordinal);
+
+        // Turned off on screen: nothing is in force until «Guardar»; then one write, with the rest of the preferences.
+        memory.PlannerHistoryToolEnabled = false;
+        Assert.True(document.IsDirty);
+        Assert.True(memory.HistorySearchOn);
+        document.SaveCommand.Execute(null);
+
+        Assert.Equal(1, store.PreferenceSaves);
+        Assert.False(store.Current.PlannerHistoryToolEnabled);
+        Assert.Equal(@"C:\proyectos\calc", store.Current.LastProjectPath);
+        Assert.False(memory.HistorySearchOn);
+        Assert.Equal(1, saved);
+        Assert.False(document.IsDirty);
+
+        // Undoing a change on screen clears the mark.
+        memory.PlannerHistoryToolEnabled = true;
+        Assert.True(document.IsDirty);
+        memory.PlannerHistoryToolEnabled = false;
+        Assert.False(document.IsDirty);
     }
 
     /// <summary>The settings in memory, with the writes of each kind counted.</summary>

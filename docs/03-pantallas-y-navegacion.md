@@ -365,6 +365,11 @@ para que el validador lo explique.
   orquestador (gasta cuota). El plan propuesto aparece en el lienzo con sus problemas ya visibles y los riesgos que
   señala. Mientras planifica, «Lo que hace el orquestador» enseña la barra «Contexto del orquestador», paso a paso, con
   su origen y su nivel (tanda 2; «no expuesto» si el orquestador corriera en Codex).
+- Desde la Fase 12, el orquestador puede buscar en el historial del proyecto mientras planifica
+  ([§5.3](#53-memoria-del-proyecto-y-resumen-del-día-documento-memoria)). Si no tuvo esa búsqueda, la línea de estado de la
+  propuesta lo dice en una frase, que se conserva en el borrador: «El orquestador no tuvo la búsqueda en el historial: Codex
+  no admite herramientas externas.», «… está apagada en Ajustes», «… en la plantilla no recibe la memoria del proyecto» o
+  «… el proyecto aún no tiene nada de confianza en su memoria ni en su bitácora». No es un error: el plan vale igual.
 - «Validar» muestra los mensajes de `PlanValidator` junto a cada nodo y en el panel, en castellano a partir de su
   código, y desde entonces siguen cada cambio. Un clic en un mensaje selecciona su nodo.
 - «Aprobar plan» (solo con el plan válido) y «Rechazar» producen la `ApprovalDecision` del usuario. La aprobación vale
@@ -646,6 +651,9 @@ su propio documento, «Ajustes», que se describe al final de este apartado.
 │ │ ☑ Pedir Windows Hello en las aprobaciones críticas                                      │   │
 │ │ ☐ Bloquear la interfaz tras un tiempo sin actividad   [15] minutos (de 1 a 1440)        │   │
 │ └─────────────────────────────────────────────────────────────────────────────────────────┘   │
+│ ┌ Memoria del proyecto ───────────────────────────────────────────────────────────────────┐   │
+│ │ ☑ Búsqueda en el historial para el orquestador  (qué busca, con qué CLI y qué pasa si…) │   │
+│ └─────────────────────────────────────────────────────────────────────────────────────────┘   │
 ├───────────────────────────────────────────────────────────────────────────────────────────────┤
 │ Ajustes guardados a las 14:05:12.                                                 [Guardar]   │
 │ «Guardar» comprueba todas las secciones y las guarda a la vez: si una no es válida, no se…    │
@@ -654,7 +662,7 @@ su propio documento, «Ajustes», que se describe al final de este apartado.
 
 - **Dónde está.** «Ajustes» es el último icono de la barra lateral (el engranaje). Abre un documento en el centro, uno
   para toda la sesión, como «Consumo». Todo lo que guarda vale para todos los proyectos.
-- **Tres secciones**, cada una con una frase que dice para qué sirve. Si una parte de la app no está en la composición,
+- **Cuatro secciones**, cada una con una frase que dice para qué sirve. Si una parte de la app no está en la composición,
   su sección no sale.
   - **Contexto y cuota:** los umbrales de salud del contexto (aviso, compresión recomendada y crítico; 70, 85 y 95 % por
     defecto), con su regla, y «Leer la cuota de Codex», que explica qué lanza.
@@ -664,6 +672,11 @@ su propio documento, «Ajustes», que se describe al final de este apartado.
   - **Windows Hello y bloqueo** (Fase 8, [ADR-0037](adr/0037-windows-hello-y-bloqueo-de-la-interfaz.md)): «Pedir Windows
     Hello en las aprobaciones críticas» y «Bloquear la interfaz tras un tiempo sin actividad», con los minutos (de 1 a
     1 440).
+  - **Memoria del proyecto** (Fase 12, [ADR-0024](adr/0024-recomendador-asistido-con-mcp-local.md)): «Búsqueda en el
+    historial para el orquestador», activada por defecto. Al planificar, el orquestador puede buscar lo de días anteriores
+    del proyecto (decisiones, errores conocidos y la bitácora de confianza): solo lee, no sale de tu equipo y no gasta cuota
+    aparte. Solo funciona con Claude Code y si el orquestador recibe la memoria del proyecto en la plantilla. Apagada, el
+    orquestador planifica como antes y la propuesta lo dice. Vale desde la siguiente planificación.
 - **Un solo «Guardar»**, en la barra de abajo:
   - Primero comprueba todas las secciones. Si alguna no vale, no guarda nada: cada sección dice por qué junto a sus
     campos, y la barra dice cuáles corregir («No se guardó nada: corrige «Contexto y cuota» y «Windows Hello y bloqueo».»).
@@ -727,8 +740,9 @@ su propio documento, «Ajustes», que se describe al final de este apartado.
     fichero. «Descargar 123 MB» o «No descargar». **Nada se descarga sin tu OK.**
   - Durante la descarga, el progreso y «Cancelar la descarga». Lo que no verifica se borra y no queda nada a medias.
   - Cuando termina con el modelo comprobado, el índice del proyecto calcula el significado de sus fragmentos en segundo
-    plano, con prioridad baja y sin bloquear la pantalla. El panel se pone al día cuando acaba; mientras tanto, la búsqueda
-    va por palabras.
+    plano, sin bloquear la pantalla: un cálculo a la vez por proyecto, con dos hilos del procesador como mucho para dejar
+    el resto a la interfaz (sus hilos no tienen menos prioridad que los demás). El panel se pone al día cuando acaba; mientras tanto, la
+    búsqueda va por palabras.
   - Después no hay red ni cuota: la búsqueda la calcula tu equipo. Al abrir un proyecto, si el modelo ya está, se carga en
     segundo plano para que la primera búsqueda no espere.
 - **El panel «Bitácora»** (docs/17 D-02): la bitácora del proyecto también es memoria. Lo que anotó Agent Studio en sus

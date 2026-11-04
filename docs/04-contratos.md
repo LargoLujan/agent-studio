@@ -1448,7 +1448,7 @@ public static class ProjectHistorySnapshotJson { Schema = "agentstudio-history-s
 // La integración:
 public sealed record ProjectHistoryFolder(string SnapshotPath);
 public interface IProjectHistoryFolders { Task<ProjectHistoryFolder> CreateAsync(string snapshotJson, CancellationToken ct); void Delete(ProjectHistoryFolder folder); }
-public sealed record ProjectHistoryToolOptions(string ServerExecutable) { public int MaxFragments { get; init; } }
+public sealed record ProjectHistoryToolOptions(string ServerExecutable) { public int MaxFragments { get; init; } public Func<bool>? Enabled { get; init; } }
 public sealed class ProjectHistoryOffer : IDisposable { McpServerSpec? Server; string? Withheld; bool Offered; }   // Dispose borra la instantánea
 public interface IProjectHistoryTool { Task<ProjectHistoryOffer> OfferAsync(ProjectContext project, AgentDefinition agent, PermissionProfile permissions, CancellationToken ct); }
 public sealed class ProjectHistoryTool(ISemanticIndex index, IProjectHistoryFolders folders, ProjectHistoryToolOptions options) : IProjectHistoryTool;
@@ -1462,6 +1462,10 @@ public static class ProjectHistoryLaunch { AllowRule; IsReadOnly(permissions); S
 - **Solo el planificador** la recibe: un agente `Orchestrator` con `ReadSelected`, en un lanzamiento sin escrituras, shell
   ni red, en Claude Code. A cualquier otro se le da una oferta sin servidor y el porqué (`Withheld`), sin leer el índice ni
   escribir nada. Codex rechaza los servidores MCP (`codex exec` no los carga), y Gemini no los lanza.
+- **Se puede apagar** en «Ajustes» («Búsqueda en el historial para el orquestador», `ProjectHistoryToolOptions.Enabled`, que
+  lee `AppSettings.PlannerHistoryToolEnabled` en cada planificación; activada por defecto): apagada, ningún planificador la
+  recibe (`ProjectHistoryTool.DisabledReason`). Los motivos (`Withheld`) están en castellano llano, para la persona, sin
+  nombrar el protocolo: «El orquestador no tuvo la búsqueda en el historial: Codex no admite herramientas externas.».
 - **`ProjectHistoryLaunch.With`** añade el servidor de Agent Studio con `--history`. Si el lanzamiento ya tenía ese
   servidor con `--snapshot`, le añade `--history` y la regla de la herramienta: un solo servidor con las dos instantáneas.
   Rechaza un perfil que escribe, tiene shell o red.
@@ -1473,7 +1477,9 @@ public static class ProjectHistoryLaunch { AllowRule; IsReadOnly(permissions); S
 - **`PlanProposal.HistoryToolNotice`** (`string?`, `init`): por qué el orquestador planificó sin `search_project_history`
   (su CLI no carga servidores MCP, no hay historial de confianza, la plantilla no le da memoria…). No es un error. Es nulo
   si la tuvo o si la composición no la ofrece. Si la tuvo también lo dice el prompt, capturado como evidencia, que solo
-  entonces la nombra en una frase (`PlannerPrompt.HistoryToolSentence`).
+  entonces la nombra en una frase (`PlannerPrompt.HistoryToolSentence`). El documento del orquestador lo añade a la línea
+  de estado de la propuesta (`ProposalStatus`) y lo guarda en el borrador (`PlanDraftProposal.HistoryToolNotice`), así que
+  un borrador recuperado lo sigue diciendo.
 - **`Orchestrator(…, IPowerEvents? power = null, IProjectHistoryTool? history = null)`** y `EnginePorts.History`. El
   planificador pide la oferta después de la memoria y antes de escribir nada, pasa el mismo servidor a sus dos
   lanzamientos (la corrección es otro proceso del CLI) y borra la instantánea al terminar. Nada más del motor lee el puerto:
@@ -1489,5 +1495,7 @@ public static class ProjectHistoryLaunch { AllowRule; IsReadOnly(permissions); S
 | `SemanticIndexUpkeep` (`RefreshAsync`, `WarmUpAsync`, `Follow`, `Refreshed`) | `Memory/SemanticIndexUpkeep.cs` | El refresco del índice en segundo plano: una cola con un solo consumidor por proyecto, que junta lo que llega mientras corre; nunca falla a quien lo pide. Abre el modelo antes de la primera búsqueda si ya está en su sitio, y nunca descarga |
 | `ProjectMemoryUpkeep(…, SemanticIndexUpkeep? index = null)` | `Memory/ProjectMemoryUpkeep.cs` | Tras cada derivación completa, pide el refresco del índice. Al abrir un proyecto, abre el modelo si está |
 | `ProjectHistoryFolders` | `Memory/ProjectHistoryFolders.cs` | Las instantáneas del planificador en `%LOCALAPPDATA%\AgentStudio\history-snapshots\his-<aleatorio>\history.json`, con `CreateNew`, y se borran al terminar. Como `SkillRecommendationFolders` |
+| `AppSettings.PlannerHistoryToolEnabled` y `MemorySettingsViewModel` | `Services/AppSettings.cs`, `Memory/MemorySettingsViewModel.cs` | La preferencia «Búsqueda en el historial para el orquestador» (activada por defecto) y la sección «Memoria del proyecto» de «Ajustes», que se guarda con las demás en un solo `SavePreferences` |
+| `PlanDraftProposal(…, string? HistoryToolNotice = null)` | `Orchestrator/Canvas/PlanDraft.cs` | El borrador guarda por qué el orquestador planificó sin la búsqueda en el historial; uno de antes lo lee como nulo |
 | `AppFolders.SemanticRoot` | `Composition/AppComposition.cs` | La carpeta que hace de `%LOCALAPPDATA%` para el índice y el modelo. Para el usuario actual es la de `SemanticIndexOptions.ForCurrentUser()`; en una prueba, la que contiene sus carpetas locales |
 | `SemanticIndexServices.AddSemanticIndexServices` | `Composition/SemanticIndexServices.cs` | La composición: un solo `SemanticIndexStore`, `OnnxEmbedderSource`, `HttpEmbeddingModelInstaller` con su `HttpClient`, `AddAgentStudioSemanticIndex` y la herramienta del planificador sobre el servidor de al lado de la app |

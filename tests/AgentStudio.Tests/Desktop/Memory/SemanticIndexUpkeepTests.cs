@@ -119,6 +119,25 @@ public sealed class SemanticIndexUpkeepTests
     }
 
     [Fact]
+    public async Task A_follower_that_throws_is_skipped_the_others_still_hear_and_the_consumer_goes_on()
+    {
+        var index = new RefreshingIndex();
+        using var upkeep = new SemanticIndexUpkeep(index, null);
+        var heard = 0;
+        upkeep.Refreshed += (_, _) => throw new InvalidOperationException("La pantalla falló.");
+        upkeep.Refreshed += (_, _) => Interlocked.Increment(ref heard);
+
+        var first = await upkeep.RefreshAsync(Project).WaitAsync(Guard, Ct);
+        await WaitUntilAsync(() => Volatile.Read(ref heard) == 1);
+        var second = await upkeep.RefreshAsync(Project).WaitAsync(Guard, Ct);
+        await WaitUntilAsync(() => Volatile.Read(ref heard) == 2);
+
+        Assert.True(first!.Completed);
+        Assert.True(second!.Completed);
+        Assert.Equal(2, index.Refreshes);
+    }
+
+    [Fact]
     public async Task Closing_the_app_stops_the_refresh_and_ends_what_waits_without_waiting_for_it()
     {
         var index = new RefreshingIndex { Hold = new TaskCompletionSource() };

@@ -54,8 +54,9 @@ public sealed record AppSettings
     /// The context health thresholds (docs/14 D-11), in percent of the model's window: aviso, compresión recomendada and
     /// crítico. Global, 70, 85 and 95 by default (decision 6 of docs/14 section 12), and they must keep
     /// 0 &lt; aviso &lt; compresión &lt; crítico &lt;= 100 (<see cref="ContextHealthThresholds"/>); a file that breaks the rule is
-    /// read with the defaults. These, <see cref="CodexQuotaReadEnabled"/> and the settings of Phase 8 (from
-    /// <see cref="CloseWindow"/> on) are the preferences of the panels, written by <see cref="IAppSettingsStore.SavePreferences"/>.
+    /// read with the defaults. These, <see cref="CodexQuotaReadEnabled"/>, <see cref="PlannerHistoryToolEnabled"/> and the
+    /// settings of Phase 8 (from <see cref="CloseWindow"/> on) are the preferences of the panels, written by
+    /// <see cref="IAppSettingsStore.SavePreferences"/>.
     /// </summary>
     public int ContextWarningPercent { get; init; } = DefaultContextWarningPercent;
 
@@ -71,6 +72,13 @@ public sealed record AppSettings
     /// model. Off by default; while it is off nothing is launched.
     /// </summary>
     public bool CodexQuotaReadEnabled { get; init; }
+
+    /// <summary>
+    /// The orchestrator may look up what is trusted of the previous days with <c>search_project_history</c> when it plans
+    /// (docs/17 D-06, F12-9; «Búsqueda en el historial para el orquestador» in «Ajustes»). On by default; turning it off
+    /// leaves every planning without the tool, and the proposal says so. It is asked at each planning.
+    /// </summary>
+    public bool PlannerHistoryToolEnabled { get; init; } = true;
 
     // ---- Phase 8 (docs/16 D-13, D-14 and D-40): the packages of the phase read them; until they do, nothing changes ----
 
@@ -160,7 +168,7 @@ public sealed record AppSettings
         return this with { ContextWarningPercent = warning, ContextCompressPercent = compress, ContextCriticalPercent = critical };
     }
 
-    /// <summary>These settings with the preferences of <paramref name="other"/> (thresholds, the Codex opt-in and the settings of Phase 8).</summary>
+    /// <summary>These settings with the preferences of <paramref name="other"/> (thresholds, the Codex opt-in, the history search of the orchestrator and the settings of Phase 8).</summary>
     internal AppSettings WithPreferencesOf(AppSettings other) =>
         this with
         {
@@ -168,6 +176,7 @@ public sealed record AppSettings
             ContextCompressPercent = other.ContextCompressPercent,
             ContextCriticalPercent = other.ContextCriticalPercent,
             CodexQuotaReadEnabled = other.CodexQuotaReadEnabled,
+            PlannerHistoryToolEnabled = other.PlannerHistoryToolEnabled,
             CloseWindow = other.CloseWindow,
             WindowsHelloForCriticalApprovals = other.WindowsHelloForCriticalApprovals,
             IdleLockEnabled = other.IdleLockEnabled,

@@ -462,4 +462,25 @@ public sealed class JsonAppSettingsStoreTests
         Assert.Throws<ArgumentOutOfRangeException>(() => store.SavePreferences(AppSettings.Default with { IdleLockMinutes = 0 }));
         Assert.False(File.Exists(paths.SettingsFile));
     }
+
+    // ---- Phase 12 (docs/17 D-06, F12-9): the history search of the orchestrator ----------------------------------------
+
+    [Fact]
+    public void The_history_search_of_the_orchestrator_is_on_by_default_also_in_a_file_of_before_and_off_survives_a_save_of_the_shell()
+    {
+        using var temp = new TempDirectory();
+        var paths = new AppDataPaths(temp.Path);
+        File.WriteAllText(paths.SettingsFile, "{\"lastProjectPath\":\"C:\\\\p1\",\"codexQuotaReadEnabled\":true}");
+        var store = new JsonAppSettingsStore(paths, null);
+        var loadedAtStartup = store.Load();
+
+        Assert.True(AppSettings.Default.PlannerHistoryToolEnabled);
+        Assert.True(loadedAtStartup.PlannerHistoryToolEnabled);
+
+        store.SavePreferences(store.Load() with { PlannerHistoryToolEnabled = false });
+        store.Save(loadedAtStartup.WithProjectOpened(temp.CreateDirectory("a")));
+
+        Assert.False(new JsonAppSettingsStore(paths, null).Load().PlannerHistoryToolEnabled);
+        Assert.Contains("\"plannerHistoryToolEnabled\": false", File.ReadAllText(paths.SettingsFile), StringComparison.Ordinal);
+    }
 }

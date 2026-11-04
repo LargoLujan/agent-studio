@@ -1119,7 +1119,9 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         SetFollowUp(null);
         if (proposal.Plan is not { } plan)
         {
-            ProposalStatus = $"El orquestador no devolvió un plan utilizable ({AgentActivityText.Outcome(proposal.Status)}){(proposal.Error is null ? "." : ": " + proposal.Error)}";
+            ProposalStatus = WithHistoryNotice(
+                $"El orquestador no devolvió un plan utilizable ({AgentActivityText.Outcome(proposal.Status)}){(proposal.Error is null ? "." : ": " + proposal.Error)}",
+                proposal);
             return;
         }
 
@@ -1127,14 +1129,23 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         ShowValidation = true;
         Revalidate();
         var corrected = proposal.Corrected ? " Se le pidió una corrección." : string.Empty;
-        ProposalStatus = (ValidationState == ValidationState.Valid
-            ? "Plan propuesto por el orquestador: revísalo y apruébalo o recházalo."
-            : $"Plan propuesto por el orquestador con problemas: {ValidationText}") + corrected;
+        ProposalStatus = WithHistoryNotice(
+            (ValidationState == ValidationState.Valid
+                ? "Plan propuesto por el orquestador: revísalo y apruébalo o recházalo."
+                : $"Plan propuesto por el orquestador con problemas: {ValidationText}") + corrected,
+            proposal);
 
         // A proposal spent quota: it is kept at once, not after the pause of the edits.
         SaveDraftNow();
         CollapsePreparationWhenReady();
     }
+
+    /// <summary>
+    /// The status of a proposal and, after it, why the orchestrator planned without the search in the history when it did
+    /// (<see cref="PlanProposal.HistoryToolNotice"/>, Phase 12): it is not an error, but the person should know.
+    /// </summary>
+    private static string WithHistoryNotice(string status, PlanProposal proposal) =>
+        proposal.HistoryToolNotice is { Length: > 0 } notice ? $"{status} {notice}" : status;
 
     private void ShowPlan(PlanDefinition plan)
     {

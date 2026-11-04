@@ -31,11 +31,18 @@ public interface IProjectHistoryFolders
 
 /// <summary>
 /// Where the local MCP server is (<see cref="ServerExecutable"/>, the absolute path of <c>AgentStudio.SkillsMcp.exe</c>,
-/// decided by the composition root) and how many fragments a snapshot carries at most (the newest).
+/// decided by the composition root), how many fragments a snapshot carries at most (the newest), and whether the person
+/// keeps the tool on (<see cref="Enabled"/>).
 /// </summary>
 public sealed record ProjectHistoryToolOptions(string ServerExecutable)
 {
     public int MaxFragments { get; init; } = ProjectHistoryNames.MaxFragments;
+
+    /// <summary>
+    /// Whether the tool is on now, asked at each planning (the switch «Búsqueda en el historial para el orquestador» in
+    /// «Ajustes»): a change applies to the next planning. Null: always on.
+    /// </summary>
+    public Func<bool>? Enabled { get; init; }
 }
 
 /// <summary>
@@ -94,7 +101,9 @@ public sealed class ProjectHistoryOffer : IDisposable
 /// The planner's tool <c>search_project_history</c> (docs/17 D-06; F12-9). Only a launch of the planner (an agent with the
 /// role <see cref="AgentRole.Orchestrator"/> and <see cref="MemoryPolicy.ReadSelected"/>) that does not write, has no shell
 /// and no network, on Claude Code (the only CLI that launches the local MCP servers), gets it: never an executor, a judge
-/// or an auditor (F12-8), nor a launch that writes. Anything else gets an offer without a server and the reason.
+/// or an auditor (F12-8), nor a launch that writes, nor any planner while the person keeps it off in «Ajustes»
+/// (<see cref="ProjectHistoryToolOptions.Enabled"/>). Anything else gets an offer without a server and the reason, in plain
+/// Spanish for the person.
 /// </summary>
 public interface IProjectHistoryTool
 {
@@ -110,17 +119,23 @@ public interface IProjectHistoryTool
 /// </summary>
 public sealed class ProjectHistoryTool : IProjectHistoryTool
 {
+    // What the person reads next to the proposal (PlanProposal.HistoryToolNotice): plain Spanish, without the words of the
+    // protocol. Each says that the orchestrator planned without the search, and why.
+
     /// <summary>Why a launch that is not the planner's gets no tool.</summary>
-    public const string NotThePlannerReason = "La herramienta del historial solo es para el planificador.";
+    public const string NotThePlannerReason = "La búsqueda en el historial solo es para el orquestador.";
+
+    /// <summary>Why a planner gets no tool when the person turned it off in «Ajustes».</summary>
+    public const string DisabledReason = "El orquestador no tuvo la búsqueda en el historial: está apagada en Ajustes («Búsqueda en el historial para el orquestador»).";
 
     /// <summary>Why a planner without memory gets no tool.</summary>
-    public const string NoMemoryReason = "El orquestador no recibe memoria en la plantilla: planifica sin la herramienta del historial.";
+    public const string NoMemoryReason = "El orquestador no tuvo la búsqueda en el historial: en la plantilla no recibe la memoria del proyecto.";
 
     /// <summary>Why a launch that writes, has a shell or has network gets no tool (docs/14 D-30).</summary>
-    public const string NotReadOnlyReason = "La herramienta del historial solo va en lanzamientos de solo lectura, sin shell ni red.";
+    public const string NotReadOnlyReason = "El orquestador no tuvo la búsqueda en el historial: solo se le da cuando planifica sin cambiar ficheros, sin consola y sin red.";
 
     /// <summary>Why a project with nothing trusted yet gets no tool.</summary>
-    public const string EmptyReason = "El proyecto aún no tiene historial de confianza: el orquestador planifica sin la herramienta del historial.";
+    public const string EmptyReason = "El orquestador no tuvo la búsqueda en el historial: el proyecto aún no tiene nada de confianza en su memoria ni en su bitácora.";
 
     private readonly ISemanticIndex _index;
     private readonly IProjectHistoryFolders _folders;
@@ -139,13 +154,23 @@ public sealed class ProjectHistoryTool : IProjectHistoryTool
         _options = options;
     }
 
-    /// <summary>Why <paramref name="provider"/> gets no tool: it does not launch the local MCP servers of Agent Studio.</summary>
+    /// <summary>
+    /// Why <paramref name="provider"/> gets no tool: it does not launch the local MCP servers of Agent Studio (Codex refuses
+    /// them; Gemini does not launch them), said as «does not take outside tools».
+    /// </summary>
     public static string NoMcpReason(ProviderId provider) =>
-        $"{provider} no carga los servidores MCP locales de Agent Studio: el orquestador planifica sin la herramienta del historial.";
+        $"El orquestador no tuvo la búsqueda en el historial: {ProviderName(provider)} no admite herramientas externas.";
 
     /// <summary>Why the snapshot could not be taken or written.</summary>
     public static string FailedReason(string problem) =>
-        $"No se pudo preparar el historial del proyecto ({problem.TrimEnd().TrimEnd('.')}): el orquestador planifica sin la herramienta.";
+        $"El orquestador no tuvo la búsqueda en el historial: no se pudo preparar ({problem.TrimEnd().TrimEnd('.')}).";
+
+    /// <summary>The name a person knows a provider by.</summary>
+    private static string ProviderName(ProviderId provider) =>
+        provider == ProviderId.CodexCli ? "Codex"
+        : provider == ProviderId.GeminiCli ? "Gemini"
+        : provider == ProviderId.ClaudeCode ? "Claude Code"
+        : provider.Value;
 
     public async Task<ProjectHistoryOffer> OfferAsync(ProjectContext project, AgentDefinition agent, PermissionProfile permissions, CancellationToken ct)
     {
@@ -155,6 +180,11 @@ public sealed class ProjectHistoryTool : IProjectHistoryTool
         if (agent.Role != AgentRole.Orchestrator)
         {
             return ProjectHistoryOffer.None(NotThePlannerReason);
+        }
+
+        if (_options.Enabled?.Invoke() == false)
+        {
+            return ProjectHistoryOffer.None(DisabledReason);
         }
 
         if (agent.Memory != MemoryPolicy.ReadSelected)

@@ -102,6 +102,42 @@ public sealed class Phase12CompositionTests
     }
 
     [Fact]
+    public async Task The_switch_in_Ajustes_turns_the_history_search_of_the_orchestrator_off_for_the_next_planning_without_touching_code()
+    {
+        using var temp = new TempDirectory();
+        var folders = FoldersIn(temp);
+        await using var provider = Build(folders);
+        var root = temp.CreateDirectory("calc");
+        var project = await provider.GetRequiredService<IProjectWorkspace>().OpenAsync(root, Ct);
+        await provider.GetRequiredService<IProjectMemory>().RecordAsync(
+            project,
+            new MemoryDraft(MemoryKind.Decision, "Calc", "Usamos decimal en Calc.", MemoryOrigin.System, "nota:1"),
+            Ct);
+        var tool = provider.GetRequiredService<IProjectHistoryTool>();
+        var orchestrator = Agent("orquestador", AgentRole.Orchestrator);
+        var readOnly = new AgentStudio.Application.Providers.PermissionProfile(false, false, false, ["Read", "Grep", "Glob"], [], []);
+        var settings = provider.GetRequiredService<AgentStudio.Desktop.Settings.SettingsDocumentViewModel>();
+
+        // On by default: the planner gets it.
+        Assert.True(settings.Memory!.PlannerHistoryToolEnabled);
+        using (var on = await tool.OfferAsync(project, orchestrator, readOnly, Ct))
+        {
+            Assert.True(on.Offered, on.Withheld);
+        }
+
+        // Turned off and saved in «Ajustes»: the next planning goes without it, and says why.
+        settings.Memory.PlannerHistoryToolEnabled = false;
+        settings.SaveCommand.Execute(null);
+        Assert.Null(settings.ErrorMessage);
+        using (var off = await tool.OfferAsync(project, orchestrator, readOnly, Ct))
+        {
+            Assert.Equal((false, ProjectHistoryTool.DisabledReason), (off.Offered, off.Withheld));
+        }
+
+        Assert.False(provider.GetRequiredService<IAppSettingsStore>().Load().PlannerHistoryToolEnabled);
+    }
+
+    [Fact]
     public async Task Without_the_model_the_app_starts_packs_and_searches_by_words_says_so_and_downloads_nothing()
     {
         using var temp = new TempDirectory();

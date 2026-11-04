@@ -170,7 +170,8 @@ Las decisiones 3 a 5 valen para ella así:
   - Nunca la reciben un ejecutor, el juez o un auditor (F12-8). Solo los puertos del motor, el orquestador y el
     planificador pueden llegar al puerto, y una prueba lo fija por reflexión.
   - Codex rechaza los servidores MCP y Gemini no los lanza, así que con ellos el planificador trabaja sin la herramienta.
-    No es un error: la propuesta lo dice (`PlanProposal.HistoryToolNotice`).
+    No es un error: la propuesta lo dice (`PlanProposal.HistoryToolNotice`), y el documento del orquestador lo enseña en
+    la línea de estado de la propuesta, en castellano llano, y lo conserva en el borrador.
 - **La instantánea** (decisión 3): Agent Studio escribe con `CreateNew` lo que puede llegar a un prompt
   (`ISemanticIndex.SnapshotAsync`: de confianza y nunca un resumen diario, como mucho los 2 000 fragmentos más recientes) en
   `%LOCALAPPDATA%\AgentStudio\history-snapshots\his-<aleatorio>\history.json`. Queda fuera del proyecto y del worktree
@@ -185,5 +186,7 @@ Las decisiones 3 a 5 valen para ella así:
   un solo servidor (`ProjectHistoryLaunch.With`). El del planificador no lleva el catálogo, así que va con `--history`
   solo. El prompt la nombra en una frase, y solo entonces. Ese prompt queda capturado como evidencia.
 - **Consentimiento** (decisión 5): no hay un OK por uso. La herramienta no lanza nada por sí misma: sus llamadas son parte
-  de la planificación que pidió la persona. La decisión 9 de docs/17 la autorizó, con su medición.
+  de la planificación que pidió la persona. La decisión 9 de docs/17 la autorizó, con su medición. Hasta que esa medición
+  se repita con la herramienta, se puede apagar sin tocar código: «Búsqueda en el historial para el orquestador», en la
+  sección «Memoria del proyecto» de «Ajustes» (activada por defecto; se lee en cada planificación).
 - **Pendiente:** repetir la medición D-30 con la herramienta en una planificación corta real, con tu OK (F12-9).

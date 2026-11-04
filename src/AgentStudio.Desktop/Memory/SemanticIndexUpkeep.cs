@@ -1,7 +1,9 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Threading.Channels;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Semantic;
+using Microsoft.Extensions.Logging;
 
 namespace AgentStudio.Desktop.Memory;
 
@@ -27,7 +29,8 @@ public sealed class SemanticIndexRefreshedEventArgs(ProjectContext project, Sema
 /// runs on the two threads of the model (<c>OnnxEmbedderSource.IntraOpThreads</c>), which leave the processor to the
 /// interface; the threads themselves are not given a lower priority, because the embedder runs them on the pool.</item>
 /// <item><b>It never fails its caller:</b> a refresh that throws ends its requests with a refresh that says why
-/// (<see cref="SemanticIndexRefresh.Reason"/>), and so does one stopped by the end of the app.</item>
+/// (<see cref="SemanticIndexRefresh.Reason"/>), and so does one stopped by the end of the app. A follower of
+/// <see cref="Refreshed"/> that throws is traced and skipped: the others still hear it, and the consumer goes on.</item>
 /// <item><b>The model is opened ahead</b> (<see cref="WarmUpAsync"/>) when its files are already in place and verify, so
 /// the first search does not pay its load (about 2.5 s); without them nothing is opened and nothing is downloaded (F12-6):
 /// only the installer downloads, and only after the person's OK in «Memoria».</item>
@@ -41,6 +44,7 @@ public sealed class SemanticIndexUpkeep : IDisposable
 
     private readonly ISemanticIndex? _index;
     private readonly IEmbedderSource? _model;
+    private readonly ILogger? _logger;
     private readonly ConcurrentDictionary<string, ProjectQueue> _queues = new(StringComparer.Ordinal);
     private readonly CancellationTokenSource _stopping = new();
     private readonly System.Threading.Lock _gate = new();
@@ -49,10 +53,12 @@ public sealed class SemanticIndexUpkeep : IDisposable
 
     /// <param name="index">The index of the projects; null when it was not composed (nothing is done).</param>
     /// <param name="model">The local model, opened ahead when its files verify; null: never opened ahead.</param>
-    public SemanticIndexUpkeep(ISemanticIndex? index, IEmbedderSource? model)
+    /// <param name="logger">Where a follower of <see cref="Refreshed"/> that failed is traced; null: the debug output only.</param>
+    public SemanticIndexUpkeep(ISemanticIndex? index, IEmbedderSource? model, ILogger<SemanticIndexUpkeep>? logger = null)
     {
         _index = index;
         _model = model;
+        _logger = logger;
     }
 
     /// <summary>Whether there is an index to keep.</summary>
@@ -224,7 +230,7 @@ public sealed class SemanticIndexUpkeep : IDisposable
                 batch.ForEach(r => r.Done.TrySetResult(refresh));
                 if (!stopping.IsCancellationRequested)
                 {
-                    Refreshed?.Invoke(this, new SemanticIndexRefreshedEventArgs(project, refresh));
+                    Announce(new SemanticIndexRefreshedEventArgs(project, refresh));
                 }
             }
         }
@@ -236,6 +242,28 @@ public sealed class SemanticIndexUpkeep : IDisposable
         while (reader.TryRead(out var left))
         {
             left.Done.TrySetResult(stopped);
+        }
+    }
+
+    /// <summary>
+    /// Tells every follower of <see cref="Refreshed"/> that a refresh ended, one by one: one that throws is traced and skipped,
+    /// so the others still hear it and the consumer of the project goes on with the next requests.
+    /// </summary>
+    private void Announce(SemanticIndexRefreshedEventArgs refreshed)
+    {
+        foreach (var follower in Refreshed?.GetInvocationList().OfType<EventHandler<SemanticIndexRefreshedEventArgs>>() ?? [])
+        {
+            try
+            {
+                follower(this, refreshed);
+            }
+#pragma warning disable CA1031 // A follower only shows the result: its failure must never stop the refreshes of the project.
+            catch (Exception ex)
+#pragma warning restore CA1031
+            {
+                Debug.WriteLine($"Semantic index upkeep: a follower of the refresh failed: {ex.Message}");
+                _logger?.LogWarning(ex, "A follower of the refresh of the semantic index of project {ProjectId} failed.", refreshed.Project.ProjectId);
+            }
         }
     }
 

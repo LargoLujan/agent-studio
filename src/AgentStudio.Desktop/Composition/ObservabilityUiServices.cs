@@ -13,6 +13,7 @@ using AgentStudio.Desktop.Settings;
 using AgentStudio.Desktop.ViewModels;
 using AgentStudio.Domain.Providers;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace AgentStudio.Desktop.Composition;
 
@@ -62,14 +63,19 @@ internal static class ObservabilityUiServices
                 Time(provider),
                 provider.GetRequiredService<QuotaViewModel>(),
                 provider.GetRequiredService<ObservabilitySettingsViewModel>()))
+            .AddSingleton(provider => new MemorySettingsViewModel(provider.GetRequiredService<IAppSettingsStore>()))
             .AddSingleton(provider => new SettingsDocumentViewModel(
                 provider.GetRequiredService<IAppSettingsStore>(),
                 provider.GetRequiredService<ObservabilitySettingsViewModel>(),
                 provider.GetService<UnattendedSettingsViewModel>(),
                 provider.GetService<LockSettingsViewModel>(),
-                Time(provider)))
+                Time(provider),
+                provider.GetRequiredService<MemorySettingsViewModel>()))
             .AddSingleton(provider => new DailySummaryViewModel(provider.GetService<IDailySummaryService>(), Time(provider)))
-            .AddSingleton(provider => new SemanticIndexUpkeep(provider.GetService<ISemanticIndex>(), provider.GetService<IEmbedderSource>()))
+            .AddSingleton(provider => new SemanticIndexUpkeep(
+                provider.GetService<ISemanticIndex>(),
+                provider.GetService<IEmbedderSource>(),
+                provider.GetService<ILogger<SemanticIndexUpkeep>>()))
             .AddSingleton(provider =>
             {
                 var memory = new MemoryViewModel(

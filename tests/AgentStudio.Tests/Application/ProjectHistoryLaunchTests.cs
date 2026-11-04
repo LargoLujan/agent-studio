@@ -93,6 +93,34 @@ public sealed class ProjectHistoryLaunchTests
     }
 
     [Fact]
+    public async Task Turned_off_in_the_settings_no_planner_gets_it_and_nothing_is_read_and_the_reasons_are_plain_spanish()
+    {
+        var index = new SnapshotIndex(new HistoryFragment("mem:m1#0", "decisión", DateTimeOffset.UnixEpoch, "Usar decimal."));
+        var folders = new CountingFolders();
+        var on = true;
+        var tool = new ProjectHistoryTool(index, folders, new ProjectHistoryToolOptions(Server) { Enabled = () => on });
+
+        on = false;
+        using var off = await tool.OfferAsync(Project, Agent(AgentRole.Orchestrator), ReadOnly, TestContext.Current.CancellationToken);
+        on = true;
+        using var again = await tool.OfferAsync(Project, Agent(AgentRole.Orchestrator), ReadOnly, TestContext.Current.CancellationToken);
+
+        Assert.Equal((false, ProjectHistoryTool.DisabledReason), (off.Offered, off.Withheld));
+        Assert.True(again.Offered);
+        Assert.Equal((1, 1), (index.Snapshots, folders.Created));
+        Assert.Equal("El orquestador no tuvo la búsqueda en el historial: Codex no admite herramientas externas.", ProjectHistoryTool.NoMcpReason(ProviderId.CodexCli));
+        Assert.Equal("El orquestador no tuvo la búsqueda en el historial: Gemini no admite herramientas externas.", ProjectHistoryTool.NoMcpReason(ProviderId.GeminiCli));
+        Assert.All(
+            new[] { ProjectHistoryTool.DisabledReason, ProjectHistoryTool.NoMemoryReason, ProjectHistoryTool.NotReadOnlyReason, ProjectHistoryTool.EmptyReason, ProjectHistoryTool.FailedReason("disco lleno") },
+            reason =>
+            {
+                Assert.StartsWith("El orquestador no tuvo la búsqueda en el historial: ", reason, StringComparison.Ordinal);
+                Assert.DoesNotContain("MCP", reason, StringComparison.Ordinal);
+                Assert.DoesNotContain("servidor", reason, StringComparison.Ordinal);
+            });
+    }
+
+    [Fact]
     public async Task Disposing_the_offer_deletes_its_snapshot_once()
     {
         var folders = new CountingFolders();
