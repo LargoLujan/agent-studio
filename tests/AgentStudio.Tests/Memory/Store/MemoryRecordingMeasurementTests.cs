@@ -70,10 +70,17 @@ public sealed class MemoryRecordingMeasurementTests
         var recall = Stopwatch.StartNew();
         var found = await world.Memory.RecallAsync(world.Project, new MemoryQuery("plan 1234 revisión", MaxEntries: 10), Ct);
         recall.Stop();
+
+        // What the semantic index recalls before every search (every entry, whatever its trust): the log, the ledger, and
+        // every row read and checked against its announcement.
+        var everything = Stopwatch.StartNew();
+        var all = await world.Memory.RecallAsync(world.Project, new MemoryQuery(MaxEntries: int.MaxValue, TrustedOnly: false), Ct);
+        everything.Stop();
         report
             .AppendLine(CultureInfo.InvariantCulture, $"Total: {total.Elapsed.TotalSeconds:F1} s ({total.Elapsed.TotalMilliseconds / count:F2} ms por entrada); registro con {(await world.LogAsync()).Count} entradas.")
             .AppendLine(CultureInfo.InvariantCulture, $"Cargar y verificar el registro al final: {load.TotalMilliseconds:F2} ms de media en {Loads} cargas.")
-            .AppendLine(CultureInfo.InvariantCulture, $"Una búsqueda al final: {recall.Elapsed.TotalMilliseconds:F0} ms ({found.Count} resultados).");
+            .AppendLine(CultureInfo.InvariantCulture, $"Una búsqueda por palabras al final: {recall.Elapsed.TotalMilliseconds:F0} ms ({found.Count} resultados).")
+            .AppendLine(CultureInfo.InvariantCulture, $"Recuperar toda la memoria, como el índice semántico antes de cada búsqueda: {everything.Elapsed.TotalMilliseconds:F0} ms ({all.Count} entradas).");
         TestContext.Current.TestOutputHelper?.WriteLine(report.ToString());
         if (Environment.GetEnvironmentVariable(ReportVariable) is { Length: > 0 } file)
         {
