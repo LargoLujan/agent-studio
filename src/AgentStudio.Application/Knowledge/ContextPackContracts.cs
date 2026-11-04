@@ -1,5 +1,6 @@
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Projects;
+using AgentStudio.Application.Semantic;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Metrics;
 
@@ -59,8 +60,35 @@ public sealed record ContextPackRequest(AgentDefinition Agent, string Focus, IRe
 /// </summary>
 public sealed record ContextPack(IReadOnlyList<ContextItem> Items, IReadOnlyList<ContextItem> Omitted, int Characters, MetricValue<long> EstimatedTokens, string Sha256)
 {
+    /// <summary>
+    /// How its tiers by relevance were ranked (docs/17 D-06): by the hybrid search, or by words only and why; null when it
+    /// asked for none (an agent without memory, or no focus). It is not part of <see cref="Sha256"/>, which covers the items.
+    /// </summary>
+    public ContextRelevance? Relevance { get; init; }
+
     /// <summary>What <c>AgentRunStarted</c> version 2 records of this pack: hashes and ids, never the text.</summary>
     public ContextPackReference ToReference() => new(Sha256, [.. Items.Select(i => i.Id)], [.. Omitted.Select(i => i.Id)], Characters);
+}
+
+/// <summary>
+/// How the tiers by relevance of a pack were ranked (docs/17 D-06; ADR-0047): by the hybrid search of the semantic index
+/// (<see cref="SemanticSearchMode.Hybrid"/>), or by words only and why: no model, its vectors still pending, or the index
+/// could not be used and the full-text search of the memory ranked them (<see cref="WordsOnlyReason.IndexUnavailable"/>).
+/// A hybrid ranking also says the cut its semantic lists had (<see cref="Cut"/>), null when the model has none.
+/// </summary>
+public sealed record ContextRelevance(SemanticSearchMode Mode, WordsOnlyReason? Reason = null)
+{
+    /// <summary>The tiers were ranked by words and meaning.</summary>
+    public static ContextRelevance Hybrid { get; } = new(SemanticSearchMode.Hybrid);
+
+    /// <summary>The cut the semantic list had (<see cref="SemanticSearchResult.Cut"/>); null without a semantic list or without a cut for its model.</summary>
+    public MeaningOnlyCut? Cut { get; init; }
+
+    /// <summary>The tiers were ranked by words only, for <paramref name="reason"/>.</summary>
+    public static ContextRelevance WordsOnly(WordsOnlyReason reason) => new(SemanticSearchMode.WordsOnly, reason);
+
+    /// <summary>What to tell the person about it, in Spanish: null for a hybrid ranking.</summary>
+    public string? Notice => Reason is { } reason ? SemanticSearchTexts.WordsOnly(reason) : null;
 }
 
 /// <summary>Packs the context of an agent by tiers and fails closed (D-24).</summary>

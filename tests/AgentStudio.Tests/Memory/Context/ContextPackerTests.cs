@@ -231,8 +231,8 @@ public sealed class ContextPackerTests
 
             // Nothing is lost in silence: what the role may get is in the pack or reported, and nothing else is.
             MemoryKind[] allowed = role == AgentRole.Orchestrator
-                ? [MemoryKind.Decision, MemoryKind.Architecture, MemoryKind.Convention, MemoryKind.PendingTask, MemoryKind.KnownError, MemoryKind.Solution, MemoryKind.Change, MemoryKind.Verdict, MemoryKind.DebateSummary]
-                : [MemoryKind.Decision, MemoryKind.Architecture, MemoryKind.Convention, MemoryKind.KnownError, MemoryKind.Solution, MemoryKind.Change, MemoryKind.Verdict, MemoryKind.DebateSummary];
+                ? [MemoryKind.Decision, MemoryKind.Architecture, MemoryKind.Convention, MemoryKind.PendingTask, MemoryKind.KnownError, MemoryKind.Solution, MemoryKind.Change, MemoryKind.Verdict, MemoryKind.DebateSummary, MemoryKind.JournalEntry]
+                : [MemoryKind.Decision, MemoryKind.Architecture, MemoryKind.Convention, MemoryKind.KnownError, MemoryKind.Solution, MemoryKind.Change, MemoryKind.Verdict, MemoryKind.DebateSummary, MemoryKind.JournalEntry];
             var expected = mandatory.Concat(desirable).Select(i => i.Id).Concat(entries.Where(e => allowed.Contains(e.Kind)).Select(e => e.Id));
             Assert.Equal(expected.Order(StringComparer.Ordinal), pack.Items.Concat(pack.Omitted).Select(i => i.Id).Order(StringComparer.Ordinal));
 

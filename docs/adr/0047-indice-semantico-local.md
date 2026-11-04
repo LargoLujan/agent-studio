@@ -218,3 +218,269 @@ decisión no espera al instalador (Fase 7).
   El de win-arm64 se copia, pero sigue sin probar, como ya decía «Sin medir».
 - **Lo que queda en `runtimes/`** (67 MB): los dos nativos de ONNX Runtime (34 MB), `e_sqlite3` de SQLite para 21 RID
   (31 MB) y `WebView2Loader` para tres (0,5 MB). Recortar los de otros paquetes es otra decisión, fuera de esta adenda.
+
+## Adenda (2026-11-03, revisión de WP3): corte de lo que solo encuentra el significado, nivel propio de la bitácora y F12-4 con el modelo real
+
+- **Contexto:** la revisión independiente de WP3 encontró que la lista por significado no tenía corte de relevancia. El
+  coseno siempre devuelve vecinos, así que cada nivel por relevancia traía hasta 50 entradas pasara lo que pasara y el
+  paquete se llenaba hasta el presupuesto con texto sin relación. Su sonda, con el foco «Implementar Multiply», daba 1
+  elemento y 48 caracteres sin modelo y 33 elementos y 14 728 caracteres con modelo. Contradice el «solo lo relevante» de
+  [ADR-0023](0023-empaquetado-de-contexto-por-niveles.md).
+- **Decisión:**
+  1. **Contrato.** `SimilarCandidate(Id, At, Similarity)`, junto a `RankedCandidate` en `HybridRanking.cs`: la similitud
+     es el producto escalar de los dos vectores normalizados, su coseno. `ISemanticIndexStore.SearchVectorsAsync` la
+     devuelve con los mismos parámetros y el mismo orden. `HybridRanking.Fuse` sigue recibiendo `RankedCandidate`: el
+     índice convierte después del corte.
+  2. **El corte.** Un fragmento que solo trae la lista por significado (la lista por palabras no lo tiene) entra en la
+     fusión si cumple las dos condiciones:
+     - su similitud llega al suelo del modelo (`EmbeddingModelDescriptor.MeaningOnlyMinimum`);
+     - queda a menos del margen de la mejor similitud de la búsqueda, entre lo que su confianza admite, de cualquier
+       categoría (`MeaningOnlyMargin`).
+
+     Lo que también trae la lista por palabras entra siempre. Los dos valores son de cada modelo y no forman parte de su
+     huella, porque no cambian los vectores. Para multilingual-e5-small, **suelo 0,79 y margen 0,04**.
+  3. **La calibración.** Con el modelo real: la int8 de la revisión fijada, con su SHA-256 comprobado. El conjunto son
+     las 50 preguntas de F12-4 más 36 distractores sin relación con ninguna pregunta, doce en cada nivel por relevancia.
+     El ruido es lo que traen los tres niveles por relevancia de un paquete en las 50 preguntas (150 niveles):
+
+     | Corte | F12-4 | Distractores | Entradas que no son la respuesta | Respuesta en su nivel |
+     |---|---|---|---|---|
+     | Sin corte | 36/50 | 1 800 (12,0 por nivel) | 4 363 (29,1 por nivel; 20 984 caracteres por paquete) | 37/37 |
+     | Suelo 0,79 | 36/50 | 897 (6,0) | 2 711 (18,1; 15 029) | 37/37 |
+     | **Suelo 0,79 y margen 0,04** | **36/50** | **428 (2,9)** | **1 577 (10,5; 9 628)** | **37/37** |
+     | Suelo 0,79 y margen 0,03 | 36/50 | 261 (1,7) | 1 081 (7,2; 6 830) | 35/37 |
+     | Suelo 0,80 | 35/50 | 529 (3,5) | 1 921 (12,8; 11 374) | 37/37 |
+     | Suelo 0,82 | 32/50 | 140 (0,9) | 762 (5,1; 5 065) | 32/37 |
+
+     **Por qué estos valores.** La regla fue conservar el acierto con el menor ruido:
+     - 0,79 es el suelo más alto que conserva todos los aciertos de la búsqueda sin corte; 0,80 ya pierde uno.
+     - Las similitudes de e5 están muy juntas: las respuestas van de 0,777 (mediana 0,835) y el mejor distractor de cada
+       pregunta llega a 0,840 (mediana 0,816). Por eso el suelo solo corta la mitad del ruido.
+     - El margen sí separa, porque los distractores quedan unas centésimas por debajo de la mejor similitud. 0,04 es el
+       más holgado de los medidos (0,01 a 0,04) que conserva los aciertos y la respuesta en su nivel. Con el suelo, corta la
+       mitad de sus distractores y deja una cuarta parte de los de sin corte.
+     - 0,03 corta más, pero saca dos respuestas de su nivel. Se elige el más holgado para no ajustarse de más a 50
+       preguntas.
+     - La prueba de calibración (`MeaningOnlyFloorCalibrationTests`, categoría `LocalModel`) lo vuelve a medir con el modelo
+       en disco (variable `AGENTSTUDIO_E5_MODEL_DIR`). Sin el modelo, se omite.
+  4. **Un paquete, una lectura.** Los tres niveles por relevancia de un paquete se piden juntos
+     (`ISemanticIndex.SearchManyAsync`): lo anclado y el estado del índice se leen una vez y el foco se embebe una vez. El
+     corte de cada entrada se guarda por su id, su SHA-256 y su tiempo, así que no se vuelve a cortar ni a hashear.
+  5. **El paquete dice cómo ordenó** (`ContextPack.Relevance`): por la búsqueda híbrida, o solo por palabras y por qué.
+     `WordsOnlyReason.IndexUnavailable` dice que no hay índice o que falló y que ordenó el FTS5 de la memoria.
+  6. **Filas que no son un fragmento** (texto vacío o de más de 1 500 caracteres, fuente u huella que no lo son):
+     - el almacén las salta en lecturas y búsquedas y las da en su estado con `Sha256` vacío;
+     - el refresco y la búsqueda las reescriben si siguen ancladas, y el refresco las quita si no;
+     - ninguna búsqueda falla por una fila;
+     - un fragmento que el índice ya no tiene (lo quitó un refresco a mitad de una búsqueda) no se vuelve a meter.
+  7. **La bitácora tiene nivel propio** (`ContextTier.History`), detrás de «el resto». D-02 la ponía dentro de «el resto»;
+     con un nivel propio es lo primero que se recorta cuando falta sitio y nunca desplaza a nada de arriba. Cumple la
+     decisión 9: nunca desplaza a los requisitos ni a las decisiones.
+  8. **Lo que puede llegar a un prompt** (`SemanticQuery.MayReachAPrompt`): de confianza, sin sustituir y nunca un resumen
+     diario, sea cual sea su origen. Lo cumplen la búsqueda `TrustedOnly`, la instantánea del planificador y el
+     empaquetador.
+  9. **La instantánea lleva vectores** gracias a `ISemanticIndexStore.ReadIndexedAsync`.
+- **Hallazgo: F12-4 no se cumple con el modelo real en este conjunto, y no es por el corte.** Sin corte:
+
+  | Búsqueda | Respuesta entre las 5 primeras |
+  |---|---|
+  | Híbrida | 36/50 (72 %) |
+  | Solo por significado | 41/50 |
+  | FTS5 como hoy | 26/50 |
+
+  El criterio pide 43/50. La fusión RRF con pesos iguales pierde frente a los vectores solos porque la lista por palabras
+  trae ruido:
+  - **La plantilla de la bitácora:** `#prompt` y «ejecución» de la línea «Resultado» casan con todas las entradas de
+    bitácora. Así se pierden q10 y q45.
+  - **Palabras de contenido ambiguas:** q05, q24, q41 y de q47 a q49.
+
+  El corte no lo arregla, porque solo quita candidatos que vienen por significado. Queda para decidir, y cada opción hay
+  que medirla con este conjunto y con la bitácora real:
+  - una fusión ponderada que dé menos peso a la lista por palabras;
+  - una lista por palabras menos profunda;
+  - indexar la bitácora sin su plantilla. Depende de qué texto lleve la entrada `JournalEntry` que deriva WP1: si lleva la
+    línea «Resultado» con esos campos, el ruido es real; si no, el conjunto lo exagera.
+- **Consecuencias:**
+  - Con el modelo, un nivel por relevancia trae lo que casa por palabras y lo que el significado acerca de verdad: en el
+    conjunto, 10,5 entradas que no son la respuesta por nivel, frente a 29,1.
+  - La prueba Live de F12-4 mantiene el criterio de 43/50 y queda en rojo con el modelo (36/50). Sin modelo se omite.
+    Lo resuelve la segunda adenda.
+  - El suelo y el margen hay que recalibrarlos si cambia el modelo o la forma de los fragmentos.
+
+## Adenda (2026-11-03, segunda): F12-4 con el modelo real, resuelto con la bitácora sin plantilla y una fusión ponderada (la sustituye la adenda de 2026-11-04)
+
+- **Contexto:** la primera adenda dejó F12-4 en 36/50 con el modelo real por el ruido de la lista por palabras. La decisión
+  fue atacar esa causa sin bajar el listón ni cambiar las preguntas: medir tres opciones en orden y quedarse con la
+  combinación más sencilla que llegara a 43/50 sin empeorar el ruido (los distractores y la respuesta en su nivel).
+- **Decisión:**
+  1. **La bitácora se busca sin su plantilla** (`JournalSearchText`). Para un fragmento `JournalEntry`, lo que se indexa
+     (FTS5 y embedding) es una vista limpia y determinista del texto anclado:
+     - se queda con el resumen de la petición («…»), la nota libre de su línea «Resultado» y el texto de las líneas
+       «Hecho»;
+     - quita la hora, el `P-NNNN`, quién, el CLI y el modelo, las etiquetas, el estado, la duración, los tokens, el ancla
+       del lanzamiento (`ejecución`, `tarea`, `intento`, `entrada`) y el tema de la entrada, que es el mismo en todas.
+
+     Lo que llega al paquete de contexto es siempre el texto anclado completo. La huella de cada fragmento cubre la
+     vista y se recalcula desde la entrada anclada, así que un texto alterado sigue sin pasar.
+  2. **La lista por palabras pesa 0,15 en la fusión** (`HybridRanking.Fuse(…, lexicalWeight)`, con 1 por defecto, y
+     `SemanticSearchTuning.DefaultLexicalWeight` en el índice):
+     - lo que encuentra el significado va primero;
+     - las palabras lo reordenan y traen detrás lo que solo encuentran ellas;
+     - sin modelo no cambia nada, porque hay una sola lista.
+  3. **El corte se queda:** suelo 0,79 y margen 0,04.
+  4. **Opciones descartadas:**
+     - **Ignorar los términos frecuentes (la opción 2):** ningún término de las preguntas está en más del 8 % de los
+       fragmentos, así que con umbrales del 40, el 20 o el 10 % no cambia nada. Con el 5 % no sube y saca una respuesta de
+       su nivel.
+     - **Una lista por palabras menos profunda (20, 10 o 5):** no ayuda.
+- **Medidas** (modelo real, las 50 preguntas y sus 36 distractores; el corte, salvo donde se indica):
+
+  | Combinación | F12-4 | Distractores | Respuesta en su nivel |
+  |---|---|---|---|
+  | Primera adenda: bitácora con plantilla, peso 1 | 36/50 | 428 | 37/37 |
+  | 1: bitácora sin plantilla, peso 1 | 40/50 | 302 | 37/37 |
+  | 1, sin corte | 41/50 | 1 800 | 37/37 |
+  | 1 + términos en más del 40, 20 o 10 % fuera | 40/50 | 302 | 37/37 |
+  | 1 + términos en más del 5 % fuera | 40/50 | 301 | 36/37 |
+  | 1 + profundidad 20, 10 o 5 | 40, 40 o 39 | 302 | 37/37 |
+  | 1 + peso 0,5 o 0,25 | 39 o 41 | 302 | 37/37 |
+  | 1 + peso 0,2 | 43/50 | 302 | 37/37 |
+  | **1 + peso 0,15 (la elegida)** | **45/50** | **302** | **37/37** |
+  | 1 + peso 0,125 o 0,1 | 45/50 | 302 | 37/37 |
+  | 1 + peso 0,05 | 43/50 | 302 | 37/37 |
+  | 1 + peso 0,15, sin corte | 44/50 | 1 800 | 37/37 |
+
+  Solo por significado da 43/50 y FTS5 como hoy, 26/50. F12-4 pide 43/50 y 15 puntos más que FTS5. La combinación
+  elegida da 45/50 (90 %), 38 puntos más.
+- **Por qué 0,15:**
+  - es el peso más alto de la meseta de 45 aciertos (de 0,1 a 0,15): la lista por palabras conserva todo el peso que
+    puede sin tapar al significado;
+  - los pesos de al lado (0,2 y 0,125) también cumplen;
+  - con este peso, el corte no pierde ninguna respuesta (45 frente a 44 sin él) y deja la sexta parte de los distractores.
+- **Las preguntas que siguen fuera:** q16, q17, q42, q45 y q49. Ninguna es ambigua, aunque dos dependen de algo que el
+  conjunto no dice: q16, que el límite de OpenAI es la cuota de Codex; q17, que la huella y la cara son Windows Hello.
+- **Consecuencias:**
+  - D-05 cambia: la fusión ya no da el mismo peso a las dos listas.
+  - Para la bitácora, la instantánea de la herramienta del planificador lleva la vista limpia (lo que se indexa) con su
+    fecha. Es sobre lo que la herramienta busca por palabras.
+  - El peso, el suelo y el margen se recalibran juntos si cambia el modelo, la forma de los fragmentos o la plantilla de
+    la bitácora. Se miden con `MeaningOnlyFloorCalibrationTests` y la prueba Live de F12-4, que con el modelo en disco
+    (`AGENTSTUDIO_E5_MODEL_DIR`) pasan las dos; `AGENTSTUDIO_CALIBRATION_REPORT` deja sus cifras en un fichero.
+
+## Adenda (2026-11-04): la bitácora con dos textos, el corte para toda la lista por significado y la fusión de D-05
+
+- **Contexto:** la segunda adenda no generaliza. En una validación ciega, con preguntas que no se usaron para calibrar,
+  la búsqueda híbrida quedó por debajo de FTS5, sobre todo en las preguntas por los datos de la plantilla de la bitácora
+  (fecha, `P-NNNN`, quién, ejecución): la vista limpia los había quitado también de las palabras. Y el peso 0,15 era un
+  ajuste a estas 50 preguntas, casi todas paráfrasis. Lo decidido:
+  - dos textos por entrada de la bitácora;
+  - ignorar los términos de la pregunta que están en muchos fragmentos, con el umbral medido solo con las 50 preguntas de
+    calibración;
+  - volver a la fusión de D-05 (peso 1, k = 60) salvo una ganancia clara y estable en una meseta ancha;
+  - el corte 0,79 y 0,04 se queda si no pierde respuestas;
+  - el corte, en una tabla por la huella del modelo, no en su descriptor.
+- **Decisión:**
+  1. **La bitácora tiene dos textos.**
+     - El fragmento lleva el texto anclado completo («tema: contenido»). Lo buscan las palabras (fechas, `P-NNNN`, quién,
+       ejecución, etiquetas, estado) y lo da la instantánea del planificador.
+     - El significado se calcula con la vista limpia de su trozo (`FragmentCutter.MeaningOf`, `JournalSearchText`), sin la
+       plantilla.
+     - La vista es una función pura del fragmento y de la categoría de su entrada, así que la huella del fragmento (su
+       texto y el SHA-256 de la fuente) cubre los dos textos.
+     - La huella de los vectores lleva la versión de la vista (`SemanticIndex.VectorFingerprint`,
+       `JournalSearchText.Version` = 2): si la vista cambia, los vectores se recalculan.
+     - La vista solo quita la plantilla tal como la escriben la app y el hook: `- **HH:mm:ss** · P-NNNN · …`,
+       `- **HH:mm:ss** · sesión `…` · …`, `- Resultado P-NNNN · HH:mm:ss · estado · …` y `Hecho…:`. Una línea que solo
+       empieza parecido («Resultado final…», «**Nota** · …») se queda entera.
+  2. **El corte vale para toda la lista por significado.** Solo lo que llega al corte tiene puesto por significado, lo
+     encuentren también las palabras o no. Lo que solo encuentran las palabras sigue entrando, por su puesto en la lista
+     por palabras.
+     - Antes, lo que casaba por palabras tenía puesto por significado aunque quedara por debajo del corte. Con k = 60 eso
+       le daba dos aportaciones: una palabra en común le ganaba a la respuesta que el significado ponía primera. Y el
+       corte, al acortar la lista por significado, subía de puesto a ese ruido: perdía respuestas (37/50 frente a 39/50
+       sin corte).
+     - Lo que sale es lo mismo, así que el ruido no cambia. Cambia el orden.
+  3. **La fusión es la de D-05:** las dos listas con el mismo peso y k = 60. `HybridRanking.Fuse` vuelve a no tener peso.
+  4. **Los términos comunes quedan fuera.** Un término de la pregunta que está en más de la mitad de los fragmentos del
+     proyecto, contados por FTS5, no va a la lista por palabras (`SemanticSearchTuning.CommonTermFraction` = 0,5). Si la
+     pregunta no tiene otro, se busca con ellos.
+  5. **El corte se queda:** suelo 0,79 y margen 0,04 para multilingual-e5-small.
+     - Ahora está en `SemanticSearchTuning`, por la huella del modelo (`MeaningOnlyCut`). Un descriptor reconstruido con
+       los mismos campos tiene la misma huella y el mismo corte.
+     - Un modelo que la tabla no conoce va sin corte, y la búsqueda y el paquete lo dicen: `SemanticSearchResult.Cut` y
+       `ContextRelevance.Cut` quedan nulos.
+- **Medidas** (modelo real, las 50 preguntas de calibración y sus 36 distractores; ninguna cifra de la validación):
+
+  | Búsqueda | F12-4 | Bitácora | Memoria | Distractores | Respuesta en su nivel |
+  |---|---|---|---|---|---|
+  | **Diseño elegido** (dos textos, corte de toda la lista, peso 1, techo del 50 %) | **41/50** | **20/25** | **21/25** | **370 (2,5 por nivel)** | **37/37** |
+  | El mismo, sin corte | 39/50 | 20/25 | 19/25 | 1 800 (12,0) | 37/37 |
+  | Con el corte de antes (lo de las palabras con puesto por significado) | 37/50 | 18/25 | 19/25 | 370 (2,5) | 37/37 |
+  | Solo por significado | 43/50 | | | | |
+  | El índice solo por palabras (techo del 50 %) | 26/50 | 9/25 | 17/25 | | |
+  | FTS5 como hoy | 26/50 | 9/25 | 17/25 | | |
+
+  El corte, con el diseño elegido:
+
+  | Corte | F12-4 | Distractores | Respuesta en su nivel |
+  |---|---|---|---|
+  | Sin corte | 39/50 | 1 800 | 37/37 |
+  | Suelo 0,78 / 0,79 / 0,80 / 0,82 | 40 / 40 / 41 / 40 | 1 161 / 759 / 414 / 114 | 37 / 37 / 37 / 33 de 37 |
+  | Margen 0,03 / 0,04 / 0,05 | 42 / 40 / 39 | 240 / 444 / 728 | 36 / 37 / 37 de 37 |
+  | Suelo 0,78 y margen 0,04 | 41/50 | 420 | 37/37 |
+  | **Suelo 0,79 y margen 0,04** | **41/50** | **370** | **37/37** |
+  | Suelo 0,79 y margen 0,03 / 0,05 | 42 / 40 | 229 / 493 | 36 / 37 de 37 |
+  | Suelo 0,80 y margen 0,04 | 42/50 | 261 | 37/37 |
+
+  El techo de términos comunes, con el diseño elegido:
+
+  | Techo | Híbrida | Distractores | El índice solo por palabras |
+  |---|---|---|---|
+  | Ninguno, 60, 50 o 45 % | 41/50 | 370 | 26/50 |
+  | 40 % | 42/50 | 359 | 26/50 |
+  | 35 o 30 % | 41/50 | 314 | 25/50 |
+  | Del 25 al 10 % | 41/50 | 302 | 25/50 |
+  | 5 % | 41/50 | 301 (36/37 en su nivel) | 25/50 |
+
+  El peso de la lista por palabras, medido antes de quitar el parámetro (techo del 25 %):
+
+  | Peso | 1 | 0,75 | 0,5 | 0,35 | 0,25 | 0,15 |
+  |---|---|---|---|---|---|---|
+  | Corte de toda la lista | 41 | 40 | 40 | 40 | 40 | 43 |
+  | Corte de antes | 37 | 37 | 37 | 38 | 40 | 44 |
+
+- **Por qué:**
+  - **El peso, 1.** No hay meseta. Con el corte de toda la lista, el 1 da 41, de 0,75 a 0,25 da 40 y 0,15 da 43. Con el
+    corte de antes, el acierto sube solo al bajar el peso. Es lo que cabe esperar de un conjunto de paráfrasis, no una
+    ganancia que generalice.
+  - **El techo, el 50 %, elegido por riesgo y no por el conjunto.** Ningún valor mueve F12-4 más de una pregunta: q45
+    entra con el 40 %, porque «ejecución» está en el 42 % de los fragmentos. Por debajo del 40 %, las palabras solas
+    pierden una respuesta. Las 50 preguntas no preguntan por la plantilla, así que no miden el coste real de un techo
+    bajo: en un proyecto con mucha bitácora, los roles, los estados y los nombres están en muchos fragmentos, y son justo
+    lo que busca una pregunta por los datos. Se elige el valor más alto que aún quita la plantilla de verdad.
+  - **El corte, 0,79 y 0,04.** Con el corte de toda la lista ya no pierde respuestas: 41 frente a 39 sin él, con la
+    quinta parte de los distractores. Sus vecinos dan de 40 a 42: está en una meseta, no en un pico. Con 0,80 y 0,04, o
+    con 0,79 y 0,03, saldrían 42, pero sería ajustarse a una pregunta.
+  - **Sobre estas 50 preguntas, la híbrida no pierde ninguna respuesta que FTS5 como hoy encuentre.** Lo comprueba
+    `MeaningOnlyFloorCalibrationTests`.
+- **Hallazgo: con la fusión de D-05, F12-4 no llega a 43/50: queda en 41/50 (82 %).** Los 15 puntos sobre FTS5 sí se
+  cumplen (41 frente a 26).
+  - **Las que faltan:** q05, q09, q16, q17, q27, q41, q42, q45 y q49.
+  - **La causa:** con RRF y k = 60, cualquier candidato que esté en los N primeros puestos de las dos listas (N < 62)
+    suma 2 / (60 + N), más que el 1 / 61 del primer puesto de una sola lista. Cinco de las que faltan son primeras a
+    quintas por significado y las desplazan candidatos que las dos listas traen en puestos medianos: q05 (1.ª por
+    significado, sale 6.ª), q09 (3.ª, 9.ª), q16 (5.ª, 6.ª), q41 (2.ª, 6.ª) y q45 (1.ª, 8.ª). q17, q42 y q49 están del
+    décimo puesto por significado en adelante. q27 solo la encuentran las palabras, en el 8.º puesto.
+  - **Sin salida dentro de las reglas:** lo único que lo cambia es el peso o k, y los dos los fija D-05.
+  - **La prueba Live de F12-4** queda en rojo con el modelo en disco (41/50 frente a 43/50); sin el modelo se omite.
+- **Para comparar en la validación:** volver al corte de antes es un cambio de pocas líneas en `SemanticIndex`
+  (`SemanticAsync` y `Admitted`): admitir por debajo del corte lo que tiene la lista por palabras.
+- **Consecuencias:**
+  - D-05 vuelve a ser la de siempre. La segunda adenda queda sustituida: el peso y la vista limpia como texto que buscan
+    las palabras.
+  - La búsqueda y el paquete dicen qué corte tuvo la lista por significado (`Cut`); nulo, sin corte.
+  - La instantánea del planificador lleva el texto anclado completo de la bitácora y los vectores de su vista.
+  - El corte y el techo se recalibran si cambia el modelo, la forma de los fragmentos o la plantilla de la bitácora, con
+    `MeaningOnlyFloorCalibrationTests` y la prueba Live de F12-4 (`AGENTSTUDIO_E5_MODEL_DIR`,
+    `AGENTSTUDIO_CALIBRATION_REPORT`). La calibración deja también dónde queda cada respuesta que falta en cada lista.
+  - La cifra de la validación ciega la anota quien la tiene.
