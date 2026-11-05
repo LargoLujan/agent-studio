@@ -57,12 +57,15 @@ public sealed record SemanticIndexOptions(string LocalAppData)
 /// keeps to that index. So the refresh and a search that adds or repairs fragments can write at the same time without ever
 /// meeting in the database, what is kept in memory always matches it, and no lock is held. Deleting the index closes the
 /// connection first, so it never finds a handle open. A caller that cancels stops waiting, and its operation is skipped
-/// when its turn comes. The project must be open in this instance (<see cref="ProjectDatabases"/>).
+/// when its turn comes. The project must be open in this instance (<see cref="ProjectDatabases"/>); closing it
+/// (<see cref="ProjectDatabases.Closed"/>) lets go of its index in its turn: the connection is closed and the state and the
+/// vectors kept of it are dropped, so another instance may delete it, and an operation still waiting fails without opening
+/// it again.
 /// <para>
 /// Compose it once, as a singleton: the single writer and what is kept in memory belong to the instance. Two stores over
 /// one index would each keep their own (SQLite would still keep their writes apart, and each would read again what the
 /// other changed), so the refresh and the searches would no longer take turns. Disposing it closes its connections, after
-/// the operations already in their queues.
+/// the operations already in their queues, and none is opened after it.
 /// </para>
 /// </summary>
 public sealed class SemanticIndexStore : ISemanticIndexStore, IDisposable
@@ -139,9 +142,16 @@ public sealed class SemanticIndexStore : ISemanticIndexStore, IDisposable
 
     private const string FragmentColumns = "f.id, f.source_kind, f.source_ref, f.source_sha256, f.part, f.at, f.sha256, f.text";
 
+    // How long closing a project or disposing the store waits for the operations ahead in the queues.
+    private static readonly TimeSpan CloseWait = TimeSpan.FromSeconds(10);
+
     private readonly ProjectDatabases _databases;
     private readonly string _localAppData;
     private readonly ConcurrentDictionary<string, IndexQueue> _indexes = new(StringComparer.OrdinalIgnoreCase);
+
+    // The index of each project the store has used, by project id: ProjectDatabases.Closed comes once the project is
+    // closed, when its index can no longer be asked for.
+    private readonly ConcurrentDictionary<string, string> _files = new(StringComparer.Ordinal);
     private int _disposed;
 
     public SemanticIndexStore(ProjectDatabases databases, SemanticIndexOptions options)
@@ -151,6 +161,7 @@ public sealed class SemanticIndexStore : ISemanticIndexStore, IDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(options.LocalAppData);
         _databases = databases;
         _localAppData = options.LocalAppData;
+        _databases.Closed += Forget;
     }
 
     /// <summary>The database of the index of <paramref name="project"/>, which must be open in this instance.</summary>
@@ -223,7 +234,7 @@ public sealed class SemanticIndexStore : ISemanticIndexStore, IDisposable
     public async Task DeleteAsync(ProjectContext project, CancellationToken ct)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
-        var file = IndexFileOf(project);
+        var file = FileOf(project);
         await QueueOf(file).Enqueue(
             index =>
             {
@@ -235,7 +246,8 @@ public sealed class SemanticIndexStore : ISemanticIndexStore, IDisposable
 
     /// <summary>
     /// Closes the connection of every index, each after the operations already in its queue (waiting at most ten seconds for
-    /// them); any operation after it is an <see cref="ObjectDisposedException"/>.
+    /// them), and stops following the projects that close. Any operation after it is an <see cref="ObjectDisposedException"/>,
+    /// and so is one that started before it and still had to open its connection: none opens one once it is disposed.
     /// </summary>
     public void Dispose()
     {
@@ -244,16 +256,52 @@ public sealed class SemanticIndexStore : ISemanticIndexStore, IDisposable
             return;
         }
 
+        _databases.Closed -= Forget;
+
+        // A queue made after this snapshot never opens a connection (Connect): by then the store is disposed.
         var closings = _indexes.Values.Select(index => index.CloseAsync()).ToArray();
-        Task.WaitAll(closings, TimeSpan.FromSeconds(10));
+        Task.WaitAll(closings, CloseWait);
+    }
+
+    /// <summary>
+    /// Lets go of the index of a project once it is closed (<see cref="ProjectDatabases.Closed"/>): in its turn in the queue of
+    /// the index, after the operations already in it, so never in the middle of a write, its connection is closed and what was
+    /// kept in memory of it (its state and its vectors) is dropped. It waits for that, ten seconds at most, so once the
+    /// project is closed this store holds no handle on its index and another instance may delete it. Opened again, the index
+    /// is read again at its first operation.
+    /// </summary>
+    private void Forget(string projectId)
+    {
+        if (Volatile.Read(ref _disposed) != 0 || !_files.TryRemove(projectId, out var file) || !_indexes.TryGetValue(file, out var index))
+        {
+            return;
+        }
+
+        try
+        {
+            index.ReleaseAsync().Wait(CloseWait);
+        }
+        catch (ObjectDisposedException)
+        {
+            // Disposed meanwhile, which closes the connection of every index.
+        }
     }
 
     /// <summary>Runs <paramref name="work"/> on the connection to the index of <paramref name="project"/>, in its turn in the queue of that index.</summary>
     private Task<T> UseAsync<T>(ProjectContext project, Func<SqliteConnection, IndexQueue, T> work, CancellationToken ct)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
+        var file = FileOf(project);
+        var projectId = project.ProjectId;
+        return QueueOf(file).Enqueue(index => Run(projectId, file, index, work, ct), ct);
+    }
+
+    /// <summary>The index of <paramref name="project"/>, which must be open in this instance, kept by its id for when it closes.</summary>
+    private string FileOf(ProjectContext project)
+    {
         var file = IndexFileOf(project);
-        return QueueOf(file).Enqueue(index => Run(file, index, work, ct), ct);
+        _files[project.ProjectId] = file;
+        return file;
     }
 
     private IndexQueue QueueOf(string file) => _indexes.GetOrAdd(file, static _ => new IndexQueue());
@@ -263,14 +311,14 @@ public sealed class SemanticIndexStore : ISemanticIndexStore, IDisposable
     /// connection changed is noticed; an index that cannot be read is deleted and the work runs once more, on an empty one.
     /// Any other failure of SQLite closes the connection, and the next operation opens a new one.
     /// </summary>
-    private static T Run<T>(string file, IndexQueue index, Func<SqliteConnection, IndexQueue, T> work, CancellationToken ct)
+    private T Run<T>(string projectId, string file, IndexQueue index, Func<SqliteConnection, IndexQueue, T> work, CancellationToken ct)
     {
         for (var attempt = 0; ; attempt++)
         {
             ct.ThrowIfCancellationRequested();
             try
             {
-                if (Connect(file, index) is { } connection)
+                if (Connect(projectId, file, index) is { } connection)
                 {
                     Notice(connection, index);
                     return work(connection, index);
@@ -295,12 +343,24 @@ public sealed class SemanticIndexStore : ISemanticIndexStore, IDisposable
         }
     }
 
-    /// <summary>The connection of <paramref name="index"/>, opened now if it has none; null when the file holds something else.</summary>
-    private static SqliteConnection? Connect(string file, IndexQueue index)
+    /// <summary>
+    /// The connection of <paramref name="index"/>, opened now if it has none; null when the file holds something else. One
+    /// is opened only while the store is not disposed and the project is open here with its index at <paramref name="file"/>:
+    /// an operation whose turn comes after the store was disposed, or after its project was closed (and its index let go),
+    /// fails and leaves nothing open.
+    /// </summary>
+    private SqliteConnection? Connect(string projectId, string file, IndexQueue index)
     {
         if (index.Connection is { } open)
         {
             return open;
+        }
+
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
+        if (_databases.Find(projectId) is not { } storage
+            || !string.Equals(SemanticIndexLocation.IndexFile(_localAppData, storage.FinalRootPath), file, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException($"Project '{projectId}' was closed before this operation on its semantic index had its turn.");
         }
 
         if (Open(file) is not { } connection)
@@ -1143,7 +1203,9 @@ public sealed class SemanticIndexStore : ISemanticIndexStore, IDisposable
     /// <summary>
     /// The queue of the operations of one index and its single consumer, which runs them one after another, in the order
     /// they came, on the thread pool; it starts with the first operation and waits, without a thread, while there is none.
-    /// Only the consumer touches <see cref="Connection"/>, <see cref="DataVersion"/> and <see cref="Memory"/>.
+    /// Only the consumer touches <see cref="Connection"/>, <see cref="DataVersion"/> and <see cref="Memory"/>. It stays for the
+    /// life of the store, also while its project is closed (with no connection and nothing in memory), so an index has one
+    /// queue, and one writer, however often its project is opened again.
     /// </summary>
     private sealed class IndexQueue
     {
@@ -1171,22 +1233,25 @@ public sealed class SemanticIndexStore : ISemanticIndexStore, IDisposable
             if (!_jobs.Writer.TryWrite(job))
             {
                 job.Abandon();
-                throw new ObjectDisposedException(nameof(SemanticIndexStore));
+                throw new ObjectDisposedException(typeof(SemanticIndexStore).FullName);
             }
 
             return job.Done;
         }
 
+        /// <summary>Closes the connection and drops what is kept in memory, after the operations already queued; the queue goes on.</summary>
+        public Task ReleaseAsync() => Enqueue(
+            index =>
+            {
+                Disconnect(index);
+                return true;
+            },
+            CancellationToken.None);
+
         /// <summary>Closes the connection after the operations already queued, and takes no more.</summary>
         public Task CloseAsync()
         {
-            var closing = Enqueue(
-                index =>
-                {
-                    Disconnect(index);
-                    return true;
-                },
-                CancellationToken.None);
+            var closing = ReleaseAsync();
             _jobs.Writer.TryComplete();
             return closing;
         }

@@ -775,6 +775,178 @@ public sealed class SemanticIndexStoreTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Closing_the_project_closes_its_index_and_lets_go_of_what_was_kept_so_another_instance_may_delete_it_and_it_opens_again()
+    {
+        await UpsertAsync(Indexed(Fragment("a", "Rojo."), [1, 0]), Indexed(Fragment("b", "Verde.")));
+        Assert.Equal(["mem:a#0"], await VectorsAsync([1, 0]));
+        Assert.Equal(["mem:b#0"], await WordsAsync("verde"));
+        var kept = await KeptStateAsync();
+        var file = _store.IndexFileOf(Project);
+        Assert.True(await HeldAfterCollectingAsync(kept));
+
+        _instance.Databases.Close(_instance.ProjectId);
+
+        // What the store kept of the index, its state and its vectors with it, is let go...
+        Assert.False(await HeldAfterCollectingAsync(kept, attempts: 50));
+
+        // ... and so is its connection: another instance opens the project and deletes the index.
+        using (var other = await ProjectInstance.OpenAsync(_folder.Root))
+        using (var otherStore = new SemanticIndexStore(other.Databases, new SemanticIndexOptions(_localAppData)))
+        {
+            Assert.Equal(file, otherStore.IndexFileOf(other.Project));
+            await otherStore.DeleteAsync(other.Project, Ct);
+            Assert.False(Directory.Exists(Path.GetDirectoryName(file)));
+        }
+
+        // Opened again here, the index is read again (empty: it was deleted), written and searched.
+        var reopened = await _instance.Workspace.OpenAsync(_folder.Root, Ct);
+        Assert.Empty(await _store.ReadStateAsync(reopened, Ct));
+        await _store.UpsertAsync(reopened, [Indexed(Fragment("c", "Azul."), [0, 1])], Ct);
+        Assert.Equal(["mem:c#0"], (await _store.SearchVectorsAsync(reopened, new float[] { 0, 1 }, ModelA, 10, Ct)).Select(c => c.Id));
+        Assert.Equal(["mem:c#0"], (await _store.SearchWordsAsync(reopened, LexicalTerms.From("azul"), 10, Ct)).Select(c => c.Id));
+        Assert.True(File.Exists(file));
+    }
+
+    [Fact]
+    public async Task An_operation_whose_turn_comes_once_its_project_is_closed_fails_and_opens_nothing_again()
+    {
+        await UpsertAsync(Indexed(Fragment("a", "Uno."), [1, 0]));
+        var folder = Path.GetDirectoryName(_store.IndexFileOf(Project))!;
+
+        // The queue of the index is held: the write ahead of the others waits for the lock this connection takes.
+        var holder = ConnectToIndex();
+        holder.Open();
+        PersistenceTestData.Exec(holder, "BEGIN IMMEDIATE;");
+        var held = _store.UpsertAsync(Project, [Indexed(Fragment("b", "Dos."))], Ct);
+        var deleted = _store.DeleteAsync(Project, Ct);
+        var late = _store.ReadStateAsync(Project, Ct);
+
+        // The project closes while they wait (closing waits for the store to let go of the index: on a thread of its own).
+        var closing = Task.Run(() => _instance.Databases.Close(_instance.ProjectId), Ct);
+        var waited = System.Diagnostics.Stopwatch.StartNew();
+        while (_instance.Databases.Find(_instance.ProjectId) is not null && waited.Elapsed < TimeSpan.FromSeconds(10))
+        {
+            await Task.Delay(5, Ct);
+        }
+
+        holder.Dispose();
+        await closing;
+
+        // What was ahead ran on the connection it had; the delete closed it, and the read after it opens nothing again.
+        await held;
+        await deleted;
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => late);
+        Assert.Contains("was closed", ex.Message, StringComparison.Ordinal);
+        Assert.False(Directory.Exists(folder));
+    }
+
+    [Fact]
+    public async Task Closing_the_project_in_the_middle_of_its_operations_leaves_no_connection_and_fails_them_only_as_not_open()
+    {
+        var folder = Path.GetDirectoryName(_store.IndexFileOf(Project))!;
+        var project = Project;
+        for (var round = 0; round < 25; round++)
+        {
+            using var race = new Race(_store, project, round);
+            await race.RunAsync(() => _instance.Databases.Close(project.ProjectId));
+
+            // Each one ran, or found its project closed; none opened the index again.
+            foreach (var operation in race.Operations)
+            {
+                var ex = await Record.ExceptionAsync(() => operation);
+                Assert.True(ex is null || ex.GetType() == typeof(InvalidOperationException), $"Round {round}: {ex}");
+            }
+
+            Delete(folder);
+            project = await _instance.Workspace.OpenAsync(_folder.Root, Ct);
+        }
+
+        await _store.UpsertAsync(project, [Indexed(Fragment("fin", "Tras cerrar y abrir."), [1, 0])], Ct);
+        Assert.Equal(["mem:fin#0"], (await _store.SearchVectorsAsync(project, new float[] { 1, 0 }, ModelA, 10, Ct)).Select(c => c.Id));
+    }
+
+    [Fact]
+    public async Task Disposing_the_store_in_the_middle_of_its_operations_leaves_no_connection_and_fails_them_only_as_disposed()
+    {
+        var file = _store.IndexFileOf(Project);
+        var folder = Path.GetDirectoryName(file)!;
+        SemanticIndexStore? store = null;
+        for (var round = 0; round < 150; round++)
+        {
+            var current = new SemanticIndexStore(_instance.Databases, new SemanticIndexOptions(_localAppData));
+            store = current;
+            using var race = new Race(current, Project, round);
+            await race.RunAsync(current.Dispose);
+
+            // Each one ran, or is an ObjectDisposedException; none opened a connection after the store was disposed.
+            foreach (var operation in race.Operations)
+            {
+                var ex = await Record.ExceptionAsync(() => operation);
+                Assert.True(ex is null or ObjectDisposedException, $"Round {round}: {ex}");
+            }
+
+            AssertNoHandleOn(file, round);
+        }
+
+        Delete(folder);
+
+        // Once disposed, every call is an ObjectDisposedException.
+        Assert.NotNull(store);
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => store.ReadStateAsync(Project, Ct));
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => store.UpsertAsync(Project, [Indexed(Fragment("x", "Tarde."))], Ct));
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => store.RemoveAsync(Project, ["mem:x#0"], Ct));
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => store.ReadAsync(Project, ["mem:x#0"], Ct));
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => store.ReadIndexedAsync(Project, ["mem:x#0"], Ct));
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => store.SearchWordsAsync(Project, ["tarde"], 5, Ct));
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => store.SearchVectorsAsync(Project, new float[] { 1, 0 }, ModelA, 5, Ct));
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => store.DeleteAsync(Project, Ct));
+        Assert.False(Directory.Exists(folder));
+    }
+
+    /// <summary>A weak reference to the state the store keeps of the index, so that the test itself holds nothing of it.</summary>
+    private async Task<WeakReference> KeptStateAsync() => new(await _store.ReadStateAsync(Project, Ct));
+
+    /// <summary>
+    /// Whether what <paramref name="weak"/> points to is still held once a collection runs. It first lets the frames that
+    /// handed it over end: an await may resume on top of them, which hold it until they return.
+    /// </summary>
+    private static async Task<bool> HeldAfterCollectingAsync(WeakReference weak, int attempts = 1)
+    {
+        for (var attempt = 0; attempt < attempts; attempt++)
+        {
+            await Task.Delay(20, Ct);
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            if (!weak.IsAlive)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>Deletes the folder of the index, which fails while any connection to it is open.</summary>
+    private static void Delete(string folder)
+    {
+        if (Directory.Exists(folder))
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    /// <summary>Opens the database of the index for itself alone, which fails while any connection to it is open, and closes it.</summary>
+    private static void AssertNoHandleOn(string file, int round)
+    {
+        if (File.Exists(file))
+        {
+            var ex = Record.Exception(() => new FileStream(file, FileMode.Open, FileAccess.ReadWrite, FileShare.None).Dispose());
+            Assert.True(ex is null, $"Round {round}: a connection to the index is still open ({ex?.Message}).");
+        }
+    }
+
+    [Fact]
     public async Task A_cancelled_operation_is_skipped_and_the_ones_after_it_still_run()
     {
         using var cancelled = new CancellationTokenSource();
@@ -784,5 +956,76 @@ public sealed class SemanticIndexStoreTests : IAsyncLifetime
         await UpsertAsync(Indexed(Fragment("y", "Sí llega.")));
 
         Assert.Equal(["mem:y#0"], (await _store.ReadStateAsync(Project, Ct)).Select(state => state.Id));
+    }
+
+    /// <summary>
+    /// Operations of every kind on one index, each on a thread of its own and all held until the race starts, and something
+    /// that comes in the middle of them: it runs as soon as the first of them sets out, a little later each round (a few
+    /// microseconds at most), so that the rounds fall on every step of an operation on its way into the queue.
+    /// </summary>
+    private sealed class Race : IDisposable
+    {
+        private readonly ManualResetEventSlim _start = new();
+        private readonly int _round;
+        private int _started;
+
+        public Race(SemanticIndexStore store, ProjectContext project, int round)
+        {
+            _round = round;
+            Operations = [.. Enumerable.Range(0, 10).Select(i => Task.Run(() => OperateAsync(store, project, round, i), Ct))];
+        }
+
+        public Task[] Operations { get; }
+
+        public async Task RunAsync(Action amid)
+        {
+            // The racer spins, on a thread of its own, before the operations are let go: it sees the first one set out at once.
+            using var spinning = new ManualResetEventSlim();
+            var racer = Task.Factory.StartNew(
+                () =>
+                {
+                    spinning.Set();
+                    var waited = System.Diagnostics.Stopwatch.StartNew();
+                    while (Volatile.Read(ref _started) == 0 && waited.Elapsed < TimeSpan.FromSeconds(10))
+                    {
+                        Thread.SpinWait(1);
+                    }
+
+                    Thread.SpinWait(_round % 10 * 10);
+                    amid();
+                },
+                Ct,
+                TaskCreationOptions.LongRunning,
+                TaskScheduler.Default);
+            spinning.Wait(Ct);
+            _start.Set();
+            await racer;
+        }
+
+        public void Dispose() => _start.Dispose();
+
+        private async Task OperateAsync(SemanticIndexStore store, ProjectContext project, int round, int i)
+        {
+            _start.Wait(Ct);
+            Interlocked.Increment(ref _started);
+            switch (i % 5)
+            {
+                case 0:
+                    await store.UpsertAsync(project, [Indexed(Fragment($"r{round}-{i}", $"Texto {i} de la ronda {round}."), [1, i])], Ct);
+                    break;
+                case 1:
+                    _ = await store.ReadStateAsync(project, Ct);
+                    break;
+                case 2:
+                    _ = await store.SearchVectorsAsync(project, new float[] { 1, 1 }, ModelA, 5, Ct);
+                    break;
+                case 3:
+                    _ = await store.SearchWordsAsync(project, ["texto"], 5, Ct);
+                    break;
+                default:
+                    _ = await store.ReadIndexedAsync(project, [$"mem:r{round}-0#0"], Ct);
+                    break;
+            }
+        }
     }
 }
