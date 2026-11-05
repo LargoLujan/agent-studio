@@ -198,7 +198,8 @@ la auditoría, el auditor del orquestador y la impugnación, en la [sección 17]
 - `IDecisionLogTailReader` (2026-11-04), que el almacén SQLite del registro también implementa:
   `ReadTailAsync(projectId, DecisionLogMark? after)` lee en una sola transacción el sello del almacén (esta apertura del
   proyecto, la versión del esquema y la fecha de creación del fichero), si las entradas hasta la marca siguen ahí (cuántas
-  son y el hash de la última, con los tres triggers append-only tal como los crea el esquema) y las entradas posteriores.
+  son y el hash de la última, con los triggers append-only del registro y de la memoria tal como los crea el esquema) y
+  las entradas posteriores.
   Devuelve `DecisionLogTail(Stamp, Continues, Entries)`; sin marca, el registro entero. Un sello igual no prueba que nada
   cambiara: la versión del esquema se puede volver a poner a mano y el fichero se puede sustituir conservando su fecha de
   creación. Por eso existen las lecturas enteras de `LogLoad.Full` ([sección 11](#11-registro-de-decisiones-y-payloads)).
@@ -397,6 +398,9 @@ public interface IDecisionRecorder
   5 minutos o más (`IncrementalAgeBeforeFullVerification`, con el `TimeProvider`), tras 256 cargas desde la cola
   (`IncrementalLoadsBeforeFullVerification`) y al volver a abrir el proyecto. Lo verificado se olvida al cerrar el
   proyecto (`DecisionRecorder.Forget`, que el contenedor engancha a `ProjectDatabases.Closed`).
+- `DecisionLogState.WholeVerification` (2026-11-05) dice en qué verificación entera se apoya el estado: un valor nuevo, que
+  el registrador no había dado antes, cada vez que verifica el registro entero, y el mismo mientras las cargas solo
+  verifican lo añadido. Quien guarda algo verificado contra el registro (la memoria) lo comprueba otra vez cuando cambia.
 
 **Formato de los payloads.** `DecisionPayloadSerializer` los escribe siempre igual, porque su texto entra en el hash:
 camelCase, compactos, enums por nombre, ids como cadenas, sin miembros nulos, texto sin escapar más de lo que exige JSON y
@@ -617,7 +621,10 @@ public sealed record UsageReport(IReadOnlyList<UsageAttempt> Attempts, IReadOnly
 - `IProjectMemory`: `RecordAsync(ProjectContext, MemoryDraft)` (primero `MemoryRecorded`, luego la fila),
   `ReviewAsync(ProjectContext, entry, MemoryReview, decidedBy, comment)` y `RecallAsync(ProjectContext, MemoryQuery)`
   (solo filas ancladas; `TrustedOnly` por defecto).
-- `IMemoryStore` (`AppendAsync`, `SearchAsync` con `MemorySearch`) guarda filas inmutables (`MemoryRow`) y no tiene estado.
+- `IMemoryStore` (`AppendAsync`, `SearchAsync` con `MemorySearch`, y desde el 2026-11-05 `FindAsync(projectId, ids)`, las
+  filas de esos ids) guarda filas inmutables (`MemoryRow`) y no tiene estado. La memoria sirve desde la memoria del proceso
+  lo que verificó contra el registro y solo lee las filas de lo que el registro anunció después
+  ([ADR-0010](adr/0010-estado-derivado-del-registro.md), adenda del 2026-11-05).
 - `IMemoryExporter.ExportAsync` → `MemoryExportResult`, o `MemoryExportResult.Refused(motivo)` durante una ejecución.
 - `MemoryContent.Sha256(kind, topic, content)` es el SHA-256 canónico que anuncia `MemoryRecorded`, y
   `MemoryContent.MaxCharacters` (4 000) el límite de una entrada.

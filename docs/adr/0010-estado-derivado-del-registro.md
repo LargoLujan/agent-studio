@@ -467,8 +467,9 @@ recupera toda la memoria antes de cada búsqueda.
    (`DecisionLog.Extend`), y compara el ancla como siempre, sin recalcular la cadena (`DecisionLog.VerifyHead`). El ancla se
    comprueba en cada carga.
 3. **Si algo no cuadra, se verifica entero, como antes:** el sello es otro, faltan entradas, la última verificada tiene
-   otro hash, o los tres triggers que hacen el registro append-only no están exactamente como los crea el esquema (falta
-   uno o tiene otro cuerpo). En ese último caso, cada carga verifica el registro entero hasta que vuelvan.
+   otro hash, o los triggers que hacen append-only el registro y, desde el 2026-11-05, la memoria no están exactamente
+   como los crea el esquema (falta uno o tiene otro cuerpo). En ese último caso, cada carga verifica el registro entero
+   hasta que vuelvan.
 4. **Los momentos críticos leen el registro entero.** El contrato lo dice en cada llamada:
    `IDecisionRecorder.LoadAsync(projectId, LogLoad.Full, ct)` lee y verifica todo desde la primera entrada, pase lo que
    pase antes. Son los sitios donde una decisión o un agente se apoyan en el registro, y todo lo que ve un juez:
@@ -566,3 +567,50 @@ lugar de dos.
   incremental: trabajan sobre lo verificado y ven el aviso en la siguiente verificación entera. Lo que decide sobre ellos
   (la revisión, el veredicto y el cierre de un debate, la entrega) vuelve a leer el registro entero.
 - Un almacén sin lectura de la cola (las pruebas en memoria) se sigue leyendo entero en cada carga.
+
+## Adenda · 2026-11-05 · la memoria de confianza se sirve desde la memoria del proceso (F12-5)
+
+**Problema.** El índice semántico recupera toda la memoria anclada antes de cada búsqueda (`RecallAsync` sin texto). Cada
+recuperación leía las 10 000 filas de `memory_entries`, recalculaba el SHA-256 de cada una contra su anuncio y volvía a
+construir la instantánea: p50 120,2 · p95 179,7 ms (en reposo) en la medición de F12-5 de principio a fin, en todas
+las búsquedas. El objetivo de F12-5 es un p95 de la búsqueda por debajo de 200 ms.
+
+**Decisión.** Lo que la memoria verificó se sirve desde la memoria del proceso mientras el registro solo crece:
+
+1. **Una instantánea por proyecto, inmutable, que se sustituye entera** (`ProjectMemory`, sin locks): las filas que
+   cuadran con su anuncio, en el orden del almacén, con la confianza y la sustitución que da el libro (`MemoryLedger`).
+2. **Se amplía con lo nuevo.** Si el registro creció con algo que el libro lee, se leen y comprueban solo las filas de lo
+   que anunció después (`IMemoryStore.FindAsync`) y las de lo anunciado cuya fila aún no estaba. La confianza y la
+   sustitución de todas las entradas se vuelven a calcular con el libro nuevo (una revisión, la confianza de la bitácora o
+   un historial aceptado pueden cambiar cualquiera). Si lo que creció no toca la memoria (las entradas de una ejecución),
+   el libro es el mismo (`MemoryLedger.Extend` lo devuelve tal cual) y la instantánea también.
+3. **Se rehace entera en cada verificación entera del registro** (`DecisionLogState.WholeVerification`: un valor nuevo cada
+   vez que el registrador lee y verifica el registro entero, que no se repite tras cerrar y abrir el proyecto). Es decir,
+   en el siguiente momento crítico, a los 5 minutos o 256 cargas, cuando el sello del almacén cambia y al volver a abrir el
+   proyecto: todas las filas se leen y comprueban otra vez, como antes en cada recuperación.
+4. **Los triggers de `memory_entries` cuentan como los del registro** en la lectura de la cola: con uno quitado o
+   cambiado, cada carga verifica el registro entero, así que cada recuperación rehace la instantánea.
+
+**Por qué la seguridad es la misma.** Lo que se sirve está verificado contra el registro: es la fila que cuadró con su
+anuncio cuando se comprobó, y nunca se vuelve a tomar del almacén sin comprobarla. Una fila cambiada con SQL obliga a
+quitar un trigger de la memoria (cambia el esquema y deja de estar el trigger: la carga siguiente es entera y la
+recuperación siguiente la encuentra). Una fila cambiada sin que el sello lo vea (la versión del esquema puesta como estaba,
+el fichero sustituido o bytes escritos en su sitio) se encuentra en la siguiente verificación entera, como el registro, y
+mientras tanto se sirve la verificada. Lo prueban `MemorySnapshotTests` (sin lecturas cuando nada cambia, solo la fila
+nueva tras una escritura, la fila que llega después de su anuncio, el cambio que el sello no ve en el siguiente momento
+crítico y a los 5 minutos, y el trigger quitado) e `IncrementalLogVerificationTests` (el trigger de la memoria y el valor de
+la verificación entera).
+
+**Cifras** (Release, esta máquina, sobre el proyecto sembrado de F12-5 con 10 000 entradas; orientativas, con otro agente
+trabajando a la vez):
+
+| | Antes | Después |
+|---|---|---|
+| Recuperar lo anclado antes de cada búsqueda | p50 120,2 · p95 179,7 ms (en reposo) | p50 8,0 · p95 23,3 ms, con otro agente midiendo a la vez; 1 de 300 por encima de 50 ms (la verificación entera de cada 256 cargas) |
+
+**Residuales.**
+- Una fila plantada en el almacén sin anuncio, o cambiada sin que el sello lo vea, ya no se avisa en la recuperación
+  siguiente sino en la siguiente verificación entera del registro (como mucho 5 minutos o 256 cargas, o en el siguiente
+  momento crítico). Nunca se sirve.
+- `ProjectMemory` guarda la instantánea y el libro de cada proyecto abierto en la sesión, también de los que se cerraron,
+  como ya hacía con el libro: no tiene un aviso de cierre de proyecto en `Application`.
