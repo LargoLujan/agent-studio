@@ -1,5 +1,6 @@
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Knowledge;
+using AgentStudio.Domain.Decisions;
 using AgentStudio.Memory.Store;
 using AgentStudio.Tests.Infrastructure.Persistence;
 using static AgentStudio.Tests.Infrastructure.Persistence.PersistenceTestData;
@@ -60,6 +61,30 @@ public sealed class MemorySnapshotTests
 
         Assert.Equal(3, again.Length);
         Assert.Equal(first, again);
+        Assert.Equal((searches, finds), (world.Spy.Searches, world.Spy.Finds.Count));
+    }
+
+    [Fact]
+    public async Task While_a_run_fills_the_log_with_entries_that_are_not_memory_a_recall_still_reads_no_row()
+    {
+        using var world = await MemoryWorld.CreateAsync();
+        await RecordAsync(world, 1);
+        var first = await IdsAsync(world);
+        var (searches, finds) = (world.Spy.Searches, world.Spy.Finds.Count);
+
+        // What a run writes: entries of the log the memory does not read.
+        for (var i = 1; i <= 3; i++)
+        {
+            await world.Instance.Recorder.RecordAsync(
+                world.Project.ProjectId,
+                new Actor(ActorKind.System, "agent-studio"),
+                DecisionKind.AuditAlertRaised,
+                $"Alerta {i} de la ejecución",
+                new AuditAlertPayload("prueba", [], $"Alerta {i}") { RunId = "20261105-a1b2c3" },
+                cancellationToken: Ct);
+        }
+
+        Assert.Equal(first, await IdsAsync(world));
         Assert.Equal((searches, finds), (world.Spy.Searches, world.Spy.Finds.Count));
     }
 
