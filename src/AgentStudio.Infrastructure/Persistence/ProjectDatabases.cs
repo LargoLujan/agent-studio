@@ -1,3 +1,4 @@
+using AgentStudio.Application.Projects;
 using Microsoft.Data.Sqlite;
 
 namespace AgentStudio.Infrastructure.Persistence;
@@ -63,7 +64,7 @@ public sealed record ProjectStorage(
 /// Connections are not pooled: every operation opens its own connection and closes it, so closing a project leaves
 /// no handle on its database and nothing outlives the registry.
 /// </remarks>
-public sealed class ProjectDatabases : IDisposable
+public sealed class ProjectDatabases : IDisposable, IProjectClosedSignal
 {
     private readonly Lock _gate = new();
     private readonly Dictionary<string, OpenProject> _projects = new(StringComparer.Ordinal);
@@ -74,7 +75,8 @@ public sealed class ProjectDatabases : IDisposable
 
     /// <summary>
     /// Raised with the id of a project once it is closed: whoever keeps something of it in memory lets it go (the decision
-    /// recorder forgets the log it verified, <c>DecisionRecorder.Forget</c>).
+    /// recorder forgets the log it verified, <c>DecisionRecorder.Forget</c>, and the memory its ledger and its snapshot,
+    /// <c>ProjectMemory.Forget</c>, through <see cref="IProjectClosedSignal"/>).
     /// </summary>
     public event Action<string>? Closed;
 

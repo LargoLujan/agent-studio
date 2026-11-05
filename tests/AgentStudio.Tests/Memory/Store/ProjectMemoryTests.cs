@@ -108,7 +108,11 @@ public sealed class ProjectMemoryTests
         var announcement = Assert.Single(await world.EntriesAsync(DecisionKind.MemoryRecorded));
         Assert.Equal(entry.Id, DecisionPayloadSerializer.Deserialize<MemoryRecordedPayload>(announcement.PayloadJson).Entry);
         Assert.Equal([entry.Id], await RecalledIdsAsync(world));
-        Assert.Empty(await world.AlertsAsync());
+
+        // The recall that found the announcement without its row said so, once (ADR-0010, addendum of 2026-11-05).
+        var alert = Assert.Single(await world.AlertsAsync());
+        Assert.Equal(ProjectMemory.MissingRowAlert, alert.Code);
+        Assert.Contains(entry.Id, alert.Message, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -30,8 +30,12 @@ namespace AgentStudio.Infrastructure.Persistence;
 /// <para>
 /// The stamp is no proof that nothing changed. Whoever can write to the database can set its schema version back
 /// (<c>PRAGMA schema_version</c>) or replace the file with a crafted copy that keeps its creation time, and bytes can be
-/// written in place: the stamp stays as it was. Those are found by the recorder's whole verifications (at the critical
-/// moments, after a time and a number of loads, and on opening the project again: ADR-0010, addendum of 2026-11-04).
+/// written in place: the stamp stays as it was. So can a connection without recursive triggers (another program's: the
+/// app turns them on), with <c>INSERT OR REPLACE</c> through the rowid of a row: the row it conflicts with is deleted
+/// without its DELETE trigger, and a key no row has (a sequence, an id) passes the trigger of the insert, in
+/// <c>decision_log</c> as in <c>memory_entries</c>, with the triggers intact and the same schema version. Those are found
+/// by the recorder's whole verifications (at the critical moments, after a time and a number of loads, and on opening
+/// the project again: ADR-0010, addenda of 2026-11-04 and 2026-11-05).
 /// </para>
 /// </summary>
 public sealed partial class SqliteDecisionLogStore(ProjectDatabases databases) : IDecisionLogStore, IDecisionLogTailReader

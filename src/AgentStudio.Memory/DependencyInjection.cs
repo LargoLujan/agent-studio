@@ -35,14 +35,26 @@ public static class DependencyInjection
     /// <see cref="Application.Orchestration.IRunActivity"/> of the orchestrator, which this method does not register: with
     /// no activity the container does not build, so no memory write ever runs as if no run could be going on. The system
     /// clock is registered unless a <see cref="TimeProvider"/> already is, and anything registered before for these ports
-    /// is kept.
+    /// is kept. With an <see cref="IProjectClosedSignal"/> (the persistence registers it), the memory forgets a project once
+    /// it is closed.
     /// </summary>
     public static IServiceCollection AddAgentStudioProjectMemory(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
 
         services.TryAddSingleton(TimeProvider.System);
-        services.TryAddSingleton<ProjectMemory>();
+        services.TryAddSingleton(provider =>
+        {
+            var memory = ActivatorUtilities.CreateInstance<ProjectMemory>(provider);
+
+            // A closed project keeps nothing in memory: its ledger and its snapshot are forgotten.
+            if (provider.GetService<IProjectClosedSignal>() is { } closings)
+            {
+                closings.Closed += memory.Forget;
+            }
+
+            return memory;
+        });
         services.TryAddSingleton<IProjectMemory>(provider => provider.GetRequiredService<ProjectMemory>());
         services.TryAddSingleton<IMemoryExporter, MemoryMarkdownExporter>();
         services.TryAddSingleton<IContextPacker, ContextPacker>();

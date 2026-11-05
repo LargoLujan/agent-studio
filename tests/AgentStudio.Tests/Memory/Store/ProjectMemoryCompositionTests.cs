@@ -62,6 +62,40 @@ public sealed class ProjectMemoryCompositionTests : IDisposable
         Assert.Equal(0, summary.Prompts);
     }
 
+    /// <summary>Tells the memory that a project was closed, as the persistence does once it releases it.</summary>
+    private sealed class ClosedSignal : IProjectClosedSignal
+    {
+        public event Action<string>? Closed;
+
+        public void Raise(string projectId) => Closed?.Invoke(projectId);
+    }
+
+    [Fact]
+    public async Task The_memory_forgets_a_project_once_it_is_told_the_project_was_closed()
+    {
+        var signal = new ClosedSignal();
+        SpyMemoryStore? spy = null;
+        var services = new ServiceCollection();
+        services.AddSingleton<IProjectClosedSignal>(signal);
+        services.AddSingleton<IMemoryStore>(p => spy = new SpyMemoryStore(new SqliteMemoryStore(p.GetRequiredService<ProjectDatabases>())));
+        services.AddAgentStudioPersistence(new DecisionLogAnchorOptions(_anchors));
+        services.AddAgentStudioSecurity();
+        services.AddAgentStudioProjectMemory();
+        services.AddSingleton<IRunActivity>(new FakeRunActivity());
+        await using var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
+        var project = await provider.GetRequiredService<IProjectWorkspace>().OpenAsync(_folder.Root, Ct);
+        var memory = provider.GetRequiredService<IProjectMemory>();
+        await memory.RecordAsync(project, new MemoryDraft(MemoryKind.Decision, "Despliegue", "Se despliega con blue green.", MemoryOrigin.User, "nota:1"), Ct);
+        await memory.RecallAsync(project, new MemoryQuery(), Ct);
+        await memory.RecallAsync(project, new MemoryQuery(), Ct);
+        var whole = spy!.WholeReads;
+
+        signal.Raise(project.ProjectId);
+        Assert.Single(await memory.RecallAsync(project, new MemoryQuery(), Ct));
+
+        Assert.Equal(whole + 1, spy.WholeReads); // nothing kept: every row read and checked again
+    }
+
     [Fact]
     public void Without_the_activity_of_the_orchestrator_the_memory_does_not_build()
     {

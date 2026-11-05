@@ -301,6 +301,36 @@ public sealed class IncrementalLogVerificationTests : IDisposable
     }
 
     [Fact]
+    public async Task An_entry_replaced_through_its_rowid_by_a_connection_without_recursive_triggers_is_found_at_the_next_whole_verification()
+    {
+        using var world = await OpenAsync();
+        await world.WriteAsync(6);
+        Assert.True((await world.LoadAsync()).Verification.IsValid);
+
+        // REPLACE deletes the row it conflicts with by rowid without its DELETE trigger (recursive triggers are off in a
+        // connection of another program), and a sequence no entry has passes the trigger of the insert: the schema, the
+        // count and the last entry stay as they were.
+        var database = world.Instance.Databases.Get(world.ProjectId).DatabasePath;
+        using (var foreign = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = database, Pooling = false }.ToString()))
+        {
+            foreign.Open();
+            using var replace = foreign.CreateCommand();
+            replace.CommandText = """
+                INSERT OR REPLACE INTO decision_log(rowid, project_id, sequence, recorded_at, actor_kind, actor_id, kind, summary, payload_json, corrects_sequence, previous_hash, hash)
+                SELECT rowid, project_id, 0, recorded_at, actor_kind, actor_id, kind, 'Cambiada sin trigger', payload_json, corrects_sequence, previous_hash, hash
+                FROM decision_log WHERE sequence = 2;
+                """;
+            Assert.Equal(1, replace.ExecuteNonQuery());
+        }
+
+        var unseen = await world.LoadAsync();
+        Assert.True(unseen.Verification.IsValid);
+        Assert.Equal("Entrada 2", unseen.Entries[1].Summary); // served from memory, as verified
+
+        Assert.False((await world.Recorder.LoadAsync(world.ProjectId, LogLoad.Full, Ct)).Verification.IsValid);
+    }
+
+    [Fact]
     public async Task With_a_trigger_of_the_memory_dropped_every_load_verifies_the_whole_log()
     {
         using var world = await OpenAsync();
