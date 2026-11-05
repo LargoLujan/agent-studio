@@ -675,3 +675,21 @@ decisión no espera al instalador (Fase 7).
   - La fila F12-4 de docs/17 §9.2 sigue con el criterio de antes. La actualiza quien mantiene ese documento.
   - La prueba Live de F12-4 pasa con el modelo en disco.
   - La calibración sigue exigiendo que no se pierda ninguna pregunta que FTS5 encuentre.
+
+## Adenda · 2026-11-05 · F12-4 sobre la bitácora real, y F12-5 medido
+
+- **F12-4 sobre la bitácora real de este repositorio** (12 días, del 15-10 al 04-11, 56 entradas ancladas con su
+  confianza; 40 preguntas escritas antes de medir por quien no calibró): la híbrida 23/40 frente a 17/40 de FTS5 (+15).
+  Paráfrasis 7/20 frente a 1/20; identificadores con significado 7/8 frente a 7/8; metadatos 9/12 frente a 9/12. Cumple
+  el criterio del 2026-11-04 con margen mínimo: en los dos últimos tipos, una pregunta ganada compensa una perdida.
+- **Lo que enseñó** (pendiente P40 de docs/18):
+  - con RRF y k = 60, lo que está en las dos listas gana siempre a la primera de una sola;
+  - el corte calibrado con datos sintéticos (0,79 y 0,04) deja pasar más de la mitad de la bitácora real en 11 de 20
+    paráfrasis (las similitudes se apiñan entre 0,75 y 0,87);
+  - horas, fases, paquetes y ADR no son identificadores de cabeza, y «ayer» no se entiende;
+  - las entradas retroactivas sin hora no pasan por la vista limpia.
+- **F12-5 cumplido** con `SemanticIndexEndToEndMeasurementTests` (10 000 entradas grabadas por el camino del producto,
+  Release, en reposo): `SearchAsync` p95 75 ms; un paquete, p95 92 ms. Lo consiguen la memoria servida desde una
+  instantánea verificada (adenda del 2026-11-05 de ADR-0010) y el estado y los vectores del índice en memoria, que
+  mantiene el escritor único de cada índice y se invalidan con `PRAGMA data_version`. Evidencia en
+  `docs/evidencias/fase12-mediciones.md`.
