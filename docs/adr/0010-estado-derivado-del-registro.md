@@ -509,7 +509,9 @@ recupera toda la memoria antes de cada búsqueda.
   - un cambio con SQL tras el que se vuelve a poner la versión del esquema (`PRAGMA schema_version = N`);
   - el fichero sustituido por una copia preparada que conserva su fecha de creación (a mano, o por el *tunneling* de NTFS
     si se sustituye en pocos segundos);
-  - unos bytes escritos en su sitio, con la interfaz de blobs de SQLite o en el propio fichero.
+  - unos bytes escritos en su sitio, con la interfaz de blobs de SQLite o en el propio fichero;
+  - una fila sustituida por su `rowid` con `INSERT OR REPLACE` desde una conexión sin `recursive_triggers` (adenda del
+    2026-11-05, punto 5 de su revisión).
 
   Esa verificación llega en el siguiente momento crítico, en la primera carga pasados 5 minutos desde la última verificación
   entera, tras 256 cargas desde la cola o al volver a abrir el proyecto: lo que ocurra antes.
@@ -556,8 +558,9 @@ lugar de dos.
 
 **Residuales.**
 - Un cambio en su sitio que deja el sello igual, con el proyecto abierto, ya no se ve en la carga siguiente. Es el caso del
-  SQL con la versión del esquema puesta como estaba, del fichero sustituido por una copia que conserva su fecha de creación
-  o de los bytes escritos con la interfaz de blobs de SQLite o en el fichero. Se ve en el siguiente momento crítico, a más
+  SQL con la versión del esquema puesta como estaba, del fichero sustituido por una copia que conserva su fecha de creación,
+  de los bytes escritos con la interfaz de blobs de SQLite o en el fichero, o de una fila sustituida por su `rowid` con
+  `INSERT OR REPLACE` desde una conexión sin `recursive_triggers`. Se ve en el siguiente momento crítico, a más
   tardar en la primera carga pasados 5 minutos o 256 cargas desde la última verificación entera, o al volver a abrir el
   proyecto. Mientras tanto nadie en este proceso recibe las entradas cambiadas: se sirve desde memoria lo verificado, así
   que lo que se retrasa es el aviso, no lo que se lee.
@@ -609,9 +612,10 @@ trabajando a la vez):
 | Recuperar lo anclado antes de cada búsqueda | p50 120,2 · p95 179,7 ms (en reposo) | p50 8,0 · p95 23,3 ms, con otro agente midiendo a la vez; 1 de 300 por encima de 50 ms (la verificación entera de cada 256 cargas) |
 
 **Residuales.**
-- Una fila plantada en el almacén sin anuncio, o cambiada sin que el sello lo vea, ya no se avisa en la recuperación
-  siguiente sino en la siguiente verificación entera del registro (como mucho 5 minutos o 256 cargas, o en el siguiente
-  momento crítico). Nunca se sirve.
+- Una fila plantada en el almacén sin anuncio, o cambiada sin que el sello lo vea (la versión del esquema puesta como
+  estaba, el fichero sustituido, bytes escritos en su sitio o una fila sustituida por su `rowid` con `INSERT OR REPLACE`
+  sin `recursive_triggers`), ya no se avisa en la recuperación siguiente sino en la siguiente verificación entera del
+  registro (como mucho 5 minutos o 256 cargas, o en el siguiente momento crítico). Nunca se sirve.
 - ~~`ProjectMemory` guarda la instantánea y el libro de los proyectos que se cerraron~~: resuelto en la revisión de abajo
   (`IProjectClosedSignal`).
 
