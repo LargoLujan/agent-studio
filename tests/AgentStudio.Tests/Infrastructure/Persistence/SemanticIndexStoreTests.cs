@@ -37,6 +37,7 @@ public sealed class SemanticIndexStoreTests : IAsyncLifetime
 
     public ValueTask DisposeAsync()
     {
+        _store.Dispose();
         _instance.Dispose();
         _folder.Dispose();
         TempFolders.Delete(_localAppData);
@@ -347,7 +348,7 @@ public sealed class SemanticIndexStoreTests : IAsyncLifetime
         await UpsertAsync(Indexed(Fragment("a", "A."), [1, 0]), Indexed(Fragment("b", "B."), [0, 1]));
         Assert.Equal(["mem:a#0", "mem:b#0"], await VectorsAsync([1, 0.1f]));
 
-        var other = new SemanticIndexStore(_instance.Databases, new SemanticIndexOptions(_localAppData));
+        using var other = new SemanticIndexStore(_instance.Databases, new SemanticIndexOptions(_localAppData));
         await other.UpsertAsync(Project, [Indexed(Fragment("c", "C."), [1, 0.1f])], Ct);
         Assert.Equal(["mem:c#0", "mem:a#0", "mem:b#0"], await VectorsAsync([1, 0.1f]));
 
@@ -672,6 +673,105 @@ public sealed class SemanticIndexStoreTests : IAsyncLifetime
         // The two short texts tie on bm25 (the newest first); the longer one comes after.
         Assert.Equal([unsigned.Id, emptied.Id, broken.Id], await WordsAsync("pruebas"));
         Assert.Equal([emptied.Id, unsigned.Id], await VectorsAsync([1, 0]));
+    }
+
+    [Fact]
+    public async Task The_state_is_kept_in_memory_until_the_index_changes_and_follows_the_writes_of_the_store()
+    {
+        await UpsertAsync(Indexed(Fragment("a", "Rojo."), [1, 0]), Indexed(Fragment("b", "Verde.")));
+
+        // Read once; the searches that follow change nothing, so it is the same state, not read again.
+        var first = await _store.ReadStateAsync(Project, Ct);
+        _ = await VectorsAsync([1, 0]);
+        _ = await VectorsAsync([1, 0], ModelB);
+        Assert.Equal(["mem:b#0"], await WordsAsync("verde"));
+        Assert.Same(first, await _store.ReadStateAsync(Project, Ct));
+
+        // Its own writes are kept as they go.
+        await UpsertAsync(Indexed(Fragment("c", "Azul."), [0, 1]));
+        await _store.RemoveAsync(Project, ["mem:a#0"], Ct);
+        var after = await _store.ReadStateAsync(Project, Ct);
+        Assert.NotSame(first, after);
+        Assert.Equal(["mem:b#0", "mem:c#0"], after.Select(s => s.Id));
+        Assert.Equal(["mem:c#0"], await VectorsAsync([0, 1]));
+    }
+
+    [Fact]
+    public async Task What_the_store_keeps_after_its_own_writes_is_what_a_fresh_read_of_the_database_gives()
+    {
+        var random = new Random(20261105);
+        var entries = Enumerable.Range(0, 40).Select(i => $"m{i:D2}").ToArray();
+        for (var round = 0; round < 15; round++)
+        {
+            // Texts that change (and lose their vector), vectors of two models with their own dimensions, and removals.
+            var batch = entries.OrderBy(_ => random.Next()).Take(12).Select(entry =>
+            {
+                var fragment = Fragment(entry, $"Texto {random.Next(3)} de {entry} sobre pruebas.", minutes: random.Next(20));
+                return random.Next(3) switch
+                {
+                    0 => Indexed(fragment),
+                    1 => Indexed(fragment, [(float)random.NextDouble() + 0.1f, (float)random.NextDouble()], ModelA),
+                    _ => Indexed(fragment, [(float)random.NextDouble(), (float)random.NextDouble(), (float)random.NextDouble() + 0.1f], ModelB),
+                };
+            }).ToArray();
+            await _store.UpsertAsync(Project, batch, Ct);
+            await _store.RemoveAsync(Project, [.. entries.OrderBy(_ => random.Next()).Take(3).Select(e => $"mem:{e}#0")], Ct);
+            _ = await _store.SearchVectorsAsync(Project, new float[] { 1, 1 }, ModelA, 10, Ct);
+        }
+
+        // Another store reads the database from scratch: what this one kept as it wrote is the same.
+        using var fresh = new SemanticIndexStore(_instance.Databases, new SemanticIndexOptions(_localAppData));
+        Assert.Equal(await fresh.ReadStateAsync(Project, Ct), await _store.ReadStateAsync(Project, Ct));
+        foreach (var (query, model) in new (float[] Query, string Model)[] { ([1, 0], ModelA), ([0, 1], ModelA), ([1, 1, 1], ModelB), ([0, 0, 1], ModelB) })
+        {
+            Assert.Equal(await fresh.SearchVectorsAsync(Project, query, model, 100, Ct), await _store.SearchVectorsAsync(Project, query, model, 100, Ct));
+        }
+
+        Assert.Equal(await fresh.SearchWordsAsync(Project, ["pruebas"], 100, Ct), await _store.SearchWordsAsync(Project, ["pruebas"], 100, Ct));
+    }
+
+    [Fact]
+    public async Task A_change_another_connection_makes_is_seen_at_the_next_operation()
+    {
+        var kept = Fragment("kept", "Se queda.", minutes: 1);
+        var altered = Fragment("altered", "Se altera.", minutes: 2);
+        var gone = Fragment("gone", "Se va.", minutes: 3);
+        await UpsertAsync(Indexed(kept, [1, 0]), Indexed(altered, [0.9f, 0.1f]), Indexed(gone, [0.8f, 0.2f]));
+        Assert.Equal(3, (await _store.ReadStateAsync(Project, Ct)).Count);
+        Assert.Equal(3, (await VectorsAsync([1, 0])).Length);
+
+        using (var connection = ConnectToIndex())
+        {
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "UPDATE fragments SET text = 'Otra cosa.' WHERE id = $altered; DELETE FROM fragments WHERE id = $gone;";
+            command.Parameters.AddWithValue("$altered", altered.Id);
+            command.Parameters.AddWithValue("$gone", gone.Id);
+            Assert.Equal(2, command.ExecuteNonQuery());
+        }
+
+        Assert.Equal(
+            [new IndexedFragmentState(altered.Id, string.Empty, ModelA), new IndexedFragmentState(kept.Id, kept.Sha256, ModelA)],
+            await _store.ReadStateAsync(Project, Ct));
+        Assert.Equal([kept.Id], await VectorsAsync([1, 0]));
+    }
+
+    [Fact]
+    public async Task Disposing_the_store_closes_its_connections_and_nothing_runs_after_it()
+    {
+        var store = new SemanticIndexStore(_instance.Databases, new SemanticIndexOptions(_localAppData));
+        await store.UpsertAsync(Project, [Indexed(Fragment("a", "Uno."), [1, 0])], Ct);
+        Assert.Single(await store.ReadStateAsync(Project, Ct));
+        var folder = Path.GetDirectoryName(store.IndexFileOf(Project))!;
+
+        store.Dispose();
+        store.Dispose();
+
+        // No handle is left on the database: its folder can be deleted.
+        Directory.Delete(folder, recursive: true);
+        Assert.False(Directory.Exists(folder));
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => store.ReadStateAsync(Project, Ct));
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => store.DeleteAsync(Project, Ct));
     }
 
     [Fact]

@@ -93,7 +93,7 @@ public sealed class SemanticSearchMeasurementTests
         try
         {
             using var instance = await ProjectInstance.OpenAsync(project.Root);
-            var store = new SemanticIndexStore(instance.Databases, new SemanticIndexOptions(localAppData));
+            using var store = new SemanticIndexStore(instance.Databases, new SemanticIndexOptions(localAppData));
             using var source = new OnnxEmbedderSource(new EmbeddingModelLocation(modelFolder, LocalE5Model.Descriptor));
             var load = Stopwatch.StartNew();
             var embedder = (await source.OpenAsync(ct)).Embedder!;
