@@ -105,7 +105,8 @@ public sealed class Phase4ContractTests
     public void The_project_memory_records_reviews_and_recalls_and_the_store_only_appends_and_searches()
     {
         Assert.Equal(["RecallAsync", "RecordAsync", "ReviewAsync"], MethodNames(typeof(IProjectMemory)));
-        Assert.Equal(["AppendAsync", "SearchAsync"], MethodNames(typeof(IMemoryStore)));
+        // FindAsync (F12-5) reads the rows of given ids: the store still only appends and reads, it never updates nor deletes.
+        Assert.Equal(["AppendAsync", "FindAsync", "SearchAsync"], MethodNames(typeof(IMemoryStore)));
         Assert.Equal(["ExportAsync"], MethodNames(typeof(IMemoryExporter)));
         Assert.Equal(["IsBusy"], MethodNames(typeof(IRunActivity)));
         Assert.Equal(["Trusted", "Proposed", "Quarantined", "Rejected", "Retracted"], Enum.GetNames<MemoryTrust>());
