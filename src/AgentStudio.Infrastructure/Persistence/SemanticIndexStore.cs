@@ -813,7 +813,6 @@ public sealed class SemanticIndexStore : ISemanticIndexStore, IDisposable
             return [];
         }
 
-        var dimensions = block.Dimensions;
         var wanted = WithSpare(top);
         var best = new PriorityQueue<int, Rank>(Math.Min(wanted, block.Count) + 1, WorstFirst.Instance);
         for (var slot = 0; slot < block.Count; slot++)
