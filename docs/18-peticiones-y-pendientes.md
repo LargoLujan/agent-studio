@@ -457,6 +457,7 @@ Ordenados por importancia. «Ya en 18» es lo que ya recogen §1 a §3.
 | P42 | Dos pruebas que fallan solo con la máquina cargada: `ExitSuspendsResumesTests` (salida suspendida de la Fase 8) y `Phase4ShellTests…open_memory_tab_shows_it`. Solas pasan siempre. Averiguar si la carrera está en la prueba o en el producto | Media | Nuevo |
 | P43 | Grabar memoria cuesta unos 47 ms por entrada (escrituras durables del ancla y commits de SQLite). Opciones: anunciar y asentar en lote en las derivaciones, o `synchronous=NORMAL` | Baja | ADR-0010, adenda del 2026-11-04 |
 | P44 | Restos menores: en «Consumo» una cuota con barra repite «vista hace…»; la bandeja repite el resumen de una ejecución fallida; quedan carpetas de ejecuciones del 30-10 en `%LOCALAPPDATA%\AgentStudio\runs` | Baja | Nuevo |
+| P45 | Cerrar el canal `INSERT OR REPLACE` por `rowid` desde una conexión externa (sin `recursive_triggers`): cambia una fila del registro o de la memoria con los triggers intactos y el mismo `schema_version`; hoy se detecta en la siguiente verificación entera y nunca se sirve. Defensa propuesta y probada aparte: `OR EXISTS (… WHERE rowid = NEW.rowid)` en los triggers `*_no_replace`, con una migración | Baja | ADR-0010, residuales del 2026-11-05 |
 | P17, P20 y P21 | Probarlo todo, Auto Doctor compacto, documentarlo todo | — | Ya en 18 |
 
 Detalle de P24, tus demostraciones:
