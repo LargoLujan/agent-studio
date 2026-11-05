@@ -41,12 +41,28 @@ internal sealed class FakeRunActivity : IRunActivity
     }
 }
 
-/// <summary>A memory store that lets a test see each append before it happens, or make the next one fail.</summary>
+/// <summary>
+/// A memory store that lets a test see each append before it happens, or make the next one fail, and counts how the
+/// rows are read: every search (<see cref="Searches"/>, every row when it has no text nor filter) and the ids looked up.
+/// </summary>
 internal sealed class SpyMemoryStore(IMemoryStore inner) : IMemoryStore
 {
+    private int _searches;
+    private int _whole;
+    private readonly System.Collections.Concurrent.ConcurrentQueue<IReadOnlyList<string>> _finds = new();
+
     public Func<MemoryRow, Task>? BeforeAppend { get; set; }
 
     public bool FailNextAppend { get; set; }
+
+    /// <summary>How many searches were made.</summary>
+    public int Searches => Volatile.Read(ref _searches);
+
+    /// <summary>How many searches read every row of the project (no text, no category, no topic, no limit).</summary>
+    public int WholeReads => Volatile.Read(ref _whole);
+
+    /// <summary>The ids of every lookup by id, in order.</summary>
+    public IReadOnlyList<IReadOnlyList<string>> Finds => [.. _finds];
 
     public async Task AppendAsync(string projectId, MemoryRow row, CancellationToken ct)
     {
@@ -64,7 +80,22 @@ internal sealed class SpyMemoryStore(IMemoryStore inner) : IMemoryStore
         await inner.AppendAsync(projectId, row, ct);
     }
 
-    public Task<IReadOnlyList<MemoryRow>> SearchAsync(string projectId, MemorySearch search, CancellationToken ct) => inner.SearchAsync(projectId, search, ct);
+    public Task<IReadOnlyList<MemoryRow>> SearchAsync(string projectId, MemorySearch search, CancellationToken ct)
+    {
+        Interlocked.Increment(ref _searches);
+        if (search is { Text: null, Kinds: null, Topic: null, Limit: null })
+        {
+            Interlocked.Increment(ref _whole);
+        }
+
+        return inner.SearchAsync(projectId, search, ct);
+    }
+
+    public Task<IReadOnlyList<MemoryRow>> FindAsync(string projectId, IReadOnlyCollection<string> ids, CancellationToken ct)
+    {
+        _finds.Enqueue([.. ids]);
+        return inner.FindAsync(projectId, ids, ct);
+    }
 }
 
 /// <summary>

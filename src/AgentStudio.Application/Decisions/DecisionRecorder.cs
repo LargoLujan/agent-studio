@@ -68,6 +68,9 @@ public sealed class DecisionRecorder(IDecisionLogStore store, TimeProvider timeP
 
     private readonly ConcurrentDictionary<string, ProjectWriter> _writers = new(StringComparer.Ordinal);
 
+    /// <summary>The last value given to a whole verification (<see cref="DecisionLogState.WholeVerification"/>), for every project of this recorder.</summary>
+    private long _wholeVerifications;
+
     public Task<DecisionLogState> LoadAsync(string projectId, CancellationToken cancellationToken) =>
         LoadAsync(projectId, LogLoad.Incremental, cancellationToken);
 
@@ -87,7 +90,7 @@ public sealed class DecisionRecorder(IDecisionLogStore store, TimeProvider timeP
             // behind our back. Only what is new since the last verification is verified again, unless the load is a full
             // one or the last full one is too old (ReadVerifiedAsync).
             var (log, verification, unanchored) = await ReadVerifiedAsync(projectId, writer, load, cancellationToken).ConfigureAwait(false);
-            return new DecisionLogState(log.Entries, verification) { Unanchored = unanchored };
+            return new DecisionLogState(log.Entries, verification) { Unanchored = unanchored, WholeVerification = writer.WholeVerification };
         }
         finally
         {
@@ -165,12 +168,12 @@ public sealed class DecisionRecorder(IDecisionLogStore store, TimeProvider timeP
 
                 var anchor = new DecisionLogAnchor(granted.Sequence, granted.Hash);
                 await anchors.WriteAsync(projectId, anchor, cancellationToken).ConfigureAwait(false);
-                writer.Adopt(log);
-                return new DecisionLogState(log.Entries, log.Verify(anchor));
+                writer.Adopt(log, NextWholeVerification());
+                return new DecisionLogState(log.Entries, log.Verify(anchor)) { WholeVerification = writer.WholeVerification };
             }
             catch
             {
-                writer.Adopt(null);
+                writer.Adopt(null, 0);
                 throw;
             }
         }
@@ -226,7 +229,7 @@ public sealed class DecisionRecorder(IDecisionLogStore store, TimeProvider timeP
             }
             catch
             {
-                writer.Adopt(null);
+                writer.Adopt(null, 0);
                 throw;
             }
 
@@ -239,6 +242,9 @@ public sealed class DecisionRecorder(IDecisionLogStore store, TimeProvider timeP
             writer.Gate.Release();
         }
     }
+
+    /// <summary>A value no whole verification of this recorder had before: the logs of a project closed and opened again never share one.</summary>
+    private long NextWholeVerification() => Interlocked.Increment(ref _wholeVerifications);
 
     private async Task<DecisionLog> ReadLogAsync(string projectId, CancellationToken cancellationToken) =>
         DecisionLog.Load(await store.ReadAllAsync(projectId, cancellationToken).ConfigureAwait(false));
@@ -297,7 +303,7 @@ public sealed class DecisionRecorder(IDecisionLogStore store, TimeProvider timeP
         }
 
         var (verification, unanchored) = await VerifyAsync(projectId, log, chain, cancellationToken).ConfigureAwait(false);
-        writer.Adopt(verification.IsValid ? log : null, stamp, incremental, now);
+        writer.Adopt(verification.IsValid ? log : null, incremental ? writer.WholeVerification : NextWholeVerification(), stamp, incremental, now);
         return (log, verification, unanchored);
     }
 
@@ -418,13 +424,18 @@ public sealed class DecisionRecorder(IDecisionLogStore store, TimeProvider timeP
         /// <summary>When <see cref="Log"/> was last read and verified whole; null when it was not (or there is no log).</summary>
         public DateTimeOffset? VerifiedWholeAt { get; private set; }
 
+        /// <summary>The whole verification <see cref="Log"/> rests on (<see cref="DecisionLogState.WholeVerification"/>); zero without a log.</summary>
+        public long WholeVerification { get; private set; }
+
         public DateTimeOffset? LastRecordedAt { get; set; }
 
+        /// <param name="wholeVerification">The whole verification the log rests on: a new one unless the load was incremental.</param>
         /// <param name="incremental">Whether this load verified only the tail; a whole verification starts the count again.</param>
         /// <param name="at">When the log was read; for a whole verification, the time the next ones are counted from.</param>
-        public void Adopt(DecisionLog? log, string? stamp = null, bool incremental = false, DateTimeOffset? at = null)
+        public void Adopt(DecisionLog? log, long wholeVerification, string? stamp = null, bool incremental = false, DateTimeOffset? at = null)
         {
             Log = log;
+            WholeVerification = log is null ? 0 : wholeVerification;
             Stamp = log is null ? null : stamp;
             IncrementalLoads = log is not null && incremental ? IncrementalLoads + 1 : 0;
             VerifiedWholeAt = log is null ? null : incremental ? VerifiedWholeAt : at;

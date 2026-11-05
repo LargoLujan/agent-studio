@@ -22,6 +22,7 @@ internal sealed record MemoryIntegrityProblem(string Code, string Entry, string 
 internal sealed class MemoryLedger
 {
     private readonly Dictionary<string, MemoryAnnouncement> _announcements = new(StringComparer.Ordinal);
+    private readonly List<MemoryAnnouncement> _ordered = [];
     private readonly Dictionary<string, List<(long Sequence, MemoryReviewedPayload Review)>> _reviews = new(StringComparer.Ordinal);
     private readonly Dictionary<string, List<MemoryAnnouncement>> _superseders = new(StringComparer.Ordinal);
     private readonly HashSet<string> _alerts = new(StringComparer.Ordinal);
@@ -37,6 +38,7 @@ internal sealed class MemoryLedger
     private MemoryLedger(MemoryLedger other)
     {
         _announcements = new Dictionary<string, MemoryAnnouncement>(other._announcements, StringComparer.Ordinal);
+        _ordered = [.. other._ordered];
         _reviews = other._reviews.ToDictionary(r => r.Key, r => new List<(long Sequence, MemoryReviewedPayload Review)>(r.Value), StringComparer.Ordinal);
         _superseders = other._superseders.ToDictionary(s => s.Key, s => new List<MemoryAnnouncement>(s.Value), StringComparer.Ordinal);
         _alerts = new HashSet<string>(other._alerts, StringComparer.Ordinal);
@@ -70,15 +72,39 @@ internal sealed class MemoryLedger
     /// <summary>
     /// A new ledger: this one with the entries of <paramref name="entries"/> from index <paramref name="from"/> on, which
     /// must be the log this ledger was read from followed by what was appended to it (the caller checks it by the hash of
-    /// the last entry it read: the chain makes the rest the same). This ledger does not change.
+    /// the last entry it read: the chain makes the rest the same). This ledger does not change. When nothing it reads was
+    /// appended (a run's entries, say) it is this same ledger, so whoever built something on it (the snapshot of the
+    /// memory) can tell that nothing it rests on changed.
     /// </summary>
     public MemoryLedger Extend(IReadOnlyList<DecisionEntry> entries, int from)
     {
         ArgumentNullException.ThrowIfNull(entries);
         ArgumentOutOfRangeException.ThrowIfNegative(from);
+        if (!Concerns(entries, from))
+        {
+            return this;
+        }
+
         var ledger = new MemoryLedger(this);
         ledger.Read(entries, from);
         return ledger;
+    }
+
+    /// <summary>Whether an entry of <paramref name="entries"/> from <paramref name="from"/> on may be one <see cref="Read"/> takes in.</summary>
+    private static bool Concerns(IReadOnlyList<DecisionEntry> entries, int from)
+    {
+        for (var i = from; i < entries.Count; i++)
+        {
+            switch (entries[i].Kind)
+            {
+                case DecisionKind.JournalTrustChanged or DecisionKind.MemoryRecorded or DecisionKind.MemoryReviewed:
+                    return true;
+                case DecisionKind.AuditAlertRaised when Read<AuditAlertPayload>(entries[i]) is { Code: DecisionRecorder.OriginAcceptedAlert or ProjectMemory.NotAnchoredAlert or ProjectMemory.ModifiedAlert }:
+                    return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>Takes in the memory entries of <paramref name="entries"/> from <paramref name="from"/> on, then settles the trust of the journal.</summary>
@@ -97,6 +123,7 @@ internal sealed class MemoryLedger
                     && !ledger._announcements.ContainsKey(announced.Entry):
                     var announcement = new MemoryAnnouncement(entry.Sequence, entry.RecordedAt, announced);
                     ledger._announcements.Add(announced.Entry, announcement);
+                    ledger._ordered.Add(announcement);
                     if (announced.Supersedes is { } superseded)
                     {
                         ListOf(ledger._superseders, superseded).Add(announcement);
@@ -140,8 +167,8 @@ internal sealed class MemoryLedger
 
     public MemoryAnnouncement? Announcement(string entry) => _announcements.GetValueOrDefault(entry);
 
-    /// <summary>Every entry the log announced, whatever became of it, in the order of the log.</summary>
-    public IReadOnlyList<MemoryAnnouncement> Announcements => [.. _announcements.Values.OrderBy(a => a.Sequence)];
+    /// <summary>Every entry the log announced, whatever became of it, in the order of the log (each one by its first announcement).</summary>
+    public IReadOnlyList<MemoryAnnouncement> Announcements => _ordered;
 
     /// <summary>Whether an alert with exactly this message was raised already.</summary>
     public bool HasAlert(string message) => _alerts.Contains(message);

@@ -21,6 +21,16 @@ public sealed record DecisionLogState(IReadOnlyList<DecisionEntry> Entries, Deci
     /// (<see cref="IDecisionLogOrigin"/>). Null for any other log, trusted or not.
     /// </summary>
     public UnanchoredHistory? Unanchored { get; init; }
+
+    /// <summary>
+    /// Which whole verification of the log this state rests on (ADR-0010, addendum of 2026-11-04): a new value, never used
+    /// before by the same recorder, each time the recorder reads and verifies the whole log (the first load, a critical
+    /// moment, the bound of time or of loads, a store whose stamp changed, an opening), and the same one while loads only
+    /// verify what was appended to it. So between two states with the same value the log only grew. Whoever keeps something
+    /// verified against the log in memory (the memory of the project) checks it again when it changes. Zero for a log not
+    /// verified.
+    /// </summary>
+    public long WholeVerification { get; init; }
 }
 
 /// <summary>
