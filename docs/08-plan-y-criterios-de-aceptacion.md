@@ -670,8 +670,6 @@ empaquetado) y WP4 (la herramienta MCP y «Memoria»). Cada uno pasó una revisi
 
 **Pendiente.**
 
-- Las dos pruebas de integración que docs/17 §9.2 pide en `tests/AgentStudio.Tests/Integration/Phase12/`: una ejecución
-  guionizada cuyo paquete trae lo de un día anterior, y la reconstrucción del índice con la app compuesta.
 - Tu demostración de «Memoria» en el equipo: la descarga del modelo, la búsqueda por significado y la confianza de la
   bitácora. La recorrí en vivo el 2026-11-05 ([18](18-peticiones-y-pendientes.md) §3, con los retoques V40 a V42).
 
