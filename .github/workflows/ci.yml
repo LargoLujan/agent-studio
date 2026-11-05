@@ -36,10 +36,21 @@ jobs:
         run: dotnet build AgentStudio.slnx -c Release --no-restore
 
       # The categories left out need the developer's machine or spend subscription quota (see "Testing" in the README).
+      # The offscreen render tests also save their pictures, kept as an artifact to see what was drawn on the runner.
       - name: Test
+        env:
+          AGENTSTUDIO_RENDER_EVIDENCE: ${{ runner.temp }}/renders
         run: >-
           dotnet test AgentStudio.slnx -c Release --no-build --
           --filter-not-trait "Category=LocalTools"
           --filter-not-trait "Category=ConPty"
           --filter-not-trait "Category=Measurement"
           --filter-not-trait "Category=ProviderLive"
+
+      - name: Upload the renders
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: renders
+          path: ${{ runner.temp }}/renders
+          if-no-files-found: ignore
