@@ -122,7 +122,9 @@ public sealed class Tanda2bRenderTests
         var shown = await StatusBarAsync(scale, worst: true);
 
         Assert.Equal(["Contexto · T2, la más llena de 3", "Claude 5 h", "Claude 7 días", "Presupuesto"], shown.Labels);
-        Assert.True(shown.Lines == (scale < 150 ? 1 : 2), shown.Why($"{scale} %"));
+        // One line where it fits; at 150 % at most two. The exact count at the edge depends on the width of the version
+        // text (its commit hash), so the limit is «at most», never «exactly».
+        Assert.True(scale < 150 ? shown.Lines == 1 : shown.Lines <= 2, shown.Why($"{scale} %"));
         Assert.Empty(shown.Cut);
         Assert.Equal(["~87 % estimado · compresión recomendada", "se reinició · sin dato", "57 % exacto · hace 14 min", "9 de 12 exacto"], shown.Texts);
     }
@@ -141,7 +143,8 @@ public sealed class Tanda2bRenderTests
     {
         var shown = await StatusBarAsync(width, $"tanda2b-barra-de-estado-{width}{(worst ? "-peor" : string.Empty)}.png", worst);
 
-        Assert.True(shown.Lines == lines, shown.Why($"{width} DIP"));
+        // At most the documented lines: the exact count at the edge depends on the width of the version text.
+        Assert.True(shown.Lines <= lines, shown.Why($"{width} DIP"));
         Assert.Empty(shown.Cut);
     }
 
