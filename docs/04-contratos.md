@@ -13,7 +13,9 @@
 > TFM; diseño en [16](16-ampliacion-plataforma-de-proyectos.md) §4.5): lo resume la
 > [sección 18](#18-fase-8-trabajo-desatendido), con lo que se desvía de docs/16. Y con la tanda 2 (2026-11-03: barras en
 > tiempo real y pulido del recorrido en vivo; [18](18-peticiones-y-pendientes.md)): lo resume la
-> [sección 19](#19-tanda-2-barras-en-tiempo-real-y-pulido-2026-11-03).
+> [sección 19](#19-tanda-2-barras-en-tiempo-real-y-pulido-2026-11-03). Y con la Fase 12 (el índice semántico de la bitácora
+> y la memoria, de su P0 a la integración; diseño en [17](17-constructor-visual-de-agentes.md) §3): lo resume la
+> [sección 20](#20-fase-12-índice-semántico-de-la-bitácora-y-la-memoria).
 
 ## 1. Mapa
 
@@ -30,8 +32,10 @@
 | Tanda 2: `IAgentRunEnds`, `AgentRunEnded`, `AgentRunEnds` | `src/AgentStudio.Application/Providers/AgentRunEnds.cs` | Implementado | — (es la implementación; la avisa `QuotaObservingAgentProvider`) |
 | Tanda 2: `SharedQuotaReader` (decorador de `IProviderQuotaReader`) | `src/AgentStudio.Application/Providers/SharedQuotaReader.cs` | Implementado | — (envuelve a `CodexAppServerQuotaReader` en `AddCodexQuotaReader`) |
 | `IDecisionLogStore`, `IEvidenceStore`, `IRequirementStore`, `IPlanStore`, `IRunRegistry`, `IVerdictStore`, `IAgentRoster` | `src/AgentStudio.Application/Persistence/StoreContracts.cs` | Contrato (esquema SQLite implementado: migraciones 0001 y 0002) | Fase 3 (`Infrastructure`, WP2) |
+| `IDecisionLogTailReader`, `DecisionLogMark`, `DecisionLogTail` (2026-11-04) | `src/AgentStudio.Application/Persistence/DecisionLogTail.cs` | Implementado | `Infrastructure/Persistence/SqliteDecisionLogStore`; lo usa `DecisionRecorder` para verificar solo lo que creció el registro ([ADR-0010](adr/0010-estado-derivado-del-registro.md), adenda del 2026-11-04) |
 | `IProjectWorkspace`, `ProjectContext` | `src/AgentStudio.Application/Projects/ProjectContracts.cs` | Contrato | Fase 3 (`Infrastructure`, WP2) |
-| `IDecisionRecorder`, `DecisionRecorder`, `DecisionPayload` y sus payloads versionados, `DecisionPayloadSerializer` | `src/AgentStudio.Application/Decisions/` | Implementado | — (es la implementación; el almacén es el de WP2) |
+| `IProjectClosedSignal` (2026-11-05) | ídem | Implementado | `Infrastructure/Persistence/ProjectDatabases`; lo escucha `ProjectMemory` para olvidar un proyecto cerrado |
+| `IDecisionRecorder` y `LogLoad` (2026-11-04), `DecisionRecorder`, `DecisionPayload` y sus payloads versionados, `DecisionPayloadSerializer` | `src/AgentStudio.Application/Decisions/` | Implementado | — (es la implementación; el almacén es el de WP2) |
 | `IOrchestrator`, `IOrchestrationRun`, `PlanningRequest`, `PlanProposal`, `RunRequest`, `RunOptions`, `RunSnapshot`, `OrchestrationEvent` | `src/AgentStudio.Application/Orchestration/` | Contrato. **Sustituye** al `IOrchestrator.ExecuteAsync(projectId, TaskGraph, …)` de la Fase 0, que nunca se implementó | Fase 3 (`Orchestration`, WP4) |
 | `IWorktreeManager`, `IIntegrator`, `IDeliveryService`, `IWorkspaceCleanup`; `UserRepositoryState` (con su comparación) | `src/AgentStudio.Application/Git/` | Contrato (`UserRepositoryState.Compare`: implementado) | Fase 3 (`Infrastructure/Git`, `Orchestration/Integration`, WP3) |
 | `IVerificationRunner`, `VerificationStep`, `VerificationProfile` | `src/AgentStudio.Application/Verification/VerificationContracts.cs` | Contrato | Fase 3 (`Orchestration/Verification`, WP3) |
@@ -192,6 +196,14 @@ la auditoría, el auditor del orquestador y la impugnación, en la [sección 17]
 
 - `IDecisionLogStore`: `AppendAsync` y `ReadAllAsync`. **No existe** operación de actualizar ni borrar, y la tabla
   SQLite lo impide además con triggers.
+- `IDecisionLogTailReader` (2026-11-04), que el almacén SQLite del registro también implementa:
+  `ReadTailAsync(projectId, DecisionLogMark? after)` lee en una sola transacción el sello del almacén (esta apertura del
+  proyecto, la versión del esquema y la fecha de creación del fichero), si las entradas hasta la marca siguen ahí (cuántas
+  son y el hash de la última, con los triggers append-only del registro y de la memoria tal como los crea el esquema) y
+  las entradas posteriores.
+  Devuelve `DecisionLogTail(Stamp, Continues, Entries)`; sin marca, el registro entero. Un sello igual no prueba que nada
+  cambiara: la versión del esquema se puede volver a poner a mano y el fichero se puede sustituir conservando su fecha de
+  creación. Por eso existen las lecturas enteras de `LogLoad.Full` ([sección 11](#11-registro-de-decisiones-y-payloads)).
 - `IEvidenceStore.CaptureAsync(draft, Stream content)`: el almacén calcula el hash a partir de los bytes; quien llama no
   puede inventarse un hash para una evidencia inexistente. `EvidenceDraft` gana `RunId`, `TaskId`, `Attempt` y
   `MediaType` (todos opcionales), e `IEvidenceStore.ListByRunAsync(projectId, runId)` devuelve la evidencia de una
@@ -356,9 +368,12 @@ reproducción.
 ## 11. Registro de decisiones y payloads
 
 ```csharp
+public enum LogLoad { Incremental, Full }
+
 public interface IDecisionRecorder
 {
-    Task<DecisionLogState> LoadAsync(string projectId, CancellationToken cancellationToken);   // lee, verifica y devuelve la cabeza
+    Task<DecisionLogState> LoadAsync(string projectId, CancellationToken cancellationToken);   // lee, verifica y devuelve la cabeza (Incremental)
+    Task<DecisionLogState> LoadAsync(string projectId, LogLoad load, CancellationToken cancellationToken);
     Task<DecisionEntry> RecordAsync(string projectId, Actor actor, DecisionKind kind, string summary,
         DecisionPayload payload, long? corrects = null, CancellationToken cancellationToken = default);
 }
@@ -373,6 +388,20 @@ public interface IDecisionRecorder
   llegó a guardarse, y se continúa tras ella si se guardó.
 - Un registro que no verifica (`LoadAsync` lo devuelve con su `Verification`) no se extiende:
   `RecordAsync` lanza `DecisionLogIntegrityException`.
+- Desde el 2026-11-04 verifica el registro a medida que crece ([ADR-0010](adr/0010-estado-derivado-del-registro.md),
+  adenda de esa fecha). Con un almacén que lee la cola (`IDecisionLogTailReader`), una carga `Incremental` lee y verifica
+  solo lo añadido desde lo último verificado, y comprueba el ancla en cada carga. `LogLoad.Full` lee y verifica el
+  registro entero desde su primera entrada. Lo piden los momentos críticos, donde una decisión o un agente se apoyan en el
+  registro, y todo lo que ve un juez: la entrega, el dosier del juez, la revisión independiente, el arranque y la
+  reanudación de una ejecución, la planificación, el dosier, el veredicto y el cierre de un debate, la auditoría del
+  proyecto (propuesta, arranque, dosier y cierre) y la impugnación de un veredicto (prepararla, `VerdictChallenged` y la
+  aceptación de su revisión). Una carga incremental también verifica entero si la última verificación entera fue hace
+  5 minutos o más (`IncrementalAgeBeforeFullVerification`, con el `TimeProvider`), tras 256 cargas desde la cola
+  (`IncrementalLoadsBeforeFullVerification`) y al volver a abrir el proyecto. Lo verificado se olvida al cerrar el
+  proyecto (`DecisionRecorder.Forget`, que el contenedor engancha a `ProjectDatabases.Closed`).
+- `DecisionLogState.WholeVerification` (2026-11-05) dice en qué verificación entera se apoya el estado: un valor nuevo, que
+  el registrador no había dado antes, cada vez que verifica el registro entero, y el mismo mientras las cargas solo
+  verifican lo añadido. Quien guarda algo verificado contra el registro (la memoria) lo comprueba otra vez cuando cambia.
 
 **Formato de los payloads.** `DecisionPayloadSerializer` los escribe siempre igual, porque su texto entra en el hash:
 camelCase, compactos, enums por nombre, ids como cadenas, sin miembros nulos, texto sin escapar más de lo que exige JSON y
@@ -593,7 +622,10 @@ public sealed record UsageReport(IReadOnlyList<UsageAttempt> Attempts, IReadOnly
 - `IProjectMemory`: `RecordAsync(ProjectContext, MemoryDraft)` (primero `MemoryRecorded`, luego la fila),
   `ReviewAsync(ProjectContext, entry, MemoryReview, decidedBy, comment)` y `RecallAsync(ProjectContext, MemoryQuery)`
   (solo filas ancladas; `TrustedOnly` por defecto).
-- `IMemoryStore` (`AppendAsync`, `SearchAsync` con `MemorySearch`) guarda filas inmutables (`MemoryRow`) y no tiene estado.
+- `IMemoryStore` (`AppendAsync`, `SearchAsync` con `MemorySearch`, y desde el 2026-11-05 `FindAsync(projectId, ids)`, las
+  filas de esos ids) guarda filas inmutables (`MemoryRow`) y no tiene estado. La memoria sirve desde la memoria del proceso
+  lo que verificó contra el registro y solo lee las filas de lo que el registro anunció después
+  ([ADR-0010](adr/0010-estado-derivado-del-registro.md), adenda del 2026-11-05).
 - `IMemoryExporter.ExportAsync` → `MemoryExportResult`, o `MemoryExportResult.Refused(motivo)` durante una ejecución.
 - `MemoryContent.Sha256(kind, topic, content)` es el SHA-256 canónico que anuncia `MemoryRecorded`, y
   `MemoryContent.MaxCharacters` (4 000) el límite de una entrada.
@@ -1341,3 +1373,159 @@ public sealed class AgentRunEnds : IAgentRunEnds { public void Notify(AgentRunEn
   equipo. Las entradas ya ancladas conservan su texto.
 - **`DeliveryService`** (`Orchestration/Integration`): la descripción de la entrega cuenta los ficheros con «Cambia 1
   fichero.», «Cambian N ficheros.» o «No cambia ningún fichero.».
+
+## 20. Fase 12: índice semántico de la bitácora y la memoria
+
+Lo que la Fase 12 añade o cambia en los contratos ([17](17-constructor-visual-de-agentes.md) §3 y §9.2;
+[ADR-0047](adr/0047-indice-semantico-local.md) con sus adendas; la adenda del 2026-11-03 de
+[ADR-0024](adr/0024-recomendador-asistido-con-mcp-local.md)). El P0 dejó los contratos, el formato de la bitácora y los
+paquetes; WP1 (la bitácora como memoria), WP2 (embeddings y almacén), WP3 (búsqueda híbrida y empaquetado), WP4 (la
+herramienta MCP y «Memoria») y la integración cambiaron lo que dice cada apartado. Hay un tipo nuevo del registro,
+`JournalTrustChanged`, al final y en `V = 1`; los payloads anteriores se leen y se reescriben byte a byte, y no hay
+migración: el índice no vive en la base del proyecto. `tests/AgentStudio.Tests/Application/Semantic/SemanticIndexContractsTests.cs`
+y `Phase4ContractTests.cs` fallan si un contrato compartido cambia.
+
+### 20.1 Dominio (`Domain/Semantic`)
+
+- **`SemanticFragment`**: un trozo de 1 500 caracteres como mucho (`MaxCharacters`), con su fuente
+  (`FragmentSource`: la memoria con el SHA-256 que anunció `MemoryRecorded`, o una entrada del registro con su hash), su
+  parte, su fecha y su huella. `IdOf` da el id a partir de la fuente y la parte, así que reconstruir da los mismos ids.
+- **`LexicalTerms`**: los términos de la consulta sin palabras vacías; cada uno va entre comillas y unidos con `OR`.
+- **`HybridRanking.Fuse`**: la fusión por rangos recíprocos con k = 60 y el mismo peso para las dos listas (D-05; la
+  adenda del 2026-11-04 quitó el peso que había puesto la segunda). Los empates, por fecha (lo reciente primero) y por id.
+  `SimilarCandidate` lleva la similitud de cada puesto de la lista por significado; `FusedCandidate`, los dos puestos.
+
+### 20.2 Memoria y bitácora (`Application/Knowledge`, `Application/Decisions`; WP1)
+
+```csharp
+// MemoryKind gana, al final: JournalEntry.
+public enum JournalTrustScope { Project, Day }
+public sealed record JournalTrustState(bool ProjectTrusted, IReadOnlyList<DateOnly> TrustedDays, int QuarantinedEntries);
+public interface IJournalTrust
+{
+    Task<JournalTrustState> ReadAsync(ProjectContext project, CancellationToken ct);
+    Task SetAsync(ProjectContext project, JournalTrustScope scope, DateOnly? day, bool trusted, string decidedBy, string? comment, CancellationToken ct);
+}
+// DecisionKind gana, al final: JournalTrustChanged, con JournalTrustChangedPayload(Scope, Day, Trusted, DecidedBy, Comment), fuera de toda ejecución.
+public sealed record AgentRunAnchor(string Run, string? Task, int Attempt);       // AgentRunRequest.Anchor y PromptOutcome.Anchor
+public readonly record struct JournalEntryId(DateOnly Day, int Sequence) { public string Qualified(); }   // 2026-11-03/P-0001
+public sealed record JournalReceipt(DateOnly Day, int Entry, string Sha256);   // AgentRunFinishedPayload.Journal, solo si existe
+```
+
+- **El ancla de la línea «Resultado»** (`JournalResultAnchor.Format(anchor, entry)` y `TryParse`): al final,
+  `` · ejecución `<run>` ``, `` · tarea `<task>` `` si la hay, `` · intento <n> `` y `` · entrada `AAAA-MM-DD/P-NNNN` ``. La
+  línea de la entrada termina con `(… · entrada AAAA-MM-DD/P-NNNN)`. Se detalla en [11 §8](11-bitacora.md).
+- **El recibo** (`JournalReceipt`): el SHA-256 del texto exacto de la entrada, su línea y su línea «Resultado» unidas por un
+  salto de línea. Lo da `IPromptJournal` al escribir el resultado de un lanzamiento anclado, y lo guarda en
+  `AgentRunFinished` quien registra el final: el motor, las auxiliares, los turnos de debate y el juez.
+- **La confianza de una entrada de la bitácora la calcula el registro** (`MemoryLedger.JournalTrustOf`): la revisión de la
+  propia entrada; lo heredado, en cuarentena; lo que escribió Agent Studio con su recibo, de confianza (`System`); y lo
+  demás, la última decisión sobre su día o sobre el proyecto. Sin ninguna, `Quarantined`. Una decisión sobre la bitácora
+  solo cuenta si es posterior al último `origin-accepted`.
+- **La fuente** de una entrada es `bitacora:<día>#sha256:<hash>` (`MemorySources.Journal` y `TryParseJournal`). No se
+  exporta a Markdown (`MemoryKinds.IsExported`).
+- **`IMemoryDerivation`** ancla también la bitácora, entrada a entrada e idempotente. Un día que no se puede leer con
+  seguridad es un problema de la derivación (`MemoryDerivationResult.Problems`), y no se ancla nada de él.
+
+### 20.3 Embeddings e índice (`Application/Semantic/SemanticIndexContracts.cs`)
+
+| Contrato | Qué es | Lo implementa |
+|---|---|---|
+| `EmbeddingModelDescriptor`, `EmbeddingModels.MultilingualE5Small`, `EmbeddingModelFile`, `SentencePieceIds` | El modelo fijado: revisión, ficheros con su tamaño y su SHA-256, prefijos, 384 dimensiones, 512 tokens y la regla de ids. `Fingerprint()` lo nombra en cada vector | P0 |
+| `SemanticIndexLocation` | Dónde viven el modelo y el índice, en `%LOCALAPPDATA%`; la clave del proyecto es la de su ancla | P0 |
+| `EmbeddingModelState`, `EmbeddingModelStatus` | `Missing`, `Ready`, `Mismatch` y `Unloadable`, con la carpeta y el porqué | P0 |
+| `IEmbedder`, `IEmbedderSource` (`Check`, `OpenAsync`), `EmbedderOpening` | El modelo en el proceso, sin red. `Check()` no carga nada y solo vuelve a calcular el hash de un fichero si cambia su tamaño o su hora | `Infrastructure/Embeddings/Onnx/OnnxEmbedderSource` (WP2) |
+| `IEmbeddingModelInstaller`, `EmbeddingModelDownloadConsent`, `EmbeddingModelDownloadProgress` | La descarga, una vez y solo con el OK de la persona; un fichero que no verifica se borra | `Infrastructure/Embeddings/HttpEmbeddingModelInstaller` (WP2) |
+| `ISemanticIndexStore`, `IndexedFragment`, `IndexedFragmentState` | El almacén de un proyecto: fragmentos, FTS5 y vectores en float32. Una fila que no es un fragmento sale con la huella vacía y la reescribe la siguiente lectura | `Infrastructure/Persistence/SemanticIndexStore` (WP2) |
+| `ISemanticIndex` (`RefreshAsync`, `SearchAsync`, `SearchManyAsync`, `StatusAsync`, `SnapshotAsync`, `DeleteAsync`) | El índice: la proyección de lo anclado, la búsqueda híbrida y la instantánea del planificador | `Memory/Semantic/SemanticIndex` (WP3) |
+| `SemanticQuery` (`TrustedOnly`, `MayReachAPrompt`), `SemanticHit`, `SemanticSearchResult` (`Cut`, `Notice`), `MeaningOnlyCut` | La consulta y su resultado | P0 y WP3 |
+| `SemanticSearchMode`, `WordsOnlyReason`, `SemanticSearchTexts` | Por qué una búsqueda fue solo por palabras, en castellano | P0; WP3 añadió `IndexUnavailable` |
+| `SemanticIndexRefresh`, `SemanticIndexStatus` | Lo que hizo un refresco, y el estado del índice y del modelo | P0 |
+
+- **WP2.** `EmbeddingModelLocation` (la carpeta del modelo; `ForCurrentUser()` y `Under(localAppData, model)`) y
+  `SemanticIndexOptions` (`ForCurrentUser()`). El almacén es uno por app: su escritor único es la instancia, con una cola y
+  un consumidor por índice. `Directory.Build.targets` solo copia los nativos de ONNX Runtime de win-x64 y win-arm64.
+- **WP3.** `SearchManyAsync`, con una implementación por defecto que busca una a una, comparte una lectura y un embedding
+  del foco por paquete. El corte de lo que entra por significado (`MeaningOnlyCut`, suelo 0,79 y margen 0,04 para e5) vive
+  en `SemanticSearchTuning` por la huella del modelo. Los términos que están en más de la mitad de los fragmentos salen de
+  la lista por palabras (`CommonTermFraction` = 0,5). Una entrada de la bitácora se busca por palabras en su texto anclado
+  completo y por significado en su vista limpia (`JournalSearchText`, `FragmentCutter.MeaningOf`). Ver las adendas de
+  ADR-0047.
+- **`AddAgentStudioSemanticIndex`** (`Memory/Semantic`) registra el índice. Necesita la memoria, el almacén y el modelo,
+  que no registra.
+
+### 20.4 El paquete de contexto (`Application/Knowledge/ContextPackContracts.cs`; WP3)
+
+```csharp
+public sealed record ContextRelevance(SemanticSearchMode Mode, WordsOnlyReason? Reason = null)
+{ public static ContextRelevance Hybrid { get; } public static ContextRelevance WordsOnly(WordsOnlyReason reason); public MeaningOnlyCut? Cut { get; init; } public string? Notice { get; } }
+// ContextPack gana: ContextRelevance? Relevance { get; init; }, fuera de su Sha256.
+```
+
+- `ContextPacker(IProjectMemory memory, ISemanticIndex? index = null)`: con índice, los niveles por relevancia se ordenan
+  por la búsqueda híbrida, y la bitácora entra en el último. Sin él, o si falla, por FTS5 como antes
+  (`WordsOnly(IndexUnavailable)`). Un juez o un auditor no reciben nada, y no se pregunta al índice por ellos (F12-8).
+  `Relevance` es nulo cuando no se pidió relevancia: un agente sin memoria o sin foco.
+
+### 20.5 La herramienta del planificador (`Application/Semantic/ProjectHistorySnapshot.cs` y `ProjectHistoryTool.cs`)
+
+```csharp
+public static class ProjectHistoryNames { Tool = "search_project_history"; SnapshotArgument = "--history"; MaxTop = 10; DefaultTop = 5; MaxQueryLength = 500; MaxFragments = 2000; }
+public sealed record HistoryFragment(string Id, string Label, DateTimeOffset At, string Text, float[]? Vector = null);
+public sealed record ProjectHistorySnapshot(DateTimeOffset At, string? ModelFingerprint, int Dimensions, IReadOnlyList<HistoryFragment> Fragments);
+public static class ProjectHistorySnapshotJson { Schema = "agentstudio-history-snapshot/1"; Write; Read }   // lectura estricta
+
+// La integración:
+public sealed record ProjectHistoryFolder(string SnapshotPath);
+public interface IProjectHistoryFolders { Task<ProjectHistoryFolder> CreateAsync(string snapshotJson, CancellationToken ct); void Delete(ProjectHistoryFolder folder); }
+public sealed record ProjectHistoryToolOptions(string ServerExecutable) { public int MaxFragments { get; init; } public Func<bool>? Enabled { get; init; } }
+public sealed class ProjectHistoryOffer : IDisposable { McpServerSpec? Server; string? Withheld; bool Offered; }   // Dispose borra la instantánea
+public interface IProjectHistoryTool { Task<ProjectHistoryOffer> OfferAsync(ProjectContext project, AgentDefinition agent, PermissionProfile permissions, CancellationToken ct); }
+public sealed class ProjectHistoryTool(ISemanticIndex index, IProjectHistoryFolders folders, ProjectHistoryToolOptions options) : IProjectHistoryTool;
+public static class ProjectHistoryLaunch { AllowRule; IsReadOnly(permissions); Server(executable, snapshotPath); With(request, history); }
+```
+
+- **El servidor** (`AgentStudio.SkillsMcp`, WP4) acepta `--snapshot`, `--history` o los dos, y solo ofrece las
+  herramientas de lo que recibe (`SkillsMcpServer.Options(skills, history)`). `search_project_history` ordena por palabras
+  y, si la instantánea trae vectores, amplía con los vecinos de sus mejores aciertos (`HistoryRanking`); nunca carga el
+  modelo ni devuelve un resumen diario.
+- **Solo el planificador** la recibe: un agente `Orchestrator` con `ReadSelected`, en un lanzamiento sin escrituras, shell
+  ni red, en Claude Code. A cualquier otro se le da una oferta sin servidor y el porqué (`Withheld`), sin leer el índice ni
+  escribir nada. Codex rechaza los servidores MCP (`codex exec` no los carga), y Gemini no los lanza.
+- **Se puede apagar** en «Ajustes» («Búsqueda en el historial para el orquestador», `ProjectHistoryToolOptions.Enabled`, que
+  lee `AppSettings.PlannerHistoryToolEnabled` en cada planificación; activada por defecto): apagada, ningún planificador la
+  recibe (`ProjectHistoryTool.DisabledReason`). Los motivos (`Withheld`) están en castellano llano, para la persona, sin
+  nombrar el protocolo: «El orquestador no tuvo la búsqueda en el historial: Codex no admite herramientas externas.».
+- **`ProjectHistoryLaunch.With`** añade el servidor de Agent Studio con `--history`. Si el lanzamiento ya tenía ese
+  servidor con `--snapshot`, le añade `--history` y la regla de la herramienta: un solo servidor con las dos instantáneas.
+  Rechaza un perfil que escribe, tiene shell o red.
+- **Si el registro no verifica**, `OfferAsync` lanza `DecisionLogIntegrityException`, como la memoria. Cualquier otro fallo
+  deja al planificador sin la herramienta, nunca sin su planificación (`ProjectHistoryTool.FailedReason`).
+
+### 20.6 Orquestación (`Application/Orchestration`, `Orchestration`)
+
+- **`PlanProposal.HistoryToolNotice`** (`string?`, `init`): por qué el orquestador planificó sin `search_project_history`
+  (su CLI no carga servidores MCP, no hay historial de confianza, la plantilla no le da memoria…). No es un error. Es nulo
+  si la tuvo o si la composición no la ofrece. Si la tuvo también lo dice el prompt, capturado como evidencia, que solo
+  entonces la nombra en una frase (`PlannerPrompt.HistoryToolSentence`). El documento del orquestador lo añade a la línea
+  de estado de la propuesta (`ProposalStatus`) y lo guarda en el borrador (`PlanDraftProposal.HistoryToolNotice`), así que
+  un borrador recuperado lo sigue diciendo.
+- **`Orchestrator(…, IPowerEvents? power = null, IProjectHistoryTool? history = null)`** y `EnginePorts.History`. El
+  planificador pide la oferta después de la memoria y antes de escribir nada, pasa el mismo servidor a sus dos
+  lanzamientos (la corrección es otro proceso del CLI) y borra la instantánea al terminar. Nada más del motor lee el puerto:
+  ni los ejecutores, ni la revisión, ni los auditores.
+
+### 20.7 Escritorio (`Desktop`; WP4 y la integración)
+
+| Pieza | Fichero | Qué es |
+|---|---|---|
+| `MemorySearchBackend(Index, JournalTrust, Installer, UiContext)` y `ModelInstalledEventArgs` | `Memory/MemorySearchBackend.cs` | Lo que «Memoria» usa además de la memoria: el índice, la confianza de la bitácora y el instalador. Es el séptimo argumento de `MemoryViewModel` |
+| `MemoryViewModel.ModelInstalled` e `IndexRefreshedAsync()` | `Memory/MemoryViewModel.cs` | La descarga terminó con el modelo en su sitio; el índice se refrescó y hay que volver a leer su estado |
+| `EmbeddingModelViewModel`, `JournalTrustViewModel`, `MemorySearchResults`, `RefreshQueue` | `Memory/` | El panel del modelo, el de la bitácora, los resultados de la búsqueda y la cola de refrescos de la pantalla |
+| `SemanticIndexUpkeep` (`RefreshAsync`, `WarmUpAsync`, `Follow`, `Refreshed`) | `Memory/SemanticIndexUpkeep.cs` | El refresco del índice en segundo plano: una cola con un solo consumidor por proyecto, que junta lo que llega mientras corre; nunca falla a quien lo pide. Abre el modelo antes de la primera búsqueda si ya está en su sitio, y nunca descarga |
+| `ProjectMemoryUpkeep(…, SemanticIndexUpkeep? index = null)` | `Memory/ProjectMemoryUpkeep.cs` | Tras cada derivación completa, pide el refresco del índice. Al abrir un proyecto, abre el modelo si está |
+| `ProjectHistoryFolders` | `Memory/ProjectHistoryFolders.cs` | Las instantáneas del planificador en `%LOCALAPPDATA%\AgentStudio\history-snapshots\his-<aleatorio>\history.json`, con `CreateNew`, y se borran al terminar. Como `SkillRecommendationFolders` |
+| `AppSettings.PlannerHistoryToolEnabled` y `MemorySettingsViewModel` | `Services/AppSettings.cs`, `Memory/MemorySettingsViewModel.cs` | La preferencia «Búsqueda en el historial para el orquestador» (activada por defecto) y la sección «Memoria del proyecto» de «Ajustes», que se guarda con las demás en un solo `SavePreferences` |
+| `PlanDraftProposal(…, string? HistoryToolNotice = null)` | `Orchestrator/Canvas/PlanDraft.cs` | El borrador guarda por qué el orquestador planificó sin la búsqueda en el historial; uno de antes lo lee como nulo |
+| `AppFolders.SemanticRoot` | `Composition/AppComposition.cs` | La carpeta que hace de `%LOCALAPPDATA%` para el índice y el modelo. Para el usuario actual es la de `SemanticIndexOptions.ForCurrentUser()`; en una prueba, la que contiene sus carpetas locales |
+| `SemanticIndexServices.AddSemanticIndexServices` | `Composition/SemanticIndexServices.cs` | La composición: un solo `SemanticIndexStore`, `OnnxEmbedderSource`, `HttpEmbeddingModelInstaller` con su `HttpClient`, `AddAgentStudioSemanticIndex` y la herramienta del planificador sobre el servidor de al lado de la app |

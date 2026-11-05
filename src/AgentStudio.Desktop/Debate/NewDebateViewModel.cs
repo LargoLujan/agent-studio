@@ -60,6 +60,9 @@ public sealed partial class ParticipantChoiceViewModel : ObservableObject
             _changed();
         }
     }
+
+    /// <summary>What a screen reader says of an agent offered as a participant (V34): its id and its name.</summary>
+    public override string ToString() => Name;
 }
 
 /// <summary>A judge of the template the form offers; every judge is a candidate unless you leave it out.</summary>
@@ -85,6 +88,9 @@ public sealed partial class JudgeChoiceViewModel : ObservableObject
     private bool _isIncluded = true;
 
     partial void OnIsIncludedChanged(bool value) => _changed();
+
+    /// <summary>What a screen reader says of a judge offered (V34): its id and its name.</summary>
+    public override string ToString() => Name;
 }
 
 /// <summary>
@@ -146,6 +152,9 @@ public sealed partial class DebateCriterionViewModel : ObservableObject
         Text.Trim(),
         IsMandatory ? RequirementPriority.Mandatory : RequirementPriority.Desirable,
         [new AcceptanceCriterion("c1", Text.Trim(), Method)]);
+
+    /// <summary>What a screen reader says of a criterion of the debate (V34): its id and its text.</summary>
+    public override string ToString() => string.IsNullOrWhiteSpace(Text) ? Id : $"{Id}: {Text}";
 }
 
 /// <summary>A run of the project that can be the subject of a debate.</summary>

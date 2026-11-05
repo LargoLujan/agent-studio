@@ -153,4 +153,7 @@ public sealed partial class NodeViewModel : ObservableObject
             SpecChanged?.Invoke(this, EventArgs.Empty);
         }
     }
+
+    /// <summary>What a screen reader says of a task of the canvas (V34): its id, its kind, its title, its status and its problems.</summary>
+    public override string ToString() => AutomationName;
 }

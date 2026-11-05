@@ -203,6 +203,12 @@ public interface IMemoryStore
     Task AppendAsync(string projectId, MemoryRow row, CancellationToken ct);
 
     Task<IReadOnlyList<MemoryRow>> SearchAsync(string projectId, MemorySearch search, CancellationToken ct);
+
+    /// <summary>
+    /// The rows with these ids, in no particular order; an id with no row is left out. The memory reads only the rows of
+    /// what the log announced since it last checked them (2026-11-05, ADR-0010 addendum of 2026-11-04).
+    /// </summary>
+    Task<IReadOnlyList<MemoryRow>> FindAsync(string projectId, IReadOnlyCollection<string> ids, CancellationToken ct);
 }
 
 /// <summary>What an export of the memory to Markdown did, or why it was refused.</summary>

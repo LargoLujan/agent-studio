@@ -1,0 +1,26 @@
+<UserControl x:Class="AgentStudio.Desktop.Views.Memory.MemorySettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:memory="clr-namespace:AgentStudio.Desktop.Memory"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=memory:MemorySettingsViewModel}"
+             AutomationProperties.Name="{x:Static memory:MemorySettingsViewModel.Title}">
+    <!-- «Memoria del proyecto», a section of «Ajustes» (docs/17 D-06, F12-9): whether the orchestrator may search the history
+         of the project when it plans. «Guardar» is the document's, for every section at once. Bindings only. -->
+    <StackPanel>
+        <TextBlock Style="{StaticResource SectionTitleText}" Text="{x:Static memory:MemorySettingsViewModel.Title}"/>
+        <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,0" TextWrapping="Wrap"
+                   Text="Qué recuerda Agent Studio de días anteriores cuando el orquestador planifica."/>
+
+        <!-- A string as the content of a check box never wraps: a wrapping TextBlock does, and the name is set by hand. -->
+        <CheckBox Style="{StaticResource FieldCheckBox}" Margin="0,14,0,0" IsChecked="{Binding PlannerHistoryToolEnabled}"
+                  AutomationProperties.Name="{x:Static memory:MemorySettingsViewModel.HistorySearchLabel}"
+                  AutomationProperties.HelpText="{x:Static memory:MemorySettingsViewModel.HistorySearchExplanation}">
+            <TextBlock TextWrapping="Wrap" Text="{x:Static memory:MemorySettingsViewModel.HistorySearchLabel}"/>
+        </CheckBox>
+        <TextBlock Style="{StaticResource SecondaryText}" Margin="22,2,0,0" TextWrapping="Wrap"
+                   Text="{x:Static memory:MemorySettingsViewModel.HistorySearchExplanation}"/>
+    </StackPanel>
+</UserControl>

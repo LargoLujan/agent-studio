@@ -5,6 +5,7 @@ using AgentStudio.Domain.Debate;
 using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Judging;
 using AgentStudio.Domain.Providers;
+using AgentStudio.Tests.Application;
 using AgentStudio.Tests.Debate.Fakes;
 using static AgentStudio.Tests.Debate.Fakes.ScriptedDebateWorld;
 
@@ -57,6 +58,26 @@ public sealed class DebateCoordinatorTests
         Assert.All(log.Turns, t => Assert.Equal(AttemptOutcome.Succeeded, t.Finished!.Status));
         Assert.Equal([run.Id], world.Judgment.Calls);
         Assert.False(world.Activity.IsBusy(Project));
+    }
+
+    [Fact]
+    public async Task The_close_of_a_debate_rests_on_the_whole_log_and_the_debate_going_on_reads_its_tail()
+    {
+        using var world = new ScriptedDebateWorld();
+        var spy = new LoadSpyRecorder(world.Recorder);
+        world.Ports = world.Ports with { Decisions = spy };
+        world.Coordinator = new DebateCoordinator(world.Ports);
+
+        await using var run = await world.OpenAsync(world.FreeOnAnthropic());
+        var result = await CompletedAsync(run);
+
+        // The close is a critical moment (ADR-0010, addendum of 2026-11-04): the load just before DebateClosed reads the whole log.
+        Assert.Equal((DebatePhase.Closed, DebateOutcome.Resolved), (result.Phase, result.Outcome));
+        var calls = spy.Calls.ToList();
+        var closed = calls.IndexOf("Record:" + DecisionKind.DebateClosed);
+        Assert.True(closed > 0, string.Join(", ", calls));
+        Assert.Equal(nameof(LogLoad.Full), calls.Take(closed).Last(c => !c.StartsWith("Record:", StringComparison.Ordinal)));
+        Assert.Single(spy.Loads, l => l == LogLoad.Full);
     }
 
     [Fact]

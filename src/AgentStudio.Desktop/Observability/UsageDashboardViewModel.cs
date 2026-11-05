@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Usage;
+using AgentStudio.Desktop.Controls;
 using AgentStudio.Desktop.Services;
 using AgentStudio.Desktop.ViewModels;
 using AgentStudio.Domain.Metrics;
@@ -46,9 +47,13 @@ public sealed partial class DimensionOption(UsageDimension dimension, string lab
 
     [ObservableProperty]
     private bool _isSelected;
+
+    /// <summary>What a screen reader says of a dimension of the report (V34): its label.</summary>
+    public override string ToString() => Label;
 }
 
 /// <summary>One group of the report as a row: its key and every figure with its origin.</summary>
+/// <param name="ContextPeak">The context peak in words; <see cref="ContextPeakBar"/> draws it.</param>
 public sealed record UsageGroupRow(
     string Key,
     Figure Attempts,
@@ -62,10 +67,25 @@ public sealed record UsageGroupRow(
     Figure RateLimited,
     Figure LimitReached,
     string ContextPeak,
-    Figure Compactions);
+    Figure Compactions)
+{
+    /// <summary>The context peak of the group as a bar (V39, docs/18 P3): its percentage, origin and level, or why there is none.</summary>
+    public required MetricBarReading ContextPeakBar { get; init; }
+
+    /// <summary>What a screen reader says of a group of the report (V34): its key.</summary>
+    public override string ToString() => Key;
+}
 
 /// <summary>One attempt as a row: when it finished, who ran it, where and how it ended, its own figures, its context peak and its models.</summary>
-public sealed record UsageAttemptRow(string When, string Who, string Where, Figure Duration, Figure Input, Figure Output, Figure Cost, string ContextPeak, IReadOnlyList<string> PerModel);
+/// <param name="ContextPeak">«Contexto máximo: …» in words; <see cref="ContextPeakBar"/> draws it.</param>
+public sealed record UsageAttemptRow(string When, string Who, string Where, Figure Duration, Figure Input, Figure Output, Figure Cost, string ContextPeak, IReadOnlyList<string> PerModel)
+{
+    /// <summary>The context peak of the attempt as a bar (V39, docs/18 P3): its percentage, origin and level, or why there is none.</summary>
+    public required MetricBarReading ContextPeakBar { get; init; }
+
+    /// <summary>What a screen reader says of an attempt of the report (V34): when it finished and who ran it.</summary>
+    public override string ToString() => $"{When} · {Who}";
+}
 
 /// <summary>
 /// The «Consumo» document (docs/14 F4-1 and F4-2): the usage of the open project, or of every recent project, in the
@@ -88,6 +108,9 @@ public sealed partial class UsageDashboardViewModel : DocumentViewModel
     /// <summary>Where the settings of the report and of the quota are, as the panel states it.</summary>
     public const string SettingsNote =
         "Los umbrales de salud del contexto y el permiso para leer la cuota de Codex se cambian en «Ajustes» (el engranaje de la barra de la izquierda).";
+
+    /// <summary>What the bar of a context peak is called, in a group and in an attempt (V39).</summary>
+    public const string PeakLabel = "Contexto máximo";
 
     private const string NoModel = "predeterminado del CLI (no expuesto)";
 
@@ -389,7 +412,10 @@ public sealed partial class UsageDashboardViewModel : DocumentViewModel
             MetricText.Measured(totals.RateLimited),
             MetricText.Measured(totals.LimitReached),
             Peak(totals.ContextPeak, thresholds),
-            MetricText.Tokens(totals.Compactions));
+            MetricText.Tokens(totals.Compactions))
+        {
+            ContextPeakBar = PeakBar(totals.ContextPeak, thresholds),
+        };
     }
 
     private UsageAttemptRow Row(UsageAttempt attempt, ContextHealthThresholds thresholds)
@@ -413,11 +439,21 @@ public sealed partial class UsageDashboardViewModel : DocumentViewModel
             MetricText.Tokens(attempt.Own.OutputTokens),
             MetricText.Cost(attempt.Own.CostUsd),
             "Contexto máximo: " + Peak(attempt.ContextPeak, thresholds),
-            perModel);
+            perModel)
+        {
+            ContextPeakBar = PeakBar(attempt.ContextPeak, thresholds),
+        };
     }
 
     private static string Peak(ContextPeakFigures? peak, ContextHealthThresholds thresholds) =>
         peak is null ? "sin dato" : ContextText.Read(peak.Model, peak.UsedTokens, peak.ContextWindow, thresholds).Text;
+
+    /// <summary>
+    /// The bar of a context peak (V39): read as every context bar is (<see cref="MetricBars"/>), judged with the thresholds of
+    /// the settings; without a peak, an empty track that says «sin dato».
+    /// </summary>
+    private static MetricBarReading PeakBar(ContextPeakFigures? peak, ContextHealthThresholds thresholds) =>
+        peak is null ? MetricBars.Empty(PeakLabel, "sin dato") : MetricBars.Context(PeakLabel, peak.Model, peak.UsedTokens, peak.ContextWindow, thresholds);
 
     private static string ReconciliationText(UsageReconciliation journal)
     {

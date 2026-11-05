@@ -58,4 +58,7 @@ public abstract partial class DocumentViewModel : ObservableObject
     public event EventHandler? Closed;
 
     internal void NotifyClosed() => Closed?.Invoke(this, EventArgs.Empty);
+
+    /// <summary>What a screen reader says of a document (V34): the title of its tab, and whether it has unsaved changes.</summary>
+    public override string ToString() => AccessibleTitle;
 }

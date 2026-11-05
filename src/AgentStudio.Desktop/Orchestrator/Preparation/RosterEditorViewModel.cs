@@ -230,6 +230,9 @@ public sealed partial class AgentMemoryViewModel : ObservableObject
         options.Add(new ModelOption(AgentModels.OtherLabel, null, IsOther: true));
         return options;
     }
+
+    /// <summary>What a screen reader says of an agent of the template (V34): its name.</summary>
+    public override string ToString() => Name;
 }
 
 /// <summary>

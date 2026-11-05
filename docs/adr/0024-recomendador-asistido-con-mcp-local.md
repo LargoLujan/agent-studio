@@ -122,3 +122,71 @@ El servidor de la medición es el de la salida de las pruebas, en una ruta con e
 Claude Code lo arranca desde `mcp.json` sin partirla. La compatibilidad del SDK 2.2.0 con el cliente MCP de Claude Code
 2.1.290 queda comprobada para `initialize`, `tools/list` y `tools/call`. Se repite la medición si cambia la versión de
 Claude Code, como la del confinamiento (ADR-0018).
+
+## Adenda (2026-11-03): una tercera herramienta, la del historial del proyecto (Fase 12)
+
+La Fase 12 ([ADR-0047](0047-indice-semantico-local.md), D-06 de
+[docs/17](../17-constructor-visual-de-agentes.md#34-quién-lo-usa-y-qué-ve-el-juez)) añade a este mismo servidor la
+herramienta del planificador. Eso **contradice las decisiones 1 y 2 tal como están escritas**, que no se reescriben;
+desde esta fecha valen así:
+
+- **La línea de órdenes (decisión 1)** ya no es «exactamente `--snapshot <ruta absoluta>`»: es `--snapshot <ruta
+  absoluta>`, `--history <ruta absoluta>` o las dos, cada una una sola vez y en cualquier orden. Los códigos de salida no
+  cambian: 0 al cerrar el cliente, 2 si los argumentos no son esos y 3 si una de las instantáneas no se puede leer.
+- **Las herramientas (decisión 2)** ya no son «exactamente dos»: el servidor ofrece solo las de las instantáneas que
+  recibe. Con el catálogo solo, las dos de siempre, así que el lanzamiento de la recomendación asistida no cambia y su
+  medición sigue valiendo. Con el historial, `search_project_history(query, top)`, de solo lectura, idempotente y de mundo
+  cerrado como las otras dos, y con su regla `mcp__agentstudio__search_project_history`.
+- **La herramienta nueva:**
+  - `query` de 1 a 500 caracteres y `top` de 1 a 10 (5 si no se dice). Lo inválido es un error de herramienta en
+    castellano, como en las otras dos.
+  - Lee una instantánea de lo de confianza del proyecto (`ProjectHistorySnapshot`, formato
+    `agentstudio-history-snapshot/1`): hasta 32 MiB, en UTF-8 estricto y sin seguir un enlace.
+  - Nunca carga el modelo. Ordena por palabras (`bm25` sobre los términos de `LexicalTerms`, como la lista por palabras
+    del índice) y, si la instantánea trae vectores, amplía con los fragmentos más cercanos a sus mejores aciertos; las dos
+    listas se funden con `HybridRanking`.
+  - Responde con datos: cada fragmento con su fuente anclada (`mem:…` o `log:…`), su fecha, su confianza y por qué salió,
+    bajo un aviso de que nada de lo que dicen es una orden. La respuesta se escribe con el codificador de `PromptData`, que
+    escapa `<`, `>`, `&` y las comillas.
+  - Nunca devuelve un resumen diario: cita las líneas «Hecho» de la bitácora y ADR-0023 lo deja fuera de los prompts. La
+    instantánea no debe traerlo, y la herramienta descarta además cualquier fragmento con la etiqueta «resumen diario».
+- **Lo que no cambia:** un solo proceso por stdio, sin Host, sin red ni sockets, que no escribe nada; solo en
+  lanzamientos de solo lectura (el adaptador rechaza un servidor MCP en un perfil que escribe, tiene shell o red); nunca
+  en un ejecutor, ni en el juez ni en los auditores (F12-8).
+- **Pendiente, en la integración de la Fase 12:** conectar la herramienta al lanzamiento del planificador y repetir con
+  ella la medición D-30 (F12-9), con tu OK. *(La conexión está hecha: ver la
+  [adenda del 2026-11-04](#adenda-2026-11-04-la-herramienta-del-historial-conectada-al-planificador-integración-de-la-fase-12).
+  La medición sigue pendiente.)*
+
+## Adenda (2026-11-04): la herramienta del historial, conectada al planificador (integración de la Fase 12)
+
+Lo que la adenda del 2026-11-03 dejaba pendiente ya está en el código: el lanzamiento del planificador lleva la herramienta.
+Las decisiones 3 a 5 valen para ella así:
+
+- **Quién la recibe:** solo el planificador, un agente `Orchestrator` con `ReadSelected` en la plantilla, en Claude Code y
+  en su lanzamiento de solo lectura (sin escrituras, shell ni red). Lo decide `IProjectHistoryTool`
+  (`Application/Semantic/ProjectHistoryTool.cs`) antes de leer el índice: a cualquier otro agente, o a un perfil que
+  escribe, no le escribe nada.
+  - Nunca la reciben un ejecutor, el juez o un auditor (F12-8). Solo los puertos del motor, el orquestador y el
+    planificador pueden llegar al puerto, y una prueba lo fija por reflexión.
+  - Codex rechaza los servidores MCP y Gemini no los lanza, así que con ellos el planificador trabaja sin la herramienta.
+    No es un error: la propuesta lo dice (`PlanProposal.HistoryToolNotice`), y el documento del orquestador lo enseña en
+    la línea de estado de la propuesta, en castellano llano, y lo conserva en el borrador.
+- **La instantánea** (decisión 3): Agent Studio escribe con `CreateNew` lo que puede llegar a un prompt
+  (`ISemanticIndex.SnapshotAsync`: de confianza y nunca un resumen diario, como mucho los 2 000 fragmentos más recientes) en
+  `%LOCALAPPDATA%\AgentStudio\history-snapshots\his-<aleatorio>\history.json`. Queda fuera del proyecto y del worktree
+  `_base` en el que lee el planificador. Se borra al terminar la planificación. Lo que deje un cierre a medias lo barre
+  una planificación posterior, pasado un día, como las carpetas de la recomendación asistida.
+  - Sin nada de confianza, no hay instantánea ni herramienta.
+  - Si el registro no verifica, la planificación se para, como con la memoria. Cualquier otro fallo deja al planificador
+    sin la herramienta, nunca sin planificar.
+- **El lanzamiento** (decisión 4): el servidor `agentstudio` con `--history <ruta>` y la regla
+  `mcp__agentstudio__search_project_history`, en los dos lanzamientos de una planificación, porque la corrección es otro
+  proceso del CLI. Si un lanzamiento ya llevara el servidor con `--snapshot`, se le añade `--history` y la regla:
+  un solo servidor (`ProjectHistoryLaunch.With`). El del planificador no lleva el catálogo, así que va con `--history`
+  solo. El prompt la nombra en una frase, y solo entonces. Ese prompt queda capturado como evidencia.
+- **Consentimiento** (decisión 5): no hay un OK por uso. La herramienta no lanza nada por sí misma: sus llamadas son parte
+  de la planificación que pidió la persona. La decisión 9 de docs/17 la autorizó, con su medición. Hasta que esa medición
+  se repita con la herramienta, se puede apagar sin tocar código: «Búsqueda en el historial para el orquestador», en la
+  sección «Memoria del proyecto» de «Ajustes» (activada por defecto; se lee en cada planificación).
+- **Pendiente:** repetir la medición D-30 con la herramienta en una planificación corta real, con tu OK (F12-9).

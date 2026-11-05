@@ -4,6 +4,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using AgentStudio.Desktop.Background;
 using AgentStudio.Desktop.Lock;
+using AgentStudio.Desktop.Memory;
 using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Services;
 using AgentStudio.Desktop.Settings;
@@ -23,7 +24,7 @@ public sealed class SettingsRenderTests
     private static readonly Color Error = Color.FromRgb(0xFF, 0x5C, 0x6C);
 
     private static SettingsDocumentViewModel Document(InMemorySettingsStore store) =>
-        new(store, new ObservabilitySettingsViewModel(store), new UnattendedSettingsViewModel(store, new LockSettingsViewModel(store)));
+        new(store, new ObservabilitySettingsViewModel(store), new UnattendedSettingsViewModel(store, new LockSettingsViewModel(store)), memory: new MemorySettingsViewModel(store));
 
     [Fact]
     public void In_a_narrow_tab_every_long_label_wraps_inside_it_instead_of_being_cut()
@@ -56,6 +57,7 @@ public sealed class SettingsRenderTests
                 "Impedir la suspensión mientras hay trabajo",
                 "Pedir Windows Hello en las aprobaciones críticas",
                 "Bloquear la interfaz tras un tiempo sin actividad",
+                "Búsqueda en el historial para el orquestador",
             ],
             labels);
         Assert.Equal(0, outside);

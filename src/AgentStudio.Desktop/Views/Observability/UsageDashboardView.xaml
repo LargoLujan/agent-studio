@@ -5,6 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:observability="clr-namespace:AgentStudio.Desktop.Observability"
              xmlns:views="clr-namespace:AgentStudio.Desktop.Views.Observability"
+             xmlns:controls="clr-namespace:AgentStudio.Desktop.Controls"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=observability:UsageDashboardViewModel}">
     <!-- «Consumo» (docs/14 F4-1 and F4-2): the usage of the period from the verified decision logs, grouped by what the
@@ -107,10 +108,10 @@
                                             <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="Límites de presupuesto"/><ContentPresenter Content="{Binding LimitReached}"/></StackPanel>
                                             <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="Compactaciones"/><ContentPresenter Content="{Binding Compactions}"/></StackPanel>
                                         </WrapPanel>
-                                        <TextBlock Style="{StaticResource SecondaryText}">
-                                            <Run Text="Contexto máximo:"/>
-                                            <Run Text="{Binding ContextPeak, Mode=OneWay}" Foreground="{StaticResource TextPrimaryBrush}"/>
-                                        </TextBlock>
+                                        <!-- V39: the context peak is a bar like every percentage (docs/18 P3), with its origin and
+                                             level; under it, the tokens against the window and the model. -->
+                                        <controls:MetricBar TrackWidth="120" Reading="{Binding ContextPeakBar}"/>
+                                        <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding ContextPeakBar.Detail, TargetNullValue=''}"/>
                                     </StackPanel>
                                 </Border>
                             </DataTemplate>
@@ -134,7 +135,8 @@
                                             <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="Salida (propia)"/><ContentPresenter Content="{Binding Output}"/></StackPanel>
                                             <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="Coste"/><ContentPresenter Content="{Binding Cost}"/></StackPanel>
                                         </WrapPanel>
-                                        <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding ContextPeak}"/>
+                                        <controls:MetricBar Margin="0,2,0,0" TrackWidth="120" Reading="{Binding ContextPeakBar}"/>
+                                        <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding ContextPeakBar.Detail, TargetNullValue=''}"/>
                                         <ItemsControl ItemsSource="{Binding PerModel}" Focusable="False">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>

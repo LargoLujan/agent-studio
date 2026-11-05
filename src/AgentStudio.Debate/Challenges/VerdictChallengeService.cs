@@ -63,7 +63,8 @@ public sealed class VerdictChallengeService(
         var problems = new List<string>();
         var notes = new List<string>();
 
-        var log = await decisions.LoadAsync(project.ProjectId, ct).ConfigureAwait(false);
+        // A critical moment (ADR-0010, addendum of 2026-11-04): who may judge the revision comes from the whole log.
+        var log = await decisions.LoadAsync(project.ProjectId, LogLoad.Full, ct).ConfigureAwait(false);
         if (!log.Verification.IsValid)
         {
             problems.Add($"El registro de decisiones no está íntegro: no se impugna sobre un registro que no admite entradas ({log.Verification.Problem}).");
@@ -182,7 +183,7 @@ public sealed class VerdictChallengeService(
     {
         ArgumentNullException.ThrowIfNull(project);
         ArgumentException.ThrowIfNullOrWhiteSpace(verdict);
-        var log = await VerifiedAsync(project.ProjectId, ct).ConfigureAwait(false);
+        var log = await VerifiedAsync(project.ProjectId, LogLoad.Incremental, ct).ConfigureAwait(false);
         var challenged = await FindAsync(project.ProjectId, verdict, ct).ConfigureAwait(false);
         if (challenged is null)
         {
@@ -197,7 +198,9 @@ public sealed class VerdictChallengeService(
     {
         ArgumentNullException.ThrowIfNull(project);
         ArgumentException.ThrowIfNullOrWhiteSpace(revisionVerdict);
-        var log = await VerifiedAsync(project.ProjectId, ct).ConfigureAwait(false);
+
+        // Accepting a revision resolves the challenge: a critical moment, on the whole log.
+        var log = await VerifiedAsync(project.ProjectId, LogLoad.Full, ct).ConfigureAwait(false);
         if (ChallengeLog.RevisionOf(log, revisionVerdict) is not var (debate, challengedId))
         {
             throw new InvalidOperationException($"The verdict {revisionVerdict} did not close the revision of a challenged verdict: there is nothing to accept.");
@@ -239,7 +242,7 @@ public sealed class VerdictChallengeService(
     private async Task RecordChallengeAsync(ProjectContext project, StoredVerdict challenged, string unit, RunId revision, string reasons)
     {
         var projectId = project.ProjectId;
-        var log = await decisions.LoadAsync(projectId, CancellationToken.None).ConfigureAwait(false);
+        var log = await decisions.LoadAsync(projectId, LogLoad.Full, CancellationToken.None).ConfigureAwait(false);
         var person = ChallengeLog.OpenedBy(log.Entries, revision.Value);
         var challengedBy = person ?? Judging.IndependentReview.SystemId;
         EvidenceRecord note;
@@ -347,9 +350,10 @@ public sealed class VerdictChallengeService(
     private async Task<StoredVerdict?> FindAsync(string projectId, string verdict, CancellationToken ct) =>
         (await verdicts.ListAsync(projectId, null, ct).ConfigureAwait(false)).LastOrDefault(v => string.Equals(v.Id, verdict, StringComparison.Ordinal));
 
-    private async Task<IReadOnlyList<DecisionEntry>> VerifiedAsync(string projectId, CancellationToken ct)
+    /// <summary>The verified log: whole (<see cref="LogLoad.Full"/>) to accept a revision, incremental to say where a challenge stands.</summary>
+    private async Task<IReadOnlyList<DecisionEntry>> VerifiedAsync(string projectId, LogLoad load, CancellationToken ct)
     {
-        var log = await decisions.LoadAsync(projectId, ct).ConfigureAwait(false);
+        var log = await decisions.LoadAsync(projectId, load, ct).ConfigureAwait(false);
         return log.Verification.IsValid ? log.Entries : throw new DecisionLogIntegrityException(projectId, log.Verification);
     }
 }

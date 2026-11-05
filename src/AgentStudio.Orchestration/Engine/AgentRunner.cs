@@ -1,4 +1,5 @@
 using AgentStudio.Application.Decisions;
+using AgentStudio.Application.Knowledge;
 using AgentStudio.Application.Providers;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Common;
@@ -246,11 +247,18 @@ internal sealed class RunObservations(AgentInvocation invocation, DateTimeOffset
     /// </summary>
     public AgentRunEnd? End { get; private set; }
 
-    /// <summary>Keeps the class of the end of <paramref name="outcome"/>: the adapter's, or the one its status implies.</summary>
+    /// <summary>The receipt of the journal entry of the attempt (docs/17 D-02), once it ended; null when the journal gave none.</summary>
+    public JournalReceipt? Journal { get; private set; }
+
+    /// <summary>
+    /// Keeps the class of the end of <paramref name="outcome"/> (the adapter's, or the one its status implies) and the receipt
+    /// of its journal entry.
+    /// </summary>
     public void Ended(AgentRunOutcome outcome)
     {
         ArgumentNullException.ThrowIfNull(outcome);
         End = outcome.Classified();
+        Journal = outcome.Journal;
     }
 
     /// <summary>The step with the largest prompt (the first of equals).</summary>
@@ -310,6 +318,7 @@ internal sealed class RunObservations(AgentInvocation invocation, DateTimeOffset
         {
             RunId = runId,
             V = AgentRunFinishedPayload.EndClassVersion,
+            Journal = Journal,
         };
 
     /// <summary>

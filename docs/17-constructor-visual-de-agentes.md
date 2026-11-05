@@ -286,11 +286,18 @@ instrucciones plantadas. Por eso no se lee el fichero en crudo al lanzar a nadie
   `JournalEntry`, con `MemoryRecorded` y su SHA-256. Se deriva al terminar cada ejecución y al abrir el proyecto, igual que
   el resto de la memoria, y la derivación es idempotente por la huella de la entrada.
 - **La confianza sale del registro, no de las fechas del fichero,** que cualquiera puede escribir:
-  - **lo que escribió Agent Studio** es de confianza. Su escritor de la bitácora añade la ejecución, la tarea y el intento al
-    final de la línea «Resultado» de cada entrada, donde el formato ya admite un añadido (` · …`,
-    `src/AgentStudio.Memory/Summary/DailySummaryBuilder.cs:238`), así que el resumen del día la sigue leyendo igual. La
-    derivación casa la entrada con su `AgentRunStarted`, que está anclado. Una entrada que dice ser de Agent Studio y no
-    casa, no lo es;
+  - **lo que escribió Agent Studio** es de confianza. Su escritor de la bitácora añade la ejecución, la tarea, el intento y
+    la entrada al final de la línea «Resultado» de cada entrada, donde el formato ya admite un añadido (` · …`,
+    `src/AgentStudio.Memory/Summary/DailySummaryBuilder.cs:238`), así que el resumen del día la sigue leyendo igual:
+    `` · ejecución `<run>` · tarea `<task>` · intento <n> · entrada `AAAA-MM-DD/P-NNNN` ``. La entrada lleva su día porque
+    un resultado que termina después de medianoche va al fichero del día siguiente, cuyos `P-NNNN` son otros; la línea de la
+    entrada también termina con `(… · entrada AAAA-MM-DD/P-NNNN)`. Como cualquiera puede copiar ese final en el fichero
+    versionado, el escritor da además un **recibo**: el SHA-256 del texto exacto de la entrada (su línea y su línea
+    «Resultado»), que quien registra el final del lanzamiento guarda en su `AgentRunFinished`. La derivación solo da origen
+    `System` a una entrada con una sola línea «Resultado» que se nombra a sí misma, cuyo `AgentRunFinished`, en una
+    ejecución propia, tiene el recibo con su día, su número y su hash, y que ninguna otra entrada reclama. Una entrada que
+    dice ser de Agent Studio y no lo cumple, no lo es. Las líneas «Hecho» y lo demás que va debajo son una entrada aparte,
+    nunca `System` (adenda del 2026-11-03 de ADR-0047);
   - **lo demás** (las entradas del hook de desarrollo, o las de un tercero que llegan con el repositorio o con un `pull`)
     queda en cuarentena hasta que lo aceptas: por días, o con «Confiar en la bitácora de este proyecto», una decisión tuya
     que queda en el registro y se puede retirar. Lo que ya estaba al aceptar un historial como nuevo origen, igual que la
@@ -365,7 +372,9 @@ instrucciones plantadas. Por eso no se lee el fichero en crudo al lanzar a nadie
   de `AgentRunStarted`. Es lo primero que se hace.
 - **El planificador, bajo demanda:** una herramienta `search_project_history(query, top ≤ 10)` en el servidor MCP local de
   solo lectura, con el patrón de `search_skills`: una instantánea de lo de confianza que escribe Agent Studio, sin acceso
-  a la base. Solo en lanzamientos que no escriben, sin shell y sin red: nunca en un ejecutor (docs/14 D-30 no cambia).
+  a la base. Solo en lanzamientos que no escriben, sin shell y sin red: nunca en un ejecutor. Esa regla de docs/14 D-30
+  no cambia, pero el servidor sí: gana esta tercera herramienta y el argumento `--history` (adenda de ADR-0024 del
+  2026-11-03).
   Antes de usarla, la medición de siempre con una ejecución corta y tu OK (decisión 9).
 - **Tú:** «Buscar» en el documento «Memoria» usa la búsqueda híbrida y muestra la bitácora.
 - **Tus sesiones de desarrollo, si quieres:** el mismo servidor, con su instantánea, puede servir a las sesiones de Claude
@@ -1419,8 +1428,10 @@ guardado.
 | Qué | Cambio | Fase |
 |---|---|---|
 | `MemoryKind` | `JournalEntry` | 12 |
+| `DecisionKind` | `JournalTrustChanged`, detrás de `RunResumed`: «Confiar en la bitácora de este proyecto» y por días, una decisión de una persona fuera de toda ejecución, que se puede retirar (`JournalTrustChangedPayload`, `V = 1`). Solo cuenta si se registró después del último `origin-accepted` | 12 |
+| `AgentRunFinished` | El recibo de la bitácora (`Journal`: día, número y SHA-256 del texto exacto de la entrada), solo cuando lo hay: ningún payload guardado cambia | 12 |
 | `MemoryKind` | `ProjectBrief` | 13 |
-| `DecisionKind` | `QuestionAsked`, `QuestionAnswered` y `ProjectSetupApplied`, detrás de `RunResumed` | 13 |
+| `DecisionKind` | `QuestionAsked`, `QuestionAnswered` y `ProjectSetupApplied`, detrás de `JournalTrustChanged` | 13 |
 | `DecisionKind` | `ClientDocumentExported`, más los de la Fase 9 (docs/16 §4.6) | 14 |
 | `AgentRunPurpose` | `OrderReview`, `ConsumptionAnalysis` y `PreparationChat` | 13 |
 | `AgentRunPurpose` | `Help` y `ClientDocumentDraft` | 14 |
@@ -1491,7 +1502,7 @@ bitácora) por significado y no solo por palabras, sin red, sin cuota y sin que 
 | F12-1 | La bitácora se ancla como memoria `JournalEntry`, entrada a entrada y de forma idempotente, con los dos escritores (el producto y el hook). Lo que escribió Agent Studio casa con su `AgentRunStarted` y es de confianza; lo demás queda en cuarentena hasta que lo aceptas, por días o para todo el proyecto; una entrada falsificada no casa; y cambiar el fichero después no cambia lo anclado | Pruebas de la derivación con bitácoras preparadas, una manipulada y una con entradas que imitan las del producto |
 | F12-2 | Solo se indexa lo anclado: un fragmento sin anunciar, modificado o retirado no sale nunca | Pruebas con una base manipulada |
 | F12-3 | El índice vive en `%LOCALAPPDATA%`, se puede borrar y se reconstruye igual: las mismas huellas y, con el mismo modelo, el mismo orden en el conjunto de prueba | Pruebas |
-| F12-4 | Búsqueda híbrida (bm25 y coseno, fundidos con k = 60) con desempate determinista. En un conjunto de 50 preguntas en castellano sobre días anteriores, la respuesta sale entre las 5 primeras en el 85 % o más, y al menos 15 puntos más que solo con FTS5 | Prueba con el conjunto, sobre memoria y bitácora sintéticas y sobre la bitácora real de este repositorio |
+| F12-4 | Búsqueda híbrida (bm25 y coseno, fundidos con k = 60) con desempate determinista. **Criterio cambiado el 2026-11-04 por decisión del usuario:** con preguntas en castellano sobre días anteriores, la respuesta entre las 5 primeras nunca sale menos veces que con FTS5 como hoy en ningún tipo de pregunta (paráfrasis, identificador con significado y metadatos), y en total al menos 10 puntos más, también con preguntas nuevas que no se usaron para ajustar. El criterio anterior (85 % y 15 puntos) no se alcanzaba fuera de muestra ni buscando solo por significado; las tres medidas están en la adenda del 2026-11-04 de [ADR-0047](adr/0047-indice-semantico-local.md) | Prueba con el conjunto de calibración y validación ciega con un conjunto nuevo, sobre memoria y bitácora sintéticas; y medida sobre la bitácora real de este repositorio |
 | F12-5 | Con 10 000 fragmentos, una consulta en castellano tarda menos de 200 ms (percentil 95), con su embedding, en tu equipo | Medición guardada como evidencia |
 | F12-6 | Sin red: el embedder solo carga un fichero local con la huella fijada; sin modelo, busca por palabras y lo dice; nada se descarga sin tu OK | Pruebas |
 | F12-7 | El paquete de contexto usa la relevancia híbrida en sus niveles por relevancia, y la bitácora entra en el último; el `ContextPack` lo traza | Pruebas del empaquetador |

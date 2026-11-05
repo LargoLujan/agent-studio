@@ -154,6 +154,7 @@ public sealed class JudgeRunRecorder(
             {
                 RunId = scope.Run,
                 V = AgentRunFinishedPayload.EndClassVersion,
+                Journal = end.Outcome.Journal,
             },
             cancellationToken: cancellationToken).ConfigureAwait(false);
     }

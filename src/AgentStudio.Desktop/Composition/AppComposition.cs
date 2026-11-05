@@ -1,4 +1,7 @@
+using System.IO;
 using AgentStudio.Desktop.Services;
+using AgentStudio.Infrastructure.Embeddings;
+using AgentStudio.Infrastructure.Persistence;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -10,8 +13,20 @@ namespace AgentStudio.Desktop.Composition;
 /// <param name="DefaultSkillsIndexPath">The skills index used while the settings name none, if that folder exists.</param>
 public sealed record AppFolders(AppDataPaths Roaming, LocalDataPaths Local, string? DefaultSkillsIndexPath)
 {
+    /// <summary>
+    /// The folder <c>%LOCALAPPDATA%</c> resolves to for the semantic index and its model (docs/17 D-03 and D-04): the index
+    /// of a project lives in <c>AgentStudio\index\&lt;key&gt;\semantic.db</c> under it, and the model in
+    /// <c>AgentStudio\models\…</c>. For the current user it is the one of <see cref="SemanticIndexOptions.ForCurrentUser"/>
+    /// and <see cref="EmbeddingModelLocation.ForCurrentUser"/>; otherwise, by default, the folder that holds
+    /// <see cref="LocalDataPaths.BaseDirectory"/>, so a test with folders of its own keeps the index and the model in them.
+    /// </summary>
+    public string SemanticRoot { get; init; } = Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(Local.BaseDirectory)) ?? Local.BaseDirectory;
+
     public static AppFolders ForCurrentUser() =>
-        new(AppDataPaths.ForCurrentUser(), LocalDataPaths.ForCurrentUser(), AppSettings.DefaultSkillsIndexPath);
+        new(AppDataPaths.ForCurrentUser(), LocalDataPaths.ForCurrentUser(), AppSettings.DefaultSkillsIndexPath)
+        {
+            SemanticRoot = SemanticIndexOptions.ForCurrentUser().LocalAppData,
+        };
 }
 
 /// <summary>The composition root of the app: what App.OnStartup registers, reachable by tests with their own folders.</summary>

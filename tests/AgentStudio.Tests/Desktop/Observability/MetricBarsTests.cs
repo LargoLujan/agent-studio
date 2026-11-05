@@ -119,7 +119,10 @@ public sealed class MetricBarsTests
         var quota = MetricBars.Quota("Claude 5 h", MetricValue<double>.Exact(0.47, "claude rate_limit_event"), "vista hace 12 min", "se reinicia hoy a las 15:00");
 
         Assert.Equal("47 % · exacto · informado por el CLI · vista hace 12 min", quota.Text);
-        Assert.Equal("47 % exacto · vista hace 12 min", quota.CompactText);
+
+        // V38: in the status bar the age is shorter, so the bars of a run fit in one line; the reader and the tooltip keep it whole.
+        Assert.Equal("47 % exacto · hace 12 min", quota.CompactText);
+        Assert.Contains("vista hace 12 min", quota.AccessibleName, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -129,7 +132,9 @@ public sealed class MetricBarsTests
 
         Assert.False(after.HasValue);
         Assert.Equal("se reinició a las 15:00, sin dato nuevo", after.ValueText);
-        Assert.Equal("se reinició a las 15:00, sin dato nuevo", after.CompactText);
+        // V38: the status bar says it short; the moment of the reset stays in the line a reader says and in the tooltip.
+        Assert.Equal("se reinició · sin dato", after.CompactText);
+        Assert.Contains("se reinició a las 15:00, sin dato nuevo", after.AccessibleName, StringComparison.Ordinal);
         Assert.Equal("antes del reinicio: 92 % · exacto · informado por el CLI · vista hace 3 h", after.Detail);
         Assert.DoesNotContain("exacto", after.Text, StringComparison.Ordinal);
     }

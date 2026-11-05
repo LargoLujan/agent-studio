@@ -103,8 +103,16 @@ public sealed class MemoryDerivationIntegrationTests
         Assert.Equal(MemorySources.LogEntry(run.Id.Value, approval.Entry.Sequence), planDecision.Source);
         var verdict = Assert.Single(derived.Recorded, e => e.Kind == MemoryKind.Verdict);
         Assert.Equal((MemoryOrigin.System, MemorySources.LogEntry(run.Id.Value, verdictIssued.Entry.Sequence)), (verdict.Origin, verdict.Source));
-        Assert.All(derived.Recorded, e => Assert.StartsWith($"{MemorySources.LogEntryPrefix}{run.Id.Value}#", e.Source, StringComparison.Ordinal));
+        var fromLog = derived.Recorded.Where(e => e.Kind != MemoryKind.JournalEntry).ToList();
+        Assert.All(fromLog, e => Assert.StartsWith($"{MemorySources.LogEntryPrefix}{run.Id.Value}#", e.Source, StringComparison.Ordinal));
         Assert.All(derived.Recorded, e => Assert.Equal(MemoryTrust.Trusted, e.Trust));
+
+        // Phase 12 (WP1): the entries Agent Studio wrote in the journal for the run are anchored too, each by its day and the
+        // hash of its text, and they are the system's own words: their receipt in AgentRunFinished matched.
+        var journal = derived.Recorded.Where(e => e.Kind == MemoryKind.JournalEntry).ToList();
+        Assert.NotEmpty(journal);
+        Assert.All(journal, e => Assert.True(MemorySources.TryParseJournal(e.Source, out _, out _), e.Source));
+        Assert.All(journal, e => Assert.Equal(MemoryOrigin.System, e.Origin));
         Assert.All(new[] { planDecision, verdict }, e => Assert.Contains(run.Id.Value, e.Topic, StringComparison.Ordinal));
 
         // Each entry announced once in the log, outside every run, with no text in its payload (D-19).
@@ -129,7 +137,8 @@ public sealed class MemoryDerivationIntegrationTests
         // The export writes the trusted memory to .agentstudio/memory/: the month and one file per category.
         var export = await app.Get<IMemoryExporter>().ExportAsync(app.Project, Ct);
         Assert.True(export.Exported, export.Reason);
-        Assert.Equal(derived.Recorded.Count, export.Entries);
+        // The journal entries are not exported (ADR-0047): the journal is already a file of the repository.
+        Assert.Equal(fromLog.Count, export.Entries);
         Assert.Contains("memory/tema-decisiones.md", export.Files);
         Assert.Contains("memory/tema-veredictos.md", export.Files);
         Assert.Contains(export.Files, f => f.StartsWith("memory/cronologico-", StringComparison.Ordinal));

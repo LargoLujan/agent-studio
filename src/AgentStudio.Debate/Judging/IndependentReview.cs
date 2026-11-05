@@ -200,8 +200,9 @@ public sealed class IndependentReview(
             return (ex.Verification, []);
         }
 
-        // The recorder appends to the log it holds in memory: only reading it back shows a change made in the store.
-        var state = await decisions.LoadAsync(projectId, cancellationToken).ConfigureAwait(false);
+        // The recorder appends to the log it holds in memory: only reading it back, whole and from its first entry, shows
+        // a change made in the store (a critical moment, ADR-0010, addendum of 2026-11-04).
+        var state = await decisions.LoadAsync(projectId, LogLoad.Full, cancellationToken).ConfigureAwait(false);
         return state.Verification.IsValid ? (null, state.Entries) : (state.Verification, []);
     }
 

@@ -70,7 +70,8 @@
                 <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="18,2,0,0" TextWrapping="Wrap"
                            Text="{Binding ResumeConsentText, TargetNullValue=''}"
                            AutomationProperties.Name="Consentimiento para reanudarse sola"/>
-                <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="18,2,0,0" Text="{Binding ResultSummary}"/>
+                <!-- V35: the summary of the result only when it says more than the detail of the phase (the engine sends both). -->
+                <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="18,2,0,0" Text="{Binding ResultSummaryText}"/>
                 <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="18,2,0,0" TextWrapping="Wrap"
                            Text="{Binding DeliveryMessage, TargetNullValue=''}"
                            AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="Entrega a tu rama"/>

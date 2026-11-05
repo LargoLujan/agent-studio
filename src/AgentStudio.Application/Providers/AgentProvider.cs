@@ -284,6 +284,13 @@ public sealed record AgentRunOutcome(
 {
     /// <summary>The class of the end: the adapter's, or else the one the status implies (<see cref="AgentRunEnd.Implied"/>).</summary>
     public AgentRunEnd Classified() => End ?? AgentRunEnd.Implied(Status);
+
+    /// <summary>
+    /// The receipt of the journal entry of this launch (docs/17 D-02, addendum of 2026-11-03), set by the journal decorator
+    /// (<see cref="JournalingAgentProvider"/>) once it wrote the anchored result line; whoever records the end of the launch
+    /// keeps it in <c>AgentRunFinished</c>. Null when the journal wrote none.
+    /// </summary>
+    public Knowledge.JournalReceipt? Journal { get; init; }
 }
 
 /// <summary>Normalised event stream. Each adapter maps its native events (stream-json, exec --json...) to these.</summary>

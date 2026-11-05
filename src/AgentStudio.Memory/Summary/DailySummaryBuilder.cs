@@ -62,7 +62,7 @@ internal static partial class DailySummaryBuilder
             return new DailySummaryText(head.Append('\n').Append("No hay bitácora de este día.").Append('\n').ToString(), 0, 0);
         }
 
-        var parsed = Parse(journal);
+        var parsed = Parse(journal, day);
         var done = parsed.Done.Select(line => "- " + MarkdownText.Escape(Limit(line, MaxDoneLine))).ToList();
         var shown = done.Count;
         var text = Render(head.ToString(), parsed, done);
@@ -159,7 +159,7 @@ internal static partial class DailySummaryBuilder
         }
     }
 
-    private static ParsedJournal Parse(string journal)
+    private static ParsedJournal Parse(string journal, DateOnly day)
     {
         var parsed = new ParsedJournal();
         foreach (var raw in journal.Split('\n'))
@@ -191,7 +191,7 @@ internal static partial class DailySummaryBuilder
             }
             else if (Outcome().Match(line) is { Success: true } outcome && Statuses.Contains(outcome.Groups["status"].Value, StringComparer.Ordinal))
             {
-                parsed.Outcomes.Add(OutcomeOf(outcome, parsed.Prompts));
+                parsed.Outcomes.Add(OutcomeOf(outcome, line, day, parsed.Prompts));
             }
             else if (Done().Match(line) is { Success: true } done)
             {
@@ -206,11 +206,16 @@ internal static partial class DailySummaryBuilder
         return parsed;
     }
 
-    /// <summary>A result line, which answers the last prompt of its id above it (a result may come later than the next entries).</summary>
-    private static JournalOutcome OutcomeOf(Match outcome, List<JournalPrompt> prompts)
+    /// <summary>
+    /// A result line, which answers the last prompt of its id above it (a result may come later than the next entries). One
+    /// that names an entry of another day (<c>· entrada `AAAA-MM-DD/P-NNNN`</c>, docs/17 D-02: its agent ended after
+    /// midnight) is a result of this day that answers none of its prompts.
+    /// </summary>
+    private static JournalOutcome OutcomeOf(Match outcome, string line, DateOnly day, List<JournalPrompt> prompts)
     {
         var id = outcome.Groups["id"].Value;
-        var prompt = prompts.LastOrDefault(p => p.Product && string.Equals(p.Id, id, StringComparison.Ordinal));
+        var elsewhere = JournalResultAnchor.TryParse(line, out _, out var entry) && entry is { } named && named.Day != day;
+        var prompt = elsewhere ? null : prompts.LastOrDefault(p => p.Product && string.Equals(p.Id, id, StringComparison.Ordinal));
         if (prompt is not null)
         {
             prompt.Answered = true;

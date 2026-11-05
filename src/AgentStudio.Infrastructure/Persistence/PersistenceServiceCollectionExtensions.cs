@@ -32,6 +32,7 @@ public static class PersistenceServiceCollectionExtensions
 
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<ProjectDatabases>();
+        services.TryAddSingleton<IProjectClosedSignal>(provider => provider.GetRequiredService<ProjectDatabases>());
         services.TryAddSingleton<IProjectWorkspace, ProjectWorkspace>();
         services.TryAddSingleton<IProjectStorageFiles, ProjectStorageFiles>();
         services.TryAddSingleton<IProjectStorageReader, ProjectStorageFiles>();
@@ -48,10 +49,17 @@ public static class PersistenceServiceCollectionExtensions
         services.TryAddSingleton<IAgentRoster, SqliteAgentRoster>();
         services.TryAddSingleton(anchors ?? DecisionLogAnchorOptions.ForCurrentUser());
         services.TryAddSingleton<IDecisionLogAnchorStore, FileDecisionLogAnchorStore>();
-        services.TryAddSingleton<IDecisionRecorder>(provider => new DecisionRecorder(
-            provider.GetRequiredService<IDecisionLogStore>(),
-            provider.GetRequiredService<TimeProvider>(),
-            provider.GetRequiredService<IDecisionLogAnchorStore>()));
+        services.TryAddSingleton<IDecisionRecorder>(provider =>
+        {
+            var recorder = new DecisionRecorder(
+                provider.GetRequiredService<IDecisionLogStore>(),
+                provider.GetRequiredService<TimeProvider>(),
+                provider.GetRequiredService<IDecisionLogAnchorStore>());
+
+            // A closed project keeps nothing in memory: the log the recorder verified for it is forgotten.
+            provider.GetRequiredService<ProjectDatabases>().Closed += recorder.Forget;
+            return recorder;
+        });
 
         // The same writer: accepting a history appends to the log, under the lock of the one recorder of each project.
         services.TryAddSingleton<IDecisionLogOrigin>(provider => provider.GetRequiredService<IDecisionRecorder>() as IDecisionLogOrigin

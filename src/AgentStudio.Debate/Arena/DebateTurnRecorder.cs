@@ -1,5 +1,6 @@
 using System.Text;
 using AgentStudio.Application.Decisions;
+using AgentStudio.Application.Knowledge;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Providers;
 using AgentStudio.Domain.Agents;
@@ -107,7 +108,7 @@ public sealed class DebateTurnRecorder(IDecisionRecorder decisions, IEvidenceSto
 
     /// <summary>
     /// <c>AgentRunFinished</c> version 2 of one attempt of a turn, as soon as it ends, with its usage and what its events said,
-    /// and never its answer (D-17).
+    /// and never its answer (D-17); with the receipt of its journal entry when the journal gave one (docs/17 D-02).
     /// </summary>
     public Task<DecisionEntry> RecordTurnFinishedAsync(
         TaskId turn,
@@ -118,6 +119,7 @@ public sealed class DebateTurnRecorder(IDecisionRecorder decisions, IEvidenceSto
         string? error,
         AgentRunObservations seen,
         string label,
+        JournalReceipt? journal,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(seen);
@@ -143,6 +145,7 @@ public sealed class DebateTurnRecorder(IDecisionRecorder decisions, IEvidenceSto
             {
                 RunId = Debate.Value,
                 V = AgentRunFinishedPayload.UsageVersion,
+                Journal = journal,
             },
             cancellationToken);
     }

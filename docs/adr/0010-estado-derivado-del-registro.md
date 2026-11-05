@@ -445,3 +445,222 @@ fallando, con su ejecutor como escritor Medium que nadie había visto ni aprobad
      arranca.
    - Un proceso concurrente del mismo usuario con integridad Medium puede reescribir el registro y su ancla (punto 2 de
      ADR-0018).
+
+## Adenda · 2026-11-04 · el registro se verifica a medida que crece
+
+**Problema.** Cada carga del registro (`DecisionRecorder.LoadAsync`) lo leía entero y recalculaba toda la cadena dos veces.
+La memoria carga el registro en cada `RecordAsync`, en cada revisión y en cada búsqueda (`RecallAsync`), y además
+reconstruía su libro (`MemoryLedger`) leyendo el JSON de todas las entradas. Grabar memoria era cuadrático: 2 000 entradas
+tardaron 144 s, y las 10 000 se pararon a los 14 minutos. También ponía en riesgo F12-5, porque el índice semántico
+recupera toda la memoria antes de cada búsqueda.
+
+**Decisión: verificación incremental, con una caché por proceso y por proyecto.**
+
+1. **El almacén lee la cola** (`IDecisionLogTailReader`, en `SqliteDecisionLogStore`). En una sola transacción de lectura
+   devuelve tres cosas:
+   - el sello del almacén: esta apertura del proyecto, la versión del esquema de la base y la fecha de creación de su
+     fichero;
+   - si las entradas hasta lo verificado siguen ahí (cuántas son y el hash de la última);
+   - y las entradas posteriores.
+2. **El escritor del registro verifica solo lo nuevo.** El registrador guarda el último registro verificado del proyecto
+   con su sello. Una carga verifica únicamente las entradas nuevas, encadenadas a la cabeza que ya verificó
+   (`DecisionLog.Extend`), y compara el ancla como siempre, sin recalcular la cadena (`DecisionLog.VerifyHead`). El ancla se
+   comprueba en cada carga.
+3. **Si algo no cuadra, se verifica entero, como antes:** el sello es otro, faltan entradas, la última verificada tiene
+   otro hash, o los triggers que hacen append-only el registro y, desde el 2026-11-05, la memoria no están exactamente
+   como los crea el esquema (falta uno o tiene otro cuerpo). En ese último caso, cada carga verifica el registro entero
+   hasta que vuelvan.
+4. **Los momentos críticos leen el registro entero.** El contrato lo dice en cada llamada:
+   `IDecisionRecorder.LoadAsync(projectId, LogLoad.Full, ct)` lee y verifica todo desde la primera entrada, pase lo que
+   pase antes. Son los sitios donde una decisión o un agente se apoyan en el registro, y todo lo que ve un juez:
+   - la entrega (`DeliveryService.CheckAsync`);
+   - el dosier del juez (`JudgeDossierBuilder`) y la revisión independiente (`IndependentReview`);
+   - el arranque de una ejecución y sus reanudaciones (`Orchestrator.StartAsync`, `ResumeAsync` y la reanudación por
+     consentimiento);
+   - la planificación (`Planner`);
+   - en un debate, el dosier de su juez (`DebateDossierBuilder`), su veredicto (`DebateJudgment`) y su cierre
+     (`DebateClosed`, en `DebateRun`);
+   - la auditoría del proyecto (`ProjectAuditService`) en cada paso: la propuesta, que decide quién puede juzgar, el
+     arranque, el dosier de su juez y el cierre de una auditoría interrumpida;
+   - la impugnación de un veredicto (`VerdictChallengeService`): prepararla, que decide quién puede juzgar la revisión,
+     el `VerdictChallenged` que la ancla y la aceptación de su revisión, que la resuelve.
+
+   El resto de cargas son incrementales (`LogLoad.Incremental`, la sobrecarga sin `LogLoad`): las de una ejecución o un
+   debate en marcha, abrir y reanudar un debate, listar e inspeccionar ejecuciones y debates, grabar y buscar memoria, el
+   auditor del orquestador (que no es un juez: no da veredictos) y el estado de una impugnación que enseñan las pantallas.
+5. **Una carga incremental verifica entero cada cierto tiempo.** Lo hace si la última verificación entera fue hace 5
+   minutos o más (`DecisionRecorder.IncrementalAgeBeforeFullVerification`, medido con el `TimeProvider`), y además cada 256
+   cargas desde la cola (`IncrementalLoadsBeforeFullVerification`). Al volver a abrir el proyecto, siempre.
+6. **Al cerrar un proyecto, el registrador olvida lo que verificó de él** (`DecisionRecorder.Forget`, que el contenedor
+   engancha a `ProjectDatabases.Closed`). La primera entrada tras volver a abrirlo se apoya en el registro leído entero otra
+   vez, y la caché no crece con los proyectos que se abrieron y se cerraron.
+7. **La memoria amplía su libro** con lo que creció el registro (`MemoryLedger.Extend`). El libro no cambia nunca: ampliarlo
+   da otro, así que las búsquedas simultáneas lo comparten.
+
+**Qué se detecta y cuándo.**
+- **En la carga siguiente**, como antes:
+  - un cambio con SQL, aunque se vuelva a crear el trigger que hubo que quitar, mientras la versión del esquema quede como la
+    dejó ese cambio (quitar y crear un trigger la sube);
+  - un trigger de `decision_log` quitado o con otro cuerpo: mientras siga así ninguna carga se fía de la cola, así que un
+    cambio posterior, que ya no toca el esquema, también se ve;
+  - lo añadido después por otro escritor, que llega por la cola y lo detecta el ancla, y lo cortado del final;
+  - abrir otra vez el proyecto, que da otro sello.
+- **En la siguiente verificación entera**, un cambio en su sitio que deja el sello igual:
+  - un cambio con SQL tras el que se vuelve a poner la versión del esquema (`PRAGMA schema_version = N`);
+  - el fichero sustituido por una copia preparada que conserva su fecha de creación (a mano, o por el *tunneling* de NTFS
+    si se sustituye en pocos segundos);
+  - unos bytes escritos en su sitio, con la interfaz de blobs de SQLite o en el propio fichero;
+  - una fila sustituida por su `rowid` con `INSERT OR REPLACE` desde una conexión sin `recursive_triggers` (adenda del
+    2026-11-05, punto 5 de su revisión).
+
+  Esa verificación llega en el siguiente momento crítico, en la primera carga pasados 5 minutos desde la última verificación
+  entera, tras 256 cargas desde la cola o al volver a abrir el proyecto: lo que ocurra antes.
+- **Mientras tanto nadie en este proceso recibe las entradas cambiadas.** Una carga incremental sirve desde memoria lo que
+  ya verificó, y del almacén solo toma lo añadido después, verificado encadenado a esa cabeza y contra el ancla. Lo que se
+  escribe en ese tiempo se encadena a la cabeza verdadera, y la verificación entera encuentra la entrada cambiada.
+- Lo prueban:
+  - `IncrementalLogVerificationTests`, sin reabrir el proyecto, con otra conexión y con otro proceso (python y su SQLite): un
+    trigger quitado y después un cambio, un trigger con otro cuerpo, bytes escritos con la interfaz de blobs (aparecen
+    dentro del límite de cargas), y la versión del esquema falsificada o el fichero sustituido, que se encuentran en el
+    siguiente momento crítico y a los 5 minutos de reloj falso (a los 4:59, todavía no);
+  - `CriticalMomentsTests`: esos dos cambios, sobre los almacenes y el ancla reales, se encuentran en la entrega, en el
+    dosier del juez, al arrancar una ejecución y al planificar;
+  - `CriticalLogLoadsTests`, `JudgeDossierBuilderTests`, `IndependentReviewTests`, `ResumeAfterRestartTests`,
+    `DebateDossierBuilderTests`, `DebateJudgmentTests`, `DebateCoordinatorTests`, `ProjectAuditServiceTests` y
+    `VerdictChallengeServiceTests`: cada momento crítico pide la lectura entera, y listar e inspeccionar ejecuciones, una
+    ejecución o un debate en marcha y el estado de una impugnación, la incremental;
+  - `PersistenceRegistrationTests`: un proyecto cerrado se olvida;
+  - `IncrementalMemoryLedgerTests`: el libro ampliado es, en cada paso, el que se lee de cero.
+
+**Revisión de seguridad del 2026-11-04.** La primera versión de esta adenda decía que un cambio con SQL se veía siempre en la
+carga siguiente, porque quitar un trigger cambia la versión del esquema aunque luego se vuelva a crear. No es así. Quien
+puede escribir en la base puede volver a poner esa versión con `PRAGMA schema_version`, o sustituir el fichero por una copia
+preparada que conserva su fecha de creación. En los dos casos el sello no cambia, y solo una verificación entera lo ve. La
+revisión lo comprobó con un programa propio: antes de los puntos 4 a 6, solo lo encontraban la verificación entera de cada
+256 cargas o la reapertura del proyecto. Un sello que nadie pudiera falsificar exigiría un secreto fuera del alcance de ese
+proceso, y eso es lo que el punto 2 de ADR-0018 deja fuera.
+
+**Cifras** (Release, esta máquina):
+
+| | Antes | Después |
+|---|---|---|
+| Grabar 2 000 entradas | 140,9 s, de 54 a 98 ms por entrada | 94,3 s, plano en unos 47 ms |
+| Grabar 10 000 entradas | Parado a los 14 min | 495 s, plano en unos 50 ms |
+| Cargar el registro con 2 000 entradas | Unos 45 ms | 4 ms |
+| Cargar el registro con 10 000 entradas | Un cuarto de segundo | 7,6 ms |
+| Leerlo entero en un momento crítico, con 2 000 entradas | Unos 45 ms (todas las cargas) | 20,9 ms |
+
+Lo que queda por entrada son las escrituras durables: el ancla con `flushToDisk` al anunciar y al asentar, y los commits
+de SQLite. No se tocan. La lectura entera se paga en los momentos críticos, que son pocos por ejecución, y como mucho una
+vez cada 5 minutos en las demás cargas de un proyecto con actividad. Con 10 000 entradas no se ha vuelto a medir: antes de
+esta adenda, cada carga, entera, costaba un cuarto de segundo, y la lectura entera de ahora recalcula la cadena una vez en
+lugar de dos.
+
+**Residuales.**
+- Un cambio en su sitio que deja el sello igual, con el proyecto abierto, ya no se ve en la carga siguiente. Es el caso del
+  SQL con la versión del esquema puesta como estaba, del fichero sustituido por una copia que conserva su fecha de creación,
+  de los bytes escritos con la interfaz de blobs de SQLite o en el fichero, o de una fila sustituida por su `rowid` con
+  `INSERT OR REPLACE` desde una conexión sin `recursive_triggers`. Se ve en el siguiente momento crítico, a más
+  tardar en la primera carga pasados 5 minutos o 256 cargas desde la última verificación entera, o al volver a abrir el
+  proyecto. Mientras tanto nadie en este proceso recibe las entradas cambiadas: se sirve desde memoria lo verificado, así
+  que lo que se retrasa es el aviso, no lo que se lee.
+- Es el punto 2 de ADR-0018: un proceso del mismo usuario con integridad Medium puede reescribir el registro y también su
+  ancla. Lo que esta adenda cambia es cuándo se ve, nunca si se puede hacer.
+- Una ejecución o un debate en marcha, abrir y reanudar un debate y el auditor del orquestador cargan de forma
+  incremental: trabajan sobre lo verificado y ven el aviso en la siguiente verificación entera. Lo que decide sobre ellos
+  (la revisión, el veredicto y el cierre de un debate, la entrega) vuelve a leer el registro entero.
+- Un almacén sin lectura de la cola (las pruebas en memoria) se sigue leyendo entero en cada carga.
+
+## Adenda · 2026-11-05 · la memoria de confianza se sirve desde la memoria del proceso (F12-5)
+
+**Problema.** El índice semántico recupera toda la memoria anclada antes de cada búsqueda (`RecallAsync` sin texto). Cada
+recuperación leía las 10 000 filas de `memory_entries`, recalculaba el SHA-256 de cada una contra su anuncio y volvía a
+construir la instantánea: p50 120,2 · p95 179,7 ms (en reposo) en la medición de F12-5 de principio a fin, en todas
+las búsquedas. El objetivo de F12-5 es un p95 de la búsqueda por debajo de 200 ms.
+
+**Decisión.** Lo que la memoria verificó se sirve desde la memoria del proceso mientras el registro solo crece:
+
+1. **Una instantánea por proyecto, inmutable, que se sustituye entera** (`ProjectMemory`, sin locks): las filas que
+   cuadran con su anuncio, en el orden del almacén, con la confianza y la sustitución que da el libro (`MemoryLedger`).
+2. **Se amplía con lo nuevo.** Si el registro creció con algo que el libro lee, se leen y comprueban solo las filas de lo
+   que anunció después (`IMemoryStore.FindAsync`) y las de lo anunciado cuya fila aún no estaba. La confianza y la
+   sustitución de todas las entradas se vuelven a calcular con el libro nuevo (una revisión, la confianza de la bitácora o
+   un historial aceptado pueden cambiar cualquiera). Si lo que creció no toca la memoria (las entradas de una ejecución),
+   el libro es el mismo (`MemoryLedger.Extend` lo devuelve tal cual) y la instantánea también.
+3. **Se rehace entera en cada verificación entera del registro** (`DecisionLogState.WholeVerification`: un valor nuevo cada
+   vez que el registrador lee y verifica el registro entero, que no se repite tras cerrar y abrir el proyecto). Es decir,
+   en el siguiente momento crítico, a los 5 minutos o 256 cargas, cuando el sello del almacén cambia y al volver a abrir el
+   proyecto: todas las filas se leen y comprueban otra vez, como antes en cada recuperación.
+4. **Los triggers de `memory_entries` cuentan como los del registro** en la lectura de la cola: con uno quitado o
+   cambiado, cada carga verifica el registro entero, así que cada recuperación rehace la instantánea.
+
+**Por qué la seguridad es la misma.** Lo que se sirve está verificado contra el registro: es la fila que cuadró con su
+anuncio cuando se comprobó, y nunca se vuelve a tomar del almacén sin comprobarla. Una fila cambiada con SQL obliga a
+quitar un trigger de la memoria (cambia el esquema y deja de estar el trigger: la carga siguiente es entera y la
+recuperación siguiente la encuentra). Una fila cambiada sin que el sello lo vea (la versión del esquema puesta como estaba,
+el fichero sustituido o bytes escritos en su sitio) se encuentra en la siguiente verificación entera, como el registro, y
+mientras tanto se sirve la verificada. Lo prueban `MemorySnapshotTests` (sin lecturas cuando nada cambia, solo la fila
+nueva tras una escritura, la fila que llega después de su anuncio, el cambio que el sello no ve en el siguiente momento
+crítico y a los 5 minutos, y el trigger quitado) e `IncrementalLogVerificationTests` (el trigger de la memoria y el valor de
+la verificación entera).
+
+**Cifras** (Release, esta máquina, sobre el proyecto sembrado de F12-5 con 10 000 entradas; orientativas, con otro agente
+trabajando a la vez):
+
+| | Antes | Después |
+|---|---|---|
+| Recuperar lo anclado antes de cada búsqueda | p50 120,2 · p95 179,7 ms (en reposo) | p50 8,0 · p95 23,3 ms, con otro agente midiendo a la vez; 1 de 300 por encima de 50 ms (la verificación entera de cada 256 cargas) |
+
+**Residuales.**
+- Una fila plantada en el almacén sin anuncio, o cambiada sin que el sello lo vea (la versión del esquema puesta como
+  estaba, el fichero sustituido, bytes escritos en su sitio o una fila sustituida por su `rowid` con `INSERT OR REPLACE`
+  sin `recursive_triggers`), ya no se avisa en la recuperación siguiente sino en la siguiente verificación entera del
+  registro (como mucho 5 minutos o 256 cargas, o en el siguiente momento crítico). Nunca se sirve.
+- ~~`ProjectMemory` guarda la instantánea y el libro de los proyectos que se cerraron~~: resuelto en la revisión de abajo
+  (`IProjectClosedSignal`).
+
+**Revisión de las cachés (2026-11-05).** La revisión dio el visto bueno a lo esencial (nunca se sirve contenido sin
+verificar; las revisiones, las retiradas, `JournalTrustChanged` y el historial aceptado se reflejan) y pidió dos arreglos de
+gravedad media y cuatro menores. Se hicieron así:
+
+1. **Una carrera lanzaba `NullReferenceException`.** Una recuperación que había leído el registro se retrasaba; mientras,
+   se grababa una entrada y otra recuperación publicaba una instantánea más nueva. La primera ampliaba esa instantánea con
+   su libro viejo, en el que la entrada nueva no tenía anuncio. El efecto era un `LaunchFailed` en el motor y que fallara el
+   refresco del índice. `_ledgers` tenía la misma regresión: no lanzaba, pero un libro viejo sustituía al nuevo y obligaba a
+   leer el registro entero otra vez.
+   - **Ahora hay un único lector por proyecto, una cola sin locks** (`ProjectMemory.ProjectState`). Lee el registro, amplía
+     o rehace el libro y la instantánea, y publica el resultado entero. Ese resultado lleva cuántas entradas del registro
+     cubre y nunca es más viejo que el anterior. Las recuperaciones y las escrituras toman lo publicado, que no cambia.
+     Las peticiones que esperan a la vez se atienden con una sola lectura del registro.
+   - Una alerta de integridad ya no espera a que acabe una escritura de la memoria. Si hay una en curso, la da la
+     recuperación siguiente, como cuando el proyecto está ocupado: así una recuperación nunca espera.
+   - Lo prueba `MemorySnapshotRaceTests`, que reproduce la carrera: antes del arreglo fallaba con esa excepción.
+2. **Los proyectos cerrados se quedaban en memoria.** `Application` gana `IProjectClosedSignal`, que `ProjectDatabases`
+   implementa y la persistencia registra. El módulo de memoria engancha `ProjectMemory.Forget` al construirla.
+3. **Una consulta por categoría o tema filtraba con las filas de la base.** Ahora filtra sobre la entrada verificada; el
+   almacén solo ordena por el texto. Una fila alterada ya no hace servir una entrada de otra categoría, ni esconde la
+   verificada.
+4. **Una entrada anunciada sin fila se buscaba por id en cada recuperación.** Ahora se recuerda como ausente hasta la
+   siguiente verificación entera y se avisa una vez (`memory.entry-missing-row`). La busca otra vez la siguiente
+   recuperación si este proceso guarda su fila entretanto, al derivarla de nuevo o porque se leyó entre el anuncio y la fila.
+5. **Un tercer canal que el sello no ve.** Una conexión sin `recursive_triggers` (la de otro programa: la aplicación los
+   activa) puede usar `INSERT OR REPLACE` con el `rowid` de una fila. La fila con la que choca se borra sin pasar por su
+   trigger de borrado, y una clave que ninguna fila tiene (un id, una secuencia) pasa el trigger de inserción. Los triggers
+   siguen intactos y la versión del esquema no cambia. Funciona igual en `memory_entries` y en `decision_log`. Lo encuentra
+   la siguiente verificación entera, como los otros dos canales, y mientras tanto se sirve lo verificado. Lo prueban
+   `MemorySnapshotStateTests` e `IncrementalLogVerificationTests`.
+   - **Defensa barata que se propone**, no aplicada: que la condición de los triggers `*_no_replace` cubra también el
+     `rowid`, con `WHEN EXISTS (… WHERE id = NEW.id) OR EXISTS (… WHERE rowid = NEW.rowid)`.
+   - Una prueba aparte sobre una base de SQLite en memoria lo comprobó. Con la condición actual, el `REPLACE` por `rowid`
+     cambia la fila. Con la nueva, se rechaza. Las inserciones normales siguen pasando, con `rowid` automático o con uno
+     nuevo explícito, y un id repetido sigue rechazado.
+   - Aplicarla exige una migración que vuelva a crear esos triggers en las tablas append-only (el registro, la memoria y
+     las demás que siguen el mismo patrón de `0001` y `0002`) y poner al día `AppendOnlyTriggers`.
+6. **Pruebas que faltaban.** `MemorySnapshotStateTests` cubre:
+   - las revisiones sobre una instantánea ya cargada;
+   - la confianza de la bitácora;
+   - recuperaciones y escrituras a la vez: nunca fallan, nunca ven menos que antes y acaban con todas las entradas;
+   - el filtro sobre lo verificado y la fila ausente;
+   - el olvido de un proyecto.
+
+   `ProjectMemoryCompositionTests` prueba el aviso de cierre.

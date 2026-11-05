@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using AgentStudio.Application.Decisions;
+using AgentStudio.Application.Knowledge;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Providers;
 using AgentStudio.Domain.Common;
@@ -253,6 +254,28 @@ internal static partial class DerivationTexts
             : "; corrige al veredicto " + superseded;
         var note = string.IsNullOrWhiteSpace(verdict.VendorNote) ? string.Empty : " " + verdict.VendorNote.Trim();
         return $"El juez {judge} emitió el veredicto {verdict.VerdictId} {target}: {Decision(verdict.Decision)}, {validity}{correction}.{note}";
+    }
+
+    // ---- JournalEntry (docs/17 D-02) ----
+
+    /// <summary>The summary of the integrity alert of a day of the journal that could not be read safely.</summary>
+    public const string JournalAlertSummary = "Alerta de integridad de la memoria: un día de la bitácora no se pudo leer de forma segura";
+
+    /// <summary>
+    /// The topic of an entry of the journal: its day and what names it in that day (<c>P-0007</c>, <c>11:42:07 · sesión
+    /// eb1c6494</c>, <c>P-0007 · notas</c>). It is made only of the line that starts the entry, never of the text under it, so
+    /// every version of the entry has the same topic.
+    /// </summary>
+    public static string JournalTopic(DateOnly day, string key) =>
+        $"Bitácora del {day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)} · {key}";
+
+    /// <summary>The summary of the decision of a person about the trust of the journal, for the log.</summary>
+    public static string JournalTrustSummary(JournalTrustScope scope, DateOnly? day, bool trusted, string decidedBy)
+    {
+        var what = scope == JournalTrustScope.Project || day is not { } date
+            ? "la bitácora del proyecto"
+            : "la bitácora del " + date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        return trusted ? $"Confianza en {what} por {decidedBy}" : $"Confianza en {what} retirada por {decidedBy}";
     }
 
     // ---- an agent's text that is not quoted ----

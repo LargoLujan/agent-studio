@@ -172,16 +172,41 @@ avanzó a d5d835d).
 
 **Retoques (tanda 2b)**
 
+| Id | Hallazgo | Gravedad | Estado |
+|---|---|---|---|
+| V32 | «Bitácora de hoy» no se refresca sola: tras la ejecución seguía diciendo «No hay bitácora de hoy» hasta pulsar «Actualizar» | Media | Corregido, pendiente de verificar en vivo: el panel vigila la carpeta de la bitácora y vuelve a leer el día solo cuando lleva medio segundo sin cambios (3 s como mucho en una ráfaga sin fin), y a medianoche. Lee siempre con la lectura comprobada, fuera del hilo de la interfaz y de una en una, por una cola. La vigilancia sobrevive a borrar y volver a crear `.agentstudio` (un checkout, la demo creada de nuevo), y se reintenta cada 5 s mientras no está completa. Mientras sigue el mismo proyecto y el mismo día, quien lee el final sigue las entradas nuevas y quien lee más arriba se queda con la misma entrada arriba (también en un día largo); otro proyecto u otra fecha empiezan arriba. Con «Ver todo», un aviso «Hay entradas nuevas» y «Recargar» ([03](03-pantallas-y-navegacion.md) §2) |
+| V33 | Durante la planificación, la barra de estado dice «Contexto: sin tareas en curso» aunque el orquestador tiene su barra en vivo: el contexto de lo que corre debe verse siempre (P3) | Media | Corregido, pendiente de verificar en vivo: mientras planifica, la barra de estado muestra «Contexto · orquestador». Si a la vez corre una ejecución, manda la más llena, con el mismo antirrebote y nada mientras la interfaz está bloqueada. Al cerrar la pestaña, la barra suelta su planificación y su monitor. Si algo sigue en marcha, los suelta cuando termina. Si la pestaña se abre otra vez, vuelve a seguirlos |
+| V34 | A1-bis incompleto: 11 tipos siguen dando en UI Automation su nombre técnico o el texto del record. En el monitor: `ActivityEntry`, `EvidenceEntry`, `AssessmentRow` y `MonitorTaskViewModel`. En la preparación: `AgentMemoryViewModel` y `RequirementDraftViewModel`. En el lienzo: `ConnectorViewModel`. En los debates: `VerdictPanelViewModel`. En Consumo: `DimensionOption` y `UsageGroupRow`. En Memoria: `MemoryEntryViewModel` | Media | Corregido, pendiente de verificar en vivo: los 11 y otros 25 tipos de elementos de listas dan su nombre en castellano. Una prueba de guarda los busca por reflexión y no deja pasar uno nuevo sin nombre. Cubre también las propiedades estáticas y los tipos de los módulos que guarda una colección de la app ([12](12-accesibilidad-tema-oscuro.md) §10) |
+| V35 | El resumen del monitor repite «Terminó bien: 3 tareas completadas y 0 omitidas.» | Baja | Corregido, pendiente de verificar en vivo: el resumen solo sale una vez; debajo solo va si dice algo más que el detalle de la fase |
+| V36 | En Consumo, la fila de una cuota caducada repite «se reinició el …» (estado y línea de debajo) | Baja | Corregido, pendiente de verificar en vivo: lo dice solo la barra |
+| V37 | Las barras ocultas (sin lectura) se exponen en UI Automation como «: sin dato» | Baja | Corregido, pendiente de verificar en vivo: una barra oculta o colapsada no es control para UI Automation; una visible sin lectura se lee «sin dato» ([12](12-accesibilidad-tema-oscuro.md) §10) |
+| V38 | Durante una ejecución la barra de estado salta a dos líneas a 1920 px (el presupuesto baja a la segunda) | Baja | Corregido, pendiente de verificar en vivo, con un límite. Cambios: textos cortos junto a la cifra («57 % exacto · hace 14 min», «se reinició · sin dato»), pistas más cortas y el mensaje de la izquierda limitado a 180 px (con «…» y el texto entero en la ayuda). Con la ruta `C:\Personal Projects\Agent Studio` y textos habituales, las cuatro barras caben en una línea en una pantalla de 1920 px al 100 %, 125 % y 150 %. **Límite:** con los peores textos vistos (una ejecución cargada, «Contexto · T2, la más llena de 3 · ~87 % estimado · compresión recomendada», una cuota reiniciada y un presupuesto) caben al 100 % y al 125 %, pero al 150 % las barras pasan enteras y en orden a una segunda línea. Con la ventana sin maximizar (1859 px al 125 %), caben en una línea incluso con los peores textos. Con 1850 px al 150 %, pasan a dos líneas también con los textos habituales. No se corta ninguna barra. El mensaje de la izquierda (errores, avisos de reanudación) se recorta ahora a 180 px con «…», y el texto entero está en la ayuda. Un lector de pantalla lo lee entero: es su nombre en UI Automation, y avisa cuando cambia (región viva cortés). **Límite:** quien solo usa el teclado no llega a esa ayuda, y en un mensaje largo solo ve el principio |
+| V39 | En Consumo, el contexto máximo por grupo y por intento sigue como cifra, sin barra (P3) | Baja | Corregido, pendiente de verificar en vivo: es la barra común, con su origen y su nivel; debajo, los tokens frente a la ventana y el modelo |
+
+### Recorrido en vivo de la Fase 12 (2026-11-05)
+
+App instalada desde `integracion-fase12` (b11fdf1) sobre `C:\AgentStudioDemo\calc`.
+
+**Visto funcionar:**
+
+- La descarga del modelo, con su confirmación: qué se descarga, de dónde (las dos URL fijadas de huggingface.co), cuánto
+  pesa (123,4 MB), dónde se guarda y que se comprueba la huella. El índice calculó los 58 fragmentos en segundo plano y
+  el panel lo dijo («Activa…»).
+- La búsqueda por significado en «Memoria»: «cuándo el revisor independiente dio por buena la división» trae primero las
+  revisiones independientes del juez, «Coincide por palabras y por significado».
+- La confianza de la bitácora: confiar en un día y retirarla cambia el estado y el recuento.
+- «Búsqueda en el historial para el orquestador» en «Ajustes», activada por defecto.
+- Una planificación real con la herramienta disponible y sin aviso; el orquestador prefirió leer los ficheros. V33: la
+  barra de estado mostró «Contexto · orquestador» mientras planificaba. V32: «Bitácora de hoy» mostró la entrada nueva
+  sin «Actualizar», con el ancla `2026-11-05/P-0001`.
+
+**Retoques (Fase 12b)**
+
 | Id | Hallazgo | Gravedad |
 |---|---|---|
-| V32 | «Bitácora de hoy» no se refresca sola: tras la ejecución seguía diciendo «No hay bitácora de hoy» hasta pulsar «Actualizar» | Media |
-| V33 | Durante la planificación, la barra de estado dice «Contexto: sin tareas en curso» aunque el orquestador tiene su barra en vivo: el contexto de lo que corre debe verse siempre (P3) | Media |
-| V34 | A1-bis incompleto: 11 tipos siguen dando en UI Automation su nombre técnico o el texto del record. En el monitor: `ActivityEntry`, `EvidenceEntry`, `AssessmentRow` y `MonitorTaskViewModel`. En la preparación: `AgentMemoryViewModel` y `RequirementDraftViewModel`. En el lienzo: `ConnectorViewModel`. En los debates: `VerdictPanelViewModel`. En Consumo: `DimensionOption` y `UsageGroupRow`. En Memoria: `MemoryEntryViewModel` | Media |
-| V35 | El resumen del monitor repite «Terminó bien: 3 tareas completadas y 0 omitidas.» | Baja |
-| V36 | En Consumo, la fila de una cuota caducada repite «se reinició el …» (estado y línea de debajo) | Baja |
-| V37 | Las barras ocultas (sin lectura) se exponen en UI Automation como «: sin dato» | Baja |
-| V38 | Durante una ejecución la barra de estado salta a dos líneas a 1920 px (el presupuesto baja a la segunda) | Baja |
-| V39 | En Consumo, el contexto máximo por grupo y por intento sigue como cifra, sin barra (P3) | Baja |
+| V40 | En «Memoria», las entradas que escribió Agent Studio antes de la Fase 12 (sin recibo) dicen «no la escribió Agent Studio»: debería decir que no se puede comprobar quién la escribió | Media |
+| V41 | Las entradas de la bitácora en «Memoria» enseñan el Markdown crudo (`**04:22:31**`, `\(intento 1\)`), como pasaba en «Bitácora de hoy» antes de V31 | Baja |
+| V42 | Tras descargar el modelo, el aviso verde «El índice calculará… hasta entonces, la búsqueda va por palabras» se queda aunque el estado de arriba ya diga «Activa» | Baja |
 
 **Para la Fase 14 (lenguaje sencillo, P12):**
 
@@ -437,7 +462,7 @@ Ordenados por importancia. «Ya en 18» es lo que ya recogen §1 a §3.
 | P39 | «Reintentar» no envía texto al agente bloqueado, así que hoy no hay forma de contestar su duda. Y cinco campos de `AgentDefinition` no gobiernan nada: `PathGrants`, `SystemInstructions`, `Objectives`, `MaxRounds` y `MaxTotalTokens` | Media | Hallazgo de 17 §0.2. Cruza con P9 (preguntas) y P10 (configurar agentes) |
 | P23 | Las 93 pruebas que fallan a integridad Low. Hasta adaptarlas, «Auditar proyecto completo» no puede aprobar este repositorio | Alta | Nuevo (08 F5) |
 | P3 | Barras de consumo y contexto en tiempo real | Hecho (verificado en vivo el 2026-11-03; retoques V32 a V39 en §3) | Ya en 18. Tanda 2 (WP-F), integrada el 2026-11-03 |
-| P19 | Índice semántico de la bitácora y la memoria | Alta | Ya en 18. Enmienda ADR-0023 (§4.3) |
+| P19 | Índice semántico de la bitácora y la memoria | Hecho (integrado el 2026-11-05 en `integracion-fase12`, pendiente de pasar a `main`) | Fase 12: la bitácora como memoria anclada con su confianza, la búsqueda híbrida (bm25 y significado con multilingual-e5-small, descargado solo con tu OK), «Memoria» con la búsqueda por significado y `search_project_history` en el planificador. F12-4 con el criterio que decidiste el 04-11, medido también sobre la bitácora real (23/40 frente a 17/40). Enmienda ADR-0023 (§4.3); ADR-0047 |
 | P24 | Tus demostraciones (lista debajo), y llevar a 08 lo visto en vivo el 30-10 | Alta | Nuevo. Cruza con P17 |
 | P16 | Fase 9 (F9-1 a F9-10) | Alta | Ya en 18 |
 | P4 a P15 y P18 | Constructor visual, modelos, configurador, preguntas, idiomas, textos, ayuda, documentación para clientes y Hello siempre | Alta | Ya en 18. Su diseño va en 17 (P22) |
@@ -451,7 +476,13 @@ Ordenados por importancia. «Ya en 18» es lo que ya recogen §1 a §3.
 | P32 | Capturas y mediciones reales: el `rate_limit_event` con `rateLimitType` de Claude, el límite y la sesión caducada de Codex, una suspensión real. Repetir D-30 y el confinamiento de Claude si cambia su versión (hoy, 2.1.290) | Baja | Nuevo |
 | P33 | Paquete Azure y Microsoft Fabric (prompt §16): decidir si entra y en qué fase | Baja; decides tú | Nuevo |
 | P34 | Revisar lo aplazado (lista debajo) | Baja; decides tú | Nuevo. Viene de 13 §1, 14 §1, 15 §1, 06 §5, ADR-0033 y 16 §7 |
-| P35 | Los 5 commits que llevan tu correo personal como autor (3ae5d84, 688533e, 35f9419, e9b7302 y a6da41d). Reescribirlos quedó pendiente de tu OK el 15-10 | Baja | Nuevo |
+| P35 | Los 5 commits que llevaban tu correo personal como autor | Hecho el 2026-11-03 | Reescribiste el historial de `main` en un solo commit (ff402ed) con el correo noreply y la licencia MIT |
+| P40 | Mejoras de la búsqueda híbrida vistas sobre la bitácora real (05-11): la fusión RRF deja ganar siempre a lo que está en las dos listas; el corte calibrado con datos sintéticos deja pasar casi toda la bitácora real; horas, fases, paquetes (WP3…) y ADR no van por delante como identificadores; «ayer» no se entiende; el tope de tres entradas por día; las entradas retroactivas («**mañana**») no se limpian; y la fusión queda por debajo de solo vectores en paráfrasis | Media | ADR-0047, adendas del 2026-11-04. Se mide sobre la bitácora real (`scratchpad/f124-real` de la sesión) |
+| P41 | El hook de la bitácora pierde el prompt cuando empieza con un bloque del sistema (`<browser_instruction>`, `<pasted_content>`): no los quita y recorta a 160 caracteres (`.claude/hooks/bitacora.ps1:48` y `:94`). Pasó en 4 entradas (15-10, 16-10 y 30-10) | Media | [11](11-bitacora.md) |
+| P42 | Pruebas intermitentes: `ExitSuspendsResumesTests` (salida suspendida de la Fase 8) y `Phase4ShellTests…open_memory_tab_shows_it` fallan solo con la máquina cargada; `QuotaWaitTests` (una ejecución que espera cuota y no termina a tiempo) falla también sola, 1 de 5 en `main` y 2 de 5 con la Fase 12. Averiguar si la carrera está en la prueba o en el producto: la de la cuota es la más importante | Media | Nuevo |
+| P43 | Grabar memoria cuesta unos 47 ms por entrada (escrituras durables del ancla y commits de SQLite). Opciones: anunciar y asentar en lote en las derivaciones, o `synchronous=NORMAL` | Baja | ADR-0010, adenda del 2026-11-04 |
+| P44 | Restos menores: en «Consumo» una cuota con barra repite «vista hace…»; la bandeja repite el resumen de una ejecución fallida; quedan carpetas de ejecuciones del 30-10 en `%LOCALAPPDATA%\AgentStudio\runs` | Baja | Nuevo |
+| P45 | Cerrar el canal `INSERT OR REPLACE` por `rowid` desde una conexión externa (sin `recursive_triggers`): cambia una fila del registro o de la memoria con los triggers intactos y el mismo `schema_version`; hoy se detecta en la siguiente verificación entera y nunca se sirve. Defensa propuesta y probada aparte: `OR EXISTS (… WHERE rowid = NEW.rowid)` en los triggers `*_no_replace`, con una migración | Baja | ADR-0010, residuales del 2026-11-05 |
 | P17, P20 y P21 | Probarlo todo, Auto Doctor compacto, documentarlo todo | — | Ya en 18 |
 
 Detalle de P24, tus demostraciones:

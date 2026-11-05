@@ -136,6 +136,126 @@ public sealed class JournalRenderTests
         TestContext.Current.SendDiagnosticMessage(string.Create(CultureInfo.InvariantCulture, $"A day of 5,000 lines drawn in {elapsed.TotalMilliseconds:0} ms ({paragraphs} entries)."));
     }
 
+    /// <summary>
+    /// The review of V32: each read of the day by itself put a new document and took the reader back to the top. Whoever reads
+    /// the end follows the new entries; whoever reads further up stays where they were.
+    /// </summary>
+    [Fact]
+    public void A_day_read_again_keeps_the_place_of_whoever_reads_it()
+    {
+        var (followsEnd, endGap, keptAt, wanted) = WpfHost.Run(() =>
+        {
+            var journal = new JournalViewModel(TimeProvider.System) { ReadScope = Scope, Text = JournalViewModelTests.LongDay(entries: 60), StatusMessage = null };
+            var (_, reader) = Show(journal);
+
+            reader.ScrollToEnd();
+            reader.UpdateLayout();
+            journal.Text = JournalViewModelTests.LongDay(entries: 70);
+            WpfHost.FlushBindings();
+            reader.UpdateLayout();
+            var gap = reader.ExtentHeight - reader.ViewportHeight - reader.VerticalOffset;
+            var atEnd = reader.VerticalOffset > 0 && gap <= 1;
+
+            reader.ScrollToVerticalOffset(120);
+            reader.UpdateLayout();
+            var offset = reader.VerticalOffset;
+            journal.Text = JournalViewModelTests.LongDay(entries: 80);
+            WpfHost.FlushBindings();
+            reader.UpdateLayout();
+            return (atEnd, gap, reader.VerticalOffset, offset);
+        });
+
+        Assert.True(followsEnd, $"After a read the end was {endGap:0} px away: it did not follow the new entries ({keptAt}, {wanted}).");
+        Assert.Equal(120, wanted, 0.5);
+        Assert.Equal(wanted, keptAt, 0.5);
+    }
+
+    /// <summary>
+    /// The re-review of V32: the first day opened at its end (the empty document before it already had a height), and another
+    /// project took the place of the one before. A first day, and a day of another project or another date, start at the top.
+    /// </summary>
+    [Fact]
+    public void A_first_day_and_a_day_of_another_project_or_date_start_at_the_top()
+    {
+        var (first, otherProject, otherDay) = WpfHost.Run(() =>
+        {
+            var journal = new JournalViewModel(TimeProvider.System) { StatusMessage = null };
+            var (_, reader) = Show(journal);
+
+            // As the panel reads it: the scope first, then the text.
+            journal.ReadScope = Scope;
+            journal.Text = JournalViewModelTests.LongDay(entries: 60);
+            WpfHost.FlushBindings();
+            reader.UpdateLayout();
+            var atFirst = reader.VerticalOffset;
+
+            reader.ScrollToEnd();
+            reader.UpdateLayout();
+            journal.ReadScope = @"C:\proyectos\otro|2026-10-15.md";
+            journal.Text = JournalViewModelTests.LongDay(entries: 61);
+            WpfHost.FlushBindings();
+            reader.UpdateLayout();
+            var atOtherProject = reader.VerticalOffset;
+
+            reader.ScrollToEnd();
+            reader.UpdateLayout();
+            journal.ReadScope = @"C:\proyectos\otro|2026-10-16.md";
+            journal.Text = JournalViewModelTests.LongDay(entries: 62);
+            WpfHost.FlushBindings();
+            reader.UpdateLayout();
+            return (atFirst, atOtherProject, reader.VerticalOffset);
+        });
+
+        Assert.Equal(0, first, 0.5);
+        Assert.Equal(0, otherProject, 0.5);
+        Assert.Equal(0, otherDay, 0.5);
+    }
+
+    /// <summary>
+    /// The re-review of V32: a long day draws its latest entries, so each new entry drops the oldest drawn and the text went up
+    /// under whoever read it. The entry at the top of the view stays at the top.
+    /// </summary>
+    [Fact]
+    public void In_a_long_day_the_entry_at_the_top_stays_at_the_top_when_new_entries_come()
+    {
+        var (before, after, shift) = WpfHost.Run(() =>
+        {
+            var journal = new JournalViewModel(TimeProvider.System) { ReadScope = Scope, Text = JournalViewModelTests.LongDay(entries: 2500), StatusMessage = null };
+            var (_, reader) = Show(journal);
+            Assert.True(journal.IsTrimmed);
+
+            reader.ScrollToVerticalOffset(reader.ExtentHeight / 2);
+            reader.UpdateLayout();
+            var top = TopText(reader);
+            var offset = reader.VerticalOffset;
+
+            journal.Text = JournalViewModelTests.LongDay(entries: 2503);
+            WpfHost.FlushBindings();
+            reader.UpdateLayout();
+            return (top, TopText(reader), reader.VerticalOffset - offset);
+        });
+
+        Assert.Equal(before, after);
+        Assert.True(shift < -1, $"The view moved by {shift:0} px: it should have moved up by the entries dropped above.");
+    }
+
+    private const string Scope = @"C:\proyectos\calc|2026-10-15.md";
+
+    /// <summary>The panel in a host of a fixed size, as it is on screen: a later layout pass keeps the height, so the day scrolls.</summary>
+    private static (JournalView View, RichTextBox Reader) Show(JournalViewModel journal)
+    {
+        var view = new JournalView { DataContext = journal };
+        var host = new Grid { Width = 600, Height = 300, Children = { view } };
+        OffscreenRender.Render(host, 600, 300);
+        return (view, Reader(view));
+    }
+
+    /// <summary>The text of the paragraph at the top of the view.</summary>
+    private static string TopText(RichTextBox reader) =>
+        reader.GetPositionFromPoint(new Point(reader.Padding.Left + 4, reader.Padding.Top + 2), snapToText: true)?.Paragraph is { } top
+            ? new TextRange(top.ContentStart, top.ContentEnd).Text
+            : string.Empty;
+
     private static RichTextBox Reader(JournalView view) => (RichTextBox)view.FindName("JournalDocument");
 
     /// <summary>

@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Threading.Channels;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Knowledge;
 using AgentStudio.Application.Orchestration;
@@ -27,6 +28,16 @@ namespace AgentStudio.Memory.Store;
 /// trusted entry supersedes is left out. With text, by relevance (<see cref="IMemoryStore"/>); without, newest first.
 /// Entries go in that order while they fit in the budgets; one that does not fit in the characters left (topic and
 /// content) is skipped.</item>
+/// <item><b>From memory.</b> What recall selects from (<see cref="SnapshotAsync"/>) is kept per project, verified, and
+/// served again while the log only grows (ADR-0010, addenda of 2026-11-04 and 2026-11-05): a recall with nothing new
+/// reads no row, and one after the log grew reads and checks only the rows of what it announced since. At each whole
+/// verification of the log (<see cref="DecisionLogState.WholeVerification"/>: a critical moment, five minutes or 256
+/// loads, a store whose stamp changed, an opening) every row is read and checked again, so a row changed or planted
+/// behind the store is found then, and until then it is never served. An entry announced whose row is not there is
+/// remembered as missing until then, and raises its alert, unless this process stores its row meanwhile. One reader per
+/// project reads the log and builds the ledger and the snapshot (a queue, <see cref="ProjectState"/>), and publishes
+/// them whole, never older than the ones before; recalls and writes take what it published. A project closed is
+/// forgotten (<see cref="Forget"/>).</item>
 /// <item><b>Fail closed.</b> On a log that does not verify, nothing is recorded, reviewed or recalled
 /// (<see cref="DecisionLogIntegrityException"/>).</item>
 /// <item><b>Never while a run or a planning goes on.</b> Every write to the log (recording, reviews and the integrity
@@ -48,6 +59,9 @@ public sealed class ProjectMemory(IDecisionRecorder recorder, IMemoryStore store
     /// <summary>The alert of a row that no longer matches its announcement.</summary>
     public const string ModifiedAlert = "memory.entry-modified";
 
+    /// <summary>The alert of an entry the log announced whose row is not in the store.</summary>
+    public const string MissingRowAlert = "memory.entry-missing-row";
+
     /// <summary>How often a write that waits for a run or a planning asks again whether the project is busy.</summary>
     public static readonly TimeSpan BusyPollInterval = TimeSpan.FromMilliseconds(500);
 
@@ -57,6 +71,22 @@ public sealed class ProjectMemory(IDecisionRecorder recorder, IMemoryStore store
     private static readonly Actor SystemActor = new(ActorKind.System, "agent-studio");
 
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _gates = new(StringComparer.Ordinal);
+
+    /// <summary>What the memory of each open project rests on, kept by the one reader of the project's queue (<see cref="ProjectState"/>).</summary>
+    private readonly ConcurrentDictionary<string, ProjectState> _projects = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Forgets what the memory keeps of <paramref name="projectId"/> (its ledger and its snapshot): the next recall reads
+    /// and checks everything again. The composition calls it when the project is closed (<see cref="IProjectClosedSignal"/>).
+    /// </summary>
+    public void Forget(string projectId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
+        if (_projects.TryRemove(projectId, out var state))
+        {
+            state.Queue.Writer.TryComplete();
+        }
+    }
 
     public async Task<MemoryEntry> RecordAsync(ProjectContext project, MemoryDraft draft, CancellationToken ct)
     {
@@ -114,15 +144,18 @@ public sealed class ProjectMemory(IDecisionRecorder recorder, IMemoryStore store
             return [];
         }
 
-        var filtered = !string.IsNullOrWhiteSpace(query.Text) || query.Kinds is not null || query.Topic is not null;
-        var candidates = filtered
-            ? await store.SearchAsync(project.ProjectId, new MemorySearch(query.Text, query.Kinds, query.Topic), ct).ConfigureAwait(false)
+        // The store only ranks by the text; the category and the topic are those of the verified entry, never of the row.
+        var candidates = !string.IsNullOrWhiteSpace(query.Text)
+            ? await store.SearchAsync(project.ProjectId, new MemorySearch(query.Text), ct).ConfigureAwait(false)
             : snapshot.Rows;
         var recalled = new List<MemoryEntry>();
         var characters = 0;
         foreach (var candidate in candidates)
         {
-            if (snapshot.Entry(candidate.Id) is not { SupersededBy: null } entry || (query.TrustedOnly && entry.Trust != MemoryTrust.Trusted))
+            if (snapshot.Entry(candidate.Id) is not { SupersededBy: null } entry
+                || (query.TrustedOnly && entry.Trust != MemoryTrust.Trusted)
+                || (query.Kinds is { } kinds && !kinds.Contains(entry.Kind))
+                || (query.Topic is { } topic && !SameTopic(entry.Topic, topic)))
             {
                 continue;
             }
@@ -144,20 +177,184 @@ public sealed class ProjectMemory(IDecisionRecorder recorder, IMemoryStore store
         return recalled;
     }
 
+    /// <summary>Whether two topics are the same as the store compares them (<c>COLLATE NOCASE</c>: only the letters of ASCII fold).</summary>
+    private static bool SameTopic(string held, string asked)
+    {
+        if (held.Length != asked.Length)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < held.Length; i++)
+        {
+            if (Fold(held[i]) != Fold(asked[i]))
+            {
+                return false;
+            }
+        }
+
+        return true;
+
+        static char Fold(char c) => c is >= 'A' and <= 'Z' ? (char)(c + ('a' - 'A')) : c;
+    }
+
     /// <summary>
     /// Every anchored entry of the project with the trust and the supersession the log gives it, newest first: what recall
     /// selects from and what the Markdown export writes. It raises the integrity alerts of the rows left out, unless the
-    /// project is busy.
+    /// project is busy (then the next recall that finds it idle does). Kept per project and served again while the log only
+    /// grows: see the class.
     /// </summary>
     internal async Task<MemorySnapshot> SnapshotAsync(string projectId, CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
-        var ledger = await LoadAsync(projectId, ct).ConfigureAwait(false);
-        var rows = await store.SearchAsync(projectId, new MemorySearch(), ct).ConfigureAwait(false);
+        var loaded = await RequestAsync(projectId, snapshot: true, ct).ConfigureAwait(false);
+        var view = loaded.View!;
+        if (Unraised(loaded.Ledger, view.Problems).Any())
+        {
+            await RaiseAsync(projectId, view.Problems, ct).ConfigureAwait(false);
+        }
+
+        return view.Snapshot;
+    }
+
+    /// <summary>
+    /// The problems whose alert the log does not hold yet. A row left out as never announced whose entry the log announces
+    /// by now is not one: it was read while it was being recorded, and the next recall checks it again.
+    /// </summary>
+    private static IEnumerable<MemoryIntegrityProblem> Unraised(MemoryLedger ledger, IEnumerable<MemoryIntegrityProblem> problems) =>
+        problems.Where(p => !ledger.HasAlert(p.Message) && !(p.Code == NotAnchoredAlert && ledger.Announcement(p.Entry) is not null));
+
+    /// <summary>
+    /// What the memory of <paramref name="projectId"/> rests on now, as the reader of its queue loads it (with the snapshot
+    /// when <paramref name="snapshot"/>). The reader goes on whatever the caller does; the caller stops waiting when
+    /// <paramref name="ct"/> says so.
+    /// </summary>
+    private async Task<Loaded> RequestAsync(string projectId, bool snapshot, CancellationToken ct)
+    {
+        var done = new TaskCompletionSource<Loaded>(TaskCreationOptions.RunContinuationsAsynchronously);
+        Enqueue(projectId, new Request(snapshot, done));
+        return await done.Task.WaitAsync(ct).ConfigureAwait(false);
+    }
+
+    /// <summary>Puts <paramref name="request"/> in the queue of the project, starting its reader the first time.</summary>
+    private void Enqueue(string projectId, Request request)
+    {
+        while (true)
+        {
+            var state = _projects.GetOrAdd(projectId, _ => new ProjectState());
+            if (state.Queue.Writer.TryWrite(request))
+            {
+                state.Start(() => ConsumeAsync(projectId, state));
+                return;
+            }
+
+            // Forgotten meanwhile (the project was closed): a new state takes the request.
+            _projects.TryRemove(new KeyValuePair<string, ProjectState>(projectId, state));
+        }
+    }
+
+    /// <summary>
+    /// The one reader of the queue of a project: it takes every request waiting, loads the log once for all of them and
+    /// answers them with what it published. Only it reads the log for the memory and builds the ledger and the snapshot, so
+    /// what it publishes is never older than what it published before.
+    /// </summary>
+    private async Task ConsumeAsync(string projectId, ProjectState state)
+    {
+        var reader = state.Queue.Reader;
+        while (await reader.WaitToReadAsync().ConfigureAwait(false))
+        {
+            var waiting = new List<Request>();
+            var snapshot = false;
+            while (reader.TryRead(out var request))
+            {
+                if (request.Landed is { } landed)
+                {
+                    state.Landed.Add(landed);
+                }
+
+                if (request.Done is not null)
+                {
+                    waiting.Add(request);
+                    snapshot |= request.Snapshot;
+                }
+            }
+
+            if (waiting.Count == 0)
+            {
+                continue;
+            }
+
+            try
+            {
+                var loaded = await RefreshAsync(projectId, state, snapshot).ConfigureAwait(false);
+                foreach (var request in waiting)
+                {
+                    request.Done!.TrySetResult(loaded);
+                }
+            }
+            catch (Exception ex)
+            {
+                foreach (var request in waiting)
+                {
+                    request.Done!.TrySetException(ex);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// The log of the project, which must verify: memory never trusts, nor extends, one that does not. The ledger is the
+    /// one published, extended with what the log grew since (<see cref="MemoryLedger.Extend"/>: the last entry it covers
+    /// still has its hash, so by the chain the log up to there is the one it was read from), or read again whole. With
+    /// <paramref name="snapshot"/>, the snapshot too: built anew in a whole verification it was not built in, or extended.
+    /// Only the reader of the queue calls it.
+    /// </summary>
+    private async Task<Loaded> RefreshAsync(string projectId, ProjectState state, bool snapshot)
+    {
+        var current = state.Current;
+        var log = await recorder.LoadAsync(projectId, CancellationToken.None).ConfigureAwait(false);
+        if (!log.Verification.IsValid)
+        {
+            throw new DecisionLogIntegrityException(projectId, log.Verification);
+        }
+
+        var entries = log.Entries;
+        if (current is not null && log.WholeVerification == current.WholeVerification && entries.Count < current.Count && (!snapshot || current.View is not null))
+        {
+            // Within one whole verification the log only grows: what was published is never put back by an older load.
+            return current;
+        }
+
+        var head = entries.Count == 0 ? DecisionLog.GenesisHash : entries[^1].Hash;
+        var ledger = current is not null && current.Count == entries.Count && string.Equals(current.Head, head, StringComparison.Ordinal)
+            ? current.Ledger
+            : current is { Count: > 0 } && current.Count < entries.Count && string.Equals(entries[current.Count - 1].Hash, current.Head, StringComparison.Ordinal)
+                ? current.Ledger.Extend(entries, current.Count)
+                : MemoryLedger.From(entries);
+        var view = current?.View;
+        if (snapshot)
+        {
+            view = view is null || view.WholeVerification != log.WholeVerification
+                ? await BuildAsync(projectId, ledger, log.WholeVerification).ConfigureAwait(false)
+                : await ExtendAsync(projectId, view, ledger, state.Landed).ConfigureAwait(false);
+            state.Landed.Clear();
+        }
+
+        var loaded = new Loaded(log.WholeVerification, entries.Count, head, ledger, view);
+        state.Current = loaded;
+        return loaded;
+    }
+
+    /// <summary>Every row of the project read and checked against <paramref name="ledger"/>.</summary>
+    private async Task<SnapshotView> BuildAsync(string projectId, MemoryLedger ledger, long whole)
+    {
+        var rows = await store.SearchAsync(projectId, new MemorySearch(), CancellationToken.None).ConfigureAwait(false);
         var problems = new List<MemoryIntegrityProblem>();
         var intact = new List<MemoryRow>();
+        var stored = new HashSet<string>(StringComparer.Ordinal);
         foreach (var row in rows)
         {
+            stored.Add(row.Id);
             if (ledger.Check(row) is { } problem)
             {
                 problems.Add(problem);
@@ -168,9 +365,75 @@ public sealed class ProjectMemory(IDecisionRecorder recorder, IMemoryStore store
             }
         }
 
-        await RaiseAsync(projectId, problems, ct).ConfigureAwait(false);
-        return MemorySnapshot.Of(ledger, intact);
+        var announced = ledger.Announcements;
+        var missing = announced.Select(a => a.Payload.Entry).Where(id => !stored.Contains(id)).ToHashSet(StringComparer.Ordinal);
+        problems.AddRange(missing.Select(MissingRow));
+        return new SnapshotView(whole, ledger, announced.Count, intact, missing, problems, MemorySnapshot.Of(ledger, intact));
     }
+
+    /// <summary>
+    /// <paramref name="known"/> with what the log grew since: the rows of the entries it announced since read and checked,
+    /// and those of the entries remembered as missing whose row this process stored since (<paramref name="landed"/>); the
+    /// others stay missing until the next whole verification. The trust and the supersession of every entry come again
+    /// from <paramref name="ledger"/>, which may have changed any of them (a review, the trust of the journal, a history
+    /// accepted as a new origin). Within one whole verification the log only grew, so its announcements are those of
+    /// <paramref name="known"/> followed by the new ones.
+    /// </summary>
+    private async Task<SnapshotView> ExtendAsync(string projectId, SnapshotView known, MemoryLedger ledger, IReadOnlySet<string> landed)
+    {
+        var announced = ledger.Announcements;
+        var wanted = new HashSet<string>(known.Missing.Where(landed.Contains), StringComparer.Ordinal);
+        for (var i = known.Announced; i < announced.Count; i++)
+        {
+            wanted.Add(announced[i].Payload.Entry);
+        }
+
+        // A row left out as never announced is checked again once the log announces it (it was read in between).
+        foreach (var problem in known.Problems.Where(p => p.Code == NotAnchoredAlert && ledger.Announcement(p.Entry) is not null))
+        {
+            wanted.Add(problem.Entry);
+        }
+
+        if (wanted.Count == 0)
+        {
+            return ReferenceEquals(known.Ledger, ledger) ? known : known with { Ledger = ledger, Announced = announced.Count, Snapshot = MemorySnapshot.Of(ledger, known.Intact) };
+        }
+
+        var missing = new HashSet<string>(known.Missing, StringComparer.Ordinal);
+        missing.UnionWith(wanted);
+        var found = new List<MemoryIntegrityProblem>();
+        var added = new List<MemoryRow>();
+        foreach (var row in await store.FindAsync(projectId, wanted, CancellationToken.None).ConfigureAwait(false))
+        {
+            if (!wanted.Contains(row.Id) || !missing.Remove(row.Id))
+            {
+                continue;
+            }
+
+            if (ledger.Check(row) is { } problem)
+            {
+                found.Add(problem);
+            }
+            else
+            {
+                added.Add(row);
+            }
+        }
+
+        // What was looked for is judged again: its old problems go, its new ones (a row missing still, or not as announced) come.
+        var problems = known.Problems.Where(p => !wanted.Contains(p.Entry)).Concat(found).Concat(missing.Where(wanted.Contains).Select(MissingRow)).ToList();
+        var intact = added.Count == 0
+            ? known.Intact
+            : [.. known.Intact.Concat(added).OrderByDescending(r => r.CreatedAt).ThenBy(r => r.Id, StringComparer.Ordinal)]; // the order of the store
+        var snapshot = ReferenceEquals(known.Ledger, ledger) && added.Count == 0 ? known.Snapshot : MemorySnapshot.Of(ledger, intact);
+        return new SnapshotView(known.WholeVerification, ledger, announced.Count, intact, missing, problems, snapshot);
+    }
+
+    /// <summary>The problem of an entry announced whose row is not in the store.</summary>
+    private static MemoryIntegrityProblem MissingRow(string entry) => new(
+        MissingRowAlert,
+        entry,
+        $"Memory entry '{entry}' was announced in the decision log, but its row is not in the store: it is left out of recall, prompts and the export until it is stored and the log is verified whole again.");
 
     private async Task<MemoryEntry> RecordPreparedAsync(string projectId, PreparedEntry prepared, CancellationToken ct)
     {
@@ -188,6 +451,7 @@ public sealed class ProjectMemory(IDecisionRecorder recorder, IMemoryStore store
                 }
 
                 await store.AppendAsync(projectId, existing, ct).ConfigureAwait(false);
+                Enqueue(projectId, new Request(false, null, existing.Id));
                 rows[existing.Id] = existing;
             }
             else if (ledger.Check(existing) is not null)
@@ -206,15 +470,22 @@ public sealed class ProjectMemory(IDecisionRecorder recorder, IMemoryStore store
             throw new ArgumentException($"Memory entry '{superseded}' cannot be superseded: the decision log never announced it, or its row is missing or changed.", nameof(prepared));
         }
 
+        var payload = MemoryRecordedPayload.Announcing(prepared.Id, prepared.Kind, prepared.Origin, prepared.Sha256, prepared.Source, prepared.Supersedes);
         var announcement = await recorder.RecordAsync(
             projectId,
             SystemActor,
             DecisionKind.MemoryRecorded,
             $"Memoria registrada: {MemoryLabels.Kind(prepared.Kind)} ({MemoryLabels.Origin(prepared.Origin)})",
-            MemoryRecordedPayload.Announcing(prepared.Id, prepared.Kind, prepared.Origin, prepared.Sha256, prepared.Source, prepared.Supersedes),
+            payload,
             cancellationToken: ct).ConfigureAwait(false);
         var row = prepared.ToRow(announcement.RecordedAt);
         await store.AppendAsync(projectId, row, ct).ConfigureAwait(false);
+
+        // A recall between the announcement and the row found it missing: the reader looks for it again.
+        Enqueue(projectId, new Request(false, null, row.Id));
+
+        // The trust the log gives a new announcement: a journal entry Agent Studio did not write is in quarantine unless
+        // the journal of the project or of its day is trusted (docs/17 D-02), not a proposal.
         return new MemoryEntry(
             row.Id,
             row.Kind,
@@ -224,7 +495,7 @@ public sealed class ProjectMemory(IDecisionRecorder recorder, IMemoryStore store
             row.Source,
             row.CreatedAt,
             row.ContentSha256,
-            row.Origin == MemoryOrigin.Agent ? MemoryTrust.Proposed : MemoryTrust.Trusted,
+            ledger.TrustOf(new MemoryAnnouncement(announcement.Sequence, announcement.RecordedAt, payload)),
             row.Supersedes,
             null);
     }
@@ -273,14 +544,12 @@ public sealed class ProjectMemory(IDecisionRecorder recorder, IMemoryStore store
         return content[..cut] + Ellipsis;
     }
 
-    /// <summary>The log of the project, which must verify: memory never trusts, nor extends, one that does not.</summary>
-    private async Task<MemoryLedger> LoadAsync(string projectId, CancellationToken ct)
-    {
-        var state = await recorder.LoadAsync(projectId, ct).ConfigureAwait(false);
-        return state.Verification.IsValid
-            ? MemoryLedger.From(state.Entries)
-            : throw new DecisionLogIntegrityException(projectId, state.Verification);
-    }
+    /// <summary>
+    /// The ledger of the log of the project as it is now, which must verify: memory never trusts, nor extends, one that
+    /// does not (see <see cref="RefreshAsync"/>). Ledgers never change, so concurrent recalls and writes share them.
+    /// </summary>
+    private async Task<MemoryLedger> LoadAsync(string projectId, CancellationToken ct) =>
+        (await RequestAsync(projectId, snapshot: false, ct).ConfigureAwait(false)).Ledger;
 
     private async Task<Dictionary<string, MemoryRow>> RowsAsync(string projectId, CancellationToken ct) =>
         (await store.SearchAsync(projectId, new MemorySearch(), ct).ConfigureAwait(false)).ToDictionary(r => r.Id, StringComparer.Ordinal);
@@ -316,9 +585,10 @@ public sealed class ProjectMemory(IDecisionRecorder recorder, IMemoryStore store
     }
 
     /// <summary>
-    /// Records an alert for each problem the log does not hold yet, when the project is idle; while it is busy nothing is
-    /// written, and the next recall that finds the problem with the project idle raises it. If the log stopped verifying
-    /// meanwhile, the next load reports it.
+    /// Records an alert for each problem the log does not hold yet, when the project is idle; while it is busy, or a memory
+    /// write holds the project (an entry is being recorded: its row may be the one found missing), nothing is written, and
+    /// the next recall that finds the problem with the project idle raises it. A recall never waits for it. If the log
+    /// stopped verifying meanwhile, the next load reports it.
     /// </summary>
     private async Task RaiseAsync(string projectId, IReadOnlyList<MemoryIntegrityProblem> problems, CancellationToken ct)
     {
@@ -328,7 +598,11 @@ public sealed class ProjectMemory(IDecisionRecorder recorder, IMemoryStore store
         }
 
         var gate = _gates.GetOrAdd(projectId, _ => new SemaphoreSlim(1, 1));
-        await gate.WaitAsync(ct).ConfigureAwait(false);
+        if (!await gate.WaitAsync(0, ct).ConfigureAwait(false))
+        {
+            return;
+        }
+
         try
         {
             if (activity.IsBusy(projectId))
@@ -338,7 +612,13 @@ public sealed class ProjectMemory(IDecisionRecorder recorder, IMemoryStore store
 
             // Read again under the gate: another recall may have raised the same alerts meanwhile.
             var ledger = await LoadAsync(projectId, ct).ConfigureAwait(false);
-            foreach (var problem in problems.Where(p => !ledger.HasAlert(p.Message)))
+
+            // A row found missing while it was being recorded is there by now (the write held this gate): no alert.
+            var missing = Unraised(ledger, problems).Where(p => p.Code == MissingRowAlert).Select(p => p.Entry).ToList();
+            var stored = missing.Count == 0
+                ? []
+                : (await store.FindAsync(projectId, missing, ct).ConfigureAwait(false)).Select(r => r.Id).ToHashSet(StringComparer.Ordinal);
+            foreach (var problem in Unraised(ledger, problems).Where(p => !(p.Code == MissingRowAlert && stored.Contains(p.Entry))))
             {
                 await recorder.RecordAsync(
                     projectId,
@@ -358,6 +638,64 @@ public sealed class ProjectMemory(IDecisionRecorder recorder, IMemoryStore store
             gate.Release();
         }
     }
+
+    /// <summary>
+    /// What the memory of a project rests on, as the reader of its queue last published it: the whole verification of the
+    /// log and how far it covers it (how many entries, the hash of the last one), the ledger and, once a recall asked for it,
+    /// the snapshot (built on this ledger, or on an older one of the log when only writes asked since).
+    /// </summary>
+    private sealed record Loaded(long WholeVerification, int Count, string Head, MemoryLedger Ledger, SnapshotView? View);
+
+    /// <summary>
+    /// A request to the reader of a project's queue: what the memory rests on now (with the snapshot when
+    /// <paramref name="Snapshot"/>), answered on <paramref name="Done"/>; or, with <paramref name="Landed"/> and no
+    /// answer, that this process stored the row of that entry.
+    /// </summary>
+    private sealed record Request(bool Snapshot, TaskCompletionSource<Loaded>? Done, string? Landed = null);
+
+    /// <summary>The queue of a project, its one reader, and what that reader alone keeps and publishes.</summary>
+    private sealed class ProjectState
+    {
+        private Loaded? _current;
+        private int _started;
+
+        public Channel<Request> Queue { get; } = Channel.CreateUnbounded<Request>(new UnboundedChannelOptions { SingleReader = true });
+
+        /// <summary>What the reader published last; only the reader writes it.</summary>
+        public Loaded? Current
+        {
+            get => Volatile.Read(ref _current);
+            set => Volatile.Write(ref _current, value);
+        }
+
+        /// <summary>The entries whose row this process stored since the snapshot was last built or extended; only the reader touches it.</summary>
+        public HashSet<string> Landed { get; } = new(StringComparer.Ordinal);
+
+        /// <summary>Starts the reader, once.</summary>
+        public void Start(Func<Task> consume)
+        {
+            if (Interlocked.Exchange(ref _started, 1) == 0)
+            {
+                _ = Task.Run(consume);
+            }
+        }
+    }
+
+    /// <summary>
+    /// What recall selects from, built on <paramref name="Ledger"/> within the whole verification
+    /// <paramref name="WholeVerification"/> of the log: the rows found intact (<paramref name="Intact"/>, newest first), how
+    /// many announcements of the ledger were looked for (<paramref name="Announced"/>), the announced entries whose row was
+    /// not there (<paramref name="Missing"/>), the rows left out with their alert (<paramref name="Problems"/>) and the
+    /// snapshot itself.
+    /// </summary>
+    private sealed record SnapshotView(
+        long WholeVerification,
+        MemoryLedger Ledger,
+        int Announced,
+        IReadOnlyList<MemoryRow> Intact,
+        IReadOnlySet<string> Missing,
+        IReadOnlyList<MemoryIntegrityProblem> Problems,
+        MemorySnapshot Snapshot);
 
     /// <summary>A draft ready to be stored.</summary>
     private sealed record PreparedEntry(string Id, MemoryKind Kind, string Topic, string Content, MemoryOrigin Origin, string Source, string Sha256, string? Supersedes)

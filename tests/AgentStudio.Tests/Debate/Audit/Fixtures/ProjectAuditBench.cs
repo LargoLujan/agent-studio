@@ -18,6 +18,7 @@ using AgentStudio.Domain.Evidence;
 using AgentStudio.Domain.Judging;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Providers;
+using AgentStudio.Tests.Application;
 using AgentStudio.Tests.Debate.Fakes;
 using static AgentStudio.Tests.Debate.Audit.Fixtures.AuditWorld;
 
@@ -55,8 +56,9 @@ internal sealed class ProjectAuditBench : IDisposable
         });
         Dossiers = new ProjectDossierBuilder(World.Evidence, new JudgingOptions(Path.Combine(Root, "dossiers")));
         Options = new AuditOptions(Path.Combine(Root, "snapshots"));
+        Recorder = new LoadSpyRecorder(World.Recorder);
         Service = new ProjectAuditService(
-            World.Recorder,
+            Recorder,
             World.Requirements,
             Template,
             Repository,
@@ -100,6 +102,9 @@ internal sealed class ProjectAuditBench : IDisposable
     public ProjectDossierBuilder Dossiers { get; }
 
     public AuditOptions Options { get; }
+
+    /// <summary>The log of the world as the service reads and writes it, telling which loads it asks for.</summary>
+    public LoadSpyRecorder Recorder { get; }
 
     public ProjectAuditService Service { get; }
 

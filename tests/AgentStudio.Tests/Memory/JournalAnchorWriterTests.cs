@@ -72,10 +72,12 @@ public sealed class JournalAnchorWriterTests : IDisposable
 
         await journal.RecordOutcomeAsync(id, Outcome("las pruebas fallan") with { Anchor = Anchor }, Ct);
 
+        // Since the addendum of 2026-11-03 the anchor also names the entry with its day.
         var line = Assert.Single(ResultLines());
-        Assert.Equal("  - Resultado P-0001 · 09:00:30 · Failed · 30,0 s · tokens 1.200 → 340 (exactos) · las pruebas fallan · ejecución `20261015-a1b2c3` · tarea `T-12` · intento 2", line);
-        Assert.True(JournalResultAnchor.TryParse(line, out var read));
+        Assert.Equal("  - Resultado P-0001 · 09:00:30 · Failed · 30,0 s · tokens 1.200 → 340 (exactos) · las pruebas fallan · ejecución `20261015-a1b2c3` · tarea `T-12` · intento 2 · entrada `2026-03-10/P-0001`", line);
+        Assert.True(JournalResultAnchor.TryParse(line, out var read, out var entry));
         Assert.Equal(Anchor, read);
+        Assert.Equal(new JournalEntryId(new DateOnly(2026, 3, 10), 1), entry);
     }
 
     [Fact]

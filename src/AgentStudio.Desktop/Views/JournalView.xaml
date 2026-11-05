@@ -45,17 +45,27 @@
             <Button Grid.Column="1" Style="{StaticResource GhostButton}" Content="Actualizar" Command="{Binding RefreshCommand}"/>
         </Grid>
 
-        <!-- A long day draws only its latest entries (the layout runs on the UI thread); all of it, as plain text, on demand. -->
-        <DockPanel Grid.Row="1" Margin="12,0,12,8" Visibility="{Binding IsTrimmed, Converter={StaticResource Journal.BoolToVisibility}}">
-            <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Margin="8,0,0,0" Content="{Binding ToggleText}"
-                    Command="{Binding TogglePlainTextCommand}"/>
-            <TextBlock Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Text="{Binding TrimNote}"
-                       AutomationProperties.LiveSetting="Polite"/>
-        </DockPanel>
+        <!-- A long day draws only its latest entries (the layout runs on the UI thread); all of it, as plain text, on demand.
+             With «Ver todo» on, a day read again by itself waits for «Recargar» (V32): loading a long day costs about a second. -->
+        <StackPanel Grid.Row="1" Margin="12,0,12,8">
+            <DockPanel Visibility="{Binding IsTrimmed, Converter={StaticResource Journal.BoolToVisibility}}">
+                <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Margin="8,0,0,0" Content="{Binding ToggleText}"
+                        Command="{Binding TogglePlainTextCommand}"/>
+                <TextBlock Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Text="{Binding TrimNote}"
+                           AutomationProperties.LiveSetting="Polite"/>
+            </DockPanel>
+            <DockPanel x:Name="NewEntries" Margin="0,4,0,0" Visibility="{Binding HasNewEntries, Converter={StaticResource Journal.BoolToVisibility}}">
+                <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Margin="8,0,0,0" Content="Recargar"
+                        Command="{Binding ReloadPlainTextCommand}" AutomationProperties.Name="Recargar el día completo"/>
+                <TextBlock Style="{StaticResource SecondaryText}" VerticalAlignment="Center" TextWrapping="Wrap" Text="{Binding NewEntriesNote}"
+                           AutomationProperties.LiveSetting="Polite"/>
+            </DockPanel>
+        </StackPanel>
 
         <!-- Read-only, with a reading caret like the plain viewer. It prints and finds nothing: Ctrl+P (go to file) and Ctrl+F
              go on to the window. -->
         <RichTextBox x:Name="JournalDocument" Grid.Row="2" Style="{StaticResource ReadingViewer}"
+                     markdown:RichTextDocument.Scope="{Binding ReadScope}"
                      markdown:RichTextDocument.Document="{Binding RenderedText, Converter={StaticResource Journal.Markdown}}"
                      Visibility="{Binding ShowReadable, Converter={StaticResource Journal.BoolToVisibility}}"
                      AutomationProperties.Name="Bitácora de hoy">

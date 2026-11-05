@@ -51,6 +51,9 @@ public sealed partial class CheckOption : ObservableObject
     private bool _isChecked;
 
     partial void OnIsCheckedChanged(bool value) => _changed();
+
+    /// <summary>What a screen reader says of an entry of a check list (V34): its label.</summary>
+    public override string ToString() => Label;
 }
 
 public enum PredicateKind

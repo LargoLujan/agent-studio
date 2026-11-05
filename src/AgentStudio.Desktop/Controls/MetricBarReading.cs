@@ -67,6 +67,13 @@ public sealed record MetricBarReading
     /// </summary>
     public string? Age { get; init; }
 
+    /// <summary>
+    /// What the short line of the status bar says instead of a long <see cref="ValueText"/> without a value (V38): «se
+    /// reinició · sin dato» for «se reinició el 30/10 a las 19:20, sin dato nuevo». The whole text stays in the name a screen
+    /// reader says and in the tooltip. Null: the short line says <see cref="ValueText"/>.
+    /// </summary>
+    public string? ShortValueText { get; init; }
+
     /// <summary>Where the thresholds are, as fractions of the maximum (0 to 1): small marks on the track.</summary>
     public IReadOnlyList<double> Marks { get; init; } = [];
 
@@ -119,7 +126,7 @@ public sealed record MetricBarReading
         {
             if (!HasValue)
             {
-                return ValueText;
+                return ShortValueText ?? ValueText;
             }
 
             var parts = new List<string> { $"{ValueText} {ShortOrigin}" };
@@ -128,14 +135,24 @@ public sealed record MetricBarReading
                 parts.Add(LevelText);
             }
 
-            if (!string.IsNullOrWhiteSpace(Age))
+            if (CompactAge is { } age)
             {
-                parts.Add(Age);
+                parts.Add(age);
             }
 
             return string.Join(" · ", parts);
         }
     }
+
+    /// <summary>
+    /// The age in the short line of the status bar (V38): «hace 12 min» for «vista hace 12 min», so the bars of a run fit in one
+    /// line; the whole age stays in <see cref="Text"/>, in the name a screen reader says and in the tooltip.
+    /// </summary>
+    private string? CompactAge => string.IsNullOrWhiteSpace(Age) ? null
+        : Age.StartsWith(SeenPrefix, StringComparison.Ordinal) ? Age[SeenPrefix.Length..]
+        : Age;
+
+    private const string SeenPrefix = "vista ";
 
     /// <summary>What a screen reader says: what is measured, the value, its origin, its level, its age and the detail.</summary>
     public string AccessibleName => Detail is { Length: > 0 } detail ? $"{Label}: {Text}. {detail}" : $"{Label}: {Text}";
@@ -157,6 +174,7 @@ public sealed record MetricBarReading
         && string.Equals(LevelText, other.LevelText, StringComparison.Ordinal)
         && string.Equals(Detail, other.Detail, StringComparison.Ordinal)
         && string.Equals(Age, other.Age, StringComparison.Ordinal)
+        && string.Equals(ShortValueText, other.ShortValueText, StringComparison.Ordinal)
         && Marks.SequenceEqual(other.Marks);
 
     public override int GetHashCode() => HashCode.Combine(Label, Value, ValueText, Origin, Level, IsEstimate, Detail, Age);

@@ -117,7 +117,9 @@ public sealed partial class OrchestratorDocumentViewModel
         PlanSummary,
         [.. Risks],
         Canvas.BuildTasks(),
-        Proposal is { Plan: { } proposed } proposal && IsUnused(proposal.Run) ? new PlanDraftProposal(proposal.Run, proposed.ContentHash, proposal.Corrected) : null);
+        Proposal is { Plan: { } proposed } proposal && IsUnused(proposal.Run)
+            ? new PlanDraftProposal(proposal.Run, proposed.ContentHash, proposal.Corrected, proposal.HistoryToolNotice)
+            : null);
 
     /// <summary>The run of a proposal has not started a run yet (none of the previous runs has its id).</summary>
     private bool IsUnused(RunId run) => PreviousRuns.All(r => r.Summary.Id != run);
@@ -157,7 +159,10 @@ public sealed partial class OrchestratorDocumentViewModel
                 if (await _session.FindPlanAsync(project, origin.PlanHash, CancellationToken.None).ConfigureAwait(true) is { } proposed
                     && string.Equals(proposed.ContentHash, origin.PlanHash, StringComparison.Ordinal))
                 {
-                    proposal = new PlanProposal(origin.Run, proposed, [], origin.Corrected, AgentRunStatus.Succeeded, null, null);
+                    proposal = new PlanProposal(origin.Run, proposed, [], origin.Corrected, AgentRunStatus.Succeeded, null, null)
+                    {
+                        HistoryToolNotice = origin.HistoryToolNotice,
+                    };
                 }
             }
 #pragma warning disable CA1031 // The plan store is behind a port: without the proposal, the plan comes back as the user's.
@@ -184,7 +189,7 @@ public sealed partial class OrchestratorDocumentViewModel
             {
                 ProposalStatus = proposal is null
                     ? null
-                    : "Borrador recuperado: es el plan que propuso el orquestador, sin aprobar. Revísalo y apruébalo para ejecutarlo.";
+                    : WithHistoryNotice("Borrador recuperado: es el plan que propuso el orquestador, sin aprobar. Revísalo y apruébalo para ejecutarlo.", proposal);
                 Canvas.Notify("Se recuperó el borrador de la sesión anterior: la petición y el plan, sin aprobar.", NoticeKind.Info);
             }
         }

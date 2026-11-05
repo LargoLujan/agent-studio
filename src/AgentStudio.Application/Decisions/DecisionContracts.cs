@@ -21,6 +21,16 @@ public sealed record DecisionLogState(IReadOnlyList<DecisionEntry> Entries, Deci
     /// (<see cref="IDecisionLogOrigin"/>). Null for any other log, trusted or not.
     /// </summary>
     public UnanchoredHistory? Unanchored { get; init; }
+
+    /// <summary>
+    /// Which whole verification of the log this state rests on (ADR-0010, addendum of 2026-11-04): a new value, never used
+    /// before by the same recorder, each time the recorder reads and verifies the whole log (the first load, a critical
+    /// moment, the bound of time or of loads, a store whose stamp changed, an opening), and the same one while loads only
+    /// verify what was appended to it. So between two states with the same value the log only grew. Whoever keeps something
+    /// verified against the log in memory (the memory of the project) checks it again when it changes. Zero for a log not
+    /// verified.
+    /// </summary>
+    public long WholeVerification { get; init; }
 }
 
 /// <summary>
@@ -161,14 +171,43 @@ public interface IDecisionLogAnchorStore
     Task ConfirmAsync(string projectId, DecisionLogAnchor anchor, CancellationToken cancellationToken) => Task.CompletedTask;
 }
 
+/// <summary>How much of the log a load reads from storage and verifies (ADR-0010, addendum of 2026-11-04).</summary>
+public enum LogLoad
+{
+    /// <summary>
+    /// What was appended since the writer last verified the log, chained to it, when the store can tell nothing else
+    /// changed; otherwise, and at least every 5 minutes and every 256 loads, the whole log. For everything that is not a
+    /// critical moment: a run or a debate going on, recording and recalling memory, listing.
+    /// </summary>
+    Incremental,
+
+    /// <summary>
+    /// The whole log, read from storage and verified from its first entry, whatever was verified before. For the critical
+    /// moments, where a decision or an agent rests on the log, and everything a judge sees: a delivery, the dossier of a
+    /// judge and an independent review, the start of a run and its resumes, a planning, the dossier, the verdict and the
+    /// close of a debate, a project audit (its proposal, its dossier and its close) and a challenge (its preparation, its
+    /// <c>VerdictChallenged</c> and the acceptance of its revision).
+    /// </summary>
+    Full,
+}
+
 /// <summary>
 /// The only writer of a project's decision log. It keeps the chain consistent (sequence and time come from the domain
 /// object, never from the database) and serializes the payloads in one fixed format, because their text is part of the hash.
 /// </summary>
 public interface IDecisionRecorder
 {
-    /// <summary>Reads the whole log from storage and verifies its hash chain. A broken chain is returned, not thrown.</summary>
+    /// <summary>
+    /// Reads the log from storage and verifies its hash chain and its anchor (<see cref="LogLoad.Incremental"/>). A broken
+    /// chain is returned, not thrown.
+    /// </summary>
     Task<DecisionLogState> LoadAsync(string projectId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Reads the log from storage and verifies it as <paramref name="load"/> says: <see cref="LogLoad.Full"/> at the critical
+    /// moments, so a change no incremental check can see is caught there. A broken chain is returned, not thrown.
+    /// </summary>
+    Task<DecisionLogState> LoadAsync(string projectId, LogLoad load, CancellationToken cancellationToken);
 
     /// <summary>
     /// Appends one entry. Throws <see cref="DecisionLogIntegrityException"/> if the stored log does not verify. The entry

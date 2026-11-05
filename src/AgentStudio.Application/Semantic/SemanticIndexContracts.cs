@@ -227,7 +227,10 @@ public sealed record EmbedderOpening(IEmbedder? Embedder, EmbeddingModelStatus S
 /// </summary>
 public interface IEmbedderSource : IDisposable
 {
-    /// <summary>The state of the files, checked now (sizes and hashes); it loads nothing.</summary>
+    /// <summary>
+    /// The state of the files (sizes and hashes); it loads nothing. Each file is hashed the first time in a run of the app,
+    /// and again only when its path, its size or its time of last write (UTC) changes, or after the model is installed again.
+    /// </summary>
     EmbeddingModelStatus Check();
 
     /// <summary>The embedder of the verified model, loaded the first time; null with the reason when there is none.</summary>
@@ -252,10 +255,13 @@ public interface IEmbeddingModelInstaller
     Task<EmbeddingModelStatus> InstallAsync(EmbeddingModelDownloadConsent consent, IProgress<EmbeddingModelDownloadProgress>? progress, CancellationToken ct);
 }
 
-/// <summary>A fragment as the index keeps it: the fragment and, when the model embedded it, its vector and the model's fingerprint.</summary>
+/// <summary>
+/// A fragment as the index keeps it: the fragment and, when the model embedded it, its vector and the fingerprint of that
+/// vector (its model's, and for an entry of the journal also the version of the view its meaning is computed from).
+/// </summary>
 public sealed record IndexedFragment(SemanticFragment Fragment, float[]? Vector = null, string? ModelFingerprint = null);
 
-/// <summary>What the index holds of a fragment: its id, its fingerprint and the model of its vector (null without one).</summary>
+/// <summary>What the index holds of a fragment: its id, its fingerprint and the fingerprint of its vector (null without one).</summary>
 public sealed record IndexedFragmentState(string Id, string Sha256, string? ModelFingerprint);
 
 /// <summary>
@@ -267,7 +273,12 @@ public sealed record IndexedFragmentState(string Id, string Sha256, string? Mode
 /// </summary>
 public interface ISemanticIndexStore
 {
-    /// <summary>The id, fingerprint and model of every fragment held: what the refresh compares to know what to add, embed or remove.</summary>
+    /// <summary>
+    /// The id, fingerprint and model of every fragment held: what the refresh compares to know what to add, embed or remove.
+    /// A row that is not a fragment (blank text, more than <see cref="SemanticFragment.MaxCharacters"/>, a source or a hash
+    /// that is not one) is given with an empty <see cref="IndexedFragmentState.Sha256"/>, so the next refresh or search writes
+    /// it again; <see cref="ReadAsync"/> and <see cref="ReadIndexedAsync"/> skip it, and no read ever fails for one row.
+    /// </summary>
     Task<IReadOnlyList<IndexedFragmentState>> ReadStateAsync(ProjectContext project, CancellationToken ct);
 
     /// <summary>
@@ -279,8 +290,16 @@ public interface ISemanticIndexStore
     /// <summary>Removes these fragments (their source left the log's trust, or the text that made them is gone).</summary>
     Task RemoveAsync(ProjectContext project, IReadOnlyList<string> fragmentIds, CancellationToken ct);
 
-    /// <summary>The fragments with these ids, in that order; an id the index does not hold is skipped.</summary>
+    /// <summary>The fragments with these ids, in that order; an id the index does not hold, or whose row is not a fragment, is skipped.</summary>
     Task<IReadOnlyList<SemanticFragment>> ReadAsync(ProjectContext project, IReadOnlyList<string> fragmentIds, CancellationToken ct);
+
+    /// <summary>
+    /// The fragments with these ids as the index holds them, each with its vector and the fingerprint of its model when it
+    /// has one (<see cref="IndexedFragment"/>), in that order; an id the index does not hold, or whose row is not a fragment,
+    /// is skipped. It is what the snapshot of the planner's tool takes its vectors from
+    /// (<see cref="ISemanticIndex.SnapshotAsync"/>, WP3).
+    /// </summary>
+    Task<IReadOnlyList<IndexedFragment>> ReadIndexedAsync(ProjectContext project, IReadOnlyList<string> fragmentIds, CancellationToken ct);
 
     /// <summary>
     /// The lexical list: FTS5 over the texts for <paramref name="terms"/> (<see cref="LexicalTerms.From"/>), each quoted as a
@@ -292,9 +311,11 @@ public interface ISemanticIndexStore
     /// <summary>
     /// The semantic list: the dot product of <paramref name="query"/> (normalised) with every vector of the model
     /// <paramref name="modelFingerprint"/>, the best first, ties by time (newest first) and id; at most <paramref name="top"/>.
-    /// Fragments without a vector of that model are not in it.
+    /// Each place carries that product, its similarity (<see cref="SimilarCandidate.Similarity"/>), which the search compares
+    /// with the cut calibrated for the model (<see cref="MeaningOnlyCut"/>). Fragments without a vector of that model are not
+    /// in it.
     /// </summary>
-    Task<IReadOnlyList<RankedCandidate>> SearchVectorsAsync(ProjectContext project, ReadOnlyMemory<float> query, string modelFingerprint, int top, CancellationToken ct);
+    Task<IReadOnlyList<SimilarCandidate>> SearchVectorsAsync(ProjectContext project, ReadOnlyMemory<float> query, string modelFingerprint, int top, CancellationToken ct);
 
     /// <summary>Deletes the whole index of the project (its folder): nothing is lost, the next refresh rebuilds it.</summary>
     Task DeleteAsync(ProjectContext project, CancellationToken ct);
@@ -324,6 +345,12 @@ public enum WordsOnlyReason
 
     /// <summary>The model is there, but the index has not embedded its fragments yet (it does so in the background).</summary>
     VectorsPending,
+
+    /// <summary>
+    /// The semantic index could not be used (it is not composed, or it failed): the context packer ranked its tiers by the
+    /// full-text search of the memory, as before the index (<c>ContextPack.Relevance</c>).
+    /// </summary>
+    IndexUnavailable,
 }
 
 /// <summary>What a search by words only says to the person (F12-6: «sin modelo, busca por palabras y lo dice»), in Spanish.</summary>
@@ -336,8 +363,15 @@ public static class SemanticSearchTexts
         WordsOnlyReason.ModelMismatch => "Solo por palabras: el modelo descargado no coincide con su huella y no se ha cargado.",
         WordsOnlyReason.ModelUnloadable => "Solo por palabras: el modelo de búsqueda por significado no se ha podido cargar.",
         WordsOnlyReason.VectorsPending => "Solo por palabras: el índice aún está calculando el significado de los fragmentos.",
+        WordsOnlyReason.IndexUnavailable => "Solo por palabras: el índice semántico no se ha podido usar y se ha buscado en la memoria.",
         _ => throw new ArgumentOutOfRangeException(nameof(reason), reason, "Unknown reason for a search by words only."),
     };
+
+    /// <summary>
+    /// The notice of a search by meaning whose model has no cut calibrated (<see cref="MeaningOnlyCut"/>): everything the
+    /// meaning finds may come, however little it resembles the search (ADR-0047, addendum of 2026-11-04).
+    /// </summary>
+    public const string NoCut = "Sin corte de relevancia para este modelo: lo que encuentra el significado entra aunque se parezca poco.";
 }
 
 /// <summary>
@@ -345,12 +379,26 @@ public static class SemanticSearchTexts
 /// <list type="bullet">
 /// <item><see cref="Kinds"/>: the categories of memory (null, all); <see cref="IncludeLog"/>: whether the fragments of the
 /// log's entries may come too.</item>
-/// <item><see cref="TrustedOnly"/>: only what may reach a prompt (trusted, and not superseded). The packer and the MCP
-/// snapshot never ask for anything else; the «Memoria» document may, to show the rest with its trust.</item>
+/// <item><see cref="TrustedOnly"/>: only what may reach a prompt (<see cref="MayReachAPrompt"/>: trusted, not superseded,
+/// and never a daily summary). The packer and the MCP snapshot never ask for anything else; the «Memoria» document may, to
+/// show the rest with its trust.</item>
 /// </list>
 /// </summary>
 public sealed record SemanticQuery(string Text, int Top = 10)
 {
+    /// <summary>
+    /// Whether <paramref name="entry"/> may reach a prompt through the index, which is all a <see cref="TrustedOnly"/> search
+    /// and the snapshot of the planner's tool ever give (<see cref="ISemanticIndex.SnapshotAsync"/>): trusted, not
+    /// superseded, and never a daily summary (<see cref="MemoryKind.DailySummary"/>) whatever its origin, since it quotes the
+    /// «Hecho» lines of the journal and ADR-0023 keeps it out of the prompts. The journal reaches them only as its anchored
+    /// entries (<see cref="MemoryKind.JournalEntry"/>), with their own trust.
+    /// </summary>
+    public static bool MayReachAPrompt(MemoryEntry entry)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+        return entry.Trust == MemoryTrust.Trusted && entry.SupersededBy is null && entry.Kind != MemoryKind.DailySummary;
+    }
+
     public IReadOnlyList<MemoryKind>? Kinds { get; init; }
 
     public bool IncludeLog { get; init; } = true;
@@ -363,13 +411,39 @@ public sealed record SemanticQuery(string Text, int Top = 10)
 /// «registro · veredicto»…), the memory entry it cites as recall gives it now (anchored, with its trust; null for a
 /// fragment of the log) and its place in the fusion.
 /// </summary>
-public sealed record SemanticHit(SemanticFragment Fragment, string Label, MemoryEntry? Entry, FusedCandidate Rank);
+public sealed record SemanticHit(SemanticFragment Fragment, string Label, MemoryEntry? Entry, FusedCandidate Rank)
+{
+    /// <summary>
+    /// The identifier of the search this hit contains exactly (a run, a number of the journal, a day, a memory id, as the
+    /// search wrote it), when it went first for it, before the fusion; null for the rest.
+    /// </summary>
+    public string? Identifier { get; init; }
+}
 
-/// <summary>The results of a search, best first, how it went and, when it went by words only, why.</summary>
+/// <summary>
+/// The cut of the semantic list of a search (ADR-0047, addenda of 2026-11-03 and 2026-11-04): a fragment has a place by
+/// meaning only when its similarity reaches <paramref name="Minimum"/> and, with a <paramref name="Margin"/>, comes within it
+/// of the best similarity of the search, whether the lexical list has it too or not. So what only the meaning finds enters
+/// the fusion only above the cut, and what the words find enters by its lexical place whatever its similarity. It is
+/// calibrated for each model and kept by the fingerprint of the model, never in its descriptor, so a descriptor built anew
+/// keeps its cut.
+/// </summary>
+public sealed record MeaningOnlyCut(float Minimum, float? Margin = null);
+
+/// <summary>
+/// The results of a search, best first, how it went and, when it went by words only, why. <see cref="Cut"/> is the cut its
+/// semantic list had: null when there was no semantic list, or when the model has none calibrated (then everything the
+/// meaning found could enter, and <see cref="CutNotice"/> says so).
+/// </summary>
 public sealed record SemanticSearchResult(IReadOnlyList<SemanticHit> Hits, SemanticSearchMode Mode, WordsOnlyReason? Reason = null)
 {
+    public MeaningOnlyCut? Cut { get; init; }
+
     /// <summary>What to tell the person about how the search went: null for a hybrid search.</summary>
     public string? Notice => Reason is { } reason ? SemanticSearchTexts.WordsOnly(reason) : null;
+
+    /// <summary>What to tell the person about the cut: <see cref="SemanticSearchTexts.NoCut"/> for a hybrid search without one; null otherwise.</summary>
+    public string? CutNotice => Mode == SemanticSearchMode.Hybrid && Cut is null ? SemanticSearchTexts.NoCut : null;
 }
 
 /// <summary>What a refresh did: fragments added, removed, embedded now and left as they were; and why it stopped, in Spanish, if it did.</summary>
@@ -378,8 +452,18 @@ public sealed record SemanticIndexRefresh(int Added, int Removed, int Embedded, 
     public bool Completed => Reason is null;
 }
 
-/// <summary>The state of the index of a project: its fragments, how many have a vector of the current model, and the model.</summary>
-public sealed record SemanticIndexStatus(int Fragments, int WithVectors, EmbeddingModelStatus Model);
+/// <summary>
+/// The state of the index of a project: its fragments, how many have a vector of the current model, the model, and the cut
+/// calibrated for it (<see cref="Cut"/>; null when the table has none, and then <see cref="CutNotice"/> says so while the
+/// model is ready).
+/// </summary>
+public sealed record SemanticIndexStatus(int Fragments, int WithVectors, EmbeddingModelStatus Model)
+{
+    public MeaningOnlyCut? Cut { get; init; }
+
+    /// <summary>What «Memoria» tells the person about the cut: <see cref="SemanticSearchTexts.NoCut"/> when the model is ready and has none; null otherwise.</summary>
+    public string? CutNotice => Model.IsReady && Cut is null ? SemanticSearchTexts.NoCut : null;
+}
 
 /// <summary>
 /// The semantic index of the projects (docs/17 D-01 to D-06; WP3): a local projection of what the decision log anchors,
@@ -409,10 +493,29 @@ public interface ISemanticIndex
 
     Task<SemanticSearchResult> SearchAsync(ProjectContext project, SemanticQuery query, CancellationToken ct);
 
+    /// <summary>
+    /// Several searches, in their order, as if each were one <see cref="SearchAsync"/>, but over one reading of what is
+    /// anchored and of the index, with each text embedded once: what the context packer asks for its tiers by relevance,
+    /// which share their focus. An implementation that cannot share anything may answer one search at a time, which is what
+    /// this default does.
+    /// </summary>
+    async Task<IReadOnlyList<SemanticSearchResult>> SearchManyAsync(ProjectContext project, IReadOnlyList<SemanticQuery> queries, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(queries);
+        var results = new List<SemanticSearchResult>(queries.Count);
+        foreach (var query in queries)
+        {
+            results.Add(await SearchAsync(project, query, ct).ConfigureAwait(false));
+        }
+
+        return results;
+    }
+
     Task<SemanticIndexStatus> StatusAsync(ProjectContext project, CancellationToken ct);
 
     /// <summary>
-    /// The trusted fragments of the project for the planner's MCP tool (D-06), newest first and at most
+    /// The fragments of the project that may reach a prompt (<see cref="SemanticQuery.MayReachAPrompt"/>: trusted, not
+    /// superseded and never a daily summary) for the planner's MCP tool (D-06), newest first and at most
     /// <paramref name="maxFragments"/>, with their vectors when they have one of the current model.
     /// </summary>
     Task<ProjectHistorySnapshot> SnapshotAsync(ProjectContext project, int maxFragments, CancellationToken ct);

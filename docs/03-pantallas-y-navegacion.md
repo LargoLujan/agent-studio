@@ -80,6 +80,25 @@ debajo.
     texto sin formato, y «Ver legible» vuelve.
   - **`Ctrl+P` y `Ctrl+F` no se quedan en la bitácora:** el visor no imprime ni busca, así que `Ctrl+P` llega a la
     ventana y abre «Ir al fichero».
+  - **Se actualiza sola** (tanda 2b, V32). La app escribe el día al lanzar y al terminar cada agente, y el hook de Claude
+    Code desde fuera. El panel vigila la carpeta `bitacora` y vuelve a leer el día cuando lleva medio segundo sin cambios
+    (una ráfaga sin fin se lee cada 3 s como mucho); a medianoche pasa al día nuevo.
+    - **La vigilancia:** cada carpeta del camino que existe se vigila desde la de arriba. Así, borrar y volver a crear
+      `.agentstudio` (un checkout de otra rama, la demo creada de nuevo) no la deja muerta. Una carpeta que aún no existe, o
+      que no se puede vigilar, se reintenta cada 5 s, con «Actualizar» y al comprobar el día. Una carpeta del camino que sea
+      un enlace no se vigila.
+    - **Cada lectura**, también «Actualizar», va por una cola con un solo consumidor: una a la vez y fuera del hilo de la
+      interfaz. Lo que llega mientras se lee es una sola lectura más al terminar.
+    - **Lo leído** solo se muestra si el proyecto sigue abierto. Al abrir otro proyecto, o al cerrar la app, se deja de
+      vigilar.
+    - **El sitio de quien lee**, mientras sigue el mismo proyecto y el mismo día:
+      - quien está al final sigue las entradas nuevas;
+      - quien lee más arriba se queda con la misma entrada arriba, también cuando un día largo suelta sus entradas más
+        antiguas por encima.
+
+      El primer día que se abre, y el de otro proyecto u otra fecha, empiezan arriba.
+    - **Con «Ver todo»,** la relectura sola no recarga el texto completo (un día largo tarda un segundo). Una línea dice
+      «Hay entradas nuevas» con «Recargar»; «Actualizar» y volver a la vista legible también las enseñan.
 - **Zona central superior:** documentos en pestañas (editor Monaco, orquestador visual, grafo, gestión de agentes,
   Debate Arena, monitor de tareas). Se pueden partir en vertical u horizontal.
   - Una pestaña con cambios sin guardar lleva «●» detrás del título, y un lector de pantalla oye «…, con cambios sin
@@ -346,6 +365,11 @@ para que el validador lo explique.
   orquestador (gasta cuota). El plan propuesto aparece en el lienzo con sus problemas ya visibles y los riesgos que
   señala. Mientras planifica, «Lo que hace el orquestador» enseña la barra «Contexto del orquestador», paso a paso, con
   su origen y su nivel (tanda 2; «no expuesto» si el orquestador corriera en Codex).
+- Desde la Fase 12, el orquestador puede buscar en el historial del proyecto mientras planifica
+  ([§5.3](#53-memoria-del-proyecto-y-resumen-del-día-documento-memoria)). Si no tuvo esa búsqueda, la línea de estado de la
+  propuesta lo dice en una frase, que se conserva en el borrador: «El orquestador no tuvo la búsqueda en el historial: Codex
+  no admite herramientas externas.», «… está apagada en Ajustes», «… en la plantilla no recibe la memoria del proyecto» o
+  «… el proyecto aún no tiene nada de confianza en su memoria ni en su bitácora». No es un error: el plan vale igual.
 - «Validar» muestra los mensajes de `PlanValidator` junto a cada nodo y en el panel, en castellano a partir de su
   código, y desde entonces siguen cada cambio. Un clic en un mensaje selecciona su nodo.
 - «Aprobar plan» (solo con el plan válido) y «Rechazar» producen la `ApprovalDecision` del usuario. La aprobación vale
@@ -627,6 +651,9 @@ su propio documento, «Ajustes», que se describe al final de este apartado.
 │ │ ☑ Pedir Windows Hello en las aprobaciones críticas                                      │   │
 │ │ ☐ Bloquear la interfaz tras un tiempo sin actividad   [15] minutos (de 1 a 1440)        │   │
 │ └─────────────────────────────────────────────────────────────────────────────────────────┘   │
+│ ┌ Memoria del proyecto ───────────────────────────────────────────────────────────────────┐   │
+│ │ ☑ Búsqueda en el historial para el orquestador  (qué busca, con qué CLI y qué pasa si…) │   │
+│ └─────────────────────────────────────────────────────────────────────────────────────────┘   │
 ├───────────────────────────────────────────────────────────────────────────────────────────────┤
 │ Ajustes guardados a las 14:05:12.                                                 [Guardar]   │
 │ «Guardar» comprueba todas las secciones y las guarda a la vez: si una no es válida, no se…    │
@@ -635,7 +662,7 @@ su propio documento, «Ajustes», que se describe al final de este apartado.
 
 - **Dónde está.** «Ajustes» es el último icono de la barra lateral (el engranaje). Abre un documento en el centro, uno
   para toda la sesión, como «Consumo». Todo lo que guarda vale para todos los proyectos.
-- **Tres secciones**, cada una con una frase que dice para qué sirve. Si una parte de la app no está en la composición,
+- **Cuatro secciones**, cada una con una frase que dice para qué sirve. Si una parte de la app no está en la composición,
   su sección no sale.
   - **Contexto y cuota:** los umbrales de salud del contexto (aviso, compresión recomendada y crítico; 70, 85 y 95 % por
     defecto), con su regla, y «Leer la cuota de Codex», que explica qué lanza.
@@ -645,6 +672,11 @@ su propio documento, «Ajustes», que se describe al final de este apartado.
   - **Windows Hello y bloqueo** (Fase 8, [ADR-0037](adr/0037-windows-hello-y-bloqueo-de-la-interfaz.md)): «Pedir Windows
     Hello en las aprobaciones críticas» y «Bloquear la interfaz tras un tiempo sin actividad», con los minutos (de 1 a
     1 440).
+  - **Memoria del proyecto** (Fase 12, [ADR-0024](adr/0024-recomendador-asistido-con-mcp-local.md)): «Búsqueda en el
+    historial para el orquestador», activada por defecto. Al planificar, el orquestador puede buscar lo de días anteriores
+    del proyecto (decisiones, errores conocidos y la bitácora de confianza): solo lee, no sale de tu equipo y no gasta cuota
+    aparte. Solo funciona con Claude Code y si el orquestador recibe la memoria del proyecto en la plantilla. Apagada, el
+    orquestador planifica como antes y la propuesta lo dice. Vale desde la siguiente planificación.
 - **Un solo «Guardar»**, en la barra de abajo:
   - Primero comprueba todas las secciones. Si alguna no vale, no guarda nada: cada sección dice por qué junto a sus
     campos, y la barra dice cuáles corregir («No se guardó nada: corrige «Contexto y cuota» y «Windows Hello y bloqueo».»).
@@ -668,21 +700,65 @@ su propio documento, «Ajustes», que se describe al final de este apartado.
 
 ```text
 ┌ Memoria del proyecto [buscar…        ] [Todas ▾] [Buscar]                                       [Exportar a Markdown] ┐
-│ Hay una ejecución o una planificación en curso: la exportación espera a que termine.                                  │
-├────────────────────────────────────────────────────────────────────┬ Resumen del día ─────────────────────────────────┤
-│ ● De confianza                                         [Retirar]   │ [Día anterior] domingo 18/10/2026 (hoy) [Día     │
-│   Decisión · plan · Sistema · 18/10/2026 09:30 · m-41              │ siguiente] [Resumir el día]                      │
-│   Plan aprobado: añadir Calc.Multiply con pruebas (3 tareas).      │ Provisional: el día no ha terminado, así que no  │
-│ ● Propuesta de un agente: sin revisar        [Aceptar] [Rechazar]  │ se guarda en la memoria.                         │
-│ ● En cuarentena: heredada de un historial…     [Aceptar] [Rechazar]│ 12 prompts · 2 líneas sin reconocer              │
-│ ● Retirada                                                         │ ## Prompts …                                     │
+│ Por significado y por palabras: 3 resultados, del más cercano al menos.                                               │
+├────────────────────────────────────────────────────────────────────┬ Búsqueda por significado ────────────────────────┤
+│ ● De confianza                                         [Retirar]   │ Activa: el modelo está descargado y comprobado,  │
+│   Error conocido · facturas · Sistema · 18/10/2026 09:30 · m-41    │ y los 120 fragmentos del índice tienen su        │
+│   Coincide por palabras y por significado                          │ significado calculado.                           │
+│   Test en rojo en el módulo de facturas.                           ├ Bitácora ────────────────────────────────────────┤
+│ ● En cuarentena: no la escribió Agent Studio…  [Aceptar] [Rechazar]│ 4 entradas de la bitácora esperan en cuarentena. │
+│   Bitácora · Bitácora del 2026-10-17 · P-0003 · Otro autor         │ [Confiar en la bitácora de este proyecto]        │
+│   Coincide por significado                                         │ Por días: viernes 17/10/2026 · 4 entradas en     │
+│ ● De confianza: lo escribió Agent Studio a partir del registro…    │ cuarentena [Confiar en este día]                 │
+│   Veredicto · Registro de decisiones, entrada 812                  ├ Resumen del día ─────────────────────────────────┤
+│                                                                    │ [Día anterior] domingo 18/10/2026 (hoy) …        │
 └────────────────────────────────────────────────────────────────────┴──────────────────────────────────────────────────┘
 ```
 
 - Las entradas de **toda confianza** (de confianza, propuesta, en cuarentena, rechazada y retirada), con su categoría,
-  tema, origen (sistema, tú o agente), fecha, fuente y lo que sustituyen. Se buscan por palabras y por categoría: el
-  buscador tiene la etiqueta «Buscar por palabras» y, vacío, la pista «contenido, tema o fuente…»; `Intro` o «Buscar»
-  aplican la búsqueda.
+  tema, origen (sistema, tú o agente), fecha, fuente y lo que sustituyen. Se filtran por categoría. Vacío, el buscador
+  tiene la pista «contenido, tema o fuente…»; `Intro` o «Buscar» aplican la búsqueda.
+- **La búsqueda por significado** (Fase 12, docs/17 D-05 y D-06; [ADR-0047](adr/0047-indice-semantico-local.md)). Con
+  palabras, «Buscar» va al índice semántico del proyecto, con lo de toda confianza:
+  - con el modelo y el significado de los fragmentos ya calculado, el buscador se llama «Buscar por significado y por
+    palabras». «Pruebas que fallan» encuentra «Test en rojo», y «prueba», «pruebas». La línea de debajo dice
+    «Por significado y por palabras: N resultados, del más cercano al menos.»;
+  - sin el modelo, o mientras el índice calcula el significado, se llama «Buscar por palabras» y la línea dice por qué:
+    «Solo por palabras: el modelo de búsqueda por significado no está descargado.», «… el índice aún está calculando el
+    significado de los fragmentos.», «… el modelo descargado no coincide con su huella y no se ha cargado.»…;
+  - cada resultado conserva su origen y su confianza, y dice por qué salió: «Coincide por palabras y por significado»,
+    «Coincide por palabras» o «Coincide por significado»;
+  - con ellos salen, de solo lectura, los textos que el sistema escribió desde el registro, con su fuente («Registro de
+    decisiones, entrada …») y «De confianza: lo escribió Agent Studio a partir del registro verificado»;
+  - sin palabras, o sin índice en la composición, la lista es la de siempre, por palabras.
+- **El panel «Búsqueda por significado»** dice el estado del modelo y del índice del proyecto: «Falta el modelo…» (y que
+  sin él la memoria se busca solo por palabras), «Activa: … los N fragmentos del índice tienen su significado calculado»,
+  «Activa a medias: M de N fragmentos…», o que el modelo no coincide con su huella o no se ha podido cargar.
+  - «Descargar el modelo de búsqueda (123 MB)» abre una confirmación: qué se descarga (el modelo multilingual-e5-small,
+    su licencia MIT, la revisión fijada y cada fichero con su tamaño), de dónde (solo de huggingface.co), dónde se guarda
+    (en `%LOCALAPPDATA%\AgentStudio\models\…`, fuera de tus proyectos) y que se comprueba la huella SHA-256 de cada
+    fichero. «Descargar 123 MB» o «No descargar». **Nada se descarga sin tu OK.**
+  - Durante la descarga, el progreso y «Cancelar la descarga». Lo que no verifica se borra y no queda nada a medias.
+  - Cuando termina con el modelo comprobado, el índice del proyecto calcula el significado de sus fragmentos en segundo
+    plano, sin bloquear la pantalla: un cálculo a la vez por proyecto, con dos hilos del procesador como mucho para dejar
+    el resto a la interfaz (sus hilos no tienen menos prioridad que los demás). El panel se pone al día cuando acaba; mientras tanto, la
+    búsqueda va por palabras.
+  - Después no hay red ni cuota: la búsqueda la calcula tu equipo. Al abrir un proyecto, si el modelo ya está, se carga en
+    segundo plano para que la primera búsqueda no espere.
+- **El panel «Bitácora»** (docs/17 D-02): la bitácora del proyecto también es memoria. Lo que anotó Agent Studio en sus
+  ejecuciones se comprueba con el registro y es de confianza. Lo demás (lo que anotan tus sesiones de desarrollo o lo que
+  llega con el repositorio) espera en cuarentena, y ningún agente lo recibe hasta que lo aceptes:
+  - una a una, con «Aceptar» en la lista: su origen dice «Agent Studio» u «Otro autor», y su confianza, «En cuarentena:
+    no la escribió Agent Studio. Acéptala, o confía en su día o en toda la bitácora»;
+  - por días, en «Por días»: cada día con entradas en cuarentena, o en el que confías, con «Confiar en este día» o
+    «Retirar la confianza»;
+  - para todo el proyecto, también los días que vengan, con «Confiar en la bitácora de este proyecto», que explica antes
+    qué pasa (úsalo si la bitácora es tuya y no te llega de terceros). Se retira con «Dejar de confiar en la bitácora de
+    este proyecto».
+
+  Cada decisión es tuya, va al registro (`JournalTrustChanged`) y se puede retirar. Durante una ejecución o una
+  planificación queda «En cola». Lo heredado de un historial aceptado como nuevo origen se revisa una a una. El juez nunca
+  recibe la bitácora.
 - **Lo que la app deriva del registro se lee como una frase** (tanda 2, 2026-11-03; V27): «La persona aprobó el plan
   1fd546931ee8 de la ejecución 20261029-c4a1f2 (3 tareas) el 29/10/2026 a las 22:40 UTC.». Ya no dice «user aprobó…»,
   el id con el que el registro guarda a una persona. La hora va en UTC, y lo dice, porque el texto queda anclado y llega a

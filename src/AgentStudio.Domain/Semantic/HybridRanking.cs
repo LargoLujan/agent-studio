@@ -7,6 +7,13 @@ namespace AgentStudio.Domain.Semantic;
 public readonly record struct RankedCandidate(string Id, DateTimeOffset At);
 
 /// <summary>
+/// One place of the semantic list of the hybrid search: the id and the time of a fragment, as in
+/// <see cref="RankedCandidate"/>, and its similarity to the query, the dot product of the two normalised vectors (their
+/// cosine).
+/// </summary>
+public readonly record struct SimilarCandidate(string Id, DateTimeOffset At, float Similarity);
+
+/// <summary>
 /// One result of <see cref="HybridRanking.Fuse"/>: the id and time of the candidate, its score (the sum of
 /// <c>1 / (k + rank)</c> over the lists it is in) and its rank, from 1, in the lexical list and in the semantic one (null
 /// when it is not in that list).

@@ -11,7 +11,9 @@
     <!-- «Memoria» (docs/14 F4-5, D-18 to D-22): every entry of the project's memory with its category, origin and trust.
          A person accepts or rejects what an agent proposed or what is in quarantine, and withdraws what is trusted; each
          decision goes to the decision log (queued while a run goes on). The Markdown export is never offered during a
-         run. On the right, the daily summary of the journal. Bindings only. -->
+         run. Phase 12 (docs/17 D-02 to D-06): «Buscar» goes by meaning and by words when the model is there, and says how it
+         went; the texts of the log come with the results. On the right, the search by meaning (the model and its download,
+         with the person's OK), the trust of the journal and the daily summary. Bindings only. -->
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="Memory.BoolToVisibility"/>
         <orchestratorViews:ToneToBrushConverter x:Key="Memory.ToneToBrush"/>
@@ -32,16 +34,17 @@
                     <TextBlock Style="{StaticResource SectionTitleText}" VerticalAlignment="Center" Margin="0,0,16,6" Text="Memoria del proyecto"/>
                 </DockPanel>
 
-                <!-- The search: a visible label, a hint inside the empty box, and Intro or «Buscar» to apply it. -->
+                <!-- The search: a visible label (by meaning and by words, or by words), a hint inside the empty box, and Intro or
+                     «Buscar» to apply it. -->
                 <WrapPanel>
-                    <TextBlock x:Name="SearchLabel" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="0,0,8,6" Text="Buscar por palabras"/>
+                    <TextBlock x:Name="SearchLabel" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="0,0,8,6" Text="{Binding SearchLabel}"/>
                     <Grid Width="280" Margin="0,0,16,6" VerticalAlignment="Center">
                         <TextBox x:Name="SearchBox" Style="{StaticResource FieldTextBox}" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                                 AutomationProperties.Name="Buscar en la memoria por palabras"
+                                 AutomationProperties.Name="{Binding SearchAutomationName}"
                                  AutomationProperties.LabeledBy="{Binding ElementName=SearchLabel}"
-                                 AutomationProperties.HelpText="Palabras del contenido, el tema o la fuente de las entradas. Intro o «Buscar» aplica la búsqueda.">
+                                 AutomationProperties.HelpText="Lo que buscas en el contenido, el tema o la fuente de las entradas, con tus palabras. Intro o «Buscar» aplica la búsqueda.">
                             <TextBox.InputBindings>
-                                <KeyBinding Key="Enter" Command="{Binding RefreshCommand}"/>
+                                <KeyBinding Key="Enter" Command="{Binding SearchCommand}"/>
                             </TextBox.InputBindings>
                         </TextBox>
                         <TextBlock Margin="9,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" Text="contenido, tema o fuente…">
@@ -60,9 +63,12 @@
                     <TextBlock x:Name="KindLabel" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="0,0,8,6" Text="Categoría"/>
                     <ComboBox MinWidth="160" Margin="0,0,8,6" VerticalAlignment="Center" ItemsSource="{Binding Kinds}" SelectedItem="{Binding SelectedKind}" DisplayMemberPath="Label"
                               AutomationProperties.Name="Categoría" AutomationProperties.LabeledBy="{Binding ElementName=KindLabel}"/>
-                    <Button Style="{StaticResource ToolbarPrimaryButton}" VerticalAlignment="Center" Content="Buscar" Command="{Binding RefreshCommand}"
+                    <Button Style="{StaticResource ToolbarPrimaryButton}" VerticalAlignment="Center" Content="Buscar" Command="{Binding SearchCommand}"
                             AutomationProperties.Name="Buscar en la memoria"/>
                 </WrapPanel>
+                <!-- How the last search went: by meaning and by words, or by words only and why (F12-6). -->
+                <TextBlock Style="{StaticResource OptionalSecondaryText}" TextWrapping="Wrap" Text="{Binding SearchNotice, TargetNullValue=''}"
+                           AutomationProperties.Name="Cómo se ha buscado" AutomationProperties.LiveSetting="Polite"/>
                 <TextBlock Style="{StaticResource BodyText}" FontSize="12" Foreground="{StaticResource WarningBrush}" Text="{Binding ExportBlocked}"
                            Visibility="{Binding ExportBlocked, Converter={StaticResource Memory.NotNullToVisibility}}" AutomationProperties.LiveSetting="Polite"/>
                 <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding ExportStatus, TargetNullValue=''}" AutomationProperties.LiveSetting="Polite"/>
@@ -82,8 +88,9 @@
             </Grid.ColumnDefinitions>
 
             <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
-                <ItemsControl ItemsSource="{Binding Entries}" Margin="12,10,12,12" Focusable="False" AutomationProperties.Name="Entradas de la memoria">
-                    <ItemsControl.ItemTemplate>
+                <ItemsControl ItemsSource="{Binding Results}" Margin="12,10,12,12" Focusable="False" AutomationProperties.Name="Entradas de la memoria">
+                    <ItemsControl.Resources>
+                        <!-- An entry of the memory: its trust, what can be decided about it, and why a search found it. -->
                         <DataTemplate DataType="{x:Type memory:MemoryEntryViewModel}">
                             <Border Style="{StaticResource InnerCard}" Padding="10,8" AutomationProperties.Name="{Binding TrustLabel}">
                                 <StackPanel>
@@ -102,12 +109,13 @@
                                                     Command="{Binding DataContext.RetractCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
                                                     AutomationProperties.Name="{Binding Id, StringFormat='Retirar {0}'}"/>
                                         </StackPanel>
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <Ellipse Width="9" Height="9" Margin="0,0,6,0" VerticalAlignment="Center" Fill="{Binding TrustTone, Converter={StaticResource Memory.ToneToBrush}}"/>
-                                            <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{Binding TrustLabel}"/>
-                                        </StackPanel>
+                                        <!-- A dock, not a horizontal stack: a long trust wraps before the buttons instead of running under them. -->
+                                        <DockPanel VerticalAlignment="Center">
+                                            <Ellipse DockPanel.Dock="Left" Width="9" Height="9" Margin="0,0,6,0" VerticalAlignment="Center" Fill="{Binding TrustTone, Converter={StaticResource Memory.ToneToBrush}}"/>
+                                            <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,8,0" Text="{Binding TrustLabel}"/>
+                                        </DockPanel>
                                     </DockPanel>
-                                    <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,0">
+                                    <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,0" TextWrapping="Wrap">
                                         <Run Text="{Binding KindLabel, Mode=OneWay}"/>
                                         <Run Text="·"/>
                                         <Run Text="{Binding Topic, Mode=OneWay}"/>
@@ -119,19 +127,53 @@
                                         <Run Text="{Binding Id, Mode=OneWay}" FontFamily="{StaticResource MonoFont}"/>
                                     </TextBlock>
                                     <TextBlock Style="{StaticResource BodyText}" Margin="0,4,0,0" Text="{Binding Content}"/>
-                                    <TextBlock Style="{StaticResource SecondaryText}" FontSize="11" Margin="0,4,0,0" Text="{Binding Source, StringFormat='Fuente: {0}'}"/>
+                                    <TextBlock Style="{StaticResource SecondaryText}" FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap" Text="{Binding Source, StringFormat='Fuente: {0}'}"/>
+                                    <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding Match, TargetNullValue=''}"/>
                                     <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding Superseded, TargetNullValue=''}"/>
                                     <TextBlock Style="{StaticResource BodyText}" FontSize="12" Foreground="{StaticResource WarningBrush}" Text="{Binding Pending}"
                                                Visibility="{Binding Pending, Converter={StaticResource Memory.NotNullToVisibility}}" AutomationProperties.LiveSetting="Polite"/>
                                 </StackPanel>
                             </Border>
                         </DataTemplate>
-                    </ItemsControl.ItemTemplate>
+                        <!-- A text the system wrote from an entry of the verified log: trusted and read-only. -->
+                        <DataTemplate DataType="{x:Type memory:LogFragmentViewModel}">
+                            <Border Style="{StaticResource InnerCard}" Padding="10,8" AutomationProperties.Name="{Binding TrustLabel}">
+                                <StackPanel>
+                                    <DockPanel>
+                                        <Ellipse DockPanel.Dock="Left" Width="9" Height="9" Margin="0,0,6,0" VerticalAlignment="Center" Fill="{Binding TrustTone, Converter={StaticResource Memory.ToneToBrush}}"/>
+                                        <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" TextWrapping="Wrap" Text="{Binding TrustLabel}"/>
+                                    </DockPanel>
+                                    <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,0" TextWrapping="Wrap">
+                                        <Run Text="{Binding KindLabel, Mode=OneWay}"/>
+                                        <Run Text="·"/>
+                                        <Run Text="{Binding OriginLabel, Mode=OneWay}"/>
+                                        <Run Text="·"/>
+                                        <Run Text="{Binding Created, Mode=OneWay}"/>
+                                        <Run Text="·"/>
+                                        <Run Text="{Binding Id, Mode=OneWay}" FontFamily="{StaticResource MonoFont}"/>
+                                    </TextBlock>
+                                    <TextBlock Style="{StaticResource BodyText}" Margin="0,4,0,0" Text="{Binding Content}"/>
+                                    <TextBlock Style="{StaticResource SecondaryText}" FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap" Text="{Binding Source, StringFormat='Fuente: {0}'}"/>
+                                    <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding Match}"/>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.Resources>
                 </ItemsControl>
             </ScrollViewer>
 
-            <Border Grid.Column="1" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1,0,0,0" Padding="12,10,12,12">
-                <views:DailySummaryView DataContext="{Binding Summary}"/>
+            <Border Grid.Column="1" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1,0,0,0">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+                    <StackPanel Margin="12,10,12,12">
+                        <views:EmbeddingModelView DataContext="{Binding Model}"/>
+                        <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,12,0,0" Padding="0,10,0,0">
+                            <views:JournalTrustView DataContext="{Binding Journal}"/>
+                        </Border>
+                        <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,12,0,0" Padding="0,10,0,0">
+                            <views:DailySummaryView DataContext="{Binding Summary}"/>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
             </Border>
         </Grid>
     </Grid>

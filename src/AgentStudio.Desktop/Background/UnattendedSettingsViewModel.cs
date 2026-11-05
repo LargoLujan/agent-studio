@@ -13,6 +13,9 @@ public sealed partial class CloseWindowChoice(CloseWindowAction value, string la
 
     [ObservableProperty]
     private bool _isSelected;
+
+    /// <summary>What a screen reader says of an answer of «Al cerrar la ventana» (V34): its label.</summary>
+    public override string ToString() => Label;
 }
 
 /// <summary>

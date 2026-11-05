@@ -67,10 +67,13 @@ internal sealed class InMemoryMcp : IAsyncDisposable
 
     public McpClient Client { get; private set; } = null!;
 
-    public static async Task<InMemoryMcp> StartAsync(SkillCatalogSnapshot snapshot, CancellationToken cancellationToken)
+    public static Task<InMemoryMcp> StartAsync(SkillCatalogSnapshot snapshot, CancellationToken cancellationToken) =>
+        StartAsync(SkillsMcpServer.Options(snapshot), cancellationToken);
+
+    /// <summary>The server with <paramref name="options"/> (the snapshots of one launch: the catalog, the history or both).</summary>
+    public static async Task<InMemoryMcp> StartAsync(McpServerOptions options, CancellationToken cancellationToken)
     {
         var session = new InMemoryMcp();
-        var options = SkillsMcpServer.Options(snapshot);
         var transport = new StreamServerTransport(session._toServer.Reader.AsStream(), session._toClient.Writer.AsStream(), SkillsMcpServer.ServerName);
         session._server = McpServer.Create(transport, options);
         session._running = session._server.RunAsync(session._stop.Token);

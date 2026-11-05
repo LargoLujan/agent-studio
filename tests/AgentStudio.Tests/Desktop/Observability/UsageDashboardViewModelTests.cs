@@ -1,6 +1,7 @@
 using System.IO;
 using System.Text;
 using AgentStudio.Application.Usage;
+using AgentStudio.Desktop.Controls;
 using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Services;
 using AgentStudio.Tests.Memory;
@@ -154,6 +155,37 @@ public sealed class UsageDashboardViewModelTests
         var attempt = dashboard.Attempts[0];
         Assert.Equal("Contexto máximo: ~30 % · estimado por Agent Studio · 300.000 de ~1.000.000 tokens · claude-sonnet-5-5 · sano", attempt.ContextPeak);
         Assert.DoesNotContain("exacto", attempt.ContextPeak, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// V39: every percentage is a bar (docs/18 P3), the context peak of a group and of an attempt too: the common bar, with its
+    /// origin and its level, the estimate with «~», and an empty track that says why when there is no figure.
+    /// </summary>
+    [Fact]
+    public async Task The_context_peak_of_a_group_and_of_an_attempt_is_a_bar_with_its_origin_and_level()
+    {
+        var dashboard = Dashboard();
+
+        await dashboard.SetProjectAsync(Root);
+
+        var claude = dashboard.Groups[0].ContextPeakBar;
+        Assert.Equal(("Contexto máximo", "30 %", "exacto · informado por el CLI", "sano"), (claude.Label, claude.ValueText, claude.Origin, claude.LevelText));
+        Assert.Equal(30, claude.Value!.Value, 6);
+        Assert.Equal(MetricBarLevel.Healthy, claude.Level);
+        Assert.Contains("300.000 de 1.000.000 tokens", claude.Detail, StringComparison.Ordinal);
+
+        var codex = dashboard.Groups[1].ContextPeakBar;
+        Assert.False(codex.HasValue);
+        Assert.Equal("no expuesto", codex.ValueText);
+
+        var estimated = dashboard.Attempts[0].ContextPeakBar;
+        Assert.Equal("~30 %", estimated.ValueText);
+        Assert.True(estimated.IsEstimate);
+        Assert.Equal("estimado por Agent Studio", estimated.Origin);
+
+        var none = dashboard.Attempts[1].ContextPeakBar;
+        Assert.False(none.HasValue);
+        Assert.Equal("sin dato", none.ValueText);
     }
 
     [Fact]
@@ -346,6 +378,7 @@ public sealed class UsageDashboardViewModelTests
         SaveInAjustes(store, dashboard.Preferences);
 
         Assert.EndsWith("· compresión recomendada", dashboard.Groups[0].ContextPeak, StringComparison.Ordinal);
+        Assert.Equal("compresión recomendada", dashboard.Groups[0].ContextPeakBar.LevelText);
     }
 
     /// <summary>The «Guardar» of «Ajustes», over the preferences «Consumo» judges its report with.</summary>

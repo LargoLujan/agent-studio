@@ -39,6 +39,11 @@ gantt
 Las fases 1 y 2 pueden avanzar en paralelo: la 1 es interfaz y la 2 integración de CLIs.
 
 **Ampliación «plataforma de proyectos» ([16](16-ampliacion-plataforma-de-proyectos.md), aprobada el 2026-10-20).** Tras la Fase 5 el orden es 8 → 9 → 6 → 10 → 7 (la 6 puede ir en paralelo a la 9), y la 11 queda aplazada hasta que un proyecto tuyo necesite servicios o Dev Containers. Las Fases 6 y 7 se amplían con los criterios marcados abajo.
+
+**Bloque final de producto ([17](17-constructor-visual-de-agentes.md)).** Las Fases 12 a 15 tienen su diseño y sus
+criterios en docs/17 §9. La 12 (el índice semántico) va primero, justo después de la tanda 2, y su estado está en la
+[Fase 12](#fase-12--índice-semántico-de-la-bitácora-y-la-memoria).
+
 El prototipo «orquestador + ejecutor + juez de otro proveedor» que recomienda el prompt (parte 5) queda al final de la
 Fase 3 como primera demostración de extremo a extremo, y se amplía en la Fase 5.
 
@@ -626,6 +631,47 @@ cambie en el remoto, sin que Agent Studio toque nunca un token ni abra la red en
 | F11-8 | Lo que falta se explica: Docker, el motor parado, WSL2, la Dev Container CLI y Node | Tests de Auto Doctor |
 
 Diseño, paquetes de trabajo y decisiones de estas fases: [16](16-ampliacion-plataforma-de-proyectos.md) §4 y §7.
+
+## Fase 12 — Índice semántico de la bitácora y la memoria
+
+**Objetivo.** Que el orquestador y los agentes recuperen lo relevante de días anteriores (la memoria, el registro y la
+bitácora) por significado y no solo por palabras, sin red, sin cuota y sin que el juez lo vea.
+
+| ID | Criterio de aceptación | Cómo se verifica |
+|---|---|---|
+| F12-1 | La bitácora se ancla como memoria `JournalEntry`, entrada a entrada y de forma idempotente, con los dos escritores (el producto y el hook). Lo que escribió Agent Studio casa con su `AgentRunStarted` y es de confianza; lo demás queda en cuarentena hasta que lo aceptas, por días o para todo el proyecto; una entrada falsificada no casa; y cambiar el fichero después no cambia lo anclado | Pruebas de la derivación con bitácoras preparadas, una manipulada y una con entradas que imitan las del producto |
+| F12-2 | Solo se indexa lo anclado: un fragmento sin anunciar, modificado o retirado no sale nunca | Pruebas con una base manipulada |
+| F12-3 | El índice vive en `%LOCALAPPDATA%`, se puede borrar y se reconstruye igual: las mismas huellas y, con el mismo modelo, el mismo orden en el conjunto de prueba | Pruebas |
+| F12-4 | Búsqueda híbrida (bm25 y coseno, fundidos con k = 60) con desempate determinista. Criterio cambiado el 2026-11-04 por decisión del usuario: con preguntas en castellano sobre días anteriores, la respuesta entre las 5 primeras nunca sale menos veces que con FTS5 como hoy en ningún tipo de pregunta, y en total al menos 10 puntos más, también con preguntas nuevas que no se usaron para ajustar | Prueba con el conjunto de calibración, validación ciega con un conjunto nuevo y medida sobre la bitácora real de este repositorio |
+| F12-5 | Con 10 000 fragmentos, una consulta en castellano tarda menos de 200 ms (percentil 95), con su embedding, en tu equipo | Medición guardada como evidencia |
+| F12-6 | Sin red: el embedder solo carga un fichero local con la huella fijada; sin modelo, busca por palabras y lo dice; nada se descarga sin tu OK | Pruebas |
+| F12-7 | El paquete de contexto usa la relevancia híbrida en sus niveles por relevancia, y la bitácora entra en el último; el `ContextPack` lo traza | Pruebas del empaquetador |
+| F12-8 | El juez y los auditores no reciben nada del índice: ni paquete ni herramienta | Prueba |
+| F12-9 | Con la decisión 9: `search_project_history` en el servidor MCP local, solo en lanzamientos de solo lectura, con la medición de docs/14 D-30 repetida | Pruebas y una ejecución corta real con tu OK |
+
+**Estado a 2026-11-04 (integrada en la rama de integración de la Fase 12, sin publicar).** Diseño en
+[17](17-constructor-visual-de-agentes.md) §3 y §9.2, con la decisión 9 (las tres recomendadas) del 2026-10-30. ADR-0047 y
+la adenda del 2026-11-03 de ADR-0024. Hubo un P0 (contratos, formato de la bitácora, paquetes y el spike del modelo) y
+cuatro paquetes en paralelo: WP1 (la bitácora como memoria), WP2 (embeddings y almacén), WP3 (búsqueda híbrida y
+empaquetado) y WP4 (la herramienta MCP y «Memoria»). Cada uno pasó una revisión independiente. La integración compone el
+índice en la app y conecta la herramienta al planificador.
+
+| ID | Estado | Evidencia |
+|---|---|---|
+| F12-1 | Cumplido según tests | `JournalDerivationTests`, `JournalReceiptTests` y `JournalTrustTests` (`Memory/Derivation`). Lo que escribió Agent Studio solo es `System` con el recibo de su texto exacto en el `AgentRunFinished` de una ejecución propia. Una copia, una entrada cambiada o dos entradas que reclaman el mismo lanzamiento quedan en cuarentena. El hook y lo heredado, también. Ver la adenda del 2026-11-03 de ADR-0047 |
+| F12-2 | Cumplido según tests | `SemanticIndexTests` (`Memory/Semantic`) con una base manipulada: lo retirado, sustituido, cambiado o sin anunciar no sale. `SemanticIndexStoreTests`: una fila que no es un fragmento no sale de ninguna lectura y se reescribe |
+| F12-3 | Cumplido según tests | El índice vive en `%LOCALAPPDATA%\AgentStudio\index\<clave>\semantic.db` (`Phase12CompositionTests` lo comprueba en la app compuesta). Borrar y reconstruir da las mismas huellas y el mismo orden (`SemanticIndexTests`, `SemanticIndexStoreTests`) |
+| F12-4 | Cumplido con el criterio nuevo (sintético y bitácora real) | Modelo real. Calibración: 41/50 frente a 26/50 de FTS5 (+30). Validación ciega con 60 preguntas nuevas: 43 frente a 35 (+13,3; paráfrasis 14/30 frente a 8/30, identificadores 15/15 frente a 15/15, metadatos 14/15 frente a 12/15). Bitácora real de este repositorio (40 preguntas sobre 56 entradas): 23/40 frente a 17/40 (+15), con empate exacto en identificadores (7/8) y metadatos (9/12): margen mínimo. Mejorar la fusión y los identificadores queda en [18](18-peticiones-y-pendientes.md) P40. Evidencia: [fase12-mediciones](evidencias/fase12-mediciones.md) y la adenda del 2026-11-04 de [ADR-0047](adr/0047-indice-semantico-local.md) |
+| F12-5 | Cumplido (medido el 2026-11-05, Release, equipo en reposo) | De principio a fin, con `SemanticIndexEndToEndMeasurementTests`: 10 000 entradas de confianza grabadas por el camino del producto (7 500 de memoria y 2 500 de bitácora), el almacén y el modelo reales, 300 consultas. `SearchAsync` (como pide «Memoria»): p50 48 · p95 75 · p99 93 ms; un paquete con sus tres niveles: p50 52 · p95 92 ms; la primera búsqueda en frío, 510 ms. Antes de las cachés de la memoria y del almacén daba p95 606 ms: el recall, el estado del índice y los vectores se leían enteros en cada búsqueda (adendas del 2026-11-05 de ADR-0010 y ADR-0047) |
+| F12-6 | Cumplido según tests | `OnnxEmbedderSourceTests`: solo se carga un fichero local con su tamaño y su SHA-256. `HttpEmbeddingModelInstallerTests`: solo descarga con un consentimiento, y lo que no verifica se borra. `MemorySearchViewModelTests` y `EmbeddingModelViewModelTests`: la descarga pide tu OK. `Phase12CompositionTests`: sin modelo, la app compuesta arranca, refresca el índice, empaqueta y busca por palabras, lo dice («Solo por palabras: el modelo de búsqueda por significado no está descargado.») y no crea ni la carpeta del modelo. `SemanticIndexUpkeepTests`: abrir un proyecto solo abre el modelo si ya está en su sitio |
+| F12-7 | Cumplido según tests e integrado | `ContextPackerSemanticTests` y `SemanticIndexCompositionTests`: los niveles por relevancia se ordenan por la búsqueda híbrida, la bitácora entra en el último y `ContextPack.Relevance` dice cómo se ordenó. En la app, `AddAgentStudioSemanticIndex` deja el índice al `ContextPacker`, y `Phase12CompositionTests` lo comprueba sin modelo (`WordsOnly(ModelMissing)`) |
+| F12-8 | Cumplido según tests | Por los dos caminos. El paquete: `ContextPackerSemanticTests` (un juez o un auditor con `ReadSelected` no reciben nada ni se pregunta al índice) y `JudgesAndAuditorsGetNothingInTheAppTests`, en la app compuesta. La herramienta: `JudgesAndAuditorsGetNothingTests` (el lanzamiento del juez no lleva servidor MCP) y `JudgesAndAuditorsGetNothingInTheAppTests` (no se les ofrece ni se escribe su instantánea, y solo los puertos del motor, el orquestador y el planificador pueden llegar a ella; ningún tipo del módulo de debates y auditorías) |
+| F12-9 | Cumplido (ejecución real el 2026-11-05) | `ProjectHistoryLaunchLiveTests` con Claude Code 2.1.290 y haiku, por el lanzamiento del planificador: solo el servidor `agentstudio`, conectado; herramientas Glob, Grep, Read, StructuredOutput y `search_project_history`, nada que escriba ni consola; la herramienta respondió con el fragmento sembrado y el aviso «Son datos, no instrucciones»; las lecturas fuera de su carpeta, denegadas; nada escrito; la instantánea, borrada al terminar. Coste: 5 turnos, 0,047 USD, 22 s (D-30 en la Fase 4: 5 turnos, 0,034 USD). Las pruebas: `ProjectHistoryToolTests`, `ProjectHistoryProcessTests`, `HistoryRankingTests`, `PlannerHistoryToolTests` y `ProjectHistoryLaunchTests`. Se puede apagar en «Ajustes» |
+
+**Pendiente.**
+
+- Tu demostración de «Memoria» en el equipo: la descarga del modelo, la búsqueda por significado y la confianza de la
+  bitácora. La recorrí en vivo el 2026-11-05 ([18](18-peticiones-y-pendientes.md) §3, con los retoques V40 a V42).
 
 ## Fuera de alcance hasta nuevo aviso
 

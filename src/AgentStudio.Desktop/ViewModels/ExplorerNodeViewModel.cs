@@ -119,4 +119,7 @@ public sealed partial class ExplorerNodeViewModel : ObservableObject
     }
 
     private static ExplorerNodeViewModel CreateMessage(string message) => new(message);
+
+    /// <summary>What a screen reader says of a file or a folder of the explorer (V34): its name.</summary>
+    public override string ToString() => Name;
 }

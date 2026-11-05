@@ -1,3 +1,4 @@
+using AgentStudio.Application.Projects;
 using AgentStudio.Desktop.Controls.Editor;
 using AgentStudio.Desktop.Controls.Terminal;
 using AgentStudio.Desktop.Debate;
@@ -28,7 +29,14 @@ internal static class ShellServices
             .AddSingleton<IUnsavedChangesPrompt, WpfUnsavedChangesPrompt>()
             .AddSingleton<ProviderDiagnosticsViewModel>()
             .AddSingleton<ExplorerViewModel>()
-            .AddSingleton<JournalViewModel>()
+            .AddSingleton<IJournalWatcher, JournalFolderWatcher>()
+
+            // V32: «Bitácora de hoy» follows the journal folder and the day by itself, and shows what it reads on the UI thread.
+            .AddSingleton(provider => new JournalViewModel(
+                provider.GetRequiredService<TimeProvider>(),
+                provider.GetService<IProjectStorageReader>(),
+                provider.GetService<IJournalWatcher>(),
+                ObservabilityUiServices.UiContext()))
             .AddSingleton<QuickOpenViewModel>()
             .AddSingleton<MainViewModel>()
             .AddSingleton<IReviewNavigation>(provider => provider.GetRequiredService<MainViewModel>())

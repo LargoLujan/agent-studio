@@ -199,7 +199,7 @@ public sealed class FileCanvasLayoutStore(IProjectStorageFiles files) : ICanvasL
             draft.Summary,
             draft.Risks,
             [.. draft.Tasks.Select(DraftTaskJson.From)],
-            draft.Proposal is { } proposal ? new DraftProposalJson(proposal.Run.Value, proposal.PlanHash, proposal.Corrected) : null);
+            draft.Proposal is { } proposal ? new DraftProposalJson(proposal.Run.Value, proposal.PlanHash, proposal.Corrected, proposal.HistoryToolNotice) : null);
 
         /// <summary>The draft, checked whole: past a limit it is too big, and anything missing or out of place makes it damaged.</summary>
         public DraftReading ToReading()
@@ -244,19 +244,20 @@ public sealed class FileCanvasLayoutStore(IProjectStorageFiles files) : ICanvasL
         }
     }
 
-    private sealed record DraftProposalJson(string? Run, string? PlanHash, bool Corrected)
+    /// <summary>The proposal as it is stored; a draft of before the search in the history has no notice, and reads as null.</summary>
+    private sealed record DraftProposalJson(string? Run, string? PlanHash, bool Corrected, string? HistoryToolNotice = null)
     {
-        /// <summary>The proposal, or null when its run is not a run id or its hash is not a SHA-256.</summary>
+        /// <summary>The proposal, or null when its run is not a run id, its hash is not a SHA-256 or its notice is too long.</summary>
         public PlanDraftProposal? ToDomain()
         {
-            if (Run is null || !ContentHash.IsSha256Hex(PlanHash))
+            if (Run is null || !ContentHash.IsSha256Hex(PlanHash) || TooLong(HistoryToolNotice))
             {
                 return null;
             }
 
             try
             {
-                return new PlanDraftProposal(new RunId(Run), PlanHash!, Corrected);
+                return new PlanDraftProposal(new RunId(Run), PlanHash!, Corrected, string.IsNullOrWhiteSpace(HistoryToolNotice) ? null : HistoryToolNotice);
             }
             catch (ArgumentException)
             {

@@ -82,7 +82,7 @@ public enum ValidationState
 /// monitor of the run. Planning and running go through <see cref="OrchestrationSession"/>; without an engine the canvas
 /// still works and the screen says «Motor no disponible».
 /// </summary>
-public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel
+public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, IPlanningContext
 {
     public const string IdPrefix = "orchestrator:";
 
@@ -439,6 +439,13 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel
     /// </summary>
     [ObservableProperty]
     private MetricBarReading? _planningContext;
+
+    /// <summary>
+    /// The orchestrator is planning now (V33): the status bar shows <see cref="PlanningContext"/> meanwhile, as it shows the
+    /// context of a task in course.
+    /// </summary>
+    [ObservableProperty]
+    private bool _isPlanningInProgress;
 
     /// <summary>Follows the context of the planning in course (or the last one); null before the first.</summary>
     private ContextHealthTracker? _planningTracker;
@@ -844,6 +851,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel
         var provider = orchestrator.Model.Provider;
         _planningTracker = new ContextHealthTracker(Monitor.ContextThresholds, Monitor.ContextWindows, provider, reportsContextOccupancy: MetricBars.ReportsContext(provider));
         PlanningContext = MetricBars.Context(PlanningContextLabel, _planningTracker.Current, Monitor.ContextThresholds);
+        IsPlanningInProgress = true;
         try
         {
             var request = new PlanningRequest(project, RequestText.Trim(), requirements, context.Roster, orchestrator.Id, profile, Limits);
@@ -863,6 +871,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel
         finally
         {
             _planning = null;
+            IsPlanningInProgress = false;
             CancelPlanningCommand.NotifyCanExecuteChanged();
             IsBusy = false;
             BusyText = null;
@@ -1110,7 +1119,9 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel
         SetFollowUp(null);
         if (proposal.Plan is not { } plan)
         {
-            ProposalStatus = $"El orquestador no devolvió un plan utilizable ({AgentActivityText.Outcome(proposal.Status)}){(proposal.Error is null ? "." : ": " + proposal.Error)}";
+            ProposalStatus = WithHistoryNotice(
+                $"El orquestador no devolvió un plan utilizable ({AgentActivityText.Outcome(proposal.Status)}){(proposal.Error is null ? "." : ": " + proposal.Error)}",
+                proposal);
             return;
         }
 
@@ -1118,14 +1129,23 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel
         ShowValidation = true;
         Revalidate();
         var corrected = proposal.Corrected ? " Se le pidió una corrección." : string.Empty;
-        ProposalStatus = (ValidationState == ValidationState.Valid
-            ? "Plan propuesto por el orquestador: revísalo y apruébalo o recházalo."
-            : $"Plan propuesto por el orquestador con problemas: {ValidationText}") + corrected;
+        ProposalStatus = WithHistoryNotice(
+            (ValidationState == ValidationState.Valid
+                ? "Plan propuesto por el orquestador: revísalo y apruébalo o recházalo."
+                : $"Plan propuesto por el orquestador con problemas: {ValidationText}") + corrected,
+            proposal);
 
         // A proposal spent quota: it is kept at once, not after the pause of the edits.
         SaveDraftNow();
         CollapsePreparationWhenReady();
     }
+
+    /// <summary>
+    /// The status of a proposal and, after it, why the orchestrator planned without the search in the history when it did
+    /// (<see cref="PlanProposal.HistoryToolNotice"/>, Phase 12): it is not an error, but the person should know.
+    /// </summary>
+    private static string WithHistoryNotice(string status, PlanProposal proposal) =>
+        proposal.HistoryToolNotice is { Length: > 0 } notice ? $"{status} {notice}" : status;
 
     private void ShowPlan(PlanDefinition plan)
     {

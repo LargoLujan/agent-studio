@@ -48,7 +48,11 @@ public sealed record RunReviewServices(
     Func<ProjectContext, string, Task>? CorrectiveTasks = null);
 
 /// <summary>A finding of the auditor of the orchestrator, as the monitor lists it.</summary>
-public sealed record AuditFindingRow(string Severity, Tone Tone, string Check, string Code, string Where, string Message);
+public sealed record AuditFindingRow(string Severity, Tone Tone, string Check, string Code, string Where, string Message)
+{
+    /// <summary>What a screen reader says of a finding of the auditor (V34): its severity, its check and its message.</summary>
+    public override string ToString() => $"{Severity} · {Check}: {Message}";
+}
 
 /// <summary>
 /// Follows one <see cref="IOrchestrationRun"/>: phase, tasks, queue, agent activity, evidence and graph health. The
@@ -199,6 +203,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
     private RunPhase? _phase;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ResultSummaryText))]
     private string? _phaseDetail;
 
     [ObservableProperty]
@@ -336,7 +341,15 @@ public sealed partial class RunMonitorViewModel : ObservableObject
     }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ResultSummaryText))]
     private string? _resultSummary;
+
+    /// <summary>
+    /// The summary of the result as the monitor shows it, under the detail of the phase: null when it says the same as that
+    /// detail (V35). The engine ends a run with its phase and that detail, and then with its result and the same summary,
+    /// so a run that finished well read «Terminó bien: …» twice.
+    /// </summary>
+    public string? ResultSummaryText => string.Equals(ResultSummary, PhaseDetail, StringComparison.Ordinal) ? null : ResultSummary;
 
     [ObservableProperty]
     private string? _integrationCommit;
@@ -1356,10 +1369,18 @@ public sealed partial class RunMonitorViewModel : ObservableObject
 }
 
 /// <summary>One line of the activity log of a run.</summary>
-public sealed record ActivityEntry(DateTimeOffset At, string Time, string? Task, string Text);
+public sealed record ActivityEntry(DateTimeOffset At, string Time, string? Task, string Text)
+{
+    /// <summary>What a screen reader says of a line of the activity (V34): its time, its task and what happened.</summary>
+    public override string ToString() => string.Join(" · ", new[] { Time, Task, Text }.Where(p => !string.IsNullOrWhiteSpace(p)));
+}
 
 /// <summary>One piece of evidence the run captured; <see cref="ShortHash"/> is the start of its SHA-256.</summary>
-public sealed record EvidenceEntry(string? Task, string Title, string Kind, string Origin, string ShortHash, string? Tests);
+public sealed record EvidenceEntry(string? Task, string Title, string Kind, string Origin, string ShortHash, string? Tests)
+{
+    /// <summary>What a screen reader says of an evidence (V34): its task, its title, its kind, its origin and its tests.</summary>
+    public override string ToString() => string.Join(" · ", new[] { Task, Title, Kind, Origin, Tests }.Where(p => !string.IsNullOrWhiteSpace(p)));
+}
 
 /// <summary>One task as the monitor shows it.</summary>
 public sealed partial class MonitorTaskViewModel : ObservableObject
@@ -1748,4 +1769,7 @@ public sealed partial class MonitorTaskViewModel : ObservableObject
         Attempt = view.Attempt;
         RetryCount = view.RetryCount;
     }
+
+    /// <summary>What a screen reader says of a task of the monitor (V34): its id, its title and its status.</summary>
+    public override string ToString() => $"{Id} {Title} · {StatusLabel}";
 }

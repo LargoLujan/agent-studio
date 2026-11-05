@@ -6,6 +6,7 @@ using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Work;
 using AgentStudio.Orchestration.Engine;
+using AgentStudio.Tests.Application;
 using AgentStudio.Tests.Orchestration.Fakes;
 using static AgentStudio.Tests.Orchestration.Fakes.OrchestrationFixtures;
 
@@ -46,6 +47,30 @@ public sealed class ResumeAfterRestartTests
         Assert.True(entry.Sequence < interrupted.Sequence && entry.Sequence < relaunch.Sequence, "The resume is recorded before the recovery and before any launch.");
         Assert.Contains(harness.Payloads<TaskStatusChangedPayload>(), p => p.Payload.Reason == "Reanudada sola por el consentimiento de la cabecera de su ejecución.");
         AssertEveryLaunchEnded(harness);
+    }
+
+    /// <summary>
+    /// A resume by consent launches agents on the log it has just read: a critical moment (ADR-0010, addendum of 2026-11-04),
+    /// so it reads the whole log. The pass lists the runs from the tail, and the run going on again loads it incrementally.
+    /// </summary>
+    [Fact]
+    public async Task A_resume_by_consent_reads_the_whole_log_before_it_decides_and_the_run_going_on_again_reads_its_tail()
+    {
+        using var harness = new EngineHarness();
+        harness.Claude.Script("ejecutor", "T1", 1, new AgentScript { Hang = true });
+        await CutWhileRunningAsync(harness, Plan(Work("T1")), Consent);
+        var spy = new LoadSpyRecorder(harness.Decisions);
+        var engine = new Orchestrator(
+            spy, harness.Evidence, harness.Plans, harness.Runs, harness.RequirementStore, harness.Roster, harness.Providers, harness.Worktrees,
+            harness.Verification, harness.Integrator, harness.Review, harness.Approvals, harness.Skills, harness.Paths, harness.Time, harness.WriteConfinement);
+
+        var outcome = Assert.Single(await new ResumeScheduler(engine, harness.Decisions, harness.Runs).ResumeConsentedAsync(harness.Project, Ct));
+        await using var resumed = outcome.Resumed!;
+        var result = await resumed.CompleteAsync(harness);
+
+        Assert.Equal(RunPhase.Succeeded, result.Phase);
+        Assert.Equal([LogLoad.Incremental, LogLoad.Full], spy.Loads.Take(2));
+        Assert.Single(spy.Loads, l => l == LogLoad.Full);
     }
 
     /// <summary>

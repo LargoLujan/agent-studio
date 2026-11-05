@@ -186,10 +186,13 @@ public sealed class SkillsMcpLaunchLiveTests
     }
 
     /// <summary>A tool use of the raw stream-json, with its id.</summary>
-    private sealed record ToolUse(string Name, string? Id);
+    internal sealed record ToolUse(string Name, string? Id);
 
-    /// <summary>What the raw stream of the CLI says about its MCP servers, its tools, the tool uses and their results.</summary>
-    private sealed record McpStream(
+    /// <summary>
+    /// What the raw stream of the CLI says about its MCP servers, its tools, the tool uses and their results; the live
+    /// measurement of the history tool (<see cref="ProjectHistoryLaunchLiveTests"/>) reads it too.
+    /// </summary>
+    internal sealed record McpStream(
         string? Version,
         string? PermissionMode,
         IReadOnlyList<ClaudeMcpServer> Servers,

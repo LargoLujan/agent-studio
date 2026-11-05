@@ -60,6 +60,9 @@ public sealed class DebateHistoryItem
 
     /// <summary>«Reanudar»: only an interrupted debate whose replay found nothing wrong; it spends quota and asks your approval.</summary>
     public bool CanResume => Summary.Interrupted && Summary.Problems.Count == 0;
+
+    /// <summary>What a screen reader says of a debate of the history (V34): when it opened, its question and its state.</summary>
+    public override string ToString() => $"{When} · {QuestionText} · {StateText}";
 }
 
 /// <summary>A debate the «Debates» document started following: opened, opened as a challenge, or resumed.</summary>

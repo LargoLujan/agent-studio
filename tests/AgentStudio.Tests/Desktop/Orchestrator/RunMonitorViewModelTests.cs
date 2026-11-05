@@ -106,6 +106,37 @@ public sealed class RunMonitorViewModelTests
         Assert.Equal("Todo hecho", monitor.ResultSummary);
     }
 
+    /// <summary>
+    /// V35, seen live: the engine ends a run with its phase and the summary as its detail, and then with its result and the
+    /// same summary, so the monitor read «Terminó bien: 3 tareas completadas y 0 omitidas.» twice. It is shown once; a summary
+    /// that says more than the detail is still shown under it.
+    /// </summary>
+    [Fact]
+    public async Task The_summary_of_a_finished_run_is_shown_once_when_the_detail_of_its_phase_already_says_it()
+    {
+        const string Summary = "Terminó bien: 3 tareas completadas y 0 omitidas.";
+        static async Task<RunMonitorViewModel> EndAsync(RunPhase phase, string detail, string summary)
+        {
+            var monitor = NewMonitor();
+            var run = new FakeRun(FakeRun.SnapshotOf(RunPhase.Running, FakeRun.View("T1")));
+            monitor.Attach(run);
+            var result = Result(phase, summary);
+            run.Emit(new RunPhaseChangedEvent(T0, phase, detail), new RunFinishedEvent(T0, result));
+            run.Finish(result);
+            await monitor.Listening;
+            return monitor;
+        }
+
+        var same = await EndAsync(RunPhase.Succeeded, Summary, Summary);
+        var other = await EndAsync(RunPhase.Failed, "Falló la verificación.", "Falló: la política de pruebas exige pruebas capturadas por el sistema.");
+
+        Assert.Equal(Summary, same.PhaseDetail);
+        Assert.Equal(Summary, same.ResultSummary);
+        Assert.Null(same.ResultSummaryText);
+        Assert.Equal("Falló la verificación.", other.PhaseDetail);
+        Assert.Equal("Falló: la política de pruebas exige pruebas capturadas por el sistema.", other.ResultSummaryText);
+    }
+
     [Fact]
     public async Task An_interrupted_run_is_not_blocked_and_raises_no_deadlock_alert()
     {

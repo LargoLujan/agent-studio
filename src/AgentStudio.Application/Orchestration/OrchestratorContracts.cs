@@ -41,7 +41,16 @@ public sealed record PlanProposal(
     AgentRunStatus Status,
     string? Error,
     EvidenceId? RawPlanEvidence,
-    IReadOnlyList<PlanWarning>? Warnings = null);
+    IReadOnlyList<PlanWarning>? Warnings = null)
+{
+    /// <summary>
+    /// Phase 12 (docs/17 D-06, F12-9): why the orchestrator planned without the tool <c>search_project_history</c>, in
+    /// Spanish (its CLI does not launch the local MCP servers, the project has no trusted history yet, its template gives it
+    /// no memory...). It is not an error. Null when it had the tool, or when the composition has none to give. Whether it had
+    /// it is also in the prompt captured as evidence, which mentions the tool only then.
+    /// </summary>
+    public string? HistoryToolNotice { get; init; }
+}
 
 /// <summary>
 /// Limits and timings of a run, frozen in its header and anchored by <see cref="RunHeaderHash"/>. Null means the engine
