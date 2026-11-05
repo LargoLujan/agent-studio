@@ -59,7 +59,8 @@ public sealed class SemanticSearchMeasurementTests
         "El panel de consumo muestra los tokens por modelo y la cuota que queda en cada proveedor.",
     ];
 
-    private static readonly string[] Queries =
+    /// <summary>The queries of the measure, as a person writes them; the end-to-end measure of the index asks them too.</summary>
+    internal static readonly string[] Queries =
     [
         "¿Por qué fallan las pruebas en la verificación aislada?",
         "¿Quién revisa lo que entregan los ejecutores?",
