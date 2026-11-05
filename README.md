@@ -5,6 +5,7 @@
 **A Windows desktop IDE that plans work with AI coding agents, lets them debate, and only accepts the result when an independent judge from another vendor confirms it against evidence the system captured itself.**
 
 ![Status: work in progress](https://img.shields.io/badge/status-work%20in%20progress-orange)
+[![CI](https://github.com/LargoLujan/agent-studio/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/LargoLujan/agent-studio/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)
 ![C#](https://img.shields.io/badge/C%23-239120?logo=csharp&logoColor=white)
@@ -423,6 +424,9 @@ dotnet test -- --filter-trait "Category=LocalTools"
 | `ConPty` | The real ConPTY terminal session |
 | `Measurement` | Performance measurements of the git layer and usage projection |
 | `ProviderLive` | Real runs of Claude Code and Codex that **spend subscription quota** |
+
+The [CI workflow](.github/workflows/ci.yml) builds the solution and runs the suite on Windows for every push to `main`
+and every pull request, leaving out these four categories.
 
 Live provider tests are skipped unless you opt in, and some suites need a second variable (`AGENTSTUDIO_E2E=1` for the
 Phase 3 end-to-end run, `AGENTSTUDIO_PHASE5_DEMOS=1` for the debate demonstrations):

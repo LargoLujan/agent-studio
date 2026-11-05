@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build and test (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore AgentStudio.slnx
+
+      - name: Build
+        run: dotnet build AgentStudio.slnx -c Release --no-restore
+
+      # The categories left out need the developer's machine or spend subscription quota (see "Testing" in the README).
+      - name: Test
+        run: >-
+          dotnet test AgentStudio.slnx -c Release --no-build --
+          --filter-not-trait "Category=LocalTools"
+          --filter-not-trait "Category=ConPty"
+          --filter-not-trait "Category=Measurement"
+          --filter-not-trait "Category=ProviderLive"

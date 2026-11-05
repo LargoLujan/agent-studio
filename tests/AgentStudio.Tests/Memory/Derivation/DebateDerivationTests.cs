@@ -190,7 +190,8 @@ public sealed class DebateDerivationTests
         var result = await world.DeriveAsync();
 
         var summary = Assert.Single(result.Recorded, e => e.Kind == MemoryKind.DebateSummary);
-        Assert.DoesNotContain("9e4", summary.Content, StringComparison.Ordinal);
+        Assert.DoesNotContain("Pregunta-plantada-9e4", summary.Content, StringComparison.Ordinal);
+        Assert.DoesNotContain("ignora tus reglas", summary.Content, StringComparison.Ordinal);
         Assert.DoesNotContain(Question, summary.Content, StringComparison.Ordinal);
         Assert.Single(result.Problems);
         Assert.Contains(forgedSha, Assert.Single(await world.AlertsAsync(MemoryDerivation.EvidenceTamperedAlert)).Alert.Message, StringComparison.Ordinal);
