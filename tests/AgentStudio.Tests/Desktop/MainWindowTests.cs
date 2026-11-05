@@ -335,6 +335,10 @@ public sealed class MainWindowTests
             var window = CreateWindow(vm, new FileLayoutStore(new AppDataPaths(temp.Combine("data"))));
             await vm.OpenFileAsync(file);
             var document = vm.Documents.OfType<FileDocumentViewModel>().Single();
+
+            // The dock builds the tab of the document when it is loaded and laid out, as in the test above; without it the
+            // tab is not always there yet on a slower machine.
+            LayOut(window);
             var tab = Dock(window).Layout.Descendents().OfType<LayoutDocument>().Single(d => ReferenceEquals(d.Content, document));
             var seen = new List<string>();
             foreach (var dirty in new[] { true, false })

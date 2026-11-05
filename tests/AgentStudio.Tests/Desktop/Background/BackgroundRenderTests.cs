@@ -75,13 +75,19 @@ public sealed class BackgroundRenderTests
             WpfHost.FlushBindings();
             var bitmap = OffscreenRender.Render(view, 540, 240);
             OffscreenRender.SaveIfRequested(bitmap, "fase8-panel-bloqueado.png");
-            var result = (OffscreenRender.CountUnlike(bitmap, Surface), OffscreenRender.Count(bitmap, Raised));
+            // The card colour is counted inside the frame of the panel. When the system DPI is not the 120 of the render
+            // (96 on a CI runner) the 1-pixel border is anti-aliased into the row next to it, a colour within the tolerance
+            // of the card colour all around the picture, with no card drawn.
+            var inside = new System.Windows.Media.Imaging.CroppedBitmap(bitmap, new System.Windows.Int32Rect(3, 3, bitmap.PixelWidth - 6, bitmap.PixelHeight - 6));
+            var result = (OffscreenRender.CountUnlike(bitmap, Surface), OffscreenRender.Count(inside, Raised));
             panel.IsLocked = false;
             return result;
         });
 
         Assert.True(drawn > 2_000, $"Only {drawn} pixels differ from the panel: the locked text was not drawn.");
-        Assert.True(raised < 500, $"{raised} pixels have the card colour: a card of the work is on the locked panel.");
+        // One card is thousands of pixels (the three of the unlocked panel are over 40 000); the edges of anti-aliased text
+        // add a few hundred, more when the system DPI is not 120.
+        Assert.True(raised < 1_500, $"{raised} pixels have the card colour: a card of the work is on the locked panel.");
     }
 
     [Fact]
