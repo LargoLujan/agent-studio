@@ -43,8 +43,9 @@ namespace AgentStudio.Application.Decisions;
 /// writer of the project (the gate), like the log it appends to, and forgotten when the project is closed
 /// (<see cref="Forget"/>).</item>
 /// <item><b>What the tail cannot see.</b> A change in place that leaves the stamp as it was (bytes written into the file or
-/// through SQLite's blob interface, or an entry changed with SQL and the schema version forged back, or the file replaced
-/// by a crafted copy) is not seen by a load from the tail. It is seen by the next whole verification: every load at the
+/// through SQLite's blob interface, an entry changed with SQL and the schema version forged back, the file replaced by a
+/// crafted copy, or a row replaced through its rowid with <c>INSERT OR REPLACE</c> by a connection without recursive
+/// triggers) is not seen by a load from the tail. It is seen by the next whole verification: every load at the
 /// critical moments asks for one (<see cref="LogLoad.Full"/>: a delivery, what a judge sees, the start of a run, a
 /// planning, the close of a debate, an audit, a challenge), and an incremental load makes one when the last was at least
 /// <see cref="IncrementalAgeBeforeFullVerification"/> ago or after <see cref="IncrementalLoadsBeforeFullVerification"/>

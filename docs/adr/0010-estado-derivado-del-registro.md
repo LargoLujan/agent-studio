@@ -509,7 +509,9 @@ recupera toda la memoria antes de cada búsqueda.
   - un cambio con SQL tras el que se vuelve a poner la versión del esquema (`PRAGMA schema_version = N`);
   - el fichero sustituido por una copia preparada que conserva su fecha de creación (a mano, o por el *tunneling* de NTFS
     si se sustituye en pocos segundos);
-  - unos bytes escritos en su sitio, con la interfaz de blobs de SQLite o en el propio fichero.
+  - unos bytes escritos en su sitio, con la interfaz de blobs de SQLite o en el propio fichero;
+  - una fila sustituida por su `rowid` con `INSERT OR REPLACE` desde una conexión sin `recursive_triggers` (adenda del
+    2026-11-05, punto 5 de su revisión).
 
   Esa verificación llega en el siguiente momento crítico, en la primera carga pasados 5 minutos desde la última verificación
   entera, tras 256 cargas desde la cola o al volver a abrir el proyecto: lo que ocurra antes.
@@ -556,8 +558,9 @@ lugar de dos.
 
 **Residuales.**
 - Un cambio en su sitio que deja el sello igual, con el proyecto abierto, ya no se ve en la carga siguiente. Es el caso del
-  SQL con la versión del esquema puesta como estaba, del fichero sustituido por una copia que conserva su fecha de creación
-  o de los bytes escritos con la interfaz de blobs de SQLite o en el fichero. Se ve en el siguiente momento crítico, a más
+  SQL con la versión del esquema puesta como estaba, del fichero sustituido por una copia que conserva su fecha de creación,
+  de los bytes escritos con la interfaz de blobs de SQLite o en el fichero, o de una fila sustituida por su `rowid` con
+  `INSERT OR REPLACE` desde una conexión sin `recursive_triggers`. Se ve en el siguiente momento crítico, a más
   tardar en la primera carga pasados 5 minutos o 256 cargas desde la última verificación entera, o al volver a abrir el
   proyecto. Mientras tanto nadie en este proceso recibe las entradas cambiadas: se sirve desde memoria lo verificado, así
   que lo que se retrasa es el aviso, no lo que se lee.
@@ -609,8 +612,55 @@ trabajando a la vez):
 | Recuperar lo anclado antes de cada búsqueda | p50 120,2 · p95 179,7 ms (en reposo) | p50 8,0 · p95 23,3 ms, con otro agente midiendo a la vez; 1 de 300 por encima de 50 ms (la verificación entera de cada 256 cargas) |
 
 **Residuales.**
-- Una fila plantada en el almacén sin anuncio, o cambiada sin que el sello lo vea, ya no se avisa en la recuperación
-  siguiente sino en la siguiente verificación entera del registro (como mucho 5 minutos o 256 cargas, o en el siguiente
-  momento crítico). Nunca se sirve.
-- `ProjectMemory` guarda la instantánea y el libro de cada proyecto abierto en la sesión, también de los que se cerraron,
-  como ya hacía con el libro: no tiene un aviso de cierre de proyecto en `Application`.
+- Una fila plantada en el almacén sin anuncio, o cambiada sin que el sello lo vea (la versión del esquema puesta como
+  estaba, el fichero sustituido, bytes escritos en su sitio o una fila sustituida por su `rowid` con `INSERT OR REPLACE`
+  sin `recursive_triggers`), ya no se avisa en la recuperación siguiente sino en la siguiente verificación entera del
+  registro (como mucho 5 minutos o 256 cargas, o en el siguiente momento crítico). Nunca se sirve.
+- ~~`ProjectMemory` guarda la instantánea y el libro de los proyectos que se cerraron~~: resuelto en la revisión de abajo
+  (`IProjectClosedSignal`).
+
+**Revisión de las cachés (2026-11-05).** La revisión dio el visto bueno a lo esencial (nunca se sirve contenido sin
+verificar; las revisiones, las retiradas, `JournalTrustChanged` y el historial aceptado se reflejan) y pidió dos arreglos de
+gravedad media y cuatro menores. Se hicieron así:
+
+1. **Una carrera lanzaba `NullReferenceException`.** Una recuperación que había leído el registro se retrasaba; mientras,
+   se grababa una entrada y otra recuperación publicaba una instantánea más nueva. La primera ampliaba esa instantánea con
+   su libro viejo, en el que la entrada nueva no tenía anuncio. El efecto era un `LaunchFailed` en el motor y que fallara el
+   refresco del índice. `_ledgers` tenía la misma regresión: no lanzaba, pero un libro viejo sustituía al nuevo y obligaba a
+   leer el registro entero otra vez.
+   - **Ahora hay un único lector por proyecto, una cola sin locks** (`ProjectMemory.ProjectState`). Lee el registro, amplía
+     o rehace el libro y la instantánea, y publica el resultado entero. Ese resultado lleva cuántas entradas del registro
+     cubre y nunca es más viejo que el anterior. Las recuperaciones y las escrituras toman lo publicado, que no cambia.
+     Las peticiones que esperan a la vez se atienden con una sola lectura del registro.
+   - Una alerta de integridad ya no espera a que acabe una escritura de la memoria. Si hay una en curso, la da la
+     recuperación siguiente, como cuando el proyecto está ocupado: así una recuperación nunca espera.
+   - Lo prueba `MemorySnapshotRaceTests`, que reproduce la carrera: antes del arreglo fallaba con esa excepción.
+2. **Los proyectos cerrados se quedaban en memoria.** `Application` gana `IProjectClosedSignal`, que `ProjectDatabases`
+   implementa y la persistencia registra. El módulo de memoria engancha `ProjectMemory.Forget` al construirla.
+3. **Una consulta por categoría o tema filtraba con las filas de la base.** Ahora filtra sobre la entrada verificada; el
+   almacén solo ordena por el texto. Una fila alterada ya no hace servir una entrada de otra categoría, ni esconde la
+   verificada.
+4. **Una entrada anunciada sin fila se buscaba por id en cada recuperación.** Ahora se recuerda como ausente hasta la
+   siguiente verificación entera y se avisa una vez (`memory.entry-missing-row`). La busca otra vez la siguiente
+   recuperación si este proceso guarda su fila entretanto, al derivarla de nuevo o porque se leyó entre el anuncio y la fila.
+5. **Un tercer canal que el sello no ve.** Una conexión sin `recursive_triggers` (la de otro programa: la aplicación los
+   activa) puede usar `INSERT OR REPLACE` con el `rowid` de una fila. La fila con la que choca se borra sin pasar por su
+   trigger de borrado, y una clave que ninguna fila tiene (un id, una secuencia) pasa el trigger de inserción. Los triggers
+   siguen intactos y la versión del esquema no cambia. Funciona igual en `memory_entries` y en `decision_log`. Lo encuentra
+   la siguiente verificación entera, como los otros dos canales, y mientras tanto se sirve lo verificado. Lo prueban
+   `MemorySnapshotStateTests` e `IncrementalLogVerificationTests`.
+   - **Defensa barata que se propone**, no aplicada: que la condición de los triggers `*_no_replace` cubra también el
+     `rowid`, con `WHEN EXISTS (… WHERE id = NEW.id) OR EXISTS (… WHERE rowid = NEW.rowid)`.
+   - Una prueba aparte sobre una base de SQLite en memoria lo comprobó. Con la condición actual, el `REPLACE` por `rowid`
+     cambia la fila. Con la nueva, se rechaza. Las inserciones normales siguen pasando, con `rowid` automático o con uno
+     nuevo explícito, y un id repetido sigue rechazado.
+   - Aplicarla exige una migración que vuelva a crear esos triggers en las tablas append-only (el registro, la memoria y
+     las demás que siguen el mismo patrón de `0001` y `0002`) y poner al día `AppendOnlyTriggers`.
+6. **Pruebas que faltaban.** `MemorySnapshotStateTests` cubre:
+   - las revisiones sobre una instantánea ya cargada;
+   - la confianza de la bitácora;
+   - recuperaciones y escrituras a la vez: nunca fallan, nunca ven menos que antes y acaban con todas las entradas;
+   - el filtro sobre lo verificado y la fila ausente;
+   - el olvido de un proyecto.
+
+   `ProjectMemoryCompositionTests` prueba el aviso de cierre.

@@ -23,8 +23,9 @@ public sealed record DecisionLogMark(long EntryCount, string HeadHash, string St
 /// the mark may have changed without the append-only checks of the store seeing it (its schema changed, so a trigger that
 /// keeps the log append-only was dropped and perhaps restored; the database is another file; the project was opened again),
 /// and only reading and verifying the whole log can tell. The same stamp is no proof of the contrary: a schema version set
-/// back, a file replaced with its creation time kept, or bytes written in place leave it as it was, so the writer verifies
-/// the whole log from time to time and at the critical moments.
+/// back, a file replaced with its creation time kept, bytes written in place, or a row replaced through its rowid by a
+/// connection without recursive triggers leave it as it was, so the writer verifies the whole log from time to time and
+/// at the critical moments.
 /// </param>
 /// <param name="Continues">
 /// Whether the store still holds the entries up to the mark as marked: as many of them, the last with the marked hash, and

@@ -99,7 +99,7 @@ internal sealed class MemoryLedger
             {
                 case DecisionKind.JournalTrustChanged or DecisionKind.MemoryRecorded or DecisionKind.MemoryReviewed:
                     return true;
-                case DecisionKind.AuditAlertRaised when Read<AuditAlertPayload>(entries[i]) is { Code: DecisionRecorder.OriginAcceptedAlert or ProjectMemory.NotAnchoredAlert or ProjectMemory.ModifiedAlert }:
+                case DecisionKind.AuditAlertRaised when Read<AuditAlertPayload>(entries[i]) is { Code: DecisionRecorder.OriginAcceptedAlert or ProjectMemory.NotAnchoredAlert or ProjectMemory.ModifiedAlert or ProjectMemory.MissingRowAlert }:
                     return true;
             }
         }
@@ -138,7 +138,7 @@ internal sealed class MemoryLedger
                     {
                         ledger._lastOriginAcceptance = entry.Sequence;
                     }
-                    else if (alert.Code is ProjectMemory.NotAnchoredAlert or ProjectMemory.ModifiedAlert)
+                    else if (alert.Code is ProjectMemory.NotAnchoredAlert or ProjectMemory.ModifiedAlert or ProjectMemory.MissingRowAlert)
                     {
                         ledger._alerts.Add(alert.Message);
                     }

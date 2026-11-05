@@ -14,3 +14,13 @@ public interface IProjectWorkspace
 {
     Task<ProjectContext> OpenAsync(string projectRoot, CancellationToken cancellationToken);
 }
+
+/// <summary>
+/// Tells whoever keeps something of a project in memory that the project was closed in this instance of the app, with
+/// its id, so they let it go (the memory of the project, <c>ProjectMemory.Forget</c>; ADR-0010, addendum of 2026-11-05).
+/// Persistence raises it once the project is released (<c>ProjectDatabases</c>).
+/// </summary>
+public interface IProjectClosedSignal
+{
+    event Action<string>? Closed;
+}

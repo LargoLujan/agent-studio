@@ -51,6 +51,9 @@ public sealed class PersistenceRegistrationTests : IDisposable
         Assert.IsType<SqliteAgentRoster>(provider.GetRequiredService<IAgentRoster>());
         Assert.IsType<DecisionRecorder>(provider.GetRequiredService<IDecisionRecorder>());
         Assert.Same(provider.GetRequiredService<IDecisionRecorder>(), provider.GetRequiredService<IDecisionRecorder>());
+
+        // Whoever keeps a project in memory is told it was closed by the registry that releases it.
+        Assert.Same(provider.GetRequiredService<ProjectDatabases>(), provider.GetRequiredService<IProjectClosedSignal>());
     }
 
     [Fact]

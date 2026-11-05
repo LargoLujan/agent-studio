@@ -32,6 +32,7 @@ public static class PersistenceServiceCollectionExtensions
 
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<ProjectDatabases>();
+        services.TryAddSingleton<IProjectClosedSignal>(provider => provider.GetRequiredService<ProjectDatabases>());
         services.TryAddSingleton<IProjectWorkspace, ProjectWorkspace>();
         services.TryAddSingleton<IProjectStorageFiles, ProjectStorageFiles>();
         services.TryAddSingleton<IProjectStorageReader, ProjectStorageFiles>();
