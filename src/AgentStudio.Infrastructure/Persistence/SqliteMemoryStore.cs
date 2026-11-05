@@ -17,7 +17,7 @@ namespace AgentStudio.Infrastructure.Persistence;
 /// and at most <see cref="MemoryContent.MaxCharacters"/> of content: the store refuses any other, so a row it writes is
 /// always one an announcement can match.</item>
 /// <item>With text, rows are ranked by <c>bm25</c> over topic and content; without it, newest first. Ties go newest first
-/// and then by id.</item>
+/// and then by id. <see cref="FindAsync"/> reads the rows of some ids, in no order.</item>
 /// <item>The text is cut at white space and each term goes to FTS5 as a phrase between quotes, with its quotes doubled,
 /// joined by <c>OR</c>: no operator (<c>NEAR</c>, <c>*</c>, <c>^</c>, <c>column:</c>, <c>AND</c>, <c>NOT</c>) ever gets
 /// through from what a person or an agent wrote, and a row matches when it has any of the terms (more of them, or rarer
@@ -31,6 +31,9 @@ public sealed class SqliteMemoryStore(ProjectDatabases databases) : IMemoryStore
 {
     /// <summary>The most terms a text sends to FTS5; the rest are dropped.</summary>
     private const int MaxTerms = 32;
+
+    /// <summary>The most ids one query of <see cref="FindAsync"/> binds, well under the parameters SQLite allows.</summary>
+    private const int MaxIdsPerQuery = 500;
 
     private const string Columns = "m.id, m.kind, m.topic, m.content, m.origin, m.source, m.created_at, m.content_sha256, m.supersedes_entry_id";
 
@@ -127,6 +130,43 @@ public sealed class SqliteMemoryStore(ProjectDatabases databases) : IMemoryStore
         while (await reader.ReadAsync(ct).ConfigureAwait(false))
         {
             rows.Add(ReadRow(reader, projectId));
+        }
+
+        return rows;
+    }
+
+    public async Task<IReadOnlyList<MemoryRow>> FindAsync(string projectId, IReadOnlyCollection<string> ids, CancellationToken ct)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
+        ArgumentNullException.ThrowIfNull(ids);
+        var wanted = ids.Distinct(StringComparer.Ordinal).ToList();
+        if (wanted.Count == 0)
+        {
+            return [];
+        }
+
+        var rows = new List<MemoryRow>(wanted.Count);
+        await using var connection = databases.Connect(projectId);
+        foreach (var chunk in wanted.Chunk(MaxIdsPerQuery))
+        {
+            await using var select = connection.CreateCommand();
+            var names = chunk.Select((id, i) => (Name: "$i" + i.ToString(CultureInfo.InvariantCulture), Id: id)).ToList();
+            select.CommandText = new StringBuilder("SELECT ").Append(Columns)
+                .Append(" FROM memory_entries m WHERE m.project_id = $project AND m.id IN (")
+                .Append(string.Join(", ", names.Select(n => n.Name)))
+                .Append(");")
+                .ToString();
+            select.Parameters.AddWithValue("$project", projectId);
+            foreach (var (name, id) in names)
+            {
+                select.Parameters.AddWithValue(name, id);
+            }
+
+            await using var reader = await select.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            while (await reader.ReadAsync(ct).ConfigureAwait(false))
+            {
+                rows.Add(ReadRow(reader, projectId));
+            }
         }
 
         return rows;

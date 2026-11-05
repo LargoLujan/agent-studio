@@ -21,8 +21,11 @@ namespace AgentStudio.Infrastructure.Persistence;
 /// which changes the schema version: left as it is, the stamp differs, and the recorder reads and verifies the whole log
 /// again, as it does after the project is opened again. And the log continues only while those three triggers are exactly
 /// the ones of the schema (<see cref="AppendOnlyTriggers"/>): with one missing or rewritten, an entry could be changed later
-/// with no schema change at all, so every load reads and verifies the whole log until they are back. The marked entries
-/// must still be there, as many of them and the last with its hash; anything after them is the tail.
+/// with no schema change at all, so every load reads and verifies the whole log until they are back. So do the three of
+/// <c>memory_entries</c>, in the same database: the memory serves from memory the rows it verified against the log, and
+/// checks them again at each whole verification of the log (<c>ProjectMemory</c>), so a row it could change in place must
+/// make every load whole too. The marked entries must still be there, as many of them and the last with its hash; anything
+/// after them is the tail.
 /// </para>
 /// <para>
 /// The stamp is no proof that nothing changed. Whoever can write to the database can set its schema version back
@@ -34,14 +37,18 @@ namespace AgentStudio.Infrastructure.Persistence;
 public sealed partial class SqliteDecisionLogStore(ProjectDatabases databases) : IDecisionLogStore, IDecisionLogTailReader
 {
     /// <summary>
-    /// The triggers that keep <c>decision_log</c> append-only, as the schema creates them (<c>0001_initial.sql</c>), with their
-    /// blanks collapsed: what <c>sqlite_master</c> must hold for the log to be read only from its tail.
+    /// The triggers that keep <c>decision_log</c> append-only (<c>0001_initial.sql</c>) and <c>memory_entries</c> too
+    /// (<c>0004_memory.sql</c>), as the schema creates them, with their blanks collapsed: what <c>sqlite_master</c> must hold
+    /// for the log to be read only from its tail.
     /// </summary>
     internal static readonly IReadOnlyDictionary<string, string> AppendOnlyTriggers = new Dictionary<string, string>(StringComparer.Ordinal)
     {
         ["decision_log_no_update"] = "CREATE TRIGGER decision_log_no_update BEFORE UPDATE ON decision_log BEGIN SELECT RAISE(ABORT, 'decision_log is append-only'); END",
         ["decision_log_no_delete"] = "CREATE TRIGGER decision_log_no_delete BEFORE DELETE ON decision_log BEGIN SELECT RAISE(ABORT, 'decision_log is append-only'); END",
         ["decision_log_no_replace"] = "CREATE TRIGGER decision_log_no_replace BEFORE INSERT ON decision_log WHEN EXISTS (SELECT 1 FROM decision_log WHERE project_id = NEW.project_id AND sequence = NEW.sequence) BEGIN SELECT RAISE(ABORT, 'decision_log is append-only'); END",
+        ["memory_entries_no_update"] = "CREATE TRIGGER memory_entries_no_update BEFORE UPDATE ON memory_entries BEGIN SELECT RAISE(ABORT, 'memory_entries is append-only'); END",
+        ["memory_entries_no_delete"] = "CREATE TRIGGER memory_entries_no_delete BEFORE DELETE ON memory_entries BEGIN SELECT RAISE(ABORT, 'memory_entries is append-only'); END",
+        ["memory_entries_no_replace"] = "CREATE TRIGGER memory_entries_no_replace BEFORE INSERT ON memory_entries WHEN EXISTS (SELECT 1 FROM memory_entries WHERE id = NEW.id) BEGIN SELECT RAISE(ABORT, 'memory_entries is append-only'); END",
     };
 
     public async Task AppendAsync(string projectId, DecisionEntry entry, CancellationToken cancellationToken)
@@ -101,12 +108,13 @@ public sealed partial class SqliteDecisionLogStore(ProjectDatabases databases) :
         }
     }
 
-    /// <summary>Whether the three triggers that keep the log append-only are in the database exactly as the schema creates them.</summary>
+    /// <summary>Whether the triggers that keep the log and the memory append-only are in the database exactly as the schema creates them.</summary>
     private static async Task<bool> AppendOnlyAsync(SqliteConnection connection, SqliteTransaction transaction, CancellationToken cancellationToken)
     {
         await using var select = Command(connection, """
             SELECT name, sql FROM sqlite_master
-            WHERE type = 'trigger' AND name IN ('decision_log_no_update', 'decision_log_no_delete', 'decision_log_no_replace');
+            WHERE type = 'trigger' AND name IN ('decision_log_no_update', 'decision_log_no_delete', 'decision_log_no_replace',
+                                                'memory_entries_no_update', 'memory_entries_no_delete', 'memory_entries_no_replace');
             """, transaction);
         var genuine = 0;
         await using var reader = await select.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);

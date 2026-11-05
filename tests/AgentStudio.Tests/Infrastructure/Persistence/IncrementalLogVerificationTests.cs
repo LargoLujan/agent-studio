@@ -301,6 +301,40 @@ public sealed class IncrementalLogVerificationTests : IDisposable
     }
 
     [Fact]
+    public async Task With_a_trigger_of_the_memory_dropped_every_load_verifies_the_whole_log()
+    {
+        using var world = await OpenAsync();
+        await world.WriteAsync(3);
+        Assert.True((await world.LoadAsync()).Verification.IsValid);
+
+        // The memory serves the rows it verified against the log: one it could change in place makes every load whole.
+        world.Tamper("DROP TRIGGER memory_entries_no_delete;");
+        var whole = world.Store.Whole;
+        Assert.True((await world.LoadAsync()).Verification.IsValid);
+        Assert.True((await world.LoadAsync()).Verification.IsValid);
+
+        Assert.Equal(whole + 2, world.Store.Whole);
+    }
+
+    [Fact]
+    public async Task The_whole_verification_a_load_rests_on_changes_only_when_the_whole_log_is_verified_again_and_never_repeats()
+    {
+        using var world = await OpenAsync();
+        await world.WriteAsync(3);
+        var first = await world.LoadAsync();
+        Assert.True(first.WholeVerification > 0);
+
+        await world.WriteAsync(2);
+        Assert.Equal(first.WholeVerification, (await world.LoadAsync()).WholeVerification); // only what was appended
+        var full = await world.Recorder.LoadAsync(world.ProjectId, LogLoad.Full, Ct);
+        Assert.True(full.WholeVerification > first.WholeVerification);
+
+        // A project closed and opened again starts over in the recorder, with a value no earlier verification had.
+        world.Recorder.Forget(world.ProjectId);
+        Assert.True((await world.LoadAsync()).WholeVerification > full.WholeVerification);
+    }
+
+    [Fact]
     public async Task A_trigger_rewritten_with_the_same_name_but_another_body_is_not_trusted_to_keep_the_log()
     {
         using var world = await OpenAsync();
