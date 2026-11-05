@@ -183,6 +183,31 @@ avanzó a d5d835d).
 | V38 | Durante una ejecución la barra de estado salta a dos líneas a 1920 px (el presupuesto baja a la segunda) | Baja | Corregido, pendiente de verificar en vivo, con un límite. Cambios: textos cortos junto a la cifra («57 % exacto · hace 14 min», «se reinició · sin dato»), pistas más cortas y el mensaje de la izquierda limitado a 180 px (con «…» y el texto entero en la ayuda). Con la ruta `C:\Personal Projects\Agent Studio` y textos habituales, las cuatro barras caben en una línea en una pantalla de 1920 px al 100 %, 125 % y 150 %. **Límite:** con los peores textos vistos (una ejecución cargada, «Contexto · T2, la más llena de 3 · ~87 % estimado · compresión recomendada», una cuota reiniciada y un presupuesto) caben al 100 % y al 125 %, pero al 150 % las barras pasan enteras y en orden a una segunda línea. Con la ventana sin maximizar (1859 px al 125 %), caben en una línea incluso con los peores textos. Con 1850 px al 150 %, pasan a dos líneas también con los textos habituales. No se corta ninguna barra. El mensaje de la izquierda (errores, avisos de reanudación) se recorta ahora a 180 px con «…», y el texto entero está en la ayuda. Un lector de pantalla lo lee entero: es su nombre en UI Automation, y avisa cuando cambia (región viva cortés). **Límite:** quien solo usa el teclado no llega a esa ayuda, y en un mensaje largo solo ve el principio |
 | V39 | En Consumo, el contexto máximo por grupo y por intento sigue como cifra, sin barra (P3) | Baja | Corregido, pendiente de verificar en vivo: es la barra común, con su origen y su nivel; debajo, los tokens frente a la ventana y el modelo |
 
+### Recorrido en vivo de la Fase 12 (2026-11-05)
+
+App instalada desde `integracion-fase12` (b11fdf1) sobre `C:\AgentStudioDemo\calc`.
+
+**Visto funcionar:**
+
+- La descarga del modelo, con su confirmación: qué se descarga, de dónde (las dos URL fijadas de huggingface.co), cuánto
+  pesa (123,4 MB), dónde se guarda y que se comprueba la huella. El índice calculó los 58 fragmentos en segundo plano y
+  el panel lo dijo («Activa…»).
+- La búsqueda por significado en «Memoria»: «cuándo el revisor independiente dio por buena la división» trae primero las
+  revisiones independientes del juez, «Coincide por palabras y por significado».
+- La confianza de la bitácora: confiar en un día y retirarla cambia el estado y el recuento.
+- «Búsqueda en el historial para el orquestador» en «Ajustes», activada por defecto.
+- Una planificación real con la herramienta disponible y sin aviso; el orquestador prefirió leer los ficheros. V33: la
+  barra de estado mostró «Contexto · orquestador» mientras planificaba. V32: «Bitácora de hoy» mostró la entrada nueva
+  sin «Actualizar», con el ancla `2026-11-05/P-0001`.
+
+**Retoques (Fase 12b)**
+
+| Id | Hallazgo | Gravedad |
+|---|---|---|
+| V40 | En «Memoria», las entradas que escribió Agent Studio antes de la Fase 12 (sin recibo) dicen «no la escribió Agent Studio»: debería decir que no se puede comprobar quién la escribió | Media |
+| V41 | Las entradas de la bitácora en «Memoria» enseñan el Markdown crudo (`**04:22:31**`, `\(intento 1\)`), como pasaba en «Bitácora de hoy» antes de V31 | Baja |
+| V42 | Tras descargar el modelo, el aviso verde «El índice calculará… hasta entonces, la búsqueda va por palabras» se queda aunque el estado de arriba ya diga «Activa» | Baja |
+
 **Para la Fase 14 (lenguaje sencillo, P12):**
 
 - la bitácora del producto escribe «Succeeded» y «claude-code/-» (modelo predeterminado);
