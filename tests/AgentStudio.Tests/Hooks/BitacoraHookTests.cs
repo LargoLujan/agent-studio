@@ -33,8 +33,8 @@ public sealed partial class BitacoraHookTests : IDisposable
 
     private static string Today => DateTime.Now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
-    // The format is checked under pwsh, the shell Claude Code prefers: Windows PowerShell reads the script (UTF-8 without
-    // BOM) as ANSI, which mangles its literals.
+    // The format is checked under pwsh, the shell Claude Code prefers. The script starts with a UTF-8 BOM, so Windows
+    // PowerShell reads its literals right too: the excerpt tests below parse the same line under both shells.
     [Fact]
     public void Each_prompt_appends_one_entry_in_its_format_under_a_single_header()
     {
