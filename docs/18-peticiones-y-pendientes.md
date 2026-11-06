@@ -202,11 +202,11 @@ App instalada desde `integracion-fase12` (b11fdf1) sobre `C:\AgentStudioDemo\cal
 
 **Retoques (Fase 12b)**
 
-| Id | Hallazgo | Gravedad |
-|---|---|---|
-| V40 | En «Memoria», las entradas que escribió Agent Studio antes de la Fase 12 (sin recibo) dicen «no la escribió Agent Studio»: debería decir que no se puede comprobar quién la escribió | Media |
-| V41 | Las entradas de la bitácora en «Memoria» enseñan el Markdown crudo (`**04:22:31**`, `\(intento 1\)`), como pasaba en «Bitácora de hoy» antes de V31 | Baja |
-| V42 | Tras descargar el modelo, el aviso verde «El índice calculará… hasta entonces, la búsqueda va por palabras» se queda aunque el estado de arriba ya diga «Activa» | Baja |
+| Id | Hallazgo | Gravedad | Estado |
+|---|---|---|---|
+| V40 | En «Memoria», las entradas que escribió Agent Studio antes de la Fase 12 (sin recibo) dicen «no la escribió Agent Studio»: debería decir que no se puede comprobar quién la escribió | Media | Corregido, pendiente de verificar en vivo: toda entrada de la bitácora sin recibo dice «En cuarentena: no se puede comprobar quién la escribió. Acéptala, o confía en su día o en toda la bitácora», y su origen, «Autor sin comprobar» (antes, «Otro autor»). No se afina por el formato de la línea (`P-NNNN` o la del hook): se puede copiar, así que no comprueba nada. El panel «Bitácora» dice que lo que no se puede comprobar espera en cuarentena, también lo que Agent Studio anotó antes de dejar recibos, y su botón habla de «las entradas cuyo autor no se puede comprobar» ([03](03-pantallas-y-navegacion.md) §5.3) |
+| V41 | Las entradas de la bitácora en «Memoria» enseñan el Markdown crudo (`**04:22:31**`, `\(intento 1\)`), como pasaba en «Bitácora de hoy» antes de V31 | Baja | Corregido, pendiente de verificar en vivo: la tarjeta lee la entrada con el mismo lector de V31 (`MarkdownLite`) y la enseña sin marcas ni barras, con su línea «Resultado» o «Hecho» debajo y «•». Solo cambia lo que se enseña: el texto anclado, la búsqueda y lo que llega a los agentes siguen igual; las demás categorías se enseñan como están |
+| V42 | Tras descargar el modelo, el aviso verde «El índice calculará… hasta entonces, la búsqueda va por palabras» se queda aunque el estado de arriba ya diga «Activa» | Baja | Corregido, pendiente de verificar en vivo: el aviso desaparece cuando se lee el estado del índice (tras `IndexRefreshedAsync`) y ya hay fragmentos con su significado; el estado de arriba dice cuánto lleva. Un fallo, una cancelación o «No se ha descargado nada» se quedan |
 
 **Para la Fase 14 (lenguaje sencillo, P12):**
 

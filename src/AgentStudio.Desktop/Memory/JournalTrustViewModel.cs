@@ -11,7 +11,7 @@ using CommunityToolkit.Mvvm.Input;
 namespace AgentStudio.Desktop.Memory;
 
 /// <summary>
-/// One day of the journal in the trust panel: how many of its entries Agent Studio did not write wait in quarantine, or
+/// One day of the journal in the trust panel: how many of its entries whose author cannot be checked wait in quarantine, or
 /// that the person trusts it, and what can be decided about it.
 /// </summary>
 public sealed class JournalDayViewModel
@@ -28,7 +28,7 @@ public sealed class JournalDayViewModel
 
     public DateOnly Day { get; }
 
-    /// <summary>The entries of the day that Agent Studio did not write and wait in quarantine.</summary>
+    /// <summary>The entries of the day whose author cannot be checked and wait in quarantine.</summary>
     public int Quarantined { get; }
 
     /// <summary>Whether the person trusts the journal of this day.</summary>
@@ -54,9 +54,10 @@ public sealed class JournalDayViewModel
 
 /// <summary>
 /// «Confiar en la bitácora de este proyecto», and the same by days (docs/17 D-02; ADR-0047, decision 8), in plain Spanish.
-/// The journal is text of the repository: what Agent Studio wrote matches the run that wrote it and is trusted; the rest
-/// (the development hook, an entry that came with the repository) waits in quarantine until the person accepts it, one by
-/// one (a review, in the list), by days or for the whole project. Each decision goes to the decision log through
+/// The journal is text of the repository: what Agent Studio wrote with its receipt matches the run that wrote it and is
+/// trusted; the rest (the development hook, an entry that came with the repository, what Agent Studio wrote before it left
+/// receipts: who wrote it cannot be checked, V40) waits in quarantine until the person accepts it, one by one (a review, in
+/// the list), by days or for the whole project. Each decision goes to the decision log through
 /// <see cref="IJournalTrust"/>, by the person, and can be withdrawn; while a run or a planning goes on it waits in the queue
 /// and says so. The days on show are those with entries in quarantine and those the person trusts.
 /// </summary>
@@ -67,10 +68,11 @@ public sealed partial class JournalTrustViewModel : ObservableObject
 
     /// <summary>What the panel explains first.</summary>
     public const string Explanation =
-        "La bitácora del proyecto (.agentstudio/bitacora/) también es memoria. Lo que anotó Agent Studio en sus ejecuciones se comprueba "
-        + "con el registro y es de confianza. Lo demás, lo que anotan tus sesiones de desarrollo o lo que llega con el repositorio, espera "
-        + "en cuarentena: ningún agente lo recibe hasta que lo aceptes, entrada a entrada, por días o para todo el proyecto. Cada decisión "
-        + "queda en el registro y la puedes retirar. El juez nunca recibe la bitácora.";
+        "La bitácora del proyecto (.agentstudio/bitacora/) también es memoria. Lo que Agent Studio anota en sus ejecuciones deja un recibo "
+        + "en el registro: con él se comprueba, y es de confianza. Lo que no se puede comprobar espera en cuarentena: lo que anotan tus "
+        + "sesiones de desarrollo, lo que llega con el repositorio y lo que Agent Studio anotó antes de dejar recibos. Ningún agente lo "
+        + "recibe hasta que lo aceptes, entrada a entrada, por días o para todo el proyecto. Cada decisión queda en el registro y la puedes "
+        + "retirar. El juez nunca recibe la bitácora.";
 
     private readonly IJournalTrust? _trust;
     private readonly IProjectMemory? _memory;
@@ -169,8 +171,8 @@ public sealed partial class JournalTrustViewModel : ObservableObject
 
     /// <summary>What the button does, before it is pressed.</summary>
     public string ProjectActionHelp => ProjectTrusted
-        ? "Las entradas que no escribió Agent Studio vuelven a cuarentena, salvo las de los días en que confías y las que aceptaste una a una."
-        : "Las entradas que no escribió Agent Studio, también las de los días que vengan, podrán llegar a los agentes con «Memoria del proyecto». "
+        ? "Las entradas cuyo autor no se puede comprobar vuelven a cuarentena, salvo las de los días en que confías y las que aceptaste una a una."
+        : "Las entradas cuyo autor no se puede comprobar, también las de los días que vengan, podrán llegar a los agentes con «Memoria del proyecto». "
           + "Úsalo si la bitácora es tuya (tus sesiones de desarrollo) y no te llega de terceros.";
 
     /// <summary>Whether a decision can be taken now.</summary>
@@ -262,7 +264,7 @@ public sealed partial class JournalTrustViewModel : ObservableObject
         await _changed().ConfigureAwait(true);
     }
 
-    /// <summary>The days with entries Agent Studio did not write in quarantine, and the days the person trusts.</summary>
+    /// <summary>The days with entries in quarantine whose author cannot be checked, and the days the person trusts.</summary>
     private void ShowDays(JournalTrustState state, IReadOnlyList<MemoryEntry> entries)
     {
         var quarantined = entries

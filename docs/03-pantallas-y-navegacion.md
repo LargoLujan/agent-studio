@@ -706,8 +706,8 @@ su propio documento, «Ajustes», que se describe al final de este apartado.
 │   Error conocido · facturas · Sistema · 18/10/2026 09:30 · m-41    │ y los 120 fragmentos del índice tienen su        │
 │   Coincide por palabras y por significado                          │ significado calculado.                           │
 │   Test en rojo en el módulo de facturas.                           ├ Bitácora ────────────────────────────────────────┤
-│ ● En cuarentena: no la escribió Agent Studio…  [Aceptar] [Rechazar]│ 4 entradas de la bitácora esperan en cuarentena. │
-│   Bitácora · Bitácora del 2026-10-17 · P-0003 · Otro autor         │ [Confiar en la bitácora de este proyecto]        │
+│ ● En cuarentena: no se puede comprobar quién…  [Aceptar] [Rechazar]│ 4 entradas de la bitácora esperan en cuarentena. │
+│   Bitácora · Bitácora del 2026-10-17 · P-0003 · Autor sin comprobar│ [Confiar en la bitácora de este proyecto]        │
 │   Coincide por significado                                         │ Por días: viernes 17/10/2026 · 4 entradas en     │
 │ ● De confianza: lo escribió Agent Studio a partir del registro…    │ cuarentena [Confiar en este día]                 │
 │   Veredicto · Registro de decisiones, entrada 812                  ├ Resumen del día ─────────────────────────────────┤
@@ -742,14 +742,21 @@ su propio documento, «Ajustes», que se describe al final de este apartado.
   - Cuando termina con el modelo comprobado, el índice del proyecto calcula el significado de sus fragmentos en segundo
     plano, sin bloquear la pantalla: un cálculo a la vez por proyecto, con dos hilos del procesador como mucho para dejar
     el resto a la interfaz (sus hilos no tienen menos prioridad que los demás). El panel se pone al día cuando acaba; mientras tanto, la
-    búsqueda va por palabras.
+    búsqueda va por palabras. El aviso verde de la descarga («… hasta entonces, la búsqueda va por palabras») desaparece en
+    cuanto el índice tiene el significado de algún fragmento, y el estado de arriba dice cuánto lleva (V42).
   - Después no hay red ni cuota: la búsqueda la calcula tu equipo. Al abrir un proyecto, si el modelo ya está, se carga en
     segundo plano para que la primera búsqueda no espere.
-- **El panel «Bitácora»** (docs/17 D-02): la bitácora del proyecto también es memoria. Lo que anotó Agent Studio en sus
-  ejecuciones se comprueba con el registro y es de confianza. Lo demás (lo que anotan tus sesiones de desarrollo o lo que
-  llega con el repositorio) espera en cuarentena, y ningún agente lo recibe hasta que lo aceptes:
-  - una a una, con «Aceptar» en la lista: su origen dice «Agent Studio» u «Otro autor», y su confianza, «En cuarentena:
-    no la escribió Agent Studio. Acéptala, o confía en su día o en toda la bitácora»;
+- **El panel «Bitácora»** (docs/17 D-02): la bitácora del proyecto también es memoria. Lo que Agent Studio anota en sus
+  ejecuciones deja un recibo en el registro: con él se comprueba, y es de confianza. Lo que no se puede comprobar (lo que
+  anotan tus sesiones de desarrollo, lo que llega con el repositorio y lo que Agent Studio anotó antes de dejar recibos)
+  espera en cuarentena, y ningún agente lo recibe hasta que lo aceptes:
+  - una a una, con «Aceptar» en la lista: su origen dice «Agent Studio» o «Autor sin comprobar», y su confianza, «En
+    cuarentena: no se puede comprobar quién la escribió. Acéptala, o confía en su día o en toda la bitácora». Sin recibo,
+    una entrada del hook y una que Agent Studio escribió antes de la Fase 12 no se distinguen, y el formato de una línea
+    se puede copiar: la pantalla no dice quién la escribió (V40);
+  - cada entrada se lee sin las marcas de su Markdown, como en «Bitácora de hoy»: la hora sin `**`, «(intento 1)» sin
+    barras, y su línea «Resultado» o «Hecho» debajo, con «•». Solo cambia lo que se enseña: el texto anclado es el mismo
+    (V41);
   - por días, en «Por días»: cada día con entradas en cuarentena, o en el que confías, con «Confiar en este día» o
     «Retirar la confianza»;
   - para todo el proyecto, también los días que vengan, con «Confiar en la bitácora de este proyecto», que explica antes

@@ -4,6 +4,7 @@ using AgentStudio.Application.Knowledge;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Semantic;
+using AgentStudio.Desktop.Markdown;
 using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Orchestrator;
 using AgentStudio.Desktop.Orchestrator.Approvals;
@@ -17,6 +18,10 @@ namespace AgentStudio.Desktop.Memory;
 /// <summary>Spanish names of the categories, origins and trust of the memory (docs/14 D-18 and D-20).</summary>
 public static class MemoryTexts
 {
+    /// <summary>The trust of a journal entry in quarantine because who wrote it cannot be checked (V40).</summary>
+    public const string UncheckedJournalEntry =
+        "En cuarentena: no se puede comprobar quién la escribió. Acéptala, o confía en su día o en toda la bitácora";
+
     public static string Kind(MemoryKind kind) => kind switch
     {
         MemoryKind.Architecture => "Arquitectura",
@@ -43,14 +48,15 @@ public static class MemoryTexts
 
     /// <summary>
     /// Who wrote an entry of <paramref name="kind"/>. For a journal entry (docs/17 D-02) <see cref="MemoryOrigin.System"/>
-    /// is Agent Studio, matched with the run that wrote it, and <see cref="MemoryOrigin.Agent"/> is any other author (the
-    /// development hook, a third party): not an agent of the run.
+    /// is Agent Studio, matched with the receipt of the run that wrote it, and <see cref="MemoryOrigin.Agent"/> is an entry
+    /// whose author cannot be checked: the development hook, a third party, or Agent Studio itself before it left a receipt
+    /// (V40). It is never an agent of the run, and it is never said to be someone else.
     /// </summary>
     public static string Origin(MemoryKind kind, MemoryOrigin origin) => kind == MemoryKind.JournalEntry
         ? origin switch
         {
             MemoryOrigin.System => "Agent Studio",
-            MemoryOrigin.Agent => "Otro autor",
+            MemoryOrigin.Agent => "Autor sin comprobar",
             _ => Origin(origin),
         }
         : Origin(origin);
@@ -66,12 +72,14 @@ public static class MemoryTexts
     };
 
     /// <summary>
-    /// The trust of an entry, said for its category: a journal entry that Agent Studio did not write waits in quarantine
-    /// because of that (docs/17 D-02), not because it was inherited.
+    /// The trust of an entry, said for its category: a journal entry whose author cannot be checked waits in quarantine
+    /// because of that (docs/17 D-02), not because it was inherited. It says only what is known (V40): without a receipt, an
+    /// entry of the hook and one Agent Studio wrote before it left receipts look the same, and the format of a line can be
+    /// copied, so it does not say who wrote it.
     /// </summary>
     public static string Trust(MemoryKind kind, MemoryOrigin origin, MemoryTrust trust) =>
         kind == MemoryKind.JournalEntry && origin == MemoryOrigin.Agent && trust == MemoryTrust.Quarantined
-            ? "En cuarentena: no la escribió Agent Studio. Acéptala, o confía en su día o en toda la bitácora"
+            ? UncheckedJournalEntry
             : Trust(trust);
 
     /// <summary>The tone of the dot of the trust: what waits for a person is a warning; what is out of use, neutral.</summary>
@@ -96,6 +104,7 @@ public sealed partial class MemoryEntryViewModel : ObservableObject
         Entry = entry;
         Match = match;
         Created = TimeZoneInfo.ConvertTime(entry.CreatedAt, zone).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture);
+        Content = entry.Kind == MemoryKind.JournalEntry ? MarkdownLite.ToPlainText(entry.Content) : entry.Content;
     }
 
     public MemoryEntry Entry { get; }
@@ -115,7 +124,12 @@ public sealed partial class MemoryEntryViewModel : ObservableObject
 
     public string Topic => Entry.Topic;
 
-    public string Content => Entry.Content;
+    /// <summary>
+    /// The content as it reads. An entry of the journal is Markdown (<c>- **04:22:31** · P-0001 · … \(intento 1\)</c>): it
+    /// reads without its marks, as «Bitácora de hoy» does (V31, V41). Only what is shown changes: the anchored text is
+    /// <see cref="MemoryEntry.Content"/>, and any other category is shown as it is.
+    /// </summary>
+    public string Content { get; }
 
     /// <summary>When it was recorded, in local time.</summary>
     public string Created { get; }
