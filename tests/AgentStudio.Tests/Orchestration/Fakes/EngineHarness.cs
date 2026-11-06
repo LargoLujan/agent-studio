@@ -38,9 +38,10 @@ internal sealed class EngineHarness : IDisposable
 {
     private readonly TempDirectory _temp = new();
 
-    public EngineHarness(int claudeLimit = 2, int codexLimit = 2, IReadOnlyList<SkillActivation>? activations = null, IReadOnlyList<CatalogSkill>? catalog = null, IReadOnlyDictionary<string, string>? repositoryFiles = null)
+    /// <param name="time">The clock of every part: a test's own fake clock, set at <see cref="OrchestrationFixtures.Start"/>; null is a plain one.</param>
+    public EngineHarness(int claudeLimit = 2, int codexLimit = 2, IReadOnlyList<SkillActivation>? activations = null, IReadOnlyList<CatalogSkill>? catalog = null, IReadOnlyDictionary<string, string>? repositoryFiles = null, FakeTimeProvider? time = null)
     {
-        Time = new FakeTimeProvider(OrchestrationFixtures.Start);
+        Time = time ?? new FakeTimeProvider(OrchestrationFixtures.Start);
         LogStore = new InMemoryDecisionLogStore();
         Decisions = new DecisionRecorder(LogStore, Time);
         Evidence = new InMemoryEvidenceStore();

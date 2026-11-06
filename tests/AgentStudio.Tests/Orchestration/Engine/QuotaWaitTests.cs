@@ -70,6 +70,30 @@ public sealed class QuotaWaitTests
         Assert.Equal(RunPhase.Succeeded, result.Phase);
     }
 
+    /// <summary>
+    /// The loop works out how long to sleep from the clock, and then arms a timer for that long: a clock that reaches the end
+    /// of the wait in between (a test that advances it as soon as the run shows the wait, or a machine that falls asleep right
+    /// then) leaves a timer that counts from later. On a fake clock nobody advances again it never came, and the run waited
+    /// for quota for ever (docs/18 P42); the loop now looks again at once. The heartbeat is longer than the wait, so the
+    /// timer of the wait is the only one armed for its 13 minutes.
+    /// </summary>
+    [Fact]
+    public async Task A_wait_ends_when_the_clock_reaches_its_end_while_the_loop_arms_its_timer()
+    {
+        var clock = new JumpingFakeTimeProvider(Start);
+        using var harness = new EngineHarness(time: clock);
+        var wait = TimeSpan.FromMinutes(10) + RunOptions.DefaultQuotaResetMargin;
+        harness.Claude.Script("ejecutor", "T1", 1, new AgentScript { RateLimitResetsAt = Start + TimeSpan.FromMinutes(10) });
+        clock.JumpWhenArming(wait, wait);
+
+        await using var run = await harness.StartAsync(Plan(Work("T1")), Consent with { HeartbeatInterval = TimeSpan.FromHours(1) });
+        var result = await run.CompleteAsync(harness);
+
+        Assert.True(clock.Jumped);
+        Assert.Equal(RunPhase.Succeeded, result.Phase);
+        Assert.Equal("session-ejecutor-T1-1", harness.Claude.Starts[1].Request.ResumeSessionId);
+    }
+
     [Fact]
     public async Task With_consent_and_no_reset_time_the_waits_are_progressive_capped_and_estimated()
     {
