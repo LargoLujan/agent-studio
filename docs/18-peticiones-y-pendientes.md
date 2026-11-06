@@ -44,7 +44,7 @@ Estados: **en curso** (hay un paquete trabajando en ello), **planificado** (tien
 2. **Tanda 2:** barras en tiempo real (P3), con un dueño único de todas las barras. Integrada el 2026-11-03 y recorrida en
    vivo ese día (§3, «Recorrido en vivo de la tanda 2»); sus retoques van en la tanda 2b.
 3. **Índice semántico** de la bitácora y la memoria (P19).
-4. **Revisión contigo** de la propuesta [17](17-constructor-visual-de-agentes.md), con sus decisiones abiertas.
+4. **Revisión contigo** de la propuesta [17](17-constructor-visual-de-agentes.md), con sus decisiones abiertas. Hecha el 2026-11-06: aceptas las recomendadas de las diez (17 §12).
 5. **Implementación** por paquetes de lo que decidas de P4 a P18, incluida la Fase 9 (P16).
 6. **Las Fases 6, 10 y 7** que aprobaste el 20-10 (orden 8 → 9 → 6 → 10 → 7): P25 a P27 de §4.4.
 7. **Recorrido completo** en vivo de cada pantalla, opción y pregunta (P17).
@@ -465,7 +465,7 @@ Ordenados por importancia. «Ya en 18» es lo que ya recogen §1 a §3.
 | P19 | Índice semántico de la bitácora y la memoria | Hecho (integrado el 2026-11-05 en `integracion-fase12`, pendiente de pasar a `main`) | Fase 12: la bitácora como memoria anclada con su confianza, la búsqueda híbrida (bm25 y significado con multilingual-e5-small, descargado solo con tu OK), «Memoria» con la búsqueda por significado y `search_project_history` en el planificador. F12-4 con el criterio que decidiste el 04-11, medido también sobre la bitácora real (23/40 frente a 17/40). Enmienda ADR-0023 (§4.3); ADR-0047 |
 | P24 | Tus demostraciones (lista debajo), y llevar a 08 lo visto en vivo el 30-10 | Alta | Nuevo. Cruza con P17 |
 | P16 | Fase 9 (F9-1 a F9-10) | Alta | Ya en 18 |
-| P4 a P15 y P18 | Constructor visual, modelos, configurador, preguntas, idiomas, textos, ayuda, documentación para clientes y Hello siempre | Alta | Ya en 18. Su diseño va en 17 (P22) |
+| P4 a P15 y P18 | Constructor visual, modelos, configurador, preguntas, idiomas, textos, ayuda, documentación para clientes y Hello siempre | Alta | Decidido el 2026-11-06 (17 §12, todas las recomendadas). Fase 13 en marcha; luego la 14 y la 15 |
 | P25 | Fase 6 (F6-1 a F6-11): Auto Doctor completo, Auto Graph, el doctor de skills (lo que falta del «indicador de salud» del 15-10), el entorno y los diagramas | Media | Nuevo. Cruza con P20 |
 | P26 | Fase 10 (F10-1 a F10-10): GitHub por `gh`, PR y sincronización | Media | Nuevo |
 | P27 | Fase 7 (F7-1 a F7-8), con el empaquetado y las actualizaciones (F7-6, que P1 no cubre) y la bóveda DPAPI | Media | Nuevo. Es lo que queda de «¿cuándo estará listo?» (18-10) |
