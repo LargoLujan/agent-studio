@@ -1,0 +1,31 @@
+# Dependabot version updates.
+# NuGet versions are managed centrally in Directory.Packages.props at the repository root.
+# Monaco and xterm.js are not npm dependencies: tools/assets/*.ps1 download them with a pinned version and SHA-512,
+# so Dependabot does not track them.
+version: 2
+updates:
+  - package-ecosystem: "nuget"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 5
+    # Stay on the current .NET major version; major upgrades are done by hand.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    groups:
+      nuget-minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 5
+    groups:
+      actions-minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
