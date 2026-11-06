@@ -44,8 +44,25 @@ try {
 
     $prompt = if ($data -and $data.prompt) { [string]$data.prompt } else { '' }
 
-    # Subagent hand-backs and harness notifications arrive through the same event but are not prompts of the user.
-    if ($prompt -match '^\s*(<agent-message|<task-notification|<system-reminder|\[SYSTEM NOTIFICATION)') { exit 0 }
+    # Claude Code and its hosts put blocks of their own around the user's text (a browser notice, an IDE selection, a
+    # reminder, something pasted). They are removed with their content before anything else, so the excerpt and the tags
+    # are about what the user wrote. Each opening tag pairs with the nearest closing tag of its name with no other opening
+    # of that name in between, so text between two blocks is kept; an opening tag with no closing tag is left as it is,
+    # with all the text after it. What was pasted becomes [pegado]: it is not the user's text and the journal is public.
+    # A MatchEvaluator, not -replace with a script block, which Windows PowerShell does not have.
+    $blockPattern = '(?s)<(browser_instruction|system-reminder|ide_selection|ide_opened_file|pasted_content)(?:\s[^>]*)?>(?:(?!<\1[\s>]).)*?</\1\s*>'
+    $clean = [regex]::Replace($prompt, $blockPattern, [System.Text.RegularExpressions.MatchEvaluator] {
+        param($block)
+        if ($block.Groups[1].Value -eq 'pasted_content') { ' [pegado] ' } else { ' ' }
+    })
+    $clean = ($clean -replace '\s+', ' ').Trim()
+
+    # Subagent hand-backs and harness notifications arrive through the same event but are not prompts of the user, nor
+    # is a prompt that starts with a reminder and has nothing of the user's. They are told apart on the text without
+    # blocks: a reminder before the user's text does not hide the prompt, and a notice before a hand-back does not
+    # journal it.
+    if ($clean -match '^(<agent-message|<task-notification|\[SYSTEM NOTIFICATION)') { exit 0 }
+    if ($clean.Length -eq 0 -and $prompt -match '^\s*<system-reminder') { exit 0 }
     $session = if ($data -and $data.session_id) { ([string]$data.session_id).Substring(0, [Math]::Min(8, ([string]$data.session_id).Length)) } else { 'sin-id' }
 
     $root = if ($env:CLAUDE_PROJECT_DIR) { $env:CLAUDE_PROJECT_DIR } elseif ($data -and $data.cwd) { [string]$data.cwd } else { (Get-Location).Path }
@@ -84,15 +101,15 @@ try {
     }
     $tags = @('#prompt')
     foreach ($tag in $rules.Keys) {
-        if ($prompt -match "(?i)$($rules[$tag])") { $tags += "#$tag" }
+        if ($clean -match "(?i)$($rules[$tag])") { $tags += "#$tag" }
     }
-    $phase = [regex]::Match($prompt, '(?i)fase\s*(\d+)')
+    $phase = [regex]::Match($clean, '(?i)fase\s*(\d+)')
     if ($phase.Success) { $tags += "#fase-$($phase.Groups[1].Value)" }
     if ($tags.Count -eq 1) { $tags += '#general' }
 
-    $excerpt = ($prompt -replace '\s+', ' ').Trim()
+    $excerpt = $clean
     if ($excerpt.Length -gt 160) { $excerpt = $excerpt.Substring(0, 157).TrimEnd() + '...' }
-    if ($excerpt.Length -eq 0) { $excerpt = '(prompt vacío)' }
+    if ($excerpt.Length -eq 0) { $excerpt = if ($prompt.Trim().Length -eq 0) { '(prompt vacío)' } else { '(solo bloques del sistema)' } }
     $excerpt = $excerpt -replace '`', "'"
 
     $lines = @()

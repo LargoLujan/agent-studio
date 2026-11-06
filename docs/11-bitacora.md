@@ -42,8 +42,9 @@ Antes de la tanda 2, la app también escribía estas dos del hook. Los días ya 
    quedan registrados igual.
 2. **En el desarrollo de este repositorio:** el hook `UserPromptSubmit` de Claude Code
    (`.claude/hooks/bitacora.ps1`) registra cada prompt tuyo con hora, sesión, tags derivados por palabras clave y un
-   extracto de 160 caracteres. Nunca bloquea el prompt. `CLAUDE.md` pide a Claude añadir la línea «Hecho:» al cerrar
-   cada petición.
+   extracto de 160 caracteres. El extracto y los tags salen de lo que escribiste, sin los bloques que el sistema pone
+   alrededor ([§9](#9-el-extracto-del-hook-sin-los-bloques-del-sistema)). Nunca bloquea el prompt. `CLAUDE.md` pide a
+   Claude añadir la línea «Hecho:» al cerrar cada petición.
 
 Ambos escriben el mismo título y conviven en el mismo fichero. Las dos líneas de debajo del título son las de quien crea
 el día ([§1](#1-dónde-y-cómo)).
@@ -68,8 +69,10 @@ el día ([§1](#1-dónde-y-cómo)).
 
 ## 5. Privacidad
 
-El extracto del prompt queda en el repositorio. Es un repo privado y de uso personal; aun así, no pegues secretos en
-los prompts. El decorador del producto registra el resumen de la tarea (`Purpose`), no el prompt completo.
+El extracto del prompt queda en el repositorio, que es público. No escribas secretos en los prompts. Lo que pegas no se
+copia: desde el 2026-11-06, el hook pone «[pegado]» en su lugar
+([§9](#9-el-extracto-del-hook-sin-los-bloques-del-sistema)). El decorador del producto registra el resumen de la tarea
+(`Purpose`), no el prompt completo.
 
 ## 6. Resumen diario (Fase 4)
 
@@ -115,6 +118,7 @@ Decisión en [ADR-0025](adr/0025-resumen-diario-determinista.md). Lo hace `Daily
 | La bitácora como memoria (Fase 12) | WP1 la ancla como `JournalEntry`, con su confianza; WP4 pone en «Memoria» la búsqueda y la decisión de confiar en ella, por días o para todo el proyecto. Integrado en la rama de la Fase 12, con tests; pendiente tu demostración |
 | Líneas propias de la app bajo el título (tanda 2, V31) | Integrado el 2026-11-03, con tests del escritor y del resumen diario; pendiente de verificar en vivo |
 | «Bitácora de hoy» como documento legible (tanda 2, V31) | Integrado el 2026-11-03: títulos, listas, negrita y código, sin las barras invertidas del escapado. Un día largo enseña sus entradas más recientes, y «Ver todo», el día completo como texto. Pendiente de verificar en vivo ([docs/03 §2](03-pantallas-y-navegacion.md#2-ventana-principal)) |
+| Extracto del hook sin los bloques del sistema (P41) | Hecho el 2026-11-06, con pruebas del hook en pwsh y en Windows PowerShell (`BitacoraHookTests`, categoría `LocalTools`, fuera de la CI). Las entradas anteriores no se tocan ([§9](#9-el-extracto-del-hook-sin-los-bloques-del-sistema)) |
 
 ## 8. La línea «Resultado» nombra su arranque (Fase 12)
 
@@ -154,3 +158,51 @@ producto termina la línea «Resultado» con el `AgentRunStarted` del lanzamient
   anunció (una sonda) y las de un lanzamiento que no llegó a escribir su final. Como memoria quedan en cuarentena hasta que
   las aceptes, una a una, por días o con «Confiar en la bitácora de este proyecto», en «Memoria»
   ([docs/03 §5.3](03-pantallas-y-navegacion.md#53-memoria-del-proyecto-y-resumen-del-día-documento-memoria)).
+
+## 9. El extracto del hook, sin los bloques del sistema
+
+Decisión en la adenda del 2026-11-06 de [ADR-0008](adr/0008-bitacora-obligatoria.md) (P41 de
+[docs/18](18-peticiones-y-pendientes.md)).
+
+**El problema.** Claude Code y los programas desde los que lo usas (la app de escritorio, el navegador, el editor) meten
+bloques propios en el texto del prompt, delante o alrededor del tuyo. El hook los copiaba tal cual y después recortaba a
+160 caracteres, así que el bloque ocupaba el extracto y tu texto no se veía. Pasó en cuatro entradas: 15-10 a las
+15:41:35 y a las 15:50:03, 16-10 a las 08:16:43 y 30-10 a las 09:22:47. Se quedan como están, porque la bitácora es
+append-only.
+
+**Desde el 2026-11-06**, el hook quita esos bloques antes de hacer el extracto:
+
+- **Qué bloques.** Una lista cerrada: `<browser_instruction>`, `<system-reminder>`, `<ide_opened_file>`,
+  `<ide_selection>` y `<pasted_content>`. Un bloque nuevo hay que añadirlo al hook.
+- **Con su contenido.** Cada apertura va con el cierre más cercano de su nombre, sin otra apertura del mismo nombre en
+  medio. Así, lo que escribes entre dos bloques se queda.
+- **Sin cierre, no se quita nada.** Si falta el cierre, no se sabe dónde acaba el bloque. La etiqueta y todo lo que la
+  sigue se quedan, para no comerse tu texto.
+- **Lo pegado no se copia.** Lo que pegas (`<pasted_content>`) no es tu texto y puede contener cualquier cosa, y la
+  bitácora es pública. En su lugar va «[pegado]». Si solo pegaste, el extracto es «[pegado]».
+- **Si no queda nada**, el extracto es «(solo bloques del sistema)». «(prompt vacío)» queda para un prompt vacío de
+  verdad.
+- **Los tags y la fase** se calculan sobre el texto limpio: lo pegado o un recordatorio ya no añaden `#git` o `#tests`.
+- **Lo que no es tuyo sigue sin registrarse:** la respuesta de un subagente (`<agent-message>`) y los avisos
+  (`<task-notification>`, `[SYSTEM NOTIFICATION`). Ahora se reconocen también detrás de un bloque.
+- **Un `<system-reminder>` al principio ya no descarta el prompt.** Antes, un prompt que empezaba así no se registraba.
+  Ahora se registra lo que escribiste detrás. Si detrás no hay nada, sigue sin registrarse: es un aviso del sistema.
+
+| Lo que llega al hook | Extracto |
+|---|---|
+| `<browser_instruction>[Browser disconnected…]</browser_instruction>` y debajo «los cinco agentes revisan la rama» | «los cinco agentes revisan la rama» |
+| «Revisa el plan `<system-reminder>…</system-reminder>` y luego dime» | «Revisa el plan y luego dime» |
+| «Mira esto: `<pasted_content id="…">…</pasted_content>` y dime qué pasa» | «Mira esto: [pegado] y dime qué pasa» |
+| Solo `<pasted_content>…</pasted_content>` | «[pegado]» |
+| Solo `<browser_instruction>…</browser_instruction>` | «(solo bloques del sistema)» |
+| «`<browser_instruction>`sin cierre, sigue con la prueba» | «`<browser_instruction>`sin cierre, sigue con la prueba» |
+
+**Límites.**
+
+- Un `<pasted_content>` sin cierre deja pasar lo pegado, hasta los 160 caracteres del extracto.
+- Si escribes en el prompt una apertura y un cierre de esos nombres, por ejemplo al hablar del propio hook, lo que va
+  entre ellos se quita.
+
+**Pruebas.** `BitacoraHookTests` (categoría `LocalTools`, fuera de la CI) lanza el hook como Claude Code, en pwsh y en
+Windows PowerShell. Cubre un bloque al principio, uno en medio, varios, uno sin cierre, algo pegado, solo lo pegado, solo
+bloques, un recordatorio delante de tu texto y los mensajes del sistema que no se registran.

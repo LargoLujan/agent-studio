@@ -35,3 +35,34 @@ La decisión no cambia: un fichero por día, el mismo título y entradas que con
   (que la app también escribía antes) y las dos nuevas de la app. Un día antiguo y uno nuevo se resumen igual, sin líneas
   «sin reconocer».
 - **Los días ya escritos no se tocan:** la bitácora es append-only.
+
+## Adenda · 2026-11-06 · el extracto del hook, sin los bloques del sistema (P41)
+
+La decisión no cambia. Se precisa el punto 3: el extracto y los tags del hook son de lo que escribió la persona, no del
+texto entero que recibe el hook.
+
+- **Contexto.** Claude Code y los programas desde los que se usa meten bloques propios en el prompt, delante o alrededor
+  del texto de la persona: `<browser_instruction>`, `<pasted_content>` con lo pegado, `<system-reminder>`,
+  `<ide_opened_file>` e `<ide_selection>`. El hook los copiaba y recortaba a 160 caracteres, así que el bloque ocupaba el
+  extracto. Pasó en cuatro entradas (15-10, 16-10 y 30-10). Además, la bitácora está en un repositorio público, y lo
+  pegado puede contener cualquier cosa.
+- **Decisión.**
+  - El hook quita esos bloques, con su contenido, antes del extracto, de los tags y de la fase. Es una lista cerrada de
+    nombres.
+  - Cada apertura va con el cierre más cercano de su nombre, sin otra apertura del mismo nombre en medio. Una apertura
+    sin cierre no quita nada.
+  - Lo pegado se sustituye por «[pegado]», y un prompt que solo trae bloques se registra como «(solo bloques del
+    sistema)».
+  - Los mensajes que no son de la persona (`<agent-message>`, `<task-notification>`, `[SYSTEM NOTIFICATION`) se buscan en
+    el texto ya limpio y siguen sin registrarse. Un prompt que empieza con `<system-reminder>` solo se descarta si
+    detrás no hay texto de la persona.
+  - Detalle en [docs/11 §9](../11-bitacora.md#9-el-extracto-del-hook-sin-los-bloques-del-sistema).
+- **Alternativas descartadas.**
+  - Quitar solo los bloques del principio: no cubre los que van en medio.
+  - Quitar cualquier etiqueta `<…>`: se comería texto de la persona, como XAML o genéricos de C#.
+  - Copiar lo pegado recortado: puede llevar secretos a un repositorio público.
+- **Consecuencias.**
+  - Un bloque con un nombre nuevo no se quita hasta que se añade al hook.
+  - Un `<pasted_content>` sin cierre deja pasar lo pegado, hasta 160 caracteres.
+  - Una apertura y un cierre de esos nombres escritos por la persona se quitan con lo que haya entre ellos.
+  - Las entradas ya escritas no se tocan: la bitácora es append-only.
