@@ -543,7 +543,7 @@ means the acceptance criterion is covered by automated tests but its manual demo
 ### In progress
 
 - **Phase 12 follow-ups.** V40 to V42, the three small fixes to the **Memoria** screen found in the 2026-11-05
-  walkthrough, are fixed in this pull request (Phase 12b) and wait for a live check. The improvements to the hybrid
+  walkthrough, are fixed in [PR #38](https://github.com/LargoLujan/agent-studio/pull/38) (Phase 12b) and wait for a live check. The improvements to the hybrid
   search seen on the real journal (P40) are still open. Both are listed in [docs/18](docs/18-peticiones-y-pendientes.md);
   design in [ADR-0047](docs/adr/0047-indice-semantico-local.md).
 - **Manual demonstrations** of the criteria marked "verified by tests" in Phases 1, 3, 4, 5, 8 and 12.
