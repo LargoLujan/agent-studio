@@ -50,7 +50,8 @@ texto entero que recibe el hook.
   - El hook quita esos bloques, con su contenido, antes del extracto, de los tags y de la fase. Es una lista cerrada de
     nombres.
   - Cada apertura va con el cierre más cercano de su nombre, sin otra apertura del mismo nombre en medio. Una apertura
-    sin cierre no quita nada.
+    sin cierre no quita nada, salvo la de `<pasted_content>`: desde ella hasta el final del prompt, todo pasa a
+    «[pegado]», porque lo que sigue puede ser lo pegado.
   - Lo pegado se sustituye por «[pegado]», y un prompt que solo trae bloques se registra como «(solo bloques del
     sistema)».
   - Los mensajes que no son de la persona (`<agent-message>`, `<task-notification>`, `[SYSTEM NOTIFICATION`) se buscan en
@@ -63,6 +64,7 @@ texto entero que recibe el hook.
   - Copiar lo pegado recortado: puede llevar secretos a un repositorio público.
 - **Consecuencias.**
   - Un bloque con un nombre nuevo no se quita hasta que se añade al hook.
-  - Un `<pasted_content>` sin cierre deja pasar lo pegado, hasta 160 caracteres.
-  - Una apertura y un cierre de esos nombres escritos por la persona se quitan con lo que haya entre ellos.
+  - Una apertura y un cierre de esos nombres escritos por la persona se quitan con lo que haya entre ellos, y un
+    `<pasted_content>` sin cierre escrito por ella oculta lo que va detrás. Se prefiere perder ese texto a publicar algo
+    pegado.
   - Las entradas ya escritas no se tocan: la bitácora es append-only.

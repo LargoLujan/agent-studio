@@ -49,12 +49,14 @@ try {
     # are about what the user wrote. Each opening tag pairs with the nearest closing tag of its name with no other opening
     # of that name in between, so text between two blocks is kept; an opening tag with no closing tag is left as it is,
     # with all the text after it. What was pasted becomes [pegado]: it is not the user's text and the journal is public.
+    # So a pasted block with no closing tag is the exception: from its opening tag to the end, everything is [pegado].
     # A MatchEvaluator, not -replace with a script block, which Windows PowerShell does not have.
     $blockPattern = '(?s)<(browser_instruction|system-reminder|ide_selection|ide_opened_file|pasted_content)(?:\s[^>]*)?>(?:(?!<\1[\s>]).)*?</\1\s*>'
     $clean = [regex]::Replace($prompt, $blockPattern, [System.Text.RegularExpressions.MatchEvaluator] {
         param($block)
         if ($block.Groups[1].Value -eq 'pasted_content') { ' [pegado] ' } else { ' ' }
     })
+    $clean = $clean -replace '(?s)<pasted_content(?=[\s>]).*', ' [pegado] '
     $clean = ($clean -replace '\s+', ' ').Trim()
 
     # Subagent hand-backs and harness notifications arrive through the same event but are not prompts of the user, nor

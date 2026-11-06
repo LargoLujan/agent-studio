@@ -116,6 +116,17 @@ public sealed partial class BitacoraHookTests : IDisposable
         Assert.Equal("#prompt #general", excerpt.Tags);
     }
 
+    // Unlike the other blocks, a pasted one with no closing tag lets nothing through: what follows may be what was pasted.
+    [Theory]
+    [MemberData(nameof(Shells))]
+    public void Pasted_content_with_no_closing_tag_hides_everything_after_its_tag(string shell)
+    {
+        var excerpt = ExcerptOf(shell, "<browser_instruction>[Browser disconnected]</browser_instruction>\nMira esto: <pasted_content id=\"9\">clave de ejemplo\ngit commit en la fase 4\n<pasted_content id=\"10\">otro</pasted_content> y sigue sin cierre");
+
+        Assert.Equal("Mira esto: [pegado]", excerpt.Text);
+        Assert.Equal("#prompt #general", excerpt.Tags);
+    }
+
     [Theory]
     [MemberData(nameof(Shells))]
     public void Only_pasted_content_reads_as_pasted(string shell)

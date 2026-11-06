@@ -180,6 +180,8 @@ append-only.
   sigue se quedan, para no comerse tu texto.
 - **Lo pegado no se copia.** Lo que pegas (`<pasted_content>`) no es tu texto y puede contener cualquier cosa, y la
   bitácora es pública. En su lugar va «[pegado]». Si solo pegaste, el extracto es «[pegado]».
+- **Un pegado sin cierre no deja pasar nada.** Es la excepción a la regla anterior: desde su etiqueta hasta el final del
+  prompt, todo pasa a «[pegado]», porque lo que sigue puede ser lo pegado.
 - **Si no queda nada**, el extracto es «(solo bloques del sistema)». «(prompt vacío)» queda para un prompt vacío de
   verdad.
 - **Los tags y la fase** se calculan sobre el texto limpio: lo pegado o un recordatorio ya no añaden `#git` o `#tests`.
@@ -196,13 +198,14 @@ append-only.
 | Solo `<pasted_content>…</pasted_content>` | «[pegado]» |
 | Solo `<browser_instruction>…</browser_instruction>` | «(solo bloques del sistema)» |
 | «`<browser_instruction>`sin cierre, sigue con la prueba» | «`<browser_instruction>`sin cierre, sigue con la prueba» |
+| «Mira esto: `<pasted_content id="…">`clave y más texto», sin cierre | «Mira esto: [pegado]» |
 
 **Límites.**
 
-- Un `<pasted_content>` sin cierre deja pasar lo pegado, hasta los 160 caracteres del extracto.
 - Si escribes en el prompt una apertura y un cierre de esos nombres, por ejemplo al hablar del propio hook, lo que va
   entre ellos se quita.
+- Si escribes `<pasted_content>` sin cierre, lo que va detrás pasa a «[pegado]».
 
 **Pruebas.** `BitacoraHookTests` (categoría `LocalTools`, fuera de la CI) lanza el hook como Claude Code, en pwsh y en
-Windows PowerShell. Cubre un bloque al principio, uno en medio, varios, uno sin cierre, algo pegado, solo lo pegado, solo
-bloques, un recordatorio delante de tu texto y los mensajes del sistema que no se registran.
+Windows PowerShell. Cubre un bloque al principio, uno en medio, varios, uno sin cierre, algo pegado, algo pegado sin
+cierre, solo lo pegado, solo bloques, un recordatorio delante de tu texto y los mensajes del sistema que no se registran.
