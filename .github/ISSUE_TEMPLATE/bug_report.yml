@@ -1,0 +1,82 @@
+name: Bug report
+description: Something in Agent Studio does not work as documented.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this. English or Spanish are both fine.
+        **Security problems must not be reported here**: use the private report described in SECURITY.md.
+        Remove secrets, tokens and personal paths from anything you paste.
+  - type: input
+    id: version
+    attributes:
+      label: Agent Studio version or commit
+      description: The release tag, or the commit you built (`git rev-parse --short HEAD`). The status bar of the app also shows the version and commit.
+      placeholder: "v0.1.0-preview or d9ae1da"
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      description: Edition, version and build (run `winver`).
+      placeholder: "Windows 11 Pro 24H2, build 26100"
+    validations:
+      required: true
+  - type: dropdown
+    id: provider
+    attributes:
+      label: Provider CLI involved
+      options:
+        - None (the problem does not involve an agent)
+        - Claude Code
+        - Codex CLI
+        - Both
+        - Gemini CLI (parked)
+    validations:
+      required: true
+  - type: input
+    id: provider-version
+    attributes:
+      label: Provider CLI version
+      description: Output of `claude --version` and/or `codex --version`, if a provider is involved.
+      placeholder: "claude 2.1.290, codex 0.160.0"
+  - type: input
+    id: area
+    attributes:
+      label: Screen or area
+      description: For example Orquestador, Debates, Auditar proyecto completo, Consumo, Memoria, Skills, Ajustes, the editor, the terminal or the build.
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Start from a clean state if you can. Mention the kind of project (language, size) if it matters.
+      placeholder: |
+        1. Open the folder ...
+        2. In Orquestador, ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: What happened instead. Screenshots are welcome.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        Relevant lines from `%LOCALAPPDATA%\AgentStudio\logs` (JSON Lines), or the build or test output.
+        Check that no secret, token or personal path is included.
+      render: text

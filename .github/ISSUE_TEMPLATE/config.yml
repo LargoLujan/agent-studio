@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation and roadmap
+    url: https://github.com/LargoLujan/agent-studio#readme
+    about: How to build and run Agent Studio, known limitations and the roadmap. The design documents in docs/ are in Spanish.
+  - name: Report a security vulnerability
+    url: https://github.com/LargoLujan/agent-studio/security/policy
+    about: Please report security problems privately, as described in the security policy, not as a public issue.
