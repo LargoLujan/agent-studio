@@ -1,6 +1,7 @@
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Common;
+using AgentStudio.Domain.Models;
 using AgentStudio.Domain.Providers;
 using static AgentStudio.Tests.Domain.TestData;
 
@@ -39,7 +40,7 @@ public sealed class RosterHashTests
     public static TheoryData<string> Changes() =>
     [
         "tools", "instructions", "name", "role", "provider", "vendor", "model", "objectives", "grants", "turns", "duration",
-        "tokens", "cost", "rounds", "memory", "independentReview", "systemTests", "agentAdded", "agentRemoved", "id",
+        "tokens", "cost", "rounds", "memory", "independentReview", "systemTests", "agentAdded", "agentRemoved", "id", "effort",
     ];
 
     private static IReadOnlyList<AgentDefinition> Changed(string change) => change switch
@@ -64,6 +65,7 @@ public sealed class RosterHashTests
         "agentAdded" => [.. Roster(), Agent("intruso", AgentRole.Executor)],
         "agentRemoved" => [Roster()[0]],
         "id" => WithExecutor(a => a with { Id = Aid("otro") }),
+        "effort" => WithExecutor(a => a with { Effort = ReasoningEffort.High }),
         _ => throw new ArgumentOutOfRangeException(nameof(change), change, null),
     };
 
@@ -81,6 +83,35 @@ public sealed class RosterHashTests
     public void Any_change_to_any_agent_changes_the_hash(string change)
     {
         Assert.NotEqual(RosterHash.Of(Roster()), RosterHash.Of(Changed(change)));
+    }
+
+    /// <summary>
+    /// Starting a run compares the stored roster with the approved one by this hash, and the header of every run stored
+    /// encodes its roster the same way (<see cref="RunHeaderHash"/>): its encoding never changes without a new version, or no
+    /// template saved before could start a run again. Pinned on 2026-11-06, before Phase 13 added the effort (docs/17 D-25),
+    /// and computed with an independent implementation of the canonical form (length-prefixed fields, SHA-256).
+    /// </summary>
+    [Fact]
+    public void The_hash_of_a_known_roster_never_changes()
+    {
+        Assert.Equal("7758a631fa11dec21d4592c85d18beab2cdb321d034f6b9231a6a5af86a604b5", RosterHash.Of(Roster()));
+    }
+
+    /// <summary>
+    /// Phase 13 (docs/17 D-25): an effort counts only when it is set, after all the agents, as <c>effort</c>, the agent and its
+    /// value. Computed with the same independent implementation as the hash above.
+    /// </summary>
+    [Fact]
+    public void The_effort_counts_only_when_it_is_set_and_its_encoding_never_changes()
+    {
+        Assert.Equal("7758a631fa11dec21d4592c85d18beab2cdb321d034f6b9231a6a5af86a604b5", RosterHash.Of(WithExecutor(a => a with { Effort = null })));
+        Assert.Equal("0a4c499d4ba08d0618dcfadbf9e99cd0467c0376de7689c42129837041b68ad2", RosterHash.Of(WithExecutor(a => a with { Effort = ReasoningEffort.High })));
+        Assert.NotEqual(
+            RosterHash.Of(WithExecutor(a => a with { Effort = ReasoningEffort.High })),
+            RosterHash.Of(WithExecutor(a => a with { Effort = ReasoningEffort.XHigh })));
+        Assert.Equal(
+            RosterHash.Of([Agent("ejecutor", AgentRole.Executor) with { Effort = ReasoningEffort.Low }, Agent("juez", AgentRole.Judge) with { Effort = ReasoningEffort.High }]),
+            RosterHash.Of([Agent("juez", AgentRole.Judge) with { Effort = ReasoningEffort.High }, Agent("ejecutor", AgentRole.Executor) with { Effort = ReasoningEffort.Low }]));
     }
 
     [Fact]

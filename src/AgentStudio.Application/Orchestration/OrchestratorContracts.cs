@@ -1,10 +1,12 @@
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Providers;
 using AgentStudio.Application.Security;
+using AgentStudio.Application.Usage;
 using AgentStudio.Application.Verification;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Orchestration;
+using AgentStudio.Domain.Questions;
 using AgentStudio.Domain.Requirements;
 using AgentStudio.Domain.Work;
 
@@ -70,9 +72,14 @@ public sealed record PlanProposal(
 /// the app, unless the person paused it or left it when exiting. Never beyond <see cref="MaxAgentRuns"/>. False by default:
 /// the run behaves as before Phase 8.
 /// </param>
+/// <param name="AnswerWithRecommendedAfter">
+/// Phase 13 (docs/17 D-33, decision 4 (a)): the person's consent, given when approving the plan, for the system to answer a
+/// question of an agent with the option the agent recommended when nobody answers within this time. Null by default: no
+/// question is ever answered without a person. A question without a recommended option always waits.
+/// </param>
 /// <remarks>
-/// The options of Phase 8 are written into the header (its hash and its stored row) only when they are not the defaults, so
-/// every header stored before them is read and hashed exactly as it was (ADR-0034).
+/// The options of Phase 8 and Phase 13 are written into the header (its hash and its stored row) only when they are not the
+/// defaults, so every header stored before them is read and hashed exactly as it was (ADR-0034).
 /// </remarks>
 public sealed record RunOptions(
     int MaxParallelTasks = 3,
@@ -83,8 +90,12 @@ public sealed record RunOptions(
     TimeSpan? MaxAutoWaitForQuota = null,
     TimeSpan? QuotaResetMargin = null,
     TimeSpan? MaxEstimatedQuotaWait = null,
-    bool AutoResumeConsent = false)
+    bool AutoResumeConsent = false,
+    TimeSpan? AnswerWithRecommendedAfter = null)
 {
+    /// <summary>The shortest wait before the system answers with the recommended option under the consent (docs/17 D-33): one minute.</summary>
+    public static readonly TimeSpan MinAnswerWithRecommendedAfter = TimeSpan.FromMinutes(1);
+
     /// <summary>The margin after an announced reset when the header gives none (D-36): 3 minutes.</summary>
     public static readonly TimeSpan DefaultQuotaResetMargin = TimeSpan.FromMinutes(3);
 
@@ -113,6 +124,11 @@ public sealed record RunOptions(
         if (MaxEstimatedQuotaWait < MinEstimatedQuotaWait)
         {
             throw new ArgumentException($"MaxEstimatedQuotaWait must be at least {MinEstimatedQuotaWait}; it is {MaxEstimatedQuotaWait}.", nameof(MaxEstimatedQuotaWait));
+        }
+
+        if (AnswerWithRecommendedAfter < MinAnswerWithRecommendedAfter)
+        {
+            throw new ArgumentException($"AnswerWithRecommendedAfter must be at least {MinAnswerWithRecommendedAfter}; it is {AnswerWithRecommendedAfter}.", nameof(AnswerWithRecommendedAfter));
         }
     }
 
@@ -186,7 +202,12 @@ public enum RunPhase
     Cancelled,
 }
 
-/// <summary>What the UI shows about one task. <see cref="BlockReason"/> is structured: Interrupted, ProviderUnavailable, RateLimitedUntil(t) or AwaitingHuman.</summary>
+/// <summary>
+/// What the UI shows about one task. <see cref="BlockReason"/> is structured: Interrupted, ProviderUnavailable,
+/// RateLimitedUntil(t), AwaitingHuman or, from Phase 13, AwaitingAnswer. <see cref="Question"/> is the question its agent
+/// asked while the task waits for the answer (docs/17 D-29): replay rebuilds it after a restart, so the window of the question
+/// comes back; null otherwise.
+/// </summary>
 public sealed record TaskView(
     TaskId Id,
     string Title,
@@ -198,7 +219,24 @@ public sealed record TaskView(
     string? WorktreePath,
     string? Ref,
     string? BlockReason,
-    IReadOnlyList<EvidenceId> Evidence);
+    IReadOnlyList<EvidenceId> Evidence,
+    PendingQuestion? Question = null);
+
+/// <summary>
+/// A question of an agent waiting for the person (docs/17 D-29 to D-32): its id in the run, the task (null for the orchestrator
+/// before it plans), the agent and the attempt that asked, the question as validated (<see cref="QuestionRules"/>), its
+/// evidence, what the system estimates for each option, and when it was asked. The options are data of the agent: the window
+/// frames them as such, and choosing one grants nothing.
+/// </summary>
+public sealed record PendingQuestion(
+    string Id,
+    TaskId? Task,
+    AgentId Agent,
+    int Attempt,
+    AgentQuestion Question,
+    EvidenceId Evidence,
+    IReadOnlyDictionary<string, UsageEstimate> Estimates,
+    DateTimeOffset AskedAt);
 
 /// <summary>
 /// The state of a run at one moment: its phase, its tasks, the health of its graph and the agent runs it used. Tanda 2

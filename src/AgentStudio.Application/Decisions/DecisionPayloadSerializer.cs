@@ -60,6 +60,12 @@ public static class DecisionPayloadSerializer
 
         // Phase 12 (docs/17 D-02): the trust of the journal, outside every run.
         [DecisionKind.JournalTrustChanged] = typeof(JournalTrustChangedPayload),
+
+        // Phase 13 (docs/17 D-27 and D-29): the questions of the agents and the configurator. AgentRunStarted (version 3) and
+        // the answers to an approval with the method WindowsLock keep their types.
+        [DecisionKind.QuestionAsked] = typeof(QuestionAskedPayload),
+        [DecisionKind.QuestionAnswered] = typeof(QuestionAnsweredPayload),
+        [DecisionKind.ProjectSetupApplied] = typeof(ProjectSetupAppliedPayload),
     };
 
     private static readonly JsonSerializerOptions Options = CreateOptions();

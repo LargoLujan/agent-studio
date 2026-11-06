@@ -4,6 +4,7 @@ using AgentStudio.Application.Verification;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Evidence;
+using AgentStudio.Domain.Models;
 using AgentStudio.Domain.Providers;
 
 namespace AgentStudio.Infrastructure.Persistence.Json;
@@ -51,6 +52,11 @@ internal sealed record VerificationStepJson(
 }
 
 /// <summary>An agent definition, as kept in <c>agents.definition_json</c> and in the roster frozen with each run.</summary>
+/// <param name="Effort">
+/// Phase 13 (docs/17 D-25): only an agent that sets an effort carries it, so a definition without one is stored exactly as it
+/// was before the field existed, and a stored one without it has none. Keeping it is what lets a template saved with an
+/// effort start a run (its <c>RosterHash</c> is compared with the approved one) and a run resume with its header hash.
+/// </param>
 internal sealed record AgentJson(
     string Id,
     string Name,
@@ -63,7 +69,8 @@ internal sealed record AgentJson(
     BudgetJson Budget,
     int MaxRounds,
     MemoryPolicy Memory,
-    ReviewJson Review)
+    ReviewJson Review,
+    ReasoningEffort? Effort = null)
 {
     public static AgentJson From(AgentDefinition agent) => new(
         agent.Id.Value,
@@ -77,7 +84,8 @@ internal sealed record AgentJson(
         new BudgetJson(agent.Budget.MaxTurns, agent.Budget.MaxDuration, agent.Budget.MaxTotalTokens, agent.Budget.MaxCostUsd),
         agent.MaxRounds,
         agent.Memory,
-        new ReviewJson(agent.Review.RequiresIndependentReview, agent.Review.RequiresSystemCapturedTests));
+        new ReviewJson(agent.Review.RequiresIndependentReview, agent.Review.RequiresSystemCapturedTests),
+        agent.Effort);
 
     public AgentDefinition ToDomain() => new(
         new AgentId(Id),
@@ -91,7 +99,8 @@ internal sealed record AgentJson(
         new ExecutionBudget(Budget.MaxTurns, Budget.MaxDuration, Budget.MaxTotalTokens, Budget.MaxCostUsd),
         MaxRounds,
         Memory,
-        new ReviewPolicy(Review.RequiresIndependentReview, Review.RequiresSystemCapturedTests));
+        new ReviewPolicy(Review.RequiresIndependentReview, Review.RequiresSystemCapturedTests),
+        Effort);
 }
 
 /// <summary>
@@ -123,7 +132,8 @@ internal sealed record ReviewJson(bool RequiresIndependentReview, bool RequiresS
 /// <remarks>
 /// The options of Phase 8 (docs/16 D-36, D-37 and D-39; ADR-0034) are stored only when they are not the defaults: a margin or
 /// a cap only when given, the consent only when it was given (true). So options at their defaults are stored exactly as they
-/// were before the fields existed, and a stored row without them reads with the defaults and hashes as it did.
+/// were before the fields existed, and a stored row without them reads with the defaults and hashes as it did. The consent
+/// of Phase 13 to answer with the recommended option (docs/17 D-33) the same: only when it was given.
 /// </remarks>
 internal sealed record RunOptionsJson(
     int MaxParallelTasks,
@@ -134,7 +144,8 @@ internal sealed record RunOptionsJson(
     TimeSpan? MaxAutoWaitForQuota,
     TimeSpan? QuotaResetMargin = null,
     TimeSpan? MaxEstimatedQuotaWait = null,
-    bool? AutoResumeConsent = null)
+    bool? AutoResumeConsent = null,
+    TimeSpan? AnswerWithRecommendedAfter = null)
 {
     public static RunOptionsJson From(RunOptions options) => new(
         options.MaxParallelTasks,
@@ -145,7 +156,8 @@ internal sealed record RunOptionsJson(
         options.MaxAutoWaitForQuota,
         options.QuotaResetMargin,
         options.MaxEstimatedQuotaWait,
-        options.AutoResumeConsent ? true : null);
+        options.AutoResumeConsent ? true : null,
+        options.AnswerWithRecommendedAfter);
 
     public RunOptions ToDomain() => new(
         MaxParallelTasks,
@@ -156,5 +168,6 @@ internal sealed record RunOptionsJson(
         MaxAutoWaitForQuota,
         QuotaResetMargin,
         MaxEstimatedQuotaWait,
-        AutoResumeConsent == true);
+        AutoResumeConsent == true,
+        AnswerWithRecommendedAfter);
 }

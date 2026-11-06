@@ -153,6 +153,17 @@ public enum AgentRunPurpose
 
     /// <summary>The judge of an audit of the whole project, or its one correction (in the run id of the audit).</summary>
     ProjectAudit,
+
+    // Phase 13 (docs/17 §8.2), appended: auxiliary runs, each with the person's OK and the estimate in front.
+
+    /// <summary>«Revisar el orden con el orquestador» (D-20): the orchestrator, read-only, on a plan the person changed.</summary>
+    OrderReview,
+
+    /// <summary>The analysis of consumption with an agent (D-35): read-only, of the vendor that did not produce the work.</summary>
+    ConsumptionAnalysis,
+
+    /// <summary>The chat of preparation with the orchestrator (D-44): read-only, in the band of preparation.</summary>
+    PreparationChat,
 }
 
 /// <summary>
@@ -163,9 +174,52 @@ public enum AgentRunPurpose
 public sealed record ContextPackReference(string Sha256, IReadOnlyList<string> Entries, IReadOnlyList<string> Omitted, int Characters);
 
 /// <summary>
+/// The parts of a prompt before the agent starts (docs/17 D-13), each a segment of the bar of context by parts. Recorded by
+/// name: new ones are appended.
+/// </summary>
+public enum ContextPartKind
+{
+    /// <summary>The instructions of the protocol (ADR-0013): the same for every task of a role.</summary>
+    Protocol,
+
+    /// <summary>The frozen requirements the task covers.</summary>
+    Requirements,
+
+    /// <summary>The brief of the project (<c>&lt;project_brief&gt;</c>, D-10).</summary>
+    ProjectBrief,
+
+    /// <summary>The instructions of the agent (<c>&lt;agent_instructions&gt;</c>, D-42).</summary>
+    AgentInstructions,
+
+    /// <summary>The pack of project memory (<c>&lt;project_memory&gt;</c>).</summary>
+    Memory,
+
+    /// <summary>What comes from earlier tasks (<c>&lt;upstream_output&gt;</c>).</summary>
+    Upstream,
+
+    /// <summary>The previous attempt or the handoff of a renewed session (ADR-0035).</summary>
+    PreviousAttempt,
+
+    /// <summary>The question of the agent and the person's answer (<c>&lt;human_answer&gt;</c>, D-30).</summary>
+    HumanAnswer,
+
+    /// <summary>What presenting the skills costs: their names and descriptions.</summary>
+    Skills,
+}
+
+/// <summary>
+/// One part of a prompt before the agent starts (docs/17 D-13), in characters: Agent Studio knows them before it launches,
+/// and a bar shows them estimated (characters divided by 4, docs/14 D-24). What the CLI then reports beyond their sum is the
+/// conversation and the tools. No text: only its size.
+/// </summary>
+public sealed record ContextPartSnapshot(ContextPartKind Kind, int Characters);
+
+/// <summary>
 /// Recorded before the agent is launched. <paramref name="Task"/> is null for the planner, the judge and the auxiliary
 /// runs. Version 2 (docs/14 section 5.2) adds what the run is for (<paramref name="Purpose"/>) and, when the agent was
-/// given project memory, the pack it was given (<paramref name="ContextPack"/>; null when it got none).
+/// given project memory, the pack it was given (<paramref name="ContextPack"/>; null when it got none). Version 3 (docs/17
+/// D-13, Phase 13) adds the parts of the prompt before the agent starts (<paramref name="ContextParts"/>), written only when
+/// there are: a start of version 2 is read and written back byte for byte.
 /// </summary>
 public sealed record AgentRunStartedPayload(
     TaskId? Task,
@@ -179,13 +233,20 @@ public sealed record AgentRunStartedPayload(
     string PromptSha256,
     IReadOnlyList<SkillId> Skills,
     AgentRunPurpose? Purpose = null,
-    ContextPackReference? ContextPack = null) : DecisionPayload
+    ContextPackReference? ContextPack = null,
+    IReadOnlyList<ContextPartSnapshot>? ContextParts = null) : DecisionPayload
 {
     /// <summary>The first version that records the purpose of the run and the memory the agent was given.</summary>
     public const int PurposeVersion = 2;
 
+    /// <summary>The first version that records the parts of the prompt before the agent starts (docs/17 D-13). It keeps everything version 2 records.</summary>
+    public const int ContextPartsVersion = 3;
+
     /// <summary>Whether this start records its purpose and memory (version 2 on). A method, so the serializer never writes it.</summary>
     public bool RecordsPurpose() => V >= PurposeVersion;
+
+    /// <summary>Whether this start records the parts of its prompt (version 3 on). A method, so the serializer never writes it.</summary>
+    public bool RecordsContextParts() => V >= ContextPartsVersion;
 }
 
 /// <summary>How an agent attempt ended. <c>Interrupted</c> is added by recovery for an attempt the app never saw finish.</summary>

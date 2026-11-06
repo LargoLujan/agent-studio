@@ -63,6 +63,7 @@ public sealed class DecisionPayloadTests
         JournalTrustChangedPayload.Deciding(JournalTrustScope.Day, new DateOnly(2026, 10, 29), trusted: true, "manuel", "Son mis prompts."),
         .. DebatePayloadTests.Samples,
         .. Phase8PayloadTests.Samples,
+        .. Phase13PayloadTests.Samples,
     ];
 
     private static UsageSnapshot UsageOf(long tokens, decimal cost) => UsageSnapshot.From(new TokenUsage(
@@ -253,7 +254,13 @@ public sealed class DecisionPayloadTests
 
         Assert.EndsWith(",\"skills\":[],\"purpose\":\"SkillRecommendation\",\"v\":2,\"runId\":\"aux-20261018-a1b2c3\"}", json, StringComparison.Ordinal);
         Assert.DoesNotContain("contextPack", json, StringComparison.Ordinal);
-        Assert.Equal(["Planner", "Executor", "Judge", "SkillRecommendation", "DailySummary", "DebateParticipant", "DebateJudge", "ProjectAudit"], Enum.GetNames<AgentRunPurpose>());
+        Assert.Equal(
+            [
+                "Planner", "Executor", "Judge", "SkillRecommendation", "DailySummary", "DebateParticipant", "DebateJudge", "ProjectAudit",
+                // Phase 13 (docs/17 §8.2) appends the auxiliary runs of the visual builder.
+                "OrderReview", "ConsumptionAnalysis", "PreparationChat",
+            ],
+            Enum.GetNames<AgentRunPurpose>());
     }
 
     [Fact]
