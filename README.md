@@ -23,7 +23,7 @@
 </div>
 
 > **Work in progress.** Agent Studio is under active construction: the orchestration engine, the independent judge, the
-> Debate Arena and unattended work are implemented and tested, while the semantic index, the visual agent builder,
+> Debate Arena, unattended work and the local semantic index are implemented and tested, while the visual agent builder,
 > traceability, remote Git, packaging and several other parts are still unfinished or only designed. See
 > [Roadmap and Status](#roadmap-and-status).
 
@@ -241,7 +241,7 @@ sequenceDiagram
 | Persistence | SQLite through Microsoft.Data.Sqlite with explicit SQL, embedded migrations and FTS5; Markdown exports |
 | Agent providers | Claude Code CLI and Codex CLI (tested versions 2.1.290 and 0.160.0 in `SupportedVersions.cs`); Gemini CLI adapter, parked |
 | Local MCP server | ModelContextProtocol 2.2.0 (read-only skills recommender) |
-| Semantic index (in progress) | Microsoft.ML.OnnxRuntime and Microsoft.ML.Tokenizers, referenced for the planned local embeddings |
+| Semantic index | Microsoft.ML.OnnxRuntime and Microsoft.ML.Tokenizers for on-device embeddings (multilingual-e5-small int8, downloaded only with consent) |
 | Hosting and logging | Microsoft.Extensions.Hosting, dependency injection, custom JSON Lines file logger |
 | Windows integration | Windows SDK projection for Windows Hello, Windows Forms `NotifyIcon` for the tray, Job Objects and integrity labels via P/Invoke |
 | Tests | xUnit v3 on Microsoft.Testing.Platform, Microsoft.Extensions.TimeProvider.Testing |
@@ -537,18 +537,17 @@ means the acceptance criterion is covered by automated tests but its manual demo
 | 4 · Observability and memory | Usage, export, context health, quota, project memory, context packing, skills screen and recommender, daily summary | Integrated 2026-10-18; usage, context health and skills screens verified by tests only |
 | 5 · Debate Arena and judge | Six debate modes, limits, verdict validation, project audit, orchestrator auditor, challenges | Closed 2026-10-21 with real demonstrations of every mode |
 | 8 · Unattended work | Classified attempt endings, quota waits, resume, sleep handling, context renewal, tray, managed exit, Windows Hello and lock | Integrated 2026-10-29 and partly verified live; sleep, sign-out, fingerprint confirmation and a real usage limit are still to be demonstrated |
+| 12 · Local semantic index | Journal anchored as memory with its trust level, on-device embeddings, hybrid keyword and meaning search, relevance in context packing, a history tool for the planner; nothing reaches the judge | Merged 2026-11-05 ([PR #4](https://github.com/LargoLujan/agent-studio/pull/4)); search quality, speed and the history tool measured, the rest verified by tests; the manual demonstration of **Memoria** is pending |
 | UI fix rounds 1 and 2 | Fixes from the first live walkthrough and real-time bars for context, quota and budget | Integrated; round 2 verified live on 2026-11-03 |
 
 ### In progress
 
-- **Phase 12 · Local semantic index.** The domain rules (hybrid ranking with reciprocal rank fusion, lexical terms,
-  fragments) and the `Application` contracts are in `main` with tests, and the model was chosen through a spike
-  (multilingual-e5-small int8, [ADR-0047](docs/adr/0047-indice-semantico-local.md)). The on-device embedder, the index
-  store and its use in context packing are **not** in `main` yet, so semantic search does not work today; memory search
-  is keyword-based (FTS5).
+- **Phase 12 follow-ups.** Three small fixes to the **Memoria** screen found in the 2026-11-05 walkthrough (V40 to V42)
+  and improvements to the hybrid search seen on the real journal (P40), listed in
+  [docs/18](docs/18-peticiones-y-pendientes.md); design in [ADR-0047](docs/adr/0047-indice-semantico-local.md).
 - **UI polish round 2b.** Small issues found in the 2026-11-03 walkthrough (journal view refresh, status bar context
   during planning, accessible names of some list items, layout at certain widths).
-- **Manual demonstrations** of the criteria marked "verified by tests" in Phases 1, 3, 4, 5 and 8.
+- **Manual demonstrations** of the criteria marked "verified by tests" in Phases 1, 3, 4, 5, 8 and 12.
 - **Self-audit.** 93 tests fail when run under Low integrity (mostly tests that create temporary folders in
   `LocalAppData`), so "Audit whole project" cannot yet approve this repository.
 - **Design review** of [docs/17](docs/17-constructor-visual-de-agentes.md), whose open decisions gate Phases 13 to 15.
