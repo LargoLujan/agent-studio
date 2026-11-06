@@ -260,3 +260,56 @@ Una segunda revisión, el mismo día, dio por cerrados los siete y encontró tre
     rechaza un margen negativo y un tope de las esperas sin reinicio de menos de un minuto: con ellos, cada espera
     terminaría en el acto. Una cabecera guardada con esperas raras no se rechaza: se lee y se hashea como está guardada, y
     el motor usa los valores con sentido más cercanos (`ResolvedQuotaResetMargin()`, `ResolvedMaxEstimatedQuotaWait()`).
+
+## Adenda · 2026-11-06 · dos carreras de la espera de cuota que hacían intermitente `QuotaWaitTests` (docs/18 P42)
+
+`QuotaWaitTests` fallaba de forma intermitente, también sola: 3 de 20 pasadas de la clase en `main` (6cf8bf7). Cada vez
+caía una prueba distinta. Había dos causas, las dos en el motor.
+
+1. **La espera que no despertaba con un reloj falso** (`OrchestrationRun.WaitAsync`).
+   - El síntoma: la ejecución quedaba en `WaitingForQuota` y su tarea `Blocked` con `RateLimitedUntil(…)`, aunque el
+     reloj ya había pasado el final de la espera.
+   - La causa: el bucle calcula cuánto dormir con una lectura del reloj (hasta el final de la espera, un latido como
+     mucho) y después arma un temporizador relativo (`Task.Delay(delay, TimeProvider)`). Ese temporizador cuenta desde
+     que se arma, no desde la lectura: si el reloj avanza entre las dos cosas, llega tarde. Las pruebas avanzan el reloj
+     falso en cuanto ven la fase publicada, y el bucle publica antes de armar. Una traza lo mostró: el bucle leyó las
+     09:00, la prueba avanzó a las 09:05 y el temporizador de 5 s se armó ya a las 09:05, para las 09:05:05. Con un reloj
+     falso que nadie vuelve a adelantar, esa hora no llega nunca.
+   - En la app no colgaba. Con el reloj del sistema, entre la lectura y el temporizador pasan microsegundos. Si el reloj
+     saltara justo entonces (el equipo se duerme, o cambia la hora), el temporizador llegaría tarde un latido (5 s) como
+     mucho, porque la espera se mira en cada latido. Ninguna ejecución se queda esperando cuota para siempre.
+   - El arreglo: tras armar el temporizador, el bucle mira el reloj otra vez. Si avanzó todo el retraso mientras lo
+     armaba, no espera y vuelve a mirar en el acto, como habría hecho el temporizador. No hay cerrojos: el bucle sigue
+     siendo el único lector de su cola. Un avance menor que el retraso deja el temporizador tarde como mucho ese avance,
+     menos de un latido; ninguna prueba avanza así.
+   - La prueba: `A_wait_ends_when_the_clock_reaches_its_end_while_the_loop_arms_its_timer`, con un reloj falso que salta
+     justo al armar el temporizador de la espera (`JumpingFakeTimeProvider`). Antes del arreglo se colgaba 5 de 5 veces;
+     después pasa.
+2. **La reanudación contaba de más una comprobación** (`RunResumer.StoppedTheLaunch`). Apareció con la CPU cargada, ya
+   arreglada la primera.
+   - El síntoma: una ejecución reanudada se quedaba en pausa una comprobación antes que su ejecución viva.
+   - La causa: la reanudación decidía si una `AccessChecked` paró un lanzamiento por el estado de la tarea en ese punto
+     del registro: «no está en curso». Pero la lectura de la cuota al agotarse la ventana la escribe el trabajador, y el
+     paso de pendiente a en curso lo escribe el bucle por su cuenta. Si el intento termina en el acto (Codex sin cuota) y
+     la máquina va cargada, la lectura llega antes al registro. La frase del punto 2 de la adenda del 2026-10-29 («llega
+     con la tarea en curso, y no cuenta») solo era cierta cuando el bucle escribía antes.
+   - En la app sí podía pasar, aunque es raro: hace falta que el intento acabe antes de que el bucle anote su arranque.
+     El efecto es menor: tras reanudar, la ejecución pide a una persona que la reintente una comprobación antes de lo
+     debido. No lanza nada de más ni gasta presupuesto.
+   - El arreglo: cuenta como comprobación la que llega antes de lanzar al agente desde que la tarea volvió a pendiente.
+     Eso lo dice su `AgentRunStarted`, que escribe el mismo trabajador antes de la lectura, así que el orden ya no depende
+     de los hilos. Las revisiones no cambian.
+   - La prueba: `A_resumed_run_goes_on_with_the_steps_and_the_count_of_the_checks_of_its_live_run` es ahora una teoría.
+     Su caso nuevo retiene en el registro el paso a en curso hasta que llega la lectura (`HoldingRecorder`). Antes del
+     arreglo fallaba igual que con la carga; después pasa.
+3. **Tasas de la clase** (este equipo, 16 núcleos; con carga, 20 bucles ocupados que dejan la CPU al 100 %):
+
+   | Código | Sin carga | Con la CPU cargada |
+   |---|---|---|
+   | `main` (6cf8bf7) | 3 de 20 fallan (causa 1) | 1 de 30 (causa 1) |
+   | Con el arreglo 1 | 0 de 30 | 1 de 30 (causa 2) |
+   | Con los dos arreglos | 0 de 30 | 0 de 30, y 0 de 30 con la suite entera en paralelo |
+
+4. **Queda el mismo patrón que la causa 1 en el debate.** `DebateRun.WaitForResetAsync` lee el reloj y arma el
+   temporizador igual. Sus pruebas esperan a ver armado el temporizador antes de avanzar (`SuspendableClock.Timers`), y
+   no se ha visto fallar. Se deja como está.
