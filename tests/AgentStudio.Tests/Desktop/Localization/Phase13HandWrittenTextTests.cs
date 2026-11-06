@@ -14,7 +14,8 @@ namespace AgentStudio.Tests.Desktop.Localization;
 /// <remarks>
 /// <para>It goes by convention over the files of Phase 13: every XAML and C# file in the folders the phase creates
 /// (<see cref="Phase13Folders"/>, docs/17 §9.3) and the new files a package adds to a folder of before
-/// (<see cref="Phase13Files"/>: each package lists its own there).</para>
+/// (each package lists its own in <c>Phase13Files.&lt;paquete&gt;.txt</c> next to this test, so no two share a file; see
+/// <see cref="Phase13Files"/>).</para>
 /// <list type="bullet">
 /// <item>XAML: no visible text written as a literal: neither the attributes that show text (<c>Text</c>, <c>Content</c>,
 /// <c>Header</c>, <c>ToolTip</c>, <c>Title</c>, <c>AutomationProperties.Name</c>, <c>HelpText</c>, <c>ItemStatus</c>…) nor the
@@ -41,10 +42,26 @@ public sealed partial class Phase13HandWrittenTextTests
     ];
 
     /// <summary>
-    /// The new files of Phase 13 in folders of before, relative to <c>src/AgentStudio.Desktop</c>: each package of the phase
-    /// adds the files it creates in a folder that existed (<c>Orchestrator/Canvas/…</c>, <c>Views/Orchestrator/…</c>).
+    /// The new files of Phase 13 in folders of before, relative to <c>src/AgentStudio.Desktop</c> (<c>Orchestrator/Canvas/…</c>,
+    /// <c>Views/Orchestrator/…</c>): the ones of the P0 here, and each package's in a list of its own next to this test,
+    /// <c>Phase13Files.&lt;paquete&gt;.txt</c> (one path per line; a line that starts with <c>#</c> is a comment), so no two
+    /// packages share a file (docs/17 §9.1).
     /// </summary>
     private static readonly string[] Phase13Files = [];
+
+    /// <summary>The folder of this test in the sources, where the lists <c>Phase13Files.*.txt</c> of the packages are.</summary>
+    private static string TestFolder => Path.Combine(RepositoryRoot, "tests", "AgentStudio.Tests", "Desktop", "Localization");
+
+    /// <summary>Every new file of Phase 13 in a folder of before: <see cref="Phase13Files"/> and the lists of the packages.</summary>
+    private static IReadOnlyList<string> ListedFiles() =>
+    [
+        .. Phase13Files,
+        .. Directory.GetFiles(TestFolder, "Phase13Files.*.txt")
+            .Order(StringComparer.Ordinal)
+            .SelectMany(File.ReadAllLines)
+            .Select(l => l.Trim())
+            .Where(l => l.Length > 0 && !l.StartsWith('#')),
+    ];
 
     /// <summary>Literals allowed in the files of Phase 13, by file and literal, each with why. An exception nobody uses fails, so the list never goes stale.</summary>
     private static readonly Dictionary<(string File, string Literal), string> Exceptions = new()
@@ -80,7 +97,7 @@ public sealed partial class Phase13HandWrittenTextTests
             files.AddRange(Directory.GetFiles(folder, "*.*", SearchOption.AllDirectories).Where(f => f.EndsWith(".cs", StringComparison.Ordinal) || f.EndsWith(".xaml", StringComparison.Ordinal)));
         }
 
-        files.AddRange(Phase13Files.Select(f => Path.Combine(DesktopRoot, f)));
+        files.AddRange(ListedFiles().Select(f => Path.Combine(DesktopRoot, f)));
         return [.. files.Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.Ordinal)];
     }
 
@@ -97,7 +114,7 @@ public sealed partial class Phase13HandWrittenTextTests
         Assert.Contains("Localization/ResourceTextProvider.cs", scanned);
         Assert.Contains("Controls/Info/InfoButton.xaml", scanned);
         Assert.Contains("Orchestrator/Live/IRunLiveProjection.cs", scanned);
-        Assert.All(Phase13Files, file => Assert.True(File.Exists(Path.Combine(DesktopRoot, file)), $"{file} is listed as a file of Phase 13 and does not exist."));
+        Assert.All(ListedFiles(), file => Assert.True(File.Exists(Path.Combine(DesktopRoot, file)), $"{file} is listed as a file of Phase 13 and does not exist."));
     }
 
     [Fact]

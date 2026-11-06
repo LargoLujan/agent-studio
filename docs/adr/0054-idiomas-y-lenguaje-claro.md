@@ -90,7 +90,8 @@
        (`Desktop/Localization/LocalizationResourcesTests.cs`).
      - **Nada escrito a mano en lo nuevo de la Fase 13** (F13-19, `Phase13HandWrittenTextTests`). Va por convención: revisa
        cada XAML y cada C# de las carpetas que crea la fase (docs/17 §9.3) y los ficheros nuevos que cada paquete añade a una
-       carpeta de antes (su lista, `Phase13Files`):
+       carpeta de antes, que cada uno lista en su propio `Phase13Files.<paquete>.txt` junto a la prueba (así ninguno comparte
+       fichero):
        - en XAML, ningún texto visible literal, ni en atributos (`Text`, `Content`, `Header`, `ToolTip`, `Title`, los de
          `AutomationProperties`…) ni como texto de un elemento;
        - en C#, ninguna cadena con letras fuera de ASCII (las del castellano) y ningún literal con letras asignado a una

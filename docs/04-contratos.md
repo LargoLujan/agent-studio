@@ -1567,7 +1567,7 @@ y de la cabecera va en su JSON, solo cuando se fija. `Phase13PayloadTests`, `Dec
 | `TeamGraph`, `AgentNode`, `TeamEdge`, `TeamEdgeKind`, `TeamLimits` (1, 8 y 1), `TeamRoles` | `Domain/Team/TeamGraph.cs` | La capa Equipo (D-08 a D-11): los nodos son la plantilla; los cables se comprueban (`Validate()`), y `SharesVendor` dice cuándo «Revisa» va en color de error. «Entrega» sale de la capa Plan y no es del equipo | WP6, WP1 |
 | `RepositoryNode`, `RepositoryRemote` (`Cleaned`, `WithoutCredentials`) | `Domain/Team/RepositoryNode.cs` | El nodo del repositorio (D-10). Un remoto nunca guarda usuario ni contraseña: el constructor lo rechaza (F13-3) | WP6 |
 | `Finding`, `FindingSeverity`, `FindingCodes` (los 16 de D-18 y `validator.<código>` para el validador), `MontageAnalysis` | `Domain/Orchestration/Analysis/Finding.cs` | Los hallazgos del analizador, con código, nodos y argumentos | WP1, WP6, WP8 |
-| `Fix` y sus 14 arreglos tipados (`ChangesRoster`, `GrantsHighRiskCapability`) | `Domain/Orchestration/Analysis/Fix.cs` | Los arreglos de un clic, que se deshacen | WP1, WP6, WP3 |
+| `Fix` y sus 13 arreglos tipados (`ChangesRoster`, `GrantsHighRiskCapability`) | `Domain/Orchestration/Analysis/Fix.cs` | Los arreglos de un clic, que se deshacen | WP1, WP6, WP3 |
 | `OrderNotes`, `OrderDependencyNote`, `ParallelOrderNote`, `HarmfulOrderNote` | `Domain/Orchestration/Analysis/OrderNotes.cs` | Las notas de orden (D-19) y la respuesta de «Revisar el orden» (D-20) | WP1 |
 | `MontageDraft`, `TaskContextFacts`, `QuotaWindowFacts`, `MontageRunFacts`, `MontageLearnedFacts`, `IMontageRule` | `Domain/Orchestration/Analysis/MontageDraft.cs` | Lo que lee el analizador y la forma de cada regla. Las reglas y el analizador que las junta son de WP1 | WP1, WP3, WP6 |
 | `TextArguments` | `Domain/Common/TextArguments.cs` | Los argumentos de un texto con código: texto, números, instantes y duraciones | Todos |
@@ -1635,7 +1635,9 @@ public sealed record ContextPartSnapshot(ContextPartKind Kind, int Characters);
 | `ObservabilitySettingsViewModel.CodexExplanation` | `Observability/ObservabilitySettingsViewModel.cs` | El texto de la cuota de Codex dice lo que se hace (F13-20): bajo demanda, al terminar una ejecución de Codex (como mucho una vez cada 5 minutos) y mientras una ejecución espera un límite de Codex |
 
 - **Nada escrito a mano** (F13-19): `Desktop/Localization/Phase13HandWrittenTextTests.cs` revisa las carpetas nuevas de la
-  fase y la lista `Phase13Files`, que cada paquete amplía con los ficheros nuevos que pone en carpetas de antes. Las reglas y
-  sus límites están en ADR-0054, punto 8.
+  fase y los ficheros nuevos que cada paquete pone en carpetas de antes. Cada paquete los lista en un fichero propio junto a
+  la prueba, `tests/AgentStudio.Tests/Desktop/Localization/Phase13Files.<paquete>.txt` (una ruta relativa a
+  `src/AgentStudio.Desktop` por línea; `#` empieza un comentario), así que ninguno comparte fichero. Las reglas y sus límites
+  están en ADR-0054, punto 8.
 - **Lo que la integración tiene que hacer:** aplicar el idioma al arrancar (`Texts.UseLanguage`), y registrar en la
   composición los puertos nuevos cuando sus paquetes los implementen.
