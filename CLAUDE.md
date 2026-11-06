@@ -39,4 +39,4 @@ Kit del proyecto (skills, agentes y herramientas): `.claude/PROJECT_KIT.md`.
 ## Trabajo con agentes
 
 - Implementadores en paralelo con `isolation: "worktree"`; el orquestador integra, ejecuta build y tests y revisa.
-- Commits y pushes solo cuando el usuario los pida. Repositorio: GitHub `LargoLujan/agent-studio` (privado).
+- Commits y pushes solo cuando el usuario los pida. Repositorio: GitHub `LargoLujan/agent-studio` (público).
