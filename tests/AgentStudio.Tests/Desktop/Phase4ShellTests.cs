@@ -94,6 +94,16 @@ public sealed class Phase4ShellTests : IDisposable
         return ((IAsyncRelayCommand)activity.Command).ExecuteAsync(activity);
     }
 
+    private static async Task WaitUntilAsync(Func<bool> condition, string message)
+    {
+        for (var i = 0; i < 500 && !condition(); i++)
+        {
+            await Task.Delay(10, TestContext.Current.CancellationToken);
+        }
+
+        Assert.True(condition(), message);
+    }
+
     [Fact]
     public void The_activity_bar_offers_skills_usage_and_memory_as_tabs()
     {
@@ -317,7 +327,8 @@ public sealed class Phase4ShellTests : IDisposable
 
         Assert.Equal(shell.Main.ProjectPath, Assert.Single(shell.Derivation.Derived).RootPath);
         Assert.Equal(shell.Main.ProjectPath, Assert.Single(shell.Exporter.Exports).RootPath);
-        Assert.True(shell.Memory.Recalls.Count > recallsBefore, "The memory tab was not refreshed after the run.");
+        // «Memoria» refreshes through its RefreshQueue, which can finish just after the run is reported as ended.
+        await WaitUntilAsync(() => shell.Memory.Recalls.Count > recallsBefore, "The memory tab was not refreshed after the run.");
         Assert.StartsWith("Memoria exportada", shell.Main.StatusMessage, StringComparison.Ordinal);
     }
 
