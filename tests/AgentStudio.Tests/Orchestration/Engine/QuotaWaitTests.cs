@@ -519,15 +519,26 @@ public sealed class QuotaWaitTests
     /// <summary>
     /// A resumed run goes on with the steps of the waits and the count of the checks its live run had: a check that stopped a
     /// launch leaves its task where it was (pending, for an executor), and the read of the quota when the window ran out
-    /// (while the attempt ran) is no check.
+    /// (once the attempt was launched) is no check. That read is the worker's, and the loop records the launch (pending to
+    /// running) on its own: when the attempt ends at once, on a busy machine the read can reach the log first, and it is still
+    /// no check (docs/18 P42). <paramref name="readBeforeTheLaunchIsRecorded"/> makes that order every time; without it, the
+    /// order is whichever the machine gives.
     /// </summary>
-    [Fact]
-    public async Task A_resumed_run_goes_on_with_the_steps_and_the_count_of_the_checks_of_its_live_run()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task A_resumed_run_goes_on_with_the_steps_and_the_count_of_the_checks_of_its_live_run(bool readBeforeTheLaunchIsRecorded)
     {
         using var harness = new EngineHarness();
         harness.Codex.Script("ejecutorCodex", "C1", 1, Limited());
         var quota = new FakeQuotaReader(ProviderId.CodexCli, _ => StillLimited(null));
-        var first = await StartAsync(harness, Plan(Work("C1", agent: "ejecutorCodex")), Consent with { MaxAgentRuns = 3 }, [], [quota]);
+        var log = readBeforeTheLaunchIsRecorded
+            ? new HoldingRecorder(
+                harness.Decisions,
+                held: p => p is TaskStatusChangedPayload { From: WorkTaskStatus.Pending, To: WorkTaskStatus.Running },
+                until: p => p is AccessCheckedPayload)
+            : null;
+        var first = await StartAsync(harness, Plan(Work("C1", agent: "ejecutorCodex")), Consent with { MaxAgentRuns = 3 }, [], [quota], log);
         var limited = $"RateLimitedUntilEstimated({Start + TimeSpan.FromMinutes(5):O})"; // the window ran out: the first step
         await harness.WaitUntilAsync(first, s => s.View("C1").BlockReason == limited, limited);
         harness.Time.Advance(TimeSpan.FromMinutes(5));
@@ -544,6 +555,12 @@ public sealed class QuotaWaitTests
         await harness.WaitForPhaseAsync(resumed, RunPhase.Paused); // the third check in a row, as many as MaxAgentRuns
 
         Assert.Equal((4, 1), (quota.Calls, harness.Codex.Starts.Count));
+        if (readBeforeTheLaunchIsRecorded)
+        {
+            var launch = harness.Payloads<TaskStatusChangedPayload>().First(p => p.Payload.To == WorkTaskStatus.Running).Entry.Sequence;
+            Assert.True(harness.Payloads<AccessCheckedPayload>()[0].Entry.Sequence < launch, "The read of the quota reached the log before the launch.");
+        }
+
         await resumed.CancelAsync("fin");
         await resumed.CompleteAsync(harness);
     }
@@ -644,13 +661,13 @@ public sealed class QuotaWaitTests
     }
 
     /// <summary>The real engine with the harness's ports, and these session probes and quota readers.</summary>
-    private static Task<IOrchestrationRun> StartAsync(EngineHarness harness, PlanDefinition plan, RunOptions options, IReadOnlyList<IProviderProbe> probes, IReadOnlyList<IProviderQuotaReader> quota) =>
-        Engine(harness, probes, quota).StartAsync(harness.Request(plan, options), TestContext.Current.CancellationToken);
+    private static Task<IOrchestrationRun> StartAsync(EngineHarness harness, PlanDefinition plan, RunOptions options, IReadOnlyList<IProviderProbe> probes, IReadOnlyList<IProviderQuotaReader> quota, IDecisionRecorder? decisions = null) =>
+        Engine(harness, probes, quota, decisions).StartAsync(harness.Request(plan, options), TestContext.Current.CancellationToken);
 
-    /// <summary>An orchestrator on the harness's ports, with these session probes and quota readers.</summary>
-    private static Orchestrator Engine(EngineHarness harness, IReadOnlyList<IProviderProbe> probes, IReadOnlyList<IProviderQuotaReader> quota) =>
+    /// <summary>An orchestrator on the harness's ports (its log through <paramref name="decisions"/>, when given), with these session probes and quota readers.</summary>
+    private static Orchestrator Engine(EngineHarness harness, IReadOnlyList<IProviderProbe> probes, IReadOnlyList<IProviderQuotaReader> quota, IDecisionRecorder? decisions = null) =>
         new(
-            harness.Decisions, harness.Evidence, harness.Plans, harness.Runs, harness.RequirementStore, harness.Roster, harness.Providers, harness.Worktrees,
+            decisions ?? harness.Decisions, harness.Evidence, harness.Plans, harness.Runs, harness.RequirementStore, harness.Roster, harness.Providers, harness.Worktrees,
             harness.Verification, harness.Integrator, harness.Review, harness.Approvals, harness.Skills, harness.Paths, harness.Time, harness.WriteConfinement,
             probes: probes,
             quotaReaders: quota);
@@ -688,6 +705,37 @@ public sealed class QuotaWaitTests
         {
             Interlocked.Increment(ref _calls);
             return Task.FromResult(new ProviderProbeResult(provider, DisplayName, InstallationState.Installed, "cli.exe", "1.0.0", state, null, []));
+        }
+    }
+
+    /// <summary>
+    /// The decision log, but the first entry <paramref name="held"/> picks waits, before it is recorded, until one
+    /// <paramref name="until"/> picks was: the order a busy machine can give the loop and a worker, every time. The wait is
+    /// outside the log's own gate, so the entries it waits for are recorded meanwhile.
+    /// </summary>
+    private sealed class HoldingRecorder(IDecisionRecorder inner, Func<DecisionPayload, bool> held, Func<DecisionPayload, bool> until) : IDecisionRecorder
+    {
+        private readonly TaskCompletionSource _passed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private int _holding;
+
+        public Task<DecisionLogState> LoadAsync(string projectId, CancellationToken cancellationToken) => inner.LoadAsync(projectId, cancellationToken);
+
+        public Task<DecisionLogState> LoadAsync(string projectId, LogLoad load, CancellationToken cancellationToken) => inner.LoadAsync(projectId, load, cancellationToken);
+
+        public async Task<DecisionEntry> RecordAsync(string projectId, Actor actor, DecisionKind kind, string summary, DecisionPayload payload, long? corrects = null, CancellationToken cancellationToken = default)
+        {
+            if (held(payload) && Interlocked.Exchange(ref _holding, 1) == 0)
+            {
+                await _passed.Task.WaitAsync(RunTestSupport.Guard, cancellationToken);
+            }
+
+            var entry = await inner.RecordAsync(projectId, actor, kind, summary, payload, corrects, cancellationToken);
+            if (until(payload))
+            {
+                _passed.TrySetResult();
+            }
+
+            return entry;
         }
     }
 
