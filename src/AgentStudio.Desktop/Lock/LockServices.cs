@@ -27,7 +27,7 @@ public static class LockServices
     /// Registers Windows Hello and the lock of the interface (docs/16 D-13, F8-10 and F8-11; ADR-0037): the verifier over
     /// the main window, the Windows session, the input of the session, <see cref="InterfaceLock"/> (also as
     /// <see cref="IInterfaceLock"/>), the <see cref="ReinforcedConfirmation"/> of the critical approvals (on with
-    /// <see cref="AppSettings.WindowsHelloForCriticalApprovals"/>, read at each question), the <see cref="IdleLockMonitor"/>
+    /// <see cref="AppSettings.WindowsHelloForImportantApprovals"/>, read at each question), the <see cref="IdleLockMonitor"/>
     /// (not started), the <see cref="LockScreenViewModel"/> and the <see cref="LockSettingsViewModel"/>. What is registered
     /// earlier is kept, so tests put doubles first. It needs the <see cref="IAppSettingsStore"/>; an
     /// <see cref="IWorkInProgress"/> registered by the composition tells the lock screen what goes on (without it, «sin dato»).
@@ -59,7 +59,7 @@ public static class LockServices
         services.TryAddSingleton<IInterfaceLock>(provider => provider.GetRequiredService<InterfaceLock>());
         services.TryAddSingleton(provider => new ReinforcedConfirmation(
             provider.GetRequiredService<IUserPresenceVerifier>(),
-            () => provider.GetRequiredService<IAppSettingsStore>().Load().WindowsHelloForCriticalApprovals,
+            () => provider.GetRequiredService<IAppSettingsStore>().Load().WindowsHelloForImportantApprovals,
             Time(provider)));
         services.TryAddSingleton(provider => new IdleLockMonitor(
             provider.GetRequiredService<InterfaceLock>(),

@@ -62,7 +62,7 @@ public sealed class LockCompositionTests
 
         // The setting is read at each question.
         Assert.True(confirmation.IsOn());
-        store.Current = store.Current with { WindowsHelloForCriticalApprovals = false };
+        store.Current = store.Current with { WindowsHelloForImportantApprovals = false };
         Assert.False(confirmation.IsOn());
     }
 

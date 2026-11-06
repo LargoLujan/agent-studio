@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- English (docs/17 D-50): every key of Strings.resx, with the same placeholders, reviewed by a person. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Info_Button_Name" xml:space="preserve">
+    <value>Information about {0}</value>
+  </data>
+  <data name="Info_WhatIsThis" xml:space="preserve">
+    <value>What this is</value>
+  </data>
+  <data name="Info_WhatYouCanDo" xml:space="preserve">
+    <value>What you can do here</value>
+  </data>
+  <data name="Info_MoreHelp" xml:space="preserve">
+    <value>More help</value>
+  </data>
+  <data name="Info_CloseHint" xml:space="preserve">
+    <value>Esc closes this help.</value>
+  </data>
+  <data name="Info_Language_Title" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="Info_Language_What" xml:space="preserve">
+    <value>It is the language of the texts of Agent Studio. The first time it is the language of Windows, if Agent Studio has it; if not, English.</value>
+  </data>
+  <data name="Info_Language_Actions" xml:space="preserve">
+    <value>Choose another language from the list.
+Restart Agent Studio to see it: the change applies on restart.</value>
+  </data>
+  <data name="Language_Windows" xml:space="preserve">
+    <value>The language of Windows ({0})</value>
+  </data>
+  <data name="Language_Review_Person" xml:space="preserve">
+    <value>Reviewed by a person</value>
+  </data>
+  <data name="Language_Review_Machine" xml:space="preserve">
+    <value>Machine translation, reviewed</value>
+  </data>
+  <data name="Language_AppliesOnRestart" xml:space="preserve">
+    <value>The language changes when Agent Studio restarts.</value>
+  </data>
+  <data name="Settings_ReduceMotion" xml:space="preserve">
+    <value>Reduce motion</value>
+  </data>
+  <data name="Settings_ReduceMotion_Help" xml:space="preserve">
+    <value>Turns off the animations of the canvas. The state is still in the text and the icon.</value>
+  </data>
+  <data name="Settings_HelloImportant" xml:space="preserve">
+    <value>Also ask for Windows Hello in important approvals</value>
+  </data>
+  <data name="Settings_HelloImportant_Help" xml:space="preserve">
+    <value>Critical actions always ask for Windows Hello: delivering to your branch, giving an agent a shell, the network or more folders, or changing the verification profile.</value>
+  </data>
+  <data name="ContextPart_Protocol" xml:space="preserve">
+    <value>Protocol instructions</value>
+  </data>
+  <data name="ContextPart_Requirements" xml:space="preserve">
+    <value>Requirements</value>
+  </data>
+  <data name="ContextPart_ProjectBrief" xml:space="preserve">
+    <value>Project brief</value>
+  </data>
+  <data name="ContextPart_AgentInstructions" xml:space="preserve">
+    <value>Agent instructions</value>
+  </data>
+  <data name="ContextPart_Memory" xml:space="preserve">
+    <value>Memory</value>
+  </data>
+  <data name="ContextPart_Upstream" xml:space="preserve">
+    <value>From other tasks</value>
+  </data>
+  <data name="ContextPart_PreviousAttempt" xml:space="preserve">
+    <value>Previous attempt or handoff</value>
+  </data>
+  <data name="ContextPart_HumanAnswer" xml:space="preserve">
+    <value>Your answer</value>
+  </data>
+  <data name="ContextPart_Skills" xml:space="preserve">
+    <value>Skills</value>
+  </data>
+  <data name="ContextPart_Conversation" xml:space="preserve">
+    <value>Conversation and tools</value>
+  </data>
+  <data name="MetricBar_Parts" xml:space="preserve">
+    <value>By part: {0}</value>
+  </data>
+  <data name="Memory_Kind_ProjectBrief" xml:space="preserve">
+    <value>Project brief</value>
+  </data>
+  <data name="AgentState_Idle" xml:space="preserve">
+    <value>Idle</value>
+  </data>
+  <data name="AgentState_Queued" xml:space="preserve">
+    <value>Queued</value>
+  </data>
+  <data name="AgentState_Working" xml:space="preserve">
+    <value>Working on {0}</value>
+  </data>
+  <data name="AgentState_WaitingForQuota" xml:space="preserve">
+    <value>Waiting for quota until {0}</value>
+  </data>
+  <data name="AgentState_Asking" xml:space="preserve">
+    <value>Has a question for you</value>
+  </data>
+  <data name="AgentState_AwaitingApproval" xml:space="preserve">
+    <value>Waiting for your approval</value>
+  </data>
+  <data name="AgentState_Blocked" xml:space="preserve">
+    <value>Blocked: {0}</value>
+  </data>
+  <data name="AgentState_Finished" xml:space="preserve">
+    <value>Finished</value>
+  </data>
+  <data name="Text_question_awaiting_answer" xml:space="preserve">
+    <value>Waiting for your answer</value>
+  </data>
+  <data name="Text_question_too_many" xml:space="preserve">
+    <value>Too many questions: review the requirements.</value>
+  </data>
+</root>

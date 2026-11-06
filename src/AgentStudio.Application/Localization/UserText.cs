@@ -3,6 +3,19 @@ using AgentStudio.Domain.Common;
 namespace AgentStudio.Application.Localization;
 
 /// <summary>
+/// The codes of the texts that more than one package of Phase 13 writes or paints. A package with codes of its own keeps them
+/// next to its code; every code has its resource in the desktop (<see cref="UserText.ResourceKey"/>).
+/// </summary>
+public static class UserTextCodes
+{
+    /// <summary>Why a task whose agent asked a question waits (docs/17 D-29): «Espera tu respuesta».</summary>
+    public const string QuestionAwaitingAnswer = "question.awaiting-answer";
+
+    /// <summary>A task or a run passed its cap of questions (docs/17 D-29): «Demasiadas preguntas: revisa los requisitos.».</summary>
+    public const string QuestionTooMany = "question.too-many";
+}
+
+/// <summary>
 /// A text for the person, as the layers below the desktop give it (docs/17 D-47, ADR-0054): a stable code and its arguments,
 /// never a sentence. The desktop paints it in the language of the person from its resources, with numbers, instants and
 /// durations in the culture of that language. The validator already works this way (<c>PlanViolation</c> and its

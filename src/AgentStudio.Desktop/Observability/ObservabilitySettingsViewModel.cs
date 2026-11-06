@@ -20,10 +20,15 @@ public sealed partial class ObservabilitySettingsViewModel : ObservableObject
     /// <summary>The rule of the thresholds, as the screen states it.</summary>
     public const string RuleText = "0 < aviso < compresión < crítico ≤ 100, en % de la ventana del modelo que sirvió cada paso.";
 
-    /// <summary>What the opt-in allows, as the screen states it (docs/14 D-15).</summary>
+    /// <summary>
+    /// What the opt-in allows, as the screen states it (docs/14 D-15): every moment the quota is read (docs/17 F13-20, the text
+    /// says what is done): on demand, after each run of Codex at most once every five minutes (<c>QuotaViewModel.CodexReadInterval</c>),
+    /// and while a run waits for a limit of Codex (<c>AccessCheck</c> of the engine). Phase 14 moves it to the resources.
+    /// </summary>
     public const string CodexExplanation =
-        "Lee la cuota con el app-server de Codex (account/rateLimits/read): usa la sesión de ChatGPT del CLI, no hace ningún turno " +
-        "del modelo y solo se lanza cuando lo pides o una vez al terminar una ejecución de Codex.";
+        "Lee la cuota con el app-server de Codex (account/rateLimits/read), con la sesión de ChatGPT del CLI y sin ningún turno del modelo. " +
+        "Se lee cuando lo pides, al terminar una ejecución de Codex (como mucho una vez cada 5 minutos) y, si una ejecución espera " +
+        "por un límite de Codex, para saber cuándo se reinicia y antes de seguir.";
 
     private AppSettings _inForce = AppSettings.Default;
 

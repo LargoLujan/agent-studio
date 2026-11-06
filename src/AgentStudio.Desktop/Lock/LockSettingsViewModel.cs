@@ -54,7 +54,7 @@ public sealed partial class LockSettingsViewModel : ObservableObject
 
     /// <summary>Whether what is on screen differs from what is in force (a time that is not a number counts as a change).</summary>
     internal bool HasChanges =>
-        HelloForCriticalApprovals != _inForce.WindowsHelloForCriticalApprovals
+        HelloForCriticalApprovals != _inForce.WindowsHelloForImportantApprovals
         || IdleLockEnabled != _inForce.IdleLockEnabled
         || Minutes() != _inForce.IdleLockMinutes;
 
@@ -75,7 +75,7 @@ public sealed partial class LockSettingsViewModel : ObservableObject
     {
         ArgumentNullException.ThrowIfNull(settings);
         var minutes = Minutes() ?? throw new InvalidOperationException("The time of the idle lock on screen is not valid: validate it before applying it.");
-        return settings.WithIdleLock(IdleLockEnabled, minutes) with { WindowsHelloForCriticalApprovals = HelloForCriticalApprovals };
+        return settings.WithIdleLock(IdleLockEnabled, minutes) with { WindowsHelloForImportantApprovals = HelloForCriticalApprovals };
     }
 
     /// <summary>What was saved is in force now: it is shown, and <see cref="Saved"/> says so.</summary>
@@ -96,7 +96,7 @@ public sealed partial class LockSettingsViewModel : ObservableObject
     private void Show(AppSettings settings)
     {
         _inForce = settings;
-        HelloForCriticalApprovals = settings.WindowsHelloForCriticalApprovals;
+        HelloForCriticalApprovals = settings.WindowsHelloForImportantApprovals;
         IdleLockEnabled = settings.IdleLockEnabled;
         IdleLockMinutesText = settings.IdleLockMinutes.ToString(CultureInfo.InvariantCulture);
     }

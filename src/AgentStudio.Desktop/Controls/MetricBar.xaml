@@ -42,6 +42,8 @@
                 </Grid.ColumnDefinitions>
                 <Rectangle x:Name="Fill" Grid.Column="0" Visibility="Collapsed"/>
                 <Rectangle x:Name="Hatch" Grid.Column="0" Fill="{StaticResource MetricBar.Hatch}" Visibility="Collapsed"/>
+                <!-- The gaps between the parts of a bar by parts (docs/17 D-13): two pixels of the track where a part ends. -->
+                <Grid x:Name="SegmentsLayer" Grid.Column="0" Grid.ColumnSpan="2" IsHitTestVisible="False"/>
                 <Grid x:Name="MarksLayer" Grid.Column="0" Grid.ColumnSpan="2" IsHitTestVisible="False"/>
             </Grid>
         </Border>
