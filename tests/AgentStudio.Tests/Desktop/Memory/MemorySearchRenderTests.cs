@@ -49,7 +49,7 @@ public sealed class MemorySearchRenderTests
     {
         var trusted = Entry("m-41", MemoryTrust.Trusted, content: "Plan aprobado: añadir Calc.Multiply con pruebas unitarias (3 tareas).");
         var proposed = Entry("m-42", MemoryTrust.Proposed, MemoryKind.KnownError, MemoryOrigin.Agent, "CalcTests.Divide_by_zero falla en la verificación aislada.");
-        var journal = JournalEntry("j-7", Wednesday, MemoryTrust.Quarantined, content: "Prompt de la sesión de desarrollo: «las pruebas de Calc se quedan en rojo al dividir entre cero».");
+        var journal = JournalEntry("j-7", Wednesday, MemoryTrust.Quarantined, content: "- **04:22:31** · sesión `eb1c6494` · #prompt · «las pruebas de Calc se quedan en rojo al dividir entre cero \\(intento 1\\)»");
         var index = new FakeSemanticIndex
         {
             Status = Ready(1500, 1500),
@@ -72,7 +72,7 @@ public sealed class MemorySearchRenderTests
             return model;
         });
 
-        var (drawn, cards, warning, success, label, matches, dayButtons, projectButton, trustEnd, acceptStart) = WpfHost.Run(() =>
+        var (drawn, cards, warning, success, label, matches, dayButtons, projectButton, trustEnd, acceptStart, journalText, rawMarks) = WpfHost.Run(() =>
         {
             OrchestratorTheme.EnsureLoaded();
             var view = new MemoryView { DataContext = memory };
@@ -81,7 +81,7 @@ public sealed class MemorySearchRenderTests
             OffscreenRender.SaveIfRequested(bitmap, "fase12-memoria-busqueda-hibrida.png");
             var texts = Descendants<TextBlock>(view).ToList();
             var buttons = Descendants<Button>(view).ToList();
-            var quarantined = texts.Single(t => t.Text.StartsWith("En cuarentena: no la escribió Agent Studio", StringComparison.Ordinal));
+            var quarantined = texts.Single(t => t.Text.StartsWith("En cuarentena: no se puede comprobar quién la escribió", StringComparison.Ordinal));
             return (
                 OffscreenRender.CountUnlike(bitmap, Surface),
                 OffscreenRender.Count(bitmap, Raised),
@@ -92,7 +92,9 @@ public sealed class MemorySearchRenderTests
                 buttons.Count(b => b.Content as string == "Confiar en este día" && b.ActualWidth > 0),
                 buttons.Single(b => b.Content as string == "Confiar en la bitácora de este proyecto").ActualWidth,
                 quarantined.TransformToAncestor(view).Transform(new Point(quarantined.ActualWidth, 0)).X,
-                buttons.Where(b => b.Content as string == "Aceptar").Min(b => b.TransformToAncestor(view).Transform(new Point(0, 0)).X));
+                buttons.Where(b => b.Content as string == "Aceptar").Min(b => b.TransformToAncestor(view).Transform(new Point(0, 0)).X),
+                texts.Single(t => t.Text.Contains("las pruebas de Calc", StringComparison.Ordinal)).Text,
+                texts.Count(t => t.Text.Contains("**", StringComparison.Ordinal) || t.Text.Contains("\\(", StringComparison.Ordinal)));
         });
 
         Assert.Equal(4, memory.Results.Count);
@@ -102,6 +104,8 @@ public sealed class MemorySearchRenderTests
         Assert.Equal(1, dayButtons);
         Assert.True(projectButton > 0, "«Confiar en la bitácora de este proyecto» was not laid out.");
         Assert.True(trustEnd <= acceptStart, $"The trust of the journal entry ends at {trustEnd} and runs under «Aceptar», which starts at {acceptStart}.");
+        Assert.Equal("04:22:31 · sesión eb1c6494 · #prompt · «las pruebas de Calc se quedan en rojo al dividir entre cero (intento 1)»", journalText); // V41
+        Assert.Equal(0, rawMarks);
         Assert.True(drawn > 50_000, $"Only {drawn} pixels differ from the panel: the memory was not drawn.");
         Assert.True(cards > 20_000, $"Only {cards} pixels have the card colour: the results were not drawn.");
         Assert.True(warning > 100, $"Only {warning} pixels have the warning colour (what waits for you).");

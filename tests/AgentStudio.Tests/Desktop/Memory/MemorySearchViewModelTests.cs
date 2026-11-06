@@ -124,12 +124,12 @@ public sealed class MemorySearchViewModelTests
         Assert.Equal(
             ["Coincide por palabras y por significado", "Coincide por palabras", "Coincide por significado"],
             memory.Entries.Select(e => e.Match));
-        Assert.Equal(["Sistema", "Agente", "Otro autor"], memory.Entries.Select(e => e.OriginLabel));
+        Assert.Equal(["Sistema", "Agente", "Autor sin comprobar"], memory.Entries.Select(e => e.OriginLabel));
         Assert.Equal(
             [
                 "De confianza",
                 "Propuesta de un agente: sin revisar",
-                "En cuarentena: no la escribió Agent Studio. Acéptala, o confía en su día o en toda la bitácora",
+                "En cuarentena: no se puede comprobar quién la escribió. Acéptala, o confía en su día o en toda la bitácora",
             ],
             memory.Entries.Select(e => e.TrustLabel));
         var log = Assert.Single(memory.Results.OfType<LogFragmentViewModel>());
@@ -308,6 +308,7 @@ public sealed class MemorySearchViewModelTests
 
         Assert.Equal(2, index.StatusReads);
         Assert.Equal("Buscar por palabras", memory.SearchLabel); // the model is there, the vectors not yet
+        Assert.Equal(EmbeddingModelViewModel.DownloadedText, memory.Model.Outcome);
 
         index.Status = Ready();
         await memory.IndexRefreshedAsync();
@@ -315,6 +316,7 @@ public sealed class MemorySearchViewModelTests
         Assert.Equal(3, index.StatusReads);
         Assert.Equal("Buscar por significado y por palabras", memory.SearchLabel);
         Assert.Equal(Tone.Success, memory.Model.StatusTone);
+        Assert.Null(memory.Model.Outcome); // V42: «hasta entonces, la búsqueda va por palabras» is no longer said
     }
 
     [Fact]
@@ -453,6 +455,66 @@ public sealed class MemorySearchViewModelTests
         Assert.Equal("Registro · veredicto · 18/10/2026 07:30", log.ToString());
         Assert.Equal("miércoles 28/10/2026 · 2 entradas en cuarentena", day.ToString());
         Assert.Equal("sentencepiece.bpe.model · 5,1 MB", file.ToString());
+    }
+
+    /// <summary>
+    /// V40: an entry Agent Studio wrote before it left receipts (its format, «P-NNNN», with no receipt in the log) and one of
+    /// the hook are both anchored as <see cref="MemoryOrigin.Agent"/>. The format of a line can be copied, so neither says who
+    /// wrote it: both say it cannot be checked, never that someone else did.
+    /// </summary>
+    [Fact]
+    public void A_journal_entry_in_quarantine_says_who_wrote_it_cannot_be_checked_whatever_its_format()
+    {
+        var day = new DateOnly(2026, 10, 28);
+        var product = new MemoryEntryViewModel(
+            JournalEntry("j-1", day, MemoryTrust.Quarantined, content: "- **04:22:31** · P-0001 · Orquestador · claude-code/- · #plan · «Planifica Calc»\n  - Resultado P-0001 · 04:22:40 · Succeeded · 9,3 s · tokens no disponibles"),
+            TimeZoneInfo.Utc);
+        var hook = new MemoryEntryViewModel(
+            JournalEntry("j-2", day, MemoryTrust.Quarantined, content: "- **09:06:00** · sesión `eb1c6494` · #prompt · «Revisa el ADR-0023»"),
+            TimeZoneInfo.Utc);
+        var accepted = new MemoryEntryViewModel(JournalEntry("j-3", day, MemoryTrust.Trusted), TimeZoneInfo.Utc);
+
+        foreach (var entry in new[] { product, hook })
+        {
+            Assert.Equal("En cuarentena: no se puede comprobar quién la escribió. Acéptala, o confía en su día o en toda la bitácora", entry.TrustLabel);
+            Assert.Equal("Autor sin comprobar", entry.OriginLabel);
+            Assert.Equal(Tone.Warning, entry.TrustTone);
+            Assert.True(entry.CanBeAccepted);
+        }
+
+        Assert.Equal(("De confianza", "Autor sin comprobar"), (accepted.TrustLabel, accepted.OriginLabel));
+        Assert.Equal("Agent Studio", new MemoryEntryViewModel(JournalEntry("j-4", day, MemoryTrust.Trusted, MemoryOrigin.System), TimeZoneInfo.Utc).OriginLabel);
+        Assert.All(
+            Enum.GetValues<MemoryTrust>().SelectMany(t => Enum.GetValues<MemoryOrigin>().Select(o => (MemoryTexts.Trust(MemoryKind.JournalEntry, o, t), MemoryTexts.Origin(MemoryKind.JournalEntry, o)))),
+            texts =>
+            {
+                Assert.DoesNotContain("no la escribió", texts.Item1, StringComparison.Ordinal);
+                Assert.NotEqual("Otro autor", texts.Item2);
+            });
+    }
+
+    /// <summary>
+    /// V41: an entry of the journal is Markdown, and «Memoria» showed it raw («**04:22:31**», «\(intento 1\)»). It reads
+    /// clean now, its result as a sub-entry; the anchored text does not change, and any other category is shown as it is.
+    /// </summary>
+    [Fact]
+    public void A_journal_entry_reads_without_the_marks_of_its_markdown_and_keeps_its_anchored_text()
+    {
+        const string Raw =
+            "- **04:22:31** · P-0001 · Orquestador · claude-code/- · #plan · «Planifica Calc \\(intento 1\\) con \\*cuidado\\*» (ejecución 20261105-c4a1f2 · entrada 2026-11-05/P-0001)\n"
+            + "  - Resultado P-0001 · 04:22:40 · Succeeded · 9,3 s · tokens no disponibles · ejecución `20261105-c4a1f2` · tarea `-` · intento 1 · entrada `2026-11-05/P-0001`";
+        var journal = JournalEntry("j-1", new DateOnly(2026, 11, 5), MemoryTrust.Quarantined, content: Raw);
+        var decision = Entry("m-1", MemoryTrust.Trusted, content: @"Ruta C:\(raíz)\*.cs y **negrita** literal.");
+
+        var shown = new MemoryEntryViewModel(journal, TimeZoneInfo.Utc);
+        var other = new MemoryEntryViewModel(decision, TimeZoneInfo.Utc);
+
+        Assert.Equal(
+            "04:22:31 · P-0001 · Orquestador · claude-code/- · #plan · «Planifica Calc (intento 1) con *cuidado*» (ejecución 20261105-c4a1f2 · entrada 2026-11-05/P-0001)\n"
+            + "  • Resultado P-0001 · 04:22:40 · Succeeded · 9,3 s · tokens no disponibles · ejecución 20261105-c4a1f2 · tarea - · intento 1 · entrada 2026-11-05/P-0001",
+            shown.Content);
+        Assert.Equal(Raw, shown.Entry.Content);
+        Assert.Equal(decision.Content, other.Content);
     }
 
     [Fact]

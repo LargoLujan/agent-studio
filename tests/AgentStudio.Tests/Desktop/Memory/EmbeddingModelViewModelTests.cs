@@ -314,6 +314,49 @@ public sealed class EmbeddingModelViewModelTests
         Assert.Equal(Tone.Error, model.OutcomeTone);
     }
 
+    /// <summary>
+    /// V42: the note of a download that ended well says that until the index has the meaning of its fragments the search goes
+    /// by words. It stays while that is true, and goes once the index has the meaning of some fragment (the state above then
+    /// says «Activa…»).
+    /// </summary>
+    [Fact]
+    public async Task The_note_of_the_download_goes_once_the_index_has_the_meaning_of_its_fragments()
+    {
+        var (model, _, _) = Create(Missing());
+        model.AskDownloadCommand.Execute(null);
+        await model.ConfirmDownloadCommand.ExecuteAsync(null);
+        Assert.Equal(EmbeddingModelViewModel.DownloadedText, model.Outcome);
+
+        model.Show(true, Ready(fragments: 58, withVectors: 0), null);
+        Assert.Equal(EmbeddingModelViewModel.DownloadedText, model.Outcome);
+        Assert.False(model.IsHybridReady);
+
+        model.Show(true, Ready(fragments: 58, withVectors: 58), null);
+
+        Assert.Null(model.Outcome);
+        Assert.StartsWith("Activa: el modelo está descargado y comprobado, y los 58 fragmentos", model.StatusText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_failed_or_declined_download_keeps_its_note_whatever_the_index_says()
+    {
+        var (model, installer, _) = Create(Missing());
+        installer.Install = (_, _) => Task.FromException<EmbeddingModelStatus>(new InvalidOperationException("No hay conexión."));
+        model.AskDownloadCommand.Execute(null);
+        await model.ConfirmDownloadCommand.ExecuteAsync(null);
+
+        model.Show(true, Ready(), null);
+
+        Assert.Equal("No se pudo descargar el modelo (No hay conexión). No se ha guardado nada a medias.", model.Outcome);
+
+        var (declined, _, _) = Create(Missing());
+        declined.AskDownloadCommand.Execute(null);
+        declined.DeclineDownloadCommand.Execute(null);
+        declined.Show(true, Ready(), null);
+
+        Assert.Equal("No se ha descargado nada.", declined.Outcome);
+    }
+
     [Fact]
     public void The_confirmation_closes_when_the_model_is_there_after_all()
     {

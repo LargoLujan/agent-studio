@@ -76,6 +76,35 @@ public sealed class MarkdownLiteTests
     [Fact]
     public void Nothing_comes_of_an_empty_text() => Assert.Empty(MarkdownLite.Parse(string.Empty));
 
+    /// <summary>
+    /// V41: the plain text of an entry for a place that shows text, not a document: no marks, no escapes, the entry without
+    /// its dash and each sub-entry as «• …», two spaces in per level.
+    /// </summary>
+    [Fact]
+    public void As_plain_text_an_entry_reads_without_marks_and_its_sub_entries_keep_their_depth()
+    {
+        const string Entry =
+            "- **09:06:00** · sesión `eb1c6494` · #prompt #docs · «Revisa \\(intento 1\\) el \\[ADR-0023\\]»\r\n"
+            + "  - Hecho: revisado con **cuidado**.\r\n"
+            + "    - Nota de `abajo`.\r\n";
+
+        Assert.Equal(
+            "09:06:00 · sesión eb1c6494 · #prompt #docs · «Revisa (intento 1) el [ADR-0023]»\n"
+            + "  • Hecho: revisado con cuidado.\n"
+            + "    • Nota de abajo.",
+            MarkdownLite.ToPlainText(Entry));
+    }
+
+    [Fact]
+    public void As_plain_text_titles_paragraphs_and_code_keep_their_lines_and_blank_lines_go()
+    {
+        Assert.Equal(
+            "Bitácora · 2026-11-05\nRegistro de \\d sin escape.\nOtra línea.\n- no es lista",
+            MarkdownLite.ToPlainText("# Bitácora · 2026-11-05\n\nRegistro de \\d sin escape.\nOtra línea.\n\n```\n- no es lista\n```"));
+        Assert.Equal(string.Empty, MarkdownLite.ToPlainText(null));
+        Assert.Equal(string.Empty, MarkdownLite.ToPlainText(string.Empty));
+    }
+
     /// <summary>Records with lists compare their lists by reference; the blocks are compared by their content.</summary>
     private sealed class MarkdownComparer : IEqualityComparer<MarkdownBlock>
     {

@@ -55,14 +55,36 @@ public sealed class JournalTrustViewModelTests
 
         await journal.RefreshAsync(Project);
 
-        Assert.Contains("Lo que anotó Agent Studio en sus ejecuciones se comprueba con el registro y es de confianza", JournalTrustViewModel.Explanation, StringComparison.Ordinal);
+        Assert.Contains("Lo que Agent Studio anota en sus ejecuciones deja un recibo en el registro: con él se comprueba, y es de confianza", JournalTrustViewModel.Explanation, StringComparison.Ordinal);
         Assert.Contains("El juez nunca recibe la bitácora", JournalTrustViewModel.Explanation, StringComparison.Ordinal);
         Assert.Equal("4 entradas de la bitácora esperan en cuarentena: no llegan a ningún agente.", journal.StateText);
         Assert.Equal("Confiar en la bitácora de este proyecto", journal.ProjectActionLabel);
-        Assert.StartsWith("Las entradas que no escribió Agent Studio, también las de los días que vengan", journal.ProjectActionHelp, StringComparison.Ordinal);
+        Assert.StartsWith("Las entradas cuyo autor no se puede comprobar, también las de los días que vengan", journal.ProjectActionHelp, StringComparison.Ordinal);
         var recall = Assert.Single(store.Recalls).Query;
         Assert.Equal([MemoryKind.JournalEntry], recall.Kinds);
         Assert.False(recall.TrustedOnly);
+    }
+
+    /// <summary>
+    /// V40: what Agent Studio wrote before it left receipts has none, like an entry of the hook, so the panel never says
+    /// that an entry in quarantine was not written by Agent Studio: it says that who wrote it cannot be checked.
+    /// </summary>
+    [Fact]
+    public async Task The_panel_says_who_wrote_an_entry_cannot_be_checked_and_never_that_agent_studio_did_not()
+    {
+        var (journal, _, _, _, _) = Create(new JournalTrustState(false, [], 4), Quarantined());
+        await journal.RefreshAsync(Project);
+        var untrusted = journal.ProjectActionHelp;
+        await journal.ToggleProjectCommand.ExecuteAsync(null);
+        var trusted = journal.ProjectActionHelp;
+
+        Assert.True(journal.ProjectTrusted);
+        Assert.Contains("lo que Agent Studio anotó antes de dejar recibos", JournalTrustViewModel.Explanation, StringComparison.Ordinal);
+        Assert.Contains("Lo que no se puede comprobar espera en cuarentena", JournalTrustViewModel.Explanation, StringComparison.Ordinal);
+        Assert.StartsWith("Las entradas cuyo autor no se puede comprobar vuelven a cuarentena", trusted, StringComparison.Ordinal);
+        Assert.All(
+            new[] { JournalTrustViewModel.Explanation, untrusted, trusted },
+            text => Assert.DoesNotContain("no escribió", text, StringComparison.Ordinal));
     }
 
     [Fact]
