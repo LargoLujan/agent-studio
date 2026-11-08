@@ -13,7 +13,8 @@ namespace AgentStudio.Domain.Orchestration.Analysis.Rules;
 /// <see cref="FindingCodes.JudgeSameVendor"/> (<c>JudgeVendorNotIndependent</c>, ADR-0014): a judge of the vendor of someone
 /// who produced the work. With a plan, each Review task the validator finds so, on the vendors of the orchestrator and of the
 /// executors of the plan. Without one, while the team is assembled (D-09), each judge when no judge of the team is of a vendor
-/// other than the orchestrator's and every executor's. Error. Its fix has the review done by a judge of the team of another
+/// other than the orchestrator's: the orchestrator produces every plan, while which executors produce depends on the plan (a
+/// team may keep a Codex executor for plans without a review), so the executors are checked with the plan. Error. Its fix has the review done by a judge of the team of another
 /// vendor (<see cref="SwitchJudgeFix"/>, only with a plan) or adds one (<see cref="AddJudgeFix"/>) of the vendor nobody
 /// produced with; none when both vendors produce. Nodes: the review task (with a plan) and the judge. Arguments: the judge id,
 /// its vendor.
@@ -46,7 +47,7 @@ public sealed class JudgeSameVendorRule : IMontageRule
             return findings;
         }
 
-        var teamProducers = roster.Where(a => a.Role == AgentRole.Orchestrator || TeamRoles.Writes(a.Role)).Select(a => a.Model.Vendor).ToHashSet();
+        var teamProducers = roster.Where(a => a.Role == AgentRole.Orchestrator).Select(a => a.Model.Vendor).ToHashSet();
         var judges = roster.Where(a => a.Role == AgentRole.Judge).ToList();
         if (judges.Count == 0 || judges.Any(j => !teamProducers.Contains(j.Model.Vendor)))
         {
