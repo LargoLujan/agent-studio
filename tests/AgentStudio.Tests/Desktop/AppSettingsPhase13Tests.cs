@@ -57,6 +57,30 @@ public sealed class AppSettingsPhase13Tests
         Assert.True(new JsonAppSettingsStore(paths, null).Load().WindowsHelloForImportantApprovals);
     }
 
+    /// <summary>
+    /// A hand-edited file with a key twice loads as it did before Phase 13, the last value winning; it never stops the app
+    /// from starting. Its old Hello name is then not carried over: the setting keeps its default, the safe one.
+    /// </summary>
+    [Theory]
+    [InlineData("""{"lastProjectPath":"C:\\uno","lastProjectPath":"C:\\dos","reduceMotion":true}""", true)]
+    [InlineData("""{"windowsHelloForCriticalApprovals":false,"windowsHelloForCriticalApprovals":false,"reduceMotion":true}""", true)]
+    [InlineData("""{"windowsHelloForImportantApprovals":true,"windowsHelloForImportantApprovals":false,"reduceMotion":true}""", false)]
+    public void A_file_with_a_key_twice_loads_with_the_last_value_as_before(string content, bool hello)
+    {
+        using var temp = new TempDirectory();
+        var paths = new AppDataPaths(temp.Path);
+        File.WriteAllText(paths.SettingsFile, content);
+
+        var loaded = new JsonAppSettingsStore(paths, null).Load();
+
+        Assert.True(loaded.ReduceMotion);
+        Assert.Equal(hello, loaded.WindowsHelloForImportantApprovals);
+        if (content.Contains("lastProjectPath", StringComparison.Ordinal))
+        {
+            Assert.Equal(@"C:\dos", loaded.LastProjectPath);
+        }
+    }
+
     [Fact]
     public void The_defaults_ask_hello_follow_the_language_of_windows_and_keep_the_animations()
     {

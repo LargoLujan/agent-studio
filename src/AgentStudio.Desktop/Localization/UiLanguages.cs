@@ -81,14 +81,23 @@ public static class UiLanguages
 
     /// <summary>
     /// The language the interface uses (D-49): the one the person chose when it is in the list; else the language of the
-    /// interface of Windows (<paramref name="windowsUiCulture"/>) when it is; else English. A choice that is not in the list
-    /// (a hand-edited file, a language removed) is no choice.
+    /// interface of Windows (<paramref name="windowsUiCulture"/>) when it is; else Spanish of Spain for a Windows in catalán,
+    /// euskera or gallego (<see cref="SpanishSpeakingRegions"/>); else English. A choice that is not in the list (a hand-edited
+    /// file, a language removed) is no choice.
     /// </summary>
     public static UiLanguage Resolve(string? chosen, CultureInfo windowsUiCulture)
     {
         ArgumentNullException.ThrowIfNull(windowsUiCulture);
         return Find(chosen)
             ?? Find(windowsUiCulture.Name)
+            ?? (SpanishSpeakingRegions.Contains(windowsUiCulture.TwoLetterISOLanguageName) ? All.First(l => l.CultureName == SourceCulture) : null)
             ?? All.First(l => l.CultureName == FallbackCulture);
     }
+
+    /// <summary>
+    /// The languages of Spain without resources of their own (catalán, euskera and gallego): their speakers read Spanish of
+    /// Spain, so a Windows in one of them gets it instead of English (ADR-0054, addendum of 2026-11-08). Any other language
+    /// without resources gets English (D-49).
+    /// </summary>
+    public static IReadOnlySet<string> SpanishSpeakingRegions { get; } = new HashSet<string>(["ca", "eu", "gl"], StringComparer.OrdinalIgnoreCase);
 }

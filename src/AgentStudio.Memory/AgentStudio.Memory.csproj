@@ -13,4 +13,10 @@
     <ProjectReference Include="..\AgentStudio.Application\AgentStudio.Application.csproj" />
   </ItemGroup>
 
+  <!-- The names of the categories (MemoryLabels, SemanticLabels and the titles of the export) are internal: the test of every
+       category reads them, so a category added without its name fails there and not when a person records one. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="AgentStudio.Tests" />
+  </ItemGroup>
+
 </Project>
