@@ -84,4 +84,28 @@ public sealed class ModelCatalogTests
         Assert.Empty((agent with { Effort = ReasoningEffort.Max }).Validate());
         Assert.Equal(["agent.effort-unknown"], (agent with { Effort = (ReasoningEffort)9 }).Validate());
     }
+
+    /// <summary>
+    /// Each CLI takes its own levels (docs/17 D-22): Claude Code from «low» to «max», Codex from «minimal» to «xhigh», any other
+    /// provider none. An agent with a level its CLI does not take is invalid (WP2 builds the arguments from the same table).
+    /// </summary>
+    [Fact]
+    public void The_effort_of_an_agent_is_one_its_cli_takes()
+    {
+        var claude = new AgentDefinition(
+            Aid("ejecutor"), "Ejecutor", AgentRole.Executor, new ModelBinding(ProviderId.ClaudeCode, VendorId.Anthropic, "sonnet"), string.Empty, [], ["Read"], [],
+            new ExecutionBudget(10, TimeSpan.FromMinutes(5)), 1, MemoryPolicy.None, new ReviewPolicy(false, false));
+        var codex = claude with { Model = new ModelBinding(ProviderId.CodexCli, VendorId.OpenAI, "gpt-5.5") };
+        var gemini = claude with { Model = new ModelBinding(ProviderId.GeminiCli, VendorId.Google, null) };
+
+        Assert.Equal(["agent.effort-not-for-provider"], (claude with { Effort = ReasoningEffort.Minimal }).Validate());
+        Assert.Equal(["agent.effort-not-for-provider"], (codex with { Effort = ReasoningEffort.Max }).Validate());
+        Assert.Equal(["agent.effort-not-for-provider"], (gemini with { Effort = ReasoningEffort.Low }).Validate());
+        Assert.Empty((codex with { Effort = ReasoningEffort.Minimal }).Validate());
+        Assert.Empty((claude with { Effort = ReasoningEffort.XHigh }).Validate());
+        Assert.Equal([ReasoningEffort.Low, ReasoningEffort.Medium, ReasoningEffort.High, ReasoningEffort.XHigh, ReasoningEffort.Max], ReasoningEfforts.For(ProviderId.ClaudeCode));
+        Assert.Equal([ReasoningEffort.Minimal, ReasoningEffort.Low, ReasoningEffort.Medium, ReasoningEffort.High, ReasoningEffort.XHigh], ReasoningEfforts.For(ProviderId.CodexCli));
+        Assert.Empty(ReasoningEfforts.For(ProviderId.GeminiCli));
+        Assert.Empty(gemini.Validate());
+    }
 }

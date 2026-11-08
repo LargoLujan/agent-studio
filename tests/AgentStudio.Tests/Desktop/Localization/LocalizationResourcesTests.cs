@@ -151,6 +151,14 @@ public sealed partial class LocalizationResourcesTests
     [InlineData("es-ES", "en-US", "es-ES")]
     [InlineData("klingon", "es-ES", "es-ES")]
     [InlineData("fr-FR", "de-DE", "en")]
+
+    // ADR-0054, addendum of 2026-11-08: the languages of Spain without resources read Spanish of Spain, not English.
+    [InlineData(null, "ca-ES", "es-ES")]
+    [InlineData(null, "eu-ES", "es-ES")]
+    [InlineData(null, "gl-ES", "es-ES")]
+    [InlineData(null, "ca-ES-valencia", "es-ES")]
+    [InlineData("en", "ca-ES", "en")]
+    [InlineData(null, "pt-PT", "en")]
     public void The_language_is_the_one_chosen_else_the_one_of_windows_else_english(string? chosen, string windows, string expected)
     {
         Assert.Equal(expected, UiLanguages.Resolve(chosen, CultureInfo.GetCultureInfo(windows)).CultureName);

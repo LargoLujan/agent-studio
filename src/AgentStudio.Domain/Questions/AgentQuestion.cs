@@ -60,20 +60,20 @@ public enum QuestionAnswerMethod
 /// Answering is not approving: it asks no Windows Hello and grants nothing (D-31 and D-33). The engine records it
 /// (<c>QuestionAnswered</c>, with the text as evidence of the person) and launches a new attempt with it as data.
 /// </summary>
-/// <param name="Task">The task whose agent asked.</param>
+/// <param name="Task">The task whose agent asked; null for a question of the orchestrator before it plans (D-28), answered in <c>PlanningRequest.Answers</c>.</param>
 /// <param name="QuestionId">The id the engine gave the question when it recorded it.</param>
 /// <param name="OptionId">The option chosen, or null for an answer of the person's own.</param>
 /// <param name="OtherText">The person's own text, or null when an option was chosen.</param>
 /// <param name="DecidedBy">Who answered: the person, or the system by consent.</param>
 /// <param name="Method">How.</param>
-public sealed record QuestionAnswer(TaskId Task, string QuestionId, string? OptionId, string? OtherText, string DecidedBy, QuestionAnswerMethod Method)
+public sealed record QuestionAnswer(TaskId? Task, string QuestionId, string? OptionId, string? OtherText, string DecidedBy, QuestionAnswerMethod Method)
 {
     /// <summary>The longest text of the person's own a question takes: what a question itself may be (<see cref="QuestionRules.MaxTextLength"/>) times five.</summary>
     public const int MaxOtherTextLength = 2000;
 
     /// <summary>An option chosen by the person.</summary>
     /// <exception cref="ArgumentException">A blank id, option or author.</exception>
-    public static QuestionAnswer Choosing(TaskId task, string questionId, string optionId, string decidedBy)
+    public static QuestionAnswer Choosing(TaskId? task, string questionId, string optionId, string decidedBy)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(optionId);
         return Checked(new QuestionAnswer(task, questionId, optionId, null, decidedBy, QuestionAnswerMethod.ChosenByPerson));
@@ -81,7 +81,7 @@ public sealed record QuestionAnswer(TaskId Task, string QuestionId, string? Opti
 
     /// <summary>An answer in the person's own words.</summary>
     /// <exception cref="ArgumentException">A blank id, text or author, or a text longer than <see cref="MaxOtherTextLength"/>.</exception>
-    public static QuestionAnswer Writing(TaskId task, string questionId, string text, string decidedBy)
+    public static QuestionAnswer Writing(TaskId? task, string questionId, string text, string decidedBy)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
         if (text.Length > MaxOtherTextLength)
@@ -94,7 +94,7 @@ public sealed record QuestionAnswer(TaskId Task, string QuestionId, string? Opti
 
     /// <summary>The option the agent recommended, chosen by the system under the consent of the run.</summary>
     /// <exception cref="ArgumentException">A blank id or option.</exception>
-    public static QuestionAnswer RecommendedByConsent(TaskId task, string questionId, string recommendedOptionId)
+    public static QuestionAnswer RecommendedByConsent(TaskId? task, string questionId, string recommendedOptionId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(recommendedOptionId);
         return Checked(new QuestionAnswer(task, questionId, recommendedOptionId, null, "agent-studio", QuestionAnswerMethod.RecommendedByConsent));
