@@ -460,7 +460,10 @@ internal sealed class SuspendableClock(TimeProvider awake, bool timestampCountsS
 
     public TimeSpan Slept => TimeSpan.FromTicks(Interlocked.Read(ref _sleptTicks));
 
-    /// <summary>The due time of every timer created through this clock, in the order they were created.</summary>
+    /// <summary>
+    /// The due time of every timer armed through this clock, in the order they were armed. A timer is here once it is armed on
+    /// the clock it wraps: advancing that clock afterwards fires it.
+    /// </summary>
     public IReadOnlyCollection<TimeSpan> Timers => _timers;
 
     public override TimeZoneInfo LocalTimeZone => awake.LocalTimeZone;
@@ -474,9 +477,14 @@ internal sealed class SuspendableClock(TimeProvider awake, bool timestampCountsS
 
     public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
     {
+        var timer = awake.CreateTimer(callback, state, dueTime, period);
         _timers.Enqueue(dueTime);
-        return awake.CreateTimer(callback, state, dueTime, period);
+        return timer;
     }
+
+    /// <summary>Waits, in real time, until <paramref name="count"/> timers whose due time <paramref name="due"/> accepts are armed.</summary>
+    public Task ArmedAsync(Func<TimeSpan, bool> due, int count, string what) =>
+        RunTestSupport.WaitUntilAsync(() => _timers.Count(due) >= count, what);
 
     /// <summary>The machine sleeps for <paramref name="duration"/> and wakes: no timer fires, and no awake time goes by.</summary>
     public void Sleep(TimeSpan duration) => Interlocked.Add(ref _sleptTicks, duration.Ticks);

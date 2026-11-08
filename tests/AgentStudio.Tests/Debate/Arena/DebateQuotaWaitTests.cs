@@ -27,7 +27,7 @@ public sealed class DebateQuotaWaitTests
     public async Task A_reset_that_passed_while_the_machine_slept_is_over_on_waking()
     {
         using var world = new ScriptedDebateWorld();
-        var clock = OnSuspendableClock(world);
+        var clock = world.ArenaOnSuspendableClock();
         LimitTheFirstTurnOfTheArchitect(world, clock);
 
         await using var run = await world.OpenAsync(world.FreeOnAnthropic());
@@ -46,20 +46,46 @@ public sealed class DebateQuotaWaitTests
     public async Task A_reset_still_ahead_on_waking_is_waited_for_until_it_comes()
     {
         using var world = new ScriptedDebateWorld();
-        var clock = OnSuspendableClock(world);
+        var clock = world.ArenaOnSuspendableClock();
         LimitTheFirstTurnOfTheArchitect(world, clock);
 
         await using var run = await world.OpenAsync(world.FreeOnAnthropic());
         await WaitingForTheResetAsync(clock);
         clock.Sleep(TimeSpan.FromMinutes(4));
         world.Clock.Advance(TimeSpan.FromSeconds(5));
-        await Task.Delay(250, Ct);
+        await WaitingForTheResetAsync(clock, looks: 2); // it looked on waking, and waits on
+        await RunTestSupport.WaitUntilAsync(() => world.Claude.Requests.Count >= 2, "the first turn of each participant");
 
         Assert.Equal(2, world.Claude.Requests.Count);
 
         world.Clock.Advance(TimeSpan.FromMinutes(6)); // four minutes asleep and six awake: the reset, by the wall clock
         var result = await CompletedAsync(run);
 
+        Assert.Equal(DebateJudgmentReason.Converged, result.JudgmentReason);
+        Assert.Equal(3, world.Claude.Requests.Count);
+    }
+
+    /// <summary>
+    /// The turn works out how long to look from the clock, and then arms a timer for that long: a clock that reaches the reset
+    /// in between (a test that advances it as soon as the turn waits, or a machine that falls asleep right then) leaves a timer
+    /// that counts from later. On a fake clock nobody advances again it never came, and the debate waited for ever (docs/18
+    /// P42); the turn now looks again at once. Its looks are the only timers of five seconds of the debate.
+    /// </summary>
+    [Fact]
+    public async Task A_wait_for_a_reset_ends_when_the_clock_reaches_it_while_the_turn_arms_its_timer()
+    {
+        var clock = new JumpingFakeTimeProvider(AgentStudio.Tests.Domain.TestData.T0);
+        using var world = new ScriptedDebateWorld(clock);
+        var limited = 0;
+        world.Claude.Reply = (r, _) => r.Agent.Id == Arquitecto && Interlocked.Increment(ref limited) == 1
+            ? new ScriptedDebateReply(AgentRunStatus.RateLimited, null, null, "límite de uso", clock.GetUtcNow() + Reset)
+            : ScriptedDebateProvider.Valid(r, finished: true);
+        clock.JumpWhenArming(TimeSpan.FromSeconds(5), Reset);
+
+        await using var run = await world.OpenAsync(world.FreeOnAnthropic());
+        var result = await CompletedAsync(run);
+
+        Assert.True(clock.Jumped);
         Assert.Equal(DebateJudgmentReason.Converged, result.JudgmentReason);
         Assert.Equal(3, world.Claude.Requests.Count);
     }
@@ -87,11 +113,11 @@ public sealed class DebateQuotaWaitTests
                 AgentStudio.Providers.Composition.AgentProviderPipeline.Compose(claude, world.Journal, world.Clock),
                 AgentStudio.Providers.Composition.AgentProviderPipeline.Compose(world.Codex, world.Journal, world.Clock)),
         };
-        world.Coordinator = new DebateCoordinator(world.Ports);
+        var clock = world.ArenaOnSuspendableClock();
 
         await using var run = await world.OpenAsync(world.FreeOnAnthropic());
         await RunTestSupport.WaitUntilAsync(() => world.Claude.Requests.Count >= 2, "the first turn of each participant");
-        await Task.Delay(200, Ct);
+        await WaitingForTheResetAsync(clock);
 
         Assert.Equal(2, world.Claude.Requests.Count); // waiting for the reset, not retried
 
@@ -124,11 +150,11 @@ public sealed class DebateQuotaWaitTests
                 AgentStudio.Providers.Composition.AgentProviderPipeline.Compose(claude, world.Journal, world.Clock),
                 AgentStudio.Providers.Composition.AgentProviderPipeline.Compose(world.Codex, world.Journal, world.Clock)),
         };
-        world.Coordinator = new DebateCoordinator(world.Ports);
+        var clock = world.ArenaOnSuspendableClock();
 
         await using var run = await world.OpenAsync(world.FreeOnAnthropic());
         await RunTestSupport.WaitUntilAsync(() => world.Claude.Requests.Count >= 2, "the first turn of each participant");
-        await Task.Delay(200, Ct);
+        await WaitingForTheResetAsync(clock);
 
         Assert.Equal(2, world.Claude.Requests.Count); // a short wait before the retry
 
@@ -142,15 +168,6 @@ public sealed class DebateQuotaWaitTests
         Assert.Equal(3, world.Claude.Requests.Count);
     }
 
-    /// <summary>The arena of <paramref name="world"/> on a clock that sleeps; the rest of the world keeps its clock, the awake time.</summary>
-    private static SuspendableClock OnSuspendableClock(ScriptedDebateWorld world)
-    {
-        var clock = new SuspendableClock(world.Clock, timestampCountsSleep: false);
-        world.Ports = world.Ports with { Time = clock };
-        world.Coordinator = new DebateCoordinator(world.Ports);
-        return clock;
-    }
-
     /// <summary>The first turn of the architect hits the usage limit of Claude, which resets <see cref="Reset"/> from now; every other turn answers.</summary>
     private static void LimitTheFirstTurnOfTheArchitect(ScriptedDebateWorld world, TimeProvider clock)
     {
@@ -161,11 +178,11 @@ public sealed class DebateQuotaWaitTests
     }
 
     /// <summary>
-    /// The turn waits for the reset: it set a timer no longer than the wait (the only other timer of the arena, the deadline
-    /// of the round, is due in about 30 minutes).
+    /// The turn waits for the reset: it armed <paramref name="looks"/> timers no longer than the wait (the only other timer of
+    /// the arena, the deadline of the round, is due in about 30 minutes). Once one is armed, advancing the clock fires it.
     /// </summary>
-    private static Task WaitingForTheResetAsync(SuspendableClock clock) =>
-        RunTestSupport.WaitUntilAsync(() => clock.Timers.Any(due => due > TimeSpan.Zero && due <= Reset), "the wait of the turn for the reset");
+    private static Task WaitingForTheResetAsync(SuspendableClock clock, int looks = 1) =>
+        clock.ArmedAsync(due => due > TimeSpan.Zero && due <= Reset, looks, "the wait of the turn for the reset");
 
     /// <summary>The machine wakes: awake time goes by five seconds at a time, a minute at most, until <paramref name="condition"/> holds.</summary>
     private static async Task WakeUntilAsync(ScriptedDebateWorld world, Func<bool> condition)

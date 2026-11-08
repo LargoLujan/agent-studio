@@ -223,10 +223,12 @@ public sealed class DebateLimitsTests
         world.Claude.Reply = (r, _) => r.Agent.Id == Arquitecto && Interlocked.Increment(ref limited) == 1
             ? new ScriptedDebateReply(AgentRunStatus.RateLimited, null, null, "límite de uso", world.Clock.GetUtcNow() + TimeSpan.FromMinutes(5))
             : ScriptedDebateProvider.Valid(r, finished: true);
+        var clock = world.ArenaOnSuspendableClock();
 
         await using var run = await world.OpenAsync(world.FreeOnAnthropic());
         await WaitUntilAsync(async () => (await world.DebateLogAsync(run.Id)).Turns.Any(t => t.Finished?.Status == AttemptOutcome.RateLimited));
-        await Task.Delay(50, TestContext.Current.CancellationToken);
+        await WaitUntilAsync(() => Task.FromResult(world.Claude.Requests.Count >= 2)); // the first turn of each participant
+        await clock.ArmedAsync(due => due > TimeSpan.Zero && due <= TimeSpan.FromMinutes(5), 1, "the wait of the turn for the reset");
         Assert.Equal(2, world.Claude.Requests.Count);
 
         world.Clock.Advance(TimeSpan.FromMinutes(5));
