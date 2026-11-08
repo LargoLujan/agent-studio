@@ -1,3 +1,4 @@
+using AgentStudio.Application.Localization;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Orchestration.Analysis;
@@ -20,8 +21,21 @@ public sealed class FindingContractsTests
         Assert.Equal(FindingCodes.All.Count, FindingCodes.All.Distinct(StringComparer.Ordinal).Count());
         Assert.Contains("delivery.no-integration", FindingCodes.All);
         Assert.Contains("capability.high-risk", FindingCodes.All);
-        Assert.Equal("validator.OverlappingWriteScopes", FindingCodes.ForViolation(PlanViolationCode.OverlappingWriteScopes));
+        Assert.Equal("validator.overlapping-write-scopes", FindingCodes.ForViolation(PlanViolationCode.OverlappingWriteScopes));
+        Assert.Equal("validator.fan-in-without-integration", FindingCodes.ForViolation(PlanViolationCode.FanInWithoutIntegration));
         Assert.DoesNotContain(FindingCodes.All, code => code.StartsWith(FindingCodes.PlanViolationPrefix, StringComparison.Ordinal));
+        Assert.Throws<ArgumentOutOfRangeException>(() => FindingCodes.ForViolation((PlanViolationCode)999));
+    }
+
+    /// <summary>Every code a finding can have is a coded text the desktop can paint (<see cref="UserText.IsCode"/>), and no two are the same.</summary>
+    [Fact]
+    public void Every_code_of_a_finding_is_a_coded_text_and_each_is_unique()
+    {
+        var wrapped = Enum.GetValues<PlanViolationCode>().Select(FindingCodes.ForViolation).ToList();
+        var all = wrapped.Concat(FindingCodes.All).ToList();
+
+        Assert.All(all, code => Assert.True(UserText.IsCode(code), code));
+        Assert.Equal(all.Count, all.Distinct(StringComparer.Ordinal).Count());
     }
 
     [Fact]

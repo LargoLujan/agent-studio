@@ -17,7 +17,8 @@ public enum FindingSeverity
 /// <summary>
 /// The codes of the analyzer that are not the validator's (docs/17 D-18). The codes of <see cref="PlanViolationCode"/> are
 /// wrapped, never duplicated: a finding of the validator has the code <c>validator.</c> followed by the name of its
-/// <see cref="PlanViolationCode"/> (<see cref="ForViolation"/>). The desktop says each code in one sentence of its resources.
+/// <see cref="PlanViolationCode"/> in lowercase words (<see cref="ForViolation"/>). The desktop says each code in one sentence
+/// of its resources.
 /// </summary>
 public static class FindingCodes
 {
@@ -72,8 +73,33 @@ public static class FindingCodes
     /// <summary>The prefix of the findings that wrap a rule of the validator.</summary>
     public const string PlanViolationPrefix = "validator.";
 
-    /// <summary>The code of the finding that wraps a violation of the validator: <c>validator.</c> and the name of its code (the codes of D-18 already use <c>plan.</c>).</summary>
-    public static string ForViolation(PlanViolationCode code) => PlanViolationPrefix + code;
+    /// <summary>
+    /// The code of the finding that wraps a violation of the validator: <c>validator.</c> and the name of its code in lowercase
+    /// words joined by <c>-</c> (<c>OverlappingWriteScopes</c> is <c>validator.overlapping-write-scopes</c>), the form of every
+    /// coded text (<c>UserText</c>). The codes of D-18 already use <c>plan.</c>.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">The code is not one of the validator.</exception>
+    public static string ForViolation(PlanViolationCode code)
+    {
+        if (!Enum.IsDefined(code))
+        {
+            throw new ArgumentOutOfRangeException(nameof(code), code, "Unknown code of the validator.");
+        }
+
+        var name = code.ToString();
+        var words = new System.Text.StringBuilder(PlanViolationPrefix, PlanViolationPrefix.Length + name.Length + 8);
+        for (var i = 0; i < name.Length; i++)
+        {
+            if (char.IsUpper(name[i]) && i > 0)
+            {
+                words.Append('-');
+            }
+
+            words.Append(char.ToLowerInvariant(name[i]));
+        }
+
+        return words.ToString();
+    }
 
     /// <summary>Every code of the analyzer of its own (not the wrapped ones), in the order of D-18.</summary>
     public static IReadOnlyList<string> All { get; } =

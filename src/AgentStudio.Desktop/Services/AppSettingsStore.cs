@@ -129,28 +129,41 @@ public sealed class JsonAppSettingsStore(AppDataPaths paths, string? defaultSkil
     /// its old name, and it is read under the new one. When both are there, the new one wins. Whatever the file says, the
     /// actions that always ask Windows Hello keep asking it (docs/17 D-38): this setting only governs the configurable ones.
     /// </summary>
+    /// <remarks>
+    /// A file with a key twice (a hand-edited one) cannot be read as a node: it is read as it is, as before Phase 13, and the
+    /// last value of each key wins. Its Hello setting under the old name is then not carried over: the setting takes its
+    /// default (on), never the more permissive value.
+    /// </remarks>
     /// <exception cref="JsonException">The text is not JSON.</exception>
     private static string WithCurrentNames(string json)
     {
-        if (JsonNode.Parse(json) is not JsonObject root)
+        try
         {
+            if (JsonNode.Parse(json) is not JsonObject root)
+            {
+                return json;
+            }
+
+            var legacy = root.Select(p => p.Key).FirstOrDefault(k => string.Equals(k, LegacyHelloKey, StringComparison.OrdinalIgnoreCase));
+            if (legacy is null)
+            {
+                return json;
+            }
+
+            var value = root[legacy]?.DeepClone();
+            root.Remove(legacy);
+            if (!root.Any(p => string.Equals(p.Key, HelloKey, StringComparison.OrdinalIgnoreCase)))
+            {
+                root[HelloKey] = value;
+            }
+
+            return root.ToJsonString();
+        }
+        catch (ArgumentException)
+        {
+            // A key twice: a node keeps each key once, and refuses the file (the parse, or the first read of its keys).
             return json;
         }
-
-        var legacy = root.Select(p => p.Key).FirstOrDefault(k => string.Equals(k, LegacyHelloKey, StringComparison.OrdinalIgnoreCase));
-        if (legacy is null)
-        {
-            return json;
-        }
-
-        var value = root[legacy]?.DeepClone();
-        root.Remove(legacy);
-        if (!root.Any(p => string.Equals(p.Key, HelloKey, StringComparison.OrdinalIgnoreCase)))
-        {
-            root[HelloKey] = value;
-        }
-
-        return root.ToJsonString();
     }
 
     // A hand-edited file may hold nulls, blanks or more entries than allowed.
