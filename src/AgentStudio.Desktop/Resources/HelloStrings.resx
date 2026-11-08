@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the fixed barrier of Windows Hello (docs/17 D-37 to D-41, ADR-0053; package WP5 of Phase 13), in Spanish of Spain, the source language. Every key exists in each satellite with the same placeholders (LocalizationResourcesTests). The code reads them through Lock/HelloTexts. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Hello_Setting_Label" xml:space="preserve">
+    <value>Pedir Windows Hello también en las aprobaciones importantes</value>
+    <comment>The check box of the setting in «Ajustes» → «Windows Hello y bloqueo» (docs/17 D-38). It governs only the configurable approvals.</comment>
+  </data>
+  <data name="Hello_Setting_Explanation" xml:space="preserve">
+    <value>Entregar, aceptar un historial, dar a un agente consola o red y cambiar el perfil de verificación piden siempre Windows Hello.
+Este ajuste lo pide también al aprobar otros planes, abrir debates, auditar, aceptar revisiones y descartar trabajo.
+Sin Windows Hello en este equipo, lo que lo pide siempre bloquea Windows: lo desbloqueas con tu PIN o tu contraseña.</value>
+    <comment>Under the setting: what always asks for Windows Hello whatever the setting says, what the setting adds, and what happens without Hello (D-37, D-38 and D-40 (a)).</comment>
+  </data>
+  <data name="Hello_Notice_AlwaysHello" xml:space="preserve">
+    <value>Esta acción pide siempre Windows Hello, sea cual sea el ajuste. Al aprobar, confirma que eres tú: sin esa confirmación no se aprueba nada.</value>
+    <comment>In the approval question of an action of the fixed barrier, when Windows Hello is there.</comment>
+  </data>
+  <data name="Hello_Notice_WindowsLock" xml:space="preserve">
+    <value>Esta acción pide siempre Windows Hello, y este equipo no lo tiene. Al aprobar, Windows se bloqueará: desbloquéalo con tu PIN o tu contraseña. Agent Studio no los ve.</value>
+    <comment>In the approval question of an action of the fixed barrier on a computer without Windows Hello (D-40 (a)).</comment>
+  </data>
+  <data name="Hello_Plan_AlwaysAsks" xml:space="preserve">
+    <value>Este plan tiene agentes o pasos que escriben con tus permisos (mira el aviso de arriba). Aprobarlo pide siempre Windows Hello o, sin él, bloquear y desbloquear Windows.</value>
+    <comment>In the review of a plan with writers at medium integrity, before «Aprobar plan» (D-37 and D-41).</comment>
+  </data>
+  <data name="Hello_Plan_ApprovedWithLock" xml:space="preserve">
+    <value>Plan aprobado ({0}), confirmado con el bloqueo de Windows.</value>
+    <comment>The status of the plan after the verified lock of Windows confirmed its approval. {0}: the short fingerprint of the plan.</comment>
+  </data>
+  <data name="Hello_Plan_LockNotConfirmed" xml:space="preserve">
+    <value>El bloqueo de Windows no confirmó que eres tú ({0}): el plan no se aprueba.</value>
+    <comment>Error of «Aprobar plan». {0}: why (Hello_LockResult_*).</comment>
+  </data>
+  <data name="Hello_Plan_LockNotAsked" xml:space="preserve">
+    <value>No se pudo bloquear Windows para confirmar que eres tú ({0}): el plan no se aprueba.</value>
+    <comment>Error of «Aprobar plan». {0}: the problem.</comment>
+  </data>
+  <data name="Hello_Approval_LockNotConfirmed" xml:space="preserve">
+    <value>El bloqueo de Windows no confirmó que eres tú ({0}: {1}): se deniega.</value>
+    <comment>The reason of the system's denial of a yes the lock did not confirm; the decision log keeps it. {0}: the result as a code; {1}: why (Hello_LockResult_*).</comment>
+  </data>
+  <data name="Hello_Approval_LockNotAsked" xml:space="preserve">
+    <value>No se pudo bloquear Windows para confirmar que eres tú ({0}): se deniega.</value>
+    <comment>The reason of the system's denial of a yes when Windows could not be locked; the decision log keeps it. {0}: the problem.</comment>
+  </data>
+  <data name="Hello_LockNotComposed" xml:space="preserve">
+    <value>este equipo no tiene Windows Hello y el bloqueo de Windows comprobado no está disponible</value>
+    <comment>A problem, inside another sentence (lowercase, no final period).</comment>
+  </data>
+  <data name="Hello_LockResult_Unlocked" xml:space="preserve">
+    <value>lo desbloqueaste después de la petición</value>
+    <comment>A result of the verified lock, inside another sentence.</comment>
+  </data>
+  <data name="Hello_LockResult_LockFailed" xml:space="preserve">
+    <value>Windows no se bloqueó</value>
+    <comment>A result of the verified lock, inside another sentence.</comment>
+  </data>
+  <data name="Hello_LockResult_NotVerified" xml:space="preserve">
+    <value>el estado de la sesión no confirma que lo desbloqueaste después de la petición</value>
+    <comment>A result of the verified lock, inside another sentence.</comment>
+  </data>
+  <data name="Hello_LockResult_TimedOut" xml:space="preserve">
+    <value>nadie lo desbloqueó a tiempo</value>
+    <comment>A result of the verified lock, inside another sentence.</comment>
+  </data>
+  <data name="Hello_LockResult_Unknown" xml:space="preserve">
+    <value>Windows dio un resultado que Agent Studio no conoce</value>
+    <comment>A result of the verified lock, inside another sentence.</comment>
+  </data>
+</root>

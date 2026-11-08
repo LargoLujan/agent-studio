@@ -491,6 +491,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
     {
         { Approved: true } when IsApproved && FollowUpOf is { } followed => $"Plan aprobado ({Short(CurrentHash)}): «Ejecutar» empieza una ejecución de seguimiento de {followed}.",
         { Approved: true, Verification: ApprovalVerification.WindowsHello } when IsApproved => $"Plan aprobado ({Short(CurrentHash)}), confirmado con Windows Hello.",
+        { Approved: true, Verification: ApprovalVerification.WindowsLock } when IsApproved => HelloTexts.PlanApprovedWithLock(Short(CurrentHash)),
         { Approved: true } when IsApproved => $"Plan aprobado ({Short(CurrentHash)}).",
         { Approved: true } => "El plan cambió después de aprobarlo: apruébalo otra vez.",
         { Approved: false } => "Plan rechazado.",
@@ -510,13 +511,15 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
     }
 
     /// <summary>
-    /// What «Aprobar plan» says of Windows Hello (docs/16 D-13): the warning when Windows said Hello is not there and the button
-    /// approved the plan alone, while that approval stands; null otherwise. <c>HelloNoticeView</c> shows it in the review.
+    /// What «Aprobar plan» says of Windows Hello (docs/16 D-13, docs/17 D-37): the warning when Windows said Hello is not there
+    /// and the button approved the plan alone, while that approval stands; before approving a plan with writers at medium
+    /// integrity (<see cref="IsolationWarning"/>), that approving it always asks Windows Hello or the lock of Windows; null
+    /// otherwise. <c>HelloNoticeView</c> shows it in the review.
     /// </summary>
     public string? HelloNotice => IsApproved && PlanDecision is { Verification: ApprovalVerification.WindowsHelloUnavailable }
         ? $"Windows Hello no está disponible en este equipo ({HelloAnswers.WhyAbsent(_helloAbsent ?? UserPresenceAvailability.NotConfiguredForUser)}): "
           + "el plan lo aprobó solo el botón, y el registro lo dice."
-        : null;
+        : !IsApproved && IsolationWarning is not null ? HelloTexts.PlanAlwaysAsks : null;
 
     public bool HasHelloNotice => HelloNotice is not null;
 
@@ -758,11 +761,13 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
     }
 
     /// <summary>
-    /// «Aprobar plan». The approval of a plan is a critical question (the engine records it so), so with Windows Hello on it
-    /// follows the rule of every critical question (<see cref="ReinforcedConfirmation"/>, docs/16 D-13, F8-11): Windows Hello
-    /// confirms the person after the click, and only a confirmation approves; when Windows says Hello is not there, the click
-    /// decides alone and <see cref="HelloNotice"/> warns. A yes Hello does not confirm approves nothing, so no run can start,
-    /// and <see cref="ErrorMessage"/> says why. «Rechazar» never asks Hello.
+    /// «Aprobar plan». It follows the rule of every approval (<see cref="ReinforcedConfirmation"/>, docs/16 D-13, docs/17 D-37
+    /// to D-41): a plan with writers at medium integrity (<see cref="PlanPresence"/>) is on the list of the fixed barrier and
+    /// always asks Windows Hello, or, without it, the verified lock of Windows; any other plan asks Hello while the setting of
+    /// the important approvals is on, and when Windows says Hello is not there the click decides alone and
+    /// <see cref="HelloNotice"/> warns. Only a confirmation approves; a click it does not confirm approves nothing, so no run
+    /// can start, and <see cref="ErrorMessage"/> says why. Without a reinforced confirmation composed, a plan of the list is not
+    /// approved. «Rechazar» never asks Hello.
     /// </summary>
     [RelayCommand(CanExecute = nameof(CanApprove))]
     private async Task ApproveAsync()
@@ -771,18 +776,31 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         var roster = Context?.Roster;
         var warning = IsolationWarning ?? string.Empty;
         var plan = ConfirmationPlan.AnswerAlone;
+
+        // What approving this plan is for the fixed barrier (docs/17 D-37): with writers at medium integrity it always asks.
+        var presence = PlanPresence.Of(CurrentPlan(), Context?.Roster, Context?.Verification, Context?.ClaudeWritesConfined ?? false);
+        if (_confirmation is null && PlanPresence.AlwaysAsks(presence))
+        {
+            ErrorMessage = HelloTexts.PlanLockNotAsked(HelloTexts.LockNotComposed);
+            return;
+        }
+
         if (_confirmation is not null)
         {
             ErrorMessage = null;
-            plan = await _confirmation.PlanAsync(RiskLevel.Critical, CancellationToken.None).ConfigureAwait(true);
-            if (plan.AsksHello)
+            plan = await _confirmation.PlanAsync(presence, CancellationToken.None).ConfigureAwait(true);
+            if (plan.ConfirmsAfterYes)
             {
-                var hello = await _confirmation.ConfirmAsync(HelloAnswers.PlanMessage(Short(hash)), CancellationToken.None).ConfigureAwait(true);
+                var hello = await _confirmation.ConfirmAsync(plan, HelloAnswers.PlanMessage(Short(hash)), CancellationToken.None).ConfigureAwait(true);
                 if (!hello.Confirmed)
                 {
-                    ErrorMessage = hello.Problem is { } problem
-                        ? $"No se pudo pedir Windows Hello ({problem}): el plan no se aprueba."
-                        : $"Windows Hello no confirmó que eres tú ({HelloAnswers.WhyNotConfirmed(hello.Result ?? UserPresenceResult.Canceled)}): el plan no se aprueba.";
+                    ErrorMessage = hello switch
+                    {
+                        { Problem: { } problem } when plan.LocksWindows => HelloTexts.PlanLockNotAsked(problem),
+                        { Problem: { } problem } => $"No se pudo pedir Windows Hello ({problem}): el plan no se aprueba.",
+                        { Lock: { } locked } => HelloTexts.PlanLockNotConfirmed(locked),
+                        _ => $"Windows Hello no confirmó que eres tú ({HelloAnswers.WhyNotConfirmed(hello.Result ?? UserPresenceResult.Canceled)}): el plan no se aprueba.",
+                    };
                     return;
                 }
             }

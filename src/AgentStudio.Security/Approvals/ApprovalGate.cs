@@ -49,7 +49,15 @@ public sealed record ApprovalGateOptions
 /// yes, so a person's no never carries it. That is no decision of the person, whose identity was not confirmed: the system
 /// denies it (actor System), with the prompt's reason and the method, as it does with a question that expired. Read as the
 /// person's no, it would mean something the person did not decide (a no to opening a revision debate drops the
-/// challenge).</item>
+/// challenge). The same holds for a denial with <see cref="ApprovalVerification.WindowsLock"/>: a yes the verified lock of
+/// Windows did not confirm (docs/17 D-40 (a)).</item>
+/// <item>The fixed barrier (docs/17 D-37 to D-39, <see cref="Domain.Security.PresencePolicy"/>): an approval of an action of
+/// the list (<see cref="ApprovalRiskClassifier.PresenceOf"/> says <see cref="Domain.Security.PresenceRequirement.Always"/>)
+/// counts only when Windows Hello or the verified lock of Windows confirmed the person
+/// (<see cref="ApprovalRiskClassifier.ConfirmsPresence"/>). Any other yes, whatever prompt gave it and whatever any setting
+/// or file says, is denied by the system (<see cref="PresenceNotConfirmed"/>), with the method the prompt said. The gate
+/// needs neither the setting nor the window for this: what is on the list asks whatever they say, so no prompt composed
+/// without Windows Hello, and no setting turned off, lets one through.</item>
 /// </list>
 /// </remarks>
 public sealed class ApprovalGate(IApprovalPrompt prompt, IDecisionRecorder decisions, TimeProvider timeProvider, ApprovalGateOptions options) : IApprovalGate
@@ -59,6 +67,13 @@ public sealed class ApprovalGate(IApprovalPrompt prompt, IDecisionRecorder decis
 
     /// <summary>The reason of the system's denial of a yes Windows Hello did not confirm, when the prompt gives none.</summary>
     public const string UnconfirmedYes = "Windows Hello no confirmó que quien aprobó eres tú: se deniega.";
+
+    /// <summary>
+    /// The reason of the system's denial of a yes to an action of the fixed barrier that neither Windows Hello nor the verified
+    /// lock of Windows confirmed (docs/17 D-37 and D-38).
+    /// </summary>
+    public const string PresenceNotConfirmed =
+        "Esta acción pide siempre Windows Hello (o, sin él, el bloqueo de Windows comprobado), y la aprobación no lo trae: se deniega.";
 
     private static readonly Actor SystemActor = new(ActorKind.System, SystemId);
 
@@ -162,15 +177,24 @@ public sealed class ApprovalGate(IApprovalPrompt prompt, IDecisionRecorder decis
                 return (null, "El diálogo no devolvió respuesta: se deniega.", None);
             }
 
-            // A yes Windows Hello did not confirm: whoever said it was not confirmed to be the person (see the remarks).
-            if (answer is { Approved: false, Verification: ApprovalVerification.WindowsHello })
+            // A yes Windows Hello or the verified lock of Windows did not confirm: whoever said it was not confirmed to be
+            // the person (see the remarks).
+            if (answer is { Approved: false, Verification: ApprovalVerification.WindowsHello or ApprovalVerification.WindowsLock })
             {
-                return (null, string.IsNullOrWhiteSpace(answer.Comment) ? UnconfirmedYes : answer.Comment, ApprovalVerification.WindowsHello);
+                return (null, string.IsNullOrWhiteSpace(answer.Comment) ? UnconfirmedYes : answer.Comment, answer.Verification);
             }
 
             if (answer.Approved && string.IsNullOrWhiteSpace(answer.DecidedBy))
             {
                 return (null, "La aprobación no dice quién la dio: se deniega.", None);
+            }
+
+            // The fixed barrier: a yes to an action of the list counts only with the person confirmed, whatever the prompt.
+            if (answer.Approved
+                && ApprovalRiskClassifier.PresenceOf(request) == Domain.Security.PresenceRequirement.Always
+                && !ApprovalRiskClassifier.ConfirmsPresence(answer.Verification))
+            {
+                return (null, PresenceNotConfirmed, answer.Verification);
             }
 
             return (answer, null, None);

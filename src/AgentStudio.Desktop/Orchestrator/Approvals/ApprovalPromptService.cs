@@ -1,5 +1,7 @@
 using AgentStudio.Application.Security;
 using AgentStudio.Desktop.Lock;
+using AgentStudio.Domain.Security;
+using AgentStudio.Security.Approvals;
 
 namespace AgentStudio.Desktop.Orchestrator.Approvals;
 
@@ -13,73 +15,164 @@ public interface IApprovalDialog
 }
 
 /// <summary>
-/// How a yes to one question is confirmed, decided before it is asked (docs/16 D-13): by the answer alone, by Windows Hello
-/// after a yes, or by the answer alone with a warning because Windows says Hello is not there.
+/// How a yes to one question is confirmed, decided before it is asked (docs/16 D-13, docs/17 D-37 to D-40): by the answer
+/// alone, by Windows Hello after a yes, by the answer alone with a warning because Windows says Hello is not there (only for
+/// what is configurable), or, for an action of the fixed barrier on a computer without Hello, by the verified lock of Windows
+/// after a yes.
 /// </summary>
 /// <param name="Confirmation">
-/// <see cref="ApprovalVerification.Dialog"/> (not critical, or Hello off), <see cref="ApprovalVerification.WindowsHello"/>
-/// (Hello after a yes) or <see cref="ApprovalVerification.WindowsHelloUnavailable"/> (the answer alone, with a warning).
+/// <see cref="ApprovalVerification.Dialog"/> (it asks nothing, or the setting is off), <see cref="ApprovalVerification.WindowsHello"/>
+/// (Hello after a yes), <see cref="ApprovalVerification.WindowsHelloUnavailable"/> (the answer alone, with a warning) or
+/// <see cref="ApprovalVerification.WindowsLock"/> (the lock of Windows after a yes).
 /// </param>
 /// <param name="Availability">What Windows said of Windows Hello; null when it was not asked or could not say.</param>
-public sealed record ConfirmationPlan(ApprovalVerification Confirmation, UserPresenceAvailability? Availability = null)
+/// <param name="Requirement">What the action asks (<see cref="PresencePolicy"/>): the dialog says when it is always.</param>
+public sealed record ConfirmationPlan(
+    ApprovalVerification Confirmation,
+    UserPresenceAvailability? Availability = null,
+    PresenceRequirement Requirement = PresenceRequirement.Configurable)
 {
-    /// <summary>The answer alone, as before Phase 8: the question is not critical, or Windows Hello is off.</summary>
+    /// <summary>The answer alone, as before Phase 8: the action asks nothing, or the setting is off.</summary>
     public static ConfirmationPlan AnswerAlone { get; } = new(ApprovalVerification.Dialog);
 
     /// <summary>Whether a yes is confirmed with Windows Hello.</summary>
     public bool AsksHello => Confirmation == ApprovalVerification.WindowsHello;
 
-    /// <summary>The method a no carries. A no never asks Hello: with Hello to be asked after a yes, a no is the answer's alone.</summary>
-    public ApprovalVerification ForNo => AsksHello ? ApprovalVerification.Dialog : Confirmation;
-}
+    /// <summary>Whether a yes is confirmed with the verified lock of Windows (docs/17 D-40 (a)).</summary>
+    public bool LocksWindows => Confirmation == ApprovalVerification.WindowsLock;
 
-/// <summary>What came of asking Windows Hello after a yes: its result, or why it could not be asked.</summary>
-public sealed record HelloOutcome(UserPresenceResult? Result, string? Problem = null)
-{
-    /// <summary>Only <see cref="UserPresenceResult.Verified"/> confirms the person.</summary>
-    public bool Confirmed => Result == UserPresenceResult.Verified;
+    /// <summary>Whether a yes needs a confirmation of the person after it: Windows Hello or the lock of Windows.</summary>
+    public bool ConfirmsAfterYes => AsksHello || LocksWindows;
+
+    /// <summary>The method a no carries. A no is never confirmed: with a confirmation to be asked after a yes, a no is the answer's alone.</summary>
+    public ApprovalVerification ForNo => ConfirmsAfterYes ? ApprovalVerification.Dialog : Confirmation;
 }
 
 /// <summary>
-/// The reinforced confirmation of the critical approvals (docs/16 D-13, F8-11; ADR-0037): who asks Windows Hello, whether the
-/// user has it on (<c>AppSettings.WindowsHelloForImportantApprovals</c>, read at each question), and the one rule both the
-/// questions of the approval gate (<see cref="ApprovalPromptService"/>) and «Aprobar plan» on the canvas follow, so they
-/// cannot drift apart: <see cref="PlanAsync"/> before the question and <see cref="ConfirmAsync"/> after a yes.
+/// What came of confirming the person after a yes: the result of Windows Hello or of the verified lock of Windows, or why it
+/// could not be asked.
 /// </summary>
+/// <param name="Result">What Windows Hello answered, when it was asked.</param>
+/// <param name="Problem">Why the person could not be asked; null when they were.</param>
+/// <param name="Lock">What the verified lock of Windows said, when Windows was locked.</param>
+public sealed record HelloOutcome(UserPresenceResult? Result, string? Problem = null, WindowsLockResult? Lock = null)
+{
+    /// <summary>Only <see cref="UserPresenceResult.Verified"/> or <see cref="WindowsLockResult.UnlockedAfterRequest"/> confirms the person.</summary>
+    public bool Confirmed => Result == UserPresenceResult.Verified || Lock == WindowsLockResult.UnlockedAfterRequest;
+}
+
+/// <summary>
+/// The reinforced confirmation of the approvals (docs/16 D-13, F8-11; ADR-0037) and the fixed barrier of Windows Hello (docs/17
+/// D-37 to D-41; ADR-0053): the one rule the questions of the approval gate (<see cref="ApprovalPromptService"/>), accepting a
+/// history, «Aprobar plan» on the canvas and every new path follow, so they cannot drift apart: <see cref="PlanAsync(PresenceRequirement, CancellationToken)"/>
+/// before the question and <see cref="ConfirmAsync"/> after a yes.
+/// </summary>
+/// <remarks>
+/// <list type="bullet">
+/// <item>What each action asks is <see cref="PresencePolicy"/>'s: a list in the code. <see cref="PresenceRequirement.Always"/>
+/// asks Windows Hello whatever any setting or file says: <see cref="IsOn"/> is never read for it. Only
+/// <see cref="PresenceRequirement.Configurable"/> reads it, at each question. <see cref="PresenceRequirement.Never"/> asks
+/// nothing.</item>
+/// <item>Without Hello on this computer (a definite «not there» of Windows, <see cref="HelloAnswers.IsAbsent"/>): what is
+/// configurable is decided by the answer alone, with a warning, as in Phase 8; what is always locks Windows after a yes and
+/// confirms the unlock from the state of the session (<see cref="WindowsLock"/>, docs/17 D-40 (a)). Without that lock
+/// composed, nothing confirms it: a yes is denied, never left to the dialog.</item>
+/// </list>
+/// </remarks>
 /// <param name="Verifier">Asks Windows to confirm the person; the app's is <c>WindowsHelloVerifier</c>.</param>
-/// <param name="IsOn">Whether critical approvals ask Windows Hello now.</param>
+/// <param name="IsOn">
+/// Whether the configurable approvals ask Windows Hello now («Pedir Windows Hello también en las aprobaciones importantes»,
+/// <c>AppSettings.WindowsHelloForImportantApprovals</c>). Read only for those.
+/// </param>
 /// <param name="Time">The clock of the time limit of <see cref="HelloAnswers.AvailabilityAsync"/>; the system's by default.</param>
-public sealed record ReinforcedConfirmation(IUserPresenceVerifier Verifier, Func<bool> IsOn, TimeProvider? Time = null)
+/// <param name="WindowsLock">The verified lock of Windows, for the actions of the fixed barrier without Hello; the app's is <see cref="WindowsLockConfirmation"/>.</param>
+public sealed record ReinforcedConfirmation(
+    IUserPresenceVerifier Verifier,
+    Func<bool> IsOn,
+    TimeProvider? Time = null,
+    IWindowsLockConfirmation? WindowsLock = null)
 {
     /// <summary>
-    /// How a yes to a question of <paramref name="risk"/> is confirmed. Not critical, or Hello off: by the answer alone. A
-    /// definite «not there» of Windows (<see cref="HelloAnswers.IsAbsent"/>): by the answer alone, with a warning. Anything
-    /// else (available, busy, Windows could not say, or did not answer in <see cref="HelloAnswers.AvailabilityTimeout"/>): by
+    /// How long the person has to unlock Windows after a yes confirmed with the lock. The question of the gate keeps its own
+    /// time (30 minutes) meanwhile, and a withdrawal stops the wait.
+    /// </summary>
+    public static readonly TimeSpan WindowsLockTimeout = TimeSpan.FromMinutes(5);
+
+    /// <summary>How a yes to <paramref name="action"/> is confirmed: <see cref="PlanAsync(PresenceRequirement, CancellationToken)"/> with what <see cref="PresencePolicy"/> says of it.</summary>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    public Task<ConfirmationPlan> PlanAsync(PresenceAction action, CancellationToken cancellationToken) =>
+        PlanAsync(PresencePolicy.RequirementOf(action), cancellationToken);
+
+    /// <summary>
+    /// How a yes to an action that asks <paramref name="requirement"/> is confirmed. Never, or configurable with the setting off:
+    /// by the answer alone. Otherwise Windows is asked whether Hello is there: a definite «not there» means the answer alone,
+    /// with a warning, for what is configurable, and the lock of Windows after a yes for what is always; anything else
+    /// (available, busy, Windows could not say, or did not answer in <see cref="HelloAnswers.AvailabilityTimeout"/>) means
     /// Windows Hello after a yes. Nothing is shown.
     /// </summary>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
-    public async Task<ConfirmationPlan> PlanAsync(RiskLevel risk, CancellationToken cancellationToken)
+    /// <exception cref="ArgumentOutOfRangeException">The requirement is not one of the three: nothing unknown is let through.</exception>
+    public async Task<ConfirmationPlan> PlanAsync(PresenceRequirement requirement, CancellationToken cancellationToken)
     {
-        if (risk != RiskLevel.Critical || !IsOn())
+        switch (requirement)
         {
-            return ConfirmationPlan.AnswerAlone;
+            case PresenceRequirement.Never:
+                return ConfirmationPlan.AnswerAlone;
+            case PresenceRequirement.Configurable:
+                if (!IsOn())
+                {
+                    return ConfirmationPlan.AnswerAlone;
+                }
+
+                break;
+            case PresenceRequirement.Always:
+                // The fixed barrier: the setting is not read.
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(requirement), requirement, "Unknown requirement: the barrier lets nothing unknown through.");
         }
 
         var availability = await HelloAnswers.AvailabilityAsync(Verifier, Time ?? TimeProvider.System, cancellationToken).ConfigureAwait(false);
-        return availability is { } said && HelloAnswers.IsAbsent(said)
-            ? new ConfirmationPlan(ApprovalVerification.WindowsHelloUnavailable, said)
-            : new ConfirmationPlan(ApprovalVerification.WindowsHello, availability);
+        if (availability is { } said && HelloAnswers.IsAbsent(said))
+        {
+            return requirement == PresenceRequirement.Always
+                ? new ConfirmationPlan(ApprovalVerification.WindowsLock, said, requirement)
+                : new ConfirmationPlan(ApprovalVerification.WindowsHelloUnavailable, said, requirement);
+        }
+
+        return new ConfirmationPlan(ApprovalVerification.WindowsHello, availability, requirement);
     }
 
     /// <summary>
-    /// After a yes, Windows Hello over the window of the app, with <paramref name="message"/>: only
-    /// <see cref="HelloOutcome.Confirmed"/> takes the yes. When Windows cannot be asked, the outcome says why.
+    /// After a yes, what <paramref name="plan"/> says: Windows Hello over the window of the app, with <paramref name="message"/>,
+    /// or the verified lock of Windows (at most <see cref="WindowsLockTimeout"/>). Only <see cref="HelloOutcome.Confirmed"/>
+    /// takes the yes. When the person cannot be asked (Windows Hello fails, there is no lock of Windows composed), the outcome
+    /// says why.
     /// </summary>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled (the question was withdrawn).</exception>
-    public async Task<HelloOutcome> ConfirmAsync(string message, CancellationToken cancellationToken)
+    /// <exception cref="ArgumentException"><paramref name="plan"/> confirms nothing after a yes.</exception>
+    public async Task<HelloOutcome> ConfirmAsync(ConfirmationPlan plan, string message, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(plan);
+        if (!plan.ConfirmsAfterYes)
+        {
+            throw new ArgumentException("The plan confirms nothing after a yes.", nameof(plan));
+        }
+
         try
         {
+            if (plan.LocksWindows)
+            {
+                if (WindowsLock is not { } windowsLock)
+                {
+                    return new HelloOutcome(null, HelloTexts.LockNotComposed);
+                }
+
+                var locked = await windowsLock.LockAndConfirmAsync(WindowsLockTimeout, cancellationToken).ConfigureAwait(false);
+                cancellationToken.ThrowIfCancellationRequested();
+                return new HelloOutcome(null, Lock: locked);
+            }
+
             var result = await Verifier.VerifyAsync(message, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             return new HelloOutcome(result);
@@ -88,7 +181,7 @@ public sealed record ReinforcedConfirmation(IUserPresenceVerifier Verifier, Func
         {
             throw;
         }
-#pragma warning disable CA1031 // Windows Hello could not be asked: the yes is not taken, and the outcome says why.
+#pragma warning disable CA1031 // The person could not be asked: the yes is not taken, and the outcome says why.
         catch (Exception ex)
 #pragma warning restore CA1031
         {
@@ -184,16 +277,31 @@ public sealed class ApprovalPromptService : IApprovalPrompt
         }
     }
 
-    /// <summary>One showing of the question, on the UI thread: how a yes is confirmed, the dialog and, after a yes, Windows Hello.</summary>
+    /// <summary>
+    /// One showing of the question, on the UI thread: how a yes is confirmed, the dialog and, after a yes, Windows Hello or the
+    /// verified lock of Windows.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// The action is on the list of the fixed barrier and no reinforced confirmation is composed: nothing could confirm the
+    /// person, so the question is not shown and the gate denies it.
+    /// </exception>
     private async Task<ApprovalDecision> AskOnceAsync(ApprovalRequest request, CancellationToken asking)
     {
         asking.ThrowIfCancellationRequested();
-        var plan = _confirmation is null ? ConfirmationPlan.AnswerAlone : await _confirmation.PlanAsync(request.Risk, asking).ConfigureAwait(true);
+
+        // What the action asks is the list's (docs/17 D-37), by its action and never by its words.
+        var requirement = ApprovalRiskClassifier.PresenceOf(request);
+        if (_confirmation is null && requirement == PresenceRequirement.Always)
+        {
+            throw new InvalidOperationException($"The action '{request.Action}' always asks for Windows Hello, and no reinforced confirmation is composed: it cannot be approved.");
+        }
+
+        var plan = _confirmation is null ? ConfirmationPlan.AnswerAlone : await _confirmation.PlanAsync(requirement, asking).ConfigureAwait(true);
 
         // A lock, a cancellation or an expiry that came while the question was on its way to the UI thread (or while Windows
         // said whether Hello is there) opens no window: the question is withdrawn before it is shown.
         asking.ThrowIfCancellationRequested();
-        var question = new ApprovalDialogViewModel(request, plan.Confirmation, plan.Availability, ProjectName(request));
+        var question = new ApprovalDialogViewModel(request, plan.Confirmation, plan.Availability, ProjectName(request), plan.Requirement);
         var answer = await _dialog.ShowAsync(question, asking).ConfigureAwait(true);
 
         // The window also closes when the request is cancelled, expires or the interface locks: that is no answer.
@@ -208,19 +316,20 @@ public sealed class ApprovalPromptService : IApprovalPrompt
             return Deny(answer.Comment ?? "Denegada.", plan.ForNo);
         }
 
-        if (!plan.AsksHello)
+        if (!plan.ConfirmsAfterYes)
         {
             return new ApprovalDecision(true, DecidedBy, _time.GetUtcNow(), answer.Comment, Verification: plan.Confirmation);
         }
 
-        // After a yes, Windows Hello: only a confirmation approves. One that comes once the question was withdrawn, expired
-        // or locked away is no answer (ConfirmAsync throws).
-        var hello = await _confirmation!.ConfirmAsync(HelloAnswers.ApprovalMessage(question.Title), asking).ConfigureAwait(true);
-        return hello switch
+        // After a yes, Windows Hello or the verified lock of Windows: only a confirmation approves. One that comes once the
+        // question was withdrawn, expired or locked away is no answer (ConfirmAsync throws).
+        var confirmed = await _confirmation!.ConfirmAsync(plan, HelloAnswers.ApprovalMessage(question.Title), asking).ConfigureAwait(true);
+        return confirmed switch
         {
-            { Confirmed: true } => new ApprovalDecision(true, DecidedBy, _time.GetUtcNow(), answer.Comment, Verification: ApprovalVerification.WindowsHello),
-            { Problem: { } problem } => Unconfirmed(HelloAnswers.ApprovalNotAsked(problem)),
-            _ => Unconfirmed(HelloAnswers.ApprovalNotConfirmed(hello.Result ?? UserPresenceResult.Canceled)),
+            { Confirmed: true } => new ApprovalDecision(true, DecidedBy, _time.GetUtcNow(), answer.Comment, Verification: plan.Confirmation),
+            { Problem: { } problem } => Unconfirmed(plan.LocksWindows ? HelloTexts.ApprovalLockNotAsked(problem) : HelloAnswers.ApprovalNotAsked(problem), plan.Confirmation),
+            { Lock: { } locked } => Unconfirmed(HelloTexts.ApprovalLockNotConfirmed(locked), plan.Confirmation),
+            _ => Unconfirmed(HelloAnswers.ApprovalNotConfirmed(confirmed.Result ?? UserPresenceResult.Canceled), plan.Confirmation),
         };
     }
 
@@ -231,9 +340,13 @@ public sealed class ApprovalPromptService : IApprovalPrompt
     private ApprovalDecision Deny(string reason, ApprovalVerification verification) =>
         new(false, DecidedBy, _time.GetUtcNow(), reason, Verification: verification);
 
-    /// <summary>A yes Windows Hello did not confirm, as the gate reads it: a denial with the method and the reason, which it makes the system's.</summary>
-    private ApprovalDecision Unconfirmed(string reason) =>
-        new(false, DecidedBy, _time.GetUtcNow(), reason, Verification: ApprovalVerification.WindowsHello);
+    /// <summary>
+    /// A yes Windows Hello or the lock of Windows did not confirm, as the gate reads it: a denial with the method
+    /// (<see cref="ApprovalVerification.WindowsHello"/> or <see cref="ApprovalVerification.WindowsLock"/>) and the reason,
+    /// which it makes the system's.
+    /// </summary>
+    private ApprovalDecision Unconfirmed(string reason, ApprovalVerification method) =>
+        new(false, DecidedBy, _time.GetUtcNow(), reason, Verification: method);
 
     private Task<T> RunOnUiAsync<T>(Func<Task<T>> work)
     {
