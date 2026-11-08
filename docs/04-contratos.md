@@ -1653,3 +1653,29 @@ public sealed record ContextPartSnapshot(ContextPartKind Kind, int Characters);
   están en ADR-0054 (punto 8 y adenda del 2026-11-08).
 - **Lo que la integración tiene que hacer:** aplicar el idioma al arrancar (`Texts.UseLanguage`), y registrar en la
   composición los puertos nuevos cuando sus paquetes los implementen.
+
+### 21.6 WP3: contexto por partes, ficha del proyecto y análisis del consumo
+
+Lo que WP3 añade o cambia sobre lo de arriba ([ADR-0052](adr/0052-analisis-del-consumo-y-contexto-por-partes.md)). El estimador
+(`IUsageEstimator`, §21.4) lo implementa WP2 ([ADR-0050](adr/0050-modelos-y-potencia.md)), no WP3.
+
+| Contrato | Fichero | Qué es |
+|---|---|---|
+| `ContextPack.Brief` (`ProjectBrief?`, `init`) y `ContextPack.Parts()` | `Application/Knowledge/ContextPackContracts.cs` | La ficha vigente con el paquete, como dato con su huella, para todo agente salvo el juez y los auditores; no cuenta en el presupuesto, en `Characters` ni en `Sha256`. Las partes del paquete en caracteres: requisitos, ficha y memoria |
+| `ProjectBriefBlock` (`Tag`, `Heading`, `Block`, `Section`) | ídem | La sección `## Ficha del proyecto` con su bloque `<project_brief entry=… sha256=…>`, el texto recodificado por `PromptData`. La usan los constructores de prompts (WP4 y WP1) |
+| `AuxiliaryAgentRunner.IsAuxiliary` y `RecordsEndClass` | `Application/Providers/AuxiliaryAgentRunner.cs` | Admite `OrderReview`, `ConsumptionAnalysis` y `PreparationChat` como auxiliares, y les escribe `AgentRunFinished` v3 con su clase de final; las de antes siguen en v2 |
+| `ProjectBriefStore : IProjectBrief` | `Memory/Context/ProjectBriefStore.cs` | La ficha sobre la memoria (origen `User`, tema `ficha-del-proyecto`, fuente `ficha:proyecto`); cada versión sustituye a la vigente. `AddAgentStudioProjectMemory` la registra, y `ContextPacker` la recibe si está |
+| `ContextPacker(memory, index, brief)` | `Memory/Context/ContextPacker.cs` | El tercer parámetro, opcional: la ficha |
+| `AgentInvocation.ContextParts` (interno) y `PromptParts.Measure` (interno) | `Orchestration/Engine/AgentRunner.cs` | Las partes del prompt en `AgentRunStarted` v3; medidas sobre el texto exacto y las skills si el constructor no las da |
+| `ContextBreakdown`, `ContextPartFigure`, `ContextPartsLog`, `AttemptContextParts` | `Observability/Context/ContextBreakdown.cs` | El desglose de un paso (partes estimadas y conversación como resto, «no expuesto» en Codex) y las partes de cada intento leídas del registro |
+| `ModelWindowCatalog.LearnLive`, `LiveWindows`, `LearnsLive`, `Learning()`; `ContextHealthTracker(…, TimeProvider? time)` | `Observability/Context/ModelWindowCatalog.cs`, `ContextHealthTracker.cs` | La ventana aprendida en vivo (F13-20); `Empty` y `Baseline` no aprenden |
+| `ConsumptionAnalyzer`, `ConsumptionAnalysisOptions`, `ConsumptionRules`, `ConsumptionInput`, `ConsumptionThresholds`, `AttemptRef`, `AttemptChange`, `ConsumptionTexts` | `Observability/Analysis/` | El análisis determinista (`IConsumptionAnalyzer`) con sus umbrales y el orden de los argumentos de cada código |
+| `AssistedConsumptionAnalysisService`, `AssistedConsumptionOptions` | ídem | El análisis con un agente (`IAssistedConsumptionAnalysis`) |
+| `AddAgentStudioConsumptionAnalysis` | `Observability/Analysis/ConsumptionAnalysisServiceCollectionExtensions.cs` | Registra los dos análisis; el catálogo de modelos va en sus opciones |
+| `Resources/ConsumptionStrings.resx` y `.en.resx` | `Desktop/Resources/` | `Text_<código>` y `Text_<código>_suggestion` de los 12 códigos (`work.discarded` no sugiere) |
+
+- **`AgentRunStarted` v3 en el motor:** todo arranque de `AgentRunner` con partes; un arranque sin ellas sigue en v2. El juez,
+  los debates y las auxiliares registran su arranque fuera y no tienen partes.
+- **Para la integración:** registrar `AddAgentStudioConsumptionAnalysis` con el catálogo de WP2; que WP8 llame al análisis
+  determinista al terminar cada ejecución y con su botón, y al de un agente con el OK; y que el motor (WP4) pida el paquete
+  también para los agentes sin memoria si deben recibir la ficha.
