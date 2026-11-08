@@ -1,3 +1,5 @@
+using AgentStudio.Domain.Providers;
+
 namespace AgentStudio.Domain.Models;
 
 /// <summary>
@@ -34,6 +36,25 @@ public enum ReasoningEffort
 /// <summary>The value each CLI takes for an effort (docs/17 D-25), so its adapter never writes one by hand.</summary>
 public static class ReasoningEfforts
 {
+    private static readonly IReadOnlyList<ReasoningEffort> Claude =
+        [ReasoningEffort.Low, ReasoningEffort.Medium, ReasoningEffort.High, ReasoningEffort.XHigh, ReasoningEffort.Max];
+
+    private static readonly IReadOnlyList<ReasoningEffort> Codex =
+        [ReasoningEffort.Minimal, ReasoningEffort.Low, ReasoningEffort.Medium, ReasoningEffort.High, ReasoningEffort.XHigh];
+
+    /// <summary>
+    /// The levels each CLI takes (docs/17 D-22, from the local help of each): Claude Code (<c>--effort</c>) from <c>low</c> to
+    /// <c>max</c>, Codex (<c>model_reasoning_effort</c>) from <c>minimal</c> to <c>xhigh</c>; any other provider, none. Which
+    /// of them each model accepts is the catalog's (<see cref="ModelCatalogEntry.Efforts"/>), within these.
+    /// </summary>
+    public static IReadOnlyList<ReasoningEffort> For(ProviderId provider) =>
+        provider == ProviderId.ClaudeCode ? Claude
+        : provider == ProviderId.CodexCli ? Codex
+        : [];
+
+    /// <summary>Whether the CLI of <paramref name="provider"/> takes <paramref name="effort"/>: Claude never <c>minimal</c>, Codex never <c>max</c>.</summary>
+    public static bool Accepts(ProviderId provider, ReasoningEffort effort) => For(provider).Contains(effort);
+
     /// <summary>The token of the effort as both CLIs spell it: <c>minimal</c>, <c>low</c>, <c>medium</c>, <c>high</c>, <c>xhigh</c> or <c>max</c>.</summary>
     /// <exception cref="ArgumentOutOfRangeException">The value is not one of the list.</exception>
     public static string Token(ReasoningEffort effort) => effort switch

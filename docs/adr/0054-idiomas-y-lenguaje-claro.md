@@ -157,3 +157,18 @@
     pruebas.
   - **Coste de traducir:** unas 2 000 a 2 500 cadenas por idioma, del orden de 100 000 a 200 000 tokens por idioma entre
     traducir y revisar (estimación del diseño, D-50).
+
+## Adenda · 2026-11-08 · catalán, euskera y gallego, en castellano de España
+
+Decisión del orquestador tras la revisión independiente del P0. Matiza el punto 4 (D-49) para los idiomas de España que
+Agent Studio no tiene:
+
+- **Si Windows está en catalán, euskera o gallego** (`ca`, `eu` y `gl`, con cualquier región o variante, como
+  `ca-ES-valencia`), y la persona no eligió idioma, la interfaz sale en **castellano de España**, no en inglés: quien usa
+  Windows en esos idiomas lee castellano. Lo dice `UiLanguages.SpanishSpeakingRegions`, y lo aplica `UiLanguages.Resolve`.
+- **Cualquier otro idioma sin recursos** sigue saliendo en inglés, como dice D-49 (por ejemplo, `pt-PT` o `fr-FR`).
+- **Lo que eliges en «Ajustes» → «Idioma»** sigue mandando sobre todo lo anterior.
+- **La prueba:** `LocalizationResourcesTests.The_language_is_the_one_chosen_else_the_one_of_windows_else_english`, con los
+  tres idiomas, una variante y un idioma de otro país que sigue en inglés.
+- **Cuando haya recursos** en catalán, euskera o gallego, entrarán en la lista como cualquier idioma y esta regla dejará de
+  aplicarse a ese idioma, porque `Find` lo encontrará antes.
