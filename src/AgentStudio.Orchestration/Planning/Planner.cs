@@ -52,8 +52,19 @@ internal sealed class Planner(EnginePorts ports)
             throw new DecisionLogIntegrityException(project.ProjectId, log.Verification);
         }
 
-        var taken = RunLog.RunIds(log.Entries);
-        var run = RunIds.New(ports.Time, id => taken.Contains(id.Value));
+        // Phase 13 (docs/17 D-28): a planning with the person's answers goes on in the run that asked; any other gets a new one.
+        var answers = request.Answers ?? [];
+        RunId run;
+        if (answers.Count > 0)
+        {
+            run = PlannerQuestions.RunOf(answers, log.Entries);
+        }
+        else
+        {
+            var taken = RunLog.RunIds(log.Entries);
+            run = RunIds.New(ports.Time, id => taken.Contains(id.Value));
+        }
+
         var steps = request.Verification.Steps.Select(s => s.Id).ToHashSet(StringComparer.Ordinal);
         var context = new PlanContext(request.Requirements, request.Roster, steps, steps, request.Limits, Orchestrator.TestRunStepsOf(request.Verification));
         var schema = PlanSchema.Build(context);
@@ -118,12 +129,22 @@ internal sealed class Planner(EnginePorts ports)
         var guard = new UserRepositoryGuard(ports.Worktrees, project.RootPath, canWriteAtMediumIntegrity: false, recorder);
         await guard.EstablishBaselineAsync(cancellationToken).ConfigureAwait(false);
 
-        var lease = await ports.Worktrees.EnsureAsync(new WorktreeRequest(project, run, "_base", repository.HeadCommit), cancellationToken).ConfigureAwait(false);
-        await recorder.RecordAsync(
-            DecisionKind.WorktreeCreated,
-            $"Worktree _base en {lease.BaseCommit} para planificar",
-            new WorktreeCreatedPayload(null, lease.Name, lease.Path, lease.RefName, lease.BaseCommit) { RunId = run.Value },
-            cancellationToken).ConfigureAwait(false);
+        // A planning that follows the questions of its run plans in the _base it asked from, on the same commit.
+        var answers = request.Answers ?? [];
+        var asked = answers.Count == 0
+            ? null
+            : (await ports.Worktrees.ListOwnedAsync(project, cancellationToken).ConfigureAwait(false)).FirstOrDefault(l => l.Run == run && l.Name == "_base");
+        var lease = await ports.Worktrees.EnsureAsync(new WorktreeRequest(project, run, "_base", asked?.BaseCommit ?? repository.HeadCommit), cancellationToken).ConfigureAwait(false);
+        if (asked is null)
+        {
+            await recorder.RecordAsync(
+                DecisionKind.WorktreeCreated,
+                $"Worktree _base en {lease.BaseCommit} para planificar",
+                new WorktreeCreatedPayload(null, lease.Name, lease.Path, lease.RefName, lease.BaseCommit) { RunId = run.Value },
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        await RecordAnswersAsync(recorder, answers, cancellationToken).ConfigureAwait(false);
         var session = new Session(ports, request, orchestrator, provider, recorder, guard, lease, schema, progress, memory, history?.Server);
         var skills = await ports.Skills.ProvisionAsync(project.ProjectId, orchestrator, $"{run.Value}-plan", lease.Path, cancellationToken).ConfigureAwait(false);
         try
@@ -137,6 +158,39 @@ internal sealed class Planner(EnginePorts ports)
     }
 
     private static PlanProposal Failed(RunId run, string error) => new(run, null, [], false, AgentRunStatus.Failed, error, null);
+
+    /// <summary>
+    /// Records each answer of the person (docs/17 D-29), before the orchestrator runs with them: the option chosen, or the
+    /// person's own text as evidence they provided, cited by its SHA-256. Answering is not approving: it grants nothing.
+    /// </summary>
+    private static async Task RecordAnswersAsync(RunRecorder recorder, IReadOnlyList<AnsweredQuestion> answers, CancellationToken cancellationToken)
+    {
+        foreach (var answered in answers)
+        {
+            var answer = answered.Answer;
+            EvidenceRecord? text = null;
+            if (answer.OtherText is { } own)
+            {
+                text = await recorder.CaptureAsync(
+                    EvidenceKind.Document,
+                    EvidenceOrigin.ProvidedByHuman,
+                    $"Respuesta a la pregunta {answered.Question.Id} del orquestador",
+                    answer.DecidedBy,
+                    own,
+                    "text/plain",
+                    null,
+                    null,
+                    cancellationToken).ConfigureAwait(false);
+            }
+
+            await recorder.RecordAsync(
+                new Actor(answer.Method == Domain.Questions.QuestionAnswerMethod.ChosenByPerson ? ActorKind.User : ActorKind.System, answer.DecidedBy),
+                DecisionKind.QuestionAnswered,
+                $"Respuesta a la pregunta {answered.Question.Id} del orquestador",
+                QuestionAnsweredPayload.Answering(recorder.RunValue, null, answered.Question.Id, answer.OptionId, text?.Id, text?.ContentSha256, answer.DecidedBy, answer.Method),
+                cancellationToken).ConfigureAwait(false);
+        }
+    }
 
     private static string Describe(PlanViolation violation) =>
         violation.Task is { } task ? $"[{violation.Code}] Task '{task}': {violation.Message}" : $"[{violation.Code}] {violation.Message}";
@@ -173,6 +227,18 @@ internal sealed class Planner(EnginePorts ports)
             }
 
             var parsed = PlanParser.Parse(first.Json, orchestrator.Id);
+            if (parsed.Questions.Count > 0)
+            {
+                // Phase 13 (docs/17 D-28): the orchestrator asks instead of planning, once. With the answers given, it may not
+                // ask again: that is a problem of the answer, corrected like any other.
+                if ((request.Answers ?? []).Count == 0)
+                {
+                    return await AskedAsync(parsed.Questions, first.Raw, cancellationToken).ConfigureAwait(false);
+                }
+
+                parsed = parsed with { Problems = [AlreadyAnswered] };
+            }
+
             var violations = parsed.Plan is { } plan ? PlanValidator.Validate(plan, context) : [];
             string? firstHash = null;
             if (parsed.Plan is not null)
@@ -182,7 +248,7 @@ internal sealed class Planner(EnginePorts ports)
                 {
                     // A plan that may run is not corrected for its warnings alone (a second run spends quota): they travel
                     // with the proposal (PlanProposal.Warnings), and the run that starts with them says so among its notices.
-                    return Warned(new PlanProposal(Run, parsed.Plan, [], false, AgentRunStatus.Succeeded, null, first.Raw?.Id));
+                    return Warned(new PlanProposal(Run, parsed.Plan, [], false, AgentRunStatus.Succeeded, null, first.Raw?.Id) { OrderNotes = NotesOf(parsed) });
                 }
             }
 
@@ -196,10 +262,15 @@ internal sealed class Planner(EnginePorts ports)
             var second = await AskAsync(2, correction, first.SessionId, resumed ? null : memory, skills, cancellationToken).ConfigureAwait(false);
             if (second.Failure is { } secondFailure)
             {
-                return Warned(secondFailure with { Plan = parsed.Plan, Violations = violations, Corrected = true });
+                return Warned(secondFailure with { Plan = parsed.Plan, Violations = violations, Corrected = true, OrderNotes = NotesOf(parsed) });
             }
 
             var reparsed = PlanParser.Parse(second.Json, orchestrator.Id);
+            if (reparsed.Questions.Count > 0)
+            {
+                reparsed = reparsed with { Problems = [AlreadyAnswered] };
+            }
+
             if (reparsed.Plan is null)
             {
                 return Warned(new PlanProposal(
@@ -209,7 +280,7 @@ internal sealed class Planner(EnginePorts ports)
                     true,
                     AgentRunStatus.Succeeded,
                     "El plan corregido no se pudo leer: " + string.Join(" ", reparsed.Problems),
-                    second.Raw?.Id));
+                    second.Raw?.Id) { OrderNotes = NotesOf(parsed) });
             }
 
             var finalViolations = PlanValidator.Validate(reparsed.Plan, context);
@@ -235,7 +306,49 @@ internal sealed class Planner(EnginePorts ports)
                 true,
                 AgentRunStatus.Succeeded,
                 finalViolations.Count == 0 ? null : "El plan corregido sigue sin ser válido: revísalo antes de aprobarlo.",
-                second.Raw?.Id));
+                second.Raw?.Id) { OrderNotes = NotesOf(reparsed) });
+        }
+
+        /// <summary>Why an answer with questions is not valid when the orchestrator may no longer ask (in English: it goes back to the agent).</summary>
+        private const string AlreadyAnswered = "The orchestrator asks only once, before it plans: return the plan, with 'questions' empty.";
+
+        /// <summary>The notes the system kept of a plan, or null without a plan or without notes.</summary>
+        private static Domain.Orchestration.Analysis.OrderNotes? NotesOf(PlanParseResult parsed) =>
+            parsed.Plan is null || parsed.OrderNotes.Tasks.Count == 0 ? null : parsed.OrderNotes;
+
+        /// <summary>
+        /// The questions of the orchestrator instead of a plan (docs/17 D-28 and D-29): each, as validated, is evidence reported
+        /// by the agent and a <c>QuestionAsked</c> with no task in this run; the proposal carries them, with no plan, for the
+        /// person to answer. The system estimates nothing for them: going on is one more planning, not a task.
+        /// </summary>
+        private async Task<PlanProposal> AskedAsync(IReadOnlyList<Domain.Questions.AgentQuestion> questions, EvidenceRecord? raw, CancellationToken cancellationToken)
+        {
+            var actor = new Actor(ActorKind.Orchestrator, orchestrator.Id.Value);
+            var pending = new List<PendingQuestion>();
+            for (var i = 0; i < questions.Count; i++)
+            {
+                var id = PlannerQuestions.IdOf(i);
+                var question = questions[i];
+                var evidence = await recorder.CaptureAsync(
+                    EvidenceKind.AgentStatement,
+                    EvidenceOrigin.ReportedByAgent,
+                    $"Pregunta {id} del orquestador",
+                    orchestrator.Id.Value,
+                    PlannerQuestions.EvidenceOf(question),
+                    "application/json",
+                    null,
+                    1,
+                    cancellationToken).ConfigureAwait(false);
+                await recorder.RecordAsync(
+                    actor,
+                    DecisionKind.QuestionAsked,
+                    $"El orquestador pregunta antes de planificar ({id})",
+                    new QuestionAskedPayload(null, 1, orchestrator.Id, id, evidence.Id, evidence.ContentSha256, [.. question.Options.Select(o => o.Id)], question.RecommendedOption?.Id, []) { RunId = Run.Value },
+                    cancellationToken).ConfigureAwait(false);
+                pending.Add(new PendingQuestion(id, null, orchestrator.Id, 1, question, evidence.Id, [], ports.Time.GetUtcNow()));
+            }
+
+            return new PlanProposal(Run, null, [], false, AgentRunStatus.Succeeded, null, raw?.Id) { Questions = pending };
         }
 
         private static string Short(string hash) => hash.Length > 12 ? hash[..12] : hash;
