@@ -203,8 +203,10 @@ internal static class RunTestSupport
             .Where(x => x.Payload is not null && x.Payload.RunId == run.Value)
             .Select(x => x.Payload switch
             {
-                TaskStatusChangedPayload p => (RunEvent?)new TaskTransitioned(x.Entry.RecordedAt, p.Task, p.From, p.To, p.Reason, p.Evidence),
+                TaskStatusChangedPayload p => (RunEvent?)new TaskTransitioned(x.Entry.RecordedAt, p.Task, p.From, p.To, p.Reason, p.Evidence, p.BlockReason),
                 ConditionEvaluatedPayload p => new ConditionResolved(x.Entry.RecordedAt, p.Task, p.Branch),
+                QuestionAskedPayload p => new QuestionPosed(x.Entry.RecordedAt, p.Task, p.Question),
+                QuestionAnsweredPayload p => new QuestionResolved(x.Entry.RecordedAt, p.Task, p.Question),
                 _ => null,
             })
             .OfType<RunEvent>()];

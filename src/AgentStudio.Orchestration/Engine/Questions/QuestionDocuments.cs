@@ -59,16 +59,18 @@ internal static class QuestionDocuments
 
     /// <summary>The evidence of a question: the whole question as the agent wrote it, after redaction.</summary>
     public static string QuestionJson(string question, string task, int attempt, string agent, AgentQuestion asked) =>
-        PromptData.Json(new QuestionDocument(
-            QuestionFormat,
+        PromptData.Json(new
+        {
+            format = QuestionFormat,
             question,
             task,
             attempt,
             agent,
-            asked.Text,
-            asked.Why,
-            [.. asked.Options.Select(o => new OptionDocument(o.Id, o.Label, o.Detail ?? string.Empty, EffortName(o.Effort), o.Recommended))],
-            asked.AllowOther));
+            text = asked.Text,
+            why = asked.Why,
+            options = asked.Options.Select(o => new { id = o.Id, label = o.Label, detail = o.Detail ?? string.Empty, effort = EffortName(o.Effort), recommended = o.Recommended }).ToList(),
+            allowOther = asked.AllowOther,
+        });
 
     /// <summary>The question in its evidence, or null when the text is not one of question <paramref name="question"/>.</summary>
     public static AgentQuestion? ReadQuestion(string json, string question)
