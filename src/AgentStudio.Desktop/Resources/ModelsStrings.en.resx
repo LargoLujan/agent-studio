@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of models and power in English (docs/17 D-47, ADR-0054): the same keys and placeholders as ModelsStrings.resx. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Text_model_reason_many_mandatory_requirements" xml:space="preserve">
+    <value>“Maximum” level for the orchestrator: there are {0} mandatory requirements.</value>
+  </data>
+  <data name="Text_model_reason_large_project" xml:space="preserve">
+    <value>“Maximum” level for the orchestrator: the project has {0} files.</value>
+  </data>
+  <data name="Text_model_reason_role_default" xml:space="preserve">
+    <value>It is the recommended level for this role.</value>
+  </data>
+  <data name="Text_model_reason_light_second_executor" xml:space="preserve">
+    <value>A second, “light” executor: your plans often have tasks that only touch documentation or tests.</value>
+  </data>
+  <data name="Text_model_reason_judge_highest_other_vendor" xml:space="preserve">
+    <value>The highest level for the independent reviewer (judge): everything else depends on its review.</value>
+  </data>
+  <data name="Text_model_reason_history" xml:space="preserve">
+    <value>Of your {1} tasks with {0}, {2} were approved at the first attempt (estimated by Agent Studio).</value>
+  </data>
+  <data name="Text_model_unclassified" xml:space="preserve">
+    <value>Unclassified: the catalog does not know {0}. The agent's program receives it as written.</value>
+  </data>
+  <data name="Text_model_effort_cli_default" xml:space="preserve">
+    <value>The agent's program does not take the effort {0}. It will use its own default.</value>
+  </data>
+  <data name="Text_model_effort_not_in_catalog" xml:space="preserve">
+    <value>The catalog does not confirm that {0} takes the effort {1}. It is passed anyway.</value>
+  </data>
+  <data name="Text_model_effort_default_model" xml:space="preserve">
+    <value>With the default model, it is not known whether it takes the effort {0}.</value>
+  </data>
+  <data name="Text_model_note_efforts_from_api" xml:space="preserve">
+    <value>Its efforts come from Anthropic's documentation. They were not checked with Claude Code.</value>
+  </data>
+  <data name="Text_model_note_fable_unverified" xml:space="preserve">
+    <value>Its level and efforts were not checked with Claude Code. Access may depend on your plan.</value>
+  </data>
+  <data name="Text_model_note_haiku_alias_unverified" xml:space="preserve">
+    <value>Which model this alias picks was not checked, so no effort is recommended for it.</value>
+  </data>
+  <data name="Text_model_note_no_effort" xml:space="preserve">
+    <value>This model takes no effort, according to Anthropic's documentation.</value>
+  </data>
+  <data name="Text_model_note_codex_efforts_unverified" xml:space="preserve">
+    <value>Its efforts were not checked with Codex 0.160.0.</value>
+  </data>
+  <data name="Text_model_note_codex_account_verified" xml:space="preserve">
+    <value>Your account accepted it in real runs. Its efforts were not checked.</value>
+  </data>
+  <data name="Models_Tier_Light" xml:space="preserve">
+    <value>light</value>
+  </data>
+  <data name="Models_Tier_Balanced" xml:space="preserve">
+    <value>balanced</value>
+  </data>
+  <data name="Models_Tier_Maximum" xml:space="preserve">
+    <value>maximum</value>
+  </data>
+  <data name="Models_Tier_Unclassified" xml:space="preserve">
+    <value>unclassified</value>
+  </data>
+  <data name="Models_Effort_Minimal" xml:space="preserve">
+    <value>minimal</value>
+  </data>
+  <data name="Models_Effort_Low" xml:space="preserve">
+    <value>low</value>
+  </data>
+  <data name="Models_Effort_Medium" xml:space="preserve">
+    <value>medium</value>
+  </data>
+  <data name="Models_Effort_High" xml:space="preserve">
+    <value>high</value>
+  </data>
+  <data name="Models_Effort_XHigh" xml:space="preserve">
+    <value>very high</value>
+  </data>
+  <data name="Models_Effort_Max" xml:space="preserve">
+    <value>maximum</value>
+  </data>
+  <data name="Models_Effort_CliDefault" xml:space="preserve">
+    <value>the program's default</value>
+  </data>
+  <data name="Models_NoDataYet" xml:space="preserve">
+    <value>no data yet</value>
+  </data>
+  <data name="Models_Performance" xml:space="preserve">
+    <value>{0} tasks: {1} approved at the first attempt, {2} retries and {3} rejections (estimated by Agent Studio).</value>
+  </data>
+  <data name="Models_Performance_Unknown" xml:space="preserve">
+    <value>Unknown: {0} of the {1} tasks needed.</value>
+  </data>
+</root>

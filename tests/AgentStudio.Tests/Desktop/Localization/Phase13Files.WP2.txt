@@ -1,0 +1,3 @@
+# WP2 (modelos y potencia, docs/17 §9.3): no new C# or XAML file in the desktop.
+# Its texts are in Resources/ModelsStrings.resx and Resources/ModelsStrings.en.resx, which this list does not name:
+# a listed file is read as C# or XAML, and the resources are checked by LocalizationResourcesTests.

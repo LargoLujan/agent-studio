@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of models and power (docs/17 D-22 to D-25, ADR-0050; Phase 13, WP2) in Spanish of Spain, the source language. Coded texts are Text_ and the code (UserText.KeyOf): the reasons of the recommendation (ModelRecommendationReasons), the notices of a model and its effort (ModelNoticeCodes) and the notes of the catalog (model.note.*). The level of a model is Models_Tier_ and the name of ModelTier, an effort is Models_Effort_ and the name of ReasoningEffort. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Text_model_reason_many_mandatory_requirements" xml:space="preserve">
+    <value>Nivel «máximo» para el orquestador: hay {0} requisitos obligatorios.</value>
+    <comment>Reason of a recommendation (model.reason.many-mandatory-requirements). {0}: how many mandatory requirements.</comment>
+  </data>
+  <data name="Text_model_reason_large_project" xml:space="preserve">
+    <value>Nivel «máximo» para el orquestador: el proyecto tiene {0} ficheros.</value>
+    <comment>Reason of a recommendation (model.reason.large-project). {0}: the files of the project.</comment>
+  </data>
+  <data name="Text_model_reason_role_default" xml:space="preserve">
+    <value>Es el nivel recomendado para este papel.</value>
+    <comment>Reason of a recommendation (model.reason.role-default).</comment>
+  </data>
+  <data name="Text_model_reason_light_second_executor" xml:space="preserve">
+    <value>Un segundo ejecutor «ligero»: tus planes suelen tener tareas solo de documentación o de pruebas.</value>
+    <comment>Reason of a recommendation (model.reason.light-second-executor).</comment>
+  </data>
+  <data name="Text_model_reason_judge_highest_other_vendor" xml:space="preserve">
+    <value>El nivel más alto para el revisor independiente (juez): de su revisión depende todo lo demás.</value>
+    <comment>Reason of a recommendation (model.reason.judge-highest-other-vendor).</comment>
+  </data>
+  <data name="Text_model_reason_history" xml:space="preserve">
+    <value>Tus {1} tareas con {0} se aprobaron a la primera en {2} (estimado por Agent Studio).</value>
+    <comment>Reason of a recommendation (model.reason.history). {0}: the model; {1}: its tasks; {2}: those approved at the first attempt.</comment>
+  </data>
+  <data name="Text_model_unclassified" xml:space="preserve">
+    <value>Sin clasificar: el catálogo no conoce {0}. El programa del agente lo recibe tal cual.</value>
+    <comment>Notice (model.unclassified). {0}: the model as written.</comment>
+  </data>
+  <data name="Text_model_effort_cli_default" xml:space="preserve">
+    <value>El programa del agente no admite el esfuerzo {0}. Usará el suyo por defecto.</value>
+    <comment>Notice (model.effort-cli-default). {0}: the effort, as the program spells it.</comment>
+  </data>
+  <data name="Text_model_effort_not_in_catalog" xml:space="preserve">
+    <value>El catálogo no confirma que {0} admita el esfuerzo {1}. Se le pasa igualmente.</value>
+    <comment>Notice (model.effort-not-in-catalog). {0}: the model; {1}: the effort, as the program spells it.</comment>
+  </data>
+  <data name="Text_model_effort_default_model" xml:space="preserve">
+    <value>Con el modelo por defecto no se sabe si admite el esfuerzo {0}.</value>
+    <comment>Notice (model.effort-default-model). {0}: the effort, as the program spells it.</comment>
+  </data>
+  <data name="Text_model_note_efforts_from_api" xml:space="preserve">
+    <value>Sus esfuerzos salen de la documentación de Anthropic. No se han comprobado con Claude Code.</value>
+    <comment>Note of the catalog (model.note.efforts-from-api).</comment>
+  </data>
+  <data name="Text_model_note_fable_unverified" xml:space="preserve">
+    <value>Su nivel y sus esfuerzos no se han comprobado con Claude Code. Su acceso puede depender de tu plan.</value>
+    <comment>Note of the catalog (model.note.fable-unverified).</comment>
+  </data>
+  <data name="Text_model_note_haiku_alias_unverified" xml:space="preserve">
+    <value>No se ha comprobado qué modelo elige este alias. Por eso no se le recomienda ningún esfuerzo.</value>
+    <comment>Note of the catalog (model.note.haiku-alias-unverified).</comment>
+  </data>
+  <data name="Text_model_note_no_effort" xml:space="preserve">
+    <value>Este modelo no admite esfuerzo, según la documentación de Anthropic.</value>
+    <comment>Note of the catalog (model.note.no-effort).</comment>
+  </data>
+  <data name="Text_model_note_codex_efforts_unverified" xml:space="preserve">
+    <value>Sus esfuerzos no se han comprobado con Codex 0.160.0.</value>
+    <comment>Note of the catalog (model.note.codex-efforts-unverified).</comment>
+  </data>
+  <data name="Text_model_note_codex_account_verified" xml:space="preserve">
+    <value>Tu cuenta lo aceptó en ejecuciones reales. Sus esfuerzos no se han comprobado.</value>
+    <comment>Note of the catalog (model.note.codex-account-verified).</comment>
+  </data>
+  <data name="Models_Tier_Light" xml:space="preserve">
+    <value>ligero</value>
+    <comment>Level of a model (ModelTier.Light).</comment>
+  </data>
+  <data name="Models_Tier_Balanced" xml:space="preserve">
+    <value>equilibrado</value>
+    <comment>Level of a model (ModelTier.Balanced).</comment>
+  </data>
+  <data name="Models_Tier_Maximum" xml:space="preserve">
+    <value>máximo</value>
+    <comment>Level of a model (ModelTier.Maximum).</comment>
+  </data>
+  <data name="Models_Tier_Unclassified" xml:space="preserve">
+    <value>sin clasificar</value>
+    <comment>Level of a model the catalog does not know.</comment>
+  </data>
+  <data name="Models_Effort_Minimal" xml:space="preserve">
+    <value>mínimo</value>
+    <comment>Effort (ReasoningEffort.Minimal; Codex only).</comment>
+  </data>
+  <data name="Models_Effort_Low" xml:space="preserve">
+    <value>bajo</value>
+    <comment>Effort (ReasoningEffort.Low).</comment>
+  </data>
+  <data name="Models_Effort_Medium" xml:space="preserve">
+    <value>medio</value>
+    <comment>Effort (ReasoningEffort.Medium).</comment>
+  </data>
+  <data name="Models_Effort_High" xml:space="preserve">
+    <value>alto</value>
+    <comment>Effort (ReasoningEffort.High).</comment>
+  </data>
+  <data name="Models_Effort_XHigh" xml:space="preserve">
+    <value>muy alto</value>
+    <comment>Effort (ReasoningEffort.XHigh).</comment>
+  </data>
+  <data name="Models_Effort_Max" xml:space="preserve">
+    <value>máximo</value>
+    <comment>Effort (ReasoningEffort.Max; Claude Code only).</comment>
+  </data>
+  <data name="Models_Effort_CliDefault" xml:space="preserve">
+    <value>el del programa, por defecto</value>
+    <comment>No effort set: the agent's program uses its own default.</comment>
+  </data>
+  <data name="Models_NoDataYet" xml:space="preserve">
+    <value>sin datos todavía</value>
+    <comment>A model this project has not used yet («Otro modelo», D-23).</comment>
+  </data>
+  <data name="Models_Performance" xml:space="preserve">
+    <value>{0} tareas: {1} aprobadas a la primera, {2} reintentos y {3} rechazos (estimado por Agent Studio).</value>
+    <comment>How a model did in this project. {0}: its tasks; {1}: approved at the first attempt; {2}: retries; {3}: rejections of the judge.</comment>
+  </data>
+  <data name="Models_Performance_Unknown" xml:space="preserve">
+    <value>Desconocido: {0} de {1} tareas necesarias.</value>
+    <comment>Fewer tasks than needed to say how a model did. {0}: its tasks; {1}: the tasks needed (3).</comment>
+  </data>
+</root>
