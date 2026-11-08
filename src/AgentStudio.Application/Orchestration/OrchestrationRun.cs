@@ -44,10 +44,11 @@ public interface IOrchestrationRun : IAsyncDisposable
     /// records <c>QuestionAnswered</c> (the person's own text as evidence first), and a new attempt, which counts in
     /// <see cref="RunOptions.MaxAgentRuns"/>, receives the question and the answer as data. Answering is not approving: it asks
     /// no Windows Hello and grants nothing. The default body says the run takes no answers: WP4 implements it in the engine,
-    /// and a run inspected from its log never takes one.
+    /// and a run inspected from its log never takes one. A question of the orchestrator before it plans (its task is null)
+    /// is not answered here: there is no run yet, and its answers go to the next planning (<see cref="PlanningRequest.Answers"/>).
     /// </summary>
     /// <exception cref="NotSupportedException">This run takes no answers.</exception>
-    /// <exception cref="InvalidOperationException">The task is not waiting for the answer to that question.</exception>
+    /// <exception cref="InvalidOperationException">The task is not waiting for the answer to that question, or the answer has no task.</exception>
     Task AnswerAsync(QuestionAnswer answer) =>
         throw new NotSupportedException("This run takes no answers to the questions of its agents.");
 }

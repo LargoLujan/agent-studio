@@ -157,3 +157,42 @@
     pruebas.
   - **Coste de traducir:** unas 2 000 a 2 500 cadenas por idioma, del orden de 100 000 a 200 000 tokens por idioma entre
     traducir y revisar (estimación del diseño, D-50).
+
+## Adenda · 2026-11-08 · catalán, euskera y gallego, en castellano de España
+
+Decisión del orquestador tras la revisión independiente del P0. Matiza el punto 4 (D-49) para los idiomas de España que
+Agent Studio no tiene:
+
+- **Si Windows está en catalán, euskera o gallego** (`ca`, `eu` y `gl`, con cualquier región o variante, como
+  `ca-ES-valencia`), y la persona no eligió idioma, la interfaz sale en **castellano de España**, no en inglés: quien usa
+  Windows en esos idiomas lee castellano. Lo dice `UiLanguages.SpanishSpeakingRegions`, y lo aplica `UiLanguages.Resolve`.
+- **Cualquier otro idioma sin recursos** sigue saliendo en inglés, como dice D-49 (por ejemplo, `pt-PT` o `fr-FR`).
+- **Lo que eliges en «Ajustes» → «Idioma»** sigue mandando sobre todo lo anterior.
+- **La prueba:** `LocalizationResourcesTests.The_language_is_the_one_chosen_else_the_one_of_windows_else_english`, con los
+  tres idiomas, una variante y un idioma de otro país que sigue en inglés.
+- **Cuando haya recursos** en catalán, euskera o gallego, entrarán en la lista como cualquier idioma y esta regla dejará de
+  aplicarse a ese idioma, porque `Find` lo encontrará antes.
+
+## Adenda · 2026-11-08 · la prueba de nada escrito a mano mira todo lo nuevo, sin listas
+
+La revisión independiente del P0 vio que la prueba del punto 8 se esquivaba: un fichero nuevo en una carpeta de antes
+(`Orchestrator/Canvas`) que nadie apuntaba en `Phase13Files.<paquete>.txt`, un texto en `StringFormat`, `FallbackValue` o
+`ToolTipService.ToolTip`, y un literal castellano sin tildes. Sustituye en el punto 8 lo que dice de las listas:
+
+- **Qué ficheros:** todo XAML y todo C# de `src/AgentStudio.Desktop` que no está en el inventario de antes de la fase,
+  `tests/AgentStudio.Tests/Desktop/Localization/DesktopFilesBeforePhase13.txt`. Son los 262 ficheros de `main` en `6cf8bf7`,
+  es decir, los de `96c8aca` sin los siete que creó el propio P0, que así también se revisan. El inventario no se edita: cada
+  fichero nuevo de un paquete entra solo, en una carpeta nueva o en una de antes. Desaparecen las listas `Phase13Files` y las
+  carpetas fijas. Un fichero de antes que un paquete cambie queda para la Fase 14, que extiende la prueba a todo Desktop.
+- **En XAML,** además: `ToolTipService.ToolTip`; las partes de un binding con texto (`StringFormat`, `FallbackValue` y
+  `TargetNullValue`, entre comillas o no); y los formatos (`StringFormat`, `ContentStringFormat`, `HeaderStringFormat` e
+  `ItemStringFormat`). De un formato solo cuenta lo que añade: no cuentan el escape `{}`, los marcadores (`{0:N0}`) ni un
+  especificador solo (`N0`, `HH:mm`).
+- **En C#,** además de las letras fuera de ASCII: un literal con una palabra de una lista corta de palabras castellanas
+  frecuentes de interfaz sin tilde («guardar», «tarea», «agente», «para», «sin»…). Se eligieron las que ningún identificador,
+  clave, formato ni mensaje en inglés usa como palabra. Las palabras se cortan por lo que no es letra, así que una clave
+  (`Info_Language_Title`) o una cultura (`de-DE`) no son castellano.
+- **El límite que queda:** un texto castellano escrito solo con letras ASCII, sin ninguna palabra de la lista y fuera de las
+  asignaciones que se miran («Error grave» en una lista). Lo cazan la revisión y los renders por idioma de la Fase 14.
+- **La prueba de la prueba** (`The_checks_find_what_is_written_by_hand_and_nothing_else`) tiene un ejemplo de cada caso, y
+  `The_check_covers_every_file_of_phase_13_and_none_of_before` comprueba que el inventario es el de antes de la fase.
