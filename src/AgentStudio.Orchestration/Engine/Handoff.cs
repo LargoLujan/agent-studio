@@ -50,7 +50,7 @@ internal sealed record HandoffFacts(
     IReadOnlyList<(TaskId Task, WorkTaskStatus Status)> Graph,
     string? PreviousErrors,
     AttemptNotes? Notes,
-    IReadOnlyList<Questions.AnsweredQuestion>? Answers = null);
+    IReadOnlyList<Questions.RecordedAnswer>? Answers = null);
 
 /// <summary>
 /// The handoff that the system builds when the session of a task is renewed (F8-6; docs/16 D-42 and D-43, ADR-0035): a

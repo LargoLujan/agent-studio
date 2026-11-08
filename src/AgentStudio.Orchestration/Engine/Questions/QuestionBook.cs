@@ -1,7 +1,6 @@
 using System.Globalization;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Orchestration;
-using AgentStudio.Application.Usage;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Questions;
 
@@ -23,16 +22,18 @@ internal sealed record AskedQuestion(
     IReadOnlyList<OptionEstimateSnapshot> Estimates,
     DateTimeOffset AskedAt)
 {
-    /// <summary>The question as the monitor and its window see it (<see cref="PendingQuestion"/>).</summary>
-    public PendingQuestion ToPending() =>
-        new(Id, Task, Agent, Attempt, Question, Evidence, new Dictionary<string, UsageEstimate>(StringComparer.Ordinal), AskedAt);
+    /// <summary>
+    /// The question as the monitor and its window see it (<see cref="PendingQuestion"/>), with the estimates exactly as
+    /// <c>QuestionAsked</c> records them, so a restart shows the same.
+    /// </summary>
+    public PendingQuestion ToPending() => new(Id, Task, Agent, Attempt, Question, Evidence, Estimates, AskedAt);
 }
 
 /// <summary>
 /// A question with its answer (docs/17 D-30), which every later attempt of its task receives as data: the option chosen, or
 /// the person's own text (redacted) with its evidence.
 /// </summary>
-internal sealed record AnsweredQuestion(
+internal sealed record RecordedAnswer(
     AskedQuestion Asked,
     string? Option,
     string? OwnText,
@@ -53,7 +54,7 @@ internal sealed record AnsweredQuestion(
 internal sealed class QuestionBook
 {
     private readonly Dictionary<TaskId, AskedQuestion> _pending = [];
-    private readonly Dictionary<TaskId, List<AnsweredQuestion>> _answered = [];
+    private readonly Dictionary<TaskId, List<RecordedAnswer>> _answered = [];
     private readonly Dictionary<TaskId, int> _askedByTask = [];
 
     /// <summary>The questions recorded in the run by its executors (the cap of <see cref="QuestionRules.MaxQuestionsPerRun"/>).</summary>
@@ -76,7 +77,7 @@ internal sealed class QuestionBook
     public string NextId(TaskId task) => string.Create(CultureInfo.InvariantCulture, $"{task.Value}-q{AskedBy(task) + 1}");
 
     /// <summary>The questions of <paramref name="task"/> answered so far, in the order they were asked.</summary>
-    public IReadOnlyList<AnsweredQuestion> AnsweredOf(TaskId task) => _answered.TryGetValue(task, out var list) ? list : [];
+    public IReadOnlyList<RecordedAnswer> AnsweredOf(TaskId task) => _answered.TryGetValue(task, out var list) ? list : [];
 
     /// <summary>The question <paramref name="task"/> waits for, as the monitor sees it; null when it waits for none.</summary>
     public PendingQuestion? PendingView(TaskId task) => _pending.TryGetValue(task, out var asked) ? asked.ToPending() : null;
@@ -93,7 +94,7 @@ internal sealed class QuestionBook
     }
 
     /// <summary>The question of a task got its answer (<c>QuestionAnswered</c>): it is no longer pending.</summary>
-    public void Answer(AnsweredQuestion answered)
+    public void Answer(RecordedAnswer answered)
     {
         _pending.Remove(answered.Asked.Task);
         if (!_answered.TryGetValue(answered.Asked.Task, out var list))

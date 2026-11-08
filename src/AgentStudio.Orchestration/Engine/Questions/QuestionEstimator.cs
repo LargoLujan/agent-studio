@@ -1,20 +1,69 @@
 using AgentStudio.Application.Decisions;
+using AgentStudio.Application.Usage;
+using AgentStudio.Domain.Metrics;
 using AgentStudio.Domain.Questions;
 
 namespace AgentStudio.Orchestration.Engine.Questions;
 
 /// <summary>
 /// What the system estimates going on with each option of a question would cost (docs/17 D-32): the estimator
-/// (<see cref="EnginePorts.Estimator"/>) over the similar attempts of the project, by the effort the agent declares. Without an
-/// estimator nothing is estimated: the question carries no estimates, never a number made up.
+/// (<see cref="EnginePorts.Estimator"/>) over the similar attempts of the project (the same agent, its model, an executor's
+/// attempt), by the size of the work the agent declares for the option. Each estimate is recorded as <c>QuestionAsked</c> keeps
+/// it (<see cref="OptionEstimateSnapshot"/>): the interval of total tokens, from the 25th to the 75th percentile, each end with
+/// its origin, and the references it rests on. Never a number made up:
+/// <list type="bullet">
+/// <item>without an estimator, or when it cannot answer (a log that does not verify, say), nothing is estimated and the
+/// question carries no estimates;</item>
+/// <item>with fewer than three references both ends are missing, with the reason of the estimator;</item>
+/// <item>the total is never the sum of the percentiles of the input and of the output, which is not the percentile of the
+/// total: <see cref="UsageEstimate"/> gives the two apart, so until the estimator gives the interval of the total both ends
+/// are missing too, with the references and the reason (<see cref="TotalNotEstimated"/>).</item>
+/// </list>
 /// </summary>
 internal static class QuestionEstimator
 {
-    public static Task<IReadOnlyList<OptionEstimateSnapshot>> EstimateAsync(WorkerContext w, AgentAttemptPlan plan, AgentQuestion question)
+    /// <summary>Why the ends of a known estimate are missing: the estimator gives the input and output tokens apart, not their total.</summary>
+    public const string TotalNotEstimated = "estimate.total-tokens-not-estimated: the estimator gives the input and the output tokens apart, and their percentiles do not add up to the percentiles of the total";
+
+    public static async Task<IReadOnlyList<OptionEstimateSnapshot>> EstimateAsync(WorkerContext w, AgentAttemptPlan plan, AgentQuestion question)
     {
-        ArgumentNullException.ThrowIfNull(w);
-        ArgumentNullException.ThrowIfNull(plan);
-        ArgumentNullException.ThrowIfNull(question);
-        return Task.FromResult<IReadOnlyList<OptionEstimateSnapshot>>([]);
+        if (w.Ports.Estimator is not { } estimator)
+        {
+            return [];
+        }
+
+        var snapshots = new List<OptionEstimateSnapshot>();
+        try
+        {
+            foreach (var option in question.Options)
+            {
+                var request = new UsageEstimateRequest(w.Run.Project, plan.Agent.Id, plan.Provider.Provider, plan.Agent.Model.Model, AgentRunPurpose.Executor, SizeOf(option.Effort));
+                var estimate = await estimator.EstimateAsync(request, w.Abort).ConfigureAwait(false);
+                snapshots.Add(Snapshot(option.Id, estimate));
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return []; // the estimator could not answer: nothing is estimated, which the window says as it is
+        }
+
+        return snapshots;
     }
+
+    /// <summary>The estimate of an option as the log records it (see the rules of the class).</summary>
+    public static OptionEstimateSnapshot Snapshot(string option, UsageEstimate estimate)
+    {
+        ArgumentNullException.ThrowIfNull(estimate);
+        var reason = estimate.IsKnown ? TotalNotEstimated : estimate.InputTokens.Low.Source;
+        var missing = MetricSnapshot.WithOrigin(MetricValue<long>.Missing(reason));
+        return new OptionEstimateSnapshot(option, missing, missing, estimate.References);
+    }
+
+    /// <summary>The size of the work an effort the agent declares stands for (docs/17 D-32).</summary>
+    public static WorkSize SizeOf(QuestionEffort effort) => effort switch
+    {
+        QuestionEffort.Small => WorkSize.Small,
+        QuestionEffort.Medium => WorkSize.Medium,
+        _ => WorkSize.Large,
+    };
 }

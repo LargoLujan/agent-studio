@@ -190,7 +190,7 @@ internal sealed record AgentAttemptPlan(
     FailureNote? PreviousFailure,
     bool CheckAccess = false,
     HandoffFacts? Handoff = null,
-    IReadOnlyList<AnsweredQuestion>? Answers = null);
+    IReadOnlyList<RecordedAnswer>? Answers = null);
 
 /// <summary>
 /// One attempt of an <c>AgentWork</c> task (docs/13 section 4.2): worktree, skills, prompt as evidence and

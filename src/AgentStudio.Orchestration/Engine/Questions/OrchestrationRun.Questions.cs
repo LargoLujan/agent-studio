@@ -188,7 +188,7 @@ internal sealed partial class OrchestrationRun
             byConsent ? $"Agent Studio responde {pending.Id} de {id} con la opción recomendada, por el consentimiento de la ejecución" : $"{answer.DecidedBy} responde {pending.Id} de {id}",
             QuestionAnsweredPayload.Answering(_recorder.RunValue, id, pending.Id, answer.OptionId, own?.Id, own?.ContentSha256, answer.DecidedBy, answer.Method),
             Token).ConfigureAwait(false);
-        var answered = new AnsweredQuestion(pending, answer.OptionId, ownText, own?.Id, own?.ContentSha256, answer.DecidedBy, answer.Method);
+        var answered = new RecordedAnswer(pending, answer.OptionId, ownText, own?.Id, own?.ContentSha256, answer.DecidedBy, answer.Method);
         book.Answer(answered);
         var decision = await CaptureDecisionAsync(_recorder, answered, Token).ConfigureAwait(false);
         var how = answer.OptionId is { } chosen
@@ -200,7 +200,7 @@ internal sealed partial class OrchestrationRun
     }
 
     /// <summary>The decision of the person about a question, as evidence the system captures: what the judge gets of it (D-33).</summary>
-    internal static Task<EvidenceRecord> CaptureDecisionAsync(RunRecorder recorder, AnsweredQuestion answered, CancellationToken cancellationToken) =>
+    internal static Task<EvidenceRecord> CaptureDecisionAsync(RunRecorder recorder, RecordedAnswer answered, CancellationToken cancellationToken) =>
         recorder.CaptureAsync(
             EvidenceKind.Document,
             EvidenceOrigin.CapturedBySystem,

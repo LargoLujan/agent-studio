@@ -250,7 +250,7 @@ internal static class ExecutorPrompt
         string? renewal = null,
         AgentDefinition? agent = null,
         ProjectBrief? brief = null,
-        IReadOnlyList<AnsweredQuestion>? answers = null)
+        IReadOnlyList<RecordedAnswer>? answers = null)
     {
         var instructions = agent is null ? null : AuthoredPrompt.AgentInstructions(agent);
         var answered = answers ?? [];

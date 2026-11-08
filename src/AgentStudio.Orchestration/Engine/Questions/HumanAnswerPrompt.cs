@@ -14,7 +14,7 @@ namespace AgentStudio.Orchestration.Engine.Questions;
 internal static class HumanAnswerPrompt
 {
     /// <summary>The section of the prompt with the answers to the questions of the task; nothing when there are none.</summary>
-    public static void Append(StringBuilder text, IReadOnlyList<AnsweredQuestion> answers)
+    public static void Append(StringBuilder text, IReadOnlyList<RecordedAnswer> answers)
     {
         if (answers.Count == 0)
         {
@@ -32,7 +32,7 @@ internal static class HumanAnswerPrompt
     }
 
     /// <summary>One answered question as a delimited block of data.</summary>
-    public static string Block(AnsweredQuestion answer)
+    public static string Block(RecordedAnswer answer)
     {
         var asked = answer.Asked;
         object chosen = answer.Option is { } option

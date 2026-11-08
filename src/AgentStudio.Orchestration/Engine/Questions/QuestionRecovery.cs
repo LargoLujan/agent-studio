@@ -47,7 +47,7 @@ internal static class QuestionRecovery
                         own = await ReadAsync(recorder, evidence, p.AnswerSha256!, $"the answer to question '{p.Question}' of task '{task}'", cancellationToken).ConfigureAwait(false);
                     }
 
-                    book.Answer(new AnsweredQuestion(of, p.ChosenOption, own, p.AnswerEvidence, p.AnswerSha256, p.DecidedBy, p.Method));
+                    book.Answer(new RecordedAnswer(of, p.ChosenOption, own, p.AnswerEvidence, p.AnswerSha256, p.DecidedBy, p.Method));
                     break;
             }
         }

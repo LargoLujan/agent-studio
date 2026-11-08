@@ -97,7 +97,7 @@ internal static class QuestionDocuments
     }
 
     /// <summary>The decision of the person about a question, for the judge (D-33): what the agent asked, without its recommendation nor its efforts, and the choice.</summary>
-    public static string DecisionJson(AnsweredQuestion answered)
+    public static string DecisionJson(RecordedAnswer answered)
     {
         var asked = answered.Asked;
         return PromptData.Json(new
