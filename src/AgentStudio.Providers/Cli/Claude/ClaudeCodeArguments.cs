@@ -3,6 +3,7 @@ using System.Globalization;
 using AgentStudio.Application.Providers;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Common;
+using AgentStudio.Domain.Models;
 using AgentStudio.Domain.Providers;
 
 namespace AgentStudio.Providers.Cli.Claude;
@@ -129,7 +130,7 @@ public static class ClaudeCodeArguments
     /// <summary>The flags (each with its value) that only say what to run, not what the session may do.</summary>
     private static readonly HashSet<string> RunOnlyFlags = new(StringComparer.Ordinal)
     {
-        "--output-format", "--model", "--max-turns", "--max-budget-usd", "--json-schema", "--session-id", "--resume", "--append-system-prompt-file",
+        "--output-format", "--model", "--effort", "--max-turns", "--max-budget-usd", "--json-schema", "--session-id", "--resume", "--append-system-prompt-file",
     };
 
     /// <summary>
@@ -261,6 +262,14 @@ public static class ClaudeCodeArguments
         {
             args.Add("--model");
             args.Add(CliArgumentGuard.Model(request.Agent.Model.Model, nameof(request)));
+        }
+
+        // Phase 13 (docs/17 D-25): the effort of the agent, from the closed list, only when it is set and Claude Code takes it
+        // (claude --help 2.1.290: low, medium, high, xhigh, max). Any other is not passed: the CLI uses its own default.
+        if (CliReasoningEfforts.ForLaunch(ProviderId.ClaudeCode, request.Agent.Effort) is { } effort)
+        {
+            args.Add("--effort");
+            args.Add(ReasoningEfforts.Token(effort));
         }
 
         args.Add("--max-turns");

@@ -1,4 +1,6 @@
 using AgentStudio.Application.Providers;
+using AgentStudio.Domain.Models;
+using AgentStudio.Domain.Providers;
 
 namespace AgentStudio.Providers.Cli.Codex;
 
@@ -27,6 +29,9 @@ public static class CodexExecArguments
 {
     public const string SandboxReadOnly = "read-only";
     public const string SandboxWorkspaceWrite = "workspace-write";
+
+    /// <summary>The key of the configuration that takes the effort of the model (<c>-c model_reasoning_effort=…</c>).</summary>
+    public const string ReasoningEffortKey = "model_reasoning_effort";
 
     /// <summary>Placed right after <c>exec --json</c>, so it also applies to <c>resume</c>.</summary>
     private static readonly string[] Isolation =
@@ -100,6 +105,14 @@ public static class CodexExecArguments
         if (!string.IsNullOrWhiteSpace(request.Agent.Model.Model))
         {
             args.AddRange(["-m", CliArgumentGuard.Model(request.Agent.Model.Model, nameof(request))]);
+        }
+
+        // Phase 13 (docs/17 D-25): the effort of the agent, only when it is set and Codex takes it (minimal to xhigh), as a
+        // token of the closed list and never free text. Unquoted like the isolation block: a bare word is not TOML, so codex
+        // takes it literally. Any other is not passed: the CLI uses its own default.
+        if (CliReasoningEfforts.ForLaunch(ProviderId.CodexCli, request.Agent.Effort) is { } effort)
+        {
+            args.AddRange(["-c", ReasoningEffortKey + "=" + ReasoningEfforts.Token(effort)]);
         }
 
         if (request.OutputJsonSchema is not null)
