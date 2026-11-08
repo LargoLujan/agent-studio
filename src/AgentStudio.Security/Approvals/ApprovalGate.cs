@@ -3,6 +3,7 @@ using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Security;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Decisions;
+using AgentStudio.Domain.Security;
 
 namespace AgentStudio.Security.Approvals;
 
@@ -51,13 +52,13 @@ public sealed record ApprovalGateOptions
 /// person's no, it would mean something the person did not decide (a no to opening a revision debate drops the
 /// challenge). The same holds for a denial with <see cref="ApprovalVerification.WindowsLock"/>: a yes the verified lock of
 /// Windows did not confirm (docs/17 D-40 (a)).</item>
-/// <item>The fixed barrier (docs/17 D-37 to D-39, <see cref="Domain.Security.PresencePolicy"/>): an approval of an action of
-/// the list (<see cref="ApprovalRiskClassifier.PresenceOf"/> says <see cref="Domain.Security.PresenceRequirement.Always"/>)
-/// counts only when Windows Hello or the verified lock of Windows confirmed the person
-/// (<see cref="ApprovalRiskClassifier.ConfirmsPresence"/>). Any other yes, whatever prompt gave it and whatever any setting
-/// or file says, is denied by the system (<see cref="PresenceNotConfirmed"/>), with the method the prompt said. The gate
-/// needs neither the setting nor the window for this: what is on the list asks whatever they say, so no prompt composed
-/// without Windows Hello, and no setting turned off, lets one through.</item>
+/// <item>The fixed barrier (docs/17 D-37 to D-39): an approval counts only when what confirmed the person satisfies its action,
+/// by the one rule of the domain (<see cref="PresencePolicy.IsSatisfiedBy"/>, with the method the prompt recorded read as its
+/// proof, <see cref="ApprovalRiskClassifier.ProofOf"/>). For an action of the list («Siempre»), only Windows Hello or the
+/// verified lock of Windows do. Any other yes, whatever prompt gave it and whatever any setting or file says, is denied by the
+/// system (<see cref="PresenceNotConfirmed"/>), with the method the prompt said. The gate knows no setting and needs none:
+/// it judges with the setting off, the floor no setting can lower, so no prompt composed without Windows Hello, and no setting
+/// turned off, lets one through. What the setting adds to the configurable approvals is the prompt's.</item>
 /// </list>
 /// </remarks>
 public sealed class ApprovalGate(IApprovalPrompt prompt, IDecisionRecorder decisions, TimeProvider timeProvider, ApprovalGateOptions options) : IApprovalGate
@@ -189,10 +190,11 @@ public sealed class ApprovalGate(IApprovalPrompt prompt, IDecisionRecorder decis
                 return (null, "La aprobación no dice quién la dio: se deniega.", None);
             }
 
-            // The fixed barrier: a yes to an action of the list counts only with the person confirmed, whatever the prompt.
+            // The fixed barrier: a yes counts only with what the one rule of the domain asks of its action, whatever the
+            // prompt. The gate knows no setting, so it judges with it off: the floor no setting can lower.
             if (answer.Approved
-                && ApprovalRiskClassifier.PresenceOf(request) == Domain.Security.PresenceRequirement.Always
-                && !ApprovalRiskClassifier.ConfirmsPresence(answer.Verification))
+                && ApprovalRiskClassifier.PresenceActionOf(request) is { } action
+                && !PresencePolicy.IsSatisfiedBy(action, importantApprovalsSetting: false, ApprovalRiskClassifier.ProofOf(answer.Verification)))
             {
                 return (null, PresenceNotConfirmed, answer.Verification);
             }

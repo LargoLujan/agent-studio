@@ -59,6 +59,8 @@ public sealed class PresenceBarrierGateTests
             [DebateCoordinator.OpenAction] = PresenceAction.OpenOrResumeDebate,
             [DebateCoordinator.ResumeAction] = PresenceAction.OpenOrResumeDebate,
             [DebateRun.HumanResolutionAction] = PresenceAction.OpenOrResumeDebate,
+            [AgentStudio.Orchestration.Engine.Orchestrator.HumanApprovalAction] = PresenceAction.ApprovePlan,
+            [AgentStudio.Orchestration.Engine.Orchestrator.ReviewEscalationAction] = PresenceAction.AcceptReview,
             [ProjectAuditService.ApprovalAction] = PresenceAction.AuditProject,
             [ChallengeLog.RevisionAcceptanceAction] = PresenceAction.AcceptReview,
             [WorkspaceCleanup.ApprovalAction] = PresenceAction.DiscardAgentWork,

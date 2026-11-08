@@ -44,6 +44,8 @@ public static class ApprovalRiskClassifier
         ["debate.open"] = PresenceAction.OpenOrResumeDebate,
         ["debate.resume"] = PresenceAction.OpenOrResumeDebate,
         ["debate.human-resolution"] = PresenceAction.OpenOrResumeDebate,
+        ["orchestration.human-approval"] = PresenceAction.ApprovePlan,
+        ["orchestration.review-escalation"] = PresenceAction.AcceptReview,
         ["audit.run"] = PresenceAction.AuditProject,
         ["verdict.revision.accept"] = PresenceAction.AcceptReview,
         ["discard-run-work"] = PresenceAction.DiscardAgentWork,
@@ -55,8 +57,8 @@ public static class ApprovalRiskClassifier
 
     /// <summary>
     /// The action of the fixed barrier that <paramref name="request"/> is (docs/17 D-37), by the exact identifier of its
-    /// action; null for an action the list does not name (the approval nodes of a plan, whose action the plan writes, or the
-    /// dismissal of a replan).
+    /// action; null for an action the list does not name (the dismissal of a replan, or one added later). The approval tasks of
+    /// a plan and the escalation of a review are configurable (D-41: what the run needs is approved with the plan).
     /// </summary>
     public static PresenceAction? PresenceActionOf(ApprovalRequest request)
     {
@@ -84,12 +86,12 @@ public static class ApprovalRiskClassifier
     }
 
     /// <summary>
-    /// Whether <paramref name="verification"/> confirms the person for an action of the list
-    /// (<see cref="PresenceRequirement.Always"/>): only Windows Hello and the verified lock of Windows do (docs/17 D-40 (a)).
-    /// The dialog alone does not, nor does it with the warning that Hello is not there.
+    /// What an approval recorded with <paramref name="verification"/> claims confirmed the person, as the barrier judges it
+    /// (<see cref="PresencePolicy.IsSatisfiedBy"/>): the proof whose method is that one (<see cref="PresenceProofs.Verification"/>),
+    /// so there is no second table. A method no proof records is <see cref="PresenceProof.None"/>, which approves nothing.
     /// </summary>
-    public static bool ConfirmsPresence(ApprovalVerification verification) =>
-        verification is ApprovalVerification.WindowsHello or ApprovalVerification.WindowsLock;
+    public static PresenceProof ProofOf(ApprovalVerification verification) =>
+        Enum.GetValues<PresenceProof>().Where(p => PresenceProofs.Verification(p) == verification).DefaultIfEmpty(PresenceProof.None).First();
 
     public static RiskLevel Classify(ApprovalRequest request)
     {

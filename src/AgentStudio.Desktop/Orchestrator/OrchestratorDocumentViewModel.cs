@@ -786,7 +786,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
             if (plan.ConfirmsAfterYes)
             {
                 var hello = await _confirmation.ConfirmAsync(plan, HelloAnswers.PlanMessage(Short(hash)), CancellationToken.None).ConfigureAwait(true);
-                if (!hello.Confirmed)
+                if (!ReinforcedConfirmation.Approves(plan, hello.Proof))
                 {
                     ErrorMessage = hello switch
                     {
