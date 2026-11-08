@@ -781,11 +781,29 @@ public sealed class DebateRun : IDebateRun
     /// not count the time the machine sleeps, so after a sleep past the reset it would go on waiting for the awake time it
     /// still had to run.
     /// </summary>
+    /// <remarks>
+    /// Each timer counts from when it is armed, not from the moment its look was worked out. A clock that moves on by the
+    /// whole look in between (a test that advances a fake clock as soon as the turn waits, or a machine that falls asleep
+    /// right then) would leave a timer that comes late: by up to a look with the real clock, and never with a fake one nobody
+    /// advances again (docs/18 P42). Then the wait looks again at once, as the timer would have made it, and as the loop of a
+    /// run does.
+    /// </remarks>
     private async Task WaitForResetAsync(DateTimeOffset resetsAt, CancellationToken stop)
     {
-        for (var left = resetsAt - _ports.Time.GetUtcNow(); left > TimeSpan.Zero; left = resetsAt - _ports.Time.GetUtcNow())
+        for (var from = _ports.Time.GetUtcNow(); from < resetsAt; from = _ports.Time.GetUtcNow())
         {
-            await Task.Delay(left < QuotaLook ? left : QuotaLook, _ports.Time, stop).ConfigureAwait(false);
+            var left = resetsAt - from;
+            var look = left < QuotaLook ? left : QuotaLook;
+            using var armed = CancellationTokenSource.CreateLinkedTokenSource(stop);
+            var timer = Task.Delay(look, _ports.Time, armed.Token);
+            if (_ports.Time.GetUtcNow() - from < look)
+            {
+                await timer.ConfigureAwait(false);
+            }
+            else
+            {
+                await armed.CancelAsync().ConfigureAwait(false);
+            }
         }
     }
 

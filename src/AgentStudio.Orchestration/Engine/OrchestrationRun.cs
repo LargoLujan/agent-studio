@@ -320,12 +320,19 @@ internal sealed class OrchestrationRun : IOrchestrationRun
     /// Waits for a signal, a heartbeat at most, or until <paramref name="wakeAt"/> when it comes first (the end of a wait for
     /// quota, or of the grace of a cancellation), all on the clock of the run.
     /// </summary>
+    /// <remarks>
+    /// The timer counts from when it is armed, not from the moment the delay was worked out. A clock that moves on by the
+    /// whole delay in between (a test that advances a fake clock as soon as the run shows the wait, or a machine that falls
+    /// asleep right then) would leave a timer that comes late: by up to a heartbeat with the real clock, and never with a fake
+    /// one nobody advances again (docs/18 P42). Then the loop looks again at once, as the timer would have made it.
+    /// </remarks>
     private async Task WaitAsync(DateTimeOffset? wakeAt)
     {
+        var from = Now;
         var delay = _ctx.Heartbeat;
         if (wakeAt is { } at)
         {
-            var until = at - Now;
+            var until = at - from;
             if (until <= TimeSpan.Zero)
             {
                 return;
@@ -338,9 +345,13 @@ internal sealed class OrchestrationRun : IOrchestrationRun
         }
 
         using var wake = CancellationTokenSource.CreateLinkedTokenSource(Token);
-        await Task.WhenAny(
-            _signals.Reader.WaitToReadAsync(wake.Token).AsTask(),
-            Task.Delay(delay, _ports.Time, wake.Token)).ConfigureAwait(false);
+        var signal = _signals.Reader.WaitToReadAsync(wake.Token).AsTask();
+        var timer = Task.Delay(delay, _ports.Time, wake.Token);
+        if (Now - from < delay)
+        {
+            await Task.WhenAny(signal, timer).ConfigureAwait(false);
+        }
+
         await wake.CancelAsync().ConfigureAwait(false);
         Token.ThrowIfCancellationRequested();
     }

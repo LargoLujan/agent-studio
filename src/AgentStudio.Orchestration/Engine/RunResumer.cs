@@ -234,7 +234,7 @@ internal sealed class RunResumer(EnginePorts ports)
     internal static RunLedger Ledger(IReadOnlyList<(DecisionEntry Entry, DecisionPayload Payload)> entries, RunContext context, TaskGraph graph)
     {
         var ledger = new RunLedger();
-        var status = new Dictionary<TaskId, WorkTaskStatus>(); // where each task stands at this point of the log
+        var launched = new HashSet<TaskId>(); // the tasks whose agent was launched since they last became pending
         var stoppedReviews = new HashSet<TaskId>(); // the reviews whose current launch a check stopped
         foreach (var (entry, payload) in entries)
         {
@@ -245,8 +245,9 @@ internal sealed class RunResumer(EnginePorts ports)
                     ledger.AgentRunsUsed++;
                     ledger.Renew.Remove(task); // a renewal was for the launch after its end, which this is
                     ledger.StoppedChecks.Remove(task); // it launched: the checks in a row start again
+                    launched.Add(task);
                     break;
-                case AccessCheckedPayload { Task: { } task } check when StoppedTheLaunch(check, context, task, status):
+                case AccessCheckedPayload { Task: { } task } check when StoppedTheLaunch(check, context, task, launched):
                     // A check that stopped the launch it came before (F8-3), counted as the live run counts it: a review it
                     // stopped spent no launch, and a limit still on is one more check in a row (ADR-0034, decision 9).
                     if (context.Specs[task].Kind == WorkTaskKind.Review)
@@ -333,7 +334,11 @@ internal sealed class RunResumer(EnginePorts ports)
                         ledger.StoppedChecks.Remove(change.Task);
                     }
 
-                    status[change.Task] = change.To;
+                    if (change.To == WorkTaskStatus.Pending)
+                    {
+                        launched.Remove(change.Task);
+                    }
+
                     break;
                 case VerdictIssuedPayload verdict:
                     ledger.VerdictId = verdict.VerdictId;
@@ -374,13 +379,16 @@ internal sealed class RunResumer(EnginePorts ports)
 
     /// <summary>
     /// Whether <paramref name="check"/> stopped the launch it came before (F8-3): a session signed out, or a quota still
-    /// limited, for a review (all its checks come before its judge is launched) or for a task not running yet (an executor
-    /// runs once its agent is launched, and the read of the quota when its window ran out comes while it runs).
+    /// limited, for a review (all its checks come before its judge is launched) or for a task whose agent was not launched
+    /// since it last became pending. The read of the quota when the window of an executor ran out comes after its launch,
+    /// and that is told by its <c>AgentRunStarted</c>, which the same worker recorded before the read. Not by its move to
+    /// running: the loop records that on its own, and on a busy machine an attempt that ends at once can have its read in
+    /// the log first (docs/18 P42).
     /// </summary>
-    private static bool StoppedTheLaunch(AccessCheckedPayload check, RunContext context, TaskId task, Dictionary<TaskId, WorkTaskStatus> status) =>
+    private static bool StoppedTheLaunch(AccessCheckedPayload check, RunContext context, TaskId task, HashSet<TaskId> launched) =>
         check is { Source: AccessCheckSource.SessionProbe, Result: AccessCheckResult.SignedOut } or { Source: AccessCheckSource.QuotaRead, Result: AccessCheckResult.StillLimited }
         && context.Specs.TryGetValue(task, out var spec)
-        && (spec.Kind == WorkTaskKind.Review || status.GetValueOrDefault(task) != WorkTaskStatus.Running);
+        && (spec.Kind == WorkTaskKind.Review || !launched.Contains(task));
 
     /// <summary>
     /// The attempt records give back what the log does not carry: the result of every completed task (its first completion

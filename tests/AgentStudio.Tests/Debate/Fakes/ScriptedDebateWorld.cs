@@ -13,6 +13,7 @@ using AgentStudio.Domain.Requirements;
 using AgentStudio.Providers.Composition;
 using AgentStudio.Security.Approvals;
 using AgentStudio.Security.Redaction;
+using AgentStudio.Tests.Orchestration.Engine;
 using AgentStudio.Tests.Orchestration.Fakes;
 using AgentStudio.Tests.TestSupport;
 using Microsoft.Extensions.Time.Testing;
@@ -40,8 +41,10 @@ internal sealed class ScriptedDebateWorld : IDisposable
     public static readonly string Candidate = new('c', 40);
     public static readonly Actor System = new(ActorKind.System, "agent-studio");
 
-    public ScriptedDebateWorld()
+    /// <param name="clock">The clock of the whole world: a test's own fake clock, set at <c>T0</c>; null is a plain one.</param>
+    public ScriptedDebateWorld(FakeTimeProvider? clock = null)
     {
+        Clock = clock ?? new FakeTimeProvider(T0);
         Root = Path.Combine(Path.GetTempPath(), "agentstudio-test-" + Guid.NewGuid().ToString("N"));
         RepoRoot = Path.Combine(Root, "repo");
         DebatesRoot = Path.Combine(Root, "debates");
@@ -75,7 +78,7 @@ internal sealed class ScriptedDebateWorld : IDisposable
         Coordinator = new DebateCoordinator(Ports);
     }
 
-    public FakeTimeProvider Clock { get; } = new(T0);
+    public FakeTimeProvider Clock { get; }
 
     public InMemoryDecisionLogStore LogStore { get; } = new();
 
@@ -153,6 +156,19 @@ internal sealed class ScriptedDebateWorld : IDisposable
     /// <summary>Two participants of Anthropic (with different models) and the judge of OpenAI: the default disposition (D-13).</summary>
     public DebateRequest FreeOnAnthropic(DebateLimits? limits = null, int? maxAgentRuns = null, DebateSubject? subject = null) =>
         Request(DebateMode.Free, [(Arquitecto, DebateRole.Proponent), (Revisor, DebateRole.Critic)], [JuezCodex], limits: limits, maxAgentRuns: maxAgentRuns, subject: subject);
+
+    /// <summary>
+    /// The arena on a clock that sleeps and keeps the timers it armed (<see cref="SuspendableClock.Timers"/>); the rest of the
+    /// world keeps <see cref="Clock"/>, the awake time, which runs those timers. Call it after the last change of
+    /// <see cref="Ports"/>: it composes the coordinator again.
+    /// </summary>
+    public SuspendableClock ArenaOnSuspendableClock()
+    {
+        var clock = new SuspendableClock(Clock, timestampCountsSleep: false);
+        Ports = Ports with { Time = clock };
+        Coordinator = new DebateCoordinator(Ports);
+        return clock;
+    }
 
     public async Task<IDebateRun> OpenAsync(DebateRequest request)
     {
