@@ -310,6 +310,21 @@ caía una prueba distinta. Había dos causas, las dos en el motor.
    | Con el arreglo 1 | 0 de 30 | 1 de 30 (causa 2) |
    | Con los dos arreglos | 0 de 30 | 0 de 30, y 0 de 30 con la suite entera en paralelo |
 
-4. **Queda el mismo patrón que la causa 1 en el debate.** `DebateRun.WaitForResetAsync` lee el reloj y arma el
-   temporizador igual. Sus pruebas esperan a ver armado el temporizador antes de avanzar (`SuspendableClock.Timers`), y
-   no se ha visto fallar. Se deja como está.
+4. **El debate tenía la misma carrera que la causa 1** (`DebateRun.WaitForResetAsync`, la espera de un turno hasta el
+   reinicio del límite, o tras una sobrecarga). Calculaba cuánto mirar con el reloj y después armaba el temporizador.
+   - En la app pasaba lo mismo que en el motor: como mucho, una mirada tarde (5 s).
+   - El arreglo es el mismo. Tras armar cada mirada, el turno vuelve a leer el reloj. Si avanzó toda la mirada, mira
+     otra vez en el acto.
+   - La prueba: `A_wait_for_a_reset_ends_when_the_clock_reaches_it_while_the_turn_arms_its_timer`, con el
+     `JumpingFakeTimeProvider` (lo admite ahora `ScriptedDebateWorld`). Sin el arreglo se colgó 3 de 3 veces; con él pasa.
+   - Sus pruebas tampoco esperaban todas a ver el temporizador armado. Dos lo hacían (`SuspendableClock.Timers`). Otras
+     cuatro avanzaban el reloj tras una pausa real de 50, 200 o 250 ms:
+     - `DebateLimitsTests.The_usage_limit_of_a_provider_is_waited_alone_when_the_cli_says_when_it_resets`;
+     - en `DebateQuotaWaitTests`, la ventana agotada, la sobrecarga y la segunda mirada de
+       `A_reset_still_ahead_on_waking_is_waited_for_until_it_comes`.
+   - Ahora las seis ponen la arena en un `SuspendableClock` (`ScriptedDebateWorld.ArenaOnSuspendableClock`). Esperan al
+     primer turno de cada participante y a ver armada la mirada (`SuspendableClock.ArmedAsync`), y solo entonces miran y
+     avanzan.
+   - `SuspendableClock` anota cada temporizador después de armarlo, no antes. Así, verlo en `Timers` quiere decir que
+     adelantar el reloj lo dispara.
+   - Las dos clases del debate pasaron 30 de 30 veces seguidas, y `Debate.Arena` 5 de 5.
