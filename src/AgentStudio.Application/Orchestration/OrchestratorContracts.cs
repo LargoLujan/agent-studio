@@ -45,7 +45,12 @@ public sealed record PlanningRequest(
 /// </summary>
 public sealed record AnsweredQuestion
 {
-    /// <exception cref="ArgumentException">The answer is not to this question: another id, or another task.</exception>
+    /// <exception cref="ArgumentException">
+    /// The answer is not to this question (another id, or another task); it chooses an option the question does not have; it is
+    /// the person's own text and the question takes its options only (<see cref="AgentQuestion.AllowOther"/>); or it is the
+    /// recommended option by consent for a question of the orchestrator, which has no header of a run where that consent is
+    /// given (<see cref="RunOptions.AnswerWithRecommendedAfter"/>).
+    /// </exception>
     public AnsweredQuestion(RunId run, PendingQuestion question, QuestionAnswer answer)
     {
         ArgumentNullException.ThrowIfNull(question);
@@ -53,6 +58,21 @@ public sealed record AnsweredQuestion
         if (!string.Equals(question.Id, answer.QuestionId, StringComparison.Ordinal) || question.Task != answer.Task)
         {
             throw new ArgumentException($"The answer to '{answer.QuestionId}' does not answer the question '{question.Id}'.", nameof(answer));
+        }
+
+        if (answer.OptionId is { } option && question.Question.Option(option) is null)
+        {
+            throw new ArgumentException($"The question '{question.Id}' has no option '{option}'.", nameof(answer));
+        }
+
+        if (answer.OtherText is not null && !question.Question.AllowOther)
+        {
+            throw new ArgumentException($"The question '{question.Id}' takes one of its options only, not the person's own text.", nameof(answer));
+        }
+
+        if (answer.Method == QuestionAnswerMethod.RecommendedByConsent && question.Task is null)
+        {
+            throw new ArgumentException($"The question '{question.Id}' of the orchestrator cannot be answered by consent: no header of a run gives that consent before planning.", nameof(answer));
         }
 
         Run = run;
