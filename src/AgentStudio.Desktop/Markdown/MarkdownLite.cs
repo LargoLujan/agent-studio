@@ -100,6 +100,40 @@ public static class MarkdownLite
     }
 
     /// <summary>
+    /// <paramref name="markdown"/> as plain text, for a place that shows a text and not a document (V41: an entry of the
+    /// journal in «Memoria»): one line per line, with the marks of <see cref="Parse"/> gone (bold, code and escapes resolved).
+    /// An entry of a list at the top loses its dash; a sub-entry (a result, a «Hecho» line) reads «• …», two spaces in per
+    /// level. A block of code keeps its lines as they are. Blank lines go.
+    /// </summary>
+    public static string ToPlainText(string? markdown)
+    {
+        var lines = new List<string>();
+        foreach (var block in Parse(markdown))
+        {
+            switch (block)
+            {
+                case MarkdownHeading heading:
+                    lines.Add(Plain(heading.Spans));
+                    break;
+                case MarkdownParagraph paragraph:
+                    lines.AddRange(paragraph.Lines.Select(Plain));
+                    break;
+                case MarkdownListItem { Depth: 0 } item:
+                    lines.Add(Plain(item.Spans));
+                    break;
+                case MarkdownListItem item:
+                    lines.Add(new string(' ', 2 * item.Depth) + "• " + Plain(item.Spans));
+                    break;
+                case MarkdownCodeBlock code:
+                    lines.AddRange(code.Lines);
+                    break;
+            }
+        }
+
+        return string.Join('\n', lines);
+    }
+
+    /// <summary>
     /// The pieces of one line: an escape first (<c>\*</c> is a literal asterisk, never the start of bold), then code (its
     /// content as it is), then bold; an unclosed <c>`</c> or <c>**</c> is text.
     /// </summary>
@@ -136,6 +170,8 @@ public static class MarkdownLite
         Flush(spans, plain);
         return spans;
     }
+
+    private static string Plain(IReadOnlyList<MarkdownSpan> spans) => string.Concat(spans.Select(s => s.Text));
 
     private static void EndParagraph(List<MarkdownBlock> blocks, List<IReadOnlyList<MarkdownSpan>> paragraph)
     {

@@ -538,19 +538,20 @@ means the acceptance criterion is covered by automated tests but its manual demo
 | 5 · Debate Arena and judge | Six debate modes, limits, verdict validation, project audit, orchestrator auditor, challenges | Closed 2026-10-21 with real demonstrations of every mode |
 | 8 · Unattended work | Classified attempt endings, quota waits, resume, sleep handling, context renewal, tray, managed exit, Windows Hello and lock | Integrated 2026-10-29 and partly verified live; sleep, sign-out, fingerprint confirmation and a real usage limit are still to be demonstrated |
 | 12 · Local semantic index | Journal anchored as memory with its trust level, on-device embeddings, hybrid keyword and meaning search, relevance in context packing, a history tool for the planner; nothing reaches the judge | Merged 2026-11-05 ([PR #4](https://github.com/LargoLujan/agent-studio/pull/4)); search quality, speed and the history tool measured, the rest verified by tests; the manual demonstration of **Memoria** is pending |
-| UI fix rounds 1 and 2 | Fixes from the first live walkthrough and real-time bars for context, quota and budget | Integrated; round 2 verified live on 2026-11-03 |
+| UI fix rounds 1, 2 and 2b | Fixes from the first live walkthrough, real-time bars for context, quota and budget, and the small issues found in the 2026-11-03 walkthrough (journal view refresh, status bar context during planning, accessible names of some list items, layout at certain widths) | Integrated; round 2 verified live on 2026-11-03; round 2b merged with [PR #4](https://github.com/LargoLujan/agent-studio/pull/4), its live check pending |
 
 ### In progress
 
-- **Phase 12 follow-ups.** Three small fixes to the **Memoria** screen found in the 2026-11-05 walkthrough (V40 to V42)
-  and improvements to the hybrid search seen on the real journal (P40), listed in
-  [docs/18](docs/18-peticiones-y-pendientes.md); design in [ADR-0047](docs/adr/0047-indice-semantico-local.md).
-- **UI polish round 2b.** Small issues found in the 2026-11-03 walkthrough (journal view refresh, status bar context
-  during planning, accessible names of some list items, layout at certain widths).
+- **Phase 12 follow-ups.** V40 to V42, the three small fixes to the **Memoria** screen found in the 2026-11-05
+  walkthrough, are fixed in [PR #38](https://github.com/LargoLujan/agent-studio/pull/38) (Phase 12b) and wait for a live check. The improvements to the hybrid
+  search seen on the real journal (P40) are still open. Both are listed in [docs/18](docs/18-peticiones-y-pendientes.md);
+  design in [ADR-0047](docs/adr/0047-indice-semantico-local.md).
 - **Manual demonstrations** of the criteria marked "verified by tests" in Phases 1, 3, 4, 5, 8 and 12.
 - **Self-audit.** 93 tests fail when run under Low integrity (mostly tests that create temporary folders in
   `LocalAppData`), so "Audit whole project" cannot yet approve this repository.
-- **Design review** of [docs/17](docs/17-constructor-visual-de-agentes.md), whose open decisions gate Phases 13 to 15.
+- **Phase 13 · Visual team builder.** The design review of [docs/17](docs/17-constructor-visual-de-agentes.md) closed
+  on 2026-11-06 with every recommended option accepted (§12), which unblocks Phases 13 to 15. Phase 13 starts with its
+  foundations: language resources, the plain-text guide, the info buttons and the Windows Hello barrier.
 
 ### Planned
 

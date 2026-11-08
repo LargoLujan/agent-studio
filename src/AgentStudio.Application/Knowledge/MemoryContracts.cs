@@ -76,8 +76,9 @@ public enum MemoryOrigin
 
     /// <summary>
     /// It quotes text an agent wrote (a plan summary, the open issues of a report, a judge's summary). For a
-    /// <see cref="MemoryKind.JournalEntry"/> it means text Agent Studio did not write (the development hook, a person, a
-    /// third party): never trusted by itself, whatever the rules of the journal say (docs/17 D-02).
+    /// <see cref="MemoryKind.JournalEntry"/> it means text whose author cannot be checked, because no receipt proves Agent
+    /// Studio wrote it (the development hook, a person, a third party, or Agent Studio before Phase 12): never trusted by
+    /// itself, whatever the rules of the journal say (docs/17 D-02).
     /// </summary>
     Agent,
 }
@@ -110,7 +111,7 @@ public enum MemoryTrust
 
     /// <summary>
     /// Inherited from a history accepted as a new origin: neither prompts nor the export until it is reviewed. Also a
-    /// journal entry Agent Studio did not write (<see cref="MemoryKind.JournalEntry"/> with <see cref="MemoryOrigin.Agent"/>)
+    /// journal entry whose author cannot be checked (<see cref="MemoryKind.JournalEntry"/> with <see cref="MemoryOrigin.Agent"/>)
     /// until a person accepts it or trusts the journal of the project or of its day (docs/17 D-02).
     /// </summary>
     Quarantined,
