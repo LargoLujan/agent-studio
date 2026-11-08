@@ -7,6 +7,7 @@ using AgentStudio.Domain.Orchestration.Analysis.Rules;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Domain.Team;
 using AgentStudio.Domain.Work;
+using AgentStudio.Tests.Desktop.Localization;
 using static AgentStudio.Tests.Domain.Orchestration.Analysis.MontageFixtures;
 using static AgentStudio.Tests.Domain.TestData;
 
@@ -17,7 +18,7 @@ namespace AgentStudio.Tests.Domain.Orchestration.Analysis;
 /// exactly that way, with the finding, its nodes, its arguments and its fix; adding a code without its case fails the first
 /// test. The analyzer is pure and lives in the domain, which references nothing: it never spends quota.
 /// </summary>
-public sealed class MontageAnalyzerTests
+public sealed partial class MontageAnalyzerTests
 {
     /// <summary>One way to break the clean draft for each code, and what the finding must say.</summary>
     private sealed record Case(MontageDraft Draft, IReadOnlyList<string> Nodes, IReadOnlyList<object> Arguments, Fix? Fix, FindingSeverity Severity);
@@ -339,6 +340,62 @@ public sealed class MontageAnalyzerTests
         Assert.Equal(2, MontageAnalyzer.Analyze(draft).Findings.Count);
         Assert.Equal(Shape(MontageAnalyzer.Analyze(draft)), Shape(MontageAnalyzer.Analyze(draft)));
     }
+
+    [Fact]
+    public void Each_sentence_and_button_has_its_text_in_Spanish_and_English_with_exactly_its_arguments()
+    {
+        var files = LocalizationTestSupport.ResourceFiles();
+        var (neutralFile, satellites) = files["MontageStrings"];
+        var spanish = LocalizationTestSupport.Read(neutralFile);
+        var english = LocalizationTestSupport.Read(satellites["en"]);
+
+        void Has(string code, IReadOnlyList<object> arguments)
+        {
+            var key = "Text_" + code.Replace('.', '_').Replace('-', '_');
+            foreach (var (texts, culture) in new[] { (spanish, "es-ES"), (english, "en") })
+            {
+                Assert.True(texts.TryGetValue(key, out var text), $"{key} is not in MontageStrings.");
+                var used = Placeholder().Matches(text).Select(m => int.Parse(m.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture)).Distinct().Order().ToList();
+                Assert.True(used.SequenceEqual(Enumerable.Range(0, arguments.Count)), $"{key} uses {{{string.Join(",", used)}}} but has {arguments.Count} arguments.");
+                _ = string.Format(System.Globalization.CultureInfo.GetCultureInfo(culture), text, [.. arguments]);
+            }
+        }
+
+        foreach (var code in FindingCodes.All)
+        {
+            var finding = Assert.Single(MontageAnalyzer.Analyze(Cases[code]().Draft).Findings);
+            var sentence = MontageTexts.SentenceOf(finding);
+            Has(sentence.Code, sentence.Arguments);
+            if (finding.Fix is { } fix)
+            {
+                var button = MontageTexts.ButtonOf(fix);
+                Has(button.Code, button.Arguments);
+            }
+        }
+
+        Has(MontageTexts.QuotaWindowNearWithoutReset, ["claude-code", "5h", 82]);
+        Fix[] everyFix =
+        [
+            new AddIntegrationFix(), new AddBuildStepFix(Tid("T1"), "build"), new AddDependencyFix(Tid("T2"), Tid("T1")), new ReassignTaskFix(Tid("T1"), Aid("e")),
+            new SwitchJudgeFix(Tid("R1"), Aid("j")), new AddJudgeFix(ProviderId.CodexCli, VendorId.OpenAI), new WidenAgentFoldersFix(Aid("e"), "src/"),
+            new RaiseContextBudgetFix(Aid("e"), 30_000), new RaiseRunBudgetFix(20), new ChangeModelFix(Aid("e"), "sonnet"), new ChangeModelFix(Aid("e"), "sonnet", ReasoningEffort.High),
+            new SetMemoryFix(Aid("e"), MemoryPolicy.ReadSelected), new SetMemoryFix(Aid("e"), MemoryPolicy.None), new RemoveSkillsFix(Aid("e"), ["a", "b"]), new RemoveCapabilityFix(Aid("e"), "Bash"),
+        ];
+        Assert.Equal(MontageTexts.FixCodes.Order(StringComparer.Ordinal), everyFix.Select(f => MontageTexts.ButtonOf(f).Code).Distinct().Order(StringComparer.Ordinal));
+        foreach (var fix in everyFix)
+        {
+            var button = MontageTexts.ButtonOf(fix);
+            Has(button.Code, button.Arguments);
+        }
+
+        foreach (var refusal in typeof(FixRefusals).GetFields().Select(f => (string)f.GetValue(null)!))
+        {
+            Has(refusal, []);
+        }
+    }
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"\{(\d+)(?:[,:][^}]*)?\}")]
+    private static partial System.Text.RegularExpressions.Regex Placeholder();
 
     [Fact]
     public void Each_finding_and_fix_says_its_sentence_with_text_arguments_only()
