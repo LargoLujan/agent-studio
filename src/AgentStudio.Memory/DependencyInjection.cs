@@ -30,7 +30,8 @@ public static class DependencyInjection
     /// <see cref="IProjectMemory"/> (one instance, so every memory write of a project goes through the same gate), its
     /// Markdown export (<see cref="IMemoryExporter"/>), the context packer (<see cref="IContextPacker"/>), the daily
     /// summary (<see cref="IDailySummaryService"/>), the derivation of the memory from the log and the journal
-    /// (<see cref="IMemoryDerivation"/>, D-18 and docs/17 D-02) and the trust of the journal (<see cref="IJournalTrust"/>). They need the persistence (<c>AddAgentStudioPersistence</c>: the
+    /// (<see cref="IMemoryDerivation"/>, D-18 and docs/17 D-02), the trust of the journal (<see cref="IJournalTrust"/>) and the brief
+    /// of the project (<see cref="IProjectBrief"/>, docs/17 D-10, which the packer gives every agent but the judge). They need the persistence (<c>AddAgentStudioPersistence</c>: the
     /// decision recorder, the memory store and the checked storage), the redactor (<c>AddAgentStudioSecurity</c>) and the
     /// <see cref="Application.Orchestration.IRunActivity"/> of the orchestrator, which this method does not register: with
     /// no activity the container does not build, so no memory write ever runs as if no run could be going on. The system
@@ -57,6 +58,7 @@ public static class DependencyInjection
         });
         services.TryAddSingleton<IProjectMemory>(provider => provider.GetRequiredService<ProjectMemory>());
         services.TryAddSingleton<IMemoryExporter, MemoryMarkdownExporter>();
+        services.TryAddSingleton<IProjectBrief, ProjectBriefStore>();
         services.TryAddSingleton<IContextPacker, ContextPacker>();
         services.TryAddSingleton<IDailySummaryService, DailySummaryService>();
         services.TryAddSingleton<IMemoryDerivation, Derivation.MemoryDerivation>();
