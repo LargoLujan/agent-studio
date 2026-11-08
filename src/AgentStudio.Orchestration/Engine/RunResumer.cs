@@ -210,7 +210,11 @@ internal sealed class RunResumer(EnginePorts ports)
         throw new InvalidOperationException($"Run {recorder.Run} cannot be resumed: {problem}");
     }
 
-    /// <summary>The events of the domain in the entries of a run, in log order: what <see cref="RunStateReplayer"/> replays.</summary>
+    /// <summary>
+    /// The events of the domain in the entries of a run, in log order: what <see cref="RunStateReplayer"/> replays. Phase 13
+    /// adds the questions (<c>QuestionAsked</c> and <c>QuestionAnswered</c>) and the reason of every block, so replay knows
+    /// which task waits for an answer.
+    /// </summary>
     internal static IEnumerable<RunEvent> Events(IReadOnlyList<(DecisionEntry Entry, DecisionPayload Payload)> entries)
     {
         foreach (var (entry, payload) in entries)
@@ -218,10 +222,16 @@ internal sealed class RunResumer(EnginePorts ports)
             switch (payload)
             {
                 case TaskStatusChangedPayload p:
-                    yield return new TaskTransitioned(entry.RecordedAt, p.Task, p.From, p.To, p.Reason, p.Evidence);
+                    yield return new TaskTransitioned(entry.RecordedAt, p.Task, p.From, p.To, p.Reason, p.Evidence, p.BlockReason);
                     break;
                 case ConditionEvaluatedPayload p:
                     yield return new ConditionResolved(entry.RecordedAt, p.Task, p.Branch);
+                    break;
+                case QuestionAskedPayload p:
+                    yield return new QuestionPosed(entry.RecordedAt, p.Task, p.Question);
+                    break;
+                case QuestionAnsweredPayload p:
+                    yield return new QuestionResolved(entry.RecordedAt, p.Task, p.Question);
                     break;
             }
         }
