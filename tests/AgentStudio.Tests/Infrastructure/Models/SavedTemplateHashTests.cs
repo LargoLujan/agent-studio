@@ -22,8 +22,11 @@ namespace AgentStudio.Tests.Infrastructure.Models;
 /// </summary>
 public sealed class SavedTemplateHashTests : IDisposable
 {
-    /// <summary>The hash <c>RosterHashTests</c> pinned on 2026-11-06 for this roster, from an independent implementation.</summary>
-    private const string PinnedHash = "7758a631fa11dec21d4592c85d18beab2cdb321d034f6b9231a6a5af86a604b5";
+    /// <summary>
+    /// The hash of this template, pinned on 2026-11-08 and computed with an independent implementation of the canonical form
+    /// (length-prefixed fields, SHA-256), the same one that gives the value <c>RosterHashTests</c> pins for its roster.
+    /// </summary>
+    private const string PinnedHash = "32612847f3ba8d843ede98baf4898debadd73c1425e0ae54e2b7a1cc79c71793";
 
     private readonly TempProjectFolder _folder = new();
 
@@ -31,7 +34,7 @@ public sealed class SavedTemplateHashTests : IDisposable
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    /// <summary>The roster of <c>RosterHashTests</c>: an executor and a judge, both with haiku, as a template of before.</summary>
+    /// <summary>An executor and a judge (read-only, as the store requires), both with haiku, as a template of before.</summary>
     private static AgentDefinition Agent(string id, AgentRole role) => new(
         Aid(id),
         "Agente " + id,
@@ -40,7 +43,7 @@ public sealed class SavedTemplateHashTests : IDisposable
         "Instrucciones de " + id,
         ["objetivo"],
         ["Read", "Edit"],
-        [new PathGrant("src/", FileAccessLevel.ReadWrite)],
+        [new PathGrant("src/", role == AgentRole.Judge ? FileAccessLevel.Read : FileAccessLevel.ReadWrite)],
         new ExecutionBudget(20, TimeSpan.FromMinutes(10), 1000, 1.25m),
         3,
         MemoryPolicy.None,
