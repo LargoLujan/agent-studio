@@ -1,3 +1,5 @@
+using AgentStudio.Domain.Security;
+
 namespace AgentStudio.Application.Security;
 
 // Phase 8 contract (docs/16 D-13, F8-10 and F8-11): Windows Hello as a reinforced confirmation of the critical approvals and
@@ -109,4 +111,32 @@ public interface IWindowsLockConfirmation
     /// </summary>
     /// <exception cref="OperationCanceledException">The caller cancelled before the unlock.</exception>
     Task<WindowsLockResult> LockAndConfirmAsync(TimeSpan timeout, CancellationToken cancellationToken);
+}
+
+/// <summary>
+/// The results of Windows as the barrier judges them (<see cref="PresenceProof"/>, <c>PresencePolicy.IsSatisfiedBy</c>): only a
+/// verified Hello or a lock unlocked after the request confirm the person; anything else confirms nothing.
+/// </summary>
+public static class PresenceProofs
+{
+    /// <summary>What a Windows Hello result proves: <see cref="PresenceProof.WindowsHello"/> when Windows confirmed the person, else nothing.</summary>
+    public static PresenceProof FromHello(UserPresenceResult result) =>
+        result == UserPresenceResult.Verified ? PresenceProof.WindowsHello : PresenceProof.None;
+
+    /// <summary>What a lock of Windows proves: <see cref="PresenceProof.WindowsLockUnlockedAfterRequest"/> only when the state of the session says so, else nothing.</summary>
+    public static PresenceProof FromWindowsLock(WindowsLockResult result) =>
+        result == WindowsLockResult.UnlockedAfterRequest ? PresenceProof.WindowsLockUnlockedAfterRequest : PresenceProof.None;
+
+    /// <summary>
+    /// The method an answer records for a proof (<see cref="ApprovalVerification"/>, in <c>ApprovalGranted</c> and
+    /// <c>ApprovalDenied</c> version 2); null for <see cref="PresenceProof.None"/>, which approves nothing.
+    /// </summary>
+    public static ApprovalVerification? Verification(PresenceProof proof) => proof switch
+    {
+        PresenceProof.Dialog => ApprovalVerification.Dialog,
+        PresenceProof.DialogWithHelloUnavailable => ApprovalVerification.WindowsHelloUnavailable,
+        PresenceProof.WindowsHello => ApprovalVerification.WindowsHello,
+        PresenceProof.WindowsLockUnlockedAfterRequest => ApprovalVerification.WindowsLock,
+        _ => null,
+    };
 }

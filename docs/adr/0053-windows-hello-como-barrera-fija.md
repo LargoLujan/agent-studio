@@ -19,7 +19,10 @@
      aprobaciones importantes» (`AppSettings.WindowsHelloForImportantApprovals`; el fichero de antes se lee con su nombre
      viejo; P0) y solo gobierna lo configurable. Hasta que WP5 conecte la barrera, gobierna lo de la Fase 8.
   3. **Una sola regla para todos los caminos** (D-39): la puerta, «Aprobar plan», aceptar un historial, guardar una plantilla
-     con una capacidad de alto riesgo o un perfil, y el consentimiento de skills, que deja por fin su `ApprovalGranted`.
+     con una capacidad de alto riesgo o un perfil, y el consentimiento de skills, que deja por fin su `ApprovalGranted`. Qué
+     confirmación vale la dice una sola regla del dominio, `PresencePolicy.IsSatisfiedBy(acción, ajuste, PresenceProof)` (P0,
+     revisión del 2026-11-08): para «Siempre», solo Windows Hello o el bloqueo de Windows desbloqueado después de la
+     petición; los resultados de Windows se convierten con `PresenceProofs` (Application).
   4. **Sin Hello en el equipo** (D-40 (a)): la app bloquea Windows y comprueba con el estado de la sesión que se desbloqueó
      después de la petición (`IWindowsLockConfirmation`, `WindowsLockResult`; se anota como
      `ApprovalVerification.WindowsLock`; P0).

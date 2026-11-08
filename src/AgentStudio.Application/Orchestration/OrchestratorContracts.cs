@@ -1,3 +1,4 @@
+using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Providers;
 using AgentStudio.Application.Security;
@@ -26,7 +27,46 @@ public sealed record PlanningRequest(
     IReadOnlyList<AgentDefinition> Roster,
     AgentId Orchestrator,
     VerificationProfile Verification,
-    PlanLimits Limits);
+    PlanLimits Limits)
+{
+    /// <summary>
+    /// Phase 13 (docs/17 D-28 and D-30): the person's answers to the questions the orchestrator asked instead of a plan
+    /// (<see cref="PlanProposal.Questions"/>), each with its question and the run of the planning that asked. The planner
+    /// records each <c>QuestionAnswered</c> in that run and gives the questions and the answers to the orchestrator as data.
+    /// Null or empty for a planning that follows no questions: one round of questions at most, so a planning with answers
+    /// never asks again.
+    /// </summary>
+    public IReadOnlyList<AnsweredQuestion>? Answers { get; init; }
+}
+
+/// <summary>
+/// A question and the person's answer to it (docs/17 D-29 and D-30), in the run of the planning or of the task that asked.
+/// For the orchestrator before it plans, the task of both is null.
+/// </summary>
+public sealed record AnsweredQuestion
+{
+    /// <exception cref="ArgumentException">The answer is not to this question: another id, or another task.</exception>
+    public AnsweredQuestion(RunId run, PendingQuestion question, QuestionAnswer answer)
+    {
+        ArgumentNullException.ThrowIfNull(question);
+        ArgumentNullException.ThrowIfNull(answer);
+        if (!string.Equals(question.Id, answer.QuestionId, StringComparison.Ordinal) || question.Task != answer.Task)
+        {
+            throw new ArgumentException($"The answer to '{answer.QuestionId}' does not answer the question '{question.Id}'.", nameof(answer));
+        }
+
+        Run = run;
+        Question = question;
+        Answer = answer;
+    }
+
+    /// <summary>The run of the planning or of the task that asked.</summary>
+    public RunId Run { get; }
+
+    public PendingQuestion Question { get; }
+
+    public QuestionAnswer Answer { get; }
+}
 
 /// <summary>
 /// The result of planning. <see cref="Plan"/> is null when the agent produced nothing usable; <see cref="Violations"/>
@@ -52,6 +92,14 @@ public sealed record PlanProposal(
     /// it is also in the prompt captured as evidence, which mentions the tool only then.
     /// </summary>
     public string? HistoryToolNotice { get; init; }
+
+    /// <summary>
+    /// Phase 13 (docs/17 D-28): the questions the orchestrator asked instead of a plan, before planning, in one round and
+    /// <see cref="QuestionRules.MaxPlannerQuestions"/> at most, each validated and recorded (<c>QuestionAsked</c> with a null
+    /// task, in <see cref="Run"/>). With questions, <see cref="Plan"/> is null; the person answers them and the next planning
+    /// gets the answers (<see cref="PlanningRequest.Answers"/>). Null or empty when the orchestrator asked nothing.
+    /// </summary>
+    public IReadOnlyList<PendingQuestion>? Questions { get; init; }
 }
 
 /// <summary>
@@ -228,6 +276,12 @@ public sealed record TaskView(
 /// evidence, what the system estimates for each option, and when it was asked. The options are data of the agent: the window
 /// frames them as such, and choosing one grants nothing.
 /// </summary>
+/// <param name="Estimates">
+/// The estimate of each option exactly as <c>QuestionAsked</c> records it (<see cref="OptionEstimateSnapshot"/>: the interval
+/// of total tokens from the 25th to the 75th percentile, each end with its value, provenance and origin, and its references),
+/// in the order of the options; empty when nothing was estimated. So what the window shows is rebuilt the same from the log
+/// after a restart. The engine turns the <see cref="UsageEstimate"/> of the estimator into it when it records the question.
+/// </param>
 public sealed record PendingQuestion(
     string Id,
     TaskId? Task,
@@ -235,8 +289,12 @@ public sealed record PendingQuestion(
     int Attempt,
     AgentQuestion Question,
     EvidenceId Evidence,
-    IReadOnlyDictionary<string, UsageEstimate> Estimates,
-    DateTimeOffset AskedAt);
+    IReadOnlyList<OptionEstimateSnapshot> Estimates,
+    DateTimeOffset AskedAt)
+{
+    /// <summary>The estimate of the option <paramref name="option"/>, or null when it has none.</summary>
+    public OptionEstimateSnapshot? EstimateOf(string option) => Estimates.FirstOrDefault(e => string.Equals(e.Option, option, StringComparison.Ordinal));
+}
 
 /// <summary>
 /// The state of a run at one moment: its phase, its tasks, the health of its graph and the agent runs it used. Tanda 2

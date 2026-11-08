@@ -108,10 +108,18 @@ public sealed record AgentDefinition(
             problems.Add("agent.memory-proposals-not-available");
         }
 
-        // The effort reaches a CLI as a token of a closed list (docs/17 D-25): never a value outside it.
-        if (Effort is { } effort && !Enum.IsDefined(effort))
+        // The effort reaches a CLI as a token of a closed list (docs/17 D-25): never a value outside it, and only one of the
+        // levels its CLI takes (Claude Code has no «minimal», Codex no «max», another provider none).
+        if (Effort is { } effort)
         {
-            problems.Add("agent.effort-unknown");
+            if (!Enum.IsDefined(effort))
+            {
+                problems.Add("agent.effort-unknown");
+            }
+            else if (!ReasoningEfforts.Accepts(Model.Provider, effort))
+            {
+                problems.Add("agent.effort-not-for-provider");
+            }
         }
 
         return problems;

@@ -75,6 +75,29 @@ public enum PresenceRequirement
 }
 
 /// <summary>
+/// What confirmed the person when they approved (docs/17 D-37 and D-40): the domain's view of how the app confirmed them, which
+/// <see cref="PresencePolicy.IsSatisfiedBy"/> judges. The application turns the results of Windows into it (<c>PresenceProofs</c>,
+/// in <c>Application/Security/UserPresenceContracts.cs</c>).
+/// </summary>
+public enum PresenceProof
+{
+    /// <summary>Nothing confirmed the person: Windows Hello failed or was cancelled, or the lock of Windows was not verified.</summary>
+    None,
+
+    /// <summary>The dialog alone: Windows Hello was not asked.</summary>
+    Dialog,
+
+    /// <summary>The dialog alone, because Windows Hello is not available on this computer, with a warning (Phase 8).</summary>
+    DialogWithHelloUnavailable,
+
+    /// <summary>Windows Hello confirmed the person.</summary>
+    WindowsHello,
+
+    /// <summary>The verified lock of Windows (D-40 (a)): the state of the session says it was unlocked after the request.</summary>
+    WindowsLockUnlockedAfterRequest,
+}
+
+/// <summary>
 /// The fixed barrier of Windows Hello (docs/17 D-37 to D-39): a list in the code, pure, that no setting and no file turns off.
 /// The settings of Agent Studio only govern what is <see cref="PresenceRequirement.Configurable"/>; editing them by hand,
 /// adding keys of one's own or deleting the file does not change <see cref="PresenceRequirement.Always"/>. Every path (the
@@ -115,5 +138,26 @@ public static class PresencePolicy
         PresenceRequirement.Always => true,
         PresenceRequirement.Configurable => importantApprovalsSetting,
         _ => false,
+    };
+
+    /// <summary>
+    /// Whether <paramref name="proof"/> is enough to approve <paramref name="action"/> (docs/17 D-37 and D-40 (a)). The one rule
+    /// every path asks (WP5):
+    /// <list type="bullet">
+    /// <item>«Siempre»: only Windows Hello, or the lock of Windows verified as unlocked after the request. Nothing else: not
+    /// the dialog alone, not the dialog with Hello unavailable, whatever the setting says.</item>
+    /// <item>«Configurable» with the setting on: those two, or the dialog with Hello unavailable and its warning, as in Phase 8.</item>
+    /// <item>«Configurable» with the setting off: the dialog is enough.</item>
+    /// <item>«Nunca»: nothing is asked.</item>
+    /// </list>
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">The action is not one of the list.</exception>
+    public static bool IsSatisfiedBy(PresenceAction action, bool importantApprovalsSetting, PresenceProof proof) => RequirementOf(action) switch
+    {
+        PresenceRequirement.Always => proof is PresenceProof.WindowsHello or PresenceProof.WindowsLockUnlockedAfterRequest,
+        PresenceRequirement.Configurable when importantApprovalsSetting =>
+            proof is PresenceProof.WindowsHello or PresenceProof.WindowsLockUnlockedAfterRequest or PresenceProof.DialogWithHelloUnavailable,
+        PresenceRequirement.Configurable => proof is not PresenceProof.None && Enum.IsDefined(proof),
+        _ => true,
     };
 }
