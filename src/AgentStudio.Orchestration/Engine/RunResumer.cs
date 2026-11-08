@@ -121,6 +121,7 @@ internal sealed class RunResumer(EnginePorts ports)
         try
         {
             await LoadAttemptRecordsAsync(recorder, entries, graph, ledger, cancellationToken).ConfigureAwait(false);
+            await Questions.QuestionRecovery.LoadAsync(recorder, entries, replay, ledger.Questions, cancellationToken).ConfigureAwait(false);
         }
         catch (InvalidOperationException ex)
         {
@@ -140,6 +141,7 @@ internal sealed class RunResumer(EnginePorts ports)
 
         ledger.IntegrationCommit = LastIntegration(entries, context, ledger);
         await RecoverAsync(recorder, entries, context, graph, ledger, cancellationToken).ConfigureAwait(false);
+        await ContinueAnsweredAsync(recorder, entries, context, graph, ledger, cancellationToken).ConfigureAwait(false);
         await ReopenInterruptedAsync(recorder, context, graph, ledger, cause, cancellationToken).ConfigureAwait(false);
         return new ResumedRun(context, graph, ledger, recorder, guard);
     }
@@ -246,6 +248,7 @@ internal sealed class RunResumer(EnginePorts ports)
         var ledger = new RunLedger();
         var status = new Dictionary<TaskId, WorkTaskStatus>(); // where each task stands at this point of the log
         var stoppedReviews = new HashSet<TaskId>(); // the reviews whose current launch a check stopped
+        var lastFinished = new Dictionary<TaskId, AgentRunFinishedPayload>(); // the latest end of each task, for its question
         foreach (var (entry, payload) in entries)
         {
             switch (payload)
@@ -272,6 +275,7 @@ internal sealed class RunResumer(EnginePorts ports)
 
                     break;
                 case AgentRunFinishedPayload { Task: { } task } finished:
+                    lastFinished[task] = finished;
                     if (finished.SessionId is { } session)
                     {
                         ledger.Sessions[task] = session;
@@ -291,6 +295,19 @@ internal sealed class RunResumer(EnginePorts ports)
                     else
                     {
                         ledger.Renew.Remove(task);
+                    }
+
+                    break;
+                case QuestionAskedPayload { Task: { } task } asked when lastFinished.TryGetValue(task, out var asking) && asking.Attempt == asked.Attempt:
+                    // The attempt with the answer resumes the session that asked (docs/17 D-30), as the live run decided at its end:
+                    // a new one with a handoff when it left none, or when its context reached the compression threshold.
+                    if (string.IsNullOrWhiteSpace(asking.SessionId))
+                    {
+                        ledger.Renew[task] = HandoffReason.SessionNotResumable;
+                    }
+                    else if (Handoff.NearlyFull(asking.ContextPeak))
+                    {
+                        ledger.Renew[task] = HandoffReason.ContextNearlyFull;
                     }
 
                     break;
@@ -661,6 +678,26 @@ internal sealed class RunResumer(EnginePorts ports)
         }
 
         ledger.VerdictId = verdict.VerdictId;
+    }
+
+    /// <summary>
+    /// Phase 13 (docs/17 D-29 and D-30): what an answer recorded just before the app stopped left undone. A task still blocked
+    /// waiting for an answer it already got goes on now, as it would have live, and the decision for the judge of every answered
+    /// question is captured if it is not yet. A task whose question is still pending keeps waiting: no process to cut.
+    /// </summary>
+    private async Task ContinueAnsweredAsync(
+        RunRecorder recorder,
+        IReadOnlyList<(DecisionEntry Entry, DecisionPayload Payload)> entries,
+        RunContext context,
+        TaskGraph graph,
+        RunLedger ledger,
+        CancellationToken cancellationToken)
+    {
+        await Questions.QuestionRecovery.CaptureMissingDecisionsAsync(recorder, entries, ledger.Questions, graph.Tasks.Select(t => t.Id), cancellationToken).ConfigureAwait(false);
+        foreach (var task in graph.Tasks.Where(t => t.Status == WorkTaskStatus.Blocked && ledger.Blocks.GetValueOrDefault(t.Id)?.Kind == BlockKind.AwaitingAnswer && !ledger.Questions.Pending.ContainsKey(t.Id)).ToList())
+        {
+            await MoveAsync(recorder, graph, ledger, task.Id, WorkTaskStatus.Pending, "Su pregunta ya tenía respuesta cuando se cerró la aplicación: sigue con un intento nuevo.", null, context, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     /// <summary>The resume: the partial work of each interrupted attempt is kept as evidence and its worktree reset; the task is pending again.</summary>

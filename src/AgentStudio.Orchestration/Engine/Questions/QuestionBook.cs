@@ -104,6 +104,9 @@ internal sealed class QuestionBook
         list.Add(answered);
     }
 
+    /// <summary>After a restart: the task waits for <paramref name="question"/>, as replay found it (<see cref="QuestionRecovery"/>).</summary>
+    public void Wait(AskedQuestion question) => _pending[question.Task] = question;
+
     /// <summary>The task no longer waits for its question (it was cancelled): the question is let go, unanswered.</summary>
     public void Drop(TaskId task) => _pending.Remove(task);
 }
