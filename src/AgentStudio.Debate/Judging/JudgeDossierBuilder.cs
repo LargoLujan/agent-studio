@@ -6,6 +6,7 @@ using AgentStudio.Application.Judging;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Domain.Common;
+using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Evidence;
 using AgentStudio.Domain.Judging;
 using AgentStudio.Domain.Orchestration;
@@ -44,6 +45,10 @@ namespace AgentStudio.Debate.Judging;
 /// building again at the same head rewrites the same package and a later state of the log gets a new one. Nothing is
 /// deleted nor written through a link (junction or symbolic link) from the root down, and the files of the package
 /// are always new files.</item>
+/// <item>Phase 13: the prompts of the executors (with the brief, the instructions of the agents and the answers of the
+/// person) and the questions as the agents wrote them (with their recommended option and efforts) never reach the judge,
+/// nor the <c>QuestionAsked</c> entries (with the recommendation and the estimates): of every question, the judge gets the
+/// decision of the person, only the choice (docs/17 D-33).</item>
 /// </list>
 /// Phase 3 only reviews runs: a request without a run id is refused (the whole-project audit is Phase 5).
 /// </remarks>
@@ -110,7 +115,8 @@ public sealed class JudgeDossierBuilder(
             ?? throw new InvalidOperationException($"The plan {started.PlanHash} of run '{run}' is not stored.");
         var originalRequest = await ReadOriginalRequestAsync(projectId, header.OriginalRequest, RunLog.AnchoredSha256(runEntries, header.OriginalRequest), checks, cancellationToken).ConfigureAwait(false);
         var stored = await evidence.ListByRunAsync(projectId, run.Value, cancellationToken).ConfigureAwait(false);
-        var runEvidence = RunLog.RegisteredEvidence(runEntries, stored, checks);
+        var withheld = WithheldFromTheJudge(runEntries);
+        var runEvidence = RunLog.RegisteredEvidence(runEntries, stored, checks).Where(e => !withheld.Contains(e.Id)).ToList();
         if (!runEvidence.Any(e => e.Id == header.OriginalRequest))
         {
             checks.Add($"The original request (evidence '{header.OriginalRequest}') named by the run header is not evidence the decision log registered for this run.");
@@ -125,7 +131,7 @@ public sealed class JudgeDossierBuilder(
             originalRequest,
             frozen,
             PlanJson.Render(plan),
-            runEntries,
+            [.. runEntries.Where(e => e.Kind != DecisionKind.QuestionAsked)],
             log.HeadHash,
             runEvidence,
             [.. replay.Graph.Tasks.Select(t => t.Snapshot())],
@@ -136,6 +142,47 @@ public sealed class JudgeDossierBuilder(
 
         var folder = PackageFolder(projectId, run, log.HeadHash);
         return await WritePackageAsync(folder, projectId, run, dossier, checks, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Phase 13 (docs/17 D-10, D-33 and D-42; F13-4 and F13-13): what of the run never reaches the judge, quietly, as the prompts
+    /// with memory never do (ADR-0022). The judge gets the decisions of the person, and only the choice:
+    /// <list type="bullet">
+    /// <item>the prompt of every executor (<c>InstructionsIssued</c>): it carries the brief of the project, the instructions of
+    /// its agent and the answers of the person in their blocks of data, which guide the agent and say nothing of whether the
+    /// requirements are met;</item>
+    /// <item>the question as the agent wrote it (<c>QuestionAsked</c>), with the option it recommended and the effort of each
+    /// option; the entry itself also stays out of the decisions of the dossier, for it names the recommended option and the
+    /// estimates of the system.</item>
+    /// </list>
+    /// What the judge gets of a question is its decision: the document the system captured when it was answered (the question,
+    /// its reason and its options as the agent wrote them, and the choice), the <c>QuestionAnswered</c> entry, and the person's
+    /// own text when there is one.
+    /// </summary>
+    private static HashSet<EvidenceId> WithheldFromTheJudge(IReadOnlyList<DecisionEntry> runEntries)
+    {
+        var withheld = new HashSet<EvidenceId>();
+        foreach (var entry in runEntries)
+        {
+            try
+            {
+                switch (entry.Kind)
+                {
+                    case DecisionKind.InstructionsIssued:
+                        withheld.Add(DecisionPayloadSerializer.Deserialize<InstructionsIssuedPayload>(entry.PayloadJson).PromptEvidenceId);
+                        break;
+                    case DecisionKind.QuestionAsked:
+                        withheld.Add(DecisionPayloadSerializer.Deserialize<QuestionAskedPayload>(entry.PayloadJson).QuestionEvidence);
+                        break;
+                }
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                // A payload that cannot be read names nothing to withhold; the replay of the run reports what it cannot read.
+            }
+        }
+
+        return withheld;
     }
 
     /// <summary>
