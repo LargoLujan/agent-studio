@@ -72,7 +72,21 @@ public sealed record MontageDraft(
     OrderNotes OrderNotes,
     ModelCatalog? Catalog,
     MontageLearnedFacts Learned,
-    ContextHealthThresholds Thresholds);
+    ContextHealthThresholds Thresholds)
+{
+    /// <summary>
+    /// WP1 (docs/17 D-18, B6): the steps of the trusted verification profile, in its order, so the analyzer can tell a test
+    /// step that gets a build before it (the task names one first, or the step requires one) from one that does not. Empty
+    /// when the caller does not know the profile: then <see cref="FindingCodes.TestWithoutBuild"/> says nothing.
+    /// </summary>
+    public IReadOnlyList<VerificationStepFacts> Steps { get; init; } = [];
+}
+
+/// <summary>
+/// One step of the trusted verification profile as the analyzer reads it (WP1, docs/17 D-18): its id, whether it builds
+/// (its evidence is a build log), whether it runs tests, and the steps it requires, which the system runs before it.
+/// </summary>
+public sealed record VerificationStepFacts(string Id, bool Builds, bool RunsTests, IReadOnlyList<string> Requires);
 
 /// <summary>
 /// One rule of the analyzer (docs/17 D-18, WP1): deterministic, pure and free. It reads the draft and returns its findings; it
