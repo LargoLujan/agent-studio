@@ -2,6 +2,9 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Orchestration;
+using AgentStudio.Domain.Orchestration.Analysis;
+using AgentStudio.Domain.Orchestration.Analysis.Rules;
+using AgentStudio.Domain.Questions;
 using AgentStudio.Domain.Work;
 
 namespace AgentStudio.Orchestration.Planning;
@@ -11,7 +14,23 @@ namespace AgentStudio.Orchestration.Planning;
 /// shape of <see cref="PlanSchema"/>; <see cref="Problems"/> then says why (in English, like the validator, because the
 /// correction round sends them back to the agent).
 /// </summary>
-public sealed record PlanParseResult(PlanDefinition? Plan, IReadOnlyList<string> Problems);
+public sealed record PlanParseResult(PlanDefinition? Plan, IReadOnlyList<string> Problems)
+{
+    /// <summary>
+    /// Phase 13 (docs/17 D-19): the notes of order of the orchestrator that survived <see cref="OrderNotesCheck"/> against the
+    /// plan (none without a plan). Text of an agent: shown as «nota del orquestador», they never rule.
+    /// </summary>
+    public OrderNotes OrderNotes { get; init; } = OrderNotes.None;
+
+    /// <summary>Why notes were left out (in English, for logs): an unknown task, a reason too long or with control characters…</summary>
+    public IReadOnlyList<string> DiscardedNotes { get; init; } = [];
+
+    /// <summary>
+    /// Phase 13 (docs/17 D-28): the questions the orchestrator asks instead of a plan, before it plans, valid by
+    /// <see cref="QuestionRules"/> (three at most). Empty for a plan. An answer with both questions and tasks is not valid.
+    /// </summary>
+    public IReadOnlyList<AgentQuestion> Questions { get; init; } = [];
+}
 
 /// <summary>
 /// Reads the orchestrator's JSON strictly (ADR-0013): exactly one object, every property of the schema present (also the
@@ -68,6 +87,18 @@ public static class PlanParser
             problems.Add("'tasks' contains null.");
         }
 
+        // Phase 13 (docs/17 D-28): questions instead of a plan, never both.
+        if (document.Questions is { Count: > 0 } asked)
+        {
+            if (document.Tasks.Count > 0)
+            {
+                problems.Add("The answer has both 'questions' and 'tasks': either ask the person (with 'tasks' empty) or propose the plan (with 'questions' empty).");
+                return new PlanParseResult(null, problems);
+            }
+
+            return Questions(asked, problems);
+        }
+
         var index = 0;
         foreach (var task in document.Tasks.Where(t => t is not null))
         {
@@ -77,14 +108,143 @@ public static class PlanParser
             }
         }
 
+        var raw = Notes(document.OrderNotes, problems);
         if (problems.Count > 0)
         {
             return new PlanParseResult(null, problems);
         }
 
-        return new PlanParseResult(
-            PlanDefinition.Create(document.Summary, tasks, document.Risks, PlanSource.OrchestratorAgent, author),
-            []);
+        var plan = PlanDefinition.Create(document.Summary, tasks, document.Risks, PlanSource.OrchestratorAgent, author);
+        var (notes, discarded) = OrderNotesCheck.Check(raw, plan.Tasks.Select(t => t.Id));
+        return new PlanParseResult(plan, []) { OrderNotes = notes, DiscardedNotes = discarded };
+    }
+
+    /// <summary>
+    /// Reads the notes of order of an answer of «Revisar el orden» (docs/17 D-20): one JSON object in the shape of
+    /// <see cref="PlanSchema.OrderReviewSchema"/>, as strictly as a plan. What the notes say is checked by the caller.
+    /// </summary>
+    public static (OrderNotes? Notes, IReadOnlyList<string> Problems) ParseOrderNotes(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return (null, ["The answer is empty: expected one JSON object with the notes of order."]);
+        }
+
+        try
+        {
+            if (JsonSerializer.Deserialize<OrderNotesDocument>(json, Options) is not { } document)
+            {
+                return (null, ["The answer is null: expected one JSON object with the notes of order."]);
+            }
+
+            var problems = new List<string>();
+            var notes = Notes(document, problems);
+            return problems.Count > 0 ? (null, problems) : (notes, []);
+        }
+        catch (JsonException ex)
+        {
+            var where = string.IsNullOrEmpty(ex.Path) ? string.Empty : $" (at {ex.Path})";
+            return (null, [$"The JSON does not follow the schema of the notes of order{where}: {ex.Message}"]);
+        }
+    }
+
+    /// <summary>The questions of the orchestrator, each valid by <see cref="QuestionRules"/>, three at most (D-28).</summary>
+    private static PlanParseResult Questions(IReadOnlyList<QuestionDocument> asked, List<string> problems)
+    {
+        if (asked.Count > QuestionRules.MaxPlannerQuestions)
+        {
+            problems.Add($"The answer asks {asked.Count} questions; the orchestrator asks {QuestionRules.MaxPlannerQuestions} at most, in one round.");
+        }
+
+        var questions = new List<AgentQuestion>();
+        for (var i = 0; i < asked.Count; i++)
+        {
+            if (asked[i] is not { } document || document.Options is null || document.Options.Any(o => o is null))
+            {
+                problems.Add($"questions[{i}] is null or has a null option.");
+                continue;
+            }
+
+            var options = new List<QuestionOption>();
+            foreach (var option in document.Options)
+            {
+                if (Name<QuestionEffort>(Capitalized(option.Effort), $"questions[{i}]: the effort of option '{option.Id}'", problems) is { } effort)
+                {
+                    options.Add(new QuestionOption(option.Id, option.Label, option.Detail, effort, option.Recommended));
+                }
+            }
+
+            var question = new AgentQuestion(document.Text, document.Why, options, document.AllowOther);
+            var broken = QuestionRules.Validate(question);
+            if (broken.Count > 0)
+            {
+                problems.Add($"questions[{i}] breaks the rules of a question: {string.Join(", ", broken)}.");
+                continue;
+            }
+
+            questions.Add(question);
+        }
+
+        return problems.Count > 0 ? new PlanParseResult(null, problems) : new PlanParseResult(null, []) { Questions = questions };
+    }
+
+    /// <summary>«small» as the enum names it, «Small»; anything else as it is, so the strict reading refuses it.</summary>
+    private static string Capitalized(string value) =>
+        value is "small" or "medium" or "large" ? char.ToUpperInvariant(value[0]) + value[1..] : "?" + value;
+
+    /// <summary>The notes as the agent wrote them, before they are checked against the plan; none when the answer has none.</summary>
+    private static OrderNotes Notes(OrderNotesDocument? document, List<string> problems)
+    {
+        if (document is null)
+        {
+            return OrderNotes.None; // an answer of before Phase 13, or one that left them out
+        }
+
+        if (document.Dependencies.Any(n => n is null) || document.ParallelOk.Any(n => n is null) || document.Harmful.Any(n => n is null))
+        {
+            problems.Add("'orderNotes' contains null.");
+            return OrderNotes.None;
+        }
+
+        var dependencies = new List<OrderDependencyNote>();
+        var parallel = new List<ParallelOrderNote>();
+        var harmful = new List<HarmfulOrderNote>();
+        foreach (var note in document.Dependencies)
+        {
+            if (TaskIds(note.From, note.To, "a dependency note", problems) is var (from, to))
+            {
+                dependencies.Add(new OrderDependencyNote(from, to, note.Reason));
+            }
+        }
+
+        foreach (var note in document.ParallelOk)
+        {
+            if (TaskIds(note.A, note.B, "a parallel note", problems) is var (a, b))
+            {
+                parallel.Add(new ParallelOrderNote(a, b, note.Reason));
+            }
+        }
+
+        foreach (var note in document.Harmful)
+        {
+            if (TaskIds(note.First, note.Then, "a harmful note", problems) is var (first, then))
+            {
+                harmful.Add(new HarmfulOrderNote(first, then, note.Reason));
+            }
+        }
+
+        return new OrderNotes(dependencies, parallel, harmful);
+    }
+
+    private static (TaskId, TaskId)? TaskIds(string left, string right, string what, List<string> problems)
+    {
+        if (string.IsNullOrWhiteSpace(left) || string.IsNullOrWhiteSpace(right))
+        {
+            problems.Add($"'orderNotes': {what} names a blank task.");
+            return null;
+        }
+
+        return (new TaskId(left), new TaskId(right));
     }
 
     private static PlanParseResult Rejected(string problem) => new(null, [problem]);
@@ -214,7 +374,28 @@ public static class PlanParser
 
     // The shape of the schema. Positional records: with RespectRequiredConstructorParameters every member is required,
     // the nullable ones included, exactly as strict mode requires every property to be present.
-    private sealed record PlanDocument(string Summary, IReadOnlyList<TaskDocument> Tasks, IReadOnlyList<string> Risks);
+    // Phase 13: orderNotes and questions are in the schema (strict mode makes them required), and an answer that has them is
+    // read as strictly as the rest (no null, no unknown property). An answer without them, written before Phase 13 or by a
+    // test, is still a plan, without notes: their defaults say so. A default of null on a type that is not nullable keeps an
+    // explicit null an error (RespectNullableAnnotations).
+    private sealed record PlanDocument(
+        string Summary,
+        IReadOnlyList<TaskDocument> Tasks,
+        IReadOnlyList<string> Risks,
+        OrderNotesDocument OrderNotes = null!,
+        IReadOnlyList<QuestionDocument> Questions = null!);
+
+    private sealed record OrderNotesDocument(IReadOnlyList<DependencyNoteDocument> Dependencies, IReadOnlyList<ParallelNoteDocument> ParallelOk, IReadOnlyList<HarmfulNoteDocument> Harmful);
+
+    private sealed record DependencyNoteDocument(string From, string To, string Reason);
+
+    private sealed record ParallelNoteDocument(string A, string B, string Reason);
+
+    private sealed record HarmfulNoteDocument(string First, string Then, string Reason);
+
+    private sealed record QuestionDocument(string Text, string Why, IReadOnlyList<QuestionOptionDocument> Options, bool AllowOther);
+
+    private sealed record QuestionOptionDocument(string Id, string Label, string Detail, string Effort, bool Recommended);
 
     private sealed record TaskDocument(
         string Id,
