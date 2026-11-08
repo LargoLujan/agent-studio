@@ -210,11 +210,7 @@ public static class ModelCatalogReader
             }
         }
 
-        if (efforts.Any(e => !ReasoningEfforts.Accepts(provider, e)))
-        {
-            problems.Add("model-catalog.effort-not-for-cli");
-        }
-
+        // That every effort is one its CLI takes is the domain's rule (model-catalog.effort-not-for-cli, ModelCatalogEntry.Validate).
         string? note = null;
         if (item.TryGetProperty("note", out var noteElement) && noteElement.ValueKind != JsonValueKind.Null)
         {

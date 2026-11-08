@@ -73,6 +73,13 @@ public sealed record ModelCatalogEntry(
             problems.Add("model-catalog.effort-duplicate");
         }
 
+        // An entry offers only levels its CLI takes (ReasoningEfforts.For): the selector would offer any other one and the
+        // template would then refuse it (agent.effort-not-for-provider). A value outside the list is effort-unknown, above.
+        if (efforts.Any(e => Enum.IsDefined(e) && !ReasoningEfforts.Accepts(Provider, e)))
+        {
+            problems.Add("model-catalog.effort-not-for-cli");
+        }
+
         return problems;
     }
 }

@@ -19,8 +19,10 @@
        (las de D-24, con los esfuerzos por su nombre) y `models` (CLI, versión probada, nombres, nivel, esfuerzos, nota y
        fuentes). No admite ningún otro campo, así que un precio no puede colarse.
      - **La nota es un código** (`model.note.*`), no una frase: la pinta el escritorio en tu idioma (ADR-0054).
-     - **El lector** (`ModelCatalogReader`) comprueba la forma, las reglas del dominio (`ModelCatalog.Validate`), que cada
-       entrada nombre fuentes conocidas y que sus esfuerzos sean del CLI. Falla cerrado: con cualquier problema da un
+     - **El lector** (`ModelCatalogReader`) comprueba la forma, las reglas del dominio (`ModelCatalog.Validate`) y que cada
+       entrada nombre fuentes conocidas. Entre las reglas del dominio está que una entrada solo ofrezca niveles de su CLI
+       (`model-catalog.effort-not-for-cli`, en `ModelCatalogEntry.Validate`): si no, el selector ofrecería uno que la
+       plantilla rechazaría después (`agent.effort-not-for-provider`). Falla cerrado: con cualquier problema da un
        catálogo vacío y la lista de códigos (`model-catalog.*`), nunca una excepción ni medio catálogo. Sin catálogo, todo
        sale «sin clasificar» y nada se rompe.
      - **El orden es la preferencia:** dentro de un nivel, la recomendación elige la primera entrada de su CLI. Así «máximo»
@@ -128,6 +130,8 @@
       `haiku`;
     - qué esfuerzos admite cada modelo de Codex. Ninguna fuente da la lista por modelo para el CLI. La configuración de
       muestra dice ahora que «varían según el modelo y el cliente», y la página de modelos de OpenAI nombra `max` (para
-      GPT-6 Luna) y `ultra`, y nunca `minimal`. Por eso el catálogo da a Codex de `low` a `xhigh`. `max` para Codex y
-      `minimal` quedan para cuando se midan con esta versión; `ultra` (subagentes en paralelo) no está en la lista cerrada;
+      GPT-6 Luna) y `ultra`, y nunca `minimal`. En el binario de `codex.exe` 0.160.0 se ven además las cadenas `none` y
+      `max`, pero eso no es documentación. Por eso el catálogo da a Codex de `low` a `xhigh`, el lado seguro: `max`, `none`
+      y `minimal` para Codex quedan para cuando se midan con esta versión, y `ultra` (subagentes en paralelo) no está en la
+      lista cerrada;
     - `model/list` del app-server de Codex: sus campos, si pide red y qué autenticación.
