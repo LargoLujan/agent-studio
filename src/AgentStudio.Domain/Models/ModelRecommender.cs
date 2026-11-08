@@ -118,7 +118,7 @@ public static class ModelRecommender
     public static ReasoningEffort? NearestEffort(ModelCatalogEntry entry, ReasoningEffort wanted)
     {
         ArgumentNullException.ThrowIfNull(entry);
-        var accepted = (entry.Efforts ?? []).Where(e => Enum.IsDefined(e) && CliReasoningEfforts.Accepts(entry.Provider, e)).ToList();
+        var accepted = (entry.Efforts ?? []).Where(e => ReasoningEfforts.Accepts(entry.Provider, e)).ToList();
         if (accepted.Count == 0)
         {
             return null;

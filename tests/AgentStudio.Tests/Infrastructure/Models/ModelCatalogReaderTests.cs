@@ -55,7 +55,7 @@ public sealed class ModelCatalogReaderTests
         foreach (var entry in Shipped.Catalog.Entries)
         {
             Assert.Contains(entry.TestedCliVersion, SupportedVersions.For(entry.Provider));
-            Assert.All(entry.Efforts, effort => Assert.True(CliReasoningEfforts.Accepts(entry.Provider, effort), $"{entry.Name}: {effort}"));
+            Assert.All(entry.Efforts, effort => Assert.True(ReasoningEfforts.Accepts(entry.Provider, effort), $"{entry.Name}: {effort}"));
             Assert.True(entry.Note is null || UserText.IsCode(entry.Note), entry.Name);
         }
     }

@@ -109,8 +109,9 @@ public static class CodexExecArguments
 
         // Phase 13 (docs/17 D-25): the effort of the agent, only when it is set and Codex takes it (minimal to xhigh), as a
         // token of the closed list and never free text. Unquoted like the isolation block: a bare word is not TOML, so codex
-        // takes it literally. Any other is not passed: the CLI uses its own default.
-        if (CliReasoningEfforts.ForLaunch(ProviderId.CodexCli, request.Agent.Effort) is { } effort)
+        // takes it literally. Any other (a template edited by hand: the domain refuses it, agent.effort-not-for-provider) is not
+        // passed, and the CLI uses its own default.
+        if (request.Agent.Effort is { } effort && ReasoningEfforts.Accepts(ProviderId.CodexCli, effort))
         {
             args.AddRange(["-c", ReasoningEffortKey + "=" + ReasoningEfforts.Token(effort)]);
         }

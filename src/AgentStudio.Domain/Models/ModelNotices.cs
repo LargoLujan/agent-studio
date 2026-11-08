@@ -46,7 +46,8 @@ public sealed record ModelNotice(string Code, IReadOnlyList<object> Arguments)
 
 /// <summary>
 /// What is said about the model and the effort an agent would be launched with (docs/17 D-23 and D-25), with the same rule the
-/// launch follows (<see cref="CliReasoningEfforts.ForLaunch"/>): pure, deterministic and without quota.
+/// launch follows (<see cref="ReasoningEfforts.Accepts"/>: an effort its CLI does not take is not passed): pure, deterministic and
+/// without quota.
 /// </summary>
 public static class ModelNotices
 {
@@ -73,7 +74,7 @@ public static class ModelNotices
             return notices;
         }
 
-        if (CliReasoningEfforts.ForLaunch(provider, value) is null)
+        if (!ReasoningEfforts.Accepts(provider, value))
         {
             notices.Add(ModelNotice.Of(ModelNoticeCodes.EffortCliDefault, Name(value)));
         }

@@ -265,8 +265,9 @@ public static class ClaudeCodeArguments
         }
 
         // Phase 13 (docs/17 D-25): the effort of the agent, from the closed list, only when it is set and Claude Code takes it
-        // (claude --help 2.1.290: low, medium, high, xhigh, max). Any other is not passed: the CLI uses its own default.
-        if (CliReasoningEfforts.ForLaunch(ProviderId.ClaudeCode, request.Agent.Effort) is { } effort)
+        // (claude --help 2.1.290: low, medium, high, xhigh, max). Any other (a template edited by hand: the domain refuses it,
+        // agent.effort-not-for-provider) is not passed, and the CLI uses its own default.
+        if (request.Agent.Effort is { } effort && ReasoningEfforts.Accepts(ProviderId.ClaudeCode, effort))
         {
             args.Add("--effort");
             args.Add(ReasoningEfforts.Token(effort));

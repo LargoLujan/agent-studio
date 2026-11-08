@@ -86,9 +86,9 @@
      - **Claude Code** recibe `--effort <nivel>` justo después de `--model`; **Codex**, `-c model_reasoning_effort=<nivel>`
        justo después de `-m` y antes de `resume`, sin comillas, como el bloque de aislamiento. El valor es siempre
        `ReasoningEfforts.Token`: nunca texto libre en `-c`.
-     - **Solo se pasa si el CLI lo admite:** Claude, de `low` a `max`; Codex, de `minimal` a `xhigh`. Un esfuerzo que su CLI no
-       tiene, o un valor fuera de la lista (una plantilla editada a mano), no se pasa: el CLI usa el suyo, y el lanzamiento es
-       byte a byte el de antes.
+     - **Solo se pasa si el CLI lo admite** (`ReasoningEfforts.Accepts`, P0): Claude, de `low` a `max`; Codex, de `minimal` a
+       `xhigh`. El dominio ya rechaza otro (`agent.effort-not-for-provider`); si llega igual, en una plantilla editada a mano o
+       con un valor fuera de la lista, no se pasa: el CLI usa el suyo, y el lanzamiento es byte a byte el de antes.
      - `--effort` dice qué ejecutar, no qué puede hacer la sesión, así que no entra en la huella del lanzamiento medido de
        ADR-0018 (`ClaudeCodeArguments.WriteConfinementLaunch`).
      - **Se dice** con un código (`ModelNotices`): «sin clasificar», un esfuerzo que el CLI no admite y que usará el suyo, un
@@ -98,9 +98,10 @@
      `Desktop/Resources/ModelsStrings.resx` y su satélite inglés. La pantalla del selector es de WP6, y la usa con estos datos.
 - **Contratos que añade WP2** (los del P0 no cambian):
   - **Dominio** (`Domain/Models`): `ModelRecommender` (`Recommend`, `RecommendSecondExecutor`, `NearestEffort`,
-    `IsFollowedBy`, `HistoryMinimumFirstPassShare`), `ModelNotices`, `ModelNotice` y `ModelNoticeCodes`, y la tabla de
-    esfuerzos por CLI (`CliReasoningEfforts`: `Of`, `Accepts`, `ForLaunch`), que se sustituye por la del P0 cuando la
-    publique junto a `ReasoningEffort`.
+    `IsFollowedBy`, `HistoryMinimumFirstPassShare`), y `ModelNotices`, `ModelNotice` y `ModelNoticeCodes`. La tabla de
+    niveles de cada CLI es la del P0 (`ReasoningEfforts.For` y `Accepts`, revisión ccdac10), la misma con la que el dominio
+    rechaza un esfuerzo que su CLI no tiene (`agent.effort-not-for-provider`): el lanzamiento, los avisos, la recomendación y
+    el lector del catálogo la leen, y ninguno la repite.
   - **Application** (`Application/Models/ModelContracts.cs`): `IModelCatalogSource`, `ModelCatalogDocument` y
     `ModelCatalogSource`; `IModelLearning`, `LearnedModels` y `LearnedModel`; `ModelOptionEstimates` y `ModelOptionEstimate`.
   - **Infrastructure** (`Infrastructure/Models`): `ModelCatalogData`, `ModelCatalogReader`, `BuiltInModelCatalog` y

@@ -210,7 +210,7 @@ public static class ModelCatalogReader
             }
         }
 
-        if (efforts.Any(e => !CliReasoningEfforts.Accepts(provider, e)))
+        if (efforts.Any(e => !ReasoningEfforts.Accepts(provider, e)))
         {
             problems.Add("model-catalog.effort-not-for-cli");
         }

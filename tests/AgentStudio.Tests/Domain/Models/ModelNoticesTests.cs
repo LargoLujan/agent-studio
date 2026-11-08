@@ -19,19 +19,12 @@ public sealed class ModelNoticesTests
         ],
         ModelRecommendationRules.Default);
 
+    /// <summary>The notices and the launch read the table of the domain (<see cref="ReasoningEfforts.Accepts"/>), the same one the definition is checked with.</summary>
     [Fact]
-    public void Each_cli_takes_its_own_closed_list_of_efforts()
+    public void A_value_outside_the_list_is_taken_by_no_cli()
     {
-        Assert.Equal([ReasoningEffort.Low, ReasoningEffort.Medium, ReasoningEffort.High, ReasoningEffort.XHigh, ReasoningEffort.Max], CliReasoningEfforts.Of(ProviderId.ClaudeCode));
-        Assert.Equal([ReasoningEffort.Minimal, ReasoningEffort.Low, ReasoningEffort.Medium, ReasoningEffort.High, ReasoningEffort.XHigh], CliReasoningEfforts.Of(ProviderId.CodexCli));
-        Assert.Empty(CliReasoningEfforts.Of(ProviderId.GeminiCli));
-
-        Assert.False(CliReasoningEfforts.Accepts(ProviderId.ClaudeCode, ReasoningEffort.Minimal));
-        Assert.False(CliReasoningEfforts.Accepts(ProviderId.CodexCli, ReasoningEffort.Max));
-        Assert.False(CliReasoningEfforts.Accepts(ProviderId.ClaudeCode, (ReasoningEffort)42));
-        Assert.Equal(ReasoningEffort.XHigh, CliReasoningEfforts.ForLaunch(ProviderId.CodexCli, ReasoningEffort.XHigh));
-        Assert.Null(CliReasoningEfforts.ForLaunch(ProviderId.CodexCli, ReasoningEffort.Max));
-        Assert.Null(CliReasoningEfforts.ForLaunch(ProviderId.ClaudeCode, null));
+        Assert.False(ReasoningEfforts.Accepts(ProviderId.ClaudeCode, (ReasoningEffort)42));
+        Assert.False(ReasoningEfforts.Accepts(ProviderId.CodexCli, (ReasoningEffort)42));
     }
 
     [Fact]

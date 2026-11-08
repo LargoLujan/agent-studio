@@ -102,8 +102,8 @@ public sealed class EffortArgumentsTests
     {
         foreach (var effort in Enum.GetValues<ReasoningEffort>())
         {
-            Assert.Equal(CliReasoningEfforts.Accepts(ProviderId.ClaudeCode, effort), Claude(effort).Contains("--effort"));
-            Assert.Equal(CliReasoningEfforts.Accepts(ProviderId.CodexCli, effort), Codex(effort).Any(a => a.StartsWith(CodexExecArguments.ReasoningEffortKey + "=", StringComparison.Ordinal)));
+            Assert.Equal(ReasoningEfforts.Accepts(ProviderId.ClaudeCode, effort), Claude(effort).Contains("--effort"));
+            Assert.Equal(ReasoningEfforts.Accepts(ProviderId.CodexCli, effort), Codex(effort).Any(a => a.StartsWith(CodexExecArguments.ReasoningEffortKey + "=", StringComparison.Ordinal)));
         }
     }
 
