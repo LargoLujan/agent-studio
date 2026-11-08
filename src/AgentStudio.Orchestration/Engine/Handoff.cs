@@ -20,6 +20,12 @@ internal enum HandoffReason
 
     /// <summary>The app closed during the attempt: its session is never resumed (D-43).</summary>
     Interrupted,
+
+    /// <summary>
+    /// Phase 13 (docs/17 D-30): the attempt that asked a question left no session to resume (its CLI announced none), so the
+    /// attempt with the answer goes in a new session, with the question and the answer in the handoff.
+    /// </summary>
+    SessionNotResumable,
 }
 
 /// <summary>
@@ -43,7 +49,8 @@ internal sealed record HandoffFacts(
     int MaxRetries,
     IReadOnlyList<(TaskId Task, WorkTaskStatus Status)> Graph,
     string? PreviousErrors,
-    AttemptNotes? Notes);
+    AttemptNotes? Notes,
+    IReadOnlyList<Questions.AnsweredQuestion>? Answers = null);
 
 /// <summary>
 /// The handoff that the system builds when the session of a task is renewed (F8-6; docs/16 D-42 and D-43, ADR-0035): a
@@ -69,6 +76,7 @@ internal static class Handoff
     {
         HandoffReason.ContextExhausted => "El contexto del intento anterior se agotó",
         HandoffReason.ContextNearlyFull => "El contexto del intento anterior llegó al umbral en el que se comprime",
+        HandoffReason.SessionNotResumable => "El intento que hizo la pregunta no dejó una sesión que se pueda reanudar",
         _ => "El intento anterior se interrumpió al cerrarse la aplicación, y su sesión no se reanuda",
     };
 
@@ -101,6 +109,15 @@ internal static class Handoff
             tests = tests is null ? null : new { passed = tests.Passed, failed = tests.Failed, skipped = tests.Skipped, exitCode = tests.ExitCode },
             previousErrors = facts.PreviousErrors,
             agent,
+            humanAnswers = (facts.Answers ?? []).Select(a => new
+            {
+                question = a.Asked.Id,
+                attempt = a.Asked.Attempt,
+                evidence = a.Asked.Evidence.Value,
+                sha256 = a.Asked.Sha256,
+                option = a.Option,
+                ownAnswerEvidence = a.OwnTextEvidence?.Value,
+            }).ToList(),
         });
 
         var text = new StringBuilder();

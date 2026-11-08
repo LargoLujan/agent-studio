@@ -62,6 +62,12 @@ internal enum EndKind
     ApprovalNeeded,
     Approved,
     Denied,
+
+    /// <summary>
+    /// Phase 13 (docs/17 D-28): the agent ended blocked with a valid question (<see cref="AttemptEnd.Question"/>). The loop
+    /// records it within the caps and the task waits for the answer, or blocks it with «demasiadas preguntas» beyond them.
+    /// </summary>
+    AsksQuestion,
 }
 
 /// <summary>How one attempt of a task ended, with what the loop needs to record it.</summary>
@@ -112,6 +118,12 @@ internal sealed record AttemptEnd(EndKind Kind, string Reason)
     public bool Unlaunched { get; init; }
 
     public WorktreeInfo? Worktree { get; init; }
+
+    /// <summary>For <see cref="EndKind.AsksQuestion"/>: the question of the report, as the rules validated it (not redacted yet).</summary>
+    public Domain.Questions.AgentQuestion? Question { get; init; }
+
+    /// <summary>For <see cref="EndKind.AsksQuestion"/>: what the system estimated for each option (docs/17 D-32); empty when it estimated nothing.</summary>
+    public IReadOnlyList<Application.Decisions.OptionEstimateSnapshot> QuestionEstimates { get; init; } = [];
 }
 
 internal enum StopCause
