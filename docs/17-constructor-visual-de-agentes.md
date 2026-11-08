@@ -1743,6 +1743,15 @@ corren.
 
 Diez decisiones, todas de las que cambian el alcance o el riesgo. La recomendada va primero.
 
+> **Decididas.** La 9 (el índice semántico), el 2026-10-30, con sus tres recomendadas. Las otras nueve, el 2026-11-06:
+> el usuario acepta todas las recomendadas, la (a) de cada una: el orden de la 1 (a), el lienzo con dos capas, el
+> analizador con las notas de orden y «Revisar el orden» con OK, las preguntas que reanudan la sesión, nunca se contestan
+> solas y las hacen los ejecutores y el orquestador antes de planificar, el análisis del consumo aparte y del otro vendor
+> con OK, la lista de Hello de D-37 con el bloqueo de Windows comprobado cuando no hay Hello, castellano e inglés más la
+> primera ola de nueve idiomas en la Fase 15, la ayuda local y un agente de solo lectura con OK en cada pregunta, y los
+> cuatro formatos de la documentación para clientes. El cambio de `CLAUDE.md` que pide la 7 («castellano por defecto,
+> más idiomas») se hará cuando existan los idiomas (Fase 14), no antes.
+
 1. **El orden y los cimientos** (D-64 y D-65).
    - **(a) Recomendada:** el orden acordado en [18 §2](18-peticiones-y-pendientes.md#2-orden-de-trabajo-acordado): tandas 1 y
      2 → Fase 12 (índice) → revisión de este documento → Fase 13 (constructor) → Fase 14 (bloque final, con la Fase 9 al

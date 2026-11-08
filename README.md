@@ -550,7 +550,9 @@ means the acceptance criterion is covered by automated tests but its manual demo
 - **Manual demonstrations** of the criteria marked "verified by tests" in Phases 1, 3, 4, 5, 8 and 12.
 - **Self-audit.** 93 tests fail when run under Low integrity (mostly tests that create temporary folders in
   `LocalAppData`), so "Audit whole project" cannot yet approve this repository.
-- **Design review** of [docs/17](docs/17-constructor-visual-de-agentes.md), whose open decisions gate Phases 13 to 15.
+- **Phase 13 · Visual team builder.** The design review of [docs/17](docs/17-constructor-visual-de-agentes.md) closed
+  on 2026-11-06 with every recommended option accepted (§12), which unblocks Phases 13 to 15. Phase 13 starts with its
+  foundations: language resources, the plain-text guide, the info buttons and the Windows Hello barrier.
 
 ### Planned
 
