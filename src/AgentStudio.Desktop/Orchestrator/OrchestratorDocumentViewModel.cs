@@ -766,8 +766,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
     /// always asks Windows Hello, or, without it, the verified lock of Windows; any other plan asks Hello while the setting of
     /// the important approvals is on, and when Windows says Hello is not there the click decides alone and
     /// <see cref="HelloNotice"/> warns. Only a confirmation approves; a click it does not confirm approves nothing, so no run
-    /// can start, and <see cref="ErrorMessage"/> says why. Without a reinforced confirmation composed, a plan of the list is not
-    /// approved. «Rechazar» never asks Hello.
+    /// can start, and <see cref="ErrorMessage"/> says why. «Rechazar» never asks Hello.
     /// </summary>
     [RelayCommand(CanExecute = nameof(CanApprove))]
     private async Task ApproveAsync()
@@ -778,16 +777,11 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         var plan = ConfirmationPlan.AnswerAlone;
 
         // What approving this plan is for the fixed barrier (docs/17 D-37): with writers at medium integrity it always asks.
-        var presence = PlanPresence.Of(CurrentPlan(), Context?.Roster, Context?.Verification, Context?.ClaudeWritesConfined ?? false);
-        if (_confirmation is null && PlanPresence.AlwaysAsks(presence))
-        {
-            ErrorMessage = HelloTexts.PlanLockNotAsked(HelloTexts.LockNotComposed);
-            return;
-        }
-
+        // Without a reinforced confirmation composed (a shell without Windows Hello: never the app's), the click decides.
         if (_confirmation is not null)
         {
             ErrorMessage = null;
+            var presence = PlanPresence.Of(CurrentPlan(), Context?.Roster, Context?.Verification, Context?.ClaudeWritesConfined ?? false);
             plan = await _confirmation.PlanAsync(presence, CancellationToken.None).ConfigureAwait(true);
             if (plan.ConfirmsAfterYes)
             {

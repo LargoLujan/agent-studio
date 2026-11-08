@@ -1,3 +1,4 @@
+using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Security;
@@ -8,6 +9,8 @@ using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Domain.Skills;
 using AgentStudio.Infrastructure.Skills;
+using AgentStudio.Security.Approvals;
+using AgentStudio.Tests.Debate.Fakes;
 using static AgentStudio.Tests.Domain.TestData;
 
 namespace AgentStudio.Tests.Desktop.Skills;
@@ -65,6 +68,14 @@ internal sealed class SkillsWorld
 
     public FakePrompt Prompt { get; } = new();
 
+    /// <summary>The project's decision log, where the approval gate records the consent of the assisted recommendation (F13-20).</summary>
+    public InMemoryDecisionLogStore Log { get; } = new();
+
+    /// <summary>The real approval gate over <see cref="Prompt"/> and <see cref="Log"/>: the consent goes through it, as every approval.</summary>
+    public ApprovalGate Gate => _gate ??= new ApprovalGate(Prompt, new DecisionRecorder(Log, TimeProvider.System), TimeProvider.System, new ApprovalGateOptions());
+
+    private ApprovalGate? _gate;
+
     public List<CatalogSkill> Catalog { get; } = [.. SkillsScreenSamples.Catalog];
 
     public List<string> CatalogWarnings { get; } = [];
@@ -87,7 +98,7 @@ internal sealed class SkillsWorld
         health ? Health : null,
         recommendations ? Recommendations : null,
         workspace ? Workspace : null,
-        prompt ? Prompt : null);
+        prompt ? Gate : null);
 
     public SkillsDocumentViewModel Document(SkillsBackend? backend = null, string? projectRoot = SkillsScreenSamples.ProjectRoot, TimeProvider? time = null) =>
         new(projectRoot, backend ?? Backend(), time ?? new Microsoft.Extensions.Time.Testing.FakeTimeProvider(T0), (_, _) => ProjectFiles);

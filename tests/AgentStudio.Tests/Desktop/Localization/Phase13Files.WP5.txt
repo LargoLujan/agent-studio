@@ -1,0 +1,5 @@
+# WP5 · Barrera de Windows Hello (docs/17 §9.3): los ficheros nuevos de la Fase 13 en carpetas de antes, relativos a
+# src/AgentStudio.Desktop. Sus textos salen de Resources/HelloStrings.resx y su satélite inglés.
+Lock/HelloTexts.cs
+Lock/PlanPresence.cs
+Lock/WindowsLockConfirmation.cs

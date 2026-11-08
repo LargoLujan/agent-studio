@@ -216,7 +216,14 @@ public sealed class ApprovalPromptServiceTests
             ProjectId: guid,
             RunId: "20261030-abc123");
         var dialog = Answers(approved: false);
-        var prompt = new ApprovalPromptService(dialog, new FakeTimeProvider(T0), new InlineSynchronizationContext(), projectNames: id => id == guid ? "calc" : null);
+
+        // A delivery is on the list of the fixed barrier: without a reinforced confirmation it is not even asked (docs/17 D-37).
+        var prompt = new ApprovalPromptService(
+            dialog,
+            new FakeTimeProvider(T0),
+            new InlineSynchronizationContext(),
+            new ReinforcedConfirmation(new FakeUserPresenceVerifier(), () => true),
+            projectNames: id => id == guid ? "calc" : null);
 
         var decision = await prompt.AskAsync(delivery, CancellationToken.None);
 
@@ -386,14 +393,21 @@ public sealed class ApprovalPromptServiceTests
         Assert.Single(unknown.Messages);
     }
 
+    /// <summary>
+    /// What grants nothing never asks Windows Hello, with the setting on (docs/17 D-37: never): the dismissal of a replan, the
+    /// consent of an auxiliary run, and an action the list does not name whose level is low. It goes by the action, not by the
+    /// risk the caller declared.
+    /// </summary>
     [Theory]
-    [InlineData(RiskLevel.Low)]
-    [InlineData(RiskLevel.Destructive)]
-    public async Task Windows_hello_is_not_asked_for_an_action_that_is_not_critical(RiskLevel risk)
+    [InlineData("replan.dismiss", RiskLevel.Low)]
+    [InlineData("skills.recomendacion-asistida", RiskLevel.Low)]
+    [InlineData("skills.recomendacion-asistida", RiskLevel.Critical)]
+    [InlineData("revisar-informe", RiskLevel.Low)]
+    public async Task Windows_hello_is_never_asked_for_an_action_that_grants_nothing(string action, RiskLevel risk)
     {
         var hello = new FakeUserPresenceVerifier();
 
-        var decision = await Prompt(Answers(approved: true), hello).AskAsync(Merge with { Risk = risk }, CancellationToken.None);
+        var decision = await Prompt(Answers(approved: true), hello).AskAsync(Merge with { Action = action, Risk = risk }, CancellationToken.None);
 
         Assert.Equal((true, ApprovalVerification.Dialog), (decision.Approved, decision.Verification));
         Assert.Equal(0, hello.AvailabilityChecks);

@@ -15,10 +15,11 @@ using static AgentStudio.Tests.Domain.TestData;
 namespace AgentStudio.Tests.Desktop.Orchestrator;
 
 /// <summary>
-/// docs/16 D-13, F8-11: «Aprobar plan» is a critical approval, so with Windows Hello on it follows the rule of every critical
-/// question (<see cref="ReinforcedConfirmation"/>): Hello after the click, and only a confirmation approves; the click alone,
-/// with a warning, when Windows says Hello is not there. What the run carries is what the engine records
-/// (<c>PlanApprovalVerificationTests</c>). Windows Hello and the engine are doubles.
+/// docs/16 D-13, F8-11 and docs/17 D-37 to D-41 (F13-16): «Aprobar plan» follows the rule of every approval
+/// (<see cref="ReinforcedConfirmation"/>). The plan of the fixture has writers at medium integrity, so approving it is on the
+/// list of the fixed barrier: Windows Hello after the click whatever the setting says, and only a confirmation approves;
+/// without Hello on the computer, the verified lock of Windows. What the run carries is what the engine records
+/// (<c>PlanApprovalVerificationTests</c>). Windows Hello, the lock of Windows and the engine are doubles.
 /// </summary>
 public sealed class PlanApprovalHelloTests
 {
@@ -97,19 +98,41 @@ public sealed class PlanApprovalHelloTests
         Assert.Empty(engine.RunRequests);
     }
 
+    /// <summary>
+    /// F13-16 (docs/17 D-37 and D-38): the plan of the fixture has writers at medium integrity, so approving it is on the list of
+    /// the fixed barrier. With the setting off, or a setting that cannot even be read, Windows Hello is asked all the same: the
+    /// setting is never read for it.
+    /// </summary>
     [Fact]
-    public async Task With_windows_hello_off_the_click_alone_approves_as_before()
+    public async Task With_the_setting_off_or_unreadable_a_plan_with_writers_still_asks_windows_hello()
     {
-        var hello = new FakeUserPresenceVerifier();
-        var (document, engine) = await PlanReadyAsync(new ReinforcedConfirmation(hello, () => false));
+        foreach (var isOn in new Func<bool>[] { () => false, () => throw new InvalidOperationException("The settings file was edited by hand.") })
+        {
+            var hello = FakeUserPresenceVerifier.Answering(UserPresenceResult.Verified);
+            var (document, engine) = await PlanReadyAsync(new ReinforcedConfirmation(hello, isOn));
+            Assert.Equal(HelloTexts.PlanAlwaysAsks, document.HelloNotice);
 
-        await document.ApproveCommand.ExecuteAsync(null);
-        await document.ExecuteCommand.ExecuteAsync(null);
+            await document.ApproveCommand.ExecuteAsync(null);
+            await document.ExecuteCommand.ExecuteAsync(null);
 
-        Assert.Equal(ApprovalVerification.Dialog, Assert.Single(engine.RunRequests).PlanApproval.Verification);
-        Assert.Equal(0, hello.AvailabilityChecks);
-        Assert.Empty(hello.Messages);
-        Assert.Null(document.HelloNotice);
+            Assert.Equal(ApprovalVerification.WindowsHello, Assert.Single(engine.RunRequests).PlanApproval.Verification);
+            Assert.Single(hello.Messages);
+            Assert.Null(document.HelloNotice);
+        }
+    }
+
+    [Fact]
+    public void A_plan_is_on_the_list_when_it_has_writers_at_medium_integrity_and_off_it_when_it_has_none()
+    {
+        var withWriters = PlanFixtures.Plan();
+        var onlyApproval = PlanFixtures.Plan([PlanFixtures.Spec("T1", AgentStudio.Domain.Work.WorkTaskKind.HumanApproval)]);
+
+        Assert.Equal(AgentStudio.Domain.Security.PresenceAction.ApprovePlanWithHighRiskCapability, PlanPresence.Of(withWriters, PlanFixtures.Roster(), Backends.Profile, claudeWritesConfined: false));
+        Assert.Equal(AgentStudio.Domain.Security.PresenceAction.ApprovePlan, PlanPresence.Of(onlyApproval, PlanFixtures.Roster(), Backends.Profile, claudeWritesConfined: false));
+
+        // Without the template or the profile the writers cannot be read: it counts as one (fail closed).
+        Assert.Equal(AgentStudio.Domain.Security.PresenceAction.ApprovePlanWithHighRiskCapability, PlanPresence.Of(onlyApproval, null, Backends.Profile, claudeWritesConfined: false));
+        Assert.Equal(AgentStudio.Domain.Security.PresenceAction.ApprovePlanWithHighRiskCapability, PlanPresence.Of(onlyApproval, PlanFixtures.Roster(), null, claudeWritesConfined: false));
     }
 
     [Fact]
@@ -123,26 +146,62 @@ public sealed class PlanApprovalHelloTests
         Assert.Equal(ApprovalVerification.Dialog, Assert.Single(engine.RunRequests).PlanApproval.Verification);
     }
 
-    /// <summary>«Sin Hello: no disponible»: the click decides alone, the review warns and says why, and the run carries it to the log.</summary>
+    /// <summary>
+    /// Without Windows Hello on this computer (docs/17 D-40 (a)), a plan on the list is not decided by the click alone: Windows
+    /// locks, and only an unlock the state of the session confirms approves it. The run carries the method to the log.
+    /// </summary>
     [Theory]
-    [InlineData(UserPresenceAvailability.NotConfiguredForUser, "no está configurado para tu usuario")]
-    [InlineData(UserPresenceAvailability.DeviceNotPresent, "no hay ningún dispositivo con el que verificarte")]
-    [InlineData(UserPresenceAvailability.DisabledByPolicy, "lo desactiva una directiva")]
-    public async Task Without_windows_hello_on_this_computer_the_click_decides_alone_with_a_warning(UserPresenceAvailability absent, string why)
+    [InlineData(UserPresenceAvailability.NotConfiguredForUser)]
+    [InlineData(UserPresenceAvailability.DeviceNotPresent)]
+    [InlineData(UserPresenceAvailability.DisabledByPolicy)]
+    public async Task Without_windows_hello_on_this_computer_a_plan_with_writers_locks_windows_and_the_run_says_so(UserPresenceAvailability absent)
     {
         var hello = FakeUserPresenceVerifier.Without(absent);
-        var (document, engine) = await PlanReadyAsync(On(hello));
+        var windowsLock = FakeWindowsLockConfirmation.Answering(WindowsLockResult.UnlockedAfterRequest);
+        var (document, engine) = await PlanReadyAsync(new ReinforcedConfirmation(hello, () => false, WindowsLock: windowsLock));
 
         await document.ApproveCommand.ExecuteAsync(null);
 
         Assert.True(document.IsApproved);
         Assert.Empty(hello.Messages);
-        Assert.True(document.HasHelloNotice);
-        Assert.Equal(Tone.Warning, document.HelloNoticeTone);
-        Assert.Equal($"Windows Hello no está disponible en este equipo ({why}): el plan lo aprobó solo el botón, y el registro lo dice.", document.HelloNotice);
+        Assert.Equal([ReinforcedConfirmation.WindowsLockTimeout], windowsLock.Locks);
+        Assert.Equal(HelloTexts.PlanApprovedWithLock(document.CurrentHash[..12]), document.ApprovalText);
+        Assert.Null(document.HelloNotice);
 
         await document.ExecuteCommand.ExecuteAsync(null);
-        Assert.Equal(ApprovalVerification.WindowsHelloUnavailable, Assert.Single(engine.RunRequests).PlanApproval.Verification);
+        Assert.Equal(ApprovalVerification.WindowsLock, Assert.Single(engine.RunRequests).PlanApproval.Verification);
+    }
+
+    [Theory]
+    [InlineData(WindowsLockResult.LockFailed)]
+    [InlineData(WindowsLockResult.NotVerified)]
+    [InlineData(WindowsLockResult.TimedOut)]
+    public async Task A_lock_of_windows_the_session_does_not_confirm_approves_nothing_and_says_why(WindowsLockResult result)
+    {
+        var hello = FakeUserPresenceVerifier.Without(UserPresenceAvailability.NotConfiguredForUser);
+        var (document, engine) = await PlanReadyAsync(new ReinforcedConfirmation(hello, () => true, WindowsLock: FakeWindowsLockConfirmation.Answering(result)));
+
+        await document.ApproveCommand.ExecuteAsync(null);
+
+        Assert.False(document.IsApproved);
+        Assert.Null(document.PlanDecision);
+        Assert.Equal(HelloTexts.PlanLockNotConfirmed(result), document.ErrorMessage);
+        await document.ExecuteCommand.ExecuteAsync(null);
+        Assert.Empty(engine.RunRequests);
+    }
+
+    /// <summary>Without Hello and without the verified lock composed, nothing can confirm the person: the plan is not approved, never left to the click.</summary>
+    [Fact]
+    public async Task Without_windows_hello_and_without_the_lock_of_windows_a_plan_with_writers_is_not_approved()
+    {
+        var hello = FakeUserPresenceVerifier.Without(UserPresenceAvailability.DeviceNotPresent);
+        var (document, engine) = await PlanReadyAsync(new ReinforcedConfirmation(hello, () => true));
+
+        await document.ApproveCommand.ExecuteAsync(null);
+
+        Assert.False(document.IsApproved);
+        Assert.Equal(HelloTexts.PlanLockNotAsked(HelloTexts.LockNotComposed), document.ErrorMessage);
+        Assert.Empty(engine.RunRequests);
     }
 
     [Fact]
@@ -159,16 +218,18 @@ public sealed class PlanApprovalHelloTests
         Assert.False(document.PlanDecision.Approved);
     }
 
+    /// <summary>Before approving a plan with writers, the review says that approving it always asks; once approved, it says nothing more; rejected, it says it again.</summary>
     [Fact]
-    public async Task The_warning_goes_with_the_approval_it_belongs_to()
+    public async Task The_notice_goes_with_the_approval_it_belongs_to()
     {
-        var (document, _) = await PlanReadyAsync(On(FakeUserPresenceVerifier.Without(UserPresenceAvailability.NotConfiguredForUser)));
-        await document.ApproveCommand.ExecuteAsync(null);
+        var (document, _) = await PlanReadyAsync(On(FakeUserPresenceVerifier.Answering(UserPresenceResult.Verified)));
         Assert.True(document.HasHelloNotice);
+        Assert.Equal(HelloTexts.PlanAlwaysAsks, document.HelloNotice);
+
+        await document.ApproveCommand.ExecuteAsync(null);
+        Assert.False(document.HasHelloNotice);
 
         document.RejectCommand.Execute(null);
-
-        Assert.False(document.HasHelloNotice);
-        Assert.Null(document.HelloNotice);
+        Assert.Equal(HelloTexts.PlanAlwaysAsks, document.HelloNotice);
     }
 }

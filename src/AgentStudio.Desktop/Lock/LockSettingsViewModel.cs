@@ -5,9 +5,11 @@ using CommunityToolkit.Mvvm.ComponentModel;
 namespace AgentStudio.Desktop.Lock;
 
 /// <summary>
-/// «Windows Hello y bloqueo» in «Ajustes» (docs/16 D-13, docs/04 §18.6): Windows Hello in the critical approvals (on by
-/// default, and it can be turned off) and the idle lock (off by default; from 1 to <see cref="AppSettings.MaxIdleLockMinutes"/>
-/// minutes, checked even while it is off). They are checked before anything is saved, and go to the settings as preferences
+/// «Windows Hello y bloqueo» in «Ajustes» (docs/16 D-13, docs/04 §18.6): «Pedir Windows Hello también en las aprobaciones
+/// importantes» (on by default, and it can be turned off; it governs only the configurable approvals: what is on the list of
+/// the fixed barrier asks Windows Hello whatever it says, docs/17 D-38) and the idle lock (off by default; from 1 to
+/// <see cref="AppSettings.MaxIdleLockMinutes"/> minutes, checked even while it is off). Its texts come from the resources
+/// (<see cref="HelloTexts"/>). They are checked before anything is saved, and go to the settings as preferences
 /// (<see cref="IAppSettingsStore.SavePreferences"/>), never over the rest. The approvals and the idle lock read them at each
 /// question and each check: nothing else needs to be told. «Ajustes» saves this section together with the others
 /// (<c>SettingsDocumentViewModel</c>, through <see cref="Validate"/>, <see cref="Apply"/> and <see cref="Accept"/>).
@@ -16,11 +18,6 @@ public sealed partial class LockSettingsViewModel : ObservableObject
 {
     /// <summary>The title of the section in «Ajustes».</summary>
     public const string Title = "Windows Hello y bloqueo";
-
-    /// <summary>What Windows Hello in the critical approvals does, as the screen says it.</summary>
-    public const string HelloExplanation =
-        "Al aprobar una acción crítica (la entrega, por ejemplo), Windows Hello confirma que eres tú. Si este equipo no tiene "
-        + "Windows Hello, decide el diálogo, con un aviso, y el registro lo dice.";
 
     /// <summary>What the idle lock does, as the screen says it.</summary>
     public const string IdleExplanation =

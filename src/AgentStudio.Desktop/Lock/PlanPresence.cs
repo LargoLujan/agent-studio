@@ -31,8 +31,4 @@ public static class PlanPresence
         return MediumIntegrityWriters.Find(plan, roster, profile, claudeWritesConfined).Count > 0
             ? PresenceAction.ApprovePlanWithHighRiskCapability
             : PresenceAction.ApprovePlan;
-    }
-
-    /// <summary>Whether <paramref name="action"/> is on the list of the fixed barrier: it asks whatever any setting or file says.</summary>
-    public static bool AlwaysAsks(PresenceAction action) => PresencePolicy.RequirementOf(action) == PresenceRequirement.Always;
-}
+    }}
