@@ -1,3 +1,0 @@
-# WP1 of Phase 13 (analyzer, order and the chat of preparation): new .cs and .xaml files in folders of before of
-# src/AgentStudio.Desktop, one path per line, relative to it. WP1 adds none: its code lives in Domain, Application and
-# Orchestration, and its texts in Resources/MontageStrings.resx and Resources/MontageStrings.en.resx.
