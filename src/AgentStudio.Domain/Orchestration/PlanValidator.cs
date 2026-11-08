@@ -93,6 +93,71 @@ public enum PlanViolationCode
     /// verification steps but none of them runs tests (<see cref="PlanContext.TestRunSteps"/>): a build is not a test.
     /// </summary>
     TestStepRequiredByPolicy,
+
+    /// <summary>
+    /// Phase 13 (docs/17 D-11, F13-5): a task writes for an agent that has folders of its own (the cable «Trabaja en»,
+    /// <see cref="AgentWriteArea"/>), and an entry of its write scope does not fit in them. One violation per entry, in the
+    /// order of the scope. An agent without folders has the whole project, as before.
+    /// </summary>
+    WriteScopeOutsideAgentArea,
+}
+
+/// <summary>
+/// The folders where an agent may write (docs/17 D-11, the cable «Trabaja en» of the Team layer): the roots of its
+/// <see cref="PathGrant"/>s with <see cref="FileAccessLevel.ReadWrite"/>, relative to the repository, as
+/// <see cref="WriteScope"/> and <c>RepositoryNode.MainFolders</c> write them. With none, the agent has the whole project, as
+/// before Phase 13. A grant whose root <see cref="WriteScope.TryNormalize"/> refuses (absolute, with <c>..</c>, inside
+/// <c>.git</c>) still says the agent has folders, but covers nothing: it fails closed.
+/// </summary>
+public static class AgentWriteArea
+{
+    /// <summary>Whether <paramref name="agent"/> has folders of its own: any grant to read and write.</summary>
+    public static bool IsLimited(AgentDefinition agent)
+    {
+        ArgumentNullException.ThrowIfNull(agent);
+        return (agent.PathGrants ?? []).Any(g => g is { Access: FileAccessLevel.ReadWrite });
+    }
+
+    /// <summary>The folders of <paramref name="agent"/>, in canonical form with a trailing <c>/</c>, once each and in ordinal order; empty for an agent without folders.</summary>
+    public static IReadOnlyList<string> Folders(AgentDefinition agent)
+    {
+        ArgumentNullException.ThrowIfNull(agent);
+        return [.. (agent.PathGrants ?? [])
+            .Where(g => g is { Access: FileAccessLevel.ReadWrite })
+            .Select(g => WriteScope.TryNormalize(g.Root, out var folder, out _) ? (folder.EndsWith('/') ? folder : folder + "/") : null)
+            .OfType<string>()
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Order(StringComparer.Ordinal)];
+    }
+
+    /// <summary>
+    /// Whether the entry <paramref name="entry"/> of a write scope fits in the folders of <paramref name="agent"/>: always for an
+    /// agent without folders; otherwise, when it is one of them or inside one (case-insensitive, on folder boundaries). An
+    /// entry that is not valid fits nowhere (the validator reports it as <see cref="PlanViolationCode.UnsafeWriteScope"/>).
+    /// </summary>
+    public static bool Fits(AgentDefinition agent, string entry)
+    {
+        ArgumentNullException.ThrowIfNull(agent);
+        if (!IsLimited(agent))
+        {
+            return true;
+        }
+
+        if (!WriteScope.TryNormalize(entry, out var normalized, out _))
+        {
+            return false;
+        }
+
+        return Folders(agent).Any(folder => normalized.StartsWith(folder, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>The entries of <paramref name="scope"/> that are valid and do not fit in the folders of <paramref name="agent"/>, in their order.</summary>
+    public static IReadOnlyList<string> Outside(AgentDefinition agent, IReadOnlyList<string> scope)
+    {
+        ArgumentNullException.ThrowIfNull(agent);
+        ArgumentNullException.ThrowIfNull(scope);
+        return [.. scope.Where(entry => WriteScope.TryNormalize(entry, out _, out _) && !Fits(agent, entry))];
+    }
 }
 
 public sealed record PlanViolation(PlanViolationCode Code, TaskId? Task, string Message);
@@ -515,7 +580,31 @@ public static class PlanValidator
 
             CheckJudgeIndependence();
             CheckReviewPolicy();
+            CheckAgentAreas();
             return _violations;
+        }
+
+        // ---- the folders of each agent (Phase 13, docs/17 D-11) ----
+
+        /// <summary>
+        /// Every task that writes for an agent with folders of its own keeps its scope inside them: one violation per entry
+        /// outside, in the order of the scope. After every rule of before, so the violations of a plan of before keep their
+        /// order; an agent without folders has the whole project.
+        /// </summary>
+        private void CheckAgentAreas()
+        {
+            foreach (var task in _plan.Tasks.Where(t => t.Kind == WorkTaskKind.AgentWork && t.Workspace == WorkspaceMode.Write && t.Agent is { } a && _roster.ContainsKey(a)))
+            {
+                var agent = _roster[task.Agent!.Value];
+                foreach (var entry in AgentWriteArea.Outside(agent, task.WriteScope))
+                {
+                    var folders = AgentWriteArea.Folders(agent);
+                    Add(
+                        PlanViolationCode.WriteScopeOutsideAgentArea,
+                        task.Id,
+                        $"Write scope '{entry}' of task '{task.Id}' is outside the folders of '{agent.Id}' ({(folders.Count == 0 ? "none valid" : string.Join(", ", folders))}): an agent with folders of its own only writes inside them.");
+                }
+            }
         }
 
         private void Add(PlanViolationCode code, TaskId? task, string message) => _violations.Add(new PlanViolation(code, task, message));

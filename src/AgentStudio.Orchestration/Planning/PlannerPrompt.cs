@@ -155,6 +155,15 @@ internal static class PlannerPrompt
                 note += " Su política exige revisión independiente: una tarea Review tiene que depender de todas sus tareas que escriben.";
             }
 
+            // Phase 13 (docs/17 D-11): the folders of the agent govern; without them it has the whole project, and nothing is said.
+            if (AgentWriteArea.IsLimited(agent))
+            {
+                var folders = AgentWriteArea.Folders(agent);
+                note += folders.Count == 0
+                    ? " No tiene ninguna carpeta válida donde escribir: no le des tareas con workspace Write."
+                    : $" Solo puede escribir en {string.Join(", ", folders)}: el writeScope de cada tarea suya con workspace Write cabe en esas carpetas.";
+            }
+
             text.AppendLine(CultureInfo.InvariantCulture, $"- {agent.Id}: {agent.Role}, {agent.Model.Provider} (vendor {agent.Model.Vendor}){model}.{note}");
         }
 
