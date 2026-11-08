@@ -35,8 +35,8 @@ internal sealed class ConsumptionLog
 
     public IReadOnlyList<DecisionEntry> Entries => _log.Entries;
 
-    public ConsumptionLog Started(string planHash = PlanHash, string? run = null) =>
-        Append(DecisionKind.RunStarted, new RunStartedPayload(planHash, HashA, "base", "main", HashB, [], null) { RunId = run ?? Run.Value, V = 1 });
+    public ConsumptionLog Started(string planHash = PlanHash, string? run = null, IReadOnlyList<RosterEntry>? roster = null) =>
+        Append(DecisionKind.RunStarted, new RunStartedPayload(planHash, HashA, "base", "main", HashB, roster ?? [], null) { RunId = run ?? Run.Value, V = 1 });
 
     /// <summary>One attempt of an agent: started, waiting <paramref name="queue"/> in the queue, launched, and ended after <paramref name="duration"/>.</summary>
     public ConsumptionLog Attempt(
@@ -59,7 +59,8 @@ internal sealed class ConsumptionLog
         AttemptEndClass? end = null,
         string? session = null,
         string? resumed = null,
-        string? run = null)
+        string? run = null,
+        string? error = null)
     {
         var on = provider ?? ProviderId.ClaudeCode;
         var runId = run ?? Run.Value;
@@ -79,7 +80,7 @@ internal sealed class ConsumptionLog
         var peakSnapshot = peak is { } p ? new ContextPeakSnapshot(model, Snapshots.Reported(p.Used, "claude assistant.message.usage"), Snapshots.Reported(p.Window, "claude result.modelUsage")) : null;
         var finalEnd = end is { } cls ? new AttemptEndSnapshot(cls) : AttemptEndSnapshot.ImpliedBy(status);
         return Append(DecisionKind.AgentRunFinished, new AgentRunFinishedPayload(
-            taskId, attempt, status, 0, session ?? $"s-{task}-{attempt}", null, usage, null, launched, model, resumed, peakSnapshot, on == ProviderId.CodexCli ? null : compactions, 3, finalEnd)
+            taskId, attempt, status, 0, session ?? $"s-{task}-{attempt}", error, usage, null, launched, model, resumed, peakSnapshot, on == ProviderId.CodexCli ? null : compactions, 3, finalEnd)
         {
             RunId = runId,
             V = AgentRunFinishedPayload.EndClassVersion,
