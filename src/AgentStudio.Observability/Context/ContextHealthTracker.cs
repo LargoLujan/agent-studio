@@ -26,8 +26,9 @@ public sealed record ContextHealthState(
 /// <item>The occupancy is the prompt of the last step (<see cref="ContextObserved"/>, one per step), never the total of
 /// the run: in <c>02-herramienta</c> <c>result.usage</c> would give twice the last step.</item>
 /// <item>It is compared with the window of the model of that step: the one the step brings; else the last one the CLI
-/// gave for that model in this run (the breakdown of its result included), which is exact; else the one learned from
-/// an earlier run (<see cref="ModelWindowCatalog"/>), an estimate of Agent Studio; else, when the catalog has one, the
+/// gave for that model in this run (the breakdown of its result included), which is exact; else the one another attempt of
+/// the run going on reported, or the one learned from an earlier run (<see cref="ModelWindowCatalog"/>), an estimate of
+/// Agent Studio; every window the CLI reports exactly teaches the catalog live (F13-20); else, when the catalog has one, the
 /// window of the base table (<see cref="ModelWindowTable"/>), an estimate too; else none, and then only the tokens are
 /// known. The model announced when the session starts is never taken for the model of the steps (D-13).</item>
 /// <item>The utilization takes the weakest origin of its two figures (<see cref="ContextHealthEvaluator"/>), so an
@@ -44,6 +45,7 @@ public sealed class ContextHealthTracker
     private readonly Lock _gate = new();
     private readonly ContextHealthEvaluator _evaluator;
     private readonly ModelWindowCatalog _learned;
+    private readonly TimeProvider _time;
     private readonly bool _reportsContext;
     private readonly string _notExposed;
     private readonly Dictionary<string, MetricValue<long>> _windowsOfRun = new(StringComparer.Ordinal);
@@ -58,13 +60,15 @@ public sealed class ContextHealthTracker
     /// <param name="learned">The windows seen in earlier runs of the project.</param>
     /// <param name="provider">The provider of the run, to say which CLI does not expose the context.</param>
     /// <param name="reportsContextOccupancy">The provider's <see cref="ProviderCapabilities.ReportsContextOccupancy"/>.</param>
+    /// <param name="time">The clock a window learned live is dated with; the system's by default.</param>
     /// <exception cref="ArgumentOutOfRangeException">The thresholds do not satisfy 0 &lt; aviso &lt; compresión &lt; crítico ≤ 1.</exception>
-    public ContextHealthTracker(ContextHealthThresholds thresholds, ModelWindowCatalog learned, ProviderId provider, bool reportsContextOccupancy)
+    public ContextHealthTracker(ContextHealthThresholds thresholds, ModelWindowCatalog learned, ProviderId provider, bool reportsContextOccupancy, TimeProvider? time = null)
     {
         ArgumentNullException.ThrowIfNull(thresholds);
         ArgumentNullException.ThrowIfNull(learned);
         _evaluator = new ContextHealthEvaluator(thresholds);
         _learned = learned;
+        _time = time ?? TimeProvider.System;
         _reportsContext = reportsContextOccupancy;
         _notExposed = provider == ProviderId.CodexCli ? "el CLI no informa de la ocupación del contexto (codex exec)"
             : provider == ProviderId.GeminiCli ? "el CLI no informa de la ocupación del contexto (Gemini CLI)"
@@ -122,9 +126,17 @@ public sealed class ContextHealthTracker
         }
     }
 
-    /// <summary>A window the CLI gave for a model in this run serves the later steps of that model.</summary>
+    /// <summary>
+    /// A window the CLI gave for a model in this run serves the later steps of that model; one it reported exactly also teaches
+    /// the catalog, live, so the next attempts that share it judge that model with it (F13-20).
+    /// </summary>
     private void Remember(string? model, MetricValue<long> window)
     {
+        if (model is not null && window.Origin == MetricOrigin.ReportedByProvider && window.Value is { } tokens)
+        {
+            _learned.LearnLive(model, tokens, _time.GetUtcNow());
+        }
+
         if (model is not null && window.HasValue && window.Origin is MetricOrigin.ReportedByProvider or MetricOrigin.EstimatedByProvider)
         {
             if (window.Origin == MetricOrigin.ReportedByProvider || !_windowsOfRun.TryGetValue(model, out var known) || known.Origin != MetricOrigin.ReportedByProvider)
