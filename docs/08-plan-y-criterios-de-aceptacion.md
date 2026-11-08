@@ -671,7 +671,7 @@ empaquetado) y WP4 (la herramienta MCP y «Memoria»). Cada uno pasó una revisi
 **Pendiente.**
 
 - Tu demostración de «Memoria» en el equipo: la descarga del modelo, la búsqueda por significado y la confianza de la
-  bitácora. La recorrí en vivo el 2026-11-05 ([18](18-peticiones-y-pendientes.md) §3, con los retoques V40 a V42).
+  bitácora. La recorrí en vivo el 2026-11-05 ([18](18-peticiones-y-pendientes.md) §3); los retoques V40 a V42 están corregidos en el PR #38, pendientes de verificar en vivo.
 
 ## Fuera de alcance hasta nuevo aviso
 

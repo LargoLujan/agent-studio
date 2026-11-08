@@ -24,6 +24,13 @@ public sealed record ModelFileLine(string Name, string Size, string Source)
 /// </summary>
 public sealed partial class EmbeddingModelViewModel : ObservableObject
 {
+    /// <summary>
+    /// What a download that ended with the model in place and verified says, until the index has the meaning of some
+    /// fragment: then the state above says so, and this note goes (V42).
+    /// </summary>
+    public const string DownloadedText =
+        "Modelo descargado y comprobado. El índice calculará el significado de los fragmentos en segundo plano; hasta entonces, la búsqueda va por palabras.";
+
     private static readonly CultureInfo Spanish = CultureInfo.GetCultureInfo("es-ES");
 
     private readonly IEmbeddingModelInstaller? _installer;
@@ -186,7 +193,9 @@ public sealed partial class EmbeddingModelViewModel : ObservableObject
 
     /// <summary>
     /// The project (null: none) and the state of its index as the document read it now, or why it could not be read. The
-    /// document calls it when the project changes, on each search and after a download.
+    /// document calls it when the project changes, after a download and after a refresh of the index. Once the index has
+    /// the meaning of some fragment, the note of the download (<see cref="DownloadedText"/>: «hasta entonces, la búsqueda va
+    /// por palabras») is no longer true, and it goes: the state says how far the index got (V42).
     /// </summary>
     public void Show(bool hasProject, SemanticIndexStatus? status, string? problem)
     {
@@ -206,6 +215,11 @@ public sealed partial class EmbeddingModelViewModel : ObservableObject
         if (IsConfirming && Status?.Model.State is not (EmbeddingModelState.Missing or EmbeddingModelState.Mismatch))
         {
             IsConfirming = false; // the model is there now, or there is no project or no state: nothing to confirm.
+        }
+
+        if (IsHybridReady && string.Equals(Outcome, DownloadedText, StringComparison.Ordinal))
+        {
+            Outcome = null; // the search goes by meaning now; any other outcome (a failure, a cancellation) stays.
         }
     }
 
@@ -320,9 +334,7 @@ public sealed partial class EmbeddingModelViewModel : ObservableObject
     /// <summary>What a download that ended says, by the state the installer left.</summary>
     private static (string Text, Tone Tone) Ended(EmbeddingModelStatus status) => status.State switch
     {
-        EmbeddingModelState.Ready => (
-            "Modelo descargado y comprobado. El índice calculará el significado de los fragmentos en segundo plano; hasta entonces, la búsqueda va por palabras.",
-            Tone.Success),
+        EmbeddingModelState.Ready => (DownloadedText, Tone.Success),
         EmbeddingModelState.Mismatch => ("Lo descargado no coincide con su huella fijada: se ha borrado y no se carga." + Detail(status.Problem), Tone.Error),
         EmbeddingModelState.Unloadable => ("El modelo se descargó y verifica, pero no se ha podido cargar." + Detail(status.Problem), Tone.Error),
         _ => ("La descarga no dejó el modelo en su sitio: no se ha guardado nada." + Detail(status.Problem), Tone.Error),
