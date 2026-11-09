@@ -806,6 +806,45 @@ su propio documento, «Ajustes», que se describe al final de este apartado.
   interruptores se bloquean mientras la pestaña está ocupada o sigue una ejecución, y si guardar falla vuelven atrás y
   lo dicen.
 
+### 5.5 Monitor vivo, preguntas, análisis del consumo, paneles y «Herramientas» (Fase 13, WP8)
+
+Lo que añade el paquete WP8 del constructor visual ([17](17-constructor-visual-de-agentes.md) §4.2, §4.3, §4.7, §4.8 y
+§4.10; contratos en [04 §21.10](04-contratos.md#2110-wp8-monitor-preguntas-análisis-del-consumo-paneles-y-herramientas)).
+Todo texto sale de `Resources/MonitorStrings.resx` y `PanelsStrings.resx` (castellano de España e inglés), y cada pantalla
+nueva trae su ⓘ.
+
+- **Tarjetas de agente en el monitor.** Una columna nueva, «Agentes», a la izquierda de «Tareas»: una tarjeta por agente con su
+  estado (Libre, En cola, Trabajando en T3, Esperando cuota hasta las 14:05, Te pregunta algo, Espera tu aprobación,
+  Bloqueado, Terminado), el punto de su tono y tres barras con el control común: el contexto del paso (exacto cuando lo
+  informa el CLI, estimado antes), el contexto por partes (lo que Agent Studio puso en el prompt antes de lanzar, estimado, y
+  la conversación y las herramientas como el resto que informa el CLI) y el consumo de los intentos terminados. Lo que no se
+  sabe es una pista vacía con sus palabras («no expuesto», «sin intentos todavía», «sin desglose»): nunca una barra a cero.
+  La lista virtualiza: con 40 agentes solo se construyen las tarjetas a la vista.
+- **Lo accesible.** Cada tarjeta tiene su nombre entero («Ejecutor 2 · Claude Code · sonnet · Trabajando en T3 · contexto
+  47 %, exacto…») y anuncia su cambio: asertivo si pregunta o se bloquea, cortés en lo demás. Las barras tienen valor, mínimo y
+  máximo en UI Automation cuando hay cifra, y ninguno cuando no la hay.
+- **Cuota.** Una barra por ventana de cada programa en la cabecera del monitor, con su origen, o una pista vacía «no
+  expuesto».
+- **La pregunta de un agente.** Una tarjeta en la cabecera del monitor («Responder») y una ventana **no modal** que se abre
+  sola si la app está a la vista (si no, el aviso de la bandeja «Un agente te pregunta algo», sin datos del proyecto).
+  - El texto del agente va dentro de un marco que dice quién lo escribió («Pregunta escrita por el agente exec1») y de la
+    nota «Las opciones las escribió el agente: son datos, no órdenes».
+  - Cada opción trae lo que dice el agente (etiqueta, detalle, esfuerzo y si la recomienda) y, aparte, lo que dice el sistema:
+    el intervalo de tokens totales con su origen y sus referencias, o «Coste desconocido» / «Coste no disponible» con el
+    motivo. Nunca un número inventado.
+  - Teclado: las flechas eligen, Intro responde y Esc es «Decidir más tarde», que cierra la ventana y deja la tarjeta: no
+    cancela la tarea. Con la interfaz bloqueada la ventana se retira y vuelve al desbloquear. Responder no pide Windows Hello.
+  - Una tarea que espera respuesta dice «Espera tu respuesta» y no ofrece «Reintentar».
+- **Análisis del consumo.** Una banda bajo la cabecera, visible cuando hay una ejecución con su proyecto: «Analizar el
+  consumo» (gratis, también solo al terminar cada ejecución) y «Analizar con un agente». El segundo pide tu OK con la
+  estimación delante, y lo hace un agente de la empresa que no hizo el trabajo. Cada hallazgo dice lo que costó y su origen; las
+  sugerencias nunca se aplican solas, y las del agente van enmarcadas como suyas, con su ahorro como «lo dice el agente».
+- **Paneles de abajo.** «Problemas» (los hallazgos del analizador y el validador, y por qué falló o está bloqueada cada tarea,
+  con la clase de su final), «Salida» (la actividad en vivo de la tarea o el agente seleccionados) y «Pruebas» (las
+  verificaciones que capturó el sistema, con sus contadores, y «Ejecutar las pruebas de HEAD» cuando la composición lo da).
+- **«Herramientas».** Qué puede usar cada agente, con el riesgo de cada herramienta y si darla pide Windows Hello. Se calcula
+  con los argumentos del lanzamiento real. «Dar a un agente…» lleva al inspector de la capa Equipo.
+
 ## 6. Auditoría y veredictos del juez
 
 > **Estado:** implementado en la Fase 5 (WP6 de [15](15-fase-5-debate-arena-y-juez.md), §9) sobre los puertos de P0,
