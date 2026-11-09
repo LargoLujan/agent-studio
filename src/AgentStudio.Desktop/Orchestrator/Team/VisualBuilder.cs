@@ -54,6 +54,8 @@ public sealed partial class VisualBuilder : ObservableObject, IDisposable
         Band = band;
         OrderReview = orderReview;
         Chat = chat;
+        _canvas.Team.Editor = editor;
+        _canvas.Team.Builder = this;
         if (services.Live is { } live)
         {
             live.Changed += OnLiveChanged;
@@ -71,13 +73,13 @@ public sealed partial class VisualBuilder : ObservableObject, IDisposable
     public BuilderServices Services => _services;
 
     /// <summary>The bars of quota of the account, one per program and window, in the header of the strip (D-12).</summary>
-    public ObservableCollection<MetricBarReading> QuotaBars { get; } = [];
+    public ObservableCollection<MetricBarReading> QuotaBars => _canvas.Team.QuotaBars;
 
     /// <summary>What the log taught of each model of this project; null until it was read.</summary>
     public LearnedModels? Learned { get; private set; }
 
     /// <summary>The windows of quota as last seen, for the analyzer (<c>quota.window-near</c>).</summary>
-    public IReadOnlyList<QuotaObservation> QuotaObservations { get; private set; } = [];
+    internal IReadOnlyList<QuotaObservation> QuotaObservations { get; private set; } = [];
 
     /// <summary>The budget of the run in agent runs (<c>RunOptions.MaxAgentRuns</c>): a fix can raise it, and the next run starts with it.</summary>
     [ObservableProperty]

@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Windows;
+using AgentStudio.Desktop.Controls;
 using AgentStudio.Desktop.Orchestrator.Canvas;
 using AgentStudio.Desktop.Orchestrator.Live;
 using AgentStudio.Domain.Agents;
@@ -8,6 +9,7 @@ using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Metrics;
 using AgentStudio.Domain.Team;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 
 namespace AgentStudio.Desktop.Orchestrator.Team;
 
@@ -69,7 +71,21 @@ public sealed partial class TeamCanvasViewModel : ObservableObject
 
     public ObservableCollection<string> Problems { get; } = [];
 
+    /// <summary>The bars of quota of the account, one per program and window, in the header of the strip (D-12): each with its origin, or «no expuesto» with an empty track.</summary>
+    public ObservableCollection<MetricBarReading> QuotaBars { get; } = [];
+
+    /// <summary>The editor of the template that this layer is edited with (palette, remove, inspector); null without the builder.</summary>
+    [ObservableProperty]
+    private TeamEditorViewModel? _editor;
+
+    /// <summary>The visual builder of the document (analysis band, «Revisar el orden»); null without it.</summary>
+    [ObservableProperty]
+    private VisualBuilder? _builder;
+
     public RepositoryNodeViewModel? Repository { get; private set; }
+
+    /// <summary>The template has agents: the strip of the team is shown.</summary>
+    public bool HasAgents => Agents.Count > 0;
 
     /// <summary>The agent of the node selected, when it is exactly one agent.</summary>
     [ObservableProperty]
@@ -99,7 +115,102 @@ public sealed partial class TeamCanvasViewModel : ObservableObject
         Repository?.Node,
         [.. Connections.Select(c => c.Edge)]);
 
+    /// <summary>What the last refused or done change of the layer says, next to the canvas; announced by screen readers.</summary>
+    [ObservableProperty]
+    private string? _notice;
+
+    /// <summary>The places the selected agent can be connected to or disconnected from, for «Conectar con…» with the keyboard (D-17).</summary>
+    public ObservableCollection<ConnectTarget> SelectedTargets { get; } = [];
+
     partial void OnShowOnlyOrchestrationChanged(bool value) => Rebuild();
+
+    partial void OnSelectedAgentChanged(AgentNodeViewModel? value) => RefreshTargets();
+
+    partial void OnIsReadOnlyChanged(bool value) => RefreshTargets();
+
+    private void RefreshTargets()
+    {
+        SelectedTargets.Clear();
+        if (SelectedAgent is { } agent && TeamRoles.Writes(agent.Definition.Role))
+        {
+            foreach (var target in TargetsOf(agent))
+            {
+                SelectedTargets.Add(target);
+            }
+        }
+    }
+
+    /// <summary>Bound to the cards of the strip: a click on a card selects its agent, as a click on its node does.</summary>
+    [RelayCommand]
+    private void SelectAgent(AgentNodeViewModel? agent)
+    {
+        if (agent is not null)
+        {
+            Select(agent);
+        }
+    }
+
+    /// <summary>
+    /// «Conectar con…» and «Desconectar de…» with the keyboard: one entry of <see cref="SelectedTargets"/> connects the selected
+    /// agent to that place, or disconnects it when it already works there. The same check as dragging a cable.
+    /// </summary>
+    [RelayCommand]
+    private void ToggleTarget(ConnectTarget? target)
+    {
+        if (target is null || SelectedAgent is not { } agent)
+        {
+            return;
+        }
+
+        Notice = target.IsConnected ? RequestDisconnect(agent, target.Connector) : RequestConnect(agent, target.Connector);
+    }
+
+    /// <summary>Bound to <c>ConnectionCompletedCommand</c> of the editor: a cable dragged from an agent to a folder. The refusal is said, never swallowed.</summary>
+    [RelayCommand]
+    private void Connect(object? ends)
+    {
+        if (ends is not ValueTuple<object, object?> { Item1: TeamConnectorViewModel a, Item2: TeamConnectorViewModel b })
+        {
+            return;
+        }
+
+        var (output, input) = a.Flow == TeamConnectorFlow.Output ? (a, b) : (b, a);
+        Notice = output.Owner is AgentNodeViewModel agent && input.Flow == TeamConnectorFlow.Input
+            ? RequestConnect(agent, input)
+            : _text.Get("Canvas_Connect_OnlyFolders");
+    }
+
+    /// <summary>Bound to the removal of a cable (Alt+click, or Delete on a selected cable): only «Trabaja en» can be removed, as it is the one the person drew.</summary>
+    [RelayCommand]
+    private void RemoveConnection(TeamConnectionViewModel? connection)
+    {
+        if (connection is null)
+        {
+            return;
+        }
+
+        Notice = connection.Kind == TeamEdgeKind.WorksIn && Agents.FirstOrDefault(a => a.Id == connection.Edge.From) is { } agent
+            ? RequestDisconnect(agent, connection.Target)
+            : _text.Get("Canvas_Connect_NotRemovable");
+    }
+
+    /// <summary>Bound to <c>DisconnectConnectorCommand</c> (Alt+click on a connector, or Delete on a focused one): every cable «Trabaja en» that touches it.</summary>
+    [RelayCommand]
+    private void DisconnectConnector(TeamConnectorViewModel? connector)
+    {
+        if (connector is null)
+        {
+            return;
+        }
+
+        foreach (var connection in Connections.Where(c => c.Kind == TeamEdgeKind.WorksIn && (ReferenceEquals(c.Source, connector) || ReferenceEquals(c.Target, connector))).ToList())
+        {
+            RemoveConnection(connection);
+        }
+    }
+
+    [RelayCommand]
+    private void DismissNotice() => Notice = null;
 
     partial void OnAnimationsEnabledChanged(bool value) => RefreshAnimations();
 
@@ -192,6 +303,8 @@ public sealed partial class TeamCanvasViewModel : ObservableObject
 
         OnPropertyChanged(nameof(Repository));
         OnPropertyChanged(nameof(Graph));
+        OnPropertyChanged(nameof(HasAgents));
+        RefreshTargets();
         ShowProblems();
         RefreshAnimations();
     }

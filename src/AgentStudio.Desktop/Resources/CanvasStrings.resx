@@ -1025,4 +1025,36 @@ Aplicar una sugerencia del equipo: nunca se aplica sola.</value>
     <value>{0} agentes</value>
     <comment>Count of agents in the strip.</comment>
   </data>
+  <data name="Canvas_Connect_NotRemovable" xml:space="preserve">
+    <value>Solo se puede quitar el cable «Trabaja en»: los demás salen de los roles del equipo.</value>
+    <comment>Why a cable cannot be removed.</comment>
+  </data>
+  <data name="Canvas_Team_Notice" xml:space="preserve">
+    <value>Aviso del equipo</value>
+    <comment>Accessible name of the notice of the Team layer.</comment>
+  </data>
+  <data name="Canvas_Team_Editor" xml:space="preserve">
+    <value>Lienzo del equipo</value>
+    <comment>Accessible name of the editor of the Team layer.</comment>
+  </data>
+  <data name="Canvas_Plan_Editor" xml:space="preserve">
+    <value>Lienzo del plan</value>
+    <comment>Accessible name of the editor of the Plan layer.</comment>
+  </data>
+  <data name="Canvas_Team_Close" xml:space="preserve">
+    <value>Cerrar</value>
+    <comment>Button of a notice.</comment>
+  </data>
+  <data name="Canvas_Team_Zoom_In" xml:space="preserve">
+    <value>Acercar</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Canvas_Team_Zoom_Out" xml:space="preserve">
+    <value>Alejar</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Canvas_Team_Empty" xml:space="preserve">
+    <value>El proyecto todavía no tiene agentes.</value>
+    <comment>Said on the Team layer when it has none.</comment>
+  </data>
 </root>

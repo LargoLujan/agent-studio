@@ -122,6 +122,10 @@
                                        Text="Se guarda en .agentstudio/verification.json, excluido de git. Sin este paso no se aplica nada."/>
                         </StackPanel>
                     </StackPanel>
+
+                    <!-- The chat with the orchestrator (docs/17 D-44): only when the builder is on. -->
+                    <views:PreparationChatView DataContext="{Binding Builder.Chat}" views:AdaptiveColumnsPanel.Weight="2" MinWidth="320"
+                                               Visibility="{Binding DataContext.Builder, RelativeSource={RelativeSource AncestorType=views:PreparationView}, Converter={StaticResource Orchestrator.NotNullToVisibility}}"/>
                 </views:AdaptiveColumnsPanel>
             </ScrollViewer>
         </DockPanel>

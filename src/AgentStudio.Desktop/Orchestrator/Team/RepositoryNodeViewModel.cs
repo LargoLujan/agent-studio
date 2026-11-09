@@ -39,6 +39,9 @@ public sealed partial class RepositoryNodeViewModel : ObservableObject
     /// <summary>One connector per main folder; the cable «Trabaja en» goes to one of them.</summary>
     public IReadOnlyList<TeamConnectorViewModel> Folders { get; }
 
+    /// <summary>Every connector of the node, as Nodify draws them: the whole project first and then each main folder.</summary>
+    public IReadOnlyList<TeamConnectorViewModel> Connectors => [WholeProject, .. Folders];
+
     [ObservableProperty]
     private Point _location;
 

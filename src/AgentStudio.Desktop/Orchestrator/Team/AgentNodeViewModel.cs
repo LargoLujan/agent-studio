@@ -69,7 +69,13 @@ public sealed partial class TeamConnectorViewModel : ObservableObject
         IsConnected = Count > 0;
     }
 
-    public override string ToString() => Title;
+    /// <summary>What Nodify writes next to the connector (the folder or the kind of cable); the same as its title.</summary>
+    public string Label => Title;
+
+    /// <summary>What a screen reader says of the connector: its title and the node it belongs to.</summary>
+    public string AutomationName => Owner is AgentNodeViewModel agent ? agent.Name + " · " + Title : Title;
+
+    public override string ToString() => AutomationName;
 }
 
 /// <summary>
@@ -100,6 +106,12 @@ public sealed partial class AgentNodeViewModel : ObservableObject
     public TeamConnectorViewModel Input { get; }
 
     public TeamConnectorViewModel Output { get; }
+
+    /// <summary>The connectors as Nodify takes them: a list with the input.</summary>
+    public IReadOnlyList<TeamConnectorViewModel> InputList => [Input];
+
+    /// <summary>The connectors as Nodify takes them: a list with the output.</summary>
+    public IReadOnlyList<TeamConnectorViewModel> OutputList => [Output];
 
     /// <summary>The agent of the template this node shows: it is replaced when the template is edited.</summary>
     [ObservableProperty]
