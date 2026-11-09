@@ -24,7 +24,7 @@ public sealed class UsageEstimator(IProjectLogReader logs, IModelCatalogSource c
     {
         ArgumentNullException.ThrowIfNull(request);
         var attempts = await AttemptsAsync(request.Project, ct).ConfigureAwait(false);
-        return attempts is null ? UsageEstimate.Unknown(0) : UsageEstimation.Estimate(attempts, catalog.Current.Catalog, request);
+        return attempts is null ? UsageEstimate.Unknown(0, UntrustedLogReason) : UsageEstimation.Estimate(attempts, catalog.Current.Catalog, request);
     }
 
     /// <inheritdoc />
@@ -35,7 +35,7 @@ public sealed class UsageEstimator(IProjectLogReader logs, IModelCatalogSource c
         if (attempts is null)
         {
             return new PlanEstimate(
-                request.Plan.Tasks.Where(t => t.Agent is not null).ToDictionary(t => t.Id, _ => UsageEstimate.Unknown(0)),
+                request.Plan.Tasks.Where(t => t.Agent is not null).ToDictionary(t => t.Id, _ => UsageEstimate.Unknown(0, UntrustedLogReason)),
                 EstimateInterval<long>.Unknown(UntrustedLogReason),
                 EstimateInterval<long>.Unknown(UntrustedLogReason),
                 EstimateInterval<long>.Unknown(UntrustedLogReason),

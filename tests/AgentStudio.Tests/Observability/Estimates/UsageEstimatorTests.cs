@@ -449,6 +449,45 @@ public sealed class UsageEstimatorTests
         }
     }
 
+    /// <summary>
+    /// A log whose text was changed after it was written does not verify: no figure, and every one says why, so the screen can
+    /// tell «el registro no es de fiar» from «no hay intentos parecidos».
+    /// </summary>
+    [Fact]
+    public async Task A_tampered_log_gives_no_estimate_and_says_why()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var entries = Log().ToList();
+        var finished = entries.FindIndex(e => e.Kind == DecisionKind.AgentRunFinished);
+        entries[finished] = entries[finished] with { PayloadJson = entries[finished].PayloadJson.Replace("1000", "1", StringComparison.Ordinal) };
+        var verification = DecisionLog.Load(entries).Verify();
+        Assert.False(verification.IsValid);
+        var estimator = new UsageEstimator(new FakeLogReader(new ProjectLogSnapshot("p1", "C:\\repo", entries, verification, AnchorStatus.Anchored)), new BuiltInModelCatalog());
+
+        var estimate = await estimator.EstimateAsync(Request(), ct);
+
+        Assert.Equal(0, estimate.References);
+        Assert.All(
+            [estimate.InputTokens.Low, estimate.OutputTokens.High, estimate.TotalTokens!.Low],
+            figure => Assert.Equal(((long?)null, MetricOrigin.Missing, UsageEstimator.UntrustedLogReason), (figure.Value, figure.Origin, figure.Source)));
+        Assert.Equal(UsageEstimator.UntrustedLogReason, estimate.CostUsd.High.Source);
+        Assert.Equal(UsageEstimator.UntrustedLogReason, estimate.ToSnapshot("a").Low.Source);
+
+        var plan = await estimator.EstimatePlanAsync(PlanRequest([Spec("T1", WorkTaskKind.AgentWork, "ejecutor")]), ct);
+        Assert.Equal(UsageEstimator.UntrustedLogReason, plan.Tasks[new TaskId("T1")].Duration.Low.Source);
+        Assert.Equal(UsageEstimator.UntrustedLogReason, plan.AgentRuns.High.Source);
+    }
+
+    [Fact]
+    public void An_unknown_estimate_carries_its_reason_and_a_blank_one_is_refused()
+    {
+        var estimate = UsageEstimate.Unknown(1, "unknown: why");
+
+        Assert.Equal(("unknown: why", "unknown: why"), (estimate.Duration.High.Source, estimate.TotalTokens!.High.Source));
+        Assert.Equal("unknown: 2 of 3 references", UsageEstimate.Unknown(2).InputTokens.Low.Source);
+        Assert.Throws<ArgumentException>(() => UsageEstimate.Unknown(0, " "));
+    }
+
     /// <summary>D-24: the options of a model compared through the port, with the estimator of the system.</summary>
     [Fact]
     public async Task The_options_of_a_model_are_compared_with_the_estimator_through_its_port()

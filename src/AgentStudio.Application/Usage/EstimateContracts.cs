@@ -118,9 +118,17 @@ public sealed record UsageEstimate(
     /// An estimate that is not known: with fewer than three references, every figure is <see cref="MetricOrigin.Missing"/>
     /// and its source says why, in technical words; the desktop says «desconocida» with its resources.
     /// </summary>
-    public static UsageEstimate Unknown(int references, IReadOnlyList<string>? assumptions = null)
+    public static UsageEstimate Unknown(int references, IReadOnlyList<string>? assumptions = null) =>
+        Unknown(references, string.Create(System.Globalization.CultureInfo.InvariantCulture, $"unknown: {references} of {MinimumReferences} references"), assumptions);
+
+    /// <summary>
+    /// WP2 (2026-11-09): an estimate that is not known for <paramref name="reason"/>, which every figure carries as its source, so
+    /// the screen can say why there is none (a log that is not trusted, say), not only that there is none.
+    /// </summary>
+    /// <exception cref="ArgumentException">The reason is blank.</exception>
+    public static UsageEstimate Unknown(int references, string reason, IReadOnlyList<string>? assumptions = null)
     {
-        var reason = string.Create(System.Globalization.CultureInfo.InvariantCulture, $"unknown: {references} of {MinimumReferences} references");
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
         return new UsageEstimate(
             references,
             EstimateInterval<long>.Unknown(reason),
