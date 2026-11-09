@@ -162,6 +162,14 @@ public sealed class QuestionPromptService : IDisposable
         {
             _lock.Changed -= OnLockChanged;
         }
+
+        // The windows of the questions that wait go with the service; the cards of the monitor keep them.
+        foreach (var question in _monitor.PendingQuestions.ToList())
+        {
+            question.DeferRequested -= OnDeferRequested;
+            question.Answered -= OnAnswered;
+            _host.Close(question);
+        }
     }
 }
 

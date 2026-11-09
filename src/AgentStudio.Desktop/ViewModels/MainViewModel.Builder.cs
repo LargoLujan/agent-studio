@@ -319,5 +319,14 @@ public sealed partial class MainViewModel
         AgentCounter = _counted?.Current is { } state ? AgentLiveTexts.Counter(state) : string.Empty;
 
     /// <summary>A monitor the shell creates for a run nobody else follows gets the same sources as the others.</summary>
-    private void EquipBackgroundMonitor(RunMonitorViewModel monitor) => _monitors?.Equip(monitor);
+    private void EquipBackgroundMonitor(RunMonitorViewModel monitor)
+    {
+        if (_monitors?.Equip(monitor) is not { } release)
+        {
+            return;
+        }
+
+        // Its service of windows lets go of the lock and of the monitor when its run ends.
+        monitor.Finished += (_, _) => release.Dispose();
+    }
 }

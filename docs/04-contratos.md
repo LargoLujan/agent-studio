@@ -1868,7 +1868,7 @@ Todo vive en `Desktop`; no hay puertos nuevos en `Application`, y los textos sal
   sin cuota.
 - [x] **Quien adjunta la ejecución** (el documento del orquestador) da `Roster` (la plantilla) y `PlanDependencies` (de qué tareas
   depende cada una) **antes** de `Attach`/`Inspect`, también al monitor de una ejecución entregada a otro. Una ejecución que
-  reanuda sola y cuyo plan aún no está leído al adjuntar no tiene pulsos hasta la siguiente.
+  reanuda sola y cuyo plan aún no está leído al adjuntar no tiene pulsos hasta la siguiente. El monitor que el shell crea para una ejecución que nadie sigue (`FollowInBackground`) tampoco los tiene: el shell no lee la plantilla ni el plan de esa ejecución, así que no salen agentes libres ni pulsos (pendiente, no es sencillo desde el shell).
 - [x] **Barra lateral y pestañas:** «Herramientas» es una pestaña (`ToolsDocumentViewModel` con `ToolsView`, cargada con la plantilla y
   el perfil del proyecto abierto); su `GiveToAgentRequested` lleva al orquestador, a la capa Equipo, con un agente elegido en el
   inspector. «Pruebas» de la barra muestra u oculta el panel de abajo, y «Problemas», «Salida» y «Pruebas» son

@@ -383,6 +383,24 @@ public sealed class MainViewModelBuilderTests
         Assert.Equal(string.Empty, rig.Main.AgentCounter);
     }
 
+    [Fact]
+    public async Task Closing_the_tab_of_the_orchestrator_lets_go_of_its_windows_and_reopening_it_gives_them_back()
+    {
+        using var rig = new Rig();
+        await rig.OpenProjectAsync();
+        await RunAsync(rig.Main, "orchestrator");
+        var orchestrator = Assert.IsType<OrchestratorDocumentViewModel>(rig.Main.ActiveContent);
+        Assert.Equal(1, orchestrator.HeldMonitorServices);
+
+        orchestrator.CloseCommand.Execute(null);
+        await WaitForAsync(() => !rig.Main.Documents.Contains(orchestrator));
+
+        Assert.Equal(0, orchestrator.HeldMonitorServices);
+
+        await RunAsync(rig.Main, "orchestrator");
+        Assert.Equal(1, orchestrator.HeldMonitorServices);
+    }
+
     // ---- the tray (docs/17 D-41) ----
 
     [Fact]

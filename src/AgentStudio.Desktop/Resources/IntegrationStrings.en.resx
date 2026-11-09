@@ -55,6 +55,9 @@
   <data name="Shell_Planner_AnswerHelp" xml:space="preserve">
     <value>Opens the windows of the questions of the orchestrator. When you answer them all, it asks for the plan again with your answers.</value>
   </data>
+  <data name="Shell_Planner_Skipped" xml:space="preserve">
+    <value>The answers came when the tab was already busy with another plan or a run: the plan was not asked for again, and no quota was spent.</value>
+  </data>
   <data name="Shell_Tools_Give" xml:space="preserve">
     <value>Choose in the inspector of the Team layer the agent to give '{0}' to: the change is approved as always.</value>
   </data>

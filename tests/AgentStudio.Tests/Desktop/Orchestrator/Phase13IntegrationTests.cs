@@ -105,14 +105,22 @@ public sealed class Phase13IntegrationTests
 
     private sealed class FakeLock : IInterfaceLock
     {
-        public event EventHandler? Changed;
+        private EventHandler? _changed;
+
+        public event EventHandler? Changed
+        {
+            add => _changed += value;
+            remove => _changed -= value;
+        }
+
+        public int Subscribers => _changed?.GetInvocationList().Length ?? 0;
 
         public bool IsLocked { get; private set; }
 
         public void Set(bool locked)
         {
             IsLocked = locked;
-            Changed?.Invoke(this, EventArgs.Empty);
+            _changed?.Invoke(this, EventArgs.Empty);
         }
 
         public Task<CancellationToken> WaitUntilUnlockedAsync(ApprovalRequest question, CancellationToken cancellationToken) => Task.FromResult(CancellationToken.None);
@@ -560,5 +568,145 @@ public sealed class Phase13IntegrationTests
         }
 
         Assert.True(condition(), "The condition was not met in time.");
+    }
+
+    // ---- the life of what the document holds (review of the integration) ----
+
+    private static MonitorServices LockedServices(FakeLock interfaceLock, List<RecordingHost> hosts) => new(
+        interfaceLock: interfaceLock,
+        hostFactory: () =>
+        {
+            var created = new RecordingHost();
+            hosts.Add(created);
+            return created;
+        });
+
+    [Fact]
+    public async Task Closing_the_tab_lets_go_of_the_services_of_the_windows_and_of_their_subscriptions_to_the_lock()
+    {
+        var interfaceLock = new FakeLock();
+        var hosts = new List<RecordingHost>();
+        var document = await OpenAsync(builder: BuilderServices.None, monitors: LockedServices(interfaceLock, hosts));
+        Assert.Equal(1, document.HeldMonitorServices);
+        Assert.Equal(2, interfaceLock.Subscribers);
+
+        document.OnTabClosed();
+
+        Assert.Equal(0, document.HeldMonitorServices);
+        Assert.Equal(1, interfaceLock.Subscribers);
+
+        // Shown again, the monitor has its service of windows again.
+        document.OnTabReopened();
+        Assert.Equal(1, document.HeldMonitorServices);
+        Assert.Equal(2, interfaceLock.Subscribers);
+    }
+
+    [Fact]
+    public async Task A_tab_closed_while_a_run_is_followed_keeps_its_windows_until_the_run_ends_and_then_lets_go_and_closes_them()
+    {
+        var interfaceLock = new FakeLock();
+        var hosts = new List<RecordingHost>();
+        var document = await OpenAsync(builder: BuilderServices.None, monitors: LockedServices(interfaceLock, hosts));
+        var run = new FakeRun(new RunSnapshot(RunOfPlan, RunPhase.Running, [FakeRun.View("T1", AgentStudio.Domain.Work.WorkTaskKind.AgentWork)], FakeRun.Healthy, 0));
+        document.Monitor.Attach(run, new ProjectContext("p-1", Root));
+        run.Emit(new QuestionPendingEvent(T0, Pending()));
+        await WaitForAsync(() => hosts[0].Shown.Count == 1);
+
+        document.OnTabClosed();
+        Assert.Equal(1, document.HeldMonitorServices);
+
+        run.Finish(new RunResult(RunOfPlan, RunPhase.Succeeded, FakeRun.Healthy, "c0ffee", null, "Hecho"));
+        await document.Monitor.Listening;
+        await WaitForAsync(() => document.HeldMonitorServices == 0);
+
+        Assert.Equal(1, interfaceLock.Subscribers);
+        Assert.Contains("T1-q1", hosts[0].Closed);
+    }
+
+    [Fact]
+    public async Task Closing_the_tab_withdraws_the_questions_of_the_orchestrator()
+    {
+        var hosts = new List<RecordingHost>();
+        var engine = new FakeOrchestrator { Plan = (_, _, _) => Task.FromResult(AskingProposal()) };
+        var document = await OpenAsync(engine, builder: BuilderServices.None, monitors: LockedServices(new FakeLock(), hosts));
+        document.RequestText = "Anadir Calc.Multiply";
+        await document.RequestPlanCommand.ExecuteAsync(null);
+        Assert.NotNull(document.PlannerQuestions);
+
+        document.OnTabClosed();
+
+        Assert.Null(document.PlannerQuestions);
+        Assert.Contains("plan-q1", hosts[^1].Closed);
+    }
+
+    [Fact]
+    public async Task A_plan_drawn_approved_and_run_by_hand_ends_the_wait_and_the_late_answers_launch_nothing()
+    {
+        var engine = new FakeOrchestrator { Plan = (_, _, _) => Task.FromResult(AskingProposal()), Start = StartedRun };
+        var document = await OpenAsync(engine, monitors: Services(new RecordingHost()));
+        document.RequestText = "Anadir Calc.Multiply";
+        await document.RequestPlanCommand.ExecuteAsync(null);
+        var set = document.PlannerQuestions!;
+        document.Canvas.LoadTasks(PlanFixtures.ValidTasks(), CanvasLayout.Empty);
+        await document.ApproveCommand.ExecuteAsync(null);
+        Assert.Null(document.PlannerQuestions);
+        await document.ExecuteCommand.ExecuteAsync(null);
+
+        set.Questions[0].Options[0].IsSelected = true;
+        await set.Questions[0].AnswerCommand.ExecuteAsync(null);
+        await Task.Delay(100, TestContext.Current.CancellationToken);
+
+        Assert.Single(engine.PlanRequests);
+        Assert.Single(engine.RunRequests);
+    }
+
+    [Fact]
+    public async Task Answers_that_come_when_a_run_is_followed_plan_nothing_spend_no_quota_and_say_so()
+    {
+        var engine = new FakeOrchestrator { Plan = (_, _, _) => Task.FromResult(AskingProposal()) };
+        var document = await OpenAsync(engine, monitors: Services(new RecordingHost()));
+        document.RequestText = "Anadir Calc.Multiply";
+        await document.RequestPlanCommand.ExecuteAsync(null);
+        var set = document.PlannerQuestions!;
+        document.Monitor.Attach(new FakeRun(new RunSnapshot(RunOfPlan, RunPhase.Running, [], FakeRun.Healthy, 0)), new ProjectContext("p-1", Root));
+
+        set.Questions[0].Options[0].IsSelected = true;
+        await set.Questions[0].AnswerCommand.ExecuteAsync(null);
+        await WaitForAsync(() => document.PlannerQuestions is null);
+
+        Assert.Single(engine.PlanRequests);
+        Assert.Equal(Texts.Get("Shell_Planner_Skipped"), document.ProposalStatus);
+    }
+
+    [Fact]
+    public async Task Questions_that_come_locked_say_it_once_and_show_when_it_unlocks_but_not_the_deferred_ones()
+    {
+        var hosts = new List<RecordingHost>();
+        var interfaceLock = new FakeLock();
+        var services = LockedServices(interfaceLock, hosts);
+        var attention = new List<QuestionAttentionEventArgs>();
+        services.AttentionRequested += (_, e) => attention.Add(e);
+        var engine = new FakeOrchestrator
+        {
+            Plan = (_, _, _) => Task.FromResult(
+                new PlanProposal(RunOfPlan, null, [], Corrected: false, AgentRunStatus.Succeeded, Error: null, RawPlanEvidence: null) { Questions = [PendingOfOrchestrator(1), PendingOfOrchestrator(2)] }),
+        };
+        var document = await OpenAsync(engine, builder: BuilderServices.None, monitors: services);
+        document.RequestText = "Anadir Calc.Multiply";
+        interfaceLock.Set(true);
+
+        await document.RequestPlanCommand.ExecuteAsync(null);
+
+        Assert.Single(attention);
+        Assert.Empty(hosts[^1].Shown);
+
+        interfaceLock.Set(false);
+
+        Assert.Equal(["plan-q1", "plan-q2"], hosts[^1].Shown);
+        hosts[^1].Shown.Clear();
+        document.PlannerQuestions!.Questions[0].DeferCommand.Execute(null);
+        interfaceLock.Set(true);
+        interfaceLock.Set(false);
+        Assert.Equal(["plan-q2"], hosts[^1].Shown);
     }
 }

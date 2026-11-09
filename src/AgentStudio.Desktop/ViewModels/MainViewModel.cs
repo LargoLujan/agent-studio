@@ -1120,6 +1120,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         if (document is OrchestratorDocumentViewModel orchestrator)
         {
             // Its tab is open again: the status bar follows its run and its planning (they were let go when it closed).
+            orchestrator.OnTabReopened();
             StatusStrip.Track(orchestrator.Monitor);
             StatusStrip.TrackPlanning(orchestrator);
         }

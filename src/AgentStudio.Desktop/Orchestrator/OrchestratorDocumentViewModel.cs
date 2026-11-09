@@ -204,6 +204,8 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         }
         Monitor.TaskStatusChanged += (_, update) => Canvas.SetStatus(update.Task, update.Status);
         Monitor.Finished += (_, _) => OnRunFinished();
+        Monitor.Finished += (_, _) => OnRunFinishedReleaseIfClosed();
+        Closed += (_, _) => OnTabClosed();
         Monitor.PropertyChanged += OnMonitorPropertyChanged;
         if (builder is not null)
         {
@@ -828,6 +830,8 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
     [RelayCommand(CanExecute = nameof(CanApprove))]
     private async Task ApproveAsync()
     {
+        // A plan approved by hand ends the wait for the answers of the orchestrator.
+        CancelPlannerQuestions();
         // The button may be enabled from before an edit: the analysis is asked again here.
         if (Builder?.Band.ApprovalRefusal is { } analysisRefusal)
         {
@@ -998,6 +1002,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
     private async Task ExecuteAsync()
     {
         // The options the person chose for the project (step 7 of the configurator) are read before anything else is looked at.
+        CancelPlannerQuestions();
         var stored = Context?.Project is { } optionsProject ? await LoadProjectOptionsAsync(optionsProject).ConfigureAwait(true) : ProjectRunOptions.Defaults;
         if (Context is not { Project: { } project, Requirements: { } requirements, Verification: { } profile } || PlanDecision is not { Approved: true } approval)
         {

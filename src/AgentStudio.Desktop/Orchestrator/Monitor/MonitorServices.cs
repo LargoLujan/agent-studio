@@ -66,6 +66,12 @@ public sealed class MonitorServices
         else
         {
             host.Restore();
+
+            // A question that came while it was locked, or whose window the lock withdrew before it opened, shows now, as those of a run do.
+            if (_plannerSet is { } set)
+            {
+                ShowPlanner(set, activate: false, skipDeferred: true);
+            }
         }
     }
 
@@ -99,15 +105,37 @@ public sealed class MonitorServices
     /// is in view; otherwise the tray says that an agent asks. With <paramref name="activate"/> false the windows do not take the
     /// focus (they open by themselves); «Responder» passes true.
     /// </summary>
-    public void PresentPlannerQuestions(PlannerQuestionSet set, bool activate)
+    public void PresentPlannerQuestions(PlannerQuestionSet set, bool activate) => ShowPlanner(set, activate, skipDeferred: false);
+
+    private PlannerQuestionSet? _plannerSet;
+    private readonly HashSet<string> _plannerDeferred = new(StringComparer.Ordinal);
+
+    private void ShowPlanner(PlannerQuestionSet set, bool activate, bool skipDeferred)
     {
         ArgumentNullException.ThrowIfNull(set);
         var host = _plannerHost ??= _hostFactory();
-        foreach (var question in set.Questions.Where(q => !q.IsAnswered))
+        _plannerSet = set;
+        var waiting = set.Questions.Where(q => !q.IsAnswered).ToList();
+        if (waiting.Count == 0)
         {
-            if (_lock?.IsLocked == true || !host.IsAppInView)
+            return;
+        }
+
+        if (_lock?.IsLocked == true || !host.IsAppInView)
+        {
+            // One notice for the whole round of questions, never one per question; the windows wait for the app to be in view or unlocked.
+            AttentionRequested?.Invoke(this, new QuestionAttentionEventArgs(_texts.Get("Monitor_Question_Notice")));
+            return;
+        }
+
+        foreach (var question in waiting)
+        {
+            if (activate)
             {
-                AttentionRequested?.Invoke(this, new QuestionAttentionEventArgs(_texts.Get("Monitor_Question_Notice")));
+                _plannerDeferred.Remove(question.Id);
+            }
+            else if (skipDeferred && _plannerDeferred.Contains(question.Id))
+            {
                 continue;
             }
 
@@ -127,7 +155,11 @@ public sealed class MonitorServices
         }
 
         question.Answered += (_, _) => host.Close(question);
-        question.DeferRequested += (_, _) => host.Close(question);
+        question.DeferRequested += (_, _) =>
+        {
+            _plannerDeferred.Add(question.Id);
+            host.Close(question);
+        };
     }
 
     /// <summary>Closes the windows of the questions of a planning that was rejected or cancelled.</summary>
@@ -137,6 +169,11 @@ public sealed class MonitorServices
         if (_plannerHost is not { } host)
         {
             return;
+        }
+
+        if (ReferenceEquals(_plannerSet, set))
+        {
+            _plannerSet = null;
         }
 
         foreach (var question in set.Questions)

@@ -48,6 +48,53 @@ public sealed partial class OrchestratorDocumentViewModel
         }
     }
 
+    private bool _tabClosed;
+
+    /// <summary>
+    /// The tab closed: the questions of the orchestrator that nobody waits for are withdrawn, and the services of the windows of the
+    /// monitor (their subscriptions to the lock and to the monitor) are let go, at once when no run is followed and, if one is, when it ends.
+    /// </summary>
+    public void OnTabClosed()
+    {
+        _tabClosed = true;
+        CancelPlannerQuestions();
+        if (!Monitor.IsActive)
+        {
+            ReleaseMonitorServices();
+        }
+    }
+
+    private void OnRunFinishedReleaseIfClosed()
+    {
+        if (_tabClosed)
+        {
+            ReleaseMonitorServices();
+        }
+    }
+
+    private void ReleaseMonitorServices()
+    {
+        foreach (var release in _monitorReleases)
+        {
+            release.Dispose();
+        }
+
+        _monitorReleases.Clear();
+    }
+
+    /// <summary>The tab is shown again after it closed: the monitor gets the service of its windows again, if it was let go.</summary>
+    public void OnTabReopened()
+    {
+        _tabClosed = false;
+        if (_monitorReleases.Count == 0)
+        {
+            EquipMonitor(Monitor);
+        }
+    }
+
+    /// <summary>How many services of windows the document holds now (a test sees that closing lets them go).</summary>
+    public int HeldMonitorServices => _monitorReleases.Count;
+
     /// <summary>What the monitor needs from the document before it follows a run: the template, and the dependencies of the plan on the canvas.</summary>
     private void GiveLiveContext(RunMonitorViewModel monitor)
     {
@@ -171,6 +218,14 @@ public sealed partial class OrchestratorDocumentViewModel
         _questionWait = null;
         wait.Dispose();
         PlannerQuestions = null;
+
+        // The state is looked at again before spending quota: a plan was drawn and run by hand meanwhile, or the tab is busy.
+        if (IsBusy || Monitor.IsAttached)
+        {
+            ProposalStatus = Texts.Get("Shell_Planner_Skipped");
+            return;
+        }
+
         await PlanCoreAsync(request with { Answers = answers }).ConfigureAwait(true);
     }
 

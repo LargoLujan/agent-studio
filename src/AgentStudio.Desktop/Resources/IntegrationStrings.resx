@@ -69,6 +69,10 @@
     <value>Abre las ventanas de las preguntas del orquestador. Cuando las contestes todas, vuelve a pedir el plan con tus respuestas.</value>
     <comment>Tooltip of the button Answer.</comment>
   </data>
+  <data name="Shell_Planner_Skipped" xml:space="preserve">
+    <value>Las respuestas llegaron cuando la pestaña ya estaba ocupada con otro plan o con una ejecución: no se volvió a pedir el plan, y no se gastó cuota.</value>
+    <comment>Status when the answers of the orchestrator come too late to plan again.</comment>
+  </data>
   <data name="Shell_Tools_Give" xml:space="preserve">
     <value>Elige en el inspector de la capa Equipo el agente al que dar «{0}»: el cambio se aprueba como siempre.</value>
     <comment>Status message after Give to an agent. {0}: the tool.</comment>
