@@ -73,12 +73,23 @@
        dan `PresenceProofs.FromHello` y `FromWindowsLock`, a partir de un resultado de Windows (`HelloOutcome.Proof`). El diálogo
        solo prueba el diálogo (`ConfirmationPlan.AnswerAloneProof`). Quien solo ve el método registrado (la puerta, el motor, el
        registrador) lo lee como la prueba que afirma con `PresenceProofs.Claimed`, la inversa de `Verification`.
-       `PresenceProofSourceTests` recorre `src` línea a línea, sin comentarios, y falla si fuera de su sitio alguien nombra esas
-       dos pruebas, convierte un número al tipo, lo lee de un texto, hace aritmética o bit a bit con un valor del tipo, escribe
-       un resultado que confirma como literal en una conversión (`FromHello(UserPresenceResult.Verified)`), construye un
-       `HelloOutcome` (o le da un resultado que confirma) o un `ConfirmationPlan`, o fija con `with` lo que decide el plan.
-       **Límite:** no ve un alias del tipo, una variable del tipo incrementada, la reflexión, `dynamic`, `Unsafe.As` ni una
-       expresión partida en varias líneas; eso queda para la revisión.
+       `PresenceProofSourceTests` lee cada fichero de `src` entero, con sus líneas de comentario en blanco (así ve también una
+       expresión partida en varias líneas), y falla si, fuera de su sitio:
+       - alguien nombra esas dos pruebas, convierte un número al tipo, lo lee de un texto o hace aritmética o bit a bit con un
+         valor del tipo;
+       - hay un `using static` de `PresenceProof` o un alias de `PresenceProof`, `HelloOutcome` o `ConfirmationPlan` (en
+         ningún fichero);
+       - se escribe un resultado que confirma como literal en una conversión (`FromHello(UserPresenceResult.Verified)`);
+       - se hace un `HelloOutcome` a mano: `new HelloOutcome(`, un `new(` con tipo de destino (una declaración, una propiedad,
+         un cuerpo de expresión o el `return` de un método que lo devuelve) o un `with` que fija `Result`, `Problem`, `Lock` o
+         `AnotherPending`. Donde está la confirmación, solo si lleva un resultado que confirma como literal;
+       - se hace un `ConfirmationPlan` a mano, de las mismas formas, o un `with` que fija lo que lo decide (`Confirmation`,
+         `Availability`, `Requirement`, `Action`, `SettingOn`).
+
+       **Límite:** no ve una variable del tipo incrementada (`proof++`), la reflexión, `dynamic`, `Unsafe.As`, ni un `new(…)`
+       con tipo de destino pasado como argumento o devuelto por una lambda, donde el tipo solo está en la firma de quien lo
+       recibe; eso queda para la revisión. Un `with` que fije uno de esos nombres en otro record cuenta también: es el lado
+       seguro, y ese fichero iría a la lista de permitidos con su motivo.
      - **Una sola confirmación a la vez** (revisión de seguridad de WP5): `PresenceConfirmationSlot`, un canal de capacidad
        uno con un solo consumidor, en `ReinforcedConfirmation` (lo comparten la puerta, aceptar un historial y «Aprobar plan»)
        y en `WindowsLockConfirmation`. Mientras una confirmación espera (Hello o el desbloqueo de Windows), otra se rechaza al
