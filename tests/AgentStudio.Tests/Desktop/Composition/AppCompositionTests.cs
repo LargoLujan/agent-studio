@@ -115,6 +115,21 @@ public sealed class AppCompositionTests
     }
 
     [Fact]
+    public void The_order_review_and_the_chat_of_preparation_resolve_once_and_share_the_one_register_of_the_oks()
+    {
+        using var temp = new TempDirectory();
+        using var provider = Build(FoldersIn(temp));
+
+        Assert.Same(provider.GetRequiredService<IOrderReview>(), provider.GetRequiredService<IOrderReview>());
+        Assert.Same(provider.GetRequiredService<IPreparationChat>(), provider.GetRequiredService<IPreparationChat>());
+        var ledger = provider.GetRequiredService<IQuotaConsentLedger>();
+        Assert.IsType<QuotaConsentLedger>(ledger);
+        var consent = new QuotaConsent("miveritas", DateTimeOffset.UnixEpoch, "Revisar el orden");
+        Assert.True(ledger.TrySpend(consent));
+        Assert.False(provider.GetRequiredService<IQuotaConsentLedger>().TrySpend(consent)); // the same register for the whole app
+    }
+
+    [Fact]
     public void The_engine_works_in_the_local_folders_of_the_app()
     {
         using var temp = new TempDirectory();

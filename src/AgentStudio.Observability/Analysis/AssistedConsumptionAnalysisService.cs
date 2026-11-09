@@ -59,7 +59,8 @@ public sealed partial class AssistedConsumptionAnalysisService(
     IAgentRoster roster,
     IAuxiliaryAgentRunner runner,
     TimeProvider time,
-    AssistedConsumptionOptions? options = null) : IAssistedConsumptionAnalysis
+    AssistedConsumptionOptions? options = null,
+    IQuotaConsentLedger? consents = null) : IAssistedConsumptionAnalysis
 {
     /// <summary>The id of the agent that analyses: outside every template, so it never takes the memory or the skills of one.</summary>
     public static readonly AgentId AnalystId = new("analista-consumo");
@@ -71,8 +72,9 @@ public sealed partial class AssistedConsumptionAnalysisService(
     private static readonly TimeSpan ClockSkew = TimeSpan.FromMinutes(1);
 
     private readonly AssistedConsumptionOptions _options = options ?? new AssistedConsumptionOptions();
-    private readonly Lock _gate = new();
-    private readonly HashSet<QuotaConsent> _spent = [];
+
+    /// <summary>The OKs spent, shared with every service that asks one (the composition gives the app's; alone, one of its own).</summary>
+    private readonly IQuotaConsentLedger _consents = consents ?? new QuotaConsentLedger();
 
     /// <summary>
     /// The strict schema of the answer (D-35), in the subset both CLIs accept (ADR-0013, as <c>StrictJsonSchema</c> of the
@@ -163,26 +165,18 @@ public sealed partial class AssistedConsumptionAnalysisService(
         {
             throw new InvalidOperationException($"The consent was given more than {_options.ConsentValidity.TotalMinutes.ToString(CultureInfo.InvariantCulture)} minutes ago: ask the person again.");
         }
-
-        lock (_gate)
-        {
-            if (_spent.Contains(consent))
-            {
-                throw new InvalidOperationException("That consent was already used for an analysis of consumption: each use needs the person's OK.");
-            }
-        }
     }
 
-    /// <summary>A consent is used once, and only while it is recent: spent right before the launch.</summary>
+    /// <summary>
+    /// A consent is used once, and only while it is recent: spent right before the launch, in the register of the app, so an OK
+    /// another service spent is refused here too.
+    /// </summary>
     private void Spend(QuotaConsent consent)
     {
         EnsureRecent(consent);
-        lock (_gate)
+        if (!_consents.TrySpend(consent))
         {
-            if (!_spent.Add(consent))
-            {
-                throw new InvalidOperationException("That consent was already used for an analysis of consumption: each use needs the person's OK.");
-            }
+            throw new InvalidOperationException("That consent was already used: each use needs the person's OK.");
         }
     }
 
