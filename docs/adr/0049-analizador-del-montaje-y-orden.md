@@ -80,7 +80,11 @@
      - **«Añadir Integración»** la pone detrás de las tareas que escriben y que ninguna otra que escribe tiene detrás, la
        verifica con los pasos de pruebas del perfil (y la compilación delante si no la requieren), y hace que cada revisión
        que va detrás de una tarea que escribe espere también a la integración: así el juez revisa lo integrado y la ejecución
-       se puede entregar (B10). Su título es un texto de la interfaz y lo pasa quien la aplica (`FixEnvironment`).
+       se puede entregar (B10). Una revisión que va antes de lo que la integración une (W1 → R1 → W2) no la espera: sería un
+       ciclo. Su título es un texto de la interfaz y lo pasa quien la aplica (`FixEnvironment`).
+     - **La red de todos los arreglos:** uno que dejaría sin un grafo sano un plan que lo tenía (un ciclo, un id repetido, una
+       dependencia desconocida: el criterio del validador) no se aplica (`fix.refused.breaks-graph`), y el analizador solo
+       ofrece los arreglos que se aplican sobre el borrador tal como está.
      - **«Añadir juez»** copia la plantilla del primer juez del equipo (o la que le pasen) con un id nuevo (`juez-2`), el CLI y
        el vendor del arreglo, sin modelo, sin memoria y sin carpetas. Con plan hace falta un segundo clic, «Revisar R1 con
        juez-2», que el analizador ofrece en cuanto existe.
@@ -191,6 +195,7 @@
       con el perfil y pone el texto de `validator.write-scope-outside-agent-area` (hoy sale el genérico de `PlanViolationText`).
     - WP6 y WP8 piden la estimación de cada auxiliar al estimador antes del OK, y ofrecen «Revisar el orden» cuando las notas
       quedan viejas.
-    - El lead registra `IOrderReview` e `IPreparationChat` en la composición y añade estos contratos a docs/04 §21.
+    - El lead registra `IOrderReview`, `IPreparationChat` e `IQuotaConsentLedger` como únicos en la composición (los
+      contratos están en docs/04 §21.6).
     - La pregunta del orquestador se guarda como evidencia sin pasar por `ISecretRedactor` (el motor no lo tiene en sus
       puertos); su texto ya estaba entero en la respuesta guardada del plan.
