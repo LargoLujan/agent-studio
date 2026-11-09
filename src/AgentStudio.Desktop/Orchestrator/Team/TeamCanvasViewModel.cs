@@ -213,7 +213,7 @@ public sealed partial class TeamCanvasViewModel : ObservableObject
         }
 
         var location = _layout.TeamPositions.TryGetValue(RepositoryNodeViewModel.LayoutId, out var saved) ? saved : RepositoryDefault(positions);
-        return new RepositoryNodeViewModel(node, _reading?.Problem ?? (node is null ? RepositoryProblems.NotComposed : null), location, _text);
+        return new RepositoryNodeViewModel(node, _reading?.Problem ?? (node is null ? RepositoryProblems.Reading : null), location, _text);
     }
 
     private void DrawCables(IReadOnlyList<AgentDefinition> shown)

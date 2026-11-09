@@ -88,15 +88,26 @@ public sealed partial class NodeViewModel : ObservableObject
     private string _title;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(AgentLabel))]
+    [NotifyPropertyChangedFor(nameof(AgentLabel), nameof(AgentText))]
     private AgentId? _agent;
 
     /// <summary>The label of the agent on the node of the task (docs/17 D-07): the assignment is a label and the linked selection, never a cable.</summary>
     public string? AgentLabel => Agent?.Value;
 
+    /// <summary>The label of the agent in words («Agente: ejecutor»), from the resources; null when the task has none.</summary>
+    public string? AgentText => Agent is { } agent ? AgentStudio.Desktop.Localization.Texts.Format("Canvas_Node_AgentLabel", agent.Value) : null;
+
     /// <summary>The agent selected in the Team layer owns this task: the node shines (selection linked, D-07).</summary>
     [ObservableProperty]
     private bool _isHighlighted;
+
+    /// <summary>What the monitor says of the task now, no longer only «Bloqueada»: why it is blocked and its attempt (docs/17 D-14); null without a run.</summary>
+    [ObservableProperty]
+    private string? _liveText;
+
+    /// <summary>The context of the step of the task, with its origin (D-12); null without a run.</summary>
+    [ObservableProperty]
+    private AgentStudio.Desktop.Controls.MetricBarReading? _contextBar;
 
     [ObservableProperty]
     private string _objective = string.Empty;

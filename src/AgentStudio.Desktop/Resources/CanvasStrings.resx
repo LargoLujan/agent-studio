@@ -717,4 +717,312 @@ Copiar un borrador de requisito al editor.
 Aplicar una sugerencia del equipo: nunca se aplica sola.</value>
     <comment>What can be done.</comment>
   </data>
+  <data name="Canvas_Severity_Error" xml:space="preserve">
+    <value>Error</value>
+    <comment>Severity of a finding.</comment>
+  </data>
+  <data name="Canvas_Severity_Warning" xml:space="preserve">
+    <value>Aviso</value>
+    <comment>Severity of a finding.</comment>
+  </data>
+  <data name="Canvas_Severity_Suggestion" xml:space="preserve">
+    <value>Sugerencia</value>
+    <comment>Severity of a finding.</comment>
+  </data>
+  <data name="Canvas_SeverityIcon_Error" xml:space="preserve">
+    <value>✖</value>
+    <comment>Icon of a severity.</comment>
+  </data>
+  <data name="Canvas_SeverityIcon_Warning" xml:space="preserve">
+    <value>▲</value>
+    <comment>Icon of a severity.</comment>
+  </data>
+  <data name="Canvas_SeverityIcon_Suggestion" xml:space="preserve">
+    <value>●</value>
+    <comment>Icon of a severity.</comment>
+  </data>
+  <data name="Canvas_Fix_AsksHello" xml:space="preserve">
+    <value>Pide Windows Hello</value>
+    <comment>What a fix does besides its edit.</comment>
+  </data>
+  <data name="Canvas_Fix_WithdrawsApproval" xml:space="preserve">
+    <value>Cambia la plantilla: retira la aprobación del plan</value>
+    <comment>What a fix does besides its edit.</comment>
+  </data>
+  <data name="Canvas_Analysis_Title" xml:space="preserve">
+    <value>Análisis del montaje</value>
+    <comment>Title of the band.</comment>
+  </data>
+  <data name="Canvas_Analysis_Unavailable" xml:space="preserve">
+    <value>El análisis necesita requisitos congelados y un perfil de verificación.</value>
+    <comment>Said when the draft cannot be analyzed yet.</comment>
+  </data>
+  <data name="Canvas_Analysis_Clean" xml:space="preserve">
+    <value>Sin hallazgos: lo que se puede saber ahora está en orden.</value>
+    <comment>Said when the analysis found nothing.</comment>
+  </data>
+  <data name="Canvas_Analysis_Summary" xml:space="preserve">
+    <value>{0} errores · {1} avisos · {2} sugerencias</value>
+    <comment>Summary of the band.</comment>
+  </data>
+  <data name="Canvas_Analysis_Failed" xml:space="preserve">
+    <value>No se pudo analizar el montaje: {0}</value>
+    <comment>{0}: the reason.</comment>
+  </data>
+  <data name="Canvas_Analysis_Fixed" xml:space="preserve">
+    <value>Hecho: {0}. Puedes deshacerlo con Ctrl+Z.</value>
+    <comment>{0}: the button of the fix.</comment>
+  </data>
+  <data name="Canvas_Analysis_NotUndone" xml:space="preserve">
+    <value>No se pudo escribir ese cambio: se queda como estaba.</value>
+    <comment>Said when an undo or a redo was refused.</comment>
+  </data>
+  <data name="Canvas_Analysis_Undo" xml:space="preserve">
+    <value>Deshacer</value>
+    <comment>Button (Ctrl+Z).</comment>
+  </data>
+  <data name="Canvas_Analysis_Redo" xml:space="preserve">
+    <value>Rehacer</value>
+    <comment>Button (Ctrl+Y).</comment>
+  </data>
+  <data name="Canvas_Analysis_ShowSuggestions" xml:space="preserve">
+    <value>Mostrar las sugerencias</value>
+    <comment>Toggle.</comment>
+  </data>
+  <data name="Canvas_Analysis_NeverSpends" xml:space="preserve">
+    <value>El análisis no gasta cuota.</value>
+    <comment>Note of the band.</comment>
+  </data>
+  <data name="Canvas_Order_Offer" xml:space="preserve">
+    <value>Pide al orquestador que revise el orden del plan.</value>
+    <comment>Offer of the review of the order.</comment>
+  </data>
+  <data name="Canvas_Order_Stale" xml:space="preserve">
+    <value>Cambiaste el plan o el equipo: las notas de orden del orquestador pueden estar viejas.</value>
+    <comment>Offer when the notes may be old.</comment>
+  </data>
+  <data name="Canvas_Order_Button" xml:space="preserve">
+    <value>Revisar el orden con el orquestador</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Canvas_Order_NotComposed" xml:space="preserve">
+    <value>Revisar el orden no está disponible: falta el servicio.</value>
+    <comment>Said when the service is not composed.</comment>
+  </data>
+  <data name="Canvas_Order_NoPlanningRun" xml:space="preserve">
+    <value>Revisar el orden necesita un plan que haya propuesto el orquestador.</value>
+    <comment>Said when there is no planning run.</comment>
+  </data>
+  <data name="Canvas_Order_ConsentDescription" xml:space="preserve">
+    <value>Revisar el orden del plan con el orquestador (solo lectura)</value>
+    <comment>What the OK of quota is for.</comment>
+  </data>
+  <data name="Canvas_Order_Running" xml:space="preserve">
+    <value>El orquestador está revisando el orden…</value>
+    <comment>Status.</comment>
+  </data>
+  <data name="Canvas_Order_Failed" xml:space="preserve">
+    <value>No se pudo revisar el orden: {0}</value>
+    <comment>{0}: the reason.</comment>
+  </data>
+  <data name="Canvas_Order_NothingToSuggest" xml:space="preserve">
+    <value>El orquestador no propone cambios de orden.</value>
+    <comment>Status.</comment>
+  </data>
+  <data name="Canvas_Order_Suggestions" xml:space="preserve">
+    <value>El orquestador propone {0} cambios de orden. Ninguno se aplica solo.</value>
+    <comment>Status. {0}: how many.</comment>
+  </data>
+  <data name="Canvas_Order_Dependency" xml:space="preserve">
+    <value>{0} necesita {1}</value>
+    <comment>Suggestion. {0}: later task; {1}: earlier task.</comment>
+  </data>
+  <data name="Canvas_Order_ParallelOk" xml:space="preserve">
+    <value>{0} y {1} pueden ir a la vez</value>
+    <comment>Suggestion.</comment>
+  </data>
+  <data name="Canvas_Order_Harmful" xml:space="preserve">
+    <value>{0} antes que {1} sería dañino</value>
+    <comment>Suggestion.</comment>
+  </data>
+  <data name="Canvas_Order_AlreadyDone" xml:space="preserve">
+    <value>(el plan ya lo cumple)</value>
+    <comment>Suggestion the plan already meets.</comment>
+  </data>
+  <data name="Canvas_Order_NoteOf" xml:space="preserve">
+    <value>Nota del orquestador</value>
+    <comment>Label of the reason, which is text of an agent.</comment>
+  </data>
+  <data name="Canvas_Consent_Title" xml:space="preserve">
+    <value>Esto gasta cuota</value>
+    <comment>Title of the card of the OK.</comment>
+  </data>
+  <data name="Canvas_Consent_Estimating" xml:space="preserve">
+    <value>Calculando la estimación…</value>
+    <comment>Status.</comment>
+  </data>
+  <data name="Canvas_Consent_EstimateFailed" xml:space="preserve">
+    <value>No se pudo estimar: {0}</value>
+    <comment>{0}: the reason.</comment>
+  </data>
+  <data name="Canvas_Consent_NoEstimator" xml:space="preserve">
+    <value>Sin estimación: Agent Studio todavía no sabe cuánto cuesta esto.</value>
+    <comment>Said when there is no estimator.</comment>
+  </data>
+  <data name="Canvas_Consent_NoEstimate" xml:space="preserve">
+    <value>Sin estimación todavía: hay {0} de {1} referencias necesarias.</value>
+    <comment>{0}: references; {1}: needed.</comment>
+  </data>
+  <data name="Canvas_Consent_Estimate" xml:space="preserve">
+    <value>Estimación: entre {0} y {1} tokens en total (estimado por Agent Studio con {2} referencias).</value>
+    <comment>{0}: low; {1}: high; {2}: references.</comment>
+  </data>
+  <data name="Canvas_Consent_Confirm" xml:space="preserve">
+    <value>Dar mi OK</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Canvas_Consent_Cancel" xml:space="preserve">
+    <value>No, cancelar</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Canvas_Chat_Title" xml:space="preserve">
+    <value>Chat con el orquestador</value>
+    <comment>Title of the chat.</comment>
+  </data>
+  <data name="Canvas_Chat_Hint" xml:space="preserve">
+    <value>Escribe lo que quieres hacer</value>
+    <comment>Name of the box of the message.</comment>
+  </data>
+  <data name="Canvas_Chat_Send" xml:space="preserve">
+    <value>Enviar</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Canvas_Chat_End" xml:space="preserve">
+    <value>Terminar la conversación</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Canvas_Chat_You" xml:space="preserve">
+    <value>Tú</value>
+    <comment>Author of the turn of the person.</comment>
+  </data>
+  <data name="Canvas_Chat_Orchestrator" xml:space="preserve">
+    <value>Orquestador (texto de un agente)</value>
+    <comment>Author of the turn of the orchestrator: it is text of an agent.</comment>
+  </data>
+  <data name="Canvas_Chat_NotComposed" xml:space="preserve">
+    <value>El chat no está disponible: falta el servicio.</value>
+    <comment>Said when the service is not composed.</comment>
+  </data>
+  <data name="Canvas_Chat_NoOrchestrator" xml:space="preserve">
+    <value>El chat necesita un orquestador en el equipo.</value>
+    <comment>Said when there is none.</comment>
+  </data>
+  <data name="Canvas_Chat_ConsentDescription" xml:space="preserve">
+    <value>Un mensaje del chat con el orquestador (solo lectura)</value>
+    <comment>What the OK of quota is for.</comment>
+  </data>
+  <data name="Canvas_Chat_Waiting" xml:space="preserve">
+    <value>El orquestador lee tu proyecto y responde…</value>
+    <comment>Status.</comment>
+  </data>
+  <data name="Canvas_Chat_Failed" xml:space="preserve">
+    <value>El chat no pudo responder: {0}</value>
+    <comment>{0}: the reason.</comment>
+  </data>
+  <data name="Canvas_Chat_Mandatory" xml:space="preserve">
+    <value>Obligatorio</value>
+    <comment>Priority of a draft.</comment>
+  </data>
+  <data name="Canvas_Chat_Desirable" xml:space="preserve">
+    <value>Deseable</value>
+    <comment>Priority of a draft.</comment>
+  </data>
+  <data name="Canvas_Chat_Requirements" xml:space="preserve">
+    <value>Borradores de requisitos</value>
+    <comment>Title of the list.</comment>
+  </data>
+  <data name="Canvas_Chat_Copy" xml:space="preserve">
+    <value>Copiar al editor</value>
+    <comment>Button: it never freezes anything.</comment>
+  </data>
+  <data name="Canvas_Chat_Copied" xml:space="preserve">
+    <value>Copiado: congélalo tú en el editor de requisitos.</value>
+    <comment>Said after copying.</comment>
+  </data>
+  <data name="Canvas_Chat_TeamTitle" xml:space="preserve">
+    <value>Sugerencias para el equipo</value>
+    <comment>Title of the list.</comment>
+  </data>
+  <data name="Canvas_Chat_Risks" xml:space="preserve">
+    <value>Riesgos</value>
+    <comment>Title of the list.</comment>
+  </data>
+  <data name="Canvas_Chat_Questions" xml:space="preserve">
+    <value>Preguntas para ti</value>
+    <comment>Title of the list.</comment>
+  </data>
+  <data name="Canvas_Chat_Discarded" xml:space="preserve">
+    <value>Lo que el sistema descartó</value>
+    <comment>Title of the list.</comment>
+  </data>
+  <data name="Canvas_Chat_NeverApplied" xml:space="preserve">
+    <value>Ninguna sugerencia se aplica sola.</value>
+    <comment>Note of the chat.</comment>
+  </data>
+  <data name="Canvas_Hello_ProfileMessage" xml:space="preserve">
+    <value>Confirma que quieres cambiar el perfil de verificación del proyecto.</value>
+    <comment>Message of Windows Hello for the change of the profile.</comment>
+  </data>
+  <data name="Canvas_Hello_ProfileNotConfirmed" xml:space="preserve">
+    <value>No se confirmó que eres tú: el perfil de verificación no cambia.</value>
+    <comment>Said when the confirmation failed.</comment>
+  </data>
+  <data name="Canvas_Prep_Title" xml:space="preserve">
+    <value>Preparación del equipo</value>
+    <comment>Title of the section.</comment>
+  </data>
+  <data name="Canvas_Node_AgentLabel" xml:space="preserve">
+    <value>Agente: {0}</value>
+    <comment>Label of the agent on the node of a task. {0}: id of the agent.</comment>
+  </data>
+  <data name="Canvas_Node_Pulse" xml:space="preserve">
+    <value>Dependencia cumplida</value>
+    <comment>Accessible name of the pulse on a cable of the plan.</comment>
+  </data>
+  <data name="Canvas_Repo_Reading" xml:space="preserve">
+    <value>Leyendo el repositorio…</value>
+    <comment>Said on the node while it is read.</comment>
+  </data>
+  <data name="Canvas_Fix_IntegrationTitle" xml:space="preserve">
+    <value>Integración</value>
+    <comment>Title of the Integration task a fix adds.</comment>
+  </data>
+  <data name="Canvas_Live_Attempt" xml:space="preserve">
+    <value>intento {0}</value>
+    <comment>Attempt of a task. {0}: number.</comment>
+  </data>
+  <data name="Canvas_Live_BlockedWhy" xml:space="preserve">
+    <value>Bloqueada: {0}</value>
+    <comment>A task blocked, with the reason of the monitor. {0}: why.</comment>
+  </data>
+  <data name="Canvas_Live_Writing" xml:space="preserve">
+    <value>escribiendo</value>
+    <comment>The task writes now.</comment>
+  </data>
+  <data name="Canvas_Quota_Header" xml:space="preserve">
+    <value>Cuota de la cuenta</value>
+    <comment>Title of the quota bars of the strip.</comment>
+  </data>
+  <data name="Canvas_Quota_NotExposed" xml:space="preserve">
+    <value>no expuesto</value>
+    <comment>Quota of a program that does not say it.</comment>
+  </data>
+  <data name="Canvas_Quota_Seen" xml:space="preserve">
+    <value>vista {0}</value>
+    <comment>When the quota was seen. {0}: how long ago.</comment>
+  </data>
+  <data name="Canvas_Strip_Agents" xml:space="preserve">
+    <value>{0} agentes</value>
+    <comment>Count of agents in the strip.</comment>
+  </data>
 </root>

@@ -242,6 +242,39 @@ public sealed partial class RequirementsEditorViewModel : ObservableObject
             [new AcceptanceCriterion("c1", string.Empty, VerificationMethod.AutomatedTest)])));
     }
 
+    /// <summary>
+    /// Copies a draft the orchestrator suggested in the chat of preparation (docs/17 D-44) to this editor as a draft of the person:
+    /// «Copiar al editor». It opens a new version when the requirements are frozen, and it never freezes anything: the person reads
+    /// it, fixes it and freezes it, or not. A suggestion is text of an agent, so the criteria arrive for the person to check.
+    /// Returns false when the editor cannot take it now (busy).
+    /// </summary>
+    public bool CopySuggestion(AgentStudio.Application.Orchestration.RequirementDraft suggestion)
+    {
+        ArgumentNullException.ThrowIfNull(suggestion);
+        if (!IsEditing && CanEdit())
+        {
+            Edit();
+        }
+
+        if (!CanChangeDraft())
+        {
+            return false;
+        }
+
+        var used = Drafts.Select(d => d.Id.Trim()).ToHashSet(StringComparer.Ordinal);
+        var next = Enumerable.Range(1, Drafts.Count + 1).Select(n => "RQ-" + n.ToString("00", CultureInfo.InvariantCulture)).First(id => !used.Contains(id));
+        var criteria = suggestion.Criteria
+            .Select((text, index) => new AcceptanceCriterion("c" + (index + 1).ToString(CultureInfo.InvariantCulture), text, VerificationMethod.HumanReview))
+            .ToList();
+        if (criteria.Count == 0)
+        {
+            criteria.Add(new AcceptanceCriterion("c1", string.Empty, VerificationMethod.HumanReview));
+        }
+
+        Drafts.Add(DraftOf(new Requirement(new RequirementId(next), suggestion.Statement, suggestion.Priority, criteria)));
+        return true;
+    }
+
     [RelayCommand(CanExecute = nameof(CanChangeDraft))]
     private void RemoveRequirement(RequirementDraftViewModel? draft)
     {

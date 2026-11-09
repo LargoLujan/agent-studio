@@ -15,11 +15,13 @@ using AgentStudio.Desktop.Orchestrator.Canvas;
 using AgentStudio.Desktop.Orchestrator.Monitor;
 using AgentStudio.Desktop.Orchestrator.Preparation;
 using AgentStudio.Desktop.Orchestrator.Session;
+using AgentStudio.Desktop.Orchestrator.Team;
 using AgentStudio.Desktop.ViewModels;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Providers;
+using AgentStudio.Domain.Security;
 using AgentStudio.Domain.Work;
 using AgentStudio.Observability.Context;
 using AgentStudio.Orchestration.Verification;
@@ -127,6 +129,13 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
     /// Keeps the request and the plan being prepared on this machine (<see cref="PlanDraft"/>), and brings them back when the
     /// tab opens again. Without it nothing is kept.
     /// </param>
+    /// <param name="builder">
+    /// The services of the visual builder (docs/17 section 4, WP6 of Phase 13): the Team layer, the strip, the inspector, the live
+    /// analysis, «Revisar el orden» and the chat of preparation. Without it (<c>null</c>) the document is the one of before the
+    /// phase; with it (even <see cref="BuilderServices.None"/>) the builder is on, and each service that is missing only turns off
+    /// what needs it.
+    /// </param>
+    /// <param name="reduceMotion">Whether the setting «Reducir movimiento» is on, read each time an animation would start.</param>
     public OrchestratorDocumentViewModel(
         string projectRoot,
         OrchestrationSession session,
@@ -134,7 +143,9 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         TimeProvider time,
         SynchronizationContext? uiContext = null,
         ReinforcedConfirmation? confirmation = null,
-        IPlanDraftStore? drafts = null)
+        IPlanDraftStore? drafts = null,
+        BuilderServices? builder = null,
+        Func<bool>? reduceMotion = null)
         : base(CreateId(projectRoot), $"Orquestador · {RecentProjectItem.From(projectRoot).Name}")
     {
         ArgumentNullException.ThrowIfNull(session);
@@ -167,6 +178,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
 
             Revalidate();
             DraftChanged();
+            Builder?.Band.Schedule();
         };
         Canvas.PropertyChanged += OnCanvasPropertyChanged;
         Canvas.NodeCreated += (_, _) => CollapsePreparationWhenReady();
@@ -181,6 +193,11 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         Monitor.TaskStatusChanged += (_, update) => Canvas.SetStatus(update.Task, update.Status);
         Monitor.Finished += (_, _) => OnRunFinished();
         Monitor.PropertyChanged += OnMonitorPropertyChanged;
+        if (builder is not null)
+        {
+            InitializeBuilder(builder, reduceMotion);
+        }
+
         Revalidate();
     }
 
@@ -314,6 +331,17 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         }
 
         ErrorMessage = null;
+
+        // Changing the verification profile is on the list of the fixed barrier (docs/17 D-37, ChangeVerificationProfile): with the
+        // reinforced confirmation composed it always asks Windows Hello, or the lock of Windows without it, and without a
+        // confirmation the profile does not change. A shell without one (never the app's) keeps its click, as «Aprobar plan» does.
+        if (_confirmation is not null
+            && !await ConfirmPresenceAsync(PresenceAction.ChangeVerificationProfile, new CanvasText().Get("Canvas_Hello_ProfileMessage"), CancellationToken.None).ConfigureAwait(true))
+        {
+            ErrorMessage = new CanvasText().Get("Canvas_Hello_ProfileNotConfirmed");
+            return;
+        }
+
         try
         {
             await _session.SaveVerificationProfileAsync(project, proposal, CancellationToken.None).ConfigureAwait(true);
@@ -703,6 +731,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         OnPropertyChanged(nameof(IntegrityProblem));
         OnPropertyChanged(nameof(HasIntegrityProblem));
         OnPropertyChanged(nameof(CanAcceptHistory));
+        BuilderContextChanged(value);
     }
 
     private void OnRequirementsPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -725,7 +754,13 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
     partial void OnIsBusyChanged(bool value) => UpdateRosterLock();
 
     /// <summary>The template may change only while the tab is idle and no run is on screen (the plan there belongs to that run).</summary>
-    private void UpdateRosterLock() => Roster.IsLocked = IsBusy || Monitor.IsAttached;
+    private void UpdateRosterLock()
+    {
+        Roster.IsLocked = IsBusy || Monitor.IsAttached;
+
+        // The Team layer is the template too: it follows the same lock (docs/17 D-08).
+        Canvas.Team.IsReadOnly = Roster.IsLocked;
+    }
 
     /// <summary>
     /// The template changed from the preparation (a model or «Memoria del proyecto»): a plan approved against the previous one is approved no more (the
@@ -816,7 +851,9 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         RefreshCommands();
     }
 
-    private bool CanApprove() => !Monitor.IsAttached && ValidationState == ValidationState.Valid && !Canvas.IsEmpty;
+    private bool CanApprove() =>
+        !Monitor.IsAttached && ValidationState == ValidationState.Valid && !Canvas.IsEmpty
+        && Builder is not { Band: { IsCurrent: true, BlocksApproval: true } };
 
     [RelayCommand(CanExecute = nameof(CanReject))]
     private void Reject()
@@ -919,7 +956,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         // again as a new run, never with the id of that one, which the engine refuses.
         var fromProposal = follows is null && Proposal is { Plan: { } proposed } offered && string.Equals(proposed.ContentHash, plan.ContentHash, StringComparison.Ordinal)
             && IsUnused(offered.Run);
-        var options = new RunOptions(AutoResumeConsent: AutoResumeConsent);
+        var options = new RunOptions(AutoResumeConsent: AutoResumeConsent, MaxAgentRuns: Builder?.MaxAgentRuns ?? new RunOptions().MaxAgentRuns);
         var request = new RunRequest(project, fromProposal ? Proposal!.Run : null, RequestText.Trim(), requirements, plan, approval, profile, options, Follows: follows, ValidatedRoster: _approvedRoster, ApprovedWarning: _approvedWarning);
         IsBusy = true;
         BusyText = "Iniciando la ejecución…";
@@ -1141,6 +1178,16 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         ShowPlan(plan);
         ShowValidation = true;
         Revalidate();
+
+        // «Plan» as soon as a proposal arrives (docs/17 D-07); the notes of order are those of this template and this plan.
+        _proposalRosterHash = RosterHash.Of(Context?.Roster);
+        if (Builder is { } builder)
+        {
+            Canvas.Layer = CanvasLayer.Plan;
+            builder.Band.Reset();
+            RefreshBuilder();
+        }
+
         var corrected = proposal.Corrected ? " Se le pidió una corrección." : string.Empty;
         ProposalStatus = WithHistoryNotice(
             (ValidationState == ValidationState.Valid
@@ -1394,6 +1441,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         OnPropertyChanged(nameof(DeliveryWarning));
         OnPropertyChanged(nameof(HasDeliveryWarning));
         RefreshCommands();
+        RefreshBuilder();
     }
 
     private List<string> Blockers()
@@ -1443,6 +1491,11 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         {
             blockers.Add("El plan tiene problemas: pulsa «Validar»");
         }
+        else if (Builder is { Band: { IsCurrent: true, BlocksApproval: true } })
+        {
+            // The errors of the live analysis prevent approving, as those of the validator do (docs/17 D-18).
+            blockers.Add("El análisis del montaje tiene errores: arréglalos antes de aprobar");
+        }
         else if (!IsApproved)
         {
             blockers.Add("Aprueba el plan");
@@ -1469,6 +1522,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         CloseRunViewCommand.NotifyCanExecuteChanged();
         AcceptHistoryCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(ExecuteBlockers));
+        RefreshBuilder();
     }
 
     private void RebuildEditor() =>

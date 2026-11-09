@@ -717,4 +717,312 @@ Copy a draft of a requirement to the editor.
 Apply a suggestion for the team: it is never applied by itself.</value>
     <comment>What can be done.</comment>
   </data>
+  <data name="Canvas_Severity_Error" xml:space="preserve">
+    <value>Error</value>
+    <comment>Severity of a finding.</comment>
+  </data>
+  <data name="Canvas_Severity_Warning" xml:space="preserve">
+    <value>Warning</value>
+    <comment>Severity of a finding.</comment>
+  </data>
+  <data name="Canvas_Severity_Suggestion" xml:space="preserve">
+    <value>Suggestion</value>
+    <comment>Severity of a finding.</comment>
+  </data>
+  <data name="Canvas_SeverityIcon_Error" xml:space="preserve">
+    <value>✖</value>
+    <comment>Icon of a severity.</comment>
+  </data>
+  <data name="Canvas_SeverityIcon_Warning" xml:space="preserve">
+    <value>▲</value>
+    <comment>Icon of a severity.</comment>
+  </data>
+  <data name="Canvas_SeverityIcon_Suggestion" xml:space="preserve">
+    <value>●</value>
+    <comment>Icon of a severity.</comment>
+  </data>
+  <data name="Canvas_Fix_AsksHello" xml:space="preserve">
+    <value>Asks Windows Hello</value>
+    <comment>What a fix does besides its edit.</comment>
+  </data>
+  <data name="Canvas_Fix_WithdrawsApproval" xml:space="preserve">
+    <value>Changes the template: withdraws the approval of the plan</value>
+    <comment>What a fix does besides its edit.</comment>
+  </data>
+  <data name="Canvas_Analysis_Title" xml:space="preserve">
+    <value>Analysis of the assembly</value>
+    <comment>Title of the band.</comment>
+  </data>
+  <data name="Canvas_Analysis_Unavailable" xml:space="preserve">
+    <value>The analysis needs frozen requirements and a verification profile.</value>
+    <comment>Said when the draft cannot be analyzed yet.</comment>
+  </data>
+  <data name="Canvas_Analysis_Clean" xml:space="preserve">
+    <value>No findings: what can be known now is in order.</value>
+    <comment>Said when the analysis found nothing.</comment>
+  </data>
+  <data name="Canvas_Analysis_Summary" xml:space="preserve">
+    <value>{0} errors · {1} warnings · {2} suggestions</value>
+    <comment>Summary of the band.</comment>
+  </data>
+  <data name="Canvas_Analysis_Failed" xml:space="preserve">
+    <value>The assembly could not be analyzed: {0}</value>
+    <comment>{0}: the reason.</comment>
+  </data>
+  <data name="Canvas_Analysis_Fixed" xml:space="preserve">
+    <value>Done: {0}. You can undo it with Ctrl+Z.</value>
+    <comment>{0}: the button of the fix.</comment>
+  </data>
+  <data name="Canvas_Analysis_NotUndone" xml:space="preserve">
+    <value>That change could not be written: it stays as it was.</value>
+    <comment>Said when an undo or a redo was refused.</comment>
+  </data>
+  <data name="Canvas_Analysis_Undo" xml:space="preserve">
+    <value>Undo</value>
+    <comment>Button (Ctrl+Z).</comment>
+  </data>
+  <data name="Canvas_Analysis_Redo" xml:space="preserve">
+    <value>Redo</value>
+    <comment>Button (Ctrl+Y).</comment>
+  </data>
+  <data name="Canvas_Analysis_ShowSuggestions" xml:space="preserve">
+    <value>Show the suggestions</value>
+    <comment>Toggle.</comment>
+  </data>
+  <data name="Canvas_Analysis_NeverSpends" xml:space="preserve">
+    <value>The analysis spends no quota.</value>
+    <comment>Note of the band.</comment>
+  </data>
+  <data name="Canvas_Order_Offer" xml:space="preserve">
+    <value>Ask the orchestrator to review the order of the plan.</value>
+    <comment>Offer of the review of the order.</comment>
+  </data>
+  <data name="Canvas_Order_Stale" xml:space="preserve">
+    <value>You changed the plan or the team: the notes of order of the orchestrator may be old.</value>
+    <comment>Offer when the notes may be old.</comment>
+  </data>
+  <data name="Canvas_Order_Button" xml:space="preserve">
+    <value>Review the order with the orchestrator</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Canvas_Order_NotComposed" xml:space="preserve">
+    <value>Reviewing the order is not available: the service is missing.</value>
+    <comment>Said when the service is not composed.</comment>
+  </data>
+  <data name="Canvas_Order_NoPlanningRun" xml:space="preserve">
+    <value>Reviewing the order needs a plan that the orchestrator proposed.</value>
+    <comment>Said when there is no planning run.</comment>
+  </data>
+  <data name="Canvas_Order_ConsentDescription" xml:space="preserve">
+    <value>Review the order of the plan with the orchestrator (read only)</value>
+    <comment>What the OK of quota is for.</comment>
+  </data>
+  <data name="Canvas_Order_Running" xml:space="preserve">
+    <value>The orchestrator is reviewing the order...</value>
+    <comment>Status.</comment>
+  </data>
+  <data name="Canvas_Order_Failed" xml:space="preserve">
+    <value>The order could not be reviewed: {0}</value>
+    <comment>{0}: the reason.</comment>
+  </data>
+  <data name="Canvas_Order_NothingToSuggest" xml:space="preserve">
+    <value>The orchestrator proposes no changes of order.</value>
+    <comment>Status.</comment>
+  </data>
+  <data name="Canvas_Order_Suggestions" xml:space="preserve">
+    <value>The orchestrator proposes {0} changes of order. None is applied by itself.</value>
+    <comment>Status. {0}: how many.</comment>
+  </data>
+  <data name="Canvas_Order_Dependency" xml:space="preserve">
+    <value>{0} needs {1}</value>
+    <comment>Suggestion. {0}: later task; {1}: earlier task.</comment>
+  </data>
+  <data name="Canvas_Order_ParallelOk" xml:space="preserve">
+    <value>{0} and {1} can go at the same time</value>
+    <comment>Suggestion.</comment>
+  </data>
+  <data name="Canvas_Order_Harmful" xml:space="preserve">
+    <value>{0} before {1} would be harmful</value>
+    <comment>Suggestion.</comment>
+  </data>
+  <data name="Canvas_Order_AlreadyDone" xml:space="preserve">
+    <value>(the plan already does it)</value>
+    <comment>Suggestion the plan already meets.</comment>
+  </data>
+  <data name="Canvas_Order_NoteOf" xml:space="preserve">
+    <value>Note of the orchestrator</value>
+    <comment>Label of the reason, which is text of an agent.</comment>
+  </data>
+  <data name="Canvas_Consent_Title" xml:space="preserve">
+    <value>This spends quota</value>
+    <comment>Title of the card of the OK.</comment>
+  </data>
+  <data name="Canvas_Consent_Estimating" xml:space="preserve">
+    <value>Computing the estimate...</value>
+    <comment>Status.</comment>
+  </data>
+  <data name="Canvas_Consent_EstimateFailed" xml:space="preserve">
+    <value>It could not be estimated: {0}</value>
+    <comment>{0}: the reason.</comment>
+  </data>
+  <data name="Canvas_Consent_NoEstimator" xml:space="preserve">
+    <value>No estimate: Agent Studio does not know yet how much this costs.</value>
+    <comment>Said when there is no estimator.</comment>
+  </data>
+  <data name="Canvas_Consent_NoEstimate" xml:space="preserve">
+    <value>No estimate yet: there are {0} of {1} references needed.</value>
+    <comment>{0}: references; {1}: needed.</comment>
+  </data>
+  <data name="Canvas_Consent_Estimate" xml:space="preserve">
+    <value>Estimate: between {0} and {1} tokens in total (estimated by Agent Studio with {2} references).</value>
+    <comment>{0}: low; {1}: high; {2}: references.</comment>
+  </data>
+  <data name="Canvas_Consent_Confirm" xml:space="preserve">
+    <value>Give my OK</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Canvas_Consent_Cancel" xml:space="preserve">
+    <value>No, cancel</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Canvas_Chat_Title" xml:space="preserve">
+    <value>Chat with the orchestrator</value>
+    <comment>Title of the chat.</comment>
+  </data>
+  <data name="Canvas_Chat_Hint" xml:space="preserve">
+    <value>Write what you want to do</value>
+    <comment>Name of the box of the message.</comment>
+  </data>
+  <data name="Canvas_Chat_Send" xml:space="preserve">
+    <value>Send</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Canvas_Chat_End" xml:space="preserve">
+    <value>End the conversation</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Canvas_Chat_You" xml:space="preserve">
+    <value>You</value>
+    <comment>Author of the turn of the person.</comment>
+  </data>
+  <data name="Canvas_Chat_Orchestrator" xml:space="preserve">
+    <value>Orchestrator (text of an agent)</value>
+    <comment>Author of the turn of the orchestrator: it is text of an agent.</comment>
+  </data>
+  <data name="Canvas_Chat_NotComposed" xml:space="preserve">
+    <value>The chat is not available: the service is missing.</value>
+    <comment>Said when the service is not composed.</comment>
+  </data>
+  <data name="Canvas_Chat_NoOrchestrator" xml:space="preserve">
+    <value>The chat needs an orchestrator in the team.</value>
+    <comment>Said when there is none.</comment>
+  </data>
+  <data name="Canvas_Chat_ConsentDescription" xml:space="preserve">
+    <value>A message of the chat with the orchestrator (read only)</value>
+    <comment>What the OK of quota is for.</comment>
+  </data>
+  <data name="Canvas_Chat_Waiting" xml:space="preserve">
+    <value>The orchestrator reads your project and answers...</value>
+    <comment>Status.</comment>
+  </data>
+  <data name="Canvas_Chat_Failed" xml:space="preserve">
+    <value>The chat could not answer: {0}</value>
+    <comment>{0}: the reason.</comment>
+  </data>
+  <data name="Canvas_Chat_Mandatory" xml:space="preserve">
+    <value>Mandatory</value>
+    <comment>Priority of a draft.</comment>
+  </data>
+  <data name="Canvas_Chat_Desirable" xml:space="preserve">
+    <value>Desirable</value>
+    <comment>Priority of a draft.</comment>
+  </data>
+  <data name="Canvas_Chat_Requirements" xml:space="preserve">
+    <value>Drafts of requirements</value>
+    <comment>Title of the list.</comment>
+  </data>
+  <data name="Canvas_Chat_Copy" xml:space="preserve">
+    <value>Copy to the editor</value>
+    <comment>Button: it never freezes anything.</comment>
+  </data>
+  <data name="Canvas_Chat_Copied" xml:space="preserve">
+    <value>Copied: freeze it yourself in the editor of requirements.</value>
+    <comment>Said after copying.</comment>
+  </data>
+  <data name="Canvas_Chat_TeamTitle" xml:space="preserve">
+    <value>Suggestions for the team</value>
+    <comment>Title of the list.</comment>
+  </data>
+  <data name="Canvas_Chat_Risks" xml:space="preserve">
+    <value>Risks</value>
+    <comment>Title of the list.</comment>
+  </data>
+  <data name="Canvas_Chat_Questions" xml:space="preserve">
+    <value>Questions for you</value>
+    <comment>Title of the list.</comment>
+  </data>
+  <data name="Canvas_Chat_Discarded" xml:space="preserve">
+    <value>What the system discarded</value>
+    <comment>Title of the list.</comment>
+  </data>
+  <data name="Canvas_Chat_NeverApplied" xml:space="preserve">
+    <value>No suggestion is applied by itself.</value>
+    <comment>Note of the chat.</comment>
+  </data>
+  <data name="Canvas_Hello_ProfileMessage" xml:space="preserve">
+    <value>Confirm that you want to change the verification profile of the project.</value>
+    <comment>Message of Windows Hello for the change of the profile.</comment>
+  </data>
+  <data name="Canvas_Hello_ProfileNotConfirmed" xml:space="preserve">
+    <value>It was not confirmed that it is you: the verification profile does not change.</value>
+    <comment>Said when the confirmation failed.</comment>
+  </data>
+  <data name="Canvas_Prep_Title" xml:space="preserve">
+    <value>Preparation of the team</value>
+    <comment>Title of the section.</comment>
+  </data>
+  <data name="Canvas_Node_AgentLabel" xml:space="preserve">
+    <value>Agent: {0}</value>
+    <comment>Label of the agent on the node of a task. {0}: id of the agent.</comment>
+  </data>
+  <data name="Canvas_Node_Pulse" xml:space="preserve">
+    <value>Dependency met</value>
+    <comment>Accessible name of the pulse on a cable of the plan.</comment>
+  </data>
+  <data name="Canvas_Repo_Reading" xml:space="preserve">
+    <value>Reading the repository...</value>
+    <comment>Said on the node while it is read.</comment>
+  </data>
+  <data name="Canvas_Fix_IntegrationTitle" xml:space="preserve">
+    <value>Integration</value>
+    <comment>Title of the Integration task a fix adds.</comment>
+  </data>
+  <data name="Canvas_Live_Attempt" xml:space="preserve">
+    <value>attempt {0}</value>
+    <comment>Attempt of a task. {0}: number.</comment>
+  </data>
+  <data name="Canvas_Live_BlockedWhy" xml:space="preserve">
+    <value>Blocked: {0}</value>
+    <comment>A task blocked, with the reason of the monitor. {0}: why.</comment>
+  </data>
+  <data name="Canvas_Live_Writing" xml:space="preserve">
+    <value>writing</value>
+    <comment>The task writes now.</comment>
+  </data>
+  <data name="Canvas_Quota_Header" xml:space="preserve">
+    <value>Quota of the account</value>
+    <comment>Title of the quota bars of the strip.</comment>
+  </data>
+  <data name="Canvas_Quota_NotExposed" xml:space="preserve">
+    <value>not exposed</value>
+    <comment>Quota of a program that does not say it.</comment>
+  </data>
+  <data name="Canvas_Quota_Seen" xml:space="preserve">
+    <value>seen {0}</value>
+    <comment>When the quota was seen. {0}: how long ago.</comment>
+  </data>
+  <data name="Canvas_Strip_Agents" xml:space="preserve">
+    <value>{0} agents</value>
+    <comment>Count of agents in the strip.</comment>
+  </data>
 </root>

@@ -285,6 +285,9 @@ public sealed class RepositoryReader(IRepositoryStateReader? state)
 /// <summary>Why the node of the repository could not be read: the code the screen turns into a sentence.</summary>
 public static class RepositoryProblems
 {
+    /// <summary>The repository is being read: the node says so until the answer comes.</summary>
+    public const string Reading = "repository.reading";
+
     /// <summary>The git layer was not composed: there is nothing to read the repository with.</summary>
     public const string NotComposed = "repository.not-composed";
 }

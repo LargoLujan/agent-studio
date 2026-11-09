@@ -80,6 +80,7 @@ public sealed partial class RepositoryNodeViewModel : ObservableObject
 
     /// <summary>Why the repository is not shown, in words; empty when it was read.</summary>
     public string ProblemText => Node is not null ? string.Empty
+        : Problem == RepositoryProblems.Reading ? _text.Get("Canvas_Repo_Reading")
         : Problem == RepositoryProblems.NotComposed ? _text.Get("Canvas_Repo_NotComposed")
         : _text.Format("Canvas_Repo_NotRead", Problem ?? string.Empty);
 
