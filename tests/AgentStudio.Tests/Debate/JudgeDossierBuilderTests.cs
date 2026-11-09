@@ -152,14 +152,29 @@ public sealed class JudgeDossierBuilderTests
     public async Task Evidence_whose_content_cannot_be_read_is_reported_and_has_no_file()
     {
         using var world = await JudgingWorld.CreateAsync();
+        world.Evidence.Unreadable.Add(world.DiffEvidence.Id);
+
+        var package = await BuildAsync(world);
+
+        var diff = Assert.Single(package.Files.Evidence, f => f.Evidence == world.DiffEvidence.Id);
+        Assert.Null(diff.RelativePath);
+        Assert.False(diff.ContentVerified);
+        Assert.Contains(package.Files.SystemChecks, c => c.Contains(world.DiffEvidence.Id.Value, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task The_report_of_an_executor_that_cannot_be_read_is_withheld_and_reported()
+    {
+        // Phase 13 (review of WP4, 2026-11-09): nobody can say it brings no question, so its content never reaches the judge,
+        // and the check makes an approval impossible, as for any evidence that cannot be read.
+        using var world = await JudgingWorld.CreateAsync();
         world.Evidence.Unreadable.Add(world.ReportEvidence.Id);
 
         var package = await BuildAsync(world);
 
-        var report = Assert.Single(package.Files.Evidence, f => f.Evidence == world.ReportEvidence.Id);
-        Assert.Null(report.RelativePath);
-        Assert.False(report.ContentVerified);
-        Assert.Contains(package.Files.SystemChecks, c => c.Contains(world.ReportEvidence.Id.Value, StringComparison.Ordinal));
+        Assert.DoesNotContain(package.Files.Evidence, f => f.Evidence == world.ReportEvidence.Id);
+        Assert.DoesNotContain(package.Dossier.Evidence, e => e.Id == world.ReportEvidence.Id);
+        Assert.Contains(package.Dossier.IntegrityProblems, c => c.Contains(world.ReportEvidence.Id.Value, StringComparison.Ordinal));
     }
 
     [Fact]

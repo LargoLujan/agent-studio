@@ -13,13 +13,34 @@ public abstract record RunEvent(DateTimeOffset At);
 /// A task moved from <paramref name="From"/> to <paramref name="To"/>. <paramref name="Evidence"/> is what completed it.
 /// A skip is recorded like any other transition, but replay recomputes it instead of applying it.
 /// </summary>
+/// <param name="Block">
+/// Phase 13: the text form of the reason of a move to <c>Blocked</c>, as the log carries it (<c>AwaitingAnswer</c>,
+/// <c>Interrupted</c>…), so replay tells a task waiting for the answer to its question from any other block. Null when the
+/// reader does not give it: then the questions of the task are not checked against its blocks.
+/// </param>
 public sealed record TaskTransitioned(
     DateTimeOffset At,
     TaskId Task,
     WorkTaskStatus From,
     WorkTaskStatus To,
     string Reason,
-    IReadOnlyList<EvidenceId> Evidence) : RunEvent(At);
+    IReadOnlyList<EvidenceId> Evidence,
+    string? Block = null) : RunEvent(At);
+
+/// <summary>
+/// Phase 13 (docs/17 D-29): an agent asked the person the question <paramref name="Question"/> (its id in the run). The
+/// engine records it while the attempt that asked is still <c>Running</c>, just before its task goes to
+/// <c>Blocked(AwaitingAnswer)</c>, which makes it pending. <paramref name="Task"/> is null for the orchestrator asking before
+/// it plans: no task waits for it.
+/// </summary>
+public sealed record QuestionPosed(DateTimeOffset At, TaskId? Task, string Question) : RunEvent(At);
+
+/// <summary>
+/// Phase 13 (docs/17 D-29): the pending question <paramref name="Question"/> got its answer (from the person, or from the
+/// system under the consent of the run). It is recorded before its task leaves <c>Blocked(AwaitingAnswer)</c> for
+/// <c>Pending</c>.
+/// </summary>
+public sealed record QuestionResolved(DateTimeOffset At, TaskId? Task, string Question) : RunEvent(At);
 
 /// <summary>
 /// The system evaluated a condition and chose a branch. It is recorded just before the condition's own transition to
@@ -35,6 +56,18 @@ public sealed record ConditionResolved(DateTimeOffset At, TaskId Task, string Br
 public sealed record RunReplay(TaskGraph Graph, IReadOnlyList<string> Problems)
 {
     public bool IsResumable => Problems.Count == 0;
+
+    /// <summary>
+    /// Phase 13 (docs/17 D-29): the questions the person still has to answer, by the task that waits for each one. A task
+    /// waiting for its answer keeps waiting after a restart. Empty when none is pending.
+    /// </summary>
+    public IReadOnlyDictionary<TaskId, string> PendingQuestions { get; init; } = new Dictionary<TaskId, string>();
+
+    /// <summary>Phase 13: the questions of the orchestrator, asked before it planned, still to be answered; no task waits for them.</summary>
+    public IReadOnlyList<string> PendingRunQuestions { get; init; } = [];
+
+    /// <summary>Phase 13: every question that got its answer, in the order of the answers.</summary>
+    public IReadOnlyList<string> AnsweredQuestions { get; init; } = [];
 }
 
 /// <summary>
@@ -51,6 +84,9 @@ public sealed record RunReplay(TaskGraph Graph, IReadOnlyList<string> Problems)
 /// <item>a recorded skip is justified: the skips are recomputed with <see cref="TaskGraph.PropagateSkips"/> and
 /// compared with the log. A skip that the graph would also have made but the log never recorded is not an error (the
 /// app may have died between recording two skips of the same pass): it is deterministic and the engine repeats it.</item>
+/// <item>Phase 13 (docs/17 D-29): a question is asked while its attempt runs, its task waits for the answer only after
+/// one, goes on only after the answer, and an answer matches the question pending. What is still pending is in
+/// <see cref="RunReplay.PendingQuestions"/>, so a task waiting for its answer keeps waiting after a restart.</item>
 /// </list>
 /// </remarks>
 public static class RunStateReplayer
@@ -80,6 +116,7 @@ public static class RunStateReplayer
         }
 
         var announced = new Dictionary<TaskId, string>();
+        var questions = new Questions();
         var position = 0;
         foreach (var runEvent in events)
         {
@@ -87,7 +124,7 @@ public static class RunStateReplayer
             string? problem;
             try
             {
-                problem = Apply(graph, runEvent, announced);
+                problem = Apply(graph, runEvent, announced, questions);
             }
             catch (Exception ex) when (ex is DomainRuleViolationException or ArgumentException)
             {
@@ -97,25 +134,151 @@ public static class RunStateReplayer
 
             if (problem is not null)
             {
-                return new RunReplay(graph, [$"Event {position}: {problem}"]);
+                return questions.Of(new RunReplay(graph, [$"Event {position}: {problem}"]));
             }
         }
 
-        return new RunReplay(graph, []);
+        return questions.Of(new RunReplay(graph, []));
     }
 
-    private static string? Apply(TaskGraph graph, RunEvent? runEvent, Dictionary<TaskId, string> announced)
+    /// <summary>The text form of the block of a task waiting for the answer to its question (docs/17 D-29), as the log carries it.</summary>
+    public const string AwaitingAnswerBlock = "AwaitingAnswer";
+
+    private static string? Apply(TaskGraph graph, RunEvent? runEvent, Dictionary<TaskId, string> announced, Questions questions)
     {
         switch (runEvent)
         {
             case ConditionResolved resolved:
                 return Announce(graph, resolved, announced);
+            case QuestionPosed posed:
+                return questions.Pose(graph, posed);
+            case QuestionResolved answered:
+                return questions.Resolve(graph, answered);
             case TaskTransitioned transition:
-                return Transition(graph, transition, announced);
+                return questions.Before(transition) ?? Transition(graph, transition, announced);
             case null:
                 return "The event is missing.";
             default:
                 return $"Unknown kind of event: {runEvent.GetType().Name}.";
+        }
+    }
+
+    /// <summary>
+    /// The questions of a run as replay follows them (docs/17 D-29): a question is announced while the attempt that asked is
+    /// running, pending once its task is blocked waiting for the answer, and answered before the task goes on. A task never
+    /// waits for an answer without a question, never goes on while its question is unanswered, and an answer always matches
+    /// the question pending. An announced question whose task moves otherwise (the app stopped before the block was recorded,
+    /// say) was never shown, and is forgotten.
+    /// </summary>
+    private sealed class Questions
+    {
+        private readonly HashSet<string> _seen = new(StringComparer.Ordinal);
+        private readonly Dictionary<TaskId, string> _asked = [];
+        private readonly Dictionary<TaskId, string> _pending = [];
+        private readonly List<string> _runPending = [];
+        private readonly List<string> _answered = [];
+
+        public RunReplay Of(RunReplay replay) => replay with
+        {
+            PendingQuestions = new Dictionary<TaskId, string>(_pending),
+            PendingRunQuestions = [.. _runPending],
+            AnsweredQuestions = [.. _answered],
+        };
+
+        public string? Pose(TaskGraph graph, QuestionPosed posed)
+        {
+            if (string.IsNullOrWhiteSpace(posed.Question))
+            {
+                return "A question was asked without an id.";
+            }
+
+            if (!_seen.Add(posed.Question))
+            {
+                return $"The question '{posed.Question}' was asked twice: its id must be unique in the run.";
+            }
+
+            if (posed.Task is not { } id)
+            {
+                _runPending.Add(posed.Question);
+                return null;
+            }
+
+            if (!TryFind(graph, id, out var task))
+            {
+                return $"Task '{id}' is not in the plan, but the log says its agent asked the question '{posed.Question}'.";
+            }
+
+            if (task.Status != WorkTaskStatus.Running)
+            {
+                return $"The agent of task '{id}' asked the question '{posed.Question}' while the task was {task.Status}, not Running.";
+            }
+
+            if (_asked.ContainsKey(id) || _pending.ContainsKey(id))
+            {
+                return $"The agent of task '{id}' asked the question '{posed.Question}' while another question of the task was still open.";
+            }
+
+            _asked[id] = posed.Question;
+            return null;
+        }
+
+        public string? Resolve(TaskGraph graph, QuestionResolved answered)
+        {
+            if (answered.Task is not { } id)
+            {
+                if (!_runPending.Remove(answered.Question))
+                {
+                    return $"The question '{answered.Question}' was answered, but no question of the orchestrator with that id was pending.";
+                }
+
+                _answered.Add(answered.Question);
+                return null;
+            }
+
+            if (!_pending.TryGetValue(id, out var pending) || !string.Equals(pending, answered.Question, StringComparison.Ordinal))
+            {
+                return $"The question '{answered.Question}' of task '{id}' was answered, but the task was not waiting for the answer to it.";
+            }
+
+            if (!TryFind(graph, id, out var task) || task.Status != WorkTaskStatus.Blocked)
+            {
+                return $"The question '{answered.Question}' of task '{id}' was answered while the task was not blocked waiting for it.";
+            }
+
+            _pending.Remove(id);
+            _answered.Add(answered.Question);
+            return null;
+        }
+
+        /// <summary>What a transition does to the questions of its task, checked before the graph applies it.</summary>
+        public string? Before(TaskTransitioned transition)
+        {
+            var id = transition.Task;
+            var awaiting = transition.To == WorkTaskStatus.Blocked && string.Equals(transition.Block, AwaitingAnswerBlock, StringComparison.Ordinal);
+            if (_asked.Remove(id, out var asked))
+            {
+                if (awaiting && transition.From == WorkTaskStatus.Running)
+                {
+                    _pending[id] = asked;
+                    return null;
+                }
+            }
+            else if (awaiting)
+            {
+                return $"Task '{id}' was blocked waiting for an answer, but its agent asked no question just before.";
+            }
+
+            if (_pending.TryGetValue(id, out var pending) && transition.From == WorkTaskStatus.Blocked)
+            {
+                if (transition.To == WorkTaskStatus.Pending)
+                {
+                    return $"Task '{id}' went on while the question '{pending}' was still waiting for its answer.";
+                }
+
+                _pending.Remove(id); // cancelled, skipped or settled otherwise: the question is no longer waited for
+            }
+
+            return null;
         }
     }
 

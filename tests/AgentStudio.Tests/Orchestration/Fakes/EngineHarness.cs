@@ -140,8 +140,18 @@ internal sealed class EngineHarness : IDisposable
 
     public IReadOnlyList<DecisionEntry> Entries => LogStore.Entries(Project.ProjectId);
 
+    /// <summary>Phase 13: the brief of the project the engine reads for the prompts of its executors; null, none.</summary>
+    public AgentStudio.Application.Knowledge.IProjectBrief? Brief { get; set; }
+
+    /// <summary>Phase 13: what redacts the questions of the agents and the answers of the person; null, nothing is redacted.</summary>
+    public AgentStudio.Application.Security.ISecretRedactor? Redactor { get; set; }
+
+    /// <summary>Phase 13: what estimates the options of a question; null, nothing is estimated.</summary>
+    public AgentStudio.Application.Usage.IUsageEstimator? Estimator { get; set; }
+
     public Orchestrator CreateOrchestrator() =>
-        new(Decisions, Evidence, Plans, Runs, RequirementStore, Roster, Providers, Worktrees, Verification, Integrator, ReviewPort ?? Review, Approvals, Skills, Paths, Time, WriteConfinement);
+        new(Decisions, Evidence, Plans, Runs, RequirementStore, Roster, Providers, Worktrees, Verification, Integrator, ReviewPort ?? Review, Approvals, Skills, Paths, Time, WriteConfinement,
+            brief: Brief, redactor: Redactor, estimator: Estimator);
 
     public PlanningRequest PlanningRequest(string request = "Añade Calc.Multiply(a,b) con sus pruebas", PlanLimits? limits = null) =>
         new(

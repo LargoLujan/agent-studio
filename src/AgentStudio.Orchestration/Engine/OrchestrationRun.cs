@@ -10,7 +10,9 @@ using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Evidence;
 using AgentStudio.Domain.Orchestration;
+using AgentStudio.Domain.Questions;
 using AgentStudio.Domain.Work;
+using AgentStudio.Orchestration.Engine.Questions;
 
 namespace AgentStudio.Orchestration.Engine;
 
@@ -22,7 +24,7 @@ namespace AgentStudio.Orchestration.Engine;
 /// limits, and when nothing runs decides whether the run ended or rests (waiting for a person, for quota, or paused).
 /// Every transition is applied to the graph and then recorded, so the log replays to the same graph.
 /// </summary>
-internal sealed class OrchestrationRun : IOrchestrationRun
+internal sealed partial class OrchestrationRun : IOrchestrationRun
 {
     /// <summary>The alert of a task ref that no longer points at the commit the system verified for it.</summary>
     internal const string SourceMovedAlert = "integration.source-moved";
@@ -113,6 +115,27 @@ internal sealed class OrchestrationRun : IOrchestrationRun
     public Task CancelAsync(string reason) => SendAsync(CommandKind.Cancel, null, string.IsNullOrWhiteSpace(reason) ? "sin motivo" : reason);
 
     /// <summary>
+    /// Phase 13 (docs/17 D-30): the answer of a person to the question the agent of its task asked. It goes to the loop through
+    /// the channel, like every command; it completes once <c>QuestionAnswered</c> is in the log and the task is pending again,
+    /// and fails with why it was refused (no such question, an option the question does not have, a run that ended).
+    /// Answering is not approving: it asks no Windows Hello and grants nothing.
+    /// </summary>
+    public Task AnswerAsync(QuestionAnswer answer)
+    {
+        ArgumentNullException.ThrowIfNull(answer);
+        var done = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (_completion.Task.IsCompleted || !_signals.Writer.TryWrite(new AnswerSignal(answer, done)))
+        {
+            return Task.FromException(AnswerNotRecorded());
+        }
+
+        return done.Task;
+    }
+
+    private InvalidOperationException AnswerNotRecorded() =>
+        new($"Run {Id} has ended: the answer was not recorded. Resume the run to answer the question of its agent.");
+
+    /// <summary>
     /// Closing the app: the agents' processes are killed (their runs disposed) and nothing is recorded as cancelled; the
     /// run shows as interrupted and is resumed from its log when the user asks.
     /// </summary>
@@ -145,6 +168,8 @@ internal sealed class OrchestrationRun : IOrchestrationRun
         {
             Emit(new RunPhaseChangedEvent(Now, RunPhase.Running, notice));
         }
+
+        AnnouncePendingQuestions();
 
         if (_ports.Power is { } power)
         {
@@ -220,6 +245,10 @@ internal sealed class OrchestrationRun : IOrchestrationRun
                 {
                     command.Done.TrySetResult();
                 }
+            }
+            else if (pending is AnswerSignal answer)
+            {
+                answer.Done.TrySetException(AnswerNotRecorded()); // an answer the log does not show is no answer
             }
         }
 
@@ -370,6 +399,9 @@ internal sealed class OrchestrationRun : IOrchestrationRun
                 break;
             case UserCommand command:
                 await OnCommandAsync(command).ConfigureAwait(false);
+                break;
+            case AnswerSignal answer:
+                await OnAnswerAsync(answer).ConfigureAwait(false);
                 break;
             case PowerChanged { Event: { Transition: PowerTransition.Resumed, Slept: { } slept } }:
                 _clock.Report(slept); // left out at the next look for abandoned tasks, in this very turn
@@ -561,6 +593,9 @@ internal sealed class OrchestrationRun : IOrchestrationRun
             case EndKind.Denied:
                 await FailAsync(id, flight.Attempt, end.Reason, []).ConfigureAwait(false);
                 break;
+            case EndKind.AsksQuestion:
+                await AskAsync(id, flight.Attempt, end).ConfigureAwait(false);
+                break;
         }
     }
 
@@ -643,6 +678,12 @@ internal sealed class OrchestrationRun : IOrchestrationRun
             return $"Task '{id}' is {_graph[id].Status}, not blocked.";
         }
 
+        if (_ledger.Blocks.GetValueOrDefault(id) is { Kind: BlockKind.AwaitingAnswer })
+        {
+            // A retry without the answer would launch the agent knowing nothing of what the person decided (docs/17 §0.2).
+            return $"Task '{id}' waits for the answer to the question of its agent: answer it (AnswerAsync) instead of retrying.";
+        }
+
         if (_ledger.Blocks.GetValueOrDefault(id) is { Kind: BlockKind.RateLimitedUntil } && _ctx.Specs[id].Agent is { } agent
             && _ctx.Agents.TryGetValue(agent, out var definition))
         {
@@ -677,6 +718,7 @@ internal sealed class OrchestrationRun : IOrchestrationRun
         do
         {
             changed = await PropagateSkipsAsync().ConfigureAwait(false);
+            changed |= await AnswerByConsentAsync().ConfigureAwait(false);
             changed |= await RetryFailedAsync().ConfigureAwait(false);
             changed |= await UnblockQuotaAsync().ConfigureAwait(false);
             await WatchHealthAsync().ConfigureAwait(false);
@@ -956,7 +998,8 @@ internal sealed class OrchestrationRun : IOrchestrationRun
             Upstream(id),
             _ledger.Failures.GetValueOrDefault(id),
             CheckAccess: _ledger.CheckAccess.Remove(id),
-            Handoff: handoff);
+            Handoff: handoff,
+            Answers: _ledger.Questions.AnsweredOf(id)); // every answer the task got, as data (docs/17 D-30)
         var flight = new InFlight(id, attempt, WorkTaskKind.AgentWork, provider.Provider, countsForParallel: true);
         _inFlight[id] = flight;
         Emit(new TaskQueuedEvent(Now, id, provider.Provider));
@@ -975,7 +1018,8 @@ internal sealed class OrchestrationRun : IOrchestrationRun
             task.MaxRetries,
             [.. _graph.Tasks.OrderBy(t => _ctx.TopologicalIndex[t.Id]).ThenBy(t => t.Id.Value, StringComparer.Ordinal).Select(t => (t.Id, t.Status))],
             _ledger.Failures.GetValueOrDefault(id)?.Reason,
-            _ledger.Notes.GetValueOrDefault(id));
+            _ledger.Notes.GetValueOrDefault(id),
+            _ledger.Questions.AnsweredOf(id));
     }
 
     private async Task<bool> DispatchSystemAsync(TaskSpec spec)
@@ -1280,10 +1324,12 @@ internal sealed class OrchestrationRun : IOrchestrationRun
             return new Verdict(RunPhase.Interrupted, false, "Interrumpida: reanúdala cuando quieras.");
         }
 
-        if (blocked.Any(b => b.Reason?.Kind == BlockKind.AwaitingHuman) || tasks.Any(t => t.Status == WorkTaskStatus.AwaitingApproval))
+        // A task waiting for the answer to its question waits for a person too (docs/17 D-29), and the consent of the run may
+        // answer it by itself at a known time.
+        if (blocked.Any(b => b.Reason?.Kind is BlockKind.AwaitingHuman or BlockKind.AwaitingAnswer) || tasks.Any(t => t.Status == WorkTaskStatus.AwaitingApproval))
         {
-            var waiting = blocked.Where(b => b.Reason?.Kind == BlockKind.AwaitingHuman).Select(b => b.Task.Id).Concat(tasks.Where(t => t.Status == WorkTaskStatus.AwaitingApproval).Select(t => t.Id));
-            return new Verdict(RunPhase.AwaitingHuman, false, "Esperando una decisión tuya en: " + string.Join(", ", waiting) + ".");
+            var waiting = blocked.Where(b => b.Reason?.Kind is BlockKind.AwaitingHuman or BlockKind.AwaitingAnswer).Select(b => b.Task.Id).Concat(tasks.Where(t => t.Status == WorkTaskStatus.AwaitingApproval).Select(t => t.Id));
+            return new Verdict(RunPhase.AwaitingHuman, false, "Esperando una decisión tuya en: " + string.Join(", ", waiting) + ".", ConsentWake());
         }
 
         if (blocked.Any(b => b.Reason?.Kind == BlockKind.ProviderUnavailable))
@@ -1470,6 +1516,7 @@ internal sealed class OrchestrationRun : IOrchestrationRun
         {
             _ledger.Blocks.Remove(id);
             _ledger.BlockedAt.Remove(id);
+            _ledger.Questions.Drop(id); // out of its block (answered, cancelled): the task no longer waits for a question
         }
 
         await _recorder.RecordAsync(
@@ -1509,7 +1556,8 @@ internal sealed class OrchestrationRun : IOrchestrationRun
                 _ledger.Worktrees.GetValueOrDefault(t.Id)?.Path,
                 _ledger.Worktrees.GetValueOrDefault(t.Id)?.RefName,
                 _ledger.Blocks.GetValueOrDefault(t.Id)?.ToString(),
-                [.. t.CompletionEvidence]))],
+                [.. t.CompletionEvidence],
+                _ledger.Questions.PendingView(t.Id)))],
             health,
             _ledger.AgentRunsUsed,
             _ctx.Options.MaxAgentRuns);

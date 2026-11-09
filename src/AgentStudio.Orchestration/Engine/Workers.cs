@@ -16,6 +16,7 @@ using AgentStudio.Domain.Evidence;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Requirements;
 using AgentStudio.Domain.Work;
+using AgentStudio.Orchestration.Engine.Questions;
 using AgentStudio.Orchestration.Integration;
 
 namespace AgentStudio.Orchestration.Engine;
@@ -188,7 +189,8 @@ internal sealed record AgentAttemptPlan(
     IReadOnlyList<(TaskId Task, EvidenceId Report, string Sha256)> Upstream,
     FailureNote? PreviousFailure,
     bool CheckAccess = false,
-    HandoffFacts? Handoff = null);
+    HandoffFacts? Handoff = null,
+    IReadOnlyList<RecordedAnswer>? Answers = null);
 
 /// <summary>
 /// One attempt of an <c>AgentWork</c> task (docs/13 section 4.2): worktree, skills, prompt as evidence and
@@ -246,6 +248,21 @@ internal static class AgentAttemptWorker
                 w.Post(new WorkerEnded(task, attempt, new AttemptEnd(
                     EndKind.AwaitingHuman,
                     $"No se lanza {task}: {ProjectMemoryPrompt.Unverified(problem)}. Decide una persona: revisa el registro o quita la memoria de {plan.Agent.Id} en la plantilla.")));
+                return;
+            }
+
+            // The brief of the project (docs/17 D-10), whatever the memory policy: a memory entry of the person, read from the
+            // verified log like the rest of the memory, so a log that does not verify launches nothing.
+            ProjectBrief? brief;
+            try
+            {
+                brief = w.Ports.Brief is { } briefs ? await briefs.ReadAsync(w.Run.Project, w.Abort).ConfigureAwait(false) : null;
+            }
+            catch (DecisionLogIntegrityException)
+            {
+                w.Post(new WorkerEnded(task, attempt, new AttemptEnd(
+                    EndKind.AwaitingHuman,
+                    $"No se lanza {task}: el registro de decisiones no verifica, así que la ficha del proyecto no se puede comprobar. Decide una persona: revisa el registro.")));
                 return;
             }
 
@@ -313,7 +330,10 @@ internal static class AgentAttemptWorker
                 plan.PreviousFailure,
                 memory,
                 handoff,
-                plan.Handoff is { } renewal ? Handoff.Why(renewal.Reason) : null);
+                plan.Handoff is { } renewal ? Handoff.Why(renewal.Reason) : null,
+                plan.Agent,
+                brief,
+                plan.Answers);
             var promptEvidence = await w.Recorder.CaptureAsync(
                 EvidenceKind.Document,
                 EvidenceOrigin.CapturedBySystem,
@@ -331,8 +351,10 @@ internal static class AgentAttemptWorker
                 new InstructionsIssuedPayload(task, attempt, promptEvidence.Id, promptEvidence.ContentSha256, spec.Covers, spec.WriteScope, skills.Skills) { RunId = w.Recorder.RunValue },
                 w.Abort).ConfigureAwait(false);
 
+            // The instructions of the agent reach it as data, in its prompt (docs/17 D-42): never also as a system prompt of the
+            // CLI, where they would weigh as much as the rules of the protocol.
             var request = new AgentRunRequest(
-                plan.Agent,
+                plan.Agent with { SystemInstructions = string.Empty },
                 prompt,
                 workingDirectory,
                 Permissions(spec, plan.Agent),
@@ -421,14 +443,24 @@ internal static class AgentAttemptWorker
     /// of its end), or its largest step reached the threshold from which Claude compresses the context (as its end recorded
     /// it; a CLI that does not report the context, like Codex exec, decides only by the class).
     /// </summary>
+    /// <remarks>
+    /// Phase 13 (docs/17 D-30, decision 4 (a)): the attempt with the answer to a question resumes the session of the attempt
+    /// that asked, which ended well; it goes in a new session with a handoff only when that one left no session to resume, or
+    /// when its context reached the compression threshold.
+    /// </remarks>
     private static async Task<AttemptEnd> RenewalAsync(WorkerContext w, AgentAttemptPlan plan, AgentInvocationResult result, AttemptEnd end)
     {
-        if (end.Kind != EndKind.Failed || result.Outcome is not { } outcome)
+        if (end.Kind is not (EndKind.Failed or EndKind.AsksQuestion) || result.Outcome is not { } outcome)
         {
             return end;
         }
 
-        if (outcome.Classified().Class == AttemptEndClass.ContextExhausted)
+        if (end.Kind == EndKind.AsksQuestion && string.IsNullOrWhiteSpace(result.SessionId))
+        {
+            return end with { QuestionRenew = HandoffReason.SessionNotResumable };
+        }
+
+        if (end.Kind == EndKind.Failed && outcome.Classified().Class == AttemptEndClass.ContextExhausted)
         {
             return end with { Renew = HandoffReason.ContextExhausted };
         }
@@ -438,7 +470,13 @@ internal static class AgentAttemptWorker
             .Select(e => e.Payload)
             .OfType<AgentRunFinishedPayload>()
             .LastOrDefault(p => p.Task == plan.Spec.Id && p.Attempt == plan.Attempt);
-        return Handoff.NearlyFull(finished?.ContextPeak) ? end with { Renew = HandoffReason.ContextNearlyFull } : end;
+        if (!Handoff.NearlyFull(finished?.ContextPeak))
+        {
+            return end;
+        }
+
+        // A question renews only once the loop records it (within the caps), as a resume rebuilds it from QuestionAsked.
+        return end.Kind == EndKind.AsksQuestion ? end with { QuestionRenew = HandoffReason.ContextNearlyFull } : end with { Renew = HandoffReason.ContextNearlyFull };
     }
 
     /// <summary>Executors write only in their worktree and inside their scope; nobody gets network in Phase 3.</summary>
@@ -600,6 +638,14 @@ internal static class AgentAttemptWorker
         if (parsed is null)
         {
             return await EndAsync(EndKind.Failed, "El informe del agente no es válido: " + problem).ConfigureAwait(false);
+        }
+
+        if (parsed.Status == ExecutorReport.Blocked && parsed.AgentQuestion() is { } question)
+        {
+            // A doubt with options (docs/17 D-28): the loop records it within the caps, and the task waits for the answer. The
+            // worktree stays where the system's commit left it, the base of the attempt with the answer.
+            var asks = await EndAsync(EndKind.AsksQuestion, "El agente hace una pregunta a una persona.", parsed).ConfigureAwait(false);
+            return asks with { Question = question, QuestionEstimates = await QuestionEstimator.EstimateAsync(w, plan, question).ConfigureAwait(false) };
         }
 
         if (parsed.Status == ExecutorReport.Blocked)

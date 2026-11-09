@@ -212,7 +212,10 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
         IEnumerable<IProviderProbe>? probes = null,
         IEnumerable<IProviderQuotaReader>? quotaReaders = null,
         IPowerEvents? power = null,
-        IProjectHistoryTool? history = null)
+        IProjectHistoryTool? history = null,
+        IProjectBrief? brief = null,
+        ISecretRedactor? redactor = null,
+        Application.Usage.IUsageEstimator? estimator = null)
     {
         ArgumentNullException.ThrowIfNull(decisions);
         ArgumentNullException.ThrowIfNull(evidence);
@@ -235,6 +238,9 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
             QuotaReaders = [.. quotaReaders ?? []],
             Power = power,
             History = history,
+            Brief = brief,
+            Redactor = redactor,
+            Estimator = estimator,
         };
         _planner = new Planner(_ports);
         Activity = activity ?? new OrchestrationActivity();

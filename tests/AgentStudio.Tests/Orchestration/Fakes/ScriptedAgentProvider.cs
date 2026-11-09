@@ -70,6 +70,35 @@ internal sealed record AgentScript
             outputs = (outputs ?? []).Select(o => new { key = o.Key, value = o.Value }).ToArray(),
         });
 
+    /// <summary>
+    /// Phase 13 (docs/17 D-28): a report blocked with a question, in the schema of the report. Each option is its id, label,
+    /// detail, effort (<c>small</c>, <c>medium</c> or <c>large</c>) and whether the agent recommends it.
+    /// </summary>
+    public static string Asking(
+        string text = "¿Guardo las sesiones en SQLite o en ficheros JSON?",
+        string why = "Las dos cumplen RQ-01; cambia cómo se migran los datos.",
+        IReadOnlyList<(string Id, string Label, string Detail, string Effort, bool Recommended)>? options = null,
+        bool allowOther = true,
+        string status = "blocked") =>
+        JsonSerializer.Serialize(new
+        {
+            status,
+            summary = "Necesito una decisión.",
+            filesChanged = Array.Empty<string>(),
+            claims = Array.Empty<string>(),
+            openIssues = Array.Empty<string>(),
+            outputs = Array.Empty<object>(),
+            question = new
+            {
+                text,
+                why,
+                options = (options ?? [("a", "SQLite", "Un fichero y migraciones con esquema.", "small", true), ("b", "Ficheros JSON", "Sin esquema; migrar es reescribir.", "medium", false)])
+                    .Select(o => new { id = o.Id, label = o.Label, detail = o.Detail, effort = o.Effort, recommended = o.Recommended })
+                    .ToArray(),
+                allowOther,
+            },
+        });
+
     public static AgentScript Completed(params (string Path, string Content)[] files) => new()
     {
         Files = files.ToDictionary(f => f.Path, f => f.Content),
