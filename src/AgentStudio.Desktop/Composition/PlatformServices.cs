@@ -1,6 +1,7 @@
 using System.IO;
 using AgentStudio.Application.Models;
 using AgentStudio.Application.Orchestration;
+using AgentStudio.Application.Providers;
 using AgentStudio.Application.Skills;
 using AgentStudio.Debate;
 using AgentStudio.Debate.Arena;
@@ -23,6 +24,7 @@ using AgentStudio.Observability.Quota;
 using AgentStudio.Orchestration;
 using Engine = AgentStudio.Orchestration.Engine;
 using AgentStudio.Orchestration.Integration;
+using AgentStudio.Orchestration.Planning;
 using AgentStudio.Orchestration.Verification;
 using AgentStudio.Providers;
 using AgentStudio.Security;
@@ -80,6 +82,7 @@ internal static class PlatformServices
             .AddAgentStudioApprovals()
             .AddEngineOnItsClock()
             .AddAgentStudioOrchestration()
+            .AddPreparationServices()
             .AddSingleton<IVerificationProfileSource, FileVerificationProfileSource>()
             .AddDebateServices();
     }
@@ -98,6 +101,20 @@ internal static class PlatformServices
             .AddAgentStudioModelLearning()
             .AddAgentStudioUsageEstimator()
             .AddAgentStudioConsumptionAnalysis();
+    }
+
+    /// <summary>
+    /// Phase 13 (docs/17 D-20 and D-44): «Revisar el orden» and the chat of preparation, single for the app. They launch
+    /// auxiliary agents (<see cref="IAuxiliaryAgentRunner"/>, which the screen of skills registers) and share the one register
+    /// of the OKs to spend quota with the recommendation of skills and the analysis of consumption with an agent, which take it
+    /// when it is registered.
+    /// </summary>
+    private static IServiceCollection AddPreparationServices(this IServiceCollection services)
+    {
+        services.TryAddSingleton<IQuotaConsentLedger, QuotaConsentLedger>();
+        services.TryAddSingleton<IOrderReview, OrderReviewService>();
+        services.TryAddSingleton<IPreparationChat, PreparationChatService>();
+        return services;
     }
 
     /// <summary>
