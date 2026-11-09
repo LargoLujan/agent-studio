@@ -248,7 +248,7 @@
     <value>When an agent doubts, it asks you with options. Each option says how much effort the agent thinks it takes and how many tokens Agent Studio estimates. Your answer reaches the agent as data.</value>
   </data>
   <data name="Info_Question_Actions" xml:space="preserve">
-    <value>Choose an option with the arrows and press Enter to answer.
+    <value>Choose an option with the arrows and press "Answer".
 Write your own answer if the agent allows it.
 Press Esc to decide later: the task keeps waiting.</value>
   </data>

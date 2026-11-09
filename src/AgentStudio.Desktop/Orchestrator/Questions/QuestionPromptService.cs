@@ -12,8 +12,11 @@ public interface IQuestionWindowHost
     /// <summary>Whether the app is in view: its main window is visible, not minimized and not hidden in the tray.</summary>
     bool IsAppInView { get; }
 
-    /// <summary>Shows the window of a question, or brings it forward when it is open already. Never modal.</summary>
-    void Show(QuestionViewModel question);
+    /// <summary>
+    /// Shows the window of a question, or brings it forward when it is open already. Never modal. With <paramref name="activate"/> false
+    /// it opens without taking the focus from what the person was doing (the window that opens by itself): a stray key cannot answer it.
+    /// </summary>
+    void Show(QuestionViewModel question, bool activate = true);
 
     /// <summary>Closes the window of a question, if it is open.</summary>
     void Close(QuestionViewModel question);
@@ -94,7 +97,7 @@ public sealed class QuestionPromptService : IDisposable
 
         if (!IsLocked && _host.IsAppInView)
         {
-            _host.Show(question);
+            _host.Show(question, activate: false);
         }
     }
 
@@ -146,7 +149,7 @@ public sealed class QuestionPromptService : IDisposable
         // A question that came while it was locked, or whose window the lock withdrew before it opened, shows now.
         foreach (var question in _monitor.PendingQuestions.Where(q => !_deferred.Contains(q.Id)))
         {
-            _host.Show(question);
+            _host.Show(question, activate: false);
         }
     }
 
@@ -174,13 +177,17 @@ public sealed class WpfQuestionWindowHost : IQuestionWindowHost
 
     public bool IsAppInView => System.Windows.Application.Current?.MainWindow is { IsVisible: true, WindowState: not WindowState.Minimized };
 
-    public void Show(QuestionViewModel question)
+    public void Show(QuestionViewModel question, bool activate = true)
     {
         ArgumentNullException.ThrowIfNull(question);
         if (_windows.TryGetValue(question.Id, out var open))
         {
             open.Show();
-            open.Activate();
+            if (activate)
+            {
+                open.Activate();
+            }
+
             return;
         }
 
@@ -195,8 +202,9 @@ public sealed class WpfQuestionWindowHost : IQuestionWindowHost
             window.WindowStartupLocation = WindowStartupLocation.CenterScreen;
         }
 
-        // The window offers the option the agent recommends as the first choice: it is chosen by the person, never sent by itself.
-        question.PreselectRecommended();
+        // Nothing is chosen for the person, and a window that opens by itself does not take the focus: a key meant for what they were
+        // writing cannot answer the agent.
+        window.ShowActivated = activate;
         _windows[question.Id] = window;
         window.Closed += (_, _) =>
         {

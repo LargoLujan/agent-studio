@@ -326,7 +326,7 @@
     <comment>Information button.</comment>
   </data>
   <data name="Info_Question_Actions" xml:space="preserve">
-    <value>Elige una opción con las flechas y pulsa Intro para responder.
+    <value>Elige una opción con las flechas y pulsa «Responder».
 Escribe tu propia respuesta si el agente lo permite.
 Pulsa Esc para decidir más tarde: la tarea sigue esperando.</value>
     <comment>Information button.</comment>

@@ -105,22 +105,21 @@ public sealed class QuestionViewTests
     }
 
     [Fact]
-    public void Intro_answers_and_esc_decides_later_and_the_buttons_say_so_in_their_names()
+    public void No_button_is_the_default_so_intro_never_answers_for_the_person_and_esc_decides_later()
     {
-        var (answer, defer, answerName, deferName) = WpfHost.Run(() =>
+        var (defaults, defer, answerName, deferName) = WpfHost.Run(() =>
         {
             OrchestratorTheme.EnsureLoaded();
             var view = new QuestionView { DataContext = Model() };
             OffscreenRender.Render(view, 680, 620);
-            var buttons = Descendants<Button>(view).Where(b => b.IsDefault || b.IsCancel).ToList();
-            var a = buttons.Single(b => b.IsDefault);
-            var d = buttons.Single(b => b.IsCancel);
-            return (a, d, a.Content, d.Content);
+            var buttons = Descendants<Button>(view).ToList();
+            return (buttons.Count(b => b.IsDefault), buttons.Single(b => b.IsCancel).IsCancel, buttons.Single(b => (string?)b.Content == "Responder").Content, buttons.Single(b => b.IsCancel).Content);
         });
 
+        Assert.Equal(0, defaults);
         Assert.Equal("Responder", answerName);
         Assert.Equal("Decidir más tarde", deferName);
-        Assert.NotSame(answer, defer);
+        Assert.True(defer);
     }
 
     [Fact]
@@ -182,18 +181,16 @@ public sealed class QuestionViewTests
     }
 
     [Fact]
-    public void Preselecting_the_recommended_option_shows_it_chosen_in_the_window()
+    public void The_window_opens_with_nothing_chosen()
     {
-        var checkedFirst = WpfHost.Run(() =>
+        var anyChecked = WpfHost.Run(() =>
         {
             OrchestratorTheme.EnsureLoaded();
-            var model = Model();
-            var view = new QuestionView { DataContext = model };
-            model.PreselectRecommended();
+            var view = new QuestionView { DataContext = Model() };
             OffscreenRender.Render(view, 680, 620);
-            return Descendants<RadioButton>(view).First().IsChecked;
+            return Descendants<RadioButton>(view).Any(r => r.IsChecked == true);
         });
 
-        Assert.True(checkedFirst);
+        Assert.False(anyChecked);
     }
 }

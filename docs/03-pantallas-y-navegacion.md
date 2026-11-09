@@ -832,7 +832,7 @@ nueva trae su ⓘ.
   - Cada opción trae lo que dice el agente (etiqueta, detalle, esfuerzo y si la recomienda) y, aparte, lo que dice el sistema:
     el intervalo de tokens totales con su origen y sus referencias, o «Coste desconocido» / «Coste no disponible» con el
     motivo. Nunca un número inventado.
-  - Teclado: las flechas eligen, Intro responde y Esc es «Decidir más tarde», que cierra la ventana y deja la tarjeta: no
+  - Teclado: las flechas eligen, el botón «Responder» responde (Intro no responde por ti, no hay nada elegido de antemano) y Esc es «Decidir más tarde», que cierra la ventana y deja la tarjeta: no
     cancela la tarea. Con la interfaz bloqueada la ventana se retira y vuelve al desbloquear. Responder no pide Windows Hello.
   - Una tarea que espera respuesta dice «Espera tu respuesta» y no ofrece «Reintentar».
 - **Análisis del consumo.** Una banda bajo la cabecera, visible cuando hay una ejecución con su proyecto: «Analizar el

@@ -223,7 +223,7 @@ public sealed class QuestionViewModelTests
     }
 
     [Fact]
-    public void The_window_can_offer_the_recommended_option_first_without_sending_it()
+    public async Task Nothing_is_chosen_for_the_person_so_without_a_choice_it_cannot_be_answered_even_if_the_agent_recommends_one()
     {
         var sent = 0;
         var model = New(answer: _ =>
@@ -232,11 +232,29 @@ public sealed class QuestionViewModelTests
             return Task.CompletedTask;
         });
 
-        model.PreselectRecommended();
+        Assert.True(model.Options[0].IsRecommended);
+        Assert.All(model.Options, o => Assert.False(o.IsSelected));
+        Assert.Null(model.SelectedOption);
+        Assert.False(model.IsOtherSelected);
+        Assert.False(model.AnswerCommand.CanExecute(null));
+        await model.AnswerCommand.ExecuteAsync(null);
 
-        Assert.True(model.Options[0].IsSelected);
         Assert.Equal(0, sent);
         Assert.False(model.IsAnswered);
+    }
+
+    [Fact]
+    public void The_window_that_opens_by_itself_does_not_take_the_focus_and_the_one_the_person_asks_for_does()
+    {
+        var (_, host, _, _, monitor, ui, run) = Prompting();
+        run.Emit(new QuestionPendingEvent(T0, Pending()));
+        Pump(ui, 1);
+
+        Assert.Equal([false], host.Activations);
+
+        monitor.OpenQuestionCommand.Execute(monitor.PendingQuestions[0]);
+
+        Assert.Equal([false, true], host.Activations);
     }
 
     [Fact]
@@ -532,7 +550,13 @@ public sealed class QuestionViewModelTests
 
         public int Restorations { get; private set; }
 
-        public void Show(QuestionViewModel question) => Shown.Add(question.Id);
+        public List<bool> Activations { get; } = [];
+
+        public void Show(QuestionViewModel question, bool activate = true)
+        {
+            Shown.Add(question.Id);
+            Activations.Add(activate);
+        }
 
         public void Close(QuestionViewModel question) => Closed.Add(question.Id);
 

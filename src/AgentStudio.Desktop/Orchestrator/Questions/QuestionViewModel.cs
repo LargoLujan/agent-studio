@@ -204,15 +204,6 @@ public sealed partial class QuestionViewModel : ObservableObject
         }
     }
 
-    /// <summary>Chooses the option the agent recommends, if there is one: what the window offers first, never what it sends by itself.</summary>
-    public void PreselectRecommended()
-    {
-        if (Options.FirstOrDefault(o => o.IsRecommended) is { } recommended)
-        {
-            recommended.IsSelected = true;
-        }
-    }
-
     private bool CanAnswer() => !IsBusy && !IsAnswered
         && (SelectedOption is not null || (AllowOther && IsOtherSelected && !string.IsNullOrWhiteSpace(OtherText) && OtherText.Length <= MaxOtherLength));
 
@@ -220,6 +211,12 @@ public sealed partial class QuestionViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanAnswer))]
     private async Task AnswerAsync()
     {
+        // The command is asked even when its button is off (a key, a screen reader): without a choice of the person nothing is sent.
+        if (!CanAnswer())
+        {
+            return;
+        }
+
         var answer = SelectedOption is { } option
             ? QuestionAnswer.Choosing(Task, Id, option.Id, _decidedBy)
             : QuestionAnswer.Writing(Task, Id, OtherText.Trim(), _decidedBy);

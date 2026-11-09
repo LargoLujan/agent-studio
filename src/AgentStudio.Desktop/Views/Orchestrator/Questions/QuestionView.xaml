@@ -10,7 +10,7 @@
              d:DataContext="{d:DesignInstance Type=questions:QuestionViewModel}">
     <!-- The question of an agent (docs/17 D-31, F13-14). It is not modal. The text of the agent is always inside a frame that says
          it was written by the agent: a label cannot pass for a button of the system. The cost of each option has its origin, or
-         says why there is none. Arrows choose, Intro answers («Responder» is the default button) and Esc decides later
+         says why there is none. Arrows choose, the button «Responder» answers (nothing is chosen and no button is the default: Intro never answers for the person) and Esc decides later
          («Decidir más tarde» is the cancel button, which never cancels the task). -->
     <Border Background="{StaticResource SurfaceBrush}" Padding="22,18" MinWidth="460" MaxWidth="640">
         <StackPanel>
@@ -69,7 +69,7 @@
 
             <DockPanel Margin="0,16,0,0" LastChildFill="False">
                 <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" Content="{l:T Monitor_Question_Answer}" Margin="8,0,0,0"
-                        IsDefault="True" Command="{Binding AnswerCommand}"/>
+                        Command="{Binding AnswerCommand}"/>
                 <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Content="{l:T Monitor_Question_Defer}"
                         IsCancel="True" Command="{Binding DeferCommand}"/>
             </DockPanel>
