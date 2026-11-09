@@ -1300,6 +1300,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
                 Status = view.Status,
                 EvidenceCount = countEvidence ? view.Evidence.Count : 0,
                 FromLog = IsInspecting,
+                NotifyScheduler = ScheduleNotify,
             };
             task.Refresh(view);
             Tasks.Add(task);
@@ -1358,7 +1359,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
 
         // A task the first snapshot did not have: take what the run says about it now.
         var view = SafeSnapshot()?.Tasks.FirstOrDefault(t => t.Id == id);
-        var task = new MonitorTaskViewModel(id, view?.Title ?? id.Value, view?.Kind ?? WorkTaskKind.AgentWork, _time.LocalTimeZone) { FromLog = IsInspecting };
+        var task = new MonitorTaskViewModel(id, view?.Title ?? id.Value, view?.Kind ?? WorkTaskKind.AgentWork, _time.LocalTimeZone) { FromLog = IsInspecting, NotifyScheduler = ScheduleNotify };
         if (view is not null)
         {
             task.Status = view.Status;
@@ -1809,9 +1810,7 @@ public sealed partial class MonitorTaskViewModel : ObservableObject
     internal void CountCompaction()
     {
         _compactions++;
-        OnPropertyChanged(nameof(Context));
-        OnPropertyChanged(nameof(ContextBar));
-        OnPropertyChanged(nameof(ContextDetail));
+        Touch();
     }
 
     /// <summary>
@@ -1825,12 +1824,7 @@ public sealed partial class MonitorTaskViewModel : ObservableObject
         _context = _contextState is { } state && (state.Steps > 0 || state.UsedTokens.Origin != MetricOrigin.Missing)
             ? ContextText.Read(state.Model, state.UsedTokens, state.ContextWindow, thresholds)
             : _lastContext is { } step ? ContextText.Read(step.Model, step.PromptTokens, step.ContextWindow, thresholds) : null;
-        OnPropertyChanged(nameof(Context));
-        OnPropertyChanged(nameof(ContextLevel));
-        OnPropertyChanged(nameof(ContextTone));
-        OnPropertyChanged(nameof(ContextBar));
-        OnPropertyChanged(nameof(ContextDetail));
-        OnPropertyChanged(nameof(PartsBar));
+        Touch();
     }
 
     public string StatusLabel => Status switch

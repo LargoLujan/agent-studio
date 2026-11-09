@@ -229,10 +229,26 @@
                  change of state is announced (assertive for a question or a block, polite for the rest). -->
             <DockPanel orchestratorViews:AdaptiveColumnsPanel.Weight="3" MinWidth="230">
                 <TextBlock DockPanel.Dock="Top" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" Text="{l:T Monitor_Agents_Title}"/>
-                <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
-                    <ItemsControl ItemsSource="{Binding AgentCards}" Focusable="False" AutomationProperties.Name="{l:T Monitor_Agents_Title}"
-                                  Visibility="{Binding IsAttached, Converter={StaticResource Orchestrator.BoolToVisibility}}">
-                        <ItemsControl.ItemTemplate>
+                <!-- A list that virtualizes: with 40 agents only the cards in view are built, so a repaint of the grouped state costs what is seen. -->
+                <ListBox ItemsSource="{Binding AgentCards}" Background="Transparent" BorderThickness="0" Padding="0"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
+                         AutomationProperties.Name="{l:T Monitor_Agents_Title}"
+                         Visibility="{Binding IsAttached, Converter={StaticResource Orchestrator.BoolToVisibility}}">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Focusable" Value="False"/>
+                            <Setter Property="Padding" Value="0"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <ContentPresenter/>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
                             <DataTemplate DataType="{x:Type monitor:AgentCardViewModel}">
                                 <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="8,4" Margin="0,0,0,6"
                                         AutomationProperties.Name="{Binding AccessibleName}"
@@ -252,16 +268,32 @@
                                     </StackPanel>
                                 </Border>
                             </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
+                        </ListBox.ItemTemplate>
+                </ListBox>
             </DockPanel>
 
             <DockPanel orchestratorViews:AdaptiveColumnsPanel.Weight="5" MinWidth="240">
                 <TextBlock DockPanel.Dock="Top" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" Text="Tareas"/>
-                <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
-                    <ItemsControl ItemsSource="{Binding Tasks}" AutomationProperties.Name="Tareas de la ejecución">
-                        <ItemsControl.ItemTemplate>
+                <!-- A list that virtualizes (Phase 13, docs/17 D-16): with 40 tasks only the rows in view are built, so a repaint costs what is seen. -->
+                <ListBox ItemsSource="{Binding Tasks}" Background="Transparent" BorderThickness="0" Padding="0"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
+                         AutomationProperties.Name="Tareas de la ejecución">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Focusable" Value="False"/>
+                            <Setter Property="Padding" Value="0"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <ContentPresenter/>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
                             <DataTemplate DataType="{x:Type monitor:MonitorTaskViewModel}">
                                 <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,5"
                                         AutomationProperties.Name="{Binding StatusLabel}">
@@ -345,9 +377,8 @@
                                     </Grid>
                                 </Border>
                             </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
+                        </ListBox.ItemTemplate>
+                </ListBox>
             </DockPanel>
 
             <DockPanel orchestratorViews:AdaptiveColumnsPanel.Weight="4" MinWidth="180">

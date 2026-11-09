@@ -46,7 +46,11 @@ public sealed record ToolRow(string Name, string Description, ToolRisk Risk, str
 }
 
 /// <summary>A group of tools: those of one program, the steps of the profile or the tools of the local server.</summary>
-public sealed record ToolGroup(string Title, string Note, IReadOnlyList<ToolRow> Rows);
+public sealed record ToolGroup(string Title, string Note, IReadOnlyList<ToolRow> Rows)
+{
+    /// <summary>What a screen reader says of a group: its title.</summary>
+    public override string ToString() => Title;
+}
 
 /// <summary>
 /// «Herramientas» (docs/17 D-46, F13-18): what each agent may use and with what risk. It shows the built-in tools of each program and

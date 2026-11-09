@@ -272,8 +272,42 @@ public sealed partial class RunMonitorViewModel : IRunLiveProjection
         MarkLive(task);
     }
 
+    // ---- one repaint for a burst (docs/17 D-16) ----
+
+    private readonly List<MonitorTaskViewModel> _notifyQueue = [];
+    private bool _notifyPosted;
+
+    /// <summary>
+    /// A task says its bars changed. The notification is posted once, behind the events that are already queued, so a burst of steps is
+    /// one repaint of each card it touched and the UI thread only paints. With an inline context it goes at once, as it always did.
+    /// </summary>
+    private void ScheduleNotify(MonitorTaskViewModel task)
+    {
+        _notifyQueue.Add(task);
+        if (_notifyPosted)
+        {
+            return;
+        }
+
+        _notifyPosted = true;
+        Post(_generation, FlushNotifications);
+    }
+
+    private void FlushNotifications()
+    {
+        _notifyPosted = false;
+        var tasks = _notifyQueue.ToArray();
+        _notifyQueue.Clear();
+        foreach (var task in tasks)
+        {
+            task.RaiseBarsChanged();
+        }
+    }
+
     private void ResetLive()
     {
+        _notifyQueue.Clear();
+        _notifyPosted = false;
         _liveTimer?.Dispose();
         _liveTimer = null;
         _liveDirty.Clear();

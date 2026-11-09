@@ -28,6 +28,41 @@ public sealed partial class MonitorTaskViewModel
     /// <summary>How the last attempt of the task ended, as its CLI classified it (docs/16 D-41); null until an attempt ends. The panel «Problemas» says it with the reason.</summary>
     public AttemptEndClass? EndClass { get; private set; }
 
+    /// <summary>
+    /// What the monitor gave the task to say that its bars changed, so a burst of steps is one repaint of its card and not one per event
+    /// (docs/17 D-16): the figures are always current; only the notification waits for the monitor to send it. Without one, it is sent at once.
+    /// </summary>
+    internal Action<MonitorTaskViewModel>? NotifyScheduler { get; set; }
+
+    private bool _touched;
+
+    /// <summary>The bars of the card changed: the notification goes now, or when the monitor sends it (at most once for every change that came before).</summary>
+    internal void Touch()
+    {
+        if (NotifyScheduler is not { } schedule)
+        {
+            RaiseBarsChanged();
+        }
+        else if (!_touched)
+        {
+            _touched = true;
+            schedule(this);
+        }
+    }
+
+    /// <summary>Tells the screen that the context, its level, the parts and the consumption may have changed: the one notification of a burst.</summary>
+    internal void RaiseBarsChanged()
+    {
+        _touched = false;
+        OnPropertyChanged(nameof(Context));
+        OnPropertyChanged(nameof(ContextLevel));
+        OnPropertyChanged(nameof(ContextTone));
+        OnPropertyChanged(nameof(ContextBar));
+        OnPropertyChanged(nameof(ContextDetail));
+        OnPropertyChanged(nameof(PartsBar));
+        OnPropertyChanged(nameof(ConsumptionBar));
+    }
+
     /// <summary>The attempts of the task that ended with the tokens their CLI reported.</summary>
     internal IReadOnlyList<TokenUsage> FinishedAttempts => _finishedAttempts;
 
@@ -133,7 +168,7 @@ public sealed partial class MonitorTaskViewModel
         {
             _finishedAttempts.Add(usage);
             _attemptUsage = null;
-            OnPropertyChanged(nameof(ConsumptionBar));
+            Touch();
         }
     }
 
@@ -149,7 +184,7 @@ public sealed partial class MonitorTaskViewModel
         _partsAttempt = attempt;
         _parts = parts;
         _partsFailed = failed;
-        OnPropertyChanged(nameof(PartsBar));
+        Touch();
     }
 
     /// <summary>A new attempt starts: the parts of the one before no longer say anything.</summary>
@@ -158,7 +193,7 @@ public sealed partial class MonitorTaskViewModel
         _parts = null;
         _partsFailed = false;
         _partsAttempt = Math.Max(attempt, 1);
-        OnPropertyChanged(nameof(PartsBar));
+        Touch();
     }
 
     /// <summary>Whether the parts of the attempt in course were already read; one still missing is asked again later.</summary>

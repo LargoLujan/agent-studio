@@ -28,7 +28,11 @@ public sealed record AgentToolSet(
     IReadOnlyList<string> Denied,
     string? Sandbox,
     bool? Network,
-    IReadOnlyList<string> Arguments);
+    IReadOnlyList<string> Arguments)
+{
+    /// <summary>What a list of these says to UI Automation: the agent, its program and the tools of its launch.</summary>
+    public override string ToString() => $"{Agent} · {Provider.Value} · {string.Join(' ', Available)}";
+}
 
 /// <summary>
 /// «Herramientas» is computed as the real launch (docs/17 D-46, F13-18): the permissions of the executor are those the engine gives
