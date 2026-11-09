@@ -74,8 +74,9 @@
      - **El intervalo:** los percentiles 25 y 75 por rango más cercano, así que cada extremo es una cifra que tuvo algún
        intento. Cada cifra va por su cuenta: la que tienen menos de tres referencias es «desconocida», y el coste de Codex,
        «no expuesto» (`CostNotExposed`); un coste conocido es el precio de lista del CLI (`ListPrice`).
-     - **Los tokens totales** (`UsageEstimate.TotalTokens`, a petición de WP4): los percentiles de los totales de cada
-       referencia, calculados como tales, nunca la suma de los percentiles de la entrada y la salida, que no sería ninguno.
+     - **Los tokens totales** (`UsageEstimate.TotalTokens`, a petición de WP4): la entrada más la salida de cada referencia,
+       como las cuenta el panel de uso (la entrada es el prompt entero: en Claude, con la caché leída y escrita; en Codex,
+       con la entrada en caché; la salida de Codex incluye su razonamiento). Sus percentiles se calculan sobre esos totales, nunca la suma de los percentiles de la entrada y la salida, que no sería ninguno.
        `UsageEstimate.ToSnapshot(opción)` da el `OptionEstimateSnapshot` de una pregunta.
      - **Un plan:** cada tarea de trabajo (ejecutor) o de revisión (juez) se estima como un intento, y sus ejecuciones son los
        percentiles 25 y 75 de las que llevaron las tareas parecidas, con sus reintentos. Las ejecuciones y los tokens del
@@ -161,3 +162,8 @@
       y `minimal` para Codex quedan para cuando se midan con esta versión, y `ultra` (subagentes en paralelo) no está en la
       lista cerrada;
     - `model/list` del app-server de Codex: sus campos, si pide red y qué autenticación.
+  - **Límites conocidos del estimador:**
+    - antes de la versión 2 del arranque no hay propósito, y un intento con tarea cuenta como de ejecutor: el de un juez con
+      tarea de revisión podría colarse como referencia (lo aprendido, en cambio, lo descarta por el equipo de su ejecución);
+    - lee y proyecta el registro en cada llamada, así que comparar N opciones lo lee N veces. Si la ventana de una pregunta
+      se nota lenta, el arreglo es recordar la proyección por la huella de la última entrada.

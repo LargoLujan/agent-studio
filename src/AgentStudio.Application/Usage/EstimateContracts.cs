@@ -13,8 +13,8 @@ namespace AgentStudio.Application.Usage;
 // (docs/16 D-20). The estimate is computed by the system from the verified log of this project: similar attempts (same
 // agent, same model reported, same purpose), the 25th and 75th percentiles, the number of references and the assumptions.
 // With fewer than three references it is «desconocida»: never a number made up. There is no table of prices (docs/14 D-06):
-// the cost is the CLI's list price as the log recorded it, and Codex says «no expuesto». WP3 implements it
-// (Observability/Estimates).
+// the cost is the CLI's list price as the log recorded it, and Codex says «no expuesto». WP2 implements it
+// (Observability/Estimates, reassigned on 2026-11-09; ADR-0050).
 
 /// <summary>The size of the work an estimate is for: the effort an agent declares for an option of a question (D-32), or a task by its kind.</summary>
 public enum WorkSize
@@ -78,7 +78,9 @@ public static class EstimateAssumptions
 /// <see cref="MinimumReferences"/> references.
 /// </summary>
 /// <param name="TotalTokens">
-/// WP2 (2026-11-09): the tokens of an attempt in all (input and output), as an interval computed as such: the percentiles of
+/// WP2 (2026-11-09): the tokens of an attempt in all, its input and its output, as the usage panel counts them (the input is
+/// the whole prompt: Claude's input with its cache read and written, Codex's with its cached input; the output of Codex
+/// includes its reasoning), as an interval computed as such: the percentiles of
 /// the totals of the references, never the sum of the percentiles of each part, which would be wrong. What the window of a
 /// question shows for each option (<see cref="ToSnapshot"/>, docs/17 D-32). Null when the estimate does not give it.
 /// </param>
