@@ -62,9 +62,10 @@
        veredicto válido es `Rejected` o `ChangesRequested`. Todo, estimado por Agent Studio; con menos de tres tareas,
        «desconocido» (`ModelPerformance.IsKnown`, P0).
      - **La ventana:** la última que informó el CLI (`ModelWindowCatalog`), como estimación para lo que venga; falta si nunca
-       la informó.
+       la informó. Codex nunca la informa (la tabla base de ventanas lo sabe): «no expuesto», nunca «desconocido».
      - **El coste por tarea:** la suma de sus intentos a precio de lista del CLI (`UsageProjector`, sin contar dos veces una
-       sesión), y del modelo, la mediana de sus tareas con coste, desde tres. Codex no lo expone: «no expuesto», nunca cero.
+       sesión), y del modelo, la mediana de sus tareas con coste, desde tres. Codex no lo expone: «no expuesto», nunca cero ni «desconocido», también para un modelo que solo
+       juzga y no tiene tareas.
   4. **El estimador de F9-7** (docs/16 D-20, adelantado) lo implementa WP2 (`Observability/Estimates/UsageEstimator` sobre
      `UsageEstimation`, puro; reasignado por el coordinador el 2026-11-09, porque docs/04 §21.4 lo daba a WP3 y nadie lo
      había hecho). Lee el registro verificado por `IProjectLogReader` y no gasta cuota. Un registro que no verifica, o que

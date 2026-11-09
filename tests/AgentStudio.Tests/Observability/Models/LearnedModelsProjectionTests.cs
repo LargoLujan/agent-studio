@@ -1,6 +1,7 @@
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Models;
 using AgentStudio.Application.Projects;
+using AgentStudio.Desktop.Observability;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Decisions;
@@ -119,8 +120,9 @@ public sealed class LearnedModelsProjectionTests
 
         Assert.Equal(((long?)900_000L, MetricOrigin.EstimatedBySystem), (window.Value, window.Origin));
         Assert.Contains("claude-sonnet-5-5", window.Source, StringComparison.Ordinal);
-        Assert.Equal(MetricOrigin.Missing, learned.Find(ProviderId.CodexCli, "gpt-6-luna")!.ContextWindow.Origin);
+        Assert.Equal(MetricOrigin.NotExposed, learned.Find(ProviderId.CodexCli, "gpt-6-luna")!.ContextWindow.Origin);
         Assert.False(learned.Find(ProviderId.CodexCli, "gpt-6-luna")!.ContextWindow.HasValue);
+        Assert.Equal(MetricOrigin.Missing, learned.Find(ProviderId.ClaudeCode, "haiku")!.ContextWindow.Origin);
     }
 
     /// <summary>sonnet's tasks cost 0.10, 0.50 (0.20 and 0.30), 0.40 and 0.50: the median is 0.45, at the CLI's list price.</summary>
@@ -167,6 +169,30 @@ public sealed class LearnedModelsProjectionTests
         Assert.Null(learned.Find(ProviderId.CodexCli, "sonnet"));
         Assert.Null(learned.Find(ProviderId.ClaudeCode, null));
         Assert.Same(Catalog, learned.Catalog);
+    }
+
+    /// <summary>
+    /// A model of Codex that only judged has no task: its cost and its window are what the CLI never publishes, so they say
+    /// «no expuesto», as every other figure Codex does not give, and never «desconocido» or «sin dato».
+    /// </summary>
+    [Fact]
+    public void A_model_of_codex_that_only_judges_shows_its_cost_and_window_as_not_exposed()
+    {
+        var log = new LearnedLog();
+        for (var i = 1; i <= 3; i++)
+        {
+            log.RunStarted("r" + i, ("ejecutor", AgentRole.Executor), ("juez", AgentRole.Judge))
+                .Attempt("r" + i, "R", 1, "juez", ProviderId.CodexCli, "gpt-6-astra", "gpt-6-astra", AgentRunPurpose.Judge);
+        }
+
+        var astra = Learned(log.Entries).Find(ProviderId.CodexCli, "gpt-6-astra")!;
+
+        Assert.Equal(0, astra.Performance.Tasks);
+        Assert.Equal(MetricOrigin.NotExposed, astra.CostPerTask.Origin);
+        Assert.Equal(MetricOrigin.NotExposed, astra.ContextWindow.Origin);
+        Assert.Equal("no expuesto", MetricText.Cost(astra.CostPerTask).Text);
+        Assert.Equal("no expuesto", MetricText.Tokens(astra.ContextWindow).Text);
+        Assert.Equal("sin dato", MetricText.Cost(Learned().Find(ProviderId.ClaudeCode, "haiku")!.CostPerTask).Text);
     }
 
     [Fact]

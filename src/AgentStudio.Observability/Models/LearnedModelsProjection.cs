@@ -38,7 +38,8 @@ namespace AgentStudio.Observability.Models;
 /// <item><b>The window</b> is the last one its CLI reported (<see cref="ModelWindowCatalog"/>), as an estimate of Agent
 /// Studio for what comes next. <b>The cost of a task</b> is the sum of what its attempts cost at the CLI's list price
 /// (<see cref="UsageProjector"/>, deduplicated by session); the model's is the median over its tasks with a cost, from three
-/// on. Codex does not expose it: «no expuesto», never zero.</item>
+/// on. Codex does not expose it, nor its window: «no expuesto», never zero and never «desconocido», also for a model that only
+/// judged.</item>
 /// </list>
 /// </remarks>
 public static class LearnedModelsProjection
@@ -83,6 +84,7 @@ public static class LearnedModelsProjection
             }
 
             learning.Attempts++;
+            learning.AttemptCostOrigins.Add(attempt.Own.CostUsd.Origin);
             if (!learning.ReportedAs.Contains(name!.Trim(), StringComparer.Ordinal))
             {
                 learning.ReportedAs.Add(name.Trim());
@@ -176,7 +178,9 @@ public static class LearnedModelsProjection
                 string.Create(CultureInfo.InvariantCulture, $"median of {known.Count} tasks at the CLI's list price"));
         }
 
-        if (learning.TaskCosts.Count > 0 && learning.TaskCosts.All(c => c.Origin == MetricOrigin.NotExposed))
+        // A CLI that does not publish the cost (Codex) says «no expuesto» whatever the model did, also a model that only judged
+        // and has no task: never «desconocido» for what the CLI will never give.
+        if (learning.AttemptCostOrigins.Count > 0 && learning.AttemptCostOrigins.All(o => o == MetricOrigin.NotExposed))
         {
             return MetricValue<decimal>.NotExposed("the CLI does not expose the cost");
         }
@@ -192,11 +196,16 @@ public static class LearnedModelsProjection
             .OrderByDescending(w => w.SeenAt)
             .ThenBy(w => w.Model, StringComparer.Ordinal)
             .FirstOrDefault();
-        return seen is null
-            ? MetricValue<long>.Missing("the CLI has not reported a window for this model")
-            : MetricValue<long>.EstimatedBySystem(
-                seen.Tokens,
-                string.Create(CultureInfo.InvariantCulture, $"window the CLI reported in an earlier run ({seen.Model}, {seen.SeenAt.UtcDateTime:yyyy-MM-dd})"));
+        if (seen is null)
+        {
+            // The base table knows which CLIs never report a window (Codex): theirs is «no expuesto», not «desconocido».
+            var table = ModelWindowTable.Current.WindowFor(learning.Key, learning.Provider);
+            return table.Origin == MetricOrigin.NotExposed ? table : MetricValue<long>.Missing("the CLI has not reported a window for this model");
+        }
+
+        return MetricValue<long>.EstimatedBySystem(
+            seen.Tokens,
+            string.Create(CultureInfo.InvariantCulture, $"window the CLI reported in an earlier run ({seen.Model}, {seen.SeenAt.UtcDateTime:yyyy-MM-dd})"));
     }
 
     private sealed class Learning(ProviderId provider, string key)
@@ -208,6 +217,8 @@ public static class LearnedModelsProjection
         public List<string> ReportedAs { get; } = [];
 
         public List<MetricValue<decimal>> TaskCosts { get; } = [];
+
+        public List<MetricOrigin> AttemptCostOrigins { get; } = [];
 
         public int Attempts { get; set; }
 
