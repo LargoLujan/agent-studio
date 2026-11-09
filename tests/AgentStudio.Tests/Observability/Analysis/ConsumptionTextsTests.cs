@@ -22,12 +22,12 @@ public sealed class ConsumptionTextsTests
     {
         foreach (var code in ConsumptionFindingCodes.All)
         {
-            var sentence = UserText.KeyOf(code);
+            var sentence = UserText.KeyOf(ConsumptionTexts.TextPrefix + code);
             Assert.True(Spanish.Has(sentence), sentence);
             Assert.False(English.Get(sentence).StartsWith('['), sentence);
             if (ConsumptionTexts.SuggestionCode(code) is { } suggestion)
             {
-                Assert.True(Spanish.Has(UserText.KeyOf(suggestion)), suggestion);
+                Assert.True(Spanish.Has(UserText.KeyOf(ConsumptionTexts.TextPrefix + suggestion)), suggestion);
             }
             else
             {
@@ -51,6 +51,23 @@ public sealed class ConsumptionTextsTests
 
         Assert.Equal("2 intentos esperaron en la cola de claude-code 0:08:00 en total; la espera más larga, 0:05:00.", Spanish.Render(ConsumptionTexts.Sentence(finding)));
         Assert.Equal("Use fewer executors of the same program at once.", English.Render(ConsumptionTexts.Suggestion(finding)!));
-        Assert.Equal("El paquete de contexto de ejecutor dejó fuera 3 entradas en 2 intentos: le faltó contexto.", Spanish.Render(UserText.Of(ConsumptionFindingCodes.PackOmitted, "ejecutor", 3, 2)));
+        Assert.Equal("El paquete de contexto de ejecutor dejó fuera 3 entradas en 2 intentos: le faltó contexto.", Spanish.Render(UserText.Of(ConsumptionTexts.TextPrefix + ConsumptionFindingCodes.PackOmitted, "ejecutor", 3, 2)));
+    }
+
+    [Fact]
+    public void A_code_the_analyzer_of_the_team_also_has_is_painted_with_the_text_of_the_consumption()
+    {
+        // model.oversized is a finding of the analyzer of the team too, with other arguments: each keeps its own sentence.
+        var finding = ConsumptionFinding.Of(
+            ConsumptionFindingCodes.ModelOversized,
+            new ConsumptionTarget(ConsumptionTargetKind.Agent, "ejecutor"),
+            MetricValue<long>.Missing("n/a"),
+            3,
+            "ejecutor",
+            "claude-opus-5-5",
+            3);
+
+        Assert.Equal("ejecutor usó claude-opus-5-5, de nivel «máximo», en 3 intentos con cambios pequeños.", Spanish.Render(ConsumptionTexts.Sentence(finding)));
+        Assert.NotEqual(Spanish.Get(UserText.KeyOf(ConsumptionFindingCodes.ModelOversized)), Spanish.Render(ConsumptionTexts.Sentence(finding)));
     }
 }

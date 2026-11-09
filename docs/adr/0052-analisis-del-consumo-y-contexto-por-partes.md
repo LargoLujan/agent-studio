@@ -75,8 +75,11 @@
        comparte su id), por su agente (`orquestador#1`, `juez#1`), para que dos intentos nunca compartan nombre.
      - El registro de un intento solo cuenta si es un documento que capturó el sistema, de una tarea, con el título del
        registro (la misma regla que el auditor, `AuditedRun.MayBeAttemptRecord`), y su contenido lo confirma.
-     - Las frases y sugerencias salen de `Resources/ConsumptionStrings.resx` (castellano) y `.en.resx`: `Text_<código>` con los
-       argumentos de `ConsumptionTexts`, y `Text_<código>_suggestion`. `work.discarded` solo informa.
+     - Las frases y sugerencias salen de `Resources/ConsumptionStrings.resx` (castellano) y `.en.resx`:
+       `Text_consumption_<código>` con los argumentos de `ConsumptionTexts`, y `Text_consumption_<código>_suggestion`.
+       `work.discarded` solo informa. El prefijo `consumption.` del texto (integración del 2026-11-09) evita que choquen con
+       los textos del analizador del montaje (ADR-0049): `model.oversized` está en los dos con otros argumentos, y un solo
+       proveedor de textos lee todos los ficheros.
   5. **El análisis con un agente** (D-35, decisión 5 (a)). `AssistedConsumptionAnalysisService`:
      - **Tu OK en cada uso:** un consentimiento dice quién y para qué y tiene 10 minutos como mucho. Uno viejo o ya usado lo para
        todo antes de leer nada. Se gasta justo antes de lanzar: un registro que no verifica o una ejecución sin agente de otro

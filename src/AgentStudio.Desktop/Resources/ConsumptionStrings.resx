@@ -13,95 +13,95 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="Text_ctx_pack_omitted" xml:space="preserve">
+  <data name="Text_consumption_ctx_pack_omitted" xml:space="preserve">
     <value>El paquete de contexto de {0} dejó fuera {1} entradas en {2} intentos: le faltó contexto.</value>
     <comment>ctx.pack-omitted. {0}: agent; {1}: entries left out; {2}: attempts.</comment>
   </data>
-  <data name="Text_ctx_pack_omitted_suggestion" xml:space="preserve">
+  <data name="Text_consumption_ctx_pack_omitted_suggestion" xml:space="preserve">
     <value>Sube el presupuesto de contexto o activa la memoria de ese agente.</value>
     <comment>What ctx.pack-omitted suggests.</comment>
   </data>
-  <data name="Text_ctx_high_peak" xml:space="preserve">
+  <data name="Text_consumption_ctx_high_peak" xml:space="preserve">
     <value>El contexto de {0} llegó al {1} % de la memoria de trabajo de {2}.</value>
     <comment>ctx.high-peak. {0}: attempt (T1#2); {1}: percent of the window; {2}: model.</comment>
   </data>
-  <data name="Text_ctx_high_peak_suggestion" xml:space="preserve">
+  <data name="Text_consumption_ctx_high_peak_suggestion" xml:space="preserve">
     <value>Parte la tarea, usa un modelo con más memoria de trabajo o quita skills.</value>
     <comment>What ctx.high-peak suggests.</comment>
   </data>
-  <data name="Text_ctx_compacted" xml:space="preserve">
+  <data name="Text_consumption_ctx_compacted" xml:space="preserve">
     <value>El programa del agente compactó el contexto de {0} {1} veces: algo pudo perderse.</value>
     <comment>ctx.compacted. {0}: attempt; {1}: compactions.</comment>
   </data>
-  <data name="Text_ctx_compacted_suggestion" xml:space="preserve">
+  <data name="Text_consumption_ctx_compacted_suggestion" xml:space="preserve">
     <value>Parte la tarea, usa un modelo con más memoria de trabajo o quita skills.</value>
     <comment>What ctx.compacted suggests.</comment>
   </data>
-  <data name="Text_ctx_heavy_preamble" xml:space="preserve">
+  <data name="Text_consumption_ctx_heavy_preamble" xml:space="preserve">
     <value>Antes de empezar, {0} cargó ~{1} tokens de skills y ~{2} de memoria en {3} intentos que terminaron pronto.</value>
     <comment>ctx.heavy-preamble. {0}: agent; {1}: estimated tokens of skills; {2}: estimated tokens of memory; {3}: attempts.</comment>
   </data>
-  <data name="Text_ctx_heavy_preamble_suggestion" xml:space="preserve">
+  <data name="Text_consumption_ctx_heavy_preamble_suggestion" xml:space="preserve">
     <value>Quita skills o memoria a ese agente.</value>
     <comment>What ctx.heavy-preamble suggests.</comment>
   </data>
-  <data name="Text_retry_same_class" xml:space="preserve">
+  <data name="Text_consumption_retry_same_class" xml:space="preserve">
     <value>{0} terminó {1} intentos seguidos con el mismo final ({2}).</value>
     <comment>retry.same-class. {0}: task; {1}: attempts; {2}: class of the end (internal name).</comment>
   </data>
-  <data name="Text_retry_same_class_suggestion" xml:space="preserve">
+  <data name="Text_consumption_retry_same_class_suggestion" xml:space="preserve">
     <value>No reintentes a ciegas: revisa los requisitos o los criterios.</value>
     <comment>What retry.same-class suggests.</comment>
   </data>
-  <data name="Text_retry_same_failing_tests" xml:space="preserve">
+  <data name="Text_consumption_retry_same_failing_tests" xml:space="preserve">
     <value>{0} repitió {1} intentos con las mismas {2} pruebas en rojo en «{3}».</value>
     <comment>retry.same-failing-tests. {0}: task; {1}: attempts; {2}: failing tests; {3}: step of the verification.</comment>
   </data>
-  <data name="Text_retry_same_failing_tests_suggestion" xml:space="preserve">
+  <data name="Text_consumption_retry_same_failing_tests_suggestion" xml:space="preserve">
     <value>No reintentes a ciegas: revisa los requisitos o los criterios.</value>
     <comment>What retry.same-failing-tests suggests.</comment>
   </data>
-  <data name="Text_plan_corrected" xml:space="preserve">
+  <data name="Text_consumption_plan_corrected" xml:space="preserve">
     <value>Hizo falta corregir el plan {0} veces.</value>
     <comment>plan.corrected. {0}: corrections.</comment>
   </data>
-  <data name="Text_plan_corrected_suggestion" xml:space="preserve">
+  <data name="Text_consumption_plan_corrected_suggestion" xml:space="preserve">
     <value>Escribe requisitos más claros.</value>
     <comment>What plan.corrected suggests.</comment>
   </data>
-  <data name="Text_verdict_corrected" xml:space="preserve">
+  <data name="Text_consumption_verdict_corrected" xml:space="preserve">
     <value>Hizo falta corregir el veredicto {0} veces.</value>
     <comment>verdict.corrected. {0}: corrections.</comment>
   </data>
-  <data name="Text_verdict_corrected_suggestion" xml:space="preserve">
+  <data name="Text_consumption_verdict_corrected_suggestion" xml:space="preserve">
     <value>Escribe requisitos más claros.</value>
     <comment>What verdict.corrected suggests.</comment>
   </data>
-  <data name="Text_model_oversized" xml:space="preserve">
+  <data name="Text_consumption_model_oversized" xml:space="preserve">
     <value>{0} usó {1}, de nivel «máximo», en {2} intentos con cambios pequeños.</value>
     <comment>model.oversized. {0}: agent; {1}: model; {2}: attempts.</comment>
   </data>
-  <data name="Text_model_oversized_suggestion" xml:space="preserve">
+  <data name="Text_consumption_model_oversized_suggestion" xml:space="preserve">
     <value>Prueba un modelo de nivel «equilibrado».</value>
     <comment>What model.oversized suggests.</comment>
   </data>
-  <data name="Text_cache_low_reuse" xml:space="preserve">
+  <data name="Text_consumption_cache_low_reuse" xml:space="preserve">
     <value>{0} siguió su sesión y solo leyó de caché el {1} % de su entrada.</value>
     <comment>cache.low-reuse. {0}: attempt; {1}: percent of the input read from the cache.</comment>
   </data>
-  <data name="Text_cache_low_reuse_suggestion" xml:space="preserve">
+  <data name="Text_consumption_cache_low_reuse_suggestion" xml:space="preserve">
     <value>Mira si conviene seguir la sesión o empezar otra.</value>
     <comment>What cache.low-reuse suggests.</comment>
   </data>
-  <data name="Text_work_discarded" xml:space="preserve">
+  <data name="Text_consumption_work_discarded" xml:space="preserve">
     <value>{0} intentos de {1} tareas no llegaron a ninguna entrega.</value>
     <comment>work.discarded, which only informs. {0}: attempts; {1}: tasks.</comment>
   </data>
-  <data name="Text_wait_queue" xml:space="preserve">
+  <data name="Text_consumption_wait_queue" xml:space="preserve">
     <value>{1} intentos esperaron en la cola de {0} {2:g} en total; la espera más larga, {3:g}.</value>
     <comment>wait.queue. {0}: program of the agent; {1}: attempts; {2}: total wait; {3}: longest wait.</comment>
   </data>
-  <data name="Text_wait_queue_suggestion" xml:space="preserve">
+  <data name="Text_consumption_wait_queue_suggestion" xml:space="preserve">
     <value>Usa menos ejecutores del mismo programa a la vez.</value>
     <comment>What wait.queue suggests.</comment>
   </data>

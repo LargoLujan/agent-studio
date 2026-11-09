@@ -1688,7 +1688,7 @@ Lo que WP3 añade o cambia sobre lo de arriba ([ADR-0052](adr/0052-analisis-del-
 | `ConsumptionAnalyzer`, `ConsumptionAnalysisOptions`, `ConsumptionRules`, `ConsumptionInput`, `ConsumptionThresholds`, `AttemptRef`, `AttemptChange`, `ConsumptionTexts` | `Observability/Analysis/` | El análisis determinista (`IConsumptionAnalyzer`) con sus umbrales y el orden de los argumentos de cada código |
 | `AssistedConsumptionAnalysisService`, `AssistedConsumptionOptions` | ídem | El análisis con un agente (`IAssistedConsumptionAnalysis`) |
 | `AddAgentStudioConsumptionAnalysis` | `Observability/Analysis/ConsumptionAnalysisServiceCollectionExtensions.cs` | Registra los dos análisis; el catálogo de modelos va en sus opciones |
-| `Resources/ConsumptionStrings.resx` y `.en.resx` | `Desktop/Resources/` | `Text_<código>` y `Text_<código>_suggestion` de los 12 códigos (`work.discarded` no sugiere) |
+| `Resources/ConsumptionStrings.resx` y `.en.resx` | `Desktop/Resources/` | `Text_consumption_<código>` y `Text_consumption_<código>_suggestion` de los 12 códigos (`work.discarded` no sugiere). El prefijo (`ConsumptionTexts.TextPrefix`, integración del 2026-11-09) los separa de los del analizador del montaje, que también tiene `model.oversized` con otros argumentos |
 
 - **`AgentRunStarted` v3 en el motor:** todo arranque de `AgentRunner` con partes; un arranque sin ellas sigue en v2. El juez,
   los debates y las auxiliares registran su arranque fuera y no tienen partes.

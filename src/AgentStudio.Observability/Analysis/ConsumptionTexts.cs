@@ -5,8 +5,10 @@ namespace AgentStudio.Observability.Analysis;
 
 /// <summary>
 /// How a finding of the analysis of consumption is said (docs/17 D-34 and D-47, ADR-0054): its sentence is the coded text of its
-/// code with its arguments (<c>Text_ctx_pack_omitted</c>…), and what it suggests is the coded text of
-/// <see cref="SuggestionCode"/> without arguments; <c>work.discarded</c> only informs. The desktop paints both from its
+/// code with its arguments, under <see cref="TextPrefix"/> (<c>Text_consumption_ctx_pack_omitted</c>…), and what it suggests is
+/// the coded text of <see cref="SuggestionCode"/> without arguments; <c>work.discarded</c> only informs. The prefix keeps the
+/// texts apart from those of the analyzer of the team, whose codes may be the same (<c>model.oversized</c> is in both, with
+/// other arguments). The desktop paints both from its
 /// resources (<c>Resources/ConsumptionStrings.resx</c>); the cost goes apart, with its origin
 /// (<see cref="ConsumptionFinding.Tokens"/>).
 /// </summary>
@@ -32,6 +34,9 @@ public static class ConsumptionTexts
     /// <summary>The suffix of the code of what a finding suggests.</summary>
     public const string SuggestionSuffix = ".suggestion";
 
+    /// <summary>What the code of a text of this analysis starts with, before the code of its finding.</summary>
+    public const string TextPrefix = "consumption.";
+
     /// <summary>The codes that only inform: they suggest nothing.</summary>
     public static IReadOnlyList<string> InformOnly { get; } = [ConsumptionFindingCodes.WorkDiscarded];
 
@@ -39,7 +44,7 @@ public static class ConsumptionTexts
     public static UserText Sentence(ConsumptionFinding finding)
     {
         ArgumentNullException.ThrowIfNull(finding);
-        return new UserText(finding.Code, finding.Arguments);
+        return new UserText(TextPrefix + finding.Code, finding.Arguments);
     }
 
     /// <summary>The code of what a finding of <paramref name="code"/> suggests; null for one that only informs.</summary>
@@ -53,6 +58,6 @@ public static class ConsumptionTexts
     public static UserText? Suggestion(ConsumptionFinding finding)
     {
         ArgumentNullException.ThrowIfNull(finding);
-        return SuggestionCode(finding.Code) is { } code ? new UserText(code) : null;
+        return SuggestionCode(finding.Code) is { } code ? new UserText(TextPrefix + code) : null;
     }
 }
