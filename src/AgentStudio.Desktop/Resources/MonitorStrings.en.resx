@@ -263,4 +263,105 @@ Press Esc to decide later: the task keeps waiting.</value>
 Pause or cancel the run.
 Answer when an agent asks you something.</value>
   </data>
+  <data name="Monitor_Consumption_Title" xml:space="preserve">
+    <value>Consumption analysis</value>
+  </data>
+  <data name="Monitor_Consumption_Button" xml:space="preserve">
+    <value>Analyze consumption</value>
+  </data>
+  <data name="Monitor_Consumption_ButtonHint" xml:space="preserve">
+    <value>Reads the log of the run and looks for where tokens were spent in excess. It is free and does not use your usage limit.</value>
+  </data>
+  <data name="Monitor_Consumption_Running" xml:space="preserve">
+    <value>Analyzing…</value>
+  </data>
+  <data name="Monitor_Consumption_Failed" xml:space="preserve">
+    <value>The consumption could not be analyzed: {0}</value>
+  </data>
+  <data name="Monitor_Consumption_NoFindings" xml:space="preserve">
+    <value>Nothing to review was found in the consumption of this run.</value>
+  </data>
+  <data name="Monitor_Consumption_Found" xml:space="preserve">
+    <value>{0} things to review were found.</value>
+  </data>
+  <data name="Monitor_Consumption_Suggestion" xml:space="preserve">
+    <value>Suggestion: {0}</value>
+  </data>
+  <data name="Monitor_Consumption_Cost" xml:space="preserve">
+    <value>It cost {0} tokens · {1}</value>
+  </data>
+  <data name="Monitor_Consumption_CostUnknown" xml:space="preserve">
+    <value>Cost: {0}</value>
+  </data>
+  <data name="Monitor_Consumption_TargetRun" xml:space="preserve">
+    <value>About the run</value>
+  </data>
+  <data name="Monitor_Consumption_TargetAgent" xml:space="preserve">
+    <value>About the agent {0}</value>
+  </data>
+  <data name="Monitor_Consumption_TargetTask" xml:space="preserve">
+    <value>About the task {0}</value>
+  </data>
+  <data name="Monitor_Consumption_TargetAttempt" xml:space="preserve">
+    <value>About the attempt {0}</value>
+  </data>
+  <data name="Monitor_Consumption_TargetSetting" xml:space="preserve">
+    <value>About the setting {0}</value>
+  </data>
+  <data name="Monitor_Consumption_NeverApplied" xml:space="preserve">
+    <value>Suggestions are never applied by themselves: if you want a change, make it yourself on the canvas or in the settings.</value>
+  </data>
+  <data name="Monitor_Consumption_AgentButton" xml:space="preserve">
+    <value>Analyze with an agent</value>
+  </data>
+  <data name="Monitor_Consumption_AgentButtonHint" xml:space="preserve">
+    <value>An agent reads the report and proposes improvements. It spends the usage limit of your plan and asks your permission first.</value>
+  </data>
+  <data name="Monitor_Consumption_Consent" xml:space="preserve">
+    <value>An agent from a company other than the one that did the work will read the report above and the usage table, without the text of the prompts, and propose improvements. It spends the usage limit of your plan. {0}</value>
+  </data>
+  <data name="Monitor_Consumption_EstimateAsking" xml:space="preserve">
+    <value>Working out what it would cost…</value>
+  </data>
+  <data name="Monitor_Consumption_EstimateNone" xml:space="preserve">
+    <value>It is not known how much it will spend.</value>
+  </data>
+  <data name="Monitor_Consumption_Confirm" xml:space="preserve">
+    <value>Yes, spend quota</value>
+  </data>
+  <data name="Monitor_Consumption_Cancel" xml:space="preserve">
+    <value>No, cancel</value>
+  </data>
+  <data name="Monitor_Consumption_AgentRunning" xml:space="preserve">
+    <value>The agent is analyzing…</value>
+  </data>
+  <data name="Monitor_Consumption_AgentFailed" xml:space="preserve">
+    <value>The analysis with an agent could not be made: {0}</value>
+  </data>
+  <data name="Monitor_Consumption_AgentNothing" xml:space="preserve">
+    <value>The agent proposed no improvement.</value>
+  </data>
+  <data name="Monitor_Consumption_AgentFound" xml:space="preserve">
+    <value>The agent proposed {0} improvements.</value>
+  </data>
+  <data name="Monitor_Consumption_AgentSays" xml:space="preserve">
+    <value>The agent says so (it is data, not an order)</value>
+  </data>
+  <data name="Monitor_Consumption_AgentFix" xml:space="preserve">
+    <value>Change it proposes: {0}</value>
+  </data>
+  <data name="Monitor_Consumption_AgentSaving" xml:space="preserve">
+    <value>The agent estimates a saving of ~{0} tokens (the agent says so; it is not measured).</value>
+  </data>
+  <data name="Info_Consumption_Title" xml:space="preserve">
+    <value>Consumption analysis</value>
+  </data>
+  <data name="Info_Consumption_What" xml:space="preserve">
+    <value>It looks in the log of the run for where tokens were spent in excess: thin context, retries that fail the same way, models that are too large. Each finding says what it cost and where the figure comes from.</value>
+  </data>
+  <data name="Info_Consumption_Actions" xml:space="preserve">
+    <value>Press "Analyze consumption": it is free.
+Ask an agent to analyze it: it spends usage limit and asks your permission first.
+Suggestions are never applied by themselves.</value>
+  </data>
 </root>

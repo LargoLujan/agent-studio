@@ -47,7 +47,7 @@ public static class MonitorBars
         var breakdown = ContextBreakdown.Of(parts, used);
         long? windowTokens = window.Value is > 0 ? window.Value : null;
         double InUnit(long tokens) => windowTokens is { } w ? tokens * 100d / w : tokens;
-        string Tokens(long tokens) => t.Format("Monitor_Parts_Tokens", MetricText.Integer(tokens));
+        string Tokens(long tokens) => t.Format("Monitor_Parts_Tokens", Number(tokens, t));
 
         var segments = new List<MetricBarSegment>();
         foreach (var part in breakdown.Parts)
@@ -76,7 +76,7 @@ public static class MonitorBars
         return new MetricBarReading
         {
             Label = label,
-            ValueText = t.Format("Monitor_Parts_BeforeStart", MetricText.Integer(preamble)),
+            ValueText = t.Format("Monitor_Parts_BeforeStart", Number(preamble, t)),
             Origin = origin,
             OriginKind = MetricOrigin.EstimatedBySystem,
             IsEstimate = true,
@@ -105,10 +105,10 @@ public static class MonitorBars
         var detail = Join(
             t.Format(
                 "Monitor_Consumption_Detail",
-                MetricText.Tokens(MetricAggregate.Sum(attempts.Select(a => a.InputTokens))).Shown,
-                MetricText.Tokens(MetricAggregate.Sum(attempts.Select(a => a.CachedInputTokens))).Shown,
-                MetricText.Tokens(MetricAggregate.Sum(attempts.Select(a => a.OutputTokens))).Shown),
-            t.Format("Monitor_Consumption_Attempts", MetricText.Integer(attempts.Count)));
+                Shown(MetricAggregate.Sum(attempts.Select(a => a.InputTokens)), t),
+                Shown(MetricAggregate.Sum(attempts.Select(a => a.CachedInputTokens)), t),
+                Shown(MetricAggregate.Sum(attempts.Select(a => a.OutputTokens)), t)),
+            t.Format("Monitor_Consumption_Attempts", Number(attempts.Count, t)));
         return MetricBars.Tokens(label, MetricAggregate.Sum(totals), null, detail);
     }
 
@@ -128,6 +128,12 @@ public static class MonitorBars
     /// <summary>A sum of tokens as a figure again: the sum with its origin, or why there is none.</summary>
     internal static MetricValue<long> ToValue(MetricAggregate<long> sum, string source) =>
         MetricValue<long>.Of(sum.Origin, sum.Sum, sum.Sources.Count > 0 ? sum.Sources[0] : source);
+
+    /// <summary>A number of tokens in the culture of the language of the interface.</summary>
+    private static string Number(long value, IUiTextProvider texts) => value.ToString("N0", texts.Culture);
+
+    /// <summary>A sum of tokens in the language of the interface; a dash when no attempt reported it (never a zero).</summary>
+    private static string Shown(MetricAggregate<long> sum, IUiTextProvider texts) => sum.Sum is { } value ? Number(value, texts) : "—";
 
     private static string? Join(params string?[] parts)
     {

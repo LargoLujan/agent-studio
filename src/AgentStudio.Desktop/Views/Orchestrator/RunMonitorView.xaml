@@ -10,6 +10,7 @@
              xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
              xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
              xmlns:questions="clr-namespace:AgentStudio.Desktop.Orchestrator.Questions"
+             xmlns:consumption="clr-namespace:AgentStudio.Desktop.Views.Observability.Analysis"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=monitor:RunMonitorViewModel}">
     <!-- The monitor of a run: phase, graph health, tasks (with queue, block reason and last activity), activity log and
@@ -19,6 +20,7 @@
          review's verdict with «Impugnar» and where its challenge stands; the whole band is collapsed until there is one. -->
     <Grid Background="{StaticResource SurfaceBrush}">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -241,9 +243,18 @@
             </ScrollViewer>
         </Border>
 
+        <!-- The analysis of the consumption of the run (docs/17 D-34 and D-35, F13-15): collapsed until the shell composes the analyzer
+             and a run with its project is on screen. -->
+        <Border Grid.Row="2" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,8"
+                Visibility="{Binding Consumption.IsAvailable, Converter={StaticResource Orchestrator.BoolToVisibility}}">
+            <ScrollViewer MaxHeight="260" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+                <consumption:ConsumptionAnalysisView DataContext="{Binding Consumption}"/>
+            </ScrollViewer>
+        </Border>
+
         <!-- Tasks | activity | evidence: in columns while they fit, the tasks over the other two when narrower, one under
              another when narrower still; they share the height of the monitor. -->
-        <orchestratorViews:AdaptiveColumnsPanel x:Name="Lists" Grid.Row="2" Margin="12,8,12,10" FillHeight="True" ColumnSpacing="12" RowSpacing="8">
+        <orchestratorViews:AdaptiveColumnsPanel x:Name="Lists" Grid.Row="3" Margin="12,8,12,10" FillHeight="True" ColumnSpacing="12" RowSpacing="8">
 
             <DockPanel orchestratorViews:AdaptiveColumnsPanel.Weight="5" MinWidth="240">
                 <TextBlock DockPanel.Dock="Top" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" Text="Tareas"/>

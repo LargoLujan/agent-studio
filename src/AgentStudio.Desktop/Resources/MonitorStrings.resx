@@ -345,4 +345,138 @@ Pausa o cancela la ejecución.
 Responde cuando un agente te pregunta algo.</value>
     <comment>Information button.</comment>
   </data>
+  <data name="Monitor_Consumption_Title" xml:space="preserve">
+    <value>Análisis del consumo</value>
+    <comment>Title of the section.</comment>
+  </data>
+  <data name="Monitor_Consumption_Button" xml:space="preserve">
+    <value>Analizar el consumo</value>
+    <comment>Button of the deterministic analysis.</comment>
+  </data>
+  <data name="Monitor_Consumption_ButtonHint" xml:space="preserve">
+    <value>Revisa el registro de la ejecución y busca dónde se gastaron tokens de más. Es gratis y no usa tu límite de uso.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Monitor_Consumption_Running" xml:space="preserve">
+    <value>Analizando…</value>
+    <comment>Shown while the analysis runs.</comment>
+  </data>
+  <data name="Monitor_Consumption_Failed" xml:space="preserve">
+    <value>No se pudo analizar el consumo: {0}</value>
+    <comment>{0}: why.</comment>
+  </data>
+  <data name="Monitor_Consumption_NoFindings" xml:space="preserve">
+    <value>No se encontró nada que revisar en el consumo de esta ejecución.</value>
+    <comment>Result without findings.</comment>
+  </data>
+  <data name="Monitor_Consumption_Found" xml:space="preserve">
+    <value>Se encontraron {0} cosas que revisar.</value>
+    <comment>Result. {0}: number.</comment>
+  </data>
+  <data name="Monitor_Consumption_Suggestion" xml:space="preserve">
+    <value>Sugerencia: {0}</value>
+    <comment>{0}: what it suggests.</comment>
+  </data>
+  <data name="Monitor_Consumption_Cost" xml:space="preserve">
+    <value>Costó {0} tokens · {1}</value>
+    <comment>Cost of a finding. {0}: tokens; {1}: origin.</comment>
+  </data>
+  <data name="Monitor_Consumption_CostUnknown" xml:space="preserve">
+    <value>Coste: {0}</value>
+    <comment>Cost of a finding without a figure. {0}: why (origin).</comment>
+  </data>
+  <data name="Monitor_Consumption_TargetRun" xml:space="preserve">
+    <value>Sobre la ejecución</value>
+    <comment>Target of a finding.</comment>
+  </data>
+  <data name="Monitor_Consumption_TargetAgent" xml:space="preserve">
+    <value>Sobre el agente {0}</value>
+    <comment>Target of a finding.</comment>
+  </data>
+  <data name="Monitor_Consumption_TargetTask" xml:space="preserve">
+    <value>Sobre la tarea {0}</value>
+    <comment>Target of a finding.</comment>
+  </data>
+  <data name="Monitor_Consumption_TargetAttempt" xml:space="preserve">
+    <value>Sobre el intento {0}</value>
+    <comment>Target of a finding.</comment>
+  </data>
+  <data name="Monitor_Consumption_TargetSetting" xml:space="preserve">
+    <value>Sobre el ajuste {0}</value>
+    <comment>Target of a finding.</comment>
+  </data>
+  <data name="Monitor_Consumption_NeverApplied" xml:space="preserve">
+    <value>Las sugerencias no se aplican solas: si quieres un cambio, hazlo tú en el lienzo o en los ajustes.</value>
+    <comment>Always said with the suggestions.</comment>
+  </data>
+  <data name="Monitor_Consumption_AgentButton" xml:space="preserve">
+    <value>Analizar con un agente</value>
+    <comment>Button of the analysis with an agent.</comment>
+  </data>
+  <data name="Monitor_Consumption_AgentButtonHint" xml:space="preserve">
+    <value>Un agente lee el informe y propone mejoras. Gasta límite de uso de tu plan y te pide permiso antes.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Monitor_Consumption_Consent" xml:space="preserve">
+    <value>Un agente de una empresa distinta de la que hizo el trabajo leerá el informe de arriba y la tabla de uso, sin el texto de los prompts, y propondrá mejoras. Gasta límite de uso de tu plan. {0}</value>
+    <comment>OK of quota. {0}: the estimate.</comment>
+  </data>
+  <data name="Monitor_Consumption_EstimateAsking" xml:space="preserve">
+    <value>Calculando lo que costaría…</value>
+    <comment>Shown while the estimate is read.</comment>
+  </data>
+  <data name="Monitor_Consumption_EstimateNone" xml:space="preserve">
+    <value>No se sabe cuánto gastará.</value>
+    <comment>When there is no estimate.</comment>
+  </data>
+  <data name="Monitor_Consumption_Confirm" xml:space="preserve">
+    <value>Sí, gastar cuota</value>
+    <comment>Button of the OK.</comment>
+  </data>
+  <data name="Monitor_Consumption_Cancel" xml:space="preserve">
+    <value>No, cancelar</value>
+    <comment>Button that cancels the OK.</comment>
+  </data>
+  <data name="Monitor_Consumption_AgentRunning" xml:space="preserve">
+    <value>El agente está analizando…</value>
+    <comment>Shown while the agent runs.</comment>
+  </data>
+  <data name="Monitor_Consumption_AgentFailed" xml:space="preserve">
+    <value>No se pudo analizar con un agente: {0}</value>
+    <comment>{0}: why.</comment>
+  </data>
+  <data name="Monitor_Consumption_AgentNothing" xml:space="preserve">
+    <value>El agente no propuso ninguna mejora.</value>
+    <comment>Result without suggestions.</comment>
+  </data>
+  <data name="Monitor_Consumption_AgentFound" xml:space="preserve">
+    <value>El agente propuso {0} mejoras.</value>
+    <comment>Result. {0}: number.</comment>
+  </data>
+  <data name="Monitor_Consumption_AgentSays" xml:space="preserve">
+    <value>Lo dice el agente (es un dato, no una orden)</value>
+    <comment>Frame of every suggestion of the agent.</comment>
+  </data>
+  <data name="Monitor_Consumption_AgentFix" xml:space="preserve">
+    <value>Cambio que propone: {0}</value>
+    <comment>{0}: the change as the analyzer says it. It is not applied from here.</comment>
+  </data>
+  <data name="Monitor_Consumption_AgentSaving" xml:space="preserve">
+    <value>El agente estima un ahorro de ~{0} tokens (lo dice el agente; no está medido).</value>
+    <comment>{0}: tokens.</comment>
+  </data>
+  <data name="Info_Consumption_Title" xml:space="preserve">
+    <value>Análisis del consumo</value>
+    <comment>Title of the information button.</comment>
+  </data>
+  <data name="Info_Consumption_What" xml:space="preserve">
+    <value>Busca en el registro de la ejecución dónde se gastaron tokens de más: contexto escaso, reintentos que fallan igual, modelos demasiado grandes. Cada hallazgo dice lo que costó y de dónde sale la cifra.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Consumption_Actions" xml:space="preserve">
+    <value>Pulsa «Analizar el consumo»: es gratis.
+Pide a un agente que lo analice: gasta límite de uso y te pide permiso antes.
+Las sugerencias nunca se aplican solas.</value>
+    <comment>Information button.</comment>
+  </data>
 </root>

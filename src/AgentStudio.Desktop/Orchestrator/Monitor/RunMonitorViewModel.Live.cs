@@ -21,6 +21,7 @@ public sealed partial class RunMonitorViewModel : IRunLiveProjection
     /// <summary>A burst that starts after a quiet moment waits this long, so what comes together is one repaint and not two.</summary>
     internal static readonly TimeSpan CoalesceWindow = TimeSpan.FromMilliseconds(50);
 
+    private readonly System.Threading.Lock _liveGate = new();
     private readonly HashSet<string> _liveDirty = new(StringComparer.Ordinal);
     private readonly List<(TaskId From, TaskId To)> _livePulses = [];
     private IReadOnlyList<AgentDefinition> _roster = [];
@@ -195,6 +196,20 @@ public sealed partial class RunMonitorViewModel : IRunLiveProjection
     /// <summary>Publishes the grouped change: the state is built once for everything marked since the last one.</summary>
     internal void FlushLive()
     {
+        RunLiveChangedEventArgs? change;
+        lock (_liveGate)
+        {
+            change = BuildChange();
+        }
+
+        if (change is not null)
+        {
+            Changed?.Invoke(this, change);
+        }
+    }
+
+    private RunLiveChangedEventArgs? BuildChange()
+    {
         _liveTimer?.Dispose();
         _liveTimer = null;
         if (RunId is not { } run || Phase is not { } phase)
@@ -202,12 +217,12 @@ public sealed partial class RunMonitorViewModel : IRunLiveProjection
             _liveDirty.Clear();
             _livePulses.Clear();
             _liveRunDirty = false;
-            return;
+            return null;
         }
 
         if (_liveDirty.Count == 0 && !_liveRunDirty)
         {
-            return;
+            return null;
         }
 
         var changed = _liveDirty.ToArray();
@@ -220,7 +235,7 @@ public sealed partial class RunMonitorViewModel : IRunLiveProjection
         _live = state;
         _lastLiveFlush = _time.GetUtcNow();
         UpdateAgentCards(state);
-        Changed?.Invoke(this, new RunLiveChangedEventArgs(state, changed, pulses));
+        return new RunLiveChangedEventArgs(state, changed, pulses);
     }
 
     private void UpdateAgentCards(RunLiveState state)

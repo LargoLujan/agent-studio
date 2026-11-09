@@ -454,6 +454,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
         // The live state exists from the first moment: the first grouped change is the run as its snapshot says it.
         MarkLiveRun();
         FlushLive();
+        Consumption.Bind(project, run.Id);
         Listening = ListenAsync(run, generation);
     }
 
@@ -657,9 +658,14 @@ public sealed partial class RunMonitorViewModel : ObservableObject
     {
         void Run()
         {
-            if (generation == _generation)
+            // The gate only matters where there is no UI thread to serialize the events (a test with an inline context, where the
+            // grouping timer fires on another thread): on the UI thread it is never contended.
+            lock (_liveGate)
             {
-                action();
+                if (generation == _generation)
+                {
+                    action();
+                }
             }
         }
 
@@ -859,6 +865,9 @@ public sealed partial class RunMonitorViewModel : ObservableObject
             {
                 ReviewCheck = LoadReviewAsync(review, reviewed, reviewedRun, verdict, _generation);
             }
+
+            // The deterministic analysis of the consumption runs when each run ends, free (docs/17 D-34).
+            AnalyzeConsumptionAfterEnd(RunPhaseText.IsFinal(result.Phase));
 
             AuditAgainCommand.NotifyCanExecuteChanged();
             RefreshReviewCommand.NotifyCanExecuteChanged();
@@ -1377,6 +1386,8 @@ public sealed partial class RunMonitorViewModel : ObservableObject
 
     private void Reset()
     {
+        _consumption?.Forget();
+        ConsumptionCheck = Task.CompletedTask;
         ResetLive();
         ResetQuestions();
         _partsAsked.Clear();
