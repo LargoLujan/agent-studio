@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.IO;
 using System.Windows;
+using AgentStudio.Desktop.Orchestrator.Team;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Work;
@@ -77,6 +78,41 @@ public sealed partial class CanvasViewModel : ObservableObject
         Connections.CollectionChanged += (_, _) => RaisePlanChanged();
         SelectedNodes.CollectionChanged += OnSelectedNodesChanged;
         SelectedConnections.CollectionChanged += (_, _) => DeleteSelectionCommand.NotifyCanExecuteChanged();
+
+        // The Team layer is another collection beside the tasks: nothing of it is a node of the plan (docs/17 D-08), so
+        // BuildTasks gives the same with and without it. The only link is the selection, in both directions (D-07).
+        Team = new TeamCanvasViewModel();
+        Team.AgentSelected += (_, agent) => HighlightTasksOf(agent);
+    }
+
+    /// <summary>
+    /// The Team layer (docs/17 D-07 and D-08, ADR-0048): the agents of the template and the repository as a graph, and the strip of
+    /// the team. It is the template seen another way: nothing here enters the plan.
+    /// </summary>
+    public TeamCanvasViewModel Team { get; }
+
+    /// <summary>The layer shown (D-07). «Equipo» while preparing, «Plan» as soon as a proposal arrives; the person chooses it afterwards.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsTeamLayer), nameof(IsPlanLayer))]
+    private CanvasLayer _layer = CanvasLayer.Plan;
+
+    public bool IsTeamLayer => Layer == CanvasLayer.Team;
+
+    public bool IsPlanLayer => Layer == CanvasLayer.Plan;
+
+    [RelayCommand]
+    private void ShowTeam() => Layer = CanvasLayer.Team;
+
+    [RelayCommand]
+    private void ShowPlan() => Layer = CanvasLayer.Plan;
+
+    /// <summary>The tasks of <paramref name="agent"/> shine in the Plan layer, and no others (selection linked, D-07).</summary>
+    private void HighlightTasksOf(AgentId? agent)
+    {
+        foreach (var node in Nodes)
+        {
+            node.IsHighlighted = agent is { } id && node.Agent == id;
+        }
     }
 
     /// <summary>Raised when the plan drawn on the canvas changes: a node, a wire or a field of a node (not a position).</summary>
@@ -532,6 +568,7 @@ public sealed partial class CanvasViewModel : ObservableObject
     {
         ArgumentNullException.ThrowIfNull(tasks);
         ArgumentNullException.ThrowIfNull(layout);
+        Team.Remember(layout);
         _loading = true;
         try
         {
@@ -633,7 +670,8 @@ public sealed partial class CanvasViewModel : ObservableObject
             positions.TryAdd(node.Id.Value, node.Location);
         }
 
-        return new CanvasLayout(positions);
+        // Version 2 of the layout (D-08): the Team layer keeps its positions beside the Plan layer's.
+        return new CanvasLayout(positions) { TeamPositions = Team.CaptureLayout().TeamPositions };
     }
 
     /// <summary>Saves the positions when a store and a project are set. A failure is shown, never thrown.</summary>
@@ -736,6 +774,9 @@ public sealed partial class CanvasViewModel : ObservableObject
         // Read the selection only: changing it from here throws inside Nodify (issue #292).
         SelectedNode = SelectedNodes.Count == 1 ? SelectedNodes[0] : null;
         DeleteSelectionCommand.NotifyCanExecuteChanged();
+
+        // The agent of the task selected shines in the Team layer and its card (D-07).
+        Team.Highlight(SelectedNode?.Agent);
     }
 
     private void RaisePlanChanged()

@@ -26,4 +26,695 @@
 Pulsar «Guardar» para que se guarde.</value>
     <comment>Actions, one per line.</comment>
   </data>
+  <data name="Canvas_Role_Orchestrator" xml:space="preserve">
+    <value>Orquestador</value>
+    <comment>Name of the role of an agent (AgentRole.Orchestrator).</comment>
+  </data>
+  <data name="Canvas_Role_Executor" xml:space="preserve">
+    <value>Ejecutor</value>
+    <comment>Name of the role of an agent (AgentRole.Executor).</comment>
+  </data>
+  <data name="Canvas_Role_Architect" xml:space="preserve">
+    <value>Arquitecto</value>
+    <comment>Name of the role of an agent (AgentRole.Architect).</comment>
+  </data>
+  <data name="Canvas_Role_Tester" xml:space="preserve">
+    <value>Probador</value>
+    <comment>Name of the role of an agent (AgentRole.Tester).</comment>
+  </data>
+  <data name="Canvas_Role_Documenter" xml:space="preserve">
+    <value>Documentador</value>
+    <comment>Name of the role of an agent (AgentRole.Documenter).</comment>
+  </data>
+  <data name="Canvas_Role_Critic" xml:space="preserve">
+    <value>Crítico</value>
+    <comment>Name of the role of an agent (AgentRole.Critic).</comment>
+  </data>
+  <data name="Canvas_Role_Judge" xml:space="preserve">
+    <value>Juez</value>
+    <comment>Name of the role of an agent (AgentRole.Judge).</comment>
+  </data>
+  <data name="Canvas_Role_Auditor" xml:space="preserve">
+    <value>Auditor</value>
+    <comment>Name of the role of an agent (AgentRole.Auditor).</comment>
+  </data>
+  <data name="Canvas_Layer_Team" xml:space="preserve">
+    <value>Equipo</value>
+    <comment>Layer of the canvas: the template of agents and the repository.</comment>
+  </data>
+  <data name="Canvas_Layer_Plan" xml:space="preserve">
+    <value>Plan</value>
+    <comment>Layer of the canvas: the tasks of the plan.</comment>
+  </data>
+  <data name="Canvas_Layer_Switch" xml:space="preserve">
+    <value>Capa del lienzo</value>
+    <comment>Name of the pair of buttons that choose the layer.</comment>
+  </data>
+  <data name="Canvas_Layer_TeamHelp" xml:space="preserve">
+    <value>Ver y editar el equipo: los agentes y el repositorio (Ctrl+1)</value>
+    <comment>Tooltip of the button of the layer Team.</comment>
+  </data>
+  <data name="Canvas_Layer_PlanHelp" xml:space="preserve">
+    <value>Ver y editar el plan: las tareas y sus dependencias (Ctrl+2)</value>
+    <comment>Tooltip of the button of the layer Plan.</comment>
+  </data>
+  <data name="Canvas_Strip_Title" xml:space="preserve">
+    <value>Equipo</value>
+    <comment>Title of the strip of the team above the canvas.</comment>
+  </data>
+  <data name="Canvas_Strip_Name" xml:space="preserve">
+    <value>Tira del equipo</value>
+    <comment>Accessible name of the strip.</comment>
+  </data>
+  <data name="Canvas_Strip_Empty" xml:space="preserve">
+    <value>El proyecto todavía no tiene agentes.</value>
+    <comment>Said when the strip has no cards.</comment>
+  </data>
+  <data name="Canvas_Connector_In" xml:space="preserve">
+    <value>Entrada</value>
+    <comment>Name of the input connector of an agent node.</comment>
+  </data>
+  <data name="Canvas_Connector_Out" xml:space="preserve">
+    <value>Salida</value>
+    <comment>Name of the output connector of an agent node.</comment>
+  </data>
+  <data name="Canvas_Model_ProgramDefault" xml:space="preserve">
+    <value>modelo del programa</value>
+    <comment>The agent does not fix a model: the program uses its own.</comment>
+  </data>
+  <data name="Canvas_Effort_Format" xml:space="preserve">
+    <value>esfuerzo {0}</value>
+    <comment>Effort of the agent. {0}: the level in words.</comment>
+  </data>
+  <data name="Canvas_StatusIcon_Idle" xml:space="preserve">
+    <value>○</value>
+    <comment>Icon of the state Idle: the card never says it with colour alone.</comment>
+  </data>
+  <data name="Canvas_StatusIcon_Queued" xml:space="preserve">
+    <value>◔</value>
+    <comment>Icon of the state Queued: the card never says it with colour alone.</comment>
+  </data>
+  <data name="Canvas_StatusIcon_Working" xml:space="preserve">
+    <value>▶</value>
+    <comment>Icon of the state Working: the card never says it with colour alone.</comment>
+  </data>
+  <data name="Canvas_StatusIcon_WaitingForQuota" xml:space="preserve">
+    <value>◷</value>
+    <comment>Icon of the state WaitingForQuota: the card never says it with colour alone.</comment>
+  </data>
+  <data name="Canvas_StatusIcon_Asking" xml:space="preserve">
+    <value>?</value>
+    <comment>Icon of the state Asking: the card never says it with colour alone.</comment>
+  </data>
+  <data name="Canvas_StatusIcon_AwaitingApproval" xml:space="preserve">
+    <value>◆</value>
+    <comment>Icon of the state AwaitingApproval: the card never says it with colour alone.</comment>
+  </data>
+  <data name="Canvas_StatusIcon_Blocked" xml:space="preserve">
+    <value>■</value>
+    <comment>Icon of the state Blocked: the card never says it with colour alone.</comment>
+  </data>
+  <data name="Canvas_StatusIcon_Finished" xml:space="preserve">
+    <value>✔</value>
+    <comment>Icon of the state Finished: the card never says it with colour alone.</comment>
+  </data>
+  <data name="Canvas_Status_Idle" xml:space="preserve">
+    <value>Libre</value>
+    <comment>State of an agent.</comment>
+  </data>
+  <data name="Canvas_Status_Queued" xml:space="preserve">
+    <value>En cola</value>
+    <comment>State of an agent.</comment>
+  </data>
+  <data name="Canvas_Status_Working" xml:space="preserve">
+    <value>Trabajando en {0}</value>
+    <comment>State of an agent. {0}: task id.</comment>
+  </data>
+  <data name="Canvas_Status_WaitingForQuota" xml:space="preserve">
+    <value>Esperando cuota</value>
+    <comment>State of an agent without the hour.</comment>
+  </data>
+  <data name="Canvas_Status_WaitingUntil" xml:space="preserve">
+    <value>Esperando cuota hasta las {0}</value>
+    <comment>State of an agent. {0}: hour.</comment>
+  </data>
+  <data name="Canvas_Status_Asking" xml:space="preserve">
+    <value>Te pregunta algo</value>
+    <comment>State of an agent.</comment>
+  </data>
+  <data name="Canvas_Status_AwaitingApproval" xml:space="preserve">
+    <value>Espera tu aprobación</value>
+    <comment>State of an agent.</comment>
+  </data>
+  <data name="Canvas_Status_Blocked" xml:space="preserve">
+    <value>Bloqueado</value>
+    <comment>State of an agent.</comment>
+  </data>
+  <data name="Canvas_Status_BlockedWhy" xml:space="preserve">
+    <value>Bloqueado: {0}</value>
+    <comment>State of an agent. {0}: why.</comment>
+  </data>
+  <data name="Canvas_Status_Finished" xml:space="preserve">
+    <value>Terminado</value>
+    <comment>State of an agent.</comment>
+  </data>
+  <data name="Canvas_Bar_Context" xml:space="preserve">
+    <value>Contexto</value>
+    <comment>Label of the bar of context.</comment>
+  </data>
+  <data name="Canvas_Bar_Consumption" xml:space="preserve">
+    <value>Consumo</value>
+    <comment>Label of the bar of the tokens of the finished attempts.</comment>
+  </data>
+  <data name="Canvas_Bar_Budget" xml:space="preserve">
+    <value>Presupuesto</value>
+    <comment>Label of the bar of the agent runs against the maximum.</comment>
+  </data>
+  <data name="Canvas_Bar_Quota" xml:space="preserve">
+    <value>Cuota {0} {1}</value>
+    <comment>Label of a bar of quota. {0}: program; {1}: window.</comment>
+  </data>
+  <data name="Canvas_Bar_NoObservationYet" xml:space="preserve">
+    <value>sin observaciones todavía</value>
+    <comment>Empty bar of context before the first step.</comment>
+  </data>
+  <data name="Canvas_Bar_NotExposed" xml:space="preserve">
+    <value>no expuesto</value>
+    <comment>Empty bar: the program does not say it.</comment>
+  </data>
+  <data name="Canvas_Bar_NoAttemptsYet" xml:space="preserve">
+    <value>sin intentos todavía</value>
+    <comment>Empty bar of use: nothing finished yet.</comment>
+  </data>
+  <data name="Canvas_Repo_WholeProject" xml:space="preserve">
+    <value>todo el proyecto</value>
+    <comment>Connector of the repository for an agent without folders.</comment>
+  </data>
+  <data name="Canvas_Repo_Title" xml:space="preserve">
+    <value>Repositorio {0}</value>
+    <comment>Title of the node. {0}: folder name.</comment>
+  </data>
+  <data name="Canvas_Repo_Unknown" xml:space="preserve">
+    <value>sin leer</value>
+    <comment>Name of the repository when it could not be read.</comment>
+  </data>
+  <data name="Canvas_Repo_Branch" xml:space="preserve">
+    <value>rama {0}</value>
+    <comment>{0}: branch.</comment>
+  </data>
+  <data name="Canvas_Repo_DetachedHead" xml:space="preserve">
+    <value>sin rama (HEAD suelto)</value>
+    <comment>The repository is on a detached HEAD.</comment>
+  </data>
+  <data name="Canvas_Repo_Head" xml:space="preserve">
+    <value>HEAD {0}</value>
+    <comment>{0}: short hash.</comment>
+  </data>
+  <data name="Canvas_Repo_NoCommits" xml:space="preserve">
+    <value>sin versiones guardadas</value>
+    <comment>The repository has no commits.</comment>
+  </data>
+  <data name="Canvas_Repo_NoRemotes" xml:space="preserve">
+    <value>sin remotos</value>
+    <comment>The repository has no remotes.</comment>
+  </data>
+  <data name="Canvas_Repo_Dirty" xml:space="preserve">
+    <value>Hay cambios sin confirmar: si trabajas en tu repositorio durante una ejecución, la tarea falla.</value>
+    <comment>Warning of the node (ADR-0013, point 7).</comment>
+  </data>
+  <data name="Canvas_Repo_Clean" xml:space="preserve">
+    <value>sin cambios sin confirmar</value>
+    <comment>The repository is clean.</comment>
+  </data>
+  <data name="Canvas_Repo_Stack" xml:space="preserve">
+    <value>stack: {0}</value>
+    <comment>{0}: the stack detected.</comment>
+  </data>
+  <data name="Canvas_Repo_NotComposed" xml:space="preserve">
+    <value>No se pudo leer el repositorio: falta la capa de git.</value>
+    <comment>Said on the node.</comment>
+  </data>
+  <data name="Canvas_Repo_NotRead" xml:space="preserve">
+    <value>No se pudo leer el repositorio ({0}).</value>
+    <comment>Said on the node. {0}: the reason.</comment>
+  </data>
+  <data name="Canvas_Repo_Integrating" xml:space="preserve">
+    <value>Integrando o entregando a tu rama…</value>
+    <comment>Said on the node while the run integrates.</comment>
+  </data>
+  <data name="Canvas_Repo_Folders" xml:space="preserve">
+    <value>Carpetas principales</value>
+    <comment>Title of the connectors of the node.</comment>
+  </data>
+  <data name="Canvas_Edge_Distributes" xml:space="preserve">
+    <value>reparte</value>
+    <comment>Cable orchestrator to executor.</comment>
+  </data>
+  <data name="Canvas_Edge_Reviews" xml:space="preserve">
+    <value>revisa</value>
+    <comment>Cable producer to judge.</comment>
+  </data>
+  <data name="Canvas_Edge_ReviewsSameVendor" xml:space="preserve">
+    <value>{0} y {1} son de la misma empresa: el juez tiene que ser de otra.</value>
+    <comment>Cable Reviews drawn as an error. {0}: producer; {1}: judge.</comment>
+  </data>
+  <data name="Canvas_Edge_WorksIn" xml:space="preserve">
+    <value>trabaja en</value>
+    <comment>Cable agent to folder.</comment>
+  </data>
+  <data name="Canvas_Problem_duplicate_agent" xml:space="preserve">
+    <value>Hay dos agentes con el mismo nombre interno.</value>
+    <comment>Problem of the Team layer (TeamGraph.Validate, team.duplicate-agent).</comment>
+  </data>
+  <data name="Canvas_Problem_too_many_orchestrators" xml:space="preserve">
+    <value>Solo puede haber un orquestador.</value>
+    <comment>Problem of the Team layer (TeamGraph.Validate, team.too-many-orchestrators).</comment>
+  </data>
+  <data name="Canvas_Problem_too_many_executors" xml:space="preserve">
+    <value>Hay más ejecutores de los que admite el equipo (8 como máximo).</value>
+    <comment>Problem of the Team layer (TeamGraph.Validate, team.too-many-executors).</comment>
+  </data>
+  <data name="Canvas_Problem_judge_required" xml:space="preserve">
+    <value>Hace falta al menos un juez, de otra empresa que el orquestador y los ejecutores.</value>
+    <comment>Problem of the Team layer (TeamGraph.Validate, team.judge-required).</comment>
+  </data>
+  <data name="Canvas_Problem_main_folder_invalid" xml:space="preserve">
+    <value>Una carpeta principal no es válida: tiene que ser relativa al repositorio.</value>
+    <comment>Problem of the Team layer (TeamGraph.Validate, team.main-folder-invalid).</comment>
+  </data>
+  <data name="Canvas_Problem_duplicate_edge" xml:space="preserve">
+    <value>Hay dos cables iguales.</value>
+    <comment>Problem of the Team layer (TeamGraph.Validate, team.duplicate-edge).</comment>
+  </data>
+  <data name="Canvas_Problem_edge_unknown_agent" xml:space="preserve">
+    <value>Un cable nombra un agente que no está en el equipo.</value>
+    <comment>Problem of the Team layer (TeamGraph.Validate, team.edge-unknown-agent).</comment>
+  </data>
+  <data name="Canvas_Problem_distributes_not_orchestrator_to_executor" xml:space="preserve">
+    <value>«Reparte» va del orquestador a un ejecutor.</value>
+    <comment>Problem of the Team layer (TeamGraph.Validate, team.distributes-not-orchestrator-to-executor).</comment>
+  </data>
+  <data name="Canvas_Problem_reviews_not_producer_to_judge" xml:space="preserve">
+    <value>«Revisa» va de quien produce al juez.</value>
+    <comment>Problem of the Team layer (TeamGraph.Validate, team.reviews-not-producer-to-judge).</comment>
+  </data>
+  <data name="Canvas_Problem_works_in_not_writer" xml:space="preserve">
+    <value>Solo un agente que escribe trabaja en carpetas.</value>
+    <comment>Problem of the Team layer (TeamGraph.Validate, team.works-in-not-writer).</comment>
+  </data>
+  <data name="Canvas_Problem_works_in_unknown_folder" xml:space="preserve">
+    <value>Un agente trabaja en una carpeta que no es principal.</value>
+    <comment>Problem of the Team layer (TeamGraph.Validate, team.works-in-unknown-folder).</comment>
+  </data>
+  <data name="Canvas_Problem_edge_kind_unknown" xml:space="preserve">
+    <value>Un cable es de una clase desconocida.</value>
+    <comment>Problem of the Team layer (TeamGraph.Validate, team.edge-kind-unknown).</comment>
+  </data>
+  <data name="Canvas_Team_Limits" xml:space="preserve">
+    <value>Orquestador: {0} de {1} · ejecutores: {2} de {3} · jueces: {4}</value>
+    <comment>Limits of the team seen while it is assembled.</comment>
+  </data>
+  <data name="Canvas_Team_ReadOnly" xml:space="preserve">
+    <value>El equipo no se puede cambiar mientras se sigue una ejecución o la pantalla trabaja.</value>
+    <comment>Why the Team layer is read only.</comment>
+  </data>
+  <data name="Canvas_Connect_NotWriter" xml:space="preserve">
+    <value>Solo un agente que escribe trabaja en carpetas.</value>
+    <comment>Why a cable agent to folder is refused.</comment>
+  </data>
+  <data name="Canvas_Connect_OnlyFolders" xml:space="preserve">
+    <value>«Trabaja en» va de un agente a una carpeta del repositorio.</value>
+    <comment>Why a cable is refused.</comment>
+  </data>
+  <data name="Canvas_Connect_Already" xml:space="preserve">
+    <value>Ese cable ya existe.</value>
+    <comment>Why a cable is refused.</comment>
+  </data>
+  <data name="Canvas_Team_ConnectWith" xml:space="preserve">
+    <value>Conectar con…</value>
+    <comment>Menu of keyboard connection.</comment>
+  </data>
+  <data name="Canvas_Team_DisconnectFrom" xml:space="preserve">
+    <value>Desconectar de…</value>
+    <comment>Menu of keyboard disconnection.</comment>
+  </data>
+  <data name="Canvas_Team_OnlyOrchestration" xml:space="preserve">
+    <value>Solo la orquestación</value>
+    <comment>Filter: hides the architect and the critic of the debates.</comment>
+  </data>
+  <data name="Canvas_Add_Name" xml:space="preserve">
+    <value>{0} {1}</value>
+    <comment>Name of a new agent. {0}: the role; {1}: its number (empty for the first).</comment>
+  </data>
+  <data name="Canvas_Editor_Consequence" xml:space="preserve">
+    <value>Editar el equipo es editar la plantilla: cambia su huella y retira la aprobación del plan.</value>
+    <comment>Said before any change of the team (D-08).</comment>
+  </data>
+  <data name="Canvas_Editor_ConsequenceApproved" xml:space="preserve">
+    <value>El plan está aprobado: si cambias el equipo, tendrás que aprobarlo otra vez.</value>
+    <comment>Said before any change of the team when the plan is approved.</comment>
+  </data>
+  <data name="Canvas_Editor_Added" xml:space="preserve">
+    <value>Se añadió {0} ({1}).</value>
+    <comment>{0}: id; {1}: name.</comment>
+  </data>
+  <data name="Canvas_Editor_Removed" xml:space="preserve">
+    <value>Se quitó {0} del equipo.</value>
+    <comment>{0}: id.</comment>
+  </data>
+  <data name="Canvas_Editor_Changed" xml:space="preserve">
+    <value>Se cambió {0}.</value>
+    <comment>{0}: id.</comment>
+  </data>
+  <data name="Canvas_Editor_ModelChanged" xml:space="preserve">
+    <value>{0} usará {1} desde la próxima planificación o ejecución.</value>
+    <comment>{0}: id; {1}: model.</comment>
+  </data>
+  <data name="Canvas_Editor_EffortChanged" xml:space="preserve">
+    <value>{0} trabajará con esfuerzo {1} desde la próxima planificación o ejecución.</value>
+    <comment>{0}: id; {1}: effort.</comment>
+  </data>
+  <data name="Canvas_Editor_MemoryOn" xml:space="preserve">
+    <value>{0} recibe ahora la memoria del proyecto: solo la de confianza.</value>
+    <comment>{0}: id.</comment>
+  </data>
+  <data name="Canvas_Editor_MemoryOff" xml:space="preserve">
+    <value>{0} ya no recibe la memoria del proyecto.</value>
+    <comment>{0}: id.</comment>
+  </data>
+  <data name="Canvas_Editor_ToolGiven" xml:space="preserve">
+    <value>{0} puede usar {1}.</value>
+    <comment>{0}: id; {1}: tool.</comment>
+  </data>
+  <data name="Canvas_Editor_ToolTaken" xml:space="preserve">
+    <value>{0} ya no puede usar {1}.</value>
+    <comment>{0}: id; {1}: tool.</comment>
+  </data>
+  <data name="Canvas_Editor_Connected" xml:space="preserve">
+    <value>{0} trabaja ahora en {1}.</value>
+    <comment>{0}: id; {1}: folder.</comment>
+  </data>
+  <data name="Canvas_Editor_Disconnected" xml:space="preserve">
+    <value>{0} ya no trabaja en {1}.</value>
+    <comment>{0}: id; {1}: folder.</comment>
+  </data>
+  <data name="Canvas_Editor_NotSaved" xml:space="preserve">
+    <value>No se pudo guardar la plantilla: {0}</value>
+    <comment>{0}: the reason.</comment>
+  </data>
+  <data name="Canvas_Editor_Refused" xml:space="preserve">
+    <value>La plantilla no admite ese cambio: {0}.</value>
+    <comment>{0}: the codes of the problems.</comment>
+  </data>
+  <data name="Canvas_Editor_NotConfirmed" xml:space="preserve">
+    <value>No se confirmó que eres tú: {0} no cambia.</value>
+    <comment>{0}: id.</comment>
+  </data>
+  <data name="Canvas_Hello_Grant" xml:space="preserve">
+    <value>Confirma que quieres dar más poder a {0} (shell, red o más carpetas).</value>
+    <comment>Message of Windows Hello for a capability of high risk. {0}: id.</comment>
+  </data>
+  <data name="Canvas_Add_Executor" xml:space="preserve">
+    <value>Ejecutor</value>
+    <comment>Button of the palette of the Team layer.</comment>
+  </data>
+  <data name="Canvas_Add_Judge" xml:space="preserve">
+    <value>Juez</value>
+    <comment>Button of the palette of the Team layer.</comment>
+  </data>
+  <data name="Canvas_Add_Orchestrator" xml:space="preserve">
+    <value>Orquestador</value>
+    <comment>Button of the palette of the Team layer.</comment>
+  </data>
+  <data name="Canvas_Add_Title" xml:space="preserve">
+    <value>Añadir {0}</value>
+    <comment>Title of the form of a new agent. {0}: role.</comment>
+  </data>
+  <data name="Canvas_Add_Program" xml:space="preserve">
+    <value>Programa</value>
+    <comment>Label of the program of a new agent.</comment>
+  </data>
+  <data name="Canvas_Add_Model" xml:space="preserve">
+    <value>Modelo</value>
+    <comment>Label of the model.</comment>
+  </data>
+  <data name="Canvas_Add_Effort" xml:space="preserve">
+    <value>Esfuerzo</value>
+    <comment>Label of the effort.</comment>
+  </data>
+  <data name="Canvas_Add_Confirm" xml:space="preserve">
+    <value>Añadir al equipo</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Canvas_Add_Cancel" xml:space="preserve">
+    <value>Cancelar</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Canvas_Add_Palette" xml:space="preserve">
+    <value>Añadir</value>
+    <comment>Label of the palette of the Team layer.</comment>
+  </data>
+  <data name="Canvas_Remove_Selected" xml:space="preserve">
+    <value>Quitar del equipo</value>
+    <comment>Button that removes the agent selected.</comment>
+  </data>
+  <data name="Canvas_Inspector_Title" xml:space="preserve">
+    <value>{0}</value>
+    <comment>Title of the inspector. {0}: name of the agent.</comment>
+  </data>
+  <data name="Canvas_Inspector_Name" xml:space="preserve">
+    <value>Nombre</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Canvas_Inspector_Role" xml:space="preserve">
+    <value>Rol</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Canvas_Inspector_Program" xml:space="preserve">
+    <value>Programa</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Canvas_Inspector_Model" xml:space="preserve">
+    <value>Modelo</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Canvas_Inspector_Effort" xml:space="preserve">
+    <value>Esfuerzo</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Canvas_Inspector_Tools" xml:space="preserve">
+    <value>Herramientas</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Canvas_Inspector_Folders" xml:space="preserve">
+    <value>Carpetas donde trabaja</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Canvas_Inspector_Memory" xml:space="preserve">
+    <value>Recibe la memoria del proyecto</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Canvas_Inspector_Review" xml:space="preserve">
+    <value>Revisión</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Canvas_Inspector_IndependentReview" xml:space="preserve">
+    <value>Pide una revisión independiente</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Canvas_Inspector_CapturedTests" xml:space="preserve">
+    <value>Pide pruebas capturadas por el sistema</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Canvas_Inspector_Minutes" xml:space="preserve">
+    <value>Minutos como máximo por intento</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Canvas_Inspector_Turns" xml:space="preserve">
+    <value>Turnos como máximo (solo Claude)</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Canvas_Inspector_Cost" xml:space="preserve">
+    <value>Coste máximo en dólares (solo Claude)</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Canvas_Inspector_OnlyClaude" xml:space="preserve">
+    <value>Solo Claude Code recibe estos dos límites.</value>
+    <comment>Note under the fields turns and cost.</comment>
+  </data>
+  <data name="Canvas_Inspector_Instructions" xml:space="preserve">
+    <value>Instrucciones del agente</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Canvas_Inspector_InstructionsHelp" xml:space="preserve">
+    <value>Las escribes tú. Guían su trabajo como datos, pero no amplían sus permisos ni cambian el protocolo. El juez no recibe las de otros agentes.</value>
+    <comment>Help under the field.</comment>
+  </data>
+  <data name="Canvas_Inspector_Apply" xml:space="preserve">
+    <value>Aplicar</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Canvas_Inspector_UseRecommendation" xml:space="preserve">
+    <value>Usar la recomendación</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Canvas_Inspector_RiskHigh" xml:space="preserve">
+    <value>riesgo alto: pide Windows Hello</value>
+    <comment>Risk of a tool.</comment>
+  </data>
+  <data name="Canvas_Inspector_RiskNormal" xml:space="preserve">
+    <value>riesgo normal</value>
+    <comment>Risk of a tool.</comment>
+  </data>
+  <data name="Canvas_Inspector_ModelFormat" xml:space="preserve">
+    <value>{0} · {1}</value>
+    <comment>A model of the list. {0}: name; {1}: level in words.</comment>
+  </data>
+  <data name="Canvas_Inspector_Recommended" xml:space="preserve">
+    <value>Recomendado: {0} ({1}), esfuerzo {2}.</value>
+    <comment>{0}: model; {1}: level; {2}: effort.</comment>
+  </data>
+  <data name="Canvas_Inspector_NoRecommendation" xml:space="preserve">
+    <value>Sin recomendación: el catálogo de modelos no tiene este programa.</value>
+    <comment>Said when there is none.</comment>
+  </data>
+  <data name="Canvas_Inspector_NameRequired" xml:space="preserve">
+    <value>Escribe un nombre.</value>
+    <comment>Problem of a field.</comment>
+  </data>
+  <data name="Canvas_Inspector_MinutesInvalid" xml:space="preserve">
+    <value>Los minutos son un número entero entre 1 y 1440.</value>
+    <comment>Problem of a field.</comment>
+  </data>
+  <data name="Canvas_Inspector_TurnsInvalid" xml:space="preserve">
+    <value>Los turnos son un número entero de 1 o más.</value>
+    <comment>Problem of a field.</comment>
+  </data>
+  <data name="Canvas_Inspector_CostInvalid" xml:space="preserve">
+    <value>El coste es un número mayor que 0, con punto decimal, o está vacío.</value>
+    <comment>Problem of a field.</comment>
+  </data>
+  <data name="Canvas_Inspector_PartsBar" xml:space="preserve">
+    <value>Contexto por partes</value>
+    <comment>Label of the bar of the context by parts.</comment>
+  </data>
+  <data name="Canvas_Inspector_PartsOrigin" xml:space="preserve">
+    <value>estimado por Agent Studio</value>
+    <comment>Origin of the bar by parts.</comment>
+  </data>
+  <data name="Canvas_Inspector_PartsOriginNotExposed" xml:space="preserve">
+    <value>partes de antes de empezar, estimadas por Agent Studio</value>
+    <comment>Origin of the bar by parts in Codex.</comment>
+  </data>
+  <data name="Canvas_Inspector_PartsNotExposed" xml:space="preserve">
+    <value>La ocupación en curso no está expuesta.</value>
+    <comment>Said under the bar by parts in Codex.</comment>
+  </data>
+  <data name="Canvas_Inspector_Tokens" xml:space="preserve">
+    <value>~{0} tokens</value>
+    <comment>Tokens estimated. {0}: figure.</comment>
+  </data>
+  <data name="Canvas_Inspector_Empty" xml:space="preserve">
+    <value>Elige un agente del equipo para ver y cambiar lo que manda en su trabajo.</value>
+    <comment>Said when no agent is selected.</comment>
+  </data>
+  <data name="Canvas_Inspector_Hidden" xml:space="preserve">
+    <value>No se enseñan los campos que todavía no mandan en nada (rondas y tokens totales).</value>
+    <comment>Note of the inspector.</comment>
+  </data>
+  <data name="Info_Canvas_Team_Title" xml:space="preserve">
+    <value>Capa Equipo</value>
+    <comment>Title of the info button.</comment>
+  </data>
+  <data name="Info_Canvas_Team_What" xml:space="preserve">
+    <value>Es la plantilla de agentes vista como un grafo: el orquestador, los ejecutores, los jueces y tu repositorio. Los cables dicen quién reparte, quién revisa y dónde trabaja cada agente.</value>
+    <comment>What the layer is.</comment>
+  </data>
+  <data name="Info_Canvas_Team_Actions" xml:space="preserve">
+    <value>Añadir un ejecutor, un juez o el orquestador.
+Elegir un agente para cambiar su modelo, su esfuerzo y sus carpetas.
+Unir un agente con una carpeta del repositorio, con el ratón o con «Conectar con…».</value>
+    <comment>What can be done.</comment>
+  </data>
+  <data name="Info_Canvas_Layers_Title" xml:space="preserve">
+    <value>Capas Equipo y Plan</value>
+    <comment>Title of the info button.</comment>
+  </data>
+  <data name="Info_Canvas_Layers_What" xml:space="preserve">
+    <value>El lienzo tiene dos capas. «Equipo» es quién trabaja; «Plan» es qué se hace. Los cables del equipo nunca son dependencias del plan.</value>
+    <comment>What the layers are.</comment>
+  </data>
+  <data name="Info_Canvas_Layers_Actions" xml:space="preserve">
+    <value>Cambiar de capa con los dos botones, o con Ctrl+1 y Ctrl+2.
+Elegir un agente para ver sus tareas en el plan, o una tarea para ver su agente.</value>
+    <comment>What can be done.</comment>
+  </data>
+  <data name="Info_Canvas_Strip_Title" xml:space="preserve">
+    <value>Tira del equipo</value>
+    <comment>Title of the info button.</comment>
+  </data>
+  <data name="Info_Canvas_Strip_What" xml:space="preserve">
+    <value>Una tarjeta por agente, siempre a la vista: su estado, su modelo y sus barras de contexto, consumo y presupuesto. Cada barra dice de dónde sale su dato.</value>
+    <comment>What the strip is.</comment>
+  </data>
+  <data name="Info_Canvas_Strip_Actions" xml:space="preserve">
+    <value>Elegir una tarjeta para ver el agente y sus tareas.
+Leer el origen de cada barra: exacto, estimado o no expuesto.</value>
+    <comment>What can be done.</comment>
+  </data>
+  <data name="Info_Canvas_Inspector_Title" xml:space="preserve">
+    <value>Inspector del agente</value>
+    <comment>Title of the info button.</comment>
+  </data>
+  <data name="Info_Canvas_Inspector_What" xml:space="preserve">
+    <value>Enseña solo lo que manda en la ejecución del agente: su modelo y su esfuerzo, sus herramientas, sus carpetas, su memoria y sus instrucciones. Cambiarlos cambia la plantilla.</value>
+    <comment>What the inspector is.</comment>
+  </data>
+  <data name="Info_Canvas_Inspector_Actions" xml:space="preserve">
+    <value>Elegir otro modelo, o usar el recomendado.
+Dar o quitar herramientas: las de riesgo alto piden Windows Hello.
+Escribir las instrucciones del agente y pulsar «Aplicar».</value>
+    <comment>What can be done.</comment>
+  </data>
+  <data name="Info_Canvas_Repository_Title" xml:space="preserve">
+    <value>Nodo del repositorio</value>
+    <comment>Title of the info button.</comment>
+  </data>
+  <data name="Info_Canvas_Repository_What" xml:space="preserve">
+    <value>Enseña tu repositorio sin conectarse a ninguna red: la rama, la versión actual, los remotos sin usuario ni contraseña, si hay cambios sin confirmar y las carpetas principales.</value>
+    <comment>What the node is.</comment>
+  </data>
+  <data name="Info_Canvas_Repository_Actions" xml:space="preserve">
+    <value>Unir un agente con una carpeta para que solo escriba ahí.
+Trabajar en tu repositorio durante una ejecución hace fallar la tarea.</value>
+    <comment>What can be done.</comment>
+  </data>
+  <data name="Info_Canvas_Analysis_Title" xml:space="preserve">
+    <value>Análisis del montaje</value>
+    <comment>Title of the info button.</comment>
+  </data>
+  <data name="Info_Canvas_Analysis_What" xml:space="preserve">
+    <value>Mientras montas, Agent Studio revisa el equipo y el plan y te dice lo que ya se puede saber. No gasta cuota. Los errores impiden aprobar el plan.</value>
+    <comment>What the band is.</comment>
+  </data>
+  <data name="Info_Canvas_Analysis_Actions" xml:space="preserve">
+    <value>Pulsar el botón de un hallazgo para arreglarlo con un clic.
+Deshacer con Ctrl+Z y rehacer con Ctrl+Y.
+Pedir al orquestador que revise el orden, con tu OK.</value>
+    <comment>What can be done.</comment>
+  </data>
+  <data name="Info_Canvas_Chat_Title" xml:space="preserve">
+    <value>Chat con el orquestador</value>
+    <comment>Title of the info button.</comment>
+  </data>
+  <data name="Info_Canvas_Chat_What" xml:space="preserve">
+    <value>Escribe lo que quieres hacer y el orquestador lo lee en tu proyecto, sin escribir nada. Te propone requisitos, cambios del equipo, riesgos y preguntas. Cada mensaje gasta cuota y pide tu OK.</value>
+    <comment>What the chat is.</comment>
+  </data>
+  <data name="Info_Canvas_Chat_Actions" xml:space="preserve">
+    <value>Escribir un mensaje y dar tu OK.
+Copiar un borrador de requisito al editor.
+Aplicar una sugerencia del equipo: nunca se aplica sola.</value>
+    <comment>What can be done.</comment>
+  </data>
 </root>

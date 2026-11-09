@@ -88,7 +88,15 @@ public sealed partial class NodeViewModel : ObservableObject
     private string _title;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(AgentLabel))]
     private AgentId? _agent;
+
+    /// <summary>The label of the agent on the node of the task (docs/17 D-07): the assignment is a label and the linked selection, never a cable.</summary>
+    public string? AgentLabel => Agent?.Value;
+
+    /// <summary>The agent selected in the Team layer owns this task: the node shines (selection linked, D-07).</summary>
+    [ObservableProperty]
+    private bool _isHighlighted;
 
     [ObservableProperty]
     private string _objective = string.Empty;

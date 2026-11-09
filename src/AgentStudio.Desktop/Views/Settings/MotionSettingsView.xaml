@@ -17,8 +17,9 @@
             <info:InfoButton DockPanel.Dock="Right" InfoKey="Info_Canvas_Motion" VerticalAlignment="Center"/>
             <TextBlock Style="{StaticResource SectionTitleText}" Text="{l:T Settings_ReduceMotion}" VerticalAlignment="Center"/>
         </DockPanel>
-        <CheckBox Margin="0,10,0,0" Content="{l:T Settings_ReduceMotion}" IsChecked="{Binding ReduceMotion}"
-                  AutomationProperties.Name="{l:T Settings_ReduceMotion}"/>
+        <CheckBox Margin="0,10,0,0" IsChecked="{Binding ReduceMotion}" AutomationProperties.Name="{l:T Settings_ReduceMotion}">
+            <TextBlock Text="{l:T Settings_ReduceMotion}" TextWrapping="Wrap"/>
+        </CheckBox>
         <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" TextWrapping="Wrap" Text="{l:T Settings_ReduceMotion_Help}"/>
     </StackPanel>
 </UserControl>

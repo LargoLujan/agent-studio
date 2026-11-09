@@ -39,7 +39,8 @@ public sealed class SettingsRenderTests
             OffscreenRender.SaveIfRequested(bitmap, "ajustes-estrecho.png");
 
             // Check boxes and radio buttons carry their label as a wrapping TextBlock.
-            var texts = Descendants<ToggleButton>(view).Select(t => t.Content).OfType<TextBlock>().ToList();
+            // The ⓘ of a section (InfoButton) is a toggle with no label of its own: its card is checked by its own tests.
+            var texts = Descendants<ToggleButton>(view).Where(t => t.Name != "Toggle").Select(t => t.Content).OfType<TextBlock>().ToList();
             return (
                 OffscreenRender.CountUnlike(bitmap, Background),
                 texts.Select(t => t.Text).ToList(),
@@ -58,6 +59,7 @@ public sealed class SettingsRenderTests
                 HelloTexts.SettingLabel,
                 "Bloquear la interfaz tras un tiempo sin actividad",
                 "Búsqueda en el historial para el orquestador",
+                "Reducir movimiento",
             ],
             labels);
         Assert.Equal(0, outside);
