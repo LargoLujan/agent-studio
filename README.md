@@ -517,6 +517,13 @@ ADR numbers 0038 to 0046 are reserved for the decisions of Phases 6 to 11, which
 | [0036](docs/adr/0036-vida-de-la-app-y-bandeja.md) | App lifetime, tray, managed exit, sleep and clock |
 | [0037](docs/adr/0037-windows-hello-y-bloqueo-de-la-interfaz.md) | Windows Hello for critical approvals and an interface lock |
 | [0047](docs/adr/0047-indice-semantico-local.md) | Local semantic index with on-device embeddings and hybrid search |
+| [0048](docs/adr/0048-constructor-visual-equipo-y-plan.md) | Visual builder: a canvas with the Team and Plan layers; the Team layer is the template |
+| [0049](docs/adr/0049-analizador-del-montaje-y-orden.md) | Team and order analyzer: deterministic rules with typed fixes; order notes only suggest |
+| [0050](docs/adr/0050-modelos-y-potencia.md) | Models and effort: local catalog without prices, learned from the log, usage estimator |
+| [0051](docs/adr/0051-preguntas-de-los-agentes.md) | Agent questions with options, recorded and answered as data; the judge never asks |
+| [0052](docs/adr/0052-analisis-del-consumo-y-contexto-por-partes.md) | Consumption analysis and the context split into parts |
+| [0053](docs/adr/0053-windows-hello-como-barrera-fija.md) | Windows Hello as a fixed barrier that no setting or file turns off |
+| [0054](docs/adr/0054-idiomas-y-lenguaje-claro.md) | Languages and plain language: `.resx` resources, Windows language by default |
 
 </details>
 
