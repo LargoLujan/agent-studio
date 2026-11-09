@@ -11,9 +11,10 @@ namespace AgentStudio.Orchestration.Engine.Questions;
 /// <list type="bullet">
 /// <item>the question, whole, as the agent wrote it after redaction (<c>AgentStatement</c> reported by the agent), which
 /// <c>QuestionAsked</c> cites and a resume reads back, only as the log anchored it;</item>
-/// <item>the decision of the person (a document the system captures when the question is answered): the question, its
-/// reason and its options as the agent wrote them, and the choice; never the option the agent recommended, nor its effort,
-/// nor the estimates of the system. It is what the judge gets of a question (D-33).</item>
+/// <item>the decision of the person (a document the system captures when the question is answered): which question, the
+/// ids of its options, which one the person chose (or the evidence of their own text), who decided, how and when; ids,
+/// hashes and instants only, never a text of the agent, nor the option it recommended, nor the estimates of the system. It
+/// is what the judge gets of a question (D-33).</item>
 /// </list>
 /// Both are JSON written through <see cref="PromptData"/>, so a text of the agent never closes a block it is quoted in.
 /// </summary>
@@ -99,6 +100,12 @@ internal static class QuestionDocuments
     }
 
     /// <summary>The decision of the person about a question, for the judge (D-33): what the agent asked, without its recommendation nor its efforts, and the choice.</summary>
+    /// <remarks>
+    /// The system captures it, so it is objective evidence for the judge (<c>CapturedBySystem</c>): it carries ids, hashes and
+    /// instants only, never a text of the agent (its question, its reason, its labels), which would reach the judge as if the
+    /// system had checked it (review of WP4, 2026-11-09). What the agent wrote stays in the evidence of the question, reported
+    /// by the agent, which the judge never gets.
+    /// </remarks>
     public static string DecisionJson(RecordedAnswer answered)
     {
         var asked = answered.Asked;
@@ -111,17 +118,14 @@ internal static class QuestionDocuments
             askedBy = asked.Agent.Value,
             questionEvidence = asked.Evidence.Value,
             questionSha256 = asked.Sha256,
-            writtenByTheAgent = new
-            {
-                text = asked.Question.Text,
-                why = asked.Question.Why,
-                options = asked.Question.Options.Select(o => new { id = o.Id, label = o.Label, detail = o.Detail }).ToList(),
-            },
+            askedAt = asked.AskedAt.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
+            options = asked.Question.Options.Select(o => o.Id).ToList(),
             decision = answered.Option is { } option
-                ? (object)new { option, label = answered.Label }
+                ? (object)new { option }
                 : new { ownAnswer = new { evidence = answered.OwnTextEvidence?.Value, sha256 = answered.OwnTextSha256 } },
             decidedBy = answered.DecidedBy,
             method = answered.Method.ToString(),
+            answeredAt = answered.AnsweredAt.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
         });
     }
 

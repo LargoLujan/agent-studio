@@ -33,6 +33,7 @@ internal sealed record AskedQuestion(
 /// A question with its answer (docs/17 D-30), which every later attempt of its task receives as data: the option chosen, or
 /// the person's own text (redacted) with its evidence.
 /// </summary>
+/// <param name="AnsweredAt">When the log recorded the answer (<c>QuestionAnswered</c>).</param>
 internal sealed record RecordedAnswer(
     AskedQuestion Asked,
     string? Option,
@@ -40,7 +41,8 @@ internal sealed record RecordedAnswer(
     EvidenceId? OwnTextEvidence,
     string? OwnTextSha256,
     string DecidedBy,
-    QuestionAnswerMethod Method)
+    QuestionAnswerMethod Method,
+    DateTimeOffset AnsweredAt)
 {
     /// <summary>The label of the option chosen, as the agent wrote it (redacted); null for an answer in the person's own words.</summary>
     public string? Label => Option is { } option ? Asked.Question.Option(option)?.Label : null;

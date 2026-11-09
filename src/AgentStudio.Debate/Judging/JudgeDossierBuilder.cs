@@ -10,6 +10,7 @@ using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Evidence;
 using AgentStudio.Domain.Judging;
 using AgentStudio.Domain.Orchestration;
+using AgentStudio.Domain.Work;
 
 namespace AgentStudio.Debate.Judging;
 
@@ -46,9 +47,10 @@ namespace AgentStudio.Debate.Judging;
 /// deleted nor written through a link (junction or symbolic link) from the root down, and the files of the package
 /// are always new files.</item>
 /// <item>Phase 13: the prompts of the executors (with the brief, the instructions of the agents and the answers of the
-/// person) and the questions as the agents wrote them (with their recommended option and efforts) never reach the judge,
-/// nor the <c>QuestionAsked</c> entries (with the recommendation and the estimates): of every question, the judge gets the
-/// decision of the person, only the choice (docs/17 D-33).</item>
+/// person), the questions as the agents wrote them (with their recommended option and efforts), every report of an executor
+/// that brings a question or cannot be read, and the <c>QuestionAsked</c> entries (with the recommendation and the
+/// estimates) never reach the judge: of every question, the judge gets the decision of the person, only the choice, with no
+/// text of the agent (docs/17 D-33).</item>
 /// </list>
 /// Phase 3 only reviews runs: a request without a run id is refused (the whole-project audit is Phase 5).
 /// </remarks>
@@ -115,7 +117,7 @@ public sealed class JudgeDossierBuilder(
             ?? throw new InvalidOperationException($"The plan {started.PlanHash} of run '{run}' is not stored.");
         var originalRequest = await ReadOriginalRequestAsync(projectId, header.OriginalRequest, RunLog.AnchoredSha256(runEntries, header.OriginalRequest), checks, cancellationToken).ConfigureAwait(false);
         var stored = await evidence.ListByRunAsync(projectId, run.Value, cancellationToken).ConfigureAwait(false);
-        var withheld = WithheldFromTheJudge(runEntries);
+        var withheld = await WithheldFromTheJudgeAsync(projectId, runEntries, plan, checks, cancellationToken).ConfigureAwait(false);
         var runEvidence = RunLog.RegisteredEvidence(runEntries, stored, checks).Where(e => !withheld.Contains(e.Id)).ToList();
         if (!runEvidence.Any(e => e.Id == header.OriginalRequest))
         {
@@ -152,18 +154,27 @@ public sealed class JudgeDossierBuilder(
     /// its agent and the answers of the person in their blocks of data, which guide the agent and say nothing of whether the
     /// requirements are met;</item>
     /// <item>the question as the agent wrote it (<c>QuestionAsked</c>), with the option it recommended and the effort of each
-    /// option, and the report of the attempt that asked it, which carries the same question; the entry itself also stays out of
-    /// the decisions of the dossier, for it names the recommended option and the estimates of the system.</item>
+    /// option; the entry itself also stays out of the decisions of the dossier, for it names the recommended option and the
+    /// estimates of the system;</item>
+    /// <item>every report of an executor that brings a question, whether the question was recorded or not (one beyond the caps,
+    /// one that broke its rules): it carries the question as the agent wrote it, its recommendation included. A report that
+    /// cannot be read as the log anchored it, or as JSON, is withheld too (fail closed).</item>
     /// </list>
-    /// What the judge gets of a question is its decision: the document the system captured when it was answered (the question,
-    /// its reason and its options as the agent wrote them, and the choice), the <c>QuestionAnswered</c> entry, and the person's
-    /// own text when there is one.
+    /// A payload of these kinds that cannot be read is a system check: what of it the judge must not get cannot be told, so no
+    /// approval can rest on the dossier. What the judge gets of a question is its decision: the document the system captured
+    /// when it was answered (ids, hashes and instants, no text of the agent), the <c>QuestionAnswered</c> entry, and the
+    /// person's own text when there is one.
     /// </summary>
-    private static HashSet<EvidenceId> WithheldFromTheJudge(IReadOnlyList<DecisionEntry> runEntries)
+    private async Task<HashSet<EvidenceId>> WithheldFromTheJudgeAsync(
+        string projectId,
+        IReadOnlyList<DecisionEntry> runEntries,
+        PlanDefinition plan,
+        List<string> checks,
+        CancellationToken cancellationToken)
     {
         var withheld = new HashSet<EvidenceId>();
-        var reports = new Dictionary<(TaskId Task, int Attempt), EvidenceId>();
-        var asking = new List<(TaskId Task, int Attempt)>();
+        var executors = plan.Tasks.Where(t => t.Kind == WorkTaskKind.AgentWork).Select(t => t.Id).ToHashSet();
+        var reports = new List<EvidenceId>();
         foreach (var entry in runEntries)
         {
             try
@@ -173,36 +184,66 @@ public sealed class JudgeDossierBuilder(
                     case DecisionKind.InstructionsIssued:
                         withheld.Add(DecisionPayloadSerializer.Deserialize<InstructionsIssuedPayload>(entry.PayloadJson).PromptEvidenceId);
                         break;
-                    case DecisionKind.AgentRunFinished when DecisionPayloadSerializer.Deserialize<AgentRunFinishedPayload>(entry.PayloadJson) is { Task: { } task, ReportEvidenceId: { } report } finished:
-                        reports[(task, finished.Attempt)] = report;
+                    case DecisionKind.AgentRunFinished when DecisionPayloadSerializer.Deserialize<AgentRunFinishedPayload>(entry.PayloadJson) is { Task: { } task, ReportEvidenceId: { } report } && executors.Contains(task):
+                        reports.Add(report);
                         break;
                     case DecisionKind.QuestionAsked:
-                        var asked = DecisionPayloadSerializer.Deserialize<QuestionAskedPayload>(entry.PayloadJson);
-                        withheld.Add(asked.QuestionEvidence);
-                        if (asked.Task is { } of)
-                        {
-                            asking.Add((of, asked.Attempt));
-                        }
-
+                        withheld.Add(DecisionPayloadSerializer.Deserialize<QuestionAskedPayload>(entry.PayloadJson).QuestionEvidence);
                         break;
                 }
             }
-            catch (System.Text.Json.JsonException)
+            catch (System.Text.Json.JsonException ex)
             {
-                // A payload that cannot be read names nothing to withhold; the replay of the run reports what it cannot read.
+                checks.Add($"Entry {entry.Sequence} ({entry.Kind}): its payload cannot be read, so what of it the judge must not get (a prompt, a question, a report) cannot be told; the dossier cannot support an approval: {ex.Message}");
             }
         }
 
-        // The report of the attempt that asked carries the question as the agent wrote it, its recommendation included.
-        foreach (var attempt in asking)
+        foreach (var report in reports.Distinct())
         {
-            if (reports.TryGetValue(attempt, out var report))
+            if (!await IsReportWithoutQuestionAsync(projectId, report, RunLog.AnchoredSha256(runEntries, report), cancellationToken).ConfigureAwait(false))
             {
                 withheld.Add(report);
             }
         }
 
         return withheld;
+    }
+
+    /// <summary>
+    /// Whether the report of an executor may reach the judge: its content is the one the log anchored, it is a JSON object, and
+    /// it brings no question (none, or <c>null</c>). Anything else, including a report that cannot be read, is withheld.
+    /// </summary>
+    private async Task<bool> IsReportWithoutQuestionAsync(string projectId, EvidenceId report, string? anchoredSha256, CancellationToken cancellationToken)
+    {
+        if (anchoredSha256 is null)
+        {
+            return false;
+        }
+
+        try
+        {
+            byte[] content;
+            var stream = await evidence.OpenContentAsync(projectId, report, cancellationToken).ConfigureAwait(false);
+            await using (stream.ConfigureAwait(false))
+            {
+                using var buffer = new MemoryStream();
+                await stream.CopyToAsync(buffer, cancellationToken).ConfigureAwait(false);
+                content = buffer.ToArray();
+            }
+
+            if (!string.Equals(Convert.ToHexStringLower(SHA256.HashData(content)), anchoredSha256, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            using var document = System.Text.Json.JsonDocument.Parse(content);
+            return document.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object
+                && (!document.RootElement.TryGetProperty("question", out var question) || question.ValueKind == System.Text.Json.JsonValueKind.Null);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return false;
+        }
     }
 
     /// <summary>

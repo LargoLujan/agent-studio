@@ -457,7 +457,7 @@ internal static class AgentAttemptWorker
 
         if (end.Kind == EndKind.AsksQuestion && string.IsNullOrWhiteSpace(result.SessionId))
         {
-            return end with { Renew = HandoffReason.SessionNotResumable };
+            return end with { QuestionRenew = HandoffReason.SessionNotResumable };
         }
 
         if (end.Kind == EndKind.Failed && outcome.Classified().Class == AttemptEndClass.ContextExhausted)
@@ -470,7 +470,13 @@ internal static class AgentAttemptWorker
             .Select(e => e.Payload)
             .OfType<AgentRunFinishedPayload>()
             .LastOrDefault(p => p.Task == plan.Spec.Id && p.Attempt == plan.Attempt);
-        return Handoff.NearlyFull(finished?.ContextPeak) ? end with { Renew = HandoffReason.ContextNearlyFull } : end;
+        if (!Handoff.NearlyFull(finished?.ContextPeak))
+        {
+            return end;
+        }
+
+        // A question renews only once the loop records it (within the caps), as a resume rebuilds it from QuestionAsked.
+        return end.Kind == EndKind.AsksQuestion ? end with { QuestionRenew = HandoffReason.ContextNearlyFull } : end with { Renew = HandoffReason.ContextNearlyFull };
     }
 
     /// <summary>Executors write only in their worktree and inside their scope; nobody gets network in Phase 3.</summary>

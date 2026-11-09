@@ -105,9 +105,55 @@ public sealed class QuestionTests
         var decision = harness.Payloads<EvidenceRegisteredPayload>().Single(p => p.Payload.Title == Decision).Payload;
         Assert.Equal((EvidenceKind.Document, EvidenceOrigin.CapturedBySystem), (decision.Kind, decision.Origin));
         var text = await ReadAsync(harness, decision.Evidence);
-        Assert.Contains("SQLite", text, StringComparison.Ordinal);
+        var document = JsonDocument.Parse(text).RootElement;
+        Assert.Equal("a", document.GetProperty("decision").GetProperty("option").GetString());
+        Assert.Equal(entry.RecordedAt, DateTimeOffset.Parse(document.GetProperty("answeredAt").GetString()!, System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Equal(harness.Payloads<QuestionAskedPayload>().Single().Payload.QuestionSha256, document.GetProperty("questionSha256").GetString());
+        Assert.Equal(["a", "b"], document.GetProperty("options").EnumerateArray().Select(o => o.GetString()));
+
+        // Objective evidence of the system carries no text of the agent: neither its question, nor its reason, nor its labels.
+        Assert.DoesNotContain("SQLite", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Guardo las sesiones", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("RQ-01", text, StringComparison.Ordinal);
         Assert.DoesNotContain("recommended", text, StringComparison.Ordinal);
         Assert.DoesNotContain("effort", text, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task A_question_beyond_the_caps_never_renews_the_session_live_nor_after_a_restart(bool restart)
+    {
+        // The fourth question of a task comes from an attempt whose context reached the compression threshold. It is not
+        // recorded, so the session is not renewed: the retry of the person resumes it, live and after a restart alike.
+        using var harness = new EngineHarness();
+        harness.Claude.Fallback = (_, attempt) => attempt == 4
+            ? Asks() with { Events = [new ContextObserved(Start, "sonnet", MetricValue<long>.Exact(180_000, "prueba"), MetricValue<long>.Exact(200_000, "prueba"))] }
+            : Asks();
+        var run = await harness.StartAsync(Plan(Work("T1")));
+        for (var asked = 1; asked <= QuestionRules.MaxQuestionsPerTask; asked++)
+        {
+            var id = $"T1-q{asked}";
+            await harness.WaitUntilAsync(run, s => s.View("T1").Question?.Id == id, id);
+            await run.AnswerAsync(QuestionAnswer.Choosing(Tid("T1"), id, "a", "user"));
+        }
+
+        await harness.WaitUntilAsync(run, s => s.View("T1").BlockReason == "AwaitingHuman", "T1 blocked for a person");
+        if (restart)
+        {
+            await run.DisposeAsync();
+            await run.CompleteAsync(harness);
+            run = await harness.CreateOrchestrator().ResumeAsync(harness.Project, run.Id, Ct);
+        }
+
+        harness.Claude.Fallback = (_, _) => AgentScript.Completed();
+        await run.RetryBlockedAsync(Tid("T1"));
+        Assert.Equal(RunPhase.Succeeded, (await run.CompleteAsync(harness)).Phase);
+        await run.DisposeAsync();
+
+        var fifth = harness.Claude.Starts[4].Request;
+        Assert.Equal("session-ejecutor-T1-4", fifth.ResumeSessionId);
+        Assert.DoesNotContain("<handoff ", fifth.Prompt, StringComparison.Ordinal);
     }
 
     [Fact]

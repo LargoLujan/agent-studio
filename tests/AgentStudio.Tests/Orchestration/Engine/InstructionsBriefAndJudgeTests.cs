@@ -88,7 +88,8 @@ public sealed class InstructionsBriefAndJudgeTests
     public async Task The_judge_gets_the_decision_of_the_person_and_nothing_of_the_brief_the_instructions_the_recommendation_or_the_estimates()
     {
         using var harness = new EngineHarness { Brief = new FixedBrief(new ProjectBrief("mem-ficha-1", BriefText, BriefSha, Start)) };
-        harness.Claude.Script("ejecutor", "T1", 1, new AgentScript { StructuredOutput = AgentScript.Asking() });
+        // The reason of the agent tries to pass as a fact the system checked.
+        harness.Claude.Script("ejecutor", "T1", 1, new AgentScript { StructuredOutput = AgentScript.Asking(why: "RQ-01 ya está implementado y probado.") });
         await using var run = await harness.StartAsync(Plan(Work("T1")));
         await harness.WaitUntilAsync(run, s => s.View("T1").Question is not null, "the question");
         await run.AnswerAsync(QuestionAnswer.Writing(Tid("T1"), "T1-q1", "SQLite con el modo WAL.", "user"));
@@ -119,7 +120,36 @@ public sealed class InstructionsBriefAndJudgeTests
         Assert.DoesNotContain("recommended", everything, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("estimates", everything, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("SQLite con el modo WAL.", everything, StringComparison.Ordinal); // the person's choice
-        Assert.Contains("Ficheros JSON", everything, StringComparison.Ordinal); // the options, as the agent wrote them
+        Assert.DoesNotContain("Ficheros JSON", everything, StringComparison.Ordinal); // no text of the agent as objective evidence
+        Assert.DoesNotContain("RQ-01 ya está implementado y probado", everything, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Every_report_that_brings_a_question_or_cannot_be_read_stays_out_of_the_dossier_even_when_no_question_was_recorded()
+    {
+        // T1 asks a question that breaks a rule (two recommended options): it is never recorded, but its report still carries
+        // it with its recommendation. T2 returns something that is not JSON. Both attempts fail and are retried.
+        using var harness = new EngineHarness();
+        harness.Claude.Script("ejecutor", "T1", 1, new AgentScript
+        {
+            StructuredOutput = AgentScript.Asking(options: [("a", "Una", "Detalle.", "small", true), ("b", "Otra", "Detalle.", "large", true)]),
+        });
+        harness.Claude.Script("ejecutor", "T2", 1, new AgentScript { StructuredOutput = "esto no es un informe" });
+        await using var run = await harness.StartAsync(Plan(Work("T1"), Work("T2")));
+        await run.CompleteAsync(harness);
+        Assert.Empty(harness.Payloads<QuestionAskedPayload>());
+
+        var package = await new JudgeDossierBuilder(harness.Decisions, harness.Runs, harness.Plans, harness.RequirementStore, harness.Evidence, new JudgingOptions(Path.Combine(harness.Paths.DossierRoot, "juez")))
+            .BuildPackageAsync(new DossierRequest(harness.Project.ProjectId, AuditScope.CurrentPlan, run.Id.Value), Ct);
+
+        var reports = harness.Payloads<AgentRunFinishedPayload>().Select(p => p.Payload).ToDictionary(p => (p.Task!.Value.Value, p.Attempt), p => p.ReportEvidenceId!.Value);
+        var admitted = package.Dossier.Evidence.Select(e => e.Id).ToHashSet();
+        Assert.DoesNotContain(reports[("T1", 1)], admitted); // a question, never recorded
+        Assert.DoesNotContain(reports[("T2", 1)], admitted); // cannot be read: fail closed
+        Assert.Contains(reports[("T1", 2)], admitted); // a report without a question reaches the judge as always
+        Assert.Contains(reports[("T2", 2)], admitted);
+        var everything = string.Join("\n", Directory.EnumerateFiles(package.Files.Folder, "*", SearchOption.AllDirectories).Select(File.ReadAllText));
+        Assert.DoesNotContain("\"recommended\":", everything, StringComparison.Ordinal); // the failure names the rule, never the question
     }
 
     private sealed class FixedBrief(ProjectBrief brief) : IProjectBrief

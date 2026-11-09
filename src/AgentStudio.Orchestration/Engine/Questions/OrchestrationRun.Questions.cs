@@ -79,6 +79,14 @@ internal sealed partial class OrchestrationRun
             Token).ConfigureAwait(false);
         var asked = new AskedQuestion(questionId, id, agent, attempt, question, evidence.Id, evidence.ContentSha256, end.QuestionEstimates, entry.RecordedAt);
         book.Ask(asked);
+
+        // The attempt with the answer renews the session only for a question the log recorded, as a resume rebuilds it from
+        // QuestionAsked: one beyond the caps leaves the session as any other block does.
+        if (end.QuestionRenew is { } renew)
+        {
+            _ledger.Renew[id] = renew;
+        }
+
         await MoveAsync(id, WorkTaskStatus.Blocked, $"Espera tu respuesta: el agente hace la pregunta {questionId}.", [.. end.Evidence, evidence.Id], BlockReason.AwaitingAnswer).ConfigureAwait(false);
         Emit(new QuestionPendingEvent(Now, asked.ToPending()));
     }
@@ -182,13 +190,13 @@ internal sealed partial class OrchestrationRun
         }
 
         var actor = byConsent ? RunRecorder.System : new Actor(ActorKind.User, answer.DecidedBy);
-        await _recorder.RecordAsync(
+        var answeredEntry = await _recorder.RecordAsync(
             actor,
             DecisionKind.QuestionAnswered,
             byConsent ? $"Agent Studio responde {pending.Id} de {id} con la opción recomendada, por el consentimiento de la ejecución" : $"{answer.DecidedBy} responde {pending.Id} de {id}",
             QuestionAnsweredPayload.Answering(_recorder.RunValue, id, pending.Id, answer.OptionId, own?.Id, own?.ContentSha256, answer.DecidedBy, answer.Method),
             Token).ConfigureAwait(false);
-        var answered = new RecordedAnswer(pending, answer.OptionId, ownText, own?.Id, own?.ContentSha256, answer.DecidedBy, answer.Method);
+        var answered = new RecordedAnswer(pending, answer.OptionId, ownText, own?.Id, own?.ContentSha256, answer.DecidedBy, answer.Method, answeredEntry.RecordedAt);
         book.Answer(answered);
         var decision = await CaptureDecisionAsync(_recorder, answered, Token).ConfigureAwait(false);
         var how = answer.OptionId is { } chosen

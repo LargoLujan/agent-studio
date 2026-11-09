@@ -124,6 +124,12 @@ internal sealed record AttemptEnd(EndKind Kind, string Reason)
 
     /// <summary>For <see cref="EndKind.AsksQuestion"/>: what the system estimated for each option (docs/17 D-32); empty when it estimated nothing.</summary>
     public IReadOnlyList<Application.Decisions.OptionEstimateSnapshot> QuestionEstimates { get; init; } = [];
+
+    /// <summary>
+    /// For <see cref="EndKind.AsksQuestion"/>: why the attempt with the answer would go in a new session (docs/17 D-30). The loop
+    /// applies it only when it records the question; beyond the caps it is dropped, as a resume rebuilds it from QuestionAsked.
+    /// </summary>
+    public HandoffReason? QuestionRenew { get; init; }
 }
 
 internal enum StopCause
