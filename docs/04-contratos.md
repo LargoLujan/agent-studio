@@ -1755,8 +1755,10 @@ Todo vive en `Desktop`; no hay puertos nuevos en `Application`, y los textos sal
 - Con 40 nodos y una ráfaga de 1 000 eventos, ninguna operación de datos del hilo de la interfaz (un evento, la única notificación que repinta las barras de las
   tareas, el cambio agrupado, los enlaces que tocan) pasa de 50 ms, y los cambios agrupados salen a más de 250 ms unos de otros. Las listas de agentes y de tareas
   **virtualizan**, y el diseño de las tarjetas a la vista cuesta menos de 50 ms.
-- **No cumplido de punta a punta:** una pasada completa de diseño de todo el monitor con las 40 tareas cambiando a la vez tardó entre 80 y 350 ms fuera de pantalla (listas
-  de actividad y de evidencias sin virtualizar, y el coste del control de barra, que crea sus marcas en cada actualización). Aligerar `MetricBar` queda fuera de WP8.
+- **La pasada completa** (`MonitorLayoutPassTests`): medir, colocar y dibujar todo el monitor con 40 tareas y 40 agentes cuyo contexto cambia a la vez. Con las listas
+  sin virtualizar tardaba de 80 a 350 ms fuera de pantalla; con las listas de agentes y de tareas virtualizadas, la mediana de siete pasadas es de 23 a 28 ms (la más lenta,
+  de 29 a 49 ms), con o sin la mejora de `MetricBar` (la caché de marcas y pinceles y la salida temprana no cambian esa cifra a la escala de la prueba: el coste lo quitó
+  la virtualización). La prueba exige la mediana por debajo de 50 ms con un margen ×2 por la carga de la suite, que es el único margen y está en el código.
 - **Las partes del prompt** dependen de que `AgentRunStarted` v3 ya esté en el registro cuando llega el primer paso: si no, el monitor pregunta una vez más al llegar ese paso.
 - **Los nombres de las pruebas que fallan** no se leen del TRX: el panel «Pruebas» enseña los contadores y la línea principal del error del paso, que es lo que el monitor ya tiene.
 - **Duplicación consciente:** `EffectiveTools.ProfileOf` repite `Workers.Permissions`, que es interno de Orchestration. La prueba que compara «Herramientas» con

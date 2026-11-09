@@ -49,10 +49,49 @@ public partial class MetricBar : UserControl
     /// <summary>The tooltip now is the one the bar put there (its whole line), not one the screen gave.</summary>
     private bool _ownToolTip;
 
+    // What the last pass drew (docs/17 D-16, F13-7): a screen with dozens of bars sets the same reading again at every grouped change, and
+    // a bar that says the same draws nothing. The brushes are looked up once per load, not once per pass.
+    private MetricBarReading? _drawn;
+    private (bool Compact, double Track, bool Label, double LabelWidth, bool ToolTip) _drawnLook;
+    private IReadOnlyList<double> _drawnMarks = [];
+    private IReadOnlyList<double> _drawnSegmentEnds = [];
+    private readonly Dictionary<string, Brush?> _brushes = [];
+
     public MetricBar()
     {
         InitializeComponent();
+        Loaded += (_, _) =>
+        {
+            // The theme may have changed while the bar was away: its brushes are looked up again, and the bar is drawn again with them.
+            _brushes.Clear();
+            _drawn = null;
+            Update();
+        };
         Update();
+    }
+
+    /// <summary>
+    /// The properties a screen sets in XAML (the track, the label, the compact form) arrive one by one while it initializes: the bar is
+    /// drawn once, when they are all there, and not once for each.
+    /// </summary>
+    protected override void OnInitialized(EventArgs e)
+    {
+        base.OnInitialized(e);
+        Update();
+    }
+
+    private Brush? Resource(string key)
+    {
+        if (!_brushes.TryGetValue(key, out var brush))
+        {
+            brush = TryFindResource(key) as Brush;
+            if (brush is not null)
+            {
+                _brushes[key] = brush;
+            }
+        }
+
+        return brush;
     }
 
     /// <summary>What the bar shows; without one, an empty track that says «sin dato».</summary>
@@ -123,7 +162,11 @@ public partial class MetricBar : UserControl
     {
         var bar = (MetricBar)d;
         var before = e.Property == ReadingProperty ? e.OldValue as MetricBarReading : bar.Reading;
-        bar.Update();
+        if (bar.IsInitialized)
+        {
+            bar.Update();
+        }
+
         if (e.Property == ReadingProperty)
         {
             bar.Announce(before);
@@ -133,6 +176,14 @@ public partial class MetricBar : UserControl
     private void Update()
     {
         var reading = Shown;
+        var look = (IsCompact, TrackWidth, ShowsLabel, LabelWidth, ShowsToolTip);
+        if (_drawn is not null && look.Equals(_drawnLook) && (ReferenceEquals(reading, _drawn) || reading.Equals(_drawn)))
+        {
+            return;
+        }
+
+        _drawn = reading;
+        _drawnLook = look;
         LabelText.Text = reading.Label;
         LabelText.Visibility = ShowsLabel && !string.IsNullOrWhiteSpace(reading.Label) ? Visibility.Visible : Visibility.Collapsed;
         LabelColumn.Width = double.IsNaN(LabelWidth) || !ShowsLabel ? GridLength.Auto : new GridLength(LabelWidth);
@@ -147,7 +198,7 @@ public partial class MetricBar : UserControl
         FillColumn.Width = new GridLength(fraction, GridUnitType.Star);
         RestColumn.Width = new GridLength(1 - fraction, GridUnitType.Star);
         var filled = reading.HasValue && fraction > 0;
-        Fill.Fill = TryFindResource(FillKey(reading.Level)) as Brush;
+        Fill.Fill = Resource(FillKey(reading.Level));
         Fill.Visibility = filled ? Visibility.Visible : Visibility.Collapsed;
         Hatch.Visibility = filled && reading.IsEstimate ? Visibility.Visible : Visibility.Collapsed;
         DrawSegments(reading);
@@ -182,9 +233,16 @@ public partial class MetricBar : UserControl
     /// </summary>
     private void DrawSegments(MetricBarReading reading)
     {
+        var ends = reading.SegmentEnds;
+        if (ends.SequenceEqual(_drawnSegmentEnds) && (ends.Count > 0 || SegmentsLayer.Children.Count == 0))
+        {
+            return;
+        }
+
+        _drawnSegmentEnds = ends;
         SegmentsLayer.Children.Clear();
         var brush = Track.Background;
-        foreach (var end in reading.SegmentEnds)
+        foreach (var end in ends)
         {
             var holder = new Grid { IsHitTestVisible = false };
             holder.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(end, GridUnitType.Star) });
@@ -199,9 +257,16 @@ public partial class MetricBar : UserControl
     /// <summary>A mark of one pixel at each threshold: decoration over the words, which say the level.</summary>
     private void DrawMarks(MetricBarReading reading)
     {
+        var marks = reading.Marks.Where(m => m > 0 && m < 1).ToList();
+        if (marks.SequenceEqual(_drawnMarks) && (marks.Count > 0 || MarksLayer.Children.Count == 0))
+        {
+            return;
+        }
+
+        _drawnMarks = marks;
         MarksLayer.Children.Clear();
-        var brush = TryFindResource(MarkKey) as Brush;
-        foreach (var mark in reading.Marks.Where(m => m > 0 && m < 1))
+        var brush = Resource(MarkKey);
+        foreach (var mark in marks)
         {
             var holder = new Grid { IsHitTestVisible = false };
             holder.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(mark, GridUnitType.Star) });
