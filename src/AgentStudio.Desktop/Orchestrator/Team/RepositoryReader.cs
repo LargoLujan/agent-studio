@@ -93,7 +93,14 @@ public sealed class RepositoryReader(IRepositoryStateReader? state)
     /// shown on the node, and no credential may be there either (docs/17 D-10, F13-3).
     /// </summary>
     internal static string WithoutCredentials(string message) =>
-        System.Text.RegularExpressions.Regex.Replace(message ?? string.Empty, @"(?<=://)[^/@\s]+@", string.Empty, System.Text.RegularExpressions.RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
+        System.Text.RegularExpressions.Regex.Replace(
+            message ?? string.Empty,
+            @"[^\s'""()<>]+",
+            match => match.Value.Contains("://", StringComparison.Ordinal) || match.Value.Contains('@', StringComparison.Ordinal)
+                ? RepositoryRemote.WithoutCredentials(match.Value)
+                : match.Value,
+            System.Text.RegularExpressions.RegexOptions.CultureInvariant,
+            TimeSpan.FromSeconds(1));
 
     /// <summary>The remotes of the repository at <paramref name="root"/>, with their URL clean, in the order of the file.</summary>
     public static IReadOnlyList<RepositoryRemote> ReadRemotes(string root)

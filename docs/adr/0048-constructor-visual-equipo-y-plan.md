@@ -42,7 +42,8 @@
       barrera fija de WP5. Sin una confirmación compuesta, no se concede.
   11. **El repositorio se lee sin red ni procesos propios.** La rama, la versión y los cambios por la capa endurecida
       (`IWorktreeManager.InspectAsync`, detrás de `IRepositoryStateReader`); los remotos, del texto de `.git/config` (o del común de
-      un worktree), cada URL limpia con `RepositoryRemote.Cleaned` al leerla: ninguna URL con usuario ni contraseña llega a un
+      un worktree), cada URL limpia con `RepositoryRemote.Cleaned` al leerla (se quita siempre el usuario, también el de la forma `usuario@host:ruta`,
+      y entera la query y el fragmento; la autoridad llega hasta la primera `/` y el usuario hasta su última `@`): ninguna URL con usuario ni contraseña llega a un
       nodo, a un texto ni al fichero de disposición. No se sigue ningún `include`. Las carpetas principales son las de primer nivel
       con más ficheros (cuatro como mucho, sin `.git`, `bin`, `obj`, `node_modules` ni las que empiezan por punto), más las que algún
       agente tiene asignadas.

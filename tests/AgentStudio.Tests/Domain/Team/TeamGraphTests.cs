@@ -89,7 +89,12 @@ public sealed class TeamGraphTests
     [InlineData("https://token@github.com/acme/calc.git", "https://github.com/acme/calc.git")]
     [InlineData("ssh://git:secreto@host:22/repo.git", "ssh://host:22/repo.git")]
     [InlineData("https://github.com/acme/calc.git", "https://github.com/acme/calc.git")]
-    [InlineData("git@github.com:acme/calc.git", "git@github.com:acme/calc.git")]
+    [InlineData("git@github.com:acme/calc.git", "github.com:acme/calc.git")]
+    [InlineData("usuario@host:acme/calc.git", "host:acme/calc.git")]
+    [InlineData("https://user:pa?ss@host/acme/calc.git", "https://host/acme/calc.git")]
+    [InlineData("https://user:pa#ss@host/acme/calc.git", "https://host/acme/calc.git")]
+    [InlineData("https://github.com/acme/calc.git?token=SECRETO#parte", "https://github.com/acme/calc.git")]
+    [InlineData("https://usuario:token@github.com/acme/calc.git?x=1", "https://github.com/acme/calc.git")]
     [InlineData("C:/src/calc", "C:/src/calc")]
     public void A_remote_is_kept_without_the_credentials_of_its_url(string url, string kept)
     {

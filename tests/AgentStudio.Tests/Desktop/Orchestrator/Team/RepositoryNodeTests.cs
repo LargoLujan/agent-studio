@@ -96,7 +96,7 @@ public sealed class RepositoryNodeTests : IDisposable
         var node = (await new RepositoryReader(new FakeState(State(root))).ReadAsync(root, CancellationToken.None)).Node!;
 
         Assert.Equal("https://github.com/org/calc.git", node.Remotes.Single(r => r.Name == "origin").Url);
-        Assert.Equal("git@github.com:otro/calc.git", node.Remotes.Single(r => r.Name == "upstream").Url);
+        Assert.Equal("github.com:otro/calc.git", node.Remotes.Single(r => r.Name == "upstream").Url);
         Assert.Equal("https://gitlab.com/org/calc.git", node.Remotes.Single(r => r.Name == "mirror").Url);
         Assert.All(node.Remotes, r => Assert.False(RepositoryRemote.HasCredentials(r.Url)));
         Assert.Throws<ArgumentException>(() => new RepositoryRemote("origin", "https://usuario:" + Secret + "@github.com/org/calc.git"));
@@ -196,6 +196,48 @@ public sealed class RepositoryNodeTests : IDisposable
         Assert.DoesNotContain(Secret, reading.Problem, StringComparison.Ordinal);
         Assert.DoesNotContain("usuario", reading.Problem, StringComparison.Ordinal);
         Assert.Contains("https://github.com/org/calc.git", reading.Problem, StringComparison.Ordinal);
+    }
+
+    /// <summary>The five ways a secret hides in an address (F13-3): none of them reaches a node, a text, the layout or a reason.</summary>
+    [Fact]
+    public async Task No_form_of_address_leaks_its_secret_to_the_node_the_layout_the_accessible_name_or_the_errors()
+    {
+        string[] secrets = ["S3CRETO1", "S3CRETO2", "S3CRETO3", "S3CRETO4", "S3CRETO5"];
+        var config = string.Join(
+            '\n',
+            "[remote \"a\"]\n\turl = https://usuario:" + secrets[0] + "@github.com/o/a.git",
+            "[remote \"b\"]\n\turl = usuario" + secrets[1] + "@github.com:o/b.git",
+            "[remote \"c\"]\n\turl = https://user:pa?" + secrets[2] + "@host.example/o/c.git",
+            "[remote \"d\"]\n\turl = https://github.com/o/d.git?token=" + secrets[3] + "#frag" + secrets[3],
+            "[remote \"e\"]\n\turl = ssh://git:" + secrets[4] + "@host.example:2222/o/e.git");
+        var root = Repo(config);
+        var node = (await new RepositoryReader(new FakeState(State(root))).ReadAsync(root, CancellationToken.None)).Node!;
+        Assert.Equal(5, node.Remotes.Count);
+        Assert.All(node.Remotes, r => Assert.False(RepositoryRemote.HasCredentials(r.Url)));
+
+        var team = new TeamCanvasViewModel(Text());
+        team.Load(Roster(), RepositoryReading.Of(node), CanvasLayout.Empty);
+        var store = new FileCanvasLayoutStore(new ProjectStorageFiles());
+        store.Save(_folder.Root, team.CaptureLayout());
+        var view = team.Repository!;
+        var everything = string.Join(
+            '\n',
+            view.Title,
+            view.RemotesText,
+            view.AutomationName,
+            string.Join('\n', view.RemoteLines),
+            view.ProblemText,
+            File.ReadAllText(store.GetLayoutPath(_folder.Root)));
+
+        // The reason of an error that quotes an address is cleaned too.
+        var failure = new InvalidOperationException("fatal: unable to access 'https://usuario:" + secrets[0] + "@github.com/o/a.git' and 'usuario" + secrets[1] + "@github.com:o/b.git?token=" + secrets[3] + "'");
+        var reading = await new RepositoryReader(new FakeState(failure: failure)).ReadAsync(root, CancellationToken.None);
+        everything += "\n" + reading.Problem + "\n" + new RepositoryNodeViewModel(null, reading.Problem, default, Text()).AutomationName;
+
+        foreach (var secret in secrets)
+        {
+            Assert.DoesNotContain(secret, everything, StringComparison.Ordinal);
+        }
     }
 
     [Fact]
