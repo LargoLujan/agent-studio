@@ -168,6 +168,10 @@
       lista cerrada;
     - `model/list` del app-server de Codex: sus campos, si pide red y qué autenticación.
   - **Límites conocidos del estimador:**
+    - **no distingue el esfuerzo de razonamiento:** el registro no lo guarda (`AgentRunStarted` no lo lleva), así que dos
+      ejecuciones del mismo modelo con esfuerzo `low` y `high` cuentan juntas como referencias, y lo aprendido de un modelo
+      también las mezcla. Se resuelve en la integración, añadiendo el esfuerzo a `AgentRunStarted` v3 (solo cuando se fija,
+      como el resto de la versión 3) y comparándolo en las referencias; esta rama no cambia el payload;
     - antes de la versión 2 del arranque no hay propósito, y un intento con tarea cuenta como de ejecutor: el de un juez con
       tarea de revisión podría colarse como referencia (lo aprendido, en cambio, lo descarta por el equipo de su ejecución);
     - lee y proyecta el registro en cada llamada, así que comparar N opciones lo lee N veces. Si la ventana de una pregunta
