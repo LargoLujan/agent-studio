@@ -190,6 +190,10 @@ internal static class WpfHost
         {
             var app = new System.Windows.Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
             app.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("pack://application:,,,/AgentStudio.Desktop;component/Themes/Dark.xaml") });
+
+            // As App.xaml merges them, in its order: the dictionaries of the canvas (the panels of the bottom zone and the screen of tools,
+            // which MainWindow holds, use their styles and converters), then the document templates.
+            Orchestrator.OrchestratorTheme.EnsureLoaded();
             app.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("pack://application:,,,/AgentStudio.Desktop;component/Themes/DocumentTemplates.xaml") });
             dispatcher = Dispatcher.CurrentDispatcher;
             ready.Set();

@@ -45,16 +45,27 @@ El boceto es el diseño de referencia. Lo que tiene hoy la ventana (tanda 1, 202
 debajo.
 
 - **Barra lateral izquierda**, de arriba abajo: Explorador, Orquestador (Fase 3, [sección 3](#3-orquestador-visual)),
-  **Skills** ([10](10-catalogo-de-skills.md#8-pantalla)), **Consumo** y **Memoria** (Fase 4,
+  **Agentes** (Fase 13: el orquestador en la capa «Equipo»), **Skills** ([10](10-catalogo-de-skills.md#8-pantalla)),
+  **Herramientas** y **Pruebas** (Fase 13, [sección 5.5](#55-monitor-vivo-preguntas-análisis-del-consumo-paneles-y-herramientas-fase-13-wp8)),
+  **Consumo** y **Memoria** (Fase 4,
   [sección 5](#5-salud-del-contexto-consumo-cuota-y-memoria)), **Debates** (Fase 5, [sección 4](#4-debate-arena),
   `Ctrl+Shift+D`), **Terminal** (`Ctrl+Ñ`; en un teclado de EE. UU., `` Ctrl+` ``, que es la misma tecla), Auto Doctor,
   Historial · bitácora (la **bitácora** del día, [11](11-bitacora.md)) y, la última, **Ajustes**
   ([sección 5.2](#52-consumo-cuota-y-ajustes-documentos-consumo-y-ajustes)).
-  - Orquestador, Skills, Consumo, Memoria, Debates y Ajustes abren un documento en el centro. Explorador, Terminal, Auto
-    Doctor e Historial muestran u ocultan su panel.
-  - Una entrada solo aparece si su pantalla existe en la app: no hay iconos que no hagan nada. «Agentes» y «Pruebas» se
-    quitaron porque no tenían pantalla; Git, Auto Graph y Herramientas tendrán entrada cuando llegue la suya.
+  - Orquestador, Agentes, Skills, Herramientas, Consumo, Memoria, Debates y Ajustes abren un documento en el centro. Explorador,
+    Pruebas, Terminal, Auto Doctor e Historial muestran u ocultan su panel.
+  - **Agentes** abre la pestaña del orquestador del proyecto (o la trae al frente) y la deja en la capa «Equipo», donde se
+    añaden, configuran y quitan los agentes con el inspector de cada uno. **Herramientas** abre una pestaña con lo que puede
+    usar cada agente de la plantilla del proyecto abierto, y su «Dar a un agente…» lleva a esa capa con el inspector.
+    **Pruebas** muestra u oculta el panel de abajo del mismo nombre. Sus títulos salen de los recursos
+    (`IntegrationStrings`, castellano de España e inglés).
+  - Una entrada solo aparece si su pantalla existe en la app: no hay iconos que no hagan nada. Git y Auto Graph tendrán entrada
+    cuando llegue la suya.
   - El anillo de foco va en el botón que tiene el teclado, nunca alrededor de toda la barra.
+- **Pestañas de abajo.** Junto a «Terminal», en el mismo grupo, «Problemas», «Salida» y «Pruebas» (Fase 13, [sección 5.5](#55-monitor-vivo-preguntas-análisis-del-consumo-paneles-y-herramientas-fase-13-wp8)):
+  siguen al monitor de la ejecución del proyecto abierto (con otro proyecto, o sin ejecución, quedan vacíos, nunca con lo del
+  anterior). «Problemas» recibe además los hallazgos del lienzo, y «Salida» sigue a lo que seleccionas en él (una tarea o un
+  agente). Un diseño de paneles guardado antes de la Fase 13 los recupera en el grupo de «Terminal».
 - **Mostrar y ocultar un panel.** La entrada de la barra lateral (o su atajo) muestra el panel si no está a la vista
   (cerrado, plegado en un lado o en una pestaña detrás de otra), lo activa y le da el teclado. Solo lo oculta si ya se
   ve. Así una Terminal cerrada vuelve con su entrada o con `Ctrl+Ñ`. Al ocultar un panel que tenía el teclado, el teclado
@@ -62,7 +73,8 @@ debajo.
 - **Explorador:** cada fila ocupa todo el ancho del panel. El clic, la selección y el doble clic (que abre el fichero)
   valen en toda la fila, no solo sobre el texto.
 - **Barra superior:** el proyecto abierto (nombre y ruta), «Abrir carpeta», «Inicio», «Ir al fichero» (`Ctrl+P`),
-  «Auditar proyecto completo», el resumen de los proveedores y «Bloquear». El resumen («Proveedores: 2 de 2 listos», con
+  «Auditar proyecto completo», el **contador de agentes** de la ejecución que sigues («Agentes: 2 trabajando · 1 te pregunta»;
+  vacío si no hay ejecución, y cortés para el lector de pantalla), el resumen de los proveedores y «Bloquear». El resumen («Proveedores: 2 de 2 listos», con
   su punto de color) es un botón que muestra u oculta Auto Doctor. Un proveedor aparcado (Gemini, [ADR-0009](adr/0009-google-aparcado.md))
   no cuenta en él.
 - **«Auditar proyecto completo»** (barra superior, `Ctrl+Shift+A`): abre el documento «Auditoría» del proyecto abierto,
@@ -430,6 +442,84 @@ abierto, y la línea de lo que falta solo habla de lo que le falta al proyecto (
 puerto falla al abrir, se lista con el motivo y el resto sigue funcionando. Una composición sin motor (la del shell
 solo, en las pruebas) dice «Motor no disponible» y lista lo que falta: el lienzo, la validación (si hay requisitos y
 perfil) y la disposición funcionan, y no se simula nada.
+
+**Constructor visual: capas, tira del equipo, analizador y preparación con el orquestador (Fase 13, WP6,
+[ADR-0048](adr/0048-constructor-visual-equipo-y-plan.md)).** El lienzo de arriba es ahora la capa «Plan» de un lienzo con dos
+capas y una tira. Solo está activo cuando la composición pasa los servicios del constructor; sin ellos, la pantalla es la de
+antes de la fase.
+
+```text
+┌ Orquestador · calc ─────────────────────────────────────────────────────────────────────────────────────────┐
+│ [Equipo] [Plan] ⓘ   Añadir [Ejecutor] [Juez]   [Conectar con…]  ☑ Solo la orquestación        [Acercar] …   │
+├ Tira del equipo ⓘ ── Cuota Claude 5 h [████░░] 47 % · vista hace 3 min · Codex: no expuesto ────────────────┤
+│ ┌ Orquestador ───────┐ ┌ Ejecutor ──────────┐ ┌ Ejecutor 2 ────────┐ ┌ Juez ──────────────┐                 │
+│ │ Claude Code · opus │ │ Claude Code · sonn.│ │ Claude Code · haiku│ │ Codex CLI · OpenAI │                 │
+│ │ ○ Libre            │ │ ▶ Trabajando en T2 │ │ ? Te pregunta algo │ │ ○ Libre            │                 │
+│ │ Contexto [█░░░] 12%│ │ Contexto [███░] 47%│ │ Contexto [░░░░] 3 %│ │ Contexto no expuest│                 │
+│ └────────────────────┘ └────────────────────┘ └────────────────────┘ └────────────────────┘                 │
+├───────────────────────────────────────────────────────────────────────────────┬─────────────────────────────┤
+│ Lienzo del equipo: agentes, repositorio y los cables «reparte», «revisa»      │ Panel del equipo            │
+│ y «trabaja en» (este, animado mientras la tarea escribe)                      │ límites, qué pasa al editar │
+│                                                                               │ inspector del agente        │
+├ Análisis del montaje ⓘ ──────────────────────────────────────────────────────┴─────────────────────────────┤
+│ ✖ Falta la integración: nada llegaría a tu rama.              [Añadir una integración al final] [Deshacer] │
+│ Revisar el orden con el orquestador (gasta cuota: pide tu OK con la estimación)                              │
+└──────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+- **Dos capas.** «Equipo» (los agentes de la plantilla y el repositorio) y «Plan» (las tareas, con su modelo intacto). Se cambia
+  con dos botones y con Ctrl+1 y Ctrl+2, que solo valen con el foco en el lienzo (el editor de ficheros es otro ámbito de
+  foco). «Equipo» es la que se ve mientras preparas, «Plan» llega con una propuesta, y «Agentes» de la barra lateral abre el
+  documento en «Equipo». Ningún cable del equipo es una dependencia del plan.
+- **Selección enlazada.** Un clic en una tarjeta o en un agente enciende sus tareas en «Plan», y un clic en una tarea enciende a
+  su agente. La asignación de una tarea a su agente es una etiqueta en el nodo, nunca un cable.
+- **La tira del equipo** está encima de las dos capas y fuera del zoom: una tarjeta por agente, que es el mismo objeto que su
+  nodo. Dice el programa, el modelo y el esfuerzo, el estado con su icono y sus palabras, y las barras de contexto, consumo y
+  presupuesto, cada una con su origen. Sin cifra, la pista queda vacía y las palabras dicen por qué («no expuesto», «sin
+  observaciones todavía», «sin intentos todavía»): nunca una barra a cero. En la cabecera, la cuota de la cuenta.
+- **La capa Equipo es la plantilla.** Añadir un ejecutor, un juez o el orquestador copia la plantilla del rol con un id nuevo y
+  pide el programa y el modelo. Guardar cambia la huella de la plantilla (`RosterHash`) y retira la aprobación del plan, y el
+  panel lo dice antes y después. Los límites se ven al montar: un orquestador, un juez de otra empresa y hasta 8 ejecutores.
+  «Quitar del equipo» solo aparece si el almacén sabe quitar un agente.
+- **El nodo del repositorio** enseña la carpeta, la rama y su versión corta, los remotos sin usuario ni contraseña, los cambios
+  sin confirmar (en el color del aviso, con lo que pasa si trabajas en tu repositorio durante una ejecución), el stack y las
+  carpetas principales, cada una un conector. Se lee sin red: la rama, la versión y los cambios por la capa de git endurecida, y
+  los remotos del texto del fichero de configuración, sin ejecutar nada.
+- **Conectar y desconectar sin ratón.** El cable «Trabaja en» (agente → carpeta) se crea arrastrando o con «Conectar con…», que
+  lista los destinos válidos con la misma comprobación. Dar a un agente más carpetas o la herramienta de shell o de red pide
+  Windows Hello.
+- **El inspector del agente** enseña solo lo que manda: nombre, rol, programa, modelo y esfuerzo (con los datos de los modelos y
+  la recomendación con su porqué), herramientas con su riesgo, carpetas, memoria y revisión, el tiempo por intento, el máximo de
+  turnos y de coste marcados «solo Claude» y las instrucciones del agente, que llegan a su prompt como datos. Las rondas y los
+  tokens totales no se enseñan: todavía no mandan nada.
+- **El análisis del montaje** corre 200 ms después de la última edición, fuera del hilo de la interfaz y sobre una copia
+  inmutable del borrador, y solo se aplica si no hubo otra edición. Cada hallazgo trae su frase, su gravedad con icono y el botón
+  de su arreglo de un clic; el botón dice si retira la aprobación o pide Windows Hello. Ctrl+Z y Ctrl+Y deshacen y rehacen los
+  arreglos y las ediciones del lienzo. Los errores impiden aprobar, como los del validador, y las sugerencias van plegadas. No
+  gasta cuota.
+- **«Revisar el orden con el orquestador»** se ofrece cuando cambiaste el plan o el equipo después de la propuesta. Es una
+  ejecución auxiliar de solo lectura que gasta cuota: antes se abre una tarjeta con la estimación (o con que todavía no hay
+  referencias) y el OK de la persona, que el servicio gasta una vez. Sus sugerencias se vuelven a comprobar y cada una es un
+  arreglo de un clic; nada se aplica solo. La razón que da el orquestador se enseña aparte, como texto de un agente.
+- **La ficha del proyecto** está en la banda de preparación: un texto tuyo sobre qué es el proyecto, sus convenciones y sus
+  direcciones útiles. Se guarda como memoria tuya (cada versión sustituye a la anterior), llega a los agentes que trabajan con su
+  huella y nunca al juez, y las direcciones son texto que los agentes no abren.
+- **El chat con el orquestador** está en la banda de preparación. Cada mensaje pide su OK con la estimación; la conversación se
+  reanuda de un mensaje al siguiente y se termina con su botón. Devuelve texto de un agente, borradores de requisitos, sugerencias
+  para el equipo, riesgos y preguntas. «Copiar al editor» pone un borrador en el editor de requisitos como borrador tuyo y no
+  congela nada; una sugerencia del equipo es un arreglo de un clic. «Usar perfil propuesto» es un cambio del perfil de
+  verificación y pide Windows Hello (o el bloqueo de Windows sin él).
+- **Estado vivo.** La tira, los nodos y los cables leen la proyección agrupada del monitor, como mucho cuatro veces por segundo y
+  nodo: solo se actualiza lo que el cambio nombra. Los cables «trabaja en» se mueven mientras la tarea de su agente escribe (doce
+  como mucho), el nodo del repositorio respira mientras se integra, y la dependencia cumplida da un pulso breve en «Plan». Son
+  `Storyboard` de XAML a 30 fotogramas por segundo y se apagan con «Reducir movimiento» (en «Ajustes», junto a «Idioma») o con la
+  opción de animaciones de Windows: el estado sigue en el texto y en el icono. Nada parpadea más de tres veces por segundo.
+- **Accesible.** Cada tarjeta y cada nodo dicen su nombre completo («Ejecutor · Claude Code (Anthropic) · sonnet · esfuerzo medio ·
+  Trabajando en T3 · Contexto: 47 %, exacto»); los cambios de estado se anuncian (cortés, o asertivo en una pregunta o un
+  bloqueo); las barras dan valor, mínimo y máximo y su texto con el origen; y todo lo que se hace arrastrando tiene su camino con
+  el teclado.
+- **Disposición.** `canvas-layout.json` es la versión 2, `{version:2, plan:{…}, team:{…}}`, y lee la versión 1 como la capa
+  «Plan».
 
 ## 4. Debate Arena
 
@@ -806,6 +896,52 @@ su propio documento, «Ajustes», que se describe al final de este apartado.
   interruptores se bloquean mientras la pestaña está ocupada o sigue una ejecución, y si guardar falla vuelven atrás y
   lo dicen.
 
+### 5.5 Monitor vivo, preguntas, análisis del consumo, paneles y «Herramientas» (Fase 13, WP8)
+
+Lo que añade el paquete WP8 del constructor visual ([17](17-constructor-visual-de-agentes.md) §4.2, §4.3, §4.7, §4.8 y
+§4.10; contratos en [04 §21.10](04-contratos.md#2110-wp8-monitor-preguntas-análisis-del-consumo-paneles-y-herramientas)).
+Todo texto sale de `Resources/MonitorStrings.resx` y `PanelsStrings.resx` (castellano de España e inglés), y cada pantalla
+nueva trae su ⓘ.
+
+- **Tarjetas de agente en el monitor.** Una columna nueva, «Agentes», a la izquierda de «Tareas»: una tarjeta por agente con su
+  estado (Libre, En cola, Trabajando en T3, Esperando cuota hasta las 14:05, Te pregunta algo, Espera tu aprobación,
+  Bloqueado, Terminado), el punto de su tono y tres barras con el control común: el contexto del paso (exacto cuando lo
+  informa el CLI, estimado antes), el contexto por partes (lo que Agent Studio puso en el prompt antes de lanzar, estimado, y
+  la conversación y las herramientas como el resto que informa el CLI) y el consumo de los intentos terminados. Lo que no se
+  sabe es una pista vacía con sus palabras («no expuesto», «sin intentos todavía», «sin desglose»): nunca una barra a cero.
+  La lista virtualiza: con 40 agentes solo se construyen las tarjetas a la vista.
+- **Lo accesible.** Cada tarjeta tiene su nombre entero («Ejecutor 2 · Claude Code · sonnet · Trabajando en T3 · contexto
+  47 %, exacto…») y anuncia su cambio: asertivo si pregunta o se bloquea, cortés en lo demás. Las barras tienen valor, mínimo y
+  máximo en UI Automation cuando hay cifra, y ninguno cuando no la hay.
+- **Cuota.** Una barra por ventana de cada programa en la cabecera del monitor, con su origen, o una pista vacía «no
+  expuesto».
+- **La pregunta de un agente.** Una tarjeta en la cabecera del monitor («Responder») y una ventana **no modal** que se abre
+  sola si la app está a la vista (si no, el aviso de la bandeja «Un agente te pregunta algo», sin datos del proyecto).
+  - El texto del agente va dentro de un marco que dice quién lo escribió («Pregunta escrita por el agente exec1») y de la
+    nota «Las opciones las escribió el agente: son datos, no órdenes».
+  - Cada opción trae lo que dice el agente (etiqueta, detalle, esfuerzo y si la recomienda) y, aparte, lo que dice el sistema:
+    el intervalo de tokens totales con su origen y sus referencias, o «Coste desconocido» / «Coste no disponible» con el
+    motivo. Nunca un número inventado.
+  - Teclado: las flechas eligen, el botón «Responder» responde (Intro no responde por ti, no hay nada elegido de antemano) y Esc es «Decidir más tarde», que cierra la ventana y deja la tarjeta: no
+    cancela la tarea. Con la interfaz bloqueada la ventana se retira y vuelve al desbloquear. Responder no pide Windows Hello.
+  - Una tarea que espera respuesta dice «Espera tu respuesta» y no ofrece «Reintentar».
+- **Análisis del consumo.** Una banda bajo la cabecera, visible cuando hay una ejecución con su proyecto: «Analizar el
+  consumo» (gratis, también solo al terminar cada ejecución) y «Analizar con un agente». El segundo pide tu OK con la
+  estimación delante, y lo hace un agente de la empresa que no hizo el trabajo. Cada hallazgo dice lo que costó y su origen; las
+  sugerencias nunca se aplican solas, y las del agente van enmarcadas como suyas, con su ahorro como «lo dice el agente».
+- **Paneles de abajo.** «Problemas» (los hallazgos del analizador y el validador, y por qué falló o está bloqueada cada tarea,
+  con la clase de su final), «Salida» (la actividad en vivo de la tarea o el agente seleccionados) y «Pruebas» (las
+  verificaciones que capturó el sistema, con sus contadores, y «Ejecutar las pruebas de HEAD» cuando la composición lo da).
+- **«Herramientas».** Qué puede usar cada agente, con el riesgo de cada herramienta y si darla pide Windows Hello. Se calcula
+  con los argumentos del lanzamiento real. «Dar a un agente…» lleva al inspector de la capa Equipo.
+
+- **Las preguntas del orquestador antes de planificar.** Si el orquestador pregunta en lugar de dar un plan, la propuesta dice
+  «El orquestador te hace N pregunta(s) antes de planificar», las ventanas se abren solas (o la bandeja avisa) y un botón
+  «Responder» las abre otra vez. Cuando las contestas todas, vuelve a pedirse el plan una vez, con tus respuestas. «Rechazar» o
+  pedir otro plan dejan de esperarlas.
+- **El aviso de la bandeja.** Una pregunta que llega con la app fuera de vista (oculta en la bandeja, minimizada o bloqueada)
+  muestra en la bandeja «Un agente te pregunta algo», con el nombre de la app como título y nada del proyecto.
+
 ## 6. Auditoría y veredictos del juez
 
 > **Estado:** implementado en la Fase 5 (WP6 de [15](15-fase-5-debate-arena-y-juez.md), §9) sobre los puertos de P0,
@@ -951,6 +1087,9 @@ flowchart LR
     Usage -->|"Exportar CSV o JSON"| SaveAs["Guardar como"]
     Main --> Skills["Catálogo de skills"]
     Skills -->|"recomendar para la tarea"| Orq
+    Main -->|"Configurar proyecto"| Setup["Configurar proyecto<br/>siete pasos · resumen · aplicar"]
+    Orq -->|"banda de preparación"| Setup
+    Welcome -->|"proyecto nuevo"| Setup
     Main -->|"último icono de la barra lateral"| Settings["Ajustes<br/>contexto y cuota · trabajo desatendido · Windows Hello y bloqueo"]
     Settings -->|"cerrar o salir con cambios"| UnsavedAsk["¿Guardar los cambios?<br/>guardar · no guardar · cancelar"]
     Main -->|"Proveedores (barra superior)"| Doctor
@@ -994,6 +1133,55 @@ derecha de la «L»: en un teclado de EE. UU. es `` Ctrl+` ``), y, de la Fase 5,
 `Ctrl+Alt+L` o `Ctrl+Mayús+B` «Bloquear» (`Ctrl+Alt` es `AltGr` en muchos teclados: en el español `AltGr+L` no escribe
 nada y bloquea; `Ctrl+Mayús+B` no usa `Alt` y sirve en cualquiera). Mientras la interfaz está bloqueada, ningún atajo de la
 ventana funciona.
+
+### 8.1 Configurar proyecto (Fase 13, WP7)
+
+Un asistente de siete pasos y un resumen que prepara un proyecto: [17 §4.6](17-constructor-visual-de-agentes.md#46-configurador-por-proyecto)
+y [ADR-0055](adr/0055-configurador-por-proyecto.md). Se abre con «Configurar proyecto», desde la banda de preparación del
+orquestador y desde la bienvenida del proyecto, donde la primera vez que se abre un proyecto se sugiere en una línea (se anota
+que ya se sugirió, junto a las opciones del proyecto, y nunca se abre solo). Se abre como una pestaña por proyecto
+(«Configurar proyecto · nombre»): si ya existe, se vuelve a ella y se lee el proyecto otra vez. Lo que aplica a la plantilla
+llega a la pestaña del orquestador, que la lee otra vez y retira la aprobación del plan que esperaba, y el presupuesto del paso
+7 es el que usa la siguiente ejecución del proyecto. Propone a partir de los ficheros del proyecto, sin red y sin gastar cuota.
+
+```text
+┌ Configurar proyecto ──────────────────────────────────────────────────────── ⓘ ┐
+│ Proyecto   │ Equipo                                                             │
+│ Ficha      │ ☑ Aplicar este paso (apágalo para saltarlo)                        │
+│ Equipo   ◄ │ Tamaño de la plantilla  [ grande ▾ ]                               │
+│ Modelos    │   Orquestador      orquestador · Claude Code     Sin cambios       │
+│ Pruebas    │   Ejecutor ligero  ejecutor · Claude Code        Se añade          │
+│ Skills     │   Revisor          crítico · Codex               Se añade          │
+│ Presupuesto│ El asistente solo añade y cambia: no quita ningún agente.          │
+│ Resumen    │                                                                    │
+│            │                                   [Atrás] [Siguiente] [Aplicar…]   │
+└────────────┴────────────────────────────────────────────────────────────────────┘
+```
+
+- **Lista de pasos a la izquierda** (nombrada para el lector de pantalla; cada paso es un botón que lleva a él): el actual en
+  negrita y los saltados, atenuados. «Proyecto» solo informa y «Resumen» aplica; los otros cinco se pueden saltar.
+- **Cada paso** tiene su interruptor «Aplicar este paso (apágalo para saltarlo)», su frase de ayuda y lo que propone, que se puede
+  cambiar. De partida solo está activo lo que se revisa de todos modos (las altas de la plantilla y un perfil que cambiaría); la
+  ficha, los modelos, las skills y el presupuesto se encienden cuando los tocas.
+- **1 · Proyecto:** tecnología, tamaño, rama, versión, cambios sin guardar, remotos y carpetas principales. Dice que sale de los
+  nombres de los ficheros y que no se ejecuta nada.
+- **2 · Ficha:** un cuadro de texto con un esqueleto de secciones según la tecnología. Si no escribes nada, no se guarda.
+- **3 · Equipo:** el tamaño (pequeño, mediano o grande; el del proyecto, de partida) y cada agente de la plantilla con «Se añade»,
+  «Cambia» o «Sin cambios».
+- **4 · Modelos:** por agente, lo que tiene, la recomendación (modelo, nivel y esfuerzo) y por qué, con «Usar la recomendación» y
+  «Usar todas las recomendadas».
+- **5 · Pruebas:** el perfil que hay y el propuesto, con la orden de cada paso. Guardarlo pide Windows Hello, y si el fichero que
+  ya tienes no se puede usar, lo dice y no lo toca.
+- **6 · Skills:** las más afines a cada agente, con sus razones. Ninguna está marcada de partida; una que ya está activa sale
+  marcada y no se puede desmarcar desde aquí.
+- **7 · Presupuesto:** ejecuciones por ejecución, tareas a la vez y minutos por intento (vacío, el del motor), con el motivo si un
+  valor no sirve. Recuerda que reanudarse sola se consiente al aprobar cada plan.
+- **Resumen:** una línea por cosa que cambia, con «antes → después», y la nota de que se pedirá Windows Hello. «Aplicar los
+  cambios» está apagado si no hay nada que aplicar. Tras aplicar, el resultado dice qué hizo cada parte («aplicado», «sin
+  cambios», «no confirmado: no se escribió nada»…), avisa de que hay que volver a aprobar el plan si cambió la plantilla y dice
+  que queda anotado en el historial del proyecto.
+- **Accesible:** los textos salen de los recursos (castellano de España e inglés), cada elemento de las listas tiene su nombre y
+  los controles se alcanzan con el teclado. El ⓘ de la cabecera explica qué es y qué se puede hacer.
 
 ### Lista de comprobación de la demostración de las pantallas de la Fase 5
 

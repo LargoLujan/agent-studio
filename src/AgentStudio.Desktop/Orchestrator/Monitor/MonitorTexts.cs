@@ -4,6 +4,7 @@ using AgentStudio.Application.Providers;
 using AgentStudio.Desktop.Observability;
 using AgentStudio.Domain.Evidence;
 using AgentStudio.Domain.Metrics;
+using AgentStudio.Domain.Questions;
 
 namespace AgentStudio.Desktop.Orchestrator.Monitor;
 
@@ -44,6 +45,26 @@ public static class RunPhaseText
 /// </summary>
 public static class BlockReasonText
 {
+    /// <summary>The block reason of a task that waits for the answer to a question of its agent (<c>BlockKind.AwaitingAnswer</c>).</summary>
+    public const string AwaitingAnswerReason = "AwaitingAnswer";
+
+    /// <summary>The instant a <c>RateLimitedUntil(t)</c> reason waits for; null for any other reason or one that cannot be read.</summary>
+    public static DateTimeOffset? RateLimitedUntil(string? reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason) || !Is(reason.Trim(), "RateLimitedUntil"))
+        {
+            return null;
+        }
+
+        var text = reason.Trim();
+        var open = text.IndexOf('(', StringComparison.Ordinal);
+        var close = text.LastIndexOf(')');
+        return open >= 0 && close > open
+            && DateTimeOffset.TryParse(text[(open + 1)..close], CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var until)
+            ? until
+            : null;
+    }
+
     public static string Label(string? reason, TimeZoneInfo zone)
     {
         ArgumentNullException.ThrowIfNull(zone);
@@ -66,6 +87,12 @@ public static class BlockReasonText
         if (Is(text, "AwaitingHuman"))
         {
             return "Bloqueada · espera a una persona";
+        }
+
+        // Phase 13 (docs/17 D-29): a task whose agent asked waits for the answer; it is not a block to retry.
+        if (Is(text, AwaitingAnswerReason))
+        {
+            return Localization.Texts.Get("Text_question_awaiting_answer");
         }
 
         if (Is(text, "RateLimitedUntil"))
@@ -92,7 +119,29 @@ public static class AgentActivityText
 {
     private const int MaxLength = 160;
 
-    public static string? Describe(AgentEvent agentEvent, TimeZoneInfo zone)
+    /// <summary>
+    /// The line for an event of an agent, with what the agent wrote cleaned: the control and direction (bidi) characters are taken out
+    /// by the rule of the questions (<see cref="QuestionRules"/>), so a line of the activity cannot reorder the text around it nor
+    /// move the cursor of a terminal.
+    /// </summary>
+    public static string? Describe(AgentEvent agentEvent, TimeZoneInfo zone) => Clean(DescribeRaw(agentEvent, zone));
+
+    /// <summary>The text without the characters that control the layout: control, line and paragraph separators and bidi (U+202A to U+202E, U+2066 to U+2069, U+200E, U+200F, U+061C).</summary>
+    public static string? Clean(string? text)
+    {
+        if (string.IsNullOrEmpty(text) || !(QuestionRules.HasControlCharacter(text) || QuestionRules.HasBidiCharacter(text)))
+        {
+            return text;
+        }
+
+        return string.Concat(text.Where(c =>
+        {
+            var one = c.ToString();
+            return !QuestionRules.HasControlCharacter(one) && !QuestionRules.HasBidiCharacter(one);
+        }));
+    }
+
+    private static string? DescribeRaw(AgentEvent agentEvent, TimeZoneInfo zone)
     {
         ArgumentNullException.ThrowIfNull(agentEvent);
         ArgumentNullException.ThrowIfNull(zone);

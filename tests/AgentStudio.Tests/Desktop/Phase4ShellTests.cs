@@ -1,6 +1,7 @@
 using AgentStudio.Application.Diagnostics;
 using AgentStudio.Application.Knowledge;
 using AgentStudio.Application.Orchestration;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Memory;
 using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Orchestrator;
@@ -110,7 +111,10 @@ public sealed class Phase4ShellTests : IDisposable
         var shell = Create();
 
         Assert.Equal(
-            ["Explorador", "Orquestador", "Skills", "Consumo", "Memoria", "Terminal", "Auto Doctor", "Historial · bitácora"],
+            [
+                "Explorador", "Orquestador", Texts.Get("Shell_Activity_Agents"), "Skills", Texts.Get("Shell_Activity_Tools"), Texts.Get("Shell_Activity_Tests"),
+                "Consumo", "Memoria", "Terminal", "Auto Doctor", "Historial · bitácora",
+            ],
             shell.Main.Activities.Select(a => a.Title));
         foreach (var id in new[] { "skills", "usage", "memory" })
         {

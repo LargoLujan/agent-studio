@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the Integration area (docs/17 D-47, ADR-0054; integration of Phase 13, tanda 2) in Spanish of Spain, the source language: the shell, the configurator entries and the questions of the orchestrator. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Shell_Activity_Agents" xml:space="preserve">
+    <value>Agentes</value>
+    <comment>Entry of the activity bar: opens the orchestrator on the layer Team.</comment>
+  </data>
+  <data name="Shell_Activity_AgentsHelp" xml:space="preserve">
+    <value>Abre el orquestador en la capa Equipo, donde se añaden, se configuran y se quitan los agentes.</value>
+    <comment>Tooltip of the entry Agents.</comment>
+  </data>
+  <data name="Shell_Activity_Tests" xml:space="preserve">
+    <value>Pruebas</value>
+    <comment>Entry of the activity bar: shows or hides the bottom panel of tests.</comment>
+  </data>
+  <data name="Shell_Activity_Tools" xml:space="preserve">
+    <value>Herramientas</value>
+    <comment>Entry of the activity bar: opens the screen of tools.</comment>
+  </data>
+  <data name="Shell_Counter_Name" xml:space="preserve">
+    <value>Agentes de la ejecución en curso</value>
+    <comment>Name for a screen reader of the counter of the top bar.</comment>
+  </data>
+  <data name="Shell_Setup_Action" xml:space="preserve">
+    <value>Configurar proyecto</value>
+    <comment>Title of the entries that open the configurator.</comment>
+  </data>
+  <data name="Shell_Setup_ActionHelp" xml:space="preserve">
+    <value>Prepara el proyecto paso a paso: la ficha, el equipo, los modelos, las pruebas, las skills y el presupuesto. No se escribe nada hasta que aplicas.</value>
+    <comment>What the configurator is for (welcome tab and band of preparation).</comment>
+  </data>
+  <data name="Shell_Setup_Title" xml:space="preserve">
+    <value>Configurar proyecto · {0}</value>
+    <comment>Title of the tab. {0}: name of the project.</comment>
+  </data>
+  <data name="Shell_Setup_NoProject" xml:space="preserve">
+    <value>Abre una carpeta de proyecto para configurarlo.</value>
+    <comment>Status message without a project.</comment>
+  </data>
+  <data name="Shell_Setup_Suggestion" xml:space="preserve">
+    <value>Es la primera vez que abres este proyecto: configúralo paso a paso para empezar con el equipo, las pruebas y el presupuesto que quieras. No se abre solo.</value>
+    <comment>Suggestion on the welcome tab, shown once per project.</comment>
+  </data>
+  <data name="Shell_Setup_ReadAgainFailed" xml:space="preserve">
+    <value>Se aplicó la configuración, pero no se pudo leer otra vez el equipo: {0}</value>
+    <comment>{0}: the reason.</comment>
+  </data>
+  <data name="Shell_Planner_Questions" xml:space="preserve">
+    <value>El orquestador te hace {0} pregunta(s) antes de planificar. Responde para que prepare el plan.</value>
+    <comment>Status of the proposal while the questions wait. {0}: how many.</comment>
+  </data>
+  <data name="Shell_Planner_Answer" xml:space="preserve">
+    <value>Responder</value>
+    <comment>Button next to the status of the questions of the orchestrator.</comment>
+  </data>
+  <data name="Shell_Planner_AnswerHelp" xml:space="preserve">
+    <value>Abre las ventanas de las preguntas del orquestador. Cuando las contestes todas, vuelve a pedir el plan con tus respuestas.</value>
+    <comment>Tooltip of the button Answer.</comment>
+  </data>
+  <data name="Shell_Planner_Skipped" xml:space="preserve">
+    <value>Las respuestas llegaron cuando la pestaña ya estaba ocupada con otro plan o con una ejecución: no se volvió a pedir el plan, y no se gastó cuota.</value>
+    <comment>Status when the answers of the orchestrator come too late to plan again.</comment>
+  </data>
+  <data name="Shell_Tools_Give" xml:space="preserve">
+    <value>Elige en el inspector de la capa Equipo el agente al que dar «{0}»: el cambio se aprueba como siempre.</value>
+    <comment>Status message after Give to an agent. {0}: the tool.</comment>
+  </data>
+</root>

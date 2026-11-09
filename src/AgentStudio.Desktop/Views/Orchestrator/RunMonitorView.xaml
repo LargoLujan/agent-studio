@@ -7,6 +7,10 @@
              xmlns:orchestratorViews="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
              xmlns:debateViews="clr-namespace:AgentStudio.Desktop.Views.Debate"
              xmlns:controls="clr-namespace:AgentStudio.Desktop.Controls"
+             xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
+             xmlns:questions="clr-namespace:AgentStudio.Desktop.Orchestrator.Questions"
+             xmlns:consumption="clr-namespace:AgentStudio.Desktop.Views.Observability.Analysis"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=monitor:RunMonitorViewModel}">
     <!-- The monitor of a run: phase, graph health, tasks (with queue, block reason and last activity), activity log and
@@ -16,6 +20,7 @@
          review's verdict with «Impugnar» and where its challenge stands; the whole band is collapsed until there is one. -->
     <Grid Background="{StaticResource SurfaceBrush}">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -32,6 +37,7 @@
                                    AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="Fase de la ejecución"/>
                         <TextBlock Style="{StaticResource SecondaryText}" Margin="0,0,12,0" VerticalAlignment="Center"
                                    FontFamily="{StaticResource MonoFont}" Text="{Binding RunId}"/>
+                        <info:InfoButton InfoKey="Info_Monitor" Margin="0,0,12,0" VerticalAlignment="Center"/>
                         <!-- The budget of the run (docs/18 P3): the agent runs used against its maximum, measured by Agent Studio. -->
                         <controls:MetricBar VerticalAlignment="Center" TrackWidth="90" Reading="{Binding BudgetBar}"
                                             Visibility="{Binding IsAttached, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
@@ -95,6 +101,50 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </WrapPanel>
+                <!-- Phase 13 (docs/17 D-12, D-14, D-17; F13-6 to F13-8): the quota of the account, one bar per window with its origin;
+                     the questions the agents ask and wait for; and one card per agent with its state and its bars. A change of state
+                     is announced (assertive for a question or a block, polite for the rest). -->
+                <ScrollViewer MaxHeight="280" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False"
+                              Visibility="{Binding IsAttached, Converter={StaticResource Orchestrator.BoolToVisibility}}">
+                <StackPanel>
+                <ItemsControl ItemsSource="{Binding QuotaBars}" Focusable="False" Margin="0,6,0,0">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <controls:MetricBar Margin="0,0,16,2" TrackWidth="90" Reading="{Binding}"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <ItemsControl ItemsSource="{Binding PendingQuestions}" Focusable="False" Margin="0,8,0,0"
+                              Visibility="{Binding HasPendingQuestions, Converter={StaticResource Orchestrator.BoolToVisibility}}"
+                              AutomationProperties.Name="{l:T Monitor_Question_Cards}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type questions:QuestionViewModel}">
+                            <Border BorderBrush="{StaticResource WarningBrush}" BorderThickness="1" CornerRadius="4" Padding="10,6" Margin="0,0,0,6"
+                                    AutomationProperties.Name="{Binding AccessibleName}" AutomationProperties.LiveSetting="Assertive">
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarPrimaryButton}" VerticalAlignment="Center" Margin="8,0,0,0"
+                                            Content="{l:T Monitor_Question_Open}"
+                                            Command="{Binding DataContext.OpenQuestionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}"/>
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" TextWrapping="Wrap" Text="{Binding Title}"/>
+                                        <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxHeight="34" Text="{Binding Text}"/>
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                </StackPanel>
+                </ScrollViewer>
+
                 <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" TextWrapping="Wrap"
                            Visibility="{Binding IsAttached, Converter={StaticResource Orchestrator.FalseToVisibility}}"
                            Text="Sin ejecución. Valida y aprueba un plan y pulsa «Ejecutar», reanuda una ejecución interrumpida o abre una anterior con «Ver»."/>
@@ -162,15 +212,88 @@
             </ScrollViewer>
         </Border>
 
+        <!-- The analysis of the consumption of the run (docs/17 D-34 and D-35, F13-15): collapsed until the shell composes the analyzer
+             and a run with its project is on screen. -->
+        <Border Grid.Row="2" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,8"
+                Visibility="{Binding Consumption.IsAvailable, Converter={StaticResource Orchestrator.BoolToVisibility}}">
+            <ScrollViewer MaxHeight="260" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+                <consumption:ConsumptionAnalysisView DataContext="{Binding Consumption}"/>
+            </ScrollViewer>
+        </Border>
+
         <!-- Tasks | activity | evidence: in columns while they fit, the tasks over the other two when narrower, one under
              another when narrower still; they share the height of the monitor. -->
-        <orchestratorViews:AdaptiveColumnsPanel x:Name="Lists" Grid.Row="2" Margin="12,8,12,10" FillHeight="True" ColumnSpacing="12" RowSpacing="8">
+        <orchestratorViews:AdaptiveColumnsPanel x:Name="Lists" Grid.Row="3" Margin="12,8,12,10" FillHeight="True" ColumnSpacing="12" RowSpacing="8">
+
+            <!-- Phase 13 (docs/17 D-12, D-14, D-17; F13-6 to F13-8): one card per agent with its state and its bars, each with its origin. A
+                 change of state is announced (assertive for a question or a block, polite for the rest). -->
+            <DockPanel orchestratorViews:AdaptiveColumnsPanel.Weight="3" MinWidth="230">
+                <TextBlock DockPanel.Dock="Top" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" Text="{l:T Monitor_Agents_Title}"/>
+                <!-- A list that virtualizes: with 40 agents only the cards in view are built, so a repaint of the grouped state costs what is seen. -->
+                <ListBox ItemsSource="{Binding AgentCards}" Background="Transparent" BorderThickness="0" Padding="0"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
+                         AutomationProperties.Name="{l:T Monitor_Agents_Title}"
+                         Visibility="{Binding IsAttached, Converter={StaticResource Orchestrator.BoolToVisibility}}">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Focusable" Value="False"/>
+                            <Setter Property="Padding" Value="0"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <ContentPresenter/>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate DataType="{x:Type monitor:AgentCardViewModel}">
+                                <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="8,4" Margin="0,0,0,6"
+                                        AutomationProperties.Name="{Binding AccessibleName}"
+                                        AutomationProperties.LiveSetting="{Binding LiveSetting}"
+                                        ToolTip="{Binding RunsText}">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Ellipse Width="9" Height="9" Margin="0,0,6,0" VerticalAlignment="Center"
+                                                     Fill="{Binding Tone, Converter={StaticResource Orchestrator.ToneToBrush}}"/>
+                                            <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{Binding Name}"/>
+                                            <TextBlock Style="{StaticResource SecondaryText}" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" Text="{Binding StatusText}"/>
+                                        </StackPanel>
+                                        <controls:MetricBar Margin="0,2,0,0" TrackWidth="80" IsCompact="True" Reading="{Binding ContextBar}"/>
+                                        <controls:MetricBar Margin="0,1,0,0" TrackWidth="80" IsCompact="True" Reading="{Binding PartsBar}"
+                                                            Visibility="{Binding PartsBar, Converter={StaticResource Orchestrator.NotNullToVisibility}}"/>
+                                        <controls:MetricBar Margin="0,1,0,0" TrackWidth="80" IsCompact="True" Reading="{Binding ConsumptionBar}"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
 
             <DockPanel orchestratorViews:AdaptiveColumnsPanel.Weight="5" MinWidth="240">
                 <TextBlock DockPanel.Dock="Top" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" Text="Tareas"/>
-                <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
-                    <ItemsControl ItemsSource="{Binding Tasks}" AutomationProperties.Name="Tareas de la ejecución">
-                        <ItemsControl.ItemTemplate>
+                <!-- A list that virtualizes (Phase 13, docs/17 D-16): with 40 tasks only the rows in view are built, so a repaint costs what is seen. -->
+                <ListBox ItemsSource="{Binding Tasks}" Background="Transparent" BorderThickness="0" Padding="0"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
+                         AutomationProperties.Name="Tareas de la ejecución">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Focusable" Value="False"/>
+                            <Setter Property="Padding" Value="0"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <ContentPresenter/>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
                             <DataTemplate DataType="{x:Type monitor:MonitorTaskViewModel}">
                                 <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,5"
                                         AutomationProperties.Name="{Binding StatusLabel}">
@@ -238,18 +361,24 @@
                                                        Visibility="{Binding PendingApproval, Converter={StaticResource Orchestrator.NotNullToVisibility}}"
                                                        Text="{Binding PendingApproval, StringFormat='Espera tu aprobación: {0}'}"/>
                                         </StackPanel>
-                                        <Button Grid.Column="2" Style="{StaticResource ToolbarButton}" Margin="8,0,0,0" VerticalAlignment="Top"
-                                                Content="Reintentar"
-                                                Visibility="{Binding IsBlocked, Converter={StaticResource Orchestrator.BoolToVisibility}}"
-                                                Command="{Binding DataContext.RetryBlockedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                CommandParameter="{Binding}"
-                                                AutomationProperties.Name="{Binding Id, StringFormat='Reintentar {0}'}"/>
+                                        <StackPanel Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Top">
+                                            <Button Style="{StaticResource ToolbarButton}"
+                                                    Content="Reintentar"
+                                                    Visibility="{Binding IsBlocked, Converter={StaticResource Orchestrator.BoolToVisibility}}"
+                                                    Command="{Binding DataContext.RetryBlockedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"
+                                                    AutomationProperties.Name="{Binding Id, StringFormat='Reintentar {0}'}"/>
+                                            <!-- A task whose agent asked waits for the answer: «Reintentar» would relaunch it without it, so it is not offered (ADR-0051). -->
+                                            <Button Style="{StaticResource ToolbarPrimaryButton}" Content="{l:T Monitor_Question_Open}"
+                                                    Visibility="{Binding HasQuestion, Converter={StaticResource Orchestrator.BoolToVisibility}}"
+                                                    Command="{Binding DataContext.OpenQuestionOfCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"/>
+                                        </StackPanel>
                                     </Grid>
                                 </Border>
                             </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
+                        </ListBox.ItemTemplate>
+                </ListBox>
             </DockPanel>
 
             <DockPanel orchestratorViews:AdaptiveColumnsPanel.Weight="4" MinWidth="180">

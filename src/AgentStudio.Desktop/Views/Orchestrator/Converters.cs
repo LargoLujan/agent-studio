@@ -52,6 +52,16 @@ public sealed class HasTextToVisibilityConverter : IValueConverter
         throw new NotSupportedException();
 }
 
+/// <summary>Visible when the number bound is above zero (a count of items): a title of a list that is empty is not shown.</summary>
+public sealed class NotZeroToVisibilityConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is int count && count > 0 ? Visibility.Visible : Visibility.Collapsed;
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
 /// <summary>Visible when the value is not null (or, with <see cref="Invert"/>, when it is).</summary>
 public sealed class NullToVisibilityConverter : IValueConverter
 {

@@ -15,7 +15,11 @@
                     xmlns:audit="clr-namespace:AgentStudio.Desktop.Audit"
                     xmlns:auditViews="clr-namespace:AgentStudio.Desktop.Views.Audit"
                     xmlns:settings="clr-namespace:AgentStudio.Desktop.Settings"
-                    xmlns:settingsViews="clr-namespace:AgentStudio.Desktop.Views.Settings">
+                    xmlns:settingsViews="clr-namespace:AgentStudio.Desktop.Views.Settings"
+                    xmlns:setup="clr-namespace:AgentStudio.Desktop.Setup"
+                    xmlns:setupViews="clr-namespace:AgentStudio.Desktop.Views.Setup"
+                    xmlns:tools="clr-namespace:AgentStudio.Desktop.Tools"
+                    xmlns:toolsViews="clr-namespace:AgentStudio.Desktop.Views.Tools">
 
     <!-- One DataTemplate per document ViewModel type. Application-level so floating windows find them too.
          FileEditorView shows Monaco and falls back to the read-only viewer when a file cannot be edited. -->
@@ -57,5 +61,14 @@
     <!-- «Ajustes» (docs/03 §5.2): «Contexto y cuota», «Trabajo desatendido» and «Windows Hello y bloqueo», with one «Guardar». -->
     <DataTemplate DataType="{x:Type settings:SettingsDocumentViewModel}">
         <settingsViews:SettingsView/>
+    </DataTemplate>
+
+    <!-- Phase 13 (docs/17 sections 4.6 and 4.10): «Configurar proyecto» (the configurator of seven steps) and «Herramientas». -->
+    <DataTemplate DataType="{x:Type setup:SetupDocumentViewModel}">
+        <setupViews:SetupView DataContext="{Binding Setup}"/>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type tools:ToolsDocumentViewModel}">
+        <toolsViews:ToolsView DataContext="{Binding Tools}"/>
     </DataTemplate>
 </ResourceDictionary>

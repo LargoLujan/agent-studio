@@ -678,8 +678,8 @@ empaquetado) y WP4 (la herramienta MCP y «Memoria»). Cada uno pasó una revisi
 El diseño, los paquetes y los criterios (F13-1 a F13-20) están en [17](17-constructor-visual-de-agentes.md), §9 y §11, con
 las decisiones de §12 tomadas el 2026-11-06; ADR 0048–0054.
 
-**Estado a 2026-11-09 (tanda 1 integrada en la rama `fase13-integracion`, sin publicar).** Los cimientos (P0) y los
-paquetes WP1 a WP5, cada uno con su revisión independiente y sus arreglos:
+**Estado a 2026-11-09.** La tanda 1 está en `main` (PR #41). La tanda 2 está integrada en la rama `fase13-tanda2`, sin
+publicar. **Tanda 1:** los cimientos (P0) y los paquetes WP1 a WP5, cada uno con su revisión independiente y sus arreglos:
 
 - **WP1:** el analizador del montaje y el orden, «Revisar el orden» y el chat de preparación ([ADR-0049](adr/0049-analizador-del-montaje-y-orden.md)).
 - **WP2:** el catálogo de modelos, lo aprendido del registro y el estimador de uso ([ADR-0050](adr/0050-modelos-y-potencia.md)).
@@ -689,9 +689,27 @@ paquetes WP1 a WP5, cada uno con su revisión independiente y sus arreglos:
 
 La integración conecta el estimador con las preguntas, registra los servicios nuevos, aplica el idioma al arrancar y lo
 deja elegir en Ajustes, quita los secretos de las preguntas del orquestador y comparte un solo registro de OK gastados.
-Falta la tanda 2 (WP6 lienzo, WP7 configurador y WP8 monitor, ventana de la pregunta y paneles), sus pruebas de
-integración y una ejecución real con una pregunta y una entrega con Hello. El interruptor de movimiento reducido llega con
-la tanda 2, que trae las animaciones; residuales en [18](18-peticiones-y-pendientes.md) P42 y P46.
+**Tanda 2**, cada paquete con su revisión independiente y sus arreglos:
+
+- **WP6:** el lienzo con las capas Equipo y Plan, la tira, el nodo del repositorio sin credenciales, el inspector, el
+  analizador en vivo que falla cerrado, «Revisar el orden», el chat y «Reducir movimiento» ([ADR-0048](adr/0048-constructor-visual-equipo-y-plan.md)).
+- **WP7:** el configurador de siete pasos y los perfiles de verificación de Node y Python, aislados
+  ([ADR-0055](adr/0055-configurador-por-proyecto.md)).
+- **WP8:** el monitor con el estado vivo, la ventana de la pregunta, el análisis del consumo, los paneles «Problemas»,
+  «Salida» y «Pruebas», y «Herramientas».
+
+La integración de la tanda 2 conecta todo en la app:
+- el lienzo con sus servicios y el monitor con sus fuentes;
+- las preguntas del agente y del planificador, con su aviso en la bandeja;
+- «Agentes», «Herramientas» y «Pruebas», las pestañas de abajo y el contador;
+- el configurador, cuyas opciones aplican ya las ejecuciones.
+
+Las pruebas de integración de `Integration/Phase13` (la pregunta con reinicio, el juez, la inyección y la barrera con los
+ajustes manipulados) pasan. Suite: 8795 correctas y 1 omitida, en Debug y en Release.
+
+Falta la demostración en vivo con tu OK: una ejecución corta con una pregunta real y la entrega con Hello. F13-7 se mide
+fuera del CI (`Measurement`): el monitor completo da unos 25 ms de mediana y el lienzo unos 45 ms, con picos de unos
+110 ms. Residuales en [18](18-peticiones-y-pendientes.md) P42 y de P46 a P53.
 
 ## Fuera de alcance hasta nuevo aviso
 

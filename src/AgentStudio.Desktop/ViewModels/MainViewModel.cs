@@ -16,6 +16,8 @@ using AgentStudio.Desktop.Orchestrator.Monitor;
 using AgentStudio.Desktop.Orchestrator.Session;
 using AgentStudio.Desktop.Services;
 using AgentStudio.Desktop.Settings;
+using AgentStudio.Desktop.Setup;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Skills;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Orchestration.Engine;
@@ -31,6 +33,9 @@ public static class PanelIds
     public const string AutoDoctor = "panel:autodoctor";
     public const string Journal = "panel:journal";
     public const string Terminal = "panel:terminal";
+    public const string Problems = "panel:problems";
+    public const string Output = "panel:output";
+    public const string Tests = "panel:tests";
 }
 
 /// <summary>State of the IDE shell: project, documents, panels, recents and the provider summary.</summary>
@@ -133,6 +138,9 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
     /// The context windows each project learned (P36), which every monitor judges the live context with; without it, the base
     /// table alone.
     /// </param>
+    /// <param name="monitors">What the monitors the shell creates for itself are given (docs/04 section 21.10); without it they have none of it.</param>
+    /// <param name="setup">Creates the configurator of a project (docs/17 section 4.6); without it «Configurar proyecto» is not offered.</param>
+    /// <param name="setupSuggestions">Which projects the configurator was already suggested for; without it nothing is suggested.</param>
     public MainViewModel(
         IAppSettingsStore settingsStore,
         IFolderPicker folderPicker,
@@ -152,7 +160,10 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         IConsentedResumes? resumes = null,
         SettingsDocumentViewModel? settingsDocument = null,
         StatusStripViewModel? statusStrip = null,
-        ContextWindowCatalogs? contextWindows = null)
+        ContextWindowCatalogs? contextWindows = null,
+        MonitorServices? monitors = null,
+        SetupViewModelFactory? setup = null,
+        SetupSuggestions? setupSuggestions = null)
     {
         ArgumentNullException.ThrowIfNull(settingsStore);
         ArgumentNullException.ThrowIfNull(folderPicker);
@@ -205,7 +216,9 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         [
             new("explorer", "Explorador", "", null, PanelIds.Explorer, TogglePanelCommand),
             new("orchestrator", "Orquestador", "\uE9F5", null, null, OpenOrchestratorCommand),
+            .. AgentActivities(),
             new("skills", "Skills", "", null, null, OpenSkillsCommand),
+            .. BuilderToolActivities(),
             .. ObservabilityActivities(),
             .. DebateActivities(),
             new("terminal", "Terminal", "", null, PanelIds.Terminal, TogglePanelCommand) { Shortcut = TerminalShortcutHint },
@@ -213,6 +226,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
             new("history", "Historial · bitácora", "", null, PanelIds.Journal, TogglePanelCommand),
             .. SettingsActivities(),
         ];
+        InitializeBuilderShell(monitors, setup, setupSuggestions);
     }
 
     public ProviderDiagnosticsViewModel Diagnostics { get; }
@@ -329,8 +343,12 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
     }
 
     /// <summary>The welcome tab follows the open project: with one, it offers the ways into it.</summary>
-    partial void OnProjectPathChanged(string? value) =>
+    partial void OnProjectPathChanged(string? value)
+    {
         _welcome?.ShowProject(value is null ? null : ProjectName, value is null ? null : ProjectPathDisplay);
+        ShowSetupSuggestion(value);
+        AttachPanels();
+    }
 
     /// <summary>Transient message for the status bar (errors opening a project or file).</summary>
     [ObservableProperty]
@@ -400,6 +418,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         {
             _welcome = new WelcomeDocumentViewModel(RecentProjects, OpenFolderCommand, OpenRecentCommand, WelcomeActions());
             _welcome.ShowProject(HasProject ? ProjectName : null, HasProject ? ProjectPathDisplay : null);
+            ShowSetupSuggestion(ProjectPath);
         }
 
         AddDocument(_welcome);
@@ -431,6 +450,11 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         if (_memory is not null)
         {
             actions.Add(new("Memoria", "Lo que el proyecto aprende de sus ejecuciones y llega a los agentes.", null, OpenMemoryCommand));
+        }
+
+        if (_setupFactory is not null)
+        {
+            actions.Add(new(Texts.Get("Shell_Setup_Action"), Texts.Get("Shell_Setup_ActionHelp"), null, OpenSetupCommand));
         }
 
         actions.Add(new("Terminal", "Muestra u oculta el terminal, abierto en la carpeta del proyecto.", TerminalShortcut, ToggleTerminalCommand));
@@ -583,6 +607,11 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         document.Monitor.PropertyChanged += OnMonitorPropertyChanged;
         document.Monitor.Finished += (_, _) => OnRunFinished(document.ProjectRoot);
         document.RunHandedOff += OnRunHandedOff;
+        document.ConfigureProjectRequested += OnConfigureProjectRequested;
+        if (SameProject(document.ProjectRoot, ProjectPath))
+        {
+            AttachPanels();
+        }
 
         // The live bars (docs/18 P3 and P36): the status bar follows this monitor and the planning of this document (V33), and
         // its attempts are judged with the windows the project learned.
@@ -1014,6 +1043,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
     private void FollowInBackground(string root, ProjectContext project, IOrchestrationRun run, bool? resumeConsent)
     {
         var monitor = new RunMonitorViewModel(TimeProvider.System, _ui);
+        EquipBackgroundMonitor(monitor);
         if (_usage is not null)
         {
             monitor.ContextThresholds = _usage.Preferences.Thresholds;
@@ -1090,6 +1120,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         if (document is OrchestratorDocumentViewModel orchestrator)
         {
             // Its tab is open again: the status bar follows its run and its planning (they were let go when it closed).
+            orchestrator.OnTabReopened();
             StatusStrip.Track(orchestrator.Monitor);
             StatusStrip.TrackPlanning(orchestrator);
         }

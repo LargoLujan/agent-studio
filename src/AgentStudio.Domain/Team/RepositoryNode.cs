@@ -35,30 +35,51 @@ public sealed record RepositoryRemote
     /// <exception cref="ArgumentException">A blank name or URL.</exception>
     public static RepositoryRemote Cleaned(string name, string url) => new(name, WithoutCredentials(url));
 
-    /// <summary>Whether <paramref name="url"/> carries user information after its scheme (<c>scheme://…@host</c>).</summary>
-    public static bool HasCredentials(string? url) => url is not null && UserInfoRange(url) is not null;
+    /// <summary>Whether <paramref name="url"/> carries user information, a query or a fragment: whether <see cref="WithoutCredentials"/> would change it.</summary>
+    public static bool HasCredentials(string? url) => url is not null && !string.Equals(WithoutCredentials(url), url, StringComparison.Ordinal);
 
-    /// <summary><paramref name="url"/> without the user information after its scheme; any other URL as it is.</summary>
+    /// <summary>
+    /// <paramref name="url"/> without anything that can carry a secret: the user information (<c>scheme://user:pass@host</c>, and the
+    /// short form <c>user@host:path</c> of ssh too), the whole query and the fragment (<c>?token=…</c>, <c>#…</c>). The authority
+    /// is taken up to the first <c>/</c> and its user information up to the last <c>@</c> of it, so a password with a <c>?</c> or a
+    /// <c>#</c> in it goes entirely. A path on this computer is left as it is.
+    /// </summary>
     public static string WithoutCredentials(string url)
     {
         ArgumentNullException.ThrowIfNull(url);
-        return UserInfoRange(url) is { } range ? string.Concat(url.AsSpan(0, range.Start), url.AsSpan(range.End + 1)) : url;
-    }
-
-    /// <summary>Where the user information of a URL with a scheme is, up to and including its <c>@</c>; null when it has none.</summary>
-    private static (int Start, int End)? UserInfoRange(string url)
-    {
         var scheme = url.IndexOf("://", StringComparison.Ordinal);
-        if (scheme <= 0)
+        if (scheme > 0)
         {
-            return null;
+            var rest = url[(scheme + 3)..];
+            var slash = rest.IndexOf('/', StringComparison.Ordinal);
+            var authority = slash < 0 ? rest : rest[..slash];
+            var path = slash < 0 ? string.Empty : rest[slash..];
+            authority = authority[(authority.LastIndexOf('@') + 1)..];
+            if (slash < 0)
+            {
+                authority = CutQuery(authority);
+            }
+
+            return url[..(scheme + 3)] + authority + CutQuery(path);
         }
 
-        var start = scheme + 3;
-        var authorityEnd = url.IndexOfAny(['/', '?', '#'], start);
-        var authority = authorityEnd < 0 ? url[start..] : url[start..authorityEnd];
-        var at = authority.LastIndexOf('@');
-        return at < 0 ? null : (start, start + at);
+        // The short form of ssh: user@host:path.
+        var colon = url.IndexOf(':', StringComparison.Ordinal);
+        var firstSlash = url.IndexOf('/', StringComparison.Ordinal);
+        var hostEnd = colon >= 0 && (firstSlash < 0 || colon < firstSlash) ? colon : -1;
+        if (hostEnd > 0 && url[..hostEnd].Contains('@', StringComparison.Ordinal))
+        {
+            var host = url[..hostEnd];
+            return host[(host.LastIndexOf('@') + 1)..] + CutQuery(url[hostEnd..]);
+        }
+
+        return url;
+    }
+
+    private static string CutQuery(string text)
+    {
+        var cut = text.IndexOfAny(['?', '#']);
+        return cut < 0 ? text : text[..cut];
     }
 }
 

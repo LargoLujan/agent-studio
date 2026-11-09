@@ -1,6 +1,7 @@
 using AgentStudio.Desktop.Background;
 using AgentStudio.Desktop.Lock;
 using AgentStudio.Desktop.Observability;
+using AgentStudio.Desktop.Orchestrator.Monitor;
 using AgentStudio.Desktop.Orchestrator.Session;
 using AgentStudio.Desktop.Services;
 using AgentStudio.Desktop.Settings;
@@ -78,12 +79,14 @@ public sealed class UnattendedShell : IDisposable
             }
         }
 
+        IDisposable? attention = null;
         UnattendedSettingsViewModel? unattended = null;
         LockSettingsViewModel? lockSettings = null;
         ObservabilitySettingsViewModel? panels = null;
         SettingsDocumentViewModel? settingsDocument = null;
         void Unsubscribe()
         {
+            attention?.Dispose();
             if (unattended is not null)
             {
                 unattended.Saved -= OnSettingsSaved;
@@ -110,6 +113,12 @@ public sealed class UnattendedShell : IDisposable
             // The icon first: only a background that is up gets the close of the window.
             background.Start();
             window.AttachBackground(background, settings);
+
+            // An agent asks something and the app is out of view or locked: the tray says so, with nothing of the project (D-41).
+            if (services.GetService<MonitorServices>() is { } monitors)
+            {
+                attention = background.Tray.FollowAttention(monitors);
+            }
 
             unattended = services.GetService<UnattendedSettingsViewModel>();
             if (unattended is not null)

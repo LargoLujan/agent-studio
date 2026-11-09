@@ -7,6 +7,8 @@
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:WelcomeDocumentViewModel}">
     <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="Welcome.BoolToVisibility"/>
+
         <!-- A row of a list that is a button. GhostButton centres its content; a row keeps it to the left, across the row. -->
         <Style x:Key="ListRowButton" TargetType="Button" BasedOn="{StaticResource GhostButton}">
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
@@ -71,6 +73,9 @@
                 <TextBlock Style="{StaticResource SecondaryText}" FontFamily="{StaticResource MonoFont}" TextTrimming="CharacterEllipsis"
                            Text="{Binding ProjectPathDisplay}"/>
 
+                <TextBlock Style="{StaticResource SecondaryText}" Margin="0,16,0,0" TextWrapping="Wrap" Text="{Binding SetupSuggestion}"
+                           Visibility="{Binding HasSetupSuggestion, Converter={StaticResource Welcome.BoolToVisibility}}"
+                           AutomationProperties.LiveSetting="Polite"/>
                 <TextBlock Style="{StaticResource SectionTitleText}" Margin="0,28,0,12" Text="En este proyecto"/>
                 <ItemsControl x:Name="ProjectActionsList" ItemsSource="{Binding ProjectActions}" Focusable="False">
                     <ItemsControl.ItemTemplate>

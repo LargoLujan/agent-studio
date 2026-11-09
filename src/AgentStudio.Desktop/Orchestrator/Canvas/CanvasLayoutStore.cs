@@ -15,6 +15,12 @@ namespace AgentStudio.Desktop.Orchestrator.Canvas;
 public sealed record CanvasLayout(IReadOnlyDictionary<string, Point> Positions)
 {
     public static CanvasLayout Empty { get; } = new(new Dictionary<string, Point>(StringComparer.Ordinal));
+
+    /// <summary>
+    /// Where the nodes of the Team layer were last placed (docs/17 D-08, layout version 2), by agent id and <c>repository</c>
+    /// for the node of the repository. <see cref="Positions"/> are the Plan layer's: a version 1 file has only those.
+    /// </summary>
+    public IReadOnlyDictionary<string, Point> TeamPositions { get; init; } = new Dictionary<string, Point>(StringComparer.Ordinal);
 }
 
 /// <summary>Stores the canvas layout of each project.</summary>
@@ -47,7 +53,8 @@ public sealed class FileCanvasLayoutStore(IProjectStorageFiles files) : ICanvasL
 {
     public const string FileName = "canvas-layout.json";
 
-    private const int CurrentVersion = 1;
+    /// <summary>Version 2 (docs/17 D-08): <c>{version:2, plan:{…}, team:{…}}</c>. Version 1 (<c>nodes</c>) is read as the Plan layer.</summary>
+    private const int CurrentVersion = 2;
 
     private const string Damaged = "no se puede leer: está dañado o incompleto";
 
@@ -71,13 +78,20 @@ public sealed class FileCanvasLayoutStore(IProjectStorageFiles files) : ICanvasL
 
     public CanvasLayout Load(string projectRoot)
     {
-        if (Read(projectRoot, out _) is not { Nodes: { } nodes })
+        if (Read(projectRoot, out _) is not { } stored)
         {
             return CanvasLayout.Empty;
         }
 
+        var plan = Positions(stored.Plan);
+        var team = Positions(stored.Team);
+        return plan.Count == 0 && team.Count == 0 ? CanvasLayout.Empty : new CanvasLayout(plan) { TeamPositions = team };
+    }
+
+    private static Dictionary<string, Point> Positions(Dictionary<string, LayoutPoint?>? nodes)
+    {
         var positions = new Dictionary<string, Point>(StringComparer.Ordinal);
-        foreach (var (id, point) in nodes)
+        foreach (var (id, point) in nodes ?? [])
         {
             if (!string.IsNullOrWhiteSpace(id) && point is not null && double.IsFinite(point.X) && double.IsFinite(point.Y))
             {
@@ -85,17 +99,19 @@ public sealed class FileCanvasLayoutStore(IProjectStorageFiles files) : ICanvasL
             }
         }
 
-        return new CanvasLayout(positions);
+        return positions;
     }
+
+    private static Dictionary<string, LayoutPoint?> Written(IReadOnlyDictionary<string, Point> positions) =>
+        positions
+            .Where(p => double.IsFinite(p.Value.X) && double.IsFinite(p.Value.Y))
+            .OrderBy(p => p.Key, StringComparer.Ordinal)
+            .ToDictionary(p => p.Key, p => (LayoutPoint?)new LayoutPoint(p.Value.X, p.Value.Y), StringComparer.Ordinal);
 
     public void Save(string projectRoot, CanvasLayout layout)
     {
         ArgumentNullException.ThrowIfNull(layout);
-        var nodes = layout.Positions
-            .Where(p => double.IsFinite(p.Value.X) && double.IsFinite(p.Value.Y))
-            .OrderBy(p => p.Key, StringComparer.Ordinal)
-            .ToDictionary(p => p.Key, p => (LayoutPoint?)new LayoutPoint(p.Value.X, p.Value.Y), StringComparer.Ordinal);
-        Write(projectRoot, new LayoutFile(CurrentVersion, nodes, Read(projectRoot, out _)?.Draft));
+        Write(projectRoot, new LayoutFile(CurrentVersion, null, Read(projectRoot, out _)?.Draft, Written(layout.Positions), Written(layout.TeamPositions)));
     }
 
     public DraftReading ReadDraft(string projectRoot)
@@ -133,7 +149,7 @@ public sealed class FileCanvasLayoutStore(IProjectStorageFiles files) : ICanvasL
     {
         var stored = Read(projectRoot, out _);
         JsonElement? saved = draft is null || draft.IsEmpty ? null : JsonSerializer.SerializeToElement(DraftJson.From(draft, OwnerOf(projectRoot)), Json);
-        Write(projectRoot, new LayoutFile(CurrentVersion, stored?.Nodes ?? [], saved));
+        Write(projectRoot, new LayoutFile(CurrentVersion, null, saved, stored?.Plan ?? [], stored?.Team ?? []));
     }
 
     /// <summary>
@@ -166,7 +182,13 @@ public sealed class FileCanvasLayoutStore(IProjectStorageFiles files) : ICanvasL
                 return null;
             }
 
-            return JsonSerializer.Deserialize<LayoutFile>(File.ReadAllText(file), Json) is { Version: CurrentVersion } stored ? stored : null;
+            return JsonSerializer.Deserialize<LayoutFile>(File.ReadAllText(file), Json) switch
+            {
+                // Version 1 has only the Plan layer, under «nodes»: it is read as the Plan layer of version 2.
+                { Version: 1 } old => old with { Nodes = null, Plan = old.Nodes },
+                { Version: CurrentVersion } stored => stored,
+                _ => null,
+            };
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException or NotSupportedException)
         {
@@ -180,7 +202,12 @@ public sealed class FileCanvasLayoutStore(IProjectStorageFiles files) : ICanvasL
     private static bool TooLong(string? text) => text is { Length: > PlanDraftLimits.MaxText };
 
     /// <summary>The file: its version, the positions by task id and, kept as it is until it is read, the draft.</summary>
-    private sealed record LayoutFile(int Version, Dictionary<string, LayoutPoint?>? Nodes, JsonElement? Draft = null);
+    private sealed record LayoutFile(
+        int Version,
+        Dictionary<string, LayoutPoint?>? Nodes,
+        JsonElement? Draft = null,
+        Dictionary<string, LayoutPoint?>? Plan = null,
+        Dictionary<string, LayoutPoint?>? Team = null);
 
     private sealed record LayoutPoint(double X, double Y);
 

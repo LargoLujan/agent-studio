@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the Panels area in English: the same keys and placeholders as PanelsStrings.resx. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Panels_Problems_Title" xml:space="preserve">
+    <value>Problems</value>
+  </data>
+  <data name="Panels_Problems_Graph" xml:space="preserve">
+    <value>The graph of the plan</value>
+  </data>
+  <data name="Panels_Problems_Code" xml:space="preserve">
+    <value>Montage notice ({0})</value>
+  </data>
+  <data name="Panels_Problems_EndClass" xml:space="preserve">
+    <value>The attempt ended like this: {0}.</value>
+  </data>
+  <data name="Panels_Problems_TaskFailed" xml:space="preserve">
+    <value>The task "{0}" failed.</value>
+  </data>
+  <data name="Panels_Problems_TaskBlocked" xml:space="preserve">
+    <value>The task "{0}" is blocked.</value>
+  </data>
+  <data name="Panels_Problems_None" xml:space="preserve">
+    <value>No problems.</value>
+  </data>
+  <data name="Panels_Problems_Summary" xml:space="preserve">
+    <value>Problems: {0} (errors: {1}, warnings: {2}, information: {3})</value>
+  </data>
+  <data name="Panels_Severity_Error" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="Panels_Severity_Warning" xml:space="preserve">
+    <value>Warning</value>
+  </data>
+  <data name="Panels_Severity_Info" xml:space="preserve">
+    <value>Information</value>
+  </data>
+  <data name="Panels_EndClass_Completed" xml:space="preserve">
+    <value>it completed</value>
+  </data>
+  <data name="Panels_EndClass_WindowQuota" xml:space="preserve">
+    <value>the usage limit of the window ran out</value>
+  </data>
+  <data name="Panels_EndClass_RateOrOverload" xml:space="preserve">
+    <value>the service was overloaded or limited the rate</value>
+  </data>
+  <data name="Panels_EndClass_ContextExhausted" xml:space="preserve">
+    <value>the working memory of the model filled up</value>
+  </data>
+  <data name="Panels_EndClass_Network" xml:space="preserve">
+    <value>the connection failed</value>
+  </data>
+  <data name="Panels_EndClass_SignedOut" xml:space="preserve">
+    <value>the session of the program was signed out</value>
+  </data>
+  <data name="Panels_EndClass_AttemptBudget" xml:space="preserve">
+    <value>it reached the maximum of turns, cost or time</value>
+  </data>
+  <data name="Panels_EndClass_Interrupted" xml:space="preserve">
+    <value>it was interrupted</value>
+  </data>
+  <data name="Panels_EndClass_Cancelled" xml:space="preserve">
+    <value>it was cancelled</value>
+  </data>
+  <data name="Panels_EndClass_Other" xml:space="preserve">
+    <value>it ended with another error</value>
+  </data>
+  <data name="Panels_Output_Title" xml:space="preserve">
+    <value>Output</value>
+  </data>
+  <data name="Panels_Output_Run" xml:space="preserve">
+    <value>Output of the run</value>
+  </data>
+  <data name="Panels_Output_Task" xml:space="preserve">
+    <value>Output of the task {0}</value>
+  </data>
+  <data name="Panels_Output_Agent" xml:space="preserve">
+    <value>Output of the agent {0}</value>
+  </data>
+  <data name="Panels_Output_Empty" xml:space="preserve">
+    <value>There is no activity to show yet.</value>
+  </data>
+  <data name="Panels_Output_AgentText" xml:space="preserve">
+    <value>What appears here was written by the agents: it is their text, not messages of the system. It is shown without control characters.</value>
+  </data>
+  <data name="Panels_Tests_Title" xml:space="preserve">
+    <value>Tests</value>
+  </data>
+  <data name="Panels_Tests_None" xml:space="preserve">
+    <value>There are no tests to show yet.</value>
+  </data>
+  <data name="Panels_Tests_AllPassed" xml:space="preserve">
+    <value>{0} verifications, all passed.</value>
+  </data>
+  <data name="Panels_Tests_SomeFailed" xml:space="preserve">
+    <value>{0} verifications, {1} with failures.</value>
+  </data>
+  <data name="Panels_Tests_NoCounters" xml:space="preserve">
+    <value>no test counters</value>
+  </data>
+  <data name="Panels_Tests_Counters" xml:space="preserve">
+    <value>{0} passed · {1} failed · {2} skipped · exit code {3}</value>
+  </data>
+  <data name="Panels_Tests_Captured" xml:space="preserve">
+    <value>captured</value>
+  </data>
+  <data name="Panels_Tests_Failed" xml:space="preserve">
+    <value>failed</value>
+  </data>
+  <data name="Panels_Tests_Passed" xml:space="preserve">
+    <value>passed</value>
+  </data>
+  <data name="Panels_Tests_RunHead" xml:space="preserve">
+    <value>Run the tests of HEAD</value>
+  </data>
+  <data name="Panels_Tests_RunHeadHint" xml:space="preserve">
+    <value>Runs the verification profile in an isolated copy of the latest saved version. It spends no quota.</value>
+  </data>
+  <data name="Panels_Tests_Running" xml:space="preserve">
+    <value>Running the tests…</value>
+  </data>
+  <data name="Panels_Tests_HeadTitle" xml:space="preserve">
+    <value>Tests of HEAD</value>
+  </data>
+  <data name="Panels_Tests_HeadNone" xml:space="preserve">
+    <value>The profile has no steps to run.</value>
+  </data>
+  <data name="Panels_Tests_HeadPassed" xml:space="preserve">
+    <value>The tests of HEAD pass.</value>
+  </data>
+  <data name="Panels_Tests_HeadFailed" xml:space="preserve">
+    <value>{0} steps of the tests of HEAD fail.</value>
+  </data>
+  <data name="Panels_Tests_HeadError" xml:space="preserve">
+    <value>The tests of HEAD could not be run: {0}</value>
+  </data>
+  <data name="Panels_Tests_TaskError" xml:space="preserve">
+    <value>{0}: {1} (the main error line of the task; the log does not keep one per test)</value>
+  </data>
+  <data name="Panels_Tests_Cancel" xml:space="preserve">
+    <value>Cancel the tests</value>
+  </data>
+  <data name="Panels_Tests_HeadCancelled" xml:space="preserve">
+    <value>You cancelled the tests of HEAD.</value>
+  </data>
+  <data name="Info_Problems_Title" xml:space="preserve">
+    <value>Problems</value>
+  </data>
+  <data name="Info_Problems_What" xml:space="preserve">
+    <value>Gathers what the analyzer and the validator see in your montage, and why each task of the run failed or is blocked.</value>
+  </data>
+  <data name="Info_Problems_Actions" xml:space="preserve">
+    <value>Look at the errors first.
+Select a line to see its detail.
+Fix the montage or retry the task from the monitor.</value>
+  </data>
+  <data name="Info_Output_Title" xml:space="preserve">
+    <value>Output</value>
+  </data>
+  <data name="Info_Output_What" xml:space="preserve">
+    <value>Shows live what the task or the agent you selected does. If you select nothing, it shows the whole run.</value>
+  </data>
+  <data name="Info_Output_Actions" xml:space="preserve">
+    <value>Select a task or an agent on the canvas.
+Read the last thing it did.
+Go back to the whole run by clearing the selection.</value>
+  </data>
+  <data name="Info_Tests_Title" xml:space="preserve">
+    <value>Tests</value>
+  </data>
+  <data name="Info_Tests_What" xml:space="preserve">
+    <value>Shows the verifications the system made: which step it was, how many tests passed and which failed. No agent writes them.</value>
+  </data>
+  <data name="Info_Tests_Actions" xml:space="preserve">
+    <value>See which step failed and its main error.
+Run the tests of HEAD: it spends no quota.
+Go back to the monitor to retry the task.</value>
+  </data>
+  <data name="Tools_Title" xml:space="preserve">
+    <value>Tools</value>
+  </data>
+  <data name="Tools_Empty" xml:space="preserve">
+    <value>There are no agents in the template yet.</value>
+  </data>
+  <data name="Tools_Group_Claude" xml:space="preserve">
+    <value>Claude Code: built-in tools</value>
+  </data>
+  <data name="Tools_Group_ClaudeNote" xml:space="preserve">
+    <value>Each Claude Code agent only has the ones its launch gives it; the ones that write or run commands only go in tasks that write.</value>
+  </data>
+  <data name="Tools_Group_Codex" xml:space="preserve">
+    <value>Codex: sandbox</value>
+  </data>
+  <data name="Tools_Group_CodexNote" xml:space="preserve">
+    <value>Codex has no list of tools: its sandbox decides.</value>
+  </data>
+  <data name="Tools_Group_Steps" xml:space="preserve">
+    <value>Steps of the verification profile ({0})</value>
+  </data>
+  <data name="Tools_Group_StepsNote" xml:space="preserve">
+    <value>Each step can be used as a tool task of the plan.</value>
+  </data>
+  <data name="Tools_Group_Mcp" xml:space="preserve">
+    <value>Tools of Agent Studio</value>
+  </data>
+  <data name="Tools_Group_McpNote" xml:space="preserve">
+    <value>A local read-only server, without network. Each tool says where it is allowed.</value>
+  </data>
+  <data name="Tools_Tool_Read" xml:space="preserve">
+    <value>Read files of the isolated working copy.</value>
+  </data>
+  <data name="Tools_Tool_Grep" xml:space="preserve">
+    <value>Search for text inside the files of the working copy.</value>
+  </data>
+  <data name="Tools_Tool_Glob" xml:space="preserve">
+    <value>Find files by name in the working copy.</value>
+  </data>
+  <data name="Tools_Tool_Edit" xml:space="preserve">
+    <value>Change files of the isolated working copy.</value>
+  </data>
+  <data name="Tools_Tool_Write" xml:space="preserve">
+    <value>Create files in the isolated working copy.</value>
+  </data>
+  <data name="Tools_Tool_Bash" xml:space="preserve">
+    <value>Run commands of the shell.</value>
+  </data>
+  <data name="Tools_Tool_WebFetch" xml:space="preserve">
+    <value>Download a page from the internet.</value>
+  </data>
+  <data name="Tools_Tool_WebSearch" xml:space="preserve">
+    <value>Search the internet.</value>
+  </data>
+  <data name="Tools_Codex_ReadOnly" xml:space="preserve">
+    <value>Read-only sandbox: the agent reads, it does not write.</value>
+  </data>
+  <data name="Tools_Codex_WorkspaceWrite" xml:space="preserve">
+    <value>Sandbox with writing in the working copy, without leaving it.</value>
+  </data>
+  <data name="Tools_Codex_Network" xml:space="preserve">
+    <value>Network from the sandbox.</value>
+  </data>
+  <data name="Tools_Risk_Low" xml:space="preserve">
+    <value>It only reads</value>
+  </data>
+  <data name="Tools_Risk_Medium" xml:space="preserve">
+    <value>It writes in the isolated copy or runs a step of the profile</value>
+  </data>
+  <data name="Tools_Risk_High" xml:space="preserve">
+    <value>It runs commands or reaches the internet</value>
+  </data>
+  <data name="Tools_Hello_Yes" xml:space="preserve">
+    <value>Giving it asks Windows Hello</value>
+  </data>
+  <data name="Tools_Hello_No" xml:space="preserve">
+    <value>Giving it does not ask Windows Hello</value>
+  </data>
+  <data name="Tools_Hello_Profile" xml:space="preserve">
+    <value>Changing the profile asks Windows Hello</value>
+  </data>
+  <data name="Tools_OnlyWriting" xml:space="preserve">
+    <value>{0} (only in tasks that write)</value>
+  </data>
+  <data name="Tools_NoAgents" xml:space="preserve">
+    <value>No agent has it.</value>
+  </data>
+  <data name="Tools_Agents" xml:space="preserve">
+    <value>Who has it: {0}</value>
+  </data>
+  <data name="Tools_GiveToAgent" xml:space="preserve">
+    <value>Give to an agent…</value>
+  </data>
+  <data name="Tools_GiveName" xml:space="preserve">
+    <value>Give {0} to an agent</value>
+  </data>
+  <data name="Tools_Step_Description" xml:space="preserve">
+    <value>{0}: {1} ({2})</value>
+  </data>
+  <data name="Tools_Step_Isolation_None" xml:space="preserve">
+    <value>not isolated</value>
+  </data>
+  <data name="Tools_Step_Isolation_LowIntegrity" xml:space="preserve">
+    <value>in a low integrity sandbox</value>
+  </data>
+  <data name="Tools_Step_Use" xml:space="preserve">
+    <value>Use it as a tool task in the plan.</value>
+  </data>
+  <data name="Tools_Mcp_SearchSkills" xml:space="preserve">
+    <value>Search the skills of the local catalog.</value>
+  </data>
+  <data name="Tools_Mcp_RecommendSkills" xml:space="preserve">
+    <value>Recommend skills for a task.</value>
+  </data>
+  <data name="Tools_Mcp_SearchHistory" xml:space="preserve">
+    <value>Search the anchored history of the project.</value>
+  </data>
+  <data name="Tools_Mcp_SkillsWhere" xml:space="preserve">
+    <value>Only in the recommendation with an agent, with your OK.</value>
+  </data>
+  <data name="Tools_Mcp_HistoryWhere" xml:space="preserve">
+    <value>Only in the orchestrator that plans, and only if the project has a trusted history.</value>
+  </data>
+  <data name="Info_Tools_Title" xml:space="preserve">
+    <value>Tools</value>
+  </data>
+  <data name="Info_Tools_What" xml:space="preserve">
+    <value>What each agent can use and with what risk. It is worked out the same way as the real launch: what you see is what the agent will have.</value>
+  </data>
+  <data name="Info_Tools_Actions" xml:space="preserve">
+    <value>See which agent has each tool.
+Note the ones that ask Windows Hello.
+Press "Give to an agent…" to go to its card: the change is approved as always.</value>
+  </data>
+</root>

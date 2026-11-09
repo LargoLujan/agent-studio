@@ -46,6 +46,16 @@ public sealed partial class WelcomeDocumentViewModel : DocumentViewModel
 
     public bool HasProject => ProjectName is not null;
 
+    /// <summary>
+    /// The text that suggests setting the project up, the first time it is opened (docs/04 section 21.9); null when there is nothing to
+    /// suggest. It is only said: the configurator never opens by itself.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasSetupSuggestion))]
+    private string? _setupSuggestion;
+
+    public bool HasSetupSuggestion => SetupSuggestion is not null;
+
     /// <summary>The shell opened another project, or none (both null).</summary>
     public void ShowProject(string? name, string? pathDisplay)
     {

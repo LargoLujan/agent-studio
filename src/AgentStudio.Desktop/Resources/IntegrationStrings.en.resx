@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the Integration area in English: the same keys and placeholders as IntegrationStrings.resx. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Shell_Activity_Agents" xml:space="preserve">
+    <value>Agents</value>
+  </data>
+  <data name="Shell_Activity_AgentsHelp" xml:space="preserve">
+    <value>Opens the orchestrator on the Team layer, where agents are added, configured and removed.</value>
+  </data>
+  <data name="Shell_Activity_Tests" xml:space="preserve">
+    <value>Tests</value>
+  </data>
+  <data name="Shell_Activity_Tools" xml:space="preserve">
+    <value>Tools</value>
+  </data>
+  <data name="Shell_Counter_Name" xml:space="preserve">
+    <value>Agents of the run in progress</value>
+  </data>
+  <data name="Shell_Setup_Action" xml:space="preserve">
+    <value>Set up the project</value>
+  </data>
+  <data name="Shell_Setup_ActionHelp" xml:space="preserve">
+    <value>Prepares the project step by step: the brief, the team, the models, the tests, the skills and the budget. Nothing is written until you apply.</value>
+  </data>
+  <data name="Shell_Setup_Title" xml:space="preserve">
+    <value>Set up the project · {0}</value>
+  </data>
+  <data name="Shell_Setup_NoProject" xml:space="preserve">
+    <value>Open a project folder to set it up.</value>
+  </data>
+  <data name="Shell_Setup_Suggestion" xml:space="preserve">
+    <value>This is the first time you open this project: set it up step by step to start with the team, the tests and the budget you want. It never opens by itself.</value>
+  </data>
+  <data name="Shell_Setup_ReadAgainFailed" xml:space="preserve">
+    <value>The setup was applied, but the team could not be read again: {0}</value>
+  </data>
+  <data name="Shell_Planner_Questions" xml:space="preserve">
+    <value>The orchestrator asks you {0} question(s) before planning. Answer so that it prepares the plan.</value>
+  </data>
+  <data name="Shell_Planner_Answer" xml:space="preserve">
+    <value>Answer</value>
+  </data>
+  <data name="Shell_Planner_AnswerHelp" xml:space="preserve">
+    <value>Opens the windows of the questions of the orchestrator. When you answer them all, it asks for the plan again with your answers.</value>
+  </data>
+  <data name="Shell_Planner_Skipped" xml:space="preserve">
+    <value>The answers came when the tab was already busy with another plan or a run: the plan was not asked for again, and no quota was spent.</value>
+  </data>
+  <data name="Shell_Tools_Give" xml:space="preserve">
+    <value>Choose in the inspector of the Team layer the agent to give '{0}' to: the change is approved as always.</value>
+  </data>
+</root>

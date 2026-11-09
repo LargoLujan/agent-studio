@@ -2,6 +2,7 @@ using System.IO;
 using AgentStudio.Application.Providers;
 using AgentStudio.Desktop.Orchestrator;
 using AgentStudio.Desktop.Services;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.ViewModels;
 using CommunityToolkit.Mvvm.Input;
 
@@ -230,10 +231,18 @@ public sealed class MainViewModelTests
 
         var byId = vm.Activities.ToDictionary(a => a.Id);
 
-        Assert.Equal(["Explorador", "Orquestador", "Skills", "Terminal", "Auto Doctor", "Historial · bitácora"], vm.Activities.Select(a => a.Title));
+        // Phase 13: «Agentes» (the layer Team of the orchestrator), «Herramientas» (a screen) and «Pruebas» (the panel of tests).
+        Assert.Equal(
+            [
+                "Explorador", "Orquestador", Texts.Get("Shell_Activity_Agents"), "Skills", Texts.Get("Shell_Activity_Tools"), Texts.Get("Shell_Activity_Tests"),
+                "Terminal", "Auto Doctor", "Historial · bitácora",
+            ],
+            vm.Activities.Select(a => a.Title));
         Assert.All(vm.Activities, a => Assert.True(a.IsEnabled));
         Assert.All(vm.Activities, a => Assert.Null(a.AvailableInPhase));
-        Assert.DoesNotContain(vm.Activities, a => a.Id is "agents" or "tests");
+        Assert.Equal(PanelIds.Tests, byId["tests"].PanelId);
+        Assert.Null(byId["agents"].PanelId);
+        Assert.Null(byId["tools"].PanelId);
 
         // Phase 4 delivered the skills screen: it opens a tab, not a panel.
         Assert.Null(byId["skills"].PanelId);
@@ -256,7 +265,7 @@ public sealed class MainViewModelTests
             activity.Command.Execute(activity);
         }
 
-        Assert.Equal([PanelIds.Explorer, PanelIds.Terminal, PanelIds.AutoDoctor, PanelIds.Journal], requested);
+        Assert.Equal([PanelIds.Explorer, PanelIds.Tests, PanelIds.Terminal, PanelIds.AutoDoctor, PanelIds.Journal], requested);
         Assert.All(vm.Activities.Where(a => a.Shortcut is null), a => Assert.Equal(a.Title, a.ToolTip));
     }
 

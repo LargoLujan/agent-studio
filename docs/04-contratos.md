@@ -1713,3 +1713,187 @@ Lo que WP3 añade o cambia sobre lo de arriba ([ADR-0052](adr/0052-analisis-del-
   orden».
 - **En la composición:** `IOrderReview`, `IPreparationChat` e `IQuotaConsentLedger` como únicos (singleton), con la misma
   instancia del registro de OK para todos los servicios que lo piden.
+
+### 21.8 WP6: lienzo, capas, tira, inspector y preparación ([ADR-0048](adr/0048-constructor-visual-equipo-y-plan.md))
+
+Todo está en `Desktop`. Los servicios de las secciones 21.4 a 21.7 llegan al documento agrupados en un `BuilderServices`; ninguno
+es obligatorio, y un documento creado sin él (`builder: null`) es el de antes de la fase.
+
+| Pieza | Fichero | Qué es |
+|---|---|---|
+| `BuilderServices` (`OrderReview`, `Chat`, `Ledger`, `Catalog`, `Learning`, `Estimator`, `Repository`, `Live`, `Quota`, `Brief`) | `Orchestrator/Preparation/BuilderServices.cs` | Los puertos que lee el constructor, todos opcionales: lo que falta apaga solo lo que lo necesita. `OrchestratorDocumentViewModel(…, builder, reduceMotion)` los recibe al final de su constructor |
+| `CanvasLayer`, `CanvasViewModel.Team` y `CanvasLayout.TeamPositions` | `Orchestrator/Canvas/` | Las capas, y la disposición v2 (`{version:2, plan, team}`), que lee la v1 como la capa «Plan» |
+| `TeamCanvasViewModel`, `AgentNodeViewModel`, `RepositoryNodeViewModel`, `TeamConnectionViewModel` | `Orchestrator/Team/` | La capa Equipo y la tira: los nodos son la plantilla y los cables «Reparte», «Revisa» y «Trabaja en». No hay ningún tipo de la capa en `BuildTasks` ni en `DependsOn` |
+| `RepositoryReader`, `IRepositoryStateReader`, `RepositoryReading` | `Orchestrator/Team/RepositoryReader.cs` | El nodo del repositorio sin red: la rama, la versión y los cambios por `IWorktreeManager.InspectAsync`; los remotos, del texto de `.git/config` con `RepositoryRemote.Cleaned`, sin lanzar git |
+| `TeamEditorViewModel`, `NewAgentViewModel`, `AgentCapabilities`, `PresenceConfirmer` | `Orchestrator/Team/TeamEditorViewModel.cs` | Añadir, quitar y configurar agentes con las consecuencias de siempre; lo que concede más poder (carpetas, shell, red) pide Windows Hello (`PresenceAction.GrantHighRiskCapability`) |
+| `AgentInspectorViewModel`, `InspectorContext` | `Orchestrator/Team/AgentInspectorViewModel.cs` | El inspector con los datos de WP2 (`ModelCatalog`, `LearnedModels`, `ModelRecommender`) y la barra de contexto por partes |
+| `VisualBuilder` | `Orchestrator/Team/VisualBuilder.cs` | Reúne el editor, la banda, «Revisar el orden» y el chat; aplica el estado vivo solo a los nodos que el cambio nombra y lee el repositorio, lo aprendido y la cuota una vez |
+| `AnalysisBandViewModel`, `IDraftHost`, `FindingItemViewModel` | `Orchestrator/Canvas/AnalysisBandViewModel.cs` | El analizador en vivo (200 ms, fuera del hilo, con generación), los arreglos de un clic y Ctrl+Z y Ctrl+Y sobre `EditHistory<MontageEditState>` |
+| `OrderReviewViewModel`, `PreparationChatViewModel`, `QuotaConsentCardViewModel` | `Orchestrator/Preparation/` | «Revisar el orden» y el chat: un OK por uso, con la estimación delante, y ninguna sugerencia se aplica sola |
+| `ProjectBriefViewModel` | `Orchestrator/Preparation/ProjectBriefViewModel.cs` | La ficha del proyecto sobre `IProjectBrief`: se lee la vigente y cada versión nueva sustituye a la anterior, como decisión de la persona; no se guarda vacía ni pasada del máximo de la memoria |
+| `RequirementsEditorViewModel.CopySuggestion` | `Orchestrator/Preparation/RequirementsEditorViewModel.cs` | «Copiar al editor»: un borrador del chat entra como borrador de la persona, que lo congela o no |
+| `MotionPolicy`, `MotionSettingsViewModel` | `Orchestrator/Canvas/MotionPolicy.cs`, `Settings/MotionSettingsViewModel.cs` | «Reducir movimiento» (en «Ajustes», junto a «Idioma») y la opción de animaciones de Windows apagan las animaciones |
+| `Resources/CanvasStrings.resx` y `.en.resx` | `Resources/` | Los textos de WP6 (`Canvas_…` e `Info_Canvas_…`) |
+| `OrchestratorDocumentViewModel.ShowTeamLayer()` | `Orchestrator/OrchestratorDocumentViewModel.Builder.cs` | «Agentes» de la barra lateral abre el documento en la capa Equipo (lo llama la integración) |
+
+- **Dos cambios en lo existente.** «Usar perfil propuesto» pasa por la barrera (`PresenceAction.ChangeVerificationProfile`, siempre
+  pide Windows Hello o, sin él, el bloqueo de Windows) cuando la composición trae la confirmación reforzada; una composición sin
+  ella conserva el clic, como `ApproveAsync`. Y `ConnectionViewModel` gana `IsPulsing`, `NodeViewModel` gana `IsHighlighted`,
+  `AgentText`, `LiveText` y `ContextBar`.
+- **Lo que necesitaba la integración** (lo que WP6 no podía tocar), **hecho** en la integración de la tanda 2 de la Fase 13:
+  - [x] `OrchestratorDocumentFactory` pasa al documento un `BuilderServices` con los singletons de `IOrderReview`,
+    `IPreparationChat` e `IQuotaConsentLedger`, `IModelCatalogSource`, `IModelLearning`, `IUsageEstimator`, `IQuotaObservations`,
+    `IProjectBrief` y `WorktreeRepositoryStateReader(IWorktreeManager)` (`OrchestrationUiServices.BuilderServicesOf`), y
+    `reduceMotion` lee el ajuste guardado (`ReduceMotionSetting`: se lee una vez y otra vez cada vez que «Ajustes» lo guarda,
+    sin leer el fichero en cada animación). **La proyección viva no la da la fábrica**: es el monitor del propio documento, que
+    nace en su constructor, así que `InitializeBuilder` la toma de `Monitor` cuando la composición no trae otra.
+    `ReinforcedConfirmation` llega al documento, así que «Usar perfil propuesto» pide la confirmación reforzada;
+  - [x] «Agentes» de la barra lateral abre el documento del proyecto (o lo trae al frente) y llama a `ShowTeamLayer()`;
+  - [x] el guardado de «Ajustes» ya pasa por `MotionSettingsViewModel.Accept`, que llama a `MotionPolicy.NotifySettingChanged()`:
+    no hizo falta cablear nada más;
+  - [ ] **quitar un agente** necesita `IAgentRoster.DeleteAsync` (Application e Infrastructure, fuera de WP6): hasta entonces
+    `TeamEditorViewModel` recibe un delegado nulo y «Quitar del equipo» no se muestra;
+  - [ ] **los remotos** se leen del texto de `.git/config`; la lectura de docs/17 D-10 con `git config --get-regexp` por la capa
+    endurecida queda para cuando exista en `IWorktreeManager`.
+  - Para el panel «Problemas», `AnalysisBandViewModel` expone `Analysis` y `AnalysisChanged` (el análisis que enseña la banda).
+
+### 21.9 WP7: configurador por proyecto ([ADR-0055](adr/0055-configurador-por-proyecto.md))
+
+El asistente de siete pasos de [17 §4.6](17-constructor-visual-de-agentes.md#46-configurador-por-proyecto) (D-26 y D-27, F13-12).
+Propone a partir del repositorio, sin red y sin cuota, y aplica cada parte por la puerta de su pantalla de siempre. Los tipos
+nuevos están en `Application/Setup`; no hay ninguna entrada nueva en el registro (`ProjectSetupApplied` es del P0, §21.2).
+
+| Contrato | Fichero | Qué es |
+|---|---|---|
+| `SetupStep` (`Project`, `Brief`, `Team`, `Models`, `Verification`, `Skills`, `Budget`, `Summary`), `SetupSize`, `SetupSizes` | `Application/Setup/SetupContracts.cs` | Los pasos y el tamaño del proyecto: pequeño por debajo de 300 ficheros, mediano de 300 a 2 000 y grande por encima (el mismo límite de D-24 para el orquestador «máximo») |
+| `ISetupRepositoryReader`, `SetupRepositoryFacts` | ídem | Lo que el repositorio dice de sí mismo: los nombres de sus ficheros (el índice del explorador), la rama, HEAD, los cambios sin guardar y los remotos limpios de credenciales. No ejecuta nada del repositorio |
+| `SetupProjectProposal`, `SetupBriefProposal`, `SetupTeamProposal` con `SetupAgentChange`, `SetupModelProposal`, `SetupVerificationProposal`, `SetupSkillSuggestion`, `SetupProposal` | ídem | Lo que cada paso propone. Solo lectura |
+| `ProjectRunOptions` (`MaxAgentRuns`, `MaxParallelTasks`, `TimePerAttempt`, `Validate()`, `ToRunOptions()`) e `IProjectOptionsStore` | ídem | El presupuesto y el trabajo desatendido del paso 7: los valores de `RunOptions` que eliges una vez por proyecto. Rangos: de 1 a 200 ejecuciones, de 1 a 8 tareas a la vez y de 1 minuto a 4 horas por intento |
+| `ISetupVerificationProfiles` (`Propose`, `LoadAsync`, `SaveAsync`) | ídem | Los perfiles de verificación del paso 5. Un fichero de perfil que no se puede usar lanza `InvalidDataException` y nunca se sobrescribe |
+| `ISetupPresenceGate`, `SetupPresenceResult` | ídem | La barrera de Windows Hello para lo crítico (`ChangeVerificationProfile` y `GrantHighRiskCapability`). La razón de un no es un código |
+| `SetupSelection`, `SetupPartOutcome` (`Applied`, `Unchanged`, `Skipped`, `Denied`, `Failed`), `SetupPartResult`, `SetupApplyResult` | ídem | Lo que revisaste y lo que pasó con cada parte. `SetupApplyResult.RosterChanged` dice que la plantilla cambió |
+| `SetupStacks`, `SetupAgents`, `SetupCapabilities`, `SetupProposer` | `Application/Setup/SetupProposer.cs` | Las propuestas deterministas (puras): tecnología, tamaño, carpetas principales, esqueleto de la ficha, plantilla por tamaño, modelos con su razón y skills. `SetupCapabilities` dice qué capacidades de la barrera tendría un agente (`shell`, `network`, `codex-writes`, `unmeasured-cli-writes`, `more-folders`) |
+| `ProjectSetupService` (`ProposeAsync`, `ApplyAsync`, `OptionsHash`) | `Application/Setup/ProjectSetupService.cs` | El servicio |
+| `NodeVerificationProfile`, `PythonVerificationProfile` (`Detect`, `ProposeFor`, `Propose`) | `Orchestration/Verification/` | Los perfiles de Node y de Python, que los ejecuta el sistema como el de .NET (§ siguiente) |
+| `FileSetupRepositoryReader`, `StackSetupVerificationProfiles`, `LocalProjectOptionsStore`, `HelloSetupPresenceGate`, `SetupServices.AddAgentStudioSetup`, `SetupViewModelFactory` | `Desktop/Setup/` | Los adaptadores de los puertos y la composición del servicio |
+| `SetupViewModel`, `SetupStepViewModel`, `SetupSizeChoice`, `SetupAgentRowViewModel`, `SetupModelRowViewModel`, `SetupSkillRowViewModel`, `SetupView` | `Desktop/Setup/`, `Desktop/Views/Setup/` | La pantalla, con su ⓘ (`InfoKey="Setup_Info"`) |
+| `Resources/SetupStrings.resx` y `.en.resx` | `Desktop/Resources/` | `Setup_…` para lo que nombra la pantalla y `Text_setup_…` para los códigos de las capas de abajo (`setup.brief.section.*`, `setup.problem.*`, `setup.hello.*`, `setup.budget.*`, `setup.verification.no-stack`, `setup.models.light-executor`). El nivel y el esfuerzo de un modelo son los `Models_Tier_*` y `Models_Effort_*` de `ModelsStrings` |
+
+- **Los siete pasos y su puerta:**
+
+  | Paso | Propone | Aplicar escribe |
+  |---|---|---|
+  | 1 · Proyecto | Tecnología (.NET, Node o Python, en ese orden de precedencia), tamaño, rama, HEAD, cambios sin guardar, remotos y carpetas principales | Nada |
+  | 2 · Ficha | Un esqueleto de secciones según la tecnología; escribes tú | `IProjectBrief.SaveAsync`: una versión nueva de la persona. Un texto igual al vigente no escribe nada |
+  | 3 · Equipo | La plantilla del tamaño: pequeña (orquestador, un ejecutor y juez), mediana (más `ejecutor-ligero`) o grande (más `revisor`, un crítico de Codex de solo lectura) | `IAgentRoster.SaveAsync`: cambia `RosterHash` y retira la aprobación del plan que espere (§ siguiente) |
+  | 4 · Modelos | `ModelRecommender` de WP2, agente por agente, con su razón (`Text_model_reason_*`) | Lo mismo que el paso 3: la plantilla con el modelo y el esfuerzo |
+  | 5 · Pruebas | El perfil de la tecnología | `VerificationProfileFile` con Windows Hello (`ChangeVerificationProfile`, siempre) |
+  | 6 · Skills | `SkillRecommender` por agente (tecnología y papel); las enlazadas, fuera; ninguna activa de partida | `ISkillActivationStore.AppendAsync`, una decisión de la persona por agente |
+  | 7 · Presupuesto | Los valores de hoy | `IProjectOptionsStore.SaveAsync` |
+  | Resumen | Cada paso incluido, con lo de antes al lado | «Aplicar los cambios» |
+
+- **Lo que no hace:** no quita ningún agente (el almacén de la plantilla no borra: solo añade y cambia), no ejecuta nada del
+  repositorio, no usa la red y no pide ninguna aprobación nueva. Con la plantilla pedida, un agente que gana una capacidad de
+  `SetupCapabilities.Granted` (una shell, la red, Codex escribiendo o carpetas con escritura) pide antes
+  `GrantHighRiskCapability`; sin barrera compuesta, esas dos partes se niegan.
+- **Cada parte es su propia escritura:** una que falla o que no se confirma no deshace las demás, y el resultado dice qué hizo
+  cada una. Antes de guardar el primer agente se comprueban todos, así que una plantilla no válida no deja nada a medias.
+- **`ProjectSetupApplied`** lo escribe el servicio con `new Actor(ActorKind.User, "user")`, fuera de toda ejecución: la huella
+  de la plantilla guardada (`RosterHash.Of` de la plantilla entera, después de guardar), el SHA-256 de la ficha que anunció la
+  memoria, el `ContentHash` del perfil, el SHA-256 de las activaciones (`setup-skills/1`) y el de las opciones
+  (`ProjectSetupService.OptionsHash`). Lo que no se escribió va a `null`, y sin nada escrito no hay entrada. Si el registro no
+  se verifica, lo escrito se queda y el resultado dice que la entrada falta (`setup.problem.record-failed`).
+- **Los perfiles de Node y de Python** se detectan por los nombres de los ficheros de la raíz (`package.json`; `pyproject.toml`
+  o `requirements.txt`), con precedencia .NET, Node, Python. Todos van aislados (`LowIntegrity`) en una copia del commit, con
+  el informe JUnit en la carpeta `{results}` del paso:
+
+  | Perfil | Pasos |
+  |---|---|
+  | Node | `install` (`npm ci`, o `npm install --no-package-lock` sin `package-lock.json`; siempre `--ignore-scripts --no-audit --no-fund`; se lanza como `node <carpeta de node.exe>\node_modules\npm\bin\npm-cli.js …`, no por el shim `npm.cmd`, y sin `npm-cli.js` el paso falla y lo dice), `build` (`npm run build --if-present`, requiere `install`) y `test` (`node --test --test-reporter=junit --test-reporter-destination={results}/test.xml`, requiere `build`) |
+  | Python | `build` (`python -m compileall -q -x <node_modules, .venv, venv, .git> .`; con el alias de la Tienda o sin Python, el paso falla y lo dice) y `test` (`python -B -m pytest -q -p no:cacheprovider --junitxml={results}/test.xml`, requiere `build`). No instala nada: `pip` nunca se ejecuta |
+
+  Una prueba sin tests no es un éxito, como en .NET. Un proyecto en Jest, Vitest o Mocha edita el paso `test` con el
+  informador JUnit de su herramienta: el perfil es tuyo.
+- **Para la integración (el lead), hecho en la tanda 2 de la Fase 13:**
+  - [x] `services.AddAgentStudioSetup(<carpeta local>\setup)` en `PlatformServices`: registra `ProjectSetupService`,
+    `SetupViewModelFactory`, los adaptadores de sus puertos y `SetupSuggestions`.
+  - [x] Un documento que aloja `SetupView` (`SetupDocumentViewModel`, uno por proyecto, con su plantilla en
+    `DocumentTemplates.xaml`) con el `SetupViewModel` de `SetupViewModelFactory.Create()` y su `LoadAsync(proyecto)` (el proyecto
+    es el del contexto del orquestador, que el shell abre sin mostrarlo si hace falta). «Configurar proyecto» está en la banda de
+    preparación del orquestador (`ConfigureProjectCommand`, que pide al shell abrirlo) y en la bienvenida del proyecto. La primera
+    vez que se abre un proyecto la bienvenida lo sugiere en una línea y lo anota (`SetupSuggestions`: un fichero vacío con el
+    hash de la ruta, junto a las opciones, nada en el proyecto); nunca se abre solo.
+  - [x] El shell se suscribe a `SetupViewModel.Applied`: con `RosterChanged`, la pestaña del orquestador lee la plantilla otra vez
+    y retira la aprobación del plan (`OrchestratorDocumentViewModel.OnSetupAppliedAsync`, lo mismo que `OnRosterSavedAsync`), y
+    el presupuesto de la pestaña se lee de nuevo.
+  - [x] Las opciones del proyecto las lee la pestaña del orquestador al crear sus `RunOptions`
+    (`IProjectOptionsStore.LoadAsync(proyecto)` → `ProjectRunOptions.ToRunOptions()`; sin fichero, `ProjectRunOptions.Defaults`),
+    conservando el consentimiento de reanudar de esa ejecución y el presupuesto del lienzo: el de las opciones (sembrado al abrir
+    el proyecto y tras aplicar el configurador) y, si la persona lo subió después en el lienzo con un arreglo, ese. Las lee
+    también el análisis del montaje (`MaxParallelTasks`). Lo que el paso 7 promete, ahora se cumple.
+  - [ ] Un lector de remotos por la capa git endurecida (WP6) puede sustituir a `FileSetupRepositoryReader`: hoy los remotos salen
+    vacíos y el paso 1 no inventa ninguno.
+
+### 21.10 WP8: monitor, preguntas, análisis del consumo, paneles y herramientas
+
+Lo que WP8 añade al escritorio ([17](17-constructor-visual-de-agentes.md) §4.2, §4.3, §4.7, §4.8 y §4.10; pantallas en
+[03 §5.5](03-pantallas-y-navegacion.md#55-monitor-vivo-preguntas-análisis-del-consumo-paneles-y-herramientas-fase-13-wp8)).
+Todo vive en `Desktop`; no hay puertos nuevos en `Application`, y los textos salen de `Resources/MonitorStrings.resx` y
+`PanelsStrings.resx` (claves `Monitor_…`, `Panels_…`, `Tools_…` e `Info_<apartado>_Title/_What/_Actions`).
+
+| Pieza | Fichero | Qué es |
+|---|---|---|
+| `RunMonitorViewModel : IRunLiveProjection` (`Current`, `Changed`, `Roster`, `PlanDependencies`, `AgentCards`) | `Orchestrator/Monitor/RunMonitorViewModel.Live.cs` | La proyección agrupada (F13-7). El monitor sigue siendo el único lector de los eventos (ADR-0036): cada evento marca los nodos que cambió y un temporizador (`TimeProvider.CreateTimer`) los junta, **como mucho cada 250 ms** y con una espera de 50 ms al empezar tras un rato quieto, así que una ráfaga es un solo cambio. La interfaz solo pinta; el gate de `Post` solo importa donde no hay hilo de interfaz (pruebas con contexto en línea). Sin contexto de interfaz el cambio sale al momento |
+| `LiveStateFactory`, `AgentLiveTexts`, `AgentCardViewModel` | `Orchestrator/Monitor/` | El estado de cada agente sale de lo que dicen sus tareas, en este orden: pregunta, aprobación, trabajo, cuota, bloqueo, cola, terminado, libre. `AgentLiveTexts.Counter` da «Agentes: 2 trabajando · 1 te preguntan…» para la barra superior. La tarjeta lleva nombre entero y `AutomationProperties.LiveSetting` (asertivo con pregunta o bloqueo) |
+| `MonitorBars` (`PartsBar`, `ConsumptionBar`) | `Orchestrator/Monitor/MonitorBars.cs` | Las barras de F13-6 con el control común (`MetricBarReading`): el contexto por partes (`ContextBreakdown.Of` de `AgentRunStarted` v3, con las partes como segmentos y la conversación como el resto) y el consumo de los intentos terminados. Sin cifra, pista vacía con sus palabras; nunca a cero |
+| `IContextPartsSource`, `DecisionLogContextPartsSource` | `Orchestrator/Monitor/ContextPartsSource.cs` | De dónde lee el monitor las partes del prompt de un intento (los eventos no las llevan): del registro verificado, con `ContextPartsLog.Find`. Un registro que no verifica no da partes («sin leer»). Opcional: sin él, «sin desglose» |
+| `MonitorTaskViewModel.Question`, `AwaitingAnswer`, `PartsBar`, `ConsumptionBar`, `EndClass` | `Orchestrator/Monitor/MonitorTaskViewModel.Phase13.cs` | Lo nuevo de la tarjeta de la tarea. Una tarea que espera respuesta no es un bloqueo que reintentar: `IsBlocked` y `RetryBlockedCommand` la excluyen, y `BlockReasonText` dice «Espera tu respuesta» |
+| `QuestionViewModel`, `QuestionOptionViewModel`, `QuestionCosts`, `PlannerQuestionSet` | `Orchestrator/Questions/` | La pregunta (F13-14). Se construye con `PendingQuestion` y un delegado de respuesta (`IOrchestrationRun.AnswerAsync` en una tarea; la planificación siguiente en el orquestador). `QuestionCosts.Of` pinta `OptionEstimateSnapshot`: el intervalo con su origen y sus referencias, «desconocido» con menos de tres y «no disponible» sin total; nunca suma ni rellena |
+| `QuestionPromptService`, `IQuestionWindowHost`, `WpfQuestionWindowHost`, `QuestionAttentionEventArgs` | `Orchestrator/Questions/QuestionPromptService.cs` | Abre la ventana (no modal) si la app está a la vista; si no, `AttentionRequested` pide el aviso de la bandeja «Un agente te pregunta algo» (`Monitor_Question_Notice`, sin datos del proyecto). Retira la ventana con el bloqueo (`IInterfaceLock`) y la devuelve al desbloquear |
+| `ConsumptionAnalysisViewModel` | `Observability/Analysis/` | F13-15. Determinista al terminar la ejecución (`RunMonitorViewModel.Consumption`, `ConsumptionCheck`) y con su botón; con un agente solo tras el OK (`QuotaConsent("user", …, lo que se enseñó)`) y con la estimación delante (`EstimateAssisted`). Las frases salen de `ConsumptionTexts` y de los recursos `Text_consumption_*`; las sugerencias del agente van enmarcadas y **nunca se aplican desde aquí** |
+| `ProblemsPanelViewModel`, `OutputPanelViewModel`, `TestsPanelViewModel`, `IHeadTestsService` | `Panels/` | Los tres paneles de abajo (F13-18). Siguen la ejecución por `Changed`, no por los eventos. «Ejecutar las pruebas de HEAD» solo existe si la composición da `IHeadTestsService` |
+| `ToolsViewModel`, `EffectiveTools` | `Tools/` | «Herramientas» (F13-18). `EffectiveTools.For` construye la petición del ejecutor y lee `--tools`, `--allowedTools` y `--disallowedTools` de `ClaudeCodeArguments.Build` (y `-s` de `CodexExecArguments.Build`): se calcula con el código del lanzamiento. El riesgo sale de `HighRiskCapabilityRule.HighRiskTools` y `PresencePolicy` |
+
+**Lo que la integración tenía que hacer** (nada de esto lo cableaba WP8), **hecho** en la tanda 2 de la Fase 13:
+
+- [x] **Composición:** `MonitorServices` (`Orchestrator/Monitor/MonitorServices.cs`, un singleton) da a cada monitor su
+  `ContextPartsSource` (`DecisionLogContextPartsSource(IDecisionRecorder)`), su `Quota` (el `QuotaViewModel`),
+  `Consumption.Analyzer`, `Consumption.Assisted` (con el registro de OK único) y `Consumption.EstimateAssisted` (el estimador con
+  `AgentRunPurpose.ConsumptionAnalysis`, sobre el programa del juez de la plantilla, que es el de otro proveedor que el del
+  trabajo; «desconocido» con el motivo si no hay juez), y crea el `QuestionPromptService(monitor, WpfQuestionWindowHost, IInterfaceLock)`
+  de ese monitor, uno por monitor. Lo llaman (`Equip`) los tres sitios donde nace un `RunMonitorViewModel`: el constructor del
+  documento del orquestador, el monitor de una ejecución entregada a la bandeja y el del shell para una ejecución que nadie sigue.
+- [ ] **`IHeadTestsService` no está implementado**: el panel «Pruebas» no muestra «Ejecutar las pruebas de HEAD» (a propósito, no hay
+  un botón que no haga nada). Lo implementaría la composición con `IVerificationRunner`, el perfil y una copia aislada de HEAD,
+  sin cuota.
+- [x] **Quien adjunta la ejecución** (el documento del orquestador) da `Roster` (la plantilla) y `PlanDependencies` (de qué tareas
+  depende cada una) **antes** de `Attach`/`Inspect`, también al monitor de una ejecución entregada a otro. Una ejecución que
+  reanuda sola y cuyo plan aún no está leído al adjuntar no tiene pulsos hasta la siguiente. El monitor que el shell crea para una ejecución que nadie sigue (`FollowInBackground`) tampoco los tiene: el shell no lee la plantilla ni el plan de esa ejecución, así que no salen agentes libres ni pulsos (pendiente, no es sencillo desde el shell).
+- [x] **Barra lateral y pestañas:** «Herramientas» es una pestaña (`ToolsDocumentViewModel` con `ToolsView`, cargada con la plantilla y
+  el perfil del proyecto abierto); su `GiveToAgentRequested` lleva al orquestador, a la capa Equipo, con un agente elegido en el
+  inspector. «Pruebas» de la barra muestra u oculta el panel de abajo, y «Problemas», «Salida» y «Pruebas» son
+  `Views/Panels/*PanelView` en el grupo de «Terminal» (`MainWindow.xaml`), con su `*PanelViewModel` en `MainViewModel`, que hacen
+  `Attach(monitor)` del orquestador del proyecto abierto (un monitor ocioso si no lo hay). `ProblemsPanelViewModel.SetMontage` recibe
+  `AnalysisBandViewModel.Analysis`, y `OutputPanelViewModel.SelectTask/SelectAgent`, la selección del lienzo.
+- [x] **Barra superior:** `AgentLiveTexts.Counter(monitor.Current)`, repintado con `Changed` (`MainViewModel.AgentCounter`).
+- [x] **Bandeja (D-41):** `TrayController.FollowAttention(MonitorServices)` muestra `e.Notice` de `AttentionRequested` con el nombre de
+  la app como título (`NotifyAttention`); `UnattendedShell.Start` lo cablea y lo suelta al terminar.
+- [x] **Preguntas del orquestador antes de planificar:** con `PlanProposal.Questions`, el documento crea
+  `new PlannerQuestionSet(proposal.Run, proposal.Questions)`, `MonitorServices.PresentPlannerQuestions` las enseña (la misma ventana y
+  el mismo aviso de la bandeja), y cuando `await set.Answers` termina vuelve a planificar con `PlanningRequest.Answers`, una vez
+  (`OrchestratorDocumentViewModel.Integration.cs`). «Rechazar» o pedir otro plan dejan de esperarlas, y «Responder» abre las
+  ventanas otra vez. El flujo de WP6 no lo traía: es pegamento de la integración.
+- WP8 no pone ninguna regla nueva en `Strings.resx`: los textos de la integración están en `IntegrationStrings.resx` (`Shell_…`).
+
+**Medidas y límites** (pruebas fuera de pantalla, en `tests/…/Desktop/Orchestrator/Monitor/MonitorAccessibilityTests.cs`):
+
+- Con 40 nodos y una ráfaga de 1 000 eventos, ninguna operación de datos del hilo de la interfaz (un evento, la única notificación que repinta las barras de las
+  tareas, el cambio agrupado, los enlaces que tocan) pasa de 50 ms, y los cambios agrupados salen a más de 250 ms unos de otros. Las listas de agentes y de tareas
+  **virtualizan**, y el diseño de las tarjetas a la vista cuesta menos de 50 ms.
+- **La pasada completa** (`MonitorLayoutPassTests`): medir, colocar y dibujar todo el monitor con 40 tareas y 40 agentes cuyo contexto cambia a la vez. Con las listas
+  sin virtualizar tardaba de 80 a 350 ms fuera de pantalla; con las listas de agentes y de tareas virtualizadas, la mediana de siete pasadas es de 23 a 28 ms (la más lenta,
+  de 29 a 49 ms), con o sin la mejora de `MetricBar` (la caché de marcas y pinceles y la salida temprana no cambian esa cifra a la escala de la prueba: el coste lo quitó
+  la virtualización). La prueba exige la mediana por debajo de 50 ms con un margen ×2 por la carga de la suite, que es el único margen y está en el código.
+- **Las partes del prompt** dependen de que `AgentRunStarted` v3 ya esté en el registro cuando llega el primer paso: si no, el monitor pregunta una vez más al llegar ese paso.
+- **Los nombres de las pruebas que fallan** no se leen del TRX: el panel «Pruebas» enseña los contadores y la línea principal del error del paso, que es lo que el monitor ya tiene.
+- **Los permisos de un ejecutor** son la regla pública `Orchestration/Engine/AgentPermissions.For(escribe, agente)`, la que lanza `Workers` y la que usa `EffectiveTools`: no hay copia. La prueba compara «Herramientas» con `ClaudeCodeArguments.Build` con un lanzamiento escrito aparte.

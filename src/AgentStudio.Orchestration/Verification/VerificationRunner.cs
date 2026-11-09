@@ -149,10 +149,10 @@ public sealed class VerificationRunner : IVerificationRunner
     /// the first run of the SDK quiet: no telemetry, no banner, no change to the user's PATH and no development certificate.
     /// The NuGet cache is that of the run alone, so no run can plant a package for the next one.
     /// </summary>
-    public static IReadOnlyDictionary<string, string?> IsolatedStepEnvironment(IIsolatedWorkArea area)
+    public static IReadOnlyDictionary<string, string?> IsolatedStepEnvironment(IIsolatedWorkArea area, string? executable = null)
     {
         ArgumentNullException.ThrowIfNull(area);
-        return new Dictionary<string, string?>(StepEnvironment, StringComparer.OrdinalIgnoreCase)
+        var environment = new Dictionary<string, string?>(StepEnvironment, StringComparer.OrdinalIgnoreCase)
         {
             ["NUGET_PACKAGES"] = area.NuGetPackagesDirectory,
             ["NUGET_HTTP_CACHE_PATH"] = area.NuGetHttpCacheDirectory,
@@ -165,7 +165,18 @@ public sealed class VerificationRunner : IVerificationRunner
             ["DOTNET_NOLOGO"] = "1",
             ["DOTNET_ADD_GLOBAL_TOOLS_TO_PATH"] = "false",
             ["DOTNET_GENERATE_ASPNET_CERTIFICATE"] = "false",
-        }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+        };
+
+        // Node and Python (ADR-0055): the home, the caches and the user configuration of the tool go into the area too.
+        if (executable is not null)
+        {
+            foreach (var (name, value) in StackStepSupport.EnvironmentFor(executable, area))
+            {
+                environment[name] = value;
+            }
+        }
+
+        return environment.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
     }
 
     /// <exception cref="ArgumentException">A step breaks <see cref="VerificationRules"/>, or comes before a step it requires; nothing was run.</exception>
@@ -327,7 +338,7 @@ public sealed class VerificationRunner : IVerificationRunner
         }
 
         var spec = isolated
-            ? new ProcessSpec(step.Executable, arguments, workingDirectory, IsolatedStepEnvironment(area!), Isolation: ProcessIsolation.LowIntegrity)
+            ? new ProcessSpec(step.Executable, arguments, workingDirectory, IsolatedStepEnvironment(area!, step.Executable), Isolation: ProcessIsolation.LowIntegrity)
             : new ProcessSpec(step.Executable, arguments, workingDirectory, StepEnvironment);
 
         // Created before the start, so the timeout also covers a start that hangs.

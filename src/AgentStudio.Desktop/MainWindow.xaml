@@ -10,6 +10,8 @@
         xmlns:lockviews="clr-namespace:AgentStudio.Desktop.Views.Lock"
         xmlns:controls="clr-namespace:AgentStudio.Desktop.Controls"
         xmlns:orchestratorViews="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
+        xmlns:panelViews="clr-namespace:AgentStudio.Desktop.Views.Panels"
+        xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
         Title="Agent Studio" Height="800" Width="1280" MinWidth="900" MinHeight="560"
@@ -80,6 +82,12 @@
                         Command="{Binding OpenAuditCommand}" VerticalAlignment="Center"
                         ToolTip="Audita el commit HEAD del proyecto con la verificación del sistema y un juez independiente (Ctrl+Mayús+A)"
                         AutomationProperties.Name="Auditar proyecto completo"/>
+                <!-- The agents of the run followed in the open project (docs/17 D-43): «Agentes: 2 trabajando · 1 te pregunta». Empty without a run. -->
+                <TextBlock x:Name="AgentCounterText" Grid.Column="5" Style="{StaticResource SecondaryText}" HorizontalAlignment="Right"
+                           VerticalAlignment="Center" Margin="0,0,16,0" TextTrimming="CharacterEllipsis" Text="{Binding AgentCounter}"
+                           ToolTip="{Binding AgentCounter}" AutomationProperties.Name="{Binding AgentCounter}"
+                           AutomationProperties.HelpText="{Binding AgentCounterName}" AutomationProperties.LiveSetting="Polite"
+                           Visibility="{Binding HasAgentCounter, Converter={StaticResource Shell.BoolToVisibility}}"/>
                 <!-- The providers in use (a parked one does not count, ADR-0009); pressed, it shows Auto Doctor with the detail. -->
                 <Button x:Name="ProviderSummaryButton" Grid.Column="6" Style="{StaticResource SummaryButton}" VerticalAlignment="Center"
                         Command="{Binding ToggleAutoDoctorCommand}"
@@ -159,6 +167,16 @@
                                         <TextBlock Style="{StaticResource SecondaryText}" Margin="12"
                                                    Text="Terminal no disponible."/>
                                     </ContentControl>
+                                </xcad:LayoutAnchorable>
+                                <!-- Phase 13 (docs/17 D-45, F13-18): the panels of the run, next to the terminal. MainWindow gives them their view models. -->
+                                <xcad:LayoutAnchorable ContentId="panel:problems" Title="{l:T Panels_Problems_Title}" CanFloat="True">
+                                    <panelViews:ProblemsPanelView x:Name="ProblemsPanel"/>
+                                </xcad:LayoutAnchorable>
+                                <xcad:LayoutAnchorable ContentId="panel:output" Title="{l:T Panels_Output_Title}" CanFloat="True">
+                                    <panelViews:OutputPanelView x:Name="OutputPanel"/>
+                                </xcad:LayoutAnchorable>
+                                <xcad:LayoutAnchorable ContentId="panel:tests" Title="{l:T Panels_Tests_Title}" CanFloat="True">
+                                    <panelViews:TestsPanelView x:Name="TestsPanel"/>
                                 </xcad:LayoutAnchorable>
                             </xcad:LayoutAnchorablePane>
                         </xcad:LayoutPanel>

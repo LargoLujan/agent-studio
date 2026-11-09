@@ -1643,7 +1643,8 @@ inglés; los botones ⓘ; la ayuda; la documentación para clientes; y la Fase 9
 **P0 · Contratos, payloads y paquetes (S-M).** `src/AgentStudio.Application/{Help/HelpContracts.cs, Documents/ClientDocumentContracts.cs}`
 (nuevos), `ClientDocumentExported` y los propósitos `Help` y `ClientDocumentDraft`, `Directory.Packages.props`
 (`DocumentFormat.OpenXml`, tras comprobar su versión y su licencia), y el P0 de la Fase 9 de docs/16 §4.6, con la migración
-que toque (la siguiente libre). ADR-0055 y ADR-0056, más los de la Fase 9 (0038 a 0040); ADR-0054 se completa aquí.
+que toque (la siguiente libre). ADR-0056 y ADR-0057 (eran 0055 y 0056 hasta que el configurador tomó el 0055), más los de
+la Fase 9 (0038 a 0040); ADR-0054 se completa aquí.
 
 **WP-14A · Extracción y reescritura de los textos (L-XL).** Se reparte por carpetas, para que nadie pise a nadie, y cada
 parte extrae a recursos, reescribe con la guía y pone los ⓘ a la vez:
@@ -1709,8 +1710,9 @@ corren.
 | 0052 | El análisis del consumo, determinista siempre y con un agente opcional del vendor que no produjo; el contexto por partes. Amplía ADR-0019 y ADR-0021 | F13, WP3 |
 | 0053 | Windows Hello como barrera fija: una lista en el código que ningún ajuste ni fichero desactiva, y el bloqueo de Windows comprobado como alternativa. Enmienda ADR-0037 y tu decisión 5 (a) del 20-10 | F13, WP5 |
 | 0054 | Idiomas y lenguaje claro: recursos `.resx`, códigos con parámetros en las capas de abajo, lo que no se traduce, el idioma de Windows por defecto y la guía de textos | F13 (P0, los cimientos) y F14 |
-| 0055 | La ayuda: local y sin cuota primero, y un agente de solo lectura con tu OK que no ve el proyecto salvo que lo marques | F14, WP-14C |
-| 0056 | La documentación para clientes: un modelo determinista desde el registro, cuatro formatos y tu revisión antes de exportar | F14, WP-14D |
+| 0055 | El configurador por proyecto: siete pasos que proponen, dejan revisar y aplican por las puertas de siempre; los perfiles de verificación de Node y Python, aislados como los de .NET. Lo escribió WP7 el 2026-11-09 y por eso la ayuda y la documentación para clientes se corren un número | F13, WP7 |
+| 0056 | La ayuda: local y sin cuota primero, y un agente de solo lectura con tu OK que no ve el proyecto salvo que lo marques | F14, WP-14C |
+| 0057 | La documentación para clientes: un modelo determinista desde el registro, cuatro formatos y tu revisión antes de exportar | F14, WP-14D |
 
 ---
 

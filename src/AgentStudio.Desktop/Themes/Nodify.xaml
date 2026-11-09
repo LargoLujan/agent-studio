@@ -2,6 +2,8 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:nodify="https://miroiu.github.io/nodify"
                     xmlns:canvas="clr-namespace:AgentStudio.Desktop.Orchestrator.Canvas"
+                    xmlns:team="clr-namespace:AgentStudio.Desktop.Orchestrator.Team"
+                    xmlns:controls="clr-namespace:AgentStudio.Desktop.Controls"
                     xmlns:views="clr-namespace:AgentStudio.Desktop.Views.Orchestrator">
 
     <!--
@@ -38,6 +40,7 @@
     <views:StatusToBrushConverter x:Key="Orchestrator.StatusToBrush"/>
     <views:ToneToBrushConverter x:Key="Orchestrator.ToneToBrush"/>
     <views:HasTextToVisibilityConverter x:Key="Orchestrator.HasTextToVisibility"/>
+    <views:NotZeroToVisibilityConverter x:Key="Orchestrator.NotZeroToVisibility"/>
     <views:NullToVisibilityConverter x:Key="Orchestrator.NotNullToVisibility"/>
     <views:NullToVisibilityConverter x:Key="Orchestrator.NullToVisibility" Invert="True"/>
 
@@ -86,6 +89,12 @@
         <StackPanel MaxWidth="230">
             <TextBlock Text="{Binding Title}" Style="{StaticResource BodyText}" FontWeight="SemiBold" MaxHeight="38"
                        TextTrimming="CharacterEllipsis" TextWrapping="Wrap"/>
+            <TextBlock Text="{Binding AgentText}" Style="{StaticResource SecondaryText}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                       Visibility="{Binding AgentText, Converter={StaticResource Orchestrator.HasTextToVisibility}}"/>
+            <TextBlock Text="{Binding LiveText}" Style="{StaticResource SecondaryText}" TextWrapping="Wrap"
+                       Visibility="{Binding LiveText, Converter={StaticResource Orchestrator.HasTextToVisibility}}"/>
+            <controls:MetricBar Reading="{Binding ContextBar}" IsCompact="True" TrackWidth="110" Margin="0,4,0,0"
+                                Visibility="{Binding ContextBar, Converter={StaticResource Orchestrator.NotNullToVisibility}}"/>
             <StackPanel Margin="0,6,0,0" Visibility="{Binding HasProblems, Converter={StaticResource Orchestrator.BoolToVisibility}}">
                 <TextBlock Style="{StaticResource ProblemText}" FontWeight="SemiBold" Text="{Binding ProblemSummary}"/>
                 <ItemsControl ItemsSource="{Binding Problems}" Focusable="False">
@@ -128,6 +137,9 @@
             <DataTrigger Binding="{Binding IsDisabled}" Value="True">
                 <Setter Property="Opacity" Value="0.5"/>
             </DataTrigger>
+            <DataTrigger Binding="{Binding IsHighlighted}" Value="True">
+                <Setter Property="BorderThickness" Value="4"/>
+            </DataTrigger>
         </Style.Triggers>
     </Style>
 
@@ -156,6 +168,16 @@
                 <Setter Property="Stroke" Value="{StaticResource ErrorBrush}"/>
                 <Setter Property="Fill" Value="{StaticResource ErrorBrush}"/>
                 <Setter Property="Foreground" Value="{StaticResource BackgroundBrush}"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding IsPulsing}" Value="True">
+                <Setter Property="Stroke" Value="{StaticResource AccentBrush}"/>
+                <DataTrigger.EnterActions>
+                    <BeginStoryboard>
+                        <Storyboard Timeline.DesiredFrameRate="30">
+                            <DoubleAnimation Storyboard.TargetProperty="StrokeThickness" From="2" To="6" Duration="0:0:0.4" AutoReverse="True"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </DataTrigger.EnterActions>
             </DataTrigger>
             <Trigger Property="nodify:BaseConnection.IsSelected" Value="True">
                 <Setter Property="Stroke" Value="{StaticResource AccentBrush}"/>
@@ -282,4 +304,174 @@
         <Setter Property="Margin" Value="0,0,6,6"/>
         <Setter Property="FontSize" Value="12"/>
     </Style>
+
+    <!-- 5. Team layer (docs/17 D-07 to D-17, ADR-0048). The nodes are the agents of the template and the repository; the cables
+         are «Reparte», «Revisa» and «Trabaja en». The border of an agent carries the tone of its state and its card says the same
+         in an icon and in words, so the colour is never the only cue. The animations are Storyboards on drawing properties, at 30
+         frames per second, and they only run while the view model says so (IsAnimated, IsPulsing): «Reducir movimiento» and the
+         option of Windows turn them off there, and the state stays in the text and the icon. Nothing blinks more than three
+         times a second (WCAG 2.3.1): the slowest cycle here is 0.8 s. -->
+
+    <DataTemplate x:Key="AgentNodeHeaderTemplate" DataType="{x:Type team:AgentNodeViewModel}">
+        <DockPanel LastChildFill="True">
+            <TextBlock DockPanel.Dock="Left" Text="{Binding Name}" Margin="0,0,8,0" FontSize="13" FontWeight="SemiBold"
+                       Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis"/>
+            <TextBlock Text="{Binding RoleText}" Style="{StaticResource SecondaryText}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+        </DockPanel>
+    </DataTemplate>
+
+    <!-- The body of a card and of an agent node: program, model and effort; the state with its icon; the three bars, each with its origin. -->
+    <DataTemplate x:Key="AgentCardBodyTemplate" DataType="{x:Type team:AgentNodeViewModel}">
+        <StackPanel MaxWidth="260">
+            <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap">
+                <Run Text="{Binding ProgramText, Mode=OneWay}"/><Run Text=" · "/><Run Text="{Binding ModelText, Mode=OneWay}"/><Run Text=" · "/><Run Text="{Binding EffortText, Mode=OneWay}"/>
+            </TextBlock>
+            <StackPanel Orientation="Horizontal" Margin="0,4,0,4">
+                <TextBlock Text="{Binding StatusIcon}" Margin="0,0,6,0" VerticalAlignment="Center"
+                           Foreground="{Binding Tone, Converter={StaticResource Orchestrator.ToneToBrush}}"/>
+                <TextBlock Text="{Binding StatusText}" Style="{StaticResource BodyText}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+            </StackPanel>
+            <TextBlock Style="{StaticResource ProblemText}" Text="{Binding ProblemText}"
+                       Visibility="{Binding ProblemText, Converter={StaticResource Orchestrator.HasTextToVisibility}}"/>
+            <controls:MetricBar Reading="{Binding ContextBar}" IsCompact="True" TrackWidth="120" Margin="0,2,0,0"/>
+            <controls:MetricBar Reading="{Binding ConsumptionBar}" IsCompact="True" TrackWidth="120" Margin="0,2,0,0"/>
+            <controls:MetricBar Reading="{Binding BudgetBar}" IsCompact="True" TrackWidth="120" Margin="0,2,0,0"/>
+        </StackPanel>
+    </DataTemplate>
+
+    <Style x:Key="AgentNodeShell" TargetType="{x:Type nodify:Node}" BasedOn="{StaticResource {x:Type nodify:Node}}">
+        <Setter Property="MinWidth" Value="240"/>
+        <Setter Property="BorderThickness" Value="2"/>
+        <Setter Property="BorderBrush" Value="{Binding Tone, Converter={StaticResource Orchestrator.ToneToBrush}}"/>
+        <Setter Property="ContentPadding" Value="10,6"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="Header" Value="{Binding}"/>
+        <Setter Property="HeaderTemplate" Value="{StaticResource AgentNodeHeaderTemplate}"/>
+        <Setter Property="Content" Value="{Binding}"/>
+        <Setter Property="ContentTemplate" Value="{StaticResource AgentCardBodyTemplate}"/>
+        <Setter Property="Input" Value="{Binding InputList}"/>
+        <Setter Property="Output" Value="{Binding OutputList}"/>
+        <Setter Property="AutomationProperties.Name" Value="{Binding AutomationName}"/>
+        <Setter Property="AutomationProperties.LiveSetting" Value="{Binding LiveSetting}"/>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsHighlighted}" Value="True">
+                <Setter Property="BorderThickness" Value="4"/>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <DataTemplate DataType="{x:Type team:AgentNodeViewModel}">
+        <nodify:Node Style="{StaticResource AgentNodeShell}"/>
+    </DataTemplate>
+
+    <!-- The node of the repository: folder, branch, head, remotes (clean), changes not committed in the colour of a warning with
+         what happens, stack; and a connector per main folder, which the cable «Trabaja en» reaches. -->
+    <DataTemplate x:Key="RepositoryNodeBodyTemplate" DataType="{x:Type team:RepositoryNodeViewModel}">
+        <StackPanel MaxWidth="320">
+            <TextBlock Style="{StaticResource BodyText}" Text="{Binding ProblemText}" TextWrapping="Wrap"
+                       Visibility="{Binding ProblemText, Converter={StaticResource Orchestrator.HasTextToVisibility}}"/>
+            <TextBlock Style="{StaticResource BodyText}" Text="{Binding BranchText}"/>
+            <TextBlock Style="{StaticResource SecondaryText}" FontFamily="{StaticResource MonoFont}" Text="{Binding HeadText}"/>
+            <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Margin="0,2,0,0" Text="{Binding RemotesText}"/>
+            <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding StackText}"/>
+            <TextBlock TextWrapping="Wrap" Margin="0,4,0,0" Text="{Binding ChangesText}">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasUncommittedChanges}" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource WarningBrush}"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+            <TextBlock Style="{StaticResource SecondaryText}" FontWeight="SemiBold" Text="{Binding IntegratingText}"
+                       Visibility="{Binding IntegratingText, Converter={StaticResource Orchestrator.HasTextToVisibility}}"/>
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="RepositoryNodeHeaderTemplate" DataType="{x:Type team:RepositoryNodeViewModel}">
+        <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"
+                   TextTrimming="CharacterEllipsis"/>
+    </DataTemplate>
+
+    <Style x:Key="RepositoryNodeShell" TargetType="{x:Type nodify:Node}" BasedOn="{StaticResource {x:Type nodify:Node}}">
+        <Setter Property="MinWidth" Value="320"/>
+        <Setter Property="BorderThickness" Value="2"/>
+        <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}"/>
+        <Setter Property="ContentPadding" Value="10,6"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="Header" Value="{Binding}"/>
+        <Setter Property="HeaderTemplate" Value="{StaticResource RepositoryNodeHeaderTemplate}"/>
+        <Setter Property="Content" Value="{Binding}"/>
+        <Setter Property="ContentTemplate" Value="{StaticResource RepositoryNodeBodyTemplate}"/>
+        <Setter Property="Input" Value="{Binding Connectors}"/>
+        <Setter Property="AutomationProperties.Name" Value="{Binding AutomationName}"/>
+        <Style.Triggers>
+            <!-- A halo that breathes while the run integrates or delivers: opacity only, a cycle of 1.6 s, 30 frames per second. -->
+            <DataTrigger Binding="{Binding IsAnimated}" Value="True">
+                <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                <DataTrigger.EnterActions>
+                    <BeginStoryboard x:Name="HaloStoryboard">
+                        <Storyboard Timeline.DesiredFrameRate="30">
+                            <DoubleAnimation Storyboard.TargetProperty="Opacity" From="1" To="0.65" Duration="0:0:0.8" AutoReverse="True" RepeatBehavior="Forever"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </DataTrigger.EnterActions>
+                <DataTrigger.ExitActions>
+                    <StopStoryboard BeginStoryboardName="HaloStoryboard"/>
+                </DataTrigger.ExitActions>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <DataTemplate DataType="{x:Type team:RepositoryNodeViewModel}">
+        <nodify:Node Style="{StaticResource RepositoryNodeShell}"/>
+    </DataTemplate>
+
+    <!-- The cables of the team: «Reparte» and «Revisa» plain (the text says what they mean), «Revisa» to a judge of the same company
+         in the colour of an error with its text, «Trabaja en» moving while the task of its agent writes. -->
+    <Style x:Key="TeamWire" TargetType="{x:Type nodify:Connection}" BasedOn="{StaticResource {x:Type nodify:Connection}}">
+        <Setter Property="StrokeThickness" Value="2"/>
+        <Setter Property="Text" Value="{Binding Text}"/>
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="TextBackground" Value="{StaticResource BackgroundBrush}"/>
+        <Setter Property="nodify:BaseConnection.IsSelectable" Value="True"/>
+        <Setter Property="AutomationProperties.Name" Value="{Binding AutomationName}"/>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsError}" Value="True">
+                <Setter Property="Stroke" Value="{StaticResource ErrorBrush}"/>
+                <Setter Property="Fill" Value="{StaticResource ErrorBrush}"/>
+                <Setter Property="Foreground" Value="{StaticResource BackgroundBrush}"/>
+                <Setter Property="StrokeDashArray" Value="4 3"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding IsAnimated}" Value="True">
+                <Setter Property="Stroke" Value="{StaticResource AccentBrush}"/>
+                <Setter Property="Fill" Value="{StaticResource AccentBrush}"/>
+                <Setter Property="StrokeDashArray" Value="6 4"/>
+                <Setter Property="Foreground" Value="{StaticResource OnAccentBrush}"/>
+                <DataTrigger.EnterActions>
+                    <BeginStoryboard x:Name="FlowStoryboard">
+                        <Storyboard Timeline.DesiredFrameRate="30">
+                            <DoubleAnimation Storyboard.TargetProperty="StrokeDashOffset" From="0" To="-20" Duration="0:0:0.8" RepeatBehavior="Forever"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </DataTrigger.EnterActions>
+                <DataTrigger.ExitActions>
+                    <StopStoryboard BeginStoryboardName="FlowStoryboard"/>
+                </DataTrigger.ExitActions>
+            </DataTrigger>
+            <Trigger Property="nodify:BaseConnection.IsSelected" Value="True">
+                <Setter Property="Stroke" Value="{StaticResource AccentBrush}"/>
+                <Setter Property="Fill" Value="{StaticResource AccentBrush}"/>
+                <Setter Property="Foreground" Value="{StaticResource OnAccentBrush}"/>
+                <Setter Property="StrokeThickness" Value="4"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <DataTemplate x:Key="TeamWireTemplate" DataType="{x:Type team:TeamConnectionViewModel}">
+        <nodify:Connection Style="{StaticResource TeamWire}" Source="{Binding Source.Anchor}" Target="{Binding Target.Anchor}"/>
+    </DataTemplate>
 </ResourceDictionary>

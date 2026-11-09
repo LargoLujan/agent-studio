@@ -480,18 +480,8 @@ internal static class AgentAttemptWorker
     }
 
     /// <summary>Executors write only in their worktree and inside their scope; nobody gets network in Phase 3.</summary>
-    internal static PermissionProfile Permissions(TaskSpec spec, AgentDefinition agent)
-    {
-        var write = spec.Workspace == WorkspaceMode.Write;
-        var shell = write && agent.AllowedTools.Contains("Bash", StringComparer.OrdinalIgnoreCase);
-        var tools = agent.AllowedTools
-            .Where(t => !string.Equals(t, "Bash", StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(t, "WebFetch", StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(t, "WebSearch", StringComparison.OrdinalIgnoreCase))
-            .Where(t => write || !(string.Equals(t, "Write", StringComparison.OrdinalIgnoreCase) || string.Equals(t, "Edit", StringComparison.OrdinalIgnoreCase)))
-            .ToList();
-        return new PermissionProfile(write, shell, false, tools, [], []);
-    }
+    internal static PermissionProfile Permissions(TaskSpec spec, AgentDefinition agent) =>
+        AgentPermissions.For(spec.Workspace == WorkspaceMode.Write, agent);
 
     private static async Task<AttemptEnd> ConcludeAsync(WorkerContext w, AgentAttemptPlan plan, InFlight flight, WorktreeLease? lease, AgentInvocationResult result)
     {

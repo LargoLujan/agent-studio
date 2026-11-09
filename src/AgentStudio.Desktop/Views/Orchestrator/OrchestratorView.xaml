@@ -7,6 +7,7 @@
              xmlns:views="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
              xmlns:lockviews="clr-namespace:AgentStudio.Desktop.Views.Lock"
              xmlns:controls="clr-namespace:AgentStudio.Desktop.Controls"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=orchestrator:OrchestratorDocumentViewModel}">
     <!-- The «Orquestador» tab: engine status, the preparation (request, frozen requirements, agents, verification
@@ -162,6 +163,9 @@
                 <Border Grid.Column="2" Background="{StaticResource SurfaceBrush}">
                     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                         <StackPanel Margin="14,12">
+                            <views:TeamPanelView DataContext="{Binding Builder.Editor}"
+                                                 Visibility="{Binding DataContext.Canvas.IsTeamLayer, RelativeSource={RelativeSource AncestorType=views:OrchestratorView}, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
+                            <StackPanel Visibility="{Binding Canvas.IsPlanLayer, Converter={StaticResource Orchestrator.BoolToVisibility}}">
                             <ContentControl Content="{Binding Editor}" Focusable="False"
                                             Visibility="{Binding Editor, Converter={StaticResource Orchestrator.NotNullToVisibility}}">
                                 <ContentControl.ContentTemplate>
@@ -173,6 +177,7 @@
                             <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap"
                                        Visibility="{Binding Editor, Converter={StaticResource Orchestrator.NullToVisibility}}"
                                        Text="Selecciona un nodo para ver y cambiar sus propiedades."/>
+                            </StackPanel>
 
                             <TextBlock Style="{StaticResource SectionTitleText}" Margin="0,20,0,4" Text="Problemas del plan"
                                        Visibility="{Binding ShowValidation, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
@@ -192,6 +197,11 @@
                             <StackPanel Margin="0,20,0,0" Visibility="{Binding Proposal, Converter={StaticResource Orchestrator.NotNullToVisibility}}">
                                 <TextBlock Style="{StaticResource SectionTitleText}" Margin="0,0,0,4" Text="Propuesta del orquestador"/>
                                 <TextBlock Style="{StaticResource BodyText}" Text="{Binding ProposalStatus}" AutomationProperties.LiveSetting="Polite"/>
+                                <!-- The orchestrator asked instead of planning (docs/17 D-28): its questions open as windows, and this opens them again. -->
+                                <Button Style="{StaticResource ToolbarButton}" HorizontalAlignment="Left" Margin="0,6,0,0" Content="{l:T Shell_Planner_Answer}"
+                                        Command="{Binding OpenPlannerQuestionsCommand}" ToolTip="{l:T Shell_Planner_AnswerHelp}"
+                                        AutomationProperties.Name="{l:T Shell_Planner_Answer}" AutomationProperties.HelpText="{l:T Shell_Planner_AnswerHelp}"
+                                        Visibility="{Binding HasPlannerQuestions, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
                                 <TextBlock Style="{StaticResource FieldLabel}" Text="Riesgos que señala"/>
                                 <ItemsControl ItemsSource="{Binding Risks}" Focusable="False">
                                     <ItemsControl.ItemTemplate>
