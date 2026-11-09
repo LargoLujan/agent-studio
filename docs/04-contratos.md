@@ -1761,5 +1761,4 @@ Todo vive en `Desktop`; no hay puertos nuevos en `Application`, y los textos sal
   la virtualización). La prueba exige la mediana por debajo de 50 ms con un margen ×2 por la carga de la suite, que es el único margen y está en el código.
 - **Las partes del prompt** dependen de que `AgentRunStarted` v3 ya esté en el registro cuando llega el primer paso: si no, el monitor pregunta una vez más al llegar ese paso.
 - **Los nombres de las pruebas que fallan** no se leen del TRX: el panel «Pruebas» enseña los contadores y la línea principal del error del paso, que es lo que el monitor ya tiene.
-- **Duplicación consciente:** `EffectiveTools.ProfileOf` repite `Workers.Permissions`, que es interno de Orchestration. La prueba que compara «Herramientas» con
-  `ClaudeCodeArguments.Build` falla si el lanzamiento cambia lo que un agente puede usar, pero no si cambia esa regla de permisos: conviene hacerla pública cuando WP4 se toque.
+- **Los permisos de un ejecutor** son la regla pública `Orchestration/Engine/AgentPermissions.For(escribe, agente)`, la que lanza `Workers` y la que usa `EffectiveTools`: no hay copia. La prueba compara «Herramientas» con `ClaudeCodeArguments.Build` con un lanzamiento escrito aparte.

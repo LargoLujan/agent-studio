@@ -76,6 +76,25 @@ public sealed class ToolsViewModelTests
         Assert.Equal(After(real, "--permission-mode"), After(set.Arguments, "--permission-mode"));
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void The_permissions_of_the_view_are_the_rule_of_the_engine_itself_not_a_copy(bool writes)
+    {
+        var agent = Agent("exec1", "Ejecutor 1", ProviderId.ClaudeCode, "Read", "Edit", "Write", "Bash", "WebFetch");
+
+        var rule = AgentStudio.Orchestration.Engine.AgentPermissions.For(writes, agent);
+
+        var viewed = EffectiveTools.ProfileOf(agent, writes);
+        Assert.Equal((rule.AllowFileWrites, rule.AllowShell, rule.AllowNetwork), (viewed.AllowFileWrites, viewed.AllowShell, viewed.AllowNetwork));
+        Assert.Equal(rule.AllowedTools, viewed.AllowedTools);
+        Assert.Equal(writes, rule.AllowFileWrites);
+        Assert.Equal(writes, rule.AllowShell);
+        Assert.False(rule.AllowNetwork);
+        Assert.DoesNotContain("WebFetch", rule.AllowedTools);
+        Assert.Equal(writes, rule.AllowedTools.Contains("Edit"));
+    }
+
     [Fact]
     public void In_a_task_that_writes_the_agent_has_edit_write_and_a_shell_and_in_one_that_reads_it_has_neither()
     {

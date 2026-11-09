@@ -3,6 +3,7 @@ using AgentStudio.Application.Providers;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Providers;
+using AgentStudio.Orchestration.Engine;
 using AgentStudio.Providers.Cli.Claude;
 using AgentStudio.Providers.Cli.Codex;
 
@@ -51,23 +52,10 @@ public static class EffectiveTools
     private const string PreviewSchema = "{}";
 
     /// <summary>
-    /// The permissions the engine gives an executor in a task that writes or one that only reads: it writes only in its worktree,
-    /// has a shell only when its template lists <c>Bash</c> and the task writes, and gets no network. The same rule as
-    /// <c>Workers.Permissions</c> of the engine, which is internal to Orchestration: the test that compares this view with the
-    /// launch keeps the two in step.
+    /// The permissions the engine gives an executor in a task that writes or one that only reads: the engine's own rule
+    /// (<see cref="AgentPermissions.For"/>), not a copy of it.
     /// </summary>
-    public static PermissionProfile ProfileOf(AgentDefinition agent, bool writes)
-    {
-        ArgumentNullException.ThrowIfNull(agent);
-        var shell = writes && agent.AllowedTools.Contains("Bash", StringComparer.OrdinalIgnoreCase);
-        var tools = agent.AllowedTools
-            .Where(t => !string.Equals(t, "Bash", StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(t, "WebFetch", StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(t, "WebSearch", StringComparison.OrdinalIgnoreCase))
-            .Where(t => writes || !(string.Equals(t, "Write", StringComparison.OrdinalIgnoreCase) || string.Equals(t, "Edit", StringComparison.OrdinalIgnoreCase)))
-            .ToList();
-        return new PermissionProfile(writes, shell, false, tools, [], []);
-    }
+    public static PermissionProfile ProfileOf(AgentDefinition agent, bool writes) => AgentPermissions.For(writes, agent);
 
     /// <summary>The request the engine would launch for <paramref name="agent"/> in a task that writes or one that only reads.</summary>
     public static AgentRunRequest RequestFor(AgentDefinition agent, bool writes) =>
