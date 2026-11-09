@@ -130,6 +130,17 @@ public sealed class FixedBarrierTests
         }
     }
 
+    /// <summary>Waits, at most five seconds, until <paramref name="condition"/> holds.</summary>
+    private static async Task UntilAsync(Func<bool> condition)
+    {
+        for (var i = 0; i < 500 && !condition(); i++)
+        {
+            await Task.Delay(10, TestContext.Current.CancellationToken);
+        }
+
+        Assert.True(condition(), "The first confirmation never started.");
+    }
+
     // ---- D-38: no setting and no file turns it off ----
 
     [Theory]
@@ -337,6 +348,58 @@ public sealed class FixedBarrierTests
         Assert.False(decision.Approved);
         Assert.Empty(dialog.Shown);
         Assert.Equal(new Actor(ActorKind.System, ApprovalGate.SystemId), store.Of(Project)[1].Actor);
+    }
+
+    /// <summary>
+    /// The security review of WP5 (2026-11-09): one confirmation of the person at a time. While the delivery waits for the
+    /// unlock of Windows, accepting a history is not confirmed by that same unlock: it is denied at once, and says that another
+    /// confirmation is pending. The first one goes on, and the unlock approves it alone.
+    /// </summary>
+    [Fact]
+    public async Task While_the_lock_of_windows_waits_a_second_approval_is_denied_and_says_another_is_pending()
+    {
+        var unlock = new TaskCompletionSource<WindowsLockResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var windowsLock = new FakeWindowsLockConfirmation { Answer = (_, _) => unlock.Task };
+        using var world = new World(FakeUserPresenceVerifier.Without(UserPresenceAvailability.NotConfiguredForUser), windowsLock);
+
+        var first = world.AskAsync(DeliveryService.ApprovalAction);
+        await UntilAsync(() => windowsLock.Locks.Count == 1);
+        var second = await world.AskAsync(UnanchoredHistory.AcceptAction);
+
+        Assert.False(second.Approved);
+        Assert.Equal(HelloTexts.ApprovalConfirmationPending, second.Comment);
+        Assert.Equal(new Actor(ActorKind.System, ApprovalGate.SystemId), world.Log.Last(e => e.Kind == DecisionKind.ApprovalDenied).Actor);
+        Assert.Single(windowsLock.Locks);
+
+        unlock.SetResult(WindowsLockResult.UnlockedAfterRequest);
+        var approved = await first;
+        Assert.True(approved.Approved);
+        Assert.Equal(ApprovalVerification.WindowsLock, approved.Verification);
+    }
+
+    /// <summary>The same with Windows Hello: one verification never confirms two approvals.</summary>
+    [Fact]
+    public async Task While_windows_hello_is_asked_a_second_approval_is_denied_and_says_another_is_pending()
+    {
+        var verified = new TaskCompletionSource<UserPresenceResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var hello = new FakeUserPresenceVerifier { Verify = (_, _) => verified.Task };
+        using var world = new World(hello);
+
+        var first = world.AskAsync(DeliveryService.ApprovalAction);
+        await UntilAsync(() => hello.Messages.Count == 1);
+        var second = await world.AskAsync(DeliveryService.ApprovalAction);
+
+        Assert.False(second.Approved);
+        Assert.Equal(HelloTexts.ApprovalConfirmationPending, second.Comment);
+        Assert.Single(hello.Messages);
+
+        verified.SetResult(UserPresenceResult.Verified);
+        Assert.True((await first).Approved);
+
+        // Free again: the next one is asked.
+        hello.Verify = (_, _) => Task.FromResult(UserPresenceResult.Verified);
+        Assert.True((await world.AskAsync(DeliveryService.ApprovalAction)).Approved);
+        Assert.Equal(2, hello.Messages.Count);
     }
 
     /// <summary>A no is never confirmed: it asks neither Hello nor the lock (ADR-0037, decision 3).</summary>

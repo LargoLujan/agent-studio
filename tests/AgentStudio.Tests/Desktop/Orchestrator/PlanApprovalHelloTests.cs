@@ -190,6 +190,31 @@ public sealed class PlanApprovalHelloTests
         Assert.Empty(engine.RunRequests);
     }
 
+    /// <summary>
+    /// The security review of WP5 (2026-11-09): «Aprobar plan» and the questions of the gate share one confirmation of the
+    /// person at a time. While a question of the gate waits for Windows Hello, the plan is not confirmed by that same
+    /// verification: it is not approved, and the screen says another confirmation is pending.
+    /// </summary>
+    [Fact]
+    public async Task While_another_confirmation_is_pending_the_plan_is_not_approved_and_the_screen_says_why()
+    {
+        var verified = new TaskCompletionSource<UserPresenceResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var hello = new FakeUserPresenceVerifier { Verify = (_, _) => verified.Task };
+        var confirmation = On(hello);
+        var (document, engine) = await PlanReadyAsync(confirmation);
+        var gateQuestion = await confirmation.PlanAsync(AgentStudio.Domain.Security.PresenceAction.DeliverToBranch, CancellationToken.None);
+        var pending = confirmation.ConfirmAsync(gateQuestion, "Agent Studio: entrega", CancellationToken.None);
+
+        await document.ApproveCommand.ExecuteAsync(null);
+
+        Assert.False(document.IsApproved);
+        Assert.Equal(HelloTexts.PlanConfirmationPending, document.ErrorMessage);
+        Assert.Single(hello.Messages);
+        verified.SetResult(UserPresenceResult.Verified);
+        Assert.Equal(AgentStudio.Domain.Security.PresenceProof.WindowsHello, (await pending).Proof);
+        Assert.Empty(engine.RunRequests);
+    }
+
     /// <summary>Without Hello and without the verified lock composed, nothing can confirm the person: the plan is not approved, never left to the click.</summary>
     [Fact]
     public async Task Without_windows_hello_and_without_the_lock_of_windows_a_plan_with_writers_is_not_approved()

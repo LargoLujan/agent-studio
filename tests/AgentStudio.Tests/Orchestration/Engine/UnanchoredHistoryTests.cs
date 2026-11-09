@@ -48,7 +48,7 @@ public sealed class UnanchoredHistoryTests
         await recorder.AcceptAsNewOriginAsync(
             harness.Project.ProjectId,
             new ApprovalRequest(UnanchoredHistory.AcceptAction, "Aceptar este historial como nuevo origen.", RiskLevel.Critical, null, [harness.RepositoryRoot], harness.Project.ProjectId, Binding: binding),
-            new ApprovalDecision(true, "user", harness.Time.GetUtcNow(), null, binding),
+            new ApprovalDecision(true, "user", harness.Time.GetUtcNow(), null, binding, ApprovalVerification.WindowsHello),
             Ct);
 
         var runs = await engine.ListRunsAsync(harness.Project, Ct);

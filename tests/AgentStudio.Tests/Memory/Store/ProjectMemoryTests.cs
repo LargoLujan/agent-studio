@@ -245,7 +245,7 @@ public sealed class ProjectMemoryTests
         await world.Instance.Recorder.AcceptAsNewOriginAsync(
             world.Project.ProjectId,
             new ApprovalRequest(UnanchoredHistory.AcceptAction, "Aceptar este historial como nuevo origen.", RiskLevel.Critical, null, [world.Root], world.Project.ProjectId, Binding: binding),
-            new ApprovalDecision(true, "manuel", T0, null, binding),
+            new ApprovalDecision(true, "manuel", T0, null, binding, ApprovalVerification.WindowsHello),
             Ct);
         var fresh = await world.Memory.RecordAsync(world.Project, Draft(content: "Una decisión nueva."), Ct);
 

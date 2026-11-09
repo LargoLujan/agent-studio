@@ -59,6 +59,32 @@ public sealed class WindowsLockConfirmationTests
         Assert.True(clock.GetUtcNow() - T0 < Timeout);
     }
 
+    /// <summary>
+    /// The security review of WP5 (2026-11-09): while one lock waits for its unlock, a second request is refused at once and
+    /// locks nothing, so one unlock of Windows never confirms two approvals. Once the first ends, the next one is asked.
+    /// </summary>
+    [Fact]
+    public async Task One_unlock_never_confirms_two_requests_the_second_is_refused_at_once()
+    {
+        var clock = new FakeTimeProvider(T0);
+        var session = FakeWindowsSessionState.Saying(SessionLockState.Unlocked, SessionLockState.Locked);
+        var confirmation = new WindowsLockConfirmation(session, clock);
+
+        var first = confirmation.LockAndConfirmAsync(Timeout, TestContext.Current.CancellationToken);
+        var second = await confirmation.LockAndConfirmAsync(Timeout, TestContext.Current.CancellationToken);
+
+        Assert.Equal(WindowsLockResult.NotVerified, second);
+        Assert.Equal(1, session.Locks);
+
+        // The person unlocks once: it confirms the first request only.
+        session.States.Add(SessionLockState.Unlocked);
+        Assert.Equal(WindowsLockResult.UnlockedAfterRequest, await RunAsync(clock, first));
+
+        // Free again: the next request locks Windows.
+        await RunAsync(clock, confirmation.LockAndConfirmAsync(Timeout, TestContext.Current.CancellationToken));
+        Assert.Equal(2, session.Locks);
+    }
+
     [Fact]
     public async Task A_lock_windows_refuses_confirms_nothing()
     {

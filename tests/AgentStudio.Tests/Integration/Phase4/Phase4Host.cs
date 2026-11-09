@@ -219,17 +219,21 @@ internal sealed class Phase4App : IAsyncDisposable
         var roster = await Get<IAgentRoster>().ListAsync(Project.ProjectId, Ct);
         var confined = _services.GetService<IWriteConfinementProbe>() is { } probe
             && await probe.IsWriteConfinedAsync(ProviderId.ClaudeCode, Ct);
+        var warning = VerificationStepText.PlanWarning(plan, roster, profile, confined) ?? string.Empty;
+
+        // A plan with writers is approved on the canvas only with Windows Hello (docs/17 D-37): the approval says so.
+        var method = warning.Length > 0 ? ApprovalVerification.WindowsHello : ApprovalVerification.Dialog;
         return new RunRequest(
             Project,
             null,
             originalRequest,
             requirements,
             plan,
-            new ApprovalDecision(true, ScriptedApprovalPrompt.Person, DateTimeOffset.UtcNow, "Plan aprobado en el lienzo."),
+            new ApprovalDecision(true, ScriptedApprovalPrompt.Person, DateTimeOffset.UtcNow, "Plan aprobado en el lienzo.", Verification: method),
             profile,
             new RunOptions(),
             ValidatedRoster: roster,
-            ApprovedWarning: VerificationStepText.PlanWarning(plan, roster, profile, confined) ?? string.Empty);
+            ApprovedWarning: warning);
     }
 
     public ValueTask DisposeAsync() => _services.DisposeAsync();

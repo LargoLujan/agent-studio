@@ -65,7 +65,7 @@ public sealed class HealthDemoTests
             "Añade la función y publícala si sus pruebas pasan.",
             Requirements(),
             plan,
-            new ApprovalDecision(true, "user", DateTimeOffset.UtcNow, "Plan aprobado en el lienzo."),
+            new ApprovalDecision(true, "user", DateTimeOffset.UtcNow, "Plan aprobado en el lienzo.", Verification: ApprovalVerification.WindowsHello),
             profile,
             new RunOptions(),
             ValidatedRoster: await app.RosterAsync(),

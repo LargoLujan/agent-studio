@@ -93,6 +93,30 @@ public sealed class PresencePolicyTests
         Assert.False(PresencePolicy.IsSatisfiedBy(action, importantApprovalsSetting: true, helloAvailable: true, PresenceProof.WindowsLockUnlockedAfterRequest));
     }
 
+    /// <summary>
+    /// One rule, not two: the rule by action is the rule by requirement with the requirement of the action (the one an approval
+    /// the list does not name is judged by), for every action, setting, computer and proof; an unknown requirement is refused.
+    /// </summary>
+    [Fact]
+    public void The_rule_by_action_is_the_rule_by_requirement_of_its_action()
+    {
+        foreach (var action in Enum.GetValues<PresenceAction>())
+        {
+            foreach (var proof in Enum.GetValues<PresenceProof>())
+            {
+                foreach (var (setting, hello) in new[] { (false, false), (false, true), (true, false), (true, true) })
+                {
+                    Assert.Equal(
+                        PresencePolicy.IsSatisfiedBy(PresencePolicy.RequirementOf(action), setting, hello, proof),
+                        PresencePolicy.IsSatisfiedBy(action, setting, hello, proof));
+                }
+            }
+        }
+
+        Assert.True(PresencePolicy.IsSatisfiedBy(PresenceRequirement.Never, importantApprovalsSetting: true, helloAvailable: true, PresenceProof.None));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PresencePolicy.IsSatisfiedBy((PresenceRequirement)9, importantApprovalsSetting: false, helloAvailable: false, PresenceProof.WindowsHello));
+    }
+
     /// <summary>The results of Windows confirm the person only when Hello verified, or the lock was unlocked after the request.</summary>
     [Fact]
     public void Only_a_verified_hello_or_a_lock_unlocked_after_the_request_prove_the_person()
