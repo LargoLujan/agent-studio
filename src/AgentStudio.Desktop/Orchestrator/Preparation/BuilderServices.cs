@@ -1,3 +1,4 @@
+using AgentStudio.Application.Knowledge;
 using AgentStudio.Application.Models;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Projects;
@@ -27,6 +28,7 @@ namespace AgentStudio.Desktop.Orchestrator.Preparation;
 /// <param name="Repository">The hardened git layer, to read the node of the repository without network.</param>
 /// <param name="Live">The grouped live state of the run followed (D-14 and D-16); the monitor implements it.</param>
 /// <param name="Quota">The record of the quota of the account, for the header of the strip (D-12).</param>
+/// <param name="Brief">The brief of the project, kept as memory of the person (D-10).</param>
 public sealed record BuilderServices(
     IOrderReview? OrderReview = null,
     IPreparationChat? Chat = null,
@@ -36,7 +38,8 @@ public sealed record BuilderServices(
     IUsageEstimator? Estimator = null,
     IRepositoryStateReader? Repository = null,
     IRunLiveProjection? Live = null,
-    IQuotaObservations? Quota = null)
+    IQuotaObservations? Quota = null,
+    IProjectBrief? Brief = null)
 {
     /// <summary>Nothing composed: the canvas works with what it always had.</summary>
     public static BuilderServices None { get; } = new();

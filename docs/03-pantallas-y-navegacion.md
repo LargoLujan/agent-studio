@@ -489,6 +489,9 @@ antes de la fase.
   ejecución auxiliar de solo lectura que gasta cuota: antes se abre una tarjeta con la estimación (o con que todavía no hay
   referencias) y el OK de la persona, que el servicio gasta una vez. Sus sugerencias se vuelven a comprobar y cada una es un
   arreglo de un clic; nada se aplica solo. La razón que da el orquestador se enseña aparte, como texto de un agente.
+- **La ficha del proyecto** está en la banda de preparación: un texto tuyo sobre qué es el proyecto, sus convenciones y sus
+  direcciones útiles. Se guarda como memoria tuya (cada versión sustituye a la anterior), llega a los agentes que trabajan con su
+  huella y nunca al juez, y las direcciones son texto que los agentes no abren.
 - **El chat con el orquestador** está en la banda de preparación. Cada mensaje pide su OK con la estimación; la conversación se
   reanuda de un mensaje al siguiente y se termina con su botón. Devuelve texto de un agente, borradores de requisitos, sugerencias
   para el equipo, riesgos y preguntas. «Copiar al editor» pone un borrador en el editor de requisitos como borrador tuyo y no

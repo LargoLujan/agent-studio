@@ -1081,4 +1081,61 @@ Apply a suggestion for the team: it is never applied by itself.</value>
     <value>Google</value>
     <comment>Company of the model (a proper name: it is not translated).</comment>
   </data>
+  <data name="Canvas_Brief_Title" xml:space="preserve">
+    <value>Brief of the project</value>
+    <comment>Title of the section of the brief.</comment>
+  </data>
+  <data name="Canvas_Brief_Help" xml:space="preserve">
+    <value>Write what the project is, its conventions and its useful addresses. It reaches the orchestrator and the executors as data with its fingerprint, never the judge. The addresses are text: the agents do not open them.</value>
+    <comment>Help under the title.</comment>
+  </data>
+  <data name="Canvas_Brief_Name" xml:space="preserve">
+    <value>Brief of the project</value>
+    <comment>Accessible name of the box of the brief.</comment>
+  </data>
+  <data name="Canvas_Brief_Save" xml:space="preserve">
+    <value>Save the brief</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Canvas_Brief_Saved" xml:space="preserve">
+    <value>Brief saved: it is a new version that replaces the previous one.</value>
+    <comment>Said after saving.</comment>
+  </data>
+  <data name="Canvas_Brief_Empty" xml:space="preserve">
+    <value>Write something in the brief before saving it.</value>
+    <comment>Said when the brief is empty.</comment>
+  </data>
+  <data name="Canvas_Brief_TooLong" xml:space="preserve">
+    <value>The brief is over the maximum of {0} characters.</value>
+    <comment>{0}: the maximum.</comment>
+  </data>
+  <data name="Canvas_Brief_Failed" xml:space="preserve">
+    <value>The brief could not be saved or read: {0}</value>
+    <comment>{0}: the reason.</comment>
+  </data>
+  <data name="Canvas_Brief_NotComposed" xml:space="preserve">
+    <value>The brief is not available: the memory of the project is missing.</value>
+    <comment>Said when the port is not composed.</comment>
+  </data>
+  <data name="Canvas_Brief_Version" xml:space="preserve">
+    <value>Version in force, fingerprint {0}, of {1}.</value>
+    <comment>{0}: fingerprint; {1}: date.</comment>
+  </data>
+  <data name="Canvas_Brief_None" xml:space="preserve">
+    <value>There is no brief yet.</value>
+    <comment>Said when there is none.</comment>
+  </data>
+  <data name="Info_Canvas_Brief_Title" xml:space="preserve">
+    <value>Brief of the project</value>
+    <comment>Title of the info button.</comment>
+  </data>
+  <data name="Info_Canvas_Brief_What" xml:space="preserve">
+    <value>It is a text of yours about the project: what it is, its conventions and its useful addresses. It is kept as memory of yours and reaches the agents that work, not the judge.</value>
+    <comment>What the brief is.</comment>
+  </data>
+  <data name="Info_Canvas_Brief_Actions" xml:space="preserve">
+    <value>Write or change the brief.
+Press «Save the brief»: each version replaces the previous one.</value>
+    <comment>What can be done.</comment>
+  </data>
 </root>

@@ -1721,7 +1721,7 @@ es obligatorio, y un documento creado sin él (`builder: null`) es el de antes d
 
 | Pieza | Fichero | Qué es |
 |---|---|---|
-| `BuilderServices` (`OrderReview`, `Chat`, `Ledger`, `Catalog`, `Learning`, `Estimator`, `Repository`, `Live`, `Quota`) | `Orchestrator/Preparation/BuilderServices.cs` | Los puertos que lee el constructor, todos opcionales: lo que falta apaga solo lo que lo necesita. `OrchestratorDocumentViewModel(…, builder, reduceMotion)` los recibe al final de su constructor |
+| `BuilderServices` (`OrderReview`, `Chat`, `Ledger`, `Catalog`, `Learning`, `Estimator`, `Repository`, `Live`, `Quota`, `Brief`) | `Orchestrator/Preparation/BuilderServices.cs` | Los puertos que lee el constructor, todos opcionales: lo que falta apaga solo lo que lo necesita. `OrchestratorDocumentViewModel(…, builder, reduceMotion)` los recibe al final de su constructor |
 | `CanvasLayer`, `CanvasViewModel.Team` y `CanvasLayout.TeamPositions` | `Orchestrator/Canvas/` | Las capas, y la disposición v2 (`{version:2, plan, team}`), que lee la v1 como la capa «Plan» |
 | `TeamCanvasViewModel`, `AgentNodeViewModel`, `RepositoryNodeViewModel`, `TeamConnectionViewModel` | `Orchestrator/Team/` | La capa Equipo y la tira: los nodos son la plantilla y los cables «Reparte», «Revisa» y «Trabaja en». No hay ningún tipo de la capa en `BuildTasks` ni en `DependsOn` |
 | `RepositoryReader`, `IRepositoryStateReader`, `RepositoryReading` | `Orchestrator/Team/RepositoryReader.cs` | El nodo del repositorio sin red: la rama, la versión y los cambios por `IWorktreeManager.InspectAsync`; los remotos, del texto de `.git/config` con `RepositoryRemote.Cleaned`, sin lanzar git |
@@ -1730,6 +1730,7 @@ es obligatorio, y un documento creado sin él (`builder: null`) es el de antes d
 | `VisualBuilder` | `Orchestrator/Team/VisualBuilder.cs` | Reúne el editor, la banda, «Revisar el orden» y el chat; aplica el estado vivo solo a los nodos que el cambio nombra y lee el repositorio, lo aprendido y la cuota una vez |
 | `AnalysisBandViewModel`, `IDraftHost`, `FindingItemViewModel` | `Orchestrator/Canvas/AnalysisBandViewModel.cs` | El analizador en vivo (200 ms, fuera del hilo, con generación), los arreglos de un clic y Ctrl+Z y Ctrl+Y sobre `EditHistory<MontageEditState>` |
 | `OrderReviewViewModel`, `PreparationChatViewModel`, `QuotaConsentCardViewModel` | `Orchestrator/Preparation/` | «Revisar el orden» y el chat: un OK por uso, con la estimación delante, y ninguna sugerencia se aplica sola |
+| `ProjectBriefViewModel` | `Orchestrator/Preparation/ProjectBriefViewModel.cs` | La ficha del proyecto sobre `IProjectBrief`: se lee la vigente y cada versión nueva sustituye a la anterior, como decisión de la persona; no se guarda vacía ni pasada del máximo de la memoria |
 | `RequirementsEditorViewModel.CopySuggestion` | `Orchestrator/Preparation/RequirementsEditorViewModel.cs` | «Copiar al editor»: un borrador del chat entra como borrador de la persona, que lo congela o no |
 | `MotionPolicy`, `MotionSettingsViewModel` | `Orchestrator/Canvas/MotionPolicy.cs`, `Settings/MotionSettingsViewModel.cs` | «Reducir movimiento» (en «Ajustes», junto a «Idioma») y la opción de animaciones de Windows apagan las animaciones |
 | `Resources/CanvasStrings.resx` y `.en.resx` | `Resources/` | Los textos de WP6 (`Canvas_…` e `Info_Canvas_…`) |
@@ -1741,7 +1742,7 @@ es obligatorio, y un documento creado sin él (`builder: null`) es el de antes d
   `AgentText`, `LiveText` y `ContextBar`.
 - **Qué necesita la integración** (lo que WP6 no puede tocar):
   - pasar al documento un `BuilderServices` con los singletons de `IOrderReview`, `IPreparationChat` e `IQuotaConsentLedger`,
-    `IModelCatalogSource`, `IModelLearning`, `IUsageEstimator`, `IQuotaObservations`, la proyección viva del monitor
+    `IModelCatalogSource`, `IModelLearning`, `IUsageEstimator`, `IQuotaObservations`, `IProjectBrief`, la proyección viva del monitor
     (`IRunLiveProjection`, WP8) y `WorktreeRepositoryStateReader(IWorktreeManager)`, y `reduceMotion: () => settings.ReduceMotion`,
     en `OrchestratorDocumentFactory`;
   - llamar a `ShowTeamLayer()` desde «Agentes»;

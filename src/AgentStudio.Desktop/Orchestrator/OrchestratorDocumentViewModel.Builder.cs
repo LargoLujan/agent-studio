@@ -50,7 +50,8 @@ public sealed partial class OrchestratorDocumentViewModel
         editor.UseConfirmation(_confirmation is null ? null : ConfirmPresenceAsync);
         var order = new OrderReviewViewModel(services, OrderSubject, band.ApplyFixAsync, text, _time);
         var chat = new PreparationChatViewModel(services, ChatSubject, Requirements.CopySuggestion, band.ApplyFixAsync, text, _time);
-        Builder = new VisualBuilder(Canvas, services, text, _time, reduceMotion ?? (() => false), () => Monitor.ContextThresholds, editor, band, order, chat);
+        var brief = new ProjectBriefViewModel(services.Brief, () => Context?.Project, text);
+        Builder = new VisualBuilder(Canvas, services, text, _time, reduceMotion ?? (() => false), () => Monitor.ContextThresholds, editor, band, order, chat, brief);
         Canvas.Team.FolderCableRequested += (_, _) => band.Schedule();
         Closed += (_, _) =>
         {
@@ -138,6 +139,7 @@ public sealed partial class OrchestratorDocumentViewModel
         await builder.LoadRepositoryAsync(project.RootPath).ConfigureAwait(true);
         await builder.LoadLearnedAsync(project.RootPath).ConfigureAwait(true);
         builder.Editor.Context = InspectorContextNow(builder);
+        await builder.Brief.LoadAsync().ConfigureAwait(true);
         await builder.RefreshQuotaAsync().ConfigureAwait(true);
     }
 

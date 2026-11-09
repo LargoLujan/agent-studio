@@ -186,6 +186,19 @@ public sealed class RepositoryNodeTests : IDisposable
     }
 
     [Fact]
+    public async Task The_reason_a_repository_could_not_be_read_never_carries_the_credentials_of_an_address()
+    {
+        var root = Repo(ConfigWithCredentials);
+        var failure = new InvalidOperationException("fatal: unable to access 'https://usuario:" + Secret + "@github.com/org/calc.git/': could not resolve host");
+
+        var reading = await new RepositoryReader(new FakeState(failure: failure)).ReadAsync(root, CancellationToken.None);
+
+        Assert.DoesNotContain(Secret, reading.Problem, StringComparison.Ordinal);
+        Assert.DoesNotContain("usuario", reading.Problem, StringComparison.Ordinal);
+        Assert.Contains("https://github.com/org/calc.git", reading.Problem, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task A_configuration_that_cannot_be_read_gives_no_remotes_never_an_error()
     {
         Directory.CreateDirectory(Path.Combine(_folder.Root, ".git"));

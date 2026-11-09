@@ -71,7 +71,7 @@ public sealed class RepositoryReader(IRepositoryStateReader? state)
         catch (Exception ex) when (ex is not OperationCanceledException)
 #pragma warning restore CA1031
         {
-            return RepositoryReading.Failed(ex.Message);
+            return RepositoryReading.Failed(WithoutCredentials(ex.Message));
         }
 
         var root = inspected.Root;
@@ -87,6 +87,13 @@ public sealed class RepositoryReader(IRepositoryStateReader? state)
             stack.Count == 0 ? null : string.Join(", ", stack),
             folders));
     }
+
+    /// <summary>
+    /// A message of the git layer without the user and the password of any address in it: why the repository could not be read is
+    /// shown on the node, and no credential may be there either (docs/17 D-10, F13-3).
+    /// </summary>
+    internal static string WithoutCredentials(string message) =>
+        System.Text.RegularExpressions.Regex.Replace(message ?? string.Empty, @"(?<=://)[^/@\s]+@", string.Empty, System.Text.RegularExpressions.RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
 
     /// <summary>The remotes of the repository at <paramref name="root"/>, with their URL clean, in the order of the file.</summary>
     public static IReadOnlyList<RepositoryRemote> ReadRemotes(string root)

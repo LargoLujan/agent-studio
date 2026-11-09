@@ -123,6 +123,10 @@
                         </StackPanel>
                     </StackPanel>
 
+                    <!-- The brief of the project (docs/17 D-10): only when the builder is on. -->
+                    <views:ProjectBriefView DataContext="{Binding Builder.Brief}" views:AdaptiveColumnsPanel.Weight="2" MinWidth="320"
+                                            Visibility="{Binding DataContext.Builder, RelativeSource={RelativeSource AncestorType=views:PreparationView}, Converter={StaticResource Orchestrator.NotNullToVisibility}}"/>
+
                     <!-- The chat with the orchestrator (docs/17 D-44): only when the builder is on. -->
                     <views:PreparationChatView DataContext="{Binding Builder.Chat}" views:AdaptiveColumnsPanel.Weight="2" MinWidth="320"
                                                Visibility="{Binding DataContext.Builder, RelativeSource={RelativeSource AncestorType=views:PreparationView}, Converter={StaticResource Orchestrator.NotNullToVisibility}}"/>

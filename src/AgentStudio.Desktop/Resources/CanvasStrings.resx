@@ -1081,4 +1081,61 @@ Aplicar una sugerencia del equipo: nunca se aplica sola.</value>
     <value>Google</value>
     <comment>Company of the model (a proper name: it is not translated).</comment>
   </data>
+  <data name="Canvas_Brief_Title" xml:space="preserve">
+    <value>Ficha del proyecto</value>
+    <comment>Title of the section of the brief.</comment>
+  </data>
+  <data name="Canvas_Brief_Help" xml:space="preserve">
+    <value>Escribe qué es el proyecto, sus convenciones y sus direcciones útiles. Llega al orquestador y a los ejecutores como datos con su huella, nunca al juez. Las direcciones son texto: los agentes no las abren.</value>
+    <comment>Help under the title.</comment>
+  </data>
+  <data name="Canvas_Brief_Name" xml:space="preserve">
+    <value>Ficha del proyecto</value>
+    <comment>Accessible name of the box of the brief.</comment>
+  </data>
+  <data name="Canvas_Brief_Save" xml:space="preserve">
+    <value>Guardar la ficha</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Canvas_Brief_Saved" xml:space="preserve">
+    <value>Ficha guardada: es una versión nueva que sustituye a la anterior.</value>
+    <comment>Said after saving.</comment>
+  </data>
+  <data name="Canvas_Brief_Empty" xml:space="preserve">
+    <value>Escribe algo en la ficha antes de guardarla.</value>
+    <comment>Said when the brief is empty.</comment>
+  </data>
+  <data name="Canvas_Brief_TooLong" xml:space="preserve">
+    <value>La ficha pasa del máximo de {0} caracteres.</value>
+    <comment>{0}: the maximum.</comment>
+  </data>
+  <data name="Canvas_Brief_Failed" xml:space="preserve">
+    <value>No se pudo guardar o leer la ficha: {0}</value>
+    <comment>{0}: the reason.</comment>
+  </data>
+  <data name="Canvas_Brief_NotComposed" xml:space="preserve">
+    <value>La ficha no está disponible: falta la memoria del proyecto.</value>
+    <comment>Said when the port is not composed.</comment>
+  </data>
+  <data name="Canvas_Brief_Version" xml:space="preserve">
+    <value>Versión vigente, huella {0}, del {1}.</value>
+    <comment>{0}: fingerprint; {1}: date.</comment>
+  </data>
+  <data name="Canvas_Brief_None" xml:space="preserve">
+    <value>Todavía no hay ficha.</value>
+    <comment>Said when there is none.</comment>
+  </data>
+  <data name="Info_Canvas_Brief_Title" xml:space="preserve">
+    <value>Ficha del proyecto</value>
+    <comment>Title of the info button.</comment>
+  </data>
+  <data name="Info_Canvas_Brief_What" xml:space="preserve">
+    <value>Es un texto tuyo sobre el proyecto: qué es, sus convenciones y sus direcciones útiles. Se guarda como memoria tuya y llega a los agentes que trabajan, no al juez.</value>
+    <comment>What the brief is.</comment>
+  </data>
+  <data name="Info_Canvas_Brief_Actions" xml:space="preserve">
+    <value>Escribir o cambiar la ficha.
+Pulsar «Guardar la ficha»: cada versión sustituye a la anterior.</value>
+    <comment>What can be done.</comment>
+  </data>
 </root>

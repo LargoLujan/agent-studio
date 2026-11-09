@@ -40,7 +40,8 @@ public sealed partial class VisualBuilder : ObservableObject, IDisposable
         TeamEditorViewModel editor,
         AnalysisBandViewModel band,
         OrderReviewViewModel orderReview,
-        PreparationChatViewModel chat)
+        PreparationChatViewModel chat,
+        ProjectBriefViewModel brief)
     {
         ArgumentNullException.ThrowIfNull(canvas);
         ArgumentNullException.ThrowIfNull(services);
@@ -54,6 +55,7 @@ public sealed partial class VisualBuilder : ObservableObject, IDisposable
         Band = band;
         OrderReview = orderReview;
         Chat = chat;
+        Brief = brief;
         _canvas.Team.Editor = editor;
         _canvas.Team.Builder = this;
         if (services.Live is { } live)
@@ -69,6 +71,9 @@ public sealed partial class VisualBuilder : ObservableObject, IDisposable
     public OrderReviewViewModel OrderReview { get; }
 
     public PreparationChatViewModel Chat { get; }
+
+    /// <summary>The brief of the project (docs/17 D-10): a text of the person that reaches the agents that work, never the judge.</summary>
+    public ProjectBriefViewModel Brief { get; }
 
     public BuilderServices Services => _services;
 
