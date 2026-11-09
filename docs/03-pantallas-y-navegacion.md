@@ -45,16 +45,27 @@ El boceto es el diseño de referencia. Lo que tiene hoy la ventana (tanda 1, 202
 debajo.
 
 - **Barra lateral izquierda**, de arriba abajo: Explorador, Orquestador (Fase 3, [sección 3](#3-orquestador-visual)),
-  **Skills** ([10](10-catalogo-de-skills.md#8-pantalla)), **Consumo** y **Memoria** (Fase 4,
+  **Agentes** (Fase 13: el orquestador en la capa «Equipo»), **Skills** ([10](10-catalogo-de-skills.md#8-pantalla)),
+  **Herramientas** y **Pruebas** (Fase 13, [sección 5.5](#55-monitor-vivo-preguntas-análisis-del-consumo-paneles-y-herramientas-fase-13-wp8)),
+  **Consumo** y **Memoria** (Fase 4,
   [sección 5](#5-salud-del-contexto-consumo-cuota-y-memoria)), **Debates** (Fase 5, [sección 4](#4-debate-arena),
   `Ctrl+Shift+D`), **Terminal** (`Ctrl+Ñ`; en un teclado de EE. UU., `` Ctrl+` ``, que es la misma tecla), Auto Doctor,
   Historial · bitácora (la **bitácora** del día, [11](11-bitacora.md)) y, la última, **Ajustes**
   ([sección 5.2](#52-consumo-cuota-y-ajustes-documentos-consumo-y-ajustes)).
-  - Orquestador, Skills, Consumo, Memoria, Debates y Ajustes abren un documento en el centro. Explorador, Terminal, Auto
-    Doctor e Historial muestran u ocultan su panel.
-  - Una entrada solo aparece si su pantalla existe en la app: no hay iconos que no hagan nada. «Agentes» y «Pruebas» se
-    quitaron porque no tenían pantalla; Git, Auto Graph y Herramientas tendrán entrada cuando llegue la suya.
+  - Orquestador, Agentes, Skills, Herramientas, Consumo, Memoria, Debates y Ajustes abren un documento en el centro. Explorador,
+    Pruebas, Terminal, Auto Doctor e Historial muestran u ocultan su panel.
+  - **Agentes** abre la pestaña del orquestador del proyecto (o la trae al frente) y la deja en la capa «Equipo», donde se
+    añaden, configuran y quitan los agentes con el inspector de cada uno. **Herramientas** abre una pestaña con lo que puede
+    usar cada agente de la plantilla del proyecto abierto, y su «Dar a un agente…» lleva a esa capa con el inspector.
+    **Pruebas** muestra u oculta el panel de abajo del mismo nombre. Sus títulos salen de los recursos
+    (`IntegrationStrings`, castellano de España e inglés).
+  - Una entrada solo aparece si su pantalla existe en la app: no hay iconos que no hagan nada. Git y Auto Graph tendrán entrada
+    cuando llegue la suya.
   - El anillo de foco va en el botón que tiene el teclado, nunca alrededor de toda la barra.
+- **Pestañas de abajo.** Junto a «Terminal», en el mismo grupo, «Problemas», «Salida» y «Pruebas» (Fase 13, [sección 5.5](#55-monitor-vivo-preguntas-análisis-del-consumo-paneles-y-herramientas-fase-13-wp8)):
+  siguen al monitor de la ejecución del proyecto abierto (con otro proyecto, o sin ejecución, quedan vacíos, nunca con lo del
+  anterior). «Problemas» recibe además los hallazgos del lienzo, y «Salida» sigue a lo que seleccionas en él (una tarea o un
+  agente). Un diseño de paneles guardado antes de la Fase 13 los recupera en el grupo de «Terminal».
 - **Mostrar y ocultar un panel.** La entrada de la barra lateral (o su atajo) muestra el panel si no está a la vista
   (cerrado, plegado en un lado o en una pestaña detrás de otra), lo activa y le da el teclado. Solo lo oculta si ya se
   ve. Así una Terminal cerrada vuelve con su entrada o con `Ctrl+Ñ`. Al ocultar un panel que tenía el teclado, el teclado
@@ -62,7 +73,8 @@ debajo.
 - **Explorador:** cada fila ocupa todo el ancho del panel. El clic, la selección y el doble clic (que abre el fichero)
   valen en toda la fila, no solo sobre el texto.
 - **Barra superior:** el proyecto abierto (nombre y ruta), «Abrir carpeta», «Inicio», «Ir al fichero» (`Ctrl+P`),
-  «Auditar proyecto completo», el resumen de los proveedores y «Bloquear». El resumen («Proveedores: 2 de 2 listos», con
+  «Auditar proyecto completo», el **contador de agentes** de la ejecución que sigues («Agentes: 2 trabajando · 1 te pregunta»;
+  vacío si no hay ejecución, y cortés para el lector de pantalla), el resumen de los proveedores y «Bloquear». El resumen («Proveedores: 2 de 2 listos», con
   su punto de color) es un botón que muestra u oculta Auto Doctor. Un proveedor aparcado (Gemini, [ADR-0009](adr/0009-google-aparcado.md))
   no cuenta en él.
 - **«Auditar proyecto completo»** (barra superior, `Ctrl+Shift+A`): abre el documento «Auditoría» del proyecto abierto,
@@ -923,6 +935,13 @@ nueva trae su ⓘ.
 - **«Herramientas».** Qué puede usar cada agente, con el riesgo de cada herramienta y si darla pide Windows Hello. Se calcula
   con los argumentos del lanzamiento real. «Dar a un agente…» lleva al inspector de la capa Equipo.
 
+- **Las preguntas del orquestador antes de planificar.** Si el orquestador pregunta en lugar de dar un plan, la propuesta dice
+  «El orquestador te hace N pregunta(s) antes de planificar», las ventanas se abren solas (o la bandeja avisa) y un botón
+  «Responder» las abre otra vez. Cuando las contestas todas, vuelve a pedirse el plan una vez, con tus respuestas. «Rechazar» o
+  pedir otro plan dejan de esperarlas.
+- **El aviso de la bandeja.** Una pregunta que llega con la app fuera de vista (oculta en la bandeja, minimizada o bloqueada)
+  muestra en la bandeja «Un agente te pregunta algo», con el nombre de la app como título y nada del proyecto.
+
 ## 6. Auditoría y veredictos del juez
 
 > **Estado:** implementado en la Fase 5 (WP6 de [15](15-fase-5-debate-arena-y-juez.md), §9) sobre los puertos de P0,
@@ -1119,8 +1138,11 @@ ventana funciona.
 
 Un asistente de siete pasos y un resumen que prepara un proyecto: [17 §4.6](17-constructor-visual-de-agentes.md#46-configurador-por-proyecto)
 y [ADR-0055](adr/0055-configurador-por-proyecto.md). Se abre con «Configurar proyecto», desde la banda de preparación del
-orquestador y desde la bienvenida de un proyecto nuevo (la primera vez se sugiere y nunca se abre solo otra vez); lo conecta la
-integración. Propone a partir de los ficheros del proyecto, sin red y sin gastar cuota.
+orquestador y desde la bienvenida del proyecto, donde la primera vez que se abre un proyecto se sugiere en una línea (se anota
+que ya se sugirió, junto a las opciones del proyecto, y nunca se abre solo). Se abre como una pestaña por proyecto
+(«Configurar proyecto · nombre»): si ya existe, se vuelve a ella y se lee el proyecto otra vez. Lo que aplica a la plantilla
+llega a la pestaña del orquestador, que la lee otra vez y retira la aprobación del plan que esperaba, y el presupuesto del paso
+7 es el que usa la siguiente ejecución del proyecto. Propone a partir de los ficheros del proyecto, sin red y sin gastar cuota.
 
 ```text
 ┌ Configurar proyecto ──────────────────────────────────────────────────────── ⓘ ┐

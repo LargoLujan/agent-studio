@@ -1740,16 +1740,22 @@ es obligatorio, y un documento creado sin él (`builder: null`) es el de antes d
   pide Windows Hello o, sin él, el bloqueo de Windows) cuando la composición trae la confirmación reforzada; una composición sin
   ella conserva el clic, como `ApproveAsync`. Y `ConnectionViewModel` gana `IsPulsing`, `NodeViewModel` gana `IsHighlighted`,
   `AgentText`, `LiveText` y `ContextBar`.
-- **Qué necesita la integración** (lo que WP6 no puede tocar):
-  - pasar al documento un `BuilderServices` con los singletons de `IOrderReview`, `IPreparationChat` e `IQuotaConsentLedger`,
-    `IModelCatalogSource`, `IModelLearning`, `IUsageEstimator`, `IQuotaObservations`, `IProjectBrief`, la proyección viva del monitor
-    (`IRunLiveProjection`, WP8) y `WorktreeRepositoryStateReader(IWorktreeManager)`, y `reduceMotion: () => settings.ReduceMotion`,
-    en `OrchestratorDocumentFactory`;
-  - llamar a `ShowTeamLayer()` desde «Agentes»;
-  - **quitar un agente** necesita `IAgentRoster.DeleteAsync` (Application e Infrastructure, fuera de WP6): hasta entonces
+- **Lo que necesitaba la integración** (lo que WP6 no podía tocar), **hecho** en la integración de la tanda 2 de la Fase 13:
+  - [x] `OrchestratorDocumentFactory` pasa al documento un `BuilderServices` con los singletons de `IOrderReview`,
+    `IPreparationChat` e `IQuotaConsentLedger`, `IModelCatalogSource`, `IModelLearning`, `IUsageEstimator`, `IQuotaObservations`,
+    `IProjectBrief` y `WorktreeRepositoryStateReader(IWorktreeManager)` (`OrchestrationUiServices.BuilderServicesOf`), y
+    `reduceMotion` lee el ajuste guardado (`ReduceMotionSetting`: se lee una vez y otra vez cada vez que «Ajustes» lo guarda,
+    sin leer el fichero en cada animación). **La proyección viva no la da la fábrica**: es el monitor del propio documento, que
+    nace en su constructor, así que `InitializeBuilder` la toma de `Monitor` cuando la composición no trae otra.
+    `ReinforcedConfirmation` llega al documento, así que «Usar perfil propuesto» pide la confirmación reforzada;
+  - [x] «Agentes» de la barra lateral abre el documento del proyecto (o lo trae al frente) y llama a `ShowTeamLayer()`;
+  - [x] el guardado de «Ajustes» ya pasa por `MotionSettingsViewModel.Accept`, que llama a `MotionPolicy.NotifySettingChanged()`:
+    no hizo falta cablear nada más;
+  - [ ] **quitar un agente** necesita `IAgentRoster.DeleteAsync` (Application e Infrastructure, fuera de WP6): hasta entonces
     `TeamEditorViewModel` recibe un delegado nulo y «Quitar del equipo» no se muestra;
-  - **los remotos** se leen del texto de `.git/config`; la lectura de docs/17 D-10 con `git config --get-regexp` por la capa
+  - [ ] **los remotos** se leen del texto de `.git/config`; la lectura de docs/17 D-10 con `git config --get-regexp` por la capa
     endurecida queda para cuando exista en `IWorktreeManager`.
+  - Para el panel «Problemas», `AnalysisBandViewModel` expone `Analysis` y `AnalysisChanged` (el análisis que enseña la banda).
 
 ### 21.9 WP7: configurador por proyecto ([ADR-0055](adr/0055-configurador-por-proyecto.md))
 
@@ -1808,19 +1814,24 @@ nuevos están en `Application/Setup`; no hay ninguna entrada nueva en el registr
 
   Una prueba sin tests no es un éxito, como en .NET. Un proyecto en Jest, Vitest o Mocha edita el paso `test` con el
   informador JUnit de su herramienta: el perfil es tuyo.
-- **Para la integración (el lead):**
-  - `services.AddAgentStudioSetup()` junto a las demás pantallas: registra `ProjectSetupService`, `SetupViewModelFactory` y los
-    adaptadores de sus puertos. Necesita ya registrados `IAgentRoster`, `IDecisionRecorder` e `IProjectStorageFiles`; usa lo que
-    haya de `IProjectBrief`, `ISkillCatalog`, `ISkillActivationStore`, `IRequirementStore`, `IModelCatalogSource`,
-    `IModelLearning`, `IWorktreeManager` y `ReinforcedConfirmation`.
-  - Un documento o una vista que aloje `SetupView` con el `SetupViewModel` de `SetupViewModelFactory.Create()` y su
-    `LoadAsync(proyecto)`; y las entradas de «Configurar proyecto» en la banda de preparación y en la bienvenida de un proyecto
-    nuevo (sugerida la primera vez y nunca abierta sola otra vez: ese «ya se sugirió» lo guarda quien lo abre).
-  - Suscribirse a `SetupViewModel.Applied`: con `RosterChanged`, la pestaña del orquestador lee la plantilla otra vez y retira
-    la aprobación del plan (lo mismo que hace `OnRosterSavedAsync`).
-  - Las opciones del proyecto (`IProjectOptionsStore.LoadAsync`, `ProjectRunOptions.ToRunOptions()`) las tiene que leer la pestaña
-    del orquestador al crear sus `RunOptions`; hoy usa `new RunOptions(AutoResumeConsent: …)`.
-  - Un lector de remotos por la capa git endurecida (WP6) puede sustituir a `FileSetupRepositoryReader`: hoy los remotos salen
+- **Para la integración (el lead), hecho en la tanda 2 de la Fase 13:**
+  - [x] `services.AddAgentStudioSetup(<carpeta local>\setup)` en `PlatformServices`: registra `ProjectSetupService`,
+    `SetupViewModelFactory`, los adaptadores de sus puertos y `SetupSuggestions`.
+  - [x] Un documento que aloja `SetupView` (`SetupDocumentViewModel`, uno por proyecto, con su plantilla en
+    `DocumentTemplates.xaml`) con el `SetupViewModel` de `SetupViewModelFactory.Create()` y su `LoadAsync(proyecto)` (el proyecto
+    es el del contexto del orquestador, que el shell abre sin mostrarlo si hace falta). «Configurar proyecto» está en la banda de
+    preparación del orquestador (`ConfigureProjectCommand`, que pide al shell abrirlo) y en la bienvenida del proyecto. La primera
+    vez que se abre un proyecto la bienvenida lo sugiere en una línea y lo anota (`SetupSuggestions`: un fichero vacío con el
+    hash de la ruta, junto a las opciones, nada en el proyecto); nunca se abre solo.
+  - [x] El shell se suscribe a `SetupViewModel.Applied`: con `RosterChanged`, la pestaña del orquestador lee la plantilla otra vez
+    y retira la aprobación del plan (`OrchestratorDocumentViewModel.OnSetupAppliedAsync`, lo mismo que `OnRosterSavedAsync`), y
+    el presupuesto de la pestaña se lee de nuevo.
+  - [x] Las opciones del proyecto las lee la pestaña del orquestador al crear sus `RunOptions`
+    (`IProjectOptionsStore.LoadAsync(proyecto)` → `ProjectRunOptions.ToRunOptions()`; sin fichero, `ProjectRunOptions.Defaults`),
+    conservando el consentimiento de reanudar de esa ejecución y el presupuesto del lienzo: el de las opciones (sembrado al abrir
+    el proyecto y tras aplicar el configurador) y, si la persona lo subió después en el lienzo con un arreglo, ese. Las lee
+    también el análisis del montaje (`MaxParallelTasks`). Lo que el paso 7 promete, ahora se cumple.
+  - [ ] Un lector de remotos por la capa git endurecida (WP6) puede sustituir a `FileSetupRepositoryReader`: hoy los remotos salen
     vacíos y el paso 1 no inventa ninguno.
 
 ### 21.10 WP8: monitor, preguntas, análisis del consumo, paneles y herramientas
@@ -1843,21 +1854,36 @@ Todo vive en `Desktop`; no hay puertos nuevos en `Application`, y los textos sal
 | `ProblemsPanelViewModel`, `OutputPanelViewModel`, `TestsPanelViewModel`, `IHeadTestsService` | `Panels/` | Los tres paneles de abajo (F13-18). Siguen la ejecución por `Changed`, no por los eventos. «Ejecutar las pruebas de HEAD» solo existe si la composición da `IHeadTestsService` |
 | `ToolsViewModel`, `EffectiveTools` | `Tools/` | «Herramientas» (F13-18). `EffectiveTools.For` construye la petición del ejecutor y lee `--tools`, `--allowedTools` y `--disallowedTools` de `ClaudeCodeArguments.Build` (y `-s` de `CodexExecArguments.Build`): se calcula con el código del lanzamiento. El riesgo sale de `HighRiskCapabilityRule.HighRiskTools` y `PresencePolicy` |
 
-**Lo que la integración tiene que hacer** (nada de esto lo cablea WP8):
+**Lo que la integración tenía que hacer** (nada de esto lo cableaba WP8), **hecho** en la tanda 2 de la Fase 13:
 
-- **Composición:** crear un `RunMonitorViewModel` por documento como hasta ahora y darle `ContextPartsSource = new DecisionLogContextPartsSource(IDecisionRecorder)`,
-  `Quota` (el `QuotaViewModel`), `Consumption.Analyzer` (`IConsumptionAnalyzer`), `Consumption.Assisted` (`IAssistedConsumptionAnalysis`, con el registro de OK
-  único) y `Consumption.EstimateAssisted` (el estimador, con `AgentRunPurpose.ConsumptionAnalysis`). `WpfQuestionWindowHost` y `QuestionPromptService(monitor, host, IInterfaceLock)`
-  van una vez por monitor. `IHeadTestsService` lo implementa la composición con `IVerificationRunner`, el perfil y una copia aislada de HEAD, sin cuota.
-- **Quien adjunta la ejecución** (el documento del orquestador, WP6) le da `Roster` (la plantilla, para los agentes «Libres» y el nombre, el programa y el modelo de cada
-  tarjeta) y `PlanDependencies` (de qué tareas depende cada una, para el pulso del cable). Sin ellos solo salen los agentes con tarea y no hay pulsos.
-- **Barra lateral y pestañas:** «Herramientas» abre `Views/Tools/ToolsView` con `ToolsViewModel.Load(plantilla, perfil)`; su `GiveToAgentRequested` abre el inspector del agente en
-  la capa Equipo. «Pruebas» y las pestañas «Problemas», «Salida» y «Pruebas» son `Views/Panels/*PanelView` con su `*PanelViewModel`; cada uno hace `Attach(monitor)`.
-  `ProblemsPanelViewModel.SetMontage` recibe el análisis del montaje del lienzo y `OutputPanelViewModel.SelectTask/SelectAgent`, la selección.
-- **Barra superior:** `AgentLiveTexts.Counter(monitor.Current)`; se repinta con `Changed`.
-- **Bandeja (D-41):** suscribirse a `QuestionPromptService.AttentionRequested` y mostrar `e.Notice`. Para el contador de otros proyectos, el registro del trabajo de la bandeja.
-- **Preguntas del orquestador antes de planificar** (WP6): con `PlanProposal.Questions`, crear `new PlannerQuestionSet(proposal.Run, proposal.Questions)`, enseñar sus
-  `Questions` (la misma vista y ventana) y, cuando `await set.Answers` termina, replanificar con `PlanningRequest.Answers`. Nada del lienzo se toca desde aquí.
+- [x] **Composición:** `MonitorServices` (`Orchestrator/Monitor/MonitorServices.cs`, un singleton) da a cada monitor su
+  `ContextPartsSource` (`DecisionLogContextPartsSource(IDecisionRecorder)`), su `Quota` (el `QuotaViewModel`),
+  `Consumption.Analyzer`, `Consumption.Assisted` (con el registro de OK único) y `Consumption.EstimateAssisted` (el estimador con
+  `AgentRunPurpose.ConsumptionAnalysis`, sobre el programa del juez de la plantilla, que es el de otro proveedor que el del
+  trabajo; «desconocido» con el motivo si no hay juez), y crea el `QuestionPromptService(monitor, WpfQuestionWindowHost, IInterfaceLock)`
+  de ese monitor, uno por monitor. Lo llaman (`Equip`) los tres sitios donde nace un `RunMonitorViewModel`: el constructor del
+  documento del orquestador, el monitor de una ejecución entregada a la bandeja y el del shell para una ejecución que nadie sigue.
+- [ ] **`IHeadTestsService` no está implementado**: el panel «Pruebas» no muestra «Ejecutar las pruebas de HEAD» (a propósito, no hay
+  un botón que no haga nada). Lo implementaría la composición con `IVerificationRunner`, el perfil y una copia aislada de HEAD,
+  sin cuota.
+- [x] **Quien adjunta la ejecución** (el documento del orquestador) da `Roster` (la plantilla) y `PlanDependencies` (de qué tareas
+  depende cada una) **antes** de `Attach`/`Inspect`, también al monitor de una ejecución entregada a otro. Una ejecución que
+  reanuda sola y cuyo plan aún no está leído al adjuntar no tiene pulsos hasta la siguiente.
+- [x] **Barra lateral y pestañas:** «Herramientas» es una pestaña (`ToolsDocumentViewModel` con `ToolsView`, cargada con la plantilla y
+  el perfil del proyecto abierto); su `GiveToAgentRequested` lleva al orquestador, a la capa Equipo, con un agente elegido en el
+  inspector. «Pruebas» de la barra muestra u oculta el panel de abajo, y «Problemas», «Salida» y «Pruebas» son
+  `Views/Panels/*PanelView` en el grupo de «Terminal» (`MainWindow.xaml`), con su `*PanelViewModel` en `MainViewModel`, que hacen
+  `Attach(monitor)` del orquestador del proyecto abierto (un monitor ocioso si no lo hay). `ProblemsPanelViewModel.SetMontage` recibe
+  `AnalysisBandViewModel.Analysis`, y `OutputPanelViewModel.SelectTask/SelectAgent`, la selección del lienzo.
+- [x] **Barra superior:** `AgentLiveTexts.Counter(monitor.Current)`, repintado con `Changed` (`MainViewModel.AgentCounter`).
+- [x] **Bandeja (D-41):** `TrayController.FollowAttention(MonitorServices)` muestra `e.Notice` de `AttentionRequested` con el nombre de
+  la app como título (`NotifyAttention`); `UnattendedShell.Start` lo cablea y lo suelta al terminar.
+- [x] **Preguntas del orquestador antes de planificar:** con `PlanProposal.Questions`, el documento crea
+  `new PlannerQuestionSet(proposal.Run, proposal.Questions)`, `MonitorServices.PresentPlannerQuestions` las enseña (la misma ventana y
+  el mismo aviso de la bandeja), y cuando `await set.Answers` termina vuelve a planificar con `PlanningRequest.Answers`, una vez
+  (`OrchestratorDocumentViewModel.Integration.cs`). «Rechazar» o pedir otro plan dejan de esperarlas, y «Responder» abre las
+  ventanas otra vez. El flujo de WP6 no lo traía: es pegamento de la integración.
+- WP8 no pone ninguna regla nueva en `Strings.resx`: los textos de la integración están en `IntegrationStrings.resx` (`Shell_…`).
 
 **Medidas y límites** (pruebas fuera de pantalla, en `tests/…/Desktop/Orchestrator/Monitor/MonitorAccessibilityTests.cs`):
 
