@@ -108,6 +108,7 @@ public sealed class OrderNotesInPlanTests
 
         TestContext.Current.SendDiagnosticMessage(string.Create(CultureInfo.InvariantCulture, $"plan schema: {bytes} bytes with the notes and the questions, {before} without them; limit {PlanSchema.MaxBytes}"));
         Assert.True(bytes <= PlanSchema.MaxBytes / 2, $"{bytes} bytes");
+        Assert.True(bytes - before <= 2_048, $"the notes and the questions add {bytes - before} bytes");
     }
 
     /// <summary>The two properties of Phase 13 of the root, as JSON, to measure what they add.</summary>
