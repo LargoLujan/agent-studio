@@ -159,8 +159,13 @@ internal sealed class ScriptedApprovalPrompt : IApprovalPrompt
             _requests.Add(request);
         }
 
+        // An action of the fixed barrier (docs/17 D-37: the delivery) counts only confirmed: the person of the test confirms it
+        // as a double of Windows Hello would. No test asks the real one.
         var approved = Approve(request);
-        return Task.FromResult(new ApprovalDecision(approved, Person, DateTimeOffset.UtcNow, approved ? "Aprobado en la prueba." : "Denegado en la prueba."));
+        var method = approved && ApprovalRiskClassifier.PresenceOf(request) == AgentStudio.Domain.Security.PresenceRequirement.Always
+            ? ApprovalVerification.WindowsHello
+            : ApprovalVerification.Dialog;
+        return Task.FromResult(new ApprovalDecision(approved, Person, DateTimeOffset.UtcNow, approved ? "Aprobado en la prueba." : "Denegado en la prueba.", Verification: method));
     }
 }
 
