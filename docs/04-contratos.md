@@ -1617,7 +1617,20 @@ public sealed record ContextPartSnapshot(ContextPartKind Kind, int Characters);
   `init`; con preguntas, `Plan` es nulo) y `PlanningRequest.Answers` (`IReadOnlyList<AnsweredQuestion>?`, `init`) para la
   planificación siguiente. `AnsweredQuestion(RunId Run, PendingQuestion Question, QuestionAnswer Answer)` comprueba que la
   respuesta es de esa pregunta (mismo id y misma tarea, nula en las del orquestador); `Run` es la ejecución de la
-  planificación que preguntó. `AnswerAsync` no las contesta: son de la planificación, no de una ejecución.
+  planificación que preguntó. `AnswerAsync` no las contesta: son de la planificación, no de una ejecución. Desde WP4
+  (re-revisión del P0, 2026-11-08) rechaza además una opción que la pregunta no tiene, el texto propio en una pregunta sin
+  `AllowOther` y `RecommendedByConsent` en una pregunta del orquestador, que no tiene cabecera donde dar ese consentimiento.
+- **Lo que WP4 añade al motor y al dominio** ([ADR-0051](adr/0051-preguntas-de-los-agentes.md)):
+  - `Domain/Orchestration/RunStateReplayer.cs`: `QuestionPosed` y `QuestionResolved` (eventos nuevos), `TaskTransitioned.Block`
+    (`string?`, último parámetro, nulo por defecto: quien no lo da reproduce el grafo de siempre),
+    `RunStateReplayer.AwaitingAnswerBlock` y `RunReplay.PendingQuestions`, `PendingRunQuestions` y `AnsweredQuestions`.
+  - `Orchestration/Engine`: el informe con `question` (`ExecutorReport.Question`, `ReportedQuestion`, `ReportedOption`,
+    `AgentQuestion()`; el esquema pasa de 575 a 1 142 bytes), `BlockKind.AwaitingAnswer` (texto `AwaitingAnswer`, que el
+    monitor y `DerivationTexts` tienen que nombrar), `HandoffReason.SessionNotResumable`, `humanAnswers` en el traspaso y
+    `OrchestrationRun.AnswerAsync`. `Orchestrator` gana tres puertos opcionales al final del constructor, `brief`
+    (`IProjectBrief`), `redactor` (`ISecretRedactor`) y `estimator` (`IUsageEstimator`), que compone `Desktop`.
+  - El dosier del juez deja fuera los prompts de los ejecutores, la pregunta tal como la escribió el agente, el informe del
+    intento que preguntó y las entradas `QuestionAsked`.
 
 ### 21.4 Estimación, análisis, idioma y presencia (`Application`)
 
