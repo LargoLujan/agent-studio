@@ -806,6 +806,13 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
     [RelayCommand(CanExecute = nameof(CanApprove))]
     private async Task ApproveAsync()
     {
+        // The button may be enabled from before an edit: the analysis is asked again here.
+        if (Builder?.Band.ApprovalRefusal is { } analysisRefusal)
+        {
+            ErrorMessage = analysisRefusal;
+            return;
+        }
+
         var hash = CurrentHash;
         var roster = Context?.Roster;
         var warning = IsolationWarning ?? string.Empty;
@@ -836,7 +843,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
             }
 
             // What Windows confirmed is the plan as it was drawn when the button was pressed.
-            if (!string.Equals(hash, CurrentHash, StringComparison.Ordinal))
+            if (!string.Equals(hash, CurrentHash, StringComparison.Ordinal) || Builder?.Band.ApprovalRefusal is not null)
             {
                 ErrorMessage = "El plan cambió mientras se confirmaba: apruébalo otra vez.";
                 return;
@@ -853,7 +860,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
 
     private bool CanApprove() =>
         !Monitor.IsAttached && ValidationState == ValidationState.Valid && !Canvas.IsEmpty
-        && Builder is not { Band: { IsCurrent: true, BlocksApproval: true } };
+        && Builder?.Band.ApprovalRefusal is null;
 
     [RelayCommand(CanExecute = nameof(CanReject))]
     private void Reject()
@@ -1491,10 +1498,10 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         {
             blockers.Add("El plan tiene problemas: pulsa «Validar»");
         }
-        else if (Builder is { Band: { IsCurrent: true, BlocksApproval: true } })
+        else if (Builder?.Band.ApprovalRefusal is { } refusal)
         {
-            // The errors of the live analysis prevent approving, as those of the validator do (docs/17 D-18).
-            blockers.Add("El análisis del montaje tiene errores: arréglalos antes de aprobar");
+            // The live analysis fails closed (docs/17 D-18): its errors, an analysis still pending and one that failed prevent approving.
+            blockers.Add(refusal);
         }
         else if (!IsApproved)
         {

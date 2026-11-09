@@ -136,6 +136,7 @@ public sealed class VisualBuilderDocumentTests
         document.LoadProposal(new PlanProposal(new RunId("20261109-abc123"), PlanFixtures.Plan(), [], false, AgentRunStatus.Succeeded, null, null));
         Assert.True(document.Canvas.IsPlanLayer);
         document.ValidateCommand.Execute(null);
+        await document.Builder!.Band.RefreshAsync();
         await document.ApproveCommand.ExecuteAsync(null);
         Assert.True(document.IsApproved);
         var before = RosterHash.Of(document.Context!.Roster);
@@ -151,6 +152,63 @@ public sealed class VisualBuilderDocumentTests
         Assert.Equal("Ejecutor principal", document.Canvas.Team.Agents.Single(a => a.Id.Value == "ejecutor").Name);
         Assert.Contains("vuelve a aprobar el plan", document.Canvas.NoticeText, StringComparison.Ordinal);
         Assert.Contains("retira la aprobación", editor.Notice, StringComparison.Ordinal);
+    }
+
+    private static IReadOnlyList<TaskSpec> TasksWithoutIntegration() =>
+    [
+        PlanFixtures.ValidTasks()[0],
+        PlanFixtures.Spec("T2", WorkTaskKind.Review) with
+        {
+            Agent = new AgentId("juez"),
+            Workspace = WorkspaceMode.ReadOnly,
+            DependsOn = [PlanFixtures.Dep("T1")],
+            MaxRetries = 0,
+        },
+    ];
+
+    [Fact]
+    public async Task Approving_fails_closed_while_the_analysis_is_pending_and_the_button_follows_the_band()
+    {
+        var document = await OpenAsync(Backend(new MutableRoster()), BuilderServices.None);
+        document.Canvas.LoadTasks(PlanFixtures.ValidTasks(), CanvasLayout.Empty);
+        document.RequestText = "Añadir Calc.Multiply";
+        var raised = 0;
+        document.ApproveCommand.CanExecuteChanged += (_, _) => raised++;
+
+        // An edit just came: the analysis has not answered, so the plan is not approved even if the button was enabled before.
+        Assert.Equal(AnalysisState.Pending, document.Builder!.Band.State);
+        Assert.False(document.ApproveCommand.CanExecute(null));
+        await document.ApproveCommand.ExecuteAsync(null);
+        Assert.False(document.IsApproved);
+        Assert.Contains("todavía no ha terminado", document.ErrorMessage, StringComparison.Ordinal);
+
+        // The band ends, clean: the button is told, and the plan can be approved.
+        await document.Builder.Band.RefreshAsync();
+        Assert.True(raised > 0);
+        Assert.True(document.ApproveCommand.CanExecute(null));
+        await document.ApproveCommand.ExecuteAsync(null);
+        Assert.True(document.IsApproved);
+    }
+
+    [Fact]
+    public async Task The_errors_of_the_analysis_disable_approving_when_the_band_ends_and_approving_refuses_them()
+    {
+        var document = await OpenAsync(Backend(new MutableRoster()), BuilderServices.None);
+        document.Canvas.LoadTasks(TasksWithoutIntegration(), CanvasLayout.Empty);
+        document.RequestText = "Añadir Calc.Multiply";
+        Assert.Equal(ValidationState.Valid, document.ValidationState);
+        var raised = 0;
+        document.ApproveCommand.CanExecuteChanged += (_, _) => raised++;
+
+        await document.Builder!.Band.RefreshAsync();
+
+        Assert.True(document.Builder.Band.BlocksApproval);
+        Assert.True(raised > 0);
+        Assert.False(document.ApproveCommand.CanExecute(null));
+        await document.ApproveCommand.ExecuteAsync(null);
+        Assert.False(document.IsApproved);
+        Assert.Contains("tiene errores", document.ErrorMessage, StringComparison.Ordinal);
+        Assert.Contains("tiene errores", document.ExecuteBlockers, StringComparison.Ordinal);
     }
 
     [Fact]

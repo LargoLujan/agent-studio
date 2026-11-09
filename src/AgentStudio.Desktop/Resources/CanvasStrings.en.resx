@@ -1138,4 +1138,20 @@ Apply a suggestion for the team: it is never applied by itself.</value>
 Press «Save the brief»: each version replaces the previous one.</value>
     <comment>What can be done.</comment>
   </data>
+  <data name="Canvas_Analysis_RefusesErrors" xml:space="preserve">
+    <value>The analysis of the assembly has errors: fix them before approving the plan.</value>
+    <comment>Why the plan cannot be approved.</comment>
+  </data>
+  <data name="Canvas_Analysis_RefusesPending" xml:space="preserve">
+    <value>The analysis of the assembly has not finished yet: wait a moment to approve the plan.</value>
+    <comment>Why the plan cannot be approved.</comment>
+  </data>
+  <data name="Canvas_Analysis_RefusesFailed" xml:space="preserve">
+    <value>The analysis of the assembly failed and without it nothing is approved: press «Analyze again».</value>
+    <comment>Why the plan cannot be approved.</comment>
+  </data>
+  <data name="Canvas_Analysis_Retry" xml:space="preserve">
+    <value>Analyze again</value>
+    <comment>Button.</comment>
+  </data>
 </root>

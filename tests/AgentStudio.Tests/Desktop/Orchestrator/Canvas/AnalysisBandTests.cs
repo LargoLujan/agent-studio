@@ -267,6 +267,42 @@ public sealed class AnalysisBandTests
         Assert.Equal(original.ContentHash, host.Plan!.ContentHash);
     }
 
+    [Fact]
+    public async Task A_failed_analysis_refuses_approving_says_why_and_can_be_asked_again()
+    {
+        var host = new FakeHost();
+        var band = Band(host);
+        host.OnBuild = () => throw new InvalidOperationException("la lectura del borrador falló");
+
+        await band.RefreshAsync();
+
+        Assert.Equal(AnalysisState.Failed, band.State);
+        Assert.True(band.IsFailed);
+        Assert.Contains("la lectura del borrador falló", band.Summary, StringComparison.Ordinal);
+        Assert.Equal("El análisis del montaje falló y sin él no se aprueba: pulsa «Volver a analizar».", band.ApprovalRefusal);
+
+        host.OnBuild = null;
+        await band.RetryCommand.ExecuteAsync(null);
+        Assert.Equal(AnalysisState.Current, band.State);
+        Assert.DoesNotContain("falló", band.ApprovalRefusal ?? string.Empty, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_states_of_the_analysis_say_when_approving_is_refused()
+    {
+        var band = Band(new FakeHost());
+        Assert.Contains("todavía no ha terminado", band.ApprovalRefusal, StringComparison.Ordinal);
+        band.Schedule();
+        Assert.Equal(AnalysisState.Pending, band.State);
+        await band.RefreshAsync();
+        Assert.Contains("tiene errores", band.ApprovalRefusal, StringComparison.Ordinal);
+
+        var none = Band(new NoDraftHost());
+        await none.RefreshAsync();
+        Assert.Equal(AnalysisState.Unavailable, none.State);
+        Assert.Null(none.ApprovalRefusal);
+    }
+
     private sealed class NoDraftHost : IDraftHost
     {
         public FixEnvironment Environment => new("-", []);

@@ -1138,4 +1138,20 @@ Aplicar una sugerencia del equipo: nunca se aplica sola.</value>
 Pulsar «Guardar la ficha»: cada versión sustituye a la anterior.</value>
     <comment>What can be done.</comment>
   </data>
+  <data name="Canvas_Analysis_RefusesErrors" xml:space="preserve">
+    <value>El análisis del montaje tiene errores: arréglalos antes de aprobar el plan.</value>
+    <comment>Why the plan cannot be approved.</comment>
+  </data>
+  <data name="Canvas_Analysis_RefusesPending" xml:space="preserve">
+    <value>El análisis del montaje todavía no ha terminado: espera un momento para aprobar el plan.</value>
+    <comment>Why the plan cannot be approved.</comment>
+  </data>
+  <data name="Canvas_Analysis_RefusesFailed" xml:space="preserve">
+    <value>El análisis del montaje falló y sin él no se aprueba: pulsa «Volver a analizar».</value>
+    <comment>Why the plan cannot be approved.</comment>
+  </data>
+  <data name="Canvas_Analysis_Retry" xml:space="preserve">
+    <value>Volver a analizar</value>
+    <comment>Button.</comment>
+  </data>
 </root>

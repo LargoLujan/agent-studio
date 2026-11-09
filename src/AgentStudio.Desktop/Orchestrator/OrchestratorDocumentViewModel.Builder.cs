@@ -53,6 +53,15 @@ public sealed partial class OrchestratorDocumentViewModel
         var brief = new ProjectBriefViewModel(services.Brief, () => Context?.Project, text);
         Builder = new VisualBuilder(Canvas, services, text, _time, reduceMotion ?? (() => false), () => Monitor.ContextThresholds, editor, band, order, chat, brief);
         Canvas.Team.FolderCableRequested += (_, _) => band.Schedule();
+
+        // The button «Aprobar plan» follows the analysis: RelayCommand does not listen to CommandManager, so it is told.
+        band.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is nameof(AnalysisBandViewModel.State) or nameof(AnalysisBandViewModel.BlocksApproval))
+            {
+                RefreshCommands();
+            }
+        };
         Closed += (_, _) =>
         {
             _ = chat.EndCommand.ExecuteAsync(null);

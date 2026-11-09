@@ -28,6 +28,10 @@
             <CheckBox Margin="0,0,0,4" IsChecked="{Binding Band.ShowSuggestions}">
                 <TextBlock Text="{l:T Canvas_Analysis_ShowSuggestions}" TextWrapping="Wrap"/>
             </CheckBox>
+            <TextBlock Style="{StaticResource ProblemText}" Margin="0,0,0,4" Text="{Binding Band.ApprovalRefusal}"
+                       Visibility="{Binding Band.ApprovalRefusal, Converter={StaticResource Orchestrator.NotNullToVisibility}}" AutomationProperties.LiveSetting="Polite"/>
+            <Button Style="{StaticResource ToolbarButton}" Content="{l:T Canvas_Analysis_Retry}" Command="{Binding Band.RetryCommand}" HorizontalAlignment="Left" Margin="0,0,0,4"
+                    Visibility="{Binding Band.IsFailed, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
             <TextBlock Style="{StaticResource BodyText}" Margin="0,0,0,4" TextWrapping="Wrap" Text="{Binding Band.Notice}"
                        Visibility="{Binding Band.Notice, Converter={StaticResource Orchestrator.NotNullToVisibility}}"
                        AutomationProperties.LiveSetting="Polite"/>

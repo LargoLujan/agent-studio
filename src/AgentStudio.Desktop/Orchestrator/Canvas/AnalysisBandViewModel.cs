@@ -36,6 +36,25 @@ public interface IDraftHost
     string? DescribeValidator(Finding finding);
 }
 
+/// <summary>Where the analysis of the band is: approving is allowed only when it is <see cref="Current"/> without errors, or when there is nothing to analyze yet.</summary>
+public enum AnalysisState
+{
+    /// <summary>Never asked for yet.</summary>
+    Idle,
+
+    /// <summary>An edit came and the analysis has not answered for it yet (the pause of 200 ms, or running).</summary>
+    Pending,
+
+    /// <summary>The result on screen is the one of the draft as it is.</summary>
+    Current,
+
+    /// <summary>There is not enough to analyze (no frozen requirements or profile): the other checks of approving say so.</summary>
+    Unavailable,
+
+    /// <summary>The analysis failed: it says why and can be asked again.</summary>
+    Failed,
+}
+
 /// <summary>One finding of the band: its sentence, its severity, the nodes it names and the button of its fix, if it has one.</summary>
 public sealed partial class FindingItemViewModel : ObservableObject
 {
@@ -144,6 +163,32 @@ public sealed partial class AnalysisBandViewModel : ObservableObject, IDisposabl
     [ObservableProperty]
     private bool _isCurrent;
 
+    /// <summary>Where the analysis is (docs/17 D-18): approving fails closed while it is pending or failed.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ApprovalRefusal), nameof(IsFailed))]
+    private AnalysisState _state = AnalysisState.Idle;
+
+    /// <summary>The analysis failed: «Volver a analizar» is shown.</summary>
+    public bool IsFailed => State == AnalysisState.Failed;
+
+    /// <summary>Why the plan cannot be approved because of the analysis, in words; null when the analysis lets it be approved.</summary>
+    public string? ApprovalRefusal => State switch
+    {
+        AnalysisState.Current when BlocksApproval => _text.Get("Canvas_Analysis_RefusesErrors"),
+        AnalysisState.Pending or AnalysisState.Idle => _text.Get("Canvas_Analysis_RefusesPending"),
+        AnalysisState.Failed => _text.Get("Canvas_Analysis_RefusesFailed"),
+        _ => null,
+    };
+
+    /// <summary>«Volver a analizar»: asks for the analysis again after it failed.</summary>
+    [RelayCommand]
+    private async Task RetryAsync()
+    {
+        Schedule();
+        Running = RefreshAsync();
+        await Running.ConfigureAwait(true);
+    }
+
     /// <summary>The last analysis, for a test or a caller that has to wait for it.</summary>
     public Task Running { get; private set; } = Task.CompletedTask;
 
@@ -173,6 +218,7 @@ public sealed partial class AnalysisBandViewModel : ObservableObject, IDisposabl
 
         Interlocked.Increment(ref _generation);
         IsCurrent = false;
+        State = AnalysisState.Pending;
         _timer?.Dispose();
         _timer = _time.CreateTimer(_ => Post(() => Running = RefreshAsync()), null, Debounce, Timeout.InfiniteTimeSpan);
     }
@@ -205,7 +251,7 @@ public sealed partial class AnalysisBandViewModel : ObservableObject, IDisposabl
         catch (Exception ex) when (ex is not OperationCanceledException)
 #pragma warning restore CA1031
         {
-            Show(null, _text.Format("Canvas_Analysis_Failed", ex.Message));
+            Show(null, _text.Format("Canvas_Analysis_Failed", ex.Message), failed: true);
             return;
         }
 
@@ -225,7 +271,7 @@ public sealed partial class AnalysisBandViewModel : ObservableObject, IDisposabl
         catch (Exception ex) when (ex is not OperationCanceledException)
 #pragma warning restore CA1031
         {
-            Show(null, _text.Format("Canvas_Analysis_Failed", ex.Message));
+            Show(null, _text.Format("Canvas_Analysis_Failed", ex.Message), failed: true);
             return;
         }
 
@@ -238,7 +284,7 @@ public sealed partial class AnalysisBandViewModel : ObservableObject, IDisposabl
         Show(analysis, null);
     }
 
-    private void Show(MontageAnalysis? analysis, string? summary)
+    private void Show(MontageAnalysis? analysis, string? summary, bool failed = false)
     {
         Findings.Clear();
         if (analysis is not null)
@@ -250,8 +296,10 @@ public sealed partial class AnalysisBandViewModel : ObservableObject, IDisposabl
         }
 
         BlocksApproval = analysis?.BlocksApproval == true;
+        OnPropertyChanged(nameof(ApprovalRefusal));
         Summary = summary ?? SummaryOf(analysis!);
         IsCurrent = analysis is not null;
+        State = analysis is not null ? AnalysisState.Current : failed ? AnalysisState.Failed : AnalysisState.Unavailable;
         OnPropertyChanged(nameof(Visible));
         OnPropertyChanged(nameof(Errors));
         NotifyHistory();
