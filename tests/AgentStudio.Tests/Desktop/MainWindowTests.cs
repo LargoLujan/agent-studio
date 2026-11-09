@@ -498,6 +498,48 @@ public sealed class MainWindowTests
         Assert.True(journal);
     }
 
+    /// <summary>
+    /// The layout a project saved before Phase 13 has no panels «Problemas», «Salida» and «Pruebas» (the layout of the user of the
+    /// demo project is one): restoring it brings them back in the pane of the terminal, so «Pruebas» of the activity bar always finds its panel.
+    /// </summary>
+    [Fact]
+    public async Task ALayoutSavedBeforePhase13_GetsThePanelsOfTheRunInThePaneOfTheTerminal()
+    {
+        using var temp = new TempDirectory();
+        var a = temp.CreateDirectory("a");
+        var b = temp.CreateDirectory("b");
+        var store = new FileLayoutStore(new AppDataPaths(temp.Combine("data")));
+        var runPanels = new[] { PanelIds.Problems, PanelIds.Output, PanelIds.Tests };
+
+        var (ids, sameGroup, activated) = await WpfHost.RunAsync(async () =>
+        {
+            var vm = ShellFactory.CreateMain();
+            var window = CreateWindow(vm, store);
+            await vm.OpenProjectAsync(a);
+            await vm.OpenProjectAsync(b);
+
+            // What the layout of A looked like before Phase 13: the same tree without the three panels.
+            var xml = System.Xml.Linq.XDocument.Parse(store.Load(a)!);
+            xml.Descendants("LayoutAnchorable").Where(e => runPanels.Contains((string?)e.Attribute("ContentId"))).ToList().ForEach(e => e.Remove());
+            Assert.DoesNotContain(xml.Descendants("LayoutAnchorable"), e => runPanels.Contains((string?)e.Attribute("ContentId")));
+            store.Save(a, xml.ToString());
+
+            await vm.OpenProjectAsync(a);
+            var visible = Anchorables(window).Where(x => x.IsVisible).Select(x => x.ContentId).Order().ToList();
+            var terminalPane = Panel(window, PanelIds.Terminal).Parent;
+            var together = runPanels.All(id => ReferenceEquals(Panel(window, id).Parent, terminalPane));
+
+            // «Pruebas» of the activity bar shows it: the panel exists, so the request does something.
+            Panel(window, PanelIds.Tests).Hide();
+            Toggle(vm, "tests");
+            return (visible, together, Panel(window, PanelIds.Tests).IsVisible);
+        });
+
+        Assert.Equal([PanelIds.AutoDoctor, PanelIds.Explorer, PanelIds.Journal, PanelIds.Output, PanelIds.Problems, PanelIds.Terminal, PanelIds.Tests], ids);
+        Assert.True(sameGroup);
+        Assert.True(activated);
+    }
+
     [Fact]
     public async Task OpeningAProject_SavesTheLayoutOfTheProjectBeingLeft_AndRestoresItLater()
     {

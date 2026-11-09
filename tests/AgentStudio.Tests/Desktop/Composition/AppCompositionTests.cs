@@ -524,6 +524,27 @@ public sealed class AppCompositionTests
     }
 
     [Fact]
+    public async Task The_container_gives_the_shell_the_configurator_and_the_services_of_the_monitor()
+    {
+        using var temp = new TempDirectory();
+        var project = temp.CreateDirectory("calc");
+        using var provider = Build(FoldersIn(temp));
+        var main = provider.GetRequiredService<MainViewModel>();
+        await main.OpenProjectAsync(project);
+
+        // The optional parameters of the shell come from the container: the welcome tab offers «Configurar proyecto» (the configurator
+        // is composed), suggests it once for the new project, and a tab of the orchestrator opened in it has its monitor equipped.
+        main.ShowWelcomeCommand.Execute(null);
+        var welcome = Assert.IsType<WelcomeDocumentViewModel>(main.ActiveContent);
+        Assert.Contains(welcome.ProjectActions, a => a.Title == AgentStudio.Desktop.Localization.Texts.Get("Shell_Setup_Action"));
+        Assert.True(welcome.HasSetupSuggestion);
+        await OpenOrchestratorAsync(main);
+        var tab = Assert.IsType<OrchestratorDocumentViewModel>(main.ActiveContent);
+        Assert.NotNull(tab.Monitor.ContextPartsSource);
+        Assert.True(provider.GetRequiredService<SetupSuggestions>().WasSuggested(project));
+    }
+
+    [Fact]
     public void The_shell_of_the_app_has_the_activities_of_the_builder_and_the_panels_of_the_run()
     {
         using var temp = new TempDirectory();

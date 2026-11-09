@@ -432,15 +432,26 @@ public sealed class Phase13IntegrationTests
     [Fact]
     public async Task The_windows_of_the_questions_of_the_orchestrator_go_with_the_lock_and_none_opens_while_it_is_on()
     {
-        var host = new RecordingHost();
+        // One host per service, as in the app: the first is the one of the questions of the monitor of the document, and the second, made
+        // the first time the orchestrator asks, is the one of the questions before it plans.
+        var hosts = new List<RecordingHost>();
         var interfaceLock = new FakeLock();
-        var services = new MonitorServices(interfaceLock: interfaceLock, hostFactory: () => host);
+        var services = new MonitorServices(
+            interfaceLock: interfaceLock,
+            hostFactory: () =>
+            {
+                var created = new RecordingHost();
+                hosts.Add(created);
+                return created;
+            });
         var attention = new List<QuestionAttentionEventArgs>();
         services.AttentionRequested += (_, e) => attention.Add(e);
         var engine = new FakeOrchestrator { Plan = (_, _, _) => Task.FromResult(AskingProposal()) };
         var document = await OpenAsync(engine, builder: BuilderServices.None, monitors: services);
         document.RequestText = "Anadir Calc.Multiply";
         await document.RequestPlanCommand.ExecuteAsync(null);
+        var host = hosts[^1];
+        Assert.Equal(2, hosts.Count);
         Assert.Equal(["plan-q1"], host.Shown);
 
         interfaceLock.Set(true);
