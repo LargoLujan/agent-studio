@@ -200,24 +200,46 @@ public sealed class JudgeDossierBuilder(
 
         foreach (var report in reports.Distinct())
         {
-            if (!await IsReportWithoutQuestionAsync(projectId, report, RunLog.AnchoredSha256(runEntries, report), cancellationToken).ConfigureAwait(false))
+            switch (await ReadReportAsync(projectId, report, RunLog.AnchoredSha256(runEntries, report), cancellationToken).ConfigureAwait(false))
             {
-                withheld.Add(report);
+                case ReportRead.WithoutQuestion:
+                    break;
+                case ReportRead.Unreadable:
+                    // Fail closed twice over: its content never reaches the judge, and the check makes an approval impossible.
+                    withheld.Add(report);
+                    checks.Add($"Evidence '{report}': the report of an executor cannot be read as the decision log anchored it, so it cannot be told whether it brings a question; it is withheld from the judge and proves nothing.");
+                    break;
+                default:
+                    withheld.Add(report);
+                    break;
             }
         }
 
         return withheld;
     }
 
+    /// <summary>What reading the report of an executor found.</summary>
+    private enum ReportRead
+    {
+        /// <summary>The content the log anchored, a JSON object without a question: it may reach the judge.</summary>
+        WithoutQuestion,
+
+        /// <summary>It brings a question, or it is not a JSON object (the agent's output, not a report): withheld.</summary>
+        Withheld,
+
+        /// <summary>It cannot be read as the log anchored it (missing, unreadable, rewritten): withheld, with a system check.</summary>
+        Unreadable,
+    }
+
     /// <summary>
     /// Whether the report of an executor may reach the judge: its content is the one the log anchored, it is a JSON object, and
-    /// it brings no question (none, or <c>null</c>). Anything else, including a report that cannot be read, is withheld.
+    /// it brings no question (none, or <c>null</c>). Anything else is withheld (<see cref="ReportRead"/>).
     /// </summary>
-    private async Task<bool> IsReportWithoutQuestionAsync(string projectId, EvidenceId report, string? anchoredSha256, CancellationToken cancellationToken)
+    private async Task<ReportRead> ReadReportAsync(string projectId, EvidenceId report, string? anchoredSha256, CancellationToken cancellationToken)
     {
         if (anchoredSha256 is null)
         {
-            return false;
+            return ReportRead.Unreadable;
         }
 
         try
@@ -233,16 +255,22 @@ public sealed class JudgeDossierBuilder(
 
             if (!string.Equals(Convert.ToHexStringLower(SHA256.HashData(content)), anchoredSha256, StringComparison.OrdinalIgnoreCase))
             {
-                return false;
+                return ReportRead.Unreadable;
             }
 
             using var document = System.Text.Json.JsonDocument.Parse(content);
             return document.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object
-                && (!document.RootElement.TryGetProperty("question", out var question) || question.ValueKind == System.Text.Json.JsonValueKind.Null);
+                && (!document.RootElement.TryGetProperty("question", out var question) || question.ValueKind == System.Text.Json.JsonValueKind.Null)
+                ? ReportRead.WithoutQuestion
+                : ReportRead.Withheld;
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return ReportRead.Withheld; // the agent's output is not a report: nobody can say it brings no question
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            return false;
+            return ReportRead.Unreadable;
         }
     }
 

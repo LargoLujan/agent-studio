@@ -80,7 +80,7 @@
       cuándo; ningún texto del agente. El dosier deja fuera, en silencio como los prompts con memoria (ADR-0022), los prompts
       de los ejecutores (con la ficha, las instrucciones y las respuestas), la pregunta del agente, todo informe de ejecutor
       que traiga una pregunta, registrada o no (una que pasó los topes, una que no cumplía las reglas), o que no se pueda leer
-      como lo ancló el registro o como JSON (falla cerrado), y las entradas `QuestionAsked` (con la recomendada y las
+      como lo ancló el registro (además, una comprobación del sistema impide aprobar) o como JSON (falla cerrado), y las entradas `QuestionAsked` (con la recomendada y las
       estimaciones). Una entrada de esas clases que no se puede leer es una comprobación del sistema: con ella no cabe aprobar.
       De cada pregunta el juez recibe `QuestionAnswered`, la decisión y tu texto si lo hay (`ProvidedByHuman`). El juez nunca
       pregunta: si duda, escala (`NeedsHuman`).
