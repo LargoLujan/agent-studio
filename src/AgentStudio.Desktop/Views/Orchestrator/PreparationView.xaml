@@ -6,6 +6,7 @@
              xmlns:orchestrator="clr-namespace:AgentStudio.Desktop.Orchestrator"
              xmlns:preparation="clr-namespace:AgentStudio.Desktop.Orchestrator.Preparation"
              xmlns:views="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=orchestrator:OrchestratorDocumentViewModel}">
     <!-- The preparation of a run (F3-8, steps 0 and 1): the literal request, the frozen requirements, the agents of the
@@ -21,6 +22,10 @@
             <DockPanel DockPanel.Dock="Top">
                 <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Margin="12,0,0,0" Content="{Binding PreparationToggleText}"
                         Command="{Binding TogglePreparationCommand}" AutomationProperties.Name="Mostrar u ocultar la preparación"/>
+                <!-- «Configurar proyecto» (docs/17 section 4.6): the configurator of seven steps, in a tab of its own; it writes nothing until «Aplicar». -->
+                <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Margin="12,0,0,0" Content="{l:T Shell_Setup_Action}"
+                        Command="{Binding ConfigureProjectCommand}" ToolTip="{l:T Shell_Setup_ActionHelp}"
+                        AutomationProperties.Name="{l:T Shell_Setup_Action}" AutomationProperties.HelpText="{l:T Shell_Setup_ActionHelp}"/>
                 <TextBlock DockPanel.Dock="Left" Style="{StaticResource SectionTitleText}" Margin="0,0,12,0" VerticalAlignment="Center" Text="Preparación"/>
                 <TextBlock Style="{StaticResource SecondaryText}" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
                            Text="{Binding PreparationSummary}" ToolTip="{Binding PreparationSummary}" AutomationProperties.Name="Resumen de la preparación"/>

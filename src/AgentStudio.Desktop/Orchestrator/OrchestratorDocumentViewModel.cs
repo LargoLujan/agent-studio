@@ -6,6 +6,7 @@ using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Providers;
 using AgentStudio.Application.Security;
+using AgentStudio.Application.Setup;
 using AgentStudio.Application.Verification;
 using AgentStudio.Desktop.Controls;
 using AgentStudio.Desktop.Lock;
@@ -136,6 +137,13 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
     /// what needs it.
     /// </param>
     /// <param name="reduceMotion">Whether the setting «Reducir movimiento» is on, read each time an animation would start.</param>
+    /// <param name="monitors">
+    /// What every monitor of the app is given (docs/04 section 21.10): the sources of the parts of the prompt, the quota, the
+    /// analysis of consumption and the windows of the questions. Without it the monitor has none of them.
+    /// </param>
+    /// <param name="projectOptions">
+    /// The options the person chose in the configurator for the project (step 7): a run starts with them. Without it, with the values of always.
+    /// </param>
     public OrchestratorDocumentViewModel(
         string projectRoot,
         OrchestrationSession session,
@@ -145,7 +153,9 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         ReinforcedConfirmation? confirmation = null,
         IPlanDraftStore? drafts = null,
         BuilderServices? builder = null,
-        Func<bool>? reduceMotion = null)
+        Func<bool>? reduceMotion = null,
+        MonitorServices? monitors = null,
+        IProjectOptionsStore? projectOptions = null)
         : base(CreateId(projectRoot), $"Orquestador · {RecentProjectItem.From(projectRoot).Name}")
     {
         ArgumentNullException.ThrowIfNull(session);
@@ -162,7 +172,9 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         // The canvas gets the project only once its storage opened (OnContextChanged): until then, or when opening it was
         // refused, the positions stay in memory and nothing is written in the project.
         Canvas = new CanvasViewModel(time) { LayoutStore = layout };
+        UseComposition(monitors, projectOptions);
         Monitor = new RunMonitorViewModel(time, _ui, session.Delivery, session.Evidence);
+        EquipMonitor(Monitor);
         Monitor.CloseRequested += (_, _) => CloseRunViewCommand.Execute(null);
         Requirements = new RequirementsEditorViewModel(session, time, _ => ReloadAsync());
         Requirements.PropertyChanged += OnRequirementsPropertyChanged;
@@ -875,6 +887,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
     [RelayCommand(CanExecute = nameof(CanReject))]
     private void Reject()
     {
+        CancelPlannerQuestions();
         _approvedHash = null;
         _approvedRoster = null;
         _approvedWarning = null;
@@ -905,6 +918,23 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
             return;
         }
 
+        // A new planning replaces the questions the orchestrator was still waiting to have answered.
+        CancelPlannerQuestions();
+        await PlanCoreAsync(new PlanningRequest(project, RequestText.Trim(), requirements, context.Roster, orchestrator.Id, profile, Limits)).ConfigureAwait(true);
+    }
+
+    /// <summary>
+    /// One planning: the orchestrator proposes a plan, or asks (docs/17 D-28) and, with the answers of the person, plans again once
+    /// (<see cref="PlanningRequest.Answers"/>). It spends quota only because the person asked for the plan.
+    /// </summary>
+    private async Task PlanCoreAsync(PlanningRequest request)
+    {
+        if (Context is not { Orchestrator: { } orchestrator })
+        {
+            return;
+        }
+
+        PlanProposal? asked = null;
         using var planning = new CancellationTokenSource();
         _planning = planning;
         CancelPlanningCommand.NotifyCanExecuteChanged();
@@ -921,9 +951,12 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         IsPlanningInProgress = true;
         try
         {
-            var request = new PlanningRequest(project, RequestText.Trim(), requirements, context.Roster, orchestrator.Id, profile, Limits);
             var proposal = await _session.PlanAsync(request, new UiProgress(this), planning.Token).ConfigureAwait(true);
             LoadProposal(proposal);
+            if (proposal.Plan is null && proposal.Questions is { Count: > 0 })
+            {
+                asked = proposal;
+            }
         }
         catch (OperationCanceledException)
         {
@@ -943,6 +976,12 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
             IsBusy = false;
             BusyText = null;
         }
+
+        // Once the screen is free again, so the person can answer, and ask for another plan instead.
+        if (asked is not null)
+        {
+            AskPlannerQuestions(request, asked);
+        }
     }
 
     private bool CanRequestPlan() =>
@@ -958,6 +997,8 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
     [RelayCommand(CanExecute = nameof(CanExecute))]
     private async Task ExecuteAsync()
     {
+        // The options the person chose for the project (step 7 of the configurator) are read before anything else is looked at.
+        var stored = Context?.Project is { } optionsProject ? await LoadProjectOptionsAsync(optionsProject).ConfigureAwait(true) : ProjectRunOptions.Defaults;
         if (Context is not { Project: { } project, Requirements: { } requirements, Verification: { } profile } || PlanDecision is not { Approved: true } approval)
         {
             return;
@@ -973,7 +1014,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         // again as a new run, never with the id of that one, which the engine refuses.
         var fromProposal = follows is null && Proposal is { Plan: { } proposed } offered && string.Equals(proposed.ContentHash, plan.ContentHash, StringComparison.Ordinal)
             && IsUnused(offered.Run);
-        var options = new RunOptions(AutoResumeConsent: AutoResumeConsent, MaxAgentRuns: Builder?.MaxAgentRuns ?? new RunOptions().MaxAgentRuns);
+        var options = RunOptionsFor(stored);
         var request = new RunRequest(project, fromProposal ? Proposal!.Run : null, RequestText.Trim(), requirements, plan, approval, profile, options, Follows: follows, ValidatedRoster: _approvedRoster, ApprovedWarning: _approvedWarning);
         IsBusy = true;
         BusyText = "Iniciando la ejecución…";
@@ -1184,6 +1225,12 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         _approvedWarning = null;
         PlanDecision = null;
         SetFollowUp(null);
+        if (proposal.Plan is null && proposal.Questions is { Count: > 0 })
+        {
+            ProposalStatus = PlannerQuestionsStatus(proposal);
+            return;
+        }
+
         if (proposal.Plan is not { } plan)
         {
             ProposalStatus = WithHistoryNotice(
@@ -1322,6 +1369,8 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         }
 
         var monitor = new RunMonitorViewModel(_time, _ui, _session.Delivery, _session.Evidence);
+        EquipMonitor(monitor);
+        GiveLiveContext(monitor);
         monitor.Attach(run, project);
         monitor.ResumeConsent = resumeConsent;
         _handedOff.Add(monitor);
@@ -1344,6 +1393,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
     {
         Canvas.IsReadOnly = true;
         Canvas.ResetStatuses();
+        GiveLiveContext(Monitor);
         Monitor.Attach(run, project ?? Context?.Project);
         foreach (var task in Monitor.Tasks)
         {

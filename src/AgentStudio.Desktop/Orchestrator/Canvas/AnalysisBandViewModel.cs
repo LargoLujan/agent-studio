@@ -284,8 +284,15 @@ public sealed partial class AnalysisBandViewModel : ObservableObject, IDisposabl
         Show(analysis, null);
     }
 
+    /// <summary>The analysis of the montage as it was last shown; null while there is none or it failed. The panel «Problemas» lists it.</summary>
+    public MontageAnalysis? Analysis { get; private set; }
+
+    /// <summary>The analysis shown changed (<see cref="Analysis"/>).</summary>
+    public event EventHandler? AnalysisChanged;
+
     private void Show(MontageAnalysis? analysis, string? summary, bool failed = false)
     {
+        Analysis = analysis;
         Findings.Clear();
         if (analysis is not null)
         {
@@ -303,6 +310,7 @@ public sealed partial class AnalysisBandViewModel : ObservableObject, IDisposabl
         OnPropertyChanged(nameof(Visible));
         OnPropertyChanged(nameof(Errors));
         NotifyHistory();
+        AnalysisChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private string SummaryOf(MontageAnalysis analysis)

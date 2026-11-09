@@ -38,6 +38,9 @@ public sealed partial class OrchestratorDocumentViewModel
     /// </summary>
     private void InitializeBuilder(BuilderServices services, Func<bool>? reduceMotion)
     {
+        // The live state of the run followed is the monitor of this same document (docs/04 section 21.8): the composition cannot give it,
+        // because the monitor is born with the document.
+        services = services with { Live = services.Live ?? Monitor };
         var text = new CanvasText();
         var host = new DraftHost(this, text, services);
         var band = new AnalysisBandViewModel(host, text, _time, _ui);
@@ -145,6 +148,7 @@ public sealed partial class OrchestratorDocumentViewModel
 
     private async Task LoadBuilderDataAsync(VisualBuilder builder, ProjectContext project)
     {
+        await SeedProjectOptionsAsync(project, force: false).ConfigureAwait(true);
         await builder.LoadRepositoryAsync(project.RootPath).ConfigureAwait(true);
         await builder.LoadLearnedAsync(project.RootPath).ConfigureAwait(true);
         builder.Editor.Context = InspectorContextNow(builder);
@@ -224,7 +228,7 @@ public sealed partial class OrchestratorDocumentViewModel
                 new TeamGraph([.. context.Roster.Select(a => new AgentNode(a))], owner.Canvas.Team.Repository?.Node, [.. owner.Canvas.Team.Connections.Select(c => c.Edge)]),
                 owner.Canvas.IsEmpty ? null : owner.CurrentPlan(),
                 planContext,
-                new MontageRunFacts(new RunOptions().MaxParallelTasks, builder.MaxAgentRuns, new Dictionary<Domain.Providers.ProviderId, int>()),
+                new MontageRunFacts(owner._projectOptions.MaxParallelTasks, builder.MaxAgentRuns, new Dictionary<Domain.Providers.ProviderId, int>()),
                 [],
                 quota,
                 owner.Proposal?.OrderNotes ?? OrderNotes.None,

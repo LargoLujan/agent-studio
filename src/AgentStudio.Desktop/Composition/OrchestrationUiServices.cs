@@ -1,17 +1,29 @@
 using System.Windows.Threading;
+using AgentStudio.Application.Analysis;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Git;
+using AgentStudio.Application.Knowledge;
+using AgentStudio.Application.Models;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Providers;
 using AgentStudio.Application.Security;
+using AgentStudio.Application.Setup;
+using AgentStudio.Application.Usage;
 using AgentStudio.Desktop.Lock;
+using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Orchestrator;
 using AgentStudio.Desktop.Orchestrator.Approvals;
 using AgentStudio.Desktop.Orchestrator.Canvas;
+using AgentStudio.Desktop.Orchestrator.Monitor;
+using AgentStudio.Desktop.Orchestrator.Preparation;
 using AgentStudio.Desktop.Orchestrator.Session;
+using AgentStudio.Desktop.Orchestrator.Team;
+using AgentStudio.Desktop.Services;
 using AgentStudio.Desktop.ViewModels;
+using AgentStudio.Domain.Agents;
+using AgentStudio.Observability.Analysis;
 using AgentStudio.Infrastructure.Persistence;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -63,11 +75,71 @@ internal static class OrchestrationUiServices
                 provider.GetService<IOrchestrator>() as IRunInspector,
                 provider.GetService<IEvidenceStore>()))
             .AddSingleton<OrchestrationSession>()
-            .AddSingleton<IOrchestratorDocumentFactory>(provider => new OrchestratorDocumentFactory(
-                provider.GetRequiredService<OrchestrationSession>(),
-                provider.GetRequiredService<ICanvasLayoutStore>(),
-                provider.GetService<TimeProvider>() ?? TimeProvider.System,
-                provider.GetService<ReinforcedConfirmation>()));
+            .AddSingleton(provider => new ReduceMotionSetting(provider.GetRequiredService<IAppSettingsStore>()))
+            .AddSingleton(provider => new MonitorServices(
+                provider.GetService<IDecisionRecorder>() is { } decisions ? new DecisionLogContextPartsSource(decisions) : null,
+                provider.GetService<QuotaViewModel>(),
+                provider.GetService<IConsumptionAnalyzer>(),
+                provider.GetService<IAssistedConsumptionAnalysis>(),
+                AssistedEstimate(provider.GetService<IAgentRoster>(), provider.GetService<IUsageEstimator>()),
+                provider.GetService<IInterfaceLock>()))
+            .AddSingleton<IOrchestratorDocumentFactory>(provider =>
+            {
+                // Resolved once, here: the documents keep the delegate for as long as they live, and a canvas asks for it each time an
+                // animation would start.
+                var motion = provider.GetRequiredService<ReduceMotionSetting>();
+                return new OrchestratorDocumentFactory(
+                    provider.GetRequiredService<OrchestrationSession>(),
+                    provider.GetRequiredService<ICanvasLayoutStore>(),
+                    provider.GetService<TimeProvider>() ?? TimeProvider.System,
+                    provider.GetService<ReinforcedConfirmation>(),
+                    BuilderServicesOf(provider),
+                    () => motion.Current,
+                    provider.GetRequiredService<MonitorServices>(),
+                    provider.GetService<IProjectOptionsStore>());
+            });
+    }
+
+    /// <summary>
+    /// What the visual builder reads (docs/04 section 21.8): «Revisar el orden», the chat of preparation and the register of the OKs of
+    /// quota, the catalog of models and what the log taught of them, the estimate, the quota of the account and the brief of the
+    /// project, and the state of the repository read through the hardened git layer. The live state is not here: each document
+    /// takes it from its own monitor.
+    /// </summary>
+    internal static BuilderServices BuilderServicesOf(IServiceProvider provider) => new(
+        provider.GetService<IOrderReview>(),
+        provider.GetService<IPreparationChat>(),
+        provider.GetService<IQuotaConsentLedger>(),
+        provider.GetService<IModelCatalogSource>(),
+        provider.GetService<IModelLearning>(),
+        provider.GetService<IUsageEstimator>(),
+        provider.GetService<IWorktreeManager>() is { } worktrees ? new WorktreeRepositoryStateReader(worktrees) : null,
+        Live: null,
+        Quota: provider.GetService<IQuotaObservations>(),
+        Brief: provider.GetService<IProjectBrief>());
+
+    /// <summary>
+    /// What the analysis of consumption with an agent would spend, shown before the OK (docs/17 D-35): the estimate of one attempt of
+    /// the analyst on the program of the judge of the template, the vendor that did not produce the work. Unknown, with its reason, when
+    /// the template has no judge. Null when the estimator or the template are not composed: the OK then says there is no estimate.
+    /// </summary>
+    internal static Func<ProjectContext, CancellationToken, Task<UsageEstimate>>? AssistedEstimate(IAgentRoster? roster, IUsageEstimator? estimator)
+    {
+        if (roster is null || estimator is null)
+        {
+            return null;
+        }
+
+        return async (project, cancellationToken) =>
+        {
+            var agents = await roster.ListAsync(project.ProjectId, cancellationToken).ConfigureAwait(false);
+            var judge = agents.FirstOrDefault(a => a.Role == AgentRole.Judge);
+            return judge is null
+                ? UsageEstimate.Unknown(0, "There is no judge in the template to say which program would analyse.")
+                : await estimator.EstimateAsync(
+                    new UsageEstimateRequest(project, AssistedConsumptionAnalysisService.AnalystId, judge.Model.Provider, judge.Model.Model, AgentRunPurpose.ConsumptionAnalysis),
+                    cancellationToken).ConfigureAwait(false);
+        };
     }
 
     /// <summary>
