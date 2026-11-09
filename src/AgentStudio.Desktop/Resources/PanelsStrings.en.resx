@@ -145,6 +145,15 @@
   <data name="Panels_Tests_HeadError" xml:space="preserve">
     <value>The tests of HEAD could not be run: {0}</value>
   </data>
+  <data name="Panels_Tests_TaskError" xml:space="preserve">
+    <value>{0}: {1} (the main error line of the task; the log does not keep one per test)</value>
+  </data>
+  <data name="Panels_Tests_Cancel" xml:space="preserve">
+    <value>Cancel the tests</value>
+  </data>
+  <data name="Panels_Tests_HeadCancelled" xml:space="preserve">
+    <value>You cancelled the tests of HEAD.</value>
+  </data>
   <data name="Info_Problems_Title" xml:space="preserve">
     <value>Problems</value>
   </data>

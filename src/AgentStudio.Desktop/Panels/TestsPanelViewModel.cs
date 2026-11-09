@@ -53,6 +53,14 @@ public sealed partial class TestsPanelViewModel : ObservableObject
     /// <summary>The verifications of the run, in the order they were captured.</summary>
     public ObservableCollection<TestRunRow> Rows { get; } = [];
 
+    /// <summary>
+    /// The main line of the error of each task with failed steps, said once for the task: the log keeps one line per task and not one per
+    /// test, so it is not repeated on every failed row as if each had its own.
+    /// </summary>
+    public ObservableCollection<string> Notes { get; } = [];
+
+    private CancellationTokenSource? _running;
+
     /// <summary>What the tests of HEAD said the last time the person ran them.</summary>
     public ObservableCollection<TestRunRow> HeadRows { get; } = [];
 
@@ -64,6 +72,7 @@ public sealed partial class TestsPanelViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RunHeadTestsCommand))]
+    [NotifyCanExecuteChangedFor(nameof(CancelHeadTestsCommand))]
     private bool _isRunning;
 
     [ObservableProperty]
@@ -95,12 +104,20 @@ public sealed partial class TestsPanelViewModel : ObservableObject
     public void Refresh()
     {
         Rows.Clear();
+        Notes.Clear();
         if (_monitor is { } monitor)
         {
             foreach (var evidence in monitor.Evidence.Where(IsVerification))
             {
-                var task = monitor.Tasks.FirstOrDefault(t => t.Id.Value == evidence.Task);
-                Rows.Add(RowOf(evidence, task is { ShowsFailureLine: true } ? task.FailureLine : null));
+                Rows.Add(RowOf(evidence));
+            }
+
+            foreach (var task in Rows.Where(r => r.Failed && r.Task is not null).Select(r => r.Task!).Distinct(StringComparer.Ordinal))
+            {
+                if (monitor.Tasks.FirstOrDefault(t => t.Id.Value == task) is { ShowsFailureLine: true, FailureLine: { } line })
+                {
+                    Notes.Add(_texts.Format("Panels_Tests_TaskError", task, line));
+                }
             }
         }
 
@@ -119,7 +136,7 @@ public sealed partial class TestsPanelViewModel : ObservableObject
         evidence.RawOrigin == EvidenceOrigin.CapturedBySystem
         && evidence.RawKind is EvidenceKind.TestRun or EvidenceKind.BuildLog or EvidenceKind.CommandOutput;
 
-    private TestRunRow RowOf(EvidenceEntry evidence, string? error)
+    private TestRunRow RowOf(EvidenceEntry evidence)
     {
         var summary = evidence.Summary;
         var failed = summary is not null && !summary.Succeeded;
@@ -127,7 +144,7 @@ public sealed partial class TestsPanelViewModel : ObservableObject
             ? _texts.Get("Panels_Tests_NoCounters")
             : _texts.Format("Panels_Tests_Counters", summary.Passed.ToString(_texts.Culture), summary.Failed.ToString(_texts.Culture), summary.Skipped.ToString(_texts.Culture), summary.ExitCode.ToString(_texts.Culture));
         var state = summary is null ? _texts.Get("Panels_Tests_Captured") : _texts.Get(failed ? "Panels_Tests_Failed" : "Panels_Tests_Passed");
-        return new TestRunRow(evidence.Task, evidence.Title, counters, failed, state, failed ? error : null, evidence.ShortHash);
+        return new TestRunRow(evidence.Task, evidence.Title, counters, failed, state, null, evidence.ShortHash);
     }
 
     /// <summary>«Ejecutar las pruebas de HEAD»: passes the profile in the isolated copy, without quota. Only when the shell composed the service.</summary>
@@ -143,9 +160,10 @@ public sealed partial class TestsPanelViewModel : ObservableObject
         ErrorMessage = null;
         HeadSummary = null;
         HeadRows.Clear();
+        _running = new CancellationTokenSource();
         try
         {
-            var result = await service.RunAsync(CancellationToken.None).ConfigureAwait(true);
+            var result = await service.RunAsync(_running.Token).ConfigureAwait(true);
             foreach (var line in result.Lines)
             {
                 HeadRows.Add(line);
@@ -156,17 +174,27 @@ public sealed partial class TestsPanelViewModel : ObservableObject
                 ? _texts.Get("Panels_Tests_HeadNone")
                 : failed == 0 ? _texts.Get("Panels_Tests_HeadPassed") : _texts.Format("Panels_Tests_HeadFailed", failed.ToString(_texts.Culture));
         }
+        catch (OperationCanceledException)
+        {
+            HeadSummary = _texts.Get("Panels_Tests_HeadCancelled");
+        }
 #pragma warning disable CA1031 // The service is behind a port: whatever it refuses is said in the panel, never thrown into the UI.
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (Exception ex)
 #pragma warning restore CA1031
         {
             ErrorMessage = _texts.Format("Panels_Tests_HeadError", ex.Message);
         }
         finally
         {
+            _running.Dispose();
+            _running = null;
             IsRunning = false;
         }
     }
+
+    /// <summary>«Cancelar las pruebas»: stops the tests of HEAD that run; the service gets the cancellation.</summary>
+    [RelayCommand(CanExecute = nameof(IsRunning))]
+    private void CancelHeadTests() => _running?.Cancel();
 
     private bool CanRunHeadNow() => HeadTests is not null && !IsRunning;
 }

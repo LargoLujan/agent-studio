@@ -14,6 +14,8 @@
     <DockPanel Background="{StaticResource SurfaceBrush}">
         <DockPanel DockPanel.Dock="Top" Margin="12,8,12,4">
             <info:InfoButton DockPanel.Dock="Right" InfoKey="Info_Tests" VerticalAlignment="Center"/>
+            <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Content="{l:T Panels_Tests_Cancel}" Command="{Binding CancelHeadTestsCommand}"
+                    Visibility="{Binding IsRunning, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
             <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Content="{l:T Panels_Tests_RunHead}" Command="{Binding RunHeadTestsCommand}"
                     ToolTip="{l:T Panels_Tests_RunHeadHint}" ToolTipService.ShowOnDisabled="True"
                     Visibility="{Binding CanRunHead, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
@@ -33,6 +35,13 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
         </StackPanel>
+        <ItemsControl DockPanel.Dock="Top" ItemsSource="{Binding Notes}" Focusable="False" Margin="12,0,12,4">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Style="{StaticResource SecondaryText}" FontFamily="{StaticResource MonoFont}" TextWrapping="Wrap" Text="{Binding}"/>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
         <ListBox ItemsSource="{Binding Rows}" Background="{StaticResource BackgroundBrush}" BorderThickness="0" Margin="12,0,12,8"
                  ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="{l:T Panels_Tests_Title}">
             <ListBox.ItemTemplate>

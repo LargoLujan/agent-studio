@@ -284,6 +284,60 @@ public sealed class PanelsTests
         Assert.Empty(panel.HeadRows);
     }
 
+    [Fact]
+    public async Task The_tests_of_head_can_be_cancelled_and_the_service_gets_the_cancellation()
+    {
+        var service = new WaitingHeadTests();
+        var panel = new TestsPanelViewModel { HeadTests = service };
+
+        Assert.False(panel.CancelHeadTestsCommand.CanExecute(null));
+        var running = panel.RunHeadTestsCommand.ExecuteAsync(null);
+        await service.Started.Task;
+
+        Assert.True(panel.IsRunning);
+        Assert.True(panel.CancelHeadTestsCommand.CanExecute(null));
+        panel.CancelHeadTestsCommand.Execute(null);
+        await running;
+
+        Assert.True(service.Token.IsCancellationRequested);
+        Assert.False(panel.IsRunning);
+        Assert.Equal("Cancelaste las pruebas de HEAD.", panel.HeadSummary);
+        Assert.Null(panel.ErrorMessage);
+    }
+
+    [Fact]
+    public void Two_failed_steps_of_one_task_do_not_repeat_the_same_error_line_on_each_row()
+    {
+        var (monitor, run, ui, time) = Open(View("T1", "exec1", WorkTaskStatus.Running));
+        var panel = new TestsPanelViewModel();
+        panel.Attach(monitor);
+
+        run.Emit(
+            Verification("T1", "Pruebas (test)", EvidenceKind.TestRun, new TestRunSummary(8, 2, 0, 1)),
+            Verification("T1", "Pruebas de integración (itest)", EvidenceKind.TestRun, new TestRunSummary(3, 1, 0, 1)));
+        Pump(ui, 2);
+        Settle(time, ui);
+
+        Assert.Equal(2, panel.Rows.Count(r => r.Failed));
+        Assert.All(panel.Rows, r => Assert.Null(r.Error));
+        Assert.Empty(panel.Notes);
+    }
+
+    private sealed class WaitingHeadTests : IHeadTestsService
+    {
+        public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public CancellationToken Token { get; private set; }
+
+        public async Task<HeadTestsResult> RunAsync(CancellationToken cancellationToken)
+        {
+            Token = cancellationToken;
+            Started.SetResult();
+            await Task.Delay(Timeout.Infinite, cancellationToken);
+            return new HeadTestsResult([]);
+        }
+    }
+
     private sealed class ScriptedHeadTests : IHeadTestsService
     {
         private readonly HeadTestsResult? _result;

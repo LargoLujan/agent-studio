@@ -189,6 +189,18 @@
     <value>No se pudieron ejecutar las pruebas de HEAD: {0}</value>
     <comment>{0}: why.</comment>
   </data>
+  <data name="Panels_Tests_TaskError" xml:space="preserve">
+    <value>{0}: {1} (la línea principal del error de la tarea; el registro no guarda una por prueba)</value>
+    <comment>Said once per task with failed steps. {0}: task; {1}: line.</comment>
+  </data>
+  <data name="Panels_Tests_Cancel" xml:space="preserve">
+    <value>Cancelar las pruebas</value>
+    <comment>Button that cancels the tests of HEAD.</comment>
+  </data>
+  <data name="Panels_Tests_HeadCancelled" xml:space="preserve">
+    <value>Cancelaste las pruebas de HEAD.</value>
+    <comment>Result of a cancelled run.</comment>
+  </data>
   <data name="Info_Problems_Title" xml:space="preserve">
     <value>Problemas</value>
     <comment>Information button.</comment>
