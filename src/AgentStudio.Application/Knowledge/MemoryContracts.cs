@@ -49,6 +49,16 @@ public enum MemoryKind
     /// (<see cref="MemoryKinds.IsExported"/>): its source already is Markdown in the repository.
     /// </summary>
     JournalEntry,
+
+    /// <summary>
+    /// Phase 13 (docs/17 D-10): the brief of the project, written by the person (<see cref="MemoryOrigin.User"/>): what the
+    /// project is, its conventions and its useful addresses. Append-only and anchored like every entry; each version
+    /// supersedes the one before (<see cref="ProjectBriefs.Topic"/>), so the latest is the one in force. It reaches the
+    /// orchestrator, the executors and the participants of debates whatever their memory policy, in a block of data of its
+    /// own (<c>&lt;project_brief sha256=…&gt;</c>), never in the pack of memory; the judge and the auditors never get it. It is
+    /// exported to Markdown like the rest of the memory: it is the person's own text.
+    /// </summary>
+    ProjectBrief,
 }
 
 /// <summary>What the categories of memory imply beyond their name.</summary>
@@ -266,4 +276,41 @@ public interface IJournalTrust
     /// <param name="trusted">True to trust, false to withdraw the trust.</param>
     /// <exception cref="ArgumentException">A day for the project, or none for a day.</exception>
     Task SetAsync(ProjectContext project, JournalTrustScope scope, DateOnly? day, bool trusted, string decidedBy, string? comment, CancellationToken ct);
+}
+
+// Phase 13 (docs/17 D-10, P31): the brief of the project, a memory entry of the person's own.
+
+/// <summary>What every writer and reader of the brief of a project agrees on (docs/17 D-10).</summary>
+public static class ProjectBriefs
+{
+    /// <summary>The topic of every version of the brief: a new version supersedes the one in force.</summary>
+    public const string Topic = "ficha-del-proyecto";
+
+    /// <summary>The source every version cites: the person wrote it, in the brief of the project, not in a run.</summary>
+    public const string Source = "ficha:proyecto";
+
+    /// <summary>The longest brief, in characters: what any memory entry keeps (<see cref="MemoryContent.MaxCharacters"/>).</summary>
+    public const int MaxCharacters = MemoryContent.MaxCharacters;
+}
+
+/// <summary>
+/// The brief in force of a project (docs/17 D-10): the memory entry of its latest version, its text, the SHA-256 the log
+/// announced for it (<see cref="MemoryContent.Sha256"/>, which the block of data of a prompt names) and when it was written.
+/// </summary>
+public sealed record ProjectBrief(string EntryId, string Text, string Sha256, DateTimeOffset At);
+
+/// <summary>
+/// Reads and writes the brief of a project (docs/17 D-10): a memory entry of <see cref="MemoryKind.ProjectBrief"/>, of the
+/// person (<see cref="MemoryOrigin.User"/>), whose new versions supersede the one in force. It follows the rules of the
+/// memory: it fails closed on a log that does not verify, the text is redacted and at most <see cref="ProjectBriefs.MaxCharacters"/>.
+/// The configurator (step 2) and the Team layer write it; the packer reads it for the prompts.
+/// </summary>
+public interface IProjectBrief
+{
+    /// <summary>The brief in force, or null when the project has none.</summary>
+    Task<ProjectBrief?> ReadAsync(ProjectContext project, CancellationToken ct);
+
+    /// <summary>Records a new version written by <paramref name="decidedBy"/>; it supersedes the one in force.</summary>
+    /// <exception cref="ArgumentException">A blank text, or longer than <see cref="ProjectBriefs.MaxCharacters"/>.</exception>
+    Task<ProjectBrief> SaveAsync(ProjectContext project, string text, string decidedBy, CancellationToken ct);
 }

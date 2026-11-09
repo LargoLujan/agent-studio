@@ -150,9 +150,10 @@ public sealed class DebatePayloadTests
     [Fact]
     public void The_purposes_of_phase_5_are_appended_so_no_stored_start_changes_meaning()
     {
+        // Later phases append theirs after these (DecisionPayloadTests pins the whole list).
         Assert.Equal(
             ["Planner", "Executor", "Judge", "SkillRecommendation", "DailySummary", "DebateParticipant", "DebateJudge", "ProjectAudit"],
-            Enum.GetNames<AgentRunPurpose>());
+            Enum.GetNames<AgentRunPurpose>().Take(8));
         Assert.Equal(["WholeProject", "CurrentPlan", "OrchestratorDecisions", "Debate"], Enum.GetNames<AuditScope>());
     }
 

@@ -1,10 +1,13 @@
+using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Providers;
 using AgentStudio.Application.Security;
+using AgentStudio.Application.Usage;
 using AgentStudio.Application.Verification;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Orchestration;
+using AgentStudio.Domain.Questions;
 using AgentStudio.Domain.Requirements;
 using AgentStudio.Domain.Work;
 
@@ -24,7 +27,46 @@ public sealed record PlanningRequest(
     IReadOnlyList<AgentDefinition> Roster,
     AgentId Orchestrator,
     VerificationProfile Verification,
-    PlanLimits Limits);
+    PlanLimits Limits)
+{
+    /// <summary>
+    /// Phase 13 (docs/17 D-28 and D-30): the person's answers to the questions the orchestrator asked instead of a plan
+    /// (<see cref="PlanProposal.Questions"/>), each with its question and the run of the planning that asked. The planner
+    /// records each <c>QuestionAnswered</c> in that run and gives the questions and the answers to the orchestrator as data.
+    /// Null or empty for a planning that follows no questions: one round of questions at most, so a planning with answers
+    /// never asks again.
+    /// </summary>
+    public IReadOnlyList<AnsweredQuestion>? Answers { get; init; }
+}
+
+/// <summary>
+/// A question and the person's answer to it (docs/17 D-29 and D-30), in the run of the planning or of the task that asked.
+/// For the orchestrator before it plans, the task of both is null.
+/// </summary>
+public sealed record AnsweredQuestion
+{
+    /// <exception cref="ArgumentException">The answer is not to this question: another id, or another task.</exception>
+    public AnsweredQuestion(RunId run, PendingQuestion question, QuestionAnswer answer)
+    {
+        ArgumentNullException.ThrowIfNull(question);
+        ArgumentNullException.ThrowIfNull(answer);
+        if (!string.Equals(question.Id, answer.QuestionId, StringComparison.Ordinal) || question.Task != answer.Task)
+        {
+            throw new ArgumentException($"The answer to '{answer.QuestionId}' does not answer the question '{question.Id}'.", nameof(answer));
+        }
+
+        Run = run;
+        Question = question;
+        Answer = answer;
+    }
+
+    /// <summary>The run of the planning or of the task that asked.</summary>
+    public RunId Run { get; }
+
+    public PendingQuestion Question { get; }
+
+    public QuestionAnswer Answer { get; }
+}
 
 /// <summary>
 /// The result of planning. <see cref="Plan"/> is null when the agent produced nothing usable; <see cref="Violations"/>
@@ -50,6 +92,14 @@ public sealed record PlanProposal(
     /// it is also in the prompt captured as evidence, which mentions the tool only then.
     /// </summary>
     public string? HistoryToolNotice { get; init; }
+
+    /// <summary>
+    /// Phase 13 (docs/17 D-28): the questions the orchestrator asked instead of a plan, before planning, in one round and
+    /// <see cref="QuestionRules.MaxPlannerQuestions"/> at most, each validated and recorded (<c>QuestionAsked</c> with a null
+    /// task, in <see cref="Run"/>). With questions, <see cref="Plan"/> is null; the person answers them and the next planning
+    /// gets the answers (<see cref="PlanningRequest.Answers"/>). Null or empty when the orchestrator asked nothing.
+    /// </summary>
+    public IReadOnlyList<PendingQuestion>? Questions { get; init; }
 }
 
 /// <summary>
@@ -70,9 +120,14 @@ public sealed record PlanProposal(
 /// the app, unless the person paused it or left it when exiting. Never beyond <see cref="MaxAgentRuns"/>. False by default:
 /// the run behaves as before Phase 8.
 /// </param>
+/// <param name="AnswerWithRecommendedAfter">
+/// Phase 13 (docs/17 D-33, decision 4 (a)): the person's consent, given when approving the plan, for the system to answer a
+/// question of an agent with the option the agent recommended when nobody answers within this time. Null by default: no
+/// question is ever answered without a person. A question without a recommended option always waits.
+/// </param>
 /// <remarks>
-/// The options of Phase 8 are written into the header (its hash and its stored row) only when they are not the defaults, so
-/// every header stored before them is read and hashed exactly as it was (ADR-0034).
+/// The options of Phase 8 and Phase 13 are written into the header (its hash and its stored row) only when they are not the
+/// defaults, so every header stored before them is read and hashed exactly as it was (ADR-0034).
 /// </remarks>
 public sealed record RunOptions(
     int MaxParallelTasks = 3,
@@ -83,8 +138,12 @@ public sealed record RunOptions(
     TimeSpan? MaxAutoWaitForQuota = null,
     TimeSpan? QuotaResetMargin = null,
     TimeSpan? MaxEstimatedQuotaWait = null,
-    bool AutoResumeConsent = false)
+    bool AutoResumeConsent = false,
+    TimeSpan? AnswerWithRecommendedAfter = null)
 {
+    /// <summary>The shortest wait before the system answers with the recommended option under the consent (docs/17 D-33): one minute.</summary>
+    public static readonly TimeSpan MinAnswerWithRecommendedAfter = TimeSpan.FromMinutes(1);
+
     /// <summary>The margin after an announced reset when the header gives none (D-36): 3 minutes.</summary>
     public static readonly TimeSpan DefaultQuotaResetMargin = TimeSpan.FromMinutes(3);
 
@@ -113,6 +172,11 @@ public sealed record RunOptions(
         if (MaxEstimatedQuotaWait < MinEstimatedQuotaWait)
         {
             throw new ArgumentException($"MaxEstimatedQuotaWait must be at least {MinEstimatedQuotaWait}; it is {MaxEstimatedQuotaWait}.", nameof(MaxEstimatedQuotaWait));
+        }
+
+        if (AnswerWithRecommendedAfter < MinAnswerWithRecommendedAfter)
+        {
+            throw new ArgumentException($"AnswerWithRecommendedAfter must be at least {MinAnswerWithRecommendedAfter}; it is {AnswerWithRecommendedAfter}.", nameof(AnswerWithRecommendedAfter));
         }
     }
 
@@ -186,7 +250,12 @@ public enum RunPhase
     Cancelled,
 }
 
-/// <summary>What the UI shows about one task. <see cref="BlockReason"/> is structured: Interrupted, ProviderUnavailable, RateLimitedUntil(t) or AwaitingHuman.</summary>
+/// <summary>
+/// What the UI shows about one task. <see cref="BlockReason"/> is structured: Interrupted, ProviderUnavailable,
+/// RateLimitedUntil(t), AwaitingHuman or, from Phase 13, AwaitingAnswer. <see cref="Question"/> is the question its agent
+/// asked while the task waits for the answer (docs/17 D-29): replay rebuilds it after a restart, so the window of the question
+/// comes back; null otherwise.
+/// </summary>
 public sealed record TaskView(
     TaskId Id,
     string Title,
@@ -198,7 +267,34 @@ public sealed record TaskView(
     string? WorktreePath,
     string? Ref,
     string? BlockReason,
-    IReadOnlyList<EvidenceId> Evidence);
+    IReadOnlyList<EvidenceId> Evidence,
+    PendingQuestion? Question = null);
+
+/// <summary>
+/// A question of an agent waiting for the person (docs/17 D-29 to D-32): its id in the run, the task (null for the orchestrator
+/// before it plans), the agent and the attempt that asked, the question as validated (<see cref="QuestionRules"/>), its
+/// evidence, what the system estimates for each option, and when it was asked. The options are data of the agent: the window
+/// frames them as such, and choosing one grants nothing.
+/// </summary>
+/// <param name="Estimates">
+/// The estimate of each option exactly as <c>QuestionAsked</c> records it (<see cref="OptionEstimateSnapshot"/>: the interval
+/// of total tokens from the 25th to the 75th percentile, each end with its value, provenance and origin, and its references),
+/// in the order of the options; empty when nothing was estimated. So what the window shows is rebuilt the same from the log
+/// after a restart. The engine turns the <see cref="UsageEstimate"/> of the estimator into it when it records the question.
+/// </param>
+public sealed record PendingQuestion(
+    string Id,
+    TaskId? Task,
+    AgentId Agent,
+    int Attempt,
+    AgentQuestion Question,
+    EvidenceId Evidence,
+    IReadOnlyList<OptionEstimateSnapshot> Estimates,
+    DateTimeOffset AskedAt)
+{
+    /// <summary>The estimate of the option <paramref name="option"/>, or null when it has none.</summary>
+    public OptionEstimateSnapshot? EstimateOf(string option) => Estimates.FirstOrDefault(e => string.Equals(e.Option, option, StringComparison.Ordinal));
+}
 
 /// <summary>
 /// The state of a run at one moment: its phase, its tasks, the health of its graph and the agent runs it used. Tanda 2

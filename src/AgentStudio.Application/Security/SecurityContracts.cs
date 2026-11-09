@@ -42,6 +42,14 @@ public enum ApprovalVerification
     /// off by a policy), so the dialog decided alone, with a warning.
     /// </summary>
     WindowsHelloUnavailable,
+
+    /// <summary>
+    /// Phase 13 (docs/17 D-40 (a)): Windows Hello could not be asked for an action of the fixed barrier, so the app locked
+    /// Windows and the person unlocked it with their PIN or password, which Agent Studio never sees. The state of the session
+    /// confirmed the unlock came after the request (<see cref="IWindowsLockConfirmation"/>). Appended: the answers record the
+    /// method by its name, so no stored answer changes.
+    /// </summary>
+    WindowsLock,
 }
 
 /// <param name="Answers">The <see cref="ApprovalRequest.Binding"/> of the request this decision answers; the gate sets it.</param>

@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the analysis of consumption in English (docs/17 D-34, ADR-0052; WP3). Same keys and placeholders as ConsumptionStrings.resx. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Text_ctx_pack_omitted" xml:space="preserve">
+    <value>The context pack of {0} left out {1} entries in {2} attempts: it lacked context.</value>
+    <comment>ctx.pack-omitted. {0}: agent; {1}: entries left out; {2}: attempts.</comment>
+  </data>
+  <data name="Text_ctx_pack_omitted_suggestion" xml:space="preserve">
+    <value>Raise the context budget or turn on the memory of that agent.</value>
+    <comment>What ctx.pack-omitted suggests.</comment>
+  </data>
+  <data name="Text_ctx_high_peak" xml:space="preserve">
+    <value>The context of {0} reached {1}% of the working memory of {2}.</value>
+    <comment>ctx.high-peak. {0}: attempt (T1#2); {1}: percent of the window; {2}: model.</comment>
+  </data>
+  <data name="Text_ctx_high_peak_suggestion" xml:space="preserve">
+    <value>Split the task, use a model with more working memory or remove skills.</value>
+    <comment>What ctx.high-peak suggests.</comment>
+  </data>
+  <data name="Text_ctx_compacted" xml:space="preserve">
+    <value>The agent's program compacted the context of {0} {1} times: something may be lost.</value>
+    <comment>ctx.compacted. {0}: attempt; {1}: compactions.</comment>
+  </data>
+  <data name="Text_ctx_compacted_suggestion" xml:space="preserve">
+    <value>Split the task, use a model with more working memory or remove skills.</value>
+    <comment>What ctx.compacted suggests.</comment>
+  </data>
+  <data name="Text_ctx_heavy_preamble" xml:space="preserve">
+    <value>Before starting, {0} loaded ~{1} tokens of skills and ~{2} of memory in {3} attempts that ended soon.</value>
+    <comment>ctx.heavy-preamble. {0}: agent; {1}: estimated tokens of skills; {2}: estimated tokens of memory; {3}: attempts.</comment>
+  </data>
+  <data name="Text_ctx_heavy_preamble_suggestion" xml:space="preserve">
+    <value>Remove skills or memory from that agent.</value>
+    <comment>What ctx.heavy-preamble suggests.</comment>
+  </data>
+  <data name="Text_retry_same_class" xml:space="preserve">
+    <value>{0} ended {1} attempts in a row with the same end ({2}).</value>
+    <comment>retry.same-class. {0}: task; {1}: attempts; {2}: class of the end (internal name).</comment>
+  </data>
+  <data name="Text_retry_same_class_suggestion" xml:space="preserve">
+    <value>Do not retry blindly: review the requirements or the criteria.</value>
+    <comment>What retry.same-class suggests.</comment>
+  </data>
+  <data name="Text_retry_same_failing_tests" xml:space="preserve">
+    <value>{0} repeated {1} attempts with the same {2} tests failing in «{3}».</value>
+    <comment>retry.same-failing-tests. {0}: task; {1}: attempts; {2}: failing tests; {3}: step of the verification.</comment>
+  </data>
+  <data name="Text_retry_same_failing_tests_suggestion" xml:space="preserve">
+    <value>Do not retry blindly: review the requirements or the criteria.</value>
+    <comment>What retry.same-failing-tests suggests.</comment>
+  </data>
+  <data name="Text_plan_corrected" xml:space="preserve">
+    <value>The plan had to be corrected {0} times.</value>
+    <comment>plan.corrected. {0}: corrections.</comment>
+  </data>
+  <data name="Text_plan_corrected_suggestion" xml:space="preserve">
+    <value>Write clearer requirements.</value>
+    <comment>What plan.corrected suggests.</comment>
+  </data>
+  <data name="Text_verdict_corrected" xml:space="preserve">
+    <value>The verdict had to be corrected {0} times.</value>
+    <comment>verdict.corrected. {0}: corrections.</comment>
+  </data>
+  <data name="Text_verdict_corrected_suggestion" xml:space="preserve">
+    <value>Write clearer requirements.</value>
+    <comment>What verdict.corrected suggests.</comment>
+  </data>
+  <data name="Text_model_oversized" xml:space="preserve">
+    <value>{0} used {1}, of level «maximum», in {2} attempts with small changes.</value>
+    <comment>model.oversized. {0}: agent; {1}: model; {2}: attempts.</comment>
+  </data>
+  <data name="Text_model_oversized_suggestion" xml:space="preserve">
+    <value>Try a model of level «balanced».</value>
+    <comment>What model.oversized suggests.</comment>
+  </data>
+  <data name="Text_cache_low_reuse" xml:space="preserve">
+    <value>{0} went on with its session and read only {1}% of its input from the cache.</value>
+    <comment>cache.low-reuse. {0}: attempt; {1}: percent of the input read from the cache.</comment>
+  </data>
+  <data name="Text_cache_low_reuse_suggestion" xml:space="preserve">
+    <value>Check whether to go on with the session or start a new one.</value>
+    <comment>What cache.low-reuse suggests.</comment>
+  </data>
+  <data name="Text_work_discarded" xml:space="preserve">
+    <value>{0} attempts of {1} tasks reached no delivery.</value>
+    <comment>work.discarded, which only informs. {0}: attempts; {1}: tasks.</comment>
+  </data>
+  <data name="Text_wait_queue" xml:space="preserve">
+    <value>{1} attempts waited in the queue of {0} for {2:g} in all; the longest wait, {3:g}.</value>
+    <comment>wait.queue. {0}: program of the agent; {1}: attempts; {2}: total wait; {3}: longest wait.</comment>
+  </data>
+  <data name="Text_wait_queue_suggestion" xml:space="preserve">
+    <value>Use fewer executors of the same program at once.</value>
+    <comment>What wait.queue suggests.</comment>
+  </data>
+</root>

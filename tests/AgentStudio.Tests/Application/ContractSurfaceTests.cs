@@ -34,7 +34,8 @@ public sealed class ContractSurfaceTests
     {
         Assert.True(typeof(IAsyncDisposable).IsAssignableFrom(typeof(IOrchestrationRun)));
         Assert.Equal(
-            ["CancelAsync", "PauseAsync", "ResumeDispatchAsync", "RetryBlockedAsync", "Snapshot", "get_Completion", "get_Events", "get_Id"],
+            // Phase 13 (docs/17 D-30) adds AnswerAsync, the answer of the person to the question of an agent.
+            ["AnswerAsync", "CancelAsync", "PauseAsync", "ResumeDispatchAsync", "RetryBlockedAsync", "Snapshot", "get_Completion", "get_Events", "get_Id"],
             MethodNames(typeof(IOrchestrationRun)));
         Assert.Equal(typeof(IAsyncEnumerable<OrchestrationEvent>), typeof(IOrchestrationRun).GetProperty("Events")!.PropertyType);
     }

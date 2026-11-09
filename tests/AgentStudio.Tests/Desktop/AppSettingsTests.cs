@@ -110,7 +110,7 @@ public sealed class AppSettingsTests
         var settings = AppSettings.Default;
 
         Assert.Equal(CloseWindowAction.Ask, settings.CloseWindow);
-        Assert.True(settings.WindowsHelloForCriticalApprovals);
+        Assert.True(settings.WindowsHelloForImportantApprovals);
         Assert.False(settings.IdleLockEnabled);
         Assert.Equal(AppSettings.DefaultIdleLockMinutes, settings.IdleLockMinutes);
         Assert.Equal(15, AppSettings.DefaultIdleLockMinutes);
@@ -357,7 +357,7 @@ public sealed class JsonAppSettingsStoreTests
         settings.WithIdleLock(true, 20) with
         {
             CloseWindow = CloseWindowAction.KeepInTray,
-            WindowsHelloForCriticalApprovals = false,
+            WindowsHelloForImportantApprovals = false,
             PreventSleepWhileWorking = true,
         };
 
@@ -373,7 +373,7 @@ public sealed class JsonAppSettingsStoreTests
 
         Assert.Equal(CloseWindowAction.KeepInTray, loaded.CloseWindow);
         Assert.Equal((true, 20), (loaded.IdleLockEnabled, loaded.IdleLockMinutes));
-        Assert.False(loaded.WindowsHelloForCriticalApprovals);
+        Assert.False(loaded.WindowsHelloForImportantApprovals);
         Assert.True(loaded.PreventSleepWhileWorking);
         Assert.Contains("\"closeWindow\": \"KeepInTray\"", File.ReadAllText(paths.SettingsFile), StringComparison.Ordinal);
     }
@@ -394,7 +394,7 @@ public sealed class JsonAppSettingsStoreTests
         Assert.Equal([a], loaded.RecentProjects);
         Assert.Equal(CloseWindowAction.KeepInTray, loaded.CloseWindow);
         Assert.Equal((true, 20), (loaded.IdleLockEnabled, loaded.IdleLockMinutes));
-        Assert.False(loaded.WindowsHelloForCriticalApprovals);
+        Assert.False(loaded.WindowsHelloForImportantApprovals);
         Assert.True(loaded.PreventSleepWhileWorking);
     }
 
@@ -408,7 +408,7 @@ public sealed class JsonAppSettingsStoreTests
         var settings = new JsonAppSettingsStore(paths, null).Load();
 
         Assert.Equal(CloseWindowAction.Ask, settings.CloseWindow);
-        Assert.True(settings.WindowsHelloForCriticalApprovals);
+        Assert.True(settings.WindowsHelloForImportantApprovals);
         Assert.Equal((false, AppSettings.DefaultIdleLockMinutes), (settings.IdleLockEnabled, settings.IdleLockMinutes));
         Assert.False(settings.PreventSleepWhileWorking);
         Assert.Equal((60, 80, 90), (settings.ContextWarningPercent, settings.ContextCompressPercent, settings.ContextCriticalPercent));

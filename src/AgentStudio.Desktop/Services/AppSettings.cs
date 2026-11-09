@@ -54,9 +54,9 @@ public sealed record AppSettings
     /// The context health thresholds (docs/14 D-11), in percent of the model's window: aviso, compresión recomendada and
     /// crítico. Global, 70, 85 and 95 by default (decision 6 of docs/14 section 12), and they must keep
     /// 0 &lt; aviso &lt; compresión &lt; crítico &lt;= 100 (<see cref="ContextHealthThresholds"/>); a file that breaks the rule is
-    /// read with the defaults. These, <see cref="CodexQuotaReadEnabled"/>, <see cref="PlannerHistoryToolEnabled"/> and the
-    /// settings of Phase 8 (from <see cref="CloseWindow"/> on) are the preferences of the panels, written by
-    /// <see cref="IAppSettingsStore.SavePreferences"/>.
+    /// read with the defaults. These, <see cref="CodexQuotaReadEnabled"/>, <see cref="PlannerHistoryToolEnabled"/>, the
+    /// settings of Phase 8 (from <see cref="CloseWindow"/> on) and those of Phase 13 (<see cref="Language"/> and
+    /// <see cref="ReduceMotion"/>) are the preferences of the panels, written by <see cref="IAppSettingsStore.SavePreferences"/>.
     /// </summary>
     public int ContextWarningPercent { get; init; } = DefaultContextWarningPercent;
 
@@ -67,9 +67,13 @@ public sealed record AppSettings
     public int ContextCriticalPercent { get; init; } = DefaultContextCriticalPercent;
 
     /// <summary>
-    /// The user opted in to reading the Codex quota (docs/14 D-15, decision 1 of section 12): on demand and once after each
-    /// Codex run, a read of <c>account/rateLimits/read</c> of its app-server with the CLI's own session and no turn of the
-    /// model. Off by default; while it is off nothing is launched.
+    /// The user opted in to reading the Codex quota (docs/14 D-15, decision 1 of section 12): a read of
+    /// <c>account/rateLimits/read</c> of its app-server with the CLI's own session and no turn of the model. With it, the quota
+    /// is read when the person asks («Consultar cuota de Codex»); once when a run of Codex ends, never twice within five
+    /// minutes (<c>QuotaViewModel.CodexReadInterval</c>, tanda 2); and, in a run that waits for a limit of Codex, to learn when
+    /// the window resets and to check before the task is launched again (<c>AccessChecked</c>, docs/16 D-38). Off by default;
+    /// while it is off nothing is launched. (docs/17 §0.2 found the text of «Ajustes» promised the read after each run before
+    /// it existed; F13-20: the text says what is done.)
     /// </summary>
     public bool CodexQuotaReadEnabled { get; init; }
 
@@ -86,10 +90,27 @@ public sealed record AppSettings
     public CloseWindowAction CloseWindow { get; init; } = CloseWindowAction.Ask;
 
     /// <summary>
-    /// Critical approvals ask Windows Hello after the dialog (D-13, F8-11): on by default, and it can be turned off. Without
-    /// Hello on this computer the dialog decides alone, with a warning, and the answer records it.
+    /// «Pedir Windows Hello también en las aprobaciones importantes» (docs/17 D-38; before Phase 13,
+    /// <c>windowsHelloForCriticalApprovals</c>, which the store still reads): on by default, and it can be turned off. With the
+    /// fixed barrier of Phase 13 (<c>PresencePolicy</c>, WP5) it governs only the configurable actions: what is «Siempre» asks
+    /// Windows Hello whatever it says, and editing the file by hand does not change that. Until WP5 wires the barrier, it
+    /// governs the critical approvals as in Phase 8 (D-13, F8-11): without Hello on this computer the dialog decides alone,
+    /// with a warning, and the answer records it.
     /// </summary>
-    public bool WindowsHelloForCriticalApprovals { get; init; } = true;
+    public bool WindowsHelloForImportantApprovals { get; init; } = true;
+
+    /// <summary>
+    /// The language of the interface the person chose (docs/17 D-49): the name of a culture of <c>UiLanguages.All</c>, or null
+    /// for the language of Windows (English when Agent Studio does not have it). It applies on restart. A name that is not in
+    /// the list reads as null.
+    /// </summary>
+    public string? Language { get; init; }
+
+    /// <summary>
+    /// «Reducir movimiento» (docs/17 D-15): the animations of the canvas are off, as when Windows turns off the animations of
+    /// its windows. The state is still said in the text and the icon. Off by default.
+    /// </summary>
+    public bool ReduceMotion { get; init; }
 
     /// <summary>
     /// The interface locks after <see cref="IdleLockMinutes"/> without input (D-13, F8-10). Off by default. The work goes on
@@ -168,7 +189,10 @@ public sealed record AppSettings
         return this with { ContextWarningPercent = warning, ContextCompressPercent = compress, ContextCriticalPercent = critical };
     }
 
-    /// <summary>These settings with the preferences of <paramref name="other"/> (thresholds, the Codex opt-in, the history search of the orchestrator and the settings of Phase 8).</summary>
+    /// <summary>
+    /// These settings with the preferences of <paramref name="other"/> (thresholds, the Codex opt-in, the history search of the
+    /// orchestrator, the settings of Phase 8, and the language and «Reducir movimiento» of Phase 13).
+    /// </summary>
     internal AppSettings WithPreferencesOf(AppSettings other) =>
         this with
         {
@@ -178,10 +202,12 @@ public sealed record AppSettings
             CodexQuotaReadEnabled = other.CodexQuotaReadEnabled,
             PlannerHistoryToolEnabled = other.PlannerHistoryToolEnabled,
             CloseWindow = other.CloseWindow,
-            WindowsHelloForCriticalApprovals = other.WindowsHelloForCriticalApprovals,
+            WindowsHelloForImportantApprovals = other.WindowsHelloForImportantApprovals,
             IdleLockEnabled = other.IdleLockEnabled,
             IdleLockMinutes = other.IdleLockMinutes,
             PreventSleepWhileWorking = other.PreventSleepWhileWorking,
+            Language = other.Language,
+            ReduceMotion = other.ReduceMotion,
         };
 
     private static ContextHealthThresholds Thresholds(int warning, int compress, int critical) =>

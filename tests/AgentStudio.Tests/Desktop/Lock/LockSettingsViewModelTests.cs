@@ -51,7 +51,7 @@ public sealed class LockSettingsViewModelTests
         settings.IdleLockMinutesText = " 5 ";
         ajustes.SaveCommand.Execute(null);
 
-        Assert.Equal((false, true, 5), (store.Current.WindowsHelloForCriticalApprovals, store.Current.IdleLockEnabled, store.Current.IdleLockMinutes));
+        Assert.Equal((false, true, 5), (store.Current.WindowsHelloForImportantApprovals, store.Current.IdleLockEnabled, store.Current.IdleLockMinutes));
         Assert.True(store.Current.CodexQuotaReadEnabled);
         Assert.Equal(@"C:\proyectos\calc", store.Current.LastProjectPath);
         Assert.StartsWith("Ajustes guardados", ajustes.Notice, StringComparison.Ordinal);

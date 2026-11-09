@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text.Json;
 using AgentStudio.Application.Decisions;
@@ -21,38 +22,75 @@ public sealed record LearnedWindow(string Model, long Tokens, DateTimeOffset See
 /// With a base table (<see cref="WithBaseline"/>, tanda 2), a model never seen in the log takes the window of the table,
 /// also «estimado por Agent Studio» and naming the table and its version: what the log learned always wins over it.
 /// </para>
+/// <para>
+/// <b>Learned live</b> (docs/17 §0.2 and F13-20, ADR-0052): a catalog read from a log also learns, while a run goes on, the
+/// windows the CLI reports in it (<see cref="LearnLive"/>, which <see cref="ContextHealthTracker"/> calls for every window
+/// the CLI reported exactly). Every tracker that shares the catalog (the attempts of a monitor and its planning) then judges
+/// the steps of that model with it, from the first step of its next attempt, without waiting for the run to end and the log
+/// to be read again: Claude Code reports the window only in the result of an attempt. A window learned live is «estimado por
+/// Agent Studio» for another attempt and wins over the log and the base table, being the newest. The shared catalogs
+/// <see cref="Empty"/> and <see cref="Baseline"/> never learn, so nothing passes from one project to another through them.
+/// </para>
 /// </summary>
 public sealed class ModelWindowCatalog
 {
     private readonly Dictionary<string, LearnedWindow> _windows;
     private readonly ModelWindowTable? _baseline;
+    private readonly ConcurrentDictionary<string, LearnedWindow>? _live;
 
-    private ModelWindowCatalog(Dictionary<string, LearnedWindow> windows, ModelWindowTable? baseline = null)
+    private ModelWindowCatalog(Dictionary<string, LearnedWindow> windows, ModelWindowTable? baseline, ConcurrentDictionary<string, LearnedWindow>? live)
     {
         _windows = windows;
         _baseline = baseline;
+        _live = live;
     }
 
-    /// <summary>No window learned and no base table: a model has a window only once the CLI reports it in the attempt.</summary>
-    public static ModelWindowCatalog Empty { get; } = new(new Dictionary<string, LearnedWindow>(StringComparer.Ordinal));
+    /// <summary>No window learned and no base table: a model has a window only once the CLI reports it in the attempt. It never learns live.</summary>
+    public static ModelWindowCatalog Empty { get; } = new(new Dictionary<string, LearnedWindow>(StringComparer.Ordinal), null, null);
 
     /// <summary>
     /// No window learned, with the base table of this version (<see cref="ModelWindowTable.Current"/>): what a screen uses
-    /// until the log of its project was read, so the first run of a new project has a percentage from its first step.
+    /// until the log of its project was read, so the first run of a new project has a percentage from its first step. It is
+    /// shared, so it never learns live: a catalog read from the log of the project does (<see cref="FromLog(ProjectLogSnapshot)"/>).
     /// </summary>
     public static ModelWindowCatalog Baseline { get; } = Empty.WithBaseline(ModelWindowTable.Current);
+
+    /// <summary>A catalog of its own that learns live from the start, with the base table of this version under it (or <paramref name="table"/>).</summary>
+    public static ModelWindowCatalog Learning(ModelWindowTable? table = null) =>
+        new(new Dictionary<string, LearnedWindow>(StringComparer.Ordinal), table ?? ModelWindowTable.Current, NewLive());
 
     /// <summary>The base table a model never seen in the log falls back to; null when there is none.</summary>
     public ModelWindowTable? BaselineTable => _baseline;
 
+    /// <summary>Whether this catalog learns the windows of the run going on (<see cref="LearnLive"/>).</summary>
+    public bool LearnsLive => _live is not null;
+
     /// <summary>
     /// The same windows learned, falling back to <paramref name="table"/> (the base table of this version by default) for a
-    /// model the log has not seen.
+    /// model the log has not seen. It learns live with this catalog, sharing what it learned, when this one does.
     /// </summary>
-    public ModelWindowCatalog WithBaseline(ModelWindowTable? table = null) => new(_windows, table ?? ModelWindowTable.Current);
+    public ModelWindowCatalog WithBaseline(ModelWindowTable? table = null) => new(_windows, table ?? ModelWindowTable.Current, _live);
 
-    /// <summary>The last window seen for each model.</summary>
+    /// <summary>The last window seen for each model in the log.</summary>
     public IReadOnlyCollection<LearnedWindow> Windows => _windows.Values;
+
+    /// <summary>The windows learned live, in the run going on; empty for a catalog that does not learn live.</summary>
+    public IReadOnlyCollection<LearnedWindow> LiveWindows => _live is { } live ? [.. live.Values] : [];
+
+    /// <summary>
+    /// Learns live the window <paramref name="tokens"/> the CLI reported, exactly, for <paramref name="model"/> in the run going
+    /// on (F13-20); the last one reported for a model wins. Nothing for a catalog that does not learn live, a blank model or a
+    /// window that is not positive. Safe from any thread.
+    /// </summary>
+    public void LearnLive(string? model, long tokens, DateTimeOffset seenAt)
+    {
+        if (_live is { } live && !string.IsNullOrWhiteSpace(model) && tokens > 0)
+        {
+            live[model] = new LearnedWindow(model, tokens, seenAt);
+        }
+    }
+
+    private static ConcurrentDictionary<string, LearnedWindow> NewLive() => new(StringComparer.Ordinal);
 
     /// <summary>The windows of the open project's log; none when it does not verify.</summary>
     public static ModelWindowCatalog FromLog(DecisionLogState log)
@@ -69,11 +107,19 @@ public sealed class ModelWindowCatalog
     }
 
     /// <summary>
-    /// The window learned for <paramref name="model"/>, as an estimate of Agent Studio; else, with a base table, the window of
+    /// The window learned live for <paramref name="model"/> in the run going on, else the one learned from the log, both as an
+    /// estimate of Agent Studio; else, with a base table, the window of
     /// the table (an estimate too, or «no expuesto» for a model of Codex); missing when none is known.
     /// </summary>
     public MetricValue<long> WindowFor(string? model)
     {
+        if (model is not null && _live is { } live && live.TryGetValue(model, out var seen))
+        {
+            return MetricValue<long>.EstimatedBySystem(
+                seen.Tokens,
+                string.Create(CultureInfo.InvariantCulture, $"ventana informada por el CLI en esta ejecución ({seen.Model})"));
+        }
+
         if (model is null || !_windows.TryGetValue(model, out var window))
         {
             if (_baseline?.WindowFor(model) is { } fromTable && (fromTable.HasValue || fromTable.Origin == MetricOrigin.NotExposed))
@@ -120,7 +166,7 @@ public sealed class ModelWindowCatalog
             }
         }
 
-        return new ModelWindowCatalog(windows);
+        return new ModelWindowCatalog(windows, null, NewLive());
     }
 
     private static void Remember(Dictionary<string, LearnedWindow> windows, string model, MetricSnapshot window, DateTimeOffset seenAt)

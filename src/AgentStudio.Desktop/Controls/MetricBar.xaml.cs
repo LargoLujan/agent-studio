@@ -150,6 +150,7 @@ public partial class MetricBar : UserControl
         Fill.Fill = TryFindResource(FillKey(reading.Level)) as Brush;
         Fill.Visibility = filled ? Visibility.Visible : Visibility.Collapsed;
         Hatch.Visibility = filled && reading.IsEstimate ? Visibility.Visible : Visibility.Collapsed;
+        DrawSegments(reading);
         DrawMarks(reading);
 
         // The value stands out; after it, the rest of the line: in the short form, the origin in one word, the level written
@@ -172,6 +173,26 @@ public partial class MetricBar : UserControl
             // Only the tooltip the bar put there goes: one the screen gave stays.
             ClearValue(ToolTipProperty);
             _ownToolTip = false;
+        }
+    }
+
+    /// <summary>
+    /// The gaps of a bar by parts (docs/17 D-13, F13-6): two pixels of the track where each part ends inside the fill, so the
+    /// parts are seen as segments; the words of the bar say each part with its value (<see cref="MetricBarReading.PartsText"/>).
+    /// </summary>
+    private void DrawSegments(MetricBarReading reading)
+    {
+        SegmentsLayer.Children.Clear();
+        var brush = Track.Background;
+        foreach (var end in reading.SegmentEnds)
+        {
+            var holder = new Grid { IsHitTestVisible = false };
+            holder.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(end, GridUnitType.Star) });
+            holder.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1 - end, GridUnitType.Star) });
+            var gap = new Rectangle { Width = 2, HorizontalAlignment = HorizontalAlignment.Left, Fill = brush };
+            Grid.SetColumn(gap, 1);
+            holder.Children.Add(gap);
+            SegmentsLayer.Children.Add(holder);
         }
     }
 

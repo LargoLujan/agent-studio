@@ -16,6 +16,8 @@ namespace AgentStudio.Application.Orchestration;
 /// with the same id stay in their order. No roster is an empty one.</item>
 /// <item>Fields are length-prefixed (<see cref="HashFunctions.Canonical"/>); a value that may be missing is written as
 /// <c>-</c> when missing and with a leading <c>=</c> otherwise, so a missing value is never an empty one.</item>
+/// <item>Phase 13 (docs/17 D-25): the effort of an agent counts only when it is set, after all the agents, as its name and
+/// its value (<see cref="Append"/>). A template without efforts hashes as it always did.</item>
 /// </list>
 /// </remarks>
 public static class RosterHash
@@ -29,14 +31,30 @@ public static class RosterHash
         return HashFunctions.Sha256Hex(HashFunctions.Canonical([.. fields]));
     }
 
-    /// <summary>Writes the fields of a roster: how many agents it has, then every member of each, in the order of their ids.</summary>
+    /// <summary>
+    /// Writes the fields of a roster: how many agents it has, then every member of each, in the order of their ids. Then, only
+    /// for the agents that set one, the effort of Phase 13 (docs/17 D-25): <c>effort</c>, the id of the agent and the name of
+    /// the effort, in the order of their ids. Each agent has a fixed number of fields, so where the agents end is known, and
+    /// a roster without efforts is written exactly as before they existed: the hash of every template and every run header
+    /// stored before does not change.
+    /// </summary>
     internal static void Append(List<string?> fields, IReadOnlyList<AgentDefinition>? roster)
     {
-        var agents = roster ?? [];
+        var agents = (roster ?? []).OrderBy(a => a.Id.Value, StringComparer.Ordinal).ToList();
         fields.Add(Number(agents.Count));
-        foreach (var agent in agents.OrderBy(a => a.Id.Value, StringComparer.Ordinal))
+        foreach (var agent in agents)
         {
             AddAgent(fields, agent);
+        }
+
+        foreach (var agent in agents)
+        {
+            if (agent.Effort is { } effort)
+            {
+                fields.Add("effort");
+                fields.Add(agent.Id.Value);
+                fields.Add(effort.ToString());
+            }
         }
     }
 

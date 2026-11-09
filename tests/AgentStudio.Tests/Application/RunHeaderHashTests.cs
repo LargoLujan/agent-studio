@@ -4,6 +4,7 @@ using AgentStudio.Application.Verification;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Evidence;
+using AgentStudio.Domain.Models;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Providers;
 using static AgentStudio.Tests.Domain.TestData;
@@ -59,7 +60,8 @@ public sealed class RunHeaderHashTests
     [
         "tools", "instructions", "name", "role", "model", "objectives", "grants", "turns", "duration", "tokens", "cost", "rounds",
         "memory", "review", "agentAdded", "agentRemoved", "options", "baseCommit", "baseRef", "plan", "requirements", "profile",
-        "createdAt", "request", "follows", "quotaResetMargin", "maxEstimatedQuotaWait", "autoResumeConsent",
+        "createdAt", "request", "follows", "quotaResetMargin", "maxEstimatedQuotaWait", "autoResumeConsent", "effort",
+        "answerWithRecommendedAfter",
     ];
 
     private static RunRecord Changed(string change) => change switch
@@ -92,6 +94,8 @@ public sealed class RunHeaderHashTests
         "quotaResetMargin" => Header() with { Options = new RunOptions(QuotaResetMargin: TimeSpan.FromMinutes(5)) },
         "maxEstimatedQuotaWait" => Header() with { Options = new RunOptions(MaxEstimatedQuotaWait: TimeSpan.FromMinutes(30)) },
         "autoResumeConsent" => Header() with { Options = new RunOptions(AutoResumeConsent: true) },
+        "effort" => WithExecutor(a => a with { Effort = ReasoningEffort.Medium }),
+        "answerWithRecommendedAfter" => Header() with { Options = new RunOptions(AnswerWithRecommendedAfter: TimeSpan.FromMinutes(30)) },
         _ => throw new ArgumentOutOfRangeException(nameof(change), change, null),
     };
 
@@ -166,6 +170,32 @@ public sealed class RunHeaderHashTests
 
         Assert.NotEqual(RunHeaderHash.Of(Header() with { Options = odd }), RunHeaderHash.Of(Header() with { Options = resolved }));
         Assert.Equal(RunHeaderHash.Of(Header() with { Options = odd }), RunHeaderHash.Of(Header() with { Options = odd with { } }));
+    }
+
+    /// <summary>
+    /// Phase 13 (docs/17 §8.2): the efforts of the roster and the consent to answer with the recommended option are written only
+    /// when they are set, so every header stored before them hashes as it did; with them, the hash is pinned too (captured on
+    /// 2026-11-06, when they were added).
+    /// </summary>
+    [Fact]
+    public void The_additions_of_phase_13_leave_a_known_header_as_it_was_and_their_encoding_never_changes()
+    {
+        var unset = Header() with { Options = new RunOptions(AnswerWithRecommendedAfter: null), Roster = [.. Header().Roster.Select(a => a with { Effort = null })] };
+        var set = WithExecutor(a => a with { Effort = ReasoningEffort.High }) with
+        {
+            Options = new RunOptions(AnswerWithRecommendedAfter: TimeSpan.FromMinutes(30)),
+        };
+
+        Assert.Equal("494f1230964f6e8c8ebf9a1ead011eeeb3881d4e64ff348766222dded8403914", RunHeaderHash.Of(unset));
+        Assert.Equal("6fbede8413ae362e6dcaaa19093be71a0e244cb7859d76a7a18489296691a4ad", RunHeaderHash.Of(set));
+    }
+
+    [Fact]
+    public void The_consent_to_answer_with_the_recommended_option_is_at_least_a_minute()
+    {
+        Assert.Throws<ArgumentException>(() => new RunOptions(AnswerWithRecommendedAfter: TimeSpan.FromSeconds(30)).EnsureValid());
+        new RunOptions(AnswerWithRecommendedAfter: RunOptions.MinAnswerWithRecommendedAfter).EnsureValid();
+        new RunOptions().EnsureValid();
     }
 
     [Fact]

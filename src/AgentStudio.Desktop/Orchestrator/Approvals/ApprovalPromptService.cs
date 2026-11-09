@@ -42,7 +42,7 @@ public sealed record HelloOutcome(UserPresenceResult? Result, string? Problem = 
 
 /// <summary>
 /// The reinforced confirmation of the critical approvals (docs/16 D-13, F8-11; ADR-0037): who asks Windows Hello, whether the
-/// user has it on (<c>AppSettings.WindowsHelloForCriticalApprovals</c>, read at each question), and the one rule both the
+/// user has it on (<c>AppSettings.WindowsHelloForImportantApprovals</c>, read at each question), and the one rule both the
 /// questions of the approval gate (<see cref="ApprovalPromptService"/>) and «Aprobar plan» on the canvas follow, so they
 /// cannot drift apart: <see cref="PlanAsync"/> before the question and <see cref="ConfirmAsync"/> after a yes.
 /// </summary>

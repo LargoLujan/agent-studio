@@ -13,8 +13,9 @@ public sealed class AgentStudioFilesTests
     public void The_memory_export_has_one_file_per_category_and_one_per_month_and_nothing_else()
     {
         Assert.Equal(Enum.GetValues<MemoryKind>().Count(MemoryKinds.IsExported), AgentStudioFiles.ThematicMemoryFiles.Distinct(StringComparer.Ordinal).Count());
-        Assert.Equal(10, AgentStudioFiles.ThematicMemoryFiles.Count);
+        Assert.Equal(11, AgentStudioFiles.ThematicMemoryFiles.Count);
         Assert.Equal("tema-errores-conocidos.md", AgentStudioFiles.ThematicMemoryFile(MemoryKind.KnownError));
+        Assert.Equal("tema-ficha-del-proyecto.md", AgentStudioFiles.ThematicMemoryFile(MemoryKind.ProjectBrief));
         Assert.Equal("cronologico-2026-10.md", AgentStudioFiles.ChronologicalMemoryFile(new DateOnly(2026, 10, 1)));
         Assert.All(AgentStudioFiles.ThematicMemoryFiles, name => Assert.True(AgentStudioFiles.IsMemoryExportFile(name), name));
 
