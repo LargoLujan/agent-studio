@@ -524,6 +524,7 @@ ADR numbers 0038 to 0046 are reserved for the decisions of Phases 6 to 11, which
 | [0052](docs/adr/0052-analisis-del-consumo-y-contexto-por-partes.md) | Consumption analysis and the context split into parts |
 | [0053](docs/adr/0053-windows-hello-como-barrera-fija.md) | Windows Hello as a fixed barrier that no setting or file turns off |
 | [0054](docs/adr/0054-idiomas-y-lenguaje-claro.md) | Languages and plain language: `.resx` resources, Windows language by default |
+| [0055](docs/adr/0055-configurador-por-proyecto.md) | Per-project setup wizard and Node and Python verification profiles |
 
 </details>
 
