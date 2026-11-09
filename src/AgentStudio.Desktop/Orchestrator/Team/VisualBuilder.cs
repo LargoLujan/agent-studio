@@ -78,6 +78,9 @@ public sealed partial class VisualBuilder : ObservableObject, IDisposable
 
     public BuilderServices Services => _services;
 
+    /// <summary>Whether the canvas animates: «Reducir movimiento» is off and Windows animates its windows.</summary>
+    private bool Animated() => MotionPolicy.AnimationsEnabled(_reduceMotion(), _services.WindowsAnimates?.Invoke() ?? MotionPolicy.WindowsAnimates);
+
     /// <summary>The bars of quota of the account, one per program and window, in the header of the strip (D-12).</summary>
     public ObservableCollection<MetricBarReading> QuotaBars => _canvas.Team.QuotaBars;
 
@@ -99,7 +102,7 @@ public sealed partial class VisualBuilder : ObservableObject, IDisposable
     /// </summary>
     public void RefreshMotion()
     {
-        var animated = MotionPolicy.AnimationsEnabled(_reduceMotion());
+        var animated = Animated();
         _canvas.Team.AnimationsEnabled = animated;
         if (animated)
         {
@@ -128,7 +131,7 @@ public sealed partial class VisualBuilder : ObservableObject, IDisposable
     public void ApplyLive(RunLiveChangedEventArgs change)
     {
         ArgumentNullException.ThrowIfNull(change);
-        var animated = MotionPolicy.AnimationsEnabled(_reduceMotion());
+        var animated = Animated();
         _canvas.Team.AnimationsEnabled = animated;
         _canvas.Team.ApplyLive(change.State, change.ChangedNodes);
 

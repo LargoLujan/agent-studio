@@ -29,6 +29,8 @@ namespace AgentStudio.Desktop.Orchestrator.Preparation;
 /// <param name="Live">The grouped live state of the run followed (D-14 and D-16); the monitor implements it.</param>
 /// <param name="Quota">The record of the quota of the account, for the header of the strip (D-12).</param>
 /// <param name="Brief">The brief of the project, kept as memory of the person (D-10).</param>
+/// <param name="WindowsAnimates">Whether Windows animates its windows; null reads it from Windows
+/// (<see cref="MotionPolicy.WindowsAnimates"/>). A test gives it, so it does not depend on the machine that runs it.</param>
 public sealed record BuilderServices(
     IOrderReview? OrderReview = null,
     IPreparationChat? Chat = null,
@@ -39,7 +41,8 @@ public sealed record BuilderServices(
     IRepositoryStateReader? Repository = null,
     IRunLiveProjection? Live = null,
     IQuotaObservations? Quota = null,
-    IProjectBrief? Brief = null)
+    IProjectBrief? Brief = null,
+    Func<bool>? WindowsAnimates = null)
 {
     /// <summary>Nothing composed: the canvas works with what it always had.</summary>
     public static BuilderServices None { get; } = new();
