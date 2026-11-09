@@ -673,6 +673,26 @@ empaquetado) y WP4 (la herramienta MCP y «Memoria»). Cada uno pasó una revisi
 - Tu demostración de «Memoria» en el equipo: la descarga del modelo, la búsqueda por significado y la confianza de la
   bitácora. La recorrí en vivo el 2026-11-05 ([18](18-peticiones-y-pendientes.md) §3); los retoques V40 a V42 están corregidos en el PR #38, pendientes de verificar en vivo.
 
+## Fase 13 — Constructor visual de agentes
+
+El diseño, los paquetes y los criterios (F13-1 a F13-20) están en [17](17-constructor-visual-de-agentes.md), §9 y §11, con
+las decisiones de §12 tomadas el 2026-11-06; ADR 0048–0054.
+
+**Estado a 2026-11-09 (tanda 1 integrada en la rama `fase13-integracion`, sin publicar).** Los cimientos (P0) y los
+paquetes WP1 a WP5, cada uno con su revisión independiente y sus arreglos:
+
+- **WP1:** el analizador del montaje y el orden, «Revisar el orden» y el chat de preparación ([ADR-0049](adr/0049-analizador-del-montaje-y-orden.md)).
+- **WP2:** el catálogo de modelos, lo aprendido del registro y el estimador de uso ([ADR-0050](adr/0050-modelos-y-potencia.md)).
+- **WP3:** el contexto por partes, la ficha del proyecto y el análisis del consumo ([ADR-0052](adr/0052-analisis-del-consumo-y-contexto-por-partes.md)).
+- **WP4:** las preguntas de los agentes en el motor ([ADR-0051](adr/0051-preguntas-de-los-agentes.md)).
+- **WP5:** Windows Hello como barrera fija ([ADR-0053](adr/0053-windows-hello-como-barrera-fija.md)).
+
+La integración conecta el estimador con las preguntas, registra los servicios nuevos, aplica el idioma al arrancar y lo
+deja elegir en Ajustes, quita los secretos de las preguntas del orquestador y comparte un solo registro de OK gastados.
+Falta la tanda 2 (WP6 lienzo, WP7 configurador y WP8 monitor, ventana de la pregunta y paneles), sus pruebas de
+integración y una ejecución real con una pregunta y una entrega con Hello. El interruptor de movimiento reducido llega con
+la tanda 2, que trae las animaciones; residuales en [18](18-peticiones-y-pendientes.md) P42 y P46.
+
 ## Fuera de alcance hasta nuevo aviso
 
 - Paquete Azure / Microsoft Fabric (sección 16): se diseña como extensión cuando el núcleo esté en la Fase 5.

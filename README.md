@@ -557,8 +557,11 @@ means the acceptance criterion is covered by automated tests but its manual demo
 - **Self-audit.** 93 tests fail when run under Low integrity (mostly tests that create temporary folders in
   `LocalAppData`), so "Audit whole project" cannot yet approve this repository.
 - **Phase 13 · Visual team builder.** The design review of [docs/17](docs/17-constructor-visual-de-agentes.md) closed
-  on 2026-11-06 with every recommended option accepted (§12), which unblocks Phases 13 to 15. Phase 13 starts with its
-  foundations: language resources, the plain-text guide, the info buttons and the Windows Hello barrier.
+  on 2026-11-06 with every recommended option accepted (§12), which unblocks Phases 13 to 15. Wave 1 is integrated
+  (2026-11-09): the foundations (language resources, plain-text guide, info buttons), the team and order analyzer, the
+  model catalogue and usage estimator, the context split into parts and consumption analysis, agent questions in the
+  engine, Windows Hello as a fixed barrier, and the interface language in Settings. Wave 2 (canvas, configurator and
+  monitor) is next.
 
 ### Planned
 
