@@ -80,7 +80,9 @@ public sealed class OrchestratorRenderTests
         Assert.Equal(6, monitor.Tasks.Count);
         Assert.Equal("En cola · codex-cli", monitor.Tasks[3].StatusLabel);
         Assert.True(drawn > 30_000, $"Only {drawn} pixels differ from the panel.");
-        Assert.True(warning > 50, $"Only {warning} pixels have the warning colour (the pending approval line).");
+        // The line is short since the agent cards took a column of their own (WP8), and a Windows without ClearType (the
+        // runner of the CI) draws its text with fewer pixels of the exact colour: 45 there, more on a desktop.
+        Assert.True(warning > 30, $"Only {warning} pixels have the warning colour (the pending approval line).");
     }
 
     [Fact]

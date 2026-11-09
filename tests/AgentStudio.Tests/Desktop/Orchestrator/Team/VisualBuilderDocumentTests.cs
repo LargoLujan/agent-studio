@@ -244,7 +244,7 @@ public sealed class VisualBuilderDocumentTests
         foreach (var reduced in new[] { false, true })
         {
             var live = new FakeLive();
-            var document = await OpenAsync(Backend(new MutableRoster()), new BuilderServices(Live: live), reduceMotion: reduced);
+            var document = await OpenAsync(Backend(new MutableRoster()), new BuilderServices(Live: live, WindowsAnimates: () => true), reduceMotion: reduced);
             document.Canvas.LoadTasks(PlanFixtures.ValidTasks(), CanvasLayout.Empty);
             var team = document.Canvas.Team;
             var executor = team.Agents.Single(a => a.Id.Value == "ejecutor");
@@ -274,7 +274,7 @@ public sealed class VisualBuilderDocumentTests
         var reduce = false;
         var document = new OrchestratorDocumentViewModel(
             Root, new OrchestrationSession(Backend(new MutableRoster())), new MemoryLayoutStore(), new FakeTimeProvider(T0), new InlineSynchronizationContext(),
-            builder: new BuilderServices(Live: live), reduceMotion: () => reduce);
+            builder: new BuilderServices(Live: live, WindowsAnimates: () => true), reduceMotion: () => reduce);
         await document.OpenAsync();
         document.Canvas.LoadTasks(PlanFixtures.ValidTasks(), CanvasLayout.Empty);
         var executor = document.Canvas.Team.Agents.Single(a => a.Id.Value == "ejecutor");
