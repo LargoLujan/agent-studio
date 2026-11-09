@@ -69,7 +69,7 @@ public sealed class ImplicitStylesTests
             view.Arrange(new Rect(0, 0, 260, 900));
             view.UpdateLayout();
             // «Ajustes» gives this check box a wrapping TextBlock of its own (and its name by hand): either way it must wrap.
-            const string text = "Pedir Windows Hello en las aprobaciones críticas";
+            var text = HelloTexts.SettingLabel;
             var box = Descendants<CheckBox>(view).Single(c => System.Windows.Automation.AutomationProperties.GetName(c) == text || Equals(c.Content, text));
             var label = Descendants<TextBlock>(box).Single(t => t.Text == text);
             var oneLine = new TextBlock { Text = label.Text, FontFamily = label.FontFamily, FontSize = label.FontSize };

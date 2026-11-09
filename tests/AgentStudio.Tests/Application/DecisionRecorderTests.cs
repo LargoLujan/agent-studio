@@ -785,7 +785,7 @@ public sealed class DecisionRecorderTests
     {
         var binding = history.Binding(Project);
         var request = new ApprovalRequest(UnanchoredHistory.AcceptAction, "Aceptar este historial como nuevo origen.", RiskLevel.Critical, null, [@"C:\proyectos\calc"], Project, Binding: binding);
-        return (request, new ApprovalDecision(approved, decidedBy, T0, "Moví yo la carpeta.", binding));
+        return (request, new ApprovalDecision(approved, decidedBy, T0, "Moví yo la carpeta.", binding, ApprovalVerification.WindowsHello));
     }
 
     private static Task<DecisionLogState> AcceptAsync(DecisionRecorder sut, (ApprovalRequest Request, ApprovalDecision Decision) acceptance) =>
@@ -853,14 +853,13 @@ public sealed class DecisionRecorderTests
     }
 
     /// <summary>
-    /// docs/16 D-13, F8-11: accepting a history is a critical question, so with Windows Hello on the person is confirmed with
-    /// Hello, or the dialog decides alone when Hello is not there; the answer records it as the approval gate does. The dialog
-    /// alone keeps the text of version 1.
+    /// docs/16 D-13, F8-11 and docs/17 D-37: accepting a history changes what is trusted, so it is on the list of the fixed
+    /// barrier: the person is confirmed with Windows Hello or, without it, the verified lock of Windows, and the answer records
+    /// how, as the approval gate does.
     /// </summary>
     [Theory]
-    [InlineData(ApprovalVerification.Dialog)]
     [InlineData(ApprovalVerification.WindowsHello)]
-    [InlineData(ApprovalVerification.WindowsHelloUnavailable)]
+    [InlineData(ApprovalVerification.WindowsLock)]
     public async Task Accepting_the_history_records_how_the_person_was_confirmed(ApprovalVerification verification)
     {
         var (sut, store, _, _) = await UnanchoredLogAsync(2);
@@ -873,16 +872,28 @@ public sealed class DecisionRecorderTests
         var granted = store.Of(Project)[^1];
         Assert.Equal(DecisionKind.ApprovalGranted, granted.Kind);
         var payload = DecisionPayloadSerializer.Deserialize<ApprovalAnsweredPayload>(granted.PayloadJson);
-        Assert.Equal(verification, payload.ResolvedVerification());
-        if (verification == ApprovalVerification.Dialog)
-        {
-            var v1 = new ApprovalAnsweredPayload(UnanchoredHistory.AcceptAction, true, "user", "Moví yo la carpeta.", null) { RunId = DecisionPayload.NoRun };
-            Assert.Equal(DecisionPayloadSerializer.Serialize(v1), granted.PayloadJson);
-        }
-        else
-        {
-            Assert.Equal((ApprovalAnsweredPayload.VerificationVersion, (ApprovalVerification?)verification), (payload.V, payload.Verification));
-        }
+        Assert.Equal((ApprovalAnsweredPayload.VerificationVersion, (ApprovalVerification?)verification), (payload.V, payload.Verification));
+    }
+
+    /// <summary>
+    /// The backup of the barrier in the recorder (security review of WP5, 2026-11-09): an approval that did not confirm the
+    /// person (the dialog alone, or with its warning that Hello is not there) accepts no history, whoever passes it, and
+    /// nothing is written.
+    /// </summary>
+    [Theory]
+    [InlineData(ApprovalVerification.Dialog)]
+    [InlineData(ApprovalVerification.WindowsHelloUnavailable)]
+    public async Task An_approval_that_did_not_confirm_the_person_accepts_no_history(ApprovalVerification verification)
+    {
+        var (sut, store, anchors, _) = await UnanchoredLogAsync(2);
+        var shown = (await sut.LoadAsync(Project, TestContext.Current.CancellationToken)).Unanchored!;
+        var (request, decision) = Acceptance(shown);
+
+        var refusal = await Assert.ThrowsAsync<InvalidOperationException>(() => AcceptAsync(sut, (request, decision with { Verification = verification })));
+
+        Assert.Contains("Windows Hello", refusal.Message, StringComparison.Ordinal);
+        Assert.Equal(2, store.Of(Project).Count);
+        Assert.Empty(anchors.Written);
     }
 
     [Fact]

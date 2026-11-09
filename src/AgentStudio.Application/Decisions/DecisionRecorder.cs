@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Security;
 using AgentStudio.Domain.Decisions;
+using AgentStudio.Domain.Security;
 
 namespace AgentStudio.Application.Decisions;
 
@@ -122,6 +123,15 @@ public sealed class DecisionRecorder(IDecisionLogStore store, TimeProvider timeP
         if (!decision.Approved || string.IsNullOrWhiteSpace(decision.DecidedBy) || !string.Equals(decision.Answers, request.Binding, StringComparison.Ordinal))
         {
             throw new InvalidOperationException("Only the approval a person gave to this very history accepts it as a new origin, and this decision is not that: nothing was written.");
+        }
+
+        // The fixed barrier of Windows Hello (docs/17 D-37, ADR-0053): accepting a history changes what is trusted, so the
+        // approval must have confirmed the person. A backup of the desktop's check, by the one rule of the domain, with the
+        // floor no setting lowers.
+        if (!PresencePolicy.IsSatisfiedBy(PresenceAction.AcceptHistoryAsOrigin, importantApprovalsSetting: false, helloAvailable: false, PresenceProofs.Claimed(decision.Verification)))
+        {
+            throw new InvalidOperationException(
+                $"Accepting a history as a new origin always asks for Windows Hello (docs/17 D-37), and this approval was given with '{decision.Verification}': nothing was written.");
         }
 
         var writer = _writers.GetOrAdd(projectId, _ => new ProjectWriter());

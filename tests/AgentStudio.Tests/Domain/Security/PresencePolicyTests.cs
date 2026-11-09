@@ -52,34 +52,69 @@ public sealed class PresencePolicyTests
     }
 
     /// <summary>
-    /// D-37 and D-40 (a): what is «Siempre» is satisfied only by Windows Hello or by the lock of Windows verified as unlocked
-    /// after the request, whatever the setting says; never by the dialog, nor by the dialog with Hello unavailable.
+    /// D-37 and D-40 (a): what is «Siempre» is satisfied only by Windows Hello when this computer has it, whatever the setting
+    /// says; the lock of Windows verified as unlocked after the request counts only without Hello; never the dialog, nor the
+    /// dialog with Hello unavailable.
     /// </summary>
     [Theory]
     [MemberData(nameof(Always))]
-    public void Only_hello_or_the_verified_lock_satisfy_what_is_always_asked(PresenceAction action)
+    public void Only_hello_or_without_it_the_verified_lock_satisfy_what_is_always_asked(PresenceAction action)
     {
         foreach (var setting in new[] { false, true })
         {
-            Assert.True(PresencePolicy.IsSatisfiedBy(action, setting, PresenceProof.WindowsHello));
-            Assert.True(PresencePolicy.IsSatisfiedBy(action, setting, PresenceProof.WindowsLockUnlockedAfterRequest));
-            Assert.False(PresencePolicy.IsSatisfiedBy(action, setting, PresenceProof.Dialog));
-            Assert.False(PresencePolicy.IsSatisfiedBy(action, setting, PresenceProof.DialogWithHelloUnavailable));
-            Assert.False(PresencePolicy.IsSatisfiedBy(action, setting, PresenceProof.None));
-            Assert.False(PresencePolicy.IsSatisfiedBy(action, setting, (PresenceProof)42));
+            foreach (var helloAvailable in new[] { false, true })
+            {
+                Assert.True(PresencePolicy.IsSatisfiedBy(action, setting, helloAvailable, PresenceProof.WindowsHello));
+                Assert.Equal(!helloAvailable, PresencePolicy.IsSatisfiedBy(action, setting, helloAvailable, PresenceProof.WindowsLockUnlockedAfterRequest));
+                Assert.False(PresencePolicy.IsSatisfiedBy(action, setting, helloAvailable, PresenceProof.Dialog));
+                Assert.False(PresencePolicy.IsSatisfiedBy(action, setting, helloAvailable, PresenceProof.DialogWithHelloUnavailable));
+                Assert.False(PresencePolicy.IsSatisfiedBy(action, setting, helloAvailable, PresenceProof.None));
+                Assert.False(PresencePolicy.IsSatisfiedBy(action, setting, helloAvailable, (PresenceProof)42));
+            }
         }
     }
 
     [Theory]
     [MemberData(nameof(Configurable))]
-    public void What_is_configurable_takes_the_dialog_when_the_setting_is_off_and_hello_or_its_warning_when_on(PresenceAction action)
+    public void What_is_configurable_takes_the_dialog_when_the_setting_is_off_and_hello_or_without_it_its_warning_when_on(PresenceAction action)
     {
-        Assert.True(PresencePolicy.IsSatisfiedBy(action, importantApprovalsSetting: false, PresenceProof.Dialog));
-        Assert.False(PresencePolicy.IsSatisfiedBy(action, importantApprovalsSetting: false, PresenceProof.None));
-        Assert.False(PresencePolicy.IsSatisfiedBy(action, importantApprovalsSetting: true, PresenceProof.Dialog));
-        Assert.True(PresencePolicy.IsSatisfiedBy(action, importantApprovalsSetting: true, PresenceProof.DialogWithHelloUnavailable));
-        Assert.True(PresencePolicy.IsSatisfiedBy(action, importantApprovalsSetting: true, PresenceProof.WindowsHello));
-        Assert.True(PresencePolicy.IsSatisfiedBy(action, importantApprovalsSetting: true, PresenceProof.WindowsLockUnlockedAfterRequest));
+        foreach (var helloAvailable in new[] { false, true })
+        {
+            Assert.True(PresencePolicy.IsSatisfiedBy(action, importantApprovalsSetting: false, helloAvailable, PresenceProof.Dialog));
+            Assert.False(PresencePolicy.IsSatisfiedBy(action, importantApprovalsSetting: false, helloAvailable, PresenceProof.None));
+            Assert.False(PresencePolicy.IsSatisfiedBy(action, importantApprovalsSetting: true, helloAvailable, PresenceProof.Dialog));
+            Assert.True(PresencePolicy.IsSatisfiedBy(action, importantApprovalsSetting: true, helloAvailable, PresenceProof.WindowsHello));
+        }
+
+        // With the setting on, the warning and the lock count only on a computer without Hello.
+        Assert.True(PresencePolicy.IsSatisfiedBy(action, importantApprovalsSetting: true, helloAvailable: false, PresenceProof.DialogWithHelloUnavailable));
+        Assert.True(PresencePolicy.IsSatisfiedBy(action, importantApprovalsSetting: true, helloAvailable: false, PresenceProof.WindowsLockUnlockedAfterRequest));
+        Assert.False(PresencePolicy.IsSatisfiedBy(action, importantApprovalsSetting: true, helloAvailable: true, PresenceProof.DialogWithHelloUnavailable));
+        Assert.False(PresencePolicy.IsSatisfiedBy(action, importantApprovalsSetting: true, helloAvailable: true, PresenceProof.WindowsLockUnlockedAfterRequest));
+    }
+
+    /// <summary>
+    /// One rule, not two: the rule by action is the rule by requirement with the requirement of the action (the one an approval
+    /// the list does not name is judged by), for every action, setting, computer and proof; an unknown requirement is refused.
+    /// </summary>
+    [Fact]
+    public void The_rule_by_action_is_the_rule_by_requirement_of_its_action()
+    {
+        foreach (var action in Enum.GetValues<PresenceAction>())
+        {
+            foreach (var proof in Enum.GetValues<PresenceProof>())
+            {
+                foreach (var (setting, hello) in new[] { (false, false), (false, true), (true, false), (true, true) })
+                {
+                    Assert.Equal(
+                        PresencePolicy.IsSatisfiedBy(PresencePolicy.RequirementOf(action), setting, hello, proof),
+                        PresencePolicy.IsSatisfiedBy(action, setting, hello, proof));
+                }
+            }
+        }
+
+        Assert.True(PresencePolicy.IsSatisfiedBy(PresenceRequirement.Never, importantApprovalsSetting: true, helloAvailable: true, PresenceProof.None));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PresencePolicy.IsSatisfiedBy((PresenceRequirement)9, importantApprovalsSetting: false, helloAvailable: false, PresenceProof.WindowsHello));
     }
 
     /// <summary>The results of Windows confirm the person only when Hello verified, or the lock was unlocked after the request.</summary>

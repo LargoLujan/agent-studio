@@ -1,5 +1,6 @@
 using AgentStudio.Application.Security;
 using AgentStudio.Desktop.Lock;
+using AgentStudio.Domain.Security;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -30,28 +31,40 @@ public sealed partial class ApprovalDialogViewModel : ObservableObject
     /// The name the screens give the project of the request (its folder); null when it is not known, and then the question
     /// names no project: its id means nothing to a person.
     /// </param>
+    /// <param name="requirement">
+    /// What the action asks (docs/17 D-37): with <see cref="PresenceRequirement.Always"/> the question says that Windows Hello
+    /// is asked whatever the setting says, or, on a computer without it (<see cref="ApprovalVerification.WindowsLock"/>), that
+    /// Windows locks after «Aprobar».
+    /// </param>
     public ApprovalDialogViewModel(
         ApprovalRequest request,
         ApprovalVerification confirmation = ApprovalVerification.Dialog,
         UserPresenceAvailability? availability = null,
-        string? projectName = null)
+        string? projectName = null,
+        PresenceRequirement requirement = PresenceRequirement.Configurable)
     {
         ArgumentNullException.ThrowIfNull(request);
         Request = request;
         Confirmation = confirmation;
+        Requirement = requirement;
         _availability = availability;
         _projectName = string.IsNullOrWhiteSpace(projectName) ? null : projectName.Trim();
     }
 
     public ApprovalRequest Request { get; }
 
-    /// <summary>How a yes to this question is confirmed (docs/16 D-13).</summary>
+    /// <summary>How a yes to this question is confirmed (docs/16 D-13, docs/17 D-40 (a)).</summary>
     public ApprovalVerification Confirmation { get; }
+
+    /// <summary>What the action asks of the person's presence (docs/17 D-37).</summary>
+    public PresenceRequirement Requirement { get; }
 
     /// <summary>What happens after «Aprobar», or why the dialog decides alone; null when Windows Hello plays no part.</summary>
     public string? HelloNotice => Confirmation switch
     {
+        ApprovalVerification.WindowsHello when Requirement == PresenceRequirement.Always => HelloTexts.AlwaysAsksHello,
         ApprovalVerification.WindowsHello => "Al aprobar, Windows Hello te pedirá que confirmes que eres tú. Sin esa confirmación no se aprueba nada.",
+        ApprovalVerification.WindowsLock => HelloTexts.LocksWindowsAfterYes,
         ApprovalVerification.WindowsHelloUnavailable =>
             $"Windows Hello no está disponible en este equipo ({HelloAnswers.WhyAbsent(_availability ?? UserPresenceAvailability.NotConfiguredForUser)}): "
             + "esta aprobación la decide solo este diálogo, y el registro lo dice.",
@@ -60,8 +73,8 @@ public sealed partial class ApprovalDialogViewModel : ObservableObject
 
     public bool HasHelloNotice => HelloNotice is not null;
 
-    /// <summary>A warning when Windows Hello is not there; neutral when it is asked.</summary>
-    public Tone HelloNoticeTone => Confirmation == ApprovalVerification.WindowsHelloUnavailable ? Tone.Warning : Tone.Neutral;
+    /// <summary>A warning when Windows Hello is not there (the dialog decides alone, or Windows locks); neutral when it is asked.</summary>
+    public Tone HelloNoticeTone => Confirmation is ApprovalVerification.WindowsHelloUnavailable or ApprovalVerification.WindowsLock ? Tone.Warning : Tone.Neutral;
 
     /// <summary>The identifier of the action, as the log records it.</summary>
     public string Action => Request.Action;

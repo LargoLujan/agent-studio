@@ -35,6 +35,7 @@ public sealed class LockCompositionTests
         services.AddSingleton<TimeProvider>(new FakeTimeProvider(T0));
         services.AddSingleton<IUserPresenceVerifier>(hello);
         services.AddSingleton<IWindowsSession>(new FakeWindowsSession());
+        services.AddSingleton<IWindowsSessionState>(new FakeWindowsSessionState());
         services.AddSingleton<IIdleInput>(new ZeroIdle());
         return (services, store, hello);
     }
@@ -64,6 +65,10 @@ public sealed class LockCompositionTests
         Assert.True(confirmation.IsOn());
         store.Current = store.Current with { WindowsHelloForImportantApprovals = false };
         Assert.False(confirmation.IsOn());
+
+        // The fixed barrier without Hello: the verified lock of Windows over the double of the session (docs/17 D-40 (a)).
+        Assert.Same(container.GetRequiredService<IWindowsLockConfirmation>(), confirmation.WindowsLock);
+        Assert.IsType<WindowsLockConfirmation>(confirmation.WindowsLock);
     }
 
     [Fact]
@@ -73,6 +78,8 @@ public sealed class LockCompositionTests
 
         Assert.Equal(typeof(WindowsSession), services.Single(d => d.ServiceType == typeof(IWindowsSession)).ImplementationType);
         Assert.Equal(typeof(SessionIdleInput), services.Single(d => d.ServiceType == typeof(IIdleInput)).ImplementationType);
+        Assert.Equal(typeof(WindowsSessionState), services.Single(d => d.ServiceType == typeof(IWindowsSessionState)).ImplementationType);
+        Assert.Single(services, d => d.ServiceType == typeof(IWindowsLockConfirmation));
         Assert.Single(services, d => d.ServiceType == typeof(IUserPresenceVerifier));
     }
 

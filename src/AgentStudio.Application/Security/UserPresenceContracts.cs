@@ -139,4 +139,20 @@ public static class PresenceProofs
         PresenceProof.WindowsLockUnlockedAfterRequest => ApprovalVerification.WindowsLock,
         _ => null,
     };
+
+    /// <summary>
+    /// What an answer recorded with <paramref name="verification"/> claims confirmed the person (WP5): what the approval gate,
+    /// the engine and the decision recorder judge an approval by, since they never see the results of Windows, only the method
+    /// the desktop recorded. It is the inverse of <see cref="Verification"/>: the two proofs that confirm the person come from
+    /// <see cref="FromHello"/> and <see cref="FromWindowsLock"/>, as a verified Hello or a lock unlocked after the request
+    /// would give them. A method that is none of these claims nothing (<see cref="PresenceProof.None"/>).
+    /// </summary>
+    public static PresenceProof Claimed(ApprovalVerification verification) => verification switch
+    {
+        ApprovalVerification.Dialog => PresenceProof.Dialog,
+        ApprovalVerification.WindowsHelloUnavailable => PresenceProof.DialogWithHelloUnavailable,
+        ApprovalVerification.WindowsHello => FromHello(UserPresenceResult.Verified),
+        ApprovalVerification.WindowsLock => FromWindowsLock(WindowsLockResult.UnlockedAfterRequest),
+        _ => PresenceProof.None,
+    };
 }

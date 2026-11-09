@@ -23,8 +23,8 @@ public static class SkillsScreenServices
     /// <summary>
     /// The screen: its <see cref="SkillsBackend"/> over whatever ports are registered (the catalog with its warnings
     /// through <see cref="SkillCatalog"/>, the decisions, the roster, the local health, the recommendation, the workspace
-    /// and the approval prompt) and the factory of «Skills» documents. It registers no port of its own: without them the
-    /// screen says what is missing.
+    /// and the approval gate, which records the consent) and the factory of «Skills» documents. It registers no port of its
+    /// own: without them the screen says what is missing.
     /// </summary>
     public static IServiceCollection AddAgentStudioSkillsScreen(this IServiceCollection services)
     {
@@ -36,7 +36,7 @@ public static class SkillsScreenServices
             provider.GetService<ISkillHealthReader>(),
             provider.GetService<ISkillRecommendationService>(),
             provider.GetService<IProjectWorkspace>(),
-            provider.GetService<IApprovalPrompt>()));
+            provider.GetService<IApprovalGate>()));
         services.TryAddSingleton<ISkillsDocumentFactory>(provider => new SkillsDocumentFactory(
             provider.GetRequiredService<SkillsBackend>(),
             provider.GetService<TimeProvider>() ?? TimeProvider.System));

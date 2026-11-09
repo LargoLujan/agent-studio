@@ -28,18 +28,23 @@ internal static class RunTestSupport
     {
         var roster = harness.Roster.Agents;
         var verification = profile ?? OrchestrationFixtures.Profile();
+        var warning = VerificationStepText.PlanWarning(plan, roster, verification, harness.ClaudeWritesConfined()) ?? string.Empty;
+
+        // A plan with writers is on the list of the fixed barrier (docs/17 D-37): the canvas approves it only with Windows Hello,
+        // so the approval it sends says so. A plan without writers is approved by the click alone, as before.
+        var method = warning.Length > 0 ? ApprovalVerification.WindowsHello : ApprovalVerification.Dialog;
         return new(
             harness.Project,
             run,
             "Añade Calc.Multiply(a,b) con sus pruebas",
             OrchestrationFixtures.Requirements(),
             plan,
-            new ApprovalDecision(true, "usuario", OrchestrationFixtures.Start, "adelante"),
+            new ApprovalDecision(true, "usuario", OrchestrationFixtures.Start, "adelante", Verification: method),
             verification,
             options ?? new RunOptions(),
             follows,
             ValidatedRoster: roster,
-            ApprovedWarning: VerificationStepText.PlanWarning(plan, roster, verification, harness.ClaudeWritesConfined()) ?? string.Empty);
+            ApprovedWarning: warning);
     }
 
     public static Task<IOrchestrationRun> StartAsync(this EngineHarness harness, PlanDefinition plan, RunOptions? options = null) =>
@@ -108,7 +113,18 @@ internal static class RunTestSupport
     /// When given (with the header anchored), <c>RunStarted</c> is version 3, as the engine records it now, anchoring these
     /// as the writers at medium integrity the plan was approved with; null records a start from before they were anchored.
     /// </param>
-    public static async Task StoreStartedRunAsync(this EngineHarness harness, RunId run, PlanDefinition plan, bool anchorHeader = true, IReadOnlyList<MediumIntegrityWriterEntry>? approvedWriters = null)
+    /// <param name="planApproval">
+    /// How the approval of its plan confirmed the person, recorded before <c>RunStarted</c> as the engine records it: Windows
+    /// Hello by default, as the canvas approves a plan with writers since the fixed barrier (docs/17 D-37); the dialog alone
+    /// for a run approved before it.
+    /// </param>
+    public static async Task StoreStartedRunAsync(
+        this EngineHarness harness,
+        RunId run,
+        PlanDefinition plan,
+        bool anchorHeader = true,
+        IReadOnlyList<MediumIntegrityWriterEntry>? approvedWriters = null,
+        ApprovalVerification planApproval = ApprovalVerification.WindowsHello)
     {
         var ct = TestContext.Current.CancellationToken;
         var project = harness.Project.ProjectId;
@@ -132,6 +148,22 @@ internal static class RunTestSupport
             run, project, OrchestrationFixtures.Start, planHash, requirements.ContentHash, request.Id, harness.Worktrees.InitialCommit, "refs/heads/main", profile, roster, new RunOptions(), null);
         await harness.Runs.CreateAsync(header, ct);
         var system = new Actor(ActorKind.System, "agent-studio");
+        await harness.Decisions.RecordAsync(
+            project,
+            system,
+            DecisionKind.ApprovalRequested,
+            "Aprobación del plan",
+            new ApprovalRequestedPayload(AgentStudio.Orchestration.Engine.Orchestrator.PlanApprovalAction, $"Ejecutar el plan {planHash[..12]}", RiskLevel.Critical, null, []) { RunId = run.Value },
+            null,
+            ct);
+        await harness.Decisions.RecordAsync(
+            project,
+            new Actor(ActorKind.User, "usuario"),
+            DecisionKind.ApprovalGranted,
+            "Plan aprobado",
+            ApprovalAnswers.Payload(AgentStudio.Orchestration.Engine.Orchestrator.PlanApprovalAction, true, "usuario", "adelante", null, planApproval, run.Value),
+            null,
+            ct);
         var started = new RunStartedPayload(planHash, requirements.ContentHash, harness.Worktrees.InitialCommit, "refs/heads/main", profile.ContentHash, [.. roster.Select(a => new RosterEntry(a.Id, a.Role, a.Model.Provider, a.Model.Vendor))], null) { RunId = run.Value };
         await harness.Decisions.RecordAsync(
             project,

@@ -198,7 +198,7 @@ public sealed class DecisionLogAnchorTests : IDisposable
     {
         var binding = history.Binding(instance.ProjectId);
         var request = new ApprovalRequest(UnanchoredHistory.AcceptAction, "Aceptar este historial como nuevo origen.", RiskLevel.Critical, null, [instance.Root], instance.ProjectId, Binding: binding);
-        return instance.Recorder.AcceptAsNewOriginAsync(instance.ProjectId, request, new ApprovalDecision(true, "user", T0, null, binding), Ct);
+        return instance.Recorder.AcceptAsNewOriginAsync(instance.ProjectId, request, new ApprovalDecision(true, "user", T0, null, binding, ApprovalVerification.WindowsHello), Ct);
     }
 
     private static async Task AssertRecordingIsRefusedAsync(ProjectInstance instance)

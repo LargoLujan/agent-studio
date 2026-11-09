@@ -9,6 +9,7 @@ using AgentStudio.Infrastructure.Persistence;
 using AgentStudio.Infrastructure.Skills;
 using AgentStudio.Memory;
 using AgentStudio.Providers;
+using AgentStudio.Security.Approvals;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AgentStudio.Tests.Desktop.Skills;
@@ -49,6 +50,7 @@ public sealed class SkillsCompositionTests
             .AddAgentStudioSkills(new SkillCatalogOptions(null), new SkillActivationStoreOptions(temp.Combine("skill-activations.jsonl")))
             .AddAgentStudioProviders()
             .AddSingleton<IApprovalPrompt>(new FakePrompt())
+            .AddAgentStudioApprovals()
             .AddAgentStudioSkillRecommendation(recommendations, Server)
             .AddAgentStudioSkillsScreen();
         await using var provider = services.BuildServiceProvider();
@@ -65,7 +67,8 @@ public sealed class SkillsCompositionTests
         Assert.IsType<SkillHealthReader>(backend.Health);
         Assert.NotNull(backend.Recommendations);
         Assert.IsAssignableFrom<IProjectWorkspace>(backend.Workspace);
-        Assert.IsType<FakePrompt>(backend.Prompt);
+        // The consent goes through the approval gate, which records it (F13-20), not through the dialog alone.
+        Assert.IsType<ApprovalGate>(backend.Approvals);
 
         // Without an index the catalog is empty, and the screen says so with the catalog's own warning.
         var report = await backend.Catalog!(Ct);
