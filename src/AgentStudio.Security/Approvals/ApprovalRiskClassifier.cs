@@ -86,12 +86,20 @@ public static class ApprovalRiskClassifier
     }
 
     /// <summary>
-    /// What an approval recorded with <paramref name="verification"/> claims confirmed the person, as the barrier judges it
-    /// (<see cref="PresencePolicy.IsSatisfiedBy"/>): the proof whose method is that one (<see cref="PresenceProofs.Verification"/>),
-    /// so there is no second table. A method no proof records is <see cref="PresenceProof.None"/>, which approves nothing.
+    /// What an answer recorded with <paramref name="verification"/> claims confirmed the person, as the barrier judges it
+    /// (<see cref="PresencePolicy.IsSatisfiedBy"/>). The gate never sees the results of Windows: it reads the method the prompt
+    /// recorded as a claim. The two proofs that confirm the person come only from <see cref="PresenceProofs"/>, as the prompt
+    /// gets them from Windows (a verified Hello, a lock unlocked after the request); the dialog, with or without its warning,
+    /// confirms nobody. A method that is none of these claims nothing (<see cref="PresenceProof.None"/>).
     /// </summary>
-    public static PresenceProof ProofOf(ApprovalVerification verification) =>
-        Enum.GetValues<PresenceProof>().Where(p => PresenceProofs.Verification(p) == verification).DefaultIfEmpty(PresenceProof.None).First();
+    public static PresenceProof ClaimedProof(ApprovalVerification verification) => verification switch
+    {
+        ApprovalVerification.Dialog => PresenceProof.Dialog,
+        ApprovalVerification.WindowsHelloUnavailable => PresenceProof.DialogWithHelloUnavailable,
+        ApprovalVerification.WindowsHello => PresenceProofs.FromHello(UserPresenceResult.Verified),
+        ApprovalVerification.WindowsLock => PresenceProofs.FromWindowsLock(WindowsLockResult.UnlockedAfterRequest),
+        _ => PresenceProof.None,
+    };
 
     public static RiskLevel Classify(ApprovalRequest request)
     {

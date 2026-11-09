@@ -45,6 +45,9 @@ Without Windows Hello on this computer, what always asks for it locks Windows: y
   <data name="Hello_Approval_LockNotAsked" xml:space="preserve">
     <value>Windows could not be locked to confirm it is you ({0}): denied.</value>
   </data>
+  <data name="Hello_SetUpHello" xml:space="preserve">
+    <value>To approve it, set up Windows Hello: open Settings, go to Accounts and then Sign-in options, and choose a PIN, your fingerprint or your face.</value>
+  </data>
   <data name="Hello_LockNotComposed" xml:space="preserve">
     <value>this computer has no Windows Hello and the verified lock of Windows is not available</value>
   </data>

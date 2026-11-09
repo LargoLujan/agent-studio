@@ -29,18 +29,29 @@ public static class HelloTexts
     /// <summary>What the review of a plan says once the verified lock of Windows confirmed its approval. <paramref name="plan"/>: the short hash.</summary>
     public static string PlanApprovedWithLock(string plan) => Texts.Format(nameof(HelloStrings.Hello_Plan_ApprovedWithLock), plan);
 
-    /// <summary>Why a plan was not approved: the verified lock of Windows did not confirm the person.</summary>
-    public static string PlanLockNotConfirmed(WindowsLockResult result) => Texts.Format(nameof(HelloStrings.Hello_Plan_LockNotConfirmed), WhyNotConfirmed(result));
+    /// <summary>
+    /// What to do when nothing can confirm the person on this computer (D-40 (b)): set up Windows Hello, and where. Without Hello,
+    /// a Windows that does not lock (a policy forbids it) leaves the actions of the list without any way to be approved.
+    /// </summary>
+    public static string SetUpHello => Texts.Get(nameof(HelloStrings.Hello_SetUpHello));
 
-    /// <summary>Why a plan was not approved: Windows could not be locked to confirm the person.</summary>
-    public static string PlanLockNotAsked(string problem) => Texts.Format(nameof(HelloStrings.Hello_Plan_LockNotAsked), problem);
+    /// <summary>Why a plan was not approved: the verified lock of Windows did not confirm the person; when Windows did not lock, what to do.</summary>
+    public static string PlanLockNotConfirmed(WindowsLockResult result) =>
+        WithWhatToDo(Texts.Format(nameof(HelloStrings.Hello_Plan_LockNotConfirmed), WhyNotConfirmed(result)), result);
 
-    /// <summary>The reason of the denial of a yes the verified lock of Windows did not confirm; the log keeps it.</summary>
+    /// <summary>Why a plan was not approved: Windows could not be locked to confirm the person; and what to do.</summary>
+    public static string PlanLockNotAsked(string problem) => Texts.Format(nameof(HelloStrings.Hello_Plan_LockNotAsked), problem) + " " + SetUpHello;
+
+    /// <summary>The reason of the denial of a yes the verified lock of Windows did not confirm, and what to do when Windows did not lock; the log keeps it.</summary>
     public static string ApprovalLockNotConfirmed(WindowsLockResult result) =>
-        Texts.Format(nameof(HelloStrings.Hello_Approval_LockNotConfirmed), result, WhyNotConfirmed(result));
+        WithWhatToDo(Texts.Format(nameof(HelloStrings.Hello_Approval_LockNotConfirmed), result, WhyNotConfirmed(result)), result);
 
-    /// <summary>The reason of the denial of a yes when Windows could not be locked to confirm the person; the log keeps it.</summary>
-    public static string ApprovalLockNotAsked(string problem) => Texts.Format(nameof(HelloStrings.Hello_Approval_LockNotAsked), problem);
+    /// <summary>The reason of the denial of a yes when Windows could not be locked to confirm the person, and what to do; the log keeps it.</summary>
+    public static string ApprovalLockNotAsked(string problem) => Texts.Format(nameof(HelloStrings.Hello_Approval_LockNotAsked), problem) + " " + SetUpHello;
+
+    /// <summary><paramref name="text"/> and, when Windows did not lock, what to do (<see cref="SetUpHello"/>).</summary>
+    private static string WithWhatToDo(string text, WindowsLockResult result) =>
+        result == WindowsLockResult.LockFailed ? text + " " + SetUpHello : text;
 
     /// <summary>Why the person cannot be confirmed: Windows Hello is not there and the verified lock of Windows is not composed.</summary>
     public static string LockNotComposed => Texts.Get(nameof(HelloStrings.Hello_LockNotComposed));

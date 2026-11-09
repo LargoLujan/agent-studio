@@ -55,6 +55,10 @@ Sin Windows Hello en este equipo, lo que lo pide siempre bloquea Windows: lo des
     <value>No se pudo bloquear Windows para confirmar que eres tú ({0}): se deniega.</value>
     <comment>The reason of the system's denial of a yes when Windows could not be locked; the decision log keeps it. {0}: the problem.</comment>
   </data>
+  <data name="Hello_SetUpHello" xml:space="preserve">
+    <value>Para aprobarlo, configura Windows Hello: abre Configuración, entra en Cuentas y luego en Opciones de inicio de sesión, y elige el PIN, la huella o la cara.</value>
+    <comment>What to do when nothing can confirm the person on this computer: no Windows Hello, and Windows does not lock (a policy forbids it) or cannot be locked (D-40 (b)). Said after the reason.</comment>
+  </data>
   <data name="Hello_LockNotComposed" xml:space="preserve">
     <value>este equipo no tiene Windows Hello y el bloqueo de Windows comprobado no está disponible</value>
     <comment>A problem, inside another sentence (lowercase, no final period).</comment>

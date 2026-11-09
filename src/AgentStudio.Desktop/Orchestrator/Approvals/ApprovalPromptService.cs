@@ -48,6 +48,20 @@ public sealed record ConfirmationPlan(
     /// <summary>Whether a yes needs a confirmation of the person after it: Windows Hello or the lock of Windows.</summary>
     public bool ConfirmsAfterYes => AsksHello || LocksWindows;
 
+    /// <summary>
+    /// Whether Windows Hello can be asked on this computer, as the one rule needs it: false only when Windows said for certain
+    /// that it is not there (<see cref="HelloAnswers.IsAbsent"/>). Then, and only then, the lock of Windows counts (D-40 (a)).
+    /// </summary>
+    public bool HelloAvailable => Availability is not { } said || !HelloAnswers.IsAbsent(said);
+
+    /// <summary>
+    /// What the answer alone proves, for a plan that confirms nothing after a yes: the dialog, or the dialog with its warning
+    /// that Hello is not there. Neither confirms the person; the proofs that do come only from <see cref="PresenceProofs"/>.
+    /// </summary>
+    public PresenceProof AnswerAloneProof => Confirmation == ApprovalVerification.WindowsHelloUnavailable
+        ? PresenceProof.DialogWithHelloUnavailable
+        : PresenceProof.Dialog;
+
     /// <summary>The method a no carries. A no is never confirmed: with a confirmation to be asked after a yes, a no is the answer's alone.</summary>
     public ApprovalVerification ForNo => ConfirmsAfterYes ? ApprovalVerification.Dialog : Confirmation;
 }
@@ -131,15 +145,17 @@ public sealed record ReinforcedConfirmation(
 
     /// <summary>
     /// Whether a yes confirmed by <paramref name="proof"/> approves, by the one rule of the domain: for an action of the list,
-    /// <see cref="PresencePolicy.IsSatisfiedBy"/> with the setting as the plan read it (never for «Siempre»: only Windows Hello
-    /// or the lock of Windows unlocked after the request). For an action the list does not name, which is never «Siempre», what
-    /// the plan asked: a proof that is not <see cref="PresenceProof.None"/>.
+    /// <see cref="PresencePolicy.IsSatisfiedBy"/> with the setting as the plan read it (never for «Siempre») and whether this
+    /// computer has Windows Hello (for «Siempre», only Hello when it has it; the lock of Windows unlocked after the request only
+    /// when it has not). For an action the list does not name, which is never «Siempre», what the plan asked: a proof that is
+    /// not <see cref="PresenceProof.None"/>. <paramref name="proof"/> comes from <see cref="HelloOutcome.Proof"/> (that is,
+    /// from <see cref="PresenceProofs"/>) or from <see cref="ConfirmationPlan.AnswerAloneProof"/>.
     /// </summary>
     public static bool Approves(ConfirmationPlan plan, PresenceProof proof)
     {
         ArgumentNullException.ThrowIfNull(plan);
         return plan.Action is { } action
-            ? PresencePolicy.IsSatisfiedBy(action, plan.SettingOn, proof)
+            ? PresencePolicy.IsSatisfiedBy(action, plan.SettingOn, plan.HelloAvailable, proof)
             : proof is not PresenceProof.None && Enum.IsDefined(proof);
     }
 
@@ -359,7 +375,7 @@ public sealed class ApprovalPromptService : IApprovalPrompt
         if (!plan.ConfirmsAfterYes)
         {
             // The answer alone (the dialog, or the dialog with Hello unavailable): the one rule must take it, or nothing does.
-            return ReinforcedConfirmation.Approves(plan, ApprovalRiskClassifier.ProofOf(plan.Confirmation))
+            return ReinforcedConfirmation.Approves(plan, plan.AnswerAloneProof)
                 ? new ApprovalDecision(true, DecidedBy, _time.GetUtcNow(), answer.Comment, Verification: plan.Confirmation)
                 : throw new InvalidOperationException($"The answer alone does not satisfy the barrier for '{request.Action}': it cannot be approved.");
         }

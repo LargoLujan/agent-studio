@@ -53,12 +53,14 @@ public sealed record ApprovalGateOptions
 /// challenge). The same holds for a denial with <see cref="ApprovalVerification.WindowsLock"/>: a yes the verified lock of
 /// Windows did not confirm (docs/17 D-40 (a)).</item>
 /// <item>The fixed barrier (docs/17 D-37 to D-39): an approval counts only when what confirmed the person satisfies its action,
-/// by the one rule of the domain (<see cref="PresencePolicy.IsSatisfiedBy"/>, with the method the prompt recorded read as its
-/// proof, <see cref="ApprovalRiskClassifier.ProofOf"/>). For an action of the list («Siempre»), only Windows Hello or the
-/// verified lock of Windows do. Any other yes, whatever prompt gave it and whatever any setting or file says, is denied by the
-/// system (<see cref="PresenceNotConfirmed"/>), with the method the prompt said. The gate knows no setting and needs none:
-/// it judges with the setting off, the floor no setting can lower, so no prompt composed without Windows Hello, and no setting
-/// turned off, lets one through. What the setting adds to the configurable approvals is the prompt's.</item>
+/// by the one rule of the domain (<see cref="PresencePolicy.IsSatisfiedBy"/>, with the method the prompt recorded read as the
+/// proof it claims, <see cref="ApprovalRiskClassifier.ClaimedProof"/>). For an action of the list («Siempre»), only Windows
+/// Hello or the verified lock of Windows do. Any other yes, whatever prompt gave it and whatever any setting or file says, is
+/// denied by the system (<see cref="PresenceNotConfirmed"/>), with the method the prompt said. The gate knows neither the
+/// setting nor whether the computer has Hello, and needs neither: it judges with the floor they cannot lower (the setting
+/// off, Hello not there), so no prompt composed without Windows Hello, and no setting turned off, lets one through. What
+/// they add (Hello and not the lock when Hello is there; Hello for the configurable approvals with the setting on) is the
+/// prompt's.</item>
 /// </list>
 /// </remarks>
 public sealed class ApprovalGate(IApprovalPrompt prompt, IDecisionRecorder decisions, TimeProvider timeProvider, ApprovalGateOptions options) : IApprovalGate
@@ -191,10 +193,11 @@ public sealed class ApprovalGate(IApprovalPrompt prompt, IDecisionRecorder decis
             }
 
             // The fixed barrier: a yes counts only with what the one rule of the domain asks of its action, whatever the
-            // prompt. The gate knows no setting, so it judges with it off: the floor no setting can lower.
+            // prompt. The gate knows neither the setting nor whether this computer has Hello, so it judges with the floor
+            // neither can lower: the setting off and Hello not there. What they add is the prompt's.
             if (answer.Approved
                 && ApprovalRiskClassifier.PresenceActionOf(request) is { } action
-                && !PresencePolicy.IsSatisfiedBy(action, importantApprovalsSetting: false, ApprovalRiskClassifier.ProofOf(answer.Verification)))
+                && !PresencePolicy.IsSatisfiedBy(action, importantApprovalsSetting: false, helloAvailable: false, ApprovalRiskClassifier.ClaimedProof(answer.Verification)))
             {
                 return (null, PresenceNotConfirmed, answer.Verification);
             }
