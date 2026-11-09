@@ -30,6 +30,18 @@ public sealed class CanvasText(IUiTextProvider? texts = null)
     /// <summary>The level of effort in words, or that it is not set: the program's own.</summary>
     public string Effort(ReasoningEffort? effort) => Get("Models_Effort_" + (effort is { } set ? set.ToString() : "CliDefault"));
 
+    /// <summary>The program in words («Claude Code»); one the resources do not know is shown as it is.</summary>
+    public string Program(AgentStudio.Domain.Providers.ProviderId provider) => Known("Canvas_Provider_" + provider.Value.Replace('-', '_'), provider.Value);
+
+    /// <summary>The company of a model in words («Anthropic»); one the resources do not know is shown as it is.</summary>
+    public string Company(AgentStudio.Domain.Providers.VendorId vendor) => Known("Canvas_Vendor_" + vendor.Value.Replace('-', '_'), vendor.Value);
+
+    private string Known(string key, string fallback)
+    {
+        var text = Get(key);
+        return text.StartsWith('[') ? fallback : text;
+    }
+
     /// <summary>The level of a model in words.</summary>
     public string Tier(ModelTier? tier) => Get("Models_Tier_" + (tier is { } known ? known.ToString() : "Unclassified"));
 }

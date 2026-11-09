@@ -311,26 +311,6 @@
          frames per second, and they only run while the view model says so (IsAnimated, IsPulsing): «Reducir movimiento» and the
          option of Windows turn them off there, and the state stays in the text and the icon. Nothing blinks more than three
          times a second (WCAG 2.3.1): the slowest cycle here is 0.8 s. -->
-    <Style x:Key="AgentNodeShell" TargetType="{x:Type nodify:Node}" BasedOn="{StaticResource {x:Type nodify:Node}}">
-        <Setter Property="MinWidth" Value="240"/>
-        <Setter Property="BorderThickness" Value="2"/>
-        <Setter Property="BorderBrush" Value="{Binding Tone, Converter={StaticResource Orchestrator.ToneToBrush}}"/>
-        <Setter Property="ContentPadding" Value="10,6"/>
-        <Setter Property="HorizontalContentAlignment" Value="Left"/>
-        <Setter Property="Header" Value="{Binding}"/>
-        <Setter Property="HeaderTemplate" Value="{StaticResource AgentNodeHeaderTemplate}"/>
-        <Setter Property="Content" Value="{Binding}"/>
-        <Setter Property="ContentTemplate" Value="{StaticResource AgentCardBodyTemplate}"/>
-        <Setter Property="Input" Value="{Binding InputList}"/>
-        <Setter Property="Output" Value="{Binding OutputList}"/>
-        <Setter Property="AutomationProperties.Name" Value="{Binding AutomationName}"/>
-        <Setter Property="AutomationProperties.LiveSetting" Value="{Binding LiveSetting}"/>
-        <Style.Triggers>
-            <DataTrigger Binding="{Binding IsHighlighted}" Value="True">
-                <Setter Property="BorderThickness" Value="4"/>
-            </DataTrigger>
-        </Style.Triggers>
-    </Style>
 
     <DataTemplate x:Key="AgentNodeHeaderTemplate" DataType="{x:Type team:AgentNodeViewModel}">
         <DockPanel LastChildFill="True">
@@ -358,6 +338,27 @@
             <controls:MetricBar Reading="{Binding BudgetBar}" IsCompact="True" TrackWidth="120" Margin="0,2,0,0"/>
         </StackPanel>
     </DataTemplate>
+
+    <Style x:Key="AgentNodeShell" TargetType="{x:Type nodify:Node}" BasedOn="{StaticResource {x:Type nodify:Node}}">
+        <Setter Property="MinWidth" Value="240"/>
+        <Setter Property="BorderThickness" Value="2"/>
+        <Setter Property="BorderBrush" Value="{Binding Tone, Converter={StaticResource Orchestrator.ToneToBrush}}"/>
+        <Setter Property="ContentPadding" Value="10,6"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="Header" Value="{Binding}"/>
+        <Setter Property="HeaderTemplate" Value="{StaticResource AgentNodeHeaderTemplate}"/>
+        <Setter Property="Content" Value="{Binding}"/>
+        <Setter Property="ContentTemplate" Value="{StaticResource AgentCardBodyTemplate}"/>
+        <Setter Property="Input" Value="{Binding InputList}"/>
+        <Setter Property="Output" Value="{Binding OutputList}"/>
+        <Setter Property="AutomationProperties.Name" Value="{Binding AutomationName}"/>
+        <Setter Property="AutomationProperties.LiveSetting" Value="{Binding LiveSetting}"/>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsHighlighted}" Value="True">
+                <Setter Property="BorderThickness" Value="4"/>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
 
     <DataTemplate DataType="{x:Type team:AgentNodeViewModel}">
         <nodify:Node Style="{StaticResource AgentNodeShell}"/>

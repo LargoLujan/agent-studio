@@ -124,7 +124,7 @@ public sealed partial class AgentNodeViewModel : ObservableObject
     public string RoleText => _text.Role(Definition.Role);
 
     /// <summary>The program of the agent and the company of its model: «Claude Code (Anthropic)».</summary>
-    public string ProgramText => $"{Definition.Model.Provider} ({Definition.Model.Vendor})";
+    public string ProgramText => $"{_text.Program(Definition.Model.Provider)} ({_text.Company(Definition.Model.Vendor)})";
 
     public string ModelText => string.IsNullOrWhiteSpace(Definition.Model.Model) ? _text.Get("Canvas_Model_ProgramDefault") : Definition.Model.Model;
 
@@ -219,9 +219,24 @@ public sealed partial class AgentNodeViewModel : ObservableObject
         StatusIcon = _text.Get("Canvas_StatusIcon_" + Status);
         Tone = ToneOf(Status);
         LiveSetting = Status is AgentLiveStatus.Asking or AgentLiveStatus.Blocked ? AutomationLiveSetting.Assertive : AutomationLiveSetting.Polite;
-        ContextBar = ContextOf(state);
-        ConsumptionBar = ConsumptionOf(state);
-        BudgetBar = BudgetOf(state);
+        var context = ContextOf(state);
+        if (!SameBar(ContextBar, context))
+        {
+            ContextBar = context;
+        }
+
+        var consumption = ConsumptionOf(state);
+        if (!SameBar(ConsumptionBar, consumption))
+        {
+            ConsumptionBar = consumption;
+        }
+
+        var budget = BudgetOf(state);
+        if (!SameBar(BudgetBar, budget))
+        {
+            BudgetBar = budget;
+        }
+
         AutomationName = string.Join(
             " · ",
             new[]
@@ -235,6 +250,20 @@ public sealed partial class AgentNodeViewModel : ObservableObject
                 ProblemText,
             }.Where(p => !string.IsNullOrWhiteSpace(p)));
     }
+
+    /// <summary>Whether two readings of a bar say the same: what the bar draws and says, not the identity of the object.</summary>
+    private static bool SameBar(MetricBarReading? before, MetricBarReading after) =>
+        before is not null
+        && before.Value == after.Value
+        && before.Maximum == after.Maximum
+        && before.Level == after.Level
+        && before.IsEstimate == after.IsEstimate
+        && string.Equals(before.Label, after.Label, StringComparison.Ordinal)
+        && string.Equals(before.ValueText, after.ValueText, StringComparison.Ordinal)
+        && string.Equals(before.Origin, after.Origin, StringComparison.Ordinal)
+        && string.Equals(before.LevelText, after.LevelText, StringComparison.Ordinal)
+        && string.Equals(before.Detail, after.Detail, StringComparison.Ordinal)
+        && before.OriginKind == after.OriginKind;
 
     private bool IsWriter => TeamRolesOf(Definition.Role);
 

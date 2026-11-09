@@ -1057,4 +1057,28 @@ Aplicar una sugerencia del equipo: nunca se aplica sola.</value>
     <value>El proyecto todavía no tiene agentes.</value>
     <comment>Said on the Team layer when it has none.</comment>
   </data>
+  <data name="Canvas_Provider_claude_code" xml:space="preserve">
+    <value>Claude Code</value>
+    <comment>Name of the program of an agent (a proper name: it is not translated).</comment>
+  </data>
+  <data name="Canvas_Provider_codex_cli" xml:space="preserve">
+    <value>Codex CLI</value>
+    <comment>Name of the program of an agent (a proper name: it is not translated).</comment>
+  </data>
+  <data name="Canvas_Provider_gemini_cli" xml:space="preserve">
+    <value>Gemini CLI</value>
+    <comment>Name of the program of an agent (a proper name: it is not translated).</comment>
+  </data>
+  <data name="Canvas_Vendor_anthropic" xml:space="preserve">
+    <value>Anthropic</value>
+    <comment>Company of the model (a proper name: it is not translated).</comment>
+  </data>
+  <data name="Canvas_Vendor_openai" xml:space="preserve">
+    <value>OpenAI</value>
+    <comment>Company of the model (a proper name: it is not translated).</comment>
+  </data>
+  <data name="Canvas_Vendor_google" xml:space="preserve">
+    <value>Google</value>
+    <comment>Company of the model (a proper name: it is not translated).</comment>
+  </data>
 </root>

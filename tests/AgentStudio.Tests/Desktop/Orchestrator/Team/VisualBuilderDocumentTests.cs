@@ -154,6 +154,20 @@ public sealed class VisualBuilderDocumentTests
     }
 
     [Fact]
+    public async Task Agentes_of_the_side_bar_opens_the_document_on_the_team_layer_and_does_nothing_without_the_builder()
+    {
+        var document = await OpenAsync(Backend(new MutableRoster()), BuilderServices.None);
+        document.Canvas.ShowPlanCommand.Execute(null);
+
+        document.ShowTeamLayer();
+        Assert.True(document.Canvas.IsTeamLayer);
+
+        var legacy = await OpenAsync(Backend(new MutableRoster()), services: null);
+        legacy.ShowTeamLayer();
+        Assert.True(legacy.Canvas.IsPlanLayer);
+    }
+
+    [Fact]
     public async Task The_team_layer_is_read_only_while_the_tab_follows_a_run()
     {
         var document = await OpenAsync(Backend(new MutableRoster()), BuilderServices.None);

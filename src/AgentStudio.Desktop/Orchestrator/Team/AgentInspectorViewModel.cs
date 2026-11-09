@@ -165,7 +165,7 @@ public sealed partial class AgentInspectorViewModel : ObservableObject
     public string RoleText => _text.Role(Agent.Role);
 
     /// <summary>The program and its company: «Claude Code (Anthropic)».</summary>
-    public string ProgramText => $"{Agent.Model.Provider} ({Agent.Model.Vendor})";
+    public string ProgramText => $"{_text.Program(Agent.Model.Provider)} ({_text.Company(Agent.Model.Vendor)})";
 
     /// <summary>The agent can be edited: a store, a project and a layer that is not read only.</summary>
     public bool CanEdit => _editor.CanEdit;

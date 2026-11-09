@@ -117,6 +117,19 @@ public sealed partial class OrchestratorDocumentViewModel
         builder.Band.Schedule();
     }
 
+    /// <summary>
+    /// «Agentes» of the side bar opens the document of the project on the Team layer (docs/17 D-42, F13-17): the management of agents
+    /// is the layer «Equipo», with the inspector of each agent. The shell calls it after it opens or focuses the tab; without the
+    /// builder there is no layer and nothing changes.
+    /// </summary>
+    public void ShowTeamLayer()
+    {
+        if (Builder is not null)
+        {
+            Canvas.Layer = CanvasLayer.Team;
+        }
+    }
+
     /// <summary>What the builder reads once when the project opens: the repository (no network), what the log taught of each model, and the quota. The last read, for a test that has to wait for it.</summary>
     public Task BuilderData { get; private set; } = Task.CompletedTask;
 
