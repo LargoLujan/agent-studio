@@ -1,0 +1,76 @@
+<UserControl x:Class="AgentStudio.Desktop.Views.Orchestrator.TeamStripView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
+             xmlns:controls="clr-namespace:AgentStudio.Desktop.Controls"
+             xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
+             xmlns:team="clr-namespace:AgentStudio.Desktop.Orchestrator.Team"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=team:TeamCanvasViewModel}"
+             AutomationProperties.Name="{l:T Canvas_Strip_Name}">
+    <!-- The strip of the team (docs/17 D-07, D-12 and D-17): a fixed band above the canvas, outside its zoom and in both layers,
+         with a card per agent (its program, model and effort, its state and its three bars) and the quota of the account in the
+         header. A card is the same object as the node of the agent, so both always say the same; a click selects the agent and
+         shines its tasks in the plan. The state of a card is announced to screen readers (Polite, or Assertive for a question
+         or a block). Bindings only. -->
+    <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,8">
+        <DockPanel>
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                <info:InfoButton DockPanel.Dock="Right" InfoKey="Info_Canvas_Strip" VerticalAlignment="Center"/>
+                <TextBlock DockPanel.Dock="Left" Style="{StaticResource SectionTitleText}" Margin="0,0,16,0" VerticalAlignment="Center" Text="{l:T Canvas_Strip_Title}"/>
+                <ItemsControl ItemsSource="{Binding QuotaBars}" Focusable="False" VerticalAlignment="Center">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <controls:MetricBar Reading="{Binding}" IsCompact="True" TrackWidth="90" Margin="0,0,16,0"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </DockPanel>
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Focusable="False">
+                <ItemsControl ItemsSource="{Binding Agents}" Focusable="False">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type team:AgentNodeViewModel}">
+                            <Button Style="{StaticResource GhostButton}" Padding="0" Margin="0,0,8,0" HorizontalContentAlignment="Stretch"
+                                    Command="{Binding DataContext.SelectAgentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    CommandParameter="{Binding}"
+                                    AutomationProperties.Name="{Binding AutomationName}"
+                                    AutomationProperties.LiveSetting="{Binding LiveSetting}">
+                                <Border CornerRadius="6" Padding="8,6" MinWidth="240" Background="{StaticResource SurfaceRaisedBrush}" BorderThickness="2">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="BorderBrush" Value="{Binding Tone, Converter={StaticResource Orchestrator.ToneToBrush}}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsHighlighted}" Value="True">
+                                                    <Setter Property="BorderThickness" Value="4"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <StackPanel>
+                                        <DockPanel>
+                                            <TextBlock DockPanel.Dock="Left" Text="{Binding Name}" FontWeight="SemiBold" Margin="0,0,8,0" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding RoleText}" Style="{StaticResource SecondaryText}" TextTrimming="CharacterEllipsis"/>
+                                        </DockPanel>
+                                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource AgentCardBodyTemplate}" Focusable="False" IsTabStop="False"/>
+                                    </StackPanel>
+                                </Border>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </DockPanel>
+    </Border>
+</UserControl>

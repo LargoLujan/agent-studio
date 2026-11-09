@@ -431,6 +431,84 @@ puerto falla al abrir, se lista con el motivo y el resto sigue funcionando. Una 
 solo, en las pruebas) dice «Motor no disponible» y lista lo que falta: el lienzo, la validación (si hay requisitos y
 perfil) y la disposición funcionan, y no se simula nada.
 
+**Constructor visual: capas, tira del equipo, analizador y preparación con el orquestador (Fase 13, WP6,
+[ADR-0048](adr/0048-constructor-visual-equipo-y-plan.md)).** El lienzo de arriba es ahora la capa «Plan» de un lienzo con dos
+capas y una tira. Solo está activo cuando la composición pasa los servicios del constructor; sin ellos, la pantalla es la de
+antes de la fase.
+
+```text
+┌ Orquestador · calc ─────────────────────────────────────────────────────────────────────────────────────────┐
+│ [Equipo] [Plan] ⓘ   Añadir [Ejecutor] [Juez]   [Conectar con…]  ☑ Solo la orquestación        [Acercar] …   │
+├ Tira del equipo ⓘ ── Cuota Claude 5 h [████░░] 47 % · vista hace 3 min · Codex: no expuesto ────────────────┤
+│ ┌ Orquestador ───────┐ ┌ Ejecutor ──────────┐ ┌ Ejecutor 2 ────────┐ ┌ Juez ──────────────┐                 │
+│ │ Claude Code · opus │ │ Claude Code · sonn.│ │ Claude Code · haiku│ │ Codex CLI · OpenAI │                 │
+│ │ ○ Libre            │ │ ▶ Trabajando en T2 │ │ ? Te pregunta algo │ │ ○ Libre            │                 │
+│ │ Contexto [█░░░] 12%│ │ Contexto [███░] 47%│ │ Contexto [░░░░] 3 %│ │ Contexto no expuest│                 │
+│ └────────────────────┘ └────────────────────┘ └────────────────────┘ └────────────────────┘                 │
+├───────────────────────────────────────────────────────────────────────────────┬─────────────────────────────┤
+│ Lienzo del equipo: agentes, repositorio y los cables «reparte», «revisa»      │ Panel del equipo            │
+│ y «trabaja en» (este, animado mientras la tarea escribe)                      │ límites, qué pasa al editar │
+│                                                                               │ inspector del agente        │
+├ Análisis del montaje ⓘ ──────────────────────────────────────────────────────┴─────────────────────────────┤
+│ ✖ Falta la integración: nada llegaría a tu rama.              [Añadir una integración al final] [Deshacer] │
+│ Revisar el orden con el orquestador (gasta cuota: pide tu OK con la estimación)                              │
+└──────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+- **Dos capas.** «Equipo» (los agentes de la plantilla y el repositorio) y «Plan» (las tareas, con su modelo intacto). Se cambia
+  con dos botones y con Ctrl+1 y Ctrl+2, que solo valen con el foco en el lienzo (el editor de ficheros es otro ámbito de
+  foco). «Equipo» es la que se ve mientras preparas, «Plan» llega con una propuesta, y «Agentes» de la barra lateral abre el
+  documento en «Equipo». Ningún cable del equipo es una dependencia del plan.
+- **Selección enlazada.** Un clic en una tarjeta o en un agente enciende sus tareas en «Plan», y un clic en una tarea enciende a
+  su agente. La asignación de una tarea a su agente es una etiqueta en el nodo, nunca un cable.
+- **La tira del equipo** está encima de las dos capas y fuera del zoom: una tarjeta por agente, que es el mismo objeto que su
+  nodo. Dice el programa, el modelo y el esfuerzo, el estado con su icono y sus palabras, y las barras de contexto, consumo y
+  presupuesto, cada una con su origen. Sin cifra, la pista queda vacía y las palabras dicen por qué («no expuesto», «sin
+  observaciones todavía», «sin intentos todavía»): nunca una barra a cero. En la cabecera, la cuota de la cuenta.
+- **La capa Equipo es la plantilla.** Añadir un ejecutor, un juez o el orquestador copia la plantilla del rol con un id nuevo y
+  pide el programa y el modelo. Guardar cambia la huella de la plantilla (`RosterHash`) y retira la aprobación del plan, y el
+  panel lo dice antes y después. Los límites se ven al montar: un orquestador, un juez de otra empresa y hasta 8 ejecutores.
+  «Quitar del equipo» solo aparece si el almacén sabe quitar un agente.
+- **El nodo del repositorio** enseña la carpeta, la rama y su versión corta, los remotos sin usuario ni contraseña, los cambios
+  sin confirmar (en el color del aviso, con lo que pasa si trabajas en tu repositorio durante una ejecución), el stack y las
+  carpetas principales, cada una un conector. Se lee sin red: la rama, la versión y los cambios por la capa de git endurecida, y
+  los remotos del texto del fichero de configuración, sin ejecutar nada.
+- **Conectar y desconectar sin ratón.** El cable «Trabaja en» (agente → carpeta) se crea arrastrando o con «Conectar con…», que
+  lista los destinos válidos con la misma comprobación. Dar a un agente más carpetas o la herramienta de shell o de red pide
+  Windows Hello.
+- **El inspector del agente** enseña solo lo que manda: nombre, rol, programa, modelo y esfuerzo (con los datos de los modelos y
+  la recomendación con su porqué), herramientas con su riesgo, carpetas, memoria y revisión, el tiempo por intento, el máximo de
+  turnos y de coste marcados «solo Claude» y las instrucciones del agente, que llegan a su prompt como datos. Las rondas y los
+  tokens totales no se enseñan: todavía no mandan nada.
+- **El análisis del montaje** corre 200 ms después de la última edición, fuera del hilo de la interfaz y sobre una copia
+  inmutable del borrador, y solo se aplica si no hubo otra edición. Cada hallazgo trae su frase, su gravedad con icono y el botón
+  de su arreglo de un clic; el botón dice si retira la aprobación o pide Windows Hello. Ctrl+Z y Ctrl+Y deshacen y rehacen los
+  arreglos y las ediciones del lienzo. Los errores impiden aprobar, como los del validador, y las sugerencias van plegadas. No
+  gasta cuota.
+- **«Revisar el orden con el orquestador»** se ofrece cuando cambiaste el plan o el equipo después de la propuesta. Es una
+  ejecución auxiliar de solo lectura que gasta cuota: antes se abre una tarjeta con la estimación (o con que todavía no hay
+  referencias) y el OK de la persona, que el servicio gasta una vez. Sus sugerencias se vuelven a comprobar y cada una es un
+  arreglo de un clic; nada se aplica solo. La razón que da el orquestador se enseña aparte, como texto de un agente.
+- **La ficha del proyecto** está en la banda de preparación: un texto tuyo sobre qué es el proyecto, sus convenciones y sus
+  direcciones útiles. Se guarda como memoria tuya (cada versión sustituye a la anterior), llega a los agentes que trabajan con su
+  huella y nunca al juez, y las direcciones son texto que los agentes no abren.
+- **El chat con el orquestador** está en la banda de preparación. Cada mensaje pide su OK con la estimación; la conversación se
+  reanuda de un mensaje al siguiente y se termina con su botón. Devuelve texto de un agente, borradores de requisitos, sugerencias
+  para el equipo, riesgos y preguntas. «Copiar al editor» pone un borrador en el editor de requisitos como borrador tuyo y no
+  congela nada; una sugerencia del equipo es un arreglo de un clic. «Usar perfil propuesto» es un cambio del perfil de
+  verificación y pide Windows Hello (o el bloqueo de Windows sin él).
+- **Estado vivo.** La tira, los nodos y los cables leen la proyección agrupada del monitor, como mucho cuatro veces por segundo y
+  nodo: solo se actualiza lo que el cambio nombra. Los cables «trabaja en» se mueven mientras la tarea de su agente escribe (doce
+  como mucho), el nodo del repositorio respira mientras se integra, y la dependencia cumplida da un pulso breve en «Plan». Son
+  `Storyboard` de XAML a 30 fotogramas por segundo y se apagan con «Reducir movimiento» (en «Ajustes», junto a «Idioma») o con la
+  opción de animaciones de Windows: el estado sigue en el texto y en el icono. Nada parpadea más de tres veces por segundo.
+- **Accesible.** Cada tarjeta y cada nodo dicen su nombre completo («Ejecutor · Claude Code (Anthropic) · sonnet · esfuerzo medio ·
+  Trabajando en T3 · Contexto: 47 %, exacto»); los cambios de estado se anuncian (cortés, o asertivo en una pregunta o un
+  bloqueo); las barras dan valor, mínimo y máximo y su texto con el origen; y todo lo que se hace arrastrando tiene su camino con
+  el teclado.
+- **Disposición.** `canvas-layout.json` es la versión 2, `{version:2, plan:{…}, team:{…}}`, y lee la versión 1 como la capa
+  «Plan».
+
 ## 4. Debate Arena
 
 > **Estado:** implementado en la Fase 5 (WP6 de [15](15-fase-5-debate-arena-y-juez.md), §9) sobre los puertos de P0

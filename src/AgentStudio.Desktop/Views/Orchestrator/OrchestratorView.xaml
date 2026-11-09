@@ -162,6 +162,9 @@
                 <Border Grid.Column="2" Background="{StaticResource SurfaceBrush}">
                     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                         <StackPanel Margin="14,12">
+                            <views:TeamPanelView DataContext="{Binding Builder.Editor}"
+                                                 Visibility="{Binding DataContext.Canvas.IsTeamLayer, RelativeSource={RelativeSource AncestorType=views:OrchestratorView}, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
+                            <StackPanel Visibility="{Binding Canvas.IsPlanLayer, Converter={StaticResource Orchestrator.BoolToVisibility}}">
                             <ContentControl Content="{Binding Editor}" Focusable="False"
                                             Visibility="{Binding Editor, Converter={StaticResource Orchestrator.NotNullToVisibility}}">
                                 <ContentControl.ContentTemplate>
@@ -173,6 +176,7 @@
                             <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap"
                                        Visibility="{Binding Editor, Converter={StaticResource Orchestrator.NullToVisibility}}"
                                        Text="Selecciona un nodo para ver y cambiar sus propiedades."/>
+                            </StackPanel>
 
                             <TextBlock Style="{StaticResource SectionTitleText}" Margin="0,20,0,4" Text="Problemas del plan"
                                        Visibility="{Binding ShowValidation, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>

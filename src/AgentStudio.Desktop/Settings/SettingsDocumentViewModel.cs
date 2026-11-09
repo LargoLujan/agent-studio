@@ -73,6 +73,7 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
         Lock = lockSettings ?? unattended?.Lock;
         Memory = memory;
         Language = language;
+        Motion = new MotionSettingsViewModel(store);
 
         // A change on screen, or a save (which changes what is in force, often without changing what is on screen).
         Context.PropertyChanged += OnSectionChanged;
@@ -88,6 +89,9 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
             Language.PropertyChanged += OnSectionChanged;
             Language.Saved += OnSectionChanged;
         }
+
+        Motion.PropertyChanged += OnSectionChanged;
+        Motion.Saved += OnSectionChanged;
 
         if (Unattended is not null)
         {
@@ -119,6 +123,9 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
 
     /// <summary>«Idioma»: the language of the interface, which applies on restart; null when it was not composed.</summary>
     public LanguageSettingsViewModel? Language { get; }
+
+    /// <summary>«Reducir movimiento» (Phase 13, docs/17 D-15): turns off the animations of the canvas; always there.</summary>
+    public MotionSettingsViewModel Motion { get; }
 
     /// <summary>«Ajustes guardados a las 14:05:12.»; null until a save succeeds, and after the next try.</summary>
     [ObservableProperty]
@@ -200,6 +207,7 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
                 preferences = Language.Apply(preferences);
             }
 
+            preferences = Motion.Apply(preferences);
             _store.SavePreferences(preferences);
             saved = preferences;
         }
@@ -214,6 +222,7 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
         Lock?.Accept(saved);
         Memory?.Accept(saved);
         Language?.Accept(saved);
+        Motion.Accept(saved);
         Notice = $"Ajustes guardados a las {_time.GetLocalNow().ToString("HH:mm:ss", CultureInfo.InvariantCulture)}.";
     }
 
@@ -225,6 +234,7 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
         Lock?.Revert();
         Memory?.Revert();
         Language?.Revert();
+        Motion.Revert();
         Notice = null;
         ErrorMessage = null;
         IsDirty = HasChanges();
@@ -232,5 +242,5 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
 
     private void OnSectionChanged(object? sender, EventArgs e) => IsDirty = HasChanges();
 
-    private bool HasChanges() => Context.HasChanges || Unattended?.HasChanges == true || Lock?.HasChanges == true || Memory?.HasChanges == true || Language?.HasChanges == true;
+    private bool HasChanges() => Context.HasChanges || Unattended?.HasChanges == true || Lock?.HasChanges == true || Memory?.HasChanges == true || Language?.HasChanges == true || Motion.HasChanges;
 }

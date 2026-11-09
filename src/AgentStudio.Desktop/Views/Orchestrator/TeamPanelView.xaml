@@ -1,0 +1,147 @@
+<UserControl x:Class="AgentStudio.Desktop.Views.Orchestrator.TeamPanelView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
+             xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
+             xmlns:controls="clr-namespace:AgentStudio.Desktop.Controls"
+             xmlns:team="clr-namespace:AgentStudio.Desktop.Orchestrator.Team"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=team:TeamEditorViewModel}">
+    <!-- The panel of the Team layer (docs/17 D-08, D-09 and D-42, F13-17): the limits of the team, what editing it does, the form of
+         an agent being added (it asks the program and the model) and the inspector of the agent selected, which shows only what
+         governs its run. Every change is an edit of the template: it changes its fingerprint and withdraws the approval of the
+         plan, and the panel says so before and after. Bindings only. -->
+    <StackPanel>
+        <DockPanel Margin="0,0,0,4">
+            <info:InfoButton DockPanel.Dock="Right" InfoKey="Info_Canvas_Inspector" VerticalAlignment="Center"/>
+            <TextBlock Style="{StaticResource SectionTitleText}" Text="{l:T Canvas_Layer_Team}"/>
+        </DockPanel>
+        <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" Text="{Binding LimitsText}"/>
+        <ItemsControl ItemsSource="{Binding Limits}" Focusable="False">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Style="{StaticResource ProblemText}" Text="{Binding}"/>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <TextBlock Style="{StaticResource SecondaryText}" Margin="0,6,0,0" TextWrapping="Wrap" Text="{Binding ConsequenceText}"/>
+        <TextBlock Style="{StaticResource BodyText}" Margin="0,6,0,0" TextWrapping="Wrap" Text="{Binding Notice}"
+                   Visibility="{Binding Notice, Converter={StaticResource Orchestrator.NotNullToVisibility}}" AutomationProperties.LiveSetting="Polite"/>
+        <TextBlock Style="{StaticResource ProblemText}" Margin="0,6,0,0" Text="{Binding ErrorMessage}"
+                   Visibility="{Binding ErrorMessage, Converter={StaticResource Orchestrator.NotNullToVisibility}}" AutomationProperties.LiveSetting="Assertive"/>
+
+        <!-- An agent being added: the program and the model are asked here. -->
+        <Border Margin="0,10,0,0" Padding="10,8" CornerRadius="6" BorderThickness="1" BorderBrush="{StaticResource AccentBrush}"
+                Background="{StaticResource SurfaceRaisedBrush}" DataContext="{Binding PendingAdd}"
+                Visibility="{Binding DataContext.PendingAdd, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource Orchestrator.NotNullToVisibility}}">
+            <StackPanel>
+                <TextBlock Style="{StaticResource SectionTitleText}" Text="{Binding Name}"/>
+                <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Canvas_Add_Program}"/>
+                <ComboBox ItemsSource="{Binding Providers}" SelectedItem="{Binding Provider}" AutomationProperties.Name="{l:T Canvas_Add_Program}"/>
+                <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Canvas_Add_Model}"/>
+                <ComboBox ItemsSource="{Binding Models}" SelectedItem="{Binding Model}" AutomationProperties.Name="{l:T Canvas_Add_Model}"/>
+                <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Canvas_Add_Effort}"/>
+                <ComboBox ItemsSource="{Binding Efforts}" SelectedItem="{Binding Effort}" AutomationProperties.Name="{l:T Canvas_Add_Effort}"/>
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                    <Button Style="{StaticResource ToolbarPrimaryButton}" Content="{l:T Canvas_Add_Confirm}"
+                            Command="{Binding DataContext.ConfirmAddCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                    <Button Style="{StaticResource ToolbarButton}" Content="{l:T Canvas_Add_Cancel}"
+                            Command="{Binding DataContext.CancelAddCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <TextBlock Style="{StaticResource SecondaryText}" Margin="0,14,0,0" TextWrapping="Wrap" Text="{l:T Canvas_Inspector_Empty}"
+                   Visibility="{Binding Inspector, Converter={StaticResource Orchestrator.NullToVisibility}}"/>
+
+        <!-- The inspector of the agent selected: only what governs its run. -->
+        <StackPanel Margin="0,14,0,0" DataContext="{Binding Inspector}"
+                    Visibility="{Binding DataContext.Inspector, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource Orchestrator.NotNullToVisibility}}"
+                    AutomationProperties.Name="{Binding Title}">
+            <TextBlock Style="{StaticResource SectionTitleText}" Text="{Binding Title}"/>
+            <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap">
+                <Run Text="{Binding RoleText, Mode=OneWay}"/><Run Text=" · "/><Run Text="{Binding ProgramText, Mode=OneWay}"/>
+            </TextBlock>
+
+            <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Canvas_Inspector_Name}"/>
+            <TextBox Style="{StaticResource FieldTextBox}" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanEdit}"
+                     AutomationProperties.Name="{l:T Canvas_Inspector_Name}"/>
+
+            <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Canvas_Inspector_Model}"/>
+            <ComboBox ItemsSource="{Binding Models}" SelectedItem="{Binding SelectedModel}" IsEnabled="{Binding CanEdit}"
+                      AutomationProperties.Name="{l:T Canvas_Inspector_Model}"/>
+            <TextBlock Style="{StaticResource BodyText}" Margin="0,4,0,0" TextWrapping="Wrap" Text="{Binding RecommendationText}"/>
+            <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{Binding RecommendationWhy}"
+                       Visibility="{Binding HasRecommendation, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
+            <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{Binding PerformanceText}"/>
+            <Button Style="{StaticResource ToolbarButton}" Content="{l:T Canvas_Inspector_UseRecommendation}" Command="{Binding UseRecommendationCommand}"
+                    HorizontalAlignment="Left" Visibility="{Binding HasRecommendation, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
+
+            <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Canvas_Inspector_Effort}"/>
+            <ComboBox ItemsSource="{Binding Efforts}" SelectedItem="{Binding SelectedEffort}" IsEnabled="{Binding CanEdit}"
+                      AutomationProperties.Name="{l:T Canvas_Inspector_Effort}"/>
+
+            <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Canvas_Inspector_Tools}"/>
+            <ItemsControl ItemsSource="{Binding Tools}" Focusable="False">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <CheckBox Style="{StaticResource FieldCheckBox}" IsChecked="{Binding IsOn}" IsEnabled="{Binding CanEdit}" AutomationProperties.Name="{Binding AutomationName}">
+                            <TextBlock Text="{Binding AutomationName}" TextWrapping="Wrap"/>
+                        </CheckBox>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <StackPanel Visibility="{Binding IsWriter, Converter={StaticResource Orchestrator.BoolToVisibility}}">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Canvas_Inspector_Folders}"/>
+                <ItemsControl ItemsSource="{Binding Folders}" Focusable="False">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <CheckBox Style="{StaticResource FieldCheckBox}" IsChecked="{Binding IsOn}" AutomationProperties.Name="{Binding Label}">
+                                <TextBlock Text="{Binding Label}" TextWrapping="Wrap"/>
+                            </CheckBox>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <CheckBox Style="{StaticResource FieldCheckBox}" IsChecked="{Binding RequiresIndependentReview}" IsEnabled="{Binding CanEdit}">
+                    <TextBlock Text="{l:T Canvas_Inspector_IndependentReview}" TextWrapping="Wrap"/>
+                </CheckBox>
+                <CheckBox Style="{StaticResource FieldCheckBox}" IsChecked="{Binding RequiresSystemCapturedTests}" IsEnabled="{Binding CanEdit}">
+                    <TextBlock Text="{l:T Canvas_Inspector_CapturedTests}" TextWrapping="Wrap"/>
+                </CheckBox>
+            </StackPanel>
+
+            <CheckBox Style="{StaticResource FieldCheckBox}" IsChecked="{Binding ReceivesMemory}" IsEnabled="{Binding CanEdit}"
+                      Visibility="{Binding CanReceiveMemory, Converter={StaticResource Orchestrator.BoolToVisibility}}">
+                <TextBlock Text="{l:T Canvas_Inspector_Memory}" TextWrapping="Wrap"/>
+            </CheckBox>
+
+            <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Canvas_Inspector_Minutes}"/>
+            <TextBox Style="{StaticResource FieldTextBox}" Text="{Binding MaxMinutes, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanEdit}"
+                     AutomationProperties.Name="{l:T Canvas_Inspector_Minutes}"/>
+            <StackPanel Visibility="{Binding IsClaude, Converter={StaticResource Orchestrator.BoolToVisibility}}">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Canvas_Inspector_Turns}"/>
+                <TextBox Style="{StaticResource FieldTextBox}" Text="{Binding MaxTurns, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanEdit}"
+                         AutomationProperties.Name="{l:T Canvas_Inspector_Turns}"/>
+                <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Canvas_Inspector_Cost}"/>
+                <TextBox Style="{StaticResource FieldTextBox}" Text="{Binding MaxCostUsd, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanEdit}"
+                         AutomationProperties.Name="{l:T Canvas_Inspector_Cost}"/>
+                <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{Binding OnlyClaudeText}"/>
+            </StackPanel>
+
+            <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Canvas_Inspector_Instructions}"/>
+            <TextBox Style="{StaticResource MultilineFieldTextBox}" Text="{Binding Instructions, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanEdit}"
+                     AutomationProperties.Name="{l:T Canvas_Inspector_Instructions}"/>
+            <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{l:T Canvas_Inspector_InstructionsHelp}"/>
+            <Button Style="{StaticResource ToolbarPrimaryButton}" Margin="0,8,0,0" Content="{l:T Canvas_Inspector_Apply}" Command="{Binding ApplyFieldsCommand}" HorizontalAlignment="Left"/>
+            <TextBlock Style="{StaticResource ProblemText}" Text="{Binding FieldProblem}" Visibility="{Binding FieldProblem, Converter={StaticResource Orchestrator.NotNullToVisibility}}"
+                       AutomationProperties.LiveSetting="Assertive"/>
+
+            <controls:MetricBar Margin="0,10,0,0" TrackWidth="200" Reading="{Binding PartsBar}"
+                                Visibility="{Binding PartsBar, Converter={StaticResource Orchestrator.NotNullToVisibility}}"/>
+            <TextBlock Style="{StaticResource SecondaryText}" Margin="0,8,0,0" TextWrapping="Wrap" Text="{l:T Canvas_Inspector_Hidden}"/>
+        </StackPanel>
+    </StackPanel>
+</UserControl>

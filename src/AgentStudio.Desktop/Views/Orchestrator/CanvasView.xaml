@@ -5,10 +5,24 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:nodify="https://miroiu.github.io/nodify"
              xmlns:canvas="clr-namespace:AgentStudio.Desktop.Orchestrator.Canvas"
+             xmlns:team="clr-namespace:AgentStudio.Desktop.Orchestrator.Team"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
+             xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
+             xmlns:views="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=canvas:CanvasViewModel}">
     <!-- The canvas: bindings only (ADR-0015). Nodify draws; CanvasViewModel owns the nodes, wires, selection and
-         viewport. The node, wire and pending-wire templates are in Themes/Nodify.xaml. -->
+         viewport. The node, wire and pending-wire templates are in Themes/Nodify.xaml.
+         One canvas, two layers and a strip (docs/17 D-07, ADR-0048): «Equipo» (the template of agents and the repository) and
+         «Plan» (the tasks, as always), switched with two buttons and with Ctrl+1 and Ctrl+2 (the editor of files is another
+         focus scope: it never sees them); the strip of the team is above both and outside the zoom. The analysis band is under
+         them. Ctrl+Z and Ctrl+Y undo and redo the edits of the draft and the fixes of one click. -->
+    <UserControl.InputBindings>
+        <KeyBinding Key="D1" Modifiers="Ctrl" Command="{Binding ShowTeamCommand}"/>
+        <KeyBinding Key="D2" Modifiers="Ctrl" Command="{Binding ShowPlanCommand}"/>
+        <KeyBinding Key="Z" Modifiers="Ctrl" Command="{Binding Team.Builder.Band.UndoCommand}"/>
+        <KeyBinding Key="Y" Modifiers="Ctrl" Command="{Binding Team.Builder.Band.RedoCommand}"/>
+    </UserControl.InputBindings>
     <UserControl.Resources>
         <!-- Grid behind the nodes: a tiled drawing whose transform follows the viewport, so it pans and zooms with the graph. -->
         <GeometryDrawing x:Key="SmallGridGeometry" Geometry="M0,0 L0,1 0.03,1 0.03,0.03 1,0.03 1,0 Z"
@@ -16,49 +30,138 @@
         <DrawingBrush x:Key="GridBrush" TileMode="Tile" ViewportUnits="Absolute" Viewport="0 0 20 20"
                       Transform="{Binding ViewportTransform, ElementName=Editor}"
                       Drawing="{StaticResource SmallGridGeometry}"/>
+        <DrawingBrush x:Key="TeamGridBrush" TileMode="Tile" ViewportUnits="Absolute" Viewport="0 0 20 20"
+                      Transform="{Binding ViewportTransform, ElementName=TeamEditor}"
+                      Drawing="{StaticResource SmallGridGeometry}"/>
+        <!-- The button of the layer that is shown: raised and in bold; the name says it too, not only the look. -->
+        <Style x:Key="Canvas.LayerButton" TargetType="Button" BasedOn="{StaticResource ToolbarButton}">
+            <Setter Property="FontWeight" Value="Normal"/>
+        </Style>
     </UserControl.Resources>
 
     <Grid Background="{StaticResource BackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Toolbar: create nodes and act on the selection and the view. -->
+        <!-- Toolbar: the layer, then what that layer offers. -->
         <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
                 BorderThickness="0,0,0,1" Padding="12,8,12,2">
             <WrapPanel Orientation="Horizontal">
-                <TextBlock Text="Crear nodo" Style="{StaticResource SecondaryText}" VerticalAlignment="Top" Margin="0,7,10,0"/>
-                <ItemsControl ItemsSource="{Binding Palette}" Focusable="False">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type canvas:PaletteItem}">
-                            <Button Style="{StaticResource ToolbarButton}" Content="{Binding Label}" ToolTip="{Binding Hint}"
-                                    ToolTipService.ShowOnDisabled="True" AutomationProperties.Name="{Binding Hint}"
-                                    Command="{Binding DataContext.AddNodeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                    CommandParameter="{Binding Kind}"/>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-                <Button Style="{StaticResource ToolbarButton}" Content="Eliminar selección (Supr)" Margin="12,0,6,6"
-                        Command="{Binding DeleteSelectionCommand}"/>
-                <!-- Frames every node, never below a zoom whose words can be read (CanvasViewModel.MinFitZoom). -->
-                <Button Style="{StaticResource ToolbarButton}" Content="Ajustar vista" Command="{Binding FitViewCommand}"
-                        ToolTip="Encuadra todos los nodos con un zoom en el que se leen; un plan más grande se ve desde su esquina"/>
-                <Button Style="{StaticResource ToolbarButton}" Content="Acercar" Command="{x:Static nodify:EditorCommands.ZoomIn}"
-                        CommandTarget="{Binding ElementName=Editor}"/>
-                <Button Style="{StaticResource ToolbarButton}" Content="Alejar" Command="{x:Static nodify:EditorCommands.ZoomOut}"
-                        CommandTarget="{Binding ElementName=Editor}"/>
+                <StackPanel Orientation="Horizontal" Margin="0,0,16,6" AutomationProperties.Name="{l:T Canvas_Layer_Switch}">
+                    <Button Content="{l:T Canvas_Layer_Team}" ToolTip="{l:T Canvas_Layer_TeamHelp}" Command="{Binding ShowTeamCommand}" Margin="0,0,6,0"
+                            AutomationProperties.Name="{l:T Canvas_Layer_Team}" AutomationProperties.HelpText="{l:T Canvas_Layer_TeamHelp}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource ToolbarPrimaryButton}">
+                                <Setter Property="Margin" Value="0,0,6,0"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsTeamLayer}" Value="False">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                                        <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Button Content="{l:T Canvas_Layer_Plan}" ToolTip="{l:T Canvas_Layer_PlanHelp}" Command="{Binding ShowPlanCommand}"
+                            AutomationProperties.Name="{l:T Canvas_Layer_Plan}" AutomationProperties.HelpText="{l:T Canvas_Layer_PlanHelp}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource ToolbarPrimaryButton}">
+                                <Setter Property="Margin" Value="0,0,6,0"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsPlanLayer}" Value="False">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                                        <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <info:InfoButton InfoKey="Info_Canvas_Layers" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Plan layer: create nodes and act on the selection and the view. -->
+                <WrapPanel Orientation="Horizontal" Visibility="{Binding IsPlanLayer, Converter={StaticResource Orchestrator.BoolToVisibility}}">
+                    <TextBlock Text="Crear nodo" Style="{StaticResource SecondaryText}" VerticalAlignment="Top" Margin="0,7,10,0"/>
+                    <ItemsControl ItemsSource="{Binding Palette}" Focusable="False">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type canvas:PaletteItem}">
+                                <Button Style="{StaticResource ToolbarButton}" Content="{Binding Label}" ToolTip="{Binding Hint}"
+                                        ToolTipService.ShowOnDisabled="True" AutomationProperties.Name="{Binding Hint}"
+                                        Command="{Binding DataContext.AddNodeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding Kind}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Style="{StaticResource ToolbarButton}" Content="Eliminar selección (Supr)" Margin="12,0,6,6"
+                            Command="{Binding DeleteSelectionCommand}"/>
+                    <!-- Frames every node, never below a zoom whose words can be read (CanvasViewModel.MinFitZoom). -->
+                    <Button Style="{StaticResource ToolbarButton}" Content="Ajustar vista" Command="{Binding FitViewCommand}"
+                            ToolTip="Encuadra todos los nodos con un zoom en el que se leen; un plan más grande se ve desde su esquina"/>
+                    <Button Style="{StaticResource ToolbarButton}" Content="Acercar" Command="{x:Static nodify:EditorCommands.ZoomIn}"
+                            CommandTarget="{Binding ElementName=Editor}"/>
+                    <Button Style="{StaticResource ToolbarButton}" Content="Alejar" Command="{x:Static nodify:EditorCommands.ZoomOut}"
+                            CommandTarget="{Binding ElementName=Editor}"/>
+                </WrapPanel>
+
+                <!-- Team layer: add agents (with the limits seen), take one out when the store can, connect with the keyboard, filter. -->
+                <WrapPanel Orientation="Horizontal" Visibility="{Binding DataContext.IsTeamLayer, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource Orchestrator.BoolToVisibility}}"
+                           DataContext="{Binding Team}">
+                    <TextBlock Text="{l:T Canvas_Add_Palette}" Style="{StaticResource SecondaryText}" VerticalAlignment="Top" Margin="0,7,10,0"/>
+                    <StackPanel Orientation="Horizontal" DataContext="{Binding Editor}"
+                                Visibility="{Binding DataContext.Editor, RelativeSource={RelativeSource AncestorType=WrapPanel}, Converter={StaticResource Orchestrator.NotNullToVisibility}}">
+                        <Button Style="{StaticResource ToolbarButton}" Content="{l:T Canvas_Add_Executor}" Command="{Binding StartAddExecutorCommand}"
+                                ToolTip="{Binding AddExecutorHint}" ToolTipService.ShowOnDisabled="True"/>
+                        <Button Style="{StaticResource ToolbarButton}" Content="{l:T Canvas_Add_Judge}" Command="{Binding StartAddJudgeCommand}"/>
+                        <Button Style="{StaticResource ToolbarButton}" Content="{l:T Canvas_Add_Orchestrator}" Command="{Binding StartAddOrchestratorCommand}"
+                                Visibility="{Binding CanAddOrchestrator, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
+                        <Button Style="{StaticResource ToolbarButton}" Content="{l:T Canvas_Remove_Selected}" Command="{Binding RemoveSelectedCommand}" Margin="12,0,6,6"
+                                Visibility="{Binding CanRemoveAgents, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
+                    </StackPanel>
+                    <Menu Background="Transparent" VerticalAlignment="Top" Margin="6,0,6,6">
+                        <MenuItem Header="{l:T Canvas_Team_ConnectWith}" ItemsSource="{Binding SelectedTargets}"
+                                  AutomationProperties.Name="{l:T Canvas_Team_ConnectWith}">
+                            <MenuItem.ItemContainerStyle>
+                                <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                    <Setter Property="Header" Value="{Binding Label}"/>
+                                    <Setter Property="IsCheckable" Value="True"/>
+                                    <Setter Property="IsChecked" Value="{Binding IsConnected, Mode=OneWay}"/>
+                                    <Setter Property="IsEnabled" Value="{Binding IsAllowed}"/>
+                                    <Setter Property="Command" Value="{Binding DataContext.ToggleTargetCommand, RelativeSource={RelativeSource AncestorType=Menu}}"/>
+                                    <Setter Property="CommandParameter" Value="{Binding}"/>
+                                </Style>
+                            </MenuItem.ItemContainerStyle>
+                        </MenuItem>
+                    </Menu>
+                    <CheckBox Margin="6,2,12,6" IsChecked="{Binding ShowOnlyOrchestration}" VerticalAlignment="Top">
+                        <TextBlock Text="{l:T Canvas_Team_OnlyOrchestration}" TextWrapping="Wrap"/>
+                    </CheckBox>
+                    <Button Style="{StaticResource ToolbarButton}" Content="{l:T Canvas_Team_Zoom_In}" Command="{x:Static nodify:EditorCommands.ZoomIn}"
+                            CommandTarget="{Binding ElementName=TeamEditor}"/>
+                    <Button Style="{StaticResource ToolbarButton}" Content="{l:T Canvas_Team_Zoom_Out}" Command="{x:Static nodify:EditorCommands.ZoomOut}"
+                            CommandTarget="{Binding ElementName=TeamEditor}"/>
+                    <info:InfoButton InfoKey="Info_Canvas_Team" VerticalAlignment="Center" Margin="6,0,0,6"/>
+                </WrapPanel>
             </WrapPanel>
         </Border>
 
-        <!-- The editor. Wires are dragged from an output to an input; Supr deletes the selection; the right button pans. -->
-        <Grid Grid.Row="1">
+        <!-- The strip of the team: above both layers, outside the zoom. -->
+        <views:TeamStripView Grid.Row="1" DataContext="{Binding Team}"
+                             Visibility="{Binding HasAgents, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
+
+        <!-- The editors, one per layer. Wires are dragged from an output to an input; Supr deletes the selection; the right button pans. -->
+        <Grid Grid.Row="2">
             <nodify:NodifyEditor x:Name="Editor"
                                  ItemsSource="{Binding Nodes}"
                                  Connections="{Binding Connections}"
@@ -77,7 +180,8 @@
                                  GridCellSize="10"
                                  Background="{StaticResource GridBrush}"
                                  Focusable="True" IsTabStop="True"
-                                 AutomationProperties.Name="Lienzo del orquestador">
+                                 Visibility="{Binding IsPlanLayer, Converter={StaticResource Orchestrator.BoolToVisibility}}"
+                                 AutomationProperties.Name="{l:T Canvas_Plan_Editor}">
                 <nodify:NodifyEditor.ItemContainerStyle>
                     <Style TargetType="{x:Type nodify:ItemContainer}" BasedOn="{StaticResource {x:Type nodify:ItemContainer}}">
                         <Setter Property="Location" Value="{Binding Location, Mode=TwoWay}"/>
@@ -91,11 +195,51 @@
                 </nodify:NodifyEditor.InputBindings>
             </nodify:NodifyEditor>
 
+            <!-- The Team layer. Its cables never enter the plan: they are another collection, drawn by their own template. -->
+            <nodify:NodifyEditor x:Name="TeamEditor"
+                                 DataContext="{Binding Team}"
+                                 ItemsSource="{Binding Nodes}"
+                                 Connections="{Binding Connections}"
+                                 SelectedItems="{Binding SelectedNodes}"
+                                 SelectedConnections="{Binding SelectedConnections}"
+                                 ConnectionTemplate="{StaticResource TeamWireTemplate}"
+                                 ConnectionCompletedCommand="{Binding ConnectCommand}"
+                                 DisconnectConnectorCommand="{Binding DisconnectConnectorCommand}"
+                                 RemoveConnectionCommand="{Binding RemoveConnectionCommand}"
+                                 ItemsDragCompletedCommand="{Binding DataContext.SaveLayoutCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                 GridCellSize="10"
+                                 Background="{StaticResource TeamGridBrush}"
+                                 Focusable="True" IsTabStop="True"
+                                 Visibility="{Binding DataContext.IsTeamLayer, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource Orchestrator.BoolToVisibility}}"
+                                 AutomationProperties.Name="{l:T Canvas_Team_Editor}">
+                <nodify:NodifyEditor.ItemContainerStyle>
+                    <Style TargetType="{x:Type nodify:ItemContainer}" BasedOn="{StaticResource {x:Type nodify:ItemContainer}}">
+                        <Setter Property="Location" Value="{Binding Location, Mode=TwoWay}"/>
+                        <Setter Property="ActualSize" Value="{Binding Size, Mode=OneWayToSource}"/>
+                        <Setter Property="AutomationProperties.Name" Value="{Binding AutomationName}"/>
+                    </Style>
+                </nodify:NodifyEditor.ItemContainerStyle>
+            </nodify:NodifyEditor>
+
             <!-- Empty canvas: what to do first. -->
-            <TextBlock Style="{StaticResource SecondaryText}" HorizontalAlignment="Center" VerticalAlignment="Center"
+            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
                        TextAlignment="Center" MaxWidth="420" IsHitTestVisible="False"
-                       Visibility="{Binding IsEmpty, Converter={StaticResource Orchestrator.BoolToVisibility}}"
-                       Text="El plan está vacío. Crea nodos con la barra de arriba o pide un plan al orquestador, y únelos arrastrando de una salida a una entrada."/>
+                       Text="El plan está vacío. Crea nodos con la barra de arriba o pide un plan al orquestador, y únelos arrastrando de una salida a una entrada.">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding IsEmpty}" Value="True"/>
+                                    <Condition Binding="{Binding IsPlanLayer}" Value="True"/>
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </MultiDataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
 
             <!-- Message banner: a refused connection (the cycle path) or a confirmation; announced by screen readers. -->
             <Border VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,14,0,0" Padding="14,8" CornerRadius="6"
@@ -118,10 +262,27 @@
                             Command="{Binding DismissNoticeCommand}"/>
                 </StackPanel>
             </Border>
+
+            <!-- The notice of the Team layer: a cable refused with its reason, announced by screen readers. -->
+            <Border VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,14,0,0" Padding="14,8" CornerRadius="6"
+                    BorderThickness="1" Background="{StaticResource SurfaceRaisedBrush}" BorderBrush="{StaticResource AccentBrush}"
+                    DataContext="{Binding Team}"
+                    Visibility="{Binding Notice, Converter={StaticResource Orchestrator.NotNullToVisibility}}"
+                    AutomationProperties.LiveSetting="Assertive" AutomationProperties.Name="{Binding Notice}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{Binding Notice}" Style="{StaticResource BodyText}" TextWrapping="NoWrap" VerticalAlignment="Center"/>
+                    <Button Style="{StaticResource GhostButton}" Content="{l:T Canvas_Team_Close}" Margin="14,0,0,0" Padding="8,2" FontSize="12"
+                            Command="{Binding DismissNoticeCommand}"/>
+                </StackPanel>
+            </Border>
         </Grid>
 
+        <!-- The analysis band: what can already be known while the person assembles; it spends no quota. -->
+        <views:AnalysisBandView Grid.Row="3" DataContext="{Binding Team.Builder}"
+                                Visibility="{Binding DataContext.Team.Builder, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource Orchestrator.NotNullToVisibility}}"/>
+
         <!-- Status bar: counts, zoom and the status legend (the colour of a node is also its footer text). -->
-        <Border Grid.Row="2" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
+        <Border Grid.Row="4" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
                 BorderThickness="0,1,0,0" Padding="12,6">
             <WrapPanel Orientation="Horizontal">
                 <TextBlock Text="{Binding Nodes.Count, StringFormat='Nodos: {0}'}" Style="{StaticResource SecondaryText}" Margin="0,0,18,0"/>

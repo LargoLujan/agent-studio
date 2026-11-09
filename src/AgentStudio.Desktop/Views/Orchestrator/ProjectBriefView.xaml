@@ -1,0 +1,39 @@
+<UserControl x:Class="AgentStudio.Desktop.Views.Orchestrator.ProjectBriefView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
+             xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
+             xmlns:preparation="clr-namespace:AgentStudio.Desktop.Orchestrator.Preparation"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=preparation:ProjectBriefViewModel}"
+             AutomationProperties.Name="{l:T Canvas_Brief_Title}">
+    <!-- The brief of the project (docs/17 D-10): a text of the person, kept as their memory; each version replaces the one in force.
+         It reaches the agents that work as data with its fingerprint and never the judge. Bindings only. -->
+    <StackPanel>
+        <DockPanel Margin="0,0,0,4">
+            <info:InfoButton DockPanel.Dock="Right" InfoKey="Info_Canvas_Brief" VerticalAlignment="Center"/>
+            <TextBlock Style="{StaticResource SectionTitleText}" Text="{l:T Canvas_Brief_Title}"/>
+        </DockPanel>
+        <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{l:T Canvas_Brief_Help}"/>
+        <TextBlock TextWrapping="Wrap" Text="{Binding UnavailableText}">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsAvailable}" Value="False">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
+        <TextBox Style="{StaticResource MultilineFieldTextBox}" MinHeight="64" MaxHeight="140" Margin="0,6,0,0" Text="{Binding Brief, UpdateSourceTrigger=PropertyChanged}"
+                 AutomationProperties.Name="{l:T Canvas_Brief_Name}"/>
+        <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{Binding VersionText}"/>
+        <Button Style="{StaticResource ToolbarPrimaryButton}" Margin="0,6,0,0" HorizontalAlignment="Left" Content="{l:T Canvas_Brief_Save}" Command="{Binding SaveCommand}"/>
+        <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" Text="{Binding Status}"
+                   Visibility="{Binding Status, Converter={StaticResource Orchestrator.NotNullToVisibility}}" AutomationProperties.LiveSetting="Polite"/>
+    </StackPanel>
+</UserControl>

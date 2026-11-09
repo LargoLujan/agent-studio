@@ -1,0 +1,129 @@
+<UserControl x:Class="AgentStudio.Desktop.Views.Orchestrator.PreparationChatView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
+             xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
+             xmlns:preparation="clr-namespace:AgentStudio.Desktop.Orchestrator.Preparation"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=preparation:PreparationChatViewModel}"
+             AutomationProperties.Name="{l:T Canvas_Chat_Title}">
+    <!-- The chat with the orchestrator to prepare the work (docs/17 D-44): the person writes what they want to do, the orchestrator
+         reads the project and answers without writing anything. Each message asks for its own OK, with the estimate in front, and
+         nothing it suggests is applied by itself: a draft of a requirement is copied to the editor by a click and frozen by the
+         person; a suggestion for the team is a fix of one click that can be undone. What the orchestrator writes is the text of an
+         agent and is shown as such. Bindings only. -->
+    <StackPanel x:Name="ChatPanel">
+        <DockPanel Margin="0,0,0,4">
+            <info:InfoButton DockPanel.Dock="Right" InfoKey="Info_Canvas_Chat" VerticalAlignment="Center"/>
+            <TextBlock Style="{StaticResource SectionTitleText}" Text="{l:T Canvas_Chat_Title}"/>
+        </DockPanel>
+        <TextBlock TextWrapping="Wrap" Text="{Binding UnavailableText}">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsAvailable}" Value="False">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
+        <ItemsControl ItemsSource="{Binding Turns}" Focusable="False" AutomationProperties.LiveSetting="Polite">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Margin="0,0,0,6" AutomationProperties.Name="{Binding}">
+                        <TextBlock Style="{StaticResource SecondaryText}" FontWeight="SemiBold" Text="{Binding Author}"/>
+                        <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" Text="{Binding Text}"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" Text="{Binding Status}"
+                   Visibility="{Binding Status, Converter={StaticResource Orchestrator.NotNullToVisibility}}" AutomationProperties.LiveSetting="Polite"/>
+
+        <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Canvas_Chat_Requirements}"
+                   Visibility="{Binding Requirements.Count, Converter={StaticResource Orchestrator.NotZeroToVisibility}}"/>
+        <ItemsControl ItemsSource="{Binding Requirements}" Focusable="False">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type preparation:ChatRequirementItemViewModel}">
+                    <DockPanel Margin="0,2,0,2" AutomationProperties.Name="{Binding AutomationName}">
+                        <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Margin="8,0,0,0" Content="{l:T Canvas_Chat_Copy}" Command="{Binding CopyCommand}"/>
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap">
+                                <Run FontWeight="SemiBold" Text="{Binding PriorityText, Mode=OneWay}"/><Run Text=": "/><Run Text="{Binding Statement, Mode=OneWay}"/>
+                            </TextBlock>
+                            <ItemsControl ItemsSource="{Binding Criteria}" Focusable="False">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{Binding StringFormat='• {0}'}"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Style="{StaticResource SecondaryText}" Text="{l:T Canvas_Chat_Copied}"
+                                       Visibility="{Binding IsCopied, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
+                        </StackPanel>
+                    </DockPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Canvas_Chat_TeamTitle}"
+                   Visibility="{Binding Team.Count, Converter={StaticResource Orchestrator.NotZeroToVisibility}}"/>
+        <ItemsControl ItemsSource="{Binding Team}" Focusable="False">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type preparation:ChatTeamItemViewModel}">
+                    <DockPanel Margin="0,2,0,2" AutomationProperties.Name="{Binding AutomationName}">
+                        <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Margin="8,0,0,0" Content="{Binding ButtonText}" Command="{Binding ApplyCommand}"/>
+                        <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{Binding Reason}"/>
+                    </DockPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Canvas_Chat_Risks}" Visibility="{Binding Risks.Count, Converter={StaticResource Orchestrator.NotZeroToVisibility}}"/>
+        <ItemsControl ItemsSource="{Binding Risks}" Focusable="False">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" Text="{Binding StringFormat='• {0}'}"/>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Canvas_Chat_Questions}" Visibility="{Binding Questions.Count, Converter={StaticResource Orchestrator.NotZeroToVisibility}}"/>
+        <ItemsControl ItemsSource="{Binding Questions}" Focusable="False">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" Text="{Binding StringFormat='• {0}'}"/>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" TextWrapping="Wrap" Text="{l:T Canvas_Chat_NeverApplied}"/>
+
+        <!-- Each message asks first: the OK is for this one. -->
+        <Border Margin="0,6,0,0" Padding="10,8" CornerRadius="6" BorderThickness="1" BorderBrush="{StaticResource WarningBrush}"
+                Background="{StaticResource SurfaceRaisedBrush}" DataContext="{Binding Consent}"
+                Visibility="{Binding IsOpen, Converter={StaticResource Orchestrator.BoolToVisibility}}"
+                AutomationProperties.Name="{l:T Canvas_Consent_Title}">
+            <StackPanel>
+                <TextBlock Style="{StaticResource SectionTitleText}" Text="{l:T Canvas_Consent_Title}"/>
+                <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" Text="{Binding Description}"/>
+                <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" Text="{Binding EstimateText}" AutomationProperties.LiveSetting="Polite"/>
+                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                    <Button Style="{StaticResource ToolbarPrimaryButton}" Content="{l:T Canvas_Consent_Confirm}" Command="{Binding DataContext.ConfirmCommand, ElementName=ChatPanel}"/>
+                    <Button Style="{StaticResource ToolbarButton}" Content="{l:T Canvas_Consent_Cancel}" Command="{Binding DataContext.CancelCommand, ElementName=ChatPanel}"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Canvas_Chat_Hint}"/>
+        <TextBox Style="{StaticResource MultilineFieldTextBox}" MinHeight="44" MaxHeight="88" Text="{Binding Draft, UpdateSourceTrigger=PropertyChanged}"
+                 AutomationProperties.Name="{l:T Canvas_Chat_Hint}"/>
+        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+            <Button Style="{StaticResource ToolbarPrimaryButton}" Content="{l:T Canvas_Chat_Send}" Command="{Binding AskCommand}"/>
+            <Button Style="{StaticResource ToolbarButton}" Content="{l:T Canvas_Chat_End}" Command="{Binding EndCommand}"
+                    Visibility="{Binding HasConversation, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
+        </StackPanel>
+    </StackPanel>
+</UserControl>

@@ -1714,6 +1714,43 @@ Lo que WP3 añade o cambia sobre lo de arriba ([ADR-0052](adr/0052-analisis-del-
 - **En la composición:** `IOrderReview`, `IPreparationChat` e `IQuotaConsentLedger` como únicos (singleton), con la misma
   instancia del registro de OK para todos los servicios que lo piden.
 
+### 21.8 WP6: lienzo, capas, tira, inspector y preparación ([ADR-0048](adr/0048-constructor-visual-equipo-y-plan.md))
+
+Todo está en `Desktop`. Los servicios de las secciones 21.4 a 21.7 llegan al documento agrupados en un `BuilderServices`; ninguno
+es obligatorio, y un documento creado sin él (`builder: null`) es el de antes de la fase.
+
+| Pieza | Fichero | Qué es |
+|---|---|---|
+| `BuilderServices` (`OrderReview`, `Chat`, `Ledger`, `Catalog`, `Learning`, `Estimator`, `Repository`, `Live`, `Quota`, `Brief`) | `Orchestrator/Preparation/BuilderServices.cs` | Los puertos que lee el constructor, todos opcionales: lo que falta apaga solo lo que lo necesita. `OrchestratorDocumentViewModel(…, builder, reduceMotion)` los recibe al final de su constructor |
+| `CanvasLayer`, `CanvasViewModel.Team` y `CanvasLayout.TeamPositions` | `Orchestrator/Canvas/` | Las capas, y la disposición v2 (`{version:2, plan, team}`), que lee la v1 como la capa «Plan» |
+| `TeamCanvasViewModel`, `AgentNodeViewModel`, `RepositoryNodeViewModel`, `TeamConnectionViewModel` | `Orchestrator/Team/` | La capa Equipo y la tira: los nodos son la plantilla y los cables «Reparte», «Revisa» y «Trabaja en». No hay ningún tipo de la capa en `BuildTasks` ni en `DependsOn` |
+| `RepositoryReader`, `IRepositoryStateReader`, `RepositoryReading` | `Orchestrator/Team/RepositoryReader.cs` | El nodo del repositorio sin red: la rama, la versión y los cambios por `IWorktreeManager.InspectAsync`; los remotos, del texto de `.git/config` con `RepositoryRemote.Cleaned`, sin lanzar git |
+| `TeamEditorViewModel`, `NewAgentViewModel`, `AgentCapabilities`, `PresenceConfirmer` | `Orchestrator/Team/TeamEditorViewModel.cs` | Añadir, quitar y configurar agentes con las consecuencias de siempre; lo que concede más poder (carpetas, shell, red) pide Windows Hello (`PresenceAction.GrantHighRiskCapability`) |
+| `AgentInspectorViewModel`, `InspectorContext` | `Orchestrator/Team/AgentInspectorViewModel.cs` | El inspector con los datos de WP2 (`ModelCatalog`, `LearnedModels`, `ModelRecommender`) y la barra de contexto por partes |
+| `VisualBuilder` | `Orchestrator/Team/VisualBuilder.cs` | Reúne el editor, la banda, «Revisar el orden» y el chat; aplica el estado vivo solo a los nodos que el cambio nombra y lee el repositorio, lo aprendido y la cuota una vez |
+| `AnalysisBandViewModel`, `IDraftHost`, `FindingItemViewModel` | `Orchestrator/Canvas/AnalysisBandViewModel.cs` | El analizador en vivo (200 ms, fuera del hilo, con generación), los arreglos de un clic y Ctrl+Z y Ctrl+Y sobre `EditHistory<MontageEditState>` |
+| `OrderReviewViewModel`, `PreparationChatViewModel`, `QuotaConsentCardViewModel` | `Orchestrator/Preparation/` | «Revisar el orden» y el chat: un OK por uso, con la estimación delante, y ninguna sugerencia se aplica sola |
+| `ProjectBriefViewModel` | `Orchestrator/Preparation/ProjectBriefViewModel.cs` | La ficha del proyecto sobre `IProjectBrief`: se lee la vigente y cada versión nueva sustituye a la anterior, como decisión de la persona; no se guarda vacía ni pasada del máximo de la memoria |
+| `RequirementsEditorViewModel.CopySuggestion` | `Orchestrator/Preparation/RequirementsEditorViewModel.cs` | «Copiar al editor»: un borrador del chat entra como borrador de la persona, que lo congela o no |
+| `MotionPolicy`, `MotionSettingsViewModel` | `Orchestrator/Canvas/MotionPolicy.cs`, `Settings/MotionSettingsViewModel.cs` | «Reducir movimiento» (en «Ajustes», junto a «Idioma») y la opción de animaciones de Windows apagan las animaciones |
+| `Resources/CanvasStrings.resx` y `.en.resx` | `Resources/` | Los textos de WP6 (`Canvas_…` e `Info_Canvas_…`) |
+| `OrchestratorDocumentViewModel.ShowTeamLayer()` | `Orchestrator/OrchestratorDocumentViewModel.Builder.cs` | «Agentes» de la barra lateral abre el documento en la capa Equipo (lo llama la integración) |
+
+- **Dos cambios en lo existente.** «Usar perfil propuesto» pasa por la barrera (`PresenceAction.ChangeVerificationProfile`, siempre
+  pide Windows Hello o, sin él, el bloqueo de Windows) cuando la composición trae la confirmación reforzada; una composición sin
+  ella conserva el clic, como `ApproveAsync`. Y `ConnectionViewModel` gana `IsPulsing`, `NodeViewModel` gana `IsHighlighted`,
+  `AgentText`, `LiveText` y `ContextBar`.
+- **Qué necesita la integración** (lo que WP6 no puede tocar):
+  - pasar al documento un `BuilderServices` con los singletons de `IOrderReview`, `IPreparationChat` e `IQuotaConsentLedger`,
+    `IModelCatalogSource`, `IModelLearning`, `IUsageEstimator`, `IQuotaObservations`, `IProjectBrief`, la proyección viva del monitor
+    (`IRunLiveProjection`, WP8) y `WorktreeRepositoryStateReader(IWorktreeManager)`, y `reduceMotion: () => settings.ReduceMotion`,
+    en `OrchestratorDocumentFactory`;
+  - llamar a `ShowTeamLayer()` desde «Agentes»;
+  - **quitar un agente** necesita `IAgentRoster.DeleteAsync` (Application e Infrastructure, fuera de WP6): hasta entonces
+    `TeamEditorViewModel` recibe un delegado nulo y «Quitar del equipo» no se muestra;
+  - **los remotos** se leen del texto de `.git/config`; la lectura de docs/17 D-10 con `git config --get-regexp` por la capa
+    endurecida queda para cuando exista en `IWorktreeManager`.
+
 ### 21.9 WP7: configurador por proyecto ([ADR-0055](adr/0055-configurador-por-proyecto.md))
 
 El asistente de siete pasos de [17 §4.6](17-constructor-visual-de-agentes.md#46-configurador-por-proyecto) (D-26 y D-27, F13-12).

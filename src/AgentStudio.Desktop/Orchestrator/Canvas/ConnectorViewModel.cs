@@ -68,7 +68,7 @@ public sealed partial class ConnectorViewModel : ObservableObject
 /// A wire from an output connector (its node is the prerequisite) to an input connector (its node depends on it).
 /// Creating it marks both connectors as connected; <see cref="Detach"/> undoes that.
 /// </summary>
-public sealed class ConnectionViewModel
+public sealed partial class ConnectionViewModel : ObservableObject
 {
     public ConnectionViewModel(ConnectorViewModel source, ConnectorViewModel target)
     {
@@ -90,6 +90,14 @@ public sealed class ConnectionViewModel
 
     /// <summary>The input connector: its node depends on <see cref="Source"/>'s node.</summary>
     public ConnectorViewModel Target { get; }
+
+    /// <summary>
+    /// The dependency was just met and its next task started: a short pulse on the cable (docs/17 D-14). The grouped live state
+    /// sets it and clears it with the next change; the animation is a finite <c>Storyboard</c> of the template and is off with
+    /// «Reducir movimiento».
+    /// </summary>
+    [ObservableProperty]
+    private bool _isPulsing;
 
     /// <summary>The branch of the condition the dependent waits for, or null for a plain dependency.</summary>
     public string? Branch => Source.Branch;
