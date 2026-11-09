@@ -72,6 +72,9 @@ public sealed partial class ConsumptionAnalysisViewModel : ObservableObject
     private RunId? _run;
     private ConsumptionReport? _report;
     private int _generation;
+
+    /// <summary>The generation of the analysis with an agent, apart: the deterministic one never invalidates what the agent already spent quota on.</summary>
+    private int _agentGeneration;
     private CancellationTokenSource? _estimating;
 
     public ConsumptionAnalysisViewModel(TimeProvider time, SynchronizationContext? uiContext = null, IUiTextProvider? texts = null)
@@ -136,7 +139,18 @@ public sealed partial class ConsumptionAnalysisViewModel : ObservableObject
 
     /// <summary>The analysis with an agent is running (after the OK).</summary>
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(AnalyzeCommand))]
+    [NotifyCanExecuteChangedFor(nameof(AskAgentCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ConfirmAgentCommand))]
     private bool _isAgentRunning;
+
+    /// <summary>
+    /// What the person is asked to approve is complete: the estimate was read, or its failure is said in the text. The OK is not
+    /// possible before it, so nobody gives it on a text that still says it is working the cost out.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ConfirmAgentCommand))]
+    private bool _isEstimateReady;
 
     /// <summary>The analysis with an agent finished: its suggestions, or that it had none.</summary>
     [ObservableProperty]
@@ -161,6 +175,7 @@ public sealed partial class ConsumptionAnalysisViewModel : ObservableObject
     public void Forget()
     {
         _generation++;
+        _agentGeneration++;
         _estimating?.Cancel();
         _project = null;
         _run = null;
@@ -195,7 +210,7 @@ public sealed partial class ConsumptionAnalysisViewModel : ObservableObject
         return Completion;
     }
 
-    private bool CanAnalyze() => IsAvailable && !IsAnalyzing;
+    private bool CanAnalyze() => IsAvailable && !IsAnalyzing && !IsAgentRunning;
 
     /// <summary>Analyses the run on screen; what it finds replaces what the section showed. It spends no quota.</summary>
     public Task RunDeterministicAsync()
@@ -225,7 +240,7 @@ public sealed partial class ConsumptionAnalysisViewModel : ObservableObject
                 failure = ex.Message;
             }
 
-            Post(generation, () =>
+            Post(generation, agent: false, () =>
             {
                 IsAnalyzing = false;
                 if (report is null)
@@ -298,12 +313,14 @@ public sealed partial class ConsumptionAnalysisViewModel : ObservableObject
 
         ErrorMessage = null;
         AgentSummary = null;
+        IsEstimateReady = false;
         IsAskingConsent = true;
         var estimate = _texts.Get("Monitor_Consumption_EstimateAsking");
         ConsentText = _texts.Format("Monitor_Consumption_Consent", estimate);
         if (EstimateAssisted is not { } estimator)
         {
             ConsentText = _texts.Format("Monitor_Consumption_Consent", _texts.Get("Monitor_Consumption_EstimateNone"));
+            IsEstimateReady = true;
             return;
         }
 
@@ -331,6 +348,7 @@ public sealed partial class ConsumptionAnalysisViewModel : ObservableObject
         if (generation == _generation && IsAskingConsent)
         {
             ConsentText = _texts.Format("Monitor_Consumption_Consent", text);
+            IsEstimateReady = true;
         }
     }
 
@@ -344,7 +362,7 @@ public sealed partial class ConsumptionAnalysisViewModel : ObservableObject
         return Completion;
     }
 
-    private bool CanConfirm() => IsAskingConsent && !IsAnalyzing && !IsAgentRunning && Assisted is not null && _report is not null;
+    private bool CanConfirm() => IsAskingConsent && IsEstimateReady && !IsAnalyzing && !IsAgentRunning && Assisted is not null && _report is not null;
 
     /// <summary>«No»: nothing was launched and nothing was spent.</summary>
     [RelayCommand(CanExecute = nameof(IsAskingConsent))]
@@ -352,6 +370,7 @@ public sealed partial class ConsumptionAnalysisViewModel : ObservableObject
     {
         _estimating?.Cancel();
         IsAskingConsent = false;
+        IsEstimateReady = false;
         ConsentText = null;
     }
 
@@ -364,8 +383,9 @@ public sealed partial class ConsumptionAnalysisViewModel : ObservableObject
 
         // The consent says who gave it, when and what they were shown: that is what the log keeps of the OK.
         var consent = new QuotaConsent(ConsentedBy, _time.GetUtcNow(), ConsentText ?? _texts.Get("Monitor_Consumption_Button"));
-        var generation = ++_generation;
+        var generation = ++_agentGeneration;
         IsAskingConsent = false;
+        IsEstimateReady = false;
         IsAgentRunning = true;
         ErrorMessage = null;
         Suggestions.Clear();
@@ -382,7 +402,7 @@ public sealed partial class ConsumptionAnalysisViewModel : ObservableObject
             failure = ex.Message;
         }
 
-        Post(generation, () =>
+        Post(generation, agent: true, () =>
         {
             IsAgentRunning = false;
             ConsentText = null;
@@ -423,11 +443,11 @@ public sealed partial class ConsumptionAnalysisViewModel : ObservableObject
                 : null);
     }
 
-    private void Post(int generation, Action action)
+    private void Post(int generation, bool agent, Action action)
     {
         void Run()
         {
-            if (generation == _generation)
+            if (generation == (agent ? _agentGeneration : _generation))
             {
                 action();
             }

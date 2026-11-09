@@ -365,6 +365,75 @@ public sealed class ConsumptionAnalysisViewModelTests
         }
     }
 
+    [Fact]
+    public async Task A_deterministic_analysis_while_the_agent_runs_does_not_make_it_lose_what_it_spent_quota_on()
+    {
+        var gate = new TaskCompletionSource<AssistedConsumptionAnalysis>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var suggestion = new AssistedConsumptionSuggestion(new ConsumptionTarget(ConsumptionTargetKind.Run), "Menos skills.", null, null);
+        var model = New(assisted: new GatedAssisted(gate.Task));
+        await model.AnalyzeCommand.ExecuteAsync(null);
+        await model.AskAgentCommand.ExecuteAsync(null);
+        var running = model.ConfirmAgentCommand.ExecuteAsync(null);
+
+        Assert.True(model.IsAgentRunning);
+
+        // The button is off while the agent runs, and the analysis that a run ending starts by itself does not invalidate the agent's.
+        Assert.False(model.AnalyzeCommand.CanExecute(null));
+        await model.RunDeterministicAsync();
+        gate.SetResult(new AssistedConsumptionAnalysis(Run, new EvidenceId("EV-1"), [suggestion]));
+        await running;
+
+        Assert.False(model.IsAgentRunning);
+        Assert.Equal("Menos skills.", Assert.Single(model.Suggestions).Text);
+        Assert.Equal("El agente propuso 1 mejoras.", model.AgentSummary);
+        Assert.True(model.AnalyzeCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task The_ok_cannot_be_given_while_the_estimate_is_being_worked_out_and_carries_what_was_shown()
+    {
+        var estimate = new TaskCompletionSource<UsageEstimate>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var assisted = new ScriptedAssisted(new AssistedConsumptionAnalysis(Run, new EvidenceId("EV-1"), []));
+        var model = New(assisted: assisted);
+        model.EstimateAssisted = (_, _) => estimate.Task;
+        await model.AnalyzeCommand.ExecuteAsync(null);
+
+        var asking = model.AskAgentCommand.ExecuteAsync(null);
+
+        Assert.True(model.IsAskingConsent);
+        Assert.False(model.IsEstimateReady);
+        Assert.False(model.ConfirmAgentCommand.CanExecute(null));
+        Assert.Contains("Calculando", model.ConsentText, StringComparison.Ordinal);
+
+        estimate.SetResult(UsageEstimate.Unknown(1, "unknown"));
+        await asking;
+
+        Assert.True(model.IsEstimateReady);
+        Assert.True(model.ConfirmAgentCommand.CanExecute(null));
+        await model.ConfirmAgentCommand.ExecuteAsync(null);
+        Assert.Null(model.ConsentText);
+        Assert.Contains("Coste desconocido", Assert.Single(assisted.Requests).Consent.Description, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task An_estimator_that_fails_is_said_in_the_text_and_the_ok_is_then_possible()
+    {
+        var model = New(assisted: new ScriptedAssisted(new AssistedConsumptionAnalysis(Run, new EvidenceId("EV-1"), [])));
+        model.EstimateAssisted = (_, _) => Task.FromException<UsageEstimate>(new InvalidOperationException("no log"));
+        await model.AnalyzeCommand.ExecuteAsync(null);
+
+        await model.AskAgentCommand.ExecuteAsync(null);
+
+        Assert.True(model.IsEstimateReady);
+        Assert.Contains("No se sabe cuánto gastará.", model.ConsentText, StringComparison.Ordinal);
+        Assert.True(model.ConfirmAgentCommand.CanExecute(null));
+    }
+
+    private sealed class GatedAssisted(Task<AssistedConsumptionAnalysis> answer) : IAssistedConsumptionAnalysis
+    {
+        public Task<AssistedConsumptionAnalysis> AnalyzeAsync(AssistedConsumptionRequest request, IProgress<AgentEvent>? progress, CancellationToken ct) => answer;
+    }
+
     private sealed class ScriptedAssisted : IAssistedConsumptionAnalysis
     {
         private readonly AssistedConsumptionAnalysis? _analysis;
