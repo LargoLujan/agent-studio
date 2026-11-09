@@ -55,9 +55,11 @@ internal sealed class Planner(EnginePorts ports)
         // Phase 13 (docs/17 D-28): a planning with the person's answers goes on in the run that asked; any other gets a new one.
         var answers = request.Answers ?? [];
         RunId run;
+        var continuation = Continuation.None;
         if (answers.Count > 0)
         {
-            run = PlannerQuestions.RunOf(answers, log.Entries);
+            (run, var recorded) = PlannerQuestions.RunOf(answers, log.Entries);
+            continuation = new Continuation(recorded, PlannerQuestions.BaseOf(log.Entries, run));
         }
         else
         {
@@ -102,13 +104,24 @@ internal sealed class Planner(EnginePorts ports)
         using var history = ports.History is { } tool
             ? await tool.OfferAsync(project, orchestrator, AgentRunner.ReadOnly(Tools), cancellationToken).ConfigureAwait(false)
             : null;
-        var proposal = await PlanWithAsync(request, run, orchestrator, provider, schema, context, memory, history, progress, cancellationToken).ConfigureAwait(false);
+        var proposal = await PlanWithAsync(request, run, continuation, orchestrator, provider, schema, context, memory, history, progress, cancellationToken).ConfigureAwait(false);
         return history?.Withheld is { } notice ? proposal with { HistoryToolNotice = notice } : proposal;
+    }
+
+    /// <summary>
+    /// What a planning with the person's answers goes on from (docs/17 D-28): whether the log already has these answers (a
+    /// planning with them that failed, tried again) and the commit of the <c>_base</c> the questions were asked from, the one
+    /// the run builds on (<c>Orchestrator.BaseCommitAsync</c> takes the first <c>_base</c> of the run).
+    /// </summary>
+    private sealed record Continuation(bool AnswersRecorded, string? AskedBase)
+    {
+        public static Continuation None { get; } = new(false, null);
     }
 
     private async Task<PlanProposal> PlanWithAsync(
         PlanningRequest request,
         RunId run,
+        Continuation continuation,
         AgentDefinition orchestrator,
         IAgentProvider provider,
         string schema,
@@ -129,12 +142,13 @@ internal sealed class Planner(EnginePorts ports)
         var guard = new UserRepositoryGuard(ports.Worktrees, project.RootPath, canWriteAtMediumIntegrity: false, recorder);
         await guard.EstablishBaselineAsync(cancellationToken).ConfigureAwait(false);
 
-        // A planning that follows the questions of its run plans in the _base it asked from, on the same commit.
+        // A planning that follows the questions of its run plans on the commit it asked from: the first _base of the run, which
+        // the run then builds on. Its copy is adopted, or made again on that commit if it was removed, never on a newer HEAD.
         var answers = request.Answers ?? [];
         var asked = answers.Count == 0
             ? null
             : (await ports.Worktrees.ListOwnedAsync(project, cancellationToken).ConfigureAwait(false)).FirstOrDefault(l => l.Run == run && l.Name == "_base");
-        var lease = await ports.Worktrees.EnsureAsync(new WorktreeRequest(project, run, "_base", asked?.BaseCommit ?? repository.HeadCommit), cancellationToken).ConfigureAwait(false);
+        var lease = await ports.Worktrees.EnsureAsync(new WorktreeRequest(project, run, "_base", continuation.AskedBase ?? asked?.BaseCommit ?? repository.HeadCommit), cancellationToken).ConfigureAwait(false);
         if (asked is null)
         {
             await recorder.RecordAsync(
@@ -144,7 +158,10 @@ internal sealed class Planner(EnginePorts ports)
                 cancellationToken).ConfigureAwait(false);
         }
 
-        await RecordAnswersAsync(recorder, answers, cancellationToken).ConfigureAwait(false);
+        if (!continuation.AnswersRecorded)
+        {
+            await RecordAnswersAsync(recorder, answers, cancellationToken).ConfigureAwait(false);
+        }
         var session = new Session(ports, request, orchestrator, provider, recorder, guard, lease, schema, progress, memory, history?.Server);
         var skills = await ports.Skills.ProvisionAsync(project.ProjectId, orchestrator, $"{run.Value}-plan", lease.Path, cancellationToken).ConfigureAwait(false);
         try

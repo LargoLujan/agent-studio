@@ -4,6 +4,7 @@ using System.Text.Json;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Prompts;
+using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Questions;
@@ -27,11 +28,15 @@ internal static class PlannerQuestions
     public static string EvidenceOf(AgentQuestion question) => JsonSerializer.Serialize(question, Json);
 
     /// <summary>
-    /// The run the answers go on in, after checking them against the verified log: every answer is to a question of the
-    /// orchestrator (no task) that one planning run asked, once each, and that nobody answered yet.
+    /// The run the answers go on in, after checking them against the verified log: they answer every question of the
+    /// orchestrator (no task) that one planning run asked, all at once and once each. <c>Recorded</c> says the log already has
+    /// exactly these answers: a planning with them that failed is tried again without recording them twice.
     /// </summary>
-    /// <exception cref="ArgumentException">The answers are of several runs, of a task, of a question not asked or already answered, or repeated.</exception>
-    public static RunId RunOf(IReadOnlyList<AnsweredQuestion> answers, IReadOnlyList<DecisionEntry> log)
+    /// <exception cref="ArgumentException">
+    /// The answers are of several runs, of a task, of a question not asked, repeated, leave a question of the run unanswered, or
+    /// differ from the answers the log already has.
+    /// </exception>
+    public static (RunId Run, bool Recorded) RunOf(IReadOnlyList<AnsweredQuestion> answers, IReadOnlyList<DecisionEntry> log)
     {
         ArgumentNullException.ThrowIfNull(answers);
         ArgumentNullException.ThrowIfNull(log);
@@ -47,17 +52,14 @@ internal static class PlannerQuestions
         }
 
         var asked = Payloads<QuestionAskedPayload>(log, DecisionKind.QuestionAsked, run).Where(q => q.Task is null).Select(q => q.Question).ToHashSet(StringComparer.Ordinal);
-        var answered = Payloads<QuestionAnsweredPayload>(log, DecisionKind.QuestionAnswered, run).Select(q => q.Question).ToHashSet(StringComparer.Ordinal);
+        var answered = Payloads<QuestionAnsweredPayload>(log, DecisionKind.QuestionAnswered, run)
+            .GroupBy(q => q.Question, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
         foreach (var answer in answers)
         {
             if (!asked.Contains(answer.Question.Id))
             {
                 throw new ArgumentException($"The orchestrator did not ask '{answer.Question.Id}' in run '{run}'.", nameof(answers));
-            }
-
-            if (answered.Contains(answer.Question.Id))
-            {
-                throw new ArgumentException($"The question '{answer.Question.Id}' of run '{run}' is answered already.", nameof(answers));
             }
 
             if (answer.Answer.OptionId is { } option && answer.Question.Question.Option(option) is null)
@@ -78,8 +80,36 @@ internal static class PlannerQuestions
             }
         }
 
-        return run;
+        // One round, answered whole: no partial answers, so no second planning that could ask again in the same run.
+        if (!asked.SetEquals(answers.Select(a => a.Question.Id)))
+        {
+            throw new ArgumentException($"Answer every question of run '{run}' at once: {string.Join(", ", asked.Order(StringComparer.Ordinal))}.", nameof(answers));
+        }
+
+        if (answered.Count == 0)
+        {
+            return (run, false);
+        }
+
+        // A planning with these answers that failed after recording them: the same answers go on; other ones never.
+        if (answered.Count != answers.Count || answers.Any(a => !answered.TryGetValue(a.Question.Id, out var recorded) || !Same(recorded, a.Answer)))
+        {
+            throw new ArgumentException($"The questions of run '{run}' are answered already, with other answers.", nameof(answers));
+        }
+
+        return (run, true);
     }
+
+    /// <summary>The commit of the first <c>_base</c> of <paramref name="run"/>, the one its questions were asked from; null when the log has none.</summary>
+    public static string? BaseOf(IReadOnlyList<DecisionEntry> log, RunId run) =>
+        Payloads<WorktreeCreatedPayload>(log, DecisionKind.WorktreeCreated, run).FirstOrDefault(w => w.Name == "_base" && w.Task is null)?.BaseCommit;
+
+    /// <summary>Whether the log recorded this very answer: the same option, or the same text of the person (by its SHA-256).</summary>
+    private static bool Same(QuestionAnsweredPayload recorded, QuestionAnswer answer) =>
+        answer.OptionId is { } option
+            ? string.Equals(recorded.ChosenOption, option, StringComparison.Ordinal)
+            : recorded.ChosenOption is null && answer.OtherText is { } text
+                && string.Equals(recorded.AnswerSha256, ContentHash.Sha256Hex(Encoding.UTF8.GetBytes(text)), StringComparison.Ordinal);
 
     /// <summary>
     /// The block of the prompt with the person's answers (docs/17 D-30): each question and its answer as quoted data, the option

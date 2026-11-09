@@ -195,6 +195,55 @@ public sealed class PlannerQuestionsTests
         harness.Claude.Script("orquestador", null, 1, Answer(ValidPlanWithNotes()));
         var answers = new[] { new AnsweredQuestion(asked.Run, question, QuestionAnswer.Choosing(null, question.Id, "a", "miveritas")) };
         await PlanAsync(harness, harness.PlanningRequest() with { Answers = answers });
-        await Assert.ThrowsAsync<ArgumentException>(() => PlanAsync(harness, harness.PlanningRequest() with { Answers = answers }));
+        var other = new[] { new AnsweredQuestion(asked.Run, question, QuestionAnswer.Choosing(null, question.Id, "b", "miveritas")) };
+        await Assert.ThrowsAsync<ArgumentException>(() => PlanAsync(harness, harness.PlanningRequest() with { Answers = other })); // answered already, otherwise
+    }
+
+    [Fact]
+    public async Task A_planning_with_the_answers_that_failed_is_tried_again_without_recording_them_twice()
+    {
+        using var harness = new EngineHarness();
+        harness.Claude.Script("orquestador", null, 1, Answer(Asking()));
+        var asked = await PlanAsync(harness);
+        var question = Assert.Single(asked.Questions!);
+        var answers = new[] { new AnsweredQuestion(asked.Run, question, QuestionAnswer.Writing(null, question.Id, "Usa LiteDB", "miveritas")) };
+        harness.Claude.Script("orquestador", null, 1, AgentScript.Failing("Límite de uso alcanzado."));
+
+        var failed = await PlanAsync(harness, harness.PlanningRequest() with { Answers = answers });
+        harness.Claude.Script("orquestador", null, 1, Answer(ValidPlanWithNotes()));
+        var retried = await PlanAsync(harness, harness.PlanningRequest() with { Answers = answers });
+
+        Assert.Equal(AgentRunStatus.Failed, failed.Status);
+        Assert.Equal((asked.Run, asked.Run), (failed.Run, retried.Run));
+        Assert.NotNull(retried.Plan);
+        Assert.Single(harness.Payloads<QuestionAnsweredPayload>());
+        Assert.Contains("Usa LiteDB", harness.Claude.Starts[^1].Request.Prompt, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Every_question_is_answered_at_once()
+    {
+        using var harness = new EngineHarness();
+        var two = Asking();
+        ((JsonArray)two["questions"]!).Add(JsonNode.Parse(((JsonArray)two["questions"]!)[0]!.ToJsonString())!.AsObject().Also(q => q["text"] = "¿Y el formato de fecha?"));
+        harness.Claude.Script("orquestador", null, 1, Answer(two));
+        var asked = await PlanAsync(harness);
+        Assert.Equal(["plan-1", "plan-2"], asked.Questions!.Select(q => q.Id));
+        var starts = harness.Claude.Starts.Count;
+
+        var partial = new[] { new AnsweredQuestion(asked.Run, asked.Questions![0], QuestionAnswer.Choosing(null, "plan-1", "a", "miveritas")) };
+        await Assert.ThrowsAsync<ArgumentException>(() => PlanAsync(harness, harness.PlanningRequest() with { Answers = partial }));
+
+        Assert.Equal(starts, harness.Claude.Starts.Count);
+        Assert.Empty(harness.Payloads<QuestionAnsweredPayload>());
+    }
+}
+
+internal static class JsonObjectExtensions
+{
+    public static JsonObject Also(this JsonObject node, Action<JsonObject> change)
+    {
+        change(node);
+        return node;
     }
 }
