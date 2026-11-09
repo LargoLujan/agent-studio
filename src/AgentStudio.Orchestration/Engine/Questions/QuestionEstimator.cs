@@ -16,15 +16,13 @@ namespace AgentStudio.Orchestration.Engine.Questions;
 /// question carries no estimates;</item>
 /// <item>with fewer than three references both ends are missing, with the reason of the estimator;</item>
 /// <item>the total is never the sum of the percentiles of the input and of the output, which is not the percentile of the
-/// total: <see cref="UsageEstimate"/> gives the two apart, so until the estimator gives the interval of the total both ends
-/// are missing too, with the references and the reason (<see cref="TotalNotEstimated"/>).</item>
+/// total: the ends are those of <see cref="UsageEstimate.TotalTokens"/>, the interval the estimator computes over the totals of
+/// its references (<see cref="UsageEstimate.ToSnapshot"/>), and without it both ends are missing with the references and the
+/// reason (<see cref="UsageEstimate.NoTotalReason"/>).</item>
 /// </list>
 /// </summary>
 internal static class QuestionEstimator
 {
-    /// <summary>Why the ends of a known estimate are missing: the estimator gives the input and output tokens apart, not their total.</summary>
-    public const string TotalNotEstimated = "estimate.total-tokens-not-estimated: the estimator gives the input and the output tokens apart, and their percentiles do not add up to the percentiles of the total";
-
     public static async Task<IReadOnlyList<OptionEstimateSnapshot>> EstimateAsync(WorkerContext w, AgentAttemptPlan plan, AgentQuestion question)
     {
         if (w.Ports.Estimator is not { } estimator)
@@ -39,7 +37,7 @@ internal static class QuestionEstimator
             {
                 var request = new UsageEstimateRequest(w.Run.Project, plan.Agent.Id, plan.Provider.Provider, plan.Agent.Model.Model, AgentRunPurpose.Executor, SizeOf(option.Effort));
                 var estimate = await estimator.EstimateAsync(request, w.Abort).ConfigureAwait(false);
-                snapshots.Add(Snapshot(option.Id, estimate));
+                snapshots.Add(estimate.ToSnapshot(option.Id));
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -48,15 +46,6 @@ internal static class QuestionEstimator
         }
 
         return snapshots;
-    }
-
-    /// <summary>The estimate of an option as the log records it (see the rules of the class).</summary>
-    public static OptionEstimateSnapshot Snapshot(string option, UsageEstimate estimate)
-    {
-        ArgumentNullException.ThrowIfNull(estimate);
-        var reason = estimate.IsKnown ? TotalNotEstimated : estimate.InputTokens.Low.Source;
-        var missing = MetricSnapshot.WithOrigin(MetricValue<long>.Missing(reason));
-        return new OptionEstimateSnapshot(option, missing, missing, estimate.References);
     }
 
     /// <summary>The size of the work an effort the agent declares stands for (docs/17 D-32).</summary>

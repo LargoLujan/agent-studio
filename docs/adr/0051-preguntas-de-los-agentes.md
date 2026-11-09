@@ -64,9 +64,10 @@
   9. **El coste de cada opción sin inventar nada** (D-32): con un estimador (`IUsageEstimator`, puerto opcional del motor), una
      estimación por opción según el esfuerzo que declara el agente, guardada como `OptionEstimateSnapshot` en
      `QuestionAsked` y la misma en `PendingQuestion`. Con menos de tres referencias, desconocida. **Nunca se suman los
-     percentiles** de entrada y salida, que no son los del total: mientras `UsageEstimate` no dé el intervalo del total, los dos
-     extremos van como «no disponible» con las referencias y el motivo `estimate.total-tokens-not-estimated`. Sin estimador, o
-     si falla, la pregunta no lleva estimaciones.
+     percentiles** de entrada y salida, que no son los del total: los extremos son los de `UsageEstimate.TotalTokens`, el
+     intervalo que el estimador de WP2 calcula sobre los totales de sus referencias (`UsageEstimate.ToSnapshot`, integración
+     del 2026-11-09). Si una estimación no da el total, los dos extremos van como «no disponible» con las referencias y el
+     motivo `UsageEstimate.NoTotalReason`. Sin estimador, o si falla, la pregunta no lleva estimaciones.
   10. **Las instrucciones y la ficha en el prompt** (D-10, D-42, F13-4): `SystemInstructions` y `Objectives` del agente van en
       `<agent_instructions agent=… sha256=…>` y la ficha vigente (`IProjectBrief`, puerto opcional) en
       `<project_brief entry=… sha256=…>` (la huella que anunció su entrada de memoria), cada texto recodificado con

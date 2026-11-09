@@ -544,9 +544,10 @@ public sealed class QuestionTests
         Assert.Equal([WorkSize.Small, WorkSize.Medium], estimator.Sizes);
         Assert.Equal(["a", "b"], asked.Estimates.Select(e => e.Option));
         var a = asked.Estimates[0];
-        Assert.Equal((6, (decimal?)null, MetricOrigin.Missing), (a.References, a.Low.Value, a.Low.ResolvedOrigin())); // known, but the total is not the sum
-        Assert.StartsWith("estimate.total-tokens-not-estimated", a.High.Source, StringComparison.Ordinal);
+        Assert.Equal((6, (decimal?)11_000, MetricOrigin.EstimatedBySystem), (a.References, a.Low.Value, a.Low.ResolvedOrigin())); // the total as such, not 9 000 + 1 000
+        Assert.Equal(((decimal?)16_500, "p75 total"), (a.High.Value, a.High.Source)); // not 15 000 + 2 000
         Assert.Equal((2, (decimal?)null), (asked.Estimates[1].References, asked.Estimates[1].High.Value)); // fewer than three: unknown
+        Assert.StartsWith("unknown: 2 of 3", asked.Estimates[1].High.Source, StringComparison.Ordinal);
         var lived = first.Snapshot().View("T1").Question!;
         Assert.Equal(asked.Estimates, lived.Estimates);
 
@@ -578,7 +579,8 @@ public sealed class QuestionTests
                     new(MetricValue<long>.EstimatedBySystem(1_000, "p25"), MetricValue<long>.EstimatedBySystem(2_000, "p75")),
                     EstimateInterval<TimeSpan>.Unknown("n/a"),
                     EstimateInterval<decimal>.Unknown("n/a"),
-                    [])
+                    [],
+                    new(MetricValue<long>.EstimatedBySystem(11_000, "p25 total"), MetricValue<long>.EstimatedBySystem(16_500, "p75 total")))
                 : UsageEstimate.Unknown(2));
         }
 
