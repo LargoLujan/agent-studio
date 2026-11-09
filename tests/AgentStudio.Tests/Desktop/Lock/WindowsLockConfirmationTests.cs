@@ -133,13 +133,18 @@ public sealed class WindowsLockConfirmationTests
     }
 
     /// <summary>
-    /// The real session, read and never locked (LocalTools: it reads the session of whoever runs it). Whoever runs the tests has
-    /// an unlocked session; reading it checks the layout of <c>WTSINFOEXW</c> and the meaning of <c>SessionFlags</c>.
+    /// The real session, read and never locked (LocalTools: it reads the session of whoever runs it). It checks the layout of
+    /// <c>WTSINFOEXW</c> and the meaning of <c>SessionFlags</c> against what Windows shows: the lock screen of a session is
+    /// <c>LogonUI.exe</c> running in it, so the session reads as locked exactly while it runs there (an agent may run the tests
+    /// with the session locked; a person, with it unlocked).
     /// </summary>
     [Fact]
     [Trait("Category", "LocalTools")]
-    public void The_real_session_of_whoever_runs_the_tests_reads_as_unlocked()
+    public void The_real_session_of_whoever_runs_the_tests_reads_as_windows_shows_it()
     {
-        Assert.Equal(SessionLockState.Unlocked, new WindowsSessionState().Read());
+        var session = System.Diagnostics.Process.GetCurrentProcess().SessionId;
+        var lockScreen = System.Diagnostics.Process.GetProcessesByName("LogonUI").Any(p => p.SessionId == session);
+
+        Assert.Equal(lockScreen ? SessionLockState.Locked : SessionLockState.Unlocked, new WindowsSessionState().Read());
     }
 }
