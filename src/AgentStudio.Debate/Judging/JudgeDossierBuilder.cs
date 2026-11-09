@@ -152,8 +152,8 @@ public sealed class JudgeDossierBuilder(
     /// its agent and the answers of the person in their blocks of data, which guide the agent and say nothing of whether the
     /// requirements are met;</item>
     /// <item>the question as the agent wrote it (<c>QuestionAsked</c>), with the option it recommended and the effort of each
-    /// option; the entry itself also stays out of the decisions of the dossier, for it names the recommended option and the
-    /// estimates of the system.</item>
+    /// option, and the report of the attempt that asked it, which carries the same question; the entry itself also stays out of
+    /// the decisions of the dossier, for it names the recommended option and the estimates of the system.</item>
     /// </list>
     /// What the judge gets of a question is its decision: the document the system captured when it was answered (the question,
     /// its reason and its options as the agent wrote them, and the choice), the <c>QuestionAnswered</c> entry, and the person's
@@ -162,6 +162,8 @@ public sealed class JudgeDossierBuilder(
     private static HashSet<EvidenceId> WithheldFromTheJudge(IReadOnlyList<DecisionEntry> runEntries)
     {
         var withheld = new HashSet<EvidenceId>();
+        var reports = new Dictionary<(TaskId Task, int Attempt), EvidenceId>();
+        var asking = new List<(TaskId Task, int Attempt)>();
         foreach (var entry in runEntries)
         {
             try
@@ -171,14 +173,32 @@ public sealed class JudgeDossierBuilder(
                     case DecisionKind.InstructionsIssued:
                         withheld.Add(DecisionPayloadSerializer.Deserialize<InstructionsIssuedPayload>(entry.PayloadJson).PromptEvidenceId);
                         break;
+                    case DecisionKind.AgentRunFinished when DecisionPayloadSerializer.Deserialize<AgentRunFinishedPayload>(entry.PayloadJson) is { Task: { } task, ReportEvidenceId: { } report } finished:
+                        reports[(task, finished.Attempt)] = report;
+                        break;
                     case DecisionKind.QuestionAsked:
-                        withheld.Add(DecisionPayloadSerializer.Deserialize<QuestionAskedPayload>(entry.PayloadJson).QuestionEvidence);
+                        var asked = DecisionPayloadSerializer.Deserialize<QuestionAskedPayload>(entry.PayloadJson);
+                        withheld.Add(asked.QuestionEvidence);
+                        if (asked.Task is { } of)
+                        {
+                            asking.Add((of, asked.Attempt));
+                        }
+
                         break;
                 }
             }
             catch (System.Text.Json.JsonException)
             {
                 // A payload that cannot be read names nothing to withhold; the replay of the run reports what it cannot read.
+            }
+        }
+
+        // The report of the attempt that asked carries the question as the agent wrote it, its recommendation included.
+        foreach (var attempt in asking)
+        {
+            if (reports.TryGetValue(attempt, out var report))
+            {
+                withheld.Add(report);
             }
         }
 
