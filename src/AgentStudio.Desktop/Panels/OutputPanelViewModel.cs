@@ -62,6 +62,7 @@ public sealed partial class OutputPanelViewModel : ObservableObject
     {
         _task = task;
         _agent = null;
+        Lines.Clear();
         Title = task is { } id ? _texts.Format("Panels_Output_Task", id.Value) : _texts.Get("Panels_Output_Run");
         Refresh();
     }
@@ -71,6 +72,7 @@ public sealed partial class OutputPanelViewModel : ObservableObject
     {
         _agent = agent;
         _task = null;
+        Lines.Clear();
         Title = agent is { } id ? _texts.Format("Panels_Output_Agent", id.Value) : _texts.Get("Panels_Output_Run");
         Refresh();
     }

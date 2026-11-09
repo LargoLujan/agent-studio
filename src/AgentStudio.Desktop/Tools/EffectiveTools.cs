@@ -107,7 +107,7 @@ public static class EffectiveTools
     }
 
     /// <summary>The names of the tools in a space-separated list of rules: <c>Read(//c/p/**)</c> is <c>Read</c>.</summary>
-    internal static IReadOnlyList<string> Names(string? list)
+    public static IReadOnlyList<string> Names(string? list)
     {
         if (string.IsNullOrWhiteSpace(list))
         {
