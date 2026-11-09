@@ -1584,11 +1584,12 @@ chat de preparación). Pruebas en `tests/AgentStudio.Tests/{Domain/Orchestration
 ADR-0049.
 
 **WP2 · Modelos (M).** `src/AgentStudio.Infrastructure/Models/**` (el catálogo y su lector),
-`src/AgentStudio.Observability/Models/**` (lo aprendido), y el esfuerzo en `src/AgentStudio.Providers/Cli/Claude/ClaudeCodeArguments.cs`
+`src/AgentStudio.Observability/Models/**` (lo aprendido), `src/AgentStudio.Observability/Estimates/**` (el estimador de uso,
+`IUsageEstimator`: el reparto lo dejó entre WP2 y WP3 y se asignó a WP2 en la revisión del 2026-11-09), y el esfuerzo en `src/AgentStudio.Providers/Cli/Claude/ClaudeCodeArguments.cs`
 y `src/AgentStudio.Providers/Cli/Codex/CodexExecArguments.cs`. Pruebas. ADR-0050.
 
-**WP3 · Contexto, estimación y análisis del consumo (M-L).** `src/AgentStudio.Observability/{Context/**, Estimates/**, Analysis/**}`
-(conecta la ventana aprendida en vivo, el estimador y los dos análisis), `src/AgentStudio.Memory/Context/ContextPacker.cs`
+**WP3 · Contexto y análisis del consumo (M-L).** `src/AgentStudio.Observability/{Context/**, Analysis/**}`
+(conecta la ventana aprendida en vivo y los dos análisis; el estimador lo hizo WP2), `src/AgentStudio.Memory/Context/ContextPacker.cs`
 (las partes y la ficha) y `src/AgentStudio.Orchestration/Engine/AgentRunner.cs` (el desglose en `AgentRunStarted`). Pruebas.
 ADR-0052.
 

@@ -1611,7 +1611,8 @@ public sealed record ContextPartSnapshot(ContextPartKind Kind, int Characters);
 - **`PendingQuestion`** y **`TaskView.Question`** (nulo por defecto): la pregunta que espera. Sus estimaciones
   (`IReadOnlyList<OptionEstimateSnapshot> Estimates` y `EstimateOf(option)`) son las mismas que registra `QuestionAsked`: el
   intervalo de tokens totales con su origen y sus referencias, así que lo que se enseña se reconstruye igual tras reiniciar. El
-  motor convierte a ellas el `UsageEstimate` del estimador al registrar la pregunta.
+  motor convierte a ellas el `UsageEstimate` del estimador de WP2 al registrar la pregunta, con `UsageEstimate.ToSnapshot`
+  (el intervalo de `TotalTokens`; sin total, sin valor y con el motivo).
   **`QuestionPendingEvent`** y **`QuestionAnsweredEvent`** (en `OrchestrationRun.cs`): lo que el monitor y la bandeja escuchan.
 - **Las preguntas del orquestador antes de planificar** (D-28): `PlanProposal.Questions` (`IReadOnlyList<PendingQuestion>?`,
   `init`; con preguntas, `Plan` es nulo) y `PlanningRequest.Answers` (`IReadOnlyList<AnsweredQuestion>?`, `init`) para la
