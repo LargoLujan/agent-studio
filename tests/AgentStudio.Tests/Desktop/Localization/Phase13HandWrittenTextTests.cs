@@ -21,7 +21,9 @@ namespace AgentStudio.Tests.Desktop.Localization;
 /// <c>Header</c>, <c>ToolTip</c>, <c>ToolTipService.ToolTip</c>, <c>Title</c>, the ones of <c>AutomationProperties</c>…) nor the
 /// text of an element; nor the texts inside a binding (<c>StringFormat</c>, <c>FallbackValue</c>, <c>TargetNullValue</c>) or in
 /// <c>ContentStringFormat</c> and its kind. A format keeps its placeholders (<c>{}{0:N0}</c>) and its specifiers (<c>N0</c>,
-/// <c>HH:mm</c>): only what it adds is text. Symbols and icon glyphs are not text.</item>
+/// <c>HH:mm</c>): only what it adds is text. Symbols and icon glyphs are not text. The <c>ConverterParameter</c> of a binding
+/// often carries a value that is not text (<c>Inverse</c>, <c>Collapsed</c>), so it is judged as a literal of C# is (below): a
+/// text when it has a letter beyond ASCII or a word of <see cref="SpanishWords"/>.</item>
 /// <item>C#: no string literal with a letter beyond ASCII (á, é, í, ó, ú, ü, ñ, ¿, ¡…); no literal with a word of
 /// <see cref="SpanishWords"/>, the frequent Spanish words of an interface that have no accent («Guardar el plan»); and no
 /// literal with a letter assigned to a visible property (<c>.Text = "…"</c>) or given as an accessible name
@@ -214,6 +216,9 @@ public sealed partial class Phase13HandWrittenTextTests
                     <TextBlock Text="{Binding Used, StringFormat='{}{0} de {1}'}"/>
                     <TextBlock Text="{Binding Name, FallbackValue=sin dato}"/>
                     <TextBlock Text="{Binding Name, TargetNullValue='—'}"/>
+                    <TextBlock Text="{Binding Count, Converter={StaticResource Plural}, ConverterParameter='tarea|tareas'}"/>
+                    <TextBlock Visibility="{Binding Busy, Converter={StaticResource Visible}, ConverterParameter=Inverse}"/>
+                    <TextBlock Text="{Binding Kind, Converter={StaticResource Label}, ConverterParameter=Revisión}"/>
                     <Button ToolTipService.ToolTip="Cerrar la ventana"/>
                     <ContentControl ContentStringFormat="{}{0} %"/>
                     <ContentControl ContentStringFormat="Valor: {0}"/>
@@ -223,7 +228,7 @@ public sealed partial class Phase13HandWrittenTextTests
                 """);
 
             Assert.Equal(
-                ["Aprobar el plan", "Cerrar", "Hola", "{}{0:N0} tokens", "{}{0} de {1}", "sin dato", "Cerrar la ventana", "Valor: {0}", "{}Literal escapado"],
+                ["Aprobar el plan", "Cerrar", "Hola", "{}{0:N0} tokens", "{}{0} de {1}", "sin dato", "tarea|tareas", "Revisión", "Cerrar la ventana", "Valor: {0}", "{}Literal escapado"],
                 XamlLiterals(xaml));
         }
         finally
@@ -253,6 +258,11 @@ public sealed partial class Phase13HandWrittenTextTests
 
     // ---- XAML ----
 
+    /// <summary>Whether a literal is a text for the person: a letter beyond ASCII, <c>¿</c> or <c>¡</c>, or a word of <see cref="SpanishWords"/>.</summary>
+    private static bool LooksLikeText(string literal) =>
+        literal.Any(c => c > 127 && char.IsLetter(c)) || literal.Any(c => c is '¿' or '¡')
+        || Word().Matches(literal).Any(w => SpanishWords.Contains(w.Value));
+
     private static IReadOnlyList<string> XamlLiterals(string file)
     {
         var literals = new List<string>();
@@ -267,6 +277,7 @@ public sealed partial class Phase13HandWrittenTextTests
                 {
                     // A markup extension: a binding may still carry texts of its own.
                     literals.AddRange(BindingTextParts.SelectMany(part => ExtensionPart(value, part)).Where(s => FormatText(s).Any(char.IsLetter)));
+                    literals.AddRange(ExtensionPart(value, "ConverterParameter").Where(LooksLikeText));
                     continue;
                 }
 
@@ -355,8 +366,7 @@ public sealed partial class Phase13HandWrittenTextTests
         var found = new List<string>();
         foreach (var literal in StringLiterals(withoutComments))
         {
-            if (literal.Any(c => c > 127 && char.IsLetter(c)) || literal.Any(c => c is '¿' or '¡')
-                || Word().Matches(literal).Any(w => SpanishWords.Contains(w.Value)))
+            if (LooksLikeText(literal))
             {
                 found.Add(literal);
             }
