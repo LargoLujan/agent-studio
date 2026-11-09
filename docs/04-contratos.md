@@ -1894,6 +1894,8 @@ Todo vive en `Desktop`; no hay puertos nuevos en `Application`, y los textos sal
   sin virtualizar tardaba de 80 a 350 ms fuera de pantalla; con las listas de agentes y de tareas virtualizadas, la mediana de siete pasadas es de 23 a 28 ms (la más lenta,
   de 29 a 49 ms), con o sin la mejora de `MetricBar` (la caché de marcas y pinceles y la salida temprana no cambian esa cifra a la escala de la prueba: el coste lo quitó
   la virtualización). La prueba exige la mediana por debajo de 50 ms con un margen ×2 por la carga de la suite, que es el único margen y está en el código.
+  Va con `Category=Measurement`, fuera del CI como la pasada del lienzo: dentro de la suite entera las rondas fueron de 52 a 411 ms en un mismo equipo
+  (integración del 2026-11-09), así que como puerta solo diría lo cargados que estaban los procesadores.
 - **Las partes del prompt** dependen de que `AgentRunStarted` v3 ya esté en el registro cuando llega el primer paso: si no, el monitor pregunta una vez más al llegar ese paso.
 - **Los nombres de las pruebas que fallan** no se leen del TRX: el panel «Pruebas» enseña los contadores y la línea principal del error del paso, que es lo que el monitor ya tiene.
 - **Los permisos de un ejecutor** son la regla pública `Orchestration/Engine/AgentPermissions.For(escribe, agente)`, la que lanza `Workers` y la que usa `EffectiveTools`: no hay copia. La prueba compara «Herramientas» con `ClaudeCodeArguments.Build` con un lanzamiento escrito aparte.

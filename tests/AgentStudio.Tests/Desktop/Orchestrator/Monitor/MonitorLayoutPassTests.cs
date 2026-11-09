@@ -31,7 +31,10 @@ public sealed class MonitorLayoutPassTests
     /// </summary>
     public const double LoadMargin = 2;
 
+    // Measurement, outside the CI like the pass of the canvas (F13-7): in the whole suite the rounds went from 52 to 411 ms on
+    // one machine, so as a gate it would only tell how busy the processors were.
     [Fact]
+    [Trait("Category", "Measurement")]
     public async Task A_full_layout_and_render_pass_of_the_monitor_with_forty_tasks_changing_at_once_stays_within_the_limit()
     {
         const int Nodes = 40;
