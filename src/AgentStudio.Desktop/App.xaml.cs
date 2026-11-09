@@ -1,8 +1,11 @@
 ﻿using System.Windows;
+using System.Globalization;
 using System.Windows.Threading;
 using AgentStudio.Application.Diagnostics;
 using AgentStudio.Desktop.Composition;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Orchestrator.Session;
+using AgentStudio.Desktop.Services;
 using AgentStudio.Desktop.Theming;
 using AgentStudio.Desktop.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
@@ -42,6 +45,10 @@ public partial class App : System.Windows.Application
             builder.Logging.AddFileLogging(builder.Configuration);
             builder.Services.AddAgentStudioApp();
             _host = builder.Build();
+
+            // The language of the interface before any window or screen exists (docs/17 D-49): the one chosen in «Ajustes», or
+            // the one of Windows when it is in the list; a change applies on restart.
+            Texts.UseLanguage(UiLanguages.Resolve(_host.Services.GetService<IAppSettingsStore>()?.Load().Language, CultureInfo.CurrentUICulture));
 
             await _host.StartAsync();
             var window = _host.Services.GetRequiredService<MainWindow>();
