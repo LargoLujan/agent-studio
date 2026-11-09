@@ -43,8 +43,13 @@ public sealed partial class MotionSettingsViewModel : ObservableObject
     internal void Accept(AppSettings saved)
     {
         ArgumentNullException.ThrowIfNull(saved);
+        var changed = saved.ReduceMotion != _inForce.ReduceMotion;
         Show(saved);
         Saved?.Invoke(this, EventArgs.Empty);
+        if (changed)
+        {
+            Orchestrator.Canvas.MotionPolicy.NotifySettingChanged();
+        }
     }
 
     internal void Revert() => Show(_inForce);

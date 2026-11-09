@@ -268,6 +268,30 @@ public sealed class VisualBuilderDocumentTests
     }
 
     [Fact]
+    public async Task Turning_on_reduced_motion_stops_the_animations_that_are_running_at_once()
+    {
+        var live = new FakeLive();
+        var reduce = false;
+        var document = new OrchestratorDocumentViewModel(
+            Root, new OrchestrationSession(Backend(new MutableRoster())), new MemoryLayoutStore(), new FakeTimeProvider(T0), new InlineSynchronizationContext(),
+            builder: new BuilderServices(Live: live), reduceMotion: () => reduce);
+        await document.OpenAsync();
+        document.Canvas.LoadTasks(PlanFixtures.ValidTasks(), CanvasLayout.Empty);
+        var executor = document.Canvas.Team.Agents.Single(a => a.Id.Value == "ejecutor");
+        live.Raise(State(1, 12, true, Live(executor.Id, AgentLiveStatus.Working, new TaskId("T1"))), ["ejecutor"], (new TaskId("T1"), new TaskId("T3")));
+        Assert.True(document.Canvas.Team.AnimatedCount > 0);
+        Assert.Contains(document.Canvas.Connections, c => c.IsPulsing);
+
+        // The setting is saved: nothing waits for the next event of the run.
+        reduce = true;
+        MotionPolicy.NotifySettingChanged();
+
+        Assert.Equal(0, document.Canvas.Team.AnimatedCount);
+        Assert.DoesNotContain(document.Canvas.Connections, c => c.IsPulsing);
+        Assert.Equal("Trabajando en T1", executor.StatusText);
+    }
+
+    [Fact]
     public async Task A_task_shows_its_attempt_and_why_it_is_blocked_no_longer_only_blocked()
     {
         var live = new FakeLive();

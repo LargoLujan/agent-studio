@@ -25,6 +25,9 @@ public sealed class WorktreeRepositoryStateReader(IWorktreeManager worktrees) : 
 /// <summary>What was read of the repository: the node, or why there is none.</summary>
 public sealed record RepositoryReading(RepositoryNode? Node, string? Problem)
 {
+    /// <summary>Why the remotes were not read (the configuration file is too big); null when they were.</summary>
+    public string? RemotesNote { get; init; }
+
     public static RepositoryReading Of(RepositoryNode node) => new(node, null);
 
     public static RepositoryReading Failed(string problem) => new(null, problem);
@@ -75,7 +78,7 @@ public sealed class RepositoryReader(IRepositoryStateReader? state)
         }
 
         var root = inspected.Root;
-        var remotes = ReadRemotes(root);
+        var remotes = ReadRemotes(root, out var remotesNote);
         var (folders, paths) = Look(projectRoot);
         var stack = ProjectStackDetector.Detect(paths);
         return RepositoryReading.Of(new RepositoryNode(
@@ -85,7 +88,7 @@ public sealed class RepositoryReader(IRepositoryStateReader? state)
             remotes,
             inspected.HasUncommittedChanges,
             stack.Count == 0 ? null : string.Join(", ", stack),
-            folders));
+            folders)) with { RemotesNote = remotesNote };
     }
 
     /// <summary>
@@ -103,10 +106,30 @@ public sealed class RepositoryReader(IRepositoryStateReader? state)
             TimeSpan.FromSeconds(1));
 
     /// <summary>The remotes of the repository at <paramref name="root"/>, with their URL clean, in the order of the file.</summary>
-    public static IReadOnlyList<RepositoryRemote> ReadRemotes(string root)
+    public static IReadOnlyList<RepositoryRemote> ReadRemotes(string root) => ReadRemotes(root, out _);
+
+    /// <summary>The most a configuration file may weigh to be read for its remotes: a larger one is not read, and the node says so.</summary>
+    public const long MaxConfigBytes = 1_000_000;
+
+    /// <summary>The remotes, and when the configuration was not read because of its size, <paramref name="note"/> says it (a code of <see cref="RepositoryProblems"/>).</summary>
+    public static IReadOnlyList<RepositoryRemote> ReadRemotes(string root, out string? note)
     {
+        note = null;
         var config = ConfigFileOf(root);
         if (config is null)
+        {
+            return [];
+        }
+
+        try
+        {
+            if (new FileInfo(config).Length > MaxConfigBytes)
+            {
+                note = RepositoryProblems.ConfigurationTooBig;
+                return [];
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             return [];
         }
@@ -299,6 +322,9 @@ public sealed class RepositoryReader(IRepositoryStateReader? state)
 /// <summary>Why the node of the repository could not be read: the code the screen turns into a sentence.</summary>
 public static class RepositoryProblems
 {
+    /// <summary>The configuration file of the repository is too big to read its remotes: it is not read, and the node says so.</summary>
+    public const string ConfigurationTooBig = "repository.configuration-too-big";
+
     /// <summary>The repository is being read: the node says so until the answer comes.</summary>
     public const string Reading = "repository.reading";
 

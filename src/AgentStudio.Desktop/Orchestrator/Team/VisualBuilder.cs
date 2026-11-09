@@ -56,6 +56,7 @@ public sealed partial class VisualBuilder : ObservableObject, IDisposable
         OrderReview = orderReview;
         Chat = chat;
         Brief = brief;
+        MotionPolicy.SettingChanged += OnMotionSettingChanged;
         _canvas.Team.Editor = editor;
         _canvas.Team.Builder = this;
         if (services.Live is { } live)
@@ -92,9 +93,32 @@ public sealed partial class VisualBuilder : ObservableObject, IDisposable
 
     partial void OnMaxAgentRunsChanged(int value) => Band.Schedule();
 
+    /// <summary>
+    /// «Reducir movimiento» (or the option of Windows) changed: the animations that are running stop now, without waiting for the
+    /// next event of the run, and none starts while it is on.
+    /// </summary>
+    public void RefreshMotion()
+    {
+        var animated = MotionPolicy.AnimationsEnabled(_reduceMotion());
+        _canvas.Team.AnimationsEnabled = animated;
+        if (animated)
+        {
+            return;
+        }
+
+        foreach (var connection in _pulsing)
+        {
+            connection.IsPulsing = false;
+        }
+
+        _pulsing.Clear();
+    }
+
     // ---------- The live state (D-14 and D-16) ----------
 
     private void OnLiveChanged(object? sender, RunLiveChangedEventArgs e) => ApplyLive(e);
+
+    private void OnMotionSettingChanged(object? sender, EventArgs e) => RefreshMotion();
 
     /// <summary>
     /// Applies a grouped change of the live state: the agents and the tasks the change names are given theirs, and no other node is
@@ -263,6 +287,7 @@ public sealed partial class VisualBuilder : ObservableObject, IDisposable
     public void Dispose()
     {
         _disposed = true;
+        MotionPolicy.SettingChanged -= OnMotionSettingChanged;
         if (_services.Live is { } live)
         {
             live.Changed -= OnLiveChanged;

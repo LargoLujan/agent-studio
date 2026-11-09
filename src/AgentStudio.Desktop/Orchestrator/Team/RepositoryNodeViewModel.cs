@@ -16,8 +16,9 @@ public sealed partial class RepositoryNodeViewModel : ObservableObject
     public const string LayoutId = "repository";
 
     private readonly CanvasText _text;
+    private readonly string? _remotesNote;
 
-    public RepositoryNodeViewModel(RepositoryNode? node, string? problem, Point location, CanvasText text)
+    public RepositoryNodeViewModel(RepositoryNode? node, string? problem, Point location, CanvasText text, string? remotesNote = null)
     {
         ArgumentNullException.ThrowIfNull(text);
         _text = text;
@@ -25,6 +26,7 @@ public sealed partial class RepositoryNodeViewModel : ObservableObject
         WholeProject = new TeamConnectorViewModel(this, TeamConnectorFlow.Input, text.Get("Canvas_Repo_WholeProject"), isWholeProject: true);
         Node = node;
         Problem = problem;
+        _remotesNote = remotesNote;
         Folders = [.. (node?.MainFolders ?? []).Select(f => new TeamConnectorViewModel(this, TeamConnectorFlow.Input, f, f))];
     }
 
@@ -71,6 +73,7 @@ public sealed partial class RepositoryNodeViewModel : ObservableObject
     public IReadOnlyList<string> RemoteLines => Node is null ? [] : [.. Node.Remotes.Select(r => $"{r.Name}: {r.Url}")];
 
     public string RemotesText => Node is null ? string.Empty
+        : _remotesNote == RepositoryProblems.ConfigurationTooBig ? _text.Get("Canvas_Repo_ConfigTooBig")
         : Node.Remotes.Count == 0 ? _text.Get("Canvas_Repo_NoRemotes") : string.Join(" · ", RemoteLines);
 
     /// <summary>There are changes not committed: it says what that means for a run (ADR-0013, point 7).</summary>

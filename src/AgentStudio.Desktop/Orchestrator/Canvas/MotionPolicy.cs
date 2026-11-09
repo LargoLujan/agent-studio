@@ -14,6 +14,12 @@ public static class MotionPolicy
     /// <summary>Whether Windows has the animations of its windows on (<c>SystemParameters.ClientAreaAnimation</c>).</summary>
     public static bool WindowsAnimates => SystemParameters.ClientAreaAnimation;
 
+    /// <summary>Raised when «Reducir movimiento» was saved: the canvases that are open apply it at once, without waiting for the next live event.</summary>
+    public static event EventHandler? SettingChanged;
+
+    /// <summary>Tells the open canvases that the setting changed (the settings screen calls it when it saves).</summary>
+    public static void NotifySettingChanged() => SettingChanged?.Invoke(null, EventArgs.Empty);
+
     /// <summary>The animations run, reading the option of Windows now.</summary>
     public static bool AnimationsEnabled(bool reduceMotion) => AnimationsEnabled(reduceMotion, WindowsAnimates);
 }

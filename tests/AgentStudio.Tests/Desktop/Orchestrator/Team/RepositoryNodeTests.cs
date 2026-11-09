@@ -241,6 +241,20 @@ public sealed class RepositoryNodeTests : IDisposable
     }
 
     [Fact]
+    public async Task A_configuration_file_past_the_cap_is_not_read_and_the_node_says_so()
+    {
+        var root = Repo(ConfigWithCredentials);
+        File.AppendAllText(Path.Combine(root, ".git", "config"), "\n#" + new string('x', (int)RepositoryReader.MaxConfigBytes));
+
+        var reading = await new RepositoryReader(new FakeState(State(root))).ReadAsync(root, CancellationToken.None);
+
+        Assert.Empty(reading.Node!.Remotes);
+        Assert.Equal(RepositoryProblems.ConfigurationTooBig, reading.RemotesNote);
+        var view = new RepositoryNodeViewModel(reading.Node, null, default, Text(), reading.RemotesNote);
+        Assert.Equal("No se leyeron los remotos: el fichero de configuración del repositorio es demasiado grande.", view.RemotesText);
+    }
+
+    [Fact]
     public async Task A_configuration_that_cannot_be_read_gives_no_remotes_never_an_error()
     {
         Directory.CreateDirectory(Path.Combine(_folder.Root, ".git"));

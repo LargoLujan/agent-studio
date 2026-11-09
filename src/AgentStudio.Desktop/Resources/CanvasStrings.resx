@@ -1166,4 +1166,8 @@ Pulsar «Guardar la ficha»: cada versión sustituye a la anterior.</value>
     <value>Cambiar el perfil de verificación pide Windows Hello y esta ventana no tiene cómo pedirlo: el perfil no cambia.</value>
     <comment>Said when no confirmation is composed.</comment>
   </data>
+  <data name="Canvas_Repo_ConfigTooBig" xml:space="preserve">
+    <value>No se leyeron los remotos: el fichero de configuración del repositorio es demasiado grande.</value>
+    <comment>Said on the node instead of the remotes.</comment>
+  </data>
 </root>
