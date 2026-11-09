@@ -1,4 +1,5 @@
 using System.IO;
+using AgentStudio.Application.Models;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Skills;
 using AgentStudio.Debate;
@@ -9,11 +10,15 @@ using AgentStudio.Desktop.Services;
 using AgentStudio.Desktop.Skills;
 using AgentStudio.Infrastructure;
 using AgentStudio.Infrastructure.Git;
+using AgentStudio.Infrastructure.Models;
 using AgentStudio.Infrastructure.Persistence;
 using AgentStudio.Infrastructure.Skills;
 using AgentStudio.Memory;
 using AgentStudio.Observability;
+using AgentStudio.Observability.Analysis;
+using AgentStudio.Observability.Estimates;
 using AgentStudio.Observability.Logging;
+using AgentStudio.Observability.Models;
 using AgentStudio.Observability.Quota;
 using AgentStudio.Orchestration;
 using Engine = AgentStudio.Orchestration.Engine;
@@ -64,6 +69,7 @@ internal static class PlatformServices
             .AddAgentStudioGit(new GitWorktreeOptions(paths.WorktreeRoot))
             .AddAgentStudioPersistence()
             .AddAgentStudioObservability(new QuotaLogOptions { FilePath = Path.Combine(folders.Local.BaseDirectory, "usage", "quota.jsonl") })
+            .AddModelServices()
             .AddAgentStudioSkills(SkillCatalogFor(skillsIndexPath), new SkillActivationStoreOptions(Path.Combine(folders.Roaming.BaseDirectory, "skill-activations.jsonl")))
             .AddSkillProvisioner(paths)
             .AddAgentStudioSkillRecommendation(Path.Combine(folders.Local.BaseDirectory, "skill-recommendations"), SkillsScreenServices.DefaultServerExecutable)
@@ -76,6 +82,22 @@ internal static class PlatformServices
             .AddAgentStudioOrchestration()
             .AddSingleton<IVerificationProfileSource, FileVerificationProfileSource>()
             .AddDebateServices();
+    }
+
+    /// <summary>
+    /// Phase 13 (docs/17 D-22, D-23, D-32 and D-34): the catalog of models the app ships, what the verified log of a project
+    /// teaches of each model, the estimate of what an attempt would spend (the engine prices the options of a question with
+    /// it, an optional port of its constructor) and the analysis of consumption, composed with the same catalog so that
+    /// <c>model.oversized</c> can speak.
+    /// </summary>
+    private static IServiceCollection AddModelServices(this IServiceCollection services)
+    {
+        services.TryAddSingleton(provider => new ConsumptionAnalysisOptions { Catalog = provider.GetRequiredService<IModelCatalogSource>().Current.Catalog });
+        return services
+            .AddAgentStudioModelCatalog()
+            .AddAgentStudioModelLearning()
+            .AddAgentStudioUsageEstimator()
+            .AddAgentStudioConsumptionAnalysis();
     }
 
     /// <summary>
