@@ -41,6 +41,16 @@ public sealed partial class RunMonitorViewModel
         }
     }
 
+    /// <summary>«Responder» on the line of a task that waits for the answer: asks for the window of its question.</summary>
+    [RelayCommand]
+    private void OpenQuestionOf(MonitorTaskViewModel? task)
+    {
+        if (task?.Question is { } pending && PendingQuestions.FirstOrDefault(q => q.Id == pending.Id) is { } card)
+        {
+            QuestionOpenRequested?.Invoke(this, card);
+        }
+    }
+
     /// <summary>Sends the answer to the run; the run records it and the task goes on with it as data (it spends no quota by itself, but its next attempt counts).</summary>
     private Task AnswerQuestionAsync(QuestionAnswer answer)
     {
