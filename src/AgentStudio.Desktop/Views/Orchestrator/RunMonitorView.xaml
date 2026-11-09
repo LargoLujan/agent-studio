@@ -142,37 +142,6 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
-                <TextBlock Style="{StaticResource FieldLabel}" Margin="0,8,0,4" Text="{l:T Monitor_Agents_Title}"
-                           Visibility="{Binding IsAttached, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
-                <ItemsControl ItemsSource="{Binding AgentCards}" Focusable="False" AutomationProperties.Name="{l:T Monitor_Agents_Title}"
-                              Visibility="{Binding IsAttached, Converter={StaticResource Orchestrator.BoolToVisibility}}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type monitor:AgentCardViewModel}">
-                            <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="10,6" Margin="0,0,8,8" Width="300"
-                                    AutomationProperties.Name="{Binding AccessibleName}"
-                                    AutomationProperties.LiveSetting="{Binding LiveSetting}">
-                                <StackPanel>
-                                    <StackPanel Orientation="Horizontal">
-                                        <Ellipse Width="9" Height="9" Margin="0,0,8,0" VerticalAlignment="Center"
-                                                 Fill="{Binding Tone, Converter={StaticResource Orchestrator.ToneToBrush}}"/>
-                                        <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{Binding Name}"/>
-                                    </StackPanel>
-                                    <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{Binding StatusText}"/>
-                                    <controls:MetricBar Margin="0,4,0,0" TrackWidth="100" Reading="{Binding ContextBar}"/>
-                                    <controls:MetricBar Margin="0,2,0,0" TrackWidth="100" Reading="{Binding PartsBar}"
-                                                        Visibility="{Binding PartsBar, Converter={StaticResource Orchestrator.NotNullToVisibility}}"/>
-                                    <controls:MetricBar Margin="0,2,0,0" TrackWidth="100" Reading="{Binding ConsumptionBar}"/>
-                                    <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,0" Text="{Binding RunsText}"/>
-                                </StackPanel>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
                 </StackPanel>
                 </ScrollViewer>
 
@@ -256,6 +225,38 @@
              another when narrower still; they share the height of the monitor. -->
         <orchestratorViews:AdaptiveColumnsPanel x:Name="Lists" Grid.Row="3" Margin="12,8,12,10" FillHeight="True" ColumnSpacing="12" RowSpacing="8">
 
+            <!-- Phase 13 (docs/17 D-12, D-14, D-17; F13-6 to F13-8): one card per agent with its state and its bars, each with its origin. A
+                 change of state is announced (assertive for a question or a block, polite for the rest). -->
+            <DockPanel orchestratorViews:AdaptiveColumnsPanel.Weight="3" MinWidth="230">
+                <TextBlock DockPanel.Dock="Top" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" Text="{l:T Monitor_Agents_Title}"/>
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
+                    <ItemsControl ItemsSource="{Binding AgentCards}" Focusable="False" AutomationProperties.Name="{l:T Monitor_Agents_Title}"
+                                  Visibility="{Binding IsAttached, Converter={StaticResource Orchestrator.BoolToVisibility}}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type monitor:AgentCardViewModel}">
+                                <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="8,4" Margin="0,0,0,6"
+                                        AutomationProperties.Name="{Binding AccessibleName}"
+                                        AutomationProperties.LiveSetting="{Binding LiveSetting}"
+                                        ToolTip="{Binding RunsText}">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Ellipse Width="9" Height="9" Margin="0,0,6,0" VerticalAlignment="Center"
+                                                     Fill="{Binding Tone, Converter={StaticResource Orchestrator.ToneToBrush}}"/>
+                                            <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{Binding Name}"/>
+                                            <TextBlock Style="{StaticResource SecondaryText}" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" Text="{Binding StatusText}"/>
+                                        </StackPanel>
+                                        <controls:MetricBar Margin="0,2,0,0" TrackWidth="80" IsCompact="True" Reading="{Binding ContextBar}"/>
+                                        <controls:MetricBar Margin="0,1,0,0" TrackWidth="80" IsCompact="True" Reading="{Binding PartsBar}"
+                                                            Visibility="{Binding PartsBar, Converter={StaticResource Orchestrator.NotNullToVisibility}}"/>
+                                        <controls:MetricBar Margin="0,1,0,0" TrackWidth="80" IsCompact="True" Reading="{Binding ConsumptionBar}"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </DockPanel>
+
             <DockPanel orchestratorViews:AdaptiveColumnsPanel.Weight="5" MinWidth="240">
                 <TextBlock DockPanel.Dock="Top" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" Text="Tareas"/>
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
@@ -323,11 +324,6 @@
                                                                 Visibility="{Binding ContextBar, Converter={StaticResource Orchestrator.NotNullToVisibility}}"
                                                                 AutomationProperties.Name="{Binding Context}"/>
                                             <TextBlock Style="{StaticResource OptionalSecondaryText}" TextWrapping="Wrap" Text="{Binding ContextDetail}"/>
-                                            <!-- Phase 13 (docs/17 D-12 and D-13): the context by parts, and the tokens of the finished attempts. -->
-                                            <controls:MetricBar Margin="0,3,0,0" TrackWidth="120" Reading="{Binding PartsBar}"
-                                                                Visibility="{Binding PartsBar, Converter={StaticResource Orchestrator.NotNullToVisibility}}"/>
-                                            <controls:MetricBar Margin="0,3,0,0" TrackWidth="120" Reading="{Binding ConsumptionBar}"
-                                                                Visibility="{Binding ConsumptionBar, Converter={StaticResource Orchestrator.NotNullToVisibility}}"/>
                                             <TextBlock Style="{StaticResource OptionalSecondaryText}" TextWrapping="Wrap" Text="{Binding TokensText, TargetNullValue=''}"/>
                                             <TextBlock Style="{StaticResource BodyText}" FontSize="12" Foreground="{StaticResource WarningBrush}"
                                                        Visibility="{Binding PendingApproval, Converter={StaticResource Orchestrator.NotNullToVisibility}}"
