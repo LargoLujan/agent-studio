@@ -175,8 +175,9 @@ internal static class DraftFacts
 
     /// <summary>
     /// Whether an entry of a write scope only touches documentation or tests: a folder or file under <c>docs/</c>,
-    /// <c>doc/</c>, <c>documentation/</c>, <c>test/</c>, <c>tests/</c> or a folder whose name ends with <c>Tests</c> or
-    /// <c>.Test</c>, or a file of text (<c>.md</c>, <c>.txt</c>, <c>.rst</c>, <c>.adoc</c>).
+    /// <c>doc/</c>, <c>documentation/</c>, <c>test/</c>, <c>tests/</c> or a folder whose name ends with <c>.Tests</c>
+    /// (<c>Calc.Tests/</c>), compared by whole folder and without case, so <c>Contests/</c> is not one; or a file of text
+    /// (<c>.md</c>, <c>.txt</c>, <c>.rst</c>, <c>.adoc</c>).
     /// </summary>
     public static bool IsDocsOrTests(string entry)
     {
@@ -192,8 +193,7 @@ internal static class DraftFacts
             || s.Equals("documentation", StringComparison.OrdinalIgnoreCase)
             || s.Equals("test", StringComparison.OrdinalIgnoreCase)
             || s.Equals("tests", StringComparison.OrdinalIgnoreCase)
-            || s.EndsWith("Tests", StringComparison.OrdinalIgnoreCase)
-            || s.EndsWith(".Test", StringComparison.OrdinalIgnoreCase)))
+            || s.EndsWith(".Tests", StringComparison.OrdinalIgnoreCase)))
         {
             return true;
         }

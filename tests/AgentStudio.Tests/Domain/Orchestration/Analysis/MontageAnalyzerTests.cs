@@ -179,6 +179,25 @@ public sealed partial class MontageAnalyzerTests
         Assert.All(findings.Where(f => f.BlocksApproval), f => Assert.Contains(f.Code, errorsBefore));
     }
 
+    [Theory]
+    [InlineData("docs/", true)]
+    [InlineData("Tests/", true)]
+    [InlineData("src/Calc.Tests/", true)]
+    [InlineData("src/calc.tests/Multiply.cs", true)]
+    [InlineData("README.md", true)]
+    [InlineData("Contests/", false)]
+    [InlineData("src/Contests/", false)]
+    [InlineData("src/LatestTests/", false)]
+    [InlineData("src/Calc/", false)]
+    public void Documentation_and_tests_are_told_by_whole_folders(string scope, bool docsOrTests)
+    {
+        var roster = Roster().With("ejecutor", a => a with { Model = a.Model with { Model = "opus" } });
+
+        var findings = MontageAnalyzer.Analyze(Draft(roster, [Writing("T1", "ejecutor", scope) with { Covers = [Rid("R1")] }, Tasks()[1], Tasks()[2]])).Findings;
+
+        Assert.Equal(docsOrTests, findings.Any(f => f.Code == FindingCodes.ModelOversized));
+    }
+
     [Fact]
     public void Adding_the_integration_behind_a_writer_that_follows_a_review_makes_no_cycle()
     {
