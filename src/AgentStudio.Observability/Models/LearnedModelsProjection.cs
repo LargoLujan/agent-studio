@@ -25,7 +25,8 @@ namespace AgentStudio.Observability.Models;
 /// <item><b>The model of an attempt</b> is the one its CLI reported (<c>ReportedModel</c>), or else the one the agent was
 /// configured with; an attempt with neither (the default of the CLI, never reported) teaches nothing. A model the catalog
 /// classifies is learned under the name of its entry, so an alias and its full name, with or without the date the CLI
-/// appends, are one model; any other under the id the CLI reported, without its date.</item>
+/// appends, are one model; any other under the id the CLI reported, without its date (<see cref="ModelKeys.Of"/>, the rule
+/// <see cref="LearnedModels.Find"/> looks up with too).</item>
 /// <item><b>Its tasks</b> are those of executors (<c>AgentRunPurpose.Executor</c>; before version 2 of the start, an attempt
 /// with a task whose agent is not the orchestrator, a judge or an auditor of the roster of its run) that ended: their last
 /// <c>TaskStatusChanged</c> is <c>Completed</c> or <c>Failed</c> (a cancelled or skipped task says nothing of the model). A
@@ -62,25 +63,6 @@ public static class LearnedModelsProjection
             : LearnedModels.Empty;
     }
 
-    /// <summary>
-    /// The key a model is learned under: the name of its entry in <paramref name="catalog"/> (looked up as it is, then without
-    /// the date the CLI appends and without <c>[1m]</c>), or else the id without its date; null for none.
-    /// </summary>
-    public static string? KeyOf(ModelCatalog catalog, ProviderId provider, string? model)
-    {
-        ArgumentNullException.ThrowIfNull(catalog);
-        if (string.IsNullOrWhiteSpace(model))
-        {
-            return null;
-        }
-
-        var trimmed = model.Trim();
-        var normalized = ModelWindowTable.Normalize(trimmed) ?? trimmed;
-        var withoutWindow = normalized.EndsWith("[1m]", StringComparison.Ordinal) ? normalized[..^4] : normalized;
-        var entry = catalog.Find(provider, trimmed) ?? catalog.Find(provider, normalized) ?? catalog.Find(provider, withoutWindow);
-        return entry?.Name ?? normalized;
-    }
-
     private static LearnedModels Learn(string projectId, IReadOnlyList<DecisionEntry> entries, ModelWindowCatalog windows, ModelCatalog catalog)
     {
         var attempts = UsageProjector.Project(projectId, entries).Attempts;
@@ -90,7 +72,7 @@ public static class LearnedModelsProjection
         foreach (var attempt in attempts)
         {
             var name = string.IsNullOrWhiteSpace(attempt.ReportedModel) ? attempt.ConfiguredModel : attempt.ReportedModel;
-            if (KeyOf(catalog, attempt.Provider, name) is not { } key)
+            if (ModelKeys.Of(catalog, attempt.Provider, name) is not { } key)
             {
                 continue;
             }
@@ -116,7 +98,7 @@ public static class LearnedModelsProjection
         {
             var first = task.OrderBy(a => a.Attempt).ThenBy(a => a.RecordedAt).First();
             var name = string.IsNullOrWhiteSpace(first.ReportedModel) ? first.ConfiguredModel : first.ReportedModel;
-            if (KeyOf(catalog, first.Provider, name) is not { } key
+            if (ModelKeys.Of(catalog, first.Provider, name) is not { } key
                 || !byModel.TryGetValue((first.Provider, key), out var learning)
                 || !facts.LastStatus.TryGetValue((task.Key.RunId, task.Key.Task), out var status)
                 || status is not (WorkTaskStatus.Completed or WorkTaskStatus.Failed))
@@ -153,7 +135,7 @@ public static class LearnedModelsProjection
                 CostPerTask(l),
                 l.Attempts))
             .ToList();
-        return new LearnedModels(models);
+        return new LearnedModels(models) { Catalog = catalog };
     }
 
     private static bool IsExecutor(UsageAttempt attempt, Facts facts)
@@ -206,7 +188,7 @@ public static class LearnedModelsProjection
     private static MetricValue<long> WindowOf(Learning learning, ModelWindowCatalog windows, ModelCatalog catalog)
     {
         var seen = windows.Windows
-            .Where(w => KeyOf(catalog, learning.Provider, w.Model) == learning.Key)
+            .Where(w => ModelKeys.Of(catalog, learning.Provider, w.Model) == learning.Key)
             .OrderByDescending(w => w.SeenAt)
             .ThenBy(w => w.Model, StringComparer.Ordinal)
             .FirstOrDefault();

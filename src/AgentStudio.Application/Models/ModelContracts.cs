@@ -91,24 +91,27 @@ public sealed record LearnedModel(
 /// </summary>
 public sealed record LearnedModels(IReadOnlyList<LearnedModel> Models)
 {
+    /// <summary>
+    /// The catalog the models were learned against, so <see cref="Find"/> resolves a name by the same rule
+    /// (<see cref="ModelKeys.Of"/>); null when there was none (then a name is its id without the date).
+    /// </summary>
+    public ModelCatalog? Catalog { get; init; }
+
     /// <summary>Nothing learned.</summary>
     public static LearnedModels Empty { get; } = new([]);
 
     /// <summary>The performances, as the recommendation and the analyzer read them (<see cref="ModelRecommendationInput.History"/>).</summary>
     public IReadOnlyList<ModelPerformance> Performances => [.. Models.Select(m => m.Performance)];
 
-    /// <summary>The model learned under <paramref name="model"/> (its key or one of the ids it was reported as, without case); null when none.</summary>
-    public LearnedModel? Find(ProviderId provider, string? model)
-    {
-        if (string.IsNullOrWhiteSpace(model))
-        {
-            return null;
-        }
-
-        var name = model.Trim();
-        return Models.FirstOrDefault(m => m.Provider == provider && string.Equals(m.Model, name, StringComparison.OrdinalIgnoreCase))
-            ?? Models.FirstOrDefault(m => m.Provider == provider && m.ReportedAs.Contains(name, StringComparer.OrdinalIgnoreCase));
-    }
+    /// <summary>
+    /// The model learned under <paramref name="model"/>, by the one rule of which names are the same model
+    /// (<see cref="ModelKeys.Of"/> with <see cref="Catalog"/>): an alias finds what was learned under its full name and the other
+    /// way round, with or without the date and in any case; null when none.
+    /// </summary>
+    public LearnedModel? Find(ProviderId provider, string? model) =>
+        ModelKeys.Of(Catalog, provider, model) is { } key
+            ? Models.FirstOrDefault(m => m.Provider == provider && string.Equals(m.Model, key, StringComparison.Ordinal))
+            : null;
 }
 
 /// <summary>What the verified log of a project teaches of its models (docs/17 D-23). It reads only; it launches nothing.</summary>

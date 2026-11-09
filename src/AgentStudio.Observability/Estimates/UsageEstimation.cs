@@ -21,7 +21,7 @@ namespace AgentStudio.Observability.Estimates;
 /// <remarks>
 /// <list type="bullet">
 /// <item><b>References of an attempt</b> (<see cref="Estimate"/>): attempts of the same CLI and purpose, with the same model
-/// (an alias and its full name, with or without the date the CLI appends, are one model: <see cref="LearnedModelsProjection.KeyOf"/>;
+/// (an alias and its full name, with or without the date the CLI appends, are one model: <see cref="ModelKeys.Of"/>;
 /// the default of the CLI matches attempts configured without a model), that ended with a result. First those of the same agent
 /// («medido en el proyecto»: <see cref="EstimateAssumptions.SameAgentAndModel"/>); with fewer than three, those of any agent
 /// («aprendido del modelo»: <see cref="EstimateAssumptions.SameModel"/>). With fewer than three there too, unknown: there is
@@ -198,7 +198,7 @@ public static class UsageEstimation
     /// <summary>The attempts of the same CLI, purpose and model that ended with a result, in the order the log closed them.</summary>
     private static List<UsageAttempt> Similar(IReadOnlyList<UsageAttempt> attempts, ModelCatalog catalog, ProviderId provider, string? model, AgentRunPurpose purpose)
     {
-        var key = LearnedModelsProjection.KeyOf(catalog, provider, model);
+        var key = ModelKeys.Of(catalog, provider, model);
         return
         [
             .. attempts.Where(a =>
@@ -208,7 +208,7 @@ public static class UsageEstimation
                 && (a.Own.InputTokens.HasValue || a.Own.OutputTokens.HasValue)
                 && (key is null
                     ? string.IsNullOrWhiteSpace(a.ConfiguredModel)
-                    : LearnedModelsProjection.KeyOf(catalog, a.Provider, string.IsNullOrWhiteSpace(a.ReportedModel) ? a.ConfiguredModel : a.ReportedModel) == key)),
+                    : ModelKeys.Of(catalog, a.Provider, string.IsNullOrWhiteSpace(a.ReportedModel) ? a.ConfiguredModel : a.ReportedModel) == key)),
         ];
     }
 

@@ -49,6 +49,11 @@
      - **Su nombre:** el de su entrada del catálogo cuando lo clasifica (un alias y su nombre completo, con o sin la fecha que
        añade el CLI, son un modelo); si no, el que informó el CLI, sin la fecha. El modelo de un intento es el que informó el
        CLI (`ReportedModel`) o, si no lo hizo, el configurado; un intento sin ninguno no enseña nada.
+     - **Una sola regla de qué nombres son el mismo modelo** (`Domain/Models/ModelKeys.Of`, revisión del 2026-11-09): la usan
+       el aprendizaje, la búsqueda (`LearnedModels.Find`, que guarda el catálogo con el que aprendió) y el estimador. Así, lo
+       aprendido con el nombre largo se encuentra por el alias y al revés, con o sin fecha y sin distinguir mayúsculas. Se
+       descartó apuntar además el nombre configurado en `ReportedAs`: no cubre un alias que el registro nunca vio, y habría
+       dejado dos reglas.
      - **Sus tareas:** las de los ejecutores (`AgentRunPurpose.Executor`; antes de la versión 2 del arranque, un intento con
        tarea cuyo agente no sea el orquestador, un juez ni un auditor del equipo de su ejecución) que terminaron
        (`Completed` o `Failed`). Una tarea es del modelo de su primer intento.

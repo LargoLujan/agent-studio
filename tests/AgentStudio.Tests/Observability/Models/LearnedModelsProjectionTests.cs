@@ -138,6 +138,37 @@ public sealed class LearnedModelsProjectionTests
         Assert.Contains("1 of 3", haiku.Source, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// One rule (<see cref="ModelKeys.Of"/>) for learning and for looking up: what was learned under the full name is found by
+    /// its alias, and what was learned only through an alias is found by the full name, with or without the date, in any case.
+    /// </summary>
+    [Fact]
+    public void What_was_learned_under_the_full_name_is_found_by_the_alias_and_the_other_way_round()
+    {
+        var log = new LearnedLog();
+        log.RunStarted("r1", ("ejecutor", AgentRole.Executor))
+            .Attempt("r1", "T1", 1, model: "claude-sonnet-5-5", reported: "claude-sonnet-5-5")
+            .Attempt("r1", "T2", 1, model: "opus", reported: null);
+        var learned = Learned(log.Entries);
+
+        var sonnet = learned.Find(ProviderId.ClaudeCode, "claude-sonnet-5-5");
+        Assert.NotNull(sonnet);
+        Assert.Equal(["claude-sonnet-5-5"], sonnet.ReportedAs);
+        Assert.Same(sonnet, learned.Find(ProviderId.ClaudeCode, "sonnet"));
+        Assert.Same(sonnet, learned.Find(ProviderId.ClaudeCode, "Sonnet"));
+
+        var opus = learned.Find(ProviderId.ClaudeCode, "opus");
+        Assert.NotNull(opus);
+        Assert.Equal(["opus"], opus.ReportedAs);
+        Assert.Same(opus, learned.Find(ProviderId.ClaudeCode, "claude-opus-5-5"));
+        Assert.Same(opus, learned.Find(ProviderId.ClaudeCode, "claude-opus-5-5-20261001"));
+
+        Assert.Null(learned.Find(ProviderId.ClaudeCode, "haiku"));
+        Assert.Null(learned.Find(ProviderId.CodexCli, "sonnet"));
+        Assert.Null(learned.Find(ProviderId.ClaudeCode, null));
+        Assert.Same(Catalog, learned.Catalog);
+    }
+
     [Fact]
     public void A_log_that_is_not_trusted_teaches_nothing()
     {
@@ -172,12 +203,12 @@ public sealed class LearnedModelsProjectionTests
     [Fact]
     public void A_model_is_learned_under_its_entry_with_or_without_the_date_and_the_1m_window_and_else_under_its_id_without_the_date()
     {
-        Assert.Equal("claude-sonnet-5-5", LearnedModelsProjection.KeyOf(Catalog, ProviderId.ClaudeCode, "sonnet"));
-        Assert.Equal("claude-haiku-4-5", LearnedModelsProjection.KeyOf(Catalog, ProviderId.ClaudeCode, "claude-haiku-4-5-20251001"));
-        Assert.Equal("claude-opus-5-5", LearnedModelsProjection.KeyOf(Catalog, ProviderId.ClaudeCode, "opus[1m]"));
-        Assert.Equal("claude-mythos-5-1", LearnedModelsProjection.KeyOf(Catalog, ProviderId.ClaudeCode, "Claude-Mythos-5-1-20261001"));
-        Assert.Equal("sonnet", LearnedModelsProjection.KeyOf(Catalog, ProviderId.CodexCli, "sonnet"));
-        Assert.Null(LearnedModelsProjection.KeyOf(Catalog, ProviderId.ClaudeCode, " "));
+        Assert.Equal("claude-sonnet-5-5", ModelKeys.Of(Catalog, ProviderId.ClaudeCode, "sonnet"));
+        Assert.Equal("claude-haiku-4-5", ModelKeys.Of(Catalog, ProviderId.ClaudeCode, "claude-haiku-4-5-20251001"));
+        Assert.Equal("claude-opus-5-5", ModelKeys.Of(Catalog, ProviderId.ClaudeCode, "opus[1m]"));
+        Assert.Equal("claude-mythos-5-1", ModelKeys.Of(Catalog, ProviderId.ClaudeCode, "Claude-Mythos-5-1-20261001"));
+        Assert.Equal("sonnet", ModelKeys.Of(Catalog, ProviderId.CodexCli, "sonnet"));
+        Assert.Null(ModelKeys.Of(Catalog, ProviderId.ClaudeCode, " "));
     }
 
     [Fact]
