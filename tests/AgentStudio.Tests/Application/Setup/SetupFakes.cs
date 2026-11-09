@@ -183,7 +183,7 @@ internal static class SetupTeams
 {
     public static AgentDefinition Agent(string id, AgentRole role, ProviderId provider, VendorId vendor, IReadOnlyList<string>? tools = null) => new(
         new AgentId(id),
-        id,
+        char.ToUpperInvariant(id[0]) + id[1..],
         role,
         new ModelBinding(provider, vendor),
         string.Empty,
