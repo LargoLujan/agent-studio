@@ -1695,3 +1695,21 @@ Lo que WP3 añade o cambia sobre lo de arriba ([ADR-0052](adr/0052-analisis-del-
 - **Para la integración:** registrar `AddAgentStudioConsumptionAnalysis` con el catálogo de WP2; que WP8 llame al análisis
   determinista al terminar cada ejecución y con su botón, y al de un agente con el OK; y que el motor (WP4) pida el paquete
   también para los agentes sin memoria si deben recibir la ficha.
+
+### 21.7 WP1: analizador, orden y chat de preparación ([ADR-0049](adr/0049-analizador-del-montaje-y-orden.md))
+
+| Contrato | Fichero | Qué es | Lo implementa |
+|---|---|---|---|
+| `PlanViolationCode.WriteScopeOutsideAgentArea` (al final del enum) y `AgentWriteArea` | `Domain/Orchestration/PlanValidator.cs` | La regla de F13-5: con carpetas propias (los `PathGrant` de lectura y escritura, relativos al repositorio), el alcance de cada tarea que escribe cabe en ellas; una violación por entrada que no cabe. Sin carpetas, todo el proyecto | WP1 |
+| `MontageAnalyzer`, las reglas de `Analysis/Rules/`, `MontageTexts`, `FixApplier`, `EditHistory<T>`, `FixRefusals`, `OrderFix`, `OrderNotesCheck` | `Domain/Orchestration/Analysis/` | El analizador puro de D-18 con el validador envuelto, los textos de cada hallazgo y botón, los arreglos que se deshacen y la comprobación de las notas | WP1; lo pinta WP6 |
+| `MontageDraft.Steps` (`VerificationStepFacts`: id, compila, ejecuta pruebas, requiere; lista vacía por defecto) | `Domain/Orchestration/Analysis/MontageDraft.cs` | El perfil que necesita `verification.test-without-build`; sin él, la regla calla | WP6 lo rellena |
+| `PlanProposal.OrderNotes` (`OrderNotes?`, `init`, nulo por defecto) | `Application/Orchestration/OrchestratorContracts.cs` | Las notas de orden del plan propuesto, comprobadas contra sus tareas; no entran en el hash del plan | WP1 (el planificador) |
+| `IOrderReview`, `OrderReviewRequest`, `OrderSuggestion`, `OrderSuggestionKind`, `OrderReviewResult` | `Application/Orchestration/OrderReviewContracts.cs` | «Revisar el orden» (D-20): auxiliar de solo lectura con tu OK, en el `_base` de una planificación del registro; cada nota, una sugerencia comprobada con su arreglo | WP1 (`Orchestration/Planning/OrderReviewService`) |
+| `IPreparationChat`, `PreparationChatRequest` (con `Catalog`), `PreparationChatSession`, `PreparationChatReply`, `RequirementDraft`, `TeamSuggestion`, `PreparationChatLimits` | `Application/Orchestration/PreparationChatContracts.cs` | El chat de preparación (D-44): un OK por mensaje, la sesión reanudada en una copia `chat-…` que `EndAsync` borra, el mensaje redactado y las sugerencias como arreglos comprobados | WP1 (`Orchestration/Planning/PreparationChatService`) |
+| `IQuotaConsentLedger` (`TrySpend`) y `QuotaConsentLedger` | `Application/Providers/QuotaConsentLedger.cs` | El único registro de OK de cuota gastados de la app, en memoria y atómico: lo comparten «Revisar el orden», el chat, la recomendación de skills y el análisis del consumo con un agente | WP1; la composición registra una instancia |
+
+- **El esquema del plan** gana `orderNotes` y `questions` (obligatorios en modo estricto); el parseo admite una respuesta sin
+  ellos (`PlanParseResult.OrderNotes`, `DiscardedNotes` y `Questions`), y `PlanSchema.OrderReviewSchema` da el de «Revisar el
+  orden».
+- **En la composición:** `IOrderReview`, `IPreparationChat` e `IQuotaConsentLedger` como únicos (singleton), con la misma
+  instancia del registro de OK para todos los servicios que lo piden.

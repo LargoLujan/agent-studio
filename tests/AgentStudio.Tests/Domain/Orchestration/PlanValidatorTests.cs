@@ -69,6 +69,9 @@ public sealed class PlanValidatorTests
 
         // T2 (ejecutor2) is verified, but only with the build: no step of it runs tests.
         [PlanViolationCode.TestStepRequiredByPolicy] = () => new(Plan(), Context(roster: WithPolicy("ejecutor2", new ReviewPolicy(false, true)))),
+
+        // Phase 13 (F13-5): ejecutor2 may only write lib/, and T2 writes src/Other/.
+        [PlanViolationCode.WriteScopeOutsideAgentArea] = () => new(Plan(), Context(roster: [.. Roster().Select(a => a.Id == Aid("ejecutor2") ? a with { PathGrants = [new PathGrant("lib/", FileAccessLevel.ReadWrite)] } : a)])),
     };
 
     /// <summary>The roster with the review policy of <paramref name="agent"/> replaced.</summary>

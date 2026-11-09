@@ -120,6 +120,15 @@ public sealed record PlanProposal(
     /// gets the answers (<see cref="PlanningRequest.Answers"/>). Null or empty when the orchestrator asked nothing.
     /// </summary>
     public IReadOnlyList<PendingQuestion>? Questions { get; init; }
+
+    /// <summary>
+    /// Phase 13 (docs/17 D-19, WP1): the notes of order the orchestrator wrote inside <see cref="Plan"/> (why each dependency,
+    /// what may run at once, what order would be harmful), as the system kept them against its tasks. Text of an agent: the
+    /// canvas shows them as «nota del orquestador» and the analyzer checks the plan against them; they never rule. They do not
+    /// enter the hash of the plan, and the answer of the orchestrator as it came (<see cref="RawPlanEvidence"/>) keeps them.
+    /// Null without a plan or without notes.
+    /// </summary>
+    public Domain.Orchestration.Analysis.OrderNotes? OrderNotes { get; init; }
 }
 
 /// <summary>

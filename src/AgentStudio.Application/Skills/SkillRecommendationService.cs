@@ -125,9 +125,12 @@ public sealed class SkillRecommendationService : ISkillRecommendationService
     private readonly ISkillRecommendationFolders _folders;
     private readonly SkillRecommendationOptions _options;
     private readonly TimeProvider _time;
-    private readonly Lock _gate = new();
-    private readonly HashSet<QuotaConsent> _spent = [];
+    private readonly IQuotaConsentLedger _consents;
 
+    /// <param name="consents">
+    /// The register of the OKs spent, shared with every other auxiliary run (Phase 13): the composition gives the one of the
+    /// app; without it the service keeps one of its own, as before.
+    /// </param>
     public SkillRecommendationService(
         ISkillCatalog catalog,
         ISkillActivationStore activations,
@@ -136,8 +139,10 @@ public sealed class SkillRecommendationService : ISkillRecommendationService
         IAuxiliaryAgentRunner runner,
         ISkillRecommendationFolders folders,
         SkillRecommendationOptions options,
-        TimeProvider time)
+        TimeProvider time,
+        IQuotaConsentLedger? consents = null)
     {
+        _consents = consents ?? new QuotaConsentLedger();
         ArgumentNullException.ThrowIfNull(catalog);
         ArgumentNullException.ThrowIfNull(activations);
         ArgumentNullException.ThrowIfNull(roster);
@@ -235,12 +240,9 @@ public sealed class SkillRecommendationService : ISkillRecommendationService
             throw new InvalidOperationException($"The consent was given more than {_options.ConsentValidity.TotalMinutes.ToString(CultureInfo.InvariantCulture)} minutes ago: ask the user again.");
         }
 
-        lock (_gate)
+        if (!_consents.TrySpend(consent))
         {
-            if (!_spent.Add(consent))
-            {
-                throw new InvalidOperationException("That consent was already used for an assisted recommendation: each use needs the user's OK.");
-            }
+            throw new InvalidOperationException("That consent was already used: each use needs the user's OK.");
         }
     }
 

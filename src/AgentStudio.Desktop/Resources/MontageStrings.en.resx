@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- English satellite of MontageStrings.resx (WP1 of Phase 13, ADR-0049): the same keys and placeholders. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Text_delivery_no_integration" xml:space="preserve">
+    <value>There is no integration: nothing would reach your branch.</value>
+  </data>
+  <data name="Text_verification_test_without_build" xml:space="preserve">
+    <value>{0} runs {1} without building first: the tests would find nothing to test.</value>
+  </data>
+  <data name="Text_team_judge_same_vendor" xml:space="preserve">
+    <value>Judge {0} is from {1}, the same company as whoever does the work: it must be from another one.</value>
+  </data>
+  <data name="Text_plan_parallel_write_overlap" xml:space="preserve">
+    <value>{0} and {1} can run at the same time and change the same files.</value>
+  </data>
+  <data name="Text_team_write_outside_area" xml:space="preserve">
+    <value>{0} writes to {2}, outside the folders of {1}.</value>
+  </data>
+  <data name="Text_team_parallel_capacity" xml:space="preserve">
+    <value>With {0} executors on {1}, {2} work at once; the rest wait their turn.</value>
+  </data>
+  <data name="Text_context_pack_too_small" xml:space="preserve">
+    <value>The mandatory requirements of {0} take {1:N0} characters and its budget is {2:N0}: the task would not start. Split it or reduce its requirements.</value>
+  </data>
+  <data name="Text_context_window_tight" xml:space="preserve">
+    <value>{0} starts with ~{1:N0} tokens, {3} % of the model's working memory ({2:N0}).</value>
+  </data>
+  <data name="Text_context_thin" xml:space="preserve">
+    <value>{0} writes with no memory, no project brief and nothing from earlier tasks.</value>
+  </data>
+  <data name="Text_model_oversized" xml:space="preserve">
+    <value>{0} only touches documentation or tests and {1} does it with {2}, a maximum-level model: try a balanced one.</value>
+  </data>
+  <data name="Text_model_undersized" xml:space="preserve">
+    <value>{0} uses {1}, a light model, which had {2} retries and {3} rejections from the judge in this project.</value>
+  </data>
+  <data name="Text_cost_over_budget" xml:space="preserve">
+    <value>The plan would need about {0} agent runs and your budget is {1}.</value>
+  </data>
+  <data name="Text_quota_window_near" xml:space="preserve">
+    <value>The {1} limit of {0} is at {2} %: you may have to wait until {3:t}.</value>
+  </data>
+  <data name="Text_quota_window_near_no_reset" xml:space="preserve">
+    <value>The {1} limit of {0} is at {2} %: you may have to wait.</value>
+  </data>
+  <data name="Text_order_note_unapplied" xml:space="preserve">
+    <value>The orchestrator said {0} needs {1}, and the plan no longer orders them that way.</value>
+  </data>
+  <data name="Text_order_harmful" xml:space="preserve">
+    <value>The orchestrator warned that doing {0} before {1} would be harmful, and the plan allows it.</value>
+  </data>
+  <data name="Text_capability_high_risk" xml:space="preserve">
+    <value>{0} has a high-risk capability ({1}): approving the plan will ask for Windows Hello.</value>
+  </data>
+  <data name="Text_fix_add_integration" xml:space="preserve">
+    <value>Add an integration at the end</value>
+  </data>
+  <data name="Text_fix_add_build_step" xml:space="preserve">
+    <value>Build with {0} before testing {1}</value>
+  </data>
+  <data name="Text_fix_add_dependency" xml:space="preserve">
+    <value>{0} after {1}</value>
+  </data>
+  <data name="Text_fix_reassign_task" xml:space="preserve">
+    <value>Give {0} to {1}</value>
+  </data>
+  <data name="Text_fix_switch_judge" xml:space="preserve">
+    <value>Review {0} with {1}</value>
+  </data>
+  <data name="Text_fix_add_judge" xml:space="preserve">
+    <value>Add a judge from {1} ({0})</value>
+  </data>
+  <data name="Text_fix_widen_agent_folders" xml:space="preserve">
+    <value>Let {0} write to {1}</value>
+  </data>
+  <data name="Text_fix_raise_context_budget" xml:space="preserve">
+    <value>Raise the context budget of {0} to {1:N0} characters</value>
+  </data>
+  <data name="Text_fix_raise_run_budget" xml:space="preserve">
+    <value>Raise the budget to {0} runs</value>
+  </data>
+  <data name="Text_fix_change_model" xml:space="preserve">
+    <value>Change {0} to {1}</value>
+  </data>
+  <data name="Text_fix_change_model_effort" xml:space="preserve">
+    <value>Change {0} to {1} with effort {2}</value>
+  </data>
+  <data name="Text_fix_memory_on" xml:space="preserve">
+    <value>Turn on the memory of {0}</value>
+  </data>
+  <data name="Text_fix_memory_off" xml:space="preserve">
+    <value>Turn off the memory of {0}</value>
+  </data>
+  <data name="Text_fix_remove_skills" xml:space="preserve">
+    <value>Remove {1} skills from {0}</value>
+  </data>
+  <data name="Text_fix_remove_capability" xml:space="preserve">
+    <value>Remove {1} from {0}</value>
+  </data>
+  <data name="Text_fix_refused_no_plan" xml:space="preserve">
+    <value>There is no plan yet.</value>
+  </data>
+  <data name="Text_fix_refused_unknown_task" xml:space="preserve">
+    <value>The task is no longer in the plan.</value>
+  </data>
+  <data name="Text_fix_refused_unknown_agent" xml:space="preserve">
+    <value>The agent is no longer in the team.</value>
+  </data>
+  <data name="Text_fix_refused_dependency" xml:space="preserve">
+    <value>That dependency would create a cycle or is already in the plan.</value>
+  </data>
+  <data name="Text_fix_refused_graph_not_sound" xml:space="preserve">
+    <value>Fix the dependency errors of the plan first.</value>
+  </data>
+  <data name="Text_fix_refused_no_judge_template" xml:space="preserve">
+    <value>There is no judge to copy.</value>
+  </data>
+  <data name="Text_fix_refused_not_in_template" xml:space="preserve">
+    <value>The template has no such setting.</value>
+  </data>
+  <data name="Text_fix_refused_through_skill_store" xml:space="preserve">
+    <value>Skills are turned off on the skills screen.</value>
+  </data>
+  <data name="Text_fix_refused_nothing_to_change" xml:space="preserve">
+    <value>It was already like that.</value>
+  </data>
+  <data name="Text_fix_refused_breaks_graph" xml:space="preserve">
+    <value>That fix would create a cycle in the plan.</value>
+  </data>
+</root>

@@ -71,9 +71,51 @@ public static class PlanSchema
         var plan = Object(
             ("summary", String()),
             ("tasks", Array(task)),
-            ("risks", Array(String())));
+            ("risks", Array(String())),
+            ("orderNotes", OrderNotes()),
+            ("questions", Array(Question(), "Solo antes de planificar, si te falta una decisión de la persona: como mucho 3, y entonces tasks vacío. Si no, vacío.")));
 
         return ToCompactJson(plan);
+    }
+
+    /// <summary>
+    /// Phase 13 (docs/17 D-19): why the order is what it is, inside the plan, at no extra run. The task ids are the ones of this
+    /// same answer, so they cannot be enums; the system checks that they exist. Also the answer of «Revisar el orden» (D-20),
+    /// with its own schema (<see cref="OrderReviewSchema"/>).
+    /// </summary>
+    internal static System.Text.Json.Nodes.JsonObject OrderNotes(IReadOnlyCollection<string>? tasks = null)
+    {
+        System.Text.Json.Nodes.JsonObject Id() => tasks is null ? String() : Enum(tasks);
+        return Object(
+            ("dependencies", Array(Object(("from", Id()), ("to", Id()), ("reason", String())), "Por cada dependencia, por qué 'to' necesita a 'from', en una frase.")),
+            ("parallelOk", Array(Object(("a", Id()), ("b", Id()), ("reason", String())), "Pares de tareas que pueden ir a la vez, y por qué.")),
+            ("harmful", Array(Object(("first", Id()), ("then", Id()), ("reason", String())), "Órdenes dañinos: hacer 'first' antes que 'then', y por qué.")));
+    }
+
+    /// <summary>
+    /// Phase 13 (docs/17 D-28): a question of the orchestrator before it plans, in the shape of the report of the executors:
+    /// every property required, the effort a closed list, and no lengths (strict mode takes none: <c>QuestionRules</c> checks them).
+    /// </summary>
+    private static System.Text.Json.Nodes.JsonObject Question() =>
+        Object(
+            ("text", String()),
+            ("why", String()),
+            ("options", Array(Object(
+                ("id", String()),
+                ("label", String()),
+                ("detail", String()),
+                ("effort", Enum(["small", "medium", "large"])),
+                ("recommended", Boolean())))),
+            ("allowOther", Boolean()));
+
+    /// <summary>
+    /// The schema of the answer of «Revisar el orden» (docs/17 D-20): <c>{ dependencies, parallelOk, harmful }</c>, with the ids of
+    /// the tasks of the plan reviewed as enums, since they exist already.
+    /// </summary>
+    public static string OrderReviewSchema(IEnumerable<string> taskIds)
+    {
+        ArgumentNullException.ThrowIfNull(taskIds);
+        return ToCompactJson(OrderNotes([.. taskIds.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)]));
     }
 
     /// <summary>True if the schema can travel inline to the CLI.</summary>

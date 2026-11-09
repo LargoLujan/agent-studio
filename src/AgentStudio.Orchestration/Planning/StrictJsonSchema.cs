@@ -36,6 +36,8 @@ internal static class StrictJsonSchema
 
     public static JsonObject Integer(string? description = null) => Describe(new JsonObject { ["type"] = "integer" }, description);
 
+    public static JsonObject Boolean(string? description = null) => Describe(new JsonObject { ["type"] = "boolean" }, description);
+
     public static JsonObject Null() => new() { ["type"] = "null" };
 
     /// <summary>A string limited to <paramref name="values"/>; with no values it is a plain string (the validator decides).</summary>
