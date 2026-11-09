@@ -58,6 +58,18 @@ public static class EstimateAssumptions
 
     /// <summary>The CLI does not expose the cost (Codex): it is not estimated.</summary>
     public const string CostNotExposed = "estimate.cost-not-exposed";
+
+    /// <summary>
+    /// WP2 (2026-11-09): the agent had fewer than three similar attempts, so the references are attempts of the same model and
+    /// purpose by any agent of the project («aprendido del modelo»). It replaces <see cref="SameAgentAndModel"/>.
+    /// </summary>
+    public const string SameModel = "estimate.same-model";
+
+    /// <summary>WP2 (2026-11-09): the duration of a plan counts the runs of its agents; checks, conditions and approvals add none.</summary>
+    public const string AgentsOnly = "estimate.agents-only";
+
+    /// <summary>Every code, for the tests of the resources.</summary>
+    public static IReadOnlyList<string> All { get; } = [SameAgentAndModel, SamePurpose, SameSize, CriticalPath, ListPrice, CostNotExposed, SameModel, AgentsOnly];
 }
 
 /// <summary>
