@@ -1,0 +1,24 @@
+<UserControl x:Class="AgentStudio.Desktop.Views.Settings.MotionSettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
+             xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
+             xmlns:settings="clr-namespace:AgentStudio.Desktop.Settings"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=settings:MotionSettingsViewModel}"
+             AutomationProperties.Name="{l:T Settings_ReduceMotion}">
+    <!-- «Reducir movimiento», a section of «Ajustes» (docs/17 D-15): it turns off the animations of the canvas. Windows may have
+         turned them off already (SystemParameters.ClientAreaAnimation); this is the own setting. «Guardar» is the document's,
+         for every section at once. Bindings only. -->
+    <StackPanel>
+        <DockPanel>
+            <info:InfoButton DockPanel.Dock="Right" InfoKey="Info_Canvas_Motion" VerticalAlignment="Center"/>
+            <TextBlock Style="{StaticResource SectionTitleText}" Text="{l:T Settings_ReduceMotion}" VerticalAlignment="Center"/>
+        </DockPanel>
+        <CheckBox Margin="0,10,0,0" Content="{l:T Settings_ReduceMotion}" IsChecked="{Binding ReduceMotion}"
+                  AutomationProperties.Name="{l:T Settings_ReduceMotion}"/>
+        <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" TextWrapping="Wrap" Text="{l:T Settings_ReduceMotion_Help}"/>
+    </StackPanel>
+</UserControl>
