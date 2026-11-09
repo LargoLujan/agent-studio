@@ -68,6 +68,13 @@ public sealed class QuestionPromptService : IDisposable
         {
             _lock.Changed += OnLockChanged;
         }
+
+        // The questions that were already waiting when the service was built (a run attached before, or one rebuilt after a restart)
+        // get the same treatment as the ones that arrive later.
+        foreach (var waiting in _monitor.PendingQuestions.ToList())
+        {
+            OnRaised(_monitor, waiting);
+        }
     }
 
     /// <summary>The app is out of view or locked while an agent asks: the shell shows the notice of the tray (D-41). It carries no data.</summary>

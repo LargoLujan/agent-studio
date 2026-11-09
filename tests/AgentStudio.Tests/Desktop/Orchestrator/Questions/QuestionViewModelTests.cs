@@ -364,6 +364,25 @@ public sealed class QuestionViewModelTests
     }
 
     [Fact]
+    public void A_service_built_after_the_run_was_attached_still_opens_the_window_of_a_question_that_was_waiting()
+    {
+        var monitor = new RunMonitorViewModel(new Microsoft.Extensions.Time.Testing.FakeTimeProvider(T0), new QueueSynchronizationContext());
+        monitor.Attach(new FakeRun(FakeRun.SnapshotOf(RunPhase.AwaitingHuman, View("T1", "exec1", WorkTaskStatus.Blocked, BlockReasonText.AwaitingAnswerReason, Pending()))));
+        var host = new RecordingHost();
+
+        using var service = new QuestionPromptService(monitor, host);
+        var attention = new List<QuestionAttentionEventArgs>();
+        service.AttentionRequested += (_, e) => attention.Add(e);
+
+        Assert.Equal(["T1-q1"], host.Shown);
+
+        // It is wired like any other: deciding later closes the window and keeps the card.
+        monitor.PendingQuestions[0].DeferCommand.Execute(null);
+        Assert.Equal(["T1-q1"], host.Closed);
+        Assert.Single(monitor.PendingQuestions);
+    }
+
+    [Fact]
     public void The_task_that_waits_for_an_answer_is_not_a_block_to_retry_in_any_language_of_its_label()
     {
         var (monitor, _, _, _) = Open(View("T1", "exec1", WorkTaskStatus.Blocked, BlockReasonText.AwaitingAnswerReason));
