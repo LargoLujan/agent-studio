@@ -5,6 +5,7 @@ using AgentStudio.Application.Providers;
 using AgentStudio.Application.Semantic;
 using AgentStudio.Application.Usage;
 using AgentStudio.Desktop.Background;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Lock;
 using AgentStudio.Desktop.Memory;
 using AgentStudio.Desktop.Observability;
@@ -63,6 +64,7 @@ internal static class ObservabilityUiServices
                 Time(provider),
                 provider.GetRequiredService<QuotaViewModel>(),
                 provider.GetRequiredService<ObservabilitySettingsViewModel>()))
+            .AddSingleton(provider => new LanguageSettingsViewModel(provider.GetRequiredService<IAppSettingsStore>()))
             .AddSingleton(provider => new MemorySettingsViewModel(provider.GetRequiredService<IAppSettingsStore>()))
             .AddSingleton(provider => new SettingsDocumentViewModel(
                 provider.GetRequiredService<IAppSettingsStore>(),
@@ -70,7 +72,8 @@ internal static class ObservabilityUiServices
                 provider.GetService<UnattendedSettingsViewModel>(),
                 provider.GetService<LockSettingsViewModel>(),
                 Time(provider),
-                provider.GetRequiredService<MemorySettingsViewModel>()))
+                provider.GetRequiredService<MemorySettingsViewModel>(),
+                provider.GetRequiredService<LanguageSettingsViewModel>()))
             .AddSingleton(provider => new DailySummaryViewModel(provider.GetService<IDailySummaryService>(), Time(provider)))
             .AddSingleton(provider => new SemanticIndexUpkeep(
                 provider.GetService<ISemanticIndex>(),

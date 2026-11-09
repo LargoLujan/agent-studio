@@ -114,6 +114,14 @@ public static class Texts
     private static IUiTextProvider? _applied;
     private static readonly Lazy<IUiTextProvider> Default = new(() => new ResourceTextProvider(UiLanguages.Resolve(null, CultureInfo.CurrentUICulture).Culture));
 
+    private static CultureInfo? _windowsUiCulture;
+
+    /// <summary>
+    /// The language of the interface of Windows, as it was before <see cref="UseLanguage"/> put the one of the app on the
+    /// threads; the current one until a language is applied. «Ajustes» names it in «El de Windows».
+    /// </summary>
+    public static CultureInfo WindowsUiCulture => _windowsUiCulture ?? CultureInfo.CurrentUICulture;
+
     /// <summary>The provider of the language in use.</summary>
     public static IUiTextProvider Current => _applied ?? Default.Value;
 
@@ -148,6 +156,7 @@ public static class Texts
                 return;
             }
 
+            _windowsUiCulture = CultureInfo.CurrentUICulture;
             CultureInfo.DefaultThreadCurrentUICulture = language.Culture;
             Thread.CurrentThread.CurrentUICulture = language.Culture;
             Resources.Strings.Culture = language.Culture;

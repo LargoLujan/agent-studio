@@ -8,6 +8,7 @@
              xmlns:backgroundViews="clr-namespace:AgentStudio.Desktop.Views.Background"
              xmlns:lockViews="clr-namespace:AgentStudio.Desktop.Views.Lock"
              xmlns:memoryViews="clr-namespace:AgentStudio.Desktop.Views.Memory"
+             xmlns:local="clr-namespace:AgentStudio.Desktop.Views.Settings"
              xmlns:orchestratorViews="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=settings:SettingsDocumentViewModel}"
@@ -56,6 +57,9 @@
                 </Border>
                 <Border Style="{StaticResource Settings.Section}" Visibility="{Binding Memory, Converter={StaticResource Settings.NotNullToVisibility}}">
                     <memoryViews:MemorySettingsView DataContext="{Binding Memory}"/>
+                </Border>
+                <Border Style="{StaticResource Settings.Section}" Visibility="{Binding Language, Converter={StaticResource Settings.NotNullToVisibility}}">
+                    <local:LanguageSettingsView DataContext="{Binding Language}"/>
                 </Border>
             </StackPanel>
         </ScrollViewer>
