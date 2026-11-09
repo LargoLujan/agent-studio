@@ -60,10 +60,32 @@
        la informó.
      - **El coste por tarea:** la suma de sus intentos a precio de lista del CLI (`UsageProjector`, sin contar dos veces una
        sesión), y del modelo, la mediana de sus tareas con coste, desde tres. Codex no lo expone: «no expuesto», nunca cero.
-  4. **El estimador de F9-7** (docs/16 D-20) es de WP3 (`IUsageEstimator`, `Observability/Estimates`; docs/04 §21.4). WP2 no
-     lo duplica: lo usa por su puerto para lo que D-24 pide enseñar, «la diferencia de consumo esperada con las otras
-     opciones» (`ModelOptionEstimates.CompareAsync`: una estimación por opción, con solo el modelo cambiado, y «desconocida»
-     con menos de tres referencias).
+  4. **El estimador de F9-7** (docs/16 D-20, adelantado) lo implementa WP2 (`Observability/Estimates/UsageEstimator` sobre
+     `UsageEstimation`, puro; reasignado por el coordinador el 2026-11-09, porque docs/04 §21.4 lo daba a WP3 y nadie lo
+     había hecho). Lee el registro verificado por `IProjectLogReader` y no gasta cuota. Un registro que no verifica, o que
+     ningún ancla reconoce, falla cerrado: todo «desconocido», sin referencias.
+     - **Las referencias de un intento:** los intentos del mismo CLI y propósito, con el mismo modelo (el alias y el nombre
+       completo, con o sin fecha, son uno; el modelo por defecto casa con los intentos configurados sin modelo), que
+       terminaron con resultado. Primero, los del mismo agente («medido en el proyecto»: `SameAgentAndModel`); con menos de
+       tres, los de cualquier agente («aprendido del modelo»: `SameModel`). Con menos de tres también, «desconocida». No hay
+       tabla base de consumo y no se inventa: la tabla base de la tanda 2 es de ventanas, no de tokens.
+     - **El tamaño** (D-32): las referencias se parten en tercios por sus tokens (entrada y salida), y solo cuenta el tercio
+       del tamaño pedido (`SameSize`).
+     - **El intervalo:** los percentiles 25 y 75 por rango más cercano, así que cada extremo es una cifra que tuvo algún
+       intento. Cada cifra va por su cuenta: la que tienen menos de tres referencias es «desconocida», y el coste de Codex,
+       «no expuesto» (`CostNotExposed`); un coste conocido es el precio de lista del CLI (`ListPrice`).
+     - **Los tokens totales** (`UsageEstimate.TotalTokens`, a petición de WP4): los percentiles de los totales de cada
+       referencia, calculados como tales, nunca la suma de los percentiles de la entrada y la salida, que no sería ninguno.
+       `UsageEstimate.ToSnapshot(opción)` da el `OptionEstimateSnapshot` de una pregunta.
+     - **Un plan:** cada tarea de trabajo (ejecutor) o de revisión (juez) se estima como un intento, y sus ejecuciones son los
+       percentiles 25 y 75 de las que llevaron las tareas parecidas, con sus reintentos. Las ejecuciones y los tokens del
+       plan suman los extremos bajos y los altos (un intervalo, no un percentil de la suma). La duración sigue el grafo con
+       las tareas a la vez y la concurrencia de cada CLI (2 por defecto), y cuenta todas las ramas de una condición
+       (`CriticalPath`); las comprobaciones, las condiciones y tus aprobaciones no suman (`AgentsOnly`). Una tarea sin tres
+       referencias deja la cifra del plan «desconocida» y dice cuál.
+     - **La ventana aprendida** no entra en `UsageEstimate`, que no tiene ese campo: está en lo aprendido (`LearnedModel.ContextWindow`).
+     - **La comparación de opciones** de D-24 lo usa por su puerto (`ModelOptionEstimates.CompareAsync`: una estimación por
+       opción, con solo el modelo cambiado).
   5. **La recomendación es determinista y dice por qué** (D-24): `Domain/Models/ModelRecommender`, puro y sin cuota, sobre las
      entradas y el resultado del P0.
      - **Candidatos:** las entradas del CLI del agente que admiten algún esfuerzo. Un nivel sin candidatos pasa al más
@@ -108,7 +130,11 @@
     `ModelCatalogSource`; `IModelLearning`, `LearnedModels` y `LearnedModel`; `ModelOptionEstimates` y `ModelOptionEstimate`.
   - **Infrastructure** (`Infrastructure/Models`): `ModelCatalogData`, `ModelCatalogReader`, `BuiltInModelCatalog` y
     `AddAgentStudioModelCatalog`. **Observability** (`Observability/Models`): `LearnedModelsProjection`, `ProjectModelLearning`
-    y `AddAgentStudioModelLearning`. La composición (del lead) llama a los dos registros.
+    y `AddAgentStudioModelLearning`; (`Observability/Estimates`): `UsageEstimation`, `UsageEstimator` y
+    `AddAgentStudioUsageEstimator`. La composición (del lead) llama a los tres registros.
+  - **Application** (`Usage/EstimateContracts.cs`, del P0): `UsageEstimate.TotalTokens` (opcional, al final),
+    `UsageEstimate.ToSnapshot` y `NoTotalReason`, y `EstimateAssumptions.SameModel`, `AgentsOnly` y `All`. Los textos de los
+    supuestos, en `Desktop/Resources/EstimatesStrings.resx` y su satélite inglés.
   - **Providers:** `CodexExecArguments.ReasoningEffortKey`.
 - **Alternativas:**
   - Una tabla de precios propia (descartada, docs/14 D-06).
