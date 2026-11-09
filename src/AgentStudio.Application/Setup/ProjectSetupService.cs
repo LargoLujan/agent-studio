@@ -316,16 +316,34 @@ public sealed class ProjectSetupService
         var granted = SetupCapabilities.Granted(current, changed);
         if (granted.Count > 0)
         {
-            var gate = await ConfirmAsync(PresenceAction.GrantHighRiskCapability, before + "|" + RosterHash.Of(changed), ct).ConfigureAwait(false);
+            var gate = await ConfirmAsync(PresenceAction.GrantHighRiskCapability, UserText.Of("setup.hello.subject-team", current.Select(a => a.Id).Union(changed.Select(a => a.Id)).Count()), ct).ConfigureAwait(false);
             if (!gate.Confirmed)
             {
                 return (new SetupPartResult(SetupStep.Team, SetupPartOutcome.Denied, gate.Problem), before, before, null);
             }
         }
 
-        foreach (var agent in changed)
+        try
         {
-            await _roster.SaveAsync(project.ProjectId, agent, ct).ConfigureAwait(false);
+            foreach (var agent in changed)
+            {
+                await _roster.SaveAsync(project.ProjectId, agent, ct).ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // The agents saved before the error stay saved: what the store holds now is what the log names, and the result says why.
+            var partial = before;
+            try
+            {
+                partial = RosterHash.Of(await _roster.ListAsync(project.ProjectId, ct).ConfigureAwait(false));
+            }
+            catch (Exception inner) when (inner is IOException or UnauthorizedAccessException)
+            {
+                // The store cannot even be read: nothing is claimed of it.
+            }
+
+            return (new SetupPartResult(SetupStep.Team, SetupPartOutcome.Failed, UserText.Of("setup.problem.roster-not-saved", ex.Message)), before, partial, partial == before ? null : partial);
         }
 
         var after = RosterHash.Of(await _roster.ListAsync(project.ProjectId, ct).ConfigureAwait(false));
@@ -355,7 +373,7 @@ public sealed class ProjectSetupService
             return (new SetupPartResult(SetupStep.Verification, SetupPartOutcome.Unchanged), null);
         }
 
-        var gate = await ConfirmAsync(PresenceAction.ChangeVerificationProfile, profile.ContentHash, ct).ConfigureAwait(false);
+        var gate = await ConfirmAsync(PresenceAction.ChangeVerificationProfile, UserText.Of("setup.hello.subject-profile", profile.Name switch { SetupStacks.DotNet => ".NET", SetupStacks.Node => "Node", SetupStacks.Python => "Python", var other => other }), ct).ConfigureAwait(false);
         if (!gate.Confirmed)
         {
             return (new SetupPartResult(SetupStep.Verification, SetupPartOutcome.Denied, gate.Problem), null);
@@ -365,9 +383,9 @@ public sealed class ProjectSetupService
         {
             await _profiles.SaveAsync(project, profile, ct).ConfigureAwait(false);
         }
-        catch (Exception ex) when (ex is ArgumentException or IOException)
+        catch (Exception ex) when (ex is ArgumentException or IOException or UnauthorizedAccessException)
         {
-            return (new SetupPartResult(SetupStep.Verification, SetupPartOutcome.Failed, UserText.Of("setup.problem.profile-not-saved")), null);
+            return (new SetupPartResult(SetupStep.Verification, SetupPartOutcome.Failed, UserText.Of("setup.problem.profile-not-saved", ex.Message)), null);
         }
 
         return (new SetupPartResult(SetupStep.Verification, SetupPartOutcome.Applied), profile.ContentHash);
@@ -436,9 +454,9 @@ public sealed class ProjectSetupService
         {
             await _options.SaveAsync(project, options, ct).ConfigureAwait(false);
         }
-        catch (IOException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            return (new SetupPartResult(SetupStep.Budget, SetupPartOutcome.Failed, UserText.Of("setup.problem.options-not-saved")), null);
+            return (new SetupPartResult(SetupStep.Budget, SetupPartOutcome.Failed, UserText.Of("setup.problem.options-not-saved", ex.Message)), null);
         }
 
         return (new SetupPartResult(SetupStep.Budget, SetupPartOutcome.Applied), OptionsHash(options));
@@ -456,7 +474,7 @@ public sealed class ProjectSetupService
             seconds));
     }
 
-    private async Task<SetupPresenceResult> ConfirmAsync(PresenceAction action, string subject, CancellationToken ct) =>
+    private async Task<SetupPresenceResult> ConfirmAsync(PresenceAction action, UserText subject, CancellationToken ct) =>
         _gate is null
             ? new SetupPresenceResult(false, UserText.Of("setup.hello.not-composed"))
             : await _gate.ConfirmAsync(action, subject, ct).ConfigureAwait(false);

@@ -111,8 +111,8 @@ public sealed class LocalProjectOptionsStore : IProjectOptionsStore
 
     public async Task<ProjectRunOptions?> LoadAsync(ProjectContext project, CancellationToken ct)
     {
-        var path = PathOf(project);
-        if (!File.Exists(path))
+        // An id that is not safe has no options: it is not an error to ask.
+        if (TryPathOf(project) is not { } path || !File.Exists(path))
         {
             return null;
         }
@@ -134,7 +134,7 @@ public sealed class LocalProjectOptionsStore : IProjectOptionsStore
     public async Task SaveAsync(ProjectContext project, ProjectRunOptions options, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(options);
-        var path = PathOf(project);
+        var path = TryPathOf(project) ?? throw new ArgumentException("The id of the project is not safe to name a file.", nameof(project));
         Directory.CreateDirectory(_folder);
         var json = JsonSerializer.Serialize(
             new OptionsDocument(1, options.MaxAgentRuns, options.MaxParallelTasks, options.TimePerAttempt is { } time ? (long)time.TotalSeconds : null),
@@ -142,19 +142,49 @@ public sealed class LocalProjectOptionsStore : IProjectOptionsStore
 
         // Written whole beside the file and moved over it, so a reader never sees half of it.
         var temporary = path + "." + Guid.NewGuid().ToString("N")[..8] + ".tmp";
-        await File.WriteAllTextAsync(temporary, json, Utf8, ct).ConfigureAwait(false);
-        File.Move(temporary, path, overwrite: true);
+        try
+        {
+            await File.WriteAllTextAsync(temporary, json, Utf8, ct).ConfigureAwait(false);
+            File.Move(temporary, path, overwrite: true);
+        }
+        catch
+        {
+            // No half-written file is left beside the options, whatever went wrong (the Move, the write, the cancellation).
+            TryDelete(temporary);
+            throw;
+        }
     }
 
-    private string PathOf(ProjectContext project)
+    /// <summary>
+    /// Ids that are safe to name a file: letters, digits, <c>-</c> and <c>_</c> only (a GUID is one), and not a name Windows keeps
+    /// for its devices (<c>CON</c>, <c>PRN</c>, <c>AUX</c>, <c>NUL</c>, <c>COM1</c> to <c>COM9</c>, <c>LPT1</c> to <c>LPT9</c>).
+    /// </summary>
+    public static bool IsSafeId(string? id) =>
+        !string.IsNullOrEmpty(id)
+        && id.Length <= 64
+        && id.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_')
+        && !ReservedNames.Contains(id);
+
+    private static readonly HashSet<string> ReservedNames = new(
+        ["CON", "PRN", "AUX", "NUL", .. Enumerable.Range(1, 9).Select(i => "COM" + i), .. Enumerable.Range(1, 9).Select(i => "LPT" + i)],
+        StringComparer.OrdinalIgnoreCase);
+
+    private string? TryPathOf(ProjectContext project)
     {
         ArgumentNullException.ThrowIfNull(project);
-        if (string.IsNullOrWhiteSpace(project.ProjectId) || project.ProjectId.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
-        {
-            throw new ArgumentException("The id of the project is not a file name.", nameof(project));
-        }
+        return IsSafeId(project.ProjectId) ? Path.Combine(_folder, project.ProjectId + ".json") : null;
+    }
 
-        return Path.Combine(_folder, project.ProjectId + ".json");
+    private static void TryDelete(string path)
+    {
+        try
+        {
+            File.Delete(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Nothing more can be done for it: the original error is the one that matters.
+        }
     }
 
     private sealed record OptionsDocument(int Version, int MaxAgentRuns, int MaxParallelTasks, long? TimePerAttemptSeconds);
@@ -168,7 +198,7 @@ public sealed class LocalProjectOptionsStore : IProjectOptionsStore
 /// </summary>
 public sealed class HelloSetupPresenceGate(ReinforcedConfirmation confirmation, IUiTextProvider? texts = null) : ISetupPresenceGate
 {
-    public async Task<SetupPresenceResult> ConfirmAsync(PresenceAction action, string subject, CancellationToken ct)
+    public async Task<SetupPresenceResult> ConfirmAsync(PresenceAction action, UserText subject, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(subject);
         var plan = await confirmation.PlanAsync(action, ct).ConfigureAwait(false);
@@ -179,7 +209,8 @@ public sealed class HelloSetupPresenceGate(ReinforcedConfirmation confirmation, 
                 : new SetupPresenceResult(false, UserText.Of("setup.hello.not-confirmed"));
         }
 
-        var message = (texts ?? Texts.Current).Format("Setup_Hello_Message", subject.Length > 12 ? subject[..12] : subject);
+        var text = texts ?? Texts.Current;
+        var message = text.Format("Setup_Hello_Message", text.Render(subject));
         var outcome = await confirmation.ConfirmAsync(plan, message, ct).ConfigureAwait(false);
         if (ReinforcedConfirmation.Approves(plan, outcome.Proof))
         {

@@ -254,8 +254,8 @@ public sealed record SetupPresenceResult(bool Confirmed, UserText? Problem = nul
 public interface ISetupPresenceGate
 {
     /// <param name="action">What is asked: <see cref="PresenceAction.ChangeVerificationProfile"/> or <see cref="PresenceAction.GrantHighRiskCapability"/>.</param>
-    /// <param name="subject">The hash of what is going to be written, for the message of the confirmation.</param>
-    Task<SetupPresenceResult> ConfirmAsync(PresenceAction action, string subject, CancellationToken ct);
+    /// <param name="subject">What is going to be written, as a coded text the confirmation says in words (the verification profile of Node, the team with 4 agents), never a hash.</param>
+    Task<SetupPresenceResult> ConfirmAsync(PresenceAction action, UserText subject, CancellationToken ct);
 }
 
 /// <summary>Everything the configurator proposes for a project. Read-only: nothing here is written, and nothing runs.</summary>

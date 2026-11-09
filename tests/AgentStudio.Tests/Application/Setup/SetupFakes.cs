@@ -47,11 +47,19 @@ internal sealed class InMemoryRoster(IEnumerable<AgentDefinition>? agents = null
 
     public int Saves { get; private set; }
 
+    /// <summary>The save that throws (1 is the first), or null.</summary>
+    public int? FailOnSave { get; set; }
+
     public Task<IReadOnlyList<AgentDefinition>> ListAsync(string projectId, CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<AgentDefinition>>([.. _agents]);
 
     public Task SaveAsync(string projectId, AgentDefinition agent, CancellationToken cancellationToken)
     {
+        if (FailOnSave == Saves + 1)
+        {
+            throw new IOException("The roster store is read-only.");
+        }
+
         Saves++;
         var at = _agents.FindIndex(a => a.Id == agent.Id);
         if (at >= 0)
@@ -73,6 +81,8 @@ internal sealed class FakeProfiles(string? stackProfileName = "dotnet") : ISetup
 
     public bool Unreadable { get; set; }
 
+    public Exception? SaveFailure { get; set; }
+
     public int Saves { get; private set; }
 
     public VerificationProfile? Propose(IReadOnlyList<string> relativeFiles) =>
@@ -83,6 +93,11 @@ internal sealed class FakeProfiles(string? stackProfileName = "dotnet") : ISetup
 
     public Task SaveAsync(ProjectContext project, VerificationProfile profile, CancellationToken ct)
     {
+        if (SaveFailure is not null)
+        {
+            throw SaveFailure;
+        }
+
         Saves++;
         Stored = profile;
         return Task.CompletedTask;
@@ -97,8 +112,16 @@ internal sealed class FakeOptionsStore : IProjectOptionsStore
 
     public Task<ProjectRunOptions?> LoadAsync(ProjectContext project, CancellationToken ct) => Task.FromResult(Stored);
 
+    /// <summary>The error the next save throws, or null.</summary>
+    public Exception? Failure { get; set; }
+
     public Task SaveAsync(ProjectContext project, ProjectRunOptions options, CancellationToken ct)
     {
+        if (Failure is not null)
+        {
+            throw Failure;
+        }
+
         Saves++;
         Stored = options;
         return Task.CompletedTask;
@@ -146,9 +169,9 @@ internal sealed class FakeBrief : IProjectBrief
 
 internal sealed class FakeGate(bool confirm) : ISetupPresenceGate
 {
-    public List<(PresenceAction Action, string Subject)> Asked { get; } = [];
+    public List<(PresenceAction Action, AgentStudio.Application.Localization.UserText Subject)> Asked { get; } = [];
 
-    public Task<SetupPresenceResult> ConfirmAsync(PresenceAction action, string subject, CancellationToken ct)
+    public Task<SetupPresenceResult> ConfirmAsync(PresenceAction action, AgentStudio.Application.Localization.UserText subject, CancellationToken ct)
     {
         Asked.Add((action, subject));
         return Task.FromResult(confirm ? new SetupPresenceResult(true) : new SetupPresenceResult(false, AgentStudio.Application.Localization.UserText.Of("setup.hello.not-confirmed")));

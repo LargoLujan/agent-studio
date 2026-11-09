@@ -135,8 +135,60 @@ public sealed class SetupAdaptersTests : IDisposable
         await File.WriteAllTextAsync(Path.Combine(folder, "proyecto-1.json"), "{\"version\":1,\"maxAgentRuns\":0,\"maxParallelTasks\":3}", Ct);
         Assert.Null(await store.LoadAsync(project, Ct));
 
-        await Assert.ThrowsAsync<ArgumentException>(() => store.LoadAsync(new ProjectContext(@"..\x", project.RootPath), Ct));
+        Assert.Null(await store.LoadAsync(new ProjectContext(@"..x", project.RootPath), Ct));
         await Assert.ThrowsAsync<ArgumentException>(() => store.SaveAsync(new ProjectContext(" ", project.RootPath), ProjectRunOptions.Defaults, Ct));
+    }
+
+    [Theory]
+    [InlineData("0a1b2c3d-0000-4000-8000-000000000000", true)]
+    [InlineData("proyecto_1", true)]
+    [InlineData("a", true)]
+    [InlineData("CON", false)]
+    [InlineData("nul", false)]
+    [InlineData("Com1", false)]
+    [InlineData("LPT9", false)]
+    [InlineData("COM10", true)]
+    [InlineData("a.b", false)]
+    [InlineData("a b", false)]
+    [InlineData("a/b", false)]
+    [InlineData("a:b", false)]
+    [InlineData("..", false)]
+    [InlineData("", false)]
+    [InlineData("ñ", false)]
+    public void Only_letters_digits_hyphens_and_underscores_name_a_file_and_the_names_windows_keeps_are_refused(string id, bool safe)
+    {
+        Assert.Equal(safe, LocalProjectOptionsStore.IsSafeId(id));
+    }
+
+    [Fact]
+    public async Task An_unsafe_id_has_no_options_when_asked_and_is_refused_when_saved_and_nothing_is_written()
+    {
+        var folder = Path.Combine(_folder, "setup");
+        var store = new LocalProjectOptionsStore(folder);
+        var project = Project();
+
+        foreach (var id in new[] { "NUL", "a.b", @"..\x" })
+        {
+            Assert.Null(await store.LoadAsync(new ProjectContext(id, project.RootPath), Ct));
+            await Assert.ThrowsAsync<ArgumentException>(() => store.SaveAsync(new ProjectContext(id, project.RootPath), ProjectRunOptions.Defaults, Ct));
+        }
+
+        Assert.False(Directory.Exists(folder) && Directory.EnumerateFileSystemEntries(folder).Any());
+    }
+
+    [Fact]
+    public async Task When_the_move_fails_the_temporary_file_is_deleted_and_the_error_is_the_one_that_reaches_the_caller()
+    {
+        var folder = Path.Combine(_folder, "setup");
+        var store = new LocalProjectOptionsStore(folder);
+        var project = Project();
+
+        // A folder where the file of the options goes: the Move cannot replace it.
+        Directory.CreateDirectory(Path.Combine(folder, project.ProjectId + ".json"));
+
+        await Assert.ThrowsAnyAsync<Exception>(() => store.SaveAsync(project, ProjectRunOptions.Defaults, Ct));
+
+        Assert.Empty(Directory.GetFiles(folder, "*.tmp"));
     }
 
     // ---- the barrier ------------------------------------------------------------------------------------------------
@@ -147,14 +199,14 @@ public sealed class SetupAdaptersTests : IDisposable
         var verifier = FakeUserPresenceVerifier.Answering(UserPresenceResult.Verified);
         var gate = new HelloSetupPresenceGate(new ReinforcedConfirmation(verifier, () => false), Spanish);
 
-        var profile = await gate.ConfirmAsync(PresenceAction.ChangeVerificationProfile, "0123456789abcdef", Ct);
-        var capability = await gate.ConfirmAsync(PresenceAction.GrantHighRiskCapability, "fedcba9876543210", Ct);
+        var profile = await gate.ConfirmAsync(PresenceAction.ChangeVerificationProfile, UserText.Of("setup.hello.subject-profile", "Node"), Ct);
+        var capability = await gate.ConfirmAsync(PresenceAction.GrantHighRiskCapability, UserText.Of("setup.hello.subject-team", 4), Ct);
 
         Assert.True(profile.Confirmed);
         Assert.True(capability.Confirmed);
         Assert.Equal(2, verifier.Messages.Count);
-        Assert.Contains("0123456789ab", verifier.Messages[0], StringComparison.Ordinal);
-        Assert.DoesNotContain("0123456789abcdef", verifier.Messages[0], StringComparison.Ordinal);
+        Assert.Equal(Spanish.Format("Setup_Hello_Message", "el perfil de verificación de Node"), verifier.Messages[0]);
+        Assert.Equal(Spanish.Format("Setup_Hello_Message", "el equipo con 4 agentes"), verifier.Messages[1]);
     }
 
     [Theory]
@@ -165,7 +217,7 @@ public sealed class SetupAdaptersTests : IDisposable
     {
         var gate = new HelloSetupPresenceGate(new ReinforcedConfirmation(FakeUserPresenceVerifier.Answering(answer), () => false), Spanish);
 
-        var result = await gate.ConfirmAsync(PresenceAction.ChangeVerificationProfile, "0123456789abcdef", Ct);
+        var result = await gate.ConfirmAsync(PresenceAction.ChangeVerificationProfile, UserText.Of("setup.hello.subject-profile", "Node"), Ct);
 
         Assert.False(result.Confirmed);
         Assert.Equal("setup.hello.not-confirmed", result.Problem!.Code);
@@ -178,7 +230,7 @@ public sealed class SetupAdaptersTests : IDisposable
         var verifier = FakeUserPresenceVerifier.Without(UserPresenceAvailability.NotConfiguredForUser);
         var gate = new HelloSetupPresenceGate(new ReinforcedConfirmation(verifier, () => false), Spanish);
 
-        var result = await gate.ConfirmAsync(PresenceAction.ChangeVerificationProfile, "0123456789abcdef", Ct);
+        var result = await gate.ConfirmAsync(PresenceAction.ChangeVerificationProfile, UserText.Of("setup.hello.subject-profile", "Node"), Ct);
 
         Assert.False(result.Confirmed);
         Assert.Equal("setup.hello.not-asked", result.Problem!.Code);
@@ -192,13 +244,13 @@ public sealed class SetupAdaptersTests : IDisposable
         var verifier = new FakeUserPresenceVerifier { Verify = (_, _) => release.Task };
         var gate = new HelloSetupPresenceGate(new ReinforcedConfirmation(verifier, () => false), Spanish);
 
-        var first = gate.ConfirmAsync(PresenceAction.ChangeVerificationProfile, "0123456789abcdef", Ct);
+        var first = gate.ConfirmAsync(PresenceAction.ChangeVerificationProfile, UserText.Of("setup.hello.subject-profile", "Node"), Ct);
         while (verifier.Messages.Count == 0)
         {
             await Task.Delay(10, Ct);
         }
 
-        var second = await gate.ConfirmAsync(PresenceAction.GrantHighRiskCapability, "fedcba9876543210", Ct);
+        var second = await gate.ConfirmAsync(PresenceAction.GrantHighRiskCapability, UserText.Of("setup.hello.subject-team", 4), Ct);
 
         Assert.False(second.Confirmed);
         Assert.Equal("setup.hello.another-pending", second.Problem!.Code);

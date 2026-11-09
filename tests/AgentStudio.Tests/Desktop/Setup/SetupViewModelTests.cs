@@ -262,6 +262,31 @@ public sealed class SetupViewModelTests
     }
 
     [Fact]
+    public async Task A_part_that_fails_does_not_hide_the_ones_written_the_owner_is_told_and_the_cause_is_said()
+    {
+        var rig = new Rig();
+        rig.Options.Failure = new UnauthorizedAccessException("Access to the options folder is denied.");
+        var vm = await rig.OpenAsync();
+        SetupApplyResult? told = null;
+        vm.Applied += (_, result) => told = result;
+        Step(vm, SetupStep.Verification).IsIncluded = false;
+        vm.UseAllRecommendedCommand.Execute(null);
+        vm.MaxAgentRunsText = "20";
+
+        await vm.ApplyCommand.ExecuteAsync(null);
+
+        Assert.NotNull(told);
+        Assert.True(told.RosterChanged);
+        Assert.Contains(vm.ResultLines, l => l.Contains(Spanish.Get("Setup_Outcome_Failed"), StringComparison.Ordinal) && l.Contains("Access to the options folder is denied.", StringComparison.Ordinal));
+        Assert.Contains(vm.ResultLines, l => l.Contains(Spanish.Get("Setup_Outcome_Applied"), StringComparison.Ordinal));
+        Assert.Contains(Spanish.Get("Setup_Result_Roster_Changed"), vm.Notice, StringComparison.Ordinal);
+        Assert.Equal(string.Empty, vm.ErrorMessage.Replace(Spanish.Get("Text_setup_problem_skills_catalog_empty"), string.Empty));
+        var payload = Assert.IsType<ProjectSetupAppliedPayload>(Assert.Single(rig.Recorder.Entries).Payload);
+        Assert.NotNull(payload.RosterHash);
+        Assert.Null(payload.OptionsSha256);
+    }
+
+    [Fact]
     public async Task The_profile_asks_the_barrier_and_what_it_does_not_confirm_is_reported_with_nothing_written()
     {
         var rig = new Rig { Gate = new FakeGate(false) };

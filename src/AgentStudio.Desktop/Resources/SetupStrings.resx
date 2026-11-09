@@ -354,8 +354,8 @@ Aplicar: el perfil de pruebas y los permisos delicados piden Windows Hello.</val
     <value>Queda anotado en el historial del proyecto.</value>
   </data>
   <data name="Setup_Hello_Message" xml:space="preserve">
-    <value>Confirma que eres tú para aplicar la configuración del proyecto ({0}).</value>
-    <comment>Shown by Windows Hello. {0}: the short fingerprint of what is written.</comment>
+    <value>Confirma que eres tú para aplicar {0}.</value>
+    <comment>Shown by Windows Hello. {0}: what is written, in words (Text_setup_hello_subject_*).</comment>
   </data>
   <data name="Text_setup_brief_section_what" xml:space="preserve">
     <value>Qué es el proyecto</value>
@@ -418,15 +418,27 @@ Aplicar: el perfil de pruebas y los permisos delicados piden Windows Hello.</val
     <comment>(setup.problem.agent-invalid) {0}: the name of the agent.</comment>
   </data>
   <data name="Text_setup_problem_profile_not_saved" xml:space="preserve">
-    <value>No se pudo guardar el perfil de pruebas.</value>
+    <value>No se pudo guardar el perfil de pruebas: {0}</value>
     <comment>(setup.problem.profile-not-saved)</comment>
+  </data>
+  <data name="Text_setup_problem_roster_not_saved" xml:space="preserve">
+    <value>No se pudo guardar el equipo: {0} Los agentes que se guardaron antes del error se quedan guardados.</value>
+    <comment>(setup.problem.roster-not-saved) {0}: the cause, as the system says it.</comment>
+  </data>
+  <data name="Text_setup_hello_subject_profile" xml:space="preserve">
+    <value>el perfil de verificación de {0}</value>
+    <comment>What Windows Hello is asked for (setup.hello.subject-profile). {0}: .NET, Node or Python.</comment>
+  </data>
+  <data name="Text_setup_hello_subject_team" xml:space="preserve">
+    <value>el equipo con {0} agentes</value>
+    <comment>What Windows Hello is asked for (setup.hello.subject-team). {0}: how many agents.</comment>
   </data>
   <data name="Text_setup_problem_skills_not_available" xml:space="preserve">
     <value>Esta instalación no puede activar skills.</value>
     <comment>(setup.problem.skills-not-available)</comment>
   </data>
   <data name="Text_setup_problem_options_not_saved" xml:space="preserve">
-    <value>No se pudieron guardar los límites del proyecto.</value>
+    <value>No se pudieron guardar los límites del proyecto: {0}</value>
     <comment>(setup.problem.options-not-saved)</comment>
   </data>
   <data name="Text_setup_budget_agent_runs_out_of_range" xml:space="preserve">

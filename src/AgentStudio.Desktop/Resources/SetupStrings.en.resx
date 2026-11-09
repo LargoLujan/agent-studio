@@ -329,7 +329,7 @@ Apply: the test profile and sensitive permissions ask for Windows Hello.</value>
     <value>It is noted in the history of the project.</value>
   </data>
   <data name="Setup_Hello_Message" xml:space="preserve">
-    <value>Confirm it is you to apply the setup of the project ({0}).</value>
+    <value>Confirm it is you to apply {0}.</value>
   </data>
   <data name="Text_setup_brief_section_what" xml:space="preserve">
     <value>What the project is</value>
@@ -377,13 +377,22 @@ Apply: the test profile and sensitive permissions ask for Windows Hello.</value>
     <value>The agent "{0}" is not valid: no agent was saved.</value>
   </data>
   <data name="Text_setup_problem_profile_not_saved" xml:space="preserve">
-    <value>The test profile could not be saved.</value>
+    <value>The test profile could not be saved: {0}</value>
+  </data>
+  <data name="Text_setup_problem_roster_not_saved" xml:space="preserve">
+    <value>The team could not be saved: {0} The agents saved before the error stay saved.</value>
+  </data>
+  <data name="Text_setup_hello_subject_profile" xml:space="preserve">
+    <value>the verification profile of {0}</value>
+  </data>
+  <data name="Text_setup_hello_subject_team" xml:space="preserve">
+    <value>the team with {0} agents</value>
   </data>
   <data name="Text_setup_problem_skills_not_available" xml:space="preserve">
     <value>This installation cannot activate skills.</value>
   </data>
   <data name="Text_setup_problem_options_not_saved" xml:space="preserve">
-    <value>The limits of the project could not be saved.</value>
+    <value>The limits of the project could not be saved: {0}</value>
   </data>
   <data name="Text_setup_budget_agent_runs_out_of_range" xml:space="preserve">
     <value>Agent executions per run go from 1 to 200.</value>

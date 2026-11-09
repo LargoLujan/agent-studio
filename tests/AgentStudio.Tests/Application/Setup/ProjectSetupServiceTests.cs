@@ -299,7 +299,8 @@ public sealed class ProjectSetupServiceTests
 
         Assert.Equal(SetupPartOutcome.Denied, denied.Parts.Single(p => p.Step == SetupStep.Verification).Outcome);
         Assert.Equal(PresenceAction.ChangeVerificationProfile, Assert.Single(rig.Gate.Asked).Action);
-        Assert.Equal(profile.ContentHash, rig.Gate.Asked[0].Subject);
+        Assert.Equal("setup.hello.subject-profile", rig.Gate.Asked[0].Subject.Code);
+        Assert.Equal(".NET", Assert.Single(rig.Gate.Asked[0].Subject.Arguments));
         Assert.Null(rig.Profiles.Stored);
 
         rig.Gate = new FakeGate(true);
@@ -430,6 +431,89 @@ public sealed class ProjectSetupServiceTests
         // The payload goes to the log in the serialization of every other one, and reads back the same.
         var json = DecisionPayloadSerializer.Serialize(payload);
         Assert.Equal(payload.RosterHash, JsonDocument.Parse(json).RootElement.GetProperty("rosterHash").GetString());
+    }
+
+    [Fact]
+    public async Task The_team_is_written_and_the_options_fail_so_the_log_names_the_team_and_the_result_says_the_cause()
+    {
+        var rig = new Rig();
+        rig.Options.Failure = new UnauthorizedAccessException("Access to the options folder is denied.");
+        var proposal = await rig.Service().ProposeAsync(SetupFakes.Project, SetupSize.Medium, Ct);
+
+        var result = await rig.Service().ApplyAsync(
+            SetupFakes.Project,
+            new SetupSelection(null, [.. proposal.Team.Changes.Select(c => c.After)], null, null, new ProjectRunOptions(20, 2, null)),
+            Ct);
+
+        Assert.Equal(SetupPartOutcome.Applied, result.Parts.Single(p => p.Step == SetupStep.Team).Outcome);
+        var budget = result.Parts.Single(p => p.Step == SetupStep.Budget);
+        Assert.Equal(SetupPartOutcome.Failed, budget.Outcome);
+        Assert.Equal("setup.problem.options-not-saved", budget.Detail!.Code);
+        Assert.Equal("Access to the options folder is denied.", Assert.Single(budget.Detail.Arguments));
+        Assert.True(result.RosterChanged);
+        Assert.True(result.Recorded);
+        var payload = Assert.IsType<ProjectSetupAppliedPayload>(Assert.Single(rig.Recorder.Entries).Payload);
+        Assert.Equal(result.RosterHashAfter, payload.RosterHash);
+        Assert.Null(payload.OptionsSha256);
+    }
+
+    [Fact]
+    public async Task A_team_that_fails_half_way_names_what_the_store_holds_and_the_agents_saved_stay_saved()
+    {
+        var rig = new Rig();
+        rig.Roster.FailOnSave = 2;
+        var proposal = await rig.Service().ProposeAsync(SetupFakes.Project, SetupSize.Large, Ct);
+
+        var result = await rig.Service().ApplyAsync(
+            SetupFakes.Project,
+            new SetupSelection(null, [.. proposal.Team.Changes.Select(c => c.After)], null, null, null),
+            Ct);
+
+        var team = result.Parts.Single(p => p.Step == SetupStep.Team);
+        Assert.Equal(SetupPartOutcome.Failed, team.Outcome);
+        Assert.Equal("setup.problem.roster-not-saved", team.Detail!.Code);
+        Assert.Equal("The roster store is read-only.", Assert.Single(team.Detail.Arguments));
+        var stored = await rig.Roster.ListAsync(SetupFakes.Project.ProjectId, Ct);
+        Assert.Equal(4, stored.Count);
+        Assert.True(result.RosterChanged);
+        Assert.Equal(RosterHash.Of(stored), result.RosterHashAfter);
+        Assert.Equal(result.RosterHashAfter, Assert.IsType<ProjectSetupAppliedPayload>(Assert.Single(rig.Recorder.Entries).Payload).RosterHash);
+    }
+
+    [Fact]
+    public async Task A_team_that_fails_before_anything_is_saved_claims_nothing()
+    {
+        var rig = new Rig();
+        rig.Roster.FailOnSave = 1;
+        var proposal = await rig.Service().ProposeAsync(SetupFakes.Project, SetupSize.Medium, Ct);
+
+        var result = await rig.Service().ApplyAsync(
+            SetupFakes.Project,
+            new SetupSelection(null, [.. proposal.Team.Changes.Select(c => c.After)], null, null, null),
+            Ct);
+
+        Assert.Equal(SetupPartOutcome.Failed, result.Parts.Single(p => p.Step == SetupStep.Team).Outcome);
+        Assert.False(result.RosterChanged);
+        Assert.False(result.Recorded);
+        Assert.Empty(rig.Recorder.Entries);
+    }
+
+    [Fact]
+    public async Task A_profile_that_cannot_be_written_says_the_cause_and_the_rest_is_still_applied()
+    {
+        var rig = new Rig();
+        rig.Profiles.SaveFailure = new UnauthorizedAccessException("The profile folder is locked.");
+        var profile = (await rig.Service().ProposeAsync(SetupFakes.Project, null, Ct)).Verification.Proposed!;
+
+        var result = await rig.Service().ApplyAsync(SetupFakes.Project, new SetupSelection(null, null, profile, null, new ProjectRunOptions(15, 3, null)), Ct);
+
+        var part = result.Parts.Single(p => p.Step == SetupStep.Verification);
+        Assert.Equal(SetupPartOutcome.Failed, part.Outcome);
+        Assert.Equal("setup.problem.profile-not-saved", part.Detail!.Code);
+        Assert.Equal("The profile folder is locked.", Assert.Single(part.Detail.Arguments));
+        var payload = Assert.IsType<ProjectSetupAppliedPayload>(Assert.Single(rig.Recorder.Entries).Payload);
+        Assert.Null(payload.VerificationProfileHash);
+        Assert.NotNull(payload.OptionsSha256);
     }
 
     [Fact]
