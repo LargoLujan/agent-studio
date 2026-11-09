@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.IO;
 using AgentStudio.Desktop.Background;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Lock;
 using AgentStudio.Desktop.Memory;
 using AgentStudio.Desktop.Observability;
@@ -17,7 +18,8 @@ namespace AgentStudio.Desktop.Settings;
 /// <item>«Contexto y cuota» (<see cref="Context"/>: the context thresholds and the Codex opt-in, docs/14 D-11 and D-15),
 /// «Trabajo desatendido» (<see cref="Unattended"/>: closing the window and keeping the computer awake, docs/16 D-14 and D-40)
 /// «Windows Hello y bloqueo» (<see cref="Lock"/>, docs/16 D-13) and «Memoria del proyecto» (<see cref="Memory"/>: the history
-/// search of the orchestrator, docs/17 D-06). A section that was not composed is not shown.</item>
+/// search of the orchestrator, docs/17 D-06) and «Idioma» (<see cref="Language"/>: the language of the interface, which
+/// applies on restart, docs/17 D-49). A section that was not composed is not shown.</item>
 /// <item>«Guardar» checks every section first, with the rules of each, and saves nothing while one is wrong: each says why
 /// next to its fields, and the document says which. Then it writes all the preferences at once, with one
 /// <see cref="IAppSettingsStore.SavePreferences"/> (atomic), and only then each section takes what was saved and says so (its
@@ -51,13 +53,15 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
     /// <param name="lockSettings">«Windows Hello y bloqueo»; by default the one of <paramref name="unattended"/>, and null when neither has it.</param>
     /// <param name="time">The clock of «Ajustes guardados a las …»; the system's by default.</param>
     /// <param name="memory">«Memoria del proyecto» (Phase 12: the history search of the orchestrator); null when it was not composed.</param>
+    /// <param name="language">«Idioma» (Phase 13: the language of the interface, which applies on restart); null when it was not composed.</param>
     public SettingsDocumentViewModel(
         IAppSettingsStore store,
         ObservabilitySettingsViewModel context,
         UnattendedSettingsViewModel? unattended = null,
         LockSettingsViewModel? lockSettings = null,
         TimeProvider? time = null,
-        MemorySettingsViewModel? memory = null)
+        MemorySettingsViewModel? memory = null,
+        LanguageSettingsViewModel? language = null)
         : base(DocumentId, "Ajustes")
     {
         ArgumentNullException.ThrowIfNull(store);
@@ -68,6 +72,7 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
         Unattended = unattended;
         Lock = lockSettings ?? unattended?.Lock;
         Memory = memory;
+        Language = language;
 
         // A change on screen, or a save (which changes what is in force, often without changing what is on screen).
         Context.PropertyChanged += OnSectionChanged;
@@ -76,6 +81,12 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
         {
             Memory.PropertyChanged += OnSectionChanged;
             Memory.Saved += OnSectionChanged;
+        }
+
+        if (Language is not null)
+        {
+            Language.PropertyChanged += OnSectionChanged;
+            Language.Saved += OnSectionChanged;
         }
 
         if (Unattended is not null)
@@ -105,6 +116,9 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
 
     /// <summary>«Memoria del proyecto»: the history search of the orchestrator; null when it was not composed.</summary>
     public MemorySettingsViewModel? Memory { get; }
+
+    /// <summary>«Idioma»: the language of the interface, which applies on restart; null when it was not composed.</summary>
+    public LanguageSettingsViewModel? Language { get; }
 
     /// <summary>«Ajustes guardados a las 14:05:12.»; null until a save succeeds, and after the next try.</summary>
     [ObservableProperty]
@@ -181,6 +195,11 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
                 preferences = Memory.Apply(preferences);
             }
 
+            if (Language is not null)
+            {
+                preferences = Language.Apply(preferences);
+            }
+
             _store.SavePreferences(preferences);
             saved = preferences;
         }
@@ -194,6 +213,7 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
         Unattended?.Accept(saved);
         Lock?.Accept(saved);
         Memory?.Accept(saved);
+        Language?.Accept(saved);
         Notice = $"Ajustes guardados a las {_time.GetLocalNow().ToString("HH:mm:ss", CultureInfo.InvariantCulture)}.";
     }
 
@@ -204,6 +224,7 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
         Unattended?.Revert();
         Lock?.Revert();
         Memory?.Revert();
+        Language?.Revert();
         Notice = null;
         ErrorMessage = null;
         IsDirty = HasChanges();
@@ -211,5 +232,5 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
 
     private void OnSectionChanged(object? sender, EventArgs e) => IsDirty = HasChanges();
 
-    private bool HasChanges() => Context.HasChanges || Unattended?.HasChanges == true || Lock?.HasChanges == true || Memory?.HasChanges == true;
+    private bool HasChanges() => Context.HasChanges || Unattended?.HasChanges == true || Lock?.HasChanges == true || Memory?.HasChanges == true || Language?.HasChanges == true;
 }
