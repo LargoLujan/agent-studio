@@ -783,7 +783,12 @@ public sealed partial class RunMonitorViewModel : ObservableObject
                     EvidenceText.Kind(evidence.Kind),
                     EvidenceText.Origin(evidence.Origin),
                     evidence.ContentSha256[..12],
-                    EvidenceText.Tests(evidence.TestRun)));
+                    EvidenceText.Tests(evidence.TestRun))
+                {
+                    RawKind = evidence.Kind,
+                    Summary = evidence.TestRun,
+                    RawOrigin = evidence.Origin,
+                });
                 if (captured.Task is { } owner)
                 {
                     var holder = TaskFor(owner);
@@ -791,10 +796,12 @@ public sealed partial class RunMonitorViewModel : ObservableObject
                     holder.Captured(evidence);
                 }
 
+                MarkLiveRun();
                 break;
 
             case GraphHealthEvent health:
                 Health = health.Report;
+                MarkLiveRun();
                 break;
 
             case ApprovalPendingEvent approval:
@@ -1382,6 +1389,9 @@ public sealed partial class RunMonitorViewModel : ObservableObject
         {
             Activity.RemoveAt(0);
         }
+
+        // The panel «Salida» follows the activity through the grouped change, so a chatty agent repaints it four times a second at most.
+        MarkLiveRun();
     }
 
     private void Reset()
@@ -1442,6 +1452,15 @@ public sealed record ActivityEntry(DateTimeOffset At, string Time, string? Task,
 /// <summary>One piece of evidence the run captured; <see cref="ShortHash"/> is the start of its SHA-256.</summary>
 public sealed record EvidenceEntry(string? Task, string Title, string Kind, string Origin, string ShortHash, string? Tests)
 {
+    /// <summary>The kind of the evidence as the log has it (<see cref="Kind"/> is its name in words).</summary>
+    public EvidenceKind RawKind { get; init; }
+
+    /// <summary>The counters of the run of tests, when the evidence is one (the panel «Pruebas» shows them and marks the failed ones); null otherwise.</summary>
+    public TestRunSummary? Summary { get; init; }
+
+    /// <summary>Who captured it: the system (a verification step) or an agent; the panel «Pruebas» lists the ones the system captured.</summary>
+    public EvidenceOrigin RawOrigin { get; init; }
+
     /// <summary>What a screen reader says of an evidence (V34): its task, its title, its kind, its origin and its tests.</summary>
     public override string ToString() => string.Join(" · ", new[] { Task, Title, Kind, Origin, Tests }.Where(p => !string.IsNullOrWhiteSpace(p)));
 }

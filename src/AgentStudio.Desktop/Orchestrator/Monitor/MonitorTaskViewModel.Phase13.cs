@@ -25,6 +25,9 @@ public sealed partial class MonitorTaskViewModel
     private bool _partsFailed;
     private int _partsAttempt;
 
+    /// <summary>How the last attempt of the task ended, as its CLI classified it (docs/16 D-41); null until an attempt ends. The panel «Problemas» says it with the reason.</summary>
+    public AttemptEndClass? EndClass { get; private set; }
+
     /// <summary>The attempts of the task that ended with the tokens their CLI reported.</summary>
     internal IReadOnlyList<TokenUsage> FinishedAttempts => _finishedAttempts;
 
@@ -115,7 +118,9 @@ public sealed partial class MonitorTaskViewModel
             case UsageReported reported:
                 _attemptUsage = reported.Usage;
                 break;
-            case RunFinished:
+            case RunFinished finished:
+                EndClass = finished.Outcome.Classified().Class;
+                OnPropertyChanged(nameof(EndClass));
                 FoldAttempt();
                 break;
         }

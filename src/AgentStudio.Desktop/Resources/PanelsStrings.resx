@@ -1,0 +1,408 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the Panels area (docs/17 D-47, ADR-0054; Phase 13 WP8) in Spanish of Spain, the source language. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Panels_Problems_Title" xml:space="preserve">
+    <value>Problemas</value>
+    <comment>Title of the panel.</comment>
+  </data>
+  <data name="Panels_Problems_Graph" xml:space="preserve">
+    <value>El grafo del plan</value>
+    <comment>Where of a line of the health of the graph.</comment>
+  </data>
+  <data name="Panels_Problems_Code" xml:space="preserve">
+    <value>Aviso del montaje ({0})</value>
+    <comment>A finding whose sentence is not in the resources yet. {0}: its code.</comment>
+  </data>
+  <data name="Panels_Problems_EndClass" xml:space="preserve">
+    <value>El intento terminó así: {0}.</value>
+    <comment>{0}: class of the end.</comment>
+  </data>
+  <data name="Panels_Problems_TaskFailed" xml:space="preserve">
+    <value>La tarea «{0}» falló.</value>
+    <comment>{0}: title.</comment>
+  </data>
+  <data name="Panels_Problems_TaskBlocked" xml:space="preserve">
+    <value>La tarea «{0}» está bloqueada.</value>
+    <comment>{0}: title.</comment>
+  </data>
+  <data name="Panels_Problems_None" xml:space="preserve">
+    <value>Sin problemas.</value>
+    <comment>Summary of the panel without lines.</comment>
+  </data>
+  <data name="Panels_Problems_Summary" xml:space="preserve">
+    <value>Problemas: {0} (errores: {1}, avisos: {2}, información: {3})</value>
+    <comment>Summary. Numbers.</comment>
+  </data>
+  <data name="Panels_Severity_Error" xml:space="preserve">
+    <value>Error</value>
+    <comment>Severity.</comment>
+  </data>
+  <data name="Panels_Severity_Warning" xml:space="preserve">
+    <value>Aviso</value>
+    <comment>Severity.</comment>
+  </data>
+  <data name="Panels_Severity_Info" xml:space="preserve">
+    <value>Información</value>
+    <comment>Severity.</comment>
+  </data>
+  <data name="Panels_EndClass_Completed" xml:space="preserve">
+    <value>terminó bien</value>
+    <comment>AttemptEndClass.Completed.</comment>
+  </data>
+  <data name="Panels_EndClass_WindowQuota" xml:space="preserve">
+    <value>se agotó el límite de uso de la ventana</value>
+    <comment>AttemptEndClass.WindowQuota.</comment>
+  </data>
+  <data name="Panels_EndClass_RateOrOverload" xml:space="preserve">
+    <value>el servicio estaba saturado o limitó el ritmo</value>
+    <comment>AttemptEndClass.RateOrOverload.</comment>
+  </data>
+  <data name="Panels_EndClass_ContextExhausted" xml:space="preserve">
+    <value>se llenó la memoria de trabajo del modelo</value>
+    <comment>AttemptEndClass.ContextExhausted.</comment>
+  </data>
+  <data name="Panels_EndClass_Network" xml:space="preserve">
+    <value>falló la conexión</value>
+    <comment>AttemptEndClass.Network.</comment>
+  </data>
+  <data name="Panels_EndClass_SignedOut" xml:space="preserve">
+    <value>la sesión del programa estaba cerrada</value>
+    <comment>AttemptEndClass.SignedOut.</comment>
+  </data>
+  <data name="Panels_EndClass_AttemptBudget" xml:space="preserve">
+    <value>llegó al máximo de turnos, de coste o de tiempo</value>
+    <comment>AttemptEndClass.AttemptBudget.</comment>
+  </data>
+  <data name="Panels_EndClass_Interrupted" xml:space="preserve">
+    <value>se interrumpió</value>
+    <comment>AttemptEndClass.Interrupted.</comment>
+  </data>
+  <data name="Panels_EndClass_Cancelled" xml:space="preserve">
+    <value>se canceló</value>
+    <comment>AttemptEndClass.Cancelled.</comment>
+  </data>
+  <data name="Panels_EndClass_Other" xml:space="preserve">
+    <value>terminó con otro error</value>
+    <comment>AttemptEndClass.Other.</comment>
+  </data>
+  <data name="Panels_Output_Title" xml:space="preserve">
+    <value>Salida</value>
+    <comment>Title of the panel.</comment>
+  </data>
+  <data name="Panels_Output_Run" xml:space="preserve">
+    <value>Salida de la ejecución</value>
+    <comment>Title when nothing is selected.</comment>
+  </data>
+  <data name="Panels_Output_Task" xml:space="preserve">
+    <value>Salida de la tarea {0}</value>
+    <comment>{0}: task.</comment>
+  </data>
+  <data name="Panels_Output_Agent" xml:space="preserve">
+    <value>Salida del agente {0}</value>
+    <comment>{0}: agent.</comment>
+  </data>
+  <data name="Panels_Output_Empty" xml:space="preserve">
+    <value>Aún no hay actividad que enseñar.</value>
+    <comment>Panel without lines.</comment>
+  </data>
+  <data name="Panels_Tests_Title" xml:space="preserve">
+    <value>Pruebas</value>
+    <comment>Title of the panel.</comment>
+  </data>
+  <data name="Panels_Tests_None" xml:space="preserve">
+    <value>Todavía no hay pruebas que enseñar.</value>
+    <comment>Summary without verifications.</comment>
+  </data>
+  <data name="Panels_Tests_AllPassed" xml:space="preserve">
+    <value>{0} verificaciones, todas bien.</value>
+    <comment>Summary. {0}: number.</comment>
+  </data>
+  <data name="Panels_Tests_SomeFailed" xml:space="preserve">
+    <value>{0} verificaciones, {1} con fallos.</value>
+    <comment>Summary. Numbers.</comment>
+  </data>
+  <data name="Panels_Tests_NoCounters" xml:space="preserve">
+    <value>sin contadores de pruebas</value>
+    <comment>A step that reports no counters.</comment>
+  </data>
+  <data name="Panels_Tests_Counters" xml:space="preserve">
+    <value>{0} correctas · {1} fallidas · {2} omitidas · código de salida {3}</value>
+    <comment>Counters of a run of tests.</comment>
+  </data>
+  <data name="Panels_Tests_Captured" xml:space="preserve">
+    <value>capturada</value>
+    <comment>A step without counters.</comment>
+  </data>
+  <data name="Panels_Tests_Failed" xml:space="preserve">
+    <value>falló</value>
+    <comment>State of a step.</comment>
+  </data>
+  <data name="Panels_Tests_Passed" xml:space="preserve">
+    <value>bien</value>
+    <comment>State of a step.</comment>
+  </data>
+  <data name="Panels_Tests_RunHead" xml:space="preserve">
+    <value>Ejecutar las pruebas de HEAD</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Panels_Tests_RunHeadHint" xml:space="preserve">
+    <value>Pasa el perfil de verificación en una copia aislada de la última versión guardada. No gasta cuota.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Panels_Tests_Running" xml:space="preserve">
+    <value>Ejecutando las pruebas…</value>
+    <comment>While it runs.</comment>
+  </data>
+  <data name="Panels_Tests_HeadTitle" xml:space="preserve">
+    <value>Pruebas de HEAD</value>
+    <comment>Title of the results of the button.</comment>
+  </data>
+  <data name="Panels_Tests_HeadNone" xml:space="preserve">
+    <value>El perfil no tiene pasos que ejecutar.</value>
+    <comment>Result.</comment>
+  </data>
+  <data name="Panels_Tests_HeadPassed" xml:space="preserve">
+    <value>Las pruebas de HEAD pasan.</value>
+    <comment>Result.</comment>
+  </data>
+  <data name="Panels_Tests_HeadFailed" xml:space="preserve">
+    <value>Fallan {0} pasos de las pruebas de HEAD.</value>
+    <comment>Result. {0}: number.</comment>
+  </data>
+  <data name="Panels_Tests_HeadError" xml:space="preserve">
+    <value>No se pudieron ejecutar las pruebas de HEAD: {0}</value>
+    <comment>{0}: why.</comment>
+  </data>
+  <data name="Info_Problems_Title" xml:space="preserve">
+    <value>Problemas</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Problems_What" xml:space="preserve">
+    <value>Reúne lo que el analizador y el validador ven en tu montaje, y por qué falló o está bloqueada cada tarea de la ejecución.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Problems_Actions" xml:space="preserve">
+    <value>Mira primero los errores.
+Selecciona una línea para ver su detalle.
+Corrige el montaje o reintenta la tarea desde el monitor.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Output_Title" xml:space="preserve">
+    <value>Salida</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Output_What" xml:space="preserve">
+    <value>Enseña en vivo lo que hace la tarea o el agente que has seleccionado. Si no seleccionas nada, enseña toda la ejecución.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Output_Actions" xml:space="preserve">
+    <value>Selecciona una tarea o un agente en el lienzo.
+Lee lo último que hizo.
+Vuelve a la ejecución entera quitando la selección.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Tests_Title" xml:space="preserve">
+    <value>Pruebas</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Tests_What" xml:space="preserve">
+    <value>Enseña las verificaciones que hizo el sistema: qué paso era, cuántas pruebas pasaron y cuáles fallaron. No las escribe ningún agente.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Tests_Actions" xml:space="preserve">
+    <value>Mira qué paso falló y su error principal.
+Ejecuta las pruebas de HEAD: no gasta cuota.
+Vuelve al monitor para reintentar la tarea.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Tools_Title" xml:space="preserve">
+    <value>Herramientas</value>
+    <comment>Title of the view.</comment>
+  </data>
+  <data name="Tools_Empty" xml:space="preserve">
+    <value>Todavía no hay agentes en la plantilla.</value>
+    <comment>Without a template.</comment>
+  </data>
+  <data name="Tools_Group_Claude" xml:space="preserve">
+    <value>Claude Code: herramientas integradas</value>
+    <comment>Title of the group.</comment>
+  </data>
+  <data name="Tools_Group_ClaudeNote" xml:space="preserve">
+    <value>Cada agente de Claude Code solo tiene las que su lanzamiento le da; las que escriben o ejecutan órdenes solo van en tareas que escriben.</value>
+    <comment>Note of the group.</comment>
+  </data>
+  <data name="Tools_Group_Codex" xml:space="preserve">
+    <value>Codex: zona aislada</value>
+    <comment>Title of the group.</comment>
+  </data>
+  <data name="Tools_Group_CodexNote" xml:space="preserve">
+    <value>Codex no tiene una lista de herramientas: manda su zona aislada.</value>
+    <comment>Note of the group.</comment>
+  </data>
+  <data name="Tools_Group_Steps" xml:space="preserve">
+    <value>Pasos del perfil de verificación ({0})</value>
+    <comment>Title of the group. {0}: profile.</comment>
+  </data>
+  <data name="Tools_Group_StepsNote" xml:space="preserve">
+    <value>Cada paso se puede usar como una tarea de herramienta del plan.</value>
+    <comment>Note of the group.</comment>
+  </data>
+  <data name="Tools_Group_Mcp" xml:space="preserve">
+    <value>Herramientas de Agent Studio</value>
+    <comment>Title of the group.</comment>
+  </data>
+  <data name="Tools_Group_McpNote" xml:space="preserve">
+    <value>Un servidor local de solo lectura, sin red. Cada herramienta dice dónde se permite.</value>
+    <comment>Note of the group.</comment>
+  </data>
+  <data name="Tools_Tool_Read" xml:space="preserve">
+    <value>Leer ficheros de la copia de trabajo aislada.</value>
+    <comment>Description of Read.</comment>
+  </data>
+  <data name="Tools_Tool_Grep" xml:space="preserve">
+    <value>Buscar texto dentro de los ficheros de la copia de trabajo.</value>
+    <comment>Description of Grep.</comment>
+  </data>
+  <data name="Tools_Tool_Glob" xml:space="preserve">
+    <value>Buscar ficheros por su nombre en la copia de trabajo.</value>
+    <comment>Description of Glob.</comment>
+  </data>
+  <data name="Tools_Tool_Edit" xml:space="preserve">
+    <value>Cambiar ficheros de la copia de trabajo aislada.</value>
+    <comment>Description of Edit.</comment>
+  </data>
+  <data name="Tools_Tool_Write" xml:space="preserve">
+    <value>Crear ficheros en la copia de trabajo aislada.</value>
+    <comment>Description of Write.</comment>
+  </data>
+  <data name="Tools_Tool_Bash" xml:space="preserve">
+    <value>Ejecutar órdenes de la consola.</value>
+    <comment>Description of Bash.</comment>
+  </data>
+  <data name="Tools_Tool_WebFetch" xml:space="preserve">
+    <value>Descargar una página de internet.</value>
+    <comment>Description of WebFetch.</comment>
+  </data>
+  <data name="Tools_Tool_WebSearch" xml:space="preserve">
+    <value>Buscar en internet.</value>
+    <comment>Description of WebSearch.</comment>
+  </data>
+  <data name="Tools_Codex_ReadOnly" xml:space="preserve">
+    <value>Zona aislada de solo lectura: el agente lee, no escribe.</value>
+    <comment>Codex.</comment>
+  </data>
+  <data name="Tools_Codex_WorkspaceWrite" xml:space="preserve">
+    <value>Zona aislada con escritura en la copia de trabajo, sin salir de ella.</value>
+    <comment>Codex.</comment>
+  </data>
+  <data name="Tools_Codex_Network" xml:space="preserve">
+    <value>Red desde la zona aislada.</value>
+    <comment>Codex.</comment>
+  </data>
+  <data name="Tools_Risk_Low" xml:space="preserve">
+    <value>Solo lee</value>
+    <comment>Risk.</comment>
+  </data>
+  <data name="Tools_Risk_Medium" xml:space="preserve">
+    <value>Escribe en la copia aislada o ejecuta un paso del perfil</value>
+    <comment>Risk.</comment>
+  </data>
+  <data name="Tools_Risk_High" xml:space="preserve">
+    <value>Ejecuta órdenes o llega a internet</value>
+    <comment>Risk.</comment>
+  </data>
+  <data name="Tools_Hello_Yes" xml:space="preserve">
+    <value>Darla pide Windows Hello</value>
+    <comment>Hello.</comment>
+  </data>
+  <data name="Tools_Hello_No" xml:space="preserve">
+    <value>Darla no pide Windows Hello</value>
+    <comment>Hello.</comment>
+  </data>
+  <data name="Tools_Hello_Profile" xml:space="preserve">
+    <value>Cambiar el perfil pide Windows Hello</value>
+    <comment>Hello.</comment>
+  </data>
+  <data name="Tools_OnlyWriting" xml:space="preserve">
+    <value>{0} (solo en tareas que escriben)</value>
+    <comment>Agent that has it only when its task writes. {0}: agent.</comment>
+  </data>
+  <data name="Tools_NoAgents" xml:space="preserve">
+    <value>Ningún agente la tiene.</value>
+    <comment>Who has it.</comment>
+  </data>
+  <data name="Tools_Agents" xml:space="preserve">
+    <value>La tienen: {0}</value>
+    <comment>{0}: agents.</comment>
+  </data>
+  <data name="Tools_GiveToAgent" xml:space="preserve">
+    <value>Dar a un agente…</value>
+    <comment>Button. It leads to the inspector.</comment>
+  </data>
+  <data name="Tools_GiveName" xml:space="preserve">
+    <value>Dar {0} a un agente</value>
+    <comment>Name of the button for a screen reader.</comment>
+  </data>
+  <data name="Tools_Step_Description" xml:space="preserve">
+    <value>{0}: {1} ({2})</value>
+    <comment>Step. {0}: title; {1}: command; {2}: isolation.</comment>
+  </data>
+  <data name="Tools_Step_Isolation_None" xml:space="preserve">
+    <value>sin aislamiento</value>
+    <comment>ProcessIsolation.None.</comment>
+  </data>
+  <data name="Tools_Step_Isolation_LowIntegrity" xml:space="preserve">
+    <value>en una zona aislada de integridad baja</value>
+    <comment>ProcessIsolation.LowIntegrity.</comment>
+  </data>
+  <data name="Tools_Step_Use" xml:space="preserve">
+    <value>Úsalo como tarea de herramienta en el plan.</value>
+    <comment>Who has it, for a step.</comment>
+  </data>
+  <data name="Tools_Mcp_SearchSkills" xml:space="preserve">
+    <value>Buscar skills del catálogo local.</value>
+    <comment>Description.</comment>
+  </data>
+  <data name="Tools_Mcp_RecommendSkills" xml:space="preserve">
+    <value>Recomendar skills para una tarea.</value>
+    <comment>Description.</comment>
+  </data>
+  <data name="Tools_Mcp_SearchHistory" xml:space="preserve">
+    <value>Buscar en el historial anclado del proyecto.</value>
+    <comment>Description.</comment>
+  </data>
+  <data name="Tools_Mcp_SkillsWhere" xml:space="preserve">
+    <value>Solo en la recomendación con un agente, con tu OK.</value>
+    <comment>Where.</comment>
+  </data>
+  <data name="Tools_Mcp_HistoryWhere" xml:space="preserve">
+    <value>Solo en el orquestador que planifica, y solo si el proyecto tiene historial de confianza.</value>
+    <comment>Where.</comment>
+  </data>
+  <data name="Info_Tools_Title" xml:space="preserve">
+    <value>Herramientas</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Tools_What" xml:space="preserve">
+    <value>Qué puede usar cada agente y con qué riesgo. Se calcula igual que el lanzamiento real: lo que ves es lo que el agente tendrá.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Tools_Actions" xml:space="preserve">
+    <value>Mira qué agente tiene cada herramienta.
+Fíjate en las que piden Windows Hello.
+Pulsa «Dar a un agente…» para ir a su ficha: el cambio se aprueba como siempre.</value>
+    <comment>Information button.</comment>
+  </data>
+</root>
