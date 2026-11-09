@@ -240,24 +240,13 @@ public sealed partial class OrchestratorDocumentViewModel
         {
             var editor = owner.Builder!.Editor;
 
-            // The template first: a fix that grants a capability asks Windows Hello there, and if it is refused nothing changes.
-            foreach (var agent in after.Roster)
+            // The template as one set, all or nothing: one Windows Hello for it all, before anything is saved, and the store
+            // either takes every agent or goes back (docs/17 D-37).
+            var changed = after.Roster.Where(agent => before.Roster.FirstOrDefault(a => a.Id == agent.Id) is not { } old || !old.Equals(agent)).ToList();
+            var gone = before.Roster.Where(a => after.Roster.All(n => n.Id != a.Id)).Select(a => a.Id).ToList();
+            if ((changed.Count > 0 || gone.Count > 0)
+                && !await editor.ApplyManyAsync(changed, gone, text.Format("Canvas_Editor_ChangedMany", changed.Count + gone.Count)).ConfigureAwait(true))
             {
-                var old = before.Roster.FirstOrDefault(a => a.Id == agent.Id);
-                if (old is not null && old.Equals(agent))
-                {
-                    continue;
-                }
-
-                if (!await editor.ApplyAsync(agent, text.Format("Canvas_Editor_Changed", agent.Id.Value)).ConfigureAwait(true))
-                {
-                    return false;
-                }
-            }
-
-            if (before.Roster.Any(a => after.Roster.All(n => n.Id != a.Id)))
-            {
-                // An agent that disappears needs the store to remove it: without that port it is not done.
                 return false;
             }
 

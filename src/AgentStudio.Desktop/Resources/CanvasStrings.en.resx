@@ -1154,4 +1154,12 @@ Press «Save the brief»: each version replaces the previous one.</value>
     <value>Analyze again</value>
     <comment>Button.</comment>
   </data>
+  <data name="Canvas_Editor_CannotRemove" xml:space="preserve">
+    <value>Taking an agent out is not possible yet: the store of the template cannot do it.</value>
+    <comment>Said when a change needs to remove an agent and the store cannot.</comment>
+  </data>
+  <data name="Canvas_Editor_ChangedMany" xml:space="preserve">
+    <value>{0} agents of the template were changed.</value>
+    <comment>{0}: how many.</comment>
+  </data>
 </root>

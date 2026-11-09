@@ -53,6 +53,19 @@ public static class AgentCapabilities
         return was is not null && now.Any(f => !was.Contains(f, StringComparer.Ordinal));
     }
 
+    /// <summary>
+    /// Whether the change grants power that asks Windows Hello (docs/17 D-37): to an agent already in the template, more folders to
+    /// write in or a tool of high risk it did not have; to a new agent (<paramref name="before"/> null), any tool of high risk or
+    /// any folder of writing of its own (an agent without folders has the whole project, as every copy of a template does).
+    /// </summary>
+    public static bool GrantsPower(AgentDefinition? before, AgentDefinition after)
+    {
+        ArgumentNullException.ThrowIfNull(after);
+        return before is null
+            ? after.AllowedTools.Any(IsHighRisk) || after.PathGrants.Any(g => g.Access == FileAccessLevel.ReadWrite)
+            : Widens(before, after) || GrantsHighRiskTool(before, after);
+    }
+
     /// <summary>Whether the change gives the agent a tool of high risk it did not have.</summary>
     public static bool GrantsHighRiskTool(AgentDefinition before, AgentDefinition after)
     {
@@ -369,8 +382,7 @@ public sealed partial class TeamEditorViewModel : ObservableObject
             AllowedTools = [.. template.AllowedTools.Where(t => !AgentCapabilities.IsHighRisk(t))],
         };
         // A judge of the company of the orchestrator is added all the same: the analysis band says it is not independent.
-        await SaveAsync(agent, _text.Format("Canvas_Editor_Added", agent.Id.Value, agent.Name)).ConfigureAwait(true);
-        if (ErrorMessage is null)
+        if (await ApplyAsync(agent, _text.Format("Canvas_Editor_Added", agent.Id.Value, agent.Name)).ConfigureAwait(true))
         {
             PendingAdd = null;
         }
@@ -378,59 +390,133 @@ public sealed partial class TeamEditorViewModel : ObservableObject
 
     // ---------- Configuring and removing ----------
 
-    /// <summary>
-    /// Saves <paramref name="updated"/> as the agent of its id in the template (the inspector and the cables go through here), after
-    /// the confirmation of Windows Hello when it grants a capability of high risk. Returns whether it was saved.
-    /// </summary>
-    public async Task<bool> ApplyAsync(AgentDefinition updated, string notice)
+    /// <summary>Saves <paramref name="updated"/> as the agent of its id in the template: <see cref="ApplyManyAsync"/> with one agent.</summary>
+    public Task<bool> ApplyAsync(AgentDefinition updated, string notice)
     {
         ArgumentNullException.ThrowIfNull(updated);
-        var before = _roster.FirstOrDefault(a => a.Id == updated.Id);
-        if (before is not null && (AgentCapabilities.Widens(before, updated) || AgentCapabilities.GrantsHighRiskTool(before, updated)))
-        {
-            var action = PresenceAction.GrantHighRiskCapability;
-            if (_confirm is null || !await _confirm(action, _text.Format("Canvas_Hello_Grant", updated.Id.Value), CancellationToken.None).ConfigureAwait(true))
-            {
-                ErrorMessage = _text.Format("Canvas_Editor_NotConfirmed", updated.Id.Value);
-                Notice = null;
-                return false;
-            }
-        }
-
-        await SaveAsync(updated, notice).ConfigureAwait(true);
-        return ErrorMessage is null;
+        return ApplyManyAsync([updated], [], notice);
     }
 
-    private async Task SaveAsync(AgentDefinition agent, string notice)
+    /// <summary>
+    /// Writes a set of changes of the template all or nothing (the fixes of one click, and their undo and redo, change several
+    /// agents at once): everything is worked out first (the template accepts each agent, the store can remove what has to go) and
+    /// Windows Hello is asked once for the whole set when any of it grants power (D-37), before anything is saved; if the store
+    /// fails halfway, what was already saved goes back to its previous version, so the template is never left in between. The
+    /// approval is withdrawn once, at the end. Returns whether everything was written.
+    /// </summary>
+    public async Task<bool> ApplyManyAsync(IReadOnlyList<AgentDefinition> updates, IReadOnlyList<AgentId> removals, string notice)
     {
+        ArgumentNullException.ThrowIfNull(updates);
+        ArgumentNullException.ThrowIfNull(removals);
         ErrorMessage = null;
         Notice = null;
         if (_save is not { } save || _project is not { } project || _canvas.IsReadOnly)
         {
             ErrorMessage = _text.Get("Canvas_Team_ReadOnly");
-            return;
+            return false;
         }
 
-        if (agent.Validate() is { Count: > 0 } problems)
+        if (removals.Count > 0 && _remove is null)
         {
-            ErrorMessage = _text.Format("Canvas_Editor_Refused", string.Join(", ", problems));
-            return;
+            ErrorMessage = _text.Get("Canvas_Editor_CannotRemove");
+            return false;
         }
 
+        foreach (var update in updates)
+        {
+            if (update.Validate() is { Count: > 0 } problems)
+            {
+                ErrorMessage = _text.Format("Canvas_Editor_Refused", string.Join(", ", problems));
+                return false;
+            }
+        }
+
+        // The agents already in the template go first and the new ones last: a failure on the first leaves nothing new behind.
+        var ordered = updates.OrderBy(u => _roster.Any(a => a.Id == u.Id) ? 0 : 1).ToList();
+        var power = ordered.Where(u => AgentCapabilities.GrantsPower(_roster.FirstOrDefault(a => a.Id == u.Id), u)).Select(u => u.Id.Value).ToList();
+        if (power.Count > 0)
+        {
+            var names = string.Join(", ", power);
+            if (_confirm is null || !await _confirm(PresenceAction.GrantHighRiskCapability, _text.Format("Canvas_Hello_Grant", names), CancellationToken.None).ConfigureAwait(true))
+            {
+                ErrorMessage = _text.Format("Canvas_Editor_NotConfirmed", names);
+                return false;
+            }
+        }
+
+        var written = new List<(AgentDefinition? Before, AgentDefinition After)>();
+        var removed = new List<AgentDefinition>();
         try
         {
-            await save(project, agent).ConfigureAwait(true);
+            foreach (var update in ordered)
+            {
+                var before = _roster.FirstOrDefault(a => a.Id == update.Id);
+                await save(project, update).ConfigureAwait(true);
+                written.Add((before, update));
+            }
+
+            foreach (var id in removals)
+            {
+                if (_roster.FirstOrDefault(a => a.Id == id) is { } gone)
+                {
+                    await _remove!(project, id).ConfigureAwait(true);
+                    removed.Add(gone);
+                }
+            }
         }
-#pragma warning disable CA1031 // The template is behind a port: a failure is shown in the layer, never thrown into the UI.
+#pragma warning disable CA1031 // The template is behind a port: a failure is shown in the layer, and what was saved goes back.
         catch (Exception ex)
 #pragma warning restore CA1031
         {
+            await RevertAsync(project, written, removed).ConfigureAwait(true);
             ErrorMessage = _text.Format("Canvas_Editor_NotSaved", ex.Message);
-            return;
+            return false;
         }
 
         await _saved().ConfigureAwait(true);
         Notice = notice + " " + ConsequenceText;
+        return true;
+    }
+
+    /// <summary>Puts back what was saved before a failure: the previous version of each agent, and out again the ones that were new (when the store can).</summary>
+    private async Task RevertAsync(ProjectContext project, List<(AgentDefinition? Before, AgentDefinition After)> written, List<AgentDefinition> removed)
+    {
+        foreach (var (before, after) in Enumerable.Reverse(written))
+        {
+            try
+            {
+                if (before is not null)
+                {
+                    await _save!(project, before).ConfigureAwait(true);
+                }
+                else if (_remove is not null)
+                {
+                    await _remove(project, after.Id).ConfigureAwait(true);
+                }
+            }
+#pragma warning disable CA1031 // A revert that fails cannot be reverted: the layer shows the template read again, as the store holds it.
+            catch (Exception)
+#pragma warning restore CA1031
+            {
+                // Nothing more can be done here; the document reads the template again.
+            }
+        }
+
+        foreach (var gone in removed)
+        {
+            try
+            {
+                await _save!(project, gone).ConfigureAwait(true);
+            }
+#pragma warning disable CA1031 // See above.
+            catch (Exception)
+#pragma warning restore CA1031
+            {
+                // See above.
+            }
+        }
+
+        await _saved().ConfigureAwait(true);
     }
 
     [RelayCommand(CanExecute = nameof(CanRemoveSelected))]

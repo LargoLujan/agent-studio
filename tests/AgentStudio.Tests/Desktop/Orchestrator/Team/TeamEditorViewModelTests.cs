@@ -25,10 +25,18 @@ public sealed class TeamEditorViewModelTests
 
         public int Saved { get; private set; }
 
+        /// <summary>When set, saving this agent fails (the store goes down halfway).</summary>
+        public AgentId? FailOn { get; set; }
+
         public List<string> Hashes { get; } = [];
 
         public Task Save(ProjectContext project, AgentDefinition agent)
         {
+            if (FailOn is { } failing && failing == agent.Id)
+            {
+                return Task.FromException(new InvalidOperationException("the store is down"));
+            }
+
             var index = Roster.FindIndex(a => a.Id == agent.Id);
             if (index >= 0)
             {
@@ -262,6 +270,81 @@ public sealed class TeamEditorViewModelTests
         edit.IsOn = false;
         await Task.Delay(50, TestContext.Current.CancellationToken);
         Assert.DoesNotContain("Edit", store2.Roster.Single(a => a.Id == DefaultAgentRoster.Executor).AllowedTools);
+    }
+
+    [Fact]
+    public async Task A_set_of_changes_asks_windows_hello_once_and_saves_none_of_it_when_it_is_denied()
+    {
+        var asked = 0;
+        var (_, editor, store) = Create(confirm: (_, _, _) =>
+        {
+            asked++;
+            return Task.FromResult(false);
+        });
+        var executor = store.Roster.Single(a => a.Id == DefaultAgentRoster.Executor);
+        var orchestrator = store.Roster.Single(a => a.Id == DefaultAgentRoster.Orchestrator);
+
+        // The first change asks for nothing; the second gives the orchestrator the shell.
+        var done = await editor.ApplyManyAsync([executor with { Name = "Otro" }, orchestrator with { AllowedTools = [.. orchestrator.AllowedTools, "Bash"] }], [], "x");
+
+        Assert.False(done);
+        Assert.Equal(1, asked);
+        Assert.Equal(0, store.Saved);
+        Assert.Equal("Ejecutor", store.Roster.Single(a => a.Id == DefaultAgentRoster.Executor).Name);
+        Assert.DoesNotContain("Bash", store.Roster.Single(a => a.Id == DefaultAgentRoster.Orchestrator).AllowedTools);
+    }
+
+    [Fact]
+    public async Task A_store_that_fails_halfway_puts_back_what_was_already_saved()
+    {
+        var (_, editor, store) = Create();
+        var executor = store.Roster.Single(a => a.Id == DefaultAgentRoster.Executor);
+        var judge = store.Roster.Single(a => a.Id == DefaultAgentRoster.Judge);
+        store.FailOn = judge.Id;
+
+        var done = await editor.ApplyManyAsync([executor with { Name = "Otro" }, judge with { Name = "Otro juez" }], [], "x");
+
+        Assert.False(done);
+        Assert.Equal("Ejecutor", store.Roster.Single(a => a.Id == DefaultAgentRoster.Executor).Name);
+        Assert.Equal(judge.Name, store.Roster.Single(a => a.Id == DefaultAgentRoster.Judge).Name);
+        Assert.Contains("the store is down", editor.ErrorMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_change_that_needs_to_remove_an_agent_saves_nothing_when_the_store_cannot_remove()
+    {
+        var (_, editor, store) = Create(canRemove: false);
+        var executor = store.Roster.Single(a => a.Id == DefaultAgentRoster.Executor);
+
+        var done = await editor.ApplyManyAsync([executor with { Name = "Otro" }], [DefaultAgentRoster.ClaudeJudge], "x");
+
+        Assert.False(done);
+        Assert.Equal(0, store.Saved);
+        Assert.Equal("Ejecutor", store.Roster.Single(a => a.Id == DefaultAgentRoster.Executor).Name);
+        Assert.Contains("no sabe hacerlo", editor.ErrorMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_new_agent_that_grants_risky_tools_or_folders_of_writing_asks_windows_hello_and_one_that_grants_nothing_does_not()
+    {
+        var asked = new List<PresenceAction>();
+        var (_, editor, store) = Create(confirm: (action, _, _) =>
+        {
+            asked.Add(action);
+            return Task.FromResult(false);
+        });
+        var template = store.Roster.Single(a => a.Id == DefaultAgentRoster.Executor);
+
+        var plain = await editor.ApplyAsync(template with { Id = new AgentId("ejecutor-2"), Name = "Ejecutor 2" }, "x");
+        var shell = await editor.ApplyAsync(template with { Id = new AgentId("ejecutor-3"), Name = "Ejecutor 3", AllowedTools = [.. template.AllowedTools, "Bash"] }, "x");
+        var folders = await editor.ApplyAsync(template with { Id = new AgentId("ejecutor-4"), Name = "Ejecutor 4", PathGrants = [new PathGrant("src/", FileAccessLevel.ReadWrite)] }, "x");
+
+        Assert.True(plain);
+        Assert.False(shell);
+        Assert.False(folders);
+        Assert.Equal([PresenceAction.GrantHighRiskCapability, PresenceAction.GrantHighRiskCapability], asked);
+        Assert.Contains(store.Roster, a => a.Id.Value == "ejecutor-2");
+        Assert.DoesNotContain(store.Roster, a => a.Id.Value is "ejecutor-3" or "ejecutor-4");
     }
 
     [Fact]

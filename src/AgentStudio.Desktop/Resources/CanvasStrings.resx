@@ -1154,4 +1154,12 @@ Pulsar «Guardar la ficha»: cada versión sustituye a la anterior.</value>
     <value>Volver a analizar</value>
     <comment>Button.</comment>
   </data>
+  <data name="Canvas_Editor_CannotRemove" xml:space="preserve">
+    <value>Quitar un agente no es posible todavía: el almacén de la plantilla no sabe hacerlo.</value>
+    <comment>Said when a change needs to remove an agent and the store cannot.</comment>
+  </data>
+  <data name="Canvas_Editor_ChangedMany" xml:space="preserve">
+    <value>Se cambiaron {0} agentes de la plantilla.</value>
+    <comment>{0}: how many.</comment>
+  </data>
 </root>
