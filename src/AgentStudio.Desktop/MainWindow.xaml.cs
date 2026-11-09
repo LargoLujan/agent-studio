@@ -135,6 +135,9 @@ public partial class MainWindow : Window
         ExplorerPanel.DataContext = viewModel.Explorer;
         AutoDoctorPanel.DataContext = viewModel.Diagnostics;
         JournalPanel.DataContext = viewModel.Journal;
+        ProblemsPanel.DataContext = viewModel.Problems;
+        OutputPanel.DataContext = viewModel.Output;
+        TestsPanel.DataContext = viewModel.Tests;
         DataContext = viewModel;
         CaptureDefaultLayout();
 
@@ -468,6 +471,9 @@ public partial class MainWindow : Window
         // A restored layout whose panels are folded on the right without their column (an older one, say) gets it back.
         PrepareRightColumn();
 
+        // A layout saved before Phase 13 has no panels «Problemas», «Salida» and «Pruebas»: they join the pane of the terminal.
+        EnsureRunPanels();
+
         foreach (var document in documents)
         {
             _viewModel.Documents.Add(document);
@@ -621,6 +627,38 @@ public partial class MainWindow : Window
         root.Children.Add(column);
         group.PreviousContainer = column;
     }
+
+    /// <summary>
+    /// The panels of the run (docs/17 D-45) a saved layout does not hold come back in the pane of the terminal, so «Pruebas» of the
+    /// activity bar never finds no panel to show. A layout that holds them (the default one, or one saved after Phase 13) is left as it is.
+    /// </summary>
+    private void EnsureRunPanels()
+    {
+        var anchorables = DockManager.Layout.Descendents().OfType<LayoutAnchorable>().ToList();
+        var pane = anchorables.FirstOrDefault(a => a.ContentId == PanelIds.Terminal)?.Parent as LayoutAnchorablePane
+            ?? anchorables.Select(a => a.Parent).OfType<LayoutAnchorablePane>().FirstOrDefault();
+        if (pane is null)
+        {
+            return;
+        }
+
+        foreach (var (id, titleKey) in RunPanels)
+        {
+            if (anchorables.Any(a => a.ContentId == id) || !_panelContent.TryGetValue(id, out var content))
+            {
+                continue;
+            }
+
+            pane.Children.Add(new LayoutAnchorable { ContentId = id, Title = Localization.Texts.Get(titleKey), CanFloat = true, Content = content });
+        }
+    }
+
+    private static readonly (string Id, string TitleKey)[] RunPanels =
+    [
+        (PanelIds.Problems, "Panels_Problems_Title"),
+        (PanelIds.Output, "Panels_Output_Title"),
+        (PanelIds.Tests, "Panels_Tests_Title"),
+    ];
 
     /// <summary>The pane style with its tab style (ItemContainerStyle) extended by the automation name; as it is when it has none.</summary>
     private static Style? WithNamedTabs(Style? paneStyle, BindingBase name)

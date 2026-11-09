@@ -9,6 +9,7 @@ using AgentStudio.Application.Execution;
 using AgentStudio.Application.Providers;
 using AgentStudio.Desktop;
 using AgentStudio.Desktop.Controls.Terminal;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Services;
 using AgentStudio.Desktop.Theming;
 using AgentStudio.Desktop.ViewModels;
@@ -94,7 +95,7 @@ public sealed class MainWindowTests
     }
 
     [Fact]
-    public void DefaultLayout_HasTheFourPanelsAndAPlaceholderWithoutTerminal()
+    public void DefaultLayout_HasTheSevenPanelsAndAPlaceholderWithoutTerminal()
     {
         using var temp = new TempDirectory();
 
@@ -105,7 +106,8 @@ public sealed class MainWindowTests
             return (Anchorables(window).Select(a => a.ContentId).Order().ToList(), Assert.IsType<TextBlock>(host.Content).Text);
         });
 
-        Assert.Equal([PanelIds.AutoDoctor, PanelIds.Explorer, PanelIds.Journal, PanelIds.Terminal], ids);
+        // The three panels of the run (Phase 13) sit in the pane of the terminal.
+        Assert.Equal([PanelIds.AutoDoctor, PanelIds.Explorer, PanelIds.Journal, PanelIds.Output, PanelIds.Problems, PanelIds.Terminal, PanelIds.Tests], ids);
         Assert.Equal("Terminal no disponible.", terminalText);
     }
 
@@ -281,11 +283,16 @@ public sealed class MainWindowTests
         });
 
         Assert.False(bar);
-        Assert.Equal(6, buttons.Count);
+        Assert.Equal(9, buttons.Count);
         Assert.All(buttons, Assert.True);
 
         // A screen reader names each entry by its title (A1), not by the type behind it.
-        Assert.Equal(["Explorador", "Orquestador", "Skills", "Terminal", "Auto Doctor", "Historial · bitácora"], names);
+        Assert.Equal(
+            [
+                "Explorador", "Orquestador", Texts.Get("Shell_Activity_Agents"), "Skills", Texts.Get("Shell_Activity_Tools"), Texts.Get("Shell_Activity_Tests"),
+                "Terminal", "Auto Doctor", "Historial · bitácora",
+            ],
+            names);
     }
 
     /// <summary>
@@ -315,7 +322,9 @@ public sealed class MainWindowTests
                 dock.Layout.Descendents().OfType<LayoutDocument>().Single(d => ReferenceEquals(d.Content, document)).Title);
         });
 
-        Assert.Equal(["Explorador", "Bienvenida | Calc.cs, con cambios sin guardar", "Terminal"], tabs);
+        Assert.Equal(
+            ["Explorador", "Bienvenida | Calc.cs, con cambios sin guardar", $"Terminal | {Texts.Get("Panels_Problems_Title")} | {Texts.Get("Panels_Output_Title")} | {Texts.Get("Panels_Tests_Title")}"],
+            tabs);
         Assert.Equal(["Auto Doctor", "Bitácora de hoy"], sideTabs);
 
         // V8: the tab marks the unsaved changes; the title of the document, which the questions and the messages use, stays.
@@ -534,7 +543,7 @@ public sealed class MainWindowTests
             return Anchorables(window).Where(a => a.IsVisible).Select(a => a.ContentId).Order().ToList();
         });
 
-        Assert.Equal([PanelIds.AutoDoctor, PanelIds.Explorer, PanelIds.Journal, PanelIds.Terminal], ids);
+        Assert.Equal([PanelIds.AutoDoctor, PanelIds.Explorer, PanelIds.Journal, PanelIds.Output, PanelIds.Problems, PanelIds.Terminal, PanelIds.Tests], ids);
     }
 
     [Fact]
@@ -553,7 +562,7 @@ public sealed class MainWindowTests
             return Anchorables(window).Count(a => a.IsVisible);
         });
 
-        Assert.Equal(4, count);
+        Assert.Equal(7, count);
     }
 
     [Fact]

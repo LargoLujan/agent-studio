@@ -51,6 +51,9 @@ public static class SetupServices
             provider.GetService<IModelLearning>(),
             provider.GetService<ISetupPresenceGate>() ?? (provider.GetService<ReinforcedConfirmation>() is { } confirmation ? new HelloSetupPresenceGate(confirmation) : null)));
         services.TryAddSingleton<SetupViewModelFactory>();
+
+        // Which projects were already offered the configurator on the welcome tab: next to the options, nothing in the project.
+        services.TryAddSingleton(_ => new SetupSuggestions(optionsFolder ?? LocalProjectOptionsStore.DefaultFolder));
         return services;
     }
 }

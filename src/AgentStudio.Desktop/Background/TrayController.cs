@@ -1,6 +1,7 @@
 using System.IO;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Desktop.Orchestrator.Monitor;
+using AgentStudio.Desktop.Orchestrator.Questions;
 using AgentStudio.Desktop.ViewModels;
 using Microsoft.Extensions.Logging;
 
@@ -89,6 +90,39 @@ public sealed class TrayController : IDisposable
     /// <summary>What the tray says when a run did not take «Pausar», «Reanudar» or «Detener» of its menu: nothing of the project.</summary>
     public const string RunCommandNotApplied =
         "La ejecución ya había terminado, se paró o cambió de estado antes de aplicarlo, y no se aplicó. Abre Agent Studio para ver en qué quedó.";
+
+    /// <summary>The title of the notice that an agent asks something: the name of the app, nothing of the project (docs/17 D-41).</summary>
+    public const string AttentionTitle = "Agent Studio";
+
+    /// <summary>
+    /// An agent asks something and the app is out of view or locked (docs/17 D-31 and D-41): the notice of the tray, with the text the
+    /// service of the questions gives and no data of the project, so anyone who sees the screen can read it. Said once per question by the
+    /// service; nothing while the app is leaving.
+    /// </summary>
+    public void NotifyAttention(string notice)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(notice);
+        if (_disposed || _exit.State == ExitState.Exiting)
+        {
+            return;
+        }
+
+        _tray.Notify(new TrayNotification(AttentionTitle, notice));
+    }
+
+    /// <summary>Shows in the tray the notice each question asks for (<see cref="MonitorServices.AttentionRequested"/>) until the result is disposed.</summary>
+    public IDisposable FollowAttention(MonitorServices monitors)
+    {
+        ArgumentNullException.ThrowIfNull(monitors);
+        void OnAttention(object? sender, QuestionAttentionEventArgs e) => NotifyAttention(e.Notice);
+        monitors.AttentionRequested += OnAttention;
+        return new AttentionSubscription(() => monitors.AttentionRequested -= OnAttention);
+    }
+
+    private sealed class AttentionSubscription(Action release) : IDisposable
+    {
+        public void Dispose() => release();
+    }
 
     /// <summary>The tooltip as it is now.</summary>
     public string ToolTip { get; private set; } = "Agent Studio";

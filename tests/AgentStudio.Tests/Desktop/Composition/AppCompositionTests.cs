@@ -22,6 +22,12 @@ using AgentStudio.Debate.Arena;
 using AgentStudio.Desktop.Memory;
 using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Orchestrator;
+using AgentStudio.Desktop.Orchestrator.Approvals;
+using AgentStudio.Desktop.Orchestrator.Canvas;
+using AgentStudio.Desktop.Orchestrator.Monitor;
+using AgentStudio.Desktop.Orchestrator.Team;
+using AgentStudio.Desktop.Setup;
+using AgentStudio.Application.Setup;
 using AgentStudio.Desktop.Orchestrator.Session;
 using AgentStudio.Desktop.Services;
 using AgentStudio.Domain.Agents;
@@ -393,5 +399,141 @@ public sealed class AppCompositionTests
 
         // A single activity per project for runs, debates and audits (docs/15 decision 12).
         Assert.Same(provider.GetRequiredService<IRunActivity>(), provider.GetRequiredService<IProjectActivity>());
+    }
+
+    // ---- Phase 13, tanda 2: the integration of the builder, the monitor and the configurator ----
+
+    [Fact]
+    public void Every_service_the_builder_the_monitor_and_the_configurator_need_resolves()
+    {
+        using var temp = new TempDirectory();
+        using var provider = Build(FoldersIn(temp));
+
+        // The builder (docs/04 section 21.8).
+        Assert.NotNull(provider.GetRequiredService<IOrderReview>());
+        Assert.NotNull(provider.GetRequiredService<IPreparationChat>());
+        Assert.NotNull(provider.GetRequiredService<IQuotaConsentLedger>());
+        Assert.NotNull(provider.GetRequiredService<IModelCatalogSource>());
+        Assert.NotNull(provider.GetRequiredService<IModelLearning>());
+        Assert.NotNull(provider.GetRequiredService<IUsageEstimator>());
+        Assert.NotNull(provider.GetRequiredService<IQuotaObservations>());
+        Assert.NotNull(provider.GetRequiredService<IProjectBrief>());
+        Assert.NotNull(provider.GetRequiredService<IWorktreeManager>());
+        Assert.NotNull(provider.GetRequiredService<ReinforcedConfirmation>());
+        Assert.NotNull(provider.GetRequiredService<ReduceMotionSetting>());
+
+        // The monitor (docs/04 section 21.10).
+        Assert.NotNull(provider.GetRequiredService<MonitorServices>());
+        Assert.NotNull(provider.GetRequiredService<QuotaViewModel>());
+        Assert.NotNull(provider.GetRequiredService<IConsumptionAnalyzer>());
+        Assert.NotNull(provider.GetRequiredService<IAssistedConsumptionAnalysis>());
+        Assert.NotNull(provider.GetRequiredService<IDecisionRecorder>());
+
+        // The configurator (docs/04 section 21.9).
+        Assert.NotNull(provider.GetRequiredService<SetupViewModelFactory>());
+        Assert.NotNull(provider.GetRequiredService<SetupSuggestions>());
+        Assert.NotNull(provider.GetRequiredService<IProjectOptionsStore>());
+        Assert.Same(provider.GetRequiredService<MonitorServices>(), provider.GetRequiredService<MonitorServices>());
+    }
+
+    [Fact]
+    public void The_orchestrator_document_of_the_app_gets_the_builder_with_its_services_and_the_live_state_of_its_own_monitor()
+    {
+        using var temp = new TempDirectory();
+        var project = temp.CreateDirectory("calc");
+        using var provider = Build(FoldersIn(temp));
+
+        var document = provider.GetRequiredService<IOrchestratorDocumentFactory>().Create(project);
+
+        var builder = Assert.IsType<VisualBuilder>(document.Builder);
+        var services = builder.Services;
+        Assert.Same(provider.GetRequiredService<IOrderReview>(), services.OrderReview);
+        Assert.Same(provider.GetRequiredService<IPreparationChat>(), services.Chat);
+        Assert.Same(provider.GetRequiredService<IQuotaConsentLedger>(), services.Ledger);
+        Assert.Same(provider.GetRequiredService<IModelCatalogSource>(), services.Catalog);
+        Assert.Same(provider.GetRequiredService<IModelLearning>(), services.Learning);
+        Assert.Same(provider.GetRequiredService<IUsageEstimator>(), services.Estimator);
+        Assert.Same(provider.GetRequiredService<IQuotaObservations>(), services.Quota);
+        Assert.Same(provider.GetRequiredService<IProjectBrief>(), services.Brief);
+        Assert.IsType<WorktreeRepositoryStateReader>(services.Repository);
+
+        // The live state is the monitor of this same document.
+        Assert.Same(document.Monitor, services.Live);
+    }
+
+    [Fact]
+    public void The_monitor_of_the_document_of_the_app_has_the_sources_of_the_parts_the_quota_and_the_analysis_of_consumption()
+    {
+        using var temp = new TempDirectory();
+        var project = temp.CreateDirectory("calc");
+        using var provider = Build(FoldersIn(temp));
+
+        var document = provider.GetRequiredService<IOrchestratorDocumentFactory>().Create(project);
+
+        Assert.IsType<DecisionLogContextPartsSource>(document.Monitor.ContextPartsSource);
+        Assert.Same(provider.GetRequiredService<QuotaViewModel>(), document.Monitor.Quota);
+        Assert.Same(provider.GetRequiredService<IConsumptionAnalyzer>(), document.Monitor.Consumption.Analyzer);
+        Assert.Same(provider.GetRequiredService<IAssistedConsumptionAnalysis>(), document.Monitor.Consumption.Assisted);
+        Assert.NotNull(document.Monitor.Consumption.EstimateAssisted);
+    }
+
+    [Fact]
+    public void The_document_reads_the_setting_reduce_motion_of_the_app_and_follows_it_when_it_is_saved()
+    {
+        using var temp = new TempDirectory();
+        var project = temp.CreateDirectory("calc");
+        using var provider = Build(FoldersIn(temp));
+        var store = provider.GetRequiredService<IAppSettingsStore>();
+        var document = provider.GetRequiredService<IOrchestratorDocumentFactory>().Create(project);
+
+        store.SavePreferences(store.Load() with { ReduceMotion = true });
+        MotionPolicy.NotifySettingChanged();
+        document.Builder!.RefreshMotion();
+        Assert.False(document.Canvas.Team.AnimationsEnabled);
+
+        // Turned off again: the animations follow the option of Windows, as they do for whoever never turned it on.
+        store.SavePreferences(store.Load() with { ReduceMotion = false });
+        MotionPolicy.NotifySettingChanged();
+        document.Builder.RefreshMotion();
+        Assert.Equal(MotionPolicy.WindowsAnimates, document.Canvas.Team.AnimationsEnabled);
+    }
+
+    [Fact]
+    public async Task The_budget_saved_for_a_project_in_the_folder_of_the_app_reaches_the_tab_of_the_orchestrator()
+    {
+        using var temp = new TempDirectory();
+        var project = temp.CreateDirectory("calc");
+        var folders = FoldersIn(temp);
+        using var provider = Build(folders);
+        var main = provider.GetRequiredService<MainViewModel>();
+        await main.OpenProjectAsync(project);
+        await OpenOrchestratorAsync(main);
+        var tab = Assert.IsType<OrchestratorDocumentViewModel>(main.ActiveContent);
+        await tab.BuilderData;
+        Assert.Equal(new AgentStudio.Application.Orchestration.RunOptions().MaxAgentRuns, tab.Builder!.MaxAgentRuns);
+        var context = tab.Context!.Project!;
+
+        await provider.GetRequiredService<IProjectOptionsStore>().SaveAsync(context, new ProjectRunOptions(9, 2, TimeSpan.FromMinutes(20)), TestContext.Current.CancellationToken);
+
+        // The file is where the configurator keeps it, in the folder of the app, and a tab opened afterwards starts from it.
+        Assert.True(File.Exists(Path.Combine(folders.Local.BaseDirectory, "setup", context.ProjectId + ".json")));
+        var next = provider.GetRequiredService<IOrchestratorDocumentFactory>().Create(project);
+        await next.OpenAsync();
+        await next.BuilderData;
+        Assert.Equal(9, next.Builder!.MaxAgentRuns);
+    }
+
+    [Fact]
+    public void The_shell_of_the_app_has_the_activities_of_the_builder_and_the_panels_of_the_run()
+    {
+        using var temp = new TempDirectory();
+        using var provider = Build(FoldersIn(temp));
+
+        var main = provider.GetRequiredService<MainViewModel>();
+
+        Assert.Equal(["agents", "tools", "tests"], main.Activities.Where(a => a.Id is "agents" or "tools" or "tests").Select(a => a.Id));
+        Assert.NotNull(main.Problems);
+        Assert.NotNull(main.Output);
+        Assert.NotNull(main.Tests);
     }
 }
