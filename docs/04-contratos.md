@@ -1713,3 +1713,75 @@ Lo que WP3 añade o cambia sobre lo de arriba ([ADR-0052](adr/0052-analisis-del-
   orden».
 - **En la composición:** `IOrderReview`, `IPreparationChat` e `IQuotaConsentLedger` como únicos (singleton), con la misma
   instancia del registro de OK para todos los servicios que lo piden.
+
+### 21.9 WP7: configurador por proyecto ([ADR-0055](adr/0055-configurador-por-proyecto.md))
+
+El asistente de siete pasos de [17 §4.6](17-constructor-visual-de-agentes.md#46-configurador-por-proyecto) (D-26 y D-27, F13-12).
+Propone a partir del repositorio, sin red y sin cuota, y aplica cada parte por la puerta de su pantalla de siempre. Los tipos
+nuevos están en `Application/Setup`; no hay ninguna entrada nueva en el registro (`ProjectSetupApplied` es del P0, §21.2).
+
+| Contrato | Fichero | Qué es |
+|---|---|---|
+| `SetupStep` (`Project`, `Brief`, `Team`, `Models`, `Verification`, `Skills`, `Budget`, `Summary`), `SetupSize`, `SetupSizes` | `Application/Setup/SetupContracts.cs` | Los pasos y el tamaño del proyecto: pequeño por debajo de 300 ficheros, mediano de 300 a 2 000 y grande por encima (el mismo límite de D-24 para el orquestador «máximo») |
+| `ISetupRepositoryReader`, `SetupRepositoryFacts` | ídem | Lo que el repositorio dice de sí mismo: los nombres de sus ficheros (el índice del explorador), la rama, HEAD, los cambios sin guardar y los remotos limpios de credenciales. No ejecuta nada del repositorio |
+| `SetupProjectProposal`, `SetupBriefProposal`, `SetupTeamProposal` con `SetupAgentChange`, `SetupModelProposal`, `SetupVerificationProposal`, `SetupSkillSuggestion`, `SetupProposal` | ídem | Lo que cada paso propone. Solo lectura |
+| `ProjectRunOptions` (`MaxAgentRuns`, `MaxParallelTasks`, `TimePerAttempt`, `Validate()`, `ToRunOptions()`) e `IProjectOptionsStore` | ídem | El presupuesto y el trabajo desatendido del paso 7: los valores de `RunOptions` que eliges una vez por proyecto. Rangos: de 1 a 200 ejecuciones, de 1 a 8 tareas a la vez y de 1 minuto a 4 horas por intento |
+| `ISetupVerificationProfiles` (`Propose`, `LoadAsync`, `SaveAsync`) | ídem | Los perfiles de verificación del paso 5. Un fichero de perfil que no se puede usar lanza `InvalidDataException` y nunca se sobrescribe |
+| `ISetupPresenceGate`, `SetupPresenceResult` | ídem | La barrera de Windows Hello para lo crítico (`ChangeVerificationProfile` y `GrantHighRiskCapability`). La razón de un no es un código |
+| `SetupSelection`, `SetupPartOutcome` (`Applied`, `Unchanged`, `Skipped`, `Denied`, `Failed`), `SetupPartResult`, `SetupApplyResult` | ídem | Lo que revisaste y lo que pasó con cada parte. `SetupApplyResult.RosterChanged` dice que la plantilla cambió |
+| `SetupStacks`, `SetupAgents`, `SetupCapabilities`, `SetupProposer` | `Application/Setup/SetupProposer.cs` | Las propuestas deterministas (puras): tecnología, tamaño, carpetas principales, esqueleto de la ficha, plantilla por tamaño, modelos con su razón y skills. `SetupCapabilities` dice qué capacidades de la barrera tendría un agente (`shell`, `network`, `codex-writes`, `unmeasured-cli-writes`, `more-folders`) |
+| `ProjectSetupService` (`ProposeAsync`, `ApplyAsync`, `OptionsHash`) | `Application/Setup/ProjectSetupService.cs` | El servicio |
+| `NodeVerificationProfile`, `PythonVerificationProfile` (`Detect`, `ProposeFor`, `Propose`) | `Orchestration/Verification/` | Los perfiles de Node y de Python, que los ejecuta el sistema como el de .NET (§ siguiente) |
+| `FileSetupRepositoryReader`, `StackSetupVerificationProfiles`, `LocalProjectOptionsStore`, `HelloSetupPresenceGate`, `SetupServices.AddAgentStudioSetup`, `SetupViewModelFactory` | `Desktop/Setup/` | Los adaptadores de los puertos y la composición del servicio |
+| `SetupViewModel`, `SetupStepViewModel`, `SetupSizeChoice`, `SetupAgentRowViewModel`, `SetupModelRowViewModel`, `SetupSkillRowViewModel`, `SetupView` | `Desktop/Setup/`, `Desktop/Views/Setup/` | La pantalla, con su ⓘ (`InfoKey="Setup_Info"`) |
+| `Resources/SetupStrings.resx` y `.en.resx` | `Desktop/Resources/` | `Setup_…` para lo que nombra la pantalla y `Text_setup_…` para los códigos de las capas de abajo (`setup.brief.section.*`, `setup.problem.*`, `setup.hello.*`, `setup.budget.*`, `setup.verification.no-stack`, `setup.models.light-executor`). El nivel y el esfuerzo de un modelo son los `Models_Tier_*` y `Models_Effort_*` de `ModelsStrings` |
+
+- **Los siete pasos y su puerta:**
+
+  | Paso | Propone | Aplicar escribe |
+  |---|---|---|
+  | 1 · Proyecto | Tecnología (.NET, Node o Python, en ese orden de precedencia), tamaño, rama, HEAD, cambios sin guardar, remotos y carpetas principales | Nada |
+  | 2 · Ficha | Un esqueleto de secciones según la tecnología; escribes tú | `IProjectBrief.SaveAsync`: una versión nueva de la persona. Un texto igual al vigente no escribe nada |
+  | 3 · Equipo | La plantilla del tamaño: pequeña (orquestador, un ejecutor y juez), mediana (más `ejecutor-ligero`) o grande (más `revisor`, un crítico de Codex de solo lectura) | `IAgentRoster.SaveAsync`: cambia `RosterHash` y retira la aprobación del plan que espere (§ siguiente) |
+  | 4 · Modelos | `ModelRecommender` de WP2, agente por agente, con su razón (`Text_model_reason_*`) | Lo mismo que el paso 3: la plantilla con el modelo y el esfuerzo |
+  | 5 · Pruebas | El perfil de la tecnología | `VerificationProfileFile` con Windows Hello (`ChangeVerificationProfile`, siempre) |
+  | 6 · Skills | `SkillRecommender` por agente (tecnología y papel); las enlazadas, fuera; ninguna activa de partida | `ISkillActivationStore.AppendAsync`, una decisión de la persona por agente |
+  | 7 · Presupuesto | Los valores de hoy | `IProjectOptionsStore.SaveAsync` |
+  | Resumen | Cada paso incluido, con lo de antes al lado | «Aplicar los cambios» |
+
+- **Lo que no hace:** no quita ningún agente (el almacén de la plantilla no borra: solo añade y cambia), no ejecuta nada del
+  repositorio, no usa la red y no pide ninguna aprobación nueva. Con la plantilla pedida, un agente que gana una capacidad de
+  `SetupCapabilities.Granted` (una shell, la red, Codex escribiendo o carpetas con escritura) pide antes
+  `GrantHighRiskCapability`; sin barrera compuesta, esas dos partes se niegan.
+- **Cada parte es su propia escritura:** una que falla o que no se confirma no deshace las demás, y el resultado dice qué hizo
+  cada una. Antes de guardar el primer agente se comprueban todos, así que una plantilla no válida no deja nada a medias.
+- **`ProjectSetupApplied`** lo escribe el servicio con `new Actor(ActorKind.User, "user")`, fuera de toda ejecución: la huella
+  de la plantilla guardada (`RosterHash.Of` de la plantilla entera, después de guardar), el SHA-256 de la ficha que anunció la
+  memoria, el `ContentHash` del perfil, el SHA-256 de las activaciones (`setup-skills/1`) y el de las opciones
+  (`ProjectSetupService.OptionsHash`). Lo que no se escribió va a `null`, y sin nada escrito no hay entrada. Si el registro no
+  se verifica, lo escrito se queda y el resultado dice que la entrada falta (`setup.problem.record-failed`).
+- **Los perfiles de Node y de Python** se detectan por los nombres de los ficheros de la raíz (`package.json`; `pyproject.toml`
+  o `requirements.txt`), con precedencia .NET, Node, Python. Todos van aislados (`LowIntegrity`) en una copia del commit, con
+  el informe JUnit en la carpeta `{results}` del paso:
+
+  | Perfil | Pasos |
+  |---|---|
+  | Node | `install` (`npm ci`, o `npm install --no-package-lock` sin `package-lock.json`; siempre `--ignore-scripts --no-audit --no-fund`; se lanza como `node <carpeta de node.exe>\node_modules\npm\bin\npm-cli.js …`, no por el shim `npm.cmd`, y sin `npm-cli.js` el paso falla y lo dice), `build` (`npm run build --if-present`, requiere `install`) y `test` (`node --test --test-reporter=junit --test-reporter-destination={results}/test.xml`, requiere `build`) |
+  | Python | `build` (`python -m compileall -q -x <node_modules, .venv, venv, .git> .`; con el alias de la Tienda o sin Python, el paso falla y lo dice) y `test` (`python -B -m pytest -q -p no:cacheprovider --junitxml={results}/test.xml`, requiere `build`). No instala nada: `pip` nunca se ejecuta |
+
+  Una prueba sin tests no es un éxito, como en .NET. Un proyecto en Jest, Vitest o Mocha edita el paso `test` con el
+  informador JUnit de su herramienta: el perfil es tuyo.
+- **Para la integración (el lead):**
+  - `services.AddAgentStudioSetup()` junto a las demás pantallas: registra `ProjectSetupService`, `SetupViewModelFactory` y los
+    adaptadores de sus puertos. Necesita ya registrados `IAgentRoster`, `IDecisionRecorder` e `IProjectStorageFiles`; usa lo que
+    haya de `IProjectBrief`, `ISkillCatalog`, `ISkillActivationStore`, `IRequirementStore`, `IModelCatalogSource`,
+    `IModelLearning`, `IWorktreeManager` y `ReinforcedConfirmation`.
+  - Un documento o una vista que aloje `SetupView` con el `SetupViewModel` de `SetupViewModelFactory.Create()` y su
+    `LoadAsync(proyecto)`; y las entradas de «Configurar proyecto» en la banda de preparación y en la bienvenida de un proyecto
+    nuevo (sugerida la primera vez y nunca abierta sola otra vez: ese «ya se sugirió» lo guarda quien lo abre).
+  - Suscribirse a `SetupViewModel.Applied`: con `RosterChanged`, la pestaña del orquestador lee la plantilla otra vez y retira
+    la aprobación del plan (lo mismo que hace `OnRosterSavedAsync`).
+  - Las opciones del proyecto (`IProjectOptionsStore.LoadAsync`, `ProjectRunOptions.ToRunOptions()`) las tiene que leer la pestaña
+    del orquestador al crear sus `RunOptions`; hoy usa `new RunOptions(AutoResumeConsent: …)`.
+  - Un lector de remotos por la capa git endurecida (WP6) puede sustituir a `FileSetupRepositoryReader`: hoy los remotos salen
+    vacíos y el paso 1 no inventa ninguno.

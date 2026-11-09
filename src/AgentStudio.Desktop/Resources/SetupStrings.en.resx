@@ -1,0 +1,418 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the configurator of a project (docs/17 D-26 and D-27, ADR-0055; Phase 13, WP7) in English. Same keys and placeholders as SetupStrings.resx. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Setup_Info_Title" xml:space="preserve">
+    <value>Set up project</value>
+  </data>
+  <data name="Setup_Info_What" xml:space="preserve">
+    <value>A seven-step assistant that proposes how to prepare this project: team, models, tests and limits. It proposes from the files of the project, with no network and no quota spent. Nothing is applied until you press "Apply".</value>
+  </data>
+  <data name="Setup_Info_Actions" xml:space="preserve">
+    <value>Review and change each proposal.
+Skip the steps you do not want.
+See in the summary everything that changes, with what is there now next to it.
+Apply: the test profile and sensitive permissions ask for Windows Hello.</value>
+  </data>
+  <data name="Setup_Heading" xml:space="preserve">
+    <value>Set up project</value>
+  </data>
+  <data name="Setup_Steps_Label" xml:space="preserve">
+    <value>Setup steps</value>
+  </data>
+  <data name="Setup_No_Project" xml:space="preserve">
+    <value>Open a project to set it up.</value>
+  </data>
+  <data name="Setup_Loading" xml:space="preserve">
+    <value>Reading the project…</value>
+  </data>
+  <data name="Setup_Load_Failed" xml:space="preserve">
+    <value>The project could not be read ({0}). Check that the folder exists and open the assistant again.</value>
+  </data>
+  <data name="Setup_Applying" xml:space="preserve">
+    <value>Applying…</value>
+  </data>
+  <data name="Setup_Apply_Failed" xml:space="preserve">
+    <value>It could not be applied ({0}). What was already written stays as it was; check the result and try again.</value>
+  </data>
+  <data name="Setup_Button_Back" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="Setup_Button_Next" xml:space="preserve">
+    <value>Next</value>
+  </data>
+  <data name="Setup_Button_Apply" xml:space="preserve">
+    <value>Apply the changes</value>
+  </data>
+  <data name="Setup_Button_Use_All" xml:space="preserve">
+    <value>Use all recommended</value>
+  </data>
+  <data name="Setup_Include_Step" xml:space="preserve">
+    <value>Apply this step (turn it off to skip it)</value>
+  </data>
+  <data name="Setup_Step_Project" xml:space="preserve">
+    <value>Project</value>
+  </data>
+  <data name="Setup_Step_Brief" xml:space="preserve">
+    <value>Brief</value>
+  </data>
+  <data name="Setup_Step_Team" xml:space="preserve">
+    <value>Team</value>
+  </data>
+  <data name="Setup_Step_Models" xml:space="preserve">
+    <value>Models</value>
+  </data>
+  <data name="Setup_Step_Verification" xml:space="preserve">
+    <value>Tests</value>
+  </data>
+  <data name="Setup_Step_Skills" xml:space="preserve">
+    <value>Skills</value>
+  </data>
+  <data name="Setup_Step_Budget" xml:space="preserve">
+    <value>Budget</value>
+  </data>
+  <data name="Setup_Step_Summary" xml:space="preserve">
+    <value>Summary</value>
+  </data>
+  <data name="Setup_Size_Small" xml:space="preserve">
+    <value>small</value>
+  </data>
+  <data name="Setup_Size_Medium" xml:space="preserve">
+    <value>medium</value>
+  </data>
+  <data name="Setup_Size_Large" xml:space="preserve">
+    <value>large</value>
+  </data>
+  <data name="Setup_Role_Orchestrator" xml:space="preserve">
+    <value>orchestrator</value>
+  </data>
+  <data name="Setup_Role_Executor" xml:space="preserve">
+    <value>executor</value>
+  </data>
+  <data name="Setup_Role_Architect" xml:space="preserve">
+    <value>architect</value>
+  </data>
+  <data name="Setup_Role_Tester" xml:space="preserve">
+    <value>tester</value>
+  </data>
+  <data name="Setup_Role_Documenter" xml:space="preserve">
+    <value>documenter</value>
+  </data>
+  <data name="Setup_Role_Critic" xml:space="preserve">
+    <value>critic</value>
+  </data>
+  <data name="Setup_Role_Judge" xml:space="preserve">
+    <value>independent reviewer (judge)</value>
+  </data>
+  <data name="Setup_Role_Auditor" xml:space="preserve">
+    <value>auditor</value>
+  </data>
+  <data name="Setup_Outcome_Applied" xml:space="preserve">
+    <value>applied</value>
+  </data>
+  <data name="Setup_Outcome_Unchanged" xml:space="preserve">
+    <value>no change</value>
+  </data>
+  <data name="Setup_Outcome_Skipped" xml:space="preserve">
+    <value>skipped</value>
+  </data>
+  <data name="Setup_Outcome_Denied" xml:space="preserve">
+    <value>not confirmed: nothing was written</value>
+  </data>
+  <data name="Setup_Outcome_Failed" xml:space="preserve">
+    <value>could not be applied</value>
+  </data>
+  <data name="Setup_Stack_None" xml:space="preserve">
+    <value>not recognised</value>
+  </data>
+  <data name="Setup_Model_Default" xml:space="preserve">
+    <value>the default model of the program</value>
+  </data>
+  <data name="Setup_Power_Line" xml:space="preserve">
+    <value>{0}, effort {1}</value>
+  </data>
+  <data name="Setup_Agent_Line" xml:space="preserve">
+    <value>{0} · {1}</value>
+  </data>
+  <data name="Setup_Project_Stack" xml:space="preserve">
+    <value>Technology: {0}</value>
+  </data>
+  <data name="Setup_Project_Size" xml:space="preserve">
+    <value>Size: {0} ({1} files)</value>
+  </data>
+  <data name="Setup_Project_Size_Truncated" xml:space="preserve">
+    <value>Size: {0} (at least {1} files: the index was cut)</value>
+  </data>
+  <data name="Setup_Project_Branch" xml:space="preserve">
+    <value>Branch {0}, version {1}</value>
+  </data>
+  <data name="Setup_Project_Branch_None" xml:space="preserve">
+    <value>Branch: could not be read</value>
+  </data>
+  <data name="Setup_Project_Uncommitted" xml:space="preserve">
+    <value>You have changes in git that are not saved: save them before you start a run.</value>
+  </data>
+  <data name="Setup_Project_Clean" xml:space="preserve">
+    <value>No pending changes in git.</value>
+  </data>
+  <data name="Setup_Project_Remote" xml:space="preserve">
+    <value>Remote {0}: {1}</value>
+  </data>
+  <data name="Setup_Project_Folders" xml:space="preserve">
+    <value>Main folders: {0}</value>
+  </data>
+  <data name="Setup_Project_Nothing_Run" xml:space="preserve">
+    <value>This comes from the names of the files. Nothing of the project is run and the network is not used.</value>
+  </data>
+  <data name="Setup_Brief_Hint" xml:space="preserve">
+    <value>Say what the project is, its conventions and its useful links. It reaches the agents as data, never the judge. If you write nothing, nothing is saved.</value>
+  </data>
+  <data name="Setup_Brief_Characters" xml:space="preserve">
+    <value>{0} characters</value>
+  </data>
+  <data name="Setup_Team_Size_Label" xml:space="preserve">
+    <value>Size of the template</value>
+  </data>
+  <data name="Setup_Team_Hint" xml:space="preserve">
+    <value>Small: orchestrator, one executor and judge. Medium: and a lighter executor. Large: and a reviewer. Changing the template withdraws the approval of the plan that is waiting.</value>
+  </data>
+  <data name="Setup_Team_Never_Removes" xml:space="preserve">
+    <value>The assistant only adds and changes: it never removes an agent you already have.</value>
+  </data>
+  <data name="Setup_Team_Added" xml:space="preserve">
+    <value>Added</value>
+  </data>
+  <data name="Setup_Team_Changed" xml:space="preserve">
+    <value>Changed</value>
+  </data>
+  <data name="Setup_Team_Same" xml:space="preserve">
+    <value>No change</value>
+  </data>
+  <data name="Setup_Models_Hint" xml:space="preserve">
+    <value>The recommendation comes from the local catalog and your history, spends no quota, and says why. You decide agent by agent.</value>
+  </data>
+  <data name="Setup_Models_None" xml:space="preserve">
+    <value>The catalog has no model for the program of this agent.</value>
+  </data>
+  <data name="Setup_Models_Recommended" xml:space="preserve">
+    <value>Recommended: {0}, level {1}, effort {2}</value>
+  </data>
+  <data name="Setup_Models_Why" xml:space="preserve">
+    <value>Why: {0}</value>
+  </data>
+  <data name="Setup_Models_Follows" xml:space="preserve">
+    <value>It already uses the recommended one.</value>
+  </data>
+  <data name="Setup_Models_Accept" xml:space="preserve">
+    <value>Use the recommendation</value>
+  </data>
+  <data name="Setup_Verification_Hint" xml:space="preserve">
+    <value>The profile says which commands the system runs to build and test, in an isolated copy. It is code that runs on your computer: saving it asks for Windows Hello.</value>
+  </data>
+  <data name="Setup_Verification_Current" xml:space="preserve">
+    <value>Now: profile {0} (fingerprint {1})</value>
+  </data>
+  <data name="Setup_Verification_Current_None" xml:space="preserve">
+    <value>Now: the project has no profile.</value>
+  </data>
+  <data name="Setup_Verification_Proposed" xml:space="preserve">
+    <value>Proposed: profile {0} (fingerprint {1})</value>
+  </data>
+  <data name="Setup_Verification_Unreadable" xml:space="preserve">
+    <value>The profile file you already have cannot be used. Fix it or delete it yourself: the assistant never overwrites it.</value>
+  </data>
+  <data name="Setup_Verification_Hello_Note" xml:space="preserve">
+    <value>Windows Hello will be asked when you apply.</value>
+  </data>
+  <data name="Setup_Verification_Same" xml:space="preserve">
+    <value>It is the profile you already have.</value>
+  </data>
+  <data name="Setup_Verification_Step_Line" xml:space="preserve">
+    <value>{0}: {1}</value>
+  </data>
+  <data name="Setup_Skills_Hint" xml:space="preserve">
+    <value>These are the skills that best fit the technology and the role of each agent, with their reasons. None is activated by itself: tick the ones you want.</value>
+  </data>
+  <data name="Setup_Skills_None" xml:space="preserve">
+    <value>The catalog has no skills that fit this project.</value>
+  </data>
+  <data name="Setup_Skills_Active" xml:space="preserve">
+    <value>already active</value>
+  </data>
+  <data name="Setup_Skills_Choose" xml:space="preserve">
+    <value>Activate</value>
+  </data>
+  <data name="Setup_Budget_Hint" xml:space="preserve">
+    <value>These are the limits of each run of this project. The values now are the usual ones.</value>
+  </data>
+  <data name="Setup_Budget_Runs" xml:space="preserve">
+    <value>Agent executions per run</value>
+  </data>
+  <data name="Setup_Budget_Parallel" xml:space="preserve">
+    <value>Tasks at once</value>
+  </data>
+  <data name="Setup_Budget_Time" xml:space="preserve">
+    <value>Minutes per attempt</value>
+  </data>
+  <data name="Setup_Budget_Time_Hint" xml:space="preserve">
+    <value>Empty: the time the engine decides on its own.</value>
+  </data>
+  <data name="Setup_Budget_Unattended_Note" xml:space="preserve">
+    <value>Work while you are away: letting a run resume by itself after a quota limit or a restart is a permission you give when you approve each plan, not here.</value>
+  </data>
+  <data name="Setup_Summary_Hint" xml:space="preserve">
+    <value>This is what changes, with what is there now next to it. Nothing is written until you press "Apply the changes".</value>
+  </data>
+  <data name="Setup_Summary_Empty" xml:space="preserve">
+    <value>There is nothing to apply: every step is skipped or already as you propose.</value>
+  </data>
+  <data name="Setup_Summary_Hello" xml:space="preserve">
+    <value>Windows Hello will be asked before the profile or the sensitive permissions are written.</value>
+  </data>
+  <data name="Setup_Summary_Line" xml:space="preserve">
+    <value>{0}: {1} → {2}</value>
+  </data>
+  <data name="Setup_Summary_Brief_Before" xml:space="preserve">
+    <value>brief of {0} characters</value>
+  </data>
+  <data name="Setup_Summary_Brief_None" xml:space="preserve">
+    <value>no brief</value>
+  </data>
+  <data name="Setup_Summary_Brief_After" xml:space="preserve">
+    <value>new brief of {0} characters</value>
+  </data>
+  <data name="Setup_Summary_Absent" xml:space="preserve">
+    <value>not there</value>
+  </data>
+  <data name="Setup_Summary_Inactive" xml:space="preserve">
+    <value>not activated</value>
+  </data>
+  <data name="Setup_Summary_Agent_Added" xml:space="preserve">
+    <value>{0} ({1})</value>
+  </data>
+  <data name="Setup_Summary_Profile" xml:space="preserve">
+    <value>profile {0} (fingerprint {1})</value>
+  </data>
+  <data name="Setup_Summary_Budget" xml:space="preserve">
+    <value>{0} executions, {1} tasks at once, {2} per attempt</value>
+  </data>
+  <data name="Setup_Summary_Minutes" xml:space="preserve">
+    <value>{0} minutes</value>
+  </data>
+  <data name="Setup_Summary_Engine_Time" xml:space="preserve">
+    <value>the time of the engine</value>
+  </data>
+  <data name="Setup_Results_Heading" xml:space="preserve">
+    <value>Result</value>
+  </data>
+  <data name="Setup_Result_Line" xml:space="preserve">
+    <value>{0}: {1}</value>
+  </data>
+  <data name="Setup_Result_Detail" xml:space="preserve">
+    <value>{0}: {1}. {2}</value>
+  </data>
+  <data name="Setup_Result_Roster_Changed" xml:space="preserve">
+    <value>You changed the template of agents: approve again the plan that was waiting.</value>
+  </data>
+  <data name="Setup_Result_Recorded" xml:space="preserve">
+    <value>It is noted in the history of the project.</value>
+  </data>
+  <data name="Setup_Hello_Message" xml:space="preserve">
+    <value>Confirm it is you to apply {0}.</value>
+  </data>
+  <data name="Text_setup_brief_section_what" xml:space="preserve">
+    <value>What the project is</value>
+  </data>
+  <data name="Text_setup_brief_section_conventions" xml:space="preserve">
+    <value>Conventions</value>
+  </data>
+  <data name="Text_setup_brief_section_links" xml:space="preserve">
+    <value>Useful links</value>
+  </data>
+  <data name="Text_setup_brief_section_stack_dotnet" xml:space="preserve">
+    <value>How to build and test (.NET)</value>
+  </data>
+  <data name="Text_setup_brief_section_stack_node" xml:space="preserve">
+    <value>How to build and test (Node)</value>
+  </data>
+  <data name="Text_setup_brief_section_stack_python" xml:space="preserve">
+    <value>How to build and test (Python)</value>
+  </data>
+  <data name="Text_setup_models_light_executor" xml:space="preserve">
+    <value>It is the lighter executor of the medium template: for documentation or test tasks.</value>
+  </data>
+  <data name="Text_setup_verification_no_stack" xml:space="preserve">
+    <value>No profile proposed: the technology of the project is not recognised. You can write the profile yourself.</value>
+  </data>
+  <data name="Text_setup_problem_brief_unreadable" xml:space="preserve">
+    <value>The brief could not be read because the history of the project does not verify. Check the history before you save anything.</value>
+  </data>
+  <data name="Text_setup_problem_profile_unreadable" xml:space="preserve">
+    <value>The test profile file cannot be used. Fix it or delete it yourself.</value>
+  </data>
+  <data name="Text_setup_problem_skills_catalog_empty" xml:space="preserve">
+    <value>The skills catalog is empty.</value>
+  </data>
+  <data name="Text_setup_problem_record_failed" xml:space="preserve">
+    <value>It was applied, but it could not be noted in the history because the history does not verify. Check the history.</value>
+  </data>
+  <data name="Text_setup_problem_brief_not_available" xml:space="preserve">
+    <value>This installation cannot save the brief.</value>
+  </data>
+  <data name="Text_setup_problem_brief_not_saved" xml:space="preserve">
+    <value>The brief could not be saved: it is empty, too long, or the history does not verify.</value>
+  </data>
+  <data name="Text_setup_problem_agent_invalid" xml:space="preserve">
+    <value>The agent "{0}" is not valid: no agent was saved.</value>
+  </data>
+  <data name="Text_setup_problem_profile_not_saved" xml:space="preserve">
+    <value>The test profile could not be saved: {0}</value>
+  </data>
+  <data name="Text_setup_problem_roster_not_saved" xml:space="preserve">
+    <value>The team could not be saved: {0} The agents saved before the error stay saved.</value>
+  </data>
+  <data name="Text_setup_hello_subject_profile" xml:space="preserve">
+    <value>the verification profile of {0}</value>
+  </data>
+  <data name="Text_setup_hello_subject_team" xml:space="preserve">
+    <value>the team with {0} agents</value>
+  </data>
+  <data name="Text_setup_problem_skills_not_available" xml:space="preserve">
+    <value>This installation cannot activate skills.</value>
+  </data>
+  <data name="Text_setup_problem_options_not_saved" xml:space="preserve">
+    <value>The limits of the project could not be saved: {0}</value>
+  </data>
+  <data name="Text_setup_budget_agent_runs_out_of_range" xml:space="preserve">
+    <value>Agent executions per run go from 1 to 200.</value>
+  </data>
+  <data name="Text_setup_budget_parallel_tasks_out_of_range" xml:space="preserve">
+    <value>Tasks at once go from 1 to 8.</value>
+  </data>
+  <data name="Text_setup_budget_time_out_of_range" xml:space="preserve">
+    <value>The time per attempt goes from 1 minute to 4 hours (240 minutes).</value>
+  </data>
+  <data name="Text_setup_hello_not_composed" xml:space="preserve">
+    <value>This installation cannot ask for Windows Hello, so this is not applied.</value>
+  </data>
+  <data name="Text_setup_hello_not_confirmed" xml:space="preserve">
+    <value>It was not confirmed that it was you.</value>
+  </data>
+  <data name="Text_setup_hello_another_pending" xml:space="preserve">
+    <value>Another confirmation is waiting: finish it and apply again.</value>
+  </data>
+  <data name="Text_setup_hello_not_asked" xml:space="preserve">
+    <value>Windows could not be asked for the confirmation.</value>
+  </data>
+</root>
