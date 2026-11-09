@@ -15,8 +15,9 @@ namespace AgentStudio.Tests.Orchestration.Engine;
 /// <summary>
 /// docs/17 D-13 and F13-6 (ADR-0052): every launch of the engine records the parts of its prompt, in characters, in
 /// <c>AgentRunStarted</c> version 3. The parts of the text add up to the exact prompt the agent got; the skills add what
-/// presenting them costs (their names and descriptions), and the instructions of the agent, which the adapter adds outside the
-/// prompt, are their own part; no text is recorded, only sizes.
+/// presenting them costs (their names and descriptions), and the instructions of the agent are their own part: a block of data
+/// of the prompt of an executor (docs/17 D-42), and what the adapter adds outside the prompt of the planner. No text is
+/// recorded, only sizes.
 /// </summary>
 public sealed class ContextPartsInStartTests
 {
@@ -28,11 +29,21 @@ public sealed class ContextPartsInStartTests
         return (next < 0 ? prompt.Length : next + 1) - start;
     }
 
-    /// <summary>The instructions of the agent of the fixtures, which the adapter adds outside the prompt.</summary>
+    /// <summary>The instructions of the agent of the fixtures, which the adapter adds outside the prompt of the planner.</summary>
     private static int Instructions(string agent) => ("Instrucciones de sistema de " + agent).Length;
 
-    /// <summary>The parts of the text of the prompt add up to it; the instructions of the agent are their own part, outside it.</summary>
-    private static void AddsUp(string prompt, Dictionary<ContextPartKind, int> parts, string agent)
+    /// <summary>
+    /// The parts of the text of the prompt of an executor add up to it: its instructions reach it only in a section of the
+    /// prompt, as a block of data (docs/17 D-42), never also as a system prompt of the CLI, and that section is their part.
+    /// </summary>
+    private static void AddsUp(string prompt, Dictionary<ContextPartKind, int> parts)
+    {
+        Assert.Equal(SectionLength(prompt, "## Instrucciones del agente"), parts[ContextPartKind.AgentInstructions]);
+        Assert.Equal(prompt.Length, parts.Where(p => p.Key is not ContextPartKind.Skills).Sum(p => p.Value));
+    }
+
+    /// <summary>The parts of the text of the prompt of the planner add up to it; its instructions are their own part, outside it.</summary>
+    private static void AddsUpWithInstructionsOutside(string prompt, Dictionary<ContextPartKind, int> parts, string agent)
     {
         Assert.Equal(Instructions(agent), parts[ContextPartKind.AgentInstructions]);
         Assert.Equal(prompt.Length, parts.Where(p => p.Key is not (ContextPartKind.AgentInstructions or ContextPartKind.Skills)).Sum(p => p.Value));
@@ -59,7 +70,7 @@ public sealed class ContextPartsInStartTests
         var prompt = Assert.Single(harness.Claude.Starts).Request.Prompt;
         var parts = PartsOf(Assert.Single(harness.Payloads<AgentRunStartedPayload>()).Payload);
         Assert.Equal([ContextPartKind.Protocol, ContextPartKind.Requirements, ContextPartKind.AgentInstructions], parts.Keys);
-        AddsUp(prompt, parts, "ejecutor");
+        AddsUp(prompt, parts);
         Assert.Equal(SectionLength(prompt, "## Requisitos que cubre"), parts[ContextPartKind.Requirements]);
     }
 
@@ -75,7 +86,7 @@ public sealed class ContextPartsInStartTests
         var prompt = Assert.Single(harness.Claude.Starts).Request.Prompt;
         var parts = PartsOf(Assert.Single(harness.Payloads<AgentRunStartedPayload>()).Payload);
         Assert.Equal([ContextPartKind.Protocol, ContextPartKind.Requirements, ContextPartKind.AgentInstructions, ContextPartKind.Memory], parts.Keys);
-        AddsUp(prompt, parts, "ejecutor");
+        AddsUp(prompt, parts);
         Assert.Equal(SectionLength(prompt, "## Memoria del proyecto"), parts[ContextPartKind.Memory]);
     }
 
@@ -92,7 +103,7 @@ public sealed class ContextPartsInStartTests
         var parts = PartsOf(started);
         Assert.Contains("<upstream_output task=\"T1\"", second, StringComparison.Ordinal);
         Assert.Equal(SectionLength(second, "## Datos de tareas anteriores"), parts[ContextPartKind.Upstream]);
-        AddsUp(second, parts, "ejecutor");
+        AddsUp(second, parts);
         Assert.False(PartsOf(harness.Payloads<AgentRunStartedPayload>().Single(p => p.Payload.Task?.Value == "T1").Payload).ContainsKey(ContextPartKind.Upstream));
     }
 
@@ -110,7 +121,7 @@ public sealed class ContextPartsInStartTests
         var retry = harness.Claude.Starts.Single(s => s.Request.Purpose!.Contains("intento 2", StringComparison.Ordinal)).Request.Prompt;
         var parts = PartsOf(harness.Payloads<AgentRunStartedPayload>().Single(p => p.Payload.Attempt == 2).Payload);
         Assert.Equal(SectionLength(retry, "## Intento anterior"), parts[ContextPartKind.PreviousAttempt]);
-        AddsUp(retry, parts, "ejecutor");
+        AddsUp(retry, parts);
     }
 
     [Fact]
@@ -125,7 +136,7 @@ public sealed class ContextPartsInStartTests
         var started = Assert.Single(harness.Payloads<AgentRunStartedPayload>()).Payload;
         Assert.Equal(AgentRunPurpose.Planner, started.Purpose);
         var parts = PartsOf(started);
-        AddsUp(prompt, parts, "orquestador");
+        AddsUpWithInstructionsOutside(prompt, parts, "orquestador");
         Assert.Equal(SectionLength(prompt, "## Requisitos congelados"), parts[ContextPartKind.Requirements]);
     }
 
@@ -151,7 +162,7 @@ public sealed class ContextPartsInStartTests
         var parts = PartsOf(Assert.Single(harness.Payloads<AgentRunStartedPayload>()).Payload);
         var expected = "docs".Length + "Escribe documentación.".Length + "tests".Length + ("Escribe pruebas".Length + 1) + ("con xUnit.".Length + 1);
         Assert.Equal(expected, parts[ContextPartKind.Skills]);
-        AddsUp(prompt, parts, "ejecutor");
+        AddsUp(prompt, parts);
     }
 
     [Fact]
