@@ -373,10 +373,11 @@ internal sealed class RunObservations(AgentInvocation invocation, DateTimeOffset
 /// the verification, the report asked for) is the protocol.</item>
 /// <item>The skills are the characters of the name and the description of each <c>SKILL.md</c> materialized for the launch, which
 /// is what the CLI presents of them; a folder or a file that cannot be read adds nothing, and links are not followed.</item>
-/// <item>The instructions of the agent of its template (<c>SystemInstructions</c>), which the adapter adds outside the prompt
-/// (Claude Code with <c>--append-system-prompt-file</c>, Codex before the task in <c>&lt;agent_instructions&gt;</c>), are part of
-/// <see cref="ContextPartKind.AgentInstructions"/>, with an <c>&lt;agent_instructions&gt;</c> block of the prompt if there is one:
-/// they are in the context, and would otherwise be counted as conversation.</item>
+/// <item>The instructions of the agent of its template are part of <see cref="ContextPartKind.AgentInstructions"/>: they are in
+/// the context, and would otherwise be counted as conversation. An executor gets them only in its prompt, in the section with
+/// the <c>&lt;agent_instructions&gt;</c> block (docs/17 D-42), which counts whole as that part; the planner gets them from the
+/// adapter outside the prompt (<c>SystemInstructions</c>: Claude Code with <c>--append-system-prompt-file</c>, Codex before the
+/// task), counted apart.</item>
 /// </list>
 /// A part without characters is left out, and the parts go in the order of <see cref="ContextPartKind"/>.
 /// </summary>

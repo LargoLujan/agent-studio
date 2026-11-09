@@ -24,8 +24,10 @@
        tarea, alcance, verificación e informe) es el protocolo.
      - Las partes del texto suman exactamente su longitud. Las skills suman aparte el nombre y la descripción de cada
        `SKILL.md` materializado (lo que el CLI presenta), sin seguir enlaces. Las instrucciones del agente de la plantilla
-       (`SystemInstructions`), que el programa añade fuera del prompt (Claude Code con `--append-system-prompt-file`, Codex
-       delante de la tarea), suman aparte en `AgentInstructions`: si no, contarían como conversación.
+       suman en `AgentInstructions`: si no, contarían como conversación. Las de un ejecutor van solo en su prompt, en la
+       sección con el bloque `<agent_instructions>` que añade WP4 (D-42), y esa sección entera es la parte; las del
+       planificador las añade el programa fuera del prompt (Claude Code con `--append-system-prompt-file`, Codex delante de
+       la tarea) y suman aparte (integración del 2026-11-09).
      - Un constructor de prompts que sepa sus partes mejor puede darlas (`AgentInvocation.ContextParts`); si no, se miden. Así
        las partes nuevas de WP4 (ficha, instrucciones y respuesta) se miden solas si usan sus etiquetas.
      - Observability da el desglose (`ContextBreakdown`): cada parte, estimada por Agent Studio (caracteres entre 4, redondeo
