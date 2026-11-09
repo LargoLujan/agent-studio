@@ -707,7 +707,9 @@ La integración de la tanda 2 conecta todo en la app:
 Las pruebas de integración de `Integration/Phase13` (la pregunta con reinicio, el juez, la inyección y la barrera con los
 ajustes manipulados) pasan. Suite: 8795 correctas y 1 omitida, en Debug y en Release.
 
-Falta la demostración en vivo con tu OK: una ejecución corta con una pregunta real y la entrega con Hello. F13-7 se mide
+La demostración en vivo se hizo el 2026-11-09 con tu OK ([18](18-peticiones-y-pendientes.md) §3, «Recorrido en vivo de la
+Fase 13»): la pregunta del orquestador antes de planificar, la del ejecutor en la ejecución, Hello al aprobar el plan y en la
+entrega, el juez viendo solo tu decisión y el análisis del consumo al terminar; observaciones V43 a V45. F13-7 se mide
 fuera del CI (`Measurement`): el monitor completo da unos 25 ms de mediana y el lienzo unos 45 ms, con picos de unos
 110 ms. Residuales en [18](18-peticiones-y-pendientes.md) P42 y de P46 a P53.
 
