@@ -74,12 +74,16 @@ public sealed partial class AssistedConsumptionAnalysisService(
     private readonly Lock _gate = new();
     private readonly HashSet<QuotaConsent> _spent = [];
 
-    /// <summary>The strict schema of the answer (D-35).</summary>
-    public static string AnswerSchema { get; } = string.Create(
-        CultureInfo.InvariantCulture,
-        $$$$"""
-        {"type":"object","properties":{"suggestions":{"type":"array","maxItems":{{{{AssistedConsumptionLimits.MaxSuggestions}}}},"items":{"type":"object","properties":{"targetKind":{"type":"string","enum":["Run","Agent","Task","Attempt","Setting"]},"targetId":{"type":["string","null"]},"text":{"type":"string","maxLength":{{{{AssistedConsumptionLimits.MaxSuggestionText}}}}},"fix":{"type":["object","null"],"properties":{"kind":{"type":"string","enum":["SetMemory","RemoveSkills","ChangeModel","RaiseContextBudget","RaiseRunBudget"]},"agent":{"type":["string","null"]},"model":{"type":["string","null"]},"memory":{"type":["string","null"],"enum":["None","ReadSelected",null]},"skills":{"type":["array","null"],"items":{"type":"string"}},"characters":{"type":["integer","null"]},"maxAgentRuns":{"type":["integer","null"]}},"required":["kind","agent","model","memory","skills","characters","maxAgentRuns"],"additionalProperties":false},"savingTokens":{"type":["integer","null"]}},"required":["targetKind","targetId","text","fix","savingTokens"],"additionalProperties":false}}},"required":["suggestions"],"additionalProperties":false}
-        """);
+    /// <summary>
+    /// The strict schema of the answer (D-35), in the subset both CLIs accept (ADR-0013, as <c>StrictJsonSchema</c> of the
+    /// planner builds it): every property required, none additional, a value that may be absent an <c>anyOf</c> with
+    /// <c>null</c>, and no bounds. The limits (300 characters, 10 suggestions, the ranges of a fix) are checked after parsing
+    /// (<see cref="Validate"/>), never trusted to the schema.
+    /// </summary>
+    public static string AnswerSchema { get; } =
+        """
+        {"type":"object","properties":{"suggestions":{"type":"array","items":{"type":"object","properties":{"targetKind":{"type":"string","enum":["Run","Agent","Task","Attempt","Setting"]},"targetId":{"anyOf":[{"type":"string"},{"type":"null"}]},"text":{"type":"string"},"fix":{"anyOf":[{"type":"object","properties":{"kind":{"type":"string","enum":["SetMemory","RemoveSkills","ChangeModel","RaiseContextBudget","RaiseRunBudget"]},"agent":{"anyOf":[{"type":"string"},{"type":"null"}]},"model":{"anyOf":[{"type":"string"},{"type":"null"}]},"memory":{"anyOf":[{"type":"string","enum":["None","ReadSelected"]},{"type":"null"}]},"skills":{"anyOf":[{"type":"array","items":{"type":"string"}},{"type":"null"}]},"characters":{"anyOf":[{"type":"integer"},{"type":"null"}]},"maxAgentRuns":{"anyOf":[{"type":"integer"},{"type":"null"}]}},"required":["kind","agent","model","memory","skills","characters","maxAgentRuns"],"additionalProperties":false},{"type":"null"}]},"savingTokens":{"anyOf":[{"type":"integer"},{"type":"null"}]}},"required":["targetKind","targetId","text","fix","savingTokens"],"additionalProperties":false}}},"required":["suggestions"],"additionalProperties":false}
+        """;
 
     /// <exception cref="ArgumentNullException">There is no consent, project or report.</exception>
     /// <exception cref="ArgumentException">The consent does not say who gave it or for what, or the report is of another run.</exception>

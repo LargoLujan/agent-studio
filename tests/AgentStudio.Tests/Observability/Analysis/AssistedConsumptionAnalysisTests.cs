@@ -234,15 +234,22 @@ public sealed class AssistedConsumptionAnalysisTests : IDisposable
     }
 
     [Fact]
-    public void The_schema_of_the_answer_is_strict_JSON()
+    public void The_schema_of_the_answer_is_in_the_strict_subset_both_clis_accept()
     {
         using var schema = JsonDocument.Parse(AssistedConsumptionAnalysisService.AnswerSchema);
         var item = schema.RootElement.GetProperty("properties").GetProperty("suggestions").GetProperty("items");
+        var fix = item.GetProperty("properties").GetProperty("fix").GetProperty("anyOf")[0];
 
         Assert.False(item.GetProperty("additionalProperties").GetBoolean());
         Assert.Equal(5, item.GetProperty("required").GetArrayLength());
-        Assert.Equal(AssistedConsumptionLimits.MaxSuggestionText, item.GetProperty("properties").GetProperty("text").GetProperty("maxLength").GetInt32());
-        Assert.Equal(AssistedConsumptionAnalysisService.FixKinds, item.GetProperty("properties").GetProperty("fix").GetProperty("properties").GetProperty("kind").GetProperty("enum").EnumerateArray().Select(e => e.GetString()!));
+        Assert.False(fix.GetProperty("additionalProperties").GetBoolean());
+        Assert.Equal(AssistedConsumptionAnalysisService.FixKinds, fix.GetProperty("properties").GetProperty("kind").GetProperty("enum").EnumerateArray().Select(e => e.GetString()!));
+        foreach (var bound in (string[])["maxLength", "maxItems", "minimum", "maximum", "pattern", "format", "$ref"])
+        {
+            Assert.DoesNotContain($"\"{bound}\"", AssistedConsumptionAnalysisService.AnswerSchema, StringComparison.Ordinal);
+        }
+
+        Assert.DoesNotContain("\"type\":[", AssistedConsumptionAnalysisService.AnswerSchema, StringComparison.Ordinal);
     }
 
     /// <summary>A scripted agent: it records each launch, whether its folder was empty, and answers what the test says.</summary>

@@ -148,7 +148,7 @@ public sealed class MemoryInPromptTests
         Assert.Contains("### RQ-01 (obligatorio)", prompt, StringComparison.Ordinal);
 
         var started = Assert.Single(harness.Payloads<AgentRunStartedPayload>()).Payload;
-        Assert.Equal(AgentRunStartedPayload.PurposeVersion, started.V);
+        Assert.Equal(AgentRunStartedPayload.ContextPartsVersion, started.V);
         var pack = started.ContextPack!;
         Assert.Equal((RecordingContextPacker.PackSha256, RecordingContextPacker.Characters), (pack.Sha256, pack.Characters));
         Assert.Equal(["RQ-01", "mem-1", "mem-2"], pack.Entries);

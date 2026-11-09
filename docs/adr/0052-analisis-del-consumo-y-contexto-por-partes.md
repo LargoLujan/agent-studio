@@ -100,5 +100,12 @@
     empiece por `## ` partiría su sección; solo afecta al tamaño mostrado.
   - Para la ficha a agentes sin memoria, el motor (WP4) tiene que pedir el paquete también para ellos, o leer `IProjectBrief`.
   - Sin catálogo de modelos o sin evidencias legibles, `model.oversized` calla; sin arranques v3, `ctx.heavy-preamble` calla.
+  - El aprendizaje en vivo empieza cuando el escritorio ha leído una vez el registro del proyecto (`ContextWindowCatalogs`):
+    hasta entonces el monitor tiene la tabla base compartida, que no aprende. Un registro que no es de confianza la deja así.
+  - El esquema de la respuesta del agente usa solo el subconjunto estricto que aceptan los dos CLIs (ADR-0013: todo requerido,
+    lo que puede faltar con `anyOf` y `null`, sin límites); los límites se comprueban al leer la respuesta. No se ha probado
+    con un CLI real: no se lanza ninguno sin tu OK.
+  - Las tres pruebas del motor que fijaban el arranque en la versión 2 (`UsageRecordingTests` y `MemoryInPromptTests`) fijan
+    ahora la versión 3.
   - La barra en vivo por partes necesita las partes del intento en el monitor: hoy solo están en el registro
     (`ContextPartsLog`). Un evento de la ejecución con ellas es de la integración.
