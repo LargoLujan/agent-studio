@@ -57,13 +57,33 @@
      (`package.json`; `pyproject.toml` o `requirements.txt`), con precedencia .NET, Node, Python. Los ejecuta el sistema como los
      de .NET: aislados en una copia del commit, cada paso requiere el anterior y el informe es un JUnit en `{results}`.
      - **Node:** `install` (`npm ci` con `package-lock.json`, `npm install --no-package-lock` sin él; siempre
-       `--ignore-scripts`, sin avisos y con la caché de npm en `{results}`, porque un paso aislado no puede escribir en tu
-       perfil de usuario), `build` (`npm run build --if-present`) y `test` con el ejecutor de pruebas de Node y su informador
-       JUnit.
-     - **Python:** `build` (`python -B -m compileall`) y `test` (`pytest` con `--junitxml`). No instala nada: `pip` no se ejecuta
-       nunca, y los paquetes son los del Python del equipo.
-     - **Nada real en las pruebas:** los procesos son guionizados y el informe se escribe donde lo escribiría la herramienta;
-       los repositorios son carpetas temporales de ficheros vacíos.
+       `--ignore-scripts` y sin avisos), `build` (`npm run build --if-present`) y `test` con el ejecutor de pruebas de Node y su
+       informador JUnit.
+       - **npm arranca con node, no por su shim.** En Windows `npm` es `npm.cmd`, y el lanzamiento aislado
+         (`LowIntegrityProcess.ResolveExecutable`) solo añade `.exe`; tampoco queremos pasar por `cmd` (los CLIs de npm son shims).
+         Los pasos son `node <carpeta de node.exe>\node_modules\npm\bin\npm-cli.js <argumentos>`, con `node.exe` resuelto como
+         ya se hacía. Si `npm-cli.js` no está junto a node (o no hay node), `install` y `build` pasan a ser un paso que falla y
+         dice por qué en su salida (`StackStepSupport.Failing`, `cmd /d /c "echo … & exit /b 1"`, que solo imprime): nunca un
+         fallo a ciegas al arrancar.
+     - **Python:** `build` (`python -m compileall -q -x <carpetas> .`) y `test` (`pytest` con `--junitxml`). No instala nada:
+       `pip` no se ejecuta nunca, y los paquetes son los del Python del equipo.
+       - **`compileall` escribe** `__pycache__` en la copia, y es lo que hace (la copia se borra al acabar); por eso el perfil ya no
+         lleva `-B` en ese paso. Salta `node_modules`, `.venv`, `venv` y `.git` con `-x`.
+       - **El alias de la Tienda.** Si el `python` del `PATH` es el alias de `%LOCALAPPDATA%\Microsoft\WindowsApps`, que puede
+         fallar en integridad baja, o no hay ninguno, `build` es un paso que falla y lo dice (`PythonVerificationProfile.InterpreterProblem`).
+         Se arregla instalando Python desde python.org o editando el perfil.
+     - **Un entorno por perfil.** Además del de .NET, el ejecutor da a un paso aislado de `node`, `npm` o `npx`: `npm_config_cache`,
+       `npm_config_userconfig` (un fichero vacío en el área), `npm_config_prefix`, `npm_config_update_notifier=false` y
+       `npm_config_fund=false`; y a uno de `python`, `python3`, `py`, `pip` o `pip3`: `PIP_CACHE_DIR`, `PIP_CONFIG_FILE` (vacío),
+       `PYTHONUSERBASE` y `PYTHONDONTWRITEBYTECODE=1`. A los dos, `HOME`, `USERPROFILE`, `APPDATA` y `LOCALAPPDATA` en la carpeta de
+       «casa» del área. Los ficheros vacíos se crean solo si no existen (nunca se escribe a través de una ruta que ya está).
+     - **Lo que sigue sin limitarse**, igual que en .NET: la zona aislada es integridad baja, no una caja. Un proceso del paso
+       puede **leer** lo que el perfil del usuario deje legible (claves y configuraciones fuera de las variables de entorno que
+       cambiamos, como credenciales que lea por su ruta absoluta) y usa **la red** con las del usuario. Lo que sí impide es
+       escribir en tu repositorio y en tu perfil. Por eso el perfil es código que corre en tu equipo y guardarlo pide Windows Hello.
+     - **Pruebas:** las unitarias usan procesos guionizados y repositorios temporales de ficheros vacíos, sin `npm` ni `pip`. Además
+       hay pruebas `LocalTools` (`StackVerificationLocalToolsTests`) que lanzan de verdad, en integridad baja y sin red, `node --test`,
+       npm con un `package.json` sin dependencias y `--ignore-scripts`, `compileall` y `pytest`; se saltan si la herramienta no está.
   9. **Las opciones del proyecto** (paso 7: ejecuciones por ejecución, tareas a la vez y tiempo por intento) viven en la carpeta
      de la app de este equipo (`%LOCALAPPDATA%\AgentStudio\setup\<id>.json`), no en el repositorio: son de la persona, y un
      fichero más en `.agentstudio` contaría como cambio suyo sin guardar (`RepositoryState.HasUncommittedChanges`) y haría
@@ -82,12 +102,12 @@
   - **Que el perfil de Node use `npm test`:** depende de cada proyecto y de un informador JUnit que no todos tienen. Se prefirió el
     ejecutor de Node, que lo trae, y editar el paso en los demás.
 - **Consecuencias:**
-  - **Un perfil de Node o de Python que nadie ha ejecutado de verdad:** las pruebas son guionizadas, como manda la regla de no
-    lanzar `npm` ni `pip` reales. Sin verificar (docs/17 §13): la versión de Node desde la que existe el informador JUnit
-    (se espera la 20.x reciente), que `npm ci --cache` haga lo que dice dentro de una zona aislada, y el entorno de un paso
-    aislado: `IsolatedStepEnvironment` del ejecutor es el de .NET (`NUGET_*`, `DOTNET_*`) y no pone `npm_config_cache` ni
-    variables de `pip`, de modo que un `npm` o un `python` en integridad baja podría querer escribir fuera de la zona. La
-    primera ejecución real, con tu OK, lo mide.
+  - **Lo medido y lo que no:** en este equipo (2026-11-10), con las pruebas `LocalTools`, `node --test` con el informador JUnit,
+    npm por `node npm-cli.js`, `compileall` con `-x` y `pytest` corrieron en integridad baja y el informe se leyó. Sin verificar
+    (docs/17 §13): la versión de Node desde la que existe el informador JUnit, un proyecto con dependencias reales (necesita red y
+    un registro) y un Python de otra instalación.
+  - **Un registro con un `package.json` dependiente de scripts propios** (`npm run build`) ejecuta lo que el repositorio diga: es
+    el perfil, y por eso va tras Windows Hello.
   - **Los remotos del paso 1 salen vacíos** hasta que haya un lector por la capa git endurecida, que hoy no los expone.
   - **No hay estimación de consumo** junto a las opciones del paso 7 ni la diferencia de consumo entre modelos que D-24 pide
     «si el estimador tiene referencias»: ambas piden construir una petición de estimación por agente y se dejan para cuando

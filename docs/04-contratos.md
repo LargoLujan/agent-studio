@@ -1766,8 +1766,8 @@ nuevos están en `Application/Setup`; no hay ninguna entrada nueva en el registr
 
   | Perfil | Pasos |
   |---|---|
-  | Node | `install` (`npm ci`, o `npm install --no-package-lock` sin `package-lock.json`; siempre `--ignore-scripts --no-audit --no-fund` y la caché npm en `{results}`), `build` (`npm run build --if-present`, requiere `install`) y `test` (`node --test --test-reporter=junit --test-reporter-destination={results}/test.xml`, requiere `build`) |
-  | Python | `build` (`python -B -m compileall -q .`) y `test` (`python -B -m pytest -q -p no:cacheprovider --junitxml={results}/test.xml`, requiere `build`). No instala nada: `pip` nunca se ejecuta |
+  | Node | `install` (`npm ci`, o `npm install --no-package-lock` sin `package-lock.json`; siempre `--ignore-scripts --no-audit --no-fund`; se lanza como `node <carpeta de node.exe>\node_modules\npm\bin\npm-cli.js …`, no por el shim `npm.cmd`, y sin `npm-cli.js` el paso falla y lo dice), `build` (`npm run build --if-present`, requiere `install`) y `test` (`node --test --test-reporter=junit --test-reporter-destination={results}/test.xml`, requiere `build`) |
+  | Python | `build` (`python -m compileall -q -x <node_modules, .venv, venv, .git> .`; con el alias de la Tienda o sin Python, el paso falla y lo dice) y `test` (`python -B -m pytest -q -p no:cacheprovider --junitxml={results}/test.xml`, requiere `build`). No instala nada: `pip` nunca se ejecuta |
 
   Una prueba sin tests no es un éxito, como en .NET. Un proyecto en Jest, Vitest o Mocha edita el paso `test` con el
   informador JUnit de su herramienta: el perfil es tuyo.
