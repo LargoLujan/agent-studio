@@ -951,6 +951,9 @@ flowchart LR
     Usage -->|"Exportar CSV o JSON"| SaveAs["Guardar como"]
     Main --> Skills["Catálogo de skills"]
     Skills -->|"recomendar para la tarea"| Orq
+    Main -->|"Configurar proyecto"| Setup["Configurar proyecto<br/>siete pasos · resumen · aplicar"]
+    Orq -->|"banda de preparación"| Setup
+    Welcome -->|"proyecto nuevo"| Setup
     Main -->|"último icono de la barra lateral"| Settings["Ajustes<br/>contexto y cuota · trabajo desatendido · Windows Hello y bloqueo"]
     Settings -->|"cerrar o salir con cambios"| UnsavedAsk["¿Guardar los cambios?<br/>guardar · no guardar · cancelar"]
     Main -->|"Proveedores (barra superior)"| Doctor
@@ -994,6 +997,52 @@ derecha de la «L»: en un teclado de EE. UU. es `` Ctrl+` ``), y, de la Fase 5,
 `Ctrl+Alt+L` o `Ctrl+Mayús+B` «Bloquear» (`Ctrl+Alt` es `AltGr` en muchos teclados: en el español `AltGr+L` no escribe
 nada y bloquea; `Ctrl+Mayús+B` no usa `Alt` y sirve en cualquiera). Mientras la interfaz está bloqueada, ningún atajo de la
 ventana funciona.
+
+### 8.1 Configurar proyecto (Fase 13, WP7)
+
+Un asistente de siete pasos y un resumen que prepara un proyecto: [17 §4.6](17-constructor-visual-de-agentes.md#46-configurador-por-proyecto)
+y [ADR-0055](adr/0055-configurador-por-proyecto.md). Se abre con «Configurar proyecto», desde la banda de preparación del
+orquestador y desde la bienvenida de un proyecto nuevo (la primera vez se sugiere y nunca se abre solo otra vez); lo conecta la
+integración. Propone a partir de los ficheros del proyecto, sin red y sin gastar cuota.
+
+```text
+┌ Configurar proyecto ──────────────────────────────────────────────────────── ⓘ ┐
+│ Proyecto   │ Equipo                                                             │
+│ Ficha      │ ☑ Aplicar este paso (apágalo para saltarlo)                        │
+│ Equipo   ◄ │ Tamaño de la plantilla  [ grande ▾ ]                               │
+│ Modelos    │   Orquestador      orquestador · Claude Code     Sin cambios       │
+│ Pruebas    │   Ejecutor ligero  ejecutor · Claude Code        Se añade          │
+│ Skills     │   Revisor          crítico · Codex               Se añade          │
+│ Presupuesto│ El asistente solo añade y cambia: no quita ningún agente.          │
+│ Resumen    │                                                                    │
+│            │                                   [Atrás] [Siguiente] [Aplicar…]   │
+└────────────┴────────────────────────────────────────────────────────────────────┘
+```
+
+- **Lista de pasos a la izquierda** (nombrada para el lector de pantalla; cada paso es un botón que lleva a él): el actual en
+  negrita y los saltados, atenuados. «Proyecto» solo informa y «Resumen» aplica; los otros cinco se pueden saltar.
+- **Cada paso** tiene su interruptor «Aplicar este paso (apágalo para saltarlo)», su frase de ayuda y lo que propone, que se puede
+  cambiar. De partida solo está activo lo que se revisa de todos modos (las altas de la plantilla y un perfil que cambiaría); la
+  ficha, los modelos, las skills y el presupuesto se encienden cuando los tocas.
+- **1 · Proyecto:** tecnología, tamaño, rama, versión, cambios sin guardar, remotos y carpetas principales. Dice que sale de los
+  nombres de los ficheros y que no se ejecuta nada.
+- **2 · Ficha:** un cuadro de texto con un esqueleto de secciones según la tecnología. Si no escribes nada, no se guarda.
+- **3 · Equipo:** el tamaño (pequeño, mediano o grande; el del proyecto, de partida) y cada agente de la plantilla con «Se añade»,
+  «Cambia» o «Sin cambios».
+- **4 · Modelos:** por agente, lo que tiene, la recomendación (modelo, nivel y esfuerzo) y por qué, con «Usar la recomendación» y
+  «Usar todas las recomendadas».
+- **5 · Pruebas:** el perfil que hay y el propuesto, con la orden de cada paso. Guardarlo pide Windows Hello, y si el fichero que
+  ya tienes no se puede usar, lo dice y no lo toca.
+- **6 · Skills:** las más afines a cada agente, con sus razones. Ninguna está marcada de partida; una que ya está activa sale
+  marcada y no se puede desmarcar desde aquí.
+- **7 · Presupuesto:** ejecuciones por ejecución, tareas a la vez y minutos por intento (vacío, el del motor), con el motivo si un
+  valor no sirve. Recuerda que reanudarse sola se consiente al aprobar cada plan.
+- **Resumen:** una línea por cosa que cambia, con «antes → después», y la nota de que se pedirá Windows Hello. «Aplicar los
+  cambios» está apagado si no hay nada que aplicar. Tras aplicar, el resultado dice qué hizo cada parte («aplicado», «sin
+  cambios», «no confirmado: no se escribió nada»…), avisa de que hay que volver a aprobar el plan si cambió la plantilla y dice
+  que queda anotado en el historial del proyecto.
+- **Accesible:** los textos salen de los recursos (castellano de España e inglés), cada elemento de las listas tiene su nombre y
+  los controles se alcanzan con el teclado. El ⓘ de la cabecera explica qué es y qué se puede hacer.
 
 ### Lista de comprobación de la demostración de las pantallas de la Fase 5
 
