@@ -1,0 +1,13 @@
+<Window x:Class="AgentStudio.Desktop.Views.Orchestrator.Questions.QuestionWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
+        xmlns:views="clr-namespace:AgentStudio.Desktop.Views.Orchestrator.Questions"
+        Title="{l:T Monitor_Question_WindowName}"
+        SizeToContent="WidthAndHeight" ResizeMode="NoResize" ShowInTaskbar="False"
+        Background="{StaticResource SurfaceBrush}" UseLayoutRounding="True"
+        AutomationProperties.Name="{Binding AccessibleName}">
+    <!-- The window of a question of an agent (WpfQuestionWindowHost). It is not modal: the rest of the app keeps working while it is
+         open. Its DataContext is the question; the buttons answer or defer through the view model. -->
+    <views:QuestionView/>
+</Window>

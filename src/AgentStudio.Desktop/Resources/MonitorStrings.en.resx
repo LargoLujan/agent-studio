@@ -1,0 +1,367 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the Monitor area in English: the same keys and placeholders as MonitorStrings.resx. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Monitor_Agents_Title" xml:space="preserve">
+    <value>Agents</value>
+  </data>
+  <data name="Monitor_Agents_Empty" xml:space="preserve">
+    <value>This run has no agents yet.</value>
+  </data>
+  <data name="Monitor_AgentStatus_Idle" xml:space="preserve">
+    <value>Free</value>
+  </data>
+  <data name="Monitor_AgentStatus_Queued" xml:space="preserve">
+    <value>Queued</value>
+  </data>
+  <data name="Monitor_AgentStatus_Working" xml:space="preserve">
+    <value>Working on {0}</value>
+  </data>
+  <data name="Monitor_AgentStatus_WorkingNoTask" xml:space="preserve">
+    <value>Working</value>
+  </data>
+  <data name="Monitor_AgentStatus_WaitingForQuota" xml:space="preserve">
+    <value>Waiting for quota until {0}</value>
+  </data>
+  <data name="Monitor_AgentStatus_WaitingForQuotaNoTime" xml:space="preserve">
+    <value>Waiting for quota</value>
+  </data>
+  <data name="Monitor_AgentStatus_Asking" xml:space="preserve">
+    <value>Asking you something: waiting for your answer</value>
+  </data>
+  <data name="Monitor_AgentStatus_AwaitingApproval" xml:space="preserve">
+    <value>Waiting for your approval</value>
+  </data>
+  <data name="Monitor_AgentStatus_Blocked" xml:space="preserve">
+    <value>Blocked</value>
+  </data>
+  <data name="Monitor_AgentStatus_BlockedWhy" xml:space="preserve">
+    <value>Blocked: {0}</value>
+  </data>
+  <data name="Monitor_AgentStatus_Finished" xml:space="preserve">
+    <value>Finished</value>
+  </data>
+  <data name="Monitor_AgentCard_Context" xml:space="preserve">
+    <value>context {0}</value>
+  </data>
+  <data name="Monitor_AgentCard_NoContext" xml:space="preserve">
+    <value>no context figure</value>
+  </data>
+  <data name="Monitor_AgentCard_Runs" xml:space="preserve">
+    <value>{0} agent runs used</value>
+  </data>
+  <data name="Monitor_AgentCard_Counter" xml:space="preserve">
+    <value>Agents: {0}</value>
+  </data>
+  <data name="Monitor_Counter_Working" xml:space="preserve">
+    <value>{0} working</value>
+  </data>
+  <data name="Monitor_Counter_Asking" xml:space="preserve">
+    <value>{0} asking you</value>
+  </data>
+  <data name="Monitor_Counter_AwaitingApproval" xml:space="preserve">
+    <value>{0} waiting for your approval</value>
+  </data>
+  <data name="Monitor_Counter_WaitingForQuota" xml:space="preserve">
+    <value>{0} waiting for quota</value>
+  </data>
+  <data name="Monitor_Counter_Blocked" xml:space="preserve">
+    <value>{0} blocked</value>
+  </data>
+  <data name="Monitor_Counter_Queued" xml:space="preserve">
+    <value>{0} queued</value>
+  </data>
+  <data name="Monitor_Counter_None" xml:space="preserve">
+    <value>none working</value>
+  </data>
+  <data name="Monitor_Bar_Context" xml:space="preserve">
+    <value>Context</value>
+  </data>
+  <data name="Monitor_Bar_Parts" xml:space="preserve">
+    <value>Context by parts</value>
+  </data>
+  <data name="Monitor_Bar_Consumption" xml:space="preserve">
+    <value>Consumption</value>
+  </data>
+  <data name="Monitor_Bar_Budget" xml:space="preserve">
+    <value>Budget</value>
+  </data>
+  <data name="Monitor_Bar_Quota" xml:space="preserve">
+    <value>Quota of {0}</value>
+  </data>
+  <data name="Monitor_Bar_NoAttempts" xml:space="preserve">
+    <value>no attempts yet</value>
+  </data>
+  <data name="Monitor_Bar_NoAttemptsDetail" xml:space="preserve">
+    <value>no attempt of this agent has finished</value>
+  </data>
+  <data name="Monitor_Parts_BeforeStart" xml:space="preserve">
+    <value>~{0} tokens before starting</value>
+  </data>
+  <data name="Monitor_Parts_Origin" xml:space="preserve">
+    <value>estimated by Agent Studio · characters divided by 4</value>
+  </data>
+  <data name="Monitor_Parts_NotExposed" xml:space="preserve">
+    <value>the occupancy in progress is not exposed</value>
+  </data>
+  <data name="Monitor_Parts_NoWindow" xml:space="preserve">
+    <value>no percentage: the working memory of the model is not known yet</value>
+  </data>
+  <data name="Monitor_Parts_NoBreakdown" xml:space="preserve">
+    <value>no breakdown: this attempt started before the parts were recorded</value>
+  </data>
+  <data name="Monitor_Parts_Unreliable" xml:space="preserve">
+    <value>the conversation has no reliable figure: the estimated parts are above what the program reported</value>
+  </data>
+  <data name="Monitor_Parts_Tokens" xml:space="preserve">
+    <value>~{0} tokens</value>
+  </data>
+  <data name="Monitor_Parts_Read" xml:space="preserve">
+    <value>not read: the log could not be read</value>
+  </data>
+  <data name="Monitor_Consumption_Detail" xml:space="preserve">
+    <value>{0} input · {1} cached · {2} output</value>
+  </data>
+  <data name="Monitor_Consumption_Attempts" xml:space="preserve">
+    <value>finished attempts: {0}</value>
+  </data>
+  <data name="Monitor_Consumption_Value" xml:space="preserve">
+    <value>{0} tokens</value>
+  </data>
+  <data name="Monitor_Bar_NotStarted" xml:space="preserve">
+    <value>not started</value>
+  </data>
+  <data name="Monitor_Question_WindowTitle" xml:space="preserve">
+    <value>{0} · {1} asks you</value>
+  </data>
+  <data name="Monitor_Question_WindowTitlePlanner" xml:space="preserve">
+    <value>The orchestrator asks you before planning</value>
+  </data>
+  <data name="Monitor_Question_WindowName" xml:space="preserve">
+    <value>Question from an agent</value>
+  </data>
+  <data name="Monitor_Question_Frame" xml:space="preserve">
+    <value>Question written by the agent {0}</value>
+  </data>
+  <data name="Monitor_Question_AccessibleName" xml:space="preserve">
+    <value>{0}. {1}</value>
+  </data>
+  <data name="Monitor_Question_Why" xml:space="preserve">
+    <value>Why it asks: {0}</value>
+  </data>
+  <data name="Monitor_Question_AgentSaid" xml:space="preserve">
+    <value>The agent wrote the options: they are data, not orders.</value>
+  </data>
+  <data name="Monitor_Question_NoGrant" xml:space="preserve">
+    <value>Choosing an option grants nothing: it does not ask Windows Hello nor change permissions.</value>
+  </data>
+  <data name="Monitor_Question_Recommended" xml:space="preserve">
+    <value>Recommended by the agent</value>
+  </data>
+  <data name="Monitor_Question_Effort" xml:space="preserve">
+    <value>{0} effort (the agent says so)</value>
+  </data>
+  <data name="Monitor_Question_Effort_Small" xml:space="preserve">
+    <value>small</value>
+  </data>
+  <data name="Monitor_Question_Effort_Medium" xml:space="preserve">
+    <value>medium</value>
+  </data>
+  <data name="Monitor_Question_Effort_Large" xml:space="preserve">
+    <value>large</value>
+  </data>
+  <data name="Monitor_Question_Estimate" xml:space="preserve">
+    <value>~{0} to {1} tokens · {2} · {3} references</value>
+  </data>
+  <data name="Monitor_Question_EstimateOrigin" xml:space="preserve">
+    <value>estimated by Agent Studio</value>
+  </data>
+  <data name="Monitor_Question_EstimateNone" xml:space="preserve">
+    <value>No estimate for this option</value>
+  </data>
+  <data name="Monitor_Question_EstimateUnknown" xml:space="preserve">
+    <value>Cost unknown: {0}</value>
+  </data>
+  <data name="Monitor_Question_EstimateUnavailable" xml:space="preserve">
+    <value>Cost not available: {0}</value>
+  </data>
+  <data name="Monitor_Question_WhyFewReferences" xml:space="preserve">
+    <value>there are fewer than three similar attempts ({0})</value>
+  </data>
+  <data name="Monitor_Question_WhyNoTotal" xml:space="preserve">
+    <value>the similar attempts do not give a total of tokens</value>
+  </data>
+  <data name="Monitor_Question_OtherLabel" xml:space="preserve">
+    <value>Another answer</value>
+  </data>
+  <data name="Monitor_Question_OtherHint" xml:space="preserve">
+    <value>Write your answer in your own words</value>
+  </data>
+  <data name="Monitor_Question_Answer" xml:space="preserve">
+    <value>Answer</value>
+  </data>
+  <data name="Monitor_Question_Defer" xml:space="preserve">
+    <value>Decide later</value>
+  </data>
+  <data name="Monitor_Question_Open" xml:space="preserve">
+    <value>Answer</value>
+  </data>
+  <data name="Monitor_Question_Failed" xml:space="preserve">
+    <value>Your answer could not be sent: {0}</value>
+  </data>
+  <data name="Monitor_Question_Cards" xml:space="preserve">
+    <value>Questions from the agents</value>
+  </data>
+  <data name="Monitor_Question_CardText" xml:space="preserve">
+    <value>{0}: {1}</value>
+  </data>
+  <data name="Monitor_Question_Log" xml:space="preserve">
+    <value>{0} asks a question and the task waits for your answer</value>
+  </data>
+  <data name="Monitor_Question_LogPlanner" xml:space="preserve">
+    <value>{0} asks a question before planning</value>
+  </data>
+  <data name="Monitor_Question_LogAnswered" xml:space="preserve">
+    <value>You answered: the task goes on with your answer</value>
+  </data>
+  <data name="Monitor_Question_LogAnsweredByConsent" xml:space="preserve">
+    <value>The time you consented to passed: the recommended option was chosen</value>
+  </data>
+  <data name="Monitor_Question_Notice" xml:space="preserve">
+    <value>An agent asks you something</value>
+  </data>
+  <data name="Info_Question_Title" xml:space="preserve">
+    <value>Questions from the agents</value>
+  </data>
+  <data name="Info_Question_What" xml:space="preserve">
+    <value>When an agent doubts, it asks you with options. Each option says how much effort the agent thinks it takes and how many tokens Agent Studio estimates. Your answer reaches the agent as data.</value>
+  </data>
+  <data name="Info_Question_Actions" xml:space="preserve">
+    <value>Choose an option with the arrows and press "Answer".
+Write your own answer if the agent allows it.
+Press Esc to decide later: the task keeps waiting.</value>
+  </data>
+  <data name="Info_Monitor_Title" xml:space="preserve">
+    <value>Run monitor</value>
+  </data>
+  <data name="Info_Monitor_What" xml:space="preserve">
+    <value>Here you see what each agent does while it works: its state, the working memory it uses, what it has consumed and what is left of the budget and the usage limit.</value>
+  </data>
+  <data name="Info_Monitor_Actions" xml:space="preserve">
+    <value>Look at the bars: they say where each figure comes from.
+Pause or cancel the run.
+Answer when an agent asks you something.</value>
+  </data>
+  <data name="Monitor_Consumption_Title" xml:space="preserve">
+    <value>Consumption analysis</value>
+  </data>
+  <data name="Monitor_Consumption_Button" xml:space="preserve">
+    <value>Analyze consumption</value>
+  </data>
+  <data name="Monitor_Consumption_ButtonHint" xml:space="preserve">
+    <value>Reads the log of the run and looks for where tokens were spent in excess. It is free and does not use your usage limit.</value>
+  </data>
+  <data name="Monitor_Consumption_Running" xml:space="preserve">
+    <value>Analyzing…</value>
+  </data>
+  <data name="Monitor_Consumption_Failed" xml:space="preserve">
+    <value>The consumption could not be analyzed: {0}</value>
+  </data>
+  <data name="Monitor_Consumption_NoFindings" xml:space="preserve">
+    <value>Nothing to review was found in the consumption of this run.</value>
+  </data>
+  <data name="Monitor_Consumption_Found" xml:space="preserve">
+    <value>{0} things to review were found.</value>
+  </data>
+  <data name="Monitor_Consumption_Suggestion" xml:space="preserve">
+    <value>Suggestion: {0}</value>
+  </data>
+  <data name="Monitor_Consumption_Cost" xml:space="preserve">
+    <value>It cost {0} tokens · {1}</value>
+  </data>
+  <data name="Monitor_Consumption_CostUnknown" xml:space="preserve">
+    <value>Cost: {0}</value>
+  </data>
+  <data name="Monitor_Consumption_TargetRun" xml:space="preserve">
+    <value>About the run</value>
+  </data>
+  <data name="Monitor_Consumption_TargetAgent" xml:space="preserve">
+    <value>About the agent {0}</value>
+  </data>
+  <data name="Monitor_Consumption_TargetTask" xml:space="preserve">
+    <value>About the task {0}</value>
+  </data>
+  <data name="Monitor_Consumption_TargetAttempt" xml:space="preserve">
+    <value>About the attempt {0}</value>
+  </data>
+  <data name="Monitor_Consumption_TargetSetting" xml:space="preserve">
+    <value>About the setting {0}</value>
+  </data>
+  <data name="Monitor_Consumption_NeverApplied" xml:space="preserve">
+    <value>Suggestions are never applied by themselves: if you want a change, make it yourself on the canvas or in the settings.</value>
+  </data>
+  <data name="Monitor_Consumption_AgentButton" xml:space="preserve">
+    <value>Analyze with an agent</value>
+  </data>
+  <data name="Monitor_Consumption_AgentButtonHint" xml:space="preserve">
+    <value>An agent reads the report and proposes improvements. It spends the usage limit of your plan and asks your permission first.</value>
+  </data>
+  <data name="Monitor_Consumption_Consent" xml:space="preserve">
+    <value>An agent from a company other than the one that did the work will read the report above and the usage table, without the text of the prompts, and propose improvements. It spends the usage limit of your plan. {0}</value>
+  </data>
+  <data name="Monitor_Consumption_EstimateAsking" xml:space="preserve">
+    <value>Working out what it would cost…</value>
+  </data>
+  <data name="Monitor_Consumption_EstimateNone" xml:space="preserve">
+    <value>It is not known how much it will spend.</value>
+  </data>
+  <data name="Monitor_Consumption_Confirm" xml:space="preserve">
+    <value>Yes, spend quota</value>
+  </data>
+  <data name="Monitor_Consumption_Cancel" xml:space="preserve">
+    <value>No, cancel</value>
+  </data>
+  <data name="Monitor_Consumption_AgentRunning" xml:space="preserve">
+    <value>The agent is analyzing…</value>
+  </data>
+  <data name="Monitor_Consumption_AgentFailed" xml:space="preserve">
+    <value>The analysis with an agent could not be made: {0}</value>
+  </data>
+  <data name="Monitor_Consumption_AgentNothing" xml:space="preserve">
+    <value>The agent proposed no improvement.</value>
+  </data>
+  <data name="Monitor_Consumption_AgentFound" xml:space="preserve">
+    <value>The agent proposed {0} improvements.</value>
+  </data>
+  <data name="Monitor_Consumption_AgentSays" xml:space="preserve">
+    <value>The agent says so (it is data, not an order)</value>
+  </data>
+  <data name="Monitor_Consumption_AgentFix" xml:space="preserve">
+    <value>Change it proposes: {0}</value>
+  </data>
+  <data name="Monitor_Consumption_AgentSaving" xml:space="preserve">
+    <value>The agent estimates a saving of ~{0} tokens (the agent says so; it is not measured).</value>
+  </data>
+  <data name="Info_Consumption_Title" xml:space="preserve">
+    <value>Consumption analysis</value>
+  </data>
+  <data name="Info_Consumption_What" xml:space="preserve">
+    <value>It looks in the log of the run for where tokens were spent in excess: thin context, retries that fail the same way, models that are too large. Each finding says what it cost and where the figure comes from.</value>
+  </data>
+  <data name="Info_Consumption_Actions" xml:space="preserve">
+    <value>Press "Analyze consumption": it is free.
+Ask an agent to analyze it: it spends usage limit and asks your permission first.
+Suggestions are never applied by themselves.</value>
+  </data>
+</root>

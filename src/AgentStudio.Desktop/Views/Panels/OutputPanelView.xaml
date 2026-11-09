@@ -1,0 +1,37 @@
+<UserControl x:Class="AgentStudio.Desktop.Views.Panels.OutputPanelView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
+             xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
+             xmlns:monitor="clr-namespace:AgentStudio.Desktop.Orchestrator.Monitor"
+             xmlns:panels="clr-namespace:AgentStudio.Desktop.Panels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=panels:OutputPanelViewModel}"
+             AutomationProperties.Name="{l:T Panels_Output_Title}">
+    <!-- The panel «Salida» (docs/17 D-45, F13-18): the live activity of the task or the agent selected, or of the whole run. -->
+    <DockPanel Background="{StaticResource SurfaceBrush}">
+        <DockPanel DockPanel.Dock="Top" Margin="12,8,12,4">
+            <info:InfoButton DockPanel.Dock="Right" InfoKey="Info_Output" VerticalAlignment="Center"/>
+            <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{Binding Title}" VerticalAlignment="Center"/>
+        </DockPanel>
+        <TextBlock DockPanel.Dock="Top" Style="{StaticResource SecondaryText}" Margin="12,0,12,4" TextWrapping="Wrap" Text="{Binding AgentTextNotice}"/>
+        <TextBlock DockPanel.Dock="Top" Style="{StaticResource SecondaryText}" Margin="12,0,12,4" Text="{Binding EmptyText}"
+                   Visibility="{Binding IsEmpty, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
+        <ListBox ItemsSource="{Binding Lines}" Background="{StaticResource BackgroundBrush}" BorderThickness="0" Margin="12,0,12,8"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
+                 AutomationProperties.Name="{Binding Title}">
+            <ListBox.ItemTemplate>
+                <DataTemplate DataType="{x:Type monitor:ActivityEntry}">
+                    <TextBlock Style="{StaticResource BodyText}" FontSize="12" TextWrapping="Wrap">
+                        <Run Text="{Binding Time, Mode=OneWay}" FontFamily="{StaticResource MonoFont}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <Run Text="{Binding Task, Mode=OneWay}" FontFamily="{StaticResource MonoFont}" FontWeight="SemiBold"/>
+                        <Run Text="{Binding Text, Mode=OneWay}"/>
+                    </TextBlock>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </DockPanel>
+</UserControl>

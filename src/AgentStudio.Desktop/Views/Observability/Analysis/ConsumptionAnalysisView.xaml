@@ -1,0 +1,90 @@
+<UserControl x:Class="AgentStudio.Desktop.Views.Observability.Analysis.ConsumptionAnalysisView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
+             xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
+             xmlns:analysis="clr-namespace:AgentStudio.Desktop.Observability.Analysis"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=analysis:ConsumptionAnalysisViewModel}">
+    <!-- The analysis of the consumption of a run (docs/17 D-34 to D-36, F13-15). The deterministic one is free and runs when the run
+         ends and with its button. The one with an agent only runs after the OK of the person, with the estimate in front. A suggestion
+         is a text: nothing is applied from here. The text of the agent is framed as written by the agent. -->
+    <StackPanel>
+        <DockPanel>
+            <info:InfoButton DockPanel.Dock="Right" InfoKey="Info_Consumption" VerticalAlignment="Center"/>
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Style="{StaticResource ToolbarButton}" Content="{l:T Monitor_Consumption_Button}" Command="{Binding AnalyzeCommand}"
+                        ToolTip="{l:T Monitor_Consumption_ButtonHint}" ToolTipService.ShowOnDisabled="True"/>
+                <Button Style="{StaticResource ToolbarButton}" Content="{l:T Monitor_Consumption_AgentButton}" Command="{Binding AskAgentCommand}"
+                        ToolTip="{l:T Monitor_Consumption_AgentButtonHint}" ToolTipService.ShowOnDisabled="True"
+                        Visibility="{Binding CanAskAgent, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
+            </StackPanel>
+            <TextBlock Style="{StaticResource FieldLabel}" VerticalAlignment="Center" Text="{l:T Monitor_Consumption_Title}"/>
+        </DockPanel>
+
+        <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Margin="0,4,0,0" Text="{Binding Summary}"
+                   Visibility="{Binding Summary, Converter={StaticResource Orchestrator.NotNullToVisibility}}"
+                   AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="{l:T Monitor_Consumption_Title}"/>
+        <TextBlock Style="{StaticResource ErrorText}" Margin="0,4,0,0" TextWrapping="Wrap" Text="{Binding ErrorMessage}"
+                   AutomationProperties.LiveSetting="Assertive"/>
+
+        <ItemsControl ItemsSource="{Binding Findings}" Focusable="False" Margin="12,4,0,0" AutomationProperties.Name="{l:T Monitor_Consumption_Title}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type analysis:ConsumptionFindingRow}">
+                    <StackPanel Margin="0,0,0,8" AutomationProperties.Name="{Binding AccessibleName}">
+                        <TextBlock Style="{StaticResource BodyText}" FontSize="13" TextWrapping="Wrap" Text="{Binding Sentence}"/>
+                        <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap">
+                            <Run Text="{Binding About, Mode=OneWay}"/>
+                            <Run Text="·"/>
+                            <Run Text="{Binding Cost, Mode=OneWay}"/>
+                        </TextBlock>
+                        <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{Binding Suggestion}"
+                                   Visibility="{Binding Suggestion, Converter={StaticResource Orchestrator.NotNullToVisibility}}"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- The OK of quota (D-35): what it does, that it spends quota, and the estimate. Nothing is launched until the person says yes. -->
+        <Border BorderBrush="{StaticResource WarningBrush}" BorderThickness="1" CornerRadius="4" Padding="10,8" Margin="0,8,0,0"
+                Visibility="{Binding IsAskingConsent, Converter={StaticResource Orchestrator.BoolToVisibility}}"
+                AutomationProperties.LiveSetting="Assertive" AutomationProperties.Name="{Binding ConsentText}">
+            <StackPanel>
+                <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" Text="{Binding ConsentText}"/>
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                    <Button Style="{StaticResource ToolbarPrimaryButton}" Content="{l:T Monitor_Consumption_Confirm}" Command="{Binding ConfirmAgentCommand}"/>
+                    <Button Style="{StaticResource ToolbarButton}" Content="{l:T Monitor_Consumption_Cancel}" Command="{Binding CancelAgentCommand}"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+        <TextBlock Style="{StaticResource SecondaryText}" Margin="0,6,0,0" Text="{l:T Monitor_Consumption_AgentRunning}"
+                   Visibility="{Binding IsAgentRunning, Converter={StaticResource Orchestrator.BoolToVisibility}}"
+                   AutomationProperties.LiveSetting="Polite"/>
+
+        <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Margin="0,8,0,0" Text="{Binding AgentSummary}"
+                   Visibility="{Binding AgentSummary, Converter={StaticResource Orchestrator.NotNullToVisibility}}"
+                   AutomationProperties.LiveSetting="Polite"/>
+        <ItemsControl ItemsSource="{Binding Suggestions}" Focusable="False" Margin="12,4,0,0">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type analysis:AssistedSuggestionRow}">
+                    <Border BorderBrush="{StaticResource BorderStrongBrush}" BorderThickness="1" CornerRadius="4" Padding="10,6" Margin="0,0,0,6"
+                            AutomationProperties.Name="{Binding AccessibleName}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{Binding Frame}"/>
+                            <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{Binding About}"/>
+                            <TextBlock Style="{StaticResource BodyText}" FontSize="13" TextWrapping="Wrap" Text="{Binding Text}"/>
+                            <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{Binding Fix}"
+                                       Visibility="{Binding Fix, Converter={StaticResource Orchestrator.NotNullToVisibility}}"/>
+                            <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{Binding Saving}"
+                                       Visibility="{Binding Saving, Converter={StaticResource Orchestrator.NotNullToVisibility}}"/>
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" TextWrapping="Wrap" Text="{Binding NeverApplied}"
+                   Visibility="{Binding HasAnalysis, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
+    </StackPanel>
+</UserControl>

@@ -1785,3 +1785,52 @@ nuevos están en `Application/Setup`; no hay ninguna entrada nueva en el registr
     del orquestador al crear sus `RunOptions`; hoy usa `new RunOptions(AutoResumeConsent: …)`.
   - Un lector de remotos por la capa git endurecida (WP6) puede sustituir a `FileSetupRepositoryReader`: hoy los remotos salen
     vacíos y el paso 1 no inventa ninguno.
+
+### 21.10 WP8: monitor, preguntas, análisis del consumo, paneles y herramientas
+
+Lo que WP8 añade al escritorio ([17](17-constructor-visual-de-agentes.md) §4.2, §4.3, §4.7, §4.8 y §4.10; pantallas en
+[03 §5.5](03-pantallas-y-navegacion.md#55-monitor-vivo-preguntas-análisis-del-consumo-paneles-y-herramientas-fase-13-wp8)).
+Todo vive en `Desktop`; no hay puertos nuevos en `Application`, y los textos salen de `Resources/MonitorStrings.resx` y
+`PanelsStrings.resx` (claves `Monitor_…`, `Panels_…`, `Tools_…` e `Info_<apartado>_Title/_What/_Actions`).
+
+| Pieza | Fichero | Qué es |
+|---|---|---|
+| `RunMonitorViewModel : IRunLiveProjection` (`Current`, `Changed`, `Roster`, `PlanDependencies`, `AgentCards`) | `Orchestrator/Monitor/RunMonitorViewModel.Live.cs` | La proyección agrupada (F13-7). El monitor sigue siendo el único lector de los eventos (ADR-0036): cada evento marca los nodos que cambió y un temporizador (`TimeProvider.CreateTimer`) los junta, **como mucho cada 250 ms** y con una espera de 50 ms al empezar tras un rato quieto, así que una ráfaga es un solo cambio. La interfaz solo pinta; el gate de `Post` solo importa donde no hay hilo de interfaz (pruebas con contexto en línea). Sin contexto de interfaz el cambio sale al momento |
+| `LiveStateFactory`, `AgentLiveTexts`, `AgentCardViewModel` | `Orchestrator/Monitor/` | El estado de cada agente sale de lo que dicen sus tareas, en este orden: pregunta, aprobación, trabajo, cuota, bloqueo, cola, terminado, libre. `AgentLiveTexts.Counter` da «Agentes: 2 trabajando · 1 te preguntan…» para la barra superior. La tarjeta lleva nombre entero y `AutomationProperties.LiveSetting` (asertivo con pregunta o bloqueo) |
+| `MonitorBars` (`PartsBar`, `ConsumptionBar`) | `Orchestrator/Monitor/MonitorBars.cs` | Las barras de F13-6 con el control común (`MetricBarReading`): el contexto por partes (`ContextBreakdown.Of` de `AgentRunStarted` v3, con las partes como segmentos y la conversación como el resto) y el consumo de los intentos terminados. Sin cifra, pista vacía con sus palabras; nunca a cero |
+| `IContextPartsSource`, `DecisionLogContextPartsSource` | `Orchestrator/Monitor/ContextPartsSource.cs` | De dónde lee el monitor las partes del prompt de un intento (los eventos no las llevan): del registro verificado, con `ContextPartsLog.Find`. Un registro que no verifica no da partes («sin leer»). Opcional: sin él, «sin desglose» |
+| `MonitorTaskViewModel.Question`, `AwaitingAnswer`, `PartsBar`, `ConsumptionBar`, `EndClass` | `Orchestrator/Monitor/MonitorTaskViewModel.Phase13.cs` | Lo nuevo de la tarjeta de la tarea. Una tarea que espera respuesta no es un bloqueo que reintentar: `IsBlocked` y `RetryBlockedCommand` la excluyen, y `BlockReasonText` dice «Espera tu respuesta» |
+| `QuestionViewModel`, `QuestionOptionViewModel`, `QuestionCosts`, `PlannerQuestionSet` | `Orchestrator/Questions/` | La pregunta (F13-14). Se construye con `PendingQuestion` y un delegado de respuesta (`IOrchestrationRun.AnswerAsync` en una tarea; la planificación siguiente en el orquestador). `QuestionCosts.Of` pinta `OptionEstimateSnapshot`: el intervalo con su origen y sus referencias, «desconocido» con menos de tres y «no disponible» sin total; nunca suma ni rellena |
+| `QuestionPromptService`, `IQuestionWindowHost`, `WpfQuestionWindowHost`, `QuestionAttentionEventArgs` | `Orchestrator/Questions/QuestionPromptService.cs` | Abre la ventana (no modal) si la app está a la vista; si no, `AttentionRequested` pide el aviso de la bandeja «Un agente te pregunta algo» (`Monitor_Question_Notice`, sin datos del proyecto). Retira la ventana con el bloqueo (`IInterfaceLock`) y la devuelve al desbloquear |
+| `ConsumptionAnalysisViewModel` | `Observability/Analysis/` | F13-15. Determinista al terminar la ejecución (`RunMonitorViewModel.Consumption`, `ConsumptionCheck`) y con su botón; con un agente solo tras el OK (`QuotaConsent("user", …, lo que se enseñó)`) y con la estimación delante (`EstimateAssisted`). Las frases salen de `ConsumptionTexts` y de los recursos `Text_consumption_*`; las sugerencias del agente van enmarcadas y **nunca se aplican desde aquí** |
+| `ProblemsPanelViewModel`, `OutputPanelViewModel`, `TestsPanelViewModel`, `IHeadTestsService` | `Panels/` | Los tres paneles de abajo (F13-18). Siguen la ejecución por `Changed`, no por los eventos. «Ejecutar las pruebas de HEAD» solo existe si la composición da `IHeadTestsService` |
+| `ToolsViewModel`, `EffectiveTools` | `Tools/` | «Herramientas» (F13-18). `EffectiveTools.For` construye la petición del ejecutor y lee `--tools`, `--allowedTools` y `--disallowedTools` de `ClaudeCodeArguments.Build` (y `-s` de `CodexExecArguments.Build`): se calcula con el código del lanzamiento. El riesgo sale de `HighRiskCapabilityRule.HighRiskTools` y `PresencePolicy` |
+
+**Lo que la integración tiene que hacer** (nada de esto lo cablea WP8):
+
+- **Composición:** crear un `RunMonitorViewModel` por documento como hasta ahora y darle `ContextPartsSource = new DecisionLogContextPartsSource(IDecisionRecorder)`,
+  `Quota` (el `QuotaViewModel`), `Consumption.Analyzer` (`IConsumptionAnalyzer`), `Consumption.Assisted` (`IAssistedConsumptionAnalysis`, con el registro de OK
+  único) y `Consumption.EstimateAssisted` (el estimador, con `AgentRunPurpose.ConsumptionAnalysis`). `WpfQuestionWindowHost` y `QuestionPromptService(monitor, host, IInterfaceLock)`
+  van una vez por monitor. `IHeadTestsService` lo implementa la composición con `IVerificationRunner`, el perfil y una copia aislada de HEAD, sin cuota.
+- **Quien adjunta la ejecución** (el documento del orquestador, WP6) le da `Roster` (la plantilla, para los agentes «Libres» y el nombre, el programa y el modelo de cada
+  tarjeta) y `PlanDependencies` (de qué tareas depende cada una, para el pulso del cable). Sin ellos solo salen los agentes con tarea y no hay pulsos.
+- **Barra lateral y pestañas:** «Herramientas» abre `Views/Tools/ToolsView` con `ToolsViewModel.Load(plantilla, perfil)`; su `GiveToAgentRequested` abre el inspector del agente en
+  la capa Equipo. «Pruebas» y las pestañas «Problemas», «Salida» y «Pruebas» son `Views/Panels/*PanelView` con su `*PanelViewModel`; cada uno hace `Attach(monitor)`.
+  `ProblemsPanelViewModel.SetMontage` recibe el análisis del montaje del lienzo y `OutputPanelViewModel.SelectTask/SelectAgent`, la selección.
+- **Barra superior:** `AgentLiveTexts.Counter(monitor.Current)`; se repinta con `Changed`.
+- **Bandeja (D-41):** suscribirse a `QuestionPromptService.AttentionRequested` y mostrar `e.Notice`. Para el contador de otros proyectos, el registro del trabajo de la bandeja.
+- **Preguntas del orquestador antes de planificar** (WP6): con `PlanProposal.Questions`, crear `new PlannerQuestionSet(proposal.Run, proposal.Questions)`, enseñar sus
+  `Questions` (la misma vista y ventana) y, cuando `await set.Answers` termina, replanificar con `PlanningRequest.Answers`. Nada del lienzo se toca desde aquí.
+
+**Medidas y límites** (pruebas fuera de pantalla, en `tests/…/Desktop/Orchestrator/Monitor/MonitorAccessibilityTests.cs`):
+
+- Con 40 nodos y una ráfaga de 1 000 eventos, ninguna operación de datos del hilo de la interfaz (un evento, la única notificación que repinta las barras de las
+  tareas, el cambio agrupado, los enlaces que tocan) pasa de 50 ms, y los cambios agrupados salen a más de 250 ms unos de otros. Las listas de agentes y de tareas
+  **virtualizan**, y el diseño de las tarjetas a la vista cuesta menos de 50 ms.
+- **La pasada completa** (`MonitorLayoutPassTests`): medir, colocar y dibujar todo el monitor con 40 tareas y 40 agentes cuyo contexto cambia a la vez. Con las listas
+  sin virtualizar tardaba de 80 a 350 ms fuera de pantalla; con las listas de agentes y de tareas virtualizadas, la mediana de siete pasadas es de 23 a 28 ms (la más lenta,
+  de 29 a 49 ms), con o sin la mejora de `MetricBar` (la caché de marcas y pinceles y la salida temprana no cambian esa cifra a la escala de la prueba: el coste lo quitó
+  la virtualización). La prueba exige la mediana por debajo de 50 ms con un margen ×2 por la carga de la suite, que es el único margen y está en el código.
+- **Las partes del prompt** dependen de que `AgentRunStarted` v3 ya esté en el registro cuando llega el primer paso: si no, el monitor pregunta una vez más al llegar ese paso.
+- **Los nombres de las pruebas que fallan** no se leen del TRX: el panel «Pruebas» enseña los contadores y la línea principal del error del paso, que es lo que el monitor ya tiene.
+- **Los permisos de un ejecutor** son la regla pública `Orchestration/Engine/AgentPermissions.For(escribe, agente)`, la que lanza `Workers` y la que usa `EffectiveTools`: no hay copia. La prueba compara «Herramientas» con `ClaudeCodeArguments.Build` con un lanzamiento escrito aparte.
