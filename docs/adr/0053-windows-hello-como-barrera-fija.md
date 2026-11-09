@@ -116,7 +116,10 @@
          comprobado (`Orchestrator.EnsureApprovedWarning`);
        - el motor no reanuda una ejecución cuyo `RunStarted` ancló escritores y cuya aprobación del plan no confirmó a la
          persona (una aprobada con el diálogo antes de esta barrera): escribe la alerta `run.not-resumable` y pide aprobar el
-         plan otra vez, con Hello, como una ejecución de seguimiento (`RunNeedsApprovalException`);
+         plan otra vez, con Hello, como una ejecución de seguimiento (`RunNeedsApprovalException`). Como una ejecución que se
+         reanuda por consentimiento se intenta en cada arranque de la app, la alerta se escribe una vez por rechazo: no se
+         repite si la última de esa ejecución ya dice lo mismo y no ha habido después ni una aprobación ni un arranque ni una
+         reanudación (`NotResumableAlert`, también en el rechazo por escritores cambiados del reanudador);
        - el registrador no acepta un historial como nuevo origen con una aprobación que no confirmó a la persona
          (`DecisionRecorder.AcceptAsNewOriginAsync`).
   4. **Sin Hello en el equipo: el bloqueo de Windows comprobado** (D-40 (a)). `WindowsLockConfirmation` (`Desktop/Lock`):

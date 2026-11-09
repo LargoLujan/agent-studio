@@ -577,9 +577,10 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
     /// <summary>
     /// A run whose plan has writers at medium integrity is resumed only when its approval confirmed the person (docs/17 D-37,
     /// ADR-0053): a run approved with the dialog alone, before the fixed barrier of Windows Hello, is not. The alert
-    /// <c>run.not-resumable</c> says why, nothing else is written, and <see cref="RunNeedsApprovalException"/> asks for the plan
-    /// to be approved again, now with Windows Hello, which starts a follow-up run. A run without writers, or one whose
-    /// <c>RunStarted</c> anchored none, is left to the resumer and its own checks.
+    /// <c>run.not-resumable</c> says why (once per refusal, <see cref="NotResumableAlert.AlreadyRecorded"/>), nothing else is
+    /// written, and <see cref="RunNeedsApprovalException"/> asks for the plan to be approved again, now with Windows Hello,
+    /// which starts a follow-up run. A run without writers, or one whose <c>RunStarted</c> anchored none, is left to the
+    /// resumer and its own checks.
     /// </summary>
     private async Task EnsurePresenceOfApprovedWritersAsync(ProjectContext project, RunId run, DecisionLogState log, CancellationToken cancellationToken)
     {
@@ -600,12 +601,18 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
 
         var problem = $"Its plan has writers at medium integrity, and its approval did not confirm the person with Windows Hello or the verified lock of Windows (it was given with '{approval?.ResolvedVerification().ToString() ?? "no recorded approval"}'). "
             + "Since the fixed barrier of Windows Hello (docs/17 D-37) such a plan is not run on that approval: approve its plan again, with Windows Hello, which starts a follow-up run.";
-        var recorder = new RunRecorder(_ports.Decisions, _ports.Evidence, project.ProjectId, run);
-        await recorder.RecordAsync(
-            Domain.Decisions.DecisionKind.AuditAlertRaised,
-            $"La ejecución {run} no se puede reanudar",
-            new AuditAlertPayload("run.not-resumable", [], problem) { RunId = recorder.RunValue },
-            cancellationToken).ConfigureAwait(false);
+        // Once per refusal: a run that resumes by consent is tried at every start of the app, and the same refusal, with nothing
+        // approved since, is not written again.
+        if (!NotResumableAlert.AlreadyRecorded(entries, problem))
+        {
+            var recorder = new RunRecorder(_ports.Decisions, _ports.Evidence, project.ProjectId, run);
+            await recorder.RecordAsync(
+                Domain.Decisions.DecisionKind.AuditAlertRaised,
+                $"La ejecución {run} no se puede reanudar",
+                new AuditAlertPayload(NotResumableAlert.Code, [], problem) { RunId = recorder.RunValue },
+                cancellationToken).ConfigureAwait(false);
+        }
+
         throw new RunNeedsApprovalException($"Run {run} cannot be resumed: {problem}", run, started.PlanHash, warningAnchored: true, started.ApprovedWarning, started.ApprovedWarning);
     }
 
