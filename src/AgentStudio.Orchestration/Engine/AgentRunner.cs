@@ -92,7 +92,7 @@ internal static class AgentRunner
         }
 
         var agent = invocation.Agent;
-        var parts = invocation.ContextParts ?? PromptParts.Measure(invocation.Request.Prompt, invocation.Request.SkillsDirectory);
+        var parts = invocation.ContextParts ?? PromptParts.Measure(invocation.Request.Prompt, invocation.Request.SkillsDirectory, invocation.Request.Agent.SystemInstructions);
         await recorder.RecordAsync(
             DecisionKind.AgentRunStarted,
             $"Arranca {agent.Id} ({invocation.Provider.Provider}) para {invocation.Task?.Value ?? "el plan"}, intento {invocation.Attempt}",
@@ -373,6 +373,10 @@ internal sealed class RunObservations(AgentInvocation invocation, DateTimeOffset
 /// the verification, the report asked for) is the protocol.</item>
 /// <item>The skills are the characters of the name and the description of each <c>SKILL.md</c> materialized for the launch, which
 /// is what the CLI presents of them; a folder or a file that cannot be read adds nothing, and links are not followed.</item>
+/// <item>The instructions of the agent of its template (<c>SystemInstructions</c>), which the adapter adds outside the prompt
+/// (Claude Code with <c>--append-system-prompt-file</c>, Codex before the task in <c>&lt;agent_instructions&gt;</c>), are part of
+/// <see cref="ContextPartKind.AgentInstructions"/>, with an <c>&lt;agent_instructions&gt;</c> block of the prompt if there is one:
+/// they are in the context, and would otherwise be counted as conversation.</item>
 /// </list>
 /// A part without characters is left out, and the parts go in the order of <see cref="ContextPartKind"/>.
 /// </summary>
@@ -400,8 +404,11 @@ internal static class PromptParts
 
     private static readonly ContextPartKind[] Kinds = Enum.GetValues<ContextPartKind>();
 
-    /// <summary>The parts of <paramref name="prompt"/>, and of the skills materialized in <paramref name="skillsDirectory"/> (null for none).</summary>
-    public static IReadOnlyList<ContextPartSnapshot> Measure(string prompt, string? skillsDirectory)
+    /// <summary>
+    /// The parts of <paramref name="prompt"/>, of the skills materialized in <paramref name="skillsDirectory"/> (null for none)
+    /// and of the instructions of the agent the adapter adds outside the prompt (<paramref name="agentInstructions"/>).
+    /// </summary>
+    public static IReadOnlyList<ContextPartSnapshot> Measure(string prompt, string? skillsDirectory, string? agentInstructions = null)
     {
         ArgumentNullException.ThrowIfNull(prompt);
         var sizes = new Dictionary<ContextPartKind, int>();
@@ -431,6 +438,11 @@ internal static class PromptParts
                     open = null;
                 }
             }
+        }
+
+        if (!string.IsNullOrWhiteSpace(agentInstructions))
+        {
+            Add(ContextPartKind.AgentInstructions, agentInstructions.Length);
         }
 
         if (SkillCharacters(skillsDirectory) is > 0 and var skills)

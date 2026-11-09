@@ -77,6 +77,26 @@ public sealed class ConsumptionAnalyzerTests
         Assert.DoesNotContain(report.Findings, f => f.Code == ConsumptionFindingCodes.ModelOversized);
     }
 
+    [Theory]
+    [InlineData(EvidenceKind.AgentStatement, EvidenceOrigin.CapturedBySystem)]
+    [InlineData(EvidenceKind.Document, EvidenceOrigin.ReportedByAgent)]
+    public async Task A_record_that_is_not_a_document_the_system_captured_gives_no_size(EvidenceKind kind, EvidenceOrigin origin)
+    {
+        var evidence = new StoredEvidence();
+        evidence.Add("ev-record", Record);
+        evidence.Add("ev-diff", Diff);
+        var log = new ConsumptionLog().Started()
+            .Attempt("T1", 1, model: "claude-opus-5-5")
+            .Evidence("ev-diff", EvidenceKind.CodeDiff, "T1", 1, "Diff de T1 (intento 1)", Sha(Diff))
+            .Evidence("ev-record", kind, "T1", 1, "Registro del intento T1 #1", Sha(Record), origin);
+        var analyzer = new ConsumptionAnalyzer(new FixedRecorder(log.Entries, DecisionLogVerification.Valid), evidence, TimeProvider.System, new ConsumptionAnalysisOptions { Catalog = Catalog });
+
+        var report = await analyzer.AnalyzeAsync(Project, ConsumptionLog.Run, Ct);
+
+        Assert.DoesNotContain(report.Findings, f => f.Code == ConsumptionFindingCodes.ModelOversized);
+        Assert.DoesNotContain("ev-record", evidence.Opened);
+    }
+
     [Fact]
     public async Task Without_a_catalog_no_evidence_is_read()
     {

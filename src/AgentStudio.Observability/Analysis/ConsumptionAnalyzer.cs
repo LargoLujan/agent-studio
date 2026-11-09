@@ -98,7 +98,7 @@ public sealed class ConsumptionAnalyzer(IDecisionRecorder decisions, IEvidenceSt
             {
                 diffs[key] = registered;
             }
-            else if (registered.Title?.StartsWith(AttemptRecordTitlePrefix, StringComparison.Ordinal) == true)
+            else if (IsAttemptRecord(registered))
             {
                 records[key] = registered;
             }
@@ -149,6 +149,15 @@ public sealed class ConsumptionAnalyzer(IDecisionRecorder decisions, IEvidenceSt
             return null;
         }
     }
+
+    /// <summary>
+    /// Whether <paramref name="evidence"/> may be the record of an attempt, as the auditor tells it (<c>AuditedRun.MayBeAttemptRecord</c>):
+    /// a document the system captured, of a task, whose title starts with <see cref="AttemptRecordTitlePrefix"/> and a space.
+    /// Its content still has to say it is one (<see cref="ChangedFiles"/>).
+    /// </summary>
+    internal static bool IsAttemptRecord(EvidenceRegisteredPayload evidence) =>
+        evidence is { Kind: EvidenceKind.Document, Origin: EvidenceOrigin.CapturedBySystem, Task: not null }
+        && evidence.Title?.StartsWith(AttemptRecordTitlePrefix + " ", StringComparison.Ordinal) == true;
 
     /// <summary>The files an attempt record says the attempt changed; null when it is not an attempt record.</summary>
     internal static int? ChangedFiles(string json)

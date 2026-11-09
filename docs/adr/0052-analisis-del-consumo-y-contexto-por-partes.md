@@ -23,12 +23,15 @@
        empieza por `## Requisitos` es la de los requisitos. Lo demás del sistema (título, reglas, objetivo e instrucciones de la
        tarea, alcance, verificación e informe) es el protocolo.
      - Las partes del texto suman exactamente su longitud. Las skills suman aparte el nombre y la descripción de cada
-       `SKILL.md` materializado (lo que el CLI presenta), sin seguir enlaces.
+       `SKILL.md` materializado (lo que el CLI presenta), sin seguir enlaces. Las instrucciones del agente de la plantilla
+       (`SystemInstructions`), que el programa añade fuera del prompt (Claude Code con `--append-system-prompt-file`, Codex
+       delante de la tarea), suman aparte en `AgentInstructions`: si no, contarían como conversación.
      - Un constructor de prompts que sepa sus partes mejor puede darlas (`AgentInvocation.ContextParts`); si no, se miden. Así
        las partes nuevas de WP4 (ficha, instrucciones y respuesta) se miden solas si usan sus etiquetas.
      - Observability da el desglose (`ContextBreakdown`): cada parte, estimada por Agent Studio (caracteres entre 4, redondeo
        hacia arriba); la conversación, lo que el CLI informó del paso menos las partes; en Codex, «no expuesto»; sin paso,
-       «sin dato». Nunca un cero en lugar de una cifra. `ContextPartsLog` lee las partes de cada intento del registro.
+       «sin dato»; si las partes estimadas pasan de lo informado, «sin dato» por no fiable. Nunca un cero en lugar de una
+       cifra. `ContextPartsLog` lee las partes de cada intento del registro.
   2. **La ficha del proyecto** (D-10). `ProjectBriefStore` implementa `IProjectBrief` sobre la memoria: una entrada de la
      persona (`MemoryOrigin.User`), con su tema y su fuente fijos, que sustituye a la vigente. Guardar el texto vigente no
      escribe nada. El empaquetador la da con el paquete (`ContextPack.Brief`) como dato con su huella a **todo agente salvo el
@@ -68,13 +71,20 @@
        diff (líneas), y solo si su contenido coincide con el SHA-256 que ancló el registro. Sin catálogo de modelos
        (`ConsumptionAnalysisOptions.Catalog`, el de WP2), ese código no dice nada.
      - Una ejecución que terminó bien y espera su entrega no descarta nada todavía.
+     - Un intento se nombra por su tarea (`T1#2`); sin tarea (el planificador, el juez de la revisión de la ejecución, que
+       comparte su id), por su agente (`orquestador#1`, `juez#1`), para que dos intentos nunca compartan nombre.
+     - El registro de un intento solo cuenta si es un documento que capturó el sistema, de una tarea, con el título del
+       registro (la misma regla que el auditor, `AuditedRun.MayBeAttemptRecord`), y su contenido lo confirma.
      - Las frases y sugerencias salen de `Resources/ConsumptionStrings.resx` (castellano) y `.en.resx`: `Text_<código>` con los
        argumentos de `ConsumptionTexts`, y `Text_<código>_suggestion`. `work.discarded` solo informa.
   5. **El análisis con un agente** (D-35, decisión 5 (a)). `AssistedConsumptionAnalysisService`:
-     - **Tu OK en cada uso:** un consentimiento dice quién y para qué, tiene 10 minutos como mucho y se gasta en un análisis. Sin
-       él no se lee ni se lanza nada.
+     - **Tu OK en cada uso:** un consentimiento dice quién y para qué y tiene 10 minutos como mucho. Uno viejo o ya usado lo para
+       todo antes de leer nada. Se gasta justo antes de lanzar: un registro que no verifica o una ejecución sin agente de otro
+       vendor no lo gastan.
      - **Del vendor que no produjo:** el juez de la ejecución (o, si no, otro agente de su plantilla) de un vendor que no es el de
-       ningún productor (planificador y ejecutores). Si no lo hay, no se lanza.
+       ningún productor, con la regla de la revisión de la ejecución (`RunLog.ProducerVendors`): los orquestadores de la
+       plantilla, el autor del plan, los agentes de las tareas que no son revisión y todo agente lanzado en ella salvo los
+       jueces y los auditores. Si no lo hay, no se lanza.
      - **Aparte y de solo lectura:** una auxiliar propia (`AgentRunPurpose.ConsumptionAnalysis`, por `IAuxiliaryAgentRunner`,
        que la registra: su consumo sale en «Consumo»), con el rol de auditor, sin herramientas, sin memoria, sin ficha, sin
        skills, en una carpeta vacía que se borra después y con una sesión que no se guarda.
@@ -87,8 +97,10 @@
        un auditor. El ahorro es «lo dice el agente». Se quedan 10 como mucho. Nada se aplica solo.
      - `AuxiliaryAgentRunner` admite los tres propósitos auxiliares de la Fase 13 (`OrderReview`, `ConsumptionAnalysis` y
        `PreparationChat`) y les escribe `AgentRunFinished` versión 3 con su clase de final; las auxiliares de antes siguen en la 2.
-  6. **Fuera del juicio** (D-36). El juez no recibe el consumo, ni la ficha, ni la memoria, ni el índice: el empaquetador no le
-     da la ficha y el dosier no cambia.
+  6. **Fuera del juicio** (D-36). El juez no recibe el análisis del consumo, ni el texto de la ficha, ni la memoria, ni el
+     índice: el empaquetador no le da la ficha. El dosier copia los payloads del registro (`DossierDocument.Decision`), así que
+     ve los `contextParts` de cada `AgentRunStarted` v3: **solo tamaños en caracteres**, también el de `ProjectBrief`, nunca
+     texto, como ya veía el `ContextPack` (huellas e ids). No cambia su esquema ni su pregunta.
 - **Alternativas:** el análisis dentro de la ejecución del juez (decisión 5 (b): más barato, pero cambia su veredicto y le da
   cifras que no juzga); solo el determinista (decisión 5 (c)); medir las partes con lo que sabe cada constructor de prompts (se
   deja como opción, `AgentInvocation.ContextParts`, pero medir el texto exacto no depende de que cada paquete lo haga); una

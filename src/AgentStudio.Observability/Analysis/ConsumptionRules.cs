@@ -53,11 +53,17 @@ public sealed record ConsumptionThresholds
 /// <summary>The size of the change an attempt left, as the system recorded it: its files (the attempt record) and its lines (the diff; null when unknown).</summary>
 public sealed record AttemptChange(int Files, int? Lines);
 
-/// <summary>An attempt of a run: its task (null for the planner and the auxiliary agents) and its number.</summary>
-public readonly record struct AttemptRef(TaskId? Task, int Attempt)
+/// <summary>
+/// An attempt of a run: its task and its number; without a task (the planner, the judge of the review of the run, which shares
+/// the id of the run), the agent that ran it, so two attempts of different agents never share a name.
+/// </summary>
+public readonly record struct AttemptRef(TaskId? Task, int Attempt, AgentId? Agent = null)
 {
-    /// <summary>The id of a target of kind attempt (<c>T3#2</c>; <c>plan#1</c> without a task).</summary>
-    public string Id => string.Create(CultureInfo.InvariantCulture, $"{Task?.Value ?? "plan"}#{Attempt}");
+    /// <summary>The id of a target of kind attempt: <c>T3#2</c>; without a task, the agent (<c>orquestador#1</c>, <c>juez#1</c>).</summary>
+    public string Id => string.Create(CultureInfo.InvariantCulture, $"{Task?.Value ?? Agent?.Value ?? "plan"}#{Attempt}");
+
+    /// <summary>The reference of an attempt as its start recorded it: the agent only when it has no task.</summary>
+    public static AttemptRef Of(TaskId? task, int attempt, AgentId agent) => new(task, attempt, task is null ? agent : null);
 }
 
 /// <summary>What the deterministic analysis reads: the verified log of the project, the run, the moment, the thresholds, the catalog of models and the size of the changes the system read from the evidence.</summary>
@@ -570,7 +576,8 @@ internal sealed class RunFacts
                     }
 
                     var (startEntry, startPayload) = starts.Pop();
-                    var reference = new AttemptRef(finish.Task, finish.Attempt);
+                    // The end names no agent: the start it closes does, which tells the planner from the judge of the review.
+                    var reference = AttemptRef.Of(finish.Task, finish.Attempt, startPayload.Agent);
                     var own = usage.FirstOrDefault(u => u.RunId == finish.RunId && u.TaskId == finish.Task?.Value && u.Attempt == finish.Attempt && u.FinishedAt == entry.RecordedAt);
                     var attempt = new RunAttempt(reference, startPayload, startEntry.RecordedAt, finish, entry.RecordedAt, own);
                     if (finish.RunId == run.Value)

@@ -14,6 +14,7 @@ using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Orchestration.Analysis;
 using AgentStudio.Domain.Providers;
+using AgentStudio.Domain.Work;
 
 namespace AgentStudio.Observability.Analysis;
 
@@ -38,7 +39,8 @@ public sealed record AssistedConsumptionOptions
 /// <see cref="AssistedConsumptionOptions.ConsentValidity"/> old and is spent by one analysis; without it nothing is read nor
 /// launched.</item>
 /// <item><b>The vendor that did not produce the work:</b> the agent is the judge of the run, or another agent of its template,
-/// of a vendor none of its producers (the planner and the executors) is of; with none, nothing is launched. It runs as an
+/// of a vendor none of its producers is of (by the rule of the review of the run: its orchestrators, the author of its plan,
+/// the agents of its tasks and every agent launched in it but the reviewers); with none, nothing is launched. It runs as an
 /// auxiliary run of its own (<see cref="AgentRunPurpose.ConsumptionAnalysis"/>, through <see cref="IAuxiliaryAgentRunner"/>,
 /// which records it in the log, so its usage goes to «Consumo»), read-only, without tools, without memory, without the brief,
 /// without skills and in an empty folder, with a session that is not kept.</item>
@@ -67,8 +69,6 @@ public sealed partial class AssistedConsumptionAnalysisService(
 
     /// <summary>How far in the future a consent may be dated (a clock a little ahead), before it is refused.</summary>
     private static readonly TimeSpan ClockSkew = TimeSpan.FromMinutes(1);
-
-    private static readonly AgentRole[] Producers = [AgentRole.Orchestrator, AgentRole.Executor, AgentRole.Architect, AgentRole.Tester, AgentRole.Documenter];
 
     private readonly AssistedConsumptionOptions _options = options ?? new AssistedConsumptionOptions();
     private readonly Lock _gate = new();
@@ -102,7 +102,9 @@ public sealed partial class AssistedConsumptionAnalysisService(
             throw new ArgumentException($"The deterministic report is of run '{request.Deterministic.Run}', not of '{request.Run}'.", nameof(request));
         }
 
-        Spend(request.Consent);
+        // An old consent stops everything before anything is read; it is only spent once the analysis will be launched, so a
+        // log that does not verify or a run without an agent of another vendor leaves it for the next try.
+        EnsureRecent(request.Consent);
 
         var log = await decisions.LoadAsync(request.Project.ProjectId, ct).ConfigureAwait(false);
         if (!log.Verification.IsValid)
@@ -112,11 +114,13 @@ public sealed partial class AssistedConsumptionAnalysisService(
 
         var facts = RunFacts.Read(request.Project.ProjectId, log.Entries, request.Run);
         var team = Team(log.Entries, request.Run);
+        var producers = ProducerVendors(log.Entries, request.Run);
         var agents = await roster.ListAsync(request.Project.ProjectId, ct).ConfigureAwait(false);
-        var analyst = Analyst(facts, team, agents, _options.Budget)
+        var analyst = Analyst(producers, team, agents, _options.Budget)
             ?? throw new InvalidOperationException($"Run '{request.Run}' has no agent of a vendor that did not produce its work: the analysis with an agent is not launched.");
 
-        var folder = Path.Combine(_options.FoldersRoot ?? Path.Combine(Path.GetTempPath(), "AgentStudio", "consumption-analysis"), Guid.NewGuid().ToString("N"));
+        Spend(request.Consent);
+        var folder =Path.Combine(_options.FoldersRoot ?? Path.Combine(Path.GetTempPath(), "AgentStudio", "consumption-analysis"), Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(folder);
         AuxiliaryRunResult result;
         try
@@ -146,8 +150,8 @@ public sealed partial class AssistedConsumptionAnalysisService(
         return new AssistedConsumptionAnalysis(result.Run, answer, suggestions);
     }
 
-    /// <summary>A consent is used once, and only while it is recent; otherwise nothing is read nor launched.</summary>
-    private void Spend(QuotaConsent consent)
+    /// <summary>A consent counts only while it is recent: neither dated in the future nor older than its validity.</summary>
+    private void EnsureRecent(QuotaConsent consent)
     {
         var now = time.GetUtcNow();
         if (consent.DecidedAt > now + ClockSkew)
@@ -160,6 +164,19 @@ public sealed partial class AssistedConsumptionAnalysisService(
             throw new InvalidOperationException($"The consent was given more than {_options.ConsentValidity.TotalMinutes.ToString(CultureInfo.InvariantCulture)} minutes ago: ask the person again.");
         }
 
+        lock (_gate)
+        {
+            if (_spent.Contains(consent))
+            {
+                throw new InvalidOperationException("That consent was already used for an analysis of consumption: each use needs the person's OK.");
+            }
+        }
+    }
+
+    /// <summary>A consent is used once, and only while it is recent: spent right before the launch.</summary>
+    private void Spend(QuotaConsent consent)
+    {
+        EnsureRecent(consent);
         lock (_gate)
         {
             if (!_spent.Add(consent))
@@ -191,26 +208,81 @@ public sealed partial class AssistedConsumptionAnalysisService(
     }
 
     /// <summary>
-    /// The agent that analyses: the judge of the run (else another agent of its template) of a vendor no producer of the run is
-    /// of, with the model of its definition, read-only, without memory, tools, skills or folders; null when there is none.
+    /// The vendors that produced the work of a run, by the rule the review of the run uses (<c>RunLog.ProducerVendors</c> of the
+    /// judge, which Observability cannot see): every orchestrator of its template, the author of its plan, every agent a task
+    /// that is not a review was assigned to, and every agent launched in it, but the judges and the auditors of the template.
     /// </summary>
-    internal static AgentDefinition? Analyst(RunFacts facts, IReadOnlyList<RosterEntry> team, IReadOnlyList<AgentDefinition> agents, ExecutionBudget budget)
+    internal static IReadOnlySet<VendorId> ProducerVendors(IReadOnlyList<DecisionEntry> entries, RunId run)
     {
-        var producers = facts.Attempts.Concat(facts.PlannerAttempts)
-            .Where(a => a.Start.Purpose is AgentRunPurpose.Executor or AgentRunPurpose.Planner)
-            .Select(a => a.Start.Vendor)
-            .ToHashSet();
-        if (producers.Count == 0)
+        var ofRun = new List<(DecisionEntry Entry, DecisionPayload Payload)>();
+        foreach (var entry in entries.OrderBy(e => e.Sequence))
         {
-            producers = [.. team.Where(t => Producers.Contains(t.Role)).Select(t => t.Vendor)];
+            try
+            {
+                if (DecisionPayloadSerializer.Deserialize(entry.Kind, entry.PayloadJson) is { } payload && payload.RunId == run.Value)
+                {
+                    ofRun.Add((entry, payload));
+                }
+            }
+            catch (Exception ex) when (ex is JsonException or NotSupportedException or InvalidCastException)
+            {
+                // A payload that cannot be read names no producer.
+            }
         }
 
+        var roster = new Dictionary<AgentId, RosterEntry>();
+        foreach (var member in ofRun.Select(x => x.Payload).OfType<RunStartedPayload>().SelectMany(s => s.Roster))
+        {
+            roster.TryAdd(member.Agent, member);
+        }
+
+        bool Reviews(AgentId agent) => roster.TryGetValue(agent, out var member) && member.Role is AgentRole.Judge or AgentRole.Auditor;
+
+        var vendors = new HashSet<VendorId>(roster.Values.Where(m => m.Role == AgentRole.Orchestrator).Select(m => m.Vendor));
+        void AddRosterVendor(AgentId agent)
+        {
+            if (!Reviews(agent) && roster.TryGetValue(agent, out var member))
+            {
+                vendors.Add(member.Vendor);
+            }
+        }
+
+        var kinds = new Dictionary<TaskId, WorkTaskKind>();
+        foreach (var (_, payload) in ofRun)
+        {
+            switch (payload)
+            {
+                case PlanCreatedPayload { Author: { } author }:
+                    AddRosterVendor(author);
+                    break;
+                case TaskCreatedPayload created:
+                    kinds[created.Task] = created.Kind;
+                    break;
+                case TaskAssignedPayload assigned when kinds.GetValueOrDefault(assigned.Task, WorkTaskKind.AgentWork) != WorkTaskKind.Review:
+                    AddRosterVendor(assigned.Agent);
+                    break;
+                case AgentRunStartedPayload started when !Reviews(started.Agent):
+                    vendors.Add(started.Vendor);
+                    break;
+            }
+        }
+
+        return vendors;
+    }
+
+    /// <summary>
+    /// The agent that analyses: the judge of the run (else another agent of its template) of a vendor none of
+    /// <paramref name="producers"/> is, with the model of its definition, read-only, without memory, tools, skills or folders;
+    /// null when there is none, or when no producer is known.
+    /// </summary>
+    internal static AgentDefinition? Analyst(IReadOnlySet<VendorId> producers, IReadOnlyList<RosterEntry> team, IReadOnlyList<AgentDefinition> agents, ExecutionBudget budget)
+    {
         if (producers.Count == 0)
         {
             return null;
         }
 
-        var chosen = team.Where(t => !producers.Contains(t.Vendor)).OrderBy(t => t.Role == AgentRole.Judge ? 0 : 1).ThenBy(t => t.Agent.Value, StringComparer.Ordinal).FirstOrDefault();
+        var chosen =team.Where(t => !producers.Contains(t.Vendor)).OrderBy(t => t.Role == AgentRole.Judge ? 0 : 1).ThenBy(t => t.Agent.Value, StringComparer.Ordinal).FirstOrDefault();
         if (chosen is null)
         {
             return null;

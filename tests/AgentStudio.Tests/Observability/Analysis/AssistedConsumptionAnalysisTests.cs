@@ -176,6 +176,43 @@ public sealed class AssistedConsumptionAnalysisTests : IDisposable
     }
 
     [Fact]
+    public async Task An_orchestrator_of_the_template_is_a_producer_even_without_attempts_so_its_vendor_never_analyses()
+    {
+        IReadOnlyList<RosterEntry> team =
+        [
+            new(new AgentId("orquestador"), AgentRole.Orchestrator, ProviderId.CodexCli, VendorId.OpenAI),
+            new(new AgentId("ejecutor"), AgentRole.Executor, ProviderId.ClaudeCode, VendorId.Anthropic),
+            new(new AgentId("juez"), AgentRole.Judge, ProviderId.CodexCli, VendorId.OpenAI),
+        ];
+        var log = Log(team);
+        var runner = new ScriptedRunner(Answer());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Service(log, runner).AnalyzeAsync(new AssistedConsumptionRequest(Project, ConsumptionLog.Run, Report(log), Consent()), null, Ct));
+
+        Assert.Empty(runner.Launches);
+        Assert.Equal(new[] { VendorId.Anthropic, VendorId.OpenAI }.OrderBy(v => v.Value, StringComparer.Ordinal), AssistedConsumptionAnalysisService.ProducerVendors(log.Entries, ConsumptionLog.Run).OrderBy(v => v.Value, StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public async Task The_ok_is_spent_only_when_the_analysis_is_launched()
+    {
+        var log = Log();
+        var runner = new ScriptedRunner(Answer());
+        var recorder = new Recorder(log.Entries, new DecisionLogVerification(false, 2, "hash"));
+        var service = new AssistedConsumptionAnalysisService(recorder, new Roster([Judge]), runner, _clock, new AssistedConsumptionOptions { FoldersRoot = _temp.CreateDirectory("analisis-ok") });
+        var consent = Consent();
+        var request = new AssistedConsumptionRequest(Project, ConsumptionLog.Run, Report(log), consent);
+
+        await Assert.ThrowsAsync<DecisionLogIntegrityException>(() => service.AnalyzeAsync(request, null, Ct));
+        recorder.Verification = DecisionLogVerification.Valid;
+        await service.AnalyzeAsync(request, null, Ct);
+
+        Assert.Single(runner.Launches);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.AnalyzeAsync(request, null, Ct));
+        Assert.Single(runner.Launches);
+    }
+
+    [Fact]
     public async Task A_log_that_does_not_verify_or_a_report_of_another_run_launches_nothing()
     {
         var log = Log();
@@ -274,7 +311,9 @@ public sealed class AssistedConsumptionAnalysisTests : IDisposable
 
     private sealed class Recorder(IReadOnlyList<DecisionEntry> entries, DecisionLogVerification verification) : IDecisionRecorder
     {
-        public Task<DecisionLogState> LoadAsync(string projectId, CancellationToken cancellationToken) => Task.FromResult(new DecisionLogState(entries, verification));
+        public DecisionLogVerification Verification { get; set; } = verification;
+
+        public Task<DecisionLogState> LoadAsync(string projectId, CancellationToken cancellationToken) => Task.FromResult(new DecisionLogState(entries, Verification));
 
         public Task<DecisionLogState> LoadAsync(string projectId, LogLoad load, CancellationToken cancellationToken) => LoadAsync(projectId, cancellationToken);
 

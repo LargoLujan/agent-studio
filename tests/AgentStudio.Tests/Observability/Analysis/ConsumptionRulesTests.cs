@@ -87,6 +87,24 @@ public sealed class ConsumptionRulesTests
     public void A_peak_without_a_window_or_without_one_says_nothing() =>
         Assert.Empty(Of(Analyze(new ConsumptionLog().Started().Attempt("T1", 1, provider: ProviderId.CodexCli, model: "gpt-6", compactions: null)), ConsumptionFindingCodes.HighPeak));
 
+    [Fact]
+    public void The_judge_of_the_review_and_the_planner_have_no_task_and_never_share_a_name()
+    {
+        var log = new ConsumptionLog().Started()
+            .Attempt(null, 1, agent: "orquestador", purpose: AgentRunPurpose.Planner, compactions: 1)
+            .Attempt("T1", 1)
+            .Attempt(null, 1, agent: "juez", purpose: AgentRunPurpose.Judge, peak: (180_000, 200_000), compactions: 2);
+
+        var report = Analyze(log);
+
+        var peak = Assert.Single(Of(report, ConsumptionFindingCodes.HighPeak));
+        Assert.Equal((new ConsumptionTarget(ConsumptionTargetKind.Attempt, "juez#1"), "juez#1"), (peak.Target, peak.Arguments[0]));
+        Assert.Equal([("juez#1", 2), ("orquestador#1", 1)], Of(report, ConsumptionFindingCodes.Compacted).Select(f => (f.Target.Id!, (int)f.Arguments[1])));
+        Assert.Equal("orquestador#1", AttemptRef.Of(null, 1, new AgentId("orquestador")).Id);
+        Assert.Equal("T1#2", AttemptRef.Of(new TaskId("T1"), 2, new AgentId("ejecutor")).Id);
+        Assert.Equal(new AttemptRef(new TaskId("T1"), 2), AttemptRef.Of(new TaskId("T1"), 2, new AgentId("ejecutor")));
+    }
+
     // ---- ctx.compacted ----
 
     [Fact]

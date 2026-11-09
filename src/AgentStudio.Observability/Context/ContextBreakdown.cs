@@ -17,7 +17,8 @@ public sealed record ContextPartFigure(ContextPartKind Kind, int Characters, Met
 /// <item>Each part is estimated by Agent Studio from its characters (divided by 4 and rounded up, docs/14 D-24); its
 /// characters are exact.</item>
 /// <item>The conversation is the occupancy the CLI reported for the step minus the parts, an estimate of Agent Studio (its
-/// weakest figure is the estimate of the parts). Below zero it is zero: the parts are an estimate, and they then fill the bar.
+/// weakest figure is the estimate of the parts). When the parts pass what the CLI reported, the estimate went wrong and the
+/// conversation has no figure («no fiable»), never a zero.
 /// When the CLI does not expose the occupancy (<c>codex exec</c>) the conversation is «no expuesto» and only the parts are
 /// known; while no step came, it is missing. Never a zero that stands for a figure that is not there.</item>
 /// </list>
@@ -33,6 +34,9 @@ public sealed record ContextBreakdown(IReadOnlyList<ContextPartFigure> Parts, Me
 
     /// <summary>Where the conversation comes from.</summary>
     public const string ConversationSource = "estimate: occupancy reported by the CLI minus the parts of the prompt";
+
+    /// <summary>Why the conversation has no figure when the parts, estimated, pass what the CLI reported for the step.</summary>
+    public const string UnreliableReason = "unreliable: the parts of the prompt, estimated, pass the occupancy the CLI reported for the step";
 
     /// <summary>Why the conversation is not exposed.</summary>
     public const string NotExposedReason = "the CLI does not expose the occupancy of the step: only the parts before the start are known";
@@ -58,7 +62,10 @@ public sealed record ContextBreakdown(IReadOnlyList<ContextPartFigure> Parts, Me
         MetricValue<long> conversation;
         if (used.Value is { } reported && preamble.Value is { } before)
         {
-            conversation = MetricValue<long>.EstimatedBySystem(Math.Max(0, reported - before), ConversationSource);
+            // Parts above the step are an estimate that went wrong: the rest would be a zero that says nothing.
+            conversation = reported >= before
+                ? MetricValue<long>.EstimatedBySystem(reported - before, ConversationSource)
+                : MetricValue<long>.Missing(UnreliableReason);
         }
         else if (used.Origin == MetricOrigin.NotExposed)
         {

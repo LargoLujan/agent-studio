@@ -69,11 +69,13 @@ public sealed class ContextBreakdownTests
     }
 
     [Fact]
-    public void Parts_larger_than_the_reported_step_leave_a_conversation_of_zero_estimated()
+    public void Parts_larger_than_the_reported_step_leave_the_conversation_without_a_figure_never_zero()
     {
-        var breakdown = ContextBreakdown.Of(Parts, MetricValue<long>.Exact(1_000, "claude stream-json"));
+        var above = ContextBreakdown.Of(Parts, MetricValue<long>.Exact(1_000, "claude stream-json"));
+        var equal = ContextBreakdown.Of(Parts, MetricValue<long>.Exact(2_051, "claude stream-json"));
 
-        Assert.Equal((0L, MetricOrigin.EstimatedBySystem), (breakdown.Conversation.Value!.Value, breakdown.Conversation.Origin));
+        Assert.Equal((MetricOrigin.Missing, (long?)null, ContextBreakdown.UnreliableReason), (above.Conversation.Origin, above.Conversation.Value, above.Conversation.Source));
+        Assert.Equal((0L, MetricOrigin.EstimatedBySystem), (equal.Conversation.Value!.Value, equal.Conversation.Origin));
     }
 
     [Fact]

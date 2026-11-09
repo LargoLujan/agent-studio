@@ -93,8 +93,8 @@ internal sealed class ConsumptionLog
     public ConsumptionLog Tests(string task, int attempt, int failed, int passed, string title = "Pruebas (test)") =>
         Append(DecisionKind.EvidenceRegistered, new EvidenceRegisteredPayload(new EvidenceId($"ev-test-{task}-{attempt}-{Entries.Count}"), EvidenceKind.TestRun, EvidenceOrigin.CapturedBySystem, HashB, new TaskId(task), attempt, title, "agent-studio", Now, new TestRunSnapshot(passed, failed, 0, failed > 0 ? 1 : 0)) { RunId = Run.Value, V = EvidenceRegisteredPayload.MetadataVersion });
 
-    public ConsumptionLog Evidence(string id, EvidenceKind kind, string task, int attempt, string title, string sha256) =>
-        Append(DecisionKind.EvidenceRegistered, new EvidenceRegisteredPayload(new EvidenceId(id), kind, EvidenceOrigin.CapturedBySystem, sha256, new TaskId(task), attempt, title, "agent-studio", Now) { RunId = Run.Value, V = EvidenceRegisteredPayload.MetadataVersion });
+    public ConsumptionLog Evidence(string id, EvidenceKind kind, string task, int attempt, string title, string sha256, EvidenceOrigin origin = EvidenceOrigin.CapturedBySystem) =>
+        Append(DecisionKind.EvidenceRegistered, new EvidenceRegisteredPayload(new EvidenceId(id), kind, origin, sha256, new TaskId(task), attempt, title, "agent-studio", Now) { RunId = Run.Value, V = EvidenceRegisteredPayload.MetadataVersion });
 
     public ConsumptionLog PlanRevised(string? run = null, string planHash = PlanHash) =>
         Append(DecisionKind.PlanRevised, new PlanRevisedPayload(planHash, "first-plan", "x") { RunId = run ?? Run.Value });
