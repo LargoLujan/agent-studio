@@ -28,6 +28,8 @@ namespace AgentStudio.Observability.Estimates;
 /// no base table of consumption, and none is made up.</item>
 /// <item><b>Size</b> (D-32): the references are split in thirds by their tokens (input and output), and only the third of the
 /// size asked counts (<see cref="EstimateAssumptions.SameSize"/>).</item>
+/// <item><b>Total tokens</b> (D-32, what the window of a question shows): the percentiles of the totals of the references,
+/// computed as such (<see cref="UsageEstimate.TotalTokens"/>, <see cref="UsageEstimate.ToSnapshot"/>).</item>
 /// <item><b>Interval:</b> the 25th and 75th percentiles by nearest rank, so each end is a figure some attempt really had. Each
 /// figure stands alone: one that fewer than three references have is unknown; the cost of a CLI that does not expose it is
 /// «no expuesto» (<see cref="EstimateAssumptions.CostNotExposed"/>), never zero; a known cost is the CLI's list price
@@ -75,7 +77,8 @@ public static class UsageEstimation
             Interval(references.Select(a => a.Own.OutputTokens).ToList(), scope, "output tokens"),
             Interval(references.Select(Duration).ToList(), scope, "duration"),
             costInterval,
-            all);
+            all,
+            Interval(references.Select(Total).ToList(), scope, "total tokens"));
     }
 
     /// <summary>What a plan would spend (<see cref="IUsageEstimator.EstimatePlanAsync"/>), from <paramref name="attempts"/>.</summary>
@@ -237,6 +240,15 @@ public static class UsageEstimation
             }),
         ];
     }
+
+    /// <summary>
+    /// The tokens of an attempt in all, its input and its output: the total its percentiles are taken of, as such (D-32), never
+    /// a sum of the percentiles of each part. Missing when either part is.
+    /// </summary>
+    private static MetricValue<long> Total(UsageAttempt attempt) =>
+        attempt.Own.InputTokens.Value is { } input && attempt.Own.OutputTokens.Value is { } output
+            ? MetricValue<long>.EstimatedBySystem(input + output, "input and output tokens of the attempt")
+            : MetricValue<long>.Missing("a part of the tokens of the attempt is missing");
 
     /// <summary>How long an attempt ran, from its launch (after any wait in the queue) to its end; missing before version 2.</summary>
     private static MetricValue<TimeSpan> Duration(UsageAttempt attempt) =>

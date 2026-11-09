@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the estimator of the system (docs/16 D-20, docs/17 D-32; Phase 13, WP2; ADR-0050) in Spanish of Spain, the source language: each assumption of an estimate (EstimateAssumptions) is Text_ and its code (UserText.KeyOf). -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Text_estimate_same_agent_and_model" xml:space="preserve">
+    <value>Sale de intentos del mismo agente con el mismo modelo en este proyecto.</value>
+    <comment>Assumption of an estimate (estimate.same-agent-and-model).</comment>
+  </data>
+  <data name="Text_estimate_same_model" xml:space="preserve">
+    <value>El agente tiene pocos intentos: sale de intentos del mismo modelo, de cualquier agente del proyecto.</value>
+    <comment>Assumption of an estimate (estimate.same-model).</comment>
+  </data>
+  <data name="Text_estimate_same_purpose" xml:space="preserve">
+    <value>Solo cuenta intentos con el mismo papel: ejecutor, juez u otro.</value>
+    <comment>Assumption of an estimate (estimate.same-purpose).</comment>
+  </data>
+  <data name="Text_estimate_same_size" xml:space="preserve">
+    <value>Solo cuenta intentos del mismo tamaño de trabajo: pequeño, mediano o grande.</value>
+    <comment>Assumption of an estimate (estimate.same-size).</comment>
+  </data>
+  <data name="Text_estimate_critical_path" xml:space="preserve">
+    <value>La duración sigue el camino más largo del plan, con las tareas a la vez que permites.</value>
+    <comment>Assumption of an estimate (estimate.critical-path).</comment>
+  </data>
+  <data name="Text_estimate_list_price" xml:space="preserve">
+    <value>El coste es el precio de lista que da el programa del agente. Tu plan se paga por suscripción.</value>
+    <comment>Assumption of an estimate (estimate.list-price).</comment>
+  </data>
+  <data name="Text_estimate_cost_not_exposed" xml:space="preserve">
+    <value>El programa del agente no da el coste, así que no se estima.</value>
+    <comment>Assumption of an estimate (estimate.cost-not-exposed).</comment>
+  </data>
+  <data name="Text_estimate_agents_only" xml:space="preserve">
+    <value>La duración solo cuenta el trabajo de los agentes. Las comprobaciones y tus aprobaciones no suman.</value>
+    <comment>Assumption of an estimate (estimate.agents-only).</comment>
+  </data>
+</root>

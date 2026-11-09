@@ -1,5 +1,6 @@
 using System.Globalization;
 using AgentStudio.Application.Localization;
+using AgentStudio.Application.Usage;
 using AgentStudio.Desktop.Localization;
 using AgentStudio.Domain.Models;
 using AgentStudio.Domain.Providers;
@@ -27,7 +28,7 @@ public sealed class ModelsStringsTests
     public static TheoryData<string> Codes()
     {
         var codes = new TheoryData<string>();
-        foreach (var code in Reasons.Concat(ModelNoticeCodes.All).Concat(BuiltInModelCatalog.Shipped.Catalog.Entries.Select(e => e.Note!).Where(n => n is not null)).Distinct(StringComparer.Ordinal))
+        foreach (var code in Reasons.Concat(ModelNoticeCodes.All).Concat(EstimateAssumptions.All).Concat(BuiltInModelCatalog.Shipped.Catalog.Entries.Select(e => e.Note!).Where(n => n is not null)).Distinct(StringComparer.Ordinal))
         {
             codes.Add(code);
         }

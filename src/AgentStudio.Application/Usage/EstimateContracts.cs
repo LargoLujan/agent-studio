@@ -77,14 +77,35 @@ public static class EstimateAssumptions
 /// with its origin, the number of attempts it rests on and its assumptions. Known only with at least
 /// <see cref="MinimumReferences"/> references.
 /// </summary>
+/// <param name="TotalTokens">
+/// WP2 (2026-11-09): the tokens of an attempt in all (input and output), as an interval computed as such: the percentiles of
+/// the totals of the references, never the sum of the percentiles of each part, which would be wrong. What the window of a
+/// question shows for each option (<see cref="ToSnapshot"/>, docs/17 D-32). Null when the estimate does not give it.
+/// </param>
 public sealed record UsageEstimate(
     int References,
     EstimateInterval<long> InputTokens,
     EstimateInterval<long> OutputTokens,
     EstimateInterval<TimeSpan> Duration,
     EstimateInterval<decimal> CostUsd,
-    IReadOnlyList<string> Assumptions)
+    IReadOnlyList<string> Assumptions,
+    EstimateInterval<long>? TotalTokens = null)
 {
+    /// <summary>Why an option has no total when its estimate does not give one.</summary>
+    public const string NoTotalReason = "unknown: the estimate gives no total of tokens";
+
+    /// <summary>
+    /// The estimate of <paramref name="option"/> as <c>QuestionAsked</c> records it (docs/17 D-32): the interval of the total
+    /// tokens with its origin and the references. Without a total, or with fewer than three references, both ends are a
+    /// figure without a value that says why: never a number made up.
+    /// </summary>
+    public OptionEstimateSnapshot ToSnapshot(string option)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(option);
+        var total = TotalTokens ?? EstimateInterval<long>.Unknown(NoTotalReason);
+        return new OptionEstimateSnapshot(option, MetricSnapshot.WithOrigin(total.Low), MetricSnapshot.WithOrigin(total.High), References);
+    }
+
     /// <summary>The fewest references that make an estimate known (docs/16 D-20).</summary>
     public const int MinimumReferences = 3;
 
@@ -104,7 +125,8 @@ public sealed record UsageEstimate(
             EstimateInterval<long>.Unknown(reason),
             EstimateInterval<TimeSpan>.Unknown(reason),
             EstimateInterval<decimal>.Unknown(reason),
-            assumptions ?? []);
+            assumptions ?? [],
+            EstimateInterval<long>.Unknown(reason));
     }
 }
 
