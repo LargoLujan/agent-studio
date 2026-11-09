@@ -136,6 +136,45 @@ public sealed class PlannerQuestionsTests
     }
 
     [Fact]
+    public async Task Secrets_in_the_questions_of_the_orchestrator_and_in_the_own_answer_are_redacted_before_they_are_recorded_or_sent()
+    {
+        using var harness = new EngineHarness { Redactor = new MarkingRedactor("sk-secreto") };
+        var asking = Asking();
+        asking["questions"]![0]!["text"] = "¿Uso la clave sk-secreto para la API?";
+        harness.Claude.Script("orquestador", null, 1, Answer(asking));
+        var asked = await PlanAsync(harness);
+        var question = Assert.Single(asked.Questions!);
+        Assert.Equal("¿Uso la clave [REDACTED] para la API?", question.Question.Text);
+
+        harness.Claude.Script("orquestador", null, 1, Answer(ValidPlanWithNotes()));
+        var answer = QuestionAnswer.Writing(null, question.Id, "Usa sk-secreto solo en local", "miveritas");
+        var request = harness.PlanningRequest() with { Answers = [new AnsweredQuestion(asked.Run, question, answer)] };
+        var proposal = await PlanAsync(harness, request);
+
+        Assert.NotNull(proposal.Plan);
+        var (_, answered) = Assert.Single(harness.Payloads<QuestionAnsweredPayload>());
+        Assert.Equal("Usa [REDACTED] solo en local", harness.Evidence.Text(answered.AnswerEvidence!.Value));
+        var prompt = harness.Claude.Starts[^1].Request.Prompt;
+        Assert.Contains("Usa [REDACTED] solo en local", prompt, StringComparison.Ordinal);
+        Assert.DoesNotContain("sk-secreto", prompt, StringComparison.Ordinal);
+        Assert.DoesNotContain("sk-secreto", harness.Evidence.Text(question.Evidence), StringComparison.Ordinal);
+        // What the system writes (the prompts, the text of the person) has no secret; the raw output of the agent is kept as it came.
+        var evidence = await harness.Evidence.ListAsync(harness.Project.ProjectId, TestContext.Current.CancellationToken);
+        Assert.All(evidence.Where(e => e.Origin != EvidenceOrigin.ReportedByAgent), e => Assert.DoesNotContain("sk-secreto", harness.Evidence.Text(e.Id), StringComparison.Ordinal));
+
+        // A failed planning tried again with the same answer finds it recorded: the redacted text is the same each time.
+        harness.Claude.Script("orquestador", null, 1, Answer(ValidPlanWithNotes()));
+        var again = await PlanAsync(harness, request);
+        Assert.Equal(asked.Run, again.Run);
+        Assert.Single(harness.Payloads<QuestionAnsweredPayload>());
+    }
+
+    private sealed class MarkingRedactor(string secret) : AgentStudio.Application.Security.ISecretRedactor
+    {
+        public string Redact(string text) => text.Replace(secret, "[REDACTED]", StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task An_answer_in_the_persons_own_words_is_evidence_they_provided()
     {
         using var harness = new EngineHarness();

@@ -4,10 +4,12 @@ using System.Text.Json;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Prompts;
+using AgentStudio.Application.Security;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Questions;
+using AgentStudio.Orchestration.Engine.Questions;
 
 namespace AgentStudio.Orchestration.Planning;
 
@@ -110,6 +112,31 @@ internal static class PlannerQuestions
             ? string.Equals(recorded.ChosenOption, option, StringComparison.Ordinal)
             : recorded.ChosenOption is null && answer.OtherText is { } text
                 && string.Equals(recorded.AnswerSha256, ContentHash.Sha256Hex(Encoding.UTF8.GetBytes(text)), StringComparison.Ordinal);
+
+    /// <summary>
+    /// The request with its answers redacted (docs/17 D-28: «los secretos, redactados»): each question as
+    /// <see cref="QuestionDocuments.Redacted"/> leaves it, and the person's own text. The ids are kept, so each answer still
+    /// answers its question. Without a redactor, or without answers, the request as it is.
+    /// </summary>
+    public static PlanningRequest Redacted(PlanningRequest request, ISecretRedactor? redactor)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (redactor is null || request.Answers is not { Count: > 0 } answers)
+        {
+            return request;
+        }
+
+        return request with
+        {
+            Answers =
+            [
+                .. answers.Select(a => new AnsweredQuestion(
+                    a.Run,
+                    a.Question with { Question = QuestionDocuments.Redacted(a.Question.Question, redactor) },
+                    a.Answer.OtherText is { } own ? a.Answer with { OtherText = redactor.Redact(own) } : a.Answer)),
+            ],
+        };
+    }
 
     /// <summary>
     /// The block of the prompt with the person's answers (docs/17 D-30): each question and its answer as quoted data, the option

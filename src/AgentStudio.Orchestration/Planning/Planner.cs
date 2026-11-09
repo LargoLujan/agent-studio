@@ -12,6 +12,7 @@ using AgentStudio.Domain.Evidence;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Requirements;
 using AgentStudio.Orchestration.Engine;
+using AgentStudio.Orchestration.Engine.Questions;
 
 namespace AgentStudio.Orchestration.Planning;
 
@@ -51,6 +52,10 @@ internal sealed class Planner(EnginePorts ports)
         {
             throw new DecisionLogIntegrityException(project.ProjectId, log.Verification);
         }
+
+        // The questions and the person's own text go on with the secrets out (docs/17 D-28): what is recorded, compared with the
+        // answers recorded when a failed planning is tried again, and sent to the vendor is the redacted text, the same each time.
+        request = PlannerQuestions.Redacted(request, ports.Redactor);
 
         // Phase 13 (docs/17 D-28): a planning with the person's answers goes on in the run that asked; any other gets a new one.
         var answers = request.Answers ?? [];
@@ -345,7 +350,7 @@ internal sealed class Planner(EnginePorts ports)
             for (var i = 0; i < questions.Count; i++)
             {
                 var id = PlannerQuestions.IdOf(i);
-                var question = questions[i];
+                var question = QuestionDocuments.Redacted(questions[i], ports.Redactor);
                 var evidence = await recorder.CaptureAsync(
                     EvidenceKind.AgentStatement,
                     EvidenceOrigin.ReportedByAgent,
