@@ -365,7 +365,7 @@ public sealed class ConsumptionRulesTests
         var report = Analyze(log);
 
         Assert.Equal([ConsumptionFindingCodes.PackOmitted, ConsumptionFindingCodes.Compacted, ConsumptionFindingCodes.WaitQueue], report.Findings.Select(f => f.Code));
-        Assert.Equal([ConsumptionTexts.SuggestionCode(ConsumptionFindingCodes.PackOmitted)], [ConsumptionTexts.Suggestion(report.Findings[0])!.Code]);
+        Assert.Equal([ConsumptionTexts.TextPrefix + ConsumptionTexts.SuggestionCode(ConsumptionFindingCodes.PackOmitted)], [ConsumptionTexts.Suggestion(report.Findings[0])!.Code]);
     }
 
     [Fact]
