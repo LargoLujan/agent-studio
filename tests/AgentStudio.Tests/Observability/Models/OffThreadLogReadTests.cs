@@ -13,8 +13,8 @@ namespace AgentStudio.Tests.Observability.Models;
 
 /// <summary>
 /// What the log teaches and the estimator read the log off the caller's thread: a reader that completes synchronously (as
-/// SQLite does) never blocks the window that asked. Each call returns at once, still running, and the read happens on another
-/// thread.
+/// SQLite does) never blocks the window that asked. Each call returns at once, still running, before the read is done; were
+/// the read on the caller's thread, the call would only return once the reader let it go.
 /// </summary>
 public sealed class OffThreadLogReadTests
 {
@@ -23,12 +23,15 @@ public sealed class OffThreadLogReadTests
     {
         private readonly ManualResetEventSlim _gate = new(false);
 
-        public int? ThreadId { get; private set; }
+        private int _finished;
+
+        /// <summary>Whether a read got past the gate.</summary>
+        public bool Finished => Volatile.Read(ref _finished) == 1;
 
         public Task<ProjectLogSnapshot> ReadAsync(string projectRoot, CancellationToken ct)
         {
-            ThreadId = Environment.CurrentManagedThreadId;
             _gate.Wait(TimeSpan.FromSeconds(10), ct);
+            Volatile.Write(ref _finished, 1);
             return Task.FromResult(snapshot);
         }
 
@@ -45,33 +48,33 @@ public sealed class OffThreadLogReadTests
     }
 
     [Fact]
-    public async Task Learning_from_the_log_returns_at_once_and_reads_on_another_thread()
+    public async Task Learning_from_the_log_returns_before_the_read_is_done()
     {
         using var reader = new BlockingReader(Snapshot());
-        var caller = Environment.CurrentManagedThreadId;
 
         var learning = new ProjectModelLearning(reader, new BuiltInModelCatalog()).LearnAsync("C:\\repo", TestContext.Current.CancellationToken);
 
+        Assert.False(reader.Finished);
         Assert.False(learning.IsCompleted);
         reader.Open();
         var learned = await learning;
-        Assert.NotEqual(caller, reader.ThreadId);
+        Assert.True(reader.Finished);
         Assert.Single(learned.Models);
     }
 
     [Fact]
-    public async Task Estimating_returns_at_once_and_reads_on_another_thread()
+    public async Task Estimating_returns_before_the_read_is_done()
     {
         using var reader = new BlockingReader(Snapshot());
-        var caller = Environment.CurrentManagedThreadId;
         var request = new UsageEstimateRequest(new ProjectContext("p1", "C:\\repo"), new AgentId("ejecutor"), ProviderId.ClaudeCode, "sonnet", AgentRunPurpose.Executor);
 
         var estimating = new UsageEstimator(reader, new BuiltInModelCatalog()).EstimateAsync(request, TestContext.Current.CancellationToken);
 
+        Assert.False(reader.Finished);
         Assert.False(estimating.IsCompleted);
         reader.Open();
         var estimate = await estimating;
-        Assert.NotEqual(caller, reader.ThreadId);
+        Assert.True(reader.Finished);
         Assert.Equal(1, estimate.References);
     }
 }
