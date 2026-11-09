@@ -332,11 +332,15 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
 
         ErrorMessage = null;
 
-        // Changing the verification profile is on the list of the fixed barrier (docs/17 D-37, ChangeVerificationProfile): with the
-        // reinforced confirmation composed it always asks Windows Hello, or the lock of Windows without it, and without a
-        // confirmation the profile does not change. A shell without one (never the app's) keeps its click, as «Aprobar plan» does.
-        if (_confirmation is not null
-            && !await ConfirmPresenceAsync(PresenceAction.ChangeVerificationProfile, new CanvasText().Get("Canvas_Hello_ProfileMessage"), CancellationToken.None).ConfigureAwait(true))
+        // Changing the verification profile is on the list of the fixed barrier (docs/17 D-37, ChangeVerificationProfile): it always
+        // asks Windows Hello, or the lock of Windows without it, and without a confirmation composed the profile does not change.
+        if (_confirmation is null)
+        {
+            ErrorMessage = new CanvasText().Get("Canvas_Hello_ProfileUnavailable");
+            return;
+        }
+
+        if (!await ConfirmPresenceAsync(PresenceAction.ChangeVerificationProfile, new CanvasText().Get("Canvas_Hello_ProfileMessage"), CancellationToken.None).ConfigureAwait(true))
         {
             ErrorMessage = new CanvasText().Get("Canvas_Hello_ProfileNotConfirmed");
             return;
@@ -357,7 +361,13 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         await ReloadAsync().ConfigureAwait(true);
     }
 
-    private bool CanUseProposedProfile() => !IsBusy && ShowsProfileProposal && Context?.Project is not null;
+    private bool CanUseProposedProfile() => !IsBusy && ShowsProfileProposal && Context?.Project is not null && _confirmation is not null;
+
+    /// <summary>
+    /// The proposed profile cannot be accepted because the app composed no confirmation of the fixed barrier (docs/17 D-37): changing
+    /// the verification profile always asks Windows Hello (or the lock of Windows), so without a way to ask, it fails closed.
+    /// </summary>
+    public string? ProfileConfirmationMissing => ShowsProfileProposal && _confirmation is null ? new CanvasText().Get("Canvas_Hello_ProfileUnavailable") : null;
 
     /// <summary>The properties panel of the selected node, or null.</summary>
     [ObservableProperty]

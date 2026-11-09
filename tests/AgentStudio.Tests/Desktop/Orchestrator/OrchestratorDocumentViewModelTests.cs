@@ -526,7 +526,8 @@ public sealed class OrchestratorDocumentViewModelTests
     public async Task The_proposed_profile_is_shown_and_only_becomes_the_profile_when_the_user_accepts_it()
     {
         var source = new FakeProfileSource(null, proposal: Backends.Profile);
-        var document = await OpenAsync(Backends.Complete(new FakeOrchestrator()) with { Verification = source });
+        var document = new OrchestratorDocumentViewModel(Root, new OrchestrationSession(Backends.Complete(new FakeOrchestrator()) with { Verification = source }), new MemoryLayoutStore(), new FakeTimeProvider(T0), new InlineSynchronizationContext(), ConfirmedByHello());
+        await document.OpenAsync();
 
         Assert.Null(document.Context?.Verification);
         Assert.True(document.ShowsProfileProposal);
@@ -544,6 +545,23 @@ public sealed class OrchestratorDocumentViewModelTests
         Assert.False(document.ShowsProfileProposal);
         Assert.False(document.UseProposedProfileCommand.CanExecute(null));
         Assert.Contains(Backends.Profile.ContentHash[..12], document.ProfileText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Without_a_confirmation_composed_the_proposed_profile_is_not_accepted()
+    {
+        var source = new FakeProfileSource(null, proposal: Backends.Profile);
+        var document = await OpenAsync(Backends.Complete(new FakeOrchestrator()) with { Verification = source });
+
+        Assert.True(document.ShowsProfileProposal);
+        Assert.False(document.UseProposedProfileCommand.CanExecute(null));
+        Assert.Contains("pide Windows Hello", document.ProfileConfirmationMissing, StringComparison.Ordinal);
+
+        await document.UseProposedProfileCommand.ExecuteAsync(null);
+
+        Assert.Empty(source.Saved);
+        Assert.Null(document.Context?.Verification);
+        Assert.Contains("el perfil no cambia", document.ErrorMessage, StringComparison.Ordinal);
     }
 
     // ---- the warning next to «Aprobar plan»: the writers at medium integrity of the plan (ADR-0018, decision 3) ----

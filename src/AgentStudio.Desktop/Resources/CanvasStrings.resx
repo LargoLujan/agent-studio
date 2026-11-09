@@ -1162,4 +1162,8 @@ Pulsar «Guardar la ficha»: cada versión sustituye a la anterior.</value>
     <value>Se cambiaron {0} agentes de la plantilla.</value>
     <comment>{0}: how many.</comment>
   </data>
+  <data name="Canvas_Hello_ProfileUnavailable" xml:space="preserve">
+    <value>Cambiar el perfil de verificación pide Windows Hello y esta ventana no tiene cómo pedirlo: el perfil no cambia.</value>
+    <comment>Said when no confirmation is composed.</comment>
+  </data>
 </root>

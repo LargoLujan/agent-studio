@@ -120,6 +120,8 @@
                                     ToolTip="Lo guarda en .agentstudio/verification.json: desde entonces es el perfil del proyecto"/>
                             <TextBlock Style="{StaticResource SecondaryText}"
                                        Text="Se guarda en .agentstudio/verification.json, excluido de git. Sin este paso no se aplica nada."/>
+                            <TextBlock Style="{StaticResource ProblemText}" Text="{Binding ProfileConfirmationMissing}"
+                                       Visibility="{Binding ProfileConfirmationMissing, Converter={StaticResource Orchestrator.NotNullToVisibility}}"/>
                         </StackPanel>
                     </StackPanel>
 

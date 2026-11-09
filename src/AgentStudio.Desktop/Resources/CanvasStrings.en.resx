@@ -1162,4 +1162,8 @@ Press «Save the brief»: each version replaces the previous one.</value>
     <value>{0} agents of the template were changed.</value>
     <comment>{0}: how many.</comment>
   </data>
+  <data name="Canvas_Hello_ProfileUnavailable" xml:space="preserve">
+    <value>Changing the verification profile asks Windows Hello and this window has no way to ask it: the profile does not change.</value>
+    <comment>Said when no confirmation is composed.</comment>
+  </data>
 </root>
