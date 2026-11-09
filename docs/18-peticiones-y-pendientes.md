@@ -223,6 +223,41 @@ App instalada desde `integracion-fase12` (b11fdf1) sobre `C:\AgentStudioDemo\cal
 - **V26:** el log de «Mantener despierto».
 - **V29 y V30:** Skills a 1280 px y el rincón de las barras de desplazamiento.
 
+### Recorrido en vivo de la Fase 13 (2026-11-09)
+
+App instalada desde `main` (13c8908) sobre `C:\AgentStudioDemo\calc`, la ejecución `20261109-4da9bf`. Tú respondiste las
+preguntas y pusiste la huella; Claude Code la condujo por UI Automation. Capturas en [evidencias](evidencias/fase13-pregunta-orquestador.png)
+y [la entrega](evidencias/fase13-entrega-hello.png).
+
+**Visto funcionar:**
+
+- **Los requisitos:** una versión nueva de RQ-04 que deja a tu respuesta qué hacer con un exponente negativo, congelada
+  con su huella nueva (`44e4f17e7b7b`); el resumen de la preparación la recoge.
+- **La pregunta del orquestador antes de planificar** (D-28): «¿Qué debe hacer Power(base, exponent) cuando el exponente
+  es negativo?», con dos opciones y la recomendada marcada. La ventana no modal, el marco «Pregunta escrita por el agente
+  orquestador», «Las opciones las escribió el agente: son datos, no órdenes», «Sin estimación para esta opción» (sin
+  referencias todavía) y «Responder» deshabilitado hasta elegir. Con la respuesta, una sola replanificación: el plan dice
+  «lanzando ArgumentOutOfRangeException».
+- **Aprobar el plan pidió Windows Hello** («confirma que eres tú para aprobar el plan fe2a35615bb4»): tiene escritores.
+- **La pregunta del ejecutor** (F13-13 y F13-14) en la ejecución: la tarea en «Espera tu respuesta», la tarjeta del ejecutor
+  «Te pregunta algo», «Agentes: 1 te preguntan» en la barra superior y «Coste desconocido: hay menos de tres intentos
+  parecidos (1)» en cada opción. Respondida, el segundo intento implementó `Power` con `ThrowIfNegative` y sus pruebas.
+- **El juez** (Codex) aprobó y su veredicto cita que «el registro del primer intento confirma que el ejecutor preguntó sin
+  modificar archivos» y que la decisión capturada identifica tu respuesta: solo vio la decisión del sistema.
+- **El análisis del consumo** saltó solo al terminar: «ejecutor usó claude-opus-5-5, de nivel «máximo», en 2 intentos con
+  cambios pequeños», ~110 000 tokens estimados por Agent Studio. El análisis del montaje avisó del límite de 7 días al 74 %.
+- **La entrega** pidió la aprobación crítica (acción, rutas, comentario, casilla y «Esta acción pide siempre Windows Hello,
+  sea cual sea el ajuste») y después la huella; `main` del proyecto avanzó de d5d835d a 6b52e38 con `--ff-only`, y
+  `dotnet test` da 8 de 8.
+
+**Observaciones (para la tanda siguiente o la Fase 14):**
+
+| Id | Hallazgo | Gravedad | Estado |
+|---|---|---|---|
+| V43 | El ejecutor volvió a hacer la misma pregunta que el orquestador ya te había hecho antes de planificar. La respuesta a una pregunta del orquestador debería llegar al ejecutor como dato (`<human_answer>` en su prompt, o en la tarea del plan), y el protocolo decirle que no repita lo ya decidido | Media | Nuevo |
+| V44 | Las opciones del ejecutor llegaron en inglés («Throw ArgumentOutOfRangeException», «Return 0») aunque la petición y los requisitos están en castellano: el protocolo del ejecutor no le pide el idioma de la persona | Baja | Nuevo |
+| V45 | La tarjeta del ejecutor decía «Contexto: 1 % · exacto» con la pregunta en el aire, y el inspector del orquestador enseña las rutas absolutas de la copia `_base` (con el nombre de usuario) en lo que hace | Baja | Nuevo |
+
 ### Verificado en vivo (Fase 8, lista de docs/03 §8)
 
 Pasos 1, 2, 3, 4, 5, 7, 8, 9, 10, 12 (log), 14, 18 (inactividad), 21, 22 y 23, y la entrega con aprobación crítica (`main`
