@@ -223,6 +223,10 @@ public sealed record ReinforcedConfirmation(
             return new HelloOutcome(null, AnotherPending: true);
         }
 
+        // A question withdrawn (the interface locked, it expired, it was cancelled) frees the slot at once: what its
+        // confirmation answers afterwards is no answer (see below), and the question asked again must not find it taken.
+        using var freedOnWithdrawal = cancellationToken.Register(static taken => ((IDisposable)taken!).Dispose(), slot);
+
         try
         {
             if (plan.LocksWindows)

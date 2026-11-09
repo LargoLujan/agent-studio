@@ -18,7 +18,7 @@ public sealed class ApprovalsCompositionTests
         public Task<ApprovalDecision> AskAsync(ApprovalRequest request, CancellationToken cancellationToken)
         {
             Asked++;
-            return Task.FromResult(new ApprovalDecision(true, "manuel", T0, null));
+            return Task.FromResult(new ApprovalDecision(true, "manuel", T0, null, Verification: ApprovalVerification.WindowsHello));
         }
     }
 

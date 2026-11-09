@@ -402,6 +402,30 @@ public sealed class FixedBarrierTests
         Assert.Equal(2, hello.Messages.Count);
     }
 
+    /// <summary>
+    /// A question withdrawn (the interface locked, it expired) frees the confirmation at once, even while Windows has not answered
+    /// it yet: its answer no longer counts, and the question asked again is confirmed on its own.
+    /// </summary>
+    [Fact]
+    public async Task A_withdrawn_question_frees_the_confirmation_for_the_one_asked_again()
+    {
+        var never = new TaskCompletionSource<UserPresenceResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var hello = new FakeUserPresenceVerifier { Verify = (_, _) => never.Task };
+        var confirmation = new ReinforcedConfirmation(hello, () => true);
+        var plan = await confirmation.PlanAsync(PresenceAction.DeliverToBranch, CancellationToken.None);
+        using var withdrawal = new CancellationTokenSource();
+
+        var withdrawn = confirmation.ConfirmAsync(plan, "primera", withdrawal.Token);
+        await withdrawal.CancelAsync();
+        hello.Verify = (_, _) => Task.FromResult(UserPresenceResult.Verified);
+        var again = await confirmation.ConfirmAsync(plan, "otra vez", CancellationToken.None);
+
+        Assert.False(again.AnotherPending);
+        Assert.True(ReinforcedConfirmation.Approves(plan, again.Proof));
+        never.SetResult(UserPresenceResult.Verified);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => withdrawn);
+    }
+
     /// <summary>A no is never confirmed: it asks neither Hello nor the lock (ADR-0037, decision 3).</summary>
     [Fact]
     public async Task A_no_to_an_action_of_the_list_asks_neither_hello_nor_the_lock_of_windows()

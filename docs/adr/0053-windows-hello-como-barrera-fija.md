@@ -41,9 +41,12 @@
      | `discard-run-work` | `WorkspaceCleanup.ApprovalAction` | `DiscardAgentWork` |
      | `skills.recomendacion-asistida` | `SkillsDocumentViewModel.AssistedAction` | `AuxiliaryQuotaConsent` (nunca) |
 
-     - **Una acción que la lista no nombra** (hoy, `replan.dismiss`) va por su nivel: crítica o destructiva, configurable; baja,
-       nunca. Sus palabras nunca la ponen en «Siempre» ni la quitan (decisión 6 (a): «configurable lo demás»). El nivel por
-       palabras sigue sirviendo para lo que enseña el diálogo y lo que guarda el registro.
+     - **Una acción que la lista no nombra** va por su nivel, del lado seguro (revisión de seguridad de WP5, 2026-11-09:
+       «que sea una barrera de seguridad siempre»): crítica o destructiva, declarada o por sus palabras, pide Hello **siempre**;
+       de riesgo bajo (hoy, `replan.dismiss`), nunca. Las palabras pueden subir una acción a «Siempre», nunca sacar de la lista
+       una que la lista nombra. Una prueba recorre `src` (`CriticalApprovalCoverageTests`): toda aprobación nombra su acción con
+       una constante `…Action`, y toda constante así está en la lista o es de riesgo bajo, así que ninguna aprobación crítica
+       del código se juzga solo por su nivel.
      - **Aprobar un plan** es `ApprovePlanWithHighRiskCapability` cuando `MediumIntegrityWriters.Find` encuentra algún escritor
        a integridad media en el plan, su plantilla y su perfil (consola, Codex con escritura, un CLI o herramientas sin medir,
        un paso sin aislar, un agente o un paso desconocidos), y `ApprovePlan` si no (`Desktop/Lock/PlanPresence.cs`). Sin
@@ -58,7 +61,9 @@
        de otro tipo, con un fichero que no es JSON y con el fichero borrado, entregar y aceptar un historial piden Windows
        Hello igual. Agent Studio no tiene ningún `config.json` de permisos, y los ficheros de los CLIs no entran (docs/17 D-38).
      - La sección «Windows Hello y bloqueo» de «Ajustes» lo explica con sus textos de `Resources/HelloStrings.resx`.
-  3. **Una sola regla para todos los caminos** (D-39): `PresencePolicy.IsSatisfiedBy(acción, ajuste, helloAvailable, prueba)`.
+  3. **Una sola regla para todos los caminos** (D-39): `PresencePolicy.IsSatisfiedBy(acción, ajuste, helloAvailable, prueba)`,
+     que es la misma regla por requisito (`IsSatisfiedBy(requisito, …)`) con el requisito de la acción; con esa juzgan las
+     aprobaciones que la lista no nombra.
      - **La regla.** «Siempre»: con Windows Hello en el equipo, solo Hello; sin Hello, también el bloqueo de Windows
        desbloqueado después de la petición; nunca el diálogo solo ni el diálogo con su aviso. «Configurable» con el ajuste:
        Hello y, sin Hello, también el bloqueo o el diálogo con su aviso; sin el ajuste, el diálogo. «Nunca»: nada. «Hay Hello»
@@ -66,15 +71,27 @@
        pide Hello y el bloqueo no cuenta.
      - **Las pruebas fuertes salen de Windows.** `PresenceProof.WindowsHello` y `WindowsLockUnlockedAfterRequest` solo los
        dan `PresenceProofs.FromHello` y `FromWindowsLock`, a partir de un resultado de Windows (`HelloOutcome.Proof`). El diálogo
-       solo prueba el diálogo (`ConfirmationPlan.AnswerAloneProof`). Una prueba recorre `src` y falla si otro código nombra esas
-       dos pruebas, convierte un número al tipo o lo lee de un texto.
+       solo prueba el diálogo (`ConfirmationPlan.AnswerAloneProof`). Quien solo ve el método registrado (la puerta, el motor, el
+       registrador) lo lee como la prueba que afirma con `PresenceProofs.Claimed`, la inversa de `Verification`.
+       `PresenceProofSourceTests` recorre `src` línea a línea, sin comentarios, y falla si fuera de su sitio alguien nombra esas
+       dos pruebas, convierte un número al tipo, lo lee de un texto, hace aritmética o bit a bit con un valor del tipo, escribe
+       un resultado que confirma como literal en una conversión (`FromHello(UserPresenceResult.Verified)`), construye un
+       `HelloOutcome` (o le da un resultado que confirma) o un `ConfirmationPlan`, o fija con `with` lo que decide el plan.
+       **Límite:** no ve un alias del tipo, una variable del tipo incrementada, la reflexión, `dynamic`, `Unsafe.As` ni una
+       expresión partida en varias líneas; eso queda para la revisión.
+     - **Una sola confirmación a la vez** (revisión de seguridad de WP5): `PresenceConfirmationSlot`, un canal de capacidad
+       uno con un solo consumidor, en `ReinforcedConfirmation` (lo comparten la puerta, aceptar un historial y «Aprobar plan»)
+       y en `WindowsLockConfirmation`. Mientras una confirmación espera (Hello o el desbloqueo de Windows), otra se rechaza al
+       momento, sin cola: la del bloqueo da `NotVerified` y no bloquea nada; la de la aprobación no aprueba y dice «Ya hay una
+       confirmación pendiente». Así un desbloqueo de Windows o un Hello nunca confirman dos aprobaciones. Una pregunta
+       retirada (la interfaz se bloquea, caduca) libera la confirmación al momento: su respuesta ya no cuenta.
      - **El diálogo de aprobación** (`ApprovalPromptService`, y con él la puerta y aceptar un historial):
        `ReinforcedConfirmation.PlanAsync` decide antes de preguntar si hace falta Hello o el bloqueo, y `Approves` juzga lo que
        confirmó a la persona con la regla. El diálogo dice cuándo la acción pide Hello siempre y, sin Hello, que Windows se va a
        bloquear. Sin `ReinforcedConfirmation` compuesta, una acción de la lista no se enseña: la puerta la deniega.
      - **La puerta** (`ApprovalGate`) comprueba además cada «sí»: lee el método que el diálogo registró como la prueba que
-       afirma (`ApprovalRiskClassifier.ClaimedProof`) y aplica la regla con el suelo que nada baja (sin el ajuste y sin Hello).
-       Un «sí» a una acción de la lista sin Hello ni bloqueo es una denegación del sistema (`agent-studio`), con el motivo
+       afirma (`PresenceProofs.Claimed`) y aplica la regla, con el requisito de la petición, con el suelo que nada baja (sin el
+       ajuste y sin Hello). Un «sí» a lo que es «Siempre» sin Hello ni bloqueo es una denegación del sistema (`agent-studio`), con el motivo
        `ApprovalGate.PresenceNotConfirmed`, venga del diálogo que venga. Lo que añaden el ajuste y la presencia de Hello lo
        comprueba el diálogo, que los conoce.
      - **«Aprobar plan» del lienzo** usa la misma `ReinforcedConfirmation`, con `PlanPresence`, y la misma regla. El plan con
@@ -83,6 +100,14 @@
        `ApprovalRequested` y `ApprovalGranted` o `ApprovalDenied` como cualquier aprobación (F13-20). No concede nada: nunca
        pide Hello, y su respuesta se escribe en la versión 1.
      - **Lo destructivo** (`discard-run-work`) pide ahora Hello mientras el ajuste está activo (configurable, D-37).
+     - **Comprobaciones de respaldo** (revisión de seguridad de WP5), con la regla y el suelo que nada baja:
+       - el motor no arranca un plan con escritores a integridad media si su aprobación no trae Windows Hello ni el bloqueo
+         comprobado (`Orchestrator.EnsureApprovedWarning`);
+       - el motor no reanuda una ejecución cuyo `RunStarted` ancló escritores y cuya aprobación del plan no confirmó a la
+         persona (una aprobada con el diálogo antes de esta barrera): escribe la alerta `run.not-resumable` y pide aprobar el
+         plan otra vez, con Hello, como una ejecución de seguimiento (`RunNeedsApprovalException`);
+       - el registrador no acepta un historial como nuevo origen con una aprobación que no confirmó a la persona
+         (`DecisionRecorder.AcceptAsNewOriginAsync`).
   4. **Sin Hello en el equipo: el bloqueo de Windows comprobado** (D-40 (a)). `WindowsLockConfirmation` (`Desktop/Lock`):
      - antes de bloquear, la sesión tiene que leerse desbloqueada (la persona acaba de pulsar «Aprobar»); si no, no se fía del
        estado, no bloquea y no confirma nada (`NotVerified`);
@@ -112,24 +137,30 @@
     el bloqueo es la alternativa para un equipo sin Hello, no un camino para saltárselo.
   - **Que el lienzo sin `ReinforcedConfirmation` compuesta no apruebe un plan con escritores:** la app siempre la compone, y
     obligaría a cambiar unas 12 construcciones del lienzo en pruebas de otros paquetes (WP6, Fase 8). Queda como residual.
-  - **Comprobar la verificación del plan en el motor** (`Orchestrator.RecordStartAsync`): es el sitio más fuerte, pero no es
-    de este paquete. Queda como residual para la integración.
-  - **Tratar como «Siempre» toda acción que la lista no nombre:** contradice «configurable lo demás» de la decisión 6 (a).
+  - **Dejar configurable lo crítico que la lista no nombra** (lo que decía la primera versión de WP5, por «configurable lo
+    demás» de la decisión 6 (a)): una aprobación crítica nueva que nadie añadiera a la lista quedaría a merced del ajuste.
+    La revisión de seguridad eligió el lado seguro.
+  - **Poner en cola la segunda confirmación** en lugar de rechazarla: la esperaría el mismo desbloqueo o el mismo Hello que
+    la primera, y la pantalla de bloqueo de Windows no dice qué se aprueba.
 - **Consecuencias:**
   - **Pruebas (F13-16 y F13-20):** `FixedBarrierTests` (los ficheros de ajustes manipulados, el ajuste nunca leído para
     «Siempre», el bloqueo de Windows sin Hello y su `WindowsLock` en el registro, el bloqueo que no vale con Hello, el aviso
     para configurar Hello, el diálogo sin confirmación compuesta); `PresenceBarrierGateTests` (las constantes, las acciones
     que la lista no nombra, un diálogo que aprueba sin Hello denegado por el sistema, el JSON de `WindowsLock`);
-    `PresenceProofSourceTests`; `WindowsLockConfirmationTests` (con un doble de la sesión, y una de `LocalTools` que lee la
-    sesión real sin bloquearla); `PresencePolicyTests` con `helloAvailable`; `PlanApprovalHelloTests`; y la de skills que
-    deja su `ApprovalGranted`. Ninguna pide el Windows Hello real ni bloquea la sesión.
+    `PresenceProofSourceTests`; `CriticalApprovalCoverageTests`; `WindowsLockConfirmationTests` (con un doble de la sesión,
+    una segunda petición rechazada mientras otra espera, y una de `LocalTools` que lee la sesión real sin bloquearla);
+    `PresencePolicyTests` con `helloAvailable` y la regla por requisito; `PlanApprovalHelloTests`; `PresenceBackupTests` (el
+    motor); las de `DecisionRecorderTests` sobre aceptar un historial; y la de skills que deja su `ApprovalGranted`. Ninguna
+    pide el Windows Hello real ni bloquea la sesión. Los arneses de las pruebas del motor y de integración aprueban con
+    Windows Hello lo que tiene escritores, como lo hace el lienzo.
   - **Medido en tu equipo (Windows 11, compilación 26300):** con la sesión bloqueada (`LogonUI.exe` en la sesión 1),
     `WindowsSessionState.Read` da `Locked`: la disposición de `WTSINFOEXW` y el valor 0 de `SessionFlags` son los esperados.
     La lectura desbloqueada y el desbloqueo con PIN tras `LockWorkStation` quedan para tu demostración.
   - **Residuales:**
-    - el motor registra la verificación que trae la aprobación del plan sin comprobarla contra sus escritores
-      (`Orchestrator.RecordStartAsync`); hoy solo la construye el lienzo, con la regla;
-    - un lienzo compuesto sin `ReinforcedConfirmation` (nunca en la app) aprueba con el clic, como antes de la Fase 8;
+    - **la pantalla de bloqueo de Windows no dice qué se aprueba:** quien desbloquea confirma que es la persona, no qué
+      acción. Lo mitiga que solo haya una confirmación a la vez y que el diálogo de la app lo diga antes de bloquear;
+    - un lienzo compuesto sin `ReinforcedConfirmation` (nunca en la app) aprueba con el clic, como antes de la Fase 8; el
+      motor lo frena si el plan tiene escritores;
     - la puerta se fía del método que registra el diálogo: es código de la app, no de un agente;
     - el residual 1 de ADR-0018: un programa de tu sesión puede actuar sin pasar por Agent Studio;
     - entre comprobar si hay Hello y verificar, el resultado puede cambiar: entonces se deniega.
