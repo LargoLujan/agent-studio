@@ -85,21 +85,37 @@ public sealed class PresenceBarrierGateTests
     }
 
     /// <summary>
-    /// An action the list does not name (the approval node of a plan, whose action the plan writes) goes by its level: its words
-    /// never put it on the list nor take it off (decision 6 (a): configurable the rest).
+    /// An action the list does not name goes by its level, on the safe side (security review of 2026-11-09): critical or
+    /// destructive (declared, or by its words) is «Siempre»; low asks nothing.
     /// </summary>
     [Theory]
-    [InlineData("Fusionar en main", RiskLevel.Critical, PresenceRequirement.Configurable)]
-    [InlineData("deliver-to-main", RiskLevel.Low, PresenceRequirement.Configurable)]
-    [InlineData("Deliver-Integration", RiskLevel.Low, PresenceRequirement.Configurable)]
-    [InlineData("worktree-remove", RiskLevel.Low, PresenceRequirement.Configurable)]
-    [InlineData("revisar-informe", RiskLevel.Critical, PresenceRequirement.Configurable)]
+    [InlineData("Fusionar en main", RiskLevel.Critical, PresenceRequirement.Always)]
+    [InlineData("deliver-to-main", RiskLevel.Low, PresenceRequirement.Always)]
+    [InlineData("Deliver-Integration", RiskLevel.Low, PresenceRequirement.Always)]
+    [InlineData("worktree-remove", RiskLevel.Low, PresenceRequirement.Always)]
+    [InlineData("revisar-informe", RiskLevel.Critical, PresenceRequirement.Always)]
+    [InlineData("revisar-informe", RiskLevel.Destructive, PresenceRequirement.Always)]
     [InlineData(RunMonitorViewModel.ReplanDismissAction, RiskLevel.Low, PresenceRequirement.Never)]
     [InlineData("approve-plan", RiskLevel.Low, PresenceRequirement.Never)]
-    public void An_action_the_list_does_not_name_goes_by_its_level_never_by_its_words(string action, RiskLevel risk, PresenceRequirement requirement)
+    public void An_action_the_list_does_not_name_goes_by_its_level_on_the_safe_side(string action, RiskLevel risk, PresenceRequirement requirement)
     {
         Assert.Null(ApprovalRiskClassifier.PresenceActionOf(Request(action, risk)));
         Assert.Equal(requirement, ApprovalRiskClassifier.PresenceOf(Request(action, risk)));
+    }
+
+    /// <summary>A critical action the list does not name, approved by the dialog alone, is the system's denial too.</summary>
+    [Theory]
+    [InlineData("Fusionar en main", RiskLevel.Critical)]
+    [InlineData("worktree-remove", RiskLevel.Destructive)]
+    public async Task A_yes_to_a_critical_action_the_list_does_not_name_needs_hello_too(string action, RiskLevel risk)
+    {
+        var (gate, store, _) = Gate(approved: true, ApprovalVerification.Dialog);
+
+        var decision = await gate.RequestAsync(Request(action, risk), TestContext.Current.CancellationToken);
+
+        Assert.False(decision.Approved);
+        Assert.Equal((ApprovalGate.SystemId, ApprovalGate.PresenceNotConfirmed), (decision.DecidedBy, decision.Comment));
+        Assert.Equal(new Actor(ActorKind.System, ApprovalGate.SystemId), store.Of(Project)[1].Actor);
     }
 
     /// <summary>
@@ -163,7 +179,7 @@ public sealed class PresenceBarrierGateTests
     [InlineData("debate.open")]
     [InlineData("audit.run")]
     [InlineData("discard-run-work")]
-    [InlineData("Fusionar en main")]
+    [InlineData("orchestration.human-approval")]
     public async Task A_configurable_action_takes_the_answer_of_the_dialog_alone(string action)
     {
         var (gate, store, _) = Gate(approved: true, ApprovalVerification.Dialog);

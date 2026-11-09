@@ -53,8 +53,10 @@ public sealed record ApprovalGateOptions
 /// challenge). The same holds for a denial with <see cref="ApprovalVerification.WindowsLock"/>: a yes the verified lock of
 /// Windows did not confirm (docs/17 D-40 (a)).</item>
 /// <item>The fixed barrier (docs/17 D-37 to D-39): an approval counts only when what confirmed the person satisfies its action,
-/// by the one rule of the domain (<see cref="PresencePolicy.IsSatisfiedBy"/>, with the method the prompt recorded read as the
-/// proof it claims, <see cref="ApprovalRiskClassifier.ClaimedProof"/>). For an action of the list («Siempre»), only Windows
+/// by the one rule of the domain (<see cref="PresencePolicy.IsSatisfiedBy(PresenceRequirement, bool, bool, PresenceProof)"/>, with
+/// what <see cref="ApprovalRiskClassifier.PresenceOf"/> says the request asks and the method the prompt recorded read as the proof
+/// it claims, <see cref="PresenceProofs.Claimed"/>). For what is «Siempre» (the list, and any critical or destructive action the
+/// list does not name), only Windows
 /// Hello or the verified lock of Windows do. Any other yes, whatever prompt gave it and whatever any setting or file says, is
 /// denied by the system (<see cref="PresenceNotConfirmed"/>), with the method the prompt said. The gate knows neither the
 /// setting nor whether the computer has Hello, and needs neither: it judges with the floor they cannot lower (the setting
@@ -196,8 +198,7 @@ public sealed class ApprovalGate(IApprovalPrompt prompt, IDecisionRecorder decis
             // prompt. The gate knows neither the setting nor whether this computer has Hello, so it judges with the floor
             // neither can lower: the setting off and Hello not there. What they add is the prompt's.
             if (answer.Approved
-                && ApprovalRiskClassifier.PresenceActionOf(request) is { } action
-                && !PresencePolicy.IsSatisfiedBy(action, importantApprovalsSetting: false, helloAvailable: false, ApprovalRiskClassifier.ClaimedProof(answer.Verification)))
+                && !PresencePolicy.IsSatisfiedBy(ApprovalRiskClassifier.PresenceOf(request), importantApprovalsSetting: false, helloAvailable: false, PresenceProofs.Claimed(answer.Verification)))
             {
                 return (null, PresenceNotConfirmed, answer.Verification);
             }

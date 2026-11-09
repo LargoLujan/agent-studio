@@ -73,7 +73,11 @@ public sealed record ConfirmationPlan(
 /// <param name="Result">What Windows Hello answered, when it was asked.</param>
 /// <param name="Problem">Why the person could not be asked; null when they were.</param>
 /// <param name="Lock">What the verified lock of Windows said, when Windows was locked.</param>
-public sealed record HelloOutcome(UserPresenceResult? Result, string? Problem = null, WindowsLockResult? Lock = null)
+/// <param name="AnotherPending">
+/// Another confirmation of the person was under way, so this one was not asked (one at a time, <c>PresenceConfirmationSlot</c>):
+/// it confirms nothing, and the screen says «Ya hay una confirmación pendiente».
+/// </param>
+public sealed record HelloOutcome(UserPresenceResult? Result, string? Problem = null, WindowsLockResult? Lock = null, bool AnotherPending = false)
 {
     /// <summary>
     /// What the outcome proves, as the barrier judges it (<see cref="PresenceProofs"/>): Windows Hello when it confirmed the
@@ -122,6 +126,9 @@ public sealed record ReinforcedConfirmation(
     /// </summary>
     public static readonly TimeSpan WindowsLockTimeout = TimeSpan.FromMinutes(5);
 
+    /// <summary>One confirmation of the person at a time, Windows Hello or the lock of Windows, for every path that shares this instance.</summary>
+    private readonly PresenceConfirmationSlot _slot = new();
+
     /// <summary>
     /// How a yes to <paramref name="action"/> is confirmed: what <see cref="PresencePolicy"/> asks of it (see
     /// <see cref="PlanAsync(PresenceRequirement, CancellationToken)"/>), and the answer is judged by the one rule
@@ -147,16 +154,16 @@ public sealed record ReinforcedConfirmation(
     /// Whether a yes confirmed by <paramref name="proof"/> approves, by the one rule of the domain: for an action of the list,
     /// <see cref="PresencePolicy.IsSatisfiedBy"/> with the setting as the plan read it (never for «Siempre») and whether this
     /// computer has Windows Hello (for «Siempre», only Hello when it has it; the lock of Windows unlocked after the request only
-    /// when it has not). For an action the list does not name, which is never «Siempre», what the plan asked: a proof that is
-    /// not <see cref="PresenceProof.None"/>. <paramref name="proof"/> comes from <see cref="HelloOutcome.Proof"/> (that is,
-    /// from <see cref="PresenceProofs"/>) or from <see cref="ConfirmationPlan.AnswerAloneProof"/>.
+    /// when it has not). For an action the list does not name, the same rule with the requirement of its level (a critical or
+    /// destructive one is «Siempre»). <paramref name="proof"/> comes from <see cref="HelloOutcome.Proof"/> (that is, from
+    /// <see cref="PresenceProofs"/>) or from <see cref="ConfirmationPlan.AnswerAloneProof"/>.
     /// </summary>
     public static bool Approves(ConfirmationPlan plan, PresenceProof proof)
     {
         ArgumentNullException.ThrowIfNull(plan);
         return plan.Action is { } action
             ? PresencePolicy.IsSatisfiedBy(action, plan.SettingOn, plan.HelloAvailable, proof)
-            : proof is not PresenceProof.None && Enum.IsDefined(proof);
+            : PresencePolicy.IsSatisfiedBy(plan.Requirement, plan.SettingOn, plan.HelloAvailable, proof);
     }
 
     private async Task<ConfirmationPlan> PlanAsync(PresenceRequirement requirement, PresenceAction? action, CancellationToken cancellationToken)
@@ -170,7 +177,7 @@ public sealed record ReinforcedConfirmation(
                 settingOn = IsOn();
                 if (!settingOn)
                 {
-                    return ConfirmationPlan.AnswerAlone with { Action = action };
+                    return ConfirmationPlan.AnswerAlone with { Requirement = requirement, Action = action };
                 }
 
                 break;
@@ -206,6 +213,14 @@ public sealed record ReinforcedConfirmation(
         if (!plan.ConfirmsAfterYes)
         {
             throw new ArgumentException("The plan confirms nothing after a yes.", nameof(plan));
+        }
+
+        // One confirmation at a time (the gate's questions and «Aprobar plan» share this instance): a second one while another
+        // waits is not asked, so one unlock of Windows or one Windows Hello never confirms two approvals.
+        using var slot = _slot.TryTake();
+        if (slot is null)
+        {
+            return new HelloOutcome(null, AnotherPending: true);
         }
 
         try
@@ -350,7 +365,7 @@ public sealed class ApprovalPromptService : IApprovalPrompt
             throw new InvalidOperationException($"The action '{request.Action}' always asks for Windows Hello, and no reinforced confirmation is composed: it cannot be approved.");
         }
 
-        var plan = _confirmation is null ? ConfirmationPlan.AnswerAlone with { Action = action }
+        var plan = _confirmation is null ? ConfirmationPlan.AnswerAlone with { Requirement = requirement, Action = action }
             : action is { } known ? await _confirmation.PlanAsync(known, asking).ConfigureAwait(true)
             : await _confirmation.PlanAsync(requirement, asking).ConfigureAwait(true);
 
@@ -390,6 +405,7 @@ public sealed class ApprovalPromptService : IApprovalPrompt
 
         return confirmed switch
         {
+            { AnotherPending: true } => Unconfirmed(HelloTexts.ApprovalConfirmationPending, plan.Confirmation),
             { Problem: { } problem } => Unconfirmed(plan.LocksWindows ? HelloTexts.ApprovalLockNotAsked(problem) : HelloAnswers.ApprovalNotAsked(problem), plan.Confirmation),
             { Lock: { } locked } => Unconfirmed(HelloTexts.ApprovalLockNotConfirmed(locked), plan.Confirmation),
             _ => Unconfirmed(HelloAnswers.ApprovalNotConfirmed(confirmed.Result ?? UserPresenceResult.Canceled), plan.Confirmation),

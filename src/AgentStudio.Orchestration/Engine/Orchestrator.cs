@@ -320,7 +320,7 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
         var guard = new UserRepositoryGuard(_ports.Worktrees, project.RootPath, UserRepositoryGuard.CanWriteAtMediumIntegrity(request.Plan, roster, request.Verification, claudeWritesConfined), recorder);
         var writers = MediumIntegrityWriters.Find(request.Plan, roster, request.Verification, claudeWritesConfined);
         var warning = VerificationStepText.PlanWarning(writers);
-        EnsureApprovedWarning(request.ApprovedWarning, warning);
+        EnsureApprovedWarning(request.ApprovedWarning, warning, request.PlanApproval, writers);
 
         await guard.EstablishBaselineAsync(cancellationToken).ConfigureAwait(false);
         var notices = new List<string>();
@@ -414,6 +414,7 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
     /// </summary>
     private async Task<IOrchestrationRun> GoOnAsync(ProjectContext project, RunId run, DecisionLogState log, RunResumeCause cause, CancellationToken cancellationToken)
     {
+        await EnsurePresenceOfApprovedWritersAsync(project, run, log, cancellationToken).ConfigureAwait(false);
         var resumed = await new RunResumer(_ports).ResumeAsync(project, run, log.Entries, cause, cancellationToken).ConfigureAwait(false);
         var orchestration = new OrchestrationRun(resumed.Context, _ports, resumed.Recorder, resumed.Graph, resumed.Ledger, resumed.Guard, Forget);
         Track(orchestration);
@@ -541,10 +542,19 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
     /// when the run starts (<paramref name="warning"/>, null when there is none) is the one shown next to «Aprobar plan»
     /// when the user approved the plan (<see cref="RunRequest.ApprovedWarning"/>, ADR-0018, A-04), empty when the review
     /// showed none. A request that does not carry it was approved without being shown one, so it starts only when there
-    /// is none to show (fail closed).
+    /// is none to show (fail closed). A plan with writers is on the list of the fixed barrier of Windows Hello (docs/17 D-37,
+    /// ADR-0053): its approval must have confirmed the person, with Windows Hello or the verified lock of Windows
+    /// (<c>PresencePolicy.IsSatisfiedBy</c>, judged with the floor no setting lowers), or nothing starts. A backup of the
+    /// check the desktop already makes: the engine never sees Windows, only the method the approval records.
     /// </summary>
-    private static void EnsureApprovedWarning(string? approved, string? warning)
+    private static void EnsureApprovedWarning(string? approved, string? warning, ApprovalDecision approval, IReadOnlyList<MediumIntegrityWriter> writers)
     {
+        if (writers.Count > 0 && !PlanApprovalConfirmsPresence(approval.Verification))
+        {
+            throw new InvalidOperationException(
+                $"The plan has writers at medium integrity, so approving it always asks for Windows Hello (docs/17 D-37), and this approval was given with '{approval.Verification}': nothing runs until it is approved with Windows Hello or the verified lock of Windows.");
+        }
+
         if (approved is null)
         {
             if (!string.IsNullOrEmpty(warning))
@@ -563,6 +573,53 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
                 + $"Approved: «{(approved.Length == 0 ? "none" : approved)}». Now: «{warning ?? "none"}».");
         }
     }
+
+    /// <summary>
+    /// A run whose plan has writers at medium integrity is resumed only when its approval confirmed the person (docs/17 D-37,
+    /// ADR-0053): a run approved with the dialog alone, before the fixed barrier of Windows Hello, is not. The alert
+    /// <c>run.not-resumable</c> says why, nothing else is written, and <see cref="RunNeedsApprovalException"/> asks for the plan
+    /// to be approved again, now with Windows Hello, which starts a follow-up run. A run without writers, or one whose
+    /// <c>RunStarted</c> anchored none, is left to the resumer and its own checks.
+    /// </summary>
+    private async Task EnsurePresenceOfApprovedWritersAsync(ProjectContext project, RunId run, DecisionLogState log, CancellationToken cancellationToken)
+    {
+        var entries = RunLog.Of(log.Entries, run.Value);
+        if (entries.Select(e => e.Payload).OfType<RunStartedPayload>().FirstOrDefault() is not { } started
+            || !started.AnchorsApprovedWriters()
+            || started.ApprovedWriters is not { Count: > 0 })
+        {
+            return;
+        }
+
+        var approval = entries.Select(e => e.Payload).OfType<ApprovalAnsweredPayload>()
+            .LastOrDefault(a => a.Approved && string.Equals(a.Action, PlanApprovalAction, StringComparison.Ordinal));
+        if (approval is not null && PlanApprovalConfirmsPresence(approval.ResolvedVerification()))
+        {
+            return;
+        }
+
+        var problem = $"Its plan has writers at medium integrity, and its approval did not confirm the person with Windows Hello or the verified lock of Windows (it was given with '{approval?.ResolvedVerification().ToString() ?? "no recorded approval"}'). "
+            + "Since the fixed barrier of Windows Hello (docs/17 D-37) such a plan is not run on that approval: approve its plan again, with Windows Hello, which starts a follow-up run.";
+        var recorder = new RunRecorder(_ports.Decisions, _ports.Evidence, project.ProjectId, run);
+        await recorder.RecordAsync(
+            Domain.Decisions.DecisionKind.AuditAlertRaised,
+            $"La ejecución {run} no se puede reanudar",
+            new AuditAlertPayload("run.not-resumable", [], problem) { RunId = recorder.RunValue },
+            cancellationToken).ConfigureAwait(false);
+        throw new RunNeedsApprovalException($"Run {run} cannot be resumed: {problem}", run, started.PlanHash, warningAnchored: true, started.ApprovedWarning, started.ApprovedWarning);
+    }
+
+    /// <summary>
+    /// Whether an approval of a plan with writers recorded with <paramref name="verification"/> confirmed the person, by the one
+    /// rule of the domain (<c>PresencePolicy.IsSatisfiedBy</c>) and the proof the method claims (<see cref="PresenceProofs.Claimed"/>),
+    /// with the floor nothing lowers: the setting off and Hello not there.
+    /// </summary>
+    private static bool PlanApprovalConfirmsPresence(ApprovalVerification verification) =>
+        Domain.Security.PresencePolicy.IsSatisfiedBy(
+            Domain.Security.PresenceAction.ApprovePlanWithHighRiskCapability,
+            importantApprovalsSetting: false,
+            helloAvailable: false,
+            PresenceProofs.Claimed(verification));
 
     /// <summary>The steps of a profile whose evidence is a test run: what a policy of system-captured tests needs a task to run.</summary>
     internal static IReadOnlySet<string> TestRunStepsOf(VerificationProfile profile) =>

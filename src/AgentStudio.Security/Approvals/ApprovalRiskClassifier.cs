@@ -67,12 +67,12 @@ public static class ApprovalRiskClassifier
     }
 
     /// <summary>
-    /// Whether <paramref name="request"/> asks for the person's presence (docs/17 D-37 and D-38, decision 6 (a)): what
+    /// Whether <paramref name="request"/> asks for the person's presence (docs/17 D-37 and D-38): what
     /// <see cref="PresencePolicy"/> says of its action when the list names it. An action the list does not name goes by its
-    /// level, as every other approval: <see cref="RiskLevel.Critical"/> and <see cref="RiskLevel.Destructive"/> are
-    /// <see cref="PresenceRequirement.Configurable"/> (on by default), <see cref="RiskLevel.Low"/> is
-    /// <see cref="PresenceRequirement.Never"/>. Its words never make it <see cref="PresenceRequirement.Always"/> nor take it
-    /// off the list: only the code that acts asks the actions of the list, with their constant.
+    /// level, on the safe side (WP5, re-review of 2026-11-09: «que sea una barrera de seguridad siempre»):
+    /// <see cref="RiskLevel.Critical"/> and <see cref="RiskLevel.Destructive"/> are <see cref="PresenceRequirement.Always"/>,
+    /// and <see cref="RiskLevel.Low"/> is <see cref="PresenceRequirement.Never"/>. Its words can raise its level and so put it
+    /// on the list; they never take a known action off it. A test checks that every critical approval of the code is known.
     /// </summary>
     public static PresenceRequirement PresenceOf(ApprovalRequest request)
     {
@@ -82,24 +82,8 @@ public static class ApprovalRiskClassifier
             return PresencePolicy.RequirementOf(action);
         }
 
-        return Classify(request) == RiskLevel.Low ? PresenceRequirement.Never : PresenceRequirement.Configurable;
+        return Classify(request) == RiskLevel.Low ? PresenceRequirement.Never : PresenceRequirement.Always;
     }
-
-    /// <summary>
-    /// What an answer recorded with <paramref name="verification"/> claims confirmed the person, as the barrier judges it
-    /// (<see cref="PresencePolicy.IsSatisfiedBy"/>). The gate never sees the results of Windows: it reads the method the prompt
-    /// recorded as a claim. The two proofs that confirm the person come only from <see cref="PresenceProofs"/>, as the prompt
-    /// gets them from Windows (a verified Hello, a lock unlocked after the request); the dialog, with or without its warning,
-    /// confirms nobody. A method that is none of these claims nothing (<see cref="PresenceProof.None"/>).
-    /// </summary>
-    public static PresenceProof ClaimedProof(ApprovalVerification verification) => verification switch
-    {
-        ApprovalVerification.Dialog => PresenceProof.Dialog,
-        ApprovalVerification.WindowsHelloUnavailable => PresenceProof.DialogWithHelloUnavailable,
-        ApprovalVerification.WindowsHello => PresenceProofs.FromHello(UserPresenceResult.Verified),
-        ApprovalVerification.WindowsLock => PresenceProofs.FromWindowsLock(WindowsLockResult.UnlockedAfterRequest),
-        _ => PresenceProof.None,
-    };
 
     public static RiskLevel Classify(ApprovalRequest request)
     {

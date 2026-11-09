@@ -53,6 +53,12 @@ public static class HelloTexts
     private static string WithWhatToDo(string text, WindowsLockResult result) =>
         result == WindowsLockResult.LockFailed ? text + " " + SetUpHello : text;
 
+    /// <summary>The reason of the denial of a yes whose confirmation was not asked because another one was pending; the log keeps it.</summary>
+    public static string ApprovalConfirmationPending => Texts.Get(nameof(HelloStrings.Hello_Approval_ConfirmationPending));
+
+    /// <summary>Why a plan was not approved: another confirmation of the person was pending.</summary>
+    public static string PlanConfirmationPending => Texts.Get(nameof(HelloStrings.Hello_Plan_ConfirmationPending));
+
     /// <summary>Why the person cannot be confirmed: Windows Hello is not there and the verified lock of Windows is not composed.</summary>
     public static string LockNotComposed => Texts.Get(nameof(HelloStrings.Hello_LockNotComposed));
 

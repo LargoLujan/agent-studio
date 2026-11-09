@@ -20,7 +20,7 @@ namespace AgentStudio.Tests.Desktop.Orchestrator;
 public sealed class ApprovalPromptServiceTests
 {
     private static readonly ApprovalRequest Merge = new(
-        "Fusionar en main",
+        "orchestration.review-escalation",
         "Entregar el resultado de la ejecución 20260101-abc123 con --ff-only.",
         RiskLevel.Critical,
         Aid("orquestador"),
@@ -173,7 +173,7 @@ public sealed class ApprovalPromptServiceTests
     [Fact]
     public void The_question_shows_risk_action_and_paths_and_a_critical_one_needs_confirmation()
     {
-        var question = new ApprovalDialogViewModel(Merge);
+        var question = new ApprovalDialogViewModel(Merge with { Action = "Fusionar en main" });
         var answered = 0;
         question.CloseRequested += (_, _) => answered++;
 
@@ -303,7 +303,7 @@ public sealed class ApprovalPromptServiceTests
         var question = Assert.Single(dialog.Shown);
         Assert.Equal(ApprovalVerification.WindowsHello, question.Confirmation);
         Assert.Contains("Windows Hello", question.HelloNotice, StringComparison.Ordinal);
-        Assert.Equal("Agent Studio: confirma que eres tú para aprobar «Fusionar en main».", Assert.Single(hello.Messages));
+        Assert.Equal("Agent Studio: confirma que eres tú para aprobar «Decidir sobre una revisión».", Assert.Single(hello.Messages));
     }
 
     /// <summary>Whatever Windows answers that is not a confirmation, the yes is not taken (the gate denies it as the system's).</summary>
@@ -588,7 +588,7 @@ public sealed class ApprovalPromptServiceTests
         await UntilAsync(() => interfaceLock.Waiting.Count == 1);
 
         Assert.Empty(dialog.Shown);
-        Assert.Equal(("Fusionar en main", RiskLevel.Critical), (interfaceLock.Waiting[0].Action, interfaceLock.Waiting[0].Risk));
+        Assert.Equal(("orchestration.review-escalation", RiskLevel.Critical), (interfaceLock.Waiting[0].Action, interfaceLock.Waiting[0].Risk));
 
         await interfaceLock.UnlockWithHelloAsync(TestContext.Current.CancellationToken);
         var decision = await asking.WaitAsync(TestContext.Current.CancellationToken);
@@ -811,7 +811,7 @@ public sealed class ApprovalPromptServiceTests
     [Fact]
     public void A_question_without_windows_hello_says_nothing_of_it()
     {
-        var question = new ApprovalDialogViewModel(Merge);
+        var question = new ApprovalDialogViewModel(Merge with { Action = "Fusionar en main" });
 
         Assert.Equal(ApprovalVerification.Dialog, question.Confirmation);
         Assert.Null(question.HelloNotice);

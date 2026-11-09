@@ -790,6 +790,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
                 {
                     ErrorMessage = hello switch
                     {
+                        { AnotherPending: true } => HelloTexts.PlanConfirmationPending,
                         { Problem: { } problem } when plan.LocksWindows => HelloTexts.PlanLockNotAsked(problem),
                         { Problem: { } problem } => $"No se pudo pedir Windows Hello ({problem}): el plan no se aprueba.",
                         { Lock: { } locked } => HelloTexts.PlanLockNotConfirmed(locked),

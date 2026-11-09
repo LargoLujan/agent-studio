@@ -45,6 +45,12 @@ Without Windows Hello on this computer, what always asks for it locks Windows: y
   <data name="Hello_Approval_LockNotAsked" xml:space="preserve">
     <value>Windows could not be locked to confirm it is you ({0}): denied.</value>
   </data>
+  <data name="Hello_Approval_ConfirmationPending" xml:space="preserve">
+    <value>A confirmation is already pending: finish the open Windows Hello or Windows lock confirmation first. This approval is denied; ask for it again afterwards.</value>
+  </data>
+  <data name="Hello_Plan_ConfirmationPending" xml:space="preserve">
+    <value>A confirmation is already pending: finish the open one first, then approve the plan again.</value>
+  </data>
   <data name="Hello_SetUpHello" xml:space="preserve">
     <value>To approve it, set up Windows Hello: open Settings, go to Accounts and then Sign-in options, and choose a PIN, your fingerprint or your face.</value>
   </data>

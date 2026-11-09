@@ -55,7 +55,7 @@ public sealed class ApprovalGateTests
         public IReadOnlyList<DecisionEntry> Log => Store.Of(Project);
     }
 
-    private static ApprovalRequest Request(RiskLevel risk = RiskLevel.Destructive, string action = "worktree-remove", string? project = Project) =>
+    private static ApprovalRequest Request(RiskLevel risk = RiskLevel.Destructive, string action = "discard-run-work", string? project = Project) =>
         new(action, "Quitar el worktree T1 con cambios sin commit", risk, null, ["C:\\wt\\T1"], project, Run, "T1");
 
     private static async Task<ApprovalDecision> AskAsync(Harness harness, ApprovalRequest? request = null, CancellationToken? cancellationToken = null) =>
@@ -131,11 +131,11 @@ public sealed class ApprovalGateTests
         Assert.Equal([DecisionKind.ApprovalRequested, DecisionKind.ApprovalGranted], harness.Log.Select(e => e.Kind));
         Assert.Equal(new Actor(ActorKind.System, "agent-studio"), harness.Log[0].Actor);
         var asked = Payload<ApprovalRequestedPayload>(harness.Log[0]);
-        Assert.Equal(("worktree-remove", RiskLevel.Destructive, Tid("T1"), Run), (asked.Action, asked.Risk, asked.Task!.Value, asked.RunId));
+        Assert.Equal(("discard-run-work", RiskLevel.Destructive, Tid("T1"), Run), (asked.Action, asked.Risk, asked.Task!.Value, asked.RunId));
         Assert.Equal(["C:\\wt\\T1"], asked.AffectedPaths);
         Assert.Equal(new Actor(ActorKind.User, "manuel"), harness.Log[1].Actor);
         var answered = Payload<ApprovalAnsweredPayload>(harness.Log[1]);
-        Assert.Equal(("worktree-remove", true, "manuel", "adelante", Run), (answered.Action, answered.Approved, answered.DecidedBy, answered.Comment, answered.RunId));
+        Assert.Equal(("discard-run-work", true, "manuel", "adelante", Run), (answered.Action, answered.Approved, answered.DecidedBy, answered.Comment, answered.RunId));
         Assert.True((await harness.Recorder.LoadAsync(Project, TestContext.Current.CancellationToken)).Verification.IsValid);
     }
 

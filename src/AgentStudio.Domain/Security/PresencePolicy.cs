@@ -159,7 +159,16 @@ public static class PresencePolicy
     /// set up, no device, a policy). A caller that cannot know judges with false, the floor no computer lowers.
     /// </param>
     /// <exception cref="ArgumentOutOfRangeException">The action is not one of the list.</exception>
-    public static bool IsSatisfiedBy(PresenceAction action, bool importantApprovalsSetting, bool helloAvailable, PresenceProof proof) => RequirementOf(action) switch
+    public static bool IsSatisfiedBy(PresenceAction action, bool importantApprovalsSetting, bool helloAvailable, PresenceProof proof) =>
+        IsSatisfiedBy(RequirementOf(action), importantApprovalsSetting, helloAvailable, proof);
+
+    /// <summary>
+    /// The same rule, for what asks <paramref name="requirement"/>: the one an approval the list does not name is judged by
+    /// (WP5, re-review of 2026-11-09: a critical or destructive one is «Siempre»). <see cref="IsSatisfiedBy(PresenceAction, bool, bool, PresenceProof)"/>
+    /// is this, with the requirement of its action: there is one rule, not two.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">The requirement is not one of the three: nothing unknown is let through.</exception>
+    public static bool IsSatisfiedBy(PresenceRequirement requirement, bool importantApprovalsSetting, bool helloAvailable, PresenceProof proof) => requirement switch
     {
         PresenceRequirement.Always when helloAvailable => proof is PresenceProof.WindowsHello,
         PresenceRequirement.Always => proof is PresenceProof.WindowsHello or PresenceProof.WindowsLockUnlockedAfterRequest,
@@ -167,6 +176,7 @@ public static class PresencePolicy
         PresenceRequirement.Configurable when importantApprovalsSetting =>
             proof is PresenceProof.WindowsHello or PresenceProof.WindowsLockUnlockedAfterRequest or PresenceProof.DialogWithHelloUnavailable,
         PresenceRequirement.Configurable => proof is not PresenceProof.None && Enum.IsDefined(proof),
-        _ => true,
+        PresenceRequirement.Never => true,
+        _ => throw new ArgumentOutOfRangeException(nameof(requirement), requirement, "Unknown requirement: the barrier lets nothing unknown through."),
     };
 }

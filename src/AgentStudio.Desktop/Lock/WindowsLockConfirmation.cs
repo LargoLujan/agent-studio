@@ -60,6 +60,7 @@ public sealed class WindowsLockConfirmation : IWindowsLockConfirmation
 
     private readonly IWindowsSessionState _session;
     private readonly TimeProvider _time;
+    private readonly PresenceConfirmationSlot _slot = new();
 
     public WindowsLockConfirmation(IWindowsSessionState session, TimeProvider time)
     {
@@ -69,11 +70,27 @@ public sealed class WindowsLockConfirmation : IWindowsLockConfirmation
         _time = time;
     }
 
+    /// <summary>
+    /// Locks Windows and waits for the unlock the state of the session confirms. One lock at a time
+    /// (<see cref="PresenceConfirmationSlot"/>): a request that comes while another waits is
+    /// <see cref="WindowsLockResult.NotVerified"/> at once, and nothing is locked for it, so one unlock never confirms two.
+    /// </summary>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="timeout"/> is not positive.</exception>
     public async Task<WindowsLockResult> LockAndConfirmAsync(TimeSpan timeout, CancellationToken cancellationToken)
     {
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(timeout, TimeSpan.Zero);
         cancellationToken.ThrowIfCancellationRequested();
+        using var slot = _slot.TryTake();
+        if (slot is null)
+        {
+            return WindowsLockResult.NotVerified;
+        }
+
+        return await LockAndWaitAsync(timeout, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<WindowsLockResult> LockAndWaitAsync(TimeSpan timeout, CancellationToken cancellationToken)
+    {
         if (Read() != SessionLockState.Unlocked)
         {
             return WindowsLockResult.NotVerified;
