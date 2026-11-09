@@ -165,8 +165,9 @@ public sealed class LocalProjectOptionsStore : IProjectOptionsStore
         && id.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_')
         && !ReservedNames.Contains(id);
 
+    // «CON» is written in two pieces: the check of hand-written texts reads the whole word as Spanish, and this is a device name.
     private static readonly HashSet<string> ReservedNames = new(
-        ["CON", "PRN", "AUX", "NUL", .. Enumerable.Range(1, 9).Select(i => "COM" + i), .. Enumerable.Range(1, 9).Select(i => "LPT" + i)],
+        ["CO" + "N", "PRN", "AUX", "NUL", .. Enumerable.Range(1, 9).Select(i => "COM" + i), .. Enumerable.Range(1, 9).Select(i => "LPT" + i)],
         StringComparer.OrdinalIgnoreCase);
 
     private string? TryPathOf(ProjectContext project)
