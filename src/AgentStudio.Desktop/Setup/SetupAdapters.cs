@@ -106,6 +106,9 @@ public sealed class LocalProjectOptionsStore : IProjectOptionsStore
         _folder = Path.GetFullPath(folder);
     }
 
+    /// <summary>The folder where the options of each project live, one file per project.</summary>
+    public string Folder => _folder;
+
     /// <summary>The folder of the app of this computer where the options live by default: <c>%LOCALAPPDATA%\AgentStudio\setup</c>.</summary>
     public static string DefaultFolder => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AgentStudio", "setup");
 

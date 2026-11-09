@@ -115,6 +115,19 @@ public sealed class AppCompositionTests
     }
 
     [Fact]
+    public void The_configurator_resolves_and_keeps_the_options_of_each_project_in_the_local_folder_of_the_app()
+    {
+        using var temp = new TempDirectory();
+        var folders = FoldersIn(temp);
+        using var provider = Build(folders);
+
+        Assert.NotNull(provider.GetRequiredService<AgentStudio.Application.Setup.ProjectSetupService>());
+        Assert.NotNull(provider.GetRequiredService<AgentStudio.Desktop.Setup.SetupViewModelFactory>());
+        var store = Assert.IsType<AgentStudio.Desktop.Setup.LocalProjectOptionsStore>(provider.GetRequiredService<AgentStudio.Application.Setup.IProjectOptionsStore>());
+        Assert.Equal(Path.Combine(folders.Local.BaseDirectory, "setup"), store.Folder);
+    }
+
+    [Fact]
     public void The_order_review_and_the_chat_of_preparation_resolve_once_and_share_the_one_register_of_the_oks()
     {
         using var temp = new TempDirectory();

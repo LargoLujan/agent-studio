@@ -8,6 +8,7 @@ using AgentStudio.Debate.Arena;
 using AgentStudio.Debate.Audit;
 using AgentStudio.Desktop.Orchestrator.Session;
 using AgentStudio.Desktop.Services;
+using AgentStudio.Desktop.Setup;
 using AgentStudio.Desktop.Skills;
 using AgentStudio.Infrastructure;
 using AgentStudio.Infrastructure.Git;
@@ -83,6 +84,7 @@ internal static class PlatformServices
             .AddEngineOnItsClock()
             .AddAgentStudioOrchestration()
             .AddPreparationServices()
+            .AddAgentStudioSetup(Path.Combine(folders.Local.BaseDirectory, "setup"))
             .AddSingleton<IVerificationProfileSource, FileVerificationProfileSource>()
             .AddDebateServices();
     }
