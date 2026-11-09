@@ -7,6 +7,7 @@ using AgentStudio.Application.Skills;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Models;
+using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Orchestration.Analysis;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Domain.Requirements;
@@ -194,6 +195,27 @@ public sealed class PreparationChatServiceTests
         Assert.Single(cut.Discarded);
         Assert.Empty(broken.Text);
         Assert.NotNull(broken.Error);
+    }
+
+    [Fact]
+    public async Task Ending_the_conversation_removes_its_copy_and_only_a_copy_of_a_chat_is_ever_used()
+    {
+        using var world = new World();
+        world.Harness.Worktrees.AllowRemove = true;
+        world.Harness.Claude.Script("orquestador", null, 1, new AgentScript { SessionId = "sesion-1", StructuredOutput = Answer() });
+        var reply = await world.SendAsync(world.Request("Hola"));
+        var copy = world.Harness.Claude.Starts[0].Request.WorkingDirectory;
+        Assert.Contains(await world.Harness.Worktrees.ListOwnedAsync(world.Harness.Project, TestContext.Current.CancellationToken), l => l.Path == copy);
+
+        await world.Service.EndAsync(world.Harness.Project, reply.Session, TestContext.Current.CancellationToken);
+
+        Assert.DoesNotContain(await world.Harness.Worktrees.ListOwnedAsync(world.Harness.Project, TestContext.Current.CancellationToken), l => l.Path == copy);
+        Assert.Contains($"remove _base {reply.Session.Workspace}", world.Harness.Worktrees.Calls);
+
+        var foreign = reply.Session with { Workspace = new RunId("20261015-a1b2c3") };
+        await Assert.ThrowsAsync<ArgumentException>(() => world.SendAsync(world.Request("Otra", foreign)));
+        await Assert.ThrowsAsync<ArgumentException>(() => world.Service.EndAsync(world.Harness.Project, foreign, TestContext.Current.CancellationToken));
+        Assert.Single(world.Harness.Claude.Starts);
     }
 
     [Fact]

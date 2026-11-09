@@ -221,6 +221,26 @@ public sealed class PlannerQuestionsTests
     }
 
     [Fact]
+    public async Task With_its_copy_removed_and_HEAD_moved_the_planning_with_the_answers_plans_on_the_commit_it_asked_from()
+    {
+        using var harness = new EngineHarness();
+        harness.Claude.Script("orquestador", null, 1, Answer(Asking()));
+        var asked = await PlanAsync(harness);
+        var question = Assert.Single(asked.Questions!);
+        var lease = Assert.Single(await harness.Worktrees.ListOwnedAsync(harness.Project, TestContext.Current.CancellationToken), l => l.Run == asked.Run && l.Name == "_base");
+        harness.Worktrees.AllowRemove = true;
+        await harness.Worktrees.RemoveAsync(lease, false, TestContext.Current.CancellationToken);
+        harness.Worktrees.UserState = harness.Worktrees.UserState with { HeadCommit = new string('f', 40) }; // the person committed since
+        harness.Claude.Script("orquestador", null, 1, Answer(ValidPlanWithNotes()));
+
+        var proposal = await PlanAsync(harness, harness.PlanningRequest() with { Answers = [new AnsweredQuestion(asked.Run, question, QuestionAnswer.Choosing(null, question.Id, "a", "miveritas"))] });
+
+        Assert.NotNull(proposal.Plan);
+        var bases = harness.Payloads<WorktreeCreatedPayload>().Select(p => p.Payload.BaseCommit).ToList();
+        Assert.Equal([harness.Worktrees.InitialCommit, harness.Worktrees.InitialCommit], bases); // made again, on the same base the run builds on
+    }
+
+    [Fact]
     public async Task Every_question_is_answered_at_once()
     {
         using var harness = new EngineHarness();

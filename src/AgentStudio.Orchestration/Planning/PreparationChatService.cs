@@ -111,6 +111,13 @@ public sealed class PreparationChatService : IPreparationChat
 
         var orchestrator = request.Roster.FirstOrDefault(a => a.Id == request.Orchestrator && a.Role == AgentRole.Orchestrator)
             ?? throw new ArgumentException($"'{request.Orchestrator}' is not the orchestrator of the roster.", nameof(request));
+
+        // The copy of a conversation is only ever one of its own: never the _base of a run, which a session could otherwise name.
+        if (request.Session is { } previous && !IsChatWorkspace(previous.Workspace))
+        {
+            throw new ArgumentException($"'{previous.Workspace}' is not the copy of a chat of preparation (it starts with '{WorkspacePrefix}').", nameof(request));
+        }
+
         QuotaConsentCheck.Spend(_consents, request.Consent, _time.GetUtcNow(), ConsentValidity);
 
         var workspace = request.Session?.Workspace ?? new RunId($"{WorkspacePrefix}{_time.GetUtcNow().ToString("yyyyMMdd", CultureInfo.InvariantCulture)}-{Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(3))}");
@@ -164,10 +171,19 @@ public sealed class PreparationChatService : IPreparationChat
             null);
     }
 
+    /// <summary>Whether <paramref name="workspace"/> is the run of the copy of a conversation (<see cref="WorkspacePrefix"/>).</summary>
+    public static bool IsChatWorkspace(RunId workspace) => workspace.Value.StartsWith(WorkspacePrefix, StringComparison.Ordinal);
+
+    /// <exception cref="ArgumentException">The session names a copy that is not of a chat: nothing is removed.</exception>
     public async Task EndAsync(ProjectContext project, PreparationChatSession session, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(project);
         ArgumentNullException.ThrowIfNull(session);
+        if (!IsChatWorkspace(session.Workspace))
+        {
+            throw new ArgumentException($"'{session.Workspace}' is not the copy of a chat of preparation: it is not removed.", nameof(session));
+        }
+
         var owned = await _worktrees.ListOwnedAsync(project, ct).ConfigureAwait(false);
         if (owned.FirstOrDefault(l => l.Run == session.Workspace && l.Name == "_base") is { } lease)
         {

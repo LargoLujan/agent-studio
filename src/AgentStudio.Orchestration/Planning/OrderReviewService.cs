@@ -66,18 +66,22 @@ public sealed class OrderReviewService : IOrderReview
 
     private readonly IAuxiliaryAgentRunner _runner;
     private readonly IWorktreeManager _worktrees;
+    private readonly IDecisionRecorder _decisions;
     private readonly IQuotaConsentLedger _consents;
     private readonly TimeProvider _time;
 
+    /// <param name="decisions">The log, to check that the planning whose <c>_base</c> is read is one of the project.</param>
     /// <param name="consents">The register of the OKs spent that the whole app shares (one instance, from the composition).</param>
-    public OrderReviewService(IAuxiliaryAgentRunner runner, IWorktreeManager worktrees, IQuotaConsentLedger consents, TimeProvider time)
+    public OrderReviewService(IAuxiliaryAgentRunner runner, IWorktreeManager worktrees, IDecisionRecorder decisions, IQuotaConsentLedger consents, TimeProvider time)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(worktrees);
+        ArgumentNullException.ThrowIfNull(decisions);
         ArgumentNullException.ThrowIfNull(consents);
         ArgumentNullException.ThrowIfNull(time);
         _runner = runner;
         _worktrees = worktrees;
+        _decisions = decisions;
         _consents = consents;
         _time = time;
     }
@@ -95,6 +99,19 @@ public sealed class OrderReviewService : IOrderReview
 
         var orchestrator = request.Roster.FirstOrDefault(a => a.Id == request.Orchestrator && a.Role == AgentRole.Orchestrator)
             ?? throw new ArgumentException($"'{request.Orchestrator}' is not the orchestrator of the roster.", nameof(request));
+
+        // The _base read is the one of a planning of this project, the verified log says so: never another folder a request names.
+        var log = await _decisions.LoadAsync(request.Project.ProjectId, ct).ConfigureAwait(false);
+        if (!log.Verification.IsValid)
+        {
+            throw new DecisionLogIntegrityException(request.Project.ProjectId, log.Verification);
+        }
+
+        if (!log.Entries.Any(e => e.Kind == DecisionKind.PlanCreated && string.Equals(DecisionPayloadSerializer.Deserialize<PlanCreatedPayload>(e.PayloadJson).RunId, request.PlanningRun.Value, StringComparison.Ordinal)))
+        {
+            throw new ArgumentException($"'{request.PlanningRun}' is not a planning of this project: no plan was created in it.", nameof(request));
+        }
+
         QuotaConsentCheck.Spend(_consents, request.Consent, _time.GetUtcNow(), ConsentValidity);
 
         var folder = await BaseOfAsync(request.Project, request.PlanningRun, ct).ConfigureAwait(false);

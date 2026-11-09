@@ -110,16 +110,24 @@
        y da al orquestador las preguntas y las respuestas como datos (`<human_answer question="plan-1">`). Va en una sesión
        nueva con el prompt entero, no reanudando la que preguntó: el prompt ya lo tiene todo y no hace falta guardar la sesión.
        Ya no puede preguntar; si lo hace, es un problema para la corrección.
-     - **Se rechazan antes de lanzar nada** las respuestas de varias ejecuciones, a preguntas que no se hicieron o ya
-       contestadas, con una opción que no existe, con texto propio si la pregunta no lo admite, o «con la recomendada»: una
-       pregunta del orquestador siempre la contesta una persona.
+     - **Se rechazan antes de lanzar nada** las respuestas de varias ejecuciones, a preguntas que no se hicieron, con una
+       opción que no existe, con texto propio si la pregunta no lo admite, o «con la recomendada»: una pregunta del orquestador
+       siempre la contesta una persona.
+     - **Todas a la vez:** las respuestas contestan todas las preguntas de la ejecución, sin respuestas parciales; así nunca
+       hay una segunda planificación que pueda volver a preguntar en la misma ejecución. Si la planificación con ellas falla
+       después de anotarlas, se reintenta con las mismas sin anotarlas otra vez; con otras, se rechaza.
+     - **El `_base` de la continuación** es siempre el del commit desde el que se preguntó, el primer `_base` de la ejecución
+       en el registro, que es el que toma `Orchestrator.BaseCommitAsync` para construir la ejecución. Si la copia se borró, se
+       vuelve a crear en ese commit (y se anota otro `WorktreeCreated` con la misma base), nunca en un HEAD más nuevo: el plan
+       se hace sobre el mismo código sobre el que luego se trabaja.
   7. **El contrato que WP1 añadió al P0** (aditivo, sin cambiar ningún hash ni payload): `MontageDraft.Steps`
      (`VerificationStepFacts`: id, compila, ejecuta pruebas, requiere), con lista vacía por defecto, y
      `PlanProposal.OrderNotes`, nulo por defecto.
   8. **«Revisar el orden»** (D-20, F13-10) es `OrderReviewService` (`IOrderReview`, `OrderReviewContracts.cs`).
      - Una auxiliar del orquestador con el propósito `OrderReview` (`IAuxiliaryAgentRunner`, que ahora admite los tres
        propósitos de la Fase 13), de solo lectura (Read, Grep y Glob, sin escritura, shell ni red) en el `_base` de la
-       planificación, que se adopta si existe o se crea en HEAD si se borró.
+       planificación, que se adopta si existe o se crea en HEAD si se borró. La ejecución tiene que ser una planificación del
+       proyecto, con su `PlanCreated` en el registro verificado: nunca se lee la carpeta que nombre una petición cualquiera.
      - **Tu OK en cada uso:** un `QuotaConsent` reciente (10 minutos) que se gasta una vez, como el de la recomendación de
        skills; sin él no se lee ni se lanza nada. La estimación la pide la pantalla al estimador con el propósito `OrderReview`.
      - **Un solo registro de OK gastados para toda la app:** `IQuotaConsentLedger` y su implementación `QuotaConsentLedger`
@@ -136,7 +144,8 @@
      `PreparationChatContracts.cs`).
      - Cada mensaje es una auxiliar `PreparationChat`, de solo lectura, con su OK. Una conversación tiene su copia de solo
        lectura, el `_base` de una ejecución propia `chat-aaaammdd-xxxxxx` (que ninguna ejecución ni auxiliar puede tener), y
-       reanuda la sesión del CLI mientras dura; `EndAsync` borra esa copia.
+       reanuda la sesión del CLI mientras dura; `EndAsync` borra esa copia. Una sesión que nombra otra copia que no empieza por
+       `chat-` se rechaza, al enviar y al cerrar.
      - **Lo que escribes pasa por `ISecretRedactor` antes de salir** (lo que envías llega al vendor del agente, el residual de
        docs/17 §8.3).
      - La respuesta tiene un esquema estricto: texto (1 200 caracteres), borradores de requisitos, sugerencias para el equipo

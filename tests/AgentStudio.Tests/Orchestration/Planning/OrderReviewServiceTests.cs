@@ -33,6 +33,28 @@ public sealed class OrderReviewServiceTests
             Node("I1", AgentStudio.Domain.Work.WorkTaskKind.Integration).After(On("T1"), On("T2")),
             Node("R1", AgentStudio.Domain.Work.WorkTaskKind.Review).After(On("I1")));
 
+    /// <summary>The log has a planning in <paramref name="run"/>: the plan it created.</summary>
+    internal static void Planned(EngineHarness harness, RunId run) =>
+        harness.Decisions.RecordAsync(
+            harness.Project.ProjectId,
+            new Actor(ActorKind.Orchestrator, "orquestador"),
+            DecisionKind.PlanCreated,
+            "Plan",
+            new PlanCreatedPayload(new string('a', 64), PlanSource.OrchestratorAgent, new AgentId("orquestador"), 4, null) { RunId = run.Value },
+            cancellationToken: TestContext.Current.CancellationToken).GetAwaiter().GetResult();
+
+    [Fact]
+    public async Task A_run_that_is_not_a_planning_of_the_project_is_refused_before_the_OK_is_spent()
+    {
+        using var world = new World();
+        var consent = world.Consent();
+
+        await Assert.ThrowsAsync<ArgumentException>(() => world.ReviewAsync(world.Request(consent) with { PlanningRun = new RunId("20261015-ffffff") }));
+
+        Assert.Empty(world.Harness.Claude.Starts);
+        Assert.True(world.Consents.TrySpend(consent)); // still unspent
+    }
+
     private static JsonObject Note(string left, string leftName, string right, string rightName, string reason) =>
         new() { [leftName] = left, [rightName] = right, ["reason"] = reason };
 
@@ -43,7 +65,8 @@ public sealed class OrderReviewServiceTests
     {
         public World()
         {
-            Service = new OrderReviewService(new AuxiliaryAgentRunner(Harness.Decisions, Harness.Evidence, Harness.Providers, Harness.Time), Harness.Worktrees, Consents, Harness.Time);
+            Service = new OrderReviewService(new AuxiliaryAgentRunner(Harness.Decisions, Harness.Evidence, Harness.Providers, Harness.Time), Harness.Worktrees, Harness.Decisions, Consents, Harness.Time);
+            Planned(Harness, PlanningRun);
         }
 
         public QuotaConsentLedger Consents { get; } = new();
@@ -119,7 +142,7 @@ public sealed class OrderReviewServiceTests
         Assert.Single(result.Discarded);
         Assert.Equal(plan.ContentHash, EditedPlan().ContentHash);
         Assert.Empty(world.Harness.Plans.All());
-        Assert.DoesNotContain(world.Harness.Entries, e => e.Kind is DecisionKind.PlanCreated or DecisionKind.PlanRevised);
+        Assert.Single(world.Harness.Entries, e => e.Kind is DecisionKind.PlanCreated or DecisionKind.PlanRevised); // the planning's, nothing more
     }
 
     [Fact]

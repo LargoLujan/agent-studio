@@ -44,7 +44,8 @@ public sealed class QuotaConsentLedgerTests
         using var harness = new EngineHarness();
         var ledger = new QuotaConsentLedger();
         var runner = new AuxiliaryAgentRunner(harness.Decisions, harness.Evidence, harness.Providers, harness.Time);
-        var review = new OrderReviewService(runner, harness.Worktrees, ledger, harness.Time);
+        var review = new OrderReviewService(runner, harness.Worktrees, harness.Decisions, ledger, harness.Time);
+        OrderReviewServiceTests.Planned(harness, new RunId("20261015-a1b2c3"));
         var chat = new PreparationChatService(runner, harness.Worktrees, new NoSecrets(), ledger, harness.Time);
         var consent = new QuotaConsent("miveritas", harness.Time.GetUtcNow(), "Un uso");
         harness.Claude.Fallback = (_, _) => new AgentScript { StructuredOutput = "{\"dependencies\":[],\"parallelOk\":[],\"harmful\":[]}" };
