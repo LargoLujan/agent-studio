@@ -108,7 +108,8 @@ public static class PlanParser
             }
         }
 
-        var raw = Notes(document.OrderNotes, problems);
+        var blanks = new List<string>();
+        var raw = Notes(document.OrderNotes, problems, blanks);
         if (problems.Count > 0)
         {
             return new PlanParseResult(null, problems);
@@ -116,35 +117,37 @@ public static class PlanParser
 
         var plan = PlanDefinition.Create(document.Summary, tasks, document.Risks, PlanSource.OrchestratorAgent, author);
         var (notes, discarded) = OrderNotesCheck.Check(raw, plan.Tasks.Select(t => t.Id));
-        return new PlanParseResult(plan, []) { OrderNotes = notes, DiscardedNotes = discarded };
+        return new PlanParseResult(plan, []) { OrderNotes = notes, DiscardedNotes = [.. blanks, .. discarded] };
     }
 
     /// <summary>
     /// Reads the notes of order of an answer of «Revisar el orden» (docs/17 D-20): one JSON object in the shape of
-    /// <see cref="PlanSchema.OrderReviewSchema"/>, as strictly as a plan. What the notes say is checked by the caller.
+    /// <see cref="PlanSchema.OrderReviewSchema"/>, as strictly as a plan. What the notes say is checked by the caller; a note
+    /// with a blank task is left out (<c>Discarded</c>), as one about a task that is not in the plan.
     /// </summary>
-    public static (OrderNotes? Notes, IReadOnlyList<string> Problems) ParseOrderNotes(string? json)
+    public static (OrderNotes? Notes, IReadOnlyList<string> Problems, IReadOnlyList<string> Discarded) ParseOrderNotes(string? json)
     {
         if (string.IsNullOrWhiteSpace(json))
         {
-            return (null, ["The answer is empty: expected one JSON object with the notes of order."]);
+            return (null, ["The answer is empty: expected one JSON object with the notes of order."], []);
         }
 
         try
         {
             if (JsonSerializer.Deserialize<OrderNotesDocument>(json, Options) is not { } document)
             {
-                return (null, ["The answer is null: expected one JSON object with the notes of order."]);
+                return (null, ["The answer is null: expected one JSON object with the notes of order."], []);
             }
 
             var problems = new List<string>();
-            var notes = Notes(document, problems);
-            return problems.Count > 0 ? (null, problems) : (notes, []);
+            var discarded = new List<string>();
+            var notes = Notes(document, problems, discarded);
+            return problems.Count > 0 ? (null, problems, discarded) : (notes, [], discarded);
         }
         catch (JsonException ex)
         {
             var where = string.IsNullOrEmpty(ex.Path) ? string.Empty : $" (at {ex.Path})";
-            return (null, [$"The JSON does not follow the schema of the notes of order{where}: {ex.Message}"]);
+            return (null, [$"The JSON does not follow the schema of the notes of order{where}: {ex.Message}"], []);
         }
     }
 
@@ -192,8 +195,12 @@ public static class PlanParser
     private static string Capitalized(string value) =>
         value is "small" or "medium" or "large" ? char.ToUpperInvariant(value[0]) + value[1..] : "?" + value;
 
-    /// <summary>The notes as the agent wrote them, before they are checked against the plan; none when the answer has none.</summary>
-    private static OrderNotes Notes(OrderNotesDocument? document, List<string> problems)
+    /// <summary>
+    /// The notes as the agent wrote them, before they are checked against the plan; none when the answer has none. A note with a
+    /// blank task is left out (<paramref name="discarded"/>), as one about a task that is not in the plan: notes never rule, so
+    /// none of them makes the plan invalid.
+    /// </summary>
+    private static OrderNotes Notes(OrderNotesDocument? document, List<string> problems, List<string> discarded)
     {
         if (document is null)
         {
@@ -211,7 +218,7 @@ public static class PlanParser
         var harmful = new List<HarmfulOrderNote>();
         foreach (var note in document.Dependencies)
         {
-            if (TaskIds(note.From, note.To, "a dependency note", problems) is var (from, to))
+            if (TaskIds(note.From, note.To, "a dependency note", discarded) is var (from, to))
             {
                 dependencies.Add(new OrderDependencyNote(from, to, note.Reason));
             }
@@ -219,7 +226,7 @@ public static class PlanParser
 
         foreach (var note in document.ParallelOk)
         {
-            if (TaskIds(note.A, note.B, "a parallel note", problems) is var (a, b))
+            if (TaskIds(note.A, note.B, "a parallel note", discarded) is var (a, b))
             {
                 parallel.Add(new ParallelOrderNote(a, b, note.Reason));
             }
@@ -227,7 +234,7 @@ public static class PlanParser
 
         foreach (var note in document.Harmful)
         {
-            if (TaskIds(note.First, note.Then, "a harmful note", problems) is var (first, then))
+            if (TaskIds(note.First, note.Then, "a harmful note", discarded) is var (first, then))
             {
                 harmful.Add(new HarmfulOrderNote(first, then, note.Reason));
             }
@@ -236,11 +243,11 @@ public static class PlanParser
         return new OrderNotes(dependencies, parallel, harmful);
     }
 
-    private static (TaskId, TaskId)? TaskIds(string left, string right, string what, List<string> problems)
+    private static (TaskId, TaskId)? TaskIds(string left, string right, string what, List<string> discarded)
     {
         if (string.IsNullOrWhiteSpace(left) || string.IsNullOrWhiteSpace(right))
         {
-            problems.Add($"'orderNotes': {what} names a blank task.");
+            discarded.Add($"'orderNotes': {what} names a blank task and is left out.");
             return null;
         }
 

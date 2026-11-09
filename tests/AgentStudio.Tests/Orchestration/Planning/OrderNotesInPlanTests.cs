@@ -174,22 +174,33 @@ public sealed class OrderNotesInPlanTests
         var withNull = WithNotes(Notes([null!]));
         var extra = WithNotes(Notes());
         extra["orderNotes"]!["other"] = new JsonArray();
-        var blank = WithNotes(Notes([Note(" ", "from", "I1", "to", "x")]));
         var explicitNull = Valid();
         explicitNull["orderNotes"] = null;
 
         Assert.Contains("'orderNotes' contains null.", Parse(withNull).Problems);
         Assert.Null(Parse(extra).Plan);
-        Assert.Null(Parse(blank).Plan);
         Assert.Null(Parse(explicitNull).Plan);
         Assert.NotNull(Parse(Valid()).Plan); // an answer of before Phase 13, without them
     }
 
     [Fact]
+    public void A_note_with_a_blank_task_is_left_out_like_one_about_an_unknown_task_and_the_plan_stays()
+    {
+        var result = Parse(WithNotes(Notes([Note(" ", "from", "I1", "to", "x"), Note("T1", "from", "I1", "to", "La buena")], [Note("T1", "a", "", "b", "y")])));
+
+        Assert.NotNull(result.Plan);
+        Assert.Empty(result.Problems);
+        Assert.Equal(["La buena"], result.OrderNotes.Dependencies.Select(n => n.Reason));
+        Assert.Empty(result.OrderNotes.ParallelOk);
+        Assert.Equal(2, result.DiscardedNotes.Count);
+    }
+
+    [Fact]
     public void The_answer_of_the_order_review_is_parsed_with_the_same_strictness()
     {
-        var (notes, problems) = PlanParser.ParseOrderNotes(Notes([Note("T1", "from", "T2", "to", "porque sí")]).ToJsonString());
+        var (notes, problems, blanks) = PlanParser.ParseOrderNotes(Notes([Note("T1", "from", "T2", "to", "porque sí"), Note("", "from", "T2", "to", "x")]).ToJsonString());
         Assert.Empty(problems);
+        Assert.Single(blanks);
         Assert.Equal(new TaskId("T2"), Assert.Single(notes!.Dependencies).To);
 
         Assert.NotEmpty(PlanParser.ParseOrderNotes("{\"dependencies\":[]}").Problems);

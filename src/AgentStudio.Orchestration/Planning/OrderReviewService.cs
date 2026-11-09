@@ -113,14 +113,14 @@ public sealed class OrderReviewService : IOrderReview
             return new OrderReviewResult(result.Run, result.Outcome.Status, result.AnswerEvidence, OrderNotes.None, [], [], result.Outcome.Error ?? "The orchestrator gave no notes of order.");
         }
 
-        var (notes, problems) = PlanParser.ParseOrderNotes(result.Outcome.StructuredOutputJson);
+        var (notes, problems, blanks) = PlanParser.ParseOrderNotes(result.Outcome.StructuredOutputJson);
         if (notes is null)
         {
             return new OrderReviewResult(result.Run, result.Outcome.Status, result.AnswerEvidence, OrderNotes.None, [], problems, "The answer of the orchestrator does not follow the schema of the notes of order.");
         }
 
         var (kept, discarded) = OrderNotesCheck.Check(notes, request.Plan.Tasks.Select(t => t.Id));
-        return new OrderReviewResult(result.Run, result.Outcome.Status, result.AnswerEvidence, kept, Suggestions(request.Plan, kept), discarded, null);
+        return new OrderReviewResult(result.Run, result.Outcome.Status, result.AnswerEvidence, kept, Suggestions(request.Plan, kept), [.. blanks, .. discarded], null);
     }
 
     /// <summary>Each kept note as a suggestion the system checked: whether the plan keeps it, and the fix that would.</summary>
