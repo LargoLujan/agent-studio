@@ -17,6 +17,10 @@
      nada: falla cerrado. Una violación por entrada del alcance que no cabe, al final de las demás reglas, para que las
      violaciones de un plan de antes no cambien de orden. El prompt del planificador dice las carpetas de cada agente que las
      tiene; sin ellas no dice nada nuevo.
+     - **Contrato de `PathGrant.Root`:** en la plantilla es relativa al repositorio (`src/`). `PathAccessPolicy` solo admite
+       rutas absolutas y hoy nadie la construye con los permisos de un agente; quien lo haga resuelve antes cada raíz contra la
+       copia en la que trabaja el agente (su worktree), nunca contra el directorio actual. Queda escrito en el tipo; no se
+       cambia `PathAccessPolicy`.
   2. **El analizador del montaje** (D-18, F13-9) es `MontageAnalyzer`, en `Domain/Orchestration/Analysis/`, con una regla
      por fichero temático en `Analysis/Rules/` (`IMontageRule`). Es puro, determinista y gratis: el dominio no referencia
      nada, así que no puede lanzar un agente ni gastar cuota (lo comprueba una prueba sobre las referencias del ensamblado).

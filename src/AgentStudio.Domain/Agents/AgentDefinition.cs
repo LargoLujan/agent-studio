@@ -24,6 +24,13 @@ public enum FileAccessLevel
 }
 
 /// <summary>Access granted to an agent on a directory tree.</summary>
+/// <param name="Root">
+/// In the template of agents, a folder relative to the root of the repository, with <c>/</c> and no <c>..</c>, as
+/// <c>WriteScope</c> writes it (<c>src/</c>): the folders of the cable «Trabaja en» (docs/17 D-11), which
+/// <c>AgentWriteArea</c> reads for the validator. <c>PathAccessPolicy</c> takes only absolute paths: whoever builds one from the
+/// grants of an agent first resolves each root against the root of the copy the agent works in (its worktree), never against
+/// the current directory.
+/// </param>
 public sealed record PathGrant(string Root, FileAccessLevel Access);
 
 /// <summary>Hard limits for one agent run. Exceeding any of them stops the run.</summary>
