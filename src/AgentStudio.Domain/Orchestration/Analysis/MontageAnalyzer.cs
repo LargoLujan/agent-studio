@@ -44,11 +44,20 @@ public static class MontageAnalyzer
         ArgumentNullException.ThrowIfNull(draft);
         ArgumentNullException.ThrowIfNull(rules);
         var findings = new List<Finding>();
+        var state = new MontageEditState(draft.Plan, draft.Context.Roster ?? [], draft.Run.MaxAgentRuns);
+        var environment = new FixEnvironment(SimulatedTitle, draft.Steps);
         foreach (var rule in rules)
         {
-            findings.AddRange(rule.Check(draft));
+            // A fix is offered only if it applies to the draft as it is (FixApplier, whose net refuses one that would leave the
+            // plan unsound); the activations of skills go through their own store, and are offered as they are.
+            findings.AddRange(rule.Check(draft).Select(f => f.Fix is { } fix && FixApplier.Apply(state, fix, environment) is { Applied: false, Refusal: not FixRefusals.ThroughSkillStore }
+                ? f with { Fix = null }
+                : f));
         }
 
         return new MontageAnalysis(draft.Generation, findings.AsReadOnly());
     }
+
+    /// <summary>The title of an integration a fix adds, only to try the fix: the real one comes from the resources when it is applied.</summary>
+    private const string SimulatedTitle = "-";
 }

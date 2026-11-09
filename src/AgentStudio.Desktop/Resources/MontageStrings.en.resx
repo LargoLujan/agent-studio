@@ -136,4 +136,7 @@
   <data name="Text_fix_refused_nothing_to_change" xml:space="preserve">
     <value>It was already like that.</value>
   </data>
+  <data name="Text_fix_refused_breaks_graph" xml:space="preserve">
+    <value>That fix would create a cycle in the plan.</value>
+  </data>
 </root>

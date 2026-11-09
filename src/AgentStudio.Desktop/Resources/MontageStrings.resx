@@ -177,4 +177,8 @@
     <value>Ya estaba así.</value>
     <comment>Why a fix was not applied.</comment>
   </data>
+  <data name="Text_fix_refused_breaks_graph" xml:space="preserve">
+    <value>Ese arreglo crearía un ciclo en el plan.</value>
+    <comment>Why a fix was not applied: it would leave the graph unsound.</comment>
+  </data>
 </root>

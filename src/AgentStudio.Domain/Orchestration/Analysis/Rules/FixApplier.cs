@@ -60,6 +60,9 @@ public static class FixRefusals
 
     /// <summary>The fix asks for nothing that is not there already.</summary>
     public const string NothingToChange = "fix.refused.nothing-to-change";
+
+    /// <summary>The fix would leave the graph of the plan unsound (a cycle, by the criterion of the validator): it is not offered.</summary>
+    public const string BreaksGraph = "fix.refused.breaks-graph";
 }
 
 /// <summary>
@@ -78,6 +81,17 @@ public static class FixApplier
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(fix);
         ArgumentNullException.ThrowIfNull(environment);
+        var outcome = Edit(state, fix, environment);
+
+        // The net under every fix: one that would leave the graph of a sound plan unsound (a cycle, a repeated id, an unknown
+        // dependency), by the same criterion as the validator, is not applied and so not offered (MontageAnalyzer).
+        return outcome.Applied && state.Plan is { } before && outcome.State.Plan is { } after && DraftFacts.Ancestors(before) is not null && DraftFacts.Ancestors(after) is null
+            ? FixOutcome.Refused(state, FixRefusals.BreaksGraph)
+            : outcome;
+    }
+
+    private static FixOutcome Edit(MontageEditState state, Fix fix, FixEnvironment environment)
+    {
         return fix switch
         {
             AddIntegrationFix => AddIntegration(state, environment),
@@ -146,8 +160,12 @@ public static class FixApplier
             1,
             null,
             WorkspaceMode.None);
+        // A review that comes before what the integration merges (W1 → R1 → W2) cannot wait for it: that would be a cycle.
+        var beforeIntegration = behind.SelectMany(b => ancestors[b].Append(b)).ToHashSet();
         var tasks = plan.Tasks
-            .Select(t => t.Kind == WorkTaskKind.Review && writers.Any(ancestors[t.Id].Contains) ? t with { DependsOn = [.. t.DependsOn, new DependencySpec(id)] } : t)
+            .Select(t => t.Kind == WorkTaskKind.Review && !beforeIntegration.Contains(t.Id) && writers.Any(ancestors[t.Id].Contains)
+                ? t with { DependsOn = [.. t.DependsOn, new DependencySpec(id)] }
+                : t)
             .Append(integration)
             .ToList();
         return FixOutcome.Done(state with { Plan = Rebuilt(plan, tasks) });

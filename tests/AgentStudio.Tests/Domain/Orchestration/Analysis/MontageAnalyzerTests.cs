@@ -163,11 +163,51 @@ public sealed partial class MontageAnalyzerTests
         Assert.True(outcome.Applied, outcome.Refusal);
         history.Do(outcome.State);
 
-        Assert.DoesNotContain(MontageAnalyzer.Analyze(Rebuilt(draft, history.Current)).Findings, f => f.Code == code);
+        AssertClearedWithoutNewErrors(draft, Rebuilt(draft, history.Current), code);
         Assert.True(history.Undo());
         Assert.Contains(MontageAnalyzer.Analyze(Rebuilt(draft, history.Current)).Findings, f => f.Code == code);
         Assert.True(history.Redo());
         Assert.DoesNotContain(MontageAnalyzer.Analyze(Rebuilt(draft, history.Current)).Findings, f => f.Code == code);
+    }
+
+    /// <summary>The fix took its finding away and brought no error the draft did not have.</summary>
+    private static void AssertClearedWithoutNewErrors(MontageDraft before, MontageDraft after, string code)
+    {
+        var findings = MontageAnalyzer.Analyze(after).Findings;
+        Assert.DoesNotContain(findings, f => f.Code == code);
+        var errorsBefore = MontageAnalyzer.Analyze(before).Findings.Where(f => f.BlocksApproval).Select(f => f.Code).ToHashSet(StringComparer.Ordinal);
+        Assert.All(findings.Where(f => f.BlocksApproval), f => Assert.Contains(f.Code, errorsBefore));
+    }
+
+    [Fact]
+    public void Adding_the_integration_behind_a_writer_that_follows_a_review_makes_no_cycle()
+    {
+        var draft = Draft(tasks: WriterBehindReview());
+        var finding = Assert.Single(MontageAnalyzer.Analyze(draft).Findings);
+        Assert.Equal(FindingCodes.NoIntegration, finding.Code);
+
+        var outcome = FixApplier.Apply(new MontageEditState(draft.Plan, draft.Context.Roster, draft.Run.MaxAgentRuns), finding.Fix!, new FixEnvironment("Integración", draft.Steps));
+
+        Assert.True(outcome.Applied, outcome.Refusal);
+        var plan = outcome.State.Plan!;
+        Assert.Equal(["T2"], plan.Tasks.Single(t => t.Id == Tid("I1")).DependsOn.Select(d => d.Prerequisite.Value));
+        Assert.Equal(["T1"], plan.Tasks.Single(t => t.Id == Tid("R1")).DependsOn.Select(d => d.Prerequisite.Value)); // R1 comes before what I1 merges
+        AssertClearedWithoutNewErrors(draft, Rebuilt(draft, outcome.State), FindingCodes.NoIntegration);
+    }
+
+    [Fact]
+    public void A_fix_that_would_leave_the_plan_unsound_is_neither_applied_nor_offered()
+    {
+        // T2 already waits for T1: making T1 wait for T2 would be a cycle, by the criterion of the validator.
+        var draft = Draft(tasks: [Tasks()[0], Writing("T2", "ejecutor2", "src/Other/").After("T1"), Task("I1", WorkTaskKind.Integration).After("T2") with { VerificationSteps = ["test"] }, Tasks()[2]]);
+        var state = new MontageEditState(draft.Plan, draft.Context.Roster, draft.Run.MaxAgentRuns);
+
+        var outcome = FixApplier.Apply(state, new AddDependencyFix(Tid("T1"), Tid("T2")), new FixEnvironment("Integración", draft.Steps));
+
+        Assert.False(outcome.Applied);
+        Assert.Same(state, outcome.State);
+        var noted = draft with { OrderNotes = new OrderNotes([new OrderDependencyNote(Tid("T2"), Tid("T1"), "x")], [], []) };
+        Assert.Null(Assert.Single(MontageAnalyzer.Analyze(noted).Findings).Fix);
     }
 
     /// <summary>The draft with the state a fix left: its plan, its template (also in the team) and its budget.</summary>

@@ -88,6 +88,14 @@ internal static class MontageFixtures
         Task("R1", WorkTaskKind.Review, "juez").After("I1"),
     ];
 
+    /// <summary>A writer behind a review, with no integration: T1 → R1 (review) → T2.</summary>
+    public static IReadOnlyList<TaskSpec> WriterBehindReview() =>
+    [
+        Writing("T1", "ejecutor", "src/Calc/") with { Covers = [Rid("R1")] },
+        Task("R1", WorkTaskKind.Review, "juez").After("T1"),
+        Writing("T2", "ejecutor2", "src/Other/").After("R1"),
+    ];
+
     public static PlanDefinition Plan(IReadOnlyList<TaskSpec>? tasks = null) =>
         PlanDefinition.Create("Añadir Calc.Multiply", tasks ?? Tasks(), [], PlanSource.OrchestratorAgent, Aid("orquestador"));
 
