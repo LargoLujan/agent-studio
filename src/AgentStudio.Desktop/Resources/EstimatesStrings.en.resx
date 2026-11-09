@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the estimator in English (docs/17 D-47, ADR-0054): the same keys and placeholders as EstimatesStrings.resx. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Text_estimate_same_agent_and_model" xml:space="preserve">
+    <value>Based on attempts of the same agent with the same model in this project.</value>
+  </data>
+  <data name="Text_estimate_same_model" xml:space="preserve">
+    <value>The agent has few attempts: based on attempts of the same model by any agent of the project.</value>
+  </data>
+  <data name="Text_estimate_same_purpose" xml:space="preserve">
+    <value>Only attempts in the same role count: executor, judge or another.</value>
+  </data>
+  <data name="Text_estimate_same_size" xml:space="preserve">
+    <value>Only attempts of the same size of work count: small, medium or large.</value>
+  </data>
+  <data name="Text_estimate_critical_path" xml:space="preserve">
+    <value>The duration follows the longest path of the plan, with the tasks at once you allow.</value>
+  </data>
+  <data name="Text_estimate_list_price" xml:space="preserve">
+    <value>The cost is the list price the agent's program gives. Your plan is paid by subscription.</value>
+  </data>
+  <data name="Text_estimate_cost_not_exposed" xml:space="preserve">
+    <value>The agent's program does not give the cost, so it is not estimated.</value>
+  </data>
+  <data name="Text_estimate_agents_only" xml:space="preserve">
+    <value>The duration counts only the work of the agents. Checks and your approvals add nothing.</value>
+  </data>
+</root>

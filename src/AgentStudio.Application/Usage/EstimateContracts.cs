@@ -13,8 +13,8 @@ namespace AgentStudio.Application.Usage;
 // (docs/16 D-20). The estimate is computed by the system from the verified log of this project: similar attempts (same
 // agent, same model reported, same purpose), the 25th and 75th percentiles, the number of references and the assumptions.
 // With fewer than three references it is «desconocida»: never a number made up. There is no table of prices (docs/14 D-06):
-// the cost is the CLI's list price as the log recorded it, and Codex says «no expuesto». WP3 implements it
-// (Observability/Estimates).
+// the cost is the CLI's list price as the log recorded it, and Codex says «no expuesto». WP2 implements it
+// (Observability/Estimates, reassigned on 2026-11-09; ADR-0050).
 
 /// <summary>The size of the work an estimate is for: the effort an agent declares for an option of a question (D-32), or a task by its kind.</summary>
 public enum WorkSize
@@ -58,6 +58,18 @@ public static class EstimateAssumptions
 
     /// <summary>The CLI does not expose the cost (Codex): it is not estimated.</summary>
     public const string CostNotExposed = "estimate.cost-not-exposed";
+
+    /// <summary>
+    /// WP2 (2026-11-09): the agent had fewer than three similar attempts, so the references are attempts of the same model and
+    /// purpose by any agent of the project («aprendido del modelo»). It replaces <see cref="SameAgentAndModel"/>.
+    /// </summary>
+    public const string SameModel = "estimate.same-model";
+
+    /// <summary>WP2 (2026-11-09): the duration of a plan counts the runs of its agents; checks, conditions and approvals add none.</summary>
+    public const string AgentsOnly = "estimate.agents-only";
+
+    /// <summary>Every code, for the tests of the resources.</summary>
+    public static IReadOnlyList<string> All { get; } = [SameAgentAndModel, SamePurpose, SameSize, CriticalPath, ListPrice, CostNotExposed, SameModel, AgentsOnly];
 }
 
 /// <summary>
@@ -65,14 +77,37 @@ public static class EstimateAssumptions
 /// with its origin, the number of attempts it rests on and its assumptions. Known only with at least
 /// <see cref="MinimumReferences"/> references.
 /// </summary>
+/// <param name="TotalTokens">
+/// WP2 (2026-11-09): the tokens of an attempt in all, its input and its output, as the usage panel counts them (the input is
+/// the whole prompt: Claude's input with its cache read and written, Codex's with its cached input; the output of Codex
+/// includes its reasoning), as an interval computed as such: the percentiles of
+/// the totals of the references, never the sum of the percentiles of each part, which would be wrong. What the window of a
+/// question shows for each option (<see cref="ToSnapshot"/>, docs/17 D-32). Null when the estimate does not give it.
+/// </param>
 public sealed record UsageEstimate(
     int References,
     EstimateInterval<long> InputTokens,
     EstimateInterval<long> OutputTokens,
     EstimateInterval<TimeSpan> Duration,
     EstimateInterval<decimal> CostUsd,
-    IReadOnlyList<string> Assumptions)
+    IReadOnlyList<string> Assumptions,
+    EstimateInterval<long>? TotalTokens = null)
 {
+    /// <summary>Why an option has no total when its estimate does not give one.</summary>
+    public const string NoTotalReason = "unknown: the estimate gives no total of tokens";
+
+    /// <summary>
+    /// The estimate of <paramref name="option"/> as <c>QuestionAsked</c> records it (docs/17 D-32): the interval of the total
+    /// tokens with its origin and the references. Without a total, or with fewer than three references, both ends are a
+    /// figure without a value that says why: never a number made up.
+    /// </summary>
+    public OptionEstimateSnapshot ToSnapshot(string option)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(option);
+        var total = TotalTokens ?? EstimateInterval<long>.Unknown(NoTotalReason);
+        return new OptionEstimateSnapshot(option, MetricSnapshot.WithOrigin(total.Low), MetricSnapshot.WithOrigin(total.High), References);
+    }
+
     /// <summary>The fewest references that make an estimate known (docs/16 D-20).</summary>
     public const int MinimumReferences = 3;
 
@@ -83,16 +118,25 @@ public sealed record UsageEstimate(
     /// An estimate that is not known: with fewer than three references, every figure is <see cref="MetricOrigin.Missing"/>
     /// and its source says why, in technical words; the desktop says «desconocida» with its resources.
     /// </summary>
-    public static UsageEstimate Unknown(int references, IReadOnlyList<string>? assumptions = null)
+    public static UsageEstimate Unknown(int references, IReadOnlyList<string>? assumptions = null) =>
+        Unknown(references, string.Create(System.Globalization.CultureInfo.InvariantCulture, $"unknown: {references} of {MinimumReferences} references"), assumptions);
+
+    /// <summary>
+    /// WP2 (2026-11-09): an estimate that is not known for <paramref name="reason"/>, which every figure carries as its source, so
+    /// the screen can say why there is none (a log that is not trusted, say), not only that there is none.
+    /// </summary>
+    /// <exception cref="ArgumentException">The reason is blank.</exception>
+    public static UsageEstimate Unknown(int references, string reason, IReadOnlyList<string>? assumptions = null)
     {
-        var reason = string.Create(System.Globalization.CultureInfo.InvariantCulture, $"unknown: {references} of {MinimumReferences} references");
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
         return new UsageEstimate(
             references,
             EstimateInterval<long>.Unknown(reason),
             EstimateInterval<long>.Unknown(reason),
             EstimateInterval<TimeSpan>.Unknown(reason),
             EstimateInterval<decimal>.Unknown(reason),
-            assumptions ?? []);
+            assumptions ?? [],
+            EstimateInterval<long>.Unknown(reason));
     }
 }
 
