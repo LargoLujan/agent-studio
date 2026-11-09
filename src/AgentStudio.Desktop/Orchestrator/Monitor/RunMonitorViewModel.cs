@@ -450,6 +450,10 @@ public sealed partial class RunMonitorViewModel : ObservableObject
         ApplySnapshot(run.Snapshot(), countEvidence: !inspecting);
         RunId = run.Id;
         Log(_time.GetUtcNow(), null, inspecting ? $"Ejecución {run.Id} abierta desde el registro, en solo lectura" : $"Siguiendo la ejecución {run.Id}");
+
+        // The live state exists from the first moment: the first grouped change is the run as its snapshot says it.
+        MarkLiveRun();
+        FlushLive();
         Listening = ListenAsync(run, generation);
     }
 
@@ -505,7 +509,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
     private Task RetryBlockedAsync(MonitorTaskViewModel? task) =>
         task is null ? Task.CompletedTask : SendAsync($"reintentar {task.Id}", run => run.RetryBlockedAsync(task.Id), RetryNotApplied);
 
-    private bool CanRetry(MonitorTaskViewModel? task) => IsActive && task?.Status == WorkTaskStatus.Blocked;
+    private bool CanRetry(MonitorTaskViewModel? task) => IsActive && task?.Status == WorkTaskStatus.Blocked && !task.AwaitingAnswer;
 
     [RelayCommand(CanExecute = nameof(IsActive))]
     private Task CancelAsync() => TryCancelAsync();
@@ -699,8 +703,21 @@ public sealed partial class RunMonitorViewModel : ObservableObject
                 }
 
                 RefreshDetails(changed);
+                if (change.To == WorkTaskStatus.Running)
+                {
+                    // The parts of the prompt of the new attempt (docs/17 D-13), read from the log (not for a run read back from it).
+                    StartParts(changed);
+                }
+
+                if (change.From == WorkTaskStatus.Blocked && changed.Question is not null)
+                {
+                    // The task left the wait for the answer (it was answered, or cancelled): the card of its question goes.
+                    ResolveQuestion(changed.Question.Id);
+                }
+
                 RetryBlockedCommand.NotifyCanExecuteChanged();
                 Log(change.At, change.Task, $"{TaskStatusText.Label(change.From)} → {TaskStatusText.Label(change.To)}");
+                MarkLive(changed, change.From, change.To);
                 TaskStatusChanged?.Invoke(this, new TaskStatusUpdate(change.Task, change.To));
                 break;
 
@@ -713,6 +730,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
                 }
 
                 Log(queued.At, queued.Task, $"En cola de {queued.Provider}");
+                MarkLive(waiting);
                 break;
 
             case AgentActivityEvent activity:
@@ -721,12 +739,19 @@ public sealed partial class RunMonitorViewModel : ObservableObject
                 // Every event of the attempt goes to its tracker: the steps, and the result, whose breakdown by model brings
                 // the exact window (docs/14 D-09 and D-10, P36).
                 working.Observe(activity.Event, ContextThresholds, ContextWindows);
+                working.NoteAttemptEvent(activity.Event);
+                if (activity.Event is ContextObserved)
+                {
+                    RetryPartsIfMissing(working);
+                }
+
                 if (activity.Event is CompactionObserved)
                 {
                     working.CountCompaction();
                 }
                 else if (activity.Event is QuotaReported)
                 {
+                    RefreshQuotaBars();
                     QuotaAnnounced?.Invoke(this, EventArgs.Empty);
                 }
 
@@ -734,6 +759,12 @@ public sealed partial class RunMonitorViewModel : ObservableObject
                 {
                     working.LastActivity = text;
                     Log(activity.At, activity.Task, text);
+                }
+
+                // Only what changes the state an agent shows is marked: its steps, its usage and its end, not each message.
+                if (activity.Event is ContextObserved or UsageReported or CompactionObserved or RunFinished or PermissionRequested)
+                {
+                    MarkLive(working);
                 }
 
                 break;
@@ -761,14 +792,25 @@ public sealed partial class RunMonitorViewModel : ObservableObject
                 break;
 
             case ApprovalPendingEvent approval:
-                TaskFor(approval.Task).PendingApproval = approval.Request.Action;
+                var approving = TaskFor(approval.Task);
+                approving.PendingApproval = approval.Request.Action;
                 Log(approval.At, approval.Task, $"Espera tu aprobación: {approval.Request.Action}");
+                MarkLive(approving);
+                break;
+
+            case QuestionPendingEvent asked:
+                OnQuestionPending(asked);
+                break;
+
+            case QuestionAnsweredEvent answered:
+                OnQuestionAnswered(answered);
                 break;
 
             case RunPhaseChangedEvent phase:
                 Phase = phase.Phase;
                 PhaseDetail = phase.Detail;
                 Log(phase.At, null, phase.Detail is null ? $"Fase: {RunPhaseText.Label(phase.Phase)}" : $"Fase: {RunPhaseText.Label(phase.Phase)} · {phase.Detail}");
+                MarkLiveRun();
                 break;
 
             case RunFinishedEvent finished:
@@ -792,6 +834,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
         ResultSummary = result.Summary;
         IntegrationCommit = result.IntegrationCommit;
         VerdictId = result.VerdictId;
+        MarkLiveRun();
         if (!IsFinished)
         {
             IsFinished = true;
@@ -1244,6 +1287,13 @@ public sealed partial class RunMonitorViewModel : ObservableObject
             };
             task.Refresh(view);
             Tasks.Add(task);
+
+            // A question that was waiting when the run was attached (or after a restart: replay rebuilds it) is shown again.
+            if (view.Question is { } waiting && !IsInspecting)
+            {
+                task.Question = waiting;
+                AddQuestion(waiting, announce: true);
+            }
         }
 
         Phase = snapshot.Phase;
@@ -1327,6 +1377,9 @@ public sealed partial class RunMonitorViewModel : ObservableObject
 
     private void Reset()
     {
+        ResetLive();
+        ResetQuestions();
+        _partsAsked.Clear();
         Tasks.Clear();
         Activity.Clear();
         Evidence.Clear();
@@ -1424,6 +1477,8 @@ public sealed partial class MonitorTaskViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(ContextDetail))]
     [NotifyPropertyChangedFor(nameof(ReasonText))]
     [NotifyPropertyChangedFor(nameof(ShowsFailureLine))]
+    [NotifyPropertyChangedFor(nameof(AwaitingAnswer))]
+    [NotifyPropertyChangedFor(nameof(PartsBar))]
     private WorkTaskStatus _status;
 
     /// <summary>
@@ -1443,6 +1498,8 @@ public sealed partial class MonitorTaskViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StatusLabel))]
     [NotifyPropertyChangedFor(nameof(ReasonText))]
+    [NotifyPropertyChangedFor(nameof(IsBlocked))]
+    [NotifyPropertyChangedFor(nameof(AwaitingAnswer))]
     private string? _blockReason;
 
     /// <summary>The reason of the last transition of the task, as the run recorded it.</summary>
@@ -1494,6 +1551,7 @@ public sealed partial class MonitorTaskViewModel : ObservableObject
         {
             case WorkTaskStatus.Running:
                 _attemptEvidence.Clear();
+                FoldAttempt();
                 break;
             case WorkTaskStatus.Failed:
                 Failures++;
@@ -1742,6 +1800,7 @@ public sealed partial class MonitorTaskViewModel : ObservableObject
         OnPropertyChanged(nameof(ContextTone));
         OnPropertyChanged(nameof(ContextBar));
         OnPropertyChanged(nameof(ContextDetail));
+        OnPropertyChanged(nameof(PartsBar));
     }
 
     public string StatusLabel => Status switch
@@ -1753,7 +1812,8 @@ public sealed partial class MonitorTaskViewModel : ObservableObject
 
     public bool IsQueued => QueuedOn is not null && Status == WorkTaskStatus.Pending;
 
-    public bool IsBlocked => Status == WorkTaskStatus.Blocked;
+    /// <summary>The task is blocked and can be retried: not the one that waits for the answer to a question (<see cref="AwaitingAnswer"/>).</summary>
+    public bool IsBlocked => Status == WorkTaskStatus.Blocked && !AwaitingAnswer;
 
     public string AttemptText => RetryCount switch
     {

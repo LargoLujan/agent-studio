@@ -44,6 +44,26 @@ public static class RunPhaseText
 /// </summary>
 public static class BlockReasonText
 {
+    /// <summary>The block reason of a task that waits for the answer to a question of its agent (<c>BlockKind.AwaitingAnswer</c>).</summary>
+    public const string AwaitingAnswerReason = "AwaitingAnswer";
+
+    /// <summary>The instant a <c>RateLimitedUntil(t)</c> reason waits for; null for any other reason or one that cannot be read.</summary>
+    public static DateTimeOffset? RateLimitedUntil(string? reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason) || !Is(reason.Trim(), "RateLimitedUntil"))
+        {
+            return null;
+        }
+
+        var text = reason.Trim();
+        var open = text.IndexOf('(', StringComparison.Ordinal);
+        var close = text.LastIndexOf(')');
+        return open >= 0 && close > open
+            && DateTimeOffset.TryParse(text[(open + 1)..close], CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var until)
+            ? until
+            : null;
+    }
+
     public static string Label(string? reason, TimeZoneInfo zone)
     {
         ArgumentNullException.ThrowIfNull(zone);
@@ -66,6 +86,12 @@ public static class BlockReasonText
         if (Is(text, "AwaitingHuman"))
         {
             return "Bloqueada · espera a una persona";
+        }
+
+        // Phase 13 (docs/17 D-29): a task whose agent asked waits for the answer; it is not a block to retry.
+        if (Is(text, AwaitingAnswerReason))
+        {
+            return Localization.Texts.Get("Text_question_awaiting_answer");
         }
 
         if (Is(text, "RateLimitedUntil"))
