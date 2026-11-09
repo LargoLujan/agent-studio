@@ -8,16 +8,22 @@ namespace AgentStudio.Observability.Models;
 /// <summary>
 /// What the verified log of a project teaches of its models (docs/17 D-23), through <see cref="IProjectLogReader"/>: it reads
 /// only, writes no row and launches nothing. A log that is not trusted teaches nothing (<see cref="LearnedModels.Empty"/>);
-/// what the reader throws (a project that cannot be read) reaches the caller.
+/// what the reader throws (a project that cannot be read) reaches the caller. Reading and projecting run on the thread pool,
+/// never on the caller's thread: a reader that completes synchronously would otherwise block the window that asked.
 /// </summary>
 public sealed class ProjectModelLearning(IProjectLogReader logs, IModelCatalogSource catalog) : IModelLearning
 {
     /// <inheritdoc />
-    public async Task<LearnedModels> LearnAsync(string projectRoot, CancellationToken ct)
+    public Task<LearnedModels> LearnAsync(string projectRoot, CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(projectRoot);
-        var snapshot = await logs.ReadAsync(projectRoot, ct).ConfigureAwait(false);
-        return LearnedModelsProjection.FromLog(snapshot, catalog.Current.Catalog);
+        return Task.Run(
+            async () =>
+            {
+                var snapshot = await logs.ReadAsync(projectRoot, ct).ConfigureAwait(false);
+                return LearnedModelsProjection.FromLog(snapshot, catalog.Current.Catalog);
+            },
+            ct);
     }
 }
 

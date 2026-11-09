@@ -12,8 +12,12 @@ namespace AgentStudio.Observability.Estimates;
 /// The estimator of the system (docs/16 D-20, F9-7, brought forward to Phase 13; ADR-0050): it reads the log of the project
 /// through <see cref="IProjectLogReader"/>, projects its attempts and estimates with <see cref="UsageEstimation"/>. It writes
 /// nothing, launches nothing and spends no quota. A log that is not trusted (it does not verify, or no anchor recognises it)
-/// fails closed: every figure is unknown, with no references.
+/// fails closed: every figure is unknown, with no references and the reason (<see cref="UntrustedLogReason"/>).
 /// </summary>
+/// <remarks>
+/// Reading the log and projecting it run on the thread pool, never on the caller's thread: a reader that completes
+/// synchronously (SQLite) and the projection of a long log would otherwise block the window that asked.
+/// </remarks>
 public sealed class UsageEstimator(IProjectLogReader logs, IModelCatalogSource catalog) : IUsageEstimator
 {
     /// <summary>Why every figure is unknown when the log of the project is not trusted.</summary>
@@ -46,10 +50,15 @@ public sealed class UsageEstimator(IProjectLogReader logs, IModelCatalogSource c
         return UsageEstimation.EstimatePlan(attempts, catalog.Current.Catalog, request);
     }
 
-    /// <summary>The attempts of the trusted log of the project; null when it is not trusted.</summary>
-    private async Task<IReadOnlyList<UsageAttempt>?> AttemptsAsync(ProjectContext project, CancellationToken ct)
+    /// <summary>The attempts of the trusted log of the project, read and projected on the thread pool; null when it is not trusted.</summary>
+    private Task<IReadOnlyList<UsageAttempt>?> AttemptsAsync(ProjectContext project, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(project);
+        return Task.Run(() => ReadAttemptsAsync(project, ct), ct);
+    }
+
+    private async Task<IReadOnlyList<UsageAttempt>?> ReadAttemptsAsync(ProjectContext project, CancellationToken ct)
+    {
         var snapshot = await logs.ReadAsync(project.RootPath, ct).ConfigureAwait(false);
         if (!snapshot.IsTrusted)
         {
