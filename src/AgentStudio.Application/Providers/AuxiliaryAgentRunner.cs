@@ -64,7 +64,9 @@ public sealed class AuxiliaryAgentRunner(IDecisionRecorder decisions, IEvidenceS
         ArgumentNullException.ThrowIfNull(project);
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(request.Request);
-        if (request.Purpose is not (AgentRunPurpose.SkillRecommendation or AgentRunPurpose.DailySummary))
+        // Phase 13 (docs/17 §8.2): the order review, the analysis of consumption and the chat of preparation are auxiliary too.
+        if (request.Purpose is not (AgentRunPurpose.SkillRecommendation or AgentRunPurpose.DailySummary
+            or AgentRunPurpose.OrderReview or AgentRunPurpose.ConsumptionAnalysis or AgentRunPurpose.PreparationChat))
         {
             throw new ArgumentException($"A {request.Purpose} run is recorded by the engine, the review, the debate or the audit, never as an auxiliary run.", nameof(request));
         }
@@ -229,6 +231,9 @@ public sealed class AuxiliaryAgentRunner(IDecisionRecorder decisions, IEvidenceS
     {
         AgentRunPurpose.SkillRecommendation => "la recomendación de skills",
         AgentRunPurpose.DailySummary => "el resumen diario",
+        AgentRunPurpose.OrderReview => "revisar el orden",
+        AgentRunPurpose.ConsumptionAnalysis => "el análisis del consumo",
+        AgentRunPurpose.PreparationChat => "el chat de preparación",
         _ => purpose.ToString(),
     };
 }
