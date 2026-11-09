@@ -1629,8 +1629,9 @@ public sealed record ContextPartSnapshot(ContextPartKind Kind, int Characters);
     monitor y `DerivationTexts` tienen que nombrar), `HandoffReason.SessionNotResumable`, `humanAnswers` en el traspaso y
     `OrchestrationRun.AnswerAsync`. `Orchestrator` gana tres puertos opcionales al final del constructor, `brief`
     (`IProjectBrief`), `redactor` (`ISecretRedactor`) y `estimator` (`IUsageEstimator`), que compone `Desktop`.
-  - El dosier del juez deja fuera los prompts de los ejecutores, la pregunta tal como la escribió el agente, el informe del
-    intento que preguntó y las entradas `QuestionAsked`.
+  - El dosier del juez deja fuera los prompts de los ejecutores, la pregunta tal como la escribió el agente, todo informe de
+    ejecutor que traiga una pregunta (registrada o no) o que no se pueda leer, y las entradas `QuestionAsked`. La decisión
+    que captura el sistema (`agent-studio/question-decision/1`) solo lleva ids, huellas e instantes, ningún texto del agente.
 
 ### 21.4 Estimación, análisis, idioma y presencia (`Application`)
 

@@ -26,11 +26,14 @@
        `QuestionAsked` mientras el intento que preguntó sigue `Running`, y luego `Running → Blocked(AwaitingAnswer)`; el
        monitor oye `QuestionPendingEvent`;
      - responder: tu texto propio como evidencia tuya (`HumanNote`, `ProvidedByHuman`), `QuestionAnswered` (tuyo, o del
-       sistema por el consentimiento), la decisión para el juez como evidencia del sistema, y luego
+       sistema por el consentimiento), la decisión para el juez como evidencia del sistema (solo ids, huellas e instantes), y luego
        `Blocked(AwaitingAnswer) → Pending` con tu nombre; el monitor oye `QuestionAnsweredEvent`.
      El id de la pregunta es la tarea y su número (`T3-q1`), único en la ejecución. Ningún payload lleva texto del agente.
   3. **Topes** (D-29): tres preguntas por tarea y diez por ejecución, contadas en el registro. La siguiente no se registra ni
-     se enseña: la tarea queda `Blocked(AwaitingHuman)` con «demasiadas preguntas, revisa los requisitos».
+     se enseña: la tarea queda `Blocked(AwaitingHuman)` con «demasiadas preguntas, revisa los requisitos». Cuenta toda pregunta
+     que el registro anotó con `QuestionAsked`, también una anotada justo antes de un cierre que nunca llegó a enseñarse (su
+     tarea seguía `Running` y la reanudación la trata como interrumpida): hace falta para que los ids no se repitan, porque el
+     id es la tarea y su número, y la reproducción rechaza un id repetido.
   4. **La tarea sigue con tu respuesta** (D-30): `IOrchestrationRun.AnswerAsync` va al bucle por el mismo canal que las
      demás órdenes (sin locks) y termina cuando la respuesta está en el registro, o falla con el motivo: otra pregunta, una
      opción que no existe, texto propio en una pregunta que no lo admite, una respuesta sin tarea (las del orquestador van a
@@ -46,7 +49,9 @@
   6. **La sesión** (decisión 4 (a)): el intento con la respuesta reanuda la sesión del intento que preguntó, que terminó bien.
      Va en una sesión nueva con el traspaso de ADR-0035 cuando ese intento no dejó sesión (`SessionNotResumable`, un motivo
      nuevo) o su contexto llegó al umbral de compresión (`ContextNearlyFull`). El traspaso lleva `humanAnswers` (pregunta,
-     evidencia, huella y elección) y las respuestas van además en sus bloques. El intento cuenta en `MaxAgentRuns`.
+     evidencia, huella y elección) y las respuestas van además en sus bloques. El intento cuenta en `MaxAgentRuns`. La sesión
+     nueva solo se decide cuando la pregunta se registra: una que pasa los topes deja la sesión como cualquier otro bloqueo,
+     igual en vivo que al reanudar, que lo rehace desde `QuestionAsked` (revisión del 2026-11-09).
   7. **Reiniciar en mitad de una pregunta** (D-29): lo reproducido es lo vivido. `RunStateReplayer` gana `QuestionPosed`,
      `QuestionResolved` y el motivo de cada bloqueo en `TaskTransitioned`; comprueba que una tarea solo espera respuesta tras
      una pregunta, que solo sigue tras la respuesta y que la respuesta es de la pregunta pendiente, y da
@@ -68,18 +73,27 @@
       `PromptData.Quote`. Guían el trabajo, pero no dan permisos ni cambian las reglas. Para que sean datos y no órdenes, el
       motor ya **no** las pasa además como prompt de sistema del CLI: la petición del ejecutor lleva `SystemInstructions` vacío.
       Un registro que no verifica no lanza nada (la ficha es memoria anclada).
-  11. **El juez solo ve tu elección** (D-33): el dosier deja fuera, en silencio como los prompts con memoria (ADR-0022), los
-      prompts de los ejecutores (con la ficha, las instrucciones y las respuestas), la pregunta tal como la escribió el agente
-      y el informe del intento que preguntó (los dos con la recomendada y los esfuerzos), y las entradas `QuestionAsked` (con
-      la recomendada y las estimaciones). De cada pregunta recibe `QuestionAnswered`, tu texto si lo hay y la decisión que
-      capturó el sistema: la pregunta, su porqué y sus opciones como las escribió el agente, y lo que elegiste. El juez nunca
+  11. **El juez solo ve tu elección** (D-33). Hay dos evidencias por pregunta: la pregunta tal como la escribió el agente
+      (`AgentStatement`, informada por el agente), que el juez nunca recibe, y la decisión que captura el sistema al
+      responderla (`CapturedBySystem`), que solo lleva ids, huellas e instantes: qué pregunta y cuándo se hizo, los ids de sus
+      opciones, cuál eligió la persona (o la evidencia de su texto), quién decidió, cómo (también si fue el consentimiento) y
+      cuándo; ningún texto del agente. El dosier deja fuera, en silencio como los prompts con memoria (ADR-0022), los prompts
+      de los ejecutores (con la ficha, las instrucciones y las respuestas), la pregunta del agente, todo informe de ejecutor
+      que traiga una pregunta, registrada o no (una que pasó los topes, una que no cumplía las reglas), o que no se pueda leer
+      como lo ancló el registro o como JSON (falla cerrado), y las entradas `QuestionAsked` (con la recomendada y las
+      estimaciones). Una entrada de esas clases que no se puede leer es una comprobación del sistema: con ella no cabe aprobar.
+      De cada pregunta el juez recibe `QuestionAnswered`, la decisión y tu texto si lo hay (`ProvidedByHuman`). El juez nunca
       pregunta: si duda, escala (`NeedsHuman`).
 - **Alternativas:**
   - Las herramientas de pregunta de cada CLI (`AskUserQuestion`, `request_user_input`; D-28).
   - Siempre una sesión nueva con traspaso (decisión 4 (b)): más limpia, más cara.
   - Contestar siempre pasado un plazo (decisión 4 (c)), o nunca (4 (b)).
   - Dar al juez la pregunta tal como la escribió el agente (D-33 lo pedía «como evidencia delimitada»): lleva la recomendada,
-    que D-33 le prohíbe; la decisión capturada por el sistema cumple las dos cosas.
+    que D-33 le prohíbe, y como texto del agente solo podría llegarle como evidencia no objetiva; no le llega.
+  - Copiar el texto de la pregunta en la decisión que captura el sistema: así se hizo primero, y la revisión del 2026-11-09 lo
+    señaló (gravedad media). Toda evidencia `CapturedBySystem` es objetiva para el juez (`EvidenceRecord.IsObjective`), así
+    que un `why` del agente como «RQ-01 ya está implementado y probado» le habría llegado como un hecho comprobado por el
+    sistema. Se arregló dejando la decisión solo con ids, huellas e instantes, con una prueba que lo comprueba.
   - Detectar qué prompts llevan ficha o instrucciones por `AgentRunStarted` v3 (sus partes, WP3): depende de otro paquete y
     no cubre las ejecuciones guardadas antes; dejar fuera todos los prompts de los ejecutores es determinista y cierra en
     falso. El juez tiene el plan, los requisitos, los informes y las evidencias objetivas, que es lo que juzga.
