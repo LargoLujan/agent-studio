@@ -177,7 +177,7 @@ public sealed class RecoveryWithGitTests
         "Escribe a.txt y después b.txt.",
         Requirements(),
         plan,
-        new ApprovalDecision(true, "user", DateTimeOffset.UtcNow, "Plan aprobado en el lienzo."),
+        new ApprovalDecision(true, "user", DateTimeOffset.UtcNow, "Plan aprobado en el lienzo.", Verification: ApprovalVerification.WindowsHello),
         profile,
         new RunOptions(),
         ValidatedRoster: await app.RosterAsync(),

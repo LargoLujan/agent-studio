@@ -654,6 +654,10 @@ su propio documento, «Ajustes», que se describe al final de este apartado.
 │ ┌ Memoria del proyecto ───────────────────────────────────────────────────────────────────┐   │
 │ │ ☑ Búsqueda en el historial para el orquestador  (qué busca, con qué CLI y qué pasa si…) │   │
 │ └─────────────────────────────────────────────────────────────────────────────────────────┘   │
+│ ┌ Idioma ─────────────────────────────────────────────────────────────────────────────────┐   │
+│ │ [El de Windows (Español (España)) ▾]                                                    │   │
+│ │ El idioma cambia al reiniciar Agent Studio.                                             │   │
+│ └─────────────────────────────────────────────────────────────────────────────────────────┘   │
 ├───────────────────────────────────────────────────────────────────────────────────────────────┤
 │ Ajustes guardados a las 14:05:12.                                                 [Guardar]   │
 │ «Guardar» comprueba todas las secciones y las guarda a la vez: si una no es válida, no se…    │
@@ -662,7 +666,7 @@ su propio documento, «Ajustes», que se describe al final de este apartado.
 
 - **Dónde está.** «Ajustes» es el último icono de la barra lateral (el engranaje). Abre un documento en el centro, uno
   para toda la sesión, como «Consumo». Todo lo que guarda vale para todos los proyectos.
-- **Cuatro secciones**, cada una con una frase que dice para qué sirve. Si una parte de la app no está en la composición,
+- **Cinco secciones**, cada una con una frase que dice para qué sirve. Si una parte de la app no está en la composición,
   su sección no sale.
   - **Contexto y cuota:** los umbrales de salud del contexto (aviso, compresión recomendada y crítico; 70, 85 y 95 % por
     defecto), con su regla, y «Leer la cuota de Codex», que explica qué lanza.
@@ -677,6 +681,15 @@ su propio documento, «Ajustes», que se describe al final de este apartado.
     del proyecto (decisiones, errores conocidos y la bitácora de confianza): solo lee, no sale de tu equipo y no gasta cuota
     aparte. Solo funciona con Claude Code y si el orquestador recibe la memoria del proyecto en la plantilla. Apagada, el
     orquestador planifica como antes y la propuesta lo dice. Vale desde la siguiente planificación.
+  - **Idioma** (Fase 13, [17 D-49](17-constructor-visual-de-agentes.md)): una lista con «El de Windows» (con el nombre
+    de su idioma) y los idiomas de Agent Studio, cada uno escrito en su propio idioma («Español (España)», «English»).
+    «El de Windows» guarda «sin elección»: se usa el idioma de Windows si Agent Studio lo tiene, y, si no, el inglés (el
+    castellano de España si Windows está en catalán, euskera o gallego). El cambio **se aplica al reiniciar** Agent
+    Studio, para no dejar textos a medio cambiar; mientras lo elegido cambiaría el idioma en uso, la sección dice «El
+    idioma cambia al reiniciar Agent Studio.».
+  - **Reducir movimiento:** todavía no hay interruptor. Agent Studio no tiene hoy ninguna animación que apagar; el
+    ajuste (`ReduceMotion`, y también si Windows tiene desactivadas las animaciones, `SystemParameters.ClientAreaAnimation`,
+    [17 D-15](17-constructor-visual-de-agentes.md)) lo traen los paquetes que añaden movimiento (el lienzo y el monitor).
 - **Un solo «Guardar»**, en la barra de abajo:
   - Primero comprueba todas las secciones. Si alguna no vale, no guarda nada: cada sección dice por qué junto a sus
     campos, y la barra dice cuáles corregir («No se guardó nada: corrige «Contexto y cuota» y «Windows Hello y bloqueo».»).

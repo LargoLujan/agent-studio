@@ -26,8 +26,10 @@ public static class LockServices
     /// <summary>
     /// Registers Windows Hello and the lock of the interface (docs/16 D-13, F8-10 and F8-11; ADR-0037): the verifier over
     /// the main window, the Windows session, the input of the session, <see cref="InterfaceLock"/> (also as
-    /// <see cref="IInterfaceLock"/>), the <see cref="ReinforcedConfirmation"/> of the critical approvals (on with
-    /// <see cref="AppSettings.WindowsHelloForCriticalApprovals"/>, read at each question), the <see cref="IdleLockMonitor"/>
+    /// <see cref="IInterfaceLock"/>), the verified lock of Windows (<see cref="IWindowsSessionState"/> and
+    /// <see cref="IWindowsLockConfirmation"/>, docs/17 D-40 (a)), the <see cref="ReinforcedConfirmation"/> of the approvals (the
+    /// fixed barrier of <c>PresencePolicy</c> always; the configurable approvals with
+    /// <see cref="AppSettings.WindowsHelloForImportantApprovals"/>, read at each question), the <see cref="IdleLockMonitor"/>
     /// (not started), the <see cref="LockScreenViewModel"/> and the <see cref="LockSettingsViewModel"/>. What is registered
     /// earlier is kept, so tests put doubles first. It needs the <see cref="IAppSettingsStore"/>; an
     /// <see cref="IWorkInProgress"/> registered by the composition tells the lock screen what goes on (without it, «sin dato»).
@@ -57,10 +59,15 @@ public static class LockServices
             provider.GetRequiredService<IWindowsSession>(),
             Time(provider)));
         services.TryAddSingleton<IInterfaceLock>(provider => provider.GetRequiredService<InterfaceLock>());
+        services.TryAddSingleton<IWindowsSessionState, WindowsSessionState>();
+        services.TryAddSingleton<IWindowsLockConfirmation>(provider => new WindowsLockConfirmation(
+            provider.GetRequiredService<IWindowsSessionState>(),
+            Time(provider)));
         services.TryAddSingleton(provider => new ReinforcedConfirmation(
             provider.GetRequiredService<IUserPresenceVerifier>(),
-            () => provider.GetRequiredService<IAppSettingsStore>().Load().WindowsHelloForCriticalApprovals,
-            Time(provider)));
+            () => provider.GetRequiredService<IAppSettingsStore>().Load().WindowsHelloForImportantApprovals,
+            Time(provider),
+            provider.GetRequiredService<IWindowsLockConfirmation>()));
         services.TryAddSingleton(provider => new IdleLockMonitor(
             provider.GetRequiredService<InterfaceLock>(),
             provider.GetRequiredService<IIdleInput>(),

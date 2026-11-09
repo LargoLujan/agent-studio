@@ -1,5 +1,7 @@
+using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Skills;
 using AgentStudio.Desktop.Skills;
+using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Metrics;
 using AgentStudio.Domain.Skills;
 using static AgentStudio.Tests.Desktop.Skills.SkillsScreenSamples;
@@ -422,6 +424,34 @@ public sealed class SkillsDocumentViewModelTests
         Assert.Contains("aux-20260101-abcdef", document.AssistedStatus, StringComparison.Ordinal);
         Assert.Contains("Nada se ha activado", document.AssistedStatus, StringComparison.Ordinal);
         Assert.Empty(world.Activations.Appended);
+    }
+
+    /// <summary>
+    /// F13-20 (docs/17 §0.2 and D-39): the consent of the assisted recommendation goes through the approval gate, so the log
+    /// shows the question and the answer, as every approval. It grants nothing (D-37: never), so it stays the dialog's alone
+    /// and its answer is written as version 1, byte for byte as any answer of the dialog.
+    /// </summary>
+    [Theory]
+    [InlineData(true, DecisionKind.ApprovalGranted)]
+    [InlineData(false, DecisionKind.ApprovalDenied)]
+    public async Task The_consent_of_the_assisted_recommendation_leaves_its_question_and_its_answer_in_the_log(bool approve, DecisionKind answered)
+    {
+        var (world, document) = await OpenAsync();
+        document.TaskText = "Optimizar Spark";
+        document.IsAssistedAllowed = true;
+        world.Prompt.Approve = approve;
+
+        await document.AskAgentCommand.ExecuteAsync(null);
+
+        var log = world.Log.Of(ProjectId);
+        Assert.Equal([DecisionKind.ApprovalRequested, answered], log.Select(e => e.Kind));
+        var asked = DecisionPayloadSerializer.Deserialize<ApprovalRequestedPayload>(log[0].PayloadJson);
+        Assert.Equal((SkillsDocumentViewModel.AssistedAction, SkillsDocumentViewModel.AssistedDescription), (asked.Action, asked.Description));
+        var answer = DecisionPayloadSerializer.Deserialize<ApprovalAnsweredPayload>(log[1].PayloadJson);
+        Assert.Equal((SkillsDocumentViewModel.AssistedAction, approve, "user"), (answer.Action, answer.Approved, answer.DecidedBy));
+        Assert.Equal(new Actor(ActorKind.User, "user"), log[1].Actor);
+        Assert.DoesNotContain("verification", log[1].PayloadJson, StringComparison.Ordinal);
+        Assert.Equal(approve ? 1 : 0, world.Recommendations.Asked.Count);
     }
 
     [Fact]

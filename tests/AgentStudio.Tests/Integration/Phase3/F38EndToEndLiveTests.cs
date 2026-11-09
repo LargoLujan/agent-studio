@@ -124,7 +124,7 @@ public sealed class F38EndToEndLiveTests
         var fromOrchestrator = proposal.Plan is { } proposed && proposal.Violations.Count == 0 && HasExpectedShape(proposed);
         var plan = fromOrchestrator ? proposal.Plan! : UserPlan();
         LiveTestSupport.Note($"[e2e] plan {(fromOrchestrator ? "del orquestador" : "completado por el usuario en el lienzo")}: {plan.ContentHash}");
-        var approval = new ApprovalDecision(true, "user", DateTimeOffset.UtcNow, $"Plan {plan.ContentHash[..12]} aprobado en el lienzo.");
+        var approval = new ApprovalDecision(true, "user", DateTimeOffset.UtcNow, $"Plan {plan.ContentHash[..12]} aprobado en el lienzo.", Verification: ApprovalVerification.WindowsHello);
 
         // Steps 6 to 12: the system runs the plan.
         var execution = Stopwatch.StartNew();

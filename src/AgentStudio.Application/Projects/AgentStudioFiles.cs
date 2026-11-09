@@ -78,6 +78,7 @@ public static class AgentStudioFiles
         MemoryKind.DebateSummary => "resumenes-de-debate",
         MemoryKind.Verdict => "veredictos",
         MemoryKind.DailySummary => "resumenes-diarios",
+        MemoryKind.ProjectBrief => "ficha-del-proyecto",
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown memory category."),
     } + Markdown;
 

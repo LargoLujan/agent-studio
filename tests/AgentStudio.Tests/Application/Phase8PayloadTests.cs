@@ -189,6 +189,8 @@ public sealed class Phase8PayloadTests
                 "RunResumed",
                 // Phase 12 appends after the Phase 8 kinds.
                 "JournalTrustChanged",
+                // Phase 13 appends after the Phase 12 kind.
+                "QuestionAsked", "QuestionAnswered", "ProjectSetupApplied",
             ],
             Enum.GetNames<DecisionKind>());
     }
@@ -354,7 +356,8 @@ public sealed class Phase8PayloadTests
         Assert.True(read.RecordsVerification());
         Assert.Equal(ApprovalVerification.WindowsHello, read.ResolvedVerification());
         Assert.Equal(2, ApprovalAnsweredPayload.VerificationVersion);
-        Assert.Equal(["Dialog", "WindowsHello", "WindowsHelloUnavailable"], Enum.GetNames<ApprovalVerification>());
+        // Phase 13 (docs/17 D-40 (a)) appends the verified lock of Windows.
+        Assert.Equal(["Dialog", "WindowsHello", "WindowsHelloUnavailable", "WindowsLock"], Enum.GetNames<ApprovalVerification>());
     }
 
     // ---- the hash of an entry, by an independent implementation of the canonical form ----

@@ -1,4 +1,5 @@
 using AgentStudio.Domain.Common;
+using AgentStudio.Domain.Models;
 using AgentStudio.Domain.Providers;
 
 namespace AgentStudio.Domain.Agents;
@@ -23,6 +24,13 @@ public enum FileAccessLevel
 }
 
 /// <summary>Access granted to an agent on a directory tree.</summary>
+/// <param name="Root">
+/// In the template of agents, a folder relative to the root of the repository, with <c>/</c> and no <c>..</c>, as
+/// <c>WriteScope</c> writes it (<c>src/</c>): the folders of the cable «Trabaja en» (docs/17 D-11), which
+/// <c>AgentWriteArea</c> reads for the validator. <c>PathAccessPolicy</c> takes only absolute paths: whoever builds one from the
+/// grants of an agent first resolves each root against the root of the copy the agent works in (its worktree), never against
+/// the current directory.
+/// </param>
 public sealed record PathGrant(string Root, FileAccessLevel Access);
 
 /// <summary>Hard limits for one agent run. Exceeding any of them stops the run.</summary>
@@ -47,6 +55,12 @@ public enum MemoryPolicy
 public sealed record ReviewPolicy(bool RequiresIndependentReview, bool RequiresSystemCapturedTests);
 
 /// <summary>Configuration of one agent (section 6 of the master prompt).</summary>
+/// <param name="Effort">
+/// Phase 13 (docs/17 D-25): how hard its model reasons, from the closed list both CLIs accept; null when the template does not
+/// set one, and the CLI then uses its own default. It goes into the hash of the template only when it is set, so the hash of
+/// every template saved before it does not change, and changing it is changing the template: it withdraws the approval of
+/// the plan.
+/// </param>
 public sealed record AgentDefinition(
     AgentId Id,
     string Name,
@@ -59,7 +73,8 @@ public sealed record AgentDefinition(
     ExecutionBudget Budget,
     int MaxRounds,
     MemoryPolicy Memory,
-    ReviewPolicy Review)
+    ReviewPolicy Review,
+    ReasoningEffort? Effort = null)
 {
     /// <summary>Returns every rule this definition breaks; an empty list means it is valid.</summary>
     public IReadOnlyList<string> Validate()
@@ -98,6 +113,20 @@ public sealed record AgentDefinition(
         if (Memory == MemoryPolicy.ReadAndPropose)
         {
             problems.Add("agent.memory-proposals-not-available");
+        }
+
+        // The effort reaches a CLI as a token of a closed list (docs/17 D-25): never a value outside it, and only one of the
+        // levels its CLI takes (Claude Code has no «minimal», Codex no «max», another provider none).
+        if (Effort is { } effort)
+        {
+            if (!Enum.IsDefined(effort))
+            {
+                problems.Add("agent.effort-unknown");
+            }
+            else if (!ReasoningEfforts.Accepts(Model.Provider, effort))
+            {
+                problems.Add("agent.effort-not-for-provider");
+            }
         }
 
         return problems;

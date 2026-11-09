@@ -25,6 +25,16 @@ public enum MetricBarLevel
 }
 
 /// <summary>
+/// One part of the value of a bar (docs/17 D-13): its name, its value in the unit of the bar, the value in words («~450 tokens»)
+/// and whether it is an estimate (the parts before a launch are estimated by Agent Studio: characters divided by 4).
+/// </summary>
+public sealed record MetricBarSegment(string Label, double Value, string ValueText, bool IsEstimate)
+{
+    /// <summary>The part as the words of the bar and a list say it: its name and its value.</summary>
+    public override string ToString() => $"{Label} {ValueText}";
+}
+
+/// <summary>
 /// What a <see cref="MetricBar"/> shows (docs/18 P3, tanda 2): a value against its maximum, with the text of the value
 /// («62 %», «~62 %», «3 de 12»), where it comes from (docs/14 D-03), the level of the thresholds when there is one, and the
 /// detail. Without a value (<see cref="Value"/> null) the bar is an empty track and <see cref="ValueText"/> says why: «no
@@ -76,6 +86,43 @@ public sealed record MetricBarReading
 
     /// <summary>Where the thresholds are, as fractions of the maximum (0 to 1): small marks on the track.</summary>
     public IReadOnlyList<double> Marks { get; init; } = [];
+
+    /// <summary>
+    /// The parts of the value, in order (docs/17 D-13, F13-6): the bar of context by parts draws each as a segment of the fill,
+    /// with a gap between two, and the words say each with its value («Por partes: …»), so a part is never told by its shade
+    /// alone. What the value has beyond their sum is the last part, drawn without a name of its own (the conversation and the
+    /// tools, which the screen names as one more part when it knows it). Empty for a bar without parts.
+    /// </summary>
+    public IReadOnlyList<MetricBarSegment> Segments { get; init; } = [];
+
+    /// <summary>
+    /// Where each part ends, as fractions of the maximum (0 to 1), up to the fill: the gaps between the segments. A part that
+    /// ends beyond the value, or at it, draws no gap.
+    /// </summary>
+    public IReadOnlyList<double> SegmentEnds
+    {
+        get
+        {
+            if (Segments.Count == 0 || Maximum <= 0 || Fraction is not { } fill)
+            {
+                return [];
+            }
+
+            var ends = new List<double>();
+            var sum = 0d;
+            foreach (var segment in Segments)
+            {
+                sum += Math.Max(0, segment.Value);
+                var end = sum / Maximum;
+                if (end > 0 && end < fill)
+                {
+                    ends.Add(end);
+                }
+            }
+
+            return ends;
+        }
+    }
 
     /// <summary>The share of the maximum, from 0 to 1; null without a value. A value over the maximum fills the track.</summary>
     public double? Fraction => Value is { } value && Maximum > 0 ? Math.Clamp(value / Maximum, 0, 1) : null;
@@ -154,8 +201,18 @@ public sealed record MetricBarReading
 
     private const string SeenPrefix = "vista ";
 
-    /// <summary>What a screen reader says: what is measured, the value, its origin, its level, its age and the detail.</summary>
-    public string AccessibleName => Detail is { Length: > 0 } detail ? $"{Label}: {Text}. {detail}" : $"{Label}: {Text}";
+    /// <summary>What a screen reader says: what is measured, the value, its origin, its level, its age, the detail and the parts.</summary>
+    public string AccessibleName
+    {
+        get
+        {
+            var name = Detail is { Length: > 0 } detail ? $"{Label}: {Text}. {detail}" : $"{Label}: {Text}";
+            return Segments.Count == 0 ? name : $"{name}. {PartsText}";
+        }
+    }
+
+    /// <summary>The parts in words, from the resources: «Por partes: Requisitos ~450 tokens; Memoria ~1.200 tokens».</summary>
+    public string PartsText => Localization.Texts.Format("MetricBar_Parts", string.Join("; ", Segments.Select(s => s.ToString())));
 
     /// <summary>A reading shown as an item of a list (the bars of the status bar) is named by UI Automation with this: its whole line.</summary>
     public override string ToString() => AccessibleName;
@@ -175,7 +232,8 @@ public sealed record MetricBarReading
         && string.Equals(Detail, other.Detail, StringComparison.Ordinal)
         && string.Equals(Age, other.Age, StringComparison.Ordinal)
         && string.Equals(ShortValueText, other.ShortValueText, StringComparison.Ordinal)
-        && Marks.SequenceEqual(other.Marks);
+        && Marks.SequenceEqual(other.Marks)
+        && Segments.SequenceEqual(other.Segments);
 
     public override int GetHashCode() => HashCode.Combine(Label, Value, ValueText, Origin, Level, IsEstimate, Detail, Age);
 }

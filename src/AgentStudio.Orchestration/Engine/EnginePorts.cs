@@ -9,6 +9,7 @@ using AgentStudio.Application.Providers;
 using AgentStudio.Application.Security;
 using AgentStudio.Application.Semantic;
 using AgentStudio.Application.Skills;
+using AgentStudio.Application.Usage;
 using AgentStudio.Application.Verification;
 
 namespace AgentStudio.Orchestration.Engine;
@@ -61,6 +62,24 @@ internal sealed record EnginePorts(
     /// Nothing else of the engine (an executor, the review, an auditor) ever reads it.
     /// </summary>
     public IProjectHistoryTool? History { get; init; }
+
+    /// <summary>
+    /// Phase 13 (docs/17 D-10): the brief of the project, which reaches the prompt of every executor in a block of data, whatever
+    /// its memory policy. Null: no executor gets one. The judge never does.
+    /// </summary>
+    public IProjectBrief? Brief { get; init; }
+
+    /// <summary>
+    /// Phase 13 (docs/17 D-28): redacts the secrets of a question of an agent before it is recorded as evidence, and of the
+    /// person's own answer. Null: they are recorded as they came, as the report the question came in already is.
+    /// </summary>
+    public ISecretRedactor? Redactor { get; init; }
+
+    /// <summary>
+    /// Phase 13 (docs/17 D-32): what the system estimates going on with each option of a question would cost. Null: nothing is
+    /// estimated, and the question carries no estimates, never a number made up.
+    /// </summary>
+    public IUsageEstimator? Estimator { get; init; }
 
     /// <summary>The composed provider (journal and concurrency limit included) of a CLI for a project, or null.</summary>
     public IAgentProvider? ProviderFor(string projectRoot, Domain.Providers.ProviderId provider) =>

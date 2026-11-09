@@ -1,6 +1,8 @@
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using AgentStudio.Desktop.Localization;
 
 namespace AgentStudio.Desktop.Services;
 
@@ -99,7 +101,7 @@ public sealed class JsonAppSettingsStore(AppDataPaths paths, string? defaultSkil
         try
         {
             return File.Exists(paths.SettingsFile)
-                ? JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(paths.SettingsFile), Options) ?? AppSettings.Default
+                ? JsonSerializer.Deserialize<AppSettings>(WithCurrentNames(File.ReadAllText(paths.SettingsFile)), Options) ?? AppSettings.Default
                 : AppSettings.Default;
         }
         catch (JsonException)
@@ -113,6 +115,54 @@ public sealed class JsonAppSettingsStore(AppDataPaths paths, string? defaultSkil
         catch (UnauthorizedAccessException)
         {
             return AppSettings.Default;
+        }
+    }
+
+    /// <summary>The name the setting of Windows Hello had before Phase 13 (docs/16 D-13).</summary>
+    internal const string LegacyHelloKey = "windowsHelloForCriticalApprovals";
+
+    /// <summary>The name of the setting of Windows Hello from Phase 13 on (docs/17 D-38).</summary>
+    internal const string HelloKey = "windowsHelloForImportantApprovals";
+
+    /// <summary>
+    /// The text of the file with the names of today: a file written before Phase 13 keeps the setting of Windows Hello under
+    /// its old name, and it is read under the new one. When both are there, the new one wins. Whatever the file says, the
+    /// actions that always ask Windows Hello keep asking it (docs/17 D-38): this setting only governs the configurable ones.
+    /// </summary>
+    /// <remarks>
+    /// A file with a key twice (a hand-edited one) cannot be read as a node: it is read as it is, as before Phase 13, and the
+    /// last value of each key wins. Its Hello setting under the old name is then not carried over: the setting takes its
+    /// default (on), never the more permissive value.
+    /// </remarks>
+    /// <exception cref="JsonException">The text is not JSON.</exception>
+    private static string WithCurrentNames(string json)
+    {
+        try
+        {
+            if (JsonNode.Parse(json) is not JsonObject root)
+            {
+                return json;
+            }
+
+            var legacy = root.Select(p => p.Key).FirstOrDefault(k => string.Equals(k, LegacyHelloKey, StringComparison.OrdinalIgnoreCase));
+            if (legacy is null)
+            {
+                return json;
+            }
+
+            var value = root[legacy]?.DeepClone();
+            root.Remove(legacy);
+            if (!root.Any(p => string.Equals(p.Key, HelloKey, StringComparison.OrdinalIgnoreCase)))
+            {
+                root[HelloKey] = value;
+            }
+
+            return root.ToJsonString();
+        }
+        catch (ArgumentException)
+        {
+            // A key twice: a node keeps each key once, and refuses the file (the parse, or the first read of its keys).
+            return json;
         }
     }
 
@@ -132,6 +182,7 @@ public sealed class JsonAppSettingsStore(AppDataPaths paths, string? defaultSkil
             CloseWindow = Enum.IsDefined(settings.CloseWindow) ? settings.CloseWindow : AppSettings.Default.CloseWindow,
             IdleLockMinutes = AppSettings.IsValidIdleLockMinutes(settings.IdleLockMinutes) ? settings.IdleLockMinutes : AppSettings.DefaultIdleLockMinutes,
             MainWindowPlacement = settings.MainWindowPlacement is { IsValid: true } placement ? placement : null,
+            Language = UiLanguages.Find(settings.Language)?.CultureName,
         };
 
     private static bool ValidThresholds(AppSettings settings) =>

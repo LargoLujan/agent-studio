@@ -173,7 +173,8 @@ public sealed class MemoryMarkdownExporter(ProjectMemory memory, IProjectStorage
 
     private static string Capitalized(string label) => char.ToUpper(label[0], CultureInfo.InvariantCulture) + label[1..];
 
-    private static string Title(MemoryKind kind) => kind switch
+    /// <summary>The title of the file of a category that is exported (<see cref="MemoryKinds.IsExported"/>); the journal is not.</summary>
+    internal static string Title(MemoryKind kind) => kind switch
     {
         MemoryKind.Architecture => "Arquitectura",
         MemoryKind.Convention => "Convenciones",
@@ -185,6 +186,7 @@ public sealed class MemoryMarkdownExporter(ProjectMemory memory, IProjectStorage
         MemoryKind.DebateSummary => "Resúmenes de debate",
         MemoryKind.Verdict => "Veredictos",
         MemoryKind.DailySummary => "Resúmenes diarios",
+        MemoryKind.ProjectBrief => "Ficha del proyecto",
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown memory category."),
     };
 }

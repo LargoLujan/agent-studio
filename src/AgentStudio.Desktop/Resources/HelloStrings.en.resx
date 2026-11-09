@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the fixed barrier of Windows Hello in English (docs/17 D-37 to D-41, ADR-0053). Same keys and placeholders as HelloStrings.resx. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Hello_Setting_Label" xml:space="preserve">
+    <value>Also ask for Windows Hello in important approvals</value>
+  </data>
+  <data name="Hello_Setting_Explanation" xml:space="preserve">
+    <value>Delivering, accepting a history, giving an agent a shell or the network and changing the verification profile always ask for Windows Hello.
+This setting also asks for it to approve other plans, open debates, audit, accept reviews and discard work.
+Without Windows Hello on this computer, what always asks for it locks Windows: you unlock it with your PIN or password.</value>
+  </data>
+  <data name="Hello_Notice_AlwaysHello" xml:space="preserve">
+    <value>This action always asks for Windows Hello, whatever the setting says. When you approve, confirm it is you: without that, nothing is approved.</value>
+  </data>
+  <data name="Hello_Notice_WindowsLock" xml:space="preserve">
+    <value>This action always asks for Windows Hello, and this computer does not have it. When you approve, Windows locks: unlock it with your PIN or password. Agent Studio never sees them.</value>
+  </data>
+  <data name="Hello_Plan_AlwaysAsks" xml:space="preserve">
+    <value>This plan has agents or steps that write with your permissions (see the warning above). Approving it always asks for Windows Hello or, without it, locking and unlocking Windows.</value>
+  </data>
+  <data name="Hello_Plan_ApprovedWithLock" xml:space="preserve">
+    <value>Plan approved ({0}), confirmed by locking Windows.</value>
+  </data>
+  <data name="Hello_Plan_LockNotConfirmed" xml:space="preserve">
+    <value>Locking Windows did not confirm it is you ({0}): the plan is not approved.</value>
+  </data>
+  <data name="Hello_Plan_LockNotAsked" xml:space="preserve">
+    <value>Windows could not be locked to confirm it is you ({0}): the plan is not approved.</value>
+  </data>
+  <data name="Hello_Approval_LockNotConfirmed" xml:space="preserve">
+    <value>Locking Windows did not confirm it is you ({0}: {1}): denied.</value>
+  </data>
+  <data name="Hello_Approval_LockNotAsked" xml:space="preserve">
+    <value>Windows could not be locked to confirm it is you ({0}): denied.</value>
+  </data>
+  <data name="Hello_Approval_ConfirmationPending" xml:space="preserve">
+    <value>A confirmation is already pending: finish the open Windows Hello or Windows lock confirmation first. This approval is denied; ask for it again afterwards.</value>
+  </data>
+  <data name="Hello_Plan_ConfirmationPending" xml:space="preserve">
+    <value>A confirmation is already pending: finish the open one first, then approve the plan again.</value>
+  </data>
+  <data name="Hello_SetUpHello" xml:space="preserve">
+    <value>To approve it, set up Windows Hello: open Settings, go to Accounts and then Sign-in options, and choose a PIN, your fingerprint or your face.</value>
+  </data>
+  <data name="Hello_LockNotComposed" xml:space="preserve">
+    <value>this computer has no Windows Hello and the verified lock of Windows is not available</value>
+  </data>
+  <data name="Hello_LockResult_Unlocked" xml:space="preserve">
+    <value>you unlocked it after the request</value>
+  </data>
+  <data name="Hello_LockResult_LockFailed" xml:space="preserve">
+    <value>Windows did not lock</value>
+  </data>
+  <data name="Hello_LockResult_NotVerified" xml:space="preserve">
+    <value>the state of the session does not confirm you unlocked it after the request</value>
+  </data>
+  <data name="Hello_LockResult_TimedOut" xml:space="preserve">
+    <value>nobody unlocked it in time</value>
+  </data>
+  <data name="Hello_LockResult_Unknown" xml:space="preserve">
+    <value>Windows gave a result Agent Studio does not know</value>
+  </data>
+</root>

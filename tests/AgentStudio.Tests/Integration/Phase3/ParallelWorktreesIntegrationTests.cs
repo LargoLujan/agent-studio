@@ -86,7 +86,7 @@ public sealed class ParallelWorktreesIntegrationTests
                 "Añade Calc.Multiply(a,b) y Calc.Subtract(a,b), cada una con su prueba.",
                 Requirements(),
                 plan,
-                new ApprovalDecision(true, "user", DateTimeOffset.UtcNow, "Plan aprobado en el lienzo."),
+                new ApprovalDecision(true, "user", DateTimeOffset.UtcNow, "Plan aprobado en el lienzo.", Verification: ApprovalVerification.WindowsHello),
                 profile,
                 new RunOptions(),
                 ValidatedRoster: await app.RosterAsync(),

@@ -124,6 +124,24 @@ public enum DecisionKind
     /// Studio did not write leave quarantine, or go back to it.
     /// </summary>
     JournalTrustChanged,
+
+    // Phase 13 (the visual builder, docs/17 D-29 and D-27). Appended after the Phase 12 kind, so no stored hash changes.
+
+    /// <summary>
+    /// An agent asked the person a question with options in its report (D-28 and D-29): the task, the attempt, the evidence of
+    /// the whole question with its SHA-256, the ids of its options, the one the agent recommends and what the system estimates
+    /// each would cost. No text of the agent goes in the payload: the question is evidence.
+    /// </summary>
+    QuestionAsked,
+
+    /// <summary>The person answered a question of an agent (D-29): the option chosen, or the evidence of their own text, who and how.</summary>
+    QuestionAnswered,
+
+    /// <summary>
+    /// The configurator of a project applied what the person reviewed (D-27): the hashes of everything it wrote through the
+    /// usual gates (the template, the brief, the verification profile, the skills and the options). It belongs to no run.
+    /// </summary>
+    ProjectSetupApplied,
 }
 
 public sealed record DecisionEntry(

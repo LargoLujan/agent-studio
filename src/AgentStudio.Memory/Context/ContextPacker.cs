@@ -48,10 +48,18 @@ namespace AgentStudio.Memory.Context;
 /// «estimado por Agent Studio». The markup of the block a prompt puts them in is not counted.</item>
 /// <item><b>The SHA-256 of the pack</b> is that of the canonical list of its items, in order: id, tier, category, origin,
 /// SHA-256 and text of each, with length prefixes. It does not depend on how a prompt writes the block.</item>
+/// <item><b>The brief of the project</b> (docs/17 D-10, Phase 13; ADR-0052): with <paramref name="brief"/>, the brief in force
+/// goes with the pack (<see cref="ContextPack.Brief"/>) as data with its SHA-256, for every agent whatever its memory policy
+/// but a judge or an auditor, which never get it (nothing is even read for them). It is not an item: it is not counted in the
+/// budget nor in the hash of the pack, no tier asks for its category, and a prompt puts it in its own block
+/// (<see cref="ProjectBriefBlock"/>). It is read after the mandatory requirements are known to fit, and a log that does not
+/// verify fails closed, as the memory does.</item>
+/// <item><b>The parts</b> of the pack (<see cref="ContextPack.Parts"/>): requirements, memory and brief, in characters.</item>
 /// </list>
 /// </summary>
 /// <param name="index">The semantic index of the projects; null to rank by the full-text search of the memory only.</param>
-public sealed class ContextPacker(IProjectMemory memory, ISemanticIndex? index = null) : IContextPacker
+/// <param name="brief">The brief of the projects; null for packs without one.</param>
+public sealed class ContextPacker(IProjectMemory memory, ISemanticIndex? index = null, IProjectBrief? brief = null) : IContextPacker
 {
     /// <summary>How many entries of memory a tier considers at most.</summary>
     public const int MaxCandidatesPerTier = 50;
@@ -90,8 +98,10 @@ public sealed class ContextPacker(IProjectMemory memory, ISemanticIndex? index =
             throw new ContextBudgetTooSmallException(required, request.BudgetCharacters);
         }
 
+        var judges = request.Agent.Role is AgentRole.Judge or AgentRole.Auditor;
+        var inForce = !judges && brief is not null ? await brief.ReadAsync(project, ct).ConfigureAwait(false) : null;
         var candidates = new List<ContextItem>();
-        var readsMemory = request.Agent.Memory == MemoryPolicy.ReadSelected && request.Agent.Role is not (AgentRole.Judge or AgentRole.Auditor);
+        var readsMemory = request.Agent.Memory == MemoryPolicy.ReadSelected && !judges;
         if (readsMemory)
         {
             candidates.AddRange(await RecallAsync(project, ContextTier.Decision, Decisions, null, ct).ConfigureAwait(false));
@@ -128,6 +138,7 @@ public sealed class ContextPacker(IProjectMemory memory, ISemanticIndex? index =
         return new ContextPack(items, omitted, characters, MetricValue<long>.EstimatedBySystem((characters + 3L) / 4, TokenEstimateSource), HashOf(items))
         {
             Relevance = relevance,
+            Brief = inForce,
         };
     }
 

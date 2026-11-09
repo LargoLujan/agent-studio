@@ -43,7 +43,8 @@ public interface IAuxiliaryAgentRunner
 /// <item>The events are passed on and read to the end; <c>AgentRunFinished</c> version 2 records the outcome, the usage
 /// with origins and breakdown, the time the process started (after any wait in the provider's queue), the model of the
 /// steps, the session it resumed, the step with the largest context and the compactions (null when the provider does not
-/// report context), with the answer as evidence reported by the agent.</item>
+/// report context), with the answer as evidence reported by the agent. The auxiliary runs of Phase 13 (<see cref="RecordsEndClass"/>)
+/// record version 3, with the class of their end (docs/17 §8.2).</item>
 /// </list>
 /// The reported model is the one of the last step (<see cref="ContextObserved.Model"/>) or, without steps, the only model
 /// of the usage breakdown; never the model of <see cref="SessionStarted"/>, which a CLI may announce for an auxiliary model
@@ -59,12 +60,28 @@ public sealed class AuxiliaryAgentRunner(IDecisionRecorder decisions, IEvidenceS
 
     private static readonly Actor SystemActor = new(ActorKind.System, SystemId);
 
+    /// <summary>
+    /// Whether <paramref name="purpose"/> is run as an auxiliary run: the assisted skill recommendation, the narrative daily
+    /// summary and, from Phase 13 (docs/17 §8.2), «Revisar el orden», the analysis of consumption with an agent and the chat of
+    /// preparation, each with the person's OK.
+    /// </summary>
+    public static bool IsAuxiliary(AgentRunPurpose purpose) =>
+        purpose is AgentRunPurpose.SkillRecommendation or AgentRunPurpose.DailySummary
+            or AgentRunPurpose.OrderReview or AgentRunPurpose.ConsumptionAnalysis or AgentRunPurpose.PreparationChat;
+
+    /// <summary>
+    /// Whether the end of a run of <paramref name="purpose"/> is recorded with its class (<c>AgentRunFinished</c> version 3,
+    /// docs/17 §8.2): the auxiliary runs of Phase 13 do; the earlier ones keep version 2, as they always wrote it.
+    /// </summary>
+    public static bool RecordsEndClass(AgentRunPurpose purpose) =>
+        purpose is AgentRunPurpose.OrderReview or AgentRunPurpose.ConsumptionAnalysis or AgentRunPurpose.PreparationChat;
+
     public async Task<AuxiliaryRunResult> RunAsync(ProjectContext project, AuxiliaryRunRequest request, IProgress<AgentEvent>? progress, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(project);
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(request.Request);
-        if (request.Purpose is not (AgentRunPurpose.SkillRecommendation or AgentRunPurpose.DailySummary))
+        if (!IsAuxiliary(request.Purpose))
         {
             throw new ArgumentException($"A {request.Purpose} run is recorded by the engine, the review, the debate or the audit, never as an auxiliary run.", nameof(request));
         }
@@ -110,13 +127,13 @@ public sealed class AuxiliaryAgentRunner(IDecisionRecorder decisions, IEvidenceS
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
-            await RecordFinishedAsync(project, run, agent.Id.Value, what, new AgentRunOutcome(AgentRunStatus.Cancelled, null, null, null, null, "Se canceló antes de arrancar."), null, null, new AgentRunObservations(reportsContext: false)).ConfigureAwait(false);
+            await RecordFinishedAsync(project, run, request.Purpose, agent.Id.Value, what, new AgentRunOutcome(AgentRunStatus.Cancelled, null, null, null, null, "Se canceló antes de arrancar."), null, null, new AgentRunObservations(reportsContext: false)).ConfigureAwait(false);
             throw;
         }
         catch (Exception ex)
         {
             var failed = new AgentRunOutcome(AgentRunStatus.Failed, null, null, null, null, "No se pudo lanzar el agente: " + ex.Message);
-            await RecordFinishedAsync(project, run, agent.Id.Value, what, failed, null, null, new AgentRunObservations(reportsContext: false)).ConfigureAwait(false);
+            await RecordFinishedAsync(project, run, request.Purpose, agent.Id.Value, what, failed, null, null, new AgentRunObservations(reportsContext: false)).ConfigureAwait(false);
             return new AuxiliaryRunResult(run, failed, null, prompt.Id, null);
         }
 
@@ -149,13 +166,13 @@ public sealed class AuxiliaryAgentRunner(IDecisionRecorder decisions, IEvidenceS
                 answer = (await CaptureAsync(project, run, EvidenceKind.AgentStatement, EvidenceOrigin.ReportedByAgent, $"Respuesta de {what}", agent.Id.Value, text, mediaType, CancellationToken.None).ConfigureAwait(false)).Id;
             }
 
-            await RecordFinishedAsync(project, run, agent.Id.Value, what, outcome, seen.Usage, answer, seen).ConfigureAwait(false);
+            await RecordFinishedAsync(project, run, request.Purpose, agent.Id.Value, what, outcome, seen.Usage, answer, seen).ConfigureAwait(false);
             ct.ThrowIfCancellationRequested();
             return new AuxiliaryRunResult(run, outcome, seen.Usage, prompt.Id, answer);
         }
     }
 
-    private Task<DecisionEntry> RecordFinishedAsync(ProjectContext project, RunId run, string agent, string what, AgentRunOutcome outcome, TokenUsage? usage, EvidenceId? answer, AgentRunObservations seen) =>
+    private Task<DecisionEntry> RecordFinishedAsync(ProjectContext project, RunId run, AgentRunPurpose purpose, string agent, string what, AgentRunOutcome outcome, TokenUsage? usage, EvidenceId? answer, AgentRunObservations seen) =>
         decisions.RecordAsync(
             project.ProjectId,
             SystemActor,
@@ -175,10 +192,11 @@ public sealed class AuxiliaryAgentRunner(IDecisionRecorder decisions, IEvidenceS
                 seen.ResumedSession,
                 seen.PeakSnapshot(usage),
                 seen.Compactions,
-                usage?.Turns)
+                usage?.Turns,
+                RecordsEndClass(purpose) ? AttemptEndSnapshot.From(outcome.Classified()) : null)
             {
                 RunId = run.Value,
-                V = AgentRunFinishedPayload.UsageVersion,
+                V = RecordsEndClass(purpose) ? AgentRunFinishedPayload.EndClassVersion : AgentRunFinishedPayload.UsageVersion,
                 Journal = outcome.Journal,
             },
             cancellationToken: CancellationToken.None);
@@ -229,6 +247,9 @@ public sealed class AuxiliaryAgentRunner(IDecisionRecorder decisions, IEvidenceS
     {
         AgentRunPurpose.SkillRecommendation => "la recomendación de skills",
         AgentRunPurpose.DailySummary => "el resumen diario",
+        AgentRunPurpose.OrderReview => "la revisión del orden",
+        AgentRunPurpose.ConsumptionAnalysis => "el análisis del consumo",
+        AgentRunPurpose.PreparationChat => "el chat de preparación",
         _ => purpose.ToString(),
     };
 }

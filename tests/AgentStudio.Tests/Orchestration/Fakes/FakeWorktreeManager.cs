@@ -172,8 +172,27 @@ internal sealed class FakeWorktreeManager : IWorktreeManager
         return Task.CompletedTask;
     }
 
-    public Task<RemovalOutcome> RemoveAsync(WorktreeLease lease, bool discardChanges, CancellationToken cancellationToken) =>
-        throw new NotSupportedException("The engine never removes worktrees.");
+    /// <summary>
+    /// Whether <see cref="RemoveAsync"/> removes (the read-only copy of a chat of preparation, docs/17 D-44); off by default,
+    /// because the engine never removes worktrees and a test of the engine must fail if it tried.
+    /// </summary>
+    public bool AllowRemove { get; set; }
+
+    public Task<RemovalOutcome> RemoveAsync(WorktreeLease lease, bool discardChanges, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(lease);
+        if (!AllowRemove)
+        {
+            throw new NotSupportedException("The engine never removes worktrees.");
+        }
+
+        lock (_gate)
+        {
+            _calls.Add($"remove {lease.Name} {lease.Run}");
+            _worktrees.Remove(lease.Path);
+            return Task.FromResult(RemovalOutcome.Removed);
+        }
+    }
 
     public Task<string?> ResolveCommitAsync(string repoRoot, string revision, CancellationToken cancellationToken)
     {

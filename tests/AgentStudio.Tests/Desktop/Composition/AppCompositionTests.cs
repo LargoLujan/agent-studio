@@ -4,6 +4,8 @@ using AgentStudio.Application.Coordination;
 using AgentStudio.Application.Git;
 using AgentStudio.Application.Judging;
 using AgentStudio.Application.Knowledge;
+using AgentStudio.Application.Analysis;
+using AgentStudio.Application.Models;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Projects;
@@ -26,7 +28,9 @@ using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Desktop.ViewModels;
 using AgentStudio.Infrastructure.Git;
+using AgentStudio.Infrastructure.Models;
 using AgentStudio.Infrastructure.Skills;
+using AgentStudio.Observability.Analysis;
 using AgentStudio.Observability.Quota;
 using Engine = AgentStudio.Orchestration.Engine;
 using AgentStudio.Providers.Cli;
@@ -94,6 +98,35 @@ public sealed class AppCompositionTests
         Assert.NotNull(provider.GetRequiredService<ISkillActivationStore>());
         Assert.IsType<FileVerificationProfileSource>(provider.GetRequiredService<IVerificationProfileSource>());
         Assert.True(provider.GetRequiredService<OrchestrationSession>().HasEngine);
+    }
+
+    [Fact]
+    public void The_models_the_estimate_and_the_analysis_of_consumption_resolve_with_one_catalog()
+    {
+        using var temp = new TempDirectory();
+        using var provider = Build(FoldersIn(temp));
+
+        var catalog = Assert.IsType<BuiltInModelCatalog>(provider.GetRequiredService<IModelCatalogSource>());
+        Assert.NotNull(provider.GetRequiredService<IModelLearning>());
+        Assert.NotNull(provider.GetRequiredService<IUsageEstimator>());
+        Assert.NotNull(provider.GetRequiredService<IConsumptionAnalyzer>());
+        Assert.NotNull(provider.GetRequiredService<IAssistedConsumptionAnalysis>());
+        Assert.Same(catalog.Current.Catalog, provider.GetRequiredService<ConsumptionAnalysisOptions>().Catalog);
+    }
+
+    [Fact]
+    public void The_order_review_and_the_chat_of_preparation_resolve_once_and_share_the_one_register_of_the_oks()
+    {
+        using var temp = new TempDirectory();
+        using var provider = Build(FoldersIn(temp));
+
+        Assert.Same(provider.GetRequiredService<IOrderReview>(), provider.GetRequiredService<IOrderReview>());
+        Assert.Same(provider.GetRequiredService<IPreparationChat>(), provider.GetRequiredService<IPreparationChat>());
+        var ledger = provider.GetRequiredService<IQuotaConsentLedger>();
+        Assert.IsType<QuotaConsentLedger>(ledger);
+        var consent = new QuotaConsent("miveritas", DateTimeOffset.UnixEpoch, "Revisar el orden");
+        Assert.True(ledger.TrySpend(consent));
+        Assert.False(provider.GetRequiredService<IQuotaConsentLedger>().TrySpend(consent)); // the same register for the whole app
     }
 
     [Fact]

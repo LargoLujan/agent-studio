@@ -4,6 +4,7 @@ using AgentStudio.Application.Knowledge;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Semantic;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Markdown;
 using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Orchestrator;
@@ -35,6 +36,7 @@ public static class MemoryTexts
         MemoryKind.Verdict => "Veredicto",
         MemoryKind.DailySummary => "Resumen diario",
         MemoryKind.JournalEntry => "Bitácora",
+        MemoryKind.ProjectBrief => Texts.Get("Memory_Kind_ProjectBrief"),
         _ => kind.ToString(),
     };
 

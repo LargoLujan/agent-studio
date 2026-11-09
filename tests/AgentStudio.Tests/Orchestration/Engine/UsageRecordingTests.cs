@@ -128,7 +128,7 @@ public sealed class UsageRecordingTests
         await PlanAsync(harness);
 
         var (startEntry, started) = Assert.Single(harness.Payloads<AgentRunStartedPayload>());
-        Assert.Equal((AgentRunStartedPayload.PurposeVersion, AgentRunPurpose.Planner), (started.V, started.Purpose));
+        Assert.Equal((AgentRunStartedPayload.ContextPartsVersion, AgentRunPurpose.Planner), (started.V, started.Purpose));
         Assert.Null(started.ContextPack);
 
         var (_, finished) = Assert.Single(harness.Payloads<AgentRunFinishedPayload>());
@@ -182,7 +182,7 @@ public sealed class UsageRecordingTests
         await run.CompleteAsync(harness);
 
         var (startEntry, started) = Assert.Single(harness.Payloads<AgentRunStartedPayload>(), p => p.Payload.Task == new TaskId("T1"));
-        Assert.Equal((AgentRunStartedPayload.PurposeVersion, AgentRunPurpose.Executor), (started.V, started.Purpose));
+        Assert.Equal((AgentRunStartedPayload.ContextPartsVersion, AgentRunPurpose.Executor), (started.V, started.Purpose));
         var finished = Assert.Single(harness.Payloads<AgentRunFinishedPayload>(), p => p.Payload.Task == new TaskId("T1")).Payload;
         Assert.Equal((AgentRunFinishedPayload.EndClassVersion, "claude-sonnet-5-5", 1, 3), (finished.V, finished.ReportedModel, finished.Compactions, finished.Turns));
         Assert.Equal(new AttemptEndSnapshot(AttemptEndClass.Completed), finished.End);

@@ -55,14 +55,14 @@ public sealed class SettingsRenderTests
                 "Seguir siempre en la bandeja",
                 "Salir de Agent Studio",
                 "Impedir la suspensión mientras hay trabajo",
-                "Pedir Windows Hello en las aprobaciones críticas",
+                HelloTexts.SettingLabel,
                 "Bloquear la interfaz tras un tiempo sin actividad",
                 "Búsqueda en el historial para el orquestador",
             ],
             labels);
         Assert.Equal(0, outside);
         Assert.Contains("Preguntar si hay trabajo en marcha (sin trabajo, sale)", wrapped);
-        Assert.Contains("Pedir Windows Hello en las aprobaciones críticas", wrapped);
+        Assert.Contains(HelloTexts.SettingLabel, wrapped);
     }
 
     [Fact]

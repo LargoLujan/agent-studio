@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the interface in Spanish of Spain, the source language (NeutralResourcesLanguage es-ES; docs/17 D-47, ADR-0054). Every key exists in each satellite with the same placeholders (LocalizationResourcesTests). Area files of the packages of Phase 13 are Resources/<Area>Strings.resx, found by convention. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Info_Button_Name" xml:space="preserve">
+    <value>Información sobre {0}</value>
+    <comment>Accessible name of the ⓘ button. {0}: the name of the section.</comment>
+  </data>
+  <data name="Info_WhatIsThis" xml:space="preserve">
+    <value>Qué es esto</value>
+    <comment>Heading of the first part of an ⓘ window.</comment>
+  </data>
+  <data name="Info_WhatYouCanDo" xml:space="preserve">
+    <value>Qué puedes hacer aquí</value>
+    <comment>Heading of the list of actions of an ⓘ window.</comment>
+  </data>
+  <data name="Info_MoreHelp" xml:space="preserve">
+    <value>Más ayuda</value>
+    <comment>Link to the article of the help (Phase 14); shown only when there is one.</comment>
+  </data>
+  <data name="Info_CloseHint" xml:space="preserve">
+    <value>Esc cierra esta ayuda.</value>
+    <comment>Help text of the ⓘ button.</comment>
+  </data>
+  <data name="Info_Language_Title" xml:space="preserve">
+    <value>Idioma</value>
+    <comment>Title of the section of the language.</comment>
+  </data>
+  <data name="Info_Language_What" xml:space="preserve">
+    <value>Es el idioma de los textos de Agent Studio. La primera vez es el de Windows, si Agent Studio lo tiene; si no, el inglés.</value>
+    <comment>What the section of the language is: two or three sentences.</comment>
+  </data>
+  <data name="Info_Language_Actions" xml:space="preserve">
+    <value>Elegir otro idioma de la lista.
+Reiniciar Agent Studio para verlo: el cambio se aplica al reiniciar.</value>
+    <comment>What can be done in the section of the language: one action per line.</comment>
+  </data>
+  <data name="Language_Windows" xml:space="preserve">
+    <value>El de Windows ({0})</value>
+    <comment>{0}: the native name of the language of Windows.</comment>
+  </data>
+  <data name="Language_Review_Person" xml:space="preserve">
+    <value>Revisado por una persona</value>
+    <comment>Status of a language.</comment>
+  </data>
+  <data name="Language_Review_Machine" xml:space="preserve">
+    <value>Traducción automática revisada</value>
+    <comment>Status of a language.</comment>
+  </data>
+  <data name="Language_AppliesOnRestart" xml:space="preserve">
+    <value>El idioma cambia al reiniciar Agent Studio.</value>
+    <comment>Said next to the list of languages.</comment>
+  </data>
+  <data name="Settings_ReduceMotion" xml:space="preserve">
+    <value>Reducir movimiento</value>
+    <comment>Setting that turns the animations off.</comment>
+  </data>
+  <data name="Settings_ReduceMotion_Help" xml:space="preserve">
+    <value>Apaga las animaciones del lienzo. El estado sigue en el texto y en el icono.</value>
+    <comment>Help of the setting «Reducir movimiento».</comment>
+  </data>
+  <data name="Settings_HelloImportant" xml:space="preserve">
+    <value>Pedir Windows Hello también en las aprobaciones importantes</value>
+    <comment>The Hello setting with its new name (D-38).</comment>
+  </data>
+  <data name="Settings_HelloImportant_Help" xml:space="preserve">
+    <value>Lo crítico siempre pide Windows Hello: entregar a tu rama, dar a un agente shell, red o más carpetas, o cambiar el perfil de verificación.</value>
+    <comment>Help of the Hello setting: what it does not govern.</comment>
+  </data>
+  <data name="ContextPart_Protocol" xml:space="preserve">
+    <value>Instrucciones del protocolo</value>
+    <comment>A part of the bar of context.</comment>
+  </data>
+  <data name="ContextPart_Requirements" xml:space="preserve">
+    <value>Requisitos</value>
+    <comment>A part of the bar of context.</comment>
+  </data>
+  <data name="ContextPart_ProjectBrief" xml:space="preserve">
+    <value>Ficha del proyecto</value>
+    <comment>A part of the bar of context.</comment>
+  </data>
+  <data name="ContextPart_AgentInstructions" xml:space="preserve">
+    <value>Instrucciones del agente</value>
+    <comment>A part of the bar of context.</comment>
+  </data>
+  <data name="ContextPart_Memory" xml:space="preserve">
+    <value>Memoria</value>
+    <comment>A part of the bar of context.</comment>
+  </data>
+  <data name="ContextPart_Upstream" xml:space="preserve">
+    <value>De otras tareas</value>
+    <comment>A part of the bar of context.</comment>
+  </data>
+  <data name="ContextPart_PreviousAttempt" xml:space="preserve">
+    <value>Intento anterior o traspaso</value>
+    <comment>A part of the bar of context.</comment>
+  </data>
+  <data name="ContextPart_HumanAnswer" xml:space="preserve">
+    <value>Tu respuesta</value>
+    <comment>A part of the bar of context.</comment>
+  </data>
+  <data name="ContextPart_Skills" xml:space="preserve">
+    <value>Skills</value>
+    <comment>A part of the bar of context. A product name: not translated.</comment>
+  </data>
+  <data name="ContextPart_Conversation" xml:space="preserve">
+    <value>Conversación y herramientas</value>
+    <comment>What the CLI reports beyond the parts.</comment>
+  </data>
+  <data name="MetricBar_Parts" xml:space="preserve">
+    <value>Por partes: {0}</value>
+    <comment>Accessible text of a bar with parts. {0}: each part with its value.</comment>
+  </data>
+  <data name="Memory_Kind_ProjectBrief" xml:space="preserve">
+    <value>Ficha del proyecto</value>
+    <comment>Category of memory.</comment>
+  </data>
+  <data name="AgentState_Idle" xml:space="preserve">
+    <value>Libre</value>
+    <comment>State of an agent.</comment>
+  </data>
+  <data name="AgentState_Queued" xml:space="preserve">
+    <value>En cola</value>
+    <comment>State of an agent: waiting for a free slot of its program.</comment>
+  </data>
+  <data name="AgentState_Working" xml:space="preserve">
+    <value>Trabajando en {0}</value>
+    <comment>{0}: the task.</comment>
+  </data>
+  <data name="AgentState_WaitingForQuota" xml:space="preserve">
+    <value>Esperando cuota hasta las {0}</value>
+    <comment>{0}: the time the window resets.</comment>
+  </data>
+  <data name="AgentState_Asking" xml:space="preserve">
+    <value>Te pregunta algo</value>
+    <comment>State of an agent.</comment>
+  </data>
+  <data name="AgentState_AwaitingApproval" xml:space="preserve">
+    <value>Espera tu aprobación</value>
+    <comment>State of an agent.</comment>
+  </data>
+  <data name="AgentState_Blocked" xml:space="preserve">
+    <value>Bloqueado: {0}</value>
+    <comment>{0}: why.</comment>
+  </data>
+  <data name="AgentState_Finished" xml:space="preserve">
+    <value>Terminado</value>
+    <comment>State of an agent.</comment>
+  </data>
+  <data name="Text_question_awaiting_answer" xml:space="preserve">
+    <value>Espera tu respuesta</value>
+    <comment>UserText question.awaiting-answer: why a task that asked waits (D-29).</comment>
+  </data>
+  <data name="Text_question_too_many" xml:space="preserve">
+    <value>Demasiadas preguntas: revisa los requisitos.</value>
+    <comment>UserText question.too-many: a task or a run passed its cap of questions (D-29).</comment>
+  </data>
+</root>

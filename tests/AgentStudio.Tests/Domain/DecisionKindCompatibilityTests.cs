@@ -91,15 +91,31 @@ public sealed class DecisionKindCompatibilityTests
     private static readonly string[] Phase12Kinds = ["JournalTrustChanged"];
 
     [Fact]
-    public void Phase_12_kinds_come_after_the_phase_8_ones_and_nothing_else_was_added()
+    public void Phase_12_kinds_come_after_the_phase_8_ones()
     {
         var before = ExistingKinds.Length + Phase3Kinds.Length + Phase4Kinds.Length + Phase5Kinds.Length + Phase8Kinds.Length;
         for (var i = 0; i < Phase12Kinds.Length; i++)
         {
             Assert.Equal(Phase12Kinds[i], ((DecisionKind)(before + i)).ToString());
         }
+    }
 
-        Assert.Equal(before + Phase12Kinds.Length, Enum.GetValues<DecisionKind>().Length);
+    /// <summary>
+    /// Phase 13 (docs/17 D-27 and D-29): the question of an agent, the answer of the person and what the configurator applied,
+    /// appended after Phase 12.
+    /// </summary>
+    private static readonly string[] Phase13Kinds = ["QuestionAsked", "QuestionAnswered", "ProjectSetupApplied"];
+
+    [Fact]
+    public void Phase_13_kinds_come_after_the_phase_12_ones_and_nothing_else_was_added()
+    {
+        var before = ExistingKinds.Length + Phase3Kinds.Length + Phase4Kinds.Length + Phase5Kinds.Length + Phase8Kinds.Length + Phase12Kinds.Length;
+        for (var i = 0; i < Phase13Kinds.Length; i++)
+        {
+            Assert.Equal(Phase13Kinds[i], ((DecisionKind)(before + i)).ToString());
+        }
+
+        Assert.Equal(before + Phase13Kinds.Length, Enum.GetValues<DecisionKind>().Length);
     }
 
     [Fact]

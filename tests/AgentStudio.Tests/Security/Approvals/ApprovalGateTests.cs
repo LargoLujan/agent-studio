@@ -55,7 +55,7 @@ public sealed class ApprovalGateTests
         public IReadOnlyList<DecisionEntry> Log => Store.Of(Project);
     }
 
-    private static ApprovalRequest Request(RiskLevel risk = RiskLevel.Destructive, string action = "worktree-remove", string? project = Project) =>
+    private static ApprovalRequest Request(RiskLevel risk = RiskLevel.Destructive, string action = "discard-run-work", string? project = Project) =>
         new(action, "Quitar el worktree T1 con cambios sin commit", risk, null, ["C:\\wt\\T1"], project, Run, "T1");
 
     private static async Task<ApprovalDecision> AskAsync(Harness harness, ApprovalRequest? request = null, CancellationToken? cancellationToken = null) =>
@@ -100,7 +100,8 @@ public sealed class ApprovalGateTests
     [InlineData(false)]
     public async Task The_decision_answers_the_binding_of_its_request_whatever_the_prompt_says(bool approved)
     {
-        var harness = new Harness(new ScriptedPrompt((_, _) => Task.FromResult(new ApprovalDecision(approved, "manuel", T0, null, Answers: "otra-peticion"))));
+        // A delivery is on the list of the fixed barrier: its yes counts only confirmed (docs/17 D-37).
+        var harness = new Harness(new ScriptedPrompt((_, _) => Task.FromResult(new ApprovalDecision(approved, "manuel", T0, null, Answers: "otra-peticion", Verification: ApprovalVerification.WindowsHello))));
 
         var decision = await AskAsync(harness, Request(RiskLevel.Critical, action: "deliver-integration") with { Binding = "delivery-v1:la-peticion" });
 
@@ -130,11 +131,11 @@ public sealed class ApprovalGateTests
         Assert.Equal([DecisionKind.ApprovalRequested, DecisionKind.ApprovalGranted], harness.Log.Select(e => e.Kind));
         Assert.Equal(new Actor(ActorKind.System, "agent-studio"), harness.Log[0].Actor);
         var asked = Payload<ApprovalRequestedPayload>(harness.Log[0]);
-        Assert.Equal(("worktree-remove", RiskLevel.Destructive, Tid("T1"), Run), (asked.Action, asked.Risk, asked.Task!.Value, asked.RunId));
+        Assert.Equal(("discard-run-work", RiskLevel.Destructive, Tid("T1"), Run), (asked.Action, asked.Risk, asked.Task!.Value, asked.RunId));
         Assert.Equal(["C:\\wt\\T1"], asked.AffectedPaths);
         Assert.Equal(new Actor(ActorKind.User, "manuel"), harness.Log[1].Actor);
         var answered = Payload<ApprovalAnsweredPayload>(harness.Log[1]);
-        Assert.Equal(("worktree-remove", true, "manuel", "adelante", Run), (answered.Action, answered.Approved, answered.DecidedBy, answered.Comment, answered.RunId));
+        Assert.Equal(("discard-run-work", true, "manuel", "adelante", Run), (answered.Action, answered.Approved, answered.DecidedBy, answered.Comment, answered.RunId));
         Assert.True((await harness.Recorder.LoadAsync(Project, TestContext.Current.CancellationToken)).Verification.IsValid);
     }
 
@@ -323,14 +324,15 @@ public sealed class ApprovalGateTests
     {
         var harness = new Harness(Confirmed(approved, ApprovalVerification.Dialog, comment: "adelante"));
 
-        var decision = await AskAsync(harness, Request(RiskLevel.Critical, action: "deliver-integration"));
+        // A critical action that is configurable (docs/17 D-37): the dialog alone may decide it.
+        var decision = await AskAsync(harness, Request(RiskLevel.Critical, action: "debate.open"));
 
         Assert.Equal(ApprovalVerification.Dialog, decision.Verification);
         var answer = harness.Log[1];
         Assert.Equal(new Actor(ActorKind.User, "user"), answer.Actor);
 
         // The same text as before Phase 8, byte for byte: a version 1 answer is one the dialog gave.
-        var v1 = DecisionPayloadSerializer.Serialize(new ApprovalAnsweredPayload("deliver-integration", approved, "user", "adelante", Tid("T1")) { RunId = Run });
+        var v1 = DecisionPayloadSerializer.Serialize(new ApprovalAnsweredPayload("debate.open", approved, "user", "adelante", Tid("T1")) { RunId = Run });
         Assert.Equal(v1, answer.PayloadJson);
         var read = Payload<ApprovalAnsweredPayload>(answer);
         Assert.Equal(1, read.V);
@@ -358,7 +360,10 @@ public sealed class ApprovalGateTests
         Assert.True((await harness.Recorder.LoadAsync(Project, TestContext.Current.CancellationToken)).Verification.IsValid);
     }
 
-    /// <summary>«Sin Hello: no disponible»: the dialog decided alone, with a warning, and the answer (yes or no) is the person's.</summary>
+    /// <summary>
+    /// «Sin Hello: no disponible»: the dialog decided alone, with a warning, and the answer (yes or no) is the person's. Only for
+    /// what is configurable (docs/17 D-37): an action of the list never takes such a yes (<see cref="PresenceBarrierGateTests"/>).
+    /// </summary>
     [Theory]
     [InlineData(true, DecisionKind.ApprovalGranted)]
     [InlineData(false, DecisionKind.ApprovalDenied)]
@@ -366,7 +371,7 @@ public sealed class ApprovalGateTests
     {
         var harness = new Harness(Confirmed(approved, ApprovalVerification.WindowsHelloUnavailable));
 
-        var decision = await AskAsync(harness, Request(RiskLevel.Critical, action: "deliver-integration"));
+        var decision = await AskAsync(harness, Request(RiskLevel.Critical, action: "debate.open"));
 
         Assert.Equal((approved, "user", ApprovalVerification.WindowsHelloUnavailable), (decision.Approved, decision.DecidedBy, decision.Verification));
         Assert.Equal(kind, harness.Log[1].Kind);

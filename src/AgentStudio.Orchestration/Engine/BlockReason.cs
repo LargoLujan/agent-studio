@@ -16,11 +16,18 @@ internal enum BlockKind
 
     /// <summary>The agent said it cannot go on without a person.</summary>
     AwaitingHuman,
+
+    /// <summary>
+    /// Phase 13 (docs/17 D-29): the agent asked the person a question with options, and the task waits for the answer
+    /// («Espera tu respuesta»). It is not «bloqueada»: nothing is wrong, and a restart keeps it waiting (no process to cut).
+    /// Only the answer moves it on (<c>AnswerAsync</c>); a retry without one is refused.
+    /// </summary>
+    AwaitingAnswer,
 }
 
 /// <summary>
 /// A structured block reason. Its text form (<see cref="ToString"/>) is what the decision log and the UI carry:
-/// <c>Interrupted</c>, <c>ProviderUnavailable</c>, <c>AwaitingHuman</c>, <c>RateLimitedUntil(2026-10-15T10:00:00.0000000+00:00)</c>
+/// <c>Interrupted</c>, <c>ProviderUnavailable</c>, <c>AwaitingHuman</c>, <c>AwaitingAnswer</c> (Phase 13), <c>RateLimitedUntil(2026-10-15T10:00:00.0000000+00:00)</c>
 /// or, for a wait the system estimated because the provider did not say when its limit resets (docs/16 D-37),
 /// <c>RateLimitedUntilEstimated(2026-10-15T10:00:00.0000000+00:00)</c>. The second form does not start with
 /// <c>RateLimitedUntil(</c>: a reader that looks for that exact prefix does not see it, so whoever reads a block reason
@@ -31,6 +38,7 @@ internal sealed record BlockReason(BlockKind Kind, DateTimeOffset? Until = null,
     public static readonly BlockReason Interrupted = new(BlockKind.Interrupted);
     public static readonly BlockReason ProviderUnavailable = new(BlockKind.ProviderUnavailable);
     public static readonly BlockReason AwaitingHuman = new(BlockKind.AwaitingHuman);
+    public static readonly BlockReason AwaitingAnswer = new(BlockKind.AwaitingAnswer);
 
     private const string EstimatedSuffix = "Estimated";
 

@@ -113,7 +113,7 @@ internal sealed class RunResumer(EnginePorts ports)
         // And it writes at medium integrity exactly as the user approved, or it is not resumed (G-02): the writers are read
         // again from the checked plan, roster and profile with that answer, before the baseline is taken and before
         // anything is recovered or launched.
-        await CheckApprovedWritersAsync(recorder, started, MediumIntegrityWriters.Find(context.Plan, record.Roster, context.Profile, claudeWritesConfined), cancellationToken).ConfigureAwait(false);
+        await CheckApprovedWritersAsync(recorder, entries, started, MediumIntegrityWriters.Find(context.Plan, record.Roster, context.Profile, claudeWritesConfined), cancellationToken).ConfigureAwait(false);
         var guard = new UserRepositoryGuard(ports.Worktrees, project.RootPath, UserRepositoryGuard.CanWriteAtMediumIntegrity(context.Plan, record.Roster, context.Profile, claudeWritesConfined), recorder);
         await guard.EstablishBaselineAsync(cancellationToken).ConfigureAwait(false);
         var graph = replay.Graph;
@@ -121,6 +121,7 @@ internal sealed class RunResumer(EnginePorts ports)
         try
         {
             await LoadAttemptRecordsAsync(recorder, entries, graph, ledger, cancellationToken).ConfigureAwait(false);
+            await Questions.QuestionRecovery.LoadAsync(recorder, entries, replay, ledger.Questions, cancellationToken).ConfigureAwait(false);
         }
         catch (InvalidOperationException ex)
         {
@@ -140,6 +141,7 @@ internal sealed class RunResumer(EnginePorts ports)
 
         ledger.IntegrationCommit = LastIntegration(entries, context, ledger);
         await RecoverAsync(recorder, entries, context, graph, ledger, cancellationToken).ConfigureAwait(false);
+        await ContinueAnsweredAsync(recorder, entries, context, graph, ledger, cancellationToken).ConfigureAwait(false);
         await ReopenInterruptedAsync(recorder, context, graph, ledger, cause, cancellationToken).ConfigureAwait(false);
         return new ResumedRun(context, graph, ledger, recorder, guard);
     }
@@ -173,10 +175,16 @@ internal sealed class RunResumer(EnginePorts ports)
     /// The writers at medium integrity the plan of the run has now (<paramref name="writers"/>) must be the ones
     /// <c>RunStarted</c> anchored when it was approved (version 3, <see cref="MediumIntegrityWriters.AreTheApproved"/>),
     /// none included. A <c>RunStarted</c> older than that anchored nothing, so its run goes on only while its plan has
-    /// none. Otherwise the alert says why, nothing more is written, and <see cref="RunNeedsApprovalException"/> carries the
-    /// warning the plan has now: the way forward is approving it again, which starts a follow-up run.
+    /// none. Otherwise the alert says why (once per refusal, <see cref="NotResumableAlert.AlreadyRecorded"/>: a run that resumes
+    /// by consent is tried at every start of the app), nothing more is written, and <see cref="RunNeedsApprovalException"/>
+    /// carries the warning the plan has now: the way forward is approving it again, which starts a follow-up run.
     /// </summary>
-    private static async Task CheckApprovedWritersAsync(RunRecorder recorder, RunStartedPayload started, IReadOnlyList<MediumIntegrityWriter> writers, CancellationToken cancellationToken)
+    private static async Task CheckApprovedWritersAsync(
+        RunRecorder recorder,
+        IReadOnlyList<(DecisionEntry Entry, DecisionPayload Payload)> entries,
+        RunStartedPayload started,
+        IReadOnlyList<MediumIntegrityWriter> writers,
+        CancellationToken cancellationToken)
     {
         var anchored = started.AnchorsApprovedWriters();
         if (anchored ? MediumIntegrityWriters.AreTheApproved(started.ApprovedWriters ?? [], writers) : writers.Count == 0)
@@ -191,11 +199,15 @@ internal sealed class RunResumer(EnginePorts ports)
                 + $"Approved: «{started.ApprovedWarning ?? "none"}». Now: «{now ?? "none"}». It is not resumed with writers the user did not approve: approve its plan again, which starts a follow-up run."
             : string.Create(CultureInfo.InvariantCulture, $"It started with RunStarted version {started.V}, before the writers at medium integrity a run was approved with were anchored in the decision log, and its plan has such writers now: «{now}». ")
                 + "It is not resumed with writers nobody can say the user approved: approve its plan again, which starts a follow-up run.";
-        await recorder.RecordAsync(
-            DecisionKind.AuditAlertRaised,
-            $"La ejecución {recorder.Run} no se puede reanudar",
-            new AuditAlertPayload("run.not-resumable", [], problem) { RunId = recorder.RunValue },
-            cancellationToken).ConfigureAwait(false);
+        if (!NotResumableAlert.AlreadyRecorded(entries, problem))
+        {
+            await recorder.RecordAsync(
+                DecisionKind.AuditAlertRaised,
+                $"La ejecución {recorder.Run} no se puede reanudar",
+                new AuditAlertPayload(NotResumableAlert.Code, [], problem) { RunId = recorder.RunValue },
+                cancellationToken).ConfigureAwait(false);
+        }
+
         throw new RunNeedsApprovalException($"Run {recorder.Run} cannot be resumed: {problem}", recorder.Run, started.PlanHash, anchored, anchored ? started.ApprovedWarning : null, now);
     }
 
@@ -210,7 +222,11 @@ internal sealed class RunResumer(EnginePorts ports)
         throw new InvalidOperationException($"Run {recorder.Run} cannot be resumed: {problem}");
     }
 
-    /// <summary>The events of the domain in the entries of a run, in log order: what <see cref="RunStateReplayer"/> replays.</summary>
+    /// <summary>
+    /// The events of the domain in the entries of a run, in log order: what <see cref="RunStateReplayer"/> replays. Phase 13
+    /// adds the questions (<c>QuestionAsked</c> and <c>QuestionAnswered</c>) and the reason of every block, so replay knows
+    /// which task waits for an answer.
+    /// </summary>
     internal static IEnumerable<RunEvent> Events(IReadOnlyList<(DecisionEntry Entry, DecisionPayload Payload)> entries)
     {
         foreach (var (entry, payload) in entries)
@@ -218,10 +234,16 @@ internal sealed class RunResumer(EnginePorts ports)
             switch (payload)
             {
                 case TaskStatusChangedPayload p:
-                    yield return new TaskTransitioned(entry.RecordedAt, p.Task, p.From, p.To, p.Reason, p.Evidence);
+                    yield return new TaskTransitioned(entry.RecordedAt, p.Task, p.From, p.To, p.Reason, p.Evidence, p.BlockReason);
                     break;
                 case ConditionEvaluatedPayload p:
                     yield return new ConditionResolved(entry.RecordedAt, p.Task, p.Branch);
+                    break;
+                case QuestionAskedPayload p:
+                    yield return new QuestionPosed(entry.RecordedAt, p.Task, p.Question);
+                    break;
+                case QuestionAnsweredPayload p:
+                    yield return new QuestionResolved(entry.RecordedAt, p.Task, p.Question);
                     break;
             }
         }
@@ -236,6 +258,7 @@ internal sealed class RunResumer(EnginePorts ports)
         var ledger = new RunLedger();
         var launched = new HashSet<TaskId>(); // the tasks whose agent was launched since they last became pending
         var stoppedReviews = new HashSet<TaskId>(); // the reviews whose current launch a check stopped
+        var lastFinished = new Dictionary<TaskId, AgentRunFinishedPayload>(); // the latest end of each task, for its question
         foreach (var (entry, payload) in entries)
         {
             switch (payload)
@@ -263,6 +286,7 @@ internal sealed class RunResumer(EnginePorts ports)
 
                     break;
                 case AgentRunFinishedPayload { Task: { } task } finished:
+                    lastFinished[task] = finished;
                     if (finished.SessionId is { } session)
                     {
                         ledger.Sessions[task] = session;
@@ -282,6 +306,19 @@ internal sealed class RunResumer(EnginePorts ports)
                     else
                     {
                         ledger.Renew.Remove(task);
+                    }
+
+                    break;
+                case QuestionAskedPayload { Task: { } task } asked when lastFinished.TryGetValue(task, out var asking) && asking.Attempt == asked.Attempt:
+                    // The attempt with the answer resumes the session that asked (docs/17 D-30), as the live run decided at its end:
+                    // a new one with a handoff when it left none, or when its context reached the compression threshold.
+                    if (string.IsNullOrWhiteSpace(asking.SessionId))
+                    {
+                        ledger.Renew[task] = HandoffReason.SessionNotResumable;
+                    }
+                    else if (Handoff.NearlyFull(asking.ContextPeak))
+                    {
+                        ledger.Renew[task] = HandoffReason.ContextNearlyFull;
                     }
 
                     break;
@@ -659,6 +696,26 @@ internal sealed class RunResumer(EnginePorts ports)
         }
 
         ledger.VerdictId = verdict.VerdictId;
+    }
+
+    /// <summary>
+    /// Phase 13 (docs/17 D-29 and D-30): what an answer recorded just before the app stopped left undone. A task still blocked
+    /// waiting for an answer it already got goes on now, as it would have live, and the decision for the judge of every answered
+    /// question is captured if it is not yet. A task whose question is still pending keeps waiting: no process to cut.
+    /// </summary>
+    private async Task ContinueAnsweredAsync(
+        RunRecorder recorder,
+        IReadOnlyList<(DecisionEntry Entry, DecisionPayload Payload)> entries,
+        RunContext context,
+        TaskGraph graph,
+        RunLedger ledger,
+        CancellationToken cancellationToken)
+    {
+        await Questions.QuestionRecovery.CaptureMissingDecisionsAsync(recorder, entries, ledger.Questions, graph.Tasks.Select(t => t.Id), cancellationToken).ConfigureAwait(false);
+        foreach (var task in graph.Tasks.Where(t => t.Status == WorkTaskStatus.Blocked && ledger.Blocks.GetValueOrDefault(t.Id)?.Kind == BlockKind.AwaitingAnswer && !ledger.Questions.Pending.ContainsKey(t.Id)).ToList())
+        {
+            await MoveAsync(recorder, graph, ledger, task.Id, WorkTaskStatus.Pending, "Su pregunta ya tenía respuesta cuando se cerró la aplicación: sigue con un intento nuevo.", null, context, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     /// <summary>The resume: the partial work of each interrupted attempt is kept as evidence and its worktree reset; the task is pending again.</summary>

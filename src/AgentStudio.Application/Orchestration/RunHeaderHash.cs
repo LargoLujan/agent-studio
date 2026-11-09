@@ -26,6 +26,10 @@ namespace AgentStudio.Application.Orchestration;
 /// and <see cref="RunOptions.AutoResumeConsent"/>, ADR-0034) come after the roster, and only when they are not the defaults,
 /// each as its name and its value in a fixed order: the hash of every header stored before them does not change. The roster
 /// delimits itself (its count and the fields of each agent), so a header with them never reads as one without.</item>
+/// <item>Phase 13 (docs/17 §8.2): the efforts the roster sets come with it (<see cref="RosterHash"/>), each as <c>effort</c>,
+/// the agent and its value; and the consent to answer with the recommended option
+/// (<see cref="RunOptions.AnswerWithRecommendedAfter"/>) comes last, only when it was given. Neither changes a header stored
+/// without them.</item>
 /// </list>
 /// </remarks>
 public static class RunHeaderHash
@@ -57,7 +61,18 @@ public static class RunHeaderHash
 
         RosterHash.Append(fields, run.Roster);
         AppendPhase8Options(fields, options);
+        AppendPhase13Options(fields, options);
         return HashFunctions.Sha256Hex(HashFunctions.Canonical([.. fields]));
+    }
+
+    /// <summary>The consent of docs/17 D-33, after the options of Phase 8, only when it was given: its name and its wait.</summary>
+    private static void AppendPhase13Options(List<string?> fields, RunOptions options)
+    {
+        if (options.AnswerWithRecommendedAfter is { } wait)
+        {
+            fields.Add("answerWithRecommendedAfter");
+            fields.Add(Number(wait.Ticks));
+        }
     }
 
     private static void AppendPhase8Options(List<string?> fields, RunOptions options)

@@ -65,6 +65,8 @@ public sealed class ListItemTypesGuardTests
             "The requirements a node editor holds (EditorOptions.Requirements): the editor lists CheckOption.",
         ["AgentStudio.Orchestration.Engine.ScheduledResume"] =
             "What a pass of the consented resume did (ConsentedPass.Outcome): said in the status message, never listed.",
+        ["AgentStudio.Application.Decisions.ContextPartSnapshot"] =
+            "The parts of a prompt in the live state (LiveContext.Parts, Phase 13): a bar shows them as MetricBarSegment, named by its label and value, never the record.",
     };
 
     [Fact]

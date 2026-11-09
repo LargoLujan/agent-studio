@@ -192,3 +192,23 @@
     valor que no vale impide guardar todo el documento, y la sección dice por qué.
   - Lo que lee cada ajuste no cambia: el servicio de las aprobaciones lee `WindowsHelloForCriticalApprovals` en cada
     pregunta y el bloqueo por inactividad lee los suyos en cada comprobación.
+- **Adenda (2026-11-09, Fase 13, WP5): la barrera fija de Windows Hello** ([ADR-0053](0053-windows-hello-como-barrera-fija.md);
+  docs/17 D-37 a D-41; tu decisión 6 (a) del 2026-11-06, que enmienda tu decisión 5 (a) del 2026-10-20). Cambia la
+  decisión 1 y una parte de las decisiones 3 y 5. El bloqueo de la interfaz (decisiones 4 y 6) no cambia.
+  - **Decisión 1.** Lo que pide Hello ya no se reconoce por el nivel crítico ni por las palabras de la acción, sino por la
+    acción, con la lista de `PresencePolicy`. Lo de la lista (entregar, aceptar un historial, aprobar un plan con escritores a
+    integridad media, dar capacidades de riesgo, cambiar el perfil, quitar una protección, y lo remoto y los secretos) pide
+    Hello **siempre**: el ajuste, que ahora se llama «Pedir Windows Hello también en las aprobaciones importantes», no se lee
+    para ello. El ajuste solo gobierna lo configurable: aprobar un plan sin escritores, las tareas de aprobación del plan,
+    los debates, las auditorías, las revisiones y, por primera vez, descartar el trabajo de una ejecución.
+  - **«Sin Hello: no disponible»** (`WindowsHelloUnavailable`) solo vale ya para lo configurable. Para lo de la lista, un
+    equipo sin Hello bloquea Windows tras el «sí» y comprueba con el estado de la sesión que se desbloqueó después
+    (`ApprovalVerification.WindowsLock`). Con Hello en el equipo, el bloqueo no vale: solo Hello.
+  - **Decisión 3.** Un «sí» que el bloqueo de Windows no confirma también lo deniega el sistema, con el método `WindowsLock`.
+  - **Decisión 5.** El bloqueo de Windows de una aprobación no se fía del aviso de desbloqueo, sino de `SessionFlags`: cierra
+    para la barrera el residual del aviso falsificado. El desbloqueo de la interfaz sigue como estaba.
+  - **La alternativa «Hello en la puerta»** se adopta en parte. La puerta no pide Hello ni conoce el ajuste, pero deniega en
+    nombre del sistema un «sí» a una acción de la lista que no traiga Hello ni el bloqueo comprobado, venga del diálogo que
+    venga (`ApprovalGate.PresenceNotConfirmed`).
+  - **Una sola regla.** La puerta, el diálogo, aceptar un historial y «Aprobar plan» juzgan con `PresencePolicy.IsSatisfiedBy`.
+    El consentimiento de la recomendación de skills pasa por la puerta y deja su `ApprovalGranted`.

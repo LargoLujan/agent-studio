@@ -4,12 +4,14 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:lock="clr-namespace:AgentStudio.Desktop.Lock"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=lock:LockSettingsViewModel}"
              AutomationProperties.Name="{x:Static lock:LockSettingsViewModel.Title}">
-    <!-- «Windows Hello y bloqueo», a section of «Ajustes» (docs/16 D-13): Hello in the critical approvals and the idle lock.
+    <!-- «Windows Hello y bloqueo», a section of «Ajustes» (docs/16 D-13): Hello in the important approvals and the idle lock.
          Checked before anything is saved, by the «Guardar» of the document; until then the previous ones stay in force.
-         Bindings only. -->
+         The setting of Hello governs only the configurable approvals; the explanation says what always asks for it (docs/17
+         D-37 and D-38), from the resources (Resources/HelloStrings.resx). Bindings only. -->
     <StackPanel>
         <TextBlock Style="{StaticResource SectionTitleText}" Text="{x:Static lock:LockSettingsViewModel.Title}"/>
         <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,0"
@@ -17,11 +19,11 @@
 
         <!-- A string as the content of a check box never wraps: a wrapping TextBlock does, and the name is set by hand. -->
         <CheckBox Style="{StaticResource FieldCheckBox}" Margin="0,14,0,0" IsChecked="{Binding HelloForCriticalApprovals}"
-                  AutomationProperties.Name="Pedir Windows Hello en las aprobaciones críticas"
-                  AutomationProperties.HelpText="{x:Static lock:LockSettingsViewModel.HelloExplanation}">
-            <TextBlock TextWrapping="Wrap" Text="Pedir Windows Hello en las aprobaciones críticas"/>
+                  AutomationProperties.Name="{l:T Hello_Setting_Label}"
+                  AutomationProperties.HelpText="{l:T Hello_Setting_Explanation}">
+            <TextBlock TextWrapping="Wrap" Text="{l:T Hello_Setting_Label}"/>
         </CheckBox>
-        <TextBlock Style="{StaticResource SecondaryText}" Margin="22,2,0,0" Text="{x:Static lock:LockSettingsViewModel.HelloExplanation}"/>
+        <TextBlock Style="{StaticResource SecondaryText}" Margin="22,2,0,0" TextWrapping="Wrap" Text="{l:T Hello_Setting_Explanation}"/>
 
         <CheckBox Style="{StaticResource FieldCheckBox}" Margin="0,16,0,0" IsChecked="{Binding IdleLockEnabled}"
                   AutomationProperties.Name="Bloquear la interfaz tras un tiempo sin actividad"

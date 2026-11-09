@@ -4,6 +4,7 @@ using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Evidence;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Providers;
+using AgentStudio.Domain.Questions;
 using AgentStudio.Domain.Work;
 
 namespace AgentStudio.Application.Orchestration;
@@ -37,6 +38,19 @@ public interface IOrchestrationRun : IAsyncDisposable
     Task RetryBlockedAsync(TaskId task);
 
     Task CancelAsync(string reason);
+
+    /// <summary>
+    /// Phase 13 (docs/17 D-29 and D-30): answers the question the agent of <see cref="QuestionAnswer.Task"/> asked. The engine
+    /// records <c>QuestionAnswered</c> (the person's own text as evidence first), and a new attempt, which counts in
+    /// <see cref="RunOptions.MaxAgentRuns"/>, receives the question and the answer as data. Answering is not approving: it asks
+    /// no Windows Hello and grants nothing. The default body says the run takes no answers: WP4 implements it in the engine,
+    /// and a run inspected from its log never takes one. A question of the orchestrator before it plans (its task is null)
+    /// is not answered here: there is no run yet, and its answers go to the next planning (<see cref="PlanningRequest.Answers"/>).
+    /// </summary>
+    /// <exception cref="NotSupportedException">This run takes no answers.</exception>
+    /// <exception cref="InvalidOperationException">The task is not waiting for the answer to that question, or the answer has no task.</exception>
+    Task AnswerAsync(QuestionAnswer answer) =>
+        throw new NotSupportedException("This run takes no answers to the questions of its agents.");
 }
 
 /// <summary>Everything the UI needs to follow a run. The state itself is read from <see cref="IOrchestrationRun.Snapshot"/>.</summary>
@@ -56,6 +70,16 @@ public sealed record GraphHealthEvent(DateTimeOffset At, GraphHealthReport Repor
 
 /// <summary>A task is waiting for the user to approve or deny an action.</summary>
 public sealed record ApprovalPendingEvent(DateTimeOffset At, TaskId Task, ApprovalRequest Request) : OrchestrationEvent(At);
+
+/// <summary>
+/// Phase 13 (docs/17 D-29 and D-31): an agent asked the person a question, and its task waits for the answer
+/// (<c>AwaitingAnswer</c>). The monitor shows its card and the window opens if the app is in view; otherwise the tray says
+/// «Un agente te pregunta algo», with no data of the project. The tasks that do not depend on it go on.
+/// </summary>
+public sealed record QuestionPendingEvent(DateTimeOffset At, PendingQuestion Question) : OrchestrationEvent(At);
+
+/// <summary>Phase 13 (docs/17 D-29): the question was answered (by the person, or by the consent of the run), and its task goes on.</summary>
+public sealed record QuestionAnsweredEvent(DateTimeOffset At, string Question, TaskId? Task, QuestionAnswerMethod Method) : OrchestrationEvent(At);
 
 public sealed record RunPhaseChangedEvent(DateTimeOffset At, RunPhase Phase, string? Detail) : OrchestrationEvent(At);
 

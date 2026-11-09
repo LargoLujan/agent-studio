@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- WP1 of Phase 13 (docs/17 D-18 to D-20 and D-44, ADR-0049): the sentences of the analyzer of the assembly, the buttons of its fixes, why a fix or a suggestion is not offered, and what «Revisar el orden» and the chat of preparation say. In Spanish of Spain; the English satellite has the same keys and placeholders. Each key is Text_ and a code of the domain (MontageTexts, FindingCodes). -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Text_delivery_no_integration" xml:space="preserve">
+    <value>Falta la integración: nada llegaría a tu rama.</value>
+    <comment>Finding delivery.no-integration (B10). No arguments.</comment>
+  </data>
+  <data name="Text_verification_test_without_build" xml:space="preserve">
+    <value>{0} ejecuta {1} sin compilar antes: las pruebas no encontrarían nada que probar.</value>
+    <comment>Finding verification.test-without-build (B6). {0}: task; {1}: test step.</comment>
+  </data>
+  <data name="Text_team_judge_same_vendor" xml:space="preserve">
+    <value>El juez {0} es de {1}, la misma empresa que quien hace el trabajo: tiene que ser de otra.</value>
+    <comment>Finding team.judge-same-vendor. {0}: judge; {1}: its vendor id.</comment>
+  </data>
+  <data name="Text_plan_parallel_write_overlap" xml:space="preserve">
+    <value>{0} y {1} pueden ir a la vez y cambian los mismos ficheros.</value>
+    <comment>Finding plan.parallel-write-overlap. {0}, {1}: the two tasks.</comment>
+  </data>
+  <data name="Text_team_write_outside_area" xml:space="preserve">
+    <value>{0} escribe en {2}, fuera de las carpetas de {1}.</value>
+    <comment>Finding team.write-outside-area. {0}: task; {1}: agent; {2}: entry of the scope.</comment>
+  </data>
+  <data name="Text_team_parallel_capacity" xml:space="preserve">
+    <value>Con {0} ejecutores en {1} trabajan {2} a la vez; el resto espera turno.</value>
+    <comment>Finding team.parallel-capacity. {0}: how many; {1}: CLI id; {2}: how many at once.</comment>
+  </data>
+  <data name="Text_context_pack_too_small" xml:space="preserve">
+    <value>Los requisitos obligatorios de {0} ocupan {1:N0} caracteres y su presupuesto es de {2:N0}: la tarea no arrancaría. Pártela o reduce sus requisitos.</value>
+    <comment>Finding context.pack-too-small. {0}: task; {1}: characters of its mandatory requirements; {2}: budget.</comment>
+  </data>
+  <data name="Text_context_window_tight" xml:space="preserve">
+    <value>{0} empieza con ~{1:N0} tokens, el {3} % de la memoria de trabajo del modelo ({2:N0}).</value>
+    <comment>Finding context.window-tight. {0}: task; {1}: tokens before starting (estimated); {2}: tokens of the window; {3}: whole percent.</comment>
+  </data>
+  <data name="Text_context_thin" xml:space="preserve">
+    <value>{0} escribe sin memoria, sin ficha del proyecto y sin nada de tareas anteriores.</value>
+    <comment>Finding context.thin. {0}: task.</comment>
+  </data>
+  <data name="Text_model_oversized" xml:space="preserve">
+    <value>{0} solo toca documentación o pruebas y la hace {1} con {2}, de nivel máximo: prueba uno equilibrado.</value>
+    <comment>Finding model.oversized. {0}: task; {1}: agent; {2}: model.</comment>
+  </data>
+  <data name="Text_model_undersized" xml:space="preserve">
+    <value>{0} usa {1}, de nivel ligero, que en este proyecto tuvo {2} reintentos y {3} rechazos del juez.</value>
+    <comment>Finding model.undersized. {0}: agent; {1}: model; {2}: retries; {3}: rejections.</comment>
+  </data>
+  <data name="Text_cost_over_budget" xml:space="preserve">
+    <value>El plan necesitaría unas {0} ejecuciones de agente y tu presupuesto es de {1}.</value>
+    <comment>Finding cost.over-budget. {0}: agent runs estimated; {1}: budget.</comment>
+  </data>
+  <data name="Text_quota_window_near" xml:space="preserve">
+    <value>El límite de {1} de {0} va por el {2} %: puede tocar esperar hasta las {3:t}.</value>
+    <comment>Finding quota.window-near. {0}: CLI id; {1}: window (5h, 7d); {2}: whole percent; {3}: when it resets.</comment>
+  </data>
+  <data name="Text_quota_window_near_no_reset" xml:space="preserve">
+    <value>El límite de {1} de {0} va por el {2} %: puede tocar esperar.</value>
+    <comment>Finding quota.window-near when the CLI did not say when it resets. {0}: CLI id; {1}: window; {2}: whole percent.</comment>
+  </data>
+  <data name="Text_order_note_unapplied" xml:space="preserve">
+    <value>El orquestador dijo que {0} necesita a {1}, y el plan ya no los ordena así.</value>
+    <comment>Finding order.note-unapplied. {0}: the task that needs; {1}: the task it needs. The reason of the note is shown apart, as written by the orchestrator.</comment>
+  </data>
+  <data name="Text_order_harmful" xml:space="preserve">
+    <value>El orquestador avisó de que hacer {0} antes que {1} sería dañino, y el plan lo permite.</value>
+    <comment>Finding order.harmful. {0}: the task that should not go first; {1}: the other one.</comment>
+  </data>
+  <data name="Text_capability_high_risk" xml:space="preserve">
+    <value>{0} tiene una capacidad de alto riesgo ({1}): aprobar el plan pedirá Windows Hello.</value>
+    <comment>Finding capability.high-risk. {0}: agent; {1}: the tool (Bash, WebFetch, WebSearch) or the CLI id.</comment>
+  </data>
+  <data name="Text_fix_add_integration" xml:space="preserve">
+    <value>Añadir una integración al final</value>
+    <comment>Button of a fix. No arguments.</comment>
+  </data>
+  <data name="Text_fix_add_build_step" xml:space="preserve">
+    <value>Compilar con {0} antes de probar {1}</value>
+    <comment>Button of a fix. {0}: build step; {1}: task.</comment>
+  </data>
+  <data name="Text_fix_add_dependency" xml:space="preserve">
+    <value>{0} después de {1}</value>
+    <comment>Button of a fix. {0}: the task that waits; {1}: the one it waits for.</comment>
+  </data>
+  <data name="Text_fix_reassign_task" xml:space="preserve">
+    <value>Dar {0} a {1}</value>
+    <comment>Button of a fix. {0}: task; {1}: agent.</comment>
+  </data>
+  <data name="Text_fix_switch_judge" xml:space="preserve">
+    <value>Revisar {0} con {1}</value>
+    <comment>Button of a fix. {0}: review task; {1}: judge.</comment>
+  </data>
+  <data name="Text_fix_add_judge" xml:space="preserve">
+    <value>Añadir un juez de {1} ({0})</value>
+    <comment>Button of a fix. {0}: CLI id; {1}: vendor id.</comment>
+  </data>
+  <data name="Text_fix_widen_agent_folders" xml:space="preserve">
+    <value>Dejar a {0} escribir en {1}</value>
+    <comment>Button of a fix that asks Windows Hello. {0}: agent; {1}: folder.</comment>
+  </data>
+  <data name="Text_fix_raise_context_budget" xml:space="preserve">
+    <value>Subir el presupuesto de contexto de {0} a {1:N0} caracteres</value>
+    <comment>Button of a fix. {0}: agent; {1}: characters.</comment>
+  </data>
+  <data name="Text_fix_raise_run_budget" xml:space="preserve">
+    <value>Subir el presupuesto a {0} ejecuciones</value>
+    <comment>Button of a fix. {0}: agent runs.</comment>
+  </data>
+  <data name="Text_fix_change_model" xml:space="preserve">
+    <value>Cambiar {0} a {1}</value>
+    <comment>Button of a fix. {0}: agent; {1}: model.</comment>
+  </data>
+  <data name="Text_fix_change_model_effort" xml:space="preserve">
+    <value>Cambiar {0} a {1} con esfuerzo {2}</value>
+    <comment>Button of a fix. {0}: agent; {1}: model; {2}: effort as the CLI takes it.</comment>
+  </data>
+  <data name="Text_fix_memory_on" xml:space="preserve">
+    <value>Activar la memoria de {0}</value>
+    <comment>Button of a fix. {0}: agent.</comment>
+  </data>
+  <data name="Text_fix_memory_off" xml:space="preserve">
+    <value>Quitar la memoria de {0}</value>
+    <comment>Button of a fix. {0}: agent.</comment>
+  </data>
+  <data name="Text_fix_remove_skills" xml:space="preserve">
+    <value>Quitar {1} skills a {0}</value>
+    <comment>Button of a fix. {0}: agent; {1}: how many.</comment>
+  </data>
+  <data name="Text_fix_remove_capability" xml:space="preserve">
+    <value>Quitar {1} a {0}</value>
+    <comment>Button of a fix. {0}: agent; {1}: tool.</comment>
+  </data>
+  <data name="Text_fix_refused_no_plan" xml:space="preserve">
+    <value>Todavía no hay plan.</value>
+    <comment>Why a fix was not applied.</comment>
+  </data>
+  <data name="Text_fix_refused_unknown_task" xml:space="preserve">
+    <value>La tarea ya no está en el plan.</value>
+    <comment>Why a fix was not applied.</comment>
+  </data>
+  <data name="Text_fix_refused_unknown_agent" xml:space="preserve">
+    <value>El agente ya no está en el equipo.</value>
+    <comment>Why a fix was not applied.</comment>
+  </data>
+  <data name="Text_fix_refused_dependency" xml:space="preserve">
+    <value>Esa dependencia crearía un ciclo o ya está en el plan.</value>
+    <comment>Why a fix was not applied.</comment>
+  </data>
+  <data name="Text_fix_refused_graph_not_sound" xml:space="preserve">
+    <value>Arregla antes los errores de dependencias del plan.</value>
+    <comment>Why a fix was not applied.</comment>
+  </data>
+  <data name="Text_fix_refused_no_judge_template" xml:space="preserve">
+    <value>No hay ningún juez que copiar.</value>
+    <comment>Why a fix was not applied.</comment>
+  </data>
+  <data name="Text_fix_refused_not_in_template" xml:space="preserve">
+    <value>La plantilla no tiene ese ajuste.</value>
+    <comment>Why a fix was not applied.</comment>
+  </data>
+  <data name="Text_fix_refused_through_skill_store" xml:space="preserve">
+    <value>Las skills se desactivan en la pantalla de skills.</value>
+    <comment>Why a fix was not applied.</comment>
+  </data>
+  <data name="Text_fix_refused_nothing_to_change" xml:space="preserve">
+    <value>Ya estaba así.</value>
+    <comment>Why a fix was not applied.</comment>
+  </data>
+  <data name="Text_fix_refused_breaks_graph" xml:space="preserve">
+    <value>Ese arreglo crearía un ciclo en el plan.</value>
+    <comment>Why a fix was not applied: it would leave the graph unsound.</comment>
+  </data>
+</root>

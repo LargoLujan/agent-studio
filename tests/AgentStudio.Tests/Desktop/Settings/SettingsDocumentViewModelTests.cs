@@ -79,7 +79,7 @@ public sealed class SettingsDocumentViewModelTests
         var stored = store.Current;
         Assert.Equal((60, 80, 90, true), (stored.ContextWarningPercent, stored.ContextCompressPercent, stored.ContextCriticalPercent, stored.CodexQuotaReadEnabled));
         Assert.Equal((CloseWindowAction.KeepInTray, true), (stored.CloseWindow, stored.PreventSleepWhileWorking));
-        Assert.Equal((false, true, 30), (stored.WindowsHelloForCriticalApprovals, stored.IdleLockEnabled, stored.IdleLockMinutes));
+        Assert.Equal((false, true, 30), (stored.WindowsHelloForImportantApprovals, stored.IdleLockEnabled, stored.IdleLockMinutes));
         Assert.Equal(@"C:\proyectos\calc", stored.LastProjectPath);
 
         // Each section takes what was saved and says so once: the orchestrators, «Consumo» and «mantener despierto» follow.

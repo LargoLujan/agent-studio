@@ -26,7 +26,7 @@ namespace AgentStudio.Desktop.Skills;
 /// <item>The deterministic recommendation is free: the text of the task and the stack of the project, detected from the
 /// names of its files (<see cref="ProjectStackDetector"/>).</item>
 /// <item>The assisted one is off until the user allows it in this screen (<see cref="IsAssistedAllowed"/>, not kept
-/// between sessions), and every use asks for the user's OK (<see cref="IApprovalPrompt"/>); its answer is a proposal
+/// between sessions), and every use asks for the user's OK through the approval gate, which records it (<see cref="IApprovalGate"/>); its answer is a proposal
 /// shown next to the deterministic one. Nothing is ever activated except by a switch.</item>
 /// </list>
 /// Any missing piece of <see cref="SkillsBackend"/> becomes a line of <see cref="Notices"/>: nothing is made up. The warnings of
@@ -197,7 +197,7 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
             {
                 notices.Add("Falta la recomendación asistida: solo está la determinista, que no gasta cuota.");
             }
-            else if (_backend.Prompt is null)
+            else if (_backend.Approvals is null)
             {
                 notices.Add("Falta el diálogo de aprobación: sin él no se puede pedir el OK de la recomendación asistida.");
             }
@@ -693,14 +693,18 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
         && !IsAsking
         && Project is not null
         && _backend.Recommendations is not null
-        && _backend.Prompt is not null
+        && _backend.Approvals is not null
         && HasTask();
 
-    /// <summary>Asks for the OK and, with it, asks the agent; shows its proposals and warnings. Never activates anything.</summary>
+    /// <summary>
+    /// Asks for the OK through the approval gate, which records it (<c>ApprovalRequested</c>, then <c>ApprovalGranted</c> or
+    /// <c>ApprovalDenied</c>; docs/17 §0.2 and F13-20) as every approval, and, with it, asks the agent; shows its proposals and
+    /// warnings. Never activates anything. It grants nothing, so it never asks Windows Hello (docs/17 D-37).
+    /// </summary>
     [RelayCommand(CanExecute = nameof(CanAskAgent))]
     private async Task AskAgentAsync()
     {
-        if (!CanAskAgent() || Project is not { } project || _backend.Recommendations is not { } service || _backend.Prompt is not { } prompt)
+        if (!CanAskAgent() || Project is not { } project || _backend.Recommendations is not { } service || _backend.Approvals is not { } gate)
         {
             return;
         }
@@ -710,7 +714,7 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
         {
             AssistedStatus = "Esperando tu OK…";
             var question = new ApprovalRequest(AssistedAction, AssistedDescription, RiskLevel.Low, null, [], project.ProjectId);
-            var answer = await prompt.AskAsync(question, CancellationToken.None).ConfigureAwait(true);
+            var answer = await gate.RequestAsync(question, CancellationToken.None).ConfigureAwait(true);
             if (!answer.Approved)
             {
                 AssistedStatus = "No se pidió nada: no diste el OK, así que no se gastó cuota.";

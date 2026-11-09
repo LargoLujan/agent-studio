@@ -216,6 +216,9 @@ internal sealed class RunLedger
 
     public HashSet<string> Alerts { get; } = new(StringComparer.Ordinal);
 
+    /// <summary>Phase 13 (docs/17 D-29): the questions of the executors, pending and answered, and how many were asked.</summary>
+    public Questions.QuestionBook Questions { get; } = new();
+
     /// <summary>The user's repository changed during a step of this run: nothing more is dispatched.</summary>
     public bool RepositoryChanged { get; set; }
 

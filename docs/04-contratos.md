@@ -15,7 +15,10 @@
 > tiempo real y pulido del recorrido en vivo; [18](18-peticiones-y-pendientes.md)): lo resume la
 > [sección 19](#19-tanda-2-barras-en-tiempo-real-y-pulido-2026-11-03). Y con la Fase 12 (el índice semántico de la bitácora
 > y la memoria, de su P0 a la integración; diseño en [17](17-constructor-visual-de-agentes.md) §3): lo resume la
-> [sección 20](#20-fase-12-índice-semántico-de-la-bitácora-y-la-memoria).
+> [sección 20](#20-fase-12-índice-semántico-de-la-bitácora-y-la-memoria). Y con el P0 de la Fase 13 (los tipos del
+> constructor visual, los payloads de las preguntas y del configurador, los contratos del estimador, del análisis del
+> consumo, del idioma y de la barrera de Windows Hello, y los cimientos del escritorio; diseño en
+> [17](17-constructor-visual-de-agentes.md) §4 y §9.3): lo resume la [sección 21](#21-fase-13-constructor-visual-de-agentes).
 
 ## 1. Mapa
 
@@ -61,6 +64,14 @@
 | `IProjectLogReader`, `ProjectLogSnapshot`, `AnchorStatus` | `src/AgentStudio.Application/Projects/ProjectLogContracts.cs` | Contrato | Fase 4 (`Infrastructure`, WP3) |
 | `IProjectStorageReader` | `src/AgentStudio.Application/Projects/ProjectStorageReader.cs` | Contrato | Fase 4 (`Infrastructure`, WP3) |
 | `IRunActivity` | `src/AgentStudio.Application/Orchestration/RunActivity.cs` | Contrato | Fase 4 (`Orchestration`, WP1) |
+| Fase 13: `IUsageEstimator` y sus tipos (§21.4) | `src/AgentStudio.Application/Usage/EstimateContracts.cs` | Implementado (`Observability/Estimates/UsageEstimator`) | Fase 13 (`Observability`, WP2) |
+| Fase 13: `IConsumptionAnalyzer`, `IAssistedConsumptionAnalysis` y sus tipos (§21.4) | `src/AgentStudio.Application/Analysis/ConsumptionAnalysisContracts.cs` | Contrato | Fase 13 (`Observability`, WP3) |
+| Fase 13: `IProjectBrief`, `ProjectBrief`, `ProjectBriefs` (§21.2) | `src/AgentStudio.Application/Knowledge/MemoryContracts.cs` | Contrato | Fase 13 (`Memory`, WP3) |
+| Fase 13: `IWindowsLockConfirmation`, `WindowsLockResult` (§21.4) | `src/AgentStudio.Application/Security/UserPresenceContracts.cs` | Contrato | Fase 13 (`Desktop/Lock`, WP5) |
+| Fase 13: `IOrchestrationRun.AnswerAsync`, `PendingQuestion`, `QuestionPendingEvent`, `QuestionAnsweredEvent` (§21.3) | `src/AgentStudio.Application/Orchestration/` | Contrato (cuerpo por defecto que no admite respuestas) | Fase 13 (motor, WP4) |
+| Fase 13: `QuestionAsked`, `QuestionAnswered`, `ProjectSetupApplied`, `AgentRunStarted` v3 (§21.2) | `src/AgentStudio.Application/Decisions/` | Implementado (formato) | Escriben WP4 y WP7 |
+| Fase 13: `UserText`, `UserTextCodes` (§21.4) | `src/AgentStudio.Application/Localization/UserText.cs` | Implementado | — |
+| Fase 13: `IRunLiveProjection` y sus tipos (§21.5) | `src/AgentStudio.Desktop/Orchestrator/Live/IRunLiveProjection.cs` | Contrato | Fase 13 (monitor, WP8) |
 | Reglas del dominio (abajo) | `src/AgentStudio.Domain/**` | Implementado | — |
 | `ContextHealthEvaluator` (movido desde `Observability` en la Fase 4) | `src/AgentStudio.Domain/Metrics/ContextHealth.cs` | Implementado | — |
 | `PathAccessPolicy` | `src/AgentStudio.Security/Paths/` | Implementado (comprobación léxica) | Resolución de enlaces en Fase 7 |
@@ -1529,3 +1540,176 @@ public static class ProjectHistoryLaunch { AllowRule; IsReadOnly(permissions); S
 | `PlanDraftProposal(…, string? HistoryToolNotice = null)` | `Orchestrator/Canvas/PlanDraft.cs` | El borrador guarda por qué el orquestador planificó sin la búsqueda en el historial; uno de antes lo lee como nulo |
 | `AppFolders.SemanticRoot` | `Composition/AppComposition.cs` | La carpeta que hace de `%LOCALAPPDATA%` para el índice y el modelo. Para el usuario actual es la de `SemanticIndexOptions.ForCurrentUser()`; en una prueba, la que contiene sus carpetas locales |
 | `SemanticIndexServices.AddSemanticIndexServices` | `Composition/SemanticIndexServices.cs` | La composición: un solo `SemanticIndexStore`, `OnnxEmbedderSource`, `HttpEmbeddingModelInstaller` con su `HttpClient`, `AddAgentStudioSemanticIndex` y la herramienta del planificador sobre el servidor de al lado de la app |
+
+## 21. Fase 13: constructor visual de agentes
+
+Lo que el P0 de la Fase 13 deja fijado para los paquetes WP1 a WP8, que van en paralelo encima ([17](17-constructor-visual-de-agentes.md)
+§4, §8 y §9.3; [ADR-0054](adr/0054-idiomas-y-lenguaje-claro.md) completo y los esqueletos de los ADR
+[0048](adr/0048-constructor-visual-equipo-y-plan.md) a [0053](adr/0053-windows-hello-como-barrera-fija.md), que completa cada
+paquete). Hay tres tipos nuevos del registro al final de `DecisionKind`, en `V = 1`; `AgentRunStarted` gana la versión 3; los
+payloads anteriores se leen y se reescriben byte a byte, y el hash de las plantillas y las cabeceras guardadas no cambia
+(`RosterHashTests` y `RunHeaderHashTests` lo fijan con los valores del 2026-11-06). No hay migración: lo nuevo de la plantilla
+y de la cabecera va en su JSON, solo cuando se fija. `Phase13PayloadTests`, `DecisionKindCompatibilityTests` y
+`Phase13StorageTests` fallan si un contrato compartido cambia.
+
+### 21.1 Dominio (solo los tipos y sus invariantes)
+
+| Tipo | Fichero | Qué es | Lo usa |
+|---|---|---|---|
+| `ReasoningEffort` (`Minimal`, `Low`, `Medium`, `High`, `XHigh`, `Max`), `ReasoningEfforts.Token`, `ReasoningEfforts.For(provider)` y `Accepts` | `Domain/Models/ReasoningEffort.cs` | La lista cerrada de esfuerzos, el valor que recibe cada CLI y la tabla por proveedor (revisión del 2026-11-08): Claude Code de `Low` a `Max`, Codex de `Minimal` a `XHigh`, otro proveedor ninguno. Los nombres entran en el hash: nunca se renombran | WP2 (lanzamiento), WP6 (inspector) |
+| `ModelTier` (`Light`, `Balanced`, `Maximum`) | `Domain/Models/ModelTier.cs` | El nivel en palabras; sin clasificar es nulo | WP1, WP2, WP6 |
+| `ModelCatalog`, `ModelCatalogEntry`, `ModelRecommendationRules` | `Domain/Models/ModelCatalogEntry.cs` | El catálogo local sin precios (D-23) y las reglas de partida de D-24, con su `Validate()` | WP2 (lector), WP1, WP6, WP7 |
+| `ModelRecommendationInput`, `ModelPerformance` (conocido con 3 referencias), `ModelRecommendation`, `ModelRecommendationReasons` | `Domain/Models/ModelRecommendation.cs` | Entradas y resultado de la recomendación (D-24), con su razón como código. Las reglas (`ModelRecommender`) son de WP2 | WP2, WP6, WP7 |
+| `AgentDefinition.Effort` (`ReasoningEffort?`, último parámetro, nulo por defecto) y las reglas `agent.effort-unknown` y `agent.effort-not-for-provider` | `Domain/Agents/AgentDefinition.cs` | El esfuerzo del agente (D-25), que tiene que ser uno de los niveles de su CLI | Todos |
+| `AgentQuestion`, `QuestionOption`, `QuestionEffort`, `QuestionAnswer` (`Choosing`, `Writing`, `RecommendedByConsent`), `QuestionAnswerMethod` | `Domain/Questions/AgentQuestion.cs` | La pregunta del informe y la respuesta (D-28 a D-30). `QuestionAnswer.Task` es `TaskId?`: nulo para una pregunta del orquestador antes de planificar | WP1, WP4, WP8 |
+| `QuestionRules` | `Domain/Questions/QuestionRules.cs` | Las invariantes de D-28 (de 2 a 5 opciones, ids, 400/80/300 caracteres, una recomendada, sin control ni bidi) y los topes de D-29 (3 por tarea, 10 por ejecución, 3 del orquestador) | WP4 |
+| `PresenceAction`, `PresenceRequirement`, `PresenceProof`, `PresencePolicy` (`RequirementOf`, `AsksPresence`, `IsSatisfiedBy(acción o requisito, ajuste, helloAvailable, prueba)`) | `Domain/Security/PresencePolicy.cs` | La barrera fija de D-37: la tabla por acción y la regla única de qué confirmación vale. «Siempre», lea lo que lea el ajuste: con Hello en el equipo, solo Windows Hello; sin él, también el bloqueo de Windows desbloqueado después de la petición (WP5, re-revisión del P0 del 2026-11-08). «Configurable» con el ajuste: Hello y, sin Hello, también el bloqueo o el diálogo con su aviso de Hello no disponible; sin el ajuste, con el diálogo. Quien no sabe si hay Hello (la puerta) juzga con `helloAvailable: false`, el suelo | WP5, WP1, WP6 |
+| `TeamGraph`, `AgentNode`, `TeamEdge`, `TeamEdgeKind`, `TeamLimits` (1, 8 y 1), `TeamRoles` | `Domain/Team/TeamGraph.cs` | La capa Equipo (D-08 a D-11): los nodos son la plantilla; los cables se comprueban (`Validate()`), y `SharesVendor` dice cuándo «Revisa» va en color de error. «Entrega» sale de la capa Plan y no es del equipo | WP6, WP1 |
+| `RepositoryNode`, `RepositoryRemote` (`Cleaned`, `WithoutCredentials`) | `Domain/Team/RepositoryNode.cs` | El nodo del repositorio (D-10). Un remoto nunca guarda usuario ni contraseña: el constructor lo rechaza (F13-3) | WP6 |
+| `Finding`, `FindingSeverity`, `FindingCodes` (los 16 de D-18 y, para el validador, `validator.` y su código en minúsculas con guiones: `validator.overlapping-write-scopes`), `MontageAnalysis` | `Domain/Orchestration/Analysis/Finding.cs` | Los hallazgos del analizador, con código, nodos y argumentos | WP1, WP6, WP8 |
+| `Fix` y sus 13 arreglos tipados (`ChangesRoster`, `GrantsHighRiskCapability`) | `Domain/Orchestration/Analysis/Fix.cs` | Los arreglos de un clic, que se deshacen | WP1, WP6, WP3 |
+| `OrderNotes`, `OrderDependencyNote`, `ParallelOrderNote`, `HarmfulOrderNote` | `Domain/Orchestration/Analysis/OrderNotes.cs` | Las notas de orden (D-19) y la respuesta de «Revisar el orden» (D-20) | WP1 |
+| `MontageDraft`, `TaskContextFacts`, `QuotaWindowFacts`, `MontageRunFacts`, `MontageLearnedFacts`, `IMontageRule` | `Domain/Orchestration/Analysis/MontageDraft.cs` | Lo que lee el analizador y la forma de cada regla. Las reglas y el analizador que las junta son de WP1 | WP1, WP3, WP6 |
+| `TextArguments` | `Domain/Common/TextArguments.cs` | Los argumentos de un texto con código: texto, números, instantes y duraciones | Todos |
+
+### 21.2 Registro (`Application/Decisions`)
+
+```csharp
+// DecisionKind gana, al final: QuestionAsked, QuestionAnswered y ProjectSetupApplied.
+// AgentRunPurpose gana, al final: OrderReview, ConsumptionAnalysis y PreparationChat.
+// ApprovalVerification gana, al final: WindowsLock (los payloads guardan el nombre).
+public sealed record OptionEstimateSnapshot(string Option, MetricSnapshot Low, MetricSnapshot High, int References);
+public sealed record QuestionAskedPayload(TaskId? Task, int Attempt, AgentId Agent, string Question, EvidenceId QuestionEvidence,
+    string QuestionSha256, IReadOnlyList<string> Options, string? RecommendedByAgent, IReadOnlyList<OptionEstimateSnapshot> Estimates);
+public sealed record QuestionAnsweredPayload(TaskId? Task, string Question, string? ChosenOption, EvidenceId? AnswerEvidence,
+    string? AnswerSha256, string DecidedBy, QuestionAnswerMethod Method) { static Answering(...); }   // una opción o tu texto
+public sealed record ProjectSetupAppliedPayload(string? RosterHash, string? BriefSha256, string? VerificationProfileHash,
+    string? SkillActivationsSha256, string? OptionsSha256, string DecidedBy) { static Applying(...); }   // fuera de toda ejecución
+public enum ContextPartKind { Protocol, Requirements, ProjectBrief, AgentInstructions, Memory, Upstream, PreviousAttempt, HumanAnswer, Skills }
+public sealed record ContextPartSnapshot(ContextPartKind Kind, int Characters);
+// AgentRunStartedPayload gana IReadOnlyList<ContextPartSnapshot>? ContextParts (V = 3, ContextPartsVersion), solo si lo hay.
+```
+
+- **Ningún payload lleva texto de un agente:** la pregunta entera es evidencia (D-29), y tu texto propio, una evidencia tuya.
+- **El JSON de cada uno está fijado** en `Phase13PayloadTests`, con el hash de una entrada calculado aparte. Una respuesta
+  confirmada por el bloqueo de Windows se escribe con `"verification":"WindowsLock"` en la versión 2 de siempre.
+- **`MemoryKind.ProjectBrief`** (al final), con `ProjectBriefs` (tema, fuente y tamaño), `ProjectBrief` e `IProjectBrief`
+  (`Knowledge/MemoryContracts.cs`; lo implementa WP3). Se exporta a Markdown como `tema-ficha-del-proyecto.md`. Tiene su
+  nombre donde la memoria lo escribe: el resumen de su entrada del registro (`MemoryLabels`), la etiqueta del índice semántico
+  (`SemanticLabels`) y el título de su fichero exportado; `MemoryKindNamesTests` recorre todas las categorías en los tres.
+
+### 21.3 Orquestación (`Application/Orchestration`, `Infrastructure/Persistence/Json/RunJson.cs`)
+
+- **`RosterHash`:** el esfuerzo cuenta solo si se fija, detrás de todos los agentes, como `effort`, el agente y su valor. Una
+  plantilla sin esfuerzos da el hash de siempre.
+- **`RunOptions.AnswerWithRecommendedAfter`** (`TimeSpan?`, nulo por defecto; un minuto como mínimo en `EnsureValid`): el
+  consentimiento de contestar con la recomendada (D-33, decisión 4 (a)). `RunHeaderHash` lo escribe al final, solo si lo das.
+- **El JSON de la plantilla y de la cabecera** (`AgentJson.Effort`, `RunOptionsJson.AnswerWithRecommendedAfter`) solo los
+  escribe cuando se fijan: lo guardado antes se guarda y se lee igual.
+- **`IOrchestrationRun.AnswerAsync(QuestionAnswer)`:** su cuerpo por defecto lanza `NotSupportedException`. WP4 lo implementa
+  en el motor; una ejecución inspectada desde su registro nunca admite respuestas.
+- **`PendingQuestion`** y **`TaskView.Question`** (nulo por defecto): la pregunta que espera. Sus estimaciones
+  (`IReadOnlyList<OptionEstimateSnapshot> Estimates` y `EstimateOf(option)`) son las mismas que registra `QuestionAsked`: el
+  intervalo de tokens totales con su origen y sus referencias, así que lo que se enseña se reconstruye igual tras reiniciar. El
+  motor convierte a ellas el `UsageEstimate` del estimador de WP2 al registrar la pregunta, con `UsageEstimate.ToSnapshot`
+  (el intervalo de `TotalTokens`; sin total, sin valor y con el motivo).
+  **`QuestionPendingEvent`** y **`QuestionAnsweredEvent`** (en `OrchestrationRun.cs`): lo que el monitor y la bandeja escuchan.
+- **Las preguntas del orquestador antes de planificar** (D-28): `PlanProposal.Questions` (`IReadOnlyList<PendingQuestion>?`,
+  `init`; con preguntas, `Plan` es nulo) y `PlanningRequest.Answers` (`IReadOnlyList<AnsweredQuestion>?`, `init`) para la
+  planificación siguiente. `AnsweredQuestion(RunId Run, PendingQuestion Question, QuestionAnswer Answer)` comprueba que la
+  respuesta es de esa pregunta (mismo id y misma tarea, nula en las del orquestador); `Run` es la ejecución de la
+  planificación que preguntó. `AnswerAsync` no las contesta: son de la planificación, no de una ejecución. Desde WP4
+  (re-revisión del P0, 2026-11-08) rechaza además una opción que la pregunta no tiene, el texto propio en una pregunta sin
+  `AllowOther` y `RecommendedByConsent` en una pregunta del orquestador, que no tiene cabecera donde dar ese consentimiento.
+- **Lo que WP4 añade al motor y al dominio** ([ADR-0051](adr/0051-preguntas-de-los-agentes.md)):
+  - `Domain/Orchestration/RunStateReplayer.cs`: `QuestionPosed` y `QuestionResolved` (eventos nuevos), `TaskTransitioned.Block`
+    (`string?`, último parámetro, nulo por defecto: quien no lo da reproduce el grafo de siempre),
+    `RunStateReplayer.AwaitingAnswerBlock` y `RunReplay.PendingQuestions`, `PendingRunQuestions` y `AnsweredQuestions`.
+  - `Orchestration/Engine`: el informe con `question` (`ExecutorReport.Question`, `ReportedQuestion`, `ReportedOption`,
+    `AgentQuestion()`; el esquema pasa de 575 a 1 142 bytes), `BlockKind.AwaitingAnswer` (texto `AwaitingAnswer`, que el
+    monitor y `DerivationTexts` tienen que nombrar), `HandoffReason.SessionNotResumable`, `humanAnswers` en el traspaso y
+    `OrchestrationRun.AnswerAsync`. `Orchestrator` gana tres puertos opcionales al final del constructor, `brief`
+    (`IProjectBrief`), `redactor` (`ISecretRedactor`) y `estimator` (`IUsageEstimator`), que compone `Desktop`.
+  - El dosier del juez deja fuera los prompts de los ejecutores, la pregunta tal como la escribió el agente, todo informe de
+    ejecutor que traiga una pregunta (registrada o no) o que no se pueda leer, y las entradas `QuestionAsked`. La decisión
+    que captura el sistema (`agent-studio/question-decision/1`) solo lleva ids, huellas e instantes, ningún texto del agente.
+
+### 21.4 Estimación, análisis, idioma y presencia (`Application`)
+
+| Contrato | Fichero | Qué es | Lo implementa |
+|---|---|---|---|
+| `IUsageEstimator`, `UsageEstimate` (conocido con 3 referencias), `EstimateInterval<T>`, `PlanEstimate`, `UsageEstimateRequest`, `PlanEstimateRequest`, `WorkSize`, `EstimateAssumptions` | `Usage/EstimateContracts.cs` | El estimador de docs/16 D-20, adelantado: percentiles 25 y 75 con su origen, referencias y supuestos; nunca un número de relleno. **Revisión del 2026-11-09 (WP2):** `UsageEstimate.TotalTokens` (`EstimateInterval<long>?`, último parámetro, nulo por defecto) es el intervalo de los tokens totales calculado como tal (la entrada más la salida, como las cuenta el panel de uso: la entrada es el prompt entero, con la caché leída y escrita en Claude y la entrada en caché en Codex, y la salida de Codex incluye su razonamiento), con los percentiles de los totales y nunca la suma de los percentiles de cada parte, y `UsageEstimate.ToSnapshot(option)` lo da como el `OptionEstimateSnapshot` que registra `QuestionAsked` (sin total, o con menos de tres referencias, sin valor). `UsageEstimate.Unknown(referencias, motivo)` da una estimación desconocida que dice por qué (un registro que no verifica: `UsageEstimator.UntrustedLogReason`). `EstimateAssumptions` gana `SameModel` («aprendido del modelo»: menos de tres intentos del agente, así que cuentan los del mismo modelo y propósito de cualquier agente), `AgentsOnly` (la duración de un plan solo cuenta a los agentes) y `All`. Las reglas, en ADR-0050 | WP2 (`Observability/Estimates`, `AddAgentStudioUsageEstimator`) |
+| `IConsumptionAnalyzer`, `ConsumptionReport`, `ConsumptionFinding`, `ConsumptionFindingCodes` (los 12 de D-34), `ConsumptionTarget` | `Analysis/ConsumptionAnalysisContracts.cs` | El análisis determinista del consumo | WP3 (`Observability/Analysis`) |
+| `IAssistedConsumptionAnalysis`, `AssistedConsumptionRequest`, `AssistedConsumptionAnalysis`, `AssistedConsumptionSuggestion`, `AssistedConsumptionLimits` | ídem | El análisis con un agente del vendor que no produjo, con tu OK (D-35) | WP3 |
+| `UserText` (`Code`, `Arguments`, `ResourceKey`), `UserTextCodes` | `Localization/UserText.cs` | Un texto como código y parámetros; su recurso es `Text_<código>` (D-47) | Las capas de abajo; lo pinta Desktop |
+| `IWindowsLockConfirmation`, `WindowsLockResult`, `PresenceProofs` (`FromHello`, `FromWindowsLock`, `Verification`, `Claimed`) | `Security/UserPresenceContracts.cs` | El bloqueo de Windows comprobado, cuando no hay Hello (D-40 (a)), y la conversión de los resultados de Windows a `PresenceProof`: solo un Hello verificado o un bloqueo desbloqueado después de la petición confirman a la persona. `Claimed` lee un método registrado como la prueba que afirma (la puerta, el motor y el registrador, WP5) | WP5 (`Desktop/Lock`) |
+
+### 21.5 Escritorio (`Desktop`; no son puertos, pero los paquetes dependen de ellos)
+
+| Pieza | Fichero | Qué es |
+|---|---|---|
+| `Resources/Strings.resx` (es-ES, neutro) y `Strings.en.resx`; ficheros por área `Resources/<Área>Strings.resx` | `Resources/` | Los textos de la interfaz (ADR-0054). Cada paquete pone sus claves en su fichero de área, con su satélite inglés: ninguno comparte fichero. MSBuild genera la clase tipada de cada uno en `obj` (`GenerateTypedStrings`) |
+| `IUiTextProvider`, `ResourceTextProvider`, `Texts` (`Get`, `Format`, `Render`, `UseLanguage`) | `Localization/ResourceTextProvider.cs` | El proveedor de textos. Lee todos los `*Strings` del ensamblado. `UseLanguage` lo aplica una vez, al arrancar (pendiente en `App.OnStartup`, del lead) |
+| `TExtension` | `Localization/TExtension.cs` | `{l:T Clave}` en XAML |
+| `UiLanguages`, `UiLanguage`, `TranslationReview`, `UiLanguages.SpanishSpeakingRegions` | `Localization/UiLanguages.cs` | Los idiomas y la regla de D-49: el elegido, el de Windows si está en la lista, castellano de España si Windows está en catalán, euskera o gallego (adenda del 2026-11-08 de ADR-0054), o inglés |
+| `LanguageSettingsViewModel`, `LanguageChoice`, `Texts.WindowsUiCulture` | `Localization/LanguageSettingsViewModel.cs`, `ResourceTextProvider.cs` | La sección «Idioma» de «Ajustes»: «El de Windows» (guarda null) y cada idioma en el suyo; se guarda con `SavePreferences` y avisa de que se aplica al reiniciar |
+| `ContextPartTexts` | `Localization/ContextPartTexts.cs` | El nombre de cada parte del contexto, de los recursos |
+| `InfoButton` (`InfoKey`, `Topic`, `TextProvider`, `MoreHelpCommand`) | `Controls/Info/InfoButton.xaml` | El botón ⓘ (D-54): textos `<InfoKey>_Title`, `_What` y `_Actions`; «Más ayuda» solo con destino |
+| `IRunLiveProjection`, `RunLiveState`, `AgentLiveState`, `AgentLiveStatus`, `TaskLiveState`, `LiveContext`, `RunLiveChangedEventArgs`, `LiveProjection` (250 ms, 12 animaciones, 30 fps) | `Orchestrator/Live/IRunLiveProjection.cs` | La proyección agrupada del monitor (D-14 y D-16). La implementa WP8 en el monitor; la leen WP6 y la barra superior |
+| `MetricBarSegment`, `MetricBarReading.Segments`, `SegmentEnds` y `PartsText` | `Controls/MetricBarReading.cs`, `MetricBar.xaml(.cs)` | Lo que le faltaba a la barra común para F13-6: las partes, con un hueco donde acaba cada una y sus nombres en las palabras («Por partes: …») |
+| `AppSettings.Language`, `ReduceMotion` y `WindowsHelloForImportantApprovals` | `Services/AppSettings.cs`, `AppSettingsStore.cs` | Preferencias de los paneles. El ajuste de Hello se llamaba `WindowsHelloForCriticalApprovals` (§18.6): el almacén lee el nombre viejo y escribe el nuevo; si están los dos, gana el nuevo. Un fichero con una clave repetida se lee como antes, con el último valor de cada una (y entonces el nombre viejo de Hello no se traslada: queda su valor por defecto, activado). Un idioma fuera de la lista se lee como «sin elección» |
+| `ObservabilitySettingsViewModel.CodexExplanation` | `Observability/ObservabilitySettingsViewModel.cs` | El texto de la cuota de Codex dice lo que se hace (F13-20): bajo demanda, al terminar una ejecución de Codex (como mucho una vez cada 5 minutos) y mientras una ejecución espera un límite de Codex |
+
+- **Nada escrito a mano** (F13-19): `Desktop/Localization/Phase13HandWrittenTextTests.cs` revisa todo XAML y todo C# de
+  `src/AgentStudio.Desktop` que no está en el inventario de antes de la fase (`DesktopFilesBeforePhase13.txt`, junto a la
+  prueba: los 262 ficheros de `main` en `6cf8bf7`, que son los de `96c8aca` sin los siete que creó el P0). Cada fichero nuevo
+  de un paquete entra solo, en una carpeta nueva o de antes, sin listas a mano. En XAML mira también `ToolTipService.ToolTip`,
+  `StringFormat`, `FallbackValue` y `TargetNullValue` dentro de un binding y `ContentStringFormat` y los suyos; en C#, además de
+  las letras fuera de ASCII, una lista corta de palabras castellanas frecuentes de interfaz sin tilde. Las reglas y sus límites
+  están en ADR-0054 (punto 8 y adenda del 2026-11-08).
+- **Lo que la integración tiene que hacer:** aplicar el idioma al arrancar (`Texts.UseLanguage`), y registrar en la
+  composición los puertos nuevos cuando sus paquetes los implementen.
+
+### 21.6 WP3: contexto por partes, ficha del proyecto y análisis del consumo
+
+Lo que WP3 añade o cambia sobre lo de arriba ([ADR-0052](adr/0052-analisis-del-consumo-y-contexto-por-partes.md)). El estimador
+(`IUsageEstimator`, §21.4) lo implementa WP2 ([ADR-0050](adr/0050-modelos-y-potencia.md)), no WP3.
+
+| Contrato | Fichero | Qué es |
+|---|---|---|
+| `ContextPack.Brief` (`ProjectBrief?`, `init`) y `ContextPack.Parts()` | `Application/Knowledge/ContextPackContracts.cs` | La ficha vigente con el paquete, como dato con su huella, para todo agente salvo el juez y los auditores; no cuenta en el presupuesto, en `Characters` ni en `Sha256`. Las partes del paquete en caracteres: requisitos, ficha y memoria |
+| `ProjectBriefBlock` (`Tag`, `Heading`, `Block`, `Section`) | ídem | La sección `## Ficha del proyecto` con su bloque `<project_brief entry=… sha256=…>`, el texto recodificado por `PromptData`. La usan los constructores de prompts (WP4 y WP1) |
+| `AuxiliaryAgentRunner.IsAuxiliary` y `RecordsEndClass` | `Application/Providers/AuxiliaryAgentRunner.cs` | Admite `OrderReview`, `ConsumptionAnalysis` y `PreparationChat` como auxiliares, y les escribe `AgentRunFinished` v3 con su clase de final; las de antes siguen en v2 |
+| `ProjectBriefStore : IProjectBrief` | `Memory/Context/ProjectBriefStore.cs` | La ficha sobre la memoria (origen `User`, tema `ficha-del-proyecto`, fuente `ficha:proyecto`); cada versión sustituye a la vigente. `AddAgentStudioProjectMemory` la registra, y `ContextPacker` la recibe si está |
+| `ContextPacker(memory, index, brief)` | `Memory/Context/ContextPacker.cs` | El tercer parámetro, opcional: la ficha |
+| `AgentInvocation.ContextParts` (interno) y `PromptParts.Measure` (interno) | `Orchestration/Engine/AgentRunner.cs` | Las partes del prompt en `AgentRunStarted` v3; medidas sobre el texto exacto y las skills si el constructor no las da |
+| `ContextBreakdown`, `ContextPartFigure`, `ContextPartsLog`, `AttemptContextParts` | `Observability/Context/ContextBreakdown.cs` | El desglose de un paso (partes estimadas y conversación como resto, «no expuesto» en Codex) y las partes de cada intento leídas del registro |
+| `ModelWindowCatalog.LearnLive`, `LiveWindows`, `LearnsLive`, `Learning()`; `ContextHealthTracker(…, TimeProvider? time)` | `Observability/Context/ModelWindowCatalog.cs`, `ContextHealthTracker.cs` | La ventana aprendida en vivo (F13-20); `Empty` y `Baseline` no aprenden |
+| `ConsumptionAnalyzer`, `ConsumptionAnalysisOptions`, `ConsumptionRules`, `ConsumptionInput`, `ConsumptionThresholds`, `AttemptRef`, `AttemptChange`, `ConsumptionTexts` | `Observability/Analysis/` | El análisis determinista (`IConsumptionAnalyzer`) con sus umbrales y el orden de los argumentos de cada código |
+| `AssistedConsumptionAnalysisService`, `AssistedConsumptionOptions` | ídem | El análisis con un agente (`IAssistedConsumptionAnalysis`) |
+| `AddAgentStudioConsumptionAnalysis` | `Observability/Analysis/ConsumptionAnalysisServiceCollectionExtensions.cs` | Registra los dos análisis; el catálogo de modelos va en sus opciones |
+| `Resources/ConsumptionStrings.resx` y `.en.resx` | `Desktop/Resources/` | `Text_consumption_<código>` y `Text_consumption_<código>_suggestion` de los 12 códigos (`work.discarded` no sugiere). El prefijo (`ConsumptionTexts.TextPrefix`, integración del 2026-11-09) los separa de los del analizador del montaje, que también tiene `model.oversized` con otros argumentos |
+
+- **`AgentRunStarted` v3 en el motor:** todo arranque de `AgentRunner` con partes; un arranque sin ellas sigue en v2. El juez,
+  los debates y las auxiliares registran su arranque fuera y no tienen partes.
+- **Para la integración:** registrar `AddAgentStudioConsumptionAnalysis` con el catálogo de WP2; que WP8 llame al análisis
+  determinista al terminar cada ejecución y con su botón, y al de un agente con el OK; y que el motor (WP4) pida el paquete
+  también para los agentes sin memoria si deben recibir la ficha.
+
+### 21.7 WP1: analizador, orden y chat de preparación ([ADR-0049](adr/0049-analizador-del-montaje-y-orden.md))
+
+| Contrato | Fichero | Qué es | Lo implementa |
+|---|---|---|---|
+| `PlanViolationCode.WriteScopeOutsideAgentArea` (al final del enum) y `AgentWriteArea` | `Domain/Orchestration/PlanValidator.cs` | La regla de F13-5: con carpetas propias (los `PathGrant` de lectura y escritura, relativos al repositorio), el alcance de cada tarea que escribe cabe en ellas; una violación por entrada que no cabe. Sin carpetas, todo el proyecto | WP1 |
+| `MontageAnalyzer`, las reglas de `Analysis/Rules/`, `MontageTexts`, `FixApplier`, `EditHistory<T>`, `FixRefusals`, `OrderFix`, `OrderNotesCheck` | `Domain/Orchestration/Analysis/` | El analizador puro de D-18 con el validador envuelto, los textos de cada hallazgo y botón, los arreglos que se deshacen y la comprobación de las notas | WP1; lo pinta WP6 |
+| `MontageDraft.Steps` (`VerificationStepFacts`: id, compila, ejecuta pruebas, requiere; lista vacía por defecto) | `Domain/Orchestration/Analysis/MontageDraft.cs` | El perfil que necesita `verification.test-without-build`; sin él, la regla calla | WP6 lo rellena |
+| `PlanProposal.OrderNotes` (`OrderNotes?`, `init`, nulo por defecto) | `Application/Orchestration/OrchestratorContracts.cs` | Las notas de orden del plan propuesto, comprobadas contra sus tareas; no entran en el hash del plan | WP1 (el planificador) |
+| `IOrderReview`, `OrderReviewRequest`, `OrderSuggestion`, `OrderSuggestionKind`, `OrderReviewResult` | `Application/Orchestration/OrderReviewContracts.cs` | «Revisar el orden» (D-20): auxiliar de solo lectura con tu OK, en el `_base` de una planificación del registro; cada nota, una sugerencia comprobada con su arreglo | WP1 (`Orchestration/Planning/OrderReviewService`) |
+| `IPreparationChat`, `PreparationChatRequest` (con `Catalog`), `PreparationChatSession`, `PreparationChatReply`, `RequirementDraft`, `TeamSuggestion`, `PreparationChatLimits` | `Application/Orchestration/PreparationChatContracts.cs` | El chat de preparación (D-44): un OK por mensaje, la sesión reanudada en una copia `chat-…` que `EndAsync` borra, el mensaje redactado y las sugerencias como arreglos comprobados | WP1 (`Orchestration/Planning/PreparationChatService`) |
+| `IQuotaConsentLedger` (`TrySpend`) y `QuotaConsentLedger` | `Application/Providers/QuotaConsentLedger.cs` | El único registro de OK de cuota gastados de la app, en memoria y atómico: lo comparten «Revisar el orden», el chat, la recomendación de skills y el análisis del consumo con un agente | WP1; la composición registra una instancia |
+
+- **El esquema del plan** gana `orderNotes` y `questions` (obligatorios en modo estricto); el parseo admite una respuesta sin
+  ellos (`PlanParseResult.OrderNotes`, `DiscardedNotes` y `Questions`), y `PlanSchema.OrderReviewSchema` da el de «Revisar el
+  orden».
+- **En la composición:** `IOrderReview`, `IPreparationChat` e `IQuotaConsentLedger` como únicos (singleton), con la misma
+  instancia del registro de OK para todos los servicios que lo piden.

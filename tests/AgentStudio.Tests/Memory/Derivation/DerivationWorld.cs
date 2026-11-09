@@ -84,7 +84,7 @@ internal sealed class DerivationWorld : IDisposable
         await World.Instance.Recorder.AcceptAsNewOriginAsync(
             Project.ProjectId,
             new ApprovalRequest(UnanchoredHistory.AcceptAction, "Aceptar este historial como nuevo origen.", RiskLevel.Critical, null, [World.Root], Project.ProjectId, Binding: binding),
-            new ApprovalDecision(true, "manuel", T0, null, binding),
+            new ApprovalDecision(true, "manuel", T0, null, binding, ApprovalVerification.WindowsHello),
             Ct);
     }
 

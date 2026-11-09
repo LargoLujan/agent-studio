@@ -121,7 +121,7 @@ public sealed class IncrementalMemoryLedgerTests
         await world.Instance.Recorder.AcceptAsNewOriginAsync(
             project.ProjectId,
             new ApprovalRequest(UnanchoredHistory.AcceptAction, "Aceptar este historial como nuevo origen.", RiskLevel.Critical, null, [world.Root], project.ProjectId, Binding: binding),
-            new ApprovalDecision(true, "manuel", T0, null, binding),
+            new ApprovalDecision(true, "manuel", T0, null, binding, ApprovalVerification.WindowsHello),
             Ct);
         await SameAsReadWholeAsync("the history accepted as a new origin");
         var inherited = await memory.RecallAsync(project, new MemoryQuery(MaxEntries: 1000, TrustedOnly: false), Ct);

@@ -84,6 +84,25 @@ internal sealed class LiveRun
     public void Cancel(string id) =>
         Move(id, WorkTaskStatus.Cancelled, "cancel", (t, at) => t.TransitionTo(WorkTaskStatus.Cancelled, at, "cancel"));
 
+    /// <summary>Phase 13: the agent of a running task asks <paramref name="question"/>, and the task waits for the answer, as the engine records it.</summary>
+    public void Ask(string id, string question)
+    {
+        var at = Tick();
+        Events.Add(new QuestionPosed(at, Tid(id), question));
+        var task = Graph[Tid(id)];
+        task.TransitionTo(WorkTaskStatus.Blocked, at, "asks");
+        Events.Add(new TaskTransitioned(at, task.Id, WorkTaskStatus.Running, WorkTaskStatus.Blocked, "asks", [], RunStateReplayer.AwaitingAnswerBlock));
+        Snapshot();
+    }
+
+    /// <summary>Phase 13: the person answers <paramref name="question"/>, and its task goes back to pending.</summary>
+    public void Answer(string id, string question)
+    {
+        var at = Tick();
+        Events.Add(new QuestionResolved(at, Tid(id), question));
+        Move(id, WorkTaskStatus.Pending, "answered", (t, at2) => t.TransitionTo(WorkTaskStatus.Pending, at2, "answered"));
+    }
+
     /// <summary>Skips what is doomed and records one event per skipped task, all stamped with the same instant.</summary>
     public IReadOnlyList<TaskId> Propagate()
     {
