@@ -70,6 +70,51 @@ public sealed class PresenceBackupTests
         Assert.True((await harness.Decisions.LoadAsync(harness.Project.ProjectId, Ct)).Verification.IsValid);
     }
 
+    /// <summary>
+    /// The re-review of WP5 (2026-11-09): a run that resumes by consent is tried at every start of the app. Two starts in a row
+    /// leave one alert, not two; a new approval of its plan in between is a change, and the refusal that follows is said again.
+    /// </summary>
+    [Fact]
+    public async Task Two_starts_in_a_row_leave_one_alert_and_a_new_approval_in_between_another()
+    {
+        using var harness = new EngineHarness { WriteConfinement = new FixedWriteConfinement() };
+        var run = new RunId("20261018-abcdef");
+        await harness.StoreStartedRunAsync(run, Plan(Work("T1")), approvedWriters: [Unmeasured], planApproval: ApprovalVerification.Dialog);
+
+        await Assert.ThrowsAsync<RunNeedsApprovalException>(() => harness.CreateOrchestrator().ResumeAsync(harness.Project, run, Ct));
+        await Assert.ThrowsAsync<RunNeedsApprovalException>(() => harness.CreateOrchestrator().ResumeAsync(harness.Project, run, Ct));
+
+        Assert.Single(harness.Alerts(NotResumable));
+
+        await harness.Decisions.RecordAsync(
+            harness.Project.ProjectId,
+            new AgentStudio.Domain.Decisions.Actor(AgentStudio.Domain.Decisions.ActorKind.User, "usuario"),
+            AgentStudio.Domain.Decisions.DecisionKind.ApprovalGranted,
+            "Plan aprobado otra vez",
+            ApprovalAnswers.Payload(Orchestrator.PlanApprovalAction, true, "usuario", "otra vez", null, ApprovalVerification.Dialog, run.Value),
+            null,
+            Ct);
+        await Assert.ThrowsAsync<RunNeedsApprovalException>(() => harness.CreateOrchestrator().ResumeAsync(harness.Project, run, Ct));
+
+        Assert.Equal(2, harness.Alerts(NotResumable).Count);
+        Assert.True((await harness.Decisions.LoadAsync(harness.Project.ProjectId, Ct)).Verification.IsValid);
+    }
+
+    /// <summary>The same for a run whose writers changed since it was approved (G-02): one alert for two starts in a row.</summary>
+    [Fact]
+    public async Task Two_starts_of_a_run_whose_writers_changed_leave_one_alert()
+    {
+        using var harness = new EngineHarness { WriteConfinement = new FixedWriteConfinement() };
+        var run = new RunId("20261018-abcdef");
+        await harness.StoreStartedRunAsync(run, Plan(Work("T1")), approvedWriters: [new MediumIntegrityWriterEntry(new TaskId("T1"), "Shell", new AgentId("ejecutor"))]);
+
+        await Assert.ThrowsAsync<RunNeedsApprovalException>(() => harness.CreateOrchestrator().ResumeAsync(harness.Project, run, Ct));
+        await Assert.ThrowsAsync<RunNeedsApprovalException>(() => harness.CreateOrchestrator().ResumeAsync(harness.Project, run, Ct));
+
+        Assert.Single(harness.Alerts(NotResumable));
+        Assert.Empty(harness.Claude.Starts);
+    }
+
     [Theory]
     [InlineData(ApprovalVerification.WindowsHello)]
     [InlineData(ApprovalVerification.WindowsLock)]

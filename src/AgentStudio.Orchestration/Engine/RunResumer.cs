@@ -113,7 +113,7 @@ internal sealed class RunResumer(EnginePorts ports)
         // And it writes at medium integrity exactly as the user approved, or it is not resumed (G-02): the writers are read
         // again from the checked plan, roster and profile with that answer, before the baseline is taken and before
         // anything is recovered or launched.
-        await CheckApprovedWritersAsync(recorder, started, MediumIntegrityWriters.Find(context.Plan, record.Roster, context.Profile, claudeWritesConfined), cancellationToken).ConfigureAwait(false);
+        await CheckApprovedWritersAsync(recorder, entries, started, MediumIntegrityWriters.Find(context.Plan, record.Roster, context.Profile, claudeWritesConfined), cancellationToken).ConfigureAwait(false);
         var guard = new UserRepositoryGuard(ports.Worktrees, project.RootPath, UserRepositoryGuard.CanWriteAtMediumIntegrity(context.Plan, record.Roster, context.Profile, claudeWritesConfined), recorder);
         await guard.EstablishBaselineAsync(cancellationToken).ConfigureAwait(false);
         var graph = replay.Graph;
@@ -175,10 +175,16 @@ internal sealed class RunResumer(EnginePorts ports)
     /// The writers at medium integrity the plan of the run has now (<paramref name="writers"/>) must be the ones
     /// <c>RunStarted</c> anchored when it was approved (version 3, <see cref="MediumIntegrityWriters.AreTheApproved"/>),
     /// none included. A <c>RunStarted</c> older than that anchored nothing, so its run goes on only while its plan has
-    /// none. Otherwise the alert says why, nothing more is written, and <see cref="RunNeedsApprovalException"/> carries the
-    /// warning the plan has now: the way forward is approving it again, which starts a follow-up run.
+    /// none. Otherwise the alert says why (once per refusal, <see cref="NotResumableAlert.AlreadyRecorded"/>: a run that resumes
+    /// by consent is tried at every start of the app), nothing more is written, and <see cref="RunNeedsApprovalException"/>
+    /// carries the warning the plan has now: the way forward is approving it again, which starts a follow-up run.
     /// </summary>
-    private static async Task CheckApprovedWritersAsync(RunRecorder recorder, RunStartedPayload started, IReadOnlyList<MediumIntegrityWriter> writers, CancellationToken cancellationToken)
+    private static async Task CheckApprovedWritersAsync(
+        RunRecorder recorder,
+        IReadOnlyList<(DecisionEntry Entry, DecisionPayload Payload)> entries,
+        RunStartedPayload started,
+        IReadOnlyList<MediumIntegrityWriter> writers,
+        CancellationToken cancellationToken)
     {
         var anchored = started.AnchorsApprovedWriters();
         if (anchored ? MediumIntegrityWriters.AreTheApproved(started.ApprovedWriters ?? [], writers) : writers.Count == 0)
@@ -193,11 +199,15 @@ internal sealed class RunResumer(EnginePorts ports)
                 + $"Approved: «{started.ApprovedWarning ?? "none"}». Now: «{now ?? "none"}». It is not resumed with writers the user did not approve: approve its plan again, which starts a follow-up run."
             : string.Create(CultureInfo.InvariantCulture, $"It started with RunStarted version {started.V}, before the writers at medium integrity a run was approved with were anchored in the decision log, and its plan has such writers now: «{now}». ")
                 + "It is not resumed with writers nobody can say the user approved: approve its plan again, which starts a follow-up run.";
-        await recorder.RecordAsync(
-            DecisionKind.AuditAlertRaised,
-            $"La ejecución {recorder.Run} no se puede reanudar",
-            new AuditAlertPayload("run.not-resumable", [], problem) { RunId = recorder.RunValue },
-            cancellationToken).ConfigureAwait(false);
+        if (!NotResumableAlert.AlreadyRecorded(entries, problem))
+        {
+            await recorder.RecordAsync(
+                DecisionKind.AuditAlertRaised,
+                $"La ejecución {recorder.Run} no se puede reanudar",
+                new AuditAlertPayload(NotResumableAlert.Code, [], problem) { RunId = recorder.RunValue },
+                cancellationToken).ConfigureAwait(false);
+        }
+
         throw new RunNeedsApprovalException($"Run {recorder.Run} cannot be resumed: {problem}", recorder.Run, started.PlanHash, anchored, anchored ? started.ApprovedWarning : null, now);
     }
 
