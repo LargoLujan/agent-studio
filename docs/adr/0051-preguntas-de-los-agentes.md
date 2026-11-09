@@ -88,6 +88,12 @@
   - Una tarea puede esperar tu respuesta indefinidamente; la fase de la ejecución es «Esperando a una persona» y un reinicio
     no la corta. Las demás tareas siguen.
   - El juez ya no ve los prompts de los ejecutores de ninguna ejecución, tampoco los que no llevaban nada tuyo.
+  - Residual de D-33: cuando contesta el sistema por tu consentimiento, el juez ve el método (`RecommendedByConsent`) en
+    `QuestionAnswered` y en la decisión, y por tanto sabe que la opción elegida era la recomendada. Se acepta a sabiendas:
+    el juez tiene que saber que esa decisión no la tomó una persona.
+  - Solo la petición del ejecutor deja de llevar sus instrucciones como prompt de sistema. El planificador (WP1) y el juez
+    las siguen recibiendo así de sus proveedores (`--append-system-prompt-file` en Claude, el bloque de stdin en Codex): el
+    camino de los proveedores no está muerto.
   - Lo que queda abierto: la reanudación real con cada CLI (`--resume` y `exec resume`) tras una pregunta solo está probada
     con agentes guionizados, y la medición en vivo, con tu OK, es de la integración; el intervalo de tokens totales del
     estimador (WP3) para que las estimaciones dejen de ser «no disponibles»; la composición de los tres puertos nuevos
