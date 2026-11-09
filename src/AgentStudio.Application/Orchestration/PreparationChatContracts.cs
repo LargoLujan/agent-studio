@@ -42,7 +42,14 @@ public sealed record PreparationChatRequest(
     AgentId Orchestrator,
     string Message,
     PreparationChatSession? Session,
-    QuotaConsent Consent);
+    QuotaConsent Consent)
+{
+    /// <summary>
+    /// The local catalog of models (docs/17 D-23): a suggestion to change the model of an agent is offered only for a model it
+    /// classifies for the CLI of that agent. Without a catalog, no such suggestion is offered.
+    /// </summary>
+    public Domain.Models.ModelCatalog? Catalog { get; init; }
+}
 
 /// <summary>A draft of a requirement the orchestrator suggests: the person copies it to the editor and freezes it, or not (docs/03 §3).</summary>
 public sealed record RequirementDraft(string Statement, RequirementPriority Priority, IReadOnlyList<string> Criteria);

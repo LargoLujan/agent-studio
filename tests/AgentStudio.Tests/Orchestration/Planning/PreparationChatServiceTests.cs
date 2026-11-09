@@ -6,6 +6,7 @@ using AgentStudio.Application.Security;
 using AgentStudio.Application.Skills;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Common;
+using AgentStudio.Domain.Models;
 using AgentStudio.Domain.Orchestration.Analysis;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Domain.Requirements;
@@ -46,11 +47,49 @@ public sealed class PreparationChatServiceTests
         public QuotaConsent Consent() => new("miveritas", Harness.Time.GetUtcNow().AddSeconds(-++_consents), "Un mensaje al orquestador: ~4.000 tokens (estimado)");
 
         public PreparationChatRequest Request(string message, PreparationChatSession? session = null, QuotaConsent? consent = null) =>
-            new(Harness.Project, Roster(), new AgentId("orquestador"), message, session, consent ?? Consent());
+            new(Harness.Project, Roster(), new AgentId("orquestador"), message, session, consent ?? Consent()) { Catalog = Catalog };
 
         public Task<PreparationChatReply> SendAsync(PreparationChatRequest request) => Service.SendAsync(request, null, TestContext.Current.CancellationToken);
 
         public void Dispose() => Harness.Dispose();
+    }
+
+    /// <summary>A character that turns the direction of the text (bidi), written by its code so the source shows none.</summary>
+    private static readonly char RightToLeftOverride = (char)0x202E;
+
+    /// <summary>Claude Code knows sonnet; Codex knows gpt-6.</summary>
+    private static readonly ModelCatalog Catalog = new(
+        1,
+        [
+            new ModelCatalogEntry(ProviderId.ClaudeCode, "2.1.290", ["claude-sonnet", "sonnet"], ModelTier.Balanced, []),
+            new ModelCatalogEntry(ProviderId.CodexCli, "0.160.0", ["gpt-6"], ModelTier.Balanced, []),
+        ],
+        ModelRecommendationRules.Default);
+
+    [Fact]
+    public async Task A_change_of_model_is_offered_only_for_a_model_of_the_catalog_of_the_cli_of_the_agent()
+    {
+        using var world = new World();
+        world.Harness.Claude.Script("orquestador", null, 1, new AgentScript
+        {
+            StructuredOutput = Answer(team:
+            [
+                Suggestion("changeModel", "ejecutor", "son" + RightToLeftOverride + "net"),
+                Suggestion("changeModel", "ejecutor", "gpt-6"),
+                Suggestion("changeModel", "ejecutor", "modelo-inventado"),
+                Suggestion("changeModel", "ejecutorCodex", "gpt-6"),
+            ]),
+        });
+
+        var reply = await world.SendAsync(world.Request("¿Qué modelos?"));
+
+        Assert.Equal([new ChangeModelFix(new AgentId("ejecutor"), "sonnet"), new ChangeModelFix(new AgentId("ejecutorCodex"), "gpt-6")], reply.Team.Select(s => s.Fix));
+        Assert.Equal(2, reply.Discarded.Count(d => d.Contains("changeModel", StringComparison.Ordinal)));
+        Assert.Equal("Puedo ayudarte a preparar Calc.Multiply.", reply.Text); // the answer stays
+
+        world.Harness.Claude.Script("orquestador", null, 2, new AgentScript { StructuredOutput = Answer(team: [Suggestion("changeModel", "ejecutor", "sonnet")]) });
+        var withoutCatalog = await world.SendAsync(world.Request("Otra", reply.Session) with { Catalog = null });
+        Assert.Empty(withoutCatalog.Team);
     }
 
     private static JsonObject Suggestion(string kind, string? agent = null, string? model = null, string? tool = null, string reason = "Porque sí") =>
@@ -144,14 +183,14 @@ public sealed class PreparationChatServiceTests
     public async Task A_long_text_is_cut_its_control_characters_go_and_a_bad_answer_gives_nothing()
     {
         using var world = new World();
-        world.Harness.Claude.Script("orquestador", null, 1, new AgentScript { StructuredOutput = Answer(new string('a', PreparationChatLimits.MaxTextLength + 50) + "‮") });
+        world.Harness.Claude.Script("orquestador", null, 1, new AgentScript { StructuredOutput = Answer(new string('a', PreparationChatLimits.MaxTextLength + 50) + RightToLeftOverride) });
         world.Harness.Claude.Script("orquestador", null, 2, new AgentScript { StructuredOutput = "{\"text\":\"Sin el resto\"}" });
 
         var cut = await world.SendAsync(world.Request("Hola"));
         var broken = await world.SendAsync(world.Request("Hola otra vez", cut.Session));
 
         Assert.Equal(PreparationChatLimits.MaxTextLength, cut.Text.Length);
-        Assert.DoesNotContain('‮', cut.Text);
+        Assert.DoesNotContain(RightToLeftOverride, cut.Text);
         Assert.Single(cut.Discarded);
         Assert.Empty(broken.Text);
         Assert.NotNull(broken.Error);

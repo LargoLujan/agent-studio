@@ -157,7 +157,7 @@ public sealed class OrderNotesInPlanTests
                 Note("T1", "from", "T1", "to", "La misma tarea"),
                 Note("T1", "from", "I1", "to", new string('x', OrderNotes.MaxReasonLength + 1)),
                 Note("T2", "from", "I1", "to", "Con un control \u0007"),
-                Note("T2", "from", "I1", "to", "Con dirección ‮"),
+                Note("T2", "from", "I1", "to", "Con dirección " + (char)0x202E),
                 Note("T1", "from", "I1", "to", " "),
                 Note("T1", "from", "I1", "to", "La buena"),
                 Note("T1", "from", "I1", "to", "Repetida"),

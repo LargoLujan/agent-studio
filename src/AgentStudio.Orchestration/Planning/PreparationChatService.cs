@@ -12,6 +12,7 @@ using AgentStudio.Application.Providers;
 using AgentStudio.Application.Security;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Common;
+using AgentStudio.Domain.Models;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Orchestration.Analysis;
 using AgentStudio.Domain.Providers;
@@ -155,7 +156,7 @@ public sealed class PreparationChatService : IPreparationChat
             result.AnswerEvidence,
             Clean(answer.Text, PreparationChatLimits.MaxTextLength, "the text", discarded),
             Drafts(answer.Requirements, discarded),
-            Suggestions(answer.Team, request.Roster, orchestrator, discarded),
+            Suggestions(answer.Team, request.Roster, orchestrator, request.Catalog, discarded),
             Items(answer.Risks, "a risk", discarded),
             Items(answer.Questions, "a question", discarded),
             discarded,
@@ -278,17 +279,22 @@ public sealed class PreparationChatService : IPreparationChat
         return kept;
     }
 
-    /// <summary>Each suggestion as a fix, only when it names what the template has: an agent of it, a tool it has, a judge of a vendor no producer is of.</summary>
-    private static List<TeamSuggestion> Suggestions(IReadOnlyList<TeamDocument> team, IReadOnlyList<AgentDefinition> roster, AgentDefinition orchestrator, List<string> discarded)
+    /// <summary>
+    /// Each suggestion as a fix, only when it names what the template has: an agent of it, a model the catalog classifies for
+    /// the CLI of that agent (as <c>ModelUndersizedRule</c> asks), a tool it has, a judge of a vendor no producer is of. A
+    /// suggestion that does not fit is left out, never the answer.
+    /// </summary>
+    private static List<TeamSuggestion> Suggestions(IReadOnlyList<TeamDocument> team, IReadOnlyList<AgentDefinition> roster, AgentDefinition orchestrator, ModelCatalog? catalog, List<string> discarded)
     {
         var kept = new List<TeamSuggestion>();
         foreach (var suggestion in team)
         {
             var reason = Clean(suggestion.Reason, PreparationChatLimits.MaxItemLength, "a reason", discarded);
             var agent = suggestion.Agent is { } id ? roster.FirstOrDefault(a => a.Id.Value == id) : null;
+            var model = suggestion.Model is { } named ? Clean(named, PreparationChatLimits.MaxItemLength, "a model", discarded) : string.Empty;
             Fix? fix = suggestion.Kind switch
             {
-                "changeModel" when agent is not null && !string.IsNullOrWhiteSpace(suggestion.Model) => new ChangeModelFix(agent.Id, suggestion.Model.Trim()),
+                "changeModel" when agent is not null && model.Length > 0 && catalog?.Find(agent.Model.Provider, model) is not null => new ChangeModelFix(agent.Id, model),
                 "memoryOn" when agent is not null && !TeamRoles.Judges(agent.Role) && agent.Memory == MemoryPolicy.None => new SetMemoryFix(agent.Id, MemoryPolicy.ReadSelected),
                 "memoryOff" when agent is not null && agent.Memory != MemoryPolicy.None => new SetMemoryFix(agent.Id, MemoryPolicy.None),
                 "addJudge" => OtherVendor(roster, orchestrator),
