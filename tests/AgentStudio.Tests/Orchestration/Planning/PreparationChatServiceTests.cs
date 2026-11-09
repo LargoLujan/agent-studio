@@ -34,8 +34,10 @@ public sealed class PreparationChatServiceTests
 
         public World()
         {
-            Service = new PreparationChatService(new AuxiliaryAgentRunner(Harness.Decisions, Harness.Evidence, Harness.Providers, Harness.Time), Harness.Worktrees, new Redactor(), Harness.Time);
+            Service = new PreparationChatService(new AuxiliaryAgentRunner(Harness.Decisions, Harness.Evidence, Harness.Providers, Harness.Time), Harness.Worktrees, new Redactor(), Consents, Harness.Time);
         }
+
+        public QuotaConsentLedger Consents { get; } = new();
 
         public EngineHarness Harness { get; } = new();
 

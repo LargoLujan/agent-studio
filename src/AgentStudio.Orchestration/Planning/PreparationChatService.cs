@@ -56,19 +56,21 @@ public sealed class PreparationChatService : IPreparationChat
     private readonly IWorktreeManager _worktrees;
     private readonly ISecretRedactor _redactor;
     private readonly TimeProvider _time;
-    private readonly QuotaConsentLedger _consents;
+    private readonly IQuotaConsentLedger _consents;
 
-    public PreparationChatService(IAuxiliaryAgentRunner runner, IWorktreeManager worktrees, ISecretRedactor redactor, TimeProvider time)
+    /// <param name="consents">The register of the OKs spent that the whole app shares (one instance, from the composition).</param>
+    public PreparationChatService(IAuxiliaryAgentRunner runner, IWorktreeManager worktrees, ISecretRedactor redactor, IQuotaConsentLedger consents, TimeProvider time)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(worktrees);
         ArgumentNullException.ThrowIfNull(redactor);
+        ArgumentNullException.ThrowIfNull(consents);
         ArgumentNullException.ThrowIfNull(time);
         _runner = runner;
         _worktrees = worktrees;
         _redactor = redactor;
+        _consents = consents;
         _time = time;
-        _consents = new QuotaConsentLedger(time, ConsentValidity);
     }
 
     /// <summary>The kinds of suggestions for the team the answer may carry, each a typed fix (docs/17 D-44).</summary>
@@ -108,7 +110,7 @@ public sealed class PreparationChatService : IPreparationChat
 
         var orchestrator = request.Roster.FirstOrDefault(a => a.Id == request.Orchestrator && a.Role == AgentRole.Orchestrator)
             ?? throw new ArgumentException($"'{request.Orchestrator}' is not the orchestrator of the roster.", nameof(request));
-        _consents.Spend(request.Consent);
+        QuotaConsentCheck.Spend(_consents, request.Consent, _time.GetUtcNow(), ConsentValidity);
 
         var workspace = request.Session?.Workspace ?? new RunId($"{WorkspacePrefix}{_time.GetUtcNow().ToString("yyyyMMdd", CultureInfo.InvariantCulture)}-{Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(3))}");
         var folder = await BaseOfAsync(request.Project, workspace, ct).ConfigureAwait(false);

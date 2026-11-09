@@ -19,23 +19,21 @@ namespace AgentStudio.Orchestration.Planning;
 
 /// <summary>
 /// The person's OK to spend quota on one auxiliary run of the orchestrator (docs/17 D-20 and D-44), as the assisted skill
-/// recommendation takes it: recent, not dated in the future, and spent once. Without it nothing is read nor launched.
+/// recommendation takes it: recent, not dated in the future, and spent once in the register the whole app shares
+/// (<see cref="IQuotaConsentLedger"/>). Without it nothing is read nor launched.
 /// </summary>
-internal sealed class QuotaConsentLedger(TimeProvider time, TimeSpan validity)
+internal static class QuotaConsentCheck
 {
     private static readonly TimeSpan ClockSkew = TimeSpan.FromMinutes(1);
-    private readonly Lock _gate = new();
-    private readonly HashSet<QuotaConsent> _spent = [];
 
     /// <exception cref="ArgumentNullException">There is no consent.</exception>
     /// <exception cref="ArgumentException">It does not say who gave it or what they were shown.</exception>
     /// <exception cref="InvalidOperationException">It is too old, dated in the future or spent already.</exception>
-    public void Spend(QuotaConsent consent)
+    public static void Spend(IQuotaConsentLedger ledger, QuotaConsent consent, DateTimeOffset now, TimeSpan validity)
     {
         ArgumentNullException.ThrowIfNull(consent);
         ArgumentException.ThrowIfNullOrWhiteSpace(consent.DecidedBy, nameof(consent));
         ArgumentException.ThrowIfNullOrWhiteSpace(consent.Description, nameof(consent));
-        var now = time.GetUtcNow();
         if (consent.DecidedAt > now + ClockSkew)
         {
             throw new InvalidOperationException("The consent is dated in the future: ask the person again.");
@@ -46,12 +44,9 @@ internal sealed class QuotaConsentLedger(TimeProvider time, TimeSpan validity)
             throw new InvalidOperationException(string.Create(CultureInfo.InvariantCulture, $"The consent was given more than {validity.TotalMinutes} minutes ago: ask the person again."));
         }
 
-        lock (_gate)
+        if (!ledger.TrySpend(consent))
         {
-            if (!_spent.Add(consent))
-            {
-                throw new InvalidOperationException("The consent was spent by an earlier run: each use needs its own OK.");
-            }
+            throw new InvalidOperationException("The consent was spent by an earlier run: each use needs its own OK.");
         }
     }
 }
@@ -71,16 +66,20 @@ public sealed class OrderReviewService : IOrderReview
 
     private readonly IAuxiliaryAgentRunner _runner;
     private readonly IWorktreeManager _worktrees;
-    private readonly QuotaConsentLedger _consents;
+    private readonly IQuotaConsentLedger _consents;
+    private readonly TimeProvider _time;
 
-    public OrderReviewService(IAuxiliaryAgentRunner runner, IWorktreeManager worktrees, TimeProvider time)
+    /// <param name="consents">The register of the OKs spent that the whole app shares (one instance, from the composition).</param>
+    public OrderReviewService(IAuxiliaryAgentRunner runner, IWorktreeManager worktrees, IQuotaConsentLedger consents, TimeProvider time)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(worktrees);
+        ArgumentNullException.ThrowIfNull(consents);
         ArgumentNullException.ThrowIfNull(time);
         _runner = runner;
         _worktrees = worktrees;
-        _consents = new QuotaConsentLedger(time, ConsentValidity);
+        _consents = consents;
+        _time = time;
     }
 
     public async Task<OrderReviewResult> ReviewAsync(OrderReviewRequest request, IProgress<AgentEvent>? progress, CancellationToken ct)
@@ -96,7 +95,7 @@ public sealed class OrderReviewService : IOrderReview
 
         var orchestrator = request.Roster.FirstOrDefault(a => a.Id == request.Orchestrator && a.Role == AgentRole.Orchestrator)
             ?? throw new ArgumentException($"'{request.Orchestrator}' is not the orchestrator of the roster.", nameof(request));
-        _consents.Spend(request.Consent);
+        QuotaConsentCheck.Spend(_consents, request.Consent, _time.GetUtcNow(), ConsentValidity);
 
         var folder = await BaseOfAsync(request.Project, request.PlanningRun, ct).ConfigureAwait(false);
         var ids = request.Plan.Tasks.Select(t => t.Id.Value).ToList();

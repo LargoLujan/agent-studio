@@ -43,8 +43,10 @@ public sealed class OrderReviewServiceTests
     {
         public World()
         {
-            Service = new OrderReviewService(new AuxiliaryAgentRunner(Harness.Decisions, Harness.Evidence, Harness.Providers, Harness.Time), Harness.Worktrees, Harness.Time);
+            Service = new OrderReviewService(new AuxiliaryAgentRunner(Harness.Decisions, Harness.Evidence, Harness.Providers, Harness.Time), Harness.Worktrees, Consents, Harness.Time);
         }
+
+        public QuotaConsentLedger Consents { get; } = new();
 
         public EngineHarness Harness { get; } = new();
 

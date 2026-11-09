@@ -122,6 +122,12 @@
        planificación, que se adopta si existe o se crea en HEAD si se borró.
      - **Tu OK en cada uso:** un `QuotaConsent` reciente (10 minutos) que se gasta una vez, como el de la recomendación de
        skills; sin él no se lee ni se lanza nada. La estimación la pide la pantalla al estimador con el propósito `OrderReview`.
+     - **Un solo registro de OK gastados para toda la app:** `IQuotaConsentLedger` y su implementación `QuotaConsentLedger`
+       (`Application/Providers/QuotaConsentLedger.cs`), con un único método atómico, `TrySpend`, que da falso si el OK ya se
+       gastó. Lo usan «Revisar el orden», el chat de preparación y la recomendación de skills (y el análisis del consumo con un
+       agente, en la integración), así que un OK dado para un uso no sirve para otro servicio. La composición registra una
+       sola instancia. **Vive en memoria:** tras reiniciar la app solo protege la caducidad del OK, que es de 10 minutos desde
+       que lo das en los tres servicios (`ConsentValidity`).
      - El plan y el equipo van como datos; el esquema estricto lleva los ids de las tareas como enum.
      - **Nada se aplica solo:** se guardan las notas que pasan `OrderNotesCheck` y cada una sale como sugerencia comprobada
        (`OrderSuggestion`): si el plan ya la cumple y el arreglo que la cumpliría, decidido por `TaskGraph`. La respuesta queda
