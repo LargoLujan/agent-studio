@@ -65,6 +65,13 @@ public sealed class OrchestratorDocumentViewModelTests
     /// <summary>The fixture plan with its tool task on the profile's «lint» step: valid against <see cref="Backends.Profile"/>.</summary>
     private static PlanDefinition ValidPlan() => PlanFixtures.Plan();
 
+    /// <summary>
+    /// Windows Hello as the app composes it, with a double that confirms the person: a plan with writers that runs on the real
+    /// engine is approved with Hello, or the engine refuses it (docs/17 D-37, ADR-0053).
+    /// </summary>
+    private static AgentStudio.Desktop.Orchestrator.Approvals.ReinforcedConfirmation ConfirmedByHello() =>
+        new(AgentStudio.Tests.Desktop.Lock.FakeUserPresenceVerifier.Answering(UserPresenceResult.Verified), () => true);
+
     private static async Task<OrchestratorDocumentViewModel> OpenAsync(OrchestrationBackend backend)
     {
         var document = new OrchestratorDocumentViewModel(Root, new OrchestrationSession(backend), new MemoryLayoutStore(), new FakeTimeProvider(T0), new InlineSynchronizationContext());
@@ -767,7 +774,7 @@ public sealed class OrchestratorDocumentViewModelTests
         var profile = OrchestrationFixtures.Profile() with { Steps = [.. OrchestrationFixtures.Profile().Steps.Select(s => s.Id == "build" ? s with { Isolation = ProcessIsolation.None } : s)] };
         var backend = new OrchestrationBackend(harness.CreateOrchestrator(), new FixedWorkspace(harness.Project), harness.RequirementStore, harness.Roster, new FakeProfileSource(profile), harness.Plans, WriteConfinement: harness.WriteConfinement);
         var ui = new QueueSynchronizationContext();
-        var document = new OrchestratorDocumentViewModel(harness.RepositoryRoot, new OrchestrationSession(backend), new MemoryLayoutStore(), new FakeTimeProvider(T0), ui);
+        var document = new OrchestratorDocumentViewModel(harness.RepositoryRoot, new OrchestrationSession(backend), new MemoryLayoutStore(), new FakeTimeProvider(T0), ui, ConfirmedByHello());
         await document.OpenAsync();
         document.RequestText = "Añade Calc.Multiply(a,b) con sus pruebas";
         document.Canvas.LoadTasks(
@@ -951,7 +958,7 @@ public sealed class OrchestratorDocumentViewModelTests
         harness.Claude.Script("ejecutor", "T1", 1, AgentScript.Completed());
         var backend = new OrchestrationBackend(harness.CreateOrchestrator(), new FixedWorkspace(harness.Project), harness.RequirementStore, harness.Roster, new FakeProfileSource(OrchestrationFixtures.Profile()), harness.Plans, WriteConfinement: harness.WriteConfinement);
         var ui = new QueueSynchronizationContext();
-        var document = new OrchestratorDocumentViewModel(harness.RepositoryRoot, new OrchestrationSession(backend), new MemoryLayoutStore(), new FakeTimeProvider(T0), ui);
+        var document = new OrchestratorDocumentViewModel(harness.RepositoryRoot, new OrchestrationSession(backend), new MemoryLayoutStore(), new FakeTimeProvider(T0), ui, ConfirmedByHello());
         await document.OpenAsync();
         document.RequestText = "Añade Calc.Multiply(a,b) con sus pruebas";
 
