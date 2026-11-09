@@ -1,6 +1,7 @@
 using System.IO;
 using System.Text;
 using System.Text.Json;
+using AgentStudio.Application.Execution;
 using AgentStudio.Application.Git;
 using AgentStudio.Application.Localization;
 using AgentStudio.Application.Projects;
@@ -54,7 +55,7 @@ public sealed class FileSetupRepositoryReader(IWorktreeManager? git = null) : IS
 /// Node, else Python, by the names of the files. Reading and writing go through the same loader and the same storage policy
 /// as the orchestrator uses (<see cref="VerificationProfileFile"/>, <see cref="IProjectStorageFiles"/>): never through a link.
 /// </summary>
-public sealed class StackSetupVerificationProfiles(IProjectStorageFiles files) : ISetupVerificationProfiles
+public sealed class StackSetupVerificationProfiles(IProjectStorageFiles files, IExecutableLocator locator) : ISetupVerificationProfiles
 {
     public VerificationProfile? Propose(IReadOnlyList<string> relativeFiles)
     {
@@ -62,7 +63,7 @@ public sealed class StackSetupVerificationProfiles(IProjectStorageFiles files) :
         return SetupProposer.StackOf(AgentStudio.Domain.Skills.ProjectStackDetector.Detect(relativeFiles)) switch
         {
             SetupStacks.DotNet => DotNetVerificationProfile.Propose(),
-            _ => NodeVerificationProfile.ProposeFor(relativeFiles) ?? PythonVerificationProfile.ProposeFor(relativeFiles),
+            _ => NodeVerificationProfile.ProposeFor(relativeFiles, locator) ?? PythonVerificationProfile.ProposeFor(relativeFiles, locator),
         };
     }
 

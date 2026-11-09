@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.IO;
+using AgentStudio.Application.Execution;
 using AgentStudio.Application.Localization;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Security;
@@ -9,6 +10,7 @@ using AgentStudio.Desktop.Orchestrator.Approvals;
 using AgentStudio.Desktop.Setup;
 using AgentStudio.Domain.Security;
 using AgentStudio.Infrastructure.Persistence;
+using AgentStudio.Infrastructure.Processes;
 using AgentStudio.Tests.Desktop.Lock;
 
 namespace AgentStudio.Tests.Desktop.Setup;
@@ -68,7 +70,7 @@ public sealed class SetupAdaptersTests : IDisposable
     [InlineData("python", new[] { "requirements.txt", "app/main.py" })]
     public void The_profile_proposed_follows_the_stack_by_the_files_with_dotnet_first(string expected, string[] files)
     {
-        var profile = new StackSetupVerificationProfiles(new ProjectStorageFiles()).Propose(files);
+        var profile = new StackSetupVerificationProfiles(new ProjectStorageFiles(), new ExecutableLocator(() => string.Empty)).Propose(files);
 
         Assert.Equal(expected, profile!.Name);
     }
@@ -76,7 +78,7 @@ public sealed class SetupAdaptersTests : IDisposable
     [Fact]
     public void Without_a_stack_or_without_its_file_in_the_root_nothing_is_proposed()
     {
-        var profiles = new StackSetupVerificationProfiles(new ProjectStorageFiles());
+        var profiles = new StackSetupVerificationProfiles(new ProjectStorageFiles(), new ExecutableLocator(() => string.Empty));
 
         Assert.Null(profiles.Propose(["README.md"]));
         Assert.Null(profiles.Propose(["web/package.json"]));
@@ -86,7 +88,7 @@ public sealed class SetupAdaptersTests : IDisposable
     public async Task The_profile_is_saved_and_read_by_the_loader_of_the_orchestrator_and_a_broken_file_is_an_error_not_a_default()
     {
         var project = Project();
-        var profiles = new StackSetupVerificationProfiles(new ProjectStorageFiles());
+        var profiles = new StackSetupVerificationProfiles(new ProjectStorageFiles(), new ExecutableLocator(() => string.Empty));
         Assert.Null(await profiles.LoadAsync(project, Ct));
 
         var proposed = profiles.Propose(["package.json", "package-lock.json"])!;

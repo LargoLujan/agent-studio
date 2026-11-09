@@ -1,4 +1,5 @@
 using AgentStudio.Application.Decisions;
+using AgentStudio.Application.Execution;
 using AgentStudio.Application.Git;
 using AgentStudio.Application.Knowledge;
 using AgentStudio.Application.Models;
@@ -7,6 +8,7 @@ using AgentStudio.Application.Projects;
 using AgentStudio.Application.Setup;
 using AgentStudio.Application.Skills;
 using AgentStudio.Desktop.Orchestrator.Approvals;
+using AgentStudio.Infrastructure.Processes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -33,7 +35,7 @@ public static class SetupServices
     {
         ArgumentNullException.ThrowIfNull(services);
         services.TryAddSingleton<ISetupRepositoryReader>(provider => new FileSetupRepositoryReader(provider.GetService<IWorktreeManager>()));
-        services.TryAddSingleton<ISetupVerificationProfiles>(provider => new StackSetupVerificationProfiles(provider.GetRequiredService<IProjectStorageFiles>()));
+        services.TryAddSingleton<ISetupVerificationProfiles>(provider => new StackSetupVerificationProfiles(provider.GetRequiredService<IProjectStorageFiles>(), provider.GetService<IExecutableLocator>() ?? new ExecutableLocator()));
         services.TryAddSingleton<IProjectOptionsStore>(_ => new LocalProjectOptionsStore(optionsFolder ?? LocalProjectOptionsStore.DefaultFolder));
         services.TryAddSingleton(provider => new ProjectSetupService(
             provider.GetRequiredService<ISetupRepositoryReader>(),

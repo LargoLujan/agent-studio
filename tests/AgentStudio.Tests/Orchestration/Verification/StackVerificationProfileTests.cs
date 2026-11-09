@@ -30,9 +30,38 @@ public sealed class StackVerificationProfileTests : IDisposable
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
+    // A Node installation as the file names say it: node.exe with node_modules\npm\bin\npm-cli.js beside it. Empty files; nothing runs.
+    private readonly string _node = MakeNode(withNpmCli: true);
+
+    private string NodeExe => Path.Combine(_node, "node.exe");
+
+    private string NpmCli => Path.Combine(_node, "node_modules", "npm", "bin", "npm-cli.js");
+
+    private static string MakeNode(bool withNpmCli)
+    {
+        var folder = Directory.CreateTempSubdirectory("as-stack-node-").FullName;
+        File.WriteAllText(Path.Combine(folder, "node.exe"), string.Empty);
+        if (withNpmCli)
+        {
+            Directory.CreateDirectory(Path.Combine(folder, "node_modules", "npm", "bin"));
+            File.WriteAllText(Path.Combine(folder, "node_modules", "npm", "bin", "npm-cli.js"), string.Empty);
+        }
+
+        return folder;
+    }
+
+    private sealed class FakeLocator(string? node, string? python) : IExecutableLocator
+    {
+        public string? Find(string command) => command switch { "node" => node, "python" => python, _ => null };
+    }
+
+    private IExecutableLocator Locator(string? python = @"C:\Python312\python.exe") => new FakeLocator(NodeExe, python);
+
+    private NpmLaunch Npm() => NpmLaunch.From(NodeExe);
+
     public void Dispose()
     {
-        foreach (var folder in new[] { _repository, _workingDirectory, _scratch, _areas })
+        foreach (var folder in new[] { _repository, _workingDirectory, _scratch, _areas, _node })
         {
             if (Directory.Exists(folder))
             {
@@ -66,7 +95,7 @@ public sealed class StackVerificationProfileTests : IDisposable
         Assert.True(NodeVerificationProfile.Detect(["\\package.json"]));
         Assert.False(NodeVerificationProfile.Detect(["web/package.json", "pyproject.toml"]));
         Assert.False(NodeVerificationProfile.Detect(["", "package.json.bak"]));
-        Assert.Null(NodeVerificationProfile.ProposeFor(["main.py"]));
+        Assert.Null(NodeVerificationProfile.ProposeFor(["main.py"], Locator()));
     }
 
     [Theory]
@@ -76,27 +105,190 @@ public sealed class StackVerificationProfileTests : IDisposable
     {
         Assert.True(PythonVerificationProfile.Detect(Repository(marker, "app/main.py")));
         Assert.False(PythonVerificationProfile.Detect(["sub/" + marker, "package.json"]));
-        Assert.Null(PythonVerificationProfile.ProposeFor(["package.json"]));
+        Assert.Null(PythonVerificationProfile.ProposeFor(["package.json"], Locator()));
     }
 
     [Fact]
     public void A_lock_file_makes_the_install_step_a_clean_install_and_without_one_it_never_writes_a_lock()
     {
-        var locked = NodeVerificationProfile.ProposeFor(["package.json", "package-lock.json"])!.Find("install")!;
-        var unlocked = NodeVerificationProfile.ProposeFor(["package.json"])!.Find("install")!;
+        var locked = NodeVerificationProfile.ProposeFor(["package.json", "package-lock.json"], Locator())!.Find("install")!;
+        var unlocked = NodeVerificationProfile.ProposeFor(["package.json"], Locator())!.Find("install")!;
 
-        Assert.Equal("ci", locked.Arguments[0]);
+        Assert.Equal("ci", locked.Arguments[1]);
         Assert.DoesNotContain("--no-package-lock", locked.Arguments);
-        Assert.Equal("install", unlocked.Arguments[0]);
+        Assert.Equal("install", unlocked.Arguments[1]);
         Assert.Contains("--no-package-lock", unlocked.Arguments);
 
-        // No script of a package runs, in either, and the cache is in the results folder of the step.
+        // npm starts through node and its npm-cli.js; no script of a package runs, in either.
         Assert.All(new[] { locked, unlocked }, step =>
         {
             Assert.Contains("--ignore-scripts", step.Arguments);
-            Assert.Contains("{results}/npm-cache", step.Arguments);
-            Assert.Equal("npm", step.Executable);
+            Assert.Equal("node", step.Executable);
+            Assert.Equal(NpmCli, step.Arguments[0]);
         });
+    }
+
+    // ---- the tools start, or the step says why they cannot ---------------------------------------------------------
+
+    [Fact]
+    public void Npm_starts_through_node_and_the_npm_cli_beside_it_never_through_its_cmd_shim()
+    {
+        var profile = NodeVerificationProfile.ProposeFor(["package.json"], Locator())!;
+
+        Assert.Empty(VerificationRules.Check(profile));
+        Assert.All(profile.Steps, s => Assert.Equal("node", s.Executable));
+        Assert.All(profile.Steps, s => Assert.DoesNotContain(s.Arguments.Prepend(s.Executable), a => a.Contains("npm.cmd", StringComparison.OrdinalIgnoreCase) || a.Equals("cmd", StringComparison.OrdinalIgnoreCase)));
+        Assert.Equal([NpmCli, "run", "build", "--if-present"], profile.Find("build")!.Arguments);
+    }
+
+    [Fact]
+    public void Without_npm_cli_beside_node_the_steps_that_need_npm_fail_and_say_why()
+    {
+        var bare = MakeNode(withNpmCli: false);
+        try
+        {
+            var profile = NodeVerificationProfile.ProposeFor(["package.json"], new FakeLocator(Path.Combine(bare, "node.exe"), null))!;
+
+            Assert.Empty(VerificationRules.Check(profile));
+            foreach (var id in new[] { "install", "build" })
+            {
+                var step = profile.Find(id)!;
+                Assert.Equal("cmd", step.Executable);
+                Assert.Contains("npm-cli.js was not found next to node.exe", step.Arguments[2], StringComparison.Ordinal);
+                Assert.EndsWith("exit /b 1", step.Arguments[2], StringComparison.Ordinal);
+            }
+
+            Assert.Equal(["install", "build", "test"], profile.StepsToRun(["test"]).Select(s => s.Id));
+
+            var noNode = NodeVerificationProfile.ProposeFor(["package.json"], new FakeLocator(null, null))!;
+            Assert.Contains("node was not found on the PATH", noNode.Find("install")!.Arguments[2], StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(bare, recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData(@"C:\Users\ana\AppData\Local\Microsoft\WindowsApps\python.exe", true)]
+    [InlineData(@"c:/users/ana/appdata/local/microsoft/windowsapps/python.exe", true)]
+    [InlineData(@"C:\Users\ana\AppData\Local\Programs\Python\Python312\python.exe", false)]
+    [InlineData(@"C:\Python312\python.exe", false)]
+    public void The_python_of_the_microsoft_store_is_told_apart_from_a_real_interpreter(string path, bool alias)
+    {
+        Assert.Equal(alias, StackStepSupport.IsStoreAlias(path));
+        Assert.Equal(alias, PythonVerificationProfile.InterpreterProblem(path) is not null);
+    }
+
+    [Fact]
+    public void With_the_store_alias_or_no_python_the_build_says_why_and_with_a_real_one_it_is_the_plain_profile()
+    {
+        var alias = PythonVerificationProfile.ProposeFor(["pyproject.toml"], Locator(@"C:\Users\ana\AppData\Local\Microsoft\WindowsApps\python.exe"))!;
+        var missing = PythonVerificationProfile.ProposeFor(["pyproject.toml"], Locator(python: null))!;
+        var real = PythonVerificationProfile.ProposeFor(["pyproject.toml"], Locator())!;
+
+        Assert.Empty(VerificationRules.Check(alias));
+        Assert.Equal("cmd", alias.Find("build")!.Executable);
+        Assert.Contains("alias of the Microsoft Store", alias.Find("build")!.Arguments[2], StringComparison.Ordinal);
+        Assert.Contains("python was not found on the PATH", missing.Find("build")!.Arguments[2], StringComparison.Ordinal);
+        Assert.Equal("python", real.Find("build")!.Executable);
+        Assert.Equal(PythonVerificationProfile.Propose().ContentHash, real.ContentHash);
+        Assert.Equal("python", alias.Find("test")!.Executable);
+        Assert.Throws<ArgumentException>(() => StackStepSupport.Failing("x", "x", EvidenceKind.BuildLog, "a & b"));
+    }
+
+    [Fact]
+    public void Compileall_skips_the_folders_that_are_not_the_project_and_the_comment_no_longer_says_it_writes_nothing()
+    {
+        var build = PythonVerificationProfile.Propose().Find("build")!;
+
+        Assert.Equal(["-m", "compileall", "-q", "-x", PythonVerificationProfile.ExcludedFolders, "."], build.Arguments);
+        var excluded = new System.Text.RegularExpressions.Regex(PythonVerificationProfile.ExcludedFolders);
+        foreach (var skipped in new[] { "node_modules/x/a.py", @"web\node_modules\a.py", ".venv/lib/a.py", "venv/a.py", ".git/hooks/a.py", "sub/.venv" })
+        {
+            Assert.Matches(excluded, skipped);
+        }
+
+        foreach (var compiled in new[] { "src/a.py", "tests/venv_helpers/a.py", "my.venv.py", "gitlike/a.py" })
+        {
+            Assert.DoesNotMatch(excluded, compiled);
+        }
+    }
+
+    // ---- the environment of each profile points at the area of the step --------------------------------------------
+
+    [Fact]
+    public async Task A_node_step_gets_the_home_the_caches_and_an_empty_user_config_in_the_area()
+    {
+        var area = await new FakeIsolatedWorkAreaFactory(_areas).CreateAsync(Commit, (_, _) => Task.CompletedTask, Ct);
+        using (area as IDisposable)
+        {
+            foreach (var executable in new[] { "node", "npm", "NPX.cmd" })
+            {
+                var environment = VerificationRunner.IsolatedStepEnvironment(area, executable);
+
+                var home = area.CliHomeDirectory;
+                Assert.Equal(home, environment["HOME"]);
+                Assert.Equal(home, environment["USERPROFILE"]);
+                Assert.Equal(home, environment["APPDATA"]);
+                Assert.Equal(home, environment["LOCALAPPDATA"]);
+                Assert.Equal(Path.Combine(home, "npm-cache"), environment["npm_config_cache"]);
+                Assert.Equal(Path.Combine(home, "npm-prefix"), environment["npm_config_prefix"]);
+                Assert.Equal("false", environment["npm_config_update_notifier"]);
+                Assert.Equal("false", environment["npm_config_fund"]);
+                Assert.Equal(Path.Combine(home, "npm-userconfig"), environment["npm_config_userconfig"]);
+                Assert.True(File.Exists(environment["npm_config_userconfig"]));
+                Assert.Equal(0, new FileInfo(environment["npm_config_userconfig"]!).Length);
+
+                // What every isolated step gets is still there, and nothing of Python.
+                Assert.Equal(area.TempDirectory, environment["TEMP"]);
+                Assert.Equal(area.NuGetPackagesDirectory, environment["NUGET_PACKAGES"]);
+                Assert.False(environment.ContainsKey("PIP_CACHE_DIR"));
+            }
+        }
+    }
+
+    [Fact]
+    public async Task A_python_step_gets_the_home_the_caches_and_an_empty_pip_config_in_the_area_and_no_bytecode()
+    {
+        var area = await new FakeIsolatedWorkAreaFactory(_areas).CreateAsync(Commit, (_, _) => Task.CompletedTask, Ct);
+        using (area as IDisposable)
+        {
+            var environment = VerificationRunner.IsolatedStepEnvironment(area, "python");
+
+            var home = area.CliHomeDirectory;
+            Assert.Equal(home, environment["HOME"]);
+            Assert.Equal(home, environment["USERPROFILE"]);
+            Assert.Equal(home, environment["APPDATA"]);
+            Assert.Equal(home, environment["LOCALAPPDATA"]);
+            Assert.Equal(Path.Combine(home, "pip-cache"), environment["PIP_CACHE_DIR"]);
+            Assert.Equal(Path.Combine(home, "python-user"), environment["PYTHONUSERBASE"]);
+            Assert.Equal("1", environment["PYTHONDONTWRITEBYTECODE"]);
+            Assert.Equal(0, new FileInfo(environment["PIP_CONFIG_FILE"]!).Length);
+            Assert.True(File.Exists(environment["PIP_CONFIG_FILE"]));
+            Assert.False(environment.ContainsKey("npm_config_cache"));
+            Assert.Equal(area.TempDirectory, environment["TEMP"]);
+        }
+    }
+
+    [Fact]
+    public async Task A_dotnet_step_or_one_with_no_executable_keeps_the_environment_it_had_and_an_existing_config_is_not_written()
+    {
+        var area = await new FakeIsolatedWorkAreaFactory(_areas).CreateAsync(Commit, (_, _) => Task.CompletedTask, Ct);
+        using (area as IDisposable)
+        {
+            var plain = VerificationRunner.IsolatedStepEnvironment(area);
+            var dotnet = VerificationRunner.IsolatedStepEnvironment(area, "dotnet");
+
+            Assert.Equal(plain.OrderBy(p => p.Key, StringComparer.Ordinal), dotnet.OrderBy(p => p.Key, StringComparer.Ordinal));
+            Assert.False(plain.ContainsKey("npm_config_cache"));
+            Assert.False(plain.ContainsKey("PIP_CACHE_DIR"));
+
+            // A config the area already has (a Low step may have written one) is read as it is, never replaced.
+            File.WriteAllText(Path.Combine(area.CliHomeDirectory, "npm-userconfig"), "registry=x");
+            VerificationRunner.IsolatedStepEnvironment(area, "npm");
+            Assert.Equal("registry=x", File.ReadAllText(Path.Combine(area.CliHomeDirectory, "npm-userconfig")));
+        }
     }
 
     // ---- the profiles follow the rules of a profile and chain their steps ----------------------------------------
@@ -104,7 +296,7 @@ public sealed class StackVerificationProfileTests : IDisposable
     [Fact]
     public void The_node_proposal_installs_builds_and_tests_with_a_JUnit_report_each_step_requiring_the_one_before()
     {
-        var profile = NodeVerificationProfile.Propose(hasLockFile: true);
+        var profile = NodeVerificationProfile.Propose(true, Npm());
 
         Assert.Empty(VerificationRules.Check(profile));
         Assert.Equal("node", profile.Name);
@@ -142,8 +334,8 @@ public sealed class StackVerificationProfileTests : IDisposable
     [Fact]
     public async Task Each_proposal_is_only_a_proposal_until_it_is_saved_and_reads_back_with_the_same_hash()
     {
-        var node = NodeVerificationProfile.ProposeFor(Repository("package.json", "package-lock.json"))!;
-        var python = PythonVerificationProfile.ProposeFor(["pyproject.toml"])!;
+        var node = NodeVerificationProfile.ProposeFor(Repository("package.json", "package-lock.json"), Locator())!;
+        var python = PythonVerificationProfile.ProposeFor(["pyproject.toml"], Locator())!;
         var root = Directory.CreateTempSubdirectory("as-stack-save-").FullName;
         try
         {
@@ -200,14 +392,14 @@ public sealed class StackVerificationProfileTests : IDisposable
     [Fact]
     public async Task The_system_runs_the_node_steps_in_order_in_isolation_and_reads_the_JUnit_report_of_the_test()
     {
-        var (results, processes) = await RunTestStepAsync(NodeVerificationProfile.Propose(hasLockFile: true), "--test-reporter-destination=", TwoPassingTests);
+        var (results, processes) = await RunTestStepAsync(NodeVerificationProfile.Propose(true, Npm()), "--test-reporter-destination=", TwoPassingTests);
 
         Assert.Equal(["install", "build", "test"], results.Select(r => r.StepId));
         Assert.All(results, r => Assert.True(r.Succeeded));
         Assert.Equal(2, results[2].Evidence.TestRun!.Passed);
-        Assert.Equal(["npm", "npm", "node"], processes.Started.Select(s => s.FileName));
+        Assert.All(processes.Started, s => Assert.Equal("node", s.FileName));
         Assert.All(processes.Started, s => Assert.Equal(ProcessIsolation.LowIntegrity, s.Isolation));
-        Assert.Equal(["ci", "--ignore-scripts", "--no-audit", "--no-fund"], processes.Started[0].Arguments.Take(4));
+        Assert.Equal([NpmCli, "ci", "--ignore-scripts", "--no-audit", "--no-fund"], processes.Started[0].Arguments.Take(5));
     }
 
     [Fact]
