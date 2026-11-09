@@ -29,6 +29,9 @@ public sealed partial class OutputPanelViewModel : ObservableObject
         _emptyText = _texts.Get("Panels_Output_Empty");
     }
 
+    /// <summary>Says that the lines are texts of the agents, not messages of the system: they are data of the agents, shown cleaned of control characters.</summary>
+    public string AgentTextNotice => _texts.Get("Panels_Output_AgentText");
+
     /// <summary>The lines of the activity of the selection, oldest first.</summary>
     public ObservableCollection<ActivityEntry> Lines { get; } = [];
 

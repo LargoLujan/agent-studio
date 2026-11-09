@@ -91,6 +91,9 @@
   <data name="Panels_Output_Empty" xml:space="preserve">
     <value>There is no activity to show yet.</value>
   </data>
+  <data name="Panels_Output_AgentText" xml:space="preserve">
+    <value>What appears here was written by the agents: it is their text, not messages of the system. It is shown without control characters.</value>
+  </data>
   <data name="Panels_Tests_Title" xml:space="preserve">
     <value>Tests</value>
   </data>

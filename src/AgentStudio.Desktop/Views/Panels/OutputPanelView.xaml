@@ -16,6 +16,7 @@
             <info:InfoButton DockPanel.Dock="Right" InfoKey="Info_Output" VerticalAlignment="Center"/>
             <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{Binding Title}" VerticalAlignment="Center"/>
         </DockPanel>
+        <TextBlock DockPanel.Dock="Top" Style="{StaticResource SecondaryText}" Margin="12,0,12,4" TextWrapping="Wrap" Text="{Binding AgentTextNotice}"/>
         <TextBlock DockPanel.Dock="Top" Style="{StaticResource SecondaryText}" Margin="12,0,12,4" Text="{Binding EmptyText}"
                    Visibility="{Binding IsEmpty, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
         <ListBox ItemsSource="{Binding Lines}" Background="{StaticResource BackgroundBrush}" BorderThickness="0" Margin="12,0,12,8"

@@ -178,6 +178,30 @@ public sealed class PanelsTests
     }
 
     [Fact]
+    public void The_text_of_an_agent_loses_its_control_and_direction_characters_and_the_panel_says_it_is_theirs()
+    {
+        var hostile = "gracias ‮oculto⁩ ‏ fin\u0007";
+        var line = AgentActivityText.Describe(new ToolInvoked(T0, "Edit", hostile), TimeZoneInfo.Utc);
+
+        Assert.Equal("Usa Edit: gracias oculto  fin", line);
+        Assert.DoesNotContain((char)0x202E, line!);
+        Assert.DoesNotContain((char)0x200F, line!);
+        Assert.Equal("gracias oculto  fin", AgentActivityText.Clean(hostile));
+        Assert.Equal("Lo que sale aquí lo escribieron los agentes: son sus textos, no mensajes del sistema. Se muestran sin caracteres de control.", new OutputPanelViewModel().AgentTextNotice);
+    }
+
+    [Fact]
+    public void The_monitor_keeps_the_cleaned_line_in_its_activity()
+    {
+        var (monitor, run, ui, _) = Open(View("T1", "exec1", WorkTaskStatus.Running));
+
+        run.Emit(new AgentActivityEvent(T0, Tid("T1"), new MessageEmitted(T0, "hecho ‮odnum", false)));
+        Pump(ui, 1);
+
+        Assert.Contains(monitor.Activity, a => a.Text == "hecho odnum");
+    }
+
+    [Fact]
     public void Before_any_activity_the_panel_says_there_is_nothing_to_show()
     {
         var panel = new OutputPanelViewModel();
