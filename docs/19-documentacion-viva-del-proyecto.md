@@ -57,8 +57,8 @@ Tercero, **un paquete de documentación** junta todo por audiencia, lo comprueba
 6. **El desfase se detecta sin IA:** cada nota guarda la huella de lo que describe. Si eso cambia, la nota sale «puede estar
    desfasada»; si desaparece, «huérfana». El siguiente ejecutor que toca ese fichero la recibe para ponerla al día (§4.7).
 7. **Diagramas en Mermaid, dibujados en tu equipo:** el texto es la fuente. Un motor local (mermaid.js fijado por huella,
-   dentro de WebView2 y sin red) los valida y los dibuja. En HTML van en SVG; en Word y PDF, como imagen con texto alternativo
-   (§5).
+   dentro de WebView2 y sin red) los valida y los dibuja. En HTML y en PDF van en SVG; en Word, como imagen PNG. Siempre con
+   texto alternativo (§5).
 8. **El paquete amplía el modelo de ADR-0057 sin cambiar su huella:** documentos nuevos con bloques nuevos (diagrama,
    definiciones, referencia cruzada, aviso y código), los mismos cuatro escritores y la misma exportación (§6).
 9. **Cada exportación es una versión atada a un commit y a la cabeza del registro:** el mismo corte da el mismo paquete. Se
@@ -1102,6 +1102,7 @@ alguno, estos se corren.
 - **El coste de las notas:** tokens por tarea con la opción. Es una estimación del diseño, no una medida.
 - **Los tiempos de F16-15:** son objetivos del diseño.
 - **INFLESZ** para textos cortos (ya estaba sin verificar en docs/17).
+- **Los dos diagramas Mermaid de este documento** (§4 y §11.1) no se han dibujado ni validado con un motor: aquí no lo había.
 
 ---
 
