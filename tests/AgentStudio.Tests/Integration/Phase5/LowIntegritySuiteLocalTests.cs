@@ -25,20 +25,6 @@ public sealed class LowIntegritySuiteLocalTests
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    private static void CopyTree(string source, string target)
-    {
-        Directory.CreateDirectory(target);
-        foreach (var file in Directory.EnumerateFiles(source))
-        {
-            File.Copy(file, Path.Combine(target, Path.GetFileName(file)), overwrite: true);
-        }
-
-        foreach (var directory in Directory.EnumerateDirectories(source))
-        {
-            CopyTree(directory, Path.Combine(target, Path.GetFileName(directory)));
-        }
-    }
-
     [Fact]
     public async Task This_assembly_run_at_Low_integrity_writes_its_output_to_the_file_asked_for()
     {
@@ -66,10 +52,10 @@ public sealed class LowIntegritySuiteLocalTests
                 ["AGENTSTUDIO_PHASE5_DEMOS"] = null,
                 ["AGENTSTUDIO_PROVIDER_TESTS"] = null,
             };
-            // The binaries go into the Low folder too, as in the work area of the verifier (a test may write next to its assembly).
-            var bin = Path.Combine(root, "bin");
-            CopyTree(AppContext.BaseDirectory, bin);
-            var executable = Path.Combine(bin, "AgentStudio.Tests.exe");
+            // The binaries stay where they are (Medium): some tests find the source tree from them, so a copy elsewhere breaks
+            // them. The one that plants a file next to its assembly (ExecutableLocatorTests) fails here and passes in the audit,
+            // where the whole copy of the commit is Low.
+            var executable = Path.Combine(AppContext.BaseDirectory, "AgentStudio.Tests.exe");
             var result = await new ProcessRunner().RunAsync(
                 new ProcessSpec(executable, arguments, root, environment, TimeSpan.FromMinutes(90), Isolation: ProcessIsolation.LowIntegrity),
                 Ct);
