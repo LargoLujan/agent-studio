@@ -109,10 +109,11 @@ internal static class AgentRunner
                 invocation.Skills,
                 invocation.Purpose,
                 invocation.ContextPack,
-                parts.Count > 0 ? parts : null)
+                parts.Count > 0 ? parts : null,
+                agent.Effort)
             {
                 RunId = recorder.RunValue,
-                V = parts.Count > 0 ? AgentRunStartedPayload.ContextPartsVersion : AgentRunStartedPayload.PurposeVersion,
+                V = parts.Count > 0 || agent.Effort is not null ? AgentRunStartedPayload.ContextPartsVersion : AgentRunStartedPayload.PurposeVersion,
             },
             abort).ConfigureAwait(false);
         onRecorded?.Invoke();

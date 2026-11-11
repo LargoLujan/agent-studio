@@ -99,10 +99,10 @@ public sealed class DebateTurnRecorder(IDecisionRecorder decisions, IEvidenceSto
         RecordAsync(
             DecisionKind.AgentRunStarted,
             $"Turno de {label} ({turn}), intento {attempt}",
-            new AgentRunStartedPayload(turn, attempt, agent.Id, provider.Provider, provider.Vendor, agent.Model.Model, workingDirectory, prompt.Id, prompt.ContentSha256, [], AgentRunPurpose.DebateParticipant)
+            new AgentRunStartedPayload(turn, attempt, agent.Id, provider.Provider, provider.Vendor, agent.Model.Model, workingDirectory, prompt.Id, prompt.ContentSha256, [], AgentRunPurpose.DebateParticipant, Effort: agent.Effort)
             {
                 RunId = Debate.Value,
-                V = AgentRunStartedPayload.PurposeVersion,
+                V = agent.Effort is null ? AgentRunStartedPayload.PurposeVersion : AgentRunStartedPayload.ContextPartsVersion,
             },
             cancellationToken);
 

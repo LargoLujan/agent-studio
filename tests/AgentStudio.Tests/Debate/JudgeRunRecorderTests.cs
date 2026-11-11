@@ -1,6 +1,7 @@
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Judging;
 using AgentStudio.Application.Providers;
+using AgentStudio.Debate.Arena;
 using AgentStudio.Debate.Judging;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Common;
@@ -8,6 +9,8 @@ using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Evidence;
 using AgentStudio.Domain.Judging;
 using AgentStudio.Domain.Metrics;
+using AgentStudio.Domain.Models;
+using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Tests.Debate.Fakes;
 using Microsoft.Extensions.Time.Testing;
@@ -76,6 +79,47 @@ public sealed class JudgeRunRecorderTests
         Assert.Equal([(Debate, task, 1, (string?)null), (Debate, task, 2, "thread-1")], ends.Select(e => (e.Payload.RunId, e.Payload.Task!.Value, e.Payload.Attempt, e.Payload.ResumedSession)));
         Assert.All(world.Evidence.Drafts, r => Assert.Equal((Debate, "juez-juez-revision"), (r.RunId, r.TaskId)));
         Assert.Equal(T0, ends[0].Payload.LaunchedAt);
+    }
+
+    /// <summary>docs/18 P47: the judge's effort is recorded with its start (version 3), so the estimate of a review tells attempts at another effort; none when it sets none.</summary>
+    [Fact]
+    public async Task The_judge_records_its_effort_only_when_it_sets_one()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var withEffort = new World();
+        var without = new World();
+        var strong = CodexJudge with { Effort = ReasoningEffort.XHigh };
+
+        await new JudgeRunRecorder(withEffort.Recorder, withEffort.Evidence, JudgeRunScope.ForRunReview(Project, "20261015-a1b2c3", new TaskId("T2")), strong, withEffort.Clock, reportsContext: false)
+            .RunStartingAsync(Start(1), ct);
+        await new JudgeRunRecorder(without.Recorder, without.Evidence, JudgeRunScope.ForRunReview(Project, "20261015-a1b2c3", new TaskId("T2")), CodexJudge, without.Clock, reportsContext: false)
+            .RunStartingAsync(Start(1), ct);
+
+        var (entry, start) = Assert.Single(withEffort.Payloads<AgentRunStartedPayload>());
+        Assert.Equal((AgentRunStartedPayload.ContextPartsVersion, ReasoningEffort.XHigh, AgentRunPurpose.Judge), (start.V, start.Effort, start.Purpose));
+        Assert.Contains("\"effort\":\"xhigh\"", entry.PayloadJson, StringComparison.Ordinal);
+        var (noneEntry, none) = Assert.Single(without.Payloads<AgentRunStartedPayload>());
+        Assert.Equal((AgentRunStartedPayload.PurposeVersion, (ReasoningEffort?)null), (none.V, none.Effort));
+        Assert.DoesNotContain("effort", noneEntry.PayloadJson, StringComparison.Ordinal);
+    }
+
+    /// <summary>The turn of a participant in a debate writes its agent's effort the same way: version 3, only when it is set.</summary>
+    [Fact]
+    public async Task The_turn_of_a_participant_records_its_effort_only_when_it_sets_one()
+    {
+        var world = new World();
+        var turns = new DebateTurnRecorder(world.Recorder, world.Evidence, Project, new RunId(Debate));
+        var provider = new ScriptedAgentProvider(ProviderId.CodexCli, VendorId.OpenAI, (_, _) => throw new InvalidOperationException("never launched"));
+        var ct = TestContext.Current.CancellationToken;
+        var prompt = await turns.CapturePromptAsync(new TaskId("T1"), 1, "Prompt del turno", "texto", ct);
+
+        await turns.RecordTurnStartedAsync(new TaskId("T1"), 1, CodexJudge with { Effort = ReasoningEffort.Max }, provider, "C:\\wt", prompt, "A", ct);
+        await turns.RecordTurnStartedAsync(new TaskId("T2"), 1, CodexJudge, provider, "C:\\wt", prompt, "B", ct);
+
+        var starts = world.Payloads<AgentRunStartedPayload>();
+        Assert.Equal([(ReasoningEffort.Max, 3), ((ReasoningEffort?)null, 2)], starts.Select(s => (s.Payload.Effort, s.Payload.V)));
+        Assert.Contains("\"effort\":\"max\"", starts[0].Entry.PayloadJson, StringComparison.Ordinal);
+        Assert.DoesNotContain("effort", starts[1].Entry.PayloadJson, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -137,7 +137,7 @@ internal static class OrchestrationUiServices
             return judge is null
                 ? UsageEstimate.Unknown(0, "There is no judge in the template to say which program would analyse.")
                 : await estimator.EstimateAsync(
-                    new UsageEstimateRequest(project, AssistedConsumptionAnalysisService.AnalystId, judge.Model.Provider, judge.Model.Model, AgentRunPurpose.ConsumptionAnalysis),
+                    new UsageEstimateRequest(project, AssistedConsumptionAnalysisService.AnalystId, judge.Model.Provider, judge.Model.Model, AgentRunPurpose.ConsumptionAnalysis, Effort: judge.Effort),
                     cancellationToken).ConfigureAwait(false);
         };
     }

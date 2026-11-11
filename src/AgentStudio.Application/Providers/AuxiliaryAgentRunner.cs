@@ -112,10 +112,10 @@ public sealed class AuxiliaryAgentRunner(IDecisionRecorder decisions, IEvidenceS
             SystemActor,
             DecisionKind.AgentRunStarted,
             $"Arranca {agent.Id} ({provider.Provider}) para {what}",
-            new AgentRunStartedPayload(null, 1, agent.Id, provider.Provider, provider.Vendor, agent.Model.Model, request.Request.WorkingDirectory, prompt.Id, prompt.ContentSha256, [], request.Purpose)
+            new AgentRunStartedPayload(null, 1, agent.Id, provider.Provider, provider.Vendor, agent.Model.Model, request.Request.WorkingDirectory, prompt.Id, prompt.ContentSha256, [], request.Purpose, Effort: agent.Effort)
             {
                 RunId = run.Value,
-                V = AgentRunStartedPayload.PurposeVersion,
+                V = agent.Effort is null ? AgentRunStartedPayload.PurposeVersion : AgentRunStartedPayload.ContextPartsVersion,
             },
             cancellationToken: ct).ConfigureAwait(false);
 

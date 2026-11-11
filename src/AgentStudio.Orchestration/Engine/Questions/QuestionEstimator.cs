@@ -35,7 +35,7 @@ internal static class QuestionEstimator
         {
             foreach (var option in question.Options)
             {
-                var request = new UsageEstimateRequest(w.Run.Project, plan.Agent.Id, plan.Provider.Provider, plan.Agent.Model.Model, AgentRunPurpose.Executor, SizeOf(option.Effort));
+                var request = new UsageEstimateRequest(w.Run.Project, plan.Agent.Id, plan.Provider.Provider, plan.Agent.Model.Model, AgentRunPurpose.Executor, SizeOf(option.Effort), plan.Agent.Effort);
                 var estimate = await estimator.EstimateAsync(request, w.Abort).ConfigureAwait(false);
                 snapshots.Add(estimate.ToSnapshot(option.Id));
             }

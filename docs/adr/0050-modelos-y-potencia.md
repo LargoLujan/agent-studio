@@ -169,12 +169,72 @@
       lista cerrada;
     - `model/list` del app-server de Codex: sus campos, si pide red y qué autenticación.
   - **Límites conocidos del estimador:**
-    - **no distingue el esfuerzo de razonamiento:** el registro no lo guarda (`AgentRunStarted` no lo lleva), así que dos
-      ejecuciones del mismo modelo con esfuerzo `low` y `high` cuentan juntas como referencias, y lo aprendido de un modelo
-      también las mezcla. Se resolverá añadiendo el esfuerzo a `AgentRunStarted` v3 (solo cuando se fija, como el resto de
-      la versión 3) y comparándolo en las referencias. La integración de la tanda 1 (2026-11-09) no lo hizo, porque cambia un
-      payload con su hash fijado: queda en [docs/18](../18-peticiones-y-pendientes.md) P47, para la tanda 2;
+    - **no distinguía el esfuerzo de razonamiento (resuelto el 2026-11-11, P47: véase la adenda del final):** el registro no
+      lo guardaba (`AgentRunStarted` no lo llevaba), así que dos ejecuciones del mismo modelo con esfuerzo `low` y `high`
+      contaban juntas como referencias, y lo aprendido de un modelo también las mezclaba. Se resolvió añadiendo el esfuerzo a
+      `AgentRunStarted` v3 (solo cuando se fija, como el resto de la versión 3) y comparándolo en las referencias. La
+      integración de la tanda 1 (2026-11-09) no lo hizo, porque cambia un payload con su hash fijado: quedó en
+      [docs/18](../18-peticiones-y-pendientes.md) P47, para la tanda 2;
     - antes de la versión 2 del arranque no hay propósito, y un intento con tarea cuenta como de ejecutor: el de un juez con
       tarea de revisión podría colarse como referencia (lo aprendido, en cambio, lo descarta por el equipo de su ejecución);
     - lee y proyecta el registro en cada llamada, así que comparar N opciones lo lee N veces. Si la ventana de una pregunta
       se nota lenta, el arreglo es recordar la proyección por la huella de la última entrada.
+
+## Adenda · 2026-11-11 · el esfuerzo en `AgentRunStarted` v3 y en las referencias del estimador (P47)
+
+La decisión no cambia. Se cierra el primer límite conocido del estimador: dos intentos del mismo modelo con esfuerzo `low` y
+`high` ya no cuentan juntos.
+
+- **Contexto.** El esfuerzo se fija en la plantilla (`AgentDefinition.Effort`, D-25) y llega al CLI, pero el registro no lo
+  guardaba. Con tres referencias como mínimo, mezclar un `low` y un `high` da un intervalo que no es de ninguno de los dos.
+- **Decisión.**
+  1. **El esfuerzo va en `AgentRunStarted`, dentro de la versión 3, solo cuando se fija.** `AgentRunStartedPayload` gana
+     `Effort` (`ReasoningEffort?`, último parámetro, nulo por defecto) y se escribe como `"effort":"high"` entre
+     `contextParts` y `v`. Se escribe por su palabra (`ReasoningEfforts.Token`: `minimal`, `low`, `medium`, `high`, `xhigh`,
+     `max`), la que toman los dos CLIs, y nunca por el nombre del enum: el texto de una entrada entra en su hash, y no puede
+     depender de cómo se llame el enum en el código. Para eso el serializador de cargas lleva su convertidor, antes del de
+     enums. Leer una palabra que no es de la lista falla.
+  2. **No hace falta una versión 4.** El serializador ignora los campos que no conoce y no escribe los nulos, así que una
+     entrada v2 o v3 ya escrita se lee y se reescribe byte a byte (hay una prueba con el hash recalculado). Un arranque con
+     esfuerzo y sin partes se escribe en la versión 3 también: el campo es de esa versión, nunca de la 2. Quien lea el
+     registro con una versión de la app anterior a esta ignorará el campo sin romperse.
+  3. **Lo registran los cuatro escritores del arranque** (`AgentRunner`, `AuxiliaryAgentRunner`, `JudgeRunRecorder` y
+     `DebateTurnRecorder`), con el esfuerzo del agente del intento, porque el CLI lo recibe de `request.Agent.Effort` en todos.
+     Si lo registrara solo el motor, el estimador de un plan con juez de esfuerzo fijado (los intentos del juez los escribe
+     `JudgeRunRecorder`) o el de «Revisar el orden», el chat y el análisis del consumo (las auxiliares) no encontraría nunca
+     ninguna referencia con esfuerzo, y quedaría en «desconocida» para siempre.
+  4. **La regla de comparación en las referencias.** Dos intentos son comparables en esfuerzo cuando los dos tienen el mismo, o
+     cuando ninguno lo tiene. `UsageEstimateRequest` gana `Effort` (último parámetro, nulo por defecto: los llamadores que no
+     lo pasan compilan igual) y `UsageEstimation` lo exige a los intentos del mismo CLI, propósito y modelo, tanto en la
+     escala del agente como en la del modelo, y también en los intentos por tarea de los que sale el número de ejecuciones
+     de un plan. Los llamadores lo pasan del agente para el que estiman: el plan (cada agente de la plantilla), las opciones
+     de una pregunta (el agente que pregunta), «Revisar el orden» y el chat (el orquestador) y el análisis con un agente (el
+     juez de la plantilla, de cuyo programa y modelo sale el analista). Cuando el agente tiene esfuerzo, la estimación lo dice
+     con el supuesto `estimate.same-effort` («Solo cuenta intentos con el mismo esfuerzo de razonamiento que el agente»), con
+     su texto en `EstimatesStrings.resx` y `.en.resx`.
+  5. **Lo aprendido guarda el esfuerzo y no se parte por él.** `UsageAttempt` gana `Effort` (lo copia `UsageProjector` del
+     arranque, solo desde la versión 3), y `LearnedModelsProjection` lo lee de cada intento y lo deja en
+     `LearnedModel.Efforts` (los esfuerzos con los que se lanzó el modelo, sin repetir, del más ligero al más pesado).
+     `ModelPerformance`, el agregado por modelo que usa el recomendador, **no se parte por esfuerzo**: con tres tareas como
+     mínimo para que una cifra deje de ser «desconocida», partirlo por modelo y esfuerzo dejaría a casi todos sin sus tres
+     referencias y la recomendación por historial dejaría de funcionar. El análisis del consumo ya tiene el esfuerzo (el
+     arranque de cada intento lo lleva) y el prompt del analista lo da por intento (`effort`, nulo si no se sabe), para que
+     pueda decir «con esfuerzo alto» cuando lo conoce.
+- **Alternativas.**
+  - Subir a la versión 4 (`EffortVersion = 4`): habría obligado a todos los lectores a distinguirla de la 3, sin necesidad.
+  - Partir `ModelPerformance` por esfuerzo: descartada por lo dicho en el punto 5.
+  - Registrar el esfuerzo solo en `AgentRunner`: descartada por el punto 3.
+  - Tratar el esfuerzo ausente como «el de por defecto del CLI» y mezclarlo con los demás: no es verdad (el valor por defecto
+    del CLI no es ninguno de los de la lista), y volvería a mezclar.
+- **Consecuencias.**
+  - **Las referencias empiezan de cero para un agente con esfuerzo.** Los intentos escritos antes de esta adenda no tienen
+    esfuerzo, así que un agente que lo tiene fijado ve «desconocida» hasta que acumule tres intentos suyos con el esfuerzo
+    registrado (los intentos antiguos siguen siendo referencias para los agentes sin esfuerzo). Es lo correcto, y no hay
+    forma de saber con qué esfuerzo se lanzó un intento que no lo guardó.
+  - **Se registra lo que está fijado, no lo que el CLI aplicó.** Los adaptadores solo pasan un esfuerzo que su CLI acepta
+    (`ReasoningEfforts.Accepts`); el catálogo y la validación de la plantilla (`agent.effort-not-for-provider`) impiden fijar
+    uno que no, así que no deberían diferir. Si un esfuerzo que el CLI no acepta llegara al registro, el intento contaría
+    con un esfuerzo que no tuvo.
+  - **El análisis con un agente estima con el esfuerzo del juez de la plantilla**, y el analista real es el agente del equipo
+    de otro vendor que el de quienes produjeron el trabajo (`AssistedConsumptionAnalysisService.Analyst`): si no es el juez,
+    el esfuerzo de la estimación y el del intento pueden diferir. Cuando coinciden, la estimación encuentra sus referencias.

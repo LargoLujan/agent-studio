@@ -40,6 +40,9 @@ namespace AgentStudio.Observability.Models;
 /// (<see cref="UsageProjector"/>, deduplicated by session); the model's is the median over its tasks with a cost, from three
 /// on. Codex does not expose it, nor its window: «no expuesto», never zero and never «desconocido», also for a model that only
 /// judged.</item>
+/// <item><b>The effort</b> (docs/18 P47) each attempt was set with is read from its start and kept (<see cref="UsageAttempt.Effort"/>,
+/// <see cref="LearnedModel.Efforts"/>). The performance of a model is never split by it: a split would leave most models without
+/// the three references the figures need.</item>
 /// </list>
 /// </remarks>
 public static class LearnedModelsProjection
@@ -85,6 +88,11 @@ public static class LearnedModelsProjection
 
             learning.Attempts++;
             learning.AttemptCostOrigins.Add(attempt.Own.CostUsd.Origin);
+            if (attempt.Effort is { } effort)
+            {
+                learning.Efforts.Add(effort);
+            }
+
             if (!learning.ReportedAs.Contains(name!.Trim(), StringComparer.Ordinal))
             {
                 learning.ReportedAs.Add(name.Trim());
@@ -135,7 +143,10 @@ public static class LearnedModelsProjection
                 new ModelPerformance(l.Provider, l.Key, l.Tasks, l.FirstPassApprovals, l.Retries, l.Rejections),
                 WindowOf(l, windows, catalog),
                 CostPerTask(l),
-                l.Attempts))
+                l.Attempts)
+            {
+                Efforts = [.. l.Efforts],
+            })
             .ToList();
         return new LearnedModels(models) { Catalog = catalog };
     }
@@ -219,6 +230,8 @@ public static class LearnedModelsProjection
         public List<MetricValue<decimal>> TaskCosts { get; } = [];
 
         public List<MetricOrigin> AttemptCostOrigins { get; } = [];
+
+        public SortedSet<ReasoningEffort> Efforts { get; } = [];
 
         public int Attempts { get; set; }
 

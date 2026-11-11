@@ -136,7 +136,7 @@ public sealed partial class OrderReviewViewModel : ObservableObject
     {
         var orchestrator = subject.Roster.First(a => a.Id == subject.Orchestrator);
         return await estimator.EstimateAsync(
-            new UsageEstimateRequest(subject.Project, orchestrator.Id, orchestrator.Model.Provider, orchestrator.Model.Model, AgentRunPurpose.OrderReview),
+            new UsageEstimateRequest(subject.Project, orchestrator.Id, orchestrator.Model.Provider, orchestrator.Model.Model, AgentRunPurpose.OrderReview, Effort: orchestrator.Effort),
             ct).ConfigureAwait(false);
     }
 

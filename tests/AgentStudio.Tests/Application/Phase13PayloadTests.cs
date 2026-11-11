@@ -1,10 +1,12 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Security;
 using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Metrics;
+using AgentStudio.Domain.Models;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Domain.Questions;
 using static AgentStudio.Tests.Domain.TestData;
@@ -179,6 +181,112 @@ public sealed class Phase13PayloadTests
         Assert.Equal(V2, DecisionPayloadSerializer.Serialize(read));
         Assert.Null(read.ContextParts);
         Assert.False(read.RecordsContextParts());
+    }
+
+    // ---- AgentRunStarted version 3: the reasoning effort (docs/18 P47, ADR-0050) ----
+
+    /// <summary>A start of version 3 as it was written before the effort existed: with its parts, without the field.</summary>
+    private const string V3WithoutEffort =
+        """{"task":"T1","attempt":1,"agent":"ejecutor","provider":"claude-code","vendor":"anthropic","model":"m","workingDirectory":"C:/wt/T1","promptEvidenceId":"ev-prompt","promptSha256":"x","skills":[],"purpose":"Executor","contextParts":[{"kind":"Protocol","characters":6000}],"v":3,"runId":"r"}""";
+
+    private static AgentRunStartedPayload StartWith(ReasoningEffort? effort, bool withParts = true) =>
+        new(
+            Tid("T1"), 1, Aid("ejecutor"), ProviderId.ClaudeCode, VendorId.Anthropic, "claude-sonnet-5-5", "C:/wt/T1", Eid("ev-prompt"), HashA, [],
+            AgentRunPurpose.Executor, null, withParts ? [new ContextPartSnapshot(ContextPartKind.Protocol, 6000)] : null, effort)
+        {
+            RunId = Run,
+            V = AgentRunStartedPayload.ContextPartsVersion,
+        };
+
+    [Fact]
+    public void The_effort_of_an_agent_is_written_in_version_3_by_its_token_after_the_parts_and_read_back()
+    {
+        var json = DecisionPayloadSerializer.Serialize(StartWith(ReasoningEffort.XHigh));
+
+        Assert.Equal(
+            $$"""{"task":"T1","attempt":1,"agent":"ejecutor","provider":"claude-code","vendor":"anthropic","model":"claude-sonnet-5-5","workingDirectory":"C:/wt/T1","promptEvidenceId":"ev-prompt","promptSha256":"{{HashA}}","skills":[],"purpose":"Executor","contextParts":[{"kind":"Protocol","characters":6000}],"effort":"xhigh","v":3,"runId":"{{Run}}"}""",
+            json);
+        var read = DecisionPayloadSerializer.Deserialize<AgentRunStartedPayload>(json);
+        Assert.Equal(ReasoningEffort.XHigh, read.Effort);
+        Assert.Equal(json, DecisionPayloadSerializer.Serialize(read));
+        Assert.DoesNotContain("XHigh", json, StringComparison.Ordinal);
+    }
+
+    /// <summary>The effort is the word both CLIs take, never the name of the enum, whatever the level.</summary>
+    [Theory]
+    [InlineData(ReasoningEffort.Minimal, "minimal")]
+    [InlineData(ReasoningEffort.Low, "low")]
+    [InlineData(ReasoningEffort.Medium, "medium")]
+    [InlineData(ReasoningEffort.High, "high")]
+    [InlineData(ReasoningEffort.XHigh, "xhigh")]
+    [InlineData(ReasoningEffort.Max, "max")]
+    public void Every_effort_is_written_as_the_token_the_clis_take_and_read_back(ReasoningEffort effort, string token)
+    {
+        var json = DecisionPayloadSerializer.Serialize(StartWith(effort));
+
+        Assert.Contains($"\"effort\":\"{token}\"", json, StringComparison.Ordinal);
+        Assert.Equal(token, ReasoningEfforts.Token(effort));
+        Assert.Equal(effort, DecisionPayloadSerializer.Deserialize<AgentRunStartedPayload>(json).Effort);
+    }
+
+    /// <summary>A level added to the enum without its case above fails here, so its token is pinned before it reaches a log.</summary>
+    [Fact]
+    public void Every_effort_of_the_list_has_its_case_in_the_theory_above()
+    {
+        Assert.Equal(["minimal", "low", "medium", "high", "xhigh", "max"], Enum.GetValues<ReasoningEffort>().Select(ReasoningEfforts.Token));
+    }
+
+    /// <summary>An agent with an effort and a start with no parts is still version 3: the field belongs to it.</summary>
+    [Fact]
+    public void An_effort_without_parts_is_written_in_version_3_too()
+    {
+        var json = DecisionPayloadSerializer.Serialize(StartWith(ReasoningEffort.Low, withParts: false));
+
+        Assert.EndsWith(",\"skills\":[],\"purpose\":\"Executor\",\"effort\":\"low\",\"v\":3,\"runId\":\"" + Run + "\"}", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("contextParts", json, StringComparison.Ordinal);
+        var read = DecisionPayloadSerializer.Deserialize<AgentRunStartedPayload>(json);
+        Assert.Equal((ReasoningEffort.Low, 3), (read.Effort, read.V));
+        Assert.Null(read.ContextParts);
+    }
+
+    [Fact]
+    public void No_effort_is_written_when_the_agent_sets_none()
+    {
+        var json = DecisionPayloadSerializer.Serialize(StartWith(null));
+
+        Assert.DoesNotContain("effort", json, StringComparison.Ordinal);
+        Assert.Null(DecisionPayloadSerializer.Deserialize<AgentRunStartedPayload>(json).Effort);
+    }
+
+    /// <summary>The entries already in a log keep their text, so their hash and the chain after them do not change.</summary>
+    [Fact]
+    public void A_start_of_version_3_without_an_effort_is_read_and_written_back_byte_for_byte_so_its_hash_does_not_change()
+    {
+        var actor = new Actor(ActorKind.System, "agent-studio");
+        var stored = new DecisionLog().Append(T0, actor, DecisionKind.AgentRunStarted, "Arranca ejecutor para T1, intento 1", V3WithoutEffort);
+
+        var read = DecisionPayloadSerializer.Deserialize<AgentRunStartedPayload>(stored.PayloadJson);
+        var rewritten = DecisionPayloadSerializer.Serialize(read);
+
+        Assert.Null(read.Effort);
+        Assert.Equal(3, read.V);
+        Assert.Equal(V3WithoutEffort, rewritten);
+        Assert.Equal(stored.Hash, DecisionLog.ComputeHash(stored.Sequence, stored.RecordedAt, actor, stored.Kind, stored.Summary, rewritten, null, stored.PreviousHash));
+        Assert.True(DecisionLog.Load([stored]).Verify().IsValid);
+    }
+
+    [Fact]
+    public void An_effort_that_is_not_one_of_the_list_is_refused_and_so_is_the_name_of_the_enum()
+    {
+        var json = V3WithoutEffort.Replace("\"v\":3", "\"effort\":\"high\",\"v\":3", StringComparison.Ordinal);
+        Assert.Equal(ReasoningEffort.High, DecisionPayloadSerializer.Deserialize<AgentRunStartedPayload>(json).Effort);
+
+        foreach (var wrong in new[] { "High", "XHigh", "ultra", "" })
+        {
+            Assert.Throws<JsonException>(() => DecisionPayloadSerializer.Deserialize<AgentRunStartedPayload>(json.Replace("\"high\"", $"\"{wrong}\"", StringComparison.Ordinal)));
+        }
+
+        Assert.Throws<JsonException>(() => DecisionPayloadSerializer.Deserialize<AgentRunStartedPayload>(json.Replace("\"high\"", "3", StringComparison.Ordinal)));
     }
 
     [Fact]

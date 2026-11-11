@@ -4,6 +4,7 @@ using AgentStudio.Application.Projects;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Metrics;
+using AgentStudio.Domain.Models;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Providers;
 
@@ -50,6 +51,12 @@ public static class EstimateAssumptions
     /// <summary>The references are attempts of the same size of work, as the agent declared it (D-32).</summary>
     public const string SameSize = "estimate.same-size";
 
+    /// <summary>
+    /// The references are attempts set with the same reasoning effort as the agent (docs/18 P47, ADR-0050). Said only when the
+    /// agent has one: an agent without one is estimated from attempts that had none either.
+    /// </summary>
+    public const string SameEffort = "estimate.same-effort";
+
     /// <summary>The duration of a plan follows its critical path, with the tasks at once and the concurrency of each provider.</summary>
     public const string CriticalPath = "estimate.critical-path";
 
@@ -69,7 +76,7 @@ public static class EstimateAssumptions
     public const string AgentsOnly = "estimate.agents-only";
 
     /// <summary>Every code, for the tests of the resources.</summary>
-    public static IReadOnlyList<string> All { get; } = [SameAgentAndModel, SamePurpose, SameSize, CriticalPath, ListPrice, CostNotExposed, SameModel, AgentsOnly];
+    public static IReadOnlyList<string> All { get; } = [SameAgentAndModel, SamePurpose, SameSize, CriticalPath, ListPrice, CostNotExposed, SameModel, AgentsOnly, SameEffort];
 }
 
 /// <summary>
@@ -140,14 +147,19 @@ public sealed record UsageEstimate(
     }
 }
 
-/// <summary>What one attempt of an agent would spend: of what agent, on what CLI and model, for what purpose and, when known, of what size.</summary>
+/// <summary>
+/// What one attempt of an agent would spend: of what agent, on what CLI and model, for what purpose and, when known, of what size.
+/// <paramref name="Effort"/> is the reasoning effort the agent is set with (null when none): the references are the attempts of the
+/// same model that had the same one, or none (docs/18 P47, ADR-0050), so an attempt at <c>low</c> and one at <c>high</c> never count together.
+/// </summary>
 public sealed record UsageEstimateRequest(
     ProjectContext Project,
     AgentId Agent,
     ProviderId Provider,
     string? Model,
     AgentRunPurpose Purpose,
-    WorkSize? Size = null);
+    WorkSize? Size = null,
+    ReasoningEffort? Effort = null);
 
 /// <summary>What a plan would spend (docs/16 D-20): the estimate of each task, the agent runs and its duration by the critical path.</summary>
 public sealed record PlanEstimateRequest(

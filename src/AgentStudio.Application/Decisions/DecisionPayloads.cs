@@ -8,6 +8,7 @@ using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Evidence;
 using AgentStudio.Domain.Judging;
 using AgentStudio.Domain.Metrics;
+using AgentStudio.Domain.Models;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Domain.Skills;
@@ -219,7 +220,10 @@ public sealed record ContextPartSnapshot(ContextPartKind Kind, int Characters);
 /// runs. Version 2 (docs/14 section 5.2) adds what the run is for (<paramref name="Purpose"/>) and, when the agent was
 /// given project memory, the pack it was given (<paramref name="ContextPack"/>; null when it got none). Version 3 (docs/17
 /// D-13, Phase 13) adds the parts of the prompt before the agent starts (<paramref name="ContextParts"/>), written only when
-/// there are: a start of version 2 is read and written back byte for byte.
+/// there are: a start of version 2 is read and written back byte for byte. Still in version 3 (docs/18 P47, ADR-0050), the
+/// reasoning effort the agent was set with (<paramref name="Effort"/>) is written only when it is set, by its token
+/// (<see cref="ReasoningEfforts.Token"/>), so a start of version 2 or 3 written without it is read and written back byte for
+/// byte too, and the estimator can tell an attempt at <c>low</c> from one at <c>high</c> of the same model.
 /// </summary>
 public sealed record AgentRunStartedPayload(
     TaskId? Task,
@@ -234,7 +238,8 @@ public sealed record AgentRunStartedPayload(
     IReadOnlyList<SkillId> Skills,
     AgentRunPurpose? Purpose = null,
     ContextPackReference? ContextPack = null,
-    IReadOnlyList<ContextPartSnapshot>? ContextParts = null) : DecisionPayload
+    IReadOnlyList<ContextPartSnapshot>? ContextParts = null,
+    ReasoningEffort? Effort = null) : DecisionPayload
 {
     /// <summary>The first version that records the purpose of the run and the memory the agent was given.</summary>
     public const int PurposeVersion = 2;

@@ -7,6 +7,7 @@ using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Evidence;
 using AgentStudio.Domain.Metrics;
+using AgentStudio.Domain.Models;
 using AgentStudio.Application.Providers;
 using AgentStudio.Application.Usage;
 using AgentStudio.Domain.Questions;
@@ -560,18 +561,53 @@ public sealed class QuestionTests
         await resumed.CompleteAsync(harness);
     }
 
+    /// <summary>docs/18 P47: the estimate of each option is asked with the effort of the agent that asks, so attempts at another effort never count.</summary>
+    [Fact]
+    public async Task The_estimates_of_the_options_are_asked_with_the_effort_of_the_agent_and_with_none_when_it_sets_none()
+    {
+        var set = new SizedEstimator();
+        using (var harness = new EngineHarness { Estimator = set })
+        {
+            var executor = harness.Roster.Agents.Single(a => a.Id.Value == "ejecutor");
+            await harness.Roster.SaveAsync(harness.Project.ProjectId, executor with { Effort = ReasoningEffort.Medium }, Ct);
+            harness.Claude.Script("ejecutor", "T1", 1, Asks());
+            await using var run = await harness.StartAsync(Plan(Work("T1")));
+            await WaitForAnswerAsync(harness, run);
+            await run.CancelAsync("fin");
+            await run.CompleteAsync(harness);
+        }
+
+        var none = new SizedEstimator();
+        using (var harness = new EngineHarness { Estimator = none })
+        {
+            harness.Claude.Script("ejecutor", "T1", 1, Asks());
+            await using var run = await harness.StartAsync(Plan(Work("T1")));
+            await WaitForAnswerAsync(harness, run);
+            await run.CancelAsync("fin");
+            await run.CompleteAsync(harness);
+        }
+
+        Assert.Equal([ReasoningEffort.Medium, ReasoningEffort.Medium], set.Efforts);
+        Assert.Equal([(ReasoningEffort?)null, null], none.Efforts);
+    }
+
     // ---- helpers ----
 
     /// <summary>Six references for the small work, two for the rest; it remembers the sizes it was asked for.</summary>
     private sealed class SizedEstimator : IUsageEstimator
     {
         private readonly ConcurrentQueue<WorkSize> _sizes = new();
+        private readonly ConcurrentQueue<ReasoningEffort?> _efforts = new();
 
         public IReadOnlyList<WorkSize> Sizes => [.. _sizes];
+
+        /// <summary>The reasoning effort each request carried (docs/18 P47).</summary>
+        public IReadOnlyList<ReasoningEffort?> Efforts => [.. _efforts];
 
         public Task<UsageEstimate> EstimateAsync(UsageEstimateRequest request, CancellationToken ct)
         {
             _sizes.Enqueue(request.Size!.Value);
+            _efforts.Enqueue(request.Effort);
             return Task.FromResult(request.Size == WorkSize.Small
                 ? new UsageEstimate(
                     6,

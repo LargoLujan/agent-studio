@@ -83,7 +83,15 @@ public sealed record LearnedModel(
     ModelPerformance Performance,
     MetricValue<long> ContextWindow,
     MetricValue<decimal> CostPerTask,
-    int Attempts);
+    int Attempts)
+{
+    /// <summary>
+    /// The reasoning efforts its attempts were set with (docs/18 P47, ADR-0050), each once, from the lightest to the heaviest;
+    /// empty when none of them recorded one. The performance above is the model's, never split by effort (a split would leave it
+    /// without its three references); this says which efforts it rests on, so an analysis can say «con esfuerzo alto» when it knows.
+    /// </summary>
+    public IReadOnlyList<ReasoningEffort> Efforts { get; init; } = [];
+}
 
 /// <summary>
 /// Every model the verified log of a project has seen (docs/17 D-23), in a stable order (provider, then model). A log that does

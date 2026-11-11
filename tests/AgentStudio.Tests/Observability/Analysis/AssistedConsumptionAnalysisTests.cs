@@ -125,6 +125,22 @@ public sealed class AssistedConsumptionAnalysisTests : IDisposable
         Assert.Empty(analysis.Suggestions);
     }
 
+    /// <summary>docs/18 P47: the table of usage names the effort an attempt ran with when its start recorded it, so the analyst can cite it, and null otherwise.</summary>
+    [Fact]
+    public async Task The_table_of_usage_names_the_effort_of_an_attempt_when_it_is_known()
+    {
+        var log = new ConsumptionLog().Started(roster: Team)
+            .Attempt("T1", 1, effort: ReasoningEffort.High)
+            .Attempt("T2", 1);
+        var runner = new ScriptedRunner(Answer());
+
+        await Service(log, runner).AnalyzeAsync(new AssistedConsumptionRequest(Project, ConsumptionLog.Run, Report(log), Consent()), null, Ct);
+
+        var prompt = Assert.Single(runner.Launches).Request.Prompt;
+        Assert.Equal(1, prompt.Split("\"effort\":\"high\"").Length - 1);
+        Assert.Equal(1, prompt.Split("\"effort\":null").Length - 1);
+    }
+
     [Fact]
     public async Task It_gets_the_report_the_table_of_usage_and_the_sizes_as_data_and_no_text_of_an_agent()
     {

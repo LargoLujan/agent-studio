@@ -25,6 +25,9 @@
   <data name="Text_estimate_same_size" xml:space="preserve">
     <value>Only attempts of the same size of work count: small, medium or large.</value>
   </data>
+  <data name="Text_estimate_same_effort" xml:space="preserve">
+    <value>Only attempts with the same reasoning effort as the agent count.</value>
+  </data>
   <data name="Text_estimate_critical_path" xml:space="preserve">
     <value>The duration follows the longest path of the plan, with the tasks at once you allow.</value>
   </data>

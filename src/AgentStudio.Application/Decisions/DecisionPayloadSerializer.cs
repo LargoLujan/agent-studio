@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Decisions;
+using AgentStudio.Domain.Models;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Domain.Skills;
@@ -11,7 +12,7 @@ namespace AgentStudio.Application.Decisions;
 
 /// <summary>
 /// The one way decision payloads are written and read. The text of a payload is part of the hash of its entry, so the
-/// format never varies: compact, camelCase, enums by name, ids as plain strings, null members left out, text not
+/// format never varies: compact, camelCase, enums by name (a reasoning effort by its token), ids as plain strings, null members left out, text not
 /// escaped beyond what JSON requires, and no dependence on the culture of the machine.
 /// </summary>
 public static class DecisionPayloadSerializer
@@ -107,10 +108,36 @@ public static class DecisionPayloadSerializer
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         };
+        // Before the enum converter, which takes every enum: an effort is written as the CLIs spell it, never by the name of the enum.
+        options.Converters.Add(new ReasoningEffortConverter());
         options.Converters.Add(new JsonStringEnumConverter(allowIntegerValues: false));
         options.Converters.Add(new DomainIdConverterFactory());
         options.MakeReadOnly(populateMissingResolver: true);
         return options;
+    }
+
+    /// <summary>
+    /// A reasoning effort is its token in a payload (<see cref="ReasoningEfforts.Token"/>: <c>low</c>, <c>high</c>, <c>xhigh</c>…),
+    /// the word both CLIs take, so the text of an entry never depends on how the enum is named in the code.
+    /// </summary>
+    private sealed class ReasoningEffortConverter : JsonConverter<ReasoningEffort>
+    {
+        public override ReasoningEffort Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            var text = reader.TokenType == JsonTokenType.String ? reader.GetString() : null;
+            foreach (var effort in Enum.GetValues<ReasoningEffort>())
+            {
+                if (string.Equals(ReasoningEfforts.Token(effort), text, StringComparison.Ordinal))
+                {
+                    return effort;
+                }
+            }
+
+            throw new JsonException($"'{text}' is not a reasoning effort.");
+        }
+
+        public override void Write(Utf8JsonWriter writer, ReasoningEffort effort, JsonSerializerOptions options) =>
+            writer.WriteStringValue(ReasoningEfforts.Token(effort));
     }
 
     /// <summary>The ids of the domain are structs around a string; in a payload they are that string.</summary>
