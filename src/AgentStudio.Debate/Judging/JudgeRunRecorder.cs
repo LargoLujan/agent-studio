@@ -39,7 +39,8 @@ public sealed record JudgeRunScope(string ProjectId, string Run, TaskId? EntryTa
 
 /// <summary>
 /// Records each launch of a judge in the decision log: the prompt is captured as evidence first, then
-/// <c>AgentRunStarted</c> version 2 (so a launch that cannot be recorded does not happen), and <c>AgentRunFinished</c>
+/// <c>AgentRunStarted</c> version 2 (version 3 when the judge sets a reasoning effort, which it then records, docs/18 P47; so a
+/// launch that cannot be recorded does not happen), and <c>AgentRunFinished</c>
 /// version 3 with the raw answer as agent-reported evidence and the class of the end (docs/16 D-41: the adapter's, or the
 /// one the status implies). It moved out of <see cref="IndependentReview"/> (docs/15 D-23) without changing what the review
 /// records, so the judgment of a debate and the audit record their judges the same way, each with its

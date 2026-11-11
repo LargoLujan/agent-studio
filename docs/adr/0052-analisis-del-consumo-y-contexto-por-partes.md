@@ -14,7 +14,10 @@
 - **Decisión:**
   1. **El contexto por partes** (D-13, F13-6). Cada lanzamiento del motor (`AgentRunner`: el planificador y los ejecutores)
      mide las partes de su prompt **sobre el texto exacto que recibe el agente**, en caracteres (`PromptParts`), y las guarda en
-     `AgentRunStarted` versión 3 (`ContextParts`). Sin partes, el arranque sigue en la versión 2, byte a byte.
+     `AgentRunStarted` versión 3 (`ContextParts`). Sin partes ni esfuerzo fijado, el arranque sigue en la versión 2, byte a
+     byte. Desde el 2026-11-11 (P47, [ADR-0050](0050-modelos-y-potencia.md)) la versión 3 también lleva el esfuerzo de
+     razonamiento del agente cuando lo tiene (`Effort`): puede llevar las partes, el esfuerzo o los dos, y quien la lea
+     comprueba `ContextParts is { Count: > 0 }` antes de usar las partes.
      - Un bloque de datos (`<project_brief>`, `<agent_instructions>`, `<project_memory>`, `<upstream_output>`,
        `<previous_attempt>`, `<handoff>` y `<human_answer>`) es su parte, de la línea que lo abre a la que lo cierra. Su
        contenido va recodificado por `PromptData`, que escapa `<`: ninguna línea de datos abre ni cierra un bloque, ni empieza

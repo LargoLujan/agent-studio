@@ -1692,7 +1692,7 @@ Lo que WP3 añade o cambia sobre lo de arriba ([ADR-0052](adr/0052-analisis-del-
 | `AddAgentStudioConsumptionAnalysis` | `Observability/Analysis/ConsumptionAnalysisServiceCollectionExtensions.cs` | Registra los dos análisis; el catálogo de modelos va en sus opciones |
 | `Resources/ConsumptionStrings.resx` y `.en.resx` | `Desktop/Resources/` | `Text_consumption_<código>` y `Text_consumption_<código>_suggestion` de los 12 códigos (`work.discarded` no sugiere). El prefijo (`ConsumptionTexts.TextPrefix`, integración del 2026-11-09) los separa de los del analizador del montaje, que también tiene `model.oversized` con otros argumentos |
 
-- **`AgentRunStarted` v3 en el motor:** todo arranque de `AgentRunner` con partes; un arranque sin ellas sigue en v2. El juez,
+- **`AgentRunStarted` v3 en el motor:** todo arranque de `AgentRunner` con partes; un arranque sin partes ni esfuerzo sigue en v2. El juez,
   los debates y las auxiliares registran su arranque fuera y no tienen partes. **Revisión del 2026-11-11 (P47):** un arranque
   sin partes pero con esfuerzo fijado también es v3, y los cuatro escritores (`AgentRunner`, `AuxiliaryAgentRunner`,
   `JudgeRunRecorder` y `DebateTurnRecorder`) registran el esfuerzo del agente cuando lo tiene (`Effort`); sin esfuerzo no

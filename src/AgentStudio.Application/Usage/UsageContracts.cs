@@ -98,9 +98,9 @@ public sealed record UsageAttempt(
     public required int RecordedVersion { get; init; }
 
     /// <summary>
-    /// The reasoning effort the agent was set with, as <c>AgentRunStarted</c> version 3 records it (docs/18 P47, ADR-0050), so
-    /// an attempt at <c>low</c> is told from one at <c>high</c> of the same model; null when none was set, and for every start
-    /// written before the field existed.
+    /// The reasoning effort the agent was set with, as its <c>AgentRunStarted</c> records it (version 3, docs/18 P47, ADR-0050),
+    /// read whenever the start carries one, so an attempt at <c>low</c> is told from one at <c>high</c> of the same model; null
+    /// when none was set, and for every start written before the field existed.
     /// </summary>
     public ReasoningEffort? Effort { get; init; }
 }

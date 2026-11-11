@@ -276,6 +276,8 @@ public sealed class UsageEstimatorTests
         Assert.Equal(3, high.References);
         Assert.Equal((10_000L, 30_000L), (high.InputTokens.Low.Value!.Value, high.InputTokens.High.Value!.Value));
         Assert.Equal([EstimateAssumptions.SameAgentAndModel, EstimateAssumptions.SamePurpose, EstimateAssumptions.SameEffort, EstimateAssumptions.ListPrice], low.Assumptions);
+        Assert.Contains("of 3 attempts of the same agent, model and purpose, low effort", low.InputTokens.Low.Source, StringComparison.Ordinal);
+        Assert.Contains("of 3 attempts of the same agent, model and purpose, high effort", high.InputTokens.High.Source, StringComparison.Ordinal);
 
         // An effort no attempt had has no references, and the mixed six are never counted together.
         var medium = UsageEstimation.Estimate(LowAndHigh(), Catalog, Request(effort: ReasoningEffort.Medium));
@@ -296,6 +298,7 @@ public sealed class UsageEstimatorTests
         Assert.Equal(4, none.References);
         Assert.Equal((1000L, 3000L), (none.InputTokens.Low.Value!.Value, none.InputTokens.High.Value!.Value));
         Assert.DoesNotContain(EstimateAssumptions.SameEffort, none.Assumptions);
+        Assert.DoesNotContain("effort", none.InputTokens.Low.Source, StringComparison.Ordinal);
         Assert.Equal(3, high.References);
         Assert.Equal((50_000L, 150_000L), (high.InputTokens.Low.Value!.Value, high.InputTokens.High.Value!.Value));
         Assert.Equal(0, UsageEstimation.Estimate(Four(), Catalog, Request(effort: ReasoningEffort.High)).References);
@@ -319,6 +322,7 @@ public sealed class UsageEstimatorTests
         Assert.Equal(3, estimate.References);
         Assert.Equal((1000L, 5000L), (estimate.InputTokens.Low.Value!.Value, estimate.InputTokens.High.Value!.Value));
         Assert.Equal([EstimateAssumptions.SameModel, EstimateAssumptions.SamePurpose, EstimateAssumptions.SameEffort, EstimateAssumptions.ListPrice], estimate.Assumptions);
+        Assert.Contains("of 3 attempts of the same model and purpose by any agent, high effort", estimate.InputTokens.Low.Source, StringComparison.Ordinal);
     }
 
     /// <summary>A plan estimates each task with the effort of its agent, in the references of its figures and in the runs of similar tasks.</summary>

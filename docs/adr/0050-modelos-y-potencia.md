@@ -211,7 +211,8 @@ La decisión no cambia. Se cierra el primer límite conocido del estimador: dos 
      de una pregunta (el agente que pregunta), «Revisar el orden» y el chat (el orquestador) y el análisis con un agente (el
      juez de la plantilla, de cuyo programa y modelo sale el analista). Cuando el agente tiene esfuerzo, la estimación lo dice
      con el supuesto `estimate.same-effort` («Solo cuenta intentos con el mismo esfuerzo de razonamiento que el agente»), con
-     su texto en `EstimatesStrings.resx` y `.en.resx`.
+     su texto en `EstimatesStrings.resx` y `.en.resx`, y el origen de cada cifra nombra el esfuerzo igual que el tamaño
+     («… of the same agent, model and purpose, low effort»).
   5. **Lo aprendido guarda el esfuerzo y no se parte por él.** `UsageAttempt` gana `Effort` (lo copia `UsageProjector` del
      arranque, solo desde la versión 3), y `LearnedModelsProjection` lo lee de cada intento y lo deja en
      `LearnedModel.Efforts` (los esfuerzos con los que se lanzó el modelo, sin repetir, del más ligero al más pesado).
@@ -229,8 +230,23 @@ La decisión no cambia. Se cierra el primer límite conocido del estimador: dos 
 - **Consecuencias.**
   - **Las referencias empiezan de cero para un agente con esfuerzo.** Los intentos escritos antes de esta adenda no tienen
     esfuerzo, así que un agente que lo tiene fijado ve «desconocida» hasta que acumule tres intentos suyos con el esfuerzo
-    registrado (los intentos antiguos siguen siendo referencias para los agentes sin esfuerzo). Es lo correcto, y no hay
-    forma de saber con qué esfuerzo se lanzó un intento que no lo guardó.
+    registrado. Es lo correcto, y no hay forma de saber con qué esfuerzo se lanzó un intento que no lo guardó.
+  - **Los intentos antiguos cuentan como de un agente sin esfuerzo, aunque pudieron correr con esfuerzo.** Antes de P47 el
+    esfuerzo no se registraba, así que un intento escrito entonces no lo dice, aunque el agente tuviera fijado uno cuando
+    corrió. Esos intentos siguen siendo referencias de los agentes sin esfuerzo (y entre sí), y por eso esas estimaciones
+    pueden seguir mezclando esfuerzos de aquella época. No se corrige: no hay dato con el que hacerlo, y suponer el esfuerzo
+    que tiene el agente hoy sería inventarlo.
+  - **Un nivel que esta versión no conoce deja ilegible su entrada.** Los niveles son la lista cerrada de este ADR, y uno
+    nuevo se añade solo al final del enum (`ReasoningEffort`) y de `ReasoningEfforts.Token`. Una app anterior que lea un
+    registro donde se escribió un nivel que no conoce falla cerrada en esa entrada: `AgentRunStarted` no se puede leer, y el
+    intento no se cuenta en el uso, en el estimador ni en lo aprendido, y la proyección lo avisa. Es deliberado, y no se
+    resuelve ignorando el campo (la cadena de hashes no cambia, pero el intento contaría con un esfuerzo que no se sabe). Y no
+    se baja de versión la app sobre un registro que ya escribió una más nueva. Lo fija
+    `UsageProjectorTests.A_start_with_an_effort_this_version_does_not_know_is_not_read_and_the_projection_says_so`.
+  - **`LearnedModel.CostPerTask` sigue mezclando esfuerzos, a propósito.** La mediana del coste de una tarea se calcula sobre
+    todas las tareas del modelo, con el esfuerzo que tuvieran: es parte de no partir lo aprendido por esfuerzo (punto 5), y
+    partirlo dejaría sin sus tres tareas a casi todos los modelos. Quien necesite el coste con un esfuerzo concreto lo pide al
+    estimador, que sí compara el esfuerzo.
   - **Se registra lo que está fijado, no lo que el CLI aplicó.** Los adaptadores solo pasan un esfuerzo que su CLI acepta
     (`ReasoningEfforts.Accepts`); el catálogo y la validación de la plantilla (`agent.effort-not-for-provider`) impiden fijar
     uno que no, así que no deberían diferir. Si un esfuerzo que el CLI no acepta llegara al registro, el intento contaría
