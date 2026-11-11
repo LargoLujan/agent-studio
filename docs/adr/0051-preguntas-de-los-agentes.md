@@ -142,7 +142,14 @@
 - **Decisión 3: de dónde se leen.** Las respuestas del orquestador no son de ninguna tarea ni, a veces, de la ejecución que
   las usa: están en las entradas de la ejecución **en la que planificó el orquestador**, que es la propia (el plan es el
   propuesto y su id se reutiliza) o la que nombra `RunRequest.PlannedIn`. El lienzo lo rellena con la ejecución de su propuesta
-  siempre que el plan sale de ella, esté editado o no y se haya usado ya o no su id, y nunca en una ejecución de seguimiento.
+  mientras el plan del lienzo sigue siendo el de esa propuesta, esté editado o no y se haya usado ya o no su id, y mientras la
+  petición y los requisitos siguen siendo aquellos con los que planificó el orquestador. Para saberlo, al cargar la propuesta el
+  lienzo guarda su origen (la ejecución, la petición y el hash de los requisitos: un campo propio, porque limpiar `Proposal`
+  tiene otros efectos en la pantalla, como el estado de la propuesta y el borrador). Ese origen se olvida cuando otra propuesta,
+  o ninguna, ocupa su lugar y cuando llega al lienzo el plan de una ejecución antigua (verla, reanudarla, su seguimiento);
+  vuelve con el lienzo al cerrar una ejecución vista y con un borrador recuperado. Con otra petición, otros requisitos, el plan
+  de una ejecución antigua o un seguimiento, no se manda `PlannedIn`; rechazar la propuesta y dibujar otro plan para la misma
+  petición y los mismos requisitos sí cuenta como el plan de esa propuesta.
   - **Dónde se recuerda.** `RunStarted` gana el campo opcional `PlannedIn` (la ejecución en la que planificó, solo cuando no es
     esta). Sin subir la versión del payload: el serializador omite los nulos (`WhenWritingNull`), así que las entradas ya
     escritas se leen y se vuelven a escribir byte a byte, y una prueba lo fija. No se eligió la cabecera de la ejecución
@@ -152,8 +159,10 @@
     `PlannedIn` de `RunStarted`), con `QuestionRecovery.LoadOrchestratorAsync`, solo como las anclaron `QuestionAsked` y
     `QuestionAnswered`: la pregunta, de su evidencia (el JSON del planificador, no el documento de la pregunta de un ejecutor), y
     el texto propio de la persona, de la suya. Si una de las dos no se puede leer como el registro la anclaba, la ejecución no
-    empieza o no se reanuda (falla cerrado, como el resto de la recuperación de preguntas). Lo mismo si `PlannedIn` nombra una
-    ejecución de la que el registro no tiene nada: un id equivocado quitaría las respuestas sin avisar.
+    empieza o no se reanuda (falla cerrado, como el resto de la recuperación de preguntas). Lo mismo si `PlannedIn` no es una
+    ejecución de este registro en la que el orquestador propuso un plan (`PlanCreated` del orquestador): un id equivocado, ilegible
+    o de una ejecución con un plan escrito a mano quitaría las respuestas sin avisar, o daría a los ejecutores respuestas a
+    preguntas que nadie les hizo. Un `PlannedIn` que no es un id de ejecución falla con el mismo mensaje que uno desconocido.
   - **Solo las respondidas, y una vez.** Se lee la evidencia de las preguntas que tienen respuesta; una pregunta sin respuesta no
     sirve de nada y su evidencia no se toca (una ejecución antigua con esa evidencia borrada sigue reanudándose). Si el registro
     tiene dos respuestas a la misma pregunta, cuenta la primera. (Una ejecución que se reanuda con sus propias entradas ni

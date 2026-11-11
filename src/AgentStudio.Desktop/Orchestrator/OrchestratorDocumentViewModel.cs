@@ -114,6 +114,17 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
     private FollowUp? _followUp;
 
     /// <summary>
+    /// What the orchestrator planned with when the plan on the canvas came from its proposal (V43): its run, the request and the
+    /// hash of the requirements. «Ejecutar» tells the engine the run only while the request and the requirements are still
+    /// those: the answers the orchestrator got belong to that request and those requirements. Null when the canvas holds
+    /// something else (a plan of an old run, a plan with no proposal behind it), and it follows <see cref="Proposal"/>: it is
+    /// forgotten as soon as another proposal, or none, takes its place.
+    /// </summary>
+    private PlanningOrigin? _planningOrigin;
+
+    private sealed record PlanningOrigin(RunId Run, string Request, string? RequirementsHash);
+
+    /// <summary>
     /// The run the orchestrator's auditor asked to replan, prepared here as a follow-up (docs/15 D-35): the next run started
     /// in this tab follows it, whatever plan it runs, until one starts.
     /// </summary>
@@ -956,7 +967,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         try
         {
             var proposal = await _session.PlanAsync(request, new UiProgress(this), planning.Token).ConfigureAwait(true);
-            LoadProposal(proposal);
+            LoadProposal(proposal, request);
             if (proposal.Plan is null && proposal.Questions is { Count: > 0 })
             {
                 asked = proposal;
@@ -1023,8 +1034,14 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
 
         // The orchestrator asked, and was answered, in the run of its proposal. A plan that comes from that proposal, edited or
         // not and with its run used or not, tells the engine where it planned, so the executors of the new run get the answers
-        // too (V43); a follow-up run continues another run, not a proposal.
-        RunId? plannedIn = follows is null && Proposal is { Plan: not null } planned ? planned.Run : null;
+        // too (V43). It comes from it while it is still the plan for the same request and the same requirements the
+        // orchestrator planned with: another request, other requirements, the plan of an old run brought to the canvas, or a
+        // follow-up run (which continues another run, not a proposal) do not take its answers.
+        RunId? plannedIn = follows is null && _planningOrigin is { } origin
+            && string.Equals(origin.Request, RequestText.Trim(), StringComparison.Ordinal)
+            && string.Equals(origin.RequirementsHash, requirements.ContentHash, StringComparison.Ordinal)
+            ? origin.Run
+            : null;
         var request = new RunRequest(project, fromProposal ? Proposal!.Run : null, RequestText.Trim(), requirements, plan, approval, profile, options, Follows: follows, ValidatedRoster: _approvedRoster, ApprovedWarning: _approvedWarning, PlannedIn: plannedIn);
         IsBusy = true;
         BusyText = "Iniciando la ejecución…";
@@ -1123,7 +1140,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
                 // The plan of the run is the run's: it does not become the draft.
                 using (SuppressDraftSaves())
                 {
-                    ShowPlan(plan);
+                    ShowRunPlan(plan);
                 }
             }
 
@@ -1167,7 +1184,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         }
         else
         {
-            ShowPlan(plan);
+            ShowRunPlan(plan);
             ShowValidation = true;
             SetFollowUp(new FollowUp(run, plan.ContentHash));
         }
@@ -1226,7 +1243,8 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
     }
 
     /// <summary>Shows what the orchestrator agent proposed: its plan on the canvas, with the validator's messages.</summary>
-    public void LoadProposal(PlanProposal proposal)
+    /// <param name="planned">The request the orchestrator planned for, when the caller has it; without it, the request and the requirements on screen now.</param>
+    public void LoadProposal(PlanProposal proposal, PlanningRequest? planned = null)
     {
         ArgumentNullException.ThrowIfNull(proposal);
         Proposal = proposal;
@@ -1250,6 +1268,9 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         }
 
         ShowPlan(plan);
+
+        // The plan on the canvas comes from this proposal, planned for this request with these requirements (V43).
+        _planningOrigin = new PlanningOrigin(proposal.Run, (planned?.OriginalRequest ?? RequestText).Trim(), (planned?.Requirements ?? Context?.Requirements)?.ContentHash);
         ShowValidation = true;
         Revalidate();
 
@@ -1280,6 +1301,25 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
     /// </summary>
     private static string WithHistoryNotice(string status, PlanProposal proposal) =>
         proposal.HistoryToolNotice is { Length: > 0 } notice ? $"{status} {notice}" : status;
+
+    partial void OnProposalChanged(PlanProposal? value)
+    {
+        // What the canvas came from is the proposal on screen: another proposal, or none, takes the origin with it (V43).
+        if (_planningOrigin is { } origin && value?.Run != origin.Run)
+        {
+            _planningOrigin = null;
+        }
+    }
+
+    /// <summary>
+    /// Brings the plan of a run to the canvas, the run looked at or resumed (or the one a follow-up continues): not a proposal,
+    /// and none is behind it, so what the orchestrator was answered when it planned is not for the plan drawn from it (V43).
+    /// </summary>
+    private void ShowRunPlan(PlanDefinition plan)
+    {
+        _planningOrigin = null;
+        ShowPlan(plan);
+    }
 
     private void ShowPlan(PlanDefinition plan)
     {
@@ -1335,7 +1375,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
             {
                 using (SuppressDraftSaves())
                 {
-                    ShowPlan(plan);
+                    ShowRunPlan(plan);
                 }
 
                 Canvas.IsReadOnly = true;

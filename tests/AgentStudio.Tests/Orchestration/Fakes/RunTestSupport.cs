@@ -118,13 +118,15 @@ internal static class RunTestSupport
     /// Hello by default, as the canvas approves a plan with writers since the fixed barrier (docs/17 D-37); the dialog alone
     /// for a run approved before it.
     /// </param>
+    /// <param name="plannedIn">What <c>RunStarted</c> names as the run the orchestrator planned in (V43), as is, valid or not.</param>
     public static async Task StoreStartedRunAsync(
         this EngineHarness harness,
         RunId run,
         PlanDefinition plan,
         bool anchorHeader = true,
         IReadOnlyList<MediumIntegrityWriterEntry>? approvedWriters = null,
-        ApprovalVerification planApproval = ApprovalVerification.WindowsHello)
+        ApprovalVerification planApproval = ApprovalVerification.WindowsHello,
+        string? plannedIn = null)
     {
         var ct = TestContext.Current.CancellationToken;
         var project = harness.Project.ProjectId;
@@ -164,7 +166,7 @@ internal static class RunTestSupport
             ApprovalAnswers.Payload(AgentStudio.Orchestration.Engine.Orchestrator.PlanApprovalAction, true, "usuario", "adelante", null, planApproval, run.Value),
             null,
             ct);
-        var started = new RunStartedPayload(planHash, requirements.ContentHash, harness.Worktrees.InitialCommit, "refs/heads/main", profile.ContentHash, [.. roster.Select(a => new RosterEntry(a.Id, a.Role, a.Model.Provider, a.Model.Vendor))], null) { RunId = run.Value };
+        var started = new RunStartedPayload(planHash, requirements.ContentHash, harness.Worktrees.InitialCommit, "refs/heads/main", profile.ContentHash, [.. roster.Select(a => new RosterEntry(a.Id, a.Role, a.Model.Provider, a.Model.Vendor))], null) { RunId = run.Value, PlannedIn = plannedIn };
         await harness.Decisions.RecordAsync(
             project,
             system,

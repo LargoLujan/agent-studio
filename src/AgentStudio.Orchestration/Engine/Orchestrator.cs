@@ -325,7 +325,7 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
         // written, and only as the log anchored them.
         var plannedIn = PlannedElsewhere(request, run);
         var ledger = new RunLedger();
-        await Questions.QuestionRecovery.LoadOrchestratorAsync(recorder, entries, log.Entries, plannedIn, ledger.Questions, cancellationToken).ConfigureAwait(false);
+        await Questions.QuestionRecovery.LoadOrchestratorAsync(recorder, entries, log.Entries, plannedIn?.Value, ledger.Questions, cancellationToken).ConfigureAwait(false);
         var repository = await _ports.Worktrees.InspectAsync(project.RootPath, cancellationToken).ConfigureAwait(false);
 
         // What every step of the run checks the user's repository against: it is captured before anything runs. An ignored

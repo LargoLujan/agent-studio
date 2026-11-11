@@ -38,7 +38,7 @@ internal static class QuestionRecovery
                     book.Ask(asked[p.Question], pending: false);
                     break;
                 case QuestionAnsweredPayload { Task: { } task } p:
-                    if (!asked.TryGetValue(p.Question, out var of))
+                    if (!asked.TryGetValue(p.Question, out var of) || of.Task != task)
                     {
                         throw new InvalidOperationException($"Question '{p.Question}' of task '{task}' was answered, but the log never recorded it as asked.");
                     }
@@ -74,24 +74,36 @@ internal static class QuestionRecovery
     /// executors' questions, so they count in no cap. Reads only.
     /// </summary>
     /// <param name="log">The whole verified log of the project, to find <paramref name="plannedIn"/> in.</param>
+    /// <param name="plannedIn">
+    /// The run the orchestrator planned in when it is not this one, as <c>RunStarted</c> or the request says (text, so a value of a
+    /// log that is not a run id fails like any other run the log does not have); null for the run's own entries.
+    /// </param>
     /// <exception cref="InvalidOperationException">
-    /// <paramref name="plannedIn"/> has no entry in the log, or a question or an answer cannot be read back as the log anchored it.
+    /// <paramref name="plannedIn"/> is not a run of this log in which the orchestrator proposed a plan (<c>PlanCreated</c> by the
+    /// orchestrator), or a question or an answer cannot be read back as the log anchored it.
     /// </exception>
     public static async Task LoadOrchestratorAsync(
         RunRecorder recorder,
         IReadOnlyList<(DecisionEntry Entry, DecisionPayload Payload)> entries,
         IReadOnlyList<DecisionEntry> log,
-        RunId? plannedIn,
+        string? plannedIn,
         QuestionBook book,
         CancellationToken cancellationToken)
     {
         var planning = entries;
-        if (plannedIn is { } planned)
+        if (plannedIn is not null)
         {
-            planning = RunLog.Of(log, planned.Value);
+            // Another run's entries are trusted for what the orchestrator asked and was answered only if that run is one in which it
+            // planned: a wrong id, or the run of a plan written by hand, would hand the executors answers to nothing they were asked.
+            planning = RunLog.Of(log, plannedIn);
             if (planning.Count == 0)
             {
-                throw new InvalidOperationException($"Run {recorder.Run} says the orchestrator planned in run {planned}, which the log has no entry of.");
+                throw new InvalidOperationException($"Run {recorder.Run} says the orchestrator planned in run '{plannedIn}', which the log has no entry of.");
+            }
+
+            if (!planning.Any(e => e.Payload is PlanCreatedPayload { Source: PlanSource.OrchestratorAgent }))
+            {
+                throw new InvalidOperationException($"Run {recorder.Run} says the orchestrator planned in run '{plannedIn}', but the log has no plan the orchestrator proposed in it.");
             }
         }
 

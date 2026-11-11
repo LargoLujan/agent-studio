@@ -69,7 +69,7 @@ public sealed partial class OrchestratorDocumentViewModel
                 }
                 else
                 {
-                    ShowPlan(plan);
+                    ShowRunPlan(plan);
                 }
             }
 
@@ -154,7 +154,7 @@ public sealed partial class OrchestratorDocumentViewModel
     }
 
     private CanvasState CaptureCanvas() =>
-        new(PlanSummary, [.. Risks], Canvas.BuildTasks(), Canvas.CaptureLayout(), Proposal, ProposalStatus, ShowValidation);
+        new(PlanSummary, [.. Risks], Canvas.BuildTasks(), Canvas.CaptureLayout(), Proposal, ProposalStatus, ShowValidation, _planningOrigin);
 
     /// <summary>Puts <paramref name="state"/> back on the canvas, or leaves it empty; never approved.</summary>
     private void RestoreCanvas(CanvasState? state)
@@ -182,6 +182,9 @@ public sealed partial class OrchestratorDocumentViewModel
         try
         {
             Proposal = state.Proposal;
+
+            // What the plan came from comes back with it, but only for the proposal it was taken with.
+            _planningOrigin = state.Proposal is not null && state.Origin is { } origin && origin.Run == state.Proposal.Run ? origin : null;
             ProposalStatus = state.ProposalStatus;
             Risks.Clear();
             foreach (var risk in state.Risks)
@@ -220,12 +223,13 @@ public sealed partial class OrchestratorDocumentViewModel
 
     private void ClearCanvasPlan()
     {
+        _planningOrigin = null; // nothing is left on the canvas that came from a proposal
         Canvas.Clear();
         Risks.Clear();
         PlanSummary = string.Empty;
     }
 
-    /// <summary>What the canvas held: the plan drawn, where its nodes were, and the proposal it came from.</summary>
+    /// <summary>What the canvas held: the plan drawn, where its nodes were, the proposal it came from and what the orchestrator planned with (V43).</summary>
     private sealed record CanvasState(
         string Summary,
         IReadOnlyList<string> Risks,
@@ -233,5 +237,6 @@ public sealed partial class OrchestratorDocumentViewModel
         CanvasLayout Layout,
         PlanProposal? Proposal,
         string? ProposalStatus,
-        bool ShowValidation);
+        bool ShowValidation,
+        PlanningOrigin? Origin = null);
 }
