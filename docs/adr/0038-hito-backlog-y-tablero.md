@@ -55,3 +55,14 @@
   - **«Implementado» en el informe sale del veredicto de la auditoría** (D-49: su veredicto, requisito a requisito, es la funcionalidad realmente implementada), no de las tareas completadas con evidencia que nombra la tabla de D-50: ese dato exigiría leer los planes, y la auditoría ya juzga el código y las pruebas de HEAD. «Revisado» e «integrado» sí salen del tablero (columnas `Done` e `Integrated`), que aplica la regla de D-19.
   - **Sin rutas del equipo:** las alertas, los títulos de la verificación y los problemas pendientes que van al informe pasan por `LocalPaths.Remove` (`[ruta local]`), porque el informe alimenta la documentación para clientes.
   - Contratos en [docs/04 §23](../04-contratos.md#23-fase-9-trabajo-y-trazabilidad) y modelo en [docs/05 §4](../05-modelo-de-datos.md#4-migraciones).
+
+## Adenda de WP1 · 2026-11-11
+
+- **Orden de escritura.** El hito, como un debate: requisitos congelados, fila y `MilestoneOpened` con el hash de la cabecera que devuelve el registro. Una fila sin
+  `MilestoneOpened` no se lista, y abrir otra vez con el mismo nombre, objetivo, requisitos y presupuesto la completa. El backlog, como la memoria: el anuncio primero y la
+  fila después, con la hora del anuncio; escribir otra vez la misma versión completa la fila y con otro contenido se rechaza.
+- **Lectura que falla cerrada.** Un registro que no verifica no se lee ni se amplía. Una cabecera que no es la anclada sale con su problema y no se le escribe nada; una fila del
+  backlog que no coincide con su anuncio (contenido, prioridad u hora) impide leer el backlog; una fila sin anuncio no se lee.
+- **Tablero.** Un veredicto cuenta si el registro lo anunció válido y el almacén lo guarda válido y con la misma decisión. Uno impugnado se aparta hasta que su debate de
+  revisión cierra resuelto: si confirma, se queda; si retira una aprobación, manda la revisión; si vuelve hacia una aprobación, la tarjeta sigue en revisión hasta que una
+  persona la acepta. Con varias ejecuciones sobre un requisito decide la última que empezó.

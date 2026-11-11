@@ -2113,3 +2113,24 @@ en otro grupo de la dimensión (un hito), de modo que los grupos pueden sumar m�
 - `MilestoneCloser` rechaza antes de gastar cuota (`MilestoneCloseRefusedException`: `milestone.not-found`, `milestone.problems`, `milestone.not-open`, `milestone.nothing-to-close`, `milestone.no-judge`, `log.not-intact`) y después si la auditoría no llegó a ejecutarse (`milestone.audit-not-run`: aprobación denegada, registro roto). Una auditoría que se ejecutó cierra el hito sea cual sea su disposición; el informe recoge las desviaciones y reabrir (D-50) existe para eso.
 - Orden de lo que escribe: la auditoría (su unidad `aud-…`), `EvidenceRegistered` del informe (unidad del hito) y `MilestoneClosed`. Después avisa a los `IMilestoneCloseListener` (un fallo suyo no deshace el cierre).
 - `MilestoneReport` (`agent-studio/milestone-report/1`; JSON con claves y saltos `\n` fijos, sin reloj ni texto de agentes): cabecera, anclaje (entradas y cabeza del registro, commit auditado, cabeza del registro del tablero), conjuntos de requisitos, requisitos con sus estados (implementado: lo da por satisfecho la auditoría fiable; revisado e integrado: columnas `Done` e `Integrated` del tablero; sin «desplegado»), ejecuciones (agentes, veredictos, entregas, alertas), debates, auditoría y verificación, desviaciones con códigos estables, problemas pendientes del alcance, informes anteriores y `NotIncluded` (consumo y estimación son de WP2).
+
+### 23.6 Lo que WP1 hizo con estos contratos
+
+- **Un cambio de contrato:** `CommitNode` gana `Message` (opcional, al final): el mensaje entero cuando el lector lo da. Los trailers de los commits del
+  sistema están en el último párrafo, que el asunto solo no trae, y las sugerencias los leen de ahí; sin `Message` se lee el asunto. `IRepositoryHistoryReader`
+  (WP4) debería rellenarlo.
+- **Servicios** en `Orchestration/Work`: `MilestoneService`, `BacklogService`, `TraceLinkService`, `TraceSuggester` y `BoardProjector`, con `WorkWriteGate`
+  (espera a que `IRunActivity` deje libre el proyecto y toma la puerta del proyecto, como la memoria). Los almacenes son `SqliteMilestoneRegistry` y
+  `SqliteBacklogStore`. `ITraceChainReader`, `IParticipationProjector`, `IRepositoryAnnotator` e `IRepositoryActivityReader` no están en este paquete.
+- **Orden de escritura:** el hito como un debate (requisitos congelados, fila, `MilestoneOpened` con el hash de la cabecera que devuelve el registro; una fila sin
+  `MilestoneOpened` no se lista y abrir otra vez con lo mismo la completa); el backlog como la memoria (`BacklogItemRecorded` primero, la fila después con la hora
+  del anuncio; escribir otra vez la misma versión completa la fila, con otro contenido se rechaza).
+- **Lectura que falla cerrada:** un registro que no verifica lanza `DecisionLogIntegrityException`; una cabecera que no es la que ancló `MilestoneOpened` sale con su
+  problema (`milestone.header-not-anchored`) y no se le escribe nada; una fila del backlog que no coincide con su anuncio (contenido, prioridad u hora) hace
+  `InvalidOperationException` y no se lee el backlog; una fila sin anuncio no se lee; un anuncio sin fila aún no es un elemento.
+- **Trailers:** `Workers.cs` escribe el mensaje del commit de un intento con `CommitTrailers.Append` (ejecución, tarea, intento y agente con su modelo). Sin modelo
+  válido se omite el modelo, y sin trailers válidos queda el asunto. El commit del intento interrumpido de `RunResumer` y el de integración de `Integrator` siguen con
+  sus líneas antiguas, que `CommitTrailers.Read` lee como ninguna (el sistema no las toma por trailers).
+- **Tablero:** un veredicto cuenta si el registro lo anunció válido y el almacén lo guarda válido y con la misma decisión; uno impugnado se aparta (revisión) hasta que
+  su debate de revisión cierra resuelto: si confirma la decisión se queda, si retira una aprobación manda la de la revisión, y si vuelve hacia una aprobación la tarjeta
+  sigue en revisión (la acepta una persona, D-40). Si varias ejecuciones cubren un requisito decide la última que empezó.
