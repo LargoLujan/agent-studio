@@ -13,12 +13,22 @@ public sealed class Phase14TextRulesTests
     // ---- LocalPaths (D-57 and D-60) ----
 
     [Theory]
-    [InlineData(@"Abre C:\Users\ana\repo\src\App.cs y mira", @"C:\Users\ana\repo\src\App.cs")]
+    [InlineData(@"Abre «C:\Users\ana\repo\src\App.cs» y mira", @"C:\Users\ana\repo\src\App.cs")]
     [InlineData("Está en D:/trabajo/tienda.", "D:/trabajo/tienda")]
     [InlineData(@"Ruta de red \\servidor\compartida\datos, ahí.", @"\\servidor\compartida\datos")]
-    [InlineData("Mira ~/repos/tienda (la copia)", "~/repos/tienda")]
+    [InlineData("Mira ~/repos/tienda, la copia", "~/repos/tienda")]
     [InlineData(@"Mira ~\repos\tienda", @"~\repos\tienda")]
-    public void A_path_of_the_machine_is_found_without_the_punctuation_that_closes_the_sentence(string text, string path)
+    [InlineData(@"Abre C:\Personal Projects\Agent Studio\src\App.cs", @"C:\Personal Projects\Agent Studio\src\App.cs")]
+    [InlineData(@"Es C:\Users\Ana Garcia\Documentos\plan final.docx. Luego", @"C:\Users\Ana Garcia\Documentos\plan final.docx")]
+    [InlineData(@"En \\servidor\mi recurso\datos\x.txt, sí", @"\\servidor\mi recurso\datos\x.txt")]
+    [InlineData("Ver file:///C:/Users/ana/mi proyecto/x.md.", "file:///C:/Users/ana/mi proyecto/x.md")]
+    [InlineData("Ver file:///home/ana/x y más", "file:///home/ana/x y más")]
+    [InlineData(@"Está en C:\Program Files (x86)\App\a.exe", @"C:\Program Files (x86)\App\a.exe")]
+    [InlineData(@"(ver C:\Users\ana\x)", @"C:\Users\ana\x")]
+    [InlineData("Dice \"C:\\Mi Carpeta\\a b.txt\" y más", @"C:\Mi Carpeta\a b.txt")]
+    [InlineData(@"Es C:\Users\O'Brien\x, no", @"C:\Users\O'Brien\x")]
+    [InlineData("Primera C:\\a b\nsegunda línea", @"C:\a b")]
+    public void A_path_of_the_machine_is_found_whole_spaces_included_up_to_a_clear_delimiter(string text, string path)
     {
         Assert.Equal([path], LocalPaths.Find(text));
         Assert.True(LocalPaths.Contains(text));
@@ -32,6 +42,7 @@ public sealed class Phase14TextRulesTests
     [InlineData("El intento T3:2 y la clave a:b no son rutas")]
     [InlineData("Un id como ev-1:/x tampoco")]
     [InlineData("100:/50 es una proporción")]
+    [InlineData("Una ruta de Unix /home/ana/x no se detecta")]
     public void A_relative_path_a_url_and_an_id_are_not_paths_of_the_machine(string text)
     {
         Assert.Empty(LocalPaths.Find(text));
@@ -39,12 +50,29 @@ public sealed class Phase14TextRulesTests
     }
 
     [Fact]
-    public void Nothing_is_found_in_a_missing_text_and_every_path_is_found_in_order()
+    public void Nothing_is_found_in_a_missing_text_and_every_path_is_found_in_order_each_ending_where_the_next_begins()
     {
         Assert.Empty(LocalPaths.Find(null));
         Assert.Equal(
             [@"C:\repo", @"\\srv\share", "~/x"],
-            LocalPaths.Find(@"Primero C:\repo, luego \\srv\share y por último ~/x."));
+            LocalPaths.Find(@"Primero «C:\repo», luego «\\srv\share» y por último ~/x."));
+        Assert.Equal([@"C:\repo uno", "~/x"], LocalPaths.Find(@"Primero C:\repo uno ~/x."));
+    }
+
+    [Theory]
+    [InlineData(@"Abre C:\Personal Projects\Agent Studio\src\App.cs", "Abre [ruta]")]
+    [InlineData(@"Es C:\Users\Ana Garcia\Documentos\x.docx, y ya", "Es [ruta], y ya")]
+    [InlineData(@"En \\servidor\mi recurso\datos\x.txt.", "En [ruta].")]
+    [InlineData("Ver file:///C:/Users/ana/mi proyecto/x.md.", "Ver [ruta].")]
+    [InlineData(@"Dice «C:\Mi Carpeta\a b.txt» y más", "Dice «[ruta]» y más")]
+    [InlineData(@"Es C:\Program Files (x86)\App\a.exe", "Es [ruta]")]
+    public void A_path_with_spaces_is_removed_whole_never_half(string text, string expected)
+    {
+        var (clean, removed) = LocalPaths.Remove(text, "[ruta]");
+
+        Assert.Equal(expected, clean);
+        Assert.Equal(1, removed);
+        Assert.False(LocalPaths.Contains(clean));
     }
 
     [Fact]

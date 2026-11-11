@@ -854,6 +854,12 @@ public sealed record ClientDocumentExportedPayload(
             throw new ArgumentException("The commit of the cover is 7 to 64 lowercase hex characters.", nameof(commit));
         }
 
+        // The name of the milestone is text the log keeps: it is held to the rules of the rest of the text of the document.
+        if (milestone is not null && (string.IsNullOrWhiteSpace(milestone) || LocalPaths.Contains(milestone) || PlainText.HasHiddenCharacter(milestone, allowLineBreaks: false)))
+        {
+            throw new ArgumentException("The milestone has a name, with no path of the machine and no hidden character.", nameof(milestone));
+        }
+
         if (!Localization.LanguageTags.IsValid(language))
         {
             throw new ArgumentException("The language is the name of a culture, such as es-ES or en.", nameof(language));
@@ -930,7 +936,7 @@ public sealed record ClientDocumentExportedPayload(
             disclosure.PathsRemoved.Count,
             disclosure.RisksIncluded,
             disclosure.IncludesConsumption,
-            [.. disclosure.AgentWrittenParts.Select(p => new ClientDocumentAgentPartSnapshot(p.Section, p.Run, p.ReviewedByPerson))],
+            [.. ClientDocumentDisclosure.AgentPartsOf(request.Build.Document).Select(p => new ClientDocumentAgentPartSnapshot(p.Section, p.Run, p.ReviewedByPerson))],
             request.DecidedBy);
     }
 }

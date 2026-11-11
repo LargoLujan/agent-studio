@@ -132,6 +132,28 @@ public sealed class Phase14PayloadTests
     }
 
     [Fact]
+    public void The_milestone_is_held_to_the_rules_of_the_rest_of_the_text()
+    {
+        ClientDocumentExportedPayload Milestone(string? name) =>
+            ClientDocumentExportedPayload.Exporting(1, name, null, "es-ES", HashA, Eid("ev-markdown"), HashB, [MarkdownFile], 0, 0, 0, false, [], "user");
+
+        Assert.Equal("Hito 1", Milestone("Hito 1").Milestone);
+        Assert.Null(Milestone(null).Milestone);
+        Assert.Throws<ArgumentException>(() => Milestone(" "));
+        Assert.Throws<ArgumentException>(() => Milestone(@"Hito en C:\Users\ana\tienda"));
+        Assert.Throws<ArgumentException>(() => Milestone("Hito\u202E1"));
+    }
+
+    [Fact]
+    public void The_agent_parts_of_the_record_come_from_the_document_whatever_the_list_of_what_goes_out_says()
+    {
+        var hidden = Request() with { Build = new ClientDocumentBuild(Document(), new ClientDocumentDisclosure(1, [], [], 2, false)) };
+        var result = new ClientDocumentExportResult(2, [new ExportedClientFile(ClientDocumentFormat.Markdown, "mi-tienda-hito-1-v2.md", HashB, 10)], Eid("ev-markdown"), HashB);
+
+        Assert.Equal([SummaryByAgent], ClientDocumentExportedPayload.Of(hidden, result).AgentParts);
+    }
+
+    [Fact]
     public void Each_file_is_a_plain_name_with_the_extension_of_its_format_a_fingerprint_and_a_size_and_there_is_one_per_format()
     {
         Assert.Throws<ArgumentException>(() => With(files: [MarkdownFile with { FileName = @"C:\Entregas\mi-tienda-v2.md" }]));

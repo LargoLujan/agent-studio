@@ -1,3 +1,4 @@
+using System.IO;
 using System.Runtime.CompilerServices;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Projects;
@@ -52,7 +53,8 @@ public sealed class AuxiliaryAgentRunnerPhase13Tests
         var outcome = new AgentRunOutcome(AgentRunStatus.Failed, 1, null, null, "s", "sin ventana", new AgentRunEnd(AttemptEndClass.ContextExhausted));
         var runner = new AuxiliaryAgentRunner(recorder, new FakeEvidenceStore(clock), new Providers(new ScriptedProvider(outcome)), clock);
 
-        var result = await runner.RunAsync(Project, new AuxiliaryRunRequest(purpose, new AgentRunRequest(Analyst, "Analiza.", "C:\\vacia", new PermissionProfile(false, false, false, [], [], []))), null, TestContext.Current.CancellationToken);
+        using var folder = EmptyFolder();
+        var result = await runner.RunAsync(Project, new AuxiliaryRunRequest(purpose, new AgentRunRequest(Analyst, "Analiza.", folder.Path, new PermissionProfile(false, false, false, [], [], []))), null, TestContext.Current.CancellationToken);
 
         Assert.True(AuxiliaryAgentRunner.IsAuxiliary(purpose));
         Assert.StartsWith(AuxiliaryAgentRunner.RunPrefix, result.Run.Value, StringComparison.Ordinal);
@@ -62,6 +64,63 @@ public sealed class AuxiliaryAgentRunnerPhase13Tests
         Assert.Equal(purpose, started.Purpose);
         Assert.Equal(endClass ? AgentRunFinishedPayload.EndClassVersion : AgentRunFinishedPayload.UsageVersion, finished.V);
         Assert.Equal(endClass ? AttemptEndClass.ContextExhausted : AttemptEndClass.Other, finished.ResolvedEnd().Class);
+    }
+
+    private sealed class Folder : IDisposable
+    {
+        public Folder() => Path = Directory.CreateTempSubdirectory("aux-").FullName;
+
+        public string Path { get; }
+
+        public void Dispose() => Directory.Delete(Path, recursive: true);
+    }
+
+    private static Folder EmptyFolder() => new();
+
+    private static AgentRunRequest Launch(string folder, PermissionProfile? permissions = null) =>
+        new(Analyst, "Ayuda.", folder, permissions ?? new PermissionProfile(false, false, false, [], [], []));
+
+    private static readonly PermissionProfile ReadOnly = new(false, false, false, [], [], []);
+
+    /// <summary>The help and the draft of a document are read-only in an empty folder: the runner refuses anything else before it records or launches.</summary>
+    [Theory]
+    [InlineData(AgentRunPurpose.Help)]
+    [InlineData(AgentRunPurpose.ClientDocumentDraft)]
+    public async Task A_launch_that_is_not_read_only_in_an_empty_folder_is_refused_before_anything_is_recorded(AgentRunPurpose purpose)
+    {
+        var clock = new FakeTimeProvider(T0);
+        var store = new InMemoryDecisionLogStore();
+        var runner = new AuxiliaryAgentRunner(new DecisionRecorder(store, clock), new FakeEvidenceStore(clock), new Providers(new ScriptedProvider(new AgentRunOutcome(AgentRunStatus.Succeeded, 0, null, null, "s", null))), clock);
+        using var folder = EmptyFolder();
+        using var full = EmptyFolder();
+        File.WriteAllText(System.IO.Path.Combine(full.Path, "x.txt"), "x");
+        var mcp = new McpServerSpec("local", "node", [], []);
+
+        var refused = new[]
+        {
+            Launch(folder.Path, ReadOnly with { AllowFileWrites = true }),
+            Launch(folder.Path, ReadOnly with { AllowShell = true }),
+            Launch(folder.Path, ReadOnly with { AllowNetwork = true }),
+            Launch(folder.Path, ReadOnly with { AllowedTools = ["Read", "Bash"] }),
+            Launch(folder.Path, ReadOnly with { AdditionalDirectories = [@"C:\repo"] }),
+            Launch(folder.Path) with { McpServers = [mcp] },
+            Launch(folder.Path) with { SkillsDirectory = @"C:\skills" },
+            Launch(folder.Path) with { ResumeSessionId = "sesion-1" },
+            Launch(full.Path),
+            Launch(System.IO.Path.Combine(folder.Path, "no-existe")),
+        };
+
+        foreach (var launch in refused)
+        {
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => runner.RunAsync(Project, new AuxiliaryRunRequest(purpose, launch), null, TestContext.Current.CancellationToken));
+            Assert.Contains("read-only in an empty folder", ex.Message, StringComparison.Ordinal);
+            Assert.NotEmpty(AuxiliaryAgentRunner.ReadOnlyViolations(launch));
+        }
+
+        Assert.Empty(store.Of(Project.ProjectId));
+        Assert.Empty(AuxiliaryAgentRunner.ReadOnlyViolations(Launch(folder.Path, ReadOnly with { AllowedTools = ["Read", "Grep", "Glob"] })));
+        Assert.True(AuxiliaryAgentRunner.RequiresReadOnlyLaunch(purpose));
+        Assert.False(AuxiliaryAgentRunner.RequiresReadOnlyLaunch(AgentRunPurpose.PreparationChat));
     }
 
     private sealed class Providers(params IAgentProvider[] providers) : IProjectAgentProviders
