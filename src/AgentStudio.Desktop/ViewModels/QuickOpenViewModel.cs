@@ -1,5 +1,5 @@
-using System.Globalization;
 using System.IO;
+using AgentStudio.Desktop.Localization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -32,8 +32,6 @@ public sealed partial class QuickOpenViewModel : ObservableObject
     /// <summary>Most results shown at once; the rest are reached by typing more.</summary>
     public const int MaxResults = 100;
 
-    private const string IndexingNotice = "Indexando ficheros…";
-
     private readonly ProjectFileIndexFactory _indexer;
     private string _projectRoot = string.Empty;
     private IReadOnlyList<string> _paths = [];
@@ -56,7 +54,7 @@ public sealed partial class QuickOpenViewModel : ObservableObject
     [ObservableProperty]
     private bool _isOpen;
 
-    /// <summary>What the list is for ("Ir al fichero", "Comparar … con…").</summary>
+    /// <summary>What the list is for («Go to file», «Compare … with…»).</summary>
     [ObservableProperty]
     private string _title = string.Empty;
 
@@ -93,7 +91,7 @@ public sealed partial class QuickOpenViewModel : ObservableObject
 
     /// <summary>Warns that some files are missing from the list; null when every file was indexed.</summary>
     public string? TruncationNotice => IsTruncated
-        ? $"Solo se han indexado los primeros {FormatCount(ProjectFileIndexer.DefaultMaxFiles)} ficheros: el proyecto tiene más y no aparecen aquí."
+        ? Texts.Format("QuickOpen_Truncated", FormatCount(ProjectFileIndexer.DefaultMaxFiles))
         : null;
 
     partial void OnQueryChanged(string value) => Refresh();
@@ -119,7 +117,7 @@ public sealed partial class QuickOpenViewModel : ObservableObject
         Query = string.Empty;
         Results = [];
         SelectedIndex = -1;
-        Notice = IndexingNotice;
+        Notice = Texts.Get("QuickOpen_Indexing");
         IsOpen = true;
 
         ProjectFileIndex index;
@@ -136,7 +134,7 @@ public sealed partial class QuickOpenViewModel : ObservableObject
             if (!session.IsCancellationRequested)
             {
                 IsIndexing = false;
-                Notice = $"No se pudo leer el proyecto: {ex.Message}";
+                Notice = Texts.Format("QuickOpen_ReadFailed", ex.Message);
             }
 
             return;
@@ -220,26 +218,25 @@ public sealed partial class QuickOpenViewModel : ObservableObject
     {
         if (_paths.Count == 0)
         {
-            return "El proyecto no tiene ficheros que mostrar.";
+            return Texts.Get("QuickOpen_NoFiles");
         }
 
         if (matches == 0)
         {
-            return "Ninguna coincidencia.";
+            return Texts.Get("QuickOpen_NoMatches");
         }
 
         var filtering = !string.IsNullOrWhiteSpace(Query);
-        var (singular, plural) = filtering ? ("coincidencia", "coincidencias") : ("fichero", "ficheros");
         if (matches > MaxResults)
         {
-            var hint = filtering ? "sigue escribiendo para afinar." : "escribe para buscar.";
-            return $"Mostrando {MaxResults} de {FormatCount(matches)} {plural}; {hint}";
+            return Texts.Format(filtering ? "QuickOpen_Showing_Matches" : "QuickOpen_Showing_Files", MaxResults, FormatCount(matches));
         }
 
-        return matches == 1 ? $"1 {singular}" : $"{FormatCount(matches)} {plural}";
+        return matches == 1
+            ? Texts.Get(filtering ? "QuickOpen_OneMatch" : "QuickOpen_OneFile")
+            : Texts.Format(filtering ? "QuickOpen_Matches" : "QuickOpen_Files", FormatCount(matches));
     }
 
-    /// <summary>Spanish thousands separator ("20.000"), whatever the culture of the machine.</summary>
-    private static string FormatCount(int count) =>
-        count.ToString("N0", CultureInfo.InvariantCulture).Replace(',', '.');
+    /// <summary>A count with the thousands separator of the language of the interface ("20.000" in Spanish, "20,000" in English).</summary>
+    private static string FormatCount(int count) => count.ToString("N0", Texts.Current.Culture);
 }

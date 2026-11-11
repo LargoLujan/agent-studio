@@ -1,3 +1,4 @@
+using AgentStudio.Desktop.Localization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -39,7 +40,7 @@ public abstract partial class DocumentViewModel : ObservableObject
     public string TabTitle => IsDirty ? $"{Title} {UnsavedMarker}" : Title;
 
     /// <summary>What a screen reader says for its tab: the title, and that it has unsaved changes when it has.</summary>
-    public string AccessibleTitle => IsDirty ? $"{Title}, con cambios sin guardar" : Title;
+    public string AccessibleTitle => IsDirty ? Texts.Format("Document_UnsavedName", Title) : Title;
 
     /// <summary>Raised when the document asks to be closed; the owner removes it from its collection.</summary>
     public event EventHandler? CloseRequested;

@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
              xmlns:vm="clr-namespace:AgentStudio.Desktop.ViewModels"
              xmlns:markdown="clr-namespace:AgentStudio.Desktop.Markdown"
              mc:Ignorable="d"
@@ -42,7 +43,7 @@
                     </Style>
                 </TextBlock.Style>
             </TextBlock>
-            <Button Grid.Column="1" Style="{StaticResource GhostButton}" Content="Actualizar" Command="{Binding RefreshCommand}"/>
+            <Button Grid.Column="1" Style="{StaticResource GhostButton}" Content="{l:T Journal_Refresh}" Command="{Binding RefreshCommand}"/>
         </Grid>
 
         <!-- A long day draws only its latest entries (the layout runs on the UI thread); all of it, as plain text, on demand.
@@ -55,8 +56,8 @@
                            AutomationProperties.LiveSetting="Polite"/>
             </DockPanel>
             <DockPanel x:Name="NewEntries" Margin="0,4,0,0" Visibility="{Binding HasNewEntries, Converter={StaticResource Journal.BoolToVisibility}}">
-                <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Margin="8,0,0,0" Content="Recargar"
-                        Command="{Binding ReloadPlainTextCommand}" AutomationProperties.Name="Recargar el día completo"/>
+                <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Margin="8,0,0,0" Content="{l:T Journal_Reload}"
+                        Command="{Binding ReloadPlainTextCommand}" AutomationProperties.Name="{l:T Journal_Reload_Name}"/>
                 <TextBlock Style="{StaticResource SecondaryText}" VerticalAlignment="Center" TextWrapping="Wrap" Text="{Binding NewEntriesNote}"
                            AutomationProperties.LiveSetting="Polite"/>
             </DockPanel>
@@ -68,7 +69,7 @@
                      markdown:RichTextDocument.Scope="{Binding ReadScope}"
                      markdown:RichTextDocument.Document="{Binding RenderedText, Converter={StaticResource Journal.Markdown}}"
                      Visibility="{Binding ShowReadable, Converter={StaticResource Journal.BoolToVisibility}}"
-                     AutomationProperties.Name="Bitácora de hoy">
+                     AutomationProperties.Name="{l:T Main_Panel_Journal}">
             <RichTextBox.CommandBindings>
                 <CommandBinding Command="ApplicationCommands.Print" CanExecute="LetTheWindowHaveIt"/>
                 <CommandBinding Command="ApplicationCommands.Find" CanExecute="LetTheWindowHaveIt"/>
@@ -78,6 +79,6 @@
         <TextBox x:Name="JournalText" Grid.Row="2" Style="{StaticResource MonoViewer}" TextWrapping="Wrap" HorizontalScrollBarVisibility="Disabled"
                  Text="{Binding PlainText, Mode=OneWay}"
                  Visibility="{Binding ShowPlainText, Converter={StaticResource Journal.BoolToVisibility}}"
-                 AutomationProperties.Name="Bitácora de hoy, como texto"/>
+                 AutomationProperties.Name="{l:T Journal_PlainName}"/>
     </Grid>
 </UserControl>

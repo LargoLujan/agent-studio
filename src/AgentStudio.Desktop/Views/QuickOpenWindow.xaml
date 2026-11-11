@@ -3,14 +3,15 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
         xmlns:vm="clr-namespace:AgentStudio.Desktop.ViewModels"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=vm:QuickOpenViewModel}"
-        Title="Ir al fichero" Width="640" SizeToContent="Height" MaxHeight="480"
+        Title="{l:T Main_GoToFile}" Width="640" SizeToContent="Height" MaxHeight="480"
         WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False" WindowStartupLocation="Manual"
         Background="{StaticResource SurfaceBrush}"
         PreviewKeyDown="OnPreviewKeyDown"
-        AutomationProperties.Name="Ir al fichero">
+        AutomationProperties.Name="{l:T Main_GoToFile}">
     <!-- A window of its own, not an overlay: the editor and the terminal are WebView2 (an HWND), and WPF content can
          never be drawn over an HWND. MainWindow owns it, shows it while QuickOpenViewModel.IsOpen and closes it when
          it turns false. Keyboard: the search box keeps the focus; Up/Down/Enter/Esc are mapped in code-behind. -->
@@ -31,7 +32,7 @@
                          FontFamily="{StaticResource UiFont}" FontSize="14"
                          Foreground="{StaticResource TextPrimaryBrush}" CaretBrush="{StaticResource TextPrimaryBrush}"
                          Background="{StaticResource BackgroundBrush}" BorderBrush="{StaticResource BorderBrush}"
-                         AutomationProperties.Name="Buscar fichero" AutomationProperties.HelpText="Escribe parte de la ruta del fichero">
+                         AutomationProperties.Name="{l:T QuickOpen_SearchName}" AutomationProperties.HelpText="{l:T QuickOpen_SearchHelp}">
                     <TextBox.Template>
                         <ControlTemplate TargetType="TextBox">
                             <Border x:Name="Root" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
@@ -49,7 +50,7 @@
                 </TextBox>
                 <!-- Placeholder: shown while the box is empty; it never takes the mouse. -->
                 <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"
-                           Text="Escribe parte de la ruta del fichero…" FontSize="14">
+                           Text="{l:T QuickOpen_SearchHint}" FontSize="14">
                     <TextBlock.Style>
                         <Style TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -70,7 +71,7 @@
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                      VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
                      SelectionChanged="OnSelectionChanged" MouseLeftButtonUp="OnListMouseLeftButtonUp"
-                     AutomationProperties.Name="Ficheros encontrados">
+                     AutomationProperties.Name="{l:T QuickOpen_ResultsName}">
                 <ListBox.Style>
                     <Style TargetType="ListBox">
                         <Setter Property="Visibility" Value="Visible"/>
@@ -127,11 +128,11 @@
             </ListBox>
 
             <StackPanel Grid.Row="3" Margin="14,8,14,10">
-                <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding Notice}" AutomationProperties.Name="Estado de la búsqueda"/>
+                <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding Notice}" AutomationProperties.Name="{l:T QuickOpen_NoticeName}"/>
                 <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="0,4,0,0" Text="{Binding TruncationNotice}"
-                           Foreground="{StaticResource WarningBrush}" AutomationProperties.Name="Aviso de índice incompleto"/>
+                           Foreground="{StaticResource WarningBrush}" AutomationProperties.Name="{l:T QuickOpen_TruncatedName}"/>
                 <TextBlock Style="{StaticResource SecondaryText}" Margin="0,6,0,0"
-                           Text="↑ ↓ para moverte · Intro para elegir · Esc para cerrar"/>
+                           Text="{l:T QuickOpen_Keys}"/>
             </StackPanel>
         </Grid>
     </Border>

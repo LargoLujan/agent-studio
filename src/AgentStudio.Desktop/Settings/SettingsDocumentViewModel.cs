@@ -37,13 +37,6 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
 {
     public const string DocumentId = "document:settings";
 
-    /// <summary>What the preferences cover and where they live, as the screen says it.</summary>
-    public const string ScopeText = "Valen para todos los proyectos y se guardan en tu perfil de Windows (%APPDATA%\\AgentStudio\\settings.json).";
-
-    /// <summary>What «Guardar» does, as the screen says it.</summary>
-    public const string SaveExplanation =
-        "«Guardar» comprueba todas las secciones y las guarda a la vez: si una no es válida, no se guarda nada. Si cierras la pestaña sin guardar, te pregunta.";
-
     private readonly IAppSettingsStore _store;
     private readonly TimeProvider _time;
 
@@ -62,7 +55,7 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
         TimeProvider? time = null,
         MemorySettingsViewModel? memory = null,
         LanguageSettingsViewModel? language = null)
-        : base(DocumentId, "Ajustes")
+        : base(DocumentId, Texts.Get("SettingsDoc_Title"))
     {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(context);
@@ -179,7 +172,9 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
 
         if (wrong.Count > 0)
         {
-            ErrorMessage = $"No se guardó nada: corrige {string.Join(" y ", wrong.Select(title => $"«{title}»"))}.";
+            ErrorMessage = wrong.Count == 1
+                ? Texts.Format("SettingsDoc_Wrong_One", wrong[0])
+                : Texts.Format("SettingsDoc_Wrong_Two", wrong[0], wrong[1]);
             return;
         }
 
@@ -213,7 +208,7 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            ErrorMessage = $"No se pudieron guardar los ajustes: {ex.Message}";
+            ErrorMessage = Texts.Format("SettingsDoc_SaveFailed", ex.Message);
             return;
         }
 
@@ -223,7 +218,7 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
         Memory?.Accept(saved);
         Language?.Accept(saved);
         Motion.Accept(saved);
-        Notice = $"Ajustes guardados a las {_time.GetLocalNow().ToString("HH:mm:ss", CultureInfo.InvariantCulture)}.";
+        Notice = Texts.Format("SettingsDoc_Saved", _time.GetLocalNow().ToString("HH:mm:ss", CultureInfo.InvariantCulture));
     }
 
     /// <summary>The tab was closed: what was not saved goes, so opening it again shows what is in force.</summary>

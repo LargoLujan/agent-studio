@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
+using AgentStudio.Desktop.Localization;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace AgentStudio.Desktop.ViewModels;
@@ -17,7 +18,7 @@ public sealed partial class WelcomeDocumentViewModel : DocumentViewModel
         ICommand openFolderCommand,
         ICommand openRecentCommand,
         IReadOnlyList<WelcomeActionViewModel>? projectActions = null)
-        : base(Id, "Bienvenida")
+        : base(Id, Texts.Get("Welcome_Title"))
     {
         RecentProjects = recentProjects;
         OpenFolderCommand = openFolderCommand;
