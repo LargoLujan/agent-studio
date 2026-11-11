@@ -1768,6 +1768,10 @@ Dejarla sin marcar para reanudar tú la ejecución.
 Pausar la ejecución: así nunca se reanuda sola.</value>
     <comment>What the person can do with the consent.</comment>
   </data>
+  <data name="Orchestrator_Doc_TabTitle" xml:space="preserve">
+    <value>Orquestador · {0}</value>
+    <comment>Title of the tab of the orchestrator. {0}: name of the project.</comment>
+  </data>
   <data name="Orchestrator_Doc_Hide" xml:space="preserve">
     <value>Ocultar</value>
     <comment>Button that folds the preparation.</comment>
@@ -2527,7 +2531,7 @@ Abrir el análisis del consumo, si está disponible, para ver el detalle.</value
     <comment>Count of findings.</comment>
   </data>
   <data name="Orchestrator_Mon_ReplanAsked" xml:space="preserve">
-    <value>El auditor pide replanificar: prepara una ejecución de seguimiento o descarta la petición. Hasta que decidas, la entrega espera.</value>
+    <value>El auditor pide replanificar. Prepara una ejecución de seguimiento o descarta la petición. Hasta que decidas, la entrega espera.</value>
     <comment>Text of the request to replan.</comment>
   </data>
   <data name="Orchestrator_Mon_VerdictFailed" xml:space="preserve">

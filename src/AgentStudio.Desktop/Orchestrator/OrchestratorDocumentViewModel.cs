@@ -168,7 +168,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         Func<bool>? reduceMotion = null,
         MonitorServices? monitors = null,
         IProjectOptionsStore? projectOptions = null)
-        : base(CreateId(projectRoot), $"Orquestador · {RecentProjectItem.From(projectRoot).Name}")
+        : base(CreateId(projectRoot), Texts.Format("Orchestrator_Doc_TabTitle", RecentProjectItem.From(projectRoot).Name))
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(layout);

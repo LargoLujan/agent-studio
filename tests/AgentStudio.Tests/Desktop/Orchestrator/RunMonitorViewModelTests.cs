@@ -717,7 +717,7 @@ public sealed class RunMonitorViewModelTests
             ],
             monitor.AuditFindings);
         Assert.True(monitor.ReplanPending);
-        Assert.Equal("El auditor pide replanificar: prepara una ejecución de seguimiento o descarta la petición. Hasta que decidas, la entrega espera.", monitor.ReplanText);
+        Assert.Equal("El auditor pide replanificar. Prepara una ejecución de seguimiento o descarta la petición. Hasta que decidas, la entrega espera.", monitor.ReplanText);
         Assert.True(monitor.HasReviewSection);
     }
 

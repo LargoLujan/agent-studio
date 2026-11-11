@@ -1768,6 +1768,10 @@ Leave it unticked to resume the run yourself.
 Pause the run: it never resumes by itself then.</value>
     <comment>What the person can do with the consent.</comment>
   </data>
+  <data name="Orchestrator_Doc_TabTitle" xml:space="preserve">
+    <value>Orchestrator · {0}</value>
+    <comment>Title of the tab of the orchestrator. {0}: name of the project.</comment>
+  </data>
   <data name="Orchestrator_Doc_Hide" xml:space="preserve">
     <value>Hide</value>
     <comment>Button that folds the preparation.</comment>
@@ -2527,7 +2531,7 @@ Open the consumption analysis, if it is there, to see the detail.</value>
     <comment>Count of findings.</comment>
   </data>
   <data name="Orchestrator_Mon_ReplanAsked" xml:space="preserve">
-    <value>The auditor asks to replan: prepare a follow-up run or dismiss the request. Until you decide, the delivery waits.</value>
+    <value>The auditor asks to replan. Prepare a follow-up run or dismiss the request. Until you decide, the delivery waits.</value>
     <comment>Text of the request to replan.</comment>
   </data>
   <data name="Orchestrator_Mon_VerdictFailed" xml:space="preserve">
