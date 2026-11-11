@@ -1,4 +1,7 @@
+using AgentStudio.Application.Decisions;
+using AgentStudio.Application.Git;
 using AgentStudio.Application.Orchestration;
+using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Work;
 using AgentStudio.Orchestration.Engine;
 using AgentStudio.Orchestration.Work;
@@ -34,12 +37,35 @@ public static class OrchestrationServiceCollectionExtensions
 
         // Phase 9 (docs/16 D-17 to D-19 and D-29 to D-30): milestones, backlog, trace links, suggestions and the board. The suggester also needs
         // an IRepositoryHistoryReader (the hardened git layer), which the composition root registers.
-        services.TryAddSingleton<WorkWriteGate>();
-        services.TryAddSingleton<IMilestoneService, MilestoneService>();
-        services.TryAddSingleton<IBacklogService, BacklogService>();
-        services.TryAddSingleton<ITraceLinkService, TraceLinkService>();
-        services.TryAddSingleton<ITraceSuggester, TraceSuggester>();
-        services.TryAddSingleton<IBoardProjector, BoardProjector>();
+        // Built by factories, so a container that only resolves the orchestrator does not need the stores and the git reader these use.
+        services.TryAddSingleton(provider => new WorkWriteGate(provider.GetRequiredService<IRunActivity>(), provider.GetRequiredService<TimeProvider>()));
+        services.TryAddSingleton<IMilestoneService>(provider => new MilestoneService(
+            provider.GetRequiredService<IDecisionRecorder>(),
+            provider.GetRequiredService<IMilestoneRegistry>(),
+            provider.GetRequiredService<IRequirementStore>(),
+            provider.GetRequiredService<IEvidenceStore>(),
+            provider.GetRequiredService<WorkWriteGate>(),
+            provider.GetRequiredService<TimeProvider>()));
+        services.TryAddSingleton<IBacklogService>(provider => new BacklogService(
+            provider.GetRequiredService<IDecisionRecorder>(),
+            provider.GetRequiredService<IBacklogStore>(),
+            provider.GetRequiredService<WorkWriteGate>(),
+            provider.GetRequiredService<TimeProvider>()));
+        services.TryAddSingleton<ITraceLinkService>(provider => new TraceLinkService(
+            provider.GetRequiredService<IDecisionRecorder>(),
+            provider.GetRequiredService<WorkWriteGate>(),
+            provider.GetRequiredService<TimeProvider>()));
+        services.TryAddSingleton<ITraceSuggester>(provider => new TraceSuggester(
+            provider.GetRequiredService<IDecisionRecorder>(),
+            provider.GetRequiredService<IRepositoryHistoryReader>()));
+        services.TryAddSingleton<IBoardProjector>(provider => new BoardProjector(
+            provider.GetRequiredService<IDecisionRecorder>(),
+            provider.GetRequiredService<IMilestoneService>(),
+            provider.GetRequiredService<IBacklogService>(),
+            provider.GetRequiredService<IRequirementStore>(),
+            provider.GetRequiredService<IRunRegistry>(),
+            provider.GetRequiredService<IPlanStore>(),
+            provider.GetRequiredService<IVerdictStore>()));
         return services;
     }
 }
