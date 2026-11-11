@@ -248,9 +248,11 @@
   - Copiar el texto de la pregunta en la decisión: ya descartado en la revisión de WP4 (llegaría como un hecho comprobado por el
     sistema).
 - **Consecuencias y lo que queda abierto:**
-  - Una ejecución propia para un plan editado después de responder (`PlannedIn`) solo lee sus entradas: su juez no ve ni la
-    decisión ni `QuestionAnswered` del orquestador, que están en las de la planificación. No fuga nada, pero decidiste algo que ese
-    juez no ve. Queda abierto decidir si el dosier de una ejecución con `PlannedIn` debe incluir esa decisión.
+  - Una ejecución propia para un plan editado después de responder (`PlannedIn`) no tiene esas entradas entre las suyas: el
+    dosier las lee de la planificación que nombra `RunStarted.PlannedIn` (entradas verificadas del mismo registro) y lleva al juez
+    solo los `QuestionAnswered` sin tarea y la evidencia de la decisión (con el texto propio, si lo hay), como el registro la ancló;
+    nada más de esa planificación (ni su prompt, ni sus informes, ni `QuestionAsked`), y un `PlannedIn` que el registro no tiene, o
+    una decisión o un texto que no se pueden leer como se anclaron, son un aviso del sistema que impide aprobar.
   - Una pregunta del orquestador que se respondió antes de esta adenda no tiene decisión capturada: el juez ve solo
     `QuestionAnswered` (el prompt y el informe sí se retiran, porque eso se decide al construir el dosier).
   - El campo `options` de la decisión sale de la pregunta que devuelve quien llama con las respuestas (la ventana la guarda de la

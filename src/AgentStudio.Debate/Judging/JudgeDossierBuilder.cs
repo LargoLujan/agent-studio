@@ -125,6 +125,11 @@ public sealed class JudgeDossierBuilder(
             checks.Add($"The original request (evidence '{header.OriginalRequest}') named by the run header is not evidence the decision log registered for this run.");
         }
 
+        // A run that came from a planning of another run (the plan was edited after the orchestrator proposed it) has not the
+        // answers of the person to the orchestrator's questions among its entries: only those decisions come from that planning.
+        var planned = await PlannedInAsync(projectId, run, started, log.Entries, checks, cancellationToken).ConfigureAwait(false);
+        runEvidence.AddRange(planned.Evidence);
+
         var replayProblems = new List<string>();
         var events = RunLog.ReplayEvents(runEntries, replayProblems);
         var replay = RunStateReplayer.Replay(plan, header.CreatedAt, events, started.PlanHash);
@@ -134,7 +139,7 @@ public sealed class JudgeDossierBuilder(
             originalRequest,
             frozen,
             PlanJson.Render(plan),
-            [.. runEntries.Where(e => e.Kind != DecisionKind.QuestionAsked)],
+            [.. runEntries.Where(e => e.Kind != DecisionKind.QuestionAsked).Concat(planned.Answers).OrderBy(e => e.Sequence)],
             log.HeadHash,
             runEvidence,
             [.. replay.Graph.Tasks.Select(t => t.Snapshot())],
@@ -145,6 +150,121 @@ public sealed class JudgeDossierBuilder(
 
         var folder = PackageFolder(projectId, run, log.HeadHash);
         return await WritePackageAsync(folder, projectId, run, dossier, checks, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>What the dossier takes from the planning of another run: the answers of the person and the evidence of their decisions.</summary>
+    private sealed record PlannedDecisions(IReadOnlyList<DecisionEntry> Answers, IReadOnlyList<EvidenceRecord> Evidence)
+    {
+        public static PlannedDecisions None { get; } = new([], []);
+    }
+
+    /// <summary>
+    /// P54 (docs/17 D-33): the decisions of the person about the questions the orchestrator asked before it planned, when this run
+    /// did not plan (<c>RunStarted.PlannedIn</c> names the run that did: the plan was edited after the orchestrator proposed it, so
+    /// the run got an id of its own). From the verified entries of that planning, and only from them, the dossier takes:
+    /// <list type="bullet">
+    /// <item>each <c>QuestionAnswered</c> with no task (the first one of each question, as the engine reads them);</item>
+    /// <item>the document the system captured for it (found by the title <see cref="QuestionEvidenceTitles.OrchestratorDecision"/>
+    /// among the evidence the log registered, <c>CapturedBySystem</c>, with no task) and the person's own text when there is one
+    /// (the evidence the answer cites), each only as <see cref="RunLog.RegisteredEvidence"/> admits it.</item>
+    /// </list>
+    /// Nothing else of that run reaches the judge: not its prompts, its reports, its <c>QuestionAsked</c> nor any other evidence.
+    /// Fail closed: a <c>PlannedIn</c> the log has no entry of, an entry that cannot be read, and a document of a decision or a text
+    /// of the person that cannot be admitted as the log anchored it are system checks, so no approval can rest on the dossier. A
+    /// question answered before the planner captured decisions has none: the judge only gets its <c>QuestionAnswered</c>, as for
+    /// any run.
+    /// </summary>
+    private async Task<PlannedDecisions> PlannedInAsync(
+        string projectId,
+        RunId run,
+        RunStartedPayload started,
+        IReadOnlyList<DecisionEntry> log,
+        List<string> checks,
+        CancellationToken cancellationToken)
+    {
+        if (started.PlannedIn is not { } plannedIn || string.Equals(plannedIn, run.Value, StringComparison.Ordinal))
+        {
+            return PlannedDecisions.None; // a run that planned itself has those entries among its own
+        }
+
+        IReadOnlyList<DecisionEntry> planning = string.IsNullOrWhiteSpace(plannedIn) ? [] : RunLog.EntriesOf(log, plannedIn);
+        if (planning.Count == 0)
+        {
+            checks.Add($"RunStarted of run '{run}' says the orchestrator planned in run '{plannedIn}', which the decision log has no entry of: the decisions of the person about the orchestrator's questions cannot be read, so no approval can rest on the dossier.");
+            return PlannedDecisions.None;
+        }
+
+        var answers = new List<DecisionEntry>();
+        var asked = new List<(string Question, EvidenceId? OwnText)>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var entry in planning.Where(e => e.Kind == DecisionKind.QuestionAnswered))
+        {
+            QuestionAnsweredPayload answer;
+            try
+            {
+                answer = DecisionPayloadSerializer.Deserialize<QuestionAnsweredPayload>(entry.PayloadJson);
+            }
+            catch (System.Text.Json.JsonException ex)
+            {
+                checks.Add($"Entry {entry.Sequence} (QuestionAnswered) of run '{plannedIn}': its payload cannot be read, so the decision of the person it records cannot be given to the judge; the dossier cannot support an approval: {ex.Message}");
+                continue;
+            }
+
+            if (answer.Task is null && seen.Add(answer.Question))
+            {
+                answers.Add(entry);
+                asked.Add((answer.Question, answer.AnswerEvidence));
+            }
+        }
+
+        var registered = new List<EvidenceRegisteredPayload>();
+        foreach (var entry in planning.Where(e => e.Kind == DecisionKind.EvidenceRegistered))
+        {
+            try
+            {
+                registered.Add(DecisionPayloadSerializer.Deserialize<EvidenceRegisteredPayload>(entry.PayloadJson));
+            }
+            catch (System.Text.Json.JsonException ex)
+            {
+                checks.Add($"Entry {entry.Sequence} (EvidenceRegistered) of run '{plannedIn}': its payload cannot be read, so the document of a decision of the person cannot be told from it; the dossier cannot support an approval: {ex.Message}");
+            }
+        }
+
+        var wanted = new List<(EvidenceId Evidence, EvidenceOrigin Origin, string What)>();
+        foreach (var (question, ownText) in asked)
+        {
+            var title = QuestionEvidenceTitles.OrchestratorDecision(question);
+            if (registered.FirstOrDefault(p => p.Task is null && p.Kind == EvidenceKind.Document && p.Origin == EvidenceOrigin.CapturedBySystem && string.Equals(p.Title, title, StringComparison.Ordinal)) is { } decision)
+            {
+                wanted.Add((decision.Evidence, EvidenceOrigin.CapturedBySystem, $"the decision about question '{question}' of the orchestrator"));
+            }
+
+            if (ownText is { } text)
+            {
+                wanted.Add((text, EvidenceOrigin.ProvidedByHuman, $"the person's own answer to question '{question}' of the orchestrator"));
+            }
+        }
+
+        var records = new List<EvidenceRecord>();
+        if (wanted.Count > 0)
+        {
+            var stored = await evidence.ListByRunAsync(projectId, plannedIn, cancellationToken).ConfigureAwait(false);
+            var problems = new List<string>(); // of all the evidence of that run: only what concerns the wanted evidence is the dossier's
+            var admitted = RunLog.RegisteredEvidence(planning, stored, problems);
+            foreach (var (id, origin, what) in wanted)
+            {
+                if (admitted.FirstOrDefault(e => e.Id == id) is { } record && record.Origin == origin)
+                {
+                    records.Add(record);
+                    continue;
+                }
+
+                var why = problems.Where(p => p.Contains($"'{id}'", StringComparison.Ordinal)).ToList();
+                checks.Add($"Evidence '{id}' of run '{plannedIn}' ({what}) cannot be admitted as the decision log anchored it{(why.Count == 0 ? string.Empty : ": " + string.Join(" ", why))}; it is left out of the dossier and proves nothing.");
+            }
+        }
+
+        return new PlannedDecisions(answers, records);
     }
 
     /// <summary>

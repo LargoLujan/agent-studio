@@ -7,7 +7,9 @@ using AgentStudio.Debate.Judging;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Evidence;
+using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Providers;
+using AgentStudio.Domain.Questions;
 using AgentStudio.Domain.Work;
 using AgentStudio.Tests.Application;
 using AgentStudio.Tests.Debate.Fakes;
@@ -501,9 +503,9 @@ public sealed class JudgeDossierBuilderTests
     /// A launch of the orchestrator's planning as the engine records it: its prompt (evidence, registered, with no task), the start
     /// that names it (<paramref name="purpose"/> null is a start of version 1) and the report of the agent, registered too.
     /// </summary>
-    private static async Task<(EvidenceRecord Prompt, EvidenceRecord Report)> RecordPlannerLaunchAsync(JudgingWorld world, string report, AgentRunPurpose? purpose = AgentRunPurpose.Planner, int attempt = 1)
+    private static async Task<(EvidenceRecord Prompt, EvidenceRecord Report)> RecordPlannerLaunchAsync(JudgingWorld world, string report, AgentRunPurpose? purpose = AgentRunPurpose.Planner, int attempt = 1, RunId? inRun = null)
     {
-        var run = JudgingWorld.Run;
+        var run = inRun ?? JudgingWorld.Run;
         var prompt = await world.CaptureAsync(EvidenceKind.Document, EvidenceOrigin.CapturedBySystem, $"Prompt del orquestador (intento {attempt})", $"Planifica. {PlannerMarker}", run);
         await world.RegisterAsync(prompt, run, null, attempt);
         await world.RecordAsync(JudgingWorld.System, DecisionKind.AgentRunStarted, "Orquestador lanzado", new AgentRunStartedPayload(
@@ -591,6 +593,170 @@ public sealed class JudgeDossierBuilderTests
         Assert.Contains(package.Dossier.Evidence, e => e.Id == report.Id);
         Assert.DoesNotContain(package.Dossier.Evidence, e => e.Id == prompt.Id || e.Id == answer.Id);
         Assert.Empty(package.Files.SystemChecks);
+    }
+
+    // ---- P54: a run planned in another run (the plan was edited after the orchestrator proposed it) ----
+
+    private static readonly RunId PlanningRun = new("20261015-0b0b0b");
+    private const string QuestionMarker = "Etiqueta-del-orquestador-PL1";
+    private const string OwnText = "Que lance ArgumentOutOfRangeException y lo documente.";
+
+    /// <summary>What the planning of <see cref="PlanningRun"/> left in the log and the store: the whole of it, to tell what the judge gets.</summary>
+    private sealed record Planning(EvidenceRecord Prompt, EvidenceRecord Report, EvidenceRecord Question, EvidenceRecord Decision, EvidenceRecord? Own, DecisionEntry Answered)
+    {
+        public IReadOnlyList<EvidenceId> All => [Prompt.Id, Report.Id, Question.Id, Decision.Id, .. Own is { } own ? new[] { own.Id } : []];
+
+        /// <summary>The evidence of the decisions of the person, which is all of it the judge may get.</summary>
+        public IReadOnlyList<EvidenceId> Decisions => [Decision.Id, .. Own is { } own ? new[] { own.Id } : []];
+    }
+
+    /// <summary>
+    /// The orchestrator asked before it planned and the person answered (with an option, or with <see cref="OwnText"/>), as the
+    /// planner leaves it in the run that planned: its prompt and report (with the question), the question, the answer and the
+    /// decision the system captured, each piece of evidence registered.
+    /// </summary>
+    private static async Task<Planning> RecordPlanningAsync(JudgingWorld world, bool ownText = false, bool registerOwnText = true)
+    {
+        var (prompt, report) = await RecordPlannerLaunchAsync(world, $$"""{"plan":null,"questions":[{"text":"¿{{QuestionMarker}}?"}]}""", inRun: PlanningRun);
+        var question = await world.CaptureAsync(EvidenceKind.AgentStatement, EvidenceOrigin.ReportedByAgent, "Pregunta plan-1 del orquestador", $$"""{"text":"¿{{QuestionMarker}}?","why":"{{QuestionMarker}}","options":[{"id":"a","label":"{{QuestionMarker}}-A","effort":"small","recommended":true}]}""", PlanningRun);
+        await world.RegisterAsync(question, PlanningRun, null, 1);
+        await world.RecordAsync(new Actor(ActorKind.Orchestrator, JudgingWorld.Orchestrator.Value), DecisionKind.QuestionAsked, "El orquestador pregunta antes de planificar (plan-1)",
+            new QuestionAskedPayload(null, 1, JudgingWorld.Orchestrator, "plan-1", question.Id, question.ContentSha256, ["a", "b"], "a", []) { RunId = PlanningRun.Value });
+        EvidenceRecord? own = null;
+        if (ownText)
+        {
+            own = await world.CaptureAsync(EvidenceKind.Document, EvidenceOrigin.ProvidedByHuman, "Respuesta a la pregunta plan-1 del orquestador", OwnText, PlanningRun);
+            if (registerOwnText)
+            {
+                await world.RegisterAsync(own, PlanningRun);
+            }
+        }
+
+        var answered = await world.RecordAsync(new Actor(ActorKind.User, "usuario"), DecisionKind.QuestionAnswered, "Respuesta a la pregunta plan-1 del orquestador",
+            QuestionAnsweredPayload.Answering(PlanningRun.Value, null, "plan-1", own is null ? "a" : null, own?.Id, own?.ContentSha256, "usuario", QuestionAnswerMethod.ChosenByPerson));
+        var decision = await world.CaptureAsync(EvidenceKind.Document, EvidenceOrigin.CapturedBySystem, QuestionEvidenceTitles.OrchestratorDecision("plan-1"),
+            """{"format":"agent-studio/question-decision/1","question":"plan-1","task":null,"attempt":1,"options":["a","b"],"decision":{"option":"a"},"decidedBy":"usuario","method":"ChosenByPerson"}""", PlanningRun);
+        await world.RegisterAsync(decision, PlanningRun, null, 1);
+        return new Planning(prompt, report, question, decision, own, answered);
+    }
+
+    private static JudgingWorldOptions PlannedElsewhere => new() { PlannedIn = PlanningRun.Value };
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task A_run_planned_elsewhere_gets_only_the_decision_of_the_person_about_the_orchestrators_questions(bool ownText)
+    {
+        using var world = await JudgingWorld.CreateAsync(PlannedElsewhere);
+        var planning = await RecordPlanningAsync(world, ownText);
+
+        var package = await BuildAsync(world);
+
+        // The answer, from the entries of the planning, in log order; not the question the orchestrator asked.
+        var answered = Assert.Single(package.Dossier.Decisions, e => e.Kind == DecisionKind.QuestionAnswered);
+        Assert.Equal(planning.Answered.Hash, answered.Hash);
+        Assert.DoesNotContain(package.Dossier.Decisions, e => e.Kind == DecisionKind.QuestionAsked);
+        Assert.Equal(package.Dossier.Decisions.Select(e => e.Sequence).Order(), package.Dossier.Decisions.Select(e => e.Sequence));
+
+        // Of that run's evidence only the decision the system captured and the person's own text; not its prompt, its reports,
+        // its question: exactly the decisions, as the log registered them.
+        Assert.True(planning.Decisions.ToHashSet().SetEquals(package.Dossier.Evidence.Select(e => e.Id).Where(planning.All.Contains)));
+        Assert.All(planning.Decisions, id => Assert.Contains(package.Files.Evidence, f => f.Evidence == id && f.ContentVerified));
+        Assert.Empty(package.Dossier.IntegrityProblems);
+
+        // Nothing the orchestrator wrote is in anything the judge reads; the person's own words are.
+        var everything = Everything(package);
+        Assert.DoesNotContain(QuestionMarker, everything, StringComparison.Ordinal);
+        Assert.DoesNotContain(PlannerMarker, everything, StringComparison.Ordinal);
+        Assert.DoesNotContain("recommended", everything, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("agent-studio/question-decision/1", everything, StringComparison.Ordinal);
+        Assert.Equal(ownText, everything.Contains(OwnText, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_run_that_does_not_name_the_planning_gets_nothing_of_it()
+    {
+        using var world = await JudgingWorld.CreateAsync();
+        var planning = await RecordPlanningAsync(world, ownText: true);
+
+        var package = await BuildAsync(world);
+
+        Assert.DoesNotContain(package.Dossier.Decisions, e => e.Kind is DecisionKind.QuestionAnswered or DecisionKind.QuestionAsked);
+        Assert.DoesNotContain(package.Dossier.Evidence, e => planning.All.Contains(e.Id));
+        Assert.DoesNotContain(QuestionMarker, Everything(package), StringComparison.Ordinal);
+        Assert.Empty(package.Dossier.IntegrityProblems);
+    }
+
+    [Theory]
+    [InlineData("20261015-dddddd")]
+    [InlineData("esto no es un id")]
+    [InlineData(" ")]
+    public async Task A_planning_the_log_has_no_entry_of_is_a_check_and_gives_the_judge_nothing(string plannedIn)
+    {
+        using var world = await JudgingWorld.CreateAsync(new JudgingWorldOptions { PlannedIn = plannedIn });
+        await RecordPlanningAsync(world); // another run's: the run does not name it
+
+        var package = await BuildAsync(world);
+
+        Assert.Contains(package.Dossier.IntegrityProblems, c => c.Contains("planned in run", StringComparison.Ordinal) && c.Contains("no entry", StringComparison.Ordinal));
+        Assert.DoesNotContain(package.Dossier.Decisions, e => e.Kind == DecisionKind.QuestionAnswered);
+    }
+
+    [Theory]
+    [InlineData("content")]
+    [InlineData("row")]
+    [InlineData("unreadable")]
+    public async Task A_decision_the_planning_anchored_that_changed_afterwards_is_a_check(string tampering)
+    {
+        using var world = await JudgingWorld.CreateAsync(PlannedElsewhere);
+        var planning = await RecordPlanningAsync(world);
+        switch (tampering)
+        {
+            case "content":
+                world.Evidence.TamperContent(planning.Decision.Id, Encoding.UTF8.GetBytes("""{"format":"agent-studio/question-decision/1","decision":{"option":"b"}}"""));
+                break;
+            case "row":
+                world.Evidence.TamperRow(planning.Decision.Id, r => new EvidenceRecord(r.Id, r.Kind, r.Origin, "Decisión reescrita", r.ProducedBy, r.CapturedAt, r.ContentSha256, r.TestRun, r.Covers, r.SubjectCommit));
+                break;
+            default:
+                world.Evidence.Unreadable.Add(planning.Decision.Id);
+                break;
+        }
+
+        var package = await BuildAsync(world);
+
+        Assert.Contains(package.Dossier.IntegrityProblems, c => c.Contains(planning.Decision.Id.Value, StringComparison.Ordinal));
+        Assert.Single(package.Dossier.Decisions, e => e.Kind == DecisionKind.QuestionAnswered); // the answer itself still reaches it
+        if (tampering == "row")
+        {
+            Assert.DoesNotContain(package.Dossier.Evidence, e => e.Id == planning.Decision.Id);
+        }
+    }
+
+    [Fact]
+    public async Task The_own_text_of_the_person_that_the_planning_never_registered_is_a_check_and_stays_out()
+    {
+        using var world = await JudgingWorld.CreateAsync(PlannedElsewhere);
+        var planning = await RecordPlanningAsync(world, ownText: true, registerOwnText: false);
+
+        var package = await BuildAsync(world);
+
+        Assert.DoesNotContain(package.Dossier.Evidence, e => e.Id == planning.Own!.Id);
+        Assert.Contains(package.Dossier.IntegrityProblems, c => c.Contains(planning.Own!.Id.Value, StringComparison.Ordinal) && c.Contains("own answer", StringComparison.Ordinal));
+        Assert.DoesNotContain(OwnText, Everything(package), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Of_two_answers_to_the_same_question_of_the_orchestrator_the_first_one_counts()
+    {
+        using var world = await JudgingWorld.CreateAsync(PlannedElsewhere);
+        var planning = await RecordPlanningAsync(world);
+        await world.RecordAsync(new Actor(ActorKind.User, "otro"), DecisionKind.QuestionAnswered, "Otra respuesta",
+            QuestionAnsweredPayload.Answering(PlanningRun.Value, null, "plan-1", "b", null, null, "otro", QuestionAnswerMethod.ChosenByPerson));
+
+        var package = await BuildAsync(world);
+
+        Assert.Equal(planning.Answered.Hash, Assert.Single(package.Dossier.Decisions, e => e.Kind == DecisionKind.QuestionAnswered).Hash);
     }
 
     private static async Task<(EvidenceRecord Prompt, EvidenceRecord Answer)> RecordJudgeLaunchAsync(JudgingWorld world, string? promptSha256, AgentRunPurpose? purpose = null)

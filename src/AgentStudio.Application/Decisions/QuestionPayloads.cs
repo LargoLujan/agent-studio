@@ -41,6 +41,20 @@ public sealed record QuestionAskedPayload(
     IReadOnlyList<OptionEstimateSnapshot> Estimates) : DecisionPayload;
 
 /// <summary>
+/// How the evidence of a question is titled, shared by whoever captures it (the engine, the planner) and whoever must find it again
+/// from the log alone (the judge's dossier, which cannot depend on them).
+/// </summary>
+public static class QuestionEvidenceTitles
+{
+    /// <summary>
+    /// The title of the decision of the person about question <paramref name="question"/> of the orchestrator before it plans
+    /// (P54): the document the system captures when it is answered, with no task. The title is anchored by the log
+    /// (<c>EvidenceRegistered</c> version 2), so it identifies that document.
+    /// </summary>
+    public static string OrchestratorDecision(string question) => $"Decisión sobre la pregunta {question} del orquestador";
+}
+
+/// <summary>
 /// The answer to a question (docs/17 D-29): the option chosen (<paramref name="ChosenOption"/>) or the evidence of the
 /// person's own text (<paramref name="AnswerEvidence"/> and its SHA-256), exactly one of the two; who decided and how. A new
 /// attempt follows with the answer as data (D-30). The judge sees the question and this choice, never the recommendation nor

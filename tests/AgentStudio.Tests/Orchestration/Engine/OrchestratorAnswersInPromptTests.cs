@@ -631,6 +631,66 @@ public sealed class OrchestratorAnswersInPromptTests
         Assert.DoesNotContain(package.Dossier.Evidence, e => e.Id == reports[0]); // the one that asked stays out either way
     }
 
+    /// <summary>The run of a plan the person edited after answering: it has an id of its own and names the one that planned.</summary>
+    private static async Task<RunId> RunPlannedElsewhereAsync(EngineHarness harness, RunId planned)
+    {
+        await using var orchestration = await harness.CreateOrchestrator().StartAsync(harness.Request(TwoTasks()) with { PlannedIn = planned }, Ct);
+        Assert.NotEqual(planned, orchestration.Id);
+        Assert.Equal(RunPhase.Succeeded, (await orchestration.CompleteAsync(harness)).Phase);
+        return orchestration.Id;
+    }
+
+    [Fact]
+    public async Task The_judge_of_a_run_planned_elsewhere_gets_the_decision_and_the_answer_about_the_orchestrators_question_and_nothing_else_of_that_planning()
+    {
+        using var harness = new EngineHarness();
+        var (planned, _) = await AskedAndAnsweredAsync(harness, ChoosingA);
+        var run = await RunPlannedElsewhereAsync(harness, planned);
+
+        var package = await DossierOfAsync(harness, run);
+
+        // The answer and the decision, which live in the entries of the planning; not the question as the orchestrator asked it.
+        var (answeredEntry, _) = Assert.Single(harness.Payloads<QuestionAnsweredPayload>());
+        Assert.Equal(answeredEntry.Hash, Assert.Single(package.Dossier.Decisions, e => e.Kind == DecisionKind.QuestionAnswered).Hash);
+        Assert.DoesNotContain(package.Dossier.Decisions, e => e.Kind == DecisionKind.QuestionAsked);
+        var decision = Assert.Single(package.Dossier.Evidence, e => e.Title == DecisionTitle);
+
+        // Nothing else of that planning: of its entries only the answer, of its evidence only the decision.
+        Assert.DoesNotContain(package.Dossier.Decisions, e => e.Kind != DecisionKind.QuestionAnswered && e.PayloadJson.Contains($"\"runId\":\"{planned.Value}\"", StringComparison.Ordinal));
+        var ofPlanning = harness.Payloads<EvidenceRegisteredPayload>().Where(p => p.Payload.RunId == planned.Value).Select(p => p.Payload.Evidence).ToHashSet();
+        Assert.Equal([decision.Id], package.Dossier.Evidence.Select(e => e.Id).Where(ofPlanning.Contains));
+        var (prompts, reports) = PlannerOf(harness);
+        Assert.All(prompts.Concat(reports), id => Assert.DoesNotContain(package.Dossier.Evidence, e => e.Id == id));
+
+        var everything = string.Join("\n", Directory.EnumerateFiles(package.Files.Folder, "*", SearchOption.AllDirectories).Select(File.ReadAllText));
+        foreach (var text in new[] { AskedText, Why, "Lanzar ArgumentOutOfRangeException", "Devolver 1 / base^|exponent|", "Falla rápido.", "No falla nunca.", "Respuestas de la persona a tus preguntas", "<human_answer" })
+        {
+            Assert.DoesNotContain(text, everything, StringComparison.Ordinal);
+        }
+
+        Assert.DoesNotContain("recommended", everything, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("estimates", everything, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("agent-studio/question-decision/1", everything, StringComparison.Ordinal);
+        Assert.Empty(package.Dossier.IntegrityProblems);
+    }
+
+    [Fact]
+    public async Task A_decision_of_the_planning_that_was_rewritten_is_a_check_for_a_run_planned_elsewhere()
+    {
+        using var harness = new EngineHarness();
+        var (planned, _) = await AskedAndAnsweredAsync(harness, ChoosingA);
+        var run = await RunPlannedElsewhereAsync(harness, planned);
+        var decision = Assert.Single(harness.Payloads<EvidenceRegisteredPayload>(), p => p.Payload.Title == DecisionTitle).Payload.Evidence;
+
+        // Rewritten together with the hash its row holds: only the log, which anchored the original, says it is not that.
+        harness.Evidence.Rewrite(decision, "{\"decision\":{\"option\":\"b\"}}");
+        var package = await DossierOfAsync(harness, run);
+
+        Assert.Contains(package.Dossier.IntegrityProblems, c => c.Contains(decision.Value, StringComparison.Ordinal));
+        Assert.DoesNotContain(package.Dossier.Evidence, e => e.Id == decision);
+        Assert.Single(package.Dossier.Decisions, e => e.Kind == DecisionKind.QuestionAnswered);
+    }
+
     [Fact]
     public async Task A_planning_tried_again_with_its_answers_captures_the_decision_it_had_not_reached_and_records_nothing_twice()
     {

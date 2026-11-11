@@ -2,9 +2,11 @@ using System.IO;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using AgentStudio.Application.Decisions;
+using AgentStudio.Application.Judging;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Verification;
 using AgentStudio.Domain.Common;
+using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Questions;
 using AgentStudio.Tests.Infrastructure.Git;
@@ -186,10 +188,31 @@ public sealed class OrchestratorQuestionReachesTheExecutorsTests
         Assert.DoesNotContain(material, text => text.Contains("\"recommended\"", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(material, text => text.Contains("estimates", StringComparison.OrdinalIgnoreCase));
 
-        // What it does get, when the run is the one that planned: the decision of the person, the system's document with ids and
-        // hashes. (A run of its own for the edited plan has none of the planning's entries: it names the planning, and the dossier of
-        // a run reads only its own.)
-        Assert.Equal(!edited, material.Any(text => text.Contains("agent-studio/question-decision/1", StringComparison.Ordinal) && text.Contains("\"question\":\"plan-1\"", StringComparison.Ordinal)));
+        // What it does get: the decision of the person, the system's document with ids and hashes. With the plan edited the run has an
+        // id of its own and names the planning (PlannedIn): the dossier reads the decision from there, and only that.
+        Assert.Contains(material, text => text.Contains("agent-studio/question-decision/1", StringComparison.Ordinal) && text.Contains("\"question\":\"plan-1\"", StringComparison.Ordinal));
+
+        // The package of the run, built now: the answer and the decision of the person to the question of the orchestrator, and of
+        // the planning nothing else (not its prompts, nor its report with the question, nor the question), planned in the run
+        // itself or elsewhere.
+        var package = await app.Get<AgentStudio.Debate.Judging.IJudgeDossierPackageBuilder>().BuildPackageAsync(new DossierRequest(app.Project.ProjectId, AuditScope.CurrentPlan, run.Id.Value), Ct);
+        var answered = Assert.Single(package.Dossier.Decisions, e => e.Kind == DecisionKind.QuestionAnswered);
+        Assert.Contains($"\"runId\":\"{asked.Run.Value}\"", answered.PayloadJson, StringComparison.Ordinal);
+        Assert.DoesNotContain(package.Dossier.Decisions, e => e.Kind == DecisionKind.QuestionAsked);
+        var decision = Assert.Single(package.Dossier.Evidence, e => e.Title == "Decisión sobre la pregunta plan-1 del orquestador");
+        Assert.DoesNotContain(package.Dossier.IntegrityProblems, problem => problem.Contains(decision.Id.Value, StringComparison.Ordinal));
+        var planner = (await app.PayloadsAsync<AgentRunStartedPayload>(asked.Run.Value)).Where(p => p.Payload.Task is null).Select(p => p.Payload.PromptEvidenceId).ToList();
+        Assert.NotEmpty(planner);
+        Assert.DoesNotContain(package.Dossier.Evidence, e => e.Id == recordedQuestion.QuestionEvidence || planner.Contains(e.Id));
+        var everything = string.Join("\n", Directory.EnumerateFiles(package.Files.Folder, "*", SearchOption.AllDirectories).Select(File.ReadAllText));
+        foreach (var marker in Markers)
+        {
+            Assert.DoesNotContain(marker, everything, StringComparison.Ordinal);
+        }
+
+        Assert.DoesNotContain("Respuestas de la persona a tus preguntas", everything, StringComparison.Ordinal);
+        Assert.DoesNotContain("recommended", everything, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("estimates", everything, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>The attributes and the JSON of every <c>&lt;human_answer&gt;</c> block of a prompt, in order.</summary>

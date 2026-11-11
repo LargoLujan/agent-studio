@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Prompts;
 using AgentStudio.Application.Security;
 using AgentStudio.Domain.Questions;
@@ -77,7 +78,7 @@ internal static class QuestionDocuments
     public static string DecisionTitle(AskedQuestion asked)
     {
         ArgumentNullException.ThrowIfNull(asked);
-        return asked.Task is { } task ? DecisionTitle(asked.Id, task.Value) : $"Decisión sobre la pregunta {asked.Id} del orquestador";
+        return asked.Task is { } task ? DecisionTitle(asked.Id, task.Value) : QuestionEvidenceTitles.OrchestratorDecision(asked.Id);
     }
 
     /// <summary>The title of the person's own answer to a question.</summary>
