@@ -1159,8 +1159,32 @@ Press «Save the brief»: each version replaces the previous one.</value>
     <comment>Button.</comment>
   </data>
   <data name="Canvas_Editor_CannotRemove" xml:space="preserve">
-    <value>Taking an agent out is not possible yet: the store of the template cannot do it.</value>
-    <comment>Said when a change needs to remove an agent and the store cannot.</comment>
+    <value>An agent cannot be taken out: the template of this project does not accept removals.</value>
+    <comment>Said when a change needs to remove an agent and the editor was given no way to remove one.</comment>
+  </data>
+  <data name="Canvas_Editor_Busy" xml:space="preserve">
+    <value>Another change of the template is being saved: wait for it to finish.</value>
+    <comment>Said when a change of the template is asked while another one is being written.</comment>
+  </data>
+  <data name="Canvas_Editor_NotSavedHalfway" xml:space="preserve">
+    <value>The template could not be saved ({0}) and could not be put back as it was either: it may have been left halfway. Use «Volver a cargar» to see what is there.</value>
+    <comment>{0}: the reason. Said when the store failed and the revert failed too. «Volver a cargar» is the button of the document that reads the template again.</comment>
+  </data>
+  <data name="Canvas_Editor_SavedNotReloaded" xml:space="preserve">
+    <value>The template was saved, but it could not be read again ({0}). Use «Volver a cargar» to see what is there.</value>
+    <comment>{0}: the reason. Said when the template was written and the document could not read it again.</comment>
+  </data>
+  <data name="Canvas_Remove_Question" xml:space="preserve">
+    <value>Take {1} ({0}) out of the team? Its definition is lost from the template and cannot be recovered from here, and the skills it had turned on are turned off. The runs and debates that already happened keep it.</value>
+    <comment>{0}: id; {1}: name. Question before taking an agent out of the team.</comment>
+  </data>
+  <data name="Canvas_Remove_Confirm" xml:space="preserve">
+    <value>Yes, take it out</value>
+    <comment>Button that confirms taking the agent out.</comment>
+  </data>
+  <data name="Canvas_Remove_Cancel" xml:space="preserve">
+    <value>Keep it</value>
+    <comment>Button that keeps the agent.</comment>
   </data>
   <data name="Canvas_Editor_ChangedMany" xml:space="preserve">
     <value>{0} agents of the template were changed.</value>

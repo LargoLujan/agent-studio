@@ -31,6 +31,12 @@ public sealed class TeamEditorViewModelTests
         /// <summary>When set, removing this agent fails (the store goes down while taking agents out).</summary>
         public AgentId? FailRemoveOn { get; set; }
 
+        /// <summary>When set, the second save of this agent fails: the one that puts it back after another save failed (the revert fails too).</summary>
+        public AgentId? FailSecondSaveOf { get; set; }
+
+        /// <summary>When set, the callback of «saved» (the document reading the template again) throws it.</summary>
+        public Exception? AfterSaveFailure { get; set; }
+
         public List<string> Hashes { get; } = [];
 
         /// <summary>What reached the store, in order: <c>save:id</c> and <c>remove:id</c> (a failed call is not in it).</summary>
@@ -41,6 +47,11 @@ public sealed class TeamEditorViewModelTests
             if (FailOn is { } failing && failing == agent.Id)
             {
                 return Task.FromException(new InvalidOperationException("the store is down"));
+            }
+
+            if (FailSecondSaveOf is { } second && second == agent.Id && Operations.Contains("save:" + agent.Id.Value))
+            {
+                return Task.FromException(new InvalidOperationException("the store is down again"));
             }
 
             Operations.Add("save:" + agent.Id.Value);
@@ -73,12 +84,24 @@ public sealed class TeamEditorViewModelTests
         {
             Saved++;
             Hashes.Add(RosterHash.Of(Roster));
+            if (AfterSaveFailure is { } failure)
+            {
+                return Task.FromException(failure);
+            }
+
             canvas.Refresh(Roster);
             editor.Load(Project(), Roster);
             return Task.CompletedTask;
         }
 
         private static IReadOnlyList<AgentDefinition> Roster_() => TeamTestSupport.Roster();
+    }
+
+    /// <summary>«Quitar del equipo»: the question, and then the yes. Nothing reaches the store before the second.</summary>
+    private static async Task RemoveSelectedAsync(TeamEditorViewModel editor)
+    {
+        editor.RemoveSelectedCommand.Execute(null);
+        await editor.ConfirmRemoveCommand.ExecuteAsync(null);
     }
 
     private static (TeamCanvasViewModel Canvas, TeamEditorViewModel Editor, Store Store) Create(bool canRemove = true, PresenceConfirmer? confirm = null)
@@ -179,7 +202,7 @@ public sealed class TeamEditorViewModelTests
         canvas.Select(canvas.Agents.Single(a => a.Id == DefaultAgentRoster.ClaudeJudge));
 
         Assert.True(editor.CanRemoveAgents);
-        await editor.RemoveSelectedCommand.ExecuteAsync(null);
+        await RemoveSelectedAsync(editor);
 
         Assert.DoesNotContain(store.Roster, a => a.Id == DefaultAgentRoster.ClaudeJudge);
         Assert.NotEqual(hash, store.Hashes.Single());
@@ -188,6 +211,139 @@ public sealed class TeamEditorViewModelTests
         var (_, withoutStore, _) = Create(canRemove: false);
         Assert.False(withoutStore.CanRemoveAgents);
         Assert.False(withoutStore.RemoveSelectedCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void Quitar_del_equipo_follows_the_selection_and_tells_the_button_so()
+    {
+        var (canvas, editor, _) = Create();
+        var raised = 0;
+        editor.RemoveSelectedCommand.CanExecuteChanged += (_, _) => raised++;
+
+        // Nothing selected: the button is off. A WPF button reads CanExecute again only when told with CanExecuteChanged.
+        Assert.False(editor.RemoveSelectedCommand.CanExecute(null));
+
+        canvas.Select(canvas.Agents.Single(a => a.Id == DefaultAgentRoster.Executor));
+
+        Assert.True(raised > 0);
+        Assert.True(editor.RemoveSelectedCommand.CanExecute(null));
+
+        var afterSelecting = raised;
+        canvas.Select(canvas.Agents.Single(a => a.Id == DefaultAgentRoster.ClaudeJudge));
+        Assert.True(raised > afterSelecting);
+        Assert.True(editor.RemoveSelectedCommand.CanExecute(null));
+
+        // Losing the selection (the agent is gone from the canvas) turns it off again, and says so.
+        var beforeLosing = raised;
+        canvas.Refresh([.. Roster().Where(a => a.Id != DefaultAgentRoster.ClaudeJudge)]);
+        Assert.True(raised > beforeLosing);
+        Assert.False(editor.RemoveSelectedCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task Quitar_del_equipo_asks_first_and_writes_nothing_until_the_yes()
+    {
+        var (canvas, editor, store) = Create();
+        canvas.Select(canvas.Agents.Single(a => a.Id == DefaultAgentRoster.Executor));
+
+        editor.RemoveSelectedCommand.Execute(null);
+
+        // The question says what is lost, what is turned off and what is kept.
+        var question = editor.PendingRemoval!.Question;
+        Assert.Contains("ejecutor", question, StringComparison.Ordinal);
+        Assert.Contains("se pierde de la plantilla", question, StringComparison.Ordinal);
+        Assert.Contains("skills", question, StringComparison.Ordinal);
+        Assert.Contains("ejecuciones y los debates que ya hubo", question, StringComparison.Ordinal);
+        Assert.Empty(store.Operations);
+        Assert.True(editor.ConfirmRemoveCommand.CanExecute(null));
+
+        // «Conservar»: the agent stays and the question goes.
+        editor.CancelRemoveCommand.Execute(null);
+        Assert.Null(editor.PendingRemoval);
+        Assert.Empty(store.Operations);
+        Assert.False(editor.ConfirmRemoveCommand.CanExecute(null));
+
+        // The question is about the agent that was selected: another selection drops it, and the yes then does nothing.
+        editor.RemoveSelectedCommand.Execute(null);
+        canvas.Select(canvas.Agents.Single(a => a.Id == DefaultAgentRoster.ClaudeJudge));
+        Assert.Null(editor.PendingRemoval);
+        await editor.ConfirmRemoveCommand.ExecuteAsync(null);
+        Assert.Empty(store.Operations);
+
+        // The yes.
+        canvas.Select(canvas.Agents.Single(a => a.Id == DefaultAgentRoster.Executor));
+        await RemoveSelectedAsync(editor);
+        Assert.Equal(["remove:ejecutor"], store.Operations);
+        Assert.Null(editor.PendingRemoval);
+    }
+
+    [Fact]
+    public async Task A_second_set_of_changes_does_not_start_while_one_is_being_written_and_the_buttons_wait()
+    {
+        var release = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var (canvas, editor, store) = Create(confirm: (_, _, _) => release.Task);
+        var executor = store.Roster.Single(a => a.Id == DefaultAgentRoster.Executor);
+        canvas.Select(canvas.Agents.Single(a => a.Id == DefaultAgentRoster.ClaudeJudge));
+        Assert.True(editor.RemoveSelectedCommand.CanExecute(null));
+
+        // The first one grants power, so it waits for Windows Hello with nothing written yet.
+        var first = editor.ApplyManyAsync([executor with { AllowedTools = [.. executor.AllowedTools, "Bash"] }], [], "x");
+        Assert.False(first.IsCompleted);
+        Assert.False(editor.RemoveSelectedCommand.CanExecute(null));
+
+        var second = await editor.ApplyManyAsync([], [DefaultAgentRoster.Critic], "y");
+
+        Assert.False(second);
+        Assert.Equal("Se está guardando otro cambio de la plantilla: espera a que termine.", editor.ErrorMessage);
+        Assert.Empty(store.Operations);
+
+        release.SetResult(true);
+        Assert.True(await first);
+
+        // The one that ran leaves the layer as a success: the message of the one that did not start is gone, and the button is back.
+        Assert.Null(editor.ErrorMessage);
+        Assert.Equal(["save:ejecutor"], store.Operations);
+        Assert.True(editor.RemoveSelectedCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task When_the_revert_fails_too_the_layer_says_the_template_may_be_halfway_and_to_read_it_again()
+    {
+        var (_, editor, store) = Create();
+        var executor = store.Roster.Single(a => a.Id == DefaultAgentRoster.Executor);
+        var judge = store.Roster.Single(a => a.Id == DefaultAgentRoster.Judge);
+        store.FailOn = judge.Id;
+        store.FailSecondSaveOf = executor.Id;
+
+        var done = await editor.ApplyManyAsync([executor with { Name = "Otro" }, judge with { Name = "Otro juez" }], [], "x");
+
+        Assert.False(done);
+        Assert.Equal("Otro", store.Roster.Single(a => a.Id == DefaultAgentRoster.Executor).Name);
+        Assert.Contains("the store is down", editor.ErrorMessage, StringComparison.Ordinal);
+        Assert.Contains("puede haber quedado a medias", editor.ErrorMessage, StringComparison.Ordinal);
+        Assert.Contains("Volver a cargar", editor.ErrorMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_document_that_cannot_read_the_template_again_does_not_turn_a_saved_change_into_an_exception()
+    {
+        var (_, editor, store) = Create();
+        var executor = store.Roster.Single(a => a.Id == DefaultAgentRoster.Executor);
+        store.AfterSaveFailure = new InvalidOperationException("the project is closed");
+
+        var done = await editor.ApplyAsync(executor with { Name = "Otro" }, "Cambiado.");
+
+        // The store has it, so it was written; the layer says what it could not do.
+        Assert.True(done);
+        Assert.Equal("Otro", store.Roster.Single(a => a.Id == DefaultAgentRoster.Executor).Name);
+        Assert.Contains("La plantilla se guardó, pero no se pudo leer otra vez (the project is closed)", editor.ErrorMessage, StringComparison.Ordinal);
+        Assert.StartsWith("Cambiado.", editor.Notice, StringComparison.Ordinal);
+
+        // A failure of the store with a document that cannot read either: the exception does not reach the UI, and the layer says halfway.
+        store.FailOn = executor.Id;
+        Assert.False(await editor.ApplyAsync(executor with { Name = "Tercero" }, "x"));
+        Assert.Contains("the store is down", editor.ErrorMessage, StringComparison.Ordinal);
+        Assert.Contains("Volver a cargar", editor.ErrorMessage, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -334,7 +490,7 @@ public sealed class TeamEditorViewModelTests
         Assert.False(done);
         Assert.Equal(0, store.Saved);
         Assert.Equal("Ejecutor", store.Roster.Single(a => a.Id == DefaultAgentRoster.Executor).Name);
-        Assert.Contains("no sabe hacerlo", editor.ErrorMessage, StringComparison.Ordinal);
+        Assert.Contains("no admite bajas", editor.ErrorMessage, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -343,7 +499,7 @@ public sealed class TeamEditorViewModelTests
         var (canvas, editor, store) = Create();
 
         canvas.Select(canvas.Agents.Single(a => a.Id == DefaultAgentRoster.Orchestrator));
-        await editor.RemoveSelectedCommand.ExecuteAsync(null);
+        await RemoveSelectedAsync(editor);
 
         Assert.Equal("La plantilla no admite ese cambio: Hace falta el orquestador, que es quien prepara el plan.", editor.ErrorMessage);
         Assert.Null(editor.Notice);
@@ -361,12 +517,12 @@ public sealed class TeamEditorViewModelTests
         foreach (var judge in new[] { DefaultAgentRoster.ClaudeJudge, DefaultAgentRoster.RevisionJudge })
         {
             canvas.Select(canvas.Agents.Single(a => a.Id == judge));
-            await editor.RemoveSelectedCommand.ExecuteAsync(null);
+            await RemoveSelectedAsync(editor);
             Assert.Null(editor.ErrorMessage);
         }
 
         canvas.Select(canvas.Agents.Single(a => a.Id == DefaultAgentRoster.Judge));
-        await editor.RemoveSelectedCommand.ExecuteAsync(null);
+        await RemoveSelectedAsync(editor);
 
         Assert.StartsWith("La plantilla no admite ese cambio: Hace falta al menos un juez", editor.ErrorMessage, StringComparison.Ordinal);
         Assert.Contains(store.Roster, a => a.Id == DefaultAgentRoster.Judge);
@@ -385,7 +541,7 @@ public sealed class TeamEditorViewModelTests
         var hash = RosterHash.Of(store.Roster);
         canvas.Select(canvas.Agents.Single(a => a.Id == DefaultAgentRoster.Executor));
 
-        await editor.RemoveSelectedCommand.ExecuteAsync(null);
+        await RemoveSelectedAsync(editor);
 
         Assert.Equal(0, asked);
         Assert.Equal(["remove:ejecutor"], store.Operations);
