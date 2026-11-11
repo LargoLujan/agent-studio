@@ -1,0 +1,1850 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the Debate area (docs/17 D-47, ADR-0054; Phase 14 WP-14A part b) in Spanish of Spain, the source language: the debates, the card of a verdict and the challenge. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Debate_Mode_Free" xml:space="preserve">
+    <value>Libre</value>
+    <comment>Name of a debate mode.</comment>
+  </data>
+  <data name="Debate_Mode_Adversarial" xml:space="preserve">
+    <value>Adversarial</value>
+    <comment>Name of a debate mode.</comment>
+  </data>
+  <data name="Debate_Mode_ArchitectureReview" xml:space="preserve">
+    <value>Revisión de arquitectura</value>
+    <comment>Name of a debate mode.</comment>
+  </data>
+  <data name="Debate_Mode_ImplementationAudit" xml:space="preserve">
+    <value>Auditoría de implementación</value>
+    <comment>Name of a debate mode.</comment>
+  </data>
+  <data name="Debate_Mode_OrchestratorReview" xml:space="preserve">
+    <value>Revisión del orquestador</value>
+    <comment>Name of a debate mode.</comment>
+  </data>
+  <data name="Debate_Mode_Tribunal" xml:space="preserve">
+    <value>Tribunal</value>
+    <comment>Name of a debate mode.</comment>
+  </data>
+  <data name="Debate_ModeHelp_Free" xml:space="preserve">
+    <value>Dos participantes o más, con cualquier papel. En la ronda 1 cada uno propone. Después se discute con objeciones y réplicas. El revisor independiente (juez) elige una propuesta o dice «no resuelto».</value>
+    <comment>What the mode Free is about.</comment>
+  </data>
+  <data name="Debate_ModeHelp_Adversarial" xml:space="preserve">
+    <value>Un proponente y un crítico como mínimo. El crítico busca errores, contradicciones, riesgos e incumplimientos. El proponente responde.</value>
+    <comment>What the mode Adversarial is about.</comment>
+  </data>
+  <data name="Debate_ModeHelp_ArchitectureReview" xml:space="preserve">
+    <value>Dos participantes o más, cada uno con su propio diseño. Se comparan por mantenimiento, seguridad, rendimiento, coste y complejidad, y por tus criterios.</value>
+    <comment>What the mode Architecture review is about.</comment>
+  </data>
+  <data name="Debate_ModeHelp_ImplementationAudit" xml:space="preserve">
+    <value>Un proponente defiende la entrega y hace falta un crítico como mínimo. Se debate una ejecución terminada. Se revisan su versión guardada (commit) y sus requisitos.</value>
+    <comment>What the mode Implementation audit is about.</comment>
+  </data>
+  <data name="Debate_ModeHelp_OrchestratorReview" xml:space="preserve">
+    <value>Dos revisores o más, críticos o panelistas. Revisan el historial de una ejecución y el informe del auditor, con los requisitos fijos orq-1 a orq-7.</value>
+    <comment>What the mode Orchestrator review is about.</comment>
+  </data>
+  <data name="Debate_ModeHelp_Tribunal" xml:space="preserve">
+    <value>Dos panelistas o más, y solo panelistas. Cada uno evalúa por su cuenta, sin discutir. El juez resume todas las evaluaciones.</value>
+    <comment>What the mode Tribunal is about.</comment>
+  </data>
+  <data name="Debate_Role_Proponent" xml:space="preserve">
+    <value>Proponente</value>
+    <comment>Role in a debate.</comment>
+  </data>
+  <data name="Debate_Role_Critic" xml:space="preserve">
+    <value>Crítico</value>
+    <comment>Role in a debate.</comment>
+  </data>
+  <data name="Debate_Role_Panelist" xml:space="preserve">
+    <value>Panelista</value>
+    <comment>Role in a debate.</comment>
+  </data>
+  <data name="Debate_Phase_Proposals" xml:space="preserve">
+    <value>Propuestas</value>
+    <comment>Phase of a debate.</comment>
+  </data>
+  <data name="Debate_Phase_Deliberation" xml:space="preserve">
+    <value>En deliberación</value>
+    <comment>Phase of a debate.</comment>
+  </data>
+  <data name="Debate_Phase_AwaitingJudgment" xml:space="preserve">
+    <value>Esperando el juicio</value>
+    <comment>Phase of a debate.</comment>
+  </data>
+  <data name="Debate_Phase_Closed" xml:space="preserve">
+    <value>Cerrado</value>
+    <comment>Phase of a debate.</comment>
+  </data>
+  <data name="Debate_Phase_Interrupted" xml:space="preserve">
+    <value>Interrumpido · {0}</value>
+    <comment>A debate left open with nothing running it. {0}: its phase.</comment>
+  </data>
+  <data name="Debate_Outcome_Open" xml:space="preserve">
+    <value>Abierto</value>
+    <comment>Outcome of a debate.</comment>
+  </data>
+  <data name="Debate_Outcome_Resolved" xml:space="preserve">
+    <value>Resuelto</value>
+    <comment>Outcome of a debate.</comment>
+  </data>
+  <data name="Debate_Outcome_Unresolved" xml:space="preserve">
+    <value>Sin resolver</value>
+    <comment>Outcome of a debate.</comment>
+  </data>
+  <data name="Debate_Outcome_EscalatedToUser" xml:space="preserve">
+    <value>Necesita una persona</value>
+    <comment>Outcome of a debate.</comment>
+  </data>
+  <data name="Debate_Outcome_Aborted" xml:space="preserve">
+    <value>Abortado</value>
+    <comment>Outcome of a debate.</comment>
+  </data>
+  <data name="Debate_Kind_Proposal" xml:space="preserve">
+    <value>Propuesta</value>
+    <comment>Kind of contribution.</comment>
+  </data>
+  <data name="Debate_Kind_Assessment" xml:space="preserve">
+    <value>Evaluación</value>
+    <comment>Kind of contribution.</comment>
+  </data>
+  <data name="Debate_Kind_Objection" xml:space="preserve">
+    <value>Objeción</value>
+    <comment>Kind of contribution.</comment>
+  </data>
+  <data name="Debate_Kind_Rebuttal" xml:space="preserve">
+    <value>Réplica</value>
+    <comment>Kind of contribution.</comment>
+  </data>
+  <data name="Debate_Kind_Evidence" xml:space="preserve">
+    <value>Prueba</value>
+    <comment>Kind of contribution: a saved piece of evidence.</comment>
+  </data>
+  <data name="Debate_Limit_Rounds" xml:space="preserve">
+    <value>límite de rondas</value>
+    <comment>The limit that cut a debate, inside a sentence.</comment>
+  </data>
+  <data name="Debate_Limit_Duration" xml:space="preserve">
+    <value>límite de tiempo</value>
+    <comment>The limit that cut a debate, inside a sentence.</comment>
+  </data>
+  <data name="Debate_Limit_Tokens" xml:space="preserve">
+    <value>límite de tokens</value>
+    <comment>The limit that cut a debate, inside a sentence.</comment>
+  </data>
+  <data name="Debate_Judgment_Requested" xml:space="preserve">
+    <value>lo pediste tú</value>
+    <comment>Why a debate went to judgment, as the end of a sentence.</comment>
+  </data>
+  <data name="Debate_Judgment_Converged" xml:space="preserve">
+    <value>las posiciones coinciden: todos marcaron su contribución como terminada</value>
+    <comment>Why a debate went to judgment, as the end of a sentence.</comment>
+  </data>
+  <data name="Debate_Judgment_LimitOf" xml:space="preserve">
+    <value>se alcanzó el {0}</value>
+    <comment>Why a debate went to judgment. {0}: the limit.</comment>
+  </data>
+  <data name="Debate_Judgment_LimitAny" xml:space="preserve">
+    <value>se alcanzó un límite</value>
+    <comment>Why a debate went to judgment, as the end of a sentence.</comment>
+  </data>
+  <data name="Debate_Judgment_TurnMissing" xml:space="preserve">
+    <value>un turno falló dos veces y pediste juzgar con lo que hay</value>
+    <comment>Why a debate went to judgment, as the end of a sentence.</comment>
+  </data>
+  <data name="Debate_Judgment_Tribunal" xml:space="preserve">
+    <value>un tribunal no discute: el juez resume las evaluaciones</value>
+    <comment>Why a debate went to judgment, as the end of a sentence.</comment>
+  </data>
+  <data name="Debate_Subject_None" xml:space="preserve">
+    <value>Sin objeto</value>
+    <comment>What a debate is about.</comment>
+  </data>
+  <data name="Debate_Subject_Commit" xml:space="preserve">
+    <value>La última versión guardada (commit HEAD) del repositorio</value>
+    <comment>What a debate is about.</comment>
+  </data>
+  <data name="Debate_Subject_CommitOf" xml:space="preserve">
+    <value>Versión guardada (commit) {0}</value>
+    <comment>What a debate is about. {0}: short fingerprint of the commit.</comment>
+  </data>
+  <data name="Debate_Subject_Run" xml:space="preserve">
+    <value>Una ejecución</value>
+    <comment>What a debate is about.</comment>
+  </data>
+  <data name="Debate_Subject_RunOf" xml:space="preserve">
+    <value>Ejecución {0}</value>
+    <comment>What a debate is about. {0}: id of the run.</comment>
+  </data>
+  <data name="Debate_Subject_Verdict" xml:space="preserve">
+    <value>Un veredicto (impugnación)</value>
+    <comment>What a debate is about.</comment>
+  </data>
+  <data name="Debate_Subject_VerdictOf" xml:space="preserve">
+    <value>Veredicto {0}</value>
+    <comment>What a debate is about. {0}: id of the verdict.</comment>
+  </data>
+  <data name="Debate_Judging_IndependentJudge" xml:space="preserve">
+    <value>Juez independiente</value>
+    <comment>Arrangement of the judgment.</comment>
+  </data>
+  <data name="Debate_Judging_CrossVendorPanel" xml:space="preserve">
+    <value>Jurado cruzado</value>
+    <comment>Arrangement of the judgment.</comment>
+  </data>
+  <data name="Debate_Judging_NonProducerJudge" xml:space="preserve">
+    <value>Juez no productor</value>
+    <comment>Arrangement of the judgment.</comment>
+  </data>
+  <data name="Debate_JudgingHelp_IndependentJudge" xml:space="preserve">
+    <value>Un juez de una empresa que ni produjo el trabajo ni participa en el debate. Es la regla estricta, sin excepciones.</value>
+    <comment>What the arrangement Independent judge means.</comment>
+  </data>
+  <data name="Debate_JudgingHelp_CrossVendorPanel" xml:space="preserve">
+    <value>Un juez de cada empresa de los participantes. Es una excepción a la regla de los participantes, no independencia total. Si los dos coinciden, vale su decisión. Si no coinciden, decides tú.</value>
+    <comment>What the arrangement Cross panel means.</comment>
+  </data>
+  <data name="Debate_JudgingHelp_NonProducerJudge" xml:space="preserve">
+    <value>Un juez de la empresa que no produjo el trabajo, aunque sea la de un participante. Es una excepción a la regla de los participantes para esa empresa.</value>
+    <comment>What the arrangement Non-producer judge means.</comment>
+  </data>
+  <data name="Debate_Waiver" xml:space="preserve">
+    <value>Excepción registrada a la regla de los participantes para {0}: el juez es de la misma empresa que algún participante. Quien produjo el trabajo nunca puede juzgarlo: esa regla no admite excepciones.</value>
+    <comment>The waiver a judgment carries. {0}: the companies, joined.</comment>
+  </data>
+  <data name="Debate_Join_And" xml:space="preserve">
+    <value> y </value>
+    <comment>Joins the last two names of a list.</comment>
+  </data>
+  <data name="Debate_Await_FailedTurn" xml:space="preserve">
+    <value>Un turno falló dos veces. Reintenta el turno, pide juicio con lo que hay o aborta.</value>
+    <comment>What a debate waits for.</comment>
+  </data>
+  <data name="Debate_Await_ProviderLimit" xml:space="preserve">
+    <value>Se alcanzó el límite de uso de tu plan. Si el programa dijo cuándo se reinicia, el debate espera solo. Si no, se detiene.</value>
+    <comment>What a debate waits for.</comment>
+  </data>
+  <data name="Debate_Await_HumanResolution" xml:space="preserve">
+    <value>El juicio necesita a una persona: «Decidir yo».</value>
+    <comment>What a debate waits for.</comment>
+  </data>
+  <data name="Debate_Rule_Single" xml:space="preserve">
+    <value>juez único</value>
+    <comment>The rule that closed a debate.</comment>
+  </data>
+  <data name="Debate_Rule_Agree" xml:space="preserve">
+    <value>el jurado coincide</value>
+    <comment>The rule that closed a debate.</comment>
+  </data>
+  <data name="Debate_Rule_Disagree" xml:space="preserve">
+    <value>el jurado discrepa: decides tú</value>
+    <comment>The rule that closed a debate.</comment>
+  </data>
+  <data name="Debate_Rule_Invalid" xml:space="preserve">
+    <value>veredictos que no se pueden combinar: decides tú</value>
+    <comment>The rule that closed a debate.</comment>
+  </data>
+  <data name="Debate_Rule_User" xml:space="preserve">
+    <value>decisión tuya</value>
+    <comment>The rule that closed a debate.</comment>
+  </data>
+  <data name="Debate_Rule_Aborted" xml:space="preserve">
+    <value>abortado</value>
+    <comment>The rule that closed a debate.</comment>
+  </data>
+  <data name="Debate_Rule_None" xml:space="preserve">
+    <value>sin regla</value>
+    <comment>The rule that closed a debate.</comment>
+  </data>
+  <data name="Debate_Turn_Succeeded" xml:space="preserve">
+    <value>terminó</value>
+    <comment>How a turn ended.</comment>
+  </data>
+  <data name="Debate_Turn_Failed" xml:space="preserve">
+    <value>falló</value>
+    <comment>How a turn ended.</comment>
+  </data>
+  <data name="Debate_Turn_Cancelled" xml:space="preserve">
+    <value>cancelado</value>
+    <comment>How a turn ended.</comment>
+  </data>
+  <data name="Debate_Turn_LimitReached" xml:space="preserve">
+    <value>alcanzó su límite</value>
+    <comment>How a turn ended.</comment>
+  </data>
+  <data name="Debate_Turn_RateLimited" xml:space="preserve">
+    <value>se alcanzó el límite de uso de tu plan</value>
+    <comment>How a turn ended.</comment>
+  </data>
+  <data name="Debate_Turn_Interrupted" xml:space="preserve">
+    <value>interrumpido</value>
+    <comment>How a turn ended.</comment>
+  </data>
+  <data name="Debate_Count_AgentRun_One" xml:space="preserve">
+    <value>{0} ejecución de agente</value>
+    <comment>A count with its noun.</comment>
+  </data>
+  <data name="Debate_Count_AgentRun_Other" xml:space="preserve">
+    <value>{0} ejecuciones de agente</value>
+    <comment>A count with its noun.</comment>
+  </data>
+  <data name="Debate_Count_Requirement_One" xml:space="preserve">
+    <value>{0} requisito</value>
+    <comment>A count with its noun.</comment>
+  </data>
+  <data name="Debate_Count_Requirement_Other" xml:space="preserve">
+    <value>{0} requisitos</value>
+    <comment>A count with its noun.</comment>
+  </data>
+  <data name="Debate_Count_TurnInProgress_One" xml:space="preserve">
+    <value>{0} turno en curso</value>
+    <comment>A count with its noun.</comment>
+  </data>
+  <data name="Debate_Count_TurnInProgress_Other" xml:space="preserve">
+    <value>{0} turnos en curso</value>
+    <comment>A count with its noun.</comment>
+  </data>
+  <data name="Debate_Count_Redaction_One" xml:space="preserve">
+    <value>Se ocultó {0} secreto antes de publicarla.</value>
+    <comment>A count with its sentence.</comment>
+  </data>
+  <data name="Debate_Count_Redaction_Other" xml:space="preserve">
+    <value>Se ocultaron {0} secretos antes de publicarla.</value>
+    <comment>A count with its sentence.</comment>
+  </data>
+  <data name="Verdict_Decision_Approved" xml:space="preserve">
+    <value>Aprobado</value>
+    <comment>Decision of a verdict.</comment>
+  </data>
+  <data name="Verdict_Decision_ChangesRequested" xml:space="preserve">
+    <value>Cambios solicitados</value>
+    <comment>Decision of a verdict.</comment>
+  </data>
+  <data name="Verdict_Decision_Rejected" xml:space="preserve">
+    <value>Rechazado</value>
+    <comment>Decision of a verdict.</comment>
+  </data>
+  <data name="Verdict_Decision_EscalateToHuman" xml:space="preserve">
+    <value>Escalado a una persona</value>
+    <comment>Decision of a verdict.</comment>
+  </data>
+  <data name="Verdict_Decision_Unresolved" xml:space="preserve">
+    <value>Sin resolver</value>
+    <comment>Decision of a verdict.</comment>
+  </data>
+  <data name="Verdict_Confidence_Low" xml:space="preserve">
+    <value>baja</value>
+    <comment>Confidence of a verdict.</comment>
+  </data>
+  <data name="Verdict_Confidence_Medium" xml:space="preserve">
+    <value>media</value>
+    <comment>Confidence of a verdict.</comment>
+  </data>
+  <data name="Verdict_Confidence_High" xml:space="preserve">
+    <value>alta</value>
+    <comment>Confidence of a verdict.</comment>
+  </data>
+  <data name="Verdict_Status_Satisfied" xml:space="preserve">
+    <value>Satisfecho</value>
+    <comment>Status of a requirement in a verdict.</comment>
+  </data>
+  <data name="Verdict_Status_NotSatisfied" xml:space="preserve">
+    <value>Incumplido</value>
+    <comment>Status of a requirement in a verdict.</comment>
+  </data>
+  <data name="Verdict_Status_NotVerifiable" xml:space="preserve">
+    <value>No verificable</value>
+    <comment>Status of a requirement in a verdict.</comment>
+  </data>
+  <data name="Verdict_Category_IgnoredRequirement" xml:space="preserve">
+    <value>Requisito ignorado</value>
+    <comment>Category of a finding.</comment>
+  </data>
+  <data name="Verdict_Category_OmittedTask" xml:space="preserve">
+    <value>Tarea omitida</value>
+    <comment>Category of a finding.</comment>
+  </data>
+  <data name="Verdict_Category_FabricatedResult" xml:space="preserve">
+    <value>Resultado inventado</value>
+    <comment>Category of a finding.</comment>
+  </data>
+  <data name="Verdict_Category_TestsNotRun" xml:space="preserve">
+    <value>Pruebas sin ejecutar</value>
+    <comment>Category of a finding.</comment>
+  </data>
+  <data name="Verdict_Category_ContradictoryDecision" xml:space="preserve">
+    <value>Decisión contradictoria</value>
+    <comment>Category of a finding.</comment>
+  </data>
+  <data name="Verdict_Category_OutOfScopeChange" xml:space="preserve">
+    <value>Cambio fuera de alcance</value>
+    <comment>Category of a finding.</comment>
+  </data>
+  <data name="Verdict_Category_IntegrationError" xml:space="preserve">
+    <value>Error al unir los cambios</value>
+    <comment>Category of a finding.</comment>
+  </data>
+  <data name="Verdict_Category_SecurityIssue" xml:space="preserve">
+    <value>Problema de seguridad</value>
+    <comment>Category of a finding.</comment>
+  </data>
+  <data name="Verdict_Category_PrematureCompletion" xml:space="preserve">
+    <value>Terminado antes de tiempo</value>
+    <comment>Category of a finding.</comment>
+  </data>
+  <data name="Verdict_Category_InstructionViolation" xml:space="preserve">
+    <value>Instrucción incumplida</value>
+    <comment>Category of a finding.</comment>
+  </data>
+  <data name="Verdict_Category_Other" xml:space="preserve">
+    <value>Otro</value>
+    <comment>Category of a finding.</comment>
+  </data>
+  <data name="Verdict_Severity_Low" xml:space="preserve">
+    <value>Baja</value>
+    <comment>Severity of a finding.</comment>
+  </data>
+  <data name="Verdict_Severity_Medium" xml:space="preserve">
+    <value>Media</value>
+    <comment>Severity of a finding.</comment>
+  </data>
+  <data name="Verdict_Severity_High" xml:space="preserve">
+    <value>Alta</value>
+    <comment>Severity of a finding.</comment>
+  </data>
+  <data name="Verdict_Severity_Critical" xml:space="preserve">
+    <value>Crítica</value>
+    <comment>Severity of a finding.</comment>
+  </data>
+  <data name="Verdict_Violation_RequirementSetMismatch" xml:space="preserve">
+    <value>Cita otro conjunto de requisitos</value>
+    <comment>A rule of the validator that a verdict broke.</comment>
+  </data>
+  <data name="Verdict_Violation_DecisionLogMismatch" xml:space="preserve">
+    <value>Cita un estado distinto del historial de decisiones</value>
+    <comment>A rule of the validator that a verdict broke.</comment>
+  </data>
+  <data name="Verdict_Violation_RequirementNotAssessed" xml:space="preserve">
+    <value>Deja un requisito sin evaluar</value>
+    <comment>A rule of the validator that a verdict broke.</comment>
+  </data>
+  <data name="Verdict_Violation_UnknownRequirementAssessed" xml:space="preserve">
+    <value>Evalúa un requisito que no existe</value>
+    <comment>A rule of the validator that a verdict broke.</comment>
+  </data>
+  <data name="Verdict_Violation_DuplicateAssessment" xml:space="preserve">
+    <value>Evalúa un requisito dos veces</value>
+    <comment>A rule of the validator that a verdict broke.</comment>
+  </data>
+  <data name="Verdict_Violation_EvidenceNotInDossier" xml:space="preserve">
+    <value>Cita una prueba que no está en el expediente para el juez</value>
+    <comment>A rule of the validator that a verdict broke.</comment>
+  </data>
+  <data name="Verdict_Violation_EvidenceCitedButNotExamined" xml:space="preserve">
+    <value>Cita una prueba que no dice haber examinado</value>
+    <comment>A rule of the validator that a verdict broke.</comment>
+  </data>
+  <data name="Verdict_Violation_SatisfiedWithoutEvidence" xml:space="preserve">
+    <value>Da por cumplido un requisito sin pruebas</value>
+    <comment>A rule of the validator that a verdict broke.</comment>
+  </data>
+  <data name="Verdict_Violation_ApprovedWithUnmetMandatoryRequirement" xml:space="preserve">
+    <value>Aprueba con un requisito obligatorio incumplido</value>
+    <comment>A rule of the validator that a verdict broke.</comment>
+  </data>
+  <data name="Verdict_Violation_ApprovedOnAgentClaimsOnly" xml:space="preserve">
+    <value>Aprueba solo con lo que afirman los agentes</value>
+    <comment>A rule of the validator that a verdict broke.</comment>
+  </data>
+  <data name="Verdict_Violation_ApprovedWithFailingTests" xml:space="preserve">
+    <value>Aprueba con pruebas que fallan</value>
+    <comment>A rule of the validator that a verdict broke.</comment>
+  </data>
+  <data name="Verdict_Violation_ApprovedWithoutTestRun" xml:space="preserve">
+    <value>Aprueba sin ejecutar las pruebas</value>
+    <comment>A rule of the validator that a verdict broke.</comment>
+  </data>
+  <data name="Verdict_Violation_ApprovedWithCriticalFinding" xml:space="preserve">
+    <value>Aprueba con un hallazgo crítico</value>
+    <comment>A rule of the validator that a verdict broke.</comment>
+  </data>
+  <data name="Verdict_Violation_MissingConfidenceJustification" xml:space="preserve">
+    <value>No explica su confianza</value>
+    <comment>A rule of the validator that a verdict broke.</comment>
+  </data>
+  <data name="Verdict_Violation_HumanInterventionNotFlagged" xml:space="preserve">
+    <value>No avisa de que hace falta una persona</value>
+    <comment>A rule of the validator that a verdict broke.</comment>
+  </data>
+  <data name="Verdict_Violation_MissingCorrectiveActions" xml:space="preserve">
+    <value>Pide cambios o rechaza sin decir qué corregir</value>
+    <comment>A rule of the validator that a verdict broke.</comment>
+  </data>
+  <data name="Verdict_Violation_JudgeNotIndependent" xml:space="preserve">
+    <value>El juez no es independiente</value>
+    <comment>A rule of the validator that a verdict broke.</comment>
+  </data>
+  <data name="Verdict_Violation_SatisfiedByFailingTestRun" xml:space="preserve">
+    <value>Da por cumplido un requisito con pruebas que fallan</value>
+    <comment>A rule of the validator that a verdict broke.</comment>
+  </data>
+  <data name="Verdict_Violation_ApprovedWithoutEvidenceForCriterion" xml:space="preserve">
+    <value>Aprueba sin pruebas de un criterio</value>
+    <comment>A rule of the validator that a verdict broke.</comment>
+  </data>
+  <data name="Verdict_Violation_MalformedVerdict" xml:space="preserve">
+    <value>Veredicto mal formado</value>
+    <comment>A rule of the validator that a verdict broke.</comment>
+  </data>
+  <data name="Verdict_Violation_ApprovedPendingHumanIntervention" xml:space="preserve">
+    <value>Aprueba aunque hace falta una persona</value>
+    <comment>A rule of the validator that a verdict broke.</comment>
+  </data>
+  <data name="Verdict_Violation_ApprovedWithIntegrityProblems" xml:space="preserve">
+    <value>Aprueba con problemas de integridad del material</value>
+    <comment>A rule of the validator that a verdict broke.</comment>
+  </data>
+  <data name="Verdict_Violation_ApprovedWithoutTestRunForCommit" xml:space="preserve">
+    <value>Aprueba sin pruebas de la versión guardada (commit) revisada</value>
+    <comment>A rule of the validator that a verdict broke.</comment>
+  </data>
+  <data name="Verdict_Violation_DebateResolutionMissing" xml:space="preserve">
+    <value>Aprueba o pide cambios sin elegir propuesta</value>
+    <comment>A rule of the validator that a verdict broke.</comment>
+  </data>
+  <data name="Verdict_Violation_DebateResolutionUnknown" xml:space="preserve">
+    <value>Elige o compara una propuesta que no es de este debate</value>
+    <comment>A rule of the validator that a verdict broke.</comment>
+  </data>
+  <data name="Verdict_Challenge_None" xml:space="preserve">
+    <value>Sin impugnar.</value>
+    <comment>Where the challenge of a verdict stands.</comment>
+  </data>
+  <data name="Verdict_Challenge_Pending" xml:space="preserve">
+    <value>Impugnado: la revisión no se ha cerrado y la entrega espera.</value>
+    <comment>Where the challenge of a verdict stands.</comment>
+  </data>
+  <data name="Verdict_Challenge_Confirmed" xml:space="preserve">
+    <value>Impugnado: la revisión confirmó lo que decía el veredicto.</value>
+    <comment>Where the challenge of a verdict stands.</comment>
+  </data>
+  <data name="Verdict_Challenge_Revoked" xml:space="preserve">
+    <value>Impugnado: la revisión retiró la aprobación y la entrega queda bloqueada.</value>
+    <comment>Where the challenge of a verdict stands.</comment>
+  </data>
+  <data name="Verdict_Challenge_AwaitingAcceptance" xml:space="preserve">
+    <value>Impugnado: la revisión dio la vuelta hacia una aprobación, que solo cuenta si la aceptas.</value>
+    <comment>Where the challenge of a verdict stands.</comment>
+  </data>
+  <data name="Verdict_Challenge_Accepted" xml:space="preserve">
+    <value>Impugnado: aceptaste la revisión que da la vuelta hacia una aprobación.</value>
+    <comment>Where the challenge of a verdict stands.</comment>
+  </data>
+  <data name="Verdict_Challenge_DecidedByUser" xml:space="preserve">
+    <value>Impugnado: la revisión necesitó a una persona y decidiste tú.</value>
+    <comment>Where the challenge of a verdict stands.</comment>
+  </data>
+  <data name="Verdict_Disposition_Approved" xml:space="preserve">
+    <value>Aprobado</value>
+    <comment>How a review ended.</comment>
+  </data>
+  <data name="Verdict_Disposition_ChangesRequested" xml:space="preserve">
+    <value>Cambios solicitados</value>
+    <comment>How a review ended.</comment>
+  </data>
+  <data name="Verdict_Disposition_Rejected" xml:space="preserve">
+    <value>Rechazado</value>
+    <comment>How a review ended.</comment>
+  </data>
+  <data name="Verdict_Disposition_NeedsHuman" xml:space="preserve">
+    <value>Necesita una persona</value>
+    <comment>How a review ended.</comment>
+  </data>
+  <data name="Verdict_Disposition_RateLimited" xml:space="preserve">
+    <value>Sin veredicto: se alcanzó el límite de uso del plan del juez</value>
+    <comment>How a review ended.</comment>
+  </data>
+  <data name="Debate_Model_Default" xml:space="preserve">
+    <value>modelo por defecto del programa</value>
+    <comment>Model of an agent that has none set.</comment>
+  </data>
+  <data name="Verdict_Judge_NoModel" xml:space="preserve">
+    <value>modelo no informado</value>
+    <comment>Model of a judge whose program reported none.</comment>
+  </data>
+  <data name="Verdict_Judge_NoIdentity" xml:space="preserve">
+    <value>juez sin identidad</value>
+    <comment>A verdict whose judge is not known.</comment>
+  </data>
+  <data name="Verdict_Confidence_Line" xml:space="preserve">
+    <value>Confianza: {0} — «{1}»</value>
+    <comment>Confidence of a verdict. {0}: level, {1}: the judge's reason.</comment>
+  </data>
+  <data name="Verdict_Confidence_None" xml:space="preserve">
+    <value>Confianza: sin dato</value>
+    <comment>A verdict with no confidence.</comment>
+  </data>
+  <data name="Verdict_Validation_None" xml:space="preserve">
+    <value>Validación: sin incidencias</value>
+    <comment>Result of the rules of the validator.</comment>
+  </data>
+  <data name="Verdict_Validation_One" xml:space="preserve">
+    <value>Validación: {0} incidencia · el veredicto no es válido</value>
+    <comment>Result of the rules of the validator. {0}: 1.</comment>
+  </data>
+  <data name="Verdict_Validation_Other" xml:space="preserve">
+    <value>Validación: {0} incidencias · el veredicto no es válido</value>
+    <comment>Result of the rules of the validator. {0}: number.</comment>
+  </data>
+  <data name="Verdict_Corrected_ByJudge" xml:space="preserve">
+    <value>Es la corrección del juez (una como máximo).</value>
+    <comment>A verdict that corrects another.</comment>
+  </data>
+  <data name="Verdict_Corrected_Supersedes" xml:space="preserve">
+    <value>Sustituye al veredicto {0}.</value>
+    <comment>A verdict that replaces another. {0}: its id.</comment>
+  </data>
+  <data name="Verdict_Human_Needed" xml:space="preserve">
+    <value>Pide que decida una persona</value>
+    <comment>What the judge says about a person stepping in.</comment>
+  </data>
+  <data name="Verdict_Human_No" xml:space="preserve">
+    <value>No hace falta una persona</value>
+    <comment>What the judge says about a person stepping in.</comment>
+  </data>
+  <data name="Verdict_Issued" xml:space="preserve">
+    <value>Emitido el {0}</value>
+    <comment>When a verdict was issued. {0}: date and time.</comment>
+  </data>
+  <data name="Verdict_Chosen_Of" xml:space="preserve">
+    <value>Propuesta elegida: {0}</value>
+    <comment>The proposal the judge chose. {0}: its label.</comment>
+  </data>
+  <data name="Verdict_Chosen_None" xml:space="preserve">
+    <value>Ninguna propuesta elegida</value>
+    <comment>The judge chose no proposal.</comment>
+  </data>
+  <data name="Verdict_Count_Satisfied_One" xml:space="preserve">
+    <value>{0} satisfecho</value>
+    <comment>Count of requirements met.</comment>
+  </data>
+  <data name="Verdict_Count_Satisfied_Other" xml:space="preserve">
+    <value>{0} satisfechos</value>
+    <comment>Count of requirements met.</comment>
+  </data>
+  <data name="Verdict_Count_Unmet_One" xml:space="preserve">
+    <value>{0} incumplido</value>
+    <comment>Count of requirements not met.</comment>
+  </data>
+  <data name="Verdict_Count_Unmet_Other" xml:space="preserve">
+    <value>{0} incumplidos</value>
+    <comment>Count of requirements not met.</comment>
+  </data>
+  <data name="Verdict_Count_Unverifiable_One" xml:space="preserve">
+    <value>{0} no verificable</value>
+    <comment>Count of requirements that cannot be checked.</comment>
+  </data>
+  <data name="Verdict_Count_Unverifiable_Other" xml:space="preserve">
+    <value>{0} no verificables</value>
+    <comment>Count of requirements that cannot be checked.</comment>
+  </data>
+  <data name="Verdict_Row_Evidence" xml:space="preserve">
+    <value>Pruebas citadas: {0}</value>
+    <comment>Evidence a verdict cites for a requirement. {0}: their ids.</comment>
+  </data>
+  <data name="Verdict_Row_NoEvidence" xml:space="preserve">
+    <value>Sin pruebas citadas</value>
+    <comment>A requirement with no evidence cited.</comment>
+  </data>
+  <data name="Verdict_Row_JudgeAssessment" xml:space="preserve">
+    <value>valoración del juez, que no se puede comprobar con pruebas</value>
+    <comment>Mark on a requirement only the judge can assess.</comment>
+  </data>
+  <data name="Verdict_Ref_Evidence" xml:space="preserve">
+    <value>pruebas: {0}</value>
+    <comment>What a finding cites. {0}: ids of evidence.</comment>
+  </data>
+  <data name="Verdict_Ref_Entries" xml:space="preserve">
+    <value>entradas del historial: {0}</value>
+    <comment>What a finding cites. {0}: numbers of entries.</comment>
+  </data>
+  <data name="Verdict_Ref_None" xml:space="preserve">
+    <value>sin referencias</value>
+    <comment>A finding that cites nothing.</comment>
+  </data>
+  <data name="Verdict_Judging_Line" xml:space="preserve">
+    <value>Quién juzga: {0}</value>
+    <comment>How the judgment is arranged. {0}: its name.</comment>
+  </data>
+  <data name="Verdict_Requirements_Note" xml:space="preserve">
+    <value>No se pudieron leer los requisitos congelados de este veredicto. Cada requisito sale solo con su código, sin su texto ni la marca «valoración del juez».</value>
+    <comment>Warning on the card of a verdict whose requirements are missing.</comment>
+  </data>
+  <data name="Verdict_Option_NoProposal" xml:space="preserve">
+    <value>Ninguna</value>
+    <comment>Option: no proposal chosen.</comment>
+  </data>
+  <data name="Verdict_Option_Approve" xml:space="preserve">
+    <value>Aprobar</value>
+    <comment>Option of «Decidir yo».</comment>
+  </data>
+  <data name="Verdict_Option_AskChanges" xml:space="preserve">
+    <value>Pedir cambios</value>
+    <comment>Option of «Decidir yo».</comment>
+  </data>
+  <data name="Verdict_Option_Reject" xml:space="preserve">
+    <value>Rechazar</value>
+    <comment>Option of «Decidir yo».</comment>
+  </data>
+  <data name="Verdict_Option_LeaveUnresolved" xml:space="preserve">
+    <value>Dejarlo sin resolver</value>
+    <comment>Option of «Decidir yo».</comment>
+  </data>
+  <data name="Verdict_Decided_Line" xml:space="preserve">
+    <value>Decisión tuya registrada: {0}.</value>
+    <comment>After «Decidir yo». {0}: the decision.</comment>
+  </data>
+  <data name="Verdict_Decided_WithProposal" xml:space="preserve">
+    <value>Decisión tuya registrada: {0}, propuesta {1}.</value>
+    <comment>After «Decidir yo». {0}: the decision, {1}: the proposal.</comment>
+  </data>
+  <data name="Verdict_Decided_Unresolved" xml:space="preserve">
+    <value>Decisión tuya registrada: queda sin resolver.</value>
+    <comment>After «Decidir yo».</comment>
+  </data>
+  <data name="Verdict_Error_Challenge" xml:space="preserve">
+    <value>No se pudo abrir la impugnación: {0}</value>
+    <comment>Error. {0}: the reason.</comment>
+  </data>
+  <data name="Verdict_Error_Decide" xml:space="preserve">
+    <value>No se pudo registrar tu decisión: {0}</value>
+    <comment>Error. {0}: the reason.</comment>
+  </data>
+  <data name="Verdict_Error_Orchestrator" xml:space="preserve">
+    <value>No se pudo abrir el orquestador: {0}</value>
+    <comment>Error. {0}: the reason.</comment>
+  </data>
+  <data name="Verdict_Outcome_Pending" xml:space="preserve">
+    <value>{0} · el juicio necesita a una persona: decides tú</value>
+    <comment>Outcome while a person must decide. {0}: outcome so far.</comment>
+  </data>
+  <data name="Verdict_Outcome_Confidence" xml:space="preserve">
+    <value>confianza {0}</value>
+    <comment>Part of the outcome. {0}: level.</comment>
+  </data>
+  <data name="Verdict_Outcome_ConfidenceLowest" xml:space="preserve">
+    <value>confianza {0} (la menor de las dos)</value>
+    <comment>Part of the outcome. {0}: level.</comment>
+  </data>
+  <data name="Verdict_Outcome_None" xml:space="preserve">
+    <value>Sin veredicto</value>
+    <comment>Outcome of a card with no verdict.</comment>
+  </data>
+  <data name="Verdict_Outcome_Valid" xml:space="preserve">
+    <value>{0} · veredicto válido</value>
+    <comment>Outcome of a single verdict. {0}: decision.</comment>
+  </data>
+  <data name="Verdict_Outcome_Invalid" xml:space="preserve">
+    <value>{0} · veredicto no válido</value>
+    <comment>Outcome of a single verdict. {0}: decision.</comment>
+  </data>
+  <data name="Debate_Room_None" xml:space="preserve">
+    <value>Sin debate</value>
+    <comment>Title and phase of a room with no debate.</comment>
+  </data>
+  <data name="Debate_Room_Title" xml:space="preserve">
+    <value>Debate · {0}</value>
+    <comment>Title of the room. {0}: the mode.</comment>
+  </data>
+  <data name="Debate_Room_Round" xml:space="preserve">
+    <value>Ronda {0} de {1}</value>
+    <comment>Round the debate is in. {0}: the round, {1}: the most rounds.</comment>
+  </data>
+  <data name="Debate_Room_Time" xml:space="preserve">
+    <value>Tiempo: {0} de {1} · {2} (reloj del sistema)</value>
+    <comment>Time of the debate. {0}: elapsed, {1}: the most, {2}: origin of the figure.</comment>
+  </data>
+  <data name="Debate_Room_Runs" xml:space="preserve">
+    <value>Ejecuciones: {0} de {1} · {2}</value>
+    <comment>Agent runs of the debate. {0}: used, {1}: the most, {2}: origin of the figure.</comment>
+  </data>
+  <data name="Debate_Room_PartialTurns" xml:space="preserve">
+    <value>parcial ({0} de {1} turnos informados)</value>
+    <comment>The tokens of some turns are missing. {0}: turns that reported, {1}: all turns.</comment>
+  </data>
+  <data name="Debate_Room_Sealed_One" xml:space="preserve">
+    <value>Ronda {0}: 1 turno en curso, sellado hasta que termine</value>
+    <comment>A round in course.</comment>
+  </data>
+  <data name="Debate_Room_Sealed_Other" xml:space="preserve">
+    <value>Ronda {0}: {1} turnos en curso, sellados hasta que terminen todos</value>
+    <comment>A round in course.</comment>
+  </data>
+  <data name="Debate_Room_Requirements" xml:space="preserve">
+    <value>Requisitos congelados (huella {0}): {1}</value>
+    <comment>The requirements of the debate. {0}: short fingerprint, {1}: how many.</comment>
+  </data>
+  <data name="Debate_Room_JudgesKindOne" xml:space="preserve">
+    <value>{0} (el juez no participa)</value>
+    <comment>Who judges, with no judge known yet. {0}: the arrangement.</comment>
+  </data>
+  <data name="Debate_Room_JudgesKindMany" xml:space="preserve">
+    <value>{0} (los jueces no participan)</value>
+    <comment>Who judges, with no judges known yet. {0}: the arrangement.</comment>
+  </data>
+  <data name="Debate_Room_JudgeOne" xml:space="preserve">
+    <value>Juez: {0} (no participa)</value>
+    <comment>Who judges. {0}: the judge.</comment>
+  </data>
+  <data name="Debate_Room_JudgesMany" xml:space="preserve">
+    <value>Jurado: {0} (no participan)</value>
+    <comment>Who judges. {0}: the judges.</comment>
+  </data>
+  <data name="Debate_Room_JudgmentLine" xml:space="preserve">
+    <value>A juicio porque {0}.</value>
+    <comment>Why the debate went to judgment. {0}: the reason.</comment>
+  </data>
+  <data name="Debate_Room_Interrupted" xml:space="preserve">
+    <value>Se interrumpió: el debate quedó sin cerrar y nada lo seguía ejecutando. «Reanudar» lo continúa. Gasta parte del límite de uso de tu plan y te pide aprobación.</value>
+    <comment>Status of a debate read back that was interrupted.</comment>
+  </data>
+  <data name="Debate_Room_EvidenceAdded" xml:space="preserve">
+    <value>Prueba «{0}» añadida. La verán la ronda siguiente y el juez.</value>
+    <comment>After «Añadir prueba». {0}: its title.</comment>
+  </data>
+  <data name="Debate_Room_Fail_Judgment" xml:space="preserve">
+    <value>No se pudo pedir el juicio: {0}</value>
+    <comment>Error. {0}: the reason.</comment>
+  </data>
+  <data name="Debate_Room_Fail_Tests" xml:space="preserve">
+    <value>No se pudieron ejecutar las pruebas: {0}</value>
+    <comment>Error. {0}: the reason.</comment>
+  </data>
+  <data name="Debate_Room_Fail_Evidence" xml:space="preserve">
+    <value>No se pudo añadir la prueba: {0}</value>
+    <comment>Error. {0}: the reason.</comment>
+  </data>
+  <data name="Debate_Room_Fail_Retry" xml:space="preserve">
+    <value>No se pudo reintentar el turno de {0}: {1}</value>
+    <comment>Error. {0}: the participant, {1}: the reason.</comment>
+  </data>
+  <data name="Debate_Room_Fail_Abort" xml:space="preserve">
+    <value>No se pudo abortar el debate: {0}</value>
+    <comment>Error. {0}: the reason.</comment>
+  </data>
+  <data name="Debate_Room_Stopped" xml:space="preserve">
+    <value>Se dejó de seguir el debate antes de que terminara.</value>
+    <comment>The room lost the debate.</comment>
+  </data>
+  <data name="Debate_Room_Error" xml:space="preserve">
+    <value>El debate terminó con un error: {0}</value>
+    <comment>The debate failed. {0}: the reason.</comment>
+  </data>
+  <data name="Debate_Round_First" xml:space="preserve">
+    <value>Ronda 1 · propuestas independientes, selladas hasta el final de la ronda</value>
+    <comment>Title of the first round.</comment>
+  </data>
+  <data name="Debate_Round_N" xml:space="preserve">
+    <value>Ronda {0}</value>
+    <comment>Title of a round. {0}: the round.</comment>
+  </data>
+  <data name="Debate_Card_TitleOf" xml:space="preserve">
+    <value>Veredicto del debate {0}</value>
+    <comment>Title of the card of a debate. {0}: its id.</comment>
+  </data>
+  <data name="Debate_Card_Title" xml:space="preserve">
+    <value>Veredicto del debate</value>
+    <comment>Title of the card of a debate.</comment>
+  </data>
+  <data name="Debate_Awaiting_Until" xml:space="preserve">
+    <value>hasta las {0}</value>
+    <comment>Until when a debate waits. {0}: the time.</comment>
+  </data>
+  <data name="Debate_Tokens_Limited" xml:space="preserve">
+    <value>Tokens: {0} de {1} · {2}</value>
+    <comment>Tokens of the debate. {0}: used, {1}: the most, {2}: origin.</comment>
+  </data>
+  <data name="Debate_Tokens_Free" xml:space="preserve">
+    <value>Tokens: {0} (sin límite de tokens) · {1}</value>
+    <comment>Tokens of the debate. {0}: used, {1}: origin.</comment>
+  </data>
+  <data name="Debate_Tokens_Partial" xml:space="preserve">
+    <value>parcial ({0} de {1} informados)</value>
+    <comment>Some turns did not report their tokens.</comment>
+  </data>
+  <data name="Debate_Bar_Tokens" xml:space="preserve">
+    <value>Tokens del debate</value>
+    <comment>Label of a bar.</comment>
+  </data>
+  <data name="Debate_Bar_Runs" xml:space="preserve">
+    <value>Ejecuciones</value>
+    <comment>Label of a bar.</comment>
+  </data>
+  <data name="Debate_Bar_RunsDetail" xml:space="preserve">
+    <value>ejecuciones de agente del debate frente a su máximo</value>
+    <comment>Detail of a bar.</comment>
+  </data>
+  <data name="Debate_Contribution_Header" xml:space="preserve">
+    <value>{0} · {1} de {2}</value>
+    <comment>Header of a contribution. {0}: label, {1}: kind, {2}: author.</comment>
+  </data>
+  <data name="Debate_Contribution_Replies" xml:space="preserve">
+    <value>Responde a {0}</value>
+    <comment>Which contribution this one answers.</comment>
+  </data>
+  <data name="Debate_Contribution_Answered" xml:space="preserve">
+    <value>Respondió a las {0} (se publicó al cerrar la ronda)</value>
+    <comment>When the author answered. {0}: the time.</comment>
+  </data>
+  <data name="Debate_Contribution_Hash" xml:space="preserve">
+    <value>Huella {0}</value>
+    <comment>Fingerprint of the text of a contribution. {0}: its start.</comment>
+  </data>
+  <data name="Debate_Contribution_Unresolved" xml:space="preserve">
+    <value>Cita que no se encontró en la versión guardada (commit): {0}</value>
+    <comment>A quote the system could not find. {0}: where.</comment>
+  </data>
+  <data name="Debate_Contribution_Finished" xml:space="preserve">
+    <value>Marcó su posición como terminada.</value>
+    <comment>The author has nothing more to add.</comment>
+  </data>
+  <data name="Debate_Contribution_TextProblem" xml:space="preserve">
+    <value>No se muestra el texto: no se pudo leer o no coincide con su huella guardada.</value>
+    <comment>A contribution whose text cannot be trusted.</comment>
+  </data>
+  <data name="Debate_Contribution_Support" xml:space="preserve">
+    <value>{0} (apoyo: {1})</value>
+    <comment>A claim with what supports it.</comment>
+  </data>
+  <data name="Debate_Contribution_Concedes" xml:space="preserve">
+    <value>Concede: {0}</value>
+    <comment>What the author concedes.</comment>
+  </data>
+  <data name="Debate_Evidence_Cited" xml:space="preserve">
+    <value>Prueba {0}</value>
+    <comment>Accessible name of a piece of evidence a contribution cites. {0}: its id.</comment>
+  </data>
+  <data name="Debate_Evidence_NoStore" xml:space="preserve">
+    <value>Falta el almacén de pruebas guardadas: no se puede abrir la prueba.</value>
+    <comment>Evidence that cannot be opened.</comment>
+  </data>
+  <data name="Debate_Evidence_Failed" xml:space="preserve">
+    <value>No se pudo abrir: {0}</value>
+    <comment>Evidence that cannot be opened. {0}: the reason.</comment>
+  </data>
+  <data name="Debate_Evidence_Missing" xml:space="preserve">
+    <value>No está en el almacén de pruebas guardadas del proyecto.</value>
+    <comment>Evidence that cannot be found.</comment>
+  </data>
+  <data name="Debate_Evidence_Commit" xml:space="preserve">
+    <value>versión guardada (commit) {0}</value>
+    <comment>Part of the description of a piece of evidence. {0}: short fingerprint.</comment>
+  </data>
+  <data name="Debate_Evidence_HashMismatch" xml:space="preserve">
+    <value>Huella {0} · no coincide con la guardada ({1}): no se muestra</value>
+    <comment>Evidence whose content changed.</comment>
+  </data>
+  <data name="Debate_Evidence_HashOk" xml:space="preserve">
+    <value>Huella {0} · coincide con la guardada</value>
+    <comment>Evidence whose content is intact.</comment>
+  </data>
+  <data name="Debate_Evidence_TooBig" xml:space="preserve">
+    <value>Ocupa más de 1 MiB: no se muestra aquí.</value>
+    <comment>Evidence too big to show.</comment>
+  </data>
+  <data name="Debate_Log_Following" xml:space="preserve">
+    <value>Siguiendo el debate {0}</value>
+    <comment>Activity line. {0}: the debate.</comment>
+  </data>
+  <data name="Debate_Log_TurnStarted" xml:space="preserve">
+    <value>{0} · ronda {1} · intento {2}: empezó su turno</value>
+    <comment>Activity line.</comment>
+  </data>
+  <data name="Debate_Log_TurnFinished" xml:space="preserve">
+    <value>{0} · ronda {1} · intento {2}: {3} (su respuesta queda sellada hasta que cierre la ronda)</value>
+    <comment>Activity line. {3}: how the turn ended.</comment>
+  </data>
+  <data name="Debate_Log_RoundSealed" xml:space="preserve">
+    <value>Ronda {0}: {1}, sellada</value>
+    <comment>Activity line. {1}: turns in progress.</comment>
+  </data>
+  <data name="Debate_Log_Published" xml:space="preserve">
+    <value>{0} publicada: {1} de {2}</value>
+    <comment>Activity line. {0}: label, {1}: kind, {2}: author.</comment>
+  </data>
+  <data name="Debate_Log_RoundEnded" xml:space="preserve">
+    <value>Ronda {0} cerrada: {1}</value>
+    <comment>Activity line. {1}: the next phase.</comment>
+  </data>
+  <data name="Debate_Log_RoundEndedJudgment" xml:space="preserve">
+    <value>Ronda {0} cerrada: {1} · {2}</value>
+    <comment>Activity line. {1}: the next phase, {2}: why it goes to judgment.</comment>
+  </data>
+  <data name="Debate_Log_JudgeLaunched" xml:space="preserve">
+    <value>Empezó el juez {0}</value>
+    <comment>Activity line.</comment>
+  </data>
+  <data name="Debate_Log_JudgeRelaunched" xml:space="preserve">
+    <value>El juez {0} empezó de nuevo, para corregir su veredicto</value>
+    <comment>Activity line.</comment>
+  </data>
+  <data name="Debate_Log_Verdict" xml:space="preserve">
+    <value>Veredicto {0} de {1}: {2}</value>
+    <comment>Activity line. {2}: decision.</comment>
+  </data>
+  <data name="Debate_Log_VerdictInvalid" xml:space="preserve">
+    <value>Veredicto {0} de {1}: {2} · no válido</value>
+    <comment>Activity line. {2}: decision.</comment>
+  </data>
+  <data name="Debate_Log_Waiting" xml:space="preserve">
+    <value>Espera: {0}</value>
+    <comment>Activity line. {0}: what it waits for.</comment>
+  </data>
+  <data name="Debate_Log_Finished" xml:space="preserve">
+    <value>Debate terminado: {0}</value>
+    <comment>Activity line. {0}: outcome.</comment>
+  </data>
+  <data name="Debate_Status_WaitingApproval" xml:space="preserve">
+    <value>Esperando tu aprobación…</value>
+    <comment>Status while the person approves.</comment>
+  </data>
+  <data name="Debate_Problem_NoJudgeInRoster" xml:space="preserve">
+    <value>El equipo del proyecto no tiene ningún juez.</value>
+    <comment>Problem of a form.</comment>
+  </data>
+  <data name="Debate_Problem_KeepAJudge" xml:space="preserve">
+    <value>Deja al menos un juez como candidato.</value>
+    <comment>Problem of a form.</comment>
+  </data>
+  <data name="Debate_Problem_Limits" xml:space="preserve">
+    <value>Los límites tienen que ser números enteros mayores que cero. Deja los tokens vacíos para no limitarlos.</value>
+    <comment>Problem of a form.</comment>
+  </data>
+  <data name="Debate_Method_JudgeAssessment" xml:space="preserve">
+    <value>Valoración del juez</value>
+    <comment>How a criterion is checked.</comment>
+  </data>
+  <data name="Debate_Method_HumanReview" xml:space="preserve">
+    <value>Revisión de una persona</value>
+    <comment>How a criterion is checked.</comment>
+  </data>
+  <data name="Debate_SubjectOption_None" xml:space="preserve">
+    <value>Ninguno</value>
+    <comment>What a debate may be about.</comment>
+  </data>
+  <data name="Debate_SubjectOption_Commit" xml:space="preserve">
+    <value>La última versión guardada (commit HEAD) del repositorio</value>
+    <comment>What a debate may be about.</comment>
+  </data>
+  <data name="Debate_SubjectOption_Run" xml:space="preserve">
+    <value>Una ejecución terminada</value>
+    <comment>What a debate may be about.</comment>
+  </data>
+  <data name="Debate_New_Producers" xml:space="preserve">
+    <value>Empresas que produjeron el objeto: {0}. El juez nunca puede ser de una de ellas, sin excepciones.</value>
+    <comment>Who produced the subject of a debate. {0}: the companies.</comment>
+  </data>
+  <data name="Debate_New_Estimate" xml:space="preserve">
+    <value>Como mucho {0} y {1} tokens ({2}).</value>
+    <comment>What the debate may spend. {0}: agent runs, {1}: tokens, {2}: origin.</comment>
+  </data>
+  <data name="Debate_New_ProposalHash" xml:space="preserve">
+    <value>Huella de lo que apruebas: {0}</value>
+    <comment>Fingerprint of the proposal. {0}: its start.</comment>
+  </data>
+  <data name="Debate_New_Error_Load" xml:space="preserve">
+    <value>No se pudo leer el equipo ni las ejecuciones del proyecto: {0}</value>
+    <comment>Error. {0}: the reason.</comment>
+  </data>
+  <data name="Debate_New_Status_Preparing" xml:space="preserve">
+    <value>Preparando. Esto no gasta el límite de uso de tu plan ni guarda nada…</value>
+    <comment>Status.</comment>
+  </data>
+  <data name="Debate_New_Status_Prepared" xml:space="preserve">
+    <value>Revisa la configuración y la estimación. «Abrir debate» te pedirá aprobación.</value>
+    <comment>Status.</comment>
+  </data>
+  <data name="Debate_New_Status_Problems" xml:space="preserve">
+    <value>El debate no se puede abrir así: mira los problemas.</value>
+    <comment>Status.</comment>
+  </data>
+  <data name="Debate_New_Status_Opened" xml:space="preserve">
+    <value>Debate {0} abierto.</value>
+    <comment>Status. {0}: its id.</comment>
+  </data>
+  <data name="Debate_New_Error_Prepare" xml:space="preserve">
+    <value>No se pudo preparar el debate: {0}</value>
+    <comment>Error. {0}: the reason.</comment>
+  </data>
+  <data name="Debate_New_Error_Open" xml:space="preserve">
+    <value>No se abrió el debate: {0}</value>
+    <comment>Error. {0}: the reason.</comment>
+  </data>
+  <data name="Debate_New_Problem_NoRequirementStore" xml:space="preserve">
+    <value>Falta el almacén de requisitos: no se pueden leer los de la ejecución.</value>
+    <comment>Problem of the form.</comment>
+  </data>
+  <data name="Debate_New_Problem_RunRequirementsGone" xml:space="preserve">
+    <value>No están los requisitos congelados de {0} (huella {1}).</value>
+    <comment>Problem of the form.</comment>
+  </data>
+  <data name="Debate_New_Problem_RunRequirementsFailed" xml:space="preserve">
+    <value>No se pudieron leer los requisitos de {0}: {1}</value>
+    <comment>Problem of the form.</comment>
+  </data>
+  <data name="Debate_New_Problem_NoProject" xml:space="preserve">
+    <value>Abre un proyecto para preparar un debate.</value>
+    <comment>Problem of the form.</comment>
+  </data>
+  <data name="Debate_New_Problem_NoCoordinator" xml:space="preserve">
+    <value>Falta el coordinador de debates: no se puede preparar ni abrir ningún debate.</value>
+    <comment>Problem of the form.</comment>
+  </data>
+  <data name="Debate_New_Problem_NoQuestion" xml:space="preserve">
+    <value>Escribe la pregunta del debate.</value>
+    <comment>Problem of the form.</comment>
+  </data>
+  <data name="Debate_New_Problem_NoRoster" xml:space="preserve">
+    <value>Falta el equipo de agentes: no hay participantes ni jueces que elegir.</value>
+    <comment>Problem of the form.</comment>
+  </data>
+  <data name="Debate_New_Problem_TwoParticipants" xml:space="preserve">
+    <value>Hacen falta dos participantes como mínimo.</value>
+    <comment>Problem of the form.</comment>
+  </data>
+  <data name="Debate_New_Problem_NoRunRegistry" xml:space="preserve">
+    <value>Falta el registro de ejecuciones: no se puede debatir sobre una ejecución.</value>
+    <comment>Problem of the form.</comment>
+  </data>
+  <data name="Debate_New_Problem_NoRuns" xml:space="preserve">
+    <value>El proyecto no tiene ejecuciones que debatir.</value>
+    <comment>Problem of the form.</comment>
+  </data>
+  <data name="Debate_New_Problem_PickRun" xml:space="preserve">
+    <value>Elige la ejecución que se debate.</value>
+    <comment>Problem of the form.</comment>
+  </data>
+  <data name="Debate_New_Problem_NoFixedRequirements" xml:space="preserve">
+    <value>Los requisitos fijos de este modo (orq-1 a orq-7) no están disponibles.</value>
+    <comment>Problem of the form.</comment>
+  </data>
+  <data name="Debate_New_Problem_ReadingRequirements" xml:space="preserve">
+    <value>Leyendo los requisitos congelados de la ejecución…</value>
+    <comment>Problem of the form.</comment>
+  </data>
+  <data name="Debate_New_Problem_NoCriterion" xml:space="preserve">
+    <value>Escribe al menos un criterio: es lo que evalúa el juez.</value>
+    <comment>Problem of the form.</comment>
+  </data>
+  <data name="Debate_New_Problem_NeedProponentCritic" xml:space="preserve">
+    <value>Este modo necesita un proponente y un crítico como mínimo.</value>
+    <comment>Problem of the form.</comment>
+  </data>
+  <data name="Debate_New_Problem_TribunalOnly" xml:space="preserve">
+    <value>Un tribunal es solo de panelistas.</value>
+    <comment>Problem of the form.</comment>
+  </data>
+  <data name="Debate_New_Problem_ReviewersOnly" xml:space="preserve">
+    <value>La revisión del orquestador es solo de revisores: críticos o panelistas.</value>
+    <comment>Problem of the form.</comment>
+  </data>
+  <data name="Debate_New_Hint_Run" xml:space="preserve">
+    <value>El registro sabe qué empresas produjeron la ejecución. El coordinador calcula quién puede juzgar al preparar.</value>
+    <comment>Hint about who can judge a run.</comment>
+  </data>
+  <data name="Debate_New_Hint_Choose" xml:space="preserve">
+    <value>Elige participantes y jueces para ver qué opciones caben.</value>
+    <comment>Hint about who can judge.</comment>
+  </data>
+  <data name="Debate_New_Hint_Nobody" xml:space="preserve">
+    <value>Con estos participantes y jueces nadie puede juzgar: ningún juez es de una empresa libre y no cabe ninguna excepción.</value>
+    <comment>Hint about who can judge.</comment>
+  </data>
+  <data name="Debate_New_Hint_Fits" xml:space="preserve">
+    <value>Caben: {0}.</value>
+    <comment>Hint about who can judge. {0}: the options.</comment>
+  </data>
+  <data name="Debate_New_Hint_NotFit" xml:space="preserve">
+    <value>La opción elegida ({0}) no cabe con esta configuración. {1}</value>
+    <comment>Hint about who can judge. {0}: the option, {1}: what fits.</comment>
+  </data>
+  <data name="Debate_New_Req_Fixed" xml:space="preserve">
+    <value>Requisitos fijos del modo ({0}, huella {1}): {2}.</value>
+    <comment>Where the requirements come from.</comment>
+  </data>
+  <data name="Debate_New_Req_FixedNone" xml:space="preserve">
+    <value>Requisitos fijos del modo: no disponibles.</value>
+    <comment>Where the requirements come from.</comment>
+  </data>
+  <data name="Debate_New_Req_Run" xml:space="preserve">
+    <value>Los requisitos congelados de la ejecución ({0}, huella {1}).</value>
+    <comment>Where the requirements come from.</comment>
+  </data>
+  <data name="Debate_New_Req_RunPick" xml:space="preserve">
+    <value>Los requisitos congelados de la ejecución que elijas.</value>
+    <comment>Where the requirements come from.</comment>
+  </data>
+  <data name="Debate_New_Req_Criteria" xml:space="preserve">
+    <value>Tus criterios, uno por requisito. Solo los valora el juez o los revisa una persona, porque aquí no hay código que probar.</value>
+    <comment>Where the requirements come from.</comment>
+  </data>
+  <data name="Debate_Challenge_SameJudge" xml:space="preserve">
+    <value>Es el mismo agente que emitió el veredicto, en una sesión nueva: el equipo no tiene otro juez elegible.</value>
+    <comment>Who judges a challenge.</comment>
+  </data>
+  <data name="Debate_Challenge_OtherJudge" xml:space="preserve">
+    <value>Es otro juez distinto del que emitió el veredicto impugnado.</value>
+    <comment>Who judges a challenge.</comment>
+  </data>
+  <data name="Debate_Challenge_VerdictValid" xml:space="preserve">
+    <value>Veredicto {0}{1} · {2} · válido · {3}</value>
+    <comment>The challenged verdict. {0}: id, {1}: run, {2}: decision, {3}: judge.</comment>
+  </data>
+  <data name="Debate_Challenge_VerdictInvalid" xml:space="preserve">
+    <value>Veredicto {0}{1} · {2} · no válido · {3}</value>
+    <comment>The challenged verdict. {0}: id, {1}: run, {2}: decision, {3}: judge.</comment>
+  </data>
+  <data name="Debate_Challenge_Requirements" xml:space="preserve">
+    <value>Los requisitos del veredicto impugnado ({0}, huella {1}).</value>
+    <comment>Which requirements the review uses.</comment>
+  </data>
+  <data name="Debate_Challenge_RequirementsGone" xml:space="preserve">
+    <value>No se pudieron leer los requisitos del veredicto (huella {0}).</value>
+    <comment>Which requirements the review uses.</comment>
+  </data>
+  <data name="Debate_Challenge_Error_Load" xml:space="preserve">
+    <value>No se pudo leer el veredicto: {0}</value>
+    <comment>Error. {0}: the reason.</comment>
+  </data>
+  <data name="Debate_Challenge_Status_Preparing" xml:space="preserve">
+    <value>Preparando la revisión. Esto no gasta el límite de uso de tu plan ni guarda nada…</value>
+    <comment>Status.</comment>
+  </data>
+  <data name="Debate_Challenge_Status_Prepared" xml:space="preserve">
+    <value>Revisa quién juzga la revisión. «Impugnar» te pedirá aprobación.</value>
+    <comment>Status.</comment>
+  </data>
+  <data name="Debate_Challenge_Status_Problems" xml:space="preserve">
+    <value>La revisión no se puede abrir así: mira los problemas.</value>
+    <comment>Status.</comment>
+  </data>
+  <data name="Debate_Challenge_Status_Done" xml:space="preserve">
+    <value>Impugnación registrada: la revisión es el debate {0}.</value>
+    <comment>Status. {0}: the debate.</comment>
+  </data>
+  <data name="Debate_Challenge_Error_Prepare" xml:space="preserve">
+    <value>No se pudo preparar la impugnación: {0}</value>
+    <comment>Error. {0}: the reason.</comment>
+  </data>
+  <data name="Debate_Challenge_Error_Challenge" xml:space="preserve">
+    <value>No se impugnó: {0}</value>
+    <comment>Error. {0}: the reason.</comment>
+  </data>
+  <data name="Debate_Challenge_Problem_PickVerdict" xml:space="preserve">
+    <value>Elige el veredicto que impugnas.</value>
+    <comment>Problem of the challenge form.</comment>
+  </data>
+  <data name="Debate_Challenge_Problem_NoService" xml:space="preserve">
+    <value>Falta el servicio de impugnación: no se puede impugnar.</value>
+    <comment>Problem of the challenge form.</comment>
+  </data>
+  <data name="Debate_Challenge_Problem_NoVerdictStore" xml:space="preserve">
+    <value>Falta el almacén de veredictos: no se puede leer el veredicto que impugnas.</value>
+    <comment>Problem of the challenge form.</comment>
+  </data>
+  <data name="Debate_Challenge_Problem_VerdictGone" xml:space="preserve">
+    <value>El veredicto {0} no está en el almacén del proyecto.</value>
+    <comment>Problem of the challenge form.</comment>
+  </data>
+  <data name="Debate_Challenge_Problem_NoRequirements" xml:space="preserve">
+    <value>No se pudieron leer los requisitos del veredicto impugnado: la revisión se juzga contra ellos.</value>
+    <comment>Problem of the challenge form.</comment>
+  </data>
+  <data name="Debate_Challenge_Problem_AlreadyPending" xml:space="preserve">
+    <value>Este veredicto ya tiene una impugnación en curso: espera a que se cierre su revisión.</value>
+    <comment>Problem of the challenge form.</comment>
+  </data>
+  <data name="Debate_Challenge_Problem_NoReasons" xml:space="preserve">
+    <value>Escribe por qué impugnas el veredicto. Se guarda como una nota tuya y abre la ronda 1 del crítico.</value>
+    <comment>Problem of the challenge form.</comment>
+  </data>
+  <data name="Debate_Challenge_Problem_NoRoster" xml:space="preserve">
+    <value>Falta el equipo de agentes: no hay quien defienda el veredicto ni la impugnación, ni jueces.</value>
+    <comment>Problem of the challenge form.</comment>
+  </data>
+  <data name="Debate_Challenge_Problem_PickDefenders" xml:space="preserve">
+    <value>Elige quién defiende el veredicto y quién defiende la impugnación.</value>
+    <comment>Problem of the challenge form.</comment>
+  </data>
+  <data name="Debate_Challenge_Problem_DifferentAgents" xml:space="preserve">
+    <value>El proponente y el crítico tienen que ser agentes distintos.</value>
+    <comment>Problem of the challenge form.</comment>
+  </data>
+  <data name="Debate_Challenge_Problem_NoQuestion" xml:space="preserve">
+    <value>Escribe la pregunta de la revisión.</value>
+    <comment>Problem of the challenge form.</comment>
+  </data>
+  <data name="Debate_Doc_Title" xml:space="preserve">
+    <value>Debates · {0}</value>
+    <comment>Title of the tab. {0}: the project.</comment>
+  </data>
+  <data name="Debate_Doc_AllModes" xml:space="preserve">
+    <value>Todos los modos</value>
+    <comment>Filter of the history.</comment>
+  </data>
+  <data name="Debate_Doc_Notice_NoCoordinator" xml:space="preserve">
+    <value>Falta el coordinador de debates: no se pueden listar, abrir ni reanudar debates.</value>
+    <comment>Notice at the top of the screen.</comment>
+  </data>
+  <data name="Debate_Doc_Notice_NoChallenges" xml:space="preserve">
+    <value>Falta el servicio de impugnación: no se puede impugnar un veredicto.</value>
+    <comment>Notice at the top of the screen.</comment>
+  </data>
+  <data name="Debate_Doc_Notice_NoEvidence" xml:space="preserve">
+    <value>Falta el almacén de pruebas guardadas: las citas de las contribuciones se listan, pero no se abren.</value>
+    <comment>Notice at the top of the screen.</comment>
+  </data>
+  <data name="Debate_Doc_Notice_NoRoster" xml:space="preserve">
+    <value>Falta el equipo de agentes: no hay participantes ni jueces que elegir.</value>
+    <comment>Notice at the top of the screen.</comment>
+  </data>
+  <data name="Debate_Doc_Notice_NoRuns" xml:space="preserve">
+    <value>Falta el registro de ejecuciones: no se puede debatir sobre una ejecución.</value>
+    <comment>Notice at the top of the screen.</comment>
+  </data>
+  <data name="Debate_Doc_Notice_NoWorkspace" xml:space="preserve">
+    <value>Falta el almacén del proyecto: no se puede abrir el proyecto.</value>
+    <comment>Notice at the top of the screen.</comment>
+  </data>
+  <data name="Debate_Doc_Error_Project" xml:space="preserve">
+    <value>No se pudo abrir el proyecto: {0}</value>
+    <comment>Error. {0}: the reason.</comment>
+  </data>
+  <data name="Debate_Doc_Error_History" xml:space="preserve">
+    <value>No se pudo leer el historial de debates: {0}</value>
+    <comment>Error. {0}: the reason.</comment>
+  </data>
+  <data name="Debate_Doc_Error_Read" xml:space="preserve">
+    <value>No se pudo leer el debate {0}: {1}</value>
+    <comment>Error. {0}: the debate, {1}: the reason.</comment>
+  </data>
+  <data name="Debate_Doc_Error_Resume" xml:space="preserve">
+    <value>No se reanudó el debate {0}: {1}</value>
+    <comment>Error. {0}: the debate, {1}: the reason.</comment>
+  </data>
+  <data name="Debate_Doc_Error_NoProject" xml:space="preserve">
+    <value>Sin proyecto abierto no se puede impugnar.</value>
+    <comment>Error.</comment>
+  </data>
+  <data name="Debate_Doc_Status_NoDebates" xml:space="preserve">
+    <value>El proyecto aún no tiene debates.</value>
+    <comment>Status of the history.</comment>
+  </data>
+  <data name="Debate_Doc_Status_NoneOfMode" xml:space="preserve">
+    <value>Ningún debate de ese modo.</value>
+    <comment>Status of the history.</comment>
+  </data>
+  <data name="Debate_Doc_Status_Resuming" xml:space="preserve">
+    <value>Reanudando {0}: espera tu aprobación…</value>
+    <comment>Status. {0}: the debate.</comment>
+  </data>
+  <data name="Debate_History_QuestionUnreadable" xml:space="preserve">
+    <value>No se puede mostrar la pregunta: no coincide con su huella guardada.</value>
+    <comment>A debate of the history whose question changed.</comment>
+  </data>
+  <data name="Debate_History_Proposal" xml:space="preserve">
+    <value>propuesta {0}</value>
+    <comment>Part of a line of the history. {0}: the proposal.</comment>
+  </data>
+  <data name="Debate_History_ChallengeOf" xml:space="preserve">
+    <value>Revisión del veredicto {0}</value>
+    <comment>A debate that reviews a verdict.</comment>
+  </data>
+  <data name="Debate_History_Challenged" xml:space="preserve">
+    <value>Su veredicto se impugnó</value>
+    <comment>A debate whose verdict was challenged.</comment>
+  </data>
+  <data name="Debate_Form_Rounds" xml:space="preserve">
+    <value>Rondas</value>
+    <comment>Label of a limit.</comment>
+  </data>
+  <data name="Debate_Form_RoundsName" xml:space="preserve">
+    <value>Rondas como mucho</value>
+    <comment>Accessible name of a limit.</comment>
+  </data>
+  <data name="Debate_Form_Minutes" xml:space="preserve">
+    <value>Minutos</value>
+    <comment>Label of a limit.</comment>
+  </data>
+  <data name="Debate_Form_MinutesName" xml:space="preserve">
+    <value>Minutos como mucho</value>
+    <comment>Accessible name of a limit.</comment>
+  </data>
+  <data name="Debate_Form_Tokens" xml:space="preserve">
+    <value>Tokens</value>
+    <comment>Label of a limit.</comment>
+  </data>
+  <data name="Debate_Form_TokensName" xml:space="preserve">
+    <value>Tokens como mucho</value>
+    <comment>Accessible name of a limit.</comment>
+  </data>
+  <data name="Debate_Form_Limits" xml:space="preserve">
+    <value>Límites</value>
+    <comment>Label of the limits of a debate.</comment>
+  </data>
+  <data name="Debate_Form_Judges" xml:space="preserve">
+    <value>Jueces</value>
+    <comment>Accessible name of the list of judges.</comment>
+  </data>
+  <data name="Debate_Form_Participants" xml:space="preserve">
+    <value>Participantes</value>
+    <comment>Label and accessible name of the participants.</comment>
+  </data>
+  <data name="Debate_Form_Prepare" xml:space="preserve">
+    <value>Preparar</value>
+    <comment>Button that asks for the exact settings and the estimate.</comment>
+  </data>
+  <data name="Debate_Form_Waiver" xml:space="preserve">
+    <value>Excepción</value>
+    <comment>Accessible name of the text about an exception to the participants rule.</comment>
+  </data>
+  <data name="Debate_Form_ApprovalAsked" xml:space="preserve">
+    <value>Aprobación que se te pedirá: {0}</value>
+    <comment>The approval the button will ask for. {0}: its text.</comment>
+  </data>
+  <data name="Debate_View_BackToLive" xml:space="preserve">
+    <value>Volver al debate en curso</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Debate_View_Refresh" xml:space="preserve">
+    <value>Actualizar</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Debate_View_NewDebate" xml:space="preserve">
+    <value>Nuevo debate</value>
+    <comment>Button and title of the form.</comment>
+  </data>
+  <data name="Debate_View_Notices" xml:space="preserve">
+    <value>Avisos</value>
+    <comment>Accessible name of the list of notices.</comment>
+  </data>
+  <data name="Debate_View_FilterByMode" xml:space="preserve">
+    <value>Filtrar por modo</value>
+    <comment>Accessible name of the filter.</comment>
+  </data>
+  <data name="Debate_View_History" xml:space="preserve">
+    <value>Historial de debates</value>
+    <comment>Accessible name of the list.</comment>
+  </data>
+  <data name="Debate_View_Open" xml:space="preserve">
+    <value>Abrir</value>
+    <comment>Button on a debate of the history.</comment>
+  </data>
+  <data name="Debate_View_OpenName" xml:space="preserve">
+    <value>Abrir el debate {0}</value>
+    <comment>Accessible name of the button. {0}: the debate.</comment>
+  </data>
+  <data name="Debate_View_Resume" xml:space="preserve">
+    <value>Reanudar</value>
+    <comment>Button on an interrupted debate.</comment>
+  </data>
+  <data name="Debate_View_ResumeHint" xml:space="preserve">
+    <value>Gasta parte del límite de uso de tu plan y te pide aprobación. Los turnos abiertos se cierran como interrumpidos y lo ya anunciado no se repite.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Debate_View_ResumeName" xml:space="preserve">
+    <value>Reanudar el debate {0}</value>
+    <comment>Accessible name of the button. {0}: the debate.</comment>
+  </data>
+  <data name="Debate_View_Empty" xml:space="preserve">
+    <value>Abre un debate del historial o pulsa «Nuevo debate». Un debate gasta el límite de uso de tu plan. Antes, «Abrir debate» te enseña la configuración exacta y la estimación, y te pide aprobación.</value>
+    <comment>What the right side says when nothing is shown.</comment>
+  </data>
+  <data name="Debate_NewView_Mode" xml:space="preserve">
+    <value>Modo</value>
+    <comment>Label.</comment>
+  </data>
+  <data name="Debate_NewView_ModeName" xml:space="preserve">
+    <value>Modo del debate</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Debate_NewView_Question" xml:space="preserve">
+    <value>Pregunta (se envía tal cual a los participantes y al juez)</value>
+    <comment>Label.</comment>
+  </data>
+  <data name="Debate_NewView_QuestionName" xml:space="preserve">
+    <value>Pregunta del debate</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Debate_NewView_Subject" xml:space="preserve">
+    <value>Objeto</value>
+    <comment>Label.</comment>
+  </data>
+  <data name="Debate_NewView_SubjectName" xml:space="preserve">
+    <value>Objeto del debate</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Debate_NewView_RunName" xml:space="preserve">
+    <value>Ejecución que se debate</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Debate_NewView_Requirements" xml:space="preserve">
+    <value>Requisitos</value>
+    <comment>Label.</comment>
+  </data>
+  <data name="Debate_NewView_Criteria" xml:space="preserve">
+    <value>Criterios</value>
+    <comment>Accessible name of the list of criteria.</comment>
+  </data>
+  <data name="Debate_NewView_CriterionTextName" xml:space="preserve">
+    <value>Texto del criterio {0}</value>
+    <comment>Accessible name. {0}: its id.</comment>
+  </data>
+  <data name="Debate_NewView_CriterionMethodName" xml:space="preserve">
+    <value>Cómo se comprueba {0}</value>
+    <comment>Accessible name. {0}: its id.</comment>
+  </data>
+  <data name="Debate_NewView_Mandatory" xml:space="preserve">
+    <value>Obligatorio</value>
+    <comment>Check box.</comment>
+  </data>
+  <data name="Debate_NewView_Remove" xml:space="preserve">
+    <value>Quitar</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Debate_NewView_RemoveName" xml:space="preserve">
+    <value>Quitar {0}</value>
+    <comment>Accessible name. {0}: its id.</comment>
+  </data>
+  <data name="Debate_NewView_AddCriterion" xml:space="preserve">
+    <value>Añadir criterio</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Debate_NewView_Participants" xml:space="preserve">
+    <value>Participantes del equipo (solo pueden leer: sin escribir, sin terminal, sin red, sin herramientas externas y sin skills)</value>
+    <comment>Label.</comment>
+  </data>
+  <data name="Debate_NewView_RoleName" xml:space="preserve">
+    <value>Papel de {0}</value>
+    <comment>Accessible name. {0}: the participant.</comment>
+  </data>
+  <data name="Debate_NewView_Judges" xml:space="preserve">
+    <value>Jueces candidatos (no participan)</value>
+    <comment>Label.</comment>
+  </data>
+  <data name="Debate_NewView_WhoJudges" xml:space="preserve">
+    <value>Quién juzga</value>
+    <comment>Label and accessible name.</comment>
+  </data>
+  <data name="Debate_NewView_Limits" xml:space="preserve">
+    <value>Límites (el primero que se alcance manda el debate a juicio)</value>
+    <comment>Label.</comment>
+  </data>
+  <data name="Debate_NewView_PrepareHint" xml:space="preserve">
+    <value>Pide al coordinador la configuración exacta y la estimación. No gasta el límite de uso de tu plan ni guarda nada.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Debate_NewView_Open" xml:space="preserve">
+    <value>Abrir debate</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Debate_NewView_OpenHint" xml:space="preserve">
+    <value>Te pide aprobación, unida a lo que ves aquí. Si cambias algo después, la aprobación se anula.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Debate_ChallengeView_Title" xml:space="preserve">
+    <value>Impugnar un veredicto</value>
+    <comment>Title.</comment>
+  </data>
+  <data name="Debate_ChallengeView_Explain" xml:space="preserve">
+    <value>La revisión es un debate con dos bandos: el proponente defiende el veredicto y el crítico defiende tu impugnación. Nunca entrega sola. Si el resultado pasa a ser una aprobación, solo cuenta si la aceptas tú.</value>
+    <comment>What the review is.</comment>
+  </data>
+  <data name="Debate_ChallengeView_Reasons" xml:space="preserve">
+    <value>Tus razones (se guardan como una nota tuya y abren la ronda 1 del crítico)</value>
+    <comment>Label.</comment>
+  </data>
+  <data name="Debate_ChallengeView_ReasonsName" xml:space="preserve">
+    <value>Razones de la impugnación</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Debate_ChallengeView_Question" xml:space="preserve">
+    <value>Pregunta de la revisión</value>
+    <comment>Label and accessible name.</comment>
+  </data>
+  <data name="Debate_ChallengeView_Proponent" xml:space="preserve">
+    <value>Defiende el veredicto (proponente)</value>
+    <comment>Label.</comment>
+  </data>
+  <data name="Debate_ChallengeView_Critic" xml:space="preserve">
+    <value>Defiende la impugnación (crítico)</value>
+    <comment>Label.</comment>
+  </data>
+  <data name="Debate_ChallengeView_Judges" xml:space="preserve">
+    <value>Jueces candidatos (el servicio decide cuál puede juzgar y cambia de juez si puede)</value>
+    <comment>Label.</comment>
+  </data>
+  <data name="Debate_ChallengeView_PrepareHint" xml:space="preserve">
+    <value>Pide al servicio quién juzga la revisión y cuánto costaría. No gasta el límite de uso de tu plan ni guarda nada.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Debate_ChallengeView_Challenge" xml:space="preserve">
+    <value>Impugnar</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Debate_ChallengeView_ChallengeHint" xml:space="preserve">
+    <value>Guarda la impugnación (tus razones quedan como prueba guardada) y abre la revisión, tras tu aprobación.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Debate_RoomView_RequestJudgment" xml:space="preserve">
+    <value>Pedir juicio ahora</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Debate_RoomView_RequestJudgmentHint" xml:space="preserve">
+    <value>Manda el debate a juicio con lo publicado. Si un turno falló dos veces, pide juicio con lo que hay.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Debate_RoomView_RunTests" xml:space="preserve">
+    <value>Ejecutar pruebas</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Debate_RoomView_RunTestsHint" xml:space="preserve">
+    <value>Ejecuta las pruebas de confianza sobre la versión guardada (commit) del objeto, en una zona aislada. No gasta el límite de uso de tu plan.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Debate_RoomView_Abort" xml:space="preserve">
+    <value>Abortar</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Debate_RoomView_AbortHint" xml:space="preserve">
+    <value>Cancela los turnos en curso y cierra el debate como abortado.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Debate_RoomView_PhaseName" xml:space="preserve">
+    <value>Fase del debate</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Debate_RoomView_QuestionLine" xml:space="preserve">
+    <value>Pregunta: {0}</value>
+    <comment>The question of the debate. {0}: its text.</comment>
+  </data>
+  <data name="Debate_RoomView_RequirementsUnread" xml:space="preserve">
+    <value>requisitos sin leer</value>
+    <comment>When the requirements could not be read.</comment>
+  </data>
+  <data name="Debate_RoomView_SealedName" xml:space="preserve">
+    <value>Ronda sellada</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Debate_RoomView_RetryTurn" xml:space="preserve">
+    <value>Reintentar turno</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Debate_RoomView_RetryTurnName" xml:space="preserve">
+    <value>Reintentar el turno de {0}</value>
+    <comment>Accessible name. {0}: the participant.</comment>
+  </data>
+  <data name="Debate_RoomView_Rounds" xml:space="preserve">
+    <value>Contribuciones por ronda</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Debate_RoomView_OpenEvidenceHint" xml:space="preserve">
+    <value>Abre la prueba guardada que cita. Solo se muestra si su huella sigue coincidiendo con la guardada.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Debate_RoomView_OpenEvidenceName" xml:space="preserve">
+    <value>Abrir la prueba {0}</value>
+    <comment>Accessible name. {0}: its id.</comment>
+  </data>
+  <data name="Debate_RoomView_Close" xml:space="preserve">
+    <value>Cerrar</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Debate_RoomView_EvidenceContent" xml:space="preserve">
+    <value>Contenido de la prueba</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Debate_RoomView_AddEvidence" xml:space="preserve">
+    <value>Añadir una prueba (una nota tuya que verán la ronda siguiente y el juez)</value>
+    <comment>Label.</comment>
+  </data>
+  <data name="Debate_RoomView_EvidenceTitleName" xml:space="preserve">
+    <value>Título de la prueba</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Debate_RoomView_EvidenceTextName" xml:space="preserve">
+    <value>Texto de la prueba</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Debate_RoomView_AddEvidenceButton" xml:space="preserve">
+    <value>Añadir prueba</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Debate_RoomView_Activity" xml:space="preserve">
+    <value>Actividad</value>
+    <comment>Label.</comment>
+  </data>
+  <data name="Debate_RoomView_ActivityName" xml:space="preserve">
+    <value>Actividad del debate</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Verdict_View_OutcomeName" xml:space="preserve">
+    <value>Resultado del juicio</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Verdict_View_Disposition" xml:space="preserve">
+    <value>Cómo terminó la revisión: {0}</value>
+    <comment>How the review ended. {0}: the conclusion.</comment>
+  </data>
+  <data name="Verdict_View_Verdicts" xml:space="preserve">
+    <value>Veredictos</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Verdict_View_VerdictName" xml:space="preserve">
+    <value>Veredicto {0}</value>
+    <comment>Accessible name. {0}: its id.</comment>
+  </data>
+  <data name="Verdict_View_Challenge" xml:space="preserve">
+    <value>Impugnar</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Verdict_View_ChallengeHint" xml:space="preserve">
+    <value>Abre un debate de revisión sobre este veredicto: el juez puede equivocarse. No se guarda nada hasta que lo confirmes.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Verdict_View_ChallengeName" xml:space="preserve">
+    <value>Impugnar {0}</value>
+    <comment>Accessible name. {0}: the verdict.</comment>
+  </data>
+  <data name="Verdict_View_Comparison" xml:space="preserve">
+    <value>Comparación de las propuestas</value>
+    <comment>Title of a list.</comment>
+  </data>
+  <data name="Verdict_View_Strengths" xml:space="preserve">
+    <value>· puntos fuertes:</value>
+    <comment>Part of a line of the comparison.</comment>
+  </data>
+  <data name="Verdict_View_Weaknesses" xml:space="preserve">
+    <value>· puntos débiles:</value>
+    <comment>Part of a line of the comparison.</comment>
+  </data>
+  <data name="Verdict_View_RequirementsCounts" xml:space="preserve">
+    <value>Requisitos   {0}</value>
+    <comment>Title of a list. {0}: the counts.</comment>
+  </data>
+  <data name="Verdict_View_Requirements" xml:space="preserve">
+    <value>Requisitos</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Verdict_View_StatementUnavailable" xml:space="preserve">
+    <value>(texto no disponible)</value>
+    <comment>A requirement whose text could not be read.</comment>
+  </data>
+  <data name="Verdict_View_Findings" xml:space="preserve">
+    <value>Hallazgos</value>
+    <comment>Title of a list.</comment>
+  </data>
+  <data name="Verdict_View_PendingObjections" xml:space="preserve">
+    <value>Objeciones pendientes</value>
+    <comment>Title of a list.</comment>
+  </data>
+  <data name="Verdict_View_Risks" xml:space="preserve">
+    <value>Riesgos</value>
+    <comment>Title of a list.</comment>
+  </data>
+  <data name="Verdict_View_CorrectiveActions" xml:space="preserve">
+    <value>Acciones correctivas</value>
+    <comment>Title of a list.</comment>
+  </data>
+  <data name="Verdict_View_Labels" xml:space="preserve">
+    <value>Quién era cada etiqueta (el juez no lo vio: el expediente es a ciegas)</value>
+    <comment>Title of a list.</comment>
+  </data>
+  <data name="Verdict_View_Decide" xml:space="preserve">
+    <value>Decidir yo</value>
+    <comment>Title and button.</comment>
+  </data>
+  <data name="Verdict_View_DecideExplain" xml:space="preserve">
+    <value>Tu decisión queda en el historial, unida a los veredictos y con tu comentario. El debate se cierra con la regla «decisión tuya».</value>
+    <comment>What «Decidir yo» does.</comment>
+  </data>
+  <data name="Verdict_View_YourDecision" xml:space="preserve">
+    <value>Tu decisión</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Verdict_View_ChosenProposal" xml:space="preserve">
+    <value>Propuesta elegida</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Verdict_View_WhyDecide" xml:space="preserve">
+    <value>Por qué decides esto</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Verdict_View_CreateTasks" xml:space="preserve">
+    <value>Crear tareas correctivas</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Verdict_View_CreateTasksHint" xml:space="preserve">
+    <value>Abre el orquestador con una petición nueva que cita las acciones correctivas como datos. Nada se planifica ni se ejecuta sin ti.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Info_Debates_Title" xml:space="preserve">
+    <value>Debates</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Debates_What" xml:space="preserve">
+    <value>Aquí varios agentes discuten una pregunta y un revisor independiente (juez) decide. Cada debate gasta el límite de uso de tu plan. Por eso ves antes la configuración y la estimación, y tú lo apruebas.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Debates_Actions" xml:space="preserve">
+    <value>Abre un debate del historial para leerlo.
+Pulsa «Nuevo debate» para preparar uno.
+Reanuda un debate interrumpido: te pide aprobación.
+Filtra el historial por modo.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Verdict_Title" xml:space="preserve">
+    <value>Tarjeta del veredicto</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Verdict_What" xml:space="preserve">
+    <value>Es la respuesta del juez: si aprueba, pide cambios o rechaza, y por qué. Cada requisito lleva su estado y las pruebas que cita. Si el juez rompe alguna regla, lo verás marcado.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Verdict_Actions" xml:space="preserve">
+    <value>Mira qué requisitos se cumplen y cuáles no.
+Abre las pruebas que cita el juez.
+Pulsa «Impugnar» si no estás de acuerdo.
+Pulsa «Crear tareas correctivas» para pedir los arreglos al orquestador.
+Decide tú, si el jurado no se pone de acuerdo.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Challenge_Title" xml:space="preserve">
+    <value>Impugnación</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Challenge_What" xml:space="preserve">
+    <value>Si crees que un veredicto es erróneo, puedes impugnarlo. Se abre un debate de revisión con dos bandos. Nada se entrega solo: si el resultado pasa a aprobar, lo aceptas tú.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Challenge_Actions" xml:space="preserve">
+    <value>Escribe por qué impugnas: queda guardado como una nota tuya.
+Elige quién defiende el veredicto y quién la impugnación.
+Pulsa «Preparar» para ver quién juzga y la estimación.
+Pulsa «Impugnar» y aprueba para abrir la revisión.</value>
+    <comment>Information button.</comment>
+  </data>
+</root>

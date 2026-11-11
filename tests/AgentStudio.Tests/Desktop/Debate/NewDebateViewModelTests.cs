@@ -44,7 +44,7 @@ public sealed class NewDebateViewModelTests
         Assert.Equal(["arquitecto", "critico", "ejecutor"], form.Participants.Select(p => p.Agent.Id.Value));
         Assert.Equal(["juez-claude", "juez-revision"], form.Judges.Select(j => j.Agent.Id.Value));
         Assert.Equal("Crítico", form.Participants.Single(p => p.Agent.Id.Value == "critico").SelectedRole.Label);
-        Assert.Equal("Codex CLI · OpenAI · modelo predeterminado del CLI", form.Participants.Single(p => p.Agent.Id.Value == "critico").Where);
+        Assert.Equal("Codex CLI · OpenAI · modelo por defecto del programa", form.Participants.Single(p => p.Agent.Id.Value == "critico").Where);
         Assert.All(form.Judges, j => Assert.True(j.IsIncluded));
     }
 
@@ -68,7 +68,7 @@ public sealed class NewDebateViewModelTests
 
         Assert.Contains("Escribe la pregunta del debate.", form.Problems);
         Assert.Contains("Hacen falta dos participantes como mínimo.", form.Problems);
-        Assert.Contains("Escribe al menos un criterio: es lo que el juez evalúa.", form.Problems);
+        Assert.Contains("Escribe al menos un criterio: es lo que evalúa el juez.", form.Problems);
         Assert.False(form.PrepareCommand.CanExecute(null));
     }
 
@@ -98,7 +98,7 @@ public sealed class NewDebateViewModelTests
 
         form.SelectedJudging = form.JudgingKinds.Single(k => k.Value == DebateJudgingKind.CrossVendorPanel);
         Assert.False(form.JudgingHintIsWarning);
-        Assert.Contains("dispensa", form.JudgingHelp, StringComparison.Ordinal);
+        Assert.Contains("excepción", form.JudgingHelp, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -113,9 +113,9 @@ public sealed class NewDebateViewModelTests
         form.SelectedRun = form.Runs.Single();
 
         Assert.Equal(DebateSubjectKind.Run, form.SelectedSubject.Value);
-        Assert.Contains("la calcula el coordinador al preparar", form.JudgingHint, StringComparison.Ordinal);
+        Assert.Contains("El coordinador calcula quién puede juzgar al preparar", form.JudgingHint, StringComparison.Ordinal);
         Assert.False(form.WritesCriteria);
-        Assert.Equal($"Los requisitos congelados de la ejecución (2 requisitos, hash {Requirements.ContentHash[..12]}).", form.RequirementsText);
+        Assert.Equal($"Los requisitos congelados de la ejecución (2 requisitos, huella {Requirements.ContentHash[..12]}).", form.RequirementsText);
         Assert.Empty(form.Problems);
     }
 
@@ -140,7 +140,7 @@ public sealed class NewDebateViewModelTests
             form.SelectedRun = form.Runs.Single();
         }
 
-        Assert.Contains("Los requisitos fijos de este modo (orq-1 a orq-7) no están disponibles en esta composición.", without.Problems);
+        Assert.Contains("Los requisitos fijos de este modo (orq-1 a orq-7) no están disponibles.", without.Problems);
         Assert.Empty(with.Problems);
         Assert.StartsWith("Requisitos fijos del modo (1 requisito", with.RequirementsText, StringComparison.Ordinal);
     }
@@ -227,7 +227,7 @@ public sealed class NewDebateViewModelTests
         var (form, _) = await FormAsync(new DebateScreenBackend(Roster: new FakeRoster(() => Roster)));
         Fill(form);
 
-        Assert.Contains("Falta el coordinador de debates en esta composición: no se puede preparar ni abrir ningún debate.", form.Problems);
+        Assert.Contains("Falta el coordinador de debates: no se puede preparar ni abrir ningún debate.", form.Problems);
         Assert.False(form.PrepareCommand.CanExecute(null));
     }
 
@@ -238,7 +238,7 @@ public sealed class NewDebateViewModelTests
         form.Question = "¿Procesos o hilos?";
         form.SelectedSubject = form.Subjects.Single(s => s.Value == DebateSubjectKind.None);
 
-        Assert.Contains("Falta la plantilla de agentes en esta composición: no hay participantes ni jueces que elegir.", form.Problems);
+        Assert.Contains("Falta el equipo de agentes: no hay participantes ni jueces que elegir.", form.Problems);
         Assert.DoesNotContain("Hacen falta dos participantes como mínimo.", form.Problems);
         Assert.DoesNotContain(form.Problems, p => p.Contains("ningún juez", StringComparison.Ordinal));
     }
@@ -250,7 +250,7 @@ public sealed class NewDebateViewModelTests
 
         form.SelectedMode = form.Modes.Single(m => m.Value == DebateMode.ImplementationAudit);
 
-        Assert.Contains("Falta el registro de ejecuciones en esta composición: no se puede debatir sobre una ejecución.", form.Problems);
+        Assert.Contains("Falta el registro de ejecuciones: no se puede debatir sobre una ejecución.", form.Problems);
         Assert.Empty(form.Runs);
     }
 

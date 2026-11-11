@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the Audit area in English: the same keys and placeholders as AuditStrings.resx. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Audit_Doc_Title" xml:space="preserve">
+    <value>Audit · {0}</value>
+  </data>
+  <data name="Audit_Report_Title" xml:space="preserve">
+    <value>Project audit · {0} · {1}</value>
+  </data>
+  <data name="Audit_Why_LogBroken" xml:space="preserve">
+    <value>the decision history is not intact</value>
+  </data>
+  <data name="Audit_Why_NoVerdict" xml:space="preserve">
+    <value>no judge issued a verdict</value>
+  </data>
+  <data name="Audit_Why_Issues_One" xml:space="preserve">
+    <value>{0} validation issue</value>
+  </data>
+  <data name="Audit_Why_Issues_Other" xml:space="preserve">
+    <value>{0} validation issues</value>
+  </data>
+  <data name="Audit_Trust_Yes" xml:space="preserve">
+    <value>Reliable: a judge issued it, it passed validation and the decision history is intact.</value>
+  </data>
+  <data name="Audit_Trust_No" xml:space="preserve">
+    <value>Not reliable: {0}.</value>
+  </data>
+  <data name="Audit_Integrity_Intact" xml:space="preserve">
+    <value>The decision history is intact: nobody has touched it.</value>
+  </data>
+  <data name="Audit_Integrity_Broken" xml:space="preserve">
+    <value>The decision history is broken. The judge was not launched. What follows is only what the system checks without writing anything.</value>
+  </data>
+  <data name="Audit_Commit" xml:space="preserve">
+    <value>Saved version (commit) audited: {0}</value>
+  </data>
+  <data name="Audit_NoCommit" xml:space="preserve">
+    <value>There is nothing to audit: the repository has no saved version (commit).</value>
+  </data>
+  <data name="Audit_Report_Uncommitted" xml:space="preserve">
+    <value>There are changes not saved as a version (commit): they are not part of the audit.</value>
+  </data>
+  <data name="Audit_Disposition" xml:space="preserve">
+    <value>Conclusion: {0}</value>
+  </data>
+  <data name="Audit_Escalation" xml:space="preserve">
+    <value>The system escalated it, not a judge: {0}</value>
+  </data>
+  <data name="Audit_Verification_NoCommit" xml:space="preserve">
+    <value>no saved version</value>
+  </data>
+  <data name="Audit_Card_Title" xml:space="preserve">
+    <value>Verdict of the audit</value>
+  </data>
+  <data name="Audit_Requirements_None" xml:space="preserve">
+    <value>No frozen requirements.</value>
+  </data>
+  <data name="Audit_Requirements_Latest" xml:space="preserve">
+    <value>The audit is against the latest frozen requirements: {0} (fingerprint {1}). To use others, freeze them first. You do it in "Requirements", in the orchestrator.</value>
+  </data>
+  <data name="Audit_Requirements_Missing" xml:space="preserve">
+    <value>The project has no frozen requirements. Freeze them in "Requirements", in the orchestrator, to be able to audit.</value>
+  </data>
+  <data name="Audit_Notice_NoService" xml:space="preserve">
+    <value>The audit service is missing: the project cannot be audited.</value>
+  </data>
+  <data name="Audit_Notice_NoWorkspace" xml:space="preserve">
+    <value>The project's store is missing: the project cannot be opened.</value>
+  </data>
+  <data name="Audit_Notice_NoRequirementStore" xml:space="preserve">
+    <value>The store of requirements is missing: without frozen requirements there is no audit.</value>
+  </data>
+  <data name="Audit_Notice_NoRoster" xml:space="preserve">
+    <value>The team of agents is missing: there is no judge to choose.</value>
+  </data>
+  <data name="Audit_Error_Prepare" xml:space="preserve">
+    <value>The audit could not be prepared: {0}</value>
+  </data>
+  <data name="Audit_Error_Audit" xml:space="preserve">
+    <value>It was not audited: {0}</value>
+  </data>
+  <data name="Audit_Status_Preparing" xml:space="preserve">
+    <value>Preparing the audit. This does not spend your plan's usage limit or save anything…</value>
+  </data>
+  <data name="Audit_Status_Prepared" xml:space="preserve">
+    <value>Check the settings and the estimate. "Audit" will ask for your approval.</value>
+  </data>
+  <data name="Audit_Problem_NoService" xml:space="preserve">
+    <value>The audit service is missing.</value>
+  </data>
+  <data name="Audit_Problem_NoProject" xml:space="preserve">
+    <value>Open the project to audit it.</value>
+  </data>
+  <data name="Audit_Problem_NoRequirements" xml:space="preserve">
+    <value>Without frozen requirements there is no audit. Freeze them in "Requirements", in the orchestrator.</value>
+  </data>
+  <data name="Audit_Problem_PickJudge" xml:space="preserve">
+    <value>Choose the judge of the audit.</value>
+  </data>
+  <data name="Audit_Prep_Head" xml:space="preserve">
+    <value>The latest saved version (commit HEAD {0}) is audited.</value>
+  </data>
+  <data name="Audit_Prep_NoHead" xml:space="preserve">
+    <value>The repository has no saved version (commit).</value>
+  </data>
+  <data name="Audit_Prep_Uncommitted" xml:space="preserve">
+    <value>There are changes not saved as a version (commit): they are not part of the audit, and the report will say so.</value>
+  </data>
+  <data name="Audit_Prep_Judge" xml:space="preserve">
+    <value>Judge: {0} · {1}</value>
+  </data>
+  <data name="Audit_Prep_NoJudge" xml:space="preserve">
+    <value>Nobody can judge: whoever produced the code cannot be the judge, and that rule allows no exceptions.</value>
+  </data>
+  <data name="Audit_Prep_NoProducers" xml:space="preserve">
+    <value>The history knows no producer and you declared no authors.</value>
+  </data>
+  <data name="Audit_Prep_Producers" xml:space="preserve">
+    <value>These companies produced the code: {0}. The judge cannot be from any of them.</value>
+  </data>
+  <data name="Audit_Prep_Profile" xml:space="preserve">
+    <value>Verification profile "{0}" (fingerprint {1}): it runs in an isolated zone, with minimum permissions and on a copy of the latest saved version.</value>
+  </data>
+  <data name="Audit_Prep_NoProfile" xml:space="preserve">
+    <value>No verification profile: no tests are run.</value>
+  </data>
+  <data name="Audit_Prep_Skipped" xml:space="preserve">
+    <value>{0}: it does not run in an audit, because it would run with your permissions.</value>
+  </data>
+  <data name="Audit_Prep_Estimate" xml:space="preserve">
+    <value>Estimate: {0} tokens ({1}), plus at most one correction by the judge. Verifying does not spend your plan's usage limit.</value>
+  </data>
+  <data name="Audit_Prep_EstimateNoJudge" xml:space="preserve">
+    <value>Without a judge your plan's usage limit is not spent: only the latest saved version is verified and the pending problems are listed.</value>
+  </data>
+  <data name="Audit_Prep_ModeJudge" xml:space="preserve">
+    <value>"Audit" launches the judge after the isolated verification.</value>
+  </data>
+  <data name="Audit_Prep_ModeNoJudge" xml:space="preserve">
+    <value>"Audit" will not launch any judge. The report will give only what the system checks without a judge: the verification and the pending problems.</value>
+  </data>
+  <data name="Audit_View_AuditAgain" xml:space="preserve">
+    <value>Audit again</value>
+  </data>
+  <data name="Audit_View_AuditAgainHint" xml:space="preserve">
+    <value>It goes back to the preparation and asks for it again. The latest saved version and the history may have changed.</value>
+  </data>
+  <data name="Audit_View_Notices" xml:space="preserve">
+    <value>Notices</value>
+  </data>
+  <data name="Audit_View_Judge" xml:space="preserve">
+    <value>Judge (never from a company that produced the code: that rule allows no exceptions)</value>
+  </data>
+  <data name="Audit_View_JudgeName" xml:space="preserve">
+    <value>Judge of the audit</value>
+  </data>
+  <data name="Audit_View_Authors" xml:space="preserve">
+    <value>Authors you declare (the history does not know who wrote what Agent Studio did not)</value>
+  </data>
+  <data name="Audit_View_AuthorsName" xml:space="preserve">
+    <value>Declared authors</value>
+  </data>
+  <data name="Audit_View_Prepare" xml:space="preserve">
+    <value>Prepare</value>
+  </data>
+  <data name="Audit_View_PrepareHint" xml:space="preserve">
+    <value>It works out the judge, the profile and the estimate. It does not spend your plan's usage limit or save anything.</value>
+  </data>
+  <data name="Audit_View_Audit" xml:space="preserve">
+    <value>Audit</value>
+  </data>
+  <data name="Audit_View_AuditHint" xml:space="preserve">
+    <value>It asks for your approval and audits the latest saved version (commit HEAD).</value>
+  </data>
+  <data name="Audit_View_TrustName" xml:space="preserve">
+    <value>Reliability of the report</value>
+  </data>
+  <data name="Audit_View_Verification" xml:space="preserve">
+    <value>Verification of the latest saved version (captured by the system)</value>
+  </data>
+  <data name="Audit_View_Pending" xml:space="preserve">
+    <value>Pending problems (listed by the system, without a judge)</value>
+  </data>
+  <data name="Audit_View_Activity" xml:space="preserve">
+    <value>Activity of the judge and the verification</value>
+  </data>
+  <data name="Audit_View_ActivityName" xml:space="preserve">
+    <value>Activity of the audit</value>
+  </data>
+  <data name="Info_Audit_Title" xml:space="preserve">
+    <value>Audit</value>
+  </data>
+  <data name="Info_Audit_What" xml:space="preserve">
+    <value>It checks whether the whole project meets its requirements, not just one run. The system checks the latest saved version and a judge gives its verdict. The report says whether you can rely on it.</value>
+  </data>
+  <data name="Info_Audit_Actions" xml:space="preserve">
+    <value>Choose the judge and declare who wrote the code.
+Press "Prepare" to see the estimate: it spends nothing.
+Press "Audit" and approve to launch it.
+Read in the report whether it is reliable and why.</value>
+  </data>
+</root>

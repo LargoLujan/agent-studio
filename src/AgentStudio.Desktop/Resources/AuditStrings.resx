@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the Audit area (docs/17 D-47, ADR-0054; Phase 14 WP-14A part b) in Spanish of Spain, the source language. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Audit_Doc_Title" xml:space="preserve">
+    <value>Auditoría · {0}</value>
+    <comment>Title of the tab. {0}: the project.</comment>
+  </data>
+  <data name="Audit_Report_Title" xml:space="preserve">
+    <value>Auditoría del proyecto · {0} · {1}</value>
+    <comment>Title of the report. {0}: date and time, {1}: id of the audit.</comment>
+  </data>
+  <data name="Audit_Why_LogBroken" xml:space="preserve">
+    <value>el historial de decisiones no está íntegro</value>
+    <comment>A reason the report cannot be trusted.</comment>
+  </data>
+  <data name="Audit_Why_NoVerdict" xml:space="preserve">
+    <value>ningún juez emitió un veredicto</value>
+    <comment>A reason the report cannot be trusted.</comment>
+  </data>
+  <data name="Audit_Why_Issues_One" xml:space="preserve">
+    <value>{0} incidencia de validación</value>
+    <comment>A reason the report cannot be trusted.</comment>
+  </data>
+  <data name="Audit_Why_Issues_Other" xml:space="preserve">
+    <value>{0} incidencias de validación</value>
+    <comment>A reason the report cannot be trusted.</comment>
+  </data>
+  <data name="Audit_Trust_Yes" xml:space="preserve">
+    <value>Fiable: lo emitió un juez, pasó la validación y el historial de decisiones está íntegro.</value>
+    <comment>Whether the report can be trusted.</comment>
+  </data>
+  <data name="Audit_Trust_No" xml:space="preserve">
+    <value>No fiable: {0}.</value>
+    <comment>Whether the report can be trusted. {0}: the reasons.</comment>
+  </data>
+  <data name="Audit_Integrity_Intact" xml:space="preserve">
+    <value>El historial de decisiones está íntegro: nadie lo ha tocado.</value>
+    <comment>State of the decision history.</comment>
+  </data>
+  <data name="Audit_Integrity_Broken" xml:space="preserve">
+    <value>El historial de decisiones está roto. No se lanzó al juez. Lo que sigue es solo lo que el sistema comprueba sin escribir nada.</value>
+    <comment>State of the decision history.</comment>
+  </data>
+  <data name="Audit_Commit" xml:space="preserve">
+    <value>Versión guardada (commit) auditada: {0}</value>
+    <comment>What was audited. {0}: short fingerprint.</comment>
+  </data>
+  <data name="Audit_NoCommit" xml:space="preserve">
+    <value>No hay nada que auditar: el repositorio no tiene ninguna versión guardada (commit).</value>
+    <comment>What was audited.</comment>
+  </data>
+  <data name="Audit_Report_Uncommitted" xml:space="preserve">
+    <value>Hay cambios sin guardar como versión (commit): no entran en la auditoría.</value>
+    <comment>Warning on the report.</comment>
+  </data>
+  <data name="Audit_Disposition" xml:space="preserve">
+    <value>Conclusión: {0}</value>
+    <comment>How the review of the audit ended. {0}: the conclusion.</comment>
+  </data>
+  <data name="Audit_Escalation" xml:space="preserve">
+    <value>Lo escaló el sistema, no un juez: {0}</value>
+    <comment>When no judge ran. {0}: the system's summary.</comment>
+  </data>
+  <data name="Audit_Verification_NoCommit" xml:space="preserve">
+    <value>sin versión guardada</value>
+    <comment>Part of the description of a piece of verification.</comment>
+  </data>
+  <data name="Audit_Card_Title" xml:space="preserve">
+    <value>Veredicto de la auditoría</value>
+    <comment>Title of the card of the audit.</comment>
+  </data>
+  <data name="Audit_Requirements_None" xml:space="preserve">
+    <value>Sin requisitos congelados.</value>
+    <comment>Which requirements are audited.</comment>
+  </data>
+  <data name="Audit_Requirements_Latest" xml:space="preserve">
+    <value>Se audita contra los últimos requisitos congelados: {0} (huella {1}). Para usar otros, congélalos antes. Se hace en «Requisitos», en el orquestador.</value>
+    <comment>Which requirements are audited.</comment>
+  </data>
+  <data name="Audit_Requirements_Missing" xml:space="preserve">
+    <value>El proyecto no tiene requisitos congelados. Congélalos en «Requisitos», en el orquestador, para poder auditar.</value>
+    <comment>Which requirements are audited.</comment>
+  </data>
+  <data name="Audit_Notice_NoService" xml:space="preserve">
+    <value>Falta el servicio de auditoría: no se puede auditar el proyecto.</value>
+    <comment>Notice at the top of the screen.</comment>
+  </data>
+  <data name="Audit_Notice_NoWorkspace" xml:space="preserve">
+    <value>Falta el almacén del proyecto: no se puede abrir el proyecto.</value>
+    <comment>Notice at the top of the screen.</comment>
+  </data>
+  <data name="Audit_Notice_NoRequirementStore" xml:space="preserve">
+    <value>Falta el almacén de requisitos: sin requisitos congelados no se audita.</value>
+    <comment>Notice at the top of the screen.</comment>
+  </data>
+  <data name="Audit_Notice_NoRoster" xml:space="preserve">
+    <value>Falta el equipo de agentes: no hay juez que elegir.</value>
+    <comment>Notice at the top of the screen.</comment>
+  </data>
+  <data name="Audit_Error_Prepare" xml:space="preserve">
+    <value>No se pudo preparar la auditoría: {0}</value>
+    <comment>Error. {0}: the reason.</comment>
+  </data>
+  <data name="Audit_Error_Audit" xml:space="preserve">
+    <value>No se auditó: {0}</value>
+    <comment>Error. {0}: the reason.</comment>
+  </data>
+  <data name="Audit_Status_Preparing" xml:space="preserve">
+    <value>Preparando la auditoría. Esto no gasta el límite de uso de tu plan ni guarda nada…</value>
+    <comment>Status.</comment>
+  </data>
+  <data name="Audit_Status_Prepared" xml:space="preserve">
+    <value>Revisa la configuración y la estimación. «Auditar» te pedirá aprobación.</value>
+    <comment>Status.</comment>
+  </data>
+  <data name="Audit_Problem_NoService" xml:space="preserve">
+    <value>Falta el servicio de auditoría.</value>
+    <comment>Problem of the audit screen.</comment>
+  </data>
+  <data name="Audit_Problem_NoProject" xml:space="preserve">
+    <value>Abre el proyecto para auditarlo.</value>
+    <comment>Problem of the audit screen.</comment>
+  </data>
+  <data name="Audit_Problem_NoRequirements" xml:space="preserve">
+    <value>Sin requisitos congelados no se audita. Congélalos en «Requisitos», en el orquestador.</value>
+    <comment>Problem of the audit screen.</comment>
+  </data>
+  <data name="Audit_Problem_PickJudge" xml:space="preserve">
+    <value>Elige el juez de la auditoría.</value>
+    <comment>Problem of the audit screen.</comment>
+  </data>
+  <data name="Audit_Prep_Head" xml:space="preserve">
+    <value>Se audita la última versión guardada (commit HEAD {0}).</value>
+    <comment>What will be audited. {0}: short fingerprint.</comment>
+  </data>
+  <data name="Audit_Prep_NoHead" xml:space="preserve">
+    <value>El repositorio no tiene ninguna versión guardada (commit).</value>
+    <comment>What will be audited.</comment>
+  </data>
+  <data name="Audit_Prep_Uncommitted" xml:space="preserve">
+    <value>Hay cambios sin guardar como versión (commit): no entran en la auditoría, y el informe lo dirá.</value>
+    <comment>Warning of the preparation.</comment>
+  </data>
+  <data name="Audit_Prep_Judge" xml:space="preserve">
+    <value>Juez: {0} · {1}</value>
+    <comment>Who will judge. {0}: the agent, {1}: its program, company and model.</comment>
+  </data>
+  <data name="Audit_Prep_NoJudge" xml:space="preserve">
+    <value>Nadie puede juzgar: quien produjo el código no puede ser juez, y esa regla no admite excepciones.</value>
+    <comment>Who will judge.</comment>
+  </data>
+  <data name="Audit_Prep_NoProducers" xml:space="preserve">
+    <value>El historial no conoce a ningún productor y no declaraste autores.</value>
+    <comment>Who produced the code.</comment>
+  </data>
+  <data name="Audit_Prep_Producers" xml:space="preserve">
+    <value>Estas empresas produjeron el código: {0}. El juez no puede ser de ninguna de ellas.</value>
+    <comment>Who produced the code. {0}: the companies.</comment>
+  </data>
+  <data name="Audit_Prep_Profile" xml:space="preserve">
+    <value>Perfil de verificación «{0}» (huella {1}): se ejecuta en una zona aislada, con permisos mínimos y sobre una copia de la última versión guardada.</value>
+    <comment>What will be verified. {0}: name of the profile, {1}: short fingerprint.</comment>
+  </data>
+  <data name="Audit_Prep_NoProfile" xml:space="preserve">
+    <value>Sin perfil de verificación: no se ejecutan pruebas.</value>
+    <comment>What will be verified.</comment>
+  </data>
+  <data name="Audit_Prep_Skipped" xml:space="preserve">
+    <value>{0}: no se ejecuta en una auditoría, porque lo haría con tus permisos.</value>
+    <comment>A step of the profile that is left out. {0}: the step.</comment>
+  </data>
+  <data name="Audit_Prep_Estimate" xml:space="preserve">
+    <value>Estimación: {0} tokens ({1}), más como mucho una corrección del juez. Verificar no gasta el límite de uso de tu plan.</value>
+    <comment>What the audit may spend. {0}: tokens, {1}: origin.</comment>
+  </data>
+  <data name="Audit_Prep_EstimateNoJudge" xml:space="preserve">
+    <value>Sin juez no se gasta el límite de uso de tu plan: solo se verifica la última versión guardada y se listan los problemas pendientes.</value>
+    <comment>What the audit may spend.</comment>
+  </data>
+  <data name="Audit_Prep_ModeJudge" xml:space="preserve">
+    <value>«Auditar» lanza al juez tras la verificación aislada.</value>
+    <comment>What «Auditar» will do.</comment>
+  </data>
+  <data name="Audit_Prep_ModeNoJudge" xml:space="preserve">
+    <value>«Auditar» no lanzará a ningún juez. El informe dará solo lo que el sistema comprueba sin juez: la verificación y los problemas pendientes.</value>
+    <comment>What «Auditar» will do.</comment>
+  </data>
+  <data name="Audit_View_AuditAgain" xml:space="preserve">
+    <value>Volver a auditar</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Audit_View_AuditAgainHint" xml:space="preserve">
+    <value>Vuelve a la preparación y la pide de nuevo. La última versión guardada y el historial pueden haber cambiado.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Audit_View_Notices" xml:space="preserve">
+    <value>Avisos</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Audit_View_Judge" xml:space="preserve">
+    <value>Juez (nunca de una empresa que produjo el código: esa regla no admite excepciones)</value>
+    <comment>Label.</comment>
+  </data>
+  <data name="Audit_View_JudgeName" xml:space="preserve">
+    <value>Juez de la auditoría</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Audit_View_Authors" xml:space="preserve">
+    <value>Autores que declaras (el historial no sabe quién escribió lo que no hizo Agent Studio)</value>
+    <comment>Label.</comment>
+  </data>
+  <data name="Audit_View_AuthorsName" xml:space="preserve">
+    <value>Autores declarados</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Audit_View_Prepare" xml:space="preserve">
+    <value>Preparar</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Audit_View_PrepareHint" xml:space="preserve">
+    <value>Calcula el juez, el perfil y la estimación. No gasta el límite de uso de tu plan ni guarda nada.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Audit_View_Audit" xml:space="preserve">
+    <value>Auditar</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Audit_View_AuditHint" xml:space="preserve">
+    <value>Te pide aprobación y audita la última versión guardada (commit HEAD).</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Audit_View_TrustName" xml:space="preserve">
+    <value>Fiabilidad del informe</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Audit_View_Verification" xml:space="preserve">
+    <value>Verificación de la última versión guardada (la capta el sistema)</value>
+    <comment>Label.</comment>
+  </data>
+  <data name="Audit_View_Pending" xml:space="preserve">
+    <value>Problemas pendientes (los lista el sistema, sin juez)</value>
+    <comment>Label.</comment>
+  </data>
+  <data name="Audit_View_Activity" xml:space="preserve">
+    <value>Actividad del juez y de la verificación</value>
+    <comment>Label.</comment>
+  </data>
+  <data name="Audit_View_ActivityName" xml:space="preserve">
+    <value>Actividad de la auditoría</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Info_Audit_Title" xml:space="preserve">
+    <value>Auditoría</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Audit_What" xml:space="preserve">
+    <value>Revisa si todo el proyecto cumple sus requisitos, no solo una ejecución. El sistema comprueba la última versión guardada y un juez da su veredicto. El informe dice si te puedes fiar de él.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Audit_Actions" xml:space="preserve">
+    <value>Elige el juez y declara quién escribió el código.
+Pulsa «Preparar» para ver la estimación: no gasta nada.
+Pulsa «Auditar» y aprueba para lanzarla.
+Lee en el informe si es fiable y por qué.</value>
+    <comment>Information button.</comment>
+  </data>
+</root>

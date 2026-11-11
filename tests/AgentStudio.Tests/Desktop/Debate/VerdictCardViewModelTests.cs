@@ -39,13 +39,13 @@ public sealed class VerdictCardViewModelTests
         Assert.Equal("Propuesta elegida: P2", card.Verdicts[1].ChosenProposalText);
         Assert.Equal("Sin resolver · el jurado discrepa: decides tú", card.OutcomeText);
         Assert.Equal(Tone.Warning, card.OutcomeTone);
-        Assert.Equal("Disposición del juicio: Jurado cruzado", card.JudgingText);
+        Assert.Equal("Quién juzga: Jurado cruzado", card.JudgingText);
         Assert.Contains("Anthropic y OpenAI", card.WaiverText, StringComparison.Ordinal);
-        Assert.Contains("no se dispensa nunca", card.WaiverText, StringComparison.Ordinal);
+        Assert.Contains("no admite excepciones", card.WaiverText, StringComparison.Ordinal);
         Assert.Equal(
             [
                 new LabelRow("P1", "Proponente", "arquitecto", "Claude Code · Anthropic · claude-haiku-4-5"),
-                new LabelRow("P2", "Crítico", "critico", "Codex CLI · OpenAI · modelo predeterminado del CLI"),
+                new LabelRow("P2", "Crítico", "critico", "Codex CLI · OpenAI · modelo por defecto del programa"),
             ],
             card.Labels);
     }
@@ -71,7 +71,7 @@ public sealed class VerdictCardViewModelTests
         var reviewing = new VerdictCardViewModel(PanelThatDisagrees, Disagree, PanelContext(choice: false), Zone);
 
         var rows = choosing.Verdicts[0].Assessments;
-        Assert.Equal("valoración del juez, no verificable por pruebas", rows.Single(r => r.Requirement == "D-01").JudgeAssessment);
+        Assert.Equal("valoración del juez, que no se puede comprobar con pruebas", rows.Single(r => r.Requirement == "D-01").JudgeAssessment);
         Assert.Null(rows.Single(r => r.Requirement == "D-02").JudgeAssessment);
         Assert.All(reviewing.Verdicts[0].Assessments, r => Assert.Null(r.JudgeAssessment));
         Assert.Equal("Mantenibilidad: el diseño se entiende, se prueba y se cambia sin romper lo demás.", rows[0].Statement);
@@ -111,7 +111,7 @@ public sealed class VerdictCardViewModelTests
     {
         var card = new VerdictCardViewModel(PanelThatDisagrees, Disagree, PanelContext(), Zone);
 
-        Assert.Equal(new FindingRow("Media", Tone.Warning, "Problema de seguridad", "Escritura concurrente sin política.", "evidencias: ev-c3 · entradas del registro: #41"), Assert.Single(card.Verdicts[0].Findings));
+        Assert.Equal(new FindingRow("Media", Tone.Warning, "Problema de seguridad", "Escritura concurrente sin política.", "pruebas: ev-c3 · entradas del historial: #41"), Assert.Single(card.Verdicts[0].Findings));
         Assert.Equal("Confianza: media — «Las dos propuestas son defendibles.»", card.Verdicts[0].ConfidenceText);
         Assert.Equal("Emitido el 19/10/2026 10:00", card.Verdicts[0].IssuedText);
     }
