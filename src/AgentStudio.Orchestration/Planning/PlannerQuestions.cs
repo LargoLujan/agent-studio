@@ -32,7 +32,7 @@ internal static class PlannerQuestions
 
     /// <summary>
     /// The run the answers go on in, after checking them against the verified log: they answer every question of the
-    /// orchestrator (no task) that one planning run asked, all at once and once each. <c>Recorded</c> says the log already has
+    /// orchestrator (no task) that one planning run asked, all at once and once each. The log may already hold a prefix of the answers (a planning that failed midway, tried again: the same questions, answers and order), which the retry does not record again. <c>Recorded</c> says the log already has
     /// exactly these answers: a planning with them that failed is tried again without recording them twice.
     /// </summary>
     /// <exception cref="ArgumentException">
@@ -56,8 +56,10 @@ internal static class PlannerQuestions
 
         var asked = Payloads<QuestionAskedPayload>(log, DecisionKind.QuestionAsked, run).Where(q => q.Task is null).Select(q => q.Question).ToHashSet(StringComparer.Ordinal);
         var answered = Payloads<QuestionAnsweredPayload>(log, DecisionKind.QuestionAnswered, run)
+            .Where(q => q.Task is null)
             .GroupBy(q => q.Question, StringComparer.Ordinal)
-            .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
+            .Select(g => g.First())
+            .ToList(); // in the order the log recorded them
         foreach (var answer in answers)
         {
             if (!asked.Contains(answer.Question.Id))
@@ -94,13 +96,15 @@ internal static class PlannerQuestions
             return (run, false);
         }
 
-        // A planning with these answers that failed after recording them: the same answers go on; other ones never.
-        if (answered.Count != answers.Count || answers.Any(a => !answered.TryGetValue(a.Question.Id, out var recorded) || !Same(recorded, a.Answer)))
+        // A planning with these answers that failed while recording them: the log may hold the first of them (a prefix, the same
+        // questions in the same order with the same answers) and the retry records the rest; other answers never.
+        if (answered.Count > answers.Count
+            || answered.Select((recorded, i) => !string.Equals(recorded.Question, answers[i].Question.Id, StringComparison.Ordinal) || !Same(recorded, answers[i].Answer)).Any(differs => differs))
         {
             throw new ArgumentException($"The questions of run '{run}' are answered already, with other answers.", nameof(answers));
         }
 
-        return (run, true);
+        return (run, answered.Count == answers.Count);
     }
 
     /// <summary>The commit of the first <c>_base</c> of <paramref name="run"/>, the one its questions were asked from; null when the log has none.</summary>

@@ -737,6 +737,61 @@ public sealed class OrchestratorAnswersInPromptTests
     }
 
     [Fact]
+    public async Task With_two_questions_a_failure_recording_the_second_answer_leaves_the_first_and_the_retry_with_the_same_answers_finishes()
+    {
+        using var harness = new EngineHarness();
+        var asking = Asking();
+        ((JsonArray)asking["questions"]!).Add(new JsonObject
+        {
+            ["text"] = "¿Y con un exponente cero?",
+            ["why"] = "Cambia el contrato.",
+            ["options"] = new JsonArray(
+                new JsonObject { ["id"] = "a", ["label"] = "Devolver 1", ["detail"] = "Lo habitual.", ["effort"] = "small", ["recommended"] = true },
+                new JsonObject { ["id"] = "b", ["label"] = "Lanzar", ["detail"] = "Estricto.", ["effort"] = "small", ["recommended"] = false }),
+            ["allowOther"] = true,
+        });
+        harness.Claude.Script("orquestador", null, 1, Answer(asking));
+        var asked = await harness.CreateOrchestrator().PlanAsync(harness.PlanningRequest(), null, Ct);
+        var questions = asked.Questions!;
+        Assert.Equal(2, questions.Count);
+        IReadOnlyList<AnsweredQuestion> Answers(string first) =>
+        [
+            new AnsweredQuestion(asked.Run, questions[0], QuestionAnswer.Choosing(null, questions[0].Id, first, "usuario")),
+            new AnsweredQuestion(asked.Run, questions[1], QuestionAnswer.Writing(null, questions[1].Id, "Que devuelva 1.", "usuario")),
+        ];
+        var request = harness.PlanningRequest() with { Answers = Answers("a") };
+
+        // The text of the second answer cannot be captured, once: the first answer is recorded and the second is not.
+        var failed = false;
+        harness.Evidence.FailWhen = draft =>
+        {
+            if (failed || !draft.Title.StartsWith("Respuesta a la pregunta plan-2", StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            failed = true;
+            return new IOException("disco lleno");
+        };
+        await Assert.ThrowsAsync<IOException>(() => harness.CreateOrchestrator().PlanAsync(request, null, Ct));
+        Assert.Single(harness.Payloads<QuestionAnsweredPayload>());
+
+        // Another answer for the first question is still refused; the same ones go on.
+        await Assert.ThrowsAsync<ArgumentException>(() => harness.CreateOrchestrator().PlanAsync(harness.PlanningRequest() with { Answers = Answers("b") }, null, Ct));
+        Assert.Single(harness.Payloads<QuestionAnsweredPayload>());
+
+        harness.Claude.Script("orquestador", null, 1, Answer(Planned()));
+        var proposal = await harness.CreateOrchestrator().PlanAsync(request, null, Ct);
+
+        Assert.NotNull(proposal.Plan);
+        Assert.Equal(["plan-1", "plan-2"], harness.Payloads<QuestionAnsweredPayload>().Select(p => p.Payload.Question));
+        foreach (var id in new[] { "plan-1", "plan-2" })
+        {
+            Assert.Single(harness.Payloads<EvidenceRegisteredPayload>(), p => p.Payload.Title == $"Decisión sobre la pregunta {id} del orquestador");
+        }
+    }
+
+    [Fact]
     public async Task A_planning_tried_again_with_its_answers_captures_the_decision_it_had_not_reached_and_records_nothing_twice()
     {
         using var harness = new EngineHarness();
