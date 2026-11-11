@@ -264,16 +264,28 @@ public sealed record ClientDocument(ClientDocumentCover Cover, IReadOnlyList<Cli
     /// <summary>The identifier of the canonical form: a change in how it is written bumps it, so an old hash is never mistaken for a new one.</summary>
     public const string CanonicalVersion = "agent-studio/client-document/1";
 
-    /// <summary>Every text of the document, with the section it is in, in reading order (the cover has none).</summary>
+    /// <summary>
+    /// Every text of the document, with the section it is in, in reading order (the cover has none). A missing piece (a null section,
+    /// block, list or text, as a document read back with holes would have) is skipped here and reported by
+    /// <see cref="ClientDocumentRules.Validate"/>, never thrown.
+    /// </summary>
     public IEnumerable<(ClientDocumentSectionKind Section, ClientText Text)> Texts()
     {
         foreach (var section in Sections ?? [])
         {
+            if (section is null)
+            {
+                continue;
+            }
+
             foreach (var block in section.Blocks ?? [])
             {
                 foreach (var text in TextsOf(block))
                 {
-                    yield return (section.Kind, text);
+                    if (text is not null)
+                    {
+                        yield return (section.Kind, text);
+                    }
                 }
             }
         }
@@ -315,23 +327,26 @@ public sealed record ClientDocument(ClientDocumentCover Cover, IReadOnlyList<Cli
                 yield return paragraph.Text;
                 break;
             case ClientList list:
-                foreach (var item in list.Items)
+                foreach (var item in list.Items ?? [])
                 {
                     yield return item;
                 }
 
                 break;
             case ClientTable table:
-                foreach (var cell in table.Header.Concat(table.Rows.SelectMany(r => r)))
+                foreach (var cell in (table.Header ?? []).Concat((table.Rows ?? []).Where(r => r is not null).SelectMany(r => r)))
                 {
                     yield return cell;
                 }
 
                 break;
             case ClientEvidenceList evidence:
-                foreach (var reference in evidence.References)
+                foreach (var reference in evidence.References ?? [])
                 {
-                    yield return reference.Label;
+                    if (reference is not null)
+                    {
+                        yield return reference.Label;
+                    }
                 }
 
                 break;
@@ -390,18 +405,25 @@ public sealed record ClientDocument(ClientDocumentCover Cover, IReadOnlyList<Cli
 /// <summary>
 /// The rules the model of a document keeps before it is shown or written (docs/17 D-58, «Lo que no va»). Prompts, transcripts of the
 /// agents, the journal and the consumption (unless ticked) are never put in the model by the builder; what these rules check is
-/// what can be told from the model alone: no path of the machine and no hidden character in what people or agents wrote, sections in
-/// order, well-formed blocks and fingerprints that are SHA-256.
+/// what can be told from the model alone: no path of the machine, no hidden character and no secret in what people or agents wrote (nor
+/// in the arguments of the system's sentences or the cover), sections in order, well-formed blocks and fingerprints that are SHA-256.
+/// The check of secrets is the one of the help card: a text that changes when <see cref="ISecretRedactor"/> redacts it again still
+/// has one (<c>document.not-redacted</c>), whatever built the model.
 /// </summary>
 public static class ClientDocumentRules
 {
+    /// <summary>The code of a model with a hole in it (a null section, block, text or row): a model read back can have them, and is reported, not thrown at.</summary>
+    public const string Malformed = "document.malformed";
+
     /// <summary>
     /// Every rule the model breaks, as stable codes, in a fixed order; an empty list means it may be shown to the person for review.
-    /// No text of the document is in a code.
+    /// No text of the document is in a code. It never throws for what the model holds: a hole or a null is a code.
     /// </summary>
-    public static IReadOnlyList<string> Validate(ClientDocument document)
+    public static IReadOnlyList<string> Validate(ClientDocument document, ISecretRedactor redactor)
     {
         ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(redactor);
+        bool NotRedacted(string? text) => !string.IsNullOrEmpty(text) && !string.Equals(redactor.Redact(text), text, StringComparison.Ordinal);
         var problems = new List<string>();
         void Add(string code)
         {
@@ -448,7 +470,7 @@ public static class ClientDocumentRules
         }
 
         var sections = document.Sections ?? [];
-        var positions = sections.Select(s => ClientDocumentSections.Order.ToList().IndexOf(s.Kind)).ToList();
+        var positions = sections.Select(s => s is null ? -1 : ClientDocumentSections.Order.ToList().IndexOf(s.Kind)).ToList();
         if (positions.Any(p => p < 0) || positions.Distinct().Count() != positions.Count || !positions.SequenceEqual(positions.Order()))
         {
             Add("document.sections-order");
@@ -456,6 +478,12 @@ public static class ClientDocumentRules
 
         foreach (var section in sections)
         {
+            if (section is null)
+            {
+                Add(Malformed);
+                continue;
+            }
+
             if ((section.Blocks ?? []).Count == 0)
             {
                 Add("document.section-empty");
@@ -467,10 +495,13 @@ public static class ClientDocumentRules
             }
         }
 
+        var secret = NotRedacted(cover?.Project) || NotRedacted(cover?.Milestone);
         foreach (var (_, text) in document.Texts())
         {
             if (text.Source == ClientTextSource.System)
             {
+                // The code is the system's; its arguments are ids, names and numbers the builder chose, and a name can hold a secret.
+                secret |= (text.System?.Arguments ?? []).Any(a => a is string argument && NotRedacted(argument));
                 continue;
             }
 
@@ -483,6 +514,13 @@ public static class ClientDocumentRules
             {
                 Add("document.hidden-character");
             }
+
+            secret |= NotRedacted(text.Value);
+        }
+
+        if (secret)
+        {
+            Add("document.not-redacted");
         }
 
         return problems;
@@ -496,25 +534,48 @@ public static class ClientDocumentRules
     {
         switch (block)
         {
-            case ClientParagraph:
+            case ClientParagraph paragraph:
+                if (paragraph.Text is null)
+                {
+                    add(Malformed);
+                }
+
                 break;
             case ClientList list:
-                if ((list.Items ?? []).Count == 0)
+                var items = list.Items ?? [];
+                if (items.Count == 0)
                 {
                     add("document.list-empty");
+                }
+
+                if (items.Any(i => i is null))
+                {
+                    add(Malformed);
                 }
 
                 break;
             case ClientTable table:
                 var header = table.Header ?? [];
-                if (header.Count == 0 || (table.Rows ?? []).Any(r => r.Count != header.Count))
+                var rows = table.Rows ?? [];
+                if (header.Count == 0 || rows.Any(r => r is null || r.Count != header.Count))
                 {
                     add("document.table-malformed");
                 }
 
+                if (header.Any(h => h is null) || rows.Any(r => r is not null && r.Any(c => c is null)))
+                {
+                    add(Malformed);
+                }
+
                 break;
             case ClientEvidenceList evidence:
-                if ((evidence.References ?? []).Any(r => !ContentHash.IsSha256Hex(r.Sha256)))
+                var references = evidence.References ?? [];
+                if (references.Any(r => r is null || r.Label is null))
+                {
+                    add(Malformed);
+                }
+
+                if (references.Any(r => r is not null && !ContentHash.IsSha256Hex(r.Sha256)))
                 {
                     add("document.evidence-fingerprint-invalid");
                 }
@@ -567,11 +628,13 @@ public static class ClientDraftRules
 {
     /// <summary>
     /// The paragraphs cleaned of hidden characters, trimmed, cut to <see cref="ClientDocumentLimits.MaxDraftParagraphLength"/>, at
-    /// most <see cref="ClientDocumentLimits.MaxDraftParagraphs"/>; a paragraph with a path of the machine is left out whole, because
-    /// a document for clients never has one.
+    /// most <see cref="ClientDocumentLimits.MaxDraftParagraphs"/>; a paragraph with a path of the machine, or with a secret (one the
+    /// redactor would change), is left out whole, because a document for clients has neither. The agent only saw the model, which
+    /// has none, so either one is its own doing and not something to patch up with a placeholder.
     /// </summary>
-    public static ClientDraftCheck Check(IEnumerable<string?>? paragraphs)
+    public static ClientDraftCheck Check(IEnumerable<string?>? paragraphs, ISecretRedactor redactor)
     {
+        ArgumentNullException.ThrowIfNull(redactor);
         var kept = new List<string>();
         var discarded = new List<string>();
         foreach (var paragraph in paragraphs ?? [])
@@ -591,6 +654,12 @@ public static class ClientDraftRules
             if (LocalPaths.Contains(clean))
             {
                 discarded.Add("a paragraph names a path of the machine.");
+                continue;
+            }
+
+            if (!string.Equals(redactor.Redact(clean), clean, StringComparison.Ordinal))
+            {
+                discarded.Add("a paragraph carries a secret.");
                 continue;
             }
 
@@ -644,12 +713,24 @@ public sealed record ClientDocumentDisclosure(
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(pathsRemoved);
-        var parts = document.Texts()
-            .Where(t => t.Text.Source == ClientTextSource.Agent)
-            .Select(t => new ClientAgentPart(t.Section, t.Text.Mark!.Run, t.Text.Mark.ReviewedByPerson))
-            .Distinct()
-            .ToList();
-        return new ClientDocumentDisclosure(secretsRedacted, pathsRemoved, parts, risksIncluded, includesConsumption);
+        return new ClientDocumentDisclosure(secretsRedacted, pathsRemoved, AgentPartsOf(document), risksIncluded, includesConsumption);
+    }
+
+    /// <summary>
+    /// The parts of <paramref name="document"/> an agent wrote, in reading order and without repeats: the section, the run that wrote
+    /// each and whether the person reviewed it. The only source of this list: <see cref="Of"/>, the rules of the export and the record
+    /// of the export (<c>ClientDocumentExported</c>) all read it from here, so none of them can disagree with the document.
+    /// </summary>
+    public static IReadOnlyList<ClientAgentPart> AgentPartsOf(ClientDocument document)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        return
+        [
+            .. document.Texts()
+                .Where(t => t.Text.Source == ClientTextSource.Agent && t.Text.Mark is not null)
+                .Select(t => new ClientAgentPart(t.Section, t.Text.Mark!.Run, t.Text.Mark.ReviewedByPerson))
+                .Distinct(),
+        ];
     }
 
     /// <summary>The rules the list keeps: no negative count.</summary>
@@ -708,7 +789,10 @@ public interface IClientDocumentFormatWriter
 
 /// <summary>
 /// The names of the files of an export (docs/17 D-60). Every export is a version and the earlier one stays, so the version is part
-/// of the name and no export ever overwrites another.
+/// of the name. The name alone does not make it unique: two milestones whose names give the same slug (<c>Hito 1</c> and
+/// <c>hito-1</c>), names with no Latin letters (they all give <c>documento</c>) and files the person already had in the folder collide.
+/// So the exporter never overwrites: when the name is taken it uses <see cref="WithCollisionSuffix"/> with 2, 3… until one is free,
+/// and the name it used is what the result and the log record.
 /// </summary>
 public static class ClientDocumentFiles
 {
@@ -720,7 +804,8 @@ public static class ClientDocumentFiles
 
     /// <summary>
     /// <c>&lt;project&gt;[-&lt;milestone&gt;]-v&lt;version&gt;&lt;extension&gt;</c>: the names in lowercase ASCII letters, digits and
-    /// hyphens, without accents (<c>mi-tienda-hito-1-v2.docx</c>). A name that leaves nothing is <c>documento</c>.
+    /// hyphens, without accents (<c>mi-tienda-hito-1-v2.docx</c>). A name that leaves nothing is <c>documento</c>. It is the name the
+    /// export tries first; it can be taken (see the class).
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">The version is below 1, or the format is unknown.</exception>
     public static string FileName(string project, string? milestone, int version, ClientDocumentFormat format)
@@ -739,6 +824,24 @@ public static class ClientDocumentFiles
         }
 
         return name + "-v" + version.ToString(CultureInfo.InvariantCulture) + ClientDocumentFormats.Extension(format);
+    }
+
+    /// <summary>
+    /// The name to try when <paramref name="fileName"/> is taken: <paramref name="attempt"/> (2, 3…) before the extension
+    /// (<c>mi-tienda-hito-1-v2.docx</c> becomes <c>mi-tienda-hito-1-v2-2.docx</c>).
+    /// </summary>
+    /// <exception cref="ArgumentException">The name is not a plain file name.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The attempt is below 2.</exception>
+    public static string WithCollisionSuffix(string fileName, int attempt)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(attempt, 2);
+        if (!IsPlainFileName(fileName))
+        {
+            throw new ArgumentException("Only a plain file name takes a suffix.", nameof(fileName));
+        }
+
+        var extension = Path.GetExtension(fileName);
+        return fileName[..^extension.Length] + "-" + attempt.ToString(CultureInfo.InvariantCulture) + extension;
     }
 
     /// <summary>Whether <paramref name="name"/> is only a file name: no folder, no drive, no <c>..</c>, no character Windows refuses, and no ending in a dot or a space.</summary>
@@ -794,13 +897,18 @@ public sealed record ClientDocumentExportRequest(
     string DestinationDirectory,
     string DecidedBy);
 
-/// <summary>The rules an export keeps before anything is written.</summary>
+/// <summary>
+/// The rules an export keeps before anything is written: the model's (<see cref="ClientDocumentRules"/>, secrets included) and the
+/// list of what goes out, which has to be the document's own: the parts written by agents it lists are the ones the document has
+/// (<see cref="ClientDocumentDisclosure.AgentPartsOf"/>), so a list made by hand cannot hide one.
+/// </summary>
 public static class ClientDocumentExportRules
 {
     /// <summary>Every rule the request breaks, as stable codes, in a fixed order; an empty list means it may be exported.</summary>
-    public static IReadOnlyList<string> Validate(ClientDocumentExportRequest request)
+    public static IReadOnlyList<string> Validate(ClientDocumentExportRequest request, ISecretRedactor redactor)
     {
         ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(redactor);
         var problems = new List<string>();
         void Add(string code)
         {
@@ -810,20 +918,26 @@ public static class ClientDocumentExportRules
             }
         }
 
-        if (request.Build is null)
+        if (request.Build?.Document is null || request.Build.Disclosure is null)
         {
             Add("document.export-build-required");
         }
         else
         {
-            foreach (var problem in ClientDocumentRules.Validate(request.Build.Document))
+            foreach (var problem in ClientDocumentRules.Validate(request.Build.Document, redactor))
             {
                 Add(problem);
             }
 
-            foreach (var problem in request.Build.Disclosure.Validate())
+            var disclosure = request.Build.Disclosure;
+            foreach (var problem in disclosure.Validate())
             {
                 Add(problem);
+            }
+
+            if (!ClientDocumentDisclosure.AgentPartsOf(request.Build.Document).ToHashSet().SetEquals(disclosure.AgentWrittenParts ?? []))
+            {
+                Add("document.disclosure-agent-parts-mismatch");
             }
         }
 
@@ -848,7 +962,8 @@ public static class ClientDocumentExportRules
             Add("document.export-language-invalid");
         }
 
-        if (string.IsNullOrWhiteSpace(request.DestinationDirectory) || !Path.IsPathRooted(request.DestinationDirectory))
+        // Fully qualified: «C:foo» (a drive and a relative path) and «\foo» (the current drive) are rooted, and mean wherever the process is.
+        if (string.IsNullOrWhiteSpace(request.DestinationDirectory) || !Path.IsPathFullyQualified(request.DestinationDirectory))
         {
             Add("document.export-destination-invalid");
         }
@@ -874,7 +989,9 @@ public sealed record ClientDocumentExportResult(int Version, IReadOnlyList<Expor
 /// <summary>
 /// «Aprobar y exportar» (docs/17 D-60): writes the files where the person chose, each atomically (a file is never left half
 /// written: if the app exits before one finishes, it is not saved), keeps the earlier versions (the version is part of each name),
-/// stores the generated Markdown as evidence and, last, records <c>ClientDocumentExported</c> with the fingerprint of each file. If
+/// never overwrites a file (a name that is taken gets a suffix, <see cref="ClientDocumentFiles.WithCollisionSuffix"/>, and the name
+/// used is the one recorded), stores the generated Markdown as evidence and, last, records <c>ClientDocumentExported</c> with the
+/// fingerprint of each file. If
 /// writing fails, nothing is recorded. Into a folder inside the project, never while a run is going (<c>IRunActivity</c>), like the
 /// export of the memory: it would write where the agents work. Into any other folder, whenever the person wants.
 /// </summary>

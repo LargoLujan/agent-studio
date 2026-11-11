@@ -79,6 +79,67 @@ public sealed class AuxiliaryAgentRunner(IDecisionRecorder decisions, IEvidenceS
         purpose is AgentRunPurpose.OrderReview or AgentRunPurpose.ConsumptionAnalysis or AgentRunPurpose.PreparationChat
             or AgentRunPurpose.Help or AgentRunPurpose.ClientDocumentDraft;
 
+    /// <summary>The only tools a read-only auxiliary run of Phase 14 may be allowed.</summary>
+    private static readonly string[] ReadOnlyTools = ["Read", "Grep", "Glob"];
+
+    /// <summary>
+    /// Whether the runner holds <paramref name="purpose"/> to a read-only launch in an empty folder: the agent of the help and the
+    /// draft of a document for clients (docs/17 D-56 and D-59). The other purposes leave the launch to their service.
+    /// </summary>
+    public static bool RequiresReadOnlyLaunch(AgentRunPurpose purpose) => purpose is AgentRunPurpose.Help or AgentRunPurpose.ClientDocumentDraft;
+
+    /// <summary>
+    /// What a read-only launch (<see cref="RequiresReadOnlyLaunch"/>) must not have, in English; empty when it is one: no file writes,
+    /// shell or network; allowed tools only Read, Grep and Glob; no additional directories; no MCP servers; no skills; no session to
+    /// resume; and a working directory that exists and is empty. It is checked before anything is captured, recorded or launched.
+    /// </summary>
+    public static IReadOnlyList<string> ReadOnlyViolations(AgentRunRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var problems = new List<string>();
+        var permissions = request.Permissions;
+        if (permissions is null || permissions.AllowFileWrites || permissions.AllowShell || permissions.AllowNetwork)
+        {
+            problems.Add("permissions must deny file writes, shell and network");
+        }
+
+        if (permissions is not null)
+        {
+            if (permissions.AllowedTools.Any(t => !ReadOnlyTools.Contains(t, StringComparer.Ordinal)))
+            {
+                problems.Add("allowed tools can only be Read, Grep and Glob");
+            }
+
+            if (permissions.AdditionalDirectories.Count > 0)
+            {
+                problems.Add("no additional directories");
+            }
+        }
+
+        if (request.McpServers is { Count: > 0 })
+        {
+            problems.Add("no MCP servers");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.SkillsDirectory))
+        {
+            problems.Add("no skills");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.ResumeSessionId))
+        {
+            problems.Add("no session to resume");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.WorkingDirectory) || !Directory.Exists(request.WorkingDirectory)
+            || Directory.EnumerateFileSystemEntries(request.WorkingDirectory).Any())
+        {
+            problems.Add("the working directory must exist and be empty");
+        }
+
+        return problems;
+    }
+
     public async Task<AuxiliaryRunResult> RunAsync(ProjectContext project, AuxiliaryRunRequest request, IProgress<AgentEvent>? progress, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(project);
@@ -87,6 +148,11 @@ public sealed class AuxiliaryAgentRunner(IDecisionRecorder decisions, IEvidenceS
         if (!IsAuxiliary(request.Purpose))
         {
             throw new ArgumentException($"A {request.Purpose} run is recorded by the engine, the review, the debate or the audit, never as an auxiliary run.", nameof(request));
+        }
+
+        if (RequiresReadOnlyLaunch(request.Purpose) && ReadOnlyViolations(request.Request) is { Count: > 0 } violations)
+        {
+            throw new ArgumentException($"A {request.Purpose} run is read-only in an empty folder, and this launch is not: {string.Join("; ", violations)}.", nameof(request));
         }
 
         var agent = request.Request.Agent;

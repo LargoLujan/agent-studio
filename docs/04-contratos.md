@@ -1991,6 +1991,15 @@ public sealed record ClientDocumentExportedPayload(int Version, string? Mileston
   mismo hito.
 - **`AuxiliaryAgentRunner.IsAuxiliary` y `RecordsEndClass`** admiten los dos propósitos nuevos desde el P0 (versión 3 de
   `AgentRunFinished`, con la clase del final), para que WP-14C y WP-14D no editen las mismas líneas de un fichero compartido.
+  Además `RequiresReadOnlyLaunch` y `ReadOnlyViolations` los obligan a un lanzamiento de solo lectura en una carpeta vacía
+  (sin escritura, shell ni red; solo `Read`, `Grep` y `Glob`; sin directorios adicionales, MCP, skills ni sesión que reanudar):
+  si no, `RunAsync` lanza `ArgumentException` antes de registrar nada.
+- **Revisión del P0 (2026-11-11):** `ClientDocumentRules.Validate`, `ClientDocumentExportRules.Validate` y `ClientDraftRules.Check`
+  reciben un `ISecretRedactor` (`document.not-redacted`); las reglas de exportación comparan la lista de lo que sale con
+  `ClientDocumentDisclosure.AgentPartsOf(documento)` (`document.disclosure-agent-parts-mismatch`) y el registro lee las partes de
+  agentes del documento; un modelo con huecos da `document.malformed`; la carpeta de destino ha de ser una ruta completa;
+  `ClientDocumentFiles.WithCollisionSuffix` da el nombre alternativo cuando el de `FileName` está tomado; `LocalPaths` quita la
+  ruta entera aunque tenga espacios (y reconoce `file:///`).
 
 ### 22.4 Reglas de texto compartidas
 

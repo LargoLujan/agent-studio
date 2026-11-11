@@ -45,7 +45,12 @@
        (`Model` nulo). Con Codex, a tu elección: su modo de solo lectura lee todo el disco (docs/15 §3.2), por eso no es el de
        por defecto, y `ReadsWholeDisk` permite que la tarjeta lo diga antes de tu OK.
      - **De solo lectura y sin ver tu disco:** una carpeta de trabajo vacía y Read, Grep y Glob con el confinamiento de Claude
-       medido (ADR-0018), sin escritura, shell, red ni memoria.
+       medido (ADR-0018), sin escritura, shell, red ni memoria. **Lo que fuerza `AuxiliaryAgentRunner`** (guardia de
+       `RunAsync`, `ReadOnlyViolations`, antes de capturar, registrar ni lanzar nada; si no se cumple, `ArgumentException` y
+       nada queda en el registro): permisos sin escritura, shell ni red; herramientas permitidas solo `Read`, `Grep` y `Glob`;
+       sin directorios adicionales, sin servidores MCP, sin skills y sin sesión que reanudar; y una carpeta de trabajo que existe y
+       está vacía. **Lo que no fuerza** y es de `IHelpAgent` (WP-14C): crear esa carpeta vacía en cada pregunta, el esquema, el
+       prompt y el modelo ligero; y el confinamiento de lectura lo da el adaptador de Claude, no el ejecutor.
      - **Cada pregunta es una ejecución nueva:** no reanuda la sesión del CLI ni reenvía las preguntas anteriores, a diferencia
        del chat de preparación. Así lo que viaja es exactamente lo que enseñó la tarjeta de esa pregunta, y el OK de una
        pregunta no cubre la siguiente. La conversación que ves en pantalla es solo historial.
@@ -75,7 +80,8 @@
        comprueba (`HelpAnswerRules.Check`): el texto, de 1 200 caracteres como mucho y sin caracteres ocultos; los artículos
        que cita, solo entre los que se enviaron (4 como mucho); y las acciones, solo de la lista cerrada (2 como mucho). Lo
        que no pasa no es un error: se deja fuera y se dice en `Discarded` (en inglés, para «Detalles»). El texto es de un
-       agente: se enseña enmarcado como tal.
+       agente: se enseña enmarcado como tal. `Check` no conoce el catálogo ni lo enviado: **WP-14C tiene que pasarle** los ids de
+       `IHelpActionCatalog.Actions` y los de los artículos que mandó con la pregunta.
      - **Las acciones son una lista cerrada** (`IHelpActionCatalog`): ids con forma de código (`open.consumption`) y el texto de
        su botón como código con argumentos (`UserText`), escritos en el código del escritorio. El agente solo nombra un id; la
        app enseña el botón, y no pasa nada hasta que lo pulsas. Una acción abre un sitio de la app («Abrir Consumo», «Abrir
@@ -106,8 +112,9 @@
   - **Lo que hace WP-14C:** el corpus y sus ⓘ (el «Más ayuda» solo se enseña cuando hay corpus), el índice de búsqueda
     (dónde vive lo decide WP-14C; no es del proyecto: el corpus viaja con la app), `IHelpAgent` con su esquema y su prompt,
     el panel, `F1`, el catálogo de acciones y los textos de la tarjeta en los recursos.
-  - **`AuxiliaryAgentRunner`** admite `Help` y `ClientDocumentDraft` desde el P0 (`IsAuxiliary` y `RecordsEndClass`): así
-    WP-14C y WP-14D no tocan los mismos renglones de un fichero compartido.
+  - **`AuxiliaryAgentRunner`** admite `Help` y `ClientDocumentDraft` desde el P0 (`IsAuxiliary` y `RecordsEndClass`) y les
+    exige el lanzamiento de solo lectura de arriba (`RequiresReadOnlyLaunch`): así WP-14C y WP-14D no tocan los mismos renglones
+    de un fichero compartido, y una llamada que pida otra cosa falla cerrada.
   - **El consumo** nombra los dos propósitos nuevos. Los tres de la Fase 13 (`OrderReview`, `ConsumptionAnalysis`,
     `PreparationChat`) siguen sin nombre en esa lista y no salen en el detalle de cada intento; es de WP-14A (c), que extrae
     los textos de `UsageDashboardViewModel`.
@@ -115,6 +122,8 @@
     - lo que envías llega al vendor del agente (docs/17 §8.3);
     - el redactor reconoce formatos de secretos conocidos: es un filtro de mejor esfuerzo, no una garantía; la tarjeta a la vista
       y tu OK son la segunda barrera;
-    - `LocalPaths` solo reconoce rutas de Windows, de red y de la carpeta personal: una ruta de otro sistema o una URL
-      `file:///` no la detecta, y tampoco una que tú escribas en la pregunta sin que sea una ruta;
+    - `LocalPaths` reconoce rutas de Windows (con unidad y de red), de la carpeta personal (`~/`) y `file:///`, también con
+      espacios: una ruta llega hasta una comilla, un paréntesis sin pareja, una coma o punto seguidos de espacio, el final de línea
+      o la ruta siguiente, y quita **de más** antes que de menos. Una ruta de Unix sin `file:///` ni `~` (`/home/ana`) no la
+      detecta, ni lo que escribas en la pregunta sin que sea una ruta;
     - una respuesta puede ser falsa o engañosa aunque cite artículos que existen: es texto de un agente y se enseña como tal.

@@ -51,7 +51,10 @@
      traducir (ADR-0054, punto 5). `LanguageTags` comprueba que el idioma tiene la forma del nombre de una cultura.
   4. **Lo redactado por un agente es opcional, y va marcado** (D-59).
      - **`IClientDocumentDrafter`** lanza una auxiliar de solo lectura (`AuxiliaryAgentRunner`, propósito `ClientDocumentDraft`),
-       en una carpeta vacía, con tu OK en cada uso y la estimación delante. Redacta una de las dos partes de
+       en una carpeta vacía, con tu OK en cada uso y la estimación delante. El ejecutor (`AuxiliaryAgentRunner`) fuerza, como para
+       la ayuda ([ADR-0056](0056-ayuda-y-agente-de-ayuda.md)), el lanzamiento de solo lectura: sin escritura, shell ni red,
+       herramientas solo `Read`, `Grep` y `Glob`, sin directorios adicionales, MCP, skills ni sesión que reanudar, y una carpeta
+       que existe y está vacía; si no, falla cerrado antes de registrar nada. Redacta una de las dos partes de
        `ClientDraftKind`: el resumen (`Summary`, en la sección de resumen, en lugar de la plantilla) o una explicación de uso
        (`UsageExplanation`, en los anexos). Solo recibe el modelo determinista, que ya no lleva secretos ni rutas: nunca el
        registro, la memoria ni tus ficheros.
@@ -71,18 +74,23 @@
      - **No hay por dónde entren:** la petición de construcción (`ClientDocumentBuildRequest`) solo trae el proyecto, el nombre
        del hito, `IncludeConsumption` (falso por defecto) y los borradores que aceptaste, y la portada no tiene un campo para
        rutas ni para el nombre de usuario.
-     - **Lo que el modelo puede comprobar solo** (`ClientDocumentRules.Validate`): ninguna ruta de tu equipo (`LocalPaths`) ni
-       carácter oculto en lo que escribieron personas o agentes, ni en el proyecto o el hito de la portada; las secciones, en su
-       orden y sin repetirse; las tablas bien formadas, las listas y secciones no vacías, las huellas de verdad SHA-256 y el
-       commit con la forma de un commit. La plantilla del sistema (códigos y argumentos) es del constructor: se prueba con una
-       prueba de fuga (F14-9), no aquí.
+     - **Lo que el modelo puede comprobar solo** (`ClientDocumentRules.Validate(documento, redactor)`): ninguna ruta de tu equipo
+       (`LocalPaths`) ni carácter oculto en lo que escribieron personas o agentes, ni en el proyecto o el hito de la portada;
+       **ningún secreto** en ningún texto (también los argumentos de las frases del sistema y la portada): un texto que cambia
+       al pasar otra vez por `ISecretRedactor` es `document.not-redacted`, como la tarjeta de la ayuda; las secciones, en su orden
+       y sin repetirse; las tablas bien formadas, las listas y secciones no vacías, las huellas de verdad SHA-256 y el commit con
+       la forma de un commit. Un modelo con huecos (secciones, bloques o textos nulos) da `document.malformed`, nunca una
+       excepción. El resto de la plantilla del sistema es del constructor: se prueba con una prueba de fuga (F14-9).
   7. **«Aprobar y exportar»** (D-60), `IClientDocumentExporter.ExportAsync(ClientDocumentExportRequest)`.
      - **La petición** lleva lo que revisaste (el `ClientDocumentBuild`), los formatos (uno o más, sin repetir), el idioma, la
        carpeta (una ruta absoluta que eliges tú) y quién lo aprobó; `ClientDocumentExportRules.Validate` devuelve los códigos de
        lo que incumple, y entonces no se escribe nada.
      - **Cada exportación es una versión y la anterior se conserva:** la versión es una más que la mayor registrada para el mismo
        hito (o para las entregas sin hito) y va en el nombre de cada fichero (`ClientDocumentFiles.FileName`:
-       `mi-tienda-hito-1-v2.docx`, en ASCII minúsculas y con guiones), así que ninguna exportación sobrescribe otra.
+       `mi-tienda-hito-1-v2.docx`, en ASCII minúsculas y con guiones). El nombre solo no basta: dos hitos con el mismo `slug`
+       (`Hito 1` y `hito-1`), nombres sin letras latinas (todos dan `documento`) o ficheros que ya tenías en la carpeta chocan.
+       **El exportador nunca sobrescribe:** si el nombre está tomado usa `ClientDocumentFiles.WithCollisionSuffix` (`-2`, `-3`…
+       antes de la extensión) hasta dar con uno libre, y registra el nombre que usó. La prueba de ese comportamiento es de WP-14D.
      - **Los ficheros se escriben con la escritura atómica de hoy**, uno a uno, donde elijas. El Markdown generado queda siempre
        como evidencia, aunque no lo elijas como formato.
      - **Dentro de la carpeta del proyecto, nunca durante una ejecución** (`IRunActivity`), como la exportación de la memoria:

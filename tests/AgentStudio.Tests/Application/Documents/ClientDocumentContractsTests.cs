@@ -3,7 +3,9 @@ using System.Reflection;
 using AgentStudio.Application.Documents;
 using AgentStudio.Application.Localization;
 using AgentStudio.Application.Projects;
+using AgentStudio.Application.Security;
 using AgentStudio.Domain.Common;
+using AgentStudio.Security.Redaction;
 using AgentStudio.Domain.Orchestration;
 using static AgentStudio.Tests.Domain.TestData;
 
@@ -18,6 +20,16 @@ namespace AgentStudio.Tests.Application.Documents;
 public sealed class ClientDocumentContractsTests
 {
     private const string Commit = "9c4da5d1f2e3a4b5c6d7e8f9a0b1c2d3e4f5a6b7";
+
+    private const string SeededToken = "ghp_0123456789abcdefghijklmnopqrstuvwxyzAB";
+
+    private static readonly ISecretRedactor Redactor = new SecretRedactor(@"C:\Users\otra");
+
+    private static IReadOnlyList<string> Rules(ClientDocument document) => ClientDocumentRules.Validate(document, Redactor);
+
+    private static IReadOnlyList<string> ExportRules(ClientDocumentExportRequest request) => ClientDocumentExportRules.Validate(request, Redactor);
+
+    private static ClientDraftCheck Draft(IEnumerable<string?>? paragraphs) => ClientDraftRules.Check(paragraphs, Redactor);
 
     private static readonly DateTimeOffset At = new(2026, 11, 11, 10, 0, 0, TimeSpan.FromHours(1));
 
@@ -113,7 +125,7 @@ public sealed class ClientDocumentContractsTests
     [Fact]
     public void A_document_with_every_section_in_order_breaks_no_rule()
     {
-        Assert.Empty(ClientDocumentRules.Validate(Complete()));
+        Assert.Empty(Rules(Complete()));
     }
 
     [Fact]
@@ -121,10 +133,10 @@ public sealed class ClientDocumentContractsTests
     {
         var full = Complete();
 
-        Assert.Empty(ClientDocumentRules.Validate(full with { Sections = [.. full.Sections.Where(s => s.Kind != ClientDocumentSectionKind.Decisions)] }));
-        Assert.Equal(["document.sections-order"], ClientDocumentRules.Validate(full with { Sections = [.. full.Sections.Reverse()] }));
-        Assert.Equal(["document.sections-order"], ClientDocumentRules.Validate(full with { Sections = [.. full.Sections, full.Sections[0]] }));
-        Assert.Equal(["document.sections-order"], ClientDocumentRules.Validate(full with { Sections = [.. full.Sections, new ClientDocumentSection((ClientDocumentSectionKind)9, [full.Sections[0].Blocks[0]])] }));
+        Assert.Empty(Rules(full with { Sections = [.. full.Sections.Where(s => s.Kind != ClientDocumentSectionKind.Decisions)] }));
+        Assert.Equal(["document.sections-order"], Rules(full with { Sections = [.. full.Sections.Reverse()] }));
+        Assert.Equal(["document.sections-order"], Rules(full with { Sections = [.. full.Sections, full.Sections[0]] }));
+        Assert.Equal(["document.sections-order"], Rules(full with { Sections = [.. full.Sections, new ClientDocumentSection((ClientDocumentSectionKind)9, [full.Sections[0].Blocks[0]])] }));
     }
 
     [Fact]
@@ -132,13 +144,13 @@ public sealed class ClientDocumentContractsTests
     {
         var sections = Complete().Sections;
 
-        Assert.Equal(["document.cover-project-required"], ClientDocumentRules.Validate(new ClientDocument(Cover(project: " "), sections)));
-        Assert.Equal(["document.cover-version-invalid"], ClientDocumentRules.Validate(new ClientDocument(Cover(version: 0), sections)));
-        Assert.Equal(["document.cover-commit-invalid"], ClientDocumentRules.Validate(new ClientDocument(Cover(commit: "HEAD"), sections)));
-        Assert.Empty(ClientDocumentRules.Validate(new ClientDocument(Cover(milestone: null, commit: null), sections)));
-        Assert.Equal(["document.local-path"], ClientDocumentRules.Validate(new ClientDocument(Cover(project: @"C:\Users\ana\tienda"), sections)));
-        Assert.Equal(["document.hidden-character"], ClientDocumentRules.Validate(new ClientDocument(Cover(milestone: "Hito\u202E1"), sections)));
-        Assert.Equal(["document.cover-required"], ClientDocumentRules.Validate(new ClientDocument(null!, sections)));
+        Assert.Equal(["document.cover-project-required"], Rules(new ClientDocument(Cover(project: " "), sections)));
+        Assert.Equal(["document.cover-version-invalid"], Rules(new ClientDocument(Cover(version: 0), sections)));
+        Assert.Equal(["document.cover-commit-invalid"], Rules(new ClientDocument(Cover(commit: "HEAD"), sections)));
+        Assert.Empty(Rules(new ClientDocument(Cover(milestone: null, commit: null), sections)));
+        Assert.Equal(["document.local-path"], Rules(new ClientDocument(Cover(project: @"C:\Users\ana\tienda"), sections)));
+        Assert.Equal(["document.hidden-character"], Rules(new ClientDocument(Cover(milestone: "Hito\u202E1"), sections)));
+        Assert.Equal(["document.cover-required"], Rules(new ClientDocument(null!, sections)));
     }
 
     [Fact]
@@ -146,11 +158,11 @@ public sealed class ClientDocumentContractsTests
     {
         var mark = new ClientAgentMark(DraftRun, false);
 
-        Assert.Equal(["document.local-path"], ClientDocumentRules.Validate(Complete(ClientText.Written(@"Mira C:\Users\ana\repo\plan.json"))));
-        Assert.Equal(["document.local-path"], ClientDocumentRules.Validate(Complete(ClientText.ByAgent("Está en ~/repo/plan.json", mark))));
-        Assert.Equal(["document.hidden-character"], ClientDocumentRules.Validate(Complete(ClientText.Written("a\u202Eb"))));
-        Assert.Empty(ClientDocumentRules.Validate(Complete(ClientText.Written("Una línea\ny otra,\ncon tildes: áéíóú ñ."))));
-        Assert.Empty(ClientDocumentRules.Validate(Complete(ClientText.Written("Se tocó src/Tienda/Iva.cs y https://example.com/ayuda"))));
+        Assert.Equal(["document.local-path"], Rules(Complete(ClientText.Written(@"Mira C:\Users\ana\repo\plan.json"))));
+        Assert.Equal(["document.local-path"], Rules(Complete(ClientText.ByAgent("Está en ~/repo/plan.json", mark))));
+        Assert.Equal(["document.hidden-character"], Rules(Complete(ClientText.Written("a\u202Eb"))));
+        Assert.Empty(Rules(Complete(ClientText.Written("Una línea\ny otra,\ncon tildes: áéíóú ñ."))));
+        Assert.Empty(Rules(Complete(ClientText.Written("Se tocó src/Tienda/Iva.cs y https://example.com/ayuda"))));
     }
 
     [Fact]
@@ -158,7 +170,7 @@ public sealed class ClientDocumentContractsTests
     {
         // The arguments of a coded text are ids, names and numbers the builder chose: a path would be a bug of the builder, found by
         // its tests (F14-9); the model only judges what people and agents wrote.
-        Assert.Empty(ClientDocumentRules.Validate(Complete(ClientText.OfSystem("document.summary-template", @"C:\Users\ana"))));
+        Assert.Empty(Rules(Complete(ClientText.OfSystem("document.summary-template", @"C:\Users\ana"))));
     }
 
     [Fact]
@@ -166,17 +178,17 @@ public sealed class ClientDocumentContractsTests
     {
         ClientDocument With(ClientDocumentBlock block) => new(Cover(), [new ClientDocumentSection(ClientDocumentSectionKind.Scope, [block])]);
 
-        Assert.Equal(["document.list-empty"], ClientDocumentRules.Validate(With(new ClientList(false, []))));
-        Assert.Equal(["document.table-malformed"], ClientDocumentRules.Validate(With(new ClientTable([], []))));
+        Assert.Equal(["document.list-empty"], Rules(With(new ClientList(false, []))));
+        Assert.Equal(["document.table-malformed"], Rules(With(new ClientTable([], []))));
         Assert.Equal(
             ["document.table-malformed"],
-            ClientDocumentRules.Validate(With(new ClientTable([ClientText.OfSystem("document.a"), ClientText.OfSystem("document.b")], [[ClientText.Written("una celda")]]))));
+            Rules(With(new ClientTable([ClientText.OfSystem("document.a"), ClientText.OfSystem("document.b")], [[ClientText.Written("una celda")]]))));
         Assert.Equal(
             ["document.evidence-fingerprint-invalid"],
-            ClientDocumentRules.Validate(With(new ClientEvidenceList([new ClientEvidenceReference(Eid("EV-1"), "abc", ClientText.OfSystem("document.evidence-test-run"))]))));
-        Assert.Equal(["document.block-unknown"], ClientDocumentRules.Validate(With(new UnknownBlock())));
-        Assert.Equal(["document.section-empty"], ClientDocumentRules.Validate(new ClientDocument(Cover(), [new ClientDocumentSection(ClientDocumentSectionKind.Scope, [])])));
-        Assert.Throws<ArgumentNullException>(() => ClientDocumentRules.Validate(null!));
+            Rules(With(new ClientEvidenceList([new ClientEvidenceReference(Eid("EV-1"), "abc", ClientText.OfSystem("document.evidence-test-run"))]))));
+        Assert.Equal(["document.block-unknown"], Rules(With(new UnknownBlock())));
+        Assert.Equal(["document.section-empty"], Rules(new ClientDocument(Cover(), [new ClientDocumentSection(ClientDocumentSectionKind.Scope, [])])));
+        Assert.Throws<ArgumentNullException>(() => Rules(null!));
     }
 
     private sealed record UnknownBlock : ClientDocumentBlock;
@@ -299,7 +311,7 @@ public sealed class ClientDocumentContractsTests
     [Fact]
     public void A_draft_keeps_clean_paragraphs_and_leaves_out_what_a_document_for_clients_cannot_have()
     {
-        var check = ClientDraftRules.Check(
+        var check = Draft(
         [
             "  Primer párrafo.  ",
             "Segundo\u202E párrafo\u0007.",
@@ -313,13 +325,13 @@ public sealed class ClientDocumentContractsTests
         Assert.Equal(
             ["a paragraph names a path of the machine.", $"a paragraph is longer than {ClientDocumentLimits.MaxDraftParagraphLength} characters: it was cut."],
             check.Discarded);
-        Assert.Empty(ClientDraftRules.Check(null).Paragraphs);
+        Assert.Empty(Draft(null).Paragraphs);
     }
 
     [Fact]
     public void A_draft_has_at_most_six_paragraphs()
     {
-        var check = ClientDraftRules.Check(Enumerable.Range(1, 8).Select(i => $"Párrafo {i}."));
+        var check = Draft(Enumerable.Range(1, 8).Select(i => $"Párrafo {i}."));
 
         Assert.Equal(ClientDocumentLimits.MaxDraftParagraphs, check.Paragraphs.Count);
         Assert.Equal(6, ClientDocumentLimits.MaxDraftParagraphs);
@@ -390,27 +402,89 @@ public sealed class ClientDocumentContractsTests
     [Fact]
     public void An_export_of_a_valid_build_in_chosen_formats_to_a_folder_by_a_person_breaks_no_rule()
     {
-        Assert.Empty(ClientDocumentExportRules.Validate(Export()));
-        Assert.Empty(ClientDocumentExportRules.Validate(Export(formats: [.. ClientDocumentFormats.All], language: "en")));
+        Assert.Empty(ExportRules(Export()));
+        Assert.Empty(ExportRules(Export(formats: [.. ClientDocumentFormats.All], language: "en")));
     }
 
     [Fact]
     public void Each_rule_of_an_export_has_its_own_code()
     {
-        Assert.Equal(["document.export-formats-required"], ClientDocumentExportRules.Validate(Export(formats: [])));
-        Assert.Equal(["document.export-format-unknown"], ClientDocumentExportRules.Validate(Export(formats: [(ClientDocumentFormat)9])));
-        Assert.Equal(["document.export-format-duplicate"], ClientDocumentExportRules.Validate(Export(formats: [ClientDocumentFormat.Pdf, ClientDocumentFormat.Pdf])));
-        Assert.Equal(["document.export-language-invalid"], ClientDocumentExportRules.Validate(Export(language: "castellano")));
-        Assert.Equal(["document.export-destination-invalid"], ClientDocumentExportRules.Validate(Export(destination: @"entregas\tienda")));
-        Assert.Equal(["document.export-destination-invalid"], ClientDocumentExportRules.Validate(Export(destination: " ")));
-        Assert.Equal(["document.export-decider-required"], ClientDocumentExportRules.Validate(Export(decidedBy: " ")));
-        Assert.Equal(["document.export-build-required"], ClientDocumentExportRules.Validate(Export() with { Build = null! }));
+        Assert.Equal(["document.export-formats-required"], ExportRules(Export(formats: [])));
+        Assert.Equal(["document.export-format-unknown"], ExportRules(Export(formats: [(ClientDocumentFormat)9])));
+        Assert.Equal(["document.export-format-duplicate"], ExportRules(Export(formats: [ClientDocumentFormat.Pdf, ClientDocumentFormat.Pdf])));
+        Assert.Equal(["document.export-language-invalid"], ExportRules(Export(language: "castellano")));
+        Assert.Equal(["document.export-destination-invalid"], ExportRules(Export(destination: @"entregas\tienda")));
+        Assert.Equal(["document.export-destination-invalid"], ExportRules(Export(destination: " ")));
+        Assert.Equal(["document.export-decider-required"], ExportRules(Export(decidedBy: " ")));
+        Assert.Equal(["document.export-build-required"], ExportRules(Export() with { Build = null! }));
         Assert.Equal(
             ["document.local-path"],
-            ClientDocumentExportRules.Validate(Export(build: new ClientDocumentBuild(Complete(ClientText.Written(@"Ver C:\Users\ana\x")), ClientDocumentDisclosure.Of(Complete(), 0, [], 0, false)))));
+            ExportRules(Export(build: new ClientDocumentBuild(Complete(ClientText.Written(@"Ver C:\Users\ana\x")), ClientDocumentDisclosure.Of(Complete(), 0, [], 0, false)))));
         Assert.Equal(
             ["document.disclosure-count-negative"],
-            ClientDocumentExportRules.Validate(Export(build: new ClientDocumentBuild(Complete(), ClientDocumentDisclosure.Of(Complete(), -1, [], 0, false)))));
+            ExportRules(Export(build: new ClientDocumentBuild(Complete(), ClientDocumentDisclosure.Of(Complete(), -1, [], 0, false)))));
+    }
+
+    [Fact]
+    public void A_secret_in_a_text_of_the_system_a_person_an_agent_or_the_cover_is_a_problem()
+    {
+        var mark = new ClientAgentMark(DraftRun, false);
+
+        Assert.Equal(["document.not-redacted"], Rules(Complete(ClientText.OfSystem("document.summary-template", SeededToken))));
+        Assert.Equal(["document.not-redacted"], Rules(Complete(ClientText.Written($"La clave es {SeededToken}"))));
+        Assert.Equal(["document.not-redacted"], Rules(Complete(ClientText.ByAgent($"Usa {SeededToken}", mark))));
+        Assert.Equal(["document.not-redacted"], Rules(new ClientDocument(Cover(project: $"tienda {SeededToken}"), Complete().Sections)));
+        Assert.Equal(["document.not-redacted"], ExportRules(Export(build: new ClientDocumentBuild(Complete(ClientText.Written(SeededToken)), ClientDocumentDisclosure.Of(Complete(), 0, [], 0, false)))));
+    }
+
+    [Fact]
+    public void A_draft_paragraph_with_a_secret_is_left_out_whole()
+    {
+        var check = Draft(["Bien.", $"Con {SeededToken} dentro."]);
+
+        Assert.Equal(["Bien."], check.Paragraphs);
+        Assert.Equal(["a paragraph carries a secret."], check.Discarded);
+    }
+
+    [Fact]
+    public void A_list_of_what_goes_out_made_by_hand_cannot_hide_a_part_an_agent_wrote()
+    {
+        var document = Complete(ClientText.ByAgent("Resumen.", new ClientAgentMark(DraftRun, false)));
+        var hidden = new ClientDocumentDisclosure(0, [], [], 0, false);
+
+        Assert.Equal(["document.disclosure-agent-parts-mismatch"], ExportRules(Export(build: new ClientDocumentBuild(document, hidden))));
+        Assert.Equal(["document.disclosure-agent-parts-mismatch"], ExportRules(Export(build: new ClientDocumentBuild(Complete(), hidden with { AgentWrittenParts = [new ClientAgentPart(ClientDocumentSectionKind.Summary, DraftRun, true)] }))));
+        Assert.Empty(ExportRules(Export(build: new ClientDocumentBuild(document, ClientDocumentDisclosure.Of(document, 0, [], 0, false)))));
+        Assert.Equal([new ClientAgentPart(ClientDocumentSectionKind.Summary, DraftRun, false)], ClientDocumentDisclosure.AgentPartsOf(document));
+    }
+
+    [Fact]
+    public void A_document_with_holes_gives_problems_and_never_an_exception()
+    {
+        var holes = new ClientDocument(
+            Cover(),
+            [
+                null!,
+                new ClientDocumentSection(ClientDocumentSectionKind.Scope, [null!, new ClientParagraph(null!), new ClientList(false, [null!]), new ClientTable([null!], [null!]), new ClientEvidenceList([null!])]),
+            ]);
+
+        var problems = Rules(holes);
+
+        Assert.Contains(ClientDocumentRules.Malformed, problems);
+        Assert.Contains("document.block-unknown", problems);
+        Assert.Contains("document.table-malformed", problems);
+        Assert.Empty(holes.Texts());
+    }
+
+    [Fact]
+    public void A_destination_must_be_fully_qualified_and_a_taken_name_gets_a_suffix_before_the_extension()
+    {
+        Assert.Equal(["document.export-destination-invalid"], ExportRules(Export(destination: "C:entregas")));
+        Assert.Equal(["document.export-destination-invalid"], ExportRules(Export(destination: @"\entregas")));
+        Assert.Equal("mi-tienda-hito-1-v2-2.docx", ClientDocumentFiles.WithCollisionSuffix("mi-tienda-hito-1-v2.docx", 2));
+        Assert.Equal("documento-v1-3.md", ClientDocumentFiles.WithCollisionSuffix("documento-v1.md", 3));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ClientDocumentFiles.WithCollisionSuffix("a.md", 1));
+        Assert.Throws<ArgumentException>(() => ClientDocumentFiles.WithCollisionSuffix(@"..\a.md", 2));
     }
 
     // ---- the surface of the contracts ----
