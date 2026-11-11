@@ -149,7 +149,7 @@ public sealed class RepositoryNodeTests : IDisposable
 
         var none = new RepositoryNodeViewModel(detached with { HeadShort = null }, null, default, Text());
         Assert.Equal("sin versiones guardadas", none.HeadText);
-        Assert.Equal("no branch (detached HEAD)", new RepositoryNodeViewModel(detached, null, default, Text(English)).BranchText);
+        Assert.Equal("no branch (loose version)", new RepositoryNodeViewModel(detached, null, default, Text(English)).BranchText);
     }
 
     [Fact]
