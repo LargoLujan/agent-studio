@@ -78,7 +78,7 @@
     <comment>Error when the viewer component is not installed.</comment>
   </data>
   <data name="Terminal_AssetsMissing" xml:space="preserve">
-    <value>Faltan los archivos de xterm.js. Ejecuta tools\assets\fetch-xterm.ps1 y compila otra vez.</value>
+    <value>Faltan los ficheros de xterm.js. Ejecuta tools\assets\fetch-xterm.ps1 y compila otra vez.</value>
     <comment>Error when the terminal page is not in the build. Keep the script path.</comment>
   </data>
   <data name="Terminal_ViewerFailed" xml:space="preserve">
@@ -90,7 +90,7 @@
     <comment>Error when the viewer does not start: {0} the system message.</comment>
   </data>
   <data name="Editor_MonacoMissing" xml:space="preserve">
-    <value>El editor no está disponible: faltan los archivos de Monaco. Ejecuta tools/assets/fetch-monaco.ps1.</value>
+    <value>El editor no está disponible: faltan los ficheros de Monaco. Ejecuta tools/assets/fetch-monaco.ps1.</value>
     <comment>Error when the editor library is not in the build. Keep the script path.</comment>
   </data>
   <data name="Editor_PageMissing" xml:space="preserve">
@@ -106,11 +106,15 @@
     <comment>Error when the editor page reports a failure: {0} what the page said.</comment>
   </data>
   <data name="Editor_Crashed" xml:space="preserve">
-    <value>El editor se ha detenido sin avisar porque ha fallado WebView2, el visor que lo muestra. Puede que se hayan perdido los cambios sin guardar de esta pestaña. Cierra la pestaña y abre el archivo otra vez.</value>
+    <value>El editor se ha detenido sin avisar porque ha fallado WebView2, el visor que lo muestra. Puede que se hayan perdido los cambios sin guardar de esta pestaña. Cierra la pestaña y abre el fichero otra vez.</value>
     <comment>Error when the viewer process of the editor dies.</comment>
   </data>
+  <data name="Editor_StateName" xml:space="preserve">
+    <value>Estado del editor</value>
+    <comment>Accessible name of the text that tells why the editor is not available.</comment>
+  </data>
   <data name="Editor_MixedLineEndings" xml:space="preserve">
-    <value>Este archivo mezcla saltos de línea CRLF y LF. Al guardar, todos pasarán a {0}.</value>
+    <value>Este fichero mezcla saltos de línea CRLF y LF. Al guardar, todos pasarán a {0}.</value>
     <comment>Notice of the editor tab: {0} is CRLF or LF.</comment>
   </data>
 </root>
