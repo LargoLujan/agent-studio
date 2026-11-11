@@ -330,7 +330,7 @@
     <comment>Heading.</comment>
   </data>
   <data name="Memory_Journal_Explanation" xml:space="preserve">
-    <value>La bitácora del proyecto (.agentstudio/bitacora/) también es memoria. Lo que Agent Studio anota en sus ejecuciones deja un recibo en el registro. Con ese recibo se comprueba, y es de confianza. Lo demás espera en cuarentena. Son tus anotaciones de desarrollo, lo que llega con el repositorio y lo anotado antes de los recibos. Ningún agente lo recibe hasta que lo aceptes: entrada a entrada, por días o para todo el proyecto. Cada decisión queda en el registro y la puedes retirar. El juez nunca recibe la bitácora.</value>
+    <value>La bitácora del proyecto (.agentstudio/bitacora/) también es memoria. Lo que Agent Studio anota en sus ejecuciones deja un recibo en el registro. Con ese recibo se comprueba, y es de confianza. Lo demás espera en cuarentena: tus anotaciones de desarrollo, lo que llega con el repositorio y lo anotado antes de los recibos. Ningún agente lo recibe hasta que lo aceptes: entrada a entrada, por días o para todo el proyecto. Cada decisión queda en el registro y la puedes retirar. El juez nunca recibe la bitácora.</value>
     <comment>Explanation of the trust of the journal.</comment>
   </data>
   <data name="Memory_Journal_StateName" xml:space="preserve">

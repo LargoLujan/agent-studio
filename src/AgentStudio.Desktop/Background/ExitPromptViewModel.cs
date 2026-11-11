@@ -6,7 +6,7 @@ namespace AgentStudio.Desktop.Background;
 
 /// <summary>
 /// The question of the managed exit (docs/16 D-14 and D-16, F8-9): what is going on, and what each answer does, before it
-/// is chosen. «Seguir en la bandeja» only when the window is being closed; «Cancelar» is the answer of closing it any
+/// is chosen. «Seguir en la bandeja» only when the window is being closed; «No salir» is the answer of closing it any
 /// other way. Each answer says whether the work resumes by itself afterwards: none of the person's does.
 /// </summary>
 public sealed partial class ExitPromptViewModel : ObservableObject

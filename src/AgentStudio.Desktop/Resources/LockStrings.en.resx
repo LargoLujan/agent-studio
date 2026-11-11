@@ -116,7 +116,7 @@
     <value>Windows Hello did not confirm it is you ({0}). {1}</value>
   </data>
   <data name="Lock_Screen_HelloFailed" xml:space="preserve">
-    <value>Windows Hello could not be requested ({0}). {1}</value>
+    <value>Agent Studio could not ask Windows Hello ({0}). {1}</value>
   </data>
   <data name="Lock_Screen_HelloAbsent" xml:space="preserve">
     <value>Windows Hello is not available ({0}). Use “Lock Windows”: when you unlock Windows, Agent Studio unlocks too.</value>

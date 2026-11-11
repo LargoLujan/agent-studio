@@ -542,7 +542,7 @@ public sealed class FileDocumentViewModelTests
         await document.LoadAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(string.Empty, document.Text);
-        Assert.Contains("el visor no admite más de", document.ErrorMessage, StringComparison.Ordinal);
+        Assert.Equal("El fichero pesa 2 MB y el visor no admite más de 2 MB.", document.ErrorMessage);
     }
 
     [Fact]

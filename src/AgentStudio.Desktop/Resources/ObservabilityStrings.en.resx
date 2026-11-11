@@ -125,7 +125,7 @@
     <value>7 d</value>
   </data>
   <data name="Observability_Window_WithLength" xml:space="preserve">
-    <value>{0} · window of {1}</value>
+    <value>{0} · period: {1}</value>
   </data>
   <data name="Observability_Length_Minutes" xml:space="preserve">
     <value>{0} min</value>

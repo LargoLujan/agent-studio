@@ -155,7 +155,7 @@ public sealed class QuotaViewModelTests
         await quota.ReadCodexCommand.ExecuteAsync(null);
 
         Assert.Equal(1, reader.Reads);
-        Assert.Equal(["Codex · ventana de 5 h", "Codex · ventana de 7 días"], quota.Codex.Windows.Select(w => w.Name));
+        Assert.Equal(["Codex · periodo de 5 h", "Codex · periodo de 7 días"], quota.Codex.Windows.Select(w => w.Name));
         Assert.Equal("41 % · exacto · informado por el programa del agente", quota.Codex.Windows[0].Utilization.Text);
         Assert.Equal("vista hace menos de 1 min", quota.Codex.Windows[0].Seen);
         Assert.Equal("Leída de Codex ahora, sin turno del modelo.", quota.Codex.Status);

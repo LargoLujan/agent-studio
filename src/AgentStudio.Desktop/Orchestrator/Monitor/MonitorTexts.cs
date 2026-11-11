@@ -181,8 +181,8 @@ public static class AgentActivityText
     /// <summary>A number with its provenance: an estimate is never shown as a measurement, a missing value never as zero.</summary>
     private static string Tokens(MetricValue<long> value) => value.Provenance switch
     {
-        MetricProvenance.Exact when value.Value is { } exact => exact.ToString(CultureInfo.InvariantCulture),
-        MetricProvenance.Estimated when value.Value is { } estimate => Texts.Format("Orchestrator_Activity_TokensEstimated", estimate.ToString(CultureInfo.InvariantCulture)),
+        MetricProvenance.Exact when value.Value is { } exact => MetricText.Integer(exact),
+        MetricProvenance.Estimated when value.Value is { } estimate => Texts.Format("Orchestrator_Activity_TokensEstimated", MetricText.Integer(estimate)),
         _ => Texts.Get("Orchestrator_Activity_NotExposed"),
     };
 
@@ -274,7 +274,7 @@ public static class EvidenceText
 public static class MonitorTokens
 {
     /// <summary>
-    /// «Tokens del último intento: 61.222 de entrada y 50 de salida · exacto · informado por el CLI», with the weakest origin of
+    /// «Tokens del último intento: 61.222 de entrada y 50 de salida · exacto · informado por el programa del agente», with the weakest origin of
     /// the two figures; a figure that is not there says so instead of a zero. They are what the CLI reports: for some, the
     /// total of the session; the usage of the attempt itself is in «Consumo».
     /// </summary>

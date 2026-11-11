@@ -49,7 +49,7 @@ public sealed record ContextBarRow(string Task, double? Fraction, string Text, T
     public override string ToString() => Texts.Format("Background_Panel_ContextRow", Task, Text);
 }
 
-/// <summary>A figure with its name: «Entrada · 1.200.000 · exacto · informado por el CLI».</summary>
+/// <summary>A figure with its name: «Entrada · 1.200.000 · exacto · informado por el programa del agente».</summary>
 public sealed record FigureRow(string Name, Figure Figure)
 {
     public string Text => Figure.Text;

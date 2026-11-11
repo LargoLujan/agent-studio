@@ -522,7 +522,7 @@ Si eliges No, los cambios siguen en el editor, sin guardar.</value>
     <comment>{0}: name of the file of the day.</comment>
   </data>
   <data name="Journal_ReadFailed" xml:space="preserve">
-    <value>No se pudo leer la bitácora ({0}). Pulsa «Actualizar» para intentarlo otra vez.</value>
+    <value>No se pudo leer la bitácora. Pulsa «Actualizar» para intentarlo otra vez. Detalle: {0}</value>
     <comment>{0}: technical detail.</comment>
   </data>
   <data name="Providers_Title" xml:space="preserve">
@@ -694,7 +694,7 @@ Si eliges No, los cambios siguen en el editor, sin guardar.</value>
     <comment>{0}, {1}: titles of the sections.</comment>
   </data>
   <data name="SettingsDoc_SaveFailed" xml:space="preserve">
-    <value>No se pudieron guardar los ajustes ({0}). Vuelve a intentarlo.</value>
+    <value>No se pudieron guardar los ajustes. Vuelve a intentarlo. Detalle: {0}</value>
     <comment>{0}: technical detail.</comment>
   </data>
   <data name="SettingsDoc_Saved" xml:space="preserve">

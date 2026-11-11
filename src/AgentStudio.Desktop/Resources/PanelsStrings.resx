@@ -62,7 +62,7 @@
     <comment>AttemptEndClass.Completed.</comment>
   </data>
   <data name="Panels_EndClass_WindowQuota" xml:space="preserve">
-    <value>se agotó el límite de uso de la ventana</value>
+    <value>se agotó el límite de uso del periodo</value>
     <comment>AttemptEndClass.WindowQuota.</comment>
   </data>
   <data name="Panels_EndClass_RateOrOverload" xml:space="preserve">
