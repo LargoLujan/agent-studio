@@ -4,6 +4,7 @@ using System.IO;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Security;
 using AgentStudio.Application.Skills;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Orchestrator.Approvals;
 using AgentStudio.Desktop.ViewModels;
 using AgentStudio.Domain.Agents;
@@ -43,11 +44,14 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
     /// <summary>The action of the approval asked before every assisted recommendation.</summary>
     public const string AssistedAction = "skills.recomendacion-asistida";
 
-    /// <summary>What the person is asked before every assisted recommendation; it becomes the description of the consent.</summary>
-    public const string AssistedDescription =
-        "Pedir a un agente que recomiende skills para esta tarea. Se lanza Claude Code con haiku, de solo lectura, sin red y "
-        + "en una carpeta vacía, con el servidor MCP local del catálogo como única herramienta extra. Gasta un poco de cuota "
-        + "de tu suscripción (una ejecución corta). Solo propone: activar sigue siendo cosa tuya.";
+    /// <summary>
+    /// What the person is asked before every assisted recommendation; it becomes the description of the consent, which the
+    /// decision log anchors, so it is fixed text that does not change with the language of the interface (docs/17 D-48, F14-4).
+    /// </summary>
+    public const string AssistedDescription = "Pedir a un agente que recomiende skills para esta tarea. Se lanza Claude Code con el modelo haiku, de solo lectura, sin red y en una carpeta vacía, con el catálogo local como única herramienta extra. Gasta un poco del límite de uso de tu plan (una ejecución corta). Solo propone: activar sigue siendo cosa tuya.";
+
+    /// <summary>What goes before the technologies of the project when they are added to the task of the agent: part of its request, so fixed (D-48).</summary>
+    internal const string StackContextPrefix = "Contexto del proyecto (detectado por los nombres de sus ficheros): ";
 
     private readonly SkillsBackend _backend;
     private readonly Func<string, CancellationToken, IReadOnlyList<string>> _projectFiles;
@@ -61,7 +65,7 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
     /// <param name="time">The clock (the screen reads no time today; kept for the composition, like the other documents).</param>
     /// <param name="projectFiles">The relative paths of the project's files; by default the explorer's index (names only).</param>
     public SkillsDocumentViewModel(string? projectRoot, SkillsBackend backend, TimeProvider time, Func<string, CancellationToken, IReadOnlyList<string>>? projectFiles = null)
-        : base(DocumentId, "Skills")
+        : base(DocumentId, Texts.Get("Skills_Title"))
     {
         ArgumentNullException.ThrowIfNull(backend);
         ArgumentNullException.ThrowIfNull(time);
@@ -101,8 +105,8 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
 
     /// <summary>What the button of the detail says: «Ver el detalle (28)» or «Ocultar el detalle».</summary>
     public string CatalogWarningsToggleText => ShowCatalogWarnings
-        ? "Ocultar el detalle"
-        : string.Create(CultureInfo.InvariantCulture, $"Ver el detalle ({CatalogWarnings.Count})");
+        ? Texts.Get("Skills_Warnings_Hide")
+        : Texts.Format("Skills_Warnings_Show", CatalogWarnings.Count);
 
     public ObservableCollection<SkillSectorNodeViewModel> Sectors { get; } = [];
 
@@ -124,10 +128,10 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
     private bool _isBusy;
 
     [ObservableProperty]
-    private string _summary = "Cargando el catálogo…";
+    private string _summary = Texts.Get("Skills_Summary_Loading");
 
     [ObservableProperty]
-    private string _stackText = "Sin proyecto: no hay stack que detectar.";
+    private string _stackText = Texts.Get("Skills_Stack_NoProject");
 
     [ObservableProperty]
     private string _searchText = string.Empty;
@@ -195,16 +199,16 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
             var health = await ReadHealthAsync(catalog, notices, ct).ConfigureAwait(true);
             if (_backend.Recommendations is null)
             {
-                notices.Add("Falta la recomendación asistida: solo está la determinista, que no gasta cuota.");
+                notices.Add(Texts.Get("Skills_Notice_NoAssisted"));
             }
             else if (_backend.Approvals is null)
             {
-                notices.Add("Falta el diálogo de aprobación: sin él no se puede pedir el OK de la recomendación asistida.");
+                notices.Add(Texts.Get("Skills_Notice_NoApproval"));
             }
 
             if (_roster.Any(agent => agent.Model.Provider == ProviderId.CodexCli))
             {
-                notices.Add("Codex carga además tus skills globales (~/.agents/skills): activar una aquí solo añade, no oculta las que ya tienes.");
+                notices.Add(Texts.Get("Skills_Notice_CodexGlobal"));
             }
 
             await DetectStackAsync(notices, ct).ConfigureAwait(true);
@@ -256,13 +260,13 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
     {
         if (ProjectRoot is null)
         {
-            notices.Add("Abre un proyecto para activar skills: sin él solo se consulta el catálogo.");
+            notices.Add(Texts.Get("Skills_Notice_OpenProject"));
             return null;
         }
 
         if (_backend.Workspace is null)
         {
-            notices.Add("Falta el almacén del proyecto: no se puede activar ni ver qué está activo en él.");
+            notices.Add(Texts.Get("Skills_Notice_NoStore"));
             return null;
         }
 
@@ -272,7 +276,7 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            notices.Add("No se pudo abrir el proyecto, así que no se puede activar nada: " + ex.Message);
+            notices.Add(Texts.Format("Skills_Notice_OpenFailed", ex.Message));
             return null;
         }
     }
@@ -292,26 +296,23 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
 
         var unusable = (linked, withoutCopy) switch
         {
-            ( > 0, > 0) => $"{Count(linked, "skill enlazada", "skills enlazadas")} y {withoutCopy} sin copia local válida no se pueden dar a un agente",
-            ( > 0, _) => $"{Count(linked, "skill enlazada no se puede", "skills enlazadas no se pueden")} dar a un agente",
-            (_, > 0) => $"{Count(withoutCopy, "skill sin copia local válida no se puede", "skills sin copia local válida no se pueden")} dar a un agente",
+            ( > 0, > 0) => Texts.Format("Skills_Unusable_Both", Texts.Format(linked == 1 ? "Skills_Linked_One" : "Skills_Linked_Other", linked), withoutCopy),
+            ( > 0, _) => Texts.Format(linked == 1 ? "Skills_UnusableLinked_One" : "Skills_UnusableLinked_Other", linked),
+            (_, > 0) => Texts.Format(withoutCopy == 1 ? "Skills_UnusableNoCopy_One" : "Skills_UnusableNoCopy_Other", withoutCopy),
             _ => null,
         };
         var rest = warnings.Count - Math.Max(0, linked) - Math.Max(0, withoutCopy);
         var others = rest <= 0 ? null
-            : unusable is null ? $"{Count(rest, "aviso", "avisos")} del índice de skills"
-            : $"{Count(rest, "aviso más", "avisos más")} del índice";
+            : unusable is null ? Texts.Format(rest == 1 ? "Skills_Warnings_Index_One" : "Skills_Warnings_Index_Other", rest)
+            : Texts.Format(rest == 1 ? "Skills_Warnings_More_One" : "Skills_Warnings_More_Other", rest);
         return string.Join(" · ", new[] { unusable, others }.OfType<string>()) + ".";
-
-        static string Count(int count, string one, string many) =>
-            string.Create(CultureInfo.InvariantCulture, $"{count} {(count == 1 ? one : many)}");
     }
 
     private async Task<IReadOnlyList<CatalogSkill>> ReadCatalogAsync(List<string> notices, List<string> entryWarnings, CancellationToken ct)
     {
         if (_backend.Catalog is null)
         {
-            notices.Add("Falta el catálogo de skills: no hay nada que mostrar.");
+            notices.Add(Texts.Get("Skills_Notice_NoCatalog"));
             return [];
         }
 
@@ -327,7 +328,7 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            notices.Add("No se pudo leer el catálogo de skills: " + ex.Message);
+            notices.Add(Texts.Format("Skills_Notice_CatalogFailed", ex.Message));
             return [];
         }
     }
@@ -349,7 +350,7 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
 
         if (_backend.Roster is null)
         {
-            notices.Add("Falta la plantilla de agentes: solo se activan los ámbitos Global y Proyecto.");
+            notices.Add(Texts.Get("Skills_Notice_NoTemplate"));
             return [];
         }
 
@@ -358,14 +359,14 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
             var roster = await _backend.Roster.ListAsync(Project.ProjectId, ct).ConfigureAwait(true);
             if (roster.Count == 0)
             {
-                notices.Add("El proyecto aún no tiene plantilla de agentes (el Orquestador crea la de por defecto al abrirlo): hasta entonces solo hay ámbitos Global y Proyecto.");
+                notices.Add(Texts.Get("Skills_Notice_NoTemplateYet"));
             }
 
             return [.. roster.OrderBy(agent => agent.Id.Value, StringComparer.Ordinal)];
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            notices.Add("No se pudo leer la plantilla de agentes: " + ex.Message);
+            notices.Add(Texts.Format("Skills_Notice_TemplateFailed", ex.Message));
             return [];
         }
     }
@@ -379,7 +380,7 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
 
         if (_backend.Activations is null)
         {
-            notices.Add("Falta el almacén de activaciones: no se puede activar ni ver qué está activo.");
+            notices.Add(Texts.Get("Skills_Notice_NoActivations"));
             return [];
         }
 
@@ -389,7 +390,7 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            notices.Add("No se pudieron leer las activaciones: " + ex.Message);
+            notices.Add(Texts.Format("Skills_Notice_ActivationsFailed", ex.Message));
             return [];
         }
     }
@@ -399,7 +400,7 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
         var health = new Dictionary<SkillId, SkillHealthReport>();
         if (_backend.Health is null && catalog.Count > 0)
         {
-            notices.Add("Falta el lector de salud de las skills: todas salen «sin comprobar».");
+            notices.Add(Texts.Get("Skills_Notice_NoHealth"));
         }
 
         foreach (var skill in catalog)
@@ -413,7 +414,7 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
-                    report = new SkillHealthReport([new SkillHealthCheck(SkillHealthCodes.Frontmatter, SkillHealthStatus.Unknown, "No se pudo comprobar: " + ex.Message)]);
+                    report = new SkillHealthReport([new SkillHealthCheck(SkillHealthCodes.Frontmatter, SkillHealthStatus.Unknown, Texts.Format("Skills_Health_CheckFailed", ex.Message))]);
                 }
             }
 
@@ -435,15 +436,15 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                notices.Add("No se pudieron listar los ficheros del proyecto para detectar su stack: " + ex.Message);
+                notices.Add(Texts.Format("Skills_Notice_FilesFailed", ex.Message));
             }
         }
 
         OnPropertyChanged(nameof(Stack));
         StackText = ProjectRoot is null
-            ? "Sin proyecto: no hay stack que detectar."
+            ? Texts.Get("Skills_Stack_NoProject")
             : Stack.Count == 0
-                ? "No se reconoce ningún stack por los nombres de los ficheros."
+                ? Texts.Get("Skills_Stack_None")
                 : string.Join(' ', Stack.Select(tag => "#" + tag));
     }
 
@@ -467,11 +468,11 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
         var sectors = Sectors.Count;
         Summary = string.IsNullOrWhiteSpace(query)
             ? _items.Count == 0
-                ? "El catálogo está vacío."
-                : $"{_items.Count} skills en {sectors} {(sectors == 1 ? "sector" : "sectores")}"
+                ? Texts.Get("Skills_Summary_Empty")
+                : Texts.Format(sectors == 1 ? "Skills_Summary_Sectors_One" : "Skills_Summary_Sectors_Other", _items.Count, sectors)
             : visible.Count == 0
-                ? $"Ninguna skill coincide con «{query.Trim()}»."
-                : $"{visible.Count} de {_items.Count} skills coinciden con «{query.Trim()}»";
+                ? Texts.Format("Skills_Summary_NoMatch", query.Trim())
+                : Texts.Format("Skills_Summary_Matches", visible.Count, _items.Count, query.Trim());
     }
 
     private void Select(SkillItemViewModel item)
@@ -519,13 +520,13 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
     {
         var entry = item.Skill.Entry;
         var source = entry.Source;
-        var commit = source.PinnedCommit is { Length: >= 7 } pinned ? "commit " + pinned[..7] : "sin commit fijado";
-        var license = string.IsNullOrWhiteSpace(source.License) ? "sin licencia declarada" : source.License;
+        var commit = source.PinnedCommit is { Length: >= 7 } pinned ? Texts.Format("Skills_Source_Commit", pinned[..7]) : Texts.Get("Skills_Source_NoCommit");
+        var license = string.IsNullOrWhiteSpace(source.License) ? Texts.Get("Skills_Source_NoLicense") : source.License;
         var cost = SkillContextCost.Of(entry);
         var warnings = new List<string>();
         if (item.IsLinked)
         {
-            warnings.Add("Está enlazada: el índice no guarda copia local, así que no se puede dar a ningún agente ni activar aquí. Para usarla, vendorízala en tu índice.");
+            warnings.Add(Texts.Get("Skills_Card_LinkedWarning"));
         }
 
         return new SkillDetailViewModel
@@ -535,10 +536,10 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
             SectorTitle = entry.Sector.Title,
             Summary = entry.Summary,
             SourceText = $"{source.Repository} · {source.Path} · {commit} · {license}",
-            ModeText = item.IsLinked ? "Enlazada: sin copia local" : "Copia local revisada (vendorizada)",
-            TagsText = item.Card.Tags.Count == 0 ? "Sin etiquetas" : string.Join(' ', item.Card.Tags.Select(tag => "#" + tag)),
+            ModeText = item.IsLinked ? Texts.Get("Skills_Card_ModeLinked") : Texts.Get("Skills_Card_ModeLocal"),
+            TagsText = item.Card.Tags.Count == 0 ? Texts.Get("Skills_Card_NoTags") : string.Join(' ', item.Card.Tags.Select(tag => "#" + tag)),
             Cost = cost,
-            CostText = $"~{cost.Value} tokens en cada ejecución en la que esté activa (estimado por Agent Studio: nombre y descripción entre {SkillContextCost.CharactersPerToken}).",
+            CostText = Texts.Format("Skills_Card_Cost", cost.Value, SkillContextCost.CharactersPerToken),
             HealthStatus = item.HealthStatus,
             HealthLabel = item.HealthLabel,
             IsLinked = item.IsLinked,
@@ -595,7 +596,7 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            ActivationProblem = "No se pudo guardar la decisión: " + ex.Message;
+            ActivationProblem = Texts.Format("Skills_Activation_SaveFailed", ex.Message);
         }
 
         RefreshActivationState();
@@ -617,11 +618,11 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
         var projectId = Project?.ProjectId;
         var enabled = SkillActivationResolver.IsEnabled(skill, projectId, agentId, _activations);
         var source = LastDecision(skill, SkillScopeKind.Agent, agentId) is not null
-            ? "por el agente"
+            ? Texts.Get("Skills_By_Agent")
             : projectId is not null && LastDecision(skill, SkillScopeKind.Project, projectId) is not null
-                ? "por el proyecto"
-                : LastDecision(skill, SkillScopeKind.Global, null) is not null ? "global" : null;
-        return source is null ? "Sin activar (ninguna decisión)" : $"{(enabled ? "Activada" : "Desactivada")} ({source})";
+                ? Texts.Get("Skills_By_Project")
+                : LastDecision(skill, SkillScopeKind.Global, null) is not null ? Texts.Get("Skills_By_Global") : null;
+        return source is null ? Texts.Get("Skills_Effective_None") : Texts.Format(enabled ? "Skills_Effective_On" : "Skills_Effective_Off", source);
     }
 
     /// <summary>The badges of the tree and the cost of each agent, after the decisions changed.</summary>
@@ -635,12 +636,12 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
             var skill = item.Skill.Entry.Id;
             var forProject = SkillActivationResolver.IsEnabled(skill, projectId, null, _activations);
             item.ActiveBadge = forProject
-                ? projectId is not null && LastDecision(skill, SkillScopeKind.Project, projectId) is not null ? "Proy." : "Global"
+                ? projectId is not null && LastDecision(skill, SkillScopeKind.Project, projectId) is not null ? Texts.Get("Skills_Badge_Project") : Texts.Get("Skills_Badge_Global")
                 : item.Card.ActiveAgents.Count switch
                 {
                     0 => string.Empty,
-                    1 => "1 agente",
-                    var n => n.ToString(CultureInfo.InvariantCulture) + " agentes",
+                    1 => Texts.Get("Skills_Badge_Agents_One"),
+                    var n => Texts.Format("Skills_Badge_Agents_Other", n),
                 };
         }
 
@@ -677,13 +678,13 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
         {
             var id = recommendation.Skill.Id.Value;
             var points = recommendation.Score.ToString("0.#", CultureInfo.InvariantCulture);
-            var unit = points == "1" ? "punto" : "puntos";
-            Recommendations.Add(new SkillRecommendationItemViewModel(id, recommendation.Skill.Name, $"{points} {unit} · {string.Join(" · ", recommendation.Reasons)}", new RelayCommand(() => Show(id))));
+            var unit = Texts.Format(points == "1" ? "Skills_Points_One" : "Skills_Points_Other", points);
+            Recommendations.Add(new SkillRecommendationItemViewModel(id, recommendation.Skill.Name, $"{unit} · {string.Join(" · ", recommendation.Reasons)}", new RelayCommand(() => Show(id))));
         }
 
         RecommendationStatus = Recommendations.Count == 0
-            ? "Ninguna skill coincide con la tarea ni con el stack del proyecto."
-            : $"{Recommendations.Count} recomendadas, sin gastar cuota. Nada se ha activado.";
+            ? Texts.Get("Skills_Recommend_None")
+            : Texts.Format("Skills_Recommend_Some", Recommendations.Count);
     }
 
     // ---- the assisted recommendation ----
@@ -712,16 +713,16 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
         IsAsking = true;
         try
         {
-            AssistedStatus = "Esperando tu OK…";
+            AssistedStatus = Texts.Get("Skills_Assisted_WaitingOk");
             var question = new ApprovalRequest(AssistedAction, AssistedDescription, RiskLevel.Low, null, [], project.ProjectId);
             var answer = await gate.RequestAsync(question, CancellationToken.None).ConfigureAwait(true);
             if (!answer.Approved)
             {
-                AssistedStatus = "No se pidió nada: no diste el OK, así que no se gastó cuota.";
+                AssistedStatus = Texts.Get("Skills_Assisted_NotGiven");
                 return;
             }
 
-            AssistedStatus = "Preguntando al agente…";
+            AssistedStatus = Texts.Get("Skills_Assisted_Asking");
             var consent = new QuotaConsent(answer.DecidedBy, answer.At, question.Description);
             var result = await service.AskAgentAsync(project, AssistedTask(), consent, CancellationToken.None).ConfigureAwait(true);
 
@@ -731,7 +732,7 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
                 var id = recommendation.Skill.Value;
                 var name = _items.FirstOrDefault(item => item.Id == id)?.Name ?? id;
                 var scope = SkillsTexts.Scope(recommendation.Scope, recommendation.Agent?.Value);
-                AssistedRecommendations.Add(new SkillRecommendationItemViewModel(id, name, $"{scope} · Razón del agente: {recommendation.Reason}", new RelayCommand(() => Show(id))));
+                AssistedRecommendations.Add(new SkillRecommendationItemViewModel(id, name, Texts.Format("Skills_Assisted_Reason", scope, recommendation.Reason), new RelayCommand(() => Show(id))));
             }
 
             AssistedWarnings.Clear();
@@ -740,18 +741,20 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
                 AssistedWarnings.Add(warning);
             }
 
-            var run = result.Run is { } aux ? $" (ejecución {aux.Value})" : string.Empty;
+            var run = result.Run is { } aux ? Texts.Format("Skills_Assisted_Run", aux.Value) : string.Empty;
             AssistedStatus = AssistedRecommendations.Count == 0
-                ? $"El agente no propuso ninguna skill{run}."
-                : $"El agente propuso {AssistedRecommendations.Count} {(AssistedRecommendations.Count == 1 ? "skill" : "skills")}{run}. Nada se ha activado: actívalas tú en su ficha si te convencen.";
+                ? Texts.Format("Skills_Assisted_NoneProposed", run)
+                : AssistedRecommendations.Count == 1
+                    ? Texts.Format("Skills_Assisted_Proposed_One", run)
+                    : Texts.Format("Skills_Assisted_Proposed_Other", AssistedRecommendations.Count, run);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            AssistedStatus = "No se pudo pedir la recomendación: " + ex.Message;
+            AssistedStatus = Texts.Format("Skills_Assisted_Failed", ex.Message);
         }
         catch (OperationCanceledException)
         {
-            AssistedStatus = "Se canceló la pregunta: no se pidió nada.";
+            AssistedStatus = Texts.Get("Skills_Assisted_Cancelled");
         }
         finally
         {
@@ -768,7 +771,7 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
             return task;
         }
 
-        var withStack = $"{task}\n\nContexto del proyecto (detectado por los nombres de sus ficheros): {string.Join(' ', Stack.Select(tag => "#" + tag))}";
+        var withStack = $"{task}\n\n{StackContextPrefix}{string.Join(' ', Stack.Select(tag => "#" + tag))}";
         return withStack.Length <= SkillRecommendationService.MaxTaskLength ? withStack : task;
     }
 }

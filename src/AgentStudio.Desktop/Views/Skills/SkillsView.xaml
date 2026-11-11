@@ -3,6 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
+             xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
              xmlns:skills="clr-namespace:AgentStudio.Desktop.Skills"
              xmlns:layout="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
              mc:Ignorable="d"
@@ -160,7 +162,7 @@
 
     <DataTemplate x:Key="Skills.RecommendationTemplate" DataType="{x:Type skills:SkillRecommendationItemViewModel}">
       <Button Style="{StaticResource Skills.ItemButton}" Command="{Binding ShowCommand}"
-              AutomationProperties.Name="{Binding Name}" ToolTip="Ver su ficha en el árbol">
+              AutomationProperties.Name="{Binding Name}" ToolTip="{l:T Skills_View_ShowCard}">
         <StackPanel>
           <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{Binding Name}"/>
           <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding Detail}"/>
@@ -176,7 +178,7 @@
     <DataTemplate DataType="{x:Type skills:SkillDetailViewModel}">
       <StackPanel>
         <DockPanel>
-          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" AutomationProperties.Name="Salud de la skill">
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" AutomationProperties.Name="{l:T Skills_View_HealthName}">
             <Ellipse Style="{StaticResource Skills.HealthDot}" Margin="0,0,6,0"/>
             <TextBlock Style="{StaticResource BodyText}" Text="{Binding HealthLabel}"/>
           </StackPanel>
@@ -185,13 +187,13 @@
         <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding SectorTitle}"/>
         <TextBlock Style="{StaticResource BodyText}" Margin="0,8,0,0" Text="{Binding Summary}"/>
         <TextBlock Style="{StaticResource SecondaryText}" Margin="0,8,0,0" FontFamily="{StaticResource MonoFont}" Text="{Binding SourceText}"
-                   AutomationProperties.Name="Fuente de la skill"/>
+                   AutomationProperties.Name="{l:T Skills_View_SourceName}"/>
         <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding ModeText}"/>
-        <TextBlock Style="{StaticResource BodyText}" Margin="0,6,0,0" Text="{Binding TagsText}" AutomationProperties.Name="Etiquetas"/>
+        <TextBlock Style="{StaticResource BodyText}" Margin="0,6,0,0" Text="{Binding TagsText}" AutomationProperties.Name="{l:T Skills_View_Tags}"/>
         <ItemsControl Margin="0,6,0,0" ItemsSource="{Binding Warnings}" ItemTemplate="{StaticResource Skills.WarningTemplate}" Focusable="False"/>
 
-        <TextBlock Style="{StaticResource Skills.SectionText}" Text="Activación"/>
-        <ItemsControl ItemsSource="{Binding Scopes}" Focusable="False" AutomationProperties.Name="Activación por ámbito">
+        <TextBlock Style="{StaticResource Skills.SectionText}" Text="{l:T Skills_View_Activation}"/>
+        <ItemsControl ItemsSource="{Binding Scopes}" Focusable="False" AutomationProperties.Name="{l:T Skills_View_ActivationName}">
           <ItemsControl.ItemTemplate>
             <!-- One line when the card is wide; narrower, what is in effect goes under it instead of in a sliver (V29). -->
             <DataTemplate DataType="{x:Type skills:SkillScopeViewModel}">
@@ -199,7 +201,7 @@
                 <CheckBox MinWidth="190" Style="{StaticResource Skills.Switch}" Content="{Binding Title}"
                           IsChecked="{Binding IsChecked, Mode=OneWay}" IsEnabled="{Binding CanToggle}" Command="{Binding ToggleCommand}"
                           AutomationProperties.Name="{Binding Title}"
-                          AutomationProperties.HelpText="Añade una decisión tuya para este ámbito; la anterior queda en el historial"/>
+                          AutomationProperties.HelpText="{l:T Skills_View_ActivationHelp}"/>
                 <TextBlock Style="{StaticResource SecondaryText}" Width="96" Margin="8,0,0,0" VerticalAlignment="Center" Text="{Binding DecisionText}"/>
                 <TextBlock Style="{StaticResource Skills.OptionalText}" Margin="8,0,0,0" VerticalAlignment="Center" Text="{Binding EffectiveText}"/>
               </WrapPanel>
@@ -207,13 +209,13 @@
           </ItemsControl.ItemTemplate>
         </ItemsControl>
         <TextBlock Style="{StaticResource SecondaryText}"
-                   Text="Activar añade una decisión tuya y no borra las anteriores: manda la del ámbito más concreto (Agente, luego Proyecto, luego Global). Sin ninguna, la skill está desactivada."/>
+                   Text="{l:T Skills_View_ActivationNote}"/>
 
-        <TextBlock Style="{StaticResource Skills.SectionText}" Text="Coste de contexto"/>
-        <TextBlock Style="{StaticResource BodyText}" Text="{Binding CostText}" AutomationProperties.Name="Coste de contexto estimado"/>
+        <TextBlock Style="{StaticResource Skills.SectionText}" Text="{l:T Skills_View_Cost}"/>
+        <TextBlock Style="{StaticResource BodyText}" Text="{Binding CostText}" AutomationProperties.Name="{l:T Skills_View_CostName}"/>
 
-        <TextBlock Style="{StaticResource Skills.SectionText}" Text="Salud (comprobaciones locales, sin red)"/>
-        <ItemsControl ItemsSource="{Binding Checks}" Focusable="False" AutomationProperties.Name="Comprobaciones de salud">
+        <TextBlock Style="{StaticResource Skills.SectionText}" Text="{l:T Skills_View_Health}"/>
+        <ItemsControl ItemsSource="{Binding Checks}" Focusable="False" AutomationProperties.Name="{l:T Skills_View_HealthChecks}">
           <ItemsControl.ItemTemplate>
             <DataTemplate DataType="{x:Type skills:SkillCheckViewModel}">
               <DockPanel Margin="0,0,0,4">
@@ -235,14 +237,17 @@
     <!-- Title, summary and search. -->
     <Border DockPanel.Dock="Top" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16,10">
       <DockPanel>
-        <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Margin="12,0,0,0" Content="Recargar" Command="{Binding RefreshCommand}"
-                AutomationProperties.Name="Recargar el catálogo" ToolTip="Vuelve a leer el índice, la plantilla de agentes y las decisiones"/>
+        <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Margin="12,0,0,0" Content="{l:T Skills_View_Reload}" Command="{Binding RefreshCommand}"
+                AutomationProperties.Name="{l:T Skills_View_ReloadName}" ToolTip="{l:T Skills_View_ReloadTip}"/>
         <TextBox DockPanel.Dock="Right" Width="300" Style="{StaticResource Skills.Field}" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                 AutomationProperties.Name="Buscar skills" ToolTip="Busca por nombre, resumen y etiquetas, sin distinguir mayúsculas ni acentos"/>
-        <TextBlock DockPanel.Dock="Right" Style="{StaticResource SecondaryText}" Margin="0,0,8,0" VerticalAlignment="Center" Text="Buscar"/>
+                 AutomationProperties.Name="{l:T Skills_View_SearchName}" ToolTip="{l:T Skills_View_SearchTip}"/>
+        <TextBlock DockPanel.Dock="Right" Style="{StaticResource SecondaryText}" Margin="0,0,8,0" VerticalAlignment="Center" Text="{l:T Skills_View_Search}"/>
         <StackPanel VerticalAlignment="Center">
-          <TextBlock Style="{StaticResource SectionTitleText}" Text="Catálogo de skills"/>
-          <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding Summary}" AutomationProperties.Name="Resumen del catálogo"/>
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Style="{StaticResource SectionTitleText}" VerticalAlignment="Center" Text="{l:T Skills_View_Title}"/>
+            <info:InfoButton InfoKey="Info_Skills" Margin="6,0,0,0" VerticalAlignment="Center"/>
+          </StackPanel>
+          <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding Summary}" AutomationProperties.Name="{l:T Skills_View_SummaryName}"/>
         </StackPanel>
       </DockPanel>
     </Border>
@@ -252,20 +257,20 @@
          below stays in view. -->
     <StackPanel DockPanel.Dock="Top" Margin="16,8,16,0">
       <ItemsControl ItemsSource="{Binding Notices}" ItemTemplate="{StaticResource Skills.WarningTemplate}"
-                    Focusable="False" AutomationProperties.Name="Avisos del catálogo"/>
+                    Focusable="False" AutomationProperties.Name="{l:T Skills_View_NoticesName}"/>
       <DockPanel>
         <ToggleButton DockPanel.Dock="Right" Style="{StaticResource Skills.DetailToggle}" Content="{Binding CatalogWarningsToggleText}"
                       IsChecked="{Binding ShowCatalogWarnings}"
                       Visibility="{Binding HasCatalogWarningDetail, Converter={StaticResource Skills.BoolToVisibility}}"
-                      AutomationProperties.Name="Detalle de los avisos del índice"
-                      AutomationProperties.HelpText="Muestra u oculta cada aviso del índice de skills"/>
+                      AutomationProperties.Name="{l:T Skills_View_WarningsDetailName}"
+                      AutomationProperties.HelpText="{l:T Skills_View_WarningsToggleHelp}"/>
         <TextBlock Style="{StaticResource Skills.OptionalWarningText}" VerticalAlignment="Center" Text="{Binding CatalogWarningsSummary}"
-                   AutomationProperties.Name="Resumen de los avisos del índice"/>
+                   AutomationProperties.Name="{l:T Skills_View_WarningsSummaryName}"/>
       </DockPanel>
       <Border Margin="0,4,0,0" Padding="10,6" CornerRadius="6" BorderThickness="1" Background="{StaticResource SurfaceBrush}"
               BorderBrush="{StaticResource BorderBrush}" Visibility="{Binding ShowCatalogWarnings, Converter={StaticResource Skills.BoolToVisibility}}">
         <ScrollViewer MaxHeight="160" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
-          <ItemsControl ItemsSource="{Binding CatalogWarnings}" Focusable="False" AutomationProperties.Name="Avisos del índice de skills">
+          <ItemsControl ItemsSource="{Binding CatalogWarnings}" Focusable="False" AutomationProperties.Name="{l:T Skills_View_WarningsName}">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
                 <TextBlock Style="{StaticResource SecondaryText}" Margin="0,1" Text="{Binding}"/>
@@ -287,7 +292,7 @@
 
       <!-- The tree of sectors. -->
       <Border Grid.Column="0" Style="{StaticResource Card}" Padding="6">
-        <TreeView ItemsSource="{Binding Sectors}" Background="Transparent" BorderThickness="0" AutomationProperties.Name="Skills por sector">
+        <TreeView ItemsSource="{Binding Sectors}" Background="Transparent" BorderThickness="0" AutomationProperties.Name="{l:T Skills_View_TreeName}">
           <TreeView.ItemContainerStyle>
             <Style TargetType="TreeViewItem">
               <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
@@ -335,7 +340,7 @@
         <Border Style="{StaticResource Card}" MinWidth="320" layout:AdaptiveColumnsPanel.Weight="2" layout:AdaptiveColumnsPanel.RowWeight="3">
           <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
             <Grid>
-              <TextBlock Text="Elige una skill del árbol para ver su ficha: fuente, salud, coste y activación.">
+              <TextBlock Text="{l:T Skills_View_Pick}">
                 <TextBlock.Style>
                   <Style TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -356,32 +361,32 @@
         <Border x:Name="RecommendationsCard" Style="{StaticResource Card}" MinWidth="300" layout:AdaptiveColumnsPanel.Weight="1" layout:AdaptiveColumnsPanel.RowWeight="2">
           <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
             <StackPanel>
-              <TextBlock Style="{StaticResource SectionTitleText}" Text="Recomendar para una tarea"/>
-              <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,6" Text="{Binding StackText, StringFormat=Stack del proyecto: {0}}"
-                         AutomationProperties.Name="Stack del proyecto"/>
+              <TextBlock Style="{StaticResource SectionTitleText}" Text="{l:T Skills_View_Recommend}"/>
+              <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,6" Text="{Binding StackText, StringFormat={l:T Skills_View_Stack}}"
+                         AutomationProperties.Name="{l:T Skills_View_StackName}"/>
               <TextBox Style="{StaticResource Skills.Field}" MinHeight="54" AcceptsReturn="True" TextWrapping="Wrap" VerticalContentAlignment="Top"
-                       Text="{Binding TaskText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Tarea para la que recomendar skills"/>
-              <Button Style="{StaticResource GhostButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Content="Recomendar (determinista, sin cuota)"
-                      Command="{Binding RecommendCommand}" AutomationProperties.Name="Recomendar"/>
+                       Text="{Binding TaskText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{l:T Skills_View_TaskName}"/>
+              <Button Style="{StaticResource GhostButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Content="{l:T Skills_View_RecommendButton}"
+                      Command="{Binding RecommendCommand}" AutomationProperties.Name="{l:T Skills_View_RecommendName}"/>
               <TextBlock Style="{StaticResource Skills.OptionalText}" Margin="0,6,0,0" Text="{Binding RecommendationStatus}"/>
               <ItemsControl Margin="0,4,0,0" ItemsSource="{Binding Recommendations}" ItemTemplate="{StaticResource Skills.RecommendationTemplate}"
-                            Focusable="False" AutomationProperties.Name="Recomendaciones deterministas"/>
+                            Focusable="False" AutomationProperties.Name="{l:T Skills_View_DeterministicName}"/>
 
-              <TextBlock Style="{StaticResource Skills.SectionText}" Text="Pedir a un agente"/>
-              <CheckBox Style="{StaticResource Skills.Switch}" IsChecked="{Binding IsAssistedAllowed}" AutomationProperties.Name="Permitir la recomendación asistida">
-                <TextBlock TextWrapping="Wrap" Text="Permitir la recomendación asistida (gasta cuota de Claude)"/>
+              <TextBlock Style="{StaticResource Skills.SectionText}" Text="{l:T Skills_View_Ask}"/>
+              <CheckBox Style="{StaticResource Skills.Switch}" IsChecked="{Binding IsAssistedAllowed}" AutomationProperties.Name="{l:T Skills_View_AllowName}">
+                <TextBlock TextWrapping="Wrap" Text="{l:T Skills_View_Allow}"/>
               </CheckBox>
               <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0"
-                         Text="Cada uso pide tu OK. Claude (haiku) consulta el catálogo con el servidor MCP local de solo lectura, sin red ni ficheros, y solo propone."/>
-              <Button Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Content="Pedir a un agente"
-                      Command="{Binding AskAgentCommand}" AutomationProperties.Name="Pedir a un agente"/>
-              <TextBlock Style="{StaticResource Skills.OptionalText}" Margin="0,6,0,0" Text="{Binding AssistedStatus}" AutomationProperties.Name="Estado de la recomendación asistida"/>
+                         Text="{l:T Skills_View_AskNote}"/>
+              <Button Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Content="{l:T Skills_View_Ask}"
+                      Command="{Binding AskAgentCommand}" AutomationProperties.Name="{l:T Skills_View_Ask}"/>
+              <TextBlock Style="{StaticResource Skills.OptionalText}" Margin="0,6,0,0" Text="{Binding AssistedStatus}" AutomationProperties.Name="{l:T Skills_View_AskStatusName}"/>
               <ItemsControl Margin="0,4,0,0" ItemsSource="{Binding AssistedRecommendations}" ItemTemplate="{StaticResource Skills.RecommendationTemplate}"
-                            Focusable="False" AutomationProperties.Name="Recomendaciones del agente"/>
+                            Focusable="False" AutomationProperties.Name="{l:T Skills_View_AssistedName}"/>
               <ItemsControl ItemsSource="{Binding AssistedWarnings}" ItemTemplate="{StaticResource Skills.WarningTemplate}" Focusable="False"/>
 
-              <TextBlock Style="{StaticResource Skills.SectionText}" Text="Lo que recibe cada agente"/>
-              <ItemsControl ItemsSource="{Binding AgentCosts}" Focusable="False" AutomationProperties.Name="Coste por agente">
+              <TextBlock Style="{StaticResource Skills.SectionText}" Text="{l:T Skills_View_PerAgent}"/>
+              <ItemsControl ItemsSource="{Binding AgentCosts}" Focusable="False" AutomationProperties.Name="{l:T Skills_View_CostPerAgent}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate DataType="{x:Type skills:AgentCostViewModel}">
                     <TextBlock Style="{StaticResource BodyText}" Margin="0,0,0,3" Text="{Binding Text}"/>
