@@ -83,6 +83,40 @@ public sealed class TeamGraphTests
         Assert.Equal((1, 8, 1), (TeamLimits.MaxOrchestrators, TeamLimits.MaxExecutors, TeamLimits.MinJudges));
     }
 
+    [Fact]
+    public void A_removal_may_not_take_the_orchestrator_nor_the_last_judge_but_may_take_the_rest()
+    {
+        var team = Team([], Node("juez-claude", AgentRole.Judge), Node("ejecutor-2", AgentRole.Executor)).Roster;
+
+        Assert.Equal([TeamRemoval.OrchestratorRequired], TeamRemoval.Problems(team, [.. team.Where(a => a.Role != AgentRole.Orchestrator)]));
+        Assert.Equal([TeamRemoval.JudgeRequired], TeamRemoval.Problems(team, [.. team.Where(a => a.Role != AgentRole.Judge)]));
+        Assert.Equal([TeamRemoval.OrchestratorRequired, TeamRemoval.JudgeRequired], TeamRemoval.Problems(team, [.. team.Where(a => a.Role is AgentRole.Executor)]));
+        Assert.Empty(TeamRemoval.Problems(team, [.. team.Where(a => a.Id != Aid("juez-claude"))]));
+        Assert.Empty(TeamRemoval.Problems(team, [.. team.Where(a => a.Role != AgentRole.Executor)]));
+        Assert.Equal("team.judge-required", TeamRemoval.JudgeRequired);
+    }
+
+    [Fact]
+    public void A_removal_is_judged_by_what_it_leaves_so_a_judge_that_replaces_another_is_enough()
+    {
+        var team = Team([]).Roster;
+        var otherJudge = Node("juez-2", AgentRole.Judge, VendorId.OpenAI).Agent;
+
+        // The judge goes and another takes its place in the same change.
+        Assert.Empty(TeamRemoval.Problems(team, [.. team.Where(a => a.Role != AgentRole.Judge), otherJudge]));
+    }
+
+    [Fact]
+    public void A_team_that_already_lacked_a_role_is_not_refused_for_it_when_something_else_goes()
+    {
+        var withoutJudge = new TeamGraph([Node("orquestador", AgentRole.Orchestrator), Node("ejecutor", AgentRole.Executor), Node("ejecutor-2", AgentRole.Executor)], null, []).Roster;
+        var withoutOrchestrator = new TeamGraph([Node("ejecutor", AgentRole.Executor), Node("juez", AgentRole.Judge)], null, []).Roster;
+
+        Assert.Empty(TeamRemoval.Problems(withoutJudge, [.. withoutJudge.Where(a => a.Id != Aid("ejecutor-2"))]));
+        Assert.Empty(TeamRemoval.Problems(withoutOrchestrator, [.. withoutOrchestrator.Where(a => a.Role == AgentRole.Judge)]));
+        Assert.Equal(1, TeamLimits.MinOrchestrators);
+    }
+
     /// <summary>F13-3: a URL with credentials is never shown nor kept with them.</summary>
     [Theory]
     [InlineData("https://usuario:token@github.com/acme/calc.git", "https://github.com/acme/calc.git")]

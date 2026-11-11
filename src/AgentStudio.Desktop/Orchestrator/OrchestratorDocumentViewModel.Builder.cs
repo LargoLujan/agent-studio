@@ -47,7 +47,7 @@ public sealed partial class OrchestratorDocumentViewModel
         var editor = new TeamEditorViewModel(
             Canvas.Team,
             _session.CanSaveAgents ? (project, agent) => _session.SaveAgentAsync(project, agent, CancellationToken.None) : null,
-            null,
+            _session.CanSaveAgents ? (project, agent) => _session.RemoveAgentAsync(project, agent, CancellationToken.None) : null,
             OnRosterSavedAsync,
             text);
         editor.UseConfirmation(_confirmation is null ? null : ConfirmPresenceAsync);

@@ -21,6 +21,55 @@ public static class TeamLimits
 
     /// <summary>At least one judge, of a vendor other than the orchestrator's and the executors' (ADR-0014).</summary>
     public const int MinJudges = 1;
+
+    /// <summary>
+    /// The orchestrator is the one that plans: a team that has lost it cannot prepare a plan. <see cref="TeamGraph.Validate"/> does not
+    /// ask for it (a template read from the store may lack one, and the layer offers to add it); <see cref="TeamRemoval"/> does not let
+    /// a removal take it away.
+    /// </summary>
+    public const int MinOrchestrators = 1;
+}
+
+/// <summary>
+/// What taking agents out of the template must not leave behind (docs/17 D-09, P48): the team keeps the orchestrator that plans and
+/// the judge that reviews. Pure and about the removal, not about the team as a whole: a team that already lacked one is not refused
+/// for it when something else is removed. Everything else a removal could break (a cable to the agent, a task assigned to it) is
+/// seen by the graph and the validator of the plan after the template is read again.
+/// </summary>
+public static class TeamRemoval
+{
+    /// <summary>The team has no orchestrator after a removal that took the last one.</summary>
+    public const string OrchestratorRequired = "team.orchestrator-required";
+
+    /// <summary>The team has no judge after a removal that took the last one (the same code as <see cref="TeamGraph.Validate"/>).</summary>
+    public const string JudgeRequired = TeamGraph.JudgeRequired;
+
+    /// <summary>
+    /// The codes of the roles a change leaves empty, as stable codes in a fixed order; an empty list means the removal is acceptable.
+    /// </summary>
+    /// <param name="before">The template as it is.</param>
+    /// <param name="after">The template as it would be once the change (the agents it saves and the ones it takes out) is done.</param>
+    public static IReadOnlyList<string> Problems(IReadOnlyList<AgentDefinition> before, IReadOnlyList<AgentDefinition> after)
+    {
+        ArgumentNullException.ThrowIfNull(before);
+        ArgumentNullException.ThrowIfNull(after);
+        var problems = new List<string>();
+        if (TookOut(before, after, AgentRole.Orchestrator) && after.Count(a => a.Role == AgentRole.Orchestrator) < TeamLimits.MinOrchestrators)
+        {
+            problems.Add(OrchestratorRequired);
+        }
+
+        if (TookOut(before, after, AgentRole.Judge) && new TeamGraph([.. after.Select(a => new AgentNode(a))], null, []).Validate().Contains(JudgeRequired))
+        {
+            problems.Add(JudgeRequired);
+        }
+
+        return problems;
+    }
+
+    /// <summary>Whether an agent of <paramref name="role"/> in <paramref name="before"/> is not in <paramref name="after"/>.</summary>
+    private static bool TookOut(IReadOnlyList<AgentDefinition> before, IReadOnlyList<AgentDefinition> after, AgentRole role) =>
+        before.Any(b => b.Role == role && after.All(a => a.Id != b.Id));
 }
 
 /// <summary>What a role does in a team (docs/17 D-08 and D-11).</summary>
@@ -78,6 +127,9 @@ public sealed record TeamEdge(TeamEdgeKind Kind, AgentId From, AgentId? ToAgent 
 /// </summary>
 public sealed record TeamGraph(IReadOnlyList<AgentNode> Agents, RepositoryNode? Repository, IReadOnlyList<TeamEdge> Edges)
 {
+    /// <summary>The code of <see cref="Validate"/> for a team with no judge.</summary>
+    public const string JudgeRequired = "team.judge-required";
+
     /// <summary>The template the graph shows, in the order of its nodes.</summary>
     public IReadOnlyList<AgentDefinition> Roster => [.. Agents.Select(a => a.Agent)];
 
@@ -132,7 +184,7 @@ public sealed record TeamGraph(IReadOnlyList<AgentNode> Agents, RepositoryNode? 
 
         if (roles.Count(r => r == AgentRole.Judge) < TeamLimits.MinJudges)
         {
-            Add("team.judge-required");
+            Add(JudgeRequired);
         }
 
         foreach (var main in Repository?.MainFolders ?? [])

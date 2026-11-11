@@ -1,5 +1,6 @@
 using AgentStudio.Application.Persistence;
 using AgentStudio.Domain.Agents;
+using AgentStudio.Domain.Common;
 using AgentStudio.Infrastructure.Persistence.Json;
 using static AgentStudio.Infrastructure.Persistence.SqliteValues;
 
@@ -7,8 +8,9 @@ namespace AgentStudio.Infrastructure.Persistence;
 
 /// <summary>
 /// The agent template of a project in <c>agents</c>. Unlike the history tables it can change: saving an agent again
-/// replaces its definition in place (each run freezes the roster it started with, so changing the template never
-/// rewrites a past run). Only valid definitions are saved, so a judge with write access never reaches the template.
+/// replaces its definition in place and deleting one takes it out (each run and each debate freezes the definitions it
+/// started with, so changing the template never rewrites the past). Only valid definitions are saved, so a judge with write
+/// access never reaches the template.
 /// </summary>
 public sealed class SqliteAgentRoster(ProjectDatabases databases, TimeProvider timeProvider) : IAgentRoster
 {
@@ -58,5 +60,18 @@ public sealed class SqliteAgentRoster(ProjectDatabases databases, TimeProvider t
         {
             throw new InvalidOperationException($"Agent id '{agent.Id}' belongs to another project.");
         }
+    }
+
+    /// <summary>
+    /// One statement, so the row goes or stays. An id that is not in the template of this project (never saved, deleted already or
+    /// belonging to another project, whose rows the <c>project_id</c> guard leaves alone) deletes nothing and is no error.
+    /// </summary>
+    public async Task DeleteAsync(string projectId, AgentId agent, CancellationToken cancellationToken)
+    {
+        await using var connection = databases.Connect(projectId);
+        await using var delete = Command(connection, "DELETE FROM agents WHERE id = $id AND project_id = $project;");
+        delete.Parameters.AddWithValue("$id", agent.Value);
+        delete.Parameters.AddWithValue("$project", projectId);
+        await delete.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 }

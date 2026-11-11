@@ -8,6 +8,7 @@ using AgentStudio.Application.Security;
 using AgentStudio.Application.Verification;
 using AgentStudio.Desktop.Orchestrator.Canvas;
 using AgentStudio.Domain.Agents;
+using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Evidence;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Providers;
@@ -347,6 +348,17 @@ public sealed class OrchestrationSession
         ArgumentNullException.ThrowIfNull(agent);
         var roster = _backend.Roster ?? throw new InvalidOperationException("The agent roster is not available.");
         return roster.SaveAsync(project.ProjectId, agent, cancellationToken);
+    }
+
+    /// <summary>
+    /// Takes one agent out of the project's template (docs/17 D-37, P48), under the same condition as <see cref="SaveAgentAsync"/>: the
+    /// roster store is available. The headers of past runs and debates freeze whole definitions, so none of them changes.
+    /// </summary>
+    public Task RemoveAgentAsync(ProjectContext project, AgentId agent, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(project);
+        var roster = _backend.Roster ?? throw new InvalidOperationException("The agent roster is not available.");
+        return roster.DeleteAsync(project.ProjectId, agent, cancellationToken);
     }
 
     /// <summary>Saves the profile the user accepted (a proposal becomes the project's profile only here).</summary>

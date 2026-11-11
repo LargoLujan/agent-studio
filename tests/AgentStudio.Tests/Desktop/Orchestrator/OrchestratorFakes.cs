@@ -274,6 +274,16 @@ internal sealed class FakeRoster(Func<IReadOnlyList<AgentDefinition>>? list = nu
         Saved.Add(agent);
         return Task.CompletedTask;
     }
+
+    /// <summary>The ids deleted, in the order they were.</summary>
+    public List<AgentId> Deleted { get; } = [];
+
+    public Task DeleteAsync(string projectId, AgentId agent, CancellationToken cancellationToken)
+    {
+        Deleted.Add(agent);
+        Saved.RemoveAll(a => a.Id == agent);
+        return Task.CompletedTask;
+    }
 }
 
 /// <summary>A profile source with a fixed profile (null: the project has none) and a proposal; it records what is saved.</summary>
