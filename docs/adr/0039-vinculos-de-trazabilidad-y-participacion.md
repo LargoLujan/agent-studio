@@ -46,3 +46,14 @@
   - Contratos en [docs/04 §23](../04-contratos.md#23-fase-9-trabajo-y-trazabilidad): `ITraceLinkService`, `ITraceSuggester`, `ITraceChainReader` e
     `IParticipationProjector`. Las implementaciones y los trailers en `Workers.cs` son de WP1.
   - Los vínculos y sus retiradas crecen el registro sin límite, como cualquier entrada; una cadena larga se lee con la proyección, no a mano.
+
+## Adenda de WP1 · 2026-11-11
+
+- **Servicios.** `TraceLinkService` registra, confirma y retira; lo asertado por el sistema lo decide `agent-studio` y lo de una persona, esa persona. Lee también
+  `MilestoneLinked` como vínculo del hito (asertado por el sistema si lo vinculó `agent-studio`), que no se retira por aquí. `TraceSuggester` infiere de los trailers, de los
+  ids de una ejecución o de un hito citados en un mensaje y de la rama de una ejecución, solo lo que el registro conoce, y no ofrece de nuevo lo confirmado, lo que el sistema o
+  un hito ya afirman ni lo que una persona retiró.
+- **Contrato.** `CommitNode` gana `Message` (opcional): los trailers están en el último párrafo del mensaje y el asunto solo no los trae.
+- **Trailers.** El commit del sistema de un intento los escribe con `CommitTrailers.Append`. Los commits de integración y del intento interrumpido siguen con sus líneas
+  antiguas, que no se leen como trailers del sistema.
+- **Pendiente de WP1.** `ITraceChainReader`, `IParticipationProjector`, `IRepositoryAnnotator` e `IRepositoryActivityReader` no se han hecho en este paquete.

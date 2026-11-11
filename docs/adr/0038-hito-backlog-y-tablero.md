@@ -50,3 +50,14 @@
     `milestones` y `backlog_items` se defienden con sus triggers y con el anclaje, como `debate_sessions`.
   - El cierre (`IMilestoneCloser`, WP3) es «Auditar proyecto completo» con el conjunto del hito: no hace falta un propósito nuevo.
   - Contratos en [docs/04 §23](../04-contratos.md#23-fase-9-trabajo-y-trazabilidad) y modelo en [docs/05 §4](../05-modelo-de-datos.md#4-migraciones).
+
+## Adenda de WP1 · 2026-11-11
+
+- **Orden de escritura.** El hito, como un debate: requisitos congelados, fila y `MilestoneOpened` con el hash de la cabecera que devuelve el registro. Una fila sin
+  `MilestoneOpened` no se lista, y abrir otra vez con el mismo nombre, objetivo, requisitos y presupuesto la completa. El backlog, como la memoria: el anuncio primero y la
+  fila después, con la hora del anuncio; escribir otra vez la misma versión completa la fila y con otro contenido se rechaza.
+- **Lectura que falla cerrada.** Un registro que no verifica no se lee ni se amplía. Una cabecera que no es la anclada sale con su problema y no se le escribe nada; una fila del
+  backlog que no coincide con su anuncio (contenido, prioridad u hora) impide leer el backlog; una fila sin anuncio no se lee.
+- **Tablero.** Un veredicto cuenta si el registro lo anunció válido y el almacén lo guarda válido y con la misma decisión. Uno impugnado se aparta hasta que su debate de
+  revisión cierra resuelto: si confirma, se queda; si retira una aprobación, manda la revisión; si vuelve hacia una aprobación, la tarjeta sigue en revisión hasta que una
+  persona la acepta. Con varias ejecuciones sobre un requisito decide la última que empezó.
