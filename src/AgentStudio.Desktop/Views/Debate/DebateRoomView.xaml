@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
              xmlns:debate="clr-namespace:AgentStudio.Desktop.Debate"
              xmlns:monitor="clr-namespace:AgentStudio.Desktop.Orchestrator.Monitor"
              xmlns:views="clr-namespace:AgentStudio.Desktop.Views.Debate"
@@ -29,28 +30,28 @@
             <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top"
                             Visibility="{Binding IsLive, Converter={StaticResource Room.BoolToVisibility}}">
-                    <Button Style="{StaticResource ToolbarButton}" Content="Pedir juicio ahora" Command="{Binding RequestJudgmentCommand}"
-                            ToolTip="Manda el debate a juicio con lo publicado. Si un turno falló dos veces, es «Pedir juicio con lo que hay»."/>
-                    <Button Style="{StaticResource ToolbarButton}" Content="Ejecutar pruebas" Command="{Binding RunTestsCommand}"
-                            ToolTip="El perfil de verificación de confianza sobre el commit del objeto, aislado a integridad Low. No gasta cuota."/>
-                    <Button Style="{StaticResource ToolbarButton}" Content="Abortar" Command="{Binding AbortCommand}"
-                            ToolTip="Cancela los turnos en curso y cierra el debate como abortado."/>
+                    <Button Style="{StaticResource ToolbarButton}" Content="{l:T Debate_RoomView_RequestJudgment}" Command="{Binding RequestJudgmentCommand}"
+                            ToolTip="{l:T Debate_RoomView_RequestJudgmentHint}"/>
+                    <Button Style="{StaticResource ToolbarButton}" Content="{l:T Debate_RoomView_RunTests}" Command="{Binding RunTestsCommand}"
+                            ToolTip="{l:T Debate_RoomView_RunTestsHint}"/>
+                    <Button Style="{StaticResource ToolbarButton}" Content="{l:T Debate_RoomView_Abort}" Command="{Binding AbortCommand}"
+                            ToolTip="{l:T Debate_RoomView_AbortHint}"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <Ellipse Width="10" Height="10" Margin="0,0,8,0" VerticalAlignment="Center" Fill="{Binding PhaseTone, Converter={StaticResource Room.ToneToBrush}}"/>
                     <TextBlock Style="{StaticResource SectionTitleText}" Text="{Binding Title}"/>
                     <TextBlock Style="{StaticResource BodyText}" Margin="12,0,0,0" VerticalAlignment="Center" Text="{Binding PhaseText}"
-                               AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="Fase del debate"/>
+                               AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="{l:T Debate_RoomView_PhaseName}"/>
                     <TextBlock Style="{StaticResource SecondaryText}" Margin="12,0,0,0" VerticalAlignment="Center" Text="{Binding RoundText}"/>
                     <TextBlock Style="{StaticResource SecondaryText}" Margin="12,0,0,0" VerticalAlignment="Center" FontFamily="{StaticResource MonoFont}" Text="{Binding DebateId}"/>
                 </StackPanel>
             </DockPanel>
-            <TextBlock Style="{StaticResource BodyText}" Margin="0,8,0,0" Text="{Binding Question, StringFormat='Pregunta: {0}'}"
+            <TextBlock Style="{StaticResource BodyText}" Margin="0,8,0,0" Text="{Binding QuestionLine}"
                        Visibility="{Binding Question, Converter={StaticResource Room.NotNullToVisibility}}"/>
             <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,0">
                 <Run Text="{Binding SubjectText, Mode=OneWay}"/>
                 <Run Text="·"/>
-                <Run Text="{Binding RequirementsText, Mode=OneWay, TargetNullValue='requisitos sin leer'}"/>
+                <Run Text="{Binding RequirementsShown, Mode=OneWay}"/>
             </TextBlock>
             <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding JudgesText}" Visibility="{Binding JudgesText, Converter={StaticResource Room.NotNullToVisibility}}"/>
             <WrapPanel Margin="0,6,0,0">
@@ -64,7 +65,7 @@
             </WrapPanel>
             <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Margin="0,8,0,0" Foreground="{StaticResource AccentBrush}" Text="{Binding SealedText}"
                        Visibility="{Binding SealedText, Converter={StaticResource Room.NotNullToVisibility}}"
-                       AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="Ronda sellada"/>
+                       AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="{l:T Debate_RoomView_SealedName}"/>
             <TextBlock Style="{StaticResource BodyText}" FontSize="12" Margin="0,6,0,0" Foreground="{StaticResource WarningBrush}" Text="{Binding AwaitingText}"
                        Visibility="{Binding AwaitingText, Converter={StaticResource Room.NotNullToVisibility}}" AutomationProperties.LiveSetting="Assertive"/>
             <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="{Binding JudgmentText}" Visibility="{Binding JudgmentText, Converter={StaticResource Room.NotNullToVisibility}}"/>
@@ -80,8 +81,8 @@
             </ItemsControl>
 
             <!-- Participants: the correspondence the judge does not see. -->
-            <TextBlock Style="{StaticResource FieldLabel}" Text="Participantes"/>
-            <ItemsControl ItemsSource="{Binding Participants}" Focusable="False" AutomationProperties.Name="Participantes">
+            <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Debate_Form_Participants}"/>
+            <ItemsControl ItemsSource="{Binding Participants}" Focusable="False" AutomationProperties.Name="{l:T Debate_Form_Participants}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <WrapPanel/>
@@ -98,10 +99,10 @@
                                     <Run Text="·" Foreground="{StaticResource TextSecondaryBrush}"/>
                                     <Run Text="{Binding Where, Mode=OneWay}" Foreground="{StaticResource TextSecondaryBrush}"/>
                                 </TextBlock>
-                                <Button Style="{StaticResource ToolbarButton}" Margin="8,0,0,0" Content="Reintentar turno"
+                                <Button Style="{StaticResource ToolbarButton}" Margin="8,0,0,0" Content="{l:T Debate_RoomView_RetryTurn}"
                                         Visibility="{Binding DataContext.IsAwaitingFailedTurn, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource Room.BoolToVisibility}}"
                                         Command="{Binding DataContext.RetryTurnCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
-                                        AutomationProperties.Name="{Binding Label, StringFormat='Reintentar el turno de {0}'}"/>
+                                        AutomationProperties.Name="{Binding RetryName}"/>
                             </StackPanel>
                         </Border>
                     </DataTemplate>
@@ -109,7 +110,7 @@
             </ItemsControl>
 
             <!-- Contributions by round. -->
-            <ItemsControl ItemsSource="{Binding Rounds}" Focusable="False" AutomationProperties.Name="Contribuciones por ronda">
+            <ItemsControl ItemsSource="{Binding Rounds}" Focusable="False" AutomationProperties.Name="{l:T Debate_RoomView_Rounds}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate DataType="{x:Type debate:DebateRoundViewModel}">
                         <StackPanel Margin="0,8,0,0">
@@ -157,8 +158,8 @@
                                                         <DataTemplate DataType="{x:Type debate:CitedEvidence}">
                                                             <Button Style="{StaticResource ToolbarButton}" Content="{Binding Id}"
                                                                     Command="{Binding DataContext.OpenEvidenceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Id}"
-                                                                    ToolTip="Abre la evidencia citada si sus bytes siguen dando el SHA-256 de su registro."
-                                                                    AutomationProperties.Name="{Binding Id, StringFormat='Abrir la evidencia {0}'}"/>
+                                                                    ToolTip="{l:T Debate_RoomView_OpenEvidenceHint}"
+                                                                    AutomationProperties.Name="{Binding OpenName}"/>
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
                                                 </ItemsControl>
@@ -183,7 +184,7 @@
                     Visibility="{Binding OpenedEvidence, Converter={StaticResource Room.NotNullToVisibility}}">
                 <StackPanel DataContext="{Binding OpenedEvidence}">
                     <DockPanel>
-                        <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Content="Cerrar"
+                        <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Content="{l:T Debate_RoomView_Close}"
                                 Command="{Binding DataContext.CloseEvidenceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                         <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold">
                             <Run Text="{Binding Id, Mode=OneWay}" FontFamily="{StaticResource MonoFont}"/>
@@ -198,23 +199,23 @@
                     </DockPanel>
                     <TextBox Style="{StaticResource MultilineFieldTextBox}" Margin="0,6,0,0" IsReadOnly="True" FontFamily="{StaticResource MonoFont}" MaxHeight="260"
                              Text="{Binding Text, Mode=OneWay}" Visibility="{Binding Text, Converter={StaticResource Room.NotNullToVisibility}}"
-                             AutomationProperties.Name="Contenido de la evidencia"/>
+                             AutomationProperties.Name="{l:T Debate_RoomView_EvidenceContent}"/>
                 </StackPanel>
             </Border>
 
-            <!-- «Añadir evidencia» (D-27): a note of yours, which the next round and the judge see. -->
+            <!-- «Añadir prueba» (D-27): a note of yours, which the next round and the judge see. -->
             <StackPanel Margin="0,8,0,0" Visibility="{Binding IsLive, Converter={StaticResource Room.BoolToVisibility}}">
-                <TextBlock Style="{StaticResource FieldLabel}" Text="Añadir evidencia (una nota tuya: la verán la ronda siguiente y el juez)"/>
-                <TextBox Style="{StaticResource FieldTextBox}" Text="{Binding NoteTitle, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Título de la evidencia"/>
-                <TextBox Style="{StaticResource MultilineFieldTextBox}" Margin="0,6,0,0" Text="{Binding NoteText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Texto de la evidencia"/>
-                <Button Style="{StaticResource ToolbarButton}" HorizontalAlignment="Left" Margin="0,6,0,0" Content="Añadir evidencia" Command="{Binding AddEvidenceCommand}"/>
+                <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Debate_RoomView_AddEvidence}"/>
+                <TextBox Style="{StaticResource FieldTextBox}" Text="{Binding NoteTitle, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{l:T Debate_RoomView_EvidenceTitleName}"/>
+                <TextBox Style="{StaticResource MultilineFieldTextBox}" Margin="0,6,0,0" Text="{Binding NoteText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{l:T Debate_RoomView_EvidenceTextName}"/>
+                <Button Style="{StaticResource ToolbarButton}" HorizontalAlignment="Left" Margin="0,6,0,0" Content="{l:T Debate_RoomView_AddEvidenceButton}" Command="{Binding AddEvidenceCommand}"/>
             </StackPanel>
 
             <!-- The verdict. -->
             <views:VerdictCardView Margin="0,8,0,0" DataContext="{Binding Card}" Visibility="{Binding Converter={StaticResource Room.NotNullToVisibility}}"/>
 
-            <TextBlock Style="{StaticResource FieldLabel}" Text="Actividad"/>
-            <ItemsControl ItemsSource="{Binding Activity}" Focusable="False" AutomationProperties.Name="Actividad del debate">
+            <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Debate_RoomView_Activity}"/>
+            <ItemsControl ItemsSource="{Binding Activity}" Focusable="False" AutomationProperties.Name="{l:T Debate_RoomView_ActivityName}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate DataType="{x:Type monitor:ActivityEntry}">
                         <TextBlock Style="{StaticResource BodyText}" FontSize="12" TextWrapping="Wrap">

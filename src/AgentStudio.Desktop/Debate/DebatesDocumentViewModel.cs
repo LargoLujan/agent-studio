@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO;
 using AgentStudio.Application.Coordination;
 using AgentStudio.Application.Projects;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Orchestrator;
 using AgentStudio.Desktop.ViewModels;
@@ -24,23 +25,29 @@ public sealed class DebateHistoryItem
         Summary = summary;
         When = TimeZoneInfo.ConvertTime(summary.OpenedAt, zone).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture);
         ModeText = DebateTexts.Mode(summary.Mode);
-        QuestionText = summary.Question ?? "Pregunta ilegible: no cuadra con el hash que ancló el registro.";
+        QuestionText = summary.Question ?? Texts.Get("Debate_History_QuestionUnreadable");
         StateText = summary.Interrupted
-            ? $"Interrumpido · {DebateTexts.Phase(summary.Phase)}"
+            ? Texts.Format("Debate_Phase_Interrupted", DebateTexts.Phase(summary.Phase))
             : summary.Phase == DebatePhase.Closed ? DebateTexts.Outcome(summary.Outcome) : DebateTexts.Phase(summary.Phase);
         Tone = DebateTexts.ToneOf(summary.Phase, summary.Outcome, summary.Interrupted);
         DecisionText = summary.Decision is { } decision
-            ? VerdictTexts.Decision(decision) + (summary.ChosenProposal is { Length: > 0 } chosen ? $" · propuesta {chosen}" : string.Empty)
+            ? VerdictTexts.Decision(decision) + (summary.ChosenProposal is { Length: > 0 } chosen ? " · " + Texts.Format("Debate_History_Proposal", chosen) : string.Empty)
             : null;
         ChallengeText = summary.Challenges is { Length: > 0 } revised
-            ? $"Revisión del veredicto {revised}"
-            : summary.Challenged ? "Su veredicto se impugnó" : null;
+            ? Texts.Format("Debate_History_ChallengeOf", revised)
+            : summary.Challenged ? Texts.Get("Debate_History_Challenged") : null;
         ProblemsText = summary.Problems.Count == 0 ? null : string.Join(" · ", summary.Problems);
     }
 
     public DebateSummary Summary { get; }
 
     public RunId Debate => Summary.Debate;
+
+    /// <summary>What a screen reader says of «Abrir» on this debate.</summary>
+    public string OpenName => Texts.Format("Debate_View_OpenName", Debate);
+
+    /// <summary>What a screen reader says of «Reanudar» on this debate.</summary>
+    public string ResumeName => Texts.Format("Debate_View_ResumeName", Debate);
 
     public string When { get; }
 
@@ -101,7 +108,7 @@ public sealed partial class DebatesDocumentViewModel : DocumentViewModel
     /// <param name="screens">The other review screens and the shell («Crear tareas correctivas»); without them that action is not offered.</param>
     /// <param name="uiContext">Where the rooms apply the events of their debate; defaults to the creating thread's context.</param>
     public DebatesDocumentViewModel(string projectRoot, DebateScreenBackend backend, TimeProvider time, DebateScreens? screens = null, SynchronizationContext? uiContext = null)
-        : base(CreateId(projectRoot), $"Debates · {RecentProjectItem.From(projectRoot).Name}")
+        : base(CreateId(projectRoot), Texts.Format("Debate_Doc_Title", RecentProjectItem.From(projectRoot).Name))
     {
         ArgumentNullException.ThrowIfNull(backend);
         ArgumentNullException.ThrowIfNull(time);
@@ -136,7 +143,7 @@ public sealed partial class DebatesDocumentViewModel : DocumentViewModel
     public ObservableCollection<DebateHistoryItem> History { get; } = [];
 
     public IReadOnlyList<Option<DebateMode?>> ModeFilters { get; } =
-        [new(null, "Todos los modos"), .. Enum.GetValues<DebateMode>().Select(m => new Option<DebateMode?>(m, DebateTexts.Mode(m)))];
+        [new(null, Texts.Get("Debate_Doc_AllModes")), .. Enum.GetValues<DebateMode>().Select(m => new Option<DebateMode?>(m, DebateTexts.Mode(m)))];
 
     [ObservableProperty]
     private Option<DebateMode?> _selectedFilter;
@@ -190,32 +197,32 @@ public sealed partial class DebatesDocumentViewModel : DocumentViewModel
         Notices.Clear();
         if (_backend.Coordinator is null)
         {
-            Notices.Add("Falta el coordinador de debates en esta composición: no se puede listar, abrir ni reanudar ningún debate.");
+            Notices.Add(Texts.Get("Debate_Doc_Notice_NoCoordinator"));
         }
 
         if (_backend.Challenges is null)
         {
-            Notices.Add("Falta el servicio de impugnación: no se puede impugnar un veredicto.");
+            Notices.Add(Texts.Get("Debate_Doc_Notice_NoChallenges"));
         }
 
         if (_backend.Evidence is null)
         {
-            Notices.Add("Falta el almacén de evidencias: las citas de las contribuciones se listan, pero no se abren.");
+            Notices.Add(Texts.Get("Debate_Doc_Notice_NoEvidence"));
         }
 
         if (_backend.Roster is null)
         {
-            Notices.Add("Falta la plantilla de agentes: no hay participantes ni jueces que elegir.");
+            Notices.Add(Texts.Get("Debate_Doc_Notice_NoRoster"));
         }
 
         if (_backend.Runs is null)
         {
-            Notices.Add("Falta el registro de ejecuciones: no se puede debatir sobre una ejecución.");
+            Notices.Add(Texts.Get("Debate_Doc_Notice_NoRuns"));
         }
 
         if (_backend.Workspace is null)
         {
-            Notices.Add("Falta el almacén del proyecto: no se puede abrir el proyecto.");
+            Notices.Add(Texts.Get("Debate_Doc_Notice_NoWorkspace"));
             return;
         }
 
@@ -228,7 +235,7 @@ public sealed partial class DebatesDocumentViewModel : DocumentViewModel
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = $"No se pudo abrir el proyecto: {ex.Message}";
+            ErrorMessage = Texts.Format("Debate_Doc_Error_Project", ex.Message);
             return;
         }
 
@@ -258,7 +265,7 @@ public sealed partial class DebatesDocumentViewModel : DocumentViewModel
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = $"No se pudo leer el historial de debates: {ex.Message}";
+            ErrorMessage = Texts.Format("Debate_Doc_Error_History", ex.Message);
         }
         finally
         {
@@ -280,8 +287,8 @@ public sealed partial class DebatesDocumentViewModel : DocumentViewModel
         }
 
         StatusMessage = _all.Count == 0
-            ? "El proyecto aún no tiene debates."
-            : History.Count == 0 ? "Ningún debate de ese modo." : null;
+            ? Texts.Get("Debate_Doc_Status_NoDebates")
+            : History.Count == 0 ? Texts.Get("Debate_Doc_Status_NoneOfMode") : null;
     }
 
     /// <summary>«Nuevo debate».</summary>
@@ -330,7 +337,7 @@ public sealed partial class DebatesDocumentViewModel : DocumentViewModel
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = $"No se pudo leer el debate {item.Debate}: {ex.Message}";
+            ErrorMessage = Texts.Format("Debate_Doc_Error_Read", item.Debate, ex.Message);
         }
     }
 
@@ -344,7 +351,7 @@ public sealed partial class DebatesDocumentViewModel : DocumentViewModel
         }
 
         ErrorMessage = null;
-        StatusMessage = $"Reanudando {item.Debate}: espera tu aprobación…";
+        StatusMessage = Texts.Format("Debate_Doc_Status_Resuming", item.Debate);
         try
         {
             var run = await coordinator.ResumeAsync(project, item.Debate, CancellationToken.None).ConfigureAwait(true);
@@ -357,7 +364,7 @@ public sealed partial class DebatesDocumentViewModel : DocumentViewModel
 #pragma warning restore CA1031
         {
             StatusMessage = null;
-            ErrorMessage = $"No se reanudó el debate {item.Debate}: {ex.Message}";
+            ErrorMessage = Texts.Format("Debate_Doc_Error_Resume", item.Debate, ex.Message);
         }
     }
 
@@ -372,7 +379,7 @@ public sealed partial class DebatesDocumentViewModel : DocumentViewModel
 
         if (Project is not { } project)
         {
-            ErrorMessage = "Sin proyecto abierto no se puede impugnar.";
+            ErrorMessage = Texts.Get("Debate_Doc_Error_NoProject");
             return;
         }
 

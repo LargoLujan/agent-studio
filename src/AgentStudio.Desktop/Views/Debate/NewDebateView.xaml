@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
              xmlns:debate="clr-namespace:AgentStudio.Desktop.Debate"
              xmlns:orchestratorViews="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
              mc:Ignorable="d"
@@ -26,26 +27,26 @@
 
     <ScrollViewer Background="{StaticResource SurfaceBrush}" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
         <StackPanel Margin="12,10,12,12">
-            <TextBlock Style="{StaticResource SectionTitleText}" Text="Nuevo debate"/>
+            <TextBlock Style="{StaticResource SectionTitleText}" Text="{l:T Debate_View_NewDebate}"/>
 
-            <TextBlock Style="{StaticResource FieldLabel}" Text="Modo"/>
-            <ComboBox HorizontalAlignment="Left" MinWidth="260" ItemsSource="{Binding Modes}" SelectedItem="{Binding SelectedMode}" DisplayMemberPath="Label" AutomationProperties.Name="Modo del debate"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Debate_NewView_Mode}"/>
+            <ComboBox HorizontalAlignment="Left" MinWidth="260" ItemsSource="{Binding Modes}" SelectedItem="{Binding SelectedMode}" DisplayMemberPath="Label" AutomationProperties.Name="{l:T Debate_NewView_ModeName}"/>
             <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="{Binding ModeHelp}"/>
 
-            <TextBlock Style="{StaticResource FieldLabel}" Text="Pregunta (literal: es lo que reciben los participantes y el juez)"/>
-            <TextBox Style="{StaticResource MultilineFieldTextBox}" Text="{Binding Question, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Pregunta del debate"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Debate_NewView_Question}"/>
+            <TextBox Style="{StaticResource MultilineFieldTextBox}" Text="{Binding Question, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{l:T Debate_NewView_QuestionName}"/>
 
-            <TextBlock Style="{StaticResource FieldLabel}" Text="Objeto"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Debate_NewView_Subject}"/>
             <WrapPanel>
-                <ComboBox MinWidth="240" Margin="0,0,8,0" ItemsSource="{Binding Subjects}" SelectedItem="{Binding SelectedSubject}" DisplayMemberPath="Label" AutomationProperties.Name="Objeto del debate"/>
-                <ComboBox MinWidth="240" ItemsSource="{Binding Runs}" SelectedItem="{Binding SelectedRun}" DisplayMemberPath="Label" AutomationProperties.Name="Ejecución que se debate"
+                <ComboBox MinWidth="240" Margin="0,0,8,0" ItemsSource="{Binding Subjects}" SelectedItem="{Binding SelectedSubject}" DisplayMemberPath="Label" AutomationProperties.Name="{l:T Debate_NewView_SubjectName}"/>
+                <ComboBox MinWidth="240" ItemsSource="{Binding Runs}" SelectedItem="{Binding SelectedRun}" DisplayMemberPath="Label" AutomationProperties.Name="{l:T Debate_NewView_RunName}"
                           Visibility="{Binding ShowsRuns, Converter={StaticResource Form.BoolToVisibility}}"/>
             </WrapPanel>
 
-            <TextBlock Style="{StaticResource FieldLabel}" Text="Requisitos"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Debate_NewView_Requirements}"/>
             <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding RequirementsText}"/>
             <StackPanel Visibility="{Binding WritesCriteria, Converter={StaticResource Form.BoolToVisibility}}">
-                <ItemsControl ItemsSource="{Binding Criteria}" Focusable="False" AutomationProperties.Name="Criterios">
+                <ItemsControl ItemsSource="{Binding Criteria}" Focusable="False" AutomationProperties.Name="{l:T Debate_NewView_Criteria}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type debate:DebateCriterionViewModel}">
                             <Grid Margin="0,4,0,0">
@@ -57,27 +58,27 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Style="{StaticResource BodyText}" FontFamily="{StaticResource MonoFont}" VerticalAlignment="Center" Margin="0,0,8,0" Text="{Binding Id}"/>
-                                <TextBox Grid.Column="1" Style="{StaticResource FieldTextBox}" Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{Binding Id, StringFormat='Texto del criterio {0}'}"/>
+                                <TextBox Grid.Column="1" Style="{StaticResource FieldTextBox}" Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{Binding TextName}"/>
                                 <ComboBox Grid.Column="2" MinWidth="170" Margin="8,0,0,0" ItemsSource="{Binding MethodOptions}" SelectedItem="{Binding SelectedMethod}" DisplayMemberPath="Label"
-                                          AutomationProperties.Name="{Binding Id, StringFormat='Cómo se comprueba {0}'}"/>
-                                <CheckBox Grid.Column="3" Style="{StaticResource FieldCheckBox}" Margin="8,0,0,0" VerticalAlignment="Center" Content="Obligatorio" IsChecked="{Binding IsMandatory}"/>
-                                <Button Grid.Column="4" Style="{StaticResource ToolbarButton}" Margin="8,0,0,0" Content="Quitar"
+                                          AutomationProperties.Name="{Binding MethodName}"/>
+                                <CheckBox Grid.Column="3" Style="{StaticResource FieldCheckBox}" Margin="8,0,0,0" VerticalAlignment="Center" Content="{l:T Debate_NewView_Mandatory}" IsChecked="{Binding IsMandatory}"/>
+                                <Button Grid.Column="4" Style="{StaticResource ToolbarButton}" Margin="8,0,0,0" Content="{l:T Debate_NewView_Remove}"
                                         Command="{Binding DataContext.RemoveCriterionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
-                                        AutomationProperties.Name="{Binding Id, StringFormat='Quitar {0}'}"/>
+                                        AutomationProperties.Name="{Binding RemoveName}"/>
                             </Grid>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <Button Style="{StaticResource ToolbarButton}" HorizontalAlignment="Left" Margin="0,6,0,0" Content="Añadir criterio" Command="{Binding AddCriterionCommand}"/>
+                <Button Style="{StaticResource ToolbarButton}" HorizontalAlignment="Left" Margin="0,6,0,0" Content="{l:T Debate_NewView_AddCriterion}" Command="{Binding AddCriterionCommand}"/>
             </StackPanel>
 
-            <TextBlock Style="{StaticResource FieldLabel}" Text="Participantes de la plantilla (de solo lectura, sin escritura, shell, red, MCP ni skills)"/>
-            <ItemsControl ItemsSource="{Binding Participants}" Focusable="False" AutomationProperties.Name="Participantes">
+            <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Debate_NewView_Participants}"/>
+            <ItemsControl ItemsSource="{Binding Participants}" Focusable="False" AutomationProperties.Name="{l:T Debate_Form_Participants}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate DataType="{x:Type debate:ParticipantChoiceViewModel}">
                         <DockPanel Margin="0,2,0,2">
                             <ComboBox DockPanel.Dock="Right" MinWidth="140" ItemsSource="{Binding RoleOptions}" SelectedItem="{Binding SelectedRole}" DisplayMemberPath="Label"
-                                      AutomationProperties.Name="{Binding Name, StringFormat='Papel de {0}'}"/>
+                                      AutomationProperties.Name="{Binding RoleName}"/>
                             <CheckBox Style="{StaticResource FieldCheckBox}" IsChecked="{Binding IsIncluded}" AutomationProperties.Name="{Binding Name}">
                                 <TextBlock Style="{StaticResource BodyText}" FontSize="12">
                                     <Run Text="{Binding Name, Mode=OneWay}" FontFamily="{StaticResource MonoFont}"/>
@@ -90,8 +91,8 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <TextBlock Style="{StaticResource FieldLabel}" Text="Jueces candidatos (no participan)"/>
-            <ItemsControl ItemsSource="{Binding Judges}" Focusable="False" AutomationProperties.Name="Jueces">
+            <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Debate_NewView_Judges}"/>
+            <ItemsControl ItemsSource="{Binding Judges}" Focusable="False" AutomationProperties.Name="{l:T Debate_Form_Judges}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate DataType="{x:Type debate:JudgeChoiceViewModel}">
                         <CheckBox Style="{StaticResource FieldCheckBox}" IsChecked="{Binding IsIncluded}" AutomationProperties.Name="{Binding Name}">
@@ -105,19 +106,19 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <TextBlock Style="{StaticResource FieldLabel}" Text="Disposición del juicio"/>
-            <ComboBox HorizontalAlignment="Left" MinWidth="220" ItemsSource="{Binding JudgingKinds}" SelectedItem="{Binding SelectedJudging}" DisplayMemberPath="Label" AutomationProperties.Name="Disposición del juicio"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Debate_NewView_WhoJudges}"/>
+            <ComboBox HorizontalAlignment="Left" MinWidth="220" ItemsSource="{Binding JudgingKinds}" SelectedItem="{Binding SelectedJudging}" DisplayMemberPath="Label" AutomationProperties.Name="{l:T Debate_NewView_WhoJudges}"/>
             <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="{Binding JudgingHelp}"/>
             <TextBlock Style="{StaticResource Form.Warning}" Margin="0,2,0,0" Text="{Binding JudgingHint}" AutomationProperties.LiveSetting="Polite"/>
 
-            <TextBlock Style="{StaticResource FieldLabel}" Text="Límites (el primero que se alcanza manda el debate a juicio)"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Debate_NewView_Limits}"/>
             <WrapPanel>
-                <TextBlock Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="0,0,6,0" Text="Rondas"/>
-                <TextBox Style="{StaticResource FieldTextBox}" Width="60" Margin="0,0,16,0" Text="{Binding MaxRounds, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Rondas como mucho"/>
-                <TextBlock Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="0,0,6,0" Text="Minutos"/>
-                <TextBox Style="{StaticResource FieldTextBox}" Width="60" Margin="0,0,16,0" Text="{Binding MaxMinutes, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Minutos como mucho"/>
-                <TextBlock Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="0,0,6,0" Text="Tokens"/>
-                <TextBox Style="{StaticResource FieldTextBox}" Width="110" Text="{Binding MaxTokens, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Tokens como mucho"/>
+                <TextBlock Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="0,0,6,0" Text="{l:T Debate_Form_Rounds}"/>
+                <TextBox Style="{StaticResource FieldTextBox}" Width="60" Margin="0,0,16,0" Text="{Binding MaxRounds, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{l:T Debate_Form_RoundsName}"/>
+                <TextBlock Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="0,0,6,0" Text="{l:T Debate_Form_Minutes}"/>
+                <TextBox Style="{StaticResource FieldTextBox}" Width="60" Margin="0,0,16,0" Text="{Binding MaxMinutes, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{l:T Debate_Form_MinutesName}"/>
+                <TextBlock Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="0,0,6,0" Text="{l:T Debate_Form_Tokens}"/>
+                <TextBox Style="{StaticResource FieldTextBox}" Width="110" Text="{Binding MaxTokens, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{l:T Debate_Form_TokensName}"/>
             </WrapPanel>
 
             <ItemsControl Margin="0,8,0,0" ItemsSource="{Binding Problems}" Focusable="False" Visibility="{Binding HasProblems, Converter={StaticResource Form.BoolToVisibility}}">
@@ -127,15 +128,15 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
-            <Button Style="{StaticResource ToolbarButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Content="Preparar" Command="{Binding PrepareCommand}"
-                    ToolTip="Pide al coordinador la configuración exacta y la estimación. No gasta cuota ni escribe nada."/>
+            <Button Style="{StaticResource ToolbarButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Content="{l:T Debate_Form_Prepare}" Command="{Binding PrepareCommand}"
+                    ToolTip="{l:T Debate_NewView_PrepareHint}"/>
 
             <!-- What you approve. -->
             <Border Style="{StaticResource InnerCard}" Padding="10,8" Margin="0,8,0,0" Visibility="{Binding HasProposal, Converter={StaticResource Form.BoolToVisibility}}">
                 <StackPanel>
                     <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{Binding ArrangementText}"/>
                     <TextBlock Style="{StaticResource BodyText}" FontSize="12" Margin="0,4,0,0" Foreground="{StaticResource WarningBrush}" Text="{Binding WaiverText}"
-                               Visibility="{Binding WaiverText, Converter={StaticResource Form.NotNullToVisibility}}" AutomationProperties.Name="Dispensa"/>
+                               Visibility="{Binding WaiverText, Converter={StaticResource Form.NotNullToVisibility}}" AutomationProperties.Name="{l:T Debate_Form_Waiver}"/>
                     <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="{Binding ProducersText}" Visibility="{Binding ProducersText, Converter={StaticResource Form.NotNullToVisibility}}"/>
                     <TextBlock Style="{StaticResource BodyText}" FontSize="12" Margin="0,4,0,0" Text="{Binding EstimateText}"/>
                     <ItemsControl ItemsSource="{Binding Notes}" Focusable="False">
@@ -152,10 +153,10 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="{Binding ApprovalText, StringFormat='Aprobación que se te pedirá: {0}'}"/>
+                    <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="{Binding ApprovalLine}"/>
                     <TextBlock Style="{StaticResource SecondaryText}" FontFamily="{StaticResource MonoFont}" FontSize="11" Text="{Binding ProposalHash}"/>
-                    <Button Style="{StaticResource ToolbarPrimaryButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Content="Abrir debate" Command="{Binding OpenCommand}"
-                            ToolTip="Te pide aprobación, atada a lo que ves aquí. Cambiar algo después la anula."/>
+                    <Button Style="{StaticResource ToolbarPrimaryButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Content="{l:T Debate_NewView_Open}" Command="{Binding OpenCommand}"
+                            ToolTip="{l:T Debate_NewView_OpenHint}"/>
                 </StackPanel>
             </Border>
             <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="0,6,0,0" Text="{Binding StatusMessage, TargetNullValue=''}" AutomationProperties.LiveSetting="Polite"/>

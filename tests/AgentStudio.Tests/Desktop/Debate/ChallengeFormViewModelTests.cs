@@ -38,7 +38,7 @@ public sealed class ChallengeFormViewModelTests
         var (form, challenges) = await FormAsync();
 
         Assert.Equal("Veredicto v-1 · 20261018-c4a1f2 · Aprobado · válido · juez-revision · Codex CLI · OpenAI · modelo no informado", form.VerdictText);
-        Assert.Equal($"Los requisitos del veredicto impugnado (2 requisitos, hash {Requirements.ContentHash[..12]}).", form.RequirementsText);
+        Assert.Equal($"Los requisitos del veredicto impugnado (2 requisitos, huella {Requirements.ContentHash[..12]}).", form.RequirementsText);
         Assert.Equal(["v-1"], challenges.StatusAsked);
         Assert.Equal("Sin impugnar.", form.ChallengeText);
         Assert.Equal(["arquitecto", "critico", "ejecutor"], form.Candidates.Select(c => c.Agent.Id.Value));
@@ -51,7 +51,7 @@ public sealed class ChallengeFormViewModelTests
     {
         var (form, _) = await FormAsync();
 
-        Assert.Contains("Escribe por qué impugnas el veredicto: se guarda como nota tuya y abre la ronda 1 del crítico.", form.Problems);
+        Assert.Contains("Escribe por qué impugnas el veredicto. Se guarda como una nota tuya y abre la ronda 1 del crítico.", form.Problems);
         Assert.False(form.PrepareCommand.CanExecute(null));
     }
 
@@ -116,7 +116,7 @@ public sealed class ChallengeFormViewModelTests
         await form.LoadAsync(Project, "v-1", TestContext.Current.CancellationToken);
         form.Reasons = "Razones.";
 
-        Assert.Contains("Falta la plantilla de agentes en esta composición: no hay quien defienda el veredicto ni la impugnación, ni jueces.", form.Problems);
+        Assert.Contains("Falta el equipo de agentes: no hay quien defienda el veredicto ni la impugnación, ni jueces.", form.Problems);
         Assert.DoesNotContain(form.Problems, p => p.StartsWith("Elige quién defiende", StringComparison.Ordinal));
     }
 

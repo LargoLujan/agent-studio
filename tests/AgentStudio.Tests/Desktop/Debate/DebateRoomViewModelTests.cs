@@ -106,11 +106,11 @@ public sealed class DebateRoomViewModelTests
         Assert.Equal(["El aislamiento por proceso limita el alcance de un fallo. (apoyo: CITA-1)"], proposal.Claims);
         Assert.Equal(["CITA-1 · src/Agents/Launcher.cs:10-40 · Lanza cada CLI en su proceso."], proposal.Quotes);
         Assert.Equal([new CitedEvidence("ev-cita-1")], proposal.Cites);
-        Assert.Equal(["Cita que no se resolvió en el commit: src/Agents/Pool.cs:200-210"], room.Rounds[0].Contributions[1].Unresolved);
+        Assert.Equal(["Cita que no se encontró en la versión guardada (commit): src/Agents/Pool.cs:200-210"], room.Rounds[0].Contributions[1].Unresolved);
         var objection = room.Rounds[1].Contributions[0];
         Assert.Equal("C3 · Objeción de P2 · Crítico", objection.Header);
         Assert.Equal("Responde a C1", objection.RepliesText);
-        Assert.Equal("Se redactó 1 secreto antes de publicarla.", objection.RedactionsText);
+        Assert.Equal("Se ocultó 1 secreto antes de publicarla.", objection.RedactionsText);
         Assert.Equal("Marcó su posición como terminada.", objection.FinishedText);
         Assert.Null(room.SealedText);
     }
@@ -126,7 +126,7 @@ public sealed class DebateRoomViewModelTests
         var shown = room.Rounds[0].Contributions[0];
         Assert.Null(shown.Summary);
         Assert.Null(shown.Argument);
-        Assert.Equal("El texto no se pudo leer o no cuadra con el hash que ancló el registro: no se muestra.", shown.TextProblem);
+        Assert.Equal("No se muestra el texto: no se pudo leer o no coincide con su huella guardada.", shown.TextProblem);
     }
 
     [Fact]
@@ -147,9 +147,9 @@ public sealed class DebateRoomViewModelTests
         Assert.Equal(
             [
                 "Siguiendo el debate deb-20261019-a1b2c3",
-                "P2 · ronda 2 · intento 1: terminó (su respuesta sigue sellada hasta que cierre la ronda)",
+                "P2 · ronda 2 · intento 1: terminó (su respuesta queda sellada hasta que cierre la ronda)",
                 "C3 publicada: Objeción de P2",
-                "Ronda 2 cerrada: Esperando el juicio · las posiciones convergieron (todos marcaron su contribución como terminada)",
+                "Ronda 2 cerrada: Esperando el juicio · las posiciones coinciden: todos marcaron su contribución como terminada",
                 "Debate terminado: Sin resolver",
             ],
             room.Activity.Select(a => a.Text));
@@ -157,7 +157,7 @@ public sealed class DebateRoomViewModelTests
         Assert.True(room.IsFinished);
         Assert.False(room.IsLive);
         Assert.Equal("Cerrado · Sin resolver", room.PhaseText);
-        Assert.Equal("A juicio porque las posiciones convergieron (todos marcaron su contribución como terminada).", room.JudgmentText);
+        Assert.Equal("A juicio porque las posiciones coinciden: todos marcaron su contribución como terminada.", room.JudgmentText);
     }
 
     [Fact]
@@ -172,12 +172,12 @@ public sealed class DebateRoomViewModelTests
 
         var card = Assert.IsType<VerdictCardViewModel>(room.Card);
         Assert.True(card.IsPanel);
-        Assert.Equal("Disposición del juicio: Jurado cruzado", card.JudgingText);
+        Assert.Equal("Quién juzga: Jurado cruzado", card.JudgingText);
         Assert.NotNull(card.WaiverText);
         Assert.Equal(["P1", "P2"], card.Labels.Select(l => l.Label));
         Assert.True(card.Verdicts[0].CanBeChallenged);
         Assert.False(card.CanDecide);
-        Assert.Equal("valoración del juez, no verificable por pruebas", card.Verdicts[0].Assessments[0].JudgeAssessment);
+        Assert.Equal("valoración del juez, que no se puede comprobar con pruebas", card.Verdicts[0].Assessments[0].JudgeAssessment);
     }
 
     [Fact]
@@ -221,7 +221,7 @@ public sealed class DebateRoomViewModelTests
 
         Assert.Equal(["judgment", "tests", "evidence:Medición:El proceso por agente arranca en 300 ms.", $"abort:{DebateRoomViewModel.AbortReason}"], run.Calls);
         Assert.Equal(string.Empty, room.NoteTitle);
-        Assert.Equal("Evidencia «Medición» añadida: la verán la ronda siguiente y el juez.", room.StatusMessage);
+        Assert.Equal("Prueba «Medición» añadida. La verán la ronda siguiente y el juez.", room.StatusMessage);
 
         run.ActionFailure = new InvalidOperationException("debate.judgment-phase");
         await room.RequestJudgmentCommand.ExecuteAsync(null);
@@ -303,12 +303,12 @@ public sealed class DebateRoomViewModelTests
         await room.OpenEvidenceCommand.ExecuteAsync("ev-cita-1");
         var opened = Assert.IsType<EvidenceViewer>(room.OpenedEvidence);
         Assert.Equal("public void Launch() { }", opened.Text);
-        Assert.EndsWith("cuadra con su registro", opened.HashText, StringComparison.Ordinal);
-        Assert.Equal("Documento · capturada por el sistema · commit 777777777777", opened.Description);
+        Assert.EndsWith("coincide con la guardada", opened.HashText, StringComparison.Ordinal);
+        Assert.Equal("Documento · capturada por el sistema · versión guardada (commit) 777777777777", opened.Description);
 
         await room.OpenEvidenceCommand.ExecuteAsync("ev-cita-2");
         Assert.Null(room.OpenedEvidence!.Text);
-        Assert.Contains("no cuadra con su registro", room.OpenedEvidence.HashText, StringComparison.Ordinal);
+        Assert.Contains("no coincide con la guardada", room.OpenedEvidence.HashText, StringComparison.Ordinal);
         Assert.Equal(Tone.Error, room.OpenedEvidence.HashTone);
 
         room.CloseEvidenceCommand.Execute(null);
@@ -324,7 +324,7 @@ public sealed class DebateRoomViewModelTests
         await room.OpenEvidenceCommand.ExecuteAsync("ev-cita-1");
 
         Assert.Null(room.OpenedEvidence!.Text);
-        Assert.Contains("Falta el almacén de evidencias", room.OpenedEvidence.Description, StringComparison.Ordinal);
+        Assert.Contains("Falta el almacén de pruebas guardadas", room.OpenedEvidence.Description, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -342,8 +342,8 @@ public sealed class DebateRoomViewModelTests
         Assert.False(room.AbortCommand.CanExecute(null));
         var card = Assert.IsType<VerdictCardViewModel>(room.Card);
         Assert.False(card.CanDecide);
-        Assert.Equal("Disposición del juicio: Jurado cruzado", card.JudgingText);
-        Assert.Equal("Requisitos congelados: " + Requirements.ContentHash[..12] + " (2 requisitos)", room.RequirementsText);
+        Assert.Equal("Quién juzga: Jurado cruzado", card.JudgingText);
+        Assert.Equal("Requisitos congelados (huella " + Requirements.ContentHash[..12] + "): 2 requisitos", room.RequirementsText);
     }
 
     [Fact]

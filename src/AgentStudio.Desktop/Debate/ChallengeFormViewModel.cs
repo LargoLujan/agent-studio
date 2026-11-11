@@ -4,6 +4,7 @@ using AgentStudio.Application.Coordination;
 using AgentStudio.Application.Judging;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Projects;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Orchestrator;
 using AgentStudio.Domain.Agents;
@@ -95,7 +96,7 @@ public sealed partial class ChallengeFormViewModel : ObservableObject
     [ObservableProperty]
     private string _maxTokens = (DebateLimits.Default.MaxTotalTokens ?? 0).ToString(CultureInfo.InvariantCulture);
 
-    public IReadOnlyList<string> Problems { get; private set; } = ["Elige el veredicto que impugnas."];
+    public IReadOnlyList<string> Problems { get; private set; } = [Texts.Get("Debate_Challenge_Problem_PickVerdict")];
 
     public bool HasProblems => Problems.Count > 0;
 
@@ -107,6 +108,7 @@ public sealed partial class ChallengeFormViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(ProposalProblems))]
     [NotifyPropertyChangedFor(nameof(Notes))]
     [NotifyPropertyChangedFor(nameof(ApprovalText))]
+    [NotifyPropertyChangedFor(nameof(ApprovalLine))]
     [NotifyCanExecuteChangedFor(nameof(ChallengeCommand))]
     private DebateProposal? _proposal;
 
@@ -114,16 +116,16 @@ public sealed partial class ChallengeFormViewModel : ObservableObject
 
     /// <summary>Who judges the revision, as the service chose it (another session and, if it can, another agent).</summary>
     public string? ArrangementText => Proposal is { } proposal
-        ? $"{DebateTexts.Judging(proposal.Judging.Kind)}: {string.Join(" | ", proposal.Judging.Judges.Select(VerdictPanelViewModel.JudgeLine))}"
-          + (_verdict is { } challenged && proposal.Judging.Judges.Any(j => j.Agent == challenged.Verdict.Judge.Agent)
-              ? ". Es el mismo agente que emitió el veredicto, en una sesión nueva: la plantilla no tiene otro juez elegible."
-              : ". Otro juez que el que emitió el veredicto impugnado.")
+        ? $"{DebateTexts.Judging(proposal.Judging.Kind)}: {string.Join(" | ", proposal.Judging.Judges.Select(VerdictPanelViewModel.JudgeLine))}. "
+          + Texts.Get(_verdict is { } challenged && proposal.Judging.Judges.Any(j => j.Agent == challenged.Verdict.Judge.Agent)
+              ? "Debate_Challenge_SameJudge"
+              : "Debate_Challenge_OtherJudge")
         : null;
 
     public string? WaiverText => Proposal is { } proposal ? DebateTexts.Waiver([.. proposal.Judging.WaivedParticipantVendors]) : null;
 
     public string? EstimateText => Proposal is { } proposal && MetricText.Tokens(proposal.Estimate.Tokens) is var tokens
-        ? $"Como mucho {DebateTexts.Count(proposal.Estimate.MaxAgentRuns, "ejecución", "ejecuciones")} de agente y {tokens.Shown} tokens ({tokens.Origin})."
+        ? Texts.Format("Debate_New_Estimate", DebateTexts.Plural(proposal.Estimate.MaxAgentRuns, "Debate_Count_AgentRun"), tokens.Shown, tokens.Origin)
         : null;
 
     public IReadOnlyList<string> ProposalProblems => Proposal?.Problems ?? [];
@@ -131,6 +133,9 @@ public sealed partial class ChallengeFormViewModel : ObservableObject
     public IReadOnlyList<string> Notes => Proposal?.Estimate.Notes ?? [];
 
     public string? ApprovalText => Proposal?.ApprovalText;
+
+    /// <summary>The approval «Impugnar» asks for, introduced.</summary>
+    public string? ApprovalLine => ApprovalText is { } text ? Texts.Format("Debate_Form_ApprovalAsked", text) : null;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(PrepareCommand))]
@@ -171,7 +176,8 @@ public sealed partial class ChallengeFormViewModel : ObservableObject
                 if (_verdict is { } stored)
                 {
                     var where = stored.RunId is { Length: > 0 } run ? $" · {run}" : string.Empty;
-                    VerdictText = $"Veredicto {stored.Id}{where} · {VerdictTexts.Decision(stored.Verdict.Decision)} · {(stored.Valid ? "válido" : "no válido")} · {VerdictPanelViewModel.JudgeLine(stored.Verdict.Judge)}";
+                    VerdictText = Texts.Format(stored.Valid ? "Debate_Challenge_VerdictValid" : "Debate_Challenge_VerdictInvalid", stored.Id, where, VerdictTexts.Decision(stored.Verdict.Decision), VerdictPanelViewModel.JudgeLine(stored.Verdict.Judge));
+                    // The question is what the debaters and the judge receive: a prompt of the protocol, never translated (docs/17 D-48).
                     Question = $"¿Se sostiene el veredicto {stored.Id} ({VerdictTexts.Decision(stored.Verdict.Decision)}) frente a la impugnación? El proponente defiende el veredicto y el crítico, la impugnación.";
                     if (_backend.Requirements is { } store)
                     {
@@ -179,8 +185,8 @@ public sealed partial class ChallengeFormViewModel : ObservableObject
                     }
 
                     RequirementsText = _requirements is { } set
-                        ? $"Los requisitos del veredicto impugnado ({DebateTexts.Count(set.Requirements.Count, "requisito", "requisitos")}, hash {DebateTexts.Short(set.ContentHash)})."
-                        : $"No se pudieron leer los requisitos del veredicto ({DebateTexts.Short(stored.Verdict.RequirementSetHash)}).";
+                        ? Texts.Format("Debate_Challenge_Requirements", DebateTexts.Plural(set.Requirements.Count, "Debate_Count_Requirement"), DebateTexts.Short(set.ContentHash))
+                        : Texts.Format("Debate_Challenge_RequirementsGone", DebateTexts.Short(stored.Verdict.RequirementSetHash));
                 }
             }
 
@@ -214,7 +220,7 @@ public sealed partial class ChallengeFormViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = $"No se pudo leer el veredicto: {ex.Message}";
+            ErrorMessage = Texts.Format("Debate_Challenge_Error_Load", ex.Message);
         }
         finally
         {
@@ -235,13 +241,13 @@ public sealed partial class ChallengeFormViewModel : ObservableObject
 
         IsBusy = true;
         ErrorMessage = null;
-        StatusMessage = "Preparando la revisión: sin gastar cuota ni escribir nada…";
+        StatusMessage = Texts.Get("Debate_Challenge_Status_Preparing");
         try
         {
             Proposal = await challenges.PrepareAsync(request, CancellationToken.None).ConfigureAwait(true);
             StatusMessage = Proposal.Problems.Count == 0
-                ? "Revisa quién juzga la revisión: «Impugnar» te pedirá aprobación."
-                : "La revisión no se puede abrir así: mira los problemas.";
+                ? Texts.Get("Debate_Challenge_Status_Prepared")
+                : Texts.Get("Debate_Challenge_Status_Problems");
         }
 #pragma warning disable CA1031 // The challenge service is behind a port: a failure is shown in the form, never thrown into the UI.
         catch (Exception ex)
@@ -249,7 +255,7 @@ public sealed partial class ChallengeFormViewModel : ObservableObject
         {
             Proposal = null;
             StatusMessage = null;
-            ErrorMessage = $"No se pudo preparar la impugnación: {ex.Message}";
+            ErrorMessage = Texts.Format("Debate_Challenge_Error_Prepare", ex.Message);
         }
         finally
         {
@@ -270,11 +276,11 @@ public sealed partial class ChallengeFormViewModel : ObservableObject
 
         IsBusy = true;
         ErrorMessage = null;
-        StatusMessage = "Esperando tu aprobación…";
+        StatusMessage = Texts.Get("Debate_Status_WaitingApproval");
         try
         {
             var run = await challenges.ChallengeAsync(proposal, CancellationToken.None).ConfigureAwait(true);
-            StatusMessage = $"Impugnación registrada: la revisión es el debate {run.Id}.";
+            StatusMessage = Texts.Format("Debate_Challenge_Status_Done", run.Id);
             var context = new DebateRoomContext(proposal.Request.Question, proposal.Request.Requirements, proposal.Judging.Kind, [.. proposal.Judging.WaivedParticipantVendors], proposal.Judging.Judges);
             Opened?.Invoke(this, new OpenedDebate(run, proposal, context));
         }
@@ -283,7 +289,7 @@ public sealed partial class ChallengeFormViewModel : ObservableObject
 #pragma warning restore CA1031
         {
             StatusMessage = null;
-            ErrorMessage = $"No se impugnó: {ex.Message}";
+            ErrorMessage = Texts.Format("Debate_Challenge_Error_Challenge", ex.Message);
         }
         finally
         {
@@ -366,67 +372,67 @@ public sealed partial class ChallengeFormViewModel : ObservableObject
         var problems = new List<string>();
         if (_project is null || VerdictId is null)
         {
-            problems.Add("Elige el veredicto que impugnas.");
+            problems.Add(Texts.Get("Debate_Challenge_Problem_PickVerdict"));
             return problems;
         }
 
         if (_backend.Challenges is null)
         {
-            problems.Add("Falta el servicio de impugnación en esta composición: no se puede impugnar.");
+            problems.Add(Texts.Get("Debate_Challenge_Problem_NoService"));
         }
 
         if (_backend.Verdicts is null)
         {
-            problems.Add("Falta el almacén de veredictos: no se puede leer el veredicto que impugnas.");
+            problems.Add(Texts.Get("Debate_Challenge_Problem_NoVerdictStore"));
         }
         else if (_verdict is null)
         {
-            problems.Add($"El veredicto {VerdictId} no está en el almacén del proyecto.");
+            problems.Add(Texts.Format("Debate_Challenge_Problem_VerdictGone", VerdictId));
         }
         else if (_requirements is null)
         {
-            problems.Add("No se pudieron leer los requisitos del veredicto impugnado: la revisión se juzga contra ellos.");
+            problems.Add(Texts.Get("Debate_Challenge_Problem_NoRequirements"));
         }
 
         if (_pending)
         {
-            problems.Add("Este veredicto ya tiene una impugnación en curso: espera a que se cierre su revisión.");
+            problems.Add(Texts.Get("Debate_Challenge_Problem_AlreadyPending"));
         }
 
         if (string.IsNullOrWhiteSpace(Reasons))
         {
-            problems.Add("Escribe por qué impugnas el veredicto: se guarda como nota tuya y abre la ronda 1 del crítico.");
+            problems.Add(Texts.Get("Debate_Challenge_Problem_NoReasons"));
         }
 
         if (_backend.Roster is null)
         {
-            problems.Add("Falta la plantilla de agentes en esta composición: no hay quien defienda el veredicto ni la impugnación, ni jueces.");
+            problems.Add(Texts.Get("Debate_Challenge_Problem_NoRoster"));
         }
         else
         {
             if (Proponent is null || Critic is null)
             {
-                problems.Add("Elige quién defiende el veredicto y quién defiende la impugnación.");
+                problems.Add(Texts.Get("Debate_Challenge_Problem_PickDefenders"));
             }
             else if (Proponent.Agent.Id == Critic.Agent.Id)
             {
-                problems.Add("El proponente y el crítico tienen que ser agentes distintos.");
+                problems.Add(Texts.Get("Debate_Challenge_Problem_DifferentAgents"));
             }
 
             if (!Judges.Any(j => j.IsIncluded))
             {
-                problems.Add(Judges.Count == 0 ? "La plantilla del proyecto no tiene ningún juez." : "Deja al menos un juez como candidato.");
+                problems.Add(Texts.Get(Judges.Count == 0 ? "Debate_Problem_NoJudgeInRoster" : "Debate_Problem_KeepAJudge"));
             }
         }
 
         if (string.IsNullOrWhiteSpace(Question))
         {
-            problems.Add("Escribe la pregunta de la revisión.");
+            problems.Add(Texts.Get("Debate_Challenge_Problem_NoQuestion"));
         }
 
         if (Limits() is null)
         {
-            problems.Add("Los límites tienen que ser números enteros mayores que cero (los tokens, vacío para no limitarlos).");
+            problems.Add(Texts.Get("Debate_Problem_Limits"));
         }
 
         return problems;

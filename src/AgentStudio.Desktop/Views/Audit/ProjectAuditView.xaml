@@ -3,6 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
+             xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
              xmlns:audit="clr-namespace:AgentStudio.Desktop.Audit"
              xmlns:debate="clr-namespace:AgentStudio.Desktop.Debate"
              xmlns:monitor="clr-namespace:AgentStudio.Desktop.Orchestrator.Monitor"
@@ -38,12 +40,13 @@
         <Border Grid.Row="0" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,10">
             <StackPanel>
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Content="Volver a auditar" Command="{Binding AuditAgainCommand}"
+                    <info:InfoButton DockPanel.Dock="Right" InfoKey="Info_Audit" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Content="{l:T Audit_View_AuditAgain}" Command="{Binding AuditAgainCommand}"
                             Visibility="{Binding ShowsReport, Converter={StaticResource Audit.BoolToVisibility}}"
-                            ToolTip="Vuelve a la preparación y la pide otra vez: HEAD y el registro pueden haber cambiado."/>
+                            ToolTip="{l:T Audit_View_AuditAgainHint}"/>
                     <TextBlock Style="{StaticResource SectionTitleText}" VerticalAlignment="Center" Text="{Binding Title}"/>
                 </DockPanel>
-                <ItemsControl ItemsSource="{Binding Notices}" Focusable="False" ItemTemplate="{StaticResource Audit.Warning}" AutomationProperties.Name="Avisos"/>
+                <ItemsControl ItemsSource="{Binding Notices}" Focusable="False" ItemTemplate="{StaticResource Audit.Warning}" AutomationProperties.Name="{l:T Audit_View_Notices}"/>
                 <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding StatusMessage, TargetNullValue=''}" AutomationProperties.LiveSetting="Polite"/>
                 <TextBlock Style="{StaticResource ErrorText}" Text="{Binding ErrorMessage}" AutomationProperties.LiveSetting="Assertive"/>
             </StackPanel>
@@ -54,10 +57,10 @@
                 <!-- Preparation. -->
                 <StackPanel Visibility="{Binding ShowsPreparation, Converter={StaticResource Audit.BoolToVisibility}}">
                     <TextBlock Style="{StaticResource BodyText}" Text="{Binding RequirementsText}"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Juez (nunca del vendor que produjo el código: la regla de los productores no se dispensa)"/>
-                    <ComboBox HorizontalAlignment="Left" MinWidth="320" ItemsSource="{Binding Judges}" SelectedItem="{Binding SelectedJudge}" DisplayMemberPath="Label" AutomationProperties.Name="Juez de la auditoría"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Autores que declaras (el registro no sabe quién escribió lo que no hizo Agent Studio)"/>
-                    <ItemsControl ItemsSource="{Binding Authors}" Focusable="False" AutomationProperties.Name="Autores declarados">
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Audit_View_Judge}"/>
+                    <ComboBox HorizontalAlignment="Left" MinWidth="320" ItemsSource="{Binding Judges}" SelectedItem="{Binding SelectedJudge}" DisplayMemberPath="Label" AutomationProperties.Name="{l:T Audit_View_JudgeName}"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Audit_View_Authors}"/>
+                    <ItemsControl ItemsSource="{Binding Authors}" Focusable="False" AutomationProperties.Name="{l:T Audit_View_AuthorsName}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <WrapPanel/>
@@ -71,8 +74,8 @@
                     </ItemsControl>
                     <ItemsControl Margin="0,6,0,0" ItemsSource="{Binding Problems}" Focusable="False" ItemTemplate="{StaticResource Audit.Problem}"
                                   Visibility="{Binding HasProblems, Converter={StaticResource Audit.BoolToVisibility}}"/>
-                    <Button Style="{StaticResource ToolbarButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Content="Preparar" Command="{Binding PrepareCommand}"
-                            ToolTip="Calcula el juez, el perfil y la estimación. No gasta cuota ni escribe nada."/>
+                    <Button Style="{StaticResource ToolbarButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Content="{l:T Audit_View_Prepare}" Command="{Binding PrepareCommand}"
+                            ToolTip="{l:T Audit_View_PrepareHint}"/>
 
                     <Border Style="{StaticResource InnerCard}" Padding="10,8" Margin="0,8,0,0" Visibility="{Binding HasProposal, Converter={StaticResource Audit.BoolToVisibility}}">
                         <StackPanel>
@@ -87,9 +90,9 @@
                             <ItemsControl ItemsSource="{Binding ProposalProblems}" Focusable="False" ItemTemplate="{StaticResource Audit.Problem}"/>
                             <TextBlock Style="{StaticResource BodyText}" FontSize="12" Margin="0,4,0,0" Text="{Binding EstimateText}"/>
                             <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding AuditMode}"/>
-                            <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="{Binding ApprovalText, StringFormat='Aprobación que se te pedirá: {0}'}"/>
-                            <Button Style="{StaticResource ToolbarPrimaryButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Content="Auditar" Command="{Binding AuditCommand}"
-                                    ToolTip="Te pide aprobación y audita el commit HEAD."/>
+                            <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="{Binding ApprovalLine}"/>
+                            <Button Style="{StaticResource ToolbarPrimaryButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Content="{l:T Audit_View_Audit}" Command="{Binding AuditCommand}"
+                                    ToolTip="{l:T Audit_View_AuditHint}"/>
                         </StackPanel>
                     </Border>
                 </StackPanel>
@@ -99,7 +102,7 @@
                     <TextBlock Style="{StaticResource SectionTitleText}" Text="{Binding Title}"/>
                     <DockPanel Margin="0,6,0,0">
                         <Ellipse DockPanel.Dock="Left" Width="10" Height="10" Margin="0,4,8,0" VerticalAlignment="Top" Fill="{Binding TrustTone, Converter={StaticResource Audit.ToneToBrush}}"/>
-                        <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{Binding TrustText}" AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="Fiabilidad del informe"/>
+                        <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{Binding TrustText}" AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="{l:T Audit_View_TrustName}"/>
                     </DockPanel>
                     <DockPanel Margin="0,4,0,0">
                         <Ellipse DockPanel.Dock="Left" Width="8" Height="8" Margin="0,5,8,0" VerticalAlignment="Top" Fill="{Binding DispositionTone, Converter={StaticResource Audit.ToneToBrush}}"/>
@@ -112,7 +115,7 @@
                     <TextBlock Style="{StaticResource BodyText}" FontSize="12" Margin="0,4,0,0" Foreground="{StaticResource WarningBrush}" Text="{Binding EscalationText}"
                                Visibility="{Binding EscalationText, Converter={StaticResource Audit.NotNullToVisibility}}"/>
 
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Verificación de HEAD (capturada por el sistema)" Visibility="{Binding HasVerification, Converter={StaticResource Audit.BoolToVisibility}}"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Audit_View_Verification}" Visibility="{Binding HasVerification, Converter={StaticResource Audit.BoolToVisibility}}"/>
                     <ItemsControl ItemsSource="{Binding Verification}" Focusable="False">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type audit:VerificationRow}">
@@ -125,15 +128,15 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Problemas pendientes (los lista el sistema, sin juez)" Visibility="{Binding HasPending, Converter={StaticResource Audit.BoolToVisibility}}"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Audit_View_Pending}" Visibility="{Binding HasPending, Converter={StaticResource Audit.BoolToVisibility}}"/>
                     <ItemsControl ItemsSource="{Binding Pending}" Focusable="False" ItemTemplate="{StaticResource Audit.Warning}"/>
 
                     <debateViews:VerdictCardView Margin="0,10,0,0" DataContext="{Binding Card}" Visibility="{Binding Converter={StaticResource Audit.NotNullToVisibility}}"/>
                 </StackPanel>
 
-                <TextBlock Style="{StaticResource FieldLabel}" Text="Actividad del juez y de la verificación"
+                <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Audit_View_Activity}"
                            Visibility="{Binding HasActivity, Converter={StaticResource Audit.BoolToVisibility}}"/>
-                <ItemsControl ItemsSource="{Binding Activity}" Focusable="False" AutomationProperties.Name="Actividad de la auditoría">
+                <ItemsControl ItemsSource="{Binding Activity}" Focusable="False" AutomationProperties.Name="{l:T Audit_View_ActivityName}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type monitor:ActivityEntry}">
                             <TextBlock Style="{StaticResource BodyText}" FontSize="12">
