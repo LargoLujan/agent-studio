@@ -466,6 +466,9 @@ public sealed record HelpAction
     /// <summary>The code of the action, the same in every language: <c>open.consumption</c>.</summary>
     public string Id { get; }
 
+    /// <summary>The id: what a list or a screen reader shows for the action instead of its record.</summary>
+    public override string ToString() => Id;
+
     /// <summary>The text of its button, as a code: the desktop paints it in the language of the person.</summary>
     public UserText Label { get; }
 }

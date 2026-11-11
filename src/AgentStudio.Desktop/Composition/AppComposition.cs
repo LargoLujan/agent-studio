@@ -1,4 +1,5 @@
 using System.IO;
+using AgentStudio.Desktop.Help;
 using AgentStudio.Desktop.Services;
 using AgentStudio.Infrastructure.Embeddings;
 using AgentStudio.Infrastructure.Persistence;
@@ -48,6 +49,7 @@ public static class AppComposition
         services.AddSingleton<IAppSettingsStore>(settings);
         services.AddPlatformServices(app, settings.Load().SkillsIndexPath);
         services.AddShellServices(app.Roaming);
+        services.AddAgentStudioHelp();
         return services;
     }
 }

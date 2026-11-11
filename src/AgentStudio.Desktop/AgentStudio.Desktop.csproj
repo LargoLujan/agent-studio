@@ -38,6 +38,12 @@
     <None Remove="Assets\**" />
   </ItemGroup>
 
+  <!-- The corpus of the help (docs/17 D-55): Help/<language>/<id>.md, embedded as «Help.<language>.<id>.md» (HelpCorpus reads them). -->
+  <ItemGroup>
+    <None Remove="Help\**" />
+    <EmbeddedResource Include="Help\**\*.md" LogicalName="Help.%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
   <!-- The texts of the interface (docs/17 D-47, ADR-0054): Resources/Strings.resx in Spanish of Spain, the source language, and
        a satellite per language (Strings.en.resx…), embedded as usual. The packages of a phase add their own area files,
        Resources/<Area>Strings.resx, so no two of them share a file: the text provider finds every one by that name

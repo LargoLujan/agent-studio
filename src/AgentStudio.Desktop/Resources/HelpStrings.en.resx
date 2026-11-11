@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the Help area in English. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Help_Title" xml:space="preserve">
+    <value>Help</value>
+  </data>
+  <data name="Help_Activity" xml:space="preserve">
+    <value>Help</value>
+  </data>
+  <data name="Help_Search_Name" xml:space="preserve">
+    <value>Search the help</value>
+  </data>
+  <data name="Help_Search_Heading" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="Help_Search_NoResults" xml:space="preserve">
+    <value>There is nothing about "{0}". Try other words or ask an agent.</value>
+  </data>
+  <data name="Help_Results_Heading" xml:space="preserve">
+    <value>Results</value>
+  </data>
+  <data name="Help_Topics_Heading" xml:space="preserve">
+    <value>All topics</value>
+  </data>
+  <data name="Help_Article_None" xml:space="preserve">
+    <value>Pick a topic from the list or search for a word. The help here is free and does not use your quota.</value>
+  </data>
+  <data name="Help_Article_NoScreen" xml:space="preserve">
+    <value>This screen has no article of its own. Look at the list of topics.</value>
+  </data>
+  <data name="Help_Ask_Heading" xml:space="preserve">
+    <value>Cannot find it? Ask an agent</value>
+  </data>
+  <data name="Help_Ask_Intro" xml:space="preserve">
+    <value>Look at the above first, which is free. Asking an agent uses a little of your quota and needs your OK each time.</value>
+  </data>
+  <data name="Help_Ask_Question" xml:space="preserve">
+    <value>Your question</value>
+  </data>
+  <data name="Help_Ask_IncludeProject" xml:space="preserve">
+    <value>Include project data</value>
+  </data>
+  <data name="Help_Ask_IncludeProject_Hint" xml:space="preserve">
+    <value>Adds the name of the project and the notices that name paths of your computer. Unticked, none of that is sent.</value>
+  </data>
+  <data name="Help_Ask_UseCodex" xml:space="preserve">
+    <value>Ask with Codex instead of Claude</value>
+  </data>
+  <data name="Help_Ask_CodexWarning" xml:space="preserve">
+    <value>With Codex, the read-only mode can read your whole disk. Claude, in an empty folder, sees nothing of your computer.</value>
+  </data>
+  <data name="Help_Ask_Button" xml:space="preserve">
+    <value>Ask an agent</value>
+  </data>
+  <data name="Help_Ask_NoProject" xml:space="preserve">
+    <value>Open a project to ask an agent: without one there is nowhere to count what it spends. The help above still works.</value>
+  </data>
+  <data name="Help_Ask_NotComposed" xml:space="preserve">
+    <value>The help agent is not available in this installation.</value>
+  </data>
+  <data name="Help_Ask_PathInQuestion" xml:space="preserve">
+    <value>Your question names a path on your computer. Remove it or tick "Include project data".</value>
+  </data>
+  <data name="Help_Ask_ConsentDescription" xml:space="preserve">
+    <value>One question to the help agent: the card below and your question are sent.</value>
+  </data>
+  <data name="Help_Card_Heading" xml:space="preserve">
+    <value>This will be sent</value>
+  </data>
+  <data name="Help_Card_Kind_Screen" xml:space="preserve">
+    <value>The screen: {0}</value>
+  </data>
+  <data name="Help_Card_Kind_State" xml:space="preserve">
+    <value>Its state: {0}</value>
+  </data>
+  <data name="Help_Card_Kind_LastNotice" xml:space="preserve">
+    <value>The last notice: {0}</value>
+  </data>
+  <data name="Help_Card_Kind_ProjectName" xml:space="preserve">
+    <value>The name of the project: {0}</value>
+  </data>
+  <data name="Help_Card_Question" xml:space="preserve">
+    <value>Your question: {0}</value>
+  </data>
+  <data name="Help_Card_Agent" xml:space="preserve">
+    <value>Answers: {0}</value>
+  </data>
+  <data name="Help_Card_Withheld" xml:space="preserve">
+    <value>Not sent (the box is not ticked): {0}</value>
+  </data>
+  <data name="Help_Card_Withheld_ProjectName" xml:space="preserve">
+    <value>the name of the project</value>
+  </data>
+  <data name="Help_Card_Withheld_State" xml:space="preserve">
+    <value>state details that name paths of your computer</value>
+  </data>
+  <data name="Help_Card_Withheld_LastNotice" xml:space="preserve">
+    <value>a notice that names paths of your computer</value>
+  </data>
+  <data name="Help_Card_Withheld_Screen" xml:space="preserve">
+    <value>the screen</value>
+  </data>
+  <data name="Help_Card_Never" xml:space="preserve">
+    <value>Never sent: credentials, your files, the code, the memory, the log or the prompts of other agents.</value>
+  </data>
+  <data name="Help_Agent_Claude" xml:space="preserve">
+    <value>Claude Code, with a light model</value>
+  </data>
+  <data name="Help_Agent_Codex" xml:space="preserve">
+    <value>Codex CLI</value>
+  </data>
+  <data name="Help_Send" xml:space="preserve">
+    <value>Give my OK and send</value>
+  </data>
+  <data name="Help_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Help_Waiting" xml:space="preserve">
+    <value>The help agent is answering...</value>
+  </data>
+  <data name="Help_Failed" xml:space="preserve">
+    <value>The question could not be asked: {0}</value>
+  </data>
+  <data name="Help_Reply_Heading" xml:space="preserve">
+    <value>Answer of the help agent</value>
+  </data>
+  <data name="Help_Reply_Notice" xml:space="preserve">
+    <value>This is text from an agent and it can be wrong. The articles above are the help of the app.</value>
+  </data>
+  <data name="Help_Reply_Articles" xml:space="preserve">
+    <value>Articles it cites</value>
+  </data>
+  <data name="Help_Reply_Actions" xml:space="preserve">
+    <value>You can go to</value>
+  </data>
+  <data name="Help_Reply_Discarded" xml:space="preserve">
+    <value>Details</value>
+  </data>
+  <data name="Help_Screen_preparation" xml:space="preserve">
+    <value>Preparation</value>
+  </data>
+  <data name="Help_Screen_canvas" xml:space="preserve">
+    <value>Canvas</value>
+  </data>
+  <data name="Help_Screen_monitor" xml:space="preserve">
+    <value>Monitor</value>
+  </data>
+  <data name="Help_Screen_debates" xml:space="preserve">
+    <value>Debates</value>
+  </data>
+  <data name="Help_Screen_audit" xml:space="preserve">
+    <value>Audit</value>
+  </data>
+  <data name="Help_Screen_memory" xml:space="preserve">
+    <value>Memory</value>
+  </data>
+  <data name="Help_Screen_skills" xml:space="preserve">
+    <value>Skills</value>
+  </data>
+  <data name="Help_Screen_consumption" xml:space="preserve">
+    <value>Usage</value>
+  </data>
+  <data name="Help_Screen_settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Help_Screen_lock" xml:space="preserve">
+    <value>Lock</value>
+  </data>
+  <data name="Text_help_action_open_orchestrator" xml:space="preserve">
+    <value>Open the Orchestrator</value>
+  </data>
+  <data name="Text_help_action_open_agents" xml:space="preserve">
+    <value>Open Agents</value>
+  </data>
+  <data name="Text_help_action_open_tools" xml:space="preserve">
+    <value>Open Tools</value>
+  </data>
+  <data name="Text_help_action_open_skills" xml:space="preserve">
+    <value>Open Skills</value>
+  </data>
+  <data name="Text_help_action_open_usage" xml:space="preserve">
+    <value>Open Usage</value>
+  </data>
+  <data name="Text_help_action_open_memory" xml:space="preserve">
+    <value>Open Memory</value>
+  </data>
+  <data name="Text_help_action_open_debates" xml:space="preserve">
+    <value>Open Debates</value>
+  </data>
+  <data name="Text_help_action_open_audit" xml:space="preserve">
+    <value>Open Audit</value>
+  </data>
+  <data name="Text_help_action_open_settings" xml:space="preserve">
+    <value>Open Settings</value>
+  </data>
+</root>

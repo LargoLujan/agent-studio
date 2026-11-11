@@ -127,3 +127,12 @@
       o la ruta siguiente, y quita **de más** antes que de menos. Una ruta de Unix sin `file:///` ni `~` (`/home/ana`) no la
       detecta, ni lo que escribas en la pregunta sin que sea una ruta;
     - una respuesta puede ser falsa o engañosa aunque cite artículos que existen: es texto de un agente y se enseña como tal.
+
+## Adenda del 2026-11-11 · WP-14C: lo que quedó implementado
+
+- **Corpus** (`Desktop/Help/<idioma>/<id>.md`, incrustado como `Help.<idioma>.<id>.md`): diez artículos cortos en `es-ES` y `en` (preparación, lienzo, monitor, debates, auditoría, memoria, skills, consumo, ajustes, bloqueo), con cabecera `title:`, `screens:` e `info:`. Una prueba recorre el corpus con `HelpArticleRules` y exige artículo a cada `InfoKey` de las vistas. El «Más ayuda» sale de un estilo implícito de `InfoButton` ligado a `OpenInfoHelpCommand` del shell; `InfoButton` solo lo enseña si el comando puede ejecutarse con su clave.
+- **Búsqueda:** FTS5 en memoria (`Microsoft.Data.Sqlite`, `unicode61 remove_diacritics 2`), un índice por idioma, términos de `LexicalTerms` entre comillas, con prefijo y unidos por `OR`. **Todavía no usa los vectores** del índice semántico: todo resultado es `Lexical`.
+- **`F1`** es un `KeyBinding` de `MainWindow` (se retira con el bloqueo como los demás); «Ayuda» va al final de la barra lateral. `HelpScreens.Of` convierte el contenido activo en un código de pantalla.
+- **`HelpAgentService`:** valida con `HelpAskRules.Validate` y rechaza una ruta de tu equipo en la pregunta sin la marca (`help.question-project-data-not-marked`, solo del servicio); gasta el OK una vez (10 minutos); manda el artículo de la pantalla y los más parecidos (4 como mucho); crea una carpeta vacía por pregunta y la borra; `PersistSession = false`; esquema con enum de las acciones de la lista y de los artículos enviados; respuesta por `HelpAnswerRules.Check`. El prompt es texto fijo (D-48).
+- **Refuerzos del guardia:** `ReadOnlyViolations` rechaza una carpeta que es un enlace o está dentro de uno (`ReparsePoint`) y una lista vacía de herramientas; `RunAsync` vuelve a mirar la carpeta antes de `provider.StartAsync` y, si ya no está vacía, cierra el intento como fallido sin lanzar.
+- **Residual nuevo:** si la carpeta temporal del usuario o un padre es un enlace (una junction), el agente de ayuda falla cerrado.
