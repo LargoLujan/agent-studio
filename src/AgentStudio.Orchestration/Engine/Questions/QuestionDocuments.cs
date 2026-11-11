@@ -113,7 +113,7 @@ internal static class QuestionDocuments
         {
             format = DecisionFormat,
             question = asked.Id,
-            task = asked.Task.Value,
+            task = asked.AskingTask.Value,
             attempt = asked.Attempt,
             askedBy = asked.Agent.Value,
             questionEvidence = asked.Evidence.Value,

@@ -318,6 +318,11 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
         }
 
         var recorder = new RunRecorder(_ports.Decisions, _ports.Evidence, project.ProjectId, run);
+
+        // The questions the orchestrator asked before it planned, in this very run, and their answers (V43): every executor gets
+        // them as data. They are read from the log before anything of the run is written, and only as the log anchored them.
+        var ledger = new RunLedger();
+        await Questions.QuestionRecovery.LoadOrchestratorAsync(recorder, entries, ledger.Questions, cancellationToken).ConfigureAwait(false);
         var repository = await _ports.Worktrees.InspectAsync(project.RootPath, cancellationToken).ConfigureAwait(false);
 
         // What every step of the run checks the user's repository against: it is captured before anything runs. An ignored
@@ -368,7 +373,7 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
         await RecordStartAsync(request, recorder, entries, header, writers, warning, cancellationToken).ConfigureAwait(false);
 
         var context = new RunContext(project, run, request.Plan, request.Requirements, request.Verification, roster, request.Options, baseCommit, createdAt);
-        var orchestration = new OrchestrationRun(context, _ports, recorder, request.Plan.BuildGraph(createdAt), new RunLedger(), guard, Forget);
+        var orchestration = new OrchestrationRun(context, _ports, recorder, request.Plan.BuildGraph(createdAt), ledger, guard, Forget);
         Track(orchestration);
         orchestration.Start(notices);
         return orchestration;

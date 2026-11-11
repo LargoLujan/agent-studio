@@ -114,3 +114,51 @@
     estimador (WP3) para que las estimaciones dejen de ser «no disponibles»; la composición de los tres puertos nuevos
     (`IProjectBrief`, `ISecretRedactor`, `IUsageEstimator`) en `Desktop`, del lead; y la ficha, que WP3 también da en el paquete
     de contexto (`ContextPack.Brief`, `ProjectBriefBlock`): al integrar debe quedar un solo bloque y una sola lectura.
+
+## Adenda · 2026-11-11 · la respuesta a una pregunta del orquestador llega a todos los ejecutores como dato (V43)
+
+- **Contexto.** En la demostración en vivo de la Fase 13 el orquestador preguntó antes de planificar («¿Qué debe hacer
+  `Power(base, exponent)` cuando el exponente es negativo?»), la persona respondió, el plan ya decía «lanzando
+  `ArgumentOutOfRangeException`»… y el ejecutor volvió a hacer la misma pregunta en su primer intento. La respuesta estaba en
+  el registro (`QuestionAnswered` sin tarea) y en el prompt del planificador, pero no en el de ningún ejecutor: la decisión 5
+  de este ADR solo daba a cada tarea las respuestas a sus propias preguntas. Poner la decisión en `PlanTask.Instructions` no
+  basta: es texto del orquestador y el ejecutor puede dudar igual.
+- **Decisión 1: las respuestas del orquestador viajan como datos a todos los ejecutores.** El prompt del ejecutor de **cada
+  tarea y de cada intento** lleva, antes de las respuestas a sus propias preguntas, un bloque
+  `<human_answer question=… askedBy="orchestrator" evidence=… sha256=…>` por cada pregunta que el orquestador hizo antes de
+  planificar y la persona respondió. Lo construye el mismo `HumanAnswerPrompt` de D-30, con el mismo escape y el mismo JSON por
+  `PromptData` (la pregunta y su motivo como los escribió el orquestador, la opción elegida con su etiqueta o el texto de la
+  persona, quién decidió y cómo). Sin `task` ni `attempt`: ningún intento de ninguna tarea la hizo. Es dato, no instrucción: no
+  da permisos, ni cambia el alcance ni los requisitos, igual que las respuestas de D-30. También llega al `<handoff>` (en
+  `humanAnswers`, con `askedBy`) y sobrevive a un reinicio.
+- **Decisión 2: el protocolo prohíbe repetir lo decidido.** Cuando el prompt lleva algún bloque `<human_answer>`, una regla
+  nueva del protocolo del ejecutor dice: no vuelvas a preguntar lo que un bloque ya decide; si la duda es la misma, sigue esa
+  decisión y no devuelvas `blocked` por ella; pregunta solo por lo que ninguno decide. La regla de los bloques de datos y el
+  texto del traspaso nombran ahora las dos procedencias (las preguntas del propio agente y las del orquestador).
+- **Decisión 3: cómo se leen del registro.** Las respuestas del orquestador no son de ninguna tarea: el motor las lee del
+  registro, solo como las anclaron `QuestionAsked` y `QuestionAnswered` (la pregunta, de su evidencia, que es el JSON del
+  planificador y no el documento de la pregunta de un ejecutor; el texto propio de la persona, de su evidencia), en dos
+  momentos: al **iniciar** la ejecución (`Orchestrator.StartAsync`, antes de escribir nada: es la misma ejecución que preguntó,
+  `RunRequest.Run`) y al **reanudarla** (`QuestionRecovery`). Si no se pueden leer como el registro las anclaba, la ejecución
+  no empieza o no se reanuda (falla cerrado, como el resto de la recuperación de preguntas). No cuentan en los topes de D-29
+  (tres por tarea, diez por ejecución), que son de los ejecutores, y el motor no registra nada nuevo por ellas: sin decisión
+  capturada, porque nunca hubo una tarea cuyo juez la reciba.
+- **Decisión 4: el juez no cambia.** Los prompts de los ejecutores siguen fuera del dosier, así que el bloque nuevo y la regla
+  no le llegan; de la pregunta del orquestador recibe, como antes, solo `QuestionAnswered` (ids y huellas) y, si la persona
+  escribió su texto, esa evidencia (`ProvidedByHuman`). Una prueba de integración con el juez guionizado lo comprueba
+  (`OrchestratorQuestionReachesTheExecutorsTests`).
+- **Alternativas descartadas:**
+  - Escribir la decisión en `PlanTask.Instructions` al planificar: es texto del orquestador, no dato de la persona, y no
+    cubre un plan que el usuario edita en el lienzo después de responder.
+  - Dárselas solo a la primera tarea o a las tareas cuyo alcance toque el asunto: el motor no sabe de qué trata una pregunta, y
+    un ejecutor que repite una pregunta ya contestada cuesta un intento y una interrupción a la persona.
+  - Contarlas en los topes de D-29: tres preguntas del orquestador dejarían siete a los ejecutores sin que estos hayan
+    preguntado nada.
+- **Consecuencias y lo que queda abierto:**
+  - Un ejecutor ve las respuestas del orquestador aunque su tarea no tenga nada que ver con ellas: son pocas (tres como mucho)
+    y llevan su pregunta, para que el agente juzgue si le atañen.
+  - Que el ejecutor haga caso de la regla depende del modelo: el sistema se lo dice y se lo da como dato, pero no puede
+    impedir que pregunte. Lo comprobará la próxima demostración en vivo.
+  - El dosier del juez sigue incluyendo el prompt del propio orquestador de la planificación (evidencia `CapturedBySystem`),
+    que lleva la pregunta, sus etiquetas y la respuesta. No lo cambia esta adenda; queda apuntado para decidir si D-33 también
+    debe dejarlo fuera.

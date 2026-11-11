@@ -30,6 +30,28 @@ internal static class PlannerQuestions
     public static string EvidenceOf(AgentQuestion question) => JsonSerializer.Serialize(question, Json);
 
     /// <summary>
+    /// The question in its evidence (<see cref="EvidenceOf"/>), or null when the text is not one that may have been recorded: a
+    /// run that starts, or resumes, with the answer to it (V43) reads it back only as the log anchored it.
+    /// </summary>
+    public static AgentQuestion? ReadEvidence(string json)
+    {
+        AgentQuestion? question;
+        try
+        {
+            question = JsonSerializer.Deserialize<AgentQuestion>(json, Json);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+
+        // The detail of an option is optional (QuestionRules): only what an answer is quoted with has to be there.
+        return question is { Text: not null, Why: not null, Options: { Count: > 0 } options } && options.All(o => o is { Id: not null, Label: not null })
+            ? question
+            : null;
+    }
+
+    /// <summary>
     /// The run the answers go on in, after checking them against the verified log: they answer every question of the
     /// orchestrator (no task) that one planning run asked, all at once and once each. <c>Recorded</c> says the log already has
     /// exactly these answers: a planning with them that failed is tried again without recording them twice.
