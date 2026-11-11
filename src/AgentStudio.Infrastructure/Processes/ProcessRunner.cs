@@ -23,16 +23,17 @@ public sealed class ProcessRunner : IProcessRunner
         var stopwatch = Stopwatch.StartNew();
         using var process = ProcessLaunch.Start(spec);
 
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var limit = new OutputLimit(spec.MaxOutputCharacters, linked);
         var stdout = new StringBuilder();
         var stderr = new StringBuilder();
         var pumps = new[]
         {
-            PumpAsync(process.StandardOutput, stdout),
-            PumpAsync(process.StandardError, stderr),
+            PumpAsync(process.StandardOutput, stdout, limit),
+            PumpAsync(process.StandardError, stderr, limit),
         };
         var stdin = spec.StandardInput is null ? Task.CompletedTask : ProcessLaunch.WriteStandardInputAsync(process, spec.StandardInput);
 
-        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         if (spec.Timeout is { } timeout)
         {
             linked.CancelAfter(timeout);
@@ -56,7 +57,7 @@ public sealed class ProcessRunner : IProcessRunner
                 throw;
             }
 
-            timedOut = true;
+            timedOut = !limit.Exceeded;
         }
 #pragma warning disable CA1031 // The process tree is killed and the exception is rethrown.
         catch
@@ -68,22 +69,56 @@ public sealed class ProcessRunner : IProcessRunner
 
         stopwatch.Stop();
         return new ProcessResult(
-            timedOut ? -1 : process.ExitCode,
+            timedOut || limit.Exceeded ? -1 : process.ExitCode,
             Snapshot(stdout),
             Snapshot(stderr),
             stopwatch.Elapsed,
-            timedOut);
+            timedOut,
+            limit.Exceeded);
     }
 
-    private static async Task PumpAsync(StreamReader reader, StringBuilder target)
+    /// <summary>
+    /// The optional cap on what each stream may hold. The first stream to pass it cancels the run (the same path as the
+    /// timeout, which kills the tree) and marks it exceeded; what was captured stays cut at the limit.
+    /// </summary>
+    private sealed class OutputLimit(int? maximum, CancellationTokenSource run)
+    {
+        private volatile bool _exceeded;
+
+        public int? Maximum { get; } = maximum;
+
+        public bool Exceeded => _exceeded;
+
+        public void Trip()
+        {
+            _exceeded = true;
+            run.Cancel();
+        }
+    }
+
+    private static async Task PumpAsync(StreamReader reader, StringBuilder target, OutputLimit limit)
     {
         var buffer = new char[4096];
         int read;
         while ((read = await reader.ReadAsync(buffer.AsMemory()).ConfigureAwait(false)) > 0)
         {
+            var tripped = false;
             lock (target)
             {
-                target.Append(buffer, 0, read);
+                var take = read;
+                if (limit.Maximum is { } maximum && target.Length + read > maximum)
+                {
+                    take = Math.Max(0, maximum - target.Length);
+                    tripped = true;
+                }
+
+                target.Append(buffer, 0, take);
+            }
+
+            if (tripped)
+            {
+                limit.Trip();
+                return;
             }
         }
     }
