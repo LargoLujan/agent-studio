@@ -20,7 +20,7 @@ public sealed class EditorAssetsTests : IDisposable
 
         Assert.False(assets.IsMonacoAvailable);
         Assert.Equal(
-            "Editor no disponible: faltan los recursos de Monaco (ejecuta tools/assets/fetch-monaco.ps1)",
+            "El editor no está disponible: faltan los archivos de Monaco. Ejecuta tools/assets/fetch-monaco.ps1.",
             assets.GetUnavailableReason());
     }
 

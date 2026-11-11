@@ -1,3 +1,4 @@
+using AgentStudio.Desktop.Localization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -20,7 +21,7 @@ public sealed partial class UnsavedChangesPromptViewModel : ObservableObject
         var listed = titles.Take(MaxListed).Select(t => "• " + t).ToList();
         if (titles.Count > MaxListed)
         {
-            listed.Add($"… y {titles.Count - MaxListed} más");
+            listed.Add(Texts.Format("Unsaved_More", titles.Count - MaxListed));
         }
 
         Listed = listed;
@@ -32,17 +33,17 @@ public sealed partial class UnsavedChangesPromptViewModel : ObservableObject
     /// <summary>The titles shown, at most <see cref="MaxListed"/>, and how many more there are.</summary>
     public IReadOnlyList<string> Listed { get; }
 
-    public string Title => "Cambios sin guardar";
+    public string Title => Texts.Get("Unsaved_Title");
 
-    public string Intro => CanSave ? "Hay cambios sin guardar en:" : "Hay cambios sin guardar que no se pueden guardar desde aquí:";
+    public string Intro => Texts.Get(CanSave ? "Unsaved_IntroSave" : "Unsaved_IntroNoSave");
 
-    public string Question => CanSave ? "¿Quieres guardarlos?" : "¿Descartarlos?";
+    public string Question => Texts.Get(CanSave ? "Unsaved_QuestionSave" : "Unsaved_QuestionDiscard");
 
-    public string SaveText => "Guardar";
+    public string SaveText => Texts.Get("Unsaved_Save");
 
-    public string DiscardText => CanSave ? "No guardar" : "Descartar";
+    public string DiscardText => Texts.Get("Unsaved_Discard");
 
-    public string CancelText => CanSave ? "Cancelar" : "Volver";
+    public string CancelText => Texts.Get(CanSave ? "Unsaved_Cancel" : "Unsaved_Back");
 
     /// <summary>What was answered; null while nothing was, which counts as <see cref="UnsavedChangesChoice.Cancel"/>.</summary>
     public UnsavedChangesChoice? Answer { get; private set; }

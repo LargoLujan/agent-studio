@@ -132,10 +132,10 @@ public sealed record MetricBarReading
     /// <summary>The origin in one word, for the status bar: «exacto», «estimado», «no expuesto», «sin dato».</summary>
     public string ShortOrigin => OriginKind switch
     {
-        MetricOrigin.ReportedByProvider or MetricOrigin.MeasuredBySystem => "exacto",
-        MetricOrigin.EstimatedByProvider or MetricOrigin.EstimatedBySystem => "estimado",
-        MetricOrigin.NotExposed => "no expuesto",
-        _ => "sin dato",
+        MetricOrigin.ReportedByProvider or MetricOrigin.MeasuredBySystem => Localization.Texts.Get("MetricBar_ShortExact"),
+        MetricOrigin.EstimatedByProvider or MetricOrigin.EstimatedBySystem => Localization.Texts.Get("MetricBar_ShortEstimated"),
+        MetricOrigin.NotExposed => Localization.Texts.Get("MetricBar_ShortNotExposed"),
+        _ => Localization.Texts.Get("MetricBar_ShortMissing"),
     };
 
     /// <summary>The line of the bar: the value, its origin, its level and its age, without repeating what is already said.</summary>
@@ -199,7 +199,8 @@ public sealed record MetricBarReading
         : Age.StartsWith(SeenPrefix, StringComparison.Ordinal) ? Age[SeenPrefix.Length..]
         : Age;
 
-    private const string SeenPrefix = "vista ";
+    /// <summary>The start of the age the quota gives («vista » in Spanish), from the resources: the short line drops it.</summary>
+    private static string SeenPrefix => Localization.Texts.Get("MetricBar_SeenPrefix");
 
     /// <summary>What a screen reader says: what is measured, the value, its origin, its level, its age, the detail and the parts.</summary>
     public string AccessibleName

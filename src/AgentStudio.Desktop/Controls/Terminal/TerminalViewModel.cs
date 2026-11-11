@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using AgentStudio.Application.Execution;
+using AgentStudio.Desktop.Localization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -93,14 +94,14 @@ public sealed partial class TerminalViewModel : ObservableObject, IAsyncDisposab
     private int? _exitCode;
 
     [ObservableProperty]
-    private string _statusText = "Terminal sin iniciar";
+    private string _statusText = Texts.Get("Terminal_NotStarted");
 
     [ObservableProperty]
     private string? _errorMessage;
 
     public bool IsRunning => State == TerminalState.Running;
 
-    public string StartButtonText => State == TerminalState.NotStarted ? "Iniciar" : "Reiniciar";
+    public string StartButtonText => State == TerminalState.NotStarted ? Texts.Get("Terminal_Start") : Texts.Get("Terminal_Restart");
 
     /// <summary>Raised from a background thread with text to show. Subscribers must be thread-safe.</summary>
     public event Action<string>? OutputReceived;
@@ -180,7 +181,7 @@ public sealed partial class TerminalViewModel : ObservableObject, IAsyncDisposab
         catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or PlatformNotSupportedException or ArgumentException)
         {
             State = TerminalState.Failed;
-            ErrorMessage = $"No se pudo iniciar {shell.DisplayName}: {ex.Message}";
+            ErrorMessage = Texts.Format("Terminal_StartFailed", shell.DisplayName, ex.Message);
             StatusText = ErrorMessage;
             return;
         }
@@ -195,7 +196,7 @@ public sealed partial class TerminalViewModel : ObservableObject, IAsyncDisposab
         _session = session;
         _sessionDirectory = WorkingDirectory;
         State = TerminalState.Running;
-        StatusText = $"{shell.DisplayName} · PID {session.ProcessId}";
+        StatusText = Texts.Format("Terminal_Running", shell.DisplayName, session.ProcessId);
         _ = Task.Run(() => PumpAsync(session, shell, generation));
     }
 
@@ -237,8 +238,8 @@ public sealed partial class TerminalViewModel : ObservableObject, IAsyncDisposab
                 ExitCode = _stopRequested ? null : code;
                 State = TerminalState.Exited;
                 StatusText = _stopRequested
-                    ? $"{shell.DisplayName} · detenido"
-                    : $"{shell.DisplayName} · finalizado con código {code}";
+                    ? Texts.Format("Terminal_Stopped", shell.DisplayName)
+                    : Texts.Format("Terminal_ExitedWithCode", shell.DisplayName, code);
             });
         }
         catch (Exception ex) when (ex is IOException or ObjectDisposedException or InvalidOperationException)
@@ -248,7 +249,7 @@ public sealed partial class TerminalViewModel : ObservableObject, IAsyncDisposab
                 if (generation == Volatile.Read(ref _generation))
                 {
                     State = TerminalState.Failed;
-                    ErrorMessage = $"La terminal se interrumpió: {ex.Message}";
+                    ErrorMessage = Texts.Format("Terminal_Interrupted", ex.Message);
                     StatusText = ErrorMessage;
                 }
             });

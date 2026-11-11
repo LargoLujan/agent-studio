@@ -237,14 +237,16 @@ public sealed partial class Phase13HandWrittenTextTests
         Assert.Contains("Localization/UiLanguages.cs", scanned);
         Assert.Contains("Controls/Info/InfoButton.xaml", scanned);
         Assert.Contains("Orchestrator/Live/IRunLiveProjection.cs", scanned);
-        Assert.DoesNotContain("Controls/MetricBar.xaml.cs", scanned);
+        Assert.Contains("Controls/MetricBar.xaml.cs", scanned);
 
         // Phase 14 takes a file out of the inventory when it leaves it clean, so it is scanned from then on: WP-14A (b) cleaned the
-        // 23 files of Debate and Audit, (a1) the 49 of the orchestrator and (d1) the 45 of the shell.
+        // 23 files of Debate and Audit, (a1) the 49 of the orchestrator and (d1) the 45 of the shell and (d2) the 57 of the controls, the services, the composition, the themes and the Markdown viewer.
         Assert.Contains("Orchestrator/Canvas/CanvasViewModel.cs", scanned);
         Assert.Contains("MainWindow.xaml.cs", scanned);
         Assert.Contains("ViewModels/MainViewModel.cs", scanned);
-        Assert.Equal(145, FilesBeforePhase13.Count);
+        Assert.Contains("Services/UnsavedChangesPromptViewModel.cs", scanned);
+        Assert.Contains("Controls/Terminal/TerminalViewModel.cs", scanned);
+        Assert.Equal(88, FilesBeforePhase13.Count);
         Assert.DoesNotContain(FilesBeforePhase13, f => f.StartsWith("Localization/", StringComparison.Ordinal) || f.StartsWith("Controls/Info/", StringComparison.Ordinal) || f.StartsWith("Orchestrator/Live/", StringComparison.Ordinal));
     }
 
@@ -328,6 +330,8 @@ public sealed partial class Phase13HandWrittenTextTests
                     <TextBlock Text="{}Literal escapado"/>
                     <TextBlock Text="{Binding Count, StringFormat={l:T Info_WhatIsThis}}"/>
                     <TextBlock Text="{Binding Name, FallbackValue={x:Static l:Texts.None}}"/>
+                    <Color Key="Brand">#2E68F9</Color>
+                    <FontFamily Key="MonoFont">Cascadia Mono, Consolas</FontFamily>
                   </StackPanel>
                 </UserControl>
                 """);
@@ -393,6 +397,12 @@ public sealed partial class Phase13HandWrittenTextTests
                 {
                     literals.Add(value);
                 }
+            }
+
+            // The text of a colour or of a font family is not a text for the person: «#0A1020», «Segoe UI».
+            if (element.Name.LocalName is "Color" or "FontFamily")
+            {
+                continue;
             }
 
             foreach (var text in element.Nodes().OfType<XText>().Where(t => t is not XCData))

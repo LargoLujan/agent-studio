@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using AgentStudio.Desktop.Localization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Web.WebView2.Core;
@@ -36,7 +37,7 @@ public partial class CodeEditorControl : UserControl, IDisposable
         _bridge = new EditorBridge(PostToPage);
         _bridge.Changed += OnChanged;
         _bridge.SaveRequested += OnSaveRequested;
-        _bridge.Failed += (_, message) => ShowUnavailable("Editor no disponible: " + message);
+        _bridge.Failed += (_, message) => ShowUnavailable(Texts.Format("Editor_PageFailed", message));
         UnavailableText.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
         Loaded += OnLoaded;
     }
@@ -223,7 +224,7 @@ public partial class CodeEditorControl : UserControl, IDisposable
             }
 
             _logger.LogError(ex, "The editor could not start");
-            ShowUnavailable("Editor no disponible: no se pudo iniciar WebView2 (" + ex.Message + ")");
+            ShowUnavailable(Texts.Format("Editor_WebViewStartFailed", ex.Message));
         }
         finally
         {
@@ -286,8 +287,7 @@ public partial class CodeEditorControl : UserControl, IDisposable
 
         _logger.LogError("The editor WebView2 process failed: {Kind}", args.ProcessFailedKind);
         // Reloading would silently drop the text that is not saved yet, so say what happened instead.
-        ShowUnavailable("El editor se ha detenido de forma inesperada (el proceso del visor WebView2 ha fallado)."
-            + " Los cambios sin guardar de esta pestaña pueden haberse perdido. Cierra la pestaña y vuelve a abrir el fichero.");
+        ShowUnavailable(Texts.Get("Editor_Crashed"));
     }
 
     private static Task<CoreWebView2Environment> GetEnvironmentAsync()
