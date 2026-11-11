@@ -162,6 +162,7 @@ public sealed class CodexAppServerQuotaReaderTests
         Assert.Equal(ProviderId.CodexCli, world.Reader.Provider);
     }
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task It_writes_exactly_the_three_messages_in_order_and_nothing_that_spends_or_sends()
     {
@@ -179,6 +180,7 @@ public sealed class CodexAppServerQuotaReaderTests
         Assert.True(world.Spec.KeepStandardInputOpen);
     }
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task The_app_server_runs_natively_over_stdio_in_an_empty_folder_of_the_run_that_is_removed_after()
     {
@@ -195,6 +197,7 @@ public sealed class CodexAppServerQuotaReaderTests
         Assert.NotNull(spec.Timeout);
     }
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task The_answer_is_read_by_the_whitelist_and_the_process_tree_is_ended()
     {
@@ -212,6 +215,7 @@ public sealed class CodexAppServerQuotaReaderTests
         Assert.True(world.Session.Disposed);
     }
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Without_an_answer_in_twenty_seconds_it_is_missing_and_the_tree_is_ended()
     {
@@ -229,6 +233,7 @@ public sealed class CodexAppServerQuotaReaderTests
         Assert.True(world.Session.Disposed);
     }
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task An_app_server_that_ends_without_answering_is_missing()
     {
@@ -240,6 +245,7 @@ public sealed class CodexAppServerQuotaReaderTests
         Assert.Contains("sin responder", result.Reason, StringComparison.Ordinal);
     }
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task With_an_api_key_the_quota_is_not_exposed()
     {
@@ -250,6 +256,7 @@ public sealed class CodexAppServerQuotaReaderTests
         Assert.Equal((QuotaReadStatus.NotExposed, "no expuesto: Codex usa API key"), (result.Status, result.Reason));
     }
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task A_version_without_a_tested_answer_is_read_with_a_warning()
     {
@@ -276,6 +283,7 @@ public sealed class CodexAppServerQuotaReaderTests
         Assert.Empty(world.Runner.Specs);
     }
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task An_app_server_that_cannot_start_is_missing_with_the_reason_and_leaves_no_folder()
     {
@@ -301,6 +309,7 @@ public sealed class CodexAppServerQuotaReaderTests
         }
     }
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task The_caller_can_cancel_and_the_tree_is_ended()
     {

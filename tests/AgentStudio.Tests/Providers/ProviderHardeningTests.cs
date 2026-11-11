@@ -250,6 +250,7 @@ public sealed class ProviderHardeningTests
 
     // ---- 3b. every pump failure kills the CLI ----
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Claude_pump_failure_fails_the_run_and_kills_the_cli()
     {
@@ -291,6 +292,7 @@ public sealed class ProviderHardeningTests
 
     // ---- 5. consistent status mapping ----
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Claude_timeout_without_result_is_limit_reached()
     {
@@ -306,6 +308,7 @@ public sealed class ProviderHardeningTests
         Assert.Equal(-1, outcome.ExitCode);
     }
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Claude_requested_schema_without_structured_output_fails_and_keeps_the_text()
     {
@@ -321,6 +324,7 @@ public sealed class ProviderHardeningTests
         Assert.Equal(outcome, events.OfType<RunFinished>().Single().Outcome);
     }
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Codex_requested_schema_without_valid_json_fails_and_keeps_the_text()
     {
@@ -415,6 +419,7 @@ public sealed class ProviderHardeningTests
 
     // ---- 6. temporary files ----
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Claude_instructions_file_is_removed_when_argument_building_fails()
     {
@@ -430,6 +435,7 @@ public sealed class ProviderHardeningTests
         Assert.Empty(leaked);
     }
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Claude_instructions_live_under_the_per_user_folder_and_are_removed_when_the_run_ends()
     {
@@ -453,6 +459,7 @@ public sealed class ProviderHardeningTests
         Assert.False(File.Exists(file));
     }
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Instruction_files_are_never_overwritten()
     {
@@ -479,6 +486,7 @@ public sealed class ProviderHardeningTests
         Assert.Throws<ArgumentException>(() => GeminiArguments.Build(GeminiTestData.Request(resume: value)));
     }
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Codex_schema_directory_is_removed_when_argument_building_fails()
     {
@@ -553,6 +561,7 @@ public sealed class ProviderHardeningTests
         }
     }
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Claude_temp_folder_is_gone_by_the_time_completion_is_published()
     {

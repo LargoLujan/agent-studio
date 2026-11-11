@@ -243,6 +243,7 @@ public sealed class ClaudeEndClassTests
         Assert.Equal(new AgentRunEnd(AttemptEndClass.WindowQuota, null, FiveHourReset), outcome.End);
     }
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task The_class_reaches_the_outcome_of_the_adapter_and_the_result_line_of_the_journal()
     {
@@ -264,6 +265,7 @@ public sealed class ClaudeEndClassTests
         Assert.Equal("clase WindowQuota five_hour, reinicio 2026-10-15 17:20 UTC · You've hit your session limit · resets 3:45pm", line.Note);
     }
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task A_turn_that_completed_adds_nothing_to_the_result_line_of_the_journal()
     {

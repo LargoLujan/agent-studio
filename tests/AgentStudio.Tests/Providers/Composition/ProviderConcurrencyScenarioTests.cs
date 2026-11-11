@@ -87,6 +87,7 @@ public sealed class ProviderConcurrencyScenarioTests
         return (AgentProviderPipeline.Compose(adapter, journal, TimeProvider.System, maxConcurrent), recorder);
     }
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task With_a_limit_of_one_the_two_processes_never_overlap_and_both_runs_are_journaled()
     {
@@ -100,6 +101,7 @@ public sealed class ProviderConcurrencyScenarioTests
         ConcurrencyScenario.AssertJournaledInOrder(temp.Path, "F2-5 probe A", "F2-5 probe B");
     }
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task With_a_limit_of_two_the_same_scenario_sees_the_overlap_and_the_assertion_fails()
     {
@@ -115,6 +117,7 @@ public sealed class ProviderConcurrencyScenarioTests
         Assert.ThrowsAny<Xunit.Sdk.XunitException>(() => ConcurrencyScenario.AssertNeverOverlapped(result));
     }
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task The_recording_runner_keeps_the_spec_the_raw_lines_and_the_exit_of_each_process()
     {

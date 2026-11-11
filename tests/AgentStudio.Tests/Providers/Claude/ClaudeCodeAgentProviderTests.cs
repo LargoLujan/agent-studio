@@ -122,6 +122,7 @@ public sealed class ClaudeCodeAgentProviderTests
         Assert.True(sut.Capabilities.ReportsContextOccupancy);
     }
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Mcp_servers_go_in_an_app_controlled_file_of_the_run_that_is_removed_when_it_ends()
     {
@@ -143,6 +144,7 @@ public sealed class ClaudeCodeAgentProviderTests
         Assert.False(File.Exists(path));
     }
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Mcp_servers_on_a_writing_launch_are_refused_before_anything_is_written_or_started()
     {
@@ -155,6 +157,7 @@ public sealed class ClaudeCodeAgentProviderTests
         Assert.Null(runner.Spec);
     }
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task A_turn_that_must_not_be_saved_and_resumes_is_refused_before_anything_is_started()
     {
@@ -167,6 +170,7 @@ public sealed class ClaudeCodeAgentProviderTests
         Assert.Null(runner.Spec);
     }
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task A_turn_that_must_not_be_saved_is_launched_as_a_new_session_that_claude_does_not_keep()
     {
@@ -196,6 +200,7 @@ public sealed class ClaudeCodeAgentProviderTests
         Assert.Contains("Claude Code no está instalado", ex.Message, StringComparison.Ordinal);
     }
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Successful_run_streams_events_and_completes_with_the_result_outcome()
     {
@@ -233,6 +238,7 @@ public sealed class ClaudeCodeAgentProviderTests
         Assert.Equal(outcome, events.OfType<RunFinished>().Single().Outcome);
     }
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Process_without_result_fails_with_exit_code_and_stderr_tail()
     {
@@ -254,6 +260,7 @@ public sealed class ClaudeCodeAgentProviderTests
         Assert.IsType<RunFinished>(Assert.Single(events));
     }
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Cancel_kills_the_session_and_the_outcome_is_cancelled()
     {
@@ -271,6 +278,7 @@ public sealed class ClaudeCodeAgentProviderTests
         Assert.IsType<RunFinished>(events[^1]);
     }
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Every_run_gets_an_app_controlled_settings_file_that_turns_hooks_off_and_is_removed_at_the_end()
     {
@@ -302,6 +310,7 @@ public sealed class ClaudeCodeAgentProviderTests
         Assert.False(Directory.Exists(Path.GetDirectoryName(file)));
     }
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Dispose_removes_the_instructions_file_and_disposes_the_session()
     {

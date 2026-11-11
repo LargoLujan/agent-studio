@@ -12,6 +12,7 @@ using AgentStudio.Desktop.Services;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Providers;
+using AgentStudio.Infrastructure.Persistence;
 using AgentStudio.Tests.Desktop;
 using AgentStudio.Tests.TestSupport;
 using Microsoft.Extensions.DependencyInjection;
@@ -59,6 +60,9 @@ public sealed class JudgesAndAuditorsGetNothingInTheAppTests
         var folders = new AppFolders(new AppDataPaths(temp.Combine("roaming")), new LocalDataPaths(temp.Combine("local")), null);
         var services = new ServiceCollection();
         services.AddWindowsDoubles();
+
+        // The anchors of the decision logs go to the temporary folder, not to %LOCALAPPDATA% (Windows denies it at Low integrity).
+        services.AddSingleton(new DecisionLogAnchorOptions(Path.Combine(folders.Local.BaseDirectory, "anchors")));
         services.AddAgentStudioApp(folders);
         await using var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
         var root = temp.CreateDirectory("calc");

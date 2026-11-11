@@ -143,6 +143,7 @@ public sealed class CodexCliAgentProviderTests
         Assert.Null(runner.Spec);
     }
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task A_turn_that_must_not_be_saved_and_resumes_is_refused_before_anything_is_started()
     {
@@ -154,6 +155,7 @@ public sealed class CodexCliAgentProviderTests
         Assert.Null(runner.Spec);
     }
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task A_turn_that_must_not_be_saved_is_launched_ephemeral_with_its_schema_file()
     {
@@ -267,6 +269,7 @@ public sealed class CodexCliAgentProviderTests
         Assert.IsType<RunFinished>(events[^1]);
     }
 
+    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Schema_goes_to_a_temporary_file_that_is_removed_on_dispose()
     {
