@@ -71,7 +71,7 @@
     <value>The audit is against the latest frozen requirements: {0} (fingerprint {1}). To use others, freeze them first. You do it in "Requirements", in the orchestrator.</value>
   </data>
   <data name="Audit_Requirements_Missing" xml:space="preserve">
-    <value>This project has no frozen requirements. Freeze them in "Requirements", in the orchestrator. Then you can audit.</value>
+    <value>This project has no frozen requirements yet. Go to "Requirements", in the orchestrator, and freeze them. Then you can audit.</value>
   </data>
   <data name="Audit_Notice_NoService" xml:space="preserve">
     <value>The audit service is missing: the project cannot be audited.</value>
@@ -104,7 +104,7 @@
     <value>Open the project to audit it.</value>
   </data>
   <data name="Audit_Problem_NoRequirements" xml:space="preserve">
-    <value>You cannot audit without frozen requirements. Freeze them in "Requirements", in the orchestrator.</value>
+    <value>You cannot audit without frozen requirements. Go to "Requirements", in the orchestrator, and freeze them.</value>
   </data>
   <data name="Audit_Problem_PickJudge" xml:space="preserve">
     <value>Choose the judge of the audit.</value>

@@ -32,7 +32,7 @@
     <value>With {0} executors on {1}, {2} work at once; the rest wait their turn.</value>
   </data>
   <data name="Text_context_pack_too_small" xml:space="preserve">
-    <value>The mandatory requirements of {0} take {1:N0} characters. Its budget is {2:N0}. The task would not start. Split it or reduce its requirements.</value>
+    <value>The mandatory requirements of {0} are too long: they take {1:N0} characters and {2:N0} fit. The task would not start. Split it or remove one.</value>
   </data>
   <data name="Text_context_window_tight" xml:space="preserve">
     <value>{0} starts with ~{1:N0} tokens, {3} % of the model's working memory ({2:N0}).</value>

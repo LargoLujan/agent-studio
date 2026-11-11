@@ -90,7 +90,7 @@
     <comment>Which requirements are audited.</comment>
   </data>
   <data name="Audit_Requirements_Missing" xml:space="preserve">
-    <value>Este proyecto no tiene requisitos congelados. Congélalos en «Requisitos», en el orquestador. Así podrás auditar.</value>
+    <value>Este proyecto aún no tiene requisitos congelados. Ve a «Requisitos», en el orquestador, y congélalos. Después podrás auditar.</value>
     <comment>Which requirements are audited.</comment>
   </data>
   <data name="Audit_Notice_NoService" xml:space="preserve">
@@ -134,7 +134,7 @@
     <comment>Problem of the audit screen.</comment>
   </data>
   <data name="Audit_Problem_NoRequirements" xml:space="preserve">
-    <value>No se puede auditar sin requisitos congelados. Congélalos en «Requisitos», en el orquestador.</value>
+    <value>No se puede auditar sin requisitos congelados. Ve a «Requisitos», en el orquestador, y congélalos.</value>
     <comment>Problem of the audit screen.</comment>
   </data>
   <data name="Audit_Problem_PickJudge" xml:space="preserve">

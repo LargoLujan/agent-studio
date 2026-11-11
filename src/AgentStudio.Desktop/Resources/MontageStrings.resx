@@ -38,7 +38,7 @@
     <comment>Finding team.parallel-capacity. {0}: how many; {1}: CLI id; {2}: how many at once.</comment>
   </data>
   <data name="Text_context_pack_too_small" xml:space="preserve">
-    <value>Los requisitos obligatorios de {0} ocupan {1:N0} caracteres. Su presupuesto es de {2:N0}. La tarea no arrancaría. Pártela o reduce sus requisitos.</value>
+    <value>Los requisitos obligatorios de {0} son muy largos: ocupan {1:N0} caracteres y caben {2:N0}. La tarea no arrancaría. Pártela o quita alguno.</value>
     <comment>Finding context.pack-too-small. {0}: task; {1}: characters of its mandatory requirements; {2}: budget.</comment>
   </data>
   <data name="Text_context_window_tight" xml:space="preserve">

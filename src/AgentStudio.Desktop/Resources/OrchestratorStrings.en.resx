@@ -1307,7 +1307,7 @@ Choose in each task of the plan which steps are required.</value>
     <comment>Start of the line of a failure.</comment>
   </data>
   <data name="Orchestrator_Session_NoRequirements" xml:space="preserve">
-    <value>The project has no frozen requirements. Write them and freeze them in "Requirements". Then you can plan.</value>
+    <value>There are no frozen requirements yet. Go to "Requirements". Write what you want and freeze it. Then you can plan.</value>
     <comment>Line of what is missing.</comment>
   </data>
   <data name="Orchestrator_Session_RosterMissing" xml:space="preserve">
@@ -1327,7 +1327,7 @@ Choose in each task of the plan which steps are required.</value>
     <comment>Line of what is missing.</comment>
   </data>
   <data name="Orchestrator_Session_NoProfileProposal" xml:space="preserve">
-    <value>This project has no verification profile (.agentstudio/verification.json). Review the proposed one. Then press "Use the proposed profile".</value>
+    <value>This project has no verification profile. Look at the proposed one and press "Use the proposed profile".</value>
     <comment>Line of what is missing.</comment>
   </data>
   <data name="Orchestrator_Session_RosterFailed" xml:space="preserve">
@@ -1355,7 +1355,7 @@ Choose in each task of the plan which steps are required.</value>
     <comment>Why the log cannot be trusted. {0}: entries.</comment>
   </data>
   <data name="Orchestrator_History_NotIntact" xml:space="preserve">
-    <value>The decision history is not intact: {0} So nothing is planned, run or resumed.</value>
+    <value>The decision history is not intact: {0} Nothing is planned, run or resumed until you fix it.</value>
     <comment>Why the log cannot be trusted. {0}: the problem found.</comment>
   </data>
   <data name="Orchestrator_Phase_Running" xml:space="preserve">
@@ -2125,7 +2125,7 @@ Pause the run: it never resumes by itself then.</value>
     <comment>Notice. {0}: why.</comment>
   </data>
   <data name="Orchestrator_Doc_DraftRecoveredProposal" xml:space="preserve">
-    <value>Draft recovered. It is the plan the orchestrator proposed, not approved. Look at it and approve it to run it.</value>
+    <value>Draft recovered. It is the plan the orchestrator proposed, not approved yet. Look at it and approve it if you want to run it.</value>
     <comment>Status of the proposal.</comment>
   </data>
   <data name="Orchestrator_Doc_DraftRecovered" xml:space="preserve">
