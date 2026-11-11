@@ -161,6 +161,97 @@ public sealed class RepositoryHistoryReaderTests : IDisposable
     }
 
     [Fact]
+    public async Task A_subject_or_author_with_the_separators_of_the_record_does_not_hide_the_commit()
+    {
+        var before = _repo.Head;
+        _repo.Write("s.txt", "s\n");
+        _repo.Run("add", "-A");
+        _repo.Run("-c", "user.name=Autor\u001fcon\u001eseparadores", "commit", "-q", "-m", "asunto\u001fcon\u001eseparadores y un\u001f\u001f\u001e\u001e final");
+        var hidden = _repo.Head;
+        var after = Commit("t.txt", "t\n", "el siguiente");
+
+        var commits = await NewReader().CommitsAsync(Project, new CommitGraphQuery(), Ct);
+
+        Assert.Equal([after, hidden, before], commits.Select(commit => commit.Id).ToArray());
+        Assert.Equal([before], commits[1].Parents);
+        Assert.Contains("separadores", commits[1].Subject);
+        Assert.Contains("separadores", commits[1].AuthorName);
+        Assert.Equal("el siguiente", commits[0].Subject);
+    }
+
+    [Fact]
+    public async Task A_huge_subject_and_a_commit_with_many_refs_are_cut_in_git_and_lose_no_commit()
+    {
+        for (var index = 0; index < 25; index++)
+        {
+            _repo.Run("branch", "p" + index.ToString(System.Globalization.CultureInfo.InvariantCulture), _repo.Head);
+        }
+
+        _repo.Write("h.txt", "h\n");
+        _repo.Run("add", "-A");
+        var message = Path.Combine(Path.GetDirectoryName(_repo.Root)!, "mensaje-enorme.txt");
+        File.WriteAllText(message, new string('y', 300_000));
+        _repo.Run("commit", "-q", "-F", message);
+        var after = _repo.Head;
+
+        var commits = await NewReader().CommitsAsync(Project, new CommitGraphQuery(), Ct);
+
+        Assert.Equal(after, commits[0].Id);
+        Assert.Equal(RepositoryHistoryReader.MaxSubjectCharacters, commits[0].Subject.Length);
+        Assert.Equal(2, commits.Count);
+        Assert.NotEmpty(commits[1].Refs);
+        Assert.True(commits[1].Refs.Count <= RepositoryHistoryReader.MaxRefsPerCommit);
+    }
+
+    [Fact]
+    public async Task A_tree_with_many_untracked_files_says_there_are_changes_without_reading_the_list()
+    {
+        for (var index = 0; index < 2000; index++)
+        {
+            _repo.Write("u/archivo-con-nombre-largo-" + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".txt", "x");
+        }
+
+        var summary = await NewReader().SummaryAsync(Project, Ct);
+
+        Assert.True(summary.Accepted);
+        Assert.True(summary.HasUncommittedChanges);
+        Assert.Empty(summary.Warnings);
+    }
+
+    [Theory]
+    [InlineData("feature@2")]
+    [InlineData("a+b")]
+    [InlineData("issue#12")]
+    [InlineData("rama-ñandú")]
+    public async Task A_branch_name_git_accepts_with_at_plus_hash_or_unicode_is_read(string branch)
+    {
+        _repo.Run("checkout", "-q", "-b", branch);
+        var onBranch = Commit("w.txt", "w\n", "en la rama");
+        _repo.Run("checkout", "-q", "main");
+
+        var commits = await NewReader().CommitsAsync(Project, new CommitGraphQuery(Branch: branch), Ct);
+
+        Assert.Contains(commits, commit => commit.Id == onBranch);
+    }
+
+    [Theory]
+    [InlineData("main\n")]
+    [InlineData("a@{1}")]
+    [InlineData("@")]
+    [InlineData("a//b")]
+    [InlineData("a/.b")]
+    [InlineData("a.lock")]
+    [InlineData("rama.")]
+    [InlineData("a*b")]
+    [InlineData("a\\b")]
+    public async Task A_branch_name_git_refuses_or_that_ends_in_a_newline_reads_nothing(string branch)
+    {
+        var commits = await NewReader().CommitsAsync(Project, new CommitGraphQuery(Branch: branch), Ct);
+
+        Assert.Empty(commits);
+    }
+
+    [Fact]
     public async Task The_branches_are_the_local_ones_with_the_current_one_and_the_run_ones_marked()
     {
         _repo.Run("branch", "agentstudio/run-1/tarea");

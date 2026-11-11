@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text;
-using System.Text.RegularExpressions;
 using AgentStudio.Application.Execution;
 using AgentStudio.Application.Git;
 using AgentStudio.Application.Projects;
@@ -13,9 +12,12 @@ namespace AgentStudio.Infrastructure.Git;
 /// walk of the git directory for planted links and the inspection of the configuration for callbacks (ADR-0012). It reads only.
 /// </summary>
 /// <remarks>
-/// <para>Bounded: at most <see cref="MaxCommitsLimit"/> commits whatever the query asks, <see cref="MaxOutputCharacters"/> of git's
-/// output parsed, <see cref="MaxBranches"/> branches, and every text that comes from git (subject, author, ref) cut and cleaned of
-/// control characters, because it is data of whoever wrote the commit.</para>
+/// <para>Bounded: at most <see cref="MaxCommitsLimit"/> commits whatever the query asks, <see cref="MaxBranches"/> branches, and every
+/// text that comes from git (subject, author, ref) cut by git itself (<c>%&lt;(N,trunc)</c>) and again here, and cleaned of control
+/// characters, because it is data of whoever wrote the commit. The output is bounded at its source: the process runner kills git
+/// when a stream passes <see cref="MaxOutputCharacters"/> (the read is then refused), and the question «are there changes?» is
+/// asked with a few characters of room, not for the list. A commit is never lost to its text: the fields are framed by a random
+/// marker of each read that no writer can know, so a subject or author with control characters cannot break the record.</para>
 /// <para>Fails closed: when the repository is not accepted (not a repository, inside the worktree root, a planted link, a
 /// configuration that could run a program the repository controls) <see cref="SummaryAsync"/> says so with the codes of the reasons
 /// and the other two return nothing. Git failing to run, or timing out, reads the same way; only the cancellation propagates.</para>
@@ -29,8 +31,14 @@ public sealed class RepositoryHistoryReader : IRepositoryHistoryReader
     /// <summary>The most commits one read returns, whatever the query asks.</summary>
     public const int MaxCommitsLimit = 1000;
 
-    /// <summary>The most characters of git's output that are parsed in one read.</summary>
+    /// <summary>The most characters git may write to a stream in the log or the branch list: past it git is killed and the read is refused.</summary>
     public const int MaxOutputCharacters = 4 * 1024 * 1024;
+
+    /// <summary>The room for the commands whose answer is a line (HEAD, the paths of the repository): a longer one is not a repository's.</summary>
+    private const int MaxProbeCharacters = 64 * 1024;
+
+    /// <summary>The room for «are there changes?»: any output means there are, so the list is never read in full (a tree with millions of untracked files).</summary>
+    private const int ChangesProbeCharacters = 512;
 
     /// <summary>The most branches listed.</summary>
     public const int MaxBranches = 500;
@@ -44,10 +52,20 @@ public sealed class RepositoryHistoryReader : IRepositoryHistoryReader
     public const int MaxRefsPerCommit = 20;
 
     private const char FieldSeparator = '\u001f';
-    private const char RecordSeparator = '\u001e';
     private const string RunBranchPrefix = "agentstudio/";
 
-    private static readonly Regex SafeBranchName = new(@"^[A-Za-z0-9][A-Za-z0-9._/\-]{0,199}$", RegexOptions.CultureInvariant | RegexOptions.Compiled);
+    private const int MaxBranchNameCharacters = 200;
+
+    // Widths that git cuts the free texts to (%<(N,trunc) pads to N columns and marks the cut with «..»); wider than the limits kept
+    // here so the cut by Clean stays the one that decides, except for the refs and parents, whose last entry may arrive cut.
+    private const int GitSubjectWidth = 240;
+    private const int GitAuthorWidth = 120;
+    private const int GitRefsWidth = 1200;
+    private const int GitParentsWidth = 1300;
+    private const int FieldsPerRecord = 7;
+
+    /// <summary>The characters git refuses in a ref name (git check-ref-format), besides the control characters and the space.</summary>
+    private static readonly char[] ForbiddenRefCharacters = ['~', '^', ':', '?', '*', '[', '\\'];
 
     private readonly GitCommandRunner _git;
     private readonly string _worktreeRoot;
@@ -77,10 +95,10 @@ public sealed class RepositoryHistoryReader : IRepositoryHistoryReader
 
         try
         {
-            var head = await _git.RunAsync(repository.Root, [.. GitDir(repository), "symbolic-ref", "--quiet", "HEAD"], null, cancellationToken).ConfigureAwait(false);
+            var head = await _git.RunAsync(repository.Root, [.. GitDir(repository), "symbolic-ref", "--quiet", "HEAD"], null, cancellationToken, maxOutputCharacters: MaxProbeCharacters).ConfigureAwait(false);
             var branch = head.ExitCode == 0 ? StripHeads(head.StandardOutput.Trim()) : null;
 
-            var commit = await _git.RunAsync(repository.Root, [.. GitDir(repository), "rev-parse", "--verify", "--quiet", "HEAD^{commit}"], null, cancellationToken).ConfigureAwait(false);
+            var commit = await _git.RunAsync(repository.Root, [.. GitDir(repository), "rev-parse", "--verify", "--quiet", "HEAD^{commit}"], null, cancellationToken, maxOutputCharacters: MaxProbeCharacters).ConfigureAwait(false);
             var commitId = commit.ExitCode == 0 && IsObjectId(commit.StandardOutput.Trim()) ? commit.StandardOutput.Trim() : null;
 
             var status = await _git.RunAsync(
@@ -88,13 +106,17 @@ public sealed class RepositoryHistoryReader : IRepositoryHistoryReader
                 ["--git-dir=" + repository.GitDirectory, "--work-tree=" + repository.Root, "status", "--porcelain=v1", "--untracked-files=normal", "--ignore-submodules=all"],
                 null,
                 cancellationToken,
-                ScopeOf(repository)).ConfigureAwait(false);
-            if (status.ExitCode != 0)
+                ScopeOf(repository),
+                ChangesProbeCharacters).ConfigureAwait(false);
+
+            // Output past the room (git is killed for it) is itself the answer: there are changes.
+            if (!status.OutputLimitExceeded && status.ExitCode != 0)
             {
                 return Refused(project, "git-failed");
             }
 
-            return new RepositorySummary(repository.Root, true, branch is null ? null : Clean(branch, MaxRefCharacters), commitId, status.StandardOutput.Length > 0, []);
+            return new RepositorySummary(
+                repository.Root, true, branch is null ? null : Clean(branch, MaxRefCharacters), commitId, status.OutputLimitExceeded || status.StandardOutput.Length > 0, []);
         }
         catch (Exception exception) when (IsRefusal(exception, cancellationToken))
         {
@@ -117,14 +139,15 @@ public sealed class RepositoryHistoryReader : IRepositoryHistoryReader
                 repository.Root,
                 [.. GitDir(repository), "for-each-ref", "--count=" + MaxBranches.ToString(CultureInfo.InvariantCulture), "--format=%(refname)%1f%(objectname)%1f%(HEAD)", "refs/heads/"],
                 null,
-                cancellationToken).ConfigureAwait(false);
-            if (result.ExitCode != 0)
+                cancellationToken,
+                maxOutputCharacters: MaxOutputCharacters).ConfigureAwait(false);
+            if (result.ExitCode != 0 || result.OutputLimitExceeded)
             {
                 return [];
             }
 
             var branches = new List<BranchSummary>();
-            foreach (var line in Truncate(result.StandardOutput).Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            foreach (var line in result.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries))
             {
                 var fields = line.TrimEnd('\r').Split(FieldSeparator);
                 if (fields.Length != 3 || !IsObjectId(fields[1]) || !fields[0].StartsWith("refs/heads/", StringComparison.Ordinal))
@@ -160,6 +183,20 @@ public sealed class RepositoryHistoryReader : IRepositoryHistoryReader
         }
 
         var max = Math.Clamp(query.MaxCommits, 1, MaxCommitsLimit);
+
+        // The marker frames every field of this read. It is random and only known here, so no text of a commit can contain it.
+        var marker = "\u001e" + Guid.NewGuid().ToString("N") + "\u001e";
+        var gitMarker = "%x1e" + marker[1..^1] + "%x1e";
+        var format = string.Join(
+            gitMarker,
+            string.Empty,
+            "%H",
+            $"%<({GitParentsWidth.ToString(CultureInfo.InvariantCulture)},trunc)%P",
+            "%ct",
+            $"%<({GitRefsWidth.ToString(CultureInfo.InvariantCulture)},trunc)%D",
+            $"%<({GitAuthorWidth.ToString(CultureInfo.InvariantCulture)},trunc)%an",
+            $"%<({GitSubjectWidth.ToString(CultureInfo.InvariantCulture)},trunc)%s",
+            string.Empty);
         var arguments = new List<string>
         {
             "--no-replace-objects",
@@ -175,7 +212,7 @@ public sealed class RepositoryHistoryReader : IRepositoryHistoryReader
             "--no-show-signature",
             "--no-notes",
             "--encoding=UTF-8",
-            "--format=%H%x1f%P%x1f%ct%x1f%an%x1f%s%x1f%D%x1e",
+            "--format=" + format,
         };
         if (query.Since is { } since)
         {
@@ -189,7 +226,7 @@ public sealed class RepositoryHistoryReader : IRepositoryHistoryReader
 
         if (query.Branch is { } branch)
         {
-            if (!SafeBranchName.IsMatch(branch) || branch.Contains("..", StringComparison.Ordinal) || branch.EndsWith('/') || branch.EndsWith(".lock", StringComparison.Ordinal))
+            if (!IsValidBranchName(branch))
             {
                 return [];
             }
@@ -208,13 +245,13 @@ public sealed class RepositoryHistoryReader : IRepositoryHistoryReader
 
         try
         {
-            var result = await _git.RunAsync(repository.Root, arguments, null, cancellationToken).ConfigureAwait(false);
-            if (result.ExitCode != 0)
+            var result = await _git.RunAsync(repository.Root, arguments, null, cancellationToken, maxOutputCharacters: MaxOutputCharacters).ConfigureAwait(false);
+            if (result.ExitCode != 0 || result.OutputLimitExceeded)
             {
                 return [];
             }
 
-            return Parse(Truncate(result.StandardOutput), max);
+            return Parse(result.StandardOutput, marker, max);
         }
         catch (Exception exception) when (IsRefusal(exception, cancellationToken))
         {
@@ -222,19 +259,28 @@ public sealed class RepositoryHistoryReader : IRepositoryHistoryReader
         }
     }
 
-    private static List<CommitNode> Parse(string output, int max)
+    /// <summary>
+    /// The records of the log: «marker id marker parents marker time marker refs marker author marker subject marker newline», one
+    /// after another, so the segments after the first empty one come in groups of <see cref="FieldsPerRecord"/> (the last is the
+    /// newline git ends each record with). The marker is random per read: a text of a commit cannot contain it, so it cannot add
+    /// or remove a field. A group that does not hold (an id that is not one, an incomplete one at the end) is skipped.
+    /// </summary>
+    private static List<CommitNode> Parse(string output, string marker, int max)
     {
         var commits = new List<CommitNode>();
-        foreach (var record in output.Split(RecordSeparator, StringSplitOptions.RemoveEmptyEntries))
+        var segments = output.Split(marker);
+        for (var start = 1; start + FieldsPerRecord <= segments.Length; start += FieldsPerRecord)
         {
-            var fields = record.Trim('\r', '\n').Split(FieldSeparator);
-            if (fields.Length != 6 || !IsObjectId(fields[0]) || !long.TryParse(fields[2], NumberStyles.None, CultureInfo.InvariantCulture, out var seconds))
+            var fields = segments.AsSpan(start, FieldsPerRecord).ToArray();
+            if (fields[6].Trim().Length != 0 || !IsObjectId(fields[0]) || !long.TryParse(fields[2], NumberStyles.None, CultureInfo.InvariantCulture, out var seconds))
             {
                 continue;
             }
 
-            var parents = fields[1].Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (parents.Any(parent => !IsObjectId(parent)))
+            // The parents are cut by git when a merge has too many: the last one may arrive cut and is left out.
+            var tokens = fields[1].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var parents = tokens.Where(IsObjectId).ToArray();
+            if (parents.Length < tokens.Length - 1 || (parents.Length == tokens.Length - 1 && !tokens[^1].EndsWith("..", StringComparison.Ordinal)))
             {
                 continue;
             }
@@ -249,12 +295,12 @@ public sealed class RepositoryHistoryReader : IRepositoryHistoryReader
                 continue;
             }
 
-            var refs = fields[5]
+            var refs = fields[3]
                 .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .Take(MaxRefsPerCommit)
                 .Select(reference => Clean(reference, MaxRefCharacters))
                 .ToArray();
-            commits.Add(new CommitNode(fields[0], parents, at, Clean(fields[4], MaxSubjectCharacters), Clean(fields[3], MaxAuthorCharacters), refs));
+            commits.Add(new CommitNode(fields[0], parents, at, Clean(fields[5], MaxSubjectCharacters), Clean(fields[4], MaxAuthorCharacters), refs));
             if (commits.Count == max)
             {
                 break;
@@ -284,7 +330,7 @@ public sealed class RepositoryHistoryReader : IRepositoryHistoryReader
                 return new Opened(null, "inside-worktree-root");
             }
 
-            var paths = await _git.RunAsync(directory, ["rev-parse", "--path-format=absolute", "--show-toplevel", "--absolute-git-dir", "--git-common-dir"], null, cancellationToken).ConfigureAwait(false);
+            var paths = await _git.RunAsync(directory, ["rev-parse", "--path-format=absolute", "--show-toplevel", "--absolute-git-dir", "--git-common-dir"], null, cancellationToken, maxOutputCharacters: MaxProbeCharacters).ConfigureAwait(false);
             var lines = paths.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             if (paths.ExitCode != 0 || lines.Length != 3)
             {
@@ -320,7 +366,6 @@ public sealed class RepositoryHistoryReader : IRepositoryHistoryReader
     {
         UnsafeGitCallbackException => "unsafe-configuration",
         WorktreeOwnershipException => "unsafe-repository",
-        UnsupportedRepositoryException => "unsupported-repository",
         GitUnavailableException or System.ComponentModel.Win32Exception => "git-unavailable",
         GitCommandException => "git-failed",
         _ => "unreadable",
@@ -335,7 +380,29 @@ public sealed class RepositoryHistoryReader : IRepositoryHistoryReader
     private static string StripHeads(string reference) =>
         reference.StartsWith("refs/heads/", StringComparison.Ordinal) ? reference["refs/heads/".Length..] : reference;
 
-    private static string Truncate(string output) => output.Length <= MaxOutputCharacters ? output : output[..MaxOutputCharacters];
+    /// <summary>
+    /// Whether <paramref name="name"/> is a branch name git accepts (<c>git check-ref-format</c>, which allows <c>@</c>, <c>+</c>,
+    /// <c>#</c> and any Unicode letter) and cannot be read as an option or a revision expression. Anything else is refused: the
+    /// read returns nothing, as for a branch that does not exist.
+    /// </summary>
+    private static bool IsValidBranchName(string name)
+    {
+        if (name.Length is 0 or > MaxBranchNameCharacters
+            || name[0] is '-' or '/' || name[^1] is '/' or '.'
+            || name == "@"
+            || name.Contains("..", StringComparison.Ordinal) || name.Contains("//", StringComparison.Ordinal) || name.Contains("@{", StringComparison.Ordinal)
+            || name.IndexOfAny(ForbiddenRefCharacters) >= 0)
+        {
+            return false;
+        }
+
+        if (name.Any(character => char.IsControl(character) || char.IsWhiteSpace(character)))
+        {
+            return false;
+        }
+
+        return name.Split('/').All(part => !part.StartsWith('.') && !part.EndsWith(".lock", StringComparison.Ordinal));
+    }
 
     private static bool IsObjectId(string value) =>
         value.Length is 40 or 64 && value.All(char.IsAsciiHexDigitLower);

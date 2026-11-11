@@ -14,6 +14,10 @@ namespace AgentStudio.Application.Execution;
 /// for a server that ends at the end of its input before it answers (the Codex app-server, docs/14 D-15). Disposing the
 /// session ends the tree. The batch runner refuses it: it would wait for the timeout.
 /// </param>
+/// <param name="MaxOutputCharacters">
+/// Optional cap on the characters the process may write to EACH of its standard output and error. Past it the tree is killed and
+/// the result says <see cref="ProcessResult.OutputLimitExceeded"/>. Null (the default) keeps the output unbounded, as before.
+/// </param>
 public sealed record ProcessSpec(
     string FileName,
     IReadOnlyList<string> Arguments,
@@ -22,7 +26,8 @@ public sealed record ProcessSpec(
     TimeSpan? Timeout = null,
     string? StandardInput = null,
     ProcessIsolation Isolation = ProcessIsolation.None,
-    bool KeepStandardInputOpen = false);
+    bool KeepStandardInputOpen = false,
+    int? MaxOutputCharacters = null);
 
 /// <summary>How a process is kept from writing the user's files (ADR-0017).</summary>
 public enum ProcessIsolation
@@ -54,7 +59,8 @@ public sealed class ProcessIsolationException : InvalidOperationException
     }
 }
 
-public sealed record ProcessResult(int ExitCode, string StandardOutput, string StandardError, TimeSpan Duration, bool TimedOut);
+/// <param name="OutputLimitExceeded">The process wrote more than <see cref="ProcessSpec.MaxOutputCharacters"/> to a stream: its tree was killed and what was captured is cut at the limit. Never set when no limit was asked for.</param>
+public sealed record ProcessResult(int ExitCode, string StandardOutput, string StandardError, TimeSpan Duration, bool TimedOut, bool OutputLimitExceeded = false);
 
 /// <summary>Runs a real OS process to completion. Implementations kill the whole process tree on timeout or cancellation.</summary>
 public interface IProcessRunner
