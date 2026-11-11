@@ -428,7 +428,7 @@ las ven.
 
 | Tipo de entrada | Payload |
 |---|---|
-| `RunStarted`, `RunFinished` | `RunStartedPayload` (hashes de plan, requisitos y perfil, commit base, plantilla), `RunFinishedPayload` |
+| `RunStarted`, `RunFinished` | `RunStartedPayload` (hashes de plan, requisitos y perfil, commit base, plantilla; desde V43, 2026-11-11, `PlannedIn` opcional: la ejecución en la que planificó el orquestador cuando no es la propia, para leer sus respuestas al empezar y al reanudar, [ADR-0051](adr/0051-preguntas-de-los-agentes.md)), `RunFinishedPayload` |
 | `PlanCreated`, `PlanRevised` | `PlanCreatedPayload`, `PlanRevisedPayload` |
 | `TaskCreated`, `TaskAssigned`, `TaskStatusChanged` | `TaskCreatedPayload`, `TaskAssignedPayload`, `TaskStatusChangedPayload` (el que lee la reproducción) |
 | `InstructionsIssued` | `InstructionsIssuedPayload` (id y SHA-256 del prompt, requisitos, alcance, skills) |
