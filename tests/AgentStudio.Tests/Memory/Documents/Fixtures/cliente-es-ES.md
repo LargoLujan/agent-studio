@@ -22,7 +22,9 @@ Cada requisito con su estado: implementado \(lo cubren pruebas capturadas por el
 | Id | Requisito | Integrado |
 | --- | --- | --- |
 | R1 | Pagar con tarjeta \| sin recargos | Sí |
-| R2 | \- Catálogo con búsqueda | No |
+| R2 | \- Catálogo con búsqueda | Sin dato |
+
+Hay una entrega con el commit 0123456789ab; el sistema no puede decir por requisito si la cubre, y esos requisitos figuran «sin dato».
 
 ## Verificación
 
@@ -44,3 +46,8 @@ No hay riesgos ni pendientes registrados.
 ## Anexos
 
 - ev-1 · Prueba de la caja · SHA-256: `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`
+
+No incluido en este documento:
+
+- El estado de cada requisito según los hitos del proyecto.
+- Si el cambio está desplegado: Agent Studio no despliega nada y no lo sabe.

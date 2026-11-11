@@ -16,6 +16,12 @@ public sealed partial class MainViewModel
     {
         if (_clientDocuments is not null)
         {
+            // Built once, with the bar: a milestone that is closed offers its document, and its tab opens.
+            _clientDocuments.MilestoneOffered += (_, _) =>
+            {
+                _clientDocumentsRoot = ProjectPath;
+                AddDocument(_clientDocuments);
+            };
             yield return new ActivityItemViewModel("documents", Texts.Get("Documents_Title"), "", null, null, OpenClientDocumentsCommand);
         }
     }

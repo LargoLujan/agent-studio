@@ -83,6 +83,7 @@
                     </ItemsControl>
                     <TextBlock Style="{StaticResource BodyText}" Text="{Binding RisksText}"/>
                     <TextBlock Style="{StaticResource BodyText}" Text="{Binding ConsumptionText}"/>
+                    <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Margin="0,6,0,0" Text="{l:T Documents_NotIncluded}"/>
                 </StackPanel>
             </Border>
 
@@ -91,7 +92,9 @@
                      VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                      AutomationProperties.Name="{l:T Documents_Preview_Heading}"/>
 
-            <CheckBox Margin="0,12,0,8" Content="{l:T Documents_Approve_Label}" IsChecked="{Binding Approved}"
+            <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Margin="0,12,0,0" Text="{l:T Documents_Status_Approval}"
+                       Visibility="{Binding HasPreview, Converter={StaticResource Documents.BoolToVisibility}}"/>
+            <CheckBox Margin="0,4,0,8" Content="{l:T Documents_Approve_Label}" IsChecked="{Binding Approved}"
                       Visibility="{Binding HasPreview, Converter={StaticResource Documents.BoolToVisibility}}"/>
             <Button Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Content="{l:T Documents_Export}"
                     Command="{Binding ExportCommand}"/>

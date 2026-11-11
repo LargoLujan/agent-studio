@@ -30,6 +30,13 @@ public static class ClientDocumentTexts
     public const string PriorityDesirable = "document.priority-desirable";
     public const string Yes = "document.yes";
     public const string No = "document.no";
+    public const string Unknown = "document.unknown";
+    public const string ScopeDeliveryNote = "document.scope-delivery-note";
+    public const string NotIncludedIntro = "document.not-included-intro";
+    public const string NotIncludedPhase9 = "document.not-included-requirement-state";
+    public const string NotIncludedPullRequests = "document.not-included-pull-requests";
+    public const string NotIncludedFiles = "document.not-included-files";
+    public const string NotIncludedDeployed = "document.not-included-deployed";
     public const string VerificationTestsIntro = "document.verification-tests-intro";
     public const string VerificationNoTests = "document.verification-no-tests";
     public const string VerificationVerdictsIntro = "document.verification-verdicts-intro";

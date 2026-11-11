@@ -733,6 +733,32 @@ public sealed record ClientDocumentDisclosure(
         ];
     }
 
+    /// <summary>
+    /// The SHA-256 of the list as the person read it (counts, the paths removed, the parts agents wrote and whether the consumption
+    /// goes): what an approval (<see cref="ClientDocumentApproval"/>) is over. The paths are in the hash and never in the log.
+    /// </summary>
+    public string Sha256()
+    {
+        var fields = new List<string?>
+        {
+            "agent-studio/client-disclosure/1",
+            SecretsRedacted.ToString(CultureInfo.InvariantCulture),
+            RisksIncluded.ToString(CultureInfo.InvariantCulture),
+            IncludesConsumption ? "consumption" : "no-consumption",
+            PathsRemoved.Count.ToString(CultureInfo.InvariantCulture),
+        };
+        fields.AddRange(PathsRemoved);
+        fields.Add(AgentWrittenParts.Count.ToString(CultureInfo.InvariantCulture));
+        foreach (var part in AgentWrittenParts)
+        {
+            fields.Add(part.Section.ToString());
+            fields.Add(part.Run.Value);
+            fields.Add(part.ReviewedByPerson ? "reviewed" : "not-reviewed");
+        }
+
+        return ContentHash.Sha256Hex(ContentHash.Canonical([.. fields]));
+    }
+
     /// <summary>The rules the list keeps: no negative count.</summary>
     public IReadOnlyList<string> Validate()
     {
@@ -895,7 +921,23 @@ public sealed record ClientDocumentExportRequest(
     IReadOnlyList<ClientDocumentFormat> Formats,
     string Language,
     string DestinationDirectory,
-    string DecidedBy);
+    string DecidedBy,
+    ClientDocumentApproval? Approval = null);
+
+/// <summary>
+/// The person's approval to export (docs/17 D-60): who approved, and over which document and which list of what goes out, by their
+/// fingerprints (<see cref="ClientDocument.Sha256"/> and <see cref="ClientDocumentDisclosure.Sha256"/>). The exporter requires it and
+/// checks it against the document it is going to write, so an approval of another preview, or none, never exports.
+/// </summary>
+public sealed record ClientDocumentApproval(string ApprovedBy, string ModelSha256, string DisclosureSha256)
+{
+    /// <summary>The approval of what <paramref name="build"/> shows: its document and its list of what goes out.</summary>
+    public static ClientDocumentApproval Of(ClientDocumentBuild build, string approvedBy)
+    {
+        ArgumentNullException.ThrowIfNull(build);
+        return new ClientDocumentApproval(approvedBy, build.Document.Sha256(), build.Disclosure.Sha256());
+    }
+}
 
 /// <summary>
 /// The rules an export keeps before anything is written: the model's (<see cref="ClientDocumentRules"/>, secrets included) and the

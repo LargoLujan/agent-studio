@@ -235,6 +235,36 @@
   <data name="Text_document_glossary_fingerprint" xml:space="preserve">
     <value>Huella: el SHA-256 del contenido.</value>
   </data>
+  <data name="Text_document_unknown" xml:space="preserve">
+    <value>Sin dato</value>
+  </data>
+  <data name="Text_document_scope_delivery_note" xml:space="preserve">
+    <value>Hay una entrega con el commit {0}; el sistema no puede decir por requisito si la cubre, y esos requisitos figuran «sin dato».</value>
+  </data>
+  <data name="Text_document_not_included_intro" xml:space="preserve">
+    <value>No incluido en este documento:</value>
+  </data>
+  <data name="Text_document_not_included_requirement_state" xml:space="preserve">
+    <value>El estado de cada requisito según los hitos del proyecto.</value>
+  </data>
+  <data name="Text_document_not_included_pull_requests" xml:space="preserve">
+    <value>Las solicitudes de cambio (pull requests).</value>
+  </data>
+  <data name="Text_document_not_included_files" xml:space="preserve">
+    <value>Los ficheros cambiados, agrupados por zona.</value>
+  </data>
+  <data name="Text_document_not_included_deployed" xml:space="preserve">
+    <value>Si el cambio está desplegado: Agent Studio no despliega nada y no lo sabe.</value>
+  </data>
+  <data name="Documents_NotIncluded" xml:space="preserve">
+    <value>No incluido: el estado por requisito de los hitos, las solicitudes de cambio, los ficheros por zona y si está desplegado. El documento lo dice en sus anexos.</value>
+  </data>
+  <data name="Documents_Status_Approval" xml:space="preserve">
+    <value>La aprobación es sobre esta vista previa y esta lista: si cambias el hito o el idioma, hay que generarla de nuevo.</value>
+  </data>
+  <data name="Documents_MilestoneClosed" xml:space="preserve">
+    <value>El hito «{0}» se ha cerrado: genera su documento para revisarlo. No se exporta nada sin tu aprobación.</value>
+  </data>
   <data name="Documents_Title" xml:space="preserve">
     <value>Documentación para clientes</value>
   </data>
