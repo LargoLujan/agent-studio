@@ -198,3 +198,40 @@
     etiquetan Medium explícitamente para que un hijo Low no herede Low por encima.
   - **Sin verificar:** el rechazo a aislar desde un proceso elevado (no se dispone de uno elevado para probarlo);
     AppContainer; la caché del usuario como *fallback*.
+
+## Adenda 2026-11-11: la suite del propio repositorio pasa a integridad Low (P23)
+
+La medición del 2026-10-20 (`Phase5AuditDemoLiveTests.Agent_Studio_suite_at_low_integrity_without_quota`) dio 92 pruebas
+fallidas a Low (93 en docs/08) y la auditoría del propio repositorio no podía aprobar. Repetida el 2026-11-11 sobre
+`9c4da5d` con el mismo mecanismo (build y `dotnet test` a Low sobre una copia del commit), con la máquina cargada el paso de
+pruebas agotó el tiempo, pero la consola dejó leer 132 nombres fallidos con el filtro de entonces (solo `ProviderLive`);
+con el filtro del CI, una pasada rápida a Low dio 42. Causas:
+
+- **`LocalTools` (la mayoría de los 132):** git, el aislamiento mismo y herramientas del equipo. Dan por hecho Medium y el
+  CI ya las deja fuera: el perfil de la auditoría hace lo mismo.
+- **`RunTempFolder.BaseDirectory` (35 pruebas de los adaptadores de proveedores):** la carpeta por ejecución es
+  `%LOCALAPPDATA%\AgentStudio\runs`, fija en el producto, y Windows deniega a Low escribir ahí (`UnauthorizedAccessException`;
+  las que esperan otra excepción reciben esa). No se pueden redirigir desde la prueba. **Etiquetadas** con
+  `[Trait("Category", "NeedsMediumIntegrity")]` (35 métodos en `ClaudeCodeAgentProviderTests`, `ClaudeEndClassTests`,
+  `CodexAppServerQuotaReaderTests`, `CodexCliAgentProviderTests`, `ProviderConcurrencyScenarioTests` y
+  `ProviderHardeningTests`). Siguen en el CI, que corre a Medium.
+- **Anclas del registro en `%LOCALAPPDATA%\AgentStudio\anchors` (4 casos):** `Phase12CompositionTests` y
+  `JudgesAndAuditorsGetNothingInTheAppTests` componían la app entera con las anclas reales del usuario (y las escribían
+  también a Medium). **Adaptadas**: registran `DecisionLogAnchorOptions` en la carpeta temporal antes de
+  `AddAgentStudioApp` (`AddAgentStudioPersistence` usa `TryAddSingleton`).
+- **Ruido de la medición bajo carga:** pruebas de tiempo (`Measurement`, `ExitSuspendsResumesTests`) y una del motor
+  (`ApprovalReviewAndIntegrationTests`) que no repitió con la máquina libre.
+
+El perfil de la auditoría (`AuditDemo.Profile`) deja ahora siempre fuera `ProviderLive`, `LocalTools`, `ConPty`, `Measurement`
+y `NeedsMediumIntegrity` (`AuditDemo.AlwaysExcluded`; `AGENTSTUDIO_PHASE5_AUDIT_EXCLUDE` sigue añadiendo más). El CI no
+excluye `NeedsMediumIntegrity`: su total es el mismo que antes (5946 casos listados con su filtro, antes y después; con la
+etiqueta excluida, 5911).
+
+Resultado, con la orden de la medición sobre el commit `bb4f5b9`: **build bien; test bien (salida 0, 8902 correctas,
+0 fallidas, 4 omitidas), 16,2 min a integridad Low.** Para una pasada rápida sin construir la copia existe
+`LowIntegritySuiteLocalTests` (`LocalTools`, solo con `AGENTSTUDIO_LOW_RUN=1`, `AGENTSTUDIO_LOW_RUN_OUT` y
+`AGENTSTUDIO_LOW_RUN_ARGS`): lanza `AgentStudio.Tests.exe` a Low con `TEMP` en una carpeta Low; es aproximada (los binarios
+siguen en Medium: `ExecutableLocatorTests` falla ahí y pasa en la auditoría).
+
+Pendiente: las 35 pruebas etiquetadas no las cubre la auditoría. Un parámetro en `RunTempFolder` (carpeta base inyectable)
+permitiría adaptarlas en vez de etiquetarlas.

@@ -412,7 +412,7 @@ origen.
 | F5-2 | Cumplido | En el registro real de cada demostración: los turnos de la ronda 1 se lanzaron a la vez, ninguno se publicó antes de que terminara el último y ningún prompt lleva la contribución de otro. `DebateOnSqliteTests` lo comprueba también sobre SQLite |
 | F5-3 | Cumplido según tests | Rondas, tiempo, tokens y ejecuciones medidos por el sistema (`DebateBudget`); el primer límite manda a juicio y queda en el registro. Las demostraciones convergieron dentro de los límites |
 | F5-4 | Cumplido | Veredicto estructurado validado y una corrección como máximo, visto en vivo en la auditoría del proyecto: el primer veredicto daba ocho requisitos por cumplidos sin evidencias, el validador lo rechazó y la corrección fue válida. Un juez que no da veredicto o que pide una persona escala (revisión del orquestador) |
-| F5-5 | Cumplido | «Auditar proyecto completo» sobre el propio Agent Studio: copia de HEAD, verificación a integridad Low y juez de Codex por la regla de los productores. Resultado honesto: ChangesRequested, porque 93 pruebas fallan a integridad Low (ver pendientes) y los requisitos de valoración del juez quedan «no verificables» sin evidencias |
+| F5-5 | Cumplido | «Auditar proyecto completo» sobre el propio Agent Studio: copia de HEAD, verificación a integridad Low y juez de Codex por la regla de los productores. Resultado honesto: ChangesRequested, porque 93 pruebas fallaban a integridad Low (resuelto el 2026-11-11, ver pendientes) y los requisitos de valoración del juez quedan «no verificables» sin evidencias |
 | F5-6 | Cumplido | Auditor determinista con siete comprobaciones, probado con registros manipulados a propósito (cadenas rotas y cadenas válidas que incumplen el protocolo); su petición de replanificación bloquea la entrega hasta que decides. Modo «Revisión del orquestador» en vivo |
 | F5-7 | Cumplido | Impugnación real de un veredicto de las demostraciones: debate de revisión con otro juez (`juez-revision`), cuyo veredicto sustituye al impugnado. La entrega respeta la impugnación (pruebas de integración) |
 
@@ -429,9 +429,13 @@ Hallazgos de la integración y de las demostraciones, corregidos:
 
 Pendiente, sin bloquear el uso:
 
-- Las 93 pruebas que fallan a integridad Low: sobre todo las que crean carpetas temporales en `LocalAppData` (Windows lo deniega
-  a Low) y las que dan por hecha la integridad Medium. Hay que adaptarlas o etiquetarlas para que el perfil de la auditoría las
-  excluya; entonces la auditoría del propio repositorio podrá aprobar.
+- Las pruebas que fallaban a integridad Low (93 en la medición del 2026-10-20), **resueltas el 2026-11-11** (P23, adenda de
+  [ADR-0017](adr/0017-verificacion-aislada-baja-integridad.md)). Con el perfil de la auditoría (que deja fuera `ProviderLive`,
+  `LocalTools`, `ConPty`, `Measurement` y la nueva `NeedsMediumIntegrity`, como el CI más esa última) la suite entera pasa a
+  Low. Las pruebas que escribían en la `LocalAppData` real mandan ahora sus anclas a una carpeta temporal; las 35 de los
+  adaptadores de proveedores que usan `RunTempFolder.BaseDirectory` (fijo en `%LOCALAPPDATA%\AgentStudio\runs`) se etiquetan
+  `NeedsMediumIntegrity`: el CI, a Medium, las sigue ejecutando. Queda abierto que esas 35 no las cubre la auditoría
+  (un parámetro de `RunTempFolder` permitiría adaptarlas).
 - Los requisitos de «valoración del juez» de una auditoría del proyecto nunca pueden quedar cumplidos sin evidencias: decidir si
   la lectura del juez cuenta como tal (como en los modos de elección) o si el dossier debe aportar material verificable.
 - «Decidir yo» no se reproduce tras reiniciar (el payload no lleva tu decisión) y, al reanudar, vuelve a lanzar a los jueces; y
