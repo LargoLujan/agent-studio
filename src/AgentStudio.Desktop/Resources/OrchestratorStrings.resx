@@ -1351,7 +1351,7 @@ Elegir en cada tarea del plan qué pasos se exigen.</value>
     <comment>Why the log cannot be trusted. {0}: entries.</comment>
   </data>
   <data name="Orchestrator_History_NotIntact" xml:space="preserve">
-    <value>El historial de decisiones no es íntegro: {0} Nada se planifica, se ejecuta ni se reanuda hasta que lo arregles.</value>
+    <value>El historial de decisiones no es íntegro: {0} Nada se planifica, se ejecuta ni se reanuda mientras siga así.</value>
     <comment>Why the log cannot be trusted. {0}: the problem found.</comment>
   </data>
   <data name="Orchestrator_Phase_Running" xml:space="preserve">
@@ -2053,7 +2053,7 @@ Pausar la ejecución: así nunca se reanuda sola.</value>
     <comment>Notice. {0}: run.</comment>
   </data>
   <data name="Orchestrator_Doc_ResumeNotDone" xml:space="preserve">
-    <value>La ejecución {0} no se reanudó. Esta pestaña sigue otra. Hazlo cuando termine.</value>
+    <value>La ejecución {0} no se reanudó. Esta pestaña sigue otra. Reanúdala cuando la otra termine.</value>
     <comment>Notice. {0}: run.</comment>
   </data>
   <data name="Orchestrator_Doc_RunsListFailed" xml:space="preserve">

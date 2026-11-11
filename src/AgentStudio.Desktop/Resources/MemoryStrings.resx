@@ -226,15 +226,15 @@
     <comment>A decision is being recorded.</comment>
   </data>
   <data name="Memory_Export_Blocked" xml:space="preserve">
-    <value>Hay una ejecución, una planificación, un debate o una auditoría en curso: la exportación espera a que termine.</value>
+    <value>Hay trabajo en curso. Es una ejecución, una planificación, un debate o una auditoría. La exportación espera a que acabe.</value>
     <comment>Why the export is not offered.</comment>
   </data>
   <data name="Memory_Export_Done_One" xml:space="preserve">
-    <value>Exportadas {0} entradas a .agentstudio/memory/ ({1} fichero). El Markdown nunca se lee de vuelta.</value>
+    <value>Se exportaron {0} entradas a .agentstudio/memory/ ({1} fichero). Nunca se lee el Markdown de vuelta.</value>
     <comment>Result of an export with one file. {0}: entries; {1}: files.</comment>
   </data>
   <data name="Memory_Export_Done_Other" xml:space="preserve">
-    <value>Exportadas {0} entradas a .agentstudio/memory/ ({1} ficheros). El Markdown nunca se lee de vuelta.</value>
+    <value>Se exportaron {0} entradas a .agentstudio/memory/ ({1} ficheros). Nunca se lee el Markdown de vuelta.</value>
     <comment>Result of an export. {0}: entries; {1}: files.</comment>
   </data>
   <data name="Memory_Export_NotExported" xml:space="preserve">
@@ -330,7 +330,7 @@
     <comment>Heading.</comment>
   </data>
   <data name="Memory_Journal_Explanation" xml:space="preserve">
-    <value>La bitácora del proyecto (.agentstudio/bitacora/) también es memoria. Lo que Agent Studio anota en sus ejecuciones deja un recibo en el registro. Con ese recibo se comprueba, y es de confianza. Lo demás espera en cuarentena: tus anotaciones de desarrollo, lo que llega con el repositorio y lo anotado antes de los recibos. Ningún agente lo recibe hasta que lo aceptes: entrada a entrada, por días o para todo el proyecto. Cada decisión queda en el registro y la puedes retirar. El juez nunca recibe la bitácora.</value>
+    <value>La bitácora del proyecto (.agentstudio/bitacora/) también es memoria. Lo que Agent Studio anota en sus ejecuciones deja un recibo en el registro. Con ese recibo se comprueba, y es de confianza. Lo demás espera en cuarentena. Son tus anotaciones de desarrollo, lo que llega con el repositorio y lo anotado antes de los recibos. Ningún agente lo recibe hasta que lo aceptes: entrada a entrada, por días o para todo el proyecto. Cada decisión queda en el registro y la puedes retirar. El juez nunca recibe la bitácora.</value>
     <comment>Explanation of the trust of the journal.</comment>
   </data>
   <data name="Memory_Journal_StateName" xml:space="preserve">
@@ -482,7 +482,7 @@
     <comment>State while reading.</comment>
   </data>
   <data name="Memory_Model_Missing" xml:space="preserve">
-    <value>Falta el modelo de búsqueda por significado. Sin él, la memoria se busca solo por palabras: «prueba» no encuentra «pruebas», ni «test en rojo» encuentra «pruebas que fallan».</value>
+    <value>Falta el modelo de búsqueda por significado. Sin él, la memoria se busca solo por palabras. Así, «prueba» no encuentra «pruebas», ni «test en rojo» encuentra «pruebas que fallan».</value>
     <comment>State: model missing.</comment>
   </data>
   <data name="Memory_Model_Mismatch" xml:space="preserve">
@@ -530,7 +530,7 @@
     <comment>Confirmation without the folder.</comment>
   </data>
   <data name="Memory_Model_Check" xml:space="preserve">
-    <value>Antes de usarlo, Agent Studio comprueba el tamaño y la huella de cada fichero: si no coinciden, lo borra y no lo carga. Es lo único de la búsqueda que usa la red. Después funciona sin conexión y no gasta límite de uso.</value>
+    <value>Antes de usarlo, Agent Studio comprueba el tamaño y la huella de cada fichero. Si no coinciden, lo borra y no lo carga. Es lo único de la búsqueda que usa la red. Después funciona sin conexión y no gasta límite de uso.</value>
     <comment>Confirmation.</comment>
   </data>
   <data name="Memory_Model_Confirm" xml:space="preserve">
@@ -590,7 +590,7 @@
     <comment>State.</comment>
   </data>
   <data name="Memory_Model_ReadyAll" xml:space="preserve">
-    <value>Activa: el modelo está descargado y comprobado, y los {0} fragmentos del índice tienen su significado calculado.</value>
+    <value>Activa: el modelo está descargado y comprobado. Los {0} fragmentos del índice ya tienen su significado listo.</value>
     <comment>State. {0}: fragments.</comment>
   </data>
   <data name="Memory_Model_ReadyPartial" xml:space="preserve">
@@ -630,7 +630,7 @@
     <comment>Hint while working.</comment>
   </data>
   <data name="Memory_Daily_Hint" xml:space="preserve">
-    <value>Pulsa «Resumir el día» para ver aquí el resumen del {0}: las peticiones de la bitácora de ese día, cómo acabaron y lo hecho. Cambia de día con «Día anterior» y «Día siguiente».</value>
+    <value>Pulsa «Resumir el día» para ver aquí el resumen del {0}. Verás las peticiones de la bitácora de ese día, cómo acabaron y lo hecho. Cambia de día con «Día anterior» y «Día siguiente».</value>
     <comment>Hint. {0}: the day.</comment>
   </data>
   <data name="Memory_Daily_OpenFolder" xml:space="preserve">
@@ -714,11 +714,11 @@
     <comment>Part of the line. {0}: entries.</comment>
   </data>
   <data name="Memory_Upkeep_Problems_One" xml:space="preserve">
-    <value>1 texto sin guardar en la memoria: no cuadra con el registro o es un día de la bitácora que no se pudo leer</value>
+    <value>1 texto sin guardar en la memoria. No cuadra con el registro, o es un día de la bitácora que no se pudo leer</value>
     <comment>Part of the line.</comment>
   </data>
   <data name="Memory_Upkeep_Problems_Other" xml:space="preserve">
-    <value>{0} textos sin guardar en la memoria: no cuadran con el registro o son días de la bitácora que no se pudieron leer</value>
+    <value>{0} textos sin guardar en la memoria. No cuadran con el registro, o son días de la bitácora que no se pudieron leer</value>
     <comment>Part of the line. {0}: texts.</comment>
   </data>
   <data name="Memory_Upkeep_Summary" xml:space="preserve">

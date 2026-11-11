@@ -374,7 +374,7 @@
     <comment>Error. {0}: what the person wrote.</comment>
   </data>
   <data name="Observability_Settings_BadOrder" xml:space="preserve">
-    <value>No se guardaron los umbrales. Cada uno debe ser mayor que el anterior, y el crítico no puede pasar de 100: 0 &lt; aviso &lt; compresión &lt; crítico ≤ 100.</value>
+    <value>No se guardaron los umbrales. Cada uno debe ser mayor que el anterior, y el crítico no pasa de 100: 0 &lt; aviso &lt; compresión &lt; crítico ≤ 100.</value>
     <comment>Error: the order of the thresholds.</comment>
   </data>
   <data name="Info_Quota_Title" xml:space="preserve">

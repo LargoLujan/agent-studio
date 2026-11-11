@@ -126,7 +126,7 @@ public sealed class DailySummaryViewModelTests
 
         summary.SetProject(Project);
         Assert.Equal(
-            "Pulsa «Resumir el día» para ver aquí el resumen del viernes 16/10/2026 (hoy): las peticiones de la bitácora de ese día, cómo acabaron y lo hecho. Cambia de día con «Día anterior» y «Día siguiente».",
+            "Pulsa «Resumir el día» para ver aquí el resumen del viernes 16/10/2026 (hoy). Verás las peticiones de la bitácora de ese día, cómo acabaron y lo hecho. Cambia de día con «Día anterior» y «Día siguiente».",
             summary.EmptyHint);
         Assert.Contains(nameof(DailySummaryViewModel.EmptyHint), changes);
 
@@ -135,7 +135,7 @@ public sealed class DailySummaryViewModelTests
 
         changes.Clear();
         summary.PreviousDayCommand.Execute(null);
-        Assert.StartsWith("Pulsa «Resumir el día» para ver aquí el resumen del jueves 15/10/2026:", summary.EmptyHint, StringComparison.Ordinal);
+        Assert.StartsWith("Pulsa «Resumir el día» para ver aquí el resumen del jueves 15/10/2026.", summary.EmptyHint, StringComparison.Ordinal);
         Assert.Contains(nameof(DailySummaryViewModel.EmptyHint), changes);
     }
 

@@ -53,6 +53,14 @@
     <value>La terminal aún no está iniciada.</value>
     <comment>Status line before the first start.</comment>
   </data>
+  <data name="Terminal_NoShell" xml:space="preserve">
+    <value>No se ha encontrado ninguna shell instalada.</value>
+    <comment>Status line when the computer has no shell to start the terminal with.</comment>
+  </data>
+  <data name="Terminal_UnknownError" xml:space="preserve">
+    <value>Error desconocido en la terminal.</value>
+    <comment>Error when the terminal page reports a failure without saying which.</comment>
+  </data>
   <data name="Terminal_Running" xml:space="preserve">
     <value>{0} · PID {1}</value>
     <comment>Status line while a shell runs: {0} name of the shell, {1} process number.</comment>
@@ -104,6 +112,10 @@
   <data name="Editor_PageFailed" xml:space="preserve">
     <value>El editor no está disponible. Motivo: {0}</value>
     <comment>Error when the editor page reports a failure: {0} what the page said.</comment>
+  </data>
+  <data name="Editor_UnknownError" xml:space="preserve">
+    <value>error desconocido</value>
+    <comment>The {0} of Editor_PageFailed when the page reports a failure without saying which.</comment>
   </data>
   <data name="Editor_Crashed" xml:space="preserve">
     <value>El editor se ha detenido sin avisar porque ha fallado WebView2, el visor que lo muestra. Puede que se hayan perdido los cambios sin guardar de esta pestaña. Cierra la pestaña y abre el fichero otra vez.</value>

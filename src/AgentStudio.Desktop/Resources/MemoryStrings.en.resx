@@ -173,7 +173,7 @@
     <value>Recording your decision…</value>
   </data>
   <data name="Memory_Export_Blocked" xml:space="preserve">
-    <value>A run, a planning, a debate or an audit is going on: the export waits for it to end.</value>
+    <value>Work is in progress. It is a run, a planning, a debate or an audit. The export waits for it to end.</value>
   </data>
   <data name="Memory_Export_Done_One" xml:space="preserve">
     <value>Exported {0} entries to .agentstudio/memory/ ({1} file). The Markdown is never read back.</value>
@@ -251,7 +251,7 @@
     <value>Journal</value>
   </data>
   <data name="Memory_Journal_Explanation" xml:space="preserve">
-    <value>The journal of the project (.agentstudio/bitacora/) is memory too. What Agent Studio notes in its runs leaves a receipt in the log. With that receipt it is checked, and it is trusted. The rest waits in quarantine: your development notes, what comes with the repository and what was noted before receipts. No agent receives it until you accept it: entry by entry, by days or for the whole project. Every decision stays in the log and you can withdraw it. The judge never receives the journal.</value>
+    <value>The journal of the project (.agentstudio/bitacora/) is memory too. What Agent Studio notes in its runs leaves a receipt in the log. With that receipt it is checked, and it is trusted. The rest waits in quarantine. It is your development notes, what comes with the repository and what was noted before receipts. No agent receives it until you accept it: entry by entry, by days or for the whole project. Every decision stays in the log and you can withdraw it. The judge never receives the journal.</value>
   </data>
   <data name="Memory_Journal_StateName" xml:space="preserve">
     <value>Trust in the journal</value>
@@ -365,7 +365,7 @@
     <value>Reading the state of the search index…</value>
   </data>
   <data name="Memory_Model_Missing" xml:space="preserve">
-    <value>The model for search by meaning is missing. Without it the memory is searched by words only: "test" does not find "tests", and "red test" does not find "failing tests".</value>
+    <value>The model for search by meaning is missing. Without it the memory is searched by words only. So "test" does not find "tests", and "red test" does not find "failing tests".</value>
   </data>
   <data name="Memory_Model_Mismatch" xml:space="preserve">
     <value>The downloaded model does not match its pinned fingerprint, so it is not loaded and the search goes by words. Download it again.</value>
@@ -401,7 +401,7 @@
     <value>Where it is kept: in the Agent Studio folder of your computer, outside your projects.</value>
   </data>
   <data name="Memory_Model_Check" xml:space="preserve">
-    <value>Before using it, Agent Studio checks the size and fingerprint of each file: if they do not match, it deletes it and does not load it. It is the only part of the search that uses the network. After that it works offline and spends no usage limit.</value>
+    <value>Before using it, Agent Studio checks the size and fingerprint of each file. If they do not match, it deletes it and does not load it. It is the only part of the search that uses the network. After that it works offline and spends no usage limit.</value>
   </data>
   <data name="Memory_Model_Confirm" xml:space="preserve">
     <value>Download {0}</value>
@@ -446,7 +446,7 @@
     <value>Active: the model is downloaded and checked. The index of this project has no fragments yet: it is built in the background.</value>
   </data>
   <data name="Memory_Model_ReadyAll" xml:space="preserve">
-    <value>Active: the model is downloaded and checked, and the {0} fragments of the index have their meaning worked out.</value>
+    <value>Active: the model is downloaded and checked. The {0} fragments of the index already have their meaning ready.</value>
   </data>
   <data name="Memory_Model_ReadyPartial" xml:space="preserve">
     <value>Partly active: {0} of {1} fragments have their meaning worked out. The rest is worked out in the background and, meanwhile, is only found by words.</value>
@@ -455,7 +455,7 @@
     <value>Daily summary</value>
   </data>
   <data name="Memory_Daily_Intro" xml:space="preserve">
-    <value>Agent Studio works it out from the journal, with no agents and no usage limit: it counts and lists, it does not write.</value>
+    <value>Agent Studio works it out from the journal, with no agents and no usage limit. It counts and lists, it does not write.</value>
   </data>
   <data name="Memory_Daily_Previous" xml:space="preserve">
     <value>Previous day</value>
@@ -476,7 +476,7 @@
     <value>Summarizing the day…</value>
   </data>
   <data name="Memory_Daily_Hint" xml:space="preserve">
-    <value>Press "Summarize the day" to see the summary of {0} here: the requests of the journal of that day, how they ended and what was done. Change the day with "Previous day" and "Next day".</value>
+    <value>Press "Summarize the day" to see the summary of {0} here. You will see the requests of the journal of that day, how they ended and what was done. Change the day with "Previous day" and "Next day".</value>
   </data>
   <data name="Memory_Daily_OpenFolder" xml:space="preserve">
     <value>Open a folder to summarize its journal.</value>
@@ -515,7 +515,7 @@
     <value>History search for the orchestrator</value>
   </data>
   <data name="Memory_Settings_Explanation" xml:space="preserve">
-    <value>When it plans, the orchestrator can look up what happened on earlier days of the project: decisions, known errors and the trusted journal. It only reads, it does not leave your computer and it spends no extra usage limit. It only works with Claude Code and if the orchestrator receives the project memory in the template. If you turn it off, it plans as before, and the proposal says so.</value>
+    <value>When it plans, the orchestrator can look up what happened on earlier days of the project. It finds decisions, known errors and the trusted journal. It only reads, it does not leave your computer and it spends no extra usage limit. It only works with Claude Code and if the orchestrator receives the project memory in the template. If you turn it off, it plans as before, and the proposal says so.</value>
   </data>
   <data name="Memory_Upkeep_Exported" xml:space="preserve">
     <value>exported to .agentstudio/memory/ ({0} files, {1} entries)</value>
@@ -539,10 +539,10 @@
     <value>{0} new entries derived from the log</value>
   </data>
   <data name="Memory_Upkeep_Problems_One" xml:space="preserve">
-    <value>1 text not saved to the memory: it does not match the log, or it is a day of the journal that could not be read</value>
+    <value>1 text not saved to the memory. It does not match the log, or it is a day of the journal that could not be read</value>
   </data>
   <data name="Memory_Upkeep_Problems_Other" xml:space="preserve">
-    <value>{0} texts not saved to the memory: they do not match the log, or they are days of the journal that could not be read</value>
+    <value>{0} texts not saved to the memory. They do not match the log, or they are days of the journal that could not be read</value>
   </data>
   <data name="Memory_Upkeep_Summary" xml:space="preserve">
     <value>Memory: {0}.</value>

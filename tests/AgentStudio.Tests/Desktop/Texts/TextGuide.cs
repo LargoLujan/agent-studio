@@ -32,6 +32,10 @@ internal static partial class TextGuide
     [
         "Strings", "CanvasStrings", "MonitorStrings", "SetupStrings", "ModelsStrings", "EstimatesStrings", "ConsumptionStrings",
         "HelloStrings", "IntegrationStrings", "MontageStrings", "PanelsStrings", "OrchestratorStrings", "DebateStrings", "AuditStrings",
+        "BackgroundStrings", "LockStrings", "ObservabilityStrings", "MemoryStrings", "SkillsStrings", "ShellStrings",
+        "ControlsStrings", "ServicesStrings",
+        // HelpStrings and DocumentsStrings (Desktop/Help, Desktop/Documents) are written by other packages of Phase 14: they join
+        // this list when they are integrated.
     ];
 
     /// <summary>
@@ -42,7 +46,7 @@ internal static partial class TextGuide
     /// </summary>
     public static readonly string[] PendingExtraction =
     [
-        "BackgroundStrings", "LockStrings", "ObservabilityStrings", "MemoryStrings", "SkillsStrings", "ShellStrings",
+        "HelpStrings", "DocumentsStrings",
     ];
 
     /// <summary>
@@ -90,9 +94,19 @@ internal static partial class TextGuide
         new("cuota", Rx(@"\bcuotas?\b", RegexOptions.IgnoreCase), Rx(@"\bquotas?\b", RegexOptions.IgnoreCase), "límite de uso de tu plan / usage limit of your plan"),
         new("evidencia", Rx(@"\bevidencias?\b", RegexOptions.IgnoreCase), null, "prueba(s) guardada(s)"),
         new("dossier", Rx(@"\bdossier(s)?\b", RegexOptions.IgnoreCase), Rx(@"\bdossiers?\b", RegexOptions.IgnoreCase), "expediente para el juez / file for the judge"),
-        new("sandbox", Rx(@"\bsandbox(es)?\b", RegexOptions.IgnoreCase), Rx(@"\bsandbox(es)?\b", RegexOptions.IgnoreCase), "zona aislada / isolated zone"),
+        new("sandbox", Rx(@"\bsandbox(es)?\b", RegexOptions.IgnoreCase), null, "zona aislada (in English «sandbox» is the natural word)"),
         new("append-only", Rx(@"\bappend-only\b", RegexOptions.IgnoreCase), Rx(@"\bappend-only\b", RegexOptions.IgnoreCase), "historial que no se puede borrar / history that cannot be deleted"),
         new("ventana de contexto", Rx(@"\bventanas? de contexto\b", RegexOptions.IgnoreCase), Rx(@"\bcontext windows?\b", RegexOptions.IgnoreCase), "memoria de trabajo del modelo / working memory of the model"),
+    ];
+
+    /// <summary>
+    /// Calques of the Spanish glossary that the English texts may not use: in English «sandbox» and «evidence» are the natural
+    /// words, so the literal translations of «zona aislada» and «prueba guardada» are the mistake.
+    /// </summary>
+    public static readonly IReadOnlyList<Term> EnglishCalques =
+    [
+        new("isolated zone", Rx(@"\bisolated zones?\b", RegexOptions.IgnoreCase), "sandbox"),
+        new("saved evidence", Rx(@"\bsaved evidence\b|\bpieces of saved evidence\b", RegexOptions.IgnoreCase), "evidence"),
     ];
 
     /// <summary>
@@ -104,6 +118,10 @@ internal static partial class TextGuide
     {
         ["CanvasStrings/Canvas_Provider_codex_cli/CLI"] = "«Codex CLI» is the name of the product the person installed, as «Gemini CLI»; D-52 says «programa del agente (Claude Code, Codex)» for the concept, and these are the names of the programs.",
         ["CanvasStrings/Canvas_Provider_gemini_cli/CLI"] = "«Gemini CLI» is the name of the product the person installed; see the previous one.",
+        ["ObservabilityStrings/Observability_Quota_CodexName/CLI"] = "«Codex CLI» is the name of the product whose usage limit the bar shows; see the exceptions of CanvasStrings.",
+        ["ObservabilityStrings/Observability_Quota_GeminiName/CLI"] = "«Gemini CLI» is the name of the product whose usage limit the bar shows; see the exceptions of CanvasStrings.",
+        ["ControlsStrings/Terminal_AssetsMissing/inflesz"] = "The text is two short sentences, but the script path the person has to run (tools\\assets\\fetch-xterm.ps1) is one very long «word» that the formula counts as such.",
+        ["ControlsStrings/Editor_MonacoMissing/inflesz"] = "The script path the person has to run (tools/assets/fetch-monaco.ps1) is one very long «word» for the formula; the sentences are short.",
     };
 
     /// <summary>The text of a resource file, by language: <c>es</c> for the neutral file and <c>en</c> for its English satellite.</summary>

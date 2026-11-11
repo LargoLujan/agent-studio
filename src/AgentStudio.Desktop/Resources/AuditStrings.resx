@@ -122,7 +122,7 @@
     <comment>Status.</comment>
   </data>
   <data name="Audit_Status_Prepared" xml:space="preserve">
-    <value>Mira la configuración y la estimación. Si pulsas «Auditar», te pedimos permiso.</value>
+    <value>Mira la configuración y la estimación. Si pulsas «Auditar», Agent Studio te pedirá aprobación.</value>
     <comment>Status.</comment>
   </data>
   <data name="Audit_Problem_NoService" xml:space="preserve">

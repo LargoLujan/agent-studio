@@ -95,7 +95,7 @@
     <value>Preparing the audit. This does not spend your plan's usage limit or save anything…</value>
   </data>
   <data name="Audit_Status_Prepared" xml:space="preserve">
-    <value>Check the settings and the estimate. If you press "Audit", we ask for your approval.</value>
+    <value>Check the settings and the estimate. If you press "Audit", it will ask for your approval.</value>
   </data>
   <data name="Audit_Problem_NoService" xml:space="preserve">
     <value>The audit service is missing.</value>
@@ -131,7 +131,7 @@
     <value>These companies produced the code: {0}. The judge cannot be from any of them.</value>
   </data>
   <data name="Audit_Prep_Profile" xml:space="preserve">
-    <value>Verification profile "{0}" (fingerprint {1}). It runs in an isolated zone, with minimum permissions, on a copy of the latest saved version.</value>
+    <value>Verification profile "{0}" (fingerprint {1}). It runs in a sandbox, with minimum permissions, on a copy of the latest saved version.</value>
   </data>
   <data name="Audit_Prep_NoProfile" xml:space="preserve">
     <value>No verification profile: no tests are run.</value>

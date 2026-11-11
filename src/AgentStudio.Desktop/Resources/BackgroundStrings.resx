@@ -464,10 +464,10 @@
     <value>Presupuesto</value>
   </data>
   <data name="Background_Panel_Budget_NoHeader_One" xml:space="preserve">
-    <value>Presupuesto: {0} ejecución de agente usada · máximo sin dato (faltan los datos con los que empezó la ejecución)</value>
+    <value>Presupuesto: {0} ejecución de agente usada. No se sabe el máximo: faltan los datos del inicio.</value>
   </data>
   <data name="Background_Panel_Budget_NoHeader_Other" xml:space="preserve">
-    <value>Presupuesto: {0} ejecuciones de agente usadas · máximo sin dato (faltan los datos con los que empezó la ejecución)</value>
+    <value>Presupuesto: {0} ejecuciones de agente usadas. No se sabe el máximo: faltan los datos del inicio.</value>
   </data>
   <data name="Background_Panel_Budget_Used" xml:space="preserve">
     <value>Presupuesto: {0} de {1} ejecuciones de agente</value>
@@ -548,7 +548,7 @@
     <value>Salir de Agent Studio</value>
   </data>
   <data name="Background_Unattended_CloseExplanation" xml:space="preserve">
-    <value>Con trabajo en marcha, «Preguntar» te ofrece tres opciones: seguir en la bandeja, pausar y salir al terminar los intentos en curso, o salir ahora. Si eliges «Salir de Agent Studio» y hay trabajo en marcha, también pregunta cómo dejarlo. Tu elección queda anotada en el historial de cada ejecución.</value>
+    <value>Con trabajo en marcha, «Preguntar» te ofrece tres opciones. Seguir en la bandeja, pausar y salir al terminar los intentos en curso, o salir ahora. Si eliges «Salir de Agent Studio» y hay trabajo en marcha, también pregunta cómo dejarlo. Tu elección queda anotada en el historial de cada ejecución.</value>
   </data>
   <data name="Background_Unattended_PreventSleep" xml:space="preserve">
     <value>Impedir la suspensión mientras hay trabajo</value>

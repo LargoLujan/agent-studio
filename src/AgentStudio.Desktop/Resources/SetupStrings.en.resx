@@ -413,6 +413,6 @@ Apply: the test profile and sensitive permissions ask for Windows Hello.</value>
     <value>Another confirmation is waiting: finish it and apply again.</value>
   </data>
   <data name="Text_setup_hello_not_asked" xml:space="preserve">
-    <value>Windows could not be asked for the confirmation.</value>
+    <value>Windows could not ask you to confirm.</value>
   </data>
 </root>

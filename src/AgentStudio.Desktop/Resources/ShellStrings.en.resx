@@ -50,7 +50,7 @@
     <value>Audit the whole project</value>
   </data>
   <data name="Main_Audit_Hint" xml:space="preserve">
-    <value>Audits the latest saved version (commit) of the project with the system check and an independent reviewer (judge). Shortcut: Ctrl+Shift+A.</value>
+    <value>Audits the latest saved version (commit) of the project. The system checks it and an independent reviewer (judge) reviews it. Shortcut: Ctrl+Shift+A.</value>
   </data>
   <data name="Main_AutoDoctor_Hint" xml:space="preserve">
     <value>Shows or hides Auto Doctor, with the detail of each agent program.</value>
@@ -86,13 +86,13 @@
     <value>Version of Agent Studio and the saved version (commit) it was built from.</value>
   </data>
   <data name="Main_CloseFailed" xml:space="preserve">
-    <value>The window could not be closed ({0}). Try again.</value>
+    <value>The window could not be closed. Try again. Detail: {0}</value>
   </data>
   <data name="Main_PlacementFailed" xml:space="preserve">
-    <value>The position of the window could not be saved ({0}).</value>
+    <value>The position of the window could not be saved. Detail: {0}</value>
   </data>
   <data name="Main_LayoutFailed" xml:space="preserve">
-    <value>The layout of the panels could not be saved ({0}).</value>
+    <value>The layout of the panels could not be saved. Detail: {0}</value>
   </data>
   <data name="Main_Activity_Orchestrator" xml:space="preserve">
     <value>Orchestrator</value>
@@ -173,7 +173,7 @@
     <value>Have agents from different companies debate to test a decision.</value>
   </data>
   <data name="Welcome_Action_Audit" xml:space="preserve">
-    <value>Audits the latest saved version (commit) with the system check and an independent reviewer (judge).</value>
+    <value>Audits the latest saved version (commit). The system checks it and an independent reviewer (judge) reviews it.</value>
   </data>
   <data name="Welcome_Action_Usage" xml:space="preserve">
     <value>Tokens and cost of the runs, and your plan's usage limit.</value>
@@ -197,16 +197,16 @@
     <value>These corrective tasks belong to another project. Open it to create them.</value>
   </data>
   <data name="Main_Memory_UpdateFailed" xml:space="preserve">
-    <value>The project memory could not be updated ({0}).</value>
+    <value>The project memory could not be updated. Detail: {0}</value>
   </data>
   <data name="Main_Path_Invalid" xml:space="preserve">
-    <value>The path is not valid ({0}).</value>
+    <value>The path is not valid. Detail: {0}</value>
   </data>
   <data name="Main_Folder_Gone" xml:space="preserve">
     <value>The folder no longer exists: {0}. It was removed from the recent projects.</value>
   </data>
   <data name="Main_Resume_CheckFailed" xml:space="preserve">
-    <value>Could not check whether any run resumes by itself ({0}).</value>
+    <value>Could not check whether any run resumes by itself. Detail: {0}</value>
   </data>
   <data name="Main_Resumed_One" xml:space="preserve">
     <value>Run {0} resumed by itself, with your consent: {1}</value>
@@ -230,13 +230,13 @@
     <value>{0} was not saved: the file changed on disk. Save it from its tab and choose whether to overwrite it.</value>
   </data>
   <data name="Main_Save_Failed" xml:space="preserve">
-    <value>{0} could not be saved ({1}). Try again.</value>
+    <value>{0} could not be saved. Try again. Detail: {1}</value>
   </data>
   <data name="Main_Save_Pending" xml:space="preserve">
     <value>{0} could not be saved. The changes are still pending: try again.</value>
   </data>
   <data name="Main_Settings_SaveFailed" xml:space="preserve">
-    <value>The settings could not be saved ({0}). Try again.</value>
+    <value>The settings could not be saved. Try again. Detail: {0}</value>
   </data>
   <data name="Explorer_NoFolder" xml:space="preserve">
     <value>No folder is open. Press "Open folder" in the top bar.</value>
@@ -245,7 +245,7 @@
     <value>Refresh</value>
   </data>
   <data name="Explorer_ReadFailed" xml:space="preserve">
-    <value>The folder could not be read ({0}).</value>
+    <value>The folder could not be read. Detail: {0}</value>
   </data>
   <data name="Explorer_NoPermission" xml:space="preserve">
     <value>You do not have permission to read this folder.</value>
@@ -329,7 +329,7 @@
     <value>it could not be read: {0}</value>
   </data>
   <data name="FileDoc_ShowDiffFailed" xml:space="preserve">
-    <value>The comparison could not be shown ({0}). Try again.</value>
+    <value>The comparison could not be shown. Try again. Detail: {0}</value>
   </data>
   <data name="FileDoc_ReadOnlyShown" xml:space="preserve">
     <value>The file is shown read-only: {0}</value>
@@ -341,7 +341,7 @@
     <value>The file is binary and cannot be shown as text.</value>
   </data>
   <data name="FileDoc_ReadFailed" xml:space="preserve">
-    <value>The file could not be read ({0}). Check that it exists and that you have permission.</value>
+    <value>The file could not be read. Check that it exists and that you have permission. Detail: {0}</value>
   </data>
   <data name="FileDoc_TheFile" xml:space="preserve">
     <value>the file</value>
@@ -402,7 +402,7 @@ If you choose No, your changes stay in the editor, unsaved.</value>
     <value>Only the first {0} files are listed. The project has more, but they do not appear here.</value>
   </data>
   <data name="QuickOpen_ReadFailed" xml:space="preserve">
-    <value>The project could not be read ({0}). Check that the folder exists.</value>
+    <value>The project could not be read. Check that the folder exists. Detail: {0}</value>
   </data>
   <data name="QuickOpen_NoFiles" xml:space="preserve">
     <value>The project has no files to show.</value>

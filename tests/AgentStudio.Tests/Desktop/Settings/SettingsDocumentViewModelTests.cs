@@ -93,7 +93,7 @@ public sealed class SettingsDocumentViewModelTests
     }
 
     [Theory]
-    [InlineData("80", "70", "95", "No se guardaron los umbrales. Cada uno debe ser mayor que el anterior, y el crítico no puede pasar de 100: 0 < aviso < compresión < crítico ≤ 100.")]
+    [InlineData("80", "70", "95", "No se guardaron los umbrales. Cada uno debe ser mayor que el anterior, y el crítico no pasa de 100: 0 < aviso < compresión < crítico ≤ 100.")]
     [InlineData("setenta", "85", "95", "No se guardaron los umbrales. «setenta» no es un número entero de 1 a 100: corrígelo.")]
     public void Wrong_thresholds_save_nothing_and_say_where(string warning, string compress, string critical, string why)
     {

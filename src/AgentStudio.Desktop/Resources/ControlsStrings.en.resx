@@ -43,6 +43,12 @@
   <data name="Terminal_NotStarted" xml:space="preserve">
     <value>The terminal is not started yet.</value>
   </data>
+  <data name="Terminal_NoShell" xml:space="preserve">
+    <value>No installed shell was found.</value>
+  </data>
+  <data name="Terminal_UnknownError" xml:space="preserve">
+    <value>Unknown error in the terminal.</value>
+  </data>
   <data name="Terminal_Running" xml:space="preserve">
     <value>{0} · PID {1}</value>
   </data>
@@ -81,6 +87,9 @@
   </data>
   <data name="Editor_PageFailed" xml:space="preserve">
     <value>The editor is not available. Reason: {0}</value>
+  </data>
+  <data name="Editor_UnknownError" xml:space="preserve">
+    <value>unknown error</value>
   </data>
   <data name="Editor_Crashed" xml:space="preserve">
     <value>The editor stopped without warning because WebView2, the viewer that shows it, failed. The unsaved changes of this tab may be lost. Close the tab and open the file again.</value>

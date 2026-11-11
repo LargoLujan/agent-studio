@@ -127,6 +127,7 @@ public sealed class TerminalViewModelTests
         var vm = Create(new FakeLauncher());
 
         Assert.False(vm.StartCommand.CanExecute(null));
+        Assert.Equal(AgentStudio.Desktop.Localization.Texts.Get("Terminal_NoShell"), vm.StatusText);
         Assert.Contains("ninguna shell", vm.StatusText);
     }
 

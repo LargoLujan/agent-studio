@@ -216,7 +216,7 @@ public sealed class MemoryViewModelTests
         memory.RefreshRunActivity();
 
         Assert.False(memory.ExportCommand.CanExecute(null));
-        Assert.Equal("Hay una ejecución, una planificación, un debate o una auditoría en curso: la exportación espera a que termine.", memory.ExportBlocked);
+        Assert.Equal("Hay trabajo en curso. Es una ejecución, una planificación, un debate o una auditoría. La exportación espera a que acabe.", memory.ExportBlocked);
 
         await memory.ExportCommand.ExecuteAsync(null);
         Assert.Empty(exporter.Exports);
@@ -235,7 +235,7 @@ public sealed class MemoryViewModelTests
         await memory.ExportCommand.ExecuteAsync(null);
 
         Assert.Equal([new ProjectContext("p-1", Root)], exporter.Exports);
-        Assert.Equal("Exportadas 7 entradas a .agentstudio/memory/ (2 ficheros). El Markdown nunca se lee de vuelta.", memory.ExportStatus);
+        Assert.Equal("Se exportaron 7 entradas a .agentstudio/memory/ (2 ficheros). Nunca se lee el Markdown de vuelta.", memory.ExportStatus);
         Assert.Null(memory.ExportWarning);
     }
 

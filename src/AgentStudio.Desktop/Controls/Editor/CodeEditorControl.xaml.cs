@@ -37,7 +37,7 @@ public partial class CodeEditorControl : UserControl, IDisposable
         _bridge = new EditorBridge(PostToPage);
         _bridge.Changed += OnChanged;
         _bridge.SaveRequested += OnSaveRequested;
-        _bridge.Failed += (_, message) => ShowUnavailable(Texts.Format("Editor_PageFailed", message));
+        _bridge.Failed += (_, message) => ShowUnavailable(Texts.Format("Editor_PageFailed", string.IsNullOrWhiteSpace(message) ? Texts.Get("Editor_UnknownError") : message));
         UnavailableText.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
         Loaded += OnLoaded;
     }
