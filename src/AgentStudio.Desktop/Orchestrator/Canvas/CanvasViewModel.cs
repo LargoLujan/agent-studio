@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.IO;
 using System.Windows;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Orchestrator.Team;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Orchestration;
@@ -25,8 +26,8 @@ public sealed record PaletteItem(WorkTaskKind Kind)
     public string Label => IsAvailable ? NodeKinds.Label(Kind) : $"{NodeKinds.Label(Kind)} · {NodeKinds.UnavailableBadge}";
 
     public string Hint => IsAvailable
-        ? $"Añadir un nodo «{NodeKinds.Label(Kind)}»"
-        : $"Aplazado: {NodeKinds.UnavailableReason}. El validador del plan rechaza los nodos de debate.";
+        ? Texts.Format("Orchestrator_Canvas_AddNodeHint", NodeKinds.Label(Kind))
+        : Texts.Format("Orchestrator_Canvas_PostponedHint", NodeKinds.UnavailableReason);
 
     /// <summary>What a screen reader says of the entry (A1-bis): its label, never the members of the record.</summary>
     public override string ToString() => Label;
@@ -211,23 +212,23 @@ public sealed partial class CanvasViewModel : ObservableObject
     {
         if (IsReadOnly)
         {
-            return new ConnectionCheck(ConnectionVerdict.ReadOnly, "El plan se está ejecutando: no se puede cambiar.");
+            return new ConnectionCheck(ConnectionVerdict.ReadOnly, Texts.Get("Orchestrator_Canvas_ReadOnly"));
         }
 
         if (first.Flow == second.Flow)
         {
-            return new ConnectionCheck(ConnectionVerdict.WrongDirection, "Une una salida con una entrada.");
+            return new ConnectionCheck(ConnectionVerdict.WrongDirection, Texts.Get("Orchestrator_Canvas_WrongDirection"));
         }
 
         var (output, input) = Orient(first, second);
         if (output.Node.IsDisabled || input.Node.IsDisabled)
         {
-            return new ConnectionCheck(ConnectionVerdict.NotAvailable, $"Debate: {NodeKinds.UnavailableReason}.");
+            return new ConnectionCheck(ConnectionVerdict.NotAvailable, Texts.Format("Orchestrator_Canvas_DebateNotAvailable", NodeKinds.UnavailableReason));
         }
 
         if (Connections.Any(c => c.Source == output && c.Target == input))
         {
-            return new ConnectionCheck(ConnectionVerdict.Duplicate, "Esa conexión ya existe.");
+            return new ConnectionCheck(ConnectionVerdict.Duplicate, Texts.Get("Orchestrator_Canvas_Duplicate"));
         }
 
         return ConnectionCheck.Ok;
@@ -252,7 +253,7 @@ public sealed partial class CanvasViewModel : ObservableObject
         var check = Check(first, second);
         if (!check.IsAllowed)
         {
-            Notify($"Conexión rechazada. {check.Message}", NoticeKind.Error);
+            Notify(Texts.Format("Orchestrator_Canvas_ConnectionRefused", check.Message), NoticeKind.Error);
             return;
         }
 
@@ -320,11 +321,11 @@ public sealed partial class CanvasViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanAddNode))]
     private void AddNode(WorkTaskKind kind)
     {
-        var node = Add(NewId(), kind, $"{NodeKinds.Label(kind)} nuevo", FreeSpot());
+        var node = Add(NewId(), kind, Texts.Format("Orchestrator_Canvas_NewNodeTitle", NodeKinds.Label(kind)), FreeSpot());
         SelectedNodes.Clear();
         SelectedNodes.Add(node);
         BringIntoView(node);
-        Notify($"Creado {node.Id} · {node.KindLabel}.", NoticeKind.Info);
+        Notify(Texts.Format("Orchestrator_Canvas_NodeCreated", node.Id, node.KindLabel), NoticeKind.Info);
         PersistLayout();
         NodeCreated?.Invoke(this, node);
     }
@@ -445,7 +446,7 @@ public sealed partial class CanvasViewModel : ObservableObject
             Remove(node);
         }
 
-        Notify($"Eliminados {nodes.Count} nodos y {wires.Count} conexiones.", NoticeKind.Info);
+        Notify(Texts.Format("Orchestrator_Canvas_Deleted", nodes.Count, wires.Count), NoticeKind.Info);
         PersistLayout();
         SelectionDeleted?.Invoke(this, EventArgs.Empty);
     }
@@ -688,7 +689,7 @@ public sealed partial class CanvasViewModel : ObservableObject
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            Notify($"No se pudo guardar la disposición del lienzo: {ex.Message}", NoticeKind.Error);
+            Notify(Texts.Format("Orchestrator_Canvas_SaveFailed", ex.Message), NoticeKind.Error);
         }
     }
 

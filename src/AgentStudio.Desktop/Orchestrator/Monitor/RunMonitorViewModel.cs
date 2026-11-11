@@ -12,6 +12,7 @@ using AgentStudio.Application.Providers;
 using AgentStudio.Application.Security;
 using AgentStudio.Desktop.Controls;
 using AgentStudio.Desktop.Debate;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Orchestrator.Canvas;
 using AgentStudio.Domain.Common;
@@ -172,7 +173,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
 
     /// <summary>Says that the run on screen is only being looked at; null for a run followed live.</summary>
     public string? InspectionText => IsInspecting
-        ? "Vista de solo lectura, reconstruida del registro de decisiones: al verla no se ejecuta ni se anota nada. «Entregar a mi rama» la audita antes, como al terminar una ejecución. «Cerrar» vuelve a tu borrador."
+        ? Texts.Get("Orchestrator_Mon_Inspection")
         : null;
 
     /// <summary>
@@ -279,6 +280,17 @@ public sealed partial class RunMonitorViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(PrepareFollowUpCommand))]
     private bool _replanPending;
 
+    /// <summary>The request to replan was dismissed in this run: a later audit does not bring it back.</summary>
+    private bool _replanDismissed;
+
+    partial void OnReplanTextChanged(string? value)
+    {
+        if (value is null)
+        {
+            _replanDismissed = false;
+        }
+    }
+
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(AuditAgainCommand))]
     [NotifyCanExecuteChangedFor(nameof(DismissReplanCommand))]
@@ -323,7 +335,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
     /// The bar of the budget of the run followed (docs/18 P3): the agent runs used against its maximum, measured by Agent
     /// Studio; null while no run is followed.
     /// </summary>
-    public MetricBarReading? BudgetBar => IsAttached ? MetricBars.Budget("Presupuesto", AgentRunsUsed, MaxAgentRuns) : null;
+    public MetricBarReading? BudgetBar => IsAttached ? MetricBars.Budget(Texts.Get("Orchestrator_Mon_Budget"), AgentRunsUsed, MaxAgentRuns) : null;
 
     /// <summary>
     /// The windows the context of the attempts is judged with (docs/14 D-10, P36): the ones learned from the log of the project
@@ -377,8 +389,8 @@ public sealed partial class RunMonitorViewModel : ObservableObject
     /// <summary>What the consent of the run followed means, in a line; null while it is not known.</summary>
     public string? ResumeConsentText => ResumeConsent switch
     {
-        true => "Con tu consentimiento para reanudarse sola: espera el reinicio de la cuota y, si un cierre que no pediste la corta, se reanuda al volver a abrir la app.",
-        false => "Sin consentimiento para reanudarse sola: una espera larga la deja en pausa y, tras un cierre, la reanudas tú.",
+        true => Texts.Get("Orchestrator_Mon_ConsentOn"),
+        false => Texts.Get("Orchestrator_Mon_ConsentOff"),
         _ => null,
     };
 
@@ -403,18 +415,18 @@ public sealed partial class RunMonitorViewModel : ObservableObject
     /// <summary>A run is being followed and has not finished: the plan on the canvas is the one running. An inspected run never is.</summary>
     public bool IsActive => IsAttached && !IsFinished && !IsInspecting;
 
-    public string PhaseLabel => Phase is { } phase ? RunPhaseText.Label(phase) : "Sin ejecución";
+    public string PhaseLabel => Phase is { } phase ? RunPhaseText.Label(phase) : Texts.Get("Orchestrator_Mon_NoRun");
 
     public Tone PhaseTone => Phase is { } phase ? RunPhaseText.ToneOf(phase) : Tone.Neutral;
 
     /// <summary>The graph cannot progress and the engine says the run is blocked (see the remarks of the class).</summary>
     public bool ShowsDeadlockAlert => Health is { IsDeadlocked: true } && Phase == RunPhase.Blocked;
 
-    public string DeadlockText => "Bloqueo: el grafo no puede avanzar sin una decisión tuya. Reintenta o cancela las tareas bloqueadas.";
+    public string DeadlockText => Texts.Get("Orchestrator_Mon_Deadlock");
 
     public string HealthSummary => Health is null
-        ? "Salud del grafo: sin datos"
-        : HealthLines.Count == 0 && !ShowsDeadlockAlert ? "Salud del grafo: sin problemas" : "Salud del grafo: con avisos";
+        ? Texts.Get("Orchestrator_Mon_HealthNone")
+        : HealthLines.Count == 0 && !ShowsDeadlockAlert ? Texts.Get("Orchestrator_Mon_HealthOk") : Texts.Get("Orchestrator_Mon_HealthWarn");
 
     /// <summary>Starts following <paramref name="run"/>: its snapshot at once, then its events as they come.</summary>
     /// <param name="project">The project the run belongs to; without it, delivering is never offered.</param>
@@ -449,7 +461,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
         // An inspected run tells its history from the start, every evidence included: its tasks count them as they come.
         ApplySnapshot(run.Snapshot(), countEvidence: !inspecting);
         RunId = run.Id;
-        Log(_time.GetUtcNow(), null, inspecting ? $"Ejecución {run.Id} abierta desde el registro, en solo lectura" : $"Siguiendo la ejecución {run.Id}");
+        Log(_time.GetUtcNow(), null, inspecting ? Texts.Format("Orchestrator_Mon_LogOpened", run.Id) : Texts.Format("Orchestrator_Mon_LogFollowing", run.Id));
 
         // The live state exists from the first moment: the first grouped change is the run as its snapshot says it.
         MarkLiveRun();
@@ -481,10 +493,10 @@ public sealed partial class RunMonitorViewModel : ObservableObject
     /// Why a pause did not apply, as the monitor says it: the run had ended, or its loop stopped before the pause was in the log
     /// (<see cref="IOrchestrationRun.PauseAsync"/> fails then, docs/16 D-39).
     /// </summary>
-    public const string PauseNotApplied = "la ejecución ya había terminado o se paró antes de aplicar la pausa, y el registro no la recoge.";
+    public static string PauseNotApplied => Texts.Get("Orchestrator_Mon_PauseNotApplied");
 
     /// <summary>Why a retry did not apply, as the monitor says it: the run had ended, or the task was no longer blocked.</summary>
-    public const string RetryNotApplied = "la ejecución ya había terminado o la tarea ya no estaba bloqueada. Si terminó, reanúdala para reintentar sus tareas.";
+    public static string RetryNotApplied => Texts.Get("Orchestrator_Mon_RetryNotApplied");
 
     [RelayCommand(CanExecute = nameof(CanPause))]
     private Task PauseAsync() => TryPauseAsync();
@@ -493,7 +505,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
     /// «Pausar», as the monitor, the tray and the managed exit ask it: nothing new is dispatched once the pause is in the log.
     /// False when the run did not take it (it had ended, or stopped before), and <see cref="ErrorMessage"/> says why in Spanish.
     /// </summary>
-    public Task<bool> TryPauseAsync() => SendAsync("pausar la ejecución", run => run.PauseAsync(), PauseNotApplied);
+    public Task<bool> TryPauseAsync() => SendAsync(Texts.Get("Orchestrator_Mon_DoPause"), run => run.PauseAsync(), PauseNotApplied);
 
     private bool CanPause() => IsActive && Phase is RunPhase.Running or RunPhase.WaitingForQuota;
 
@@ -501,14 +513,14 @@ public sealed partial class RunMonitorViewModel : ObservableObject
     private Task ResumeAsync() => TryResumeAsync();
 
     /// <summary>«Reanudar» the dispatch; false when the run did not take it, and <see cref="ErrorMessage"/> says why.</summary>
-    public Task<bool> TryResumeAsync() => SendAsync("reanudar la ejecución", run => run.ResumeDispatchAsync());
+    public Task<bool> TryResumeAsync() => SendAsync(Texts.Get("Orchestrator_Mon_DoResume"), run => run.ResumeDispatchAsync());
 
     private bool CanResume() => IsActive && Phase == RunPhase.Paused;
 
     /// <summary>Puts a blocked task back in the queue: the user's decision, and it may spend quota.</summary>
     [RelayCommand(CanExecute = nameof(CanRetry))]
     private Task RetryBlockedAsync(MonitorTaskViewModel? task) =>
-        task is null ? Task.CompletedTask : SendAsync($"reintentar {task.Id}", run => run.RetryBlockedAsync(task.Id), RetryNotApplied);
+        task is null ? Task.CompletedTask : SendAsync(Texts.Format("Orchestrator_Mon_DoRetry", task.Id), run => run.RetryBlockedAsync(task.Id), RetryNotApplied);
 
     private bool CanRetry(MonitorTaskViewModel? task) => IsActive && task?.Status == WorkTaskStatus.Blocked && !task.AwaitingAnswer;
 
@@ -516,7 +528,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
     private Task CancelAsync() => TryCancelAsync();
 
     /// <summary>«Cancelar ejecución»; false when the run did not take it, and <see cref="ErrorMessage"/> says why.</summary>
-    public Task<bool> TryCancelAsync() => SendAsync("cancelar la ejecución", run => run.CancelAsync(CancelReason));
+    public Task<bool> TryCancelAsync() => SendAsync(Texts.Get("Orchestrator_Mon_DoCancel"), run => run.CancelAsync(CancelReason));
 
     /// <summary>
     /// «Entregar a mi rama»: the run's approved integration to the branch the user has checked out, with
@@ -557,7 +569,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = $"No se pudo entregar: {ex.Message}";
+            ErrorMessage = Texts.Format("Orchestrator_Mon_DeliverFailed", ex.Message);
         }
         finally
         {
@@ -588,7 +600,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            readiness = new DeliveryReadiness(false, null, $"No se pudo comprobar si la ejecución se puede entregar: {ex.Message}");
+            readiness = new DeliveryReadiness(false, null, Texts.Format("Orchestrator_Mon_DeliveryCheckFailed", ex.Message));
         }
 
         Post(generation, () =>
@@ -618,14 +630,14 @@ public sealed partial class RunMonitorViewModel : ObservableObject
         }
         catch (InvalidOperationException) when (notApplied is not null)
         {
-            ErrorMessage = $"No se pudo {what}: {notApplied}";
+            ErrorMessage = Texts.Format("Orchestrator_Mon_CouldNot", what, notApplied);
             return false;
         }
 #pragma warning disable CA1031 // The engine is behind a port: whatever it throws is shown, never thrown into the UI.
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = $"No se pudo {what}: {ex.Message}";
+            ErrorMessage = Texts.Format("Orchestrator_Mon_CouldNot", what, ex.Message);
             return false;
         }
     }
@@ -644,13 +656,13 @@ public sealed partial class RunMonitorViewModel : ObservableObject
         }
         catch (OperationCanceledException)
         {
-            Post(generation, () => Fail("La ejecución se detuvo antes de terminar."));
+            Post(generation, () => Fail(Texts.Get("Orchestrator_Mon_StoppedEarly")));
         }
 #pragma warning disable CA1031 // A failure of the run must be shown in the monitor, never thrown on a background task.
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            Post(generation, () => Fail($"La ejecución terminó con un error: {ex.Message}"));
+            Post(generation, () => Fail(Texts.Format("Orchestrator_Mon_EndedWithError", ex.Message)));
         }
     }
 
@@ -735,7 +747,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
                     waiting.QueuedOn = queued.Provider.Value;
                 }
 
-                Log(queued.At, queued.Task, $"En cola de {queued.Provider}");
+                Log(queued.At, queued.Task, Texts.Format("Orchestrator_Mon_LogQueued", queued.Provider));
                 MarkLive(waiting);
                 break;
 
@@ -807,7 +819,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
             case ApprovalPendingEvent approval:
                 var approving = TaskFor(approval.Task);
                 approving.PendingApproval = approval.Request.Action;
-                Log(approval.At, approval.Task, $"Espera tu aprobación: {approval.Request.Action}");
+                Log(approval.At, approval.Task, Texts.Format("Orchestrator_Mon_LogAwaiting", approval.Request.Action));
                 MarkLive(approving);
                 break;
 
@@ -822,7 +834,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
             case RunPhaseChangedEvent phase:
                 Phase = phase.Phase;
                 PhaseDetail = phase.Detail;
-                Log(phase.At, null, phase.Detail is null ? $"Fase: {RunPhaseText.Label(phase.Phase)}" : $"Fase: {RunPhaseText.Label(phase.Phase)} · {phase.Detail}");
+                Log(phase.At, null, phase.Detail is null ? Texts.Format("Orchestrator_Mon_LogPhase", RunPhaseText.Label(phase.Phase)) : Texts.Format("Orchestrator_Mon_LogPhaseDetail", RunPhaseText.Label(phase.Phase), phase.Detail));
                 MarkLiveRun();
                 break;
 
@@ -834,8 +846,8 @@ public sealed partial class RunMonitorViewModel : ObservableObject
                 var branch = delivered.TargetRef.StartsWith("refs/heads/", StringComparison.Ordinal) ? delivered.TargetRef["refs/heads/".Length..] : delivered.TargetRef;
                 var deliveredAt = TimeZoneInfo.ConvertTime(delivered.At, _time.LocalTimeZone).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture);
                 var commit = delivered.Commit is { Length: >= 10 } head ? $" ({head[..10]})" : string.Empty;
-                PreviousDelivery = $"Ya se entregó a «{branch}»{commit} el {deliveredAt}. Si la entregas otra vez, la misma integración irá a la rama que tengas activa ahora.";
-                Log(delivered.At, null, $"Entregada a {branch}{commit}");
+                PreviousDelivery = Texts.Format("Orchestrator_Mon_PreviouslyDelivered", branch, commit, deliveredAt);
+                Log(delivered.At, null, Texts.Format("Orchestrator_Mon_LogDelivered", branch, commit));
                 break;
         }
     }
@@ -852,7 +864,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
         {
             IsFinished = true;
             _finishedPhase = result.Phase;
-            Log(_time.GetUtcNow(), null, IsInspecting ? $"Estado final según el registro: {RunPhaseText.Label(result.Phase)}" : $"Ejecución terminada: {RunPhaseText.Label(result.Phase)}");
+            Log(_time.GetUtcNow(), null, IsInspecting ? Texts.Format("Orchestrator_Mon_LogFinalState", RunPhaseText.Label(result.Phase)) : Texts.Format("Orchestrator_Mon_LogFinished", RunPhaseText.Label(result.Phase)));
 
             // The auditor checks the log of every run that ended (D-34), before the delivery is asked: its request to
             // replan blocks the delivery until you decide (D-35). A run only looked at is not: opening it writes nothing in
@@ -927,20 +939,21 @@ public sealed partial class RunMonitorViewModel : ObservableObject
             if (decision.Approved)
             {
                 ReplanPending = false;
-                ReplanText = "Descartaste la petición de replanificar: la entrega ya no espera por ella. Los hallazgos siguen en el registro.";
-                Log(_time.GetUtcNow(), null, "Petición de replanificar descartada");
+                ReplanText = Texts.Get("Orchestrator_Mon_ReplanDismissed");
+                _replanDismissed = true;
+                Log(_time.GetUtcNow(), null, Texts.Get("Orchestrator_Mon_LogReplanDismissed"));
                 RecheckDelivery();
             }
             else
             {
-                ErrorMessage = $"La petición de replanificar sigue en pie: {decision.Comment ?? "no se aprobó descartarla."}";
+                ErrorMessage = Texts.Format("Orchestrator_Mon_ReplanStands", decision.Comment ?? Texts.Get("Orchestrator_Mon_ReplanNotApproved"));
             }
         }
 #pragma warning disable CA1031 // The gate is behind a port: a failure is shown, never thrown into the UI.
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = $"No se pudo descartar la petición: {ex.Message}";
+            ErrorMessage = Texts.Format("Orchestrator_Mon_DismissFailed", ex.Message);
         }
         finally
         {
@@ -968,7 +981,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = $"No se pudo preparar la ejecución de seguimiento: {ex.Message}";
+            ErrorMessage = Texts.Format("Orchestrator_Mon_FollowUpFailed", ex.Message);
         }
     }
 
@@ -992,14 +1005,14 @@ public sealed partial class RunMonitorViewModel : ObservableObject
         try
         {
             await challenges.AcceptRevisionAsync(project, revision, CancellationToken.None).ConfigureAwait(true);
-            Log(_time.GetUtcNow(), null, $"Revisión {revision} aceptada");
+            Log(_time.GetUtcNow(), null, Texts.Format("Orchestrator_Mon_LogRevisionAccepted", revision));
             await RefreshReviewAsync().ConfigureAwait(true);
         }
 #pragma warning disable CA1031 // The challenge service is behind a port: a refusal is shown, never thrown into the UI.
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = $"No se aceptó la revisión: {ex.Message}";
+            ErrorMessage = Texts.Format("Orchestrator_Mon_RevisionFailed", ex.Message);
         }
     }
 
@@ -1043,7 +1056,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            failure = $"No se pudo auditar la ejecución: {ex.Message}";
+            failure = Texts.Format("Orchestrator_Mon_AuditFailed", ex.Message);
         }
 
         Post(generation, () =>
@@ -1066,8 +1079,8 @@ public sealed partial class RunMonitorViewModel : ObservableObject
 
         if (!report.Log.IsValid)
         {
-            var from = report.Log.FirstInvalidSequence is { } sequence ? $" desde la entrada {sequence.ToString(CultureInfo.InvariantCulture)}" : string.Empty;
-            AuditSummary = $"El registro de la ejecución no verifica{from}: {report.Log.Problem}. El auditor no escribió nada.";
+            var from = report.Log.FirstInvalidSequence is { } sequence ? Texts.Format("Orchestrator_Mon_AuditFromEntry", sequence.ToString(CultureInfo.InvariantCulture)) : string.Empty;
+            AuditSummary = Texts.Format("Orchestrator_Mon_AuditLogBroken", from, report.Log.Problem);
             AuditTone = Tone.Error;
             ReplanPending = false;
             ReplanText = null;
@@ -1080,12 +1093,12 @@ public sealed partial class RunMonitorViewModel : ObservableObject
             var where = new List<string>();
             if (finding.Tasks.Count > 0)
             {
-                where.Add("tareas " + string.Join(", ", finding.Tasks));
+                where.Add(Texts.Format("Orchestrator_Mon_WhereTasks", string.Join(", ", finding.Tasks)));
             }
 
             if (finding.Entries.Count > 0)
             {
-                where.Add("entradas " + string.Join(", ", finding.Entries.Select(e => "#" + e.ToString(CultureInfo.InvariantCulture))));
+                where.Add(Texts.Format("Orchestrator_Mon_WhereEntries", string.Join(", ", finding.Entries.Select(e => "#" + e.ToString(CultureInfo.InvariantCulture)))));
             }
 
             AuditFindings.Add(new AuditFindingRow(
@@ -1093,7 +1106,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
                 VerdictTexts.ToneOf(finding.Severity),
                 AuditFindingText.Check(finding.Code),
                 finding.Code,
-                where.Count == 0 ? "toda la ejecución" : string.Join(" · ", where),
+                where.Count == 0 ? Texts.Get("Orchestrator_Mon_WhereAll") : string.Join(" · ", where),
                 finding.Message));
         }
 
@@ -1101,18 +1114,18 @@ public sealed partial class RunMonitorViewModel : ObservableObject
         var recorded = report.Recorded.Count switch
         {
             0 => string.Empty,
-            1 => " (1 alerta nueva en el registro)",
-            var count => string.Create(CultureInfo.InvariantCulture, $" ({count} alertas nuevas en el registro)"),
+            1 => Texts.Get("Orchestrator_Mon_RecordedOne"),
+            var count => Texts.Format("Orchestrator_Mon_RecordedMany", count.ToString(CultureInfo.InvariantCulture)),
         };
         AuditSummary = report.Findings.Count == 0
-            ? "Auditor del orquestador: sin hallazgos en el registro verificado de la ejecución."
-            : $"Auditor del orquestador: {DebateTexts.Count(report.Findings.Count, "hallazgo", "hallazgos")}, {serious.ToString(CultureInfo.InvariantCulture)} de gravedad alta o crítica{recorded}.";
+            ? Texts.Get("Orchestrator_Mon_AuditClean")
+            : Texts.Format("Orchestrator_Mon_AuditFindings", report.Findings.Count == 1 ? Texts.Get("Orchestrator_Mon_FindingsOne") : Texts.Format("Orchestrator_Mon_FindingsMany", report.Findings.Count.ToString(CultureInfo.InvariantCulture)), serious.ToString(CultureInfo.InvariantCulture), recorded);
         AuditTone = report.Findings.Count == 0 ? Tone.Success : serious > 0 ? Tone.Error : Tone.Warning;
         var replan = report.ReplanRequested || serious > 0;
-        if (replan && ReplanText?.StartsWith("Descartaste", StringComparison.Ordinal) != true)
+        if (replan && !_replanDismissed)
         {
             ReplanPending = true;
-            ReplanText = "El auditor pide replanificar: prepara una ejecución de seguimiento o descarta la petición. Hasta que decidas, la entrega espera.";
+            ReplanText = Texts.Get("Orchestrator_Mon_ReplanAsked");
         }
         else if (!replan)
         {
@@ -1150,7 +1163,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            failure = $"No se pudo leer el veredicto de la revisión: {ex.Message}";
+            failure = Texts.Format("Orchestrator_Mon_VerdictFailed", ex.Message);
         }
 
         Post(generation, () => ApplyReview(review, project, run, verdictId, verdicts, stored, requirements, status, failure));
@@ -1179,7 +1192,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
             : new VerdictCardViewModel(
                 [new JudgedVerdict(stored.Id, stored.Verdict, stored.Issues, Corrected: false)],
                 null,
-                new VerdictCardContext($"Veredicto de la revisión · {run}", Requirements: requirements),
+                new VerdictCardContext(Texts.Format("Orchestrator_Mon_VerdictTitle", run), Requirements: requirements),
                 _time.LocalTimeZone,
                 new VerdictCardActions(
                     challengeable ? id => review.Challenge!(project, id) : null,
@@ -1279,9 +1292,9 @@ public sealed partial class RunMonitorViewModel : ObservableObject
 
         foreach (var (title, tasks) in new[]
         {
-            ("Abandonadas", value.StalledTasks),
-            ("Inalcanzables", value.UnreachableTasks),
-            ("Sin reintentos", value.RetryExhaustedTasks),
+            (Texts.Get("Orchestrator_Mon_HealthStalled"), value.StalledTasks),
+            (Texts.Get("Orchestrator_Mon_HealthUnreachable"), value.UnreachableTasks),
+            (Texts.Get("Orchestrator_Mon_HealthNoRetries"), value.RetryExhaustedTasks),
         })
         {
             if (tasks.Count > 0)
@@ -1563,7 +1576,7 @@ public sealed partial class MonitorTaskViewModel : ObservableObject
     public string? ReasonText => Status switch
     {
         WorkTaskStatus.Failed => FailureReason ?? Reason,
-        WorkTaskStatus.Pending or WorkTaskStatus.Running when FailureReason is not null => "Intento anterior: " + FailureReason,
+        WorkTaskStatus.Pending or WorkTaskStatus.Running when FailureReason is not null => Texts.Format("Orchestrator_Mon_PreviousAttempt", FailureReason),
         WorkTaskStatus.Blocked when BlockReason is { } block
             && (block.StartsWith("Interrupted", StringComparison.OrdinalIgnoreCase) || block.StartsWith("RateLimitedUntil", StringComparison.OrdinalIgnoreCase)) => null,
         WorkTaskStatus.Blocked or WorkTaskStatus.AwaitingApproval or WorkTaskStatus.Cancelled or WorkTaskStatus.Skipped => Reason,
@@ -1656,7 +1669,7 @@ public sealed partial class MonitorTaskViewModel : ObservableObject
     private int _evidenceCount;
 
     /// <summary>«1 evidencia», «3 evidencias».</summary>
-    public string EvidenceText => EvidenceCount == 1 ? "1 evidencia" : $"{EvidenceCount.ToString(CultureInfo.InvariantCulture)} evidencias";
+    public string EvidenceText => EvidenceCount == 1 ? Texts.Get("Orchestrator_Mon_EvidenceOne") : Texts.Format("Orchestrator_Mon_EvidenceMany", EvidenceCount.ToString(CultureInfo.InvariantCulture));
 
     /// <summary>
     /// The task belongs to a run read back from its log: what its agent did step by step is not there, so no line says that
@@ -1680,15 +1693,15 @@ public sealed partial class MonitorTaskViewModel : ObservableObject
             var compactions = _compactions switch
             {
                 0 => string.Empty,
-                1 => " · 1 compactación del CLI (posible pérdida de información)",
-                var count => $" · {count} compactaciones del CLI (posible pérdida de información)",
+                1 => " · " + Texts.Get("Orchestrator_Mon_CompactionOne"),
+                var count => " · " + Texts.Format("Orchestrator_Mon_CompactionMany", count.ToString(CultureInfo.InvariantCulture)),
             };
             if (_context is { } reading)
             {
-                return "Contexto: " + reading.Text + compactions;
+                return Texts.Format("Orchestrator_Mon_ContextLine", reading.Text) + compactions;
             }
 
-            return RunsAnAgent && !FromLog && (Status != WorkTaskStatus.Pending || _compactions > 0) ? "Contexto: sin observaciones todavía" + compactions : null;
+            return RunsAnAgent && !FromLog && (Status != WorkTaskStatus.Pending || _compactions > 0) ? Texts.Get("Orchestrator_Mon_ContextNone") + compactions : null;
         }
     }
 
@@ -1718,17 +1731,17 @@ public sealed partial class MonitorTaskViewModel : ObservableObject
 
             if (_contextState is { } state && (state.Steps > 0 || state.UsedTokens.Origin != MetricOrigin.Missing))
             {
-                return MetricBars.Context("Contexto", state, _thresholds);
+                return MetricBars.Context(Texts.Get("Orchestrator_Mon_ContextLabel"), state, _thresholds);
             }
 
             if (_lastContext is { } step)
             {
-                return MetricBars.Context("Contexto", step.Model, step.PromptTokens, step.ContextWindow, _thresholds);
+                return MetricBars.Context(Texts.Get("Orchestrator_Mon_ContextLabel"), step.Model, step.PromptTokens, step.ContextWindow, _thresholds);
             }
 
-            return FromLog ? MetricBars.Empty("Contexto", "sin dato", MetricOrigin.Missing, "vista reconstruida del registro: los pasos del agente no están en él")
-                : Status == WorkTaskStatus.Pending && _compactions == 0 ? MetricBars.Empty("Contexto", "sin empezar")
-                : MetricBars.NoObservation("Contexto");
+            return FromLog ? MetricBars.Empty(Texts.Get("Orchestrator_Mon_ContextLabel"), Texts.Get("Orchestrator_Mon_ContextNoData"), MetricOrigin.Missing, Texts.Get("Orchestrator_Mon_ContextFromLog"))
+                : Status == WorkTaskStatus.Pending && _compactions == 0 ? MetricBars.Empty(Texts.Get("Orchestrator_Mon_ContextLabel"), Texts.Get("Orchestrator_Mon_ContextNotStarted"))
+                : MetricBars.NoObservation(Texts.Get("Orchestrator_Mon_ContextLabel"));
         }
     }
 
@@ -1743,8 +1756,8 @@ public sealed partial class MonitorTaskViewModel : ObservableObject
             var compactions = _compactions switch
             {
                 0 => null,
-                1 => "1 compactación del CLI (posible pérdida de información)",
-                var count => $"{count} compactaciones del CLI (posible pérdida de información)",
+                1 => Texts.Get("Orchestrator_Mon_CompactionOne"),
+                var count => Texts.Format("Orchestrator_Mon_CompactionMany", count.ToString(CultureInfo.InvariantCulture)),
             };
             return string.Join(" · ", new[] { ContextBar?.Detail, compactions }.Where(p => !string.IsNullOrWhiteSpace(p)));
         }
@@ -1829,7 +1842,7 @@ public sealed partial class MonitorTaskViewModel : ObservableObject
 
     public string StatusLabel => Status switch
     {
-        WorkTaskStatus.Pending when QueuedOn is not null => $"En cola · {QueuedOn}",
+        WorkTaskStatus.Pending when QueuedOn is not null => Texts.Format("Orchestrator_Mon_Queued", QueuedOn),
         WorkTaskStatus.Blocked => BlockReasonText.Label(BlockReason, _zone),
         _ => TaskStatusText.Label(Status),
     };
@@ -1841,9 +1854,9 @@ public sealed partial class MonitorTaskViewModel : ObservableObject
 
     public string AttemptText => RetryCount switch
     {
-        0 => $"Intento {Attempt}",
-        1 => $"Intento {Attempt} · 1 reintento",
-        _ => $"Intento {Attempt} · {RetryCount} reintentos",
+        0 => Texts.Format("Orchestrator_Mon_Attempt", Attempt),
+        1 => Texts.Format("Orchestrator_Mon_AttemptOne", Attempt),
+        _ => Texts.Format("Orchestrator_Mon_AttemptMany", Attempt, RetryCount),
     };
 
     internal void Refresh(TaskView view)

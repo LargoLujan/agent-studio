@@ -1,3 +1,4 @@
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Work;
 
@@ -80,11 +81,11 @@ public static class PlanGraph
         }
         catch (DependencyCycleException ex)
         {
-            return new ConnectionCheck(ConnectionVerdict.PlanAlreadyBroken, $"El plan ya tiene un ciclo ({FormatCycle(ex)}): quítalo antes de añadir conexiones.");
+            return new ConnectionCheck(ConnectionVerdict.PlanAlreadyBroken, Texts.Format("Orchestrator_Link_PlanHasCycle", FormatCycle(ex)));
         }
         catch (DomainRuleViolationException)
         {
-            return new ConnectionCheck(ConnectionVerdict.PlanAlreadyBroken, "Las conexiones del plan ya incumplen una regla del grafo: corrígelas antes de añadir otra.");
+            return new ConnectionCheck(ConnectionVerdict.PlanAlreadyBroken, Texts.Get("Orchestrator_Link_PlanBroken"));
         }
 
         try
@@ -94,17 +95,17 @@ public static class PlanGraph
         }
         catch (DependencyCycleException ex)
         {
-            return new ConnectionCheck(ConnectionVerdict.Cycle, $"Ciclo: {FormatCycle(ex)}");
+            return new ConnectionCheck(ConnectionVerdict.Cycle, Texts.Format("Orchestrator_Link_Cycle", FormatCycle(ex)));
         }
         catch (DomainRuleViolationException ex) when (ex.Rule == BranchConflictRule)
         {
             return new ConnectionCheck(
                 ConnectionVerdict.BranchConflict,
-                $"{input.Node.Id} ya espera a {output.Node.Id} por la otra rama: una tarea solo puede esperar una rama de cada condición.");
+                Texts.Format("Orchestrator_Link_OtherBranch", input.Node.Id, output.Node.Id));
         }
         catch (DomainRuleViolationException ex)
         {
-            return new ConnectionCheck(ConnectionVerdict.Rejected, $"El grafo no admite esa conexión (regla {ex.Rule}).");
+            return new ConnectionCheck(ConnectionVerdict.Rejected, Texts.Format("Orchestrator_Link_Rejected", ex.Rule));
         }
     }
 

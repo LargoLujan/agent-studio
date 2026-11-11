@@ -4,37 +4,38 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:preparation="clr-namespace:AgentStudio.Desktop.Orchestrator.Preparation"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=preparation:RequirementsEditorViewModel}">
     <!-- The requirements of the project: the frozen set, read-only, or the draft of a new version. Bindings only. -->
     <StackPanel>
         <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" Text="{Binding StatusText}"
-                   AutomationProperties.Name="Estado de los requisitos" AutomationProperties.LiveSetting="Polite"/>
+                   AutomationProperties.Name="{l:T Orchestrator_Req_StatusName}" AutomationProperties.LiveSetting="Polite"/>
         <TextBox Style="{StaticResource MonoViewer}" Margin="0,4,0,0" IsReadOnly="True" BorderThickness="0" Padding="0" FontSize="12"
                  Background="Transparent" TextWrapping="Wrap" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Disabled"
                  Text="{Binding FrozenHash, Mode=OneWay}"
                  Visibility="{Binding HasFrozen, Converter={StaticResource Orchestrator.BoolToVisibility}}"
-                 ToolTip="Hash del conjunto congelado: lo citan la ejecución y el juez"
-                 AutomationProperties.Name="Hash de los requisitos congelados"/>
+                 ToolTip="{l:T Orchestrator_Req_HashHelp}"
+                 AutomationProperties.Name="{l:T Orchestrator_Req_HashName}"/>
 
         <WrapPanel Margin="0,6,0,0">
-            <Button Style="{StaticResource ToolbarButton}" Margin="0,0,6,0" Content="Editar · nueva versión" Command="{Binding EditCommand}"
+            <Button Style="{StaticResource ToolbarButton}" Margin="0,0,6,0" Content="{l:T Orchestrator_Req_Edit}" Command="{Binding EditCommand}"
                     Visibility="{Binding IsReadOnly, Converter={StaticResource Orchestrator.BoolToVisibility}}"
-                    ToolTip="Abre un borrador: lo congelado no cambia hasta que congeles la versión nueva"/>
-            <Button Style="{StaticResource ToolbarButton}" Margin="0,0,6,0" Content="Añadir requisito" Command="{Binding AddRequirementCommand}"
+                    ToolTip="{l:T Orchestrator_Req_EditHelp}"/>
+            <Button Style="{StaticResource ToolbarButton}" Margin="0,0,6,0" Content="{l:T Orchestrator_Req_Add}" Command="{Binding AddRequirementCommand}"
                     Visibility="{Binding IsEditing, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
-            <Button Style="{StaticResource ToolbarButton}" Margin="0,0,6,0" Content="Descartar cambios" Command="{Binding DiscardCommand}"
+            <Button Style="{StaticResource ToolbarButton}" Margin="0,0,6,0" Content="{l:T Orchestrator_Req_Discard}" Command="{Binding DiscardCommand}"
                     Visibility="{Binding IsEditing, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
-            <Button Style="{StaticResource ToolbarPrimaryButton}" Margin="0" Content="Congelar requisitos" Command="{Binding FreezeCommand}"
+            <Button Style="{StaticResource ToolbarPrimaryButton}" Margin="0" Content="{l:T Orchestrator_Req_Freeze}" Command="{Binding FreezeCommand}"
                     Visibility="{Binding IsEditing, Converter={StaticResource Orchestrator.BoolToVisibility}}"
-                    ToolTip="Guarda esta versión: desde entonces no cambia, y el plan y el juez trabajan contra ella"/>
+                    ToolTip="{l:T Orchestrator_Req_FreezeHelp}"/>
         </WrapPanel>
         <TextBlock Style="{StaticResource ErrorText}" Margin="0,4,0,0" TextWrapping="Wrap" Text="{Binding ErrorMessage}"
                    AutomationProperties.LiveSetting="Assertive"/>
         <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" TextWrapping="Wrap" Text="{Binding Notice}"
                    Visibility="{Binding Notice, Converter={StaticResource Orchestrator.HasTextToVisibility}}"/>
 
-        <ItemsControl ItemsSource="{Binding Drafts}" Margin="0,6,0,0" Focusable="False" AutomationProperties.Name="Requisitos">
+        <ItemsControl ItemsSource="{Binding Drafts}" Margin="0,6,0,0" Focusable="False" AutomationProperties.Name="{l:T Orchestrator_Req_ListName}">
             <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="{x:Type preparation:RequirementDraftViewModel}">
                     <Border Background="{StaticResource SurfaceRaisedBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
@@ -44,22 +45,22 @@
                                 <TextBox DockPanel.Dock="Left" Style="{StaticResource FieldTextBox}" Width="96" FontFamily="{StaticResource MonoFont}"
                                          Text="{Binding Id, UpdateSourceTrigger=PropertyChanged}"
                                          IsReadOnly="{Binding DataContext.IsReadOnly, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                         AutomationProperties.Name="Identificador del requisito"/>
+                                         AutomationProperties.Name="{l:T Orchestrator_Req_IdName}"/>
                                 <CheckBox DockPanel.Dock="Left" Style="{StaticResource FieldCheckBox}" Margin="10,0,0,0" VerticalAlignment="Center"
-                                          Content="Obligatorio" IsChecked="{Binding IsMandatory}"
+                                          Content="{l:T Orchestrator_Req_Mandatory}" IsChecked="{Binding IsMandatory}"
                                           IsEnabled="{Binding DataContext.IsEditing, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
-                                <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Margin="0" Content="Quitar"
+                                <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Margin="0" Content="{l:T Orchestrator_Req_Remove}"
                                         Command="{Binding DataContext.RemoveRequirementCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                         CommandParameter="{Binding}"
                                         Visibility="{Binding DataContext.IsEditing, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource Orchestrator.BoolToVisibility}}"
-                                        AutomationProperties.Name="Quitar el requisito"/>
+                                        AutomationProperties.Name="{l:T Orchestrator_Req_RemoveName}"/>
                             </DockPanel>
-                            <TextBlock Style="{StaticResource FieldLabel}" Text="Texto literal (lo que reciben los agentes y comprueba el juez)"/>
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Orchestrator_Req_StatementLabel}"/>
                             <TextBox Style="{StaticResource MultilineFieldTextBox}" Text="{Binding Statement, UpdateSourceTrigger=PropertyChanged}"
                                      IsReadOnly="{Binding DataContext.IsReadOnly, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                     AutomationProperties.Name="Texto del requisito"/>
-                            <TextBlock Style="{StaticResource FieldLabel}" Text="Criterios de aceptación"/>
-                            <ItemsControl ItemsSource="{Binding Criteria}" Focusable="False" AutomationProperties.Name="Criterios de aceptación">
+                                     AutomationProperties.Name="{l:T Orchestrator_Req_StatementName}"/>
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Orchestrator_Req_Criteria}"/>
+                            <ItemsControl ItemsSource="{Binding Criteria}" Focusable="False" AutomationProperties.Name="{l:T Orchestrator_Req_Criteria}">
                                 <ItemsControl.ItemTemplate>
                                     <!-- V17: the description takes the whole width left by the id (and «Quitar»), and wraps; how
                                          it is checked goes under it, so a narrow column never squeezes the description. -->
@@ -77,29 +78,29 @@
                                             <TextBox Grid.Column="0" Style="{StaticResource FieldTextBox}" FontFamily="{StaticResource MonoFont}" VerticalAlignment="Top"
                                                      Text="{Binding Id, UpdateSourceTrigger=PropertyChanged}"
                                                      IsReadOnly="{Binding DataContext.IsReadOnly, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                     AutomationProperties.Name="Identificador del criterio"/>
+                                                     AutomationProperties.Name="{l:T Orchestrator_Req_CriterionIdName}"/>
                                             <TextBox Grid.Column="1" Style="{StaticResource FieldTextBox}" Margin="6,0,0,0" MinWidth="120" TextWrapping="Wrap"
                                                      Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
                                                      IsReadOnly="{Binding DataContext.IsReadOnly, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                     AutomationProperties.Name="Descripción del criterio"/>
-                                            <Button Grid.Column="2" Style="{StaticResource ToolbarButton}" Margin="6,0,0,0" VerticalAlignment="Top" Content="Quitar"
+                                                     AutomationProperties.Name="{l:T Orchestrator_Req_CriterionDescriptionName}"/>
+                                            <Button Grid.Column="2" Style="{StaticResource ToolbarButton}" Margin="6,0,0,0" VerticalAlignment="Top" Content="{l:T Orchestrator_Req_Remove}"
                                                     Command="{Binding DataContext.RemoveCriterionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                     CommandParameter="{Binding}"
                                                     Visibility="{Binding DataContext.IsEditing, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource Orchestrator.BoolToVisibility}}"
-                                                    AutomationProperties.Name="Quitar el criterio"/>
+                                                    AutomationProperties.Name="{l:T Orchestrator_Req_RemoveCriterionName}"/>
                                             <DockPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="6,4,0,0">
                                                 <TextBlock DockPanel.Dock="Left" Style="{StaticResource SecondaryText}" Margin="0,0,8,0" VerticalAlignment="Center"
-                                                           Text="Se comprueba con"/>
+                                                           Text="{l:T Orchestrator_Req_CheckedWith}"/>
                                                 <ComboBox MinWidth="150" MaxWidth="280" HorizontalAlignment="Left" ItemsSource="{Binding MethodOptions}"
                                                           SelectedItem="{Binding SelectedMethod}" DisplayMemberPath="Label"
                                                           IsEnabled="{Binding DataContext.IsEditing, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                          AutomationProperties.Name="Cómo se comprueba"/>
+                                                          AutomationProperties.Name="{l:T Orchestrator_Req_CheckedWithName}"/>
                                             </DockPanel>
                                         </Grid>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <Button Style="{StaticResource ToolbarButton}" HorizontalAlignment="Left" Margin="0,2,0,0" Content="Añadir criterio"
+                            <Button Style="{StaticResource ToolbarButton}" HorizontalAlignment="Left" Margin="0,2,0,0" Content="{l:T Orchestrator_Req_AddCriterion}"
                                     Command="{Binding AddCriterionCommand}"
                                     Visibility="{Binding DataContext.IsEditing, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
                         </StackPanel>
@@ -108,7 +109,7 @@
             </ItemsControl.ItemTemplate>
         </ItemsControl>
 
-        <ItemsControl ItemsSource="{Binding Problems}" Focusable="False" AutomationProperties.Name="Lo que falta para congelar"
+        <ItemsControl ItemsSource="{Binding Problems}" Focusable="False" AutomationProperties.Name="{l:T Orchestrator_Req_ProblemsName}"
                       Visibility="{Binding HasProblems, Converter={StaticResource Orchestrator.BoolToVisibility}}">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>

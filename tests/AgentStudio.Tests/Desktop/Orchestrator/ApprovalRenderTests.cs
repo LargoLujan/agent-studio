@@ -43,7 +43,7 @@ public sealed class ApprovalRenderTests
 
         Assert.Contains("Entregar a tu rama", texts);
         Assert.Contains("Origen: proyecto calc · ejecución 20261030-2340ab", texts);
-        Assert.Contains("Acción en el registro: deliver-integration", texts);
+        Assert.Contains("Acción en el historial: deliver-integration", texts);
         Assert.DoesNotContain("deliver-integration", texts);
         Assert.DoesNotContain(texts, t => t.Contains(ProjectGuid, StringComparison.Ordinal));
         Assert.DoesNotContain(texts, t => t.Contains("(s)", StringComparison.Ordinal));

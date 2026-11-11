@@ -173,7 +173,7 @@ public sealed class RunMonitorInspectionTests
         Assert.NotNull(monitor.InspectionText);
         Assert.Equal(1, monitor.Tasks[0].EvidenceCount);
         Assert.Single(monitor.Evidence);
-        Assert.Contains(monitor.Activity, a => a.Text.Contains("abierta desde el registro", StringComparison.Ordinal));
+        Assert.Contains(monitor.Activity, a => a.Text.Contains("abierta desde el historial", StringComparison.Ordinal));
         Assert.False(monitor.PauseCommand.CanExecute(null));
         Assert.False(monitor.CancelCommand.CanExecute(null));
         Assert.False(monitor.RetryBlockedCommand.CanExecute(monitor.Tasks[0]));
@@ -224,7 +224,7 @@ public sealed class RunMonitorInspectionTests
 
         Assert.Empty(auditor.Audited);
         Assert.Null(monitor.AuditSummary);
-        Assert.Contains("no se ejecuta ni se anota nada", monitor.InspectionText, StringComparison.Ordinal);
+        Assert.Contains("verla no ejecuta ni anota nada", monitor.InspectionText, StringComparison.Ordinal);
 
         await monitor.DeliverCommand.ExecuteAsync(null);
 

@@ -34,7 +34,7 @@
                         <Ellipse Width="10" Height="10" Margin="0,0,8,0" VerticalAlignment="Center"
                                  Fill="{Binding PhaseTone, Converter={StaticResource Orchestrator.ToneToBrush}}"/>
                         <TextBlock Style="{StaticResource SectionTitleText}" Margin="0,0,12,0" Text="{Binding PhaseLabel}"
-                                   AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="Fase de la ejecución"/>
+                                   AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="{l:T Orchestrator_MonView_PhaseName}"/>
                         <TextBlock Style="{StaticResource SecondaryText}" Margin="0,0,12,0" VerticalAlignment="Center"
                                    FontFamily="{StaticResource MonoFont}" Text="{Binding RunId}"/>
                         <info:InfoButton InfoKey="Info_Monitor" Margin="0,0,12,0" VerticalAlignment="Center"/>
@@ -44,22 +44,22 @@
                     </WrapPanel>
                     <WrapPanel orchestratorViews:AdaptiveColumnsPanel.Weight="1.2" MinWidth="260" HorizontalAlignment="Right" VerticalAlignment="Top">
                         <!-- A run read back from its log takes no command: only its delivery and «Cerrar». -->
-                        <Button Style="{StaticResource ToolbarButton}" Content="Pausar" Command="{Binding PauseCommand}"
+                        <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_MonView_Pause}" Command="{Binding PauseCommand}"
                                 Visibility="{Binding IsInspecting, Converter={StaticResource Orchestrator.FalseToVisibility}}"/>
-                        <Button Style="{StaticResource ToolbarButton}" Content="Reanudar" Command="{Binding ResumeCommand}"
+                        <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_MonView_Resume}" Command="{Binding ResumeCommand}"
                                 Visibility="{Binding IsInspecting, Converter={StaticResource Orchestrator.FalseToVisibility}}"/>
-                        <Button Style="{StaticResource ToolbarButton}" Content="Cancelar ejecución" Command="{Binding CancelCommand}"
+                        <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_MonView_Cancel}" Command="{Binding CancelCommand}"
                                 Visibility="{Binding IsInspecting, Converter={StaticResource Orchestrator.FalseToVisibility}}"/>
                         <!-- Enabled only for a finished run the delivery service found ready; it asks your approval first. -->
-                        <Button Style="{StaticResource ToolbarPrimaryButton}" Content="Entregar a mi rama" Command="{Binding DeliverCommand}"
-                                ToolTip="Lleva con --ff-only la integración que aprobó el juez a la rama que tienes activa. Antes te pide aprobación."
+                        <Button Style="{StaticResource ToolbarPrimaryButton}" Content="{l:T Orchestrator_MonView_Deliver}" Command="{Binding DeliverCommand}"
+                                ToolTip="{l:T Orchestrator_MonView_DeliverHelp}"
                                 ToolTipService.ShowOnDisabled="True"
-                                AutomationProperties.Name="Entregar a mi rama"
+                                AutomationProperties.Name="{l:T Orchestrator_MonView_Deliver}"
                                 AutomationProperties.HelpText="{Binding DeliveryMessage}"/>
-                        <Button Style="{StaticResource ToolbarButton}" Content="Cerrar" Command="{Binding CloseInspectionCommand}"
-                                ToolTip="Deja de ver esta ejecución y vuelve a tu borrador en el lienzo"
+                        <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_MonView_Close}" Command="{Binding CloseInspectionCommand}"
+                                ToolTip="{l:T Orchestrator_MonView_CloseHelp}"
                                 Visibility="{Binding IsInspecting, Converter={StaticResource Orchestrator.BoolToVisibility}}"
-                                AutomationProperties.Name="Cerrar la ejecución que estás viendo"/>
+                                AutomationProperties.Name="{l:T Orchestrator_MonView_CloseName}"/>
                     </WrapPanel>
                 </orchestratorViews:AdaptiveColumnsPanel>
                 <!-- The words are the accessible name: a reader of the screen reads them whole. -->
@@ -75,19 +75,19 @@
                 <!-- Whether the run has the consent of its header to resume by itself (docs/16 D-39); hidden while not known. -->
                 <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="18,2,0,0" TextWrapping="Wrap"
                            Text="{Binding ResumeConsentText, TargetNullValue=''}"
-                           AutomationProperties.Name="Consentimiento para reanudarse sola"/>
+                           AutomationProperties.Name="{l:T Orchestrator_MonView_ConsentName}"/>
                 <!-- V35: the summary of the result only when it says more than the detail of the phase (the engine sends both). -->
                 <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="18,2,0,0" Text="{Binding ResultSummaryText}"/>
                 <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="18,2,0,0" TextWrapping="Wrap"
                            Text="{Binding DeliveryMessage, TargetNullValue=''}"
-                           AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="Entrega a tu rama"/>
+                           AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="{l:T Orchestrator_MonView_DeliveryName}"/>
                 <TextBlock Style="{StaticResource ErrorText}" Margin="0,6,0,0" Text="{Binding ErrorMessage}"/>
                 <TextBlock Style="{StaticResource ProblemText}" FontSize="13" FontWeight="SemiBold" Margin="0,6,0,0" Text="{Binding DeadlockText}"
                            Visibility="{Binding ShowsDeadlockAlert, Converter={StaticResource Orchestrator.BoolToVisibility}}"
                            AutomationProperties.LiveSetting="Assertive"/>
                 <WrapPanel Margin="0,6,0,0" Visibility="{Binding IsAttached, Converter={StaticResource Orchestrator.BoolToVisibility}}">
                     <TextBlock Style="{StaticResource SecondaryText}" Margin="0,0,16,0" Text="{Binding HealthSummary}"/>
-                    <ItemsControl ItemsSource="{Binding HealthLines}" Focusable="False" AutomationProperties.Name="Salud del grafo">
+                    <ItemsControl ItemsSource="{Binding HealthLines}" Focusable="False" AutomationProperties.Name="{l:T Orchestrator_MonView_HealthName}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <WrapPanel/>
@@ -147,7 +147,7 @@
 
                 <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" TextWrapping="Wrap"
                            Visibility="{Binding IsAttached, Converter={StaticResource Orchestrator.FalseToVisibility}}"
-                           Text="Sin ejecución. Valida y aprueba un plan y pulsa «Ejecutar», reanuda una ejecución interrumpida o abre una anterior con «Ver»."/>
+                           Text="{l:T Orchestrator_MonView_NoRun}"/>
             </StackPanel>
         </Border>
 
@@ -158,17 +158,17 @@
                 <StackPanel>
                     <DockPanel Visibility="{Binding AuditSummary, Converter={StaticResource Orchestrator.NotNullToVisibility}}">
                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
-                            <Button Style="{StaticResource ToolbarButton}" Content="Auditar de nuevo" Command="{Binding AuditAgainCommand}"
-                                    ToolTip="El auditor determinista vuelve a revisar el registro: no gasta cuota y no repite lo ya anotado."/>
-                            <Button Style="{StaticResource ToolbarButton}" Content="Comprobar de nuevo" Command="{Binding RefreshReviewCommand}"
-                                    ToolTip="Lee otra vez el veredicto, su impugnación y si la ejecución se puede entregar."/>
+                            <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_MonView_AuditAgain}" Command="{Binding AuditAgainCommand}"
+                                    ToolTip="{l:T Orchestrator_MonView_AuditAgainHelp}"/>
+                            <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_MonView_Refresh}" Command="{Binding RefreshReviewCommand}"
+                                    ToolTip="{l:T Orchestrator_MonView_RefreshHelp}"/>
                         </StackPanel>
                         <Ellipse DockPanel.Dock="Left" Width="10" Height="10" Margin="0,4,8,0" VerticalAlignment="Top"
                                  Fill="{Binding AuditTone, Converter={StaticResource Orchestrator.ToneToBrush}}"/>
                         <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{Binding AuditSummary}"
-                                   AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="Auditor del orquestador"/>
+                                   AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="{l:T Orchestrator_MonView_AuditorName}"/>
                     </DockPanel>
-                    <ItemsControl ItemsSource="{Binding AuditFindings}" Focusable="False" Margin="18,4,0,0" AutomationProperties.Name="Hallazgos del auditor">
+                    <ItemsControl ItemsSource="{Binding AuditFindings}" Focusable="False" Margin="18,4,0,0" AutomationProperties.Name="{l:T Orchestrator_MonView_FindingsName}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type monitor:AuditFindingRow}">
                                 <DockPanel Margin="0,2,0,2">
@@ -191,21 +191,21 @@
                     </ItemsControl>
                     <StackPanel Margin="0,6,0,0" Visibility="{Binding ReplanText, Converter={StaticResource Orchestrator.NotNullToVisibility}}">
                         <TextBlock Style="{StaticResource BodyText}" FontSize="12" Foreground="{StaticResource WarningBrush}" Text="{Binding ReplanText}"
-                                   AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="Petición de replanificar"/>
+                                   AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="{l:T Orchestrator_MonView_ReplanName}"/>
                         <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                            <Button Style="{StaticResource ToolbarButton}" Content="Preparar ejecución de seguimiento" Command="{Binding PrepareFollowUpCommand}"
-                                    ToolTip="Pone en el lienzo un plan vacío que sigue a esta ejecución, con los hallazgos como datos. Planificas y apruebas tú."/>
-                            <Button Style="{StaticResource ToolbarButton}" Content="Descartar la petición" Command="{Binding DismissReplanCommand}"
-                                    ToolTip="Te pide aprobación (replan.dismiss): la entrega deja de esperar por la petición; los hallazgos siguen en el registro."/>
+                            <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_MonView_FollowUp}" Command="{Binding PrepareFollowUpCommand}"
+                                    ToolTip="{l:T Orchestrator_MonView_FollowUpHelp}"/>
+                            <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_MonView_DismissReplan}" Command="{Binding DismissReplanCommand}"
+                                    ToolTip="{l:T Orchestrator_MonView_DismissReplanHelp}"/>
                         </StackPanel>
                     </StackPanel>
                     <DockPanel Margin="0,6,0,0" Visibility="{Binding ChallengeText, Converter={StaticResource Orchestrator.NotNullToVisibility}}">
-                        <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarPrimaryButton}" Content="Aceptar la revisión" Command="{Binding AcceptRevisionCommand}"
+                        <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarPrimaryButton}" Content="{l:T Orchestrator_MonView_AcceptRevision}" Command="{Binding AcceptRevisionCommand}"
                                 Visibility="{Binding RevisionVerdictId, Converter={StaticResource Orchestrator.NotNullToVisibility}}"
-                                ToolTip="Una revisión que da la vuelta hacia una aprobación solo cuenta si la aceptas expresamente (verdict.revision.accept)."/>
+                                ToolTip="{l:T Orchestrator_MonView_AcceptRevisionHelp}"/>
                         <Ellipse DockPanel.Dock="Left" Width="8" Height="8" Margin="0,5,8,0" VerticalAlignment="Top"
                                  Fill="{Binding ChallengeTone, Converter={StaticResource Orchestrator.ToneToBrush}}"/>
-                        <TextBlock Style="{StaticResource BodyText}" FontSize="12" Text="{Binding ChallengeText}" AutomationProperties.Name="Impugnación del veredicto"/>
+                        <TextBlock Style="{StaticResource BodyText}" FontSize="12" Text="{Binding ChallengeText}" AutomationProperties.Name="{l:T Orchestrator_MonView_ChallengeName}"/>
                     </DockPanel>
                     <debateViews:VerdictCardView Margin="0,8,0,0" DataContext="{Binding ReviewCard}" Visibility="{Binding Converter={StaticResource Orchestrator.NotNullToVisibility}}"/>
                 </StackPanel>
@@ -228,7 +228,10 @@
             <!-- Phase 13 (docs/17 D-12, D-14, D-17; F13-6 to F13-8): one card per agent with its state and its bars, each with its origin. A
                  change of state is announced (assertive for a question or a block, polite for the rest). -->
             <DockPanel orchestratorViews:AdaptiveColumnsPanel.Weight="3" MinWidth="230">
-                <TextBlock DockPanel.Dock="Top" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" Text="{l:T Monitor_Agents_Title}"/>
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                    <info:InfoButton DockPanel.Dock="Right" InfoKey="Info_Monitor_Context" VerticalAlignment="Center"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Monitor_Agents_Title}"/>
+                </DockPanel>
                 <!-- A list that virtualizes: with 40 agents only the cards in view are built, so a repaint of the grouped state costs what is seen. -->
                 <ListBox ItemsSource="{Binding AgentCards}" Background="Transparent" BorderThickness="0" Padding="0"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -273,12 +276,12 @@
             </DockPanel>
 
             <DockPanel orchestratorViews:AdaptiveColumnsPanel.Weight="5" MinWidth="240">
-                <TextBlock DockPanel.Dock="Top" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" Text="Tareas"/>
+                <TextBlock DockPanel.Dock="Top" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" Text="{l:T Orchestrator_MonView_Tasks}"/>
                 <!-- A list that virtualizes (Phase 13, docs/17 D-16): with 40 tasks only the rows in view are built, so a repaint costs what is seen. -->
                 <ListBox ItemsSource="{Binding Tasks}" Background="Transparent" BorderThickness="0" Padding="0"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                          VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
-                         AutomationProperties.Name="Tareas de la ejecución">
+                         AutomationProperties.Name="{l:T Orchestrator_MonView_TasksName}">
                     <ListBox.ItemContainerStyle>
                         <Style TargetType="ListBoxItem">
                             <Setter Property="Focusable" Value="False"/>
@@ -323,7 +326,7 @@
                                             <TextBlock FontSize="12" TextWrapping="Wrap" MaxHeight="34" TextTrimming="CharacterEllipsis"
                                                        Text="{Binding ReasonText}" ToolTip="{Binding ReasonText}"
                                                        Visibility="{Binding ReasonText, Converter={StaticResource Orchestrator.HasTextToVisibility}}"
-                                                       AutomationProperties.Name="{Binding ReasonText, StringFormat='Motivo: {0}'}">
+                                                       AutomationProperties.Name="{Binding ReasonText, Converter={x:Static orchestratorViews:FormatTextConverter.Instance}, ConverterParameter=Orchestrator_MonView_ReasonName}">
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock" BasedOn="{StaticResource BodyText}">
                                                         <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
@@ -345,7 +348,7 @@
                                                        Foreground="{StaticResource TextPrimaryBrush}" TextWrapping="Wrap" MaxHeight="32" TextTrimming="CharacterEllipsis"
                                                        Text="{Binding FailureLine}" ToolTip="{Binding FailureLine}"
                                                        Visibility="{Binding ShowsFailureLine, Converter={StaticResource Orchestrator.BoolToVisibility}}"
-                                                       AutomationProperties.Name="{Binding FailureLine, StringFormat='Error del paso: {0}'}"/>
+                                                       AutomationProperties.Name="{Binding FailureLine, Converter={x:Static orchestratorViews:FormatTextConverter.Instance}, ConverterParameter=Orchestrator_MonView_FailureName}"/>
                                             <TextBlock Style="{StaticResource OptionalSecondaryText}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
                                                        Text="{Binding LastActivity}"/>
                                             <!-- The context of the latest step of the attempt (docs/14 D-12, docs/18 P3), always for a task
@@ -359,15 +362,15 @@
                                             <TextBlock Style="{StaticResource OptionalSecondaryText}" TextWrapping="Wrap" Text="{Binding TokensText, TargetNullValue=''}"/>
                                             <TextBlock Style="{StaticResource BodyText}" FontSize="12" Foreground="{StaticResource WarningBrush}"
                                                        Visibility="{Binding PendingApproval, Converter={StaticResource Orchestrator.NotNullToVisibility}}"
-                                                       Text="{Binding PendingApproval, StringFormat='Espera tu aprobación: {0}'}"/>
+                                                       Text="{Binding PendingApproval, Converter={x:Static orchestratorViews:FormatTextConverter.Instance}, ConverterParameter=Orchestrator_MonView_AwaitingApproval}"/>
                                         </StackPanel>
                                         <StackPanel Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Top">
                                             <Button Style="{StaticResource ToolbarButton}"
-                                                    Content="Reintentar"
+                                                    Content="{l:T Orchestrator_MonView_Retry}"
                                                     Visibility="{Binding IsBlocked, Converter={StaticResource Orchestrator.BoolToVisibility}}"
                                                     Command="{Binding DataContext.RetryBlockedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}"
-                                                    AutomationProperties.Name="{Binding Id, StringFormat='Reintentar {0}'}"/>
+                                                    AutomationProperties.Name="{Binding Id, Converter={x:Static orchestratorViews:FormatTextConverter.Instance}, ConverterParameter=Orchestrator_MonView_RetryName}"/>
                                             <!-- A task whose agent asked waits for the answer: «Reintentar» would relaunch it without it, so it is not offered (ADR-0051). -->
                                             <Button Style="{StaticResource ToolbarPrimaryButton}" Content="{l:T Monitor_Question_Open}"
                                                     Visibility="{Binding HasQuestion, Converter={StaticResource Orchestrator.BoolToVisibility}}"
@@ -382,11 +385,11 @@
             </DockPanel>
 
             <DockPanel orchestratorViews:AdaptiveColumnsPanel.Weight="4" MinWidth="180">
-                <TextBlock DockPanel.Dock="Top" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" Text="Actividad"/>
+                <TextBlock DockPanel.Dock="Top" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" Text="{l:T Orchestrator_MonView_Activity}"/>
                 <ListBox ItemsSource="{Binding Activity}" Background="{StaticResource BackgroundBrush}" BorderBrush="{StaticResource BorderBrush}"
                          BorderThickness="1" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                          VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
-                         AutomationProperties.Name="Actividad de la ejecución">
+                         AutomationProperties.Name="{l:T Orchestrator_MonView_ActivityName}">
                     <ListBox.ItemContainerStyle>
                         <Style TargetType="ListBoxItem">
                             <Setter Property="Padding" Value="8,2"/>
@@ -414,9 +417,9 @@
             </DockPanel>
 
             <DockPanel orchestratorViews:AdaptiveColumnsPanel.Weight="3" MinWidth="160">
-                <TextBlock DockPanel.Dock="Top" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" Text="Evidencias"/>
+                <TextBlock DockPanel.Dock="Top" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" Text="{l:T Orchestrator_MonView_Evidence}"/>
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
-                    <ItemsControl ItemsSource="{Binding Evidence}" AutomationProperties.Name="Evidencias de la ejecución">
+                    <ItemsControl ItemsSource="{Binding Evidence}" AutomationProperties.Name="{l:T Orchestrator_MonView_EvidenceName}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type monitor:EvidenceEntry}">
                                 <StackPanel Margin="0,0,0,8">

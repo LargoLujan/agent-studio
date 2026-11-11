@@ -1,6 +1,7 @@
 using System.Globalization;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Projects;
+using AgentStudio.Desktop.Localization;
 
 namespace AgentStudio.Desktop.Orchestrator.Session;
 
@@ -17,12 +18,10 @@ public static class HistoryText
         return log.Unanchored switch
         {
             { PreviousProjectId: { } previous } history =>
-                $"En esta ubicación vivía el historial del proyecto {previous} ({Entries(history.PreviousEntryCount ?? 0)}), y el registro de decisiones de ahora empieza vacío: aquel historial ya no está aquí. "
-                + "No se planifica, ejecuta ni reanuda nada hasta que aceptes empezar uno nuevo.",
+                Texts.Format("Orchestrator_History_Replaced", previous, Entries(history.PreviousEntryCount ?? 0)),
             { } history =>
-                $"El registro de decisiones tiene {Entries(history.EntryCount)}, pero no hay ancla para esta ubicación: la carpeta se movió o se copió aquí, o el registro viene de otra máquina o con el repositorio. "
-                + "No se planifica, ejecuta ni reanuda nada hasta que aceptes este historial como nuevo origen; acéptalo solo si lo reconoces.",
-            _ => $"El registro de decisiones no es íntegro: {log.Verification.Problem} No se planifica, ejecuta ni reanuda nada.",
+                Texts.Format("Orchestrator_History_NoAnchor", Entries(history.EntryCount)),
+            _ => Texts.Format("Orchestrator_History_NotIntact", log.Verification.Problem),
         };
     }
 
@@ -32,14 +31,17 @@ public static class HistoryText
         ArgumentNullException.ThrowIfNull(project);
         ArgumentNullException.ThrowIfNull(history);
         return history.PreviousProjectId is { } previous
-            ? $"Empezar un historial de decisiones nuevo en «{project.RootPath}». El ancla de esta ubicación era del proyecto {previous}, con {Entries(history.PreviousEntryCount ?? 0)}, y el registro de ahora está vacío: aquel historial ya no está aquí. "
+            ? $"Empezar un historial de decisiones nuevo en «{project.RootPath}». El ancla de esta ubicación era del proyecto {previous}, con {LoggedEntries(history.PreviousEntryCount ?? 0)}, y el registro de ahora está vacío: aquel historial ya no está aquí. "
               + "La aceptación queda en el registro, con lo que había."
-            : $"Aceptar como nuevo origen el historial de decisiones de «{project.RootPath}»: {Entries(history.EntryCount)}, cabeza {Short(history.HeadHash)}. "
+            : $"Aceptar como nuevo origen el historial de decisiones de «{project.RootPath}»: {LoggedEntries(history.EntryCount)}, cabeza {Short(history.HeadHash)}. "
               + "No hay ancla de este historial para esta ubicación: puede que movieras o copiaras la carpeta, o que el registro venga de otra máquina o con el repositorio. "
               + "Acéptalo solo si lo reconoces: lo que dice pasará a ser la base de las revisiones y de las reanudaciones, y la aceptación queda en el registro.";
     }
 
-    private static string Entries(long count) => count == 1 ? "1 entrada" : count.ToString(CultureInfo.InvariantCulture) + " entradas";
+    private static string Entries(long count) => count == 1 ? Texts.Get("Orchestrator_History_EntryOne") : Texts.Format("Orchestrator_History_Entries", count.ToString(CultureInfo.InvariantCulture));
+
+    /// <summary>The count of entries as the question writes it: the question is the description of an approval, which goes to the decision log and stays as it was written (D-48).</summary>
+    private static string LoggedEntries(long count) => count == 1 ? "1 entrada" : count.ToString(CultureInfo.InvariantCulture) + " entradas";
 
     private static string Short(string hash) => hash.Length > 12 ? hash[..12] : hash;
 }

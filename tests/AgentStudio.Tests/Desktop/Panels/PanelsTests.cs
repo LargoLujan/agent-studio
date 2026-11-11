@@ -66,7 +66,7 @@ public sealed class PanelsTests
         var row = Assert.Single(panel.Rows);
         Assert.Equal("T1", row.Where);
         Assert.Equal(ProblemSeverity.Warning, row.Severity);
-        Assert.Equal("Bloqueada · proveedor no disponible", row.Detail);
+        Assert.Equal("Bloqueada · el programa del agente no está disponible", row.Detail);
     }
 
     [Fact]

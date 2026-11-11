@@ -2,6 +2,7 @@ using AgentStudio.Application.Decisions;
 using AgentStudio.Debate.Arena;
 using AgentStudio.Debate.Audit;
 using AgentStudio.Debate.Challenges;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Skills;
 using AgentStudio.Orchestration.Integration;
 using Engine = AgentStudio.Orchestration.Engine.Orchestrator;
@@ -17,23 +18,24 @@ namespace AgentStudio.Desktop.Orchestrator.Approvals;
 public static class ApprovalTitles
 {
     /// <summary>The title of an action whose identifier the app does not know.</summary>
-    public const string Unknown = "Una acción necesita tu aprobación";
+    public static string Unknown => Texts.Get("Orchestrator_ApprovalTitle_Unknown");
 
+    /// <summary>The key of the text of each known action, by the identifier the modules ask with.</summary>
     private static readonly Dictionary<string, string> Known = new(StringComparer.Ordinal)
     {
-        [DeliveryService.ApprovalAction] = "Entregar a tu rama",
-        [WorkspaceCleanup.ApprovalAction] = "Descartar el trabajo de una ejecución",
-        [Engine.PlanApprovalAction] = "Aprobar el plan",
-        [Engine.HumanApprovalAction] = "Aprobar una tarea del plan",
-        [Engine.ReviewEscalationAction] = "Decidir sobre una revisión",
-        [ProjectAuditService.ApprovalAction] = "Auditar el proyecto",
-        [DebateCoordinator.OpenAction] = "Abrir un debate",
-        [DebateCoordinator.ResumeAction] = "Reanudar un debate",
-        [DebateRun.HumanResolutionAction] = "Decidir el resultado del debate",
-        [ChallengeLog.RevisionAcceptanceAction] = "Aceptar la revisión de un veredicto",
-        [PendingProblems.ReplanDismissalAction] = "Descartar la petición de replanificar",
-        [SkillsDocumentViewModel.AssistedAction] = "Pedir a un agente que recomiende skills",
-        [UnanchoredHistory.AcceptAction] = "Aceptar el historial como nuevo origen",
+        [DeliveryService.ApprovalAction] = "Orchestrator_ApprovalTitle_Deliver",
+        [WorkspaceCleanup.ApprovalAction] = "Orchestrator_ApprovalTitle_Cleanup",
+        [Engine.PlanApprovalAction] = "Orchestrator_ApprovalTitle_Plan",
+        [Engine.HumanApprovalAction] = "Orchestrator_ApprovalTitle_HumanTask",
+        [Engine.ReviewEscalationAction] = "Orchestrator_ApprovalTitle_ReviewEscalation",
+        [ProjectAuditService.ApprovalAction] = "Orchestrator_ApprovalTitle_Audit",
+        [DebateCoordinator.OpenAction] = "Orchestrator_ApprovalTitle_DebateOpen",
+        [DebateCoordinator.ResumeAction] = "Orchestrator_ApprovalTitle_DebateResume",
+        [DebateRun.HumanResolutionAction] = "Orchestrator_ApprovalTitle_DebateResolve",
+        [ChallengeLog.RevisionAcceptanceAction] = "Orchestrator_ApprovalTitle_Revision",
+        [PendingProblems.ReplanDismissalAction] = "Orchestrator_ApprovalTitle_Replan",
+        [SkillsDocumentViewModel.AssistedAction] = "Orchestrator_ApprovalTitle_Skills",
+        [UnanchoredHistory.AcceptAction] = "Orchestrator_ApprovalTitle_History",
     };
 
     /// <summary>
@@ -41,7 +43,7 @@ public static class ApprovalTitles
     /// (it has a space, as a request written by hand); <see cref="Unknown"/> for any other identifier.
     /// </summary>
     public static string For(string? action) =>
-        action is not null && Known.TryGetValue(action, out var title) ? title
+        action is not null && Known.TryGetValue(action, out var key) ? Texts.Get(key)
         : IsIdentifier(action) || string.IsNullOrWhiteSpace(action) ? Unknown
         : action.Trim();
 

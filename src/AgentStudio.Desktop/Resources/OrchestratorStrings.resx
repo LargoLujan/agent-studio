@@ -1,0 +1,2605 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the Orchestrator area (docs/17 D-47, ADR-0054; Phase 14 WP-14A (a1)) in Spanish of Spain, the source language. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Orchestrator_Approval_WindowTitle" xml:space="preserve">
+    <value>Aprobación necesaria · Agent Studio</value>
+    <comment>Title of the approval window.</comment>
+  </data>
+  <data name="Orchestrator_Approval_WindowName" xml:space="preserve">
+    <value>Aprobación necesaria</value>
+    <comment>Accessible name of the approval window.</comment>
+  </data>
+  <data name="Orchestrator_Approval_ActionName" xml:space="preserve">
+    <value>Acción: {0}</value>
+    <comment>Accessible name of the title of the question. {0}: the title.</comment>
+  </data>
+  <data name="Orchestrator_Approval_PathsName" xml:space="preserve">
+    <value>Rutas afectadas</value>
+    <comment>Accessible name of the list of paths.</comment>
+  </data>
+  <data name="Orchestrator_Approval_CommentLabel" xml:space="preserve">
+    <value>Comentario (opcional; se guarda en el historial)</value>
+    <comment>Label of the comment box.</comment>
+  </data>
+  <data name="Orchestrator_Approval_CommentName" xml:space="preserve">
+    <value>Comentario</value>
+    <comment>Accessible name of the comment box.</comment>
+  </data>
+  <data name="Orchestrator_Approval_ConfirmCritical" xml:space="preserve">
+    <value>Entiendo que es una acción crítica y quiero aprobarla</value>
+    <comment>Check box that a critical approval needs.</comment>
+  </data>
+  <data name="Orchestrator_Approval_CloseIsDeny" xml:space="preserve">
+    <value>Cerrar esta ventana cuenta como denegar.</value>
+    <comment>Hint next to the buttons.</comment>
+  </data>
+  <data name="Orchestrator_Approval_Approve" xml:space="preserve">
+    <value>Aprobar</value>
+    <comment>Button that approves.</comment>
+  </data>
+  <data name="Orchestrator_Approval_Deny" xml:space="preserve">
+    <value>Denegar</value>
+    <comment>Button that denies.</comment>
+  </data>
+  <data name="Orchestrator_Approval_HelloNotice" xml:space="preserve">
+    <value>Al aprobar, Windows Hello te pedirá que confirmes que eres tú. Sin esa confirmación no se aprueba nada.</value>
+    <comment>What happens after Approve when Windows Hello is on.</comment>
+  </data>
+  <data name="Orchestrator_Approval_HelloUnavailable" xml:space="preserve">
+    <value>Windows Hello no está disponible en este equipo ({0}). Esta aprobación la decide solo este diálogo, y el historial lo anota.</value>
+    <comment>Why the dialog decides alone. {0}: why Windows Hello is absent.</comment>
+  </data>
+  <data name="Orchestrator_Approval_ActionDetail" xml:space="preserve">
+    <value>Acción en el historial: {0}</value>
+    <comment>Technical detail: the identifier of the action. {0}: identifier.</comment>
+  </data>
+  <data name="Orchestrator_Approval_RiskCritical" xml:space="preserve">
+    <value>Riesgo crítico</value>
+    <comment>Risk label.</comment>
+  </data>
+  <data name="Orchestrator_Approval_RiskDestructive" xml:space="preserve">
+    <value>Acción destructiva</value>
+    <comment>Risk label.</comment>
+  </data>
+  <data name="Orchestrator_Approval_RiskLow" xml:space="preserve">
+    <value>Riesgo bajo</value>
+    <comment>Risk label.</comment>
+  </data>
+  <data name="Orchestrator_Approval_PathOne" xml:space="preserve">
+    <value>Ruta afectada</value>
+    <comment>Header of the list when there is one path.</comment>
+  </data>
+  <data name="Orchestrator_Approval_PathMany" xml:space="preserve">
+    <value>Rutas afectadas ({0})</value>
+    <comment>Header of the list. {0}: count.</comment>
+  </data>
+  <data name="Orchestrator_Approval_RequestedBy" xml:space="preserve">
+    <value>Lo pide el agente «{0}».</value>
+    <comment>Who asks. {0}: agent name.</comment>
+  </data>
+  <data name="Orchestrator_Approval_OriginProject" xml:space="preserve">
+    <value>proyecto {0}</value>
+    <comment>Part of the origin. {0}: project name.</comment>
+  </data>
+  <data name="Orchestrator_Approval_OriginRun" xml:space="preserve">
+    <value>ejecución {0}</value>
+    <comment>Part of the origin. {0}: run id.</comment>
+  </data>
+  <data name="Orchestrator_Approval_OriginTask" xml:space="preserve">
+    <value>tarea {0}</value>
+    <comment>Part of the origin. {0}: task id.</comment>
+  </data>
+  <data name="Orchestrator_Approval_Origin" xml:space="preserve">
+    <value>Origen: {0}</value>
+    <comment>Where the action comes from. {0}: the parts joined with a dot.</comment>
+  </data>
+  <data name="Orchestrator_ApprovalTitle_Unknown" xml:space="preserve">
+    <value>Una acción necesita tu aprobación</value>
+    <comment>Title of an action the app does not know.</comment>
+  </data>
+  <data name="Orchestrator_ApprovalTitle_Deliver" xml:space="preserve">
+    <value>Entregar a tu rama</value>
+    <comment>Title of the question.</comment>
+  </data>
+  <data name="Orchestrator_ApprovalTitle_Cleanup" xml:space="preserve">
+    <value>Descartar el trabajo de una ejecución</value>
+    <comment>Title of the question.</comment>
+  </data>
+  <data name="Orchestrator_ApprovalTitle_Plan" xml:space="preserve">
+    <value>Aprobar el plan</value>
+    <comment>Title of the question.</comment>
+  </data>
+  <data name="Orchestrator_ApprovalTitle_HumanTask" xml:space="preserve">
+    <value>Aprobar una tarea del plan</value>
+    <comment>Title of the question.</comment>
+  </data>
+  <data name="Orchestrator_ApprovalTitle_ReviewEscalation" xml:space="preserve">
+    <value>Decidir sobre una revisión</value>
+    <comment>Title of the question.</comment>
+  </data>
+  <data name="Orchestrator_ApprovalTitle_Audit" xml:space="preserve">
+    <value>Auditar el proyecto</value>
+    <comment>Title of the question.</comment>
+  </data>
+  <data name="Orchestrator_ApprovalTitle_DebateOpen" xml:space="preserve">
+    <value>Abrir un debate</value>
+    <comment>Title of the question.</comment>
+  </data>
+  <data name="Orchestrator_ApprovalTitle_DebateResume" xml:space="preserve">
+    <value>Reanudar un debate</value>
+    <comment>Title of the question.</comment>
+  </data>
+  <data name="Orchestrator_ApprovalTitle_DebateResolve" xml:space="preserve">
+    <value>Decidir el resultado del debate</value>
+    <comment>Title of the question.</comment>
+  </data>
+  <data name="Orchestrator_ApprovalTitle_Revision" xml:space="preserve">
+    <value>Aceptar la revisión de un veredicto</value>
+    <comment>Title of the question.</comment>
+  </data>
+  <data name="Orchestrator_ApprovalTitle_Replan" xml:space="preserve">
+    <value>Descartar la petición de replanificar</value>
+    <comment>Title of the question.</comment>
+  </data>
+  <data name="Orchestrator_ApprovalTitle_Skills" xml:space="preserve">
+    <value>Pedir a un agente que recomiende skills</value>
+    <comment>Title of the question.</comment>
+  </data>
+  <data name="Orchestrator_ApprovalTitle_History" xml:space="preserve">
+    <value>Aceptar el historial como nuevo origen</value>
+    <comment>Title of the question.</comment>
+  </data>
+  <data name="Info_Approval_Title" xml:space="preserve">
+    <value>Aprobaciones y Windows Hello</value>
+    <comment>Title of the information button.</comment>
+  </data>
+  <data name="Info_Approval_What" xml:space="preserve">
+    <value>Algunas acciones cambian tus archivos o tu rama. Antes de hacerlas, Agent Studio te pregunta. Solo «Aprobar» las aprueba: cerrar la ventana cuenta como denegar. Si Windows Hello está activo, te pedirá además que confirmes que eres tú.</value>
+    <comment>What the approval question is.</comment>
+  </data>
+  <data name="Info_Approval_Actions" xml:space="preserve">
+    <value>Leer qué se pide, quién lo pide y qué rutas toca.
+Escribir un comentario: se guarda en el historial.
+Aprobar o denegar con los botones, o denegar cerrando la ventana.
+Confirmar con Windows Hello cuando te lo pida.</value>
+    <comment>What the person can do in the approval question.</comment>
+  </data>
+  <data name="Orchestrator_NodeKind_AgentWork" xml:space="preserve">
+    <value>Trabajo de agente</value>
+    <comment>Kind of node.</comment>
+  </data>
+  <data name="Orchestrator_NodeKind_Condition" xml:space="preserve">
+    <value>Condición</value>
+    <comment>Kind of node.</comment>
+  </data>
+  <data name="Orchestrator_NodeKind_ToolRun" xml:space="preserve">
+    <value>Herramienta</value>
+    <comment>Kind of node.</comment>
+  </data>
+  <data name="Orchestrator_NodeKind_Review" xml:space="preserve">
+    <value>Revisión</value>
+    <comment>Kind of node.</comment>
+  </data>
+  <data name="Orchestrator_NodeKind_Debate" xml:space="preserve">
+    <value>Debate</value>
+    <comment>Kind of node.</comment>
+  </data>
+  <data name="Orchestrator_NodeKind_HumanApproval" xml:space="preserve">
+    <value>Aprobación humana</value>
+    <comment>Kind of node.</comment>
+  </data>
+  <data name="Orchestrator_NodeKind_Integration" xml:space="preserve">
+    <value>Integración</value>
+    <comment>Kind of node.</comment>
+  </data>
+  <data name="Orchestrator_NodeKind_Badge" xml:space="preserve">
+    <value>aplazado</value>
+    <comment>Badge of a kind the validator rejects.</comment>
+  </data>
+  <data name="Orchestrator_NodeKind_Reason" xml:space="preserve">
+    <value>los nodos de debate del lienzo están aplazados; abre el debate desde «Debates»</value>
+    <comment>Why a debate node cannot be used.</comment>
+  </data>
+  <data name="Orchestrator_TaskStatus_Pending" xml:space="preserve">
+    <value>Pendiente</value>
+    <comment>Status of a task.</comment>
+  </data>
+  <data name="Orchestrator_TaskStatus_Running" xml:space="preserve">
+    <value>En curso</value>
+    <comment>Status of a task.</comment>
+  </data>
+  <data name="Orchestrator_TaskStatus_Blocked" xml:space="preserve">
+    <value>Bloqueada</value>
+    <comment>Status of a task.</comment>
+  </data>
+  <data name="Orchestrator_TaskStatus_AwaitingApproval" xml:space="preserve">
+    <value>Espera tu aprobación</value>
+    <comment>Status of a task.</comment>
+  </data>
+  <data name="Orchestrator_TaskStatus_Completed" xml:space="preserve">
+    <value>Completada</value>
+    <comment>Status of a task.</comment>
+  </data>
+  <data name="Orchestrator_TaskStatus_Failed" xml:space="preserve">
+    <value>Fallida</value>
+    <comment>Status of a task.</comment>
+  </data>
+  <data name="Orchestrator_TaskStatus_Cancelled" xml:space="preserve">
+    <value>Cancelada</value>
+    <comment>Status of a task.</comment>
+  </data>
+  <data name="Orchestrator_TaskStatus_Skipped" xml:space="preserve">
+    <value>Omitida</value>
+    <comment>Status of a task.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_AddNodeHint" xml:space="preserve">
+    <value>Añadir un nodo «{0}»</value>
+    <comment>Hint of a palette button. {0}: kind.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_PostponedHint" xml:space="preserve">
+    <value>Aplazado: {0}.</value>
+    <comment>Hint of a palette button that is not available. {0}: reason.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_ReadOnly" xml:space="preserve">
+    <value>El plan se está ejecutando: no se puede cambiar.</value>
+    <comment>Why a connection is refused.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_WrongDirection" xml:space="preserve">
+    <value>Une una salida con una entrada.</value>
+    <comment>Why a connection is refused.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_DebateNotAvailable" xml:space="preserve">
+    <value>Debate: {0}.</value>
+    <comment>Why a connection is refused. {0}: reason.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_Duplicate" xml:space="preserve">
+    <value>Esa conexión ya existe.</value>
+    <comment>Why a connection is refused.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_ConnectionRefused" xml:space="preserve">
+    <value>Conexión rechazada. {0}</value>
+    <comment>Notice. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_NewNodeTitle" xml:space="preserve">
+    <value>{0} nuevo</value>
+    <comment>Default title of a new node. {0}: kind.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_NodeCreated" xml:space="preserve">
+    <value>Creado {0} · {1}.</value>
+    <comment>Notice. {0}: id, {1}: kind.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_Deleted" xml:space="preserve">
+    <value>Selección eliminada. Nodos: {0}. Conexiones: {1}.</value>
+    <comment>Notice.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_SaveFailed" xml:space="preserve">
+    <value>No se pudo guardar la disposición del lienzo: {0}</value>
+    <comment>Notice. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Connector_Name" xml:space="preserve">
+    <value>{0} de {1}</value>
+    <comment>Accessible name of a connector. {0}: title, {1}: node.</comment>
+  </data>
+  <data name="Orchestrator_Connector_Link" xml:space="preserve">
+    <value>{0} a {1}</value>
+    <comment>Accessible name of a wire. {0}: from, {1}: to.</comment>
+  </data>
+  <data name="Orchestrator_Connector_LinkWithBranch" xml:space="preserve">
+    <value>{0} ({1}) a {2}</value>
+    <comment>Accessible name of a wire out of a branch. {0}: from, {1}: branch, {2}: to.</comment>
+  </data>
+  <data name="Orchestrator_Link_ConnectWith" xml:space="preserve">
+    <value>Conectar con {0}</value>
+    <comment>Preview of a wire. {0}: node.</comment>
+  </data>
+  <data name="Orchestrator_Link_PlanHasCycle" xml:space="preserve">
+    <value>El plan ya tiene un ciclo ({0}): quítalo antes de añadir conexiones.</value>
+    <comment>Why a connection is refused.</comment>
+  </data>
+  <data name="Orchestrator_Link_PlanBroken" xml:space="preserve">
+    <value>Las conexiones del plan ya incumplen una regla: corrígelas antes de añadir otra.</value>
+    <comment>Why a connection is refused.</comment>
+  </data>
+  <data name="Orchestrator_Link_Cycle" xml:space="preserve">
+    <value>Ciclo: {0}</value>
+    <comment>Why a connection is refused.</comment>
+  </data>
+  <data name="Orchestrator_Link_OtherBranch" xml:space="preserve">
+    <value>{0} ya espera a {1} por la otra rama. Una tarea solo puede esperar una rama de cada condición.</value>
+    <comment>Why a connection is refused.</comment>
+  </data>
+  <data name="Orchestrator_Link_Rejected" xml:space="preserve">
+    <value>El plan no admite esa conexión (regla {0}).</value>
+    <comment>Why a connection is refused.</comment>
+  </data>
+  <data name="Orchestrator_Node_Input" xml:space="preserve">
+    <value>Entrada</value>
+    <comment>Title of the input connector.</comment>
+  </data>
+  <data name="Orchestrator_Node_Output" xml:space="preserve">
+    <value>Salida</value>
+    <comment>Title of the output connector.</comment>
+  </data>
+  <data name="Orchestrator_Node_Yes" xml:space="preserve">
+    <value>Sí</value>
+    <comment>Title of the Yes output of a condition.</comment>
+  </data>
+  <data name="Orchestrator_Node_No" xml:space="preserve">
+    <value>No</value>
+    <comment>Title of the No output of a condition.</comment>
+  </data>
+  <data name="Orchestrator_Node_Postponed" xml:space="preserve">
+    <value>Aplazado</value>
+    <comment>Status of a node that is not available.</comment>
+  </data>
+  <data name="Orchestrator_Node_ProblemOne" xml:space="preserve">
+    <value>1 problema</value>
+    <comment>Problems of a node.</comment>
+  </data>
+  <data name="Orchestrator_Node_ProblemMany" xml:space="preserve">
+    <value>{0} problemas</value>
+    <comment>Problems of a node.</comment>
+  </data>
+  <data name="Orchestrator_Node_WorkspaceNone" xml:space="preserve">
+    <value>Sin copia del código</value>
+    <comment>Option of the workspace.</comment>
+  </data>
+  <data name="Orchestrator_Node_WorkspaceReadOnly" xml:space="preserve">
+    <value>Solo lectura</value>
+    <comment>Option of the workspace.</comment>
+  </data>
+  <data name="Orchestrator_Node_WorkspaceWrite" xml:space="preserve">
+    <value>Escribe en su propia copia de trabajo aislada</value>
+    <comment>Option of the workspace.</comment>
+  </data>
+  <data name="Orchestrator_Node_JoinAll" xml:space="preserve">
+    <value>Esperar a todas sus dependencias</value>
+    <comment>Option of when a task can start.</comment>
+  </data>
+  <data name="Orchestrator_Node_JoinAny" xml:space="preserve">
+    <value>Basta con una (para unir las ramas de una condición)</value>
+    <comment>Option of when a task can start.</comment>
+  </data>
+  <data name="Orchestrator_Node_Mandatory" xml:space="preserve">
+    <value>obligatorio</value>
+    <comment>Priority of a requirement.</comment>
+  </data>
+  <data name="Orchestrator_Node_Desirable" xml:space="preserve">
+    <value>deseable</value>
+    <comment>Priority of a requirement.</comment>
+  </data>
+  <data name="Orchestrator_Node_CoverUnknown" xml:space="preserve">
+    <value>{0} (no está en los requisitos congelados)</value>
+    <comment>A requirement the task covers that does not exist. {0}: id.</comment>
+  </data>
+  <data name="Orchestrator_Node_StepUnknown" xml:space="preserve">
+    <value>{0} (no está en el perfil)</value>
+    <comment>A step the task cites that does not exist. {0}: id.</comment>
+  </data>
+  <data name="Orchestrator_Node_PredicateNone" xml:space="preserve">
+    <value>Sin elegir</value>
+    <comment>Option of what a condition checks.</comment>
+  </data>
+  <data name="Orchestrator_Node_PredicateSucceeded" xml:space="preserve">
+    <value>La tarea terminó bien</value>
+    <comment>Option of what a condition checks.</comment>
+  </data>
+  <data name="Orchestrator_Node_PredicateTests" xml:space="preserve">
+    <value>Las pruebas de la tarea pasaron</value>
+    <comment>Option of what a condition checks.</comment>
+  </data>
+  <data name="Orchestrator_Node_PredicateOutput" xml:space="preserve">
+    <value>Una salida de la tarea vale…</value>
+    <comment>Option of what a condition checks.</comment>
+  </data>
+  <data name="Orchestrator_Node_PredicatePaths" xml:space="preserve">
+    <value>La tarea cambió una ruta que empieza por…</value>
+    <comment>Option of what a condition checks.</comment>
+  </data>
+  <data name="Orchestrator_Node_RetriesError" xml:space="preserve">
+    <value>Escribe un número entero de 0 en adelante.</value>
+    <comment>Error of the retries box.</comment>
+  </data>
+  <data name="Orchestrator_Node_TimeoutError" xml:space="preserve">
+    <value>Escribe los minutos (por ejemplo 20 o 2.5) o déjalo vacío.</value>
+    <comment>Error of the time limit box.</comment>
+  </data>
+  <data name="Orchestrator_Node_ExtraDependencyBranch" xml:space="preserve">
+    <value>{0} (rama «{1}»)</value>
+    <comment>A dependency the canvas cannot draw. {0}: task, {1}: branch.</comment>
+  </data>
+  <data name="Orchestrator_Node_NoAgent" xml:space="preserve">
+    <value>Sin agente</value>
+    <comment>Option of the agent.</comment>
+  </data>
+  <data name="Orchestrator_Node_AgentMissing" xml:space="preserve">
+    <value>{0} (no está en la plantilla)</value>
+    <comment>An agent that does not exist. {0}: id.</comment>
+  </data>
+  <data name="Orchestrator_Node_NoTool" xml:space="preserve">
+    <value>Sin herramienta</value>
+    <comment>Option of the tool.</comment>
+  </data>
+  <data name="Orchestrator_Node_TaskMissing" xml:space="preserve">
+    <value>{0} (no está en el plan)</value>
+    <comment>A task that does not exist. {0}: id.</comment>
+  </data>
+  <data name="Orchestrator_Draft_Damaged" xml:space="preserve">
+    <value>no se puede leer: está dañado o incompleto</value>
+    <comment>Why a draft is ignored.</comment>
+  </data>
+  <data name="Orchestrator_Draft_TooBig" xml:space="preserve">
+    <value>es demasiado grande para recuperarlo</value>
+    <comment>Why a draft is ignored.</comment>
+  </data>
+  <data name="Orchestrator_Draft_NotOurs" xml:space="preserve">
+    <value>no lo guardó Agent Studio en este equipo para esta carpeta</value>
+    <comment>Why a draft is ignored.</comment>
+  </data>
+  <data name="Orchestrator_Violation_EmptyPlan" xml:space="preserve">
+    <value>El plan no tiene tareas.</value>
+    <comment>PlanViolationCode.EmptyPlan.</comment>
+  </data>
+  <data name="Orchestrator_Violation_TooManyTasks" xml:space="preserve">
+    <value>El plan tiene {0} tareas; el límite es {1}.</value>
+    <comment>TooManyTasks. {0}: count, {1}: limit.</comment>
+  </data>
+  <data name="Orchestrator_Violation_InvalidTaskId" xml:space="preserve">
+    <value>El identificador «{0}» no es válido. Empieza por una letra y tiene como mucho 32 letras, dígitos, «_» o «-».</value>
+    <comment>InvalidTaskId. {0}: id.</comment>
+  </data>
+  <data name="Orchestrator_Violation_DuplicateTaskId" xml:space="preserve">
+    <value>El identificador {0} se repite en el plan.</value>
+    <comment>DuplicateTaskId. {0}: id.</comment>
+  </data>
+  <data name="Orchestrator_Violation_TitleRequired" xml:space="preserve">
+    <value>La tarea {0} no tiene título.</value>
+    <comment>TitleRequired. {0}: task.</comment>
+  </data>
+  <data name="Orchestrator_Violation_ObjectiveRequired" xml:space="preserve">
+    <value>La tarea {0} no tiene objetivo.</value>
+    <comment>ObjectiveRequired. {0}: task.</comment>
+  </data>
+  <data name="Orchestrator_Violation_UnknownDependency" xml:space="preserve">
+    <value>La tarea {0} depende de {1}, que no está en el plan.</value>
+    <comment>UnknownDependency. {0}: task, {1}: missing task.</comment>
+  </data>
+  <data name="Orchestrator_Violation_UnknownDependencyAny" xml:space="preserve">
+    <value>La tarea {0} depende de una tarea que no está en el plan.</value>
+    <comment>UnknownDependency without the detail.</comment>
+  </data>
+  <data name="Orchestrator_Violation_DuplicateDependency" xml:space="preserve">
+    <value>La tarea {0} cita {1} como prerrequisito más de una vez.</value>
+    <comment>DuplicateDependency. {0}: task, {1}: prerequisite.</comment>
+  </data>
+  <data name="Orchestrator_Violation_DuplicateDependencyAny" xml:space="preserve">
+    <value>La tarea {0} cita un prerrequisito más de una vez.</value>
+    <comment>DuplicateDependency without the detail.</comment>
+  </data>
+  <data name="Orchestrator_Violation_DependencyCycle" xml:space="preserve">
+    <value>Hay un ciclo de dependencias que pasa por {0}: una tarea no puede esperarse a sí misma.</value>
+    <comment>DependencyCycle. {0}: task.</comment>
+  </data>
+  <data name="Orchestrator_Violation_UnknownAgent" xml:space="preserve">
+    <value>La tarea {0} está asignada a «{1}», que no está en la plantilla de agentes.</value>
+    <comment>UnknownAgent. {0}: task, {1}: agent.</comment>
+  </data>
+  <data name="Orchestrator_Violation_AgentRequired" xml:space="preserve">
+    <value>La tarea {0} ({1}) necesita un agente.</value>
+    <comment>AgentRequired. {0}: task, {1}: kind.</comment>
+  </data>
+  <data name="Orchestrator_Violation_OrchestratorHasTask" xml:space="preserve">
+    <value>La tarea {0} está asignada al orquestador «{1}», que solo planifica.</value>
+    <comment>OrchestratorHasTask. {0}: task, {1}: agent.</comment>
+  </data>
+  <data name="Orchestrator_Violation_JudgeOutsideReview" xml:space="preserve">
+    <value>«{0}» es juez o auditor y solo puede hacer revisiones; {1} es «{2}».</value>
+    <comment>JudgeOutsideReview. {0}: agent, {1}: task, {2}: kind.</comment>
+  </data>
+  <data name="Orchestrator_Violation_ReviewerNotJudge" xml:space="preserve">
+    <value>La revisión {0} está asignada a «{1}»; solo un juez o un auditor puede revisar.</value>
+    <comment>ReviewerNotJudge. {0}: task, {1}: agent.</comment>
+  </data>
+  <data name="Orchestrator_Violation_JudgeVendorNotIndependent" xml:space="preserve">
+    <value>El juez «{1}» de {0} usa un modelo de {2}, igual que el orquestador o un ejecutor del plan. El juez tiene que ser de otra empresa.</value>
+    <comment>JudgeVendorNotIndependent. {0}: task, {1}: agent, {2}: company.</comment>
+  </data>
+  <data name="Orchestrator_Violation_JudgeVendorNotIndependentAny" xml:space="preserve">
+    <value>El juez «{1}» de {0} usa un modelo de la misma empresa que el orquestador o un ejecutor del plan. El juez tiene que ser de otra empresa.</value>
+    <comment>JudgeVendorNotIndependent without the company.</comment>
+  </data>
+  <data name="Orchestrator_Violation_ConditionWithoutPredicate" xml:space="preserve">
+    <value>La condición {0} no dice qué comprueba: elígelo.</value>
+    <comment>ConditionWithoutPredicate. {0}: task.</comment>
+  </data>
+  <data name="Orchestrator_Violation_PredicateOnNonCondition" xml:space="preserve">
+    <value>La tarea {0} no es una condición, pero lleva una comprobación de condición.</value>
+    <comment>PredicateOnNonCondition. {0}: task.</comment>
+  </data>
+  <data name="Orchestrator_Violation_PredicateNotAncestor" xml:space="preserve">
+    <value>La condición {0} lee la tarea {1}, que no es una de sus antecesoras.</value>
+    <comment>PredicateNotAncestor. {0}: task, {1}: task read.</comment>
+  </data>
+  <data name="Orchestrator_Violation_PredicateNotAncestorAny" xml:space="preserve">
+    <value>La condición {0} lee una tarea que no es una de sus antecesoras.</value>
+    <comment>PredicateNotAncestor without the detail.</comment>
+  </data>
+  <data name="Orchestrator_Violation_BranchRequired" xml:space="preserve">
+    <value>La tarea {0} depende de una condición sin decir de qué rama (Sí o No).</value>
+    <comment>BranchRequired. {0}: task.</comment>
+  </data>
+  <data name="Orchestrator_Violation_BranchOnNonCondition" xml:space="preserve">
+    <value>La tarea {0} espera una rama de una tarea que no es una condición.</value>
+    <comment>BranchOnNonCondition. {0}: task.</comment>
+  </data>
+  <data name="Orchestrator_Violation_UnknownBranch" xml:space="preserve">
+    <value>La tarea {0} espera una rama desconocida. Una condición solo tiene las ramas Sí y No.</value>
+    <comment>UnknownBranch. {0}: task.</comment>
+  </data>
+  <data name="Orchestrator_Violation_FanInWithoutIntegration" xml:space="preserve">
+    <value>La tarea {0} parte del código de varias tareas que no se han unido: añade antes una tarea de integración.</value>
+    <comment>FanInWithoutIntegration. {0}: task.</comment>
+  </data>
+  <data name="Orchestrator_Violation_UnsafeWriteScope" xml:space="preserve">
+    <value>El alcance «{1}» de {0} no está permitido. Usa rutas relativas, sin «..», sin comodines y fuera de .git y .agentstudio.</value>
+    <comment>UnsafeWriteScope. {0}: task, {1}: entry.</comment>
+  </data>
+  <data name="Orchestrator_Violation_UnsafeWriteScopeAny" xml:space="preserve">
+    <value>Un alcance de escritura de {0} no está permitido. Usa rutas relativas, sin «..», sin comodines y fuera de .git y .agentstudio.</value>
+    <comment>UnsafeWriteScope without the entry.</comment>
+  </data>
+  <data name="Orchestrator_Violation_WriteScopeRequired" xml:space="preserve">
+    <value>La tarea {0} escribe en su copia de trabajo aislada, pero no dice qué carpetas o ficheros puede cambiar.</value>
+    <comment>WriteScopeRequired. {0}: task.</comment>
+  </data>
+  <data name="Orchestrator_Violation_OverlappingWriteScopes" xml:space="preserve">
+    <value>El alcance de escritura de {0} se solapa con el de otra tarea que puede ejecutarse a la vez.</value>
+    <comment>OverlappingWriteScopes. {0}: task.</comment>
+  </data>
+  <data name="Orchestrator_Violation_UnknownRequirement" xml:space="preserve">
+    <value>La tarea {0} cubre el requisito {1}, que no está en los requisitos congelados.</value>
+    <comment>UnknownRequirement. {0}: task, {1}: requirement.</comment>
+  </data>
+  <data name="Orchestrator_Violation_UnknownRequirementAny" xml:space="preserve">
+    <value>La tarea {0} cubre un requisito que no está en los requisitos congelados.</value>
+    <comment>UnknownRequirement without the detail.</comment>
+  </data>
+  <data name="Orchestrator_Violation_MandatoryRequirementUncovered" xml:space="preserve">
+    <value>El requisito obligatorio {0} no lo cubre ninguna tarea.</value>
+    <comment>MandatoryRequirementUncovered. {0}: requirement.</comment>
+  </data>
+  <data name="Orchestrator_Violation_MandatoryRequirementUncoveredAny" xml:space="preserve">
+    <value>Hay un requisito obligatorio que no cubre ninguna tarea.</value>
+    <comment>MandatoryRequirementUncovered without the detail.</comment>
+  </data>
+  <data name="Orchestrator_Violation_UnknownVerificationStep" xml:space="preserve">
+    <value>La tarea {0} cita el paso de verificación «{1}», que no está en el perfil.</value>
+    <comment>UnknownVerificationStep. {0}: task, {1}: step.</comment>
+  </data>
+  <data name="Orchestrator_Violation_UnknownVerificationStepAny" xml:space="preserve">
+    <value>La tarea {0} cita un paso de verificación que no está en el perfil.</value>
+    <comment>UnknownVerificationStep without the detail.</comment>
+  </data>
+  <data name="Orchestrator_Violation_ToolRequired" xml:space="preserve">
+    <value>La herramienta {0} no dice qué paso del perfil ejecutar.</value>
+    <comment>ToolRequired. {0}: task.</comment>
+  </data>
+  <data name="Orchestrator_Violation_UnknownTool" xml:space="preserve">
+    <value>La herramienta {0} cita «{1}», que no está en el perfil de verificación.</value>
+    <comment>UnknownTool. {0}: task, {1}: step.</comment>
+  </data>
+  <data name="Orchestrator_Violation_RetriesNotAllowed" xml:space="preserve">
+    <value>La tarea {0} ({1}) no admite reintentos: un reintento gastaría uso de tu plan o volvería a preguntar.</value>
+    <comment>RetriesNotAllowed. {0}: task, {1}: kind.</comment>
+  </data>
+  <data name="Orchestrator_Violation_RetriesOutOfRange" xml:space="preserve">
+    <value>La tarea {0} admite {1} reintentos; el límite es {2}.</value>
+    <comment>RetriesOutOfRange. {0}: task, {1}: retries, {2}: limit.</comment>
+  </data>
+  <data name="Orchestrator_Violation_InvalidTimeout" xml:space="preserve">
+    <value>La tarea {0} tiene un tiempo límite que no es positivo.</value>
+    <comment>InvalidTimeout. {0}: task.</comment>
+  </data>
+  <data name="Orchestrator_Violation_DebateNotAvailable" xml:space="preserve">
+    <value>{0} es un nodo de debate: {1}.</value>
+    <comment>DebateNotAvailable. {0}: task, {1}: reason.</comment>
+  </data>
+  <data name="Orchestrator_Violation_IntegrationWithoutVerification" xml:space="preserve">
+    <value>La integración {0} no tiene pasos de verificación: el código unido no se compilaría ni se probaría.</value>
+    <comment>IntegrationWithoutVerification. {0}: task.</comment>
+  </data>
+  <data name="Orchestrator_Violation_IntegrationsNotOrdered" xml:space="preserve">
+    <value>Las integraciones {1} y {0} pueden ejecutarse a la vez. Las integraciones de un plan van en cadena, cada una después de la anterior.</value>
+    <comment>IntegrationsNotOrdered. {0}: task, {1}: other integration.</comment>
+  </data>
+  <data name="Orchestrator_Violation_IntegrationsNotOrderedAny" xml:space="preserve">
+    <value>La integración {0} puede ejecutarse a la vez que otra integración. Las integraciones de un plan van en cadena, cada una después de la anterior.</value>
+    <comment>IntegrationsNotOrdered without the detail.</comment>
+  </data>
+  <data name="Orchestrator_Violation_VerificationRequiredByPolicy" xml:space="preserve">
+    <value>La tarea {0} la hace «{1}», cuya política exige pruebas capturadas por el sistema: añade pasos de verificación a la tarea.</value>
+    <comment>VerificationRequiredByPolicy. {0}: task, {1}: agent.</comment>
+  </data>
+  <data name="Orchestrator_Violation_ReviewRequiredByPolicy" xml:space="preserve">
+    <value>La tarea {0} la hace «{1}», cuya política exige una revisión independiente. Añade una tarea de revisión que dependa de todas las tareas que escriben.</value>
+    <comment>ReviewRequiredByPolicy. {0}: task, {1}: agent.</comment>
+  </data>
+  <data name="Orchestrator_Violation_TestStepRequiredByPolicy" xml:space="preserve">
+    <value>La tarea {0} la hace «{1}», cuya política exige pruebas capturadas por el sistema. Ninguno de sus pasos de verificación ejecuta pruebas. Añade un paso de pruebas del perfil: una compilación no es una prueba.</value>
+    <comment>TestStepRequiredByPolicy. {0}: task, {1}: agent.</comment>
+  </data>
+  <data name="Orchestrator_Violation_Default" xml:space="preserve">
+    <value>La tarea {0} incumple una regla del validador.</value>
+    <comment>Any other code, about a task.</comment>
+  </data>
+  <data name="Orchestrator_Violation_DefaultPlan" xml:space="preserve">
+    <value>El plan incumple una regla del validador.</value>
+    <comment>Any other code, about the plan.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_CreateNode" xml:space="preserve">
+    <value>Crear nodo</value>
+    <comment>Label of the palette of the plan layer.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_DeleteSelection" xml:space="preserve">
+    <value>Eliminar la selección (Supr)</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_FitView" xml:space="preserve">
+    <value>Ajustar la vista</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_FitViewHelp" xml:space="preserve">
+    <value>Muestra todos los nodos con un zoom en el que se puedan leer. Si el plan es muy grande, se ve desde su esquina.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_EmptyPlan" xml:space="preserve">
+    <value>El plan está vacío. Crea nodos con la barra de arriba o pide un plan al orquestador. Únelos arrastrando de una salida a una entrada.</value>
+    <comment>What to do first on an empty canvas.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_NodesCount" xml:space="preserve">
+    <value>Nodos:</value>
+    <comment>Status bar.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_ConnectionsCount" xml:space="preserve">
+    <value>Conexiones:</value>
+    <comment>Status bar.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_ZoomLabel" xml:space="preserve">
+    <value>Zoom:</value>
+    <comment>Status bar.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_LegendName" xml:space="preserve">
+    <value>Leyenda de estados</value>
+    <comment>Accessible name of the legend.</comment>
+  </data>
+  <data name="Info_Canvas_Plan_Title" xml:space="preserve">
+    <value>Lienzo del plan y cables</value>
+    <comment>Title of the information button.</comment>
+  </data>
+  <data name="Info_Canvas_Plan_What" xml:space="preserve">
+    <value>Cada nodo es una tarea del plan. Un cable une la salida de una tarea con la entrada de otra: la segunda espera a la primera. El lienzo no deja crear ciclos.</value>
+    <comment>What the plan canvas is.</comment>
+  </data>
+  <data name="Info_Canvas_Plan_Actions" xml:space="preserve">
+    <value>Crear nodos con la barra de arriba.
+Arrastrar de una salida a una entrada para unir dos tareas.
+Elegir un nodo para cambiar sus propiedades.
+Borrar la selección con Supr, o deshacer con Ctrl+Z.</value>
+    <comment>What the person can do in the plan canvas.</comment>
+  </data>
+  <data name="Orchestrator_Props_ReadOnly" xml:space="preserve">
+    <value>Solo lectura: el plan se está ejecutando.</value>
+    <comment>Shown while a run follows the plan.</comment>
+  </data>
+  <data name="Orchestrator_Props_Title" xml:space="preserve">
+    <value>Título</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_TitleName" xml:space="preserve">
+    <value>Título de la tarea</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Props_Agent" xml:space="preserve">
+    <value>Agente</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_Objective" xml:space="preserve">
+    <value>Objetivo</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_Instructions" xml:space="preserve">
+    <value>Instrucciones</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_Workspace" xml:space="preserve">
+    <value>Espacio de trabajo</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_WriteScope" xml:space="preserve">
+    <value>Alcance de escritura (una entrada por línea; una carpeta termina en /)</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_WriteScopeName" xml:space="preserve">
+    <value>Alcance de escritura</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Props_Covers" xml:space="preserve">
+    <value>Requisitos que cubre</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_NoRequirements" xml:space="preserve">
+    <value>El proyecto no tiene requisitos congelados.</value>
+    <comment>Shown when there is nothing to cover.</comment>
+  </data>
+  <data name="Orchestrator_Props_Steps" xml:space="preserve">
+    <value>Pasos de verificación (del perfil del proyecto)</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_StepsName" xml:space="preserve">
+    <value>Pasos de verificación</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Props_Tool" xml:space="preserve">
+    <value>Herramienta (un paso del perfil)</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_Tool_Name" xml:space="preserve">
+    <value>Herramienta</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Props_Condition" xml:space="preserve">
+    <value>Qué comprueba la condición</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_ConditionName" xml:space="preserve">
+    <value>Qué comprueba la condición</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Props_ConditionTask" xml:space="preserve">
+    <value>Sobre la tarea (una antecesora)</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_ConditionTaskName" xml:space="preserve">
+    <value>Tarea que lee la condición</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Props_OutputKeyValue" xml:space="preserve">
+    <value>Salida (clave) y valor esperado</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_OutputKeyName" xml:space="preserve">
+    <value>Clave de la salida</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Props_OutputValueName" xml:space="preserve">
+    <value>Valor esperado</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Props_PathPrefix" xml:space="preserve">
+    <value>Prefijo de ruta (vacío: cualquier cambio)</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_PathPrefixName" xml:space="preserve">
+    <value>Prefijo de ruta</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Props_BranchHint" xml:space="preserve">
+    <value>Une la salida Sí o la salida No a la tarea que debe correr en cada caso.</value>
+    <comment>Hint of a condition.</comment>
+  </data>
+  <data name="Orchestrator_Props_WhenStarts" xml:space="preserve">
+    <value>Cuándo puede empezar</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_WhenStartsName" xml:space="preserve">
+    <value>Cuándo puede empezar la tarea</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Props_ExtraDependencies" xml:space="preserve">
+    <value>Dependencias que el lienzo no puede dibujar</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_RemoveExtra" xml:space="preserve">
+    <value>Quitarlas</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Props_Retries" xml:space="preserve">
+    <value>Reintentos</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_Timeout" xml:space="preserve">
+    <value>Tiempo límite en minutos (vacío: el del motor)</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_TimeoutName" xml:space="preserve">
+    <value>Tiempo límite en minutos</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Prep_ToggleName" xml:space="preserve">
+    <value>Mostrar u ocultar la preparación</value>
+    <comment>Accessible name of the button that folds the band.</comment>
+  </data>
+  <data name="Orchestrator_Prep_Title" xml:space="preserve">
+    <value>Preparación</value>
+    <comment>Title of the band.</comment>
+  </data>
+  <data name="Orchestrator_Prep_SummaryName" xml:space="preserve">
+    <value>Resumen de la preparación</value>
+    <comment>Accessible name of the one-line summary.</comment>
+  </data>
+  <data name="Orchestrator_Prep_Requirements" xml:space="preserve">
+    <value>Requisitos</value>
+    <comment>Title of the section of the request and the requirements.</comment>
+  </data>
+  <data name="Orchestrator_Prep_RequestLabel" xml:space="preserve">
+    <value>Tu petición, tal como la escribes: el orquestador planifica a partir de ella y la ejecución la guarda.</value>
+    <comment>Label of the request box.</comment>
+  </data>
+  <data name="Orchestrator_Prep_RequestName" xml:space="preserve">
+    <value>Petición</value>
+    <comment>Accessible name of the request box.</comment>
+  </data>
+  <data name="Orchestrator_Prep_RequestHelp" xml:space="preserve">
+    <value>Lo que quieres que se haga, tal como lo escribes. El orquestador planifica a partir de ello y la ejecución lo guarda.</value>
+    <comment>Help of the request box.</comment>
+  </data>
+  <data name="Orchestrator_Prep_RequirementsLabel" xml:space="preserve">
+    <value>Requisitos (los congelas tú; el orquestador solo puede sugerirlos)</value>
+    <comment>Label of the requirements.</comment>
+  </data>
+  <data name="Orchestrator_Prep_Roster" xml:space="preserve">
+    <value>Plantilla de agentes</value>
+    <comment>Title of the section of the agents.</comment>
+  </data>
+  <data name="Orchestrator_Prep_RosterJudgeNote" xml:space="preserve">
+    <value>El juez usa una empresa de modelos distinta de la del orquestador y los ejecutores. El validador del plan lo comprueba. Un modelo nuevo vale desde la próxima planificación o ejecución.</value>
+    <comment>Note under the title of the agents.</comment>
+  </data>
+  <data name="Orchestrator_Prep_RosterName" xml:space="preserve">
+    <value>Agentes del proyecto</value>
+    <comment>Accessible name of the list.</comment>
+  </data>
+  <data name="Orchestrator_Prep_ModelLabel" xml:space="preserve">
+    <value>Modelo</value>
+    <comment>Label of the model box.</comment>
+  </data>
+  <data name="Orchestrator_Prep_ModelName" xml:space="preserve">
+    <value>Modelo de {0}</value>
+    <comment>Accessible name of the model box. {0}: agent name.</comment>
+  </data>
+  <data name="Orchestrator_Prep_TypedModelName" xml:space="preserve">
+    <value>Nombre del modelo de {0}</value>
+    <comment>Accessible name of the box to type a model. {0}: agent name.</comment>
+  </data>
+  <data name="Orchestrator_Prep_Cancel" xml:space="preserve">
+    <value>Cancelar</value>
+    <comment>Button that drops the typed model.</comment>
+  </data>
+  <data name="Orchestrator_Prep_UseModel" xml:space="preserve">
+    <value>Usar este modelo</value>
+    <comment>Button that takes the typed model.</comment>
+  </data>
+  <data name="Orchestrator_Prep_ReceivesMemory" xml:space="preserve">
+    <value>Recibe la memoria del proyecto</value>
+    <comment>Check box.</comment>
+  </data>
+  <data name="Orchestrator_Prep_MemoryName" xml:space="preserve">
+    <value>Memoria del proyecto de {0}</value>
+    <comment>Accessible name of the check box. {0}: agent name.</comment>
+  </data>
+  <data name="Orchestrator_Prep_Profile" xml:space="preserve">
+    <value>Perfil de verificación</value>
+    <comment>Title of the section.</comment>
+  </data>
+  <data name="Orchestrator_Prep_ProfileSteps" xml:space="preserve">
+    <value>Pasos del perfil</value>
+    <comment>Accessible name of the list.</comment>
+  </data>
+  <data name="Orchestrator_Prep_UseProposedProfile" xml:space="preserve">
+    <value>Usar el perfil propuesto</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Prep_UseProposedProfileHelp" xml:space="preserve">
+    <value>Lo guarda en .agentstudio/verification.json: desde entonces es el perfil del proyecto</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Orchestrator_Prep_ProposedProfileNote" xml:space="preserve">
+    <value>Se guarda en .agentstudio/verification.json, que git no sube. Sin este paso no se aplica nada.</value>
+    <comment>Note under the button.</comment>
+  </data>
+  <data name="Info_Preparation_Title" xml:space="preserve">
+    <value>Preparación</value>
+    <comment>Title of the information button.</comment>
+  </data>
+  <data name="Info_Preparation_What" xml:space="preserve">
+    <value>Aquí preparas lo que necesita una ejecución: tu petición, los requisitos, los agentes y la forma de comprobar el trabajo. El orquestador planifica a partir de esto.</value>
+    <comment>What the preparation is.</comment>
+  </data>
+  <data name="Info_Preparation_Actions" xml:space="preserve">
+    <value>Escribir tu petición.
+Congelar los requisitos para que no cambien durante la ejecución.
+Revisar los agentes y el modelo de cada uno.
+Revisar cómo se comprueba el trabajo.
+Configurar el proyecto paso a paso con el botón de arriba.</value>
+    <comment>What the person can do in the preparation.</comment>
+  </data>
+  <data name="Info_Requirements_Title" xml:space="preserve">
+    <value>Requisitos</value>
+    <comment>Title of the information button.</comment>
+  </data>
+  <data name="Info_Requirements_What" xml:space="preserve">
+    <value>Los requisitos dicen qué tiene que cumplir el resultado. Los congelas tú: una versión congelada no cambia, y el plan y el juez trabajan contra ella. El orquestador solo puede sugerirlos.</value>
+    <comment>What the requirements are.</comment>
+  </data>
+  <data name="Info_Requirements_Actions" xml:space="preserve">
+    <value>Editar los requisitos para crear una versión nueva.
+Marcar un requisito como obligatorio.
+Añadir criterios de aceptación y decir cómo se comprueba cada uno.
+Congelar la versión cuando esté lista.</value>
+    <comment>What the person can do with the requirements.</comment>
+  </data>
+  <data name="Info_Roster_Title" xml:space="preserve">
+    <value>Plantilla de agentes</value>
+    <comment>Title of the information button.</comment>
+  </data>
+  <data name="Info_Roster_What" xml:space="preserve">
+    <value>Son los agentes del proyecto: el orquestador planifica, los ejecutores hacen el trabajo y el juez lo revisa. Cada uno usa un programa y un modelo, y puede recibir la memoria del proyecto.</value>
+    <comment>What the team of agents is.</comment>
+  </data>
+  <data name="Info_Roster_Actions" xml:space="preserve">
+    <value>Elegir el modelo de cada agente.
+Decidir si un agente recibe la memoria del proyecto (el juez nunca la recibe).
+Ver a los agentes como un grafo en la capa «Equipo» del lienzo.</value>
+    <comment>What the person can do with the team of agents.</comment>
+  </data>
+  <data name="Info_VerificationProfile_Title" xml:space="preserve">
+    <value>Perfil de verificación</value>
+    <comment>Title of the information button.</comment>
+  </data>
+  <data name="Info_VerificationProfile_What" xml:space="preserve">
+    <value>Es la lista de comprobaciones que Agent Studio ejecuta en tu equipo para verificar el trabajo, como compilar o probar. Cada ejecución congela esta versión.</value>
+    <comment>What the verification profile is.</comment>
+  </data>
+  <data name="Info_VerificationProfile_Actions" xml:space="preserve">
+    <value>Revisar los comandos que se ejecutarán.
+Usar el perfil propuesto, si hay uno, para que pase a ser el del proyecto.
+Elegir en cada tarea del plan qué pasos se exigen.</value>
+    <comment>What the person can do with the profile.</comment>
+  </data>
+  <data name="Orchestrator_Req_StatusName" xml:space="preserve">
+    <value>Estado de los requisitos</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Req_HashHelp" xml:space="preserve">
+    <value>Huella del conjunto congelado. La ejecución y el juez la citan para decir contra qué versión trabajan.</value>
+    <comment>Tooltip of the fingerprint.</comment>
+  </data>
+  <data name="Orchestrator_Req_HashName" xml:space="preserve">
+    <value>Huella de los requisitos congelados</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Req_Edit" xml:space="preserve">
+    <value>Editar · nueva versión</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Req_EditHelp" xml:space="preserve">
+    <value>Abre un borrador: lo congelado no cambia hasta que congeles la versión nueva</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Orchestrator_Req_Add" xml:space="preserve">
+    <value>Añadir requisito</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Req_Discard" xml:space="preserve">
+    <value>Descartar cambios</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Req_Freeze" xml:space="preserve">
+    <value>Congelar requisitos</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Req_FreezeHelp" xml:space="preserve">
+    <value>Guarda esta versión: desde entonces no cambia, y el plan y el juez trabajan contra ella</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Orchestrator_Req_ListName" xml:space="preserve">
+    <value>Requisitos</value>
+    <comment>Accessible name of the list.</comment>
+  </data>
+  <data name="Orchestrator_Req_IdName" xml:space="preserve">
+    <value>Identificador del requisito</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Req_Mandatory" xml:space="preserve">
+    <value>Obligatorio</value>
+    <comment>Check box.</comment>
+  </data>
+  <data name="Orchestrator_Req_Remove" xml:space="preserve">
+    <value>Quitar</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Req_RemoveName" xml:space="preserve">
+    <value>Quitar el requisito</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Req_StatementLabel" xml:space="preserve">
+    <value>Texto literal (lo que reciben los agentes y comprueba el juez)</value>
+    <comment>Label.</comment>
+  </data>
+  <data name="Orchestrator_Req_StatementName" xml:space="preserve">
+    <value>Texto del requisito</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Req_Criteria" xml:space="preserve">
+    <value>Criterios de aceptación</value>
+    <comment>Label and accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Req_CriterionIdName" xml:space="preserve">
+    <value>Identificador del criterio</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Req_CriterionDescriptionName" xml:space="preserve">
+    <value>Descripción del criterio</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Req_RemoveCriterionName" xml:space="preserve">
+    <value>Quitar el criterio</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Req_CheckedWith" xml:space="preserve">
+    <value>Se comprueba con</value>
+    <comment>Label of how a criterion is checked.</comment>
+  </data>
+  <data name="Orchestrator_Req_CheckedWithName" xml:space="preserve">
+    <value>Cómo se comprueba</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Req_AddCriterion" xml:space="preserve">
+    <value>Añadir criterio</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Req_ProblemsName" xml:space="preserve">
+    <value>Lo que falta para congelar</value>
+    <comment>Accessible name of the list.</comment>
+  </data>
+  <data name="Orchestrator_Req_MethodTest" xml:space="preserve">
+    <value>Prueba automática</value>
+    <comment>How a criterion is checked.</comment>
+  </data>
+  <data name="Orchestrator_Req_MethodCommand" xml:space="preserve">
+    <value>Comprobación con un comando</value>
+    <comment>How a criterion is checked.</comment>
+  </data>
+  <data name="Orchestrator_Req_MethodHuman" xml:space="preserve">
+    <value>Revisión de una persona</value>
+    <comment>How a criterion is checked.</comment>
+  </data>
+  <data name="Orchestrator_Req_MethodJudge" xml:space="preserve">
+    <value>Valoración del juez</value>
+    <comment>How a criterion is checked.</comment>
+  </data>
+  <data name="Orchestrator_Req_NoChange" xml:space="preserve">
+    <value>Sin cambios: siguen congelados los mismos requisitos.</value>
+    <comment>Notice.</comment>
+  </data>
+  <data name="Orchestrator_Req_OldVersion" xml:space="preserve">
+    <value>Ese contenido es el de una versión anterior ({0}). Una versión congelada no vuelve a ser la vigente: cambia algo para congelar una versión nueva.</value>
+    <comment>Error. {0}: fingerprint.</comment>
+  </data>
+  <data name="Orchestrator_Req_CannotFreeze" xml:space="preserve">
+    <value>Los requisitos no se pueden congelar: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Req_FreezeFailed" xml:space="preserve">
+    <value>No se pudieron congelar los requisitos: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Req_AddOne" xml:space="preserve">
+    <value>Añade al menos un requisito.</value>
+    <comment>Problem.</comment>
+  </data>
+  <data name="Orchestrator_Req_Number" xml:space="preserve">
+    <value>n.º {0}</value>
+    <comment>Name of an entry without identifier. {0}: position.</comment>
+  </data>
+  <data name="Orchestrator_Req_NoId" xml:space="preserve">
+    <value>El requisito n.º {0} no tiene identificador.</value>
+    <comment>Problem.</comment>
+  </data>
+  <data name="Orchestrator_Req_BadId" xml:space="preserve">
+    <value>El identificador «{0}» no es válido. Solo admite letras, números, «.», «-» y «_», sin espacios, y hasta 32 caracteres.</value>
+    <comment>Problem.</comment>
+  </data>
+  <data name="Orchestrator_Req_RepeatedId" xml:space="preserve">
+    <value>El identificador {0} está repetido.</value>
+    <comment>Problem.</comment>
+  </data>
+  <data name="Orchestrator_Req_NoStatement" xml:space="preserve">
+    <value>El requisito {0} no tiene texto.</value>
+    <comment>Problem.</comment>
+  </data>
+  <data name="Orchestrator_Req_NoCriterion" xml:space="preserve">
+    <value>El requisito obligatorio {0} necesita al menos un criterio de aceptación.</value>
+    <comment>Problem.</comment>
+  </data>
+  <data name="Orchestrator_Req_CriterionNoId" xml:space="preserve">
+    <value>El criterio n.º {0} de {1} no tiene identificador.</value>
+    <comment>Problem.</comment>
+  </data>
+  <data name="Orchestrator_Req_CriterionRepeated" xml:space="preserve">
+    <value>El criterio {0} de {1} está repetido.</value>
+    <comment>Problem.</comment>
+  </data>
+  <data name="Orchestrator_Req_CriterionNoDescription" xml:space="preserve">
+    <value>El criterio {0} de {1} no tiene descripción.</value>
+    <comment>Problem.</comment>
+  </data>
+  <data name="Orchestrator_Req_StatusNoProject" xml:space="preserve">
+    <value>Abre el proyecto para congelar sus requisitos.</value>
+    <comment>Status.</comment>
+  </data>
+  <data name="Orchestrator_Req_StatusNoStore" xml:space="preserve">
+    <value>Falta el almacén de requisitos: no se pueden congelar.</value>
+    <comment>Status.</comment>
+  </data>
+  <data name="Orchestrator_Req_StatusNone" xml:space="preserve">
+    <value>Sin requisitos congelados: escríbelos y congélalos para poder planificar.</value>
+    <comment>Status.</comment>
+  </data>
+  <data name="Orchestrator_Req_StatusDraft" xml:space="preserve">
+    <value>Versión nueva sin congelar: sigue vigente la congelada (huella {0}).</value>
+    <comment>Status. {0}: fingerprint.</comment>
+  </data>
+  <data name="Orchestrator_Req_StatusFrozen" xml:space="preserve">
+    <value>Congelados el {0}: {1} ({2}) · huella {3}</value>
+    <comment>Status. {0}: date, {1}: requirements, {2}: mandatory, {3}: fingerprint.</comment>
+  </data>
+  <data name="Orchestrator_Req_CountOne" xml:space="preserve">
+    <value>1 requisito</value>
+    <comment>Count of requirements.</comment>
+  </data>
+  <data name="Orchestrator_Req_CountMany" xml:space="preserve">
+    <value>{0} requisitos</value>
+    <comment>Count of requirements.</comment>
+  </data>
+  <data name="Orchestrator_Req_MandatoryOne" xml:space="preserve">
+    <value>1 obligatorio</value>
+    <comment>Count of mandatory requirements.</comment>
+  </data>
+  <data name="Orchestrator_Req_MandatoryMany" xml:space="preserve">
+    <value>{0} obligatorios</value>
+    <comment>Count of mandatory requirements.</comment>
+  </data>
+  <data name="Orchestrator_Roster_ModelDefault" xml:space="preserve">
+    <value>Predeterminado del programa</value>
+    <comment>Option of the model: the one the program of the agent picks.</comment>
+  </data>
+  <data name="Orchestrator_Roster_ModelOther" xml:space="preserve">
+    <value>Otro modelo…</value>
+    <comment>Option of the model: type one.</comment>
+  </data>
+  <data name="Orchestrator_Roster_ModelEmpty" xml:space="preserve">
+    <value>Escribe el nombre del modelo, o elige «{0}».</value>
+    <comment>Problem. {0}: the label of the default option.</comment>
+  </data>
+  <data name="Orchestrator_Roster_ModelBad" xml:space="preserve">
+    <value>El nombre del modelo empieza por una letra o un número. Solo lleva letras, números y . _ : / [ ] -, y tiene hasta 128 caracteres.</value>
+    <comment>Problem.</comment>
+  </data>
+  <data name="Orchestrator_Roster_DescribeDefault" xml:space="preserve">
+    <value>modelo predeterminado del programa</value>
+    <comment>The model in words.</comment>
+  </data>
+  <data name="Orchestrator_Roster_DescribeModel" xml:space="preserve">
+    <value>modelo {0}</value>
+    <comment>The model in words. {0}: name.</comment>
+  </data>
+  <data name="Orchestrator_Roster_JudgeNoMemory" xml:space="preserve">
+    <value>Nunca recibe memoria: su veredicto solo se apoya en el expediente.</value>
+    <comment>Memory of a judge.</comment>
+  </data>
+  <data name="Orchestrator_Roster_MemoryOn" xml:space="preserve">
+    <value>Recibe la memoria del proyecto (solo la de confianza).</value>
+    <comment>Memory of an agent.</comment>
+  </data>
+  <data name="Orchestrator_Roster_MemoryOff" xml:space="preserve">
+    <value>Sin memoria del proyecto.</value>
+    <comment>Memory of an agent.</comment>
+  </data>
+  <data name="Orchestrator_Roster_ModelText" xml:space="preserve">
+    <value>Usa el {0}.</value>
+    <comment>Model of an agent. {0}: the model in words.</comment>
+  </data>
+  <data name="Orchestrator_Roster_MemoryNowOn" xml:space="preserve">
+    <value>«{0}» recibe ahora la memoria del proyecto: solo la de confianza y relevante para su tarea.</value>
+    <comment>Notice. {0}: agent.</comment>
+  </data>
+  <data name="Orchestrator_Roster_MemoryNowOff" xml:space="preserve">
+    <value>«{0}» ya no recibe memoria del proyecto.</value>
+    <comment>Notice. {0}: agent.</comment>
+  </data>
+  <data name="Orchestrator_Roster_ModelChanged" xml:space="preserve">
+    <value>«{0}» usará el {1} desde la próxima ejecución o planificación.</value>
+    <comment>Notice. {0}: agent, {1}: model in words.</comment>
+  </data>
+  <data name="Orchestrator_Roster_ChangeRefused" xml:space="preserve">
+    <value>La plantilla no admite ese cambio: {0}.</value>
+    <comment>Error. {0}: problems.</comment>
+  </data>
+  <data name="Orchestrator_Roster_SaveFailed" xml:space="preserve">
+    <value>No se pudo guardar la plantilla: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Roster_LineModel" xml:space="preserve">
+    <value>modelo {0}</value>
+    <comment>Part of the line of an agent. {0}: model.</comment>
+  </data>
+  <data name="Orchestrator_Roster_ToolsReadOnly" xml:space="preserve">
+    <value>solo lectura</value>
+    <comment>Tools of a judge.</comment>
+  </data>
+  <data name="Orchestrator_Roster_ToolsNone" xml:space="preserve">
+    <value>sin herramientas declaradas</value>
+    <comment>An agent without tools.</comment>
+  </data>
+  <data name="Orchestrator_Roster_Orchestrator" xml:space="preserve">
+    <value>Orquestador</value>
+    <comment>Default name of the agent.</comment>
+  </data>
+  <data name="Orchestrator_Roster_Executor" xml:space="preserve">
+    <value>Ejecutor</value>
+    <comment>Default name of the agent.</comment>
+  </data>
+  <data name="Orchestrator_Roster_Judge" xml:space="preserve">
+    <value>Juez</value>
+    <comment>Default name of the agent.</comment>
+  </data>
+  <data name="Orchestrator_Roster_Architect" xml:space="preserve">
+    <value>Arquitecto</value>
+    <comment>Default name of the agent.</comment>
+  </data>
+  <data name="Orchestrator_Roster_Critic" xml:space="preserve">
+    <value>Crítico</value>
+    <comment>Default name of the agent.</comment>
+  </data>
+  <data name="Orchestrator_Roster_ClaudeJudge" xml:space="preserve">
+    <value>Juez Claude</value>
+    <comment>Default name of the agent.</comment>
+  </data>
+  <data name="Orchestrator_Roster_RevisionJudge" xml:space="preserve">
+    <value>Juez de revisión</value>
+    <comment>Default name of the agent.</comment>
+  </data>
+  <data name="Orchestrator_Session_EngineMissing" xml:space="preserve">
+    <value>Motor no disponible: el lienzo funciona, pero no se puede pedir un plan ni ejecutarlo.</value>
+    <comment>Line of what is missing.</comment>
+  </data>
+  <data name="Orchestrator_Session_StoreMissing" xml:space="preserve">
+    <value>Falta el almacén del proyecto: sin él no se leen los requisitos, la plantilla de agentes ni las ejecuciones.</value>
+    <comment>Line of what is missing.</comment>
+  </data>
+  <data name="Orchestrator_Session_OpenFailed" xml:space="preserve">
+    <value>No se pudo abrir el proyecto para orquestar</value>
+    <comment>Start of the line of a failure.</comment>
+  </data>
+  <data name="Orchestrator_Session_LogFailed" xml:space="preserve">
+    <value>No se pudo leer el historial de decisiones</value>
+    <comment>Start of the line of a failure.</comment>
+  </data>
+  <data name="Orchestrator_Session_RequirementsStoreMissing" xml:space="preserve">
+    <value>Falta el almacén de requisitos: sin requisitos congelados no se puede validar el plan.</value>
+    <comment>Line of what is missing.</comment>
+  </data>
+  <data name="Orchestrator_Session_RequirementsFailed" xml:space="preserve">
+    <value>No se pudieron leer los requisitos</value>
+    <comment>Start of the line of a failure.</comment>
+  </data>
+  <data name="Orchestrator_Session_NoRequirements" xml:space="preserve">
+    <value>El proyecto no tiene requisitos congelados: escríbelos y congélalos en «Requisitos» para poder planificar.</value>
+    <comment>Line of what is missing.</comment>
+  </data>
+  <data name="Orchestrator_Session_RosterMissing" xml:space="preserve">
+    <value>Falta la plantilla de agentes del proyecto.</value>
+    <comment>Line of what is missing.</comment>
+  </data>
+  <data name="Orchestrator_Session_ProfileMissing" xml:space="preserve">
+    <value>Falta el perfil de verificación (.agentstudio/verification.json): sin él no se puede validar el plan.</value>
+    <comment>Line of what is missing.</comment>
+  </data>
+  <data name="Orchestrator_Session_ProfileFailed" xml:space="preserve">
+    <value>No se pudo leer el perfil de verificación</value>
+    <comment>Start of the line of a failure.</comment>
+  </data>
+  <data name="Orchestrator_Session_NoProfile" xml:space="preserve">
+    <value>El proyecto no tiene perfil de verificación (.agentstudio/verification.json).</value>
+    <comment>Line of what is missing.</comment>
+  </data>
+  <data name="Orchestrator_Session_NoProfileProposal" xml:space="preserve">
+    <value>El proyecto no tiene perfil de verificación (.agentstudio/verification.json): revisa el propuesto y pulsa «Usar el perfil propuesto».</value>
+    <comment>Line of what is missing.</comment>
+  </data>
+  <data name="Orchestrator_Session_RosterFailed" xml:space="preserve">
+    <value>No se pudo leer la plantilla de agentes</value>
+    <comment>Start of the line of a failure.</comment>
+  </data>
+  <data name="Orchestrator_Session_RosterCreateFailed" xml:space="preserve">
+    <value>No se pudo crear la plantilla de agentes por defecto</value>
+    <comment>Start of the line of a failure.</comment>
+  </data>
+  <data name="Orchestrator_History_Entries" xml:space="preserve">
+    <value>{0} entradas</value>
+    <comment>Count of entries of the history.</comment>
+  </data>
+  <data name="Orchestrator_History_EntryOne" xml:space="preserve">
+    <value>1 entrada</value>
+    <comment>Count of entries of the history.</comment>
+  </data>
+  <data name="Orchestrator_History_Replaced" xml:space="preserve">
+    <value>En esta ubicación vivía el historial del proyecto {0} ({1}), y el historial de decisiones de ahora empieza vacío: aquel ya no está aquí. No se planifica, ejecuta ni reanuda nada hasta que aceptes empezar uno nuevo.</value>
+    <comment>Why the log cannot be trusted. {0}: project, {1}: entries.</comment>
+  </data>
+  <data name="Orchestrator_History_NoAnchor" xml:space="preserve">
+    <value>El historial de decisiones tiene {0}, pero no hay ancla para esta ubicación: la carpeta se movió o se copió aquí, o el historial viene de otro equipo o con el repositorio. No se planifica, ejecuta ni reanuda nada hasta que aceptes este historial como nuevo origen. Acéptalo solo si lo reconoces.</value>
+    <comment>Why the log cannot be trusted. {0}: entries.</comment>
+  </data>
+  <data name="Orchestrator_History_NotIntact" xml:space="preserve">
+    <value>El historial de decisiones no es íntegro: {0} No se planifica, ejecuta ni reanuda nada.</value>
+    <comment>Why the log cannot be trusted. {0}: the problem found.</comment>
+  </data>
+  <data name="Orchestrator_Phase_Running" xml:space="preserve">
+    <value>En ejecución</value>
+    <comment>Phase of a run.</comment>
+  </data>
+  <data name="Orchestrator_Phase_Paused" xml:space="preserve">
+    <value>En pausa</value>
+    <comment>Phase of a run.</comment>
+  </data>
+  <data name="Orchestrator_Phase_WaitingForQuota" xml:space="preserve">
+    <value>Esperando cuota</value>
+    <comment>Phase of a run.</comment>
+  </data>
+  <data name="Orchestrator_Phase_AwaitingHuman" xml:space="preserve">
+    <value>Esperando a una persona</value>
+    <comment>Phase of a run.</comment>
+  </data>
+  <data name="Orchestrator_Phase_Interrupted" xml:space="preserve">
+    <value>Interrumpida</value>
+    <comment>Phase of a run.</comment>
+  </data>
+  <data name="Orchestrator_Phase_Succeeded" xml:space="preserve">
+    <value>Completada</value>
+    <comment>Phase of a run.</comment>
+  </data>
+  <data name="Orchestrator_Phase_Failed" xml:space="preserve">
+    <value>Fallida</value>
+    <comment>Phase of a run.</comment>
+  </data>
+  <data name="Orchestrator_Phase_Blocked" xml:space="preserve">
+    <value>Bloqueada</value>
+    <comment>Phase of a run.</comment>
+  </data>
+  <data name="Orchestrator_Phase_Cancelled" xml:space="preserve">
+    <value>Cancelada</value>
+    <comment>Phase of a run.</comment>
+  </data>
+  <data name="Orchestrator_Block_Blocked" xml:space="preserve">
+    <value>Bloqueada</value>
+    <comment>State of a blocked task without reason.</comment>
+  </data>
+  <data name="Orchestrator_Block_Interrupted" xml:space="preserve">
+    <value>Interrumpida</value>
+    <comment>State of an interrupted task.</comment>
+  </data>
+  <data name="Orchestrator_Block_ProviderUnavailable" xml:space="preserve">
+    <value>Bloqueada · el programa del agente no está disponible</value>
+    <comment>State of a blocked task.</comment>
+  </data>
+  <data name="Orchestrator_Block_AwaitingHuman" xml:space="preserve">
+    <value>Bloqueada · espera a una persona</value>
+    <comment>State of a blocked task.</comment>
+  </data>
+  <data name="Orchestrator_Block_Other" xml:space="preserve">
+    <value>Bloqueada · {0}</value>
+    <comment>State of a blocked task. {0}: the reason as the engine gives it.</comment>
+  </data>
+  <data name="Orchestrator_Activity_SessionStarted" xml:space="preserve">
+    <value>Sesión iniciada</value>
+    <comment>Line of the activity.</comment>
+  </data>
+  <data name="Orchestrator_Activity_SessionStartedModel" xml:space="preserve">
+    <value>Sesión iniciada · {0}</value>
+    <comment>Line of the activity. {0}: model.</comment>
+  </data>
+  <data name="Orchestrator_Activity_ToolUsed" xml:space="preserve">
+    <value>Usa {0}: {1}</value>
+    <comment>Line of the activity. {0}: tool, {1}: what it does.</comment>
+  </data>
+  <data name="Orchestrator_Activity_ToolDone" xml:space="preserve">
+    <value>{0}: terminada</value>
+    <comment>Line of the activity. {0}: tool.</comment>
+  </data>
+  <data name="Orchestrator_Activity_ToolFailed" xml:space="preserve">
+    <value>{0}: falló</value>
+    <comment>Line of the activity. {0}: tool.</comment>
+  </data>
+  <data name="Orchestrator_Activity_Permission" xml:space="preserve">
+    <value>Pide permiso para {0}: {1}</value>
+    <comment>Line of the activity. {0}: tool, {1}: what for.</comment>
+  </data>
+  <data name="Orchestrator_Activity_Usage" xml:space="preserve">
+    <value>Uso: {0} tokens de entrada y {1} de salida</value>
+    <comment>Line of the activity.</comment>
+  </data>
+  <data name="Orchestrator_Activity_RateLimitUntil" xml:space="preserve">
+    <value>Límite de uso de tu plan ({0}) hasta las {1}</value>
+    <comment>Line of the activity. {0}: status, {1}: time.</comment>
+  </data>
+  <data name="Orchestrator_Activity_RateLimit" xml:space="preserve">
+    <value>Límite de uso de tu plan ({0})</value>
+    <comment>Line of the activity. {0}: status.</comment>
+  </data>
+  <data name="Orchestrator_Activity_Quota" xml:space="preserve">
+    <value>Cuota: {0}</value>
+    <comment>Line of the activity. {0}: the windows.</comment>
+  </data>
+  <data name="Orchestrator_Activity_Finished" xml:space="preserve">
+    <value>Agente terminado: {0}</value>
+    <comment>Line of the activity. {0}: outcome.</comment>
+  </data>
+  <data name="Orchestrator_Outcome_Succeeded" xml:space="preserve">
+    <value>correcto</value>
+    <comment>Outcome of an agent run.</comment>
+  </data>
+  <data name="Orchestrator_Outcome_Failed" xml:space="preserve">
+    <value>fallido</value>
+    <comment>Outcome of an agent run.</comment>
+  </data>
+  <data name="Orchestrator_Outcome_Cancelled" xml:space="preserve">
+    <value>cancelado</value>
+    <comment>Outcome of an agent run.</comment>
+  </data>
+  <data name="Orchestrator_Outcome_LimitReached" xml:space="preserve">
+    <value>límite alcanzado</value>
+    <comment>Outcome of an agent run.</comment>
+  </data>
+  <data name="Orchestrator_Outcome_RateLimited" xml:space="preserve">
+    <value>límite de uso de tu plan</value>
+    <comment>Outcome of an agent run.</comment>
+  </data>
+  <data name="Orchestrator_Activity_TokensEstimated" xml:space="preserve">
+    <value>~{0} (estimado)</value>
+    <comment>A count of tokens that is an estimate. {0}: number.</comment>
+  </data>
+  <data name="Orchestrator_Activity_NotExposed" xml:space="preserve">
+    <value>no expuesto</value>
+    <comment>A figure the program does not give.</comment>
+  </data>
+  <data name="Orchestrator_Activity_NotExposedFeminine" xml:space="preserve">
+    <value>no expuesta</value>
+    <comment>A figure the program does not give.</comment>
+  </data>
+  <data name="Orchestrator_Activity_Estimated" xml:space="preserve">
+    <value> (estimado)</value>
+    <comment>Added to a percentage that is an estimate.</comment>
+  </data>
+  <data name="Orchestrator_Activity_TokensBefore" xml:space="preserve">
+    <value>{0} tokens antes · {1}</value>
+    <comment>Part of the compaction line. {0}: tokens, {1}: origin.</comment>
+  </data>
+  <data name="Orchestrator_Activity_TokensBeforeUnknown" xml:space="preserve">
+    <value>tokens de antes: {0}</value>
+    <comment>Part of the compaction line. {0}: origin.</comment>
+  </data>
+  <data name="Orchestrator_Activity_Compaction" xml:space="preserve">
+    <value>El programa del agente compactó el contexto ({0}): {1}</value>
+    <comment>Line of the activity. {0}: trigger, {1}: tokens.</comment>
+  </data>
+  <data name="Orchestrator_Quota_FiveHour" xml:space="preserve">
+    <value>5 horas</value>
+    <comment>Window of the quota.</comment>
+  </data>
+  <data name="Orchestrator_Quota_SevenDay" xml:space="preserve">
+    <value>7 días</value>
+    <comment>Window of the quota.</comment>
+  </data>
+  <data name="Orchestrator_Quota_SevenDayOpus" xml:space="preserve">
+    <value>7 días · Opus</value>
+    <comment>Window of the quota.</comment>
+  </data>
+  <data name="Orchestrator_Quota_SevenDaySonnet" xml:space="preserve">
+    <value>7 días · Sonnet</value>
+    <comment>Window of the quota.</comment>
+  </data>
+  <data name="Orchestrator_Audit_Assignment" xml:space="preserve">
+    <value>Asignación de tareas</value>
+    <comment>Check of the auditor.</comment>
+  </data>
+  <data name="Orchestrator_Audit_DependencyOrder" xml:space="preserve">
+    <value>Orden de las dependencias</value>
+    <comment>Check of the auditor.</comment>
+  </data>
+  <data name="Orchestrator_Audit_Instructions" xml:space="preserve">
+    <value>Instrucciones completas</value>
+    <comment>Check of the auditor.</comment>
+  </data>
+  <data name="Orchestrator_Audit_ReviewOmitted" xml:space="preserve">
+    <value>Revisión obligatoria omitida</value>
+    <comment>Check of the auditor.</comment>
+  </data>
+  <data name="Orchestrator_Audit_Permissions" xml:space="preserve">
+    <value>Permisos respetados</value>
+    <comment>Check of the auditor.</comment>
+  </data>
+  <data name="Orchestrator_Audit_ApprovalMissing" xml:space="preserve">
+    <value>Aprobación sin pedir</value>
+    <comment>Check of the auditor.</comment>
+  </data>
+  <data name="Orchestrator_Audit_IntegrationUnverified" xml:space="preserve">
+    <value>Integración sin verificar</value>
+    <comment>Check of the auditor.</comment>
+  </data>
+  <data name="Orchestrator_Audit_Replay" xml:space="preserve">
+    <value>Reproducción del historial</value>
+    <comment>Check of the auditor.</comment>
+  </data>
+  <data name="Orchestrator_Audit_PrematureFinish" xml:space="preserve">
+    <value>Final prematuro</value>
+    <comment>Check of the auditor.</comment>
+  </data>
+  <data name="Orchestrator_Evidence_TestRun" xml:space="preserve">
+    <value>Pruebas</value>
+    <comment>Kind of evidence.</comment>
+  </data>
+  <data name="Orchestrator_Evidence_BuildLog" xml:space="preserve">
+    <value>Compilación</value>
+    <comment>Kind of evidence.</comment>
+  </data>
+  <data name="Orchestrator_Evidence_CommandOutput" xml:space="preserve">
+    <value>Salida de un comando</value>
+    <comment>Kind of evidence.</comment>
+  </data>
+  <data name="Orchestrator_Evidence_CodeDiff" xml:space="preserve">
+    <value>Diff</value>
+    <comment>Kind of evidence.</comment>
+  </data>
+  <data name="Orchestrator_Evidence_Document" xml:space="preserve">
+    <value>Documento</value>
+    <comment>Kind of evidence.</comment>
+  </data>
+  <data name="Orchestrator_Evidence_AgentStatement" xml:space="preserve">
+    <value>Declaración del agente</value>
+    <comment>Kind of evidence.</comment>
+  </data>
+  <data name="Orchestrator_Evidence_HumanNote" xml:space="preserve">
+    <value>Nota de una persona</value>
+    <comment>Kind of evidence.</comment>
+  </data>
+  <data name="Orchestrator_Evidence_CapturedBySystem" xml:space="preserve">
+    <value>capturada por el sistema</value>
+    <comment>Origin of an evidence.</comment>
+  </data>
+  <data name="Orchestrator_Evidence_ReportedByAgent" xml:space="preserve">
+    <value>declarada por el agente</value>
+    <comment>Origin of an evidence.</comment>
+  </data>
+  <data name="Orchestrator_Evidence_ProvidedByHuman" xml:space="preserve">
+    <value>aportada por una persona</value>
+    <comment>Origin of an evidence.</comment>
+  </data>
+  <data name="Orchestrator_Evidence_Tests" xml:space="preserve">
+    <value>{0} correctas, {1} fallidas, {2} omitidas</value>
+    <comment>Summary of a test run.</comment>
+  </data>
+  <data name="Orchestrator_Tokens_Unknown" xml:space="preserve">
+    <value>Tokens del último intento: {0}</value>
+    <comment>Tokens the program reported. {0}: origin.</comment>
+  </data>
+  <data name="Orchestrator_Tokens_Line" xml:space="preserve">
+    <value>Tokens del último intento: {0} de entrada y {1} de salida · {2}</value>
+    <comment>Tokens the program reported.</comment>
+  </data>
+  <data name="Orchestrator_Review_Reload" xml:space="preserve">
+    <value>Recargar el proyecto</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Review_ReloadHelp" xml:space="preserve">
+    <value>Vuelve a leer los requisitos, los agentes, el perfil de verificación y las ejecuciones.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Orchestrator_Review_EngineName" xml:space="preserve">
+    <value>Estado del motor</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Review_MissingName" xml:space="preserve">
+    <value>Lo que falta</value>
+    <comment>Accessible name of the list.</comment>
+  </data>
+  <data name="Orchestrator_Review_IntegrityName" xml:space="preserve">
+    <value>Problema en el historial de decisiones</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Review_AcceptHistory" xml:space="preserve">
+    <value>Aceptar este historial como nuevo origen</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Review_AcceptHistoryHelp" xml:space="preserve">
+    <value>Te pregunta si este historial es tuyo. Si lo aceptas, queda anotado en el historial y se ancla a esta carpeta.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Orchestrator_Review_PlanSummary" xml:space="preserve">
+    <value>Resumen del plan</value>
+    <comment>Label and accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Review_RequestPlan" xml:space="preserve">
+    <value>Pedir un plan al orquestador</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Review_RequestPlanHelp" xml:space="preserve">
+    <value>El orquestador propone un plan para tu petición y los requisitos congelados. Consume cuota de tu plan.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Orchestrator_Review_CancelPlanning" xml:space="preserve">
+    <value>Cancelar la planificación</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Review_ApprovalName" xml:space="preserve">
+    <value>Aprobación del plan</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Review_ToRun" xml:space="preserve">
+    <value>Para ejecutar: {0}</value>
+    <comment>What is missing before the plan can run. {0}: the blockers.</comment>
+  </data>
+  <data name="Orchestrator_Review_IsolationName" xml:space="preserve">
+    <value>Aviso: agentes que escriben con tus permisos</value>
+    <comment>Accessible name of the warning.</comment>
+  </data>
+  <data name="Orchestrator_Review_DeliveryWarningName" xml:space="preserve">
+    <value>Aviso de entrega del plan</value>
+    <comment>Accessible name of the warning.</comment>
+  </data>
+  <data name="Orchestrator_Review_Validate" xml:space="preserve">
+    <value>Validar el plan</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Review_Approve" xml:space="preserve">
+    <value>Aprobar el plan</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Review_Reject" xml:space="preserve">
+    <value>Rechazar el plan</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Review_Execute" xml:space="preserve">
+    <value>Ejecutar el plan</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Review_EditPlan" xml:space="preserve">
+    <value>Editar el plan</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Review_SelectNode" xml:space="preserve">
+    <value>Selecciona un nodo para ver y cambiar sus propiedades.</value>
+    <comment>Shown when no node is selected.</comment>
+  </data>
+  <data name="Orchestrator_Review_Problems" xml:space="preserve">
+    <value>Problemas del plan</value>
+    <comment>Title and accessible name of the list.</comment>
+  </data>
+  <data name="Orchestrator_Review_Proposal" xml:space="preserve">
+    <value>Propuesta del orquestador</value>
+    <comment>Title.</comment>
+  </data>
+  <data name="Orchestrator_Review_Risks" xml:space="preserve">
+    <value>Riesgos que señala</value>
+    <comment>Label of the list.</comment>
+  </data>
+  <data name="Orchestrator_Review_Activity" xml:space="preserve">
+    <value>Lo que hace el orquestador</value>
+    <comment>Title.</comment>
+  </data>
+  <data name="Orchestrator_Review_NothingYet" xml:space="preserve">
+    <value>Nada todavía.</value>
+    <comment>Shown when the list is empty.</comment>
+  </data>
+  <data name="Orchestrator_Runs_Title" xml:space="preserve">
+    <value>Ejecuciones anteriores</value>
+    <comment>Title and accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Runs_Hint" xml:space="preserve">
+    <value>«Ver la ejecución» abre una en el monitor, solo para leer y sin gastar cuota. Verás sus tareas, evidencias, revisión y entrega.</value>
+    <comment>Explanation under the title.</comment>
+  </data>
+  <data name="Orchestrator_Runs_None" xml:space="preserve">
+    <value>Ninguna todavía.</value>
+    <comment>Shown when the list is empty.</comment>
+  </data>
+  <data name="Orchestrator_Runs_Viewed" xml:space="preserve">
+    <value>Abierta en el monitor, en solo lectura.</value>
+    <comment>Shown on the run the monitor shows.</comment>
+  </data>
+  <data name="Orchestrator_Runs_View" xml:space="preserve">
+    <value>Ver la ejecución</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Runs_ViewHelp" xml:space="preserve">
+    <value>Abre la ejecución en el monitor, solo para leer, reconstruida desde el historial. Muestra las tareas con su motivo, las evidencias y la revisión. Si el juez aprobó la integración, podrás usar «Entregar a mi rama». No consume cuota.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Orchestrator_Runs_ViewName" xml:space="preserve">
+    <value>Ver la ejecución {0}</value>
+    <comment>Accessible name. {0}: id.</comment>
+  </data>
+  <data name="Orchestrator_Runs_Resume" xml:space="preserve">
+    <value>Reanudar la ejecución</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Runs_ResumeHelp" xml:space="preserve">
+    <value>Continúa la ejecución interrumpida. Consume cuota de tu plan.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Orchestrator_Runs_ResumeName" xml:space="preserve">
+    <value>Reanudar la ejecución {0}</value>
+    <comment>Accessible name. {0}: id.</comment>
+  </data>
+  <data name="Info_ResumeConsent_Title" xml:space="preserve">
+    <value>Reanudar sola</value>
+    <comment>Title of the information button.</comment>
+  </data>
+  <data name="Info_ResumeConsent_What" xml:space="preserve">
+    <value>Si un límite de uso o un cierre interrumpe la ejecución, puede continuar sin preguntarte. Está desactivado por defecto y solo vale para la próxima ejecución. Nunca pasa del presupuesto aprobado.</value>
+    <comment>What the consent is.</comment>
+  </data>
+  <data name="Info_ResumeConsent_Actions" xml:space="preserve">
+    <value>Marcar la casilla antes de ejecutar el plan para permitirlo.
+Dejarla sin marcar para reanudar tú la ejecución.
+Pausar la ejecución: así nunca se reanuda sola.</value>
+    <comment>What the person can do with the consent.</comment>
+  </data>
+  <data name="Orchestrator_Doc_TabTitle" xml:space="preserve">
+    <value>Orquestador · {0}</value>
+    <comment>Title of the tab of the orchestrator. {0}: name of the project.</comment>
+  </data>
+  <data name="Orchestrator_Doc_Hide" xml:space="preserve">
+    <value>Ocultar</value>
+    <comment>Button that folds the preparation.</comment>
+  </data>
+  <data name="Orchestrator_Doc_Show" xml:space="preserve">
+    <value>Mostrar</value>
+    <comment>Button that unfolds the preparation.</comment>
+  </data>
+  <data name="Orchestrator_Doc_NoRequest" xml:space="preserve">
+    <value>Sin petición</value>
+    <comment>Part of the summary of the preparation.</comment>
+  </data>
+  <data name="Orchestrator_Doc_RequestWritten" xml:space="preserve">
+    <value>Petición escrita</value>
+    <comment>Part of the summary of the preparation.</comment>
+  </data>
+  <data name="Orchestrator_Doc_RequirementsPending" xml:space="preserve">
+    <value>requisitos con cambios sin congelar</value>
+    <comment>Part of the summary of the preparation.</comment>
+  </data>
+  <data name="Orchestrator_Doc_RequirementsFrozen" xml:space="preserve">
+    <value>requisitos congelados ({0})</value>
+    <comment>Part of the summary. {0}: fingerprint.</comment>
+  </data>
+  <data name="Orchestrator_Doc_RequirementsNone" xml:space="preserve">
+    <value>sin requisitos congelados</value>
+    <comment>Part of the summary of the preparation.</comment>
+  </data>
+  <data name="Orchestrator_Doc_AgentsNone" xml:space="preserve">
+    <value>sin agentes</value>
+    <comment>Part of the summary of the preparation.</comment>
+  </data>
+  <data name="Orchestrator_Doc_AgentsOne" xml:space="preserve">
+    <value>1 agente</value>
+    <comment>Part of the summary of the preparation.</comment>
+  </data>
+  <data name="Orchestrator_Doc_AgentsMany" xml:space="preserve">
+    <value>{0} agentes</value>
+    <comment>Part of the summary of the preparation.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ProfileNamed" xml:space="preserve">
+    <value>perfil «{0}» ({1})</value>
+    <comment>Part of the summary. {0}: name, {1}: fingerprint.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ProfileProposed" xml:space="preserve">
+    <value>perfil propuesto sin aceptar</value>
+    <comment>Part of the summary of the preparation.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ProfileNone" xml:space="preserve">
+    <value>sin perfil de verificación</value>
+    <comment>Part of the summary of the preparation.</comment>
+  </data>
+  <data name="Orchestrator_Doc_RosterCreated" xml:space="preserve">
+    <value>El proyecto no tenía agentes: se creó la plantilla por defecto (Claude orquesta y ejecuta, Codex juzga).</value>
+    <comment>Notice.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ProfileText" xml:space="preserve">
+    <value>«{0}» · huella {1} · {2}. Es lo que Agent Studio ejecuta para verificar el trabajo. Cada ejecución congela esta versión.</value>
+    <comment>The profile of the project. {0}: name, {1}: fingerprint, {2}: steps.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ProfileProposalText" xml:space="preserve">
+    <value>Propuesta «{0}» · huella {1} · {2}. Todavía no es el perfil del proyecto: revisa sus comandos, que son los que se ejecutarán en tu equipo.</value>
+    <comment>The proposed profile. {0}: name, {1}: fingerprint, {2}: steps.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ProfileNoneText" xml:space="preserve">
+    <value>Sin perfil de verificación.</value>
+    <comment>The profile of the project.</comment>
+  </data>
+  <data name="Orchestrator_Doc_StepOne" xml:space="preserve">
+    <value>1 paso</value>
+    <comment>Count of steps.</comment>
+  </data>
+  <data name="Orchestrator_Doc_StepMany" xml:space="preserve">
+    <value>{0} pasos</value>
+    <comment>Count of steps.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ProfileSaveFailed" xml:space="preserve">
+    <value>No se pudo guardar el perfil de verificación: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Doc_EngineOn" xml:space="preserve">
+    <value>Motor de orquestación conectado</value>
+    <comment>State of the engine.</comment>
+  </data>
+  <data name="Orchestrator_Doc_EngineOff" xml:space="preserve">
+    <value>Motor no disponible</value>
+    <comment>State of the engine.</comment>
+  </data>
+  <data name="Orchestrator_Doc_WaitingHistory" xml:space="preserve">
+    <value>Esperando tu respuesta sobre el historial de decisiones…</value>
+    <comment>Text while the question is open.</comment>
+  </data>
+  <data name="Orchestrator_Doc_AcceptHistoryFailed" xml:space="preserve">
+    <value>No se pudo aceptar el historial: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Doc_HistoryNotAccepted" xml:space="preserve">
+    <value>No aceptaste el historial: el historial de decisiones sigue bloqueado.</value>
+    <comment>Error.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ApprovedFollowUp" xml:space="preserve">
+    <value>Plan aprobado ({0}): «Ejecutar el plan» empieza una ejecución de seguimiento de {1}.</value>
+    <comment>Approval line. {0}: fingerprint, {1}: run.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ApprovedHello" xml:space="preserve">
+    <value>Plan aprobado ({0}), confirmado con Windows Hello.</value>
+    <comment>Approval line. {0}: fingerprint.</comment>
+  </data>
+  <data name="Orchestrator_Doc_Approved" xml:space="preserve">
+    <value>Plan aprobado ({0}).</value>
+    <comment>Approval line. {0}: fingerprint.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ChangedAfterApproval" xml:space="preserve">
+    <value>El plan cambió después de aprobarlo: apruébalo otra vez.</value>
+    <comment>Approval line.</comment>
+  </data>
+  <data name="Orchestrator_Doc_Rejected" xml:space="preserve">
+    <value>Plan rechazado.</value>
+    <comment>Approval line.</comment>
+  </data>
+  <data name="Orchestrator_Doc_NotApproved" xml:space="preserve">
+    <value>Plan sin aprobar.</value>
+    <comment>Approval line.</comment>
+  </data>
+  <data name="Orchestrator_Doc_PlanWithHash" xml:space="preserve">
+    <value>el plan {0}</value>
+    <comment>The plan a run follows. {0}: fingerprint.</comment>
+  </data>
+  <data name="Orchestrator_Doc_PlanItStartedWith" xml:space="preserve">
+    <value>el plan con el que empezó</value>
+    <comment>The plan a run follows.</comment>
+  </data>
+  <data name="Orchestrator_Doc_FollowedViewing" xml:space="preserve">
+    <value>Viendo la ejecución {0}: siguió {1}, aprobado al iniciarla.</value>
+    <comment>Approval line. {0}: run, {1}: plan.</comment>
+  </data>
+  <data name="Orchestrator_Doc_FollowedActive" xml:space="preserve">
+    <value>La ejecución {0} sigue {1}, aprobado al iniciarla.</value>
+    <comment>Approval line. {0}: run, {1}: plan.</comment>
+  </data>
+  <data name="Orchestrator_Doc_FollowedFinished" xml:space="preserve">
+    <value>La ejecución {0} terminó con {1}, aprobado al iniciarla.</value>
+    <comment>Approval line. {0}: run, {1}: plan.</comment>
+  </data>
+  <data name="Orchestrator_Doc_HelloUnavailable" xml:space="preserve">
+    <value>Windows Hello no está disponible en este equipo ({0}). El plan lo aprobó solo el botón, y el historial lo anota.</value>
+    <comment>Warning next to Approve. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ValidationNoContext" xml:space="preserve">
+    <value>Sin contexto de validación: faltan los requisitos congelados o el perfil de verificación.</value>
+    <comment>State of the validation.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ValidationValid" xml:space="preserve">
+    <value>Plan válido.</value>
+    <comment>State of the validation.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ValidationOne" xml:space="preserve">
+    <value>1 problema en el plan.</value>
+    <comment>State of the validation.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ValidationMany" xml:space="preserve">
+    <value>{0} problemas en el plan.</value>
+    <comment>State of the validation.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ConsentLabel" xml:space="preserve">
+    <value>Reanudar sola si un límite o un cierre la interrumpe</value>
+    <comment>Label of the consent of the next run.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ConsentHelp" xml:space="preserve">
+    <value>Marcada, la ejecución sigue sola en dos casos. Si una tarea llega al límite de uso, espera a que se reinicie la cuota, más 3 minutos, y continúa. Si la app se cierra sin que lo pidas, o Windows cierra la sesión, la ejecución se reanuda al volver a abrir la app. Nunca se reanuda si la pausaste o la dejaste al salir. Nunca pasa del presupuesto aprobado. Vale solo para la próxima ejecución y queda en su cabecera.</value>
+    <comment>Tooltip of the consent.</comment>
+  </data>
+  <data name="Orchestrator_Doc_OpeningProject" xml:space="preserve">
+    <value>Abriendo el proyecto para orquestar…</value>
+    <comment>Text while the project opens.</comment>
+  </data>
+  <data name="Orchestrator_Doc_RosterChanged" xml:space="preserve">
+    <value>Cambiaste la plantilla de agentes: vuelve a aprobar el plan.</value>
+    <comment>Notice.</comment>
+  </data>
+  <data name="Orchestrator_Doc_HelloNotAsked" xml:space="preserve">
+    <value>No se pudo pedir Windows Hello ({0}): el plan no se aprueba.</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Doc_HelloNotConfirmed" xml:space="preserve">
+    <value>Windows Hello no confirmó que eres tú ({0}): el plan no se aprueba.</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ChangedWhileConfirming" xml:space="preserve">
+    <value>El plan cambió mientras se confirmaba: apruébalo otra vez.</value>
+    <comment>Error.</comment>
+  </data>
+  <data name="Orchestrator_Doc_RejectedByYou" xml:space="preserve">
+    <value>Rechazaste el plan del orquestador: corrígelo en el lienzo o pide otro.</value>
+    <comment>Status of the proposal.</comment>
+  </data>
+  <data name="Orchestrator_Doc_Planning" xml:space="preserve">
+    <value>El orquestador está preparando el plan…</value>
+    <comment>Text while it plans.</comment>
+  </data>
+  <data name="Orchestrator_Doc_PlanningCancelled" xml:space="preserve">
+    <value>Planificación cancelada.</value>
+    <comment>Status of the proposal.</comment>
+  </data>
+  <data name="Orchestrator_Doc_PlanningFailed" xml:space="preserve">
+    <value>El orquestador no pudo planificar: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Doc_Starting" xml:space="preserve">
+    <value>Iniciando la ejecución…</value>
+    <comment>Text while the run starts.</comment>
+  </data>
+  <data name="Orchestrator_Doc_StartFailed" xml:space="preserve">
+    <value>No se pudo iniciar la ejecución: {0} Vuelve a aprobar el plan para intentarlo de nuevo.</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Doc_Resuming" xml:space="preserve">
+    <value>Reanudando la ejecución {0}…</value>
+    <comment>Text while the run resumes. {0}: run.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ResumeFailed" xml:space="preserve">
+    <value>No se pudo reanudar la ejecución: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Resume_WhyChanged" xml:space="preserve">
+    <value>Los agentes que escriben con tus permisos ya no son los que aprobaste. Quizá haya otra versión de Claude Code instalada.</value>
+    <comment>Why a resume was refused.</comment>
+  </data>
+  <data name="Orchestrator_Resume_WhyOld" xml:space="preserve">
+    <value>Empezó antes de que el historial guardara qué agentes escriben con tus permisos, y ahora su plan incluye alguno.</value>
+    <comment>Why a resume was refused.</comment>
+  </data>
+  <data name="Orchestrator_Resume_NowWarning" xml:space="preserve">
+    <value>Aviso de ahora: «{0}».</value>
+    <comment>What its plan says now. {0}: warning.</comment>
+  </data>
+  <data name="Orchestrator_Resume_NowNone" xml:space="preserve">
+    <value>Ahora su plan no tiene agentes que escriban con tus permisos.</value>
+    <comment>What its plan says now.</comment>
+  </data>
+  <data name="Orchestrator_Resume_NextShown" xml:space="preserve">
+    <value>Su plan está en el lienzo. Si lo apruebas otra vez y pulsas «Ejecutar el plan», empieza una ejecución de seguimiento de {0}; «Rechazar el plan» lo descarta.</value>
+    <comment>What can be done. {0}: run.</comment>
+  </data>
+  <data name="Orchestrator_Resume_NextHidden" xml:space="preserve">
+    <value>Su plan no está disponible aquí para aprobarlo otra vez.</value>
+    <comment>What can be done.</comment>
+  </data>
+  <data name="Orchestrator_Resume_Refused" xml:space="preserve">
+    <value>No se reanuda la ejecución {0}. {1} {2} {3}</value>
+    <comment>Error. {0}: run, {1}: why, {2}: what its plan says now, {3}: what can be done.</comment>
+  </data>
+  <data name="Orchestrator_Plan_NoUsable" xml:space="preserve">
+    <value>El orquestador no devolvió un plan utilizable ({0}).</value>
+    <comment>Status of the proposal. {0}: outcome.</comment>
+  </data>
+  <data name="Orchestrator_Plan_NoUsableWhy" xml:space="preserve">
+    <value>El orquestador no devolvió un plan utilizable ({0}): {1}</value>
+    <comment>Status of the proposal. {0}: outcome, {1}: error.</comment>
+  </data>
+  <data name="Orchestrator_Plan_Corrected" xml:space="preserve">
+    <value>Se le pidió una corrección.</value>
+    <comment>Added to the status of the proposal.</comment>
+  </data>
+  <data name="Orchestrator_Plan_Proposed" xml:space="preserve">
+    <value>Plan propuesto por el orquestador: revísalo y apruébalo o recházalo.</value>
+    <comment>Status of the proposal.</comment>
+  </data>
+  <data name="Orchestrator_Plan_ProposedWithProblems" xml:space="preserve">
+    <value>Plan propuesto por el orquestador con problemas: {0}</value>
+    <comment>Status of the proposal. {0}: the validation.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ResumedHeaderFailed" xml:space="preserve">
+    <value>La ejecución {0} se reanudó sola, pero no se pudo leer su cabecera: {1}</value>
+    <comment>Error. {0}: run, {1}: why.</comment>
+  </data>
+  <data name="Orchestrator_Doc_StartedWhileFollowingTray" xml:space="preserve">
+    <value>La ejecución {0} empezó mientras esta pestaña seguía otra ejecución: sigue en marcha, y la sigue la bandeja.</value>
+    <comment>Notice. {0}: run.</comment>
+  </data>
+  <data name="Orchestrator_Doc_StartedWhileFollowing" xml:space="preserve">
+    <value>La ejecución {0} empezó mientras esta pestaña seguía otra ejecución: sigue en marcha.</value>
+    <comment>Notice. {0}: run.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ResumeNotDone" xml:space="preserve">
+    <value>No se reanudó la ejecución {0}: esta pestaña sigue ahora otra ejecución. Reanúdala cuando termine.</value>
+    <comment>Notice. {0}: run.</comment>
+  </data>
+  <data name="Orchestrator_Doc_RunsListFailed" xml:space="preserve">
+    <value>No se pudo leer la lista de ejecuciones: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Doc_WarningChanged" xml:space="preserve">
+    <value>El aviso del plan cambió desde que lo aprobaste: revísalo y vuelve a aprobarlo.</value>
+    <comment>Error.</comment>
+  </data>
+  <data name="Orchestrator_Blocker_Engine" xml:space="preserve">
+    <value>Motor no disponible</value>
+    <comment>Why the plan cannot run.</comment>
+  </data>
+  <data name="Orchestrator_Blocker_RunActive" xml:space="preserve">
+    <value>Hay una ejecución en curso</value>
+    <comment>Why the plan cannot run.</comment>
+  </data>
+  <data name="Orchestrator_Blocker_Viewing" xml:space="preserve">
+    <value>Cierra la ejecución que estás viendo para volver a tu borrador</value>
+    <comment>Why the plan cannot run.</comment>
+  </data>
+  <data name="Orchestrator_Blocker_Viewed" xml:space="preserve">
+    <value>Pulsa «Editar el plan» para preparar otra ejecución</value>
+    <comment>Why the plan cannot run.</comment>
+  </data>
+  <data name="Orchestrator_Blocker_Busy" xml:space="preserve">
+    <value>Espera a que termine la operación en curso</value>
+    <comment>Why the plan cannot run.</comment>
+  </data>
+  <data name="Orchestrator_Blocker_Integrity" xml:space="preserve">
+    <value>El historial de decisiones no es íntegro</value>
+    <comment>Why the plan cannot run.</comment>
+  </data>
+  <data name="Orchestrator_Blocker_NoContext" xml:space="preserve">
+    <value>Faltan el proyecto, los requisitos congelados o el perfil de verificación</value>
+    <comment>Why the plan cannot run.</comment>
+  </data>
+  <data name="Orchestrator_Blocker_Requirements" xml:space="preserve">
+    <value>Congela o descarta los cambios de los requisitos</value>
+    <comment>Why the plan cannot run.</comment>
+  </data>
+  <data name="Orchestrator_Blocker_Problems" xml:space="preserve">
+    <value>El plan tiene problemas: pulsa «Validar el plan»</value>
+    <comment>Why the plan cannot run.</comment>
+  </data>
+  <data name="Orchestrator_Blocker_Approve" xml:space="preserve">
+    <value>Aprueba el plan</value>
+    <comment>Why the plan cannot run.</comment>
+  </data>
+  <data name="Orchestrator_Blocker_Request" xml:space="preserve">
+    <value>Escribe la petición</value>
+    <comment>Why the plan cannot run.</comment>
+  </data>
+  <data name="Orchestrator_Doc_PlanningContext" xml:space="preserve">
+    <value>Contexto del orquestador</value>
+    <comment>Name of the bar of the context while it plans.</comment>
+  </data>
+  <data name="Orchestrator_Doc_DraftSaveFailed" xml:space="preserve">
+    <value>No se pudo guardar el borrador de la petición y el plan: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Doc_DraftIgnored" xml:space="preserve">
+    <value>Se ignoró el borrador que había en el proyecto: {0}.</value>
+    <comment>Notice. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Doc_DraftRecoveredProposal" xml:space="preserve">
+    <value>Borrador recuperado: es el plan que propuso el orquestador, sin aprobar. Revísalo y apruébalo para ejecutarlo.</value>
+    <comment>Status of the proposal.</comment>
+  </data>
+  <data name="Orchestrator_Doc_DraftRecovered" xml:space="preserve">
+    <value>Se recuperó el borrador de la sesión anterior: la petición y el plan, sin aprobar.</value>
+    <comment>Notice.</comment>
+  </data>
+  <data name="Orchestrator_Draft_Unreadable" xml:space="preserve">
+    <value>no se pudo leer</value>
+    <comment>Why a draft is ignored.</comment>
+  </data>
+  <data name="Orchestrator_Doc_OpeningRun" xml:space="preserve">
+    <value>Abriendo la ejecución {0} desde el historial…</value>
+    <comment>Text while the run opens. {0}: run.</comment>
+  </data>
+  <data name="Orchestrator_Doc_MonitorBusy" xml:space="preserve">
+    <value>No se abrió la ejecución {0}: el monitor de esta pestaña está ocupado con otra ejecución.</value>
+    <comment>Error. {0}: run.</comment>
+  </data>
+  <data name="Orchestrator_Doc_OpenRunFailed" xml:space="preserve">
+    <value>No se pudo abrir la ejecución {0}: {1}</value>
+    <comment>Error. {0}: run, {1}: why.</comment>
+  </data>
+  <data name="Orchestrator_Doc_DraftPlanLost" xml:space="preserve">
+    <value>No se pudo recuperar el plan del borrador: el lienzo queda vacío.</value>
+    <comment>Notice.</comment>
+  </data>
+  <data name="Orchestrator_MonView_PhaseName" xml:space="preserve">
+    <value>Fase de la ejecución</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_MonView_Pause" xml:space="preserve">
+    <value>Pausar la ejecución</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_Resume" xml:space="preserve">
+    <value>Reanudar la ejecución</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_Cancel" xml:space="preserve">
+    <value>Cancelar la ejecución</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_Deliver" xml:space="preserve">
+    <value>Entregar a mi rama</value>
+    <comment>Button and accessible name.</comment>
+  </data>
+  <data name="Orchestrator_MonView_DeliverHelp" xml:space="preserve">
+    <value>Pasa a la rama que tienes activa la integración que aprobó el juez, sin mezclarla con otros cambios. Antes te pide aprobación.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_Close" xml:space="preserve">
+    <value>Cerrar la vista</value>
+    <comment>Button that stops viewing a previous run.</comment>
+  </data>
+  <data name="Orchestrator_MonView_CloseHelp" xml:space="preserve">
+    <value>Deja de ver esta ejecución y vuelve a tu borrador en el lienzo.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_CloseName" xml:space="preserve">
+    <value>Cerrar la ejecución que estás viendo</value>
+    <comment>Accessible name of the button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_ConsentName" xml:space="preserve">
+    <value>Consentimiento para reanudarse sola</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_MonView_DeliveryName" xml:space="preserve">
+    <value>Entrega a tu rama</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_MonView_HealthName" xml:space="preserve">
+    <value>Salud del plan</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_MonView_NoRun" xml:space="preserve">
+    <value>Sin ejecución. Valida y aprueba un plan y pulsa «Ejecutar el plan». También puedes reanudar una ejecución interrumpida o abrir una anterior con «Ver la ejecución».</value>
+    <comment>What to do when there is no run.</comment>
+  </data>
+  <data name="Orchestrator_MonView_AuditAgain" xml:space="preserve">
+    <value>Auditar de nuevo</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_AuditAgainHelp" xml:space="preserve">
+    <value>El auditor automático vuelve a revisar el historial. No consume cuota y no repite lo que ya anotó.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_Refresh" xml:space="preserve">
+    <value>Comprobar de nuevo</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_RefreshHelp" xml:space="preserve">
+    <value>Lee otra vez el veredicto, su impugnación y si la ejecución se puede entregar.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_AuditorName" xml:space="preserve">
+    <value>Auditor del orquestador</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_MonView_FindingsName" xml:space="preserve">
+    <value>Hallazgos del auditor</value>
+    <comment>Accessible name of the list.</comment>
+  </data>
+  <data name="Orchestrator_MonView_ReplanName" xml:space="preserve">
+    <value>Petición de replanificar</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_MonView_FollowUp" xml:space="preserve">
+    <value>Preparar ejecución de seguimiento</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_FollowUpHelp" xml:space="preserve">
+    <value>Pone en el lienzo un plan vacío que sigue a esta ejecución, con los hallazgos como datos. Planificas y apruebas tú.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_DismissReplan" xml:space="preserve">
+    <value>Descartar la petición</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_DismissReplanHelp" xml:space="preserve">
+    <value>Te pide aprobación. La entrega deja de esperar la petición; los hallazgos siguen en el historial.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_AcceptRevision" xml:space="preserve">
+    <value>Aceptar la revisión</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_AcceptRevisionHelp" xml:space="preserve">
+    <value>Una revisión que cambia el veredicto a una aprobación solo cuenta si la aceptas tú expresamente.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_ChallengeName" xml:space="preserve">
+    <value>Impugnación del veredicto</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_MonView_Tasks" xml:space="preserve">
+    <value>Tareas</value>
+    <comment>Title of the list.</comment>
+  </data>
+  <data name="Orchestrator_MonView_TasksName" xml:space="preserve">
+    <value>Tareas de la ejecución</value>
+    <comment>Accessible name of the list.</comment>
+  </data>
+  <data name="Orchestrator_MonView_ReasonName" xml:space="preserve">
+    <value>Motivo: {0}</value>
+    <comment>Accessible name of the reason of a task. {0}: reason.</comment>
+  </data>
+  <data name="Orchestrator_MonView_FailureName" xml:space="preserve">
+    <value>Error del paso: {0}</value>
+    <comment>Accessible name of the error line. {0}: line.</comment>
+  </data>
+  <data name="Orchestrator_MonView_AwaitingApproval" xml:space="preserve">
+    <value>Espera tu aprobación: {0}</value>
+    <comment>Line of a task. {0}: the action.</comment>
+  </data>
+  <data name="Orchestrator_MonView_Retry" xml:space="preserve">
+    <value>Reintentar la tarea</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_RetryName" xml:space="preserve">
+    <value>Reintentar {0}</value>
+    <comment>Accessible name. {0}: task.</comment>
+  </data>
+  <data name="Orchestrator_MonView_Activity" xml:space="preserve">
+    <value>Actividad</value>
+    <comment>Title of the list.</comment>
+  </data>
+  <data name="Orchestrator_MonView_ActivityName" xml:space="preserve">
+    <value>Actividad de la ejecución</value>
+    <comment>Accessible name of the list.</comment>
+  </data>
+  <data name="Orchestrator_MonView_Evidence" xml:space="preserve">
+    <value>Evidencias</value>
+    <comment>Title of the list.</comment>
+  </data>
+  <data name="Orchestrator_MonView_EvidenceName" xml:space="preserve">
+    <value>Evidencias de la ejecución</value>
+    <comment>Accessible name of the list.</comment>
+  </data>
+  <data name="Info_Monitor_Context_Title" xml:space="preserve">
+    <value>Contexto y sus barras</value>
+    <comment>Title of the information button.</comment>
+  </data>
+  <data name="Info_Monitor_Context_What" xml:space="preserve">
+    <value>El contexto es la memoria de trabajo del modelo: lo que puede tener presente en cada paso. Cada barra dice cuánto lleva usado, de dónde sale la cifra y si se acerca al límite.</value>
+    <comment>What the context is.</comment>
+  </data>
+  <data name="Info_Monitor_Context_Actions" xml:space="preserve">
+    <value>Leer el porcentaje y su origen en cada barra.
+Ver qué agente o tarea se acerca al límite.
+Abrir el análisis del consumo, si está disponible, para ver el detalle.</value>
+    <comment>What the person can do with the bars.</comment>
+  </data>
+  <data name="Orchestrator_Mon_Inspection" xml:space="preserve">
+    <value>Vista de solo lectura, reconstruida desde el historial de decisiones: verla no ejecuta ni anota nada. «Entregar a mi rama» la audita antes, como al terminar una ejecución. «Cerrar la vista» vuelve a tu borrador.</value>
+    <comment>Says that the run on screen is only being looked at.</comment>
+  </data>
+  <data name="Orchestrator_Mon_Budget" xml:space="preserve">
+    <value>Presupuesto</value>
+    <comment>Name of the bar of the budget.</comment>
+  </data>
+  <data name="Orchestrator_Mon_ConsentOn" xml:space="preserve">
+    <value>Con tu consentimiento para reanudarse sola. Espera a que se renueve la cuota. Si un cierre que no pediste la corta, se reanuda al volver a abrir la app.</value>
+    <comment>Whether the run may resume by itself.</comment>
+  </data>
+  <data name="Orchestrator_Mon_ConsentOff" xml:space="preserve">
+    <value>Sin consentimiento para reanudarse sola. Una espera larga la deja en pausa. Tras un cierre, la reanudas tú.</value>
+    <comment>Whether the run may resume by itself.</comment>
+  </data>
+  <data name="Orchestrator_Mon_NoRun" xml:space="preserve">
+    <value>Sin ejecución</value>
+    <comment>Label of the phase when there is no run.</comment>
+  </data>
+  <data name="Orchestrator_Mon_Deadlock" xml:space="preserve">
+    <value>Bloqueo: la ejecución no puede avanzar sin una decisión tuya. Reintenta o cancela las tareas bloqueadas.</value>
+    <comment>Alert of a deadlock.</comment>
+  </data>
+  <data name="Orchestrator_Mon_HealthNone" xml:space="preserve">
+    <value>Salud del plan: sin datos</value>
+    <comment>Summary of the health.</comment>
+  </data>
+  <data name="Orchestrator_Mon_HealthOk" xml:space="preserve">
+    <value>Salud del plan: sin problemas</value>
+    <comment>Summary of the health.</comment>
+  </data>
+  <data name="Orchestrator_Mon_HealthWarn" xml:space="preserve">
+    <value>Salud del plan: con avisos</value>
+    <comment>Summary of the health.</comment>
+  </data>
+  <data name="Orchestrator_Mon_HealthStalled" xml:space="preserve">
+    <value>Abandonadas</value>
+    <comment>Group of tasks in the health of the plan.</comment>
+  </data>
+  <data name="Orchestrator_Mon_HealthUnreachable" xml:space="preserve">
+    <value>Inalcanzables</value>
+    <comment>Group of tasks in the health of the plan.</comment>
+  </data>
+  <data name="Orchestrator_Mon_HealthNoRetries" xml:space="preserve">
+    <value>Sin reintentos</value>
+    <comment>Group of tasks in the health of the plan.</comment>
+  </data>
+  <data name="Orchestrator_Mon_PauseNotApplied" xml:space="preserve">
+    <value>la ejecución ya había terminado o se paró antes de aplicar la pausa, y el historial no la recoge.</value>
+    <comment>Why a pause did not apply.</comment>
+  </data>
+  <data name="Orchestrator_Mon_RetryNotApplied" xml:space="preserve">
+    <value>la ejecución ya había terminado o la tarea ya no estaba bloqueada. Si terminó, reanúdala para reintentar sus tareas.</value>
+    <comment>Why a retry did not apply.</comment>
+  </data>
+  <data name="Orchestrator_Mon_DoPause" xml:space="preserve">
+    <value>pausar la ejecución</value>
+    <comment>Action, for «No se pudo …».</comment>
+  </data>
+  <data name="Orchestrator_Mon_DoResume" xml:space="preserve">
+    <value>reanudar la ejecución</value>
+    <comment>Action, for «No se pudo …».</comment>
+  </data>
+  <data name="Orchestrator_Mon_DoRetry" xml:space="preserve">
+    <value>reintentar {0}</value>
+    <comment>Action, for «No se pudo …». {0}: task.</comment>
+  </data>
+  <data name="Orchestrator_Mon_DoCancel" xml:space="preserve">
+    <value>cancelar la ejecución</value>
+    <comment>Action, for «No se pudo …».</comment>
+  </data>
+  <data name="Orchestrator_Mon_CouldNot" xml:space="preserve">
+    <value>No se pudo {0}: {1}</value>
+    <comment>Error. {0}: the action, {1}: why.</comment>
+  </data>
+  <data name="Orchestrator_Mon_DeliverFailed" xml:space="preserve">
+    <value>No se pudo entregar: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Mon_DeliveryCheckFailed" xml:space="preserve">
+    <value>No se pudo comprobar si la ejecución se puede entregar: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Mon_StoppedEarly" xml:space="preserve">
+    <value>La ejecución se detuvo antes de terminar.</value>
+    <comment>Error.</comment>
+  </data>
+  <data name="Orchestrator_Mon_EndedWithError" xml:space="preserve">
+    <value>La ejecución terminó con un error: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Mon_LogOpened" xml:space="preserve">
+    <value>Ejecución {0} abierta desde el historial, en solo lectura</value>
+    <comment>Line of the activity. {0}: run.</comment>
+  </data>
+  <data name="Orchestrator_Mon_LogFollowing" xml:space="preserve">
+    <value>Siguiendo la ejecución {0}</value>
+    <comment>Line of the activity. {0}: run.</comment>
+  </data>
+  <data name="Orchestrator_Mon_LogQueued" xml:space="preserve">
+    <value>En cola de {0}</value>
+    <comment>Line of the activity. {0}: program.</comment>
+  </data>
+  <data name="Orchestrator_Mon_LogAwaiting" xml:space="preserve">
+    <value>Espera tu aprobación: {0}</value>
+    <comment>Line of the activity. {0}: action.</comment>
+  </data>
+  <data name="Orchestrator_Mon_LogPhase" xml:space="preserve">
+    <value>Fase: {0}</value>
+    <comment>Line of the activity. {0}: phase.</comment>
+  </data>
+  <data name="Orchestrator_Mon_LogPhaseDetail" xml:space="preserve">
+    <value>Fase: {0} · {1}</value>
+    <comment>Line of the activity. {0}: phase, {1}: detail.</comment>
+  </data>
+  <data name="Orchestrator_Mon_PreviouslyDelivered" xml:space="preserve">
+    <value>Ya se entregó a «{0}»{1} el {2}. Si la entregas otra vez, la misma integración irá a la rama que tengas activa ahora.</value>
+    <comment>Warning on a run that was delivered. {0}: branch, {1}: commit, {2}: date.</comment>
+  </data>
+  <data name="Orchestrator_Mon_LogDelivered" xml:space="preserve">
+    <value>Entregada a {0}{1}</value>
+    <comment>Line of the activity. {0}: branch, {1}: commit.</comment>
+  </data>
+  <data name="Orchestrator_Mon_LogFinalState" xml:space="preserve">
+    <value>Estado final según el historial: {0}</value>
+    <comment>Line of the activity. {0}: phase.</comment>
+  </data>
+  <data name="Orchestrator_Mon_LogFinished" xml:space="preserve">
+    <value>Ejecución terminada: {0}</value>
+    <comment>Line of the activity. {0}: phase.</comment>
+  </data>
+  <data name="Orchestrator_Mon_ReplanDismissed" xml:space="preserve">
+    <value>Descartaste la petición de replanificar: la entrega ya no espera por ella. Los hallazgos siguen en el historial.</value>
+    <comment>Text after dismissing.</comment>
+  </data>
+  <data name="Orchestrator_Mon_LogReplanDismissed" xml:space="preserve">
+    <value>Petición de replanificar descartada</value>
+    <comment>Line of the activity.</comment>
+  </data>
+  <data name="Orchestrator_Mon_ReplanStands" xml:space="preserve">
+    <value>La petición de replanificar sigue en pie: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Mon_ReplanNotApproved" xml:space="preserve">
+    <value>no se aprobó descartarla.</value>
+    <comment>Why the request stands.</comment>
+  </data>
+  <data name="Orchestrator_Mon_DismissFailed" xml:space="preserve">
+    <value>No se pudo descartar la petición: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Mon_FollowUpFailed" xml:space="preserve">
+    <value>No se pudo preparar la ejecución de seguimiento: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Mon_LogRevisionAccepted" xml:space="preserve">
+    <value>Revisión {0} aceptada</value>
+    <comment>Line of the activity. {0}: revision.</comment>
+  </data>
+  <data name="Orchestrator_Mon_RevisionFailed" xml:space="preserve">
+    <value>No se aceptó la revisión: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Mon_AuditFailed" xml:space="preserve">
+    <value>No se pudo auditar la ejecución: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Mon_AuditFromEntry" xml:space="preserve">
+    <value> desde la entrada {0}</value>
+    <comment>Added to the audit summary. {0}: entry.</comment>
+  </data>
+  <data name="Orchestrator_Mon_AuditLogBroken" xml:space="preserve">
+    <value>El historial de la ejecución no se pudo verificar{0}: {1}. El auditor no escribió nada.</value>
+    <comment>Audit summary. {0}: from entry, {1}: problem.</comment>
+  </data>
+  <data name="Orchestrator_Mon_WhereTasks" xml:space="preserve">
+    <value>tareas {0}</value>
+    <comment>Where a finding is. {0}: tasks.</comment>
+  </data>
+  <data name="Orchestrator_Mon_WhereEntries" xml:space="preserve">
+    <value>entradas {0}</value>
+    <comment>Where a finding is. {0}: entries.</comment>
+  </data>
+  <data name="Orchestrator_Mon_WhereAll" xml:space="preserve">
+    <value>toda la ejecución</value>
+    <comment>Where a finding is.</comment>
+  </data>
+  <data name="Orchestrator_Mon_RecordedOne" xml:space="preserve">
+    <value> (1 alerta nueva en el historial)</value>
+    <comment>Added to the audit summary.</comment>
+  </data>
+  <data name="Orchestrator_Mon_RecordedMany" xml:space="preserve">
+    <value> ({0} alertas nuevas en el historial)</value>
+    <comment>Added to the audit summary.</comment>
+  </data>
+  <data name="Orchestrator_Mon_AuditClean" xml:space="preserve">
+    <value>Auditor del orquestador: sin hallazgos en el historial verificado de la ejecución.</value>
+    <comment>Audit summary.</comment>
+  </data>
+  <data name="Orchestrator_Mon_AuditFindings" xml:space="preserve">
+    <value>Auditor del orquestador: {0}, {1} de gravedad alta o crítica{2}.</value>
+    <comment>Audit summary. {0}: findings, {1}: serious ones, {2}: alerts.</comment>
+  </data>
+  <data name="Orchestrator_Mon_FindingsOne" xml:space="preserve">
+    <value>1 hallazgo</value>
+    <comment>Count of findings.</comment>
+  </data>
+  <data name="Orchestrator_Mon_FindingsMany" xml:space="preserve">
+    <value>{0} hallazgos</value>
+    <comment>Count of findings.</comment>
+  </data>
+  <data name="Orchestrator_Mon_ReplanAsked" xml:space="preserve">
+    <value>El auditor pide replanificar. Prepara una ejecución de seguimiento o descarta la petición. Hasta que decidas, la entrega espera.</value>
+    <comment>Text of the request to replan.</comment>
+  </data>
+  <data name="Orchestrator_Mon_VerdictFailed" xml:space="preserve">
+    <value>No se pudo leer el veredicto de la revisión: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Mon_VerdictTitle" xml:space="preserve">
+    <value>Veredicto de la revisión · {0}</value>
+    <comment>Title of the card of the verdict. {0}: run.</comment>
+  </data>
+  <data name="Orchestrator_Mon_PreviousAttempt" xml:space="preserve">
+    <value>Intento anterior: {0}</value>
+    <comment>Reason of a task. {0}: why it failed.</comment>
+  </data>
+  <data name="Orchestrator_Mon_EvidenceOne" xml:space="preserve">
+    <value>1 evidencia</value>
+    <comment>Count of evidence.</comment>
+  </data>
+  <data name="Orchestrator_Mon_EvidenceMany" xml:space="preserve">
+    <value>{0} evidencias</value>
+    <comment>Count of evidence.</comment>
+  </data>
+  <data name="Orchestrator_Mon_CompactionOne" xml:space="preserve">
+    <value>1 compactación del contexto (posible pérdida de información)</value>
+    <comment>Compactions of the program.</comment>
+  </data>
+  <data name="Orchestrator_Mon_CompactionMany" xml:space="preserve">
+    <value>{0} compactaciones del contexto (posible pérdida de información)</value>
+    <comment>Compactions of the program.</comment>
+  </data>
+  <data name="Orchestrator_Mon_ContextLabel" xml:space="preserve">
+    <value>Contexto</value>
+    <comment>Name of the bar of the context.</comment>
+  </data>
+  <data name="Orchestrator_Mon_ContextLine" xml:space="preserve">
+    <value>Contexto: {0}</value>
+    <comment>Line of the context. {0}: the reading.</comment>
+  </data>
+  <data name="Orchestrator_Mon_ContextNone" xml:space="preserve">
+    <value>Contexto: sin observaciones todavía</value>
+    <comment>Line of the context.</comment>
+  </data>
+  <data name="Orchestrator_Mon_ContextNoData" xml:space="preserve">
+    <value>sin dato</value>
+    <comment>Empty bar of the context.</comment>
+  </data>
+  <data name="Orchestrator_Mon_ContextFromLog" xml:space="preserve">
+    <value>vista reconstruida del historial: los pasos del agente no están en él</value>
+    <comment>Why the bar of a run read from the history is empty.</comment>
+  </data>
+  <data name="Orchestrator_Mon_ContextNotStarted" xml:space="preserve">
+    <value>sin empezar</value>
+    <comment>Empty bar of a task that has not started.</comment>
+  </data>
+  <data name="Orchestrator_Mon_Queued" xml:space="preserve">
+    <value>En cola · {0}</value>
+    <comment>Status of a task. {0}: program.</comment>
+  </data>
+  <data name="Orchestrator_Mon_Attempt" xml:space="preserve">
+    <value>Intento {0}</value>
+    <comment>Attempt of a task.</comment>
+  </data>
+  <data name="Orchestrator_Mon_AttemptOne" xml:space="preserve">
+    <value>Intento {0} · 1 reintento</value>
+    <comment>Attempt of a task.</comment>
+  </data>
+  <data name="Orchestrator_Mon_AttemptMany" xml:space="preserve">
+    <value>Intento {0} · {1} reintentos</value>
+    <comment>Attempt of a task.</comment>
+  </data>
+</root>
