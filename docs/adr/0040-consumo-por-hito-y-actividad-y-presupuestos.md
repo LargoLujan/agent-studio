@@ -67,7 +67,9 @@
       bloqueo, y es del intento que llegó al límite; una espera sin salida es «sin dato», nunca cero, y un intento que no empezó ninguna tiene un
       cero medido. Ninguna entra en la duración. Los totales las suman aparte (`UsageTotals.QueueWaitMilliseconds` y `.QuotaWaitMilliseconds`).
   12. **El presupuesto en el motor (`ProjectBudgetGate`).** Falla cerrado y no gasta cuota:
-     - Sin presupuesto (puerto ausente, o ninguno guardado) deja pasar y no lee nada más. Con uno, lo que no pueda saber (el almacén no se lee, el
+     - Sin presupuesto (puerto ausente, o ninguno guardado en el proyecto ni en los hitos de la ejecución) deja pasar y no lee ni el consumo ni
+       la estimación. Con un registro de hitos conectado, la primera comprobación de cada ejecución lee el registro una vez para saber a qué hitos
+       pertenece (se recuerda: un vínculo posterior cuenta desde la ejecución siguiente). Lo que no pueda saber (el almacén no se lee, el
        registro no es de confianza, lo gastado no se proyecta, el presupuesto no valida) **rechaza** (`project.budget-unreadable`).
      - Lo gastado sale de `IUsageReport` como lo cuenta el panel: tokens de entrada más salida de los intentos que terminaron y su número; el
        presupuesto de un proyecto, en su periodo (día, semana ISO desde el lunes o mes, en la zona local); el de un hito, en todos sus intentos

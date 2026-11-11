@@ -48,6 +48,8 @@ public sealed class ProjectBudgetGate(
     IProjectLogReader? logs,
     TimeProvider time)
 {
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, IReadOnlyList<string>> _membership = new(StringComparer.Ordinal);
+
     /// <summary>The code of the alert and of the sentence when a limit would be passed.</summary>
     public const string ExceededCode = "project.budget-exceeded";
 
@@ -121,13 +123,20 @@ public sealed class ProjectBudgetGate(
 
         if (milestones is not null && logs is not null)
         {
-            var snapshot = await logs.ReadAsync(project.RootPath, ct).ConfigureAwait(false);
-            if (!snapshot.IsTrusted)
+            // The milestones of a run are read from the log once, the first time the run is checked: a link written later counts from the
+            // next run (a milestone is linked when the run starts), so a launch of the run does not read the whole log again.
+            if (!_membership.TryGetValue(run, out var ids))
             {
-                throw new InvalidOperationException("The log of the project is not trusted.");
+                var snapshot = await logs.ReadAsync(project.RootPath, ct).ConfigureAwait(false);
+                if (!snapshot.IsTrusted)
+                {
+                    throw new InvalidOperationException("The log of the project is not trusted.");
+                }
+
+                _membership[run] = ids = MilestoneMembership.Of(snapshot.Entries).GetValueOrDefault(run) ?? [];
             }
 
-            foreach (var id in MilestoneMembership.Of(snapshot.Entries).GetValueOrDefault(run) ?? [])
+            foreach (var id in ids)
             {
                 if (await milestones.FindAsync(project.ProjectId, new MilestoneId(id), ct).ConfigureAwait(false) is { Budget: { } budget })
                 {
@@ -164,15 +173,17 @@ public sealed class ProjectBudgetGate(
         attempt.Own.InputTokens.Value is { } input && attempt.Own.OutputTokens.Value is { } output ? input + output : null;
 
     /// <summary>Whether the attempt ended in the period that contains <paramref name="now"/> (the day, the ISO week from Monday or the month, in the local zone).</summary>
-    private static bool InPeriod(UsageAttempt attempt, BudgetPeriod period, DateTimeOffset now)
+    private bool InPeriod(UsageAttempt attempt, BudgetPeriod period, DateTimeOffset now)
     {
         if (period == BudgetPeriod.Total)
         {
             return true;
         }
 
-        var finished = attempt.FinishedAt.ToOffset(now.Offset).DateTime;
-        var today = now.DateTime;
+        // Each instant in the zone of its own date, as the usage panel groups by day: a change of time does not move an attempt of the day.
+        var zone = time.LocalTimeZone;
+        var finished = TimeZoneInfo.ConvertTime(attempt.FinishedAt, zone).DateTime;
+        var today = TimeZoneInfo.ConvertTime(now, zone).DateTime;
         return period switch
         {
             BudgetPeriod.Day => finished.Date == today.Date,

@@ -196,8 +196,8 @@ public sealed class ActivityAndMilestoneUsageTests
         var attempts = Project(log);
 
         var waited = attempts.Single(a => a.TaskId == "T1");
-        Assert.Equal(600_000, waited.QuotaWaitMilliseconds);
-        Assert.Equal(600_000L, waited.QuotaWait().Value);
+        Assert.Equal(601_000, waited.QuotaWaitMilliseconds); // the builder moves the clock a second per entry
+        Assert.Equal(601_000L, waited.QuotaWait().Value);
         var open = attempts.Single(a => a.TaskId == "T2");
         Assert.True(open.OpenQuotaWait);
         Assert.False(open.QuotaWait().HasValue);

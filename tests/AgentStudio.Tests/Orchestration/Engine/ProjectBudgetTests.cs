@@ -60,6 +60,28 @@ public sealed class ProjectBudgetTests
     }
 
     [Fact]
+    public async Task The_milestones_of_a_run_are_read_from_the_log_once_per_run_and_a_day_is_the_day_of_the_local_zone()
+    {
+        var fakes = new Fakes { Budget = new WorkBudget(1_000_000, null), EstimateTotal = 1 };
+        var gate = Gate(fakes);
+
+        await gate.CheckAsync(Project, "R1", Request, 0, TestContext.Current.CancellationToken);
+        await gate.CheckAsync(Project, "R1", Request, 0, TestContext.Current.CancellationToken);
+        await gate.CheckAsync(Project, "R2", Request, 0, TestContext.Current.CancellationToken);
+
+        Assert.Equal(2, fakes.Logs.Reads);
+
+        // 23:30 UTC on the 10th is already the 11th in Madrid (UTC+1 in November): it belongs to "today" there.
+        var madrid = new FakeTimeProvider(Now);
+        madrid.SetLocalTimeZone(TimeZoneInfo.FindSystemTimeZoneById("Europe/Madrid"));
+        var inMadrid = new Fakes { Budget = new WorkBudget(1_000, null, BudgetPeriod.Day), Attempts = [Used(900, new DateTimeOffset(2026, 11, 10, 23, 30, 0, TimeSpan.Zero))], EstimateTotal = 200 };
+
+        var verdict = await new ProjectBudgetGate(inMadrid.Budgets, inMadrid.Usage, inMadrid.Estimator, null, null, madrid).CheckAsync(Project, "R1", Request, 0, TestContext.Current.CancellationToken);
+
+        Assert.False(verdict.Allowed);
+    }
+
+    [Fact]
     public async Task Reaching_the_limit_exactly_is_within_it_and_passing_it_by_one_token_is_not()
     {
         var within = new Fakes { Budget = new WorkBudget(1_000, null), Attempts = [Used(800)], EstimateTotal = 200 };
@@ -356,7 +378,7 @@ public sealed class ProjectBudgetTests
 
         public IMilestoneRegistry? Registry { get; }
 
-        public IProjectLogReader? Logs { get; }
+        public LogSource Logs { get; }
 
         public sealed class Store(Fakes owner) : IProjectBudgetStore
         {
@@ -423,8 +445,13 @@ public sealed class ProjectBudgetTests
 
         public sealed class LogSource(Fakes owner) : IProjectLogReader
         {
-            public Task<ProjectLogSnapshot> ReadAsync(string projectRoot, CancellationToken ct) =>
-                Task.FromResult(new ProjectLogSnapshot("p1", projectRoot, owner.Entries ?? [], DecisionLogVerification.Valid, AnchorStatus.Anchored));
+            public int Reads { get; private set; }
+
+            public Task<ProjectLogSnapshot> ReadAsync(string projectRoot, CancellationToken ct)
+            {
+                Reads++;
+                return Task.FromResult(new ProjectLogSnapshot("p1", projectRoot, owner.Entries ?? [], DecisionLogVerification.Valid, AnchorStatus.Anchored));
+            }
         }
     }
 }
