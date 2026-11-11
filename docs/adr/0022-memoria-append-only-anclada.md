@@ -93,3 +93,7 @@ problema, el prompt de todo lanzamiento cuyo `AgentRunStarted` llevó un paquete
 registrado como evidencia de la tarea. Es la misma regla que ya dejaba fuera los prompts que solo anuncia
 `AgentRunStarted`. El juez conserva los requisitos, el plan, los informes, los diffs y las verificaciones, que es con lo
 que juzga; lo prueba `MemoryInPromptsIntegrationTests` sobre el paquete real del dosier.
+
+Desde el 2026-11-11 (P54, [ADR-0051](0051-preguntas-de-los-agentes.md), adenda) el prompt de la planificación del
+orquestador queda fuera del dosier en todos los casos, lleve memoria o no: `JudgeDossierBuilder` lo retira igual que los de
+los ejecutores. La regla de memoria de arriba sigue valiendo para cualquier otro lanzamiento.

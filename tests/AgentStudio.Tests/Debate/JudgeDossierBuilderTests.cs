@@ -493,12 +493,116 @@ public sealed class JudgeDossierBuilderTests
         Assert.Contains(package.Files.SystemChecks, c => c.Contains(prompt.Id.Value, StringComparison.Ordinal) && c.Contains("AgentRunStarted", StringComparison.Ordinal));
     }
 
-    private static async Task<(EvidenceRecord Prompt, EvidenceRecord Answer)> RecordJudgeLaunchAsync(JudgingWorld world, string? promptSha256)
+    // ---- P54 (docs/18, docs/17 D-33): the orchestrator's planning in the run that planned ----
+
+    private const string PlannerMarker = "Pregunta-del-orquestador-PQ1";
+
+    /// <summary>
+    /// A launch of the orchestrator's planning as the engine records it: its prompt (evidence, registered, with no task), the start
+    /// that names it (<paramref name="purpose"/> null is a start of version 1) and the report of the agent, registered too.
+    /// </summary>
+    private static async Task<(EvidenceRecord Prompt, EvidenceRecord Report)> RecordPlannerLaunchAsync(JudgingWorld world, string report, AgentRunPurpose? purpose = AgentRunPurpose.Planner, int attempt = 1)
+    {
+        var run = JudgingWorld.Run;
+        var prompt = await world.CaptureAsync(EvidenceKind.Document, EvidenceOrigin.CapturedBySystem, $"Prompt del orquestador (intento {attempt})", $"Planifica. {PlannerMarker}", run);
+        await world.RegisterAsync(prompt, run, null, attempt);
+        await world.RecordAsync(JudgingWorld.System, DecisionKind.AgentRunStarted, "Orquestador lanzado", new AgentRunStartedPayload(
+            null, attempt, JudgingWorld.Orchestrator, ProviderId.ClaudeCode, VendorId.Anthropic, null, world.Workspace, prompt.Id, prompt.ContentSha256, [], purpose)
+        {
+            RunId = run.Value,
+            V = purpose is null ? 1 : AgentRunStartedPayload.PurposeVersion,
+        });
+        var reported = await world.CaptureAsync(EvidenceKind.AgentStatement, EvidenceOrigin.ReportedByAgent, $"Plan propuesto por orquestador (intento {attempt})", report, run);
+        await world.RegisterAsync(reported, run, null, attempt);
+        await world.RecordAsync(JudgingWorld.System, DecisionKind.AgentRunFinished, "Orquestador terminado",
+            new AgentRunFinishedPayload(null, attempt, AttemptOutcome.Succeeded, 0, "sess-orq", null, null, reported.Id) { RunId = run.Value });
+        return (prompt, reported);
+    }
+
+    private static string Everything(JudgeDossierPackage package) =>
+        string.Join("\n", Directory.EnumerateFiles(package.Files.Folder, "*", SearchOption.AllDirectories).Select(File.ReadAllText));
+
+    [Theory]
+    [InlineData("""{"plan":{"tasks":[]},"questions":[]}""", true)]
+    [InlineData("""{"plan":{"tasks":[]}}""", true)]
+    [InlineData("""{"plan":{"tasks":[]},"questions":null}""", true)]
+    [InlineData("""{"plan":null,"questions":[{"text":"¿Pregunta-del-orquestador-PQ1?","options":[{"id":"a","recommended":true}]}]}""", false)]
+    [InlineData("""{"questions":"¿Pregunta-del-orquestador-PQ1?"}""", false)]
+    [InlineData("""{"questions":{}}""", false)]
+    [InlineData("""["¿Pregunta-del-orquestador-PQ1?"]""", false)]
+    [InlineData("esto no es un informe: ¿Pregunta-del-orquestador-PQ1?", false)]
+    public async Task The_report_of_the_orchestrators_planning_reaches_the_judge_only_when_it_brings_no_question_and_its_prompt_never_does(string content, bool reaches)
+    {
+        using var world = await JudgingWorld.CreateAsync();
+        var (prompt, report) = await RecordPlannerLaunchAsync(world, content);
+
+        var package = await BuildAsync(world);
+
+        Assert.DoesNotContain(package.Dossier.Evidence, e => e.Id == prompt.Id);
+        Assert.Equal(reaches, package.Dossier.Evidence.Any(e => e.Id == report.Id));
+        Assert.Empty(package.Files.SystemChecks); // withheld for what it says is not a problem of the dossier
+        Assert.DoesNotContain(PlannerMarker, Everything(package), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_report_of_the_orchestrators_planning_that_cannot_be_read_is_withheld_and_reported()
+    {
+        using var world = await JudgingWorld.CreateAsync();
+        var (prompt, report) = await RecordPlannerLaunchAsync(world, """{"plan":{"tasks":[]},"questions":[]}""");
+        world.Evidence.Unreadable.Add(report.Id);
+
+        var package = await BuildAsync(world);
+
+        Assert.DoesNotContain(package.Files.Evidence, f => f.Evidence == report.Id);
+        Assert.DoesNotContain(package.Dossier.Evidence, e => e.Id == report.Id || e.Id == prompt.Id);
+        Assert.Contains(package.Dossier.IntegrityProblems, c => c.Contains(report.Id.Value, StringComparison.Ordinal) && c.Contains("the orchestrator's planning", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task The_prompt_of_the_planning_is_withheld_in_every_attempt_and_from_a_start_that_predates_its_purpose()
+    {
+        using var world = await JudgingWorld.CreateAsync();
+        var plan = """{"plan":{"tasks":[]},"questions":[]}""";
+        var (first, firstReport) = await RecordPlannerLaunchAsync(world, plan);
+        var (second, secondReport) = await RecordPlannerLaunchAsync(world, plan, attempt: 2);
+        var (old, oldReport) = await RecordPlannerLaunchAsync(world, plan, purpose: null, attempt: 3);
+
+        var package = await BuildAsync(world);
+
+        Assert.DoesNotContain(package.Dossier.Evidence, e => e.Id == first.Id || e.Id == second.Id || e.Id == old.Id);
+        Assert.DoesNotContain(PlannerMarker, Everything(package), StringComparison.Ordinal);
+
+        // The reports with only the plan reach it, as they did: a start without a purpose says nothing of who launched it, and a
+        // report of the planner that asked cannot predate the purpose (the questions came later).
+        Assert.All(new[] { firstReport, secondReport, oldReport }, report => Assert.Contains(package.Dossier.Evidence, e => e.Id == report.Id));
+        Assert.Empty(package.Files.SystemChecks);
+    }
+
+    [Fact]
+    public async Task The_launch_of_the_judge_is_not_taken_for_the_planner_though_it_has_the_same_attempt()
+    {
+        using var world = await JudgingWorld.CreateAsync();
+        var (_, report) = await RecordPlannerLaunchAsync(world, """{"plan":{"tasks":[]},"questions":[]}""");
+
+        // The review records its own launch of the same attempt, with no task, its answer announced by AgentRunFinished only.
+        var (prompt, answer) = await RecordJudgeLaunchAsync(world, promptSha256: null, AgentRunPurpose.Judge);
+        var package = await BuildAsync(world);
+
+        Assert.Contains(package.Dossier.Evidence, e => e.Id == report.Id);
+        Assert.DoesNotContain(package.Dossier.Evidence, e => e.Id == prompt.Id || e.Id == answer.Id);
+        Assert.Empty(package.Files.SystemChecks);
+    }
+
+    private static async Task<(EvidenceRecord Prompt, EvidenceRecord Answer)> RecordJudgeLaunchAsync(JudgingWorld world, string? promptSha256, AgentRunPurpose? purpose = null)
     {
         var run = JudgingWorld.Run.Value;
         var prompt = await world.CaptureAsync(EvidenceKind.Document, EvidenceOrigin.CapturedBySystem, "Prompt del juez (intento 1)", "Juzga la ejecución.", JudgingWorld.Run, task: JudgingWorld.Review.Value);
         await world.RecordAsync(JudgingWorld.System, DecisionKind.AgentRunStarted, "Juez lanzado", new AgentRunStartedPayload(
-            null, 1, JudgingWorld.Judge, world.Options.JudgeModel.Provider, world.Options.JudgeModel.Vendor, null, world.Workspace, prompt.Id, promptSha256 ?? prompt.ContentSha256, []) { RunId = run });
+            null, 1, JudgingWorld.Judge, world.Options.JudgeModel.Provider, world.Options.JudgeModel.Vendor, null, world.Workspace, prompt.Id, promptSha256 ?? prompt.ContentSha256, [], purpose)
+        {
+            RunId = run,
+            V = purpose is null ? 1 : AgentRunStartedPayload.PurposeVersion,
+        });
         var answer = await world.CaptureAsync(EvidenceKind.AgentStatement, EvidenceOrigin.ReportedByAgent, "Respuesta del juez (intento 1)", "{}", JudgingWorld.Run, task: JudgingWorld.Review.Value);
         await world.RecordAsync(JudgingWorld.System, DecisionKind.AgentRunFinished, "Juez terminado",
             new AgentRunFinishedPayload(null, 1, AttemptOutcome.RateLimited, 1, "thread-1", "límite de uso", null, answer.Id) { RunId = run });

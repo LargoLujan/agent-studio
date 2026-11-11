@@ -7,6 +7,7 @@ using AgentStudio.Application.Providers;
 using AgentStudio.Application.Semantic;
 using AgentStudio.Application.Skills;
 using AgentStudio.Domain.Agents;
+using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Evidence;
 using AgentStudio.Domain.Orchestration;
@@ -63,8 +64,8 @@ internal sealed class Planner(EnginePorts ports)
         var continuation = Continuation.None;
         if (answers.Count > 0)
         {
-            (run, var recorded) = PlannerQuestions.RunOf(answers, log.Entries);
-            continuation = new Continuation(recorded, PlannerQuestions.BaseOf(log.Entries, run));
+            (run, _) = PlannerQuestions.RunOf(answers, log.Entries);
+            continuation = new Continuation(PlannerQuestions.BaseOf(log.Entries, run), log.Entries);
         }
         else
         {
@@ -114,13 +115,14 @@ internal sealed class Planner(EnginePorts ports)
     }
 
     /// <summary>
-    /// What a planning with the person's answers goes on from (docs/17 D-28): whether the log already has these answers (a
-    /// planning with them that failed, tried again) and the commit of the <c>_base</c> the questions were asked from, the one
-    /// the run builds on (<c>Orchestrator.BaseCommitAsync</c> takes the first <c>_base</c> of the run).
+    /// What a planning with the person's answers goes on from (docs/17 D-28): the commit of the <c>_base</c> the questions were
+    /// asked from, the one the run builds on (<c>Orchestrator.BaseCommitAsync</c> takes the first <c>_base</c> of the run), and the
+    /// log as it was before this planning, for it to tell what it recorded already (a planning with these answers that failed,
+    /// tried again).
     /// </summary>
-    private sealed record Continuation(bool AnswersRecorded, string? AskedBase)
+    private sealed record Continuation(string? AskedBase, IReadOnlyList<DecisionEntry> Log)
     {
-        public static Continuation None { get; } = new(false, null);
+        public static Continuation None { get; } = new(null, []);
     }
 
     private async Task<PlanProposal> PlanWithAsync(
@@ -163,10 +165,7 @@ internal sealed class Planner(EnginePorts ports)
                 cancellationToken).ConfigureAwait(false);
         }
 
-        if (!continuation.AnswersRecorded)
-        {
-            await RecordAnswersAsync(recorder, answers, cancellationToken).ConfigureAwait(false);
-        }
+        await RecordAnswersAsync(recorder, answers, continuation.Log, cancellationToken).ConfigureAwait(false);
         var session = new Session(ports, request, orchestrator, provider, recorder, guard, lease, schema, progress, memory, history?.Server);
         var skills = await ports.Skills.ProvisionAsync(project.ProjectId, orchestrator, $"{run.Value}-plan", lease.Path, cancellationToken).ConfigureAwait(false);
         try
@@ -184,33 +183,88 @@ internal sealed class Planner(EnginePorts ports)
     /// <summary>
     /// Records each answer of the person (docs/17 D-29), before the orchestrator runs with them: the option chosen, or the
     /// person's own text as evidence they provided, cited by its SHA-256. Answering is not approving: it grants nothing.
+    /// Then the decision for the judge, as for the question of an executor (P54, docs/17 D-33): the document the system
+    /// captures with ids, hashes and instants, no task, never the text of the agent. Each step is done once: what an earlier
+    /// planning with these same answers recorded (<paramref name="log"/>, which <see cref="PlannerQuestions.RunOf"/> checked)
+    /// is not recorded again, and a decision that planning did not reach is captured now.
     /// </summary>
-    private static async Task RecordAnswersAsync(RunRecorder recorder, IReadOnlyList<AnsweredQuestion> answers, CancellationToken cancellationToken)
+    private static async Task RecordAnswersAsync(RunRecorder recorder, IReadOnlyList<AnsweredQuestion> answers, IReadOnlyList<DecisionEntry> log, CancellationToken cancellationToken)
     {
+        if (answers.Count == 0)
+        {
+            return;
+        }
+
+        var asked = new Dictionary<string, (DecisionEntry Entry, QuestionAskedPayload Payload)>(StringComparer.Ordinal);
+        var recorded = new Dictionary<string, (DecisionEntry Entry, QuestionAnsweredPayload Payload)>(StringComparer.Ordinal);
+        var captured = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var (entry, payload) in RunLog.Of(log, recorder.RunValue))
+        {
+            switch (payload)
+            {
+                case QuestionAskedPayload { Task: null } question:
+                    asked.TryAdd(question.Question, (entry, question));
+                    break;
+                case QuestionAnsweredPayload { Task: null } answer:
+                    recorded.TryAdd(answer.Question, (entry, answer)); // the first answer the log recorded is the one that counts
+                    break;
+                case EvidenceRegisteredPayload { Title: { } title }:
+                    captured.Add(title);
+                    break;
+            }
+        }
+
         foreach (var answered in answers)
         {
             var answer = answered.Answer;
-            EvidenceRecord? text = null;
-            if (answer.OtherText is { } own)
+            EvidenceId? textEvidence;
+            string? textSha256;
+            DateTimeOffset answeredAt;
+            if (recorded.TryGetValue(answered.Question.Id, out var before))
             {
-                text = await recorder.CaptureAsync(
-                    EvidenceKind.Document,
-                    EvidenceOrigin.ProvidedByHuman,
+                (textEvidence, textSha256, answeredAt) = (before.Payload.AnswerEvidence, before.Payload.AnswerSha256, before.Entry.RecordedAt);
+            }
+            else
+            {
+                EvidenceRecord? text = null;
+                if (answer.OtherText is { } own)
+                {
+                    text = await recorder.CaptureAsync(
+                        EvidenceKind.Document,
+                        EvidenceOrigin.ProvidedByHuman,
+                        $"Respuesta a la pregunta {answered.Question.Id} del orquestador",
+                        answer.DecidedBy,
+                        own,
+                        "text/plain",
+                        null,
+                        null,
+                        cancellationToken).ConfigureAwait(false);
+                }
+
+                var entry = await recorder.RecordAsync(
+                    new Actor(answer.Method == Domain.Questions.QuestionAnswerMethod.ChosenByPerson ? ActorKind.User : ActorKind.System, answer.DecidedBy),
+                    DecisionKind.QuestionAnswered,
                     $"Respuesta a la pregunta {answered.Question.Id} del orquestador",
-                    answer.DecidedBy,
-                    own,
-                    "text/plain",
-                    null,
-                    null,
+                    QuestionAnsweredPayload.Answering(recorder.RunValue, null, answered.Question.Id, answer.OptionId, text?.Id, text?.ContentSha256, answer.DecidedBy, answer.Method),
                     cancellationToken).ConfigureAwait(false);
+                (textEvidence, textSha256, answeredAt) = (text?.Id, text?.ContentSha256, entry.RecordedAt);
             }
 
-            await recorder.RecordAsync(
-                new Actor(answer.Method == Domain.Questions.QuestionAnswerMethod.ChosenByPerson ? ActorKind.User : ActorKind.System, answer.DecidedBy),
-                DecisionKind.QuestionAnswered,
-                $"Respuesta a la pregunta {answered.Question.Id} del orquestador",
-                QuestionAnsweredPayload.Answering(recorder.RunValue, null, answered.Question.Id, answer.OptionId, text?.Id, text?.ContentSha256, answer.DecidedBy, answer.Method),
-                cancellationToken).ConfigureAwait(false);
+            // The question as the log anchored it (its evidence and hash, the instant it was recorded), not as the caller gives it back.
+            var (askedEntry, asking) = asked[answered.Question.Id];
+            var decided = new RecordedAnswer(
+                new AskedQuestion(asking.Question, null, asking.Agent, asking.Attempt, answered.Question.Question, asking.QuestionEvidence, asking.QuestionSha256, asking.Estimates, askedEntry.RecordedAt),
+                answer.OptionId,
+                answer.OtherText,
+                textEvidence,
+                textSha256,
+                answer.DecidedBy,
+                answer.Method,
+                answeredAt);
+            if (!captured.Contains(QuestionDocuments.DecisionTitle(decided.Asked)))
+            {
+                await OrchestrationRun.CaptureDecisionAsync(recorder, decided, cancellationToken).ConfigureAwait(false);
+            }
         }
     }
 

@@ -15,8 +15,9 @@ namespace AgentStudio.Orchestration.Planning;
 /// <summary>
 /// The questions of the orchestrator before it plans (docs/17 D-28 to D-30), WP1: one round, three at most, instead of a plan.
 /// The planning that asks records each question as evidence and <c>QuestionAsked</c> with no task; the planning that follows
-/// gets the answers (<see cref="PlanningRequest.Answers"/>), goes on in the same run, records each <c>QuestionAnswered</c>, and
-/// gives the orchestrator the questions and the answers as data, with no way to ask again.
+/// gets the answers (<see cref="PlanningRequest.Answers"/>), goes on in the same run, records each <c>QuestionAnswered</c> with the
+/// decision for the judge that the system captures (P54: ids, hashes and instants, no task, no text of the agent), and gives the
+/// orchestrator the questions and the answers as data, with no way to ask again.
 /// </summary>
 internal static class PlannerQuestions
 {

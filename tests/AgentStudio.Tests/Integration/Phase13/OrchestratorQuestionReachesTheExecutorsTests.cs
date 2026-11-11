@@ -22,7 +22,9 @@ namespace AgentStudio.Tests.Integration.Phase13;
 /// The orchestrator asks the person before it plans, the person answers with an option, the orchestrator plans in the same run
 /// and the run starts from that plan: the answer reaches the first prompt of the executor of every task as a
 /// <c>&lt;human_answer … askedBy="orchestrator" …&gt;</c> block of data with no task and no attempt, with the rule that says not
-/// to ask it again, and the judge's prompt carries neither the block nor a word of the question.
+/// to ask it again, and the judge's prompt carries neither the block nor a word of the question. P54 (docs/18): nor does
+/// anything the judge can read, the prompts of the planning and its report with the question included, but the decision of the
+/// person does.
 /// </summary>
 [Trait("Category", "LocalTools")]
 public sealed class OrchestratorQuestionReachesTheExecutorsTests
@@ -166,11 +168,28 @@ public sealed class OrchestratorQuestionReachesTheExecutorsTests
         }
 
         // Nothing of the executors' prompts is in what it may read: V43 adds the block and the rule to them only, and the dossier
-        // leaves those prompts out. (The prompts of the orchestrator's own planning are another matter: see the report of V43.)
+        // leaves those prompts out.
         Assert.NotEmpty(material);
-        Assert.DoesNotContain(material, text => text.Contains("askedBy", StringComparison.Ordinal));
+        Assert.DoesNotContain(material, text => text.Contains("askedBy=\"", StringComparison.Ordinal) || text.Contains("<human_answer", StringComparison.Ordinal)); // the block of the prompt, not the key of the decision document
         Assert.DoesNotContain(material, text => text.Contains("No vuelvas a preguntar", StringComparison.Ordinal));
         Assert.DoesNotContain(material, text => text.Contains("# Tarea T1 de Agent Studio", StringComparison.Ordinal) || text.Contains("# Tarea T2 de Agent Studio", StringComparison.Ordinal));
+
+        // P54: nor is anything of what the orchestrator wrote or was told when it asked. The run that planned has its prompts and the
+        // report that carried the question; the dossier leaves them out, so not a word of the question, its options or its
+        // recommendation is in a file the judge can read.
+        foreach (var marker in Markers)
+        {
+            Assert.DoesNotContain(material, text => text.Contains(marker, StringComparison.Ordinal));
+        }
+
+        Assert.DoesNotContain(material, text => text.Contains("Respuestas de la persona a tus preguntas", StringComparison.Ordinal));
+        Assert.DoesNotContain(material, text => text.Contains("\"recommended\"", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(material, text => text.Contains("estimates", StringComparison.OrdinalIgnoreCase));
+
+        // What it does get, when the run is the one that planned: the decision of the person, the system's document with ids and
+        // hashes. (A run of its own for the edited plan has none of the planning's entries: it names the planning, and the dossier of
+        // a run reads only its own.)
+        Assert.Equal(!edited, material.Any(text => text.Contains("agent-studio/question-decision/1", StringComparison.Ordinal) && text.Contains("\"question\":\"plan-1\"", StringComparison.Ordinal)));
     }
 
     /// <summary>The attributes and the JSON of every <c>&lt;human_answer&gt;</c> block of a prompt, in order.</summary>
