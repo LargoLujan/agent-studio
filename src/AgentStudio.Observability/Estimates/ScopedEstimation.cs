@@ -1,4 +1,4 @@
-using AgentStudio.Application.Models;
+using AgentStudio.Domain.Models;
 using AgentStudio.Application.Usage;
 using AgentStudio.Domain.Metrics;
 

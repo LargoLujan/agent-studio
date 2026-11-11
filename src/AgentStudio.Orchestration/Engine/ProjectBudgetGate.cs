@@ -16,7 +16,7 @@ namespace AgentStudio.Orchestration.Engine;
 /// <param name="Scope">Whose budget decided: <c>project</c> or the id of the milestone; null when allowed.</param>
 /// <param name="Reached">The limit the projection passes; null when allowed or when the gate could not tell (<see cref="Code"/> says why).</param>
 /// <param name="ProjectionUnknown">The attempt had no estimate, so the check was only against what was already used.</param>
-internal sealed record BudgetGateVerdict(bool Allowed, string? Scope, BudgetLimit? Reached, string? Code, string? Reason, bool ProjectionUnknown = false)
+public sealed record BudgetGateVerdict(bool Allowed, string? Scope, BudgetLimit? Reached, string? Code, string? Reason, bool ProjectionUnknown = false)
 {
     public static readonly BudgetGateVerdict Free = new(true, null, null, null, null);
 }
@@ -40,7 +40,7 @@ internal sealed record BudgetGateVerdict(bool Allowed, string? Scope, BudgetLimi
 /// does give, and the verdict says how many were left out.</para>
 /// <para>The judge is not gated: like the judgment of a debate, it cannot run out of budget, or a run could never end.</para>
 /// </remarks>
-internal sealed class ProjectBudgetGate(
+public sealed class ProjectBudgetGate(
     IProjectBudgetStore? budgets,
     IUsageReport? usage,
     IUsageEstimator? estimator,

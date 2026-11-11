@@ -149,9 +149,21 @@ internal sealed class EngineHarness : IDisposable
     /// <summary>Phase 13: what estimates the options of a question; null, nothing is estimated.</summary>
     public AgentStudio.Application.Usage.IUsageEstimator? Estimator { get; set; }
 
+    /// <summary>Phase 9 (docs/16 D-05): the budget of the project; null, none (the engine reads nothing for it).</summary>
+    public AgentStudio.Application.Work.IProjectBudgetStore? Budgets { get; set; }
+
+    /// <summary>Phase 9: what the budget gate reads what was used with.</summary>
+    public AgentStudio.Application.Usage.IUsageReport? UsageReport { get; set; }
+
+    /// <summary>Phase 9: where the headers (and the budget) of the milestones are read.</summary>
+    public AgentStudio.Application.Work.IMilestoneRegistry? Milestones { get; set; }
+
+    /// <summary>Phase 9: the log reader the gate finds the milestones of a run with.</summary>
+    public AgentStudio.Application.Projects.IProjectLogReader? LogReader { get; set; }
+
     public Orchestrator CreateOrchestrator() =>
         new(Decisions, Evidence, Plans, Runs, RequirementStore, Roster, Providers, Worktrees, Verification, Integrator, ReviewPort ?? Review, Approvals, Skills, Paths, Time, WriteConfinement,
-            brief: Brief, redactor: Redactor, estimator: Estimator);
+            brief: Brief, redactor: Redactor, estimator: Estimator, budgets: Budgets, usage: UsageReport, milestones: Milestones, logReader: LogReader);
 
     public PlanningRequest PlanningRequest(string request = "Añade Calc.Multiply(a,b) con sus pruebas", PlanLimits? limits = null) =>
         new(
