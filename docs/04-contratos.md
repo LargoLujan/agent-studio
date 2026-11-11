@@ -2079,7 +2079,7 @@ y se leen con `CommitTrailers.Read` (solo el último párrafo; clave repetida o 
 | `ITraceLinkService`, `ITraceSuggester`, `ITraceChainReader` | registrar, confirmar, retirar, vínculos de un nodo / sugerencias / la cadena de F9-4 | WP1 |
 | `IParticipationProjector` | los seis papeles de D-32 (`ParticipationRole`); un papel sin fuente es `ParticipationEntry.NotRecorded` («no consta») | WP1 |
 | `IProjectBudgetStore` | presupuesto del proyecto, de la persona y de su equipo; el del hito va en su cabecera | WP2 |
-| `IRepositoryHistoryReader` | `SummaryAsync`, `BranchesAsync`, `CommitsAsync` por la capa git endurecida | WP4 |
+| `IRepositoryHistoryReader` | `SummaryAsync`, `BranchesAsync`, `CommitsAsync` por la capa git endurecida (`Infrastructure/Git/RepositoryHistoryReader.cs`, registrado en `AddAgentStudioGit`). Acotado: 1000 commits, 4 MiB de salida y 500 ramas, textos de git cortados y sin caracteres de control; las ramas son solo las locales (las remotas de seguimiento salen como refs del commit hasta la Fase 10). Falla cerrado: un repositorio no aceptado da `Accepted = false` con el código (`not-a-repository`, `inside-worktree-root`, `unsafe-repository`, `unsafe-configuration`, `git-failed`, `git-unavailable`) y lista vacía en ramas y commits | WP4 |
 | `IRepositoryAnnotator`, `IRepositoryActivityReader` | commits anotados desde el registro / la línea de tiempo de «Actividad» | WP1 y WP5 |
 
 `UsageDimension` gana cuatro valores al final: `Milestone`, `Activity`, `ActivityAttempt` y `ActivityDestination` (los tres ejes de D-34 son

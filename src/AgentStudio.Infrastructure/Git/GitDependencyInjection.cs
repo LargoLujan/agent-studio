@@ -35,6 +35,10 @@ public static class GitDependencyInjection
             provider.GetRequiredService<IExecutableLocator>(),
             provider.GetRequiredService<GitWorktreeOptions>()));
         services.TryAddSingleton<IWorktreeManager>(provider => provider.GetRequiredService<GitWorktreeManager>());
+        services.TryAddSingleton<IRepositoryHistoryReader>(provider => new RepositoryHistoryReader(
+            provider.GetRequiredService<IProcessRunner>(),
+            provider.GetRequiredService<IExecutableLocator>(),
+            provider.GetRequiredService<GitWorktreeOptions>()));
         return services;
     }
 }
