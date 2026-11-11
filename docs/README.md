@@ -36,6 +36,7 @@ Especificación funcional: [referencias/prompt-maestro.md](referencias/prompt-ma
 | 5 · Debate Arena y juez (cerrada el 2026-10-21; [demostraciones](evidencias/fase5-demostraciones.md)) | [15-fase-5-debate-arena-y-juez.md](15-fase-5-debate-arena-y-juez.md) |
 | 6 a 11 · Ampliación «plataforma de proyectos»: trabajo desatendido, trazabilidad, Git remoto, entornos (aprobada el 2026-10-20) | [16-ampliacion-plataforma-de-proyectos.md](16-ampliacion-plataforma-de-proyectos.md) |
 | 12 a 15 · Índice semántico, constructor visual de agentes, bloque final (idiomas, lenguaje claro, ayuda, documentación para clientes y la Fase 9) y comprobación completa (propuesta del 2026-10-30, pendiente de tus decisiones) | [17-constructor-visual-de-agentes.md](17-constructor-visual-de-agentes.md) |
+| 16 · Documentación viva del proyecto: documentación ejecutiva, funcional, técnica, de calidad y de cambios, con diagramas y diccionarios, que se construye mientras trabajan los agentes y se exporta como un paquete (propuesta del 2026-11-12, pendiente de tus decisiones) | [19-documentacion-viva-del-proyecto.md](19-documentacion-viva-del-proyecto.md) |
 
 ## Decisiones de arquitectura (ADR)
 

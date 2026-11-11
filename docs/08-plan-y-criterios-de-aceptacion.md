@@ -44,6 +44,11 @@ Las fases 1 y 2 pueden avanzar en paralelo: la 1 es interfaz y la 2 integración
 criterios en docs/17 §9. La 12 (el índice semántico) va primero, justo después de la tanda 2, y su estado está en la
 [Fase 12](#fase-12--índice-semántico-de-la-bitácora-y-la-memoria).
 
+**Documentación viva del proyecto ([19](19-documentacion-viva-del-proyecto.md)).** Propuesta del 2026-11-12, pendiente de
+tus decisiones (19 §14): una Fase 16 después de la 6 y antes de la 7 y la 15, en paralelo con la 10, que se lleva el paquete
+WP-D de la Fase 6 (diagramas y discrepancias). Sus criterios, F16-1 a F16-16, están en 19 §11.3; se copiarán aquí cuando la
+apruebes.
+
 El prototipo «orquestador + ejecutor + juez de otro proveedor» que recomienda el prompt (parte 5) queda al final de la
 Fase 3 como primera demostración de extremo a extremo, y se amplía en la Fase 5.
 
