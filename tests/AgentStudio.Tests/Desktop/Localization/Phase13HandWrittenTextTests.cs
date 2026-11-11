@@ -121,24 +121,6 @@ public sealed partial class Phase13HandWrittenTextTests
             "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
         [("Lock/HelloAnswers.cs", "Windows dio un resultado que Agent Studio no conoce")] =
             "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
-        [("Lock/HelloTexts.cs", "El bloqueo de Windows no confirmó que eres tú (: ): se deniega.")] =
-            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
-        [("Lock/HelloTexts.cs", "No se pudo bloquear Windows para confirmar que eres tú (): se deniega. ")] =
-            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
-        [("Lock/HelloTexts.cs", "Ya hay una confirmación pendiente: termina primero la de Windows Hello o la del bloqueo de Windows que está abierta. Esta aprobación se deniega; vuelve a pedirla después.")] =
-            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
-        [("Lock/HelloTexts.cs", "Para aprobarlo, configura Windows Hello: abre Configuración, entra en Cuentas y luego en Opciones de inicio de sesión, y elige el PIN, la huella o la cara.")] =
-            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
-        [("Lock/HelloTexts.cs", "lo desbloqueaste después de la petición")] =
-            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
-        [("Lock/HelloTexts.cs", "Windows no se bloqueó")] =
-            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
-        [("Lock/HelloTexts.cs", "el estado de la sesión no confirma que lo desbloqueaste después de la petición")] =
-            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
-        [("Lock/HelloTexts.cs", "nadie lo desbloqueó a tiempo")] =
-            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
-        [("Lock/HelloTexts.cs", "Windows dio un resultado que Agent Studio no conoce")] =
-            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
 
 
         // Skills (Phase 14, WP-14A part c): what the decision log anchors and what the agent receives.
