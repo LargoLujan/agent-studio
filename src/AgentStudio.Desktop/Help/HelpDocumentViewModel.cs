@@ -366,7 +366,9 @@ public sealed partial class HelpDocumentViewModel : DocumentViewModel
                 ct).ConfigureAwait(false);
         }
 
-        await Consent.OpenAsync(_text.Get("Help_Ask_ConsentDescription"), estimate).ConfigureAwait(true);
+        // The OK is for this card and this question: the description carries their fingerprint, which the service checks.
+        var tag = HelpAgentService.ConsentTag(_pendingCard, _pendingQuestion, Language, _pendingChoice);
+        await Consent.OpenAsync(_text.Get("Help_Ask_ConsentDescription") + " " + tag, estimate).ConfigureAwait(true);
         AskCommand.NotifyCanExecuteChanged();
     }
 
@@ -403,7 +405,7 @@ public sealed partial class HelpDocumentViewModel : DocumentViewModel
     private async Task ConfirmAsync()
     {
         if (_backend.Agent is not { } agent || _pendingCard is not { } card || _pendingProject is not { } project
-            || _pendingQuestion is not { Length: > 0 } question || _pendingChoice is not { } choice || !Consent.IsOpen)
+            || _pendingQuestion is not { Length: > 0 } question || _pendingChoice is not { } choice || !Consent.IsOpen || !Consent.IsReady)
         {
             return;
         }

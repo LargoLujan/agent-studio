@@ -187,7 +187,7 @@ public sealed partial class PreparationChatViewModel : ObservableObject
     [RelayCommand]
     private async Task ConfirmAsync()
     {
-        if (_services.Chat is not { } chat || _subject() is not { } subject || !Consent.IsOpen || _pending is not { Length: > 0 } message)
+        if (_services.Chat is not { } chat || _subject() is not { } subject || !Consent.IsOpen || !Consent.IsReady || _pending is not { Length: > 0 } message)
         {
             return;
         }

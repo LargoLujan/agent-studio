@@ -97,7 +97,7 @@
                         <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" Text="{Binding EstimateText}" AutomationProperties.LiveSetting="Polite"/>
                         <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                             <Button Style="{StaticResource ToolbarPrimaryButton}" Content="{l:T Canvas_Consent_Confirm}"
-                                    Command="{Binding DataContext.ConfirmCommand, ElementName=OrderPanel}"/>
+                                    Command="{Binding DataContext.ConfirmCommand, ElementName=OrderPanel}" IsEnabled="{Binding IsReady}"/>
                             <Button Style="{StaticResource ToolbarButton}" Content="{l:T Canvas_Consent_Cancel}"
                                     Command="{Binding DataContext.CancelCommand, ElementName=OrderPanel}"/>
                         </StackPanel>

@@ -1,7 +1,7 @@
 ---
 title: The canvas: the plan and the team
 screens: canvas
-info: Info_Canvas_Layers, Info_Canvas_Plan, Info_Canvas_Team, Info_Canvas_Inspector, Info_Canvas_Strip, Info_Canvas_Motion, Info_Canvas_Repository, Info_Tools
+info: Info_Canvas_Layers, Info_Canvas_Plan, Info_Canvas_Team, Info_Canvas_Inspector, Info_Canvas_Strip, Info_Canvas_Motion, Info_Tools
 ---
 The canvas is the drawing of your work. It has two layers that you switch with the buttons at the top.
 

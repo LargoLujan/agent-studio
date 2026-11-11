@@ -127,7 +127,7 @@
                                 <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Margin="0,6,0,0" Text="{Binding Consent.EstimateText}"
                                            AutomationProperties.LiveSetting="Polite"/>
                                 <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                    <Button Style="{StaticResource PrimaryButton}" Content="{l:T Help_Send}" Command="{Binding ConfirmCommand}"/>
+                                    <Button Style="{StaticResource PrimaryButton}" Content="{l:T Help_Send}" Command="{Binding ConfirmCommand}" IsEnabled="{Binding Consent.IsReady}"/>
                                     <Button Style="{StaticResource GhostButton}" Margin="8,0,0,0" Content="{l:T Help_Cancel}" Command="{Binding CancelCommand}"/>
                                 </StackPanel>
                             </StackPanel>
