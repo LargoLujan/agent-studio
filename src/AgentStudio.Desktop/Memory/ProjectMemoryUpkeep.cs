@@ -2,6 +2,7 @@ using System.Globalization;
 using System.IO;
 using AgentStudio.Application.Knowledge;
 using AgentStudio.Application.Projects;
+using AgentStudio.Desktop.Localization;
 
 namespace AgentStudio.Desktop.Memory;
 
@@ -59,9 +60,9 @@ public sealed class ProjectMemoryUpkeep
 
         var exported = await _exporter.ExportAsync(project, ct).ConfigureAwait(true);
         var export = exported.Exported
-            ? string.Create(CultureInfo.InvariantCulture, $"exportada a .agentstudio/memory/ ({exported.Files.Count} ficheros, {exported.Entries} entradas)")
-            : $"sin exportar: {exported.Reason}";
-        return line is null ? $"Memoria {export}." : $"{line.TrimEnd('.')}; {export}.";
+            ? Texts.Format("Memory_Upkeep_Exported", exported.Files.Count, exported.Entries)
+            : Texts.Format("Memory_Upkeep_NotExported", exported.Reason);
+        return line is null ? Texts.Format("Memory_Upkeep_Alone", export) : Texts.Format("Memory_Upkeep_Joined", line.TrimEnd('.'), export);
     }
 
     /// <summary>
@@ -107,15 +108,15 @@ public sealed class ProjectMemoryUpkeep
     {
         if (!derived.Completed)
         {
-            return $"Memoria sin derivar: {derived.Reason}";
+            return Texts.Format("Memory_Upkeep_NotDerived", derived.Reason);
         }
 
         var parts = new List<string>();
         if (derived.Recorded.Count > 0)
         {
             parts.Add(derived.Recorded.Count == 1
-                ? "1 entrada nueva derivada del registro"
-                : string.Create(CultureInfo.InvariantCulture, $"{derived.Recorded.Count} entradas nuevas derivadas del registro"));
+                ? Texts.Get("Memory_Upkeep_New_One")
+                : Texts.Format("Memory_Upkeep_New_Other", derived.Recorded.Count));
         }
 
         // A problem is a text of an agent whose evidence is not what the log anchored, or a day of the journal that could
@@ -123,10 +124,10 @@ public sealed class ProjectMemoryUpkeep
         if (derived.Problems.Count > 0)
         {
             parts.Add(derived.Problems.Count == 1
-                ? "1 texto sin guardar en la memoria (no cuadra con el registro o es un día de la bitácora que no se pudo leer)"
-                : string.Create(CultureInfo.InvariantCulture, $"{derived.Problems.Count} textos sin guardar en la memoria (no cuadran con el registro o son días de la bitácora que no se pudieron leer)"));
+                ? Texts.Get("Memory_Upkeep_Problems_One")
+                : Texts.Format("Memory_Upkeep_Problems_Other", derived.Problems.Count));
         }
 
-        return parts.Count == 0 ? null : $"Memoria: {string.Join("; ", parts)}.";
+        return parts.Count == 0 ? null : Texts.Format("Memory_Upkeep_Summary", string.Join("; ", parts));
     }
 }

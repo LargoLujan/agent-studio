@@ -55,11 +55,11 @@ public sealed class JournalTrustViewModelTests
 
         await journal.RefreshAsync(Project);
 
-        Assert.Contains("Lo que Agent Studio anota en sus ejecuciones deja un recibo en el registro: con él se comprueba, y es de confianza", JournalTrustViewModel.Explanation, StringComparison.Ordinal);
+        Assert.Contains("Lo que Agent Studio anota en sus ejecuciones deja un recibo en el registro. Con ese recibo se comprueba, y es de confianza", JournalTrustViewModel.Explanation, StringComparison.Ordinal);
         Assert.Contains("El juez nunca recibe la bitácora", JournalTrustViewModel.Explanation, StringComparison.Ordinal);
         Assert.Equal("4 entradas de la bitácora esperan en cuarentena: no llegan a ningún agente.", journal.StateText);
         Assert.Equal("Confiar en la bitácora de este proyecto", journal.ProjectActionLabel);
-        Assert.StartsWith("Las entradas cuyo autor no se puede comprobar, también las de los días que vengan", journal.ProjectActionHelp, StringComparison.Ordinal);
+        Assert.StartsWith("Las entradas cuyo autor no se puede comprobar podrán llegar a los agentes con «Memoria del proyecto». Vale también para los días que vengan", journal.ProjectActionHelp, StringComparison.Ordinal);
         var recall = Assert.Single(store.Recalls).Query;
         Assert.Equal([MemoryKind.JournalEntry], recall.Kinds);
         Assert.False(recall.TrustedOnly);
@@ -79,8 +79,8 @@ public sealed class JournalTrustViewModelTests
         var trusted = journal.ProjectActionHelp;
 
         Assert.True(journal.ProjectTrusted);
-        Assert.Contains("lo que Agent Studio anotó antes de dejar recibos", JournalTrustViewModel.Explanation, StringComparison.Ordinal);
-        Assert.Contains("Lo que no se puede comprobar espera en cuarentena", JournalTrustViewModel.Explanation, StringComparison.Ordinal);
+        Assert.Contains("lo anotado antes de los recibos", JournalTrustViewModel.Explanation, StringComparison.Ordinal);
+        Assert.Contains("Lo demás espera en cuarentena", JournalTrustViewModel.Explanation, StringComparison.Ordinal);
         Assert.StartsWith("Las entradas cuyo autor no se puede comprobar vuelven a cuarentena", trusted, StringComparison.Ordinal);
         Assert.All(
             new[] { JournalTrustViewModel.Explanation, untrusted, trusted },
@@ -201,7 +201,7 @@ public sealed class JournalTrustViewModelTests
         await withoutProject.RefreshAsync(null);
 
         Assert.False(unavailable.IsAvailable);
-        Assert.Equal("La decisión de confiar en la bitácora no está disponible en esta composición.", unavailable.StateText);
+        Assert.Equal("La decisión de confiar en la bitácora no está disponible aquí.", unavailable.StateText);
         Assert.False(unavailable.ToggleProjectCommand.CanExecute(null));
         Assert.Equal("Abre una carpeta de proyecto para ver su bitácora.", withoutProject.StateText);
         Assert.False(withoutProject.ToggleProjectCommand.CanExecute(null));

@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Threading.Channels;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Semantic;
+using AgentStudio.Desktop.Localization;
 using Microsoft.Extensions.Logging;
 
 namespace AgentStudio.Desktop.Memory;
@@ -40,7 +41,7 @@ public sealed class SemanticIndexRefreshedEventArgs(ProjectContext project, Sema
 public sealed class SemanticIndexUpkeep : IDisposable
 {
     /// <summary>Why a refresh did not run: the app is closing.</summary>
-    public const string StoppedReason = "La actualización del índice se detuvo al cerrar Agent Studio.";
+    public static string StoppedReason => Texts.Get("Memory_Index_Stopped");
 
     private readonly ISemanticIndex? _index;
     private readonly IEmbedderSource? _model;
@@ -69,7 +70,7 @@ public sealed class SemanticIndexUpkeep : IDisposable
 
     /// <summary>Why a refresh failed, in Spanish.</summary>
     public static string FailedReason(string problem) =>
-        $"No se pudo actualizar el índice semántico ({problem.TrimEnd().TrimEnd('.')}): la búsqueda sigue con lo que ya tenía.";
+        Texts.Format("Memory_Index_Failed", problem.TrimEnd().TrimEnd('.'));
 
     /// <summary>
     /// Asks for a refresh of the index of <paramref name="project"/>, in the background. The task ends with the refresh that

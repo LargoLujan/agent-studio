@@ -3,6 +3,7 @@ using System.Globalization;
 using AgentStudio.Application.Knowledge;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Projects;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Orchestrator;
 using AgentStudio.Desktop.Orchestrator.Approvals;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -16,8 +17,6 @@ namespace AgentStudio.Desktop.Memory;
 /// </summary>
 public sealed class JournalDayViewModel
 {
-    private static readonly CultureInfo Spanish = CultureInfo.GetCultureInfo("es-ES");
-
     public JournalDayViewModel(DateOnly day, int quarantined, bool trusted)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(quarantined);
@@ -35,18 +34,18 @@ public sealed class JournalDayViewModel
     public bool Trusted { get; }
 
     /// <summary>«martes 28/10/2026».</summary>
-    public string DayText => Day.ToString("dddd dd/MM/yyyy", Spanish);
+    public string DayText => Day.ToString(Texts.Get("Memory_Day_Format"), Texts.Current.Culture);
 
-    public string Summary => Trusted ? "De confianza: confías en este día"
-        : Quarantined == 1 ? "1 entrada en cuarentena"
-        : Quarantined.ToString(Spanish) + " entradas en cuarentena";
+    public string Summary => Trusted ? Texts.Get("Memory_Journal_DayTrusted")
+        : Quarantined == 1 ? Texts.Get("Memory_Journal_DayQuarantine_One")
+        : Texts.Format("Memory_Journal_DayQuarantine_Other", Quarantined.ToString(Texts.Current.Culture));
 
     public Tone Tone => Trusted ? Tone.Success : Tone.Warning;
 
-    public string ActionLabel => Trusted ? "Retirar la confianza" : "Confiar en este día";
+    public string ActionLabel => Trusted ? Texts.Get("Memory_Journal_DayRetract") : Texts.Get("Memory_Journal_DayTrust");
 
     /// <summary>The accessible name of the button: what it does, and to which day.</summary>
-    public string ActionName => $"{ActionLabel}: {DayText}";
+    public string ActionName => Texts.Format("Memory_Journal_DayActionName", ActionLabel, DayText);
 
     /// <summary>How a list and UI Automation name it.</summary>
     public override string ToString() => $"{DayText} · {Summary}";
@@ -67,12 +66,7 @@ public sealed partial class JournalTrustViewModel : ObservableObject
     public const int JournalEntriesRead = 2000;
 
     /// <summary>What the panel explains first.</summary>
-    public const string Explanation =
-        "La bitácora del proyecto (.agentstudio/bitacora/) también es memoria. Lo que Agent Studio anota en sus ejecuciones deja un recibo "
-        + "en el registro: con él se comprueba, y es de confianza. Lo que no se puede comprobar espera en cuarentena: lo que anotan tus "
-        + "sesiones de desarrollo, lo que llega con el repositorio y lo que Agent Studio anotó antes de dejar recibos. Ningún agente lo "
-        + "recibe hasta que lo aceptes, entrada a entrada, por días o para todo el proyecto. Cada decisión queda en el registro y la puedes "
-        + "retirar. El juez nunca recibe la bitácora.";
+    public static string Explanation => Texts.Get("Memory_Journal_Explanation");
 
     private readonly IJournalTrust? _trust;
     private readonly IProjectMemory? _memory;
@@ -131,49 +125,48 @@ public sealed partial class JournalTrustViewModel : ObservableObject
         {
             if (!IsAvailable)
             {
-                return "La decisión de confiar en la bitácora no está disponible en esta composición.";
+                return Texts.Get("Memory_Journal_Unavailable");
             }
 
             if (_project is null)
             {
-                return "Abre una carpeta de proyecto para ver su bitácora.";
+                return Texts.Get("Memory_Journal_OpenFolder");
             }
 
             if (State is not { } state)
             {
-                return "No se sabe aún cuánto confías en la bitácora de este proyecto.";
+                return Texts.Get("Memory_Journal_Unknown");
             }
 
             var quarantined = state.QuarantinedEntries switch
             {
-                0 => "Ninguna entrada de la bitácora espera en cuarentena.",
-                1 => "1 entrada de la bitácora espera en cuarentena: no llega a ningún agente.",
-                var n => $"{n.ToString(CultureInfo.InvariantCulture)} entradas de la bitácora esperan en cuarentena: no llegan a ningún agente.",
+                0 => Texts.Get("Memory_Journal_QuarantineNone"),
+                1 => Texts.Get("Memory_Journal_QuarantineOne"),
+                var n => Texts.Format("Memory_Journal_QuarantineMany", n.ToString(Texts.Current.Culture)),
             };
             if (state.ProjectTrusted)
             {
                 return state.QuarantinedEntries == 0
-                    ? "Confías en toda la bitácora de este proyecto, también en los días que vengan."
-                    : $"Confías en toda la bitácora de este proyecto. {quarantined} Son heredadas de un historial aceptado como nuevo origen, y esas se revisan una a una.";
+                    ? Texts.Get("Memory_Journal_ProjectTrustedNone")
+                    : Texts.Format("Memory_Journal_ProjectTrustedSome", quarantined);
             }
 
             var days = state.TrustedDays.Count switch
             {
                 0 => string.Empty,
-                1 => " Confías en 1 día.",
-                var n => $" Confías en {n.ToString(CultureInfo.InvariantCulture)} días.",
+                1 => Texts.Get("Memory_Journal_TrustedDays_One"),
+                var n => Texts.Format("Memory_Journal_TrustedDays_Other", n.ToString(Texts.Current.Culture)),
             };
             return quarantined + days;
         }
     }
 
-    public string ProjectActionLabel => ProjectTrusted ? "Dejar de confiar en la bitácora de este proyecto" : "Confiar en la bitácora de este proyecto";
+    public string ProjectActionLabel => ProjectTrusted ? Texts.Get("Memory_Journal_ProjectRetract") : Texts.Get("Memory_Journal_ProjectTrust");
 
     /// <summary>What the button does, before it is pressed.</summary>
     public string ProjectActionHelp => ProjectTrusted
-        ? "Las entradas cuyo autor no se puede comprobar vuelven a cuarentena, salvo las de los días en que confías y las que aceptaste una a una."
-        : "Las entradas cuyo autor no se puede comprobar, también las de los días que vengan, podrán llegar a los agentes con «Memoria del proyecto». "
-          + "Úsalo si la bitácora es tuya (tus sesiones de desarrollo) y no te llega de terceros.";
+        ? Texts.Get("Memory_Journal_ProjectRetractHelp")
+        : Texts.Get("Memory_Journal_ProjectTrustHelp");
 
     /// <summary>Whether a decision can be taken now.</summary>
     public bool CanDecide => IsAvailable && _project is not null && State is not null && Pending is null;
@@ -214,7 +207,7 @@ public sealed partial class JournalTrustViewModel : ObservableObject
             State = null;
             Days.Clear();
             OnPropertyChanged(nameof(HasDays));
-            ErrorMessage = $"No se pudo leer la confianza de la bitácora: {ex.Message}";
+            ErrorMessage = Texts.Format("Memory_Journal_ReadError", ex.Message);
         }
 
         OnPropertyChanged(nameof(StateText));
@@ -243,8 +236,8 @@ public sealed partial class JournalTrustViewModel : ObservableObject
 
         ErrorMessage = null;
         Pending = RunIsActive
-            ? "En cola: se registrará cuando termine la ejecución o la planificación en curso."
-            : "Registrando tu decisión…";
+            ? Texts.Get("Memory_Decision_Queued")
+            : Texts.Get("Memory_Decision_Recording");
         try
         {
             await trust.SetAsync(project, scope, day, trusted, ApprovalPromptService.DecidedBy, null, CancellationToken.None).ConfigureAwait(true);
@@ -254,7 +247,7 @@ public sealed partial class JournalTrustViewModel : ObservableObject
 #pragma warning restore CA1031
         {
             Pending = null;
-            ErrorMessage = $"No se pudo registrar tu decisión sobre la bitácora: {ex.Message}";
+            ErrorMessage = Texts.Format("Memory_Journal_DecideError", ex.Message);
             return;
         }
 

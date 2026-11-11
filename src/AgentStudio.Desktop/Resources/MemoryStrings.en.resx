@@ -1,0 +1,580 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the Memory area in English: the same keys and placeholders as MemoryStrings.resx. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Memory_Kind_Architecture" xml:space="preserve">
+    <value>Architecture</value>
+  </data>
+  <data name="Memory_Kind_Convention" xml:space="preserve">
+    <value>Convention</value>
+  </data>
+  <data name="Memory_Kind_Decision" xml:space="preserve">
+    <value>Decision</value>
+  </data>
+  <data name="Memory_Kind_KnownError" xml:space="preserve">
+    <value>Known error</value>
+  </data>
+  <data name="Memory_Kind_Solution" xml:space="preserve">
+    <value>Solution</value>
+  </data>
+  <data name="Memory_Kind_PendingTask" xml:space="preserve">
+    <value>Pending task</value>
+  </data>
+  <data name="Memory_Kind_Change" xml:space="preserve">
+    <value>Change</value>
+  </data>
+  <data name="Memory_Kind_DebateSummary" xml:space="preserve">
+    <value>Debate summary</value>
+  </data>
+  <data name="Memory_Kind_Verdict" xml:space="preserve">
+    <value>Verdict</value>
+  </data>
+  <data name="Memory_Kind_DailySummary" xml:space="preserve">
+    <value>Daily summary</value>
+  </data>
+  <data name="Memory_Kind_JournalEntry" xml:space="preserve">
+    <value>Journal</value>
+  </data>
+  <data name="Memory_Kind_All" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="Memory_Origin_System" xml:space="preserve">
+    <value>System</value>
+  </data>
+  <data name="Memory_Origin_User" xml:space="preserve">
+    <value>You</value>
+  </data>
+  <data name="Memory_Origin_Agent" xml:space="preserve">
+    <value>Agent</value>
+  </data>
+  <data name="Memory_Origin_JournalUnchecked" xml:space="preserve">
+    <value>Unchecked author</value>
+  </data>
+  <data name="Memory_Trust_Trusted" xml:space="preserve">
+    <value>Trusted</value>
+  </data>
+  <data name="Memory_Trust_Proposed" xml:space="preserve">
+    <value>Proposed by an agent: not reviewed</value>
+  </data>
+  <data name="Memory_Trust_Quarantined" xml:space="preserve">
+    <value>In quarantine: it comes from a history you accepted as a new origin. Review it.</value>
+  </data>
+  <data name="Memory_Trust_Rejected" xml:space="preserve">
+    <value>Rejected</value>
+  </data>
+  <data name="Memory_Trust_Retracted" xml:space="preserve">
+    <value>Withdrawn</value>
+  </data>
+  <data name="Memory_Trust_JournalUnchecked" xml:space="preserve">
+    <value>In quarantine: who wrote it cannot be checked. Accept it, or trust its day or the whole journal</value>
+  </data>
+  <data name="Memory_Entry_SupersededBy" xml:space="preserve">
+    <value>Replaced by {0}</value>
+  </data>
+  <data name="Memory_Entry_Supersedes" xml:space="preserve">
+    <value>Replaces {0}</value>
+  </data>
+  <data name="Memory_Title" xml:space="preserve">
+    <value>Memory</value>
+  </data>
+  <data name="Memory_View_Title" xml:space="preserve">
+    <value>Project memory</value>
+  </data>
+  <data name="Memory_View_Export" xml:space="preserve">
+    <value>Export to Markdown</value>
+  </data>
+  <data name="Memory_View_ExportTip" xml:space="preserve">
+    <value>Writes what is trusted and accepted to .agentstudio/memory/. Never during a run, and the Markdown is never read back.</value>
+  </data>
+  <data name="Memory_View_SearchHelp" xml:space="preserve">
+    <value>What you look for in the content, topic or source of the entries, in your own words. Enter or "Search" runs the search.</value>
+  </data>
+  <data name="Memory_View_SearchHint" xml:space="preserve">
+    <value>content, topic or source…</value>
+  </data>
+  <data name="Memory_View_Kind" xml:space="preserve">
+    <value>Category</value>
+  </data>
+  <data name="Memory_View_Search" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="Memory_View_SearchName" xml:space="preserve">
+    <value>Search the memory</value>
+  </data>
+  <data name="Memory_View_HowSearched" xml:space="preserve">
+    <value>How it was searched</value>
+  </data>
+  <data name="Memory_View_Note" xml:space="preserve">
+    <value>Only what is trusted reaches the instructions of the agents with "Project memory" turned on. The judge never receives memory.</value>
+  </data>
+  <data name="Memory_View_Entries" xml:space="preserve">
+    <value>Memory entries</value>
+  </data>
+  <data name="Memory_Entry_Accept" xml:space="preserve">
+    <value>Accept</value>
+  </data>
+  <data name="Memory_Entry_AcceptName" xml:space="preserve">
+    <value>Accept {0}</value>
+  </data>
+  <data name="Memory_Entry_Reject" xml:space="preserve">
+    <value>Reject</value>
+  </data>
+  <data name="Memory_Entry_RejectName" xml:space="preserve">
+    <value>Reject {0}</value>
+  </data>
+  <data name="Memory_Entry_Retract" xml:space="preserve">
+    <value>Withdraw</value>
+  </data>
+  <data name="Memory_Entry_RetractName" xml:space="preserve">
+    <value>Withdraw {0}</value>
+  </data>
+  <data name="Memory_Entry_Source" xml:space="preserve">
+    <value>Source: {0}</value>
+  </data>
+  <data name="Memory_Status_OpenFolder" xml:space="preserve">
+    <value>Open a folder to see its memory.</value>
+  </data>
+  <data name="Memory_Status_Unavailable" xml:space="preserve">
+    <value>The project memory is not available here.</value>
+  </data>
+  <data name="Memory_Status_NoMatches" xml:space="preserve">
+    <value>No entries match.</value>
+  </data>
+  <data name="Memory_Error_OpenProject" xml:space="preserve">
+    <value>The project could not be opened: {0}</value>
+  </data>
+  <data name="Memory_Error_Read" xml:space="preserve">
+    <value>The memory could not be read: {0}</value>
+  </data>
+  <data name="Memory_Error_Review" xml:space="preserve">
+    <value>The review could not be recorded: {0}</value>
+  </data>
+  <data name="Memory_Error_Export" xml:space="preserve">
+    <value>The memory could not be exported: {0}</value>
+  </data>
+  <data name="Memory_Search_IndexFailed" xml:space="preserve">
+    <value>Words only: the search in the index failed ({0}).</value>
+  </data>
+  <data name="Memory_Decision_Queued" xml:space="preserve">
+    <value>Queued: it will be recorded when the current run or planning ends.</value>
+  </data>
+  <data name="Memory_Decision_Recording" xml:space="preserve">
+    <value>Recording your decision…</value>
+  </data>
+  <data name="Memory_Export_Blocked" xml:space="preserve">
+    <value>A run, a planning, a debate or an audit is going on: the export waits for it to end.</value>
+  </data>
+  <data name="Memory_Export_Done_One" xml:space="preserve">
+    <value>Exported {0} entries to .agentstudio/memory/ ({1} file). The Markdown is never read back.</value>
+  </data>
+  <data name="Memory_Export_Done_Other" xml:space="preserve">
+    <value>Exported {0} entries to .agentstudio/memory/ ({1} files). The Markdown is never read back.</value>
+  </data>
+  <data name="Memory_Export_NotExported" xml:space="preserve">
+    <value>Nothing was exported: {0}</value>
+  </data>
+  <data name="Memory_Export_Rewritten_One" xml:space="preserve">
+    <value>1 file was rewritten ({0})</value>
+  </data>
+  <data name="Memory_Export_Rewritten_Other" xml:space="preserve">
+    <value>{0} files were rewritten ({1})</value>
+  </data>
+  <data name="Memory_Export_Incomplete" xml:space="preserve">
+    <value>Incomplete export: {0} {1} before it stopped. The rest stays as it was until the next export, which rewrites everything.</value>
+  </data>
+  <data name="Memory_Search_WordsLabel" xml:space="preserve">
+    <value>Search by words</value>
+  </data>
+  <data name="Memory_Search_HybridLabel" xml:space="preserve">
+    <value>Search by meaning and by words</value>
+  </data>
+  <data name="Memory_Search_WordsName" xml:space="preserve">
+    <value>Search the memory by words</value>
+  </data>
+  <data name="Memory_Search_HybridName" xml:space="preserve">
+    <value>Search the memory by meaning and by words</value>
+  </data>
+  <data name="Memory_Search_NoIndex" xml:space="preserve">
+    <value>Words only: search by meaning is not available here.</value>
+  </data>
+  <data name="Memory_Search_EmptyIndex" xml:space="preserve">
+    <value>Words only: the search index of this project has no fragments yet. It is built in the background.</value>
+  </data>
+  <data name="Memory_Search_UnreadableIndex" xml:space="preserve">
+    <value>Words only: the search index of this project could not be read.</value>
+  </data>
+  <data name="Memory_Search_HybridNone" xml:space="preserve">
+    <value>By meaning and by words: nothing matches.</value>
+  </data>
+  <data name="Memory_Search_HybridOne" xml:space="preserve">
+    <value>By meaning and by words: 1 result.</value>
+  </data>
+  <data name="Memory_Search_HybridMany" xml:space="preserve">
+    <value>By meaning and by words: {0} results, from the closest to the least.</value>
+  </data>
+  <data name="Memory_Search_MatchBoth" xml:space="preserve">
+    <value>Matches by words and by meaning</value>
+  </data>
+  <data name="Memory_Search_MatchWords" xml:space="preserve">
+    <value>Matches by words</value>
+  </data>
+  <data name="Memory_Search_MatchMeaning" xml:space="preserve">
+    <value>Matches by meaning</value>
+  </data>
+  <data name="Memory_Log_DefaultKind" xml:space="preserve">
+    <value>Log</value>
+  </data>
+  <data name="Memory_Log_Trust" xml:space="preserve">
+    <value>Trusted: Agent Studio wrote it from the verified log</value>
+  </data>
+  <data name="Memory_Log_Source" xml:space="preserve">
+    <value>Decision log, entry {0}</value>
+  </data>
+  <data name="Memory_Day_Format" xml:space="preserve">
+    <value>dddd MM/dd/yyyy</value>
+  </data>
+  <data name="Memory_Day_Today" xml:space="preserve">
+    <value> (today)</value>
+  </data>
+  <data name="Memory_Journal_Title" xml:space="preserve">
+    <value>Journal</value>
+  </data>
+  <data name="Memory_Journal_Explanation" xml:space="preserve">
+    <value>The journal of the project (.agentstudio/bitacora/) is memory too. What Agent Studio notes in its runs leaves a receipt in the log. With that receipt it is checked, and it is trusted. The rest waits in quarantine. That is your development notes, what comes with the repository and what was noted before receipts. No agent receives it until you accept it: entry by entry, by days or for the whole project. Every decision stays in the log and you can withdraw it. The judge never receives the journal.</value>
+  </data>
+  <data name="Memory_Journal_StateName" xml:space="preserve">
+    <value>Trust in the journal</value>
+  </data>
+  <data name="Memory_Journal_ByDay" xml:space="preserve">
+    <value>By days</value>
+  </data>
+  <data name="Memory_Journal_Days" xml:space="preserve">
+    <value>Days of the journal</value>
+  </data>
+  <data name="Memory_Journal_DayTrusted" xml:space="preserve">
+    <value>Trusted: you trust this day</value>
+  </data>
+  <data name="Memory_Journal_DayQuarantine_One" xml:space="preserve">
+    <value>1 entry in quarantine</value>
+  </data>
+  <data name="Memory_Journal_DayQuarantine_Other" xml:space="preserve">
+    <value>{0} entries in quarantine</value>
+  </data>
+  <data name="Memory_Journal_DayRetract" xml:space="preserve">
+    <value>Withdraw trust</value>
+  </data>
+  <data name="Memory_Journal_DayTrust" xml:space="preserve">
+    <value>Trust this day</value>
+  </data>
+  <data name="Memory_Journal_DayActionName" xml:space="preserve">
+    <value>{0}: {1}</value>
+  </data>
+  <data name="Memory_Journal_Unavailable" xml:space="preserve">
+    <value>Deciding to trust the journal is not available here.</value>
+  </data>
+  <data name="Memory_Journal_OpenFolder" xml:space="preserve">
+    <value>Open a project folder to see its journal.</value>
+  </data>
+  <data name="Memory_Journal_Unknown" xml:space="preserve">
+    <value>It is not known yet how much you trust the journal of this project.</value>
+  </data>
+  <data name="Memory_Journal_QuarantineNone" xml:space="preserve">
+    <value>No journal entry waits in quarantine.</value>
+  </data>
+  <data name="Memory_Journal_QuarantineOne" xml:space="preserve">
+    <value>1 journal entry waits in quarantine: it reaches no agent.</value>
+  </data>
+  <data name="Memory_Journal_QuarantineMany" xml:space="preserve">
+    <value>{0} journal entries wait in quarantine: they reach no agent.</value>
+  </data>
+  <data name="Memory_Journal_ProjectTrustedNone" xml:space="preserve">
+    <value>You trust the whole journal of this project, also the days to come.</value>
+  </data>
+  <data name="Memory_Journal_ProjectTrustedSome" xml:space="preserve">
+    <value>You trust the whole journal of this project. {0} They come from a history accepted as a new origin, and those are reviewed one by one.</value>
+  </data>
+  <data name="Memory_Journal_TrustedDays_One" xml:space="preserve">
+    <value> You trust 1 day.</value>
+  </data>
+  <data name="Memory_Journal_TrustedDays_Other" xml:space="preserve">
+    <value> You trust {0} days.</value>
+  </data>
+  <data name="Memory_Journal_ProjectRetract" xml:space="preserve">
+    <value>Stop trusting the journal of this project</value>
+  </data>
+  <data name="Memory_Journal_ProjectTrust" xml:space="preserve">
+    <value>Trust the journal of this project</value>
+  </data>
+  <data name="Memory_Journal_ProjectRetractHelp" xml:space="preserve">
+    <value>Entries whose author cannot be checked go back to quarantine. Those of the days you trust and those you accepted one by one stay.</value>
+  </data>
+  <data name="Memory_Journal_ProjectTrustHelp" xml:space="preserve">
+    <value>Entries whose author cannot be checked may reach the agents with "Project memory". This also covers the days to come. Use it if the journal is yours (your development sessions) and does not come from third parties.</value>
+  </data>
+  <data name="Memory_Journal_ReadError" xml:space="preserve">
+    <value>The trust in the journal could not be read: {0}</value>
+  </data>
+  <data name="Memory_Journal_DecideError" xml:space="preserve">
+    <value>Your decision about the journal could not be recorded: {0}</value>
+  </data>
+  <data name="Memory_Model_Title" xml:space="preserve">
+    <value>Search by meaning</value>
+  </data>
+  <data name="Memory_Model_Intro" xml:space="preserve">
+    <value>It finds what says the same in other words: "red test" finds "failing tests". Your computer calculates it, offline and without spending usage limit.</value>
+  </data>
+  <data name="Memory_Model_StateName" xml:space="preserve">
+    <value>State of the search by meaning</value>
+  </data>
+  <data name="Memory_Model_DownloadHelp" xml:space="preserve">
+    <value>Opens a confirmation with what is downloaded, from where, its size and where it is kept. Nothing is downloaded without your OK.</value>
+  </data>
+  <data name="Memory_Model_FilesName" xml:space="preserve">
+    <value>Files to download</value>
+  </data>
+  <data name="Memory_Model_ProgressName" xml:space="preserve">
+    <value>Progress of the model download</value>
+  </data>
+  <data name="Memory_Model_Cancel" xml:space="preserve">
+    <value>Cancel the download</value>
+  </data>
+  <data name="Memory_Model_CancelName" xml:space="preserve">
+    <value>Cancel the model download</value>
+  </data>
+  <data name="Memory_Model_NoIndex" xml:space="preserve">
+    <value>Search by meaning is not available here: the memory is searched by words.</value>
+  </data>
+  <data name="Memory_Model_OpenFolder" xml:space="preserve">
+    <value>Open a project folder to see the state of the search by meaning.</value>
+  </data>
+  <data name="Memory_Model_ReadError" xml:space="preserve">
+    <value>The state of the search index could not be read: {0}</value>
+  </data>
+  <data name="Memory_Model_Reading" xml:space="preserve">
+    <value>Reading the state of the search index…</value>
+  </data>
+  <data name="Memory_Model_Missing" xml:space="preserve">
+    <value>The model for search by meaning is missing. Without it the memory is searched by words only: "test" does not find "tests", and "red test" does not find "failing tests".</value>
+  </data>
+  <data name="Memory_Model_Mismatch" xml:space="preserve">
+    <value>The downloaded model does not match its pinned fingerprint, so it is not loaded and the search goes by words. Download it again.</value>
+  </data>
+  <data name="Memory_Model_Unloadable" xml:space="preserve">
+    <value>The model is downloaded and checked, but it could not be loaded. The search goes by words.</value>
+  </data>
+  <data name="Memory_Model_Redownload" xml:space="preserve">
+    <value>Download the search model again ({0})</value>
+  </data>
+  <data name="Memory_Model_Download" xml:space="preserve">
+    <value>Download the search model ({0})</value>
+  </data>
+  <data name="Memory_Model_ConfirmTitle" xml:space="preserve">
+    <value>Download the model for search by meaning?</value>
+  </data>
+  <data name="Memory_Model_What" xml:space="preserve">
+    <value>What: the model {0} (license {1}) and its tokenizer, in version {2} pinned by Agent Studio. These are the files:</value>
+  </data>
+  <data name="Memory_Model_Total" xml:space="preserve">
+    <value>In total, {0}, once only.</value>
+  </data>
+  <data name="Memory_Model_From" xml:space="preserve">
+    <value>From where: {0}, only from those addresses.</value>
+  </data>
+  <data name="Memory_Model_And" xml:space="preserve">
+    <value> and </value>
+  </data>
+  <data name="Memory_Model_Where" xml:space="preserve">
+    <value>Where it is kept: {0}. It is outside your projects: git does not see it and it can be deleted.</value>
+  </data>
+  <data name="Memory_Model_WhereDefault" xml:space="preserve">
+    <value>Where it is kept: in the Agent Studio folder of your computer, outside your projects.</value>
+  </data>
+  <data name="Memory_Model_Check" xml:space="preserve">
+    <value>Before using it, Agent Studio checks the size and fingerprint of each file: if they do not match, it deletes it and does not load it. It is the only part of the search that uses the network. After that it works offline and spends no usage limit.</value>
+  </data>
+  <data name="Memory_Model_Confirm" xml:space="preserve">
+    <value>Download {0}</value>
+  </data>
+  <data name="Memory_Model_Decline" xml:space="preserve">
+    <value>Do not download</value>
+  </data>
+  <data name="Memory_Model_Declined" xml:space="preserve">
+    <value>Nothing was downloaded.</value>
+  </data>
+  <data name="Memory_Model_Starting" xml:space="preserve">
+    <value>Starting the download…</value>
+  </data>
+  <data name="Memory_Model_Cancelling" xml:space="preserve">
+    <value>Cancelling the download…</value>
+  </data>
+  <data name="Memory_Model_ProgressKnown" xml:space="preserve">
+    <value>Downloading {0}: {1} of {2} · {3} % of the total</value>
+  </data>
+  <data name="Memory_Model_ProgressUnknown" xml:space="preserve">
+    <value>Downloading {0}: {1} · {2} % of the total</value>
+  </data>
+  <data name="Memory_Model_Cancelled" xml:space="preserve">
+    <value>Download cancelled: nothing was left half done.</value>
+  </data>
+  <data name="Memory_Model_Failed" xml:space="preserve">
+    <value>The model could not be downloaded ({0}). Nothing was left half done.</value>
+  </data>
+  <data name="Memory_Model_Downloaded" xml:space="preserve">
+    <value>Model downloaded and checked. The index will work out the meaning of the fragments in the background. Until then, the search goes by words.</value>
+  </data>
+  <data name="Memory_Model_EndMismatch" xml:space="preserve">
+    <value>What was downloaded does not match its pinned fingerprint: it was deleted and is not loaded.</value>
+  </data>
+  <data name="Memory_Model_EndUnloadable" xml:space="preserve">
+    <value>The model was downloaded and checked, but it could not be loaded.</value>
+  </data>
+  <data name="Memory_Model_EndNotInPlace" xml:space="preserve">
+    <value>The download did not leave the model in place: nothing was saved.</value>
+  </data>
+  <data name="Memory_Model_ReadyEmpty" xml:space="preserve">
+    <value>Active: the model is downloaded and checked. The index of this project has no fragments yet: it is built in the background.</value>
+  </data>
+  <data name="Memory_Model_ReadyAll" xml:space="preserve">
+    <value>Active: the model is downloaded and checked, and the {0} fragments of the index have their meaning worked out.</value>
+  </data>
+  <data name="Memory_Model_ReadyPartial" xml:space="preserve">
+    <value>Partly active: {0} of {1} fragments have their meaning worked out. The rest is worked out in the background and, meanwhile, is only found by words.</value>
+  </data>
+  <data name="Memory_Daily_Title" xml:space="preserve">
+    <value>Daily summary</value>
+  </data>
+  <data name="Memory_Daily_Intro" xml:space="preserve">
+    <value>Agent Studio works it out from the journal, with no agents and no usage limit: it counts and lists, it does not write.</value>
+  </data>
+  <data name="Memory_Daily_Previous" xml:space="preserve">
+    <value>Previous day</value>
+  </data>
+  <data name="Memory_Daily_Next" xml:space="preserve">
+    <value>Next day</value>
+  </data>
+  <data name="Memory_Daily_Summarize" xml:space="preserve">
+    <value>Summarize the day</value>
+  </data>
+  <data name="Memory_Daily_Unavailable" xml:space="preserve">
+    <value>The daily summary is not available here.</value>
+  </data>
+  <data name="Memory_Daily_OpenFolderHint" xml:space="preserve">
+    <value>Open a project folder: here you will see the summary of each day of its journal.</value>
+  </data>
+  <data name="Memory_Daily_Busy" xml:space="preserve">
+    <value>Summarizing the day…</value>
+  </data>
+  <data name="Memory_Daily_Hint" xml:space="preserve">
+    <value>Press "Summarize the day" to see the summary of {0} here: the requests of the journal of that day, how they ended and what was done. Change the day with "Previous day" and "Next day".</value>
+  </data>
+  <data name="Memory_Daily_OpenFolder" xml:space="preserve">
+    <value>Open a folder to summarize its journal.</value>
+  </data>
+  <data name="Memory_Daily_Requests_One" xml:space="preserve">
+    <value>{0} request</value>
+  </data>
+  <data name="Memory_Daily_Requests_Other" xml:space="preserve">
+    <value>{0} requests</value>
+  </data>
+  <data name="Memory_Daily_Unrecognized_One" xml:space="preserve">
+    <value>{0} unrecognized line (only counted)</value>
+  </data>
+  <data name="Memory_Daily_Unrecognized_Other" xml:space="preserve">
+    <value>{0} unrecognized lines (only counted)</value>
+  </data>
+  <data name="Memory_Daily_Provisional" xml:space="preserve">
+    <value>Provisional: the day has not ended, so it is not saved to the memory.</value>
+  </data>
+  <data name="Memory_Daily_Recorded" xml:space="preserve">
+    <value>Saved to the memory as a daily summary (entry {0}).</value>
+  </data>
+  <data name="Memory_Daily_AlreadyDone" xml:space="preserve">
+    <value>It was already summarized: it is not saved again.</value>
+  </data>
+  <data name="Memory_Daily_Error" xml:space="preserve">
+    <value>The day could not be summarized: {0}</value>
+  </data>
+  <data name="Memory_Settings_Title" xml:space="preserve">
+    <value>Project memory</value>
+  </data>
+  <data name="Memory_Settings_Intro" xml:space="preserve">
+    <value>What Agent Studio remembers from earlier days when the orchestrator plans.</value>
+  </data>
+  <data name="Memory_Settings_Label" xml:space="preserve">
+    <value>History search for the orchestrator</value>
+  </data>
+  <data name="Memory_Settings_Explanation" xml:space="preserve">
+    <value>When it plans, the orchestrator can look up what happened on earlier days of the project: decisions, known errors and the trusted journal. It only reads, it does not leave your computer and it spends no extra usage limit. It only works with Claude Code and if the orchestrator receives the project memory in the template. If you turn it off, it plans as before, and the proposal says so.</value>
+  </data>
+  <data name="Memory_Upkeep_Exported" xml:space="preserve">
+    <value>exported to .agentstudio/memory/ ({0} files, {1} entries)</value>
+  </data>
+  <data name="Memory_Upkeep_NotExported" xml:space="preserve">
+    <value>not exported: {0}</value>
+  </data>
+  <data name="Memory_Upkeep_Alone" xml:space="preserve">
+    <value>Memory {0}.</value>
+  </data>
+  <data name="Memory_Upkeep_Joined" xml:space="preserve">
+    <value>{0}; {1}.</value>
+  </data>
+  <data name="Memory_Upkeep_NotDerived" xml:space="preserve">
+    <value>Memory not derived: {0}</value>
+  </data>
+  <data name="Memory_Upkeep_New_One" xml:space="preserve">
+    <value>1 new entry derived from the log</value>
+  </data>
+  <data name="Memory_Upkeep_New_Other" xml:space="preserve">
+    <value>{0} new entries derived from the log</value>
+  </data>
+  <data name="Memory_Upkeep_Problems_One" xml:space="preserve">
+    <value>1 text not saved to the memory: it does not match the log, or it is a day of the journal that could not be read</value>
+  </data>
+  <data name="Memory_Upkeep_Problems_Other" xml:space="preserve">
+    <value>{0} texts not saved to the memory: they do not match the log, or they are days of the journal that could not be read</value>
+  </data>
+  <data name="Memory_Upkeep_Summary" xml:space="preserve">
+    <value>Memory: {0}.</value>
+  </data>
+  <data name="Memory_Index_Failed" xml:space="preserve">
+    <value>The semantic index could not be updated ({0}): the search goes on with what it had.</value>
+  </data>
+  <data name="Memory_Index_Stopped" xml:space="preserve">
+    <value>The update of the index stopped when Agent Studio closed.</value>
+  </data>
+  <data name="Info_Memory_Title" xml:space="preserve">
+    <value>Memory and search</value>
+  </data>
+  <data name="Info_Memory_What" xml:space="preserve">
+    <value>Here is what Agent Studio remembers about the project: decisions, known errors, solutions and summaries. Each entry says who wrote it and whether it is trusted. Only what is trusted reaches the agents.</value>
+  </data>
+  <data name="Info_Memory_Actions" xml:space="preserve">
+    <value>Type in the box and press "Search": it searches by words and, with the model, by meaning.
+Accept or reject what an agent proposed or what waits in quarantine.
+Withdraw what you no longer want the agents to know.
+Export what is trusted to Markdown when nothing is running.</value>
+  </data>
+  <data name="Info_DailySummary_Title" xml:space="preserve">
+    <value>Daily summary</value>
+  </data>
+  <data name="Info_DailySummary_What" xml:space="preserve">
+    <value>A summary of one day of the journal: how many requests there were, how they ended and what was done. Agent Studio works it out, with no agents and no usage limit.</value>
+  </data>
+  <data name="Info_DailySummary_Actions" xml:space="preserve">
+    <value>Choose the day with "Previous day" and "Next day".
+Press "Summarize the day" to see it.
+The summary of a closed day is saved once to the memory.
+Today's is provisional and is not saved.</value>
+  </data>
+</root>

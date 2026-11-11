@@ -1,3 +1,4 @@
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -14,16 +15,13 @@ namespace AgentStudio.Desktop.Memory;
 public sealed partial class MemorySettingsViewModel : ObservableObject
 {
     /// <summary>The title of the section in «Ajustes».</summary>
-    public const string Title = "Memoria del proyecto";
+    public static string Title => Texts.Get("Memory_Settings_Title");
 
     /// <summary>The name of the switch.</summary>
-    public const string HistorySearchLabel = "Búsqueda en el historial para el orquestador";
+    public static string HistorySearchLabel => Texts.Get("Memory_Settings_Label");
 
     /// <summary>What the switch does, as the screen says it.</summary>
-    public const string HistorySearchExplanation =
-        "Al planificar, el orquestador puede buscar lo de días anteriores del proyecto (decisiones, errores conocidos y la bitácora " +
-        "de confianza). Solo lee, no sale de tu equipo y no gasta cuota aparte. Solo funciona con Claude Code y si el orquestador " +
-        "recibe la memoria del proyecto en la plantilla. Si la apagas, planifica como antes, y la propuesta lo dice.";
+    public static string HistorySearchExplanation => Texts.Get("Memory_Settings_Explanation");
 
     private AppSettings _inForce = AppSettings.Default;
 

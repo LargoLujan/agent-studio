@@ -1,5 +1,6 @@
 using System.Globalization;
 using AgentStudio.Application.Semantic;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Orchestrator;
 using AgentStudio.Desktop.Orchestrator.Approvals;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -28,10 +29,9 @@ public sealed partial class EmbeddingModelViewModel : ObservableObject
     /// What a download that ended with the model in place and verified says, until the index has the meaning of some
     /// fragment: then the state above says so, and this note goes (V42).
     /// </summary>
-    public const string DownloadedText =
-        "Modelo descargado y comprobado. El índice calculará el significado de los fragmentos en segundo plano; hasta entonces, la búsqueda va por palabras.";
+    public static string DownloadedText => Texts.Get("Memory_Model_Downloaded");
 
-    private static readonly CultureInfo Spanish = CultureInfo.GetCultureInfo("es-ES");
+    private static CultureInfo Spanish => Texts.Current.Culture;
 
     private readonly IEmbeddingModelInstaller? _installer;
     private readonly EmbeddingModelDescriptor _model;
@@ -94,15 +94,15 @@ public sealed partial class EmbeddingModelViewModel : ObservableObject
     public bool IsHybridReady => Status is { Model.IsReady: true, WithVectors: > 0 };
 
     /// <summary>The state of the search by meaning, in plain Spanish.</summary>
-    public string StatusText => !IsIndexAvailable ? "La búsqueda por significado no está disponible en esta composición: la memoria se busca por palabras."
-        : !HasProject ? "Abre una carpeta de proyecto para ver el estado de la búsqueda por significado."
-        : StatusProblem is { } problem ? $"No se pudo leer el estado del índice de búsqueda: {problem}"
-        : Status is not { } status ? "Leyendo el estado del índice de búsqueda…"
+    public string StatusText => !IsIndexAvailable ? Texts.Get("Memory_Model_NoIndex")
+        : !HasProject ? Texts.Get("Memory_Model_OpenFolder")
+        : StatusProblem is { } problem ? Texts.Format("Memory_Model_ReadError", problem)
+        : Status is not { } status ? Texts.Get("Memory_Model_Reading")
         : status.Model.State switch
         {
-            EmbeddingModelState.Missing => "Falta el modelo de búsqueda por significado. Sin él, la memoria se busca solo por palabras: «prueba» no encuentra «pruebas», ni «test en rojo» encuentra «pruebas que fallan».",
-            EmbeddingModelState.Mismatch => "El modelo descargado no coincide con su huella fijada, así que no se carga y la búsqueda va por palabras. Vuelve a descargarlo." + Detail(status.Model.Problem),
-            EmbeddingModelState.Unloadable => "El modelo está descargado y verifica, pero no se ha podido cargar: la búsqueda va por palabras." + Detail(status.Model.Problem),
+            EmbeddingModelState.Missing => Texts.Get("Memory_Model_Missing"),
+            EmbeddingModelState.Mismatch => Texts.Get("Memory_Model_Mismatch") + Detail(status.Model.Problem),
+            EmbeddingModelState.Unloadable => Texts.Get("Memory_Model_Unloadable") + Detail(status.Model.Problem),
             _ => Ready(status),
         };
 
@@ -121,8 +121,7 @@ public sealed partial class EmbeddingModelViewModel : ObservableObject
 
     /// <summary>«Descargar el modelo de búsqueda (123 MB)», with the size of every file together, from the pinned sizes.</summary>
     public string DownloadLabel =>
-        (Status?.Model.State == EmbeddingModelState.Mismatch ? "Volver a descargar el modelo de búsqueda (" : "Descargar el modelo de búsqueda (")
-        + RoundMegabytes(TotalBytes) + ")";
+        Texts.Format(Status?.Model.State == EmbeddingModelState.Mismatch ? "Memory_Model_Redownload" : "Memory_Model_Download", RoundMegabytes(TotalBytes));
 
     // ---- the confirmation ----
 
@@ -134,16 +133,16 @@ public sealed partial class EmbeddingModelViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(DeclineDownloadCommand))]
     private bool _isConfirming;
 
-    public string ConfirmationTitle => "¿Descargar el modelo de búsqueda por significado?";
+    public string ConfirmationTitle => Texts.Get("Memory_Model_ConfirmTitle");
 
     /// <summary>What is downloaded: the model, its license and its pinned revision.</summary>
     public string WhatText =>
-        $"Qué: el modelo {_model.Name} (licencia {_model.License}) y su tokenizador, en la revisión {_model.Revision[..Math.Min(12, _model.Revision.Length)]} que fija Agent Studio. Son estos ficheros:";
+        Texts.Format("Memory_Model_What", _model.Name, _model.License, _model.Revision[..Math.Min(12, _model.Revision.Length)]);
 
     /// <summary>Each file, with its size and its address.</summary>
     public IReadOnlyList<ModelFileLine> Files { get; }
 
-    public string TotalText => $"En total, {Megabytes(TotalBytes)}, una sola vez.";
+    public string TotalText => Texts.Format("Memory_Model_Total", Megabytes(TotalBytes));
 
     /// <summary>Where it comes from: the host of the addresses, and only those.</summary>
     public string FromText
@@ -151,22 +150,20 @@ public sealed partial class EmbeddingModelViewModel : ObservableObject
         get
         {
             var hosts = new[] { _model.Model.Source, _model.Tokenizer.Source }.Select(s => s.Host).Distinct(StringComparer.OrdinalIgnoreCase);
-            return $"De dónde: {string.Join(" y ", hosts)}, solo de esas direcciones.";
+            return Texts.Format("Memory_Model_From", string.Join(Texts.Get("Memory_Model_And"), hosts));
         }
     }
 
     /// <summary>Where it is kept: the folder of the model, outside every project.</summary>
     public string WhereText => Status?.Model.Directory is { Length: > 0 } folder
-        ? $"Dónde se guarda: {folder}. Está fuera de tus proyectos: git no lo ve y se puede borrar."
-        : "Dónde se guarda: en la carpeta de Agent Studio de tu equipo, fuera de tus proyectos.";
+        ? Texts.Format("Memory_Model_Where", folder)
+        : Texts.Get("Memory_Model_WhereDefault");
 
-    public string CheckText =>
-        "Antes de usarlo, Agent Studio comprueba el tamaño y la huella SHA-256 de cada fichero: si no coinciden, lo borra y no lo carga. "
-        + "Es lo único de la búsqueda que usa la red; después funciona sin conexión y no gasta cuota.";
+    public string CheckText => Texts.Get("Memory_Model_Check");
 
-    public string ConfirmLabel => $"Descargar {Megabytes(TotalBytes)}";
+    public string ConfirmLabel => Texts.Format("Memory_Model_Confirm", Megabytes(TotalBytes));
 
-    public string DeclineLabel => "No descargar";
+    public string DeclineLabel => Texts.Get("Memory_Model_Decline");
 
     // ---- the download ----
 
@@ -241,7 +238,7 @@ public sealed partial class EmbeddingModelViewModel : ObservableObject
     private void DeclineDownload()
     {
         IsConfirming = false;
-        Outcome = "No se ha descargado nada.";
+        Outcome = Texts.Get("Memory_Model_Declined");
         OutcomeTone = Tone.Neutral;
     }
 
@@ -260,7 +257,7 @@ public sealed partial class EmbeddingModelViewModel : ObservableObject
         IsConfirming = false;
         _received.Clear();
         ProgressPercent = 0;
-        ProgressText = "Empezando la descarga…";
+        ProgressText = Texts.Get("Memory_Model_Starting");
         Outcome = null;
         IsDownloading = true;
         using var download = new CancellationTokenSource();
@@ -275,13 +272,13 @@ public sealed partial class EmbeddingModelViewModel : ObservableObject
         }
         catch (OperationCanceledException) when (download.IsCancellationRequested)
         {
-            (Outcome, OutcomeTone) = ("Descarga cancelada: no se ha guardado nada a medias.", Tone.Neutral);
+            (Outcome, OutcomeTone) = (Texts.Get("Memory_Model_Cancelled"), Tone.Neutral);
         }
 #pragma warning disable CA1031 // The installer is behind a port: a failure is shown in the screen, never thrown into the UI.
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            (Outcome, OutcomeTone) = ($"No se pudo descargar el modelo ({ex.Message.TrimEnd('.')}). No se ha guardado nada a medias.", Tone.Error);
+            (Outcome, OutcomeTone) = (Texts.Format("Memory_Model_Failed", ex.Message.TrimEnd('.')), Tone.Error);
         }
         finally
         {
@@ -305,7 +302,7 @@ public sealed partial class EmbeddingModelViewModel : ObservableObject
     {
         if (_download is { IsCancellationRequested: false } download)
         {
-            ProgressText = "Cancelando la descarga…";
+            ProgressText = Texts.Get("Memory_Model_Cancelling");
             download.Cancel();
         }
     }
@@ -324,8 +321,8 @@ public sealed partial class EmbeddingModelViewModel : ObservableObject
         ProgressPercent = TotalBytes == 0 ? 0 : received * 100d / TotalBytes;
         var share = ProgressPercent.ToString("0", Spanish);
         ProgressText = value.Total > 0
-            ? $"Descargando {value.File}: {Number(_received[value.File])} de {Megabytes(value.Total)} · {share} % del total"
-            : $"Descargando {value.File}: {Megabytes(_received[value.File])} · {share} % del total";
+            ? Texts.Format("Memory_Model_ProgressKnown", value.File, Number(_received[value.File]), Megabytes(value.Total), share)
+            : Texts.Format("Memory_Model_ProgressUnknown", value.File, Megabytes(_received[value.File]), share);
     }
 
     /// <summary>Bytes as decimal megabytes with one decimal and no unit: «59,2».</summary>
@@ -335,15 +332,15 @@ public sealed partial class EmbeddingModelViewModel : ObservableObject
     private static (string Text, Tone Tone) Ended(EmbeddingModelStatus status) => status.State switch
     {
         EmbeddingModelState.Ready => (DownloadedText, Tone.Success),
-        EmbeddingModelState.Mismatch => ("Lo descargado no coincide con su huella fijada: se ha borrado y no se carga." + Detail(status.Problem), Tone.Error),
-        EmbeddingModelState.Unloadable => ("El modelo se descargó y verifica, pero no se ha podido cargar." + Detail(status.Problem), Tone.Error),
-        _ => ("La descarga no dejó el modelo en su sitio: no se ha guardado nada." + Detail(status.Problem), Tone.Error),
+        EmbeddingModelState.Mismatch => (Texts.Get("Memory_Model_EndMismatch") + Detail(status.Problem), Tone.Error),
+        EmbeddingModelState.Unloadable => (Texts.Get("Memory_Model_EndUnloadable") + Detail(status.Problem), Tone.Error),
+        _ => (Texts.Get("Memory_Model_EndNotInPlace") + Detail(status.Problem), Tone.Error),
     };
 
     private static string Ready(SemanticIndexStatus status) =>
-        status.Fragments == 0 ? "Activa: el modelo está descargado y comprobado. El índice de este proyecto aún no tiene fragmentos: se construye en segundo plano."
-        : status.WithVectors >= status.Fragments ? $"Activa: el modelo está descargado y comprobado, y los {Count(status.Fragments)} fragmentos del índice tienen su significado calculado."
-        : $"Activa a medias: {Count(status.WithVectors)} de {Count(status.Fragments)} fragmentos tienen su significado calculado. El resto se calcula en segundo plano y, mientras tanto, solo se encuentra por palabras.";
+        status.Fragments == 0 ? Texts.Get("Memory_Model_ReadyEmpty")
+        : status.WithVectors >= status.Fragments ? Texts.Format("Memory_Model_ReadyAll", Count(status.Fragments))
+        : Texts.Format("Memory_Model_ReadyPartial", Count(status.WithVectors), Count(status.Fragments));
 
     private static string Detail(string? problem) => string.IsNullOrWhiteSpace(problem) ? string.Empty : " " + problem.Trim();
 

@@ -3,6 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
+             xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
              xmlns:memory="clr-namespace:AgentStudio.Desktop.Memory"
              xmlns:orchestratorViews="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
              mc:Ignorable="d"
@@ -17,10 +19,10 @@
     </UserControl.Resources>
 
     <StackPanel>
-        <TextBlock Style="{StaticResource SectionTitleText}" Text="Bitácora"/>
-        <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,6" TextWrapping="Wrap" Text="{x:Static memory:JournalTrustViewModel.Explanation}"/>
+        <TextBlock Style="{StaticResource SectionTitleText}" Text="{l:T Memory_Journal_Title}"/>
+        <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,6" TextWrapping="Wrap" Text="{l:T Memory_Journal_Explanation}"/>
         <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" Text="{Binding StateText}"
-                   AutomationProperties.Name="Confianza en la bitácora" AutomationProperties.LiveSetting="Polite"/>
+                   AutomationProperties.Name="{l:T Memory_Journal_StateName}" AutomationProperties.LiveSetting="Polite"/>
 
         <StackPanel Margin="0,8,0,0" Visibility="{Binding IsAvailable, Converter={StaticResource Journal.BoolToVisibility}}">
             <Button Style="{StaticResource ToolbarButton}" HorizontalAlignment="Left" Content="{Binding ProjectActionLabel}"
@@ -29,9 +31,9 @@
             <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,0" TextWrapping="Wrap" Text="{Binding ProjectActionHelp}"/>
         </StackPanel>
 
-        <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Margin="0,10,0,2" Text="Por días"
+        <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Margin="0,10,0,2" Text="{l:T Memory_Journal_ByDay}"
                    Visibility="{Binding HasDays, Converter={StaticResource Journal.BoolToVisibility}}"/>
-        <ItemsControl ItemsSource="{Binding Days}" Focusable="False" AutomationProperties.Name="Días de la bitácora">
+        <ItemsControl ItemsSource="{Binding Days}" Focusable="False" AutomationProperties.Name="{l:T Memory_Journal_Days}">
             <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="{x:Type memory:JournalDayViewModel}">
                     <DockPanel Margin="0,2,0,2">

@@ -16,37 +16,22 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace AgentStudio.Desktop.Memory;
 
-/// <summary>Spanish names of the categories, origins and trust of the memory (docs/14 D-18 and D-20).</summary>
+/// <summary>
+/// Names of the categories, origins and trust of the memory (docs/14 D-18 and D-20), from <c>Resources/MemoryStrings.resx</c> in
+/// the language in use. What an entry holds is shown as it was anchored: it is never translated (docs/17 D-48).
+/// </summary>
 public static class MemoryTexts
 {
     /// <summary>The trust of a journal entry in quarantine because who wrote it cannot be checked (V40).</summary>
-    public const string UncheckedJournalEntry =
-        "En cuarentena: no se puede comprobar quién la escribió. Acéptala, o confía en su día o en toda la bitácora";
+    public static string UncheckedJournalEntry => Texts.Get("Memory_Trust_JournalUnchecked");
 
-    public static string Kind(MemoryKind kind) => kind switch
-    {
-        MemoryKind.Architecture => "Arquitectura",
-        MemoryKind.Convention => "Convención",
-        MemoryKind.Decision => "Decisión",
-        MemoryKind.KnownError => "Error conocido",
-        MemoryKind.Solution => "Solución",
-        MemoryKind.PendingTask => "Tarea pendiente",
-        MemoryKind.Change => "Cambio",
-        MemoryKind.DebateSummary => "Resumen de debate",
-        MemoryKind.Verdict => "Veredicto",
-        MemoryKind.DailySummary => "Resumen diario",
-        MemoryKind.JournalEntry => "Bitácora",
-        MemoryKind.ProjectBrief => Texts.Get("Memory_Kind_ProjectBrief"),
-        _ => kind.ToString(),
-    };
+    /// <summary>The text of <c>prefix + value</c>; a value the resources do not know (a new one) is shown as its name, never as <c>[key]</c>.</summary>
+    private static string Named(string prefix, Enum value) =>
+        Texts.Current.Has(prefix + value) ? Texts.Get(prefix + value) : value.ToString();
 
-    public static string Origin(MemoryOrigin origin) => origin switch
-    {
-        MemoryOrigin.System => "Sistema",
-        MemoryOrigin.User => "Tú",
-        MemoryOrigin.Agent => "Agente",
-        _ => origin.ToString(),
-    };
+    public static string Kind(MemoryKind kind) => Named("Memory_Kind_", kind);
+
+    public static string Origin(MemoryOrigin origin) => Named("Memory_Origin_", origin);
 
     /// <summary>
     /// Who wrote an entry of <paramref name="kind"/>. For a journal entry (docs/17 D-02) <see cref="MemoryOrigin.System"/>
@@ -58,20 +43,12 @@ public static class MemoryTexts
         ? origin switch
         {
             MemoryOrigin.System => "Agent Studio",
-            MemoryOrigin.Agent => "Autor sin comprobar",
+            MemoryOrigin.Agent => Texts.Get("Memory_Origin_JournalUnchecked"),
             _ => Origin(origin),
         }
         : Origin(origin);
 
-    public static string Trust(MemoryTrust trust) => trust switch
-    {
-        MemoryTrust.Trusted => "De confianza",
-        MemoryTrust.Proposed => "Propuesta de un agente: sin revisar",
-        MemoryTrust.Quarantined => "En cuarentena: heredada de un historial aceptado como nuevo origen; revísala",
-        MemoryTrust.Rejected => "Rechazada",
-        MemoryTrust.Retracted => "Retirada",
-        _ => trust.ToString(),
-    };
+    public static string Trust(MemoryTrust trust) => Named("Memory_Trust_", trust);
 
     /// <summary>
     /// The trust of an entry, said for its category: a journal entry whose author cannot be checked waits in quarantine
@@ -140,8 +117,8 @@ public sealed partial class MemoryEntryViewModel : ObservableObject
     public string Source => Entry.Source;
 
     /// <summary>Which entry replaces it, or which one it replaces; null when neither.</summary>
-    public string? Superseded => Entry.SupersededBy is { } by ? $"Sustituida por {by}"
-        : Entry.Supersedes is { } old ? $"Sustituye a {old}"
+    public string? Superseded => Entry.SupersededBy is { } by ? Texts.Format("Memory_Entry_SupersededBy", by)
+        : Entry.Supersedes is { } old ? Texts.Format("Memory_Entry_Supersedes", old)
         : null;
 
     /// <summary>A decision about the entry that is being recorded or waits in the queue; null when none.</summary>
@@ -214,7 +191,7 @@ public sealed partial class MemoryViewModel : DocumentViewModel
         DailySummaryViewModel summary,
         TimeProvider time,
         MemorySearchBackend? search = null)
-        : base(DocumentId, "Memoria")
+        : base(DocumentId, Texts.Get("Memory_Title"))
     {
         ArgumentNullException.ThrowIfNull(summary);
         ArgumentNullException.ThrowIfNull(time);
@@ -265,7 +242,7 @@ public sealed partial class MemoryViewModel : DocumentViewModel
 
     /// <summary>The categories to filter by; the first one is «Todas».</summary>
     public IReadOnlyList<Option<MemoryKind?>> Kinds { get; } =
-        [new(null, "Todas"), .. Enum.GetValues<MemoryKind>().Select(k => new Option<MemoryKind?>(k, MemoryTexts.Kind(k)))];
+        [new(null, Texts.Get("Memory_Kind_All")), .. Enum.GetValues<MemoryKind>().Select(k => new Option<MemoryKind?>(k, MemoryTexts.Kind(k)))];
 
     /// <summary>The memory entries on screen, in their order: every entry listed, or those a search found.</summary>
     public ObservableCollection<MemoryEntryViewModel> Entries { get; } = [];
@@ -316,7 +293,7 @@ public sealed partial class MemoryViewModel : DocumentViewModel
     private bool _isBusy;
 
     /// <summary>Why «Exportar a Markdown» is not offered now (a run or a planning goes on); null when it is.</summary>
-    public string? ExportBlocked => RunIsActive ? "Hay una ejecución, una planificación, un debate o una auditoría en curso: la exportación espera a que termine." : null;
+    public string? ExportBlocked => RunIsActive ? Texts.Get("Memory_Export_Blocked") : null;
 
     private bool RunIsActive => _project is { } project && _activity?.IsBusy(project.ProjectId) == true;
 
@@ -335,7 +312,7 @@ public sealed partial class MemoryViewModel : DocumentViewModel
         if (projectRoot is null)
         {
             Summary.SetProject(null);
-            StatusMessage = "Abre una carpeta para ver su memoria.";
+            StatusMessage = Texts.Get("Memory_Status_OpenFolder");
             await _refreshes.RequestAsync(MemoryRefresh.All).ConfigureAwait(true);
             return;
         }
@@ -343,7 +320,7 @@ public sealed partial class MemoryViewModel : DocumentViewModel
         if (_memory is null || _workspace is null)
         {
             Summary.SetProject(null);
-            StatusMessage = "La memoria del proyecto no está disponible en esta composición.";
+            StatusMessage = Texts.Get("Memory_Status_Unavailable");
             await _refreshes.RequestAsync(MemoryRefresh.All).ConfigureAwait(true);
             return;
         }
@@ -358,7 +335,7 @@ public sealed partial class MemoryViewModel : DocumentViewModel
         {
             Summary.SetProject(null);
             StatusMessage = null;
-            ErrorMessage = $"No se pudo abrir el proyecto: {ex.Message}";
+            ErrorMessage = Texts.Format("Memory_Error_OpenProject", ex.Message);
             await _refreshes.RequestAsync(MemoryRefresh.All).ConfigureAwait(true);
             return;
         }
@@ -468,7 +445,7 @@ public sealed partial class MemoryViewModel : DocumentViewModel
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = $"No se pudo leer la memoria: {ex.Message}";
+            ErrorMessage = Texts.Format("Memory_Error_Read", ex.Message);
         }
     }
 
@@ -495,7 +472,7 @@ public sealed partial class MemoryViewModel : DocumentViewModel
             Results.Add(item);
         }
 
-        StatusMessage = entries.Count == 0 ? "No hay entradas que coincidan." : null;
+        StatusMessage = entries.Count == 0 ? Texts.Get("Memory_Status_NoMatches") : null;
     }
 
     /// <summary>
@@ -522,7 +499,7 @@ public sealed partial class MemoryViewModel : DocumentViewModel
 #pragma warning restore CA1031
         {
             await ListAsync(memory, project, text).ConfigureAwait(true);
-            SearchNotice = $"Solo por palabras: la búsqueda en el índice falló ({ex.Message.TrimEnd('.')}).";
+            SearchNotice = Texts.Format("Memory_Search_IndexFailed", ex.Message.TrimEnd('.'));
             return;
         }
 
@@ -552,7 +529,7 @@ public sealed partial class MemoryViewModel : DocumentViewModel
         }
 
         SearchNotice = result.Notice ?? MemorySearchTexts.Hybrid(Results.Count);
-        StatusMessage = Results.Count == 0 ? "No hay entradas que coincidan." : null;
+        StatusMessage = Results.Count == 0 ? Texts.Get("Memory_Status_NoMatches") : null;
     }
 
     /// <summary>
@@ -622,8 +599,8 @@ public sealed partial class MemoryViewModel : DocumentViewModel
 
         ErrorMessage = null;
         entry.Pending = RunIsActive
-            ? "En cola: se registrará cuando termine la ejecución o la planificación en curso."
-            : "Registrando tu decisión…";
+            ? Texts.Get("Memory_Decision_Queued")
+            : Texts.Get("Memory_Decision_Recording");
         RefreshEntryCommands();
         try
         {
@@ -634,7 +611,7 @@ public sealed partial class MemoryViewModel : DocumentViewModel
 #pragma warning restore CA1031
         {
             entry.Pending = null;
-            ErrorMessage = $"No se pudo registrar la revisión: {ex.Message}";
+            ErrorMessage = Texts.Format("Memory_Error_Review", ex.Message);
             RefreshEntryCommands();
             return;
         }
@@ -664,26 +641,26 @@ public sealed partial class MemoryViewModel : DocumentViewModel
             var result = await exporter.ExportAsync(project, CancellationToken.None).ConfigureAwait(true);
             if (result.Exported)
             {
-                ExportStatus = string.Create(CultureInfo.InvariantCulture, $"Exportadas {result.Entries} entradas a .agentstudio/memory/ ({result.Files.Count} {(result.Files.Count == 1 ? "fichero" : "ficheros")}). El Markdown nunca se lee de vuelta.");
+                ExportStatus = Texts.Format(result.Files.Count == 1 ? "Memory_Export_Done_One" : "Memory_Export_Done_Other", result.Entries, result.Files.Count);
             }
             else if (result.Files.Count == 0)
             {
-                ExportWarning = $"No se exportó: {result.Reason}";
+                ExportWarning = Texts.Format("Memory_Export_NotExported", result.Reason);
             }
             else
             {
                 // A run started while the files were written: the exporter stopped before the next one (docs/14 D-22).
                 var rewritten = result.Files.Count == 1
-                    ? $"Se reescribió 1 fichero ({result.Files[0]})"
-                    : string.Create(CultureInfo.InvariantCulture, $"Se reescribieron {result.Files.Count} ficheros ({string.Join(", ", result.Files)})");
-                ExportWarning = $"Exportación incompleta: {result.Reason} {rewritten} antes de parar; el resto sigue como estaba hasta la próxima exportación, que lo reescribe todo.";
+                    ? Texts.Format("Memory_Export_Rewritten_One", result.Files[0])
+                    : Texts.Format("Memory_Export_Rewritten_Other", result.Files.Count, string.Join(", ", result.Files));
+                ExportWarning = Texts.Format("Memory_Export_Incomplete", result.Reason, rewritten);
             }
         }
 #pragma warning disable CA1031 // The exporter is behind a port: a failure is shown in the screen, never thrown into the UI.
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = $"No se pudo exportar la memoria: {ex.Message}";
+            ErrorMessage = Texts.Format("Memory_Error_Export", ex.Message);
         }
         finally
         {

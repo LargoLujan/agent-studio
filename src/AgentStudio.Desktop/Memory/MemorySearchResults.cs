@@ -1,41 +1,42 @@
 using System.Globalization;
 using AgentStudio.Application.Knowledge;
 using AgentStudio.Application.Semantic;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Orchestrator;
 using AgentStudio.Domain.Semantic;
 
 namespace AgentStudio.Desktop.Memory;
 
-/// <summary>What the search of «Memoria» says, in plain Spanish (docs/17 D-05, D-06 and F12-6).</summary>
+/// <summary>What the search of «Memoria» says, in plain language and in the language in use (docs/17 D-05, D-06, D-47 and F12-6).</summary>
 public static class MemorySearchTexts
 {
     /// <summary>The label of the search box when it goes by words only.</summary>
-    public const string WordsLabel = "Buscar por palabras";
+    public static string WordsLabel => Texts.Get("Memory_Search_WordsLabel");
 
     /// <summary>The label of the search box when the model and the vectors are there.</summary>
-    public const string HybridLabel = "Buscar por significado y por palabras";
+    public static string HybridLabel => Texts.Get("Memory_Search_HybridLabel");
 
     /// <summary>The accessible name of the search box by words only.</summary>
-    public const string WordsName = "Buscar en la memoria por palabras";
+    public static string WordsName => Texts.Get("Memory_Search_WordsName");
 
     /// <summary>The accessible name of the search box by meaning and by words.</summary>
-    public const string HybridName = "Buscar en la memoria por significado y por palabras";
+    public static string HybridName => Texts.Get("Memory_Search_HybridName");
 
     /// <summary>A search without the index composed.</summary>
-    public const string NoIndex = "Solo por palabras: la búsqueda por significado no está disponible en esta composición.";
+    public static string NoIndex => Texts.Get("Memory_Search_NoIndex");
 
     /// <summary>A search while the index of the project has no fragments yet.</summary>
-    public const string EmptyIndex = "Solo por palabras: el índice de búsqueda de este proyecto aún no tiene fragmentos; se construye en segundo plano.";
+    public static string EmptyIndex => Texts.Get("Memory_Search_EmptyIndex");
 
     /// <summary>A search when the state of the index could not be read.</summary>
-    public const string UnreadableIndex = "Solo por palabras: no se pudo leer el índice de búsqueda de este proyecto.";
+    public static string UnreadableIndex => Texts.Get("Memory_Search_UnreadableIndex");
 
     /// <summary>What a hybrid search says about its results.</summary>
     public static string Hybrid(int results) => results switch
     {
-        0 => "Por significado y por palabras: nada coincide.",
-        1 => "Por significado y por palabras: 1 resultado.",
-        _ => string.Create(CultureInfo.InvariantCulture, $"Por significado y por palabras: {results} resultados, del más cercano al menos."),
+        0 => Texts.Get("Memory_Search_HybridNone"),
+        1 => Texts.Get("Memory_Search_HybridOne"),
+        _ => Texts.Format("Memory_Search_HybridMany", results),
     };
 
     /// <summary>Why a result came out of a hybrid search: its words, its meaning or both.</summary>
@@ -44,9 +45,9 @@ public static class MemorySearchTexts
         ArgumentNullException.ThrowIfNull(rank);
         return rank switch
         {
-            { LexicalRank: not null, SemanticRank: not null } => "Coincide por palabras y por significado",
-            { LexicalRank: not null } => "Coincide por palabras",
-            _ => "Coincide por significado",
+            { LexicalRank: not null, SemanticRank: not null } => Texts.Get("Memory_Search_MatchBoth"),
+            { LexicalRank: not null } => Texts.Get("Memory_Search_MatchWords"),
+            _ => Texts.Get("Memory_Search_MatchMeaning"),
         };
     }
 }
@@ -88,11 +89,11 @@ public sealed class LogFragmentViewModel
     public string Id => Hit.Fragment.Id;
 
     /// <summary>What it is, as the index names it («registro · veredicto»), with a capital letter.</summary>
-    public string KindLabel => string.IsNullOrEmpty(Hit.Label) ? "Registro" : char.ToUpper(Hit.Label[0], CultureInfo.GetCultureInfo("es-ES")) + Hit.Label[1..];
+    public string KindLabel => string.IsNullOrEmpty(Hit.Label) ? Texts.Get("Memory_Log_DefaultKind") : char.ToUpper(Hit.Label[0], Texts.Current.Culture) + Hit.Label[1..];
 
     public string OriginLabel => MemoryTexts.Origin(MemoryOrigin.System);
 
-    public string TrustLabel => "De confianza: lo escribió Agent Studio a partir del registro verificado";
+    public string TrustLabel => Texts.Get("Memory_Log_Trust");
 
     public Tone TrustTone => Tone.Success;
 
@@ -103,7 +104,7 @@ public sealed class LogFragmentViewModel
     public string Created { get; }
 
     /// <summary>The entry of the log it cites, by its sequence.</summary>
-    public string Source => $"Registro de decisiones, entrada {Hit.Fragment.Source.Reference}";
+    public string Source => Texts.Format("Memory_Log_Source", Hit.Fragment.Source.Reference);
 
     /// <summary>Why it came out of the search.</summary>
     public string Match => MemorySearchTexts.Match(Hit.Rank);
