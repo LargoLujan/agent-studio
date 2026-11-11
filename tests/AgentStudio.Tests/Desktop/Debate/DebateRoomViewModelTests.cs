@@ -221,7 +221,7 @@ public sealed class DebateRoomViewModelTests
 
         Assert.Equal(["judgment", "tests", "evidence:Medición:El proceso por agente arranca en 300 ms.", $"abort:{DebateRoomViewModel.AbortReason}"], run.Calls);
         Assert.Equal(string.Empty, room.NoteTitle);
-        Assert.Equal("Prueba «Medición» añadida. La verán la ronda siguiente y el juez.", room.StatusMessage);
+        Assert.Equal("Prueba guardada «Medición» añadida. La verán la ronda siguiente y el juez.", room.StatusMessage);
 
         run.ActionFailure = new InvalidOperationException("debate.judgment-phase");
         await room.RequestJudgmentCommand.ExecuteAsync(null);
@@ -344,6 +344,7 @@ public sealed class DebateRoomViewModelTests
         Assert.False(card.CanDecide);
         Assert.Equal("Quién juzga: Jurado cruzado", card.JudgingText);
         Assert.Equal("Requisitos congelados (huella " + Requirements.ContentHash[..12] + "): 2 requisitos", room.RequirementsText);
+        Assert.StartsWith("Tareas correctivas de «Veredicto del debate ", card.CorrectiveRequest, StringComparison.Ordinal);
     }
 
     [Fact]

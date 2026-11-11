@@ -44,7 +44,7 @@ public sealed class NewDebateViewModelTests
         Assert.Equal(["arquitecto", "critico", "ejecutor"], form.Participants.Select(p => p.Agent.Id.Value));
         Assert.Equal(["juez-claude", "juez-revision"], form.Judges.Select(j => j.Agent.Id.Value));
         Assert.Equal("Crítico", form.Participants.Single(p => p.Agent.Id.Value == "critico").SelectedRole.Label);
-        Assert.Equal("Codex CLI · OpenAI · modelo por defecto del programa", form.Participants.Single(p => p.Agent.Id.Value == "critico").Where);
+        Assert.Equal("Codex CLI · OpenAI · modelo predeterminado del programa", form.Participants.Single(p => p.Agent.Id.Value == "critico").Where);
         Assert.All(form.Judges, j => Assert.True(j.IsIncluded));
     }
 

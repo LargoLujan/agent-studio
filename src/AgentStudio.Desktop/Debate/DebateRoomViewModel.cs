@@ -827,7 +827,8 @@ public sealed partial class DebateRoomViewModel : ObservableObject
             mode is { } m && subject is { } s && DebateJudgingRules.IsChoice(m, s),
             Proposals: [.. _participants.Select(p => p.Label)],
             AwaitingHuman: awaitingHuman,
-            PendingOutcome: pending);
+            PendingOutcome: pending,
+            RequestLabel: ProtocolTexts.DebateVerdictLabel(DebateId?.ToString()));
         return new VerdictCardViewModel([.. _verdicts], outcome, context, _time.LocalTimeZone, new VerdictCardActions(_challenge, decide, _correctiveTasks));
     }
 

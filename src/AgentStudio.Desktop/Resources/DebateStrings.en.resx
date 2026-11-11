@@ -101,7 +101,7 @@
     <value>Reply</value>
   </data>
   <data name="Debate_Kind_Evidence" xml:space="preserve">
-    <value>Evidence</value>
+    <value>Saved evidence</value>
   </data>
   <data name="Debate_Limit_Rounds" xml:space="preserve">
     <value>round limit</value>
@@ -155,7 +155,7 @@
     <value>Independent judge</value>
   </data>
   <data name="Debate_Judging_CrossVendorPanel" xml:space="preserve">
-    <value>Cross panel</value>
+    <value>Cross-company panel</value>
   </data>
   <data name="Debate_Judging_NonProducerJudge" xml:space="preserve">
     <value>Non-producer judge</value>
@@ -341,13 +341,13 @@
     <value>Assesses a requirement twice</value>
   </data>
   <data name="Verdict_Violation_EvidenceNotInDossier" xml:space="preserve">
-    <value>Cites evidence that is not in the file for the judge</value>
+    <value>Cites saved evidence that is not in the file for the judge</value>
   </data>
   <data name="Verdict_Violation_EvidenceCitedButNotExamined" xml:space="preserve">
-    <value>Cites evidence it does not say it examined</value>
+    <value>Cites saved evidence it does not say it examined</value>
   </data>
   <data name="Verdict_Violation_SatisfiedWithoutEvidence" xml:space="preserve">
-    <value>Marks a requirement as met without evidence</value>
+    <value>Marks a requirement as met without saved evidence</value>
   </data>
   <data name="Verdict_Violation_ApprovedWithUnmetMandatoryRequirement" xml:space="preserve">
     <value>Approves with a mandatory requirement not met</value>
@@ -380,7 +380,7 @@
     <value>Marks a requirement as met with failing tests</value>
   </data>
   <data name="Verdict_Violation_ApprovedWithoutEvidenceForCriterion" xml:space="preserve">
-    <value>Approves without evidence for a criterion</value>
+    <value>Approves without saved evidence for a criterion</value>
   </data>
   <data name="Verdict_Violation_MalformedVerdict" xml:space="preserve">
     <value>Malformed verdict</value>
@@ -437,7 +437,7 @@
     <value>No verdict: the judge's plan reached its usage limit</value>
   </data>
   <data name="Debate_Model_Default" xml:space="preserve">
-    <value>the program's default model</value>
+    <value>the default model of the program</value>
   </data>
   <data name="Verdict_Judge_NoModel" xml:space="preserve">
     <value>model not reported</value>
@@ -500,16 +500,16 @@
     <value>{0} cannot be checked</value>
   </data>
   <data name="Verdict_Row_Evidence" xml:space="preserve">
-    <value>Evidence cited: {0}</value>
+    <value>Saved evidence cited: {0}</value>
   </data>
   <data name="Verdict_Row_NoEvidence" xml:space="preserve">
-    <value>No evidence cited</value>
+    <value>No saved evidence cited</value>
   </data>
   <data name="Verdict_Row_JudgeAssessment" xml:space="preserve">
     <value>the judge's assessment, which tests cannot check</value>
   </data>
   <data name="Verdict_Ref_Evidence" xml:space="preserve">
-    <value>evidence: {0}</value>
+    <value>saved evidence: {0}</value>
   </data>
   <data name="Verdict_Ref_Entries" xml:space="preserve">
     <value>history entries: {0}</value>
@@ -620,7 +620,7 @@
     <value>It was interrupted: the debate was left open with nothing running it. "Resume" continues it. It spends part of your plan's usage limit and asks for your approval.</value>
   </data>
   <data name="Debate_Room_EvidenceAdded" xml:space="preserve">
-    <value>Evidence "{0}" added. The next round and the judge will see it.</value>
+    <value>Saved evidence "{0}" added. The next round and the judge will see it.</value>
   </data>
   <data name="Debate_Room_Fail_Judgment" xml:space="preserve">
     <value>Judgment could not be requested: {0}</value>
@@ -629,7 +629,7 @@
     <value>The tests could not be run: {0}</value>
   </data>
   <data name="Debate_Room_Fail_Evidence" xml:space="preserve">
-    <value>The evidence could not be added: {0}</value>
+    <value>The saved evidence could not be added: {0}</value>
   </data>
   <data name="Debate_Room_Fail_Retry" xml:space="preserve">
     <value>The turn of {0} could not be retried: {1}</value>
@@ -704,10 +704,10 @@
     <value>Concedes: {0}</value>
   </data>
   <data name="Debate_Evidence_Cited" xml:space="preserve">
-    <value>Evidence {0}</value>
+    <value>Saved evidence {0}</value>
   </data>
   <data name="Debate_Evidence_NoStore" xml:space="preserve">
-    <value>The store of saved evidence is missing: the evidence cannot be opened.</value>
+    <value>The store of saved evidence is missing: the saved evidence cannot be opened.</value>
   </data>
   <data name="Debate_Evidence_Failed" xml:space="preserve">
     <value>It could not be opened: {0}</value>
@@ -1253,25 +1253,25 @@
     <value>It opens the saved evidence it cites. It is only shown if its fingerprint still matches the saved one.</value>
   </data>
   <data name="Debate_RoomView_OpenEvidenceName" xml:space="preserve">
-    <value>Open evidence {0}</value>
+    <value>Open saved evidence {0}</value>
   </data>
   <data name="Debate_RoomView_Close" xml:space="preserve">
     <value>Close</value>
   </data>
   <data name="Debate_RoomView_EvidenceContent" xml:space="preserve">
-    <value>Content of the evidence</value>
+    <value>Content of the saved evidence</value>
   </data>
   <data name="Debate_RoomView_AddEvidence" xml:space="preserve">
-    <value>Add evidence (a note of yours that the next round and the judge will see)</value>
+    <value>Add saved evidence (a note of yours that the next round and the judge will see)</value>
   </data>
   <data name="Debate_RoomView_EvidenceTitleName" xml:space="preserve">
-    <value>Title of the evidence</value>
+    <value>Title of the saved evidence</value>
   </data>
   <data name="Debate_RoomView_EvidenceTextName" xml:space="preserve">
-    <value>Text of the evidence</value>
+    <value>Text of the saved evidence</value>
   </data>
   <data name="Debate_RoomView_AddEvidenceButton" xml:space="preserve">
-    <value>Add evidence</value>
+    <value>Add saved evidence</value>
   </data>
   <data name="Debate_RoomView_Activity" xml:space="preserve">
     <value>Activity</value>
@@ -1331,7 +1331,7 @@
     <value>Corrective actions</value>
   </data>
   <data name="Verdict_View_Labels" xml:space="preserve">
-    <value>Who each label was (the judge did not see it: the file is blind)</value>
+    <value>Who was behind each label (the judge never saw this: the file was anonymous)</value>
   </data>
   <data name="Verdict_View_Decide" xml:space="preserve">
     <value>I decide</value>
@@ -1370,11 +1370,11 @@ Filter the history by mode.</value>
     <value>Verdict card</value>
   </data>
   <data name="Info_Verdict_What" xml:space="preserve">
-    <value>It is the judge's answer: whether it approves, asks for changes or rejects, and why. Each requirement shows its status and the evidence it cites. If the judge breaks a rule, you will see it marked.</value>
+    <value>It is the judge's answer: whether it approves, asks for changes or rejects, and why. Each requirement shows its status and the saved evidence it cites. If the judge breaks a rule, you will see it marked.</value>
   </data>
   <data name="Info_Verdict_Actions" xml:space="preserve">
     <value>See which requirements are met and which are not.
-Open the evidence the judge cites.
+Open the saved evidence the judge cites.
 Press "Challenge" if you do not agree.
 Press "Create corrective tasks" to ask the orchestrator for the fixes.
 Decide yourself if the panel does not agree.</value>

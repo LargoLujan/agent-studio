@@ -46,6 +46,16 @@ public sealed class ChallengeFormViewModelTests
         Assert.Equal("critico", form.Critic!.Agent.Id.Value);
     }
 
+    /// <summary>F14-4: the question the debaters and the judge receive is a fixed prompt of the protocol, with the decision named in Spanish.</summary>
+    [Fact]
+    public async Task The_default_question_is_the_fixed_prompt_of_the_protocol()
+    {
+        var (form, _) = await FormAsync();
+
+        Assert.Equal("¿Se sostiene el veredicto v-1 (Aprobado) frente a la impugnación? El proponente defiende el veredicto y el crítico, la impugnación.", form.Question);
+        Assert.Equal(ProtocolTexts.ChallengeQuestion("v-1", VerdictDecision.Approved), form.Question);
+    }
+
     [Fact]
     public async Task Your_reasons_are_required_before_anything_is_prepared()
     {

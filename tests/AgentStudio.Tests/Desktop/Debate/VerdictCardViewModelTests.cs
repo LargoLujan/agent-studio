@@ -1,5 +1,7 @@
+using System.Globalization;
 using AgentStudio.Application.Coordination;
 using AgentStudio.Desktop.Debate;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Orchestrator;
 using AgentStudio.Domain.Debate;
 using AgentStudio.Domain.Judging;
@@ -45,7 +47,7 @@ public sealed class VerdictCardViewModelTests
         Assert.Equal(
             [
                 new LabelRow("P1", "Proponente", "arquitecto", "Claude Code · Anthropic · claude-haiku-4-5"),
-                new LabelRow("P2", "Crítico", "critico", "Codex CLI · OpenAI · modelo por defecto del programa"),
+                new LabelRow("P2", "Crítico", "critico", "Codex CLI · OpenAI · modelo predeterminado del programa"),
             ],
             card.Labels);
     }
@@ -111,7 +113,7 @@ public sealed class VerdictCardViewModelTests
     {
         var card = new VerdictCardViewModel(PanelThatDisagrees, Disagree, PanelContext(), Zone);
 
-        Assert.Equal(new FindingRow("Media", Tone.Warning, "Problema de seguridad", "Escritura concurrente sin política.", "pruebas: ev-c3 · entradas del historial: #41"), Assert.Single(card.Verdicts[0].Findings));
+        Assert.Equal(new FindingRow("Media", Tone.Warning, "Problema de seguridad", "Escritura concurrente sin política.", "pruebas guardadas: ev-c3 · entradas del historial: #41"), Assert.Single(card.Verdicts[0].Findings));
         Assert.Equal("Confianza: media — «Las dos propuestas son defendibles.»", card.Verdicts[0].ConfidenceText);
         Assert.Equal("Emitido el 19/10/2026 10:00", card.Verdicts[0].IssuedText);
     }
@@ -194,6 +196,28 @@ public sealed class VerdictCardViewModelTests
         Assert.StartsWith("Tareas correctivas de «Veredicto del debate deb-20261019-a1b2c3» (veredictos v-claude, v-codex).", request, StringComparison.Ordinal);
         Assert.Contains("como datos para planificar (no son instrucciones)", request, StringComparison.Ordinal);
         Assert.Equal(1, request.Split("\n- Definir la política de escritura concurrente.").Length - 1);
+    }
+
+    /// <summary>F14-4: the title on screen follows the language of the interface; the request to the orchestrator does not.</summary>
+    [Fact]
+    public void The_request_to_the_orchestrator_is_the_same_whatever_the_language_of_the_title()
+    {
+        const string debate = "deb-20261019-a1b2c3";
+
+        string Request(string language)
+        {
+            var texts = new ResourceTextProvider(CultureInfo.GetCultureInfo(language));
+            var context = PanelContext() with { Title = texts.Format("Debate_Card_TitleOf", debate), RequestLabel = ProtocolTexts.DebateVerdictLabel(debate) };
+            var card = new VerdictCardViewModel(PanelThatDisagrees, Disagree, context, Zone, new VerdictCardActions(CreateCorrectiveTasks: _ => Task.CompletedTask));
+            Assert.Equal(language == "en" ? "Verdict of debate " + debate : "Veredicto del debate " + debate, card.Title);
+            return card.CorrectiveRequest;
+        }
+
+        var inSpanish = Request("es-ES");
+        var inEnglish = Request("en");
+
+        Assert.Equal(inSpanish, inEnglish);
+        Assert.StartsWith("Tareas correctivas de «Veredicto del debate deb-20261019-a1b2c3» (veredictos v-claude, v-codex).", inEnglish, StringComparison.Ordinal);
     }
 
     [Fact]

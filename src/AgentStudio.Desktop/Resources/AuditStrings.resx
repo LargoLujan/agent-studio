@@ -46,7 +46,7 @@
     <comment>Whether the report can be trusted. {0}: the reasons.</comment>
   </data>
   <data name="Audit_Integrity_Intact" xml:space="preserve">
-    <value>El historial de decisiones está íntegro: nadie lo ha tocado.</value>
+    <value>El historial de decisiones está íntegro: coincide con su huella guardada.</value>
     <comment>State of the decision history.</comment>
   </data>
   <data name="Audit_Integrity_Broken" xml:space="preserve">
@@ -170,7 +170,7 @@
     <comment>Who produced the code. {0}: the companies.</comment>
   </data>
   <data name="Audit_Prep_Profile" xml:space="preserve">
-    <value>Perfil de verificación «{0}» (huella {1}): se ejecuta en una zona aislada, con permisos mínimos y sobre una copia de la última versión guardada.</value>
+    <value>Perfil de verificación «{0}» (huella {1}). Se ejecuta en una zona aislada, con permisos mínimos, sobre una copia de la última versión guardada.</value>
     <comment>What will be verified. {0}: name of the profile, {1}: short fingerprint.</comment>
   </data>
   <data name="Audit_Prep_NoProfile" xml:space="preserve">
@@ -186,7 +186,7 @@
     <comment>What the audit may spend. {0}: tokens, {1}: origin.</comment>
   </data>
   <data name="Audit_Prep_EstimateNoJudge" xml:space="preserve">
-    <value>Sin juez no se gasta el límite de uso de tu plan: solo se verifica la última versión guardada y se listan los problemas pendientes.</value>
+    <value>Sin juez no se gasta el límite de uso de tu plan. Solo se verifica la última versión guardada y se listan los problemas pendientes.</value>
     <comment>What the audit may spend.</comment>
   </data>
   <data name="Audit_Prep_ModeJudge" xml:space="preserve">
