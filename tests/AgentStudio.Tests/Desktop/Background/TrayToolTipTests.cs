@@ -107,7 +107,7 @@ public sealed class TrayToolTipTests
     [Fact]
     public void When_it_does_not_fit_the_least_important_parts_go_first_and_what_waits_for_you_stays()
     {
-        // 50 of each kind, all waiting for quota and for the person: every part is there and the whole does not fit.
+        // 50 of each kind, all waiting for quota and for the person: every part is there and the whole does not fit: the wait for the usage limit goes, what waits for the person stays.
         var active = Enumerable.Range(0, 200).Select(i => new WorkStatus(
             (BackgroundWorkKind)(i % 4),
             RootA,
@@ -121,7 +121,7 @@ public sealed class TrayToolTipTests
 
         var text = TrayToolTip.Compose(active, ExitState.WaitingForIdle, 120, locked: true, Zone);
 
-        Assert.Equal("Agent Studio · bloqueado · saldrá al terminar 120 intentos en curso · 200 en espera por el límite de uso hasta las 14:00 · 200 esperan tu decisión", text);
+        Assert.Equal("Agent Studio · bloqueado · saldrá al terminar 120 intentos en curso · 200 esperan tu decisión", text);
         Assert.True(text.Length <= TrayToolTip.MaxLength, text);
     }
 

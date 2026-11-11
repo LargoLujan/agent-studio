@@ -28,7 +28,7 @@ public sealed class ExitPromptViewModelTests
         Assert.Contains("No se reanuda solo", question.ExitNowHelp, StringComparison.Ordinal);
         Assert.Contains("todo sigue en marcha", question.KeepInTrayHelp, StringComparison.Ordinal);
         Assert.DoesNotContain("debates", question.PauseHelp, StringComparison.Ordinal);
-        Assert.Contains("registro de cada ejecución", question.RecordNote, StringComparison.Ordinal);
+        Assert.Contains("historial de cada ejecución", question.RecordNote, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -38,7 +38,7 @@ public sealed class ExitPromptViewModelTests
 
         Assert.False(question.OffersKeepInTray);
         Assert.Equal("Vas a salir de Agent Studio y hay 2 trabajos en marcha. ¿Qué quieres hacer con ellos?", question.Intro);
-        Assert.EndsWith("Los debates y las auditorías no se pueden pausar: espera a que terminen.", question.PauseHelp, StringComparison.Ordinal);
+        Assert.EndsWith("Los debates y las auditorías no se pueden pausar: Agent Studio espera a que terminen.", question.PauseHelp, StringComparison.Ordinal);
 
         question.ChooseCommand.Execute(ExitChoice.KeepInTray);
         Assert.Null(question.Answer);

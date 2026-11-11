@@ -22,7 +22,7 @@ public sealed partial class BackgroundStringsTests
 
     private static readonly IUiTextProvider English = new ResourceTextProvider(CultureInfo.GetCultureInfo("en"));
 
-    [GeneratedRegex("""InfoKey="(Info_[A-Za-z]+)\"""")]
+    [GeneratedRegex(@"InfoKey=""(Info_[A-Za-z]+)""")]
     private static partial Regex InfoKey();
 
     [Fact]
