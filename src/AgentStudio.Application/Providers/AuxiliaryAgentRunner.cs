@@ -38,8 +38,9 @@ public interface IAuxiliaryAgentRunner
 /// <item>The decision log must verify, or nothing is captured nor launched (fail closed, ADR-0010).</item>
 /// <item>The run gets an id of its own, <c>aux-yyyyMMdd-xxxxxx</c>, that no orchestration run can have and that is not in
 /// <c>orchestration_runs</c>: the usage panel counts it and the list of runs never shows it.</item>
-/// <item>The prompt is captured as evidence, and <c>AgentRunStarted</c> version 2 (with the purpose) is recorded before the
-/// launch: a launch that cannot be recorded does not happen.</item>
+/// <item>The prompt is captured as evidence, and <c>AgentRunStarted</c> version 2 (with the purpose; version 3 when the agent
+/// sets a reasoning effort, which it then records, docs/18 P47) is recorded before the launch: a launch that cannot be
+/// recorded does not happen.</item>
 /// <item>The events are passed on and read to the end; <c>AgentRunFinished</c> version 2 records the outcome, the usage
 /// with origins and breakdown, the time the process started (after any wait in the provider's queue), the model of the
 /// steps, the session it resumed, the step with the largest context and the compactions (null when the provider does not

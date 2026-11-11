@@ -244,13 +244,21 @@ public sealed record AgentRunStartedPayload(
     /// <summary>The first version that records the purpose of the run and the memory the agent was given.</summary>
     public const int PurposeVersion = 2;
 
-    /// <summary>The first version that records the parts of the prompt before the agent starts (docs/17 D-13). It keeps everything version 2 records.</summary>
+    /// <summary>
+    /// The first version that records the parts of the prompt before the agent starts (docs/17 D-13) and, since docs/18 P47, the
+    /// reasoning effort of the agent. It keeps everything version 2 records. A start of this version carries the parts, the effort
+    /// or both, each only when there is one.
+    /// </summary>
     public const int ContextPartsVersion = 3;
 
     /// <summary>Whether this start records its purpose and memory (version 2 on). A method, so the serializer never writes it.</summary>
     public bool RecordsPurpose() => V >= PurposeVersion;
 
-    /// <summary>Whether this start records the parts of its prompt (version 3 on). A method, so the serializer never writes it.</summary>
+    /// <summary>
+    /// Whether this start is of the version that can record the parts of its prompt (version 3 on). It does not mean there are
+    /// parts: a version 3 start may carry only the effort, so a reader checks <c>ContextParts is { Count: &gt; 0 }</c> before using
+    /// them. A method, so the serializer never writes it.
+    /// </summary>
     public bool RecordsContextParts() => V >= ContextPartsVersion;
 }
 

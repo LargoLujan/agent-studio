@@ -305,7 +305,7 @@ public sealed partial class UsageProjector(IProjectLogReader logs, IProjectStora
             finished.Compactions)
         {
             RecordedVersion = finished.V,
-            Effort = started.RecordsContextParts() ? started.Effort : null,
+            Effort = started.Effort,
         };
     }
 

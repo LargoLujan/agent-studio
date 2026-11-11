@@ -179,18 +179,19 @@ public static class UsageEstimation
         ReasoningEffort? effort)
     {
         var similar = Similar(attempts, catalog, provider, model, purpose, effort);
-        var sizeNote = size is { } s ? ", " + s.ToString().ToLowerInvariant() + " size" : string.Empty;
+        var qualifiers = (effort is { } e ? ", " + ReasoningEfforts.Token(e) + " effort" : string.Empty)
+            + (size is { } s ? ", " + s.ToString().ToLowerInvariant() + " size" : string.Empty);
         var sameAgent = Sized(similar.Where(a => a.Agent == agent).ToList(), size);
         var agentAssumptions = With(size, effort, EstimateAssumptions.SameAgentAndModel, EstimateAssumptions.SamePurpose);
         if (sameAgent.Count >= UsageEstimate.MinimumReferences)
         {
-            return (sameAgent, agentAssumptions, "attempts of the same agent, model and purpose" + sizeNote);
+            return (sameAgent, agentAssumptions, "attempts of the same agent, model and purpose" + qualifiers);
         }
 
         var sameModel = Sized(similar, size);
         if (sameModel.Count >= UsageEstimate.MinimumReferences)
         {
-            return (sameModel, With(size, effort, EstimateAssumptions.SameModel, EstimateAssumptions.SamePurpose), "attempts of the same model and purpose by any agent" + sizeNote);
+            return (sameModel, With(size, effort, EstimateAssumptions.SameModel, EstimateAssumptions.SamePurpose), "attempts of the same model and purpose by any agent" + qualifiers);
         }
 
         return (sameAgent, agentAssumptions, string.Empty);
