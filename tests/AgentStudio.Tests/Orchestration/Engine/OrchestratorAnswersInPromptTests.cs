@@ -1,7 +1,13 @@
+using System.IO;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Orchestration;
+using AgentStudio.Application.Persistence;
+using AgentStudio.Domain.Common;
+using AgentStudio.Domain.Decisions;
+using AgentStudio.Domain.Evidence;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Questions;
 using AgentStudio.Tests.Orchestration.Fakes;
@@ -240,6 +246,208 @@ public sealed class OrchestratorAnswersInPromptTests
         Assert.Contains(asked.QuestionEvidence.Value, refused.Message, StringComparison.Ordinal);
         Assert.Equal(resume ? 1 : 0, harness.Payloads<RunStartedPayload>().Count); // refused before the run was anchored in the log
     }
+
+    // ---- a plan that is not the one the orchestrator proposed: the run has an id of its own ----
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task A_plan_edited_after_the_answers_runs_in_a_run_of_its_own_and_its_executors_still_get_them(bool restart)
+    {
+        using var harness = new EngineHarness();
+        var (planned, question) = await AskedAndAnsweredAsync(harness, ChoosingA);
+        if (restart)
+        {
+            harness.Claude.Script("ejecutor", "T1", 1, new AgentScript { StructuredOutput = AgentScript.Asking() });
+        }
+
+        // The person edited the plan after answering: it is not the one of the run that asked, so it is a run of its own.
+        var first = await harness.CreateOrchestrator().StartAsync(harness.Request(TwoTasks()) with { PlannedIn = planned }, Ct);
+        Assert.NotEqual(planned, first.Id);
+        var last = first;
+        if (restart)
+        {
+            await WaitForAnswerAsync(harness, first);
+            await first.DisposeAsync();
+            Assert.Equal(RunPhase.Interrupted, (await first.CompleteAsync(harness)).Phase);
+            last = await harness.CreateOrchestrator().ResumeAsync(harness.Project, first.Id, Ct);
+            await WaitForAnswerAsync(harness, last);
+            await last.AnswerAsync(QuestionAnswer.Choosing(Tid("T1"), "T1-q1", "b", "usuario"));
+        }
+
+        await using (last)
+        {
+            Assert.Equal(RunPhase.Succeeded, (await last.CompleteAsync(harness)).Phase);
+        }
+
+        // The start names where it planned; the question and its answer stay where they were recorded, once.
+        var started = Assert.Single(harness.Payloads<RunStartedPayload>()).Payload;
+        Assert.Equal((first.Id.Value, planned.Value), (started.RunId, started.PlannedIn));
+        Assert.Equal(planned.Value, Assert.Single(harness.Payloads<QuestionAskedPayload>(), p => p.Payload.Task is null).Payload.RunId);
+        Assert.Equal(planned.Value, Assert.Single(harness.Payloads<QuestionAnsweredPayload>(), p => p.Payload.Task is null).Payload.RunId);
+
+        // Every executor got the answer in its first prompt, marked as the orchestrator's.
+        foreach (var task in new[] { "T1", "T2" })
+        {
+            var prompt = harness.Claude.Starts.First(s => s.Request.TaskId == task).Request.Prompt;
+            var (attributes, block) = Assert.Single(BlocksOf(prompt));
+            Assert.StartsWith($"question=\"plan-1\" askedBy=\"orchestrator\" evidence=\"{question.Evidence.Value}\" ", attributes, StringComparison.Ordinal);
+            Assert.Equal(AskedText, block.GetProperty("question").GetString());
+            Assert.Contains(Rule, prompt, StringComparison.Ordinal);
+        }
+
+        if (restart)
+        {
+            // After the restart, the attempt with the answer of T1 still has the one of the orchestrator, first.
+            var blocks = BlocksOf(harness.Claude.Starts.Last(s => s.Request.TaskId == "T1").Request.Prompt);
+            Assert.Equal(2, blocks.Count);
+            Assert.StartsWith("question=\"plan-1\" askedBy=\"orchestrator\" ", blocks[0].Attributes, StringComparison.Ordinal);
+            Assert.StartsWith("question=\"T1-q1\" task=\"T1\" attempt=\"1\" ", blocks[1].Attributes, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public async Task A_proposal_that_already_started_a_run_starts_another_with_the_answers_too()
+    {
+        using var harness = new EngineHarness();
+        var (planned, _) = await AskedAndAnsweredAsync(harness, ChoosingA);
+
+        // The run of the proposal itself starts its own entries: the plan was planned in it, so nothing else is named.
+        await using (var own = await harness.CreateOrchestrator().StartAsync(harness.Request(Plan(Work("T1")), run: planned) with { PlannedIn = planned }, Ct))
+        {
+            Assert.Equal(planned, own.Id);
+            Assert.Equal(RunPhase.Succeeded, (await own.CompleteAsync(harness)).Phase);
+        }
+
+        // The same plan again: its proposal was used, so the run gets an id of its own and says where the orchestrator planned.
+        await using (var again = await harness.CreateOrchestrator().StartAsync(harness.Request(Plan(Work("T1"))) with { PlannedIn = planned }, Ct))
+        {
+            Assert.NotEqual(planned, again.Id);
+            Assert.Equal(RunPhase.Succeeded, (await again.CompleteAsync(harness)).Phase);
+        }
+
+        var starts = harness.Payloads<RunStartedPayload>().Select(p => p.Payload.PlannedIn).ToList();
+        Assert.Equal([null, planned.Value], starts); // the own run omits the field: it is its own entries
+        var prompts = harness.Claude.Starts.Where(s => s.Request.TaskId == "T1").Select(s => s.Request.Prompt).ToList();
+        Assert.Equal(2, prompts.Count);
+        Assert.All(prompts, prompt => Assert.StartsWith("question=\"plan-1\" askedBy=\"orchestrator\" ", Assert.Single(BlocksOf(prompt)).Attributes, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_run_planned_in_a_run_the_log_has_nothing_of_is_not_started()
+    {
+        using var harness = new EngineHarness();
+
+        var refused = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            harness.CreateOrchestrator().StartAsync(harness.Request(Plan(Work("T1"))) with { PlannedIn = new RunId("20261111-000000") }, Ct));
+
+        Assert.Contains("20261111-000000", refused.Message, StringComparison.Ordinal);
+        Assert.Empty(harness.Payloads<RunStartedPayload>()); // refused before anything was written
+    }
+
+    // ---- what the log of the planning may hold besides the answers ----
+
+    // A resume of the planning's own run does not get to this: replay refuses a run whose log answers a question twice. A run of its
+    // own, that only reads the entries of the run it planned in, does.
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task A_second_answer_to_the_same_question_does_not_count_the_first_one_does(bool resume, bool elsewhere)
+    {
+        using var harness = new EngineHarness();
+        var (planned, _) = await AskedAndAnsweredAsync(harness, ChoosingA);
+        var go = await ReadyAsync(harness, planned, resume, elsewhere);
+        await AppendAsync(harness, DecisionKind.QuestionAnswered, QuestionAnsweredPayload.Answering(planned.Value, null, "plan-1", "b", null, null, "otro", QuestionAnswerMethod.ChosenByPerson));
+
+        await FinishAsync(harness, go, resume);
+
+        var (_, block) = Assert.Single(BlocksOf(harness.Claude.Starts.Last(s => s.Request.TaskId == "T1").Request.Prompt), b => b.Attributes.Contains("askedBy", StringComparison.Ordinal));
+        Assert.Equal(("a", "usuario"), (block.GetProperty("answer").GetProperty("option").GetString(), block.GetProperty("decidedBy").GetString()));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task A_question_of_the_orchestrator_nobody_answered_is_not_read_and_its_missing_evidence_stops_nothing(bool resume)
+    {
+        using var harness = new EngineHarness();
+        var (planned, _) = await AskedAndAnsweredAsync(harness, ChoosingA);
+        var go = await ReadyAsync(harness, planned, resume);
+
+        // Asked and never answered, its evidence gone: an old run whose evidence was deleted must still start and resume.
+        await AppendAsync(harness, DecisionKind.QuestionAsked, new QuestionAskedPayload(null, 1, new AgentId("orquestador"), "plan-9", new EvidenceId("ev-gone"), new string('a', 64), ["a", "b"], null, []) { RunId = planned.Value });
+
+        await FinishAsync(harness, go, resume);
+
+        var (attributes, _) = Assert.Single(BlocksOf(harness.Claude.Starts.Last(s => s.Request.TaskId == "T1").Request.Prompt), b => b.Attributes.Contains("askedBy", StringComparison.Ordinal));
+        Assert.StartsWith("question=\"plan-1\" askedBy=\"orchestrator\" ", attributes, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("esto no es una pregunta", false)]
+    [InlineData("esto no es una pregunta", true)]
+    [InlineData("{\"text\":\"¿Y?\"}", false)]
+    [InlineData("{\"text\":\"¿Y?\",\"why\":\"x\",\"options\":[],\"allowOther\":true}", true)]
+    public async Task An_answered_question_whose_evidence_is_not_a_question_leaves_the_run_unstarted_or_not_resumable(string content, bool resume)
+    {
+        using var harness = new EngineHarness();
+        var (planned, _) = await AskedAndAnsweredAsync(harness, ChoosingA);
+        var go = await ReadyAsync(harness, planned, resume);
+
+        // The log anchors this very text (its hash matches), so only what it says can tell it is not a question.
+        var evidence = await harness.Evidence.CaptureAsync(
+            harness.Project.ProjectId,
+            new EvidenceDraft(EvidenceKind.AgentStatement, EvidenceOrigin.ReportedByAgent, "Pregunta plan-9 del orquestador", "orquestador", RunId: planned.Value, MediaType: "application/json"),
+            new MemoryStream(Encoding.UTF8.GetBytes(content)),
+            Ct);
+        await AppendAsync(harness, DecisionKind.QuestionAsked, new QuestionAskedPayload(null, 1, new AgentId("orquestador"), "plan-9", evidence.Id, evidence.ContentSha256, ["a", "b"], null, []) { RunId = planned.Value });
+        await AppendAsync(harness, DecisionKind.QuestionAnswered, QuestionAnsweredPayload.Answering(planned.Value, null, "plan-9", "a", null, null, "usuario", QuestionAnswerMethod.ChosenByPerson));
+
+        var refused = await Assert.ThrowsAsync<InvalidOperationException>(go);
+
+        Assert.Contains($"The evidence {evidence.Id.Value} of question 'plan-9' of the orchestrator is not a question", refused.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// What starts, or resumes, the run: by default the run of the planning itself, whose own entries are the planning's; or,
+    /// with <paramref name="elsewhere"/>, a run of its own that names the planning's as <see cref="RunRequest.PlannedIn"/>. To
+    /// resume, the run starts first and stops with T1 waiting for its answer.
+    /// </summary>
+    private static async Task<Func<Task<IOrchestrationRun>>> ReadyAsync(EngineHarness harness, RunId planned, bool resume, bool elsewhere = false)
+    {
+        RunRequest Request() => elsewhere
+            ? harness.Request(Plan(Work("T1"))) with { PlannedIn = planned }
+            : harness.Request(Plan(Work("T1")), run: planned);
+
+        if (!resume)
+        {
+            return () => harness.CreateOrchestrator().StartAsync(Request(), Ct);
+        }
+
+        harness.Claude.Script("ejecutor", "T1", 1, new AgentScript { StructuredOutput = AgentScript.Asking() });
+        var first = await harness.CreateOrchestrator().StartAsync(Request(), Ct);
+        await WaitForAnswerAsync(harness, first);
+        await first.DisposeAsync();
+        await first.CompleteAsync(harness);
+        return () => harness.CreateOrchestrator().ResumeAsync(harness.Project, first.Id, Ct);
+    }
+
+    /// <summary>Runs it to the end; a resumed one first gets the answer T1 waits for.</summary>
+    private static async Task FinishAsync(EngineHarness harness, Func<Task<IOrchestrationRun>> go, bool resume)
+    {
+        await using var run = await go();
+        if (resume)
+        {
+            await WaitForAnswerAsync(harness, run);
+            await run.AnswerAsync(QuestionAnswer.Choosing(Tid("T1"), "T1-q1", "b", "usuario"));
+        }
+
+        Assert.Equal(RunPhase.Succeeded, (await run.CompleteAsync(harness)).Phase);
+    }
+
+    private static Task AppendAsync(EngineHarness harness, DecisionKind kind, DecisionPayload payload) =>
+        harness.Decisions.RecordAsync(harness.Project.ProjectId, new Actor(ActorKind.User, "usuario"), kind, "entrada de prueba", payload, null, Ct);
 
     // ---- helpers ----
 

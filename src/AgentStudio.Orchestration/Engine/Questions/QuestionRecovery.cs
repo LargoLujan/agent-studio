@@ -2,7 +2,6 @@ using AgentStudio.Application.Decisions;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Orchestration;
-using AgentStudio.Orchestration.Planning;
 
 namespace AgentStudio.Orchestration.Engine.Questions;
 
@@ -12,9 +11,9 @@ namespace AgentStudio.Orchestration.Engine.Questions;
 /// the person's own text read back the same way; and the ones still waiting are the ones replay says are pending
 /// (<see cref="RunReplay.PendingQuestions"/>), with the instant the log recorded them, so the consent of the run counts from
 /// the same moment. A question or an answer that cannot be read as anchored leaves the run not resumable (fail closed): it
-/// would reach the window and the prompt of the agent as something nobody asked or answered. The questions the orchestrator
-/// asked before it planned (no task) and their answers are read back the same way, and go to the executor of every task
-/// (V43): a run that starts after those questions (<see cref="LoadOrchestratorAsync"/>) and one that resumes keep them.
+/// would reach the window and the prompt of the agent as something nobody asked or answered. The answers to the questions the
+/// orchestrator asked before it planned (V43) are read the same way, with <see cref="LoadOrchestratorAsync"/>: from the run that
+/// planned, which is this one or the one <c>RunStarted</c> names as <see cref="RunStartedPayload.PlannedIn"/>.
 /// </summary>
 internal static class QuestionRecovery
 {
@@ -26,72 +25,20 @@ internal static class QuestionRecovery
         QuestionBook book,
         CancellationToken cancellationToken)
     {
-        var asked = await ReadQuestionsAsync(recorder, entries, book, orchestratorOnly: false, cancellationToken).ConfigureAwait(false);
-        foreach (var (task, question) in replay.PendingQuestions)
-        {
-            if (!asked.TryGetValue(question, out var waiting) || waiting.Task != task)
-            {
-                throw new InvalidOperationException($"Task '{task}' waits for question '{question}', which the log never recorded as asked by its agent.");
-            }
-
-            book.Wait(waiting);
-        }
-    }
-
-    /// <summary>
-    /// The answers to the questions the orchestrator asked before it planned (V43), read from the log of a run that is about to
-    /// start: the planning that asked and the one that went on with the answers recorded them in the same run. Reads only.
-    /// </summary>
-    /// <exception cref="InvalidOperationException">A question or an answer cannot be read back as the log anchored it.</exception>
-    public static Task LoadOrchestratorAsync(
-        RunRecorder recorder,
-        IReadOnlyList<(DecisionEntry Entry, DecisionPayload Payload)> entries,
-        QuestionBook book,
-        CancellationToken cancellationToken) =>
-        ReadQuestionsAsync(recorder, entries, book, orchestratorOnly: true, cancellationToken);
-
-    private static async Task<Dictionary<string, AskedQuestion>> ReadQuestionsAsync(
-        RunRecorder recorder,
-        IReadOnlyList<(DecisionEntry Entry, DecisionPayload Payload)> entries,
-        QuestionBook book,
-        bool orchestratorOnly,
-        CancellationToken cancellationToken)
-    {
         var asked = new Dictionary<string, AskedQuestion>(StringComparer.Ordinal);
         foreach (var (entry, payload) in entries)
         {
             switch (payload)
             {
-                case QuestionAskedPayload { Task: null } p:
-                    // The orchestrator's question is the evidence of PlannerQuestions, not the document of an executor's. It counts in no cap.
-                    var planned = await ReadAsync(recorder, p.QuestionEvidence, p.QuestionSha256, $"question '{p.Question}' of the orchestrator", cancellationToken).ConfigureAwait(false);
-                    var plannedQuestion = PlannerQuestions.ReadEvidence(planned)
-                        ?? throw new InvalidOperationException($"The evidence {p.QuestionEvidence} of question '{p.Question}' of the orchestrator is not a question.");
-                    asked[p.Question] = new AskedQuestion(p.Question, null, p.Agent, p.Attempt, plannedQuestion, p.QuestionEvidence, p.QuestionSha256, p.Estimates, entry.RecordedAt);
-                    break;
-                case QuestionAnsweredPayload { Task: null } p:
-                    if (!asked.TryGetValue(p.Question, out var orchestratorAsked) || orchestratorAsked.Task is not null)
-                    {
-                        throw new InvalidOperationException($"Question '{p.Question}' was answered with no task, but the log never recorded it as asked by the orchestrator.");
-                    }
-
-                    string? orchestratorOwn = null;
-                    if (p.AnswerEvidence is { } orchestratorEvidence)
-                    {
-                        orchestratorOwn = await ReadAsync(recorder, orchestratorEvidence, p.AnswerSha256!, $"the answer to question '{p.Question}' of the orchestrator", cancellationToken).ConfigureAwait(false);
-                    }
-
-                    book.AnswerOrchestrator(new RecordedAnswer(orchestratorAsked, p.ChosenOption, orchestratorOwn, p.AnswerEvidence, p.AnswerSha256, p.DecidedBy, p.Method, entry.RecordedAt));
-                    break;
-                case QuestionAskedPayload { Task: { } task } p when !orchestratorOnly:
+                case QuestionAskedPayload { Task: { } task } p:
                     var text = await ReadAsync(recorder, p.QuestionEvidence, p.QuestionSha256, $"question '{p.Question}' of task '{task}'", cancellationToken).ConfigureAwait(false);
                     var question = QuestionDocuments.ReadQuestion(text, p.Question)
                         ?? throw new InvalidOperationException($"The evidence {p.QuestionEvidence} of question '{p.Question}' of task '{task}' is not that question.");
                     asked[p.Question] = new AskedQuestion(p.Question, task, p.Agent, p.Attempt, question, p.QuestionEvidence, p.QuestionSha256, p.Estimates, entry.RecordedAt);
                     book.Ask(asked[p.Question], pending: false);
                     break;
-                case QuestionAnsweredPayload { Task: { } task } p when !orchestratorOnly:
-                    if (!asked.TryGetValue(p.Question, out var of) || of.Task != task)
+                case QuestionAnsweredPayload { Task: { } task } p:
+                    if (!asked.TryGetValue(p.Question, out var of))
                     {
                         throw new InvalidOperationException($"Question '{p.Question}' of task '{task}' was answered, but the log never recorded it as asked.");
                     }
@@ -107,7 +54,82 @@ internal static class QuestionRecovery
             }
         }
 
-        return asked;
+        foreach (var (task, question) in replay.PendingQuestions)
+        {
+            if (!asked.TryGetValue(question, out var waiting) || waiting.Task != task)
+            {
+                throw new InvalidOperationException($"Task '{task}' waits for question '{question}', which the log never recorded as asked by its agent.");
+            }
+
+            book.Wait(waiting);
+        }
+    }
+
+    /// <summary>
+    /// The answers to the questions the orchestrator asked before it planned (V43), read from the verified log for a run that
+    /// starts or resumes: every executor gets them as data. They are in the entries of the run in which the orchestrator planned
+    /// (<paramref name="plannedIn"/>), or in the run's own (<paramref name="entries"/>) when it is null: the questions and the
+    /// answers of that planning, no task in either. Only the questions that were answered are read, each answer once (the first
+    /// one the log recorded); a question with no answer is of no use, and its evidence is not touched. They are not the
+    /// executors' questions, so they count in no cap. Reads only.
+    /// </summary>
+    /// <param name="log">The whole verified log of the project, to find <paramref name="plannedIn"/> in.</param>
+    /// <exception cref="InvalidOperationException">
+    /// <paramref name="plannedIn"/> has no entry in the log, or a question or an answer cannot be read back as the log anchored it.
+    /// </exception>
+    public static async Task LoadOrchestratorAsync(
+        RunRecorder recorder,
+        IReadOnlyList<(DecisionEntry Entry, DecisionPayload Payload)> entries,
+        IReadOnlyList<DecisionEntry> log,
+        RunId? plannedIn,
+        QuestionBook book,
+        CancellationToken cancellationToken)
+    {
+        var planning = entries;
+        if (plannedIn is { } planned)
+        {
+            planning = RunLog.Of(log, planned.Value);
+            if (planning.Count == 0)
+            {
+                throw new InvalidOperationException($"Run {recorder.Run} says the orchestrator planned in run {planned}, which the log has no entry of.");
+            }
+        }
+
+        var asked = new Dictionary<string, (DecisionEntry Entry, QuestionAskedPayload Payload)>(StringComparer.Ordinal);
+        var answered = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var (entry, payload) in planning)
+        {
+            switch (payload)
+            {
+                case QuestionAskedPayload { Task: null } p:
+                    asked.TryAdd(p.Question, (entry, p));
+                    break;
+                case QuestionAnsweredPayload { Task: null } p:
+                    if (!answered.Add(p.Question))
+                    {
+                        break; // answered already: the first answer the log recorded is the one that counts
+                    }
+
+                    if (!asked.TryGetValue(p.Question, out var question))
+                    {
+                        throw new InvalidOperationException($"Question '{p.Question}' of the orchestrator was answered, but the log never recorded it as asked.");
+                    }
+
+                    var (askedEntry, asking) = question;
+                    var json = await ReadAsync(recorder, asking.QuestionEvidence, asking.QuestionSha256, $"question '{p.Question}' of the orchestrator", cancellationToken).ConfigureAwait(false);
+                    var read = QuestionDocuments.ReadPlannerQuestion(json)
+                        ?? throw new InvalidOperationException($"The evidence {asking.QuestionEvidence} of question '{p.Question}' of the orchestrator is not a question.");
+                    string? own = null;
+                    if (p.AnswerEvidence is { } evidence)
+                    {
+                        own = await ReadAsync(recorder, evidence, p.AnswerSha256!, $"the answer to question '{p.Question}' of the orchestrator", cancellationToken).ConfigureAwait(false);
+                    }
+
+                    var recorded = new AskedQuestion(p.Question, null, asking.Agent, asking.Attempt, read, asking.QuestionEvidence, asking.QuestionSha256, asking.Estimates, askedEntry.RecordedAt);
+                    book.AnswerOrchestrator(new RecordedAnswer(recorded, p.ChosenOption, own, p.AnswerEvidence, p.AnswerSha256, p.DecidedBy, p.Method, entry.RecordedAt));
+                    break;
+            }
+        }
     }
 
     /// <summary>

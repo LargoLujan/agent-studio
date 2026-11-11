@@ -233,6 +233,10 @@ public sealed record RunOptions(
 /// «Aprobar plan» when the user approved it, empty when the review showed none: the run starts only if the warning the
 /// engine reads when it starts is that one (ADR-0018, A-04). Null says no warning was shown, so the run starts only if
 /// the engine reads none either: a plan with such writers is refused before anything is written (fail closed).
+/// <see cref="PlannedIn"/> is the run in which the orchestrator planned (and asked, and was answered) when the plan comes
+/// from one of its proposals, with or without edits by the person, and whether or not that run already started one: the
+/// answers to the questions the orchestrator asked before it planned reach the executors of the new run from there (V43).
+/// Null for a plan written by hand and for a follow-up run; the same as <see cref="Run"/> when the run is the proposal's own.
 /// </summary>
 public sealed record RunRequest(
     ProjectContext Project,
@@ -245,7 +249,8 @@ public sealed record RunRequest(
     RunOptions Options,
     RunId? Follows = null,
     IReadOnlyList<AgentDefinition>? ValidatedRoster = null,
-    string? ApprovedWarning = null);
+    string? ApprovedWarning = null,
+    RunId? PlannedIn = null);
 
 /// <summary>A run as listed: its state comes from replaying its log, and an unfinished run with no process behind it shows as <c>Interrupted</c>.</summary>
 public sealed record RunSummary(RunId Id, DateTimeOffset CreatedAt, RunPhase Phase, string PlanHash, string Summary, RunId? Follows);

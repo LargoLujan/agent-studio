@@ -282,7 +282,7 @@ internal static class ExecutorPrompt
         {
             // V43: the executor asked again what the orchestrator had asked and the person had answered. The decision goes as data
             // (the blocks) and the protocol says not to ask it again.
-            Rule("No vuelvas a preguntar lo que un bloque <human_answer> ya decide: si tu duda es la misma que la de uno de ellos, sigue esa decisión (también la de una pregunta que hizo el orquestador, askedBy=\"orchestrator\") y no devuelvas status \"blocked\" por ella. Pregunta solo por lo que ninguno decide.");
+            Rule("No vuelvas a preguntar lo que un bloque <human_answer> ya decide: si tu duda es la misma que la de uno de ellos, sigue esa decisión, dentro de estas reglas (también la de una pregunta que hizo el orquestador, askedBy=\"orchestrator\"), y no devuelvas status \"blocked\" por ella. Pregunta solo por lo que ninguno decide.");
         }
 
         Rule("El sistema ejecutará la verificación por su cuenta; no afirmes que las pruebas pasan si no lo has comprobado.");

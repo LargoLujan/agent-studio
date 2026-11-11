@@ -90,14 +90,9 @@ internal sealed class QuestionBook
     public IReadOnlyList<RecordedAnswer> AnsweredOf(TaskId task) => _answered.TryGetValue(task, out var list) ? list : [];
 
     /// <summary>
-    /// The questions the orchestrator asked before it planned and the person answered, in the order of the log: data for the
-    /// executor of every task (V43). They are not the executors' questions, so they count in no cap.
-    /// </summary>
-    public IReadOnlyList<RecordedAnswer> AnsweredByOrchestrator => _answeredByOrchestrator;
-
-    /// <summary>
-    /// Every answer the next attempt of <paramref name="task"/> receives as data: the ones to the questions of the
-    /// orchestrator first (they were asked before the run), then the ones to its own.
+    /// Every answer the next attempt of <paramref name="task"/> receives as data: the ones to the questions the orchestrator
+    /// asked before it planned (V43; they were asked before the run, in the order of the log, and they are not the executors'
+    /// questions, so they count in no cap), then the ones to its own.
     /// </summary>
     public IReadOnlyList<RecordedAnswer> AnswersFor(TaskId task) => [.. _answeredByOrchestrator, .. AnsweredOf(task)];
 

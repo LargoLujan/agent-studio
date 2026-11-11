@@ -122,7 +122,11 @@
   `ArgumentOutOfRangeException`»… y el ejecutor volvió a hacer la misma pregunta en su primer intento. La respuesta estaba en
   el registro (`QuestionAnswered` sin tarea) y en el prompt del planificador, pero no en el de ningún ejecutor: la decisión 5
   de este ADR solo daba a cada tarea las respuestas a sus propias preguntas. Poner la decisión en `PlanTask.Instructions` no
-  basta: es texto del orquestador y el ejecutor puede dudar igual.
+  basta: es texto del orquestador, el ejecutor puede dudar igual, y un plan que la persona edita en el lienzo después de
+  responder lo pierde. La primera versión de esta adenda tampoco cubría ese caso: solo leía las respuestas de la ejecución
+  cuyo id coincidía con el de la propuesta, y el lienzo solo pasa ese id cuando el plan es exactamente el propuesto y su
+  propuesta no se ha usado; con el plan editado, o con una propuesta ya usada, la ejecución nueva tenía un id propio, ninguna
+  entrada, y volvía V43.
 - **Decisión 1: las respuestas del orquestador viajan como datos a todos los ejecutores.** El prompt del ejecutor de **cada
   tarea y de cada intento** lleva, antes de las respuestas a sus propias preguntas, un bloque
   `<human_answer question=… askedBy="orchestrator" evidence=… sha256=…>` por cada pregunta que el orquestador hizo antes de
@@ -135,21 +139,46 @@
   nueva del protocolo del ejecutor dice: no vuelvas a preguntar lo que un bloque ya decide; si la duda es la misma, sigue esa
   decisión y no devuelvas `blocked` por ella; pregunta solo por lo que ninguno decide. La regla de los bloques de datos y el
   texto del traspaso nombran ahora las dos procedencias (las preguntas del propio agente y las del orquestador).
-- **Decisión 3: cómo se leen del registro.** Las respuestas del orquestador no son de ninguna tarea: el motor las lee del
-  registro, solo como las anclaron `QuestionAsked` y `QuestionAnswered` (la pregunta, de su evidencia, que es el JSON del
-  planificador y no el documento de la pregunta de un ejecutor; el texto propio de la persona, de su evidencia), en dos
-  momentos: al **iniciar** la ejecución (`Orchestrator.StartAsync`, antes de escribir nada: es la misma ejecución que preguntó,
-  `RunRequest.Run`) y al **reanudarla** (`QuestionRecovery`). Si no se pueden leer como el registro las anclaba, la ejecución
-  no empieza o no se reanuda (falla cerrado, como el resto de la recuperación de preguntas). No cuentan en los topes de D-29
-  (tres por tarea, diez por ejecución), que son de los ejecutores, y el motor no registra nada nuevo por ellas: sin decisión
-  capturada, porque nunca hubo una tarea cuyo juez la reciba.
-- **Decisión 4: el juez no cambia.** Los prompts de los ejecutores siguen fuera del dosier, así que el bloque nuevo y la regla
-  no le llegan; de la pregunta del orquestador recibe, como antes, solo `QuestionAnswered` (ids y huellas) y, si la persona
-  escribió su texto, esa evidencia (`ProvidedByHuman`). Una prueba de integración con el juez guionizado lo comprueba
-  (`OrchestratorQuestionReachesTheExecutorsTests`).
+- **Decisión 3: de dónde se leen.** Las respuestas del orquestador no son de ninguna tarea ni, a veces, de la ejecución que
+  las usa: están en las entradas de la ejecución **en la que planificó el orquestador**, que es la propia (el plan es el
+  propuesto y su id se reutiliza) o la que nombra `RunRequest.PlannedIn`. El lienzo lo rellena con la ejecución de su propuesta
+  siempre que el plan sale de ella, esté editado o no y se haya usado ya o no su id, y nunca en una ejecución de seguimiento.
+  - **Dónde se recuerda.** `RunStarted` gana el campo opcional `PlannedIn` (la ejecución en la que planificó, solo cuando no es
+    esta). Sin subir la versión del payload: el serializador omite los nulos (`WhenWritingNull`), así que las entradas ya
+    escritas se leen y se vuelven a escribir byte a byte, y una prueba lo fija. No se eligió la cabecera de la ejecución
+    (`RunRecord`, que es una fila guardada con migración y entra en `RunHeaderHash`): `RunStarted` ya ancla la cabecera y no
+    cambia ese hash. Si `PlannedIn` es la propia ejecución, el motor lo trata como no puesto y no lo escribe.
+  - **Cuándo y cómo.** Al **iniciar** (`Orchestrator.StartAsync`, antes de escribir nada) y al **reanudar** (`RunResumer`, que lee
+    `PlannedIn` de `RunStarted`), con `QuestionRecovery.LoadOrchestratorAsync`, solo como las anclaron `QuestionAsked` y
+    `QuestionAnswered`: la pregunta, de su evidencia (el JSON del planificador, no el documento de la pregunta de un ejecutor), y
+    el texto propio de la persona, de la suya. Si una de las dos no se puede leer como el registro la anclaba, la ejecución no
+    empieza o no se reanuda (falla cerrado, como el resto de la recuperación de preguntas). Lo mismo si `PlannedIn` nombra una
+    ejecución de la que el registro no tiene nada: un id equivocado quitaría las respuestas sin avisar.
+  - **Solo las respondidas, y una vez.** Se lee la evidencia de las preguntas que tienen respuesta; una pregunta sin respuesta no
+    sirve de nada y su evidencia no se toca (una ejecución antigua con esa evidencia borrada sigue reanudándose). Si el registro
+    tiene dos respuestas a la misma pregunta, cuenta la primera. (Una ejecución que se reanuda con sus propias entradas ni
+    llega ahí: la reproducción rechaza un registro que contesta dos veces la misma pregunta.)
+  - No cuentan en los topes de D-29 (tres por tarea, diez por ejecución), que son de los ejecutores, y el motor no registra nada
+    nuevo por ellas: sin decisión capturada, porque nunca hubo una tarea cuyo juez la reciba. Tampoco se copian las entradas a la
+    ejecución nueva: duplicarían la pregunta y su evidencia.
+- **Decisión 4: los prompts de los ejecutores siguen fuera del dosier del juez; el prompt de la planificación, no.** El bloque
+  nuevo y la regla no llegan al juez, porque `InstructionsIssued` (el prompt de cada ejecutor) sigue fuera del dosier, y una
+  prueba de integración con el juez guionizado lo comprueba (`OrchestratorQuestionReachesTheExecutorsTests`: su prompt y todo
+  lo que puede leer carecen de `askedBy` y de los prompts de los ejecutores). Pero **hoy** el dosier sí incluye, de la ejecución
+  en la que planificó el orquestador, la evidencia «Prompt del orquestador (intento N)» (`CapturedBySystem`, la registra el
+  planificador) y el informe del primer intento del planificador: `JudgeDossierBuilder` solo retira los prompts y los informes
+  de los ejecutores y la evidencia de `QuestionAsked`. Esos dos documentos llevan la pregunta del orquestador tal como la
+  escribió, con sus opciones, la recomendada y la respuesta. Es anterior a V43, esta adenda no lo cambia y D-33 («el juez
+  solo ve tu elección») no se cumple del todo para las preguntas del orquestador: queda **pendiente** de decidir si también se
+  dejan fuera (fila nueva de docs/18). De la pregunta del orquestador el juez recibe además, como antes, `QuestionAnswered`
+  (ids y huellas) y, si la persona escribió su texto, esa evidencia (`ProvidedByHuman`).
 - **Alternativas descartadas:**
-  - Escribir la decisión en `PlanTask.Instructions` al planificar: es texto del orquestador, no dato de la persona, y no
-    cubre un plan que el usuario edita en el lienzo después de responder.
+  - Escribir la decisión en `PlanTask.Instructions` al planificar: es texto del orquestador, no dato de la persona, y un plan
+    editado después de responder lo pierde.
+  - Reutilizar el id de la propuesta para el plan editado: esa ejecución lleva su `PlanCreated`, su `_base` y su aprobación, y el
+    plan editado es otro; por eso `PlannedIn` es un campo aparte y el id de la ejecución nueva es el suyo.
+  - Copiar las preguntas y respuestas del orquestador al registro de la ejecución nueva: duplica evidencia y deja dos veces
+    `QuestionAnswered` con el mismo id, que la reproducción rechaza.
   - Dárselas solo a la primera tarea o a las tareas cuyo alcance toque el asunto: el motor no sabe de qué trata una pregunta, y
     un ejecutor que repite una pregunta ya contestada cuesta un intento y una interrupción a la persona.
   - Contarlas en los topes de D-29: tres preguntas del orquestador dejarían siete a los ejecutores sin que estos hayan
@@ -159,6 +188,4 @@
     y llevan su pregunta, para que el agente juzgue si le atañen.
   - Que el ejecutor haga caso de la regla depende del modelo: el sistema se lo dice y se lo da como dato, pero no puede
     impedir que pregunte. Lo comprobará la próxima demostración en vivo.
-  - El dosier del juez sigue incluyendo el prompt del propio orquestador de la planificación (evidencia `CapturedBySystem`),
-    que lleva la pregunta, sus etiquetas y la respuesta. No lo cambia esta adenda; queda apuntado para decidir si D-33 también
-    debe dejarlo fuera.
+  - Un plan escrito a mano, sin propuesta del orquestador, no tiene `PlannedIn` y no recibe respuestas: no las hubo.
