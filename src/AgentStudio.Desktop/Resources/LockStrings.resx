@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the Lock area (docs/17 D-47, ADR-0054; Phase 14 WP-14A part a2) in Spanish of Spain, the source language. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Lock_Screen_Title" xml:space="preserve">
+    <value>Agent Studio está bloqueado</value>
+  </data>
+  <data name="Lock_Screen_Icon" xml:space="preserve">
+    <value>Candado</value>
+  </data>
+  <data name="Lock_Screen_RunningName" xml:space="preserve">
+    <value>Lo que sigue en marcha</value>
+  </data>
+  <data name="Lock_Screen_WaitingName" xml:space="preserve">
+    <value>Lo que espera tu decisión</value>
+  </data>
+  <data name="Lock_Screen_ItemsName" xml:space="preserve">
+    <value>Aprobaciones que esperan</value>
+  </data>
+  <data name="Lock_Screen_Assurance" xml:space="preserve">
+    <value>El trabajo sigue en marcha y las aprobaciones esperan a que desbloquees. Agent Studio nunca te pide la contraseña de Windows. Solo Windows te verifica, y a la app solo le llega el resultado.</value>
+  </data>
+  <data name="Lock_Screen_LockWindows" xml:space="preserve">
+    <value>Bloquear Windows</value>
+  </data>
+  <data name="Lock_Screen_LockWindowsTip" xml:space="preserve">
+    <value>Windows se bloquea y el trabajo sigue; al desbloquear Windows, se desbloquea Agent Studio.</value>
+  </data>
+  <data name="Lock_Screen_Unlock" xml:space="preserve">
+    <value>Desbloquear con Windows Hello</value>
+  </data>
+  <data name="Lock_Screen_LockedManual" xml:space="preserve">
+    <value>Bloqueado por ti a las {0}.</value>
+  </data>
+  <data name="Lock_Screen_LockedIdle" xml:space="preserve">
+    <value>Bloqueado a las {0} por inactividad.</value>
+  </data>
+  <data name="Lock_Screen_NoWork" xml:space="preserve">
+    <value>No hay trabajo en marcha.</value>
+  </data>
+  <data name="Lock_Screen_Running" xml:space="preserve">
+    <value>Sigue en marcha: {0}.</value>
+  </data>
+  <data name="Lock_Screen_RunningUnknown" xml:space="preserve">
+    <value>Lo que sigue en marcha: sin dato.</value>
+  </data>
+  <data name="Lock_Kind_Run_One" xml:space="preserve">
+    <value>{0} ejecución</value>
+  </data>
+  <data name="Lock_Kind_Run_Other" xml:space="preserve">
+    <value>{0} ejecuciones</value>
+  </data>
+  <data name="Lock_Kind_Planning_One" xml:space="preserve">
+    <value>{0} planificación</value>
+  </data>
+  <data name="Lock_Kind_Planning_Other" xml:space="preserve">
+    <value>{0} planificaciones</value>
+  </data>
+  <data name="Lock_Kind_Debate_One" xml:space="preserve">
+    <value>{0} debate</value>
+  </data>
+  <data name="Lock_Kind_Debate_Other" xml:space="preserve">
+    <value>{0} debates</value>
+  </data>
+  <data name="Lock_Kind_Audit_One" xml:space="preserve">
+    <value>{0} auditoría</value>
+  </data>
+  <data name="Lock_Kind_Audit_Other" xml:space="preserve">
+    <value>{0} auditorías</value>
+  </data>
+  <data name="Lock_Join_And" xml:space="preserve">
+    <value>y</value>
+  </data>
+  <data name="Lock_Screen_Waiting_None" xml:space="preserve">
+    <value>No hay nada pendiente.</value>
+  </data>
+  <data name="Lock_Screen_Waiting_One" xml:space="preserve">
+    <value>Hay {0} aprobación pendiente.</value>
+  </data>
+  <data name="Lock_Screen_Waiting_Other" xml:space="preserve">
+    <value>Hay {0} aprobaciones pendientes.</value>
+  </data>
+  <data name="Lock_Screen_Item" xml:space="preserve">
+    <value>{0} · {1} · desde las {2}</value>
+  </data>
+  <data name="Lock_Risk_Critical" xml:space="preserve">
+    <value>riesgo crítico</value>
+  </data>
+  <data name="Lock_Risk_Destructive" xml:space="preserve">
+    <value>acción destructiva</value>
+  </data>
+  <data name="Lock_Risk_Low" xml:space="preserve">
+    <value>riesgo bajo</value>
+  </data>
+  <data name="Lock_Screen_WindowsLocked" xml:space="preserve">
+    <value>Windows está bloqueado: al desbloquearlo, se desbloquea Agent Studio.</value>
+  </data>
+  <data name="Lock_Screen_WindowsRefused" xml:space="preserve">
+    <value>Windows no se pudo bloquear. Vuelve a intentarlo.</value>
+  </data>
+  <data name="Lock_Screen_TryAgain" xml:space="preserve">
+    <value>Vuelve a intentarlo o usa «Bloquear Windows».</value>
+  </data>
+  <data name="Lock_Screen_NotConfirmed" xml:space="preserve">
+    <value>Windows Hello no confirmó que eres tú ({0}). {1}</value>
+  </data>
+  <data name="Lock_Screen_HelloFailed" xml:space="preserve">
+    <value>No se pudo pedir Windows Hello ({0}). {1}</value>
+  </data>
+  <data name="Lock_Screen_HelloAbsent" xml:space="preserve">
+    <value>Windows Hello no está disponible ({0}). Usa «Bloquear Windows»: al desbloquear Windows, se desbloquea Agent Studio.</value>
+  </data>
+  <data name="Lock_Hello_UnlockMessage" xml:space="preserve">
+    <value>Agent Studio: confirma que eres tú para desbloquear la interfaz.</value>
+  </data>
+  <data name="Lock_Hello_ApprovalMessage" xml:space="preserve">
+    <value>Agent Studio: confirma que eres tú para aprobar «{0}».</value>
+  </data>
+  <data name="Lock_Hello_PlanMessage" xml:space="preserve">
+    <value>Agent Studio: confirma que eres tú para aprobar el plan {0}.</value>
+  </data>
+  <data name="Lock_Absent_NotConfiguredForUser" xml:space="preserve">
+    <value>no está configurado para tu usuario</value>
+  </data>
+  <data name="Lock_Absent_DeviceNotPresent" xml:space="preserve">
+    <value>no hay ningún dispositivo con el que verificarte</value>
+  </data>
+  <data name="Lock_Absent_DisabledByPolicy" xml:space="preserve">
+    <value>lo desactiva una directiva</value>
+  </data>
+  <data name="Lock_Absent_DeviceBusy" xml:space="preserve">
+    <value>el dispositivo está ocupado</value>
+  </data>
+  <data name="Lock_Absent_Unknown" xml:space="preserve">
+    <value>Windows no lo pudo decir</value>
+  </data>
+  <data name="Lock_NotConfirmed_Canceled" xml:space="preserve">
+    <value>se canceló la verificación</value>
+  </data>
+  <data name="Lock_NotConfirmed_RetriesExhausted" xml:space="preserve">
+    <value>demasiados intentos fallidos</value>
+  </data>
+  <data name="Lock_NotConfirmed_DeviceBusy" xml:space="preserve">
+    <value>el dispositivo estaba ocupado</value>
+  </data>
+  <data name="Lock_NotConfirmed_DeviceNotPresent" xml:space="preserve">
+    <value>no hay ningún dispositivo con el que verificarte</value>
+  </data>
+  <data name="Lock_NotConfirmed_NotConfiguredForUser" xml:space="preserve">
+    <value>no está configurado para tu usuario</value>
+  </data>
+  <data name="Lock_NotConfirmed_DisabledByPolicy" xml:space="preserve">
+    <value>lo desactiva una directiva</value>
+  </data>
+  <data name="Lock_NotConfirmed_Verified" xml:space="preserve">
+    <value>te confirmó</value>
+  </data>
+  <data name="Lock_NotConfirmed_Unknown" xml:space="preserve">
+    <value>Windows dio un resultado que Agent Studio no conoce</value>
+  </data>
+  <data name="Lock_Settings_Title" xml:space="preserve">
+    <value>Windows Hello y bloqueo</value>
+  </data>
+  <data name="Lock_Settings_Intro" xml:space="preserve">
+    <value>Cuándo confirma Windows Hello que eres tú, y si la interfaz se bloquea sola cuando no la usas.</value>
+  </data>
+  <data name="Lock_Settings_IdleLabel" xml:space="preserve">
+    <value>Bloquear la interfaz tras un tiempo sin actividad</value>
+  </data>
+  <data name="Lock_Settings_MinutesName" xml:space="preserve">
+    <value>Minutos sin actividad antes de bloquear</value>
+  </data>
+  <data name="Lock_Settings_MinutesUnit" xml:space="preserve">
+    <value>minutos (de 1 a {0})</value>
+  </data>
+  <data name="Lock_Settings_IdleExplanation" xml:space="preserve">
+    <value>Tras ese tiempo sin usar el teclado ni el ratón en Windows, la interfaz se bloquea. El trabajo sigue y las aprobaciones esperan. Para desbloquear, usa Windows Hello o, si no lo tienes, desbloquea Windows.</value>
+  </data>
+  <data name="Lock_Settings_Invalid" xml:space="preserve">
+    <value>No se guardó el bloqueo: «{0}» no es un número entero de minutos entre 1 y {1}. Escribe un número válido.</value>
+  </data>
+  <data name="Lock_Notice_Name" xml:space="preserve">
+    <value>Windows Hello</value>
+  </data>
+  <data name="Info_Lock_Title" xml:space="preserve">
+    <value>Windows Hello y bloqueo</value>
+  </data>
+  <data name="Info_Lock_What" xml:space="preserve">
+    <value>Windows Hello confirma que eres tú antes de las acciones importantes, como entregar cambios. El bloqueo oculta la interfaz cuando te alejas. El trabajo sigue y las aprobaciones esperan hasta que desbloquees.</value>
+  </data>
+  <data name="Info_Lock_Actions" xml:space="preserve">
+    <value>Decide si Windows Hello también se pide en las aprobaciones importantes.
+Activa el bloqueo automático y elige tras cuántos minutos sin actividad.
+Bloquea tú mismo la interfaz desde el icono de la bandeja.
+Desbloquea con Windows Hello o, si no lo tienes, desbloqueando Windows.</value>
+  </data>
+</root>

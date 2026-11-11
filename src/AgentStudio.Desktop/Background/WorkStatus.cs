@@ -1,6 +1,7 @@
 using System.Globalization;
 using AgentStudio.Application.Coordination;
 using AgentStudio.Application.Orchestration;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Domain.Work;
 
 namespace AgentStudio.Desktop.Background;
@@ -88,7 +89,7 @@ public sealed record WorkStatus(
 
 /// <summary>
 /// The tooltip of the tray icon (docs/16 D-14, F8-7): a summary in 127 characters at most, the length of <c>szTip</c>
-/// without its terminator, such as «Agent Studio · 2 ejecuciones · 1 espera cuota hasta las 14:05». It names no project
+/// without its terminator, such as «Agent Studio · 2 ejecuciones · 1 en espera por el límite de uso hasta las 14:05». It names no project
 /// and no run: counts and times only. When it does not fit, the least important parts go first (what is paused, then the
 /// counts of each kind of work, the waits for quota and what is blocked), so what waits for the person is the last to go;
 /// only a text that still does not fit is cut.
@@ -114,21 +115,21 @@ public static class TrayToolTip
         var parts = new List<(string Text, int Drop)> { ("Agent Studio", 0) };
         if (locked)
         {
-            parts.Add(("bloqueado", 1));
+            parts.Add((Texts.Get("Background_Tooltip_Locked"), 1));
         }
 
         if (exit == ExitState.WaitingForIdle)
         {
             parts.Add((attemptsLeft switch
             {
-                null => "saldrá cuando termine lo que está en curso",
-                0 => "saliendo",
-                var left => $"saldrá al terminar {WorkTexts.Count(left.Value, "intento en curso", "intentos en curso")}",
+                null => Texts.Get("Background_Tooltip_ExitWhenIdle"),
+                0 => Texts.Get("Background_Tooltip_Exiting"),
+                var left => WorkTexts.Count(left.Value, "Background_Tooltip_ExitAfter"),
             }, 2));
         }
         else if (exit == ExitState.Exiting)
         {
-            parts.Add(("saliendo", 2));
+            parts.Add((Texts.Get("Background_Tooltip_Exiting"), 2));
         }
 
         var going = active.Where(w => w.IsActive).ToList();
@@ -136,53 +137,52 @@ public static class TrayToolTip
         {
             if (exit == ExitState.None)
             {
-                parts.Add(("sin trabajo en marcha", 3));
+                parts.Add((Texts.Get("Background_Tooltip_NoWork"), 3));
             }
 
             return Fit(parts);
         }
 
-        AddCount(parts, going, BackgroundWorkKind.Run, "ejecución", "ejecuciones", 6);
-        AddCount(parts, going, BackgroundWorkKind.Debate, "debate", "debates", 7);
-        AddCount(parts, going, BackgroundWorkKind.Audit, "auditoría", "auditorías", 8);
-        AddCount(parts, going, BackgroundWorkKind.Planning, "planificación", "planificaciones", 9);
+        AddCount(parts, going, BackgroundWorkKind.Run, "Background_Count_Run", 6);
+        AddCount(parts, going, BackgroundWorkKind.Debate, "Background_Count_Debate", 7);
+        AddCount(parts, going, BackgroundWorkKind.Audit, "Background_Count_Audit", 8);
+        AddCount(parts, going, BackgroundWorkKind.Planning, "Background_Count_Planning", 9);
 
         var quota = going.Where(w => w.WaitsForQuota).ToList();
         if (quota.Count > 0)
         {
-            var verb = quota.Count == 1 ? "espera" : "esperan";
             var earliest = quota.Select(w => w.QuotaUntil).Where(t => t is not null).Min();
             parts.Add((earliest is { } at
-                ? $"{quota.Count.ToString(CultureInfo.InvariantCulture)} {verb} cuota hasta las {TimeZoneInfo.ConvertTime(at, zone).ToString("HH:mm", CultureInfo.InvariantCulture)}"
-                : $"{quota.Count.ToString(CultureInfo.InvariantCulture)} {verb} cuota", 5));
+                ? Texts.Format("Background_Tooltip_Quota", quota.Count, TimeZoneInfo.ConvertTime(at, zone).ToString("HH:mm", CultureInfo.InvariantCulture))
+                : Texts.Format("Background_Tooltip_QuotaNoTime", quota.Count), 5));
         }
 
         var person = going.Sum(w => w.AwaitingPerson);
         if (person > 0)
         {
-            parts.Add(($"{person.ToString(CultureInfo.InvariantCulture)} {(person == 1 ? "espera" : "esperan")} por ti", 3));
+            parts.Add((WorkTexts.Count(person, "Background_Tooltip_Person"), 3));
         }
 
-        AddPhase(parts, going, RunPhase.Paused, "en pausa", "en pausa", 10);
-        AddPhase(parts, going, RunPhase.Blocked, "bloqueada", "bloqueadas", 4);
+        AddPhase(parts, going, RunPhase.Paused, "Background_Count_Paused", 10);
+        AddPhase(parts, going, RunPhase.Blocked, "Background_Count_Blocked", 4);
         return Fit(parts);
     }
 
-    private static void AddCount(List<(string, int)> parts, List<WorkStatus> going, BackgroundWorkKind kind, string one, string many, int drop)
+    private static void AddCount(List<(string, int)> parts, List<WorkStatus> going, BackgroundWorkKind kind, string key, int drop)
     {
         var count = going.Count(w => w.Kind == kind);
         if (count > 0)
         {
-            parts.Add((WorkTexts.Count(count, one, many), drop));
+            parts.Add((WorkTexts.Count(count, key), drop));
         }
     }
 
-    private static void AddPhase(List<(string, int)> parts, List<WorkStatus> going, RunPhase phase, string one, string many, int drop)
+    private static void AddPhase(List<(string, int)> parts, List<WorkStatus> going, RunPhase phase, string key, int drop)
     {
         var count = going.Count(w => w.Phase == phase);
         if (count > 0)
         {
-            parts.Add((WorkTexts.Count(count, one, many), drop));
+            parts.Add((WorkTexts.Count(count, key), drop));
         }
     }
 

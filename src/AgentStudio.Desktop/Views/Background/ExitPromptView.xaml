@@ -4,12 +4,14 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:background="clr-namespace:AgentStudio.Desktop.Background"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=background:ExitPromptViewModel}"
              Width="620" UseLayoutRounding="True"
-             AutomationProperties.Name="Salir con trabajo en marcha">
+             AutomationProperties.Name="{l:T Background_Exit_WindowName}">
     <!-- The question of the managed exit (docs/16 D-16): what goes on, and what each answer does, before it is chosen.
-         Esc is «Cancelar»; «Seguir en la bandeja» only when the window is being closed. -->
+         Esc is «No salir»; «Seguir en la bandeja» only when the window is being closed. Every text comes from the view model,
+         which reads the resources (Resources/BackgroundStrings.resx). -->
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="Background.BoolToVisibility"/>
 
@@ -51,7 +53,7 @@
             <TextBlock Style="{StaticResource BodyText}" Margin="0,6,0,0" Text="{Binding Intro}"/>
 
             <Border Style="{StaticResource InnerCard}" Padding="12,8" Margin="0,10,0,0">
-                <ItemsControl ItemsSource="{Binding Work}" Focusable="False" AutomationProperties.Name="Trabajo en marcha"/>
+                <ItemsControl ItemsSource="{Binding Work}" Focusable="False" AutomationProperties.Name="{l:T Background_Exit_WorkListName}"/>
             </Border>
 
             <Button Style="{StaticResource Background.Answer}" Command="{Binding ChooseCommand}"

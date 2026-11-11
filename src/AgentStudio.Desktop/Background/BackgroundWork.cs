@@ -6,6 +6,7 @@ using AgentStudio.Application.Coordination;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Projects;
 using AgentStudio.Desktop.Debate;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Orchestrator;
 using AgentStudio.Desktop.Orchestrator.Monitor;
 using AgentStudio.Desktop.ViewModels;
@@ -73,8 +74,11 @@ public interface IBackgroundWork
 /// <summary>Texts shared by the work items.</summary>
 internal static class WorkTexts
 {
-    public static string Count(int count, string one, string many) =>
-        count.ToString(CultureInfo.InvariantCulture) + " " + (count == 1 ? one : many);
+    /// <summary>
+    /// A number with its noun, in the language in use: the text of <c>key + "_One"</c> when there is one, and of
+    /// <c>key + "_Other"</c> otherwise, with the number in place of <c>{0}</c>.
+    /// </summary>
+    public static string Count(int count, string key) => Texts.Format(key + (count == 1 ? "_One" : "_Other"), count);
 
     public static string ProjectName(string projectRoot) => RecentProjectItem.From(projectRoot).Name;
 }
@@ -153,10 +157,10 @@ public sealed class RunWork : IBackgroundWork, IDisposable
 
     public bool IsPausable => true;
 
-    public string Title => Monitor.RunId is { } run ? $"Ejecución {run}" : "Ejecución";
+    public string Title => Monitor.RunId is { } run ? Texts.Format("Background_Work_RunTitle", run) : Texts.Get("Background_Work_Run");
 
     public string StateText => AttemptsInFlight is > 0 and var running
-        ? $"{Monitor.PhaseLabel} · {WorkTexts.Count(running, "intento en curso", "intentos en curso")}"
+        ? $"{Monitor.PhaseLabel} · {WorkTexts.Count(running, "Background_Count_Attempt")}"
         : Monitor.PhaseLabel;
 
     public Tone Tone => Monitor.PhaseTone;
@@ -313,13 +317,13 @@ public sealed class DebateWork : IBackgroundWork
 
     public bool IsPausable => false;
 
-    public string Title => $"Debate {_run.Id}";
+    public string Title => Texts.Format("Background_Work_DebateTitle", _run.Id);
 
     public string StateText => Snapshot() is { } snapshot
         ? snapshot.TurnsInFlight > 0
-            ? $"{DebateTexts.Phase(snapshot.Phase)} · ronda {snapshot.Round.ToString(CultureInfo.InvariantCulture)} · {WorkTexts.Count(snapshot.TurnsInFlight, "turno en curso", "turnos en curso")}"
-            : $"{DebateTexts.Phase(snapshot.Phase)} · ronda {snapshot.Round.ToString(CultureInfo.InvariantCulture)}"
-        : IsActive ? "En curso" : "Terminado";
+            ? $"{Round(snapshot)} · {DebateTexts.Plural(snapshot.TurnsInFlight, "Debate_Count_TurnInProgress")}"
+            : Round(snapshot)
+        : Texts.Get(IsActive ? "Background_Work_DebateInProgress" : "Background_Work_DebateEnded");
 
     public Tone Tone => Snapshot() is { } snapshot ? DebateTexts.ToneOf(snapshot.Phase, snapshot.Outcome) : Tone.Neutral;
 
@@ -339,6 +343,9 @@ public sealed class DebateWork : IBackgroundWork
     }
 
     public Task PauseAsync() => Task.CompletedTask;
+
+    /// <summary>The phase and the round, as the state of the debate begins («Revisión de arquitectura · ronda 2»).</summary>
+    private static string Round(DebateSnapshot snapshot) => Texts.Format("Background_Work_DebateRound", DebateTexts.Phase(snapshot.Phase), snapshot.Round);
 
     /// <summary>What the registry compares when it polls: a change raises <see cref="Changed"/>.</summary>
     internal string Signature() => Snapshot() is { } s
@@ -396,9 +403,9 @@ public sealed class ResumedRunWork : IBackgroundWork
 
     public bool IsPausable => true;
 
-    public string Title => $"Ejecución {Run.Id}";
+    public string Title => Texts.Format("Background_Work_RunTitle", Run.Id);
 
-    public string StateText => Snapshot() is { } snapshot ? RunPhaseText.Label(snapshot.Phase) : "Reanudada sola";
+    public string StateText => Snapshot() is { } snapshot ? RunPhaseText.Label(snapshot.Phase) : Texts.Get("Background_Work_ResumedAutomatically");
 
     public Tone Tone => Snapshot() is { } snapshot ? RunPhaseText.ToneOf(snapshot.Phase) : Tone.Active;
 
@@ -468,16 +475,9 @@ public sealed class ProjectActivityWork : IBackgroundWork
 
     public bool IsPausable => false;
 
-    public string Title => Current switch
-    {
-        ProjectActivityKind.Run => "Ejecución del orquestador",
-        ProjectActivityKind.Debate => "Debate",
-        ProjectActivityKind.Planning => "Planificación del orquestador",
-        ProjectActivityKind.Audit => "Auditoría del proyecto",
-        _ => "Sin actividad",
-    };
+    public string Title => Texts.Get(Current is { } kind ? "Background_Work_Activity_" + kind : "Background_Work_Activity_None");
 
-    public string StateText => IsActive ? "En curso (sin más detalle aquí)" : "Sin actividad";
+    public string StateText => Texts.Get(IsActive ? "Background_Work_Activity_InProgress" : "Background_Work_Activity_None");
 
     public Tone Tone => IsActive ? Tone.Active : Tone.Neutral;
 

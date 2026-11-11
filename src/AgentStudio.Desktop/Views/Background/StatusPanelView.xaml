@@ -6,13 +6,16 @@
              xmlns:background="clr-namespace:AgentStudio.Desktop.Background"
              xmlns:orchestratorViews="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
              xmlns:controls="clr-namespace:AgentStudio.Desktop.Controls"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=background:StatusPanelViewModel}"
              Width="540" UseLayoutRounding="True"
-             AutomationProperties.Name="Estado del trabajo de Agent Studio">
+             AutomationProperties.Name="{l:T Background_Panel_Name}">
     <!-- The status panel of the tray (docs/16 D-15): a projection of the monitors, the headers and the usage of the runs,
          the snapshots of the debates and the quota of the account. Every figure carries its origin; what is not known says
-         «sin dato» or «no expuesto»; locked (D-13), it only counts what goes on. Every colour repeats what the words say. -->
+         «sin dato» or «no expuesto»; locked (D-13), it only counts what goes on. Every colour repeats what the words say.
+         Every text comes from the resources (Resources/BackgroundStrings.resx), directly or through the view model. It has no
+         information button: the window hides itself when it loses the focus, and the bubble of the button would take it. -->
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="Background.BoolToVisibility"/>
         <orchestratorViews:HasTextToVisibilityConverter x:Key="Background.HasText"/>
@@ -43,7 +46,7 @@
                 <!-- The bar of the monitor (docs/18 P3): its percentage, origin and level; without a percentage an empty track
                      and the words, never a bar at zero. The whole line of the monitor is its name and its tooltip. -->
                 <controls:MetricBar Grid.Column="1" ShowsLabel="False" TrackWidth="90" Reading="{Binding Bar}"
-                                    AutomationProperties.Name="{Binding Text, StringFormat='Contexto: {0}'}"/>
+                                    AutomationProperties.Name="{Binding Text, StringFormat={l:T Background_Panel_ContextName}}"/>
             </Grid>
         </DataTemplate>
 
@@ -66,7 +69,7 @@
                     <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="18,2,0,0" Text="{Binding Detail, TargetNullValue=''}"/>
 
                     <StackPanel Margin="18,6,0,0" Visibility="{Binding HasAgents, Converter={StaticResource Background.BoolToVisibility}}">
-                        <TextBlock Style="{StaticResource SecondaryText}" FontWeight="SemiBold" Text="Agentes"/>
+                        <TextBlock Style="{StaticResource SecondaryText}" FontWeight="SemiBold" Text="{l:T Background_Panel_Agents}"/>
                         <ItemsControl ItemsSource="{Binding Agents}" ItemTemplate="{StaticResource Background.Line}" Focusable="False"/>
                     </StackPanel>
 
@@ -74,14 +77,14 @@
                                Visibility="{Binding Tasks, Converter={StaticResource Background.HasText}}"/>
 
                     <StackPanel Margin="18,6,0,0" Visibility="{Binding HasContext, Converter={StaticResource Background.BoolToVisibility}}">
-                        <TextBlock Style="{StaticResource SecondaryText}" FontWeight="SemiBold" Text="Contexto de las tareas en curso"/>
-                        <ItemsControl ItemsSource="{Binding Context}" Focusable="False" AutomationProperties.Name="Contexto de las tareas en curso"/>
+                        <TextBlock Style="{StaticResource SecondaryText}" FontWeight="SemiBold" Text="{l:T Background_Panel_ContextOfTasks}"/>
+                        <ItemsControl ItemsSource="{Binding Context}" Focusable="False" AutomationProperties.Name="{l:T Background_Panel_ContextOfTasks}"/>
                     </StackPanel>
 
                     <StackPanel Margin="18,6,0,0" Visibility="{Binding HasTokens, Converter={StaticResource Background.BoolToVisibility}}">
                         <controls:MetricBar Margin="0,0,0,2" TrackWidth="90" LabelWidth="150" Reading="{Binding TokensBar}"
                                             Visibility="{Binding TokensBar, Converter={StaticResource Background.NotNull}}"/>
-                        <ItemsControl ItemsSource="{Binding Tokens}" Focusable="False" AutomationProperties.Name="Tokens"/>
+                        <ItemsControl ItemsSource="{Binding Tokens}" Focusable="False" AutomationProperties.Name="{l:T Background_Panel_Tokens}"/>
                         <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="0,2,0,0" Text="{Binding TokensNote, TargetNullValue=''}"/>
                     </StackPanel>
 
@@ -93,13 +96,13 @@
 
                     <ItemsControl Margin="18,6,0,0" ItemsSource="{Binding Approvals}" ItemTemplate="{StaticResource Background.WarningLine}" Focusable="False"
                                   Visibility="{Binding HasApprovals, Converter={StaticResource Background.BoolToVisibility}}"
-                                  AutomationProperties.Name="Pendiente de ti"/>
+                                  AutomationProperties.Name="{l:T Background_Panel_WaitingForYou}"/>
                     <ItemsControl Margin="18,4,0,0" ItemsSource="{Binding Blocks}" ItemTemplate="{StaticResource Background.WarningLine}" Focusable="False"
                                   Visibility="{Binding HasBlocks, Converter={StaticResource Background.BoolToVisibility}}"
-                                  AutomationProperties.Name="Bloqueos"/>
+                                  AutomationProperties.Name="{l:T Background_Panel_Blocks}"/>
                     <ItemsControl Margin="18,4,0,0" ItemsSource="{Binding Errors}" ItemTemplate="{StaticResource Background.ErrorLine}" Focusable="False"
                                   Visibility="{Binding HasErrors, Converter={StaticResource Background.BoolToVisibility}}"
-                                  AutomationProperties.Name="Errores"/>
+                                  AutomationProperties.Name="{l:T Background_Panel_Errors}"/>
                 </StackPanel>
             </Border>
         </DataTemplate>
@@ -129,10 +132,10 @@
     <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderStrongBrush}" BorderThickness="1" Padding="16,14">
         <StackPanel>
             <DockPanel>
-                <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" VerticalAlignment="Top" Content="Abrir Agent Studio"
+                <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" VerticalAlignment="Top" Content="{l:T Background_Panel_OpenApp}"
                         Command="{Binding OpenAppCommand}"/>
                 <StackPanel>
-                    <TextBlock Style="{StaticResource SectionTitleText}" Text="Estado del trabajo"/>
+                    <TextBlock Style="{StaticResource SectionTitleText}" Text="{l:T Background_Panel_Title}"/>
                     <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,0" Text="{Binding Summary}"
                                AutomationProperties.LiveSetting="Polite"/>
                     <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="0,2,0,0" Text="{Binding Updated, TargetNullValue=''}"/>
@@ -143,12 +146,12 @@
                        Visibility="{Binding IsLocked, Converter={StaticResource Background.BoolToVisibility}}"
                        AutomationProperties.LiveSetting="Polite"/>
             <TextBlock Style="{StaticResource SecondaryText}" Margin="0,12,0,0"
-                       Text="No hay trabajo en marcha: ninguna ejecución, debate ni auditoría en este proceso."
+                       Text="{l:T Background_Panel_Nothing}"
                        Visibility="{Binding ShowsNothing, Converter={StaticResource Background.BoolToVisibility}}"/>
 
             <ScrollViewer x:Name="Scroller" MaxHeight="620" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False"
                           Visibility="{Binding ShowsWork, Converter={StaticResource Background.BoolToVisibility}}">
-                <ItemsControl ItemsSource="{Binding Projects}" Focusable="False" AutomationProperties.Name="Proyectos con trabajo en marcha"/>
+                <ItemsControl ItemsSource="{Binding Projects}" Focusable="False" AutomationProperties.Name="{l:T Background_Panel_ProjectsName}"/>
             </ScrollViewer>
 
             <StackPanel Margin="0,12,0,0">
@@ -161,8 +164,8 @@
                         </Style.Triggers>
                     </Style>
                 </StackPanel.Style>
-                <TextBlock Style="{StaticResource SecondaryText}" FontWeight="SemiBold" Text="Cuota"/>
-                <ItemsControl ItemsSource="{Binding Quota}" Focusable="False" AutomationProperties.Name="Cuota de tu cuenta"/>
+                <TextBlock Style="{StaticResource SecondaryText}" FontWeight="SemiBold" Text="{l:T Background_Panel_Quota}"/>
+                <ItemsControl ItemsSource="{Binding Quota}" Focusable="False" AutomationProperties.Name="{l:T Background_Panel_QuotaName}"/>
                 <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="0,2,0,0" Text="{Binding QuotaNote, TargetNullValue=''}"/>
             </StackPanel>
         </StackPanel>
