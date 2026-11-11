@@ -2049,11 +2049,11 @@ Pause the run: it never resumes by itself then.</value>
     <comment>Error. {0}: run, {1}: why.</comment>
   </data>
   <data name="Orchestrator_Doc_StartedWhileFollowingTray" xml:space="preserve">
-    <value>Run {0} started while this tab was following another one. It keeps going, and the tray follows it.</value>
+    <value>Run {0} started while this tab was following another run. It keeps going, and the tray follows it.</value>
     <comment>Notice. {0}: run.</comment>
   </data>
   <data name="Orchestrator_Doc_StartedWhileFollowing" xml:space="preserve">
-    <value>Run {0} started while this tab was following another one. It keeps going.</value>
+    <value>Run {0} started while this tab was following another run. It is already running.</value>
     <comment>Notice. {0}: run.</comment>
   </data>
   <data name="Orchestrator_Doc_ResumeNotDone" xml:space="preserve">
@@ -2125,7 +2125,7 @@ Pause the run: it never resumes by itself then.</value>
     <comment>Notice. {0}: why.</comment>
   </data>
   <data name="Orchestrator_Doc_DraftRecoveredProposal" xml:space="preserve">
-    <value>Draft recovered. It is the plan the orchestrator proposed, not approved yet. Look at it and approve it if you want to run it.</value>
+    <value>Draft recovered. It is the plan the orchestrator proposed, and it is not approved yet. Look at it and approve it if you want to run it.</value>
     <comment>Status of the proposal.</comment>
   </data>
   <data name="Orchestrator_Doc_DraftRecovered" xml:space="preserve">

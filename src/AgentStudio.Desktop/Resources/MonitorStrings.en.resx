@@ -318,7 +318,7 @@ Answer when an agent asks you something.</value>
     <value>An agent reads the report and proposes improvements. It spends the usage limit of your plan and asks your permission first.</value>
   </data>
   <data name="Monitor_Consumption_Consent" xml:space="preserve">
-    <value>An agent from a company other than the one that did the work will read the report above. It will also read the usage table. It will not see the text of the prompts. It will propose improvements.</value>
+    <value>An agent from a company other than the one that did the work will read the report above. It will also read the usage table. It will not see the text of the prompts. It will propose improvements. It spends the usage limit of your plan. {0}</value>
   </data>
   <data name="Monitor_Consumption_EstimateAsking" xml:space="preserve">
     <value>Working out what it would cost…</value>
@@ -357,7 +357,7 @@ Answer when an agent asks you something.</value>
     <value>Consumption analysis</value>
   </data>
   <data name="Info_Consumption_What" xml:space="preserve">
-    <value>It looks in the log of the run for where tokens were spent in excess. For example, thin context, retries that fail the same way or models that are too large.</value>
+    <value>It looks in the log of the run for where tokens were spent in excess. For example, thin context, retries that fail the same way or models that are too large. Each finding says what it cost and where the figure comes from.</value>
   </data>
   <data name="Info_Consumption_Actions" xml:space="preserve">
     <value>Press "Analyze consumption": it is free.

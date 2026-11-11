@@ -14,7 +14,7 @@ namespace AgentStudio.Tests.Desktop.TextsGuide;
 /// last segment is <c>Detail</c> or <c>Details</c> (<c>Audit_Hash_Detail</c>); every other key is first level. «commit» is allowed only
 /// as «versión guardada (commit)».</item>
 /// <item><b>Glossary:</b> the words the glossary translates («cuota», «evidencia»…) may not appear in the old form anywhere.</item>
-/// <item><b>INFLESZ:</b> an explanation in Spanish (10 words or more) scores 55 or more.</item>
+/// <item><b>INFLESZ:</b> an explanation in Spanish scores 55 or more: the «Qué es esto» and the actions of an ⓘ, any text of 12 words or more, and any text of two sentences with 8 words or more (<see cref="TextGuide.ExplanationMinWords"/>).</item>
 /// </list>
 /// The exceptions, with the reason of each, are in <see cref="TextGuide.Exceptions"/>; the areas not checked yet, in
 /// <see cref="TextGuide.PendingExtraction"/>.

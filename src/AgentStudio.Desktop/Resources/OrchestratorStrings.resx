@@ -1355,7 +1355,7 @@ Elegir en cada tarea del plan qué pasos se exigen.</value>
     <comment>Why the log cannot be trusted. {0}: entries.</comment>
   </data>
   <data name="Orchestrator_History_NotIntact" xml:space="preserve">
-    <value>El historial de decisiones no está íntegro: {0} Nada se planifica, se ejecuta ni se reanuda hasta que lo arregles.</value>
+    <value>El historial de decisiones no es íntegro: {0} Nada se planifica, se ejecuta ni se reanuda hasta que lo arregles.</value>
     <comment>Why the log cannot be trusted. {0}: the problem found.</comment>
   </data>
   <data name="Orchestrator_Phase_Running" xml:space="preserve">
@@ -2049,11 +2049,11 @@ Pausar la ejecución: así nunca se reanuda sola.</value>
     <comment>Error. {0}: run, {1}: why.</comment>
   </data>
   <data name="Orchestrator_Doc_StartedWhileFollowingTray" xml:space="preserve">
-    <value>La ejecución {0} empezó mientras esta pestaña seguía otra. Sigue en marcha y la sigue la bandeja.</value>
+    <value>La ejecución {0} empezó mientras esta pestaña seguía otra ejecución. Sigue en marcha y la sigue la bandeja.</value>
     <comment>Notice. {0}: run.</comment>
   </data>
   <data name="Orchestrator_Doc_StartedWhileFollowing" xml:space="preserve">
-    <value>La ejecución {0} empezó mientras esta pestaña seguía otra. Sigue en marcha.</value>
+    <value>La ejecución {0} empezó mientras esta pestaña seguía otra ejecución. Ya está en marcha.</value>
     <comment>Notice. {0}: run.</comment>
   </data>
   <data name="Orchestrator_Doc_ResumeNotDone" xml:space="preserve">
@@ -2125,7 +2125,7 @@ Pausar la ejecución: así nunca se reanuda sola.</value>
     <comment>Notice. {0}: why.</comment>
   </data>
   <data name="Orchestrator_Doc_DraftRecoveredProposal" xml:space="preserve">
-    <value>Recuperamos un borrador. Es el plan del orquestador, aún sin aprobar. Míralo y apruébalo si quieres ejecutarlo.</value>
+    <value>Borrador recuperado. Es el plan del orquestador y aún no se aprobó. Míralo y apruébalo si quieres ejecutarlo.</value>
     <comment>Status of the proposal.</comment>
   </data>
   <data name="Orchestrator_Doc_DraftRecovered" xml:space="preserve">

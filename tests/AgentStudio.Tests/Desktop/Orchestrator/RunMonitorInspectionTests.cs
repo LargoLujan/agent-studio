@@ -134,7 +134,7 @@ public sealed class RunMonitorInspectionTests
 
         Assert.Equal("El agente necesita a una persona: ¿qué firma quieres?", monitor.Tasks[0].ReasonText);
         Assert.Null(monitor.Tasks[1].ReasonText);
-        Assert.StartsWith("Esperando cuota hasta las", monitor.Tasks[1].StatusLabel, StringComparison.Ordinal);
+        Assert.StartsWith("En pausa por el límite de uso hasta las", monitor.Tasks[1].StatusLabel, StringComparison.Ordinal);
     }
 
     [Fact]

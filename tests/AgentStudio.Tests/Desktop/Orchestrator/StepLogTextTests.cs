@@ -102,7 +102,7 @@ public sealed class StepLogTextTests
         ]);
 
         static string Percent(double value) => value.ToString("P0", CultureInfo.GetCultureInfo("es-ES"));
-        Assert.Equal($"Cuota: 5 horas {Percent(0.02)}, 7 días {Percent(0.61)}, primary {Percent(0.5)}", AgentActivityText.Describe(quota, TimeZoneInfo.Utc));
+        Assert.Equal($"Límite de uso: 5 horas {Percent(0.02)}, 7 días {Percent(0.61)}, primary {Percent(0.5)}", AgentActivityText.Describe(quota, TimeZoneInfo.Utc));
         Assert.Equal("7 días · Opus", QuotaWindowText.Name("seven_day_opus"));
     }
 }

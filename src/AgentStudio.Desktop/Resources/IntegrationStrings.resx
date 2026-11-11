@@ -50,7 +50,7 @@
     <comment>Status message without a project.</comment>
   </data>
   <data name="Shell_Setup_Suggestion" xml:space="preserve">
-    <value>Es la primera vez que abres este proyecto. Configúralo paso a paso para empezar con el equipo, las pruebas y el presupuesto que quieras.</value>
+    <value>Es la primera vez que abres este proyecto. Configúralo paso a paso para empezar con el equipo, las pruebas y el presupuesto que quieras. No se abre solo.</value>
     <comment>Suggestion on the welcome tab, shown once per project.</comment>
   </data>
   <data name="Shell_Setup_ReadAgainFailed" xml:space="preserve">

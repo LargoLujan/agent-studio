@@ -133,7 +133,7 @@ public sealed class RepositoryNodeTests : IDisposable
         var calm = new RepositoryNodeViewModel(clean, null, default, Text());
 
         Assert.True(warned.HasUncommittedChanges);
-        Assert.Equal("Hay cambios sin confirmar: si trabajas en tu repositorio durante una ejecución, la tarea falla.", warned.ChangesText);
+        Assert.Equal("Hay cambios sin guardar como versión: si trabajas en tu repositorio durante una ejecución, la tarea falla.", warned.ChangesText);
         Assert.False(calm.HasUncommittedChanges);
         Assert.Equal("sin cambios sin confirmar", calm.ChangesText);
     }
@@ -145,7 +145,7 @@ public sealed class RepositoryNodeTests : IDisposable
         var detached = (await new RepositoryReader(new FakeState(State(root, branch: null))).ReadAsync(root, CancellationToken.None)).Node!;
 
         var view = new RepositoryNodeViewModel(detached, null, default, Text());
-        Assert.Equal("sin rama (HEAD suelto)", view.BranchText);
+        Assert.Equal("sin rama (versión suelta)", view.BranchText);
 
         var none = new RepositoryNodeViewModel(detached with { HeadShort = null }, null, default, Text());
         Assert.Equal("sin versiones guardadas", none.HeadText);
@@ -251,7 +251,7 @@ public sealed class RepositoryNodeTests : IDisposable
         Assert.Empty(reading.Node!.Remotes);
         Assert.Equal(RepositoryProblems.ConfigurationTooBig, reading.RemotesNote);
         var view = new RepositoryNodeViewModel(reading.Node, null, default, Text(), reading.RemotesNote);
-        Assert.Equal("No se leyeron los remotos: el fichero de configuración del repositorio es demasiado grande.", view.RemotesText);
+        Assert.Equal("No se leyeron los remotos. El fichero de configuración del repositorio es demasiado grande.", view.RemotesText);
     }
 
     [Fact]

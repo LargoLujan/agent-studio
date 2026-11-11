@@ -170,7 +170,7 @@ public sealed class RunMonitorViewModelTests
 
         Assert.Equal("En pausa por el límite de uso", monitor.PhaseLabel);
         Assert.False(monitor.ShowsDeadlockAlert);
-        Assert.Equal("Esperando cuota hasta las 10:15", monitor.Tasks[0].StatusLabel);
+        Assert.Equal("En pausa por el límite de uso hasta las 10:15", monitor.Tasks[0].StatusLabel);
     }
 
     [Fact]

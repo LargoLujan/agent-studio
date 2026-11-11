@@ -671,7 +671,7 @@ Read the origin of each bar: exact, estimated or not exposed.</value>
     <comment>Title of the info button.</comment>
   </data>
   <data name="Info_Canvas_Inspector_What" xml:space="preserve">
-    <value>It shows only what governs the run of the agent. That is its model and effort, its tools, its folders, its memory and its instructions.</value>
+    <value>It shows only what governs the run of the agent. That is its model and effort, its tools, its folders, its memory and its instructions. Changing them changes the template.</value>
     <comment>What the inspector is.</comment>
   </data>
   <data name="Info_Canvas_Inspector_Actions" xml:space="preserve">
@@ -1147,7 +1147,7 @@ Press «Save the brief»: each version replaces the previous one.</value>
     <comment>Why the plan cannot be approved.</comment>
   </data>
   <data name="Canvas_Analysis_RefusesPending" xml:space="preserve">
-    <value>The analysis of the assembly has not finished yet: wait a moment to approve the plan.</value>
+    <value>The analysis of the assembly has not finished yet. Wait a moment to approve the plan.</value>
     <comment>Why the plan cannot be approved.</comment>
   </data>
   <data name="Canvas_Analysis_RefusesFailed" xml:space="preserve">
@@ -1167,7 +1167,7 @@ Press «Save the brief»: each version replaces the previous one.</value>
     <comment>Said when a change of the template is asked while another one is being written.</comment>
   </data>
   <data name="Canvas_Editor_NotSavedHalfway" xml:space="preserve">
-    <value>The template could not be saved ({0}) and could not be put back as it was. It may have been left halfway.</value>
+    <value>The template could not be saved ({0}) and could not be put back as it was. It may have been left halfway. Use «Volver a cargar» to see what is there.</value>
     <comment>{0}: the reason. Said when the store failed and the revert failed too. «Volver a cargar» is the button of the document that reads the template again.</comment>
   </data>
   <data name="Canvas_Editor_SavedNotReloaded" xml:space="preserve">
@@ -1175,7 +1175,7 @@ Press «Save the brief»: each version replaces the previous one.</value>
     <comment>{0}: the reason. Said when the template was written and the document could not read it again.</comment>
   </data>
   <data name="Canvas_Remove_Question" xml:space="preserve">
-    <value>Its definition is lost from the template and cannot be recovered from here. The skills it had turned on are also turned off.</value>
+    <value>Take {1} ({0}) out of the team? Its definition is lost from the template and cannot be recovered from here. The skills it had turned on are also turned off. The runs and debates that already happened keep it.</value>
     <comment>{0}: id; {1}: name. Question before taking an agent out of the team.</comment>
   </data>
   <data name="Canvas_Remove_Confirm" xml:space="preserve">
@@ -1195,7 +1195,7 @@ Press «Save the brief»: each version replaces the previous one.</value>
     <comment>Said when no confirmation is composed.</comment>
   </data>
   <data name="Canvas_Repo_ConfigTooBig" xml:space="preserve">
-    <value>The remotes were not read: the configuration file of the repository is too big.</value>
+    <value>The remotes were not read. The configuration file of the repository is too big.</value>
     <comment>Said on the node instead of the remotes.</comment>
   </data>
 </root>

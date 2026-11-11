@@ -671,7 +671,7 @@ Leer el origen de cada barra: exacto, estimado o no expuesto.</value>
     <comment>Title of the info button.</comment>
   </data>
   <data name="Info_Canvas_Inspector_What" xml:space="preserve">
-    <value>Enseña solo lo que manda en la ejecución del agente. Es su modelo y su esfuerzo, sus herramientas, sus carpetas, su memoria y sus instrucciones.</value>
+    <value>Enseña solo lo que manda en la ejecución del agente. Es su modelo y su esfuerzo, sus herramientas, sus carpetas, su memoria y sus instrucciones. Cambiarlos cambia la plantilla.</value>
     <comment>What the inspector is.</comment>
   </data>
   <data name="Info_Canvas_Inspector_Actions" xml:space="preserve">
@@ -1147,7 +1147,7 @@ Pulsar «Guardar la ficha»: cada versión sustituye a la anterior.</value>
     <comment>Why the plan cannot be approved.</comment>
   </data>
   <data name="Canvas_Analysis_RefusesPending" xml:space="preserve">
-    <value>El análisis del montaje no ha terminado: espera un poco para aprobar el plan.</value>
+    <value>El análisis del montaje todavía no ha terminado. Espera un momento para aprobar el plan.</value>
     <comment>Why the plan cannot be approved.</comment>
   </data>
   <data name="Canvas_Analysis_RefusesFailed" xml:space="preserve">
@@ -1175,7 +1175,7 @@ Pulsar «Guardar la ficha»: cada versión sustituye a la anterior.</value>
     <comment>{0}: the reason. Said when the template was written and the document could not read it again.</comment>
   </data>
   <data name="Canvas_Remove_Question" xml:space="preserve">
-    <value>Su definición se pierde de la plantilla y no se puede recuperar desde aquí. Además, se apagan las skills que tenía activadas.</value>
+    <value>¿Quitar a {1} ({0}) del equipo? Su definición se pierde de la plantilla y no se puede recuperar desde aquí. Además, se apagan las skills que tenía activadas. Las ejecuciones y los debates que ya hubo la conservan.</value>
     <comment>{0}: id; {1}: name. Question before taking an agent out of the team.</comment>
   </data>
   <data name="Canvas_Remove_Confirm" xml:space="preserve">
@@ -1195,7 +1195,7 @@ Pulsar «Guardar la ficha»: cada versión sustituye a la anterior.</value>
     <comment>Said when no confirmation is composed.</comment>
   </data>
   <data name="Canvas_Repo_ConfigTooBig" xml:space="preserve">
-    <value>No se leyeron los remotos: el fichero de configuración del repositorio es muy grande.</value>
+    <value>No se leyeron los remotos. El fichero de configuración del repositorio es demasiado grande.</value>
     <comment>Said on the node instead of the remotes.</comment>
   </data>
 </root>
