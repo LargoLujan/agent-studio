@@ -71,7 +71,7 @@
     <value>The audit is against the latest frozen requirements: {0} (fingerprint {1}). To use others, freeze them first. You do it in "Requirements", in the orchestrator.</value>
   </data>
   <data name="Audit_Requirements_Missing" xml:space="preserve">
-    <value>The project has no frozen requirements. Freeze them in "Requirements", in the orchestrator, to be able to audit.</value>
+    <value>This project has no frozen requirements yet. Go to "Requirements", in the orchestrator, and freeze them. Then you can audit.</value>
   </data>
   <data name="Audit_Notice_NoService" xml:space="preserve">
     <value>The audit service is missing: the project cannot be audited.</value>
@@ -95,7 +95,7 @@
     <value>Preparing the audit. This does not spend your plan's usage limit or save anything…</value>
   </data>
   <data name="Audit_Status_Prepared" xml:space="preserve">
-    <value>Check the settings and the estimate. "Audit" will ask for your approval.</value>
+    <value>Check the settings and the estimate. If you press "Audit", we ask for your approval.</value>
   </data>
   <data name="Audit_Problem_NoService" xml:space="preserve">
     <value>The audit service is missing.</value>
@@ -104,13 +104,13 @@
     <value>Open the project to audit it.</value>
   </data>
   <data name="Audit_Problem_NoRequirements" xml:space="preserve">
-    <value>Without frozen requirements there is no audit. Freeze them in "Requirements", in the orchestrator.</value>
+    <value>You cannot audit without frozen requirements. Go to "Requirements", in the orchestrator, and freeze them.</value>
   </data>
   <data name="Audit_Problem_PickJudge" xml:space="preserve">
     <value>Choose the judge of the audit.</value>
   </data>
   <data name="Audit_Prep_Head" xml:space="preserve">
-    <value>The latest saved version (commit HEAD {0}) is audited.</value>
+    <value>The latest saved version (commit) is audited: {0}.</value>
   </data>
   <data name="Audit_Prep_NoHead" xml:space="preserve">
     <value>The repository has no saved version (commit).</value>
@@ -182,7 +182,7 @@
     <value>Audit</value>
   </data>
   <data name="Audit_View_AuditHint" xml:space="preserve">
-    <value>It asks for your approval and audits the latest saved version (commit HEAD).</value>
+    <value>It asks for your approval and audits the latest saved version (commit).</value>
   </data>
   <data name="Audit_View_TrustName" xml:space="preserve">
     <value>Reliability of the report</value>

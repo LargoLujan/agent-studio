@@ -86,7 +86,7 @@ public sealed class OrchestrationSessionTests
 
         Assert.Equal(
             [
-                "El proyecto no tiene requisitos congelados: escríbelos y congélalos en «Requisitos» para poder planificar.",
+                "Aún no hay requisitos congelados. Ve a «Requisitos». Escribe lo que quieres y congélalo. Después podrás planificar.",
                 "El proyecto no tiene perfil de verificación (.agentstudio/verification.json).",
             ],
             context.Missing);
@@ -108,7 +108,7 @@ public sealed class OrchestrationSessionTests
         Assert.Empty(source.Saved);
         Assert.Null(context.PlanContext(new PlanLimits()));
         Assert.Equal(
-            ["El proyecto no tiene perfil de verificación (.agentstudio/verification.json): revisa el propuesto y pulsa «Usar el perfil propuesto»."],
+            ["Este proyecto no tiene perfil de verificación. Mira el propuesto y pulsa «Usar el perfil propuesto»."],
             context.Missing);
     }
 

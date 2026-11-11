@@ -168,9 +168,9 @@ public sealed class RunMonitorViewModelTests
             new GraphHealthEvent(T0, Deadlocked),
             new RunPhaseChangedEvent(T0, RunPhase.WaitingForQuota, null));
 
-        Assert.Equal("Esperando cuota", monitor.PhaseLabel);
+        Assert.Equal("En pausa por el límite de uso", monitor.PhaseLabel);
         Assert.False(monitor.ShowsDeadlockAlert);
-        Assert.Equal("Esperando cuota hasta las 10:15", monitor.Tasks[0].StatusLabel);
+        Assert.Equal("En pausa por el límite de uso hasta las 10:15", monitor.Tasks[0].StatusLabel);
     }
 
     [Fact]
@@ -717,7 +717,7 @@ public sealed class RunMonitorViewModelTests
             ],
             monitor.AuditFindings);
         Assert.True(monitor.ReplanPending);
-        Assert.Equal("El auditor pide replanificar. Prepara una ejecución de seguimiento o descarta la petición. Hasta que decidas, la entrega espera.", monitor.ReplanText);
+        Assert.Equal("El auditor pide planificar de nuevo. Prepara una ejecución de seguimiento o descarta la petición. Hasta que decidas, la entrega espera.", monitor.ReplanText);
         Assert.True(monitor.HasReviewSection);
     }
 
@@ -726,7 +726,7 @@ public sealed class RunMonitorViewModelTests
     {
         var monitor = await ReviewedAsync(new FakeDeliveryService(), new RunReviewServices(new FakeOrchestratorAuditService()));
 
-        Assert.Equal("Auditor del orquestador: sin hallazgos en el historial verificado de la ejecución.", monitor.AuditSummary);
+        Assert.Equal("El auditor del orquestador no halló nada en el historial verificado de la ejecución.", monitor.AuditSummary);
         Assert.Equal(Tone.Success, monitor.AuditTone);
         Assert.Empty(monitor.AuditFindings);
         Assert.False(monitor.ReplanPending);

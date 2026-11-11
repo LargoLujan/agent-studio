@@ -60,7 +60,7 @@ Restart Agent Studio to see it: the change applies on restart.</value>
     <value>Also ask for Windows Hello in important approvals</value>
   </data>
   <data name="Settings_HelloImportant_Help" xml:space="preserve">
-    <value>Critical actions always ask for Windows Hello: delivering to your branch, giving an agent a shell, the network or more folders, or changing the verification profile.</value>
+    <value>Critical actions always ask for Windows Hello. That is delivering to your branch or changing the verification profile. Also giving an agent a shell, the network or more folders.</value>
   </data>
   <data name="ContextPart_Protocol" xml:space="preserve">
     <value>Protocol instructions</value>
@@ -108,7 +108,7 @@ Restart Agent Studio to see it: the change applies on restart.</value>
     <value>Working on {0}</value>
   </data>
   <data name="AgentState_WaitingForQuota" xml:space="preserve">
-    <value>Waiting for quota until {0}</value>
+    <value>Paused by the usage limit until {0}</value>
   </data>
   <data name="AgentState_Asking" xml:space="preserve">
     <value>Has a question for you</value>

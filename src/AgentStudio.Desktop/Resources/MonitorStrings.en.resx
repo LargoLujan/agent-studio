@@ -32,10 +32,10 @@
     <value>Working</value>
   </data>
   <data name="Monitor_AgentStatus_WaitingForQuota" xml:space="preserve">
-    <value>Waiting for quota until {0}</value>
+    <value>Paused by the usage limit until {0}</value>
   </data>
   <data name="Monitor_AgentStatus_WaitingForQuotaNoTime" xml:space="preserve">
-    <value>Waiting for quota</value>
+    <value>Paused by the usage limit</value>
   </data>
   <data name="Monitor_AgentStatus_Asking" xml:space="preserve">
     <value>Asking you something: waiting for your answer</value>
@@ -74,7 +74,7 @@
     <value>{0} waiting for your approval</value>
   </data>
   <data name="Monitor_Counter_WaitingForQuota" xml:space="preserve">
-    <value>{0} waiting for quota</value>
+    <value>{0} paused by the usage limit</value>
   </data>
   <data name="Monitor_Counter_Blocked" xml:space="preserve">
     <value>{0} blocked</value>
@@ -98,7 +98,7 @@
     <value>Budget</value>
   </data>
   <data name="Monitor_Bar_Quota" xml:space="preserve">
-    <value>Quota of {0}</value>
+    <value>Usage limit of {0}</value>
   </data>
   <data name="Monitor_Bar_NoAttempts" xml:space="preserve">
     <value>no attempts yet</value>
@@ -256,7 +256,7 @@ Press Esc to decide later: the task keeps waiting.</value>
     <value>Run monitor</value>
   </data>
   <data name="Info_Monitor_What" xml:space="preserve">
-    <value>Here you see what each agent does while it works: its state, the working memory it uses, what it has consumed and what is left of the budget and the usage limit.</value>
+    <value>Here you see what each agent does while it works. You see its state, the working memory it uses and what it has consumed. Also what is left of the budget and the usage limit.</value>
   </data>
   <data name="Info_Monitor_Actions" xml:space="preserve">
     <value>Look at the bars: they say where each figure comes from.
@@ -309,7 +309,7 @@ Answer when an agent asks you something.</value>
     <value>About the setting {0}</value>
   </data>
   <data name="Monitor_Consumption_NeverApplied" xml:space="preserve">
-    <value>Suggestions are never applied by themselves: if you want a change, make it yourself on the canvas or in the settings.</value>
+    <value>Suggestions are never applied by themselves. If you want a change, make it yourself on the canvas or in the settings.</value>
   </data>
   <data name="Monitor_Consumption_AgentButton" xml:space="preserve">
     <value>Analyze with an agent</value>
@@ -318,7 +318,7 @@ Answer when an agent asks you something.</value>
     <value>An agent reads the report and proposes improvements. It spends the usage limit of your plan and asks your permission first.</value>
   </data>
   <data name="Monitor_Consumption_Consent" xml:space="preserve">
-    <value>An agent from a company other than the one that did the work will read the report above and the usage table, without the text of the prompts, and propose improvements. It spends the usage limit of your plan. {0}</value>
+    <value>An agent from a company other than the one that did the work will read the report above. It will also read the usage table. It will not see the text of the prompts. It will propose improvements. It spends the usage limit of your plan. {0}</value>
   </data>
   <data name="Monitor_Consumption_EstimateAsking" xml:space="preserve">
     <value>Working out what it would cost…</value>
@@ -327,7 +327,7 @@ Answer when an agent asks you something.</value>
     <value>It is not known how much it will spend.</value>
   </data>
   <data name="Monitor_Consumption_Confirm" xml:space="preserve">
-    <value>Yes, spend quota</value>
+    <value>Yes, spend my usage limit</value>
   </data>
   <data name="Monitor_Consumption_Cancel" xml:space="preserve">
     <value>No, cancel</value>
@@ -357,7 +357,7 @@ Answer when an agent asks you something.</value>
     <value>Consumption analysis</value>
   </data>
   <data name="Info_Consumption_What" xml:space="preserve">
-    <value>It looks in the log of the run for where tokens were spent in excess: thin context, retries that fail the same way, models that are too large. Each finding says what it cost and where the figure comes from.</value>
+    <value>It looks in the log of the run for where tokens were spent in excess. For example, thin context, retries that fail the same way or models that are too large. Each finding says what it cost and where the figure comes from.</value>
   </data>
   <data name="Info_Consumption_Actions" xml:space="preserve">
     <value>Press "Analyze consumption": it is free.

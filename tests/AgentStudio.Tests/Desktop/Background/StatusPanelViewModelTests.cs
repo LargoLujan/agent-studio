@@ -51,7 +51,7 @@ public sealed class StatusPanelViewModelTests
         Assert.Equal("Presupuesto: 5 de 12 ejecuciones de agente", card.Budget);
         Assert.Equal("5 de 12", card.BudgetBar!.ValueText);
         Assert.Equal(5d / 12, card.BudgetBar!.Fraction!.Value, 6);
-        Assert.Equal(["T3 · Esperando cuota hasta las 14:05"], card.Blocks);
+        Assert.Equal(["T3 · En pausa por el límite de uso hasta las 14:05"], card.Blocks);
         Assert.Equal(["T5 espera tu aprobación: delivery.ff"], card.Approvals);
         Assert.Empty(card.Errors);
     }

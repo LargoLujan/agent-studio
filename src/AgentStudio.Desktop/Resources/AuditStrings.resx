@@ -90,7 +90,7 @@
     <comment>Which requirements are audited.</comment>
   </data>
   <data name="Audit_Requirements_Missing" xml:space="preserve">
-    <value>El proyecto no tiene requisitos congelados. Congélalos en «Requisitos», en el orquestador, para poder auditar.</value>
+    <value>Este proyecto aún no tiene requisitos congelados. Ve a «Requisitos», en el orquestador, y congélalos. Después podrás auditar.</value>
     <comment>Which requirements are audited.</comment>
   </data>
   <data name="Audit_Notice_NoService" xml:space="preserve">
@@ -122,7 +122,7 @@
     <comment>Status.</comment>
   </data>
   <data name="Audit_Status_Prepared" xml:space="preserve">
-    <value>Revisa la configuración y la estimación. «Auditar» te pedirá aprobación.</value>
+    <value>Mira la configuración y la estimación. Si pulsas «Auditar», te pedimos permiso.</value>
     <comment>Status.</comment>
   </data>
   <data name="Audit_Problem_NoService" xml:space="preserve">
@@ -134,7 +134,7 @@
     <comment>Problem of the audit screen.</comment>
   </data>
   <data name="Audit_Problem_NoRequirements" xml:space="preserve">
-    <value>Sin requisitos congelados no se audita. Congélalos en «Requisitos», en el orquestador.</value>
+    <value>No se puede auditar sin requisitos congelados. Ve a «Requisitos», en el orquestador, y congélalos.</value>
     <comment>Problem of the audit screen.</comment>
   </data>
   <data name="Audit_Problem_PickJudge" xml:space="preserve">
@@ -142,7 +142,7 @@
     <comment>Problem of the audit screen.</comment>
   </data>
   <data name="Audit_Prep_Head" xml:space="preserve">
-    <value>Se audita la última versión guardada (commit HEAD {0}).</value>
+    <value>Se audita la última versión guardada (commit): {0}.</value>
     <comment>What will be audited. {0}: short fingerprint.</comment>
   </data>
   <data name="Audit_Prep_NoHead" xml:space="preserve">
@@ -238,7 +238,7 @@
     <comment>Button.</comment>
   </data>
   <data name="Audit_View_AuditHint" xml:space="preserve">
-    <value>Te pide aprobación y audita la última versión guardada (commit HEAD).</value>
+    <value>Te pide permiso y audita la última versión guardada (commit).</value>
     <comment>Tooltip of the button.</comment>
   </data>
   <data name="Audit_View_TrustName" xml:space="preserve">

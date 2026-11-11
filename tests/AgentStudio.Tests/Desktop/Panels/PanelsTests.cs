@@ -273,14 +273,14 @@ public sealed class PanelsTests
 
         await panel.RunHeadTestsCommand.ExecuteAsync(null);
 
-        Assert.Equal("Fallan 1 pasos de las pruebas de HEAD.", panel.HeadSummary);
+        Assert.Equal("Fallan 1 pasos de las pruebas de la última versión.", panel.HeadSummary);
         Assert.Single(panel.HeadRows);
         Assert.False(panel.IsRunning);
 
         panel.HeadTests = new ScriptedHeadTests(new InvalidOperationException("No hay copia aislada."));
         await panel.RunHeadTestsCommand.ExecuteAsync(null);
 
-        Assert.Equal("No se pudieron ejecutar las pruebas de HEAD: No hay copia aislada.", panel.ErrorMessage);
+        Assert.Equal("No se pudieron ejecutar las pruebas de la última versión: No hay copia aislada.", panel.ErrorMessage);
         Assert.Empty(panel.HeadRows);
     }
 
@@ -301,7 +301,7 @@ public sealed class PanelsTests
 
         Assert.True(service.Token.IsCancellationRequested);
         Assert.False(panel.IsRunning);
-        Assert.Equal("Cancelaste las pruebas de HEAD.", panel.HeadSummary);
+        Assert.Equal("Cancelaste las pruebas de la última versión.", panel.HeadSummary);
         Assert.Null(panel.ErrorMessage);
     }
 
