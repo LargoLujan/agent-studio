@@ -333,7 +333,7 @@ public sealed class JudgeDossierBuilder(
 
                         break;
                     case DecisionKind.AgentRunStarted:
-                        var started =DecisionPayloadSerializer.Deserialize<AgentRunStartedPayload>(entry.PayloadJson);
+                        var started = DecisionPayloadSerializer.Deserialize<AgentRunStartedPayload>(entry.PayloadJson);
                         if (started.Task is null)
                         {
                             launchedFor[started.Attempt] = started.Purpose;
