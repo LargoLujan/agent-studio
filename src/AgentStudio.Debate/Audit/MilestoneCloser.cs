@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Judging;
 using AgentStudio.Application.Persistence;
@@ -37,9 +38,32 @@ public sealed class MilestoneCloser(
 {
     private static readonly Actor SystemActor = new(ActorKind.System, IndependentReview.SystemId);
 
+    private readonly ConcurrentDictionary<(string Project, string Milestone), byte> _closing = new();
+
     public async Task<MilestoneView> CloseAsync(CloseMilestoneRequest request, IProgress<AgentEvent>? progress, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
+
+        // The audit releases the project when it ends, and the close is written after that: a second close of the same milestone
+        // would audit (and spend quota) before it found the milestone closed. One close per milestone at a time, refused before anything runs.
+        var key = (request.Project.ProjectId, request.Milestone.Value);
+        if (!_closing.TryAdd(key, 0))
+        {
+            throw new MilestoneCloseRefusedException("milestone.closing", ["Ya hay un cierre de este hito en curso: espera a que termine."]);
+        }
+
+        try
+        {
+            return await CloseCoreAsync(request, progress, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _closing.TryRemove(key, out _);
+        }
+    }
+
+    private async Task<MilestoneView> CloseCoreAsync(CloseMilestoneRequest request, IProgress<AgentEvent>? progress, CancellationToken cancellationToken)
+    {
         var project = request.Project;
         var projectId = project.ProjectId;
 
@@ -73,14 +97,23 @@ public sealed class MilestoneCloser(
         var projected = await board.ProjectAsync(project, request.Milestone, cancellationToken).ConfigureAwait(false);
         var content = MilestoneReportBuilder.Build(new MilestoneReportInput(view, frozen, log.Entries, scope, report, projected));
 
-        var record = await CaptureAsync(projectId, request.Milestone, content, cancellationToken).ConfigureAwait(false);
-        await decisions.RecordAsync(
-            projectId,
-            SystemActor,
-            DecisionKind.EvidenceRegistered,
-            $"Evidencia {record.Id}: {record.Title}",
-            EvidenceRegisteredPayload.Anchoring(record, request.Milestone.Value, null, null),
-            cancellationToken: cancellationToken).ConfigureAwait(false);
+        // A retry after a cut between the evidence and the close finds the identical report already kept (same title, same SHA-256)
+        // and reuses it; it registers it only if the log does not say so yet.
+        var record = await FindKeptAsync(projectId, request.Milestone, content, cancellationToken).ConfigureAwait(false)
+            ?? await CaptureAsync(projectId, request.Milestone, content, cancellationToken).ConfigureAwait(false);
+        var announced = RunLog.EntriesOf(log.Entries, request.Milestone.Value)
+            .Any(e => e.Kind == DecisionKind.EvidenceRegistered && DecisionPayloadSerializer.Deserialize<EvidenceRegisteredPayload>(e.PayloadJson).Evidence == record.Id);
+        if (!announced)
+        {
+            await decisions.RecordAsync(
+                projectId,
+                SystemActor,
+                DecisionKind.EvidenceRegistered,
+                $"Evidencia {record.Id}: {record.Title}",
+                EvidenceRegisteredPayload.Anchoring(record, request.Milestone.Value, null, null),
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+
         await decisions.RecordAsync(
             projectId,
             SystemActor,
@@ -189,6 +222,17 @@ public sealed class MilestoneCloser(
         throw new MilestoneCloseRefusedException("milestone.no-judge", problems.Count > 0 ? problems : ["Nadie puede juzgar esta auditoría."]);
     }
 
+    private static string TitleOf(MilestoneId milestone, MilestoneReport content) =>
+        $"{MilestoneReport.EvidenceTitle} {milestone.Value} (revisión {content.Revision})";
+
+    private async Task<EvidenceRecord?> FindKeptAsync(string projectId, MilestoneId milestone, MilestoneReport content, CancellationToken ct)
+    {
+        var title = TitleOf(milestone, content);
+        var sha = content.Sha256();
+        var kept = await evidence.ListByRunAsync(projectId, milestone.Value, ct).ConfigureAwait(false);
+        return kept.FirstOrDefault(e => e.Kind == EvidenceKind.Document && e.Title == title && e.ContentSha256 == sha);
+    }
+
     private async Task<EvidenceRecord> CaptureAsync(string projectId, MilestoneId milestone, MilestoneReport content, CancellationToken ct)
     {
         using var stream = new MemoryStream(content.ToBytes(), writable: false);
@@ -197,7 +241,7 @@ public sealed class MilestoneCloser(
             new EvidenceDraft(
                 EvidenceKind.Document,
                 EvidenceOrigin.CapturedBySystem,
-                $"{MilestoneReport.EvidenceTitle} {milestone.Value} (revisión {content.Revision})",
+                TitleOf(milestone, content),
                 IndependentReview.SystemId,
                 RunId: milestone.Value,
                 MediaType: "application/json"),

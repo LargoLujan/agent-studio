@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Judging;
+using AgentStudio.Application.Security;
 using AgentStudio.Application.Work;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Decisions;
@@ -166,6 +167,9 @@ public static class MilestoneReportBuilder
         "Despliegue (D-50): Agent Studio no despliega nada y ninguna plataforma lo ha informado; sin ese dato el estado no aparece.",
     ];
 
+    /// <summary>The text of the log that goes into the report, without the paths of this machine (the report is shared: it feeds the client documentation).</summary>
+    private static string Clean(string text) => LocalPaths.Remove(text, "[ruta local]").Text;
+
     public static MilestoneReport Build(MilestoneReportInput input)
     {
         ArgumentNullException.ThrowIfNull(input);
@@ -180,7 +184,7 @@ public static class MilestoneReportBuilder
         var audit = AuditOf(input.Audit, items);
         var requirements = RequirementsOf(input);
         var units = input.Scope.Runs.Concat(input.Scope.Debates).Append(input.Audit.Audit.Value).ToHashSet(StringComparer.Ordinal);
-        var pending = PendingProblems.From(input.Log).Where(p => units.Contains(p.Source)).Select(p => new MilestoneReportPending(p.Code, p.Source, p.Message)).ToList();
+        var pending = PendingProblems.From(input.Log).Where(p => units.Contains(p.Source)).Select(p => new MilestoneReportPending(p.Code, p.Source, Clean(p.Message))).ToList();
 
         var sets = milestone.RequirementSetHistory.Select((hash, index) => new MilestoneReportRequirementSet(index + 1, hash, index == milestone.RequirementSetHistory.Count - 1)).ToList();
         var earlier = milestone.Reports.OrderBy(r => r.Revision).Select(r => new MilestoneReportEarlier(r.Revision, r.Audit, r.Report.Value, r.ReportSha256, r.IntegratedCommit, r.At)).ToList();
@@ -242,7 +246,7 @@ public static class MilestoneReportBuilder
         var verdicts = items.Select(i => i.Payload).OfType<VerdictIssuedPayload>().Where(v => v.RunId == run)
             .Select(v => new MilestoneReportVerdict(v.VerdictId, v.Task?.Value, v.Decision.ToString(), v.Valid, challenged.Contains(v.VerdictId)))
             .ToList();
-        var alerts = items.Select(i => i.Payload).OfType<AuditAlertPayload>().Where(a => a.RunId == run).Select(a => new MilestoneReportAlert(a.Code, a.Message)).ToList();
+        var alerts = items.Select(i => i.Payload).OfType<AuditAlertPayload>().Where(a => a.RunId == run).Select(a => new MilestoneReportAlert(a.Code, Clean(a.Message))).ToList();
         var agents = (startedPayload?.Roster ?? [])
             .OrderBy(r => r.Agent.Value, StringComparer.Ordinal)
             .Select(r => new MilestoneReportAgent(r.Agent.Value, r.Role.ToString(), r.Provider.Value, r.Vendor.Value))
@@ -271,11 +275,11 @@ public static class MilestoneReportBuilder
     private static MilestoneReportAudit AuditOf(AuditReport audit, List<RunItem> items)
     {
         var judge = audit.Verdict.Judge;
-        var alerts = items.Select(i => i.Payload).OfType<AuditAlertPayload>().Where(a => a.RunId == audit.Audit.Value).Select(a => new MilestoneReportAlert(a.Code, a.Message)).ToList();
+        var alerts = items.Select(i => i.Payload).OfType<AuditAlertPayload>().Where(a => a.RunId == audit.Audit.Value).Select(a => new MilestoneReportAlert(a.Code, Clean(a.Message))).ToList();
         var verification = audit.Verification.OrderBy(e => e.Id.Value, StringComparer.Ordinal).Select(e => new MilestoneReportEvidence(
             e.Id.Value,
             e.Kind.ToString(),
-            e.Title,
+            Clean(e.Title),
             e.SubjectCommit,
             e.TestRun?.Passed,
             e.TestRun?.Failed,
