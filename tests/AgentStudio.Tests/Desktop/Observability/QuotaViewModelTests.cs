@@ -103,11 +103,11 @@ public sealed class QuotaViewModelTests
         Assert.Equal("Claude Code", quota.Claude.Name);
         Assert.Equal(["5 horas", "7 días"], quota.Claude.Windows.Select(w => w.Name));
         var fiveHours = quota.Claude.Windows[0];
-        Assert.Equal("47 % · exacto · informado por el CLI", fiveHours.Utilization.Text);
+        Assert.Equal("47 % · exacto · informado por el programa del agente", fiveHours.Utilization.Text);
         Assert.Equal("vista hace 12 min", fiveHours.Seen);
         Assert.Equal("se reinicia hoy a las 15:00", fiveHours.Resets);
         Assert.Equal("vista hace 3 h", quota.Claude.Windows[1].Seen);
-        Assert.Equal("Del último anuncio de Claude al empezar una ejecución (rate_limit_event): sin llamadas extra.", quota.Claude.Status);
+        Assert.Equal("Del último aviso de Claude al empezar una ejecución. No hace llamadas extra.", quota.Claude.Status);
     }
 
     [Fact]
@@ -118,7 +118,7 @@ public sealed class QuotaViewModelTests
         await quota.RefreshAsync();
 
         Assert.Empty(quota.Claude.Windows);
-        Assert.Equal("Sin dato todavía: Claude anuncia su cuota al empezar cada ejecución.", quota.Claude.Status);
+        Assert.Equal("Sin dato todavía: Claude avisa de tu límite de uso al empezar cada ejecución.", quota.Claude.Status);
     }
 
     [Fact]
@@ -132,7 +132,7 @@ public sealed class QuotaViewModelTests
 
         Assert.False(quota.ReadCodexCommand.CanExecute(null));
         Assert.Equal(0, reader.Reads);
-        Assert.Equal("Desactivado: activa «Leer la cuota de Codex» en «Ajustes». Sin tu permiso no se lanza nada.", quota.Codex.Status);
+        Assert.Equal("Desactivado: activa «Leer el límite de uso de Codex» en «Ajustes». Sin tu permiso no se lanza nada.", quota.Codex.Status);
         Assert.Empty(quota.Codex.Windows);
     }
 
@@ -156,9 +156,9 @@ public sealed class QuotaViewModelTests
 
         Assert.Equal(1, reader.Reads);
         Assert.Equal(["Codex · ventana de 5 h", "Codex · ventana de 7 días"], quota.Codex.Windows.Select(w => w.Name));
-        Assert.Equal("41 % · exacto · informado por el CLI", quota.Codex.Windows[0].Utilization.Text);
+        Assert.Equal("41 % · exacto · informado por el programa del agente", quota.Codex.Windows[0].Utilization.Text);
         Assert.Equal("vista hace menos de 1 min", quota.Codex.Windows[0].Seen);
-        Assert.Equal("Leída del app-server de Codex (account/rateLimits/read), sin turno del modelo.", quota.Codex.Status);
+        Assert.Equal("Leída de Codex ahora, sin turno del modelo.", quota.Codex.Status);
         Assert.Equal(["Plan: plus"], quota.Codex.Notes);
         Assert.Equal(["versión de Codex no probada (0.161.0)"], quota.Codex.Warnings);
         Assert.Equal(read.Observations, observations.Appended);
@@ -195,7 +195,7 @@ public sealed class QuotaViewModelTests
 
         await quota.ReadCodexCommand.ExecuteAsync(null);
 
-        Assert.Equal("sin dato: no se pudo leer la cuota de Codex: codex.exe no está.", quota.Codex.Status);
+        Assert.Equal("sin dato: no se pudo leer el límite de uso de Codex: codex.exe no está.", quota.Codex.Status);
     }
 
     [Fact]
@@ -222,7 +222,7 @@ public sealed class QuotaViewModelTests
         await quota.RefreshAsync();
 
         Assert.False(quota.ReadCodexCommand.CanExecute(null));
-        Assert.Equal("La lectura de la cuota de Codex no está disponible en esta composición.", quota.Codex.Status);
+        Assert.Equal("La lectura del límite de uso de Codex no está disponible aquí.", quota.Codex.Status);
     }
 
     [Fact]
@@ -273,7 +273,7 @@ public sealed class QuotaViewModelTests
         await quota.RefreshAsync();
 
         Assert.Equal("Gemini CLI", quota.Gemini.Name);
-        Assert.Equal("no expuesto: Gemini está aparcado (ADR-0009) y su cuota de plan no tiene interfaz.", quota.Gemini.Status);
+        Assert.Equal("no expuesto: Gemini está aparcado y su límite de uso no se puede leer.", quota.Gemini.Status);
         Assert.Empty(quota.Gemini.Windows);
     }
 }

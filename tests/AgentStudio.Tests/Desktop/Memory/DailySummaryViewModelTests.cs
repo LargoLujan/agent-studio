@@ -55,7 +55,7 @@ public sealed class DailySummaryViewModelTests
 
         Assert.Equal("## Prompts\n- 12 de user", summary.Summary);
         Assert.Equal("Provisional: el día no ha terminado, así que no se guarda en la memoria.", summary.Status);
-        Assert.Equal("12 prompts · 2 líneas sin reconocer (solo se cuentan)", summary.Counts);
+        Assert.Equal("12 peticiones · 2 líneas sin reconocer (solo se cuentan)", summary.Counts);
     }
 
     [Fact]
@@ -68,7 +68,7 @@ public sealed class DailySummaryViewModelTests
 
         await summary.SummarizeCommand.ExecuteAsync(null);
         Assert.Equal("Guardado en la memoria como resumen diario (entrada m-7).", summary.Status);
-        Assert.Equal("1 prompt · 0 líneas sin reconocer (solo se cuentan)", summary.Counts);
+        Assert.Equal("1 petición · 0 líneas sin reconocer (solo se cuentan)", summary.Counts);
 
         service.Result = day => new DailySummaryResult(day, false, new string('a', 64), "Resumen", 1, 0, null);
         await summary.SummarizeCommand.ExecuteAsync(null);
@@ -98,7 +98,7 @@ public sealed class DailySummaryViewModelTests
         Assert.False(withoutProject.SummarizeCommand.CanExecute(null));
         Assert.Equal("Abre una carpeta para resumir su bitácora.", withoutProject.Status);
         Assert.False(withoutService.SummarizeCommand.CanExecute(null));
-        Assert.Equal("El resumen diario no está disponible en esta composición.", withoutService.Status);
+        Assert.Equal("El resumen diario no está disponible aquí.", withoutService.Status);
     }
 
     [Fact]
@@ -126,7 +126,7 @@ public sealed class DailySummaryViewModelTests
 
         summary.SetProject(Project);
         Assert.Equal(
-            "Pulsa «Resumir el día» para ver aquí el resumen del viernes 16/10/2026 (hoy): los prompts de la bitácora de ese día, cómo acabaron y lo hecho. Cambia de día con «Día anterior» y «Día siguiente».",
+            "Pulsa «Resumir el día» para ver aquí el resumen del viernes 16/10/2026 (hoy): las peticiones de la bitácora de ese día, cómo acabaron y lo hecho. Cambia de día con «Día anterior» y «Día siguiente».",
             summary.EmptyHint);
         Assert.Contains(nameof(DailySummaryViewModel.EmptyHint), changes);
 
@@ -145,6 +145,6 @@ public sealed class DailySummaryViewModelTests
         var summary = new DailySummaryViewModel(null, LateOnThe15thInUtc());
         summary.SetProject(Project);
 
-        Assert.Equal("El resumen diario no está disponible en esta composición.", summary.EmptyHint);
+        Assert.Equal("El resumen diario no está disponible aquí.", summary.EmptyHint);
     }
 }

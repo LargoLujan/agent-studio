@@ -118,7 +118,7 @@ public sealed class ControlStylesRenderTests
                 {
                     Caption("Casillas: sin marcar, marcada, indeterminada, desactivada y con una etiqueta larga"),
                     new CheckBox { Content = "Impedir la suspensión mientras hay trabajo", Margin = new Thickness(0, 2, 0, 2) },
-                    new CheckBox { Content = "Leer la cuota de Codex", IsChecked = true, Margin = new Thickness(0, 2, 0, 2) },
+                    new CheckBox { Content = "Leer el límite de uso de Codex", IsChecked = true, Margin = new Thickness(0, 2, 0, 2) },
                     new CheckBox { Content = "Parte de las tareas", IsThreeState = true, IsChecked = null, Margin = new Thickness(0, 2, 0, 2) },
                     new CheckBox { Content = "Desactivada y marcada", IsChecked = true, IsEnabled = false, Margin = new Thickness(0, 2, 0, 2) },
                     wrapped,

@@ -453,7 +453,7 @@ public sealed class RunMonitorViewModelTests
         var monitor = await FollowOpenAsync(RunningAgentTask(), new AgentActivityEvent(T0, Tid("T1"), Context(30_822, 1_000_000)));
 
         var task = monitor.Tasks[0];
-        Assert.Equal("Contexto: 3 % · exacto · informado por el CLI · 30.822 de 1.000.000 tokens · claude-sonnet-5-5 · sano", task.Context);
+        Assert.Equal("Contexto: 3 % · exacto · informado por el programa del agente · 30.822 de 1.000.000 tokens · claude-sonnet-5-5 · sano", task.Context);
         Assert.Equal(ContextHealthLevel.Healthy, task.ContextLevel);
         Assert.Equal(Tone.Success, task.ContextTone);
 
@@ -478,7 +478,7 @@ public sealed class RunMonitorViewModelTests
         // A model neither the log of the project nor the base table knows: only its tokens (docs/14 D-10).
         var monitor = await FollowOpenAsync(RunningAgentTask(), new AgentActivityEvent(T0, Tid("T1"), Context(30_822, null, model: "modelo-desconocido")));
 
-        Assert.Equal("Contexto: 30.822 tokens · exacto · informado por el CLI · sin porcentaje: la ventana no se conoce todavía · modelo-desconocido · sin evaluar", monitor.Tasks[0].Context);
+        Assert.Equal("Contexto: 30.822 tokens · exacto · informado por el programa del agente · sin porcentaje: aún no se conoce la memoria de trabajo del modelo · modelo-desconocido · sin evaluar", monitor.Tasks[0].Context);
         Assert.Equal(Tone.Neutral, monitor.Tasks[0].ContextTone);
         Assert.False(monitor.Tasks[0].ContextBar!.HasValue);
         Assert.Equal("30.822 tokens", monitor.Tasks[0].ContextBar!.ValueText);
@@ -540,8 +540,8 @@ public sealed class RunMonitorViewModelTests
 
         var exact = monitor.Tasks[0].ContextBar!;
         Assert.False(exact.IsEstimate);
-        Assert.Equal("exacto · informado por el CLI", exact.Origin);
-        Assert.Equal("Tokens del último intento: 1.000 de entrada y 50 de salida · exacto · informado por el CLI", monitor.Tasks[0].TokensText);
+        Assert.Equal("exacto · informado por el programa del agente", exact.Origin);
+        Assert.Equal("Tokens del último intento: 1.000 de entrada y 50 de salida · exacto · informado por el programa del agente", monitor.Tasks[0].TokensText);
     }
 
     [Fact]
@@ -647,8 +647,8 @@ public sealed class RunMonitorViewModelTests
             new AgentActivityEvent(T0, Tid("T1"), new CompactionObserved(T0, "auto", MetricValue<long>.Exact(180_000, "claude compact_boundary.pre_tokens"))),
             new AgentActivityEvent(T0, Tid("T1"), Context(20_000, 1_000_000)));
 
-        Assert.Equal("Contexto: 2 % · exacto · informado por el CLI · 20.000 de 1.000.000 tokens · claude-sonnet-5-5 · sano · 1 compactación del contexto (posible pérdida de información)", monitor.Tasks[0].Context);
-        Assert.Contains(monitor.Activity, a => a.Text == "El programa del agente compactó el contexto (auto): 180.000 tokens antes · exacto · informado por el CLI");
+        Assert.Equal("Contexto: 2 % · exacto · informado por el programa del agente · 20.000 de 1.000.000 tokens · claude-sonnet-5-5 · sano · 1 compactación del contexto (posible pérdida de información)", monitor.Tasks[0].Context);
+        Assert.Contains(monitor.Activity, a => a.Text == "El programa del agente compactó el contexto (auto): 180.000 tokens antes · exacto · informado por el programa del agente");
     }
 
     [Fact]

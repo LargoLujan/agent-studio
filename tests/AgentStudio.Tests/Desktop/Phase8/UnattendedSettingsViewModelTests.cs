@@ -14,7 +14,7 @@ namespace AgentStudio.Tests.Desktop.Phase8;
 /// </summary>
 public sealed class UnattendedSettingsViewModelTests
 {
-    /// <summary>«Ajustes» with this section and «Contexto y cuota», over the same store.</summary>
+    /// <summary>«Ajustes» with this section and «Contexto y límite de uso», over the same store.</summary>
     private static SettingsDocumentViewModel Ajustes(IAppSettingsStore store, UnattendedSettingsViewModel settings) =>
         new(store, new ObservabilitySettingsViewModel(store), settings);
 

@@ -83,7 +83,7 @@ public sealed class SkillsDocumentViewModelTests
         var cost = SkillContextCost.Of(Catalog[0].Entry);
         Assert.Equal(cost, detail.Cost);
         Assert.Contains($"~{cost.Value} tokens", detail.CostText, StringComparison.Ordinal);
-        Assert.Contains("estimado por Agent Studio", detail.CostText, StringComparison.Ordinal);
+        Assert.Contains("Estimado por Agent Studio", detail.CostText, StringComparison.Ordinal);
     }
 
     // ---- health ----
@@ -387,7 +387,7 @@ public sealed class SkillsDocumentViewModelTests
         await document.AskAgentCommand.ExecuteAsync(null);
 
         var question = Assert.Single(world.Prompt.Asked);
-        Assert.Contains("cuota", question.Description, StringComparison.Ordinal);
+        Assert.Contains("límite de uso", question.Description, StringComparison.Ordinal);
         Assert.Contains("haiku", question.Description, StringComparison.Ordinal);
         Assert.Equal(ProjectId, question.ProjectId);
         Assert.Empty(world.Recommendations.Asked);
@@ -497,5 +497,39 @@ public sealed class SkillsDocumentViewModelTests
 
         Assert.False(document.AskAgentCommand.CanExecute(null));
         Assert.False(document.RecommendCommand.CanExecute(null));
+    }
+
+    /// <summary>
+    /// D-48 and F14-4: what goes to the decision log (the description of the consent) and to the agent (the context added to the
+    /// task) is fixed text of the code, whatever the language of the interface. It is built here and compared with its literal, it
+    /// is a constant, and neither it nor any piece of it is in the resources of Spanish or English, so no language can change it.
+    /// </summary>
+    [Fact]
+    public async Task What_goes_to_the_log_and_to_the_agent_is_fixed_text_that_does_not_follow_the_language_of_the_interface()
+    {
+        var (world, document) = await OpenAsync();
+        document.TaskText = "Optimizar Spark";
+        document.IsAssistedAllowed = true;
+        world.Prompt.Approve = true;
+
+        await document.AskAgentCommand.ExecuteAsync(null);
+
+        const string StackContext = "Contexto del proyecto (detectado por los nombres de sus ficheros): ";
+        var expected = document.Stack.Count == 0 ? "Optimizar Spark" : "Optimizar Spark\n\n" + StackContext + string.Join(' ', document.Stack.Select(tag => "#" + tag));
+        Assert.Equal(expected, Assert.Single(world.Recommendations.Asked).Task);
+        Assert.NotEmpty(document.Stack);
+        Assert.Equal("Pedir a un agente que recomiende skills para esta tarea. Se lanza Claude Code con el modelo haiku, de solo lectura, sin red y en una carpeta vacía, con el catálogo local como única herramienta extra. Gasta un poco del límite de uso de tu plan (una ejecución corta). Solo propone: activar sigue siendo cosa tuya.", SkillsDocumentViewModel.AssistedDescription);
+        Assert.True(typeof(SkillsDocumentViewModel).GetField(nameof(SkillsDocumentViewModel.AssistedDescription))!.IsLiteral);
+
+        foreach (var neutralOrSatellite in AgentStudio.Tests.Desktop.Localization.LocalizationTestSupport.ResourceFiles().Values
+            .SelectMany(f => f.Satellites.Values.Append(f.Neutral)))
+        {
+            foreach (var value in AgentStudio.Tests.Desktop.Localization.LocalizationTestSupport.Read(neutralOrSatellite).Values)
+            {
+                Assert.DoesNotContain("Contexto del proyecto (detectado", value, StringComparison.Ordinal);
+                Assert.DoesNotContain(SkillsDocumentViewModel.AssistedDescription, value, StringComparison.Ordinal);
+                Assert.DoesNotContain("Project context (detected", value, StringComparison.Ordinal);
+            }
+        }
     }
 }

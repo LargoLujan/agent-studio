@@ -50,7 +50,7 @@ public sealed class MemoryViewModelTests
             [
                 "De confianza",
                 "Propuesta de un agente: sin revisar",
-                "En cuarentena: heredada de un historial aceptado como nuevo origen; revísala",
+                "En cuarentena: viene de un historial que aceptaste como nuevo origen. Revísala.",
                 "Rechazada",
                 "Retirada",
             ],
@@ -271,7 +271,7 @@ public sealed class MemoryViewModelTests
 
         Assert.Equal(
             "Exportación incompleta: Hay una ejecución, una planificación, un debate o una auditoría en curso en el proyecto: la memoria se exporta cuando termine. "
-            + "Se reescribieron 2 ficheros (memory/cronologico-2026-10.md, memory/tema-decisiones.md) antes de parar; el resto sigue como "
+            + "Se reescribieron 2 ficheros (memory/cronologico-2026-10.md, memory/tema-decisiones.md) antes de parar. El resto sigue como "
             + "estaba hasta la próxima exportación, que lo reescribe todo.",
             memory.ExportWarning);
         Assert.Null(memory.ExportStatus);
@@ -319,7 +319,7 @@ public sealed class MemoryViewModelTests
 
         await memory.SetProjectAsync(Root);
 
-        Assert.Equal("La memoria del proyecto no está disponible en esta composición.", memory.StatusMessage);
+        Assert.Equal("La memoria del proyecto no está disponible aquí.", memory.StatusMessage);
         Assert.False(memory.ExportCommand.CanExecute(null));
     }
 }

@@ -1,6 +1,7 @@
 using System.Globalization;
 using AgentStudio.Application.Knowledge;
 using AgentStudio.Application.Projects;
+using AgentStudio.Desktop.Localization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -13,8 +14,6 @@ namespace AgentStudio.Desktop.Memory;
 /// </summary>
 public sealed partial class DailySummaryViewModel : ObservableObject
 {
-    private static readonly CultureInfo Spanish = CultureInfo.GetCultureInfo("es-ES");
-
     private readonly IDailySummaryService? _service;
     private readonly TimeProvider _time;
 
@@ -40,7 +39,7 @@ public sealed partial class DailySummaryViewModel : ObservableObject
     private DateOnly _day;
 
     /// <summary>«viernes 16/10/2026 (hoy)».</summary>
-    public string DayText => Day.ToString("dddd dd/MM/yyyy", Spanish) + (Day == Today ? " (hoy)" : string.Empty);
+    public string DayText => Day.ToString(Texts.Get("Memory_Day_Format"), Texts.Current.Culture) + (Day == Today ? Texts.Get("Memory_Day_Today") : string.Empty);
 
     /// <summary>The summary as the service wrote it; null until one is made.</summary>
     [ObservableProperty]
@@ -52,10 +51,10 @@ public sealed partial class DailySummaryViewModel : ObservableObject
     /// is a summary.
     /// </summary>
     public string? EmptyHint => Summary is not null ? null
-        : _service is null ? "El resumen diario no está disponible en esta composición."
-        : Project is null ? "Abre una carpeta de proyecto: aquí verás el resumen de cada día de su bitácora."
-        : IsBusy ? "Resumiendo el día…"
-        : $"Pulsa «Resumir el día» para ver aquí el resumen del {DayText}: los prompts de la bitácora de ese día, cómo acabaron y lo hecho. Cambia de día con «Día anterior» y «Día siguiente».";
+        : _service is null ? Texts.Get("Memory_Daily_Unavailable")
+        : Project is null ? Texts.Get("Memory_Daily_OpenFolderHint")
+        : IsBusy ? Texts.Get("Memory_Daily_Busy")
+        : Texts.Format("Memory_Daily_Hint", DayText);
 
     /// <summary>Whether it was kept in the memory, or why not; or why nothing can be summarized.</summary>
     [ObservableProperty]
@@ -76,8 +75,8 @@ public sealed partial class DailySummaryViewModel : ObservableObject
     private DateOnly Today => DateOnly.FromDateTime(_time.GetLocalNow().DateTime);
 
     private string? Unavailable => _service is null
-        ? "El resumen diario no está disponible en esta composición."
-        : Project is null ? "Abre una carpeta para resumir su bitácora." : null;
+        ? Texts.Get("Memory_Daily_Unavailable")
+        : Project is null ? Texts.Get("Memory_Daily_OpenFolder") : null;
 
     /// <summary>The project open in the shell changed (null: none).</summary>
     public void SetProject(ProjectContext? project)
@@ -113,12 +112,13 @@ public sealed partial class DailySummaryViewModel : ObservableObject
         {
             var result = await service.SummarizeAsync(project, Day, CancellationToken.None).ConfigureAwait(true);
             Summary = result.Summary;
-            Counts = string.Create(Spanish, $"{result.Prompts} {(result.Prompts == 1 ? "prompt" : "prompts")} · {result.UnrecognizedLines} {(result.UnrecognizedLines == 1 ? "línea" : "líneas")} sin reconocer (solo se cuentan)");
+            Counts = Texts.Format(result.Prompts == 1 ? "Memory_Daily_Requests_One" : "Memory_Daily_Requests_Other", result.Prompts)
+                + " · " + Texts.Format(result.UnrecognizedLines == 1 ? "Memory_Daily_Unrecognized_One" : "Memory_Daily_Unrecognized_Other", result.UnrecognizedLines);
             Status = result switch
             {
-                { Provisional: true } => "Provisional: el día no ha terminado, así que no se guarda en la memoria.",
-                { Recorded: { } entry } => $"Guardado en la memoria como resumen diario (entrada {entry.Id}).",
-                _ => "Ya estaba resumido: no se guarda otra vez.",
+                { Provisional: true } => Texts.Get("Memory_Daily_Provisional"),
+                { Recorded: { } entry } => Texts.Format("Memory_Daily_Recorded", entry.Id),
+                _ => Texts.Get("Memory_Daily_AlreadyDone"),
             };
         }
 #pragma warning disable CA1031 // The service is behind a port: a failure is shown in the panel, never thrown into the UI.
@@ -126,7 +126,7 @@ public sealed partial class DailySummaryViewModel : ObservableObject
 #pragma warning restore CA1031
         {
             Clear();
-            ErrorMessage = $"No se pudo resumir el día: {ex.Message}";
+            ErrorMessage = Texts.Format("Memory_Daily_Error", ex.Message);
         }
         finally
         {

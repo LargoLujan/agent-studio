@@ -140,6 +140,12 @@ public sealed partial class Phase13HandWrittenTextTests
         [("Lock/HelloTexts.cs", "Windows dio un resultado que Agent Studio no conoce")] =
             "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
 
+
+        // Skills (Phase 14, WP-14A part c): what the decision log anchors and what the agent receives.
+        [("Skills/SkillsDocumentViewModel.cs", "Pedir a un agente que recomiende skills para esta tarea. Se lanza Claude Code con el modelo haiku, de solo lectura, sin red y en una carpeta vacía, con el catálogo local como única herramienta extra. Gasta un poco del límite de uso de tu plan (una ejecución corta). Solo propone: activar sigue siendo cosa tuya.")] =
+            "D-48: it becomes the description of the consent that the decision log anchors, so it is never translated.",
+        [("Skills/SkillsDocumentViewModel.cs", "Contexto del proyecto (detectado por los nombres de sus ficheros): ")] =
+            "D-48: it is added to the task the agent receives, a request of the protocol that is never translated.",
         [("Views/Debate/DebatesView.xaml", "Collapsed")] =
             "Not a text: the value of Visibility that hides a part of the document while its binding has no data context yet.",
         // WP-14A (a1), the orchestrator: what D-48 does not translate.
@@ -284,11 +290,12 @@ public sealed partial class Phase13HandWrittenTextTests
         Assert.DoesNotContain("Controls/MetricBar.xaml.cs", scanned);
 
         // Phase 14 takes a file out of the inventory when it leaves it clean, so it is scanned from then on: WP-14A (b) cleaned the
-        // 23 files of Debate and Audit, (a1) the 49 of the orchestrator, (d1) the 45 of the shell and (a2) the 46 of Background and Lock.
+        // 23 files of Debate and Audit, (a1) the 49 of the orchestrator, (d1) the 45 of the shell, (a2) the 46 of Background and Lock
+        // and (c) the 39 of Observability, Memory and Skills.
         Assert.Contains("Orchestrator/Canvas/CanvasViewModel.cs", scanned);
         Assert.Contains("MainWindow.xaml.cs", scanned);
         Assert.Contains("ViewModels/MainViewModel.cs", scanned);
-        Assert.Equal(99, FilesBeforePhase13.Count);
+        Assert.Equal(60, FilesBeforePhase13.Count);
         Assert.DoesNotContain(FilesBeforePhase13, f => f.StartsWith("Localization/", StringComparison.Ordinal) || f.StartsWith("Controls/Info/", StringComparison.Ordinal) || f.StartsWith("Orchestrator/Live/", StringComparison.Ordinal));
     }
 

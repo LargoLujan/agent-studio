@@ -141,7 +141,7 @@ public sealed class EmbeddingModelViewModelTests
     {
         var (model, _, _) = Create(new SemanticIndexStatus(120, 0, new EmbeddingModelStatus(EmbeddingModelState.Unloadable, ModelFolder, "Falta memoria.")));
 
-        Assert.Equal("El modelo está descargado y verifica, pero no se ha podido cargar: la búsqueda va por palabras. Falta memoria.", model.StatusText);
+        Assert.Equal("El modelo está descargado y comprobado, pero no se pudo cargar. La búsqueda va por palabras. Falta memoria.", model.StatusText);
         Assert.False(model.CanDownload);
     }
 
@@ -188,8 +188,8 @@ public sealed class EmbeddingModelViewModelTests
         Assert.Equal("En total, 123,4 MB, una sola vez.", model.TotalText);
         Assert.Equal("De dónde: huggingface.co, solo de esas direcciones.", model.FromText);
         Assert.StartsWith($"Dónde se guarda: {ModelFolder}.", model.WhereText, StringComparison.Ordinal);
-        Assert.Contains("huella SHA-256", model.CheckText, StringComparison.Ordinal);
-        Assert.Contains("no gasta cuota", model.CheckText, StringComparison.Ordinal);
+        Assert.Contains("la huella de cada fichero", model.CheckText, StringComparison.Ordinal);
+        Assert.Contains("no gasta límite de uso", model.CheckText, StringComparison.Ordinal);
     }
 
     [Fact]

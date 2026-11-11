@@ -93,8 +93,8 @@ public sealed class SettingsDocumentViewModelTests
     }
 
     [Theory]
-    [InlineData("80", "70", "95", "Los umbrales no se guardan: deben cumplir 0 < aviso < compresión < crítico ≤ 100.")]
-    [InlineData("setenta", "85", "95", "Los umbrales no se guardan: «setenta» no es un número entero de 1 a 100.")]
+    [InlineData("80", "70", "95", "No se guardaron los umbrales. Cada uno debe ser mayor que el anterior, y el crítico no puede pasar de 100: 0 < aviso < compresión < crítico ≤ 100.")]
+    [InlineData("setenta", "85", "95", "No se guardaron los umbrales. «setenta» no es un número entero de 1 a 100: corrígelo.")]
     public void Wrong_thresholds_save_nothing_and_say_where(string warning, string compress, string critical, string why)
     {
         var store = new CountingStore();
@@ -108,7 +108,7 @@ public sealed class SettingsDocumentViewModelTests
 
         Assert.Equal(0, store.PreferenceSaves);
         Assert.Equal([0, 0, 0], saved);
-        Assert.Equal("No se guardó nada. Corrige «Contexto y cuota».", document.ErrorMessage);
+        Assert.Equal("No se guardó nada. Corrige «Contexto y límite de uso».", document.ErrorMessage);
         Assert.Equal(why, document.Context.ErrorMessage);
         Assert.Null(document.Lock!.ErrorMessage);
         Assert.Null(document.Notice);
@@ -130,7 +130,7 @@ public sealed class SettingsDocumentViewModelTests
         document.SaveCommand.Execute(null);
 
         Assert.Equal(0, store.PreferenceSaves);
-        Assert.Equal("No se guardó nada. Corrige «Contexto y cuota» y «Windows Hello y bloqueo».", document.ErrorMessage);
+        Assert.Equal("No se guardó nada. Corrige «Contexto y límite de uso» y «Windows Hello y bloqueo».", document.ErrorMessage);
         Assert.NotNull(document.Context.ErrorMessage);
         Assert.Equal("No se guardó el bloqueo: «1441» no es un número entero de minutos entre 1 y 1440. Escribe un número válido.", document.Lock.ErrorMessage);
     }

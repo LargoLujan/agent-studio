@@ -19,7 +19,7 @@ public sealed class MetricBarSegmentsTests
         Value = 6000,
         Maximum = 10000,
         ValueText = "60 %",
-        Origin = "exacto · informado por el CLI",
+        Origin = "exacto · informado por el programa del agente",
         OriginKind = MetricOrigin.ReportedByProvider,
         Level = MetricBarLevel.Healthy,
         LevelText = "sano",
@@ -47,8 +47,8 @@ public sealed class MetricBarSegmentsTests
         var reading = ByParts();
 
         Assert.EndsWith(Texts.Format("MetricBar_Parts", "Instrucciones del protocolo ~1.500 tokens; Requisitos ~1.000 tokens; Memoria ~500 tokens"), reading.AccessibleName, StringComparison.Ordinal);
-        Assert.StartsWith("Contexto: 60 % · exacto · informado por el CLI · sano", reading.AccessibleName, StringComparison.Ordinal);
-        Assert.Equal("Contexto: 60 % · exacto · informado por el CLI · sano", (reading with { Segments = [] }).AccessibleName);
+        Assert.StartsWith("Contexto: 60 % · exacto · informado por el programa del agente · sano", reading.AccessibleName, StringComparison.Ordinal);
+        Assert.Equal("Contexto: 60 % · exacto · informado por el programa del agente · sano", (reading with { Segments = [] }).AccessibleName);
         Assert.NotEqual(reading, reading with { Segments = [.. reading.Segments.Take(2)] });
         Assert.Equal(reading, ByParts());
     }

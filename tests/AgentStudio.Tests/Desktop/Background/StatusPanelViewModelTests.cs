@@ -78,7 +78,7 @@ public sealed class StatusPanelViewModelTests
         Assert.Equal([0.47, null, 0.9, null], card.Context.Select(c => c.Fraction is { } f ? Math.Round(f, 2) : (double?)null));
         Assert.Equal([true, false, true, false], card.Context.Select(c => c.HasBar));
         Assert.Equal(47, card.Context[0].Percent, 1);
-        Assert.Contains("exacto · informado por el CLI", card.Context[0].Text, StringComparison.Ordinal);
+        Assert.Contains("exacto · informado por el programa del agente", card.Context[0].Text, StringComparison.Ordinal);
         Assert.Equal("no expuesto", card.Context[1].Text);
         Assert.Contains("estimado por Agent Studio", card.Context[2].Text, StringComparison.Ordinal);
         Assert.Equal(Tone.Warning, card.Context[2].Tone);
@@ -118,7 +118,7 @@ public sealed class StatusPanelViewModelTests
                 ("Coste", MetricText.Cost(totals.CostUsd).Text),
             ],
             card.Tokens.Select(t => (t.Name, t.Text)));
-        Assert.Contains("estimado por el CLI", card.Tokens[^1].Text, StringComparison.Ordinal);
+        Assert.Contains("estimado por el programa del agente", card.Tokens[^1].Text, StringComparison.Ordinal);
         Assert.Equal("De 4 intentos terminados de esta ejecución; los intentos en curso cuentan al terminar.", card.TokensNote);
 
         // The usage of this run only, of its project, since its header was created.
@@ -180,11 +180,11 @@ public sealed class StatusPanelViewModelTests
 
         Assert.Equal(["Claude Code", "Claude Code", "Codex CLI"], panel.Quota.Select(q => q.Provider));
         Assert.StartsWith("5 horas · ", panel.Quota[0].Text, StringComparison.Ordinal);
-        Assert.Contains("exacto · informado por el CLI", panel.Quota[0].Text, StringComparison.Ordinal);
+        Assert.Contains("exacto · informado por el programa del agente", panel.Quota[0].Text, StringComparison.Ordinal);
         Assert.EndsWith("se reinicia hoy a las 16:05 · vista hace 12 min", panel.Quota[0].Text, StringComparison.Ordinal);
         Assert.StartsWith("7 días · ", panel.Quota[1].Text, StringComparison.Ordinal);
         Assert.Contains("se reinicia el 24/10 a las 14:00", panel.Quota[1].Text, StringComparison.Ordinal);
-        Assert.StartsWith("Desactivado: activa «Leer la cuota de Codex»", panel.Quota[2].Text, StringComparison.Ordinal);
+        Assert.StartsWith("Desactivado: activa «Leer el límite de uso de Codex»", panel.Quota[2].Text, StringComparison.Ordinal);
         Assert.Equal("Límite de uso de tu plan (no del proyecto), tal como lo anuncia cada empresa del modelo.", panel.QuotaNote);
         Assert.Equal("Actualizado a las 14:00:00", panel.Updated);
     }
