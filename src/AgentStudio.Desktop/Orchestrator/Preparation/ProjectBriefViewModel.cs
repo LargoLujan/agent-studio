@@ -43,6 +43,9 @@ public sealed partial class ProjectBriefViewModel : ObservableObject
 
     public string UnavailableText => _text.Get("Canvas_Brief_NotComposed");
 
+    /// <summary>The brief in force as last read or saved; what the draft of the montage counts in the context of each task (P49). Null when there is none.</summary>
+    internal ProjectBrief? InForce => _inForce;
+
     /// <summary>The version in force, with its fingerprint (the first characters, as the screens say a hash); empty when there is none.</summary>
     public string VersionText => _inForce is { } brief
         ? _text.Format("Canvas_Brief_Version", brief.Sha256.Length > 12 ? brief.Sha256[..12] : brief.Sha256, brief.At.ToLocalTime().ToString("g", _text.Provider.Culture))

@@ -550,7 +550,7 @@ internal static class PromptParts
     }
 
     /// <summary>The characters of the name and the description in the frontmatter of one <c>SKILL.md</c>.</summary>
-    private static int Presentation(string file)
+    internal static int Presentation(string file)
     {
         string head;
         try
