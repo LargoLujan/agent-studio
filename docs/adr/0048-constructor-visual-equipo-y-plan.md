@@ -136,4 +136,9 @@ antes de guardar nada.
    agente que la ejecución congeló.
 6. **Qué no cambia.** `FixApplier` no tiene ningún arreglo que quite agentes (los arreglos añaden o editan), así que no hubo
    nada que dejar de rechazar ahí; las bajas del borrador llegan por `DraftHost.ApplyAsync`, que ya calculaba los agentes que
-   desaparecen entre el estado anterior y el nuevo y los pasaba a `ApplyManyAsync`.
+   desaparecen entre el estado anterior y el nuevo y los pasaba a `ApplyManyAsync`. **Defecto encontrado, anterior a este cambio
+   y aparte de él:** el anfitrión maneja bien las bajas, pero el historial de la banda se reinicia con cada lectura de la
+   plantilla (`BuilderContextChanged` termina siempre con `Band.Reset()`, y guardar la plantilla vuelve a leer el contexto antes
+   de que `ApplyFixAsync` anote el estado nuevo), así que el historial solo conoce estados con la plantilla ya cambiada: Ctrl+Z
+   tras «Añadir un juez» (o tras cualquier arreglo que cambie la plantilla) no llega al almacén y no deshace nada. Las pruebas
+   de `AnalysisBandTests` no lo ven porque su anfitrión falso no relee el contexto. Queda como pendiente aparte.
