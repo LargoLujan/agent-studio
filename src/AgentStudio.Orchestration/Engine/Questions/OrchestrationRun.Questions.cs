@@ -212,7 +212,7 @@ internal sealed partial class OrchestrationRun
         recorder.CaptureAsync(
             EvidenceKind.Document,
             EvidenceOrigin.CapturedBySystem,
-            QuestionDocuments.DecisionTitle(answered.Asked.Id, answered.Asked.Task.Value),
+            QuestionDocuments.DecisionTitle(answered.Asked.Id, answered.Asked.AskingTask.Value),
             RunRecorder.ProducedBySystem,
             QuestionDocuments.DecisionJson(answered),
             QuestionDocuments.MediaType,

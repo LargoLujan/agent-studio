@@ -112,7 +112,8 @@ internal static class Handoff
             humanAnswers = (facts.Answers ?? []).Select(a => new
             {
                 question = a.Asked.Id,
-                attempt = a.Asked.Attempt,
+                askedBy = a.Asked.Task is null ? Questions.HumanAnswerPrompt.OrchestratorMark : "executor",
+                attempt = a.Asked.Task is null ? (int?)null : a.Asked.Attempt, // the orchestrator asked before any attempt of this task
                 evidence = a.Asked.Evidence.Value,
                 sha256 = a.Asked.Sha256,
                 option = a.Option,
