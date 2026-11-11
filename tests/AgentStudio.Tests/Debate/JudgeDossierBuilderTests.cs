@@ -615,7 +615,7 @@ public sealed class JudgeDossierBuilderTests
     /// planner leaves it in the run that planned: its prompt and report (with the question), the question, the answer and the
     /// decision the system captured, each piece of evidence registered.
     /// </summary>
-    private static async Task<Planning> RecordPlanningAsync(JudgingWorld world, bool ownText = false, bool registerOwnText = true)
+    private static async Task<Planning> RecordPlanningAsync(JudgingWorld world, bool ownText = false, bool registerOwnText = true, bool anchoredOwnText = true, Func<Task>? beforeTheDecision = null)
     {
         var (prompt, report) = await RecordPlannerLaunchAsync(world, $$"""{"plan":null,"questions":[{"text":"¿{{QuestionMarker}}?"}]}""", inRun: PlanningRun);
         var question = await world.CaptureAsync(EvidenceKind.AgentStatement, EvidenceOrigin.ReportedByAgent, "Pregunta plan-1 del orquestador", $$"""{"text":"¿{{QuestionMarker}}?","why":"{{QuestionMarker}}","options":[{"id":"a","label":"{{QuestionMarker}}-A","effort":"small","recommended":true}]}""", PlanningRun);
@@ -628,12 +628,17 @@ public sealed class JudgeDossierBuilderTests
             own = await world.CaptureAsync(EvidenceKind.Document, EvidenceOrigin.ProvidedByHuman, "Respuesta a la pregunta plan-1 del orquestador", OwnText, PlanningRun);
             if (registerOwnText)
             {
-                await world.RegisterAsync(own, PlanningRun);
+                await (anchoredOwnText ? world.RegisterAsync(own, PlanningRun) : world.RegisterUnanchoredAsync(own, PlanningRun));
             }
         }
 
         var answered = await world.RecordAsync(new Actor(ActorKind.User, "usuario"), DecisionKind.QuestionAnswered, "Respuesta a la pregunta plan-1 del orquestador",
             QuestionAnsweredPayload.Answering(PlanningRun.Value, null, "plan-1", own is null ? "a" : null, own?.Id, own?.ContentSha256, "usuario", QuestionAnswerMethod.ChosenByPerson));
+        if (beforeTheDecision is not null)
+        {
+            await beforeTheDecision();
+        }
+
         var decision = await world.CaptureAsync(EvidenceKind.Document, EvidenceOrigin.CapturedBySystem, QuestionEvidenceTitles.OrchestratorDecision("plan-1"),
             """{"format":"agent-studio/question-decision/1","question":"plan-1","task":null,"attempt":1,"options":["a","b"],"decision":{"option":"a"},"decidedBy":"usuario","method":"ChosenByPerson"}""", PlanningRun);
         await world.RegisterAsync(decision, PlanningRun, null, 1);
@@ -745,6 +750,72 @@ public sealed class JudgeDossierBuilderTests
         Assert.Contains(package.Dossier.IntegrityProblems, c => c.Contains(planning.Own!.Id.Value, StringComparison.Ordinal) && c.Contains("own answer", StringComparison.Ordinal));
         Assert.DoesNotContain(OwnText, Everything(package), StringComparison.Ordinal);
     }
+
+    [Fact]
+    public async Task The_own_text_of_the_person_anchored_only_by_version_1_reaches_the_judge_with_its_problem_as_in_its_own_run()
+    {
+        using var world = await JudgingWorld.CreateAsync(PlannedElsewhere);
+        var planning = await RecordPlanningAsync(world, ownText: true, anchoredOwnText: false);
+
+        var package = await BuildAsync(world);
+
+        Assert.Contains(package.Dossier.Evidence, e => e.Id == planning.Own!.Id);
+        Assert.Contains(package.Dossier.IntegrityProblems, c => c.Contains(planning.Own!.Id.Value, StringComparison.Ordinal) && c.Contains("version 1", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("HumanNote", "ProvidedByHuman", false)]
+    [InlineData("Document", "ReportedByAgent", false)]
+    [InlineData("Document", "CapturedBySystem", true)]
+    public async Task Evidence_with_the_title_of_a_decision_that_is_not_the_document_the_system_captured_never_enters(string kind, string origin, bool ofATask)
+    {
+        using var world = await JudgingWorld.CreateAsync(PlannedElsewhere);
+        EvidenceRecord impostor = null!;
+        var planning = await RecordPlanningAsync(world, beforeTheDecision: async () =>
+        {
+            // Registered before the real one, with the title of its decision: the first with that title is the impostor.
+            impostor = await world.CaptureAsync(Enum.Parse<EvidenceKind>(kind), Enum.Parse<EvidenceOrigin>(origin), QuestionEvidenceTitles.OrchestratorDecision("plan-1"), "Decisión falsa: Etiqueta-falsa-IMP1", PlanningRun, task: ofATask ? JudgingWorld.Work.Value : null);
+            await world.RegisterAsync(impostor, PlanningRun, ofATask ? JudgingWorld.Work : null, 1);
+        });
+
+        var package = await BuildAsync(world);
+
+        Assert.DoesNotContain(package.Dossier.Evidence, e => e.Id == impostor.Id);
+        Assert.Contains(package.Dossier.Evidence, e => e.Id == planning.Decision.Id);
+        Assert.DoesNotContain("Etiqueta-falsa-IMP1", Everything(package), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_prompt_of_the_planning_whose_launch_was_refused_has_no_start_and_is_withheld_by_its_anchored_title()
+    {
+        using var world = await JudgingWorld.CreateAsync();
+
+        // The guard of the user's repository refused the launch: the prompt was captured and registered, AgentRunStarted never written.
+        var prompt = await world.CaptureAsync(EvidenceKind.Document, EvidenceOrigin.CapturedBySystem, PlannerEvidenceTitles.Prompt(1), $"Planifica. {PlannerMarker}", JudgingWorld.Run);
+        await world.RegisterAsync(prompt, JudgingWorld.Run, null, 1);
+
+        // The person's own document with that title is theirs, and stays.
+        var theirs = await world.CaptureAsync(EvidenceKind.Document, EvidenceOrigin.ProvidedByHuman, PlannerEvidenceTitles.Prompt(2), "Mi nota", JudgingWorld.Run);
+        await world.RegisterAsync(theirs, JudgingWorld.Run);
+
+        var package = await BuildAsync(world);
+
+        Assert.DoesNotContain(package.Dossier.Evidence, e => e.Id == prompt.Id);
+        Assert.Contains(package.Dossier.Evidence, e => e.Id == theirs.Id);
+        Assert.DoesNotContain(PlannerMarker, Everything(package), StringComparison.Ordinal);
+        Assert.Empty(package.Dossier.IntegrityProblems);
+    }
+
+    [Theory]
+    [InlineData("Prompt del orquestador (intento 1)", true)]
+    [InlineData("Prompt del orquestador (intento 12)", true)]
+    [InlineData("Prompt del orquestador (intento )", false)]
+    [InlineData("Prompt del orquestador (intento x)", false)]
+    [InlineData("Prompt del orquestador (intento -1)", false)]
+    [InlineData("Prompt del ejecutor (intento 1)", false)]
+    [InlineData(null, false)]
+    public void Only_the_title_of_the_prompt_of_an_attempt_is_taken_for_it(string? title, bool expected) =>
+        Assert.Equal(expected, PlannerEvidenceTitles.IsPrompt(title));
 
     [Fact]
     public async Task Of_two_answers_to_the_same_question_of_the_orchestrator_the_first_one_counts()

@@ -255,7 +255,10 @@ public sealed class JudgeDossierBuilder(
             {
                 if (admitted.FirstOrDefault(e => e.Id == id) is { } record && record.Origin == origin)
                 {
+                    // Admitted with a problem (anchored only by version 1 of EvidenceRegistered, say): it reaches the judge, and the
+                    // problem with it, as it would from the run's own evidence.
                     records.Add(record);
+                    checks.AddRange(problems.Where(p => p.Contains($"'{id}'", StringComparison.Ordinal)));
                     continue;
                 }
 
@@ -319,8 +322,18 @@ public sealed class JudgeDossierBuilder(
                     case DecisionKind.InstructionsIssued:
                         withheld.Add(DecisionPayloadSerializer.Deserialize<InstructionsIssuedPayload>(entry.PayloadJson).PromptEvidenceId);
                         break;
+                    case DecisionKind.EvidenceRegistered:
+                        // The prompt of the planning also by its anchored title: its AgentRunStarted comes after the guard of the user's
+                        // repository, so a launch it refused leaves the prompt registered with no start to name it. A payload that
+                        // cannot be read is reported by RegisteredEvidence.
+                        if (TryReadRegistered(entry) is { Task: null, Kind: EvidenceKind.Document, Origin: EvidenceOrigin.CapturedBySystem } registered && PlannerEvidenceTitles.IsPrompt(registered.Title))
+                        {
+                            withheld.Add(registered.Evidence);
+                        }
+
+                        break;
                     case DecisionKind.AgentRunStarted:
-                        var started = DecisionPayloadSerializer.Deserialize<AgentRunStartedPayload>(entry.PayloadJson);
+                        var started =DecisionPayloadSerializer.Deserialize<AgentRunStartedPayload>(entry.PayloadJson);
                         if (started.Task is null)
                         {
                             launchedFor[started.Attempt] = started.Purpose;
@@ -444,6 +457,18 @@ public sealed class JudgeDossierBuilder(
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             return ReportRead.Unreadable;
+        }
+    }
+
+    private static EvidenceRegisteredPayload? TryReadRegistered(DecisionEntry entry)
+    {
+        try
+        {
+            return DecisionPayloadSerializer.Deserialize<EvidenceRegisteredPayload>(entry.PayloadJson);
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return null;
         }
     }
 

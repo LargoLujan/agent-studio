@@ -1,3 +1,4 @@
+using System.Globalization;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Questions;
 
@@ -52,6 +53,29 @@ public static class QuestionEvidenceTitles
     /// (<c>EvidenceRegistered</c> version 2), so it identifies that document.
     /// </summary>
     public static string OrchestratorDecision(string question) => $"Decisión sobre la pregunta {question} del orquestador";
+}
+
+/// <summary>
+/// How the evidence the orchestrator's planning captures is titled, shared by the planner and by the judge's dossier, which cannot
+/// depend on it.
+/// </summary>
+public static class PlannerEvidenceTitles
+{
+    private const string PromptPrefix = "Prompt del orquestador (intento ";
+
+    /// <summary>The title of the prompt of attempt <paramref name="attempt"/> of the planning (<c>Document</c>, <c>CapturedBySystem</c>, no task).</summary>
+    public static string Prompt(int attempt) => string.Create(CultureInfo.InvariantCulture, $"{PromptPrefix}{attempt})");
+
+    /// <summary>
+    /// Whether <paramref name="title"/> is the title of the prompt of an attempt of the planning. The title is anchored by the log
+    /// (<c>EvidenceRegistered</c> version 2), so together with the kind, the origin and the absence of a task it identifies the
+    /// prompt even when no <c>AgentRunStarted</c> names it (the launch was refused before its start was recorded).
+    /// </summary>
+    public static bool IsPrompt(string? title) =>
+        title is not null
+        && title.StartsWith(PromptPrefix, StringComparison.Ordinal)
+        && title.EndsWith(')')
+        && int.TryParse(title.AsSpan(PromptPrefix.Length, title.Length - PromptPrefix.Length - 1), NumberStyles.None, CultureInfo.InvariantCulture, out _);
 }
 
 /// <summary>

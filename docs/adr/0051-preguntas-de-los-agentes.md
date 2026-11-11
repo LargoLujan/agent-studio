@@ -210,8 +210,10 @@
 - **Decisión 1: el prompt de la planificación nunca llega al juez.** Haya preguntas o no, y en cada intento. Como el de un
   ejecutor, guía al agente y no dice nada de si se cumplen los requisitos, y puede llevar la ficha, la memoria y tus respuestas.
   La planificación no escribe `InstructionsIssued`: se identifica por su `AgentRunStarted`, el que no tiene tarea y dice
-  `Purpose = Planner`, cuyo `PromptEvidenceId` es la evidencia; nunca por el título («Prompt del orquestador (intento N)»), que
-  nada ancla. Un inicio de versión 1 (sin propósito) que no tiene tarea solo podía ser del planificador o del juez, y el prompt
+  `Purpose = Planner`, cuyo `PromptEvidenceId` es la evidencia. Como ese inicio se escribe después de la guarda del repositorio
+  del usuario, un lanzamiento que la guarda rechaza deja el prompt registrado sin inicio: por eso se retira también la evidencia
+  `Document`, `CapturedBySystem` y sin tarea cuyo título, anclado por `EvidenceRegistered` v2, es «Prompt del orquestador
+  (intento N)». Un inicio de versión 1 (sin propósito) que no tiene tarea solo podía ser del planificador o del juez, y el prompt
   de ninguno de los dos es evidencia del trabajo: también se retira. Un inicio sin tarea con otro propósito (el del propio juez)
   no cambia.
 - **Decisión 2: los informes de la planificación siguen la regla de los del ejecutor.** `AgentRunFinished` no lleva propósito ni
@@ -240,7 +242,8 @@
   `QuestionAsked`), ni el prompt de ninguna planificación, ni el informe del intento que preguntó. Una ejecución en la que el
   orquestador no preguntó pierde solo el prompt de la planificación.
 - **Alternativas descartadas:**
-  - Retirarlos por el título de la evidencia: depende de un texto que cambia con el idioma y que nada ancla.
+  - Retirarlos solo por el título de la evidencia: el título está anclado, pero es un texto que cambia con el idioma; por eso
+    es el respaldo del inicio (`AgentRunStarted`) y no su sustituto, y los informes se atribuyen por el inicio.
   - Retirar solo el prompt que lleva la pregunta, o solo en las ejecuciones con preguntas: el prompt lleva ficha, memoria y
     respuestas aunque no hubiera preguntas, y lo que el orquestador se dijo a sí mismo no es lo que el juez juzga.
   - Examinar todo `AgentRunFinished` sin tarea: alcanzaría los informes del juez, que no son evidencia registrada, y pondría un

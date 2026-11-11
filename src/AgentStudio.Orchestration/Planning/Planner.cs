@@ -183,10 +183,11 @@ internal sealed class Planner(EnginePorts ports)
     /// <summary>
     /// Records each answer of the person (docs/17 D-29), before the orchestrator runs with them: the option chosen, or the
     /// person's own text as evidence they provided, cited by its SHA-256. Answering is not approving: it grants nothing.
-    /// Then the decision for the judge, as for the question of an executor (P54, docs/17 D-33): the document the system
-    /// captures with ids, hashes and instants, no task, never the text of the agent. Each step is done once: what an earlier
-    /// planning with these same answers recorded (<paramref name="log"/>, which <see cref="PlannerQuestions.RunOf"/> checked)
-    /// is not recorded again, and a decision that planning did not reach is captured now.
+    /// Then, once all of them are recorded, the decision for the judge of each, as for the question of an executor (P54, docs/17
+    /// D-33): the document the system captures with ids, hashes and instants, no task, never the text of the agent. Each step is
+    /// done once: what an earlier planning with these same answers recorded (<paramref name="log"/>, which
+    /// <see cref="PlannerQuestions.RunOf"/> checked) is not recorded again, and the decisions that planning did not reach are
+    /// captured now.
     /// </summary>
     private static async Task RecordAnswersAsync(RunRecorder recorder, IReadOnlyList<AnsweredQuestion> answers, IReadOnlyList<DecisionEntry> log, CancellationToken cancellationToken)
     {
@@ -214,6 +215,9 @@ internal sealed class Planner(EnginePorts ports)
             }
         }
 
+        // First every answer, then every decision: a decision that fails to be captured (a transient failure) leaves all the answers
+        // recorded, so the planning can be tried again with the same ones (PlannerQuestions.RunOf takes only the whole round, once).
+        var decisions = new List<RecordedAnswer>();
         foreach (var answered in answers)
         {
             var answer = answered.Answer;
@@ -252,7 +256,7 @@ internal sealed class Planner(EnginePorts ports)
 
             // The question as the log anchored it (its evidence and hash, the instant it was recorded), not as the caller gives it back.
             var (askedEntry, asking) = asked[answered.Question.Id];
-            var decided = new RecordedAnswer(
+            decisions.Add(new RecordedAnswer(
                 new AskedQuestion(asking.Question, null, asking.Agent, asking.Attempt, answered.Question.Question, asking.QuestionEvidence, asking.QuestionSha256, asking.Estimates, askedEntry.RecordedAt),
                 answer.OptionId,
                 answer.OtherText,
@@ -260,7 +264,11 @@ internal sealed class Planner(EnginePorts ports)
                 textSha256,
                 answer.DecidedBy,
                 answer.Method,
-                answeredAt);
+                answeredAt));
+        }
+
+        foreach (var decided in decisions)
+        {
             if (!captured.Contains(QuestionDocuments.DecisionTitle(decided.Asked)))
             {
                 await OrchestrationRun.CaptureDecisionAsync(recorder, decided, cancellationToken).ConfigureAwait(false);
@@ -454,7 +462,7 @@ internal sealed class Planner(EnginePorts ports)
             var promptEvidence = await recorder.CaptureAsync(
                 EvidenceKind.Document,
                 EvidenceOrigin.CapturedBySystem,
-                $"Prompt del orquestador (intento {attempt})",
+                PlannerEvidenceTitles.Prompt(attempt),
                 RunRecorder.ProducedBySystem,
                 prompt,
                 "text/markdown",

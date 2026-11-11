@@ -692,6 +692,51 @@ public sealed class OrchestratorAnswersInPromptTests
     }
 
     [Fact]
+    public async Task With_two_questions_a_failure_capturing_the_first_decision_leaves_every_answer_recorded_and_the_planning_can_be_tried_again()
+    {
+        using var harness = new EngineHarness();
+        var asking = Asking();
+        ((JsonArray)asking["questions"]!).Add(new JsonObject
+        {
+            ["text"] = "¿Y con un exponente cero?",
+            ["why"] = "Cambia el contrato.",
+            ["options"] = new JsonArray(
+                new JsonObject { ["id"] = "a", ["label"] = "Devolver 1", ["detail"] = "Lo habitual.", ["effort"] = "small", ["recommended"] = true },
+                new JsonObject { ["id"] = "b", ["label"] = "Lanzar", ["detail"] = "Estricto.", ["effort"] = "small", ["recommended"] = false }),
+            ["allowOther"] = true,
+        });
+        harness.Claude.Script("orquestador", null, 1, Answer(asking));
+        var asked = await harness.CreateOrchestrator().PlanAsync(harness.PlanningRequest(), null, Ct);
+        Assert.Equal(2, asked.Questions!.Count);
+        var request = harness.PlanningRequest() with { Answers = [.. asked.Questions.Select(q => new AnsweredQuestion(asked.Run, q, ChoosingA(q)))] };
+
+        // A transient failure capturing the decision of the first question, and only that one.
+        var failed = false;
+        harness.Evidence.FailWhen = draft =>
+        {
+            if (failed || !draft.Title.StartsWith("Decisión sobre la pregunta", StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            failed = true;
+            return new IOException("disco lleno");
+        };
+        await Assert.ThrowsAsync<IOException>(() => harness.CreateOrchestrator().PlanAsync(request, null, Ct));
+        Assert.Equal(2, harness.Payloads<QuestionAnsweredPayload>().Count); // both answers were recorded before any decision
+
+        harness.Claude.Script("orquestador", null, 1, Answer(Planned()));
+        var proposal = await harness.CreateOrchestrator().PlanAsync(request, null, Ct);
+
+        Assert.NotNull(proposal.Plan);
+        Assert.Equal(2, harness.Payloads<QuestionAnsweredPayload>().Count);
+        foreach (var id in new[] { "plan-1", "plan-2" })
+        {
+            Assert.Single(harness.Payloads<EvidenceRegisteredPayload>(), p => p.Payload.Title == $"Decisión sobre la pregunta {id} del orquestador");
+        }
+    }
+
+    [Fact]
     public async Task A_planning_tried_again_with_its_answers_captures_the_decision_it_had_not_reached_and_records_nothing_twice()
     {
         using var harness = new EngineHarness();
