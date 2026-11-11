@@ -245,6 +245,8 @@ public sealed partial class Phase13HandWrittenTextTests
                     <ContentControl ContentStringFormat="{}{0} %"/>
                     <ContentControl ContentStringFormat="Valor: {0}"/>
                     <TextBlock Text="{}Literal escapado"/>
+                    <TextBlock Text="{Binding Count, StringFormat={l:T Info_WhatIsThis}}"/>
+                    <TextBlock Text="{Binding Name, FallbackValue={x:Static l:Texts.None}}"/>
                   </StackPanel>
                 </UserControl>
                 """);
@@ -297,8 +299,10 @@ public sealed partial class Phase13HandWrittenTextTests
                 var escaped = value.StartsWith("{}", StringComparison.Ordinal);
                 if (value.StartsWith('{') && !escaped)
                 {
-                    // A markup extension: a binding may still carry texts of its own.
-                    literals.AddRange(BindingTextParts.SelectMany(part => ExtensionPart(value, part)).Where(s => FormatText(s).Any(char.IsLetter)));
+                    // A markup extension: a binding may still carry texts of its own. A part that is itself an extension
+                    // (StringFormat={l:T Key}, FallbackValue={x:Static …}) gives its value from elsewhere: it is no literal.
+                    literals.AddRange(BindingTextParts.SelectMany(part => ExtensionPart(value, part))
+                        .Where(s => !IsExtension(s) && FormatText(s).Any(char.IsLetter)));
                     literals.AddRange(ExtensionPart(value, "ConverterParameter").Where(LooksLikeText));
                     continue;
                 }
@@ -321,6 +325,9 @@ public sealed partial class Phase13HandWrittenTextTests
 
         return literals;
     }
+
+    /// <summary>A value that is a markup extension of its own (<c>{l:T Key}</c>, <c>{x:Static …}</c>), not an escaped format (<c>{}{0} …</c>).</summary>
+    private static bool IsExtension(string value) => value.StartsWith('{') && !value.StartsWith("{}", StringComparison.Ordinal);
 
     /// <summary>
     /// The values of <paramref name="part"/> (<c>StringFormat=…</c>) inside the markup extension <paramref name="extension"/>,
