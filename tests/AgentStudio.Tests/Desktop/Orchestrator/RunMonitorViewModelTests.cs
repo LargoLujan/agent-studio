@@ -225,8 +225,8 @@ public sealed class RunMonitorViewModelTests
                 MetricValue<decimal>.Unavailable("subscription")))),
             new EvidenceCapturedEvent(T0, Tid("T1"), evidence));
 
-        Assert.Equal(["Usa Edit: src/Calc/Calc.cs", "Uso: 1200 tokens de entrada y 340 de salida"], monitor.Activity.Where(a => a.Task == "T1").Select(a => a.Text));
-        Assert.Equal("Uso: 1200 tokens de entrada y 340 de salida", monitor.Tasks[0].LastActivity);
+        Assert.Equal(["Usa Edit: src/Calc/Calc.cs", "Uso: 1.200 tokens de entrada y 340 de salida"], monitor.Activity.Where(a => a.Task == "T1").Select(a => a.Text));
+        Assert.Equal("Uso: 1.200 tokens de entrada y 340 de salida", monitor.Tasks[0].LastActivity);
         var entry = Assert.Single(monitor.Evidence);
         Assert.Equal(("T1", "Pruebas de T1", "Pruebas", "capturada por el sistema", "aaaaaaaaaaaa", "10 correctas, 0 fallidas, 0 omitidas"),
             (entry.Task, entry.Title, entry.Kind, entry.Origin, entry.ShortHash, entry.Tests));

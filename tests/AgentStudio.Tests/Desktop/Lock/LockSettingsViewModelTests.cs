@@ -87,7 +87,7 @@ public sealed class LockSettingsViewModelTests
 
         ajustes.SaveCommand.Execute(null);
 
-        Assert.Equal("No se pudieron guardar los ajustes (Disco lleno.). Vuelve a intentarlo.", ajustes.ErrorMessage);
+        Assert.Equal("No se pudieron guardar los ajustes. Vuelve a intentarlo. Detalle: Disco lleno.", ajustes.ErrorMessage);
         Assert.Null(ajustes.Notice);
         Assert.True(settings.IdleLockEnabled);
     }
