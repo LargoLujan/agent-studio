@@ -215,7 +215,11 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
         IProjectHistoryTool? history = null,
         IProjectBrief? brief = null,
         ISecretRedactor? redactor = null,
-        Application.Usage.IUsageEstimator? estimator = null)
+        Application.Usage.IUsageEstimator? estimator = null,
+        Application.Work.IProjectBudgetStore? budgets = null,
+        Application.Usage.IUsageReport? usage = null,
+        Application.Work.IMilestoneRegistry? milestones = null,
+        Application.Projects.IProjectLogReader? logReader = null)
     {
         ArgumentNullException.ThrowIfNull(decisions);
         ArgumentNullException.ThrowIfNull(evidence);
@@ -241,6 +245,7 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
             Brief = brief,
             Redactor = redactor,
             Estimator = estimator,
+            BudgetGate = budgets is null && milestones is null ? null : new ProjectBudgetGate(budgets, usage, estimator, milestones, logReader, time),
         };
         _planner = new Planner(_ports);
         Activity = activity ?? new OrchestrationActivity();

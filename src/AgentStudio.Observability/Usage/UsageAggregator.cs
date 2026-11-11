@@ -21,6 +21,15 @@ public static class UsageAggregator
     /// <summary>The label of an attempt whose start did not record its purpose (version 1).</summary>
     public const string NoPurpose = "sin propósito (registro anterior a la Fase 4)";
 
+    /// <summary>The label of an attempt that belongs to no milestone (docs/16 D-34).</summary>
+    public const string NoMilestone = "sin hito";
+
+    /// <summary>The label of an attempt the projection did not classify (one built by hand, without an activity).</summary>
+    public const string NoActivity = "sin clasificar";
+
+    /// <summary>The destination of a discarded attempt that left a commit (docs/16 D-34: «descartado, con o sin commit»).</summary>
+    public const string DiscardedWithCommit = "Discarded+commit";
+
     /// <summary>Separates the values of a key while grouping; it sorts before any printable character.</summary>
     private const char KeySeparator = '\u001F';
 
@@ -51,19 +60,24 @@ public static class UsageAggregator
         var keyed = new Dictionary<string, (string[] Values, List<UsageAttempt> Attempts)>(StringComparer.Ordinal);
         foreach (var attempt in attempts)
         {
-            var values = dimensions.Select(d => KeyOf(attempt, d, query.Zone)).ToArray();
-            var joined = string.Join(KeySeparator, values);
-            if (!keyed.TryGetValue(joined, out var group))
+            // An attempt of two milestones has two values on that dimension and is in a group of each (D-34); every other dimension
+            // has one, so the groups of a query without the milestone dimension still add up to the total.
+            foreach (var values in Combinations([.. dimensions.Select(d => KeysOf(attempt, d, query.Zone))]))
             {
-                keyed[joined] = group = (values, []);
-            }
+                var joined = string.Join(KeySeparator, values);
+                if (!keyed.TryGetValue(joined, out var group))
+                {
+                    keyed[joined] = group = (values, []);
+                }
 
-            group.Attempts.Add(attempt);
+                group.Attempts.Add(attempt);
+            }
         }
 
+        var byMilestone = dimensions.Contains(UsageDimension.Milestone);
         foreach (var (_, (values, members)) in keyed.OrderBy(k => k.Key, StringComparer.Ordinal))
         {
-            groups.Add(new UsageGroup([.. dimensions.Select((d, i) => new UsageGroupKey(d, values[i]))], Total(members)));
+            groups.Add(new UsageGroup([.. dimensions.Select((d, i) => new UsageGroupKey(d, values[i]))], Total(members), byMilestone ? members.Count(a => a.Milestones.Count > 1) : 0));
         }
 
         return groups;
@@ -86,31 +100,76 @@ public static class UsageAggregator
             all.Count(a => a.Outcome == AttemptOutcome.RateLimited),
             all.Count(a => a.Outcome == AttemptOutcome.LimitReached),
             PeakOf(all),
-            MetricAggregate.Sum(all.Select(a => a.CompactionCount())));
+            MetricAggregate.Sum(all.Select(a => a.CompactionCount())))
+        {
+            QueueWaitMilliseconds = MetricAggregate.Sum(all.Select(a => a.QueueWait())),
+            QuotaWaitMilliseconds = MetricAggregate.Sum(all.Select(a => a.QuotaWait())),
+        };
     }
 
-    /// <summary>The value of one dimension for an attempt, as the key of its group shows it.</summary>
+    /// <summary>
+    /// The value of one dimension for an attempt, as the key of its group shows it. An attempt of several milestones has one value for
+    /// each (<see cref="KeysOf"/>): this returns the first.
+    /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">The dimension is not one of <see cref="UsageDimension"/>.</exception>
-    public static string KeyOf(UsageAttempt attempt, UsageDimension dimension, TimeZoneInfo zone)
+    public static string KeyOf(UsageAttempt attempt, UsageDimension dimension, TimeZoneInfo zone) => KeysOf(attempt, dimension, zone)[0];
+
+    /// <summary>
+    /// Every value of one dimension for an attempt: one, except <see cref="UsageDimension.Milestone"/>, which has the id of each milestone
+    /// the attempt belongs to (in ordinal order) or <see cref="NoMilestone"/>. The three axes of the activity are the names of
+    /// <see cref="ActivityKind"/>, <see cref="AttemptOrder"/> and <see cref="AttemptFate"/>; a discarded attempt that left a commit is
+    /// <see cref="DiscardedWithCommit"/>, so the destination says «con o sin commit» and its groups still add up to the total.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">The dimension is not one of <see cref="UsageDimension"/>.</exception>
+    public static IReadOnlyList<string> KeysOf(UsageAttempt attempt, UsageDimension dimension, TimeZoneInfo zone)
     {
         ArgumentNullException.ThrowIfNull(attempt);
         ArgumentNullException.ThrowIfNull(zone);
         return dimension switch
         {
-            UsageDimension.Provider => attempt.Provider.Value,
-            UsageDimension.Vendor => attempt.Vendor.Value,
-            UsageDimension.Model => attempt.Model(),
-            UsageDimension.Session => attempt.SessionId is { Length: > 0 } session ? $"{attempt.Provider.Value}/{session}" : NoSession,
-            UsageDimension.Run => attempt.RunId,
-            UsageDimension.Task => attempt.TaskId ?? NoTask,
-            UsageDimension.Agent => attempt.Agent.Value,
-            UsageDimension.Purpose => attempt.Purpose?.ToString() ?? NoPurpose,
-            UsageDimension.Project => attempt.ProjectId,
-            UsageDimension.Day => LocalDay(attempt, zone).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-            UsageDimension.Week => IsoWeek(LocalDay(attempt, zone)),
-            UsageDimension.Month => LocalDay(attempt, zone).ToString("yyyy-MM", CultureInfo.InvariantCulture),
+            UsageDimension.Provider => [attempt.Provider.Value],
+            UsageDimension.Vendor => [attempt.Vendor.Value],
+            UsageDimension.Model => [attempt.Model()],
+            UsageDimension.Session => [attempt.SessionId is { Length: > 0 } session ? $"{attempt.Provider.Value}/{session}" : NoSession],
+            UsageDimension.Run => [attempt.RunId],
+            UsageDimension.Task => [attempt.TaskId ?? NoTask],
+            UsageDimension.Agent => [attempt.Agent.Value],
+            UsageDimension.Purpose => [attempt.Purpose?.ToString() ?? NoPurpose],
+            UsageDimension.Project => [attempt.ProjectId],
+            UsageDimension.Day => [LocalDay(attempt, zone).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)],
+            UsageDimension.Week => [IsoWeek(LocalDay(attempt, zone))],
+            UsageDimension.Month => [LocalDay(attempt, zone).ToString("yyyy-MM", CultureInfo.InvariantCulture)],
+            UsageDimension.Milestone => attempt.Milestones.Count == 0 ? [NoMilestone] : [.. attempt.Milestones.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)],
+            UsageDimension.Activity => [attempt.Activity?.Kind.ToString() ?? NoActivity],
+            UsageDimension.ActivityAttempt => [attempt.Activity?.Order.ToString() ?? NoActivity],
+            UsageDimension.ActivityDestination => [DestinationOf(attempt.Activity)],
             _ => throw new ArgumentOutOfRangeException(nameof(dimension), dimension, "Unknown usage dimension."),
         };
+    }
+
+    private static string DestinationOf(ActivityClass? activity) =>
+        activity is null ? NoActivity
+        : activity is { Fate: AttemptFate.Discarded, HasCommit: true } ? DiscardedWithCommit
+        : activity.Fate.ToString();
+
+    /// <summary>The cartesian product of the values of each dimension, in the order of the dimensions.</summary>
+    private static List<string[]> Combinations(List<IReadOnlyList<string>> perDimension)
+    {
+        var combinations = new List<string[]> { Array.Empty<string>() };
+        foreach (var values in perDimension)
+        {
+            if (values.Count == 1)
+            {
+                var only = values[0];
+                combinations = [.. combinations.Select(c => (string[])[.. c, only])];
+            }
+            else
+            {
+                combinations = [.. combinations.SelectMany(c => values.Select(v => (string[])[.. c, v]))];
+            }
+        }
+
+        return combinations;
     }
 
     private static bool Passes(UsageAttempt attempt, UsageFilter? filter) =>
@@ -219,6 +278,36 @@ public static class UsageAttemptFacts
             : attempt.RecordedVersion < AgentRunFinishedPayload.UsageVersion ? MetricValue<long>.Missing(UsageProjector.Version1Reason)
             : attempt.LaunchedAt is null ? MetricValue<long>.Missing("el proceso no llegó a arrancar")
             : MetricValue<long>.NotExposed("el CLI no informa de compactaciones");
+    }
+
+    /// <summary>
+    /// How long the attempt waited in the provider's queue (D-34), from <c>AgentRunStarted</c> to <c>LaunchedAt</c>: a duration measured by
+    /// Agent Studio apart from the execution. Missing when the process never started or the end is of version 1 (no launch time).
+    /// </summary>
+    public static MetricValue<long> QueueWait(this UsageAttempt attempt)
+    {
+        ArgumentNullException.ThrowIfNull(attempt);
+        if (attempt.LaunchedAt is not { } launched)
+        {
+            return MetricValue<long>.Missing(attempt.RecordedVersion < AgentRunFinishedPayload.UsageVersion ? UsageProjector.Version1Reason : "el proceso no llegó a arrancar");
+        }
+
+        return launched >= attempt.RecordedAt
+            ? MetricValue<long>.Measured(Milliseconds(launched - attempt.RecordedAt), "medido por Agent Studio: de AgentRunStarted al arranque del proceso")
+            : MetricValue<long>.Missing("el arranque del proceso es anterior a AgentRunStarted");
+    }
+
+    /// <summary>
+    /// How long the task waited for its quota window after the attempt hit a limit (D-34): from the block <c>RateLimitedUntil</c> to the task
+    /// leaving it, measured in the log and never part of the duration. An attempt that began no such wait has a measured zero; one whose
+    /// wait had not ended when the log ends has none (missing).
+    /// </summary>
+    public static MetricValue<long> QuotaWait(this UsageAttempt attempt)
+    {
+        ArgumentNullException.ThrowIfNull(attempt);
+        return attempt.OpenQuotaWait
+            ? MetricValue<long>.Missing("la espera de cuota seguía abierta al terminar el registro")
+            : MetricValue<long>.Measured(attempt.QuotaWaitMilliseconds ?? 0, "medido en el registro: del bloqueo RateLimitedUntil a la salida de la tarea");
     }
 
     private static long Milliseconds(TimeSpan span) => span.Ticks / TimeSpan.TicksPerMillisecond;

@@ -2087,7 +2087,7 @@ y se leen con `CommitTrailers.Read` (solo el último párrafo; clave repetida o 
 | `IBoardProjector` | `ProjectAsync`, `BacklogAsync` (tarjetas con su columna y su motivo `BoardCardReasons`) | WP1 |
 | `ITraceLinkService`, `ITraceSuggester`, `ITraceChainReader` | registrar, confirmar, retirar, vínculos de un nodo / sugerencias / la cadena de F9-4 | WP1 |
 | `IParticipationProjector` | los seis papeles de D-32 (`ParticipationRole`); un papel sin fuente es `ParticipationEntry.NotRecorded` («no consta») | WP1 |
-| `IProjectBudgetStore` | presupuesto del proyecto, de la persona y de su equipo; el del hito va en su cabecera | WP2 |
+| `IProjectBudgetStore` | presupuesto del proyecto, de la persona y de su equipo; el del hito va en su cabecera | su contrato y la puerta del motor, WP2; la implementación, pendiente (WP5 o el lead) |
 | `IRepositoryHistoryReader` | `SummaryAsync`, `BranchesAsync`, `CommitsAsync` por la capa git endurecida (`Infrastructure/Git/RepositoryHistoryReader.cs`, registrado en `AddAgentStudioGit`). Acotado: 1000 commits, 4 MiB de salida y 500 ramas, textos de git cortados y sin caracteres de control; las ramas son solo las locales (las remotas de seguimiento salen como refs del commit hasta la Fase 10). Falla cerrado: un repositorio no aceptado da `Accepted = false` con el código (`not-a-repository`, `inside-worktree-root`, `unsafe-repository`, `unsafe-configuration`, `git-failed`, `git-unavailable`) y lista vacía en ramas y commits | WP4 |
 | `IRepositoryAnnotator`, `IRepositoryActivityReader` | commits anotados desde el registro / la línea de tiempo de «Actividad» | WP1 y WP5 |
 
@@ -2095,8 +2095,22 @@ y se leen con `CommitTrailers.Read` (solo el último párrafo; clave repetida o 
 tres dimensiones, para que los grupos de un eje sumen el total), y `UsageGroup` gana `SharedAttempts` (opcional, 0): cuántos intentos del grupo están también
 en otro grupo de la dimensión (un hito), de modo que los grupos pueden sumar más que el total exactamente en eso.
 
-**Pendiente de WP2 y WP5 antes de integrar:** `UsageAggregator.KeyOf` lanza `ArgumentOutOfRangeException` con las dimensiones nuevas y
-`UsageDashboardViewModel.Dimensions` las ofrece todas (`Enum.GetValues`): hasta que WP2 las calcule y WP5 las etiquete, agrupar por ellas fallaría.
+**Lo que añade WP2 ([ADR-0040](adr/0040-consumo-por-hito-y-actividad-y-presupuestos.md), decisiones 8 a 13):**
+
+- `UsageAttempt` gana, como propiedades `init` (el patrón de `Effort`), `Milestones` (ids de hito; vacía si no está en ninguno), `Activity` (`ActivityClass`),
+  `QuotaWaitMilliseconds` y `OpenQuotaWait`; `UsageTotals` gana `QueueWaitMilliseconds` y `QuotaWaitMilliseconds` (`MetricAggregate<long>`), aparte de la duración.
+- `UsageAggregator.KeyOf` ya no lanza con ninguna dimensión; `KeysOf` da todos los valores de una (solo `Milestone` tiene más de uno). Claves: el id del hito o
+  «sin hito»; `Activity`, `ActivityAttempt` y `ActivityDestination` son los nombres de `ActivityKind`, `AttemptOrder` y `AttemptFate`, con `Discarded+commit` para lo
+  descartado que dejó commit y «sin clasificar» para un intento sin actividad (hecho a mano). Un intento de dos hitos sale en cada grupo y una vez en el total;
+  `UsageGroup.SharedAttempts` cuenta los miembros con más de un hito.
+- `MilestoneMembership` (`Application/Work`): a qué hitos pertenece una ejecución o un debate, por `MilestoneLinked` y `RunStarted.Follows`. `ActivityClassifier`
+  (`Observability/Usage`): `Classify(ActivityInput)`, puro. `ScopedEstimation` (`Observability/Estimates`): estimación por actividad o por hito y `CompareWithPlan`.
+- `ProjectBudgetGate` (`Orchestration/Engine`, pública para poder probarla; la usa el motor): `CheckAsync(proyecto, ejecución, petición de estimación, intentos en vuelo)`
+  da un `BudgetGateVerdict`. `Orchestrator` gana cuatro parámetros opcionales al final (`budgets`, `usage`, `milestones`, `logReader`); sin `budgets` ni `milestones` no hay
+  puerta. Un rechazo deja `AuditAlertRaised` con `project.budget-exceeded` (o `project.budget-unreadable` si no pudo comprobarlo: falla cerrado) y la ejecución acaba `Failed`
+  con el motivo en el resumen.
+- **Pendiente de WP5:** `UsageDashboardViewModel.Dimensions` ofrece todas con `Enum.GetValues`; el filtro que las oculta mientras el agregador no las soportaba ya sobra. WP5
+  etiqueta las dimensiones, enseña `SharedAttempts` y las esperas, y da pantalla al presupuesto. **`IProjectBudgetStore` no tiene implementación todavía.**
 
 ### 23.4 Diferencias con docs/16 §4.6
 

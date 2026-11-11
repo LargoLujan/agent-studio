@@ -81,6 +81,12 @@ internal sealed record EnginePorts(
     /// </summary>
     public IUsageEstimator? Estimator { get; init; }
 
+    /// <summary>
+    /// Phase 9 (docs/16 D-05, F9-8): the budget of the project and of the milestone, checked before an agent attempt launches
+    /// (<see cref="ProjectBudgetGate"/>). Null: there is no budget to apply, and nothing is read for it.
+    /// </summary>
+    public ProjectBudgetGate? BudgetGate { get; init; }
+
     /// <summary>The composed provider (journal and concurrency limit included) of a CLI for a project, or null.</summary>
     public IAgentProvider? ProviderFor(string projectRoot, Domain.Providers.ProviderId provider) =>
         Providers.For(projectRoot).FirstOrDefault(p => p.Provider == provider);
