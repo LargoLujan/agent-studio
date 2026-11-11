@@ -520,7 +520,7 @@ public sealed class ManagedExitTests
         Assert.Equal(ExitState.None, exit.State);
         Assert.Equal(1, _window.Shown);
         Assert.Equal([ManagedExit.PendingExitCancelledNotice], notices);
-        Assert.StartsWith("Abriste Agent Studio, así que ya no sale", ManagedExit.PendingExitCancelledNotice, StringComparison.Ordinal);
+        Assert.StartsWith("Has abierto Agent Studio, así que ya no saldrá", ManagedExit.PendingExitCancelledNotice, StringComparison.Ordinal);
 
         run.Move(attempts: 0);
         Assert.Equal(0, _shutdown.Calls);

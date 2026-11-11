@@ -81,9 +81,9 @@ public sealed class LockScreenViewModelTests
 
         Assert.True(harness.Screen.IsLocked);
         Assert.Equal("Agent Studio está bloqueado", LockScreenViewModel.Title);
-        Assert.Equal("Bloqueado a mano a las 10:05.", harness.Screen.LockedText);
+        Assert.Equal("Bloqueado por ti a las 10:05.", harness.Screen.LockedText);
         Assert.Equal("Sigue en marcha: 2 ejecuciones y 1 debate.", harness.Screen.RunningText);
-        Assert.Equal("Espera por ti: 1 aprobación.", harness.Screen.WaitingText);
+        Assert.Equal("Hay 1 aprobación pendiente.", harness.Screen.WaitingText);
         Assert.Equal(["deliver-integration · riesgo crítico · desde las 10:07"], harness.Screen.WaitingItems);
         Assert.True(harness.Screen.UnlockCommand.CanExecute(null));
         Assert.True(harness.Screen.LockWindowsCommand.CanExecute(null));
@@ -113,7 +113,7 @@ public sealed class LockScreenViewModelTests
 
         Assert.Equal("Bloqueado a las 10:00 por inactividad.", harness.Screen.LockedText);
         Assert.Equal("No hay trabajo en marcha.", harness.Screen.RunningText);
-        Assert.Equal("Nada espera por ti.", harness.Screen.WaitingText);
+        Assert.Equal("No hay nada pendiente.", harness.Screen.WaitingText);
     }
 
     [Fact]
@@ -144,7 +144,7 @@ public sealed class LockScreenViewModelTests
         harness.Clock.Advance(TimeSpan.FromMinutes(1));
         _ = harness.Lock.WaitUntilUnlockedAsync(Delivery with { Action = "discard-run-work", Risk = RiskLevel.Destructive }, Ct);
 
-        Assert.Equal("Esperan por ti: 2 aprobaciones.", harness.Screen.WaitingText);
+        Assert.Equal("Hay 2 aprobaciones pendientes.", harness.Screen.WaitingText);
         Assert.Equal(["deliver-integration · riesgo crítico · desde las 10:00", "discard-run-work · acción destructiva · desde las 10:01"], harness.Screen.WaitingItems);
     }
 

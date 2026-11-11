@@ -21,9 +21,9 @@ public sealed class ExitPromptViewModelTests
         var question = new ExitPromptViewModel(Question(keepInTray: true));
 
         Assert.True(question.OffersKeepInTray);
-        Assert.Equal("Vas a cerrar la ventana con 1 trabajo en marcha. ¿Qué hago con ello?", question.Intro);
+        Assert.Equal("Vas a cerrar la ventana y hay 1 trabajo en marcha. ¿Qué quieres hacer con él?", question.Intro);
         Assert.Equal("Pausar y salir cuando terminen los intentos en curso", question.PauseText);
-        Assert.Equal("Salir ahora y dejarlas interrumpidas", question.ExitNowText);
+        Assert.Equal("Salir ahora e interrumpir el trabajo", question.ExitNowText);
         Assert.Contains("no se reanudan solas", question.PauseHelp, StringComparison.Ordinal);
         Assert.Contains("No se reanuda solo", question.ExitNowHelp, StringComparison.Ordinal);
         Assert.Contains("todo sigue en marcha", question.KeepInTrayHelp, StringComparison.Ordinal);
@@ -37,7 +37,7 @@ public sealed class ExitPromptViewModelTests
         var question = new ExitPromptViewModel(Question(keepInTray: false, withDebate: true));
 
         Assert.False(question.OffersKeepInTray);
-        Assert.Equal("Vas a salir de Agent Studio con 2 trabajos en marcha. ¿Qué hago con ello?", question.Intro);
+        Assert.Equal("Vas a salir de Agent Studio y hay 2 trabajos en marcha. ¿Qué quieres hacer con ellos?", question.Intro);
         Assert.EndsWith("Los debates y las auditorías no se pueden pausar: espera a que terminen.", question.PauseHelp, StringComparison.Ordinal);
 
         question.ChooseCommand.Execute(ExitChoice.KeepInTray);

@@ -219,7 +219,7 @@ public sealed class TrayControllerTests
         var menu = _tray.OpenMenu();
 
         Assert.Equal("Agent Studio · saldrá al terminar 2 intentos en curso · 1 ejecución", _tray.ToolTip);
-        Assert.Contains("Salir ahora y dejarlas interrumpidas", Texts(menu));
+        Assert.Contains("Salir ahora e interrumpir el trabajo", Texts(menu));
         Assert.Contains("No salir", Texts(menu));
         Assert.DoesNotContain("Salir", Texts(menu));
 
@@ -290,7 +290,7 @@ public sealed class TrayControllerTests
         Assert.Equal(
             [
                 new TrayNotification("Agent Studio espera tu aprobación", "Una ejecución necesita tu aprobación para seguir."),
-                new TrayNotification("La espera de cuota terminó", "Una ejecución dejó de esperar cuota y sigue."),
+                new TrayNotification("Terminó la espera por el límite de uso", "Una ejecución dejó de esperar el límite de uso de tu plan y sigue."),
                 new TrayNotification("Ejecución terminada", "Una ejecución terminó: completada."),
             ],
             _tray.Notifications);
