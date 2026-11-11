@@ -65,6 +65,11 @@ public sealed record MediumIntegrityWriterEntry(
 /// shown next to «Aprobar plan» (<paramref name="ApprovedWarning"/>, null when there was none) and each writer it names
 /// (<paramref name="ApprovedWriters"/>, empty when there was none). Resuming reads the writers again and goes on only
 /// with these. A version 2 start anchors neither, which is not the same as anchoring none (<see cref="AnchorsApprovedWriters"/>).
+/// <paramref name="PlannedIn"/> (V43, no new version: it is left out when null, so every entry already written reads and is
+/// written back byte for byte) is the run in which the orchestrator planned, when it is not this one: the plan was edited
+/// after the orchestrator proposed it, or its proposal had started a run already, and the run got an id of its own. The
+/// questions the orchestrator asked before it planned, and their answers, are in the entries of that run: the start and a
+/// resume read them from there.
 /// </summary>
 public sealed record RunStartedPayload(
     string PlanHash,
@@ -76,7 +81,8 @@ public sealed record RunStartedPayload(
     string? Follows,
     string? HeaderHash = null,
     string? ApprovedWarning = null,
-    IReadOnlyList<MediumIntegrityWriterEntry>? ApprovedWriters = null) : DecisionPayload
+    IReadOnlyList<MediumIntegrityWriterEntry>? ApprovedWriters = null,
+    string? PlannedIn = null) : DecisionPayload
 {
     /// <summary>The first version that anchors the hash of the whole run header.</summary>
     public const int HeaderVersion = 2;

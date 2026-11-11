@@ -73,8 +73,10 @@ public sealed class OrchestratorQuestionReachesTheExecutorsTests
         return plan;
     }
 
-    [Fact]
-    public async Task The_answer_to_a_question_of_the_orchestrator_is_in_the_first_prompt_of_every_executor_and_the_judge_never_gets_it()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task The_answer_to_a_question_of_the_orchestrator_is_in_the_first_prompt_of_every_executor_and_the_judge_never_gets_it(bool edited)
     {
         using var repo = TempGitRepo.Create();
         var claude = ScriptedCli.Claude(TimeProvider.System);
@@ -115,15 +117,19 @@ public sealed class OrchestratorQuestionReachesTheExecutorsTests
         Assert.Equal(asked.Run, proposal.Run);
         Assert.True(proposal.Plan is not null && proposal.Violations.Count == 0, proposal.Error ?? string.Join(" ", proposal.Violations.Select(v => v.Message)));
 
-        // The run starts from that plan, in the run that asked.
-        var request = await app.RunRequestAsync(planning.OriginalRequest,Requirements(), proposal.Plan!, profile) with { Run = proposal.Run };
+        // The run starts from that plan: in the run that asked, or, when the person edited the plan after answering, in a run of its
+        // own that names the one the orchestrator planned in (the canvas does the same with the proposal it came from).
+        var plan = edited ? PlanDefinition.Create("Plan editado por la persona", proposal.Plan!.Tasks, ["Riesgo editado"], PlanSource.User, null) : proposal.Plan!;
+        var request = await app.RunRequestAsync(planning.OriginalRequest, Requirements(), plan, profile) with { Run = edited ? null : proposal.Run, PlannedIn = proposal.Run };
         await using var run = await app.Orchestrator.StartAsync(request, Ct);
+        Assert.Equal(!edited, run.Id == proposal.Run);
         var result = await run.Completion.WaitAsync(Guard, Ct);
         Assert.True(result.Phase == RunPhase.Succeeded, Phase4Checks.Describe(result) + "\n" + Phase4Checks.Describe(await app.LoadLogAsync()));
 
-        // The log has the question and the answer of the orchestrator once, with no task: the run only read them.
-        var (_, recordedQuestion) = Assert.Single(await app.PayloadsAsync<QuestionAskedPayload>(run.Id.Value));
-        var (_, recordedAnswer) = Assert.Single(await app.PayloadsAsync<QuestionAnsweredPayload>(run.Id.Value));
+        // The log has the question and the answer of the orchestrator once, with no task, in the run that planned: the run only read them.
+        var (_, recordedQuestion) = Assert.Single(await app.PayloadsAsync<QuestionAskedPayload>(asked.Run.Value));
+        var (_, recordedAnswer) = Assert.Single(await app.PayloadsAsync<QuestionAnsweredPayload>(asked.Run.Value));
+        Assert.Equal(edited ? asked.Run.Value : null, Assert.Single(await app.PayloadsAsync<RunStartedPayload>(run.Id.Value)).Payload.PlannedIn);
         Assert.Null(recordedQuestion.Task);
         Assert.Equal("plan-1", recordedQuestion.Question);
         Assert.Null(recordedAnswer.Task);

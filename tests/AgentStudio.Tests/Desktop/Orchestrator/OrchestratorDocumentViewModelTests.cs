@@ -312,6 +312,7 @@ public sealed class OrchestratorDocumentViewModelTests
 
         var request = Assert.Single(engine.RunRequests);
         Assert.Equal(Run, request.Run);
+        Assert.Equal(Run, request.PlannedIn); // where the orchestrator planned: here, the run itself
         Assert.Same(plan, request.Plan);
         Assert.True(request.PlanApproval.Approved);
         Assert.Equal("Añadir Calc.Multiply", request.OriginalRequest);
@@ -413,9 +414,30 @@ public sealed class OrchestratorDocumentViewModelTests
 
         var request = Assert.Single(engine.RunRequests);
         Assert.Null(request.Run);
+        Assert.Equal(Run, request.PlannedIn); // V43: the new run still names the run in which the orchestrator planned and was answered
         Assert.Equal(PlanSource.User, request.Plan.Source);
         Assert.Null(request.Plan.Author);
         Assert.Equal("Mantén la API pública.", request.Plan.Tasks.Single(t => t.Id == Tid("T1")).Instructions);
+    }
+
+    [Fact]
+    public async Task A_proposal_whose_run_already_started_runs_again_in_a_new_run_that_names_where_the_orchestrator_planned()
+    {
+        var plan = ValidPlan();
+        var engine = new FakeOrchestrator();
+        engine.Runs.Add(new RunSummary(Run, T0, RunPhase.Succeeded, plan.ContentHash, "Añadir Calc.Multiply", null));
+        engine.Plan = (_, _, _) => Task.FromResult(ProposalOf(plan));
+        engine.Start = request => new FakeRun(new RunSnapshot(new RunId("20260101-def456"), RunPhase.Running, [], FakeRun.Healthy, 0));
+        var document = await OpenAsync(Backends.Complete(engine));
+        document.RequestText = "Añadir Calc.Multiply";
+        await document.RequestPlanCommand.ExecuteAsync(null);
+        document.ApproveCommand.Execute(null);
+
+        await document.ExecuteCommand.ExecuteAsync(null);
+
+        var request = Assert.Single(engine.RunRequests);
+        Assert.Null(request.Run); // the id of the proposal is used once
+        Assert.Equal(Run, request.PlannedIn);
     }
 
     [Fact]
@@ -917,6 +939,7 @@ public sealed class OrchestratorDocumentViewModelTests
         var request = Assert.Single(engine.RunRequests);
         Assert.Equal(Run, request.Follows);
         Assert.Null(request.Run); // a new run: the refused one keeps its id, and the engine would say it already started
+        Assert.Null(request.PlannedIn); // a follow-up continues a run, it is not the plan of a proposal
         Assert.Equal(plan.ContentHash, request.Plan.ContentHash);
         Assert.Equal(UnmeasuredWarning, request.ApprovedWarning);
         Assert.True(document.Monitor.IsAttached);

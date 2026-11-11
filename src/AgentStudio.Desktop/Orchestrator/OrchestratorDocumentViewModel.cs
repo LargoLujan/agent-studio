@@ -1020,7 +1020,12 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         var fromProposal = follows is null && Proposal is { Plan: { } proposed } offered && string.Equals(proposed.ContentHash, plan.ContentHash, StringComparison.Ordinal)
             && IsUnused(offered.Run);
         var options = RunOptionsFor(stored);
-        var request = new RunRequest(project, fromProposal ? Proposal!.Run : null, RequestText.Trim(), requirements, plan, approval, profile, options, Follows: follows, ValidatedRoster: _approvedRoster, ApprovedWarning: _approvedWarning);
+
+        // The orchestrator asked, and was answered, in the run of its proposal. A plan that comes from that proposal, edited or
+        // not and with its run used or not, tells the engine where it planned, so the executors of the new run get the answers
+        // too (V43); a follow-up run continues another run, not a proposal.
+        RunId? plannedIn = follows is null && Proposal is { Plan: not null } planned ? planned.Run : null;
+        var request = new RunRequest(project, fromProposal ? Proposal!.Run : null, RequestText.Trim(), requirements, plan, approval, profile, options, Follows: follows, ValidatedRoster: _approvedRoster, ApprovedWarning: _approvedWarning, PlannedIn: plannedIn);
         IsBusy = true;
         BusyText = "Iniciando la ejecución…";
         ErrorMessage = null;

@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text;
-using System.Text.Json;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Prompts;
@@ -21,35 +20,14 @@ namespace AgentStudio.Orchestration.Planning;
 /// </summary>
 internal static class PlannerQuestions
 {
-    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter(JsonNamingPolicy.CamelCase) } };
-
     /// <summary>The id of the <paramref name="index"/>-th question (from 0) of a planning: unique in its run, since a run asks once.</summary>
     public static string IdOf(int index) => "plan-" + (index + 1).ToString(CultureInfo.InvariantCulture);
 
-    /// <summary>The question as the evidence of the agent keeps it: its text, its why and its options, as JSON.</summary>
-    public static string EvidenceOf(AgentQuestion question) => JsonSerializer.Serialize(question, Json);
-
     /// <summary>
-    /// The question in its evidence (<see cref="EvidenceOf"/>), or null when the text is not one that may have been recorded: a
-    /// run that starts, or resumes, with the answer to it (V43) reads it back only as the log anchored it.
+    /// The question as the evidence of the agent keeps it: its text, its why and its options, as JSON. A run that starts or resumes
+    /// with the answer to it (V43) reads it back with <see cref="QuestionDocuments.ReadPlannerQuestion"/>.
     /// </summary>
-    public static AgentQuestion? ReadEvidence(string json)
-    {
-        AgentQuestion? question;
-        try
-        {
-            question = JsonSerializer.Deserialize<AgentQuestion>(json, Json);
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
-
-        // The detail of an option is optional (QuestionRules): only what an answer is quoted with has to be there.
-        return question is { Text: not null, Why: not null, Options: { Count: > 0 } options } && options.All(o => o is { Id: not null, Label: not null })
-            ? question
-            : null;
-    }
+    public static string EvidenceOf(AgentQuestion question) => QuestionDocuments.PlannerQuestionJson(question);
 
     /// <summary>
     /// The run the answers go on in, after checking them against the verified log: they answer every question of the
