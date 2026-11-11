@@ -151,7 +151,7 @@ public sealed partial class OrderReviewViewModel : ObservableObject
     [RelayCommand]
     private async Task ConfirmAsync()
     {
-        if (_services.OrderReview is not { } service || _subject() is not { } subject || !Consent.IsOpen)
+        if (_services.OrderReview is not { } service || _subject() is not { } subject || !Consent.IsOpen || !Consent.IsReady)
         {
             return;
         }

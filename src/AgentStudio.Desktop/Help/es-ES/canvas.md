@@ -1,7 +1,7 @@
 ---
 title: El lienzo: el plan y el equipo
 screens: canvas
-info: Info_Canvas_Layers, Info_Canvas_Plan, Info_Canvas_Team, Info_Canvas_Inspector, Info_Canvas_Strip, Info_Canvas_Motion, Info_Canvas_Repository, Info_Tools
+info: Info_Canvas_Layers, Info_Canvas_Plan, Info_Canvas_Team, Info_Canvas_Inspector, Info_Canvas_Strip, Info_Canvas_Motion, Info_Tools
 ---
 El lienzo es el dibujo de tu trabajo. Tiene dos capas que alternas con los botones de arriba.
 

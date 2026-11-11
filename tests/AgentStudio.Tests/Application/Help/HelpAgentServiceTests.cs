@@ -65,10 +65,15 @@ public sealed class HelpAgentServiceTests
 
         public string Scratch { get; }
 
-        public QuotaConsent Consent() => new("miveritas", Clock.GetUtcNow().AddSeconds(-++_consents), "Una pregunta a la ayuda: ~2.000 tokens (estimado)");
+        /// <summary>The OK of the person for this card and this question: its description carries their fingerprint, as the panel writes it.</summary>
+        public QuotaConsent Consent(HelpContextCard? card = null, string question = "¿Dónde veo cuánto he gastado?") =>
+            new("miveritas", Clock.GetUtcNow().AddSeconds(-++_consents), "Una pregunta a la ayuda: ~2.000 tokens (estimado) " + HelpAgentService.ConsentTag(card ?? Card(), question, "es-ES", HelpAgentChoice.Default));
 
-        public HelpAskRequest Request(string question = "¿Dónde veo cuánto he gastado?", HelpContextCard? card = null, QuotaConsent? consent = null) =>
-            new(Project, question, "es-ES", card ?? Card(), HelpAgentChoice.Default, consent ?? Consent());
+        public HelpAskRequest Request(string question = "¿Dónde veo cuánto he gastado?", HelpContextCard? card = null, QuotaConsent? consent = null)
+        {
+            var shown = card ?? Card();
+            return new(Project, question, "es-ES", shown, HelpAgentChoice.Default, consent ?? Consent(shown, question));
+        }
 
         public Task<HelpAskReply> AskAsync(HelpAskRequest request) => Service.AskAsync(request, null, TestContext.Current.CancellationToken);
 
@@ -278,6 +283,82 @@ public sealed class HelpAgentServiceTests
 
         Assert.Single(world.Provider.Starts);
         Assert.Single(world.Store.Of(Project.ProjectId), e => e.Kind == DecisionKind.AgentRunStarted);
+    }
+
+    [Fact]
+    public async Task An_OK_given_for_one_question_does_not_serve_another_and_is_not_spent_by_the_refusal()
+    {
+        using var world = new World();
+        var forFirst = world.Consent(question: "Primera pregunta");
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => world.AskAsync(world.Request("Segunda pregunta", consent: forFirst)));
+        Assert.Contains("another card or question", ex.Message, StringComparison.Ordinal);
+
+        var otherCard = Card(includeProjectData: true);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => world.AskAsync(world.Request("Primera pregunta", otherCard, forFirst)));
+        Assert.Empty(world.Provider.Starts);
+
+        // It still serves the question it was given for.
+        await world.AskAsync(world.Request("Primera pregunta", consent: forFirst));
+        Assert.Single(world.Provider.Starts);
+    }
+
+    [Fact]
+    public async Task A_launch_the_runner_would_refuse_before_starting_does_not_burn_the_OK()
+    {
+        using var holder = new World();
+        using var target = new World();
+        var link = Path.Combine(holder.Scratch, "enlace");
+        if (!TryLink(link, target.Scratch))
+        {
+            Assert.Skip("This machine cannot create a link (no privilege for a symbolic link and no junction).");
+        }
+
+        var linked = new HelpAgentService(holder.Runner, Redactor, holder.Consents, new Corpus(), new Search(), new Catalog(), holder.Clock, scratchRoot: link);
+        var request = holder.Request();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => linked.AskAsync(request, null, TestContext.Current.CancellationToken));
+
+        Assert.Empty(holder.Provider.Starts);
+        Assert.Empty(holder.Store.Of(Project.ProjectId));
+        Assert.True(holder.Consents.TrySpend(request.Consent), "The refused launch did not spend the OK.");
+        Directory.Delete(link);
+    }
+
+    private static bool TryLink(string link, string target)
+    {
+        try
+        {
+            Directory.CreateSymbolicLink(link, target);
+            return true;
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
+        {
+            // No privilege for a symbolic link: a junction is a reparse point as well.
+        }
+
+        try
+        {
+            var start = new System.Diagnostics.ProcessStartInfo("cmd.exe", $"/c mklink /J \"{link}\" \"{target}\"") { CreateNoWindow = true, UseShellExecute = false, RedirectStandardOutput = true };
+            using var process = System.Diagnostics.Process.Start(start);
+            process?.WaitForExit();
+            return process?.ExitCode == 0 && Directory.Exists(link);
+        }
+        catch (Exception ex) when (ex is IOException or System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            return false;
+        }
+    }
+
+    [Fact]
+    public void What_the_agent_names_in_the_details_is_cleaned_of_hidden_characters()
+    {
+        var hidden = "inventado" + (char)0x202E + "\u0007" + new string('x', 60);
+        var check = HelpAnswerRules.Check("Hola", [hidden], [hidden], ["usage"], ["open.usage"]);
+
+        Assert.Equal(2, check.Discarded.Count);
+        Assert.All(check.Discarded, d => Assert.False(PlainText.HasHiddenCharacter(d, allowLineBreaks: false)));
+        Assert.All(check.Discarded, d => Assert.DoesNotContain(new string('x', 41), d, StringComparison.Ordinal));
     }
 
     // ---- the answer (D-56) ----

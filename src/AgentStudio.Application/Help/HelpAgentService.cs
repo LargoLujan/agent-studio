@@ -162,8 +162,8 @@ public sealed class HelpAgentService : IHelpAgent
         var sentIds = articles.Select(a => a.Id).ToList();
         var prompt = Prompt(request, articles, knownActions);
 
-        // 2: the OK of the person, once.
-        SpendConsent(request.Consent);
+        // 2: the OK is checked now, without spending it: recent, and for this card and this question.
+        CheckConsent(request.Consent, ConsentTag(request.Context, request.Question, request.Language, request.Agent));
 
         // 3: an empty folder of its own for this question, outside any project; it is deleted whatever happens.
         var folder = CreateEmptyFolder();
@@ -179,6 +179,19 @@ public sealed class HelpAgentService : IHelpAgent
                 Purpose: "Ayuda de Agent Studio",
                 Tags: ["#ayuda"],
                 PersistSession: false);
+
+            // What the runner would refuse before launching (a folder under a link, say) is refused here, before the OK is spent.
+            if (AuxiliaryAgentRunner.ReadOnlyViolations(launch) is { Count: > 0 } violations)
+            {
+                throw new InvalidOperationException($"The help agent cannot be launched safely: {string.Join("; ", violations)}.");
+            }
+
+            // 4: the OK is spent once, just before the launch.
+            if (!_consents.TrySpend(request.Consent))
+            {
+                throw new InvalidOperationException("The consent was spent by an earlier run: each question needs its own OK.");
+            }
+
             var result = await _runner.RunAsync(request.Project, new AuxiliaryRunRequest(AgentRunPurpose.Help, launch), progress, ct).ConfigureAwait(false);
             if (result.Outcome.Status != AgentRunStatus.Succeeded || string.IsNullOrWhiteSpace(result.Outcome.StructuredOutputJson))
             {
@@ -192,7 +205,7 @@ public sealed class HelpAgentService : IHelpAgent
             }
             catch (JsonException ex)
             {
-                return Failed(result, [ex.Message], "The answer of the agent of the help does not follow its schema.");
+                return Failed(result, [Cut(PlainText.Strip(ex.Message, keepLineBreaks: false), 200)], "The answer of the agent of the help does not follow its schema.");
             }
 
             if (answer is null)
@@ -247,7 +260,31 @@ public sealed class HelpAgentService : IHelpAgent
         return articles;
     }
 
-    private void SpendConsent(QuotaConsent consent)
+    /// <summary>
+    /// A short fingerprint of what one OK is for: the card (its screen, its parts and the mark), the question, the language and who
+    /// answers. The desktop adds it to the description of the OK (<see cref="QuotaConsent.Description"/>), and the service refuses an OK
+    /// whose description does not carry the fingerprint of the question it is asked with, so an OK that was not spent cannot be used for
+    /// another question.
+    /// </summary>
+    public static string ConsentTag(HelpContextCard card, string question, string language, HelpAgentChoice choice)
+    {
+        ArgumentNullException.ThrowIfNull(card);
+        ArgumentNullException.ThrowIfNull(choice);
+        var text = new StringBuilder();
+        text.Append(card.Screen).Append('\n').Append(card.IncludesProjectData ? '1' : '0').Append('\n');
+        foreach (var part in card.Parts)
+        {
+            text.Append(part.Kind).Append('\t').Append(part.Text).Append('\n');
+        }
+
+        text.Append(question).Append('\n').Append(language).Append('\n').Append(choice.Provider.Value).Append('\n').Append(choice.Model);
+        var hash = System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(text.ToString()));
+        return "#" + Convert.ToHexStringLower(hash.AsSpan(0, 6));
+    }
+
+    private static string Cut(string text, int max) => text.Length <= max ? text : text[..max];
+
+    private void CheckConsent(QuotaConsent consent, string tag)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(consent.DecidedBy, nameof(consent));
         ArgumentException.ThrowIfNullOrWhiteSpace(consent.Description, nameof(consent));
@@ -262,9 +299,9 @@ public sealed class HelpAgentService : IHelpAgent
             throw new InvalidOperationException(string.Create(CultureInfo.InvariantCulture, $"The consent was given more than {ConsentValidity.TotalMinutes} minutes ago: ask the person again."));
         }
 
-        if (!_consents.TrySpend(consent))
+        if (!consent.Description.Contains(tag, StringComparison.Ordinal))
         {
-            throw new InvalidOperationException("The consent was spent by an earlier run: each question needs its own OK.");
+            throw new InvalidOperationException("The consent was given for another card or question: ask the person again.");
         }
     }
 

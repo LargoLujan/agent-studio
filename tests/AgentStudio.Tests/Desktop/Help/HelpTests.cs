@@ -89,6 +89,9 @@ public sealed partial class HelpTests
 
         var linked = Corpus.Articles("es-ES").SelectMany(a => a.InfoKeys).ToList();
         Assert.Equal(linked.Count, linked.Distinct(StringComparer.Ordinal).Count());
+
+        // The other way round: no article is linked to a key that no ⓘ of the screens has.
+        Assert.All(linked, key => Assert.Contains(key, keys));
         var all = ResourceFiles().Values.SelectMany(f => Read(f.Neutral).Keys).ToHashSet(StringComparer.Ordinal);
         Assert.All(linked, key => Assert.Contains(key + "_What", all));
     }
@@ -308,6 +311,33 @@ public sealed partial class HelpTests
 
         Assert.Equal(System.Windows.Visibility.Visible, withArticle);
         Assert.Equal(System.Windows.Visibility.Collapsed, without);
+    }
+
+    [Fact]
+    public async Task The_OK_of_a_card_cannot_be_given_while_it_still_says_calculating()
+    {
+        var card = new AgentStudio.Desktop.Orchestrator.Preparation.QuotaConsentCardViewModel(new AgentStudio.Desktop.Orchestrator.Team.CanvasText(Spanish), TimeProvider.System);
+        var gate = new TaskCompletionSource<AgentStudio.Application.Usage.UsageEstimate?>();
+
+        var opening = card.OpenAsync("Una pregunta", _ => gate.Task);
+        Assert.True(card.IsOpen);
+        Assert.False(card.IsReady);
+        Assert.Equal(Spanish.Get("Canvas_Consent_Estimating"), card.EstimateText);
+
+        gate.SetResult(null);
+        await opening;
+        Assert.True(card.IsReady);
+        Assert.NotEqual(Spanish.Get("Canvas_Consent_Estimating"), card.EstimateText);
+
+        card.Close();
+        Assert.False(card.IsReady);
+
+        // An estimator that fails, and none at all, are final answers too («sin estimación»).
+        await card.OpenAsync("Una pregunta", _ => throw new InvalidOperationException("no hay"));
+        Assert.True(card.IsReady);
+        card.Close();
+        await card.OpenAsync("Una pregunta", null);
+        Assert.True(card.IsReady);
     }
 
     [Fact]

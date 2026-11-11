@@ -643,7 +643,12 @@ public static class HelpAnswerRules
         return kept;
     }
 
-    private static string Shorten(string text) => text.Length <= 40 ? text : text[..40] + "…";
+    /// <summary>What the agent named, without hidden characters and cut: it is shown to the person in «Detalles».</summary>
+    private static string Shorten(string text)
+    {
+        var plain = PlainText.Strip(text, keepLineBreaks: false);
+        return plain.Length <= 40 ? plain : plain[..40] + "…";
+    }
 }
 
 /// <summary>
