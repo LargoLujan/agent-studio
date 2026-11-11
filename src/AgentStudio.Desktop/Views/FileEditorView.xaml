@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
              xmlns:vm="clr-namespace:AgentStudio.Desktop.ViewModels"
              xmlns:views="clr-namespace:AgentStudio.Desktop.Views"
              xmlns:ed="clr-namespace:AgentStudio.Desktop.Controls.Editor"
@@ -42,20 +43,20 @@
             <StackPanel>
                 <WrapPanel Orientation="Horizontal">
                     <Button Style="{StaticResource GhostButton}" Padding="10,4" Margin="0,0,8,0"
-                            Content="Comparar con la versión guardada" Command="{Binding CompareWithSavedCommand}"
-                            ToolTip="Compara lo que hay en el editor con la versión guardada en disco (Ctrl+Alt+D)"
+                            Content="{l:T FileDoc_CompareSaved}" Command="{Binding CompareWithSavedCommand}"
+                            ToolTip="{l:T FileDoc_CompareSaved_Hint}"
                             ToolTipService.ShowOnDisabled="True"
-                            AutomationProperties.Name="Comparar con la versión guardada"/>
+                            AutomationProperties.Name="{l:T FileDoc_CompareSaved}"/>
                     <Button Style="{StaticResource GhostButton}" Padding="10,4" Margin="0,0,8,0"
-                            Content="Comparar con otro fichero…" Command="{Binding CompareWithFileCommand}"
-                            ToolTip="Compara lo que hay en el editor con otro fichero del proyecto (Ctrl+Alt+F)"
+                            Content="{l:T FileDoc_CompareFile}" Command="{Binding CompareWithFileCommand}"
+                            ToolTip="{l:T FileDoc_CompareFile_Hint}"
                             ToolTipService.ShowOnDisabled="True"
-                            AutomationProperties.Name="Comparar con otro fichero"/>
+                            AutomationProperties.Name="{l:T FileDoc_CompareFile_Name}"/>
                     <Button x:Name="BackToEditorButton" Style="{StaticResource PrimaryButton}" Padding="10,4" Margin="0,0,8,0"
-                            Content="Volver al editor" Command="{Binding CloseDiffCommand}"
+                            Content="{l:T FileDoc_BackToEditor}" Command="{Binding CloseDiffCommand}"
                             Visibility="{Binding IsComparing, Converter={StaticResource BoolToVisibility}}"
-                            ToolTip="Sale de la comparación y vuelve a editar el fichero (Esc)"
-                            AutomationProperties.Name="Volver al editor"/>
+                            ToolTip="{l:T FileDoc_BackToEditor_Hint}"
+                            AutomationProperties.Name="{l:T FileDoc_BackToEditor}"/>
                 </WrapPanel>
                 <!-- Which text is which. Monaco shows two panes when the editor is wide and one unified list when it is
                      narrow, so the sides are named by role and colour (the red and green of the diff), not left and right. -->
@@ -75,22 +76,22 @@
                     <TextBlock x:Name="DiffOriginalText" Grid.Row="0" Grid.Column="1" Style="{StaticResource SecondaryText}"
                                TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
                                ToolTip="{Binding DiffOriginalLabel}"
-                               AutomationProperties.Name="Lado original de la comparación">
-                        <Run Text="Original: " FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/><Run Text="{Binding DiffOriginalLabel, Mode=OneWay}"/>
+                               AutomationProperties.Name="{l:T FileDoc_OriginalName}">
+                        <Run Text="{l:T FileDoc_Original}" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/><Run Text="{Binding DiffOriginalLabel, Mode=OneWay}"/>
                     </TextBlock>
                     <Border Grid.Row="1" Grid.Column="0" Width="10" Height="10" CornerRadius="2" Margin="0,3,8,0"
                             VerticalAlignment="Center" Background="{StaticResource SuccessBrush}"/>
                     <TextBlock x:Name="DiffModifiedText" Grid.Row="1" Grid.Column="1" Margin="0,3,0,0" Style="{StaticResource SecondaryText}"
                                TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
                                ToolTip="{Binding DiffModifiedLabel}"
-                               AutomationProperties.Name="Lado modificado de la comparación">
-                        <Run Text="Modificado: " FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/><Run Text="{Binding DiffModifiedLabel, Mode=OneWay}"/>
+                               AutomationProperties.Name="{l:T FileDoc_ModifiedName}">
+                        <Run Text="{l:T FileDoc_Modified}" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/><Run Text="{Binding DiffModifiedLabel, Mode=OneWay}"/>
                     </TextBlock>
                     <TextBlock Grid.Row="2" Grid.Column="1" Margin="0,3,0,0" Style="{StaticResource SecondaryText}"
-                               Text="Comparación de solo lectura. «Volver al editor» (o Esc) para seguir editando."/>
+                               Text="{l:T FileDoc_ReadOnlyNote}"/>
                 </Grid>
                 <TextBlock x:Name="DiffErrorText" Style="{StaticResource ErrorText}" Margin="0,6,0,0"
-                           Text="{Binding DiffError}" AutomationProperties.Name="Error de la comparación"/>
+                           Text="{Binding DiffError}" AutomationProperties.Name="{l:T FileDoc_DiffErrorName}"/>
             </StackPanel>
         </Border>
         <!-- Non-blocking notice: Monaco cannot keep mixed line endings, so saving unifies them. -->
@@ -108,7 +109,7 @@
             </Border.Style>
             <TextBlock Text="{Binding Editor.MixedLineEndingsNotice}" TextWrapping="Wrap"
                        Foreground="{StaticResource WarningBrush}"
-                       AutomationProperties.Name="Aviso de finales de línea"/>
+                       AutomationProperties.Name="{l:T FileDoc_LineEndingsName}"/>
         </Border>
         <views:FileTextView x:Name="Fallback" Grid.Row="2"/>
         <ed:CodeEditorControl x:Name="Editor" Grid.Row="2" Document="{Binding Editor}" Visibility="Collapsed"/>

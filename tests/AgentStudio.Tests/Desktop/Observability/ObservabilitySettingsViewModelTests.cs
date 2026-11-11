@@ -111,7 +111,7 @@ public sealed class ObservabilitySettingsViewModelTests
         settings.WarningText = "60";
         ajustes.SaveCommand.Execute(null);
 
-        Assert.Equal("No se pudieron guardar los ajustes: Disco lleno.", ajustes.ErrorMessage);
+        Assert.Equal("No se pudieron guardar los ajustes (Disco lleno.). Vuelve a intentarlo.", ajustes.ErrorMessage);
         Assert.Equal(0.70, settings.Thresholds.Warning);
     }
 

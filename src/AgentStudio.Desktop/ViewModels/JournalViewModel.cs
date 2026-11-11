@@ -1,7 +1,7 @@
-using System.Globalization;
 using System.IO;
 using System.Threading.Channels;
 using AgentStudio.Application.Projects;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Markdown;
 using AgentStudio.Desktop.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -108,7 +108,7 @@ public sealed partial class JournalViewModel : ObservableObject, IDisposable
     public bool HasNewEntries => ShowPlainText && !string.Equals(_plainText, Text, StringComparison.Ordinal);
 
     /// <summary>What the panel says while <see cref="HasNewEntries"/>; null otherwise.</summary>
-    public string? NewEntriesNote => HasNewEntries ? "Hay entradas nuevas: «Recargar» las enseña aquí; la vista legible ya las tiene." : null;
+    public string? NewEntriesNote => HasNewEntries ? Texts.Get("Journal_NewEntries") : null;
 
     public bool IsTrimmed => Excerpt.IsTrimmed;
 
@@ -116,12 +116,12 @@ public sealed partial class JournalViewModel : ObservableObject, IDisposable
 
     /// <summary>Why not all of the day is drawn, and how to see it; null when all of it is.</summary>
     public string? TrimNote => !Excerpt.IsTrimmed ? null
-        : ShowPlainText ? "Se ve el día completo como texto, sin formato."
+        : ShowPlainText ? Texts.Get("Journal_Trim_Plain")
         : Excerpt.ShownEntries > 0
-            ? string.Create(CultureInfo.InvariantCulture, $"Bitácora larga: se ven las {Excerpt.ShownEntries} entradas más recientes de {Excerpt.TotalEntries}.")
-            : string.Create(CultureInfo.InvariantCulture, $"Bitácora larga: se ven las últimas {Excerpt.ShownLines} líneas de {Excerpt.TotalLines}.");
+            ? Texts.Format("Journal_Trim_Entries", Excerpt.ShownEntries, Excerpt.TotalEntries)
+            : Texts.Format("Journal_Trim_Lines", Excerpt.ShownLines, Excerpt.TotalLines);
 
-    public string ToggleText => ShowPlainText ? "Ver legible" : "Ver todo";
+    public string ToggleText => Texts.Get(ShowPlainText ? "Journal_Toggle_Formatted" : "Journal_Toggle_All");
 
     partial void OnTextChanged(string value)
     {
@@ -156,7 +156,7 @@ public sealed partial class JournalViewModel : ObservableObject, IDisposable
 
     /// <summary>Honest empty / error state; null when the journal was shown.</summary>
     [ObservableProperty]
-    private string? _statusMessage = "Abre una carpeta para ver su bitácora.";
+    private string? _statusMessage = Texts.Get("Journal_NoFolder");
 
     [ObservableProperty]
     private bool _isBusy;
@@ -220,7 +220,7 @@ public sealed partial class JournalViewModel : ObservableObject, IDisposable
         {
             ReadScope = null;
             Text = string.Empty;
-            StatusMessage = "Abre una carpeta para ver su bitácora.";
+            StatusMessage = Texts.Get("Journal_NoFolder");
             return Task.CompletedTask;
         }
 
@@ -228,7 +228,7 @@ public sealed partial class JournalViewModel : ObservableObject, IDisposable
         {
             ReadScope = null;
             Text = string.Empty;
-            StatusMessage = "La bitácora no se puede leer: falta la lectura comprobada de .agentstudio (sin ella no se abre ningún fichero del proyecto).";
+            StatusMessage = Texts.Get("Journal_NoReader");
             return Task.CompletedTask;
         }
 
@@ -356,16 +356,16 @@ public sealed partial class JournalViewModel : ObservableObject, IDisposable
         }
         catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
         {
-            return (string.Empty, $"No hay bitácora de hoy ({file}). Se crea con la primera petición del día.");
+            return (string.Empty, Texts.Format("Journal_NoToday", file));
         }
         catch (IOException ex)
         {
             // Also a refused link or a path that reaches another place: nothing of it is shown.
-            return (string.Empty, $"No se pudo leer la bitácora: {ex.Message}");
+            return (string.Empty, Texts.Format("Journal_ReadFailed", ex.Message));
         }
         catch (UnauthorizedAccessException ex)
         {
-            return (string.Empty, $"No se pudo leer la bitácora: {ex.Message}");
+            return (string.Empty, Texts.Format("Journal_ReadFailed", ex.Message));
         }
     }
 

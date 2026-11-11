@@ -113,7 +113,7 @@ public sealed class Phase4ShellTests : IDisposable
         Assert.Equal(
             [
                 "Explorador", "Orquestador", Texts.Get("Shell_Activity_Agents"), "Skills", Texts.Get("Shell_Activity_Tools"), Texts.Get("Shell_Activity_Tests"),
-                "Consumo", "Memoria", "Terminal", "Auto Doctor", "Historial · bitácora",
+                "Consumo", "Memoria", "Terminal", "Auto Doctor", "Historial (bitácora)",
             ],
             shell.Main.Activities.Select(a => a.Title));
         foreach (var id in new[] { "skills", "usage", "memory" })

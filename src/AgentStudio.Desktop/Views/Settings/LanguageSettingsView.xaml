@@ -4,6 +4,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
+             xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=l:LanguageSettingsViewModel}"
              AutomationProperties.Name="{l:T Info_Language_Title}">
@@ -14,7 +15,10 @@
         <BooleanToVisibilityConverter x:Key="Language.BoolToVisibility"/>
     </UserControl.Resources>
     <StackPanel>
-        <TextBlock Style="{StaticResource SectionTitleText}" Text="{l:T Info_Language_Title}"/>
+        <DockPanel>
+            <info:InfoButton DockPanel.Dock="Right" InfoKey="Info_Language" VerticalAlignment="Center"/>
+            <TextBlock Style="{StaticResource SectionTitleText}" Text="{l:T Info_Language_Title}" VerticalAlignment="Center"/>
+        </DockPanel>
         <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,0" TextWrapping="Wrap" Text="{l:T Info_Language_What}"/>
         <ComboBox Margin="0,14,0,0" Width="320" HorizontalAlignment="Left" ItemsSource="{Binding Choices}" SelectedItem="{Binding Selected}"
                   AutomationProperties.Name="{l:T Info_Language_Title}"/>

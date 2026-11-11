@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
              xmlns:vm="clr-namespace:AgentStudio.Desktop.ViewModels"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:WelcomeDocumentViewModel}">
@@ -55,28 +56,28 @@
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" Background="{StaticResource BackgroundBrush}">
         <StackPanel Margin="40,32" MaxWidth="640" HorizontalAlignment="Left">
-            <TextBlock Style="{StaticResource TitleText}" Text="Agent Studio"/>
+            <TextBlock Style="{StaticResource TitleText}" Text="{l:T App_Name}"/>
 
             <!-- Without a project: open one. -->
             <StackPanel x:Name="StartPanel" Style="{StaticResource WithoutProject}">
                 <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,24" TextWrapping="Wrap"
-                           Text="Abre la carpeta de un proyecto para ver sus ficheros, su bitácora y el estado de los proveedores."/>
+                           Text="{l:T Welcome_Intro}"/>
                 <Button Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"
-                        Content="Abrir carpeta" Command="{Binding OpenFolderCommand}"/>
+                        Content="{l:T Main_OpenFolder}" Command="{Binding OpenFolderCommand}"/>
             </StackPanel>
 
             <!-- With a project: the ways into it, with their shortcuts. -->
             <StackPanel x:Name="ProjectPanel" Style="{StaticResource WithProject}">
-                <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="Proyecto abierto"/>
+                <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="{l:T Welcome_ProjectOpen}"/>
                 <TextBlock x:Name="ProjectNameText" Style="{StaticResource SectionTitleText}" Margin="0,2,0,0" Text="{Binding ProjectName}"
-                           AutomationProperties.Name="{Binding ProjectName, StringFormat='Proyecto abierto: {0}'}"/>
+                           AutomationProperties.Name="{Binding ProjectName, StringFormat={l:T Main_Project_OpenNamed}}"/>
                 <TextBlock Style="{StaticResource SecondaryText}" FontFamily="{StaticResource MonoFont}" TextTrimming="CharacterEllipsis"
                            Text="{Binding ProjectPathDisplay}"/>
 
                 <TextBlock Style="{StaticResource SecondaryText}" Margin="0,16,0,0" TextWrapping="Wrap" Text="{Binding SetupSuggestion}"
                            Visibility="{Binding HasSetupSuggestion, Converter={StaticResource Welcome.BoolToVisibility}}"
                            AutomationProperties.LiveSetting="Polite"/>
-                <TextBlock Style="{StaticResource SectionTitleText}" Margin="0,28,0,12" Text="En este proyecto"/>
+                <TextBlock Style="{StaticResource SectionTitleText}" Margin="0,28,0,12" Text="{l:T Welcome_InProject}"/>
                 <ItemsControl x:Name="ProjectActionsList" ItemsSource="{Binding ProjectActions}" Focusable="False">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type vm:WelcomeActionViewModel}">
@@ -101,11 +102,11 @@
                 </ItemsControl>
 
                 <Button Style="{StaticResource GhostButton}" HorizontalAlignment="Left" Margin="0,8,0,0"
-                        Content="Abrir otra carpeta" Command="{Binding OpenFolderCommand}"/>
+                        Content="{l:T Welcome_OpenOther}" Command="{Binding OpenFolderCommand}"/>
             </StackPanel>
 
-            <TextBlock Style="{StaticResource SectionTitleText}" Margin="0,32,0,12" Text="Proyectos recientes"/>
-            <TextBlock Text="Todavía no has abierto ningún proyecto.">
+            <TextBlock Style="{StaticResource SectionTitleText}" Margin="0,32,0,12" Text="{l:T Welcome_Recent}"/>
+            <TextBlock Text="{l:T Welcome_NoRecent}">
                 <TextBlock.Style>
                     <Style TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
                         <Setter Property="Visibility" Value="Collapsed"/>

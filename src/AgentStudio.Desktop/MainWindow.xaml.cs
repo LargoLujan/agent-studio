@@ -10,6 +10,7 @@ using System.Windows.Interop;
 using System.Windows.Threading;
 using AgentStudio.Desktop.Background;
 using AgentStudio.Desktop.Controls.Terminal;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Lock;
 using AgentStudio.Desktop.Orchestrator;
 using AgentStudio.Desktop.Services;
@@ -262,7 +263,7 @@ public partial class MainWindow : Window
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            _viewModel.StatusMessage = $"No se pudo cerrar la ventana: {ex.Message}";
+            _viewModel.StatusMessage = Texts.Format("Main_CloseFailed", ex.Message);
         }
         finally
         {
@@ -649,9 +650,24 @@ public partial class MainWindow : Window
                 continue;
             }
 
-            pane.Children.Add(new LayoutAnchorable { ContentId = id, Title = Localization.Texts.Get(titleKey), CanFloat = true, Content = content });
+            pane.Children.Add(new LayoutAnchorable { ContentId = id, Title = Texts.Get(titleKey), CanFloat = true, Content = content });
         }
     }
+
+    /// <summary>
+    /// The key of the title of each panel: a layout saved while the interface was in another language comes back with the titles
+    /// of the language in use, not the ones it was saved with.
+    /// </summary>
+    private static readonly Dictionary<string, string> PanelTitleKeys = new(StringComparer.Ordinal)
+    {
+        [PanelIds.Explorer] = "Main_Panel_Explorer",
+        [PanelIds.Terminal] = "Main_Panel_Terminal",
+        [PanelIds.AutoDoctor] = "Main_Panel_AutoDoctor",
+        [PanelIds.Journal] = "Main_Panel_Journal",
+        [PanelIds.Problems] = "Panels_Problems_Title",
+        [PanelIds.Output] = "Panels_Output_Title",
+        [PanelIds.Tests] = "Panels_Tests_Title",
+    };
 
     private static readonly (string Id, string TitleKey)[] RunPanels =
     [
@@ -818,11 +834,11 @@ public partial class MainWindow : Window
         }
         catch (IOException ex)
         {
-            _viewModel.StatusMessage = $"No se pudo guardar la posición de la ventana: {ex.Message}";
+            _viewModel.StatusMessage = Texts.Format("Main_PlacementFailed", ex.Message);
         }
         catch (UnauthorizedAccessException ex)
         {
-            _viewModel.StatusMessage = $"No se pudo guardar la posición de la ventana: {ex.Message}";
+            _viewModel.StatusMessage = Texts.Format("Main_PlacementFailed", ex.Message);
         }
     }
 
@@ -856,11 +872,11 @@ public partial class MainWindow : Window
         }
         catch (IOException ex)
         {
-            _viewModel.StatusMessage = $"No se pudo guardar el diseño de paneles: {ex.Message}";
+            _viewModel.StatusMessage = Texts.Format("Main_LayoutFailed", ex.Message);
         }
         catch (UnauthorizedAccessException ex)
         {
-            _viewModel.StatusMessage = $"No se pudo guardar el diseño de paneles: {ex.Message}";
+            _viewModel.StatusMessage = Texts.Format("Main_LayoutFailed", ex.Message);
         }
     }
 
@@ -882,6 +898,10 @@ public partial class MainWindow : Window
                 if (args.Model is ISerializableLayoutAnchorable && args.Model.ContentId is { } id && _panelContent.TryGetValue(id, out var content))
                 {
                     args.Content = content;
+                    if (PanelTitleKeys.TryGetValue(id, out var titleKey))
+                    {
+                        args.Model.Title = Texts.Get(titleKey);
+                    }
                 }
             };
             using var reader = new StringReader(layoutXml);

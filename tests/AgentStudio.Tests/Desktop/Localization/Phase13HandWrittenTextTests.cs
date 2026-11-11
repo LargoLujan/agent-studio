@@ -237,13 +237,14 @@ public sealed partial class Phase13HandWrittenTextTests
         Assert.Contains("Localization/UiLanguages.cs", scanned);
         Assert.Contains("Controls/Info/InfoButton.xaml", scanned);
         Assert.Contains("Orchestrator/Live/IRunLiveProjection.cs", scanned);
-        Assert.DoesNotContain("MainWindow.xaml.cs", scanned);
         Assert.DoesNotContain("Controls/MetricBar.xaml.cs", scanned);
 
         // Phase 14 takes a file out of the inventory when it leaves it clean, so it is scanned from then on: WP-14A (b) cleaned the
-        // 23 files of Debate and Audit and (a1) the 49 of the orchestrator (262 - 23 - 49 = 190).
+        // 23 files of Debate and Audit, (a1) the 49 of the orchestrator and (d1) the 45 of the shell.
         Assert.Contains("Orchestrator/Canvas/CanvasViewModel.cs", scanned);
-        Assert.Equal(190, FilesBeforePhase13.Count);
+        Assert.Contains("MainWindow.xaml.cs", scanned);
+        Assert.Contains("ViewModels/MainViewModel.cs", scanned);
+        Assert.Equal(145, FilesBeforePhase13.Count);
         Assert.DoesNotContain(FilesBeforePhase13, f => f.StartsWith("Localization/", StringComparison.Ordinal) || f.StartsWith("Controls/Info/", StringComparison.Ordinal) || f.StartsWith("Orchestrator/Live/", StringComparison.Ordinal));
     }
 

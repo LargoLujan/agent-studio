@@ -140,7 +140,7 @@ public sealed class QuickOpenViewModelTests
         vm.Query = "file";
 
         Assert.Equal(QuickOpenViewModel.MaxResults, vm.Results.Count);
-        Assert.Equal("Mostrando 100 de 130 coincidencias; sigue escribiendo para afinar.", vm.Notice);
+        Assert.Equal("Se muestran 100 de 130 coincidencias. Sigue escribiendo para afinar.", vm.Notice);
     }
 
     [Fact]
@@ -299,7 +299,7 @@ public sealed class QuickOpenViewModelTests
         var opening = vm.OpenAsync(@"C:\p", "Ir al fichero", _ => Done);
         Assert.True(vm.IsOpen);
         Assert.True(vm.IsIndexing);
-        Assert.Equal("Indexando ficheros…", vm.Notice);
+        Assert.Equal("Buscando los ficheros del proyecto…", vm.Notice);
         Assert.Empty(vm.Results);
 
         vm.Query = "prog";
@@ -354,7 +354,7 @@ public sealed class QuickOpenViewModelTests
         await vm.OpenAsync(@"C:\p", "Ir al fichero", _ => Done);
 
         Assert.True(vm.IsTruncated);
-        Assert.Equal("Solo se han indexado los primeros 20.000 ficheros: el proyecto tiene más y no aparecen aquí.", vm.TruncationNotice);
+        Assert.Equal("Solo se muestran los primeros 20.000 ficheros. El proyecto tiene más, pero no aparecen aquí.", vm.TruncationNotice);
     }
 
     [Fact]

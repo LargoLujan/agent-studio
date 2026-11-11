@@ -108,7 +108,7 @@ public sealed class SettingsDocumentViewModelTests
 
         Assert.Equal(0, store.PreferenceSaves);
         Assert.Equal([0, 0, 0], saved);
-        Assert.Equal("No se guardó nada: corrige «Contexto y cuota».", document.ErrorMessage);
+        Assert.Equal("No se guardó nada. Corrige «Contexto y cuota».", document.ErrorMessage);
         Assert.Equal(why, document.Context.ErrorMessage);
         Assert.Null(document.Lock!.ErrorMessage);
         Assert.Null(document.Notice);
@@ -130,7 +130,7 @@ public sealed class SettingsDocumentViewModelTests
         document.SaveCommand.Execute(null);
 
         Assert.Equal(0, store.PreferenceSaves);
-        Assert.Equal("No se guardó nada: corrige «Contexto y cuota» y «Windows Hello y bloqueo».", document.ErrorMessage);
+        Assert.Equal("No se guardó nada. Corrige «Contexto y cuota» y «Windows Hello y bloqueo».", document.ErrorMessage);
         Assert.NotNull(document.Context.ErrorMessage);
         Assert.Equal("El bloqueo no se guarda: «1441» no es un número entero de minutos de 1 a 1440.", document.Lock.ErrorMessage);
     }
@@ -146,7 +146,7 @@ public sealed class SettingsDocumentViewModelTests
         document.SaveCommand.Execute(null);
 
         Assert.Equal(0, store.PreferenceSaves);
-        Assert.Equal("No se guardó nada: corrige «Windows Hello y bloqueo».", document.ErrorMessage);
+        Assert.Equal("No se guardó nada. Corrige «Windows Hello y bloqueo».", document.ErrorMessage);
     }
 
     [Fact]
@@ -177,7 +177,7 @@ public sealed class SettingsDocumentViewModelTests
         document.Unattended!.Choose(CloseWindowAction.Exit);
         document.SaveCommand.Execute(null);
 
-        Assert.Equal("No se pudieron guardar los ajustes: Disco lleno.", document.ErrorMessage);
+        Assert.Equal("No se pudieron guardar los ajustes (Disco lleno.). Vuelve a intentarlo.", document.ErrorMessage);
         Assert.Null(document.Notice);
         Assert.Equal([0, 0, 0], saved);
         Assert.Equal(0.70, document.Context.Thresholds.Warning);
@@ -239,7 +239,7 @@ public sealed class SettingsDocumentViewModelTests
         await document.SaveAsync(TestContext.Current.CancellationToken);
 
         Assert.True(document.IsDirty);
-        Assert.Equal("No se guardó nada: corrige «Windows Hello y bloqueo».", document.ErrorMessage);
+        Assert.Equal("No se guardó nada. Corrige «Windows Hello y bloqueo».", document.ErrorMessage);
     }
 
     [Fact]
@@ -276,7 +276,7 @@ public sealed class SettingsDocumentViewModelTests
         await document.SaveAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(1, asked);
-        Assert.Equal("No se pudieron guardar los ajustes: Disco lleno.", document.ErrorMessage);
+        Assert.Equal("No se pudieron guardar los ajustes (Disco lleno.). Vuelve a intentarlo.", document.ErrorMessage);
         Assert.True(document.IsDirty);
     }
 

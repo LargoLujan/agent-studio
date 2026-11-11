@@ -128,8 +128,8 @@ public sealed class SettingsShellTests
 
         Assert.Equal(0, store.Saves);
         Assert.Contains(settings, main.Documents);
-        Assert.Equal("No se pudo guardar Ajustes: los cambios siguen pendientes.", main.StatusMessage);
-        Assert.Equal("No se guardó nada: corrige «Contexto y cuota».", settings.ErrorMessage);
+        Assert.Equal("No se pudo guardar Ajustes. Los cambios siguen pendientes: vuelve a intentarlo.", main.StatusMessage);
+        Assert.Equal("No se guardó nada. Corrige «Contexto y cuota».", settings.ErrorMessage);
     }
 
     [Fact]
@@ -225,11 +225,11 @@ public sealed class SettingsShellTests
         Assert.Equal(0, doubles.Shutdown.Calls);
         Assert.Equal(1, shown);
         Assert.True(inFront, "«Ajustes» is the tab in front.");
-        Assert.Equal("No se guardó nada: corrige «Contexto y cuota».", why);
+        Assert.Equal("No se guardó nada. Corrige «Contexto y cuota».", why);
         Assert.Equal("Los umbrales no se guardan: «x» no es un número entero de 1 a 100.", sectionWhy);
         Assert.Equal("x", kept);
         Assert.True(dirty);
-        Assert.Equal("No se pudo guardar Ajustes: los cambios siguen pendientes.", status);
+        Assert.Equal("No se pudo guardar Ajustes. Los cambios siguen pendientes: vuelve a intentarlo.", status);
         Assert.Equal(70, stored);
     }
 

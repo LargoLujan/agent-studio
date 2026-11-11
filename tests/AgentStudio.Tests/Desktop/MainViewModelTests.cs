@@ -235,7 +235,7 @@ public sealed class MainViewModelTests
         Assert.Equal(
             [
                 "Explorador", "Orquestador", Texts.Get("Shell_Activity_Agents"), "Skills", Texts.Get("Shell_Activity_Tools"), Texts.Get("Shell_Activity_Tests"),
-                "Terminal", "Auto Doctor", "Historial · bitácora",
+                "Terminal", "Auto Doctor", "Historial (bitácora)",
             ],
             vm.Activities.Select(a => a.Title));
         Assert.All(vm.Activities, a => Assert.True(a.IsEnabled));
@@ -250,7 +250,7 @@ public sealed class MainViewModelTests
 
         // The terminal panel can always come back, from the bar or with Ctrl+Ñ (Ctrl+` on a US keyboard, the same key).
         Assert.Equal(PanelIds.Terminal, byId["terminal"].PanelId);
-        Assert.Equal("Terminal (Ctrl+Ñ; en un teclado de EE. UU., Ctrl+`)", byId["terminal"].ToolTip);
+        Assert.Equal("Terminal (Ctrl+Ñ, o Ctrl+` en un teclado de EE. UU.)", byId["terminal"].ToolTip);
     }
 
     [Fact]
@@ -423,11 +423,11 @@ public sealed class MainViewModelTests
             null,
             new StubProbe("claude", InstallationState.Installed, AuthenticationState.Authenticated),
             new StubProbe("codex", InstallationState.NotInstalled, AuthenticationState.Unknown));
-        Assert.Equal("Proveedores: sin comprobar", vm.ProviderSummary.Text);
+        Assert.Equal("Programas: sin comprobar", vm.ProviderSummary.Text);
 
         await vm.Diagnostics.RefreshCommand.ExecuteAsync(null);
 
-        Assert.Equal("Proveedores: 1 de 2 listos", vm.ProviderSummary.Text);
+        Assert.Equal("Programas: 1 de 2 listos", vm.ProviderSummary.Text);
         Assert.Equal(StatusKind.Warning, vm.ProviderSummary.Status);
     }
 
@@ -457,7 +457,7 @@ public sealed class MainViewModelTests
 
         await vm.Diagnostics.RefreshCommand.ExecuteAsync(null);
 
-        Assert.Equal("Proveedores: 2 de 2 listos", vm.ProviderSummary.Text);
+        Assert.Equal("Programas: 2 de 2 listos", vm.ProviderSummary.Text);
         Assert.Equal(StatusKind.Ok, vm.ProviderSummary.Status);
         var gemini = Assert.Single(vm.Diagnostics.Providers, p => p.IsParked);
         Assert.Equal(("gemini-cli", StatusKind.Parked, "Instalado"), (gemini.Name, gemini.Status, gemini.Installation));
@@ -476,7 +476,7 @@ public sealed class MainViewModelTests
 
         await vm.Diagnostics.RefreshCommand.ExecuteAsync(null);
 
-        Assert.Equal("Proveedores: 1 de 2 listos", vm.ProviderSummary.Text);
+        Assert.Equal("Programas: 1 de 2 listos", vm.ProviderSummary.Text);
         Assert.Equal(StatusKind.Warning, vm.ProviderSummary.Status);
     }
 
@@ -487,7 +487,7 @@ public sealed class MainViewModelTests
 
         await vm.Diagnostics.RefreshCommand.ExecuteAsync(null);
 
-        Assert.Equal("Proveedores: todos aparcados", vm.ProviderSummary.Text);
+        Assert.Equal("Programas: todos aparcados", vm.ProviderSummary.Text);
         Assert.Equal(StatusKind.Warning, vm.ProviderSummary.Status);
     }
 
@@ -498,7 +498,7 @@ public sealed class MainViewModelTests
 
         await vm.Diagnostics.RefreshCommand.ExecuteAsync(null);
 
-        Assert.Equal("Sin proveedores registrados", vm.ProviderSummary.Text);
+        Assert.Equal("Sin programas registrados", vm.ProviderSummary.Text);
     }
 }
 
@@ -542,7 +542,7 @@ public sealed class FileDocumentViewModelTests
         await document.LoadAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(string.Empty, document.Text);
-        Assert.Contains("límite", document.ErrorMessage, StringComparison.Ordinal);
+        Assert.Contains("el visor no admite más de", document.ErrorMessage, StringComparison.Ordinal);
     }
 
     [Fact]

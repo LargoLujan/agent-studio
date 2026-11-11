@@ -116,7 +116,7 @@ public sealed partial class StatusStripViewModelTests
         Assert.Equal("~47 %", strip.Context.ValueText);
         Assert.True(strip.Context.IsEstimate);
         Assert.Equal("3 de 12", strip.Budget!.ValueText);
-        Assert.Equal(["Contexto · T1", "Cuota", "Presupuesto"], strip.Bars.Select(b => b.Label));
+        Assert.Equal(["Contexto · T1", "Límite de uso", "Presupuesto"], strip.Bars.Select(b => b.Label));
         Assert.Contains("Presupuesto de la ejecución", strip.ToolTip, StringComparison.Ordinal);
     }
 

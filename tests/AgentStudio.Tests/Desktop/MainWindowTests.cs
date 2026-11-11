@@ -108,7 +108,7 @@ public sealed class MainWindowTests
 
         // The three panels of the run (Phase 13) sit in the pane of the terminal.
         Assert.Equal([PanelIds.AutoDoctor, PanelIds.Explorer, PanelIds.Journal, PanelIds.Output, PanelIds.Problems, PanelIds.Terminal, PanelIds.Tests], ids);
-        Assert.Equal("Terminal no disponible.", terminalText);
+        Assert.Equal("El terminal no está disponible.", terminalText);
     }
 
     /// <summary>
@@ -290,7 +290,7 @@ public sealed class MainWindowTests
         Assert.Equal(
             [
                 "Explorador", "Orquestador", Texts.Get("Shell_Activity_Agents"), "Skills", Texts.Get("Shell_Activity_Tools"), Texts.Get("Shell_Activity_Tests"),
-                "Terminal", "Auto Doctor", "Historial · bitácora",
+                "Terminal", "Auto Doctor", "Historial (bitácora)",
             ],
             names);
     }
@@ -392,9 +392,9 @@ public sealed class MainWindowTests
 
         Assert.StartsWith("v", version, StringComparison.Ordinal);
         Assert.DoesNotContain("Fase", version, StringComparison.Ordinal);
-        Assert.Equal(("Proveedores: 2 de 2 listos", StatusKind.Ok), (summary.Text, summary.Status));
+        Assert.Equal(("Programas: 2 de 2 listos", StatusKind.Ok), (summary.Text, summary.Status));
         Assert.True(command);
-        Assert.Equal("Proveedores: 2 de 2 listos", name);
+        Assert.Equal("Programas: 2 de 2 listos", name);
         Assert.Contains("Auto Doctor", toolTip, StringComparison.Ordinal);
     }
 

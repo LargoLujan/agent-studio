@@ -1,6 +1,7 @@
 using System.IO;
 using System.Text;
 using AgentStudio.Desktop.Controls.Editor;
+using AgentStudio.Desktop.Localization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -60,13 +61,13 @@ public sealed partial class FileDocumentViewModel : DocumentViewModel
     private bool _isComparing;
 
     /// <summary>
-    /// What the original side of the comparison on screen is (Spanish; the removed, red side); null while editing.
+    /// What the original side of the comparison on screen is (the removed, red side); null while editing.
     /// The side-by-side view puts it on the left, the narrow unified view shows it as the red lines.
     /// </summary>
     [ObservableProperty]
     private string? _diffOriginalLabel;
 
-    /// <summary>What the modified side of the comparison on screen is (Spanish; the added, green side); null while editing.</summary>
+    /// <summary>What the modified side of the comparison on screen is (the added, green side); null while editing.</summary>
     [ObservableProperty]
     private string? _diffModifiedLabel;
 
@@ -103,11 +104,10 @@ public sealed partial class FileDocumentViewModel : DocumentViewModel
     [RelayCommand(CanExecute = nameof(CanCompare))]
     private async Task CompareWithSavedAsync(CancellationToken cancellationToken)
     {
-        var unsaved = Editor?.IsDirty == true ? " (con cambios sin guardar)" : string.Empty;
         await ShowDiffAsync(
             new CompareWithSavedRequest(),
-            originalLabel: "guardado en disco",
-            modifiedLabel: $"editor{unsaved}",
+            originalLabel: Texts.Get("FileDoc_Label_SavedOnDisk"),
+            modifiedLabel: Texts.Get(Editor?.IsDirty == true ? "FileDoc_Label_EditorUnsaved" : "FileDoc_Label_Editor"),
             comparingWithSaved: true,
             cancellationToken);
     }
@@ -131,14 +131,14 @@ public sealed partial class FileDocumentViewModel : DocumentViewModel
         var (text, problem) = await ReadForComparisonAsync(otherPath, cancellationToken);
         if (text is null)
         {
-            DiffError = $"No se puede comparar con «{name}»: {problem}";
+            DiffError = Texts.Format("FileDoc_CompareFailed", name, problem);
             return;
         }
 
         await ShowDiffAsync(
             new CompareWithTextRequest(text),
             originalLabel: label ?? name,
-            modifiedLabel: $"{Title} (editor)",
+            modifiedLabel: Texts.Format("FileDoc_Label_EditorOf", Title),
             comparingWithSaved: false,
             cancellationToken);
     }
@@ -195,7 +195,7 @@ public sealed partial class FileDocumentViewModel : DocumentViewModel
         }
         catch (Exception ex) when (ex is TimeoutException or InvalidOperationException or OperationCanceledException or ObjectDisposedException)
         {
-            DiffError = $"No se pudo mostrar la comparación: {ex.Message}";
+            DiffError = Texts.Format("FileDoc_ShowDiffFailed", ex.Message);
             return false;
         }
     }
@@ -208,32 +208,32 @@ public sealed partial class FileDocumentViewModel : DocumentViewModel
             var info = new FileInfo(path);
             if (!info.Exists)
             {
-                return (null, "el fichero no existe.");
+                return (null, Texts.Get("FileDoc_Problem_Missing"));
             }
 
             if (info.Length > MaxBytes)
             {
-                return (null, $"pesa {info.Length / (1024 * 1024)} MB y supera el límite ({MaxBytes / (1024 * 1024)} MB).");
+                return (null, Texts.Format("FileDoc_Problem_TooLarge", info.Length / (1024 * 1024), MaxBytes / (1024 * 1024)));
             }
 
             var (text, _) = await TextFileStore.ReadAsync(path, cancellationToken);
-            return text.Contains('\0', StringComparison.Ordinal) ? (null, "es un fichero binario.") : (text, null);
+            return text.Contains('\0', StringComparison.Ordinal) ? (null, Texts.Get("FileDoc_Problem_Binary")) : (text, null);
         }
         catch (NotSupportedException)
         {
-            return (null, "solo se admiten ficheros UTF-8 (este empieza con una marca de orden de bytes UTF-16 o UTF-32).");
+            return (null, Texts.Get("FileDoc_Problem_Encoding"));
         }
         catch (InvalidDataException)
         {
-            return (null, "no es un fichero UTF-8 válido.");
+            return (null, Texts.Get("FileDoc_Problem_NotUtf8"));
         }
         catch (IOException ex)
         {
-            return (null, $"no se pudo leer: {ex.Message}");
+            return (null, Texts.Format("FileDoc_Problem_Unreadable", ex.Message));
         }
         catch (UnauthorizedAccessException ex)
         {
-            return (null, $"no se pudo leer: {ex.Message}");
+            return (null, Texts.Format("FileDoc_Problem_Unreadable", ex.Message));
         }
     }
 
@@ -263,11 +263,11 @@ public sealed partial class FileDocumentViewModel : DocumentViewModel
         }
         catch (NotSupportedException ex)
         {
-            ErrorMessage = $"Se muestra en solo lectura: {ex.Message}";
+            ErrorMessage = Texts.Format("FileDoc_ReadOnlyShown", ex.Message);
         }
         catch (InvalidDataException ex)
         {
-            ErrorMessage = $"Se muestra en solo lectura: {ex.Message}";
+            ErrorMessage = Texts.Format("FileDoc_ReadOnlyShown", ex.Message);
         }
     }
 
@@ -279,7 +279,7 @@ public sealed partial class FileDocumentViewModel : DocumentViewModel
             var info = new FileInfo(path);
             if (info.Length > MaxBytes)
             {
-                ErrorMessage = $"El fichero pesa {info.Length / (1024 * 1024)} MB y supera el límite del visor ({MaxBytes / (1024 * 1024)} MB).";
+                ErrorMessage = Texts.Format("FileDoc_TooLargeViewer", info.Length / (1024 * 1024), MaxBytes / (1024 * 1024));
                 return;
             }
 
@@ -288,7 +288,7 @@ public sealed partial class FileDocumentViewModel : DocumentViewModel
             var content = await reader.ReadToEndAsync(cancellationToken);
             if (content.Contains('\0', StringComparison.Ordinal))
             {
-                ErrorMessage = "El fichero es binario y no se puede mostrar como texto.";
+                ErrorMessage = Texts.Get("FileDoc_Binary");
                 return;
             }
 
@@ -298,11 +298,11 @@ public sealed partial class FileDocumentViewModel : DocumentViewModel
         }
         catch (IOException ex)
         {
-            ErrorMessage = $"No se pudo leer el fichero: {ex.Message}";
+            ErrorMessage = Texts.Format("FileDoc_ReadFailed", ex.Message);
         }
         catch (UnauthorizedAccessException ex)
         {
-            ErrorMessage = $"No se pudo leer el fichero: {ex.Message}";
+            ErrorMessage = Texts.Format("FileDoc_ReadFailed", ex.Message);
         }
     }
 }

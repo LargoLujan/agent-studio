@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
              xmlns:settings="clr-namespace:AgentStudio.Desktop.Settings"
              xmlns:observabilityViews="clr-namespace:AgentStudio.Desktop.Views.Observability"
              xmlns:backgroundViews="clr-namespace:AgentStudio.Desktop.Views.Background"
@@ -12,7 +13,7 @@
              xmlns:orchestratorViews="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=settings:SettingsDocumentViewModel}"
-             AutomationProperties.Name="Ajustes">
+             AutomationProperties.Name="{l:T SettingsDoc_Title}">
     <!-- «Ajustes» (docs/03 §5.2 and §2.1): one card per section, in one column that scrolls, and one «Guardar» for all of
          them in the bar below, which says what came of it. A section that was not composed is not shown. Bindings only. -->
     <UserControl.Resources>
@@ -39,8 +40,8 @@
 
         <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="24,14,24,12">
             <StackPanel Style="{StaticResource Settings.Column}">
-                <TextBlock Style="{StaticResource TitleText}" FontSize="20" Text="Ajustes"/>
-                <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,0" Text="{x:Static settings:SettingsDocumentViewModel.ScopeText}"/>
+                <TextBlock Style="{StaticResource TitleText}" FontSize="20" Text="{l:T SettingsDoc_Title}"/>
+                <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,0" Text="{l:T SettingsDoc_Scope}"/>
             </StackPanel>
         </Border>
 
@@ -70,15 +71,15 @@
         <!-- The one «Guardar»: every section is checked first, and nothing is saved while one is wrong. -->
         <Border Grid.Row="2" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="24,12">
             <DockPanel Style="{StaticResource Settings.Column}">
-                <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" VerticalAlignment="Center" Margin="16,0,0,0" Content="Guardar"
-                        Command="{Binding SaveCommand}" AutomationProperties.Name="Guardar los ajustes"
-                        AutomationProperties.HelpText="{x:Static settings:SettingsDocumentViewModel.SaveExplanation}"/>
+                <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" VerticalAlignment="Center" Margin="16,0,0,0" Content="{l:T SettingsDoc_Save}"
+                        Command="{Binding SaveCommand}" AutomationProperties.Name="{l:T SettingsDoc_Save}"
+                        AutomationProperties.HelpText="{l:T SettingsDoc_SaveExplanation}"/>
                 <StackPanel VerticalAlignment="Center">
                     <TextBlock Style="{StaticResource ErrorText}" Text="{Binding ErrorMessage}" AutomationProperties.LiveSetting="Assertive"/>
                     <TextBlock Style="{StaticResource BodyText}" Foreground="{StaticResource SuccessBrush}" Text="{Binding Notice}"
                                Visibility="{Binding Notice, Converter={StaticResource Settings.NotNullToVisibility}}"
                                AutomationProperties.LiveSetting="Polite"/>
-                    <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,0" Text="{x:Static settings:SettingsDocumentViewModel.SaveExplanation}"/>
+                    <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,0" Text="{l:T SettingsDoc_SaveExplanation}"/>
                 </StackPanel>
             </DockPanel>
         </Border>

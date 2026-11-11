@@ -67,7 +67,7 @@ public sealed class UnattendedSettingsViewModelTests
         settings.Choose(CloseWindowAction.Exit);
         ajustes.SaveCommand.Execute(null);
 
-        Assert.Equal("No se pudieron guardar los ajustes: The disk is full.", ajustes.ErrorMessage);
+        Assert.Equal("No se pudieron guardar los ajustes (The disk is full.). Vuelve a intentarlo.", ajustes.ErrorMessage);
         Assert.Null(ajustes.Notice);
         Assert.Equal(0, saved);
         Assert.Equal(CloseWindowAction.Exit, settings.CloseWindow);

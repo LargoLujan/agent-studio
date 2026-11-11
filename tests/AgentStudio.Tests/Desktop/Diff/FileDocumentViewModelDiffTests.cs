@@ -194,7 +194,7 @@ public sealed class FileDocumentViewModelDiffTests
         await document.CompareWithFileAsync(big, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Empty(handler.Requests);
-        Assert.Contains("límite", document.DiffError, StringComparison.Ordinal);
+        Assert.Contains("MB", document.DiffError, StringComparison.Ordinal);
     }
 
     [Fact]

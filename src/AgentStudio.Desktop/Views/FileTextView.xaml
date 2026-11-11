@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
              xmlns:vm="clr-namespace:AgentStudio.Desktop.ViewModels"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:FileDocumentViewModel}">
@@ -15,6 +16,6 @@
         </Grid.RowDefinitions>
         <TextBlock Grid.Row="0" Style="{StaticResource ErrorText}" Margin="12,10" Text="{Binding ErrorMessage}"/>
         <TextBox Grid.Row="1" Style="{StaticResource MonoViewer}" Text="{Binding Text, Mode=OneWay}"
-                 AutomationProperties.Name="Contenido del fichero"/>
+                 AutomationProperties.Name="{l:T FileDoc_ContentName}"/>
     </Grid>
 </UserControl>
