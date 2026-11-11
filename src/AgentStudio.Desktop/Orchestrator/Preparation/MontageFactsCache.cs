@@ -69,6 +69,10 @@ public sealed class MontageFactsCache : IDisposable
     private readonly HashSet<string> _skillsAsked = new(StringComparer.Ordinal);
     private readonly Dictionary<string, long?> _runs = new(StringComparer.Ordinal);
     private readonly HashSet<string> _runsAsked = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, int> _runsFailures = new(StringComparer.Ordinal);
+
+    /// <summary>How many times the estimate of one shape of the plan is asked when it fails, before the shape is kept as unknown.</summary>
+    private const int MaxRunsAttempts = 3;
     private CancellationTokenSource _lifetime = new();
     private int _epoch;
     private bool _disposed;
@@ -98,16 +102,19 @@ public sealed class MontageFactsCache : IDisposable
             return;
         }
 
+        // What was known is forgotten before the questions are cancelled: a callback of the cancellation that throws leaves no half reset.
         _epoch++;
-        _lifetime.Cancel();
-        _lifetime.Dispose();
-        _lifetime = new CancellationTokenSource();
         _packs.Clear();
         _asked.Clear();
         _skills.Clear();
         _skillsAsked.Clear();
         _runs.Clear();
         _runsAsked.Clear();
+        _runsFailures.Clear();
+        var previous = _lifetime;
+        _lifetime = new CancellationTokenSource();
+        previous.Cancel();
+        previous.Dispose();
     }
 
     /// <summary>The document was closed: what is being asked is cancelled and no answer is applied; nothing is asked again.</summary>
@@ -294,6 +301,15 @@ public sealed class MontageFactsCache : IDisposable
         catch (Exception)
 #pragma warning restore CA1031
         {
+            // A failure may pass (the log busy, say): the shape is asked again on a later read, a few times, before it is kept as unknown.
+            var failures = _runsFailures.GetValueOrDefault(key) + 1;
+            if (epoch == _epoch && failures < MaxRunsAttempts)
+            {
+                _runsFailures[key] = failures;
+                _runsAsked.Remove(key);
+                return;
+            }
+
             runs = null;
         }
 

@@ -158,11 +158,12 @@ public sealed partial class OrchestratorDocumentViewModel
         builder.Editor.Context = InspectorContextNow(builder);
         await builder.Brief.LoadAsync().ConfigureAwait(true);
         await builder.RefreshQuotaAsync().ConfigureAwait(true);
+
+        // What the draft is made from (what the log taught, the brief, the quota) came in after the first analysis: run it again,
+        // without waiting for the count of the files, which only the inspector's recommendation reads.
+        builder.Band.Schedule();
         await files.ConfigureAwait(true);
         builder.Editor.Context = InspectorContextNow(builder);
-
-        // What the draft is made from (what the log taught, the brief, the quota) came in after the first analysis: run it again.
-        builder.Band.Schedule();
     }
 
     private InspectorContext InspectorContextNow(VisualBuilder builder)

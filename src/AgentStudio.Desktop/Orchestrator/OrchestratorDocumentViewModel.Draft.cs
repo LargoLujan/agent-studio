@@ -112,14 +112,18 @@ public sealed partial class OrchestratorDocumentViewModel
         return new DraftSuppression(this);
     }
 
-    private PlanDraft CurrentDraft() => new(
-        RequestText,
-        PlanSummary,
-        [.. Risks],
-        Canvas.BuildTasks(),
-        Proposal is { Plan: { } proposed } proposal && IsUnused(proposal.Run)
-            ? new PlanDraftProposal(proposal.Run, proposed.ContentHash, proposal.Corrected, proposal.HistoryToolNotice)
-            : null);
+    private PlanDraft CurrentDraft()
+    {
+        PlanDraftProposal? kept = null;
+        if (Proposal is { Plan: { } proposed } proposal && IsUnused(proposal.Run))
+        {
+            // What the orchestrator planned with goes along only for this proposal and only whole (V43).
+            var origin = _planningOrigin is { RequirementsHash: not null } o && o.Run == proposal.Run ? o : null;
+            kept = new PlanDraftProposal(proposal.Run, proposed.ContentHash, proposal.Corrected, proposal.HistoryToolNotice, origin?.Request, origin?.RequirementsHash);
+        }
+
+        return new(RequestText, PlanSummary, [.. Risks], Canvas.BuildTasks(), kept);
+    }
 
     /// <summary>The run of a proposal has not started a run yet (none of the previous runs has its id).</summary>
     private bool IsUnused(RunId run) => PreviousRuns.All(r => r.Summary.Id != run);
@@ -185,10 +189,12 @@ public sealed partial class OrchestratorDocumentViewModel
                 return;
             }
 
-            // The plan came back with its proposal: the request the draft kept and the requirements now are what it is taken to have
-            // been planned with (the draft does not say more), so the answers the orchestrator got still reach its run (V43) while
-            // the request and the requirements are those.
-            var planned = proposal is null ? null : new PlanningOrigin(proposal.Run, draft.Request.Trim(), Context?.Requirements?.ContentHash);
+            // The plan came back with its proposal and the request and requirements the orchestrator planned with (V43): the answers
+            // it got still reach its run while the request and the requirements are those. A draft of before does not say them, so
+            // it sends none rather than guess.
+            var planned = proposal is not null && draft.Proposal is { PlannedRequest: { } request, RequirementsHash: { } requirements }
+                ? new PlanningOrigin(proposal.Run, request, requirements)
+                : null;
             if (TryPutOnCanvas(new CanvasState(draft.Summary, draft.Risks, draft.Tasks, _layout.Load(ProjectRoot), proposal, null, ShowValidation: true, planned)))
             {
                 ProposalStatus = proposal is null

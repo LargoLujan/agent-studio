@@ -440,21 +440,47 @@ public sealed partial class MontageFactsCacheTests
     }
 
     [Fact]
-    public async Task An_estimator_that_does_not_know_or_that_fails_leaves_the_runs_empty_and_does_not_keep_asking()
+    public async Task An_estimator_that_does_not_know_leaves_the_runs_empty_and_does_not_keep_asking()
     {
         var unknown = new FakeEstimator(_ => new PlanEstimate(new Dictionary<TaskId, UsageEstimate>(), EstimateInterval<long>.Unknown("unknown: 2 of 3 references"), EstimateInterval<long>.Unknown("x"), EstimateInterval<long>.Unknown("x"), EstimateInterval<TimeSpan>.Unknown("x"), []));
-        var failing = new FakeEstimator(_ => throw new NotSupportedException());
+        var cache = new MontageFactsCache(new BuilderServices(Estimator: unknown), () => { });
+        cache.Read(Subject(TwoTasks()));
+        await cache.Pending;
 
-        foreach (var estimator in new[] { unknown, failing })
+        Assert.Null(cache.Read(Subject(TwoTasks())).EstimatedAgentRuns);
+        await cache.Pending;
+        Assert.Single(unknown.Asked);
+    }
+
+    [Fact]
+    public async Task An_estimator_that_fails_is_asked_again_a_few_times_and_then_the_runs_stay_unknown()
+    {
+        var failing = new FakeEstimator(_ => throw new IOException("the log is busy"));
+        var cache = new MontageFactsCache(new BuilderServices(Estimator: failing), () => { });
+
+        for (var read = 0; read < 6; read++)
         {
-            var cache = new MontageFactsCache(new BuilderServices(Estimator: estimator), () => { });
-            cache.Read(Subject(TwoTasks()));
-            await cache.Pending;
-
             Assert.Null(cache.Read(Subject(TwoTasks())).EstimatedAgentRuns);
             await cache.Pending;
-            Assert.Single(estimator.Asked);
         }
+
+        Assert.Equal(3, failing.Asked.Count);
+    }
+
+    [Fact]
+    public async Task A_failure_that_passes_does_not_leave_the_shape_without_its_runs()
+    {
+        var calls = 0;
+        var estimator = new FakeEstimator(_ => ++calls == 1 ? throw new IOException("the log is busy") : Runs(low: 4, high: 7));
+        var cache = new MontageFactsCache(new BuilderServices(Estimator: estimator), () => { });
+        cache.Read(Subject(TwoTasks()));
+        await cache.Pending;
+
+        cache.Read(Subject(TwoTasks()));
+        await cache.Pending;
+
+        Assert.Equal(7, cache.Read(Subject(TwoTasks())).EstimatedAgentRuns);
+        Assert.Equal(2, estimator.Asked.Count);
     }
 
     [Fact]

@@ -147,7 +147,9 @@
   lienzo guarda su origen (la ejecución, la petición y el hash de los requisitos: un campo propio, porque limpiar `Proposal`
   tiene otros efectos en la pantalla, como el estado de la propuesta y el borrador). Ese origen se olvida cuando otra propuesta,
   o ninguna, ocupa su lugar y cuando llega al lienzo el plan de una ejecución antigua (verla, reanudarla, su seguimiento);
-  vuelve con el lienzo al cerrar una ejecución vista y con un borrador recuperado. Con otra petición, otros requisitos, el plan
+  vuelve con el lienzo al cerrar una ejecución vista y con un borrador recuperado: el borrador guarda con su propuesta la
+  petición y el hash de los requisitos con los que se planificó (`PlanDraftProposal.PlannedRequest` y `RequirementsHash`,
+  los dos o ninguno), y uno de antes, que no los dice, se recupera sin origen y no manda respuestas en vez de suponerlas. Con otra petición, otros requisitos, el plan
   de una ejecución antigua o un seguimiento, no se manda `PlannedIn`; rechazar la propuesta y dibujar otro plan para la misma
   petición y los mismos requisitos sí cuenta como el plan de esa propuesta.
   - **Dónde se recuerda.** `RunStarted` gana el campo opcional `PlannedIn` (la ejecución en la que planificó, solo cuando no es

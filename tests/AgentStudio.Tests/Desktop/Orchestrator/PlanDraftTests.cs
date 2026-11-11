@@ -220,7 +220,12 @@ public sealed class PlanDraftTests : IDisposable
 
         document.LoadProposal(ProposalOf(PlanFixtures.Plan()));
         Assert.Equal(PlanFixtures.Plan().Tasks.Count, store.Draft?.Tasks.Count);
-        Assert.Equal(new PlanDraftProposal(Planning, PlanFixtures.Plan().ContentHash, Corrected: false), store.Draft?.Proposal);
+
+        // V43: with what the orchestrator planned with, so a draft brought back sends its answers only while they are the same.
+        var requirements = document.Context!.Requirements!.ContentHash;
+        Assert.Equal(
+            new PlanDraftProposal(Planning, PlanFixtures.Plan().ContentHash, Corrected: false, PlannedRequest: "Añadir Calc.Multiply", RequirementsHash: requirements),
+            store.Draft?.Proposal);
     }
 
     [Fact]
@@ -304,10 +309,68 @@ public sealed class PlanDraftTests : IDisposable
         Assert.Equal("Aprueba el plan", again.ExecuteBlockers);
         Assert.Contains("borrador", again.Canvas.NoticeText, StringComparison.OrdinalIgnoreCase);
 
-        // Approved again, it runs as the proposal it came from.
+        // Approved again, it runs as the proposal it came from, and the answers the orchestrator got still reach it (V43).
         again.ApproveCommand.Execute(null);
         await again.ExecuteCommand.ExecuteAsync(null);
-        Assert.Equal(Planning, Assert.Single(engine.RunRequests).Run);
+        var request = Assert.Single(engine.RunRequests);
+        Assert.Equal(Planning, request.Run);
+        Assert.Equal(Planning, request.PlannedIn);
+    }
+
+    [Fact]
+    public async Task A_draft_brought_back_sends_the_answers_only_while_the_request_is_the_one_planned_and_one_of_before_sends_none()
+    {
+        var plan = PlanFixtures.Plan();
+        var plans = new FakePlanStore();
+        plans.Plans[plan.ContentHash] = plan;
+        var time = new FakeTimeProvider(T0);
+
+        // Planned for one request, the draft is saved with another: brought back, the run is not told where it was planned.
+        var store = new MemoryCanvasStore();
+        var first = await OpenAsync(store, time, plans: plans);
+        first.RequestText = "Añadir Calc.Multiply";
+        first.LoadProposal(ProposalOf(plan));
+        first.RequestText = "Otra petición";
+        first.FlushDraft();
+        var engine = new FakeOrchestrator { Start = _ => new FakeRun(new RunSnapshot(Planning, RunPhase.Running, [], FakeRun.Healthy, 0)) };
+        var changed = await OpenAsync(store, time, engine, plans);
+        Assert.Equal("Otra petición", changed.RequestText);
+        changed.ApproveCommand.Execute(null);
+        await changed.ExecuteCommand.ExecuteAsync(null);
+        Assert.Null(Assert.Single(engine.RunRequests).PlannedIn);
+
+        // A draft of before V43 does not say what it was planned with: it sends none rather than guess.
+        var old = new MemoryCanvasStore { Draft = new PlanDraft("Añadir Calc.Multiply", plan.Summary, plan.Risks, plan.Tasks, new PlanDraftProposal(Planning, plan.ContentHash, Corrected: false)) };
+        var oldEngine = new FakeOrchestrator { Start = _ => new FakeRun(new RunSnapshot(Planning, RunPhase.Running, [], FakeRun.Healthy, 0)) };
+        var before = await OpenAsync(old, time, oldEngine, plans);
+        before.ApproveCommand.Execute(null);
+        await before.ExecuteCommand.ExecuteAsync(null);
+        Assert.Null(Assert.Single(oldEngine.RunRequests).PlannedIn);
+    }
+
+    [Fact]
+    public void The_file_keeps_what_the_orchestrator_planned_with_only_whole()
+    {
+        var store = new FileCanvasLayoutStore(new ProjectStorageFiles());
+        var requirements = new string('e', 64);
+        store.SaveDraft(_folder.Root, new PlanDraft("x", "s", [], [PlanFixtures.Spec("T1")], new PlanDraftProposal(Planning, new string('d', 64), Corrected: false, PlannedRequest: "x", RequirementsHash: requirements)));
+        var kept = store.ReadDraft(_folder.Root).Draft?.Proposal;
+        Assert.Equal("x", kept?.PlannedRequest);
+        Assert.Equal(requirements, kept?.RequirementsHash);
+
+        // One without the other reads as neither; a hash that is not a SHA-256 makes the draft damaged.
+        var file = store.GetLayoutPath(_folder.Root);
+        var root = JsonNode.Parse(File.ReadAllText(file))!.AsObject();
+        root["draft"]!["proposal"]!.AsObject().Remove("requirementsHash");
+        File.WriteAllText(file, root.ToJsonString());
+        var half = store.ReadDraft(_folder.Root).Draft?.Proposal;
+        Assert.NotNull(half);
+        Assert.Null(half.PlannedRequest);
+        Assert.Null(half.RequirementsHash);
+
+        root["draft"]!["proposal"]!["requirementsHash"] = "no-es-un-hash";
+        File.WriteAllText(file, root.ToJsonString());
+        Assert.Null(store.ReadDraft(_folder.Root).Draft);
     }
 
     [Fact]

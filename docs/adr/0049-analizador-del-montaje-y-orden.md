@@ -249,11 +249,15 @@ recomendaba un modelo sin conocer el tamaño del proyecto. **No cambia ninguna r
      documento (`VisualBuilder.Dispose`) cancela lo que la caché pregunta y el recuento de ficheros, y la caché cerrada no pregunta
      más; ninguno deja una excepción sin observar.
    - La banda vuelve a analizar también al final de `LoadBuilderDataAsync` (lo aprendido, la ficha y la cuota llegaban después del
-     primer análisis y no lo repetía nadie) y al leer o guardar la ficha. El recuento de ficheros arranca a la vez y se espera al
-     final: no retrasa la ficha ni la cuota.
+     primer análisis y no lo repetía nadie) y al leer o guardar la ficha. El recuento de ficheros arranca a la vez y no retrasa ni
+     la ficha, ni la cuota, ni ese análisis: solo lo lee la recomendación del inspector, que se refresca cuando llega.
+   - **Un estimador que falla se vuelve a preguntar.** Un fallo puede ser pasajero (el registro ocupado), así que la forma del
+     plan se pregunta otra vez en una lectura posterior, hasta tres veces, antes de quedarse como desconocida hasta «Recargar».
+     Lo que el estimador no sabe (menos de tres referencias) no es un fallo: se pregunta una vez.
    - **Una vista previa no escribe en el registro nada que la ejecución real no escribiría igual.** El pack pasa por
      `ProjectMemory.SnapshotAsync`, que puede registrar una alerta de integridad (`AuditAlertRaised`, fuera de toda ejecución) de una
-     fila de memoria que no es de fiar. Es la misma alerta con el mismo contenido que registra el motor al lanzar la tarea, y se
+     fila de memoria que no es de fiar. Es una alerta con el mismo contenido que la que registra la pantalla «Memoria» al leer en reposo (el motor lanza con el
+     proyecto ocupado y no la escribe), así que la vista previa es un disparador más, no una alerta distinta; y se
      deduplica: el libro de la memoria recuerda los mensajes que el registro ya tiene (`MemoryLedger.cs:143` y `:174`), solo se
      registran los que no (`ProjectMemory.cs:225`, `Unraised`; `:213-215`), se vuelve a leer bajo la puerta antes de escribir
      (`:613-621`), y nada se escribe mientras hay una ejecución o planificación en curso (`:595` y `:608`). Abrir el lienzo o

@@ -37,8 +37,8 @@ public sealed class ExecutorContextPreviewIntegrityTests
             Assert.NotNull(await ExecutorContextPreview.PackAsync(packer, world.Project, agent, spec, requirements, Ct));
         }
 
-        // The same alert the engine would raise when it launches the task (ProjectMemory.cs: «once per problem», and the ledger
-        // knows the ones the log holds), once, outside every run.
+        // The alert a read at rest raises, as the screen «Memoria» does (the engine launches with the project busy and writes none),
+        // once per problem (the ledger knows the ones the log holds), outside every run.
         var alert = Assert.Single(await world.AlertsAsync());
         Assert.Equal(ProjectMemory.NotAnchoredAlert, alert.Code);
         Assert.Contains("mem-plantada", alert.Message, StringComparison.Ordinal);
