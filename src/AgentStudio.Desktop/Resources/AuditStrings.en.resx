@@ -110,7 +110,7 @@
     <value>Choose the judge of the audit.</value>
   </data>
   <data name="Audit_Prep_Head" xml:space="preserve">
-    <value>The latest saved version (commit {0}) is audited.</value>
+    <value>The latest saved version (commit) is audited: {0}.</value>
   </data>
   <data name="Audit_Prep_NoHead" xml:space="preserve">
     <value>The repository has no saved version (commit).</value>

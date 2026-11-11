@@ -95,7 +95,7 @@ public sealed class PlanViolationTextTests
     public void A_writer_whose_agent_asks_for_tests_is_told_to_add_verification_steps()
     {
         Assert.Equal(
-            ["La tarea T6 la hace «ejecutor», cuya política exige pruebas capturadas por el sistema: añade pasos de verificación a la tarea."],
+            ["La tarea T6 la hace «ejecutor». Su política exige pruebas hechas por el sistema. Añade pasos de verificación a la tarea."],
             TextsFor(PlanFixtures.ValidTasks(), WithPolicy("ejecutor", new ReviewPolicy(false, true))));
     }
 
@@ -119,7 +119,7 @@ public sealed class PlanViolationTextTests
         };
 
         Assert.Equal(
-            ["La tarea T9 la hace «ejecutor2», cuya política exige una revisión independiente. Añade una tarea de revisión que dependa de todas las tareas que escriben."],
+            ["La tarea T9 la hace «ejecutor2». Su política exige una revisión independiente. Añade una tarea de revisión que dependa de todas las que escriben."],
             TextsFor([.. PlanFixtures.ValidTasks(), late], WithPolicy("ejecutor2", new ReviewPolicy(true, false))));
     }
 

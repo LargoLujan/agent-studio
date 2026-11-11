@@ -16,10 +16,14 @@ internal static partial class TextGuide
     public const double MinInflesz = SpanishReadability.NormalLevel;
 
     /// <summary>
-    /// A Spanish text is an explanation (and gets the INFLESZ test) when it has this many words or more. Shorter texts are labels,
-    /// names and one-line messages, where the index says nothing: a dozen words in one sentence is the least a reader can judge.
+    /// A Spanish text is an explanation (and gets the INFLESZ test) when it is the «Qué es esto» or the actions of an ⓘ (key <c>Info_*_What</c> or <c>Info_*_Actions</c>), has this many
+    /// words or more, or has two sentences and at least <see cref="ExplanationMinWordsInTwoSentences"/> words. Shorter texts are
+    /// labels, names and one-line messages, where the index says nothing (a short sentence with a placeholder scores wildly).
     /// </summary>
-    public const int ExplanationMinWords = 10;
+    public const int ExplanationMinWords = 12;
+
+    /// <summary>The words a text of two or more sentences needs to be an explanation.</summary>
+    public const int ExplanationMinWordsInTwoSentences = 8;
 
     /// <summary>
     /// The resource files (by base name) the guide is checked on: the areas whose texts are already extracted and reviewed.
@@ -108,8 +112,24 @@ internal static partial class TextGuide
         /// <summary>A text of the folded «Detalles» (see <see cref="DetailSuffixes"/>).</summary>
         public bool IsDetail => DetailSuffixes.Contains(Key[(Key.LastIndexOf('_') + 1)..], StringComparer.Ordinal);
 
-        /// <summary>A text with at least <see cref="ExplanationMinWords"/> words (Spanish only gets the INFLESZ test).</summary>
-        public bool IsExplanation => Language == "es" && SpanishReadability.Sentences(Value).Sum(s => SpanishReadability.Words(s).Count) >= ExplanationMinWords;
+        /// <summary>An explanation in Spanish (see <see cref="ExplanationMinWords"/>); only these get the INFLESZ test.</summary>
+        public bool IsExplanation
+        {
+            get
+            {
+                if (Language != "es")
+                {
+                    return false;
+                }
+
+                var sentences = SpanishReadability.Sentences(Value);
+                var words = sentences.Sum(s => SpanishReadability.Words(s).Count);
+                return (Key.StartsWith("Info_", StringComparison.Ordinal)
+                        && (Key.EndsWith("_What", StringComparison.Ordinal) || Key.EndsWith("_Actions", StringComparison.Ordinal)))
+                    || words >= ExplanationMinWords
+                    || (sentences.Count >= 2 && words >= ExplanationMinWordsInTwoSentences);
+            }
+        }
 
         public string Id => $"{Area}/{Key}";
     }

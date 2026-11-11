@@ -63,7 +63,7 @@ public sealed class ProjectAuditDocumentViewModelTests
 
         await document.PrepareCommand.ExecuteAsync(null);
 
-        Assert.Equal("Se audita la última versión guardada (commit HEAD 777777777777).", document.HeadText);
+        Assert.Equal("Se audita la última versión guardada (commit): 777777777777.", document.HeadText);
         Assert.Equal("Hay cambios sin guardar como versión (commit): no entran en la auditoría, y el informe lo dirá.", document.UncommittedText);
         Assert.Equal("Juez: juez-revision · Codex CLI · OpenAI · modelo predeterminado del programa", document.JudgeText);
         Assert.Equal("Estas empresas produjeron el código: Anthropic. El juez no puede ser de ninguna de ellas.", document.ProducersText);
@@ -163,7 +163,7 @@ public sealed class ProjectAuditDocumentViewModelTests
     {
         var (document, _, _) = await DocumentAsync(withRequirements: false);
 
-        Assert.Contains("Sin requisitos congelados no se audita. Congélalos en «Requisitos», en el orquestador.", document.Problems);
+        Assert.Contains("No se puede auditar sin requisitos congelados. Ve a «Requisitos», en el orquestador, y congélalos.", document.Problems);
         Assert.False(document.PrepareCommand.CanExecute(null));
     }
 

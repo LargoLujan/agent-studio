@@ -113,7 +113,7 @@ public sealed class NewDebateViewModelTests
         form.SelectedRun = form.Runs.Single();
 
         Assert.Equal(DebateSubjectKind.Run, form.SelectedSubject.Value);
-        Assert.Contains("El coordinador calcula quién puede juzgar al preparar", form.JudgingHint, StringComparison.Ordinal);
+        Assert.Contains("el coordinador calcula quién puede juzgar", form.JudgingHint, StringComparison.Ordinal);
         Assert.False(form.WritesCriteria);
         Assert.Equal($"Los requisitos congelados de la ejecución (2 requisitos, huella {Requirements.ContentHash[..12]}).", form.RequirementsText);
         Assert.Empty(form.Problems);
@@ -250,7 +250,7 @@ public sealed class NewDebateViewModelTests
 
         form.SelectedMode = form.Modes.Single(m => m.Value == DebateMode.ImplementationAudit);
 
-        Assert.Contains("Falta el registro de ejecuciones: no se puede debatir sobre una ejecución.", form.Problems);
+        Assert.Contains("Falta el registro de ejecuciones: no se puede debatir una ejecución.", form.Problems);
         Assert.Empty(form.Runs);
     }
 
