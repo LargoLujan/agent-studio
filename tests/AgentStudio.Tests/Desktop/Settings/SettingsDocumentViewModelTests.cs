@@ -177,7 +177,7 @@ public sealed class SettingsDocumentViewModelTests
         document.Unattended!.Choose(CloseWindowAction.Exit);
         document.SaveCommand.Execute(null);
 
-        Assert.Equal("No se pudieron guardar los ajustes (Disco lleno). Vuelve a intentarlo.", document.ErrorMessage);
+        Assert.Equal("No se pudieron guardar los ajustes (Disco lleno.). Vuelve a intentarlo.", document.ErrorMessage);
         Assert.Null(document.Notice);
         Assert.Equal([0, 0, 0], saved);
         Assert.Equal(0.70, document.Context.Thresholds.Warning);
@@ -276,7 +276,7 @@ public sealed class SettingsDocumentViewModelTests
         await document.SaveAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(1, asked);
-        Assert.Equal("No se pudieron guardar los ajustes (Disco lleno). Vuelve a intentarlo.", document.ErrorMessage);
+        Assert.Equal("No se pudieron guardar los ajustes (Disco lleno.). Vuelve a intentarlo.", document.ErrorMessage);
         Assert.True(document.IsDirty);
     }
 

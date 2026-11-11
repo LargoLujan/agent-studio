@@ -150,7 +150,7 @@
     <comment>The key to the right of L: Ñ on a Spanish keyboard, ` on a US one.</comment>
   </data>
   <data name="Main_Shortcut_TerminalHint" xml:space="preserve">
-    <value>Ctrl+Ñ (en un teclado de EE. UU., Ctrl+`)</value>
+    <value>Ctrl+Ñ, o Ctrl+` en un teclado de EE. UU.</value>
   </data>
   <data name="Main_Shortcut_Debates" xml:space="preserve">
     <value>Ctrl+Mayús+D</value>

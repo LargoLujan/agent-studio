@@ -250,7 +250,7 @@ public sealed class MainViewModelTests
 
         // The terminal panel can always come back, from the bar or with Ctrl+Ñ (Ctrl+` on a US keyboard, the same key).
         Assert.Equal(PanelIds.Terminal, byId["terminal"].PanelId);
-        Assert.Equal("Terminal (Ctrl+Ñ; en un teclado de EE. UU., Ctrl+`)", byId["terminal"].ToolTip);
+        Assert.Equal("Terminal (Ctrl+Ñ, o Ctrl+` en un teclado de EE. UU.)", byId["terminal"].ToolTip);
     }
 
     [Fact]
@@ -498,7 +498,7 @@ public sealed class MainViewModelTests
 
         await vm.Diagnostics.RefreshCommand.ExecuteAsync(null);
 
-        Assert.Equal("Sin proveedores registrados", vm.ProviderSummary.Text);
+        Assert.Equal("Sin programas registrados", vm.ProviderSummary.Text);
     }
 }
 

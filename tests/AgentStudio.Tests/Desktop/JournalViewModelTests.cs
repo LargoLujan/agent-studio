@@ -120,7 +120,7 @@ public sealed class JournalViewModelTests
         await journal.SetProjectAsync(Root);
 
         Assert.Equal(string.Empty, journal.Text);
-        Assert.Equal(@"No se pudo leer la bitácora (\'.agentstudio\bitacora\2026-10-15.md\' is a link: Agent Studio never follows one.). Pulsa «Actualizar» para intentarlo otra vez.", journal.StatusMessage);
+        Assert.Equal(@"No se pudo leer la bitácora ('.agentstudio\bitacora\2026-10-15.md' is a link: Agent Studio never follows one.). Pulsa «Actualizar» para intentarlo otra vez.", journal.StatusMessage);
     }
 
     /// <summary>Without the checked reader the day is never opened directly, even when the file is there.</summary>

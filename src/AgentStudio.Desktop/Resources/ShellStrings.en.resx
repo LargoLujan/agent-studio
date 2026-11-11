@@ -131,7 +131,7 @@
     <value>Ctrl+`</value>
   </data>
   <data name="Main_Shortcut_TerminalHint" xml:space="preserve">
-    <value>Ctrl+` (on a Spanish keyboard, Ctrl+Ñ)</value>
+    <value>Ctrl+`, or Ctrl+Ñ on a Spanish keyboard</value>
   </data>
   <data name="Main_Shortcut_Debates" xml:space="preserve">
     <value>Ctrl+Shift+D</value>
