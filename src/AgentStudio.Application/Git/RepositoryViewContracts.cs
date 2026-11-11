@@ -30,8 +30,12 @@ public sealed record RepositorySummary(string Root, bool Accepted, string? HeadB
 /// <summary>A branch with the commit it points at.</summary>
 public sealed record BranchSummary(string Name, string Commit, bool IsCurrent, BranchKind Kind);
 
-/// <summary>A commit of the graph: its full id and those of its parents, its time and what git says of its subject and author (data of its writer).</summary>
-public sealed record CommitNode(string Id, IReadOnlyList<string> Parents, DateTimeOffset At, string Subject, string AuthorName, IReadOnlyList<string> Refs);
+/// <summary>
+/// A commit of the graph: its full id and those of its parents, its time and what git says of its subject and author (data of its writer).
+/// <paramref name="Message"/> is the whole message when the reader gives it (the trailers of the system are in its last paragraph, and the
+/// suggestions of the trace read them there); null when it gives only the subject.
+/// </summary>
+public sealed record CommitNode(string Id, IReadOnlyList<string> Parents, DateTimeOffset At, string Subject, string AuthorName, IReadOnlyList<string> Refs, string? Message = null);
 
 /// <summary>What a read of the graph is bounded by: the number of commits (200 by default), a period and a branch.</summary>
 public sealed record CommitGraphQuery(int MaxCommits = 200, DateTimeOffset? Since = null, DateTimeOffset? Until = null, string? Branch = null);

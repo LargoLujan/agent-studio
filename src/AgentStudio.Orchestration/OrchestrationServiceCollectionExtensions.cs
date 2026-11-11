@@ -1,5 +1,7 @@
 using AgentStudio.Application.Orchestration;
+using AgentStudio.Application.Work;
 using AgentStudio.Orchestration.Engine;
+using AgentStudio.Orchestration.Work;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -29,6 +31,15 @@ public static class OrchestrationServiceCollectionExtensions
         services.TryAddSingleton<IProjectActivity>(provider => provider.GetRequiredService<OrchestrationActivity>());
         services.TryAddSingleton<IRunActivity>(provider => provider.GetRequiredService<IProjectActivity>());
         services.TryAddSingleton<IOrchestrator, Orchestrator>();
+
+        // Phase 9 (docs/16 D-17 to D-19 and D-29 to D-30): milestones, backlog, trace links, suggestions and the board. The suggester also needs
+        // an IRepositoryHistoryReader (the hardened git layer), which the composition root registers.
+        services.TryAddSingleton<WorkWriteGate>();
+        services.TryAddSingleton<IMilestoneService, MilestoneService>();
+        services.TryAddSingleton<IBacklogService, BacklogService>();
+        services.TryAddSingleton<ITraceLinkService, TraceLinkService>();
+        services.TryAddSingleton<ITraceSuggester, TraceSuggester>();
+        services.TryAddSingleton<IBoardProjector, BoardProjector>();
         return services;
     }
 }
