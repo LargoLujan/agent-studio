@@ -43,6 +43,7 @@ public sealed class Phase12WithTheModelTests
 
         // The model where the variable says, instead of the folder of the app: registered first, the composition keeps it.
         services.AddSingleton(new EmbeddingModelLocation(modelDirectory, EmbeddingModels.MultilingualE5Small));
+        services.AddTestLocalData(temp.Combine("local"));
         services.AddAgentStudioApp(new AppFolders(new AppDataPaths(temp.Combine("roaming")), new LocalDataPaths(temp.Combine("local")), null));
         await using var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
         var root = temp.CreateDirectory("calc");

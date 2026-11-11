@@ -28,6 +28,7 @@ using AgentStudio.Providers.Composition;
 using AgentStudio.Security;
 using AgentStudio.Security.Approvals;
 using AgentStudio.Tests.Orchestration.Fakes;
+using AgentStudio.Tests.TestSupport;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -75,6 +76,7 @@ internal static class Phase3Composition
         ArgumentNullException.ThrowIfNull(prompt);
         var services = new ServiceCollection();
         services.AddSingleton(TimeProvider.System);
+        services.AddSingleton(TestLocalData.RunFolders);
         services
             .AddAgentStudioInfrastructure()
             .AddAgentStudioMemory()

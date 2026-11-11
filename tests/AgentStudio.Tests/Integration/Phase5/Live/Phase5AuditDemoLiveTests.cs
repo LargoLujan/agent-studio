@@ -81,6 +81,7 @@ public sealed class Phase5AuditDemoLiveTests
             }
         }
 
+        notes.Add(ProjectAuditExclusions.Line(ProjectAuditExclusions.Of(profile)));
         var suggested = failed.SelectMany(f => f.Categories).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).Select(c => "Category=" + c).ToList();
         var uncategorized = failed.Where(f => f.Categories.Count == 0).Select(f => f.Name).ToList();
         notes.Add(suggested.Count == 0

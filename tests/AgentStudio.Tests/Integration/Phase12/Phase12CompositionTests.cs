@@ -43,8 +43,9 @@ public sealed class Phase12CompositionTests
         var services = new ServiceCollection();
         services.AddWindowsDoubles();
 
-        // The anchors of the decision logs go to the temporary folder, not to %LOCALAPPDATA% (Windows denies it at Low integrity).
-        services.AddSingleton(new DecisionLogAnchorOptions(Path.Combine(folders.Local.BaseDirectory, "anchors")));
+        // The folders of the composition in %LOCALAPPDATA% go to the temporary folder (Windows denies the real one at Low integrity).
+
+        services.AddTestLocalData(folders.Local.BaseDirectory);
         services.AddAgentStudioApp(folders);
         return services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
     }

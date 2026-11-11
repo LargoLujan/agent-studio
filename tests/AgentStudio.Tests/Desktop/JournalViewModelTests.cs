@@ -630,6 +630,7 @@ public sealed class JournalViewModelTests
         var services = new ServiceCollection();
         services.AddSingleton<TimeProvider>(Clock());
         services.AddWindowsDoubles();
+        services.AddTestLocalData(temp.Combine("local"));
         services.AddAgentStudioApp(new AppFolders(new AppDataPaths(temp.Combine("roaming")), new LocalDataPaths(temp.Combine("local")), null));
         return services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
     }

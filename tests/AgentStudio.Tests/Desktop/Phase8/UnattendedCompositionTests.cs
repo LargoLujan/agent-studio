@@ -102,12 +102,12 @@ public sealed class UnattendedCompositionTests
         var folders = new AppFolders(new AppDataPaths(temp.Combine("roaming")), new LocalDataPaths(temp.Combine("local")), null);
 
         // What the app registers, read without building anything (building them hooks into Windows).
-        var production = new ServiceCollection().AddAgentStudioApp(folders);
+        var production = new ServiceCollection().AddTestLocalData(folders.Local.BaseDirectory).AddAgentStudioApp(folders);
         Assert.Equal(typeof(WindowsSession), Assert.Single(production, d => d.ServiceType == typeof(IWindowsSession)).ImplementationType);
         Assert.Equal(typeof(WindowsPowerEvents), Assert.Single(production, d => d.ServiceType == typeof(IPowerEvents)).ImplementationType);
 
         // A test puts its doubles first, and the composition keeps them.
-        var tested = new ServiceCollection().AddWindowsDoubles().AddAgentStudioApp(folders);
+        var tested = new ServiceCollection().AddWindowsDoubles().AddTestLocalData(folders.Local.BaseDirectory).AddAgentStudioApp(folders);
         Assert.IsType<FakeWindowsSession>(Assert.Single(tested, d => d.ServiceType == typeof(IWindowsSession)).ImplementationInstance);
         Assert.IsType<SilentPowerEvents>(Assert.Single(tested, d => d.ServiceType == typeof(IPowerEvents)).ImplementationInstance);
     }

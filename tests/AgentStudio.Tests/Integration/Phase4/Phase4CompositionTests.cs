@@ -137,6 +137,7 @@ public sealed class Phase4CompositionTests
         var processes = new NoProcesses();
         var services = new ServiceCollection();
         services.AddWindowsDoubles();
+        services.AddTestLocalData(temp.Combine("local"));
         services.AddAgentStudioApp(folders);
         services.Replace(ServiceDescriptor.Singleton<IExecutableLocator>(processes));
         services.Replace(ServiceDescriptor.Singleton<IProcessRunner>(processes));
