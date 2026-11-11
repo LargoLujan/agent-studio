@@ -274,6 +274,43 @@ public sealed partial class HelpTests
     }
 
     [Fact]
+    public void In_a_rendered_window_the_more_help_of_an_info_button_shows_only_for_a_section_with_an_article()
+    {
+        var panel = Panel();
+        var (withArticle, without) = WpfHost.Run(() =>
+        {
+            var shell = new MainViewModel(
+                new InMemorySettingsStore(),
+                new FakeFolderPicker(),
+                new FakeUnsavedChangesPrompt(),
+                new ProviderDiagnosticsViewModel(new AgentStudio.Application.Diagnostics.ProviderDiagnostics([]), TimeProvider.System),
+                new ExplorerViewModel(),
+                new JournalViewModel(TimeProvider.System),
+                new QuickOpenViewModel(),
+                help: panel);
+            var known = new AgentStudio.Desktop.Controls.Info.InfoButton { InfoKey = "Info_Lock" };
+            var unknown = new AgentStudio.Desktop.Controls.Info.InfoButton { InfoKey = "Info_Inexistente" };
+            var content = new System.Windows.Controls.StackPanel();
+            content.Children.Add(known);
+            content.Children.Add(unknown);
+            var window = new System.Windows.Window { DataContext = shell, Content = content, ShowActivated = false, Left = -10000, Top = -10000, Width = 200, Height = 200 };
+            try
+            {
+                window.Show();
+                WpfHost.FlushBindings();
+                return (((System.Windows.Controls.Button)known.FindName("MoreHelp")).Visibility, ((System.Windows.Controls.Button)unknown.FindName("MoreHelp")).Visibility);
+            }
+            finally
+            {
+                window.Close();
+            }
+        });
+
+        Assert.Equal(System.Windows.Visibility.Visible, withArticle);
+        Assert.Equal(System.Windows.Visibility.Collapsed, without);
+    }
+
+    [Fact]
     public void The_texts_of_the_help_exist_in_both_languages_with_the_same_placeholders()
     {
         var files = ResourceFiles();
