@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Orchestration;
@@ -86,15 +87,15 @@ public sealed partial class NodeEditorViewModel : ObservableObject
         _selectedAgent = AgentOptions.First(o => o.Value == node.Agent);
         WorkspaceOptions =
         [
-            new(WorkspaceMode.None, "Sin checkout"),
-            new(WorkspaceMode.ReadOnly, "Solo lectura"),
-            new(WorkspaceMode.Write, "Escritura en un worktree propio"),
+            new(WorkspaceMode.None, Texts.Get("Orchestrator_Node_WorkspaceNone")),
+            new(WorkspaceMode.ReadOnly, Texts.Get("Orchestrator_Node_WorkspaceReadOnly")),
+            new(WorkspaceMode.Write, Texts.Get("Orchestrator_Node_WorkspaceWrite")),
         ];
         _selectedWorkspace = WorkspaceOptions.First(o => o.Value == node.Workspace);
         JoinOptions =
         [
-            new(JoinPolicy.AllCompleted, "Esperar a todas sus dependencias"),
-            new(JoinPolicy.AnyCompleted, "Basta con una (unión de las ramas de una condición)"),
+            new(JoinPolicy.AllCompleted, Texts.Get("Orchestrator_Node_JoinAll")),
+            new(JoinPolicy.AnyCompleted, Texts.Get("Orchestrator_Node_JoinAny")),
         ];
         _selectedJoin = JoinOptions.First(o => o.Value == node.Join);
         ToolOptions = BuildToolOptions(node, options.Steps);
@@ -102,13 +103,13 @@ public sealed partial class NodeEditorViewModel : ObservableObject
 
         foreach (var requirement in options.Requirements)
         {
-            var priority = requirement.Priority == RequirementPriority.Mandatory ? "obligatorio" : "deseable";
+            var priority = requirement.Priority == RequirementPriority.Mandatory ? Texts.Get("Orchestrator_Node_Mandatory") : Texts.Get("Orchestrator_Node_Desirable");
             CoverOptions.Add(new CheckOption(requirement.Id.Value, $"{requirement.Id} · {requirement.Statement} ({priority})", node.Covers.Contains(requirement.Id), isKnown: true, ApplyCovers));
         }
 
         foreach (var unknown in node.Covers.Where(r => options.Requirements.All(q => q.Id != r)))
         {
-            CoverOptions.Add(new CheckOption(unknown.Value, $"{unknown} (no está en los requisitos congelados)", isChecked: true, isKnown: false, ApplyCovers));
+            CoverOptions.Add(new CheckOption(unknown.Value, Texts.Format("Orchestrator_Node_CoverUnknown", unknown), isChecked: true, isKnown: false, ApplyCovers));
         }
 
         foreach (var (id, title) in options.Steps)
@@ -118,16 +119,16 @@ public sealed partial class NodeEditorViewModel : ObservableObject
 
         foreach (var unknown in node.VerificationSteps.Where(s => options.Steps.All(p => p.Id != s)))
         {
-            StepOptions.Add(new CheckOption(unknown, $"{unknown} (no está en el perfil)", isChecked: true, isKnown: false, ApplySteps));
+            StepOptions.Add(new CheckOption(unknown, Texts.Format("Orchestrator_Node_StepUnknown", unknown), isChecked: true, isKnown: false, ApplySteps));
         }
 
         PredicateKindOptions =
         [
-            new(PredicateKind.None, "Sin predicado"),
-            new(PredicateKind.TaskSucceeded, "La tarea terminó bien"),
-            new(PredicateKind.TestsPassed, "Las pruebas de la tarea pasaron"),
-            new(PredicateKind.OutputEquals, "Una salida de la tarea vale…"),
-            new(PredicateKind.PathsChanged, "La tarea cambió una ruta que empieza por…"),
+            new(PredicateKind.None, Texts.Get("Orchestrator_Node_PredicateNone")),
+            new(PredicateKind.TaskSucceeded, Texts.Get("Orchestrator_Node_PredicateSucceeded")),
+            new(PredicateKind.TestsPassed, Texts.Get("Orchestrator_Node_PredicateTests")),
+            new(PredicateKind.OutputEquals, Texts.Get("Orchestrator_Node_PredicateOutput")),
+            new(PredicateKind.PathsChanged, Texts.Get("Orchestrator_Node_PredicatePaths")),
         ];
         PredicateTaskOptions = [.. nodes.Where(n => !ReferenceEquals(n, node)).Select(n => new Choice<TaskId?>(n.Id, $"{n.Id} · {n.Title}"))];
         LoadPredicate(node.Condition);
@@ -269,7 +270,7 @@ public sealed partial class NodeEditorViewModel : ObservableObject
 
     public string? RetriesError => int.TryParse(MaxRetriesText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var retries) && retries >= 0
         ? null
-        : "Escribe un número entero de 0 en adelante.";
+        : Texts.Get("Orchestrator_Node_RetriesError");
 
     partial void OnMaxRetriesTextChanged(string value)
     {
@@ -284,7 +285,7 @@ public sealed partial class NodeEditorViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(TimeoutError))]
     private string _timeoutMinutesText;
 
-    public string? TimeoutError => TryParseTimeout(TimeoutMinutesText, out _) ? null : "Escribe los minutos (por ejemplo 20 o 2.5) o déjalo vacío.";
+    public string? TimeoutError => TryParseTimeout(TimeoutMinutesText, out _) ? null : Texts.Get("Orchestrator_Node_TimeoutError");
 
     partial void OnTimeoutMinutesTextChanged(string value)
     {
@@ -345,7 +346,7 @@ public sealed partial class NodeEditorViewModel : ObservableObject
     partial void OnPredicatePrefixChanged(string value) => ApplyPredicate();
 
     /// <summary>Dependencies of a loaded plan that no wire can draw (an unknown task or a wrong branch).</summary>
-    public IReadOnlyList<string> ExtraDependencyTexts => [.. Node.ExtraDependencies.Select(d => d.Branch is null ? d.Prerequisite.Value : $"{d.Prerequisite} (rama «{d.Branch}»)")];
+    public IReadOnlyList<string> ExtraDependencyTexts => [.. Node.ExtraDependencies.Select(d => d.Branch is null ? d.Prerequisite.Value : Texts.Format("Orchestrator_Node_ExtraDependencyBranch", d.Prerequisite, d.Branch))];
 
     public bool HasExtraDependencies => Node.ExtraDependencies.Count > 0;
 
@@ -359,11 +360,11 @@ public sealed partial class NodeEditorViewModel : ObservableObject
 
     private static List<Choice<AgentId?>> BuildAgentOptions(NodeViewModel node, IReadOnlyList<AgentDefinition> roster)
     {
-        var options = new List<Choice<AgentId?>> { new(null, "Sin agente") };
+        var options = new List<Choice<AgentId?>> { new(null, Texts.Get("Orchestrator_Node_NoAgent")) };
         options.AddRange(roster.Select(a => new Choice<AgentId?>(a.Id, $"{a.Id} · {RoleLabel(a.Role)} · {a.Model.Provider}")));
         if (node.Agent is { } current && roster.All(a => a.Id != current))
         {
-            options.Add(new Choice<AgentId?>(current, $"{current} (no está en la plantilla)"));
+            options.Add(new Choice<AgentId?>(current, Texts.Format("Orchestrator_Node_AgentMissing", current)));
         }
 
         return options;
@@ -371,11 +372,11 @@ public sealed partial class NodeEditorViewModel : ObservableObject
 
     private static List<Choice<string?>> BuildToolOptions(NodeViewModel node, IReadOnlyList<(string Id, string Title)> steps)
     {
-        var options = new List<Choice<string?>> { new(null, "Sin herramienta") };
+        var options = new List<Choice<string?>> { new(null, Texts.Get("Orchestrator_Node_NoTool")) };
         options.AddRange(steps.Select(s => new Choice<string?>(s.Id, $"{s.Id} · {s.Title}")));
         if (node.ToolId is { } current && steps.All(s => s.Id != current))
         {
-            options.Add(new Choice<string?>(current, $"{current} (no está en el perfil)"));
+            options.Add(new Choice<string?>(current, Texts.Format("Orchestrator_Node_StepUnknown", current)));
         }
 
         return options;
@@ -383,14 +384,8 @@ public sealed partial class NodeEditorViewModel : ObservableObject
 
     public static string RoleLabel(AgentRole role) => role switch
     {
-        AgentRole.Orchestrator => "Orquestador",
-        AgentRole.Executor => "Ejecutor",
-        AgentRole.Architect => "Arquitecto",
-        AgentRole.Tester => "Pruebas",
-        AgentRole.Documenter => "Documentación",
-        AgentRole.Critic => "Crítico",
-        AgentRole.Judge => "Juez",
-        AgentRole.Auditor => "Auditor",
+        AgentRole.Orchestrator or AgentRole.Executor or AgentRole.Architect or AgentRole.Tester
+            or AgentRole.Documenter or AgentRole.Critic or AgentRole.Judge or AgentRole.Auditor => Texts.Get("Canvas_Role_" + role),
         _ => role.ToString(),
     };
 
@@ -429,7 +424,7 @@ public sealed partial class NodeEditorViewModel : ObservableObject
         if (task is not null && selected is null)
         {
             // The predicate reads a task that is not on the canvas: keep it visible so the user sees what it reads.
-            selected = new Choice<TaskId?>(task, $"{task} (no está en el plan)");
+            selected = new Choice<TaskId?>(task, Texts.Format("Orchestrator_Node_TaskMissing", task));
             PredicateTaskOptions = [.. PredicateTaskOptions, selected];
         }
 

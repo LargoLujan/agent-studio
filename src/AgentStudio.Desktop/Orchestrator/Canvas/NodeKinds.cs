@@ -1,3 +1,4 @@
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Work;
 
@@ -10,20 +11,20 @@ public static class NodeKinds
     /// Badge of the kinds the plan validator rejects: Debate, whose nodes on the canvas were postponed (docs/15, decision 3
     /// of section 12); debates are opened from «Debates».
     /// </summary>
-    public const string UnavailableBadge = "aplazado";
+    public static string UnavailableBadge => Texts.Get("Orchestrator_NodeKind_Badge");
 
     /// <summary>Why a Debate node cannot be used, as the canvas says it.</summary>
-    public const string UnavailableReason = "los nodos de debate del lienzo están aplazados; abre el debate desde «Debates»";
+    public static string UnavailableReason => Texts.Get("Orchestrator_NodeKind_Reason");
 
     public static string Label(WorkTaskKind kind) => kind switch
     {
-        WorkTaskKind.AgentWork => "Trabajo de agente",
-        WorkTaskKind.Condition => "Condición",
-        WorkTaskKind.ToolRun => "Herramienta",
-        WorkTaskKind.Review => "Revisión",
-        WorkTaskKind.Debate => "Debate",
-        WorkTaskKind.HumanApproval => "Aprobación humana",
-        WorkTaskKind.Integration => "Integración",
+        WorkTaskKind.AgentWork => Texts.Get("Orchestrator_NodeKind_AgentWork"),
+        WorkTaskKind.Condition => Texts.Get("Orchestrator_NodeKind_Condition"),
+        WorkTaskKind.ToolRun => Texts.Get("Orchestrator_NodeKind_ToolRun"),
+        WorkTaskKind.Review => Texts.Get("Orchestrator_NodeKind_Review"),
+        WorkTaskKind.Debate => Texts.Get("Orchestrator_NodeKind_Debate"),
+        WorkTaskKind.HumanApproval => Texts.Get("Orchestrator_NodeKind_HumanApproval"),
+        WorkTaskKind.Integration => Texts.Get("Orchestrator_NodeKind_Integration"),
         _ => kind.ToString(),
     };
 
@@ -48,19 +49,19 @@ public static class NodeKinds
     public static int DefaultRetries(WorkTaskKind kind) => kind is WorkTaskKind.AgentWork or WorkTaskKind.ToolRun ? 2 : 0;
 }
 
-/// <summary>Spanish names of the task statuses; the colour of a node never carries its status alone.</summary>
+/// <summary>The names of the task statuses in the language of the interface; the colour of a node never carries its status alone.</summary>
 public static class TaskStatusText
 {
     public static string Label(WorkTaskStatus status) => status switch
     {
-        WorkTaskStatus.Pending => "Pendiente",
-        WorkTaskStatus.Running => "En curso",
-        WorkTaskStatus.Blocked => "Bloqueada",
-        WorkTaskStatus.AwaitingApproval => "Espera aprobación",
-        WorkTaskStatus.Completed => "Completada",
-        WorkTaskStatus.Failed => "Fallida",
-        WorkTaskStatus.Cancelled => "Cancelada",
-        WorkTaskStatus.Skipped => "Omitida",
+        WorkTaskStatus.Pending => Texts.Get("Orchestrator_TaskStatus_Pending"),
+        WorkTaskStatus.Running => Texts.Get("Orchestrator_TaskStatus_Running"),
+        WorkTaskStatus.Blocked => Texts.Get("Orchestrator_TaskStatus_Blocked"),
+        WorkTaskStatus.AwaitingApproval => Texts.Get("Orchestrator_TaskStatus_AwaitingApproval"),
+        WorkTaskStatus.Completed => Texts.Get("Orchestrator_TaskStatus_Completed"),
+        WorkTaskStatus.Failed => Texts.Get("Orchestrator_TaskStatus_Failed"),
+        WorkTaskStatus.Cancelled => Texts.Get("Orchestrator_TaskStatus_Cancelled"),
+        WorkTaskStatus.Skipped => Texts.Get("Orchestrator_TaskStatus_Skipped"),
         _ => status.ToString(),
     };
 }

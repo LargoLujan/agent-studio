@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Orchestrator;
 using AgentStudio.Domain.Work;
 
@@ -37,6 +38,23 @@ public sealed class ToneToBrushConverter : IValueConverter
         };
         return System.Windows.Application.Current?.TryFindResource(key) as Brush ?? Brushes.Transparent;
     }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
+/// <summary>
+/// Fills a text of the resources, named by the parameter (<c>Orchestrator_Runs_ViewName</c>), with the value bound, in the
+/// language of the interface: «Para ejecutar: {0}» with the blockers. A null or empty value gives an empty text, so a line
+/// that has nothing to say shows nothing. Used where a <c>StringFormat</c> would write a text in the XAML.
+/// </summary>
+public sealed class FormatTextConverter : IValueConverter
+{
+    /// <summary>The one instance: <c>Converter={x:Static views:FormatTextConverter.Instance}</c>.</summary>
+    public static FormatTextConverter Instance { get; } = new();
+
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        parameter is string key && value is not null && value is not string { Length: 0 } ? Texts.Format(key, value) : string.Empty;
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
         throw new NotSupportedException();

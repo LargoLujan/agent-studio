@@ -1,3 +1,4 @@
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Providers;
@@ -45,13 +46,13 @@ public static class DefaultAgentRoster
 
     public static IReadOnlyList<AgentDefinition> Create() =>
     [
-        Agent(Orchestrator, "Orquestador", AgentRole.Orchestrator, ProviderId.ClaudeCode, VendorId.Anthropic, ["Read", "Grep", "Glob"], TimeSpan.FromMinutes(15), 30, new ReviewPolicy(false, false), MemoryPolicy.ReadSelected),
-        Agent(Executor, "Ejecutor", AgentRole.Executor, ProviderId.ClaudeCode, VendorId.Anthropic, ["Read", "Grep", "Glob", "Edit", "Write"], TimeSpan.FromMinutes(20), 60, new ReviewPolicy(true, true), MemoryPolicy.ReadSelected),
-        Agent(Judge, "Juez", AgentRole.Judge, ProviderId.CodexCli, VendorId.OpenAI, [], TimeSpan.FromMinutes(15), 30, new ReviewPolicy(false, false), MemoryPolicy.None),
-        Agent(Architect, "Arquitecto", AgentRole.Architect, ProviderId.ClaudeCode, VendorId.Anthropic, ["Read", "Grep", "Glob"], TimeSpan.FromMinutes(5), 12, new ReviewPolicy(false, false), MemoryPolicy.None, maxRounds: 4),
-        Agent(Critic, "Crítico", AgentRole.Critic, ProviderId.CodexCli, VendorId.OpenAI, ["Read", "Grep", "Glob"], TimeSpan.FromMinutes(5), 12, new ReviewPolicy(false, false), MemoryPolicy.None, maxRounds: 4),
-        Agent(ClaudeJudge, "Juez Claude", AgentRole.Judge, ProviderId.ClaudeCode, VendorId.Anthropic, [], TimeSpan.FromMinutes(15), 30, new ReviewPolicy(false, false), MemoryPolicy.None),
-        Agent(RevisionJudge, "Juez de revisión", AgentRole.Judge, ProviderId.CodexCli, VendorId.OpenAI, [], TimeSpan.FromMinutes(15), 30, new ReviewPolicy(false, false), MemoryPolicy.None, model: RevisionJudgeModel),
+        Agent(Orchestrator, Texts.Get("Orchestrator_Roster_Orchestrator"), AgentRole.Orchestrator, ProviderId.ClaudeCode, VendorId.Anthropic, ["Read", "Grep", "Glob"], TimeSpan.FromMinutes(15), 30, new ReviewPolicy(false, false), MemoryPolicy.ReadSelected),
+        Agent(Executor, Texts.Get("Orchestrator_Roster_Executor"), AgentRole.Executor, ProviderId.ClaudeCode, VendorId.Anthropic, ["Read", "Grep", "Glob", "Edit", "Write"], TimeSpan.FromMinutes(20), 60, new ReviewPolicy(true, true), MemoryPolicy.ReadSelected),
+        Agent(Judge, Texts.Get("Orchestrator_Roster_Judge"), AgentRole.Judge, ProviderId.CodexCli, VendorId.OpenAI, [], TimeSpan.FromMinutes(15), 30, new ReviewPolicy(false, false), MemoryPolicy.None),
+        Agent(Architect, Texts.Get("Orchestrator_Roster_Architect"), AgentRole.Architect, ProviderId.ClaudeCode, VendorId.Anthropic, ["Read", "Grep", "Glob"], TimeSpan.FromMinutes(5), 12, new ReviewPolicy(false, false), MemoryPolicy.None, maxRounds: 4),
+        Agent(Critic, Texts.Get("Orchestrator_Roster_Critic"), AgentRole.Critic, ProviderId.CodexCli, VendorId.OpenAI, ["Read", "Grep", "Glob"], TimeSpan.FromMinutes(5), 12, new ReviewPolicy(false, false), MemoryPolicy.None, maxRounds: 4),
+        Agent(ClaudeJudge, Texts.Get("Orchestrator_Roster_ClaudeJudge"), AgentRole.Judge, ProviderId.ClaudeCode, VendorId.Anthropic, [], TimeSpan.FromMinutes(15), 30, new ReviewPolicy(false, false), MemoryPolicy.None),
+        Agent(RevisionJudge, Texts.Get("Orchestrator_Roster_RevisionJudge"), AgentRole.Judge, ProviderId.CodexCli, VendorId.OpenAI, [], TimeSpan.FromMinutes(15), 30, new ReviewPolicy(false, false), MemoryPolicy.None, model: RevisionJudgeModel),
     ];
 
     private static AgentDefinition Agent(

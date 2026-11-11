@@ -157,7 +157,7 @@ public sealed class RunMonitorViewModelTests
         Assert.Equal("Bloqueada", blocked.PhaseLabel);
         Assert.Equal(Tone.Error, blocked.PhaseTone);
         Assert.True(blocked.ShowsDeadlockAlert);
-        Assert.Equal("Bloqueada · proveedor no disponible", blocked.Tasks[0].StatusLabel);
+        Assert.Equal("Bloqueada · el programa del agente no está disponible", blocked.Tasks[0].StatusLabel);
     }
 
     [Fact]
@@ -225,8 +225,8 @@ public sealed class RunMonitorViewModelTests
                 MetricValue<decimal>.Unavailable("subscription")))),
             new EvidenceCapturedEvent(T0, Tid("T1"), evidence));
 
-        Assert.Equal(["Usa Edit: src/Calc/Calc.cs", "Uso: 1200 tokens de entrada, 340 de salida"], monitor.Activity.Where(a => a.Task == "T1").Select(a => a.Text));
-        Assert.Equal("Uso: 1200 tokens de entrada, 340 de salida", monitor.Tasks[0].LastActivity);
+        Assert.Equal(["Usa Edit: src/Calc/Calc.cs", "Uso: 1200 tokens de entrada y 340 de salida"], monitor.Activity.Where(a => a.Task == "T1").Select(a => a.Text));
+        Assert.Equal("Uso: 1200 tokens de entrada y 340 de salida", monitor.Tasks[0].LastActivity);
         var entry = Assert.Single(monitor.Evidence);
         Assert.Equal(("T1", "Pruebas de T1", "Pruebas", "capturada por el sistema", "aaaaaaaaaaaa", "10 correctas, 0 fallidas, 0 omitidas"),
             (entry.Task, entry.Title, entry.Kind, entry.Origin, entry.ShortHash, entry.Tests));
@@ -647,8 +647,8 @@ public sealed class RunMonitorViewModelTests
             new AgentActivityEvent(T0, Tid("T1"), new CompactionObserved(T0, "auto", MetricValue<long>.Exact(180_000, "claude compact_boundary.pre_tokens"))),
             new AgentActivityEvent(T0, Tid("T1"), Context(20_000, 1_000_000)));
 
-        Assert.Equal("Contexto: 2 % · exacto · informado por el CLI · 20.000 de 1.000.000 tokens · claude-sonnet-5-5 · sano · 1 compactación del CLI (posible pérdida de información)", monitor.Tasks[0].Context);
-        Assert.Contains(monitor.Activity, a => a.Text == "El CLI compactó el contexto (auto): 180.000 tokens antes · exacto · informado por el CLI");
+        Assert.Equal("Contexto: 2 % · exacto · informado por el CLI · 20.000 de 1.000.000 tokens · claude-sonnet-5-5 · sano · 1 compactación del contexto (posible pérdida de información)", monitor.Tasks[0].Context);
+        Assert.Contains(monitor.Activity, a => a.Text == "El programa del agente compactó el contexto (auto): 180.000 tokens antes · exacto · informado por el CLI");
     }
 
     [Fact]
@@ -708,7 +708,7 @@ public sealed class RunMonitorViewModelTests
         Assert.Equal([new RunId("20260101-abc123")], auditor.Audited);
         Assert.Equal(0, checksWhenAudited);
         Assert.Single(delivery.Checks);
-        Assert.Equal("Auditor del orquestador: 2 hallazgos, 1 de gravedad alta o crítica (2 alertas nuevas en el registro).", monitor.AuditSummary);
+        Assert.Equal("Auditor del orquestador: 2 hallazgos, 1 de gravedad alta o crítica (2 alertas nuevas en el historial).", monitor.AuditSummary);
         Assert.Equal(Tone.Error, monitor.AuditTone);
         Assert.Equal(
             [
@@ -726,7 +726,7 @@ public sealed class RunMonitorViewModelTests
     {
         var monitor = await ReviewedAsync(new FakeDeliveryService(), new RunReviewServices(new FakeOrchestratorAuditService()));
 
-        Assert.Equal("Auditor del orquestador: sin hallazgos en el registro verificado de la ejecución.", monitor.AuditSummary);
+        Assert.Equal("Auditor del orquestador: sin hallazgos en el historial verificado de la ejecución.", monitor.AuditSummary);
         Assert.Equal(Tone.Success, monitor.AuditTone);
         Assert.Empty(monitor.AuditFindings);
         Assert.False(monitor.ReplanPending);
@@ -741,7 +741,7 @@ public sealed class RunMonitorViewModelTests
 
         var monitor = await ReviewedAsync(new FakeDeliveryService(), new RunReviewServices(auditor));
 
-        Assert.Equal("El registro de la ejecución no verifica desde la entrada 7: hash roto. El auditor no escribió nada.", monitor.AuditSummary);
+        Assert.Equal("El historial de la ejecución no se pudo verificar desde la entrada 7: hash roto. El auditor no escribió nada.", monitor.AuditSummary);
         Assert.Equal(Tone.Error, monitor.AuditTone);
         Assert.False(monitor.ReplanPending);
     }

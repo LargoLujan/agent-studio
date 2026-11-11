@@ -6,6 +6,7 @@ using AgentStudio.Application.Projects;
 using AgentStudio.Application.Providers;
 using AgentStudio.Application.Security;
 using AgentStudio.Application.Verification;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Orchestrator.Canvas;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Common;
@@ -194,17 +195,17 @@ public sealed class OrchestrationSession
         var missing = new List<string>();
         if (_backend.Orchestrator is null)
         {
-            missing.Add("Motor no disponible: el lienzo funciona, pero no se puede pedir un plan ni ejecutarlo.");
+            missing.Add(Texts.Get("Orchestrator_Session_EngineMissing"));
         }
 
         ProjectContext? project = null;
         if (_backend.Workspace is null)
         {
-            missing.Add("Falta el almacén del proyecto: sin él no se leen los requisitos, la plantilla de agentes ni las ejecuciones.");
+            missing.Add(Texts.Get("Orchestrator_Session_StoreMissing"));
         }
         else
         {
-            (project, _) = await Try(() => _backend.Workspace.OpenAsync(projectRoot, cancellationToken), "No se pudo abrir el proyecto para orquestar", missing).ConfigureAwait(true);
+            (project, _) = await Try(() => _backend.Workspace.OpenAsync(projectRoot, cancellationToken), Texts.Get("Orchestrator_Session_OpenFailed"), missing).ConfigureAwait(true);
         }
 
         FrozenRequirementSet? requirements = null;
@@ -218,7 +219,7 @@ public sealed class OrchestrationSession
         {
             if (_backend.Decisions is not null)
             {
-                var (log, _) = await Try(() => _backend.Decisions.LoadAsync(project.ProjectId, cancellationToken), "No se pudo leer el registro de decisiones", missing).ConfigureAwait(true);
+                var (log, _) = await Try(() => _backend.Decisions.LoadAsync(project.ProjectId, cancellationToken), Texts.Get("Orchestrator_Session_LogFailed"), missing).ConfigureAwait(true);
                 if (log is { Verification.IsValid: false })
                 {
                     integrityProblem = HistoryText.Problem(log);
@@ -228,20 +229,20 @@ public sealed class OrchestrationSession
 
             if (_backend.Requirements is null)
             {
-                missing.Add("Falta el almacén de requisitos: sin requisitos congelados no se puede validar el plan.");
+                missing.Add(Texts.Get("Orchestrator_Session_RequirementsStoreMissing"));
             }
             else
             {
-                (requirements, var failed) = await Try(() => _backend.Requirements.LatestAsync(project.ProjectId, cancellationToken), "No se pudieron leer los requisitos", missing).ConfigureAwait(true);
+                (requirements, var failed) = await Try(() => _backend.Requirements.LatestAsync(project.ProjectId, cancellationToken), Texts.Get("Orchestrator_Session_RequirementsFailed"), missing).ConfigureAwait(true);
                 if (requirements is null && !failed)
                 {
-                    missing.Add("El proyecto no tiene requisitos congelados: escríbelos y congélalos en «Requisitos» para poder planificar.");
+                    missing.Add(Texts.Get("Orchestrator_Session_NoRequirements"));
                 }
             }
 
             if (_backend.Roster is null)
             {
-                missing.Add("Falta la plantilla de agentes del proyecto.");
+                missing.Add(Texts.Get("Orchestrator_Session_RosterMissing"));
             }
             else
             {
@@ -250,17 +251,17 @@ public sealed class OrchestrationSession
 
             if (_backend.Verification is null)
             {
-                missing.Add("Falta el perfil de verificación (.agentstudio/verification.json): sin él no se puede validar el plan.");
+                missing.Add(Texts.Get("Orchestrator_Session_ProfileMissing"));
             }
             else
             {
-                (profile, var failed) = await Try(() => _backend.Verification.LoadAsync(project, cancellationToken), "No se pudo leer el perfil de verificación", missing).ConfigureAwait(true);
+                (profile, var failed) = await Try(() => _backend.Verification.LoadAsync(project, cancellationToken), Texts.Get("Orchestrator_Session_ProfileFailed"), missing).ConfigureAwait(true);
                 if (profile is null && !failed)
                 {
                     proposal = _backend.Verification.Propose(project);
                     missing.Add(proposal is null
-                        ? "El proyecto no tiene perfil de verificación (.agentstudio/verification.json)."
-                        : "El proyecto no tiene perfil de verificación (.agentstudio/verification.json): revisa el propuesto y pulsa «Usar perfil propuesto».");
+                        ? Texts.Get("Orchestrator_Session_NoProfile")
+                        : Texts.Get("Orchestrator_Session_NoProfileProposal"));
                 }
             }
         }
@@ -405,7 +406,7 @@ public sealed class OrchestrationSession
         List<string> missing,
         CancellationToken cancellationToken)
     {
-        var (agents, failed) = await Try(() => store.ListAsync(project.ProjectId, cancellationToken), "No se pudo leer la plantilla de agentes", missing).ConfigureAwait(true);
+        var (agents, failed) = await Try(() => store.ListAsync(project.ProjectId, cancellationToken), Texts.Get("Orchestrator_Session_RosterFailed"), missing).ConfigureAwait(true);
         if (failed || agents is not { Count: 0 })
         {
             return (agents ?? [], false);
@@ -421,14 +422,14 @@ public sealed class OrchestrationSession
 
                 return new object();
             },
-            "No se pudo crear la plantilla de agentes por defecto",
+            Texts.Get("Orchestrator_Session_RosterCreateFailed"),
             missing).ConfigureAwait(true);
         if (notCreated)
         {
             return ([], false);
         }
 
-        (agents, _) = await Try(() => store.ListAsync(project.ProjectId, cancellationToken), "No se pudo leer la plantilla de agentes", missing).ConfigureAwait(true);
+        (agents, _) = await Try(() => store.ListAsync(project.ProjectId, cancellationToken), Texts.Get("Orchestrator_Session_RosterFailed"), missing).ConfigureAwait(true);
         return (agents ?? [], true);
     }
 

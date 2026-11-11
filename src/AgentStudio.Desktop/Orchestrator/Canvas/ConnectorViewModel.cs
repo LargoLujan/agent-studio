@@ -1,4 +1,5 @@
 using System.Windows;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Domain.Orchestration;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -40,7 +41,7 @@ public sealed partial class ConnectorViewModel : ObservableObject
     /// <summary>Text drawn next to the connector and on its wires: only the branch outputs are labelled.</summary>
     public string? Label => Branch is null ? null : Title;
 
-    public string AutomationName => $"{Title} de {Node.Id}";
+    public string AutomationName => Texts.Format("Orchestrator_Connector_Name", Title, Node.Id);
 
     [ObservableProperty]
     private Point _anchor;
@@ -103,8 +104,8 @@ public sealed partial class ConnectionViewModel : ObservableObject
     public string? Branch => Source.Branch;
 
     public string AutomationName => Branch is null
-        ? $"{Source.Node.Id} a {Target.Node.Id}"
-        : $"{Source.Node.Id} ({Source.Title}) a {Target.Node.Id}";
+        ? Texts.Format("Orchestrator_Connector_Link", Source.Node.Id, Target.Node.Id)
+        : Texts.Format("Orchestrator_Connector_LinkWithBranch", Source.Node.Id, Source.Title, Target.Node.Id);
 
     internal void Detach()
     {

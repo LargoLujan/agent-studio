@@ -72,7 +72,7 @@ public sealed class RosterEditorViewModelTests
         Assert.Equal([true, true, false, true, true, false, false], editor.Agents.Select(a => a.CanReceiveMemory));
         Assert.Equal([true, true, false, false, false, false, false], editor.Agents.Select(a => a.ReceivesMemory));
         Assert.Equal("Recibe la memoria del proyecto (solo la de confianza).", editor.Agents[0].MemoryText);
-        Assert.Equal("Nunca recibe memoria: su veredicto solo se apoya en el dossier.", editor.Agents[2].MemoryText);
+        Assert.Equal("Nunca recibe memoria: su veredicto solo se apoya en el expediente.", editor.Agents[2].MemoryText);
         Assert.False(editor.Agents[2].CanEdit);
     }
 
@@ -153,7 +153,7 @@ public sealed class RosterEditorViewModelTests
         var orchestrator = editor.Agents.Single(a => a.Id == DefaultAgentRoster.Orchestrator);
         Assert.Equal([AgentModels.DefaultLabel, "opus", "sonnet", "haiku", AgentModels.OtherLabel], orchestrator.ModelOptions.Select(o => o.Label));
         Assert.Equal(AgentModels.DefaultLabel, orchestrator.SelectedModel.Label);
-        Assert.Equal("Usa el modelo predeterminado del CLI.", orchestrator.ModelText);
+        Assert.Equal("Usa el modelo predeterminado del programa.", orchestrator.ModelText);
         var revision = editor.Agents.Single(a => a.Id == DefaultAgentRoster.RevisionJudge);
         Assert.Equal([AgentModels.DefaultLabel, DefaultAgentRoster.RevisionJudgeModel, AgentModels.OtherLabel], revision.ModelOptions.Select(o => o.Label));
         Assert.Equal(DefaultAgentRoster.RevisionJudgeModel, revision.SelectedModel.Model);

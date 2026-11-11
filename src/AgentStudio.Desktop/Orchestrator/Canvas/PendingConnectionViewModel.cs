@@ -1,3 +1,4 @@
+using AgentStudio.Desktop.Localization;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace AgentStudio.Desktop.Orchestrator.Canvas;
@@ -43,6 +44,6 @@ public sealed partial class PendingConnectionViewModel : ObservableObject
 
         var check = _canvas.Check(source, target);
         IsPreviewError = !check.IsAllowed;
-        PreviewText = check.IsAllowed ? $"Conectar con {target.Node.Id}" : check.Message;
+        PreviewText = check.IsAllowed ? Texts.Format("Orchestrator_Link_ConnectWith", target.Node.Id) : check.Message;
     }
 }

@@ -108,7 +108,7 @@ public sealed class OrchestrationSessionTests
         Assert.Empty(source.Saved);
         Assert.Null(context.PlanContext(new PlanLimits()));
         Assert.Equal(
-            ["El proyecto no tiene perfil de verificación (.agentstudio/verification.json): revisa el propuesto y pulsa «Usar perfil propuesto»."],
+            ["El proyecto no tiene perfil de verificación (.agentstudio/verification.json): revisa el propuesto y pulsa «Usar el perfil propuesto»."],
             context.Missing);
     }
 
@@ -310,7 +310,7 @@ public sealed class OrchestrationSessionTests
 
         var context = await session.OpenAsync(Root, CancellationToken.None);
 
-        Assert.StartsWith("El registro de decisiones no es íntegro", context.IntegrityProblem, StringComparison.Ordinal);
+        Assert.StartsWith("El historial de decisiones no es íntegro", context.IntegrityProblem, StringComparison.Ordinal);
         Assert.Null(context.Unanchored);
     }
 

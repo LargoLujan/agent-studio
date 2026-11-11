@@ -8,6 +8,7 @@
              xmlns:lockviews="clr-namespace:AgentStudio.Desktop.Views.Lock"
              xmlns:controls="clr-namespace:AgentStudio.Desktop.Controls"
              xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
+             xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=orchestrator:OrchestratorDocumentViewModel}">
     <!-- The «Orquestador» tab: engine status, the preparation (request, frozen requirements, agents, verification
@@ -43,21 +44,21 @@
                     BorderThickness="0,0,0,1" Padding="12,8">
                 <StackPanel>
                     <DockPanel LastChildFill="True">
-                        <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Margin="12,0,0,0" VerticalAlignment="Top" Content="Volver a cargar"
-                                ToolTip="Vuelve a leer los requisitos, la plantilla de agentes, el perfil y las ejecuciones"
+                        <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Margin="12,0,0,0" VerticalAlignment="Top" Content="{l:T Orchestrator_Review_Reload}"
+                                ToolTip="{l:T Orchestrator_Review_ReloadHelp}"
                                 Command="{Binding ReloadCommand}"/>
                         <WrapPanel>
                             <Ellipse Width="10" Height="10" Margin="0,0,8,0" VerticalAlignment="Center"
                                      Fill="{Binding EngineTone, Converter={StaticResource Orchestrator.ToneToBrush}}"/>
                             <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,14,0"
-                                       Text="{Binding EngineStatus}" AutomationProperties.Name="Estado del motor"/>
+                                       Text="{Binding EngineStatus}" AutomationProperties.Name="{l:T Orchestrator_Review_EngineName}"/>
                             <TextBlock Style="{StaticResource SecondaryText}" VerticalAlignment="Center"
                                        FontFamily="{StaticResource MonoFont}" Text="{Binding ProjectRoot}"/>
                         </WrapPanel>
                     </DockPanel>
                     <ItemsControl ItemsSource="{Binding Missing}" Margin="18,4,0,0" Focusable="False"
                                   Visibility="{Binding HasMissing, Converter={StaticResource Orchestrator.BoolToVisibility}}"
-                                  AutomationProperties.Name="Lo que falta">
+                                  AutomationProperties.Name="{l:T Orchestrator_Review_MissingName}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <TextBlock Style="{StaticResource BodyText}" FontSize="12" Foreground="{StaticResource WarningBrush}" Text="{Binding}"/>
@@ -68,11 +69,11 @@
                          location, the person's only way forward. -->
                     <StackPanel Margin="18,6,0,0" Visibility="{Binding HasIntegrityProblem, Converter={StaticResource Orchestrator.BoolToVisibility}}">
                         <TextBlock Style="{StaticResource ErrorText}" TextWrapping="Wrap" Text="{Binding IntegrityProblem}"
-                                   AutomationProperties.Name="Problema de integridad del registro de decisiones"
+                                   AutomationProperties.Name="{l:T Orchestrator_Review_IntegrityName}"
                                    AutomationProperties.LiveSetting="Assertive"/>
                         <Button Style="{StaticResource ToolbarButton}" Margin="0,6,0,0" HorizontalAlignment="Left"
-                                Content="Aceptar este historial como nuevo origen"
-                                ToolTip="Pregunta si este historial es tuyo; si lo aceptas, queda anotado en el registro y se ancla en esta ubicación"
+                                Content="{l:T Orchestrator_Review_AcceptHistory}"
+                                ToolTip="{l:T Orchestrator_Review_AcceptHistoryHelp}"
                                 Visibility="{Binding CanAcceptHistory, Converter={StaticResource Orchestrator.BoolToVisibility}}"
                                 Command="{Binding AcceptHistoryCommand}"/>
                     </StackPanel>
@@ -90,14 +91,14 @@
                     <views:AdaptiveColumnsPanel ColumnSpacing="12" RowSpacing="6">
                         <DockPanel views:AdaptiveColumnsPanel.Weight="3" MinWidth="240">
                             <TextBlock DockPanel.Dock="Left" Style="{StaticResource SecondaryText}" Margin="0,5,8,0"
-                                       VerticalAlignment="Top" Text="Resumen del plan"/>
+                                       VerticalAlignment="Top" Text="{l:T Orchestrator_Review_PlanSummary}"/>
                             <TextBox Style="{StaticResource FieldTextBox}" Text="{Binding PlanSummary, UpdateSourceTrigger=PropertyChanged}"
-                                     AutomationProperties.Name="Resumen del plan"/>
+                                     AutomationProperties.Name="{l:T Orchestrator_Review_PlanSummary}"/>
                         </DockPanel>
                         <WrapPanel MinWidth="250" HorizontalAlignment="Right" VerticalAlignment="Top">
-                            <Button Style="{StaticResource ToolbarButton}" Content="Pedir plan al orquestador" Command="{Binding RequestPlanCommand}"
-                                    ToolTip="El agente orquestador propone un plan para la petición y los requisitos congelados (gasta cuota)"/>
-                            <Button Style="{StaticResource ToolbarButton}" Content="Cancelar" Command="{Binding CancelPlanningCommand}"/>
+                            <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_Review_RequestPlan}" Command="{Binding RequestPlanCommand}"
+                                    ToolTip="{l:T Orchestrator_Review_RequestPlanHelp}"/>
+                            <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_Review_CancelPlanning}" Command="{Binding CancelPlanningCommand}"/>
                         </WrapPanel>
                     </views:AdaptiveColumnsPanel>
 
@@ -108,20 +109,20 @@
                         <TextBlock Style="{StaticResource BodyText}" Margin="0,0,16,0" Text="{Binding ValidationText}"
                                    AutomationProperties.LiveSetting="Polite"/>
                         <TextBlock Style="{StaticResource BodyText}" Margin="0,0,16,0" Text="{Binding ApprovalText}"
-                                   AutomationProperties.Name="Aprobación del plan" AutomationProperties.LiveSetting="Polite"/>
+                                   AutomationProperties.Name="{l:T Orchestrator_Review_ApprovalName}" AutomationProperties.LiveSetting="Polite"/>
                         <TextBlock Style="{StaticResource OptionalSecondaryText}" VerticalAlignment="Center"
-                                   Text="{Binding ExecuteBlockers, StringFormat='Para ejecutar: {0}'}"/>
+                                   Text="{Binding ExecuteBlockers, Converter={x:Static views:FormatTextConverter.Instance}, ConverterParameter=Orchestrator_Review_ToRun}"/>
                     </WrapPanel>
                     <!-- Part of what «Aprobar plan» approves: the steps that run the agents' code with the user's rights (ADR-0017). -->
                     <TextBlock Style="{StaticResource BodyText}" Margin="0,4,0,0" TextWrapping="Wrap" FontWeight="SemiBold"
                                Foreground="{StaticResource WarningBrush}" Text="{Binding IsolationWarning}"
                                Visibility="{Binding HasIsolationWarning, Converter={StaticResource Orchestrator.BoolToVisibility}}"
-                               AutomationProperties.Name="Escritores con integridad Medium" AutomationProperties.LiveSetting="Polite"/>
+                               AutomationProperties.Name="{l:T Orchestrator_Review_IsolationName}" AutomationProperties.LiveSetting="Polite"/>
                     <!-- B10: a valid plan whose writing no integration reviewed by the judge takes in cannot be delivered. -->
                     <TextBlock Style="{StaticResource BodyText}" Margin="0,4,0,0" TextWrapping="Wrap"
                                Foreground="{StaticResource WarningBrush}" Text="{Binding DeliveryWarning}"
                                Visibility="{Binding HasDeliveryWarning, Converter={StaticResource Orchestrator.BoolToVisibility}}"
-                               AutomationProperties.Name="Aviso de entrega del plan" AutomationProperties.LiveSetting="Polite"/>
+                               AutomationProperties.Name="{l:T Orchestrator_Review_DeliveryWarningName}" AutomationProperties.LiveSetting="Polite"/>
                     <!-- «Aprobar plan» without Windows Hello on this computer: the button decided alone (docs/16 D-13). -->
                     <lockviews:HelloNoticeView/>
                     <StackPanel Orientation="Horizontal" Margin="0,4,0,0"
@@ -133,9 +134,9 @@
 
                     <!-- The decision on the plan and the run. -->
                     <WrapPanel Margin="0,6,0,0">
-                        <Button Style="{StaticResource ToolbarButton}" Content="Validar" Command="{Binding ValidateCommand}"/>
-                        <Button Style="{StaticResource ToolbarButton}" Content="Aprobar plan" Command="{Binding ApproveCommand}"/>
-                        <Button Style="{StaticResource ToolbarButton}" Content="Rechazar" Command="{Binding RejectCommand}"/>
+                        <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_Review_Validate}" Command="{Binding ValidateCommand}"/>
+                        <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_Review_Approve}" Command="{Binding ApproveCommand}"/>
+                        <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_Review_Reject}" Command="{Binding RejectCommand}"/>
                         <!-- The consent of the next run (docs/16 D-39, decision 4 (a)): off by default, it goes into its header. -->
                         <CheckBox Style="{StaticResource FieldCheckBox}" Margin="6,0,12,6" VerticalAlignment="Center"
                                   Content="{x:Static orchestrator:OrchestratorDocumentViewModel.ResumeConsentLabel}"
@@ -143,9 +144,10 @@
                                   ToolTip="{x:Static orchestrator:OrchestratorDocumentViewModel.ResumeConsentToolTip}"
                                   ToolTipService.ShowOnDisabled="True"
                                   AutomationProperties.HelpText="{x:Static orchestrator:OrchestratorDocumentViewModel.ResumeConsentToolTip}"/>
-                        <Button Style="{StaticResource ToolbarPrimaryButton}" Content="Ejecutar" Command="{Binding ExecuteCommand}"
+                        <info:InfoButton InfoKey="Info_ResumeConsent" Margin="0,0,12,6" VerticalAlignment="Center"/>
+                        <Button Style="{StaticResource ToolbarPrimaryButton}" Content="{l:T Orchestrator_Review_Execute}" Command="{Binding ExecuteCommand}"
                                 ToolTip="{Binding ExecuteBlockers}" ToolTipService.ShowOnDisabled="True"/>
-                        <Button Style="{StaticResource ToolbarButton}" Content="Editar el plan" Command="{Binding EditPlanCommand}"/>
+                        <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_Review_EditPlan}" Command="{Binding EditPlanCommand}"/>
                     </WrapPanel>
                 </StackPanel>
             </Border>
@@ -176,12 +178,12 @@
                             </ContentControl>
                             <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap"
                                        Visibility="{Binding Editor, Converter={StaticResource Orchestrator.NullToVisibility}}"
-                                       Text="Selecciona un nodo para ver y cambiar sus propiedades."/>
+                                       Text="{l:T Orchestrator_Review_SelectNode}"/>
                             </StackPanel>
 
-                            <TextBlock Style="{StaticResource SectionTitleText}" Margin="0,20,0,4" Text="Problemas del plan"
+                            <TextBlock Style="{StaticResource SectionTitleText}" Margin="0,20,0,4" Text="{l:T Orchestrator_Review_Problems}"
                                        Visibility="{Binding ShowValidation, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
-                            <ItemsControl ItemsSource="{Binding Problems}" Focusable="False" AutomationProperties.Name="Problemas del plan">
+                            <ItemsControl ItemsSource="{Binding Problems}" Focusable="False" AutomationProperties.Name="{l:T Orchestrator_Review_Problems}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="{x:Type orchestrator:PlanProblem}">
                                         <Button Style="{StaticResource GhostButton}" BorderThickness="0" Padding="4,3" Margin="0,0,0,2"
@@ -195,14 +197,14 @@
                             </ItemsControl>
 
                             <StackPanel Margin="0,20,0,0" Visibility="{Binding Proposal, Converter={StaticResource Orchestrator.NotNullToVisibility}}">
-                                <TextBlock Style="{StaticResource SectionTitleText}" Margin="0,0,0,4" Text="Propuesta del orquestador"/>
+                                <TextBlock Style="{StaticResource SectionTitleText}" Margin="0,0,0,4" Text="{l:T Orchestrator_Review_Proposal}"/>
                                 <TextBlock Style="{StaticResource BodyText}" Text="{Binding ProposalStatus}" AutomationProperties.LiveSetting="Polite"/>
                                 <!-- The orchestrator asked instead of planning (docs/17 D-28): its questions open as windows, and this opens them again. -->
                                 <Button Style="{StaticResource ToolbarButton}" HorizontalAlignment="Left" Margin="0,6,0,0" Content="{l:T Shell_Planner_Answer}"
                                         Command="{Binding OpenPlannerQuestionsCommand}" ToolTip="{l:T Shell_Planner_AnswerHelp}"
                                         AutomationProperties.Name="{l:T Shell_Planner_Answer}" AutomationProperties.HelpText="{l:T Shell_Planner_AnswerHelp}"
                                         Visibility="{Binding HasPlannerQuestions, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
-                                <TextBlock Style="{StaticResource FieldLabel}" Text="Riesgos que señala"/>
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Orchestrator_Review_Risks}"/>
                                 <ItemsControl ItemsSource="{Binding Risks}" Focusable="False">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
@@ -213,11 +215,11 @@
                             </StackPanel>
 
                             <StackPanel Margin="0,20,0,0">
-                                <TextBlock Style="{StaticResource SectionTitleText}" Margin="0,0,0,4" Text="Lo que hace el orquestador"/>
+                                <TextBlock Style="{StaticResource SectionTitleText}" Margin="0,0,0,4" Text="{l:T Orchestrator_Review_Activity}"/>
                                 <!-- Its context while it plans (docs/18 P3), step by step, with its origin and level. -->
                                 <controls:MetricBar Margin="0,0,0,6" TrackWidth="110" Reading="{Binding PlanningContext}"
                                                     Visibility="{Binding PlanningContext, Converter={StaticResource Orchestrator.NotNullToVisibility}}"/>
-                                <TextBlock Text="Nada todavía.">
+                                <TextBlock Text="{l:T Orchestrator_Review_NothingYet}">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
                                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -251,10 +253,10 @@
                 <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
                         BorderThickness="1,0,0,0" Padding="12,10" views:AdaptiveColumnsPanel.Weight="1" MinWidth="240">
                     <DockPanel>
-                        <TextBlock DockPanel.Dock="Top" Style="{StaticResource SectionTitleText}" Margin="0,0,0,2" Text="Ejecuciones anteriores"/>
+                        <TextBlock DockPanel.Dock="Top" Style="{StaticResource SectionTitleText}" Margin="0,0,0,2" Text="{l:T Orchestrator_Runs_Title}"/>
                         <TextBlock DockPanel.Dock="Top" Style="{StaticResource SecondaryText}" Margin="0,0,0,6"
-                                   Text="«Ver» abre una en el monitor, en solo lectura y sin gastar cuota: sus tareas, evidencias, revisión y su entrega."/>
-                        <TextBlock DockPanel.Dock="Top" Text="Ninguna todavía.">
+                                   Text="{l:T Orchestrator_Runs_Hint}"/>
+                        <TextBlock DockPanel.Dock="Top" Text="{l:T Orchestrator_Runs_None}">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
                                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -267,7 +269,7 @@
                             </TextBlock.Style>
                         </TextBlock>
                         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
-                            <ItemsControl ItemsSource="{Binding PreviousRuns}" AutomationProperties.Name="Ejecuciones anteriores">
+                            <ItemsControl ItemsSource="{Binding PreviousRuns}" AutomationProperties.Name="{l:T Orchestrator_Runs_Title}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="{x:Type orchestrator:RunListItem}">
                                         <!-- The run the monitor shows is marked: raised, with an accent edge and the words. -->
@@ -294,22 +296,22 @@
                                                 <TextBlock Style="{StaticResource SecondaryText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
                                                            Text="{Binding Summary.Summary}" ToolTip="{Binding Summary.Summary}"/>
                                                 <TextBlock Style="{StaticResource SecondaryText}" FontFamily="{StaticResource MonoFont}" Text="{Binding Summary.Id}"/>
-                                                <TextBlock Style="{StaticResource BodyText}" FontSize="12" Text="Abierta en el monitor, en solo lectura."
+                                                <TextBlock Style="{StaticResource BodyText}" FontSize="12" Text="{l:T Orchestrator_Runs_Viewed}"
                                                            Visibility="{Binding IsViewed, Converter={StaticResource Orchestrator.BoolToVisibility}}"/>
                                                 <WrapPanel Margin="0,4,0,0">
-                                                    <Button Style="{StaticResource ToolbarButton}" Content="Ver"
-                                                            ToolTip="Abre la ejecución en el monitor, en solo lectura y reconstruida del registro: tareas con su motivo, evidencias, revisión y, si el juez aprobó su integración, «Entregar a mi rama». No gasta cuota."
+                                                    <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_Runs_View}"
+                                                            ToolTip="{l:T Orchestrator_Runs_ViewHelp}"
                                                             ToolTipService.ShowOnDisabled="True"
                                                             Visibility="{Binding CanView, Converter={StaticResource Orchestrator.BoolToVisibility}}"
                                                             Command="{Binding DataContext.ViewRunCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                             CommandParameter="{Binding}"
-                                                            AutomationProperties.Name="{Binding Summary.Id, StringFormat='Ver la ejecución {0}'}"/>
-                                                    <Button Style="{StaticResource ToolbarButton}" Content="Reanudar"
-                                                            ToolTip="Continúa la ejecución interrumpida (gasta cuota)"
+                                                            AutomationProperties.Name="{Binding Summary.Id, Converter={x:Static views:FormatTextConverter.Instance}, ConverterParameter=Orchestrator_Runs_ViewName}"/>
+                                                    <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_Runs_Resume}"
+                                                            ToolTip="{l:T Orchestrator_Runs_ResumeHelp}"
                                                             Visibility="{Binding CanResume, Converter={StaticResource Orchestrator.BoolToVisibility}}"
                                                             Command="{Binding DataContext.ResumeRunCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                             CommandParameter="{Binding}"
-                                                            AutomationProperties.Name="{Binding Summary.Id, StringFormat='Reanudar la ejecución {0}'}"/>
+                                                            AutomationProperties.Name="{Binding Summary.Id, Converter={x:Static views:FormatTextConverter.Instance}, ConverterParameter=Orchestrator_Runs_ResumeName}"/>
                                                 </WrapPanel>
                                             </StackPanel>
                                         </Border>

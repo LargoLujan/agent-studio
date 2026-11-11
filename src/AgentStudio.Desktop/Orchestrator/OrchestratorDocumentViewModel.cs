@@ -9,6 +9,7 @@ using AgentStudio.Application.Security;
 using AgentStudio.Application.Setup;
 using AgentStudio.Application.Verification;
 using AgentStudio.Desktop.Controls;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Lock;
 using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Orchestrator.Approvals;
@@ -256,26 +257,26 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
     [NotifyPropertyChangedFor(nameof(PreparationToggleText))]
     private bool _isPreparationExpanded = true;
 
-    public string PreparationToggleText => IsPreparationExpanded ? "Ocultar" : "Mostrar";
+    public string PreparationToggleText => IsPreparationExpanded ? Texts.Get("Orchestrator_Doc_Hide") : Texts.Get("Orchestrator_Doc_Show");
 
     /// <summary>The preparation in one line, which stays on screen while the band is hidden.</summary>
     public string PreparationSummary => string.Join(
         " · ",
-        string.IsNullOrWhiteSpace(RequestText) ? "Sin petición" : "Petición escrita",
+        string.IsNullOrWhiteSpace(RequestText) ? Texts.Get("Orchestrator_Doc_NoRequest") : Texts.Get("Orchestrator_Doc_RequestWritten"),
         Requirements.HasPendingChanges
-            ? "requisitos con cambios sin congelar"
-            : Context?.Requirements is { } frozen ? $"requisitos congelados ({Short(frozen.ContentHash)})" : "sin requisitos congelados",
+            ? Texts.Get("Orchestrator_Doc_RequirementsPending")
+            : Context?.Requirements is { } frozen ? Texts.Format("Orchestrator_Doc_RequirementsFrozen", Short(frozen.ContentHash)) : Texts.Get("Orchestrator_Doc_RequirementsNone"),
         (Context?.Roster.Count ?? 0) switch
         {
-            0 => "sin agentes",
-            1 => "1 agente",
-            var count => count.ToString(CultureInfo.InvariantCulture) + " agentes",
+            0 => Texts.Get("Orchestrator_Doc_AgentsNone"),
+            1 => Texts.Get("Orchestrator_Doc_AgentsOne"),
+            var count => Texts.Format("Orchestrator_Doc_AgentsMany", count.ToString(CultureInfo.InvariantCulture)),
         },
         Context switch
         {
-            { Verification: { } profile } => $"perfil «{profile.Name}» ({Short(profile.ContentHash)})",
-            { VerificationProposal: not null } => "perfil propuesto sin aceptar",
-            _ => "sin perfil de verificación",
+            { Verification: { } profile } => Texts.Format("Orchestrator_Doc_ProfileNamed", profile.Name, Short(profile.ContentHash)),
+            { VerificationProposal: not null } => Texts.Get("Orchestrator_Doc_ProfileProposed"),
+            _ => Texts.Get("Orchestrator_Doc_ProfileNone"),
         });
 
     [RelayCommand]
@@ -303,7 +304,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
 
     /// <summary>Said once the project got the default roster while opening; null otherwise.</summary>
     public string? RosterNotice => Context?.RosterCreated == true
-        ? "El proyecto no tenía agentes: se creó la plantilla por defecto (Claude orquesta y ejecuta, Codex juzga)."
+        ? Texts.Get("Orchestrator_Doc_RosterCreated")
         : null;
 
     /// <summary>The profile is missing and a proposal is on screen, waiting for «Usar perfil propuesto».</summary>
@@ -312,9 +313,9 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
     /// <summary>The project's profile (name, hash and steps), the proposal, or that there is none.</summary>
     public string ProfileText => Context switch
     {
-        { Verification: { } profile } => $"«{profile.Name}» · hash {Short(profile.ContentHash)} · {Steps(profile)}. Es lo que Agent Studio ejecuta para verificar; cada ejecución congela esta versión.",
-        { VerificationProposal: { } proposal } => $"Propuesta «{proposal.Name}» · hash {Short(proposal.ContentHash)} · {Steps(proposal)}. Todavía no es el perfil del proyecto: revisa sus comandos, que son los que se ejecutarán en tu máquina.",
-        _ => "Sin perfil de verificación.",
+        { Verification: { } profile } => Texts.Format("Orchestrator_Doc_ProfileText", profile.Name, Short(profile.ContentHash), Steps(profile)),
+        { VerificationProposal: { } proposal } => Texts.Format("Orchestrator_Doc_ProfileProposalText", proposal.Name, Short(proposal.ContentHash), Steps(proposal)),
+        _ => Texts.Get("Orchestrator_Doc_ProfileNoneText"),
     };
 
     /// <summary>
@@ -379,7 +380,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = $"No se pudo guardar el perfil de verificación: {ex.Message}";
+            ErrorMessage = Texts.Format("Orchestrator_Doc_ProfileSaveFailed", ex.Message);
             return;
         }
 
@@ -405,12 +406,12 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
 
     public bool HasEngine => _session.HasEngine;
 
-    public string EngineStatus => HasEngine ? "Motor de orquestación conectado" : "Motor no disponible";
+    public string EngineStatus => HasEngine ? Texts.Get("Orchestrator_Doc_EngineOn") : Texts.Get("Orchestrator_Doc_EngineOff");
 
     public Tone EngineTone => HasEngine ? Tone.Success : Tone.Warning;
 
     /// <summary>What the screen cannot do and why, one line each (empty when everything is available).</summary>
-    public IReadOnlyList<string> Missing => Context?.Missing ?? (HasEngine ? [] : ["Motor no disponible: el lienzo funciona, pero no se puede pedir un plan ni ejecutarlo."]);
+    public IReadOnlyList<string> Missing => Context?.Missing ?? (HasEngine ? [] : [Texts.Get("Orchestrator_Session_EngineMissing")]);
 
     public bool HasMissing => Missing.Count > 0;
 
@@ -438,7 +439,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         }
 
         IsBusy = true;
-        BusyText = "Esperando tu respuesta sobre el historial de decisiones…";
+        BusyText = Texts.Get("Orchestrator_Doc_WaitingHistory");
         ErrorMessage = null;
         bool accepted;
         try
@@ -449,7 +450,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = $"No se pudo aceptar el historial: {ex.Message}";
+            ErrorMessage = Texts.Format("Orchestrator_Doc_AcceptHistoryFailed", ex.Message);
             return;
         }
         finally
@@ -460,7 +461,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
 
         if (!accepted)
         {
-            ErrorMessage = "No aceptaste el historial: el registro de decisiones sigue bloqueado.";
+            ErrorMessage = Texts.Get("Orchestrator_Doc_HistoryNotAccepted");
             return;
         }
 
@@ -552,24 +553,24 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
     /// </summary>
     public string ApprovalText => Monitor.RunId is { } shown ? FollowedPlanText(shown) : PlanDecision switch
     {
-        { Approved: true } when IsApproved && FollowUpOf is { } followed => $"Plan aprobado ({Short(CurrentHash)}): «Ejecutar» empieza una ejecución de seguimiento de {followed}.",
-        { Approved: true, Verification: ApprovalVerification.WindowsHello } when IsApproved => $"Plan aprobado ({Short(CurrentHash)}), confirmado con Windows Hello.",
+        { Approved: true } when IsApproved && FollowUpOf is { } followed => Texts.Format("Orchestrator_Doc_ApprovedFollowUp", Short(CurrentHash), followed),
+        { Approved: true, Verification: ApprovalVerification.WindowsHello } when IsApproved => Texts.Format("Orchestrator_Doc_ApprovedHello", Short(CurrentHash)),
         { Approved: true, Verification: ApprovalVerification.WindowsLock } when IsApproved => HelloTexts.PlanApprovedWithLock(Short(CurrentHash)),
-        { Approved: true } when IsApproved => $"Plan aprobado ({Short(CurrentHash)}).",
-        { Approved: true } => "El plan cambió después de aprobarlo: apruébalo otra vez.",
-        { Approved: false } => "Plan rechazado.",
-        _ => "Plan sin aprobar.",
+        { Approved: true } when IsApproved => Texts.Format("Orchestrator_Doc_Approved", Short(CurrentHash)),
+        { Approved: true } => Texts.Get("Orchestrator_Doc_ChangedAfterApproval"),
+        { Approved: false } => Texts.Get("Orchestrator_Doc_Rejected"),
+        _ => Texts.Get("Orchestrator_Doc_NotApproved"),
     };
 
     /// <summary>The plan of the run the monitor shows: every run started on a plan the person approved.</summary>
     private string FollowedPlanText(RunId run)
     {
-        var plan = _followedPlanHash is { } hash ? $"el plan {Short(hash)}" : "el plan con el que empezó";
+        var plan = _followedPlanHash is { } hash ? Texts.Format("Orchestrator_Doc_PlanWithHash", Short(hash)) : Texts.Get("Orchestrator_Doc_PlanItStartedWith");
         return Monitor switch
         {
-            { IsInspecting: true } => $"Viendo la ejecución {run}: siguió {plan}, aprobado al iniciarla.",
-            { IsActive: true } => $"La ejecución {run} sigue {plan}, aprobado al iniciarla.",
-            _ => $"La ejecución {run} terminó con {plan}, aprobado al iniciarla.",
+            { IsInspecting: true } => Texts.Format("Orchestrator_Doc_FollowedViewing", run, plan),
+            { IsActive: true } => Texts.Format("Orchestrator_Doc_FollowedActive", run, plan),
+            _ => Texts.Format("Orchestrator_Doc_FollowedFinished", run, plan),
         };
     }
 
@@ -580,8 +581,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
     /// otherwise. <c>HelloNoticeView</c> shows it in the review.
     /// </summary>
     public string? HelloNotice => IsApproved && PlanDecision is { Verification: ApprovalVerification.WindowsHelloUnavailable }
-        ? $"Windows Hello no está disponible en este equipo ({HelloAnswers.WhyAbsent(_helloAbsent ?? UserPresenceAvailability.NotConfiguredForUser)}): "
-          + "el plan lo aprobó solo el botón, y el registro lo dice."
+        ? Texts.Format("Orchestrator_Doc_HelloUnavailable", HelloAnswers.WhyAbsent(_helloAbsent ?? UserPresenceAvailability.NotConfiguredForUser))
         : !IsApproved && IsolationWarning is not null ? HelloTexts.PlanAlwaysAsks : null;
 
     public bool HasHelloNotice => HelloNotice is not null;
@@ -591,9 +591,9 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
 
     public string ValidationText => ValidationState switch
     {
-        ValidationState.NoContext => "Sin contexto de validación: faltan los requisitos congelados o el perfil de verificación.",
-        ValidationState.Valid => "Plan válido.",
-        _ => Violations.Count == 1 ? "1 problema en el plan." : $"{Violations.Count} problemas en el plan.",
+        ValidationState.NoContext => Texts.Get("Orchestrator_Doc_ValidationNoContext"),
+        ValidationState.Valid => Texts.Get("Orchestrator_Doc_ValidationValid"),
+        _ => Violations.Count == 1 ? Texts.Get("Orchestrator_Doc_ValidationOne") : Texts.Format("Orchestrator_Doc_ValidationMany", Violations.Count),
     };
 
     public Tone ValidationTone => ValidationState switch
@@ -627,14 +627,10 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
     public ObservableCollection<RunListItem> PreviousRuns { get; } = [];
 
     /// <summary>The label of the consent of the next run, next to «Ejecutar» (docs/16 D-39).</summary>
-    public const string ResumeConsentLabel = "Reanudar sola si un límite o un cierre la interrumpe";
+    public static string ResumeConsentLabel => Texts.Get("Orchestrator_Doc_ConsentLabel");
 
     /// <summary>What the consent allows, as its tooltip says it.</summary>
-    public const string ResumeConsentToolTip =
-        "Con la casilla marcada, una tarea que llega al límite de uso espera al reinicio de la cuota más 3 minutos, por largo que "
-        + "sea, y sigue sola; y si la app se cierra sin que lo pidas (o Windows cierra la sesión), la ejecución se reanuda al "
-        + "volver a abrirla, sin preguntarte. Nunca si la pausaste o la dejaste al salir, y nunca pasa del presupuesto aprobado. "
-        + "Vale solo para la próxima ejecución y queda en su cabecera.";
+    public static string ResumeConsentToolTip => Texts.Get("Orchestrator_Doc_ConsentHelp");
 
     /// <summary>
     /// The consent of the run «Ejecutar» starts to wait for the quota and to resume by itself after a restart (docs/16 D-39,
@@ -711,7 +707,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
     private async Task ReloadAsync()
     {
         IsBusy = true;
-        BusyText = "Abriendo el proyecto para orquestar…";
+        BusyText = Texts.Get("Orchestrator_Doc_OpeningProject");
         try
         {
             Context = await _session.OpenAsync(ProjectRoot, CancellationToken.None).ConfigureAwait(true);
@@ -810,7 +806,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
             _approvedRoster = null;
             _approvedWarning = null;
             PlanDecision = null;
-            Canvas.Notify("Cambiaste la plantilla de agentes: vuelve a aprobar el plan.", NoticeKind.Error);
+            Canvas.Notify(Texts.Get("Orchestrator_Doc_RosterChanged"), NoticeKind.Error);
             RefreshCommands();
         }
 
@@ -871,9 +867,9 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
                     {
                         { AnotherPending: true } => HelloTexts.PlanConfirmationPending,
                         { Problem: { } problem } when plan.LocksWindows => HelloTexts.PlanLockNotAsked(problem),
-                        { Problem: { } problem } => $"No se pudo pedir Windows Hello ({problem}): el plan no se aprueba.",
+                        { Problem: { } problem } => Texts.Format("Orchestrator_Doc_HelloNotAsked", problem),
                         { Lock: { } locked } => HelloTexts.PlanLockNotConfirmed(locked),
-                        _ => $"Windows Hello no confirmó que eres tú ({HelloAnswers.WhyNotConfirmed(hello.Result ?? UserPresenceResult.Canceled)}): el plan no se aprueba.",
+                        _ => Texts.Format("Orchestrator_Doc_HelloNotConfirmed", HelloAnswers.WhyNotConfirmed(hello.Result ?? UserPresenceResult.Canceled)),
                     };
                     return;
                 }
@@ -882,7 +878,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
             // What Windows confirmed is the plan as it was drawn when the button was pressed.
             if (!string.Equals(hash, CurrentHash, StringComparison.Ordinal) || Builder?.Band.ApprovalRefusal is not null)
             {
-                ErrorMessage = "El plan cambió mientras se confirmaba: apruébalo otra vez.";
+                ErrorMessage = Texts.Get("Orchestrator_Doc_ChangedWhileConfirming");
                 return;
             }
         }
@@ -909,7 +905,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         PlanDecision = new ApprovalDecision(false, ApprovalPromptService.DecidedBy, _time.GetUtcNow(), $"Plan {Short(CurrentHash)} rechazado en el lienzo.");
         if (Proposal is not null)
         {
-            ProposalStatus = "Rechazaste el plan del orquestador: corrígelo en el lienzo o pide otro.";
+            ProposalStatus = Texts.Get("Orchestrator_Doc_RejectedByYou");
         }
 
         if (_followUp is not null)
@@ -955,7 +951,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         CancelPlanningCommand.NotifyCanExecuteChanged();
         CollapsePreparationWhenReady();
         IsBusy = true;
-        BusyText = "El orquestador está preparando el plan…";
+        BusyText = Texts.Get("Orchestrator_Doc_Planning");
         ErrorMessage = null;
         PlanningActivity.Clear();
 
@@ -975,13 +971,13 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         }
         catch (OperationCanceledException)
         {
-            ProposalStatus = "Planificación cancelada.";
+            ProposalStatus = Texts.Get("Orchestrator_Doc_PlanningCancelled");
         }
 #pragma warning disable CA1031 // The engine is behind a port: a failure is shown in the screen, never thrown into the UI.
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = $"El orquestador no pudo planificar: {ex.Message}";
+            ErrorMessage = Texts.Format("Orchestrator_Doc_PlanningFailed", ex.Message);
         }
         finally
         {
@@ -1044,7 +1040,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
             : null;
         var request = new RunRequest(project, fromProposal ? Proposal!.Run : null, RequestText.Trim(), requirements, plan, approval, profile, options, Follows: follows, ValidatedRoster: _approvedRoster, ApprovedWarning: _approvedWarning, PlannedIn: plannedIn);
         IsBusy = true;
-        BusyText = "Iniciando la ejecución…";
+        BusyText = Texts.Get("Orchestrator_Doc_Starting");
         ErrorMessage = null;
         try
         {
@@ -1066,7 +1062,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
             // The engine may have recorded the start before failing: the approval is never used twice, so the next «Ejecutar»
             // asks for a new one (and for Windows Hello again when it is on).
             ForgetApproval();
-            ErrorMessage = $"No se pudo iniciar la ejecución: {ex.Message} Vuelve a aprobar el plan para intentarlo de nuevo.";
+            ErrorMessage = Texts.Format("Orchestrator_Doc_StartFailed", ex.Message);
         }
         finally
         {
@@ -1110,7 +1106,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         }
 
         IsBusy = true;
-        BusyText = $"Reanudando la ejecución {item.Summary.Id}…";
+        BusyText = Texts.Format("Orchestrator_Doc_Resuming", item.Summary.Id);
         ErrorMessage = null;
         PlanDefinition? plan = null;
         try
@@ -1156,7 +1152,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = $"No se pudo reanudar la ejecución: {ex.Message}";
+            ErrorMessage = Texts.Format("Orchestrator_Doc_ResumeFailed", ex.Message);
         }
         finally
         {
@@ -1193,19 +1189,19 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         RefreshCommands();
     }
 
-    /// <summary>Why a resume was refused for its writers at medium integrity, the warning its plan has now and what can be done, in Spanish.</summary>
+    /// <summary>Why a resume was refused for its writers at medium integrity, the warning its plan has now and what can be done, in the language of the interface.</summary>
     private static string ResumeRefusedText(RunId run, RunNeedsApprovalException refused, bool planShown)
     {
         var why = refused.WarningAnchored
-            ? "los escritores con integridad Medium de su plan ya no son los que aprobaste (otra versión de Claude Code instalada, por ejemplo)"
-            : "empezó antes de que el registro guardara los escritores con integridad Medium que se aprobaron, y su plan los tiene ahora";
+            ? Texts.Get("Orchestrator_Resume_WhyChanged")
+            : Texts.Get("Orchestrator_Resume_WhyOld");
         var now = refused.CurrentWarning is { } warning
-            ? $"Aviso de ahora: «{warning}»."
-            : "Ahora su plan no tiene escritores con integridad Medium.";
+            ? Texts.Format("Orchestrator_Resume_NowWarning", warning)
+            : Texts.Get("Orchestrator_Resume_NowNone");
         var next = planShown
-            ? $"Su plan está en el lienzo: si lo apruebas otra vez y pulsas «Ejecutar», empieza una ejecución de seguimiento de {run}; «Rechazar» lo descarta."
-            : "Su plan no está disponible aquí para aprobarlo otra vez.";
-        return $"No se reanuda la ejecución {run}: {why}. {now} {next}";
+            ? Texts.Format("Orchestrator_Resume_NextShown", run)
+            : Texts.Get("Orchestrator_Resume_NextHidden");
+        return Texts.Format("Orchestrator_Resume_Refused", run, why, now, next);
     }
 
     private void SetFollowUp(FollowUp? followUp)
@@ -1262,7 +1258,9 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         if (proposal.Plan is not { } plan)
         {
             ProposalStatus = WithHistoryNotice(
-                $"El orquestador no devolvió un plan utilizable ({AgentActivityText.Outcome(proposal.Status)}){(proposal.Error is null ? "." : ": " + proposal.Error)}",
+                proposal.Error is null
+                    ? Texts.Format("Orchestrator_Plan_NoUsable", AgentActivityText.Outcome(proposal.Status))
+                    : Texts.Format("Orchestrator_Plan_NoUsableWhy", AgentActivityText.Outcome(proposal.Status), proposal.Error),
                 proposal);
             return;
         }
@@ -1283,11 +1281,11 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
             RefreshBuilder();
         }
 
-        var corrected = proposal.Corrected ? " Se le pidió una corrección." : string.Empty;
+        var corrected = proposal.Corrected ? " " + Texts.Get("Orchestrator_Plan_Corrected") : string.Empty;
         ProposalStatus = WithHistoryNotice(
             (ValidationState == ValidationState.Valid
-                ? "Plan propuesto por el orquestador: revísalo y apruébalo o recházalo."
-                : $"Plan propuesto por el orquestador con problemas: {ValidationText}") + corrected,
+                ? Texts.Get("Orchestrator_Plan_Proposed")
+                : Texts.Format("Orchestrator_Plan_ProposedWithProblems", ValidationText)) + corrected,
             proposal);
 
         // A proposal spent quota: it is kept at once, not after the pause of the edits.
@@ -1392,7 +1390,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = $"La ejecución {run} se reanudó sola, pero no se pudo leer su cabecera: {ex.Message}";
+            ErrorMessage = Texts.Format("Orchestrator_Doc_ResumedHeaderFailed", run, ex.Message);
         }
     }
 
@@ -1414,7 +1412,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         if (RunHandedOff is { } handler)
         {
             handler(this, handed);
-            ErrorMessage = $"La ejecución {run.Id} empezó mientras esta pestaña seguía otra ejecución: sigue en marcha, y la sigue la bandeja.";
+            ErrorMessage = Texts.Format("Orchestrator_Doc_StartedWhileFollowingTray", run.Id);
             return;
         }
 
@@ -1424,7 +1422,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         monitor.Attach(run, project);
         monitor.ResumeConsent = resumeConsent;
         _handedOff.Add(monitor);
-        ErrorMessage = $"La ejecución {run.Id} empezó mientras esta pestaña seguía otra ejecución: sigue en marcha.";
+        ErrorMessage = Texts.Format("Orchestrator_Doc_StartedWhileFollowing", run.Id);
     }
 
     /// <summary>Before the engine resumes a run: false, and why in Spanish, when the monitor took another run meanwhile.</summary>
@@ -1435,7 +1433,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
             return true;
         }
 
-        ErrorMessage = $"No se reanudó la ejecución {run}: esta pestaña sigue ahora otra ejecución. Reanúdala cuando termine.";
+        ErrorMessage = Texts.Format("Orchestrator_Doc_ResumeNotDone", run);
         return false;
     }
 
@@ -1486,7 +1484,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = $"No se pudo leer la lista de ejecuciones: {ex.Message}";
+            ErrorMessage = Texts.Format("Orchestrator_Doc_RunsListFailed", ex.Message);
         }
     }
 
@@ -1510,7 +1508,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
             _approvedRoster = null;
             _approvedWarning = null;
             PlanDecision = null;
-            Canvas.Notify("El aviso del plan cambió desde que lo aprobaste: revísalo y vuelve a aprobarlo.", NoticeKind.Error);
+            Canvas.Notify(Texts.Get("Orchestrator_Doc_WarningChanged"), NoticeKind.Error);
         }
 
         var context = Context?.PlanContext(Limits);
@@ -1566,47 +1564,47 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         var blockers = new List<string>();
         if (!HasEngine)
         {
-            blockers.Add("Motor no disponible");
+            blockers.Add(Texts.Get("Orchestrator_Blocker_Engine"));
         }
 
         // A run on screen, in progress or finished, holds the canvas until «Editar el plan»: its approval and its run id
         // belong to that run and must not start another one.
         if (Monitor.IsActive)
         {
-            blockers.Add("Hay una ejecución en curso");
+            blockers.Add(Texts.Get("Orchestrator_Blocker_RunActive"));
         }
         else if (Monitor.IsInspecting)
         {
             // What the draft would need is said once it is back on the canvas, not over the plan of the run looked at.
-            blockers.Add("Cierra la ejecución que estás viendo para volver a tu borrador");
+            blockers.Add(Texts.Get("Orchestrator_Blocker_Viewing"));
             return blockers;
         }
         else if (Monitor.IsAttached)
         {
-            blockers.Add("Pulsa «Editar el plan» para preparar otra ejecución");
+            blockers.Add(Texts.Get("Orchestrator_Blocker_Viewed"));
         }
 
         if (IsBusy)
         {
-            blockers.Add("Espera a que termine la operación en curso");
+            blockers.Add(Texts.Get("Orchestrator_Blocker_Busy"));
         }
 
         if (Context?.IntegrityProblem is not null)
         {
-            blockers.Add("El registro de decisiones no es íntegro");
+            blockers.Add(Texts.Get("Orchestrator_Blocker_Integrity"));
         }
 
         if (Context is not { Project: not null, Requirements: not null, Verification: not null })
         {
-            blockers.Add("Faltan el proyecto, los requisitos congelados o el perfil de verificación");
+            blockers.Add(Texts.Get("Orchestrator_Blocker_NoContext"));
         }
         else if (Requirements.HasPendingChanges)
         {
-            blockers.Add("Congela o descarta los cambios de los requisitos");
+            blockers.Add(Texts.Get("Orchestrator_Blocker_Requirements"));
         }
         else if (ValidationState != ValidationState.Valid)
         {
-            blockers.Add("El plan tiene problemas: pulsa «Validar»");
+            blockers.Add(Texts.Get("Orchestrator_Blocker_Problems"));
         }
         else if (Builder?.Band.ApprovalRefusal is { } refusal)
         {
@@ -1615,12 +1613,12 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         }
         else if (!IsApproved)
         {
-            blockers.Add("Aprueba el plan");
+            blockers.Add(Texts.Get("Orchestrator_Blocker_Approve"));
         }
 
         if (string.IsNullOrWhiteSpace(RequestText))
         {
-            blockers.Add("Escribe la petición");
+            blockers.Add(Texts.Get("Orchestrator_Blocker_Request"));
         }
 
         return blockers;
@@ -1684,13 +1682,13 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
     private static string Short(string hash) => hash.Length > 12 ? hash[..12] : hash;
 
     private static string Steps(VerificationProfile profile) =>
-        profile.Steps.Count == 1 ? "1 paso" : profile.Steps.Count.ToString(CultureInfo.InvariantCulture) + " pasos";
+        profile.Steps.Count == 1 ? Texts.Get("Orchestrator_Doc_StepOne") : Texts.Format("Orchestrator_Doc_StepMany", profile.Steps.Count.ToString(CultureInfo.InvariantCulture));
 
     /// <summary>A run whose resume was refused for its writers at medium integrity, and the hash of the plan it started with.</summary>
     private sealed record FollowUp(RunId Run, string PlanHash);
 
     /// <summary>What the bar of the context of the planning is called.</summary>
-    private const string PlanningContextLabel = "Contexto del orquestador";
+    private static string PlanningContextLabel => Texts.Get("Orchestrator_Doc_PlanningContext");
 
     /// <summary>An event of the planning reaches its tracker, and the bar follows it, judged with the thresholds of now.</summary>
     private void ObservePlanning(AgentEvent value)

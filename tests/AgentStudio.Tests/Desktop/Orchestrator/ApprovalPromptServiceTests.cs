@@ -231,7 +231,7 @@ public sealed class ApprovalPromptServiceTests
         var question = Assert.Single(dialog.Shown);
         Assert.Equal("Entregar a tu rama", question.Title);
         Assert.Equal("deliver-integration", question.Action);
-        Assert.Equal("Acción en el registro: deliver-integration", question.ActionDetail);
+        Assert.Equal("Acción en el historial: deliver-integration", question.ActionDetail);
         Assert.Equal("Origen: proyecto calc · ejecución 20261030-abc123", question.Origin);
         Assert.DoesNotContain(guid, question.Origin, StringComparison.Ordinal);
 
@@ -255,10 +255,12 @@ public sealed class ApprovalPromptServiceTests
     [InlineData("replan.dismiss", "Descartar la petición de replanificar")]
     [InlineData("skills.recomendacion-asistida", "Pedir a un agente que recomiende skills")]
     [InlineData("decision-log.accept-origin", "Aceptar el historial como nuevo origen")]
-    [InlineData("algo.que-no-conoce", ApprovalTitles.Unknown)]
+    [InlineData("algo.que-no-conoce", null)]
     [InlineData("Borrar el worktree T1", "Borrar el worktree T1")]
-    public void Every_action_has_a_plain_title(string action, string title)
+    public void Every_action_has_a_plain_title(string action, string? title)
     {
+        // An action the app does not know has the generic title, which comes from the resources.
+        title ??= ApprovalTitles.Unknown;
         Assert.Equal(title, ApprovalTitles.For(action));
         Assert.Equal(title, new ApprovalDialogViewModel(Merge with { Action = action }).Title);
     }
@@ -838,7 +840,7 @@ public sealed class ApprovalPromptServiceTests
 
         Assert.Equal(Tone.Warning, question.HelloNoticeTone);
         Assert.Equal(
-            $"Windows Hello no está disponible en este equipo ({why}): esta aprobación la decide solo este diálogo, y el registro lo dice.",
+            $"Windows Hello no está disponible en este equipo ({why}). Esta aprobación la decide solo este diálogo, y el historial lo anota.",
             question.HelloNotice);
     }
 }
