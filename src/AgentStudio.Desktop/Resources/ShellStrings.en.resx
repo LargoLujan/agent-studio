@@ -471,7 +471,7 @@ If you choose No, your changes stay in the editor, unsaved.</value>
     <value>There is no journal for today yet ({0}). It is created with the first request of the day.</value>
   </data>
   <data name="Journal_ReadFailed" xml:space="preserve">
-    <value>The journal could not be read ({0}). Press "Refresh" to try again.</value>
+    <value>The journal could not be read. Press "Refresh" to try again. Detail: {0}</value>
   </data>
   <data name="Providers_Title" xml:space="preserve">
     <value>Agent programs</value>
@@ -627,7 +627,7 @@ If you choose No, your changes stay in the editor, unsaved.</value>
     <value>Nothing was saved. Fix "{0}" and "{1}".</value>
   </data>
   <data name="SettingsDoc_SaveFailed" xml:space="preserve">
-    <value>The settings could not be saved ({0}). Try again.</value>
+    <value>The settings could not be saved. Try again. Detail: {0}</value>
   </data>
   <data name="SettingsDoc_Saved" xml:space="preserve">
     <value>Settings saved at {0}.</value>

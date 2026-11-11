@@ -4,6 +4,7 @@ using AgentStudio.Application.Usage;
 using AgentStudio.Desktop.Controls;
 using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Services;
+using AgentStudio.Observability.Usage;
 using AgentStudio.Tests.Memory;
 
 namespace AgentStudio.Tests.Desktop.Observability;
@@ -55,6 +56,19 @@ public sealed class UsageDashboardViewModelTests
         Assert.Equal(TimeSpan.FromHours(2), query.Zone.BaseUtcOffset);
         Assert.Equal([UsageDimension.Provider, UsageDimension.Model], query.GroupBy);
         Assert.Null(query.Filter);
+    }
+
+    [Fact]
+    public void Every_dimension_the_panel_offers_can_be_grouped_by_the_aggregator()
+    {
+        var dashboard = Dashboard();
+
+        foreach (var option in dashboard.Dimensions)
+        {
+            var query = new UsageQuery(Now.AddDays(-1), Now.AddDays(1), TimeZoneInfo.Utc, [option.Dimension]);
+            var groups = UsageAggregator.Group([UsageSamples.ClaudeAttempt], query);
+            Assert.True(groups.Count >= 1, option.Dimension.ToString());
+        }
     }
 
     [Fact]

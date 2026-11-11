@@ -23,7 +23,7 @@
     <value>Work in progress</value>
   </data>
   <data name="Background_Exit_Title" xml:space="preserve">
-    <value>Work is in progress</value>
+    <value>Jobs in progress</value>
   </data>
   <data name="Background_Exit_IntroWindow_One" xml:space="preserve">
     <value>You are closing the window and {0} job is in progress. What do you want to do with it?</value>

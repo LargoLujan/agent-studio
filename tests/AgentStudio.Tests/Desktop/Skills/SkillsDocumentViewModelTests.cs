@@ -518,7 +518,7 @@ public sealed class SkillsDocumentViewModelTests
         var expected = document.Stack.Count == 0 ? "Optimizar Spark" : "Optimizar Spark\n\n" + StackContext + string.Join(' ', document.Stack.Select(tag => "#" + tag));
         Assert.Equal(expected, Assert.Single(world.Recommendations.Asked).Task);
         Assert.NotEmpty(document.Stack);
-        Assert.Equal("Pedir a un agente que recomiende skills para esta tarea. Se lanza Claude Code con el modelo haiku, de solo lectura, sin red y en una carpeta vacía, con el catálogo local como única herramienta extra. Gasta un poco del límite de uso de tu plan (una ejecución corta). Solo propone: activar sigue siendo cosa tuya.", SkillsDocumentViewModel.AssistedDescription);
+        Assert.Equal("Pedir a un agente que recomiende skills para esta tarea. Se lanza Claude Code con el modelo haiku, de solo lectura, sin red y en una carpeta vacía, con el catálogo local de skills como única herramienta extra. Gasta un poco del límite de uso de tu plan (una ejecución corta). Solo propone: activar sigue siendo cosa tuya.", SkillsDocumentViewModel.AssistedDescription);
         Assert.True(typeof(SkillsDocumentViewModel).GetField(nameof(SkillsDocumentViewModel.AssistedDescription))!.IsLiteral);
 
         foreach (var neutralOrSatellite in AgentStudio.Tests.Desktop.Localization.LocalizationTestSupport.ResourceFiles().Values

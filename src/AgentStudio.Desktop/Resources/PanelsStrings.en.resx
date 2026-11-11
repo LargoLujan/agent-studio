@@ -50,7 +50,7 @@
     <value>it completed</value>
   </data>
   <data name="Panels_EndClass_WindowQuota" xml:space="preserve">
-    <value>the usage limit of the window ran out</value>
+    <value>the usage limit for this period ran out</value>
   </data>
   <data name="Panels_EndClass_RateOrOverload" xml:space="preserve">
     <value>the service was overloaded or limited the rate</value>

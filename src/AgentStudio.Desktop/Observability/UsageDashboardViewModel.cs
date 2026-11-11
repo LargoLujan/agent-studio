@@ -104,7 +104,7 @@ public sealed partial class UsageDashboardViewModel : DocumentViewModel
 
     /// <summary>What the cost is, as the panel states it (docs/14 D-06).</summary>
     public const string CostNote =
-        "El coste es la estimación del CLI con su propia tabla de precios (precio de lista): con suscripción no es lo que pagas. Codex no lo expone.";
+        "El coste es la estimación del programa del agente con su propia tabla de precios (precio de lista): con suscripción no es lo que pagas. Codex no lo expone.";
 
     /// <summary>Where the settings of the report and of the quota are, as the panel states it.</summary>
     public const string SettingsNote =
@@ -183,7 +183,17 @@ public sealed partial class UsageDashboardViewModel : DocumentViewModel
     ];
 
     /// <summary>What the report can group by, in the order the query takes them (D-04).</summary>
-    public IReadOnlyList<DimensionOption> Dimensions { get; } = [.. Enum.GetValues<UsageDimension>().Select(d => new DimensionOption(d, DimensionLabel(d)))];
+    public IReadOnlyList<DimensionOption> Dimensions { get; } = [.. Enum.GetValues<UsageDimension>().Where(d => !NotGroupableYet.Contains(d)).Select(d => new DimensionOption(d, DimensionLabel(d)))];
+
+    // The dimensions of Phase 9 (docs/16 D-34) that UsageAggregator.KeyOf does not group by yet: offering them would make the
+    // report fail. WP2 (the aggregator) and WP5 (this panel) of Phase 9 take them out of this list.
+    private static readonly HashSet<UsageDimension> NotGroupableYet =
+    [
+        UsageDimension.Milestone,
+        UsageDimension.Activity,
+        UsageDimension.ActivityAttempt,
+        UsageDimension.ActivityDestination,
+    ];
 
     [ObservableProperty]
     private Option<UsageScope> _selectedScope;

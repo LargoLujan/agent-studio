@@ -3,6 +3,7 @@ using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Security;
 using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Lock;
+using AgentStudio.Desktop.Orchestrator;
 
 namespace AgentStudio.Tests.Desktop.Lock;
 
@@ -66,9 +67,9 @@ public sealed class LockStringsTests
         [
             .. Enum.GetValues<UserPresenceResult>().Select(HelloAnswers.ApprovalNotConfirmed),
             HelloAnswers.ApprovalNotAsked("no window"),
-            .. Enum.GetValues<WindowsLockResult>().Select(HelloTexts.ApprovalLockNotConfirmed),
-            HelloTexts.ApprovalLockNotAsked("no window"),
-            HelloTexts.ApprovalConfirmationPending,
+            .. Enum.GetValues<WindowsLockResult>().Select(OrchestratorProtocolTexts.LockNotConfirmed),
+            OrchestratorProtocolTexts.LockNotAsked("no window"),
+            OrchestratorProtocolTexts.ConfirmationPending,
         ];
 
         var before = (CultureInfo.CurrentUICulture, CultureInfo.DefaultThreadCurrentUICulture);
@@ -92,8 +93,8 @@ public sealed class LockStringsTests
         Assert.Equal(inSpanish, inEnglish);
         Assert.Equal("Windows Hello no confirmó que eres tú (Canceled: se canceló la verificación): se deniega.", HelloAnswers.ApprovalNotConfirmed(UserPresenceResult.Canceled));
         Assert.Equal("No se pudo pedir Windows Hello (no window): se deniega.", HelloAnswers.ApprovalNotAsked("no window"));
-        Assert.Equal("El bloqueo de Windows no confirmó que eres tú (TimedOut: nadie lo desbloqueó a tiempo): se deniega.", HelloTexts.ApprovalLockNotConfirmed(WindowsLockResult.TimedOut));
-        Assert.StartsWith("Ya hay una confirmación pendiente", HelloTexts.ApprovalConfirmationPending, StringComparison.Ordinal);
+        Assert.Equal("El bloqueo de Windows no confirmó que eres tú (TimedOut: nadie lo desbloqueó a tiempo): se deniega.", OrchestratorProtocolTexts.LockNotConfirmed(WindowsLockResult.TimedOut));
+        Assert.StartsWith("Ya hay una confirmación pendiente", OrchestratorProtocolTexts.ConfirmationPending, StringComparison.Ordinal);
 
         // None of them is read from the resources: the English of the screens is another text.
         Assert.DoesNotContain(inSpanish, reason => English.Get("Lock_NotConfirmed_Canceled") == reason);

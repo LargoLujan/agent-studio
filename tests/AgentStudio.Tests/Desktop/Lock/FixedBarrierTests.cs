@@ -274,7 +274,7 @@ public sealed class FixedBarrierTests
         Assert.False(decision.Approved);
         Assert.NotEqual(ApprovalVerification.WindowsHelloUnavailable, decision.Verification);
         Assert.Equal(ApprovalVerification.WindowsLock, decision.Verification);
-        Assert.Equal(HelloTexts.ApprovalLockNotConfirmed(result), decision.Comment);
+        Assert.Equal(OrchestratorProtocolTexts.LockNotConfirmed(result), decision.Comment);
         Assert.Equal(new Actor(ActorKind.System, ApprovalGate.SystemId), world.Log[1].Actor);
     }
 
@@ -314,7 +314,7 @@ public sealed class FixedBarrierTests
         Assert.EndsWith(HelloTexts.SetUpHello, decision.Comment, StringComparison.Ordinal);
 
         // Only when nothing else can work: a lock nobody unlocked in time can be tried again.
-        Assert.DoesNotContain(HelloTexts.SetUpHello, HelloTexts.ApprovalLockNotConfirmed(WindowsLockResult.TimedOut), StringComparison.Ordinal);
+        Assert.DoesNotContain(HelloTexts.SetUpHello, OrchestratorProtocolTexts.LockNotConfirmed(WindowsLockResult.TimedOut), StringComparison.Ordinal);
         Assert.EndsWith(HelloTexts.SetUpHello, HelloTexts.PlanLockNotConfirmed(WindowsLockResult.LockFailed), StringComparison.Ordinal);
         Assert.EndsWith(HelloTexts.SetUpHello, HelloTexts.PlanLockNotAsked(HelloTexts.LockNotComposed), StringComparison.Ordinal);
     }
@@ -331,7 +331,7 @@ public sealed class FixedBarrierTests
 
         Assert.False(decision.Approved);
         Assert.Equal(ApprovalVerification.WindowsLock, decision.Verification);
-        Assert.Equal(HelloTexts.ApprovalLockNotAsked(HelloTexts.LockNotComposed), decision.Comment);
+        Assert.Equal(OrchestratorProtocolTexts.LockNotAsked(HelloTexts.LockNotComposed), decision.Comment);
     }
 
     /// <summary>A prompt composed without Windows Hello does not even show an action of the list: the gate denies it in its own name.</summary>
@@ -367,7 +367,7 @@ public sealed class FixedBarrierTests
         var second = await world.AskAsync(UnanchoredHistory.AcceptAction);
 
         Assert.False(second.Approved);
-        Assert.Equal(HelloTexts.ApprovalConfirmationPending, second.Comment);
+        Assert.Equal(OrchestratorProtocolTexts.ConfirmationPending, second.Comment);
         Assert.Equal(new Actor(ActorKind.System, ApprovalGate.SystemId), world.Log.Last(e => e.Kind == DecisionKind.ApprovalDenied).Actor);
         Assert.Single(windowsLock.Locks);
 
@@ -390,7 +390,7 @@ public sealed class FixedBarrierTests
         var second = await world.AskAsync(DeliveryService.ApprovalAction);
 
         Assert.False(second.Approved);
-        Assert.Equal(HelloTexts.ApprovalConfirmationPending, second.Comment);
+        Assert.Equal(OrchestratorProtocolTexts.ConfirmationPending, second.Comment);
         Assert.Single(hello.Messages);
 
         verified.SetResult(UserPresenceResult.Verified);

@@ -48,7 +48,7 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
     /// What the person is asked before every assisted recommendation; it becomes the description of the consent, which the
     /// decision log anchors, so it is fixed text that does not change with the language of the interface (docs/17 D-48, F14-4).
     /// </summary>
-    public const string AssistedDescription = "Pedir a un agente que recomiende skills para esta tarea. Se lanza Claude Code con el modelo haiku, de solo lectura, sin red y en una carpeta vacía, con el catálogo local como única herramienta extra. Gasta un poco del límite de uso de tu plan (una ejecución corta). Solo propone: activar sigue siendo cosa tuya.";
+    public const string AssistedDescription = "Pedir a un agente que recomiende skills para esta tarea. Se lanza Claude Code con el modelo haiku, de solo lectura, sin red y en una carpeta vacía, con el catálogo local de skills como única herramienta extra. Gasta un poco del límite de uso de tu plan (una ejecución corta). Solo propone: activar sigue siendo cosa tuya.";
 
     /// <summary>What goes before the technologies of the project when they are added to the task of the agent: part of its request, so fixed (D-48).</summary>
     internal const string StackContextPrefix = "Contexto del proyecto (detectado por los nombres de sus ficheros): ";
