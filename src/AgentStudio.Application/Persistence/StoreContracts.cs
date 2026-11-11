@@ -138,7 +138,9 @@ public interface IAgentRoster
     /// the <c>RosterHash</c> of the template changes. Deleting an id that is not in the template (or that belongs to another project)
     /// does nothing and does not fail: the caller already checked the template it showed. It touches no history: the headers of the
     /// runs and the debates freeze whole <see cref="AgentDefinition"/>s, so what a past run or debate did with the agent stays readable.
-    /// The caller decides whether the team that is left is valid and asks for the person's confirmation when the change needs it.
+    /// The skills that were active for the agent are turned off in the same operation (one more decision per skill in the history of
+    /// activations, which is never rewritten), so an agent added later with the same id does not inherit them. The caller decides
+    /// whether the team that is left is valid and asks for the person's confirmation when the change needs it.
     /// </summary>
     Task DeleteAsync(string projectId, AgentId agent, CancellationToken cancellationToken);
 }

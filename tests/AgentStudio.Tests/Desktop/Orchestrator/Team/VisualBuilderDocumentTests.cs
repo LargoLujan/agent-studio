@@ -158,7 +158,8 @@ public sealed class VisualBuilderDocumentTests
         var before = RosterHash.Of(document.Context!.Roster);
         document.Canvas.Team.Select(document.Canvas.Team.Agents.Single(a => a.Id.Value == "ejecutor2"));
 
-        await editor.RemoveSelectedCommand.ExecuteAsync(null);
+        editor.RemoveSelectedCommand.Execute(null);
+        await editor.ConfirmRemoveCommand.ExecuteAsync(null);
 
         Assert.Equal(["delete:ejecutor2"], roster.Operations);
         Assert.DoesNotContain(roster.Agents, a => a.Id.Value == "ejecutor2");
@@ -176,7 +177,8 @@ public sealed class VisualBuilderDocumentTests
         var editor = document.Builder!.Editor;
         document.Canvas.Team.Select(document.Canvas.Team.Agents.Single(a => a.Id.Value == "orquestador"));
 
-        await editor.RemoveSelectedCommand.ExecuteAsync(null);
+        editor.RemoveSelectedCommand.Execute(null);
+        await editor.ConfirmRemoveCommand.ExecuteAsync(null);
 
         Assert.Empty(roster.Operations);
         Assert.Contains(roster.Agents, a => a.Id.Value == "orquestador");
@@ -232,8 +234,18 @@ public sealed class VisualBuilderDocumentTests
         Assert.Contains("Hace falta el orquestador", document.Builder!.Editor.ErrorMessage, StringComparison.Ordinal);
     }
 
-    private static IDraftHost DraftHostOf(OrchestratorDocumentViewModel document) =>
-        (IDraftHost)typeof(AnalysisBandViewModel).GetField("_host", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(document.Builder!.Band)!;
+    /// <summary>
+    /// The draft host of the document is a private nested class that only the band holds, so it is reached through the private field
+    /// of the band. If that field is renamed or its type changes, the test says what to update instead of failing on a null.
+    /// </summary>
+    private static IDraftHost DraftHostOf(OrchestratorDocumentViewModel document)
+    {
+        var field = typeof(AnalysisBandViewModel).GetField("_host", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.True(
+            field is not null && typeof(IDraftHost).IsAssignableFrom(field.FieldType),
+            "AnalysisBandViewModel no longer has a private field '_host' of type IDraftHost: these tests reach the draft host of the document through it. Update DraftHostOf with the new way to reach it.");
+        return (IDraftHost)field!.GetValue(document.Builder!.Band)!;
+    }
 
     [Fact]
     public async Task A_proposal_brings_the_plan_layer_and_a_change_of_the_team_retires_the_approval_and_says_so()

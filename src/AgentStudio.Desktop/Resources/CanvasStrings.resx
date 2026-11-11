@@ -1159,8 +1159,32 @@ Pulsar «Guardar la ficha»: cada versión sustituye a la anterior.</value>
     <comment>Button.</comment>
   </data>
   <data name="Canvas_Editor_CannotRemove" xml:space="preserve">
-    <value>Quitar un agente no es posible todavía: el almacén de la plantilla no sabe hacerlo.</value>
-    <comment>Said when a change needs to remove an agent and the store cannot.</comment>
+    <value>No se puede quitar un agente: la plantilla de este proyecto no admite bajas.</value>
+    <comment>Said when a change needs to remove an agent and the editor was given no way to remove one.</comment>
+  </data>
+  <data name="Canvas_Editor_Busy" xml:space="preserve">
+    <value>Se está guardando otro cambio de la plantilla: espera a que termine.</value>
+    <comment>Said when a change of the template is asked while another one is being written.</comment>
+  </data>
+  <data name="Canvas_Editor_NotSavedHalfway" xml:space="preserve">
+    <value>No se pudo guardar la plantilla ({0}) y tampoco se pudo dejar como estaba: puede haber quedado a medias. Pulsa «Volver a cargar» para ver lo que hay.</value>
+    <comment>{0}: the reason. Said when the store failed and the revert failed too. «Volver a cargar» is the button of the document that reads the template again.</comment>
+  </data>
+  <data name="Canvas_Editor_SavedNotReloaded" xml:space="preserve">
+    <value>La plantilla se guardó, pero no se pudo leer otra vez ({0}). Pulsa «Volver a cargar» para ver lo que hay.</value>
+    <comment>{0}: the reason. Said when the template was written and the document could not read it again.</comment>
+  </data>
+  <data name="Canvas_Remove_Question" xml:space="preserve">
+    <value>¿Quitar a {1} ({0}) del equipo? Su definición se pierde de la plantilla y desde aquí no se puede recuperar, y se apagan las skills que tenía activadas. Las ejecuciones y los debates que ya hubo la conservan.</value>
+    <comment>{0}: id; {1}: name. Question before taking an agent out of the team.</comment>
+  </data>
+  <data name="Canvas_Remove_Confirm" xml:space="preserve">
+    <value>Sí, quitar</value>
+    <comment>Button that confirms taking the agent out.</comment>
+  </data>
+  <data name="Canvas_Remove_Cancel" xml:space="preserve">
+    <value>Conservar</value>
+    <comment>Button that keeps the agent.</comment>
   </data>
   <data name="Canvas_Editor_ChangedMany" xml:space="preserve">
     <value>Se cambiaron {0} agentes de la plantilla.</value>

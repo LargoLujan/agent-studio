@@ -53,6 +53,22 @@
             </StackPanel>
         </Border>
 
+        <!-- An agent being taken out: the question says what is lost and what is kept, and nothing is written until the yes. -->
+        <Border Margin="0,10,0,0" Padding="10,8" CornerRadius="6" BorderThickness="1" BorderBrush="{StaticResource AccentBrush}"
+                Background="{StaticResource SurfaceRaisedBrush}" DataContext="{Binding PendingRemoval}"
+                Visibility="{Binding DataContext.PendingRemoval, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource Orchestrator.NotNullToVisibility}}"
+                AutomationProperties.LiveSetting="Assertive">
+            <StackPanel>
+                <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" Text="{Binding Question}"/>
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                    <Button Style="{StaticResource ToolbarPrimaryButton}" Content="{l:T Canvas_Remove_Confirm}"
+                            Command="{Binding DataContext.ConfirmRemoveCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                    <Button Style="{StaticResource ToolbarButton}" Content="{l:T Canvas_Remove_Cancel}"
+                            Command="{Binding DataContext.CancelRemoveCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
         <TextBlock Style="{StaticResource SecondaryText}" Margin="0,14,0,0" TextWrapping="Wrap" Text="{l:T Canvas_Inspector_Empty}"
                    Visibility="{Binding Inspector, Converter={StaticResource Orchestrator.NullToVisibility}}"/>
 
