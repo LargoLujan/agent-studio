@@ -2,6 +2,7 @@ using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Knowledge;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Projects;
+using AgentStudio.Application.Work;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -45,6 +46,8 @@ public static class PersistenceServiceCollectionExtensions
         services.TryAddSingleton<IRunRegistry, SqliteRunRegistry>();
         services.TryAddSingleton<IDebateRegistry, SqliteDebateRegistry>();
         services.TryAddSingleton<IProjectAuditRegistry, SqliteProjectAuditRegistry>();
+        services.TryAddSingleton<IMilestoneRegistry, SqliteMilestoneRegistry>();
+        services.TryAddSingleton<IBacklogStore, SqliteBacklogStore>();
         services.TryAddSingleton<IVerdictStore, SqliteVerdictStore>();
         services.TryAddSingleton<IAgentRoster, SqliteAgentRoster>();
         services.TryAddSingleton(anchors ?? DecisionLogAnchorOptions.ForCurrentUser());
