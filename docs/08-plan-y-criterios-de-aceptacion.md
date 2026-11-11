@@ -432,10 +432,11 @@ Pendiente, sin bloquear el uso:
 - Las pruebas que fallaban a integridad Low (93 en la medición del 2026-10-20), **resueltas el 2026-11-11** (P23, adenda de
   [ADR-0017](adr/0017-verificacion-aislada-baja-integridad.md)). Con el perfil de la auditoría (que deja fuera `ProviderLive`,
   `LocalTools`, `ConPty`, `Measurement` y la nueva `NeedsMediumIntegrity`, como el CI más esa última) la suite entera pasa a
-  Low. Las pruebas que escribían en la `LocalAppData` real mandan ahora sus anclas a una carpeta temporal; las 35 de los
-  adaptadores de proveedores que usan `RunTempFolder.BaseDirectory` (fijo en `%LOCALAPPDATA%\AgentStudio\runs`) se etiquetan
-  `NeedsMediumIntegrity`: el CI, a Medium, las sigue ejecutando. Queda abierto que esas 35 no las cubre la auditoría
-  (un parámetro de `RunTempFolder` permitiría adaptarlas).
+  Low. Las pruebas que escribían en la `LocalAppData` real mandan ahora sus carpetas (anclas y carpetas por ejecución) a una
+  carpeta temporal con un helper común (`TestLocalData`); `RunTempFolder` tiene carpeta base inyectable y los adaptadores
+  validan antes de escribir, así que las pruebas de proveedores pasan a Low sin etiquetar (ninguna prueba lleva hoy
+  `NeedsMediumIntegrity`). Como `LocalTools`, `ConPty` y `Measurement` no los ejerce ningún proceso automático, el resultado
+  de la auditoría y su dossier dicen qué pruebas deja fuera el filtro del perfil y por qué (`ProjectAuditExclusions`).
 - Los requisitos de «valoración del juez» de una auditoría del proyecto nunca pueden quedar cumplidos sin evidencias: decidir si
   la lectura del juez cuenta como tal (como en los modos de elección) o si el dossier debe aportar material verificable.
 - «Decidir yo» no se reproduce tras reiniciar (el payload no lleva tu decisión) y, al reanudar, vuelve a lanzar a los jueces; y

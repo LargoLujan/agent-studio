@@ -424,7 +424,7 @@ dotnet test -- --filter-trait "Category=LocalTools"
 | `ConPty` | The real ConPTY terminal session |
 | `Measurement` | Performance measurements of the git layer and usage projection |
 | `ProviderLive` | Real runs of Claude Code and Codex that **spend subscription quota** |
-| `NeedsMediumIntegrity` | Tests that write into the real `%LOCALAPPDATA%`, which Windows denies at Low integrity: they run in CI, the audit of the repository leaves them out |
+| `NeedsMediumIntegrity` | Tests that cannot work at Low integrity (none today): they run in CI, the audit of the repository leaves them out |
 
 The [CI workflow](.github/workflows/ci.yml) builds the solution and runs the suite on Windows for every push to `main`
 and every pull request, leaving out these four categories.

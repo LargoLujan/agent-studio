@@ -211,14 +211,28 @@ con el filtro del CI, una pasada rápida a Low dio 42. Causas:
   CI ya las deja fuera: el perfil de la auditoría hace lo mismo.
 - **`RunTempFolder.BaseDirectory` (35 pruebas de los adaptadores de proveedores):** la carpeta por ejecución es
   `%LOCALAPPDATA%\AgentStudio\runs`, fija en el producto, y Windows deniega a Low escribir ahí (`UnauthorizedAccessException`;
-  las que esperan otra excepción reciben esa). No se pueden redirigir desde la prueba. **Etiquetadas** con
-  `[Trait("Category", "NeedsMediumIntegrity")]` (35 métodos en `ClaudeCodeAgentProviderTests`, `ClaudeEndClassTests`,
-  `CodexAppServerQuotaReaderTests`, `CodexCliAgentProviderTests`, `ProviderConcurrencyScenarioTests` y
-  `ProviderHardeningTests`). Siguen en el CI, que corre a Medium.
-- **Anclas del registro en `%LOCALAPPDATA%\AgentStudio\anchors` (4 casos):** `Phase12CompositionTests` y
-  `JudgesAndAuditorsGetNothingInTheAppTests` componían la app entera con las anclas reales del usuario (y las escribían
-  también a Medium). **Adaptadas**: registran `DecisionLogAnchorOptions` en la carpeta temporal antes de
-  `AddAgentStudioApp` (`AddAgentStudioPersistence` usa `TryAddSingleton`).
+  las que esperan otra excepción reciben esa). Una primera versión del arreglo las etiquetó `NeedsMediumIntegrity`; la
+  revisión independiente pidió no perder cobertura de seguridad en la auditoría (entre ellas, el rechazo de servidores MCP
+  en un lanzamiento con escritura y de los turnos «no guardar» con reanudación), y se arregló de verdad:
+  - **Validar antes de escribir.** `ClaudeCodeAgentProvider` y `CodexCliAgentProvider` construyen y validan los argumentos
+    antes de crear la carpeta de la ejecución (de la que solo se planea la ruta, `RunTempFolder.NewPath`): un lanzamiento
+    inválido se rechaza sin tocar el disco.
+  - **Carpeta base inyectable.** `RunTempFolderOptions(BaseDirectory)` (registrado con `TryAddSingleton` en
+    `AddAgentStudioProviders`, por defecto `%LOCALAPPDATA%\AgentStudio\runs`) llega a los dos adaptadores, a
+    `ProjectAgentProviders` y a `CodexAppServerQuotaReader`. Las pruebas pasan su carpeta temporal
+    (`TestLocalData.RunFolders`).
+  - Resultado: **las 35 pruebas pasan a Low sin etiqueta**; no queda ninguna con `NeedsMediumIntegrity`. El rasgo sigue
+    reconocido (el perfil de la auditoría lo excluye y los documentos lo describen) para el día que una prueba de verdad
+    necesite Medium; hoy ninguna lo necesita.
+- **Anclas del registro en `%LOCALAPPDATA%\AgentStudio\anchors`:** `Phase12CompositionTests` y
+  `JudgesAndAuditorsGetNothingInTheAppTests` fallaban a Low, y otras pruebas que componen la app entera
+  (`AddAgentStudioApp`: `Phase8Doubles`, `Phase4CompositionTests`, `Phase5CompositionTests`, `SettingsShellTests`,
+  `JournalViewModelTests`, `Phase12WithTheModelTests`, `AppCompositionTests`, `UnattendedCompositionTests`) escribían las
+  anclas reales del usuario también a Medium sin fallar (en esta máquina había 424 ficheros huérfanos en esa carpeta, que
+  no se tocan: son de la persona). **Adaptadas** con un helper común, `TestLocalData.AddTestLocalData(root)` en
+  `tests/AgentStudio.Tests/TestSupport/`, que registra `DecisionLogAnchorOptions` y `RunTempFolderOptions` en una carpeta
+  temporal antes de `AddAgentStudioApp` (las dos usan `TryAddSingleton`); `Phase3Host`, `SkillCatalogTests` y
+  `ProjectAgentProvidersTests` registran las suyas.
 - **Ruido de la medición bajo carga:** pruebas de tiempo (`Measurement`, `ExitSuspendsResumesTests`) y una del motor
   (`ApprovalReviewAndIntegrationTests`) que no repitió con la máquina libre.
 
@@ -233,5 +247,15 @@ Resultado, con la orden de la medición sobre el commit `bb4f5b9`: **build bien;
 `AGENTSTUDIO_LOW_RUN_ARGS`): lanza `AgentStudio.Tests.exe` a Low con `TEMP` en una carpeta Low; es aproximada (los binarios
 siguen en Medium: `ExecutableLocatorTests` falla ahí y pasa en la auditoría).
 
-Pendiente: las 35 pruebas etiquetadas no las cubre la auditoría. Un parámetro en `RunTempFolder` (carpeta base inyectable)
-permitiría adaptarlas en vez de etiquetarlas.
+**Lo que la auditoría no ejerce, dicho en su resultado.** `LocalTools` (git, el propio aislamiento), `ConPty` y `Measurement`
+no los ejecuta ningún proceso automático: el CI los excluye y la auditoría también, así que las garantías de seguridad que
+cubren (las pruebas de git y del aislamiento a baja integridad) solo las ejerce la persona a mano. Para que «Auditar
+proyecto completo» no prometa más de lo que comprueba, `ProjectAuditExclusions` lee los argumentos de los pasos de pruebas
+aislados del perfil (`--filter-not-trait`, `-class`, `-method`, `-namespace`) y nombra cada exclusión con su motivo:
+- el texto de la petición que la persona aprueba (`RequestText`) lleva la línea «Pruebas que la auditoría NO ejerce, por el
+  filtro del perfil: …» (y «ninguna» si el perfil no excluye nada);
+- el índice del dossier que lee el juez lleva `testsNotExercised` (filtro, selector y motivo), y el prompt del juez le dice
+  que un paso de pruebas verde no comprueba lo que esas pruebas cubren: no puede contarlo como evidencia de ello y debe
+  decirlo en un hallazgo o dejar el requisito como `NotVerifiable`;
+- la medición `Phase5AuditDemoLiveTests` lo añade a las notas de su informe.
+El CI no cambia. El informe del hito (Fase 9, que es esta auditoría) lo hereda del mismo texto cuando exista.

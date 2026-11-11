@@ -67,7 +67,7 @@ Tests run on Microsoft.Testing.Platform (xUnit v3). **Do not pass `-nologo`**: w
 | `ConPty` | The real ConPTY terminal session | No |
 | `Measurement` | Performance measurements | No |
 | `ProviderLive` | Real Claude Code and Codex runs that **spend subscription quota** | No |
-| `NeedsMediumIntegrity` | Write into the real `%LOCALAPPDATA%` of the user (Windows denies it at Low integrity). Runs in CI; the audit of the repository leaves it out | Yes |
+| `NeedsMediumIntegrity` | Cannot work at Low integrity (none today; reserved for a test that needs Medium). Runs in CI; the audit of the repository leaves it out | Yes |
 
 On your own machine you can also run the tools-based tests:
 
