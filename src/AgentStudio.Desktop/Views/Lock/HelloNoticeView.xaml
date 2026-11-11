@@ -4,6 +4,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:approvals="clr-namespace:AgentStudio.Desktop.Orchestrator.Approvals"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
              xmlns:orchestrator="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=approvals:ApprovalDialogViewModel}">
@@ -26,7 +27,7 @@
         <DockPanel>
             <TextBlock DockPanel.Dock="Left" FontFamily="{StaticResource IconFont}" FontSize="16" Margin="0,1,8,0" VerticalAlignment="Top"
                        Foreground="{Binding HelloNoticeTone, Converter={StaticResource Lock.ToneToBrush}}" Text="&#xE928;"/>
-            <TextBlock Style="{StaticResource BodyText}" Text="{Binding HelloNotice}" AutomationProperties.Name="Windows Hello"/>
+            <TextBlock Style="{StaticResource BodyText}" Text="{Binding HelloNotice}" AutomationProperties.Name="{l:T Lock_Notice_Name}"/>
         </DockPanel>
     </Border>
 </UserControl>

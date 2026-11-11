@@ -74,7 +74,7 @@ public sealed class LockSettingsViewModelTests
         ajustes.SaveCommand.Execute(null);
 
         Assert.Equal(0, store.Saves);
-        Assert.Equal($"El bloqueo no se guarda: «{minutes.Trim()}» no es un número entero de minutos de 1 a 1440.", settings.ErrorMessage);
+        Assert.Equal($"No se guardó el bloqueo: «{minutes.Trim()}» no es un número entero de minutos entre 1 y 1440. Escribe un número válido.", settings.ErrorMessage);
         Assert.Null(ajustes.Notice);
     }
 

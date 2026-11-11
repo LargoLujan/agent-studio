@@ -47,18 +47,6 @@ Sin Windows Hello en este equipo, lo que lo pide siempre bloquea Windows: lo des
     <value>No se pudo bloquear Windows para confirmar que eres tú ({0}): el plan no se aprueba.</value>
     <comment>Error of «Aprobar plan». {0}: the problem.</comment>
   </data>
-  <data name="Hello_Approval_LockNotConfirmed" xml:space="preserve">
-    <value>El bloqueo de Windows no confirmó que eres tú ({0}: {1}): se deniega.</value>
-    <comment>The reason of the system's denial of a yes the lock did not confirm; the decision log keeps it. {0}: the result as a code; {1}: why (Hello_LockResult_*).</comment>
-  </data>
-  <data name="Hello_Approval_LockNotAsked" xml:space="preserve">
-    <value>No se pudo bloquear Windows para confirmar que eres tú ({0}): se deniega.</value>
-    <comment>The reason of the system's denial of a yes when Windows could not be locked; the decision log keeps it. {0}: the problem.</comment>
-  </data>
-  <data name="Hello_Approval_ConfirmationPending" xml:space="preserve">
-    <value>Ya hay una confirmación pendiente: termina primero la de Windows Hello o la del bloqueo de Windows que está abierta. Esta aprobación se deniega; vuelve a pedirla después.</value>
-    <comment>The reason of the system's denial of a yes whose confirmation was not asked because another one was pending (one at a time); the decision log keeps it.</comment>
-  </data>
   <data name="Hello_Plan_ConfirmationPending" xml:space="preserve">
     <value>Ya hay una confirmación pendiente: termina primero la que está abierta y vuelve a aprobar el plan.</value>
     <comment>Error of «Aprobar plan» when another confirmation of the person was pending.</comment>

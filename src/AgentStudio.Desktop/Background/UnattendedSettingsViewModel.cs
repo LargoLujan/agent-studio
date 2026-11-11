@@ -1,3 +1,4 @@
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Lock;
 using AgentStudio.Desktop.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -30,17 +31,14 @@ public sealed partial class CloseWindowChoice(CloseWindowAction value, string la
 /// </summary>
 public sealed partial class UnattendedSettingsViewModel : ObservableObject
 {
-    public const string Title = "Trabajo desatendido";
+    /// <summary>The title of the section in «Ajustes», in the language in use.</summary>
+    public static string Title => Texts.Get("Background_Unattended_Title");
 
     /// <summary>What closing the window does, as the screen says it.</summary>
-    public const string CloseWindowExplanation =
-        "Con trabajo en marcha, «Preguntar» ofrece seguir en la bandeja, pausar y salir cuando terminen los intentos en curso, "
-        + "o salir ahora. Salir con trabajo en marcha siempre pregunta, y tu elección queda en el registro de cada ejecución.";
+    public static string CloseWindowExplanation => Texts.Get("Background_Unattended_CloseExplanation");
 
     /// <summary>What «Impedir la suspensión mientras hay trabajo» does, as the screen says it.</summary>
-    public const string PreventSleepExplanation =
-        "Mientras haya una ejecución, un debate o una auditoría en marcha, el equipo no se suspende por inactividad. La "
-        + "pantalla se puede apagar, y tú puedes suspender el equipo igual.";
+    public static string PreventSleepExplanation => Texts.Get("Background_Unattended_PreventSleepExplanation");
 
     private AppSettings _inForce = AppSettings.Default;
 
@@ -67,9 +65,9 @@ public sealed partial class UnattendedSettingsViewModel : ObservableObject
     /// <summary>The three answers of «Al cerrar la ventana», in the order of <see cref="CloseWindowAction"/>; one is selected.</summary>
     public IReadOnlyList<CloseWindowChoice> CloseWindowChoices { get; } =
     [
-        new(CloseWindowAction.Ask, "Preguntar si hay trabajo en marcha (sin trabajo, sale)"),
-        new(CloseWindowAction.KeepInTray, "Seguir siempre en la bandeja"),
-        new(CloseWindowAction.Exit, "Salir de Agent Studio"),
+        new(CloseWindowAction.Ask, Texts.Get("Background_Unattended_Close_Ask")),
+        new(CloseWindowAction.KeepInTray, Texts.Get("Background_Unattended_Close_KeepInTray")),
+        new(CloseWindowAction.Exit, Texts.Get("Background_Unattended_Close_Exit")),
     ];
 
     /// <summary>The answer chosen on screen; «Preguntar» when none is.</summary>

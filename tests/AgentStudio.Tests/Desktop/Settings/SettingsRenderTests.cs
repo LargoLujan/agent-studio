@@ -52,7 +52,7 @@ public sealed class SettingsRenderTests
         Assert.Equal(
             [
                 "Leer la cuota de Codex",
-                "Preguntar si hay trabajo en marcha (sin trabajo, sale)",
+                "Preguntar si hay trabajo en marcha (si no hay, sale)",
                 "Seguir siempre en la bandeja",
                 "Salir de Agent Studio",
                 "Impedir la suspensión mientras hay trabajo",
@@ -63,7 +63,7 @@ public sealed class SettingsRenderTests
             ],
             labels);
         Assert.Equal(0, outside);
-        Assert.Contains("Preguntar si hay trabajo en marcha (sin trabajo, sale)", wrapped);
+        Assert.Contains("Preguntar si hay trabajo en marcha (si no hay, sale)", wrapped);
         Assert.Contains(HelloTexts.SettingLabel, wrapped);
     }
 

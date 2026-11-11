@@ -6,6 +6,7 @@ using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Usage;
 using AgentStudio.Desktop.Controls;
 using AgentStudio.Desktop.Debate;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Orchestrator;
 using AgentStudio.Desktop.Orchestrator.Canvas;
@@ -45,7 +46,7 @@ public sealed record ContextBarRow(string Task, double? Fraction, string Text, T
     public MetricBarReading? Bar { get; init; }
 
     /// <summary>What UI Automation names the row with, as an item of the list of the panel: the task and its whole line.</summary>
-    public override string ToString() => $"Contexto de {Task}: {Text}";
+    public override string ToString() => Texts.Format("Background_Panel_ContextRow", Task, Text);
 }
 
 /// <summary>A figure with its name: «Entrada · 1.200.000 · exacto · informado por el CLI».</summary>
@@ -223,9 +224,20 @@ public sealed partial class StatusPanelViewModel : ObservableObject
         {
             var active = _work.Active;
             var waiting = active.Select(WorkStatus.Of).Sum(w => w.AwaitingPerson);
-            var going = active.Count == 0 ? "no hay trabajo en marcha" : $"el trabajo sigue: {WorkTexts.Count(active.Count, "trabajo en marcha", "trabajos en marcha")}";
-            var person = waiting == 0 ? string.Empty : $"; {WorkTexts.Count(waiting, "espera", "esperan")} por ti";
-            return $"Agent Studio está bloqueado: {going}{person}. Desbloquéalo para ver el detalle.";
+            var sentences = new List<string>
+            {
+                Texts.Get("Background_Panel_Locked_Head"),
+                active.Count == 0
+                    ? Texts.Get("Background_Panel_Locked_NoWork")
+                    : Texts.Format("Background_Panel_Locked_Work", WorkTexts.Count(active.Count, "Background_Count_Work")),
+            };
+            if (waiting > 0)
+            {
+                sentences.Add(WorkTexts.Count(waiting, "Background_Panel_Locked_Waiting"));
+            }
+
+            sentences.Add(Texts.Get("Background_Panel_Locked_Tail"));
+            return string.Join(" ", sentences);
         }
     }
 
@@ -264,7 +276,7 @@ public sealed partial class StatusPanelViewModel : ObservableObject
             await quota.RefreshAsync().ConfigureAwait(true);
         }
 
-        Updated = $"Actualizado a las {_time.GetLocalNow().ToString("HH:mm:ss", CultureInfo.InvariantCulture)}";
+        Updated = Texts.Format("Background_Panel_Updated", _time.GetLocalNow().ToString("HH:mm:ss", CultureInfo.InvariantCulture));
         Rebuild();
     }
 
@@ -296,9 +308,9 @@ public sealed partial class StatusPanelViewModel : ObservableObject
             Tone = work.Tone,
             Detail = work.Kind switch
             {
-                BackgroundWorkKind.Audit => "Su detalle está en «Auditoría».",
-                BackgroundWorkKind.Debate => "Su detalle está en «Debates».",
-                _ => "Su detalle está en el «Orquestador».",
+                BackgroundWorkKind.Audit => Texts.Get("Background_Panel_Detail_Audit"),
+                BackgroundWorkKind.Debate => Texts.Get("Background_Panel_Detail_Debate"),
+                _ => Texts.Get("Background_Panel_Detail_Orchestrator"),
             },
         },
     };
@@ -316,17 +328,17 @@ public sealed partial class StatusPanelViewModel : ObservableObject
             Tone = run.Tone,
             Detail = monitor.PhaseDetail,
             Agents = RunAgents(monitor, header, usage, key is not null),
-            Tasks = monitor.Tasks.Count == 0 ? "Tareas: sin dato" : "Tareas: " + TaskCounts(monitor.Tasks),
+            Tasks = monitor.Tasks.Count == 0 ? Texts.Get("Background_Panel_Tasks_NoData") : Texts.Format("Background_Panel_Tasks", TaskCounts(monitor.Tasks)),
             Context = [.. monitor.Tasks.Where(t => t.Status == WorkTaskStatus.Running && RunsAnAgent(t.Kind)).Select(Bar)],
             Tokens = usage?.Totals is { } totals ? Figures(totals) : [],
-            TokensNote = usage?.Note ?? (_sources.Usage is null ? "Tokens: sin dato (el consumo no está disponible en esta composición)." : "Tokens: sin dato todavía."),
+            TokensNote = usage?.Note ?? Texts.Get(_sources.Usage is null ? "Background_Panel_Tokens_NoUsage" : "Background_Panel_Tokens_NotYet"),
             Budget = header is null
-                ? $"Presupuesto: {WorkTexts.Count(monitor.AgentRunsUsed, "ejecución de agente usada", "ejecuciones de agente usadas")} · máximo sin dato (sin la cabecera de la ejecución)"
-                : $"Presupuesto: {monitor.AgentRunsUsed.ToString(CultureInfo.InvariantCulture)} de {header.Options.MaxAgentRuns.ToString(CultureInfo.InvariantCulture)} ejecuciones de agente",
-            BudgetBar = MetricBars.Budget("Presupuesto", monitor.AgentRunsUsed, header?.Options.MaxAgentRuns ?? monitor.MaxAgentRuns, header is null && monitor.MaxAgentRuns is null ? "sin la cabecera de la ejecución" : null),
+                ? WorkTexts.Count(monitor.AgentRunsUsed, "Background_Panel_Budget_NoHeader")
+                : Texts.Format("Background_Panel_Budget_Used", monitor.AgentRunsUsed, header.Options.MaxAgentRuns),
+            BudgetBar = MetricBars.Budget(Texts.Get("Background_Panel_Budget_Label"), monitor.AgentRunsUsed, header?.Options.MaxAgentRuns ?? monitor.MaxAgentRuns, header is null && monitor.MaxAgentRuns is null ? Texts.Get("Background_Panel_Budget_NoHeaderNote") : null),
             Blocks = [.. monitor.Tasks.Where(t => t.IsBlocked).Select(t => $"{t.Id} · {t.StatusLabel}")],
             Errors = RunErrors(monitor),
-            Approvals = [.. monitor.Tasks.Where(t => t.PendingApproval is not null).Select(t => $"{t.Id} espera tu aprobación: {t.PendingApproval}")],
+            Approvals = [.. monitor.Tasks.Where(t => t.PendingApproval is not null).Select(t => Texts.Format("Background_Panel_Approval", t.Id, t.PendingApproval))],
         };
     }
 
@@ -338,7 +350,7 @@ public sealed partial class StatusPanelViewModel : ObservableObject
     {
         if (header is null)
         {
-            return [known ? "Agentes: sin dato (no se pudo leer la cabecera de la ejecución)" : "Agentes: sin dato (el proyecto no está abierto aquí)"];
+            return [Texts.Get(known ? "Background_Panel_Agents_NoHeader" : "Background_Panel_Agents_NoProject")];
         }
 
         var running = monitor.Tasks.Where(t => t.Status == WorkTaskStatus.Running && t.Agent is not null).Select(t => t.Agent!).ToHashSet(StringComparer.Ordinal);
@@ -353,15 +365,26 @@ public sealed partial class StatusPanelViewModel : ObservableObject
 
     private static string AgentLine(AgentDefinition agent, bool working, string? reported)
     {
-        var model = string.IsNullOrWhiteSpace(agent.Model.Model) ? "modelo predeterminado del CLI (no expuesto)" : $"modelo {agent.Model.Model}";
-        var seen = reported is null ? string.Empty : $" · informado por el CLI: {reported}";
-        var state = working ? " · en marcha" : string.Empty;
+        var model = ModelText(agent.Model.Model);
+        var seen = reported is null ? string.Empty : " · " + Texts.Format("Background_Panel_Model_Reported", reported);
+        var state = working ? " · " + Texts.Get("Background_Panel_Agent_Working") : string.Empty;
         return $"{agent.Id} · {NodeEditorViewModel.RoleLabel(agent.Role)} · {DebateTexts.Provider(agent.Model.Provider)} · {model}{seen}{state}";
     }
 
+    /// <summary>The model of an agent: its name, or that the program of the agent chooses it and does not say which.</summary>
+    private static string ModelText(string? model) =>
+        string.IsNullOrWhiteSpace(model) ? Texts.Get("Background_Panel_Model_Default") : Texts.Format("Background_Panel_Model", model);
+
     private static string TaskCounts(IEnumerable<MonitorTaskViewModel> tasks) => string.Join(
         " · ",
-        tasks.GroupBy(t => t.Status).OrderBy(g => Order(g.Key)).Select(g => WorkTexts.Count(g.Count(), One(g.Key), Many(g.Key))));
+        tasks.GroupBy(t => t.Status).OrderBy(g => Order(g.Key)).Select(g => TaskCount(g.Key, g.Count())));
+
+    /// <summary>«2 completadas»: the number with the status, in its form for one or many; a status the resources do not know is shown by its name.</summary>
+    private static string TaskCount(WorkTaskStatus status, int count)
+    {
+        var key = "Background_Panel_TaskCount_" + status;
+        return Texts.Current.Has(key + "_One") ? WorkTexts.Count(count, key) : $"{count.ToString(CultureInfo.InvariantCulture)} {status}";
+    }
 
     private static int Order(WorkTaskStatus status) => status switch
     {
@@ -375,32 +398,6 @@ public sealed partial class StatusPanelViewModel : ObservableObject
         _ => 7,
     };
 
-    private static string One(WorkTaskStatus status) => status switch
-    {
-        WorkTaskStatus.Running => "en curso",
-        WorkTaskStatus.AwaitingApproval => "espera aprobación",
-        WorkTaskStatus.Blocked => "bloqueada",
-        WorkTaskStatus.Pending => "pendiente",
-        WorkTaskStatus.Completed => "completada",
-        WorkTaskStatus.Failed => "fallida",
-        WorkTaskStatus.Cancelled => "cancelada",
-        WorkTaskStatus.Skipped => "omitida",
-        _ => status.ToString(),
-    };
-
-    private static string Many(WorkTaskStatus status) => status switch
-    {
-        WorkTaskStatus.Running => "en curso",
-        WorkTaskStatus.AwaitingApproval => "esperan aprobación",
-        WorkTaskStatus.Blocked => "bloqueadas",
-        WorkTaskStatus.Pending => "pendientes",
-        WorkTaskStatus.Completed => "completadas",
-        WorkTaskStatus.Failed => "fallidas",
-        WorkTaskStatus.Cancelled => "canceladas",
-        WorkTaskStatus.Skipped => "omitidas",
-        _ => status.ToString(),
-    };
-
     private static bool RunsAnAgent(WorkTaskKind kind) => kind is WorkTaskKind.AgentWork or WorkTaskKind.Review or WorkTaskKind.Debate;
 
     /// <summary>
@@ -412,8 +409,18 @@ public sealed partial class StatusPanelViewModel : ObservableObject
     {
         var label = $"{task.Id} {task.Title}";
         var bar = task.ContextBar;
-        var text = task.Context is { } line && line.StartsWith("Contexto: ", StringComparison.Ordinal) ? line["Contexto: ".Length..] : task.Context ?? bar?.Text ?? "sin dato";
+        var text = task.Context is { } line ? WithoutName(line) : bar?.Text ?? Texts.Get("Background_Panel_NoData");
         return new ContextBarRow(label, bar?.Fraction, text, task.ContextTone) { Bar = bar };
+    }
+
+    /// <summary>
+    /// The line of the monitor begins with its own name («Contexto: 47 %…»), which the row repeats as its label. Whatever language
+    /// the name is in, it ends at the first colon, so the line is read from there; a line without one is left as it is.
+    /// </summary>
+    private static string WithoutName(string line)
+    {
+        var colon = line.IndexOf(": ", StringComparison.Ordinal);
+        return colon is > 0 and < 24 ? line[(colon + 2)..] : line;
     }
 
     private static IReadOnlyList<string> RunErrors(RunMonitorViewModel monitor)
@@ -440,12 +447,12 @@ public sealed partial class StatusPanelViewModel : ObservableObject
 
     private static IReadOnlyList<FigureRow> Figures(UsageTotals totals) =>
     [
-        new("Entrada", MetricText.Tokens(totals.InputTokens)),
-        new("Caché leída", MetricText.Tokens(totals.CacheReadInputTokens)),
-        new("Caché escrita", MetricText.Tokens(totals.CacheWriteInputTokens)),
-        new("Salida", MetricText.Tokens(totals.OutputTokens)),
-        new("Razonamiento", MetricText.Tokens(totals.ReasoningOutputTokens)),
-        new("Coste", MetricText.Cost(totals.CostUsd)),
+        new(Texts.Get("Background_Panel_Figure_Input"), MetricText.Tokens(totals.InputTokens)),
+        new(Texts.Get("Background_Panel_Figure_CacheRead"), MetricText.Tokens(totals.CacheReadInputTokens)),
+        new(Texts.Get("Background_Panel_Figure_CacheWrite"), MetricText.Tokens(totals.CacheWriteInputTokens)),
+        new(Texts.Get("Background_Panel_Figure_Output"), MetricText.Tokens(totals.OutputTokens)),
+        new(Texts.Get("Background_Panel_Figure_Reasoning"), MetricText.Tokens(totals.ReasoningOutputTokens)),
+        new(Texts.Get("Background_Panel_Figure_Cost"), MetricText.Cost(totals.CostUsd)),
     ];
 
     private WorkCardViewModel DebateCard(DebateWork debate)
@@ -453,7 +460,7 @@ public sealed partial class StatusPanelViewModel : ObservableObject
         var snapshot = debate.Snapshot();
         if (snapshot is null)
         {
-            return new WorkCardViewModel { Title = debate.Title, State = debate.StateText, Tone = debate.Tone, Detail = "Su detalle está en «Debates»." };
+            return new WorkCardViewModel { Title = debate.Title, State = debate.StateText, Tone = debate.Tone, Detail = Texts.Get("Background_Panel_Detail_Debate") };
         }
 
         var awaiting = snapshot.Awaiting;
@@ -462,15 +469,15 @@ public sealed partial class StatusPanelViewModel : ObservableObject
             Title = debate.Title,
             State = debate.StateText,
             Tone = debate.Tone,
-            Detail = "Su detalle está en «Debates».",
-            Agents = [.. snapshot.Participants.Select(p => $"{p.Label} · {p.Agent} · {DebateTexts.Role(p.Role)} · {DebateTexts.Provider(p.Provider)} · {(string.IsNullOrWhiteSpace(p.Model) ? "modelo predeterminado del CLI (no expuesto)" : $"modelo {p.Model}")}")],
-            Tokens = [new FigureRow("Tokens", MetricText.Tokens(snapshot.Tokens))],
-            TokensNote = "Del debate, por turno (como en la sala).",
-            TokensBar = MetricBars.Tokens("Tokens del debate", snapshot.Tokens, snapshot.Limits.MaxTotalTokens),
-            Budget = $"Presupuesto: {snapshot.AgentRuns.ToString(CultureInfo.InvariantCulture)} de {snapshot.MaxAgentRuns.ToString(CultureInfo.InvariantCulture)} ejecuciones de agente",
-            BudgetBar = MetricBars.Budget("Presupuesto", snapshot.AgentRuns, snapshot.MaxAgentRuns),
+            Detail = Texts.Get("Background_Panel_Detail_Debate"),
+            Agents = [.. snapshot.Participants.Select(p => $"{p.Label} · {p.Agent} · {DebateTexts.Role(p.Role)} · {DebateTexts.Provider(p.Provider)} · {ModelText(p.Model)}")],
+            Tokens = [new FigureRow(Texts.Get("Background_Panel_Tokens"), MetricText.Tokens(snapshot.Tokens))],
+            TokensNote = Texts.Get("Background_Panel_DebateTokens_Note"),
+            TokensBar = MetricBars.Tokens(Texts.Get("Background_Panel_DebateTokens_Label"), snapshot.Tokens, snapshot.Limits.MaxTotalTokens),
+            Budget = Texts.Format("Background_Panel_Budget_Used", snapshot.AgentRuns, snapshot.MaxAgentRuns),
+            BudgetBar = MetricBars.Budget(Texts.Get("Background_Panel_Budget_Label"), snapshot.AgentRuns, snapshot.MaxAgentRuns),
             Blocks = awaiting is { Reason: DebateAwaitReason.ProviderLimit } limit
-                ? [limit.Until is { } until ? $"Límite de uso del proveedor hasta las {TimeZoneInfo.ConvertTime(until, _time.LocalTimeZone).ToString("HH:mm", CultureInfo.InvariantCulture)}" : DebateTexts.Await(limit.Reason)]
+                ? [limit.Until is { } until ? Texts.Format("Background_Panel_Block_Limit", TimeZoneInfo.ConvertTime(until, _time.LocalTimeZone).ToString("HH:mm", CultureInfo.InvariantCulture)) : DebateTexts.Await(limit.Reason)]
                 : [],
             Approvals = awaiting is { Reason: DebateAwaitReason.HumanResolution or DebateAwaitReason.FailedTurn } person ? [DebateTexts.Await(person.Reason)] : [],
         };
@@ -481,7 +488,7 @@ public sealed partial class StatusPanelViewModel : ObservableObject
     {
         if (_sources.Usage is not { } usage)
         {
-            return new UsageReading(null, "Tokens: sin dato (el consumo no está disponible en esta composición).", new Dictionary<string, string>(StringComparer.Ordinal));
+            return new UsageReading(null, Texts.Get("Background_Panel_Tokens_NoUsage"), new Dictionary<string, string>(StringComparer.Ordinal));
         }
 
         try
@@ -491,7 +498,7 @@ public sealed partial class StatusPanelViewModel : ObservableObject
             var report = await usage.QueryAsync([root], new UsageQuery(from, to, _time.LocalTimeZone, [], new UsageFilter(Runs: [run])), CancellationToken.None).ConfigureAwait(true);
             if (report.Excluded.FirstOrDefault() is { } excluded)
             {
-                return new UsageReading(null, $"Tokens: sin dato ({excluded.Reason}).", new Dictionary<string, string>(StringComparer.Ordinal));
+                return new UsageReading(null, Texts.Format("Background_Panel_Tokens_Excluded", excluded.Reason), new Dictionary<string, string>(StringComparer.Ordinal));
             }
 
             var totals = report.Groups.FirstOrDefault(g => g.Key.Count == 0)?.Totals;
@@ -500,15 +507,15 @@ public sealed partial class StatusPanelViewModel : ObservableObject
                 .GroupBy(a => a.Agent.Value, StringComparer.Ordinal)
                 .ToDictionary(g => g.Key, g => g.OrderBy(a => a.FinishedAt).Last().ReportedModel!, StringComparer.Ordinal);
             var note = totals is not { Attempts: > 0 } finished
-                ? "Tokens: ningún intento de esta ejecución ha terminado todavía."
-                : $"De {WorkTexts.Count(finished.Attempts, "intento terminado", "intentos terminados")} de esta ejecución; el intento en curso cuenta cuando termina.";
+                ? Texts.Get("Background_Panel_Tokens_NoAttempt")
+                : WorkTexts.Count(finished.Attempts, "Background_Panel_TokensNote");
             return new UsageReading(totals is { Attempts: > 0 } ? totals : null, note, models);
         }
 #pragma warning disable CA1031 // The usage is behind a port: a failure is «sin dato» in the panel, never thrown into the UI.
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            return new UsageReading(null, $"Tokens: sin dato (no se pudo leer el consumo: {ex.Message}).", new Dictionary<string, string>(StringComparer.Ordinal));
+            return new UsageReading(null, Texts.Format("Background_Panel_Tokens_Failed", ex.Message), new Dictionary<string, string>(StringComparer.Ordinal));
         }
     }
 
@@ -518,7 +525,7 @@ public sealed partial class StatusPanelViewModel : ObservableObject
         Quota.Clear();
         if (_sources.Quota is not { } quota)
         {
-            QuotaNote = "Cuota: sin dato (no está disponible en esta composición).";
+            QuotaNote = Texts.Get("Background_Panel_Quota_NoData");
             return;
         }
 
@@ -555,7 +562,7 @@ public sealed partial class StatusPanelViewModel : ObservableObject
             }
         }
 
-        QuotaNote = "Cuota de tu cuenta (no del proyecto), tal como la anunció cada proveedor.";
+        QuotaNote = Texts.Get("Background_Panel_Quota_Note");
     }
 
     private static string Key(string projectId, string run) => projectId + "/" + run;

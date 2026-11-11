@@ -132,7 +132,7 @@ public sealed class SettingsDocumentViewModelTests
         Assert.Equal(0, store.PreferenceSaves);
         Assert.Equal("No se guardó nada. Corrige «Contexto y cuota» y «Windows Hello y bloqueo».", document.ErrorMessage);
         Assert.NotNull(document.Context.ErrorMessage);
-        Assert.Equal("El bloqueo no se guarda: «1441» no es un número entero de minutos de 1 a 1440.", document.Lock.ErrorMessage);
+        Assert.Equal("No se guardó el bloqueo: «1441» no es un número entero de minutos entre 1 y 1440. Escribe un número válido.", document.Lock.ErrorMessage);
     }
 
     [Fact]

@@ -100,7 +100,7 @@ public sealed class BackgroundRenderTests
                 [
                     new ExitWorkLine("monorepo", "Ejecución 20261021-c4a1f2", "En ejecución · 4 intentos en curso", CanPause: true),
                     new ExitWorkLine("docs-internas", "Debate deb-20261019-a1b2c3", "En deliberación · ronda 2 · 2 turnos en curso", CanPause: false),
-                    new ExitWorkLine("tienda", "Auditoría del proyecto", "En curso (sin más detalle aquí)", CanPause: false),
+                    new ExitWorkLine("tienda", "Auditoría del proyecto", "En curso (aquí no hay más detalle)", CanPause: false),
                 ],
                 OffersKeepInTray: true);
             var view = new ExitPromptView { DataContext = new ExitPromptViewModel(question) };
@@ -110,7 +110,7 @@ public sealed class BackgroundRenderTests
         });
 
         Assert.True(drawn > 20_000, $"Only {drawn} pixels differ from the panel: the question was not drawn.");
-        Assert.True(warning > 50, $"Only {warning} pixels have the warning colour («Salir ahora y dejarlas interrumpidas»).");
+        Assert.True(warning > 50, $"Only {warning} pixels have the warning colour («Salir ahora e interrumpir el trabajo»).");
         Assert.True(raised > 10_000, $"Only {raised} pixels have the card colour (the list of the work).");
     }
 }

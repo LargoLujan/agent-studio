@@ -178,7 +178,7 @@ public sealed class InitialFocusTests
             return (target?.Content, target?.IsCancel);
         });
 
-        Assert.Equal("Cancelar", chosen);
+        Assert.Equal("No salir", chosen);
         Assert.True(isCancel);
     }
 

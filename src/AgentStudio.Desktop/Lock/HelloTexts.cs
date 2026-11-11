@@ -42,19 +42,39 @@ public static class HelloTexts
     /// <summary>Why a plan was not approved: Windows could not be locked to confirm the person; and what to do.</summary>
     public static string PlanLockNotAsked(string problem) => Texts.Format(nameof(HelloStrings.Hello_Plan_LockNotAsked), problem) + " " + SetUpHello;
 
+    // The three texts below are the reasons of a denial: the decision log keeps them, anchored and never translated (docs/17 D-48,
+    // F14-4). They are fixed Spanish in code, not resources, so they do not change with the language of the interface.
+
     /// <summary>The reason of the denial of a yes the verified lock of Windows did not confirm, and what to do when Windows did not lock; the log keeps it.</summary>
-    public static string ApprovalLockNotConfirmed(WindowsLockResult result) =>
-        WithWhatToDo(Texts.Format(nameof(HelloStrings.Hello_Approval_LockNotConfirmed), result, WhyNotConfirmed(result)), result);
+    public static string ApprovalLockNotConfirmed(WindowsLockResult result)
+    {
+        var text = $"El bloqueo de Windows no confirmó que eres tú ({result}: {WhyNotConfirmedForLog(result)}): se deniega.";
+        return result == WindowsLockResult.LockFailed ? text + " " + SetUpHelloForLog : text;
+    }
 
     /// <summary>The reason of the denial of a yes when Windows could not be locked to confirm the person, and what to do; the log keeps it.</summary>
-    public static string ApprovalLockNotAsked(string problem) => Texts.Format(nameof(HelloStrings.Hello_Approval_LockNotAsked), problem) + " " + SetUpHello;
+    public static string ApprovalLockNotAsked(string problem) =>
+        $"No se pudo bloquear Windows para confirmar que eres tú ({problem}): se deniega. " + SetUpHelloForLog;
 
     /// <summary><paramref name="text"/> and, when Windows did not lock, what to do (<see cref="SetUpHello"/>).</summary>
     private static string WithWhatToDo(string text, WindowsLockResult result) =>
         result == WindowsLockResult.LockFailed ? text + " " + SetUpHello : text;
 
     /// <summary>The reason of the denial of a yes whose confirmation was not asked because another one was pending; the log keeps it.</summary>
-    public static string ApprovalConfirmationPending => Texts.Get(nameof(HelloStrings.Hello_Approval_ConfirmationPending));
+    public static string ApprovalConfirmationPending =>
+        "Ya hay una confirmación pendiente: termina primero la de Windows Hello o la del bloqueo de Windows que está abierta. Esta aprobación se deniega; vuelve a pedirla después.";
+
+    private const string SetUpHelloForLog =
+        "Para aprobarlo, configura Windows Hello: abre Configuración, entra en Cuentas y luego en Opciones de inicio de sesión, y elige el PIN, la huella o la cara.";
+
+    private static string WhyNotConfirmedForLog(WindowsLockResult result) => result switch
+    {
+        WindowsLockResult.UnlockedAfterRequest => "lo desbloqueaste después de la petición",
+        WindowsLockResult.LockFailed => "Windows no se bloqueó",
+        WindowsLockResult.NotVerified => "el estado de la sesión no confirma que lo desbloqueaste después de la petición",
+        WindowsLockResult.TimedOut => "nadie lo desbloqueó a tiempo",
+        _ => "Windows dio un resultado que Agent Studio no conoce",
+    };
 
     /// <summary>Why a plan was not approved: another confirmation of the person was pending.</summary>
     public static string PlanConfirmationPending => Texts.Get(nameof(HelloStrings.Hello_Plan_ConfirmationPending));

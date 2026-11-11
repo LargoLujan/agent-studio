@@ -1,3 +1,4 @@
+using AgentStudio.Desktop.Localization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -22,29 +23,28 @@ public sealed partial class ExitPromptViewModel : ObservableObject
 
     public bool OffersKeepInTray => Question.OffersKeepInTray;
 
-    public string Title => "Hay trabajo en marcha";
+    public string Title => Texts.Get("Background_Exit_Title");
 
-    public string Intro => OffersKeepInTray
-        ? $"Vas a cerrar la ventana con {WorkTexts.Count(Work.Count, "trabajo en marcha", "trabajos en marcha")}. ¿Qué hago con ello?"
-        : $"Vas a salir de Agent Studio con {WorkTexts.Count(Work.Count, "trabajo en marcha", "trabajos en marcha")}. ¿Qué hago con ello?";
+    /// <summary>The question: how many pieces of work go on, and whether the window is being closed or the app left.</summary>
+    public string Intro => WorkTexts.Count(Work.Count, OffersKeepInTray ? "Background_Exit_IntroWindow" : "Background_Exit_IntroExit");
 
-    public string KeepInTrayText => "Seguir en la bandeja";
+    public string KeepInTrayText => Texts.Get("Background_Exit_KeepInTray");
 
-    public string KeepInTrayHelp => "La ventana se cierra y todo sigue en marcha. Agent Studio queda en la bandeja del sistema, junto al reloj.";
+    public string KeepInTrayHelp => Texts.Get("Background_Exit_KeepInTray_Help");
 
-    public string PauseText => "Pausar y salir cuando terminen los intentos en curso";
+    public string PauseText => Texts.Get("Background_Exit_Pause");
 
-    public string PauseHelp => "No se lanza nada nuevo. Agent Studio espera en la bandeja a que terminen los intentos que están en marcha y sale. Las ejecuciones quedan en pausa y no se reanudan solas: las reanudas tú."
-        + (Question.HasWorkThatCannotPause ? " Los debates y las auditorías no se pueden pausar: espera a que terminen." : string.Empty);
+    public string PauseHelp => Texts.Get("Background_Exit_Pause_Help")
+        + (Question.HasWorkThatCannotPause ? " " + Texts.Get("Background_Exit_Pause_HelpCannotPause") : string.Empty);
 
-    public string ExitNowText => "Salir ahora y dejarlas interrumpidas";
+    public string ExitNowText => Texts.Get("Background_Exit_Now");
 
-    public string ExitNowHelp => "Los agentes se detienen ahora y lo que estaba en marcha queda interrumpido. No se reanuda solo: lo reanudas tú desde el orquestador, sin repetir lo terminado.";
+    public string ExitNowHelp => Texts.Get("Background_Exit_Now_Help");
 
-    public string CancelText => "Cancelar";
+    public string CancelText => Texts.Get("Background_Exit_Cancel");
 
     /// <summary>Where the answer goes.</summary>
-    public string RecordNote => "Tu elección queda en el registro de cada ejecución afectada. «Cancelar» no cambia nada ni escribe nada.";
+    public string RecordNote => Texts.Get("Background_Exit_RecordNote");
 
     /// <summary>What was answered; null while nothing was, which counts as <see cref="ExitChoice.Cancel"/>.</summary>
     public ExitChoice? Answer { get; private set; }

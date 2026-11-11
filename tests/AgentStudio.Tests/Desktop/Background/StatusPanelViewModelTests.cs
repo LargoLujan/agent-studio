@@ -42,9 +42,9 @@ public sealed class StatusPanelViewModelTests
         Assert.Equal(
             [
                 "orquestador · Orquestador · Claude Code · modelo claude-opus-5-5",
-                "ejecutor · Ejecutor · Claude Code · modelo predeterminado del CLI (no expuesto) · informado por el CLI: claude-sonnet-5-5 · en marcha",
+                "ejecutor · Ejecutor · Claude Code · modelo predeterminado del programa del agente (no expuesto) · informado por el programa del agente: claude-sonnet-5-5 · en marcha",
                 "ejecutor-2 · Ejecutor · Claude Code · modelo claude-sonnet-5-5 · en marcha",
-                "juez-revision · Juez · Codex CLI · modelo predeterminado del CLI (no expuesto) · en marcha",
+                "juez-revision · Juez · Codex CLI · modelo predeterminado del programa del agente (no expuesto) · en marcha",
             ],
             card.Agents);
         Assert.Equal("Tareas: 4 en curso · 1 espera aprobación · 1 bloqueada · 1 completada", card.Tasks);
@@ -119,7 +119,7 @@ public sealed class StatusPanelViewModelTests
             ],
             card.Tokens.Select(t => (t.Name, t.Text)));
         Assert.Contains("estimado por el CLI", card.Tokens[^1].Text, StringComparison.Ordinal);
-        Assert.Equal("De 4 intentos terminados de esta ejecución; el intento en curso cuenta cuando termina.", card.TokensNote);
+        Assert.Equal("De 4 intentos terminados de esta ejecución; los intentos en curso cuentan al terminar.", card.TokensNote);
 
         // The usage of this run only, of its project, since its header was created.
         var (roots, query) = Assert.Single(usage.Queries);
@@ -141,12 +141,12 @@ public sealed class StatusPanelViewModelTests
         await panel.RefreshAsync();
 
         var card = Assert.Single(Assert.Single(panel.Projects).Work);
-        Assert.Equal(["Agentes: sin dato (no se pudo leer la cabecera de la ejecución)"], card.Agents);
+        Assert.Equal(["Agentes: sin dato (no se pudieron leer los datos con los que empezó la ejecución)"], card.Agents);
         Assert.Empty(card.Tokens);
-        Assert.Equal("Tokens: sin dato (el consumo no está disponible en esta composición).", card.TokensNote);
-        Assert.Equal("Presupuesto: 5 ejecuciones de agente usadas · máximo sin dato (sin la cabecera de la ejecución)", card.Budget);
+        Assert.Equal("Tokens: sin dato (el consumo no está disponible aquí).", card.TokensNote);
+        Assert.Equal("Presupuesto: 5 ejecuciones de agente usadas · máximo sin dato (faltan los datos con los que empezó la ejecución)", card.Budget);
         Assert.Empty(panel.Quota);
-        Assert.Equal("Cuota: sin dato (no está disponible en esta composición).", panel.QuotaNote);
+        Assert.Equal("Límite de uso: sin dato (no está disponible aquí).", panel.QuotaNote);
     }
 
     [Fact]
@@ -185,7 +185,7 @@ public sealed class StatusPanelViewModelTests
         Assert.StartsWith("7 días · ", panel.Quota[1].Text, StringComparison.Ordinal);
         Assert.Contains("se reinicia el 24/10 a las 14:00", panel.Quota[1].Text, StringComparison.Ordinal);
         Assert.StartsWith("Desactivado: activa «Leer la cuota de Codex»", panel.Quota[2].Text, StringComparison.Ordinal);
-        Assert.Equal("Cuota de tu cuenta (no del proyecto), tal como la anunció cada proveedor.", panel.QuotaNote);
+        Assert.Equal("Límite de uso de tu plan (no del proyecto), tal como lo anuncia cada empresa del modelo.", panel.QuotaNote);
         Assert.Equal("Actualizado a las 14:00:00", panel.Updated);
     }
 
@@ -219,7 +219,7 @@ public sealed class StatusPanelViewModelTests
 
         var card = Assert.Single(Assert.Single(new StatusPanelViewModel(work, Clock()).Projects).Work);
 
-        Assert.Equal(("Auditoría del proyecto", "En curso (sin más detalle aquí)", "Su detalle está en «Auditoría»."), (card.Title, card.State, card.Detail));
+        Assert.Equal(("Auditoría del proyecto", "En curso (aquí no hay más detalle)", "Su detalle está en «Auditoría»."), (card.Title, card.State, card.Detail));
         Assert.False(card.HasAgents || card.HasTokens || card.HasContext);
     }
 
@@ -236,7 +236,7 @@ public sealed class StatusPanelViewModelTests
 
         Assert.False(panel.ShowsWork);
         Assert.False(panel.ShowsNothing);
-        Assert.Equal("Agent Studio está bloqueado: el trabajo sigue: 1 trabajo en marcha; 1 espera por ti. Desbloquéalo para ver el detalle.", panel.LockedText);
+        Assert.Equal("Agent Studio está bloqueado. El trabajo sigue: 1 trabajo en marcha. 1 espera tu decisión. Desbloquéalo para ver el detalle.", panel.LockedText);
         Assert.DoesNotContain("monorepo", panel.LockedText, StringComparison.Ordinal);
 
         panel.IsLocked = false;
@@ -252,7 +252,7 @@ public sealed class StatusPanelViewModelTests
         work.TrackRun(RootA, monitor, () => ProjectA);
         var panel = Panel(work, clock);
         Assert.True(panel.ShowsWork);
-        Assert.Equal("1 ejecución · 1 espera cuota hasta las 14:05 · 1 espera por ti", panel.Summary);
+        Assert.Equal("1 ejecución · 1 en espera por el límite de uso hasta las 14:05 · 1 espera tu decisión", panel.Summary);
 
         // The monitor applies the end on a thread of its own here (in the app, the UI's): the panel is rebuilt there, so
         // the test waits for a rebuild that saw no work, not for an empty list a rebuild in course may still refill.

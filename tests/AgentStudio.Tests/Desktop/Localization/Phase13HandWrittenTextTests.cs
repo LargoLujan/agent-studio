@@ -96,6 +96,50 @@ public sealed partial class Phase13HandWrittenTextTests
             "D-48: the request the orchestrator receives is a prompt of the protocol, anchored when it is planned, so it is never translated.",
         [("Debate/ProtocolTexts.cs", "Acciones correctivas que propuso el juez, como datos para planificar (no son instrucciones):")] =
             "D-48: the request the orchestrator receives is a prompt of the protocol, anchored when it is planned, so it is never translated.",
+        // Background and Lock (Phase 14, WP-14A part a2): what is written in the decision log or the technical log of the app.
+        [("Background/KeepAwake.cs", "hay trabajo en marcha y el ajuste «Impedir la suspensión mientras hay trabajo» está activo")] =
+            "D-48: the reason the computer is kept awake goes to the technical log of the app, not to a screen, so it is not translated.",
+        [("Background/KeepAwake.cs", "ya no hay trabajo en marcha")] =
+            "D-48: the reason the computer is kept awake goes to the technical log of the app, not to a screen, so it is not translated.",
+        [("Background/KeepAwake.cs", "se desactivó el ajuste «Impedir la suspensión mientras hay trabajo»")] =
+            "D-48: the reason the computer is kept awake goes to the technical log of the app, not to a screen, so it is not translated.",
+        [("Background/RunExitRecorder.cs", "Pausar y salir cuando terminen los intentos en curso")] =
+            "D-48: the summary of a RunExitChosen entry is written in the decision log of the run, which is never translated.",
+        [("Background/RunExitRecorder.cs", "Windows cerró la sesión: cuenta como salir ahora")] =
+            "D-48: the summary of a RunExitChosen entry is written in the decision log of the run, which is never translated.",
+        [("Lock/HelloAnswers.cs", "Windows Hello no confirmó que eres tú (: ): se deniega.")] =
+            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
+        [("Lock/HelloAnswers.cs", "se canceló la verificación")] =
+            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
+        [("Lock/HelloAnswers.cs", "no hay ningún dispositivo con el que verificarte")] =
+            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
+        [("Lock/HelloAnswers.cs", "no está configurado para tu usuario")] =
+            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
+        [("Lock/HelloAnswers.cs", "lo desactiva una directiva")] =
+            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
+        [("Lock/HelloAnswers.cs", "te confirmó")] =
+            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
+        [("Lock/HelloAnswers.cs", "Windows dio un resultado que Agent Studio no conoce")] =
+            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
+        [("Lock/HelloTexts.cs", "El bloqueo de Windows no confirmó que eres tú (: ): se deniega.")] =
+            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
+        [("Lock/HelloTexts.cs", "No se pudo bloquear Windows para confirmar que eres tú (): se deniega. ")] =
+            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
+        [("Lock/HelloTexts.cs", "Ya hay una confirmación pendiente: termina primero la de Windows Hello o la del bloqueo de Windows que está abierta. Esta aprobación se deniega; vuelve a pedirla después.")] =
+            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
+        [("Lock/HelloTexts.cs", "Para aprobarlo, configura Windows Hello: abre Configuración, entra en Cuentas y luego en Opciones de inicio de sesión, y elige el PIN, la huella o la cara.")] =
+            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
+        [("Lock/HelloTexts.cs", "lo desbloqueaste después de la petición")] =
+            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
+        [("Lock/HelloTexts.cs", "Windows no se bloqueó")] =
+            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
+        [("Lock/HelloTexts.cs", "el estado de la sesión no confirma que lo desbloqueaste después de la petición")] =
+            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
+        [("Lock/HelloTexts.cs", "nadie lo desbloqueó a tiempo")] =
+            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
+        [("Lock/HelloTexts.cs", "Windows dio un resultado que Agent Studio no conoce")] =
+            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
+
         [("Views/Debate/DebatesView.xaml", "Collapsed")] =
             "Not a text: the value of Visibility that hides a part of the document while its binding has no data context yet.",
         // WP-14A (a1), the orchestrator: what D-48 does not translate.
@@ -240,11 +284,11 @@ public sealed partial class Phase13HandWrittenTextTests
         Assert.DoesNotContain("Controls/MetricBar.xaml.cs", scanned);
 
         // Phase 14 takes a file out of the inventory when it leaves it clean, so it is scanned from then on: WP-14A (b) cleaned the
-        // 23 files of Debate and Audit, (a1) the 49 of the orchestrator and (d1) the 45 of the shell.
+        // 23 files of Debate and Audit, (a1) the 49 of the orchestrator, (d1) the 45 of the shell and (a2) the 46 of Background and Lock.
         Assert.Contains("Orchestrator/Canvas/CanvasViewModel.cs", scanned);
         Assert.Contains("MainWindow.xaml.cs", scanned);
         Assert.Contains("ViewModels/MainViewModel.cs", scanned);
-        Assert.Equal(145, FilesBeforePhase13.Count);
+        Assert.Equal(99, FilesBeforePhase13.Count);
         Assert.DoesNotContain(FilesBeforePhase13, f => f.StartsWith("Localization/", StringComparison.Ordinal) || f.StartsWith("Controls/Info/", StringComparison.Ordinal) || f.StartsWith("Orchestrator/Live/", StringComparison.Ordinal));
     }
 

@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Security;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Orchestrator;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -25,12 +26,10 @@ public interface IWorkInProgress
 /// </summary>
 public sealed partial class LockScreenViewModel : ObservableObject, IDisposable
 {
-    public const string Title = "Agent Studio está bloqueado";
+    public static string Title => Texts.Get("Lock_Screen_Title");
 
     /// <summary>What the lock does and does not do, as the screen says it.</summary>
-    public const string Assurance =
-        "El trabajo sigue en marcha y las aprobaciones esperan a que desbloquees. Agent Studio nunca te pide la contraseña de "
-        + "Windows: solo Windows te verifica, y a la app solo le llega el resultado.";
+    public static string Assurance => Texts.Get("Lock_Screen_Assurance");
 
     /// <summary>How often what goes on is read again while locked.</summary>
     public static readonly TimeSpan DefaultRefreshInterval = TimeSpan.FromSeconds(15);
@@ -102,20 +101,20 @@ public sealed partial class LockScreenViewModel : ObservableObject, IDisposable
         ArgumentNullException.ThrowIfNull(kinds);
         if (kinds.Count == 0)
         {
-            return "No hay trabajo en marcha.";
+            return Texts.Get("Lock_Screen_NoWork");
         }
 
         var parts = new List<string>();
-        foreach (var (kind, one, many) in Kinds)
+        foreach (var kind in Kinds)
         {
             var count = kinds.Count(k => k == kind);
             if (count > 0)
             {
-                parts.Add($"{count} {(count == 1 ? one : many)}");
+                parts.Add(Texts.Format("Lock_Kind_" + kind + (count == 1 ? "_One" : "_Other"), count));
             }
         }
 
-        return $"Sigue en marcha: {Join(parts)}.";
+        return Texts.Format("Lock_Screen_Running", Join(parts));
     }
 
     /// <summary>«Bloquear»: locks the interface; without Windows Hello on this computer, Windows too.</summary>
@@ -145,8 +144,8 @@ public sealed partial class LockScreenViewModel : ObservableObject, IDisposable
             Refresh();
             Say(attempt.Outcome switch
             {
-                UnlockOutcome.NotConfirmed => ($"Windows Hello no confirmó que eres tú ({HelloAnswers.WhyNotConfirmed(attempt.Result ?? UserPresenceResult.Canceled)}). {TryAgain}", Tone.Warning),
-                UnlockOutcome.HelloFailed => ($"No se pudo pedir Windows Hello ({attempt.Problem}). {TryAgain}", Tone.Warning),
+                UnlockOutcome.NotConfirmed => (Texts.Format("Lock_Screen_NotConfirmed", HelloAnswers.WhyNotConfirmed(attempt.Result ?? UserPresenceResult.Canceled), TryAgain), Tone.Warning),
+                UnlockOutcome.HelloFailed => (Texts.Format("Lock_Screen_HelloFailed", attempt.Problem, TryAgain), Tone.Warning),
                 _ => (null, Tone.Neutral),
             });
         }
@@ -180,18 +179,19 @@ public sealed partial class LockScreenViewModel : ObservableObject, IDisposable
         _refresh.Dispose();
     }
 
-    private const string TryAgain = "Vuelve a intentarlo o usa «Bloquear Windows».";
+    private static string TryAgain => Texts.Get("Lock_Screen_TryAgain");
 
-    private const string WindowsLocked = "Windows está bloqueado: al desbloquearlo, se desbloquea Agent Studio.";
+    private static string WindowsLocked => Texts.Get("Lock_Screen_WindowsLocked");
 
-    private const string WindowsRefused = "Windows no se pudo bloquear. Vuelve a intentarlo.";
+    private static string WindowsRefused => Texts.Get("Lock_Screen_WindowsRefused");
 
-    private static readonly (ProjectActivityKind Kind, string One, string Many)[] Kinds =
+    /// <summary>The kinds of activity, in the order the screen lists them (their key is <c>Lock_Kind_&lt;Kind&gt;_One</c> or <c>_Other</c>).</summary>
+    private static readonly ProjectActivityKind[] Kinds =
     [
-        (ProjectActivityKind.Run, "ejecución", "ejecuciones"),
-        (ProjectActivityKind.Planning, "planificación", "planificaciones"),
-        (ProjectActivityKind.Debate, "debate", "debates"),
-        (ProjectActivityKind.Audit, "auditoría", "auditorías"),
+        ProjectActivityKind.Run,
+        ProjectActivityKind.Planning,
+        ProjectActivityKind.Debate,
+        ProjectActivityKind.Audit,
     ];
 
     // Only while locked is there a screen to keep up to date.
@@ -240,22 +240,17 @@ public sealed partial class LockScreenViewModel : ObservableObject, IDisposable
             return;
         }
 
-        LockedText = _lock.Reason == LockReason.Idle
-            ? $"Bloqueado a las {Clock(_lock.LockedAt)} por inactividad."
-            : $"Bloqueado a mano a las {Clock(_lock.LockedAt)}.";
-        RunningText = _work is null ? "Lo que sigue en marcha: sin dato." : Running(_work.Current());
+        LockedText = Texts.Format(_lock.Reason == LockReason.Idle ? "Lock_Screen_LockedIdle" : "Lock_Screen_LockedManual", Clock(_lock.LockedAt));
+        RunningText = _work is null ? Texts.Get("Lock_Screen_RunningUnknown") : Running(_work.Current());
         HelloAbsentText = _lock.HelloAbsent is { } absent
-            ? $"Windows Hello no está disponible ({HelloAnswers.WhyAbsent(absent)}). Usa «Bloquear Windows»: al desbloquear Windows, se desbloquea Agent Studio."
+            ? Texts.Format("Lock_Screen_HelloAbsent", HelloAnswers.WhyAbsent(absent))
             : null;
 
         var waiting = _lock.Waiting;
-        WaitingText = waiting.Count switch
-        {
-            0 => "Nada espera por ti.",
-            1 => "Espera por ti: 1 aprobación.",
-            var n => $"Esperan por ti: {n} aprobaciones.",
-        };
-        var items = waiting.Select(w => $"{w.Action} · {RiskText(w.Risk)} · desde las {Clock(w.Since)}").ToList();
+        WaitingText = waiting.Count == 0
+            ? Texts.Get("Lock_Screen_Waiting_None")
+            : Texts.Format(waiting.Count == 1 ? "Lock_Screen_Waiting_One" : "Lock_Screen_Waiting_Other", waiting.Count);
+        var items = waiting.Select(w => Texts.Format("Lock_Screen_Item", w.Action, RiskText(w.Risk), Clock(w.Since))).ToList();
         if (!items.SequenceEqual(WaitingItems))
         {
             WaitingItems.Clear();
@@ -275,13 +270,13 @@ public sealed partial class LockScreenViewModel : ObservableObject, IDisposable
     private string Clock(DateTimeOffset? at) =>
         at is { } value ? TimeZoneInfo.ConvertTime(value, _time.LocalTimeZone).ToString("HH:mm", CultureInfo.InvariantCulture) : "—";
 
-    private static string RiskText(RiskLevel risk) => risk switch
+    private static string RiskText(RiskLevel risk) => Texts.Get(risk switch
     {
-        RiskLevel.Critical => "riesgo crítico",
-        RiskLevel.Destructive => "acción destructiva",
-        _ => "riesgo bajo",
-    };
+        RiskLevel.Critical => "Lock_Risk_Critical",
+        RiskLevel.Destructive => "Lock_Risk_Destructive",
+        _ => "Lock_Risk_Low",
+    });
 
     private static string Join(List<string> parts) =>
-        parts.Count == 1 ? parts[0] : $"{string.Join(", ", parts.Take(parts.Count - 1))} y {parts[^1]}";
+        parts.Count == 1 ? parts[0] : $"{string.Join(", ", parts.Take(parts.Count - 1))} {Texts.Get("Lock_Join_And")} {parts[^1]}";
 }

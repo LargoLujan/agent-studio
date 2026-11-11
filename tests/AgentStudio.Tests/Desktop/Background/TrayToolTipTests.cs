@@ -21,7 +21,7 @@ public sealed class TrayToolTipTests
         var text = TrayToolTip.Compose([Run(), Run(RunPhase.WaitingForQuota, T0.AddMinutes(5), root: RootB, id: "20261021-bbbbbb")], ExitState.None, null, locked: false, Zone);
 
         // 12:05 UTC is 14:05 in the zone of the test.
-        Assert.Equal("Agent Studio · 2 ejecuciones · 1 espera cuota hasta las 14:05", text);
+        Assert.Equal("Agent Studio · 2 ejecuciones · 1 en espera por el límite de uso hasta las 14:05", text);
     }
 
     [Fact]
@@ -45,7 +45,7 @@ public sealed class TrayToolTipTests
 
         var text = TrayToolTip.Compose(active, ExitState.None, null, locked: false, Zone);
 
-        Assert.Equal("Agent Studio · 3 ejecuciones · 1 debate · 1 auditoría · 3 esperan por ti · 1 en pausa · 1 bloqueada", text);
+        Assert.Equal("Agent Studio · 3 ejecuciones · 1 debate · 1 auditoría · 3 esperan tu decisión · 1 en pausa · 1 bloqueada", text);
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public sealed class TrayToolTipTests
             locked: false,
             Zone);
 
-        Assert.Equal("Agent Studio · 3 ejecuciones · 3 esperan cuota hasta las 14:30", text);
+        Assert.Equal("Agent Studio · 3 ejecuciones · 3 en espera por el límite de uso hasta las 14:30", text);
     }
 
     [Theory]
@@ -107,7 +107,7 @@ public sealed class TrayToolTipTests
     [Fact]
     public void When_it_does_not_fit_the_least_important_parts_go_first_and_what_waits_for_you_stays()
     {
-        // 50 of each kind, all waiting for quota and for the person: every part is there and the whole does not fit.
+        // 50 of each kind, all waiting for quota and for the person: every part is there and the whole does not fit: the wait for the usage limit goes, what waits for the person stays.
         var active = Enumerable.Range(0, 200).Select(i => new WorkStatus(
             (BackgroundWorkKind)(i % 4),
             RootA,
@@ -121,7 +121,7 @@ public sealed class TrayToolTipTests
 
         var text = TrayToolTip.Compose(active, ExitState.WaitingForIdle, 120, locked: true, Zone);
 
-        Assert.Equal("Agent Studio · bloqueado · saldrá al terminar 120 intentos en curso · 200 esperan cuota hasta las 14:00 · 200 esperan por ti", text);
+        Assert.Equal("Agent Studio · bloqueado · saldrá al terminar 120 intentos en curso · 200 esperan tu decisión", text);
         Assert.True(text.Length <= TrayToolTip.MaxLength, text);
     }
 
