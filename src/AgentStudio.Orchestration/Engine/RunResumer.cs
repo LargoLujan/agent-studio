@@ -125,7 +125,7 @@ internal sealed class RunResumer(EnginePorts ports)
 
             // The answers to the questions the orchestrator asked before it planned (V43): in this run, or in the run RunStarted
             // names as the one it planned in.
-            await Questions.QuestionRecovery.LoadOrchestratorAsync(recorder, entries, log, started.PlannedIn is { } planned ? new RunId(planned) : null, ledger.Questions, cancellationToken).ConfigureAwait(false);
+            await Questions.QuestionRecovery.LoadOrchestratorAsync(recorder, entries, log, started.PlannedIn, ledger.Questions, cancellationToken).ConfigureAwait(false);
         }
         catch (InvalidOperationException ex)
         {

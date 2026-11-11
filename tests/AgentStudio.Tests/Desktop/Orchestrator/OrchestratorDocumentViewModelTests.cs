@@ -440,6 +440,104 @@ public sealed class OrchestratorDocumentViewModelTests
         Assert.Equal(Run, request.PlannedIn);
     }
 
+    // ---- V43: the plan on the canvas must still be the one the orchestrator planned, for that request and those requirements ----
+
+    private static FakeOrchestrator ProposingEngine(PlanDefinition plan)
+    {
+        var engine = new FakeOrchestrator();
+        engine.Plan = (_, _, _) => Task.FromResult(ProposalOf(plan));
+        engine.Start = _ => new FakeRun(new RunSnapshot(new RunId("20260101-def456"), RunPhase.Running, [], FakeRun.Healthy, 0));
+        return engine;
+    }
+
+    [Fact]
+    public async Task Rejecting_and_redrawing_the_plan_for_the_same_request_and_requirements_still_names_where_the_orchestrator_planned()
+    {
+        var engine = ProposingEngine(ValidPlan());
+        var document = await OpenAsync(Backends.Complete(engine));
+        document.RequestText = "Añadir Calc.Multiply";
+        await document.RequestPlanCommand.ExecuteAsync(null);
+
+        document.RejectCommand.Execute(null);
+        NodeOf(document, "T1").Instructions = "Mantén la API pública.";
+        document.ApproveCommand.Execute(null);
+        await document.ExecuteCommand.ExecuteAsync(null);
+
+        var request = Assert.Single(engine.RunRequests);
+        Assert.Equal(Run, request.PlannedIn);
+        Assert.Equal("Mantén la API pública.", request.Plan.Tasks.Single(t => t.Id == Tid("T1")).Instructions);
+    }
+
+    [Fact]
+    public async Task Changing_the_request_after_rejecting_the_proposal_does_not_take_the_answers_of_that_planning()
+    {
+        var engine = ProposingEngine(ValidPlan());
+        var document = await OpenAsync(Backends.Complete(engine));
+        document.RequestText = "Añadir Calc.Multiply";
+        await document.RequestPlanCommand.ExecuteAsync(null);
+
+        document.RejectCommand.Execute(null);
+        document.RequestText = "Otra cosa distinta: documentar el README";
+        NodeOf(document, "T1").Instructions = "Un plan para otra petición.";
+        document.ApproveCommand.Execute(null);
+        await document.ExecuteCommand.ExecuteAsync(null);
+
+        var request = Assert.Single(engine.RunRequests);
+        Assert.Null(request.PlannedIn);
+    }
+
+    [Fact]
+    public async Task Changing_the_requirements_after_the_proposal_does_not_take_the_answers_of_that_planning()
+    {
+        var engine = ProposingEngine(ValidPlan());
+        var store = new FakeRequirementStore(PlanFixtures.Requirements());
+        var document = await OpenAsync(Backends.Complete(engine) with { Requirements = store });
+        document.RequestText = "Añadir Calc.Multiply";
+        await document.RequestPlanCommand.ExecuteAsync(null);
+        Assert.Equal(Run, document.Proposal?.Run);
+
+        document.Requirements.EditCommand.Execute(null);
+        document.Requirements.Drafts[1].Statement = "Document it in the README";
+        await document.Requirements.FreezeCommand.ExecuteAsync(null);
+        Assert.NotEqual(PlanFixtures.Requirements().ContentHash, document.Context?.Requirements?.ContentHash);
+        NodeOf(document, "T1").Instructions = "Para los requisitos nuevos.";
+        document.ApproveCommand.Execute(null);
+        await document.ExecuteCommand.ExecuteAsync(null);
+
+        var request = Assert.Single(engine.RunRequests);
+        Assert.Null(request.PlannedIn);
+    }
+
+    [Fact]
+    public async Task The_plan_of_an_old_run_brought_back_to_the_canvas_is_not_the_proposal_and_names_no_planning()
+    {
+        // A proposal is on screen when an interrupted run is resumed: its plan takes the canvas, and when the run has finished
+        // and the person edits that plan, nothing of the orchestrator's questions is behind it.
+        var plan = ValidPlan();
+        var cut = new RunId("20251231-bbb222");
+        var plans = new FakePlanStore();
+        plans.Plans[plan.ContentHash] = plan;
+        var engine = ProposingEngine(plan);
+        engine.Runs.Add(new RunSummary(cut, T0, RunPhase.Interrupted, plan.ContentHash, "Interrumpida", null));
+        FakeRun? resumed = null;
+        engine.Resume = id => resumed = new FakeRun(new RunSnapshot(id, RunPhase.Running, [FakeRun.View("T1", status: WorkTaskStatus.Running)], FakeRun.Healthy, 1));
+        var document = await OpenAsync(Backends.Complete(engine, plans));
+        document.RequestText = "Añadir Calc.Multiply";
+        await document.RequestPlanCommand.ExecuteAsync(null);
+        Assert.NotNull(document.Proposal?.Plan);
+
+        await document.ResumeRunCommand.ExecuteAsync(document.PreviousRuns.Single(r => r.Summary.Id == cut));
+        resumed!.Finish(new RunResult(cut, RunPhase.Succeeded, FakeRun.Healthy, "c0ffee", null, "Hecho"));
+        await document.Monitor.Listening;
+        await document.EditPlanCommand.ExecuteAsync(null);
+        NodeOf(document, "T1").Instructions = "Retocar el plan de la ejecución antigua.";
+        document.ApproveCommand.Execute(null);
+        await document.ExecuteCommand.ExecuteAsync(null);
+
+        var request = Assert.Single(engine.RunRequests);
+        Assert.Null(request.PlannedIn);
+    }
+
     [Fact]
     public async Task An_interrupted_run_is_listed_and_can_be_resumed()
     {

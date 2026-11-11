@@ -345,6 +345,39 @@ public sealed class OrchestratorAnswersInPromptTests
         Assert.Empty(harness.Payloads<RunStartedPayload>()); // refused before anything was written
     }
 
+    [Fact]
+    public async Task A_run_planned_in_a_run_where_no_orchestrator_proposed_a_plan_is_not_started()
+    {
+        using var harness = new EngineHarness();
+
+        // A run with a plan written by hand: it is a run of this log, but nobody asked, nor was answered, in it.
+        await using var byHand = await harness.StartAsync(Plan(Work("T1")));
+        await byHand.CompleteAsync(harness);
+        var before = harness.Payloads<RunStartedPayload>().Count;
+
+        var refused = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            harness.CreateOrchestrator().StartAsync(harness.Request(Plan(Work("T1"))) with { PlannedIn = byHand.Id }, Ct));
+
+        Assert.Contains($"'{byHand.Id}'", refused.Message, StringComparison.Ordinal);
+        Assert.Contains("no plan the orchestrator proposed", refused.Message, StringComparison.Ordinal);
+        Assert.Equal(before, harness.Payloads<RunStartedPayload>().Count);
+    }
+
+    [Theory]
+    [InlineData("esto no es un id ###")]
+    [InlineData("20261111-aaaaaa")]
+    public async Task A_start_that_names_a_planning_the_log_cannot_give_is_not_resumable_and_fails_like_the_others(string plannedIn)
+    {
+        using var harness = new EngineHarness();
+        var run = new RunId("20261111-bbbbbb");
+        await harness.StoreStartedRunAsync(run, Plan(Work("T1")), plannedIn: plannedIn);
+
+        var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => harness.CreateOrchestrator().ResumeAsync(harness.Project, run, Ct));
+
+        Assert.Contains($"run '{plannedIn}', which the log has no entry of", refused.Message, StringComparison.Ordinal);
+        Assert.Empty(harness.Claude.Starts);
+    }
+
     // ---- what the log of the planning may hold besides the answers ----
 
     // A resume of the planning's own run does not get to this: replay refuses a run whose log answers a question twice. A run of its

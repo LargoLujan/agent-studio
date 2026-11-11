@@ -185,7 +185,11 @@ public sealed partial class OrchestratorDocumentViewModel
                 return;
             }
 
-            if (TryPutOnCanvas(new CanvasState(draft.Summary, draft.Risks, draft.Tasks, _layout.Load(ProjectRoot), proposal, null, ShowValidation: true)))
+            // The plan came back with its proposal: the request the draft kept and the requirements now are what it is taken to have
+            // been planned with (the draft does not say more), so the answers the orchestrator got still reach its run (V43) while
+            // the request and the requirements are those.
+            var planned = proposal is null ? null : new PlanningOrigin(proposal.Run, draft.Request.Trim(), Context?.Requirements?.ContentHash);
+            if (TryPutOnCanvas(new CanvasState(draft.Summary, draft.Risks, draft.Tasks, _layout.Load(ProjectRoot), proposal, null, ShowValidation: true, planned)))
             {
                 ProposalStatus = proposal is null
                     ? null
