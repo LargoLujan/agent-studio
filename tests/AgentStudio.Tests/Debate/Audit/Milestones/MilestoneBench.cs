@@ -1,4 +1,6 @@
+using System.IO;
 using AgentStudio.Application.Decisions;
+using AgentStudio.Domain.Orchestration;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Work;
 using AgentStudio.Debate.Audit;
@@ -52,6 +54,20 @@ internal sealed class MilestoneBench : IDisposable
 
         return bench;
     }
+
+    /// <summary>A project whose only run started and worked but did not finish: it has a pending problem (<c>run.unfinished</c>).</summary>
+    public static async Task<MilestoneBench> WithUnfinishedRunAsync()
+    {
+        var run = PreparedRun.Create();
+        await run.StartAsync();
+        await run.WorkAsync("T1");
+        var audit = new ProjectAuditBench(run);
+        await audit.SaveRequirementsAsync();
+        return new MilestoneBench(audit);
+    }
+
+    public MilestoneCloser CloserWith(AgentStudio.Application.Judging.IProjectAuditService audits, IDecisionRecorder recorder) =>
+        new(Service, audits, Audit.Template, recorder, Audit.World.Requirements, Audit.World.Evidence, Board, [Listener]);
 
     public ProjectContext Project => Audit.Project;
 
@@ -137,6 +153,38 @@ internal sealed class FakeBoard(ProjectAuditBench audit) : IBoardProjector
     }
 
     public Task<IReadOnlyList<BoardCard>> BacklogAsync(ProjectContext project, CancellationToken cancellationToken) => throw new NotSupportedException();
+}
+
+/// <summary>The recorder of the log, failing once when it is asked to announce the evidence of the report of the milestone (a cut after it was kept).</summary>
+internal sealed class CutAfterReportRecorder(IDecisionRecorder inner) : IDecisionRecorder
+{
+    private bool _cut;
+
+    public Task<DecisionLogState> LoadAsync(string projectId, CancellationToken cancellationToken) => inner.LoadAsync(projectId, cancellationToken);
+
+    public Task<DecisionLogState> LoadAsync(string projectId, LogLoad load, CancellationToken cancellationToken) => inner.LoadAsync(projectId, load, cancellationToken);
+
+    public Task<DecisionEntry> RecordAsync(string projectId, Actor actor, DecisionKind kind, string summary, DecisionPayload payload, long? corrects = null, CancellationToken cancellationToken = default)
+    {
+        if (!_cut && kind == DecisionKind.EvidenceRegistered && payload.RunId == MilestoneBench.Id.Value)
+        {
+            _cut = true;
+            throw new IOException("el proceso se cortó");
+        }
+
+        return inner.RecordAsync(projectId, actor, kind, summary, payload, corrects, cancellationToken);
+    }
+}
+
+/// <summary>The audit service that runs once and gives the same report again, as if a retry found the audit it had already made.</summary>
+internal sealed class CachedAudits(AgentStudio.Application.Judging.IProjectAuditService inner) : AgentStudio.Application.Judging.IProjectAuditService
+{
+    private AgentStudio.Application.Judging.AuditReport? _report;
+
+    public Task<AgentStudio.Application.Judging.ProjectAuditProposal> PrepareAsync(AgentStudio.Application.Judging.ProjectAuditRequest request, CancellationToken ct) => inner.PrepareAsync(request, ct);
+
+    public async Task<AgentStudio.Application.Judging.AuditReport> AuditAsync(AgentStudio.Application.Judging.ProjectAuditProposal proposal, IProgress<AgentStudio.Application.Providers.AgentEvent>? progress, CancellationToken ct) =>
+        _report ??= await inner.AuditAsync(proposal, progress, ct);
 }
 
 internal sealed class RecordingListener : IMilestoneCloseListener

@@ -102,7 +102,7 @@ public sealed class ProjectDossierBuilder(IEvidenceStore evidence, JudgingOption
         }
 
         // A milestone narrows what the judge is told about to its own runs and debates; the head the verdict echoes is the log's.
-        var scoped = request with { Log = InScope(request) };
+        var scoped = request with { Log = InScope(request), Pending = PendingInScope(request) };
         var summarized = Summarize(scoped.Log);
         var index = await IndexAsync(scoped, head, verification, copies, summarized, checks, cancellationToken).ConfigureAwait(false);
         var dossier = new JudgeDossier(
@@ -135,8 +135,23 @@ public sealed class ProjectDossierBuilder(IEvidenceStore evidence, JudgingOption
             return request.Log;
         }
 
-        var units = new HashSet<string>(scope.Runs.Concat(scope.Debates), StringComparer.Ordinal) { request.Audit.Value };
+        var units = UnitsOf(request, scope);
         return [.. request.Log.Where(e => AuditedRun.Parse(e).Payload?.RunId is { } run && units.Contains(run))];
+    }
+
+    private static HashSet<string> UnitsOf(ProjectDossierRequest request, AuditMilestoneScope scope) =>
+        new(scope.Runs.Concat(scope.Debates), StringComparer.Ordinal) { request.Audit.Value };
+
+    /// <summary>The pending problems the dossier lists: all of the project's, or for a milestone those whose source is one of its units.</summary>
+    private static IReadOnlyList<PendingProblem> PendingInScope(ProjectDossierRequest request)
+    {
+        if (request.Milestone is not { } scope)
+        {
+            return request.Pending;
+        }
+
+        var units = UnitsOf(request, scope);
+        return [.. request.Pending.Where(p => units.Contains(p.Source))];
     }
 
     /// <summary>The entries that matter to an audit, the last <see cref="MaxEntries"/> of them.</summary>
