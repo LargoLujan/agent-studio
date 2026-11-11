@@ -15,6 +15,7 @@ using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Evidence;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Requirements;
+using AgentStudio.Domain.Tracing;
 using AgentStudio.Domain.Work;
 using AgentStudio.Orchestration.Engine.Questions;
 using AgentStudio.Orchestration.Integration;
@@ -527,7 +528,7 @@ internal static class AgentAttemptWorker
         IReadOnlyList<string> changed = [];
         if (lease is not null)
         {
-            var commit = await w.Ports.Worktrees.CommitAllAsync(lease, CommitMessage(w.Run, spec, attempt), w.Abort).ConfigureAwait(false);
+            var commit = await w.Ports.Worktrees.CommitAllAsync(lease, CommitMessage(w.Run, spec, attempt, plan.Agent), w.Abort).ConfigureAwait(false);
             head = commit.Commit;
             changed = await w.Ports.Worktrees.ChangedPathsAsync(lease.RepositoryRoot, plan.TaskBase!, head, w.Abort).ConfigureAwait(false);
             if (commit.Committed)
@@ -687,8 +688,28 @@ internal static class AgentAttemptWorker
         return await EndAsync(EndKind.Completed, "Completada: " + parsed.Summary, parsed, tests, verificationEvidence).ConfigureAwait(false);
     }
 
-    private static string CommitMessage(RunContext run, TaskSpec spec, int attempt) =>
-        $"{spec.Id}: {spec.Title} (intento {attempt})\n\nAgent-Studio-Run: {run.Run}\nAgent-Studio-Attempt: {spec.Id}/{attempt}";
+    /// <summary>
+    /// The message of the commit the system makes of an attempt: its subject and the trailers of <see cref="CommitTrailers"/> (docs/16 D-30): run, task,
+    /// attempt and the agent with its model. They are an aid to infer the trace and never its source. A value a trailer cannot carry (a control
+    /// character) leaves the model out, and then the trailers: the commit is made anyway, since the log holds the ids.
+    /// </summary>
+    internal static string CommitMessage(RunContext run, TaskSpec spec, int attempt, AgentDefinition agent)
+    {
+        var subject = $"{spec.Id}: {spec.Title} (intento {attempt})";
+        foreach (var model in new[] { agent.Model.Model, null })
+        {
+            try
+            {
+                return CommitTrailers.Append(subject, run.Run, spec.Id, attempt, agent.Id, model);
+            }
+            catch (ArgumentException)
+            {
+                // Try again without the model; the last attempt falls through to the bare subject.
+            }
+        }
+
+        return subject;
+    }
 }
 
 /// <summary>The workers of the system's own tasks: a tool of the profile, an integration, a review and an approval.</summary>
