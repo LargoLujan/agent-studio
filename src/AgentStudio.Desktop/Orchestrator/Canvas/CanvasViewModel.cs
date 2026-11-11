@@ -321,7 +321,7 @@ public sealed partial class CanvasViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanAddNode))]
     private void AddNode(WorkTaskKind kind)
     {
-        var node = Add(NewId(), kind, Texts.Format("Orchestrator_Canvas_NewNodeTitle", NodeKinds.Label(kind)), FreeSpot());
+        var node = Add(NewId(), kind, OrchestratorProtocolTexts.NewNodeTitle(kind), FreeSpot());
         SelectedNodes.Clear();
         SelectedNodes.Add(node);
         BringIntoView(node);

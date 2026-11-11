@@ -129,6 +129,44 @@ public sealed partial class Phase13HandWrittenTextTests
             "D-48: it is the description of an approval, which the decision log records as written.",
         [("Orchestrator/Session/HistoryText.cs", "Acéptalo solo si lo reconoces: lo que dice pasará a ser la base de las revisiones y de las reanudaciones, y la aceptación queda en el registro.")] =
             "D-48: it is the description of an approval, which the decision log records as written.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "No se pudo bloquear Windows para confirmar que eres tú (): se deniega. ")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "El bloqueo de Windows no confirmó que eres tú (: ): se deniega.")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "Integración")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "Trabajo de agente nuevo")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "Condición nueva")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "Herramienta nueva")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "Revisión nueva")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "Debate nuevo")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "Aprobación humana nueva")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "Integración nueva")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "Crítica")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "Veredicto de la revisión de la ejecución ")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "Ya hay una confirmación pendiente: termina primero la de Windows Hello o la del bloqueo de Windows que está abierta. Esta aprobación se deniega; vuelve a pedirla después.")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "Para aprobarlo, configura Windows Hello: abre Configuración, entra en Cuentas y luego en Opciones de inicio de sesión, y elige el PIN, la huella o la cara.")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "lo desbloqueaste después de la petición")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "Windows no se bloqueó")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "el estado de la sesión no confirma que lo desbloqueaste después de la petición")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "nadie lo desbloqueó a tiempo")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "Windows dio un resultado que Agent Studio no conoce")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
     };
 
     /// <summary>The attributes of XAML that show text to the person, or say it to a screen reader.</summary>
