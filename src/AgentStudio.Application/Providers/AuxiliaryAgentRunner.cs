@@ -91,7 +91,10 @@ public sealed class AuxiliaryAgentRunner(IDecisionRecorder decisions, IEvidenceS
     /// <summary>
     /// What a read-only launch (<see cref="RequiresReadOnlyLaunch"/>) must not have, in English; empty when it is one: no file writes,
     /// shell or network; allowed tools only Read, Grep and Glob; no additional directories; no MCP servers; no skills; no session to
-    /// resume; and a working directory that exists and is empty. It is checked before anything is captured, recorded or launched.
+    /// resume; and a working directory that exists, is empty and is not a link (neither it nor any of its parents is a reparse point:
+    /// a link could point the agent at a folder with files). The allowed tools cannot be an empty list: the launch names the three
+    /// tools, so a profile that restricts nothing is never read as «Read, Grep and Glob». It is checked before anything is captured,
+    /// recorded or launched, and the folder again just before the provider starts (<see cref="WorkingDirectoryProblems"/>).
     /// </summary>
     public static IReadOnlyList<string> ReadOnlyViolations(AgentRunRequest request)
     {
@@ -105,7 +108,12 @@ public sealed class AuxiliaryAgentRunner(IDecisionRecorder decisions, IEvidenceS
 
         if (permissions is not null)
         {
-            if (permissions.AllowedTools.Any(t => !ReadOnlyTools.Contains(t, StringComparer.Ordinal)))
+            if (permissions.AllowedTools is not { Count: > 0 })
+            {
+                problems.Add("allowed tools cannot be empty: name Read, Grep and Glob");
+            }
+
+            if (permissions.AllowedTools is not null && permissions.AllowedTools.Any(t => !ReadOnlyTools.Contains(t, StringComparer.Ordinal)))
             {
                 problems.Add("allowed tools can only be Read, Grep and Glob");
             }
@@ -131,13 +139,50 @@ public sealed class AuxiliaryAgentRunner(IDecisionRecorder decisions, IEvidenceS
             problems.Add("no session to resume");
         }
 
-        if (string.IsNullOrWhiteSpace(request.WorkingDirectory) || !Directory.Exists(request.WorkingDirectory)
-            || Directory.EnumerateFileSystemEntries(request.WorkingDirectory).Any())
+        problems.AddRange(WorkingDirectoryProblems(request.WorkingDirectory));
+        return problems;
+    }
+
+    /// <summary>
+    /// What is wrong with the working directory of a read-only launch, in English: it does not exist or is not empty, or it (or one of
+    /// its parents) is a link (<see cref="FileAttributes.ReparsePoint"/>). The runner asks it twice: when the request arrives and again
+    /// just before the provider starts, so a file or a link that appeared in between does not reach the agent.
+    /// </summary>
+    public static IReadOnlyList<string> WorkingDirectoryProblems(string? workingDirectory)
+    {
+        var problems = new List<string>();
+        try
         {
-            problems.Add("the working directory must exist and be empty");
+            if (string.IsNullOrWhiteSpace(workingDirectory) || !Directory.Exists(workingDirectory)
+                || Directory.EnumerateFileSystemEntries(workingDirectory).Any())
+            {
+                problems.Add("the working directory must exist and be empty");
+            }
+
+            if (!string.IsNullOrWhiteSpace(workingDirectory) && IsOrHasLinkParent(workingDirectory))
+            {
+                problems.Add("the working directory cannot be a link, nor inside one");
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            problems.Add("the working directory cannot be read");
         }
 
         return problems;
+    }
+
+    private static bool IsOrHasLinkParent(string workingDirectory)
+    {
+        for (var directory = new DirectoryInfo(Path.GetFullPath(workingDirectory)); directory is not null; directory = directory.Parent)
+        {
+            if (directory.Exists && directory.Attributes.HasFlag(FileAttributes.ReparsePoint))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public async Task<AuxiliaryRunResult> RunAsync(ProjectContext project, AuxiliaryRunRequest request, IProgress<AgentEvent>? progress, CancellationToken ct)
@@ -187,6 +232,15 @@ public sealed class AuxiliaryAgentRunner(IDecisionRecorder decisions, IEvidenceS
                 V = agent.Effort is null ? AgentRunStartedPayload.PurposeVersion : AgentRunStartedPayload.ContextPartsVersion,
             },
             cancellationToken: ct).ConfigureAwait(false);
+
+        // The folder of a read-only launch is checked again now: what was recorded is a start, and an agent never starts in a folder
+        // that gained a file or became a link after the first check. The attempt is closed as failed, like a launch that cannot happen.
+        if (RequiresReadOnlyLaunch(request.Purpose) && WorkingDirectoryProblems(request.Request.WorkingDirectory) is { Count: > 0 } late)
+        {
+            var refused = new AgentRunOutcome(AgentRunStatus.Failed, null, null, null, null, "No se lanzó el agente: la carpeta de trabajo ya no está vacía o es un enlace (" + string.Join("; ", late) + ").");
+            await RecordFinishedAsync(project, run, request.Purpose, agent.Id.Value, what, refused, null, null, new AgentRunObservations(reportsContext: false)).ConfigureAwait(false);
+            return new AuxiliaryRunResult(run, refused, null, prompt.Id, null);
+        }
 
         IAgentRun agentRun;
         try

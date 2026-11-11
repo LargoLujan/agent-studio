@@ -27,6 +27,8 @@
              the key Visual Studio Code uses for its terminal. It is not a dead key on either, and WebView2 hands it to the window
              like Ctrl+P. -->
         <KeyBinding Key="Oem3" Modifiers="Ctrl" Command="{Binding ToggleTerminalCommand}"/>
+        <!-- Phase 14 (docs/17 D-55): «Ayuda» on the article of the screen that has the focus. Taken out while locked, like the others. -->
+        <KeyBinding Key="F1" Command="{Binding OpenHelpCommand}"/>
         <!-- Phase 8: «Bloquear» (Ctrl+Alt+L and Ctrl+Shift+B) is added by MainWindow when the lock is composed. While the interface is locked,
              every shortcut of the window is taken out: Ctrl+P must not open the list of files over the lock screen. -->
     </Window.InputBindings>

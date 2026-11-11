@@ -1953,6 +1953,8 @@ proceso. `Phase14PayloadTests`, `HelpContractsTests`, `ClientDocumentContractsTe
 | `HelpAnswerCheck`, `HelpAnswerRules.Check`, `HelpAskReply` | Lo que el sistema se queda de la respuesta: texto cortado a 1 200, artículos entre los enviados, acciones de la lista; lo demás, en `Discarded` | WP-14C |
 | `IHelpAgent.AskAsync` | La ejecución auxiliar de solo lectura, con propósito `Help` | WP-14C (`AuxiliaryAgentRunner`) |
 
+**Implementado por WP-14C (2026-11-11):** `HelpCorpus` (`IHelpCorpus`, `Desktop/Help`, artículos incrustados), `HelpSearch` (FTS5 en memoria, solo léxica), `HelpActionCatalog` (nueve acciones: `open.orchestrator`, `open.agents`, `open.tools`, `open.skills`, `open.usage`, `open.memory`, `open.debates`, `open.audit`, `open.settings`), `HelpAgentService` (`Application/Help`, sobre `IAuxiliaryAgentRunner`, `IQuotaConsentLedger`, `IHelpCorpus`, `IHelpSearch`, `IHelpActionCatalog` e `IModelCatalogSource?`), `HelpDocumentViewModel` y `HelpView`, y `HelpServices.AddAgentStudioHelp()`. `AuxiliaryAgentRunner` gana `WorkingDirectoryProblems` y los refuerzos de la adenda de [ADR-0056](adr/0056-ayuda-y-agente-de-ayuda.md).
+
 ### 22.2 La documentación para clientes (`Application/Documents/ClientDocumentContracts.cs`, nuevo)
 
 | Contrato | Qué es | Lo implementa |

@@ -9,6 +9,7 @@ using AgentStudio.Desktop.Audit;
 using AgentStudio.Desktop.Background;
 using AgentStudio.Desktop.Controls.Editor;
 using AgentStudio.Desktop.Debate;
+using AgentStudio.Desktop.Help;
 using AgentStudio.Desktop.Memory;
 using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Orchestrator;
@@ -163,7 +164,8 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         ContextWindowCatalogs? contextWindows = null,
         MonitorServices? monitors = null,
         SetupViewModelFactory? setup = null,
-        SetupSuggestions? setupSuggestions = null)
+        SetupSuggestions? setupSuggestions = null,
+        HelpDocumentViewModel? help = null)
     {
         ArgumentNullException.ThrowIfNull(settingsStore);
         ArgumentNullException.ThrowIfNull(folderPicker);
@@ -212,6 +214,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         Diagnostics.PropertyChanged += OnDiagnosticsPropertyChanged;
         UpdateProviderSummary();
 
+        InitializeHelp(help);
         Activities =
         [
             new("explorer", Texts.Get("Main_Panel_Explorer"), "", null, PanelIds.Explorer, TogglePanelCommand),
@@ -224,6 +227,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
             new("terminal", Texts.Get("Main_Panel_Terminal"), "", null, PanelIds.Terminal, TogglePanelCommand) { Shortcut = TerminalShortcutHint },
             new("autodoctor", Texts.Get("Main_Panel_AutoDoctor"), "", null, PanelIds.AutoDoctor, TogglePanelCommand),
             new("history", Texts.Get("Main_Activity_History"), "", null, PanelIds.Journal, TogglePanelCommand),
+            .. HelpActivities(),
             .. SettingsActivities(),
         ];
         InitializeBuilderShell(monitors, setup, setupSuggestions);

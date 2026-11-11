@@ -149,8 +149,9 @@ public sealed class MainWindowLockTests
         Assert.Equal(Visibility.Collapsed, visibility);
         Assert.DoesNotContain((Key.L, ModifierKeys.Control | ModifierKeys.Alt), shortcuts);
 
-        // Ctrl+P, «Debates», «Auditar proyecto completo» and the terminal (Ctrl+Ñ, Oem3).
-        Assert.Equal(4, shortcuts.Count);
+        // Ctrl+P, «Debates», «Auditar proyecto completo», the terminal (Ctrl+Ñ, Oem3) and «Ayuda» (F1).
+        Assert.Equal(5, shortcuts.Count);
+        Assert.Contains((Key.F1, ModifierKeys.None), shortcuts);
         Assert.Contains((Key.Oem3, ModifierKeys.Control), shortcuts);
     }
 

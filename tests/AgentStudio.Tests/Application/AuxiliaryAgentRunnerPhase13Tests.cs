@@ -54,7 +54,7 @@ public sealed class AuxiliaryAgentRunnerPhase13Tests
         var runner = new AuxiliaryAgentRunner(recorder, new FakeEvidenceStore(clock), new Providers(new ScriptedProvider(outcome)), clock);
 
         using var folder = EmptyFolder();
-        var result = await runner.RunAsync(Project, new AuxiliaryRunRequest(purpose, new AgentRunRequest(Analyst, "Analiza.", folder.Path, new PermissionProfile(false, false, false, [], [], []))), null, TestContext.Current.CancellationToken);
+        var result = await runner.RunAsync(Project, new AuxiliaryRunRequest(purpose, new AgentRunRequest(Analyst, "Analiza.", folder.Path, new PermissionProfile(false, false, false, ["Read", "Grep", "Glob"], [], []))), null, TestContext.Current.CancellationToken);
 
         Assert.True(AuxiliaryAgentRunner.IsAuxiliary(purpose));
         Assert.StartsWith(AuxiliaryAgentRunner.RunPrefix, result.Run.Value, StringComparison.Ordinal);
@@ -80,7 +80,7 @@ public sealed class AuxiliaryAgentRunnerPhase13Tests
     private static AgentRunRequest Launch(string folder, PermissionProfile? permissions = null) =>
         new(Analyst, "Ayuda.", folder, permissions ?? new PermissionProfile(false, false, false, [], [], []));
 
-    private static readonly PermissionProfile ReadOnly = new(false, false, false, [], [], []);
+    private static readonly PermissionProfile ReadOnly = new(false, false, false, ["Read", "Grep", "Glob"], [], []);
 
     /// <summary>The help and the draft of a document are read-only in an empty folder: the runner refuses anything else before it records or launches.</summary>
     [Theory]
@@ -102,6 +102,7 @@ public sealed class AuxiliaryAgentRunnerPhase13Tests
             Launch(folder.Path, ReadOnly with { AllowShell = true }),
             Launch(folder.Path, ReadOnly with { AllowNetwork = true }),
             Launch(folder.Path, ReadOnly with { AllowedTools = ["Read", "Bash"] }),
+            Launch(folder.Path, ReadOnly with { AllowedTools = [] }),
             Launch(folder.Path, ReadOnly with { AdditionalDirectories = [@"C:\repo"] }),
             Launch(folder.Path) with { McpServers = [mcp] },
             Launch(folder.Path) with { SkillsDirectory = @"C:\skills" },
@@ -118,7 +119,7 @@ public sealed class AuxiliaryAgentRunnerPhase13Tests
         }
 
         Assert.Empty(store.Of(Project.ProjectId));
-        Assert.Empty(AuxiliaryAgentRunner.ReadOnlyViolations(Launch(folder.Path, ReadOnly with { AllowedTools = ["Read", "Grep", "Glob"] })));
+        Assert.Empty(AuxiliaryAgentRunner.ReadOnlyViolations(Launch(folder.Path, ReadOnly)));
         Assert.True(AuxiliaryAgentRunner.RequiresReadOnlyLaunch(purpose));
         Assert.False(AuxiliaryAgentRunner.RequiresReadOnlyLaunch(AgentRunPurpose.PreparationChat));
     }

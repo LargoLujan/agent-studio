@@ -1,0 +1,17 @@
+---
+title: Settings
+screens: settings
+info: Info_Language, Info_Unattended, Info_ContextSettings
+---
+Here you change how Agent Studio works. Everything is saved with a single button, Save.
+
+## What there is
+- **Context and quota**: when it warns that working memory is filling up and whether the Codex quota is read.
+- **Unattended work**: what happens when you close the window and whether the computer stays awake while there is work.
+- **Windows Hello and lock**: confirming it is you and locking the app.
+- **Project memory** and **Motion**.
+- **Language**: it applies on restart.
+
+## Tips
+- If something is wrong, each section says why next to its fields and saves nothing until you fix it.
+- Closing the tab without saving discards the change, and it asks you first.

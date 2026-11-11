@@ -105,7 +105,7 @@ public partial class InfoButton : UserControl
         AutomationProperties.SetName(Card, section);
         AutomationProperties.SetHelpText(Card, WhatText.Text);
         MoreHelp.Content = texts.Get("Info_MoreHelp");
-        MoreHelp.Visibility = MoreHelpCommand is null ? Visibility.Collapsed : Visibility.Visible;
+        MoreHelp.Visibility = MoreHelpCommand is { } command && command.CanExecute(InfoKey) ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private static IReadOnlyList<string> Lines(string text) =>
