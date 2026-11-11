@@ -67,6 +67,25 @@ public static class DependencyInjection
     }
 
     /// <summary>
+    /// Registers the documentation for clients (docs/17 D-58 to D-60; ADR-0057): the builder of the model, the writers of Markdown and
+    /// HTML and the exporter. It needs the project memory (<see cref="AddAgentStudioProjectMemory"/>), the stores of the persistence, the
+    /// redactor, the <see cref="Application.Orchestration.IRunActivity"/> and an <see cref="Application.Documents.IUserTextRenderer"/>,
+    /// which the desktop gives. The writers of Word and PDF are registered by whoever has their libraries (Infrastructure and the desktop);
+    /// the exporter takes every writer registered.
+    /// </summary>
+    public static IServiceCollection AddAgentStudioClientDocuments(this IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton<Application.Documents.IClientDocumentBuilder, Documents.ClientDocumentBuilder>();
+        services.AddSingleton<Application.Documents.IClientDocumentFormatWriter, Documents.MarkdownDocumentWriter>();
+        services.AddSingleton<Application.Documents.IClientDocumentFormatWriter, Documents.HtmlDocumentWriter>();
+        services.TryAddSingleton<Application.Documents.IClientDocumentExporter, Documents.ClientDocumentExporter>();
+        return services;
+    }
+
+    /// <summary>
     /// Registers the Markdown daily prompt journal for the project rooted at <paramref name="projectRoot"/>, written
     /// through the registered <see cref="IProjectStorageFiles"/>.
     /// </summary>

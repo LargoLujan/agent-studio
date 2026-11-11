@@ -10,6 +10,8 @@
                     xmlns:observabilityViews="clr-namespace:AgentStudio.Desktop.Views.Observability"
                     xmlns:memory="clr-namespace:AgentStudio.Desktop.Memory"
                     xmlns:memoryViews="clr-namespace:AgentStudio.Desktop.Views.Memory"
+                    xmlns:documents="clr-namespace:AgentStudio.Desktop.Documents"
+                    xmlns:documentsViews="clr-namespace:AgentStudio.Desktop.Views.Documents"
                     xmlns:debate="clr-namespace:AgentStudio.Desktop.Debate"
                     xmlns:debateViews="clr-namespace:AgentStudio.Desktop.Views.Debate"
                     xmlns:audit="clr-namespace:AgentStudio.Desktop.Audit"
@@ -50,6 +52,11 @@
 
     <DataTemplate DataType="{x:Type memory:MemoryViewModel}">
         <memoryViews:MemoryView/>
+    </DataTemplate>
+
+    <!-- Phase 14 (docs/17 section 5.5): «Documentación para clientes». -->
+    <DataTemplate DataType="{x:Type documents:ClientDocumentsViewModel}">
+        <documentsViews:ClientDocumentsView/>
     </DataTemplate>
 
     <!-- Phase 5 (docs/15 section 4.10): «Debates» (room, history, new debate, verdict cards) and «Auditoría». -->

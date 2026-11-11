@@ -50,6 +50,7 @@ public static class AppComposition
         services.AddPlatformServices(app, settings.Load().SkillsIndexPath);
         services.AddShellServices(app.Roaming);
         services.AddAgentStudioHelp();
+        services.AddClientDocumentsServices();
         return services;
     }
 }

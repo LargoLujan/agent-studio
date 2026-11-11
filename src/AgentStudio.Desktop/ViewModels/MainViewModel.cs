@@ -10,6 +10,7 @@ using AgentStudio.Desktop.Background;
 using AgentStudio.Desktop.Controls.Editor;
 using AgentStudio.Desktop.Debate;
 using AgentStudio.Desktop.Help;
+using AgentStudio.Desktop.Documents;
 using AgentStudio.Desktop.Memory;
 using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Orchestrator;
@@ -142,6 +143,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
     /// <param name="monitors">What the monitors the shell creates for itself are given (docs/04 section 21.10); without it they have none of it.</param>
     /// <param name="setup">Creates the configurator of a project (docs/17 section 4.6); without it «Configurar proyecto» is not offered.</param>
     /// <param name="setupSuggestions">Which projects the configurator was already suggested for; without it nothing is suggested.</param>
+    /// <param name="clientDocuments">The «Documentación para clientes» document of the session; without it the activity is not offered.</param>
     public MainViewModel(
         IAppSettingsStore settingsStore,
         IFolderPicker folderPicker,
@@ -165,7 +167,8 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         MonitorServices? monitors = null,
         SetupViewModelFactory? setup = null,
         SetupSuggestions? setupSuggestions = null,
-        HelpDocumentViewModel? help = null)
+        HelpDocumentViewModel? help = null,
+        ClientDocumentsViewModel? clientDocuments = null)
     {
         ArgumentNullException.ThrowIfNull(settingsStore);
         ArgumentNullException.ThrowIfNull(folderPicker);
@@ -189,6 +192,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         _skillsFactory = skills ?? new SkillsDocumentFactory(SkillsBackend.None, TimeProvider.System);
         _usage = usage;
         _memory = memory;
+        _clientDocuments = clientDocuments;
         _upkeep = upkeep;
         _debates = debates;
         _review = review;
@@ -223,6 +227,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
             new("skills", Texts.Get("Main_Activity_Skills"), "", null, null, OpenSkillsCommand),
             .. BuilderToolActivities(),
             .. ObservabilityActivities(),
+            .. ClientDocumentActivities(),
             .. DebateActivities(),
             new("terminal", Texts.Get("Main_Panel_Terminal"), "", null, PanelIds.Terminal, TogglePanelCommand) { Shortcut = TerminalShortcutHint },
             new("autodoctor", Texts.Get("Main_Panel_AutoDoctor"), "", null, PanelIds.AutoDoctor, TogglePanelCommand),
@@ -594,6 +599,8 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
                 await _memory.SetProjectAsync(projectPath);
             }
         }
+
+        await ShowProjectInDocumentsAsync(projectPath);
     }
 
     /// <summary>
