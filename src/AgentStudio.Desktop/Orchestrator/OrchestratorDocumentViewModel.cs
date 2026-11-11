@@ -581,7 +581,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
     /// otherwise. <c>HelloNoticeView</c> shows it in the review.
     /// </summary>
     public string? HelloNotice => IsApproved && PlanDecision is { Verification: ApprovalVerification.WindowsHelloUnavailable }
-        ? Texts.Format("Orchestrator_Doc_HelloUnavailable", HelloScreenTexts.WhyAbsent(_helloAbsent ?? UserPresenceAvailability.NotConfiguredForUser))
+        ? Texts.Format("Orchestrator_Doc_HelloUnavailable", HelloAnswers.WhyAbsent(_helloAbsent ?? UserPresenceAvailability.NotConfiguredForUser))
         : !IsApproved && IsolationWarning is not null ? HelloTexts.PlanAlwaysAsks : null;
 
     public bool HasHelloNotice => HelloNotice is not null;
@@ -869,7 +869,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
                         { Problem: { } problem } when plan.LocksWindows => HelloTexts.PlanLockNotAsked(problem),
                         { Problem: { } problem } => Texts.Format("Orchestrator_Doc_HelloNotAsked", problem),
                         { Lock: { } locked } => HelloTexts.PlanLockNotConfirmed(locked),
-                        _ => Texts.Format("Orchestrator_Doc_HelloNotConfirmed", HelloScreenTexts.WhyNotConfirmed(hello.Result ?? UserPresenceResult.Canceled)),
+                        _ => Texts.Format("Orchestrator_Doc_HelloNotConfirmed", HelloAnswers.WhyNotConfirmed(hello.Result ?? UserPresenceResult.Canceled)),
                     };
                     return;
                 }

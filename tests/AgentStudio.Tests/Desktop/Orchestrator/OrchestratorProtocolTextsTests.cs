@@ -30,9 +30,6 @@ public sealed partial class OrchestratorProtocolTextsTests
     [GeneratedRegex(@"FormatTextConverter\.Instance\}, ConverterParameter=([A-Za-z0-9_]+)")]
     private static partial Regex ConverterKey();
 
-    [GeneratedRegex("\"(Orchestrator_HelloWhy_[A-Za-z]+)\"")]
-    private static partial Regex HelloKey();
-
     private static string Describe()
     {
         var kinds = Enum.GetValues<WorkTaskKind>().Select(OrchestratorProtocolTexts.NewNodeTitle);
@@ -97,29 +94,6 @@ public sealed partial class OrchestratorProtocolTextsTests
         {
             Assert.True(Spanish.Has("Canvas_Role_" + role) && English.Has("Canvas_Role_" + role), role.ToString());
             Assert.False(NodeEditorViewModel.RoleLabel(role).StartsWith('['), role.ToString());
-        }
-    }
-
-    [Fact]
-    public void Every_reason_why_windows_hello_is_not_there_is_said_in_the_language_of_the_screen()
-    {
-        var source = File.ReadAllText(Path.Combine(DesktopRoot, "Orchestrator", "HelloScreenTexts.cs"));
-        var keys = HelloKey().Matches(source).Select(m => m.Groups[1].Value).Distinct().ToList();
-
-        Assert.Equal(10, keys.Count);
-        Assert.All(keys, key =>
-        {
-            Assert.True(Spanish.Has(key) && English.Has(key), key);
-            Assert.DoesNotMatch("[áéíóú]", English.Get(key));
-        });
-        foreach (var availability in Enum.GetValues<UserPresenceAvailability>())
-        {
-            Assert.False(HelloScreenTexts.WhyAbsent(availability).StartsWith('['), availability.ToString());
-        }
-
-        foreach (var result in Enum.GetValues<UserPresenceResult>())
-        {
-            Assert.False(HelloScreenTexts.WhyNotConfirmed(result).StartsWith('['), result.ToString());
         }
     }
 }

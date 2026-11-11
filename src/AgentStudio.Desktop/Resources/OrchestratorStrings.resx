@@ -2598,44 +2598,4 @@ Abrir el análisis del consumo, si está disponible, para ver el detalle.</value
     <value>Intento {0} · {1} reintentos</value>
     <comment>Attempt of a task.</comment>
   </data>
-  <data name="Orchestrator_HelloWhy_NotConfigured" xml:space="preserve">
-    <value>no está configurado para tu usuario</value>
-    <comment>Why Windows Hello is not there or did not confirm.</comment>
-  </data>
-  <data name="Orchestrator_HelloWhy_NoDevice" xml:space="preserve">
-    <value>no hay ningún dispositivo con el que verificarte</value>
-    <comment>Why Windows Hello is not there or did not confirm.</comment>
-  </data>
-  <data name="Orchestrator_HelloWhy_Policy" xml:space="preserve">
-    <value>lo desactiva una directiva</value>
-    <comment>Why Windows Hello is not there or did not confirm.</comment>
-  </data>
-  <data name="Orchestrator_HelloWhy_Busy" xml:space="preserve">
-    <value>el dispositivo está ocupado</value>
-    <comment>Why Windows Hello is not there.</comment>
-  </data>
-  <data name="Orchestrator_HelloWhy_AbsentUnknown" xml:space="preserve">
-    <value>Windows no lo pudo decir</value>
-    <comment>Why Windows Hello is not there.</comment>
-  </data>
-  <data name="Orchestrator_HelloWhy_Canceled" xml:space="preserve">
-    <value>se canceló la verificación</value>
-    <comment>Why Windows Hello did not confirm.</comment>
-  </data>
-  <data name="Orchestrator_HelloWhy_Retries" xml:space="preserve">
-    <value>demasiados intentos fallidos</value>
-    <comment>Why Windows Hello did not confirm.</comment>
-  </data>
-  <data name="Orchestrator_HelloWhy_BusyBefore" xml:space="preserve">
-    <value>el dispositivo estaba ocupado</value>
-    <comment>Why Windows Hello did not confirm.</comment>
-  </data>
-  <data name="Orchestrator_HelloWhy_Verified" xml:space="preserve">
-    <value>te confirmó</value>
-    <comment>Why Windows Hello did not confirm.</comment>
-  </data>
-  <data name="Orchestrator_HelloWhy_NotConfirmedUnknown" xml:space="preserve">
-    <value>Windows dio un resultado que Agent Studio no conoce</value>
-    <comment>Why Windows Hello did not confirm.</comment>
-  </data>
 </root>

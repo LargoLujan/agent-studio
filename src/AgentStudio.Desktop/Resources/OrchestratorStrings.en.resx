@@ -2598,44 +2598,4 @@ Open the consumption analysis, if it is there, to see the detail.</value>
     <value>Attempt {0} · {1} retries</value>
     <comment>Attempt of a task.</comment>
   </data>
-  <data name="Orchestrator_HelloWhy_NotConfigured" xml:space="preserve">
-    <value>it is not set up for your user</value>
-    <comment>Why Windows Hello is not there or did not confirm.</comment>
-  </data>
-  <data name="Orchestrator_HelloWhy_NoDevice" xml:space="preserve">
-    <value>there is no device to verify you with</value>
-    <comment>Why Windows Hello is not there or did not confirm.</comment>
-  </data>
-  <data name="Orchestrator_HelloWhy_Policy" xml:space="preserve">
-    <value>a policy turns it off</value>
-    <comment>Why Windows Hello is not there or did not confirm.</comment>
-  </data>
-  <data name="Orchestrator_HelloWhy_Busy" xml:space="preserve">
-    <value>the device is busy</value>
-    <comment>Why Windows Hello is not there.</comment>
-  </data>
-  <data name="Orchestrator_HelloWhy_AbsentUnknown" xml:space="preserve">
-    <value>Windows could not say</value>
-    <comment>Why Windows Hello is not there.</comment>
-  </data>
-  <data name="Orchestrator_HelloWhy_Canceled" xml:space="preserve">
-    <value>the verification was cancelled</value>
-    <comment>Why Windows Hello did not confirm.</comment>
-  </data>
-  <data name="Orchestrator_HelloWhy_Retries" xml:space="preserve">
-    <value>too many failed attempts</value>
-    <comment>Why Windows Hello did not confirm.</comment>
-  </data>
-  <data name="Orchestrator_HelloWhy_BusyBefore" xml:space="preserve">
-    <value>the device was busy</value>
-    <comment>Why Windows Hello did not confirm.</comment>
-  </data>
-  <data name="Orchestrator_HelloWhy_Verified" xml:space="preserve">
-    <value>it confirmed you</value>
-    <comment>Why Windows Hello did not confirm.</comment>
-  </data>
-  <data name="Orchestrator_HelloWhy_NotConfirmedUnknown" xml:space="preserve">
-    <value>Windows gave a result Agent Studio does not know</value>
-    <comment>Why Windows Hello did not confirm.</comment>
-  </data>
 </root>

@@ -67,7 +67,7 @@ public sealed partial class ApprovalDialogViewModel : ObservableObject
         ApprovalVerification.WindowsHello => Texts.Get("Orchestrator_Approval_HelloNotice"),
         ApprovalVerification.WindowsLock => HelloTexts.LocksWindowsAfterYes,
         ApprovalVerification.WindowsHelloUnavailable =>
-            Texts.Format("Orchestrator_Approval_HelloUnavailable", HelloScreenTexts.WhyAbsent(_availability ?? UserPresenceAvailability.NotConfiguredForUser)),
+            Texts.Format("Orchestrator_Approval_HelloUnavailable", HelloAnswers.WhyAbsent(_availability ?? UserPresenceAvailability.NotConfiguredForUser)),
         _ => null,
     };
 
