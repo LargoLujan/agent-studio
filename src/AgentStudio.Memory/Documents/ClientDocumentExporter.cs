@@ -53,7 +53,7 @@ public sealed class ClientDocumentExporter(
         var inside = IsInside(request.Project.RootPath, destination);
         if (inside && activity.IsBusy(projectId))
         {
-            throw new InvalidOperationException("A run is going in the project: the document is exported into its folder when it ends.");
+            throw new ClientDocumentRunBusyException();
         }
 
         var document = request.Build.Document;

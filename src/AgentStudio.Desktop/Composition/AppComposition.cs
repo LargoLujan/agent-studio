@@ -48,6 +48,7 @@ public static class AppComposition
         services.AddSingleton<IAppSettingsStore>(settings);
         services.AddPlatformServices(app, settings.Load().SkillsIndexPath);
         services.AddShellServices(app.Roaming);
+        services.AddClientDocumentsServices();
         return services;
     }
 }

@@ -21,6 +21,11 @@
     <PackageReference Include="Microsoft.ML.Tokenizers" />
   </ItemGroup>
 
+  <!-- Word (.docx) of the documents for clients (Phase 14, docs/17 D-59; ADR-0057): the Open XML SDK, MIT, used only by Documents/Docx. -->
+  <ItemGroup>
+    <PackageReference Include="DocumentFormat.OpenXml" />
+  </ItemGroup>
+
   <ItemGroup>
     <EmbeddedResource Include="Persistence\Schema\*.sql" LogicalName="AgentStudio.Schema.%(Filename)%(Extension)" />
   </ItemGroup>
