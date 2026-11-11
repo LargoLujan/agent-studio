@@ -145,3 +145,29 @@
       conocidos: la lista de lo que sale y tu lectura de la vista previa son la segunda barrera;
     - un texto de un agente puede ser falso aunque esté marcado y revisado: la marca dice quién lo escribió, no que sea cierto;
     - un PDF o un `.docx` de otro equipo puede pintar distinto; lo fijado es el modelo y el Markdown.
+
+## Adenda 2026-11-11 · Lo que dejó WP-14D
+
+- **Dónde vive cada pieza.** El constructor (`ClientDocumentBuilder`), los escritores de Markdown y HTML y el exportador están en
+  `Memory/Documents`; el de Word, en `Infrastructure/Documents/Docx` (`DocumentFormat.OpenXml` 3.5.1, solo en Infrastructure); el PDF
+  (`PdfDocumentWriter` sobre el puerto `IHtmlPdfPrinter`, con `WebView2PdfPrinter`), `IUserTextRenderer` sobre los recursos y la
+  pantalla, en `Desktop`. Los textos del sistema (`ClientDocumentTexts`) y la lectura común del modelo (`ClientDocumentReading`)
+  están en `Application/Documents`, para que los cuatro formatos digan lo mismo sin depender unos de otros.
+- **Qué entra de verdad.** Resumen con cifras, alcance (implementado, revisado e integrado), verificación (pruebas del sistema y
+  veredicto por requisito), decisiones de la memoria de confianza, entregas y cambios anotados, riesgos y pendientes (requisitos no
+  satisfechos, impugnaciones, alertas del auditor, errores conocidos y objeciones del juez, marcadas como de un agente) y anexos
+  (índice de evidencias con su huella y glosario). «Integrado» es hoy «el registro tiene una entrega»; el estado por requisito de
+  la Fase 9, los PR, los ficheros por zona, los ADR del repositorio y «Desplegado» no salen todavía.
+- **Cómo no se fuga nada.** Toda cadena pasa por `DocumentTextCleaner` antes de ser un texto del modelo (caracteres ocultos fuera,
+  secretos redactados, rutas quitadas con espacios incluidos), el borrador de un agente vuelve a pasar por `ClientDraftRules.Check`
+  dentro del constructor, y cada escritor y el exportador validan `ClientDocumentRules` antes de escribir.
+- **Determinismo del Word.** El SDK escribe la hora de la máquina en las entradas del zip y un GUID en el nombre de las propiedades y
+  en los ids de las relaciones del paquete: se fijan las fechas a la de la portada, se reempaqueta con orden y hora fijos y se
+  normalizan esos nombres.
+- **El consumo no va:** el constructor no lee el consumo, así que la casilla no se ofrece y `IncludesConsumption` es siempre falso.
+- **El borrador asistido** (`IClientDocumentDrafter`) sigue como contrato sin implementar: el constructor ya acepta borradores
+  aceptados y los comprueba, pero ninguna pantalla lanza todavía la auxiliar `ClientDocumentDraft`.
+- **El PDF** no se ha probado sin ventana: se prueba hasta el puerto (el HTML que se imprime es el de la prueba de fuga) y la
+  impresión real queda para la demostración.
+- **El cierre de un hito:** `ClientDocumentsViewModel.GenerateForMilestoneAsync(nombre)` es el punto de entrada; el disparador
+  desde un hito cerrado espera al WP3 de la Fase 9.

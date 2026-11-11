@@ -2016,6 +2016,13 @@ public sealed record ClientDocumentExportedPayload(int Version, string? Mileston
   nombre en ese detalle: es de WP-14A (c).
 - **`DocumentFormat.OpenXml` 3.5.1** está en `Directory.Packages.props` (MIT, comprobada en nuget.org el 2026-11-11); ningún
   proyecto la referencia todavía. La referencia el proyecto que escribe el `.docx` (Infrastructure, WP-14D).
+- **Implementado por WP-14D (2026-11-11):** `ClientDocumentBuilder`, `MarkdownDocumentWriter`, `HtmlDocumentWriter`,
+  `ClientDocumentExporter` y `ClientDocumentRunBusyException` en `Memory/Documents` (se registran con `AddAgentStudioClientDocuments`);
+  `WordDocumentWriter` en `Infrastructure/Documents/Docx` (ya referencia `DocumentFormat.OpenXml`); `ResourceUserTextRenderer`,
+  `PdfDocumentWriter`, `IHtmlPdfPrinter`, `WebView2PdfPrinter` y `ClientDocumentsViewModel` en `Desktop/Documents`, compuestos en
+  `Composition/DocumentsServices.cs`. En `Application/Documents` se añaden `ClientDocumentTexts` (los códigos `document.*`) y
+  `ClientDocumentReading` (la lectura común del modelo de los escritores). Los textos están en `Resources/DocumentsStrings*.resx`.
+  Sigue sin implementar `IClientDocumentDrafter`. Ver la adenda de [ADR-0057](adr/0057-documentacion-para-clientes.md).
 - **Qué hace cada paquete encima:** WP-14C pone el corpus (`Desktop/Help`), el índice de búsqueda, el panel, `F1`, el catálogo de
   acciones, `IHelpAgent` y los textos de la tarjeta; WP-14D, el constructor, los textos `Text_document_…`, los escritores, el
   exportador, el borrador con un agente y la pantalla de revisión. Los dos añaden sus tests (F14-7 a F14-9).
