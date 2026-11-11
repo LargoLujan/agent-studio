@@ -71,7 +71,7 @@ public sealed class ObservabilityRenderTests
             OrchestratorTheme.EnsureLoaded();
             var view = new UsageDashboardView { DataContext = dashboard };
 
-            var bitmap = OffscreenRender.Render(view, 1500, 1180);
+            var bitmap = OffscreenRender.Render(view, 1500, 1400);
             OffscreenRender.SaveIfRequested(bitmap, "fase4-consumo.png");
             // The text box inside the template of a combo box (its editable part, hidden) is not a field of the panel.
             var fieldsOfThePanel = Descendants<System.Windows.Controls.TextBox>(view).Count(t => t.TemplatedParent is not System.Windows.Controls.ComboBox);
