@@ -38,8 +38,13 @@ public sealed class TextGuideTests
         }
 
 
-        // Unknown areas are skipped, not failed: another package may be adding its file. This only keeps the closed list honest
-        // by counting what is checked.
+        // Every resource file is in one of the two lists: an area in neither would be skipped without a word.
+        var unlisted = present
+            .Where(a => !TextGuide.ClosedAreas.Contains(a, StringComparer.Ordinal) && !TextGuide.PendingExtraction.Contains(a, StringComparer.Ordinal))
+            .Order(StringComparer.Ordinal)
+            .ToList();
+        Assert.True(unlisted.Count == 0, "Resource files in neither ClosedAreas nor PendingExtraction:" + Report(unlisted));
+
         var texts = TextGuide.Texts();
         Assert.True(texts.Count > 3000, $"The guide checks {texts.Count} texts of {TextGuide.ClosedAreas.Length} areas.");
     }
@@ -128,6 +133,24 @@ public sealed class TextGuideTests
         }
 
         Assert.True(found.Count == 0, "Old terms of the glossary:" + Report(found));
+    }
+
+    [Fact]
+    public void The_english_texts_do_not_use_calques_of_the_spanish_glossary()
+    {
+        var found = new List<string>();
+        foreach (var text in TextGuide.Texts().Where(t => t.Language == "en"))
+        {
+            foreach (var calque in TextGuide.EnglishCalques)
+            {
+                if (calque.Pattern.IsMatch(text.Value))
+                {
+                    found.Add($"{text.Id} has «{calque.Name}» (say: {calque.Say}): {text.Value.ReplaceLineEndings(" / ")}");
+                }
+            }
+        }
+
+        Assert.True(found.Count == 0, "Calques in English:" + Report(found));
     }
 
     [Fact]

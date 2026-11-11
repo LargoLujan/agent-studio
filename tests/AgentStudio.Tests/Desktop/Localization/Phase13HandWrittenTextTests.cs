@@ -26,7 +26,7 @@ namespace AgentStudio.Tests.Desktop.Localization;
 /// text when it has a letter beyond ASCII or a word of <see cref="SpanishWords"/>.</item>
 /// <item>C#: no string literal with a letter beyond ASCII (á, é, í, ó, ú, ü, ñ, ¿, ¡…); no literal with a word of
 /// <see cref="SpanishWords"/>, the frequent Spanish words of an interface that have no accent («Guardar el plan»); and no
-/// literal with a letter assigned to a visible property (<c>.Text = "…"</c>) or given as an accessible name
+/// literal with a letter assigned to a visible property or field (<c>.Text = "…"</c>, <c>_statusText = "…"</c>, <c>ErrorMessage = "…"</c>: any name ending in Text, Content, Header, ToolTip, Title, Message, Status, Caption or Hint) or given as an accessible name
 /// (<c>AutomationProperties.SetName(x, "…")</c>). Comments are not code: they are not read. Exception messages and logs are in
 /// English, as CLAUDE.md asks, and pass.</item>
 /// <item>Every key a scanned file names literally (<c>{l:T Key}</c>, <c>Get("Key")</c>, <c>Format("Key", …)</c>) exists in the
@@ -63,6 +63,9 @@ public sealed partial class Phase13HandWrittenTextTests
         "espera", "tarea", "tareas", "agente", "agentes", "ejecutor", "juez", "cuota", "ventana", "contexto", "memoria", "requisitos",
         "prueba", "pruebas", "ficha", "proyecto", "aprobar", "respuesta", "pregunta", "ayuda", "idioma", "ajustes", "consumo",
         "entrega", "rama", "hasta", "desde", "todo", "todos", "nada", "falta", "hay", "tiene", "tienes",
+        // Added with the revision of d2, which found two texts without accents and with none of the words above.
+        "ninguna", "ninguno", "encontrado", "encontrada", "instalado", "instalada", "desconocido", "desconocida", "pudo", "pudieron",
+        "faltan", "vuelve", "intentarlo", "comprueba", "ejecuta", "fichero", "ficheros",
     };
 
     /// <summary>Literals allowed in the files of Phase 13, by file and literal, each with why. An exception nobody uses fails, so the list never goes stale.</summary>
@@ -109,6 +112,16 @@ public sealed partial class Phase13HandWrittenTextTests
             "D-48: the summary of a RunExitChosen entry is written in the decision log of the run, which is never translated.",
         [("Lock/HelloAnswers.cs", "Windows Hello no confirmó que eres tú (: ): se deniega.")] =
             "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
+        [("Lock/HelloAnswers.cs", "No se pudo pedir Windows Hello (): se deniega.")] =
+            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
+        [("Debate/ContributionText.cs", "ninguna")] =
+            "D-48: the sentinel of the debate protocol (the same as ContributionRules.None) that a debater writes when it answers none; the reader compares with it and it is never shown.",
+        [("Background/TrayController.cs", "Agent Studio")] =
+            "The name of the product, the same in every language: the title of the notifications and the tooltip of the icon.",
+        [("Controls/Editor/LanguageMap.cs", "plaintext")] =
+            "The identifier of a language of Monaco, not a text: it is what the editor page is told.",
+        [("Orchestrator/Monitor/StepLogText.cs", @"\berror\b|\bfailed\b|\bfailure\b|\bexception\b|no test|not found|could not|cannot|\bfatal\b|\bfallid|\bno se (pudo|encontr)")] =
+            "D-48: a pattern that tells which lines of a step log (the output of the tools, in either language) are errors; it is not shown.",
         [("Lock/HelloAnswers.cs", "se canceló la verificación")] =
             "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
         [("Lock/HelloAnswers.cs", "no hay ningún dispositivo con el que verificarte")] =
@@ -225,7 +238,10 @@ public sealed partial class Phase13HandWrittenTextTests
     [GeneratedRegex("""^(?:[A-Za-z]\d{0,2}|[dfFghHKmMstyz:\-/., #0%]+)$""")]
     private static partial Regex FormatSpecifier();
 
-    [GeneratedRegex("""(?:\.|\b)(?:Text|Content|Header|ToolTip|Title)\s*=\s*"([^"]*)""")]
+    // Any property or field whose name ends in a word that says «what the person reads» (Text, Message, Status…), with or without
+    // a prefix and an underscore (_statusText, ErrorMessage, StatusText): the first Phase 14 revision found «No se ha encontrado
+    // ninguna shell instalada» assigned to _statusText, which the old pattern (Text/Content/… alone) did not see.
+    [GeneratedRegex("""\b\w*(?:Text|Content|Header|ToolTip|Title|Message|Status|Caption|Hint)\s*(?:=|\?\?=)\s*"([^"]*)""")]
     private static partial Regex VisibleAssignment();
 
     [GeneratedRegex("""AutomationProperties\.Set(?:Name|HelpText|ItemStatus)\([^,]+,\s*"([^"]*)""")]
@@ -386,6 +402,10 @@ public sealed partial class Phase13HandWrittenTextTests
             var b = 'á';
             var c = $"Trabajando en {task}";
             label.Text = "Libre";
+            _statusText = "Conexion cerrada";
+            ErrorMessage = "Disk full";
+            if (view.Text == "Done") { }
+            var timeout = TimeSpan.Zero;
             AutomationProperties.SetName(button, "Close");
             var d = "The run '{0}' is in use.";
             var e = @"C:\carpeta";
@@ -396,7 +416,7 @@ public sealed partial class Phase13HandWrittenTextTests
             var j = "Info_Language_Title";
             """;
 
-        Assert.Equal(["Información sobre el plan", "Trabajando en ", "Libre", "Close", " y más", "Guardar el plan"], CodeLiterals(code));
+        Assert.Equal(["Información sobre el plan", "Trabajando en ", "Libre", "Conexion cerrada", "Disk full", "Close", " y más", "Guardar el plan"], CodeLiterals(code));
     }
 
     // ---- XAML ----

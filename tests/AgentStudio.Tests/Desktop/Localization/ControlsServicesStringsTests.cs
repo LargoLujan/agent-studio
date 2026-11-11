@@ -86,6 +86,36 @@ public sealed partial class ControlsServicesStringsTests
         Assert.Equal("… y 2 más", Spanish.Format("Unsaved_More", 2));
     }
 
+    /// <summary>
+    /// The short line of the bars drops the start of the age («vista » / «seen »): it can do it in both languages only if every age
+    /// the quota says starts with the prefix of the controls.
+    /// </summary>
+    [Fact]
+    public void Every_age_of_the_quota_starts_with_the_prefix_the_short_bar_drops_in_both_languages()
+    {
+        foreach (var provider in new[] { Spanish, English })
+        {
+            var prefix = provider.Get("MetricBar_SeenPrefix");
+            Assert.False(string.IsNullOrWhiteSpace(prefix));
+            string[] ages =
+            [
+                provider.Get("Observability_Seen_Now"),
+                provider.Format("Observability_Seen_Minutes", 12),
+                provider.Format("Observability_Seen_Hours", 5),
+                provider.Format("Observability_Seen_Days", 3),
+            ];
+            foreach (var age in ages)
+            {
+                Assert.StartsWith(prefix, age, StringComparison.Ordinal);
+                Assert.True(age.Length > prefix.Length, age);
+            }
+        }
+
+        Assert.Equal("seen less than 1 min ago", English.Get("Observability_Seen_Now"));
+        Assert.Equal("seen 12 min ago", English.Format("Observability_Seen_Minutes", 12));
+        Assert.Equal("vista hace 12 min", Spanish.Format("Observability_Seen_Minutes", 12));
+    }
+
     [Fact]
     public void The_short_origin_of_a_bar_and_the_status_of_the_terminal_come_from_the_resources()
     {
