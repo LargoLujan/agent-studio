@@ -30,7 +30,8 @@ public sealed record ProjectDossierRequest(
     IReadOnlyList<string> SkippedSteps,
     string? Snapshot,
     IReadOnlyList<PendingProblem> Pending,
-    IReadOnlyList<string> Checks);
+    IReadOnlyList<string> Checks,
+    AuditMilestoneScope? Milestone = null);
 
 /// <summary>
 /// Builds the dossier of a whole-project audit (docs/15 D-30): an index, because a repository does not fit in a prompt (R8).
@@ -100,8 +101,10 @@ public sealed class ProjectDossierBuilder(IEvidenceStore evidence, JudgingOption
             copies.Add(await CopyAsync(request.ProjectId, registered[i], evidenceFolder, $"{i + 1:D3}-{Segment(registered[i].Id.Value, 48)}.txt", checks, cancellationToken).ConfigureAwait(false));
         }
 
-        var summarized = Summarize(request.Log);
-        var index = await IndexAsync(request, head, verification, copies, summarized, checks, cancellationToken).ConfigureAwait(false);
+        // A milestone narrows what the judge is told about to its own runs and debates; the head the verdict echoes is the log's.
+        var scoped = request with { Log = InScope(request) };
+        var summarized = Summarize(scoped.Log);
+        var index = await IndexAsync(scoped, head, verification, copies, summarized, checks, cancellationToken).ConfigureAwait(false);
         var dossier = new JudgeDossier(
             request.RequestText,
             request.Requirements,
@@ -119,6 +122,21 @@ public sealed class ProjectDossierBuilder(IEvidenceStore evidence, JudgingOption
         await WriteNewTextAsync(Path.Combine(folder, "request.txt"), request.RequestText, cancellationToken).ConfigureAwait(false);
         await WriteNewTextAsync(Path.Combine(folder, "dossier.json"), index, cancellationToken).ConfigureAwait(false);
         return (new JudgeDossierPackage(dossier, files), index);
+    }
+
+    /// <summary>
+    /// The log the dossier describes: all of it for the whole project; for a milestone, the entries of its runs and debates and of the
+    /// audit itself (entries that belong to no run, such as the memory, are left out).
+    /// </summary>
+    private static IReadOnlyList<DecisionEntry> InScope(ProjectDossierRequest request)
+    {
+        if (request.Milestone is not { } scope)
+        {
+            return request.Log;
+        }
+
+        var units = new HashSet<string>(scope.Runs.Concat(scope.Debates), StringComparer.Ordinal) { request.Audit.Value };
+        return [.. request.Log.Where(e => AuditedRun.Parse(e).Payload?.RunId is { } run && units.Contains(run))];
     }
 
     /// <summary>The entries that matter to an audit, the last <see cref="MaxEntries"/> of them.</summary>
@@ -214,7 +232,7 @@ public sealed class ProjectDossierBuilder(IEvidenceStore evidence, JudgingOption
         List<string> checks)
     {
         var files = copies.ToDictionary(c => c.Evidence, c => c.RelativePath);
-        return new JsonObject
+        var root = new JsonObject
         {
             ["format"] = Format,
             ["audit"] = request.Audit.Value,
@@ -260,6 +278,19 @@ public sealed class ProjectDossierBuilder(IEvidenceStore evidence, JudgingOption
             },
             ["systemChecks"] = new JsonArray([.. checks.Select(c => (JsonNode?)JsonValue.Create(c))]),
         };
+
+        // Only an audit that closes a milestone says so: the index of a whole-project audit keeps the shape it had.
+        if (request.Milestone is { } milestone)
+        {
+            root["milestone"] = new JsonObject
+            {
+                ["id"] = milestone.Milestone,
+                ["runs"] = new JsonArray([.. milestone.Runs.Select(r => (JsonNode?)JsonValue.Create(r))]),
+                ["debates"] = new JsonArray([.. milestone.Debates.Select(d => (JsonNode?)JsonValue.Create(d))]),
+            };
+        }
+
+        return root;
     }
 
     /// <summary>Each run of the log: its start, its end, its verdicts and its alerts, in the order they started.</summary>
