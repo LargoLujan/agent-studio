@@ -9,6 +9,7 @@ using AgentStudio.Desktop.Orchestrator.Team;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Metrics;
+using AgentStudio.Domain.Models;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Orchestration.Analysis;
 using AgentStudio.Domain.Providers;
@@ -98,6 +99,20 @@ public sealed class PreparationAssistantsTests
             applied.Add(fix);
             return Task.CompletedTask;
         }, Text(), new FakeTimeProvider(T0));
+
+    /// <summary>docs/18 P47: the estimate of the review is asked with the effort of the orchestrator, whose attempts it is estimated from.</summary>
+    [Fact]
+    public async Task The_estimate_of_the_review_is_asked_with_the_effort_of_the_orchestrator()
+    {
+        var roster = PlanFixtures.Roster();
+        var subject = new OrderReviewSubject(Project(), PlanningRun, PlanFixtures.Plan(), [roster[0] with { Effort = ReasoningEffort.High }, .. roster.Skip(1)], roster[0].Id);
+        var estimator = new FakeEstimator(Known());
+        var review = Review(new BuilderServices(OrderReview: new FakeOrderReview(Result()), Estimator: estimator), [], subject);
+
+        await review.AskCommand.ExecuteAsync(null);
+
+        Assert.Equal(ReasoningEffort.High, estimator.Requests.Single().Effort);
+    }
 
     [Fact]
     public async Task Asking_to_review_the_order_opens_the_card_with_the_estimate_and_launches_nothing()
@@ -231,6 +246,27 @@ public sealed class PreparationAssistantsTests
             applied.Add(fix);
             return Task.CompletedTask;
         }, Text(), new FakeTimeProvider(T0));
+
+    /// <summary>docs/18 P47: the estimate of the chat is asked with the effort of the orchestrator, whose attempts it is estimated from.</summary>
+    [Fact]
+    public async Task The_estimate_of_the_chat_is_asked_with_the_effort_of_the_orchestrator()
+    {
+        var roster = PlanFixtures.Roster();
+        var orchestrator = roster[0] with { Effort = ReasoningEffort.Low };
+        var estimator = new FakeEstimator(Known());
+        var chat = new PreparationChatViewModel(
+            new BuilderServices(Chat: new FakeChat(), Estimator: estimator),
+            () => new PreparationChatSubject(Project(), roster, orchestrator, null),
+            _ => true,
+            _ => Task.CompletedTask,
+            Text(),
+            new FakeTimeProvider(T0));
+
+        chat.Draft = "Quiero añadir Calc.Multiply";
+        await chat.AskCommand.ExecuteAsync(null);
+
+        Assert.Equal(ReasoningEffort.Low, estimator.Requests.Single().Effort);
+    }
 
     [Fact]
     public async Task Each_message_asks_for_its_own_OK_and_the_same_conversation_is_resumed()

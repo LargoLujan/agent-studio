@@ -29,6 +29,10 @@
     <value>Solo cuenta intentos del mismo tamaño de trabajo: pequeño, mediano o grande.</value>
     <comment>Assumption of an estimate (estimate.same-size).</comment>
   </data>
+  <data name="Text_estimate_same_effort" xml:space="preserve">
+    <value>Solo cuenta intentos con el mismo esfuerzo de razonamiento que el agente.</value>
+    <comment>Assumption of an estimate (estimate.same-effort).</comment>
+  </data>
   <data name="Text_estimate_critical_path" xml:space="preserve">
     <value>La duración sigue el camino más largo del plan, con las tareas a la vez que permites.</value>
     <comment>Assumption of an estimate (estimate.critical-path).</comment>

@@ -91,6 +91,31 @@ public sealed class LearnedModelsProjectionTests
         Assert.Equal(6, sonnet.Attempts);
     }
 
+    /// <summary>
+    /// docs/18 P47: the efforts a model's attempts were set with are kept, each once from the lightest to the heaviest, and none
+    /// when no start recorded one; the performance of the model is not split by them.
+    /// </summary>
+    [Fact]
+    public void The_projection_keeps_the_efforts_the_attempts_were_set_with_and_does_not_split_the_performance_by_them()
+    {
+        var log = new LearnedLog();
+        log.RunStarted("r1", ("ejecutor", AgentRole.Executor))
+            .Attempt("r1", "T1", 1, effort: ReasoningEffort.High).Status("r1", "T1", WorkTaskStatus.Completed, 1)
+            .Attempt("r1", "T2", 1, effort: ReasoningEffort.Low).Status("r1", "T2", WorkTaskStatus.Completed, 1)
+            .Attempt("r1", "T3", 1, effort: ReasoningEffort.High).Status("r1", "T3", WorkTaskStatus.Completed, 1)
+            .Attempt("r1", "P", 1, "orquestador", model: "claude-mythos-5-1", reported: "claude-mythos-5-1", purpose: AgentRunPurpose.Planner)
+            .Verdict("r1", VerdictDecision.Approved);
+
+        var learned = Learned(log.Entries);
+
+        var sonnet = learned.Find(ProviderId.ClaudeCode, "sonnet")!;
+        Assert.Equal([ReasoningEffort.Low, ReasoningEffort.High], sonnet.Efforts);
+        Assert.Equal(new ModelPerformance(ProviderId.ClaudeCode, "claude-sonnet-5-5", 3, 3, 0, 0), sonnet.Performance);
+        Assert.Equal(3, sonnet.Attempts);
+        Assert.Empty(learned.Find(ProviderId.ClaudeCode, "claude-mythos-5-1")!.Efforts);
+        Assert.All(Learned().Models, model => Assert.Empty(model.Efforts));
+    }
+
     [Fact]
     public void A_task_without_a_verdict_yet_is_counted_without_an_approval_and_the_judge_has_no_tasks()
     {
@@ -292,7 +317,8 @@ public sealed class LearnedModelsProjectionTests
             int version = 2,
             decimal? cost = null,
             long? window = null,
-            AttemptOutcome status = AttemptOutcome.Succeeded)
+            AttemptOutcome status = AttemptOutcome.Succeeded,
+            ReasoningEffort? effort = null)
         {
             var on = provider ?? ProviderId.ClaudeCode;
             var session = $"{run}-{task}-{attempt}";
@@ -307,7 +333,8 @@ public sealed class LearnedModelsProjectionTests
                 new EvidenceId("ev-" + session),
                 HashA,
                 [],
-                version >= AgentRunStartedPayload.PurposeVersion ? purpose : null) { RunId = run, V = version });
+                version >= AgentRunStartedPayload.PurposeVersion ? purpose : null,
+                Effort: effort) { RunId = run, V = effort is null ? version : AgentRunStartedPayload.ContextPartsVersion });
 
             UsageSnapshot usage = on == ProviderId.CodexCli
                 ? Snapshots.Codex(1000, 0, 0, 100, 0)

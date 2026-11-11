@@ -98,10 +98,10 @@ public sealed class JudgeRunRecorder(
             SystemActor,
             DecisionKind.AgentRunStarted,
             $"Juez '{agent.Id}' lanzado (intento {start.Attempt})",
-            new AgentRunStartedPayload(scope.EntryTask, start.Attempt, agent.Id, start.Provider, start.Vendor, agent.Model.Model, start.Request.WorkingDirectory, prompt.Id, prompt.ContentSha256, [], scope.Purpose)
+            new AgentRunStartedPayload(scope.EntryTask, start.Attempt, agent.Id, start.Provider, start.Vendor, agent.Model.Model, start.Request.WorkingDirectory, prompt.Id, prompt.ContentSha256, [], scope.Purpose, Effort: agent.Effort)
             {
                 RunId = scope.Run,
-                V = AgentRunStartedPayload.PurposeVersion,
+                V = agent.Effort is null ? AgentRunStartedPayload.PurposeVersion : AgentRunStartedPayload.ContextPartsVersion,
             },
             cancellationToken: cancellationToken).ConfigureAwait(false);
     }

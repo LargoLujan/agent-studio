@@ -11,6 +11,7 @@ using AgentStudio.Application.Skills;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Decisions;
+using AgentStudio.Domain.Models;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Orchestration.Analysis;
 using AgentStudio.Domain.Providers;
@@ -321,6 +322,7 @@ public sealed partial class AssistedConsumptionAnalysisService(
                 purpose = a.Start.Purpose?.ToString(),
                 provider = a.Start.Provider.Value,
                 model = a.Model,
+                effort = a.Start.Effort is { } effort ? ReasoningEfforts.Token(effort) : null,
                 outcome = a.Finish.Status.ToString(),
                 end = a.Finish.ResolvedEnd().Class.ToString(),
                 queueSeconds = a.Finish.LaunchedAt is { } launched ? (long?)(launched - a.StartedAt).TotalSeconds : null,

@@ -2,6 +2,7 @@ using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Usage;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Metrics;
+using AgentStudio.Domain.Models;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Observability.Usage;
 using static AgentStudio.Tests.Domain.TestData;
@@ -41,6 +42,21 @@ public sealed class UsageProjectorTests
         Assert.Equal(("claude-sonnet-5-5", "claude-sonnet-5-5-20261001", "s1"), (attempt.ConfiguredModel, attempt.ReportedModel, attempt.SessionId));
         Assert.Equal((startedAt, (DateTimeOffset?)launchedAt, finishedAt), (attempt.RecordedAt, attempt.LaunchedAt, attempt.FinishedAt));
         Assert.Equal((AttemptOutcome.Succeeded, 2), (attempt.Outcome, attempt.RecordedVersion));
+    }
+
+    /// <summary>docs/18 P47: the effort the start recorded (version 3) reaches the attempt; a start that recorded none leaves it null.</summary>
+    [Fact]
+    public void An_attempt_keeps_the_reasoning_effort_its_start_recorded_and_none_when_it_recorded_none()
+    {
+        var log = new UsageLogBuilder()
+            .Start(Run, "T1", 1, version: AgentRunStartedPayload.ContextPartsVersion, effort: ReasoningEffort.High)
+            .Finish(Run, "T1", 1, session: "s1", usage: Claude(1000, 0, 0, 50, 0.01m))
+            .Start(Run, "T2", 1, version: AgentRunStartedPayload.ContextPartsVersion)
+            .Finish(Run, "T2", 1, session: "s2", usage: Claude(1000, 0, 0, 50, 0.01m))
+            .Start(Run, "T3", 1)
+            .Finish(Run, "T3", 1, session: "s3", usage: Claude(1000, 0, 0, 50, 0.01m));
+
+        Assert.Equal([ReasoningEffort.High, null, null], Project(log).Select(a => a.Effort));
     }
 
     [Fact]

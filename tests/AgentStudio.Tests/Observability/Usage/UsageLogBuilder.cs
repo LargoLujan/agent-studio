@@ -3,6 +3,7 @@ using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Evidence;
 using AgentStudio.Domain.Metrics;
+using AgentStudio.Domain.Models;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Domain.Work;
 using static AgentStudio.Tests.Domain.TestData;
@@ -52,7 +53,8 @@ internal sealed class UsageLogBuilder
         string? model = "claude-sonnet-5-5",
         AgentRunPurpose? purpose = AgentRunPurpose.Executor,
         int version = 2,
-        string workingDirectory = "C:\\worktrees\\t1")
+        string workingDirectory = "C:\\worktrees\\t1",
+        ReasoningEffort? effort = null)
     {
         var on = provider ?? ProviderId.ClaudeCode;
         var payload = new AgentRunStartedPayload(
@@ -66,7 +68,8 @@ internal sealed class UsageLogBuilder
             new EvidenceId("ev-prompt-" + attempt),
             HashA,
             [],
-            version >= AgentRunStartedPayload.PurposeVersion ? purpose : null)
+            version >= AgentRunStartedPayload.PurposeVersion ? purpose : null,
+            Effort: effort)
         {
             RunId = run,
             V = version,
