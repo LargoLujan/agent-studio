@@ -326,5 +326,7 @@ public sealed class AssistedConsumptionAnalysisTests : IDisposable
         public Task<IReadOnlyList<AgentDefinition>> ListAsync(string projectId, CancellationToken cancellationToken) => Task.FromResult(agents);
 
         public Task SaveAsync(string projectId, AgentDefinition agent, CancellationToken cancellationToken) => throw new InvalidOperationException("Read only.");
+
+        public Task DeleteAsync(string projectId, AgentId agent, CancellationToken cancellationToken) => throw new InvalidOperationException("Read only.");
     }
 }

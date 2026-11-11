@@ -227,7 +227,10 @@ la auditoría, el auditor del orquestador y la impugnación, en la [sección 17]
   ([ADR-0010](adr/0010-estado-derivado-del-registro.md)).
 - `IVerdictStore`: veredictos append-only (`StoredVerdict`). Uno inválido se guarda tal cual lo dio el juez, con sus
   incidencias; una corrección apunta al veredicto que sustituye (`Supersedes`) y ese sigue en el almacén.
-- `IAgentRoster`: la plantilla de agentes del proyecto.
+- `IAgentRoster`: la plantilla de agentes del proyecto. `SaveAsync` guarda o sustituye un agente; `DeleteAsync` (P48,
+  [ADR-0048](adr/0048-constructor-visual-equipo-y-plan.md), adenda del 2026-11-11) lo quita, y borrar un id que no está no hace
+  nada ni falla. Las cabeceras de ejecuciones y debates congelan definiciones enteras, así que quitar un agente no cambia el
+  historial.
 
 ## 7. Seguridad, memoria y uso
 
@@ -1751,8 +1754,11 @@ es obligatorio, y un documento creado sin él (`builder: null`) es el de antes d
   - [x] «Agentes» de la barra lateral abre el documento del proyecto (o lo trae al frente) y llama a `ShowTeamLayer()`;
   - [x] el guardado de «Ajustes» ya pasa por `MotionSettingsViewModel.Accept`, que llama a `MotionPolicy.NotifySettingChanged()`:
     no hizo falta cablear nada más;
-  - [ ] **quitar un agente** necesita `IAgentRoster.DeleteAsync` (Application e Infrastructure, fuera de WP6): hasta entonces
-    `TeamEditorViewModel` recibe un delegado nulo y «Quitar del equipo» no se muestra;
+  - [x] **quitar un agente** (P48, 2026-11-11): `IAgentRoster.DeleteAsync` (Application e Infrastructure) y
+    `OrchestrationSession.RemoveAgentAsync`; `InitializeBuilder` pasa el delegado al editor, así que «Quitar del equipo» se
+    muestra cuando hay almacén. Pasa por `ApplyManyAsync` (la plantilla que queda conserva el orquestador y un juez,
+    `TeamRemoval`; un solo Windows Hello para el conjunto cuando concede poder, antes de guardar o quitar nada). Ver la adenda
+    de [ADR-0048](adr/0048-constructor-visual-equipo-y-plan.md);
   - [ ] **los remotos** se leen del texto de `.git/config`; la lectura de docs/17 D-10 con `git config --get-regexp` por la capa
     endurecida queda para cuando exista en `IWorktreeManager`.
   - Para el panel «Problemas», `AnalysisBandViewModel` expone `Analysis` y `AnalysisChanged` (el análisis que enseña la banda).

@@ -73,7 +73,7 @@ public sealed class ContractSurfaceTests
         Assert.Equal(["FindAsync", "SaveAsync"], MethodNames(typeof(IPlanStore)));
         Assert.Equal(["CreateAsync", "FindAsync", "ListAsync"], MethodNames(typeof(IRunRegistry)));
         Assert.Equal(["AppendAsync", "ListAsync"], MethodNames(typeof(IVerdictStore)));
-        Assert.Equal(["ListAsync", "SaveAsync"], MethodNames(typeof(IAgentRoster)));
+        Assert.Equal(["DeleteAsync", "ListAsync", "SaveAsync"], MethodNames(typeof(IAgentRoster)));
         Assert.Contains("ListByRunAsync", MethodNames(typeof(IEvidenceStore)));
     }
 

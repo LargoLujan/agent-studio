@@ -298,6 +298,10 @@ Press «Save» to keep it.</value>
     <value>At least one judge is needed, from a company other than the orchestrator's and the executors'.</value>
     <comment>Problem of the Team layer (TeamGraph.Validate, team.judge-required).</comment>
   </data>
+  <data name="Canvas_Problem_orchestrator_required" xml:space="preserve">
+    <value>The orchestrator is needed, as it is the one that prepares the plan.</value>
+    <comment>Why taking the orchestrator out of the team is refused (TeamRemoval, team.orchestrator-required).</comment>
+  </data>
   <data name="Canvas_Problem_main_folder_invalid" xml:space="preserve">
     <value>A main folder is not valid: it has to be relative to the repository.</value>
     <comment>Problem of the Team layer (TeamGraph.Validate, team.main-folder-invalid).</comment>

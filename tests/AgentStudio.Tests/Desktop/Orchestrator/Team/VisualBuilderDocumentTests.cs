@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Windows;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Providers;
@@ -49,11 +50,22 @@ public sealed class VisualBuilderDocumentTests
     {
         public List<AgentDefinition> Agents { get; } = [.. PlanFixtures.Roster()];
 
+        /// <summary>What reached the store, in order: <c>save:id</c> and <c>delete:id</c>.</summary>
+        public List<string> Operations { get; } = [];
+
         public Task<IReadOnlyList<AgentDefinition>> ListAsync(string projectId, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<AgentDefinition>>([.. Agents]);
 
+        public Task DeleteAsync(string projectId, AgentId agent, CancellationToken cancellationToken)
+        {
+            Operations.Add("delete:" + agent.Value);
+            Agents.RemoveAll(a => a.Id == agent);
+            return Task.CompletedTask;
+        }
+
         public Task SaveAsync(string projectId, AgentDefinition agent, CancellationToken cancellationToken)
         {
+            Operations.Add("save:" + agent.Id.Value);
             var index = Agents.FindIndex(a => a.Id == agent.Id);
             if (index >= 0)
             {
@@ -124,9 +136,104 @@ public sealed class VisualBuilderDocumentTests
         Assert.True(document.Canvas.IsTeamLayer);
         Assert.Equal(PlanFixtures.Roster().Count, document.Canvas.Team.Agents.Count);
         Assert.True(document.Builder!.Editor.CanEdit);
-        Assert.False(document.Builder.Editor.CanRemoveAgents);
+        Assert.True(document.Builder.Editor.CanRemoveAgents);
         Assert.Equal(document.Canvas.Team.Agents.Count, document.Canvas.Team.Nodes.OfType<AgentNodeViewModel>().Count());
     }
+
+    [Fact]
+    public async Task Without_the_store_of_the_template_the_team_layer_neither_saves_nor_offers_to_take_agents_out()
+    {
+        var document = await OpenAsync(new OrchestrationBackend(new FakeOrchestrator(), new FakeWorkspace(), new FakeRequirementStore(PlanFixtures.Requirements())), BuilderServices.None);
+
+        Assert.False(document.Builder!.Editor.CanEdit);
+        Assert.False(document.Builder.Editor.CanRemoveAgents);
+    }
+
+    [Fact]
+    public async Task Taking_the_selected_agent_out_reaches_the_store_and_the_document_reads_the_template_again()
+    {
+        var roster = new MutableRoster();
+        var document = await OpenAsync(Backend(roster), BuilderServices.None);
+        var editor = document.Builder!.Editor;
+        var before = RosterHash.Of(document.Context!.Roster);
+        document.Canvas.Team.Select(document.Canvas.Team.Agents.Single(a => a.Id.Value == "ejecutor2"));
+
+        await editor.RemoveSelectedCommand.ExecuteAsync(null);
+
+        Assert.Equal(["delete:ejecutor2"], roster.Operations);
+        Assert.DoesNotContain(roster.Agents, a => a.Id.Value == "ejecutor2");
+        Assert.DoesNotContain(document.Context.Roster, a => a.Id.Value == "ejecutor2");
+        Assert.DoesNotContain(document.Canvas.Team.Agents, a => a.Id.Value == "ejecutor2");
+        Assert.NotEqual(before, RosterHash.Of(document.Context.Roster));
+        Assert.StartsWith("Se quitó ejecutor2 del equipo.", editor.Notice, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_orchestrator_cannot_be_taken_out_of_the_template_of_the_document()
+    {
+        var roster = new MutableRoster();
+        var document = await OpenAsync(Backend(roster), BuilderServices.None);
+        var editor = document.Builder!.Editor;
+        document.Canvas.Team.Select(document.Canvas.Team.Agents.Single(a => a.Id.Value == "orquestador"));
+
+        await editor.RemoveSelectedCommand.ExecuteAsync(null);
+
+        Assert.Empty(roster.Operations);
+        Assert.Contains(roster.Agents, a => a.Id.Value == "orquestador");
+        Assert.Contains("Hace falta el orquestador", editor.ErrorMessage, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// What P48 was about: a change of the draft whose new state lacks agents the template has (the undo of «Añadir un juez», say)
+    /// reaches the store as one set. The draft host works out which agents go from the two states, and nothing is saved or removed
+    /// until the single confirmation of the set (a change that grants power) has been given. The host is the private one of the
+    /// document, reached through the band that holds it.
+    /// </summary>
+    [Fact]
+    public async Task The_draft_host_takes_out_of_the_store_the_agents_the_new_state_lacks_only_after_the_set_is_confirmed()
+    {
+        foreach (var (answer, written) in new[] { (UserPresenceResult.Canceled, false), (UserPresenceResult.Verified, true) })
+        {
+            var roster = new MutableRoster();
+            roster.Agents.Add(roster.Agents.Single(a => a.Id.Value == "juezA") with { Id = new AgentId("juez-extra"), Name = "juez extra" });
+            var document = await OpenAsync(Backend(roster), BuilderServices.None, confirmation: new ReinforcedConfirmation(FakeUserPresenceVerifier.Answering(answer), () => false));
+            var host = DraftHostOf(document);
+            var before = host.ReadState();
+            var executor = before.Roster.Single(a => a.Id.Value == "ejecutor");
+            var after = before with
+            {
+                Roster = [.. before.Roster.Where(a => a.Id.Value != "juez-extra").Select(a => a == executor ? executor with { AllowedTools = [.. executor.AllowedTools, "Bash"] } : a)],
+            };
+
+            var done = await host.ApplyAsync(before, after, null);
+
+            Assert.Equal(written, done);
+            Assert.Equal(written ? ["save:ejecutor", "delete:juez-extra"] : [], roster.Operations);
+            Assert.Equal(!written, roster.Agents.Any(a => a.Id.Value == "juez-extra"));
+            Assert.Equal(written, roster.Agents.Single(a => a.Id.Value == "ejecutor").AllowedTools.Contains("Bash"));
+        }
+    }
+
+    [Fact]
+    public async Task The_draft_host_takes_agents_out_without_asking_when_nothing_grants_power_and_refuses_to_take_the_orchestrator()
+    {
+        var roster = new MutableRoster();
+        roster.Agents.Add(roster.Agents.Single(a => a.Id.Value == "juezA") with { Id = new AgentId("juez-extra"), Name = "juez extra" });
+        var document = await OpenAsync(Backend(roster), BuilderServices.None);
+        var host = DraftHostOf(document);
+        var before = host.ReadState();
+
+        Assert.True(await host.ApplyAsync(before, before with { Roster = [.. before.Roster.Where(a => a.Id.Value != "juez-extra")] }, null));
+        Assert.Equal(["delete:juez-extra"], roster.Operations);
+
+        var current = host.ReadState();
+        Assert.False(await host.ApplyAsync(current, current with { Roster = [.. current.Roster.Where(a => a.Role != AgentRole.Orchestrator)] }, null));
+        Assert.Equal(["delete:juez-extra"], roster.Operations);
+        Assert.Contains("Hace falta el orquestador", document.Builder!.Editor.ErrorMessage, StringComparison.Ordinal);
+    }
+
+    private static IDraftHost DraftHostOf(OrchestratorDocumentViewModel document) =>
+        (IDraftHost)typeof(AnalysisBandViewModel).GetField("_host", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(document.Builder!.Band)!;
 
     [Fact]
     public async Task A_proposal_brings_the_plan_layer_and_a_change_of_the_team_retires_the_approval_and_says_so()

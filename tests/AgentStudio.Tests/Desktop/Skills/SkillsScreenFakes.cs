@@ -145,6 +145,9 @@ internal sealed class FakeRoster(List<AgentDefinition> agents) : IAgentRoster
 
     public Task SaveAsync(string projectId, AgentDefinition agent, CancellationToken cancellationToken) =>
         throw new InvalidOperationException("The Skills screen never changes the roster.");
+
+    public Task DeleteAsync(string projectId, AgentId agent, CancellationToken cancellationToken) =>
+        throw new InvalidOperationException("The Skills screen never changes the roster.");
 }
 
 internal sealed class FakeHealth : ISkillHealthReader

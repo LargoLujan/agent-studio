@@ -298,6 +298,10 @@ Pulsar «Guardar» para que se guarde.</value>
     <value>Hace falta al menos un juez, de otra empresa que el orquestador y los ejecutores.</value>
     <comment>Problem of the Team layer (TeamGraph.Validate, team.judge-required).</comment>
   </data>
+  <data name="Canvas_Problem_orchestrator_required" xml:space="preserve">
+    <value>Hace falta el orquestador, que es quien prepara el plan.</value>
+    <comment>Why taking the orchestrator out of the team is refused (TeamRemoval, team.orchestrator-required).</comment>
+  </data>
   <data name="Canvas_Problem_main_folder_invalid" xml:space="preserve">
     <value>Una carpeta principal no es válida: tiene que ser relativa al repositorio.</value>
     <comment>Problem of the Team layer (TeamGraph.Validate, team.main-folder-invalid).</comment>

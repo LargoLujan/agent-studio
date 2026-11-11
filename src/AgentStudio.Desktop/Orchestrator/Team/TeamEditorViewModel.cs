@@ -399,10 +399,14 @@ public sealed partial class TeamEditorViewModel : ObservableObject
 
     /// <summary>
     /// Writes a set of changes of the template all or nothing (the fixes of one click, and their undo and redo, change several
-    /// agents at once): everything is worked out first (the template accepts each agent, the store can remove what has to go) and
-    /// Windows Hello is asked once for the whole set when any of it grants power (D-37), before anything is saved; if the store
-    /// fails halfway, what was already saved goes back to its previous version, so the template is never left in between. The
-    /// approval is withdrawn once, at the end. Returns whether everything was written.
+    /// agents at once): everything is worked out first (the template accepts each agent, the store can remove what has to go, and
+    /// the team that is left still has its orchestrator and a judge: <see cref="TeamRemoval"/>) and Windows Hello is asked once for
+    /// the whole set when any of it grants power (D-37), before anything is saved or removed. The store has no operation by lots, so
+    /// the set is written as a sequence, the saves first and the removals last, and if the store fails halfway what was already
+    /// written goes back (the previous version of each agent saved, and the ones removed saved again), so the template is never
+    /// left in between; what a revert cannot give back is the place of an agent that was removed and saved again, which goes to the
+    /// end of the list. Taking an agent out grants nothing, so on its own it asks for no Hello. The approval is withdrawn once, at the
+    /// end. Returns whether everything was written.
     /// </summary>
     public async Task<bool> ApplyManyAsync(IReadOnlyList<AgentDefinition> updates, IReadOnlyList<AgentId> removals, string notice)
     {
@@ -429,6 +433,14 @@ public sealed partial class TeamEditorViewModel : ObservableObject
                 ErrorMessage = _text.Format("Canvas_Editor_Refused", string.Join(", ", problems));
                 return false;
             }
+        }
+
+        // What a removal leaves is looked at before anything is asked or written: the team keeps the orchestrator that plans and the
+        // judge that reviews (P48). The store takes whatever it is told, so it is not its job.
+        if (removals.Count > 0 && TeamRemoval.Problems(_roster, After(updates, removals)) is { Count: > 0 } missing)
+        {
+            ErrorMessage = _text.Format("Canvas_Editor_Refused", string.Join(", ", missing.Select(ProblemText)));
+            return false;
         }
 
         // The agents already in the template go first and the new ones last: a failure on the first leaves nothing new behind.
@@ -478,6 +490,31 @@ public sealed partial class TeamEditorViewModel : ObservableObject
         return true;
     }
 
+    /// <summary>The template as it would be once <see cref="ApplyManyAsync"/> is done: the agents saved (new ones at the end), and then the ones taken out.</summary>
+    private List<AgentDefinition> After(IReadOnlyList<AgentDefinition> updates, IReadOnlyList<AgentId> removals)
+    {
+        var result = _roster.ToList();
+        foreach (var update in updates)
+        {
+            var at = result.FindIndex(a => a.Id == update.Id);
+            if (at >= 0)
+            {
+                result[at] = update;
+            }
+            else
+            {
+                result.Add(update);
+            }
+        }
+
+        result.RemoveAll(a => removals.Contains(a.Id));
+        return result;
+    }
+
+    /// <summary>The sentence of a code of <see cref="TeamRemoval"/>, from the same texts as the problems of the layer, without its final stop (the message that holds it has its own).</summary>
+    private string ProblemText(string code) =>
+        _text.Get("Canvas_Problem_" + code[(code.IndexOf('.', StringComparison.Ordinal) + 1)..].Replace('-', '_')).TrimEnd('.');
+
     /// <summary>Puts back what was saved before a failure: the previous version of each agent, and out again the ones that were new (when the store can).</summary>
     private async Task RevertAsync(ProjectContext project, List<(AgentDefinition? Before, AgentDefinition After)> written, List<AgentDefinition> removed)
     {
@@ -519,30 +556,20 @@ public sealed partial class TeamEditorViewModel : ObservableObject
         await _saved().ConfigureAwait(true);
     }
 
+    /// <summary>
+    /// «Quitar del equipo»: a set of changes with nothing to save and one agent to take out, so it goes the way every change of the
+    /// template does (<see cref="ApplyManyAsync"/>): the team that is left is checked first (the orchestrator and the last judge stay),
+    /// and a failure of the store is shown in the layer.
+    /// </summary>
     [RelayCommand(CanExecute = nameof(CanRemoveSelected))]
     private async Task RemoveSelectedAsync()
     {
-        if (_canvas.SelectedAgent is not { } node || _remove is not { } remove || _project is not { } project)
+        if (_canvas.SelectedAgent is not { } node || _remove is null)
         {
             return;
         }
 
-        ErrorMessage = null;
-        Notice = null;
-        try
-        {
-            await remove(project, node.Id).ConfigureAwait(true);
-        }
-#pragma warning disable CA1031 // The template is behind a port: a failure is shown in the layer, never thrown into the UI.
-        catch (Exception ex)
-#pragma warning restore CA1031
-        {
-            ErrorMessage = _text.Format("Canvas_Editor_NotSaved", ex.Message);
-            return;
-        }
-
-        await _saved().ConfigureAwait(true);
-        Notice = _text.Format("Canvas_Editor_Removed", node.Id.Value) + " " + ConsequenceText;
+        await ApplyManyAsync([], [node.Id], _text.Format("Canvas_Editor_Removed", node.Id.Value)).ConfigureAwait(true);
     }
 
     private bool CanRemoveSelected() => CanEdit && _remove is not null && _canvas.SelectedAgent is not null;

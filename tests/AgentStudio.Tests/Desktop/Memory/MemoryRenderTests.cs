@@ -8,6 +8,7 @@ using AgentStudio.Desktop.Orchestrator.Session;
 using AgentStudio.Desktop.Views.Memory;
 using AgentStudio.Desktop.Views.Orchestrator;
 using AgentStudio.Domain.Agents;
+using AgentStudio.Domain.Common;
 using AgentStudio.Tests.Desktop.Orchestrator;
 using AgentStudio.Tests.Memory;
 using Microsoft.Extensions.Time.Testing;
@@ -149,6 +150,8 @@ public sealed class MemoryRenderTests
             Task.FromResult<IReadOnlyList<AgentDefinition>>([.. _agents]);
 
         public Task SaveAsync(string projectId, AgentDefinition agent, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task DeleteAsync(string projectId, AgentId agent, CancellationToken cancellationToken) => Task.CompletedTask;
     }
 
     private sealed class NoLayout : ICanvasLayoutStore

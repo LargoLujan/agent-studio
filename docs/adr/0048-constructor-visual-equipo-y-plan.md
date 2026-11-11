@@ -93,3 +93,47 @@
   - **Lo que no hace WP6:** la estimación del plan entero para `cost.over-budget` (el analizador recibe `EstimatedAgentRuns` nulo y
     calla), los hechos de contexto por tarea (`TaskContexts`, vacíos: las reglas que los necesitan callan) y el número de ficheros
     del proyecto en la recomendación de modelo. Ninguno inventa un dato.
+
+## Adenda · 2026-11-11 · quitar agentes de la plantilla (P48)
+
+La capa Equipo no podía quitar agentes: `IAgentRoster` solo guardaba, así que `TeamEditorViewModel` recibía un delegado nulo, no
+enseñaba «Quitar del equipo» y un conjunto de cambios con una baja (por ejemplo, el deshacer de «Añadir un juez») se rechazaba
+antes de guardar nada.
+
+1. **El borrado en el almacén.** `IAgentRoster.DeleteAsync(projectId, agent, ct)` (Application) y su implementación en
+   `SqliteAgentRoster`: una sola sentencia, `DELETE FROM agents WHERE id = $id AND project_id = $project`, por la misma
+   conexión de `ProjectDatabases` que el resto. Borrar un id que no está (nunca guardado, ya borrado o de otro proyecto) **no
+   hace nada y no falla**: el editor ya comprobó la plantilla que enseñaba, y un error ahí solo convertiría un doble clic en un
+   mensaje. El único campo que apunta a `agents(id)` es `tasks.assigned_agent_id`, que ningún almacén escribe, así que ninguna
+   fila puede impedir el borrado. `OrchestrationSession.RemoveAgentAsync` lo expone al documento con la misma condición que
+   `SaveAgentAsync` (que exista el almacén), y `InitializeBuilder` pasa ese delegado al editor: `CanRemoveAgents` es cierto
+   cuando se puede guardar, y sin almacén sigue sin botón.
+2. **La aprobación.** Quitar un agente no concede nada, y la lista de Windows Hello de D-37 no lo recoge, así que **por sí
+   solo no pide Hello**: no se añade ninguna acción a `PresencePolicy`. Lo que ya mandaba sigue mandando: si el conjunto de
+   cambios concede poder (shell, red o más carpetas a algún agente), se pide **un solo Hello para todo el conjunto, antes de
+   guardar o quitar nada**, y las bajas llegan al almacén después de esa aprobación y de las comprobaciones. Si se prefiere
+   que quitar también pida confirmación, es una acción nueva de D-37 y una decisión aparte.
+3. **Qué plantilla queda.** «Quitar del equipo» deja de llamar al almacén por su cuenta y pasa por `ApplyManyAsync`, como
+   cualquier cambio de la plantilla. Antes de preguntar o escribir nada se comprueba la plantilla que quedaría
+   (`TeamRemoval.Problems`, dominio puro): una baja no puede llevarse **al orquestador** (`team.orchestrator-required`) ni **al
+   último juez** (`team.judge-required`, el código que ya usa `TeamGraph.Validate`), y lo dice con el texto de la capa
+   (`Canvas_Problem_*`) dentro de `Canvas_Editor_Refused`. `TeamGraph.Validate` no pide orquestador (una plantilla leída del
+   almacén puede no tenerlo y la capa ofrece añadirlo), por eso la regla vive en la baja y no en el grafo: una plantilla que ya
+   carecía de un rol no se rechaza por ello al quitar otra cosa, y un cambio que sustituye al único juez por otro en la misma
+   operación pasa. Deshacer «Añadir un juez» cuando ese juez era el primero que tenía el equipo queda así rechazado.
+4. **Todo o nada, y su límite.** El almacén no tiene operación por lotes: el conjunto se escribe como una secuencia, los
+   guardados primero y las bajas al final, y si el almacén falla a medias se deshace por compensación (se vuelve a guardar la
+   versión anterior de cada agente tocado y se vuelve a guardar cada agente ya quitado). Lo que una compensación no devuelve es el
+   sitio del agente que se quitó y se volvió a guardar, que pasa al final de la lista y con otra fecha de creación; `RosterHash`
+   ordena por id, así que su huella no cambia. Una operación por lotes del almacén, en una transacción que guarde y borre a la
+   vez, quitaría esa ventana, y no se ha hecho porque el contrato crecería más de lo que pide P48.
+5. **Por qué no afecta al historial.** Las cabeceras congeladas llevan las definiciones enteras: `RunRecord.Roster` (con
+   `RunHeaderHash`) y `DebateParticipantDefinition.Agent` y `DebateRecord.Judges` en los debates. Ninguna cabecera lee la
+   plantilla viva después de crearse, así que borrar un agente de la plantilla no cambia lo que una ejecución o un debate
+   pasados hicieron con él. Lo que sí lee la plantilla viva es lo que empieza de nuevo (planificar, empezar una ejecución o un
+   debate, auditar, elegir quién analiza el consumo), que es justo lo que debe ver la baja. Por eso no hay borrado lógico ni
+   marca de «archivado», y una prueba lo fija: la cabecera de una ejecución y su hash se leen igual tras borrar de la plantilla un
+   agente que la ejecución congeló.
+6. **Qué no cambia.** `FixApplier` no tiene ningún arreglo que quite agentes (los arreglos añaden o editan), así que no hubo
+   nada que dejar de rechazar ahí; las bajas del borrador llegan por `DraftHost.ApplyAsync`, que ya calculaba los agentes que
+   desaparecen entre el estado anterior y el nuevo y los pasaba a `ApplyManyAsync`.
