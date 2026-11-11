@@ -39,7 +39,7 @@
   </data>
   <data name="Debate_ModeHelp_Free" xml:space="preserve">
     <value>Dos participantes o más, con cualquier papel. En la ronda 1 cada uno propone. Después se discute con objeciones y réplicas. El revisor independiente (juez) elige una propuesta o dice «no resuelto».</value>
-    <comment>What the mode Open is about.</comment>
+    <comment>What the mode Free is about.</comment>
   </data>
   <data name="Debate_ModeHelp_Adversarial" xml:space="preserve">
     <value>Un proponente y un crítico como mínimo. El crítico busca errores, contradicciones, riesgos e incumplimientos. El proponente responde.</value>
@@ -234,7 +234,7 @@
     <comment>What a debate waits for.</comment>
   </data>
   <data name="Debate_Await_ProviderLimit" xml:space="preserve">
-    <value>Se alcanzó el límite de uso de tu plan. Espera sola si el programa dijo cuándo se reinicia. Si no, se detiene.</value>
+    <value>Se alcanzó el límite de uso de tu plan. Si el programa dijo cuándo se reinicia, el debate espera solo. Si no, se detiene.</value>
     <comment>What a debate waits for.</comment>
   </data>
   <data name="Debate_Await_HumanResolution" xml:space="preserve">

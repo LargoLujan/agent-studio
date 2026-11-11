@@ -30,6 +30,13 @@ public sealed partial class DebateStringsTests
     [GeneratedRegex("InfoKey=.(Info_[A-Za-z]+).")]
     private static partial Regex InfoKey();
 
+    /// <summary>A key of these screens written as a literal: <c>"Debate_Mode_"</c>, <c>"Verdict_Outcome_Valid"</c>…</summary>
+    [GeneratedRegex(@"""((?:Debate|Verdict|Audit|Info)_[A-Za-z_]*)""")]
+    private static partial Regex KeyLiteral();
+
+    [GeneratedRegex(@"\{l:T ([A-Za-z_]+)\}")]
+    private static partial Regex XamlKey();
+
     /// <summary>Every prefix with the enumeration whose values complete it, as <c>DebateTexts</c> and <c>VerdictTexts</c> read them.</summary>
     private static IEnumerable<(string Prefix, Type Enumeration, string[] Except)> NamedValues() =>
     [
@@ -74,6 +81,47 @@ public sealed partial class DebateStringsTests
         }
 
         Assert.True(missing.Count == 0, "Names without a text:\n" + string.Join('\n', missing));
+    }
+
+    /// <summary>
+    /// The test of keys of phase 13 only sees <c>Get("Key")</c>; these screens also choose a key with a condition
+    /// (<c>Get(ok ? "A" : "B")</c>), build it from a prefix or a plural, or name it in XAML. Every key they name exists in both
+    /// languages; a prefix needs one key that starts with it, a plural both forms and an information button its three texts.
+    /// </summary>
+    [Fact]
+    public void Every_key_the_debate_and_audit_screens_name_exists_in_both_languages()
+    {
+        var files = ResourceFiles();
+        var spanish = files.Values.SelectMany(f => Read(f.Neutral).Keys).ToHashSet(StringComparer.Ordinal);
+        var english = files.Values.SelectMany(f => Read(f.Satellites["en"]).Keys).ToHashSet(StringComparer.Ordinal);
+        var sources = new[] { "Debate", "Audit" }
+            .SelectMany(folder => Directory.GetFiles(Path.Combine(DesktopRoot, folder), "*.cs"))
+            .Concat(new[] { "Debate", "Audit" }.SelectMany(folder => Directory.GetFiles(Path.Combine(DesktopRoot, "Views", folder), "*.xaml")))
+            .ToList();
+        Assert.True(sources.Count >= 7, "The screens of the debates and the audit were not found.");
+
+        var missing = new List<string>();
+        foreach (var source in sources)
+        {
+            var text = File.ReadAllText(source);
+            var named = KeyLiteral().Matches(text).Select(m => m.Groups[1].Value)
+                .Concat(XamlKey().Matches(text).Select(m => m.Groups[1].Value))
+                .Distinct(StringComparer.Ordinal);
+            foreach (var key in named)
+            {
+                var found = (spanish.Contains(key) && english.Contains(key))
+                    || (key.EndsWith('_') && spanish.Any(k => k.StartsWith(key, StringComparison.Ordinal)) && english.Any(k => k.StartsWith(key, StringComparison.Ordinal)))
+                    || (spanish.Contains(key + "_One") && spanish.Contains(key + "_Other") && english.Contains(key + "_One") && english.Contains(key + "_Other"))
+                    || (spanish.Contains(key + "_Title") && spanish.Contains(key + "_What") && spanish.Contains(key + "_Actions")
+                        && english.Contains(key + "_Title") && english.Contains(key + "_What") && english.Contains(key + "_Actions"));
+                if (!found)
+                {
+                    missing.Add($"{Path.GetFileName(source)}: {key}");
+                }
+            }
+        }
+
+        Assert.True(missing.Count == 0, "Keys that are not in both languages:\n" + string.Join('\n', missing));
     }
 
     [Fact]

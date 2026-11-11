@@ -14,7 +14,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Debate_Mode_Free" xml:space="preserve">
-    <value>Open</value>
+    <value>Free-form</value>
   </data>
   <data name="Debate_Mode_Adversarial" xml:space="preserve">
     <value>Adversarial</value>
@@ -179,7 +179,7 @@
     <value>A turn failed twice. Try the turn again, ask for judgment with what there is, or abort.</value>
   </data>
   <data name="Debate_Await_ProviderLimit" xml:space="preserve">
-    <value>Your plan's usage limit was reached. It waits by itself if the program said when it resets. If not, it stops.</value>
+    <value>Your plan's usage limit was reached. If the program said when it resets, the debate waits by itself. If not, it stops.</value>
   </data>
   <data name="Debate_Await_HumanResolution" xml:space="preserve">
     <value>The judgment needs a person: "I decide".</value>
@@ -1040,19 +1040,19 @@
     <value>Rounds</value>
   </data>
   <data name="Debate_Form_RoundsName" xml:space="preserve">
-    <value>At most rounds</value>
+    <value>Maximum rounds</value>
   </data>
   <data name="Debate_Form_Minutes" xml:space="preserve">
     <value>Minutes</value>
   </data>
   <data name="Debate_Form_MinutesName" xml:space="preserve">
-    <value>At most minutes</value>
+    <value>Maximum minutes</value>
   </data>
   <data name="Debate_Form_Tokens" xml:space="preserve">
     <value>Tokens</value>
   </data>
   <data name="Debate_Form_TokensName" xml:space="preserve">
-    <value>At most tokens</value>
+    <value>Maximum tokens</value>
   </data>
   <data name="Debate_Form_Limits" xml:space="preserve">
     <value>Limits</value>
