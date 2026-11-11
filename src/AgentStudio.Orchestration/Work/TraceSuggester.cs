@@ -82,14 +82,17 @@ public sealed partial class TraceSuggester(IDecisionRecorder recorder, IReposito
 
         // The whole message when the reader gives it (the trailers are in its last paragraph), else the subject.
         var message = commit.Message ?? commit.Subject ?? string.Empty;
-        if (CommitTrailers.Read(message) is { } trailers && known.Contains(trailers.Run.Value))
+        var trailers = CommitTrailers.Read(message);
+        if (trailers is not null && known.Contains(trailers.Run.Value))
         {
-            yield return new TraceSuggestion(from, TraceRef.Attempt(trailers.Run.Value, trailers.Task.Value, trailers.Attempt), TraceSuggestionSource.CommitTrailer, Cut(message));
+            var origin = $"{CommitTrailers.RunKey}: {trailers.Run.Value}, {CommitTrailers.TaskKey}: {trailers.Task.Value}, {CommitTrailers.AttemptKey}: {trailers.Attempt}";
+            yield return new TraceSuggestion(from, TraceRef.Attempt(trailers.Run.Value, trailers.Task.Value, trailers.Attempt), TraceSuggestionSource.CommitTrailer, Cut(origin));
         }
 
         foreach (Match match in RunIdPattern().Matches(message))
         {
-            if (known.Contains(match.Value))
+            // The run its own trailers name is the attempt's, not a mention.
+            if (known.Contains(match.Value) && !string.Equals(match.Value, trailers?.Run.Value, StringComparison.Ordinal))
             {
                 yield return new TraceSuggestion(from, TraceRef.Run(match.Value), TraceSuggestionSource.CommitMessageMention, Cut(match.Value));
             }

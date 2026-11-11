@@ -2097,3 +2097,24 @@ en otro grupo de la dimensión (un hito), de modo que los grupos pueden sumar m�
 - La prioridad de un elemento del backlog es la de un requisito (`Mandatory` o `Desirable`); el orden manual es `BacklogOrderChanged`.
 - «Integrado» exige además «hecho»: una tarjeta entregada sin veredicto aprobado que la dé por satisfecha no pasa de su columna.
 - ADR-0040 llega con el P0 como esqueleto de lo que fija (dimensiones, `ActivityClass`, presupuesto); WP2 lo completa.
+
+### 23.5 Lo que WP1 hizo con estos contratos
+
+- **Un cambio de contrato:** `CommitNode` gana `Message` (opcional, al final): el mensaje entero cuando el lector lo da. Los trailers de los commits del
+  sistema están en el último párrafo, que el asunto solo no trae, y las sugerencias los leen de ahí; sin `Message` se lee el asunto. `IRepositoryHistoryReader`
+  (WP4) debería rellenarlo.
+- **Servicios** en `Orchestration/Work`: `MilestoneService`, `BacklogService`, `TraceLinkService`, `TraceSuggester` y `BoardProjector`, con `WorkWriteGate`
+  (espera a que `IRunActivity` deje libre el proyecto y toma la puerta del proyecto, como la memoria). Los almacenes son `SqliteMilestoneRegistry` y
+  `SqliteBacklogStore`. `ITraceChainReader`, `IParticipationProjector`, `IRepositoryAnnotator` e `IRepositoryActivityReader` no están en este paquete.
+- **Orden de escritura:** el hito como un debate (requisitos congelados, fila, `MilestoneOpened` con el hash de la cabecera que devuelve el registro; una fila sin
+  `MilestoneOpened` no se lista y abrir otra vez con lo mismo la completa); el backlog como la memoria (`BacklogItemRecorded` primero, la fila después con la hora
+  del anuncio; escribir otra vez la misma versión completa la fila, con otro contenido se rechaza).
+- **Lectura que falla cerrada:** un registro que no verifica lanza `DecisionLogIntegrityException`; una cabecera que no es la que ancló `MilestoneOpened` sale con su
+  problema (`milestone.header-not-anchored`) y no se le escribe nada; una fila del backlog que no coincide con su anuncio (contenido, prioridad u hora) hace
+  `InvalidOperationException` y no se lee el backlog; una fila sin anuncio no se lee; un anuncio sin fila aún no es un elemento.
+- **Trailers:** `Workers.cs` escribe el mensaje del commit de un intento con `CommitTrailers.Append` (ejecución, tarea, intento y agente con su modelo). Sin modelo
+  válido se omite el modelo, y sin trailers válidos queda el asunto. El commit del intento interrumpido de `RunResumer` y el de integración de `Integrator` siguen con
+  sus líneas antiguas, que `CommitTrailers.Read` lee como ninguna (el sistema no las toma por trailers).
+- **Tablero:** un veredicto cuenta si el registro lo anunció válido y el almacén lo guarda válido y con la misma decisión; uno impugnado se aparta (revisión) hasta que
+  su debate de revisión cierra resuelto: si confirma la decisión se queda, si retira una aprobación manda la de la revisión, y si vuelve hacia una aprobación la tarjeta
+  sigue en revisión (la acepta una persona, D-40). Si varias ejecuciones cubren un requisito decide la última que empezó.
