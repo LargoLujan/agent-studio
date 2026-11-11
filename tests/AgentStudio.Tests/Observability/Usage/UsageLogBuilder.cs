@@ -120,6 +120,9 @@ internal sealed class UsageLogBuilder
         return Append(DecisionKind.TaskStatusChanged, "T1 en curso", payload);
     }
 
+    /// <summary>Any other entry of the log (a run starting, a task changing, a link of a milestone), as the engine would write it.</summary>
+    public UsageLogBuilder Record(DecisionKind kind, DecisionPayload payload) => Append(kind, kind.ToString(), payload);
+
     public static VendorId VendorOf(ProviderId provider) =>
         provider == ProviderId.CodexCli ? VendorId.OpenAI
         : provider == ProviderId.GeminiCli ? VendorId.Google

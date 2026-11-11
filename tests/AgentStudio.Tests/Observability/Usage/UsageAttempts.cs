@@ -56,7 +56,10 @@ internal static class UsageAttempts
         TimeSpan? queued = null,
         bool launched = true,
         ContextPeakFigures? peak = null,
-        int? compactions = null)
+        int? compactions = null,
+        IReadOnlyList<string>? milestones = null,
+        ActivityClass? activity = null,
+        long? quotaWait = null)
     {
         var on = provider ?? ProviderId.ClaudeCode;
         var length = duration ?? TimeSpan.FromSeconds(30);
@@ -85,6 +88,9 @@ internal static class UsageAttempts
             compactions)
         {
             RecordedVersion = version,
+            Milestones = milestones ?? [],
+            Activity = activity,
+            QuotaWaitMilliseconds = quotaWait,
         };
     }
 }

@@ -6,6 +6,7 @@ using AgentStudio.Application.Execution;
 using AgentStudio.Application.Git;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Providers;
+using AgentStudio.Application.Usage;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Evidence;
@@ -59,6 +60,9 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
     private bool _cancelling;
     private bool _integrityBreached;
     private bool _budgetBlocked;
+
+    /// <summary>Why the budget of the project or of a milestone refused an attempt (<see cref="ProjectBudgetGate"/>); the hold lasts the run, like <c>MaxAgentRuns</c>.</summary>
+    private BudgetGateVerdict? _projectBudgetHold;
     private string _cancelReason = string.Empty;
     private DateTimeOffset _cancelDeadline;
     private Task? _loop;
@@ -975,6 +979,29 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
             return false; // another task of the same provider may still go first: no head-of-line blocking
         }
 
+        // The budget of the project and of the milestone (docs/16 D-05, F9-8): checked once the attempt could launch, never when it
+        // would wait anyway. A refusal holds the run's agent work, like MaxAgentRuns, and says why; it launches nothing.
+        if (_ports.BudgetGate is { } budgetGate)
+        {
+            if (_projectBudgetHold is null)
+            {
+                var inFlightAgents = _inFlight.Values.Count(f => f.Kind == WorkTaskKind.AgentWork);
+                var estimate = new UsageEstimateRequest(_ctx.Project, agent.Id, provider.Provider, agent.Model.Model, AgentRunPurpose.Executor, null, agent.Effort);
+                var verdict = await budgetGate.CheckAsync(_ctx.Project, _recorder.RunValue, estimate, inFlightAgents, Token).ConfigureAwait(false);
+                if (!verdict.Allowed)
+                {
+                    _projectBudgetHold = verdict;
+                    await AlertOnceAsync(verdict.Code!, verdict.Code!, [.. _graph.Tasks.Where(t => !WorkTaskTransitions.IsTerminal(t.Status)).Select(t => t.Id)], verdict.Reason!).ConfigureAwait(false);
+                }
+            }
+
+            if (_projectBudgetHold is not null)
+            {
+                _budgetBlocked = true;
+                return false;
+            }
+        }
+
         if (!TryBases(spec, out var taskBase, out var attemptBase, out var recordWorktree, out var problem))
         {
             await MoveAsync(id, WorkTaskStatus.Blocked, problem!, null, BlockReason.AwaitingHuman).ConfigureAwait(false);
@@ -1288,7 +1315,7 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
         // whatever else ended the run.
         var budgetHeld = (_budgetBlocked && _graph.ReadyTasks().Any(t => UsesAgentRun(_ctx.Specs[t.Id])))
             || tasks.Any(t => t.Status == WorkTaskStatus.Failed && !t.RetriesExhausted);
-        if (budgetHeld)
+        if (budgetHeld && _projectBudgetHold is null)
         {
             await AlertOnceAsync(
                 "run.budget-exhausted",
@@ -1310,7 +1337,11 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
                 parts.Add("Inalcanzables: " + string.Join(", ", health.UnreachableTasks) + ".");
             }
 
-            if (budgetHeld)
+            if (_projectBudgetHold is { } hold)
+            {
+                parts.Add(hold.Reason!);
+            }
+            else if (budgetHeld)
             {
                 parts.Add(string.Create(CultureInfo.InvariantCulture, $"Se agotó el presupuesto de ejecuciones de agente ({_ctx.Options.MaxAgentRuns})."));
             }

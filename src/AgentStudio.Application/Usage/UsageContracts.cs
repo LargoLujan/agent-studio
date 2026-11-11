@@ -32,8 +32,8 @@ public enum UsageDimension
     Week,
     Month,
 
-    // Phase 9 (docs/16 D-34), appended. Not computed yet: UsageAggregator.KeyOf (WP2) and the dimension list of the dashboard (WP5)
-    // must handle them before anyone can group by them.
+    // Phase 9 (docs/16 D-34, ADR-0040), appended. UsageAggregator.KeyOf computes them from UsageAttempt.Milestones and
+    // UsageAttempt.Activity; the dimension list of the dashboard (WP5) still has to label them.
 
     /// <summary>The milestone an attempt is linked to (by <c>MilestoneLinked</c>); an attempt in two milestones is in each, marked shared, and once in the total.</summary>
     Milestone,
@@ -118,6 +118,25 @@ public sealed record UsageAttempt(
     /// when none was set, and for every start written before the field existed.
     /// </summary>
     public ReasoningEffort? Effort { get; init; }
+
+    /// <summary>
+    /// Phase 9 (docs/16 D-34, ADR-0040): the ids of the milestones the attempt belongs to, through <c>MilestoneLinked</c> (a run is
+    /// linked with its follow-ups). Empty when it is in none; two or more make it shared. The projection fills it.
+    /// </summary>
+    public IReadOnlyList<string> Milestones { get; init; } = [];
+
+    /// <summary>The value of the attempt on the three axes of the activity (D-34, <c>ActivityClassifier</c>); null for an attempt built by hand.</summary>
+    public ActivityClass? Activity { get; init; }
+
+    /// <summary>
+    /// How long the task waited for its quota window after this attempt hit the limit, in milliseconds: from the block
+    /// <c>RateLimitedUntil</c> to the task leaving it. Measured from the log and never part of the duration of the attempt. Null when
+    /// the attempt began no such wait.
+    /// </summary>
+    public long? QuotaWaitMilliseconds { get; init; }
+
+    /// <summary>The wait for quota this attempt began had not ended when the log ends (the task never left the block), so it has no length yet.</summary>
+    public bool OpenQuotaWait { get; init; }
 }
 
 /// <summary>
@@ -137,7 +156,17 @@ public sealed record UsageTotals(
     int RateLimited,
     int LimitReached,
     ContextPeakFigures? ContextPeak,
-    MetricAggregate<long> Compactions);
+    MetricAggregate<long> Compactions)
+{
+    /// <summary>
+    /// Phase 9 (D-34): the time the attempts waited in the provider's queue, from <c>AgentRunStarted</c> to <c>LaunchedAt</c>, apart from
+    /// their duration. Null in a total built by hand.
+    /// </summary>
+    public MetricAggregate<long>? QueueWaitMilliseconds { get; init; }
+
+    /// <summary>Phase 9 (D-34): the time the tasks waited for their quota window after these attempts hit a limit, apart from their duration.</summary>
+    public MetricAggregate<long>? QuotaWaitMilliseconds { get; init; }
+}
 
 /// <summary>The value of one dimension in the key of a group, such as (<see cref="UsageDimension.Model"/>, <c>claude-sonnet-5-5</c>).</summary>
 public sealed record UsageGroupKey(UsageDimension Dimension, string Value);
