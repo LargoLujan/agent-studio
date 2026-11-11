@@ -32,7 +32,7 @@
     <value>With {0} executors on {1}, {2} work at once; the rest wait their turn.</value>
   </data>
   <data name="Text_context_pack_too_small" xml:space="preserve">
-    <value>The mandatory requirements of {0} take {1:N0} characters and its budget is {2:N0}: the task would not start. Split it or reduce its requirements.</value>
+    <value>The mandatory requirements of {0} take {1:N0} characters. Its budget is {2:N0}. The task would not start. Split it or reduce its requirements.</value>
   </data>
   <data name="Text_context_window_tight" xml:space="preserve">
     <value>{0} starts with ~{1:N0} tokens, {3} % of the model's working memory ({2:N0}).</value>
@@ -47,7 +47,7 @@
     <value>{0} uses {1}, a light model, which had {2} retries and {3} rejections from the judge in this project.</value>
   </data>
   <data name="Text_cost_over_budget" xml:space="preserve">
-    <value>The plan would need about {0} agent runs and your budget is {1}.</value>
+    <value>The plan would need about {0} agent runs. Your budget is {1}.</value>
   </data>
   <data name="Text_quota_window_near" xml:space="preserve">
     <value>The {1} limit of {0} is at {2} %: you may have to wait until {3:t}.</value>

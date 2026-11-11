@@ -38,7 +38,7 @@
     <comment>Finding team.parallel-capacity. {0}: how many; {1}: CLI id; {2}: how many at once.</comment>
   </data>
   <data name="Text_context_pack_too_small" xml:space="preserve">
-    <value>Los requisitos obligatorios de {0} ocupan {1:N0} caracteres y su presupuesto es de {2:N0}: la tarea no arrancaría. Pártela o reduce sus requisitos.</value>
+    <value>Los requisitos obligatorios de {0} ocupan {1:N0} caracteres. Su presupuesto es de {2:N0}. La tarea no arrancaría. Pártela o reduce sus requisitos.</value>
     <comment>Finding context.pack-too-small. {0}: task; {1}: characters of its mandatory requirements; {2}: budget.</comment>
   </data>
   <data name="Text_context_window_tight" xml:space="preserve">
@@ -58,7 +58,7 @@
     <comment>Finding model.undersized. {0}: agent; {1}: model; {2}: retries; {3}: rejections.</comment>
   </data>
   <data name="Text_cost_over_budget" xml:space="preserve">
-    <value>El plan necesitaría unas {0} ejecuciones de agente y tu presupuesto es de {1}.</value>
+    <value>El plan necesitaría unas {0} ejecuciones de agente. Tu presupuesto es de {1}.</value>
     <comment>Finding cost.over-budget. {0}: agent runs estimated; {1}: budget.</comment>
   </data>
   <data name="Text_quota_window_near" xml:space="preserve">

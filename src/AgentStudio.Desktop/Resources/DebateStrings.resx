@@ -42,7 +42,7 @@
     <comment>What the mode Free is about.</comment>
   </data>
   <data name="Debate_ModeHelp_Adversarial" xml:space="preserve">
-    <value>Un proponente y un crítico como mínimo. El crítico busca errores, contradicciones, riesgos e incumplimientos. El proponente responde.</value>
+    <value>Hace falta un proponente y un crítico, o más. El crítico busca errores, contradicciones, riesgos e incumplimientos. El proponente responde.</value>
     <comment>What the mode Adversarial is about.</comment>
   </data>
   <data name="Debate_ModeHelp_ArchitectureReview" xml:space="preserve">
@@ -174,7 +174,7 @@
     <comment>What a debate is about.</comment>
   </data>
   <data name="Debate_Subject_Commit" xml:space="preserve">
-    <value>La última versión guardada (commit HEAD) del repositorio</value>
+    <value>La última versión guardada (commit) del repositorio</value>
     <comment>What a debate is about.</comment>
   </data>
   <data name="Debate_Subject_CommitOf" xml:space="preserve">
@@ -1046,7 +1046,7 @@
     <comment>What a debate may be about.</comment>
   </data>
   <data name="Debate_SubjectOption_Commit" xml:space="preserve">
-    <value>La última versión guardada (commit HEAD) del repositorio</value>
+    <value>La última versión guardada (commit) del repositorio</value>
     <comment>What a debate may be about.</comment>
   </data>
   <data name="Debate_SubjectOption_Run" xml:space="preserve">
@@ -1074,7 +1074,7 @@
     <comment>Status.</comment>
   </data>
   <data name="Debate_New_Status_Prepared" xml:space="preserve">
-    <value>Revisa la configuración y la estimación. «Abrir debate» te pedirá aprobación.</value>
+    <value>Mira la configuración y la estimación. Si pulsas «Abrir debate», te pedimos permiso.</value>
     <comment>Status.</comment>
   </data>
   <data name="Debate_New_Status_Problems" xml:space="preserve">
@@ -1126,7 +1126,7 @@
     <comment>Problem of the form.</comment>
   </data>
   <data name="Debate_New_Problem_NoRunRegistry" xml:space="preserve">
-    <value>Falta el registro de ejecuciones: no se puede debatir sobre una ejecución.</value>
+    <value>Falta el registro de ejecuciones: no se puede debatir una ejecución.</value>
     <comment>Problem of the form.</comment>
   </data>
   <data name="Debate_New_Problem_NoRuns" xml:space="preserve">
@@ -1162,7 +1162,7 @@
     <comment>Problem of the form.</comment>
   </data>
   <data name="Debate_New_Hint_Run" xml:space="preserve">
-    <value>El registro sabe qué empresas produjeron la ejecución. El coordinador calcula quién puede juzgar al preparar.</value>
+    <value>El registro sabe qué empresas hicieron la ejecución. Al preparar, el coordinador calcula quién puede juzgar.</value>
     <comment>Hint about who can judge a run.</comment>
   </data>
   <data name="Debate_New_Hint_Choose" xml:space="preserve">
@@ -1322,7 +1322,7 @@
     <comment>Notice at the top of the screen.</comment>
   </data>
   <data name="Debate_Doc_Notice_NoRuns" xml:space="preserve">
-    <value>Falta el registro de ejecuciones: no se puede debatir sobre una ejecución.</value>
+    <value>Falta el registro de ejecuciones: no se puede debatir una ejecución.</value>
     <comment>Notice at the top of the screen.</comment>
   </data>
   <data name="Debate_Doc_Notice_NoWorkspace" xml:space="preserve">

@@ -38,11 +38,11 @@
     <comment>AgentLiveStatus.Working without a task.</comment>
   </data>
   <data name="Monitor_AgentStatus_WaitingForQuota" xml:space="preserve">
-    <value>Esperando cuota hasta las {0}</value>
+    <value>En pausa por el límite de uso hasta las {0}</value>
     <comment>AgentLiveStatus.WaitingForQuota. {0}: local time.</comment>
   </data>
   <data name="Monitor_AgentStatus_WaitingForQuotaNoTime" xml:space="preserve">
-    <value>Esperando cuota</value>
+    <value>En pausa por el límite de uso</value>
     <comment>AgentLiveStatus.WaitingForQuota without a time.</comment>
   </data>
   <data name="Monitor_AgentStatus_Asking" xml:space="preserve">
@@ -94,7 +94,7 @@
     <comment>Counter of agents. {0}: number.</comment>
   </data>
   <data name="Monitor_Counter_WaitingForQuota" xml:space="preserve">
-    <value>{0} esperan cuota</value>
+    <value>{0} en pausa por el límite de uso</value>
     <comment>Counter of agents. {0}: number.</comment>
   </data>
   <data name="Monitor_Counter_Blocked" xml:space="preserve">
@@ -126,7 +126,7 @@
     <comment>Label of the budget bar.</comment>
   </data>
   <data name="Monitor_Bar_Quota" xml:space="preserve">
-    <value>Cuota de {0}</value>
+    <value>Límite de uso de {0}</value>
     <comment>Label of the quota bar. {0}: program.</comment>
   </data>
   <data name="Monitor_Bar_NoAttempts" xml:space="preserve">
@@ -336,7 +336,7 @@ Pulsa Esc para decidir más tarde: la tarea sigue esperando.</value>
     <comment>Title of the information button.</comment>
   </data>
   <data name="Info_Monitor_What" xml:space="preserve">
-    <value>Aquí ves qué hace cada agente mientras trabaja: su estado, la memoria de trabajo que usa, lo que ha consumido y lo que te queda de presupuesto y de límite de uso.</value>
+    <value>Aquí ves qué hace cada agente mientras trabaja. Ves su estado, la memoria de trabajo que usa y lo que ha consumido. También lo que te queda de presupuesto y de límite de uso.</value>
     <comment>Information button.</comment>
   </data>
   <data name="Info_Monitor_Actions" xml:space="preserve">
@@ -418,7 +418,7 @@ Responde cuando un agente te pregunta algo.</value>
     <comment>Tooltip of the button.</comment>
   </data>
   <data name="Monitor_Consumption_Consent" xml:space="preserve">
-    <value>Un agente de una empresa distinta de la que hizo el trabajo leerá el informe de arriba y la tabla de uso, sin el texto de los prompts, y propondrá mejoras. Gasta límite de uso de tu plan. {0}</value>
+    <value>Un agente de una empresa distinta de la que hizo el trabajo leerá el informe de arriba. También leerá la tabla de uso. No verá el texto de los prompts. Propondrá mejoras.</value>
     <comment>OK of quota. {0}: the estimate.</comment>
   </data>
   <data name="Monitor_Consumption_EstimateAsking" xml:space="preserve">
@@ -430,7 +430,7 @@ Responde cuando un agente te pregunta algo.</value>
     <comment>When there is no estimate.</comment>
   </data>
   <data name="Monitor_Consumption_Confirm" xml:space="preserve">
-    <value>Sí, gastar cuota</value>
+    <value>Sí, gastar mi límite de uso</value>
     <comment>Button of the OK.</comment>
   </data>
   <data name="Monitor_Consumption_Cancel" xml:space="preserve">
@@ -470,7 +470,7 @@ Responde cuando un agente te pregunta algo.</value>
     <comment>Title of the information button.</comment>
   </data>
   <data name="Info_Consumption_What" xml:space="preserve">
-    <value>Busca en el registro de la ejecución dónde se gastaron tokens de más: contexto escaso, reintentos que fallan igual, modelos demasiado grandes. Cada hallazgo dice lo que costó y de dónde sale la cifra.</value>
+    <value>Busca en el registro de la ejecución dónde se gastaron tokens de más. Por ejemplo, contexto escaso, reintentos que fallan igual o modelos demasiado grandes.</value>
     <comment>Information button.</comment>
   </data>
   <data name="Info_Consumption_Actions" xml:space="preserve">

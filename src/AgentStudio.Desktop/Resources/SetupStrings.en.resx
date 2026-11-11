@@ -17,7 +17,7 @@
     <value>Set up project</value>
   </data>
   <data name="Setup_Info_What" xml:space="preserve">
-    <value>A seven-step assistant that proposes how to prepare this project: team, models, tests and limits. It proposes from the files of the project, with no network and no quota spent. Nothing is applied until you press "Apply".</value>
+    <value>A seven-step assistant that proposes how to prepare this project: team, models, tests and limits. It proposes from the files of the project, with no network and without spending your usage limit. Nothing is applied until you press "Apply".</value>
   </data>
   <data name="Setup_Info_Actions" xml:space="preserve">
     <value>Review and change each proposal.
@@ -200,7 +200,7 @@ Apply: the test profile and sensitive permissions ask for Windows Hello.</value>
     <value>No change</value>
   </data>
   <data name="Setup_Models_Hint" xml:space="preserve">
-    <value>The recommendation comes from the local catalog and your history, spends no quota, and says why. You decide agent by agent.</value>
+    <value>The recommendation comes from the local catalog and your history, spends none of your usage limit, and says why. You decide agent by agent.</value>
   </data>
   <data name="Setup_Models_None" xml:space="preserve">
     <value>The catalog has no model for the program of this agent.</value>
@@ -269,7 +269,7 @@ Apply: the test profile and sensitive permissions ask for Windows Hello.</value>
     <value>Empty: the time the engine decides on its own.</value>
   </data>
   <data name="Setup_Budget_Unattended_Note" xml:space="preserve">
-    <value>Work while you are away: letting a run resume by itself after a quota limit or a restart is a permission you give when you approve each plan, not here.</value>
+    <value>Work while you are away. A run can resume by itself after a usage limit or a restart. You give that permission when you approve each plan, not here.</value>
   </data>
   <data name="Setup_Summary_Hint" xml:space="preserve">
     <value>This is what changes, with what is there now next to it. Nothing is written until you press "Apply the changes".</value>

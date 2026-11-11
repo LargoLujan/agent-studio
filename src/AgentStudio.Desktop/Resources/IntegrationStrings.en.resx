@@ -41,7 +41,7 @@
     <value>Open a project folder to set it up.</value>
   </data>
   <data name="Shell_Setup_Suggestion" xml:space="preserve">
-    <value>This is the first time you open this project: set it up step by step to start with the team, the tests and the budget you want. It never opens by itself.</value>
+    <value>This is the first time you open this project. Set it up step by step to start with the team, the tests and the budget you want.</value>
   </data>
   <data name="Shell_Setup_ReadAgainFailed" xml:space="preserve">
     <value>The setup was applied, but the team could not be read again: {0}</value>
@@ -56,7 +56,7 @@
     <value>Opens the windows of the questions of the orchestrator. When you answer them all, it asks for the plan again with your answers.</value>
   </data>
   <data name="Shell_Planner_Skipped" xml:space="preserve">
-    <value>The answers came when the tab was already busy with another plan or a run: the plan was not asked for again, and no quota was spent.</value>
+    <value>The answers came when the tab was already busy with another plan or a run. The plan was not asked for again, and your usage limit was not spent.</value>
   </data>
   <data name="Shell_Tools_Give" xml:space="preserve">
     <value>Choose in the inspector of the Team layer the agent to give '{0}' to: the change is approved as always.</value>

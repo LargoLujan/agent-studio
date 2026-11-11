@@ -517,7 +517,7 @@ Confirm with Windows Hello when it asks you.</value>
     <comment>JudgeVendorNotIndependent. {0}: task, {1}: agent, {2}: company.</comment>
   </data>
   <data name="Orchestrator_Violation_JudgeVendorNotIndependentAny" xml:space="preserve">
-    <value>The judge "{1}" of {0} uses a model from the same company as the orchestrator or an executor of the plan. The judge has to be from another company.</value>
+    <value>The judge "{1}" of {0} uses a model from the same company as the orchestrator or a plan executor. The judge has to be from another company.</value>
     <comment>JudgeVendorNotIndependent without the company.</comment>
   </data>
   <data name="Orchestrator_Violation_ConditionWithoutPredicate" xml:space="preserve">
@@ -617,7 +617,7 @@ Confirm with Windows Hello when it asks you.</value>
     <comment>DebateNotAvailable. {0}: task, {1}: reason.</comment>
   </data>
   <data name="Orchestrator_Violation_IntegrationWithoutVerification" xml:space="preserve">
-    <value>Integration {0} has no verification steps: the joined code would be neither built nor tested.</value>
+    <value>Integration {0} has no verification steps. The joined code would be neither built nor tested.</value>
     <comment>IntegrationWithoutVerification. {0}: task.</comment>
   </data>
   <data name="Orchestrator_Violation_IntegrationsNotOrdered" xml:space="preserve">
@@ -629,11 +629,11 @@ Confirm with Windows Hello when it asks you.</value>
     <comment>IntegrationsNotOrdered without the detail.</comment>
   </data>
   <data name="Orchestrator_Violation_VerificationRequiredByPolicy" xml:space="preserve">
-    <value>Task {0} is done by "{1}", whose policy requires tests captured by the system: add verification steps to the task.</value>
+    <value>Task {0} is done by "{1}". Its policy requires tests run by the system. Add verification steps to the task.</value>
     <comment>VerificationRequiredByPolicy. {0}: task, {1}: agent.</comment>
   </data>
   <data name="Orchestrator_Violation_ReviewRequiredByPolicy" xml:space="preserve">
-    <value>Task {0} is done by "{1}", whose policy requires an independent review. Add a review task that depends on all the tasks that write.</value>
+    <value>Task {0} is done by "{1}". Its policy requires an independent review. Add a review task that depends on all the tasks that write.</value>
     <comment>ReviewRequiredByPolicy. {0}: task, {1}: agent.</comment>
   </data>
   <data name="Orchestrator_Violation_TestStepRequiredByPolicy" xml:space="preserve">
@@ -969,7 +969,7 @@ See the agents as a graph in the "Team" layer of the canvas.</value>
     <comment>Title of the information button.</comment>
   </data>
   <data name="Info_VerificationProfile_What" xml:space="preserve">
-    <value>It is the list of checks Agent Studio runs on your computer to verify the work, such as building or testing. Each run freezes this version.</value>
+    <value>It is a list of checks that Agent Studio runs on your computer. They verify the work, for example by building or testing it. Each run freezes this version.</value>
     <comment>What the verification profile is.</comment>
   </data>
   <data name="Info_VerificationProfile_Actions" xml:space="preserve">
@@ -1295,7 +1295,7 @@ Choose in each task of the plan which steps are required.</value>
     <comment>Start of the line of a failure.</comment>
   </data>
   <data name="Orchestrator_Session_LogFailed" xml:space="preserve">
-    <value>The history of decisions could not be read</value>
+    <value>The decision history could not be read</value>
     <comment>Start of the line of a failure.</comment>
   </data>
   <data name="Orchestrator_Session_RequirementsStoreMissing" xml:space="preserve">
@@ -1307,7 +1307,7 @@ Choose in each task of the plan which steps are required.</value>
     <comment>Start of the line of a failure.</comment>
   </data>
   <data name="Orchestrator_Session_NoRequirements" xml:space="preserve">
-    <value>The project has no frozen requirements: write them and freeze them in "Requirements" to be able to plan.</value>
+    <value>The project has no frozen requirements. Write them and freeze them in "Requirements". Then you can plan.</value>
     <comment>Line of what is missing.</comment>
   </data>
   <data name="Orchestrator_Session_RosterMissing" xml:space="preserve">
@@ -1315,7 +1315,7 @@ Choose in each task of the plan which steps are required.</value>
     <comment>Line of what is missing.</comment>
   </data>
   <data name="Orchestrator_Session_ProfileMissing" xml:space="preserve">
-    <value>The verification profile is missing (.agentstudio/verification.json): without it the plan cannot be validated.</value>
+    <value>The verification profile is missing (.agentstudio/verification.json). Without it the plan cannot be validated.</value>
     <comment>Line of what is missing.</comment>
   </data>
   <data name="Orchestrator_Session_ProfileFailed" xml:space="preserve">
@@ -1327,7 +1327,7 @@ Choose in each task of the plan which steps are required.</value>
     <comment>Line of what is missing.</comment>
   </data>
   <data name="Orchestrator_Session_NoProfileProposal" xml:space="preserve">
-    <value>The project has no verification profile (.agentstudio/verification.json): review the proposed one and press "Use the proposed profile".</value>
+    <value>This project has no verification profile (.agentstudio/verification.json). Review the proposed one. Then press "Use the proposed profile".</value>
     <comment>Line of what is missing.</comment>
   </data>
   <data name="Orchestrator_Session_RosterFailed" xml:space="preserve">
@@ -1347,15 +1347,15 @@ Choose in each task of the plan which steps are required.</value>
     <comment>Count of entries of the history.</comment>
   </data>
   <data name="Orchestrator_History_Replaced" xml:space="preserve">
-    <value>The history of the project {0} ({1}) used to live in this location, and the history of decisions now starts empty: that one is no longer here. Nothing is planned, run or resumed until you accept to start a new one.</value>
+    <value>The decision history of the project {0} ({1}) used to live in this location. The decision history now starts empty, and that one is no longer here. Nothing is planned, run or resumed until you accept to start a new one.</value>
     <comment>Why the log cannot be trusted. {0}: project, {1}: entries.</comment>
   </data>
   <data name="Orchestrator_History_NoAnchor" xml:space="preserve">
-    <value>The history of decisions has {0}, but there is no anchor for this location: the folder was moved or copied here, or the history comes from another computer or with the repository. Nothing is planned, run or resumed until you accept this history as a new origin. Accept it only if you recognize it.</value>
+    <value>The decision history has {0}, but there is no anchor for this location. Perhaps the folder was moved or copied here. Or the history comes from another computer or with the repository. Nothing is planned, run or resumed until you accept this history as a new origin. Accept it only if you recognize it.</value>
     <comment>Why the log cannot be trusted. {0}: entries.</comment>
   </data>
   <data name="Orchestrator_History_NotIntact" xml:space="preserve">
-    <value>The history of decisions is not intact: {0} Nothing is planned, run or resumed.</value>
+    <value>The decision history is not intact: {0} So nothing is planned, run or resumed.</value>
     <comment>Why the log cannot be trusted. {0}: the problem found.</comment>
   </data>
   <data name="Orchestrator_Phase_Running" xml:space="preserve">
@@ -1367,7 +1367,7 @@ Choose in each task of the plan which steps are required.</value>
     <comment>Phase of a run.</comment>
   </data>
   <data name="Orchestrator_Phase_WaitingForQuota" xml:space="preserve">
-    <value>Waiting for the quota</value>
+    <value>Paused by the usage limit</value>
     <comment>Phase of a run.</comment>
   </data>
   <data name="Orchestrator_Phase_AwaitingHuman" xml:space="preserve">
@@ -1451,7 +1451,7 @@ Choose in each task of the plan which steps are required.</value>
     <comment>Line of the activity. {0}: status.</comment>
   </data>
   <data name="Orchestrator_Activity_Quota" xml:space="preserve">
-    <value>Quota: {0}</value>
+    <value>Usage limit: {0}</value>
     <comment>Line of the activity. {0}: the windows.</comment>
   </data>
   <data name="Orchestrator_Activity_Finished" xml:space="preserve">
@@ -1627,7 +1627,7 @@ Choose in each task of the plan which steps are required.</value>
     <comment>Accessible name of the list.</comment>
   </data>
   <data name="Orchestrator_Review_IntegrityName" xml:space="preserve">
-    <value>Problem in the history of decisions</value>
+    <value>Problem in the decision history</value>
     <comment>Accessible name.</comment>
   </data>
   <data name="Orchestrator_Review_AcceptHistory" xml:space="preserve">
@@ -1647,7 +1647,7 @@ Choose in each task of the plan which steps are required.</value>
     <comment>Button.</comment>
   </data>
   <data name="Orchestrator_Review_RequestPlanHelp" xml:space="preserve">
-    <value>The orchestrator proposes a plan for your request and the frozen requirements. It uses quota of your plan.</value>
+    <value>The orchestrator proposes a plan for your request and the frozen requirements. It uses up part of your plan's usage limit.</value>
     <comment>Tooltip of the button.</comment>
   </data>
   <data name="Orchestrator_Review_CancelPlanning" xml:space="preserve">
@@ -1719,7 +1719,7 @@ Choose in each task of the plan which steps are required.</value>
     <comment>Title and accessible name.</comment>
   </data>
   <data name="Orchestrator_Runs_Hint" xml:space="preserve">
-    <value>"View the run" opens one in the monitor, read only and without using quota. You will see its tasks, evidence, review and delivery.</value>
+    <value>"View the run" opens one in the monitor, read only and without spending your usage limit. You will see its tasks, saved evidence, review and delivery.</value>
     <comment>Explanation under the title.</comment>
   </data>
   <data name="Orchestrator_Runs_None" xml:space="preserve">
@@ -1735,7 +1735,7 @@ Choose in each task of the plan which steps are required.</value>
     <comment>Button.</comment>
   </data>
   <data name="Orchestrator_Runs_ViewHelp" xml:space="preserve">
-    <value>Opens the run in the monitor, read only, rebuilt from the history. It shows the tasks with their reason, the evidence and the review. If the judge approved the integration, you can use "Deliver to my branch". It does not use quota.</value>
+    <value>Opens the run in the monitor, read only, rebuilt from the history. It shows the tasks with their reason, the saved evidence and the review. If the judge approved the integration, you can use "Deliver to my branch". It does not spend your usage limit.</value>
     <comment>Tooltip of the button.</comment>
   </data>
   <data name="Orchestrator_Runs_ViewName" xml:space="preserve">
@@ -1747,7 +1747,7 @@ Choose in each task of the plan which steps are required.</value>
     <comment>Button.</comment>
   </data>
   <data name="Orchestrator_Runs_ResumeHelp" xml:space="preserve">
-    <value>Continues the interrupted run. It uses quota of your plan.</value>
+    <value>Continues the interrupted run. It uses up part of your plan's usage limit.</value>
     <comment>Tooltip of the button.</comment>
   </data>
   <data name="Orchestrator_Runs_ResumeName" xml:space="preserve">
@@ -1833,7 +1833,7 @@ Pause the run: it never resumes by itself then.</value>
     <comment>The profile of the project. {0}: name, {1}: fingerprint, {2}: steps.</comment>
   </data>
   <data name="Orchestrator_Doc_ProfileProposalText" xml:space="preserve">
-    <value>Proposal "{0}" · fingerprint {1} · {2}. It is not the profile of the project yet: review its commands, which are the ones that will run on your computer.</value>
+    <value>Proposal "{0}" · fingerprint {1} · {2}. It is not the profile of the project yet. Review its commands: they will run on your computer.</value>
     <comment>The proposed profile. {0}: name, {1}: fingerprint, {2}: steps.</comment>
   </data>
   <data name="Orchestrator_Doc_ProfileNoneText" xml:space="preserve">
@@ -1861,7 +1861,7 @@ Pause the run: it never resumes by itself then.</value>
     <comment>State of the engine.</comment>
   </data>
   <data name="Orchestrator_Doc_WaitingHistory" xml:space="preserve">
-    <value>Waiting for your answer about the history of decisions…</value>
+    <value>Waiting for your answer about the decision history…</value>
     <comment>Text while the question is open.</comment>
   </data>
   <data name="Orchestrator_Doc_AcceptHistoryFailed" xml:space="preserve">
@@ -1869,11 +1869,11 @@ Pause the run: it never resumes by itself then.</value>
     <comment>Error. {0}: why.</comment>
   </data>
   <data name="Orchestrator_Doc_HistoryNotAccepted" xml:space="preserve">
-    <value>You did not accept the history: the history of decisions stays locked.</value>
+    <value>You did not accept the history: the decision history stays locked.</value>
     <comment>Error.</comment>
   </data>
   <data name="Orchestrator_Doc_ApprovedFollowUp" xml:space="preserve">
-    <value>Plan approved ({0}): "Run the plan" starts a follow-up run of {1}.</value>
+    <value>Plan approved ({0}). "Run the plan" starts a follow-up run of {1}.</value>
     <comment>Approval line. {0}: fingerprint, {1}: run.</comment>
   </data>
   <data name="Orchestrator_Doc_ApprovedHello" xml:space="preserve">
@@ -1941,7 +1941,7 @@ Pause the run: it never resumes by itself then.</value>
     <comment>Label of the consent of the next run.</comment>
   </data>
   <data name="Orchestrator_Doc_ConsentHelp" xml:space="preserve">
-    <value>When ticked, the run goes on by itself in two cases. If a task reaches the usage limit, it waits for the quota to reset, plus 3 minutes, and continues. If the app closes without you asking, or Windows ends the session, the run resumes when you open the app again. It never resumes if you paused it or left it on exit. It never goes over the approved budget. It only counts for the next run and is kept in its header.</value>
+    <value>When ticked, the run goes on by itself in two cases. If a task reaches the usage limit, it waits for it to renew, plus 3 minutes, and continues. If the app closes without you asking, or Windows ends the session, the run goes on. It does so when you open the app again. It never resumes if you paused it or left it on exit. It never goes over the approved budget. It only counts for the next run and is kept in its header.</value>
     <comment>Tooltip of the consent.</comment>
   </data>
   <data name="Orchestrator_Doc_OpeningProject" xml:space="preserve">
@@ -2013,7 +2013,7 @@ Pause the run: it never resumes by itself then.</value>
     <comment>What its plan says now.</comment>
   </data>
   <data name="Orchestrator_Resume_NextShown" xml:space="preserve">
-    <value>Its plan is on the canvas. If you approve it again and press "Run the plan", a follow-up run of {0} starts; "Reject the plan" discards it.</value>
+    <value>Its plan is on the canvas. If you approve it again and press "Run the plan", a follow-up run of {0} starts. "Reject the plan" discards it.</value>
     <comment>What can be done. {0}: run.</comment>
   </data>
   <data name="Orchestrator_Resume_NextHidden" xml:space="preserve">
@@ -2049,15 +2049,15 @@ Pause the run: it never resumes by itself then.</value>
     <comment>Error. {0}: run, {1}: why.</comment>
   </data>
   <data name="Orchestrator_Doc_StartedWhileFollowingTray" xml:space="preserve">
-    <value>Run {0} started while this tab was following another run: it keeps going, and the tray follows it.</value>
+    <value>Run {0} started while this tab was following another one. It keeps going, and the tray follows it.</value>
     <comment>Notice. {0}: run.</comment>
   </data>
   <data name="Orchestrator_Doc_StartedWhileFollowing" xml:space="preserve">
-    <value>Run {0} started while this tab was following another run: it keeps going.</value>
+    <value>Run {0} started while this tab was following another one. It keeps going.</value>
     <comment>Notice. {0}: run.</comment>
   </data>
   <data name="Orchestrator_Doc_ResumeNotDone" xml:space="preserve">
-    <value>Run {0} was not resumed: this tab is now following another run. Resume it when it ends.</value>
+    <value>Run {0} was not resumed. This tab is following another one. Do it when it ends.</value>
     <comment>Notice. {0}: run.</comment>
   </data>
   <data name="Orchestrator_Doc_RunsListFailed" xml:space="preserve">
@@ -2089,7 +2089,7 @@ Pause the run: it never resumes by itself then.</value>
     <comment>Why the plan cannot run.</comment>
   </data>
   <data name="Orchestrator_Blocker_Integrity" xml:space="preserve">
-    <value>The history of decisions is not intact</value>
+    <value>The decision history is not intact</value>
     <comment>Why the plan cannot run.</comment>
   </data>
   <data name="Orchestrator_Blocker_NoContext" xml:space="preserve">
@@ -2125,7 +2125,7 @@ Pause the run: it never resumes by itself then.</value>
     <comment>Notice. {0}: why.</comment>
   </data>
   <data name="Orchestrator_Doc_DraftRecoveredProposal" xml:space="preserve">
-    <value>Draft recovered: it is the plan the orchestrator proposed, not approved. Review it and approve it to run it.</value>
+    <value>Draft recovered. It is the plan the orchestrator proposed, not approved. Look at it and approve it to run it.</value>
     <comment>Status of the proposal.</comment>
   </data>
   <data name="Orchestrator_Doc_DraftRecovered" xml:space="preserve">
@@ -2209,7 +2209,7 @@ Pause the run: it never resumes by itself then.</value>
     <comment>Button.</comment>
   </data>
   <data name="Orchestrator_MonView_AuditAgainHelp" xml:space="preserve">
-    <value>The automatic auditor reviews the history again. It does not use quota and does not repeat what it already recorded.</value>
+    <value>The automatic auditor reviews the history again. It does not spend your usage limit and does not repeat what it already recorded.</value>
     <comment>Tooltip of the button.</comment>
   </data>
   <data name="Orchestrator_MonView_Refresh" xml:space="preserve">
@@ -2217,7 +2217,7 @@ Pause the run: it never resumes by itself then.</value>
     <comment>Button.</comment>
   </data>
   <data name="Orchestrator_MonView_RefreshHelp" xml:space="preserve">
-    <value>Reads the verdict, its challenge and whether the run can be delivered again.</value>
+    <value>Reads again the verdict, its challenge and whether the run can be delivered.</value>
     <comment>Tooltip of the button.</comment>
   </data>
   <data name="Orchestrator_MonView_AuditorName" xml:space="preserve">
@@ -2253,7 +2253,7 @@ Pause the run: it never resumes by itself then.</value>
     <comment>Button.</comment>
   </data>
   <data name="Orchestrator_MonView_AcceptRevisionHelp" xml:space="preserve">
-    <value>A revision that turns the verdict into an approval only counts if you expressly accept it.</value>
+    <value>A revision that turns the verdict into an approval only counts if you accept it.</value>
     <comment>Tooltip of the button.</comment>
   </data>
   <data name="Orchestrator_MonView_ChallengeName" xml:space="preserve">
@@ -2297,11 +2297,11 @@ Pause the run: it never resumes by itself then.</value>
     <comment>Accessible name of the list.</comment>
   </data>
   <data name="Orchestrator_MonView_Evidence" xml:space="preserve">
-    <value>Evidence</value>
+    <value>Saved evidence</value>
     <comment>Title of the list.</comment>
   </data>
   <data name="Orchestrator_MonView_EvidenceName" xml:space="preserve">
-    <value>Evidence of the run</value>
+    <value>Saved evidence of the run</value>
     <comment>Accessible name of the list.</comment>
   </data>
   <data name="Info_Monitor_Context_Title" xml:space="preserve">
@@ -2319,7 +2319,7 @@ Open the consumption analysis, if it is there, to see the detail.</value>
     <comment>What the person can do with the bars.</comment>
   </data>
   <data name="Orchestrator_Mon_Inspection" xml:space="preserve">
-    <value>Read-only view, rebuilt from the history of decisions: viewing it runs and records nothing. "Deliver to my branch" audits it first, as when a run ends. "Close the view" goes back to your draft.</value>
+    <value>Read-only view, rebuilt from the decision history: viewing it runs and records nothing. "Deliver to my branch" audits it first, as when a run ends. "Close the view" goes back to your draft.</value>
     <comment>Says that the run on screen is only being looked at.</comment>
   </data>
   <data name="Orchestrator_Mon_Budget" xml:space="preserve">
@@ -2327,7 +2327,7 @@ Open the consumption analysis, if it is there, to see the detail.</value>
     <comment>Name of the bar of the budget.</comment>
   </data>
   <data name="Orchestrator_Mon_ConsentOn" xml:space="preserve">
-    <value>With your consent to resume by itself. It waits for the quota to renew. If a shutdown you did not ask for cuts it, it resumes when you open the app again.</value>
+    <value>With your consent to resume by itself. It waits for your usage limit to renew. If a shutdown you did not ask for cuts it, it resumes when you open the app again.</value>
     <comment>Whether the run may resume by itself.</comment>
   </data>
   <data name="Orchestrator_Mon_ConsentOff" xml:space="preserve">
@@ -2371,7 +2371,7 @@ Open the consumption analysis, if it is there, to see the detail.</value>
     <comment>Why a pause did not apply.</comment>
   </data>
   <data name="Orchestrator_Mon_RetryNotApplied" xml:space="preserve">
-    <value>the run had already ended or the task was no longer blocked. If it ended, resume it to retry its tasks.</value>
+    <value>Not applied. The run had already ended or the task was no longer blocked. If it ended, resume it to retry its tasks.</value>
     <comment>Why a retry did not apply.</comment>
   </data>
   <data name="Orchestrator_Mon_DoPause" xml:space="preserve">
@@ -2515,7 +2515,7 @@ Open the consumption analysis, if it is there, to see the detail.</value>
     <comment>Added to the audit summary.</comment>
   </data>
   <data name="Orchestrator_Mon_AuditClean" xml:space="preserve">
-    <value>Auditor of the orchestrator: no findings in the verified history of the run.</value>
+    <value>The auditor of the orchestrator found nothing in the verified history of the run.</value>
     <comment>Audit summary.</comment>
   </data>
   <data name="Orchestrator_Mon_AuditFindings" xml:space="preserve">
@@ -2531,7 +2531,7 @@ Open the consumption analysis, if it is there, to see the detail.</value>
     <comment>Count of findings.</comment>
   </data>
   <data name="Orchestrator_Mon_ReplanAsked" xml:space="preserve">
-    <value>The auditor asks to replan. Prepare a follow-up run or dismiss the request. Until you decide, the delivery waits.</value>
+    <value>The auditor asks to plan again. Prepare a follow-up run or dismiss the request. Until you decide, the delivery waits.</value>
     <comment>Text of the request to replan.</comment>
   </data>
   <data name="Orchestrator_Mon_VerdictFailed" xml:space="preserve">
@@ -2547,11 +2547,11 @@ Open the consumption analysis, if it is there, to see the detail.</value>
     <comment>Reason of a task. {0}: why it failed.</comment>
   </data>
   <data name="Orchestrator_Mon_EvidenceOne" xml:space="preserve">
-    <value>1 piece of evidence</value>
+    <value>1 piece of saved evidence</value>
     <comment>Count of evidence.</comment>
   </data>
   <data name="Orchestrator_Mon_EvidenceMany" xml:space="preserve">
-    <value>{0} pieces of evidence</value>
+    <value>{0} pieces of saved evidence</value>
     <comment>Count of evidence.</comment>
   </data>
   <data name="Orchestrator_Mon_CompactionOne" xml:space="preserve">

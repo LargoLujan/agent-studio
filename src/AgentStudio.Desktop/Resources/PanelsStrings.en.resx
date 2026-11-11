@@ -122,28 +122,28 @@
     <value>passed</value>
   </data>
   <data name="Panels_Tests_RunHead" xml:space="preserve">
-    <value>Run the tests of HEAD</value>
+    <value>Run the tests of the latest version</value>
   </data>
   <data name="Panels_Tests_RunHeadHint" xml:space="preserve">
-    <value>Runs the verification profile in an isolated copy of the latest saved version. It spends no quota.</value>
+    <value>Runs the verification profile in an isolated copy of the latest saved version. It does not spend your usage limit.</value>
   </data>
   <data name="Panels_Tests_Running" xml:space="preserve">
     <value>Running the tests…</value>
   </data>
   <data name="Panels_Tests_HeadTitle" xml:space="preserve">
-    <value>Tests of HEAD</value>
+    <value>Tests of the latest version</value>
   </data>
   <data name="Panels_Tests_HeadNone" xml:space="preserve">
     <value>The profile has no steps to run.</value>
   </data>
   <data name="Panels_Tests_HeadPassed" xml:space="preserve">
-    <value>The tests of HEAD pass.</value>
+    <value>The tests of the latest version pass.</value>
   </data>
   <data name="Panels_Tests_HeadFailed" xml:space="preserve">
-    <value>{0} steps of the tests of HEAD fail.</value>
+    <value>{0} steps of the tests of the latest version fail.</value>
   </data>
   <data name="Panels_Tests_HeadError" xml:space="preserve">
-    <value>The tests of HEAD could not be run: {0}</value>
+    <value>The tests of the latest version could not be run: {0}</value>
   </data>
   <data name="Panels_Tests_TaskError" xml:space="preserve">
     <value>{0}: {1} (the main error line of the task; the log does not keep one per test)</value>
@@ -152,13 +152,13 @@
     <value>Cancel the tests</value>
   </data>
   <data name="Panels_Tests_HeadCancelled" xml:space="preserve">
-    <value>You cancelled the tests of HEAD.</value>
+    <value>You cancelled the tests of the latest version.</value>
   </data>
   <data name="Info_Problems_Title" xml:space="preserve">
     <value>Problems</value>
   </data>
   <data name="Info_Problems_What" xml:space="preserve">
-    <value>Gathers what the analyzer and the validator see in your montage, and why each task of the run failed or is blocked.</value>
+    <value>Gathers what the analyzer and the validator see in your montage. Also why each task of the run failed or is blocked.</value>
   </data>
   <data name="Info_Problems_Actions" xml:space="preserve">
     <value>Look at the errors first.
@@ -184,7 +184,7 @@ Go back to the whole run by clearing the selection.</value>
   </data>
   <data name="Info_Tests_Actions" xml:space="preserve">
     <value>See which step failed and its main error.
-Run the tests of HEAD: it spends no quota.
+Run the tests of the latest version: it does not spend your usage limit.
 Go back to the monitor to retry the task.</value>
   </data>
   <data name="Tools_Title" xml:space="preserve">
@@ -197,13 +197,13 @@ Go back to the monitor to retry the task.</value>
     <value>Claude Code: built-in tools</value>
   </data>
   <data name="Tools_Group_ClaudeNote" xml:space="preserve">
-    <value>Each Claude Code agent only has the ones its launch gives it; the ones that write or run commands only go in tasks that write.</value>
+    <value>Each Claude Code agent only has the ones its launch gives it. The ones that write or run commands only go in tasks that write.</value>
   </data>
   <data name="Tools_Group_Codex" xml:space="preserve">
-    <value>Codex: sandbox</value>
+    <value>Codex: isolated zone</value>
   </data>
   <data name="Tools_Group_CodexNote" xml:space="preserve">
-    <value>Codex has no list of tools: its sandbox decides.</value>
+    <value>Codex has no list of tools: its isolated zone decides.</value>
   </data>
   <data name="Tools_Group_Steps" xml:space="preserve">
     <value>Steps of the verification profile ({0})</value>
@@ -242,13 +242,13 @@ Go back to the monitor to retry the task.</value>
     <value>Search the internet.</value>
   </data>
   <data name="Tools_Codex_ReadOnly" xml:space="preserve">
-    <value>Read-only sandbox: the agent reads, it does not write.</value>
+    <value>Read-only isolated zone: the agent reads, it does not write.</value>
   </data>
   <data name="Tools_Codex_WorkspaceWrite" xml:space="preserve">
-    <value>Sandbox with writing in the working copy, without leaving it.</value>
+    <value>Isolated zone with writing in the working copy, without leaving it.</value>
   </data>
   <data name="Tools_Codex_Network" xml:space="preserve">
-    <value>Network from the sandbox.</value>
+    <value>Network from the isolated zone.</value>
   </data>
   <data name="Tools_Risk_Low" xml:space="preserve">
     <value>It only reads</value>
@@ -290,7 +290,7 @@ Go back to the monitor to retry the task.</value>
     <value>not isolated</value>
   </data>
   <data name="Tools_Step_Isolation_LowIntegrity" xml:space="preserve">
-    <value>in a low integrity sandbox</value>
+    <value>in an isolated zone with fewer permissions</value>
   </data>
   <data name="Tools_Step_Use" xml:space="preserve">
     <value>Use it as a tool task in the plan.</value>

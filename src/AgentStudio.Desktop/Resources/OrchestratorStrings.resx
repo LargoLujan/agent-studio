@@ -617,7 +617,7 @@ Confirmar con Windows Hello cuando te lo pida.</value>
     <comment>DebateNotAvailable. {0}: task, {1}: reason.</comment>
   </data>
   <data name="Orchestrator_Violation_IntegrationWithoutVerification" xml:space="preserve">
-    <value>La integración {0} no tiene pasos de verificación: el código unido no se compilaría ni se probaría.</value>
+    <value>La integración {0} no tiene pasos de verificación. El código unido no se compilaría ni se probaría.</value>
     <comment>IntegrationWithoutVerification. {0}: task.</comment>
   </data>
   <data name="Orchestrator_Violation_IntegrationsNotOrdered" xml:space="preserve">
@@ -629,11 +629,11 @@ Confirmar con Windows Hello cuando te lo pida.</value>
     <comment>IntegrationsNotOrdered without the detail.</comment>
   </data>
   <data name="Orchestrator_Violation_VerificationRequiredByPolicy" xml:space="preserve">
-    <value>La tarea {0} la hace «{1}», cuya política exige pruebas capturadas por el sistema: añade pasos de verificación a la tarea.</value>
+    <value>La tarea {0} la hace «{1}». Su política exige pruebas hechas por el sistema. Añade pasos de verificación a la tarea.</value>
     <comment>VerificationRequiredByPolicy. {0}: task, {1}: agent.</comment>
   </data>
   <data name="Orchestrator_Violation_ReviewRequiredByPolicy" xml:space="preserve">
-    <value>La tarea {0} la hace «{1}», cuya política exige una revisión independiente. Añade una tarea de revisión que dependa de todas las tareas que escriben.</value>
+    <value>La tarea {0} la hace «{1}». Su política exige una revisión independiente. Añade una tarea de revisión que dependa de todas las que escriben.</value>
     <comment>ReviewRequiredByPolicy. {0}: task, {1}: agent.</comment>
   </data>
   <data name="Orchestrator_Violation_TestStepRequiredByPolicy" xml:space="preserve">
@@ -1307,7 +1307,7 @@ Elegir en cada tarea del plan qué pasos se exigen.</value>
     <comment>Start of the line of a failure.</comment>
   </data>
   <data name="Orchestrator_Session_NoRequirements" xml:space="preserve">
-    <value>El proyecto no tiene requisitos congelados: escríbelos y congélalos en «Requisitos» para poder planificar.</value>
+    <value>El proyecto no tiene requisitos congelados. Escríbelos y congélalos en «Requisitos». Así podrás planificar.</value>
     <comment>Line of what is missing.</comment>
   </data>
   <data name="Orchestrator_Session_RosterMissing" xml:space="preserve">
@@ -1315,7 +1315,7 @@ Elegir en cada tarea del plan qué pasos se exigen.</value>
     <comment>Line of what is missing.</comment>
   </data>
   <data name="Orchestrator_Session_ProfileMissing" xml:space="preserve">
-    <value>Falta el perfil de verificación (.agentstudio/verification.json): sin él no se puede validar el plan.</value>
+    <value>Falta el perfil de verificación (.agentstudio/verification.json). Sin él no se puede validar el plan.</value>
     <comment>Line of what is missing.</comment>
   </data>
   <data name="Orchestrator_Session_ProfileFailed" xml:space="preserve">
@@ -1327,7 +1327,7 @@ Elegir en cada tarea del plan qué pasos se exigen.</value>
     <comment>Line of what is missing.</comment>
   </data>
   <data name="Orchestrator_Session_NoProfileProposal" xml:space="preserve">
-    <value>El proyecto no tiene perfil de verificación (.agentstudio/verification.json): revisa el propuesto y pulsa «Usar el perfil propuesto».</value>
+    <value>Este proyecto no tiene perfil de verificación (.agentstudio/verification.json). Revisa el propuesto. Luego pulsa «Usar el perfil propuesto».</value>
     <comment>Line of what is missing.</comment>
   </data>
   <data name="Orchestrator_Session_RosterFailed" xml:space="preserve">
@@ -1347,15 +1347,15 @@ Elegir en cada tarea del plan qué pasos se exigen.</value>
     <comment>Count of entries of the history.</comment>
   </data>
   <data name="Orchestrator_History_Replaced" xml:space="preserve">
-    <value>En esta ubicación vivía el historial del proyecto {0} ({1}), y el historial de decisiones de ahora empieza vacío: aquel ya no está aquí. No se planifica, ejecuta ni reanuda nada hasta que aceptes empezar uno nuevo.</value>
+    <value>En esta ubicación vivía el historial del proyecto {0} ({1}). El historial de decisiones de ahora empieza vacío y aquel ya no está aquí. No se planifica, ejecuta ni reanuda nada hasta que aceptes empezar uno nuevo.</value>
     <comment>Why the log cannot be trusted. {0}: project, {1}: entries.</comment>
   </data>
   <data name="Orchestrator_History_NoAnchor" xml:space="preserve">
-    <value>El historial de decisiones tiene {0}, pero no hay ancla para esta ubicación: la carpeta se movió o se copió aquí, o el historial viene de otro equipo o con el repositorio. No se planifica, ejecuta ni reanuda nada hasta que aceptes este historial como nuevo origen. Acéptalo solo si lo reconoces.</value>
+    <value>El historial de decisiones tiene {0}, pero no hay ancla para esta ubicación. Quizá la carpeta se movió o se copió aquí. O el historial viene de otro equipo o con el repositorio. No se planifica, ejecuta ni reanuda nada hasta que aceptes este historial como nuevo origen. Acéptalo solo si lo reconoces.</value>
     <comment>Why the log cannot be trusted. {0}: entries.</comment>
   </data>
   <data name="Orchestrator_History_NotIntact" xml:space="preserve">
-    <value>El historial de decisiones no es íntegro: {0} No se planifica, ejecuta ni reanuda nada.</value>
+    <value>El historial de decisiones no está íntegro: {0} Por eso no se planifica, ejecuta ni reanuda nada.</value>
     <comment>Why the log cannot be trusted. {0}: the problem found.</comment>
   </data>
   <data name="Orchestrator_Phase_Running" xml:space="preserve">
@@ -1367,7 +1367,7 @@ Elegir en cada tarea del plan qué pasos se exigen.</value>
     <comment>Phase of a run.</comment>
   </data>
   <data name="Orchestrator_Phase_WaitingForQuota" xml:space="preserve">
-    <value>Esperando cuota</value>
+    <value>En pausa por el límite de uso</value>
     <comment>Phase of a run.</comment>
   </data>
   <data name="Orchestrator_Phase_AwaitingHuman" xml:space="preserve">
@@ -1451,7 +1451,7 @@ Elegir en cada tarea del plan qué pasos se exigen.</value>
     <comment>Line of the activity. {0}: status.</comment>
   </data>
   <data name="Orchestrator_Activity_Quota" xml:space="preserve">
-    <value>Cuota: {0}</value>
+    <value>Límite de uso: {0}</value>
     <comment>Line of the activity. {0}: the windows.</comment>
   </data>
   <data name="Orchestrator_Activity_Finished" xml:space="preserve">
@@ -1647,7 +1647,7 @@ Elegir en cada tarea del plan qué pasos se exigen.</value>
     <comment>Button.</comment>
   </data>
   <data name="Orchestrator_Review_RequestPlanHelp" xml:space="preserve">
-    <value>El orquestador propone un plan para tu petición y los requisitos congelados. Consume cuota de tu plan.</value>
+    <value>El orquestador propone un plan para tu petición y los requisitos congelados. Gasta el límite de uso de tu plan.</value>
     <comment>Tooltip of the button.</comment>
   </data>
   <data name="Orchestrator_Review_CancelPlanning" xml:space="preserve">
@@ -1719,7 +1719,7 @@ Elegir en cada tarea del plan qué pasos se exigen.</value>
     <comment>Title and accessible name.</comment>
   </data>
   <data name="Orchestrator_Runs_Hint" xml:space="preserve">
-    <value>«Ver la ejecución» abre una en el monitor, solo para leer y sin gastar cuota. Verás sus tareas, evidencias, revisión y entrega.</value>
+    <value>«Ver la ejecución» abre una en el monitor, solo para leer y sin gastar tu límite de uso. Verás sus tareas, pruebas guardadas, revisión y entrega.</value>
     <comment>Explanation under the title.</comment>
   </data>
   <data name="Orchestrator_Runs_None" xml:space="preserve">
@@ -1735,7 +1735,7 @@ Elegir en cada tarea del plan qué pasos se exigen.</value>
     <comment>Button.</comment>
   </data>
   <data name="Orchestrator_Runs_ViewHelp" xml:space="preserve">
-    <value>Abre la ejecución en el monitor, solo para leer, reconstruida desde el historial. Muestra las tareas con su motivo, las evidencias y la revisión. Si el juez aprobó la integración, podrás usar «Entregar a mi rama». No consume cuota.</value>
+    <value>Abre la ejecución en el monitor, solo para leer, reconstruida desde el historial. Muestra las tareas con su motivo, las pruebas guardadas y la revisión. Si el juez aprobó la integración, podrás usar «Entregar a mi rama». No gasta tu límite de uso.</value>
     <comment>Tooltip of the button.</comment>
   </data>
   <data name="Orchestrator_Runs_ViewName" xml:space="preserve">
@@ -1747,7 +1747,7 @@ Elegir en cada tarea del plan qué pasos se exigen.</value>
     <comment>Button.</comment>
   </data>
   <data name="Orchestrator_Runs_ResumeHelp" xml:space="preserve">
-    <value>Continúa la ejecución interrumpida. Consume cuota de tu plan.</value>
+    <value>Continúa la ejecución interrumpida. Gasta el límite de uso de tu plan.</value>
     <comment>Tooltip of the button.</comment>
   </data>
   <data name="Orchestrator_Runs_ResumeName" xml:space="preserve">
@@ -1873,7 +1873,7 @@ Pausar la ejecución: así nunca se reanuda sola.</value>
     <comment>Error.</comment>
   </data>
   <data name="Orchestrator_Doc_ApprovedFollowUp" xml:space="preserve">
-    <value>Plan aprobado ({0}): «Ejecutar el plan» empieza una ejecución de seguimiento de {1}.</value>
+    <value>Plan aprobado ({0}). «Ejecutar el plan» empieza una ejecución de seguimiento de {1}.</value>
     <comment>Approval line. {0}: fingerprint, {1}: run.</comment>
   </data>
   <data name="Orchestrator_Doc_ApprovedHello" xml:space="preserve">
@@ -1921,7 +1921,7 @@ Pausar la ejecución: así nunca se reanuda sola.</value>
     <comment>Warning next to Approve. {0}: why.</comment>
   </data>
   <data name="Orchestrator_Doc_ValidationNoContext" xml:space="preserve">
-    <value>Sin contexto de validación: faltan los requisitos congelados o el perfil de verificación.</value>
+    <value>No se puede validar: faltan los requisitos congelados o el perfil de verificación.</value>
     <comment>State of the validation.</comment>
   </data>
   <data name="Orchestrator_Doc_ValidationValid" xml:space="preserve">
@@ -1941,7 +1941,7 @@ Pausar la ejecución: así nunca se reanuda sola.</value>
     <comment>Label of the consent of the next run.</comment>
   </data>
   <data name="Orchestrator_Doc_ConsentHelp" xml:space="preserve">
-    <value>Marcada, la ejecución sigue sola en dos casos. Si una tarea llega al límite de uso, espera a que se reinicie la cuota, más 3 minutos, y continúa. Si la app se cierra sin que lo pidas, o Windows cierra la sesión, la ejecución se reanuda al volver a abrir la app. Nunca se reanuda si la pausaste o la dejaste al salir. Nunca pasa del presupuesto aprobado. Vale solo para la próxima ejecución y queda en su cabecera.</value>
+    <value>Marcada, la ejecución sigue sola en dos casos. Si una tarea llega al límite de uso, espera a que se renueve, más 3 minutos, y continúa. Si la app se cierra sin que lo pidas, o Windows cierra la sesión, la ejecución sigue. Lo hace al volver a abrir la app. Nunca se reanuda si la pausaste o la dejaste al salir. Nunca pasa del presupuesto aprobado. Vale solo para la próxima ejecución y queda en su cabecera.</value>
     <comment>Tooltip of the consent.</comment>
   </data>
   <data name="Orchestrator_Doc_OpeningProject" xml:space="preserve">
@@ -2013,7 +2013,7 @@ Pausar la ejecución: así nunca se reanuda sola.</value>
     <comment>What its plan says now.</comment>
   </data>
   <data name="Orchestrator_Resume_NextShown" xml:space="preserve">
-    <value>Su plan está en el lienzo. Si lo apruebas otra vez y pulsas «Ejecutar el plan», empieza una ejecución de seguimiento de {0}; «Rechazar el plan» lo descarta.</value>
+    <value>Su plan está en el lienzo. Si lo apruebas otra vez y pulsas «Ejecutar el plan», empieza una ejecución de seguimiento de {0}. «Rechazar el plan» lo descarta.</value>
     <comment>What can be done. {0}: run.</comment>
   </data>
   <data name="Orchestrator_Resume_NextHidden" xml:space="preserve">
@@ -2049,15 +2049,15 @@ Pausar la ejecución: así nunca se reanuda sola.</value>
     <comment>Error. {0}: run, {1}: why.</comment>
   </data>
   <data name="Orchestrator_Doc_StartedWhileFollowingTray" xml:space="preserve">
-    <value>La ejecución {0} empezó mientras esta pestaña seguía otra ejecución: sigue en marcha, y la sigue la bandeja.</value>
+    <value>La ejecución {0} empezó mientras esta pestaña seguía otra. Sigue en marcha y la sigue la bandeja.</value>
     <comment>Notice. {0}: run.</comment>
   </data>
   <data name="Orchestrator_Doc_StartedWhileFollowing" xml:space="preserve">
-    <value>La ejecución {0} empezó mientras esta pestaña seguía otra ejecución: sigue en marcha.</value>
+    <value>La ejecución {0} empezó mientras esta pestaña seguía otra. Sigue en marcha.</value>
     <comment>Notice. {0}: run.</comment>
   </data>
   <data name="Orchestrator_Doc_ResumeNotDone" xml:space="preserve">
-    <value>No se reanudó la ejecución {0}: esta pestaña sigue ahora otra ejecución. Reanúdala cuando termine.</value>
+    <value>La ejecución {0} no se reanudó. Esta pestaña sigue otra. Hazlo cuando termine.</value>
     <comment>Notice. {0}: run.</comment>
   </data>
   <data name="Orchestrator_Doc_RunsListFailed" xml:space="preserve">
@@ -2125,7 +2125,7 @@ Pausar la ejecución: así nunca se reanuda sola.</value>
     <comment>Notice. {0}: why.</comment>
   </data>
   <data name="Orchestrator_Doc_DraftRecoveredProposal" xml:space="preserve">
-    <value>Borrador recuperado: es el plan que propuso el orquestador, sin aprobar. Revísalo y apruébalo para ejecutarlo.</value>
+    <value>Recuperamos un borrador. Es el plan del orquestador, sin aprobar. Míralo y apruébalo para ejecutarlo.</value>
     <comment>Status of the proposal.</comment>
   </data>
   <data name="Orchestrator_Doc_DraftRecovered" xml:space="preserve">
@@ -2209,7 +2209,7 @@ Pausar la ejecución: así nunca se reanuda sola.</value>
     <comment>Button.</comment>
   </data>
   <data name="Orchestrator_MonView_AuditAgainHelp" xml:space="preserve">
-    <value>El auditor automático vuelve a revisar el historial. No consume cuota y no repite lo que ya anotó.</value>
+    <value>El auditor automático vuelve a revisar el historial. No gasta tu límite de uso y no repite lo que ya anotó.</value>
     <comment>Tooltip of the button.</comment>
   </data>
   <data name="Orchestrator_MonView_Refresh" xml:space="preserve">
@@ -2253,7 +2253,7 @@ Pausar la ejecución: así nunca se reanuda sola.</value>
     <comment>Button.</comment>
   </data>
   <data name="Orchestrator_MonView_AcceptRevisionHelp" xml:space="preserve">
-    <value>Una revisión que cambia el veredicto a una aprobación solo cuenta si la aceptas tú expresamente.</value>
+    <value>Una revisión que cambia el veredicto a aprobado solo cuenta si tú la aceptas.</value>
     <comment>Tooltip of the button.</comment>
   </data>
   <data name="Orchestrator_MonView_ChallengeName" xml:space="preserve">
@@ -2297,11 +2297,11 @@ Pausar la ejecución: así nunca se reanuda sola.</value>
     <comment>Accessible name of the list.</comment>
   </data>
   <data name="Orchestrator_MonView_Evidence" xml:space="preserve">
-    <value>Evidencias</value>
+    <value>Pruebas guardadas</value>
     <comment>Title of the list.</comment>
   </data>
   <data name="Orchestrator_MonView_EvidenceName" xml:space="preserve">
-    <value>Evidencias de la ejecución</value>
+    <value>Pruebas guardadas de la ejecución</value>
     <comment>Accessible name of the list.</comment>
   </data>
   <data name="Info_Monitor_Context_Title" xml:space="preserve">
@@ -2327,7 +2327,7 @@ Abrir el análisis del consumo, si está disponible, para ver el detalle.</value
     <comment>Name of the bar of the budget.</comment>
   </data>
   <data name="Orchestrator_Mon_ConsentOn" xml:space="preserve">
-    <value>Con tu consentimiento para reanudarse sola. Espera a que se renueve la cuota. Si un cierre que no pediste la corta, se reanuda al volver a abrir la app.</value>
+    <value>Con tu consentimiento para reanudarse sola. Espera a que se renueve tu límite de uso. Si un cierre que no pediste la corta, se reanuda al volver a abrir la app.</value>
     <comment>Whether the run may resume by itself.</comment>
   </data>
   <data name="Orchestrator_Mon_ConsentOff" xml:space="preserve">
@@ -2339,7 +2339,7 @@ Abrir el análisis del consumo, si está disponible, para ver el detalle.</value
     <comment>Label of the phase when there is no run.</comment>
   </data>
   <data name="Orchestrator_Mon_Deadlock" xml:space="preserve">
-    <value>Bloqueo: la ejecución no puede avanzar sin una decisión tuya. Reintenta o cancela las tareas bloqueadas.</value>
+    <value>Bloqueo: la ejecución no puede seguir sin que decidas. Reintenta o cancela las tareas bloqueadas.</value>
     <comment>Alert of a deadlock.</comment>
   </data>
   <data name="Orchestrator_Mon_HealthNone" xml:space="preserve">
@@ -2371,7 +2371,7 @@ Abrir el análisis del consumo, si está disponible, para ver el detalle.</value
     <comment>Why a pause did not apply.</comment>
   </data>
   <data name="Orchestrator_Mon_RetryNotApplied" xml:space="preserve">
-    <value>la ejecución ya había terminado o la tarea ya no estaba bloqueada. Si terminó, reanúdala para reintentar sus tareas.</value>
+    <value>No se aplicó. La ejecución ya había terminado o la tarea ya no estaba bloqueada. Si terminó, reanúdala para reintentar sus tareas.</value>
     <comment>Why a retry did not apply.</comment>
   </data>
   <data name="Orchestrator_Mon_DoPause" xml:space="preserve">
@@ -2515,7 +2515,7 @@ Abrir el análisis del consumo, si está disponible, para ver el detalle.</value
     <comment>Added to the audit summary.</comment>
   </data>
   <data name="Orchestrator_Mon_AuditClean" xml:space="preserve">
-    <value>Auditor del orquestador: sin hallazgos en el historial verificado de la ejecución.</value>
+    <value>El auditor del orquestador no halló nada en el historial verificado de la ejecución.</value>
     <comment>Audit summary.</comment>
   </data>
   <data name="Orchestrator_Mon_AuditFindings" xml:space="preserve">
@@ -2531,7 +2531,7 @@ Abrir el análisis del consumo, si está disponible, para ver el detalle.</value
     <comment>Count of findings.</comment>
   </data>
   <data name="Orchestrator_Mon_ReplanAsked" xml:space="preserve">
-    <value>El auditor pide replanificar. Prepara una ejecución de seguimiento o descarta la petición. Hasta que decidas, la entrega espera.</value>
+    <value>El auditor pide planificar de nuevo. Prepara una ejecución de seguimiento o descarta la petición. Hasta que decidas, la entrega espera.</value>
     <comment>Text of the request to replan.</comment>
   </data>
   <data name="Orchestrator_Mon_VerdictFailed" xml:space="preserve">
@@ -2547,11 +2547,11 @@ Abrir el análisis del consumo, si está disponible, para ver el detalle.</value
     <comment>Reason of a task. {0}: why it failed.</comment>
   </data>
   <data name="Orchestrator_Mon_EvidenceOne" xml:space="preserve">
-    <value>1 evidencia</value>
+    <value>1 prueba guardada</value>
     <comment>Count of evidence.</comment>
   </data>
   <data name="Orchestrator_Mon_EvidenceMany" xml:space="preserve">
-    <value>{0} evidencias</value>
+    <value>{0} pruebas guardadas</value>
     <comment>Count of evidence.</comment>
   </data>
   <data name="Orchestrator_Mon_CompactionOne" xml:space="preserve">

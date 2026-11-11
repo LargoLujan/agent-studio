@@ -18,9 +18,7 @@
     <comment>The check box of the setting in «Ajustes» → «Windows Hello y bloqueo» (docs/17 D-38). It governs only the configurable approvals.</comment>
   </data>
   <data name="Hello_Setting_Explanation" xml:space="preserve">
-    <value>Entregar, aceptar un historial, dar a un agente consola o red y cambiar el perfil de verificación piden siempre Windows Hello.
-Este ajuste lo pide también al aprobar otros planes, abrir debates, auditar, aceptar revisiones y descartar trabajo.
-Sin Windows Hello en este equipo, lo que lo pide siempre bloquea Windows: lo desbloqueas con tu PIN o tu contraseña.</value>
+    <value>Windows Hello se pide siempre para entregar y para aceptar un historial. También para dar a un agente consola o red y para cambiar el perfil de verificación.</value>
     <comment>Under the setting: what always asks for Windows Hello whatever the setting says, what the setting adds, and what happens without Hello (D-37, D-38 and D-40 (a)).</comment>
   </data>
   <data name="Hello_Notice_AlwaysHello" xml:space="preserve">
@@ -64,7 +62,7 @@ Sin Windows Hello en este equipo, lo que lo pide siempre bloquea Windows: lo des
     <comment>Error of «Aprobar plan» when another confirmation of the person was pending.</comment>
   </data>
   <data name="Hello_SetUpHello" xml:space="preserve">
-    <value>Para aprobarlo, configura Windows Hello: abre Configuración, entra en Cuentas y luego en Opciones de inicio de sesión, y elige el PIN, la huella o la cara.</value>
+    <value>Para aprobarlo, configura Windows Hello. Abre Configuración, entra en Cuentas y luego en Opciones de inicio de sesión. Elige el PIN, la huella o la cara.</value>
     <comment>What to do when nothing can confirm the person on this computer: no Windows Hello, and Windows does not lock (a policy forbids it) or cannot be locked (D-40 (b)). Said after the reason.</comment>
   </data>
   <data name="Hello_LockNotComposed" xml:space="preserve">

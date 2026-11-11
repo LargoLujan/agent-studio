@@ -151,11 +151,11 @@ Press «Save» to keep it.</value>
     <comment>State of an agent. {0}: task id.</comment>
   </data>
   <data name="Canvas_Status_WaitingForQuota" xml:space="preserve">
-    <value>Waiting for quota</value>
+    <value>Paused by the usage limit</value>
     <comment>State of an agent without the hour.</comment>
   </data>
   <data name="Canvas_Status_WaitingUntil" xml:space="preserve">
-    <value>Waiting for quota until {0}</value>
+    <value>Paused by the usage limit until {0}</value>
     <comment>State of an agent. {0}: hour.</comment>
   </data>
   <data name="Canvas_Status_Asking" xml:space="preserve">
@@ -191,7 +191,7 @@ Press «Save» to keep it.</value>
     <comment>Label of the bar of the agent runs against the maximum.</comment>
   </data>
   <data name="Canvas_Bar_Quota" xml:space="preserve">
-    <value>Quota {0} {1}</value>
+    <value>Usage limit {0} {1}</value>
     <comment>Label of a bar of quota. {0}: program; {1}: window.</comment>
   </data>
   <data name="Canvas_Bar_NoObservationYet" xml:space="preserve">
@@ -223,15 +223,15 @@ Press «Save» to keep it.</value>
     <comment>{0}: branch.</comment>
   </data>
   <data name="Canvas_Repo_DetachedHead" xml:space="preserve">
-    <value>no branch (detached HEAD)</value>
+    <value>no branch (loose version)</value>
     <comment>The repository is on a detached HEAD.</comment>
   </data>
   <data name="Canvas_Repo_Head" xml:space="preserve">
-    <value>HEAD {0}</value>
+    <value>Version {0}</value>
     <comment>{0}: short hash.</comment>
   </data>
   <data name="Canvas_Repo_NoCommits" xml:space="preserve">
-    <value>no commits yet</value>
+    <value>no saved versions (commit) yet</value>
     <comment>The repository has no commits.</comment>
   </data>
   <data name="Canvas_Repo_NoRemotes" xml:space="preserve">
@@ -239,7 +239,7 @@ Press «Save» to keep it.</value>
     <comment>The repository has no remotes.</comment>
   </data>
   <data name="Canvas_Repo_Dirty" xml:space="preserve">
-    <value>There are uncommitted changes: if you work in your repository during a run, the task fails.</value>
+    <value>There are changes not saved as a version: if you work in your repository during a run, the task fails.</value>
     <comment>Warning of the node (ADR-0013, point 7).</comment>
   </data>
   <data name="Canvas_Repo_Clean" xml:space="preserve">
@@ -671,7 +671,7 @@ Read the origin of each bar: exact, estimated or not exposed.</value>
     <comment>Title of the info button.</comment>
   </data>
   <data name="Info_Canvas_Inspector_What" xml:space="preserve">
-    <value>It shows only what governs the run of the agent: its model and effort, its tools, its folders, its memory and its instructions. Changing them changes the template.</value>
+    <value>It shows only what governs the run of the agent. That is its model and effort, its tools, its folders, its memory and its instructions.</value>
     <comment>What the inspector is.</comment>
   </data>
   <data name="Info_Canvas_Inspector_Actions" xml:space="preserve">
@@ -685,7 +685,7 @@ Write the instructions of the agent and press «Apply».</value>
     <comment>Title of the info button.</comment>
   </data>
   <data name="Info_Canvas_Repository_What" xml:space="preserve">
-    <value>It shows your repository without going to any network: the branch, the current version, the remotes without user or password, whether there are uncommitted changes and the main folders.</value>
+    <value>It shows your repository without using the network. You see the branch, the current version and the remotes, without user or password. Also whether there are unsaved changes and the main folders.</value>
     <comment>What the node is.</comment>
   </data>
   <data name="Info_Canvas_Repository_Actions" xml:space="preserve">
@@ -698,7 +698,7 @@ Working in your repository during a run makes the task fail.</value>
     <comment>Title of the info button.</comment>
   </data>
   <data name="Info_Canvas_Analysis_What" xml:space="preserve">
-    <value>While you assemble, Agent Studio checks the team and the plan and tells you what can already be known. It spends no quota. Errors prevent approving the plan.</value>
+    <value>While you assemble, Agent Studio checks the team and the plan and tells you what can already be known. It does not spend your usage limit. Errors prevent approving the plan.</value>
     <comment>What the band is.</comment>
   </data>
   <data name="Info_Canvas_Analysis_Actions" xml:space="preserve">
@@ -712,7 +712,7 @@ Ask the orchestrator to review the order, with your OK.</value>
     <comment>Title of the info button.</comment>
   </data>
   <data name="Info_Canvas_Chat_What" xml:space="preserve">
-    <value>Write what you want to do and the orchestrator reads it in your project, without writing anything. It proposes requirements, changes to the team, risks and questions. Each message spends quota and asks your OK.</value>
+    <value>Write what you want to do and the orchestrator reads it in your project, without writing anything. It proposes requirements, changes to the team, risks and questions. Each message spends your usage limit and asks your OK.</value>
     <comment>What the chat is.</comment>
   </data>
   <data name="Info_Canvas_Chat_Actions" xml:space="preserve">
@@ -794,7 +794,7 @@ Apply a suggestion for the team: it is never applied by itself.</value>
     <comment>Toggle.</comment>
   </data>
   <data name="Canvas_Analysis_NeverSpends" xml:space="preserve">
-    <value>The analysis spends no quota.</value>
+    <value>The analysis does not spend your usage limit.</value>
     <comment>Note of the band.</comment>
   </data>
   <data name="Canvas_Order_Offer" xml:space="preserve">
@@ -858,7 +858,7 @@ Apply a suggestion for the team: it is never applied by itself.</value>
     <comment>Label of the reason, which is text of an agent.</comment>
   </data>
   <data name="Canvas_Consent_Title" xml:space="preserve">
-    <value>This spends quota</value>
+    <value>This spends your usage limit</value>
     <comment>Title of the card of the OK.</comment>
   </data>
   <data name="Canvas_Consent_Estimating" xml:space="preserve">
@@ -1014,7 +1014,7 @@ Apply a suggestion for the team: it is never applied by itself.</value>
     <comment>The task writes now.</comment>
   </data>
   <data name="Canvas_Quota_Header" xml:space="preserve">
-    <value>Quota of the account</value>
+    <value>Usage limit of the account</value>
     <comment>Title of the quota bars of the strip.</comment>
   </data>
   <data name="Canvas_Quota_NotExposed" xml:space="preserve">
@@ -1167,7 +1167,7 @@ Press «Save the brief»: each version replaces the previous one.</value>
     <comment>Said when a change of the template is asked while another one is being written.</comment>
   </data>
   <data name="Canvas_Editor_NotSavedHalfway" xml:space="preserve">
-    <value>The template could not be saved ({0}) and could not be put back as it was either: it may have been left halfway. Use «Volver a cargar» to see what is there.</value>
+    <value>The template could not be saved ({0}) and could not be put back as it was. It may have been left halfway.</value>
     <comment>{0}: the reason. Said when the store failed and the revert failed too. «Volver a cargar» is the button of the document that reads the template again.</comment>
   </data>
   <data name="Canvas_Editor_SavedNotReloaded" xml:space="preserve">
@@ -1175,7 +1175,7 @@ Press «Save the brief»: each version replaces the previous one.</value>
     <comment>{0}: the reason. Said when the template was written and the document could not read it again.</comment>
   </data>
   <data name="Canvas_Remove_Question" xml:space="preserve">
-    <value>Take {1} ({0}) out of the team? Its definition is lost from the template and cannot be recovered from here, and the skills it had turned on are turned off. The runs and debates that already happened keep it.</value>
+    <value>Its definition is lost from the template and cannot be recovered from here. The skills it had turned on are also turned off.</value>
     <comment>{0}: id; {1}: name. Question before taking an agent out of the team.</comment>
   </data>
   <data name="Canvas_Remove_Confirm" xml:space="preserve">
@@ -1191,7 +1191,7 @@ Press «Save the brief»: each version replaces the previous one.</value>
     <comment>{0}: how many.</comment>
   </data>
   <data name="Canvas_Hello_ProfileUnavailable" xml:space="preserve">
-    <value>Changing the verification profile asks Windows Hello and this window has no way to ask it: the profile does not change.</value>
+    <value>Changing the verification profile asks Windows Hello, and this window cannot ask it. The profile does not change.</value>
     <comment>Said when no confirmation is composed.</comment>
   </data>
   <data name="Canvas_Repo_ConfigTooBig" xml:space="preserve">

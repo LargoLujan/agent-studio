@@ -35,7 +35,7 @@
     <value>Two or more participants, in any role. In round 1 each one makes a proposal. Then they argue with objections and replies. The independent reviewer (judge) picks one proposal or says "unresolved".</value>
   </data>
   <data name="Debate_ModeHelp_Adversarial" xml:space="preserve">
-    <value>At least one proponent and one critic. The critic looks for errors, contradictions, risks and broken requirements. The proponent replies.</value>
+    <value>At least one proponent and one critic are needed. The critic looks for errors, contradictions, risks and broken requirements. The proponent replies.</value>
   </data>
   <data name="Debate_ModeHelp_ArchitectureReview" xml:space="preserve">
     <value>Two or more participants, each with a design of their own. They are compared on maintainability, security, performance, cost and complexity, and on your criteria.</value>
@@ -134,7 +134,7 @@
     <value>No subject</value>
   </data>
   <data name="Debate_Subject_Commit" xml:space="preserve">
-    <value>The latest saved version (commit HEAD) of the repository</value>
+    <value>The latest saved version (commit) of the repository</value>
   </data>
   <data name="Debate_Subject_CommitOf" xml:space="preserve">
     <value>Saved version (commit) {0}</value>
@@ -788,7 +788,7 @@
     <value>None</value>
   </data>
   <data name="Debate_SubjectOption_Commit" xml:space="preserve">
-    <value>The latest saved version (commit HEAD) of the repository</value>
+    <value>The latest saved version (commit) of the repository</value>
   </data>
   <data name="Debate_SubjectOption_Run" xml:space="preserve">
     <value>A finished run</value>
@@ -809,7 +809,7 @@
     <value>Preparing. This does not spend your plan's usage limit or save anything…</value>
   </data>
   <data name="Debate_New_Status_Prepared" xml:space="preserve">
-    <value>Check the settings and the estimate. "Open debate" will ask for your approval.</value>
+    <value>Check the settings and the estimate. If you press "Open debate", we ask for your approval.</value>
   </data>
   <data name="Debate_New_Status_Problems" xml:space="preserve">
     <value>The debate cannot be opened like this: look at the problems.</value>
