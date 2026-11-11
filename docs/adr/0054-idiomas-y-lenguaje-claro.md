@@ -196,3 +196,43 @@ La revisión independiente del P0 vio que la prueba del punto 8 se esquivaba: un
   asignaciones que se miran («Error grave» en una lista). Lo cazan la revisión y los renders por idioma de la Fase 14.
 - **La prueba de la prueba** (`The_checks_find_what_is_written_by_hand_and_nothing_else`) tiene un ejemplo de cada caso, y
   `The_check_covers_every_file_of_phase_13_and_none_of_before` comprueba que el inventario es el de antes de la fase.
+
+## Adenda · 2026-11-11 · lo que la ayuda y la documentación para clientes toman de este ADR (P0 de la Fase 14)
+
+El P0 de la Fase 14 ([docs/17 §9.4](../17-constructor-visual-de-agentes.md#94-fase-14--bloque-final)) completa este ADR con lo que
+los contratos de la ayuda ([ADR-0056](0056-ayuda-y-agente-de-ayuda.md)) y de la documentación para clientes
+([ADR-0057](0057-documentacion-para-clientes.md)) fijan sobre los idiomas. No cambia ninguna decisión de arriba; precisa cómo
+se aplican a dos sitios nuevos. El resto de la Fase 14 (WP-14A y WP-14B: extraer y reescribir los textos de antes, y medir la
+claridad) añade su adenda cuando se haga.
+
+- **El nombre de un idioma en las capas de abajo** (`Application/Localization/LanguageTags.cs`). Las capas por debajo del
+  escritorio no conocen la lista de idiomas (vive en `UiLanguages`), pero ahora reciben un idioma: el de un artículo de la
+  ayuda, el de la respuesta del agente y el de un documento al exportarlo. `LanguageTags.IsValid` comprueba solo que tiene la
+  forma del nombre de una cultura (`es-ES`, `en`, `pt-BR`, `zh-Hans`): que una ruta o una frase nunca viaje como idioma. El
+  escritorio decide si ese idioma tiene recursos; si no, sale en castellano de España (el punto 4).
+- **Los artículos de la ayuda** (D-55) no son claves de `.resx`: son contenido que viaja con la app, en
+  `Help/<idioma>/<id>.md`, en los idiomas de la app. Su id es un código (`UserText.IsCode`) igual en todos los idiomas, y lo que
+  falta en un idioma sale en el artículo de castellano de España, como cualquier texto. Los ⓘ siguen en los recursos
+  (`<InfoKey>_Title`, `_What` y `_Actions`, punto 7); su «Más ayuda» abre el artículo que declara esa misma clave
+  (`HelpArticle.InfoKeys`). Un artículo está sujeto a la guía de textos (punto 9) como cualquier texto de origen; qué pruebas de
+  claridad lo miden (D-53) lo decide WP-14B.
+- **El agente de ayuda contesta en tu idioma por un dato, no por el prompt** (D-48). `HelpAskRequest.Language` es el idioma de
+  la interfaz; el servicio lo manda como dato («responde a la persona en <idioma>») y el prompt no cambia con él (F14-4: su hash
+  no cambia con la cultura). Lo que escribe el agente es texto de un agente: no se traduce y se enseña enmarcado. La tarjeta de
+  lo que se envía y la pregunta salen en el idioma que ves: son lo que la persona leyó, no un texto del sistema para el agente.
+- **Un documento para clientes no tiene idioma hasta que se exporta** (D-59). El modelo guarda el texto del sistema como
+  `UserText` (código y argumentos, punto 3) y lo que escribieron personas o agentes tal cual (punto 5); el idioma se elige al
+  exportar, y puede ser otro que el de la interfaz. Como los escritores viven por debajo del escritorio, el escritorio
+  implementa `IUserTextRenderer`, que pinta cada código con un `ResourceTextProvider` del idioma elegido: es el uso de «una
+  pantalla que pinta en un idioma dado» del punto 2, y no choca con que el de la interfaz solo se aplique una vez (punto 4),
+  porque no toca `Texts.Current`. Los textos del sistema del documento (títulos de sección, estados, glosario y frases de la
+  plantilla) son claves `Text_document_…` de los recursos, en castellano e inglés, y entran en la primera ola de la Fase 15 con
+  su glosario como cualquier texto.
+- **El consumo nombra los propósitos nuevos desde los recursos.** `Usage_Purpose_Help` y `Usage_Purpose_ClientDocumentDraft`,
+  en `ConsumptionStrings.resx` y su satélite inglés, son los primeros nombres de propósito que salen de recursos. Los de antes
+  (`UsageDashboardViewModel.PurposeLabel`) siguen escritos a mano hasta que WP-14A (c) los extraiga; entre ellos faltan hoy los
+  tres de la Fase 13 (`OrderReview`, `ConsumptionAnalysis` y `PreparationChat`), que no se nombran en el detalle de un intento.
+- **Reglas de texto que comparten los dos** (`Application/Security`): `PlainText` (ni caracteres de control ni bidireccionales en
+  lo que va a la pantalla o a un agente, la misma regla de las preguntas de los agentes) y `LocalPaths` (qué es una ruta de tu
+  equipo, que ni la tarjeta de la ayuda sin tu marca ni un documento para clientes pueden llevar). Son reglas sobre el texto, no
+  traducciones: valen igual en todos los idiomas.

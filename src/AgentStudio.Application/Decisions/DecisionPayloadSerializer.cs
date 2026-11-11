@@ -67,6 +67,9 @@ public static class DecisionPayloadSerializer
         [DecisionKind.QuestionAsked] = typeof(QuestionAskedPayload),
         [DecisionKind.QuestionAnswered] = typeof(QuestionAnsweredPayload),
         [DecisionKind.ProjectSetupApplied] = typeof(ProjectSetupAppliedPayload),
+
+        // Phase 14 (docs/17 D-60): the export of a document for clients, outside every run.
+        [DecisionKind.ClientDocumentExported] = typeof(ClientDocumentExportedPayload),
     };
 
     private static readonly JsonSerializerOptions Options = CreateOptions();

@@ -33,6 +33,14 @@
          ships a net10.0-windows7.0 asset group. -->
     <PackageVersion Include="Nodify" Version="7.3.0" />
     <PackageVersion Include="Microsoft.Web.WebView2" Version="1.0.4258.31" />
+    <!-- Word (.docx) of the documents for clients (Phase 14, docs/17 D-59; ADR-0057). Verified on nuget.org on 2026-11-11:
+         3.5.1 is the latest stable (listed, published 2026-03-18, no later stable version, no deprecation in its catalog
+         entry); license MIT (nuspec expression), by Microsoft (github.com/dotnet/Open-XML-SDK). It has net10.0 and net8.0
+         asset groups and, on net10.0, only brings DocumentFormat.OpenXml.Framework 3.5.1 (MIT) and System.IO.Packaging
+         10.0.2. The vulnerability feed of nuget.org of that day has no advisory for any of the three (those of
+         System.IO.Packaging stop at 6.0.0, 8.0.0 and 9.0.0-rc.1). Only the version is pinned here: the project that writes the
+         .docx (Infrastructure, WP-14D) references it. -->
+    <PackageVersion Include="DocumentFormat.OpenXml" Version="3.5.1" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
     <PackageVersion Include="xunit.v3" Version="4.0.2" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.1" />

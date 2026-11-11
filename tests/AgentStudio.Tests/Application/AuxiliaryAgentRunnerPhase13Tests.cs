@@ -38,6 +38,10 @@ public sealed class AuxiliaryAgentRunnerPhase13Tests
     [InlineData(AgentRunPurpose.OrderReview, true)]
     [InlineData(AgentRunPurpose.ConsumptionAnalysis, true)]
     [InlineData(AgentRunPurpose.PreparationChat, true)]
+
+    // Phase 14 (docs/17 §8.2): the agent of the help and the draft of a document for clients, also with the class of their end.
+    [InlineData(AgentRunPurpose.Help, true)]
+    [InlineData(AgentRunPurpose.ClientDocumentDraft, true)]
     [InlineData(AgentRunPurpose.SkillRecommendation, false)]
     [InlineData(AgentRunPurpose.DailySummary, false)]
     public async Task The_auxiliary_runs_of_phase_13_record_their_end_with_its_class(AgentRunPurpose purpose, bool endClass)

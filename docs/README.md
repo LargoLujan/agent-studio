@@ -87,6 +87,8 @@ Especificación funcional: [referencias/prompt-maestro.md](referencias/prompt-ma
 | [0053](adr/0053-windows-hello-como-barrera-fija.md) | Windows Hello como barrera fija: una lista en el código que ningún ajuste ni fichero desactiva, el bloqueo de Windows comprobado como alternativa y una sola confirmación a la vez (amplía ADR-0037) |
 | [0054](adr/0054-idiomas-y-lenguaje-claro.md) | Idiomas y lenguaje claro: recursos `.resx` con el castellano de España de origen, códigos con parámetros en las capas de abajo, el idioma de Windows por defecto y elegible en Ajustes (al reiniciar), lo que no se traduce y la guía de textos |
 | [0055](adr/0055-configurador-por-proyecto.md) | El configurador por proyecto (Fase 13): siete pasos que proponen, dejan revisar y aplican por las puertas de siempre y dejan `ProjectSetupApplied`; los perfiles de verificación de Node y Python, en integridad baja y con su entorno aislado |
+| [0056](adr/0056-ayuda-y-agente-de-ayuda.md) | La ayuda (Fase 14): local y sin cuota primero, y un agente de solo lectura con tu OK en cada pregunta, con una tarjeta de lo que se le envía (sin el proyecto ni las rutas salvo que lo marques) y acciones de una lista cerrada |
+| [0057](adr/0057-documentacion-para-clientes.md) | La documentación para clientes (Fase 14): un modelo determinista y sin idioma desde el registro, cuatro formatos (Markdown, HTML, PDF y Word), lo escrito por agentes marcado y tu revisión antes de exportar con `ClientDocumentExported` |
 
 ## Investigación y evidencias
 

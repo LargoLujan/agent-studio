@@ -1,5 +1,7 @@
+using System.Globalization;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Usage;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Observability;
 using AgentStudio.Domain.Common;
 using AgentStudio.Tests.Memory;
@@ -26,6 +28,22 @@ public sealed class UsagePurposeLabelTests
         await dashboard.SetProjectAsync(@"C:\proyectos\calc");
 
         Assert.Equal($"{run} · {task} · intento 1 · {label} · arquitecto", Assert.Single(dashboard.Attempts).Who);
+    }
+
+    /// <summary>The purposes Phase 14 appends (docs/17 §8.2): the help and the draft of a document for clients, named from the resources, in each language.</summary>
+    [Theory]
+    [InlineData(AgentRunPurpose.Help, "aux-20261111-a1b2c3", "ayuda", "Ayuda", "Help")]
+    [InlineData(AgentRunPurpose.ClientDocumentDraft, "aux-20261111-d4e5f6", "borrador", "Borrador del documento para clientes", "Draft of the document for clients")]
+    public async Task The_purposes_of_phase_14_are_named_from_the_resources_in_each_attempt(AgentRunPurpose purpose, string run, string agent, string spanish, string english)
+    {
+        var attempt = UsageSamples.ClaudeAttempt with { RunId = run, TaskId = null, Purpose = purpose, Agent = new AgentId(agent) };
+        var dashboard = Dashboard(UsageSamples.Empty with { Attempts = [attempt] });
+
+        await dashboard.SetProjectAsync(@"C:\proyectos\calc");
+
+        Assert.Equal($"{run} · intento 1 · {spanish} · {agent}", Assert.Single(dashboard.Attempts).Who);
+        Assert.Equal(spanish, Texts.Get($"Usage_Purpose_{purpose}"));
+        Assert.Equal(english, new ResourceTextProvider(CultureInfo.GetCultureInfo("en")).Get($"Usage_Purpose_{purpose}"));
     }
 
     private static UsageDashboardViewModel Dashboard(UsageReport report)
