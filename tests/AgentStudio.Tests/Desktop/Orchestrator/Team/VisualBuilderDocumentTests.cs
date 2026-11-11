@@ -177,7 +177,11 @@ public sealed class VisualBuilderDocumentTests
         var editor = document.Builder!.Editor;
         document.Canvas.Team.Select(document.Canvas.Team.Agents.Single(a => a.Id.Value == "orquestador"));
 
+        // Refused before the question: there is no yes to give.
         editor.RemoveSelectedCommand.Execute(null);
+        Assert.Null(editor.PendingRemoval);
+        Assert.False(editor.ConfirmRemoveCommand.CanExecute(null));
+        Assert.Contains("Hace falta el orquestador", editor.ErrorMessage, StringComparison.Ordinal);
         await editor.ConfirmRemoveCommand.ExecuteAsync(null);
 
         Assert.Empty(roster.Operations);

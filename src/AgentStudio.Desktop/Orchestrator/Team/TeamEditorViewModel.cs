@@ -647,6 +647,14 @@ public sealed partial class TeamEditorViewModel : ObservableObject
 
         ErrorMessage = null;
         Notice = null;
+
+        // A removal the team cannot take (its orchestrator, its last judge) is refused before the question, not after the yes.
+        if (TeamRemoval.Problems(_roster, After([], [node.Id])) is { Count: > 0 } missing)
+        {
+            ErrorMessage = _text.Format("Canvas_Editor_Refused", string.Join(", ", missing.Select(ProblemText)));
+            return;
+        }
+
         var name = _roster.FirstOrDefault(a => a.Id == node.Id)?.Name ?? node.Id.Value;
         PendingRemoval = new RemovalRequest(node.Id, _text.Format("Canvas_Remove_Question", node.Id.Value, name));
     }
