@@ -28,6 +28,7 @@ public sealed partial class VisualBuilder : ObservableObject, IDisposable
     private readonly Func<ContextHealthThresholds> _thresholds;
     private readonly TimeProvider _time;
     private readonly HashSet<ConnectionViewModel> _pulsing = [];
+    private readonly MontageFactsCache _facts;
     private bool _disposed;
 
     public VisualBuilder(
@@ -56,6 +57,8 @@ public sealed partial class VisualBuilder : ObservableObject, IDisposable
         OrderReview = orderReview;
         Chat = chat;
         Brief = brief;
+        _facts = new MontageFactsCache(services, band.Schedule);
+        brief.PropertyChanged += OnBriefChanged;
         MotionPolicy.SettingChanged += OnMotionSettingChanged;
         _canvas.Team.Editor = editor;
         _canvas.Team.Builder = this;
@@ -89,6 +92,27 @@ public sealed partial class VisualBuilder : ObservableObject, IDisposable
 
     /// <summary>The windows of quota as last seen, for the analyzer (<c>quota.window-near</c>).</summary>
     internal IReadOnlyList<QuotaObservation> QuotaObservations { get; private set; } = [];
+
+    /// <summary>
+    /// The files of the project, counted once when it opened and up to the cap (<see cref="ProjectFileCounter"/>), for the
+    /// recommendation of a model (P49); null until then, or when the service is not composed.
+    /// </summary>
+    public ProjectFileCount? ProjectFiles { get; private set; }
+
+    /// <summary>What the draft needs and costs to know: the memory a task starts with and the estimate of the plan (<see cref="MontageFactsCache"/>).</summary>
+    public MontageFactsCache Facts => _facts;
+
+    /// <summary>What the analyzer asked for in the background, finished: the memory and the estimate; for a test that has to wait for them.</summary>
+    public Task FactsReady => _facts.Pending;
+
+    private void OnBriefChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        // A brief read or saved changes what the tasks start with (context.thin, the size of the preamble).
+        if (e.PropertyName == nameof(ProjectBriefViewModel.VersionText))
+        {
+            Band.Schedule();
+        }
+    }
 
     /// <summary>The budget of the run in agent runs (<c>RunOptions.MaxAgentRuns</c>): a fix can raise it, and the next run starts with it.</summary>
     [ObservableProperty]
@@ -227,6 +251,30 @@ public sealed partial class VisualBuilder : ObservableObject, IDisposable
         _canvas.Team.Load(_canvas.Team.Roster, reading, _canvas.CaptureLayout());
     }
 
+    /// <summary>
+    /// Counts the files of the project once, off the UI thread and up to the cap (P49): the recommendation of a model uses it as the
+    /// size of the project. Without the service, or when the folder cannot be read, the size stays unknown; it is never guessed.
+    /// </summary>
+    public async Task LoadProjectFilesAsync(string projectRoot)
+    {
+        if (_services.ProjectFiles is not { } count)
+        {
+            return;
+        }
+
+        try
+        {
+            var counted = await count(projectRoot, CancellationToken.None).ConfigureAwait(true);
+            ProjectFiles = _disposed ? null : counted;
+        }
+#pragma warning disable CA1031 // The count is a help: a failure leaves the size unknown, never an error.
+        catch (Exception ex) when (ex is not OperationCanceledException)
+#pragma warning restore CA1031
+        {
+            ProjectFiles = null;
+        }
+    }
+
     /// <summary>Reads what the log taught of each model of this project (D-23); without the service the inspector says there is no data.</summary>
     public async Task LoadLearnedAsync(string projectRoot)
     {
@@ -290,6 +338,7 @@ public sealed partial class VisualBuilder : ObservableObject, IDisposable
     public void Dispose()
     {
         _disposed = true;
+        Brief.PropertyChanged -= OnBriefChanged;
         MotionPolicy.SettingChanged -= OnMotionSettingChanged;
         if (_services.Live is { } live)
         {

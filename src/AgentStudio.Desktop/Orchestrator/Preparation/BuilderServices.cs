@@ -31,6 +31,9 @@ namespace AgentStudio.Desktop.Orchestrator.Preparation;
 /// <param name="Brief">The brief of the project, kept as memory of the person (D-10).</param>
 /// <param name="WindowsAnimates">Whether Windows animates its windows; null reads it from Windows
 /// (<see cref="MotionPolicy.WindowsAnimates"/>). A test gives it, so it does not depend on the machine that runs it.</param>
+/// <param name="ContextPacker">The packer of the engine (D-13, P49): the analyzer asks it, once per agent and set of requirements, how much memory a task would start with. Without it, memory is not counted.</param>
+/// <param name="ProjectFiles">Counts the files of a project up to a cap (<see cref="ProjectFileCounter"/>), off the UI thread; the builder asks it once when the project opens. Without it the size of the project is unknown, and a test gives it so it never reads the disk.</param>
+/// <param name="SkillCharacters">What the CLI presents of the skills that are on for an agent (<see cref="SkillPresentationSource"/>), asked once for each agent. Without it the skills are not counted.</param>
 public sealed record BuilderServices(
     IOrderReview? OrderReview = null,
     IPreparationChat? Chat = null,
@@ -42,7 +45,10 @@ public sealed record BuilderServices(
     IRunLiveProjection? Live = null,
     IQuotaObservations? Quota = null,
     IProjectBrief? Brief = null,
-    Func<bool>? WindowsAnimates = null)
+    Func<bool>? WindowsAnimates = null,
+    IContextPacker? ContextPacker = null,
+    Func<string, CancellationToken, Task<ProjectFileCount>>? ProjectFiles = null,
+    Func<ProjectContext, AgentDefinition, CancellationToken, Task<int>>? SkillCharacters = null)
 {
     /// <summary>Nothing composed: the canvas works with what it always had.</summary>
     public static BuilderServices None { get; } = new();
