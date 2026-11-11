@@ -17,7 +17,9 @@
     <value>Also ask for Windows Hello in important approvals</value>
   </data>
   <data name="Hello_Setting_Explanation" xml:space="preserve">
-    <value>Windows Hello is always asked for delivering and for accepting a history. Also for giving an agent a shell or the network and for changing the verification profile.</value>
+    <value>Windows Hello is always asked for delivering and for accepting a history. Also for giving an agent a shell or the network and for changing the verification profile.
+This setting also asks for it to approve other plans, open debates, audit, accept reviews and discard work.
+Without Windows Hello on this computer, what always asks for it locks Windows. You unlock it with your PIN or password.</value>
   </data>
   <data name="Hello_Notice_AlwaysHello" xml:space="preserve">
     <value>This action always asks for Windows Hello, whatever the setting says. When you approve, confirm it is you: without that, nothing is approved.</value>
