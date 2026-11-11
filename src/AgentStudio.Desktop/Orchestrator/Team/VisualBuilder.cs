@@ -29,6 +29,7 @@ public sealed partial class VisualBuilder : ObservableObject, IDisposable
     private readonly TimeProvider _time;
     private readonly HashSet<ConnectionViewModel> _pulsing = [];
     private readonly MontageFactsCache _facts;
+    private readonly CancellationTokenSource _lifetime = new();
     private bool _disposed;
 
     public VisualBuilder(
@@ -257,18 +258,23 @@ public sealed partial class VisualBuilder : ObservableObject, IDisposable
     /// </summary>
     public async Task LoadProjectFilesAsync(string projectRoot)
     {
-        if (_services.ProjectFiles is not { } count)
+        if (_disposed || _services.ProjectFiles is not { } count)
         {
             return;
         }
 
         try
         {
-            var counted = await count(projectRoot, CancellationToken.None).ConfigureAwait(true);
+            // Closing the document cancels the walk of the folder: it does not go on for a document nobody sees.
+            var counted = await count(projectRoot, _lifetime.Token).ConfigureAwait(true);
             ProjectFiles = _disposed ? null : counted;
         }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+            ProjectFiles = null;
+        }
 #pragma warning disable CA1031 // The count is a help: a failure leaves the size unknown, never an error.
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (Exception)
 #pragma warning restore CA1031
         {
             ProjectFiles = null;
@@ -338,6 +344,8 @@ public sealed partial class VisualBuilder : ObservableObject, IDisposable
     public void Dispose()
     {
         _disposed = true;
+        _lifetime.Cancel();
+        _facts.Dispose();
         Brief.PropertyChanged -= OnBriefChanged;
         MotionPolicy.SettingChanged -= OnMotionSettingChanged;
         if (_services.Live is { } live)
@@ -346,5 +354,6 @@ public sealed partial class VisualBuilder : ObservableObject, IDisposable
         }
 
         Band.Dispose();
+        _lifetime.Dispose();
     }
 }
