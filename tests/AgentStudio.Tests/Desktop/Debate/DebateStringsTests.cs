@@ -222,6 +222,33 @@ public sealed partial class DebateStringsTests
         Assert.Equal(new[] { "Info_Audit", "Info_Challenge", "Info_Debates", "Info_Verdict" }, found);
     }
 
+    /// <summary>D-52: no sentence of these screens, in either language, has more than 20 words (a sentence ends at a full stop, «?», «!» or a new line).</summary>
+    [Fact]
+    public void No_sentence_of_the_texts_of_the_debates_and_the_audit_has_more_than_20_words()
+    {
+        var files = ResourceFiles();
+        var tooLong = new List<string>();
+        foreach (var baseName in new[] { "DebateStrings", "AuditStrings" })
+        {
+            foreach (var (language, file) in new[] { ("es", files[baseName].Neutral), ("en", files[baseName].Satellites["en"]) })
+            {
+                foreach (var (key, text) in Read(file))
+                {
+                    foreach (var sentence in Regex.Split(text, @"(?<=[.!?])\s+|\n"))
+                    {
+                        var words = sentence.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
+                        if (words > 20)
+                        {
+                            tooLong.Add($"{language} {key} ({words} words): {sentence}");
+                        }
+                    }
+                }
+            }
+        }
+
+        Assert.True(tooLong.Count == 0, "Sentences with more than 20 words:\n" + string.Join('\n', tooLong));
+    }
+
     /// <summary>The explanations of the information buttons are short: no sentence has more than 20 words (D-52).</summary>
     [Fact]
     public void The_explanations_of_the_information_buttons_have_short_sentences()

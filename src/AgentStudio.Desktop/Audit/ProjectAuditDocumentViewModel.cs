@@ -530,7 +530,7 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
             _screens is { CanNavigate: true } screens && _backend.Challenges is not null ? verdict => screens.ChallengeAsync(ProjectRoot, verdict) : null,
             null,
             _screens is { CanNavigate: true } navigation ? request => navigation.CreateCorrectiveTasksAsync(ProjectRoot, request) : null);
-        var context = new VerdictCardContext(Texts.Get("Audit_Card_Title"), Requirements: requirements);
+        var context = new VerdictCardContext(Texts.Get("Audit_Card_Title"), Requirements: requirements, RequestLabel: ProtocolTexts.AuditVerdictLabel);
         return new VerdictCardViewModel([judged], null, context, _time.LocalTimeZone, actions);
     }
 

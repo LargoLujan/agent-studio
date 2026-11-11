@@ -177,8 +177,8 @@ public sealed partial class ChallengeFormViewModel : ObservableObject
                 {
                     var where = stored.RunId is { Length: > 0 } run ? $" · {run}" : string.Empty;
                     VerdictText = Texts.Format(stored.Valid ? "Debate_Challenge_VerdictValid" : "Debate_Challenge_VerdictInvalid", stored.Id, where, VerdictTexts.Decision(stored.Verdict.Decision), VerdictPanelViewModel.JudgeLine(stored.Verdict.Judge));
-                    // The question is what the debaters and the judge receive: a prompt of the protocol, never translated (docs/17 D-48).
-                    Question = $"¿Se sostiene el veredicto {stored.Id} ({VerdictTexts.Decision(stored.Verdict.Decision)}) frente a la impugnación? El proponente defiende el veredicto y el crítico, la impugnación.";
+                    // The question is what the debaters and the judge receive: a prompt of the protocol, fixed in Spanish (docs/17 D-48).
+                    Question = ProtocolTexts.ChallengeQuestion(stored.Id, stored.Verdict.Decision);
                     if (_backend.Requirements is { } store)
                     {
                         _requirements = await store.FindAsync(project.ProjectId, stored.Verdict.RequirementSetHash, ct).ConfigureAwait(true);

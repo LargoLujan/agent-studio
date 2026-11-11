@@ -130,7 +130,7 @@
     <comment>Kind of contribution.</comment>
   </data>
   <data name="Debate_Kind_Evidence" xml:space="preserve">
-    <value>Prueba</value>
+    <value>Prueba guardada</value>
     <comment>Kind of contribution: a saved piece of evidence.</comment>
   </data>
   <data name="Debate_Limit_Rounds" xml:space="preserve">
@@ -450,15 +450,15 @@
     <comment>A rule of the validator that a verdict broke.</comment>
   </data>
   <data name="Verdict_Violation_EvidenceNotInDossier" xml:space="preserve">
-    <value>Cita una prueba que no está en el expediente para el juez</value>
+    <value>Cita una prueba guardada que no está en el expediente para el juez</value>
     <comment>A rule of the validator that a verdict broke.</comment>
   </data>
   <data name="Verdict_Violation_EvidenceCitedButNotExamined" xml:space="preserve">
-    <value>Cita una prueba que no dice haber examinado</value>
+    <value>Cita una prueba guardada que no dice haber examinado</value>
     <comment>A rule of the validator that a verdict broke.</comment>
   </data>
   <data name="Verdict_Violation_SatisfiedWithoutEvidence" xml:space="preserve">
-    <value>Da por cumplido un requisito sin pruebas</value>
+    <value>Da por cumplido un requisito sin pruebas guardadas</value>
     <comment>A rule of the validator that a verdict broke.</comment>
   </data>
   <data name="Verdict_Violation_ApprovedWithUnmetMandatoryRequirement" xml:space="preserve">
@@ -502,7 +502,7 @@
     <comment>A rule of the validator that a verdict broke.</comment>
   </data>
   <data name="Verdict_Violation_ApprovedWithoutEvidenceForCriterion" xml:space="preserve">
-    <value>Aprueba sin pruebas de un criterio</value>
+    <value>Aprueba sin pruebas guardadas de un criterio</value>
     <comment>A rule of the validator that a verdict broke.</comment>
   </data>
   <data name="Verdict_Violation_MalformedVerdict" xml:space="preserve">
@@ -578,7 +578,7 @@
     <comment>How a review ended.</comment>
   </data>
   <data name="Debate_Model_Default" xml:space="preserve">
-    <value>modelo por defecto del programa</value>
+    <value>modelo predeterminado del programa</value>
     <comment>Model of an agent that has none set.</comment>
   </data>
   <data name="Verdict_Judge_NoModel" xml:space="preserve">
@@ -662,11 +662,11 @@
     <comment>Count of requirements that cannot be checked.</comment>
   </data>
   <data name="Verdict_Row_Evidence" xml:space="preserve">
-    <value>Pruebas citadas: {0}</value>
+    <value>Pruebas guardadas citadas: {0}</value>
     <comment>Evidence a verdict cites for a requirement. {0}: their ids.</comment>
   </data>
   <data name="Verdict_Row_NoEvidence" xml:space="preserve">
-    <value>Sin pruebas citadas</value>
+    <value>Sin pruebas guardadas citadas</value>
     <comment>A requirement with no evidence cited.</comment>
   </data>
   <data name="Verdict_Row_JudgeAssessment" xml:space="preserve">
@@ -674,7 +674,7 @@
     <comment>Mark on a requirement only the judge can assess.</comment>
   </data>
   <data name="Verdict_Ref_Evidence" xml:space="preserve">
-    <value>pruebas: {0}</value>
+    <value>pruebas guardadas: {0}</value>
     <comment>What a finding cites. {0}: ids of evidence.</comment>
   </data>
   <data name="Verdict_Ref_Entries" xml:space="preserve">
@@ -822,7 +822,7 @@
     <comment>Status of a debate read back that was interrupted.</comment>
   </data>
   <data name="Debate_Room_EvidenceAdded" xml:space="preserve">
-    <value>Prueba «{0}» añadida. La verán la ronda siguiente y el juez.</value>
+    <value>Prueba guardada «{0}» añadida. La verán la ronda siguiente y el juez.</value>
     <comment>After «Añadir prueba». {0}: its title.</comment>
   </data>
   <data name="Debate_Room_Fail_Judgment" xml:space="preserve">
@@ -834,7 +834,7 @@
     <comment>Error. {0}: the reason.</comment>
   </data>
   <data name="Debate_Room_Fail_Evidence" xml:space="preserve">
-    <value>No se pudo añadir la prueba: {0}</value>
+    <value>No se pudo añadir la prueba guardada: {0}</value>
     <comment>Error. {0}: the reason.</comment>
   </data>
   <data name="Debate_Room_Fail_Retry" xml:space="preserve">
@@ -934,11 +934,11 @@
     <comment>What the author concedes.</comment>
   </data>
   <data name="Debate_Evidence_Cited" xml:space="preserve">
-    <value>Prueba {0}</value>
+    <value>Prueba guardada {0}</value>
     <comment>Accessible name of a piece of evidence a contribution cites. {0}: its id.</comment>
   </data>
   <data name="Debate_Evidence_NoStore" xml:space="preserve">
-    <value>Falta el almacén de pruebas guardadas: no se puede abrir la prueba.</value>
+    <value>Falta el almacén de pruebas guardadas: no se puede abrir la prueba guardada.</value>
     <comment>Evidence that cannot be opened.</comment>
   </data>
   <data name="Debate_Evidence_Failed" xml:space="preserve">
@@ -1666,7 +1666,7 @@
     <comment>Tooltip of the button.</comment>
   </data>
   <data name="Debate_RoomView_OpenEvidenceName" xml:space="preserve">
-    <value>Abrir la prueba {0}</value>
+    <value>Abrir la prueba guardada {0}</value>
     <comment>Accessible name. {0}: its id.</comment>
   </data>
   <data name="Debate_RoomView_Close" xml:space="preserve">
@@ -1674,23 +1674,23 @@
     <comment>Button.</comment>
   </data>
   <data name="Debate_RoomView_EvidenceContent" xml:space="preserve">
-    <value>Contenido de la prueba</value>
+    <value>Contenido de la prueba guardada</value>
     <comment>Accessible name.</comment>
   </data>
   <data name="Debate_RoomView_AddEvidence" xml:space="preserve">
-    <value>Añadir una prueba (una nota tuya que verán la ronda siguiente y el juez)</value>
+    <value>Añadir una prueba guardada (una nota tuya que verán la ronda siguiente y el juez)</value>
     <comment>Label.</comment>
   </data>
   <data name="Debate_RoomView_EvidenceTitleName" xml:space="preserve">
-    <value>Título de la prueba</value>
+    <value>Título de la prueba guardada</value>
     <comment>Accessible name.</comment>
   </data>
   <data name="Debate_RoomView_EvidenceTextName" xml:space="preserve">
-    <value>Texto de la prueba</value>
+    <value>Texto de la prueba guardada</value>
     <comment>Accessible name.</comment>
   </data>
   <data name="Debate_RoomView_AddEvidenceButton" xml:space="preserve">
-    <value>Añadir prueba</value>
+    <value>Añadir prueba guardada</value>
     <comment>Button.</comment>
   </data>
   <data name="Debate_RoomView_Activity" xml:space="preserve">
@@ -1821,12 +1821,12 @@ Filtra el historial por modo.</value>
     <comment>Information button.</comment>
   </data>
   <data name="Info_Verdict_What" xml:space="preserve">
-    <value>Es la respuesta del juez: si aprueba, pide cambios o rechaza, y por qué. Cada requisito lleva su estado y las pruebas que cita. Si el juez rompe alguna regla, lo verás marcado.</value>
+    <value>Es la respuesta del juez: si aprueba, pide cambios o rechaza, y por qué. Cada requisito lleva su estado y las pruebas guardadas que cita. Si el juez rompe alguna regla, lo verás marcado.</value>
     <comment>Information button.</comment>
   </data>
   <data name="Info_Verdict_Actions" xml:space="preserve">
     <value>Mira qué requisitos se cumplen y cuáles no.
-Abre las pruebas que cita el juez.
+Abre las pruebas guardadas que cita el juez.
 Pulsa «Impugnar» si no estás de acuerdo.
 Pulsa «Crear tareas correctivas» para pedir los arreglos al orquestador.
 Decide tú, si el jurado no se pone de acuerdo.</value>

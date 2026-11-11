@@ -65,7 +65,7 @@ public sealed class ProjectAuditDocumentViewModelTests
 
         Assert.Equal("Se audita la última versión guardada (commit HEAD 777777777777).", document.HeadText);
         Assert.Equal("Hay cambios sin guardar como versión (commit): no entran en la auditoría, y el informe lo dirá.", document.UncommittedText);
-        Assert.Equal("Juez: juez-revision · Codex CLI · OpenAI · modelo por defecto del programa", document.JudgeText);
+        Assert.Equal("Juez: juez-revision · Codex CLI · OpenAI · modelo predeterminado del programa", document.JudgeText);
         Assert.Equal("Estas empresas produjeron el código: Anthropic. El juez no puede ser de ninguna de ellas.", document.ProducersText);
         Assert.Equal(["e2e: no se ejecuta en una auditoría, porque lo haría con tus permisos."], document.SkippedSteps);
         Assert.Equal(["test · Pruebas · dotnet test"], document.ProfileSteps);
@@ -85,7 +85,7 @@ public sealed class ProjectAuditDocumentViewModelTests
         Assert.Equal("Nadie puede juzgar: quien produjo el código no puede ser juez, y esa regla no admite excepciones.", document.JudgeText);
         Assert.Equal(["audit.no-judge: los dos vendors produjeron código"], document.ProposalProblems);
         Assert.StartsWith("«Auditar» no lanzará a ningún juez", document.AuditMode, StringComparison.Ordinal);
-        Assert.Equal("Sin juez no se gasta el límite de uso de tu plan: solo se verifica la última versión guardada y se listan los problemas pendientes.", document.EstimateText);
+        Assert.Equal("Sin juez no se gasta el límite de uso de tu plan. Solo se verifica la última versión guardada y se listan los problemas pendientes.", document.EstimateText);
         Assert.True(document.AuditCommand.CanExecute(null));
     }
 
@@ -111,6 +111,7 @@ public sealed class ProjectAuditDocumentViewModelTests
         Assert.Equal("Cambios solicitados · veredicto válido", card.OutcomeText);
         Assert.True(card.Verdicts[0].CanBeChallenged);
         Assert.True(card.CanCreateCorrectiveTasks);
+        Assert.StartsWith("Tareas correctivas de «Veredicto de la auditoría» (veredictos ", card.CorrectiveRequest, StringComparison.Ordinal);
 
         await card.CreateCorrectiveTasksCommand.ExecuteAsync(null);
         Assert.Equal(Root, Assert.Single(navigation.CorrectiveTasks).ProjectRoot);

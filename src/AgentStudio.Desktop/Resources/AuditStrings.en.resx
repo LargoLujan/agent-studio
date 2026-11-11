@@ -38,7 +38,7 @@
     <value>Not reliable: {0}.</value>
   </data>
   <data name="Audit_Integrity_Intact" xml:space="preserve">
-    <value>The decision history is intact: nobody has touched it.</value>
+    <value>The decision history is intact: it matches its saved fingerprint.</value>
   </data>
   <data name="Audit_Integrity_Broken" xml:space="preserve">
     <value>The decision history is broken. The judge was not launched. What follows is only what the system checks without writing anything.</value>
@@ -116,7 +116,7 @@
     <value>The repository has no saved version (commit).</value>
   </data>
   <data name="Audit_Prep_Uncommitted" xml:space="preserve">
-    <value>There are changes not saved as a version (commit): they are not part of the audit, and the report will say so.</value>
+    <value>There are changes not saved as a version (commit). They are not part of the audit, and the report will say so.</value>
   </data>
   <data name="Audit_Prep_Judge" xml:space="preserve">
     <value>Judge: {0} · {1}</value>
@@ -131,7 +131,7 @@
     <value>These companies produced the code: {0}. The judge cannot be from any of them.</value>
   </data>
   <data name="Audit_Prep_Profile" xml:space="preserve">
-    <value>Verification profile "{0}" (fingerprint {1}): it runs in an isolated zone, with minimum permissions and on a copy of the latest saved version.</value>
+    <value>Verification profile "{0}" (fingerprint {1}). It runs in an isolated zone, with minimum permissions, on a copy of the latest saved version.</value>
   </data>
   <data name="Audit_Prep_NoProfile" xml:space="preserve">
     <value>No verification profile: no tests are run.</value>
@@ -143,7 +143,7 @@
     <value>Estimate: {0} tokens ({1}), plus at most one correction by the judge. Verifying does not spend your plan's usage limit.</value>
   </data>
   <data name="Audit_Prep_EstimateNoJudge" xml:space="preserve">
-    <value>Without a judge your plan's usage limit is not spent: only the latest saved version is verified and the pending problems are listed.</value>
+    <value>Without a judge your plan's usage limit is not spent. Only the latest saved version is verified and the pending problems are listed.</value>
   </data>
   <data name="Audit_Prep_ModeJudge" xml:space="preserve">
     <value>"Audit" launches the judge after the isolated verification.</value>
