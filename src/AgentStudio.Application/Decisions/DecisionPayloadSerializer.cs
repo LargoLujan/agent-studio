@@ -70,6 +70,18 @@ public static class DecisionPayloadSerializer
 
         // Phase 14 (docs/17 D-60): the export of a document for clients, outside every run.
         [DecisionKind.ClientDocumentExported] = typeof(ClientDocumentExportedPayload),
+        // Phase 9 (docs/16 D-17, D-18 and D-29): milestones, the backlog and the links of the trace. The milestones carry their id as
+        // the run id; the backlog and the links belong to no run.
+        [DecisionKind.MilestoneOpened] = typeof(MilestoneOpenedPayload),
+        [DecisionKind.MilestoneRequirementsRevised] = typeof(MilestoneRequirementsRevisedPayload),
+        [DecisionKind.MilestoneLinked] = typeof(MilestoneLinkedPayload),
+        [DecisionKind.MilestoneClosed] = typeof(MilestoneClosedPayload),
+        [DecisionKind.MilestoneReopened] = typeof(MilestoneReopenedPayload),
+        [DecisionKind.BacklogItemRecorded] = typeof(BacklogItemRecordedPayload),
+        [DecisionKind.BacklogItemRetired] = typeof(BacklogItemRetiredPayload),
+        [DecisionKind.BacklogOrderChanged] = typeof(BacklogOrderChangedPayload),
+        [DecisionKind.TraceLinkRecorded] = typeof(TraceLinkRecordedPayload),
+        [DecisionKind.TraceLinkRetracted] = typeof(TraceLinkRetractedPayload),
     };
 
     private static readonly JsonSerializerOptions Options = CreateOptions();

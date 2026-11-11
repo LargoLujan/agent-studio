@@ -186,7 +186,7 @@ public sealed class Phase4ContractTests
         Assert.Equal([typeof(IReadOnlyList<string>), typeof(UsageQuery), typeof(CancellationToken)], Parameters(typeof(IUsageReport), nameof(IUsageReport.QueryAsync)));
         Assert.Equal(["WriteCsvAsync", "WriteJsonAsync"], MethodNames(typeof(IUsageExporter)));
         Assert.Equal(
-            ["Provider", "Vendor", "Model", "Session", "Run", "Task", "Agent", "Purpose", "Project", "Day", "Week", "Month"],
+            ["Provider", "Vendor", "Model", "Session", "Run", "Task", "Agent", "Purpose", "Project", "Day", "Week", "Month", "Milestone", "Activity", "ActivityAttempt", "ActivityDestination"],
             Enum.GetNames<UsageDimension>());
     }
 

@@ -152,6 +152,51 @@ public enum DecisionKind
     /// redacted, paths removed, parts written by agents, risks) and who approved it. No text of the document goes in the payload.
     /// </summary>
     ClientDocumentExported,
+
+    // Phase 9 (work and traceability, docs/16 D-17, D-18 and D-29). Appended after the Phase 13 kinds and the Phase 14 one, so no stored hash changes.
+    // A milestone (mil-…) is a unit of the log like a debate: its payloads carry its id as the run id, so the entries of the
+    // run it is linked to and its own never mix. The entries of the backlog and the trace links span runs: their payloads
+    // carry an empty run id, like those of the memory, so replay and the dossier of the judge never select them.
+
+    /// <summary>
+    /// A milestone opens (D-17): the canonical hash of its immutable header in <c>milestones</c> (name, objective, first set of
+    /// requirements and, when there is one, its budget), who opened it. The objective is the person's text: the header holds it.
+    /// </summary>
+    MilestoneOpened,
+
+    /// <summary>The requirements of a milestone are revised (D-17): the hash of the new frozen set and of the one it replaces. The earlier set stays in its history.</summary>
+    MilestoneRequirementsRevised,
+
+    /// <summary>A run (with its follow-ups) or a debate is linked to a milestone (D-17 and D-29): by the system when it is launched from the milestone, or by a person.</summary>
+    MilestoneLinked,
+
+    /// <summary>A milestone is closed by auditing it (D-49): the audit, the evidence of the deterministic report with its SHA-256 and the commit audited.</summary>
+    MilestoneClosed,
+
+    /// <summary>A closed milestone is reopened (D-50): why (a revert, a check that fails, a new challenge or a person) and its evidence. The report it had stays.</summary>
+    MilestoneReopened,
+
+    /// <summary>
+    /// An item of the backlog is announced (D-18), as <c>MemoryRecorded</c> announces a memory entry: its id, its version, its
+    /// priority and the canonical SHA-256 of its content, before its row is stored. A new version is the item changed.
+    /// </summary>
+    BacklogItemRecorded,
+
+    /// <summary>A person retired an item of the backlog (D-18): the item and the last version it had. Its rows stay.</summary>
+    BacklogItemRetired,
+
+    /// <summary>A person changed the order of the backlog (D-18): the ids of the items in their new order.</summary>
+    BacklogOrderChanged,
+
+    /// <summary>
+    /// An explicit link between two nodes of the trace is recorded (D-29): a requirement, an item of the backlog, a milestone,
+    /// a run, a task, an attempt, a commit, evidence, a verdict, a debate, an audit or a document; who asserts it and why. A
+    /// link is never edited.
+    /// </summary>
+    TraceLinkRecorded,
+
+    /// <summary>A link of the trace is withdrawn (D-29): who and why. The link stays in the log; recording another is how it changes.</summary>
+    TraceLinkRetracted,
 }
 
 public sealed record DecisionEntry(

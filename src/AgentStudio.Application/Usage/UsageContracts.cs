@@ -31,6 +31,21 @@ public enum UsageDimension
     Day,
     Week,
     Month,
+
+    // Phase 9 (docs/16 D-34), appended. Not computed yet: UsageAggregator.KeyOf (WP2) and the dimension list of the dashboard (WP5)
+    // must handle them before anyone can group by them.
+
+    /// <summary>The milestone an attempt is linked to (by <c>MilestoneLinked</c>); an attempt in two milestones is in each, marked shared, and once in the total.</summary>
+    Milestone,
+
+    /// <summary>What the attempt was for: the <c>ActivityKind</c> (first axis of the activity).</summary>
+    Activity,
+
+    /// <summary>First attempt of its task or retry: the <c>AttemptOrder</c> (second axis).</summary>
+    ActivityAttempt,
+
+    /// <summary>What became of the work: the <c>AttemptFate</c> (third axis).</summary>
+    ActivityDestination,
 }
 
 /// <summary>What a report keeps (D-04). A list that is null or empty lets every value through.</summary>
@@ -128,7 +143,11 @@ public sealed record UsageTotals(
 public sealed record UsageGroupKey(UsageDimension Dimension, string Value);
 
 /// <summary>One group of a report: its key, in the order of the query's dimensions (empty for the grand total), and its figures.</summary>
-public sealed record UsageGroup(IReadOnlyList<UsageGroupKey> Key, UsageTotals Totals);
+/// <param name="SharedAttempts">
+/// Phase 9 (D-34): how many of the attempts of the group also belong to another group of the same dimension (a milestone), so the
+/// groups of that dimension may add up to more than the total by exactly that; the grand total counts each attempt once.
+/// </param>
+public sealed record UsageGroup(IReadOnlyList<UsageGroupKey> Key, UsageTotals Totals, int SharedAttempts = 0);
 
 /// <summary>A project left out of a report and why (D-05): its log does not verify, no anchor recognises it, or it cannot be read.</summary>
 public sealed record ExcludedProject(string Root, string? ProjectId, string Reason);

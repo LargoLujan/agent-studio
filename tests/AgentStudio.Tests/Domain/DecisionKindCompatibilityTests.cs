@@ -132,6 +132,28 @@ public sealed class DecisionKindCompatibilityTests
         }
     }
 
+    /// <summary>
+    /// Phase 9 (docs/16 D-17, D-18 and D-29): milestones, the backlog and the links of the trace, appended after Phase 13 and Phase 14. Nothing
+    /// else was added by this phase.
+    /// </summary>
+    private static readonly string[] Phase9Kinds =
+    [
+        "MilestoneOpened", "MilestoneRequirementsRevised", "MilestoneLinked", "MilestoneClosed", "MilestoneReopened",
+        "BacklogItemRecorded", "BacklogItemRetired", "BacklogOrderChanged", "TraceLinkRecorded", "TraceLinkRetracted",
+    ];
+
+    [Fact]
+    public void Phase_9_kinds_come_after_the_phase_13_ones()
+    {
+        var before = ExistingKinds.Length + Phase3Kinds.Length + Phase4Kinds.Length + Phase5Kinds.Length + Phase8Kinds.Length + Phase12Kinds.Length + Phase13Kinds.Length + Phase14Kinds.Length;
+        for (var i = 0; i < Phase9Kinds.Length; i++)
+        {
+            Assert.Equal(Phase9Kinds[i], ((DecisionKind)(before + i)).ToString());
+        }
+
+        Assert.Equal(before + Phase9Kinds.Length, Enum.GetValues<DecisionKind>().Length);
+    }
+
     [Fact]
     public void A_chain_recorded_before_phase_3_still_verifies_and_keeps_its_hashes()
     {

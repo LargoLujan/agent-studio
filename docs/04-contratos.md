@@ -2019,3 +2019,81 @@ public sealed record ClientDocumentExportedPayload(int Version, string? Mileston
 - **Qué hace cada paquete encima:** WP-14C pone el corpus (`Desktop/Help`), el índice de búsqueda, el panel, `F1`, el catálogo de
   acciones, `IHelpAgent` y los textos de la tarjeta; WP-14D, el constructor, los textos `Text_document_…`, los escritores, el
   exportador, el borrador con un agente y la pantalla de revisión. Los dos añaden sus tests (F14-7 a F14-9).
+
+## 23. Fase 9: trabajo y trazabilidad
+
+Lo que el P0 de la Fase 9 deja fijado para los paquetes WP1 a WP5, que van en paralelo encima ([16](16-ampliacion-plataforma-de-proyectos.md)
+§4.6, D-05, D-17 a D-20, D-29 a D-34, D-44, D-49 y D-50; [ADR-0038](adr/0038-hito-backlog-y-tablero.md),
+[ADR-0039](adr/0039-vinculos-de-trazabilidad-y-participacion.md) y [ADR-0040](adr/0040-consumo-por-hito-y-actividad-y-presupuestos.md)).
+Hay **diez tipos nuevos** al final de `DecisionKind`, todos en `V = 1`, y la migración **0006**
+([05 §4](05-modelo-de-datos.md#4-migraciones)). Los payloads anteriores se leen y se reescriben byte a byte. La sección 19 que
+nombra docs/16 era la de la Tanda 2: esta es la 22. `Phase9PayloadTests`, `DecisionKindCompatibilityTests`, `ContractSurfaceTests`
+y las de `Domain/Work`, `Domain/Tracing` y `SqliteSchemaTests` fallan si un contrato compartido cambia.
+
+### 23.1 Registro (`Application/Decisions/WorkPayloads.cs`)
+
+| Tipo | Payload | `runId` | Contenido |
+|---|---|---|---|
+| `MilestoneOpened` | `MilestoneOpenedPayload` | el hito (`mil-…`) | Hash canónico de la cabecera (`MilestoneHeaderHash.Of`), nombre, hash del primer conjunto de requisitos, presupuesto opcional y quién |
+| `MilestoneRequirementsRevised` | `MilestoneRequirementsRevisedPayload` | el hito | Hash del conjunto nuevo y del que sustituye, quién y por qué. Uno distinto del vigente |
+| `MilestoneLinked` | `MilestoneLinkedPayload` | el hito | `Run` o `Debate`, su id y quién (`agent-studio` si el sistema lanzó la ejecución desde el hito). Los seguimientos se encuentran por `RunStarted.Follows`, no se escriben |
+| `MilestoneClosed` | `MilestoneClosedPayload` | el hito | Revisión del informe (desde 1), la auditoría (`aud-…`), la evidencia del informe y su SHA-256, el commit auditado y quién |
+| `MilestoneReopened` | `MilestoneReopenedPayload` | el hito | `Revert`, `CheckFailed`, `Challenge` o `ByPerson`, la evidencia con su SHA-256 (obligatoria salvo `ByPerson`) y quién |
+| `BacklogItemRecorded` | `BacklogItemRecordedPayload` | ninguno | Id, versión, prioridad y SHA-256 canónico del contenido (`BacklogItem.Sha256`); sin texto |
+| `BacklogItemRetired` | `BacklogItemRetiredPayload` | ninguno | Id, última versión, quién y por qué |
+| `BacklogOrderChanged` | `BacklogOrderChangedPayload` | ninguno | Los ids en su orden nuevo; los no listados siguen en orden de alta |
+| `TraceLinkRecorded` | `TraceLinkRecordedPayload` | ninguno | Id del vínculo (`TraceLinks.IdOf`), tipo e id de cada extremo, quién lo afirma, motivo y, si es una sugerencia confirmada, su origen |
+| `TraceLinkRetracted` | `TraceLinkRetractedPayload` | ninguno | Id del vínculo, quién y por qué. El vínculo sigue en el registro |
+
+Cada payload tiene su fábrica (`Opening`, `Revising`, `Linking`, `Closing`, `Reopening`, `Announcing`, `Retiring`, `Ordering`,
+`Recording`, `Retracting`), que rechaza lo que el dominio rechaza. Ningún payload lleva texto de un agente; el nombre de un hito y
+los motivos son texto de la persona. Las entradas sin ejecución esperan, como las de la memoria, a que `IProjectActivity` deje libre
+el proyecto (ADR-0022, decisión 3).
+
+### 23.2 Dominio
+
+- **`Domain/Work`:** `WorkBudget` (D-05: tokens y ejecuciones, por periodo `Total`, `Day`, `Week` o `Month`; `Check(usado, proyectado)` dice si un intento
+  puede lanzarse y qué límite pasa; llegar justo al límite está dentro).
+- **`Domain/Work/Milestones`:** `MilestoneId`, `MilestoneHeader`, `Milestone` (reglas: un conjunto distinto del vigente, cada ejecución o debate una vez, cerrar
+  exige una ejecución vinculada y la revisión siguiente del informe, reabrir conserva los informes, el tiempo solo avanza), `MilestoneStateReplayer` (como el de un
+  debate: hallazgos, no excepciones), y `BoardRules` con `BoardColumn` (D-19).
+- **`Domain/Work/Backlog`:** `BacklogItemId`, `BacklogItem` (un requisito en borrador; cada cambio, una versión con todo su contenido), `BacklogState` y su reproductor.
+- **`Domain/Tracing`:** `TraceNodeKind`, `TraceRef` (ids estables: un commit siempre completo; una tarea `<run>/<tarea>`; un intento `<run>/<tarea>#<n>`; un documento
+  `<ruta>@<commit>`), `TraceLink` y `TraceLinks.IdOf`, `TraceLinkSet` y su reproductor (bidireccional, idempotente), `TraceSuggestion` (solo `Confirm` la convierte en vínculo) y `CommitTrailers`.
+- **`Domain/Metrics`:** `ActivityKind`, `AttemptOrder`, `AttemptFate` y `ActivityClass` (los tres ejes de D-34), `ActivityPaths.OfDiff` y `EstimateComparison`
+  (real frente a estimado). **No hay `Estimate.cs`:** el estimador lo hizo la Fase 13 (`Application/Usage/EstimateContracts.cs`, ADR-0050).
+
+**Trailers** de los commits del sistema: un bloque al final del mensaje, tras una línea en blanco, `Agent-Studio-Run: <run>`, `Agent-Studio-Task: <tarea>`,
+`Agent-Studio-Attempt: <n>` y `Agent-Studio-Agent: <agente>[; model=<modelo>]`. Se escriben con `CommitTrailers.Append` (rechaza saltos de línea y otros caracteres de control)
+y se leen con `CommitTrailers.Read` (solo el último párrafo; clave repetida o valor que no corresponde, nada). Son ayuda para inferir, nunca la fuente.
+
+### 23.3 Contratos (`Application/Work`, `Application/Git/RepositoryViewContracts.cs`, `Application/Usage`)
+
+| Puerto | Operaciones | Lo implementa |
+|---|---|---|
+| `IMilestoneRegistry` | `CreateAsync`, `FindAsync`, `ListAsync` (cabeceras, solo añadir) | WP1 |
+| `IMilestoneService` | `OpenAsync`, `ReviseRequirementsAsync`, `LinkAsync`, `ReopenAsync`, `GetAsync`, `ListAsync` | WP1 |
+| `IMilestoneCloser` | `CloseAsync` (auditoría del hito e informe determinista) | WP3 |
+| `IBacklogStore` / `IBacklogService` | filas por versión / añadir, revisar, retirar, reordenar, listar, historia | WP1 |
+| `IBoardProjector` | `ProjectAsync`, `BacklogAsync` (tarjetas con su columna y su motivo `BoardCardReasons`) | WP1 |
+| `ITraceLinkService`, `ITraceSuggester`, `ITraceChainReader` | registrar, confirmar, retirar, vínculos de un nodo / sugerencias / la cadena de F9-4 | WP1 |
+| `IParticipationProjector` | los seis papeles de D-32 (`ParticipationRole`); un papel sin fuente es `ParticipationEntry.NotRecorded` («no consta») | WP1 |
+| `IProjectBudgetStore` | presupuesto del proyecto, de la persona y de su equipo; el del hito va en su cabecera | WP2 |
+| `IRepositoryHistoryReader` | `SummaryAsync`, `BranchesAsync`, `CommitsAsync` por la capa git endurecida | WP4 |
+| `IRepositoryAnnotator`, `IRepositoryActivityReader` | commits anotados desde el registro / la línea de tiempo de «Actividad» | WP1 y WP5 |
+
+`UsageDimension` gana cuatro valores al final: `Milestone`, `Activity`, `ActivityAttempt` y `ActivityDestination` (los tres ejes de D-34 son
+tres dimensiones, para que los grupos de un eje sumen el total), y `UsageGroup` gana `SharedAttempts` (opcional, 0): cuántos intentos del grupo están también
+en otro grupo de la dimensión (un hito), de modo que los grupos pueden sumar más que el total exactamente en eso.
+
+**Pendiente de WP2 y WP5 antes de integrar:** `UsageAggregator.KeyOf` lanza `ArgumentOutOfRangeException` con las dimensiones nuevas y
+`UsageDashboardViewModel.Dimensions` las ofrece todas (`Enum.GetValues`): hasta que WP2 las calcule y WP5 las etiquete, agrupar por ellas fallaría.
+
+### 23.4 Diferencias con docs/16 §4.6
+
+- La sección de docs/04 es la 22, no la 19. La migración es la `0006`, la siguiente libre.
+- `Domain/Metrics/Estimate.cs` no existe (ADR-0050). `ActivityClass.cs` sí, con un valor más en el destino (`Pending`, un intento de una ejecución en marcha).
+- `MilestoneLinked` es el vínculo del hito con su ejecución o debate: no se duplica como `TraceLinkRecorded`, y la traza lee los dos.
+- La prioridad de un elemento del backlog es la de un requisito (`Mandatory` o `Desirable`); el orden manual es `BacklogOrderChanged`.
+- «Integrado» exige además «hecho»: una tarjeta entregada sin veredicto aprobado que la dé por satisfecha no pasa de su columna.
+- ADR-0040 llega con el P0 como esqueleto de lo que fija (dimensiones, `ActivityClass`, presupuesto); WP2 lo completa.
