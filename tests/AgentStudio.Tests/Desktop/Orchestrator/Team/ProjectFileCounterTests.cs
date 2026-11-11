@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 using AgentStudio.Desktop.Orchestrator.Team;
 
@@ -74,8 +75,55 @@ public sealed class ProjectFileCounterTests
     }
 
     [Fact]
+    public void A_folder_link_is_not_followed_so_neither_what_it_points_at_nor_a_cycle_counts()
+    {
+        using var root = new TempDirectory();
+        using var outside = new TempDirectory();
+        root.WriteFile("src/a.cs");
+        root.WriteFile("README.md");
+        outside.WriteFile("big/one.cs");
+        outside.WriteFile("big/two.cs");
+        outside.WriteFile("big/three.cs");
+
+        // One link out of the project, and one back to the project itself: followed, the first would count three files that are not
+        // the project's and the second would count the same files again for as long as the path can grow.
+        var outward = root.Combine("linked");
+        var loop = root.Combine("src", "loop");
+        if (!TryCreateJunction(outward, outside.Path) || !TryCreateJunction(loop, root.Path))
+        {
+            Assert.Skip("Directory junctions cannot be created in the temporary folder.");
+        }
+
+        var count = ProjectFileCounter.Count(root.Path, cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(new ProjectFileCount(2, IsTruncated: false), count);
+    }
+
+    [Fact]
     public void The_cap_is_the_one_of_the_index_of_the_explorer()
     {
         Assert.Equal(20_000, ProjectFileCounter.DefaultMaxFiles);
+    }
+
+    /// <summary>A directory junction made by <c>mklink /J</c>, which needs no privilege (the tests of the explorer index do the same).</summary>
+    private static bool TryCreateJunction(string link, string target)
+    {
+        var start = new ProcessStartInfo("cmd.exe", $"/c mklink /J \"{link}\" \"{target}\"")
+        {
+            CreateNoWindow = true,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        };
+        using var process = Process.Start(start);
+        if (process is null)
+        {
+            return false;
+        }
+
+        process.StandardOutput.ReadToEnd();
+        process.StandardError.ReadToEnd();
+        process.WaitForExit();
+        return process.ExitCode == 0 && Directory.Exists(link);
     }
 }

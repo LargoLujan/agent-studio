@@ -60,7 +60,8 @@
          compilado si el paso lo requiere (`Requires`, lo que arregló WP-D para B6) o si la tarea nombra antes uno que compila.
          Sin el perfil, o con un perfil sin paso de compilar (pytest), no dice nada: callar es mejor que un error falso.
        - `context.pack-too-small` no ofrece `RaiseContextBudgetFix`: el presupuesto es el del prompt del ejecutor
-         (`ExecutorPrompt.BudgetCharacters`), no un campo de la plantilla. La salida es partir la tarea o reducir sus requisitos.
+         (`ProjectMemoryPrompt.BudgetCharacters`, 24 000 caracteres), no un campo de la plantilla. La salida es partir la tarea o
+         reducir sus requisitos.
        - `context.window-tight` solo ofrece quitar la memoria: el catálogo no guarda ventanas, así que «un modelo con más
          ventana» no se puede proponer sin inventar.
        - `model.oversized` mira si todas las entradas del alcance son de documentación o pruebas (`docs/`, `tests/`, carpetas
@@ -239,14 +240,34 @@ recomendaba un modelo sin conocer el tamaño del proyecto. **No cambia ninguna r
      mide el frontmatter de su `SKILL.md` como el motor mide el materializado (`name` y `description`), sin copiar nada. Una vez por
      agente.
    - **Lo guardado se olvida al releer el contexto del documento** (`Reset`: al abrir y con «Recargar»), así que una memoria o una
-     activación cambiadas mientras el documento está abierto se ven después. Un `Reset` con una respuesta en camino la descarta (una
-     época), sin cerrojos: todo se escribe en el contexto de la interfaz desde donde se preguntó.
+     activación cambiadas mientras el documento está abierto se ven después. Un `Reset` con una respuesta en camino la cancela (el
+     `CancellationToken` de lo que se pregunta) y, si el puerto la da igualmente, la descarta (una época), sin cerrojos: todo se
+     escribe en el contexto de la interfaz desde donde se preguntó.
+   - **Fuera del hilo de la interfaz, y cancelable.** Los puertos (el empaquetador, el catálogo de skills, el estimador) se
+     preguntan con `Task.Run`, así que lo que hagan antes de su primer `await` (el catálogo de skills mira el disco con
+     `File.Exists`) no pasa en el hilo de la interfaz, y la respuesta vuelve a ese contexto para escribirse en la caché. Cerrar el
+     documento (`VisualBuilder.Dispose`) cancela lo que la caché pregunta y el recuento de ficheros, y la caché cerrada no pregunta
+     más; ninguno deja una excepción sin observar.
    - La banda vuelve a analizar también al final de `LoadBuilderDataAsync` (lo aprendido, la ficha y la cuota llegaban después del
-     primer análisis y no lo repetía nadie) y al leer o guardar la ficha.
+     primer análisis y no lo repetía nadie) y al leer o guardar la ficha. El recuento de ficheros arranca a la vez y se espera al
+     final: no retrasa la ficha ni la cuota.
+   - **Una vista previa no escribe en el registro nada que la ejecución real no escribiría igual.** El pack pasa por
+     `ProjectMemory.SnapshotAsync`, que puede registrar una alerta de integridad (`AuditAlertRaised`, fuera de toda ejecución) de una
+     fila de memoria que no es de fiar. Es la misma alerta con el mismo contenido que registra el motor al lanzar la tarea, y se
+     deduplica: el libro de la memoria recuerda los mensajes que el registro ya tiene (`MemoryLedger.cs:143` y `:174`), solo se
+     registran los que no (`ProjectMemory.cs:225`, `Unraised`; `:213-215`), se vuelve a leer bajo la puerta antes de escribir
+     (`:613-621`), y nada se escribe mientras hay una ejecución o planificación en curso (`:595` y `:608`). Abrir el lienzo o
+     «Recargar» muchas veces no repite la alerta (`ProjectMemoryTests.cs:127-129` lo comprueba con dos lecturas, y
+     `ExecutorContextPreviewIntegrityTests` lo comprueba por la vista previa). No hay camino de solo lectura para el
+     empaquetador, y no hace falta.
 3. **Las ejecuciones del plan** (`MontageLearnedFacts.EstimatedAgentRuns`) salen de `IUsageEstimator.EstimatePlanAsync`, que lee el
    registro entero, así que se pregunta una vez por **forma del plan** (sus tareas con su clase y su agente, y el CLI y el modelo de
-   cada agente de la plantilla), no por letra tecleada ni por cambio del presupuesto. Hasta que llega la respuesta de la forma
-   actual no hay cifra: nunca se dice la de un plan anterior. Es el **extremo alto** (el percentil 75 sumado, `AgentRuns.High`): el
+   cada agente de la plantilla), no por letra tecleada ni por cambio del presupuesto. Cada respuesta se guarda **bajo la forma que
+   contesta**, así que el orden en que lleguen no decide nada: ir de una forma a otra y volver (añadir una tarea y deshacer) mientras
+   el estimador sigue leyendo encuentra la respuesta de la primera forma cuando llega, y no se vuelve a preguntar por ella. Hasta que
+   llega la de la forma actual no hay cifra: nunca se dice la de otro plan. (La primera versión guardaba una sola respuesta y
+   aplicaba la última que llegaba: con las formas A, B y A otra vez, y las respuestas llegando A, A y B, la caché se quedaba con la de
+   B y callaba para siempre con A.) Es el **extremo alto** (el percentil 75 sumado, `AgentRuns.High`): el
    arreglo `RaiseRunBudgetFix` sube el presupuesto a esa cifra, y con el extremo bajo seguiría pasándose. Es nulo cuando alguna tarea
    tiene menos de tres referencias, como ya devuelve el estimador. El extremo bajo avisaría menos; si el aviso resultara ruidoso con
    datos reales, es una decisión de esta cifra, no de la regla.
@@ -264,10 +285,20 @@ recomendaba un modelo sin conocer el tamaño del proyecto. **No cambia ninguna r
   en toda tarea que escribe con un agente sin memoria, sin ficha y sin nada antes; `cost.over-budget` (aviso) cuando el plan pasa
   del presupuesto; `context.window-tight` (aviso) y `context.pack-too-small` (error) solo con los datos del modelo y de los
   requisitos delante.
+- **Decisiones de esta adenda, para quien las discuta:**
+  - **`AgentRuns.High`** (el percentil 75 sumado) y no el bajo: el arreglo sube el presupuesto a esa cifra. El bajo avisaría menos.
+  - **`BudgetCharacters` es `int.MaxValue` para el agente que no lee memoria:** el motor solo comprueba el presupuesto cuando pide
+    un pack, y `context.pack-too-small` es un error que impide aprobar.
+  - **`PreambleTokens` es un suelo:** solo cuenta lo que se sabe antes de ejecutar; así `context.window-tight` nunca avisa de más.
+  - **El ejecutor por defecto no tiene ventana mientras no tenga un modelo:** la plantilla por defecto lo crea sin modelo (el CLI
+    elige), y ni lo aprendido ni la tabla base dan la ventana de «ningún modelo», así que `context.window-tight` calla para él. Se
+    ve en cuanto la persona le pone un modelo en el inspector.
 - **Pruebas:** `MontageFactsCacheTests` (las dos tareas con sus hechos, la memoria en segundo plano, una sola pregunta por clave y
-  la época, las skills, las ejecuciones con un estimador falso y con el real, y las cuatro reglas sobre un borrador hecho así),
-  `DraftFactsDocumentTests` (lo mismo por el documento, con el arreglo de `cost.over-budget` y el tamaño en el inspector),
-  `ExecutorContextPreviewTests`, `SkillPresentationSourceTests` y `ProjectFileCounterTests` (carpetas temporales: tope y carpetas
-  excluidas).
+  la época, las skills, las ejecuciones con un estimador falso y con el real, las respuestas que llegan en cualquier orden, la
+  cancelación al releer y al cerrar, los puertos fuera del contexto de la interfaz, y las cuatro reglas sobre un borrador hecho así),
+  `DraftFactsDocumentTests` (lo mismo por el documento, con el arreglo de `cost.over-budget`, «Recargar», el cierre del constructor,
+  el recuento que no retrasa la ficha y el tamaño en el inspector), `ExecutorContextPreviewTests`,
+  `ExecutorContextPreviewIntegrityTests` (una alerta de integridad, no una por cada vez), `SkillPresentationSourceTests` y
+  `ProjectFileCounterTests` (carpetas temporales: tope, carpetas excluidas y enlaces de carpeta que no se siguen).
 - **Pendiente:** las revisiones no tienen hechos; las salidas de las tareas anteriores no cuentan hasta que existen; la memoria que
   depende del foco tampoco.

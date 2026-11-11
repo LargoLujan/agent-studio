@@ -150,13 +150,16 @@ public sealed partial class OrchestratorDocumentViewModel
 
     private async Task LoadBuilderDataAsync(VisualBuilder builder, ProjectContext project)
     {
+        // The count of the files walks the disk: it starts now, goes on while the rest is read, and is waited for at the end.
+        var files = builder.LoadProjectFilesAsync(project.RootPath);
         await SeedProjectOptionsAsync(project, force: false).ConfigureAwait(true);
         await builder.LoadRepositoryAsync(project.RootPath).ConfigureAwait(true);
         await builder.LoadLearnedAsync(project.RootPath).ConfigureAwait(true);
-        await builder.LoadProjectFilesAsync(project.RootPath).ConfigureAwait(true);
         builder.Editor.Context = InspectorContextNow(builder);
         await builder.Brief.LoadAsync().ConfigureAwait(true);
         await builder.RefreshQuotaAsync().ConfigureAwait(true);
+        await files.ConfigureAwait(true);
+        builder.Editor.Context = InspectorContextNow(builder);
 
         // What the draft is made from (what the log taught, the brief, the quota) came in after the first analysis: run it again.
         builder.Band.Schedule();

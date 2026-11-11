@@ -49,13 +49,17 @@ public sealed record MontageFactsSubject(
 /// log nor the catalog.</item>
 /// <item><b>The agent runs</b> come from the estimator of the system (<see cref="IUsageEstimator.EstimatePlanAsync"/>), which reads
 /// the whole log: it is asked once for each shape of the plan (its tasks, their kinds and their agents, and the program and model
-/// of each agent), not for each letter typed. Until the answer for the current shape arrives there is no estimate, never an old
-/// one.</item>
+/// of each agent), not for each letter typed. Until the answer for the current shape arrives there is no estimate, never the one
+/// of another shape.</item>
 /// </list>
-/// Everything here runs on the context that built it (the UI thread) and nothing is shared with another thread: the background work
-/// only awaits ports and writes its result back where it started, so there are no locks. Nothing launches an agent or spends quota.
+/// Every answer is kept under the key of the question it answers, so the order in which answers arrive decides nothing: going back
+/// to an earlier shape of the plan (undo) finds its answer, and a late answer for a shape that is no longer on the screen is kept
+/// for when it is. The ports are asked off the UI thread (<see cref="Task.Run(Func{Task})"/>: they read the log, a catalog, a disk) and
+/// each answer is written back on the context that built the cache (the UI thread), so nothing is shared between threads and there
+/// are no locks. What is asked goes with a token that <see cref="Reset"/> and <see cref="Dispose"/> cancel, so a document that is
+/// closed, or read again, leaves nothing running. Nothing launches an agent or spends quota.
 /// </summary>
-public sealed class MontageFactsCache
+public sealed class MontageFactsCache : IDisposable
 {
     private readonly BuilderServices _services;
     private readonly Action _changed;
@@ -63,10 +67,11 @@ public sealed class MontageFactsCache
     private readonly HashSet<string> _asked = new(StringComparer.Ordinal);
     private readonly Dictionary<string, int> _skills = new(StringComparer.Ordinal);
     private readonly HashSet<string> _skillsAsked = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, long?> _runs = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _runsAsked = new(StringComparer.Ordinal);
+    private CancellationTokenSource _lifetime = new();
     private int _epoch;
-    private string? _runsAsked;
-    private string? _runsKey;
-    private long? _runs;
+    private bool _disposed;
     private Task _pending = Task.CompletedTask;
 
     /// <param name="services">The ports it reads.</param>
@@ -82,24 +87,48 @@ public sealed class MontageFactsCache
     /// <summary>The background work asked so far, finished when every answer is in; for a test that has to wait for it.</summary>
     public Task Pending => _pending;
 
-    /// <summary>Forgets what was read (the project opened again): the memory and the estimate are asked again by the next draft.</summary>
+    /// <summary>
+    /// Forgets what was read (the project opened again): what is still being asked is cancelled and, if an answer comes anyway, it
+    /// is dropped; the memory, the skills and the estimate are asked again by the next draft.
+    /// </summary>
     public void Reset()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
         _epoch++;
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+        _lifetime = new CancellationTokenSource();
         _packs.Clear();
         _asked.Clear();
         _skills.Clear();
         _skillsAsked.Clear();
-        _runsAsked = null;
-        _runsKey = null;
-        _runs = null;
+        _runs.Clear();
+        _runsAsked.Clear();
+    }
+
+    /// <summary>The document was closed: what is being asked is cancelled and no answer is applied; nothing is asked again.</summary>
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        _epoch++;
+        _lifetime.Cancel();
+        _lifetime.Dispose();
     }
 
     /// <summary>The facts for <paramref name="subject"/> as they are known now; what is not known yet is asked and left out.</summary>
     public MontageFacts Read(MontageFactsSubject subject)
     {
         ArgumentNullException.ThrowIfNull(subject);
-        return new MontageFacts(TaskContexts(subject), EstimatedAgentRuns(subject));
+        return _disposed ? MontageFacts.None : new MontageFacts(TaskContexts(subject), EstimatedAgentRuns(subject));
     }
 
     private List<TaskContextFacts> TaskContexts(MontageFactsSubject subject)
@@ -150,12 +179,12 @@ public sealed class MontageFactsCache
 
         if (missing is not null)
         {
-            Track(AskPacksAsync(_epoch, subject.Project, subject.Requirements, missing));
+            Track(AskPacksAsync(_epoch, _lifetime.Token, subject.Project, subject.Requirements, missing));
         }
 
         if (missingSkills is not null)
         {
-            Track(AskSkillsAsync(_epoch, subject.Project, missingSkills));
+            Track(AskSkillsAsync(_epoch, _lifetime.Token, subject.Project, missingSkills));
         }
 
         return facts;
@@ -169,31 +198,35 @@ public sealed class MontageFactsCache
         }
 
         var key = RunsKey(subject);
-        if (string.Equals(key, _runsKey, StringComparison.Ordinal))
+        if (_runs.TryGetValue(key, out var known))
         {
-            return _runs;
+            return known;
         }
 
-        if (!string.Equals(key, _runsAsked, StringComparison.Ordinal))
+        if (_runsAsked.Add(key))
         {
-            _runsAsked = key;
-            Track(AskRunsAsync(_epoch, estimator, key, subject));
+            Track(AskRunsAsync(_epoch, _lifetime.Token, estimator, key, subject));
         }
 
         return null;
     }
 
-    private async Task AskPacksAsync(int epoch, ProjectContext project, FrozenRequirementSet requirements, IReadOnlyList<(string Key, AgentDefinition Agent, TaskSpec Task)> missing)
+    private async Task AskPacksAsync(int epoch, CancellationToken token, ProjectContext project, FrozenRequirementSet requirements, IReadOnlyList<(string Key, AgentDefinition Agent, TaskSpec Task)> missing)
     {
         foreach (var (key, agent, task) in missing)
         {
             ContextPack? pack;
             try
             {
-                pack = await ExecutorContextPreview.PackAsync(_services.ContextPacker, project, agent, task, requirements, CancellationToken.None).ConfigureAwait(true);
+                pack = await Task.Run(() => ExecutorContextPreview.PackAsync(_services.ContextPacker, project, agent, task, requirements, token), token).ConfigureAwait(true);
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
+            {
+                // The document was closed or read again: nobody is waiting for this answer.
+                return;
             }
 #pragma warning disable CA1031 // The packer is behind a port: whatever it says (the requirements do not fit, the log does not verify, the store fails), the task is measured without memory, never thrown into the UI.
-            catch (Exception ex) when (ex is not OperationCanceledException)
+            catch (Exception)
 #pragma warning restore CA1031
             {
                 pack = null;
@@ -210,17 +243,22 @@ public sealed class MontageFactsCache
         _changed();
     }
 
-    private async Task AskSkillsAsync(int epoch, ProjectContext project, IReadOnlyList<AgentDefinition> agents)
+    private async Task AskSkillsAsync(int epoch, CancellationToken token, ProjectContext project, IReadOnlyList<AgentDefinition> agents)
     {
         foreach (var agent in agents)
         {
             int characters;
             try
             {
-                characters = await _services.SkillCharacters!(project, agent, CancellationToken.None).ConfigureAwait(true);
+                // The catalog and the files are read off the UI thread, whatever the port does before its first await.
+                characters = await Task.Run(() => _services.SkillCharacters!(project, agent, token), token).ConfigureAwait(true);
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
+            {
+                return;
             }
 #pragma warning disable CA1031 // The catalog and the files are behind a port: a failure counts no skills, never an error in the UI.
-            catch (Exception ex) when (ex is not OperationCanceledException)
+            catch (Exception)
 #pragma warning restore CA1031
             {
                 characters = 0;
@@ -237,18 +275,23 @@ public sealed class MontageFactsCache
         _changed();
     }
 
-    private async Task AskRunsAsync(int epoch, IUsageEstimator estimator, string key, MontageFactsSubject subject)
+    private async Task AskRunsAsync(int epoch, CancellationToken token, IUsageEstimator estimator, string key, MontageFactsSubject subject)
     {
         long? runs;
         try
         {
-            var estimate = await estimator.EstimatePlanAsync(new PlanEstimateRequest(subject.Project, subject.Plan, subject.Roster, subject.Options), CancellationToken.None).ConfigureAwait(true);
+            var request = new PlanEstimateRequest(subject.Project, subject.Plan, subject.Roster, subject.Options);
+            var estimate = await Task.Run(() => estimator.EstimatePlanAsync(request, token), token).ConfigureAwait(true);
 
             // The high end: the budget has to cover the runs the plan is likely to take, and the fix raises it to this figure.
             runs = estimate.AgentRuns.IsKnown ? estimate.AgentRuns.High.Value : null;
         }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            return;
+        }
 #pragma warning disable CA1031 // The estimator is behind a port: no estimate is said as such (the rule stays quiet), never thrown into the UI.
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (Exception)
 #pragma warning restore CA1031
         {
             runs = null;
@@ -259,8 +302,8 @@ public sealed class MontageFactsCache
             return;
         }
 
-        _runsKey = key;
-        _runs = runs;
+        // Kept under the shape it answers: an answer that comes after the plan changed again is still the answer of its shape.
+        _runs[key] = runs;
         _changed();
     }
 

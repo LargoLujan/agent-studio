@@ -31,7 +31,7 @@ namespace AgentStudio.Tests.Desktop.Orchestrator.Preparation;
 /// how many agent runs the plan is expected to take. The draft only reads them; what is missing is asked once, in the background,
 /// and the analysis runs again when it arrives. Ports are doubles, so nothing reads the disk, a log or a CLI.
 /// </summary>
-public sealed class MontageFactsCacheTests
+public sealed partial class MontageFactsCacheTests
 {
     private static readonly ProjectContext Project = new("p-1", @"C:\repo");
 
@@ -76,13 +76,20 @@ public sealed class MontageFactsCacheTests
     /// <summary>A packer that answers when the test says so, and counts what it was asked.</summary>
     private sealed class GatedPacker : IContextPacker
     {
-        private readonly TaskCompletionSource<ContextPack> _gate = new();
+        private readonly TaskCompletionSource<ContextPack> _gate = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _called = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private int _calls;
 
-        public int Calls { get; private set; }
+        /// <summary>How often it was asked; the cache asks off the thread of the test, so this is read after waiting for <see cref="Called"/> or the cache.</summary>
+        public int Calls => Volatile.Read(ref _calls);
+
+        /// <summary>Completes when the packer was asked for the first time.</summary>
+        public Task Called => _called.Task;
 
         public Task<ContextPack> PackAsync(ProjectContext project, ContextPackRequest request, CancellationToken ct)
         {
-            Calls++;
+            Interlocked.Increment(ref _calls);
+            _called.TrySetResult();
             return _gate.Task;
         }
 
@@ -91,11 +98,13 @@ public sealed class MontageFactsCacheTests
 
     private sealed class ThrowingPacker(Exception problem) : IContextPacker
     {
-        public int Calls { get; private set; }
+        private int _calls;
+
+        public int Calls => Volatile.Read(ref _calls);
 
         public Task<ContextPack> PackAsync(ProjectContext project, ContextPackRequest request, CancellationToken ct)
         {
-            Calls++;
+            Interlocked.Increment(ref _calls);
             return Task.FromException<ContextPack>(problem);
         }
     }
@@ -112,13 +121,13 @@ public sealed class MontageFactsCacheTests
     /// <summary>An estimator that answers what the test sets for the plan it is asked about, and counts the questions.</summary>
     private sealed class FakeEstimator(Func<PlanEstimateRequest, PlanEstimate> answer) : IUsageEstimator
     {
-        public List<PlanEstimateRequest> Asked { get; } = [];
+        public System.Collections.Concurrent.ConcurrentQueue<PlanEstimateRequest> Asked { get; } = new();
 
         public Task<UsageEstimate> EstimateAsync(UsageEstimateRequest request, CancellationToken ct) => throw new NotSupportedException();
 
         public Task<PlanEstimate> EstimatePlanAsync(PlanEstimateRequest request, CancellationToken ct)
         {
-            Asked.Add(request);
+            Asked.Enqueue(request);
             return Task.FromResult(answer(request));
         }
     }
@@ -257,6 +266,7 @@ public sealed class MontageFactsCacheTests
         var before = cache.Read(Subject(TwoTasks())).TaskContexts[0].PreambleTokens;
 
         // The packer has not answered: the draft was built without its memory, and nothing told the analysis to run again yet.
+        await packer.Called.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
         Assert.Equal((1, 0), (packer.Calls, changed));
         Assert.False(cache.Pending.IsCompleted);
 
@@ -374,7 +384,9 @@ public sealed class MontageFactsCacheTests
         var changed = 0;
         var cache = new MontageFactsCache(new BuilderServices(ContextPacker: packer), () => changed++);
         cache.Read(Subject(TwoTasks()));
+        await packer.Called.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
 
+        // The packer ignores the token and answers late, as a port that is in the middle of reading may: the answer is dropped.
         cache.Reset();
         packer.Answer(Pack(4_000));
         await cache.Pending;

@@ -63,24 +63,28 @@ public sealed class DraftFactsDocumentTests
 
     private sealed class CountingPacker(ContextPack pack) : IContextPacker
     {
-        public int Calls { get; private set; }
+        private int _calls;
+
+        public int Calls => Volatile.Read(ref _calls);
 
         public Task<ContextPack> PackAsync(ProjectContext project, ContextPackRequest request, CancellationToken ct)
         {
-            Calls++;
+            Interlocked.Increment(ref _calls);
             return Task.FromResult(pack);
         }
     }
 
     private sealed class CountingEstimator(UsageEstimator inner) : IUsageEstimator
     {
-        public int PlanCalls { get; private set; }
+        private int _planCalls;
+
+        public int PlanCalls => Volatile.Read(ref _planCalls);
 
         public Task<UsageEstimate> EstimateAsync(UsageEstimateRequest request, CancellationToken ct) => inner.EstimateAsync(request, ct);
 
         public Task<PlanEstimate> EstimatePlanAsync(PlanEstimateRequest request, CancellationToken ct)
         {
-            PlanCalls++;
+            Interlocked.Increment(ref _planCalls);
             return inner.EstimatePlanAsync(request, ct);
         }
     }
@@ -248,6 +252,67 @@ public sealed class DraftFactsDocumentTests
         await AnalyseAsync(document, edited);
 
         Assert.Equal((2, 1), (packer.Calls, estimator.PlanCalls));
+    }
+
+    [Fact]
+    public async Task Reading_the_context_of_the_document_again_asks_the_memory_and_the_estimate_again()
+    {
+        var packer = new CountingPacker(Pack(400));
+        var estimator = Estimator();
+        var document = await OpenAsync(new BuilderServices(ContextPacker: packer, Estimator: estimator));
+        await AnalyseAsync(document, SonnetTasks());
+        Assert.Equal((2, 1), (packer.Calls, estimator.PlanCalls));
+
+        // «Recargar»: the context is read again, so what was learned of the memory and of the log is not kept.
+        await document.ReloadCommand.ExecuteAsync(null);
+        await AnalyseAsync(document, SonnetTasks());
+
+        Assert.Equal((4, 2), (packer.Calls, estimator.PlanCalls));
+    }
+
+    [Fact]
+    public async Task Closing_the_builder_cancels_the_count_of_the_files_that_was_on_its_way()
+    {
+        var seen = new TaskCompletionSource<CancellationToken>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var services = new BuilderServices(ProjectFiles: (_, token) =>
+        {
+            seen.TrySetResult(token);
+            var count = new TaskCompletionSource<ProjectFileCount>(TaskCreationOptions.RunContinuationsAsynchronously);
+            token.Register(() => count.TrySetCanceled(token));
+            return count.Task;
+        });
+        var document = await OpenAsync(services);
+        var walking = await seen.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.False(walking.IsCancellationRequested);
+        Assert.False(document.BuilderData.IsCompleted);
+
+        document.Builder!.Dispose();
+        await document.BuilderData.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+
+        Assert.True(walking.IsCancellationRequested);
+        Assert.Null(document.Builder.ProjectFiles);
+    }
+
+    [Fact]
+    public async Task The_count_of_the_files_does_not_hold_back_the_brief_nor_the_quota_and_is_waited_for_at_the_end()
+    {
+        var release = new TaskCompletionSource<ProjectFileCount>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var services = new BuilderServices(
+            Brief: new FakeBrief { Stored = new ProjectBrief("brief-1", "Una calculadora en C#.", HashA, T0) },
+            ProjectFiles: (_, _) => release.Task);
+
+        var document = await OpenAsync(services);
+
+        // The folder is still being walked and the brief is already in.
+        Assert.False(document.BuilderData.IsCompleted);
+        Assert.Equal("Una calculadora en C#.", document.Builder!.Brief.Brief);
+        Assert.Null(document.Builder.ProjectFiles);
+
+        release.SetResult(new ProjectFileCount(2_500, IsTruncated: false));
+        await document.BuilderData;
+
+        Assert.Equal(2_500, document.Builder.ProjectFiles?.Files);
+        Assert.Equal(2_500, document.Builder.Editor.Context.ProjectFiles);
     }
 
     [Fact]
