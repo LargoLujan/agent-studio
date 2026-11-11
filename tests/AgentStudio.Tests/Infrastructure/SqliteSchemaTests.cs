@@ -35,8 +35,8 @@ public sealed class SqliteSchemaTests : IDisposable
     private void SeedProject() =>
         Exec($"INSERT INTO projects(id, name, root_path, created_at) VALUES ('p1', 'Proyecto', 'C:/x', '{Now}')");
 
-    /// <summary>The number of the last migration: 0005, the debates and audits of Phase 5.</summary>
-    private const int LastVersion = 5;
+    /// <summary>The number of the last migration: 0006, the milestones and the backlog of Phase 9.</summary>
+    private const int LastVersion = 6;
 
     [Fact]
     public void Apply_is_idempotent()
@@ -73,6 +73,8 @@ public sealed class SqliteSchemaTests : IDisposable
     [InlineData("skill_activations")]
     [InlineData("debate_sessions")]
     [InlineData("project_audits")]
+    [InlineData("milestones")]
+    [InlineData("backlog_items")]
     public void Creates_table(string table) =>
         Assert.Equal(1, Scalar($"SELECT COUNT(*) FROM sqlite_master WHERE name = '{table}'"));
 
@@ -130,6 +132,11 @@ public sealed class SqliteSchemaTests : IDisposable
     [InlineData("debate_sessions", "DELETE FROM debate_sessions")]
     [InlineData("project_audits", "UPDATE project_audits SET head_commit = 'forged'")]
     [InlineData("project_audits", "DELETE FROM project_audits")]
+    [InlineData("milestones", "UPDATE milestones SET objective = 'otro'")]
+    [InlineData("milestones", "UPDATE milestones SET header_hash = 'forged'")]
+    [InlineData("milestones", "DELETE FROM milestones")]
+    [InlineData("backlog_items", "UPDATE backlog_items SET statement = 'reescrito'")]
+    [InlineData("backlog_items", "DELETE FROM backlog_items")]
     public void Append_only_tables_reject_update_and_delete(string table, string mutation)
     {
         SeedAppendOnlyRows();
@@ -151,6 +158,8 @@ public sealed class SqliteSchemaTests : IDisposable
     [InlineData("memory_entries", "INSERT OR REPLACE INTO memory_entries(id, project_id, kind, topic, content, source, created_at, origin, content_sha256) VALUES ('m1', 'p1', 'Decision', 'Despliegue', 'FORGED', 's', '2026-10-15T10:00:00.0000000+00:00', 'User', 'h')", "SELECT content FROM memory_entries WHERE id = 'm1'", "Se usa blue green")]
     [InlineData("debate_sessions", "INSERT OR REPLACE INTO debate_sessions(id, project_id, created_at, mode, requirement_set_hash, question_evidence_id, subject_kind, header_json, header_hash) VALUES ('deb-1', 'p1', '2026-10-15T10:00:00.0000000+00:00', 'Free', 'rh', 'e1', 'None', 'FORGED', 'h')", "SELECT header_json FROM debate_sessions WHERE id = 'deb-1'", "{}")]
     [InlineData("project_audits", "INSERT OR REPLACE INTO project_audits(id, project_id, created_at, head_commit, requirement_set_hash, request_evidence_id, header_json, header_hash) VALUES ('aud-1', 'p1', '2026-10-15T10:00:00.0000000+00:00', 'forged', 'rh', 'e1', '{}', 'h')", "SELECT head_commit FROM project_audits WHERE id = 'aud-1'", "abc123")]
+    [InlineData("milestones", "INSERT OR REPLACE INTO milestones(id, project_id, created_at, name, objective, requirement_set_hash, header_hash) VALUES ('mil-1', 'p1', '2026-10-15T10:00:00.0000000+00:00', 'FORGED', 'o', 'rh', 'h')", "SELECT name FROM milestones WHERE id = 'mil-1'", "Hito")]
+    [InlineData("backlog_items", "INSERT OR REPLACE INTO backlog_items(item_id, version, project_id, created_at, statement, priority, criteria_json, content_sha256) VALUES ('bk-1', 1, 'p1', '2026-10-15T10:00:00.0000000+00:00', 'FORGED', 'Desirable', '[]', 'h')", "SELECT statement FROM backlog_items WHERE item_id = 'bk-1' AND version = 1", "Sumar")]
     public void Append_only_tables_reject_insert_or_replace_and_keep_original_row(string table, string replace, string select, string original)
     {
         SeedAppendOnlyRows();
@@ -178,6 +187,8 @@ public sealed class SqliteSchemaTests : IDisposable
         Exec($"INSERT INTO memory_entries(id, project_id, kind, topic, content, source, created_at, origin, content_sha256) VALUES ('m1', 'p1', 'Decision', 'Despliegue', 'Se usa blue green', 'registro:r1#3', '{Now}', 'System', '{new string('a', 64)}')");
         Exec($"INSERT INTO debate_sessions(id, project_id, created_at, mode, requirement_set_hash, question_evidence_id, subject_kind, subject_ref, snapshot_commit, header_json, header_hash) VALUES ('deb-1', 'p1', '{Now}', 'Free', 'rh', 'e1', 'Commit', 'abc123', 'abc123', '{{}}', 'h')");
         Exec($"INSERT INTO project_audits(id, project_id, created_at, head_commit, requirement_set_hash, request_evidence_id, header_json, header_hash) VALUES ('aud-1', 'p1', '{Now}', 'abc123', 'rh', 'e1', '{{}}', 'h')");
+        Exec($"INSERT INTO milestones(id, project_id, created_at, name, objective, requirement_set_hash, header_hash) VALUES ('mil-1', 'p1', '{Now}', 'Hito', 'Objetivo', 'rh', 'h')");
+        Exec($"INSERT INTO backlog_items(item_id, version, project_id, created_at, statement, priority, criteria_json, content_sha256) VALUES ('bk-1', 1, 'p1', '{Now}', 'Sumar', 'Desirable', '[]', 'h')");
     }
 
     // ---- migration 0004 (memory, docs/14 section 6): append-only rows, every state derived from the log ----
@@ -262,6 +273,8 @@ public sealed class SqliteSchemaTests : IDisposable
 
     private static readonly string[] UpTo0004 = [.. UpTo0003, "0004_memory.sql"];
 
+    private static readonly string[] UpTo0005 = [.. UpTo0004, "0005_debates.sql"];
+
     private static List<string> Tables(SqliteConnection connection)
     {
         using var command = connection.CreateCommand();
@@ -296,7 +309,9 @@ public sealed class SqliteSchemaTests : IDisposable
     {
         using var at0004 = At(UpTo0004);
 
-        Assert.Equal(Tables(at0004).Concat(["debate_sessions", "project_audits"]).Order(StringComparer.Ordinal), Tables(_connection));
+        using var at0005 = At(UpTo0005);
+
+        Assert.Equal(Tables(at0004).Concat(["debate_sessions", "project_audits"]).Order(StringComparer.Ordinal), Tables(at0005));
         Assert.Equal(4, Scalar("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name IN ('debates', 'debate_participants', 'debate_contributions', 'debate_contribution_evidence')"));
         Assert.Equal(1, Scalar("SELECT COUNT(*) FROM pragma_table_info('verdicts') WHERE name = 'debate_id'"));
     }
@@ -314,7 +329,7 @@ public sealed class SqliteSchemaTests : IDisposable
         SqliteSchema.Apply(old);
         SqliteSchema.Apply(old);
 
-        Assert.Equal((5L, 5L), (Scalar(old, "SELECT COUNT(*) FROM schema_migrations"), Scalar(old, "SELECT MAX(version) FROM schema_migrations")));
+        Assert.Equal(((long)LastVersion, (long)LastVersion), (Scalar(old, "SELECT COUNT(*) FROM schema_migrations"), Scalar(old, "SELECT MAX(version) FROM schema_migrations")));
         Assert.Equal(1, Scalar(old, "SELECT COUNT(*) FROM evidence WHERE id = 'e1' AND run_id = 'deb-1'"));
         Assert.Equal(1, Scalar(old, "SELECT COUNT(*) FROM memory_entries WHERE id = 'm1'"));
         Exec(old, $"INSERT INTO debate_sessions(id, project_id, created_at, mode, requirement_set_hash, question_evidence_id, subject_kind, header_json, header_hash) VALUES ('deb-1', 'p1', '{Now}', 'Adversarial', 'rh', 'e1', 'None', '{{}}', 'h')");
@@ -339,6 +354,74 @@ public sealed class SqliteSchemaTests : IDisposable
 
         Assert.Equal(["project_id", "created_at"], columns);
         Assert.Equal(1, Scalar($"SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = '{index}' AND tbl_name = '{table}'"));
+    }
+
+    // ---- migration 0006 (milestones and backlog, docs/16 section 4.6): two append-only tables, every state derived from the log ----
+
+    [Fact]
+    public void Phase_9_adds_only_the_milestones_and_the_backlog_and_no_table_for_links_or_the_board()
+    {
+        using var at0005 = At(UpTo0005);
+
+        Assert.Equal(Tables(at0005).Concat(["backlog_items", "milestones"]).Order(StringComparer.Ordinal), Tables(_connection));
+        Assert.Equal(0, Scalar("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND (name LIKE '%link%' OR name LIKE '%board%')"));
+    }
+
+    [Fact]
+    public void Upgrading_a_database_at_0005_adds_the_tables_keeps_its_rows_and_is_idempotent()
+    {
+        using var old = At(UpTo0005);
+        Exec(old, $"INSERT INTO schema_migrations(version, applied_at) VALUES (1, '{Now}'), (2, '{Now}'), (3, '{Now}'), (4, '{Now}'), (5, '{Now}')");
+        Exec(old, $"INSERT INTO projects(id, name, root_path, created_at) VALUES ('p1', 'Proyecto', 'C:/x', '{Now}')");
+        Exec(old, $"INSERT INTO requirement_sets(content_hash, project_id, frozen_at, payload_json) VALUES ('rh', 'p1', '{Now}', '{{}}')");
+        Exec(old, $"INSERT INTO evidence(id, project_id, kind, origin, title, produced_by, captured_at, content_sha256, run_id) VALUES ('e1', 'p1', 'Document', 'ProvidedByHuman', 'pregunta', 'manuel', '{Now}', 'abc', 'deb-1')");
+        Exec(old, $"INSERT INTO debate_sessions(id, project_id, created_at, mode, requirement_set_hash, question_evidence_id, subject_kind, header_json, header_hash) VALUES ('deb-1', 'p1', '{Now}', 'Free', 'rh', 'e1', 'None', '{{}}', 'h')");
+
+        SqliteSchema.Apply(old);
+        SqliteSchema.Apply(old);
+
+        Assert.Equal(((long)LastVersion, (long)LastVersion), (Scalar(old, "SELECT COUNT(*) FROM schema_migrations"), Scalar(old, "SELECT MAX(version) FROM schema_migrations")));
+        Assert.Equal(1, Scalar(old, "SELECT COUNT(*) FROM debate_sessions WHERE id = 'deb-1'"));
+        Exec(old, $"INSERT INTO milestones(id, project_id, created_at, name, objective, requirement_set_hash, budget_json, header_hash) VALUES ('mil-1', 'p1', '{Now}', 'Hito', 'Objetivo', 'rh', '{{\"maxTokens\":1000,\"period\":\"Total\"}}', 'h')");
+        Assert.Contains("milestones is append-only", Assert.Throws<SqliteException>(() => Exec(old, "UPDATE milestones SET name = 'x'")).Message, StringComparison.Ordinal);
+        Assert.Contains("milestones is append-only", Assert.Throws<SqliteException>(() => Exec(old, "DELETE FROM milestones")).Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_backlog_item_has_a_row_per_version_which_is_never_replaced()
+    {
+        SeedAppendOnlyRows();
+
+        Exec($"INSERT INTO backlog_items(item_id, version, project_id, created_at, statement, priority, criteria_json, content_sha256) VALUES ('bk-1', 2, 'p1', '{Now}', 'Sumar y restar', 'Mandatory', '[]', 'h2')");
+
+        Assert.Equal(2, Scalar("SELECT COUNT(*) FROM backlog_items WHERE item_id = 'bk-1'"));
+        Assert.Contains("backlog_items is append-only", Assert.Throws<SqliteException>(() =>
+            Exec($"INSERT INTO backlog_items(item_id, version, project_id, created_at, statement, priority, criteria_json, content_sha256) VALUES ('bk-1', 2, 'p1', '{Now}', 'otra', 'Mandatory', '[]', 'h3')")).Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("INSERT INTO milestones(id, project_id, created_at, name, objective, requirement_set_hash, header_hash) VALUES ('mx', 'ghost', '2026-10-15T10:00:00.0000000+00:00', 'n', 'o', 'rh', 'h')")]
+    [InlineData("INSERT INTO milestones(id, project_id, created_at, name, objective, requirement_set_hash, header_hash) VALUES ('mx', 'p1', '2026-10-15T10:00:00.0000000+00:00', 'n', 'o', 'no-requirements', 'h')")]
+    [InlineData("INSERT INTO milestones(id, project_id, created_at, name, objective, requirement_set_hash, header_hash) VALUES ('mx', 'p1', '2026-10-15T10:00:00.0000000+00:00', ' ', 'o', 'rh', 'h')")]
+    [InlineData("INSERT INTO milestones(id, project_id, created_at, name, objective, requirement_set_hash, header_hash) VALUES ('mx', 'p1', '2026-10-15T10:00:00.0000000+00:00', 'n', '', 'rh', 'h')")]
+    [InlineData("INSERT INTO backlog_items(item_id, version, project_id, created_at, statement, priority, criteria_json, content_sha256) VALUES ('bk-9', 0, 'p1', '2026-10-15T10:00:00.0000000+00:00', 's', 'Desirable', '[]', 'h')")]
+    [InlineData("INSERT INTO backlog_items(item_id, version, project_id, created_at, statement, priority, criteria_json, content_sha256) VALUES ('bk-9', 1, 'p1', '2026-10-15T10:00:00.0000000+00:00', 's', 'Urgent', '[]', 'h')")]
+    [InlineData("INSERT INTO backlog_items(item_id, version, project_id, created_at, statement, priority, criteria_json, content_sha256) VALUES ('bk-9', 1, 'ghost', '2026-10-15T10:00:00.0000000+00:00', 's', 'Desirable', '[]', 'h')")]
+    [InlineData("INSERT INTO backlog_items(item_id, version, project_id, created_at, statement, priority, criteria_json, content_sha256) VALUES ('bk-9', 1, 'p1', '2026-10-15T10:00:00.0000000+00:00', ' ', 'Desirable', '[]', 'h')")]
+    public void The_new_tables_refuse_rows_that_break_their_checks_or_their_keys(string insert)
+    {
+        SeedAppendOnlyRows();
+
+        Assert.Throws<SqliteException>(() => Exec(insert));
+    }
+
+    [Theory]
+    [InlineData("milestones_by_project", "milestones")]
+    [InlineData("backlog_items_by_project", "backlog_items")]
+    public void The_new_tables_are_listed_by_project_and_date_through_an_index(string index, string table)
+    {
+        Assert.Equal(1, Scalar($"SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = '{index}' AND tbl_name = '{table}'"));
+        Assert.Equal(2, Scalar($"SELECT COUNT(*) FROM pragma_index_info('{index}') WHERE name IN ('project_id', 'created_at')"));
     }
 
     [Fact]
@@ -384,6 +467,8 @@ public sealed class SqliteSchemaTests : IDisposable
     [InlineData("memory_entries")]
     [InlineData("debate_sessions")]
     [InlineData("project_audits")]
+    [InlineData("milestones")]
+    [InlineData("backlog_items")]
     public void Each_new_append_only_table_has_its_update_delete_and_replace_triggers(string table)
     {
         foreach (var suffix in new[] { "no_update", "no_delete", "no_replace" })

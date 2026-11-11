@@ -5,6 +5,7 @@ using AgentStudio.Application.Judging;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Security;
+using AgentStudio.Application.Work;
 using AgentStudio.Domain.Evidence;
 using AgentStudio.Domain.Judging;
 
@@ -75,6 +76,35 @@ public sealed class ContractSurfaceTests
         Assert.Equal(["AppendAsync", "ListAsync"], MethodNames(typeof(IVerdictStore)));
         Assert.Equal(["DeleteAsync", "ListAsync", "SaveAsync"], MethodNames(typeof(IAgentRoster)));
         Assert.Contains("ListByRunAsync", MethodNames(typeof(IEvidenceStore)));
+    }
+
+    /// <summary>Phase 9 (docs/16 section 4.6): the stores and services the packages of the phase build against in parallel.</summary>
+    [Fact]
+    public void The_stores_and_services_of_phase_9_exist_with_the_documented_operations()
+    {
+        Assert.Equal(["CreateAsync", "FindAsync", "ListAsync"], MethodNames(typeof(IMilestoneRegistry)));
+        Assert.Equal(["AppendAsync", "FindAsync", "ListAsync"], MethodNames(typeof(IBacklogStore)));
+        Assert.Equal(["GetAsync", "LinkAsync", "ListAsync", "OpenAsync", "ReopenAsync", "ReviseRequirementsAsync"], MethodNames(typeof(IMilestoneService)));
+        Assert.Equal(["CloseAsync"], MethodNames(typeof(IMilestoneCloser)));
+        Assert.Equal(["AddAsync", "HistoryAsync", "ListAsync", "ReorderAsync", "RetireAsync", "ReviseAsync"], MethodNames(typeof(IBacklogService)));
+        Assert.Equal(["BacklogAsync", "ProjectAsync"], MethodNames(typeof(IBoardProjector)));
+        Assert.Equal(["ConfirmAsync", "LinksAroundAsync", "RecordAsync", "RetractAsync"], MethodNames(typeof(ITraceLinkService)));
+        Assert.Equal(["SuggestAsync"], MethodNames(typeof(ITraceSuggester)));
+        Assert.Equal(["ChainAsync"], MethodNames(typeof(ITraceChainReader)));
+        Assert.Equal(["ProjectAsync"], MethodNames(typeof(IParticipationProjector)));
+        Assert.Equal(["LoadAsync", "SaveAsync"], MethodNames(typeof(IProjectBudgetStore)));
+        Assert.Equal(["BranchesAsync", "CommitsAsync", "SummaryAsync"], MethodNames(typeof(IRepositoryHistoryReader)));
+        Assert.Equal(["AnnotateAsync"], MethodNames(typeof(IRepositoryAnnotator)));
+        Assert.Equal(["ListAsync"], MethodNames(typeof(IRepositoryActivityReader)));
+    }
+
+    [Fact]
+    public void The_roles_of_participation_and_the_stages_of_the_chain_are_the_documented_ones()
+    {
+        Assert.Equal(["ProducingAgent", "GitAuthorAndCommitter", "PublishingAccount", "Reviewer", "Approver", "Integrator"], Enum.GetNames<ParticipationRole>());
+        Assert.Equal(["Requirement", "Milestone", "Task", "Attempt", "Change", "Verification", "Verdict", "Delivery"], Enum.GetNames<TraceChainStage>());
+        Assert.False(ParticipationEntry.NotRecorded(ParticipationRole.Reviewer).IsRecorded);
+        Assert.Equal(["Local", "Run"], Enum.GetNames<AgentStudio.Application.Git.BranchKind>());
     }
 
     [Fact]
