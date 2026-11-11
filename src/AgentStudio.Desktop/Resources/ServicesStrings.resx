@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the services (docs/17 D-47, ADR-0054; Phase 14 WP-14A part d2) in Spanish of Spain, the source language: the question about unsaved changes. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Unsaved_Title" xml:space="preserve">
+    <value>Cambios sin guardar</value>
+    <comment>Title of the window that asks about unsaved changes.</comment>
+  </data>
+  <data name="Unsaved_IntroSave" xml:space="preserve">
+    <value>Tienes cambios sin guardar en:</value>
+    <comment>Intro of the list of documents when all of them can be saved here.</comment>
+  </data>
+  <data name="Unsaved_IntroNoSave" xml:space="preserve">
+    <value>Tienes cambios que no se pueden guardar desde aquí:</value>
+    <comment>Intro of the list when one of the documents cannot be saved here.</comment>
+  </data>
+  <data name="Unsaved_QuestionSave" xml:space="preserve">
+    <value>¿Quieres guardarlos?</value>
+    <comment>Question when they can be saved.</comment>
+  </data>
+  <data name="Unsaved_QuestionDiscard" xml:space="preserve">
+    <value>¿Quieres descartarlos?</value>
+    <comment>Question when they cannot be saved here.</comment>
+  </data>
+  <data name="Unsaved_Save" xml:space="preserve">
+    <value>Guardar cambios</value>
+    <comment>Button that saves the documents.</comment>
+  </data>
+  <data name="Unsaved_Discard" xml:space="preserve">
+    <value>Descartar cambios</value>
+    <comment>Button that closes without saving.</comment>
+  </data>
+  <data name="Unsaved_Cancel" xml:space="preserve">
+    <value>Cancelar</value>
+    <comment>Button that keeps things as they are, when the documents can be saved.</comment>
+  </data>
+  <data name="Unsaved_Back" xml:space="preserve">
+    <value>Volver</value>
+    <comment>Button that keeps things as they are, when they cannot be saved here.</comment>
+  </data>
+  <data name="Unsaved_More" xml:space="preserve">
+    <value>… y {0} más</value>
+    <comment>Last line of the list when there are more documents than are listed: {0} how many.</comment>
+  </data>
+</root>

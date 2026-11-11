@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the controls in English: the same keys and placeholders as ControlsStrings.resx. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="MetricBar_ShortExact" xml:space="preserve">
+    <value>exact</value>
+  </data>
+  <data name="MetricBar_ShortEstimated" xml:space="preserve">
+    <value>estimated</value>
+  </data>
+  <data name="MetricBar_ShortNotExposed" xml:space="preserve">
+    <value>not exposed</value>
+  </data>
+  <data name="MetricBar_ShortMissing" xml:space="preserve">
+    <value>no data</value>
+  </data>
+  <data name="MetricBar_SeenPrefix" xml:space="preserve">
+    <value>seen </value>
+  </data>
+  <data name="Terminal_Shell" xml:space="preserve">
+    <value>Shell</value>
+  </data>
+  <data name="Terminal_Start" xml:space="preserve">
+    <value>Start</value>
+  </data>
+  <data name="Terminal_Restart" xml:space="preserve">
+    <value>Restart</value>
+  </data>
+  <data name="Terminal_Stop" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+  <data name="Terminal_NotStarted" xml:space="preserve">
+    <value>The terminal is not started yet.</value>
+  </data>
+  <data name="Terminal_Running" xml:space="preserve">
+    <value>{0} · PID {1}</value>
+  </data>
+  <data name="Terminal_Stopped" xml:space="preserve">
+    <value>{0} · stopped</value>
+  </data>
+  <data name="Terminal_ExitedWithCode" xml:space="preserve">
+    <value>{0} · exited with code {1}</value>
+  </data>
+  <data name="Terminal_StartFailed" xml:space="preserve">
+    <value>Could not start {0}. Reason: {1}</value>
+  </data>
+  <data name="Terminal_Interrupted" xml:space="preserve">
+    <value>The terminal was interrupted. Reason: {0}</value>
+  </data>
+  <data name="Terminal_WebViewMissing" xml:space="preserve">
+    <value>WebView2 Runtime, a Microsoft component, is missing. Install it to use the terminal.</value>
+  </data>
+  <data name="Terminal_AssetsMissing" xml:space="preserve">
+    <value>The xterm.js files are missing. Run tools\assets\fetch-xterm.ps1 and build again.</value>
+  </data>
+  <data name="Terminal_ViewerFailed" xml:space="preserve">
+    <value>The terminal viewer failed. Restart the terminal or open the app again.</value>
+  </data>
+  <data name="Terminal_ViewerStartFailed" xml:space="preserve">
+    <value>Could not start the terminal viewer. Reason: {0}</value>
+  </data>
+  <data name="Editor_MonacoMissing" xml:space="preserve">
+    <value>The editor is not available: the Monaco files are missing. Run tools/assets/fetch-monaco.ps1.</value>
+  </data>
+  <data name="Editor_PageMissing" xml:space="preserve">
+    <value>The editor is not available: Assets/editor/editor.html is missing.</value>
+  </data>
+  <data name="Editor_WebViewStartFailed" xml:space="preserve">
+    <value>The editor is not available: WebView2 could not start. Reason: {0}</value>
+  </data>
+  <data name="Editor_PageFailed" xml:space="preserve">
+    <value>The editor is not available. Reason: {0}</value>
+  </data>
+  <data name="Editor_Crashed" xml:space="preserve">
+    <value>The editor stopped without warning because WebView2, the viewer that shows it, failed. The unsaved changes of this tab may be lost. Close the tab and open the file again.</value>
+  </data>
+  <data name="Editor_StateName" xml:space="preserve">
+    <value>Editor status</value>
+  </data>
+  <data name="Editor_MixedLineEndings" xml:space="preserve">
+    <value>This file mixes CRLF and LF line breaks. When you save, all of them become {0}.</value>
+  </data>
+</root>

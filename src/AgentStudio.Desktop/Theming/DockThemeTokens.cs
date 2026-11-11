@@ -40,7 +40,7 @@ public static class DockThemeTokens
     public static string? Classify(string id)
     {
         ArgumentNullException.ThrowIfNull(id);
-        bool Has(string part) => id.Contains(part, StringComparison.Ordinal);
+        bool IdHas(string part) => id.Contains(part, StringComparison.Ordinal);
 
         switch (id)
         {
@@ -70,46 +70,46 @@ public static class DockThemeTokens
                 return OnAccent;
         }
 
-        if (Has("Border"))
+        if (IdHas("Border"))
         {
-            return Has("Pressed") ? Accent : Has("Hovered") || id.StartsWith("PreviewBox", StringComparison.Ordinal) ? AccentHover : Border;
+            return IdHas("Pressed") ? Accent : IdHas("Hovered") || id.StartsWith("PreviewBox", StringComparison.Ordinal) ? AccentHover : Border;
         }
 
-        if (Has("Grip"))
+        if (IdHas("Grip"))
         {
-            return Has("Active") && !Has("Inactive") ? OnAccent : Border;
+            return IdHas("Active") && !IdHas("Inactive") ? OnAccent : Border;
         }
 
         if (id.EndsWith("Glyph", StringComparison.Ordinal))
         {
-            if (Has("CaptionButtonActive"))
+            if (IdHas("CaptionButtonActive"))
             {
                 return OnAccent;
             }
 
-            return Has("Pressed") || Has("Hovered") || Has("SelectedActive") ? Primary : Secondary;
+            return IdHas("Pressed") || IdHas("Hovered") || IdHas("SelectedActive") ? Primary : Secondary;
         }
 
         if (id.EndsWith("Text", StringComparison.Ordinal))
         {
-            if (Has("CaptionActive") || Has("TabSelected") || Has("NavigatorWindowSelected"))
+            if (IdHas("CaptionActive") || IdHas("TabSelected") || IdHas("NavigatorWindowSelected"))
             {
                 return OnAccent;
             }
 
-            return (Has("Unselected") && !Has("Hovered")) || Has("Inactive") || Has("Default") ? Secondary : Primary;
+            return (IdHas("Unselected") && !IdHas("Hovered")) || IdHas("Inactive") || IdHas("Default") ? Secondary : Primary;
         }
 
         if (id.EndsWith("Background", StringComparison.Ordinal))
         {
-            if (Has("Pressed"))
+            if (IdHas("Pressed"))
             {
                 return AccentHover;
             }
 
-            if (Has("Hovered"))
+            if (IdHas("Hovered"))
             {
-                return Has("CaptionButtonActive") || Has("SelectedActive") ? AccentHover : Border;
+                return IdHas("CaptionButtonActive") || IdHas("SelectedActive") ? AccentHover : Border;
             }
 
             if (id is "ToolWindowCaptionActiveBackground" or "DocumentWellTabSelectedActiveBackground" or "NavigatorWindowSelectedBackground")
@@ -117,7 +117,7 @@ public static class DockThemeTokens
                 return Accent;
             }
 
-            return Has("Unselected") || Has("Inactive") || Has("Default") ? Raised : Surface;
+            return IdHas("Unselected") || IdHas("Inactive") || IdHas("Default") ? Raised : Surface;
         }
 
         return null;

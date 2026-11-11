@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the controls (docs/17 D-47, ADR-0054; Phase 14 WP-14A part d2) in Spanish of Spain, the source language: the bar of metrics, the terminal and the editor. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="MetricBar_ShortExact" xml:space="preserve">
+    <value>exacto</value>
+    <comment>One-word origin of a figure the program or Agent Studio measured, in the short line of the status bar.</comment>
+  </data>
+  <data name="MetricBar_ShortEstimated" xml:space="preserve">
+    <value>estimado</value>
+    <comment>One-word origin of an estimated figure.</comment>
+  </data>
+  <data name="MetricBar_ShortNotExposed" xml:space="preserve">
+    <value>no expuesto</value>
+    <comment>One-word origin of a figure the program does not give.</comment>
+  </data>
+  <data name="MetricBar_ShortMissing" xml:space="preserve">
+    <value>sin dato</value>
+    <comment>One-word origin of a figure that is not there.</comment>
+  </data>
+  <data name="MetricBar_SeenPrefix" xml:space="preserve">
+    <value>vista </value>
+    <comment>Start of the age text that the short line drops («vista hace 12 min» becomes «hace 12 min»). Keep the trailing space.</comment>
+  </data>
+  <data name="Terminal_Shell" xml:space="preserve">
+    <value>Shell</value>
+    <comment>Accessible name of the list of shells of the terminal.</comment>
+  </data>
+  <data name="Terminal_Start" xml:space="preserve">
+    <value>Iniciar</value>
+    <comment>Button that starts the terminal.</comment>
+  </data>
+  <data name="Terminal_Restart" xml:space="preserve">
+    <value>Reiniciar</value>
+    <comment>Button that starts the terminal again.</comment>
+  </data>
+  <data name="Terminal_Stop" xml:space="preserve">
+    <value>Detener</value>
+    <comment>Button that stops the terminal.</comment>
+  </data>
+  <data name="Terminal_NotStarted" xml:space="preserve">
+    <value>La terminal aún no está iniciada.</value>
+    <comment>Status line before the first start.</comment>
+  </data>
+  <data name="Terminal_Running" xml:space="preserve">
+    <value>{0} · PID {1}</value>
+    <comment>Status line while a shell runs: {0} name of the shell, {1} process number.</comment>
+  </data>
+  <data name="Terminal_Stopped" xml:space="preserve">
+    <value>{0} · detenido</value>
+    <comment>Status line after the person stops the shell: {0} name of the shell.</comment>
+  </data>
+  <data name="Terminal_ExitedWithCode" xml:space="preserve">
+    <value>{0} · ha terminado con el código {1}</value>
+    <comment>Status line after the shell ends by itself: {0} name of the shell, {1} exit code.</comment>
+  </data>
+  <data name="Terminal_StartFailed" xml:space="preserve">
+    <value>No se pudo iniciar {0}. Motivo: {1}</value>
+    <comment>Error when a shell does not start: {0} name of the shell, {1} the system message.</comment>
+  </data>
+  <data name="Terminal_Interrupted" xml:space="preserve">
+    <value>La terminal se ha interrumpido. Motivo: {0}</value>
+    <comment>Error when the connection with the shell breaks: {0} the system message.</comment>
+  </data>
+  <data name="Terminal_WebViewMissing" xml:space="preserve">
+    <value>Falta WebView2 Runtime, un componente de Microsoft. Instálalo para usar la terminal.</value>
+    <comment>Error when the viewer component is not installed.</comment>
+  </data>
+  <data name="Terminal_AssetsMissing" xml:space="preserve">
+    <value>Faltan los ficheros de xterm.js. Ejecuta tools\assets\fetch-xterm.ps1 y compila otra vez.</value>
+    <comment>Error when the terminal page is not in the build. Keep the script path.</comment>
+  </data>
+  <data name="Terminal_ViewerFailed" xml:space="preserve">
+    <value>El visor de la terminal ha fallado. Reinicia la terminal o abre la aplicación otra vez.</value>
+    <comment>Error when the viewer process of the terminal dies.</comment>
+  </data>
+  <data name="Terminal_ViewerStartFailed" xml:space="preserve">
+    <value>No se pudo iniciar el visor de la terminal. Motivo: {0}</value>
+    <comment>Error when the viewer does not start: {0} the system message.</comment>
+  </data>
+  <data name="Editor_MonacoMissing" xml:space="preserve">
+    <value>El editor no está disponible: faltan los ficheros de Monaco. Ejecuta tools/assets/fetch-monaco.ps1.</value>
+    <comment>Error when the editor library is not in the build. Keep the script path.</comment>
+  </data>
+  <data name="Editor_PageMissing" xml:space="preserve">
+    <value>El editor no está disponible: falta Assets/editor/editor.html.</value>
+    <comment>Error when the editor page is not in the build. Keep the path.</comment>
+  </data>
+  <data name="Editor_WebViewStartFailed" xml:space="preserve">
+    <value>El editor no está disponible: no se pudo iniciar WebView2. Motivo: {0}</value>
+    <comment>Error when the viewer does not start: {0} the system message.</comment>
+  </data>
+  <data name="Editor_PageFailed" xml:space="preserve">
+    <value>El editor no está disponible. Motivo: {0}</value>
+    <comment>Error when the editor page reports a failure: {0} what the page said.</comment>
+  </data>
+  <data name="Editor_Crashed" xml:space="preserve">
+    <value>El editor se ha detenido sin avisar porque ha fallado WebView2, el visor que lo muestra. Puede que se hayan perdido los cambios sin guardar de esta pestaña. Cierra la pestaña y abre el fichero otra vez.</value>
+    <comment>Error when the viewer process of the editor dies.</comment>
+  </data>
+  <data name="Editor_StateName" xml:space="preserve">
+    <value>Estado del editor</value>
+    <comment>Accessible name of the text that tells why the editor is not available.</comment>
+  </data>
+  <data name="Editor_MixedLineEndings" xml:space="preserve">
+    <value>Este fichero mezcla saltos de línea CRLF y LF. Al guardar, todos pasarán a {0}.</value>
+    <comment>Notice of the editor tab: {0} is CRLF or LF.</comment>
+  </data>
+</root>

@@ -142,7 +142,7 @@ public partial class MetricBar : UserControl
     /// <summary>The reading drawn now: <see cref="Reading"/>, or the empty one when there is none.</summary>
     internal MetricBarReading Shown => Reading ?? Unknown;
 
-    private static MetricBarReading Unknown { get; } = new() { Label = string.Empty, ValueText = "sin dato", Origin = "sin dato" };
+    private static MetricBarReading Unknown => new() { Label = string.Empty, ValueText = NoReadingName, Origin = NoReadingName };
 
     /// <summary>
     /// The key of the theme brush that fills a bar of <paramref name="level"/>: the colour of the level, which the words of the
@@ -288,7 +288,7 @@ public partial class MetricBar : UserControl
     private string AccessibleName => GivenName ?? Reading?.AccessibleName ?? (Visibility == Visibility.Visible ? NoReadingName : string.Empty);
 
     /// <summary>What a bar shown without a reading is called: what its track says.</summary>
-    private const string NoReadingName = "sin dato";
+    private static string NoReadingName => Localization.Texts.Get("MetricBar_ShortMissing");
 
     /// <summary>Tells UI Automation that the value and the name changed, when anything listens.</summary>
     private void Announce(MetricBarReading? before)

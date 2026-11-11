@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
+using AgentStudio.Desktop.Localization;
 using Microsoft.Web.WebView2.Core;
 
 namespace AgentStudio.Desktop.Controls.Terminal;
@@ -60,11 +61,11 @@ public partial class TerminalControl : UserControl
         }
         catch (WebView2RuntimeNotFoundException)
         {
-            ShowError("Falta el componente WebView2 Runtime de Microsoft. Instálalo para usar la terminal.");
+            ShowError(Texts.Get("Terminal_WebViewMissing"));
         }
         catch (Exception ex) when (ex is COMException or InvalidOperationException or IOException or ArgumentException)
         {
-            ShowError($"No se pudo iniciar el visor de la terminal: {ex.Message}");
+            ShowError(Texts.Format("Terminal_ViewerStartFailed", ex.Message));
         }
         finally
         {
@@ -77,7 +78,7 @@ public partial class TerminalControl : UserControl
         var pageFolder = Path.Combine(AppContext.BaseDirectory, "Assets", "terminal");
         if (!File.Exists(Path.Combine(pageFolder, "xterm", "xterm.js")) || !File.Exists(Path.Combine(pageFolder, "index.html")))
         {
-            ShowError("Faltan los recursos de xterm.js. Ejecuta tools\\assets\\fetch-xterm.ps1 y vuelve a compilar.");
+            ShowError(Texts.Get("Terminal_AssetsMissing"));
             return;
         }
 
@@ -126,7 +127,7 @@ public partial class TerminalControl : UserControl
             return;
         }
 
-        ShowError("El visor de la terminal ha fallado de forma inesperada. Reinicia la terminal o vuelve a abrir la aplicación.");
+        ShowError(Texts.Get("Terminal_ViewerFailed"));
     }
 
     internal static bool IsTerminalUri(string uri) =>

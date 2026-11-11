@@ -5,6 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
              xmlns:local="clr-namespace:AgentStudio.Desktop.Controls.Terminal"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=local:TerminalViewModel}"
              d:DesignHeight="320" d:DesignWidth="640">
@@ -27,11 +28,11 @@
                 <ComboBox Grid.Column="0" MinWidth="170" VerticalAlignment="Center"
                           ItemsSource="{Binding Shells}" SelectedItem="{Binding SelectedShell}"
                           DisplayMemberPath="DisplayName"
-                          AutomationProperties.Name="Shell"/>
+                          AutomationProperties.Name="{l:T Terminal_Shell}"/>
                 <Button Grid.Column="1" Margin="8,0,0,0" Padding="12,4" VerticalAlignment="Center"
                         Content="{Binding StartButtonText}" Command="{Binding StartCommand}"/>
                 <Button Grid.Column="2" Margin="8,0,0,0" Padding="12,4" VerticalAlignment="Center"
-                        Content="Detener" Command="{Binding StopCommand}"/>
+                        Content="{l:T Terminal_Stop}" Command="{Binding StopCommand}"/>
                 <TextBlock Grid.Column="3" Margin="14,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            Text="{Binding StatusText}" ToolTip="{Binding StatusText}"/>
