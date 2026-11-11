@@ -163,7 +163,7 @@ public sealed partial class Phase13HandWrittenTextTests
         Assert.Contains("Orchestrator/Live/IRunLiveProjection.cs", scanned);
         Assert.DoesNotContain("Orchestrator/Canvas/CanvasViewModel.cs", scanned);
         Assert.DoesNotContain("Controls/MetricBar.xaml.cs", scanned);
-        Assert.Equal(239, FilesBeforePhase13.Count);
+        Assert.Equal(200, FilesBeforePhase13.Count);
         Assert.DoesNotContain(FilesBeforePhase13, f => f.StartsWith("Localization/", StringComparison.Ordinal) || f.StartsWith("Controls/Info/", StringComparison.Ordinal) || f.StartsWith("Orchestrator/Live/", StringComparison.Ordinal));
     }
 

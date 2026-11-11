@@ -22,7 +22,7 @@ public sealed class LockSettingsViewModelTests
         public void SavePreferences(AppSettings settings) => throw new IOException("Disco lleno.");
     }
 
-    /// <summary>«Ajustes» with this section and «Contexto y cuota», over the same store.</summary>
+    /// <summary>«Ajustes» with this section and «Contexto y límite de uso», over the same store.</summary>
     private static SettingsDocumentViewModel Ajustes(IAppSettingsStore store, LockSettingsViewModel settings) =>
         new(store, new ObservabilitySettingsViewModel(store), lockSettings: settings);
 

@@ -17,7 +17,7 @@ public sealed class ContextTextTests
     {
         var reading = ContextText.Read("claude-sonnet-5-5", MetricValue<long>.Exact(30_822, "claude assistant.usage"), MetricValue<long>.Exact(1_000_000, "claude modelUsage"), Defaults);
 
-        Assert.Equal("3 % · exacto · informado por el CLI · 30.822 de 1.000.000 tokens · claude-sonnet-5-5 · sano", reading.Text);
+        Assert.Equal("3 % · exacto · informado por el programa del agente · 30.822 de 1.000.000 tokens · claude-sonnet-5-5 · sano", reading.Text);
         Assert.Equal(ContextHealthLevel.Healthy, reading.Level);
     }
 
@@ -40,7 +40,7 @@ public sealed class ContextTextTests
     {
         var reading = ContextText.Read(null, MetricValue<long>.Estimated(900_000, "claude live estimate"), MetricValue<long>.Exact(1_000_000, "claude modelUsage"), Defaults);
 
-        Assert.Equal("~90 % · estimado por el CLI · ~900.000 de 1.000.000 tokens · compresión recomendada", reading.Text);
+        Assert.Equal("~90 % · estimado por el programa del agente · ~900.000 de 1.000.000 tokens · compresión recomendada", reading.Text);
     }
 
     [Fact]
@@ -48,7 +48,7 @@ public sealed class ContextTextTests
     {
         var reading = ContextText.Read("claude-sonnet-5-5", MetricValue<long>.Exact(30_822, "claude assistant.usage"), MetricValue<long>.Missing("no window known yet"), Defaults);
 
-        Assert.Equal("30.822 tokens · exacto · informado por el CLI · sin porcentaje: la ventana no se conoce todavía · claude-sonnet-5-5 · sin evaluar", reading.Text);
+        Assert.Equal("30.822 tokens · exacto · informado por el programa del agente · sin porcentaje: aún no se conoce la memoria de trabajo del modelo · claude-sonnet-5-5 · sin evaluar", reading.Text);
         Assert.Equal(ContextHealthLevel.Unknown, reading.Level);
         Assert.DoesNotContain("sano", reading.Text, StringComparison.Ordinal);
     }

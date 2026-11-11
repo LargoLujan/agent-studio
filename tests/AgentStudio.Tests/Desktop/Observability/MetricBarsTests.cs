@@ -22,10 +22,10 @@ public sealed class MetricBarsTests
         Assert.Equal(100, bar.Maximum);
         Assert.Equal(0.47, bar.Fraction!.Value, 6);
         Assert.Equal("47 %", bar.ValueText);
-        Assert.Equal("exacto · informado por el CLI", bar.Origin);
+        Assert.Equal("exacto · informado por el programa del agente", bar.Origin);
         Assert.Equal(MetricBarLevel.Healthy, bar.Level);
         Assert.False(bar.IsEstimate);
-        Assert.Equal("47 % · exacto · informado por el CLI · sano", bar.Text);
+        Assert.Equal("47 % · exacto · informado por el programa del agente · sano", bar.Text);
         Assert.Equal("47 % exacto · sano", bar.CompactText);
         Assert.Equal([0.70, 0.85, 0.95], bar.Marks);
         Assert.Contains("470.000 de 1.000.000 tokens", bar.Detail, StringComparison.Ordinal);
@@ -118,7 +118,7 @@ public sealed class MetricBarsTests
         // docs/14 D-14: the quota is what the provider said at a moment; how old it is goes with the figure.
         var quota = MetricBars.Quota("Claude 5 h", MetricValue<double>.Exact(0.47, "claude rate_limit_event"), "vista hace 12 min", "se reinicia hoy a las 15:00");
 
-        Assert.Equal("47 % · exacto · informado por el CLI · vista hace 12 min", quota.Text);
+        Assert.Equal("47 % · exacto · informado por el programa del agente · vista hace 12 min", quota.Text);
 
         // V38: in the status bar the age is shorter, so the bars of a run fit in one line; the reader and the tooltip keep it whole.
         Assert.Equal("47 % exacto · hace 12 min", quota.CompactText);
@@ -135,7 +135,7 @@ public sealed class MetricBarsTests
         // V38: the status bar says it short; the moment of the reset stays in the line a reader says and in the tooltip.
         Assert.Equal("se reinició · sin dato", after.CompactText);
         Assert.Contains("se reinició a las 15:00, sin dato nuevo", after.AccessibleName, StringComparison.Ordinal);
-        Assert.Equal("antes del reinicio: 92 % · exacto · informado por el CLI · vista hace 3 h", after.Detail);
+        Assert.Equal("antes del reinicio: 92 % · exacto · informado por el programa del agente · vista hace 3 h", after.Detail);
         Assert.DoesNotContain("exacto", after.Text, StringComparison.Ordinal);
     }
 
@@ -177,7 +177,7 @@ public sealed class MetricBarsTests
         Assert.Equal(0.25, limited.Fraction!.Value, 6);
         Assert.Equal("100.000 de 400.000 tokens", limited.ValueText);
         Assert.False(unlimited.HasValue);
-        Assert.Equal("100.000 tokens · exacto · informado por el CLI · sin límite", unlimited.Text);
+        Assert.Equal("100.000 tokens · exacto · informado por el programa del agente · sin límite", unlimited.Text);
         Assert.True(estimated.IsEstimate);
         Assert.StartsWith("~50", estimated.ValueText, StringComparison.Ordinal);
     }

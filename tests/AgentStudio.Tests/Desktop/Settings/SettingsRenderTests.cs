@@ -51,7 +51,7 @@ public sealed class SettingsRenderTests
         Assert.True(drawn > 40_000, $"Only {drawn} pixels differ from the background: the document was not drawn.");
         Assert.Equal(
             [
-                "Leer la cuota de Codex",
+                "Leer el límite de uso de Codex",
                 "Preguntar si hay trabajo en marcha (sin trabajo, sale)",
                 "Seguir siempre en la bandeja",
                 "Salir de Agent Studio",
@@ -84,7 +84,7 @@ public sealed class SettingsRenderTests
             return (OffscreenRender.Count(bitmap, Error), document);
         });
 
-        Assert.Equal("No se guardó nada: corrige «Contexto y cuota» y «Windows Hello y bloqueo».", document.ErrorMessage);
+        Assert.Equal("No se guardó nada: corrige «Contexto y límite de uso» y «Windows Hello y bloqueo».", document.ErrorMessage);
         Assert.NotNull(document.Context.ErrorMessage);
         Assert.NotNull(document.Lock!.ErrorMessage);
         Assert.True(error > 300, $"Only {error} pixels have the error colour: the reasons were not drawn.");

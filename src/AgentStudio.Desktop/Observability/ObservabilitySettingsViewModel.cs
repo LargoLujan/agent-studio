@@ -1,4 +1,5 @@
 using System.Globalization;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Services;
 using AgentStudio.Domain.Metrics;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -15,20 +16,17 @@ namespace AgentStudio.Desktop.Observability;
 public sealed partial class ObservabilitySettingsViewModel : ObservableObject
 {
     /// <summary>The title of the section in «Ajustes».</summary>
-    public const string Title = "Contexto y cuota";
+    public static string Title => Texts.Get("Observability_Settings_Title");
 
     /// <summary>The rule of the thresholds, as the screen states it.</summary>
-    public const string RuleText = "0 < aviso < compresión < crítico ≤ 100, en % de la ventana del modelo que sirvió cada paso.";
+    public static string RuleText => Texts.Get("Observability_Settings_Rule");
 
     /// <summary>
     /// What the opt-in allows, as the screen states it (docs/14 D-15): every moment the quota is read (docs/17 F13-20, the text
     /// says what is done): on demand, after each run of Codex at most once every five minutes (<c>QuotaViewModel.CodexReadInterval</c>),
-    /// and while a run waits for a limit of Codex (<c>AccessCheck</c> of the engine). Phase 14 moves it to the resources.
+    /// and while a run waits for a limit of Codex (<c>AccessCheck</c> of the engine).
     /// </summary>
-    public const string CodexExplanation =
-        "Lee la cuota con el app-server de Codex (account/rateLimits/read), con la sesión de ChatGPT del CLI y sin ningún turno del modelo. " +
-        "Se lee cuando lo pides, al terminar una ejecución de Codex (como mucho una vez cada 5 minutos) y, si una ejecución espera " +
-        "por un límite de Codex, para saber cuándo se reinicia y antes de seguir.";
+    public static string CodexExplanation => Texts.Get("Observability_Settings_CodexExplanation");
 
     private AppSettings _inForce = AppSettings.Default;
 
@@ -82,11 +80,11 @@ public sealed partial class ObservabilitySettingsViewModel : ObservableObject
         if (Parsed() is not { } thresholds)
         {
             var wrong = new[] { WarningText, CompressText, CriticalText }.First(text => Whole(text) is null).Trim();
-            ErrorMessage = $"Los umbrales no se guardan: «{wrong}» no es un número entero de 1 a 100.";
+            ErrorMessage = Texts.Format("Observability_Settings_NotWhole", wrong);
         }
         else if (!AppSettings.AreValidContextThresholds(thresholds.Warning, thresholds.Compress, thresholds.Critical))
         {
-            ErrorMessage = "Los umbrales no se guardan: deben cumplir 0 < aviso < compresión < crítico ≤ 100.";
+            ErrorMessage = Texts.Get("Observability_Settings_BadOrder");
         }
 
         return ErrorMessage;

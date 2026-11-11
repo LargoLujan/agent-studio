@@ -58,14 +58,14 @@ public sealed class ListItemNamesTests
 
         // The bars of tanda 2 (docs/18 P3): the bars of the status bar, the rows of the panel of the tray and the windows of «Consumo».
         (MetricBars.Budget("Presupuesto", 3, 12), "Presupuesto: 3 de 12 · exacto · medido por Agent Studio. ejecuciones de agente usadas frente al máximo de la ejecución"),
-        (MetricBars.Quota("Claude 5 h", MetricValue<double>.Exact(0.47, "claude rate_limit_event"), "vista hace 12 min"), "Claude 5 h: 47 % · exacto · informado por el CLI · vista hace 12 min"),
-        (new ContextBarRow("T1 Implementar Calc.Multiply", 0.47, "47 % · exacto · informado por el CLI · sano", Tone.Success), "Contexto de T1 Implementar Calc.Multiply: 47 % · exacto · informado por el CLI · sano"),
-        (new QuotaRow("Codex CLI", "Desactivado: activa «Leer la cuota de Codex» en «Ajustes»."), "Codex CLI · Desactivado: activa «Leer la cuota de Codex» en «Ajustes»."),
+        (MetricBars.Quota("Claude 5 h", MetricValue<double>.Exact(0.47, "claude rate_limit_event"), "vista hace 12 min"), "Claude 5 h: 47 % · exacto · informado por el programa del agente · vista hace 12 min"),
+        (new ContextBarRow("T1 Implementar Calc.Multiply", 0.47, "47 % · exacto · informado por el programa del agente · sano", Tone.Success), "Contexto de T1 Implementar Calc.Multiply: 47 % · exacto · informado por el programa del agente · sano"),
+        (new QuotaRow("Codex CLI", "Desactivado: activa «Leer el límite de uso de Codex» en «Ajustes»."), "Codex CLI · Desactivado: activa «Leer el límite de uso de Codex» en «Ajustes»."),
         (new QuotaRow("Claude Code", "5 horas · 47 %") { Bar = MetricBars.Quota("Claude Code · 5 horas", MetricValue<double>.Exact(0.47, "claude rate_limit_event"), "vista hace 12 min") },
-            "Claude Code · 5 horas: 47 % · exacto · informado por el CLI · vista hace 12 min"),
+            "Claude Code · 5 horas: 47 % · exacto · informado por el programa del agente · vista hace 12 min"),
         (new QuotaWindowRow("5 horas", MetricText.Percent(MetricValue<double>.Exact(0.47, "claude rate_limit_event")), "vista hace 12 min", null)
             { Bar = MetricBars.Quota("5 horas", MetricValue<double>.Exact(0.47, "claude rate_limit_event"), "vista hace 12 min") },
-            "5 horas: 47 % · exacto · informado por el CLI · vista hace 12 min"),
+            "5 horas: 47 % · exacto · informado por el programa del agente · vista hace 12 min"),
 
         // V34, the walk of tanda 2 (2026-11-03): the 11 types still read by their type name or the text of their record.
         (new ActivityEntry(DateTimeOffset.UnixEpoch, "10:02:03", "T1", "Empezó el intento 1"), "10:02:03 · T1 · Empezó el intento 1"),

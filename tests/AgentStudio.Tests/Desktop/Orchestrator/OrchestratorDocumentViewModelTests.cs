@@ -276,7 +276,7 @@ public sealed class OrchestratorDocumentViewModelTests
         var bar = document.PlanningContext!;
         Assert.Equal("Contexto del orquestador", bar.Label);
         Assert.Equal("24 %", bar.ValueText);
-        Assert.Equal("exacto · informado por el CLI", bar.Origin);
+        Assert.Equal("exacto · informado por el programa del agente", bar.Origin);
     }
 
     [Fact]

@@ -5,7 +5,7 @@ using AgentStudio.Desktop.Settings;
 namespace AgentStudio.Tests.Desktop.Observability;
 
 /// <summary>
-/// «Contexto y cuota» of «Ajustes» (docs/14 D-11 and D-15): the context thresholds, validated by the rule of the evaluator
+/// «Contexto y límite de uso» of «Ajustes» (docs/14 D-11 and D-15): the context thresholds, validated by the rule of the evaluator
 /// before anything is saved, and the opt-in that lets Agent Studio read the Codex quota. They are saved by the «Guardar» of
 /// «Ajustes» as the preferences of the settings, never over the rest.
 /// </summary>
@@ -83,7 +83,7 @@ public sealed class ObservabilitySettingsViewModelTests
 
         Assert.Empty(store.Writes);
         Assert.Equal(0, saved);
-        Assert.Equal("Los umbrales no se guardan: deben cumplir 0 < aviso < compresión < crítico ≤ 100.", settings.ErrorMessage);
+        Assert.Equal("No se guardaron los umbrales. Cada uno debe ser mayor que el anterior, y el crítico no puede pasar de 100: 0 < aviso < compresión < crítico ≤ 100.", settings.ErrorMessage);
         Assert.Equal((0.70, 0.85, 0.95), (settings.Thresholds.Warning, settings.Thresholds.Compress, settings.Thresholds.Critical));
         Assert.False(settings.CodexOptedIn);
     }
@@ -98,7 +98,7 @@ public sealed class ObservabilitySettingsViewModelTests
         Ajustes(store, settings).SaveCommand.Execute(null);
 
         Assert.Empty(store.Writes);
-        Assert.Equal("Los umbrales no se guardan: «ochenta» no es un número entero de 1 a 100.", settings.ErrorMessage);
+        Assert.Equal("No se guardaron los umbrales. «ochenta» no es un número entero de 1 a 100: corrígelo.", settings.ErrorMessage);
     }
 
     [Fact]

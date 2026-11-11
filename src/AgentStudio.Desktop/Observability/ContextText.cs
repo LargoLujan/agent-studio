@@ -1,3 +1,4 @@
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Domain.Metrics;
 
 namespace AgentStudio.Desktop.Observability;
@@ -12,7 +13,7 @@ namespace AgentStudio.Desktop.Observability;
 /// <param name="Level">The level of the thresholds; <see cref="ContextHealthLevel.Unknown"/> without a percentage.</param>
 public sealed record ContextReading(Figure Occupancy, string? Tokens, string? Model, ContextHealthLevel Level)
 {
-    /// <summary>The level in Spanish; an unknown level is never «sano».</summary>
+    /// <summary>The level in the language in use; an unknown level is never «sano».</summary>
     public string LevelText => ContextText.Level(Level);
 
     /// <summary>
@@ -28,11 +29,11 @@ public static class ContextText
 {
     public static string Level(ContextHealthLevel level) => level switch
     {
-        ContextHealthLevel.Healthy => "sano",
-        ContextHealthLevel.Warning => "aviso",
-        ContextHealthLevel.CompressionRecommended => "compresión recomendada",
-        ContextHealthLevel.Critical => "crítico",
-        _ => "sin evaluar",
+        ContextHealthLevel.Healthy => Texts.Get("Observability_Level_Healthy"),
+        ContextHealthLevel.Warning => Texts.Get("Observability_Level_Warning"),
+        ContextHealthLevel.CompressionRecommended => Texts.Get("Observability_Level_Compression"),
+        ContextHealthLevel.Critical => Texts.Get("Observability_Level_Critical"),
+        _ => Texts.Get("Observability_Level_Unknown"),
     };
 
     /// <summary>
@@ -46,7 +47,7 @@ public static class ContextText
         var report = new ContextHealthEvaluator(thresholds).Evaluate(used, window);
         if (report.Utilization.HasValue)
         {
-            var tokens = $"{Shown(used)} de {Shown(window)} tokens";
+            var tokens = Texts.Format("Observability_Figure_TokensOf", Shown(used), Shown(window));
             return new ContextReading(MetricText.Percent(report.Utilization), tokens, model, report.Level);
         }
 
@@ -54,7 +55,7 @@ public static class ContextText
         {
             // D-10: until a window of that model is known, the occupancy goes in tokens, without a percentage.
             var inTokens = MetricText.Of(used.Value, used.Origin, value => MetricText.Integer(value) + " tokens");
-            return new ContextReading(inTokens, "sin porcentaje: la ventana no se conoce todavía", model, ContextHealthLevel.Unknown);
+            return new ContextReading(inTokens, Texts.Get("Observability_Context_NoPercent"), model, ContextHealthLevel.Unknown);
         }
 
         return new ContextReading(MetricText.Tokens(used), null, model, ContextHealthLevel.Unknown);

@@ -75,7 +75,7 @@ public sealed class MonitorAccessibilityTests
 
         Assert.Equal(2, cards.Count);
         Assert.StartsWith("Ejecutor 1 · Claude Code · sonnet · Trabajando en T1 · contexto 47 %", cards[0].Item1, StringComparison.Ordinal);
-        Assert.Contains("informado por el CLI", cards[0].Item1, StringComparison.Ordinal);
+        Assert.Contains("informado por el programa del agente", cards[0].Item1, StringComparison.Ordinal);
         Assert.Equal(AutomationLiveSetting.Polite, cards[0].Item2);
         Assert.StartsWith("Ejecutor 2 · Claude Code · sonnet · Te pregunta algo: espera tu respuesta", cards[1].Item1, StringComparison.Ordinal);
         Assert.Equal(AutomationLiveSetting.Assertive, cards[1].Item2);

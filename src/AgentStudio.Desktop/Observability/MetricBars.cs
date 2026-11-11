@@ -1,4 +1,5 @@
 using AgentStudio.Desktop.Controls;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Domain.Metrics;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Observability.Context;
@@ -9,12 +10,12 @@ namespace AgentStudio.Desktop.Observability;
 /// The readings of the bars of every screen (docs/18 P3, tanda 2), built from the figures the screens already show, with the
 /// words of <see cref="MetricText"/> and <see cref="ContextText"/>: an estimate carries «~» and never says «exacto», a figure
 /// that is not there says «no expuesto» or «sin dato» and is never a bar at zero, and the level of the context is the one of
-/// the thresholds of the settings.
+/// the thresholds of the settings. The texts come from <c>Resources/ObservabilityStrings.resx</c> in the language in use.
 /// </summary>
 public static class MetricBars
 {
     /// <summary>What a context bar says before the first step of its agent arrives.</summary>
-    public const string NoObservationYet = "sin observaciones todavía";
+    public static string NoObservationYet => Texts.Get("Observability_Bar_NoObservationYet");
 
     /// <summary>
     /// Whether the agents of <paramref name="provider"/> may report the context of each step, for a screen that follows an
@@ -65,7 +66,7 @@ public static class MetricBars
                 OriginKind = used.Origin,
                 IsEstimate = used.Provenance == MetricProvenance.Estimated,
                 LevelText = reading.LevelText,
-                Detail = Join("sin porcentaje: la ventana no se conoce todavía", model),
+                Detail = Join(Texts.Get("Observability_Context_NoPercent"), model),
                 Marks = marks,
             };
         }
@@ -85,7 +86,7 @@ public static class MetricBars
 
     /// <summary>A context bar of an agent that has started without any step yet: an empty track, «sin observaciones todavía».</summary>
     public static MetricBarReading NoObservation(string label) =>
-        Empty(label, NoObservationYet, MetricOrigin.Missing, "el agente aún no ha informado de ningún paso");
+        Empty(label, NoObservationYet, MetricOrigin.Missing, Texts.Get("Observability_Bar_NoStepYet"));
 
     /// <summary>
     /// An empty track that says why there is no value: «no expuesto», «sin dato», «sin tareas en curso»… What the CLI does not
@@ -147,8 +148,8 @@ public static class MetricBars
         var figure = MetricText.Percent(before);
 
         // The status bar says it short (V38); the moment of the reset stays in the line, the name and the tooltip.
-        return Empty(label, $"se reinició {resetAt}, sin dato nuevo", MetricOrigin.Missing, Join("antes del reinicio: " + figure.Text, seen))
-            with { ShortValueText = "se reinició · sin dato" };
+        return Empty(label, Texts.Format("Observability_Bar_ResetNoData", resetAt), MetricOrigin.Missing, Join(Texts.Format("Observability_Bar_BeforeReset", figure.Text), seen))
+            with { ShortValueText = Texts.Get("Observability_Bar_ResetShort") };
     }
 
     /// <summary>
@@ -164,8 +165,8 @@ public static class MetricBars
             return new MetricBarReading
             {
                 Label = label,
-                ValueText = used == 1 ? "1 ejecución de agente usada" : string.Create(MetricText.Spanish, $"{used:N0} ejecuciones de agente usadas"),
-                Origin = "máximo sin dato",
+                ValueText = Texts.Format(used == 1 ? "Observability_Bar_RunsUsed_One" : "Observability_Bar_RunsUsed_Other", used.ToString("N0", MetricText.Culture)),
+                Origin = Texts.Get("Observability_Bar_MaxMissing"),
                 OriginKind = MetricOrigin.Missing,
                 Detail = detail,
             };
@@ -176,12 +177,12 @@ public static class MetricBars
             Label = label,
             Value = used,
             Maximum = max,
-            ValueText = string.Create(MetricText.Spanish, $"{used:N0} de {max:N0}"),
+            ValueText = Texts.Format("Observability_Figure_Of", used.ToString("N0", MetricText.Culture), max.ToString("N0", MetricText.Culture)),
             Origin = origin,
             OriginKind = MetricOrigin.MeasuredBySystem,
             Level = used >= max ? MetricBarLevel.Critical : MetricBarLevel.Neutral,
-            LevelText = used >= max ? "presupuesto agotado" : null,
-            Detail = detail ?? "ejecuciones de agente usadas frente al máximo de la ejecución",
+            LevelText = used >= max ? Texts.Get("Observability_Bar_BudgetSpent") : null,
+            Detail = detail ?? Texts.Get("Observability_Bar_BudgetDetail"),
         };
     }
 
@@ -208,7 +209,7 @@ public static class MetricBars
                 Origin = figure.Origin,
                 OriginKind = used.Origin,
                 IsEstimate = used.Provenance == MetricProvenance.Estimated,
-                LevelText = "sin límite",
+                LevelText = Texts.Get("Observability_Bar_NoLimit"),
                 Detail = detail,
             };
         }
@@ -218,12 +219,12 @@ public static class MetricBars
             Label = label,
             Value = tokens,
             Maximum = max,
-            ValueText = string.Create(MetricText.Spanish, $"{figure.Shown} de {max:N0} tokens"),
+            ValueText = Texts.Format("Observability_Figure_TokensOf", figure.Shown, max.ToString("N0", MetricText.Culture)),
             Origin = figure.Origin,
             OriginKind = used.Origin,
             IsEstimate = used.Provenance == MetricProvenance.Estimated,
             Level = tokens >= max ? MetricBarLevel.Critical : MetricBarLevel.Neutral,
-            LevelText = tokens >= max ? "límite alcanzado" : null,
+            LevelText = tokens >= max ? Texts.Get("Observability_Bar_LimitReached") : null,
             Detail = detail,
         };
     }
@@ -236,7 +237,7 @@ public static class MetricBars
     {
         ArgumentNullException.ThrowIfNull(used);
         var figure = MetricText.Tokens(used);
-        var source = used.Sources.Count > 0 ? string.Join("; ", used.Sources) : "la suma de los turnos";
+        var source = used.Sources.Count > 0 ? string.Join("; ", used.Sources) : Texts.Get("Observability_Bar_SumOfTurns");
         var value = used.Sum is { } sum && used.Origin.CarriesValue()
             ? MetricValue<long>.Of(used.Origin, sum, source)
             : MetricValue<long>.Of(used.Origin.CarriesValue() ? MetricOrigin.Missing : used.Origin, null, source);
@@ -256,7 +257,7 @@ public static class MetricBars
 
     /// <summary>Where an estimated window comes from (the base table, a run before), for the detail of the bar.</summary>
     private static string? WindowSource(MetricValue<long> window) =>
-        window.Origin == MetricOrigin.EstimatedBySystem ? "ventana estimada: " + window.Source : null;
+        window.Origin == MetricOrigin.EstimatedBySystem ? Texts.Format("Observability_Bar_EstimatedWindow", window.Source) : null;
 
     private static string? Join(params string?[] parts)
     {
