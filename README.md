@@ -525,6 +525,8 @@ ADR numbers 0038 to 0046 are reserved for the decisions of Phases 6 to 11, which
 | [0053](docs/adr/0053-windows-hello-como-barrera-fija.md) | Windows Hello as a fixed barrier that no setting or file turns off |
 | [0054](docs/adr/0054-idiomas-y-lenguaje-claro.md) | Languages and plain language: `.resx` resources, Windows language by default |
 | [0055](docs/adr/0055-configurador-por-proyecto.md) | Per-project setup wizard and Node and Python verification profiles |
+| [0056](docs/adr/0056-ayuda-y-agente-de-ayuda.md) | Help: local and free first, then a read-only agent with your OK on each question and a card of what it is sent |
+| [0057](docs/adr/0057-documentacion-para-clientes.md) | Client documentation: a deterministic, language-neutral model, four formats, agent-written parts marked, reviewed before export |
 
 </details>
 

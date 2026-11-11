@@ -4,6 +4,7 @@ using System.IO;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Usage;
 using AgentStudio.Desktop.Controls;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Services;
 using AgentStudio.Desktop.ViewModels;
 using AgentStudio.Domain.Metrics;
@@ -499,6 +500,10 @@ public sealed partial class UsageDashboardViewModel : DocumentViewModel
         AgentRunPurpose.DebateParticipant => "Participante de debate",
         AgentRunPurpose.DebateJudge => "Juez de debate",
         AgentRunPurpose.ProjectAudit => "Auditoría del proyecto",
+
+        // Phase 14 (docs/17 §8.2): the agent of the help and the draft of a document for clients, from the resources (ADR-0054).
+        AgentRunPurpose.Help => Texts.Get("Usage_Purpose_Help"),
+        AgentRunPurpose.ClientDocumentDraft => Texts.Get("Usage_Purpose_ClientDocumentDraft"),
         _ => null,
     };
 

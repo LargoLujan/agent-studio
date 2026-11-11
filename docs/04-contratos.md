@@ -19,6 +19,10 @@
 > constructor visual, los payloads de las preguntas y del configurador, los contratos del estimador, del análisis del
 > consumo, del idioma y de la barrera de Windows Hello, y los cimientos del escritorio; diseño en
 > [17](17-constructor-visual-de-agentes.md) §4 y §9.3): lo resume la [sección 21](#21-fase-13-constructor-visual-de-agentes).
+> Y con el P0 de la Fase 14 (los contratos de la ayuda y de la documentación para clientes, la carga
+> `ClientDocumentExported` y los propósitos `Help` y `ClientDocumentDraft`; diseño en
+> [17](17-constructor-visual-de-agentes.md) §5 y §9.4): lo resume la
+> [sección 22](#22-fase-14-ayuda-y-documentación-para-clientes).
 
 ## 1. Mapa
 
@@ -1922,3 +1926,87 @@ Todo vive en `Desktop`; no hay puertos nuevos en `Application`, y los textos sal
 - **Las partes del prompt** dependen de que `AgentRunStarted` v3 ya esté en el registro cuando llega el primer paso: si no, el monitor pregunta una vez más al llegar ese paso.
 - **Los nombres de las pruebas que fallan** no se leen del TRX: el panel «Pruebas» enseña los contadores y la línea principal del error del paso, que es lo que el monitor ya tiene.
 - **Los permisos de un ejecutor** son la regla pública `Orchestration/Engine/AgentPermissions.For(escribe, agente)`, la que lanza `Workers` y la que usa `EffectiveTools`: no hay copia. La prueba compara «Herramientas» con `ClaudeCodeArguments.Build` con un lanzamiento escrito aparte.
+
+## 22. Fase 14: ayuda y documentación para clientes
+
+Lo que el P0 de la Fase 14 deja fijado para **WP-14C** (la ayuda) y **WP-14D** (la documentación para clientes), que van en
+paralelo encima ([17](17-constructor-visual-de-agentes.md) §5 y §9.4; [ADR-0056](adr/0056-ayuda-y-agente-de-ayuda.md),
+[ADR-0057](adr/0057-documentacion-para-clientes.md) y la adenda del 2026-11-11 de [ADR-0054](adr/0054-idiomas-y-lenguaje-claro.md)).
+Hay un tipo nuevo del registro al final de `DecisionKind` (`ClientDocumentExported`, en `V = 1`, detrás de `ProjectSetupApplied`; los
+de la Fase 9 van después) y dos propósitos al final de `AgentRunPurpose` (`Help` y `ClientDocumentDraft`); los payloads anteriores se
+leen y se reescriben byte a byte. No hay migración ni proyecto nuevo. Solo contratos y reglas puras: ningún servicio, fichero ni
+proceso. `Phase14PayloadTests`, `HelpContractsTests`, `ClientDocumentContractsTests`, `Phase14TextRulesTests` y
+`DecisionKindCompatibilityTests` fallan si un contrato compartido cambia.
+
+### 22.1 La ayuda (`Application/Help/HelpContracts.cs`, nuevo)
+
+| Contrato | Qué es | Lo implementa |
+|---|---|---|
+| `HelpLimits` | Los topes: título 80, búsqueda 200 y 10 resultados, pregunta 1 000, respuesta 1 200, 4 artículos enviados y 4 citados, 2 acciones, 6 hechos de estado de 200 caracteres | — |
+| `HelpArticle` (`Id` código, `Language`, `Title`, `Markdown`, `Screens`, `InfoKeys`), `HelpArticleRules.Validate` e `IsInfoKey` | Un artículo del corpus, en un idioma, y los códigos de lo que incumple (`help.article-id-invalid`…) | WP-14C (el cargador; una prueba sobre todo el corpus) |
+| `IHelpCorpus` (`Articles`, `Find`, `ForScreen`, `ForInfoKey`) | Los artículos de un idioma (lo que falta, en castellano de España), el de una pantalla (`F1`) y el del ⓘ con esa clave (`MoreHelpCommand`) | WP-14C (`Desktop/Help`) |
+| `IHelpSearch.SearchAsync`, `HelpSearchHit`, `HelpMatchKind`, `HelpSearchRules.Validate` | La búsqueda local y gratis: FTS5 más los vectores si el modelo está instalado. Sus parámetros no incluyen proyecto ni consentimiento | WP-14C |
+| `HelpAgent.Id` (`ayuda`), `HelpAgentChoice` (`Default`, `IsDefault`, `ReadsWholeDisk`) | El agente de ayuda: Claude con el modelo más ligero del catálogo por defecto; Codex a elección, con el aviso de que su solo lectura lee todo el disco | WP-14C |
+| `HelpScreenFacts`, `HelpContextKind`, `HelpContextPart`, `HelpContextCard` (`Build`, `Validate`, `Withheld`, `IncludesProjectData`) | La tarjeta de lo que se envía: el texto exacto de cada parte, redactado, sin caracteres ocultos y cortado; el proyecto y lo que nombra una ruta solo con la marca | `Build` y `Validate` son reglas puras del contrato; la compone WP-14C |
+| `HelpAskRequest` (con `ProjectContext` y `QuotaConsent`), `HelpAskRules` (`CleanQuestion`, `Validate`) | Una pregunta al agente: un OK por pregunta (decisión 8 (a)), cada una una ejecución nueva | WP-14C |
+| `HelpAction`, `IHelpActionCatalog` | La lista cerrada de acciones: un id con forma de código y el texto de su botón como `UserText` | WP-14C (el catálogo, en el escritorio) |
+| `HelpAnswerCheck`, `HelpAnswerRules.Check`, `HelpAskReply` | Lo que el sistema se queda de la respuesta: texto cortado a 1 200, artículos entre los enviados, acciones de la lista; lo demás, en `Discarded` | WP-14C |
+| `IHelpAgent.AskAsync` | La ejecución auxiliar de solo lectura, con propósito `Help` | WP-14C (`AuxiliaryAgentRunner`) |
+
+### 22.2 La documentación para clientes (`Application/Documents/ClientDocumentContracts.cs`, nuevo)
+
+| Contrato | Qué es | Lo implementa |
+|---|---|---|
+| `ClientDocumentFormat` (`Markdown`, `Html`, `Pdf`, `Word`), `ClientDocumentFormats` (`All`, `Extension`, `MediaType`) | Los cuatro formatos de D-59 | — |
+| `ClientDocumentSectionKind` (siete, en el orden de D-58), `ClientDocumentSections` (`Order`, `TitleCode`) | Las secciones después de la portada; el título de cada una es un código | — |
+| `ClientText` (`OfSystem`, `Written`, `ByAgent`), `ClientTextSource`, `ClientAgentMark` | Un texto por quien lo escribió: el sistema (código con argumentos), una persona o los registros anclados (tal cual) o un agente (siempre con su marca: la ejecución y si lo revisaste) | — |
+| `ClientDocumentBlock`: `ClientParagraph`, `ClientList`, `ClientTable`, `ClientEvidenceList` (`ClientEvidenceReference`) | Los bloques de D-58 | — |
+| `ClientDocumentCover`, `ClientDocumentSection`, `ClientDocument` (`Texts()`, `Sha256()`, `CanonicalVersion`) | El modelo, sin idioma, y su hash canónico, igual en cualquier cultura | El constructor lo hace (WP-14D) |
+| `ClientDocumentRules.Validate` e `IsCommit` | Lo que el modelo puede comprobar solo: sin rutas de tu equipo ni caracteres ocultos en lo que escribieron personas o agentes, secciones en orden, bloques bien formados, huellas SHA-256 | — |
+| `ClientDraftKind` (`Summary`, `UsageExplanation`), `ClientDraftKinds.SectionOf`, `ClientDocumentLimits`, `ClientDraftRules.Check`, `ClientAgentDraft` | Lo que un agente puede redactar (6 párrafos de 800 caracteres como mucho) y lo que el sistema se queda | WP-14D |
+| `ClientDocumentDraftRequest`, `ClientDocumentDraftReply`, `IClientDocumentDrafter.DraftAsync` | La auxiliar de solo lectura con propósito `ClientDocumentDraft`, con tu OK por uso | WP-14D (`AuxiliaryAgentRunner`) |
+| `ClientDocumentBuildRequest`, `ClientDocumentBuild`, `ClientDocumentDisclosure` (`Of`, `Validate`), `ClientAgentPart`, `IClientDocumentBuilder.BuildAsync` | Construir el modelo y la lista de lo que sale (secretos redactados, rutas quitadas, partes de agentes, riesgos y consumo); la petición no tiene dónde pedir prompts, transcripciones ni la bitácora | WP-14D (`Memory/Documents`) |
+| `IUserTextRenderer.Render(UserText, idioma)` | Pinta los códigos del sistema en el idioma elegido al exportar, con la cultura de ese idioma | WP-14D (`Desktop/Documents`, con los recursos) |
+| `IClientDocumentFormatWriter` (`Format`, `RenderAsync`) | Un escritor por formato: Markdown y HTML en Memory, Word en Infrastructure (`DocumentFormat.OpenXml`), PDF en Desktop (WebView2) | WP-14D |
+| `ClientDocumentFiles` (`FileName`, `IsPlainFileName`) | El nombre de cada fichero con su versión (`mi-tienda-hito-1-v2.docx`): ninguna exportación sobrescribe otra | WP-14D |
+| `ClientDocumentExportRequest`, `ClientDocumentExportRules.Validate`, `ExportedClientFile`, `ClientDocumentExportResult`, `IClientDocumentExporter.ExportAsync` | «Aprobar y exportar»: escritura atómica, Markdown como evidencia, `ClientDocumentExported` al final; dentro de la carpeta del proyecto, nunca durante una ejecución | WP-14D |
+
+### 22.3 Registro (`Application/Decisions`)
+
+```csharp
+// DecisionKind gana, al final: ClientDocumentExported (los de la Fase 9 van después).
+// AgentRunPurpose gana, al final: Help y ClientDocumentDraft.
+public sealed record ClientDocumentFileSnapshot(ClientDocumentFormat Format, string FileName, string Sha256, long Bytes);
+public sealed record ClientDocumentAgentPartSnapshot(ClientDocumentSectionKind Section, RunId Run, bool ReviewedByPerson);
+public sealed record ClientDocumentExportedPayload(int Version, string? Milestone, string? Commit, string Language, string ModelSha256,
+    EvidenceId MarkdownEvidence, string MarkdownSha256, IReadOnlyList<ClientDocumentFileSnapshot> Files, int SecretsRedacted,
+    int PathsRemoved, int RisksIncluded, bool IncludesConsumption, IReadOnlyList<ClientDocumentAgentPartSnapshot> AgentParts,
+    string DecidedBy) { static Exporting(...); static Of(request, result); }   // fuera de toda ejecución
+```
+
+- **Ningún payload lleva texto del documento, ni de un agente, ni una ruta de tu equipo:** el nombre de un fichero va sin
+  carpeta y las rutas quitadas solo se cuentan. El JSON está fijado en `Phase14PayloadTests`, con el hash de una entrada
+  calculado aparte (Python) y leído de vuelta byte a byte.
+- **El hito es un nombre** (`string?`) hasta que exista el de la Fase 9, y la versión es una más que la mayor registrada para el
+  mismo hito.
+- **`AuxiliaryAgentRunner.IsAuxiliary` y `RecordsEndClass`** admiten los dos propósitos nuevos desde el P0 (versión 3 de
+  `AgentRunFinished`, con la clase del final), para que WP-14C y WP-14D no editen las mismas líneas de un fichero compartido.
+
+### 22.4 Reglas de texto compartidas
+
+| Pieza | Fichero | Qué es | Lo usan |
+|---|---|---|---|
+| `LocalPaths` (`Find`, `Contains`, `Remove`) | `Application/Security/LocalPaths.cs` | Qué es una ruta de tu equipo: con unidad (`C:\…`, `D:/…`), de red (`\\servidor\recurso`) o bajo la carpeta personal (`~/…`). Una ruta relativa, una URL o un id como `T3:2` no lo son | La tarjeta de la ayuda, las reglas del documento y los borradores |
+| `PlainText` (`HasHiddenCharacter`, `Strip`) | `Application/Security/PlainText.cs` | Ni caracteres de control ni bidireccionales en lo que va a la pantalla o a un agente; la misma regla que las preguntas de los agentes (`QuestionRules`) | Ídem, la búsqueda y la respuesta del agente |
+| `LanguageTags.IsValid` | `Application/Localization/LanguageTags.cs` | Que un idioma tenga la forma del nombre de una cultura (`es-ES`, `en`, `pt-BR`) | La ayuda y los documentos |
+
+### 22.5 Escritorio y dependencias
+
+- **El consumo** nombra los propósitos nuevos con `Usage_Purpose_Help` y `Usage_Purpose_ClientDocumentDraft` en
+  `Resources/ConsumptionStrings.resx` y `.en.resx` (`UsageDashboardViewModel.PurposeLabel`). Los tres de la Fase 13 siguen sin
+  nombre en ese detalle: es de WP-14A (c).
+- **`DocumentFormat.OpenXml` 3.5.1** está en `Directory.Packages.props` (MIT, comprobada en nuget.org el 2026-11-11); ningún
+  proyecto la referencia todavía. La referencia el proyecto que escribe el `.docx` (Infrastructure, WP-14D).
+- **Qué hace cada paquete encima:** WP-14C pone el corpus (`Desktop/Help`), el índice de búsqueda, el panel, `F1`, el catálogo de
+  acciones, `IHelpAgent` y los textos de la tarjeta; WP-14D, el constructor, los textos `Text_document_…`, los escritores, el
+  exportador, el borrador con un agente y la pantalla de revisión. Los dos añaden sus tests (F14-7 a F14-9).

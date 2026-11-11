@@ -142,6 +142,16 @@ public enum DecisionKind
     /// usual gates (the template, the brief, the verification profile, the skills and the options). It belongs to no run.
     /// </summary>
     ProjectSetupApplied,
+
+    // Phase 14 (documentation for clients, docs/17 D-60). Appended after the Phase 13 kinds, so no stored hash changes. The kinds of
+    // the Phase 9 (docs/16 §4.6) come after it. It belongs to no run: its payload carries an empty run id.
+
+    /// <summary>
+    /// A person approved and exported a document for clients (D-60): its version, the language, the SHA-256 of its model and of the
+    /// generated Markdown (kept as evidence), the name and SHA-256 of each file written, what the list of what goes out said (secrets
+    /// redacted, paths removed, parts written by agents, risks) and who approved it. No text of the document goes in the payload.
+    /// </summary>
+    ClientDocumentExported,
 }
 
 public sealed record DecisionEntry(

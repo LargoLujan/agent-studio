@@ -107,15 +107,29 @@ public sealed class DecisionKindCompatibilityTests
     private static readonly string[] Phase13Kinds = ["QuestionAsked", "QuestionAnswered", "ProjectSetupApplied"];
 
     [Fact]
-    public void Phase_13_kinds_come_after_the_phase_12_ones_and_nothing_else_was_added()
+    public void Phase_13_kinds_come_after_the_phase_12_ones()
     {
         var before = ExistingKinds.Length + Phase3Kinds.Length + Phase4Kinds.Length + Phase5Kinds.Length + Phase8Kinds.Length + Phase12Kinds.Length;
         for (var i = 0; i < Phase13Kinds.Length; i++)
         {
             Assert.Equal(Phase13Kinds[i], ((DecisionKind)(before + i)).ToString());
         }
+    }
 
-        Assert.Equal(before + Phase13Kinds.Length, Enum.GetValues<DecisionKind>().Length);
+    /// <summary>
+    /// Phase 14 (docs/17 D-60): the export of a document for clients, appended after Phase 13. The kinds of the Phase 9 (docs/16 §4.6)
+    /// come after it; the whole list is pinned in <c>Phase8PayloadTests</c>.
+    /// </summary>
+    private static readonly string[] Phase14Kinds = ["ClientDocumentExported"];
+
+    [Fact]
+    public void Phase_14_kinds_come_after_the_phase_13_ones()
+    {
+        var before = ExistingKinds.Length + Phase3Kinds.Length + Phase4Kinds.Length + Phase5Kinds.Length + Phase8Kinds.Length + Phase12Kinds.Length + Phase13Kinds.Length;
+        for (var i = 0; i < Phase14Kinds.Length; i++)
+        {
+            Assert.Equal(Phase14Kinds[i], ((DecisionKind)(before + i)).ToString());
+        }
     }
 
     [Fact]

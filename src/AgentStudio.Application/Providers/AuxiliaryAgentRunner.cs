@@ -64,18 +64,20 @@ public sealed class AuxiliaryAgentRunner(IDecisionRecorder decisions, IEvidenceS
     /// <summary>
     /// Whether <paramref name="purpose"/> is run as an auxiliary run: the assisted skill recommendation, the narrative daily
     /// summary and, from Phase 13 (docs/17 §8.2), «Revisar el orden», the analysis of consumption with an agent and the chat of
-    /// preparation, each with the person's OK.
+    /// preparation and, from Phase 14, the agent of the help and the draft of a document for clients, each with the person's OK.
     /// </summary>
     public static bool IsAuxiliary(AgentRunPurpose purpose) =>
         purpose is AgentRunPurpose.SkillRecommendation or AgentRunPurpose.DailySummary
-            or AgentRunPurpose.OrderReview or AgentRunPurpose.ConsumptionAnalysis or AgentRunPurpose.PreparationChat;
+            or AgentRunPurpose.OrderReview or AgentRunPurpose.ConsumptionAnalysis or AgentRunPurpose.PreparationChat
+            or AgentRunPurpose.Help or AgentRunPurpose.ClientDocumentDraft;
 
     /// <summary>
     /// Whether the end of a run of <paramref name="purpose"/> is recorded with its class (<c>AgentRunFinished</c> version 3,
-    /// docs/17 §8.2): the auxiliary runs of Phase 13 do; the earlier ones keep version 2, as they always wrote it.
+    /// docs/17 §8.2): the auxiliary runs of Phases 13 and 14 do; the earlier ones keep version 2, as they always wrote it.
     /// </summary>
     public static bool RecordsEndClass(AgentRunPurpose purpose) =>
-        purpose is AgentRunPurpose.OrderReview or AgentRunPurpose.ConsumptionAnalysis or AgentRunPurpose.PreparationChat;
+        purpose is AgentRunPurpose.OrderReview or AgentRunPurpose.ConsumptionAnalysis or AgentRunPurpose.PreparationChat
+            or AgentRunPurpose.Help or AgentRunPurpose.ClientDocumentDraft;
 
     public async Task<AuxiliaryRunResult> RunAsync(ProjectContext project, AuxiliaryRunRequest request, IProgress<AgentEvent>? progress, CancellationToken ct)
     {
@@ -251,6 +253,8 @@ public sealed class AuxiliaryAgentRunner(IDecisionRecorder decisions, IEvidenceS
         AgentRunPurpose.OrderReview => "la revisión del orden",
         AgentRunPurpose.ConsumptionAnalysis => "el análisis del consumo",
         AgentRunPurpose.PreparationChat => "el chat de preparación",
+        AgentRunPurpose.Help => "la ayuda",
+        AgentRunPurpose.ClientDocumentDraft => "el borrador del documento para clientes",
         _ => purpose.ToString(),
     };
 }
