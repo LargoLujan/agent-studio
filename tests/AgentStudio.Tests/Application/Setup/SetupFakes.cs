@@ -73,6 +73,12 @@ internal sealed class InMemoryRoster(IEnumerable<AgentDefinition>? agents = null
 
         return Task.CompletedTask;
     }
+
+    public Task DeleteAsync(string projectId, AgentId agent, CancellationToken cancellationToken)
+    {
+        _agents.RemoveAll(a => a.Id == agent);
+        return Task.CompletedTask;
+    }
 }
 
 internal sealed class FakeProfiles(string? stackProfileName = "dotnet") : ISetupVerificationProfiles

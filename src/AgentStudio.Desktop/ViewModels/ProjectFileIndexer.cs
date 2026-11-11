@@ -84,7 +84,7 @@ public static class ProjectFileIndexer
     }
 
     /// <summary>True for a symbolic link or junction (other reparse points, such as cloud placeholders, are plain folders).</summary>
-    private static bool IsLink(DirectoryInfo directory)
+    internal static bool IsLink(DirectoryInfo directory)
     {
         if (!directory.Attributes.HasFlag(FileAttributes.ReparsePoint))
         {

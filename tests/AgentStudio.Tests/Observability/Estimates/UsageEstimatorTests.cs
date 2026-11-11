@@ -44,7 +44,8 @@ public sealed class UsageEstimatorTests
         decimal? cost = 0.10m,
         int minutes = 1,
         AttemptOutcome outcome = AttemptOutcome.Succeeded,
-        bool launched = true)
+        bool launched = true,
+        ReasoningEffort? effort = null)
     {
         var on = provider ?? ProviderId.ClaudeCode;
         var costFigure = cost is { } value ? MetricValue<decimal>.Estimated(value, "claude total_cost_usd") : MetricValue<decimal>.NotExposed("codex exec does not report cost");
@@ -78,11 +79,12 @@ public sealed class UsageEstimatorTests
             null)
         {
             RecordedVersion = 2,
+            Effort = effort,
         };
     }
 
-    private static UsageEstimateRequest Request(string agent = "ejecutor", string? model = "sonnet", AgentRunPurpose purpose = AgentRunPurpose.Executor, WorkSize? size = null, ProviderId? provider = null) =>
-        new(Project, new AgentId(agent), provider ?? ProviderId.ClaudeCode, model, purpose, size);
+    private static UsageEstimateRequest Request(string agent = "ejecutor", string? model = "sonnet", AgentRunPurpose purpose = AgentRunPurpose.Executor, WorkSize? size = null, ProviderId? provider = null, ReasoningEffort? effort = null) =>
+        new(Project, new AgentId(agent), provider ?? ProviderId.ClaudeCode, model, purpose, size, effort);
 
     /// <summary>Four attempts of the executor with sonnet: 1 000 to 4 000 tokens in, 1 to 4 minutes, 0.10 to 0.40.</summary>
     private static List<UsageAttempt> Four() =>
@@ -252,6 +254,118 @@ public sealed class UsageEstimatorTests
 
         Assert.Equal(3, UsageEstimation.Estimate(attempts, Catalog, Request(model: null)).References);
         Assert.Equal(3, UsageEstimation.Estimate(attempts, Catalog, Request(model: "opus")).References);
+    }
+
+    // ---- the reasoning effort (docs/18 P47, ADR-0050) ----
+
+    /// <summary>Three attempts of sonnet at each effort: 1 000 to 3 000 tokens in at <c>low</c>, 10 000 to 30 000 at <c>high</c>.</summary>
+    private static List<UsageAttempt> LowAndHigh() =>
+    [
+        .. Enumerable.Range(1, 3).Select(i => Attempt("r" + i, "T1", input: 1000 * i, effort: ReasoningEffort.Low)),
+        .. Enumerable.Range(1, 3).Select(i => Attempt("h" + i, "T1", input: 10_000 * i, effort: ReasoningEffort.High)),
+    ];
+
+    [Fact]
+    public void Attempts_at_low_and_at_high_effort_of_the_same_model_are_not_references_of_each_other()
+    {
+        var low = UsageEstimation.Estimate(LowAndHigh(), Catalog, Request(effort: ReasoningEffort.Low));
+        var high = UsageEstimation.Estimate(LowAndHigh(), Catalog, Request(effort: ReasoningEffort.High));
+
+        Assert.Equal(3, low.References);
+        Assert.Equal((1000L, 3000L), (low.InputTokens.Low.Value!.Value, low.InputTokens.High.Value!.Value));
+        Assert.Equal(3, high.References);
+        Assert.Equal((10_000L, 30_000L), (high.InputTokens.Low.Value!.Value, high.InputTokens.High.Value!.Value));
+        Assert.Equal([EstimateAssumptions.SameAgentAndModel, EstimateAssumptions.SamePurpose, EstimateAssumptions.SameEffort, EstimateAssumptions.ListPrice], low.Assumptions);
+        Assert.Contains("of 3 attempts of the same agent, model and purpose, low effort", low.InputTokens.Low.Source, StringComparison.Ordinal);
+        Assert.Contains("of 3 attempts of the same agent, model and purpose, high effort", high.InputTokens.High.Source, StringComparison.Ordinal);
+
+        // An effort no attempt had has no references, and the mixed six are never counted together.
+        var medium = UsageEstimation.Estimate(LowAndHigh(), Catalog, Request(effort: ReasoningEffort.Medium));
+        Assert.False(medium.IsKnown);
+        Assert.Equal(0, medium.References);
+        Assert.Equal(0, UsageEstimation.Estimate(LowAndHigh(), Catalog, Request()).References);
+    }
+
+    /// <summary>Attempts that recorded no effort (every start before the field) are comparable with each other, and not with one that has it.</summary>
+    [Fact]
+    public void Attempts_without_an_effort_are_references_of_each_other_and_not_of_an_agent_that_has_one()
+    {
+        var attempts = Four().Concat(Enumerable.Range(1, 3).Select(i => Attempt("h" + i, "T9", input: 50_000 * i, effort: ReasoningEffort.High))).ToList();
+
+        var none = UsageEstimation.Estimate(attempts, Catalog, Request());
+        var high = UsageEstimation.Estimate(attempts, Catalog, Request(effort: ReasoningEffort.High));
+
+        Assert.Equal(4, none.References);
+        Assert.Equal((1000L, 3000L), (none.InputTokens.Low.Value!.Value, none.InputTokens.High.Value!.Value));
+        Assert.DoesNotContain(EstimateAssumptions.SameEffort, none.Assumptions);
+        Assert.DoesNotContain("effort", none.InputTokens.Low.Source, StringComparison.Ordinal);
+        Assert.Equal(3, high.References);
+        Assert.Equal((50_000L, 150_000L), (high.InputTokens.Low.Value!.Value, high.InputTokens.High.Value!.Value));
+        Assert.Equal(0, UsageEstimation.Estimate(Four(), Catalog, Request(effort: ReasoningEffort.High)).References);
+    }
+
+    /// <summary>The effort holds in both scopes: the agent's own attempts, and those of its model by any agent.</summary>
+    [Fact]
+    public void The_effort_is_compared_among_the_attempts_of_the_model_by_any_agent_too()
+    {
+        List<UsageAttempt> attempts =
+        [
+            Attempt("r1", "T1", agent: "nuevo", input: 5000, effort: ReasoningEffort.High),
+            Attempt("r1", "T2", agent: "ejecutor", input: 1000, effort: ReasoningEffort.High),
+            Attempt("r2", "T1", agent: "otro", input: 2000, effort: ReasoningEffort.High),
+            Attempt("r2", "T2", agent: "ejecutor", input: 99_000, effort: ReasoningEffort.Low),
+            Attempt("r3", "T1", agent: "ejecutor", input: 98_000),
+        ];
+
+        var estimate = UsageEstimation.Estimate(attempts, Catalog, Request(agent: "nuevo", effort: ReasoningEffort.High));
+
+        Assert.Equal(3, estimate.References);
+        Assert.Equal((1000L, 5000L), (estimate.InputTokens.Low.Value!.Value, estimate.InputTokens.High.Value!.Value));
+        Assert.Equal([EstimateAssumptions.SameModel, EstimateAssumptions.SamePurpose, EstimateAssumptions.SameEffort, EstimateAssumptions.ListPrice], estimate.Assumptions);
+        Assert.Contains("of 3 attempts of the same model and purpose by any agent, high effort", estimate.InputTokens.Low.Source, StringComparison.Ordinal);
+    }
+
+    /// <summary>A plan estimates each task with the effort of its agent, in the references of its figures and in the runs of similar tasks.</summary>
+    [Fact]
+    public void A_plan_estimates_each_task_with_the_effort_of_its_agent()
+    {
+        IReadOnlyList<AgentDefinition> roster = [Roster[0] with { Effort = ReasoningEffort.High }, Roster[1]];
+        var request = PlanRequest([Spec("T1", WorkTaskKind.AgentWork, "ejecutor"), Spec("R", WorkTaskKind.Review, "juez", "T1")]) with { Roster = roster };
+
+        // The history before the effort was recorded gives the executor none: the judge, who has no effort, keeps his.
+        var before = UsageEstimation.EstimatePlan(History(), Catalog, request);
+        Assert.False(before.Tasks[new TaskId("T1")].IsKnown);
+        Assert.True(before.Tasks[new TaskId("R")].IsKnown);
+        Assert.False(before.AgentRuns.IsKnown);
+
+        var recorded = History().Select(a => a.Purpose == AgentRunPurpose.Executor ? a with { Effort = ReasoningEffort.High } : a).ToList();
+        var after = UsageEstimation.EstimatePlan(recorded, Catalog, request);
+        Assert.True(after.Tasks[new TaskId("T1")].IsKnown);
+        Assert.Contains(EstimateAssumptions.SameEffort, after.Tasks[new TaskId("T1")].Assumptions);
+        Assert.DoesNotContain(EstimateAssumptions.SameEffort, after.Tasks[new TaskId("R")].Assumptions);
+        Assert.Equal((2L, 3L), (after.AgentRuns.Low.Value!.Value, after.AgentRuns.High.Value!.Value));
+    }
+
+    [Fact]
+    public async Task The_service_reads_the_effort_of_each_attempt_from_its_start_in_the_log()
+    {
+        var log = new UsageLogBuilder();
+        for (var i = 1; i <= 3; i++)
+        {
+            log.Start("r" + i, "T1", 1, model: "sonnet", version: AgentRunStartedPayload.ContextPartsVersion, effort: ReasoningEffort.XHigh)
+                .Finish("r" + i, "T1", 1, session: "s" + i, usage: Snapshots.Claude(1000 * i, 0, 0, 100 * i, 0.1m * i), launchedAt: log.Now, reportedModel: "claude-sonnet-5-5");
+        }
+
+        var estimator = new UsageEstimator(
+            new FakeLogReader(new ProjectLogSnapshot("p1", "C:\\repo", log.Entries, DecisionLogVerification.Valid, AnchorStatus.Anchored)),
+            new BuiltInModelCatalog());
+
+        var xhigh = await estimator.EstimateAsync(Request(effort: ReasoningEffort.XHigh), TestContext.Current.CancellationToken);
+        var none = await estimator.EstimateAsync(Request(), TestContext.Current.CancellationToken);
+        var low = await estimator.EstimateAsync(Request(effort: ReasoningEffort.Low), TestContext.Current.CancellationToken);
+
+        Assert.Equal((3, 0, 0), (xhigh.References, none.References, low.References));
+        Assert.Equal((1000L, 3000L), (xhigh.InputTokens.Low.Value!.Value, xhigh.InputTokens.High.Value!.Value));
     }
 
     [Fact]

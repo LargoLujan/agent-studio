@@ -1,7 +1,9 @@
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Usage;
 using AgentStudio.Domain.Common;
+using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Metrics;
+using AgentStudio.Domain.Models;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Observability.Usage;
 using static AgentStudio.Tests.Domain.TestData;
@@ -41,6 +43,47 @@ public sealed class UsageProjectorTests
         Assert.Equal(("claude-sonnet-5-5", "claude-sonnet-5-5-20261001", "s1"), (attempt.ConfiguredModel, attempt.ReportedModel, attempt.SessionId));
         Assert.Equal((startedAt, (DateTimeOffset?)launchedAt, finishedAt), (attempt.RecordedAt, attempt.LaunchedAt, attempt.FinishedAt));
         Assert.Equal((AttemptOutcome.Succeeded, 2), (attempt.Outcome, attempt.RecordedVersion));
+    }
+
+    /// <summary>
+    /// docs/18 P47: the effort a start recorded reaches the attempt whenever it comes (a version 3 start without parts, which
+    /// carries only the effort, included); a start that recorded none leaves it null.
+    /// </summary>
+    [Fact]
+    public void An_attempt_keeps_the_reasoning_effort_its_start_recorded_and_none_when_it_recorded_none()
+    {
+        var log = new UsageLogBuilder()
+            .Start(Run, "T1", 1, version: AgentRunStartedPayload.ContextPartsVersion, effort: ReasoningEffort.High)
+            .Finish(Run, "T1", 1, session: "s1", usage: Claude(1000, 0, 0, 50, 0.01m))
+            .Start(Run, "T2", 1, version: AgentRunStartedPayload.ContextPartsVersion)
+            .Finish(Run, "T2", 1, session: "s2", usage: Claude(1000, 0, 0, 50, 0.01m))
+            .Start(Run, "T3", 1)
+            .Finish(Run, "T3", 1, session: "s3", usage: Claude(1000, 0, 0, 50, 0.01m))
+            .Start(Run, "T4", 1, effort: ReasoningEffort.Low)
+            .Finish(Run, "T4", 1, session: "s4", usage: Claude(1000, 0, 0, 50, 0.01m));
+
+        Assert.Equal([ReasoningEffort.High, null, null, ReasoningEffort.Low], Project(log).Select(a => a.Effort));
+    }
+
+    /// <summary>
+    /// ADR-0050: the efforts are a closed list, and a new level is only ever appended to it. A start with a level this version
+    /// does not know cannot be read, so it fails closed on that entry: it is not counted, and the projection says why. An app
+    /// is not taken back to an older version over a log written by a newer one.
+    /// </summary>
+    [Fact]
+    public void A_start_with_an_effort_this_version_does_not_know_is_not_read_and_the_projection_says_so()
+    {
+        var log = new UsageLogBuilder()
+            .Start(Run, "T1", 1, version: AgentRunStartedPayload.ContextPartsVersion, effort: ReasoningEffort.High)
+            .Finish(Run, "T1", 1, session: "s1", usage: Claude(1000, 0, 0, 50, 0.01m));
+        var entries = log.Entries
+            .Select(e => e.Kind == DecisionKind.AgentRunStarted ? e with { PayloadJson = e.PayloadJson.Replace("\"effort\":\"high\"", "\"effort\":\"ultra\"", StringComparison.Ordinal) } : e)
+            .ToList();
+
+        var projection = UsageProjector.Project(UsageLogBuilder.ProjectId, entries);
+
+        Assert.Empty(projection.Attempts);
+        Assert.Contains(projection.Warnings, w => w.Contains("no se puede leer y no se cuenta", StringComparison.Ordinal) && w.Contains("'ultra' is not a reasoning effort", StringComparison.Ordinal));
     }
 
     [Fact]

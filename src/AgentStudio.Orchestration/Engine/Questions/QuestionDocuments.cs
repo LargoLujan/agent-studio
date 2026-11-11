@@ -34,6 +34,35 @@ internal static class QuestionDocuments
         MaxDepth = 8,
     };
 
+    // The question of the orchestrator is not that document: its evidence is the question itself as JSON (what the planner wrote
+    // with its own options), with no task, no attempt and no format mark, and it is read back with the same options.
+    private static readonly JsonSerializerOptions Planner = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) } };
+
+    /// <summary>The evidence of a question of the orchestrator: the question as it asked it, its text, its why and its options, as JSON.</summary>
+    public static string PlannerQuestionJson(AgentQuestion question) => JsonSerializer.Serialize(question, Planner);
+
+    /// <summary>
+    /// The question of the orchestrator in its evidence (<see cref="PlannerQuestionJson"/>), or null when the text is not one that
+    /// may have been recorded (V43): a run reads it back only as the log anchored it, and fails closed on anything else.
+    /// </summary>
+    public static AgentQuestion? ReadPlannerQuestion(string json)
+    {
+        AgentQuestion? question;
+        try
+        {
+            question = JsonSerializer.Deserialize<AgentQuestion>(json, Planner);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+
+        // The detail of an option is optional (QuestionRules): only what an answer is quoted with has to be there.
+        return question is { Text: not null, Why: not null, Options: { Count: > 0 } options } && options.All(o => o is { Id: not null, Label: not null })
+            ? question
+            : null;
+    }
+
     /// <summary>The title of the evidence of a question.</summary>
     public static string QuestionTitle(string question, string task, int attempt) =>
         string.Create(System.Globalization.CultureInfo.InvariantCulture, $"Pregunta {question} de {task} (intento {attempt})");
@@ -113,7 +142,7 @@ internal static class QuestionDocuments
         {
             format = DecisionFormat,
             question = asked.Id,
-            task = asked.Task.Value,
+            task = asked.AskingTask.Value,
             attempt = asked.Attempt,
             askedBy = asked.Agent.Value,
             questionEvidence = asked.Evidence.Value,

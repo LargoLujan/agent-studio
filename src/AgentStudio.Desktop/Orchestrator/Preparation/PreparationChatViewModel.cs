@@ -165,7 +165,7 @@ public sealed partial class PreparationChatViewModel : ObservableObject
         if (_services.Estimator is { } estimator)
         {
             estimate = async ct => await estimator.EstimateAsync(
-                new UsageEstimateRequest(subject.Project, subject.Orchestrator.Id, subject.Orchestrator.Model.Provider, subject.Orchestrator.Model.Model, AgentRunPurpose.PreparationChat),
+                new UsageEstimateRequest(subject.Project, subject.Orchestrator.Id, subject.Orchestrator.Model.Provider, subject.Orchestrator.Model.Model, AgentRunPurpose.PreparationChat, Effort: subject.Orchestrator.Effort),
                 ct).ConfigureAwait(false);
         }
 

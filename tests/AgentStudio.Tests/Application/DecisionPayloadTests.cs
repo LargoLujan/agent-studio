@@ -99,6 +99,36 @@ public sealed class DecisionPayloadTests
             json);
     }
 
+    // ---- V43: the run in which the orchestrator planned, when it is not the run itself ----
+
+    /// <summary>The text the start of a run has been written as since the writers were anchored (version 3), before PlannedIn existed.</summary>
+    private static readonly string StartedV3 =
+        "{\"planHash\":\"" + HashA + "\",\"requirementSetHash\":\"" + HashB + "\",\"baseCommit\":\"abc123\",\"baseRef\":\"main\",\"verificationProfileHash\":\"" + HashA + "\","
+        + "\"roster\":[{\"agent\":\"ejecutor\",\"role\":\"Executor\",\"provider\":\"claude-code\",\"vendor\":\"anthropic\"}],\"headerHash\":\"" + HeaderHash + "\","
+        + "\"approvedWarning\":\"aviso\",\"approvedWriters\":[{\"task\":\"T1\",\"reason\":\"Shell\"}],\"v\":3,\"runId\":\"20261015-a1b2c3\"}";
+
+    [Fact]
+    public void A_start_written_before_PlannedIn_is_read_and_written_back_byte_for_byte()
+    {
+        var read = DecisionPayloadSerializer.Deserialize<RunStartedPayload>(StartedV3);
+
+        Assert.Null(read.PlannedIn);
+        Assert.Equal(StartedV3, DecisionPayloadSerializer.Serialize(read));
+        Assert.DoesNotContain("plannedIn", DecisionPayloadSerializer.Serialize(Samples.Single(s => s is RunStartedPayload)), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_start_planned_in_another_run_names_it_and_changes_nothing_else_in_the_text()
+    {
+        var read = DecisionPayloadSerializer.Deserialize<RunStartedPayload>(StartedV3);
+
+        var json = DecisionPayloadSerializer.Serialize(read with { PlannedIn = "20261014-ffffff" });
+
+        Assert.Contains("\"plannedIn\":\"20261014-ffffff\"", json, StringComparison.Ordinal);
+        Assert.Equal(StartedV3, json.Replace(",\"plannedIn\":\"20261014-ffffff\"", string.Empty, StringComparison.Ordinal));
+        Assert.Equal("20261014-ffffff", DecisionPayloadSerializer.Deserialize<RunStartedPayload>(json).PlannedIn);
+    }
+
     // ---- version 1 of the agent run payloads, as Phase 3 writes them (characterization: these never change) ----
 
     /// <summary>The text Phase 3 writes for the end of an attempt. Its hash is in the logs of existing projects.</summary>

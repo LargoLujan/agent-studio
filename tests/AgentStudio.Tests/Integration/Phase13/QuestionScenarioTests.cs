@@ -192,7 +192,10 @@ public sealed class QuestionScenarioTests
         Assert.Equal(lived.Question.Options, replayed.Question.Options);
         Assert.Equal((lived.Question.Text, lived.Question.Why, lived.Question.AllowOther), (replayed.Question.Text, replayed.Question.Why, replayed.Question.AllowOther));
         Assert.Equal(lived.Estimates, replayed.Estimates);
-        Assert.Equal(RunPhase.AwaitingHuman, resumed.Snapshot().Phase);
+
+        // The view shows the question as soon as the recovery fills the book; the phase is set a moment later, by the loop of the
+        // run, once it looks at what is in flight. Under load that moment shows: wait for it, never assume it.
+        await Phase3Checks.WaitUntilAsync(() => resumed.Snapshot().Phase == RunPhase.AwaitingHuman, "the resumed run waiting for a person", Guard);
         Assert.Empty(claude2.Script.Starts); // waiting again: nothing was launched
         Assert.Single(await second.PayloadsAsync<QuestionAskedPayload>(runId.Value)); // and the question was not asked again
 

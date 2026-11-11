@@ -205,6 +205,9 @@ public sealed record EffortOption(string Label, ReasoningEffort? Effort)
     public override string ToString() => Label;
 }
 
+/// <summary>An agent that «Quitar del equipo» was pressed for and that waits for the person's yes: the question says what is lost and what is kept.</summary>
+public sealed record RemovalRequest(AgentId Agent, string Question);
+
 /// <summary>
 /// Adds, removes and configures the agents of the Team layer (docs/17 D-08, D-09 and D-42, F13-2). It edits the template, with the
 /// consequences of always: saving changes its <c>RosterHash</c> and withdraws the approval of the plan, and the layer says it
@@ -222,6 +225,9 @@ public sealed partial class TeamEditorViewModel : ObservableObject
     private PresenceConfirmer? _confirm;
     private ProjectContext? _project;
     private IReadOnlyList<AgentDefinition> _roster = [];
+
+    /// <summary>A set of changes is being written (<see cref="ApplyManyAsync"/>): a second one does not start. Everything runs on the UI thread, so a flag is enough.</summary>
+    private bool _applying;
 
     /// <param name="canvas">The Team layer this edits.</param>
     /// <param name="save">Saves one agent of the template (the same callback as the preparation); null when it cannot be saved.</param>
@@ -246,11 +252,16 @@ public sealed partial class TeamEditorViewModel : ObservableObject
         {
             if (e.PropertyName is nameof(TeamCanvasViewModel.SelectedAgent))
             {
+                // «Quitar del equipo» follows the selection, and a question about another agent is no longer asked. A WPF button
+                // reads CanExecute again only when told, so it is told here.
+                PendingRemoval = null;
+                RemoveSelectedCommand.NotifyCanExecuteChanged();
                 RebuildInspector();
             }
 
             if (e.PropertyName is nameof(TeamCanvasViewModel.IsReadOnly))
             {
+                PendingRemoval = null;
                 RefreshCommands();
             }
         };
@@ -263,6 +274,16 @@ public sealed partial class TeamEditorViewModel : ObservableObject
     /// <summary>The agent being added, waiting for its program and model; null when none is.</summary>
     [ObservableProperty]
     private NewAgentViewModel? _pendingAdd;
+
+    /// <summary>The agent whose removal waits for the person's yes; null when none does.</summary>
+    [ObservableProperty]
+    private RemovalRequest? _pendingRemoval;
+
+    partial void OnPendingRemovalChanged(RemovalRequest? value)
+    {
+        ConfirmRemoveCommand.NotifyCanExecuteChanged();
+        CancelRemoveCommand.NotifyCanExecuteChanged();
+    }
 
     /// <summary>The last change in a sentence, with what it caused.</summary>
     [ObservableProperty]
@@ -314,6 +335,7 @@ public sealed partial class TeamEditorViewModel : ObservableObject
         _project = project;
         _roster = roster;
         PendingAdd = null;
+        PendingRemoval = null;
         RefreshCommands();
         RebuildInspector();
     }
@@ -399,15 +421,48 @@ public sealed partial class TeamEditorViewModel : ObservableObject
 
     /// <summary>
     /// Writes a set of changes of the template all or nothing (the fixes of one click, and their undo and redo, change several
-    /// agents at once): everything is worked out first (the template accepts each agent, the store can remove what has to go) and
-    /// Windows Hello is asked once for the whole set when any of it grants power (D-37), before anything is saved; if the store
-    /// fails halfway, what was already saved goes back to its previous version, so the template is never left in between. The
-    /// approval is withdrawn once, at the end. Returns whether everything was written.
+    /// agents at once): everything is worked out first (the template accepts each agent, the store can remove what has to go, and
+    /// the team that is left still has its orchestrator and a judge: <see cref="TeamRemoval"/>) and Windows Hello is asked once for
+    /// the whole set when any of it grants power (D-37), before anything is saved or removed. The store has no operation by lots, so
+    /// the set is written as a sequence, the saves first and the removals last, and if the store fails halfway what was already
+    /// written goes back (the previous version of each agent saved, and the ones removed saved again), so the template is never
+    /// left in between; what a revert cannot give back is the place of an agent that was removed and saved again, which goes to the
+    /// end of the list (nor the skills the agent had active, which taking it out closed: they are the person's to turn on again).
+    /// Taking an agent out grants nothing, so on its own it asks for no Hello. The approval is withdrawn once, at the end. One set
+    /// at a time: while one is being written (it may be waiting for Windows Hello) another one does not start and says so. Returns
+    /// whether everything was written.
     /// </summary>
     public async Task<bool> ApplyManyAsync(IReadOnlyList<AgentDefinition> updates, IReadOnlyList<AgentId> removals, string notice)
     {
         ArgumentNullException.ThrowIfNull(updates);
         ArgumentNullException.ThrowIfNull(removals);
+        if (_applying)
+        {
+            ErrorMessage = _text.Get("Canvas_Editor_Busy");
+            return false;
+        }
+
+        _applying = true;
+        RefreshBusy();
+        try
+        {
+            return await ApplyManyCoreAsync(updates, removals, notice).ConfigureAwait(true);
+        }
+        finally
+        {
+            _applying = false;
+            RefreshBusy();
+        }
+    }
+
+    private void RefreshBusy()
+    {
+        RemoveSelectedCommand.NotifyCanExecuteChanged();
+        ConfirmRemoveCommand.NotifyCanExecuteChanged();
+    }
+
+    private async Task<bool> ApplyManyCoreAsync(IReadOnlyList<AgentDefinition> updates, IReadOnlyList<AgentId> removals, string notice)
+    {
         ErrorMessage = null;
         Notice = null;
         if (_save is not { } save || _project is not { } project || _canvas.IsReadOnly)
@@ -429,6 +484,14 @@ public sealed partial class TeamEditorViewModel : ObservableObject
                 ErrorMessage = _text.Format("Canvas_Editor_Refused", string.Join(", ", problems));
                 return false;
             }
+        }
+
+        // What a removal leaves is looked at before anything is asked or written: the team keeps the orchestrator that plans and the
+        // judge that reviews (P48). The store takes whatever it is told, so it is not its job.
+        if (removals.Count > 0 && TeamRemoval.Problems(_roster, After(updates, removals)) is { Count: > 0 } missing)
+        {
+            ErrorMessage = _text.Format("Canvas_Editor_Refused", string.Join(", ", missing.Select(ProblemText)));
+            return false;
         }
 
         // The agents already in the template go first and the new ones last: a failure on the first leaves nothing new behind.
@@ -468,19 +531,66 @@ public sealed partial class TeamEditorViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            await RevertAsync(project, written, removed).ConfigureAwait(true);
-            ErrorMessage = _text.Format("Canvas_Editor_NotSaved", ex.Message);
+            var reverted = await RevertAsync(project, written, removed).ConfigureAwait(true);
+            ErrorMessage = _text.Format(reverted ? "Canvas_Editor_NotSaved" : "Canvas_Editor_NotSavedHalfway", ex.Message);
             return false;
         }
 
-        await _saved().ConfigureAwait(true);
+        // The template is written: that stays true even if the document cannot read it again, and it says so.
+        var reloadProblem = await TryReloadAsync().ConfigureAwait(true);
+        ErrorMessage = reloadProblem is null ? null : _text.Format("Canvas_Editor_SavedNotReloaded", reloadProblem);
         Notice = notice + " " + ConsequenceText;
         return true;
     }
 
-    /// <summary>Puts back what was saved before a failure: the previous version of each agent, and out again the ones that were new (when the store can).</summary>
-    private async Task RevertAsync(ProjectContext project, List<(AgentDefinition? Before, AgentDefinition After)> written, List<AgentDefinition> removed)
+    /// <summary>Tells the document that the template changed, so it withdraws the approval and reads it again; the reason when that fails, null when it did not.</summary>
+    private async Task<string?> TryReloadAsync()
     {
+        try
+        {
+            await _saved().ConfigureAwait(true);
+            return null;
+        }
+#pragma warning disable CA1031 // The document is behind a callback: a failure is shown in the layer, never thrown into the UI.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            return ex.Message;
+        }
+    }
+
+    /// <summary>The template as it would be once <see cref="ApplyManyAsync"/> is done: the agents saved (new ones at the end), and then the ones taken out.</summary>
+    private List<AgentDefinition> After(IReadOnlyList<AgentDefinition> updates, IReadOnlyList<AgentId> removals)
+    {
+        var result = _roster.ToList();
+        foreach (var update in updates)
+        {
+            var at = result.FindIndex(a => a.Id == update.Id);
+            if (at >= 0)
+            {
+                result[at] = update;
+            }
+            else
+            {
+                result.Add(update);
+            }
+        }
+
+        result.RemoveAll(a => removals.Contains(a.Id));
+        return result;
+    }
+
+    /// <summary>The sentence of a code of <see cref="TeamRemoval"/>, from the same texts as the problems of the layer, without its final stop (the message that holds it has its own).</summary>
+    private string ProblemText(string code) =>
+        _text.Get("Canvas_Problem_" + code[(code.IndexOf('.', StringComparison.Ordinal) + 1)..].Replace('-', '_')).TrimEnd('.');
+
+    /// <summary>
+    /// Puts back what was saved before a failure: the previous version of each agent, and out again the ones that were new (when the
+    /// store can). False when a step of the revert failed too: then the template may be left halfway, and the layer says so.
+    /// </summary>
+    private async Task<bool> RevertAsync(ProjectContext project, List<(AgentDefinition? Before, AgentDefinition After)> written, List<AgentDefinition> removed)
+    {
+        var complete = true;
         foreach (var (before, after) in Enumerable.Reverse(written))
         {
             try
@@ -498,7 +608,8 @@ public sealed partial class TeamEditorViewModel : ObservableObject
             catch (Exception)
 #pragma warning restore CA1031
             {
-                // Nothing more can be done here; the document reads the template again.
+                // Nothing more can be done here; the document reads the template again, and the caller says it may be halfway.
+                complete = false;
             }
         }
 
@@ -512,40 +623,68 @@ public sealed partial class TeamEditorViewModel : ObservableObject
             catch (Exception)
 #pragma warning restore CA1031
             {
-                // See above.
+                complete = false;
             }
         }
 
-        await _saved().ConfigureAwait(true);
+        // A layer that cannot read the template again may not show what the store holds: it counts as not put back as well.
+        var reloaded = await TryReloadAsync().ConfigureAwait(true) is null;
+        return complete && reloaded;
     }
 
+    /// <summary>
+    /// «Quitar del equipo» asks first: the definition of the agent is lost from the template, there is no way to take it back from
+    /// here (Ctrl+Z does not reach it), and the skills it had active are turned off. It says what is kept too: the runs and debates
+    /// that already happened freeze their agents. Nothing is written until <see cref="ConfirmRemoveCommand"/>.
+    /// </summary>
     [RelayCommand(CanExecute = nameof(CanRemoveSelected))]
-    private async Task RemoveSelectedAsync()
+    private void RemoveSelected()
     {
-        if (_canvas.SelectedAgent is not { } node || _remove is not { } remove || _project is not { } project)
+        if (_canvas.SelectedAgent is not { } node || _remove is null)
         {
             return;
         }
 
         ErrorMessage = null;
         Notice = null;
-        try
+
+        // A removal the team cannot take (its orchestrator, its last judge) is refused before the question, not after the yes.
+        if (TeamRemoval.Problems(_roster, After([], [node.Id])) is { Count: > 0 } missing)
         {
-            await remove(project, node.Id).ConfigureAwait(true);
-        }
-#pragma warning disable CA1031 // The template is behind a port: a failure is shown in the layer, never thrown into the UI.
-        catch (Exception ex)
-#pragma warning restore CA1031
-        {
-            ErrorMessage = _text.Format("Canvas_Editor_NotSaved", ex.Message);
+            ErrorMessage = _text.Format("Canvas_Editor_Refused", string.Join(", ", missing.Select(ProblemText)));
             return;
         }
 
-        await _saved().ConfigureAwait(true);
-        Notice = _text.Format("Canvas_Editor_Removed", node.Id.Value) + " " + ConsequenceText;
+        var name = _roster.FirstOrDefault(a => a.Id == node.Id)?.Name ?? node.Id.Value;
+        PendingRemoval = new RemovalRequest(node.Id, _text.Format("Canvas_Remove_Question", node.Id.Value, name));
     }
 
-    private bool CanRemoveSelected() => CanEdit && _remove is not null && _canvas.SelectedAgent is not null;
+    private bool CanRemoveSelected() => CanEdit && _remove is not null && _canvas.SelectedAgent is not null && !_applying;
+
+    /// <summary>
+    /// The yes: a set of changes with nothing to save and one agent to take out, so it goes the way every change of the template
+    /// does (<see cref="ApplyManyAsync"/>): the team that is left is checked first (the orchestrator and the last judge stay), and a
+    /// failure of the store is shown in the layer.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanConfirmRemove))]
+    private async Task ConfirmRemoveAsync()
+    {
+        if (PendingRemoval is not { } request)
+        {
+            return;
+        }
+
+        PendingRemoval = null;
+        await ApplyManyAsync([], [request.Agent], _text.Format("Canvas_Editor_Removed", request.Agent.Value)).ConfigureAwait(true);
+    }
+
+    private bool CanConfirmRemove() => PendingRemoval is not null && !_applying;
+
+    /// <summary>The no: the agent stays.</summary>
+    [RelayCommand(CanExecute = nameof(CanCancelRemove))]
+    private void CancelRemove() => PendingRemoval = null;
+
+    private bool CanCancelRemove() => PendingRemoval is not null;
 
     // ---------- Cables «Trabaja en» ----------
 

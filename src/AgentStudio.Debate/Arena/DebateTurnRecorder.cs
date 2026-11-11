@@ -86,7 +86,10 @@ public sealed class DebateTurnRecorder(IDecisionRecorder decisions, IEvidenceSto
     public Task<DecisionEntry> RegisterAsync(EvidenceRecord record, TaskId? task, int? attempt, CancellationToken cancellationToken) =>
         RecordAsync(DecisionKind.EvidenceRegistered, $"Evidencia {record.Id}: {record.Title}", EvidenceRegisteredPayload.Anchoring(record, Debate.Value, task, attempt), cancellationToken);
 
-    /// <summary><c>AgentRunStarted</c> version 2 of one attempt of a turn, before its launch (D-44: purpose and key of its own).</summary>
+    /// <summary>
+    /// <c>AgentRunStarted</c> version 2 of one attempt of a turn, before its launch (D-44: purpose and key of its own); version 3
+    /// when the agent sets a reasoning effort, which it then records (docs/18 P47). It never records the parts of the prompt.
+    /// </summary>
     public Task<DecisionEntry> RecordTurnStartedAsync(
         TaskId turn,
         int attempt,
@@ -99,10 +102,10 @@ public sealed class DebateTurnRecorder(IDecisionRecorder decisions, IEvidenceSto
         RecordAsync(
             DecisionKind.AgentRunStarted,
             $"Turno de {label} ({turn}), intento {attempt}",
-            new AgentRunStartedPayload(turn, attempt, agent.Id, provider.Provider, provider.Vendor, agent.Model.Model, workingDirectory, prompt.Id, prompt.ContentSha256, [], AgentRunPurpose.DebateParticipant)
+            new AgentRunStartedPayload(turn, attempt, agent.Id, provider.Provider, provider.Vendor, agent.Model.Model, workingDirectory, prompt.Id, prompt.ContentSha256, [], AgentRunPurpose.DebateParticipant, Effort: agent.Effort)
             {
                 RunId = Debate.Value,
-                V = AgentRunStartedPayload.PurposeVersion,
+                V = agent.Effort is null ? AgentRunStartedPayload.PurposeVersion : AgentRunStartedPayload.ContextPartsVersion,
             },
             cancellationToken);
 

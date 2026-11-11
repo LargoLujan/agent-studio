@@ -372,6 +372,12 @@ internal sealed class InMemoryAgentRoster(IEnumerable<AgentDefinition> agents) :
         return Task.CompletedTask;
     }
 
+    public Task DeleteAsync(string projectId, AgentId agent, CancellationToken cancellationToken)
+    {
+        _agents.RemoveAll(a => a.Id == agent);
+        return Task.CompletedTask;
+    }
+
     /// <summary>Deletes an agent behind the engine's back, as someone editing the store would.</summary>
     public void Remove(AgentId agent) => _agents.RemoveAll(a => a.Id == agent);
 }

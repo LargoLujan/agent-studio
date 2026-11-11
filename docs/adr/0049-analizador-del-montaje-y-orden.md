@@ -60,7 +60,8 @@
          compilado si el paso lo requiere (`Requires`, lo que arregló WP-D para B6) o si la tarea nombra antes uno que compila.
          Sin el perfil, o con un perfil sin paso de compilar (pytest), no dice nada: callar es mejor que un error falso.
        - `context.pack-too-small` no ofrece `RaiseContextBudgetFix`: el presupuesto es el del prompt del ejecutor
-         (`ExecutorPrompt.BudgetCharacters`), no un campo de la plantilla. La salida es partir la tarea o reducir sus requisitos.
+         (`ProjectMemoryPrompt.BudgetCharacters`, 24 000 caracteres), no un campo de la plantilla. La salida es partir la tarea o
+         reducir sus requisitos.
        - `context.window-tight` solo ofrece quitar la memoria: el catálogo no guarda ventanas, así que «un modelo con más
          ventana» no se puede proponer sin inventar.
        - `model.oversized` mira si todas las entradas del alcance son de documentación o pruebas (`docs/`, `tests/`, carpetas
@@ -199,3 +200,109 @@
       contratos están en docs/04 §21.7).
     - La pregunta del orquestador se guarda como evidencia sin pasar por `ISecretRedactor` (el motor no lo tiene en sus
       puertos); su texto ya estaba entero en la respuesta guardada del plan.
+
+## Adenda · 2026-11-11 · de dónde salen ahora los datos del borrador (P49)
+
+Hasta hoy `DraftHost.BuildDraft` pasaba `TaskContexts` vacío y `EstimatedAgentRuns` nulo (ADR-0048: «ninguno inventa un dato»),
+así que `context.pack-too-small`, `context.window-tight`, `context.thin` y `cost.over-budget` no podían avisar, y el inspector
+recomendaba un modelo sin conocer el tamaño del proyecto. **No cambia ninguna regla, ningún umbral ni el contrato de
+`MontageDraft`**: cambia de dónde sale el dato. Ninguna parte lanza un CLI ni gasta cuota.
+
+1. **El contexto de cada tarea** (`TaskContextFacts`) sale de la misma cuenta que hace el motor. `ExecutorContextPreview`
+   (`Orchestration/Engine/`) es una fachada pública sobre lo que es interno del motor: construye el prompt del primer intento con
+   `ExecutorPrompt.Build` y lo mide con `PromptParts.Measure`, en las mismas partes que graba `AgentRunStarted`. Los tokens son
+   caracteres entre 4, redondeado hacia arriba (docs/14 D-24), como estima el empaquetador.
+   - **Qué tareas:** las de trabajo de agente cuyo agente está en la plantilla. Las revisiones no tienen hechos (el juez recibe un
+     expediente que se construye al revisar, y nunca memoria ni ficha), y las reglas callan para ellas.
+   - **`PreambleTokens` es un suelo, no una cifra inventada:** cuenta el protocolo, el objetivo, los requisitos que cubre, las
+     instrucciones del agente, la ficha, la memoria y las skills. No cuenta lo que no existe antes de ejecutar: las salidas de las
+     tareas anteriores (`HasUpstream` sale del grafo: hay un antecesor de trabajo de agente), los intentos anteriores y las
+     respuestas de la persona, ni la memoria que depende de lo que trate la tarea (el empaquetador se pregunta sin foco, así que
+     solo entran los niveles que no dependen de él). Así `context.window-tight` nunca avisa de más.
+   - **El presupuesto** es el de `ProjectMemoryPrompt.BudgetCharacters` (24 000 caracteres) solo para el agente que lee memoria
+     (`ReadSelected` y no juez ni auditor). Para los demás es `int.MaxValue`: el motor solo comprueba el presupuesto cuando pide un
+     pack, así que con otra política la tarea arranca por largos que sean sus requisitos, y `context.pack-too-small` (un error, que
+     impide aprobar) no puede dar por muerto un plan que sí se ejecutaría.
+   - **La ventana** es la que el registro enseñó de ese modelo (`LearnedModels.Find(…).ContextWindow`) y, si no enseñó ninguna, la
+     que usa el monitor (`ModelWindowCatalog.WindowFor`: el registro y, debajo, la tabla base), con su origen. Codex es «no
+     expuesto» y `context.window-tight` calla.
+   - **La ficha** es la vigente de `ProjectBriefViewModel` (`HasBrief` si existe y el agente no es juez ni auditor).
+2. **Qué se guarda y dónde.** `BuildDraft` corre en el hilo de la interfaz en cada edición y **solo lee** lo guardado en
+   `VisualBuilder.Facts` (`MontageFactsCache`, `Desktop/Orchestrator/Preparation/`). El cálculo del tamaño es rápido y puro y se hace
+   en cada lectura (escribir el título o el objetivo de una tarea cambia su tamaño al momento); lo que cuesta se pregunta una vez, en
+   segundo plano, y al llegar la banda vuelve a analizar:
+   - **La memoria:** el pack de `ProjectMemoryPrompt.PackAsync` por el `IContextPacker` (verifica el registro), una vez por agente,
+     rol, política, hash de los requisitos y requisitos que cubre la tarea. Editar el texto de una tarea no lo cambia, así que
+     nunca lee el registro al teclear. Si falla (los requisitos no caben, el registro no verifica, el almacén falla), la tarea se mide
+     sin memoria y no se vuelve a preguntar.
+   - **Las skills:** `SkillPresentationSource` decide cuáles están activas para el agente como el aprovisionador
+     (`SkillActivationResolver`: agente sobre proyecto sobre global, apagada salvo que alguien la encienda, y solo con copia local) y
+     mide el frontmatter de su `SKILL.md` como el motor mide el materializado (`name` y `description`), sin copiar nada. Una vez por
+     agente.
+   - **Lo guardado se olvida al releer el contexto del documento** (`Reset`: al abrir y con «Recargar»), así que una memoria o una
+     activación cambiadas mientras el documento está abierto se ven después. Un `Reset` con una respuesta en camino la cancela (el
+     `CancellationToken` de lo que se pregunta) y, si el puerto la da igualmente, la descarta (una época), sin cerrojos: todo se
+     escribe en el contexto de la interfaz desde donde se preguntó.
+   - **Fuera del hilo de la interfaz, y cancelable.** Los puertos (el empaquetador, el catálogo de skills, el estimador) se
+     preguntan con `Task.Run`, así que lo que hagan antes de su primer `await` (el catálogo de skills mira el disco con
+     `File.Exists`) no pasa en el hilo de la interfaz, y la respuesta vuelve a ese contexto para escribirse en la caché. Cerrar el
+     documento (`VisualBuilder.Dispose`) cancela lo que la caché pregunta y el recuento de ficheros, y la caché cerrada no pregunta
+     más; ninguno deja una excepción sin observar.
+   - La banda vuelve a analizar también al final de `LoadBuilderDataAsync` (lo aprendido, la ficha y la cuota llegaban después del
+     primer análisis y no lo repetía nadie) y al leer o guardar la ficha. El recuento de ficheros arranca a la vez y no retrasa ni
+     la ficha, ni la cuota, ni ese análisis: solo lo lee la recomendación del inspector, que se refresca cuando llega.
+   - **Un estimador que falla se vuelve a preguntar.** Un fallo puede ser pasajero (el registro ocupado), así que la forma del
+     plan se pregunta otra vez en una lectura posterior, hasta tres veces, antes de quedarse como desconocida hasta «Recargar».
+     Lo que el estimador no sabe (menos de tres referencias) no es un fallo: se pregunta una vez.
+   - **Una vista previa no escribe en el registro nada que la ejecución real no escribiría igual.** El pack pasa por
+     `ProjectMemory.SnapshotAsync`, que puede registrar una alerta de integridad (`AuditAlertRaised`, fuera de toda ejecución) de una
+     fila de memoria que no es de fiar. Es una alerta con el mismo contenido que la que registra la pantalla «Memoria» al leer en reposo (el motor lanza con el
+     proyecto ocupado y no la escribe), así que la vista previa es un disparador más, no una alerta distinta; y se
+     deduplica: el libro de la memoria recuerda los mensajes que el registro ya tiene (`MemoryLedger.cs:143` y `:174`), solo se
+     registran los que no (`ProjectMemory.cs:225`, `Unraised`; `:213-215`), se vuelve a leer bajo la puerta antes de escribir
+     (`:613-621`), y nada se escribe mientras hay una ejecución o planificación en curso (`:595` y `:608`). Abrir el lienzo o
+     «Recargar» muchas veces no repite la alerta (`ProjectMemoryTests.cs:127-129` lo comprueba con dos lecturas, y
+     `ExecutorContextPreviewIntegrityTests` lo comprueba por la vista previa). No hay camino de solo lectura para el
+     empaquetador, y no hace falta.
+3. **Las ejecuciones del plan** (`MontageLearnedFacts.EstimatedAgentRuns`) salen de `IUsageEstimator.EstimatePlanAsync`, que lee el
+   registro entero, así que se pregunta una vez por **forma del plan** (sus tareas con su clase y su agente, y el CLI y el modelo de
+   cada agente de la plantilla), no por letra tecleada ni por cambio del presupuesto. Cada respuesta se guarda **bajo la forma que
+   contesta**, así que el orden en que lleguen no decide nada: ir de una forma a otra y volver (añadir una tarea y deshacer) mientras
+   el estimador sigue leyendo encuentra la respuesta de la primera forma cuando llega, y no se vuelve a preguntar por ella. Hasta que
+   llega la de la forma actual no hay cifra: nunca se dice la de otro plan. (La primera versión guardaba una sola respuesta y
+   aplicaba la última que llegaba: con las formas A, B y A otra vez, y las respuestas llegando A, A y B, la caché se quedaba con la de
+   B y callaba para siempre con A.) Es el **extremo alto** (el percentil 75 sumado, `AgentRuns.High`): el
+   arreglo `RaiseRunBudgetFix` sube el presupuesto a esa cifra, y con el extremo bajo seguiría pasándose. Es nulo cuando alguna tarea
+   tiene menos de tres referencias, como ya devuelve el estimador. El extremo bajo avisaría menos; si el aviso resultara ruidoso con
+   datos reales, es una decisión de esta cifra, no de la regla.
+4. **El tamaño del proyecto** es `ProjectFileCounter` (`Desktop/Orchestrator/Team/`): recorre la carpeta una vez al abrir el
+   proyecto (`VisualBuilder.LoadProjectFilesAsync`, fuera del hilo de la interfaz), oculta lo que oculta el explorador
+   (`ExplorerFilter`: `.git`, `bin`, `obj`, `node_modules`, `.vs`) y además `.agentstudio`, no sigue enlaces y **para en 20 000
+   ficheros** (el tope del índice del explorador), diciendo que la cuenta es un suelo (`IsTruncated`). Lo guarda
+   `VisualBuilder.ProjectFiles` mientras dure el documento y llega a `InspectorContext.ProjectFiles` y de ahí a
+   `ModelRecommendationInput.ProjectFiles` (el orquestador «máximo» pasados 2 000 ficheros). `MontageDraft` no gana ningún campo:
+   ninguna regla del analizador usa el tamaño. Es inyectable (`BuilderServices.ProjectFiles`), así que las pruebas no leen el
+   disco.
+5. **Servicios nuevos de `BuilderServices`**, al final y opcionales: `ContextPacker`, `ProjectFiles` y `SkillCharacters`. Sin uno,
+   lo que lo necesita calla: sin empaquetador no se cuenta la memoria, sin estimador no hay ejecuciones y sin contador no hay tamaño.
+- **Lo que se espera ver:** con datos reales aparecen hallazgos que antes no podían salir en la banda. `context.thin` (sugerencia)
+  en toda tarea que escribe con un agente sin memoria, sin ficha y sin nada antes; `cost.over-budget` (aviso) cuando el plan pasa
+  del presupuesto; `context.window-tight` (aviso) y `context.pack-too-small` (error) solo con los datos del modelo y de los
+  requisitos delante.
+- **Decisiones de esta adenda, para quien las discuta:**
+  - **`AgentRuns.High`** (el percentil 75 sumado) y no el bajo: el arreglo sube el presupuesto a esa cifra. El bajo avisaría menos.
+  - **`BudgetCharacters` es `int.MaxValue` para el agente que no lee memoria:** el motor solo comprueba el presupuesto cuando pide
+    un pack, y `context.pack-too-small` es un error que impide aprobar.
+  - **`PreambleTokens` es un suelo:** solo cuenta lo que se sabe antes de ejecutar; así `context.window-tight` nunca avisa de más.
+  - **El ejecutor por defecto no tiene ventana mientras no tenga un modelo:** la plantilla por defecto lo crea sin modelo (el CLI
+    elige), y ni lo aprendido ni la tabla base dan la ventana de «ningún modelo», así que `context.window-tight` calla para él. Se
+    ve en cuanto la persona le pone un modelo en el inspector.
+- **Pruebas:** `MontageFactsCacheTests` (las dos tareas con sus hechos, la memoria en segundo plano, una sola pregunta por clave y
+  la época, las skills, las ejecuciones con un estimador falso y con el real, las respuestas que llegan en cualquier orden, la
+  cancelación al releer y al cerrar, los puertos fuera del contexto de la interfaz, y las cuatro reglas sobre un borrador hecho así),
+  `DraftFactsDocumentTests` (lo mismo por el documento, con el arreglo de `cost.over-budget`, «Recargar», el cierre del constructor,
+  el recuento que no retrasa la ficha y el tamaño en el inspector), `ExecutorContextPreviewTests`,
+  `ExecutorContextPreviewIntegrityTests` (una alerta de integridad, no una por cada vez), `SkillPresentationSourceTests` y
+  `ProjectFileCounterTests` (carpetas temporales: tope, carpetas excluidas y enlaces de carpeta que no se siguen).
+- **Pendiente:** las revisiones no tienen hechos; las salidas de las tareas anteriores no cuentan hasta que existen; la memoria que
+  depende del foco tampoco.

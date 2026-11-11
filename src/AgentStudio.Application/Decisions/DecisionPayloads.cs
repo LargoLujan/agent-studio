@@ -8,6 +8,7 @@ using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Evidence;
 using AgentStudio.Domain.Judging;
 using AgentStudio.Domain.Metrics;
+using AgentStudio.Domain.Models;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Domain.Skills;
@@ -65,6 +66,11 @@ public sealed record MediumIntegrityWriterEntry(
 /// shown next to «Aprobar plan» (<paramref name="ApprovedWarning"/>, null when there was none) and each writer it names
 /// (<paramref name="ApprovedWriters"/>, empty when there was none). Resuming reads the writers again and goes on only
 /// with these. A version 2 start anchors neither, which is not the same as anchoring none (<see cref="AnchorsApprovedWriters"/>).
+/// <paramref name="PlannedIn"/> (V43, no new version: it is left out when null, so every entry already written reads and is
+/// written back byte for byte) is the run in which the orchestrator planned, when it is not this one: the plan was edited
+/// after the orchestrator proposed it, or its proposal had started a run already, and the run got an id of its own. The
+/// questions the orchestrator asked before it planned, and their answers, are in the entries of that run: the start and a
+/// resume read them from there.
 /// </summary>
 public sealed record RunStartedPayload(
     string PlanHash,
@@ -76,7 +82,8 @@ public sealed record RunStartedPayload(
     string? Follows,
     string? HeaderHash = null,
     string? ApprovedWarning = null,
-    IReadOnlyList<MediumIntegrityWriterEntry>? ApprovedWriters = null) : DecisionPayload
+    IReadOnlyList<MediumIntegrityWriterEntry>? ApprovedWriters = null,
+    string? PlannedIn = null) : DecisionPayload
 {
     /// <summary>The first version that anchors the hash of the whole run header.</summary>
     public const int HeaderVersion = 2;
@@ -219,7 +226,10 @@ public sealed record ContextPartSnapshot(ContextPartKind Kind, int Characters);
 /// runs. Version 2 (docs/14 section 5.2) adds what the run is for (<paramref name="Purpose"/>) and, when the agent was
 /// given project memory, the pack it was given (<paramref name="ContextPack"/>; null when it got none). Version 3 (docs/17
 /// D-13, Phase 13) adds the parts of the prompt before the agent starts (<paramref name="ContextParts"/>), written only when
-/// there are: a start of version 2 is read and written back byte for byte.
+/// there are: a start of version 2 is read and written back byte for byte. Still in version 3 (docs/18 P47, ADR-0050), the
+/// reasoning effort the agent was set with (<paramref name="Effort"/>) is written only when it is set, by its token
+/// (<see cref="ReasoningEfforts.Token"/>), so a start of version 2 or 3 written without it is read and written back byte for
+/// byte too, and the estimator can tell an attempt at <c>low</c> from one at <c>high</c> of the same model.
 /// </summary>
 public sealed record AgentRunStartedPayload(
     TaskId? Task,
@@ -234,18 +244,27 @@ public sealed record AgentRunStartedPayload(
     IReadOnlyList<SkillId> Skills,
     AgentRunPurpose? Purpose = null,
     ContextPackReference? ContextPack = null,
-    IReadOnlyList<ContextPartSnapshot>? ContextParts = null) : DecisionPayload
+    IReadOnlyList<ContextPartSnapshot>? ContextParts = null,
+    ReasoningEffort? Effort = null) : DecisionPayload
 {
     /// <summary>The first version that records the purpose of the run and the memory the agent was given.</summary>
     public const int PurposeVersion = 2;
 
-    /// <summary>The first version that records the parts of the prompt before the agent starts (docs/17 D-13). It keeps everything version 2 records.</summary>
+    /// <summary>
+    /// The first version that records the parts of the prompt before the agent starts (docs/17 D-13) and, since docs/18 P47, the
+    /// reasoning effort of the agent. It keeps everything version 2 records. A start of this version carries the parts, the effort
+    /// or both, each only when there is one.
+    /// </summary>
     public const int ContextPartsVersion = 3;
 
     /// <summary>Whether this start records its purpose and memory (version 2 on). A method, so the serializer never writes it.</summary>
     public bool RecordsPurpose() => V >= PurposeVersion;
 
-    /// <summary>Whether this start records the parts of its prompt (version 3 on). A method, so the serializer never writes it.</summary>
+    /// <summary>
+    /// Whether this start is of the version that can record the parts of its prompt (version 3 on). It does not mean there are
+    /// parts: a version 3 start may carry only the effort, so a reader checks <c>ContextParts is { Count: &gt; 0 }</c> before using
+    /// them. A method, so the serializer never writes it.
+    /// </summary>
     public bool RecordsContextParts() => V >= ContextPartsVersion;
 }
 

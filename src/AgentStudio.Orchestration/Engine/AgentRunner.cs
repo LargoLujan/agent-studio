@@ -56,7 +56,8 @@ internal sealed record AgentInvocationResult(
 /// <item>the structured output is captured as evidence reported by the agent, and <c>AgentRunFinished</c> is recorded with it.</item>
 /// </list>
 /// The start is version 3 (docs/17 D-13, ADR-0052): what the run is for and the memory it was given (version 2, docs/14
-/// section 5.2), and the parts of its prompt in characters (<see cref="PromptParts"/>); a start without parts is version 2. The end
+/// section 5.2), the parts of its prompt in characters (<see cref="PromptParts"/>) and, when the agent sets one, its reasoning effort
+/// (docs/18 P47): version 3 may carry the parts, the effort or both, and a start with neither is version 2. The end
 /// is version 3 (docs/16 D-41): the usage with origins and breakdown, the time the process was launched (after the
 /// provider's queue), the model of the steps (never the one the session announced, D-13), the session it resumed (D-02),
 /// the step with the largest context with the window of its model, the compactions (null when the provider does not report
@@ -109,10 +110,11 @@ internal static class AgentRunner
                 invocation.Skills,
                 invocation.Purpose,
                 invocation.ContextPack,
-                parts.Count > 0 ? parts : null)
+                parts.Count > 0 ? parts : null,
+                agent.Effort)
             {
                 RunId = recorder.RunValue,
-                V = parts.Count > 0 ? AgentRunStartedPayload.ContextPartsVersion : AgentRunStartedPayload.PurposeVersion,
+                V = parts.Count > 0 || agent.Effort is not null ? AgentRunStartedPayload.ContextPartsVersion : AgentRunStartedPayload.PurposeVersion,
             },
             abort).ConfigureAwait(false);
         onRecorded?.Invoke();
@@ -550,7 +552,7 @@ internal static class PromptParts
     }
 
     /// <summary>The characters of the name and the description in the frontmatter of one <c>SKILL.md</c>.</summary>
-    private static int Presentation(string file)
+    internal static int Presentation(string file)
     {
         string head;
         try

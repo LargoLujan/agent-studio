@@ -54,6 +54,8 @@ public sealed class ConsumptionAnalysisRegistrationTests
 
         public Task SaveAsync(string projectId, AgentDefinition agent, CancellationToken cancellationToken) => throw new NotSupportedException();
 
+        public Task DeleteAsync(string projectId, AgentId agent, CancellationToken cancellationToken) => throw new NotSupportedException();
+
         public Task<AuxiliaryRunResult> RunAsync(ProjectContext project, AuxiliaryRunRequest request, IProgress<AgentEvent>? progress, CancellationToken ct) => throw new NotSupportedException();
     }
 }

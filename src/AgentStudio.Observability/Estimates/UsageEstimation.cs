@@ -22,7 +22,10 @@ namespace AgentStudio.Observability.Estimates;
 /// <list type="bullet">
 /// <item><b>References of an attempt</b> (<see cref="Estimate"/>): attempts of the same CLI and purpose, with the same model
 /// (an alias and its full name, with or without the date the CLI appends, are one model: <see cref="ModelKeys.Of"/>;
-/// the default of the CLI matches attempts configured without a model), that ended with a result. First those of the same agent
+/// the default of the CLI matches attempts configured without a model), that ended with a result and that had the same
+/// reasoning effort (docs/18 P47: the same one, or none on both sides; an attempt at <c>low</c> and one at <c>high</c> of a
+/// model never count together, and the attempts that recorded none count among themselves,
+/// <see cref="EstimateAssumptions.SameEffort"/> when the agent has one). First those of the same agent
 /// («medido en el proyecto»: <see cref="EstimateAssumptions.SameAgentAndModel"/>); with fewer than three, those of any agent
 /// («aprendido del modelo»: <see cref="EstimateAssumptions.SameModel"/>). With fewer than three there too, unknown: there is
 /// no base table of consumption, and none is made up.</item>
@@ -53,7 +56,7 @@ public static class UsageEstimation
         ArgumentNullException.ThrowIfNull(catalog);
         ArgumentNullException.ThrowIfNull(request);
 
-        var (references, assumptions, scope) = References(attempts, catalog, request.Agent, request.Provider, request.Model, request.Purpose, request.Size);
+        var (references, assumptions, scope) = References(attempts, catalog, request.Agent, request.Provider, request.Model, request.Purpose, request.Size, request.Effort);
         if (references.Count < UsageEstimate.MinimumReferences)
         {
             return UsageEstimate.Unknown(references.Count, assumptions);
@@ -116,7 +119,7 @@ public static class UsageEstimation
                 continue;
             }
 
-            var estimate = Estimate(attempts, catalog, new UsageEstimateRequest(request.Project, agent.Id, agent.Model.Provider, agent.Model.Model, purpose.Value));
+            var estimate = Estimate(attempts, catalog, new UsageEstimateRequest(request.Project, agent.Id, agent.Model.Provider, agent.Model.Model, purpose.Value, Effort: agent.Effort));
             tasks[task.Id] = estimate;
             var runs = RunsPerTask(attempts, catalog, agent, purpose.Value);
             if (!estimate.IsKnown || runs is null)
@@ -172,31 +175,50 @@ public static class UsageEstimation
         ProviderId provider,
         string? model,
         AgentRunPurpose purpose,
-        WorkSize? size)
+        WorkSize? size,
+        ReasoningEffort? effort)
     {
-        var similar = Similar(attempts, catalog, provider, model, purpose);
-        var sizeNote = size is { } s ? ", " + s.ToString().ToLowerInvariant() + " size" : string.Empty;
+        var similar = Similar(attempts, catalog, provider, model, purpose, effort);
+        var qualifiers = (effort is { } e ? ", " + ReasoningEfforts.Token(e) + " effort" : string.Empty)
+            + (size is { } s ? ", " + s.ToString().ToLowerInvariant() + " size" : string.Empty);
         var sameAgent = Sized(similar.Where(a => a.Agent == agent).ToList(), size);
-        var agentAssumptions = With(size, EstimateAssumptions.SameAgentAndModel, EstimateAssumptions.SamePurpose);
+        var agentAssumptions = With(size, effort, EstimateAssumptions.SameAgentAndModel, EstimateAssumptions.SamePurpose);
         if (sameAgent.Count >= UsageEstimate.MinimumReferences)
         {
-            return (sameAgent, agentAssumptions, "attempts of the same agent, model and purpose" + sizeNote);
+            return (sameAgent, agentAssumptions, "attempts of the same agent, model and purpose" + qualifiers);
         }
 
         var sameModel = Sized(similar, size);
         if (sameModel.Count >= UsageEstimate.MinimumReferences)
         {
-            return (sameModel, With(size, EstimateAssumptions.SameModel, EstimateAssumptions.SamePurpose), "attempts of the same model and purpose by any agent" + sizeNote);
+            return (sameModel, With(size, effort, EstimateAssumptions.SameModel, EstimateAssumptions.SamePurpose), "attempts of the same model and purpose by any agent" + qualifiers);
         }
 
         return (sameAgent, agentAssumptions, string.Empty);
     }
 
-    private static IReadOnlyList<string> With(WorkSize? size, params string[] assumptions) =>
-        size is null ? assumptions : [.. assumptions, EstimateAssumptions.SameSize];
+    private static IReadOnlyList<string> With(WorkSize? size, ReasoningEffort? effort, params string[] assumptions)
+    {
+        var all = new List<string>(assumptions);
+        if (effort is not null)
+        {
+            all.Add(EstimateAssumptions.SameEffort);
+        }
 
-    /// <summary>The attempts of the same CLI, purpose and model that ended with a result, in the order the log closed them.</summary>
-    private static List<UsageAttempt> Similar(IReadOnlyList<UsageAttempt> attempts, ModelCatalog catalog, ProviderId provider, string? model, AgentRunPurpose purpose)
+        if (size is not null)
+        {
+            all.Add(EstimateAssumptions.SameSize);
+        }
+
+        return all;
+    }
+
+    /// <summary>
+    /// The attempts of the same CLI, purpose and model that ended with a result, in the order the log closed them. They also
+    /// share the reasoning effort (docs/18 P47): the same one, or none on both sides, so an attempt at <c>low</c> and one at
+    /// <c>high</c> of the same model never count together, and the attempts that never recorded one count among themselves.
+    /// </summary>
+    private static List<UsageAttempt> Similar(IReadOnlyList<UsageAttempt> attempts, ModelCatalog catalog, ProviderId provider, string? model, AgentRunPurpose purpose, ReasoningEffort? effort)
     {
         var key = ModelKeys.Of(catalog, provider, model);
         return
@@ -204,6 +226,7 @@ public static class UsageEstimation
             .. attempts.Where(a =>
                 a.Provider == provider
                 && PurposeOf(a) == purpose
+                && a.Effort == effort
                 && a.Outcome is not (AttemptOutcome.Cancelled or AttemptOutcome.Interrupted)
                 && (a.Own.InputTokens.HasValue || a.Own.OutputTokens.HasValue)
                 && (key is null
@@ -291,7 +314,7 @@ public static class UsageEstimation
     /// <summary>The runs of the tasks like this one (the 25th and 75th percentiles), from three tasks on; null otherwise.</summary>
     private static (int Low, int High)? RunsPerTask(IReadOnlyList<UsageAttempt> attempts, ModelCatalog catalog, AgentDefinition agent, AgentRunPurpose purpose)
     {
-        var similar = Similar(attempts, catalog, agent.Model.Provider, agent.Model.Model, purpose);
+        var similar = Similar(attempts, catalog, agent.Model.Provider, agent.Model.Model, purpose, agent.Effort);
         foreach (var references in new[] { similar.Where(a => a.Agent == agent.Id).ToList(), similar })
         {
             var runs = references

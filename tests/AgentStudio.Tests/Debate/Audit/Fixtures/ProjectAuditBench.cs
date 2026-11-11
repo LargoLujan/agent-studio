@@ -183,6 +183,12 @@ internal sealed class FakeTemplate(IReadOnlyList<AgentDefinition> agents) : IAge
         _agents.Add(agent);
         return Task.CompletedTask;
     }
+
+    public Task DeleteAsync(string projectId, AgentId agent, CancellationToken cancellationToken)
+    {
+        _agents.RemoveAll(a => a.Id == agent);
+        return Task.CompletedTask;
+    }
 }
 
 /// <summary>

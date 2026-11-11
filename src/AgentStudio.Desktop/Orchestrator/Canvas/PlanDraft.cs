@@ -28,7 +28,18 @@ public sealed record PlanDraft(
 /// Why the orchestrator planned without the search in the history (<c>PlanProposal.HistoryToolNotice</c>, Phase 12), so a
 /// draft brought back still says it; null when it had it, or for a draft of before.
 /// </param>
-public sealed record PlanDraftProposal(RunId Run, string PlanHash, bool Corrected, string? HistoryToolNotice = null);
+/// <param name="PlannedRequest">
+/// V43: the request the orchestrator planned with, trimmed, so a draft brought back sends the answers it got to the run only
+/// while the request is that one; null for a draft of before, which then sends none.
+/// </param>
+/// <param name="RequirementsHash">V43: the hash of the requirements the orchestrator planned with, for the same check; null for a draft of before.</param>
+public sealed record PlanDraftProposal(
+    RunId Run,
+    string PlanHash,
+    bool Corrected,
+    string? HistoryToolNotice = null,
+    string? PlannedRequest = null,
+    string? RequirementsHash = null);
 
 /// <summary>What the store found of the draft of a project.</summary>
 /// <param name="Draft">The draft this installation saved for this project, whole and within <see cref="PlanDraftLimits"/>; null otherwise.</param>

@@ -6,6 +6,7 @@ using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Security;
 using AgentStudio.Domain.Agents;
+using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Orchestration;
 
 namespace AgentStudio.Tests.Debate.Fakes;
@@ -132,6 +133,12 @@ internal sealed class ScriptedDebateRoster(IEnumerable<AgentDefinition> agents) 
     {
         _agents.RemoveAll(a => a.Id == agent.Id);
         _agents.Add(agent);
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteAsync(string projectId, AgentId agent, CancellationToken cancellationToken)
+    {
+        _agents.RemoveAll(a => a.Id == agent);
         return Task.CompletedTask;
     }
 }

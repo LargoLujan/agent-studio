@@ -7,13 +7,14 @@ using AgentStudio.Domain.Questions;
 namespace AgentStudio.Orchestration.Engine.Questions;
 
 /// <summary>
-/// A question an executor asked, as the log recorded it (docs/17 D-29): its id in the run, the task, agent and attempt that
+/// A question an agent asked, as the log recorded it (docs/17 D-29): its id in the run, the task, agent and attempt that
 /// asked, the question as validated and redacted, its evidence (the whole question as the agent wrote it, after redaction),
-/// what the system estimated for each option and when the log recorded it.
+/// what the system estimated for each option and when the log recorded it. The task is null for a question of the
+/// orchestrator before it plans (D-28): no task owns it, and its answer goes to the executors of every task (V43).
 /// </summary>
 internal sealed record AskedQuestion(
     string Id,
-    TaskId Task,
+    TaskId? Task,
     AgentId Agent,
     int Attempt,
     AgentQuestion Question,
@@ -22,6 +23,10 @@ internal sealed record AskedQuestion(
     IReadOnlyList<OptionEstimateSnapshot> Estimates,
     DateTimeOffset AskedAt)
 {
+    /// <summary>The task whose executor asked.</summary>
+    /// <exception cref="InvalidOperationException">The orchestrator asked it, before it planned: no task owns it.</exception>
+    public TaskId AskingTask => Task ?? throw new InvalidOperationException($"Question '{Id}' was asked by the orchestrator, not by the executor of a task.");
+
     /// <summary>
     /// The question as the monitor and its window see it (<see cref="PendingQuestion"/>), with the estimates exactly as
     /// <c>QuestionAsked</c> records them, so a restart shows the same.
@@ -31,7 +36,8 @@ internal sealed record AskedQuestion(
 
 /// <summary>
 /// A question with its answer (docs/17 D-30), which every later attempt of its task receives as data: the option chosen, or
-/// the person's own text (redacted) with its evidence.
+/// the person's own text (redacted) with its evidence. The answer to a question of the orchestrator (no task) goes to the
+/// executors of every task instead.
 /// </summary>
 /// <param name="AnsweredAt">When the log recorded the answer (<c>QuestionAnswered</c>).</param>
 internal sealed record RecordedAnswer(
@@ -50,14 +56,16 @@ internal sealed record RecordedAnswer(
 
 /// <summary>
 /// The questions of a run, as the loop keeps them (docs/17 D-29 and D-30): the one each task waits for, the answered ones
-/// its later attempts receive, and how many were asked, for the caps of <see cref="QuestionRules"/>. Only the loop touches
-/// it; a resume rebuilds it from the log (<see cref="QuestionRecovery"/>).
+/// its later attempts receive, the answered ones of the orchestrator that every task receives, and how many were asked, for
+/// the caps of <see cref="QuestionRules"/>. Only the loop touches it; a resume rebuilds it from the log
+/// (<see cref="QuestionRecovery"/>).
 /// </summary>
 internal sealed class QuestionBook
 {
     private readonly Dictionary<TaskId, AskedQuestion> _pending = [];
     private readonly Dictionary<TaskId, List<RecordedAnswer>> _answered = [];
     private readonly Dictionary<TaskId, int> _askedByTask = [];
+    private readonly List<RecordedAnswer> _answeredByOrchestrator = [];
 
     /// <summary>The questions recorded in the run by its executors (the cap of <see cref="QuestionRules.MaxQuestionsPerRun"/>).</summary>
     public int AskedInRun { get; private set; }
@@ -81,34 +89,55 @@ internal sealed class QuestionBook
     /// <summary>The questions of <paramref name="task"/> answered so far, in the order they were asked.</summary>
     public IReadOnlyList<RecordedAnswer> AnsweredOf(TaskId task) => _answered.TryGetValue(task, out var list) ? list : [];
 
+    /// <summary>
+    /// Every answer the next attempt of <paramref name="task"/> receives as data: the ones to the questions the orchestrator
+    /// asked before it planned (V43; they were asked before the run, in the order of the log, and they are not the executors'
+    /// questions, so they count in no cap), then the ones to its own.
+    /// </summary>
+    public IReadOnlyList<RecordedAnswer> AnswersFor(TaskId task) => [.. _answeredByOrchestrator, .. AnsweredOf(task)];
+
     /// <summary>The question <paramref name="task"/> waits for, as the monitor sees it; null when it waits for none.</summary>
     public PendingQuestion? PendingView(TaskId task) => _pending.TryGetValue(task, out var asked) ? asked.ToPending() : null;
 
     /// <summary>A question was recorded (<c>QuestionAsked</c>); <paramref name="pending"/> false for one of a task that no longer waits for it.</summary>
     public void Ask(AskedQuestion question, bool pending = true)
     {
-        _askedByTask[question.Task] = AskedBy(question.Task) + 1;
+        var task = question.AskingTask;
+        _askedByTask[task] = AskedBy(task) + 1;
         AskedInRun++;
         if (pending)
         {
-            _pending[question.Task] = question;
+            _pending[task] = question;
         }
     }
 
     /// <summary>The question of a task got its answer (<c>QuestionAnswered</c>): it is no longer pending.</summary>
     public void Answer(RecordedAnswer answered)
     {
-        _pending.Remove(answered.Asked.Task);
-        if (!_answered.TryGetValue(answered.Asked.Task, out var list))
+        var task = answered.Asked.AskingTask;
+        _pending.Remove(task);
+        if (!_answered.TryGetValue(task, out var list))
         {
-            _answered[answered.Asked.Task] = list = [];
+            _answered[task] = list = [];
         }
 
         list.Add(answered);
     }
 
+    /// <summary>A question of the orchestrator got its answer (<c>QuestionAnswered</c> with no task): every task receives it from now on.</summary>
+    /// <exception cref="ArgumentException">The question was asked by the executor of a task.</exception>
+    public void AnswerOrchestrator(RecordedAnswer answered)
+    {
+        if (answered.Asked.Task is not null)
+        {
+            throw new ArgumentException($"Question '{answered.Asked.Id}' was asked by the executor of a task, not by the orchestrator.", nameof(answered));
+        }
+
+        _answeredByOrchestrator.Add(answered);
+    }
+
     /// <summary>After a restart: the task waits for <paramref name="question"/>, as replay found it (<see cref="QuestionRecovery"/>).</summary>
-    public void Wait(AskedQuestion question) => _pending[question.Task] = question;
+    public void Wait(AskedQuestion question) => _pending[question.AskingTask] = question;
 
     /// <summary>The task no longer waits for its question (it was cancelled): the question is let go, unanswered.</summary>
     public void Drop(TaskId task) => _pending.Remove(task);

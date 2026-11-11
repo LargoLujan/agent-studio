@@ -47,7 +47,7 @@ public sealed partial class OrchestratorDocumentViewModel
         var editor = new TeamEditorViewModel(
             Canvas.Team,
             _session.CanSaveAgents ? (project, agent) => _session.SaveAgentAsync(project, agent, CancellationToken.None) : null,
-            null,
+            _session.CanSaveAgents ? (project, agent) => _session.RemoveAgentAsync(project, agent, CancellationToken.None) : null,
             OnRosterSavedAsync,
             text);
         editor.UseConfirmation(_confirmation is null ? null : ConfirmPresenceAsync);
@@ -101,6 +101,8 @@ public sealed partial class OrchestratorDocumentViewModel
             return;
         }
 
+        // Read again (opened, or «Recargar»): the memory and the estimate the draft was given are asked again by the next one (P49).
+        builder.Facts.Reset();
         var roster = value?.Roster ?? [];
         var firstShown = !_teamLoaded;
         if (firstShown)
@@ -148,12 +150,20 @@ public sealed partial class OrchestratorDocumentViewModel
 
     private async Task LoadBuilderDataAsync(VisualBuilder builder, ProjectContext project)
     {
+        // The count of the files walks the disk: it starts now, goes on while the rest is read, and is waited for at the end.
+        var files = builder.LoadProjectFilesAsync(project.RootPath);
         await SeedProjectOptionsAsync(project, force: false).ConfigureAwait(true);
         await builder.LoadRepositoryAsync(project.RootPath).ConfigureAwait(true);
         await builder.LoadLearnedAsync(project.RootPath).ConfigureAwait(true);
         builder.Editor.Context = InspectorContextNow(builder);
         await builder.Brief.LoadAsync().ConfigureAwait(true);
         await builder.RefreshQuotaAsync().ConfigureAwait(true);
+
+        // What the draft is made from (what the log taught, the brief, the quota) came in after the first analysis: run it again,
+        // without waiting for the count of the files, which only the inspector's recommendation reads.
+        builder.Band.Schedule();
+        await files.ConfigureAwait(true);
+        builder.Editor.Context = InspectorContextNow(builder);
     }
 
     private InspectorContext InspectorContextNow(VisualBuilder builder)
@@ -164,7 +174,7 @@ public sealed partial class OrchestratorDocumentViewModel
             builder.Learned,
             requirements.Count,
             requirements.Count(r => r.Priority == Domain.Requirements.RequirementPriority.Mandatory),
-            null,
+            builder.ProjectFiles?.Files,
             Canvas.Team.Repository?.Node?.Stack,
             builder.MaxAgentRuns,
             false);
@@ -223,17 +233,18 @@ public sealed partial class OrchestratorDocumentViewModel
             var quota = builder.QuotaObservations
                 .Select(o => new QuotaWindowFacts(o.Provider, o.Window, o.Utilization, o.ResetsAt))
                 .ToList();
+            var facts = FactsOf(context, builder);
             return new MontageDraft(
                 generation,
                 new TeamGraph([.. context.Roster.Select(a => new AgentNode(a))], owner.Canvas.Team.Repository?.Node, [.. owner.Canvas.Team.Connections.Select(c => c.Edge)]),
                 owner.Canvas.IsEmpty ? null : owner.CurrentPlan(),
                 planContext,
                 new MontageRunFacts(owner._projectOptions.MaxParallelTasks, builder.MaxAgentRuns, new Dictionary<Domain.Providers.ProviderId, int>()),
-                [],
+                facts.TaskContexts,
                 quota,
                 owner.Proposal?.OrderNotes ?? OrderNotes.None,
                 services.Catalog?.Current.Catalog,
-                builder.Learned is { } learned ? new MontageLearnedFacts(learned.Performances, null) : MontageLearnedFacts.None,
+                new MontageLearnedFacts(builder.Learned?.Performances ?? [], facts.EstimatedAgentRuns),
                 owner.Monitor.ContextThresholds)
             {
                 Steps = Steps(),
@@ -278,6 +289,24 @@ public sealed partial class OrchestratorDocumentViewModel
             var violation = owner.Violations.FirstOrDefault(v => v.Code == code && (finding.Nodes.Count == 0 || v.Task?.Value == finding.Nodes[0]));
             return violation is null ? null : PlanViolationText.Describe([violation], owner.CurrentPlan(), planContext)[0];
         }
+
+        /// <summary>
+        /// The context of each task and the agent runs the plan is expected to take (P49), as the cache of the builder knows them now:
+        /// what is missing is asked in the background and the analysis runs again when it arrives. Nothing without a plan or a project.
+        /// </summary>
+        private MontageFacts FactsOf(SessionContext context, VisualBuilder builder) =>
+            owner.Canvas.IsEmpty || context.Project is not { } project || context.Requirements is not { } requirements
+                ? MontageFacts.None
+                : builder.Facts.Read(new MontageFactsSubject(
+                    project,
+                    owner.CurrentPlan(),
+                    context.Roster,
+                    requirements,
+                    context.Verification,
+                    builder.Brief.InForce,
+                    builder.Learned,
+                    owner.Monitor.ContextWindows,
+                    new RunOptions(MaxParallelTasks: owner._projectOptions.MaxParallelTasks, MaxAgentRuns: builder.MaxAgentRuns)));
 
         private List<VerificationStepFacts> Steps() =>
         [

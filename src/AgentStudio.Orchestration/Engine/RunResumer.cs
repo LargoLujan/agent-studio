@@ -122,6 +122,10 @@ internal sealed class RunResumer(EnginePorts ports)
         {
             await LoadAttemptRecordsAsync(recorder, entries, graph, ledger, cancellationToken).ConfigureAwait(false);
             await Questions.QuestionRecovery.LoadAsync(recorder, entries, replay, ledger.Questions, cancellationToken).ConfigureAwait(false);
+
+            // The answers to the questions the orchestrator asked before it planned (V43): in this run, or in the run RunStarted
+            // names as the one it planned in.
+            await Questions.QuestionRecovery.LoadOrchestratorAsync(recorder, entries, log, started.PlannedIn, ledger.Questions, cancellationToken).ConfigureAwait(false);
         }
         catch (InvalidOperationException ex)
         {

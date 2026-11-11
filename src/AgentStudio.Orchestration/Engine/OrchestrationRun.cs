@@ -999,7 +999,7 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
             _ledger.Failures.GetValueOrDefault(id),
             CheckAccess: _ledger.CheckAccess.Remove(id),
             Handoff: handoff,
-            Answers: _ledger.Questions.AnsweredOf(id)); // every answer the task got, as data (docs/17 D-30)
+            Answers: _ledger.Questions.AnswersFor(id)); // every answer the task got, as data (docs/17 D-30), after the orchestrator's (V43)
         var flight = new InFlight(id, attempt, WorkTaskKind.AgentWork, provider.Provider, countsForParallel: true);
         _inFlight[id] = flight;
         Emit(new TaskQueuedEvent(Now, id, provider.Provider));
@@ -1019,7 +1019,7 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
             [.. _graph.Tasks.OrderBy(t => _ctx.TopologicalIndex[t.Id]).ThenBy(t => t.Id.Value, StringComparer.Ordinal).Select(t => (t.Id, t.Status))],
             _ledger.Failures.GetValueOrDefault(id)?.Reason,
             _ledger.Notes.GetValueOrDefault(id),
-            _ledger.Questions.AnsweredOf(id));
+            _ledger.Questions.AnswersFor(id));
     }
 
     private async Task<bool> DispatchSystemAsync(TaskSpec spec)

@@ -227,7 +227,11 @@ la auditoría, el auditor del orquestador y la impugnación, en la [sección 17]
   ([ADR-0010](adr/0010-estado-derivado-del-registro.md)).
 - `IVerdictStore`: veredictos append-only (`StoredVerdict`). Uno inválido se guarda tal cual lo dio el juez, con sus
   incidencias; una corrección apunta al veredicto que sustituye (`Supersedes`) y ese sigue en el almacén.
-- `IAgentRoster`: la plantilla de agentes del proyecto.
+- `IAgentRoster`: la plantilla de agentes del proyecto. `SaveAsync` guarda o sustituye un agente; `DeleteAsync` (P48,
+  [ADR-0048](adr/0048-constructor-visual-equipo-y-plan.md), adenda del 2026-11-11) lo quita, y borrar un id que no está no hace
+  nada ni falla. En la misma transacción apaga las skills que el agente tenía activadas (una decisión más en
+  `skill_activations`, que no se reescribe), para que un agente nuevo con el mismo id no las herede. Las cabeceras de
+  ejecuciones y debates congelan definiciones enteras, así que quitar un agente no cambia el historial.
 
 ## 7. Seguridad, memoria y uso
 
@@ -424,7 +428,7 @@ las ven.
 
 | Tipo de entrada | Payload |
 |---|---|
-| `RunStarted`, `RunFinished` | `RunStartedPayload` (hashes de plan, requisitos y perfil, commit base, plantilla), `RunFinishedPayload` |
+| `RunStarted`, `RunFinished` | `RunStartedPayload` (hashes de plan, requisitos y perfil, commit base, plantilla; desde V43, 2026-11-11, `PlannedIn` opcional: la ejecución en la que planificó el orquestador cuando no es la propia, para leer sus respuestas al empezar y al reanudar, [ADR-0051](adr/0051-preguntas-de-los-agentes.md)), `RunFinishedPayload` |
 | `PlanCreated`, `PlanRevised` | `PlanCreatedPayload`, `PlanRevisedPayload` |
 | `TaskCreated`, `TaskAssigned`, `TaskStatusChanged` | `TaskCreatedPayload`, `TaskAssignedPayload`, `TaskStatusChangedPayload` (el que lee la reproducción) |
 | `InstructionsIssued` | `InstructionsIssuedPayload` (id y SHA-256 del prompt, requisitos, alcance, skills) |
@@ -1588,6 +1592,8 @@ public sealed record ProjectSetupAppliedPayload(string? RosterHash, string? Brie
 public enum ContextPartKind { Protocol, Requirements, ProjectBrief, AgentInstructions, Memory, Upstream, PreviousAttempt, HumanAnswer, Skills }
 public sealed record ContextPartSnapshot(ContextPartKind Kind, int Characters);
 // AgentRunStartedPayload gana IReadOnlyList<ContextPartSnapshot>? ContextParts (V = 3, ContextPartsVersion), solo si lo hay.
+// Revisión del 2026-11-11 (P47, ADR-0050): gana también ReasoningEffort? Effort (último parámetro, sigue en V = 3), solo si
+// el agente lo fija, escrito por su palabra ("effort":"high", ReasoningEfforts.Token), nunca por el nombre del enum.
 ```
 
 - **Ningún payload lleva texto de un agente:** la pregunta entera es evidencia (D-29), y tu texto propio, una evidencia tuya.
@@ -1638,7 +1644,7 @@ public sealed record ContextPartSnapshot(ContextPartKind Kind, int Characters);
 
 | Contrato | Fichero | Qué es | Lo implementa |
 |---|---|---|---|
-| `IUsageEstimator`, `UsageEstimate` (conocido con 3 referencias), `EstimateInterval<T>`, `PlanEstimate`, `UsageEstimateRequest`, `PlanEstimateRequest`, `WorkSize`, `EstimateAssumptions` | `Usage/EstimateContracts.cs` | El estimador de docs/16 D-20, adelantado: percentiles 25 y 75 con su origen, referencias y supuestos; nunca un número de relleno. **Revisión del 2026-11-09 (WP2):** `UsageEstimate.TotalTokens` (`EstimateInterval<long>?`, último parámetro, nulo por defecto) es el intervalo de los tokens totales calculado como tal (la entrada más la salida, como las cuenta el panel de uso: la entrada es el prompt entero, con la caché leída y escrita en Claude y la entrada en caché en Codex, y la salida de Codex incluye su razonamiento), con los percentiles de los totales y nunca la suma de los percentiles de cada parte, y `UsageEstimate.ToSnapshot(option)` lo da como el `OptionEstimateSnapshot` que registra `QuestionAsked` (sin total, o con menos de tres referencias, sin valor). `UsageEstimate.Unknown(referencias, motivo)` da una estimación desconocida que dice por qué (un registro que no verifica: `UsageEstimator.UntrustedLogReason`). `EstimateAssumptions` gana `SameModel` («aprendido del modelo»: menos de tres intentos del agente, así que cuentan los del mismo modelo y propósito de cualquier agente), `AgentsOnly` (la duración de un plan solo cuenta a los agentes) y `All`. Las reglas, en ADR-0050 | WP2 (`Observability/Estimates`, `AddAgentStudioUsageEstimator`) |
+| `IUsageEstimator`, `UsageEstimate` (conocido con 3 referencias), `EstimateInterval<T>`, `PlanEstimate`, `UsageEstimateRequest`, `PlanEstimateRequest`, `WorkSize`, `EstimateAssumptions` | `Usage/EstimateContracts.cs` | El estimador de docs/16 D-20, adelantado: percentiles 25 y 75 con su origen, referencias y supuestos; nunca un número de relleno. **Revisión del 2026-11-09 (WP2):** `UsageEstimate.TotalTokens` (`EstimateInterval<long>?`, último parámetro, nulo por defecto) es el intervalo de los tokens totales calculado como tal (la entrada más la salida, como las cuenta el panel de uso: la entrada es el prompt entero, con la caché leída y escrita en Claude y la entrada en caché en Codex, y la salida de Codex incluye su razonamiento), con los percentiles de los totales y nunca la suma de los percentiles de cada parte, y `UsageEstimate.ToSnapshot(option)` lo da como el `OptionEstimateSnapshot` que registra `QuestionAsked` (sin total, o con menos de tres referencias, sin valor). `UsageEstimate.Unknown(referencias, motivo)` da una estimación desconocida que dice por qué (un registro que no verifica: `UsageEstimator.UntrustedLogReason`). `EstimateAssumptions` gana `SameModel` («aprendido del modelo»: menos de tres intentos del agente, así que cuentan los del mismo modelo y propósito de cualquier agente), `AgentsOnly` (la duración de un plan solo cuenta a los agentes) y `All`. **Revisión del 2026-11-11 (P47):** `UsageEstimateRequest` gana `Effort` (`ReasoningEffort?`, último parámetro, nulo por defecto): las referencias son los intentos del mismo CLI, propósito y modelo con el mismo esfuerzo, o sin esfuerzo los dos; `EstimateAssumptions.SameEffort` lo dice cuando el agente lo tiene; `UsageAttempt` gana `Effort` (propiedad `init`, la copia `UsageProjector` del arranque v3) y `LearnedModel` gana `Efforts` (los esfuerzos con los que se lanzó el modelo; `ModelPerformance` no se parte por esfuerzo). Las reglas, en ADR-0050 y su adenda del 2026-11-11 | WP2 (`Observability/Estimates`, `AddAgentStudioUsageEstimator`) |
 | `IConsumptionAnalyzer`, `ConsumptionReport`, `ConsumptionFinding`, `ConsumptionFindingCodes` (los 12 de D-34), `ConsumptionTarget` | `Analysis/ConsumptionAnalysisContracts.cs` | El análisis determinista del consumo | WP3 (`Observability/Analysis`) |
 | `IAssistedConsumptionAnalysis`, `AssistedConsumptionRequest`, `AssistedConsumptionAnalysis`, `AssistedConsumptionSuggestion`, `AssistedConsumptionLimits` | ídem | El análisis con un agente del vendor que no produjo, con tu OK (D-35) | WP3 |
 | `UserText` (`Code`, `Arguments`, `ResourceKey`), `UserTextCodes` | `Localization/UserText.cs` | Un texto como código y parámetros; su recurso es `Text_<código>` (D-47) | Las capas de abajo; lo pinta Desktop |
@@ -1690,8 +1696,11 @@ Lo que WP3 añade o cambia sobre lo de arriba ([ADR-0052](adr/0052-analisis-del-
 | `AddAgentStudioConsumptionAnalysis` | `Observability/Analysis/ConsumptionAnalysisServiceCollectionExtensions.cs` | Registra los dos análisis; el catálogo de modelos va en sus opciones |
 | `Resources/ConsumptionStrings.resx` y `.en.resx` | `Desktop/Resources/` | `Text_consumption_<código>` y `Text_consumption_<código>_suggestion` de los 12 códigos (`work.discarded` no sugiere). El prefijo (`ConsumptionTexts.TextPrefix`, integración del 2026-11-09) los separa de los del analizador del montaje, que también tiene `model.oversized` con otros argumentos |
 
-- **`AgentRunStarted` v3 en el motor:** todo arranque de `AgentRunner` con partes; un arranque sin ellas sigue en v2. El juez,
-  los debates y las auxiliares registran su arranque fuera y no tienen partes.
+- **`AgentRunStarted` v3 en el motor:** todo arranque de `AgentRunner` con partes; un arranque sin partes ni esfuerzo sigue en v2. El juez,
+  los debates y las auxiliares registran su arranque fuera y no tienen partes. **Revisión del 2026-11-11 (P47):** un arranque
+  sin partes pero con esfuerzo fijado también es v3, y los cuatro escritores (`AgentRunner`, `AuxiliaryAgentRunner`,
+  `JudgeRunRecorder` y `DebateTurnRecorder`) registran el esfuerzo del agente cuando lo tiene (`Effort`); sin esfuerzo no
+  escriben nada y la entrada sale como antes, byte a byte.
 - **Para la integración:** registrar `AddAgentStudioConsumptionAnalysis` con el catálogo de WP2; que WP8 llame al análisis
   determinista al terminar cada ejecución y con su botón, y al de un agente con el OK; y que el motor (WP4) pida el paquete
   también para los agentes sin memoria si deben recibir la ficha.
@@ -1721,7 +1730,7 @@ es obligatorio, y un documento creado sin él (`builder: null`) es el de antes d
 
 | Pieza | Fichero | Qué es |
 |---|---|---|
-| `BuilderServices` (`OrderReview`, `Chat`, `Ledger`, `Catalog`, `Learning`, `Estimator`, `Repository`, `Live`, `Quota`, `Brief`) | `Orchestrator/Preparation/BuilderServices.cs` | Los puertos que lee el constructor, todos opcionales: lo que falta apaga solo lo que lo necesita. `OrchestratorDocumentViewModel(…, builder, reduceMotion)` los recibe al final de su constructor |
+| `BuilderServices` (`OrderReview`, `Chat`, `Ledger`, `Catalog`, `Learning`, `Estimator`, `Repository`, `Live`, `Quota`, `Brief`, `WindowsAnimates`, y, desde P49, `ContextPacker`, `ProjectFiles` y `SkillCharacters`) | `Orchestrator/Preparation/BuilderServices.cs` | Los puertos que lee el constructor, todos opcionales: lo que falta apaga solo lo que lo necesita. `OrchestratorDocumentViewModel(…, builder, reduceMotion)` los recibe al final de su constructor |
 | `CanvasLayer`, `CanvasViewModel.Team` y `CanvasLayout.TeamPositions` | `Orchestrator/Canvas/` | Las capas, y la disposición v2 (`{version:2, plan, team}`), que lee la v1 como la capa «Plan» |
 | `TeamCanvasViewModel`, `AgentNodeViewModel`, `RepositoryNodeViewModel`, `TeamConnectionViewModel` | `Orchestrator/Team/` | La capa Equipo y la tira: los nodos son la plantilla y los cables «Reparte», «Revisa» y «Trabaja en». No hay ningún tipo de la capa en `BuildTasks` ni en `DependsOn` |
 | `RepositoryReader`, `IRepositoryStateReader`, `RepositoryReading` | `Orchestrator/Team/RepositoryReader.cs` | El nodo del repositorio sin red: la rama, la versión y los cambios por `IWorktreeManager.InspectAsync`; los remotos, del texto de `.git/config` con `RepositoryRemote.Cleaned`, sin lanzar git |
@@ -1729,6 +1738,10 @@ es obligatorio, y un documento creado sin él (`builder: null`) es el de antes d
 | `AgentInspectorViewModel`, `InspectorContext` | `Orchestrator/Team/AgentInspectorViewModel.cs` | El inspector con los datos de WP2 (`ModelCatalog`, `LearnedModels`, `ModelRecommender`) y la barra de contexto por partes |
 | `VisualBuilder` | `Orchestrator/Team/VisualBuilder.cs` | Reúne el editor, la banda, «Revisar el orden» y el chat; aplica el estado vivo solo a los nodos que el cambio nombra y lee el repositorio, lo aprendido y la cuota una vez |
 | `AnalysisBandViewModel`, `IDraftHost`, `FindingItemViewModel` | `Orchestrator/Canvas/AnalysisBandViewModel.cs` | El analizador en vivo (200 ms, fuera del hilo, con generación), los arreglos de un clic y Ctrl+Z y Ctrl+Y sobre `EditHistory<MontageEditState>` |
+| `MontageFactsCache`, `MontageFacts`, `MontageFactsSubject` | `Orchestrator/Preparation/MontageFactsCache.cs` | Lo que el borrador del analizador (`MontageDraft.TaskContexts` y `MontageLearnedFacts.EstimatedAgentRuns`) necesita y cuesta saber ([ADR-0049](adr/0049-analizador-del-montaje-y-orden.md), adenda de P49). `BuildDraft` solo lee: el tamaño del contexto de cada tarea se mide en cada lectura; la memoria, las skills y la estimación del plan se preguntan una vez, fuera del hilo de la interfaz, y al llegar la banda vuelve a analizar; cada respuesta se guarda bajo su pregunta, así que el orden de llegada no decide nada. `VisualBuilder.Facts` la guarda; `Reset` (al releer el contexto) y `Dispose` (al cerrar) la olvidan y cancelan lo que está en camino |
+| `ExecutorContextPreview`, `ExecutorContextSize` | `Orchestration/Engine/ExecutorContextPreview.cs` | La fachada pública sobre lo interno del motor: el prompt del primer intento (`ExecutorPrompt.Build`) medido en las partes de `AgentRunStarted` (`PromptParts.Measure`), el empaquetador sin foco, los caracteres de los requisitos obligatorios y el presupuesto (24 000). El tamaño es un suelo: no cuenta lo que no existe antes de ejecutar |
+| `SkillPresentationSource` | `Orchestrator/Preparation/SkillPresentationSource.cs` | Lo que el CLI presentaría de las skills activas de un agente (catálogo y activaciones como el aprovisionador, y el frontmatter de cada `SKILL.md`), sin materializar nada |
+| `ProjectFileCounter`, `ProjectFileCount` | `Orchestrator/Team/ProjectFileCounter.cs` | El tamaño del proyecto para la recomendación de un modelo: los ficheros de su carpeta, sin lo que oculta el explorador ni `.agentstudio`, hasta 20 000 (`IsTruncated` dice que es un suelo). `VisualBuilder.LoadProjectFilesAsync` lo pide una vez al abrir el proyecto |
 | `OrderReviewViewModel`, `PreparationChatViewModel`, `QuotaConsentCardViewModel` | `Orchestrator/Preparation/` | «Revisar el orden» y el chat: un OK por uso, con la estimación delante, y ninguna sugerencia se aplica sola |
 | `ProjectBriefViewModel` | `Orchestrator/Preparation/ProjectBriefViewModel.cs` | La ficha del proyecto sobre `IProjectBrief`: se lee la vigente y cada versión nueva sustituye a la anterior, como decisión de la persona; no se guarda vacía ni pasada del máximo de la memoria |
 | `RequirementsEditorViewModel.CopySuggestion` | `Orchestrator/Preparation/RequirementsEditorViewModel.cs` | «Copiar al editor»: un borrador del chat entra como borrador de la persona, que lo congela o no |
@@ -1751,11 +1764,21 @@ es obligatorio, y un documento creado sin él (`builder: null`) es el de antes d
   - [x] «Agentes» de la barra lateral abre el documento del proyecto (o lo trae al frente) y llama a `ShowTeamLayer()`;
   - [x] el guardado de «Ajustes» ya pasa por `MotionSettingsViewModel.Accept`, que llama a `MotionPolicy.NotifySettingChanged()`:
     no hizo falta cablear nada más;
-  - [ ] **quitar un agente** necesita `IAgentRoster.DeleteAsync` (Application e Infrastructure, fuera de WP6): hasta entonces
-    `TeamEditorViewModel` recibe un delegado nulo y «Quitar del equipo» no se muestra;
+  - [x] **quitar un agente** (P48, 2026-11-11): `IAgentRoster.DeleteAsync` (Application e Infrastructure) y
+    `OrchestrationSession.RemoveAgentAsync`; `InitializeBuilder` pasa el delegado al editor, así que «Quitar del equipo» se
+    muestra cuando hay almacén, y pregunta antes con una tarjeta (`PendingRemoval`). Pasa por `ApplyManyAsync` (la plantilla que queda conserva el orquestador y un juez,
+    `TeamRemoval`; un solo Windows Hello para el conjunto cuando concede poder, antes de guardar o quitar nada). Ver la adenda
+    de [ADR-0048](adr/0048-constructor-visual-equipo-y-plan.md);
   - [ ] **los remotos** se leen del texto de `.git/config`; la lectura de docs/17 D-10 con `git config --get-regexp` por la capa
     endurecida queda para cuando exista en `IWorktreeManager`.
   - Para el panel «Problemas», `AnalysisBandViewModel` expone `Analysis` y `AnalysisChanged` (el análisis que enseña la banda).
+- **El borrador ya no va vacío (P49, 2026-11-11).** `MontageDraft.TaskContexts` lleva un `TaskContextFacts` por tarea de trabajo de
+  agente (las revisiones no tienen), con `Window`, `HasMemory`, `HasBrief` y `HasUpstream` y con `BudgetCharacters` de 24 000 solo
+  para el agente que lee memoria (`int.MaxValue` para los demás: el motor no comprueba ningún presupuesto sin pack);
+  `MontageLearnedFacts.EstimatedAgentRuns` es el extremo alto de `PlanEstimate.AgentRuns`, nulo con menos de tres referencias; y
+  `InspectorContext.ProjectFiles` trae el tamaño del proyecto a `ModelRecommendationInput.ProjectFiles`. Ninguno cambia el contrato de
+  `MontageDraft` ni los umbrales de las reglas. Detalle y decisiones en la adenda de
+  [ADR-0049](adr/0049-analizador-del-montaje-y-orden.md#adenda--2026-11-11--de-dónde-salen-ahora-los-datos-del-borrador-p49).
 
 ### 21.9 WP7: configurador por proyecto ([ADR-0055](adr/0055-configurador-por-proyecto.md))
 

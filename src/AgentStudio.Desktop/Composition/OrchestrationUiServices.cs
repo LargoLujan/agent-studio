@@ -10,6 +10,7 @@ using AgentStudio.Application.Projects;
 using AgentStudio.Application.Providers;
 using AgentStudio.Application.Security;
 using AgentStudio.Application.Setup;
+using AgentStudio.Application.Skills;
 using AgentStudio.Application.Usage;
 using AgentStudio.Desktop.Lock;
 using AgentStudio.Desktop.Observability;
@@ -116,7 +117,10 @@ internal static class OrchestrationUiServices
         provider.GetService<IWorktreeManager>() is { } worktrees ? new WorktreeRepositoryStateReader(worktrees) : null,
         Live: null,
         Quota: provider.GetService<IQuotaObservations>(),
-        Brief: provider.GetService<IProjectBrief>());
+        Brief: provider.GetService<IProjectBrief>(),
+        ContextPacker: provider.GetService<IContextPacker>(),
+        ProjectFiles: (root, cancellationToken) => Task.Run(() => ProjectFileCounter.Count(root, ProjectFileCounter.DefaultMaxFiles, cancellationToken), cancellationToken),
+        SkillCharacters: SkillPresentationSource.For(provider.GetService<ISkillCatalog>(), provider.GetService<ISkillActivationStore>()));
 
     /// <summary>
     /// What the analysis of consumption with an agent would spend, shown before the OK (docs/17 D-35): the estimate of one attempt of
@@ -137,7 +141,7 @@ internal static class OrchestrationUiServices
             return judge is null
                 ? UsageEstimate.Unknown(0, "There is no judge in the template to say which program would analyse.")
                 : await estimator.EstimateAsync(
-                    new UsageEstimateRequest(project, AssistedConsumptionAnalysisService.AnalystId, judge.Model.Provider, judge.Model.Model, AgentRunPurpose.ConsumptionAnalysis),
+                    new UsageEstimateRequest(project, AssistedConsumptionAnalysisService.AnalystId, judge.Model.Provider, judge.Model.Model, AgentRunPurpose.ConsumptionAnalysis, Effort: judge.Effort),
                     cancellationToken).ConfigureAwait(false);
         };
     }

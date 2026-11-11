@@ -318,6 +318,14 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
         }
 
         var recorder = new RunRecorder(_ports.Decisions, _ports.Evidence, project.ProjectId, run);
+
+        // The questions the orchestrator asked before it planned, and their answers (V43): every executor gets them as data. They
+        // are in the run in which it planned: this one, or the one the plan came from when it was edited (or its proposal had
+        // started a run already) and this run got an id of its own. They are read from the log before anything of the run is
+        // written, and only as the log anchored them.
+        var plannedIn = PlannedElsewhere(request, run);
+        var ledger = new RunLedger();
+        await Questions.QuestionRecovery.LoadOrchestratorAsync(recorder, entries, log.Entries, plannedIn?.Value, ledger.Questions, cancellationToken).ConfigureAwait(false);
         var repository = await _ports.Worktrees.InspectAsync(project.RootPath, cancellationToken).ConfigureAwait(false);
 
         // What every step of the run checks the user's repository against: it is captured before anything runs. An ignored
@@ -365,10 +373,10 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
         var header = new RunRecord(run, project.ProjectId, createdAt, planHash, request.Requirements.ContentHash, original.Id, baseCommit, repository.HeadBranch, request.Verification, roster, request.Options, request.Follows);
         await _ports.Runs.CreateAsync(header, cancellationToken).ConfigureAwait(false);
 
-        await RecordStartAsync(request, recorder, entries, header, writers, warning, cancellationToken).ConfigureAwait(false);
+        await RecordStartAsync(request, recorder, entries, header, writers, warning, plannedIn, cancellationToken).ConfigureAwait(false);
 
         var context = new RunContext(project, run, request.Plan, request.Requirements, request.Verification, roster, request.Options, baseCommit, createdAt);
-        var orchestration = new OrchestrationRun(context, _ports, recorder, request.Plan.BuildGraph(createdAt), new RunLedger(), guard, Forget);
+        var orchestration = new OrchestrationRun(context, _ports, recorder, request.Plan.BuildGraph(createdAt), ledger, guard, Forget);
         Track(orchestration);
         orchestration.Start(notices);
         return orchestration;
@@ -760,6 +768,13 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
     }
 
     /// <summary>
+    /// The run in which the orchestrator planned (V43) when it is not <paramref name="run"/> itself: the one the request names
+    /// as <see cref="RunRequest.PlannedIn"/>, null when there is none or it is the run's own (its entries are the run's).
+    /// </summary>
+    private static RunId? PlannedElsewhere(RunRequest request, RunId run) =>
+        request.PlannedIn is { } planned && planned != run ? planned : null;
+
+    /// <summary>
     /// Records the approval of the plan (unless the gate already did) and <c>RunStarted</c>, version 3: besides the hashes
     /// of the plan, the requirements and the profile, it anchors the hash of the whole stored header (<see cref="RunHeaderHash"/>),
     /// so a resume never runs with a roster, options or base other than the ones that started, and the writers at medium
@@ -767,6 +782,7 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
     /// </summary>
     /// <param name="writers">The writers at medium integrity of the plan, read when the run starts (<see cref="MediumIntegrityWriters.Find"/>).</param>
     /// <param name="warning">The warning that names them, the one the user approved, or null when there is none (<see cref="VerificationStepText.PlanWarning(IReadOnlyList{MediumIntegrityWriter})"/>).</param>
+    /// <param name="plannedIn">The run in which the orchestrator planned when it is not this one (V43), anchored in <c>RunStarted</c> so a resume reads the answers from there; null otherwise.</param>
     private static async Task RecordStartAsync(
         RunRequest request,
         RunRecorder recorder,
@@ -774,6 +790,7 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
         RunRecord header,
         IReadOnlyList<MediumIntegrityWriter> writers,
         string? warning,
+        RunId? plannedIn,
         CancellationToken cancellationToken)
     {
         var run = recorder.RunValue;
@@ -813,7 +830,8 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
                 header.Follows?.Value,
                 RunHeaderHash.Of(header),
                 warning,
-                MediumIntegrityWriters.Anchor(writers))
+                MediumIntegrityWriters.Anchor(writers),
+                plannedIn?.Value)
             {
                 RunId = run,
                 V = RunStartedPayload.WritersVersion,

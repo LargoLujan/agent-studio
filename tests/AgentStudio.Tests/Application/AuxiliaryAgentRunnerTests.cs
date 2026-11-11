@@ -7,6 +7,7 @@ using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Evidence;
 using AgentStudio.Domain.Metrics;
+using AgentStudio.Domain.Models;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Tests.Debate.Fakes;
@@ -171,6 +172,23 @@ public sealed class AuxiliaryAgentRunnerTests
         Assert.Equal("¿Qué skills necesita esta tarea?", world.Evidence.ContentText(prompt.Id));
         Assert.Equal(result.PromptEvidence, prompt.Id);
         Assert.Equal(new ActorKind[] { ActorKind.System, ActorKind.System }, world.Entries.Select(e => e.Actor.Kind));
+    }
+
+    /// <summary>docs/18 P47: the effort the agent runs with is recorded (version 3) so the estimator can tell it; none is written when it sets none.</summary>
+    [Fact]
+    public async Task The_start_records_the_effort_of_the_agent_only_when_it_sets_one()
+    {
+        var with = new World();
+        await with.RunAsync(AgentRunPurpose.OrderReview, Request() with { Agent = Recommender with { Effort = ReasoningEffort.Low } });
+        var without = new World();
+        await without.RunAsync();
+
+        var started = with.Payload<AgentRunStartedPayload>(DecisionKind.AgentRunStarted);
+        Assert.Equal((AgentRunStartedPayload.ContextPartsVersion, ReasoningEffort.Low), (started.V, started.Effort));
+        Assert.Contains("\"effort\":\"low\"", Assert.Single(with.Entries, e => e.Kind == DecisionKind.AgentRunStarted).PayloadJson, StringComparison.Ordinal);
+        var none = without.Payload<AgentRunStartedPayload>(DecisionKind.AgentRunStarted);
+        Assert.Equal((AgentRunStartedPayload.PurposeVersion, (ReasoningEffort?)null), (none.V, none.Effort));
+        Assert.DoesNotContain("effort", Assert.Single(without.Entries, e => e.Kind == DecisionKind.AgentRunStarted).PayloadJson, StringComparison.Ordinal);
     }
 
     /// <summary>docs/17 D-02: the launch carries the start just recorded, so the journal can name it at the end of its result line.</summary>

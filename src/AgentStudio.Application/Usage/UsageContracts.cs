@@ -1,6 +1,7 @@
 using AgentStudio.Application.Decisions;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Metrics;
+using AgentStudio.Domain.Models;
 using AgentStudio.Domain.Providers;
 
 namespace AgentStudio.Application.Usage;
@@ -95,6 +96,13 @@ public sealed record UsageAttempt(
 {
     /// <summary>The version of the <c>AgentRunFinished</c> entry the figures were read from.</summary>
     public required int RecordedVersion { get; init; }
+
+    /// <summary>
+    /// The reasoning effort the agent was set with, as its <c>AgentRunStarted</c> records it (version 3, docs/18 P47, ADR-0050),
+    /// read whenever the start carries one, so an attempt at <c>low</c> is told from one at <c>high</c> of the same model; null
+    /// when none was set, and for every start written before the field existed.
+    /// </summary>
+    public ReasoningEffort? Effort { get; init; }
 }
 
 /// <summary>

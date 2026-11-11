@@ -7,6 +7,7 @@ using AgentStudio.Desktop.Orchestrator.Canvas;
 using AgentStudio.Desktop.Orchestrator.Preparation;
 using AgentStudio.Desktop.Orchestrator.Session;
 using AgentStudio.Domain.Agents;
+using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Domain.Work;
@@ -275,6 +276,12 @@ public sealed class RosterEditorViewModelTests
                 _agents[index] = agent;
             }
 
+            return Task.CompletedTask;
+        }
+
+        public Task DeleteAsync(string projectId, AgentId agent, CancellationToken cancellationToken)
+        {
+            _agents.RemoveAll(a => a.Id == agent);
             return Task.CompletedTask;
         }
     }

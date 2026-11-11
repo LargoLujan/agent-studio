@@ -560,6 +560,8 @@ public sealed class SkillRecommendationServiceTests
         public Task<IReadOnlyList<AgentDefinition>> ListAsync(string projectId, CancellationToken cancellationToken) => Task.FromResult(agents);
 
         public Task SaveAsync(string projectId, AgentDefinition agent, CancellationToken cancellationToken) => throw new InvalidOperationException("The service never changes the roster.");
+
+        public Task DeleteAsync(string projectId, AgentId agent, CancellationToken cancellationToken) => throw new InvalidOperationException("The service never changes the roster.");
     }
 
     private sealed class FakeHealth : ISkillHealthReader

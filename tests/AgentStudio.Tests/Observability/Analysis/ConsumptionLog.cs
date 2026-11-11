@@ -6,6 +6,7 @@ using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Evidence;
 using AgentStudio.Domain.Judging;
 using AgentStudio.Domain.Metrics;
+using AgentStudio.Domain.Models;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Domain.Work;
@@ -60,17 +61,18 @@ internal sealed class ConsumptionLog
         string? session = null,
         string? resumed = null,
         string? run = null,
-        string? error = null)
+        string? error = null,
+        ReasoningEffort? effort = null)
     {
         var on = provider ?? ProviderId.ClaudeCode;
         var runId = run ?? Run.Value;
         var taskId = task is null ? (TaskId?)null : new TaskId(task);
         var pack = omitted > 0 ? new ContextPackReference(HashB, ["RQ-1"], [.. Enumerable.Range(1, omitted).Select(i => "mem-" + i)], 1000) : null;
         Append(DecisionKind.AgentRunStarted, new AgentRunStartedPayload(
-            taskId, attempt, new AgentId(agent), on, UsageLogBuilder.VendorOf(on), model, "wt", new EvidenceId($"ev-prompt-{task}-{attempt}"), HashA, [], purpose, pack, parts)
+            taskId, attempt, new AgentId(agent), on, UsageLogBuilder.VendorOf(on), model, "wt", new EvidenceId($"ev-prompt-{task}-{attempt}"), HashA, [], purpose, pack, parts, effort)
         {
             RunId = runId,
-            V = parts is null ? AgentRunStartedPayload.PurposeVersion : AgentRunStartedPayload.ContextPartsVersion,
+            V = parts is null && effort is null ? AgentRunStartedPayload.PurposeVersion : AgentRunStartedPayload.ContextPartsVersion,
         });
 
         Now += queue ?? TimeSpan.FromSeconds(1);

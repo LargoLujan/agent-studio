@@ -93,3 +93,81 @@
   - **Lo que no hace WP6:** la estimación del plan entero para `cost.over-budget` (el analizador recibe `EstimatedAgentRuns` nulo y
     calla), los hechos de contexto por tarea (`TaskContexts`, vacíos: las reglas que los necesitan callan) y el número de ficheros
     del proyecto en la recomendación de modelo. Ninguno inventa un dato.
+
+## Adenda · 2026-11-11 · quitar agentes de la plantilla (P48)
+
+La capa Equipo no podía quitar agentes: `IAgentRoster` solo guardaba, así que `TeamEditorViewModel` recibía un delegado nulo, no
+enseñaba «Quitar del equipo» y un conjunto de cambios con una baja (por ejemplo, el deshacer de «Añadir un juez») se rechazaba
+antes de guardar nada.
+
+1. **El borrado en el almacén.** `IAgentRoster.DeleteAsync(projectId, agent, ct)` (Application) y su implementación en
+   `SqliteAgentRoster`: `DELETE FROM agents WHERE id = $id AND project_id = $project`, en una transacción y por la misma
+   conexión de `ProjectDatabases` que el resto (el punto 8 dice qué más escribe). Borrar un id que no está (nunca guardado, ya
+   borrado o de otro proyecto) **no hace nada y no falla**: el editor ya comprobó la plantilla que enseñaba, y un error ahí solo
+   convertiría un doble clic en un mensaje. El único campo que apunta a `agents(id)` es `tasks.assigned_agent_id`, que ningún
+   almacén escribe (0002 deja esas tablas sin uso): en la aplicación no hay fila que impida el borrado, y una puesta desde fuera
+   sí lo impide, con las claves foráneas activas, y entonces falla la operación entera (una prueba lo fija con una fila real).
+   `OrchestrationSession.RemoveAgentAsync` lo expone al documento con la misma condición que `SaveAgentAsync` (que exista el
+   almacén), y `InitializeBuilder` pasa ese delegado al editor: `CanRemoveAgents` es cierto cuando se puede guardar, y sin
+   almacén sigue sin botón.
+2. **La aprobación.** Quitar un agente no concede nada, y la lista de Windows Hello de D-37 no lo recoge, así que **por sí
+   solo no pide Hello**: no se añade ninguna acción a `PresencePolicy`. Lo que ya mandaba sigue mandando: si el conjunto de
+   cambios concede poder (shell, red o más carpetas a algún agente), se pide **un solo Hello para todo el conjunto, antes de
+   guardar o quitar nada**, y las bajas llegan al almacén después de esa aprobación y de las comprobaciones. Si se prefiere
+   que quitar también pida Windows Hello, es una acción nueva de D-37 y una decisión aparte; el «sí» de la tarjeta del punto 7 es
+   una pregunta de la capa, no Hello.
+3. **Qué plantilla queda.** «Quitar del equipo» deja de llamar al almacén por su cuenta y pasa por `ApplyManyAsync`, como
+   cualquier cambio de la plantilla. Antes de preguntar o escribir nada se comprueba la plantilla que quedaría
+   (`TeamRemoval.Problems`, dominio puro): una baja no puede llevarse **al orquestador** (`team.orchestrator-required`) ni **al
+   último juez** (`team.judge-required`, el código que ya usa `TeamGraph.Validate`), y lo dice con el texto de la capa
+   (`Canvas_Problem_*`) dentro de `Canvas_Editor_Refused`. `TeamGraph.Validate` no pide orquestador (una plantilla leída del
+   almacén puede no tenerlo y la capa ofrece añadirlo), por eso la regla vive en la baja y no en el grafo: una plantilla que ya
+   carecía de un rol no se rechaza por ello al quitar otra cosa, y un cambio que sustituye al único juez por otro en la misma
+   operación pasa. Deshacer «Añadir un juez» cuando ese juez era el primero que tenía el equipo queda así rechazado.
+4. **Todo o nada, y su límite.** El almacén no tiene operación por lotes: el conjunto se escribe como una secuencia, los
+   guardados primero y las bajas al final, y si el almacén falla a medias se deshace por compensación (se vuelve a guardar la
+   versión anterior de cada agente tocado y se vuelve a guardar cada agente ya quitado). Lo que una compensación no devuelve es el
+   sitio del agente que se quitó y se volvió a guardar, que pasa al final de la lista y con otra fecha de creación (`RosterHash`
+   ordena por id, así que su huella no cambia), ni las skills que ese agente tenía activadas, que la baja apagó (punto 8) y la
+   persona tendrá que volver a encender. Una operación por lotes del almacén, en una transacción que guarde y borre a la vez,
+   quitaría esa ventana, y no se ha hecho porque el contrato crecería más de lo que pide P48. Si falla también la compensación, la
+   capa ya no dice solo «No se pudo guardar»: avisa de que la plantilla puede haber quedado a medias y manda a «Volver a cargar»; y
+   si lo que falla es la relectura del documento tras un guardado bueno, lo dice sin convertirlo en una excepción. Los conjuntos de
+   cambios no se solapan (`ApplyManyAsync` lleva una marca de ocupado: el segundo no empieza y lo dice, y los botones esperan).
+5. **Por qué no afecta al historial.** Las cabeceras congeladas llevan las definiciones enteras: `RunRecord.Roster` (con
+   `RunHeaderHash`) y `DebateParticipantDefinition.Agent` y `DebateRecord.Judges` en los debates. Ninguna cabecera lee la
+   plantilla viva después de crearse, así que borrar un agente de la plantilla no cambia lo que una ejecución o un debate
+   pasados hicieron con él. Lo que sí lee la plantilla viva es lo que empieza de nuevo (planificar, empezar una ejecución o un
+   debate, auditar, elegir quién analiza el consumo), que es justo lo que debe ver la baja. Por eso no hay borrado lógico ni
+   marca de «archivado», y una prueba lo fija: la cabecera de una ejecución y su hash se leen igual tras borrar de la plantilla un
+   agente que la ejecución congeló.
+6. **Qué no cambia.** `FixApplier` no tiene ningún arreglo que quite agentes (los arreglos añaden o editan), así que no hubo
+   nada que dejar de rechazar ahí; las bajas del borrador llegan por `DraftHost.ApplyAsync`, que ya calculaba los agentes que
+   desaparecen entre el estado anterior y el nuevo y los pasaba a `ApplyManyAsync`. **Defecto encontrado, anterior a este cambio
+   y aparte de él:** el anfitrión maneja bien las bajas, pero Ctrl+Z tras «Añadir un juez» (o tras cualquier arreglo que cambie
+   la plantilla) no llega al almacén y no deshace nada. Tiene dos causas, ninguna arreglada aquí:
+   - **El historial se reinicia al releer la plantilla.** `BuilderContextChanged` (`src/AgentStudio.Desktop/Orchestrator/OrchestratorDocumentViewModel.Builder.cs`)
+     termina siempre con `Band.Reset()`, y guardar la plantilla vuelve a leer el contexto antes de que `ApplyFixAsync`
+     (`src/AgentStudio.Desktop/Orchestrator/Canvas/AnalysisBandViewModel.cs`) anote el estado nuevo, así que el historial solo conoce
+     estados con la plantilla ya cambiada. Las pruebas de `AnalysisBandTests` no lo ven porque su anfitrión falso no relee el contexto.
+   - **`AgentDefinition.Equals` compara las listas por referencia.** Es un `record` con `IReadOnlyList` (`src/AgentStudio.Domain/Agents/AgentDefinition.cs`)
+     y sin `Equals` propio, así que dos definiciones idénticas leídas en momentos distintos no son iguales; el cálculo de `changed` de
+     `DraftHost.ApplyAsync` (`OrchestratorDocumentViewModel.Builder.cs`) trata por eso como cambiado a todo agente releído del
+     almacén, y un deshacer escribiría de más aunque el historial funcionara.
+7. **Quitar pide confirmación (revisión independiente, 2026-11-11).** No hay en la capa un servicio de diálogos reutilizable: lo
+   único que confirma en el editor es `PresenceConfirmer`, que es Windows Hello de D-37 y no se usa para esto (punto 2). Se siguió
+   el patrón de `PendingAdd`: una tarjeta en `TeamPanelView` (`PendingRemoval`, «Sí, quitar» y «Conservar») que dice que la
+   definición se pierde de la plantilla y no se recupera desde aquí (Ctrl+Z no la alcanza), que se apagan las skills que tenía
+   activadas y que las ejecuciones y los debates pasados la conservan. Solo la pide el botón: las bajas que llegan por el borrador
+   (`DraftHost`) son de un arreglo o de su deshacer, que la persona ya eligió. Elegir otro agente, releer la plantilla o pasar a solo
+   lectura retira la pregunta; y el botón avisa ahora de su `CanExecute` al cambiar la selección (antes quedaba apagado).
+8. **Un id que vuelve no hereda skills (revisión independiente, 2026-11-11).** `skill_activations` (ámbito `Agent`, `scope_id` el id
+   del agente) es un historial que nunca se reescribe, y el editor da el primer id libre (`ejecutor-2`): un agente nuevo con ese id
+   heredaba por `SkillActivationResolver` las skills activadas para el anterior, sin que la pantalla de Skills lo enseñara. Por eso
+   `DeleteAsync` escribe, **en la misma transacción que el borrado**, una decisión «apagada» (`decided_by` = `roster:agent-removed`)
+   por cada skill cuya última decisión para ese agente sea «encendida»; no cambia ni borra filas. Lo hace aunque el agente ya no
+   estuviera en la plantilla (cierra lo que dejó una baja anterior), y si no hay nada encendido no escribe nada; si el borrado falla,
+   no se guarda nada de ello. Consecuencia que conviene conocer: un registro de solo añadir no tiene «sin decisión», así que el agente
+   que llegue después con ese id arranca con esas skills apagadas **a su nivel, que gana al del proyecto** (el lado de menos poder), y
+   la pantalla de Skills enseña el apagado como decisión del agente. La alternativa, no reutilizar ids, obligaba al editor a conocer
+   el almacén de skills y dejaba el residuo en el historial; no se tomó.

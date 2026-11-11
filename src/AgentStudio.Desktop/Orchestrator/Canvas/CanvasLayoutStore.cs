@@ -226,7 +226,9 @@ public sealed class FileCanvasLayoutStore(IProjectStorageFiles files) : ICanvasL
             draft.Summary,
             draft.Risks,
             [.. draft.Tasks.Select(DraftTaskJson.From)],
-            draft.Proposal is { } proposal ? new DraftProposalJson(proposal.Run.Value, proposal.PlanHash, proposal.Corrected, proposal.HistoryToolNotice) : null);
+            draft.Proposal is { } proposal
+                ? new DraftProposalJson(proposal.Run.Value, proposal.PlanHash, proposal.Corrected, proposal.HistoryToolNotice, proposal.PlannedRequest, proposal.RequirementsHash)
+                : null);
 
         /// <summary>The draft, checked whole: past a limit it is too big, and anything missing or out of place makes it damaged.</summary>
         public DraftReading ToReading()
@@ -271,20 +273,40 @@ public sealed class FileCanvasLayoutStore(IProjectStorageFiles files) : ICanvasL
         }
     }
 
-    /// <summary>The proposal as it is stored; a draft of before the search in the history has no notice, and reads as null.</summary>
-    private sealed record DraftProposalJson(string? Run, string? PlanHash, bool Corrected, string? HistoryToolNotice = null)
+    /// <summary>
+    /// The proposal as it is stored; a draft of before the search in the history has no notice, and one of before V43 has no
+    /// request nor requirements it was planned with: each reads as null.
+    /// </summary>
+    private sealed record DraftProposalJson(
+        string? Run,
+        string? PlanHash,
+        bool Corrected,
+        string? HistoryToolNotice = null,
+        string? PlannedRequest = null,
+        string? RequirementsHash = null)
     {
-        /// <summary>The proposal, or null when its run is not a run id, its hash is not a SHA-256 or its notice is too long.</summary>
+        /// <summary>
+        /// The proposal, or null when its run is not a run id, a hash is not a SHA-256 or a text is too long. The request and the
+        /// requirements it was planned with go together: one without the other reads as neither.
+        /// </summary>
         public PlanDraftProposal? ToDomain()
         {
-            if (Run is null || !ContentHash.IsSha256Hex(PlanHash) || TooLong(HistoryToolNotice))
+            if (Run is null || !ContentHash.IsSha256Hex(PlanHash) || TooLong(HistoryToolNotice) || TooLong(PlannedRequest)
+                || (RequirementsHash is not null && !ContentHash.IsSha256Hex(RequirementsHash)))
             {
                 return null;
             }
 
+            var planned = PlannedRequest is not null && RequirementsHash is not null;
             try
             {
-                return new PlanDraftProposal(new RunId(Run), PlanHash!, Corrected, string.IsNullOrWhiteSpace(HistoryToolNotice) ? null : HistoryToolNotice);
+                return new PlanDraftProposal(
+                    new RunId(Run),
+                    PlanHash!,
+                    Corrected,
+                    string.IsNullOrWhiteSpace(HistoryToolNotice) ? null : HistoryToolNotice,
+                    planned ? PlannedRequest : null,
+                    planned ? RequirementsHash : null);
             }
             catch (ArgumentException)
             {

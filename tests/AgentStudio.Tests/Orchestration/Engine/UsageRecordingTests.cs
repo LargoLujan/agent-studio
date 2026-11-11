@@ -3,6 +3,7 @@ using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Providers;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Metrics;
+using AgentStudio.Domain.Models;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Providers.Composition;
 using AgentStudio.Tests.Orchestration.Fakes;
@@ -189,6 +190,43 @@ public sealed class UsageRecordingTests
         Assert.Equal(startEntry.RecordedAt + Launch, finished.LaunchedAt);
         Assert.Equal(30_822m, finished.ContextPeak!.UsedTokens.Value);
         Assert.Equal(1_000_000m, finished.ContextPeak.ContextWindow.Value);
+    }
+
+    /// <summary>docs/18 P47: the effort the agent is set with goes to its start (version 3) by its token, and nothing is written when it sets none.</summary>
+    [Fact]
+    public async Task An_executor_records_the_effort_of_its_agent_in_its_start_and_one_without_an_effort_records_none()
+    {
+        using var harness = Harness();
+        var executor = harness.Roster.Agents.Single(a => a.Id.Value == "ejecutor");
+        await harness.Roster.SaveAsync(harness.Project.ProjectId, executor with { Effort = ReasoningEffort.High }, TestContext.Current.CancellationToken);
+
+        await using var run = await harness.StartAsync(Plan(Work("T1"), Work("T2", "ejecutor2")));
+        await run.CompleteAsync(harness);
+
+        var starts = harness.Payloads<AgentRunStartedPayload>();
+        var (withEntry, with) = Assert.Single(starts, p => p.Payload.Task == new TaskId("T1"));
+        Assert.Equal((AgentRunStartedPayload.ContextPartsVersion, ReasoningEffort.High), (with.V, with.Effort));
+        Assert.Contains("\"effort\":\"high\"", withEntry.PayloadJson, StringComparison.Ordinal);
+        var (withoutEntry, without) = Assert.Single(starts, p => p.Payload.Task == new TaskId("T2"));
+        Assert.Null(without.Effort);
+        Assert.DoesNotContain("effort", withoutEntry.PayloadJson, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_planner_records_the_effort_of_the_orchestrator_when_it_sets_one()
+    {
+        using var harness = Harness();
+        harness.Claude.Script("orquestador", null, 1, new AgentScript { StructuredOutput = ValidPlan(), Events = Steps(Start) });
+        var request = harness.PlanningRequest() with
+        {
+            Roster = [.. Roster().Select(a => a.Id.Value == "orquestador" ? a with { Effort = ReasoningEffort.Medium } : a)],
+        };
+
+        await harness.CreateOrchestrator().PlanAsync(request, null, TestContext.Current.CancellationToken);
+
+        var (entry, started) = Assert.Single(harness.Payloads<AgentRunStartedPayload>());
+        Assert.Equal((AgentRunPurpose.Planner, ReasoningEffort.Medium), (started.Purpose, started.Effort));
+        Assert.Contains("\"effort\":\"medium\"", entry.PayloadJson, StringComparison.Ordinal);
     }
 
     [Fact]
