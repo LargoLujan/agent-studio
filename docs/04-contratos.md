@@ -2073,7 +2073,7 @@ y se leen con `CommitTrailers.Read` (solo el último párrafo; clave repetida o 
 |---|---|---|
 | `IMilestoneRegistry` | `CreateAsync`, `FindAsync`, `ListAsync` (cabeceras, solo añadir) | WP1 |
 | `IMilestoneService` | `OpenAsync`, `ReviseRequirementsAsync`, `LinkAsync`, `ReopenAsync`, `GetAsync`, `ListAsync` | WP1 |
-| `IMilestoneCloser` | `CloseAsync` (auditoría del hito e informe determinista) | WP3 |
+| `IMilestoneCloser` | `CloseAsync(CloseMilestoneRequest, progress)` (auditoría del hito e informe determinista; la petición lleva el juez y los autores declarados; rechaza con `MilestoneCloseRefusedException`) y `IMilestoneCloseListener.OnClosedAsync` (el punto de enganche de la documentación para clientes), ver §23.4 | WP3 (`MilestoneCloser`) |
 | `IBacklogStore` / `IBacklogService` | filas por versión / añadir, revisar, retirar, reordenar, listar, historia | WP1 |
 | `IBoardProjector` | `ProjectAsync`, `BacklogAsync` (tarjetas con su columna y su motivo `BoardCardReasons`) | WP1 |
 | `ITraceLinkService`, `ITraceSuggester`, `ITraceChainReader` | registrar, confirmar, retirar, vínculos de un nodo / sugerencias / la cadena de F9-4 | WP1 |
@@ -2097,3 +2097,10 @@ en otro grupo de la dimensión (un hito), de modo que los grupos pueden sumar m�
 - La prioridad de un elemento del backlog es la de un requisito (`Mandatory` o `Desirable`); el orden manual es `BacklogOrderChanged`.
 - «Integrado» exige además «hecho»: una tarjeta entregada sin veredicto aprobado que la dé por satisfecha no pasa de su columna.
 - ADR-0040 llega con el P0 como esqueleto de lo que fija (dimensiones, `ActivityClass`, presupuesto); WP2 lo completa.
+
+### 23.5 Cierre de un hito (WP3)
+
+- `ProjectAuditRequest` gana `AuditMilestoneScope? Milestone` (hito, ejecuciones con sus seguimientos y debates): el dossier del juez y la petición que ve la persona se limitan a ese alcance. La regla de los productores no se estrecha. El propósito sigue siendo `WholeProject`.
+- `MilestoneCloser` rechaza antes de gastar cuota (`MilestoneCloseRefusedException`: `milestone.not-found`, `milestone.problems`, `milestone.not-open`, `milestone.nothing-to-close`, `milestone.no-judge`, `log.not-intact`) y después si la auditoría no llegó a ejecutarse (`milestone.audit-not-run`: aprobación denegada, registro roto). Una auditoría que se ejecutó cierra el hito sea cual sea su disposición; el informe recoge las desviaciones y reabrir (D-50) existe para eso.
+- Orden de lo que escribe: la auditoría (su unidad `aud-…`), `EvidenceRegistered` del informe (unidad del hito) y `MilestoneClosed`. Después avisa a los `IMilestoneCloseListener` (un fallo suyo no deshace el cierre).
+- `MilestoneReport` (`agent-studio/milestone-report/1`; JSON con claves y saltos `\n` fijos, sin reloj ni texto de agentes): cabecera, anclaje (entradas y cabeza del registro, commit auditado, cabeza del registro del tablero), conjuntos de requisitos, requisitos con sus estados (implementado: lo da por satisfecho la auditoría fiable; revisado e integrado: columnas `Done` e `Integrated` del tablero; sin «desplegado»), ejecuciones (agentes, veredictos, entregas, alertas), debates, auditoría y verificación, desviaciones con códigos estables, problemas pendientes del alcance, informes anteriores y `NotIncluded` (consumo y estimación son de WP2).

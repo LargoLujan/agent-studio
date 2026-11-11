@@ -60,7 +60,14 @@ public interface IJudgeDossierBuilder
 /// «Auditar proyecto completo» (D-28): the frozen requirements to audit against (by hash), the judge of the template and the
 /// vendors of the authors the user declares, because the log does not know who wrote what Agent Studio did not.
 /// </summary>
-public sealed record ProjectAuditRequest(ProjectContext Project, string RequirementSetHash, AgentId Judge, IReadOnlyList<VendorId> DeclaredAuthors);
+public sealed record ProjectAuditRequest(ProjectContext Project, string RequirementSetHash, AgentId Judge, IReadOnlyList<VendorId> DeclaredAuthors, AuditMilestoneScope? Milestone = null);
+
+/// <summary>
+/// What closing a milestone narrows an audit to (docs/16 D-49): the milestone, and the runs (the linked ones with their follow-ups)
+/// and debates the dossier of the judge lists. Null on a request is the whole project. The rule of the producers is not narrowed:
+/// the code at HEAD is the project's, so the vendors of every run of the log are still excluded from judging.
+/// </summary>
+public sealed record AuditMilestoneScope(string Milestone, string Name, string Objective, IReadOnlyList<string> Runs, IReadOnlyList<string> Debates);
 
 /// <summary>
 /// What the preparation of an audit shows; nothing is written (D-06 and D-43). <see cref="Judge"/> is null when nobody may

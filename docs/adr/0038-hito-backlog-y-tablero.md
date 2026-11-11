@@ -48,5 +48,5 @@
     se leen y se reescriben igual. La migración 0006 es idempotente sobre una base en la 0005.
   - `DecisionLog` no cambia. La guarda de `SqliteDecisionLogStore.AppendOnlyTriggers` sigue cubriendo solo el registro y la memoria:
     `milestones` y `backlog_items` se defienden con sus triggers y con el anclaje, como `debate_sessions`.
-  - El cierre (`IMilestoneCloser`, WP3) es «Auditar proyecto completo» con el conjunto del hito: no hace falta un propósito nuevo.
+  - El cierre (`IMilestoneCloser`, WP3) es «Auditar proyecto completo» con el conjunto del hito, limitado a sus ejecuciones y debates (`AuditMilestoneScope`): no hace falta un propósito nuevo. `CloseMilestoneRequest` lleva el juez y los autores declarados (docs/04 §23.4). Un hito con solo debates se rechaza (`milestone.nothing-to-close`).
   - Contratos en [docs/04 §23](../04-contratos.md#23-fase-9-trabajo-y-trazabilidad) y modelo en [docs/05 §4](../05-modelo-de-datos.md#4-migraciones).

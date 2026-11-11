@@ -200,7 +200,7 @@ public sealed class ProjectAuditService(
             }
 
             var (package, index) = await dossiers.BuildAsync(
-                new ProjectDossierRequest(projectId, audit, material.Text, material.Requirements, head, log.Entries, material.Producers, material.Declared, material.Skipped, snapshot, pending, checks),
+                new ProjectDossierRequest(projectId, audit, material.Text, material.Requirements, head, log.Entries, material.Producers, material.Declared, material.Skipped, snapshot, pending, checks, material.Request.Milestone),
                 ct).ConfigureAwait(false);
 
             // The index the judge reads is kept as evidence of the audit, announced after the dossier was built (so it is not
@@ -479,7 +479,7 @@ public sealed class ProjectAuditService(
         var judge = intact ? await JudgeAsync(request, producers, declared, problems, ct).ConfigureAwait(false) : null;
 
         var skipped = profile?.Steps.Where(s => s.Isolation == ProcessIsolation.None).Select(s => s.Id).ToList() ?? [];
-        var text = RequestText(project, repository, frozen, request.RequirementSetHash, judge, producers, declared, profile, skipped);
+        var text = RequestText(project, repository, frozen, request.RequirementSetHash, judge, producers, declared, profile, skipped, request.Milestone);
         var textSha = ContentHash.Sha256Hex(text);
         Material? material = null;
         string headerHash;
@@ -556,11 +556,19 @@ public sealed class ProjectAuditService(
         IReadOnlyList<VendorId> producers,
         IReadOnlyList<VendorId> declared,
         VerificationProfile? profile,
-        IReadOnlyList<string> skipped)
+        IReadOnlyList<string> skipped,
+        AuditMilestoneScope? milestone)
     {
         var text = new StringBuilder();
-        text.AppendLine("Auditoría del proyecto completo");
+        text.AppendLine(milestone is null ? "Auditoría del proyecto completo" : "Auditoría para cerrar un hito");
         text.AppendLine(CultureInfo.InvariantCulture, $"Proyecto: {project.ProjectId}");
+        if (milestone is not null)
+        {
+            text.AppendLine(CultureInfo.InvariantCulture, $"Hito: {OneLine(milestone.Name)} ({milestone.Milestone})");
+            text.AppendLine(CultureInfo.InvariantCulture, $"Objetivo del hito: {OneLine(milestone.Objective)}");
+            text.AppendLine(CultureInfo.InvariantCulture, $"Alcance: ejecuciones {List(milestone.Runs.Order(StringComparer.Ordinal))}; debates {List(milestone.Debates.Order(StringComparer.Ordinal))}");
+        }
+
         text.AppendLine(repository is null
             ? "Commit auditado (HEAD): no se pudo leer"
             : $"Commit auditado (HEAD): {repository.HeadCommit}{(repository.HasUncommittedChanges ? " (hay cambios sin confirmar: no entran en la auditoría)" : string.Empty)}");
@@ -661,6 +669,9 @@ public sealed class ProjectAuditService(
         var safe = new string([.. text.Select(c => c is (>= 'a' and <= 'z') or (>= 'A' and <= 'Z') or (>= '0' and <= '9') or '_' or '-' ? c : '_')]);
         return safe.Length == 0 ? "_" : safe.Length > 64 ? safe[..64] : safe;
     }
+
+    /// <summary>The text of a person on one line, so it cannot add lines to what is approved.</summary>
+    private static string OneLine(string text) => string.Join(' ', text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
 
     private static string Short(string commit) => commit.Length > 10 ? commit[..10] : commit;
 

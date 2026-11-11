@@ -1,6 +1,10 @@
 using System.Globalization;
+using AgentStudio.Application.Judging;
 using AgentStudio.Application.Projects;
+using AgentStudio.Application.Providers;
+using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Common;
+using AgentStudio.Domain.Providers;
 using AgentStudio.Domain.Requirements;
 using AgentStudio.Domain.Work;
 using AgentStudio.Domain.Work.Milestones;
@@ -125,16 +129,54 @@ public interface IMilestoneService
     Task<IReadOnlyList<MilestoneView>> ListAsync(ProjectContext project, CancellationToken cancellationToken);
 }
 
-/// <summary>What closes a milestone (docs/16 D-49): which one, and who. The commit and the judge are the audit's (WP3 may add what the audit asks: its approval and its progress).</summary>
-public sealed record CloseMilestoneRequest(ProjectContext Project, MilestoneId Milestone, string ClosedBy);
+/// <summary>
+/// What closes a milestone (docs/16 D-49): which one, who, and what the audit asks: the judge of the template (null: the first judge or
+/// auditor that may judge, in the order of the template) and the vendors of the authors the person declares (null: none).
+/// </summary>
+public sealed record CloseMilestoneRequest(ProjectContext Project, MilestoneId Milestone, string ClosedBy, AgentId? Judge = null, IReadOnlyList<VendorId>? DeclaredAuthors = null);
 
 /// <summary>
-/// Closes a milestone by auditing it (docs/16 D-49, F9-10): «Auditar proyecto completo» with the frozen set of the milestone and the
-/// commit integrated, a judge that did not produce the work, the isolated verification and one correction at most; then the
-/// deterministic report around the verdict, and <c>MilestoneClosed</c> with the evidence of that report. The report is no text of an
-/// agent. A milestone with nothing to audit is refused (<c>milestone.nothing-to-close</c>).
+/// A close that did not happen, and nothing of it was written as a close: the milestone cannot be closed as it is (closed, with problems
+/// or with no run linked: <see cref="Rule"/> is the rule of the domain), nobody may judge, the person did not approve the audit, or the
+/// audit did not run to its end. <see cref="Reasons"/> are in Spanish, for the person; <see cref="Audit"/> is the report of an audit that was
+/// launched and whose result closes nothing, or null when none was.
 /// </summary>
+public sealed class MilestoneCloseRefusedException(string rule, IReadOnlyList<string> reasons, AuditReport? audit = null)
+    : InvalidOperationException($"{rule}: {string.Join(" ", reasons)}")
+{
+    public string Rule { get; } = rule;
+
+    public IReadOnlyList<string> Reasons { get; } = reasons;
+
+    public AuditReport? Audit { get; } = audit;
+}
+
+/// <summary>
+/// Closes a milestone by auditing it (docs/16 D-49, F9-10): «Auditar proyecto completo» with the frozen set of the milestone, narrowed to
+/// its runs and debates, on the commit at HEAD, a judge that did not produce the work, the isolated verification and one correction at
+/// most; then the deterministic report around the verdict, kept as evidence, and <c>MilestoneClosed</c> with the evidence of that report.
+/// The report is no text of an agent. Refusals before any quota is spent (no run linked, closed, problems, nobody may judge) and an
+/// audit that was not approved or did not run throw <see cref="MilestoneCloseRefusedException"/>; an audit that ran and escalated
+/// or found deviations closes the milestone all the same, and the report says so (D-50: reopening exists for that).
+/// </summary>
+/// <remarks>
+/// A milestone with debates linked and no run is refused (<c>milestone.nothing-to-close</c>, ADR-0038): there is no work to audit.
+/// The audit releases the project when it ends and the close is written after that, so a run that starts in between is possible;
+/// the log stays correct because the close is an entry of the milestone, not of the project's head.
+/// </remarks>
 public interface IMilestoneCloser
 {
-    Task<MilestoneView> CloseAsync(CloseMilestoneRequest request, CancellationToken cancellationToken);
+    Task<MilestoneView> CloseAsync(CloseMilestoneRequest request, IProgress<AgentEvent>? progress, CancellationToken cancellationToken);
+}
+
+/// <summary>What a listener of the close of a milestone receives: the milestone as it is closed, its report as the last of its <c>Reports</c>, and the audit.</summary>
+public sealed record MilestoneClosedNotice(ProjectContext Project, MilestoneView Milestone, MilestoneReportReference Report, AuditReport Audit);
+
+/// <summary>
+/// The point where what depends on a closed milestone hooks in (the documentation for the client, WP-14D): called once the close is
+/// recorded. A listener that throws never undoes the close (the failure goes to the debug output only).
+/// </summary>
+public interface IMilestoneCloseListener
+{
+    Task OnClosedAsync(MilestoneClosedNotice notice, CancellationToken cancellationToken);
 }
