@@ -29,8 +29,9 @@ internal static class GoldenModel
                     [ClientText.OfSystem(ClientDocumentTexts.ColId), ClientText.OfSystem(ClientDocumentTexts.ColRequirement), ClientText.OfSystem(ClientDocumentTexts.ColIntegrated)],
                     [
                         [ClientText.Written("R1"), ClientText.Written("Pagar con tarjeta | sin recargos"), ClientText.OfSystem(ClientDocumentTexts.Yes)],
-                        [ClientText.Written("R2"), ClientText.Written("- Catálogo con búsqueda"), ClientText.OfSystem(ClientDocumentTexts.No)],
+                        [ClientText.Written("R2"), ClientText.Written("- Catálogo con búsqueda"), ClientText.OfSystem(ClientDocumentTexts.Unknown)],
                     ]),
+                new ClientParagraph(ClientText.OfSystem(ClientDocumentTexts.ScopeDeliveryNote, Commit[..12])),
             ]),
             new(ClientDocumentSectionKind.Verification,
             [
@@ -45,6 +46,8 @@ internal static class GoldenModel
             new(ClientDocumentSectionKind.Annexes,
             [
                 new ClientEvidenceList([new ClientEvidenceReference(new EvidenceId("ev-1"), new string('a', 64), ClientText.Written("Prueba de la caja"))]),
+                new ClientParagraph(ClientText.OfSystem(ClientDocumentTexts.NotIncludedIntro)),
+                new ClientList(Ordered: false, [ClientText.OfSystem(ClientDocumentTexts.NotIncludedPhase9), ClientText.OfSystem(ClientDocumentTexts.NotIncludedDeployed)]),
             ]),
         ]);
 

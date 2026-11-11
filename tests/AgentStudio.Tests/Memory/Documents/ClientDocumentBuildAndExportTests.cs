@@ -81,6 +81,11 @@ public sealed class ClientDocumentBuildAndExportTests
             cancellationToken: Ct);
     }
 
+    private static ClientDocumentExportRequest Approved(MemoryWorld world, ClientDocumentBuild build, IReadOnlyList<ClientDocumentFormat> formats, string destination, string language = "es-ES") =>
+        new(world.Project, build, formats, language, destination, "user", ClientDocumentApproval.Of(build, "user"));
+
+    private static string TempFolder() => Path.Combine(Path.GetTempPath(), "as-docs-" + Guid.NewGuid().ToString("N")[..10]);
+
     private static ClientAgentDraft Draft(bool reviewed) => new(
         ClientDraftKind.Summary,
         ["Un resumen limpio del trabajo.", $"Ver {Folder}\\notas.txt y password={Secret}"],
@@ -167,7 +172,7 @@ public sealed class ClientDocumentBuildAndExportTests
         {
             var build = await Builder(world).BuildAsync(new ClientDocumentBuildRequest(world.Project, "Hito 1", IncludeConsumption: false, []), Ct);
             ClientDocumentExportRequest Request(ClientDocumentBuild b) =>
-                new(world.Project, b, [ClientDocumentFormat.Markdown, ClientDocumentFormat.Html, ClientDocumentFormat.Word, ClientDocumentFormat.Pdf], "es-ES", destination, "user");
+                Approved(world, b, [ClientDocumentFormat.Markdown, ClientDocumentFormat.Html, ClientDocumentFormat.Word, ClientDocumentFormat.Pdf], destination);
             var exporter = Exporter(world);
 
             var first = await exporter.ExportAsync(Request(build), Ct);
@@ -222,13 +227,211 @@ public sealed class ClientDocumentBuildAndExportTests
         var inside = Path.Combine(world.Root, "entrega");
         world.Activity.Busy = true;
         await Assert.ThrowsAsync<ClientDocumentRunBusyException>(() =>
-            Exporter(world).ExportAsync(new ClientDocumentExportRequest(world.Project, build, [ClientDocumentFormat.Markdown], "es-ES", inside, "user"), Ct));
+            Exporter(world).ExportAsync(Approved(world, build, [ClientDocumentFormat.Markdown], inside), Ct));
         Assert.False(Directory.Exists(inside));
 
         world.Activity.Busy = false;
         var lying = build with { Disclosure = build.Disclosure with { AgentWrittenParts = [new ClientAgentPart(ClientDocumentSectionKind.Summary, new RunId("x"), true)] } };
         await Assert.ThrowsAsync<ArgumentException>(() =>
-            Exporter(world).ExportAsync(new ClientDocumentExportRequest(world.Project, lying, [ClientDocumentFormat.Markdown], "es-ES", inside, "user"), Ct));
+            Exporter(world).ExportAsync(Approved(world, lying, [ClientDocumentFormat.Markdown], inside), Ct));
         Assert.Empty(await world.EntriesAsync(DecisionKind.ClientDocumentExported));
+    }
+
+    [Fact]
+    public async Task Nothing_is_exported_without_the_approval_of_the_person_or_with_the_approval_of_another_preview()
+    {
+        using var world = await MemoryWorld.CreateAsync();
+        await SeedAsync(world);
+        var destination = TempFolder();
+        var build = await Builder(world).BuildAsync(new ClientDocumentBuildRequest(world.Project, null, IncludeConsumption: false, []), Ct);
+        var other = await Builder(world).BuildAsync(new ClientDocumentBuildRequest(world.Project, "Otro hito", IncludeConsumption: false, []), Ct);
+        var formats = new[] { ClientDocumentFormat.Markdown };
+
+        var none = Approved(world, build, formats, destination) with { Approval = null };
+        var ofAnother = Approved(world, build, formats, destination) with { Approval = ClientDocumentApproval.Of(other, "user") };
+        var otherList = Approved(world, build, formats, destination) with
+        {
+            Approval = ClientDocumentApproval.Of(build, "user") with { DisclosureSha256 = new string('0', 64) },
+        };
+        var anonymous = Approved(world, build, formats, destination) with { Approval = ClientDocumentApproval.Of(build, " ") };
+        foreach (var request in new[] { none, ofAnother, otherList, anonymous })
+        {
+            await Assert.ThrowsAsync<ArgumentException>(() => Exporter(world).ExportAsync(request, Ct));
+        }
+
+        Assert.False(Directory.Exists(destination));
+        Assert.Empty(await world.EntriesAsync(DecisionKind.ClientDocumentExported));
+    }
+
+    [Fact]
+    public async Task A_junction_to_the_project_does_not_dodge_the_check_of_the_run_and_git_and_the_data_are_never_written()
+    {
+        using var world = await MemoryWorld.CreateAsync();
+        await SeedAsync(world);
+        var build = await Builder(world).BuildAsync(new ClientDocumentBuildRequest(world.Project, null, IncludeConsumption: false, []), Ct);
+        var outside = TempFolder();
+        Directory.CreateDirectory(outside);
+        var link = Path.Combine(outside, "enlace");
+        try
+        {
+            RunMklinkJunction(link, world.Root);
+            Directory.CreateDirectory(Path.Combine(world.Root, "entrega"));
+
+            world.Activity.Busy = true;
+            await Assert.ThrowsAsync<ClientDocumentRunBusyException>(() =>
+                Exporter(world).ExportAsync(Approved(world, build, [ClientDocumentFormat.Markdown], Path.Combine(link, "entrega")), Ct));
+            await Assert.ThrowsAsync<ClientDocumentRunBusyException>(() =>
+                Exporter(world).ExportAsync(Approved(world, build, [ClientDocumentFormat.Markdown], Path.Combine(link, "nueva", "carpeta")), Ct));
+            Assert.Empty(Directory.GetFiles(Path.Combine(world.Root, "entrega")));
+            Assert.False(Directory.Exists(Path.Combine(world.Root, "nueva")));
+
+            world.Activity.Busy = false;
+            foreach (var protectedFolder in new[] { ".git", ".agentstudio", Path.Combine(".agentstudio", "memory"), Path.Combine("sub", ".git") })
+            {
+                foreach (var destination in new[] { Path.Combine(world.Root, protectedFolder), Path.Combine(link, protectedFolder) })
+                {
+                    var error = await Assert.ThrowsAsync<ArgumentException>(() =>
+                        Exporter(world).ExportAsync(Approved(world, build, [ClientDocumentFormat.Markdown], destination), Ct));
+                    Assert.Contains("document.export-destination-protected", error.Message, StringComparison.Ordinal);
+                }
+            }
+
+            Assert.Empty(await world.EntriesAsync(DecisionKind.ClientDocumentExported));
+        }
+        finally
+        {
+            if (Directory.Exists(link))
+            {
+                Directory.Delete(link);
+            }
+
+            Directory.Delete(outside, recursive: true);
+        }
+    }
+
+    private static void RunMklinkJunction(string link, string target)
+    {
+        var start = new System.Diagnostics.ProcessStartInfo("cmd.exe", $"/c mklink /J \"{link}\" \"{target}\"") { CreateNoWindow = true, UseShellExecute = false, RedirectStandardOutput = true };
+        using var process = System.Diagnostics.Process.Start(start)!;
+        process.WaitForExit();
+        Assert.Equal(0, process.ExitCode);
+    }
+
+    /// <summary>It says a run is not going the first time it is asked and that one is going from then on, as when it starts while a PDF is printed.</summary>
+    private sealed class StartsLater : AgentStudio.Application.Orchestration.IRunActivity
+    {
+        private int _asked;
+
+        public bool IsBusy(string projectId) => Interlocked.Increment(ref _asked) > 1;
+    }
+
+    [Fact]
+    public async Task A_run_that_starts_while_the_document_is_rendered_stops_the_export_and_the_folder_it_made_is_removed()
+    {
+        using var world = await MemoryWorld.CreateAsync();
+        await SeedAsync(world);
+        var build = await Builder(world).BuildAsync(new ClientDocumentBuildRequest(world.Project, null, IncludeConsumption: false, []), Ct);
+        var inside = Path.Combine(world.Root, "entregas", "cliente");
+        var exporter = new ClientDocumentExporter(Writers(world), world.Instance.Evidence, world.Instance.Recorder, new StartsLater(), world.Redactor);
+
+        await Assert.ThrowsAsync<ClientDocumentRunBusyException>(() =>
+            exporter.ExportAsync(Approved(world, build, [ClientDocumentFormat.Markdown, ClientDocumentFormat.Html], inside), Ct));
+
+        Assert.False(Directory.Exists(inside));
+        Assert.False(Directory.Exists(Path.Combine(world.Root, "entregas")));
+        Assert.Empty(await world.EntriesAsync(DecisionKind.ClientDocumentExported));
+    }
+
+    [Fact]
+    public async Task A_folder_that_already_existed_stays_when_the_export_fails()
+    {
+        using var world = await MemoryWorld.CreateAsync();
+        await SeedAsync(world);
+        var build = await Builder(world).BuildAsync(new ClientDocumentBuildRequest(world.Project, null, IncludeConsumption: false, []), Ct);
+        var inside = Path.Combine(world.Root, "entregas");
+        Directory.CreateDirectory(inside);
+        var exporter = new ClientDocumentExporter(Writers(world), world.Instance.Evidence, world.Instance.Recorder, new StartsLater(), world.Redactor);
+
+        await Assert.ThrowsAsync<ClientDocumentRunBusyException>(() =>
+            exporter.ExportAsync(Approved(world, build, [ClientDocumentFormat.Markdown], inside), Ct));
+
+        Assert.True(Directory.Exists(inside));
+    }
+
+    [Fact]
+    public async Task A_requirement_is_integrated_only_when_a_passing_run_of_the_delivered_commit_covers_it_and_otherwise_it_says_no_data()
+    {
+        using var world = await MemoryWorld.CreateAsync();
+        var id = world.Instance.ProjectId;
+        await world.Instance.Requirements.SaveAsync(
+            id,
+            FrozenRequirementSet.Freeze(
+                [Req("R1", RequirementPriority.Mandatory, "uno", Crit("c1", VerificationMethod.AutomatedTest)), Req("R2", RequirementPriority.Mandatory, "dos", Crit("c2", VerificationMethod.AutomatedTest))],
+                T0),
+            Ct);
+        async Task Capture(string title, string? commit, params string[] covers)
+        {
+            using var content = new MemoryStream("ok"u8.ToArray());
+            await world.Instance.Evidence.CaptureAsync(
+                id,
+                new EvidenceDraft(EvidenceKind.TestRun, EvidenceOrigin.CapturedBySystem, title, "agent-studio", new TestRunSummary(3, 0, 0, 0), [.. covers.Select(Rid)], SubjectCommit: commit),
+                content,
+                Ct);
+        }
+
+        await Capture("sobre el commit entregado", GoldenModel.Commit, "R1");
+        await Capture("sobre otro commit", new string('b', 40), "R2");
+        var scopeBefore = (await Builder(world).BuildAsync(new ClientDocumentBuildRequest(world.Project, null, IncludeConsumption: false, []), Ct)).Document;
+        Assert.DoesNotContain(scopeBefore.Texts(), t => t.Text.System?.Code is ClientDocumentTexts.ScopeDeliveryNote or ClientDocumentTexts.Unknown);
+        Assert.Equal([ClientDocumentTexts.No, ClientDocumentTexts.No], IntegratedCodes(scopeBefore));
+
+        await world.Instance.Recorder.RecordAsync(
+            id,
+            new Actor(ActorKind.System, "test"),
+            DecisionKind.IntegrationPerformed,
+            "Entrega",
+            new IntegrationPerformedPayload(null, "main", ["t1"], GoldenModel.Commit, [], IsDelivery: true) { RunId = "run-1" },
+            cancellationToken: Ct);
+        var document = (await Builder(world).BuildAsync(new ClientDocumentBuildRequest(world.Project, null, IncludeConsumption: false, []), Ct)).Document;
+
+        Assert.Equal([ClientDocumentTexts.Yes, ClientDocumentTexts.Unknown], IntegratedCodes(document));
+        var note = Assert.Single(document.Texts(), t => t.Text.System?.Code == ClientDocumentTexts.ScopeDeliveryNote);
+        Assert.Equal(GoldenModel.Commit[..12], note.Text.System!.Arguments[0]);
+        Assert.Contains(document.Texts(), t => t.Text.System?.Code == ClientDocumentTexts.NotIncludedDeployed);
+    }
+
+    private static List<string> IntegratedCodes(ClientDocument document) =>
+        [.. document.Sections.Single(s => s.Kind == ClientDocumentSectionKind.Scope).Blocks.OfType<ClientTable>().Single().Rows.Select(r => r[5].System!.Code)];
+
+    [Fact]
+    public async Task The_properties_of_the_word_and_the_names_of_the_files_hold_no_secret_either()
+    {
+        using var world = await MemoryWorld.CreateAsync();
+        await SeedAsync(world);
+        var destination = TempFolder();
+        try
+        {
+            var build = await Builder(world).BuildAsync(new ClientDocumentBuildRequest(world.Project, $"Hito password={Secret}", IncludeConsumption: false, []), Ct);
+            var result = await Exporter(world).ExportAsync(Approved(world, build, [ClientDocumentFormat.Markdown, ClientDocumentFormat.Word], destination), Ct);
+
+            Assert.All(result.Files, f => Assert.DoesNotContain("hunter2xyz", f.FileName, StringComparison.OrdinalIgnoreCase));
+            var word = result.Files.Single(f => f.Format == ClientDocumentFormat.Word);
+            using var zip = new ZipArchive(File.OpenRead(Path.Combine(destination, word.FileName)), ZipArchiveMode.Read);
+            var core = zip.Entries.Single(e => e.FullName.EndsWith(".psmdcp", StringComparison.Ordinal));
+            using var reader = new StreamReader(core.Open(), Encoding.UTF8);
+            var properties = reader.ReadToEnd();
+            Assert.Contains("Agent Studio", properties, StringComparison.Ordinal);
+            foreach (var forbidden in new[] { Secret, "Clientes Acme", "secretos", @"C:\Users" })
+            {
+                Assert.DoesNotContain(forbidden, properties, StringComparison.Ordinal);
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(destination))
+            {
+                Directory.Delete(destination, recursive: true);
+            }
+        }
     }
 }

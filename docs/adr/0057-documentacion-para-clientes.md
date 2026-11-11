@@ -156,8 +156,20 @@
 - **Qué entra de verdad.** Resumen con cifras, alcance (implementado, revisado e integrado), verificación (pruebas del sistema y
   veredicto por requisito), decisiones de la memoria de confianza, entregas y cambios anotados, riesgos y pendientes (requisitos no
   satisfechos, impugnaciones, alertas del auditor, errores conocidos y objeciones del juez, marcadas como de un agente) y anexos
-  (índice de evidencias con su huella y glosario). «Integrado» es hoy «el registro tiene una entrega»; el estado por requisito de
-  la Fase 9, los PR, los ficheros por zona, los ADR del repositorio y «Desplegado» no salen todavía.
+  (índice de evidencias con su huella y glosario). «Integrado» es «sí» solo si una prueba que pasa, capturada por el sistema, cubre el
+  requisito y se ejecutó sobre un commit entregado (como cuenta el dossier del juez); sin entrega es «no», y con entrega pero sin esa
+  prueba, «sin dato», con una línea que dice qué commit se entregó. El estado por requisito de los hitos, los PR, los ficheros por
+  zona, los ADR del repositorio y «Desplegado» no salen, y el propio documento lo dice en sus anexos («No incluido») y la pantalla
+  también.
+- **La aprobación es de la petición.** `ClientDocumentExportRequest` lleva `ClientDocumentApproval` (quién, y la huella del modelo y
+  de la lista de lo que sale que leyó); el exportador la exige y la verifica contra lo que va a escribir
+  (`document.export-approval-required` y `-mismatch`).
+- **El destino real.** El exportador sigue enlaces y junctions (también en las carpetas de arriba) antes de mirar si está dentro del
+  proyecto, veta `.git` y `.agentstudio` (`document.export-destination-protected`), repite la comprobación de la ejecución en curso
+  antes de cada fichero y, si falla, quita las carpetas que creó él si quedaron vacías. La pantalla exporta con el idioma de la vista
+  previa aprobada, y un resultado que llega tras cambiar hito o idioma se descarta.
+- **El cierre de un hito** llega por `IMilestoneCloseListener` (`ClientDocumentsMilestoneListener`): ofrece el documento del hito en
+  la pantalla, sin generar ni exportar nada sin la aprobación de la persona.
 - **Cómo no se fuga nada.** Toda cadena pasa por `DocumentTextCleaner` antes de ser un texto del modelo (caracteres ocultos fuera,
   secretos redactados, rutas quitadas con espacios incluidos), el borrador de un agente vuelve a pasar por `ClientDraftRules.Check`
   dentro del constructor, y cada escritor y el exportador validan `ClientDocumentRules` antes de escribir.

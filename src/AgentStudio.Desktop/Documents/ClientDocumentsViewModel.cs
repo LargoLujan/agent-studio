@@ -34,6 +34,8 @@ public sealed partial class ClientDocumentsViewModel : DocumentViewModel
     private readonly IFolderPicker? _folders;
     private ProjectContext? _project;
     private ClientDocumentBuild? _build;
+    private string _builtLanguage = UiLanguages.SourceCulture;
+    private int _generation;
 
     /// <param name="workspace">Opens the project to know its id.</param>
     /// <param name="builder">Builds the model; null when it was not composed (the screen says so).</param>
@@ -191,6 +193,23 @@ public sealed partial class ClientDocumentsViewModel : DocumentViewModel
         return GenerateAsync();
     }
 
+    /// <summary>A milestone was closed and its document is offered (docs/16 D-49): the shell opens this tab. Nothing was generated or exported.</summary>
+    public event EventHandler? MilestoneOffered;
+
+    /// <summary>
+    /// A milestone of <paramref name="projectRoot"/> was closed: the screen follows that project, takes the name of the milestone and says
+    /// that its document can be generated. It builds nothing and exports nothing: the person generates, reviews and approves.
+    /// </summary>
+    public async Task OfferForClosedMilestoneAsync(string projectRoot, string milestone)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectRoot);
+        ArgumentException.ThrowIfNullOrWhiteSpace(milestone);
+        await SetProjectAsync(projectRoot).ConfigureAwait(true);
+        Milestone = milestone;
+        StatusMessage = Texts.Format("Documents_MilestoneClosed", milestone);
+        MilestoneOffered?.Invoke(this, EventArgs.Empty);
+    }
+
     partial void OnMilestoneChanged(string value) => Forget();
 
     partial void OnSelectedLanguageChanged(UiLanguage value) => Forget();
@@ -208,15 +227,26 @@ public sealed partial class ClientDocumentsViewModel : DocumentViewModel
 
         IsBusy = true;
         Forget();
+
+        // What the document is made with is fixed now: the language and the milestone of the screen can change while it builds, and the
+        // result is then dropped (Forget moves the generation), never exported with the ones of that moment.
+        var generation = _generation;
+        var language = SelectedLanguage.CultureName;
+        var milestone = string.IsNullOrWhiteSpace(Milestone) ? null : Milestone.Trim();
         ErrorMessage = null;
         StatusMessage = Texts.Get("Documents_Status_Generating");
         try
         {
-            var build = await _builder.BuildAsync(
-                new ClientDocumentBuildRequest(project, string.IsNullOrWhiteSpace(Milestone) ? null : Milestone.Trim(), IncludeConsumption: false, []),
-                CancellationToken.None).ConfigureAwait(true);
-            var markdown = await _markdownWriter.RenderAsync(build.Document, SelectedLanguage.CultureName, CancellationToken.None).ConfigureAwait(true);
+            var build = await _builder.BuildAsync(new ClientDocumentBuildRequest(project, milestone, IncludeConsumption: false, []), CancellationToken.None).ConfigureAwait(true);
+            var markdown = await _markdownWriter.RenderAsync(build.Document, language, CancellationToken.None).ConfigureAwait(true);
+            if (generation != _generation)
+            {
+                StatusMessage = null;
+                return;
+            }
+
             _build = build;
+            _builtLanguage = language;
             Preview = System.Text.Encoding.UTF8.GetString(markdown);
             ShowDisclosure(build.Disclosure);
             StatusMessage = Texts.Format("Documents_Status_Ready", build.Document.Cover.Version);
@@ -279,7 +309,9 @@ public sealed partial class ClientDocumentsViewModel : DocumentViewModel
         ExportedFiles.Clear();
         try
         {
-            var request = new ClientDocumentExportRequest(project, build, formats, SelectedLanguage.CultureName, Destination, ApprovalPromptService.DecidedBy);
+            // The language and the document are those of the preview the person approved, not the ones the screen shows now.
+            var request = new ClientDocumentExportRequest(
+                project, build, formats, _builtLanguage, Destination, ApprovalPromptService.DecidedBy, ClientDocumentApproval.Of(build, ApprovalPromptService.DecidedBy));
             var result = await _exporter.ExportAsync(request, CancellationToken.None).ConfigureAwait(true);
             foreach (var file in result.Files)
             {
@@ -341,6 +373,7 @@ public sealed partial class ClientDocumentsViewModel : DocumentViewModel
     /// <summary>Drops the preview, the list and the approval: what the person reviewed is no longer what would be exported.</summary>
     private void Forget()
     {
+        _generation++;
         _build = null;
         Approved = false;
         Preview = string.Empty;

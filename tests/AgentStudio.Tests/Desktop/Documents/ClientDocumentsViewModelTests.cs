@@ -109,6 +109,86 @@ public sealed class ClientDocumentsViewModelTests
         Assert.False(vm.HasPreview);
     }
 
+    private sealed class GatedBuilder : IClientDocumentBuilder
+    {
+        public TaskCompletionSource Gate { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public async Task<ClientDocumentBuild> BuildAsync(ClientDocumentBuildRequest request, CancellationToken ct)
+        {
+            await Gate.Task;
+            return GoldenModel.Prepared();
+        }
+    }
+
+    [Fact]
+    public async Task The_export_carries_the_approval_of_what_was_previewed_and_the_language_of_that_preview()
+    {
+        var (vm, exporter, _) = await OpenAsync();
+        vm.Destination = @"C:\salida";
+        vm.SelectedLanguage = vm.Languages[1];
+        await vm.GenerateCommand.ExecuteAsync(null);
+        vm.Approved = true;
+        await vm.ExportCommand.ExecuteAsync(null);
+
+        var request = Assert.Single(exporter.Requests);
+        Assert.Equal("en", request.Language);
+        Assert.NotNull(request.Approval);
+        Assert.Equal(request.Build.Document.Sha256(), request.Approval.ModelSha256);
+        Assert.Equal(request.Build.Disclosure.Sha256(), request.Approval.DisclosureSha256);
+        Assert.Equal("user", request.Approval.ApprovedBy);
+    }
+
+    [Fact]
+    public async Task Changing_the_language_while_the_document_is_generated_drops_that_result_and_mixes_no_languages()
+    {
+        var texts = new ResourceUserTextRenderer();
+        var gated = new GatedBuilder();
+        var exporter = new FakeExporter();
+        var vm = new ClientDocumentsViewModel(new FakeWorkspace(), gated, exporter, [new MarkdownDocumentWriter(texts, Redactor)], null);
+        await vm.SetProjectAsync(@"C:\x\proyecto");
+        vm.Destination = @"C:\salida";
+        vm.SelectedLanguage = vm.Languages[0];
+
+        var generating = vm.GenerateCommand.ExecuteAsync(null);
+        vm.SelectedLanguage = vm.Languages[1];
+        gated.Gate.SetResult();
+        await generating;
+
+        Assert.False(vm.HasPreview);
+        Assert.Equal(string.Empty, vm.Preview);
+        vm.Approved = true;
+        Assert.False(vm.ExportCommand.CanExecute(null));
+        Assert.Empty(exporter.Requests);
+    }
+
+    [Fact]
+    public async Task A_closed_milestone_offers_its_document_and_builds_and_exports_nothing()
+    {
+        var (vm, exporter, builder) = await OpenAsync();
+        var offered = 0;
+        vm.MilestoneOffered += (_, _) => offered++;
+
+        await new ClientDocumentsMilestoneListener(vm).OnClosedAsync(
+            new AgentStudio.Application.Work.MilestoneClosedNotice(Project, MilestoneOf("Hito 4"), null!, null!),
+            Ct);
+
+        Assert.Equal(1, offered);
+        Assert.Equal("Hito 4", vm.Milestone);
+        Assert.Equal(0, builder.Builds);
+        Assert.Empty(exporter.Requests);
+        Assert.False(vm.HasPreview);
+        Assert.Contains("Hito 4", vm.StatusMessage, StringComparison.Ordinal);
+    }
+
+    private static AgentStudio.Application.Work.MilestoneView MilestoneOf(string name) => new(
+        new AgentStudio.Domain.Work.Milestones.MilestoneHeader(new AgentStudio.Domain.Work.Milestones.MilestoneId("mil-1"), name, "objetivo", new string('a', 64), null, GoldenModel.At),
+        default,
+        new string('a', 64),
+        [],
+        [],
+        [],
+        []);
+
     [Fact]
     public async Task The_pdf_is_the_printed_html_of_the_same_model()
     {

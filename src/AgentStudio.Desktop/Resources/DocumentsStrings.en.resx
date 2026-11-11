@@ -235,6 +235,36 @@
   <data name="Text_document_glossary_fingerprint" xml:space="preserve">
     <value>Fingerprint: the SHA-256 of the content.</value>
   </data>
+  <data name="Text_document_unknown" xml:space="preserve">
+    <value>No data</value>
+  </data>
+  <data name="Text_document_scope_delivery_note" xml:space="preserve">
+    <value>There is a delivery with commit {0}; the system cannot say requirement by requirement whether it covers it, so those requirements show «no data».</value>
+  </data>
+  <data name="Text_document_not_included_intro" xml:space="preserve">
+    <value>Not included in this document:</value>
+  </data>
+  <data name="Text_document_not_included_requirement_state" xml:space="preserve">
+    <value>The state of each requirement according to the milestones of the project.</value>
+  </data>
+  <data name="Text_document_not_included_pull_requests" xml:space="preserve">
+    <value>The pull requests.</value>
+  </data>
+  <data name="Text_document_not_included_files" xml:space="preserve">
+    <value>The files changed, grouped by area.</value>
+  </data>
+  <data name="Text_document_not_included_deployed" xml:space="preserve">
+    <value>Whether the change is deployed: Agent Studio deploys nothing and does not know.</value>
+  </data>
+  <data name="Documents_NotIncluded" xml:space="preserve">
+    <value>Not included: the state of each requirement by milestone, pull requests, files by area and whether it is deployed. The document says so in its annexes.</value>
+  </data>
+  <data name="Documents_Status_Approval" xml:space="preserve">
+    <value>The approval is about this preview and this list: if you change the milestone or the language, generate it again.</value>
+  </data>
+  <data name="Documents_MilestoneClosed" xml:space="preserve">
+    <value>The milestone «{0}» was closed: generate its document to review it. Nothing is exported without your approval.</value>
+  </data>
   <data name="Documents_Title" xml:space="preserve">
     <value>Client documentation</value>
   </data>

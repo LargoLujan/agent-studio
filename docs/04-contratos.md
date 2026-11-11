@@ -2024,7 +2024,9 @@ public sealed record ClientDocumentExportedPayload(int Version, string? Mileston
   `PdfDocumentWriter`, `IHtmlPdfPrinter`, `WebView2PdfPrinter` y `ClientDocumentsViewModel` en `Desktop/Documents`, compuestos en
   `Composition/DocumentsServices.cs`. En `Application/Documents` se añaden `ClientDocumentTexts` (los códigos `document.*`) y
   `ClientDocumentReading` (la lectura común del modelo de los escritores). Los textos están en `Resources/DocumentsStrings*.resx`.
-  Sigue sin implementar `IClientDocumentDrafter`. Ver la adenda de [ADR-0057](adr/0057-documentacion-para-clientes.md).
+  `ClientDocumentExportRequest` gana al final `ClientDocumentApproval? Approval` (`Of(build, quién)`; la huella de la lista es
+  `ClientDocumentDisclosure.Sha256()`), que el exportador exige. `ClientDocumentsMilestoneListener` implementa
+  `IMilestoneCloseListener` (§23). Sigue sin implementar `IClientDocumentDrafter`. Ver la adenda de [ADR-0057](adr/0057-documentacion-para-clientes.md).
 - **Qué hace cada paquete encima:** WP-14C pone el corpus (`Desktop/Help`), el índice de búsqueda, el panel, `F1`, el catálogo de
   acciones, `IHelpAgent` y los textos de la tarjeta; WP-14D, el constructor, los textos `Text_document_…`, los escritores, el
   exportador, el borrador con un agente y la pantalla de revisión. Los dos añaden sus tests (F14-7 a F14-9).

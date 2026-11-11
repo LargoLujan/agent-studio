@@ -49,14 +49,37 @@ public sealed class ClientDocumentExporter(
             throw new DecisionLogIntegrityException(projectId, state.Verification);
         }
 
-        var destination = Path.GetFullPath(request.DestinationDirectory);
-        var inside = IsInside(request.Project.RootPath, destination);
-        if (inside && activity.IsBusy(projectId))
+        var document = request.Build.Document;
+
+        // The person's approval is the request's, not the screen's: it names who approved and the fingerprints of the document and of the
+        // list of what goes out that are about to be written, so a caller that skips the screen cannot skip it.
+        var approval = request.Approval ?? throw new ArgumentException("document.export-approval-required: the export needs the approval of the person.", nameof(request));
+        if (string.IsNullOrWhiteSpace(approval.ApprovedBy)
+            || !string.Equals(approval.ModelSha256, document.Sha256(), StringComparison.Ordinal)
+            || !string.Equals(approval.DisclosureSha256, request.Build.Disclosure.Sha256(), StringComparison.Ordinal))
         {
-            throw new ClientDocumentRunBusyException();
+            throw new ArgumentException("document.export-approval-mismatch: the approval is not about this document and this list of what goes out.", nameof(request));
         }
 
-        var document = request.Build.Document;
+        // Links and junctions are followed (also in the folders above): the folder written is the real one, so a link to the project cannot
+        // dodge the check of the run, nor point at its repository or its data.
+        var destination = ResolveReal(request.DestinationDirectory);
+        var root = ResolveReal(request.Project.RootPath);
+        var inside = IsInside(root, destination);
+        if (inside && IsProtected(root, destination))
+        {
+            throw new ArgumentException("document.export-destination-protected: a document is never written into .git or .agentstudio.", nameof(request));
+        }
+
+        void EnsureNotBusy()
+        {
+            if (inside && activity.IsBusy(projectId))
+            {
+                throw new ClientDocumentRunBusyException();
+            }
+        }
+
+        EnsureNotBusy();
         var needed = request.Formats.Append(ClientDocumentFormat.Markdown).Distinct().ToList();
         foreach (var format in needed.Where(f => !_writers.ContainsKey(f)))
         {
@@ -73,11 +96,23 @@ public sealed class ClientDocumentExporter(
         var cover = document.Cover;
         var created = new List<string>();
         var files = new List<ExportedClientFile>();
+
+        // The folders this export makes (the destination and the parents that did not exist), to take them away if it fails and they are empty.
+        var made = new List<string>();
+        for (var folder = destination; !Directory.Exists(folder) && Path.GetDirectoryName(folder) is not null; folder = Path.GetDirectoryName(folder)!)
+        {
+            made.Add(folder);
+        }
+
         try
         {
+            Directory.CreateDirectory(destination);
             foreach (var format in request.Formats)
             {
                 ct.ThrowIfCancellationRequested();
+
+                // Rendering a PDF can take a minute: a run may have started since the check above.
+                EnsureNotBusy();
                 var bytes = rendered[format];
                 var name = WriteWithoutOverwriting(destination, ClientDocumentFiles.FileName(cover.Project, cover.Milestone, cover.Version, format), bytes, created);
                 files.Add(new ExportedClientFile(format, name, ContentHash.Sha256Hex(bytes), bytes.Length));
@@ -111,14 +146,76 @@ public sealed class ClientDocumentExporter(
                 TryDelete(path);
             }
 
+            foreach (var folder in made)
+            {
+                TryDeleteEmptyDirectory(folder);
+            }
+
             throw;
         }
     }
 
     private static bool IsInside(string root, string directory)
     {
-        var folder = Path.TrimEndingDirectorySeparator(Path.GetFullPath(root)) + Path.DirectorySeparatorChar;
+        var folder = Path.TrimEndingDirectorySeparator(root) + Path.DirectorySeparatorChar;
         return (Path.TrimEndingDirectorySeparator(directory) + Path.DirectorySeparatorChar).StartsWith(folder, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Whether <paramref name="directory"/>, inside <paramref name="root"/>, is the repository's (<c>.git</c>) or the data's (<c>.agentstudio</c>) folder or under one.</summary>
+    private static bool IsProtected(string root, string directory) =>
+        Path.GetRelativePath(root, directory).Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            .Any(part => part.Equals(".git", StringComparison.OrdinalIgnoreCase) || part.Equals(".agentstudio", StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// The full path with every link and junction on it followed, also the ones in the folders above, and also when the folder does not
+    /// exist yet (what is missing is added as it is). A link that loops, or is too deep, is refused.
+    /// </summary>
+    internal static string ResolveReal(string path)
+    {
+        var current = Path.GetFullPath(path);
+        for (var round = 0; round < 16; round++)
+        {
+            var parts = current.Substring(Path.GetPathRoot(current)!.Length).Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+            var resolved = Path.GetPathRoot(current)!;
+            var changed = false;
+            foreach (var part in parts)
+            {
+                var next = Path.Combine(resolved, part);
+                if (!changed && Directory.Exists(next) && new DirectoryInfo(next).ResolveLinkTarget(returnFinalTarget: true) is { } target)
+                {
+                    resolved = Path.GetFullPath(target.FullName);
+                    changed = true;
+                }
+                else
+                {
+                    resolved = next;
+                }
+            }
+
+            if (!changed)
+            {
+                return resolved;
+            }
+
+            current = resolved;
+        }
+
+        throw new IOException("The folder has too many links to be resolved.");
+    }
+
+    private static void TryDeleteEmptyDirectory(string path)
+    {
+        try
+        {
+            if (Directory.Exists(path) && !Directory.EnumerateFileSystemEntries(path).Any())
+            {
+                Directory.Delete(path);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Best effort: a folder that cannot be removed stays, empty.
+        }
     }
 
     /// <summary>

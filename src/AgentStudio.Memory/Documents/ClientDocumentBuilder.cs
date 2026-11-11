@@ -94,7 +94,8 @@ public sealed class ClientDocumentBuilder(
             .ToList();
         var verdictOf = LastAssessments(stored);
 
-        var scope = BuildScope(set, systemRuns, verdictOf, deliveries.Count > 0, cleaner);
+        var delivered = deliveries.Select(d => d.Payload.ResultCommit!.ToLowerInvariant()).ToList();
+        var scope = BuildScope(set, systemRuns, verdictOf, delivered, cleaner);
         var verification = BuildVerification(set, systemRuns, verdictOf, cleaner);
         var decisions = BuildDecisions(trusted, cleaner);
         var changes = BuildChanges(deliveries, trusted, cleaner);
@@ -161,7 +162,7 @@ public sealed class ClientDocumentBuilder(
         FrozenRequirementSet? set,
         IReadOnlyList<EvidenceRecord> systemRuns,
         IReadOnlyDictionary<string, (StoredVerdict Stored, RequirementAssessment Assessment)> verdictOf,
-        bool delivered,
+        IReadOnlyList<string> delivered,
         DocumentTextCleaner cleaner)
     {
         if (set is null)
@@ -170,9 +171,29 @@ public sealed class ClientDocumentBuilder(
         }
 
         var rows = new List<IReadOnlyList<ClientText>>();
+        var unknown = false;
         foreach (var requirement in set.Requirements)
         {
             var id = requirement.Id.Value;
+
+            // Integrated only when what the system verified is the delivered commit itself, as the judge's dossier counts it: a test run
+            // it captured, that passes, covers the requirement and was run on a commit that was delivered. A delivery with no such run
+            // says nothing about this requirement: «sin dato», never «sí».
+            ClientText integrated;
+            if (delivered.Count == 0)
+            {
+                integrated = YesNo(false);
+            }
+            else if (systemRuns.Any(r => r.TestRun!.Succeeded && r.Covers.Contains(requirement.Id) && r.SubjectCommit is not null && delivered.Contains(r.SubjectCommit, StringComparer.OrdinalIgnoreCase)))
+            {
+                integrated = YesNo(true);
+            }
+            else
+            {
+                integrated = ClientText.OfSystem(ClientDocumentTexts.Unknown);
+                unknown = true;
+            }
+
             var implemented = systemRuns.Any(r => r.TestRun!.Succeeded && r.Covers.Contains(requirement.Id));
             var reviewed = verdictOf.TryGetValue(id, out var v)
                 && v.Stored.Valid && v.Stored.Verdict.Decision == VerdictDecision.Approved && v.Assessment.Status == AssessmentStatus.Satisfied;
@@ -183,17 +204,23 @@ public sealed class ClientDocumentBuilder(
                 ClientText.OfSystem(requirement.Priority == RequirementPriority.Mandatory ? ClientDocumentTexts.PriorityMandatory : ClientDocumentTexts.PriorityDesirable),
                 YesNo(implemented),
                 YesNo(reviewed),
-                YesNo(delivered),
+                integrated,
             ]);
         }
 
-        return
-        [
+        var blocks = new List<ClientDocumentBlock>
+        {
             new ClientParagraph(ClientText.OfSystem(ClientDocumentTexts.ScopeIntro)),
             new ClientTable(
                 [Header(ClientDocumentTexts.ColId), Header(ClientDocumentTexts.ColRequirement), Header(ClientDocumentTexts.ColPriority), Header(ClientDocumentTexts.ColImplemented), Header(ClientDocumentTexts.ColReviewed), Header(ClientDocumentTexts.ColIntegrated)],
                 rows),
-        ];
+        };
+        if (unknown)
+        {
+            blocks.Add(new ClientParagraph(ClientText.OfSystem(ClientDocumentTexts.ScopeDeliveryNote, delivered[^1][..Math.Min(12, delivered[^1].Length)])));
+        }
+
+        return blocks;
     }
 
     private static List<ClientDocumentBlock> BuildVerification(
@@ -454,6 +481,17 @@ public sealed class ClientDocumentBuilder(
                     ClientText.OfSystem(ClientDocumentTexts.GlossaryEvidence),
                     ClientText.OfSystem(ClientDocumentTexts.GlossaryVerdict),
                     ClientText.OfSystem(ClientDocumentTexts.GlossaryFingerprint),
+                ]),
+
+            // What D-58 describes and this version cannot yet say, said in the document itself: the client is not left to guess.
+            new ClientParagraph(ClientText.OfSystem(ClientDocumentTexts.NotIncludedIntro)),
+            new ClientList(
+                Ordered: false,
+                [
+                    ClientText.OfSystem(ClientDocumentTexts.NotIncludedPhase9),
+                    ClientText.OfSystem(ClientDocumentTexts.NotIncludedPullRequests),
+                    ClientText.OfSystem(ClientDocumentTexts.NotIncludedFiles),
+                    ClientText.OfSystem(ClientDocumentTexts.NotIncludedDeployed),
                 ]),
         ];
     }

@@ -22,7 +22,9 @@ Each requirement with its state: implemented \(covered by passing tests the syst
 | Id | Requirement | Integrated |
 | --- | --- | --- |
 | R1 | Pagar con tarjeta \| sin recargos | Yes |
-| R2 | \- Catálogo con búsqueda | No |
+| R2 | \- Catálogo con búsqueda | No data |
+
+There is a delivery with commit 0123456789ab; the system cannot say requirement by requirement whether it covers it, so those requirements show «no data».
 
 ## Verification
 
@@ -44,3 +46,8 @@ There are no recorded risks or pending items.
 ## Annexes
 
 - ev-1 · Prueba de la caja · SHA-256: `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`
+
+Not included in this document:
+
+- The state of each requirement according to the milestones of the project.
+- Whether the change is deployed: Agent Studio deploys nothing and does not know.

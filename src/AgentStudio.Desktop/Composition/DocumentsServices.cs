@@ -1,6 +1,7 @@
 using AgentStudio.Application.Documents;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Security;
+using AgentStudio.Application.Work;
 using AgentStudio.Desktop.Documents;
 using AgentStudio.Desktop.Services;
 using AgentStudio.Infrastructure.Documents.Docx;
@@ -38,6 +39,7 @@ internal static class DocumentsServices
             provider.GetService<IClientDocumentExporter>(),
             provider.GetServices<IClientDocumentFormatWriter>(),
             provider.GetService<IFolderPicker>()));
+        services.AddSingleton<IMilestoneCloseListener>(provider => new ClientDocumentsMilestoneListener(provider.GetRequiredService<ClientDocumentsViewModel>()));
         return services;
     }
 }
