@@ -311,7 +311,9 @@ public sealed class FixedBarrierTests
         var decision = await world.AskAsync(DeliveryService.ApprovalAction);
 
         Assert.False(decision.Approved);
-        Assert.EndsWith(HelloTexts.SetUpHello, decision.Comment, StringComparison.Ordinal);
+        // The comment is the reason the log records, fixed text (D-48): it says how to set up Windows Hello as the screen does,
+        // in the words of the log, which never change with the language of the interface.
+        Assert.EndsWith(OrchestratorProtocolTexts.SetUpHello, decision.Comment, StringComparison.Ordinal);
 
         // Only when nothing else can work: a lock nobody unlocked in time can be tried again.
         Assert.DoesNotContain(HelloTexts.SetUpHello, OrchestratorProtocolTexts.LockNotConfirmed(WindowsLockResult.TimedOut), StringComparison.Ordinal);

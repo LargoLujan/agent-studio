@@ -47,7 +47,8 @@ public static class OrchestratorProtocolTexts
     public const string ConfirmationPending =
         "Ya hay una confirmación pendiente: termina primero la de Windows Hello o la del bloqueo de Windows que está abierta. Esta aprobación se deniega; vuelve a pedirla después.";
 
-    private const string SetUpHello =
+    /// <summary>What to do when Windows does not lock either, as the denial in the log says it: set up Windows Hello, and where.</summary>
+    public const string SetUpHello =
         "Para aprobarlo, configura Windows Hello: abre Configuración, entra en Cuentas y luego en Opciones de inicio de sesión, y elige el PIN, la huella o la cara.";
 
     /// <summary>The reason of the denial of a yes when Windows could not be locked to confirm the person.</summary>
