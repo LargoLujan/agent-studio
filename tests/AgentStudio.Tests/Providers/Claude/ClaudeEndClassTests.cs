@@ -4,6 +4,7 @@ using AgentStudio.Application.Knowledge;
 using AgentStudio.Application.Providers;
 using AgentStudio.Providers.Cli.Claude;
 using AgentStudio.Providers.Composition;
+using AgentStudio.Tests.TestSupport;
 using static AgentStudio.Tests.Providers.Claude.ClaudeTestSupport;
 
 namespace AgentStudio.Tests.Providers.Claude;
@@ -243,14 +244,13 @@ public sealed class ClaudeEndClassTests
         Assert.Equal(new AgentRunEnd(AttemptEndClass.WindowQuota, null, FiveHourReset), outcome.End);
     }
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task The_class_reaches_the_outcome_of_the_adapter_and_the_result_line_of_the_journal()
     {
         var token = TestContext.Current.CancellationToken;
         var journal = new RecordingJournal();
         var session = new ScriptedSession();
-        var provider = AgentProviderPipeline.Compose(new ClaudeCodeAgentProvider(new Locator(), new Runner(session), TimeProvider.System), journal, TimeProvider.System);
+        var provider = AgentProviderPipeline.Compose(new ClaudeCodeAgentProvider(new Locator(), new Runner(session), TimeProvider.System, TestLocalData.RunFolders), journal, TimeProvider.System);
 
         AgentRunOutcome outcome;
         await using (var run = await provider.StartAsync(Request(), token))
@@ -265,14 +265,13 @@ public sealed class ClaudeEndClassTests
         Assert.Equal("clase WindowQuota five_hour, reinicio 2026-10-15 17:20 UTC · You've hit your session limit · resets 3:45pm", line.Note);
     }
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task A_turn_that_completed_adds_nothing_to_the_result_line_of_the_journal()
     {
         var token = TestContext.Current.CancellationToken;
         var journal = new RecordingJournal();
         var session = new ScriptedSession();
-        var provider = AgentProviderPipeline.Compose(new ClaudeCodeAgentProvider(new Locator(), new Runner(session), TimeProvider.System), journal, TimeProvider.System);
+        var provider = AgentProviderPipeline.Compose(new ClaudeCodeAgentProvider(new Locator(), new Runner(session), TimeProvider.System, TestLocalData.RunFolders), journal, TimeProvider.System);
 
         await using (var run = await provider.StartAsync(Request(), token))
         {

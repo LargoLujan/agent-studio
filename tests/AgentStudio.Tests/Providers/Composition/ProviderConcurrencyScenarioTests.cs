@@ -8,6 +8,7 @@ using AgentStudio.Providers.Cli.Claude;
 using AgentStudio.Providers.Composition;
 using AgentStudio.Tests.Desktop;
 using AgentStudio.Tests.Providers.Live;
+using AgentStudio.Tests.TestSupport;
 using static AgentStudio.Tests.Providers.Claude.ClaudeTestSupport;
 
 namespace AgentStudio.Tests.Providers.Composition;
@@ -82,12 +83,11 @@ public sealed class ProviderConcurrencyScenarioTests
     private static (IAgentProvider Provider, RecordingProcessRunner Recorder) Compose(string projectRoot, int maxConcurrent, TimeSpan? lifetime = null)
     {
         var recorder = new RecordingProcessRunner(new FakeClaudeRunner(lifetime ?? FakeCliLifetime));
-        var adapter = new ClaudeCodeAgentProvider(new FakeClaudeLocator(), recorder, TimeProvider.System);
+        var adapter = new ClaudeCodeAgentProvider(new FakeClaudeLocator(), recorder, TimeProvider.System, TestLocalData.RunFolders);
         var journal = new MarkdownDailyJournalFactory(new ProjectStorageFiles(), TimeProvider.System).ForProject(projectRoot);
         return (AgentProviderPipeline.Compose(adapter, journal, TimeProvider.System, maxConcurrent), recorder);
     }
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task With_a_limit_of_one_the_two_processes_never_overlap_and_both_runs_are_journaled()
     {
@@ -101,7 +101,6 @@ public sealed class ProviderConcurrencyScenarioTests
         ConcurrencyScenario.AssertJournaledInOrder(temp.Path, "F2-5 probe A", "F2-5 probe B");
     }
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task With_a_limit_of_two_the_same_scenario_sees_the_overlap_and_the_assertion_fails()
     {
@@ -117,7 +116,6 @@ public sealed class ProviderConcurrencyScenarioTests
         Assert.ThrowsAny<Xunit.Sdk.XunitException>(() => ConcurrencyScenario.AssertNeverOverlapped(result));
     }
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task The_recording_runner_keeps_the_spec_the_raw_lines_and_the_exit_of_each_process()
     {

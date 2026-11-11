@@ -9,6 +9,7 @@ using AgentStudio.Providers.Cli.Claude;
 using AgentStudio.Providers.Cli.Codex;
 using AgentStudio.Providers.Cli.Gemini;
 using AgentStudio.Tests.Providers.Gemini;
+using AgentStudio.Tests.TestSupport;
 using ClaudeSupport = AgentStudio.Tests.Providers.Claude.ClaudeTestSupport;
 using CodexSupport = AgentStudio.Tests.Providers.Codex.CodexTestSupport;
 
@@ -118,10 +119,10 @@ public sealed class ProviderHardeningTests
     }
 
     private static ClaudeCodeAgentProvider ClaudeProvider(Session session, string path = "C:/bin/claude.exe") =>
-        new(new Locator(path), new Runner(session), TimeProvider.System);
+        new(new Locator(path), new Runner(session), TimeProvider.System, TestLocalData.RunFolders);
 
     private static CodexCliAgentProvider CodexProvider(Session session) =>
-        new(new Locator("C:/bin/codex.exe"), new Runner(session), TimeProvider.System);
+        new(new Locator("C:/bin/codex.exe"), new Runner(session), TimeProvider.System, TestLocalData.RunFolders);
 
     private static GeminiCliAgentProvider GeminiProvider(Session session) =>
         new(new Locator("C:/bin/gemini.exe"), new Runner(session));
@@ -184,7 +185,7 @@ public sealed class ProviderHardeningTests
     {
         var session = new Session([], 0);
         var runner = new Runner(session);
-        var provider = new ClaudeCodeAgentProvider(new Locator("C:/npm/claude.cmd"), runner, TimeProvider.System);
+        var provider = new ClaudeCodeAgentProvider(new Locator("C:/npm/claude.cmd"), runner, TimeProvider.System, TestLocalData.RunFolders);
 
         var error = await Assert.ThrowsAsync<InvalidOperationException>(
             () => provider.StartAsync(ClaudeSupport.Request(schema: """{"type":"object"}"""), Token));
@@ -250,7 +251,6 @@ public sealed class ProviderHardeningTests
 
     // ---- 3b. every pump failure kills the CLI ----
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Claude_pump_failure_fails_the_run_and_kills_the_cli()
     {
@@ -292,7 +292,6 @@ public sealed class ProviderHardeningTests
 
     // ---- 5. consistent status mapping ----
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Claude_timeout_without_result_is_limit_reached()
     {
@@ -308,7 +307,6 @@ public sealed class ProviderHardeningTests
         Assert.Equal(-1, outcome.ExitCode);
     }
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Claude_requested_schema_without_structured_output_fails_and_keeps_the_text()
     {
@@ -324,7 +322,6 @@ public sealed class ProviderHardeningTests
         Assert.Equal(outcome, events.OfType<RunFinished>().Single().Outcome);
     }
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Codex_requested_schema_without_valid_json_fails_and_keeps_the_text()
     {
@@ -419,7 +416,6 @@ public sealed class ProviderHardeningTests
 
     // ---- 6. temporary files ----
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Claude_instructions_file_is_removed_when_argument_building_fails()
     {
@@ -429,26 +425,25 @@ public sealed class ProviderHardeningTests
         await Assert.ThrowsAsync<ArgumentException>(
             () => provider.StartAsync(ClaudeSupport.Request(instructions: marker, resume: "--bad"), Token));
 
-        var leaked = Directory.Exists(RunTempFolder.BaseDirectory)
-            ? Directory.EnumerateFiles(RunTempFolder.BaseDirectory, "instructions.md", SearchOption.AllDirectories).Where(f => TryRead(f) == marker).ToList()
+        var leaked = Directory.Exists(TestLocalData.RunFolders.BaseDirectory)
+            ? Directory.EnumerateFiles(TestLocalData.RunFolders.BaseDirectory, "instructions.md", SearchOption.AllDirectories).Where(f => TryRead(f) == marker).ToList()
             : [];
         Assert.Empty(leaked);
     }
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Claude_instructions_live_under_the_per_user_folder_and_are_removed_when_the_run_ends()
     {
         var marker = "instrucciones-" + Guid.NewGuid().ToString("N");
         var session = new Session([], 0, holdOpen: true);
         var runner = new Runner(session);
-        var provider = new ClaudeCodeAgentProvider(new Locator("C:/bin/claude.exe"), runner, TimeProvider.System);
+        var provider = new ClaudeCodeAgentProvider(new Locator("C:/bin/claude.exe"), runner, TimeProvider.System, TestLocalData.RunFolders);
 
         await using var run = await provider.StartAsync(ClaudeSupport.Request(instructions: marker), Token);
         var args = runner.Spec!.Arguments.ToList();
         var file = args[args.IndexOf("--append-system-prompt-file") + 1];
 
-        Assert.StartsWith(RunTempFolder.BaseDirectory, file, StringComparison.OrdinalIgnoreCase);
+        Assert.StartsWith(TestLocalData.RunFolders.BaseDirectory, file, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(marker, File.ReadAllText(file));
 
         session.End(0);
@@ -459,11 +454,10 @@ public sealed class ProviderHardeningTests
         Assert.False(File.Exists(file));
     }
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Instruction_files_are_never_overwritten()
     {
-        var dir = RunTempFolder.Create();
+        var dir = RunTempFolder.Create(TestLocalData.RunFolders.BaseDirectory);
         try
         {
             var path = Path.Combine(dir, "x.md");
@@ -486,7 +480,6 @@ public sealed class ProviderHardeningTests
         Assert.Throws<ArgumentException>(() => GeminiArguments.Build(GeminiTestData.Request(resume: value)));
     }
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Codex_schema_directory_is_removed_when_argument_building_fails()
     {
@@ -496,8 +489,8 @@ public sealed class ProviderHardeningTests
         await Assert.ThrowsAsync<ArgumentException>(
             () => provider.StartAsync(CodexSupport.Request(schema: "{\"title\":\"" + marker + "\"}", resume: "--bad"), Token));
 
-        var leaked = Directory.Exists(RunTempFolder.BaseDirectory)
-            ? Directory.EnumerateFiles(RunTempFolder.BaseDirectory, "schema.json", SearchOption.AllDirectories)
+        var leaked = Directory.Exists(TestLocalData.RunFolders.BaseDirectory)
+            ? Directory.EnumerateFiles(TestLocalData.RunFolders.BaseDirectory, "schema.json", SearchOption.AllDirectories)
                 .Where(f => TryRead(f)?.Contains(marker, StringComparison.Ordinal) == true).ToList()
             : [];
         Assert.Empty(leaked);
@@ -561,13 +554,12 @@ public sealed class ProviderHardeningTests
         }
     }
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Claude_temp_folder_is_gone_by_the_time_completion_is_published()
     {
         var session = new Session([], 0, holdOpen: true);
         var runner = new Runner(session);
-        var provider = new ClaudeCodeAgentProvider(new Locator("C:/bin/claude.exe"), runner, TimeProvider.System);
+        var provider = new ClaudeCodeAgentProvider(new Locator("C:/bin/claude.exe"), runner, TimeProvider.System, TestLocalData.RunFolders);
         await using var run = await provider.StartAsync(ClaudeSupport.Request(instructions: "x"), Token);
         var args = runner.Spec!.Arguments.ToList();
         var file = args[args.IndexOf("--append-system-prompt-file") + 1];

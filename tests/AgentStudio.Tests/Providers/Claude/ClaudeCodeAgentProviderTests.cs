@@ -6,6 +6,7 @@ using AgentStudio.Application.Providers;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Providers.Cli;
 using AgentStudio.Providers.Cli.Claude;
+using AgentStudio.Tests.TestSupport;
 using static AgentStudio.Tests.Providers.Claude.ClaudeTestSupport;
 
 namespace AgentStudio.Tests.Providers.Claude;
@@ -108,7 +109,7 @@ public sealed class ClaudeCodeAgentProviderTests
     [Fact]
     public void Declares_provider_vendor_and_capabilities()
     {
-        var sut = new ClaudeCodeAgentProvider(new FakeLocator("claude"), new FakeRunner(new FakeSession()), TimeProvider.System);
+        var sut = new ClaudeCodeAgentProvider(new FakeLocator("claude"), new FakeRunner(new FakeSession()), TimeProvider.System, TestLocalData.RunFolders);
 
         Assert.Equal(ProviderId.ClaudeCode, sut.Provider);
         Assert.Equal(VendorId.Anthropic, sut.Vendor);
@@ -122,13 +123,12 @@ public sealed class ClaudeCodeAgentProviderTests
         Assert.True(sut.Capabilities.ReportsContextOccupancy);
     }
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Mcp_servers_go_in_an_app_controlled_file_of_the_run_that_is_removed_when_it_ends()
     {
         var session = new FakeSession();
         var runner = new FakeRunner(session);
-        var sut = new ClaudeCodeAgentProvider(new FakeLocator("claude.exe"), runner, TimeProvider.System);
+        var sut = new ClaudeCodeAgentProvider(new FakeLocator("claude.exe"), runner, TimeProvider.System, TestLocalData.RunFolders);
         var server = new McpServerSpec("agentstudio", @"C:\Program Files\AgentStudio\AgentStudio.SkillsMcp.exe", ["--snapshot", @"C:\runs\aux\snapshot.json"], ["mcp__agentstudio__search_skills"]);
 
         await using (var run = await sut.StartAsync(Request() with { McpServers = [server] }, TestContext.Current.CancellationToken))
@@ -138,18 +138,17 @@ public sealed class ClaudeCodeAgentProviderTests
         }
 
         var (path, content) = runner.McpConfig!.Value;
-        Assert.StartsWith(RunTempFolder.BaseDirectory, path, StringComparison.OrdinalIgnoreCase);
+        Assert.StartsWith(TestLocalData.RunFolders.BaseDirectory, path, StringComparison.OrdinalIgnoreCase);
         Assert.Equal("mcp.json", Path.GetFileName(path));
         Assert.Equal(ClaudeCodeArguments.McpConfigJson([server]), content);
         Assert.False(File.Exists(path));
     }
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Mcp_servers_on_a_writing_launch_are_refused_before_anything_is_written_or_started()
     {
         var runner = new FakeRunner(new FakeSession());
-        var sut = new ClaudeCodeAgentProvider(new FakeLocator("claude.exe"), runner, TimeProvider.System);
+        var sut = new ClaudeCodeAgentProvider(new FakeLocator("claude.exe"), runner, TimeProvider.System, TestLocalData.RunFolders);
         var server = new McpServerSpec("agentstudio", @"C:\tools\AgentStudio.SkillsMcp.exe", [], ["mcp__agentstudio__search_skills"]);
 
         await Assert.ThrowsAsync<ArgumentException>(() => sut.StartAsync(Request(Permissions(writes: true)) with { McpServers = [server] }, TestContext.Current.CancellationToken));
@@ -157,12 +156,11 @@ public sealed class ClaudeCodeAgentProviderTests
         Assert.Null(runner.Spec);
     }
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task A_turn_that_must_not_be_saved_and_resumes_is_refused_before_anything_is_started()
     {
         var runner = new FakeRunner(new FakeSession());
-        var sut = new ClaudeCodeAgentProvider(new FakeLocator("claude.exe"), runner, TimeProvider.System);
+        var sut = new ClaudeCodeAgentProvider(new FakeLocator("claude.exe"), runner, TimeProvider.System, TestLocalData.RunFolders);
         var request = Request(resume: "11111111-2222-3333-4444-555555555555") with { PersistSession = false };
 
         await Assert.ThrowsAsync<ArgumentException>(() => sut.StartAsync(request, TestContext.Current.CancellationToken));
@@ -170,13 +168,12 @@ public sealed class ClaudeCodeAgentProviderTests
         Assert.Null(runner.Spec);
     }
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task A_turn_that_must_not_be_saved_is_launched_as_a_new_session_that_claude_does_not_keep()
     {
         var session = new FakeSession();
         var runner = new FakeRunner(session);
-        var sut = new ClaudeCodeAgentProvider(new FakeLocator("claude.exe"), runner, TimeProvider.System);
+        var sut = new ClaudeCodeAgentProvider(new FakeLocator("claude.exe"), runner, TimeProvider.System, TestLocalData.RunFolders);
 
         await using (var run = await sut.StartAsync(Request(schema: """{"type":"object"}""") with { PersistSession = false }, TestContext.Current.CancellationToken))
         {
@@ -193,21 +190,20 @@ public sealed class ClaudeCodeAgentProviderTests
     [Fact]
     public async Task Start_without_claude_installed_throws_a_clear_spanish_message()
     {
-        var sut = new ClaudeCodeAgentProvider(new FakeLocator(null), new FakeRunner(new FakeSession()), TimeProvider.System);
+        var sut = new ClaudeCodeAgentProvider(new FakeLocator(null), new FakeRunner(new FakeSession()), TimeProvider.System, TestLocalData.RunFolders);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => sut.StartAsync(Request(), TestContext.Current.CancellationToken));
 
         Assert.Contains("Claude Code no está instalado", ex.Message, StringComparison.Ordinal);
     }
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Successful_run_streams_events_and_completes_with_the_result_outcome()
     {
         var token = TestContext.Current.CancellationToken;
         var session = new FakeSession();
         var runner = new FakeRunner(session);
-        var sut = new ClaudeCodeAgentProvider(new FakeLocator("C:/bin/claude.exe"), runner, TimeProvider.System);
+        var sut = new ClaudeCodeAgentProvider(new FakeLocator("C:/bin/claude.exe"), runner, TimeProvider.System, TestLocalData.RunFolders);
 
         await using var run = await sut.StartAsync(Request(instructions: "Sé breve.", workingDirectory: "C:/work"), token);
         foreach (var line in FixtureLines("01-texto.jsonl"))
@@ -238,13 +234,12 @@ public sealed class ClaudeCodeAgentProviderTests
         Assert.Equal(outcome, events.OfType<RunFinished>().Single().Outcome);
     }
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Process_without_result_fails_with_exit_code_and_stderr_tail()
     {
         var token = TestContext.Current.CancellationToken;
         var session = new FakeSession();
-        var sut = new ClaudeCodeAgentProvider(new FakeLocator("claude"), new FakeRunner(session), TimeProvider.System);
+        var sut = new ClaudeCodeAgentProvider(new FakeLocator("claude"), new FakeRunner(session), TimeProvider.System, TestLocalData.RunFolders);
 
         await using var run = await sut.StartAsync(Request(), token);
         session.Emit(ProcessStream.StandardError, "Error: not logged in");
@@ -260,13 +255,12 @@ public sealed class ClaudeCodeAgentProviderTests
         Assert.IsType<RunFinished>(Assert.Single(events));
     }
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Cancel_kills_the_session_and_the_outcome_is_cancelled()
     {
         var token = TestContext.Current.CancellationToken;
         var session = new FakeSession();
-        var sut = new ClaudeCodeAgentProvider(new FakeLocator("claude"), new FakeRunner(session), TimeProvider.System);
+        var sut = new ClaudeCodeAgentProvider(new FakeLocator("claude"), new FakeRunner(session), TimeProvider.System, TestLocalData.RunFolders);
 
         await using var run = await sut.StartAsync(Request(), token);
         await run.CancelAsync();
@@ -278,21 +272,20 @@ public sealed class ClaudeCodeAgentProviderTests
         Assert.IsType<RunFinished>(events[^1]);
     }
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Every_run_gets_an_app_controlled_settings_file_that_turns_hooks_off_and_is_removed_at_the_end()
     {
         var token = TestContext.Current.CancellationToken;
         var session = new FakeSession();
         var runner = new FakeRunner(session);
-        var sut = new ClaudeCodeAgentProvider(new FakeLocator("C:/bin/claude.exe"), runner, TimeProvider.System);
+        var sut = new ClaudeCodeAgentProvider(new FakeLocator("C:/bin/claude.exe"), runner, TimeProvider.System, TestLocalData.RunFolders);
 
         // No system instructions: the per-run folder is still needed for the settings file.
         var run = await sut.StartAsync(Request(), token);
         var args = runner.Spec!.Arguments.ToList();
         var file = args[args.IndexOf("--settings") + 1];
 
-        Assert.StartsWith(RunTempFolder.BaseDirectory, file, StringComparison.OrdinalIgnoreCase);
+        Assert.StartsWith(TestLocalData.RunFolders.BaseDirectory, file, StringComparison.OrdinalIgnoreCase);
         Assert.NotNull(runner.SettingsContent);
         using (var settings = JsonDocument.Parse(runner.SettingsContent))
         {
@@ -310,14 +303,13 @@ public sealed class ClaudeCodeAgentProviderTests
         Assert.False(Directory.Exists(Path.GetDirectoryName(file)));
     }
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Dispose_removes_the_instructions_file_and_disposes_the_session()
     {
         var token = TestContext.Current.CancellationToken;
         var session = new FakeSession();
         var runner = new FakeRunner(session);
-        var sut = new ClaudeCodeAgentProvider(new FakeLocator("claude"), runner, TimeProvider.System);
+        var sut = new ClaudeCodeAgentProvider(new FakeLocator("claude"), runner, TimeProvider.System, TestLocalData.RunFolders);
 
         var run = await sut.StartAsync(Request(instructions: "x"), token);
         var args = runner.Spec!.Arguments.ToList();

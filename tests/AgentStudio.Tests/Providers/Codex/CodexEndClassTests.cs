@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using AgentStudio.Application.Execution;
 using AgentStudio.Application.Providers;
 using AgentStudio.Providers.Cli.Codex;
+using AgentStudio.Tests.TestSupport;
 using static AgentStudio.Tests.Providers.Codex.CodexTestSupport;
 
 namespace AgentStudio.Tests.Providers.Codex;
@@ -138,7 +139,7 @@ public sealed class CodexEndClassTests
             new ProcessOutputLine(ProcessStream.StandardOutput, """{"type":"error","message":"Codex ran out of room in the model's context window. Start a new thread or clear earlier history before retrying."}""", Now),
         ],
             exit: 1);
-        var provider = new CodexCliAgentProvider(new Locator(), new Runner(session), TimeProvider.System);
+        var provider = new CodexCliAgentProvider(new Locator(), new Runner(session), TimeProvider.System, TestLocalData.RunFolders);
 
         await using var run = await provider.StartAsync(Request(), TestContext.Current.CancellationToken);
         var outcome = await run.Completion;

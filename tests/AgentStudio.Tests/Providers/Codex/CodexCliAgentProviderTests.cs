@@ -5,6 +5,7 @@ using AgentStudio.Application.Execution;
 using AgentStudio.Application.Providers;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Providers.Cli.Codex;
+using AgentStudio.Tests.TestSupport;
 
 namespace AgentStudio.Tests.Providers.Codex;
 
@@ -101,7 +102,7 @@ public sealed class CodexCliAgentProviderTests
     private static ProcessOutputLine Stderr(string text) => new(ProcessStream.StandardError, text, Now);
 
     private static CodexCliAgentProvider Provider(FakeRunner runner, string? path = "C:/bin/codex.exe") =>
-        new(new FakeLocator(path), runner, TimeProvider.System);
+        new(new FakeLocator(path), runner, TimeProvider.System, TestLocalData.RunFolders);
 
     private static async Task<List<AgentEvent>> DrainAsync(IAgentRun run)
     {
@@ -143,7 +144,6 @@ public sealed class CodexCliAgentProviderTests
         Assert.Null(runner.Spec);
     }
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task A_turn_that_must_not_be_saved_and_resumes_is_refused_before_anything_is_started()
     {
@@ -155,7 +155,6 @@ public sealed class CodexCliAgentProviderTests
         Assert.Null(runner.Spec);
     }
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task A_turn_that_must_not_be_saved_is_launched_ephemeral_with_its_schema_file()
     {
@@ -269,7 +268,6 @@ public sealed class CodexCliAgentProviderTests
         Assert.IsType<RunFinished>(events[^1]);
     }
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Schema_goes_to_a_temporary_file_that_is_removed_on_dispose()
     {

@@ -6,6 +6,7 @@ using AgentStudio.Application.Providers;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Providers.Cli;
 using AgentStudio.Providers.Cli.Codex.AppServer;
+using AgentStudio.Tests.TestSupport;
 using Microsoft.Extensions.Time.Testing;
 
 namespace AgentStudio.Tests.Providers.Codex;
@@ -128,7 +129,7 @@ public sealed class CodexAppServerQuotaReaderTests
             Versions = new VersionRunner(version);
             Clock = new FakeTimeProvider(new DateTimeOffset(2026, 10, 18, 9, 0, 0, TimeSpan.Zero));
             OptedIn = optedIn;
-            Reader = new CodexAppServerQuotaReader(Locator, Runner, Versions, () => OptedIn, Clock, clientVersion: "1.2.3");
+            Reader = new CodexAppServerQuotaReader(Locator, Runner, Versions, () => OptedIn, Clock, clientVersion: "1.2.3", tempFolders: TestLocalData.RunFolders);
         }
 
         public Session Session { get; }
@@ -162,7 +163,6 @@ public sealed class CodexAppServerQuotaReaderTests
         Assert.Equal(ProviderId.CodexCli, world.Reader.Provider);
     }
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task It_writes_exactly_the_three_messages_in_order_and_nothing_that_spends_or_sends()
     {
@@ -180,7 +180,6 @@ public sealed class CodexAppServerQuotaReaderTests
         Assert.True(world.Spec.KeepStandardInputOpen);
     }
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task The_app_server_runs_natively_over_stdio_in_an_empty_folder_of_the_run_that_is_removed_after()
     {
@@ -192,12 +191,11 @@ public sealed class CodexAppServerQuotaReaderTests
         Assert.Equal(Codex, spec.FileName);
         Assert.Equal(["app-server", "--listen", "stdio://"], spec.Arguments);
         Assert.True(world.Session.StartedInEmptyFolder);
-        Assert.True(LiveFolderUnder(spec.WorkingDirectory!, RunTempFolder.BaseDirectory), spec.WorkingDirectory);
+        Assert.True(LiveFolderUnder(spec.WorkingDirectory!, TestLocalData.RunFolders.BaseDirectory), spec.WorkingDirectory);
         Assert.False(Directory.Exists(spec.WorkingDirectory));
         Assert.NotNull(spec.Timeout);
     }
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task The_answer_is_read_by_the_whitelist_and_the_process_tree_is_ended()
     {
@@ -215,7 +213,6 @@ public sealed class CodexAppServerQuotaReaderTests
         Assert.True(world.Session.Disposed);
     }
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task Without_an_answer_in_twenty_seconds_it_is_missing_and_the_tree_is_ended()
     {
@@ -233,7 +230,6 @@ public sealed class CodexAppServerQuotaReaderTests
         Assert.True(world.Session.Disposed);
     }
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task An_app_server_that_ends_without_answering_is_missing()
     {
@@ -245,7 +241,6 @@ public sealed class CodexAppServerQuotaReaderTests
         Assert.Contains("sin responder", result.Reason, StringComparison.Ordinal);
     }
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task With_an_api_key_the_quota_is_not_exposed()
     {
@@ -256,7 +251,6 @@ public sealed class CodexAppServerQuotaReaderTests
         Assert.Equal((QuotaReadStatus.NotExposed, "no expuesto: Codex usa API key"), (result.Status, result.Reason));
     }
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task A_version_without_a_tested_answer_is_read_with_a_warning()
     {
@@ -283,13 +277,12 @@ public sealed class CodexAppServerQuotaReaderTests
         Assert.Empty(world.Runner.Specs);
     }
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task An_app_server_that_cannot_start_is_missing_with_the_reason_and_leaves_no_folder()
     {
         var world = new World();
         var failing = new FailingRunner();
-        var reader = new CodexAppServerQuotaReader(world.Locator, failing, world.Versions, () => true, world.Clock, clientVersion: "1.2.3");
+        var reader = new CodexAppServerQuotaReader(world.Locator, failing, world.Versions, () => true, world.Clock, clientVersion: "1.2.3", tempFolders: TestLocalData.RunFolders);
 
         var result = await reader.ReadAsync(TestContext.Current.CancellationToken);
 
@@ -309,7 +302,6 @@ public sealed class CodexAppServerQuotaReaderTests
         }
     }
 
-    [Trait("Category", "NeedsMediumIntegrity")]
     [Fact]
     public async Task The_caller_can_cancel_and_the_tree_is_ended()
     {
