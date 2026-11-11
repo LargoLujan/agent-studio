@@ -21,6 +21,18 @@ public sealed class WordDocumentWriter(IUserTextRenderer texts, ISecretRedactor 
 
     private const string MonoFont = "Consolas";
 
+    private const string FixedCoreName = "agentstudio-core";
+
+    private static readonly System.Text.RegularExpressions.Regex RandomRelationshipId = new(
+        "Id=\"R[0-9a-f]{16}\"",
+        System.Text.RegularExpressions.RegexOptions.CultureInvariant,
+        TimeSpan.FromSeconds(1));
+
+    private static readonly System.Text.RegularExpressions.Regex CorePart = new(
+        @"^package/services/metadata/core-properties/([^/]+)\.psmdcp$",
+        System.Text.RegularExpressions.RegexOptions.CultureInvariant,
+        TimeSpan.FromSeconds(1));
+
     public ClientDocumentFormat Format => ClientDocumentFormat.Word;
 
     public Task<byte[]> RenderAsync(ClientDocument document, string language, CancellationToken ct)
@@ -72,17 +84,39 @@ public sealed class WordDocumentWriter(IUserTextRenderer texts, ISecretRedactor 
         using var input = new MemoryStream(source, writable: false);
         using var archive = new ZipArchive(input, ZipArchiveMode.Read);
         using var output = new MemoryStream();
+
+        // The SDK names the part of the core properties with a new GUID each time: it is named by a fixed word, in the entry and where
+        // the package refers to it (the content types and the root relationships).
+        var core = archive.Entries.Select(e => CorePart.Match(e.FullName)).FirstOrDefault(m => m.Success)?.Groups[1].Value;
         using (var packed = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true))
         {
             foreach (var entry in archive.Entries
                 .OrderBy(e => e.FullName == "[Content_Types].xml" ? 0 : 1)
                 .ThenBy(e => e.FullName, StringComparer.Ordinal))
             {
-                var copy = packed.CreateEntry(entry.FullName, CompressionLevel.Optimal);
+                var name = core is null ? entry.FullName : entry.FullName.Replace(core, FixedCoreName, StringComparison.Ordinal);
+                var copy = packed.CreateEntry(name, CompressionLevel.Optimal);
                 copy.LastWriteTime = EntryTime;
                 using var from = entry.Open();
                 using var to = copy.Open();
-                from.CopyTo(to);
+                if (entry.FullName is "[Content_Types].xml" or "_rels/.rels")
+                {
+                    using var reader = new StreamReader(from, System.Text.Encoding.UTF8);
+                    var text = reader.ReadToEnd();
+                    if (core is not null)
+                    {
+                        text = text.Replace(core, FixedCoreName, StringComparison.Ordinal);
+                    }
+
+                    // The SDK gives the relationships of the package random ids; nothing else refers to them.
+                    var number = 0;
+                    text = RandomRelationshipId.Replace(text, _ => "Id=\"rId" + (++number).ToString(CultureInfo.InvariantCulture) + "\"");
+                    to.Write(new System.Text.UTF8Encoding(false).GetBytes(text));
+                }
+                else
+                {
+                    from.CopyTo(to);
+                }
             }
         }
 

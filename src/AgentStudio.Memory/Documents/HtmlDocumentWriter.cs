@@ -1,5 +1,6 @@
-using System.Net;
 using System.Text;
+using System.Text.Encodings.Web;
+using System.Text.Unicode;
 using AgentStudio.Application.Documents;
 using AgentStudio.Application.Security;
 
@@ -58,7 +59,10 @@ public sealed class HtmlDocumentWriter(IUserTextRenderer texts, ISecretRedactor 
         return Task.FromResult(Utf8.GetBytes(html.ToString()));
     }
 
-    private static string Encode(string value) => WebUtility.HtmlEncode(value);
+    // Every Unicode range stays as it is (accents are text, not entities); only what HTML reads as markup is encoded.
+    private static readonly HtmlEncoder Encoder = HtmlEncoder.Create(UnicodeRanges.All);
+
+    private static string Encode(string value) => Encoder.Encode(value);
 
     private static string Inline(RenderedClientText text) => text.Mark is null
         ? Encode(text.Value).Replace("\n", "<br>", StringComparison.Ordinal)
