@@ -150,7 +150,7 @@ public sealed class Phase5ShellTests : IDisposable
         await main.CreateCorrectiveTasksAsync(_temp.CreateDirectory("web"), "Corregir algo.");
 
         Assert.Empty(main.Documents.OfType<OrchestratorDocumentViewModel>());
-        Assert.Equal("Las tareas correctivas son de otro proyecto: ábrelo para crearlas.", main.StatusMessage);
+        Assert.Equal("Las tareas correctivas son de otro proyecto. Ábrelo para crearlas.", main.StatusMessage);
     }
 
     [Fact]

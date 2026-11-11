@@ -84,7 +84,7 @@ public sealed class SettingsRenderTests
             return (OffscreenRender.Count(bitmap, Error), document);
         });
 
-        Assert.Equal("No se guardó nada: corrige «Contexto y cuota» y «Windows Hello y bloqueo».", document.ErrorMessage);
+        Assert.Equal("No se guardó nada. Corrige «Contexto y cuota» y «Windows Hello y bloqueo».", document.ErrorMessage);
         Assert.NotNull(document.Context.ErrorMessage);
         Assert.NotNull(document.Lock!.ErrorMessage);
         Assert.True(error > 300, $"Only {error} pixels have the error colour: the reasons were not drawn.");

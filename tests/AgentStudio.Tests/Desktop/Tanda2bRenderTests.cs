@@ -155,7 +155,7 @@ public sealed class Tanda2bRenderTests
     [Fact]
     public void V38_the_message_cut_at_180_px_is_read_whole_and_announced()
     {
-        const string Message = "La ejecución 20261103-abc123 se reanudó sola mientras su pestaña estaba ocupada o seguía otra ejecución: la sigue la bandeja.";
+        const string Message = "La ejecución 20261103-abc123 se reanudó sola, pero su pestaña estaba ocupada. La sigue la bandeja del sistema.";
         using var temp = new TempDirectory();
         var (width, live, name) = WpfHost.Run(() =>
         {
