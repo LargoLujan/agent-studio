@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
 using static AgentStudio.Tests.Desktop.Localization.LocalizationTestSupport;
 
-namespace AgentStudio.Tests.Desktop.Texts;
+namespace AgentStudio.Tests.Desktop.TextsGuide;
 
 /// <summary>
 /// The guide of texts of docs/17 D-52 and D-53 (ADR-0054 point 9) as data for the tests of this folder: which resource files

@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace AgentStudio.Tests.Desktop.Texts;
+namespace AgentStudio.Tests.Desktop.TextsGuide;
 
 /// <summary>
 /// The measures of the guide of texts (docs/17 D-52 and D-53, ADR-0054 point 9): sentences, words, Spanish syllables and the

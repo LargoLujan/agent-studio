@@ -1,4 +1,4 @@
-namespace AgentStudio.Tests.Desktop.Texts;
+namespace AgentStudio.Tests.Desktop.TextsGuide;
 
 /// <summary>The syllable counter and the INFLESZ index of the guide of texts (D-53), checked on words and texts whose count is known.</summary>
 public sealed class SpanishReadabilityTests

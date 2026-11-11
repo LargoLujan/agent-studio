@@ -1,7 +1,7 @@
 using System.Globalization;
 using static AgentStudio.Tests.Desktop.Localization.LocalizationTestSupport;
 
-namespace AgentStudio.Tests.Desktop.Texts;
+namespace AgentStudio.Tests.Desktop.TextsGuide;
 
 /// <summary>
 /// F14-5 (docs/17 D-52 and D-53, ADR-0054 point 9): the guide of texts, measured on every text of the closed resource files, in
@@ -27,8 +27,16 @@ public sealed class TextGuideTests
     public void Every_resource_area_is_checked_or_pending_its_extraction()
     {
         var present = ResourceFiles().Keys.ToHashSet(StringComparer.Ordinal);
-        Assert.Empty(TextGuide.ClosedAreas.Where(a => !present.Contains(a)));
-        Assert.Empty(TextGuide.ClosedAreas.Intersect(TextGuide.PendingExtraction, StringComparer.Ordinal));
+        foreach (var area in TextGuide.ClosedAreas)
+        {
+            Assert.Contains(area, present);
+        }
+
+        foreach (var area in TextGuide.ClosedAreas)
+        {
+            Assert.DoesNotContain(area, TextGuide.PendingExtraction);
+        }
+
 
         // Unknown areas are skipped, not failed: another package may be adding its file. This only keeps the closed list honest
         // by counting what is checked.

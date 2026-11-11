@@ -2,11 +2,11 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 
-namespace AgentStudio.Tests.Desktop.Texts;
+namespace AgentStudio.Tests.Desktop.TextsGuide;
 
 /// <summary>
 /// F14-5, «y tu lectura»: the report for the reading with the person. For each resource area, the ten explanations in Spanish
-/// with the lowest INFLESZ and the ten with the longest sentence, to read. It is a measurement, outside the CI: it never fails.
+/// with the lowest INFLESZ, to read (each with its longest sentence). It is a measurement, outside the CI: it never fails.
 /// </summary>
 /// <remarks>
 /// Run it with <c>dotnet test -- --filter-trait "Category=Measurement" --filter-class "*TextGuideReportTests"</c>. It writes
