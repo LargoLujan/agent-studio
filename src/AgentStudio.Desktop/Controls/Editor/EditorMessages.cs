@@ -127,7 +127,7 @@ public static class EditorMessageCodec
                     return false;
 
                 case "error":
-                    message = new ErrorMessage(GetString(root, "message") ?? "Unknown editor error.");
+                    message = new ErrorMessage(GetString(root, "message") ?? string.Empty);
                     return true;
 
                 default:

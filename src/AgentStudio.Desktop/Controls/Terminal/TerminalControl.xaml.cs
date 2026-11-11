@@ -164,7 +164,7 @@ public partial class TerminalControl : UserControl
 
                     break;
                 case "error":
-                    ShowError(root.GetProperty("message").GetString() ?? "Error desconocido en la terminal.");
+                    ShowError(root.GetProperty("message").GetString() ?? Texts.Get("Terminal_UnknownError"));
                     break;
             }
         }

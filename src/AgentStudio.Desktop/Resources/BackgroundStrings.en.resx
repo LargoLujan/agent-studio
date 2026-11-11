@@ -464,10 +464,10 @@
     <value>Budget</value>
   </data>
   <data name="Background_Panel_Budget_NoHeader_One" xml:space="preserve">
-    <value>Budget: {0} agent run used · maximum unknown (the data the run started with is missing)</value>
+    <value>Budget: {0} agent run used. The maximum is unknown: the data from the start is missing.</value>
   </data>
   <data name="Background_Panel_Budget_NoHeader_Other" xml:space="preserve">
-    <value>Budget: {0} agent runs used · maximum unknown (the data the run started with is missing)</value>
+    <value>Budget: {0} agent runs used. The maximum is unknown: the data from the start is missing.</value>
   </data>
   <data name="Background_Panel_Budget_Used" xml:space="preserve">
     <value>Budget: {0} of {1} agent runs</value>
@@ -533,7 +533,7 @@
     <value>Unattended work</value>
   </data>
   <data name="Background_Unattended_Intro" xml:space="preserve">
-    <value>What Agent Studio does when you close the window with work in progress, and whether it keeps the computer awake while it goes on.</value>
+    <value>What Agent Studio does when you close the window with work running, and whether it keeps the computer awake.</value>
   </data>
   <data name="Background_Unattended_CloseWindow" xml:space="preserve">
     <value>When closing the window</value>
@@ -548,7 +548,7 @@
     <value>Exit Agent Studio</value>
   </data>
   <data name="Background_Unattended_CloseExplanation" xml:space="preserve">
-    <value>With work in progress, “Ask” offers three options: keep running in the tray, pause and exit when the attempts in progress end, or exit now. If you choose “Exit Agent Studio” and work is in progress, it also asks how to leave it. Your choice is saved in the history of each run.</value>
+    <value>With work in progress, “Ask” offers three options. Keep running in the tray, pause and exit when the attempts in progress end, or exit now. If you choose “Exit Agent Studio” and work is in progress, it also asks how to leave it. Your choice is saved in the history of each run.</value>
   </data>
   <data name="Background_Unattended_PreventSleep" xml:space="preserve">
     <value>Prevent sleep while work is in progress</value>

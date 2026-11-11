@@ -1074,7 +1074,7 @@
     <comment>Status.</comment>
   </data>
   <data name="Debate_New_Status_Prepared" xml:space="preserve">
-    <value>Mira la configuración y la estimación. Si pulsas «Abrir debate», te pedimos permiso.</value>
+    <value>Mira la configuración y la estimación. Si pulsas «Abrir debate», Agent Studio te pedirá aprobación.</value>
     <comment>Status.</comment>
   </data>
   <data name="Debate_New_Status_Problems" xml:space="preserve">
@@ -1570,7 +1570,7 @@
     <comment>Title.</comment>
   </data>
   <data name="Debate_ChallengeView_Explain" xml:space="preserve">
-    <value>La revisión es un debate con dos bandos: el proponente defiende el veredicto y el crítico defiende tu impugnación. Nunca entrega sola. Si el resultado pasa a ser una aprobación, solo cuenta si la aceptas tú.</value>
+    <value>La revisión es un debate con dos bandos: el proponente defiende el veredicto y el crítico defiende tu impugnación. Nunca entrega sola. Si el resultado pasa a ser una aprobación, solo cuenta si la aceptas tú expresamente.</value>
     <comment>What the review is.</comment>
   </data>
   <data name="Debate_ChallengeView_Reasons" xml:space="preserve">

@@ -50,7 +50,7 @@ public sealed partial class TerminalViewModel : ObservableObject, IAsyncDisposab
         _selectedShell = Shells.FirstOrDefault();
         if (_selectedShell is null)
         {
-            _statusText = "No se ha encontrado ninguna shell instalada";
+            _statusText = Texts.Get("Terminal_NoShell");
         }
     }
 

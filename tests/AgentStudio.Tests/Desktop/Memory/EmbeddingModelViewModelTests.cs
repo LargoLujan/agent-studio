@@ -146,7 +146,7 @@ public sealed class EmbeddingModelViewModelTests
     }
 
     [Theory]
-    [InlineData(120, 120, "Activa: el modelo está descargado y comprobado, y los 120 fragmentos del índice tienen su significado calculado.")]
+    [InlineData(120, 120, "Activa: el modelo está descargado y comprobado. Los 120 fragmentos del índice ya tienen su significado listo.")]
     [InlineData(1500, 300, "Activa a medias: 300 de 1.500 fragmentos tienen su significado calculado. El resto se calcula en segundo plano y, mientras tanto, solo se encuentra por palabras.")]
     [InlineData(0, 0, "Activa: el modelo está descargado y comprobado. El índice de este proyecto aún no tiene fragmentos: se construye en segundo plano.")]
     public void With_the_model_the_panel_says_how_much_of_the_index_has_its_meaning(int fragments, int withVectors, string text)
@@ -334,7 +334,7 @@ public sealed class EmbeddingModelViewModelTests
         model.Show(true, Ready(fragments: 58, withVectors: 58), null);
 
         Assert.Null(model.Outcome);
-        Assert.StartsWith("Activa: el modelo está descargado y comprobado, y los 58 fragmentos", model.StatusText, StringComparison.Ordinal);
+        Assert.StartsWith("Activa: el modelo está descargado y comprobado. Los 58 fragmentos", model.StatusText, StringComparison.Ordinal);
     }
 
     [Fact]

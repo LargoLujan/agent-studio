@@ -1351,7 +1351,7 @@ Choose in each task of the plan which steps are required.</value>
     <comment>Why the log cannot be trusted. {0}: entries.</comment>
   </data>
   <data name="Orchestrator_History_NotIntact" xml:space="preserve">
-    <value>The decision history is not intact: {0} Nothing is planned, run or resumed until you fix it.</value>
+    <value>The decision history is not intact: {0} Nothing is planned, run or resumed while it stays like this.</value>
     <comment>Why the log cannot be trusted. {0}: the problem found.</comment>
   </data>
   <data name="Orchestrator_Phase_Running" xml:space="preserve">
@@ -1715,7 +1715,7 @@ Choose in each task of the plan which steps are required.</value>
     <comment>Title and accessible name.</comment>
   </data>
   <data name="Orchestrator_Runs_Hint" xml:space="preserve">
-    <value>"View the run" opens one in the monitor, read only and without spending your usage limit. You will see its tasks, saved evidence, review and delivery.</value>
+    <value>"View the run" opens one in the monitor, read only and without spending your usage limit. You will see its tasks, evidence, review and delivery.</value>
     <comment>Explanation under the title.</comment>
   </data>
   <data name="Orchestrator_Runs_None" xml:space="preserve">
@@ -1731,7 +1731,7 @@ Choose in each task of the plan which steps are required.</value>
     <comment>Button.</comment>
   </data>
   <data name="Orchestrator_Runs_ViewHelp" xml:space="preserve">
-    <value>Opens the run in the monitor, read only, rebuilt from the history. It shows the tasks with their reason, the saved evidence and the review. If the judge approved the integration, you can use "Deliver to my branch". It does not spend your usage limit.</value>
+    <value>Opens the run in the monitor, read only, rebuilt from the history. It shows the tasks with their reason, the evidence and the review. If the judge approved the integration, you can use "Deliver to my branch". It does not spend your usage limit.</value>
     <comment>Tooltip of the button.</comment>
   </data>
   <data name="Orchestrator_Runs_ViewName" xml:space="preserve">
@@ -1949,7 +1949,7 @@ Pause the run: it never resumes by itself then.</value>
     <comment>Notice.</comment>
   </data>
   <data name="Orchestrator_Doc_HelloNotAsked" xml:space="preserve">
-    <value>Windows Hello could not be asked ({0}): the plan is not approved.</value>
+    <value>Could not ask you for Windows Hello ({0}): the plan is not approved.</value>
     <comment>Error. {0}: why.</comment>
   </data>
   <data name="Orchestrator_Doc_HelloNotConfirmed" xml:space="preserve">
@@ -2053,7 +2053,7 @@ Pause the run: it never resumes by itself then.</value>
     <comment>Notice. {0}: run.</comment>
   </data>
   <data name="Orchestrator_Doc_ResumeNotDone" xml:space="preserve">
-    <value>Run {0} was not resumed. This tab is following another one. Do it when it ends.</value>
+    <value>Run {0} was not resumed. This tab is following another one. Resume it when the other one ends.</value>
     <comment>Notice. {0}: run.</comment>
   </data>
   <data name="Orchestrator_Doc_RunsListFailed" xml:space="preserve">
@@ -2293,11 +2293,11 @@ Pause the run: it never resumes by itself then.</value>
     <comment>Accessible name of the list.</comment>
   </data>
   <data name="Orchestrator_MonView_Evidence" xml:space="preserve">
-    <value>Saved evidence</value>
+    <value>Evidence</value>
     <comment>Title of the list.</comment>
   </data>
   <data name="Orchestrator_MonView_EvidenceName" xml:space="preserve">
-    <value>Saved evidence of the run</value>
+    <value>Evidence of the run</value>
     <comment>Accessible name of the list.</comment>
   </data>
   <data name="Info_Monitor_Context_Title" xml:space="preserve">
@@ -2543,11 +2543,11 @@ Open the consumption analysis, if it is there, to see the detail.</value>
     <comment>Reason of a task. {0}: why it failed.</comment>
   </data>
   <data name="Orchestrator_Mon_EvidenceOne" xml:space="preserve">
-    <value>1 piece of saved evidence</value>
+    <value>1 piece of evidence</value>
     <comment>Count of evidence.</comment>
   </data>
   <data name="Orchestrator_Mon_EvidenceMany" xml:space="preserve">
-    <value>{0} pieces of saved evidence</value>
+    <value>{0} pieces of evidence</value>
     <comment>Count of evidence.</comment>
   </data>
   <data name="Orchestrator_Mon_CompactionOne" xml:space="preserve">

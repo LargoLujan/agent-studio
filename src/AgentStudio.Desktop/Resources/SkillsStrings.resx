@@ -138,7 +138,7 @@
     <comment>Technologies of the project when none is found.</comment>
   </data>
   <data name="Skills_Notice_NoAssisted" xml:space="preserve">
-    <value>Falta la recomendación asistida: solo está la determinista, que no gasta límite de uso.</value>
+    <value>Falta la recomendación asistida. Solo está la determinista, que no gasta límite de uso.</value>
     <comment>Notice.</comment>
   </data>
   <data name="Skills_Notice_NoApproval" xml:space="preserve">
@@ -556,7 +556,7 @@
   <data name="Info_Skills_Actions" xml:space="preserve">
     <value>Elige una skill del árbol para ver su ficha.
 Actívala para el proyecto, para un agente o en global: cada decisión se guarda y se puede cambiar.
-Pide una recomendación para tu tarea: la determinista no gasta límite de uso y la de un agente sí.
+Pide una recomendación para tu tarea. La determinista no gasta límite de uso; la de un agente sí.
 Mira el coste: cada skill activa suma tokens en cada ejecución.</value>
     <comment>Information button: one action per line.</comment>
   </data>

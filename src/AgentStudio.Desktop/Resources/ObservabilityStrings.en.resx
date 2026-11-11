@@ -272,7 +272,7 @@
     <value>Critical threshold, as a percentage</value>
   </data>
   <data name="Observability_Settings_Rule" xml:space="preserve">
-    <value>Each threshold is higher than the one before and the last one is at most 100: 0 &lt; warning &lt; compression &lt; critical ≤ 100. They are measured on the working memory of the model that served each step.</value>
+    <value>Each threshold is above the one before and the last is at most 100: 0 &lt; warning &lt; compression &lt; critical ≤ 100. They are measured on the working memory of the model that served each step.</value>
   </data>
   <data name="Observability_Settings_CodexRead" xml:space="preserve">
     <value>Read the usage limit of Codex</value>
@@ -284,7 +284,7 @@
     <value>The thresholds were not saved. "{0}" is not a whole number from 1 to 100: fix it.</value>
   </data>
   <data name="Observability_Settings_BadOrder" xml:space="preserve">
-    <value>The thresholds were not saved. Each one must be higher than the one before, and the critical one cannot be over 100: 0 &lt; warning &lt; compression &lt; critical ≤ 100.</value>
+    <value>The thresholds were not saved. Each one must be above the one before, and the critical one cannot pass 100: 0 &lt; warning &lt; compression &lt; critical ≤ 100.</value>
   </data>
   <data name="Info_Quota_Title" xml:space="preserve">
     <value>Usage limit of your plan</value>

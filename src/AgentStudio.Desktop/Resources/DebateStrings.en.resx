@@ -101,7 +101,7 @@
     <value>Reply</value>
   </data>
   <data name="Debate_Kind_Evidence" xml:space="preserve">
-    <value>Saved evidence</value>
+    <value>Evidence</value>
   </data>
   <data name="Debate_Limit_Rounds" xml:space="preserve">
     <value>round limit</value>
@@ -341,13 +341,13 @@
     <value>Assesses a requirement twice</value>
   </data>
   <data name="Verdict_Violation_EvidenceNotInDossier" xml:space="preserve">
-    <value>Cites saved evidence that is not in the file for the judge</value>
+    <value>Cites evidence that is not in the file for the judge</value>
   </data>
   <data name="Verdict_Violation_EvidenceCitedButNotExamined" xml:space="preserve">
-    <value>Cites saved evidence it does not say it examined</value>
+    <value>Cites evidence it does not say it examined</value>
   </data>
   <data name="Verdict_Violation_SatisfiedWithoutEvidence" xml:space="preserve">
-    <value>Marks a requirement as met without saved evidence</value>
+    <value>Marks a requirement as met without evidence</value>
   </data>
   <data name="Verdict_Violation_ApprovedWithUnmetMandatoryRequirement" xml:space="preserve">
     <value>Approves with a mandatory requirement not met</value>
@@ -380,7 +380,7 @@
     <value>Marks a requirement as met with failing tests</value>
   </data>
   <data name="Verdict_Violation_ApprovedWithoutEvidenceForCriterion" xml:space="preserve">
-    <value>Approves without saved evidence for a criterion</value>
+    <value>Approves without evidence for a criterion</value>
   </data>
   <data name="Verdict_Violation_MalformedVerdict" xml:space="preserve">
     <value>Malformed verdict</value>
@@ -500,16 +500,16 @@
     <value>{0} cannot be checked</value>
   </data>
   <data name="Verdict_Row_Evidence" xml:space="preserve">
-    <value>Saved evidence cited: {0}</value>
+    <value>Evidence cited: {0}</value>
   </data>
   <data name="Verdict_Row_NoEvidence" xml:space="preserve">
-    <value>No saved evidence cited</value>
+    <value>No evidence cited</value>
   </data>
   <data name="Verdict_Row_JudgeAssessment" xml:space="preserve">
     <value>the judge's assessment, which tests cannot check</value>
   </data>
   <data name="Verdict_Ref_Evidence" xml:space="preserve">
-    <value>saved evidence: {0}</value>
+    <value>evidence: {0}</value>
   </data>
   <data name="Verdict_Ref_Entries" xml:space="preserve">
     <value>history entries: {0}</value>
@@ -620,7 +620,7 @@
     <value>It was interrupted: the debate was left open with nothing running it. "Resume" continues it. It spends part of your plan's usage limit and asks for your approval.</value>
   </data>
   <data name="Debate_Room_EvidenceAdded" xml:space="preserve">
-    <value>Saved evidence "{0}" added. The next round and the judge will see it.</value>
+    <value>Evidence "{0}" added. The next round and the judge will see it.</value>
   </data>
   <data name="Debate_Room_Fail_Judgment" xml:space="preserve">
     <value>Judgment could not be requested: {0}</value>
@@ -629,7 +629,7 @@
     <value>The tests could not be run: {0}</value>
   </data>
   <data name="Debate_Room_Fail_Evidence" xml:space="preserve">
-    <value>The saved evidence could not be added: {0}</value>
+    <value>The evidence could not be added: {0}</value>
   </data>
   <data name="Debate_Room_Fail_Retry" xml:space="preserve">
     <value>The turn of {0} could not be retried: {1}</value>
@@ -704,16 +704,16 @@
     <value>Concedes: {0}</value>
   </data>
   <data name="Debate_Evidence_Cited" xml:space="preserve">
-    <value>Saved evidence {0}</value>
+    <value>Evidence {0}</value>
   </data>
   <data name="Debate_Evidence_NoStore" xml:space="preserve">
-    <value>The store of saved evidence is missing: the saved evidence cannot be opened.</value>
+    <value>The store of evidence is missing: the evidence cannot be opened.</value>
   </data>
   <data name="Debate_Evidence_Failed" xml:space="preserve">
     <value>It could not be opened: {0}</value>
   </data>
   <data name="Debate_Evidence_Missing" xml:space="preserve">
-    <value>It is not in the project's store of saved evidence.</value>
+    <value>It is not in the project's store of evidence.</value>
   </data>
   <data name="Debate_Evidence_Commit" xml:space="preserve">
     <value>saved version (commit) {0}</value>
@@ -809,7 +809,7 @@
     <value>Preparing. This does not spend your plan's usage limit or save anything…</value>
   </data>
   <data name="Debate_New_Status_Prepared" xml:space="preserve">
-    <value>Check the settings and the estimate. If you press "Open debate", we ask for your approval.</value>
+    <value>Check the settings and the estimate. If you press "Open debate", it will ask for your approval.</value>
   </data>
   <data name="Debate_New_Status_Problems" xml:space="preserve">
     <value>The debate cannot be opened like this: look at the problems.</value>
@@ -989,7 +989,7 @@
     <value>The challenge service is missing: a verdict cannot be challenged.</value>
   </data>
   <data name="Debate_Doc_Notice_NoEvidence" xml:space="preserve">
-    <value>The store of saved evidence is missing: the quotes of the contributions are listed but cannot be opened.</value>
+    <value>The store of evidence is missing: the quotes of the contributions are listed but cannot be opened.</value>
   </data>
   <data name="Debate_Doc_Notice_NoRoster" xml:space="preserve">
     <value>The team of agents is missing: there are no participants or judges to choose.</value>
@@ -1181,7 +1181,7 @@
     <value>Challenge a verdict</value>
   </data>
   <data name="Debate_ChallengeView_Explain" xml:space="preserve">
-    <value>The review is a debate with two sides: the proponent defends the verdict and the critic defends your challenge. It never delivers by itself. If the result turns into an approval, it only counts if you accept it.</value>
+    <value>The review is a debate with two sides: the proponent defends the verdict and the critic defends your challenge. It never delivers by itself. If the result turns into an approval, it only counts if you accept it explicitly.</value>
   </data>
   <data name="Debate_ChallengeView_Reasons" xml:space="preserve">
     <value>Your reasons (they are saved as a note of yours and open round 1 of the critic)</value>
@@ -1208,7 +1208,7 @@
     <value>Challenge</value>
   </data>
   <data name="Debate_ChallengeView_ChallengeHint" xml:space="preserve">
-    <value>It saves the challenge (your reasons are kept as saved evidence) and opens the review, after your approval.</value>
+    <value>It saves the challenge (your reasons are kept as evidence) and opens the review, after your approval.</value>
   </data>
   <data name="Debate_RoomView_RequestJudgment" xml:space="preserve">
     <value>Ask for judgment now</value>
@@ -1220,7 +1220,7 @@
     <value>Run tests</value>
   </data>
   <data name="Debate_RoomView_RunTestsHint" xml:space="preserve">
-    <value>It runs the trusted tests on the saved version (commit) of the subject, in an isolated zone. It does not spend your plan's usage limit.</value>
+    <value>It runs the trusted tests on the saved version (commit) of the subject, in a sandbox. It does not spend your plan's usage limit.</value>
   </data>
   <data name="Debate_RoomView_Abort" xml:space="preserve">
     <value>Abort</value>
@@ -1250,28 +1250,28 @@
     <value>Contributions by round</value>
   </data>
   <data name="Debate_RoomView_OpenEvidenceHint" xml:space="preserve">
-    <value>It opens the saved evidence it cites. It is only shown if its fingerprint still matches the saved one.</value>
+    <value>It opens the evidence it cites. It is only shown if its fingerprint still matches the saved one.</value>
   </data>
   <data name="Debate_RoomView_OpenEvidenceName" xml:space="preserve">
-    <value>Open saved evidence {0}</value>
+    <value>Open evidence {0}</value>
   </data>
   <data name="Debate_RoomView_Close" xml:space="preserve">
     <value>Close</value>
   </data>
   <data name="Debate_RoomView_EvidenceContent" xml:space="preserve">
-    <value>Content of the saved evidence</value>
+    <value>Content of the evidence</value>
   </data>
   <data name="Debate_RoomView_AddEvidence" xml:space="preserve">
-    <value>Add saved evidence (a note of yours that the next round and the judge will see)</value>
+    <value>Add evidence (a note of yours that the next round and the judge will see)</value>
   </data>
   <data name="Debate_RoomView_EvidenceTitleName" xml:space="preserve">
-    <value>Title of the saved evidence</value>
+    <value>Title of the evidence</value>
   </data>
   <data name="Debate_RoomView_EvidenceTextName" xml:space="preserve">
-    <value>Text of the saved evidence</value>
+    <value>Text of the evidence</value>
   </data>
   <data name="Debate_RoomView_AddEvidenceButton" xml:space="preserve">
-    <value>Add saved evidence</value>
+    <value>Add evidence</value>
   </data>
   <data name="Debate_RoomView_Activity" xml:space="preserve">
     <value>Activity</value>
@@ -1370,11 +1370,11 @@ Filter the history by mode.</value>
     <value>Verdict card</value>
   </data>
   <data name="Info_Verdict_What" xml:space="preserve">
-    <value>It is the judge's answer: whether it approves, asks for changes or rejects, and why. Each requirement shows its status and the saved evidence it cites. If the judge breaks a rule, you will see it marked.</value>
+    <value>It is the judge's answer: whether it approves, asks for changes or rejects, and why. Each requirement shows its status and the evidence it cites. If the judge breaks a rule, you will see it marked.</value>
   </data>
   <data name="Info_Verdict_Actions" xml:space="preserve">
     <value>See which requirements are met and which are not.
-Open the saved evidence the judge cites.
+Open the evidence the judge cites.
 Press "Challenge" if you do not agree.
 Press "Create corrective tasks" to ask the orchestrator for the fixes.
 Decide yourself if the panel does not agree.</value>

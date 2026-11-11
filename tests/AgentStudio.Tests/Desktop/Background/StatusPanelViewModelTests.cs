@@ -144,7 +144,7 @@ public sealed class StatusPanelViewModelTests
         Assert.Equal(["Agentes: sin dato (no se pudieron leer los datos con los que empezó la ejecución)"], card.Agents);
         Assert.Empty(card.Tokens);
         Assert.Equal("Tokens: sin dato (el consumo no está disponible aquí).", card.TokensNote);
-        Assert.Equal("Presupuesto: 5 ejecuciones de agente usadas · máximo sin dato (faltan los datos con los que empezó la ejecución)", card.Budget);
+        Assert.Equal("Presupuesto: 5 ejecuciones de agente usadas. No se sabe el máximo: faltan los datos del inicio.", card.Budget);
         Assert.Empty(panel.Quota);
         Assert.Equal("Límite de uso: sin dato (no está disponible aquí).", panel.QuotaNote);
     }

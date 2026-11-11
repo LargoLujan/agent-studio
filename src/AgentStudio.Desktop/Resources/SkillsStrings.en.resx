@@ -107,13 +107,13 @@
     <value>No technology is recognized from the names of the files.</value>
   </data>
   <data name="Skills_Notice_NoAssisted" xml:space="preserve">
-    <value>The assisted recommendation is missing: only the deterministic one is there, which spends no usage limit.</value>
+    <value>The assisted recommendation is missing. Only the deterministic one is there, which spends no usage limit.</value>
   </data>
   <data name="Skills_Notice_NoApproval" xml:space="preserve">
     <value>The approval dialog is missing: without it the OK of the assisted recommendation cannot be asked.</value>
   </data>
   <data name="Skills_Notice_CodexGlobal" xml:space="preserve">
-    <value>Codex also loads your global skills (~/.agents/skills): turning one on here only adds, it does not hide the ones you already have.</value>
+    <value>Codex also loads your global skills (~/.agents/skills). Turning one on here only adds: it does not hide the ones you already have.</value>
   </data>
   <data name="Skills_Notice_OpenProject" xml:space="preserve">
     <value>Open a project to turn skills on: without one you can only browse the catalog.</value>
@@ -281,7 +281,7 @@
     <value>The agent proposed {0} skills{1}. Nothing was turned on: turn them on yourself in their cards if you like them.</value>
   </data>
   <data name="Skills_Assisted_Failed" xml:space="preserve">
-    <value>The recommendation could not be asked: {0}</value>
+    <value>The recommendation could not be requested: {0}</value>
   </data>
   <data name="Skills_Assisted_Cancelled" xml:space="preserve">
     <value>The question was cancelled: nothing was asked.</value>
@@ -421,7 +421,7 @@
   <data name="Info_Skills_Actions" xml:space="preserve">
     <value>Pick a skill in the tree to see its card.
 Turn it on for the project, for an agent or globally: each decision is saved and can be changed.
-Ask for a recommendation for your task: the deterministic one spends no usage limit and the one of an agent does.
+Ask for a recommendation for your task. The deterministic one spends no usage limit; the one of an agent does.
 Look at the cost: each skill that is on adds tokens to every run.</value>
   </data>
 </root>

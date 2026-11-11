@@ -83,7 +83,7 @@ public sealed class ObservabilitySettingsViewModelTests
 
         Assert.Empty(store.Writes);
         Assert.Equal(0, saved);
-        Assert.Equal("No se guardaron los umbrales. Cada uno debe ser mayor que el anterior, y el crítico no puede pasar de 100: 0 < aviso < compresión < crítico ≤ 100.", settings.ErrorMessage);
+        Assert.Equal("No se guardaron los umbrales. Cada uno debe ser mayor que el anterior, y el crítico no pasa de 100: 0 < aviso < compresión < crítico ≤ 100.", settings.ErrorMessage);
         Assert.Equal((0.70, 0.85, 0.95), (settings.Thresholds.Warning, settings.Thresholds.Compress, settings.Thresholds.Critical));
         Assert.False(settings.CodexOptedIn);
     }
