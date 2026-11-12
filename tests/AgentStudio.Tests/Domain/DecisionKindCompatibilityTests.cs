@@ -150,8 +150,24 @@ public sealed class DecisionKindCompatibilityTests
         {
             Assert.Equal(Phase9Kinds[i], ((DecisionKind)(before + i)).ToString());
         }
+    }
 
-        Assert.Equal(before + Phase9Kinds.Length, Enum.GetValues<DecisionKind>().Length);
+    /// <summary>
+    /// Phase 6 (docs/20 §4.3 and §5): the fixes of Auto Doctor and the relations an AI proposed for Auto Graph, appended after Phase 9. Nothing else
+    /// was added by this phase.
+    /// </summary>
+    private static readonly string[] Phase6Kinds = ["DoctorFixApplied", "GraphRelationsProposed"];
+
+    [Fact]
+    public void Phase_6_kinds_come_after_the_phase_9_ones()
+    {
+        var before = ExistingKinds.Length + Phase3Kinds.Length + Phase4Kinds.Length + Phase5Kinds.Length + Phase8Kinds.Length + Phase12Kinds.Length + Phase13Kinds.Length + Phase14Kinds.Length + Phase9Kinds.Length;
+        for (var i = 0; i < Phase6Kinds.Length; i++)
+        {
+            Assert.Equal(Phase6Kinds[i], ((DecisionKind)(before + i)).ToString());
+        }
+
+        Assert.Equal(before + Phase6Kinds.Length, Enum.GetValues<DecisionKind>().Length);
     }
 
     [Fact]

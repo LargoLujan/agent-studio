@@ -43,7 +43,7 @@ internal static partial class TextGuide
     /// package, so from then on the guide is checked on its texts too. Any other area that appears in the folder and is in neither
     /// list is skipped in the same way (and listed by <c>Every_resource_area_is_checked_or_pending_its_extraction</c>).
     /// </summary>
-    public static readonly string[] PendingExtraction = [];
+    public static readonly string[] PendingExtraction = ["DoctorStrings", "GraphStrings", "DocsStrings"];
 
     /// <summary>
     /// Key convention: a key whose last segment (after the last «_») is one of these is a text of «Detalles», the folded part of a

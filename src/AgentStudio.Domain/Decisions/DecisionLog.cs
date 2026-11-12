@@ -197,6 +197,22 @@ public enum DecisionKind
 
     /// <summary>A link of the trace is withdrawn (D-29): who and why. The link stays in the log; recording another is how it changes.</summary>
     TraceLinkRetracted,
+
+    // Phase 6 (Auto Doctor and Auto Graph, docs/20 §4.3 and §5). Appended after the Phase 9 kinds, so no stored hash changes. Neither belongs to a
+    // run: their payloads carry an empty run id, so replay and the judge's dossier never select them.
+
+    /// <summary>
+    /// A fix of Auto Doctor was applied, or undone (docs/20 D-11): the code of the fix, the code of the check it answers and, when it undoes another
+    /// entry, which. No text, no path of the machine and nothing of a token goes in the payload.
+    /// </summary>
+    DoctorFixApplied,
+
+    /// <summary>
+    /// A person approved the relations an AI proposed for Auto Graph (docs/20 D-21): the commit and the fingerprint of the model they refer to, the text
+    /// of the agent as evidence, the relations accepted (the ends and the kind, nothing the agent wrote), how many were discarded, and the agent and
+    /// the model that proposed them.
+    /// </summary>
+    GraphRelationsProposed,
 }
 
 public sealed record DecisionEntry(

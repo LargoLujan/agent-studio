@@ -26,6 +26,11 @@
     <PackageReference Include="DocumentFormat.OpenXml" />
   </ItemGroup>
 
+  <!-- DPAPI of the token of GitHub (Phase 6, docs/20 D-15; ADR-0063): the vault of WP-S, MIT, used only by Security/DpapiCredentialVault. -->
+  <ItemGroup>
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" />
+  </ItemGroup>
+
   <ItemGroup>
     <EmbeddedResource Include="Persistence\Schema\*.sql" LogicalName="AgentStudio.Schema.%(Filename)%(Extension)" />
   </ItemGroup>

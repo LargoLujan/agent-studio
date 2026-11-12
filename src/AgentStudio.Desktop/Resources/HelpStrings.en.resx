@@ -184,6 +184,12 @@
   <data name="Help_Screen_repository" xml:space="preserve">
     <value>Repository and changes</value>
   </data>
+  <data name="Help_Screen_doctor" xml:space="preserve">
+    <value>Auto Doctor</value>
+  </data>
+  <data name="Help_Screen_graph" xml:space="preserve">
+    <value>Auto Graph</value>
+  </data>
   <data name="Text_help_action_open_orchestrator" xml:space="preserve">
     <value>Open the Orchestrator</value>
   </data>

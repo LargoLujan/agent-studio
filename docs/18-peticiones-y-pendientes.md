@@ -501,7 +501,7 @@ Ordenados por importancia. «Ya en 18» es lo que ya recogen §1 a §3.
 | P24 | Tus demostraciones (lista debajo), y llevar a 08 lo visto en vivo el 30-10 | Alta | Nuevo. Cruza con P17 |
 | P16 | Fase 9 (F9-1 a F9-10) | Alta | Ya en 18 |
 | P4 a P15 y P18 | Constructor visual, modelos, configurador, preguntas, idiomas, textos, ayuda, documentación para clientes y Hello siempre | Alta | Decidido el 2026-11-06 (17 §12, todas las recomendadas). Fase 13 en marcha; luego la 14 y la 15 |
-| P25 | Fase 6 (F6-1 a F6-11): Auto Doctor completo, Auto Graph, el doctor de skills (lo que falta del «indicador de salud» del 15-10), el entorno y los diagramas | Media | Nuevo. Cruza con P20 |
+| P25 | Fase 6 (F6-1 a F6-11): Auto Doctor completo, Auto Graph, el doctor de skills (lo que falta del «indicador de salud» del 15-10), el entorno y los diagramas | Media | Nuevo. Cruza con P20. Diseño en [20](20-fase-6-auto-doctor-y-auto-graph.md) (propuesta del 2026-11-12, con quince decisiones tuyas en su §13; su paquete WP-0, el arreglo del localizador de ejecutables y de las sondas, se puede hacer ya) |
 | P26 | Fase 10 (F10-1 a F10-10): GitHub por `gh`, PR y sincronización | Media | Nuevo |
 | P27 | Fase 7 (F7-1 a F7-8), con el empaquetado y las actualizaciones (F7-6, que P1 no cubre) y la bóveda DPAPI | Media | Nuevo. Es lo que queda de «¿cuándo estará listo?» (18-10) |
 | P28 | Lo mandado «a la Fase 7» sin criterio: la firma del registro (ADR-0004, 15 §1), la accesibilidad completa (12 §7, F1-6) y la purga real de la memoria (ADR-0022, 14 §1). Darles criterio o descartarlos con un ADR | Media | Nuevo |

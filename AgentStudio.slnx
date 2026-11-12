@@ -4,6 +4,7 @@
     <Project Path="src/AgentStudio.Debate/AgentStudio.Debate.csproj" />
     <Project Path="src/AgentStudio.Desktop/AgentStudio.Desktop.csproj" />
     <Project Path="src/AgentStudio.Domain/AgentStudio.Domain.csproj" />
+    <Project Path="src/AgentStudio.GraphWorker/AgentStudio.GraphWorker.csproj" />
     <Project Path="src/AgentStudio.Infrastructure/AgentStudio.Infrastructure.csproj" />
     <Project Path="src/AgentStudio.Memory/AgentStudio.Memory.csproj" />
     <Project Path="src/AgentStudio.Observability/AgentStudio.Observability.csproj" />

@@ -62,7 +62,8 @@ internal static class UiScreens
         new(name, create, width, height);
 
     private static IReadOnlyList<UiScreen> Build() =>
-        [.. Core(), .. UiScreensShell.All, .. UiScreensOrchestrator.All, .. UiScreensDebate.All, .. UiScreensServices.All, .. UiScreensRepository.All, .. UiScreensWork.All];
+        [.. Core(), .. UiScreensShell.All, .. UiScreensOrchestrator.All, .. UiScreensDebate.All, .. UiScreensServices.All, .. UiScreensRepository.All, .. UiScreensWork.All,
+         .. UiScreensDoctor.All, .. UiScreensGraph.All, .. UiScreensDocs.All];
 
     private static IReadOnlyList<UiScreen> Core() =>
     [
