@@ -241,8 +241,14 @@ y `NeedsMediumIntegrity` (`AuditDemo.AlwaysExcluded`; `AGENTSTUDIO_PHASE5_AUDIT_
 excluye `NeedsMediumIntegrity`: su total es el mismo que antes (5946 casos listados con su filtro, antes y después; con la
 etiqueta excluida, 5911).
 
-Resultado, con la orden de la medición sobre el commit `bb4f5b9`: **build bien; test bien (salida 0, 8902 correctas,
-0 fallidas, 4 omitidas), 16,2 min a integridad Low.** Para una pasada rápida sin construir la copia existe
+Resultado, con la orden de la medición: con las 35 pruebas de proveedores etiquetadas (commit `bb4f5b9`), **build bien; test
+bien (salida 0, 8902 correctas, 0 fallidas, 4 omitidas), 16,2 min a integridad Low.** Ya sin etiquetas (commit `d0976cfb`,
+8940 pruebas: las 8902, las 35 y las 3 de `ProjectAuditExclusionsTests`): build bien; 8938 correctas, 4 omitidas y 2
+fallidas, 11,9 min a Low. Las 2 son de tiempo (`ExitSuspendsResumesTests` y `MonitorAccessibilityTests`, ya anotadas en
+docs/18 como sensibles a la carga) y pasan solas a Low (12 de 12). A Medium, con el filtro del CI: 8944 pruebas, 8942
+correctas, 1 omitida y 1 fallida, `ApprovalReviewAndIntegrationTests.A_verdict_that_needs_a_human_waits_for_the_approval_gate`,
+que falla dentro de la suite entera (también antes de este cambio, con la medición del 2026-11-11) y pasa sola. Una pasada
+completa a Medium no dejó ningún fichero nuevo en el `%LOCALAPPDATA%\AgentStudio` real (0 ficheros nuevos sobre los 1185 que había). Para una pasada rápida sin construir la copia existe
 `LowIntegritySuiteLocalTests` (`LocalTools`, solo con `AGENTSTUDIO_LOW_RUN=1`, `AGENTSTUDIO_LOW_RUN_OUT` y
 `AGENTSTUDIO_LOW_RUN_ARGS`): lanza `AgentStudio.Tests.exe` a Low con `TEMP` en una carpeta Low; es aproximada (los binarios
 siguen en Medium: `ExecutableLocatorTests` falla ahí y pasa en la auditoría).
