@@ -2239,20 +2239,20 @@ en otro grupo de la dimensión (un hito), de modo que los grupos pueden sumar m�
     se enseña con el estado del impugnado (`Challenged` mientras este lo esté, `Superseded` si lo está el impugnado, `InForce` solo cuando la revisión quedó asentada) y en la
     participación no se atribuye «aprobó» por un veredicto de revisión que nadie aceptó. Un `Supersedes` sin impugnación detrás (un juez que corrige su propio veredicto) sí
     sustituye al anterior. La entrega (`DeliveryService`) ya lo cumplía por su cuenta.
-  - **Regla final del veredicto en vigor** (`VerdictReach` y `ChallengeReader` la aplican al tablero, la cadena y la participación; `DeliveryService` conserva su propio evaluador,
+  - **Regla final del veredicto en vigor** (`VerdictReach` y `ChallengeReader` la aplican al tablero, la cadena y la participación, y `ChallengeLog.StatusOf` de Debate lee el estado de una impugnación con la misma función; `DeliveryService` conserva su propio evaluador,
     más estricto, y una tabla de escenarios de `RevisionAgreementTests` comprueba que ambas lecturas del mismo registro no se contradicen):
     - **Orden.** Un veredicto es «de la revisión» solo si se emitió después de abrirse la impugnación del que sustituye, por el orden del registro (la secuencia de las
       entradas, como hace `DeliveryService`): cada veredicto de la cadena, hasta el impugnado, tiene que ser posterior a la impugnación. Una corrección del juez emitida antes de que
       se impugnara el original lo sustituye como siempre (impugnar un veredicto ya sustituido no lo resucita); emitida después, es de la revisión. Si el registro no anuncia el
       veredicto no hay orden que oponerle. La búsqueda de la cadena de `Supersedes` recuerda lo ya recorrido: un ciclo o una autorreferencia (un almacén manipulado) termina.
-    - **Estado de una impugnación** (`ChallengeReader.Read`, que repite `ChallengeLog.StatusOf` salvo en estos dos puntos, donde sigue a la entrega). Una impugnación cuya revisión la persona rechazó abrir
+    - **Estado de una impugnación** (una sola función, `ChallengeRules.Read` en `Application/Judging`: `ChallengeReader.Read` (tablero, cadena, participación) y `ChallengeLog.StatusOf` (Debate, que decide si se puede impugnar otra vez y si una revisión espera aceptación) la llaman; sigue a la entrega). Una impugnación cuya revisión la persona rechazó abrir
       (su no a `debate.open` en el debate, sin que este llegara a abrirse) no cuenta: es como no haberla hecho, salvo que una impugnación anterior ya juzgada, o una revisión abierta,
       siga mandando; las anteriores sin juicio ceden ante ella. Solo el veredicto con el que terminó la ejecución (`RunFinished.VerdictId`) exige que la persona acepte una revisión
       que vuelve hacia una aprobación; la impugnación de otro veredicto de la ejecución (un intento que su juez corrigió) se lee como si ese veredicto fuera una aprobación, que es como
       la lee la entrega: una revisión que aprueba no pide aceptación y una que no aprueba la retira.
     - **Tarjetas de tarea.** Una tarea completada sigue al último veredicto válido que la juzgó (`VerdictReach.Judges` con los requisitos que cubre; a una tarea que no cubre
       ninguno, como la de integración o la de revisión, la juzga todo veredicto de su alcance), con su estado (`VerdictReach.Standing`), igual que el requisito: va a «En revisión»
-      si ese veredicto está impugnado o si ninguno la juzgó. Tarea y requisito no se contradicen.
+      si ese veredicto está impugnado o si ninguno la juzgó. Tarea y requisito no se contradicen: con un veredicto aprobado, la tarea sigue a lo que ese veredicto dice de los requisitos que cubre y evaluó (`BoardRules.ColumnOf(TaskBoardFacts)`, `TaskBoardFacts.Assessed`): alguno no satisfecho la deja en «Devuelto», alguno no verificable (o un veredicto sin evaluaciones por requisito) en «En revisión», y solo con todos satisfechos en «Hecho». **Provisional:** el destino del requisito en «aprobado pero no cumplido» es una regla del tablero que el dueño tiene pendiente de decidir; la tarea solo lo sigue, y cambiará con él.
     - **Límite conocido.** La entrega es más estricta que el tablero en un caso: una revisión que retiró la aprobación de un intento que el juez corrigió, o que sigue abierta,
       bloquea la entrega, mientras que la tarjeta sigue al último veredicto, el de la ejecución, que nadie impugnó. Lo que nunca ocurre es lo contrario: nada se entrega que el tablero
       tenga en revisión, ni queda en revisión algo que la entrega dejaría pasar (`RevisionAgreementTests` recorre los escenarios con las dos lecturas sobre el mismo registro).

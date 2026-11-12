@@ -79,3 +79,9 @@
   - Sin verificar: el coordinador (WP1), el juicio (WP2) y la entrega (WP5) reales con este servicio, de principio a fin. Las
     pruebas usan un doble del coordinador que registra lo que registra el real al abrir, y leen los estados con las mismas
     reglas que la entrega.
+
+## Adenda · 2026-11-12 · una sola lectura del estado de una impugnación
+
+El estado de una impugnación (`ChallengeStatus`) lo lee una única función de `Application` (`ChallengeRules`), que usan `ChallengeLog.StatusOf` y el tablero (ADR-0039, adenda del mismo día).
+Dos cambios para quien impugna: una impugnación cuya revisión rechazaste abrir no cuenta y puedes volver a impugnar el veredicto; y solo la revisión del veredicto con el que terminó la
+ejecución espera tu aceptación al volver hacia una aprobación (la de un intento que el juez corrigió se lee como una aprobación, como hace la entrega).

@@ -97,7 +97,7 @@ public sealed class BoardProjector(
         {
             foreach (var task in run.Tasks)
             {
-                if (BoardRules.ColumnOf(new TaskBoardFacts(task.Status, run.DecisionFor(task))) is not { } column)
+                if (BoardRules.ColumnOf(run.FactsOf(task)) is not { } column)
                 {
                     continue;
                 }
@@ -219,18 +219,29 @@ public sealed class BoardProjector(
         /// What the last valid verdict that judged the task says of it, by the same rule as for a requirement (<see cref="VerdictReach"/>), or null when none did or the one that did is
         /// set aside by a challenge: the card of a completed task then waits in review, as the card of its requirement does.
         /// </summary>
-        public VerdictDecision? DecisionFor(TaskFacts task)
+        public TaskBoardFacts FactsOf(TaskFacts task)
         {
             foreach (var (issued, verdict, standing) in Verdicts.Reverse())
             {
                 var onOrdinaryTask = issued.Task is { } one && Tasks.Any(t => t.Id == one && !t.IsReview);
                 if (task.Covers.Count == 0 ? VerdictReach.JudgesUncovered(issued.Task, onOrdinaryTask, task.Id) : VerdictReach.Judges(verdict, issued.Task, onOrdinaryTask, task.Id, task.Covers))
                 {
-                    return standing.Challenged ? null : standing.Decision;
+                    if (standing.Challenged)
+                    {
+                        return new TaskBoardFacts(task.Status, null);
+                    }
+
+                    // What the verdict says of each requirement the task covers, as the card of that requirement reads it (VerdictFor): the task follows its requirements.
+                    IReadOnlyList<AssessmentStatus?> assessed = task.Covers.Count == 0
+                        ? []
+                        : verdict.Assessments.Count == 0
+                            ? [null]
+                            : [.. verdict.Assessments.Where(a => task.Covers.Contains(a.Requirement)).Select(a => (AssessmentStatus?)a.Status)];
+                    return new TaskBoardFacts(task.Status, standing.Decision, assessed);
                 }
             }
 
-            return null;
+            return new TaskBoardFacts(task.Status, null);
         }
 
         /// <summary>The last valid verdict that judged the requirement (<see cref="VerdictReach"/>, the rule the chain and the participation share), with what it says of it.</summary>
