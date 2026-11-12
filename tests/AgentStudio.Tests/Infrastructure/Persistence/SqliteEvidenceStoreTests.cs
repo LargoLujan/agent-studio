@@ -167,6 +167,38 @@ public sealed class SqliteEvidenceStoreTests : IDisposable
         }
     }
 
+    /// <summary>
+    /// Another handle on the stored file (the capture of the same content going on right now, a scanner that opened it) makes
+    /// the check of a second capture fail for a moment: the capture waits for it, and does not fail.
+    /// </summary>
+    [Fact]
+    public async Task A_capture_of_content_already_stored_waits_while_another_handle_holds_the_stored_file()
+    {
+        using var instance = await ProjectInstance.OpenAsync(_folder.Root);
+        var content = Bytes("contenido repetido");
+        var first = await CaptureAsync(instance, content);
+        var held = new FileStream(Path.Combine(_folder.EvidenceDirectory, first.ContentSha256), FileMode.Open, FileAccess.Read, FileShare.None);
+
+        Task<EvidenceRecord> second;
+        try
+        {
+            second = Task.Run(() => CaptureAsync(instance, content, Draft("segunda captura")), Ct);
+            await Task.WhenAny(second, Task.Delay(300, Ct));
+
+            Assert.False(second.IsCompleted, "The capture ended while the stored file was held: it must wait for it.");
+        }
+        finally
+        {
+            await held.DisposeAsync();
+        }
+
+        var record = await second;
+        Assert.Equal(first.ContentSha256, record.ContentSha256);
+        Assert.Single(EvidenceFiles());
+        Assert.Empty(TempFiles());
+        Assert.Equal(content, await ReadAsync(instance, record.Id));
+    }
+
     [Fact]
     public async Task Capturing_the_same_content_again_restores_a_file_that_was_modified()
     {

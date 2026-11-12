@@ -168,10 +168,15 @@ internal sealed class MemoryWorld : IDisposable
 
     public async Task<IReadOnlyList<MemoryRow>> RowsAsync() => await Store.SearchAsync(Instance.ProjectId, new MemorySearch(), Ct);
 
-    /// <summary>Moves the clock a second at a time until <paramref name="task"/> ends (it waits on the clock, not on real time).</summary>
+    /// <summary>
+    /// Moves the clock a second at a time until <paramref name="task"/> ends (it waits on the clock, not on real time). The
+    /// bound is a deadline in real time, not a number of steps: once the wait is over the task still has real work to do (the
+    /// log and the store), and on a loaded machine that may take longer than any fixed number of steps.
+    /// </summary>
     public async Task AdvanceUntilAsync(Task task)
     {
-        for (var i = 0; i < 200 && !task.IsCompleted; i++)
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(30);
+        while (!task.IsCompleted && DateTime.UtcNow < deadline)
         {
             Clock.Advance(TimeSpan.FromSeconds(1));
             await Task.WhenAny(task, Task.Delay(20, Ct));

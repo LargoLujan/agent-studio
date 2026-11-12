@@ -162,12 +162,41 @@ public sealed class SqliteEvidenceStore(ProjectDatabases databases, TimeProvider
         }
     }
 
+    /// <summary>How often a move or a check of the stored file is tried when another handle holds it, and how long to wait between tries.</summary>
+    private const int PlaceAttempts = 40;
+
+    private static readonly TimeSpan PlaceRetryDelay = TimeSpan.FromMilliseconds(50);
+
     private static async Task PlaceAsync(string temp, string target, string sha256, CancellationToken cancellationToken)
+    {
+        // Another handle on the temporary file or on the stored one (the capture of the same content going on right now, or a
+        // scanner that opened the file just created) makes the move or the check fail for a moment: it is tried again, and
+        // only a failure that lasts reaches the caller.
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                if (await TryPlaceAsync(temp, target, sha256, cancellationToken).ConfigureAwait(false))
+                {
+                    return;
+                }
+            }
+            catch (IOException) when (attempt < PlaceAttempts)
+            {
+                // held for the moment
+            }
+
+            await Task.Delay(PlaceRetryDelay, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>One try to put the content in place; false when the stored file vanished before it could be checked.</summary>
+    private static async Task<bool> TryPlaceAsync(string temp, string target, string sha256, CancellationToken cancellationToken)
     {
         try
         {
             File.Move(temp, target);
-            return;
+            return true;
         }
         catch (IOException) when (File.Exists(target))
         {
@@ -175,10 +204,17 @@ public sealed class SqliteEvidenceStore(ProjectDatabases databases, TimeProvider
         }
 
         string existing;
-        var stream = OpenForReading(target);
-        await using (stream.ConfigureAwait(false))
+        try
         {
-            existing = Convert.ToHexStringLower(await SHA256.HashDataAsync(stream, cancellationToken).ConfigureAwait(false));
+            var stream = OpenForReading(target);
+            await using (stream.ConfigureAwait(false))
+            {
+                existing = Convert.ToHexStringLower(await SHA256.HashDataAsync(stream, cancellationToken).ConfigureAwait(false));
+            }
+        }
+        catch (FileNotFoundException)
+        {
+            return false;
         }
 
         if (!string.Equals(existing, sha256, StringComparison.Ordinal))
@@ -186,6 +222,8 @@ public sealed class SqliteEvidenceStore(ProjectDatabases databases, TimeProvider
             // The stored file was modified; the bytes just hashed are the authentic content of that name.
             File.Move(temp, target, overwrite: true);
         }
+
+        return true;
     }
 
     private static void TryDelete(string path)
