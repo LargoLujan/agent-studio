@@ -1675,4 +1675,88 @@ El de hoy es provisional y no se guarda.</value>
     <value>Ficha del proyecto</value>
     <comment>Text of the memory (memory.export.title.project-brief).</comment>
   </data>
+  <data name="Text_memory_join_lines" xml:space="preserve">
+    <value>{0}&#10;{1}</value>
+    <comment>Text of the memory (memory.join-lines).</comment>
+  </data>
+  <data name="Text_memory_topic_daily_summary" xml:space="preserve">
+    <value>Resumen del {0}</value>
+    <comment>Text of the memory (memory.topic.daily-summary).</comment>
+  </data>
+  <data name="Text_memory_daily_title" xml:space="preserve">
+    <value># Resumen del {0}</value>
+    <comment>Text of the memory (memory.daily.title).</comment>
+  </data>
+  <data name="Text_memory_daily_title_provisional" xml:space="preserve">
+    <value># Resumen del {0} (provisional)</value>
+    <comment>Text of the memory (memory.daily.title-provisional).</comment>
+  </data>
+  <data name="Text_memory_daily_intro" xml:space="preserve">
+    <value>Resumen determinista de la bitácora del día: solo cuenta y cita, no interpreta.</value>
+    <comment>Text of the memory (memory.daily.intro).</comment>
+  </data>
+  <data name="Text_memory_daily_no_journal" xml:space="preserve">
+    <value>No hay bitácora de este día.</value>
+    <comment>Text of the memory (memory.daily.no-journal).</comment>
+  </data>
+  <data name="Text_memory_daily_requests" xml:space="preserve">
+    <value>## Peticiones: {0}</value>
+    <comment>Text of the memory (memory.daily.requests).</comment>
+  </data>
+  <data name="Text_memory_daily_results" xml:space="preserve">
+    <value>## Resultados: {0}</value>
+    <comment>Text of the memory (memory.daily.results).</comment>
+  </data>
+  <data name="Text_memory_daily_tokens" xml:space="preserve">
+    <value>## Tokens</value>
+    <comment>Text of the memory (memory.daily.tokens).</comment>
+  </data>
+  <data name="Text_memory_daily_failures" xml:space="preserve">
+    <value>## Fallos y límites: {0}</value>
+    <comment>Text of the memory (memory.daily.failures).</comment>
+  </data>
+  <data name="Text_memory_daily_tags" xml:space="preserve">
+    <value>## Etiquetas más frecuentes</value>
+    <comment>Text of the memory (memory.daily.tags).</comment>
+  </data>
+  <data name="Text_memory_daily_done_lines" xml:space="preserve">
+    <value>## Líneas «Hecho»: {0}</value>
+    <comment>Text of the memory (memory.daily.done-lines).</comment>
+  </data>
+  <data name="Text_memory_daily_unrecognized" xml:space="preserve">
+    <value>## Líneas no reconocidas: {0}</value>
+    <comment>Text of the memory (memory.daily.unrecognized).</comment>
+  </data>
+  <data name="Text_memory_daily_duration" xml:space="preserve">
+    <value>- Duración total: {0:F1} s</value>
+    <comment>Text of the memory (memory.daily.duration).</comment>
+  </data>
+  <data name="Text_memory_daily_unanswered" xml:space="preserve">
+    <value>- Sin resultado en la bitácora: {0}</value>
+    <comment>Text of the memory (memory.daily.unanswered).</comment>
+  </data>
+  <data name="Text_memory_daily_no_product_requests" xml:space="preserve">
+    <value>- Sin peticiones de Agent Studio: las de desarrollo no registran tokens.</value>
+    <comment>Text of the memory (memory.daily.no-product-requests).</comment>
+  </data>
+  <data name="Text_memory_daily_tokens_exact" xml:space="preserve">
+    <value>- Entrada {0:N0} → salida {1:N0} (exactos)</value>
+    <comment>Text of the memory (memory.daily.tokens-exact).</comment>
+  </data>
+  <data name="Text_memory_daily_tokens_partial" xml:space="preserve">
+    <value>- Entrada {0:N0} → salida {1:N0} (parcial: exactos en {2} de {3} peticiones de Agent Studio)</value>
+    <comment>Text of the memory (memory.daily.tokens-partial).</comment>
+  </data>
+  <data name="Text_memory_daily_more_failures" xml:space="preserve">
+    <value>- … y {0} más.</value>
+    <comment>Text of the memory (memory.daily.more-failures).</comment>
+  </data>
+  <data name="Text_memory_daily_more_done" xml:space="preserve">
+    <value>- … y {0} líneas «Hecho» más en la bitácora.</value>
+    <comment>Text of the memory (memory.daily.more-done).</comment>
+  </data>
+  <data name="Text_memory_daily_no_tags" xml:space="preserve">
+    <value>- Ninguna.</value>
+    <comment>Text of the memory (memory.daily.no-tags).</comment>
+  </data>
 </root>

@@ -2,6 +2,7 @@ using System.Globalization;
 using AgentStudio.Application.Knowledge;
 using AgentStudio.Application.Projects;
 using AgentStudio.Desktop.Localization;
+using AgentStudio.Memory.Summary;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -111,7 +112,8 @@ public sealed partial class DailySummaryViewModel : ObservableObject
         try
         {
             var result = await service.SummarizeAsync(project, Day, CancellationToken.None).ConfigureAwait(true);
-            Summary = result.Summary;
+            // The text is anchored in Spanish when the day closes; the screen says its lines in the language in use (D-47, D-48).
+            Summary = Texts.Current.RenderNested(DailySummaryTexts.Coded(result.Summary));
             Counts = Texts.Format(result.Prompts == 1 ? "Memory_Daily_Requests_One" : "Memory_Daily_Requests_Other", result.Prompts)
                 + " · " + Texts.Format(result.UnrecognizedLines == 1 ? "Memory_Daily_Unrecognized_One" : "Memory_Daily_Unrecognized_Other", result.UnrecognizedLines);
             Status = result switch

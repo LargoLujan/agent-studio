@@ -1489,4 +1489,88 @@ Today's is provisional and is not saved.</value>
     <value>Project brief</value>
     <comment>Text of the memory (memory.export.title.project-brief).</comment>
   </data>
+  <data name="Text_memory_join_lines" xml:space="preserve">
+    <value>{0}&#10;{1}</value>
+    <comment>Text of the memory (memory.join-lines).</comment>
+  </data>
+  <data name="Text_memory_topic_daily_summary" xml:space="preserve">
+    <value>Summary of {0}</value>
+    <comment>Text of the memory (memory.topic.daily-summary).</comment>
+  </data>
+  <data name="Text_memory_daily_title" xml:space="preserve">
+    <value># Summary of {0}</value>
+    <comment>Text of the memory (memory.daily.title).</comment>
+  </data>
+  <data name="Text_memory_daily_title_provisional" xml:space="preserve">
+    <value># Summary of {0} (provisional)</value>
+    <comment>Text of the memory (memory.daily.title-provisional).</comment>
+  </data>
+  <data name="Text_memory_daily_intro" xml:space="preserve">
+    <value>Deterministic summary of the journal of the day. It only counts and quotes, it does not interpret.</value>
+    <comment>Text of the memory (memory.daily.intro).</comment>
+  </data>
+  <data name="Text_memory_daily_no_journal" xml:space="preserve">
+    <value>There is no journal for this day.</value>
+    <comment>Text of the memory (memory.daily.no-journal).</comment>
+  </data>
+  <data name="Text_memory_daily_requests" xml:space="preserve">
+    <value>## Requests: {0}</value>
+    <comment>Text of the memory (memory.daily.requests).</comment>
+  </data>
+  <data name="Text_memory_daily_results" xml:space="preserve">
+    <value>## Results: {0}</value>
+    <comment>Text of the memory (memory.daily.results).</comment>
+  </data>
+  <data name="Text_memory_daily_tokens" xml:space="preserve">
+    <value>## Tokens</value>
+    <comment>Text of the memory (memory.daily.tokens).</comment>
+  </data>
+  <data name="Text_memory_daily_failures" xml:space="preserve">
+    <value>## Failures and limits: {0}</value>
+    <comment>Text of the memory (memory.daily.failures).</comment>
+  </data>
+  <data name="Text_memory_daily_tags" xml:space="preserve">
+    <value>## Most frequent tags</value>
+    <comment>Text of the memory (memory.daily.tags).</comment>
+  </data>
+  <data name="Text_memory_daily_done_lines" xml:space="preserve">
+    <value>## “Done” lines: {0}</value>
+    <comment>Text of the memory (memory.daily.done-lines).</comment>
+  </data>
+  <data name="Text_memory_daily_unrecognized" xml:space="preserve">
+    <value>## Lines not recognised: {0}</value>
+    <comment>Text of the memory (memory.daily.unrecognized).</comment>
+  </data>
+  <data name="Text_memory_daily_duration" xml:space="preserve">
+    <value>- Total time: {0:F1} s</value>
+    <comment>Text of the memory (memory.daily.duration).</comment>
+  </data>
+  <data name="Text_memory_daily_unanswered" xml:space="preserve">
+    <value>- No result in the journal: {0}</value>
+    <comment>Text of the memory (memory.daily.unanswered).</comment>
+  </data>
+  <data name="Text_memory_daily_no_product_requests" xml:space="preserve">
+    <value>- No Agent Studio requests: development requests do not record tokens.</value>
+    <comment>Text of the memory (memory.daily.no-product-requests).</comment>
+  </data>
+  <data name="Text_memory_daily_tokens_exact" xml:space="preserve">
+    <value>- Input {0:N0} → output {1:N0} (exact)</value>
+    <comment>Text of the memory (memory.daily.tokens-exact).</comment>
+  </data>
+  <data name="Text_memory_daily_tokens_partial" xml:space="preserve">
+    <value>- Input {0:N0} → output {1:N0} (partial: exact in {2} of {3} Agent Studio requests)</value>
+    <comment>Text of the memory (memory.daily.tokens-partial).</comment>
+  </data>
+  <data name="Text_memory_daily_more_failures" xml:space="preserve">
+    <value>- … and {0} more.</value>
+    <comment>Text of the memory (memory.daily.more-failures).</comment>
+  </data>
+  <data name="Text_memory_daily_more_done" xml:space="preserve">
+    <value>- … and {0} more “Done” lines in the journal.</value>
+    <comment>Text of the memory (memory.daily.more-done).</comment>
+  </data>
+  <data name="Text_memory_daily_no_tags" xml:space="preserve">
+    <value>- None.</value>
+    <comment>Text of the memory (memory.daily.no-tags).</comment>
+  </data>
 </root>

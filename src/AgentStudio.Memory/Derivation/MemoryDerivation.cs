@@ -11,6 +11,7 @@ using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Evidence;
 using AgentStudio.Memory.Store;
+using AgentStudio.Memory.Summary;
 
 namespace AgentStudio.Memory.Derivation;
 
@@ -159,6 +160,12 @@ public sealed class MemoryDerivation(
             {
                 texts[entry.Id] = new MemoryEntryText(topic, null);
             }
+        }
+
+        // The daily summary the system wrote is read from its own text: its lines are templates (DailySummaryTexts).
+        foreach (var entry in entries.Where(e => e is { Kind: MemoryKind.DailySummary, Origin: MemoryOrigin.System }))
+        {
+            texts[entry.Id] = new MemoryEntryText(DailySummaryTexts.TryTopic(entry.Topic), DailySummaryTexts.Coded(entry.Content));
         }
 
         var derived = entries

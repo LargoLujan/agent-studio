@@ -33,7 +33,10 @@ internal static partial class DailySummaryBuilder
 
     private const int MaxFailures = 20;
     private const int TopTags = 5;
-    private const string Intro = "Resumen determinista de la bitácora del día: solo cuenta y cita, no interpreta.";
+    /// <summary>The lines of the summary that say something of the system are read back into codes by <see cref="DailySummaryTexts"/>, which names these three.</summary>
+    internal const string Intro = "Resumen determinista de la bitácora del día: solo cuenta y cita, no interpreta.";
+    internal const string NoJournal = "No hay bitácora de este día.";
+    internal const string NoProductPrompts = "- Sin prompts del producto: el hook de desarrollo no registra tokens.";
     private const string Preamble = "Registro automático de cada prompt (hook `UserPromptSubmit`): hora · sesión · tags · extracto.";
     private const string DonePreamble = "Al cerrar cada petición, Claude añade debajo una línea «Hecho:» con el resultado.";
 
@@ -59,7 +62,7 @@ internal static partial class DailySummaryBuilder
             .Append('\n').Append(Intro).Append('\n');
         if (journal is null)
         {
-            return new DailySummaryText(head.Append('\n').Append("No hay bitácora de este día.").Append('\n').ToString(), 0, 0);
+            return new DailySummaryText(head.Append('\n').Append(NoJournal).Append('\n').ToString(), 0, 0);
         }
 
         var parsed = Parse(journal, day);
@@ -138,7 +141,7 @@ internal static partial class DailySummaryBuilder
         var prompts = parsed.Outcomes.Count + unanswered;
         if (prompts == 0)
         {
-            return "- Sin prompts del producto: el hook de desarrollo no registra tokens.";
+            return NoProductPrompts;
         }
 
         var input = parsed.Outcomes.Sum(o => o.Input ?? 0).ToString("N0", Spanish);

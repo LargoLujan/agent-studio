@@ -215,7 +215,7 @@ public sealed partial class DerivedUserTextsTests
     public void Every_code_the_source_names_and_every_enumeration_value_it_says_has_a_text()
     {
         var codes = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var file in new[] { "Derivation/DerivationUserTexts.cs", "Export/MemoryMarkdownExporter.cs" })
+        foreach (var file in new[] { "Derivation/DerivationUserTexts.cs", "Export/MemoryMarkdownExporter.cs", "Summary/DailySummaryTexts.cs" })
         {
             var source = File.ReadAllText(Path.Combine(RepositoryRoot, "src", "AgentStudio.Memory", file));
             foreach (Match match in CodeLiteral().Matches(source))
