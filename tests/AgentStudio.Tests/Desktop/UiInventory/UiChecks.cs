@@ -178,6 +178,13 @@ internal static partial class UiChecks
                 continue;
             }
 
+            // The selected item of a combo box is shown in the box the combo has, the way every combo box of Windows shows it; the
+            // whole text is in the list and in the tooltip.
+            if (IsSelectionOfAComboBox(block))
+            {
+                continue;
+            }
+
             var wraps = block.TextWrapping != TextWrapping.NoWrap;
             var trims = block.TextTrimming != TextTrimming.None;
             if (trims && !wraps)
@@ -191,6 +198,19 @@ internal static partial class UiChecks
                 yield return $"cut text ({how}): {Path(block, root)} '{Shorten(text)}', {overflow}";
             }
         }
+    }
+
+    private static bool IsSelectionOfAComboBox(DependencyObject block)
+    {
+        for (var current = VisualTreeHelper.GetParent(block); current is not null; current = VisualTreeHelper.GetParent(current))
+        {
+            if (current is ContentPresenter { TemplatedParent: ComboBox })
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -211,6 +231,8 @@ internal static partial class UiChecks
 
         var own2 = new Rect(0, 0, block.ActualWidth, block.ActualHeight);
         DependencyObject? current = VisualTreeHelper.GetParent(block);
+        var checkRight = true;
+        var checkBottom = true;
         while (current is FrameworkElement ancestor && !ReferenceEquals(ancestor, root))
         {
             // The canvas of the orchestrator is panned and zoomed: what lies beyond the viewport is reached by moving it, not cut.
@@ -219,13 +241,12 @@ internal static partial class UiChecks
                 return null;
             }
 
-            // A scroll viewer scrolls what does not fit on the axis it scrolls: only the other axis can cut.
-            var checkRight = true;
-            var checkBottom = true;
+            // A scroll viewer scrolls what does not fit on the axis it scrolls, and what is inside it is reached by scrolling, however
+            // small the room above it: from there up only the other axis can cut.
             if (ancestor is ScrollContentPresenter { ScrollOwner: { } owner })
             {
-                checkRight = owner.HorizontalScrollBarVisibility == ScrollBarVisibility.Disabled;
-                checkBottom = owner.VerticalScrollBarVisibility == ScrollBarVisibility.Disabled;
+                checkRight &= owner.HorizontalScrollBarVisibility == ScrollBarVisibility.Disabled;
+                checkBottom &= owner.VerticalScrollBarVisibility == ScrollBarVisibility.Disabled;
             }
 
             Rect? room = null;

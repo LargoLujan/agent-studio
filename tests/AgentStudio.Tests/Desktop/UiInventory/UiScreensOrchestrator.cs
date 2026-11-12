@@ -1,5 +1,14 @@
-using System.Windows;
+using AgentStudio.Application.Analysis;
+using AgentStudio.Application.Orchestration;
+using AgentStudio.Application.Persistence;
+using AgentStudio.Application.Projects;
 using AgentStudio.Application.Security;
+using AgentStudio.Domain.Common;
+using AgentStudio.Domain.Metrics;
+using AgentStudio.Domain.Orchestration;
+using AgentStudio.Domain.Orchestration.Analysis;
+using AgentStudio.Desktop.Orchestrator.Preparation;
+using AgentStudio.Desktop.Orchestrator.Team;
 using AgentStudio.Desktop.Orchestrator;
 using AgentStudio.Desktop.Orchestrator.Approvals;
 using AgentStudio.Desktop.Orchestrator.Canvas;
@@ -65,12 +74,42 @@ internal static class UiScreensOrchestrator
             model.IsPreparationExpanded = true;
             return UiScreens.Of(new PreparationView(), model);
         }, 1500, 900),
-        UiScreens.Screen("Run monitor", () =>
+        UiScreens.ScreenAsync("Orchestrator with the visual team builder", async () =>
+        {
+            var backend = new OrchestrationBackend(
+                new FakeOrchestrator(),
+                new AgentStudio.Tests.Desktop.Orchestrator.FakeWorkspace(),
+                new AgentStudio.Tests.Desktop.Orchestrator.FakeRequirementStore(PlanFixtures.Requirements()),
+                new AgentStudio.Tests.Desktop.Orchestrator.FakeRoster(),
+                new FakeProfileSource(Backends.Profile));
+            var model = new OrchestratorDocumentViewModel(
+                @"C:\proyectos\calc",
+                new OrchestrationSession(backend),
+                new InMemoryLayoutStore(),
+                new FakeTimeProvider(T0),
+                new InlineSynchronizationContext(),
+                builder: BuilderServices.None);
+            await model.OpenAsync();
+            model.IsPreparationExpanded = true;
+            return UiScreens.Document(model);
+        }, 1500, 1900),
+        UiScreens.ScreenAsync("Run monitor with the analysis of consumption", async () =>
         {
             var model = new RunMonitorViewModel(new FakeTimeProvider(T0), new InlineSynchronizationContext());
             model.Attach(MonitorSamples.RunInProgress());
+            var run = new RunId("20260101-abc123");
+            model.Consumption.Analyzer = new ScriptedAnalyzer(new ConsumptionReport(
+                run,
+                new string('a', 64),
+                T0,
+                [
+                    ConsumptionFinding.Of(ConsumptionFindingCodes.PackOmitted, new ConsumptionTarget(ConsumptionTargetKind.Agent, "exec1"), MetricValue<long>.Exact(42_000, "the CLI"), 2, "exec1", 5, 2),
+                    ConsumptionFinding.Of(ConsumptionFindingCodes.WorkDiscarded, new ConsumptionTarget(ConsumptionTargetKind.Run), MetricValue<long>.NotExposed("codex does not report it"), 3, 3, 1),
+                ]));
+            model.Consumption.Bind(new ProjectContext("p1", "C:/p"), run);
+            await model.Consumption.AnalyzeCommand.ExecuteAsync(null);
             return UiScreens.Of(new RunMonitorView(), model);
-        }, 1440, 900),
+        }, 1440, 1100),
         UiScreens.Screen("Node properties", () =>
         {
             var canvas = new CanvasViewModel(new FakeTimeProvider(T0));
@@ -81,4 +120,21 @@ internal static class UiScreensOrchestrator
         UiScreens.Screen("Approval window", () => UiScreens.OfWindow(new ApprovalWindow(), ApprovalModel()), 600, 520),
         UiScreens.Screen("Question window", () => UiScreens.OfWindow(new QuestionWindow(), QuestionModel()), 560, 640),
     ];
+
+    /// <summary>The layout of the canvas kept in memory: nothing is written under the project.</summary>
+    private sealed class InMemoryLayoutStore : ICanvasLayoutStore
+    {
+        private CanvasLayout _saved = CanvasLayout.Empty;
+
+        public string GetLayoutPath(string projectRoot) => projectRoot + @"\.agentstudio\canvas-layout.json";
+
+        public CanvasLayout Load(string projectRoot) => _saved;
+
+        public void Save(string projectRoot, CanvasLayout layout) => _saved = layout;
+    }
+
+    private sealed class ScriptedAnalyzer(ConsumptionReport report) : IConsumptionAnalyzer
+    {
+        public Task<ConsumptionReport> AnalyzeAsync(ProjectContext project, RunId run, CancellationToken ct) => Task.FromResult(report);
+    }
 }

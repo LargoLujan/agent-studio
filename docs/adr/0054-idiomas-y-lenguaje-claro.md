@@ -261,7 +261,9 @@ docs/17 (el inventario automático de la interfaz, D-62, en verde en castellano,
 - **El idioma se lee de lo que entrega el proveedor, no de lo que hay en pantalla.** Los datos de prueba de las pantallas (una
   pregunta, el nombre de una tarea) están en castellano en cualquier idioma, y no se distinguen de un texto sin traducir; en
   cambio un texto de los recursos sin traducir cae al castellano **a través del proveedor**, así que se encuentra ahí. Lo escrito
-  a mano en el código (sin pasar por el proveedor) lo guarda `Phase13HandWrittenTextTests`.
+  a mano en el código (sin pasar por el proveedor) lo guarda `Phase13HandWrittenTextTests` para todo lo posterior a la Fase 13;
+  lo anterior que sigue escrito a mano (`DesktopFilesBeforePhase13.txt`: el panel de consumo, su modelo de vista y su código detrás)
+  lo extrae WP-14A (c), y hasta entonces el inventario no lo ve en inglés.
 - **Una guardia por vistas.** `Every_view_of_the_app_is_walked` compara las clases XAML de `Views/**`, `Controls/**` y la
   ventana principal con las que alcanza algún recorrido: una vista nueva sin recorrer, o una excluida que ya se recorre, hace
   fallar la prueba. La Fase 15 (traducción de la primera ola) se apoya en este inventario: una traducción que alargue un texto

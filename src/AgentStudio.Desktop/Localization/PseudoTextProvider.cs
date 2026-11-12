@@ -16,7 +16,7 @@ public sealed class PseudoTextProvider : IUiTextProvider
     public const string CultureName = "qps-ploc";
 
     private const string From = "aceinouyAEIOUCNY";
-    private const string To = "àçéïñöûýÀÉÎÖÛÇÑÝ";
+    private const string To = "\u00E0\u00E7\u00E9\u00EF\u00F1\u00F6\u00FB\u00FD\u00C0\u00C9\u00CE\u00D6\u00DB\u00C7\u00D1\u00DD";
     private const string Padding = " ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~";
 
     private readonly IUiTextProvider _inner;

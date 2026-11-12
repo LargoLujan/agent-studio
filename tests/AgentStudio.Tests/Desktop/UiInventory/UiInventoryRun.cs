@@ -68,7 +68,9 @@ internal static class UiInventoryRun
             var built = await screen.Create();
             var root = built.Root;
             UiTree.Lay(root, screen.Width, screen.Height, built.Window is { } host ? host.SizeToContent : SizeToContent.Manual);
-            foreach (var element in UiTree.All(root))
+            // A view counts as walked when it is shown (not collapsed, with a size): a view inside a collapsed panel is not checked.
+            types.Add(root.GetType());
+            foreach (var element in UiTree.Shown<FrameworkElement>(root))
             {
                 types.Add(element.GetType());
             }

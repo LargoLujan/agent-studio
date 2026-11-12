@@ -56,6 +56,7 @@ internal static class UiScreensShell
         folder.WriteFile("calc/README.md", "# Calc");
         folder.WriteFile("calc/main.cs", "class A {}\r\n");
         folder.WriteFile("calc/notes.txt", "one\r\ntwo\r\n");
+        File.WriteAllBytes(Path.Combine(folder.Path, "calc", "data.bin"), [1, 0, 2]);
         AppDomain.CurrentDomain.ProcessExit += (_, _) => folder.Dispose();
         return folder;
     }
@@ -117,6 +118,7 @@ internal static class UiScreensShell
             return UiScreens.OfWindow(window);
         }, 1280, 800),
         UiScreens.ScreenAsync("Source file", async () => UiScreens.Of(new FileEditorView(), await FileAsync("main.cs")), 1100, 760),
+        UiScreens.ScreenAsync("Binary file", async () => UiScreens.Of(new FileEditorView(), await FileAsync("data.bin")), 1100, 400),
         UiScreens.ScreenAsync("Configurator", async () => UiScreens.Of(new SetupView(), await SetupAsync()), 1000, 800),
         UiScreens.ScreenAsync("Client documents", async () => UiScreens.Of(new ClientDocumentsView(), await ClientDocumentsAsync()), 1100, 900),
         UiScreens.ScreenAsync("Quick open window", async () =>
