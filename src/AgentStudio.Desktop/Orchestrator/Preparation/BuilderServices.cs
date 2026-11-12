@@ -1,3 +1,4 @@
+using AgentStudio.Application.Prompts;
 using AgentStudio.Application.Knowledge;
 using AgentStudio.Application.Models;
 using AgentStudio.Application.Orchestration;
@@ -48,7 +49,8 @@ public sealed record BuilderServices(
     Func<bool>? WindowsAnimates = null,
     IContextPacker? ContextPacker = null,
     Func<string, CancellationToken, Task<ProjectFileCount>>? ProjectFiles = null,
-    Func<ProjectContext, AgentDefinition, CancellationToken, Task<int>>? SkillCharacters = null)
+    Func<ProjectContext, AgentDefinition, CancellationToken, Task<int>>? SkillCharacters = null,
+    IResponseLanguage? Language = null)
 {
     /// <summary>Nothing composed: the canvas works with what it always had.</summary>
     public static BuilderServices None { get; } = new();

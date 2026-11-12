@@ -1,3 +1,4 @@
+using AgentStudio.Application.Prompts;
 using System.IO;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Knowledge;
@@ -212,5 +213,14 @@ public sealed class ExecutorContextPreviewTests
     public void The_budget_is_the_one_of_the_prompt_of_the_executor()
     {
         Assert.Equal(24_000, ExecutorContextPreview.BudgetCharacters);
+    }
+
+    [Fact]
+    public void A_language_with_a_longer_name_makes_the_estimate_longer_by_exactly_the_difference()
+    {
+        var shorter = ExecutorContextPreview.Measure(Spec("R1"), Requirements(), null, Executor(), null, null, responseLanguage: "en");
+        var longer = ExecutorContextPreview.Measure(Spec("R1"), Requirements(), null, Executor(), null, null, responseLanguage: "en-GB");
+
+        Assert.Equal(3, longer.Characters - shorter.Characters);
     }
 }

@@ -802,13 +802,12 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
     {
         // The template is read again first, so the approval is judged against the template as it ended: a set of changes that left it
         // as it was when the plan was approved (Ctrl+Z of a fix, say) withdraws nothing (P55). The engine compares the same hash.
-        var approvedRoster = PlanDecision is { Approved: true } ? _approvedRoster : null;
-        var wasApproved = PlanDecision is { Approved: true };
-        await ReloadAsync().ConfigureAwait(true);
-        if (wasApproved
-            && PlanDecision is { Approved: true }
-            && (approvedRoster is null
-                || !string.Equals(RosterHash.Of(approvedRoster), RosterHash.Of(Context?.Roster), StringComparison.Ordinal)))
+        // Only the approval that stood before the reading is judged: one given while it ran is newer than the template read and stays.
+        var decision = PlanDecision;
+        var wasApproved = decision is { Approved: true };
+        var approvedRoster = wasApproved ? _approvedRoster : null;
+
+        void WithdrawApproval()
         {
             _approvedHash = null;
             _approvedRoster = null;
@@ -817,6 +816,30 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
             Canvas.Notify(Texts.Get("Orchestrator_Doc_RosterChanged"), NoticeKind.Error);
             RefreshCommands();
             RefreshBuilder();
+        }
+
+        try
+        {
+            await ReloadAsync().ConfigureAwait(true);
+        }
+        catch
+        {
+            // The store already changed and the template could not be read: the approval cannot be judged, so it goes, as it did before
+            // the reading came first. The failure is still the caller's.
+            if (wasApproved && ReferenceEquals(PlanDecision, decision))
+            {
+                WithdrawApproval();
+            }
+
+            throw;
+        }
+
+        if (wasApproved
+            && ReferenceEquals(PlanDecision, decision)
+            && (approvedRoster is null
+                || !string.Equals(RosterHash.Of(approvedRoster), RosterHash.Of(Context?.Roster), StringComparison.Ordinal)))
+        {
+            WithdrawApproval();
         }
     }
 

@@ -43,25 +43,25 @@ public static class DebateVerdictSchema
             ("requirement", EnumOf("Id of the frozen requirement.", requirementIds)),
             ("status", EnumOf("Satisfied only with evidence that fits every acceptance criterion; a JudgeAssessment criterion may rest on the contributions.", Enum.GetNames<AssessmentStatus>())),
             ("evidence", ArrayOf("Ids of dossier evidence behind this status (contributions, quotes, test runs, notes).", StringOf("Evidence id."))),
-            ("rationale", StringOf("Why, citing the evidence. In Spanish.")));
+            ("rationale", StringOf("Why, citing the evidence. In the language of the response_language block of the prompt.")));
         var finding = ObjectOf(
             ("category", EnumOf("Kind of problem.", Enum.GetNames<FindingCategory>())),
             ("severity", EnumOf("Critical makes approval unsafe.", Enum.GetNames<Severity>())),
-            ("description", StringOf("What is wrong and where. In Spanish.")),
+            ("description", StringOf("What is wrong and where. In the language of the response_language block of the prompt.")),
             ("evidence", ArrayOf("Ids of dossier evidence that show it.", StringOf("Evidence id."))),
             ("decisionRefs", ArrayOf("Sequence numbers of the decision log entries involved.", IntegerOf())));
         var confidence = ObjectOf(
             ("level", EnumOf("Confidence in the verdict.", Enum.GetNames<ConfidenceLevel>())),
-            ("justification", StringOf("Why this confidence. In Spanish.")));
+            ("justification", StringOf("Why this confidence. In the language of the response_language block of the prompt.")));
 
         var members = new List<(string Name, JsonObject Schema)>
         {
             ("assessments", ArrayOf("Exactly one per frozen requirement.", assessment)),
             ("evidenceExamined", ArrayOf("Every evidence id cited anywhere in the verdict.", StringOf("Evidence id."))),
             ("findings", ArrayOf("Problems found in the debate or in what it is about.", finding)),
-            ("pendingObjections", ArrayOf("Objections still open. In Spanish.", StringOf("Objection."))),
-            ("risks", ArrayOf("Risks of accepting the outcome. In Spanish.", StringOf("Risk."))),
-            ("correctiveActions", ArrayOf("Required for ChangesRequested and Rejected. In Spanish.", StringOf("Action."))),
+            ("pendingObjections", ArrayOf("Objections still open. In the language of the response_language block of the prompt.", StringOf("Objection."))),
+            ("risks", ArrayOf("Risks of accepting the outcome. In the language of the response_language block of the prompt.", StringOf("Risk."))),
+            ("correctiveActions", ArrayOf("Required for ChangesRequested and Rejected. In the language of the response_language block of the prompt.", StringOf("Action."))),
             ("confidence", confidence),
         };
 
@@ -69,8 +69,8 @@ public static class DebateVerdictSchema
         {
             var comparison = ObjectOf(
                 ("proposal", EnumOf("Label of the proposal.", proposals)),
-                ("strengths", StringOf("What speaks for it, citing evidence. In Spanish.")),
-                ("weaknesses", StringOf("What speaks against it, citing evidence. In Spanish.")));
+                ("strengths", StringOf("What speaks for it, citing evidence. In the language of the response_language block of the prompt.")),
+                ("weaknesses", StringOf("What speaks against it, citing evidence. In the language of the response_language block of the prompt.")));
             members.Add(("resolution", ObjectOf(
                 ("comparison", ArrayOf("One item per proposal, before choosing.", comparison)),
                 ("chosenProposal", EnumOf($"The proposal chosen after the comparison, or {VerdictJson.NoProposal}.", [.. proposals, VerdictJson.NoProposal])))));
@@ -78,7 +78,7 @@ public static class DebateVerdictSchema
 
         members.Add(("requiresHumanIntervention", BooleanOf("True for EscalateToHuman and Unresolved; false for Approved.")));
         members.Add(("decision", EnumOf("The verdict, decided after the analysis above.", Enum.GetNames<VerdictDecision>())));
-        members.Add(("summary", StringOf("One or two sentences. In Spanish.")));
+        members.Add(("summary", StringOf("One or two sentences. In the language of the response_language block of the prompt.")));
         members.Add(("requirementSetHash", StringOf("Copy requirementSetHash from the dossier exactly.")));
         members.Add(("decisionLogHeadHash", StringOf("Copy decisionLogHeadHash from the dossier exactly.")));
 

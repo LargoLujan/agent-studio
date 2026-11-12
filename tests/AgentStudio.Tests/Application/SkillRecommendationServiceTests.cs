@@ -1,3 +1,5 @@
+using AgentStudio.Application.Prompts;
+using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using AgentStudio.Application.Decisions;
@@ -56,11 +58,11 @@ public sealed class SkillRecommendationServiceTests
 
     private sealed class World
     {
-        public World(Func<AuxiliaryRunRequest, AuxiliaryRunResult>? run = null)
+        public World(Func<AuxiliaryRunRequest, AuxiliaryRunResult>? run = null, IResponseLanguage? language = null)
         {
             Clock = new FakeTimeProvider(T0);
             Runner = new FakeAuxiliaryRunner(run ?? (_ => Succeeded(Answer())));
-            Service = new SkillRecommendationService(CatalogStore, Activations, RosterStore, Health, Runner, Folders, new SkillRecommendationOptions(ServerExe), Clock);
+            Service = new SkillRecommendationService(CatalogStore, Activations, RosterStore, Health, Runner, Folders, new SkillRecommendationOptions(ServerExe), Clock, language: language);
         }
 
         public World(IAuxiliaryAgentRunner runner)
@@ -643,5 +645,58 @@ public sealed class SkillRecommendationServiceTests
         public Task CancelAsync() => Task.CompletedTask;
 
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+
+    private sealed class FixedLanguage(string tag) : IResponseLanguage
+    {
+        public string Tag { get; } = tag;
+    }
+
+    /// <summary>V44: the reason the person reads is written in the language of the interface, which reaches the agent as data.</summary>
+    [Fact]
+    public async Task The_prompt_carries_the_response_language_as_data_and_no_fixed_language_for_the_reason()
+    {
+        var world = new World(language: new FixedLanguage("en"));
+
+        await world.AskAsync();
+
+        var prompt = world.Launched.Prompt;
+        Assert.Contains(ResponseLanguage.Block("en"), prompt, StringComparison.Ordinal);
+        Assert.Contains(ResponseLanguage.Rule, prompt, StringComparison.Ordinal);
+        Assert.DoesNotContain("castellano", prompt, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Without_a_language_the_prompt_says_the_default_one()
+    {
+        var world = new World();
+
+        await world.AskAsync();
+
+        Assert.Contains(ResponseLanguage.Block(ResponseLanguage.Default), world.Launched.Prompt, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_culture_of_the_thread_does_not_change_the_prompt()
+    {
+        var (current, ui) = (CultureInfo.CurrentCulture, CultureInfo.CurrentUICulture);
+        try
+        {
+            var prompts = new List<string>();
+            foreach (var culture in new[] { "es-ES", "en-US" })
+            {
+                CultureInfo.CurrentCulture = CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(culture);
+                var world = new World(language: new FixedLanguage("en"));
+                await world.AskAsync();
+                prompts.Add(world.Launched.Prompt);
+            }
+
+            Assert.Equal(prompts[0], prompts[1]);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = current;
+            CultureInfo.CurrentUICulture = ui;
+        }
     }
 }

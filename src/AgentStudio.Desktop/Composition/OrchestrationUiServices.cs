@@ -1,3 +1,4 @@
+using AgentStudio.Application.Prompts;
 using System.Windows.Threading;
 using AgentStudio.Application.Analysis;
 using AgentStudio.Application.Decisions;
@@ -120,7 +121,8 @@ internal static class OrchestrationUiServices
         Brief: provider.GetService<IProjectBrief>(),
         ContextPacker: provider.GetService<IContextPacker>(),
         ProjectFiles: (root, cancellationToken) => Task.Run(() => ProjectFileCounter.Count(root, ProjectFileCounter.DefaultMaxFiles, cancellationToken), cancellationToken),
-        SkillCharacters: SkillPresentationSource.For(provider.GetService<ISkillCatalog>(), provider.GetService<ISkillActivationStore>()));
+        SkillCharacters: SkillPresentationSource.For(provider.GetService<ISkillCatalog>(), provider.GetService<ISkillActivationStore>()),
+        Language: provider.GetService<IResponseLanguage>());
 
     /// <summary>
     /// What the analysis of consumption with an agent would spend, shown before the OK (docs/17 D-35): the estimate of one attempt of

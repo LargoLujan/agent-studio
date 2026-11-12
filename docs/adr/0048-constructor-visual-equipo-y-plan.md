@@ -206,3 +206,10 @@ cambiada. Tres correcciones, mínimas:
   comprobación y la lectura se leía entero): se leen como mucho el tope más un byte, y pasarlo es «demasiado grande».
 - **Sigue igual:** `FileSetupRepositoryReader` (el paso 1 del configurador de ADR-0055) no usa aún el lector y deja los remotos vacíos.
 
+## Adenda · 2026-11-12 · un fallo de la relectura retira la aprobación y una aprobación nueva no se toca (revisión de P55)
+
+- Si `ReloadAsync` lanza después de guardar, el almacén ya cambió y la aprobación no se puede juzgar: se retira, como cuando la
+  retirada iba antes de la relectura, y el fallo sigue siendo de quien llamó.
+- Solo se juzga la decisión que había antes de releer. Si durante la relectura el plan se aprobó de nuevo, esa aprobación es
+  más nueva que la plantilla leída y se deja como está.
+

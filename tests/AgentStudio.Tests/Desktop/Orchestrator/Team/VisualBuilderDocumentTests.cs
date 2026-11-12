@@ -54,8 +54,26 @@ public sealed class VisualBuilderDocumentTests
         /// <summary>What reached the store, in order: <c>save:id</c> and <c>delete:id</c>.</summary>
         public List<string> Operations { get; } = [];
 
-        public Task<IReadOnlyList<AgentDefinition>> ListAsync(string projectId, CancellationToken cancellationToken) =>
-            Task.FromResult<IReadOnlyList<AgentDefinition>>([.. Agents]);
+        /// <summary>When set, reading the template fails with it.</summary>
+        public Exception? ListFailure { get; set; }
+
+        /// <summary>When set, it runs at the start of each reading of the template, so a test can act while the document reads it again.</summary>
+        public Func<Task>? DuringList { get; set; }
+
+        public async Task<IReadOnlyList<AgentDefinition>> ListAsync(string projectId, CancellationToken cancellationToken)
+        {
+            if (DuringList is { } during)
+            {
+                await during().ConfigureAwait(false);
+            }
+
+            if (ListFailure is { } failure)
+            {
+                throw failure;
+            }
+
+            return [.. Agents];
+        }
 
         public Task DeleteAsync(string projectId, AgentId agent, CancellationToken cancellationToken)
         {
@@ -340,6 +358,59 @@ public sealed class VisualBuilderDocumentTests
 
         Assert.True(await editor.ApplyAsync(executor with { Name = "Otro nombre" }, "Distinto."));
         Assert.False(document.IsApproved);
+    }
+
+    private static async Task<OrchestratorDocumentViewModel> ApprovedAsync(MutableRoster roster)
+    {
+        var document = await OpenAsync(Backend(roster), BuilderServices.None);
+        document.LoadProposal(new PlanProposal(new RunId("20261109-abc123"), PlanFixtures.Plan(), [], false, AgentRunStatus.Succeeded, null, null));
+        document.ValidateCommand.Execute(null);
+        await document.Builder!.Band.RefreshAsync();
+        await document.ApproveCommand.ExecuteAsync(null);
+        Assert.True(document.IsApproved);
+        return document;
+    }
+
+    /// <summary>P55: the store changed and the reading that follows fails; the approval cannot be judged, so it is withdrawn and the failure is not swallowed.</summary>
+    [Fact]
+    public async Task A_save_whose_reading_fails_withdraws_the_approval()
+    {
+        var roster = new MutableRoster();
+        var document = await ApprovedAsync(roster);
+        var executor = document.Context!.Roster.Single(a => a.Id.Value == "ejecutor");
+        roster.ListFailure = new InvalidOperationException("the store cannot be opened");
+
+        // The editor reports a failed save to the person itself; what matters here is the approval, whatever reaches the caller.
+        await Record.ExceptionAsync(() => document.Builder!.Editor.ApplyAsync(executor with { Name = "Otro nombre" }, "Distinto."));
+
+        Assert.Contains("ejecutor", roster.Operations.Select(o => o.Replace("save:", string.Empty, StringComparison.Ordinal)));
+        Assert.False(document.IsApproved);
+        Assert.Null(document.PlanDecision);
+    }
+
+    /// <summary>P55: an approval given while the template is read again is newer than that reading and is not judged against the old template.</summary>
+    [Fact]
+    public async Task An_approval_given_while_the_template_is_read_again_is_not_withdrawn()
+    {
+        var roster = new MutableRoster();
+        var document = await ApprovedAsync(roster);
+        var executor = document.Context!.Roster.Single(a => a.Id.Value == "ejecutor");
+
+        // The person withdraws the approval and approves again while the reading runs (the plan is the same, the template on screen
+        // is still the old one until the reading ends).
+        var reapproved = false;
+        roster.DuringList = async () =>
+        {
+            roster.DuringList = null;
+            document.RejectCommand.Execute(null);
+            await document.ApproveCommand.ExecuteAsync(null);
+            reapproved = document.PlanDecision is { Approved: true };
+        };
+
+        await document.Builder!.Editor.ApplyAsync(executor with { Name = "Otro nombre" }, "Distinto.");
+
+        Assert.True(reapproved);
+        Assert.True(document.PlanDecision is { Approved: true });
     }
 
     private static IReadOnlyList<TaskSpec> TasksWithoutIntegration() =>
