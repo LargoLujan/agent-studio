@@ -61,7 +61,10 @@ public sealed class DebateLog
     public IReadOnlyList<DecisionEntry> Entries { get; }
 
     /// <summary>What could not be read; a debate with a problem is not resumed.</summary>
-    public CodedMessages Problems => _problems;
+    public IReadOnlyList<string> Problems => _problems.Messages;
+
+    /// <summary>The coded texts of <see cref="Problems"/>, one for one and in the same order.</summary>
+    public IReadOnlyList<UserText> ProblemTexts => _problems.Texts;
 
     public DebateOpenedPayload? Opened { get; }
 

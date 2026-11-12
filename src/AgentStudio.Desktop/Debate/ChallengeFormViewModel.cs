@@ -128,9 +128,9 @@ public sealed partial class ChallengeFormViewModel : ObservableObject
         ? Texts.Format("Debate_New_Estimate", DebateTexts.Plural(proposal.Estimate.MaxAgentRuns, "Debate_Count_AgentRun"), tokens.Shown, tokens.Origin)
         : null;
 
-    public IReadOnlyList<string> ProposalProblems => Proposal?.Problems ?? [];
+    public IReadOnlyList<string> ProposalProblems => Proposal is { } shown ? DebateTexts.Painted(shown.Problems, shown.ProblemTexts) : [];
 
-    public IReadOnlyList<string> Notes => Proposal?.Estimate.Notes ?? [];
+    public IReadOnlyList<string> Notes => Proposal is { } shown ? DebateTexts.Painted(shown.Estimate.Notes, shown.Estimate.NoteTexts) : [];
 
     public string? ApprovalText => Proposal?.ApprovalText;
 

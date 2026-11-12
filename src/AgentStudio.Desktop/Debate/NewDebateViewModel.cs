@@ -335,9 +335,9 @@ public sealed partial class NewDebateViewModel : ObservableObject
         ? Texts.Format("Debate_New_Estimate", DebateTexts.Plural(proposal.Estimate.MaxAgentRuns, "Debate_Count_AgentRun"), tokens.Shown, tokens.Origin)
         : null;
 
-    public IReadOnlyList<string> ProposalProblems => Proposal?.Problems ?? [];
+    public IReadOnlyList<string> ProposalProblems => Proposal is { } shown ? DebateTexts.Painted(shown.Problems, shown.ProblemTexts) : [];
 
-    public IReadOnlyList<string> Notes => Proposal?.Estimate.Notes ?? [];
+    public IReadOnlyList<string> Notes => Proposal is { } shown ? DebateTexts.Painted(shown.Estimate.Notes, shown.Estimate.NoteTexts) : [];
 
     /// <summary>The text of the approval «Abrir debate» asks for.</summary>
     public string? ApprovalText => Proposal?.ApprovalText;
@@ -415,7 +415,7 @@ public sealed partial class NewDebateViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = Texts.Format("Debate_New_Error_Load", ex.Message);
+            ErrorMessage = Texts.Format("Debate_New_Error_Load", DebateTexts.Reason(ex));
         }
         finally
         {
@@ -587,7 +587,7 @@ public sealed partial class NewDebateViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            _runRequirementsProblem = Texts.Format("Debate_New_Problem_RunRequirementsFailed", run.Id, ex.Message);
+            _runRequirementsProblem = Texts.Format("Debate_New_Problem_RunRequirementsFailed", run.Id, DebateTexts.Reason(ex));
         }
 
         Changed();

@@ -36,7 +36,7 @@ public sealed class DebateHistoryItem
         ChallengeText = summary.Challenges is { Length: > 0 } revised
             ? Texts.Format("Debate_History_ChallengeOf", revised)
             : summary.Challenged ? Texts.Get("Debate_History_Challenged") : null;
-        ProblemsText = summary.Problems.Count == 0 ? null : string.Join(" · ", summary.Problems);
+        ProblemsText = summary.Problems.Count == 0 ? null : string.Join(" · ", DebateTexts.Painted(summary.Problems, summary.ProblemTexts));
     }
 
     public DebateSummary Summary { get; }
@@ -235,7 +235,7 @@ public sealed partial class DebatesDocumentViewModel : DocumentViewModel
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = Texts.Format("Debate_Doc_Error_Project", ex.Message);
+            ErrorMessage = Texts.Format("Debate_Doc_Error_Project", DebateTexts.Reason(ex));
             return;
         }
 
@@ -265,7 +265,7 @@ public sealed partial class DebatesDocumentViewModel : DocumentViewModel
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = Texts.Format("Debate_Doc_Error_History", ex.Message);
+            ErrorMessage = Texts.Format("Debate_Doc_Error_History", DebateTexts.Reason(ex));
         }
         finally
         {

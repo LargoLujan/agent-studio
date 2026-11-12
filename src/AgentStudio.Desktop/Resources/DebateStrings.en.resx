@@ -1490,4 +1490,172 @@ Press "Challenge" and approve to open the review.</value>
   <data name="Text_debate_cannot_open" xml:space="preserve">
     <value>The debate cannot be opened. See the problems of the proposal.</value>
   </data>
+  <data name="Text_debate_problem_participant_missing" xml:space="preserve">
+    <value>Participant "{0}" is not in the project team.</value>
+  </data>
+  <data name="Text_debate_problem_participant_role" xml:space="preserve">
+    <value>"{0}" has a role that does not take part in a debate: a judge, an auditor or the orchestrator do not debate.</value>
+  </data>
+  <data name="Text_debate_problem_no_provider" xml:space="preserve">
+    <value>The program of {0} used by agent "{1}" cannot be found.</value>
+  </data>
+  <data name="Text_debate_problem_judge_missing" xml:space="preserve">
+    <value>Judge "{0}" is not in the project team.</value>
+  </data>
+  <data name="Text_debate_problem_judge_role" xml:space="preserve">
+    <value>"{0}" is neither a judge nor an auditor: only they can judge.</value>
+  </data>
+  <data name="Text_debate_problem_orchestrator_requirements" xml:space="preserve">
+    <value>The orchestrator review is judged with its fixed requirements (orq-1 to orq-7), unchanged.</value>
+  </data>
+  <data name="Text_debate_problem_no_arrangement" xml:space="preserve">
+    <value>With these participants and judges the chosen judging arrangement does not fit: no judge can hold it without judging the work of their own company.</value>
+  </data>
+  <data name="Text_debate_problem_session_refused" xml:space="preserve">
+    <value>The debate setup is not valid (technical detail: {0}).</value>
+  </data>
+  <data name="Text_debate_problem_no_round_fits" xml:space="preserve">
+    <value>With {0} runs not even round 1 of {1} participants fits.</value>
+  </data>
+  <data name="Text_debate_problem_run_unnamed" xml:space="preserve">
+    <value>A debate about a run has to say which one.</value>
+  </data>
+  <data name="Text_debate_problem_run_not_in_log" xml:space="preserve">
+    <value>Run {0} is not in the log.</value>
+  </data>
+  <data name="Text_debate_problem_no_candidate_commit" xml:space="preserve">
+    <value>Run {0} has no candidate commit: an implementation audit cannot open without one.</value>
+  </data>
+  <data name="Text_debate_problem_audit_requirements" xml:space="preserve">
+    <value>An implementation audit is judged with the frozen requirements of its run.</value>
+  </data>
+  <data name="Text_debate_problem_unknown_subject" xml:space="preserve">
+    <value>The debate is about something Agent Studio does not know.</value>
+  </data>
+  <data name="Text_debate_problem_verdict_unnamed" xml:space="preserve">
+    <value>A challenge has to say which verdict it challenges.</value>
+  </data>
+  <data name="Text_debate_problem_verdict_not_stored" xml:space="preserve">
+    <value>Verdict {0} is not stored, or it belongs to no run, debate or audit.</value>
+  </data>
+  <data name="Text_debate_problem_debate_missing" xml:space="preserve">
+    <value>Debate {0} of the challenged verdict does not exist.</value>
+  </data>
+  <data name="Text_debate_problem_audit_missing" xml:space="preserve">
+    <value>Audit {0} of the challenged verdict does not exist.</value>
+  </data>
+  <data name="Text_debate_note_uncommitted" xml:space="preserve">
+    <value>You have uncommitted changes: they are not part of the debate, which starts from the last commit.</value>
+  </data>
+  <data name="Text_debate_note_max_runs_one_round" xml:space="preserve">
+    <value>At most {0} runs: {1} participants in 1 round, and the retries.</value>
+  </data>
+  <data name="Text_debate_note_max_runs" xml:space="preserve">
+    <value>At most {0} runs: {1} participants times {2} rounds, and the retries.</value>
+  </data>
+  <data name="Text_debate_note_tokens_per_turn" xml:space="preserve">
+    <value>Each Claude turn with haiku takes about 40,000 to 160,000 tokens and each Codex turn about 20,000 to 80,000, depending on what it reads.</value>
+  </data>
+  <data name="Text_debate_note_token_limit" xml:space="preserve">
+    <value>The limit of {0:N0} tokens cuts the debate short: it goes to judgment when it is reached.</value>
+  </data>
+  <data name="Text_debate_note_estimated" xml:space="preserve">
+    <value>Estimated by Agent Studio: with a subscription it is not what you pay.</value>
+  </data>
+  <data name="Text_debate_problem_log_unverified" xml:space="preserve">
+    <value>The decision log does not verify (from entry {0}).</value>
+  </data>
+  <data name="Text_debate_problem_not_opened" xml:space="preserve">
+    <value>The log has no opening of debate {0}.</value>
+  </data>
+  <data name="Text_debate_problem_header_mismatch" xml:space="preserve">
+    <value>The stored header of the debate is not the one anchored when it opened.</value>
+  </data>
+  <data name="Text_debate_problem_question_unreadable" xml:space="preserve">
+    <value>The question of the debate cannot be read against its fingerprint.</value>
+  </data>
+  <data name="Text_debate_problem_requirements_missing" xml:space="preserve">
+    <value>The frozen requirements {0} of the debate are not stored.</value>
+  </data>
+  <data name="Text_debate_problem_contribution_unreadable" xml:space="preserve">
+    <value>Contribution {0} cannot be read against its fingerprint.</value>
+  </data>
+  <data name="Text_debate_problem_entry_unreadable" xml:space="preserve">
+    <value>Entry {0} of the log ({1}) cannot be read.</value>
+  </data>
+  <data name="Text_debate_problem_replay" xml:space="preserve">
+    <value>The log does not tell a coherent debate (technical detail: {0}).</value>
+  </data>
+  <data name="Text_debate_problem_final_figures" xml:space="preserve">
+    <value>The final figures of the debate could not be read from the log.</value>
+  </data>
+  <data name="Text_debate_problem_stopped" xml:space="preserve">
+    <value>The debate stopped because of an error (technical detail: {0}).</value>
+  </data>
+  <data name="Text_debate_problem_nothing_to_judge" xml:space="preserve">
+    <value>There is no contribution to judge: retry the turn or abort the debate.</value>
+  </data>
+  <data name="Text_debate_problem_copy_not_deleted" xml:space="preserve">
+    <value>The copy of the commit of the debate could not be deleted.</value>
+  </data>
+  <data name="Text_debate_challenge_not_revision" xml:space="preserve">
+    <value>This proposal is not the review of a verdict: prepare the challenge from the verdict card.</value>
+  </data>
+  <data name="Text_debate_challenge_cannot_open" xml:space="preserve">
+    <value>The challenge cannot be opened. See the problems of the proposal.</value>
+  </data>
+  <data name="Text_debate_challenge_proposal_outdated" xml:space="preserve">
+    <value>What you were shown is no longer what there is (the verdict, its object or who may judge it changed): prepare the challenge again.</value>
+  </data>
+  <data name="Text_debate_challenge_verdict_not_stored" xml:space="preserve">
+    <value>Verdict {0} is not stored.</value>
+  </data>
+  <data name="Text_debate_challenge_nothing_to_accept" xml:space="preserve">
+    <value>Verdict {0} did not close the review of any challenged verdict: there is nothing to accept.</value>
+  </data>
+  <data name="Text_debate_challenge_not_awaiting_acceptance" xml:space="preserve">
+    <value>Review {0} of verdict {1} is not awaiting acceptance: only the latest review that turned towards an approval is accepted.</value>
+  </data>
+  <data name="Text_debate_challenge_acceptance_not_answered" xml:space="preserve">
+    <value>The approval received does not answer the acceptance of this review.</value>
+  </data>
+  <data name="Text_debate_challenge_problem_log_broken" xml:space="preserve">
+    <value>The decision log is not intact: nothing is challenged on a log that admits no entries.</value>
+  </data>
+  <data name="Text_debate_challenge_problem_reasons_missing" xml:space="preserve">
+    <value>Write your reasons: round 1 of the review starts from them.</value>
+  </data>
+  <data name="Text_debate_challenge_problem_verdict_not_found" xml:space="preserve">
+    <value>Verdict {0} is not stored, or it belongs to no run, debate or audit.</value>
+  </data>
+  <data name="Text_debate_challenge_problem_not_announced" xml:space="preserve">
+    <value>The log does not announce verdict {0} in {1}: what the log does not hold cannot be challenged.</value>
+  </data>
+  <data name="Text_debate_challenge_problem_unit_not_started" xml:space="preserve">
+    <value>The log has no start of {0}, the object of the verdict: it is not known who cannot judge the review.</value>
+  </data>
+  <data name="Text_debate_challenge_problem_already_challenged" xml:space="preserve">
+    <value>Verdict {0} already has an open challenge (debate {1}): wait for it to finish.</value>
+  </data>
+  <data name="Text_debate_challenge_problem_requirements_missing" xml:space="preserve">
+    <value>The frozen requirements {0} of the challenged verdict are not stored: the review is judged with them.</value>
+  </data>
+  <data name="Text_debate_challenge_problem_not_inherited" xml:space="preserve">
+    <value>The review does not inherit the companies the object of the verdict excludes ({0}): a company that produced the work could judge it.</value>
+  </data>
+  <data name="Text_debate_challenge_problem_judge_on_excluded" xml:space="preserve">
+    <value>A judge of the review belongs to a company the object excludes: {0}.</value>
+  </data>
+  <data name="Text_debate_challenge_problem_jury_needed" xml:space="preserve">
+    <value>The challenged verdict comes from a cross panel: its review is judged by a cross panel.</value>
+  </data>
+  <data name="Text_debate_challenge_note_same_judge" xml:space="preserve">
+    <value>The same agent that issued the challenged verdict ({0}) judges, in a new session: the team has no other eligible judge.</value>
+  </data>
+  <data name="Text_debate_challenge_note_nobody_can_judge" xml:space="preserve">
+    <value>With these participants and judges nobody can judge the review without judging the work of their own company.</value>
+  </data>
+  <data name="Text_debate_cannot_resume_detail" xml:space="preserve">
+    <value>Debate {0} cannot be resumed: its log does not tell a coherent debate (technical detail: {1}).</value>
+  </data>
 </root>

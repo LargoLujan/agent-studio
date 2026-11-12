@@ -672,7 +672,7 @@ public sealed class DebateCoordinator : IDebateCoordinator
             record.CreatedAt);
         var events = log.Events(record.CreatedAt, ids => [.. ids.Select(id => stored.FirstOrDefault(v => v.Id == id)).OfType<StoredVerdict>().Select(v => (v.Verdict, v.Valid))]);
         var replay = DebateStateReplayer.Replay(header, events);
-        return log.Problems.Count == 0 ? replay : replay with { Problems = [.. log.Problems.Messages, .. replay.Problems] };
+        return log.Problems.Count == 0 ? replay : replay with { Problems = [.. log.Problems, .. replay.Problems] };
     }
 
     private async Task<DebateTranscript> ReadOneAsync(ProjectContext project, DebateRecord record, DecisionLogState log, CancellationToken ct)
@@ -714,7 +714,7 @@ public sealed class DebateCoordinator : IDebateCoordinator
         {
             var replay = await ReplayAsync(project, record, debateLog, question, requirements, Arrangement(record), ct).ConfigureAwait(false);
             session = replay.Session;
-            foreach (var replayed in replay.Problems.Where(p => !debateLog.Problems.Messages.Contains(p)))
+            foreach (var replayed in replay.Problems.Where(p => !debateLog.Problems.Contains(p)))
             {
                 problems.Add(replayed, UserText.Of(DebateUserTexts.ProblemReplay, replayed));
             }
@@ -760,8 +760,8 @@ public sealed class DebateCoordinator : IDebateCoordinator
             closed is null && !_live.ContainsKey(Key(project.ProjectId, record.Id)),
             debateLog.Of<VerdictChallengedPayload>().Any(),
             record.Challenges,
-            [.. debateLog.Problems.Messages, .. problems.Messages],
-            [.. debateLog.Problems.Texts, .. problems.Texts]);
+            [.. debateLog.Problems, .. problems.Messages],
+            [.. debateLog.ProblemTexts, .. problems.Texts]);
         return new DebateTranscript(
             summary,
             record.RequirementSetHash,

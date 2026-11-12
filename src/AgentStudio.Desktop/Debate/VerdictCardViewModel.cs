@@ -236,7 +236,7 @@ public sealed partial class VerdictPanelViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ChallengeError = Texts.Format("Verdict_Error_Challenge", ex.Message);
+            ChallengeError = Texts.Format("Verdict_Error_Challenge", DebateTexts.Reason(ex));
         }
         finally
         {
@@ -452,7 +452,7 @@ public sealed partial class VerdictCardViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = Texts.Format("Verdict_Error_Decide", ex.Message);
+            ErrorMessage = Texts.Format("Verdict_Error_Decide", DebateTexts.Reason(ex));
         }
         finally
         {
@@ -495,7 +495,7 @@ public sealed partial class VerdictCardViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = Texts.Format("Verdict_Error_Orchestrator", ex.Message);
+            ErrorMessage = Texts.Format("Verdict_Error_Orchestrator", DebateTexts.Reason(ex));
         }
     }
 
