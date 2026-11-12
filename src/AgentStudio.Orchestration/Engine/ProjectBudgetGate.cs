@@ -86,7 +86,9 @@ public sealed class ProjectBudgetGate(
 
             // Only what the budgets can count: from the start of the widest period among them (the whole history only for a total).
             var since = limits.Min(l => PeriodStart(l.Budget.Period));
-            var report = await usage.QueryAsync([project.RootPath], new UsageQuery(since, DateTimeOffset.MaxValue, time.LocalTimeZone, []), ct).ConfigureAwait(false);
+            // Up to tomorrow, never the end of time: the report reconciles the journal day by day up to the end of the period, so a period
+            // that ends in the year 9999 makes every launch of an attempt count three million days of journal (found with real runs).
+            var report = await usage.QueryAsync([project.RootPath], new UsageQuery(since, time.GetUtcNow().AddDays(1), time.LocalTimeZone, []), ct).ConfigureAwait(false);
             if (report.Excluded.Count > 0)
             {
                 return Unreadable("el registro del proyecto no es de confianza: " + report.Excluded[0].Reason, UserText.Of(OrchestrationUserTexts.BudgetWhyUntrusted));

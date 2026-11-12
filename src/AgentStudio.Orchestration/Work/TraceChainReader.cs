@@ -160,6 +160,8 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
 
         // Runs: their tasks and what the tasks cover.
         var tasksOfRun = new Dictionary<string, List<TraceRef>>(StringComparer.Ordinal);
+        var reviewTasks = new HashSet<TraceRef>();
+        var prerequisites = new Dictionary<(string Run, string Task), string[]>();
         var planCache = new Dictionary<string, AgentStudio.Domain.Orchestration.PlanDefinition?>(StringComparer.Ordinal);
         foreach (var started in payloads.Select(p => p.Payload).OfType<RunStartedPayload>().DistinctBy(p => p.RunId))
         {
@@ -175,6 +177,13 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
             {
                 var task = TraceRef.Task(started.RunId, spec.Id.Value);
                 tasks.Add(task);
+                if (spec.Kind == AgentStudio.Domain.Work.WorkTaskKind.Review)
+                {
+                    reviewTasks.Add(task);
+                }
+
+                prerequisites[(started.RunId, spec.Id.Value)] = [.. spec.DependsOn.Select(d => d.Prerequisite.Value)];
+
                 graph.Edge(run, task, TaskAt, spec.Title);
                 foreach (var covered in spec.Covers)
                 {
@@ -206,7 +215,19 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
                     integrates.Add(integration.RunId);
                     if (integration.ResultCommit is not null && integration.ConflictPaths.Count == 0)
                     {
-                        integrated.Add((integration.RunId, integratedTask.Value));
+                        // The integration task (I1) merges the work of the tasks it depends on, however far: they are integrated with it.
+                        var pending = new Stack<string>([integratedTask.Value]);
+                        while (pending.Count > 0)
+                        {
+                            var id = pending.Pop();
+                            if (integrated.Add((integration.RunId, id)) && prerequisites.TryGetValue((integration.RunId, id), out var before))
+                            {
+                                foreach (var prerequisite in before)
+                                {
+                                    pending.Push(prerequisite);
+                                }
+                            }
+                        }
                     }
 
                     break;
@@ -247,7 +268,9 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
                     break;
                 case VerdictIssuedPayload { Valid: true } verdict when tasksOfRun.TryGetValue(verdict.RunId, out var judged)
                     && storedVerdicts.TryGetValue(verdict.VerdictId, out var stored) && stored.Valid && stored.Verdict.Decision == verdict.Decision:
-                    foreach (var task in verdict.Task is { } one ? judged.Where(t => t == TraceRef.Task(verdict.RunId, one.Value)) : judged)
+                    // The verdict of a run is issued on its review task (VerdictKeeper), which covers nothing: it judged the work of the run,
+                    // so it hangs from every task of the run. A verdict of any other task judged that task.
+                    foreach (var task in verdict.Task is { } one && !reviewTasks.Contains(TraceRef.Task(verdict.RunId, one.Value)) ? judged.Where(t => t == TraceRef.Task(verdict.RunId, one.Value)) : judged)
                     {
                         graph.Edge(task, TraceRef.Verdict(verdict.VerdictId), VerdictAt);
                     }

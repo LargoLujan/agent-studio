@@ -63,6 +63,43 @@ public sealed class TraceChainReaderTests
     private static List<(TraceChainStage, TraceRef)> Shape(TraceChain chain) => [.. chain.Steps.Select(s => (s.Stage, s.Node))];
 
     [Fact]
+    public async Task The_delivery_of_a_run_whose_integration_task_merged_the_work_of_its_prerequisites_is_in_the_chain_of_what_they_covered()
+    {
+        // Found with real runs: the engine records the integration under the task that integrates (T3 here, which covers nothing) and delivers
+        // what it merged; the chain took only the integration task itself as integrated, so no requirement ever reached its delivery.
+        var (world, _) = await StartedAsync();
+        using (world)
+        {
+            await world.LaunchAsync(WorkWorld.Run1, "T1", 1);
+            await world.RunAndCompleteAsync(WorkWorld.Run1, "T1");
+            await world.RecordAsync(WorkWorld.Run1, DecisionKind.IntegrationPerformed, new IntegrationPerformedPayload(AgentStudio.Tests.Domain.TestData.Tid("T3"), "agentstudio/run-1", [CommitB], CommitC, [], false) { RunId = WorkWorld.Run1 });
+            await world.DeliverAsync(WorkWorld.Run1, CommitA);
+
+            var chain = await Reader(world).ChainAsync(world.Project, TraceRef.Requirement("R1"), Ct);
+
+            Assert.Contains((TraceChainStage.Delivery, TraceRef.Commit(CommitA)), Shape(chain));
+        }
+    }
+
+    [Fact]
+    public async Task The_verdict_the_engine_issues_on_the_review_task_of_the_run_is_in_the_chain_of_the_requirement_the_run_covered()
+    {
+        // Found by the integration test of a milestone with real runs: VerdictKeeper issues the verdict of a run on its review task (T7 here),
+        // which covers nothing, so a chain that walks from a requirement through the tasks that cover it never reached the verdict.
+        var (world, _) = await StartedAsync();
+        using (world)
+        {
+            await world.LaunchAsync(WorkWorld.Run1, "T1", 1);
+            await world.RunAndCompleteAsync(WorkWorld.Run1, "T1");
+            var verdict = await world.VerdictAsync(WorkWorld.Run1, VerdictDecision.Approved, task: "T7");
+
+            var chain = await Reader(world).ChainAsync(world.Project, TraceRef.Requirement("R1"), Ct);
+
+            Assert.Contains((TraceChainStage.Verdict, TraceRef.Verdict(verdict)), Shape(chain));
+        }
+    }
+
+    [Fact]
     public async Task The_chain_of_a_requirement_goes_through_its_task_attempt_change_verification_verdict_and_delivery_and_not_through_the_others()
     {
         var (world, milestone) = await StartedAsync();

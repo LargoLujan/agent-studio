@@ -97,6 +97,18 @@ public sealed class ProjectBudgetTests
     }
 
     [Fact]
+    public async Task The_usage_query_ends_tomorrow_and_never_at_the_end_of_time_because_the_report_reconciles_the_journal_day_by_day()
+    {
+        // Found with real runs: a period that ended in the year 9999 made the report walk three million days of journal at every launch.
+        var fakes = new Fakes { Budget = new WorkBudget(1_000, null), EstimateTotal = 1 };
+
+        await Gate(fakes).CheckAsync(Project, "R1", Request, 0, TestContext.Current.CancellationToken);
+
+        var to = fakes.Usage.LastQuery!.To;
+        Assert.True(to > Now && to <= Now.AddDays(2), $"The query ends at {to:O}.");
+    }
+
+    [Fact]
     public async Task Reaching_the_limit_exactly_is_within_it_and_passing_it_by_one_token_is_not()
     {
         var within = new Fakes { Budget = new WorkBudget(1_000, null), Attempts = [Used(800)], EstimateTotal = 200 };
@@ -302,7 +314,8 @@ public sealed class ProjectBudgetTests
     [Fact]
     public async Task The_engine_does_not_launch_an_attempt_that_would_pass_the_budget_and_says_why()
     {
-        var fakes = new Fakes { Budget = new WorkBudget(null, 1), Attempts = [Used(10)], EstimateTotal = 1 };
+        // The attempt ended before the clock of the engine: the usage query ends tomorrow, as it does in the app, where nothing ends in the future.
+        var fakes = new Fakes { Budget = new WorkBudget(null, 1), Attempts = [Used(10, Start)], EstimateTotal = 1 };
         using var harness = Harness(fakes);
 
         await using var run = await harness.StartAsync(Plan(Work("T1")));
