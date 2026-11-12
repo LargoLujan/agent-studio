@@ -404,6 +404,9 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
                 // A verdict of a revision stands as the verdict it revises does: in review while that one is, never the one in force by itself.
                 graph.Standings[node] = verdictStanding.ContainsKey(TraceRef.Verdict(revised.Id)) && !inForce.Contains(revised.Id) ? TraceVerdictStanding.Superseded
                     : VerdictReach.Standing(parsed, revised, storedVerdicts).Challenged ? TraceVerdictStanding.Challenged
+
+                    // A revision verdict that was challenged in its turn and set aside by the next revision of the chain is revised, not the one in force.
+                    : standing.Revised ? TraceVerdictStanding.Revised
                     : TraceVerdictStanding.InForce;
                 continue;
             }

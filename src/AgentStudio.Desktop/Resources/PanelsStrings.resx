@@ -201,6 +201,62 @@
     <value>Cancelaste las pruebas de la última versión.</value>
     <comment>Result of a cancelled run.</comment>
   </data>
+  <data name="Panels_Tests_HeadFailuresTitle" xml:space="preserve">
+    <value>Pruebas que fallan</value>
+    <comment>Title of the list of failed tests read from the reports.</comment>
+  </data>
+  <data name="Panels_Tests_HeadNotRun" xml:space="preserve">
+    <value>No se ejecutan porque el perfil las pasaría sin aislamiento: {0}.</value>
+    <comment>Steps of the profile that are not run. {0}: their ids.</comment>
+  </data>
+  <data name="Panels_Tests_HeadMore" xml:space="preserve">
+    <value>Hay {0} pruebas más que fallan y no se enseñan: la lista se corta a las primeras.</value>
+    <comment>The list of failed tests is bounded. {0}: number.</comment>
+  </data>
+  <data name="Panels_Tests_HeadStopped" xml:space="preserve">
+    <value>Se paró en el primer paso que falló y no se ejecutaron: {0}.</value>
+    <comment>Steps after the first one that failed. {0}: their ids.</comment>
+  </data>
+  <data name="Panels_Tests_HeadOtherProject" xml:space="preserve">
+    <value>Abriste otro proyecto mientras corrían las pruebas: su resultado se descartó.</value>
+    <comment>Result discarded because the open project changed.</comment>
+  </data>
+  <data name="Panels_Tests_HeadNoProject" xml:space="preserve">
+    <value>no hay ningún proyecto abierto.</value>
+    <comment>Reason, after the error of the tests of HEAD.</comment>
+  </data>
+  <data name="Panels_Tests_HeadBusy" xml:space="preserve">
+    <value>el proyecto está ocupado con {0}; espera a que termine.</value>
+    <comment>Reason. {0}: what holds the project, with its article.</comment>
+  </data>
+  <data name="Panels_Tests_BusyRun" xml:space="preserve">
+    <value>una ejecución</value>
+    <comment>What holds the project.</comment>
+  </data>
+  <data name="Panels_Tests_BusyPlanning" xml:space="preserve">
+    <value>una planificación</value>
+    <comment>What holds the project.</comment>
+  </data>
+  <data name="Panels_Tests_BusyDebate" xml:space="preserve">
+    <value>un debate</value>
+    <comment>What holds the project.</comment>
+  </data>
+  <data name="Panels_Tests_BusyAudit" xml:space="preserve">
+    <value>una auditoría o unas pruebas</value>
+    <comment>What holds the project.</comment>
+  </data>
+  <data name="Panels_Tests_HeadNoProfile" xml:space="preserve">
+    <value>el proyecto no tiene perfil de verificación.</value>
+    <comment>Reason.</comment>
+  </data>
+  <data name="Panels_Tests_HeadNoIsolatedStep" xml:space="preserve">
+    <value>ningún paso del perfil se ejecuta aislado, y aquí nada se ejecuta con tus permisos.</value>
+    <comment>Reason.</comment>
+  </data>
+  <data name="Panels_Tests_HeadTimeBudget" xml:space="preserve">
+    <value>las pruebas pasaron del tiempo máximo ({0} min) y se cortaron.</value>
+    <comment>Reason. {0}: minutes.</comment>
+  </data>
   <data name="Info_Problems_Title" xml:space="preserve">
     <value>Problemas</value>
     <comment>Information button.</comment>

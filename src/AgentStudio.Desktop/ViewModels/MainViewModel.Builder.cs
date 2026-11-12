@@ -34,7 +34,7 @@ public sealed partial class MainViewModel
     /// <summary>The panel «Salida» of the bottom zone: the output of the run, of a task or of an agent.</summary>
     public OutputPanelViewModel Output { get; } = new();
 
-    /// <summary>The panel «Pruebas» of the bottom zone: the verifications of the run. The button of the tests of HEAD is not shown: the service is not implemented yet.</summary>
+    /// <summary>The panel «Pruebas» of the bottom zone: the verifications of the run. The button of the tests of HEAD is shown when the shell composes the service (HeadTestsServices).</summary>
     public TestsPanelViewModel Tests { get; } = new();
 
     /// <summary>

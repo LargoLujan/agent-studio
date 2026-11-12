@@ -1,4 +1,5 @@
 using System.Xml;
+using AgentStudio.Application.Verification;
 using AgentStudio.Domain.Evidence;
 
 namespace AgentStudio.Orchestration.Verification.Reports;
@@ -19,13 +20,16 @@ public static class JUnitReportParser
     /// <param name="report">The JUnit document. The stream is not closed.</param>
     /// <param name="exitCode">Exit code of the process that produced the report.</param>
     /// <exception cref="TestReportException">The document is not well-formed XML or not a JUnit report.</exception>
-    public static TestRunSummary Parse(Stream report, int exitCode)
+    public static TestRunSummary Parse(Stream report, int exitCode) => Parse(report, exitCode, null);
+
+    /// <summary>As <see cref="Parse(Stream, int)"/>, and the failed tests (their names and the first message of each, bounded) are left in <paramref name="failures"/>.</summary>
+    internal static TestRunSummary Parse(Stream report, int exitCode, FailureCollector? failures)
     {
         ArgumentNullException.ThrowIfNull(report);
         try
         {
             using var reader = TestReportXml.CreateReader(report);
-            return Read(reader, exitCode);
+            return Read(reader, exitCode, failures);
         }
         catch (XmlException ex)
         {
@@ -40,7 +44,16 @@ public static class JUnitReportParser
         return Parse(stream, exitCode);
     }
 
-    private static TestRunSummary Read(XmlReader reader, int exitCode)
+    /// <summary>Reads a JUnit report the way <see cref="Parse(Stream, int)"/> does and returns the tests that failed too, at most <see cref="FailureCollector.MaxFailures"/>.</summary>
+    /// <exception cref="TestReportException">The document is not well-formed XML or not a JUnit report.</exception>
+    public static (TestRunSummary Summary, IReadOnlyList<FailedTest> Failed) ParseWithFailures(Stream report, int exitCode)
+    {
+        var failures = new FailureCollector();
+        var summary = Parse(report, exitCode, failures);
+        return (summary, failures.Failures);
+    }
+
+    private static TestRunSummary Read(XmlReader reader, int exitCode, FailureCollector? failures)
     {
         if (!MoveToRoot(reader) || reader.LocalName is not ("testsuites" or "testsuite"))
         {
@@ -54,7 +67,7 @@ public static class JUnitReportParser
         {
             if (reader.NodeType == XmlNodeType.Element && reader.LocalName == "testcase")
             {
-                switch (ReadTestCase(reader))
+                switch (ReadTestCase(reader, failures))
                 {
                     case Outcome.Passed:
                         passed++;
@@ -77,7 +90,7 @@ public static class JUnitReportParser
     }
 
     // Consumes the whole <testcase> element (its captured output can be large) and looks only at its direct children.
-    private static Outcome ReadTestCase(XmlReader reader)
+    private static Outcome ReadTestCase(XmlReader reader, FailureCollector? failures)
     {
         if (reader.IsEmptyElement)
         {
@@ -85,6 +98,9 @@ public static class JUnitReportParser
             return Outcome.Passed;
         }
 
+        var testName = reader.GetAttribute("name");
+        var className = reader.GetAttribute("classname");
+        string? message = null;
         var depth = reader.Depth;
         var outcome = Outcome.Passed;
         reader.Read();
@@ -96,6 +112,17 @@ public static class JUnitReportParser
                 {
                     case "failure" or "error":
                         outcome = Outcome.Failed;
+                        if (failures is not null && message is null)
+                        {
+                            // The message is the attribute; without it, the beginning of the text of the element (bounded).
+                            message = reader.GetAttribute("message");
+                            if (string.IsNullOrWhiteSpace(message))
+                            {
+                                message = FailureCollector.ReadBoundedText(reader);
+                                continue;
+                            }
+                        }
+
                         break;
                     case "skipped" when outcome == Outcome.Passed:
                         outcome = Outcome.Skipped;
@@ -112,6 +139,11 @@ public static class JUnitReportParser
 
         // Past </testcase>.
         reader.Read();
+        if (outcome == Outcome.Failed)
+        {
+            failures?.Add(string.IsNullOrWhiteSpace(className) ? testName : $"{className}.{testName}", message);
+        }
+
         return outcome;
     }
 

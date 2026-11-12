@@ -55,7 +55,12 @@ public sealed record RequirementBoardFacts(
 /// <summary>What the verified log says about one task of a plan, for its card.</summary>
 /// <param name="Status">The status of the task, rebuilt by replaying the run.</param>
 /// <param name="RunVerdict">The decision the last valid verdict that judged the task leaves of it (the rule of the verdict in force), or null when none did or that verdict is set aside by a challenge.</param>
-public sealed record TaskBoardFacts(WorkTaskStatus Status, VerdictDecision? RunVerdict);
+/// <param name="Assessed">
+/// What that verdict assessed of the requirements the task covers, one entry for each it assessed (null when the verdict assessed none of them: it carries no assessments by
+/// requirement and says nothing of each). Null or empty when the task covers none or no verdict judged it. A task follows its requirements (docs/16 D-19): an approved verdict
+/// with a requirement of the task not satisfied does not leave the task <see cref="BoardColumn.Done"/> (see <see cref="BoardRules.ColumnOf(TaskBoardFacts)"/>).
+/// </param>
+public sealed record TaskBoardFacts(WorkTaskStatus Status, VerdictDecision? RunVerdict, IReadOnlyList<AssessmentStatus?>? Assessed = null);
 
 /// <summary>
 /// The rule of the board (docs/16 D-19, F9-2), pure: where the card of a requirement or of a task goes. One invariant matters
@@ -128,7 +133,15 @@ public static class BoardRules
             WorkTaskStatus.Running or WorkTaskStatus.AwaitingApproval or WorkTaskStatus.Blocked => BoardColumn.InProgress,
             WorkTaskStatus.Completed => facts.RunVerdict switch
             {
-                VerdictDecision.Approved => BoardColumn.Done,
+                // The card of a task never contradicts the card of a requirement it covers (same rule as ColumnOf for a requirement): provisional, like that one, until the owner decides
+                // what «approved but not met» means (docs/18).
+                VerdictDecision.Approved => facts.Assessed switch
+                {
+                    null or [] => BoardColumn.Done,
+                    var assessed when assessed.Contains(AssessmentStatus.NotSatisfied) => BoardColumn.Returned,
+                    var assessed when assessed.All(a => a == AssessmentStatus.Satisfied) => BoardColumn.Done,
+                    _ => BoardColumn.InReview,
+                },
                 VerdictDecision.ChangesRequested or VerdictDecision.Rejected => BoardColumn.Returned,
 
                 // No verdict yet, or one that leaves the decision to a person: its run awaits the review.

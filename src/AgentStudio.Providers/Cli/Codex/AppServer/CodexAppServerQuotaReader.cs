@@ -47,6 +47,10 @@ public sealed class CodexAppServerQuotaReader : IProviderQuotaReader
     private static readonly TimeSpan ProcessGrace = TimeSpan.FromSeconds(10);
 
     private readonly IExecutableLocator _locator;
+
+    /// <summary>The folder "codex --version" starts in (never the project); null means the system folder (see <see cref="NeutralWorkingFolder"/>).</summary>
+    public string? WorkingDirectory { get; init; }
+
     private readonly IStreamingProcessRunner _runner;
     private readonly IProcessRunner _probes;
     private readonly Func<bool> _optedIn;
@@ -103,7 +107,7 @@ public sealed class CodexAppServerQuotaReader : IProviderQuotaReader
 
         if (_locator.Find("codex") is not { } located)
         {
-            return CodexRateLimitsParser.Missing("Codex CLI no está instalado o no está en el PATH");
+            return CodexRateLimitsParser.Missing("Codex CLI no está instalado o no está en el PATH" + (_locator.FindInUntrustedRoot("codex") is { } inside ? "." + InsideProjectNote.Spanish(inside).TrimEnd('.') : string.Empty));
         }
 
         var executable = CodexExecutableResolver.Resolve(located);
@@ -168,7 +172,7 @@ public sealed class CodexAppServerQuotaReader : IProviderQuotaReader
         string? version = null;
         try
         {
-            var result = await _probes.RunAsync(new ProcessSpec(executable, ["--version"], Timeout: VersionTimeout), ct).ConfigureAwait(false);
+            var result = await _probes.RunAsync(new ProcessSpec(executable, ["--version"], NeutralWorkingFolder.Prepare(WorkingDirectory), Timeout: VersionTimeout), ct).ConfigureAwait(false);
             if (!result.TimedOut && result.ExitCode == 0)
             {
                 version = CliVersionParser.Parse(result.StandardOutput);

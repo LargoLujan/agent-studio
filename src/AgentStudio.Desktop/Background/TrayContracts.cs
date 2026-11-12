@@ -55,7 +55,11 @@ public sealed class ExplorerFolderOpener : IFolderOpener
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(folder);
         Directory.CreateDirectory(folder);
-        using var explorer = Process.Start(new ProcessStartInfo("explorer.exe") { ArgumentList = { folder }, UseShellExecute = false });
+
+        // The file of the Windows folder, not the name: CreateProcess would also look in the folder of the app, in its current folder
+        // and in the PATH, where a project may have planted an explorer.exe (ADR-0018, addendum of 2026-11-12).
+        var windows = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+        using var explorer = Process.Start(new ProcessStartInfo(Path.Combine(windows, "explorer.exe")) { ArgumentList = { folder }, UseShellExecute = false });
     }
 }
 

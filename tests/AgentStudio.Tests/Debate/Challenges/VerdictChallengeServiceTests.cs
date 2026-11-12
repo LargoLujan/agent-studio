@@ -1,6 +1,7 @@
 using AgentStudio.Application.Coordination;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Judging;
+using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Debate.Challenges;
 using AgentStudio.Domain.Common;
@@ -8,6 +9,7 @@ using AgentStudio.Domain.Debate;
 using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Evidence;
 using AgentStudio.Domain.Judging;
+using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Tests.Debate.Audit.Fixtures;
 using AgentStudio.Tests.Debate.Challenges.Fixtures;
@@ -229,6 +231,19 @@ public sealed class VerdictChallengeServiceTests
     }
 
     [Fact]
+    public async Task A_verdict_whose_revision_was_aborted_can_be_challenged_again()
+    {
+        var (bench, revision) = await ChallengedAsync();
+        await bench.JudgeRevisionAsync(revision.Id.Value, RunVerdict, Run.Value, DebateOutcome.Aborted, DebateClosedPayload.AbortedRule);
+        Assert.Equal(ChallengeStatus.Aborted, await bench.StatusAsync());
+
+        // Nobody judged it: it counts for nothing and does not stop another revision from opening (D-40), unlike one still open.
+        var again = await bench.PrepareAsync(bench.Request());
+
+        Assert.DoesNotContain(again.Problems, p => p.Contains("sin cerrar", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task A_verdict_never_challenged_has_no_challenge()
     {
         var bench = await OverRunAsync();
@@ -238,7 +253,7 @@ public sealed class VerdictChallengeServiceTests
 
     [Theory]
     [InlineData(VerdictDecision.Approved, "open", null, ChallengeStatus.Pending)]
-    [InlineData(VerdictDecision.Approved, "aborted", null, ChallengeStatus.Pending)]
+    [InlineData(VerdictDecision.Approved, "aborted", null, ChallengeStatus.Aborted)]
     [InlineData(VerdictDecision.Approved, "disagree", null, ChallengeStatus.Pending)]
     [InlineData(VerdictDecision.Approved, "invalid", VerdictDecision.Approved, ChallengeStatus.Pending)]
     [InlineData(VerdictDecision.Approved, "user", null, ChallengeStatus.DecidedByUser)]
@@ -348,5 +363,54 @@ public sealed class VerdictChallengeServiceTests
         await Assert.ThrowsAnyAsync<InvalidOperationException>(() => bench.AcceptAsync(verdict));
 
         Assert.Empty(bench.Gate.Requests);
+    }
+
+    /// <summary>A challenge anchored in the unit of the verdict whose revision a person declined to open (their no to <c>debate.open</c> in the debate, which never opened).</summary>
+    private static async Task DeclinedChallengeAsync(ChallengeBench bench)
+    {
+        const string debate = "deb-20261019-0d0d0d";
+        await bench.World.RecordAsync(PreparedRun.System, DecisionKind.VerdictChallenged, "Impugnado",
+            new VerdictChallengedPayload(RunVerdict, "usuario", new EvidenceId("motivos"), new string('e', 64), debate) { RunId = Run.Value });
+        await bench.World.RecordAsync(PreparedRun.System, DecisionKind.ApprovalRequested, "Aprobación pedida: debate.open",
+            new ApprovalRequestedPayload(ChallengeLog.DebateOpenAction, "Abrir", AgentStudio.Application.Security.RiskLevel.Critical, null, []) { RunId = debate });
+        await bench.World.RecordAsync(PreparedRun.Person, DecisionKind.ApprovalDenied, "Denegado por usuario: debate.open",
+            new ApprovalAnsweredPayload(ChallengeLog.DebateOpenAction, false, "usuario", "no", null) { RunId = debate });
+    }
+
+    [Fact]
+    public async Task A_challenge_whose_revision_the_person_declined_to_open_counts_for_nothing_and_the_verdict_can_be_challenged_again()
+    {
+        var bench = await OverRunAsync();
+        await DeclinedChallengeAsync(bench);
+
+        var again = await bench.PrepareAsync(bench.Request());
+
+        Assert.Equal(ChallengeStatus.None, await bench.StatusAsync());
+        Assert.Empty(again.Problems);
+    }
+
+    [Fact]
+    public async Task A_revision_of_a_verdict_the_run_did_not_end_with_that_turns_towards_an_approval_needs_no_acceptance()
+    {
+        // The run ended with another verdict: the challenged one is an attempt its judge corrected, read as if it were an approval (as the delivery and the board do).
+        var (bench, revision) = await ChallengedAsync(VerdictDecision.ChangesRequested);
+        await bench.World.RecordAsync(PreparedRun.System, DecisionKind.RunFinished, "Fin", new RunFinishedPayload(RunPhase.Succeeded, "fin", null, "otro-veredicto") { RunId = Run.Value });
+        var ids = await bench.JudgeRevisionAsync(revision.Id.Value, RunVerdict, Run.Value, DebateOutcome.Resolved, JudgingPanel.Single, (Revisor, VerdictDecision.Approved, true));
+
+        Assert.Equal(ChallengeStatus.Confirmed, await bench.StatusAsync());
+        await Assert.ThrowsAnyAsync<InvalidOperationException>(() => bench.AcceptAsync(ids[0]));
+        Assert.Empty(bench.Gate.Requests);
+    }
+
+    [Fact]
+    public async Task A_revision_of_the_verdict_the_run_ended_with_that_turns_towards_an_approval_still_awaits_acceptance()
+    {
+        var (bench, revision) = await ChallengedAsync(VerdictDecision.ChangesRequested);
+        await bench.World.RecordAsync(PreparedRun.System, DecisionKind.RunFinished, "Fin", new RunFinishedPayload(RunPhase.Succeeded, "fin", null, RunVerdict) { RunId = Run.Value });
+        var ids = await bench.JudgeRevisionAsync(revision.Id.Value, RunVerdict, Run.Value, DebateOutcome.Resolved, JudgingPanel.Single, (Revisor, VerdictDecision.Approved, true));
+
+        Assert.Equal(ChallengeStatus.AwaitingAcceptance, await bench.StatusAsync());
+        await bench.AcceptAsync(ids[0]);
+        Assert.Equal(ChallengeStatus.Accepted, await bench.StatusAsync());
     }
 }

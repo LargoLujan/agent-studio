@@ -22,6 +22,10 @@ public enum AuthenticationState
 /// Result of checking one provider tool. It never contains secrets or personal data (no tokens, e-mails or
 /// organisation names): only what is needed to tell the user whether the tool is ready.
 /// </summary>
+/// <param name="FoundInsideProject">
+/// The program the probe did not use because it lies inside the open project, which is not trusted to provide programs (ADR-0018):
+/// the desktop tells the person so, in the language in use. Null when there was none; set only with <see cref="InstallationState.NotInstalled"/>.
+/// </param>
 public sealed record ProviderProbeResult(
     ProviderId Provider,
     string DisplayName,
@@ -30,7 +34,8 @@ public sealed record ProviderProbeResult(
     string? Version,
     AuthenticationState Authentication,
     string? AuthenticationMethod,
-    IReadOnlyList<string> Notes);
+    IReadOnlyList<string> Notes,
+    string? FoundInsideProject = null);
 
 /// <summary>
 /// Detects whether a provider tool is installed, which version it is and whether the user is signed in, using only

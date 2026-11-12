@@ -123,6 +123,33 @@ public sealed class ParticipationProjectorTests
     }
 
     [Fact]
+    public async Task A_revision_verdict_whose_own_challenge_is_still_open_attributes_no_approval()
+    {
+        const string debate = "deb-20261111-aaaaaa";
+        const string second = "deb-20261111-bbbbbb";
+        using var world = await RunningAsync();
+        await world.VerdictAsync(WorkWorld.Run1, VerdictDecision.Rejected);
+        foreach (var (verdict, revision, debateId) in new[] { ("v1", "v2", debate), ("v2", "v3", second) })
+        {
+            await world.RecordAsync(WorkWorld.Run1, DecisionKind.VerdictChallenged, new VerdictChallengedPayload(verdict, "manuel", new EvidenceId("motivos"), new string('e', 64), debateId) { RunId = WorkWorld.Run1 });
+            await world.RecordAsync(debateId, DecisionKind.DebateOpened, new DebateOpenedPayload(
+                AgentStudio.Domain.Debate.DebateMode.Adversarial, new string('1', 64), new string('2', 64), new string('3', 64), new EvidenceId("pregunta"), new string('4', 64),
+                AgentStudio.Domain.Debate.DebateSubjectKind.Verdict, verdict, null, [], [], AgentStudio.Domain.Debate.DebateJudgingKind.IndependentJudge, [], [], 3, 600, null, 8, verdict) { RunId = debateId });
+            if (revision == "v2")
+            {
+                await world.RevisionVerdictAsync(WorkWorld.Run1, VerdictDecision.Approved, verdict);
+                await world.RecordAsync(debateId, DecisionKind.DebateClosed, new DebateClosedPayload(AgentStudio.Domain.Debate.DebateOutcome.Resolved, ["v2"], "judge", null, "cerrado") { RunId = debateId });
+            }
+        }
+
+        var view = await Projector(world).ProjectAsync(world.Project, TraceRef.Run(WorkWorld.Run1), Ct);
+
+        // The rejected original is attributed; the approval of its revision is in review, because that revision verdict is challenged and its revision has not closed.
+        var reviewers = view.Entries.Where(e => e.Role == ParticipationRole.Reviewer).ToList();
+        Assert.Contains("Rejected", Assert.Single(reviewers).Detail);
+    }
+
+    [Fact]
     public async Task A_task_has_its_own_agents_and_what_has_no_task_counts_for_all_of_them()
     {
         using var world = await RunningAsync();

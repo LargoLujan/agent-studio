@@ -61,7 +61,17 @@ public sealed class ClientDocumentBuilder(
         var milestoneName = milestone.Length == 0 ? null : milestone;
 
         var set = await requirements.LatestAsync(projectId, ct).ConfigureAwait(false);
-        var records = await evidence.ListAsync(projectId, ct).ConfigureAwait(false);
+
+        // Only what the verified log announces (EvidenceRegistered, with the same SHA-256) counts: the store also holds evidence that
+        // belongs to no run, such as the tests of HEAD, and a document for a client must rest on anchored evidence.
+        var anchored = state.Entries
+            .Where(e => e.Kind == DecisionKind.EvidenceRegistered)
+            .Select(e => DecisionPayloadSerializer.Deserialize<EvidenceRegisteredPayload>(e.PayloadJson))
+            .Select(p => (Id: p.Evidence.Value, p.Sha256))
+            .ToHashSet();
+        var records = (await evidence.ListAsync(projectId, ct).ConfigureAwait(false))
+            .Where(r => anchored.Contains((r.Id.Value, r.ContentSha256)))
+            .ToList();
         var stored = await verdicts.ListAsync(projectId, null, ct).ConfigureAwait(false);
         var snapshot = await memory.SnapshotAsync(projectId, ct).ConfigureAwait(false);
         var trusted = snapshot.Entries

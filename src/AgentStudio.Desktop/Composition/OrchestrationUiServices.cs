@@ -13,7 +13,9 @@ using AgentStudio.Application.Security;
 using AgentStudio.Application.Setup;
 using AgentStudio.Application.Skills;
 using AgentStudio.Application.Usage;
+using AgentStudio.Application.Verification;
 using AgentStudio.Desktop.Lock;
+using AgentStudio.Desktop.Panels;
 using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Orchestrator;
 using AgentStudio.Desktop.Orchestrator.Approvals;
@@ -77,6 +79,12 @@ internal static class OrchestrationUiServices
                 provider.GetService<IOrchestrator>() as IRunInspector,
                 provider.GetService<IEvidenceStore>()))
             .AddSingleton<OrchestrationSession>()
+            .AddSingleton(provider => new HeadTestsServices(
+                provider.GetService<IVerificationRunner>(),
+                provider.GetService<IVerificationProfileSource>(),
+                provider.GetService<IWorktreeManager>(),
+                provider.GetService<IProjectWorkspace>(),
+                provider.GetService<IProjectActivity>()))
             .AddSingleton(provider => new ReduceMotionSetting(provider.GetRequiredService<IAppSettingsStore>()))
             .AddSingleton(provider => new MonitorServices(
                 provider.GetService<IDecisionRecorder>() is { } decisions ? new DecisionLogContextPartsSource(decisions) : null,
@@ -84,7 +92,8 @@ internal static class OrchestrationUiServices
                 provider.GetService<IConsumptionAnalyzer>(),
                 provider.GetService<IAssistedConsumptionAnalysis>(),
                 AssistedEstimate(provider.GetService<IAgentRoster>(), provider.GetService<IUsageEstimator>()),
-                provider.GetService<IInterfaceLock>()))
+                provider.GetService<IInterfaceLock>(),
+                liveContext: provider.GetService<IRunRegistry>() is { } runs && provider.GetService<IPlanStore>() is { } plans ? new RegistryRunLiveContextSource(runs, plans) : null))
             .AddSingleton<IOrchestratorDocumentFactory>(provider =>
             {
                 // Resolved once, here: the documents keep the delegate for as long as they live, and a canvas asks for it each time an

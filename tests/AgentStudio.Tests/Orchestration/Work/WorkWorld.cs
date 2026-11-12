@@ -123,7 +123,7 @@ internal sealed class WorkWorld : IDisposable
         RecordAsync(run, DecisionKind.EvidenceRegistered, new EvidenceRegisteredPayload(Eid(id), kind, AgentStudio.Domain.Evidence.EvidenceOrigin.CapturedBySystem, new string('a', 64), Tid(task), attempt, null, null, null, null, commit) { RunId = run });
 
     /// <summary>A verdict of the run: stored (valid or not) and announced in the log (valid or not).</summary>
-    public async Task<string> VerdictAsync(string run, VerdictDecision decision, bool validInLog = true, bool validInStore = true, string id = "v1", bool store = true, string? task = null, IReadOnlyList<string>? assessing = null, string issuedOn = "T7", string? supersedes = null, string? head = null)
+    public async Task<string> VerdictAsync(string run, VerdictDecision decision, bool validInLog = true, bool validInStore = true, string id = "v1", bool store = true, string? task = null, IReadOnlyList<string>? assessing = null, string issuedOn = "T7", string? supersedes = null, string? head = null, IReadOnlyDictionary<string, AssessmentStatus>? statuses = null)
     {
         var verdict = ValidVerdict(Dossier(), decision);
 
@@ -137,6 +137,12 @@ internal sealed class WorkWorld : IDisposable
         if (assessing is not null)
         {
             verdict = verdict with { Assessments = [.. verdict.Assessments.Where(a => assessing.Contains(a.Requirement.Value))] };
+        }
+
+        // «statuses» gives the status each requirement named is assessed with instead of Satisfied.
+        if (statuses is not null)
+        {
+            verdict = verdict with { Assessments = [.. verdict.Assessments.Select(a => statuses.TryGetValue(a.Requirement.Value, out var status) ? a with { Status = status } : a)] };
         }
 
         if (store)

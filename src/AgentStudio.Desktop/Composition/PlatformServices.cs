@@ -1,4 +1,5 @@
 using System.IO;
+using AgentStudio.Application.Execution;
 using AgentStudio.Application.Models;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Providers;
@@ -28,6 +29,7 @@ using AgentStudio.Orchestration.Integration;
 using AgentStudio.Orchestration.Planning;
 using AgentStudio.Orchestration.Verification;
 using AgentStudio.Providers;
+using AgentStudio.Providers.Cli;
 using AgentStudio.Security;
 using AgentStudio.Security.Approvals;
 using Microsoft.Extensions.Configuration;
@@ -61,6 +63,12 @@ internal static class PlatformServices
     {
         ArgumentNullException.ThrowIfNull(folders);
         var paths = folders.Local.Orchestration;
+
+        // ADR-0018 (addendum of 2026-11-12): no program is resolved from the open project nor from the worktrees of the runs. The
+        // shell tells this list which project opens; the locator and the runners (AddAgentStudioInfrastructure) read it.
+        services.AddSingleton(new OpenProjectRoots([paths.WorktreeRoot]));
+        services.AddSingleton<IUntrustedRoots>(provider => provider.GetRequiredService<OpenProjectRoots>());
+        services.AddSingleton(new NeutralWorkingFolderOptions(Path.Combine(folders.Local.BaseDirectory, "doctor", "cwd")));
         return services
             .AddAgentStudioInfrastructure()
             .AddAgentStudioMemory()

@@ -18,6 +18,7 @@ using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Orchestrator;
 using AgentStudio.Desktop.Orchestrator.Monitor;
 using AgentStudio.Desktop.Orchestrator.Session;
+using AgentStudio.Desktop.Panels;
 using AgentStudio.Desktop.Services;
 using AgentStudio.Desktop.Settings;
 using AgentStudio.Desktop.Setup;
@@ -82,6 +83,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
     private readonly RunReviewServices? _review;
     private readonly BackgroundWorkRegistry? _work;
     private readonly IConsentedResumes? _resumes;
+    private readonly OpenProjectRoots? _projectRoots;
     private readonly SettingsDocumentViewModel? _settingsDocument;
     private readonly ContextWindowCatalogs? _contextWindows;
     private readonly SynchronizationContext? _ui;
@@ -106,6 +108,9 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
 
     /// <summary>Monitors of runs the scheduler resumed while the monitor of their document followed another run: the tray follows them.</summary>
     private readonly List<RunMonitorViewModel> _backgroundMonitors = [];
+
+    /// <summary>The monitors the shell created for runs no document follows (the tray, the exit and «mantener despierto» follow them).</summary>
+    public IReadOnlyList<RunMonitorViewModel> BackgroundMonitors => _backgroundMonitors;
 
     /// <summary>The project of each of <see cref="_backgroundMonitors"/>, whose learned windows reach it.</summary>
     private readonly Dictionary<RunMonitorViewModel, string> _backgroundRoots = [];
@@ -145,6 +150,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
     /// <param name="monitors">What the monitors the shell creates for itself are given (docs/04 section 21.10); without it they have none of it.</param>
     /// <param name="setup">Creates the configurator of a project (docs/17 section 4.6); without it «Configurar proyecto» is not offered.</param>
     /// <param name="setupSuggestions">Which projects the configurator was already suggested for; without it nothing is suggested.</param>
+    /// <param name="headTests">What composes «Ejecutar las pruebas de HEAD» of the panel «Pruebas»; without it, or with a part missing, the button is not offered.</param>
     /// <param name="clientDocuments">The «Documentación para clientes» document of the session; without it the activity is not offered.</param>
     public MainViewModel(
         IAppSettingsStore settingsStore,
@@ -172,7 +178,9 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         HelpDocumentViewModel? help = null,
         ClientDocumentsViewModel? clientDocuments = null,
         RepositoryViewModel? repository = null,
-        WorkDocumentViewModel? workDocument = null)
+        WorkDocumentViewModel? workDocument = null,
+        HeadTestsServices? headTests = null,
+        OpenProjectRoots? projectRoots = null)
     {
         ArgumentNullException.ThrowIfNull(settingsStore);
         ArgumentNullException.ThrowIfNull(folderPicker);
@@ -198,6 +206,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         _memory = memory;
         _clientDocuments = clientDocuments;
         _workDocument = workDocument;
+        _projectRoots = projectRoots;
         _upkeep = upkeep;
         _debates = debates;
         _review = review;
@@ -244,6 +253,8 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
             .. HelpActivities(),
             .. SettingsActivities(),
         ];
+        Tests.HeadTests = headTests?.For(() => ProjectPath);
+        Tests.CurrentProject = () => ProjectPath;
         InitializeBuilderShell(monitors, setup, setupSuggestions);
     }
 
@@ -365,6 +376,9 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
     {
         _welcome?.ShowProject(value is null ? null : ProjectName, value is null ? null : ProjectPathDisplay);
         ShowSetupSuggestion(value);
+
+        // The tests of HEAD that run are of the project that was open: they are stopped (the copy is cleaned when the verifier ends).
+        Tests.CancelHeadTestsCommand.Execute(null);
         AttachPanels();
     }
 
@@ -399,6 +413,9 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         {
             if (Directory.Exists(last))
             {
+                // Before the first await: the window starts the check of the providers right after this call begins, and that check
+                // must not resolve a program from the folder of the project that is about to open.
+                _projectRoots?.Open(last);
                 await OpenProjectAsync(last);
             }
             else
@@ -882,12 +899,16 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
             RemoveDocument(document);
         }
 
+        // Untrusted before anything of the project runs (git, memory, the screens): see OpenProjectRoots.
+        _projectRoots?.Open(normalized);
         ProjectPath = normalized;
         Explorer.Load(normalized);
         _settings = _settings.WithProjectOpened(normalized);
         TrySaveSettings();
         RefreshRecents();
-        StatusMessage = null;
+        StatusMessage = _projectRoots?.BroadRoots.Contains(normalized, StringComparer.OrdinalIgnoreCase) == true
+            ? Texts.Format("Providers_ProjectTooBroad", PathDisplay.CollapseHome(normalized))
+            : null;
         await Journal.SetProjectAsync(normalized);
         await KeepMemoryAsync(normalized, afterRun: false);
         await ShowProjectInScreensAsync(normalized);
@@ -1073,6 +1094,13 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
 
         LearnContextWindows(root, monitor);
         monitor.Attach(run, project);
+
+        // No document gives this monitor the template or the plan: they are read from what the run stored (P52), never from a screen.
+        if (_monitors is { } services)
+        {
+            _ = services.GiveLiveContextAsync(monitor, project, run.Id);
+        }
+
         monitor.ResumeConsent = resumeConsent;
         _runsActive[monitor] = monitor.IsActive;
         monitor.PropertyChanged += OnMonitorPropertyChanged;

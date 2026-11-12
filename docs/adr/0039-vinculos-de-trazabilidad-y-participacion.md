@@ -98,3 +98,39 @@ Una revisión independiente encontró cinco huecos en la regla compartida; esta 
   Riesgo abierto: `ChallengeLog.StatusOf` (Debate; lo usan `VerdictChallengeService` para no impugnar dos veces y para aceptar una revisión) sigue diciendo `Pending` ante una
   impugnación rechazada y `AwaitingAcceptance` ante la de un veredicto que no es el de cierre.
 - **La cadena respeta el orden del registro al marcar una entrega:** solo las tareas completadas (e integradas) cuando se hizo.
+
+## Adenda de una sola lectura de las impugnaciones · 2026-11-12
+
+Cierra el riesgo abierto de la adenda anterior (P63). El estado de una impugnación se lee ahora con **una sola función**, `ChallengeRules.Read` (`Application/Judging`, pura sobre el registro
+y el almacén de veredictos): la llaman `ChallengeReader` (tablero, cadena y participación) y `ChallengeLog.StatusOf` (Debate, que usa `VerdictChallengeService`). La entrega
+(`DeliveryService.Revisions`) sigue con su evaluador, que es el delicado y comprueba además la coherencia de cada revisión; `RevisionAgreementTests` (tabla de 15 escenarios) lee el
+mismo registro con las tres lecturas.
+
+- **Impugnación cuya revisión la persona rechazó abrir:** no cuenta (`None`), como en la entrega. Antes Debate decía `Pending` y la persona no podía volver a impugnar el veredicto. Ahora
+  puede; si una impugnación anterior ya se juzgó, o hay una revisión abierta, sigue mandando. `ChallengeLog.LatestRevision` salta las rechazadas, de modo que aceptar la revisión juzgada
+  sigue siendo posible aunque después se rechazara abrir otra.
+- **Impugnación de un veredicto que no es el de cierre** (`RunFinished.VerdictId`): se lee como si ese veredicto fuera una aprobación, como en la entrega. Aceptar una revisión solo
+  tiene sentido para el veredicto con el que terminó la ejecución, el que decide lo que se entrega; antes Debate decía `AwaitingAcceptance` y pedía una aceptación que la entrega
+  nunca exigía. Ahora esa revisión sale `Confirmed` o `Revoked` y `AcceptRevisionAsync` la rechaza por no esperar aceptación.
+- **Los veredictos de la revisión deben estar en el almacén, válidos**, también para Debate (antes solo lo exigía el tablero): `ChallengeLog.StatusOf` recibe el almacén.
+- **Tarjetas de tarea y evaluación por requisito.** La tarea sigue a sus requisitos: con un veredicto aprobado que da algún requisito que la tarea cubre por no satisfecho, la tarea no
+  está en «Hecho» (Devuelto, o En revisión si es no verificable o el veredicto no evalúa por requisito), igual que su requisito. El destino del requisito no cambia. Es **provisional**:
+  «aprobado pero no cumplido → en revisión» es una regla del tablero que el dueño tiene pendiente de decidir.
+
+## Adenda de la cadena de impugnaciones · 2026-11-12
+
+Cierra las dos divergencias que `RevisionAgreementTests` dejaba fijadas con comentario (P64). El estado en vigor de un veredicto (`VerdictReach.Standing`, que usan el tablero, la
+cadena y la participación) sigue ahora **la cadena entera** de impugnaciones (`ChallengeRules.Follow`, en `Application`, junto a `Read`), como el evaluador de la entrega: el veredicto de
+una revisión puede estar impugnado y su revisión también. Cada revisión juzgada es una rama; si alguna está abierta, abortada, decidida por una persona o espera aceptación, la tarjeta
+está «En revisión»; si alguna termina en un veredicto que no aprueba, «Devuelto»; solo termina en «Hecho» si todas acaban en una aprobación que cuenta (F9-2: ninguna tarjeta en «Hecho»
+sin un veredicto aprobado en vigor). Protecciones: 16 niveles como la entrega, cada veredicto una vez (los ciclos o una revisión que nombra uno ya recorrido fallan cerrado, en
+revisión). La cadena marca como «revisado» al veredicto de revisión que la siguiente desplaza, y la participación no atribuye la aprobación de uno cuya cadena está en revisión.
+
+- **Un intento que el juez corrigió** (no el de cierre) y cuya revisión sigue abierta o retiró la aprobación arrastra la tarjeta del veredicto que lo corrige, como bloquea la entrega
+  (antes la tarjeta seguía en «Hecho»).
+- **El veredicto de una revisión no se lee como una aprobación** por no ser el de cierre (`AsApproval`): antes, una revisión que daba la vuelta hacia una aprobación sobre una que había
+  retirado la anterior salía `Confirmed` en Debate y la persona no podía aceptarla.
+- **Impugnación abortada:** `ChallengeStatus.Aborted`. No cuenta y se puede volver a impugnar (antes `Pending` lo impedía aunque la entrega dice «vuelve a impugnarlo»); la entrega y la
+  tarjeta siguen bloqueadas mientras sea la última palabra.
+- La entrega (`DeliveryService`) no se ha tocado. Queda abierto que una revisión cerrada sin decisión (un jurado que discrepa) siga en `Pending` en Debate mientras la entrega pide
+  volver a impugnar.

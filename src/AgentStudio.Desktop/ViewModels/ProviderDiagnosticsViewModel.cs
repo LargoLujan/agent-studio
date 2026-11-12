@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using AgentStudio.Application.Diagnostics;
 using AgentStudio.Desktop.Localization;
+using AgentStudio.Desktop.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -11,8 +12,11 @@ public partial class ProviderDiagnosticsViewModel : ObservableObject
     private readonly ProviderDiagnostics _diagnostics;
     private readonly TimeProvider _timeProvider;
 
-    public ProviderDiagnosticsViewModel(ProviderDiagnostics diagnostics, TimeProvider timeProvider)
+    private readonly OpenProjectRoots? _roots;
+
+    public ProviderDiagnosticsViewModel(ProviderDiagnostics diagnostics, TimeProvider timeProvider, OpenProjectRoots? roots = null)
     {
+        _roots = roots;
         ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(timeProvider);
         _diagnostics = diagnostics;
@@ -46,7 +50,8 @@ public partial class ProviderDiagnosticsViewModel : ObservableObject
             Providers.Clear();
             foreach (var result in results)
             {
-                Providers.Add(ProviderStatusItem.From(result));
+                var item = ProviderStatusItem.From(result);
+                Providers.Add(_roots?.BroadRoots is { Count: > 0 } broad ? item.WithProjectTooBroad(broad[0]) : item);
             }
 
             IsEmpty = Providers.Count == 0;

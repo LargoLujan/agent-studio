@@ -1,8 +1,10 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
 using AgentStudio.Application.Execution;
 using AgentStudio.Infrastructure.Processes;
+using AgentStudio.Tests.Desktop;
 
 namespace AgentStudio.Tests.Infrastructure.Processes;
 
@@ -95,6 +97,66 @@ public sealed class LowIntegrityProcessTests
         Assert.Equal(0, await isolated.Exited);
         Assert.Contains(LowLabel, isolatedGroups, StringComparison.Ordinal);
         Assert.DoesNotContain(LowLabel, plainGroups, StringComparison.Ordinal);
+    }
+
+    private sealed class FixedRoots(params string[] roots) : IUntrustedRoots
+    {
+        public IReadOnlyList<string> Roots { get; } = roots;
+    }
+
+    // A copy of a harmless system program under another name: what a repository would plant to be run as "the tool".
+    private static string PlantWhoami(string folder, string name = "tool-del-proyecto.exe")
+    {
+        Directory.CreateDirectory(folder);
+        var planted = Path.Combine(folder, name);
+        File.Copy(Path.Combine(Environment.SystemDirectory, "whoami.exe"), planted);
+        return planted;
+    }
+
+    [Fact]
+    public async Task An_isolated_name_found_only_in_an_untrusted_folder_of_the_PATH_is_not_started()
+    {
+        using var temp = new TempDirectory();
+        var project = temp.CreateDirectory("proyecto");
+        var bin = Path.Combine(project, "bin");
+        PlantWhoami(bin);
+        var runner = new StreamingProcessRunner(roots: new FixedRoots(project), pathVariable: () => bin);
+
+        var failure = await Assert.ThrowsAsync<Win32Exception>(() =>
+            runner.StartAsync(Isolated("tool-del-proyecto", "/user"), Token));
+
+        Assert.Equal(2, failure.NativeErrorCode);
+        Assert.Contains("project folder", failure.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task An_isolated_name_resolves_outside_the_project_even_when_the_working_folder_is_the_project_copy()
+    {
+        using var temp = new TempDirectory();
+        var project = temp.CreateDirectory("proyecto");
+        var trusted = Path.Combine(temp.Path, "sistema");
+        PlantWhoami(trusted);
+        PlantWhoami(Path.Combine(project, "bin"));
+        var path = Path.Combine(project, "bin") + Path.PathSeparator + trusted;
+        var runner = new StreamingProcessRunner(roots: new FixedRoots(project), pathVariable: () => path);
+
+        // The step of a verification profile: the tool is outside, the folder of work is the copy of the repository.
+        await using var session = await runner.StartAsync(new ProcessSpec("tool-del-proyecto", ["/user"], project, Isolation: ProcessIsolation.LowIntegrity), Token);
+        await ReadAllAsync(session);
+
+        Assert.Equal(0, await session.Exited);
+    }
+
+    [Fact]
+    public async Task An_isolated_name_of_the_system_folder_is_still_found_with_roots()
+    {
+        using var temp = new TempDirectory();
+        var runner = new StreamingProcessRunner(roots: new FixedRoots(temp.Path), pathVariable: () => string.Empty);
+
+        await using var session = await runner.StartAsync(Isolated("whoami", "/user"), Token);
+        await ReadAllAsync(session);
+
+        Assert.Equal(0, await session.Exited);
     }
 
     [Fact]

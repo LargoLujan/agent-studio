@@ -1,4 +1,5 @@
 using System.Xml;
+using AgentStudio.Application.Verification;
 using AgentStudio.Domain.Evidence;
 
 namespace AgentStudio.Orchestration.Verification.Reports;
@@ -22,13 +23,16 @@ public static class TrxReportParser
     /// <param name="report">The TRX document. The stream is not closed.</param>
     /// <param name="exitCode">Exit code of the process that produced the report.</param>
     /// <exception cref="TestReportException">The document is not well-formed XML or not a TRX report.</exception>
-    public static TestRunSummary Parse(Stream report, int exitCode)
+    public static TestRunSummary Parse(Stream report, int exitCode) => Parse(report, exitCode, null);
+
+    /// <summary>As <see cref="Parse(Stream, int)"/>, and the failed tests (their names and the first message of each, bounded) are left in <paramref name="failures"/>.</summary>
+    internal static TestRunSummary Parse(Stream report, int exitCode, FailureCollector? failures)
     {
         ArgumentNullException.ThrowIfNull(report);
         try
         {
             using var reader = TestReportXml.CreateReader(report);
-            return Read(reader, exitCode);
+            return Read(reader, exitCode, failures);
         }
         catch (XmlException ex)
         {
@@ -43,7 +47,16 @@ public static class TrxReportParser
         return Parse(stream, exitCode);
     }
 
-    private static TestRunSummary Read(XmlReader reader, int exitCode)
+    /// <summary>Reads a TRX the way <see cref="Parse(Stream, int)"/> does and returns the tests that failed too, at most <see cref="FailureCollector.MaxFailures"/>.</summary>
+    /// <exception cref="TestReportException">The document is not well-formed XML or not a TRX report.</exception>
+    public static (TestRunSummary Summary, IReadOnlyList<FailedTest> Failed) ParseWithFailures(Stream report, int exitCode)
+    {
+        var failures = new FailureCollector();
+        var summary = Parse(report, exitCode, failures);
+        return (summary, failures.Failures);
+    }
+
+    private static TestRunSummary Read(XmlReader reader, int exitCode, FailureCollector? failures)
     {
         if (!MoveToRoot(reader) || reader.LocalName != "TestRun" || reader.NamespaceURI != Namespace)
         {
@@ -58,7 +71,8 @@ public static class TrxReportParser
         {
             if (reader.NodeType == XmlNodeType.Element && reader.LocalName == "UnitTestResult" && reader.NamespaceURI == Namespace)
             {
-                switch (Classify(reader.GetAttribute("outcome")))
+                var outcome = Classify(reader.GetAttribute("outcome"));
+                switch (outcome)
                 {
                     case Outcome.Passed:
                         passed++;
@@ -71,6 +85,12 @@ public static class TrxReportParser
                         break;
                 }
 
+                if (outcome == Outcome.Failed && failures is not null)
+                {
+                    ReadFailure(reader, failures);
+                    continue;
+                }
+
                 // Nested results (InnerResults of a data-driven test) belong to this one.
                 reader.Skip();
             }
@@ -81,6 +101,38 @@ public static class TrxReportParser
         }
 
         return new TestRunSummary(passed, failed, skipped, exitCode);
+    }
+
+    // The reader is on a failed <UnitTestResult>: its name is an attribute; its message is the first <Message> below it (ErrorInfo).
+    // It is left past the element, like Skip does.
+    private static void ReadFailure(XmlReader reader, FailureCollector failures)
+    {
+        var name = reader.GetAttribute("testName");
+        string? message = null;
+        if (reader.IsEmptyElement)
+        {
+            reader.Read();
+        }
+        else
+        {
+            var depth = reader.Depth;
+            reader.Read();
+            while (!reader.EOF && !(reader.NodeType == XmlNodeType.EndElement && reader.Depth == depth))
+            {
+                if (message is null && reader.NodeType == XmlNodeType.Element && reader.LocalName == "Message" && reader.NamespaceURI == Namespace)
+                {
+                    message = FailureCollector.ReadBoundedText(reader);
+                }
+                else
+                {
+                    reader.Read();
+                }
+            }
+
+            reader.Read();
+        }
+
+        failures.Add(name, message);
     }
 
     private static bool MoveToRoot(XmlReader reader)

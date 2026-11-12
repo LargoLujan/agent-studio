@@ -79,3 +79,16 @@
   - Sin verificar: el coordinador (WP1), el juicio (WP2) y la entrega (WP5) reales con este servicio, de principio a fin. Las
     pruebas usan un doble del coordinador que registra lo que registra el real al abrir, y leen los estados con las mismas
     reglas que la entrega.
+
+## Adenda · 2026-11-12 · una sola lectura del estado de una impugnación
+
+El estado de una impugnación (`ChallengeStatus`) lo lee una única función de `Application` (`ChallengeRules`), que usan `ChallengeLog.StatusOf` y el tablero (ADR-0039, adenda del mismo día).
+Dos cambios para quien impugna: una impugnación cuya revisión rechazaste abrir no cuenta y puedes volver a impugnar el veredicto; y solo la revisión del veredicto con el que terminó la
+ejecución espera tu aceptación al volver hacia una aprobación (la de un intento que el juez corrigió se lee como una aprobación, como hace la entrega).
+
+## Adenda · 2026-11-12 · cadena de impugnaciones y revisión abortada
+
+Dos cambios para quien impugna (ADR-0039, adenda del mismo día). El veredicto que sale de una revisión también se puede impugnar, y el tablero sigue la cadena entera como la entrega: una
+segunda revisión que retira la aprobación devuelve la tarjeta, y una que da la vuelta hacia una aprobación sobre una retirada espera tu aceptación (ahora sí puedes darla, antes Debate
+decía que no había nada que aceptar). Y si el debate de una revisión se **aborta**, la impugnación queda `Aborted`: no cuenta y puedes volver a impugnar el veredicto; hasta entonces la
+entrega sigue bloqueada.

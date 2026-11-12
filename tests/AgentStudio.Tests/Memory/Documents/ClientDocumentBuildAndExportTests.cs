@@ -61,11 +61,12 @@ public sealed class ClientDocumentBuildAndExportTests
             Ct);
         using (var content = new MemoryStream("ok"u8.ToArray()))
         {
-            await world.Instance.Evidence.CaptureAsync(
+            var record = await world.Instance.Evidence.CaptureAsync(
                 id,
                 new EvidenceDraft(EvidenceKind.TestRun, EvidenceOrigin.CapturedBySystem, $"dotnet test en {Folder} con token={Secret}", "agent-studio", new TestRunSummary(12, 0, 1, 0), [Rid("R1")]),
                 content,
                 Ct);
+            await AnchorAsync(world, record);
         }
 
         await world.Memory.RecordAsync(
@@ -80,6 +81,16 @@ public sealed class ClientDocumentBuildAndExportTests
             new IntegrationPerformedPayload(null, "main", ["t1"], GoldenModel.Commit, [], IsDelivery: true) { RunId = "run-1" },
             cancellationToken: Ct);
     }
+
+    /// <summary>What the engine does with the evidence a run captures: the log announces it (EvidenceRegistered), so the document may count it.</summary>
+    private static Task AnchorAsync(MemoryWorld world, EvidenceRecord record) =>
+        world.Instance.Recorder.RecordAsync(
+            world.Instance.ProjectId,
+            new Actor(ActorKind.System, "test"),
+            DecisionKind.EvidenceRegistered,
+            $"Evidencia {record.Id}",
+            EvidenceRegisteredPayload.Anchoring(record, "run-1", null, null),
+            cancellationToken: Ct);
 
     private static ClientDocumentExportRequest Approved(MemoryWorld world, ClientDocumentBuild build, IReadOnlyList<ClientDocumentFormat> formats, string destination, string language = "es-ES") =>
         new(world.Project, build, formats, language, destination, "user", ClientDocumentApproval.Of(build, "user"));
@@ -372,11 +383,12 @@ public sealed class ClientDocumentBuildAndExportTests
         async Task Capture(string title, string? commit, params string[] covers)
         {
             using var content = new MemoryStream("ok"u8.ToArray());
-            await world.Instance.Evidence.CaptureAsync(
+            var record = await world.Instance.Evidence.CaptureAsync(
                 id,
                 new EvidenceDraft(EvidenceKind.TestRun, EvidenceOrigin.CapturedBySystem, title, "agent-studio", new TestRunSummary(3, 0, 0, 0), [.. covers.Select(Rid)], SubjectCommit: commit),
                 content,
                 Ct);
+            await AnchorAsync(world, record);
         }
 
         await Capture("sobre el commit entregado", GoldenModel.Commit, "R1");
@@ -398,6 +410,34 @@ public sealed class ClientDocumentBuildAndExportTests
         var note = Assert.Single(document.Texts(), t => t.Text.System?.Code == ClientDocumentTexts.ScopeDeliveryNote);
         Assert.Equal(GoldenModel.Commit[..12], note.Text.System!.Arguments[0]);
         Assert.Contains(document.Texts(), t => t.Text.System?.Code == ClientDocumentTexts.NotIncludedDeployed);
+    }
+
+    [Fact]
+    public async Task Evidence_the_log_does_not_announce_such_as_the_tests_of_HEAD_changes_neither_the_figures_nor_the_annexes()
+    {
+        using var world = await MemoryWorld.CreateAsync();
+        await SeedAsync(world);
+        var before = (await Builder(world).BuildAsync(new ClientDocumentBuildRequest(world.Project, null, IncludeConsumption: false, []), Ct)).Document;
+
+        // The tests of HEAD: captured by the system and stored, bound to a commit, but announced in no run.
+        using (var content = new MemoryStream("ok"u8.ToArray()))
+        {
+            await world.Instance.Evidence.CaptureAsync(
+                world.Instance.ProjectId,
+                new EvidenceDraft(EvidenceKind.TestRun, EvidenceOrigin.CapturedBySystem, "Pruebas (test)", "agent-studio", new TestRunSummary(99, 7, 0, 1), SubjectCommit: GoldenModel.Commit),
+                content,
+                Ct);
+        }
+
+        var after = (await Builder(world).BuildAsync(new ClientDocumentBuildRequest(world.Project, null, IncludeConsumption: false, []), Ct)).Document;
+
+        static string Figures(ClientDocument d) => string.Join("|", d.Texts().Where(t => t.Text.System?.Code == ClientDocumentTexts.SummaryFigures).SelectMany(t => t.Text.System!.Arguments.Select(a => a?.ToString())));
+        static List<string> Annex(ClientDocument d) => [.. d.Sections.SelectMany(s => s.Blocks).OfType<ClientEvidenceList>().SelectMany(l => l.References.Select(r => r.Evidence.Value + r.Sha256))];
+
+        Assert.NotEmpty(Figures(before));
+        Assert.Equal(Figures(before), Figures(after));
+        Assert.NotEmpty(Annex(before));
+        Assert.Equal(Annex(before), Annex(after));
     }
 
     private static List<string> IntegratedCodes(ClientDocument document) =>

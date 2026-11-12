@@ -19,24 +19,40 @@ internal static class ProcessLaunch
     /// own (ADR-0017). An isolation that cannot be applied throws <see cref="ProcessIsolationException"/>: there is no
     /// path from an isolated spec to a process without isolation.
     /// </summary>
-    internal static IStartedProcess Start(ProcessSpec spec)
+    internal static IStartedProcess Start(ProcessSpec spec, ExecutableSearch search)
     {
         ArgumentNullException.ThrowIfNull(spec);
+        ArgumentNullException.ThrowIfNull(search);
         ValidateArguments(spec);
 
         return spec.Isolation switch
         {
-            ProcessIsolation.None => StartWithoutIsolation(spec),
+            ProcessIsolation.None => StartWithoutIsolation(ResolveBareName(spec, search), search),
             ProcessIsolation.LowIntegrity => OperatingSystem.IsWindows()
-                ? LowIntegrityProcess.Start(spec)
+                ? LowIntegrityProcess.Start(spec, search)
                 : throw new ProcessIsolationException("Low integrity isolation only exists on Windows; the process was not started."),
             _ => throw new ProcessIsolationException($"Unknown isolation '{spec.Isolation}'; the process was not started."),
         };
     }
 
-    private static ManagedProcess StartWithoutIsolation(ProcessSpec spec)
+    /// <summary>
+    /// A name given without a path (<c>dotnet</c>, <c>node</c>) is resolved here, with the rule of <see cref="ExecutableSearch"/>, and
+    /// not by <c>CreateProcess</c>: Windows would also look in the folder of the app and in its current folder, and in any entry of
+    /// the PATH, including one that is a folder of the open project. A name with a path is the caller's own choice and is left as is.
+    /// </summary>
+    private static ProcessSpec ResolveBareName(ProcessSpec spec, ExecutableSearch search)
     {
-        var process = new Process { StartInfo = CreateStartInfo(spec) };
+        if (!OperatingSystem.IsWindows() || !ExecutableSearch.IsBareName(spec.FileName))
+        {
+            return spec;
+        }
+
+        return spec with { FileName = search.ResolveBareName(spec.FileName) };
+    }
+
+    private static ManagedProcess StartWithoutIsolation(ProcessSpec spec, ExecutableSearch search)
+    {
+        var process = new Process { StartInfo = CreateStartInfo(spec, search) };
         try
         {
             process.Start();
@@ -91,7 +107,7 @@ internal static class ProcessLaunch
 
     private static bool ContainsControlCharacter(string text) => text.AsSpan().IndexOfAnyInRange('\0', '\u001f') >= 0;
 
-    internal static ProcessStartInfo CreateStartInfo(ProcessSpec spec)
+    internal static ProcessStartInfo CreateStartInfo(ProcessSpec spec, ExecutableSearch search)
     {
         var startInfo = new ProcessStartInfo(spec.FileName)
         {
@@ -119,18 +135,15 @@ internal static class ProcessLaunch
             startInfo.WorkingDirectory = spec.WorkingDirectory;
         }
 
-        if (spec.Environment is not null)
+        foreach (var (name, value) in search.EnvironmentFor(spec))
         {
-            foreach (var (name, value) in spec.Environment)
+            if (value is null)
             {
-                if (value is null)
-                {
-                    startInfo.Environment.Remove(name);
-                }
-                else
-                {
-                    startInfo.Environment[name] = value;
-                }
+                startInfo.Environment.Remove(name);
+            }
+            else
+            {
+                startInfo.Environment[name] = value;
             }
         }
 

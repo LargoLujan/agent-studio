@@ -51,7 +51,7 @@ public sealed class GeminiCliAgentProvider(IExecutableLocator locator, IStreamin
         var launch = _resolver.Resolve();
         if (launch is null)
         {
-            return GeminiRun.Failed("Gemini CLI no está instalado o no se encuentra en el PATH.");
+            return GeminiRun.Failed("Gemini CLI no está instalado o no se encuentra en el PATH." + InsideProjectNote.Spanish(locator.FindInUntrustedRoot("gemini")));
         }
 
         var spec = new ProcessSpec(

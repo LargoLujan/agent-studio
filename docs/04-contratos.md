@@ -29,7 +29,8 @@
 | Contrato | Fichero | Estado | Lo implementa |
 |---|---|---|---|
 | `IProcessRunner`, `ProcessSpec`, `ProcessResult` | `src/AgentStudio.Application/Execution/ProcessContracts.cs` | Implementado | `Infrastructure/Processes/ProcessRunner` |
-| `IExecutableLocator` | ídem | Implementado | `Infrastructure/Processes/ExecutableLocator` |
+| `IExecutableLocator` | ídem | Implementado | `Infrastructure/Processes/ExecutableLocator` (no devuelve nada que caiga dentro de un `IUntrustedRoots`; ADR-0018, adenda de 2026-11-12) |
+| `IUntrustedRoots` | ídem | Implementado | `Desktop/Services/OpenProjectRoots` (WP-0 de la Fase 6) |
 | `IProviderProbe`, `ProviderProbeResult` | `src/AgentStudio.Application/Providers/ProviderProbe.cs` | Implementado | `Providers/Cli/ClaudeCodeProbe`, `CodexCliProbe`, `GeminiCliProbe` |
 | `ProviderDiagnostics` (caso de uso) | `src/AgentStudio.Application/Diagnostics/ProviderDiagnostics.cs` | Implementado | — (es la implementación) |
 | `IAgentProvider`, `IAgentRun`, `AgentEvent`, `ProviderCapabilities`, `PermissionProfile` | `src/AgentStudio.Application/Providers/AgentProvider.cs` | Implementado (adaptadores de la Fase 2) | `Providers/Cli/*` |
@@ -172,6 +173,33 @@ Regla de seguridad del contrato: el texto libre (prompts, contenidos) viaja por 
 La implementación rechaza metacaracteres en argumentos de `.cmd`/`.bat` (los CLIs de npm en Windows son shims `.cmd`).
 El streaming de eventos línea a línea se añade en la Fase 2 junto con los adaptadores.
 
+**Dónde se resuelve un programa (WP-0 de la Fase 6, [ADR-0018](adr/0018-modelo-de-amenaza-fase-3.md), adenda de 2026-11-12).**
+
+```csharp
+public interface IExecutableLocator
+{
+    string? Find(string command);                       // nunca devuelve nada que caiga dentro de una raíz no fiable
+    string? FindInUntrustedRoot(string command) => null; // lo que Find descartó por eso: para decirlo en el diagnóstico
+}
+
+public interface IUntrustedRoots { IReadOnlyList<string> Roots { get; } }   // los proyectos abiertos en la sesión y la raíz de las copias de trabajo
+```
+
+- `Find` descarta las entradas relativas del PATH y toda entrada o resultado que, con los enlaces y uniones resueltos, caiga
+  dentro de una raíz (rutas finales de Windows, sin distinguir mayúsculas, con frontera de carpeta). Sin raíces, solo se
+  descartan las relativas.
+- `ProcessRunner` y `StreamingProcessRunner` resuelven con la misma regla todo `ProcessSpec.FileName` **sin ruta**
+  (`dotnet`, `node`): carpeta del sistema, de Windows y PATH. Un nombre con ruta no se filtra. Si solo está dentro de una
+  raíz lanzan `Win32Exception` (2) y no arrancan nada.
+- Todo hijo de `ProcessRunner`/`StreamingProcessRunner` recibe `PATH` limpio (sin entradas relativas ni raíces no fiables) y, sin
+  aislamiento, `NoDefaultCurrentDirectoryInExePath=1`; lo que fije el `ProcessSpec.Environment` gana. Un paso aislado conserva la
+  búsqueda en su carpeta actual (la copia, a integridad baja). El terminal integrado no pasa por los runners.
+- `IExecutableLocator.IsUntrusted(path)` vuelve a preguntar por una ruta guardada (git la revalida en cada uso). Una raíz demasiado amplia
+  (carpeta personal, programas, Windows, unidad) no cuenta como raíz (`BroadFolders`); la app avisa al abrirla.
+- Las sondas de los proveedores (`CliProbe`, `CliWriteConfinementProbe`, la versión de `CodexAppServerQuotaReader`) fijan
+  `WorkingDirectory` a la carpeta que da la composición (`NeutralWorkingFolderOptions`: `doctor\cwd` bajo los datos locales; sin ella, la del sistema), nunca el proyecto.
+  `ProviderProbeResult.FoundInsideProject` lleva la ruta del programa que solo estaba dentro del proyecto, y el panel lo pinta
+  (`Providers_InsideProject`).
 ## 5. Juez y auditoría
 
 ```csharp
@@ -1899,12 +1927,15 @@ Todo vive en `Desktop`; no hay puertos nuevos en `Application`, y los textos sal
   trabajo; «desconocido» con el motivo si no hay juez), y crea el `QuestionPromptService(monitor, WpfQuestionWindowHost, IInterfaceLock)`
   de ese monitor, uno por monitor. Lo llaman (`Equip`) los tres sitios donde nace un `RunMonitorViewModel`: el constructor del
   documento del orquestador, el monitor de una ejecución entregada a la bandeja y el del shell para una ejecución que nadie sigue.
-- [ ] **`IHeadTestsService` no está implementado**: el panel «Pruebas» no muestra «Ejecutar las pruebas de HEAD» (a propósito, no hay
-  un botón que no haga nada). Lo implementaría la composición con `IVerificationRunner`, el perfil y una copia aislada de HEAD,
-  sin cuota.
+- [x] **`IHeadTestsService`** lo implementa `HeadTestsService` (`Panels/HeadTestsService.cs`, P50), compuesto por `HeadTestsServices` con
+  `IVerificationRunner`, `IVerificationProfileSource`, `IWorktreeManager`, `IProjectWorkspace` e `IProjectActivity`; si falta una
+  pieza, el botón no se muestra. Pasa los pasos aislados del perfil sobre HEAD en la copia aislada, sin cuota y sin pedir
+  aprobación, con el proyecto tomado como una auditoría, un tope de tiempo y la cancelación; el resultado trae los nombres de las
+  pruebas que fallan (`VerificationResult.FailedTests`, leídos del TRX o del JUnit) y los pasos no ejecutados. Ver la adenda del
+  ADR-0017.
 - [x] **Quien adjunta la ejecución** (el documento del orquestador) da `Roster` (la plantilla) y `PlanDependencies` (de qué tareas
   depende cada una) **antes** de `Attach`/`Inspect`, también al monitor de una ejecución entregada a otro. Una ejecución que
-  reanuda sola y cuyo plan aún no está leído al adjuntar no tiene pulsos hasta la siguiente. El monitor que el shell crea para una ejecución que nadie sigue (`FollowInBackground`) tampoco los tiene: el shell no lee la plantilla ni el plan de esa ejecución, así que no salen agentes libres ni pulsos (pendiente, no es sencillo desde el shell).
+  reanuda sola y cuyo plan aún no está leído al adjuntar no tiene pulsos hasta la siguiente. El monitor que el shell crea para una ejecución que nadie sigue (`FollowInBackground`) los recibe de lo que la ejecución guardó (P52): `MonitorServices.GiveLiveContextAsync` lee con `IRunLiveContextSource` (`RegistryRunLiveContextSource`: `IRunRegistry` e `IPlanStore`) su plantilla y las dependencias de su plan, de forma asíncrona, y salen agentes libres y pulsos. Ver la adenda del ADR-0036.
 - [x] **Barra lateral y pestañas:** «Herramientas» es una pestaña (`ToolsDocumentViewModel` con `ToolsView`, cargada con la plantilla y
   el perfil del proyecto abierto); su `GiveToAgentRequested` lleva al orquestador, a la capa Equipo, con un agente elegido en el
   inspector. «Pruebas» de la barra muestra u oculta el panel de abajo, y «Problemas», «Salida» y «Pruebas» son
@@ -2244,23 +2275,33 @@ en otro grupo de la dimensión (un hito), de modo que los grupos pueden sumar m�
     se enseña con el estado del impugnado (`Challenged` mientras este lo esté, `Superseded` si lo está el impugnado, `InForce` solo cuando la revisión quedó asentada) y en la
     participación no se atribuye «aprobó» por un veredicto de revisión que nadie aceptó. Un `Supersedes` sin impugnación detrás (un juez que corrige su propio veredicto) sí
     sustituye al anterior. La entrega (`DeliveryService`) ya lo cumplía por su cuenta.
-  - **Regla final del veredicto en vigor** (`VerdictReach` y `ChallengeReader` la aplican al tablero, la cadena y la participación; `DeliveryService` conserva su propio evaluador,
+  - **Regla final del veredicto en vigor** (`VerdictReach` y `ChallengeReader` la aplican al tablero, la cadena y la participación, y `ChallengeLog.StatusOf` de Debate lee el estado de una impugnación con la misma función; `DeliveryService` conserva su propio evaluador,
     más estricto, y una tabla de escenarios de `RevisionAgreementTests` comprueba que ambas lecturas del mismo registro no se contradicen):
     - **Orden.** Un veredicto es «de la revisión» solo si se emitió después de abrirse la impugnación del que sustituye, por el orden del registro (la secuencia de las
       entradas, como hace `DeliveryService`): cada veredicto de la cadena, hasta el impugnado, tiene que ser posterior a la impugnación. Una corrección del juez emitida antes de que
       se impugnara el original lo sustituye como siempre (impugnar un veredicto ya sustituido no lo resucita); emitida después, es de la revisión. Si el registro no anuncia el
       veredicto no hay orden que oponerle. La búsqueda de la cadena de `Supersedes` recuerda lo ya recorrido: un ciclo o una autorreferencia (un almacén manipulado) termina.
-    - **Estado de una impugnación** (`ChallengeReader.Read`, que repite `ChallengeLog.StatusOf` salvo en estos dos puntos, donde sigue a la entrega). Una impugnación cuya revisión la persona rechazó abrir
+    - **Estado de una impugnación** (una sola función, `ChallengeRules.Read` en `Application/Judging`: `ChallengeReader.Read` (tablero, cadena, participación) y `ChallengeLog.StatusOf` (Debate, que decide si se puede impugnar otra vez y si una revisión espera aceptación) la llaman; sigue a la entrega). Una impugnación cuya revisión la persona rechazó abrir
       (su no a `debate.open` en el debate, sin que este llegara a abrirse) no cuenta: es como no haberla hecho, salvo que una impugnación anterior ya juzgada, o una revisión abierta,
       siga mandando; las anteriores sin juicio ceden ante ella. Solo el veredicto con el que terminó la ejecución (`RunFinished.VerdictId`) exige que la persona acepte una revisión
       que vuelve hacia una aprobación; la impugnación de otro veredicto de la ejecución (un intento que su juez corrigió) se lee como si ese veredicto fuera una aprobación, que es como
       la lee la entrega: una revisión que aprueba no pide aceptación y una que no aprueba la retira.
     - **Tarjetas de tarea.** Una tarea completada sigue al último veredicto válido que la juzgó (`VerdictReach.Judges` con los requisitos que cubre; a una tarea que no cubre
       ninguno, como la de integración o la de revisión, la juzga todo veredicto de su alcance), con su estado (`VerdictReach.Standing`), igual que el requisito: va a «En revisión»
-      si ese veredicto está impugnado o si ninguno la juzgó. Tarea y requisito no se contradicen.
-    - **Límite conocido.** La entrega es más estricta que el tablero en un caso: una revisión que retiró la aprobación de un intento que el juez corrigió, o que sigue abierta,
-      bloquea la entrega, mientras que la tarjeta sigue al último veredicto, el de la ejecución, que nadie impugnó. Lo que nunca ocurre es lo contrario: nada se entrega que el tablero
-      tenga en revisión, ni queda en revisión algo que la entrega dejaría pasar (`RevisionAgreementTests` recorre los escenarios con las dos lecturas sobre el mismo registro).
+      si ese veredicto está impugnado o si ninguno la juzgó. Tarea y requisito no se contradicen: con un veredicto aprobado, la tarea sigue a lo que ese veredicto dice de los requisitos que cubre y evaluó (`BoardRules.ColumnOf(TaskBoardFacts)`, `TaskBoardFacts.Assessed`): alguno no satisfecho la deja en «Devuelto», alguno no verificable (o un veredicto sin evaluaciones por requisito) en «En revisión», y solo con todos satisfechos en «Hecho». **Provisional:** el destino del requisito en «aprobado pero no cumplido» es una regla del tablero que el dueño tiene pendiente de decidir; la tarea solo lo sigue, y cambiará con él.
+    - **Cadena de impugnaciones.** El veredicto de una revisión puede impugnarse a su vez, y su revisión también, y así sucesivamente. `ChallengeRules.Follow` recorre la cadena entera
+      como `DeliveryService.Revisions.Evaluate`: cada revisión que un juez o un jurado cerró es una rama; una revisión abierta, abortada, decidida por una persona o sin decisión deja
+      el veredicto en revisión; la que no aprueba termina la cadena con la decisión que fijó; una aprobación cuenta solo si la que revisa contaba o si una persona la aceptó. Termina
+      con la profundidad máxima de la entrega (16 niveles, más allá se queda en revisión), con cada veredicto visitado una sola vez (un ciclo, o una revisión que nombra un veredicto
+      ya recorrido, se queda en revisión) y su coste es el de los veredictos del almacén. `VerdictReach.Standing` la usa, de modo que el tablero, la cadena
+      (`TraceChainStep.Standing`: un veredicto de revisión desplazado por la siguiente es «revisado») y la participación salen coherentes. El veredicto de una revisión no se lee como
+      una aprobación por el hecho de no ser el de cierre: su decisión propia es la que la siguiente revisión confirma, retira o da la vuelta. Un intento que el juez corrigió y cuya
+      revisión sigue abierta, o retiró la aprobación, arrastra la tarjeta del veredicto que lo corrige, como bloquea la entrega. `RevisionAgreementTests` recorre 28 escenarios con las
+      tres lecturas (entrega, tablero y Debate) sobre el mismo registro, sin divergencias conocidas.
+    - **Impugnación abortada.** Si el debate de la revisión se abortó (nadie juzgó), la impugnación es `ChallengeStatus.Aborted`: no cuenta, y a diferencia de `Pending` (revisión sin
+      cerrar) deja volver a impugnar el veredicto, que es lo que dice la entrega («vuelve a impugnarlo»). Mientras sea la última palabra la entrega sigue bloqueada y la tarjeta en
+      «En revisión»; una nueva impugnación juzgada la sustituye. Una revisión cerrada sin decisión (un jurado que discrepa, un veredicto no válido) sigue en `Pending` y falla cerrado
+      (**abierto:** la entrega también pide volver a impugnar en ese caso y Debate no lo permite).
   - **La entrega en la cadena.** `IntegrationPerformed` con tarea (la tarea de integración, I1) cuenta solo si el motor la aceptó (la rama de la ejecución como destino, no la
     ref candidata oculta `refs/agentstudio/<ejecución>/_candidate/<tarea>` donde deja la que no aceptó aunque dejara commit), con commit y sin conflicto. Fusionó el código de las
     tareas completadas que producen código y de las que depende (`RunContext.ProducesCode`), pasando a través de las que no lo producen (condición, aprobación, revisión), y de
