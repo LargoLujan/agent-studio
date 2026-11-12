@@ -90,7 +90,7 @@ public sealed class RepositoryRemoteReaderTests : IDisposable
     }
 
     [Fact]
-    public async Task At_most_the_bounded_number_of_remotes_is_kept()
+    public async Task More_remotes_than_the_bound_are_refused_and_never_shown_cut()
     {
         var builder = new System.Text.StringBuilder();
         for (var i = 0; i < RepositoryRemoteReader.MaxRemotes + 20; i++)
@@ -102,8 +102,8 @@ public sealed class RepositoryRemoteReaderTests : IDisposable
 
         var listing = await NewReader().ListRemotesAsync(_repo.Root, Ct);
 
-        Assert.Null(listing.RefusalCode);
-        Assert.Equal(RepositoryRemoteReader.MaxRemotes, listing.Remotes.Count);
+        Assert.Empty(listing.Remotes);
+        Assert.Equal(RemoteListing.OutputTooBig, listing.RefusalCode);
     }
 
     [Fact]

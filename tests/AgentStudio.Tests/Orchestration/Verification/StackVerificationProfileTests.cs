@@ -154,14 +154,14 @@ public sealed class StackVerificationProfileTests : IDisposable
             {
                 var step = profile.Find(id)!;
                 Assert.Equal("cmd", step.Executable);
-                Assert.Contains("npm-cli.js was not found next to node.exe", step.Arguments[2], StringComparison.Ordinal);
-                Assert.EndsWith("exit /b 1", step.Arguments[2], StringComparison.Ordinal);
+                Assert.Contains("npm-cli.js was not found next to node.exe", step.Arguments[^1], StringComparison.Ordinal);
+                Assert.EndsWith("exit /b 1", step.Arguments[^1], StringComparison.Ordinal);
             }
 
             Assert.Equal(["install", "build", "test"], profile.StepsToRun(["test"]).Select(s => s.Id));
 
             var noNode = NodeVerificationProfile.ProposeFor(["package.json"], new FakeLocator(null, null))!;
-            Assert.Contains("node was not found on the PATH", noNode.Find("install")!.Arguments[2], StringComparison.Ordinal);
+            Assert.Contains("node was not found on the PATH", noNode.Find("install")!.Arguments[^1], StringComparison.Ordinal);
         }
         finally
         {
@@ -189,8 +189,8 @@ public sealed class StackVerificationProfileTests : IDisposable
 
         Assert.Empty(VerificationRules.Check(alias));
         Assert.Equal("cmd", alias.Find("build")!.Executable);
-        Assert.Contains("alias of the Microsoft Store", alias.Find("build")!.Arguments[2], StringComparison.Ordinal);
-        Assert.Contains("python was not found on the PATH", missing.Find("build")!.Arguments[2], StringComparison.Ordinal);
+        Assert.Contains("alias of the Microsoft Store", alias.Find("build")!.Arguments[^1], StringComparison.Ordinal);
+        Assert.Contains("python was not found on the PATH", missing.Find("build")!.Arguments[^1], StringComparison.Ordinal);
         Assert.Equal("python", real.Find("build")!.Executable);
         Assert.Equal(PythonVerificationProfile.Propose().ContentHash, real.ContentHash);
         Assert.Equal("python", alias.Find("test")!.Executable);
@@ -211,8 +211,8 @@ public sealed class StackVerificationProfileTests : IDisposable
         var step = StackStepSupport.Failing("build", "Compilar", EvidenceKind.BuildLog, reason);
 
         Assert.Equal("cmd", step.Executable);
-        Assert.Equal(["/d", "/c"], step.Arguments.Take(2));
-        var line = step.Arguments[2];
+        Assert.Equal(["/d", "/v:off", "/c"], step.Arguments.Take(3));
+        var line = step.Arguments[^1];
         Assert.EndsWith(" 1>&2 & exit /b 1", line, StringComparison.Ordinal);
         var echoed = line["echo ".Length..^" 1>&2 & exit /b 1".Length];
         Assert.Equal(StackStepSupport.SafeMessage(reason), echoed);
@@ -226,8 +226,8 @@ public sealed class StackVerificationProfileTests : IDisposable
     [Fact]
     public void A_blank_reason_or_one_with_a_line_break_still_gives_one_line_that_fails()
     {
-        Assert.Contains("no reason was given", StackStepSupport.Failing("x", "x", EvidenceKind.BuildLog, "  ").Arguments[2], StringComparison.Ordinal);
-        var multiline = StackStepSupport.Failing("x", "x", EvidenceKind.BuildLog, "a\r\n& calc").Arguments[2];
+        Assert.Contains("no reason was given", StackStepSupport.Failing("x", "x", EvidenceKind.BuildLog, "  ").Arguments[^1], StringComparison.Ordinal);
+        var multiline = StackStepSupport.Failing("x", "x", EvidenceKind.BuildLog, "a\r\n& calc").Arguments[^1];
         Assert.DoesNotContain('\n', multiline);
         Assert.DoesNotContain('\r', multiline);
         Assert.Equal("echo a  ^& calc 1>&2 & exit /b 1", multiline);
@@ -273,8 +273,8 @@ public sealed class StackVerificationProfileTests : IDisposable
 
         var test = old.Find("test")!;
         Assert.Equal("cmd", test.Executable);
-        Assert.Contains("Node 20.7.0 has no JUnit test reporter", test.Arguments[2], StringComparison.Ordinal);
-        Assert.Contains("20.8.0", test.Arguments[2], StringComparison.Ordinal);
+        Assert.Contains("Node 20.7.0 has no JUnit test reporter", test.Arguments[^1], StringComparison.Ordinal);
+        Assert.Contains("20.8.0", test.Arguments[^1], StringComparison.Ordinal);
         Assert.Equal(["build"], test.Requires);
         Assert.Equal(TestReportFormat.None, test.Report);
         Assert.Empty(VerificationRules.Check(old));

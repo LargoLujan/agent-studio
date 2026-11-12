@@ -17,13 +17,14 @@ public static class StackStepSupport
         && path.Replace('/', '\\').Contains(@"\Microsoft\WindowsApps\", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
-    /// A step that only fails, and says why in its output: <c>cmd /d /c "echo message 1&gt;&amp;2 &amp; exit /b 1"</c>. It takes the
+    /// A step that only fails, and says why in its output: <c>cmd /d /v:off /c "echo message 1&gt;&amp;2 &amp; exit /b 1"</c> (delayed
+    /// expansion off, so a <c>!name!</c> in the message is printed even where the registry turns it on). It takes the
     /// place of a step whose tool cannot be started, so the evidence names the reason. It does not go through the tool's own
     /// shim: <c>cmd</c> only prints. The message may come from a path or a tool, so it never reaches <c>cmd</c> as it is (see
     /// <see cref="SafeMessage"/>) and it never throws for a message.
     /// </summary>
     public static VerificationStep Failing(string id, string title, EvidenceKind kind, string message) =>
-        new(id, title, "cmd", ["/d", "/c", "echo " + SafeMessage(message) + " 1>&2 & exit /b 1"], kind, TestReportFormat.None, null, TimeSpan.FromMinutes(1));
+        new(id, title, "cmd", ["/d", "/v:off", "/c", "echo " + SafeMessage(message) + " 1>&2 & exit /b 1"], kind, TestReportFormat.None, null, TimeSpan.FromMinutes(1));
 
     /// <summary>
     /// <paramref name="message"/> as <c>cmd</c> can print it without reading any of it. Each of <c>&amp; | &lt; &gt; ^ %</c> is escaped
