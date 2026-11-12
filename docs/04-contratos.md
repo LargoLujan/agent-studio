@@ -2057,6 +2057,10 @@ public sealed record ClientDocumentExportedPayload(int Version, string? Mileston
 - **Códigos:** `Debate/Arena/DebateUserTexts.cs` (`All`) y `Debate/Audit/PendingProblems.cs` (`TextCodes`); claves `Text_…` en `DebateStrings` y `AuditStrings`. Lista completa
   en la adenda de [ADR-0054](adr/0054-idiomas-y-lenguaje-claro.md) del 2026-11-12.
 - **Fijo:** los motivos de `DebateRoundClosed` y `DebateClosed`, el texto de aprobación, `DebateModes` y `orq-1` a `orq-7`, y el informe del hito.
+- **Restos cerrados (2026-11-12):** `DebateProposal.ProblemTexts`, `DebateEstimate.NoteTexts`, `DebateSummary.ProblemTexts`, `DebateSnapshot.ProblemTexts` y
+  `DebateTranscript.ProblemTexts` (`IReadOnlyList<UserText>? = null` al final, uno por frase y en el mismo orden; `CodedList.Paint` las pinta). `DebateLog.ProblemTexts` y
+  `ProviderNames.Of` (nombre del proveedor para la persona). Las excepciones de `VerdictChallengeService` son `UserTextException` (`debate.challenge.*`).
+  `MilestoneCloseRefusedException` ya llegaba con código (`Rule`) y «Trabajo» la pinta con `Work_Refused_*`. Detalle en la adenda de ADR-0054.
 
 ### 22.8 Memoria: textos en códigos (WP-14A, parte e, 2026-11-12)
 
