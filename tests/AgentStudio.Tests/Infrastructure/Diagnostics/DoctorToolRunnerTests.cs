@@ -49,7 +49,7 @@ public sealed class DoctorToolRunnerTests : IDisposable
         Assert.Equal([typeof(DoctorTool), typeof(string), typeof(CancellationToken)], only.GetParameters().Select(p => p.ParameterType).ToArray());
         // The class has no other public way in either: one method, the same one.
         var implemented = typeof(DoctorToolRunner).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly).Select(m => m.Name).Order().ToArray();
-        Assert.Equal([nameof(DoctorToolRunner.DisposeAsync), nameof(DoctorToolRunner.RunAsync)], implemented);
+        Assert.Equal([nameof(DoctorToolRunner.Dispose), nameof(DoctorToolRunner.DisposeAsync), nameof(DoctorToolRunner.RunAsync)], implemented);
     }
 
     [Fact]

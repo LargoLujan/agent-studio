@@ -6,7 +6,7 @@ namespace AgentStudio.Infrastructure.Diagnostics;
 /// Runs jobs one at a time, in the order they arrive, with a single consumer of a channel and no lock (the door asks one tool after another:
 /// docs/20 D-02, «de una en una»). A job whose caller cancelled before its turn is not started.
 /// </summary>
-public sealed class SerialQueue : IAsyncDisposable
+public sealed class SerialQueue : IAsyncDisposable, IDisposable
 {
     private readonly Channel<Func<Task>> _jobs = Channel.CreateUnbounded<Func<Task>>(new UnboundedChannelOptions { SingleReader = true });
     private readonly Task _consumer;
@@ -57,6 +57,9 @@ public sealed class SerialQueue : IAsyncDisposable
             await job().ConfigureAwait(false);
         }
     }
+
+    /// <summary>Closes the queue without waiting: what is queued still runs, and the consumer ends after it. For a container that disposes synchronously.</summary>
+    public void Dispose() => _jobs.Writer.TryComplete();
 
     public async ValueTask DisposeAsync()
     {

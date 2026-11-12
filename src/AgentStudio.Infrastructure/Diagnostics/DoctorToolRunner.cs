@@ -15,7 +15,7 @@ namespace AgentStudio.Infrastructure.Diagnostics;
 /// <item>10 seconds and 64 000 characters per question, one question at a time, no standard input.</item>
 /// </list>
 /// </summary>
-public sealed class DoctorToolRunner : IDoctorToolRunner, IAsyncDisposable
+public sealed class DoctorToolRunner : IDoctorToolRunner, IAsyncDisposable, IDisposable
 {
     /// <summary>How long a tool has to answer (docs/20 D-02).</summary>
     public static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
@@ -114,6 +114,8 @@ public sealed class DoctorToolRunner : IDoctorToolRunner, IAsyncDisposable
     }
 
     public ValueTask DisposeAsync() => _queue.DisposeAsync();
+
+    public void Dispose() => _queue.Dispose();
 }
 
 /// <summary>The alias of the Microsoft Store (<c>%LOCALAPPDATA%\Microsoft\WindowsApps</c>) that stands in for a program that is not installed.</summary>

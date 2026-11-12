@@ -48,3 +48,30 @@
 - **Consecuencias y residuales aceptados:** una herramienta del sistema comprometida fuera del proyecto engaña a Auto Doctor (el residual del PATH de ADR-0018);
   la capa git arranca `git` dentro del repositorio; y `global.json` admite `sdk.paths` desde el SDK de .NET 10, que la verificación seguiría usando dentro de la copia
   (a integridad baja): Auto Doctor lo avisa (`doctor.env.dotnet.sdk-in-repo`) y cambiar la verificación queda fuera de esta fase.
+
+## Adenda de WP-A · la puerta, las fuentes, los arreglos y el panel (2026-11-12)
+
+WP-A implementa la parte de Auto Doctor que no es el entorno declarado (WP-E) ni el doctor de skills (WP-S). Lo que decide, y que no estaba escrito en la decisión:
+
+- **La puerta** (`Infrastructure/Diagnostics/DoctorToolRunner`) pregunta una herramienta del catálogo cerrado (`DoctorToolCatalog.All`: `dotnet --list-sdks`, `dotnet --list-runtimes`, `node`, `npm`,
+  `python` y `py` con `--version`, `git --version`, `docker version --format json` y `wsl --status`) de una en una, con una cola de un solo consumidor (sin cerrojo), 10 s y 64 000 caracteres.
+  Resuelve el ejecutable con el localizador endurecido de WP-0 y lo rechaza otra vez si cae dentro de la raíz del proyecto que le pasan; arranca siempre en `%LOCALAPPDATA%\AgentStudio\doctor\cwd`, vacía.
+  **El entorno es una lista blanca** (`DoctorEnvironment.Allowed`): todo lo que el proceso tiene y no está en ella entra como `null`, que lo quita, sin distinguir mayúsculas; `PATH` no se nombra (lo pone el
+  ejecutor de procesos, ya limpio). Docker recibe un `DOCKER_CONFIG` propio y vacío (así no se usa el contexto de `~/.docker/config.json`) y WSL `WSL_UTF8=1`. El `python` que es solo el acceso directo de
+  la Tienda no se arranca (podría abrir la Tienda y no es un intérprete): cuenta como no instalado y se avisa.
+- **Los lectores son totales y deciden por estructura** (`ToolOutputParsers`): Docker, por `Client` y `Server` del JSON (`"Server":null` es el motor parado, con cualquier idioma); WSL, por la forma de las líneas
+  `nombre: valor` (la primera, si su valor no es un número, es la distribución; un valor numérico es la versión). Una salida que no se entiende, truncada, de otra forma o con NUL (UTF-16 leído como UTF-8)
+  es «sin comprobar»: `ToolSnapshot` lo guarda como `ToolState.Unreadable`, un estado que `InstalledTools` no tiene (allí sale como «no instalado»).
+- **Hallazgo con la salida real:** en este equipo la única distribución de WSL es `docker-desktop`, la interna de Docker Desktop, que una persona no puede usar. `WslReading.IsDockerInternal` la trata como
+  «sin distribución propia». Las salidas reales están grabadas (`tests/**/Diagnostics/Fixtures/real-*`) y las que este equipo no puede producir están escritas a mano (`handmade-*`), y así dicen sus nombres y su README.
+- **Una instantánea por ejecución** (`ToolSnapshotProvider`, que es también `IInstalledToolInventory` y `IDoctorRunScope`): lo que se pregunta al equipo se pregunta una vez por ejecución del doctor y no se guarda
+  para la siguiente; fuera de una ejecución (WP-E, el verificador) no se guarda nada.
+- **Las fuentes:** proveedores (las sondas de hoy no se reescriben: `ProviderCheckSource` las adapta, con «versión no probada» y «aparcado» inyectados por la composición), herramientas, proyecto (git por la capa
+  endurecida; los hooks se listan por nombre, sin abrir ningún fichero) y contenedores (un problema solo cuenta si el proyecto declara contenedores: solo se mira que exista uno de los nombres de D-05).
+  `DoctorService` no falla entero.
+- **Los arreglos:** la lista cerrada de la Fase 6 solo tiene «ir» y «guía» (la decisión 8 (a)). La orden de una guía se muestra y se copia; la app nunca la ejecuta. `IDoctorFixRunner.ApplyAsync` lleva el código de la
+  comprobación (cambio del contrato del P0, en [docs/04](../04-contratos.md#25-fase-6-auto-doctor-auto-graph-entorno-declarado-y-diagramas) §25.2).
+- **La pantalla contiene el panel de proveedores** (no lo sustituye): el panel `autodoctor` pasa a tener cinco apartados y el primero conserva las filas de siempre, con su estado aparcado. El resumen de la barra
+  superior sigue siendo el de `ProviderDiagnosticsViewModel`. Los textos salen de `DoctorStrings` por el código de la comprobación y su estado.
+- **Residuales que esta parte añade:** las órdenes y páginas de las guías están escritas a mano y no se ejecutaron; el texto de `wsl --status` y de Docker en marcha solo está comprobado en este equipo
+  (docs/20 §12); y, si el proyecto está abierto, Auto Doctor lo abre con el espacio de trabajo (`IProjectWorkspace`) como hacen las demás pantallas, lo que crea `.agentstudio/` si no existía.
