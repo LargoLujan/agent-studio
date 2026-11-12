@@ -170,7 +170,7 @@ public sealed class Phase5ContractTests
         Assert.Equal(["AuditRunAsync"], MethodNames(typeof(IOrchestratorAuditService)));
         Assert.Equal(["AcceptRevisionAsync", "ChallengeAsync", "PrepareAsync", "StatusAsync"], MethodNames(typeof(IVerdictChallenges)));
         Assert.Equal(typeof(Task<IDebateRun>), typeof(IVerdictChallenges).GetMethod(nameof(IVerdictChallenges.ChallengeAsync))!.ReturnType);
-        Assert.Equal(["None", "Pending", "Confirmed", "Revoked", "AwaitingAcceptance", "Accepted", "DecidedByUser"], Enum.GetNames<ChallengeStatus>());
+        Assert.Equal(["None", "Pending", "Confirmed", "Revoked", "AwaitingAcceptance", "Accepted", "DecidedByUser", "Aborted"], Enum.GetNames<ChallengeStatus>());
         Assert.Equal(["Code", "Entries", "Message", "Severity", "Tasks"], PropertyNames(typeof(OrchestratorFinding)));
     }
 

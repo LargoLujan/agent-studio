@@ -29,7 +29,8 @@ internal sealed record VerdictStanding(VerdictDecision Decision, bool Challenged
 /// correction issued before the challenge was opened, by the order of the log) replaces the earlier verdict as usual.</item>
 /// <item><b>Challenges.</b> A challenge whose revision a person declined to open counts for nothing. A person has to accept a revision that turns towards an approval only for
 /// the verdict the run ended with; the challenge of another verdict of the run (an attempt its judge corrected) is read as if that verdict were an approval, as the delivery does
-/// (<see cref="ChallengeReader"/>, <c>DeliveryService.Revisions</c>).</item>
+/// (<see cref="ChallengeReader"/>, <c>DeliveryService.Revisions</c>). The verdict of a revision can be challenged in its turn: <see cref="Standing"/> follows the whole chain
+/// (<see cref="ChallengeRules.Follow"/>), so that a card is done only if every branch ends in an approval that counts.</item>
 /// <item><b>Tasks.</b> A task is judged as a requirement is: the card of a completed task follows the last verdict that judged it, with its standing, and is in review while that
 /// verdict is set aside or when none judged it. A task that covers no requirement (an integration, a review) is judged by every verdict of its scope
 /// (<see cref="JudgesUncovered"/>).</item>
@@ -106,21 +107,55 @@ internal static class VerdictReach
     }
 
     /// <summary>What a person's challenge of a verdict leaves of it (docs/15 D-38 to D-40), from the verified log.</summary>
+    /// <remarks>
+    /// The whole chain of challenges counts (<see cref="ChallengeRules.Follow"/>, as the delivery walks it): the verdict of a revision can be challenged in its turn, and what stands is
+    /// where the last revision of the chain left it. The attempts the verdict's judge corrected (<c>Supersedes</c>, with no challenge before the correction) are about the same work: one
+    /// that is in review, or whose revision withdrew an approval, takes the card with it, as the delivery stops for it (<c>DeliveryService.Revisions.Judge</c>).
+    /// </remarks>
     public static VerdictStanding Standing(IReadOnlyList<(DecisionEntry Entry, DecisionPayload? Payload)> log, StoredVerdict stored, IReadOnlyDictionary<string, StoredVerdict> storedVerdicts)
     {
-        var decision = stored.Verdict.Decision;
-        var reading = ChallengeReader.Read(log, stored, storedVerdicts);
-        return reading.Status switch
+        var standing = StandingOfChain(log, stored, storedVerdicts);
+        if (Revises(log, stored, storedVerdicts) is not null)
         {
-            ChallengeStatus.None => new VerdictStanding(decision, false, false),
+            // A verdict of a revision stands through the verdict it revises, which carries its own earlier attempts.
+            return standing;
+        }
 
-            // The revision confirmed the verdict (or, when none approved, settled the decision that stands) or withdrew an approval: its decision stands.
-            ChallengeStatus.Confirmed or ChallengeStatus.Revoked => new VerdictStanding(reading.Revised ?? decision, false, (reading.Revised ?? decision) != decision),
+        var seen = new HashSet<string>(StringComparer.Ordinal) { stored.Id };
+        var current = stored;
+        while (current.Supersedes is { } previous && storedVerdicts.TryGetValue(previous, out var earlier) && seen.Add(earlier.Id))
+        {
+            // As the delivery reads it, the challenge of an attempt is read as if that attempt were an approval: a revision that does not approve withdraws it, whatever the attempt said.
+            var aside = ChallengeRules.Follow(log, earlier, storedVerdicts);
+            if (aside.End == ChainEnd.InReview)
+            {
+                return new VerdictStanding(stored.Verdict.Decision, true, false);
+            }
 
-            // A person accepted a revision that turned towards an approval.
-            ChallengeStatus.Accepted => new VerdictStanding(VerdictDecision.Approved, false, decision != VerdictDecision.Approved),
+            if (aside.End == ChainEnd.NotApproved && !standing.Challenged && standing.Decision == VerdictDecision.Approved)
+            {
+                standing = new VerdictStanding(aside.Decision ?? VerdictDecision.Rejected, false, true);
+            }
 
-            // Not closed, decided by the person («Decidir yo»: the entry does not say what they decided) or awaiting their acceptance: in review.
+            current = earlier;
+        }
+
+        return standing;
+    }
+
+    private static VerdictStanding StandingOfChain(IReadOnlyList<(DecisionEntry Entry, DecisionPayload? Payload)> log, StoredVerdict stored, IReadOnlyDictionary<string, StoredVerdict> storedVerdicts)
+    {
+        var decision = stored.Verdict.Decision;
+        var chain = ChallengeRules.Follow(log, stored, storedVerdicts);
+        return chain.End switch
+        {
+            ChainEnd.None => new VerdictStanding(decision, false, false),
+
+            // The chain ended in an approval that counts (a confirmation, or an acceptance of a person), or in the decision a revision settled (a withdrawn approval, a rejection).
+            ChainEnd.Approved => new VerdictStanding(VerdictDecision.Approved, false, decision != VerdictDecision.Approved),
+            ChainEnd.NotApproved => new VerdictStanding(chain.Decision ?? decision, false, (chain.Decision ?? decision) != decision),
+
+            // Not closed, aborted, decided by the person («Decidir yo»: the entry does not say what they decided), awaiting their acceptance or a branch that is: in review.
             _ => new VerdictStanding(decision, true, false),
         };
     }

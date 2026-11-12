@@ -116,3 +116,21 @@ mismo registro con las tres lecturas.
 - **Tarjetas de tarea y evaluación por requisito.** La tarea sigue a sus requisitos: con un veredicto aprobado que da algún requisito que la tarea cubre por no satisfecho, la tarea no
   está en «Hecho» (Devuelto, o En revisión si es no verificable o el veredicto no evalúa por requisito), igual que su requisito. El destino del requisito no cambia. Es **provisional**:
   «aprobado pero no cumplido → en revisión» es una regla del tablero que el dueño tiene pendiente de decidir.
+
+## Adenda de la cadena de impugnaciones · 2026-11-12
+
+Cierra las dos divergencias que `RevisionAgreementTests` dejaba fijadas con comentario (P64). El estado en vigor de un veredicto (`VerdictReach.Standing`, que usan el tablero, la
+cadena y la participación) sigue ahora **la cadena entera** de impugnaciones (`ChallengeRules.Follow`, en `Application`, junto a `Read`), como el evaluador de la entrega: el veredicto de
+una revisión puede estar impugnado y su revisión también. Cada revisión juzgada es una rama; si alguna está abierta, abortada, decidida por una persona o espera aceptación, la tarjeta
+está «En revisión»; si alguna termina en un veredicto que no aprueba, «Devuelto»; solo termina en «Hecho» si todas acaban en una aprobación que cuenta (F9-2: ninguna tarjeta en «Hecho»
+sin un veredicto aprobado en vigor). Protecciones: 16 niveles como la entrega, cada veredicto una vez (los ciclos o una revisión que nombra uno ya recorrido fallan cerrado, en
+revisión). La cadena marca como «revisado» al veredicto de revisión que la siguiente desplaza, y la participación no atribuye la aprobación de uno cuya cadena está en revisión.
+
+- **Un intento que el juez corrigió** (no el de cierre) y cuya revisión sigue abierta o retiró la aprobación arrastra la tarjeta del veredicto que lo corrige, como bloquea la entrega
+  (antes la tarjeta seguía en «Hecho»).
+- **El veredicto de una revisión no se lee como una aprobación** por no ser el de cierre (`AsApproval`): antes, una revisión que daba la vuelta hacia una aprobación sobre una que había
+  retirado la anterior salía `Confirmed` en Debate y la persona no podía aceptarla.
+- **Impugnación abortada:** `ChallengeStatus.Aborted`. No cuenta y se puede volver a impugnar (antes `Pending` lo impedía aunque la entrega dice «vuelve a impugnarlo»); la entrega y la
+  tarjeta siguen bloqueadas mientras sea la última palabra.
+- La entrega (`DeliveryService`) no se ha tocado. Queda abierto que una revisión cerrada sin decisión (un jurado que discrepa) siga en `Pending` en Debate mientras la entrega pide
+  volver a impugnar.

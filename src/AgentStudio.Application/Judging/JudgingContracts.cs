@@ -190,6 +190,9 @@ public enum ChallengeStatus
 
     /// <summary>The revision needed a person and the user decided («Decidir yo»).</summary>
     DecidedByUser,
+
+    /// <summary>The revision debate was aborted without a judgment: it counts for nothing, the delivery stays blocked while it is the latest word, and the verdict can be challenged again.</summary>
+    Aborted,
 }
 
 /// <summary>Challenges of verdicts (D-38 to D-40): a revision debate that inherits who may judge and changes the judge.</summary>

@@ -157,7 +157,7 @@ public sealed class VerdictInForceTests
     // ---- 3. The order of a judge's correction and the challenge ----
 
     [Fact]
-    public async Task A_correction_of_the_judge_issued_before_the_challenge_replaces_the_verdict_and_is_not_of_the_revision()
+    public async Task A_correction_of_the_judge_issued_before_the_challenge_replaces_the_verdict_but_the_open_challenge_of_the_replaced_one_still_holds_the_card()
     {
         var (world, milestone) = await CompletedRunAsync();
         using (world)
@@ -168,8 +168,10 @@ public sealed class VerdictInForceTests
 
             var board = await BoardAsync(world, milestone);
 
-            Assert.Equal(BoardColumn.Done, RequirementColumn(board, "R1"));
-            Assert.Equal(BoardColumn.Done, TaskColumn(board, "T1"));
+            // The correction is not a verdict of the revision (it was issued before the challenge, so it competes as usual), but the delivery stops for the open revision of the attempt
+            // it replaced, since both are about the same work, and so does the card (docs/04 §23.6).
+            Assert.Equal(BoardColumn.InReview, RequirementColumn(board, "R1"));
+            Assert.Equal(BoardColumn.InReview, TaskColumn(board, "T1"));
         }
     }
 

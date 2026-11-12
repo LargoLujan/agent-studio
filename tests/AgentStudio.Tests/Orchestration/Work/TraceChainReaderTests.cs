@@ -401,9 +401,8 @@ public sealed class TraceChainReaderTests
         Assert.All(chain.Steps.Where(s => s.Stage != TraceChainStage.Verdict), s => Assert.Null(s.Standing));
     }
 
-    private static async Task ChallengeAsync(WorkWorld world, string verdict = "v1")
+    private static async Task ChallengeAsync(WorkWorld world, string verdict = "v1", string debate = "deb-20261111-aaaaaa")
     {
-        const string debate = "deb-20261111-aaaaaa";
         await world.RecordAsync(WorkWorld.Run1, DecisionKind.VerdictChallenged, new VerdictChallengedPayload(verdict, "manuel", new AgentStudio.Domain.Common.EvidenceId("motivos"), new string('e', 64), debate) { RunId = WorkWorld.Run1 });
         await world.RecordAsync(debate, DecisionKind.DebateOpened, new DebateOpenedPayload(
             AgentStudio.Domain.Debate.DebateMode.Adversarial, new string('1', 64), new string('2', 64), new string('3', 64), new AgentStudio.Domain.Common.EvidenceId("pregunta"), new string('4', 64),
@@ -442,6 +441,47 @@ public sealed class TraceChainReaderTests
 
     private static async Task CloseRevisionAsync(WorkWorld world, params string[] verdicts) =>
         await world.RecordAsync("deb-20261111-aaaaaa", DecisionKind.DebateClosed, new DebateClosedPayload(AgentStudio.Domain.Debate.DebateOutcome.Resolved, verdicts, "judge", null, "cerrado") { RunId = "deb-20261111-aaaaaa" });
+
+    [Theory]
+    [InlineData(VerdictDecision.Rejected, TraceVerdictStanding.Revised, TraceVerdictStanding.Revised, TraceVerdictStanding.InForce)]
+    [InlineData(VerdictDecision.Approved, TraceVerdictStanding.InForce, TraceVerdictStanding.InForce, TraceVerdictStanding.InForce)]
+    public async Task The_chain_of_challenges_of_revision_verdicts_is_followed_to_its_end(VerdictDecision second, TraceVerdictStanding first, TraceVerdictStanding revision, TraceVerdictStanding last)
+    {
+        const string debate2 = "deb-20261111-bbbbbb";
+        using var world = await TwoRequirementsAsync();
+        await world.VerdictAsync(WorkWorld.Run1, VerdictDecision.Approved, task: "T7");
+        await ChallengeAsync(world);
+        await world.RevisionVerdictAsync(WorkWorld.Run1, VerdictDecision.Approved, "v1");
+        await CloseRevisionAsync(world, "v2");
+
+        // The verdict of that revision is challenged in its turn.
+        await ChallengeAsync(world, "v2", debate2);
+        await world.RevisionVerdictAsync(WorkWorld.Run1, second, "v2", id: "v3");
+        await world.RecordAsync(debate2, DecisionKind.DebateClosed, new DebateClosedPayload(AgentStudio.Domain.Debate.DebateOutcome.Resolved, ["v3"], "judge", null, "cerrado") { RunId = debate2 });
+
+        var chain = await Reader(world).ChainAsync(world.Project, TraceRef.Requirement("R1"), Ct);
+
+        Assert.Equal<(string, TraceVerdictStanding?)>(
+            [("v1", first), ("v2", revision), ("v3", last)],
+            chain.Steps.Where(s => s.Stage == TraceChainStage.Verdict).Select(s => (s.Node.Id, s.Standing)));
+    }
+
+    [Fact]
+    public async Task A_challenge_of_a_revision_verdict_that_is_still_open_shows_the_whole_chain_in_review()
+    {
+        using var world = await TwoRequirementsAsync();
+        await world.VerdictAsync(WorkWorld.Run1, VerdictDecision.Approved, task: "T7");
+        await ChallengeAsync(world);
+        await world.RevisionVerdictAsync(WorkWorld.Run1, VerdictDecision.Approved, "v1");
+        await CloseRevisionAsync(world, "v2");
+        await ChallengeAsync(world, "v2", "deb-20261111-bbbbbb");
+
+        var chain = await Reader(world).ChainAsync(world.Project, TraceRef.Requirement("R1"), Ct);
+
+        Assert.Equal<(string, TraceVerdictStanding?)>(
+            [("v1", TraceVerdictStanding.Challenged), ("v2", TraceVerdictStanding.Challenged)],
+            chain.Steps.Where(s => s.Stage == TraceChainStage.Verdict).Select(s => (s.Node.Id, s.Standing)));
+    }
 
     [Fact]
     public async Task A_revision_verdict_turned_towards_an_approval_nobody_accepted_is_shown_in_review_and_never_in_force()

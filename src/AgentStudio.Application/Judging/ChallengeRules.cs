@@ -10,6 +10,25 @@ namespace AgentStudio.Application.Judging;
 /// <summary>Where the challenge of a verdict stands, and the decision of its revision when the revision settled one.</summary>
 public sealed record ChallengeReading(ChallengeStatus Status, VerdictDecision? Revised);
 
+/// <summary>How a chain of challenges ends (<see cref="ChallengeRules.Follow"/>).</summary>
+public enum ChainEnd
+{
+    /// <summary>The verdict was never challenged (or every challenge counts for nothing).</summary>
+    None,
+
+    /// <summary>Some revision of the chain is not settled by a judge, or an approval of it waits for a person: the work is in review.</summary>
+    InReview,
+
+    /// <summary>Every branch of the chain ends in an approval that counts.</summary>
+    Approved,
+
+    /// <summary>A branch of the chain ends in a decision that is not an approval (a withdrawn approval, a rejection): <see cref="ChainReading.Decision"/> says which.</summary>
+    NotApproved,
+}
+
+/// <summary>Where a whole chain of challenges ends and the decision that stands, when it ended in one.</summary>
+public sealed record ChainReading(ChainEnd End, VerdictDecision? Decision);
+
 /// <summary>
 /// The one rule that says where the challenge of a verdict stands (docs/15 D-38 to D-40, docs/04 §23.6, ADR-0039), read from the verified log and the verdict store. The Debate
 /// module (<c>ChallengeLog.StatusOf</c>, which decides whether a person may challenge again or accept a revision) and the Orchestration module (the board, the chain and the
@@ -19,8 +38,11 @@ public sealed record ChallengeReading(ChallengeStatus Status, VerdictDecision? R
 /// <item>A challenge whose revision a person declined to open (their no to <see cref="DebateOpenAction"/> in a debate that never opened) never started and counts for nothing:
 /// the verdict can be challenged again. As the latest challenge it is still the latest word: the ones before it that never got a judgment give way to it, and a judged one, or one
 /// still open, stands beside it.</item>
-/// <item>A revision not closed, aborted, closed without a decision (a panel that disagrees, a verdict that is not valid, announced or stored) leaves the challenge
-/// <see cref="ChallengeStatus.Pending"/>: it fails closed. One closed by a person («Decidir yo») is <see cref="ChallengeStatus.DecidedByUser"/>.</item>
+/// <item>A revision not closed, or closed without a decision (a panel that disagrees, a verdict that is not valid, announced or stored) leaves the challenge
+/// <see cref="ChallengeStatus.Pending"/>: it fails closed. One closed by a person («Decidir yo») is <see cref="ChallengeStatus.DecidedByUser"/>. One that was aborted (nobody
+/// judged) is <see cref="ChallengeStatus.Aborted"/>: it counts for nothing and, like the delivery, which still blocks while it is the latest word and asks to challenge again,
+/// it lets the verdict be challenged again (D-40), which <see cref="ChallengeStatus.Pending"/> does not.</item>
+/// <item>The revision verdicts can be challenged in their turn: <see cref="Follow"/> walks the whole chain, as the delivery does, and says where it ends.</item>
 /// <item>One closed by its judge or an agreeing panel is compared with the challenged verdict: an approval confirmed is <see cref="ChallengeStatus.Confirmed"/>, an approval withdrawn
 /// <see cref="ChallengeStatus.Revoked"/>, a turn towards an approval <see cref="ChallengeStatus.AwaitingAcceptance"/> until a person accepts it (<see cref="ChallengeStatus.Accepted"/>),
 /// and anything else that is not an approval <see cref="ChallengeStatus.Confirmed"/>.</item>
@@ -79,8 +101,7 @@ public static class ChallengeRules
 
         // The verdict the run ended with is the only one whose revision a person has to accept when it turns towards an approval; a challenge of any other verdict of the run
         // (an attempt its judge corrected) is about the same work and, like the delivery (DeliveryService.Revisions.Judge), is read as if that verdict were an approval.
-        var closing = ClosingVerdict(items, challenged.RunId);
-        var asApproval = closing is not null && !string.Equals(closing, challenged.Id, StringComparison.Ordinal);
+        var asApproval = AsApproval(items, challenged);
 
         var live = challenges.Where(c => !c.Declined).ToList();
         if (live.Count == 0)
@@ -158,14 +179,17 @@ public static class ChallengeRules
             return new ChallengeReading(ChallengeStatus.DecidedByUser, null);
         }
 
+        if (IsAborted(closed))
+        {
+            return new ChallengeReading(ChallengeStatus.Aborted, null);
+        }
+
         if (closed.Outcome != DebateOutcome.Resolved || DecisionOf(items.Select(i => i.Payload), closed, stored) is not { } revision)
         {
             return new ChallengeReading(ChallengeStatus.Pending, null);
         }
 
-        var announced = items.Select(i => i.Payload).OfType<VerdictIssuedPayload>().LastOrDefault(v => string.Equals(v.VerdictId, challenged.Id, StringComparison.Ordinal));
-        var approved = asApproval || (challenged.Valid && challenged.Verdict.Decision == VerdictDecision.Approved
-            && announced is { Valid: true, Decision: VerdictDecision.Approved });
+        var approved = asApproval || IsValidApproval(items, challenged);
         var approves = revision == VerdictDecision.Approved;
         var status = (approved, approves) switch
         {
@@ -175,6 +199,179 @@ public static class ChallengeRules
             (false, false) => ChallengeStatus.Confirmed,
         };
         return new ChallengeReading(status, revision);
+    }
+
+    /// <summary>
+    /// Whether a challenge of the verdict is read as if it were an approval: it is a verdict of the run other than the one the run ended with (an attempt its judge corrected). A verdict
+    /// of a revision (one a closed revision debate names) is not: its own decision is what a later revision confirms, withdraws or turns, so that a revision that turns a withdrawal
+    /// towards an approval awaits a person's acceptance, as in the delivery.
+    /// </summary>
+    private static bool AsApproval(IReadOnlyList<(DecisionEntry Entry, DecisionPayload? Payload)> items, StoredVerdict challenged)
+    {
+        var closing = ClosingVerdict(items, challenged.RunId);
+        return closing is not null && !string.Equals(closing, challenged.Id, StringComparison.Ordinal) && !IsRevisionVerdict(items, challenged.Id);
+    }
+
+    private static bool IsRevisionVerdict(IReadOnlyList<(DecisionEntry Entry, DecisionPayload? Payload)> items, string verdict)
+    {
+        var revisions = items.Select(i => i.Payload).OfType<DebateClosedPayload>().Where(c => c.Verdicts.Contains(verdict, StringComparer.Ordinal)).Select(c => c.RunId).ToHashSet(StringComparer.Ordinal);
+        return revisions.Count > 0 && items.Any(i => i.Payload is DebateOpenedPayload { Challenges: not null } o && revisions.Contains(o.RunId));
+    }
+
+    private static bool IsAborted(DebateClosedPayload closed) =>
+        closed.Outcome == DebateOutcome.Aborted || string.Equals(closed.Rule, DebateClosedPayload.AbortedRule, StringComparison.Ordinal);
+
+    private static bool IsValidApproval(IReadOnlyList<(DecisionEntry Entry, DecisionPayload? Payload)> items, StoredVerdict challenged)
+    {
+        var announced = items.Select(i => i.Payload).OfType<VerdictIssuedPayload>().LastOrDefault(v => string.Equals(v.VerdictId, challenged.Id, StringComparison.Ordinal));
+        return challenged.Valid && challenged.Verdict.Decision == VerdictDecision.Approved && announced is { Valid: true, Decision: VerdictDecision.Approved };
+    }
+
+    /// <summary>The longest chain of revisions of revisions that is followed, as in the delivery (<c>DeliveryService.Revisions</c>): a longer one is not trusted.</summary>
+    public const int MaxChainDepth = 16;
+
+    /// <summary>
+    /// Where the whole chain of challenges of a verdict ends: the revision of a challenged verdict gives verdicts that can be challenged in their turn, and so on. Walked as the delivery
+    /// walks it (<c>DeliveryService.Revisions.Evaluate</c>): every revision that a judge or a panel settled is a branch, a branch that is not settled (open, aborted, decided by a person)
+    /// leaves the verdict in review, a revision that withdraws or does not approve ends it with the decision it settled, and an approval counts only if the one it revises counted or a
+    /// person accepted it. A verdict walked twice (a store that was tampered with) or a chain longer than <see cref="MaxChainDepth"/> fails closed, in review; the walk visits each verdict
+    /// at most once, so its cost is bounded by the verdicts of the store.
+    /// </summary>
+    public static ChainReading Follow(IReadOnlyList<(DecisionEntry Entry, DecisionPayload? Payload)> items, StoredVerdict challenged, IReadOnlyDictionary<string, StoredVerdict> stored)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+        ArgumentNullException.ThrowIfNull(challenged);
+        ArgumentNullException.ThrowIfNull(stored);
+        switch (Read(items, challenged, stored).Status)
+        {
+            case ChallengeStatus.None:
+                return new ChainReading(ChainEnd.None, null);
+            case ChallengeStatus.Confirmed or ChallengeStatus.Revoked or ChallengeStatus.Accepted:
+                break;
+            default:
+                // Not settled by a judge, or waiting for a person: in review.
+                return new ChainReading(ChainEnd.InReview, null);
+        }
+
+        // As in Read: the challenge of a verdict the run did not end with is read as if that verdict were an approval.
+        var approved = AsApproval(items, challenged) || IsValidApproval(items, challenged);
+        var visited = new HashSet<string>(StringComparer.Ordinal) { challenged.Id };
+        return Walk(items, stored, [challenged], challenged.Verdict.Decision, approved, approved, visited, 0);
+    }
+
+    private static ChainReading Walk(
+        IReadOnlyList<(DecisionEntry Entry, DecisionPayload? Payload)> items,
+        IReadOnlyDictionary<string, StoredVerdict> stored,
+        IReadOnlyList<StoredVerdict> node,
+        VerdictDecision decision,
+        bool approved,
+        bool trusted,
+        HashSet<string> visited,
+        int depth)
+    {
+        if (depth > MaxChainDepth)
+        {
+            return new ChainReading(ChainEnd.InReview, null);
+        }
+
+        var members = node.ToDictionary(v => v.Id, StringComparer.Ordinal);
+        var challenges = new List<(string Debate, bool Declined, StoredVerdict Member)>();
+        foreach (var (entry, payload) in items)
+        {
+            switch (payload)
+            {
+                case VerdictChallengedPayload c when members.TryGetValue(c.Verdict, out var member):
+                    challenges.Add((c.RevisionDebate, Declined(items, c.RevisionDebate), member));
+                    break;
+                case DebateOpenedPayload { Challenges: { } challengedId } o when members.TryGetValue(challengedId, out var opened):
+                    challenges.Add((o.RunId, false, opened));
+                    break;
+            }
+        }
+
+        // A challenge is anchored twice (its VerdictChallenged and the DebateOpened of its revision): one revision, one branch.
+        challenges = [.. challenges.DistinctBy(c => (c.Debate, c.Member.Id))];
+        var live = challenges.Where(c => !c.Declined).Select(c => (c.Debate, c.Member, State: Classify(items, stored, c.Member, c.Debate))).ToList();
+        if (live.Any(c => c.State.Kind == RevisionKind.Open)
+            || (challenges.Count > 0 && !challenges[^1].Declined && live[^1].State.Kind != RevisionKind.Judged))
+        {
+            return new ChainReading(ChainEnd.InReview, null);
+        }
+
+        var judged = live.Where(c => c.State.Kind == RevisionKind.Judged).Select(c => c.State).ToList();
+        if (judged.Count == 0)
+        {
+            // Nothing challenged it that counts: it stands as it is.
+            return !approved ? new ChainReading(ChainEnd.NotApproved, decision)
+                : trusted ? new ChainReading(ChainEnd.Approved, VerdictDecision.Approved)
+                : new ChainReading(ChainEnd.InReview, null);
+        }
+
+        var counted = approved && trusted;
+        ChainReading? worst = null;
+        foreach (var revision in judged)
+        {
+            if (revision.Verdicts.Any(v => !visited.Add(v.Id)))
+            {
+                return new ChainReading(ChainEnd.InReview, null);
+            }
+
+            var approves = revision.Decision == VerdictDecision.Approved;
+            var end = Walk(items, stored, revision.Verdicts, revision.Decision, approves, approves && (counted || revision.Accepted), visited, depth + 1);
+            worst = Worse(worst, end);
+        }
+
+        return worst!;
+    }
+
+    /// <summary>In review before not approved before approved: the delivery is blocked by any of them but the last, and a revision still to be settled says more than one that settled against.</summary>
+    private static ChainReading Worse(ChainReading? known, ChainReading next) =>
+        known is null || Rank(next.End) > Rank(known.End) ? next : known;
+
+    private static int Rank(ChainEnd end) => end switch
+    {
+        ChainEnd.InReview => 2,
+        ChainEnd.NotApproved => 1,
+        _ => 0,
+    };
+
+    private enum RevisionKind
+    {
+        /// <summary>Opened and not closed, or one whose opening or closing does not hold together: it blocks wherever it is.</summary>
+        Open,
+
+        /// <summary>Not opened, aborted, decided by a person or closed without a decision: it blocks only as the latest word.</summary>
+        Unjudged,
+        Judged,
+    }
+
+    private sealed record Revision(RevisionKind Kind, VerdictDecision Decision = default, bool Accepted = false, IReadOnlyList<StoredVerdict> Verdicts = null!);
+
+    private static Revision Classify(IReadOnlyList<(DecisionEntry Entry, DecisionPayload? Payload)> items, IReadOnlyDictionary<string, StoredVerdict> stored, StoredVerdict member, string debate)
+    {
+        var opened = items.Select(i => i.Payload).OfType<DebateOpenedPayload>().FirstOrDefault(o => string.Equals(o.RunId, debate, StringComparison.Ordinal));
+        if (opened is null)
+        {
+            return new Revision(RevisionKind.Unjudged);
+        }
+
+        var closing = items.LastOrDefault(i => i.Payload is DebateClosedPayload && string.Equals(i.Payload.RunId, debate, StringComparison.Ordinal));
+        if (!string.Equals(opened.Challenges, member.Id, StringComparison.Ordinal) || closing.Payload is not DebateClosedPayload closed)
+        {
+            return new Revision(RevisionKind.Open);
+        }
+
+        if (string.Equals(closed.Rule, JudgingPanel.User, StringComparison.Ordinal) || IsAborted(closed) || closed.Outcome != DebateOutcome.Resolved || closed.Verdicts.Count == 0)
+        {
+            return new Revision(RevisionKind.Unjudged);
+        }
+
+        if (DecisionOf(items.Select(i => i.Payload), closed, stored) is not { } decision)
+        {
+            return new Revision(RevisionKind.Open);
+        }
+
+        return new Revision(RevisionKind.Judged, decision, Accepted(items, member.RunId, debate, closing.Entry.Sequence), [.. closed.Verdicts.Select(id => stored[id])]);
     }
 
     /// <summary>The decision of a revision that closed by its judge or its agreeing panel: each verdict it names announced valid and stored valid, all with the same decision.</summary>
