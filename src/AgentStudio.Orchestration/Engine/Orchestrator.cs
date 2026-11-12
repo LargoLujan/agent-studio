@@ -462,6 +462,9 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
     public async Task<IReadOnlyList<RunSummary>> ListRunsAsync(ProjectContext project, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(project);
+        // The live runs first, then the log: a run that ends in between has its end in the log read next (it is recorded before
+        // the run leaves the live ones), whereas the other order lists a run that has just finished as left unfinished.
+        var going = _live.ToArray().ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal);
         var log = await LoadVerifiedAsync(project.ProjectId, LogLoad.Incremental, cancellationToken).ConfigureAwait(false);
         var records = await _ports.Runs.ListAsync(project.ProjectId, cancellationToken).ConfigureAwait(false);
         var summaries = new List<RunSummary>();
@@ -470,7 +473,7 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
             var entries = RunLog.Of(log.Entries, record.Id.Value);
             RunPhase phase;
             string summary;
-            if (_live.TryGetValue(Key(project.ProjectId, record.Id), out var live))
+            if (going.TryGetValue(Key(project.ProjectId, record.Id), out var live))
             {
                 var snapshot = live.Snapshot();
                 phase = snapshot.Phase;

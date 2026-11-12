@@ -328,3 +328,51 @@ caía una prueba distinta. Había dos causas, las dos en el motor.
    - `SuspendableClock` anota cada temporizador después de armarlo, no antes. Así, verlo en `Timers` quiere decir que
      adelantar el reloj lo dispara.
    - Las dos clases del debate pasaron 30 de 30 veces seguidas, y `Debate.Arena` 5 de 5.
+
+
+## Adenda · 2026-11-12 · una carrera del listado de ejecuciones que hacía fallar a `ResumeAfterRestartTests` (docs/18 P42)
+
+`ResumeAfterRestartTests.Passes_asked_for_at_once_go_one_after_the_other_and_resume_a_run_once` falló una vez con la suite
+entera y la CPU al 100 %: una pasada posterior del planificador devolvió la ejecución ya reanudada como «No está a
+medias». No tiene que ver con las carreras del reloj de la adenda del 2026-11-06 (su reloj no avanza). Esta estaba en el
+motor.
+
+- **La causa** (`Orchestrator.ListRunsAsync`): leía primero el registro y después miraba qué ejecuciones van en este
+  proceso (`_live`). Una ejecución que acaba entre las dos cosas tiene su `RunFinished` en el registro *después* de la
+  lectura, y ya no está en `_live`: el listado la daba por `Interrupted`. La ejecución reanudada de la prueba acaba sola
+  (su segundo intento no se cuelga), así que con la máquina cargada la ventana se abre. El planificador la tomaba por una
+  ejecución a medias; la decisión bajo reserva (`ResumeByConsentAsync`) lee el registro de nuevo, ve el `RunFinished` y
+  contesta «No está a medias». No lanzaba nada de más, pero la pasada informaba de una ejecución que no era suya.
+- **En la app** podía pasar igual, con un efecto menor: una fila de más en el resultado de una pasada, o un listado que
+  marca como interrumpida, un instante, una ejecución que acaba de terminar.
+- **El arreglo**: el listado toma antes la foto de las ejecuciones vivas y después lee el registro. El motor escribe
+  `RunFinished` antes de que la ejecución salga de `_live` (`Forget` va después), así que una ejecución que no está en la
+  foto y acabó antes tiene su fin en el registro que se lee a continuación. Sin cerrojos.
+- **La prueba**: `A_run_that_ends_while_the_runs_are_being_listed_is_never_listed_as_interrupted`. Retiene la lectura del
+  registro del listado (`GatedLoads`), deja acabar la ejecución y suelta la lectura. Antes del arreglo daba `Interrupted`
+  siempre; después pasa.
+
+Otras tres pruebas de la misma fila, mirando el código:
+
+- **`ProjectMemoryTests.A_memory_write_while_a_run_goes_on_waits_and_reaches_the_log_only_after_the_run_ends`**: no se
+  reprodujo (0 de 30 con carga). La espera del lector de la memoria no tiene la carrera de la cuota: el temporizador se arma
+  tras mirar la actividad, pero la prueba sigue avanzando el reloj un segundo cada 20 ms, así que un temporizador armado
+  tarde se dispara en el avance siguiente. Lo que fallaba era el plazo de `MemoryWorld.AdvanceUntilAsync`: 200 pasos de
+  20 ms, unos 4 s en total, para que la escritura real (registro, ancla y SQLite) terminase tras el despertar. Con una
+  máquina cargada puede no bastar. Ahora el plazo es de 30 s reales y el bucle sigue avanzando el reloj. Es un arreglo de la
+  prueba; el producto no cambia.
+- **`SqliteEvidenceStoreTests.Concurrent_captures_of_the_same_content_end_in_one_file`**: no se reprodujo (0 de 30). En la
+  app sí puede pasar. `SqliteEvidenceStore.PlaceAsync` movía el fichero temporal y, si el destino ya existía, lo abría para
+  comprobarlo. Un manejador ajeno sobre el fichero (otra captura que lo comprueba, un antivirus que acaba de ver el fichero
+  nuevo) hacía fallar el movimiento o la apertura con «lo está usando otro proceso», y la captura entera fallaba. Ahora
+  `PlaceAsync` reintenta hasta 40 veces con 50 ms entre intentos antes de dar el error. La prueba
+  `A_capture_of_content_already_stored_waits_while_another_handle_holds_the_stored_file` abre el fichero guardado sin
+  compartirlo y lanza otra captura del mismo contenido: antes del arreglo fallaba con la excepción; después espera y acaba
+  al soltarlo.
+- **`MainViewModelCompareTests.CompareWithFile_OffersTheProjectFiles_AndComparesWithTheChosenOne`**: no depende del
+  orden de los ficheros. `QuickOpenViewModel.OpenAsync` ponía `IsIndexing = false` y después clasificaba la lista; la
+  prueba (y cualquiera que mire `IsIndexing`) daba la lista por lista en ese instante, escribía la consulta, y la
+  clasificación inicial, que ya había leído la consulta vacía, la pisaba: elegía el primer fichero (`# hola`). En la app
+  la continuación vuelve al hilo de la interfaz y no se solapa; en la prueba no hay contexto de sincronización. Ahora la
+  lista se clasifica antes de dejar de estar indexando. No hay prueba en rojo determinista: hace falta que dos hilos se
+  crucen entre dos instrucciones. 0 de 15 tras el cambio (antes, un fallo suelto en la pasada final de la tanda).
