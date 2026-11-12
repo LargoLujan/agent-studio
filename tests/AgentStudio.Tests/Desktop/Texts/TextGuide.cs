@@ -34,7 +34,7 @@ internal static partial class TextGuide
         "HelloStrings", "IntegrationStrings", "MontageStrings", "PanelsStrings", "OrchestratorStrings", "DebateStrings", "AuditStrings",
         "BackgroundStrings", "LockStrings", "ObservabilityStrings", "MemoryStrings", "SkillsStrings", "ShellStrings",
         "ControlsStrings", "ServicesStrings", "UsageStrings", "RepositoryStrings", "WorkStrings",
-        "HelpStrings", "DocumentsStrings",
+        "HelpStrings", "DocumentsStrings", "DoctorStrings",
     ];
 
     /// <summary>
@@ -43,7 +43,7 @@ internal static partial class TextGuide
     /// package, so from then on the guide is checked on its texts too. Any other area that appears in the folder and is in neither
     /// list is skipped in the same way (and listed by <c>Every_resource_area_is_checked_or_pending_its_extraction</c>).
     /// </summary>
-    public static readonly string[] PendingExtraction = ["DoctorStrings", "GraphStrings", "DocsStrings"];
+    public static readonly string[] PendingExtraction = ["GraphStrings", "DocsStrings"];
 
     /// <summary>
     /// Key convention: a key whose last segment (after the last «_») is one of these is a text of «Detalles», the folded part of a

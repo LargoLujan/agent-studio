@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!-- The texts of the Auto Doctor area (docs/20 section 6.1, ADR-0054) in English: the same keys and placeholders as DoctorStrings.resx. Empty until WP-A fills it. -->
+  <!-- The texts of the Auto Doctor area (docs/20 section 6.1, ADR-0054) in English: the same keys and placeholders as DoctorStrings.resx. -->
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
   </resheader>
@@ -16,5 +16,660 @@
   <data name="Doctor_Title" xml:space="preserve">
     <value>Auto Doctor</value>
     <comment>Title of the panel of Auto Doctor.</comment>
+  </data>
+  <data name="Doctor_None" xml:space="preserve">
+    <value>There is nothing to check.</value>
+    <comment>Shown when no section has a check.</comment>
+  </data>
+  <data name="Doctor_ProjectNotOpened" xml:space="preserve">
+    <value>The history and the setup are checked once you open the project in the orchestrator.</value>
+    <comment>Notice when the open folder was not opened by the workspace yet: Auto Doctor does not open it.</comment>
+  </data>
+  <data name="Doctor_Details_Hint" xml:space="preserve">
+    <value>Show or hide the details</value>
+    <comment>Tooltip of the chevron of a check.</comment>
+  </data>
+  <data name="Doctor_Details_Name" xml:space="preserve">
+    <value>Details of {0}</value>
+    <comment>Accessible name of the chevron of a check; {0} is the title of the check.</comment>
+  </data>
+  <data name="Doctor_Section_Hint" xml:space="preserve">
+    <value>Open or close the section</value>
+    <comment>Tooltip of the chevron of a section.</comment>
+  </data>
+  <data name="Doctor_Section_Count" xml:space="preserve">
+    <value>{0} of {1} correct</value>
+    <comment>Summary of a folded section; {0} correct checks of {1}.</comment>
+  </data>
+  <data name="Doctor_Section_NoneApply" xml:space="preserve">
+    <value>Does not apply to this project</value>
+    <comment>Summary of a section whose checks do not apply.</comment>
+  </data>
+  <data name="Doctor_Section_AutomationName" xml:space="preserve">
+    <value>{0}: {1}</value>
+    <comment>Accessible name of a section: its title and its worst state.</comment>
+  </data>
+  <data name="Doctor_Check_AutomationName" xml:space="preserve">
+    <value>{0}: {1}</value>
+    <comment>Accessible name of a check: its title and its state.</comment>
+  </data>
+  <data name="Doctor_Section_Providers" xml:space="preserve">
+    <value>Agent programs</value>
+    <comment>Title of the section of the providers.</comment>
+  </data>
+  <data name="Doctor_Section_Tools" xml:space="preserve">
+    <value>Tools of your computer</value>
+    <comment>Title of the section of the tools.</comment>
+  </data>
+  <data name="Doctor_Section_Project" xml:space="preserve">
+    <value>Project</value>
+    <comment>Title of the section of the project.</comment>
+  </data>
+  <data name="Doctor_Section_DeclaredEnvironment" xml:space="preserve">
+    <value>What the project asks for</value>
+    <comment>Title of the section of the declared environment.</comment>
+  </data>
+  <data name="Doctor_Section_Containers" xml:space="preserve">
+    <value>Containers</value>
+    <comment>Title of the section of Docker and WSL.</comment>
+  </data>
+  <data name="Doctor_Status_Ok" xml:space="preserve">
+    <value>Correct</value>
+    <comment>State of a check.</comment>
+  </data>
+  <data name="Doctor_Status_Warning" xml:space="preserve">
+    <value>Warning</value>
+    <comment>State of a check.</comment>
+  </data>
+  <data name="Doctor_Status_Error" xml:space="preserve">
+    <value>Error</value>
+    <comment>State of a check.</comment>
+  </data>
+  <data name="Doctor_Status_Unknown" xml:space="preserve">
+    <value>Not checked</value>
+    <comment>State of a check that could not be read: it is not correct.</comment>
+  </data>
+  <data name="Doctor_Status_NotApplicable" xml:space="preserve">
+    <value>Does not apply</value>
+    <comment>State of a check that does not apply.</comment>
+  </data>
+  <data name="Doctor_Fix_Go" xml:space="preserve">
+    <value>Go to…</value>
+    <comment>Button of a fix that opens a screen.</comment>
+  </data>
+  <data name="Doctor_Fix_How" xml:space="preserve">
+    <value>How to fix it</value>
+    <comment>Button of a fix that explains what to do.</comment>
+  </data>
+  <data name="Doctor_Fix_Apply" xml:space="preserve">
+    <value>Apply</value>
+    <comment>Button of a fix that changes something of Agent Studio.</comment>
+  </data>
+  <data name="Doctor_Fix_Undo" xml:space="preserve">
+    <value>Undo</value>
+    <comment>Button that undoes a fix that was applied.</comment>
+  </data>
+  <data name="Doctor_Fix_Done" xml:space="preserve">
+    <value>Done.</value>
+    <comment>Message after a fix was applied.</comment>
+  </data>
+  <data name="Doctor_Fix_Denied" xml:space="preserve">
+    <value>Not applied: you did not give your permission.</value>
+    <comment>Message after the approval of a fix was denied.</comment>
+  </data>
+  <data name="Doctor_Checking" xml:space="preserve">
+    <value>Checking. It can take up to 30 seconds.</value>
+    <comment>Shown under the title while the checks run.</comment>
+  </data>
+  <data name="Doctor_Fix_Failed" xml:space="preserve">
+    <value>It could not be applied. Nothing changed.</value>
+    <comment>Message after a fix failed.</comment>
+  </data>
+  <data name="Doctor_Fix_Undone" xml:space="preserve">
+    <value>Undone.</value>
+    <comment>Message after a fix was undone.</comment>
+  </data>
+  <data name="Doctor_Guide_Command_Name" xml:space="preserve">
+    <value>Command to copy</value>
+    <comment>Accessible name of the box with the command of a guide.</comment>
+  </data>
+  <data name="Doctor_Guide_Copy" xml:space="preserve">
+    <value>Copy</value>
+    <comment>Button that copies the command of a guide.</comment>
+  </data>
+  <data name="Doctor_Guide_OpenPage" xml:space="preserve">
+    <value>Open the official page</value>
+    <comment>Button that opens the official page of a guide.</comment>
+  </data>
+  <data name="Doctor_Guide_NotRun" xml:space="preserve">
+    <value>Agent Studio does not run this command. Copy it and run it yourself.</value>
+    <comment>Note under the command of a guide.</comment>
+  </data>
+  <data name="Doctor_Table_Declared" xml:space="preserve">
+    <value>What it asks for</value>
+    <comment>Column of the table of the declared environment.</comment>
+  </data>
+  <data name="Doctor_Table_Source" xml:space="preserve">
+    <value>Where it says so</value>
+    <comment>Column of the table of the declared environment.</comment>
+  </data>
+  <data name="Doctor_Table_Installed" xml:space="preserve">
+    <value>What you have</value>
+    <comment>Column of the table of the declared environment.</comment>
+  </data>
+  <data name="Doctor_Table_Result" xml:space="preserve">
+    <value>Result</value>
+    <comment>Column of the table of the declared environment.</comment>
+  </data>
+  <data name="Doctor_Fact_name" xml:space="preserve">
+    <value>Name</value>
+    <comment>Label of a fact.</comment>
+  </data>
+  <data name="Doctor_Fact_version" xml:space="preserve">
+    <value>Version</value>
+    <comment>Label of a fact.</comment>
+  </data>
+  <data name="Doctor_Fact_default_version" xml:space="preserve">
+    <value>Version of new distributions</value>
+    <comment>Label of a fact.</comment>
+  </data>
+  <data name="Doctor_Fact_path" xml:space="preserve">
+    <value>Location</value>
+    <comment>Label of a fact.</comment>
+  </data>
+  <data name="Doctor_Fact_count" xml:space="preserve">
+    <value>Count</value>
+    <comment>Label of a fact.</comment>
+  </data>
+  <data name="Doctor_Fact_client" xml:space="preserve">
+    <value>Client</value>
+    <comment>Label of a fact.</comment>
+  </data>
+  <data name="Doctor_Fact_server" xml:space="preserve">
+    <value>Engine</value>
+    <comment>Label of a fact.</comment>
+  </data>
+  <data name="Doctor_Fact_distribution" xml:space="preserve">
+    <value>Distribution</value>
+    <comment>Label of a fact.</comment>
+  </data>
+  <data name="Doctor_Fact_alias" xml:space="preserve">
+    <value>Store shortcut</value>
+    <comment>Label of a fact.</comment>
+  </data>
+  <data name="Doctor_Fact_inside_project" xml:space="preserve">
+    <value>Only found inside the project</value>
+    <comment>Label of a fact.</comment>
+  </data>
+  <data name="Doctor_Fact_folder" xml:space="preserve">
+    <value>Folder</value>
+    <comment>Label of a fact.</comment>
+  </data>
+  <data name="Doctor_Fact_missing" xml:space="preserve">
+    <value>Missing</value>
+    <comment>Label of a fact.</comment>
+  </data>
+  <data name="Doctor_Fact_tools" xml:space="preserve">
+    <value>Tools</value>
+    <comment>Label of a fact.</comment>
+  </data>
+  <data name="Doctor_Fact_steps" xml:space="preserve">
+    <value>Steps</value>
+    <comment>Label of a fact.</comment>
+  </data>
+  <data name="Doctor_Fact_branch" xml:space="preserve">
+    <value>Branch</value>
+    <comment>Label of a fact.</comment>
+  </data>
+  <data name="Doctor_Fact_entries" xml:space="preserve">
+    <value>Entries</value>
+    <comment>Label of a fact.</comment>
+  </data>
+  <data name="Doctor_Fact_sequence" xml:space="preserve">
+    <value>First broken entry</value>
+    <comment>Label of a fact.</comment>
+  </data>
+  <data name="Doctor_Fact_reason" xml:space="preserve">
+    <value>Reason</value>
+    <comment>Label of a fact.</comment>
+  </data>
+  <data name="Doctor_Fact_method" xml:space="preserve">
+    <value>Method</value>
+    <comment>Label of a fact.</comment>
+  </data>
+  <data name="Doctor_Fact_hook" xml:space="preserve">
+    <value>Hook</value>
+    <comment>Label of a fact.</comment>
+  </data>
+  <data name="Doctor_Fact_source" xml:space="preserve">
+    <value>Source</value>
+    <comment>Label of a fact.</comment>
+  </data>
+  <data name="Doctor_Fact_declared" xml:space="preserve">
+    <value>What it asks for</value>
+    <comment>Label of a fact.</comment>
+  </data>
+  <data name="Doctor_Fact_installed" xml:space="preserve">
+    <value>Installed</value>
+    <comment>Label of a fact.</comment>
+  </data>
+  <data name="Doctor_Fact_resolved" xml:space="preserve">
+    <value>Would be used</value>
+    <comment>Label of a fact.</comment>
+  </data>
+  <data name="Doctor_Check_Generic_Ok" xml:space="preserve">
+    <value>This check is correct.</value>
+    <comment>Fallback explanation.</comment>
+  </data>
+  <data name="Doctor_Check_Generic_Warning" xml:space="preserve">
+    <value>This check has a warning.</value>
+    <comment>Fallback explanation.</comment>
+  </data>
+  <data name="Doctor_Check_Generic_Error" xml:space="preserve">
+    <value>This check failed.</value>
+    <comment>Fallback explanation.</comment>
+  </data>
+  <data name="Doctor_Check_Generic_Unknown" xml:space="preserve">
+    <value>It could not be checked. That is not the same as correct.</value>
+    <comment>Fallback explanation.</comment>
+  </data>
+  <data name="Doctor_Check_Generic_NotApplicable" xml:space="preserve">
+    <value>This check does not apply here.</value>
+    <comment>Fallback explanation.</comment>
+  </data>
+  <data name="Doctor_Check_provider_install_Title" xml:space="preserve">
+    <value>Installation of {0}</value>
+    <comment>Title of the check of the installation of a program of an agent.</comment>
+  </data>
+  <data name="Doctor_Check_provider_install_Ok" xml:space="preserve">
+    <value>{0} is installed.</value>
+  </data>
+  <data name="Doctor_Check_provider_install_Warning" xml:space="preserve">
+    <value>{0} is not installed, or it is only inside the project.</value>
+  </data>
+  <data name="Doctor_Check_provider_install_Error" xml:space="preserve">
+    <value>The installation of {0} could not be checked.</value>
+  </data>
+  <data name="Doctor_Check_provider_install_NotApplicable" xml:space="preserve">
+    <value>{0} is parked: it does not count.</value>
+  </data>
+  <data name="Doctor_Check_provider_version_Title" xml:space="preserve">
+    <value>Version of {0}</value>
+    <comment>Title of the check of the version of a program of an agent.</comment>
+  </data>
+  <data name="Doctor_Check_provider_version_Ok" xml:space="preserve">
+    <value>You use version {1}.</value>
+  </data>
+  <data name="Doctor_Check_provider_version_Warning" xml:space="preserve">
+    <value>Version {1} is not tested with Agent Studio.</value>
+  </data>
+  <data name="Doctor_Check_provider_version_Unknown" xml:space="preserve">
+    <value>The version of {0} could not be read.</value>
+  </data>
+  <data name="Doctor_Check_provider_version_NotApplicable" xml:space="preserve">
+    <value>{0} is parked: it does not count.</value>
+  </data>
+  <data name="Doctor_Check_provider_session_Title" xml:space="preserve">
+    <value>Session of {0}</value>
+    <comment>Title of the check of the session of a program of an agent.</comment>
+  </data>
+  <data name="Doctor_Check_provider_session_Ok" xml:space="preserve">
+    <value>You are signed in.</value>
+  </data>
+  <data name="Doctor_Check_provider_session_Warning" xml:space="preserve">
+    <value>It is not known whether you are signed in.</value>
+  </data>
+  <data name="Doctor_Check_provider_session_Error" xml:space="preserve">
+    <value>You are not signed in.</value>
+  </data>
+  <data name="Doctor_Check_provider_session_NotApplicable" xml:space="preserve">
+    <value>{0} is parked: it does not count.</value>
+  </data>
+  <data name="Doctor_Check_dotnet_sdk_Title" xml:space="preserve">
+    <value>.NET SDK</value>
+  </data>
+  <data name="Doctor_Check_dotnet_sdk_Ok" xml:space="preserve">
+    <value>The newest .NET SDK is {0}.</value>
+  </data>
+  <data name="Doctor_Check_dotnet_sdk_Warning" xml:space="preserve">
+    <value>There is no .NET SDK installed outside the project.</value>
+  </data>
+  <data name="Doctor_Check_dotnet_sdk_Unknown" xml:space="preserve">
+    <value>The list of .NET SDKs could not be read.</value>
+  </data>
+  <data name="Doctor_Check_dotnet_runtime_Title" xml:space="preserve">
+    <value>.NET runtime</value>
+  </data>
+  <data name="Doctor_Check_dotnet_runtime_Ok" xml:space="preserve">
+    <value>The runtime to run .NET is installed.</value>
+  </data>
+  <data name="Doctor_Check_dotnet_runtime_Warning" xml:space="preserve">
+    <value>There is no .NET runtime installed outside the project.</value>
+  </data>
+  <data name="Doctor_Check_dotnet_runtime_Unknown" xml:space="preserve">
+    <value>The list of runtimes could not be read.</value>
+  </data>
+  <data name="Doctor_Check_node_Title" xml:space="preserve">
+    <value>Node</value>
+  </data>
+  <data name="Doctor_Check_node_Ok" xml:space="preserve">
+    <value>Node {0} is installed.</value>
+  </data>
+  <data name="Doctor_Check_node_Warning" xml:space="preserve">
+    <value>Node is not installed outside the project.</value>
+  </data>
+  <data name="Doctor_Check_node_Unknown" xml:space="preserve">
+    <value>The version of Node could not be read.</value>
+  </data>
+  <data name="Doctor_Check_npm_Title" xml:space="preserve">
+    <value>npm</value>
+  </data>
+  <data name="Doctor_Check_npm_Ok" xml:space="preserve">
+    <value>npm {0} is installed.</value>
+  </data>
+  <data name="Doctor_Check_npm_Warning" xml:space="preserve">
+    <value>npm is not installed outside the project.</value>
+  </data>
+  <data name="Doctor_Check_npm_Unknown" xml:space="preserve">
+    <value>The version of npm could not be read.</value>
+  </data>
+  <data name="Doctor_Check_python_Title" xml:space="preserve">
+    <value>Python</value>
+  </data>
+  <data name="Doctor_Check_python_Ok" xml:space="preserve">
+    <value>Python {0} is installed.</value>
+  </data>
+  <data name="Doctor_Check_python_Warning" xml:space="preserve">
+    <value>There is no Python installed outside the project.</value>
+  </data>
+  <data name="Doctor_Check_python_Unknown" xml:space="preserve">
+    <value>Python could not be checked. Windows may only have the Microsoft Store shortcut.</value>
+  </data>
+  <data name="Doctor_Check_git_Title" xml:space="preserve">
+    <value>Git</value>
+  </data>
+  <data name="Doctor_Check_git_Ok" xml:space="preserve">
+    <value>Git {0} is installed.</value>
+  </data>
+  <data name="Doctor_Check_git_Warning" xml:space="preserve">
+    <value>Git is only inside the project, so it is not used.</value>
+  </data>
+  <data name="Doctor_Check_git_Error" xml:space="preserve">
+    <value>Git is not installed. Agent Studio needs it.</value>
+  </data>
+  <data name="Doctor_Check_git_Unknown" xml:space="preserve">
+    <value>The version of Git could not be read.</value>
+  </data>
+  <data name="Doctor_Check_webview2_Title" xml:space="preserve">
+    <value>WebView2</value>
+  </data>
+  <data name="Doctor_Check_webview2_Ok" xml:space="preserve">
+    <value>WebView2 {0} is installed.</value>
+  </data>
+  <data name="Doctor_Check_webview2_Error" xml:space="preserve">
+    <value>WebView2 is not installed. The editor and the terminal need it.</value>
+  </data>
+  <data name="Doctor_Check_project_repository_Title" xml:space="preserve">
+    <value>Git repository</value>
+  </data>
+  <data name="Doctor_Check_project_repository_Ok" xml:space="preserve">
+    <value>The folder is a git repository.</value>
+  </data>
+  <data name="Doctor_Check_project_repository_Error" xml:space="preserve">
+    <value>The folder is not a git repository.</value>
+  </data>
+  <data name="Doctor_Check_project_git_layer_Title" xml:space="preserve">
+    <value>Safe git check</value>
+  </data>
+  <data name="Doctor_Check_project_git_layer_Ok" xml:space="preserve">
+    <value>Git accepts this repository.</value>
+  </data>
+  <data name="Doctor_Check_project_git_layer_Error" xml:space="preserve">
+    <value>Agent Studio does not accept this repository. Check its git folder.</value>
+  </data>
+  <data name="Doctor_Check_project_git_layer_NotApplicable" xml:space="preserve">
+    <value>Not checked: there is no repository.</value>
+  </data>
+  <data name="Doctor_Check_project_hooks_Title" xml:space="preserve">
+    <value>Git hooks</value>
+  </data>
+  <data name="Doctor_Check_project_hooks_Ok" xml:space="preserve">
+    <value>The repository has no hooks of its own.</value>
+  </data>
+  <data name="Doctor_Check_project_hooks_Warning" xml:space="preserve">
+    <value>The repository has hooks. Agent Studio does not run them.</value>
+  </data>
+  <data name="Doctor_Check_project_hooks_Unknown" xml:space="preserve">
+    <value>The hooks folder could not be read.</value>
+  </data>
+  <data name="Doctor_Check_project_hooks_NotApplicable" xml:space="preserve">
+    <value>Not checked: there is no repository.</value>
+  </data>
+  <data name="Doctor_Check_project_remotes_Title" xml:space="preserve">
+    <value>Remotes</value>
+  </data>
+  <data name="Doctor_Check_project_remotes_Ok" xml:space="preserve">
+    <value>Remotes configured: {0}.</value>
+  </data>
+  <data name="Doctor_Check_project_remotes_Unknown" xml:space="preserve">
+    <value>The remotes could not be read.</value>
+  </data>
+  <data name="Doctor_Check_project_remotes_NotApplicable" xml:space="preserve">
+    <value>Not checked: there is no repository.</value>
+  </data>
+  <data name="Doctor_Check_project_decision_log_Title" xml:space="preserve">
+    <value>History of the project</value>
+  </data>
+  <data name="Doctor_Check_project_decision_log_Ok" xml:space="preserve">
+    <value>The history is complete and unchanged: {0} entries.</value>
+  </data>
+  <data name="Doctor_Check_project_decision_log_Error" xml:space="preserve">
+    <value>The history does not match its chain. Look at it before going on.</value>
+  </data>
+  <data name="Doctor_Check_project_decision_log_Unknown" xml:space="preserve">
+    <value>The history could not be read.</value>
+  </data>
+  <data name="Doctor_Check_project_setup_Title" xml:space="preserve">
+    <value>Setup of the project</value>
+  </data>
+  <data name="Doctor_Check_project_setup_Ok" xml:space="preserve">
+    <value>You already used the configurator on this project.</value>
+  </data>
+  <data name="Doctor_Check_project_setup_Warning" xml:space="preserve">
+    <value>You have not used the configurator on this project yet.</value>
+  </data>
+  <data name="Doctor_Check_project_setup_Unknown" xml:space="preserve">
+    <value>It could not be read whether you used the configurator.</value>
+  </data>
+  <data name="Doctor_Check_project_verification_profile_Title" xml:space="preserve">
+    <value>Tests of the project</value>
+  </data>
+  <data name="Doctor_Check_project_verification_profile_Ok" xml:space="preserve">
+    <value>The tests of the project are defined: {0}.</value>
+  </data>
+  <data name="Doctor_Check_project_verification_profile_Warning" xml:space="preserve">
+    <value>The project has no tests defined.</value>
+  </data>
+  <data name="Doctor_Check_project_verification_profile_Error" xml:space="preserve">
+    <value>The test file of the project cannot be used.</value>
+  </data>
+  <data name="Doctor_Check_project_verification_profile_Unknown" xml:space="preserve">
+    <value>The test file could not be read.</value>
+  </data>
+  <data name="Doctor_Check_project_profile_local_tools_Title" xml:space="preserve">
+    <value>Programs of the project in the tests</value>
+  </data>
+  <data name="Doctor_Check_project_profile_local_tools_Warning" xml:space="preserve">
+    <value>The tests use programs of the project itself: {0}. Auto Doctor does not run them or count them as installed.</value>
+  </data>
+  <data name="Doctor_Check_project_profile_tools_Title" xml:space="preserve">
+    <value>Tools of the tests</value>
+  </data>
+  <data name="Doctor_Check_project_profile_tools_Ok" xml:space="preserve">
+    <value>Every tool of the tests is installed.</value>
+  </data>
+  <data name="Doctor_Check_project_profile_tools_Warning" xml:space="preserve">
+    <value>Some tools of the tests are missing: {1}.</value>
+  </data>
+  <data name="Doctor_Check_project_profile_tools_Unknown" xml:space="preserve">
+    <value>The tools could not be checked.</value>
+  </data>
+  <data name="Doctor_Check_project_profile_tools_NotApplicable" xml:space="preserve">
+    <value>There are no tests with tools to check.</value>
+  </data>
+  <data name="Doctor_Check_project_path_inside_Title" xml:space="preserve">
+    <value>Project folders in the PATH</value>
+  </data>
+  <data name="Doctor_Check_project_path_inside_Ok" xml:space="preserve">
+    <value>No folder of the project is in the PATH.</value>
+  </data>
+  <data name="Doctor_Check_project_path_inside_Warning" xml:space="preserve">
+    <value>The PATH has a folder of this project. What is in it is not used.</value>
+  </data>
+  <data name="Doctor_Check_docker_Title" xml:space="preserve">
+    <value>Docker</value>
+  </data>
+  <data name="Doctor_Check_docker_Ok" xml:space="preserve">
+    <value>Docker is running: engine {1}.</value>
+  </data>
+  <data name="Doctor_Check_docker_Warning" xml:space="preserve">
+    <value>Docker is installed, but its engine does not answer.</value>
+  </data>
+  <data name="Doctor_Check_docker_Error" xml:space="preserve">
+    <value>Docker is not installed.</value>
+  </data>
+  <data name="Doctor_Check_docker_Unknown" xml:space="preserve">
+    <value>The state of Docker could not be read.</value>
+  </data>
+  <data name="Doctor_Check_docker_NotApplicable" xml:space="preserve">
+    <value>The project does not use containers, so it is not needed.</value>
+  </data>
+  <data name="Doctor_Check_wsl_Title" xml:space="preserve">
+    <value>WSL 2</value>
+  </data>
+  <data name="Doctor_Check_wsl_Ok" xml:space="preserve">
+    <value>WSL has {0} as its default distribution. New ones use version {1}. This command does not say which version {0} uses.</value>
+  </data>
+  <data name="Doctor_Check_wsl_Warning" xml:space="preserve">
+    <value>WSL has no distribution of its own, or new ones use version 1.</value>
+  </data>
+  <data name="Doctor_Check_wsl_Error" xml:space="preserve">
+    <value>WSL is not installed.</value>
+  </data>
+  <data name="Doctor_Check_wsl_Unknown" xml:space="preserve">
+    <value>The state of WSL could not be read.</value>
+  </data>
+  <data name="Doctor_Check_wsl_NotApplicable" xml:space="preserve">
+    <value>The project does not use containers, so it is not needed.</value>
+  </data>
+  <data name="Doctor_Check_source_failed_Title" xml:space="preserve">
+    <value>A check failed</value>
+  </data>
+  <data name="Doctor_Check_source_failed_Error" xml:space="preserve">
+    <value>A part of Auto Doctor failed. Check again.</value>
+  </data>
+  <data name="Doctor_Fix_Generic" xml:space="preserve">
+    <value>Follow the steps of the guide and check again.</value>
+  </data>
+  <data name="Doctor_Fix_open_setup" xml:space="preserve">
+    <value>Open the configurator to define the tests and the team of the project.</value>
+  </data>
+  <data name="Doctor_Fix_install_dotnet" xml:space="preserve">
+    <value>Install the .NET SDK with the command below, or from the official page.</value>
+  </data>
+  <data name="Doctor_Fix_install_node" xml:space="preserve">
+    <value>Install Node with the command below, or from the official page.</value>
+  </data>
+  <data name="Doctor_Fix_install_python" xml:space="preserve">
+    <value>Install Python with the command below, or from the official page.</value>
+  </data>
+  <data name="Doctor_Fix_install_git" xml:space="preserve">
+    <value>Install Git with the command below, or from the official page.</value>
+  </data>
+  <data name="Doctor_Fix_install_webview2" xml:space="preserve">
+    <value>Install WebView2 with the command below, or from the official page.</value>
+  </data>
+  <data name="Doctor_Fix_install_docker" xml:space="preserve">
+    <value>Install Docker Desktop with the command below, or from the official page.</value>
+  </data>
+  <data name="Doctor_Fix_start_docker" xml:space="preserve">
+    <value>Open Docker Desktop and wait for its engine to start. Then check again.</value>
+  </data>
+  <data name="Doctor_Fix_install_wsl" xml:space="preserve">
+    <value>Install WSL with the command below. Windows will ask you to restart.</value>
+  </data>
+  <data name="Doctor_Fix_install_wsl_distribution" xml:space="preserve">
+    <value>Install a Linux distribution with the command below. Then check again.</value>
+  </data>
+  <data name="Doctor_Fix_install_provider" xml:space="preserve">
+    <value>Install {0} with the command below and check again.</value>
+  </data>
+  <data name="Doctor_Fix_login_provider" xml:space="preserve">
+    <value>Sign in to {0} with the command below in a terminal.</value>
+  </data>
+  <data name="Info_Doctor_Title" xml:space="preserve">
+    <value>Auto Doctor</value>
+  </data>
+  <data name="Info_Doctor_What" xml:space="preserve">
+    <value>Auto Doctor checks whether your computer is ready to work. It runs nothing of the project.</value>
+  </data>
+  <data name="Info_Doctor_Actions" xml:space="preserve">
+    <value>See the state of each section.
+Open a section to see its checks.
+Press «Check again» when you change something on your computer.</value>
+  </data>
+  <data name="Info_Doctor_Providers_Title" xml:space="preserve">
+    <value>Agent programs</value>
+  </data>
+  <data name="Info_Doctor_Providers_What" xml:space="preserve">
+    <value>Here you see whether each agent program is installed, which version it has and whether you are signed in.</value>
+  </data>
+  <data name="Info_Doctor_Providers_Actions" xml:space="preserve">
+    <value>Look at the row of each program.
+Open «Details» to see where it is installed.
+If something is missing, press «How to fix it».</value>
+  </data>
+  <data name="Info_Doctor_Tools_Title" xml:space="preserve">
+    <value>Tools of your computer</value>
+  </data>
+  <data name="Info_Doctor_Tools_What" xml:space="preserve">
+    <value>It checks .NET, Node, Python, Git and WebView2. It asks each one its version from an empty folder, outside your project.</value>
+  </data>
+  <data name="Info_Doctor_Tools_Actions" xml:space="preserve">
+    <value>See which version you have of each one.
+If one is missing, press «How to fix it».
+Copy the command and run it yourself: Agent Studio installs nothing.</value>
+  </data>
+  <data name="Info_Doctor_Project_Title" xml:space="preserve">
+    <value>Project</value>
+  </data>
+  <data name="Info_Doctor_Project_What" xml:space="preserve">
+    <value>It checks whether the folder is a repository, whether its history is complete and whether it has tests defined. It only reads; it runs nothing of the project.</value>
+  </data>
+  <data name="Info_Doctor_Project_Actions" xml:space="preserve">
+    <value>See which checks have a warning.
+Use «Go to…» to open the configurator.
+With no project open, this section does not appear.</value>
+  </data>
+  <data name="Info_Doctor_DeclaredEnvironment_Title" xml:space="preserve">
+    <value>What the project asks for</value>
+  </data>
+  <data name="Info_Doctor_DeclaredEnvironment_What" xml:space="preserve">
+    <value>It compares what the project says it needs with what you have installed. It only reads a few files of the project, as data.</value>
+  </data>
+  <data name="Info_Doctor_DeclaredEnvironment_Actions" xml:space="preserve">
+    <value>Read each row: what it asks for, where it says so and what there is.
+If something is missing, press «How to fix it».</value>
+  </data>
+  <data name="Info_Doctor_Containers_Title" xml:space="preserve">
+    <value>Containers</value>
+  </data>
+  <data name="Info_Doctor_Containers_What" xml:space="preserve">
+    <value>It checks whether Docker and WSL are ready. They only count as a problem if the project uses containers.</value>
+  </data>
+  <data name="Info_Doctor_Containers_Actions" xml:space="preserve">
+    <value>See whether the Docker engine is running.
+See whether WSL has a distribution.
+Agent Studio starts and installs nothing: the guide tells you what to do.</value>
   </data>
 </root>

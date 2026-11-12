@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using AgentStudio.Application.Diagnostics;
+using AgentStudio.Application.Providers;
 using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -46,16 +47,7 @@ public partial class ProviderDiagnosticsViewModel : ObservableObject
         ErrorMessage = null;
         try
         {
-            var results = await _diagnostics.RunAsync(CancellationToken.None);
-            Providers.Clear();
-            foreach (var result in results)
-            {
-                var item = ProviderStatusItem.From(result);
-                Providers.Add(_roots?.BroadRoots is { Count: > 0 } broad ? item.WithProjectTooBroad(broad[0]) : item);
-            }
-
-            IsEmpty = Providers.Count == 0;
-            LastCheckedAt = _timeProvider.GetLocalNow();
+            Apply(await _diagnostics.RunAsync(CancellationToken.None));
         }
 #pragma warning disable CA1031 // The UI must show any failure instead of crashing.
         catch (Exception ex)
@@ -67,6 +59,24 @@ public partial class ProviderDiagnosticsViewModel : ObservableObject
         {
             IsBusy = false;
         }
+    }
+
+    /// <summary>
+    /// Shows the results of a run of the probes that someone else made: Auto Doctor (docs/20 D-04) runs them once for all its checks and hands the same results
+    /// to the rows of the providers, so opening the panel does not launch every program twice. The summary of the top bar follows this list as it follows its own.
+    /// </summary>
+    public void Apply(IReadOnlyList<ProviderProbeResult> results)
+    {
+        ArgumentNullException.ThrowIfNull(results);
+        Providers.Clear();
+        foreach (var result in results)
+        {
+            var item = ProviderStatusItem.From(result);
+            Providers.Add(_roots?.BroadRoots is { Count: > 0 } broad ? item.WithProjectTooBroad(broad[0]) : item);
+        }
+
+        IsEmpty = Providers.Count == 0;
+        LastCheckedAt = _timeProvider.GetLocalNow();
     }
 
     private bool CanRefresh() => !IsBusy;

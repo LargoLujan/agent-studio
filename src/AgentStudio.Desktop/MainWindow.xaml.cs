@@ -1,4 +1,4 @@
-﻿using System.Collections.Specialized;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.IO;
 using System.Windows;
@@ -134,7 +134,7 @@ public partial class MainWindow : Window
         NameDockTabs();
         PrepareRightColumn();
         ExplorerPanel.DataContext = viewModel.Explorer;
-        AutoDoctorPanel.DataContext = viewModel.Diagnostics;
+        AutoDoctorPanel.DataContext = viewModel.Doctor;
         JournalPanel.DataContext = viewModel.Journal;
         ProblemsPanel.DataContext = viewModel.Problems;
         OutputPanel.DataContext = viewModel.Output;

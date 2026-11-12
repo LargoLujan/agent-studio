@@ -944,7 +944,7 @@ public abstract class DoctorFix   // closed hierarchy: the constructor is privat
 public delegate Task DoctorAction(ProjectContext? project, CancellationToken ct);
 public interface IDoctorFixRunner   // asks IApprovalGate for Approved fixes; records DoctorFixApplied
 {
-    Task<DoctorFixResult> ApplyAsync(DoctorFix fix, ProjectContext? project, CancellationToken ct);
+    Task<DoctorFixResult> ApplyAsync(DoctorFix fix, string checkCode, ProjectContext? project, CancellationToken ct);   // WP-A: checkCode, for the entry of the log
     Task UndoAsync(long appliedSequence, ProjectContext? project, CancellationToken ct);
 }
 ```
@@ -1468,11 +1468,27 @@ docs/19. Ninguno de ellos existe todavía. Esta fase usa el 0045 y propone 0061 
   el proceso aparte y el relanzamiento de D-18.
 - **Los límites del analizador con ficheros hostiles:** que un fichero con anidamiento extremo termine con un error y no con
   la caída del proceso. Por eso va en un proceso aparte.
-- **`wsl --status`:** que `WSL_UTF8=1` hace efecto en la versión de WSL de este equipo, sus códigos de salida y su texto en
-  castellano.
-- **`docker version --format json`:** la forma exacta con el motor parado en Docker Desktop, qué código de salida da, y
-  que con un `DOCKER_CONFIG` vacío responde por la tubería por defecto.
-- **Las claves del registro de WebView2:** las documenta Microsoft; falta probarlas en este equipo con instalación por usuario.
+- **`wsl --status`: comprobado por WP-A el 2026-11-12 en este equipo (Windows en castellano).** Sin `WSL_UTF8=1` la salida es UTF-16 y con él UTF-8; el código
+  de salida es 0 y el texto es «Distribución predeterminada: docker-desktop» y «Versión predeterminada: 2» (capturado: `tests/**/Diagnostics/Fixtures/real-wsl-status-es-docker-desktop-only.txt`).
+  **Hallazgo:** la única distribución de este equipo es la interna de Docker Desktop, que una persona no puede usar; el lector la trata como «sin distribución propia».
+  **Sin verificar:** el texto en inglés, el de «sin distribución» y el de WSL no instalado (fixtures `handmade-*`, escritos a mano), y con qué código falla
+  `wsl --status` si WSL no está instalado: el lector da «sin comprobar» ante cualquier código distinto de 0.
+- **`docker version --format json`: comprobado por WP-A el 2026-11-12 con Docker Desktop 27.3.1 y el motor parado**, con un `DOCKER_CONFIG` vacío: código de salida 1, y en la
+  salida estándar un JSON con `Client` y `"Server":null` (capturado). **Sin verificar:** el motor en marcha (fixture a mano con el mismo esquema) y que con el
+  motor en marcha un `DOCKER_CONFIG` vacío responda por la tubería por defecto.
+- **Las claves del registro de WebView2:** son las de Microsoft Learn («Distribute your app and the WebView2 Runtime», consultada el 2026-11-12); la prueba `LocalTools` las lee en este equipo
+  sin fallar. Falta probarlas con una instalación por usuario.
+- **Las guías (revisadas el 2026-11-13):** los identificadores de `winget` (`Microsoft.DotNet.SDK.10`, `OpenJS.NodeJS.LTS`, `Python.Python.3.13`, `Git.Git`, `Microsoft.EdgeWebView2Runtime`, `Docker.DockerDesktop`) se comprobaron con
+  `winget show --id … --exact` en este equipo, y las órdenes llevan `--id … --exact`. Las páginas son las finales, sin redirección (se comprobó con peticiones HEAD; `docs.anthropic.com` redirigía a `code.claude.com/docs/en/setup`).
+  Siguen sin comprobar `npm install -g @anthropic-ai/claude-code`, `@openai/codex` y `@google/gemini-cli`, `claude auth login` y `codex login`: ninguna se ejecuta, solo se copian y se abren a petición.
+- **Docker y el contexto:** con un `DOCKER_CONFIG` vacío el contexto es `default`, y un Docker Desktop puede escuchar solo en la tubería de su contexto `desktop-linux` (`npipe:////./pipe/dockerDesktopLinuxEngine`).
+  Si el contexto por defecto no muestra un motor, la puerta pregunta también a esa tubería (`DoctorTool.DockerVersionDesktopPipe`, `docker --host npipe:////./pipe/dockerDesktopLinuxEngine version --format json`, también con el `DOCKER_CONFIG` vacío: no se lee la configuración de la persona).
+  **No se pudo medir aquí** (el motor está parado en este equipo): cuál de las dos tuberías sirve cada contexto. **Prueba manual que lo cierra:** con Docker Desktop en marcha, ejecutar la prueba `LocalTools` de la puerta y comprobar que
+  `docker=Found` con `Server`; luego `docker context ls` para ver qué tubería usa `default`. Mientras el motor no responde, la pantalla dice «no responde», no «parado».
+- **WSL no instalado:** Microsoft documenta que sin WSL `wsl.exe` termina con un código distinto de cero y un mensaje (Learn, «WSL interop»), pero no documenta el código ni el texto. La puerta lee también el error estándar y reconoce el caso por la orden `--install`, que no se traduce,
+  sin ninguna línea con la versión por defecto; cualquier otra cosa que falle es «sin comprobar». **Sin verificar:** el texto real en un equipo sin WSL (la fixture `handmade-wsl-status-garbage.txt` es a mano). Prueba manual: en un equipo o una máquina virtual sin WSL, `wsl --status` y comprobar que el mensaje nombra `wsl.exe --install`.
+  `Default Version` es la versión de las distribuciones nuevas, no la de la distribución por defecto: la pantalla lo dice y no afirma «WSL 2».
+- **Python de la Tienda:** el `python.exe` real de la Tienda y el acceso directo vacío son el mismo tipo de fichero en la misma carpeta. Se mira si existe `%LOCALAPPDATA%\Packages\PythonSoftwareFoundation.Python.*` (solo nombres de carpeta): con él se pregunta como a cualquier Python; sin él no se arranca y sale «sin comprobar» con su explicación, porque un Python instalado y nunca ejecutado tampoco tiene esa carpeta.
 - **La API de GitHub:** que `commits?sha=…&path=…&per_page=1` da el último commit que tocó la carpeta también cuando `sha` es
   un commit y no una rama, y que un 304 no cuenta contra el límite sin token. Lo segundo
   lo dicen sus buenas prácticas (citadas en docs/16).

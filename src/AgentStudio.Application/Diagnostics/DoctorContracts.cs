@@ -83,6 +83,12 @@ public enum DoctorTool
 
     /// <summary><c>wsl --status</c>, with its output in UTF-8.</summary>
     WslStatus,
+
+    /// <summary>
+    /// <c>docker --host npipe:////./pipe/dockerDesktopLinuxEngine version --format json</c>: the same question to the pipe of the Linux engine of Docker Desktop, asked only
+    /// when the default context (the one an empty <c>DOCKER_CONFIG</c> gives) does not answer, so an engine that listens only there is not reported as stopped. WP-A added it.
+    /// </summary>
+    DockerVersionDesktopPipe,
 }
 
 /// <summary>How a question to a tool ended. A result is always one of these: the door never throws for a tool that is not there.</summary>
@@ -261,7 +267,8 @@ public sealed record DoctorFixResult(DoctorFixOutcome Outcome, long? AppliedSequ
 /// </summary>
 public interface IDoctorFixRunner
 {
-    Task<DoctorFixResult> ApplyAsync(DoctorFix fix, ProjectContext? project, CancellationToken ct);
+    /// <param name="checkCode">The code of the check the fix answers (<c>doctor.…</c>): the entry of the log names it. WP-A added it to the contract of the P0: without it the entry could not say which check was fixed.</param>
+    Task<DoctorFixResult> ApplyAsync(DoctorFix fix, string checkCode, ProjectContext? project, CancellationToken ct);
 
     /// <summary>Undoes the fix that left the entry <paramref name="appliedSequence"/>. Only a <see cref="DoctorFix.Reversible"/> one can be undone.</summary>
     Task UndoAsync(long appliedSequence, ProjectContext? project, CancellationToken ct);

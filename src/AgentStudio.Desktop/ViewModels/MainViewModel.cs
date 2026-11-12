@@ -9,6 +9,7 @@ using AgentStudio.Desktop.Audit;
 using AgentStudio.Desktop.Background;
 using AgentStudio.Desktop.Controls.Editor;
 using AgentStudio.Desktop.Debate;
+using AgentStudio.Desktop.Doctor;
 using AgentStudio.Desktop.Help;
 using AgentStudio.Desktop.Documents;
 using AgentStudio.Desktop.Memory;
@@ -180,7 +181,8 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         RepositoryViewModel? repository = null,
         WorkDocumentViewModel? workDocument = null,
         HeadTestsServices? headTests = null,
-        OpenProjectRoots? projectRoots = null)
+        OpenProjectRoots? projectRoots = null,
+        DoctorViewModel? doctor = null)
     {
         ArgumentNullException.ThrowIfNull(settingsStore);
         ArgumentNullException.ThrowIfNull(folderPicker);
@@ -256,6 +258,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         Tests.HeadTests = headTests?.For(() => ProjectPath);
         Tests.CurrentProject = () => ProjectPath;
         InitializeBuilderShell(monitors, setup, setupSuggestions);
+        InitializeDoctor(doctor);
     }
 
     public ProviderDiagnosticsViewModel Diagnostics { get; }

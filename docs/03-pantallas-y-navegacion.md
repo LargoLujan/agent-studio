@@ -1100,37 +1100,44 @@ plegada mientras no hay nada que enseñar:
 
 ## 7. Auto Doctor
 
-```text
-┌ Auto Doctor ─────────────────────────────────────────────────────────── [Volver a comprobar] ┐
-│ ● Claude Code   2.1.290   Sesión iniciada · claude.ai (suscripción)     C:\…\claude.exe       │
-│ ● Codex CLI     0.160.0   Sesión iniciada · ChatGPT                     C:\…\npm\codex.cmd    │
-│ ● Gemini CLI    —         No instalado                    [Cómo instalarlo]                   │
-│ ● .NET SDK      10.0.303  ● Git 2.45.2  ● Node 24.14  ● WebView2 Runtime (Fase 1)              │
-└──────────────────────────────────────────────────────────────────────────────────────────────┘
-```
-
-El boceto es el Auto Doctor completo (Fase 6). Hoy el panel solo comprueba los proveedores, y desde la tanda 1
-(2026-10-30) es compacto:
+Auto Doctor (Fase 6, [20](20-fase-6-auto-doctor-y-auto-graph.md) D-04 y §6.1, [ADR-0061](adr/0061-auto-doctor.md)) es el panel plegado a la derecha que mira si tu equipo está listo
+para trabajar en el proyecto. **Contiene** el panel de proveedores de antes: sus filas siguen como estaban, dentro del primer apartado.
 
 ```text
-┌ Proveedores                          [Volver a comprobar] ┐
-│ Última comprobación: 14:05:12                             │
-│ ● Claude Code  2.1.290 · Sesión iniciada              ›   │
-│ ● Codex CLI    0.160.0 · Sesión iniciada              ›   │
-│ ● Gemini CLI   Aparcado                               ⌄   │
-│   Aparcado (ADR-0009): sin una clave de API (GEMINI_…     │
-│   Instalación: … · Versión: … · Sesión: … · Método: …     │
-│   C:\…\npm\gemini.cmd · notas de la comprobación          │
-└───────────────────────────────────────────────────────────┘
+┌ Auto Doctor ⓘ ─────────────────────────────────────────────────────── [Volver a comprobar] ┐
+│ Última comprobación: 14:05:12                                                              │
+│ ! Programas de los agentes ⓘ                                                         ⌄     │
+│   2 de 3 correctas                                                                         │
+│   ● Claude Code  2.1.290 · Sesión iniciada                                           ›     │
+│   ● Codex CLI    0.160.0 · Sesión iniciada                                           ›     │
+│   ● Gemini CLI   Aparcado                                                            ›     │
+│   ! Instalación de Gemini CLI — no está instalado        [Cómo arreglarlo]                 │
+│ ✓ Herramientas del equipo ⓘ                                                          ›     │
+│   7 de 7 correctas                                                                         │
+│ ! Proyecto ⓘ                                                                         ⌄     │
+│   ! Configuración del proyecto — aún no usaste el configurador   [Ir a…]                   │
+│ ! Contenedores ⓘ                                                                     ⌄     │
+│   ! Docker — está instalado, pero su motor está parado          [Cómo arreglarlo]          │
+│     Abre Docker Desktop y espera a que su motor arranque.                                  │
+│ ✓ Entorno que pide el proyecto ⓘ (WP-E)                                              ›     │
+└────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-- Una fila por proveedor: su punto, su nombre y una línea con la versión y la sesión (o lo que falló). Lo demás
-  (instalación, método, ruta y notas) va plegado en «Detalles», el botón de la derecha de cada fila.
-- Gemini sale **«Aparcado»**, con un punto neutro, salvo que la comprobación vea una clave de API o una sesión
-  ([ADR-0009](adr/0009-google-aparcado.md)). Un proveedor aparcado no cuenta en el resumen de la barra superior.
-- El panel está plegado a la derecha por defecto. Se abre desde su pestaña, desde «Auto Doctor» en la barra lateral o
-  desde el resumen de proveedores de la barra superior («Proveedores: 2 de 2 listos»).
-
+- **Cinco apartados plegables** (programas de los agentes, herramientas del equipo, proyecto, entorno que pide el proyecto y contenedores): una fila por apartado con el peor
+  estado, su forma (✓ correcto, ! aviso, ✕ error, ? sin comprobar, – no aplica: no se dice solo con el color) y «n de m correctas». Se abre solo el que necesita una mirada. Un apartado
+  sin ninguna comprobación no sale (sin proyecto abierto no salen «Proyecto» ni «Entorno»). Cada apartado tiene su ⓘ, que enlaza con el artículo de ayuda `doctor`.
+- **Cada comprobación:** su estado, su título, una frase, un botón de arreglo si lo tiene y «Detalles» plegados con sus datos (versión, ruta…). «Sin comprobar» no es «correcto»: es que
+  la herramienta no contestó, tardó más de 10 s o dijo algo que no se entiende.
+- **Los arreglos son de tres clases y ninguno toca el sistema.** «Ir a…» abre una pantalla de la app (el configurador); solo se ofrece si la app puede abrirla.
+  «Cómo arreglarlo» abre una tarjeta con una frase, una **orden para copiar** (Agent Studio no la ejecuta) y un botón a la página oficial. «Aplicar» y «Deshacer» existen para un cambio de
+  Agent Studio que se pueda deshacer, y no hay ninguno registrado en la Fase 6.
+- **Cuándo comprueba:** al abrir el panel (y otra vez solo si pasó más de un minuto) y al pulsar «Volver a comprobar». Las sondas de los proveedores se lanzan **una vez** por comprobación y sus
+  resultados alimentan las filas de siempre. No hay sondeo periódico y el resultado no se guarda.
+- **La tabla del entorno que pide el proyecto** (cuatro columnas: qué pide, dónde lo dice, qué hay y el resultado) está en el panel; la rellena WP-E.
+- Las filas de los proveedores se conservan: una fila por proveedor con su punto, su nombre y una línea con la versión y la sesión; lo demás va en «Detalles». Gemini sale **«Aparcado»**, con
+  un punto neutro, salvo que la comprobación vea una clave de API o una sesión ([ADR-0009](adr/0009-google-aparcado.md)), y no cuenta en el resumen de la barra superior ni en el apartado.
+- El panel está plegado a la derecha por defecto. Se abre desde su pestaña, desde «Auto Doctor» en la barra lateral o desde el resumen de proveedores de la barra superior
+  («Proveedores: 2 de 2 listos»).
 ## 8. Navegación
 
 ```mermaid
