@@ -239,6 +239,295 @@ public sealed class TraceChainReaderTests
         }
     }
 
+    private static List<TraceRef> Nodes(TraceChain chain) => [.. chain.Steps.Select(s => s.Node)];
+
+    private static TraceRef T2 => TraceRef.Task(WorkWorld.Run1, "T2");
+
+    /// <summary>A run of two requirements, each with its own completed task.</summary>
+    private static async Task<WorkWorld> TwoRequirementsAsync()
+    {
+        var (world, _) = await StartedAsync();
+        await world.LaunchAsync(WorkWorld.Run1, "T1", 1);
+        await world.RunAndCompleteAsync(WorkWorld.Run1, "T1");
+        await world.LaunchAsync(WorkWorld.Run1, "T2", 1, agent: "ejecutor2");
+        await world.RunAndCompleteAsync(WorkWorld.Run1, "T2");
+        return world;
+    }
+
+    [Fact]
+    public async Task A_verdict_that_assessed_only_one_requirement_is_not_in_the_chain_of_the_other()
+    {
+        // Review of an independent check: the verdict of the review task hung from every task of the run, so the chain of R2 showed a rejection that only judged R1.
+        using var world = await TwoRequirementsAsync();
+        await world.VerdictAsync(WorkWorld.Run1, VerdictDecision.Rejected, task: "T7", assessing: ["R1"]);
+        var reader = Reader(world);
+
+        var fromR1 = Nodes(await reader.ChainAsync(world.Project, TraceRef.Requirement("R1"), Ct));
+        var fromR2 = Nodes(await reader.ChainAsync(world.Project, TraceRef.Requirement("R2"), Ct));
+        var fromT2 = Nodes(await reader.ChainAsync(world.Project, T2, Ct));
+
+        Assert.Contains(TraceRef.Verdict("v1"), fromR1);
+        Assert.DoesNotContain(TraceRef.Verdict("v1"), fromR2);
+        Assert.DoesNotContain(TraceRef.Verdict("v1"), fromT2);
+        Assert.DoesNotContain(T2, fromR1);
+        Assert.DoesNotContain(TraceRef.Requirement("R2"), fromR1);
+        Assert.Equal(fromR1.ToHashSet(), Nodes(await reader.ChainAsync(world.Project, TraceRef.Verdict("v1"), Ct)).ToHashSet());
+    }
+
+    [Fact]
+    public async Task A_verdict_with_no_assessments_judges_every_task_of_its_scope_and_one_on_an_ordinary_task_only_that_task()
+    {
+        using (var whole = await TwoRequirementsAsync())
+        {
+            await whole.VerdictAsync(WorkWorld.Run1, VerdictDecision.Approved, task: "T7", assessing: [], id: "whole");
+
+            Assert.Contains(TraceRef.Verdict("whole"), Nodes(await Reader(whole).ChainAsync(whole.Project, TraceRef.Requirement("R2"), Ct)));
+            Assert.Contains(TraceRef.Verdict("whole"), Nodes(await Reader(whole).ChainAsync(whole.Project, TraceRef.Requirement("R1"), Ct)));
+        }
+
+        using var world = await TwoRequirementsAsync();
+        await world.VerdictAsync(WorkWorld.Run1, VerdictDecision.Approved, task: "T1", id: "of-t1");
+        var reader = Reader(world);
+
+        Assert.DoesNotContain(TraceRef.Verdict("of-t1"), Nodes(await reader.ChainAsync(world.Project, TraceRef.Requirement("R2"), Ct)));
+        Assert.Contains(TraceRef.Verdict("of-t1"), Nodes(await reader.ChainAsync(world.Project, TraceRef.Requirement("R1"), Ct)));
+    }
+
+    [Fact]
+    public async Task The_chain_of_a_verdict_that_judged_two_requirements_is_the_same_from_either_of_them_and_from_the_verdict()
+    {
+        using var world = await TwoRequirementsAsync();
+        await world.VerdictAsync(WorkWorld.Run1, VerdictDecision.Approved, task: "T7");
+        var reader = Reader(world);
+
+        var fromR1 = Shape(await reader.ChainAsync(world.Project, TraceRef.Requirement("R1"), Ct));
+
+        Assert.Equal(fromR1, Shape(await reader.ChainAsync(world.Project, TraceRef.Requirement("R2"), Ct)));
+        Assert.Equal(fromR1, Shape(await reader.ChainAsync(world.Project, TraceRef.Verdict("v1"), Ct)));
+        Assert.Equal(fromR1, Shape(await reader.ChainAsync(world.Project, T1, Ct)));
+        Assert.Equal(fromR1, Shape(await reader.ChainAsync(world.Project, T2, Ct)));
+        Assert.Contains((TraceChainStage.Requirement, TraceRef.Requirement("R1")), fromR1);
+        Assert.Contains((TraceChainStage.Requirement, TraceRef.Requirement("R2")), fromR1);
+        Assert.Contains((TraceChainStage.Attempt, TraceRef.Attempt(WorkWorld.Run1, "T2", 1)), fromR1);
+    }
+
+    /// <summary>Two requirements, each with its task, attempt, diff, test run and commit; the integration task merged both and the run was delivered.</summary>
+    private static async Task<WorkWorld> DeliveredTwoRequirementsAsync(VerdictDecision decision, IReadOnlyList<string>? assessing, bool deliver)
+    {
+        var (world, _) = await StartedAsync();
+        await world.LaunchAsync(WorkWorld.Run1, "T1", 1);
+        await world.EvidenceAsync(WorkWorld.Run1, "T1", 1, EvidenceKind.CodeDiff, "diff1");
+        await world.EvidenceAsync(WorkWorld.Run1, "T1", 1, EvidenceKind.TestRun, "test1", CommitB);
+        await world.RunAndCompleteAsync(WorkWorld.Run1, "T1");
+        await world.LaunchAsync(WorkWorld.Run1, "T2", 1, agent: "ejecutor2");
+        await world.EvidenceAsync(WorkWorld.Run1, "T2", 1, EvidenceKind.CodeDiff, "diff2");
+        await world.EvidenceAsync(WorkWorld.Run1, "T2", 1, EvidenceKind.TestRun, "test2", CommitC);
+        await world.RunAndCompleteAsync(WorkWorld.Run1, "T2");
+        await world.VerdictAsync(WorkWorld.Run1, decision, task: "T7", assessing: assessing);
+        if (deliver)
+        {
+            await world.RecordAsync(WorkWorld.Run1, DecisionKind.IntegrationPerformed, new IntegrationPerformedPayload(AgentStudio.Tests.Domain.TestData.Tid("T3"), "agentstudio/run-1", [CommitB, CommitC], CommitA, [], false) { RunId = WorkWorld.Run1 });
+            await world.DeliverAsync(WorkWorld.Run1, CommitA);
+        }
+
+        return world;
+    }
+
+    private static IEnumerable<TraceRef> EveryNodeOfBothThreads() =>
+    [
+        TraceRef.Requirement("R1"), TraceRef.Requirement("R2"), T1, T2, Attempt(1), TraceRef.Attempt(WorkWorld.Run1, "T2", 1),
+        TraceRef.Commit(CommitB), TraceRef.Commit(CommitC), TraceRef.Evidence("diff1"), TraceRef.Evidence("test1"), TraceRef.Evidence("diff2"), TraceRef.Evidence("test2"),
+        TraceRef.Verdict("v1"), TraceRef.Commit(CommitA),
+    ];
+
+    [Fact]
+    public async Task The_chain_of_two_requirements_that_share_a_verdict_and_a_delivery_is_the_same_from_every_node_it_holds()
+    {
+        using var world = await DeliveredTwoRequirementsAsync(VerdictDecision.Approved, null, deliver: true);
+        var reader = Reader(world);
+
+        var whole = Shape(await reader.ChainAsync(world.Project, TraceRef.Requirement("R1"), Ct));
+
+        foreach (var node in EveryNodeOfBothThreads())
+        {
+            Assert.Equal(whole, Shape(await reader.ChainAsync(world.Project, node, Ct)));
+        }
+
+        Assert.Equal(14, whole.Count(step => step.Item1 != TraceChainStage.Milestone));
+        Assert.Contains((TraceChainStage.Requirement, TraceRef.Requirement("R2")), whole);
+    }
+
+    [Fact]
+    public async Task The_chain_of_a_verdict_that_judged_one_requirement_is_the_same_from_every_node_of_that_thread_and_the_other_thread_has_neither_the_verdict_nor_its_nodes()
+    {
+        using var world = await DeliveredTwoRequirementsAsync(VerdictDecision.Rejected, ["R1"], deliver: false);
+        var reader = Reader(world);
+        var theOther = new[] { TraceRef.Requirement("R2"), T2, TraceRef.Attempt(WorkWorld.Run1, "T2", 1), TraceRef.Commit(CommitC), TraceRef.Evidence("diff2"), TraceRef.Evidence("test2") };
+        var thread = new[] { TraceRef.Requirement("R1"), T1, Attempt(1), TraceRef.Commit(CommitB), TraceRef.Evidence("diff1"), TraceRef.Evidence("test1"), TraceRef.Verdict("v1") };
+
+        var first = Shape(await reader.ChainAsync(world.Project, TraceRef.Requirement("R1"), Ct));
+        var second = Shape(await reader.ChainAsync(world.Project, TraceRef.Requirement("R2"), Ct));
+
+        foreach (var node in thread)
+        {
+            Assert.Equal(first, Shape(await reader.ChainAsync(world.Project, node, Ct)));
+        }
+
+        foreach (var node in theOther)
+        {
+            Assert.Equal(second, Shape(await reader.ChainAsync(world.Project, node, Ct)));
+        }
+
+        Assert.DoesNotContain(first, step => theOther.Contains(step.Item2));
+        Assert.DoesNotContain(second, step => step.Item2 == TraceRef.Verdict("v1") || thread.Contains(step.Item2));
+    }
+
+    [Fact]
+    public async Task Several_verdicts_are_all_in_the_chain_in_order_and_only_the_last_is_in_force()
+    {
+        // A retry after a rejection: the board counts the last verdict, so the chain must not present the first as the one that stands.
+        using var world = await TwoRequirementsAsync();
+        // The ids are in the opposite order to the log on purpose: the verdicts come in the order they were issued, not by id.
+        await world.VerdictAsync(WorkWorld.Run1, VerdictDecision.Rejected, task: "T7", assessing: ["R1"], id: "z-first");
+        await world.VerdictAsync(WorkWorld.Run1, VerdictDecision.Approved, task: "T7", assessing: ["R1"], id: "a-second");
+        await world.VerdictAsync(WorkWorld.Run1, VerdictDecision.Approved, task: "T7", assessing: ["R2"], id: "other");
+
+        var chain = await Reader(world).ChainAsync(world.Project, TraceRef.Requirement("R1"), Ct);
+
+        var verdicts = chain.Steps.Where(s => s.Stage == TraceChainStage.Verdict).ToList();
+        Assert.Equal(["z-first", "a-second"], verdicts.Select(s => s.Node.Id));
+        Assert.Equal<TraceVerdictStanding?>([TraceVerdictStanding.Superseded, TraceVerdictStanding.InForce], verdicts.Select(s => s.Standing));
+        Assert.DoesNotContain(TraceRef.Verdict("other"), Nodes(chain));
+        Assert.All(chain.Steps.Where(s => s.Stage != TraceChainStage.Verdict), s => Assert.Null(s.Standing));
+    }
+
+    private static async Task ChallengeAsync(WorkWorld world, string verdict = "v1")
+    {
+        const string debate = "deb-20261111-aaaaaa";
+        await world.RecordAsync(WorkWorld.Run1, DecisionKind.VerdictChallenged, new VerdictChallengedPayload(verdict, "manuel", new AgentStudio.Domain.Common.EvidenceId("motivos"), new string('e', 64), debate) { RunId = WorkWorld.Run1 });
+        await world.RecordAsync(debate, DecisionKind.DebateOpened, new DebateOpenedPayload(
+            AgentStudio.Domain.Debate.DebateMode.Adversarial, new string('1', 64), new string('2', 64), new string('3', 64), new AgentStudio.Domain.Common.EvidenceId("pregunta"), new string('4', 64),
+            AgentStudio.Domain.Debate.DebateSubjectKind.Verdict, verdict, null, [], [], AgentStudio.Domain.Debate.DebateJudgingKind.IndependentJudge, [], [], 3, 600, null, 8, verdict) { RunId = debate });
+    }
+
+    [Fact]
+    public async Task A_verdict_whose_challenge_closed_with_another_decision_is_shown_revised_and_not_in_force()
+    {
+        using var world = await TwoRequirementsAsync();
+        await world.VerdictAsync(WorkWorld.Run1, VerdictDecision.Approved, task: "T7");
+        await ChallengeAsync(world);
+        const string debate = "deb-20261111-aaaaaa";
+        await world.VerdictAsync(debate, VerdictDecision.Rejected, id: "v2");
+        await world.RecordAsync(debate, DecisionKind.DebateClosed, new DebateClosedPayload(AgentStudio.Domain.Debate.DebateOutcome.Resolved, ["v2"], "judge", null, "cerrado") { RunId = debate });
+
+        var chain = await Reader(world).ChainAsync(world.Project, TraceRef.Requirement("R1"), Ct);
+
+        Assert.Equal(TraceVerdictStanding.Revised, chain.Steps.Single(s => s.Stage == TraceChainStage.Verdict).Standing);
+    }
+
+    [Fact]
+    public async Task A_verdict_whose_challenge_closed_confirming_it_is_in_force()
+    {
+        using var world = await TwoRequirementsAsync();
+        await world.VerdictAsync(WorkWorld.Run1, VerdictDecision.Approved, task: "T7");
+        await ChallengeAsync(world);
+        const string debate = "deb-20261111-aaaaaa";
+        await world.VerdictAsync(debate, VerdictDecision.Approved, id: "v2");
+        await world.RecordAsync(debate, DecisionKind.DebateClosed, new DebateClosedPayload(AgentStudio.Domain.Debate.DebateOutcome.Resolved, ["v2"], "judge", null, "cerrado") { RunId = debate });
+
+        var chain = await Reader(world).ChainAsync(world.Project, TraceRef.Requirement("R1"), Ct);
+
+        Assert.Equal(TraceVerdictStanding.InForce, chain.Steps.Single(s => s.Stage == TraceChainStage.Verdict).Standing);
+    }
+
+    [Fact]
+    public async Task The_verdict_of_a_follow_up_run_supersedes_that_of_the_run_it_follows_and_a_later_run_without_one_leaves_the_earlier_superseded()
+    {
+        // As on the board: where several runs cover a requirement, the last one that started decides.
+        const string followUp = "20261112-d4e5f6";
+        using var world = await TwoRequirementsAsync();
+        await world.VerdictAsync(WorkWorld.Run1, VerdictDecision.Rejected, task: "T7", id: "old");
+        await world.StartRunAsync(followUp, follows: WorkWorld.Run1);
+        var reader = Reader(world);
+
+        var withoutVerdict = await reader.ChainAsync(world.Project, TraceRef.Requirement("R1"), Ct);
+        Assert.Equal(TraceVerdictStanding.Superseded, withoutVerdict.Steps.Single(s => s.Stage == TraceChainStage.Verdict).Standing);
+
+        await world.VerdictAsync(followUp, VerdictDecision.Approved, task: "T7", id: "new");
+        var chain = await reader.ChainAsync(world.Project, TraceRef.Requirement("R1"), Ct);
+
+        Assert.Equal<(string, TraceVerdictStanding?)>([("old", TraceVerdictStanding.Superseded), ("new", TraceVerdictStanding.InForce)], chain.Steps.Where(s => s.Stage == TraceChainStage.Verdict).Select(s => (s.Node.Id, s.Standing)));    }
+
+    [Fact]
+    public async Task A_verdict_still_in_force_for_one_requirement_is_not_superseded_by_a_later_one_that_judged_another()
+    {
+        using var world = await TwoRequirementsAsync();
+        await world.VerdictAsync(WorkWorld.Run1, VerdictDecision.Approved, task: "T7", id: "both");
+        await world.VerdictAsync(WorkWorld.Run1, VerdictDecision.Rejected, task: "T7", assessing: ["R1"], id: "r1-again");
+
+        var chain = await Reader(world).ChainAsync(world.Project, TraceRef.Requirement("R1"), Ct);
+
+        var standings = chain.Steps.Where(s => s.Stage == TraceChainStage.Verdict).ToDictionary(s => s.Node.Id, s => s.Standing);
+        Assert.Equal(TraceVerdictStanding.InForce, standings["both"]);
+        Assert.Equal(TraceVerdictStanding.InForce, standings["r1-again"]);
+    }
+
+    [Fact]
+    public async Task A_challenged_verdict_that_is_the_last_is_shown_challenged_and_not_in_force()
+    {
+        using var world = await TwoRequirementsAsync();
+        await world.VerdictAsync(WorkWorld.Run1, VerdictDecision.Approved, task: "T7");
+        await ChallengeAsync(world);
+
+        var chain = await Reader(world).ChainAsync(world.Project, TraceRef.Requirement("R1"), Ct);
+
+        Assert.Equal(TraceVerdictStanding.Challenged, chain.Steps.Single(s => s.Stage == TraceChainStage.Verdict).Standing);
+    }
+
+    [Fact]
+    public async Task The_delivery_is_only_of_the_completed_tasks_the_integration_merged_not_a_failed_one_nor_a_branch_of_the_graph_it_does_not_depend_on()
+    {
+        // T3 integrates T1 and T2. T1 failed. T6 is a code task of another branch of the plan (it depends on T4, after the integration) that completed too.
+        var (world, _) = await StartedAsync();
+        using (world)
+        {
+            await world.LaunchAsync(WorkWorld.Run1, "T1", 1);
+            await world.TransitionAsync(WorkWorld.Run1, "T1", AgentStudio.Domain.Work.WorkTaskStatus.Pending, AgentStudio.Domain.Work.WorkTaskStatus.Running);
+            await world.TransitionAsync(WorkWorld.Run1, "T1", AgentStudio.Domain.Work.WorkTaskStatus.Running, AgentStudio.Domain.Work.WorkTaskStatus.Failed);
+            await world.RunAndCompleteAsync(WorkWorld.Run1, "T2");
+            await world.RunAndCompleteAsync(WorkWorld.Run1, "T6");
+            await world.RecordAsync(WorkWorld.Run1, DecisionKind.IntegrationPerformed, new IntegrationPerformedPayload(AgentStudio.Tests.Domain.TestData.Tid("T3"), "agentstudio/run-1", [CommitB], CommitC, [], false) { RunId = WorkWorld.Run1 });
+            await world.DeliverAsync(WorkWorld.Run1, CommitA);
+            var reader = Reader(world);
+
+            var fromDelivery = Nodes(await reader.ChainAsync(world.Project, TraceRef.Commit(CommitA), Ct));
+
+            Assert.Contains(T2, fromDelivery);
+            Assert.Contains(TraceRef.Requirement("R2"), fromDelivery);
+            Assert.DoesNotContain(T1, fromDelivery);
+            Assert.DoesNotContain(TraceRef.Task(WorkWorld.Run1, "T6"), fromDelivery);
+            Assert.DoesNotContain(TraceRef.Commit(CommitA), Nodes(await reader.ChainAsync(world.Project, TraceRef.Requirement("R1"), Ct)));
+            Assert.Contains(TraceRef.Commit(CommitA), Nodes(await reader.ChainAsync(world.Project, TraceRef.Requirement("R2"), Ct)));
+        }
+    }
+
+    [Fact]
+    public async Task An_integration_the_engine_did_not_accept_delivers_nothing()
+    {
+        // The engine records an integration it did not accept (failed, or its evidence could not be anchored) on the hidden candidate ref, even if it left a commit.
+        var (world, _) = await StartedAsync();
+        using (world)
+        {
+            await world.RunAndCompleteAsync(WorkWorld.Run1, "T1");
+            await world.RecordAsync(WorkWorld.Run1, DecisionKind.IntegrationPerformed, new IntegrationPerformedPayload(AgentStudio.Tests.Domain.TestData.Tid("T3"), $"refs/agentstudio/{WorkWorld.Run1}/_candidate/T3", [CommitB], CommitC, [], false) { RunId = WorkWorld.Run1 });
+            await world.DeliverAsync(WorkWorld.Run1, CommitA);
+
+            var chain = await Reader(world).ChainAsync(world.Project, TraceRef.Requirement("R1"), Ct);
+
+            Assert.DoesNotContain(chain.Steps, s => s.Stage == TraceChainStage.Delivery);
+        }
+    }
+
     [Fact]
     public async Task A_node_the_log_does_not_know_has_an_empty_chain_and_a_broken_log_is_not_read()
     {

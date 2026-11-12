@@ -144,7 +144,7 @@ public sealed class BoardProjector(
         var specs = plan.Tasks.ToDictionary(t => t.Id);
         var tasks = replay.Graph.Tasks
             .Where(t => specs.ContainsKey(t.Id))
-            .Select(t => new TaskFacts(t.Id, specs[t.Id].Title, t.Status, specs[t.Id].Covers, BlockedKind(entries, t.Id)))
+            .Select(t => new TaskFacts(t.Id, specs[t.Id].Title, t.Status, specs[t.Id].Covers, BlockedKind(entries, t.Id), specs[t.Id].Kind == WorkTaskKind.Review))
             .ToList();
         var finished = entries.Select(e => e.Payload).OfType<RunFinishedPayload>().LastOrDefault();
         var delivered = entries.Select(e => e.Payload).OfType<IntegrationPerformedPayload>().Any(p => p.IsDelivery && p.ResultCommit is not null && p.ConflictPaths.Count == 0);
@@ -159,29 +159,9 @@ public sealed class BoardProjector(
             }
         }
 
-        var standing = judged.Select(j => (j.Issued, j.Stored.Verdict, Standing: Standing(log, j.Stored, storedVerdicts))).ToList();
+        var standing = judged.Select(j => (j.Issued, j.Stored.Verdict, Standing: VerdictReach.Standing(log, j.Stored, storedVerdicts))).ToList();
         var lastStanding = standing.LastOrDefault(s => !s.Standing.Challenged);
         return new RunFacts(run, tasks, finished is not null, finished?.Phase is RunPhase.Failed or RunPhase.Cancelled, delivered, standing, lastStanding.Issued is null ? null : lastStanding.Standing.Decision);
-    }
-
-    /// <summary>What a person's challenge of a verdict leaves of it (docs/15 D-38 to D-40), from the verified log: see the class.</summary>
-    private static StandingOf Standing(IReadOnlyList<(DecisionEntry Entry, DecisionPayload? Payload)> log, StoredVerdict stored, IReadOnlyDictionary<string, StoredVerdict> storedVerdicts)
-    {
-        var decision = stored.Verdict.Decision;
-        var reading = ChallengeReader.Read(log, stored, storedVerdicts);
-        return reading.Status switch
-        {
-            ChallengeStatus.None => new StandingOf(decision, false),
-
-            // The revision confirmed the verdict (or, when none approved, settled the decision that stands) or withdrew an approval: its decision stands.
-            ChallengeStatus.Confirmed or ChallengeStatus.Revoked => new StandingOf(reading.Revised ?? decision, false),
-
-            // A person accepted a revision that turned towards an approval.
-            ChallengeStatus.Accepted => new StandingOf(VerdictDecision.Approved, false),
-
-            // Not closed, decided by the person («Decidir yo»: the entry does not say what they decided) or awaiting their acceptance: in review.
-            _ => new StandingOf(decision, true),
-        };
     }
 
     private static BlockKind? BlockedKind(IReadOnlyList<(DecisionEntry Entry, DecisionPayload Payload)> entries, TaskId task) =>
@@ -219,9 +199,7 @@ public sealed class BoardProjector(
         _ => null,
     };
 
-    private sealed record StandingOf(VerdictDecision Decision, bool Challenged);
-
-    private sealed record TaskFacts(TaskId Id, string Title, WorkTaskStatus Status, IReadOnlyList<RequirementId> Covers, BlockKind? Block);
+    private sealed record TaskFacts(TaskId Id, string Title, WorkTaskStatus Status, IReadOnlyList<RequirementId> Covers, BlockKind? Block, bool IsReview);
 
     private sealed record RequirementVerdict(BoardVerdictFacts Facts, bool Challenged);
 
@@ -231,23 +209,25 @@ public sealed class BoardProjector(
         bool Ended,
         bool Failed,
         bool Delivered,
-        IReadOnlyList<(VerdictIssuedPayload Issued, Verdict Verdict, StandingOf Standing)> Verdicts,
+        IReadOnlyList<(VerdictIssuedPayload Issued, Verdict Verdict, VerdictStanding Standing)> Verdicts,
         VerdictDecision? StandingDecision)
     {
         public IReadOnlyList<TaskFacts> Covering(RequirementId requirement) => [.. Tasks.Where(t => t.Covers.Contains(requirement))];
 
-        /// <summary>The last valid verdict that assessed the requirement, else the last valid one, with what it says of it.</summary>
+        /// <summary>The last valid verdict that judged the requirement (<see cref="VerdictReach"/>, the rule the chain and the participation share), with what it says of it.</summary>
         public RequirementVerdict? VerdictFor(RequirementId requirement)
         {
-            foreach (var (_, verdict, standing) in Verdicts.Reverse())
+            var covering = Covering(requirement);
+            foreach (var (issued, verdict, standing) in Verdicts.Reverse())
             {
-                if (verdict.Assessments.FirstOrDefault(a => a.Requirement == requirement) is { } assessment)
+                var onOrdinaryTask = issued.Task is { } one && Tasks.Any(t => t.Id == one && !t.IsReview);
+                if (covering.Any(t => VerdictReach.Judges(verdict, issued.Task, onOrdinaryTask, t.Id, requirement)))
                 {
-                    return new RequirementVerdict(new BoardVerdictFacts(standing.Decision, assessment.Status), standing.Challenged);
+                    return new RequirementVerdict(new BoardVerdictFacts(standing.Decision, verdict.Assessments.FirstOrDefault(a => a.Requirement == requirement)?.Status), standing.Challenged);
                 }
             }
 
-            return Verdicts.Count == 0 ? null : new RequirementVerdict(new BoardVerdictFacts(Verdicts[^1].Standing.Decision, null), Verdicts[^1].Standing.Challenged);
+            return null;
         }
     }
 }

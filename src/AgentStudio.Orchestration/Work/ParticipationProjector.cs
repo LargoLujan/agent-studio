@@ -5,7 +5,10 @@ using AgentStudio.Application.Projects;
 using AgentStudio.Application.Work;
 using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Evidence;
+using AgentStudio.Domain.Judging;
+using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Tracing;
+using AgentStudio.Domain.Work;
 using AgentStudio.Orchestration.Engine;
 
 namespace AgentStudio.Orchestration.Work;
@@ -25,9 +28,10 @@ namespace AgentStudio.Orchestration.Work;
 /// <item><b>Approver:</b> each person whose approval the log records as granted (<c>DecidedBy</c>), with what they approved.</item>
 /// <item><b>Integrator:</b> the local delivery that left a commit. The remote's <c>merged_by</c> is Phase 10.</item>
 /// </list>
-/// A task is a scope of its run: what has no task (a verdict of the run, the delivery) counts for every task of it.
+/// A task is a scope of its run: what has no task (the delivery) counts for every task of it. A verdict counts for a task by the rule the board and the chain share
+/// (<see cref="VerdictReach"/>): the verdicts that judged it, among them the one issued on the review task of the run if it assessed a requirement the task covers.
 /// </remarks>
-public sealed class ParticipationProjector(IDecisionRecorder recorder, IVerdictStore verdicts) : IParticipationProjector
+public sealed class ParticipationProjector(IDecisionRecorder recorder, IVerdictStore verdicts, IPlanStore plans) : IParticipationProjector
 {
     private const string SystemGit = "Agent Studio";
 
@@ -82,10 +86,17 @@ public sealed class ParticipationProjector(IDecisionRecorder recorder, IVerdictS
         }
 
         // Reviewer: each valid verdict's judge, and each review skipped.
-        foreach (var issued in payloads.OfType<VerdictIssuedPayload>().Where(v => v.Valid && Mine(v.RunId, v.Task?.Value)))
+        var planCache = new Dictionary<string, PlanDefinition?>(StringComparer.Ordinal);
+        foreach (var issued in payloads.OfType<VerdictIssuedPayload>().Where(v => v.Valid && v.RunId is not null && inScope.Contains(v.RunId)))
         {
             if (storedVerdicts.TryGetValue(issued.VerdictId, out var stored) && stored.Valid && stored.Verdict.Decision == issued.Decision)
             {
+                // The rule of the board and the chain (VerdictReach): for a task, the verdicts that judged it, including the one issued on the review task of the run.
+                if (onlyTask is not null && !await JudgedAsync(project.ProjectId, issued, stored.Verdict, onlyTask, payloads, planCache, cancellationToken).ConfigureAwait(false))
+                {
+                    continue;
+                }
+
                 var judge = stored.Verdict.Judge;
                 var line = $"{judge.Model.Vendor.Value} {judge.Model.Model ?? "-"}: {issued.Decision}";
                 all.Add(new ParticipationEntry(ParticipationRole.Reviewer, judge.Agent.Value, line, ParticipationSources.Verdict));
@@ -125,6 +136,25 @@ public sealed class ParticipationProjector(IDecisionRecorder recorder, IVerdictS
         // The same who for the same role and detail once; the roles in the order of D-32.
         var distinct = all.DistinctBy(e => (e.Role, e.Who, e.Detail, e.Source)).OrderBy(e => e.Role).ToList();
         return new ParticipationView(subject, distinct);
+    }
+
+    /// <summary>Whether the verdict judged the task by <see cref="VerdictReach"/>, from the plan of its run; without that plan only its own task counts (none: the run).</summary>
+    private async Task<bool> JudgedAsync(string projectId, VerdictIssuedPayload issued, Verdict verdict, string task, IReadOnlyList<DecisionPayload> payloads, Dictionary<string, PlanDefinition?> cache, CancellationToken cancellationToken)
+    {
+        if (!cache.TryGetValue(issued.RunId!, out var plan))
+        {
+            var started = payloads.OfType<RunStartedPayload>().FirstOrDefault(p => string.Equals(p.RunId, issued.RunId, StringComparison.Ordinal));
+            cache[issued.RunId!] = plan = started is null ? null : await plans.FindAsync(projectId, started.PlanHash, cancellationToken).ConfigureAwait(false);
+        }
+
+        var spec = plan?.Tasks.FirstOrDefault(t => string.Equals(t.Id.Value, task, StringComparison.Ordinal));
+        if (spec is null)
+        {
+            return issued.Task is not { } one || string.Equals(one.Value, task, StringComparison.Ordinal);
+        }
+
+        var onOrdinaryTask = issued.Task is { } issuedOn && plan!.Tasks.Any(t => t.Id == issuedOn && t.Kind != WorkTaskKind.Review);
+        return VerdictReach.Judges(verdict, issued.Task, onOrdinaryTask, spec.Id, spec.Covers);
     }
 
     /// <summary>The run and the task of an entry with a free-form payload (<c>ReviewSkipped</c>).</summary>

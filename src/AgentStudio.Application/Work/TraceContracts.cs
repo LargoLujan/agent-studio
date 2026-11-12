@@ -50,8 +50,24 @@ public enum TraceChainStage
     Delivery,
 }
 
-/// <summary>One step of the chain: the node, what stage it is and whether it comes from a suggestion nobody confirmed (shown as such).</summary>
-public sealed record TraceChainStep(TraceChainStage Stage, TraceRef Node, string? Title, bool Suggested);
+/// <summary>
+/// Where a verdict of the chain stands (docs/15 D-38 to D-40): the one in force for the work it judged, one a later verdict replaced (a retry after a rejection, a revision, a
+/// follow-up run), the latest one while a person's challenge keeps it in review, or the latest one whose challenge closed with another decision than its own (a withdrawn
+/// approval, an approval a person accepted). A superseded, challenged or revised verdict is never shown as the one that stands.
+/// </summary>
+public enum TraceVerdictStanding
+{
+    InForce,
+    Superseded,
+    Challenged,
+    Revised,
+}
+
+/// <summary>
+/// One step of the chain: the node, what stage it is and whether it comes from a suggestion nobody confirmed (shown as such). <paramref name="Standing"/> is set only on
+/// the verdicts (null on every other step).
+/// </summary>
+public sealed record TraceChainStep(TraceChainStage Stage, TraceRef Node, string? Title, bool Suggested, TraceVerdictStanding? Standing = null);
 
 /// <summary>The chain from a node, read from the verified log in both directions.</summary>
 public sealed record TraceChain(TraceRef Start, IReadOnlyList<TraceChainStep> Steps);

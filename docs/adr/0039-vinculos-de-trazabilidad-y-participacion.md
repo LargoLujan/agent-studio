@@ -57,3 +57,17 @@
 - **Trailers.** El commit del sistema de un intento los escribe con `CommitTrailers.Append`. Los commits de integración y del intento interrumpido siguen con sus líneas
   antiguas, que no se leen como trailers del sistema.
 - **Pendiente de WP1.** `ITraceChainReader`, `IParticipationProjector`, `IRepositoryAnnotator` e `IRepositoryActivityReader` no se han hecho en este paquete.
+
+## Adenda del ajuste de la cadena · 2026-11-12
+
+- **Una sola regla para el veredicto** (VerdictReach): el tablero, la cadena y la participación deciden con ella a qué tareas y requisitos alcanza un veredicto. Dentro de su
+  alcance (la tarea sobre la que se emitió si es corriente; la ejecución si se emitió sobre la tarea de revisión o sobre ninguna) juzga una tarea solo si evaluó un requisito que
+  cubre, y un requisito solo si lo evaluó; sin evaluaciones por requisito, juzga todo su alcance. Corrige la cadena, que colgaba el veredicto de la tarea de revisión de todas las
+  tareas de la ejecución, y la participación, que no se lo atribuía a la tarea ejecutora.
+- **Varios veredictos (D-38 a D-40).** La cadena los enseña todos, en el orden del registro, con `TraceChainStep.Standing`: en vigor, sustituido, impugnado o revisado. Está en
+  vigor el último que juzgó cada requisito (como el tablero) y, si varias ejecuciones lo cubren, el de la última que empezó; un veredicto impugnado que es el último queda
+  impugnado hasta que cierre su revisión, y revisado si esta cerró con otra decisión que la suya. Nunca se enseña como vigente uno que no lo es. Es un campo opcional nuevo, sin
+  romper el contrato.
+- **El veredicto y la entrega son nodos compartidos**: la cadena es la misma desde cualquiera de los nodos que contiene, y la unidad es la tarea (límite conocido: una tarea que
+  cubre dos requisitos lleva el veredicto que evaluó cualquiera de ellos).- **La entrega** solo cuenta tareas fusionadas de verdad: una integración que el motor no aceptó (destino en la ref candidata oculta) no entrega nada, y la clausura por
+  prerrequisitos no pasa por tareas que producen código y no completaron.

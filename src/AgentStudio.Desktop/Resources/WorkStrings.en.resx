@@ -487,6 +487,18 @@ Center the chain on any node.</value>
   <data name="Work_Chain_Suggested" xml:space="preserve">
     <value>Inferred, not confirmed.</value>
   </data>
+  <data name="Work_Chain_Standing_InForce" xml:space="preserve">
+    <value>In force.</value>
+  </data>
+  <data name="Work_Chain_Standing_Superseded" xml:space="preserve">
+    <value>Superseded by a later verdict.</value>
+  </data>
+  <data name="Work_Chain_Standing_Challenged" xml:space="preserve">
+    <value>Challenged: under review.</value>
+  </data>
+  <data name="Work_Chain_Standing_Revised" xml:space="preserve">
+    <value>Revised: the decision of the revision stands.</value>
+  </data>
   <data name="Work_Chain_NoLink" xml:space="preserve">
     <value>No link: the app has nowhere to open it.</value>
   </data>

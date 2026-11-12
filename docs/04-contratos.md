@@ -2213,11 +2213,33 @@ en otro grupo de la dimensión (un hito), de modo que los grupos pueden sumar m�
   (espera a que `IRunActivity` deje libre el proyecto y toma la puerta del proyecto, como la memoria). Los almacenes son `SqliteMilestoneRegistry` y
   `SqliteBacklogStore`, y las cuatro piezas de lectura que siguen (todas leen el registro verificado y fallan cerrado con `DecisionLogIntegrityException` si no lo está):
   - `TraceChainReader` (`ITraceChainReader`; recibe `IVerdictStore`): la cadena requisito, hito, tarea, intento, cambio (diff y commit), verificación, veredicto y entrega es la
-    misma arranques desde el nodo que arranques (requisito, tarea, intento, commit, prueba, veredicto o entrega). El veredicto cuelga de la tarea que juzgó (o de todas las de la
-    ejecución si no dice cuál) y solo cuenta si es válido en el registro y en el almacén con la misma decisión; la entrega, solo de las tareas entregadas (completadas e, si el
-    registro anota integraciones de tareas, integradas). Nada inferido entra: `TraceChainStep.Suggested` siempre es `false`.
-  - `ParticipationProjector` (`IParticipationProjector`): los seis papeles de D-32 por tarea, ejecución o hito; el revisor es el juez del almacén del veredicto válido que el
-    registro anuncia, y una revisión omitida no se atribuye a nadie (`ParticipationSources.SkippedReview`); una tarea sin la forma `ejecución/tarea` se rechaza con `ArgumentException`.
+    misma arranques desde el nodo que arranques (requisito, tarea, intento, commit, prueba, veredicto o entrega). Un veredicto solo cuenta si es válido en el registro y en el almacén con
+    la misma decisión; la entrega, solo de las tareas entregadas (ver más abajo). Nada inferido entra: `TraceChainStep.Suggested` siempre es `false`.
+  - **A qué cuelga un veredicto: una sola regla** (`VerdictReach`, interna de `Orchestration/Work`; la usan el tablero, la cadena y la participación, de modo que no pueden
+    contar historias distintas). El alcance: un veredicto emitido sobre una tarea corriente del plan juzgó esa tarea; uno emitido sobre la tarea de revisión (el motor emite el de la
+    ejecución ahí, y no cubre requisitos), sin tarea, o sobre una tarea que el plan no tiene (la tarea del juez de una revisión, D-40, que conserva la ejecución del impugnado) juzgó
+    el trabajo de la ejecución. Dentro de su alcance, juzga una tarea solo si evaluó (`Verdict.Assessments`) un requisito que la tarea cubre, y un requisito solo si lo evaluó; un
+    veredicto sin evaluaciones por requisito juzga todas las tareas y requisitos de su alcance. Un veredicto que evaluó solo R1 no está en la cadena de R2 ni en el tablero de R2.
+    **Límite conocido:** la unidad de la cadena es la tarea, así que una tarea que cubre R1 y R2 lleva el veredicto que evaluó cualquiera de los dos (el tablero, por requisito,
+    lo dice más fino).
+  - **La cadena es la misma desde cualquier nodo que contiene.** El veredicto y la entrega son nodos compartidos: todas las tareas de las que cuelgan, con sus requisitos y su
+    trabajo, están en la cadena desde cualquiera de ellos. Un veredicto que juzgó R1 y R2 da una sola cadena desde R1, R2, sus tareas, intentos, commits, pruebas, el veredicto
+    y la entrega; uno que solo juzgó R1 (y sin entrega compartida) deja R2 fuera, y la cadena de R2 no lo tiene.
+  - **Varios veredictos** sobre el mismo trabajo (un reintento tras un `Rejected`, una impugnación y su revisión, el seguimiento de una ejecución), según D-38 a D-40: la cadena
+    los enseña todos, **en el orden del registro**, y `TraceChainStep.Standing` (`TraceVerdictStanding`, solo en los pasos de veredicto) dice cuál está en vigor (`InForce`: como en
+    el tablero, el último que juzgó el requisito, y si varias ejecuciones lo cubren, el de la última que empezó), cuál fue sustituido (`Superseded`: ya no decide ningún
+    requisito; también el de una ejecución anterior si la posterior cubre el requisito aunque aún no tenga veredicto), cuál es el último pero está impugnado (`Challenged`: en
+    revisión hasta que cierre su debate; la regla es la de `ChallengeReader`) y cuál es el último pero su impugnación cerró con otra decisión que la suya (`Revised`: una
+    aprobación retirada o aceptada por la persona; manda la decisión de la revisión). Nunca se presenta como vigente uno que no lo es.
+  - **La entrega en la cadena.** `IntegrationPerformed` con tarea (la tarea de integración, I1) cuenta solo si el motor la aceptó (la rama de la ejecución como destino, no la
+    ref candidata oculta `refs/agentstudio/<ejecución>/_candidate/<tarea>` donde deja la que no aceptó aunque dejara commit), con commit y sin conflicto. Fusionó el código de las
+    tareas completadas que producen código y de las que depende (`RunContext.ProducesCode`), pasando a través de las que no lo producen (condición, aprobación, revisión), y de
+    aquello sobre lo que se construyeron; una tarea fallida u omitida, lo que solo se alcanza por ella, o una tarea que no es prerrequisito de la integración (otra rama del grafo)
+    no estaba fusionada y no queda entregada. `Sources` de la carga son los commits que el sistema verificó, no tareas, así que la comprobación se hace por el grafo del plan.
+  - `ParticipationProjector` (`IParticipationProjector`, recibe `IVerdictStore` e `IPlanStore`): los seis papeles de D-32 por tarea, ejecución o hito; el revisor es el juez del
+    almacén del veredicto válido que el registro anuncia, y para una tarea cuentan los veredictos que la juzgaron por la regla de arriba (también el de la tarea de revisión de la
+    ejecución, si evaluó un requisito que la tarea cubre); una revisión omitida no se atribuye a nadie (`ParticipationSources.SkippedReview`); una tarea sin la forma
+    `ejecución/tarea` se rechaza con `ArgumentException`. Sin el plan de la ejecución en el almacén solo cuenta el veredicto de esa tarea o el que no nombra ninguna.
   - `RepositoryAnnotator` (`IRepositoryAnnotator`): un commit es «del sistema» solo si sus trailers nombran un intento del registro **y** el registro anotó ese mismo commit
     para el intento (`SubjectCommit` de una evidencia suya); un cherry-pick, un rebase o un mensaje copiado no se atribuyen, a lo sumo son una sugerencia.
   - `RepositoryActivityReader` (`IRepositoryActivityReader`): integraciones, entregas y limpiezas de worktree, de la más antigua a la más nueva, con su resultado real
@@ -2235,7 +2257,16 @@ en otro grupo de la dimensión (un hito), de modo que los grupos pueden sumar m�
   sus líneas antiguas, que `CommitTrailers.Read` lee como ninguna (el sistema no las toma por trailers).
 - **Tablero:** un veredicto cuenta si el registro lo anunció válido y el almacén lo guarda válido y con la misma decisión; uno impugnado se aparta (revisión) hasta que
   su debate de revisión cierra resuelto: si confirma la decisión se queda, si retira una aprobación manda la de la revisión, y si vuelve hacia una aprobación la tarjeta
-  sigue en revisión (la acepta una persona, D-40). Si varias ejecuciones cubren un requisito decide la última que empezó.
+  sigue en revisión (la acepta una persona, D-40). Si varias ejecuciones cubren un requisito decide la última que empezó. Dentro de la ejecución decide el último veredicto que
+  juzgó el requisito por la regla compartida (`VerdictReach`); ya no cae al último veredicto cualquiera cuando ninguno evaluó ese requisito: sin veredicto que lo juzgue, la
+  tarjeta no tiene veredicto.
+- **Un cambio de contrato (ajuste de la cadena):** `TraceChainStep` gana `Standing` (`TraceVerdictStanding?`, opcional, al final): en vigor, sustituido, impugnado o revisado, solo en los
+  pasos de veredicto. «Cadena» lo enseña bajo el veredicto.
+- **«Participantes» (escritorio):** `ParticipationSection` ya leía con el patrón de generación de las demás secciones (`BeginRead`/`IsLatest`) al pedir la proyección; se añade que
+  cambiar de proyecto invalida la lectura en vuelo, y `WorkSection.GuardAsync` acepta la lectura a la que pertenece (`read:`) para que el error de una lectura vieja que termina
+  tarde no tape ni borre el de la más nueva: al cambiar el foco y elegir el sujeto hay dos lecturas, y manda la última que se pidió, no la última en terminar.
+- **Tablero, cambio de comportamiento:** `VerdictFor` ya no cae a «el último veredicto cualquiera» cuando ninguno evaluó el requisito (la tarjeta se queda sin veredicto), para no
+  divergir de la cadena. Un veredicto emitido sobre una tarea que el plan no tiene (la del juez de una revisión) cuenta como del trabajo de la ejecución.
 
 ### 23.7 Lo que WP5 hizo con estos contratos (escritorio)
 

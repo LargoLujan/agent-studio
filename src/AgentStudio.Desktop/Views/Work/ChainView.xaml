@@ -37,6 +37,8 @@
                             <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding NodeText}"/>
                             <TextBlock Style="{StaticResource BodyText}" FontSize="12" Foreground="{StaticResource WarningBrush}" Text="{Binding SuggestedText, TargetNullValue=''}"
                                        Visibility="{Binding IsSuggested, Converter={StaticResource Work.BoolToVisibility}}"/>
+                            <TextBlock Style="{StaticResource BodyText}" FontSize="12" Text="{Binding StandingText, TargetNullValue=''}"
+                                       Visibility="{Binding HasStanding, Converter={StaticResource Work.BoolToVisibility}}"/>
                             <TextBlock Style="{StaticResource SecondaryText}" Text="{l:T Work_Chain_NoLink}"
                                        Visibility="{Binding HasNoLink, Converter={StaticResource Work.BoolToVisibility}}"/>
                             <WrapPanel Margin="0,4,0,0">

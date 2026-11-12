@@ -82,6 +82,104 @@ public sealed class WorkParticipationViewModelTests
         Assert.Equal(6, test.Document.Participation.Roles.Count);
     }
 
+    /// <summary>A projector that answers each call only when the test lets it, and says in the answer which subject it was asked about.</summary>
+    private sealed class GatedParticipation : IParticipationProjector
+    {
+        public List<(TraceRef Subject, TaskCompletionSource<bool> Gate)> Calls { get; } = [];
+
+        public async Task<ParticipationView> ProjectAsync(AgentStudio.Application.Projects.ProjectContext project, TraceRef subject, CancellationToken cancellationToken)
+        {
+            TaskCompletionSource<bool> gate = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            lock (Calls)
+            {
+                Calls.Add((subject, gate));
+            }
+
+            await gate.Task.WaitAsync(cancellationToken);
+            return new ParticipationView(subject, [new ParticipationEntry(ParticipationRole.Reviewer, subject.Id, null, ParticipationSources.Verdict)]);
+        }
+
+        public async Task WaitForCallsAsync(int count, CancellationToken cancellationToken)
+        {
+            while (true)
+            {
+                lock (Calls)
+                {
+                    if (Calls.Count >= count)
+                    {
+                        return;
+                    }
+                }
+
+                await Task.Delay(10, cancellationToken);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData(true, false, false)]
+    [InlineData(false, false, false)]
+    [InlineData(true, true, false)]
+    [InlineData(false, true, false)]
+    [InlineData(true, false, true)]
+    [InlineData(false, false, true)]
+    public async Task Two_overlapping_reads_show_the_one_asked_last_and_its_error_whichever_ends_last(bool theFirstEndsLast, bool theFirstFails, bool theSecondFails)
+    {
+        var gated = new GatedParticipation();
+        using var withTimeout = CancellationTokenSource.CreateLinkedTokenSource(WorkTestWorld.Ct);
+        withTimeout.CancelAfter(TimeSpan.FromSeconds(30));
+        using var test = await WorkTestWorld.OpenAsync((_, backend) => backend with { Participation = gated });
+        await test.World.StartRunAsync();
+
+        // The focus changes (the task is selected: first read) and the person then selects the run (second read) before the first one answers.
+        test.Document.Context.LookAt(TraceRef.Attempt(WorkWorld.Run1, "T1", 1));
+        await gated.WaitForCallsAsync(1, withTimeout.Token);
+        var participation = test.Document.Participation;
+        participation.SelectedSubject = participation.Subjects.Single(s => s.Value.Kind == TraceNodeKind.Run);
+        await gated.WaitForCallsAsync(2, withTimeout.Token);
+        var (first, second) = (gated.Calls[0], gated.Calls[1]);
+        Assert.Equal(TraceNodeKind.Task, first.Subject.Kind);
+        Assert.Equal(TraceNodeKind.Run, second.Subject.Kind);
+
+        void End(TaskCompletionSource<bool> gate, bool fails)
+        {
+            if (fails)
+            {
+                gate.SetException(new InvalidOperationException("la lectura falló"));
+            }
+            else
+            {
+                gate.SetResult(true);
+            }
+        }
+
+        if (theFirstEndsLast)
+        {
+            End(second.Gate, theSecondFails);
+            await Task.Delay(100, withTimeout.Token);
+            End(first.Gate, theFirstFails);
+        }
+        else
+        {
+            End(first.Gate, theFirstFails);
+            await Task.Delay(100, withTimeout.Token);
+            End(second.Gate, theSecondFails);
+        }
+
+        await Task.Delay(200, withTimeout.Token);
+
+        // What the read asked last says is what is shown, its roles or its error, and what an older one that ended later found changes nothing.
+        Assert.Equal(theSecondFails, participation.HasError);
+        if (theSecondFails)
+        {
+            Assert.Empty(participation.Roles);
+        }
+        else
+        {
+            Assert.Equal(second.Subject.Id, Assert.Single(participation.Roles).Entry.Who);
+        }
+    }
+
     [Fact]
     public async Task Every_role_and_source_the_projector_can_give_has_a_text()
     {

@@ -38,7 +38,7 @@ internal sealed class WorkTestWorld : IDisposable
             world.Trace,
             null,
             new TraceChainReader(world.Instance.Recorder, world.Instance.Requirements, world.Instance.Plans, world.Instance.Verdicts),
-            new ParticipationProjector(world.Instance.Recorder, world.Instance.Verdicts),
+            new ParticipationProjector(world.Instance.Recorder, world.Instance.Verdicts, world.Instance.Plans),
             Budgets,
             null,
             world.Instance.Runs,

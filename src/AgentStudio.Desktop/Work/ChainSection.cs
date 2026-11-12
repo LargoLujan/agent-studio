@@ -40,6 +40,18 @@ public sealed class ChainStepViewModel
 
     public bool IsSuggested => Step.Suggested;
 
+    /// <summary>Where a verdict stands (D-40): in force, superseded by a later one, or challenged. Null for every other step: a superseded verdict is never shown as the standing one.</summary>
+    public string? StandingText => Step.Standing switch
+    {
+        TraceVerdictStanding.InForce => Texts.Get("Work_Chain_Standing_InForce"),
+        TraceVerdictStanding.Superseded => Texts.Get("Work_Chain_Standing_Superseded"),
+        TraceVerdictStanding.Challenged => Texts.Get("Work_Chain_Standing_Challenged"),
+        TraceVerdictStanding.Revised => Texts.Get("Work_Chain_Standing_Revised"),
+        _ => null,
+    };
+
+    public bool HasStanding => Step.Standing is not null;
+
     /// <summary>The app has a way to open this node (a saved proof or a verdict).</summary>
     public bool CanOpen { get; }
 

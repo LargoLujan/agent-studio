@@ -71,9 +71,17 @@ public abstract partial class WorkSection(WorkContext context, string infoKey) :
     }
 
     /// <summary>Runs a read or a write: a refusal or a failure of a port is said in the section, never thrown into the UI.</summary>
-    protected async Task<bool> GuardAsync(Func<Task> action, string errorKey = "Work_Error")
+    /// <param name="action">What to run.</param>
+    /// <param name="errorKey">The text of the error.</param>
+    /// <param name="read">The read the action belongs to (<see cref="BeginRead"/>): when a newer one was begun meanwhile, this one does not touch the error, so the read that
+    /// ends last never overwrites what the latest one says.</param>
+    protected async Task<bool> GuardAsync(Func<Task> action, string errorKey = "Work_Error", int? read = null)
     {
-        Error = null;
+        if (read is null || IsLatest(read.Value))
+        {
+            Error = null;
+        }
+
         try
         {
             await action().ConfigureAwait(true);
@@ -83,7 +91,11 @@ public abstract partial class WorkSection(WorkContext context, string infoKey) :
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            Error = Texts.Format(errorKey, ex.Message);
+            if (read is null || IsLatest(read.Value))
+            {
+                Error = Texts.Format(errorKey, ex.Message);
+            }
+
             return false;
         }
     }
