@@ -1,5 +1,6 @@
 using System.Text.Json;
 using AgentStudio.Application.Decisions;
+using AgentStudio.Application.Localization;
 using AgentStudio.Debate.Judging;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Debate;
@@ -24,7 +25,7 @@ public sealed record DebateAttempt(TaskId? Task, int Attempt, DecisionEntry Star
 public sealed class DebateLog
 {
     private readonly List<(DecisionEntry Entry, DecisionPayload Payload)> _read = [];
-    private readonly List<string> _problems = [];
+    private readonly CodedMessages _problems = new();
 
     private DebateLog(RunId debate, IReadOnlyList<DecisionEntry> entries)
     {
@@ -41,7 +42,7 @@ public sealed class DebateLog
             }
             catch (Exception ex) when (ex is JsonException or NotSupportedException)
             {
-                _problems.Add($"Entry {entry.Sequence} ({entry.Kind}): its payload cannot be read ({ex.Message}).");
+                _problems.Add($"Entry {entry.Sequence} ({entry.Kind}): its payload cannot be read ({ex.Message}).", UserText.Of(DebateUserTexts.ProblemEntryUnreadable, entry.Sequence, entry.Kind.ToString()));
             }
         }
 
@@ -60,7 +61,7 @@ public sealed class DebateLog
     public IReadOnlyList<DecisionEntry> Entries { get; }
 
     /// <summary>What could not be read; a debate with a problem is not resumed.</summary>
-    public IReadOnlyList<string> Problems => _problems;
+    public CodedMessages Problems => _problems;
 
     public DebateOpenedPayload? Opened { get; }
 
