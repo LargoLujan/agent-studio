@@ -173,7 +173,7 @@ public sealed partial class UsageProjector(IProjectLogReader logs, IProjectStora
                 : $"El registro no verifica: {snapshot.Verification.Problem}"
             : snapshot.Anchor switch
             {
-                AnchorStatus.Unanchored => "Ningún ancla reconoce este historial en su ubicación (se movió, se copió o vino con el repositorio): no se cuenta hasta que se acepte como nuevo origen.",
+                AnchorStatus.Unanchored => "Ningún ancla reconoce este historial aquí (se movió, se copió o vino con el repositorio). No se cuenta hasta que se acepte como nuevo origen.",
                 AnchorStatus.AnotherProject => "El ancla de esta ubicación es de otro proyecto: no se cuenta.",
                 AnchorStatus.Unreadable => "No se puede leer el ancla del registro: no se cuenta.",
                 _ => $"El registro no es de confianza ({snapshot.Anchor}): no se cuenta.",

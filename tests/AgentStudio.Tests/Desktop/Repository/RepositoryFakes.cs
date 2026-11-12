@@ -33,9 +33,17 @@ internal sealed class FakeHistory : IRepositoryHistoryReader
 
     public int SummaryCalls { get; private set; }
 
+    /// <summary>When set, the summary fails with it.</summary>
+    public Exception? SummaryFailure { get; set; }
+
     public async Task<RepositorySummary> SummaryAsync(ProjectContext project, CancellationToken cancellationToken)
     {
         SummaryCalls++;
+        if (SummaryFailure is not null)
+        {
+            throw SummaryFailure;
+        }
+
         var answer = Summary;
         if (HoldSummary is { } hold)
         {
@@ -65,11 +73,19 @@ internal sealed class FakeAnnotator : IRepositoryAnnotator
 
     public bool BrokenLog { get; set; }
 
+    /// <summary>When set, the annotator fails with it (an I/O error, not an unverified log).</summary>
+    public Exception? Failure { get; set; }
+
     public List<IReadOnlyList<CommitNode>> Asked { get; } = [];
 
     public Task<IReadOnlyList<AnnotatedCommit>> AnnotateAsync(ProjectContext project, IReadOnlyList<CommitNode> commits, CancellationToken cancellationToken)
     {
         Asked.Add(commits);
+        if (Failure is not null)
+        {
+            throw Failure;
+        }
+
         if (BrokenLog)
         {
             throw new DecisionLogIntegrityException("the chain breaks at entry 12");
@@ -88,15 +104,34 @@ internal sealed class FakeActivity : IRepositoryActivityReader
 
     public bool BrokenLog { get; set; }
 
-    public Task<IReadOnlyList<RepositoryActivity>> ListAsync(ProjectContext project, RepositoryActivityFilter? filter, CancellationToken cancellationToken)
+    /// <summary>When set, the reader fails with it (an I/O error, not an unverified log).</summary>
+    public Exception? Failure { get; set; }
+
+    /// <summary>When set, the next read takes its answer at once and hands it over when the test lets it go.</summary>
+    public TaskCompletionSource? Hold { get; set; }
+
+    public async Task<IReadOnlyList<RepositoryActivity>> ListAsync(ProjectContext project, RepositoryActivityFilter? filter, CancellationToken cancellationToken)
     {
         Filters.Add(filter);
+        if (Failure is not null)
+        {
+            throw Failure;
+        }
+
+        if (Hold is { } hold)
+        {
+            Hold = null;
+            var snapshot = Events.ToArray();
+            await hold.Task;
+            return snapshot;
+        }
+
         if (BrokenLog)
         {
             throw new DecisionLogIntegrityException("the chain breaks at entry 12");
         }
 
-        return Task.FromResult<IReadOnlyList<RepositoryActivity>>([.. Events]);
+        return [.. Events];
     }
 }
 

@@ -784,4 +784,7 @@ Note requirements and open a milestone with them.
 Follow the board and walk the chain of each card.
 Set a budget if you want a limit.</value>
   </data>
+  <data name="Work_Budget_Unreadable" xml:space="preserve">
+    <value>The budget could not be read</value>
+  </data>
 </root>

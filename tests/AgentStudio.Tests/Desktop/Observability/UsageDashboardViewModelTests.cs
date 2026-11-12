@@ -141,7 +141,7 @@ public sealed class UsageDashboardViewModelTests
         Assert.Equal("0 · exacto · informado por el programa del agente", claude.Compactions.Text);
 
         var codex = dashboard.Groups[1];
-        Assert.Equal("Proveedor: codex-cli · Modelo: predeterminado del CLI (no expuesto)", codex.Key);
+        Assert.Equal("Proveedor: codex-cli · Modelo: predeterminado del programa del agente (no expuesto)", codex.Key);
         Assert.Equal("640.000 · parcial (8 de 9) · exacto · informado por el programa del agente", codex.Input.Text);
         Assert.Equal("no expuesto", codex.Cost.Text);
         Assert.Equal("1 · exacto · medido por Agent Studio", codex.RateLimited.Text);
@@ -233,7 +233,7 @@ public sealed class UsageDashboardViewModelTests
 
         var attempt = dashboard.Attempts[1];
         Assert.Equal(["sin desglose (registro anterior a la Fase 4)"], attempt.PerModel);
-        Assert.Equal("codex-cli · predeterminado del CLI (no expuesto) · límite de uso del proveedor", attempt.Where);
+        Assert.Equal("codex-cli · predeterminado del programa del agente (no expuesto) · límite de uso del proveedor", attempt.Where);
         Assert.Equal("sin dato", attempt.Duration.Text);
         Assert.Equal("no expuesto", attempt.Cost.Text);
         Assert.Equal("Contexto máximo: sin dato", attempt.ContextPeak);

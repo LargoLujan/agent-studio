@@ -64,9 +64,16 @@ public sealed class LocalProjectBudgetStore : IProjectBudgetStore
                 ? budget
                 : throw new InvalidDataException($"The budget file does not hold a valid budget: version {document.Version} {string.Join(", ", problems)}.");
         }
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+        {
+            // Removed between the check and the read (the person took the budget off): the project has no budget.
+            return null;
+        }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
-            throw new InvalidDataException($"The budget of the project cannot be read from '{path}': {ex.Message}", ex);
+            // Only the name of the file: the message reaches the screen, the alert of the engine and the log, and the full path carries the user name.
+            var name = Path.GetFileName(path);
+            throw new InvalidDataException($"The budget of the project cannot be read from '{name}': {ex.Message.Replace(path, name, StringComparison.OrdinalIgnoreCase).Replace(_folder, string.Empty, StringComparison.OrdinalIgnoreCase)}", ex);
         }
     }
 

@@ -244,6 +244,30 @@ public sealed class ActivityAndMilestoneUsageTests
     }
 
     [Fact]
+    public void An_attempt_of_three_milestones_is_in_three_groups_and_the_shared_count_overstates_the_excess_over_the_total()
+    {
+        var attempts = new[]
+        {
+            Make(T0, run: "a", milestones: ["mil-a", "mil-b", "mil-c"]),
+            Make(T0, run: "b", milestones: ["mil-a", "mil-b"]),
+        };
+
+        var groups = UsageAggregator.Group(attempts, Query(UsageDimension.Milestone));
+
+        // Each attempt is once in the total and once in every group of its milestones: 3 + 2 = 5 placements for 2 attempts.
+        Assert.Equal(2, groups[0].Totals.Attempts);
+        var milestoneGroups = groups.Skip(1).ToList();
+        Assert.Equal(5, milestoneGroups.Sum(g => g.Totals.Attempts));
+        var excess = milestoneGroups.Sum(g => g.Totals.Attempts) - groups[0].Totals.Attempts;
+        Assert.Equal(3, excess);
+
+        // Every attempt of these groups is shared, and each one is counted in every group it is in: 2 + 2 + 1 = 5, not the excess of 3.
+        Assert.Equal([2, 2, 1], milestoneGroups.Select(g => g.SharedAttempts));
+        Assert.Equal(5, milestoneGroups.Sum(g => g.SharedAttempts));
+        Assert.NotEqual(excess, milestoneGroups.Sum(g => g.SharedAttempts));
+    }
+
+    [Fact]
     public void An_attempt_of_two_milestones_is_in_each_group_marked_shared_and_once_in_the_total()
     {
         var attempts = new[]

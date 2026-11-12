@@ -50,11 +50,38 @@ public sealed partial class BudgetsSection : WorkSection
 
     public bool HasMilestones => Milestones.Count > 0;
 
-    partial void OnMaxTokensChanged(string value) => Refresh();
+    // What the person typed and has not saved: a reload (any write to the log makes every section read again) must not overwrite it.
+    private bool _dirty;
+    private bool _filling;
 
-    partial void OnMaxRunsChanged(string value) => Refresh();
+    partial void OnMaxTokensChanged(string value) => Edited();
 
-    partial void OnSelectedPeriodChanged(Choice<BudgetPeriod> value) => Refresh();
+    partial void OnMaxRunsChanged(string value) => Edited();
+
+    partial void OnSelectedPeriodChanged(Choice<BudgetPeriod> value) => Edited();
+
+    private void Edited()
+    {
+        _dirty |= !_filling;
+        Refresh();
+    }
+
+    private void Fill(string maxTokens, string maxRuns, Choice<BudgetPeriod> period)
+    {
+        _filling = true;
+        try
+        {
+            MaxTokens = maxTokens;
+            MaxRuns = maxRuns;
+            SelectedPeriod = period;
+        }
+        finally
+        {
+            _filling = false;
+        }
+
+        _dirty = false;
+    }
 
     public override async Task ReloadAsync()
     {
@@ -72,11 +99,26 @@ public sealed partial class BudgetsSection : WorkSection
         {
             if (Context.Backend.Budgets is { } store)
             {
-                var budget = await store.LoadAsync(project, CancellationToken.None).ConfigureAwait(true);
+                WorkBudget? budget;
+                try
+                {
+                    budget = await store.LoadAsync(project, CancellationToken.None).ConfigureAwait(true);
+                }
+                catch
+                {
+                    // The engine stops when the file cannot be read: the screen must not say "no budget" meanwhile.
+                    CurrentText = Texts.Get("Work_Budget_Unreadable");
+                    throw;
+                }
+
                 CurrentText = budget is null ? Texts.Get("Work_Budget_None") : MilestonesSection.BudgetLine(budget);
-                MaxTokens = budget?.MaxTokens?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
-                MaxRuns = budget?.MaxAgentRuns?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
-                SelectedPeriod = Periods.First(p => p.Value == (budget?.Period ?? BudgetPeriod.Month));
+                if (!_dirty)
+                {
+                    Fill(
+                        budget?.MaxTokens?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+                        budget?.MaxAgentRuns?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+                        Periods.First(p => p.Value == (budget?.Period ?? BudgetPeriod.Month)));
+                }
             }
 
             if (Context.Backend.Milestones is { } milestones)
@@ -95,8 +137,7 @@ public sealed partial class BudgetsSection : WorkSection
     {
         Milestones.Clear();
         CurrentText = Texts.Get("Work_Budget_None");
-        MaxTokens = string.Empty;
-        MaxRuns = string.Empty;
+        Fill(string.Empty, string.Empty, SelectedPeriod);
         OnPropertyChanged(nameof(HasMilestones));
         Refresh();
     }
@@ -170,6 +211,7 @@ public sealed partial class BudgetsSection : WorkSection
         {
             if (await GuardAsync(() => store.SaveAsync(project, budget, CancellationToken.None), "Work_Error_BudgetSave").ConfigureAwait(true))
             {
+                _dirty = false;
                 Message = Texts.Get("Work_Budget_Saved");
                 await ReloadAsync().ConfigureAwait(true);
             }
@@ -195,8 +237,7 @@ public sealed partial class BudgetsSection : WorkSection
             if (await GuardAsync(() => store.SaveAsync(project, null, CancellationToken.None), "Work_Error_BudgetSave").ConfigureAwait(true))
             {
                 Message = Texts.Get("Work_Budget_Removed");
-                MaxTokens = string.Empty;
-                MaxRuns = string.Empty;
+                Fill(string.Empty, string.Empty, SelectedPeriod);
                 await ReloadAsync().ConfigureAwait(true);
             }
         }

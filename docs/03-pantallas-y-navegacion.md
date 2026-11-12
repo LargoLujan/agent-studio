@@ -987,6 +987,8 @@ endurecida de git ([ADR-0012](adr/0012-worktrees-fuera-del-repo.md): sin filtros
   - Un vínculo que tú (o el sistema) confirmaste sale como «Vinculada por ti a requisito R-4».
   - Lo que el registro no respalda es, como mucho, una **sugerencia**, en cursiva y en color de aviso, con «Sugerencia, sin
     confirmar» por delante, y siempre detrás de lo confirmado. Sin nada que decir: «El registro no sabe nada de esta versión».
+    Si el registro no se pudo comprobar (no verifica, falla al leerlo o no hay anotador), cada versión dice «No se pudo comprobar con
+    el registro de decisiones», no «no sabe nada», y el recuento «Se muestran las últimas N versiones» sigue junto al aviso.
   - El asunto y el autor son texto de quien hizo la versión: se muestran tal cual, sin traducir, y su ayuda lo dice.
   - **«Ver su cadena»** (requisito, tarea, intento, verificación, veredicto y entrega) solo sale si alguien conectó una forma
     de abrirla: el documento levanta `RepositoryViewModel.ChainRequested` con el proyecto y el nodo de la versión
@@ -995,7 +997,9 @@ endurecida de git ([ADR-0012](adr/0012-worktrees-fuera-del-repo.md): sin filtros
 - **Actividad:** la línea de tiempo del registro (`IRepositoryActivityReader`): integraciones, entregas y copias de trabajo
   retiradas, de la más nueva a la más antigua, cada una con su resultado real («Salió bien» o «Falló: hubo un conflicto al
   integrar»). Se filtra por ejecución, tarea, hito, agente, proveedor, modelo y periodo; un hito que no tiene la forma `mil-…`
-  se dice y no se lee nada. «Quitar filtros» lo deja todo.
+  se dice y no se lee nada. «Quitar filtros» lo deja todo, y los filtros se vacían al cambiar de proyecto. Si cualquier lector falla
+  (no solo un registro que no verifica), la pantalla lo dice con un texto y no deja datos a medias; «Actualizar» no se queda
+  deshabilitado si se cierra el proyecto mientras se leía.
 - **Si el lector se niega** (no es un repositorio, está dentro de las copias de trabajo aisladas de Agent Studio, su
   configuración podría ejecutar un programa del repositorio, la carpeta no es tuya, git no está o falla), la pantalla dice por
   qué, con un texto, y no pinta «sin ramas» ni «sin versiones»: no las leyó. La actividad, que sale del registro y no de git,
@@ -1317,7 +1321,11 @@ castellano y en inglés, y todo sale del historial verificado: ningún apartado 
   tokens, de ejecuciones o de los dos, por día, semana, mes o en total), que se guarda en este equipo (`%LOCALAPPDATA%\AgentStudio\budgets`,
   un fichero por proyecto) y no entra en el repositorio, y el de cada hito, de solo lectura porque va en su cabecera anclada. El motor lee el
   del proyecto antes de lanzar un intento y no lanza el que lo pasaría, y lo dice. Un fichero de presupuesto que no se puede leer no se
-  trata como «sin presupuesto»: el motor se detiene con `project.budget-unreadable` y la pantalla lo dice.
+  trata como «sin presupuesto»: el motor se detiene con `project.budget-unreadable` y la pantalla lo dice («No se pudo leer el
+  presupuesto»), y el mensaje lleva solo el nombre del fichero, nunca la carpeta de la persona. Un fichero que desaparece justo
+  mientras se lee es «sin presupuesto». Una recarga (cualquier escritura en el registro hace que todas las secciones lean de nuevo)
+  no pisa lo que la persona está escribiendo en el formulario del presupuesto ni en el del backlog, conserva el hito y el elemento
+  seleccionados por su identificador (no cuenta como que la persona eligió otra cosa) y no borra el mensaje de lo que acaba de pasar.
 
 Lo que no hace esta pantalla, y por qué: no revisa los requisitos de un hito después de abrirlo (`ReviseRequirementsAsync` existe, sin
 pantalla todavía), no reordena el backlog (`ReorderAsync` tampoco) y no enseña el consumo por hito y por actividad: eso es de «Consumo»

@@ -361,4 +361,79 @@
   <data name="Usage_Outcome_Interrupted" xml:space="preserve">
     <value>interrupted</value>
   </data>
+  <data name="Usage_Value_NoSession" xml:space="preserve">
+    <value>no session</value>
+  </data>
+  <data name="Usage_Value_NoTask" xml:space="preserve">
+    <value>no task</value>
+  </data>
+  <data name="Usage_Value_NoPurpose" xml:space="preserve">
+    <value>no purpose (log from before Phase 4)</value>
+  </data>
+  <data name="Usage_Value_NoModel" xml:space="preserve">
+    <value>agent program default (not exposed)</value>
+  </data>
+  <data name="Usage_Note_NoJournal" xml:space="preserve">
+    <value>No journal for the period.</value>
+  </data>
+  <data name="Usage_Note_NoPhase4" xml:space="preserve">
+    <value>There are no Phase 4 attempts in the period: the journal is not reconciled with the log.</value>
+  </data>
+  <data name="Usage_Note_JournalUnreadable" xml:space="preserve">
+    <value>The journal {0} of {1} could not be read, so it is not reconciled: {2}</value>
+  </data>
+  <data name="Usage_Note_Difference" xml:space="preserve">
+    <value>Journal: {0}; log: {1}. Difference of {2}, which is not added up (live tests, earlier versions or attempts that never reached the provider).</value>
+  </data>
+  <data name="Usage_Count_Prompt_One" xml:space="preserve">
+    <value>{0} prompt</value>
+  </data>
+  <data name="Usage_Count_Prompt_Other" xml:space="preserve">
+    <value>{0} prompts</value>
+  </data>
+  <data name="Usage_Count_Attempt_One" xml:space="preserve">
+    <value>{0} attempt</value>
+  </data>
+  <data name="Usage_Count_Attempt_Other" xml:space="preserve">
+    <value>{0} attempts</value>
+  </data>
+  <data name="Usage_Note_NoStart" xml:space="preserve">
+    <value>Entry {0} closes attempt {1} of {2} ({3}) without its AgentRunStarted: it is not counted.</value>
+  </data>
+  <data name="Usage_Note_TheRun" xml:space="preserve">
+    <value>the run</value>
+  </data>
+  <data name="Usage_Note_EntryUnreadableActivity" xml:space="preserve">
+    <value>Entry {0} ({1}) cannot be read: it does not count for the milestone, the activity or the wait: {2}</value>
+  </data>
+  <data name="Usage_Note_EntryUnreadable" xml:space="preserve">
+    <value>Entry {0} ({1}) cannot be read and is not counted: {2}</value>
+  </data>
+  <data name="Usage_Note_FigureUnreadable" xml:space="preserve">
+    <value>Entry {0} has an unreadable figure ({1}): {2}</value>
+  </data>
+  <data name="Usage_Note_LogUnreadable" xml:space="preserve">
+    <value>The log cannot be read: {0}</value>
+  </data>
+  <data name="Usage_Note_LogInvalidAt" xml:space="preserve">
+    <value>The log does not verify (entry {0}): {1}</value>
+  </data>
+  <data name="Usage_Note_LogInvalid" xml:space="preserve">
+    <value>The log does not verify: {0}</value>
+  </data>
+  <data name="Usage_Note_Unanchored" xml:space="preserve">
+    <value>No anchor recognises this history here (it was moved, copied or came with the repository). It is not counted until it is accepted as a new origin.</value>
+  </data>
+  <data name="Usage_Note_AnotherProject" xml:space="preserve">
+    <value>The anchor of this location belongs to another project: it is not counted.</value>
+  </data>
+  <data name="Usage_Note_AnchorUnreadable" xml:space="preserve">
+    <value>The anchor of the log cannot be read: it is not counted.</value>
+  </data>
+  <data name="Usage_Note_Untrusted" xml:space="preserve">
+    <value>The log is not trustworthy ({0}): it is not counted.</value>
+  </data>
+  <data name="Usage_Note_PathInvalid" xml:space="preserve">
+    <value>The path of the project is not valid: {0}</value>
+  </data>
 </root>

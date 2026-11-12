@@ -361,4 +361,104 @@
   <data name="Usage_Outcome_Interrupted" xml:space="preserve">
     <value>interrumpido</value>
   </data>
+  <data name="Usage_Value_NoSession" xml:space="preserve">
+    <value>sin sesión</value>
+    <comment>Text. Marker of a group of attempts without a session id; the aggregator keeps its own value for the export.</comment>
+  </data>
+  <data name="Usage_Value_NoTask" xml:space="preserve">
+    <value>sin tarea</value>
+    <comment>Text. Marker of a group of attempts without a task.</comment>
+  </data>
+  <data name="Usage_Value_NoPurpose" xml:space="preserve">
+    <value>sin propósito (registro anterior a la Fase 4)</value>
+    <comment>Text. Marker of a group of attempts whose start did not record its purpose.</comment>
+  </data>
+  <data name="Usage_Value_NoModel" xml:space="preserve">
+    <value>predeterminado del programa del agente (no expuesto)</value>
+    <comment>Text. The model of an attempt that has none: the one the CLI chooses.</comment>
+  </data>
+  <data name="Usage_Note_NoJournal" xml:space="preserve">
+    <value>Sin bitácora del periodo.</value>
+    <comment>Text. Note of the reconciliation; the neutral text must equal the one the projection writes.</comment>
+  </data>
+  <data name="Usage_Note_NoPhase4" xml:space="preserve">
+    <value>No hay intentos de la Fase 4 en el periodo: la bitácora no se concilia con el registro.</value>
+    <comment>Text. Note of the reconciliation; the neutral text must equal the one the projection writes.</comment>
+  </data>
+  <data name="Usage_Note_JournalUnreadable" xml:space="preserve">
+    <value>No se pudo leer la bitácora {0} de {1}, así que no se concilia: {2}</value>
+    <comment>Text. {0}: the file; {1}: the project; {2}: the reason.</comment>
+  </data>
+  <data name="Usage_Note_Difference" xml:space="preserve">
+    <value>Bitácora: {0}; registro: {1}. Diferencia de {2}, que no se suma (pruebas en vivo, versiones anteriores o intentos que no llegaron al proveedor).</value>
+    <comment>Text. {0} and {2}: counts of prompts; {1}: count of attempts.</comment>
+  </data>
+  <data name="Usage_Count_Prompt_One" xml:space="preserve">
+    <value>{0} prompt</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Usage_Count_Prompt_Other" xml:space="preserve">
+    <value>{0} prompts</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Usage_Count_Attempt_One" xml:space="preserve">
+    <value>{0} intento</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Usage_Count_Attempt_Other" xml:space="preserve">
+    <value>{0} intentos</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Usage_Note_NoStart" xml:space="preserve">
+    <value>La entrada {0} cierra el intento {1} de {2} ({3}) sin su AgentRunStarted: no se cuenta.</value>
+    <comment>Text. {0}: entry; {1}: attempt; {2}: the task or the run; {3}: run.</comment>
+  </data>
+  <data name="Usage_Note_TheRun" xml:space="preserve">
+    <value>la ejecución</value>
+    <comment>Text. Said in place of the task when the entry has none.</comment>
+  </data>
+  <data name="Usage_Note_EntryUnreadableActivity" xml:space="preserve">
+    <value>La entrada {0} ({1}) no se puede leer: no cuenta para el hito, la actividad ni la espera: {2}</value>
+    <comment>Text. {0}: entry; {1}: kind; {2}: the reason.</comment>
+  </data>
+  <data name="Usage_Note_EntryUnreadable" xml:space="preserve">
+    <value>La entrada {0} ({1}) no se puede leer y no se cuenta: {2}</value>
+    <comment>Text. {0}: entry; {1}: kind; {2}: the reason.</comment>
+  </data>
+  <data name="Usage_Note_FigureUnreadable" xml:space="preserve">
+    <value>La entrada {0} tiene una cifra ilegible ({1}): {2}</value>
+    <comment>Text. {0}: entry; {1}: source; {2}: the reason.</comment>
+  </data>
+  <data name="Usage_Note_LogUnreadable" xml:space="preserve">
+    <value>No se puede leer el registro: {0}</value>
+    <comment>Text. {0}: the reason.</comment>
+  </data>
+  <data name="Usage_Note_LogInvalidAt" xml:space="preserve">
+    <value>El registro no verifica (entrada {0}): {1}</value>
+    <comment>Text. {0}: entry; {1}: the problem.</comment>
+  </data>
+  <data name="Usage_Note_LogInvalid" xml:space="preserve">
+    <value>El registro no verifica: {0}</value>
+    <comment>Text. {0}: the problem.</comment>
+  </data>
+  <data name="Usage_Note_Unanchored" xml:space="preserve">
+    <value>Ningún ancla reconoce este historial aquí (se movió, se copió o vino con el repositorio). No se cuenta hasta que se acepte como nuevo origen.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Usage_Note_AnotherProject" xml:space="preserve">
+    <value>El ancla de esta ubicación es de otro proyecto: no se cuenta.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Usage_Note_AnchorUnreadable" xml:space="preserve">
+    <value>No se puede leer el ancla del registro: no se cuenta.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Usage_Note_Untrusted" xml:space="preserve">
+    <value>El registro no es de confianza ({0}): no se cuenta.</value>
+    <comment>Text. {0}: the state of the anchor.</comment>
+  </data>
+  <data name="Usage_Note_PathInvalid" xml:space="preserve">
+    <value>La ruta del proyecto no es válida: {0}</value>
+    <comment>Text. {0}: the reason.</comment>
+  </data>
 </root>

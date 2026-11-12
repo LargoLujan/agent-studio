@@ -173,8 +173,10 @@ public sealed record UsageGroupKey(UsageDimension Dimension, string Value);
 
 /// <summary>One group of a report: its key, in the order of the query's dimensions (empty for the grand total), and its figures.</summary>
 /// <param name="SharedAttempts">
-/// Phase 9 (D-34): how many of the attempts of the group also belong to another group of the same dimension (a milestone), so the
-/// groups of that dimension may add up to more than the total by exactly that; the grand total counts each attempt once.
+/// Phase 9 (D-34): how many of the attempts of the group also belong to another group of the same dimension (a milestone). The
+/// groups of that dimension add up to more than the grand total, which counts each attempt once, but not by the sum of this number:
+/// an attempt of n milestones is in n groups and marked shared in each, so it adds n - 1 to the excess and n to the sum of this number.
+/// Only when every shared attempt belongs to exactly two milestones is the excess half of that sum.
 /// </param>
 public sealed record UsageGroup(IReadOnlyList<UsageGroupKey> Key, UsageTotals Totals, int SharedAttempts = 0);
 

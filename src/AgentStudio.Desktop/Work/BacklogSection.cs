@@ -87,32 +87,64 @@ public sealed partial class BacklogSection(WorkContext context) : WorkSection(co
 
     public ObservableCollection<CriterionRowViewModel> Criteria { get; } = [];
 
+    // True only while a reload swaps the list: the list box (two-way binding) puts the selection to null when its items are cleared, and
+    // that is not the person choosing something else.
+    private bool _loading;
+
+    // The item the person has selected, by identity: a reload gives new row objects and, with a binding, a null in between.
+    private BacklogItemId? _selectedId;
+
     public override async Task ReloadAsync()
     {
         Notice = Context.Backend.Backlog is null ? Texts.Get("Work_Notice_NoBacklog") : null;
         if (Context.Backend.Backlog is not { } backlog || Context.Project is not { } project)
         {
+            BeginRead();
             Items.Clear();
             OnPropertyChanged(nameof(HasItems));
             return;
         }
 
-        var keep = SelectedItem?.Id;
-        await GuardAsync(async () =>
+        var read = BeginRead();
+        var keep = _selectedId;
+        IReadOnlyList<BacklogEntry> entries = [];
+        var ok = await GuardAsync(async () => entries = await backlog.ListAsync(project, CancellationToken.None).ConfigureAwait(true)).ConfigureAwait(true);
+        if (!ok || !IsLatest(read))
         {
-            var entries = await backlog.ListAsync(project, CancellationToken.None).ConfigureAwait(true);
+            return;
+        }
+
+        BacklogRow? row;
+        _loading = true;
+        try
+        {
             Items.Clear();
             foreach (var entry in entries)
             {
                 Items.Add(new BacklogRow(entry));
             }
-        }).ConfigureAwait(true);
+
+            row = keep is { } id ? Items.FirstOrDefault(r => r.Id == id) : null;
+            SelectedItem = row;
+        }
+        finally
+        {
+            _loading = false;
+        }
+
+        _selectedId = row?.Id;
+        if (keep is not null && row is null)
+        {
+            // The item the person had is no longer in force: what was said about it goes with it.
+            Message = null;
+        }
+
         OnPropertyChanged(nameof(HasItems));
-        SelectedItem = keep is { } id ? Items.FirstOrDefault(r => r.Id == id) : null;
     }
 
     protected override void ProjectChanged()
     {
+        BeginRead();
         Items.Clear();
         SelectedItem = null;
         OnPropertyChanged(nameof(HasItems));
@@ -120,6 +152,13 @@ public sealed partial class BacklogSection(WorkContext context) : WorkSection(co
 
     partial void OnSelectedItemChanged(BacklogRow? oldValue, BacklogRow? newValue)
     {
+        if (_loading)
+        {
+            return;
+        }
+
+        _selectedId = newValue?.Id;
+
         // The same item read again (after a version was saved) keeps the message and the form the person has.
         if (oldValue is not null && newValue is not null && oldValue.Id == newValue.Id)
         {

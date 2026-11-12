@@ -134,8 +134,8 @@ public sealed partial class UsageDashboardViewModel : DocumentViewModel
     /// <summary>What the bar of a context peak is called, in a group and in an attempt (V39), from the resources.</summary>
     public static string PeakLabel => Texts.Get("Usage_Peak_Label");
 
-    /// <summary>The model of an attempt that has none: what the aggregator calls it, so a row and a group say the same.</summary>
-    private static string NoModel => UsageAttemptFacts.DefaultModel;
+    /// <summary>The model of an attempt that has none, in the language in use: the group of the aggregator says it the same way.</summary>
+    private static string NoModel => Texts.Get("Usage_Value_NoModel");
 
     private readonly IUsageReport? _report;
     private readonly IUsageExporter? _exporter;
@@ -416,8 +416,8 @@ public sealed partial class UsageDashboardViewModel : DocumentViewModel
         Replace(Groups, report?.Groups.Select(g => Row(g, thresholds)) ?? []);
         Replace(Attempts, report?.Attempts.Select(a => Row(a, thresholds)) ?? []);
         Replace(Axes, report is null ? [] : AxesOf(report, thresholds));
-        Replace(Excluded, report?.Excluded.Select(e => $"{e.Root}: {e.Reason}") ?? []);
-        Replace(ReconciliationWarnings, report?.Journal.Warnings ?? []);
+        Replace(Excluded, report?.Excluded.Select(e => $"{e.Root}: {UsageNotes.Translate(e.Reason)}") ?? []);
+        Replace(ReconciliationWarnings, report?.Journal.Warnings.Select(UsageNotes.Translate) ?? []);
         Reconciliation = report is null ? null : ReconciliationText(report.Journal);
         if (report is null)
         {
@@ -552,11 +552,15 @@ public sealed partial class UsageDashboardViewModel : DocumentViewModel
 
     /// <summary>
     /// The value of a group on a dimension. The aggregator gives the values of the milestone and of the three axes of the activity as
-    /// names (<c>Implementation</c>, <c>First</c>, <c>Kept</c>) and as markers (<c>sin hito</c>) that the export keeps as they are, so
-    /// the screen says them in the language in use. Every other value is data and is shown as it is.
+    /// names (<c>Implementation</c>, <c>First</c>, <c>Kept</c>) and as markers (<c>sin hito</c>, <c>sin sesión</c>, <c>sin tarea</c>, the model
+    /// and the purpose of an attempt that has none) that the export keeps as they are, so the screen says them in the language in use. Every other value is data and is shown as it is.
     /// </summary>
     internal static string ValueLabel(UsageDimension dimension, string value) => dimension switch
     {
+        UsageDimension.Model => value == UsageAttemptFacts.DefaultModel ? Texts.Get("Usage_Value_NoModel") : value,
+        UsageDimension.Session => value == UsageAggregator.NoSession ? Texts.Get("Usage_Value_NoSession") : value,
+        UsageDimension.Task => value == UsageAggregator.NoTask ? Texts.Get("Usage_Value_NoTask") : value,
+        UsageDimension.Purpose => value == UsageAggregator.NoPurpose ? Texts.Get("Usage_Value_NoPurpose") : Texts.Current.Has("Usage_Purpose_" + value) ? Texts.Get("Usage_Purpose_" + value) : value,
         UsageDimension.Milestone => value == UsageAggregator.NoMilestone ? Texts.Get("Usage_Value_NoMilestone") : value,
         UsageDimension.Activity => value == UsageAggregator.NoActivity ? Texts.Get("Usage_Value_NoActivity") : Texts.Current.Has("Usage_Activity_" + value) ? Texts.Get("Usage_Activity_" + value) : value,
         UsageDimension.ActivityAttempt => value == UsageAggregator.NoActivity ? Texts.Get("Usage_Value_NoActivity") : Texts.Current.Has("Usage_Order_" + value) ? Texts.Get("Usage_Order_" + value) : value,
