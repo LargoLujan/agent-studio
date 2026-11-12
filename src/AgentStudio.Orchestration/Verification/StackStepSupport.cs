@@ -19,16 +19,38 @@ public static class StackStepSupport
     /// <summary>
     /// A step that only fails, and says why in its output: <c>cmd /d /c "echo message 1&gt;&amp;2 &amp; exit /b 1"</c>. It takes the
     /// place of a step whose tool cannot be started, so the evidence names the reason. It does not go through the tool's own
-    /// shim: <c>cmd</c> only prints. The message may hold none of <c>&amp; | &lt; &gt; ^ % "</c>.
+    /// shim: <c>cmd</c> only prints. The message may come from a path or a tool, so it never reaches <c>cmd</c> as it is (see
+    /// <see cref="SafeMessage"/>) and it never throws for a message.
     /// </summary>
-    public static VerificationStep Failing(string id, string title, EvidenceKind kind, string message)
+    public static VerificationStep Failing(string id, string title, EvidenceKind kind, string message) =>
+        new(id, title, "cmd", ["/d", "/c", "echo " + SafeMessage(message) + " 1>&2 & exit /b 1"], kind, TestReportFormat.None, null, TimeSpan.FromMinutes(1));
+
+    /// <summary>
+    /// <paramref name="message"/> as <c>cmd</c> can print it without reading any of it. Each of <c>&amp; | &lt; &gt; ^ %</c> is escaped
+    /// with a caret and <c>cmd</c> prints it as it was (measured with a real <c>cmd</c>, one test per character). The double quote is
+    /// the exception: the launcher turns it into <c>\"</c> and <c>cmd</c> would print the backslash, so it becomes a single quote.
+    /// Any control character (a line break included) becomes a space. A blank message says that no reason was given.
+    /// </summary>
+    public static string SafeMessage(string? message)
     {
-        if (message.IndexOfAny(['&', '|', '<', '>', '^', '%', '"']) >= 0)
+        if (string.IsNullOrWhiteSpace(message))
         {
-            throw new ArgumentException("The message of a failing step holds a character the command interpreter would read.", nameof(message));
+            return "The step cannot run (no reason was given).";
         }
 
-        return new VerificationStep(id, title, "cmd", ["/d", "/c", "echo " + message + " 1>&2 & exit /b 1"], kind, TestReportFormat.None, null, TimeSpan.FromMinutes(1));
+        var builder = new System.Text.StringBuilder(message.Length + 16);
+        foreach (var character in message)
+        {
+            builder.Append(character switch
+            {
+                '&' or '|' or '<' or '>' or '^' or '%' => "^" + character,
+                '"' => "'",
+                _ when char.IsControl(character) => " ",
+                _ => character.ToString(),
+            });
+        }
+
+        return builder.ToString().Trim();
     }
 
     private static readonly string[] NodeTools = ["node", "npm", "npx"];
