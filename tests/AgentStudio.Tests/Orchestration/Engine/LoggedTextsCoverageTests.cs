@@ -325,11 +325,14 @@ public sealed class LoggedTextsCoverageTests
 
         var anchored = OrchestrationUserTexts.All.Where(BornWithAnAnchoredSentence).ToList();
 
-        Assert.Empty(anchored.Where(code => !reached.Contains(code) && !NotAnchored.ContainsKey(code)));
+        var unreached = anchored.Where(code => !reached.Contains(code) && !NotAnchored.ContainsKey(code)).ToList();
+        Assert.Empty(unreached);
+
         // A reason on the list is true: no case reaches it, and it is a code of the class.
-        Assert.Empty(NotAnchored.Keys.Where(reached.Contains));
-        Assert.Empty(NotAnchored.Keys.Where(code => !OrchestrationUserTexts.All.Contains(code)));
-        Assert.All(NotAnchored.Values, reason => Assert.False(string.IsNullOrWhiteSpace(reason)));
+        var wronglyListed = NotAnchored.Keys.Where(reached.Contains).ToList();
+        Assert.Empty(wronglyListed);
+        var unknown = NotAnchored.Keys.Where(code => !OrchestrationUserTexts.All.Contains(code)).ToList();
+        Assert.Empty(unknown);        Assert.All(NotAnchored.Values, reason => Assert.False(string.IsNullOrWhiteSpace(reason)));
     }
 
     /// <summary>

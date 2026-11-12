@@ -553,15 +553,37 @@ pintado desde su código más la línea de error del propio registro del paso, s
 
 - Los motivos de un trabajador que llevan palabras de un agente, de su programa o de la guarda del repositorio, y por eso no tienen código:
   `Completada: …`, `El agente necesita a una persona: …`, `El agente declaró que no pudo terminar: …`, el motivo de un fallo que da el propio
-  proveedor (`outcome.Error`), `El repositorio del usuario cambió …: <diferencias>`, `La evidencia de la integración …: <líneas>` y los de la
-  memoria (`ProjectMemoryPrompt.TooSmall` y `Unverified`, que son de otro módulo). D-47: el texto de un agente no es argumento de una frase del sistema.
+  proveedor (`outcome.Error`). (La guarda del repositorio, la evidencia de la integración y la memoria que no cabe o no verifica ya tienen código: ver la
+  tercera parte, más abajo.) D-47: el texto de un agente no es argumento de una frase del sistema.
 - Los mensajes de la lista `Discarded` de `OrderReviewResult` y de `PreparationChatReply` («a risk was cut to 400 characters», lo que el
   esquema o `OrderNotesCheck` descartan): son avisos técnicos en inglés sobre la respuesta del agente y siguen como están.
 - `finding.Message` de `RunMonitorViewModel` (~1110): lo escribe `src/AgentStudio.Debate/Audit/AuditedRun.cs` (`OrchestratorFinding`), que es de
   otro paquete; la fila ya enseña el título de la comprobación por su código (`AuditFindingText.Check`) y el detalle sigue en inglés. Pasarlo a código es un cambio de `Debate/Audit`.
-- `delivery.run-not-succeeded` enseña el estado con que terminó la ejecución con el nombre del tipo (`Failed`, `Cancelled`), sin traducirlo: es un valor técnico
-  como un identificador. Traducirlo pide una pieza por estado.
+- (Resuelto en la tercera parte) `delivery.run-not-succeeded` enseñaba el estado con el nombre del tipo.
 - `PlanViolationText` se queda como está: ya pinta desde recursos por código estable (`PlanViolationCode`, claves `Orchestrator_Violation_*`) en
   el idioma en uso; pasarlo a `UserText` obliga a renombrar sus claves a `Text_*` y no añade nada visible.
 - Las suites de `tests/AgentStudio.Tests/Integration/**` y `Debate/**` leen `DeliveryReadiness.Reason` y `DeliveryResult.Message`: no se tocaron ni se ejecutaron
   en este paquete (las frases no cambian).
+
+**Tercera parte (2026-11-12, revisión independiente de WP-14A (e)).** Lo que cambia:
+
+- **La derivación no lanza nunca.** `LoggedTexts.TaskReason`, `RunSummary`, `ResumeReason` y `HistoryToolNotice` envuelven toda la derivación: un número que no
+  cabe en un `int` (un `outcome.Error` del proveedor como «Arranca el intento 99999999999.» llega entero a la razón), un reintento dentro de otro miles de veces
+  (la cola se deriva hasta 4 niveles y el resto queda como texto), una expresión que vence su tiempo (250 ms; las 51 llevan `matchTimeout`) o cualquier otra
+  excepción dan `null`, y la pantalla pinta la frase tal como se ancló. Antes la excepción salía de `RunInspector.History` (la ejecución no se abría) y del bucle del motor
+  (`OrchestrationRun`, reintento). Los números se leen con `TryParse`.
+- **Frases con código que no se derivaban.** El resumen de la política de pruebas (`run.verdict.tests-required`, con `untested-commit` y `untested-no-commit` como piezas),
+  las razones del presupuesto (`project.budget-exceeded-*` con su nombre y cifras, `project.budget-unreadable` con por qué), la tarea que parte del código de varias
+  sin integración (`task.no-integration`), la memoria que no cabe o no verifica (`worker.memory-*`, con las cifras o la entrada como pieza), el repositorio que cambió
+  (`worker.repository-changed` con el momento como pieza y las diferencias tal cual; `worker.repository-before-launch`) y la prueba guardada de la integración que cambió
+  o no está anclada (`worker.evidence-*`) llevan su `Text` en vivo y se derivan de su frase.
+- **Qué sigue sin derivarse, y por qué.** Las palabras de un agente (`Completada: …`, `El agente necesita a una persona: …`, `El agente declaró que no pudo terminar: …`) y el
+  error del proveedor (`outcome.Error`) no tienen código. Un error del proveedor escrito igual que una frase del sistema sí lo tendría: es el coste de derivar el
+  código de la frase (D-48). Los detalles de fase que el monitor enseña y no se anclan (`run.verdict.interrupted`, `awaiting-human`, `paused`…), y los nombres de
+  presupuesto de hito con periodo (un presupuesto de hito es siempre un total), están en una lista explícita con su motivo en `LoggedTextsCoverageTests`, que recorre
+  cada código de `OrchestrationUserTexts.All` que nace con una frase anclada y falla si alguno no sale de un caso ni está en esa lista.
+- **Pantalla.** `PlanProposal.ErrorText` lleva el detalle: la memoria del orquestador que no cabe dice las cifras (`planner.memory-too-small` recibe la pieza) y el repositorio que
+  cambió, qué cambió. `delivery.log-not-intact-unknown` sustituye al «entrada 0» cuando el registro no dice en qué entrada se rompe. `delivery.run-not-succeeded` pinta la fase
+  con el texto que ya existe (`memory.phase.*`, en minúscula): `OrchestrationUserTexts.Phase` lo nombra por su código, un acoplamiento por cadena con `Memory` que
+  vigila una prueba de recursos.
+- **Códigos nuevos (22):** `OrchestrationUserTexts.All` suma ahora 284, con texto en castellano e inglés.
