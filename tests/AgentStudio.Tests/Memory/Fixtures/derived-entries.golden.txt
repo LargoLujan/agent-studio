@@ -1,0 +1,388 @@
+# Decision / System / c3d4c400fc19e2d94aeeb44ac92c72db97102dfb923d1079565e0662e35a1ba5
+Aceptación de una revisión en el debate deb-20261019-a1b2c3
+La persona aceptó la revisión de un veredicto impugnado en el debate deb-20261019-a1b2c3 el 01/01/2026 a las 10:00 UTC.
+
+# Decision / System / 4863767d78f3450c051aebe34640a6ef1f22bd3b34575b9a593677e5e3bd8444
+Aceptación de una revisión en la auditoría aud-20261019-0000a1
+La persona aceptó la revisión de un veredicto impugnado en la auditoría aud-20261019-0000a1 el 01/01/2026 a las 10:00 UTC.
+
+# Decision / System / 778a8d95631fc465b2a7902dc61099c908d819da879e549592b37677dc697916
+Aceptación de una revisión en la ejecución 20261101-0000c8
+Agent Studio, sin una respuesta válida de una persona, no aceptó la revisión de un veredicto impugnado en la ejecución 20261101-0000c8 el 01/01/2026 a las 10:00 UTC.
+
+# Decision / System / 4d66e8eeb0ce82127aac4d0a2e24611de60d879fab14ccfa770ae0567493231d
+Aceptación de una revisión en la ejecución 20261101-0000c8
+La persona aceptó la revisión de un veredicto impugnado en la ejecución 20261101-0000c8 el 01/01/2026 a las 10:00 UTC.
+
+# KnownError / System / ca73c78429f5f8352604f15e10e8e82559114af6d4c8aee3ac126a967ab21846
+Alerta debate.something en el debate deb-20261019-a1b2c3
+Alerta de auditoría «debate.something» en el debate deb-20261019-a1b2c3 (tareas: T1). Detalle del registro: Something happened.
+
+# KnownError / System / 36b2e4bbe2baf94e407f4d692d9f7b7ae42552726f7172d55cfe2bc304c295c2
+Alerta debate.something en la auditoría aud-20261019-0000a1
+Alerta de auditoría «debate.something» en la auditoría aud-20261019-0000a1 (tareas: T1). Detalle del registro: Something happened.
+
+# KnownError / System / 65b46bf39c42c708492aad52f9e4bc4490cd71d180fc58ef19c90d62d91532ba
+Alerta run.silent en la ejecución 20261101-000032
+Alerta de auditoría «run.silent» en la ejecución 20261101-000032.
+
+# KnownError / System / 9c09d65243db048bb6f921a1e5b6ae0ab70990ae41dce30c9b32c1b1e502b090
+Alerta run.something en la ejecución 20261101-000032
+Alerta de auditoría «run.something» en la ejecución 20261101-000032. Detalle del registro: A message with no tasks.
+
+# KnownError / System / 8fb18fb3aa9a1e1e48964a6ae71bf296bb044dc5143a57f8639f343da0a98ea0
+Alerta task.retries-exhausted en la ejecución 20261101-000032
+Alerta de auditoría «task.retries-exhausted» en la ejecución 20261101-000032 (tareas: T1, T2). Detalle del registro: Task 'T1' failed and has no retries left.
+
+# KnownError / System / b36598a551c3c817d72e2179ef6c7b259a9dddf80fa7728500702a0a43da169e
+Conflicto de integración en T3 en la ejecución 20261101-000032
+La integración T3 de la ejecución 20261101-000032 tuvo conflictos en 1 fichero y no se integró: src/Calc.cs.
+
+# KnownError / System / 0f6fd892c7c16d0981f0e7e98f20c784f13122bff335e2efc45ddf721244d91d
+Conflicto de integración en la ejecución 20261101-000032
+La integración de la ejecución 20261101-000032 tuvo conflictos en 2 ficheros y no se integró: src/One.cs, src/Two.cs.
+
+# DebateSummary / System / 73c1c60701598215ba852e9da13a01c51abc302d6b8d4dc41e52de7b5b0b0dbe
+Debate deb-20261101-000050 (libre)
+Debate deb-20261101-000050 (libre), abierto el 01/01/2026 a las 10:00 UTC y cerrado el 01/01/2026 a las 10:00 UTC. Resultado: resuelto (juez único); propuesta elegida: P1. Sin veredictos. Pregunta: «¿Qué hacemos?»
+
+# DebateSummary / System / fa57fcaf0dede6bd776ba81118f93abe8594ca82408d266b0d15b4f716f9e71f
+Debate deb-20261101-000051 (adversarial)
+Debate deb-20261101-000051 (adversarial), abierto el 01/01/2026 a las 10:00 UTC y cerrado el 01/01/2026 a las 10:00 UTC. Resultado: resuelto (juez único); propuesta elegida: P1. Sin veredictos. Pregunta: «¿Qué hacemos?»
+
+# DebateSummary / System / 6d17e4b32fe81be08558ce70e37041640d9191597f331b4a935b2c6d0e44a7b8
+Debate deb-20261101-000052 (revisión de arquitectura)
+Debate deb-20261101-000052 (revisión de arquitectura), abierto el 01/01/2026 a las 10:00 UTC y cerrado el 01/01/2026 a las 10:00 UTC. Resultado: resuelto (juez único); propuesta elegida: P1. Sin veredictos. Pregunta: «¿Qué hacemos?»
+
+# DebateSummary / System / 758b2acdb8169be8bea5b8edd3a5fd8c974be659771f50bfe34b563b04f40ca0
+Debate deb-20261101-000053 (auditoría de implementación)
+Debate deb-20261101-000053 (auditoría de implementación), abierto el 01/01/2026 a las 10:00 UTC y cerrado el 01/01/2026 a las 10:00 UTC. Resultado: resuelto (juez único); propuesta elegida: P1. Sin veredictos. Pregunta: «¿Qué hacemos?»
+
+# DebateSummary / System / 51582076f757dc204b47e739c39776feede0645ebabd6790566222a35da31ef1
+Debate deb-20261101-000054 (revisión del orquestador)
+Debate deb-20261101-000054 (revisión del orquestador), abierto el 01/01/2026 a las 10:00 UTC y cerrado el 01/01/2026 a las 10:00 UTC. Resultado: resuelto (juez único); propuesta elegida: P1. Sin veredictos. Pregunta: «¿Qué hacemos?»
+
+# DebateSummary / System / 8408d3efca63956893b7df22318a91abb29f84b471b788f2460a8fd6ae5e78ac
+Debate deb-20261101-000055 (tribunal)
+Debate deb-20261101-000055 (tribunal), abierto el 01/01/2026 a las 10:00 UTC y cerrado el 01/01/2026 a las 10:00 UTC. Resultado: resuelto (juez único); propuesta elegida: P1. Sin veredictos. Pregunta: «¿Qué hacemos?»
+
+# DebateSummary / System / c75663b2fa34f1f27bd8fb6431988863830efe6f96a28f103e65fad9e632ebe2
+Debate deb-20261101-000056 (libre)
+Debate deb-20261101-000056 (libre), sobre el commit abc1234, abierto el 01/01/2026 a las 10:00 UTC y cerrado el 01/01/2026 a las 10:00 UTC. Resultado: sin resolver (el jurado coincide). Sin veredictos. Pregunta: «¿Y esto otro?»
+
+# DebateSummary / System / bd3788de8095c3520c46fd6839e6b655be557730cd52c8fbd9f1b0d7ffc60adc
+Debate deb-20261101-000057 (libre)
+Debate deb-20261101-000057 (libre), sobre la ejecución 20261015-a1b2c3, abierto el 01/01/2026 a las 10:00 UTC y cerrado el 01/01/2026 a las 10:00 UTC. Resultado: lo deja en manos de una persona (el jurado discrepa); propuesta elegida: no citada. Sin veredictos. Pregunta: «¿Y esto otro?»
+
+# DebateSummary / System / f666714740bd4b5d0af31a86425b2eae1d99940f8f09f57deb21c312e51a729c
+Debate deb-20261101-000058 (libre)
+Debate deb-20261101-000058 (libre), sobre el veredicto v9, abierto el 01/01/2026 a las 10:00 UTC y cerrado el 01/01/2026 a las 10:00 UTC. Resultado: abortado (abortado). Sin veredictos. Pregunta: «¿Y esto otro?»
+
+# DebateSummary / System / 3b5fc27cc57cc7abbf909d4c400633ecf82638d1a5ad6696bf9b6468d43085cd
+Debate deb-20261101-000059 (libre)
+Debate deb-20261101-000059 (libre), con un objeto que el registro no nombra, abierto el 01/01/2026 a las 10:00 UTC y cerrado el 01/01/2026 a las 10:00 UTC. Resultado: resuelto (veredictos no válidos o incompletos); propuesta elegida: P2. Sin veredictos. Pregunta: «¿Y esto otro?»
+
+# DebateSummary / System / 3b0ffb470e93d4312a1f96ec78912f20b8621c02b5019775d35c96909f46c038
+Debate deb-20261101-00005a (libre)
+Debate deb-20261101-00005a (libre): revisión de la impugnación del veredicto v0, abierto el 01/01/2026 a las 10:00 UTC y cerrado el 01/01/2026 a las 10:00 UTC. Resultado: resuelto (decisión del usuario («Decidir yo»)); propuesta elegida: P1. Sin veredictos. Pregunta: «¿Y esto otro?»
+
+# DebateSummary / System / 8a2cfe4e334516d95992390cc33fa24b9f204bd1c259bcc5036057ba925289af
+Debate deb-20261101-00005b (libre)
+Debate deb-20261101-00005b (libre), abierto el 01/01/2026 a las 10:00 UTC y cerrado el 01/01/2026 a las 10:00 UTC. Resultado: abierto (regla desconocida). Sin veredictos. Pregunta: «¿Y esto otro?»
+
+# DebateSummary / System / b161b398420ba9fb1a073039e070b9c6cc93f311b7a7250b01c5472accfff4a2
+Debate deb-20261101-00005c (tribunal)
+Debate deb-20261101-00005c (tribunal), abierto el 01/01/2026 a las 10:00 UTC y cerrado el 01/01/2026 a las 10:00 UTC. Resultado: resuelto (el jurado coincide); propuesta elegida: P1. Veredictos: vd-1 (aprobado, válido); vd-2 (pide cambios, no válido); vd-ausente (no está en el registro). Pregunta: «¿Con veredictos?»
+
+# DebateSummary / System / 752961913989e500054b9db4306e12637ace4b168981416967ab66465f1564d5
+Debate deb-20261101-00005d (libre)
+Debate deb-20261101-00005d (libre), abierto el 01/01/2026 a las 10:00 UTC y cerrado el 01/01/2026 a las 10:00 UTC. Resultado: resuelto (juez único). Sin veredictos. La pregunta está vacía.
+
+# DebateSummary / System / 363da604be55febf91ac071c8b4d7ac85bf046d366cb3296da8b3f269d86df18
+Debate deb-20261101-00005e (libre)
+Debate deb-20261101-00005e (libre), abierto el 01/01/2026 a las 10:00 UTC y cerrado el 01/01/2026 a las 10:00 UTC. Resultado: resuelto (juez único). Sin veredictos. La pregunta (evidencia <id>) no la escribió una persona: no se cita.
+
+# Change / System / b2f8ca398f4a5b93581eb663ba74d8d27a4e8173f973473655926a0753c03a66
+Entrega de la ejecución 20261101-000006
+La entrega de la ejecución 20261101-000006 dejó refs/heads/main en el commit 2222222222222222222222222222222222222222; integra 1 commit: 1111111111111111111111111111111111111111. Cambian 2 ficheros: src/A.cs, src/B.cs.
+
+# Decision / System / ba40d74f5cc843cfd25d1163270ada370a461827df125e83fcef5c250542bd08
+Entrega de la ejecución 20261101-000006
+La persona aprobó entregar la ejecución 20261101-000006 a su rama el 01/01/2026 a las 10:00 UTC: cambian 2 ficheros.
+
+# Change / System / 725578c1a4b9d5e044dd05dbaac06174ce447e8f8218d6626b84a55d065882af
+Entrega de la ejecución 20261101-000007
+La entrega de la ejecución 20261101-000007 dejó refs/heads/main en el commit 2222222222222222222222222222222222222222; integra 1 commit: 1111111111111111111111111111111111111111. Cambia 1 fichero: src/A.cs.
+
+# Decision / System / 2b29699b26d82e0d03581df63d30206153f7803aa9923ca030f4e2fcff35a007
+Entrega de la ejecución 20261101-000007
+La persona aprobó entregar la ejecución 20261101-000007 a su rama el 01/01/2026 a las 10:00 UTC: cambia 1 fichero.
+
+# Change / System / 9fa74e7bba285c4a1b2d02ca48a342fde6c34f899708e6e24c0a29814c4bd866
+Entrega de la ejecución 20261101-000008
+La entrega de la ejecución 20261101-000008 dejó refs/heads/main en el commit 2222222222222222222222222222222222222222; integra 1 commit: 1111111111111111111111111111111111111111. No cambia ningún fichero.
+
+# Decision / System / 16b43b6564e3e7670a386417cea2fdc5594c84460425c3f383d762f7b8d52ca3
+Entrega de la ejecución 20261101-000008
+La persona aprobó entregar la ejecución 20261101-000008 a su rama el 01/01/2026 a las 10:00 UTC: no cambia ningún fichero.
+
+# Decision / System / fd581f7b42e72a18404eacf17ac68b4a6da7c0a0511f5fa1668a5d3a1f5a4b29
+Entrega de la ejecución 20261101-000009
+La persona denegó entregar la ejecución 20261101-000009 a su rama el 01/01/2026 a las 10:00 UTC.
+
+# Decision / System / 8bbb3c5edaa4ac0078e15a58584ece4cfe11951da95918d26e17fddad26234e7
+Entrega de la ejecución 20261101-00000a
+La persona aprobó entregar la ejecución 20261101-00000a a su rama el 01/01/2026 a las 10:00 UTC.
+
+# Decision / System / 0f95759505086479ea519b6da89021831936a862eb3791b94db5d6a00812ef54
+Entrega de la ejecución 20261101-00000b
+Agent Studio, sin una respuesta válida de una persona, denegó entregar la ejecución 20261101-00000b a su rama el 01/01/2026 a las 10:00 UTC.
+
+# Change / System / 9230febe6de6556ad7ddf6a0e4496092e3af0ba5023a993442b101ce47d8210c
+Entrega de la ejecución 20261101-00000c
+La entrega de la ejecución 20261101-00000c dejó refs/heads/main en el commit 2222222222222222222222222222222222222222; integra 1 commit: 1111111111111111111111111111111111111111. Cambian 45 ficheros: src/File01.cs, src/File02.cs, src/File03.cs, src/File04.cs, src/File05.cs, src/File06.cs, src/File07.cs, src/File08.cs, src/File09.cs, src/File10.cs, src/File11.cs, src/File12.cs, src/File13.cs, src/File14.cs, src/File15.cs, src/File16.cs, src/File17.cs, src/File18.cs, src/File19.cs, src/File20.cs, src/File21.cs, src/File22.cs, src/File23.cs, src/File24.cs, src/File25.cs, src/File26.cs, src/File27.cs, src/File28.cs, src/File29.cs, src/File30.cs, src/File31.cs, src/File32.cs, src/File33.cs, src/File34.cs, src/File35.cs, src/File36.cs, src/File37.cs, src/File38.cs, src/File39.cs, src/File40.cs y 5 más.
+
+# Decision / System / 2223d0cee447e1bdfc113d57ea40c8d4719cea5f42de2633058a81a1dc1df435
+Entrega de la ejecución 20261101-00000c
+La persona aprobó entregar la ejecución 20261101-00000c a su rama el 01/01/2026 a las 10:00 UTC: cambian 45 ficheros.
+
+# Change / System / ff581c49da2830e8f6ce1c73103235d2cd20f6ce2742919b08a9b7a310a0264c
+Entrega de la ejecución 20261101-000032
+La entrega de la ejecución 20261101-000032 dejó refs/heads/main en el commit 2222222222222222222222222222222222222222; integra 1 commit: 1111111111111111111111111111111111111111.
+
+# Decision / System / bb6b085a203cdb0f9a0538e32b1eb01bde11da23e682b6dd60e0c20f96d27352
+Impugnación del veredicto v0 de la ejecución 20261101-00003d
+La persona impugnó el veredicto v0 de la ejecución 20261101-00003d el 01/01/2026 a las 10:00 UTC; la revisión es el debate deb-20261101-000046 y sus razones están en la evidencia <id>.
+
+# Decision / System / 7db0195ceabe3613fb8d1ee61340590d574cc69d404aaf399d1dd08d57ca9ddf
+Impugnación del veredicto v0 de la ejecución 20261101-0000c8
+La persona impugnó el veredicto v0 de la ejecución 20261101-0000c8 el 01/01/2026 a las 10:00 UTC; la revisión es el debate deb-20261101-000046 y sus razones están en la evidencia <id>.
+
+# Decision / System / c914623fb29e0c583c2b6a307e9c9c49ad7f4de7291a0330caa380a1dd8f1a29
+Impugnación del veredicto vu-1 de la auditoría aud-20261019-0000a1
+La persona impugnó el veredicto vu-1 de la auditoría aud-20261019-0000a1 el 01/01/2026 a las 10:00 UTC; la revisión es el debate deb-20261101-000047 y sus razones están en la evidencia <id>.
+
+# Decision / System / 5455554b5d2472f279ec813548817ed3a7dcc925de0e75a8a8d005756643051f
+Impugnación del veredicto vu-1 del debate deb-20261019-a1b2c3
+La persona impugnó el veredicto vu-1 del debate deb-20261019-a1b2c3 el 01/01/2026 a las 10:00 UTC; la revisión es el debate deb-20261101-000047 y sus razones están en la evidencia <id>.
+
+# Change / System / b52afa2328057bc4ab55bb9177f4788dbad58a293397c4184407804ae8c7f0e4
+Integración T3 en la ejecución 20261101-000032
+La integración T3 de la ejecución 20261101-000032 dejó agentstudio/run-20261101-000032 en el commit 1111111111111111111111111111111111111111; integra 2 commits: 2222222222222222222222222222222222222222, 1111111111111111111111111111111111111111.
+
+# Change / System / 322b3c0a31e571f3e3f071b3a4fd92b2d60434bed441ec4dc596b3030eb1f02a
+Integración en la ejecución 20261101-000032
+La integración de la ejecución 20261101-000032 dejó agentstudio/run-20261101-000032 en el commit 2222222222222222222222222222222222222222.
+
+# KnownError / System / f8021d0ed9c718838a994cbefaf804d22697b634d740c50954ec1a9a8b499d90
+Petición de replanificar el debate deb-20261019-a1b2c3
+Agent Studio pidió replanificar el debate deb-20261019-a1b2c3 el 01/01/2026 a las 10:00 UTC (hallazgos: x). Detalle del registro: M.
+
+# Decision / System / fe35198d4e8dcf5dd8fa86266a6983605ce55434191d21f4d4a8a7a878691e6d
+Petición de replanificar el debate deb-20261019-a1b2c3
+La persona descartó la petición de replanificar el debate deb-20261019-a1b2c3 el 01/01/2026 a las 10:00 UTC.
+
+# KnownError / System / d3faac3e79018dca018e1680be2e1728ccee0fd0fd13b23a1544383bab2c432f
+Petición de replanificar la auditoría aud-20261019-0000a1
+Agent Studio pidió replanificar la auditoría aud-20261019-0000a1 el 01/01/2026 a las 10:00 UTC (hallazgos: x). Detalle del registro: M.
+
+# Decision / System / ed4895e2e6b35bf4452d46495f1435d7637d9a55ebd921235a7bdfafd362431a
+Petición de replanificar la auditoría aud-20261019-0000a1
+La persona descartó la petición de replanificar la auditoría aud-20261019-0000a1 el 01/01/2026 a las 10:00 UTC.
+
+# KnownError / System / 30d50c98629bdd8a70873dd22100ea76605b114716c7a53fa2604017bac45dbe
+Petición de replanificar la ejecución 20261101-0000c8
+Agent Studio pidió replanificar la ejecución 20261101-0000c8 el 01/01/2026 a las 10:00 UTC (hallazgos: sys.finding). Detalle del registro: Message of the system.
+
+# KnownError / System / fbd77f865506c927af6e3b47811d34fe5402ea54d0d9210339d504f1e8a6dd76
+Petición de replanificar la ejecución 20261101-0000c8
+Agent Studio pidió replanificar la ejecución 20261101-0000c8 el 01/01/2026 a las 10:00 UTC (sin hallazgos).
+
+# Decision / System / 159c23ded979dd9fa8c77a5f55b0c5d32e09188f57973e098f2aa78c41c15209
+Petición de replanificar la ejecución 20261101-0000c8
+Agent Studio, sin una respuesta válida de una persona, no descartó la petición de replanificar la ejecución 20261101-0000c8 el 01/01/2026 a las 10:00 UTC.
+
+# KnownError / System / 9d28ae5058930ef15f5e0ea69090bc1f707c6f570e0aa3e9d36f3a05784b12aa
+Petición de replanificar la ejecución 20261101-0000c8
+El auditor del orquestador pidió replanificar la ejecución 20261101-0000c8 el 01/01/2026 a las 10:00 UTC (hallazgos: a.one, a.two; tareas: T7, T8; veredicto r9). Detalle del registro: Message of the auditor.
+
+# KnownError / System / 9d2ed1a755fb727aa2fbf8853e6d7c162b80be8372f6ea497df3268ee28738b2
+Petición de replanificar la ejecución 20261101-0000c8
+El juez juez-revision de la revisión del orquestador pidió replanificar la ejecución 20261101-0000c8 el 01/01/2026 a las 10:00 UTC (1 hallazgo; tareas: T7).
+
+# KnownError / System / 5f553c887b192f386eeb19913906c35771680e4d3585b6d97446172ccaca900f
+Petición de replanificar la ejecución 20261101-0000c8
+El juez juez-revision de la revisión del orquestador pidió replanificar la ejecución 20261101-0000c8 el 01/01/2026 a las 10:00 UTC (3 hallazgos; veredicto r1).
+
+# Decision / System / 8a573f6c8113285342a00ea046a4b2d95a70c0bf29b9311ae1ef87d9d82e9e56
+Petición de replanificar la ejecución 20261101-0000c8
+La persona descartó la petición de replanificar la ejecución 20261101-0000c8 el 01/01/2026 a las 10:00 UTC.
+
+# Decision / System / 8b598c4d7f953b807254ad49bcca42b77553b3eeb9e5e20d44a87aa2b5b6e9e3
+Plan de la ejecución 20261101-000001
+La persona aprobó el plan 0bdceaf44dc4 de la ejecución 20261101-000001 (1 tarea) el 01/01/2026 a las 10:00 UTC.
+
+# Decision / System / 8dbd5f0eacc924ea9754fff12907de4804f154372d2b72af2b306be78d2559ab
+Plan de la ejecución 20261101-000002
+La persona aprobó el plan de3659e855ba de la ejecución 20261101-000002 (3 tareas) el 01/01/2026 a las 10:00 UTC.
+
+# Decision / System / 8aa94f33ae5decd431bbec38f6b93d63e28e8184cd123e4755d997db8d573a41
+Plan de la ejecución 20261101-000003
+La persona denegó el plan de la ejecución 20261101-000003 el 01/01/2026 a las 10:00 UTC.
+
+# Decision / System / 3a26d450ec3769e7ccc57534ff25d9f03f39aa5ca4063e4a93816486c2106a53
+Plan de la ejecución 20261101-000004
+Agent Studio, sin una respuesta válida de una persona, denegó el plan de la ejecución 20261101-000004 el 01/01/2026 a las 10:00 UTC.
+
+# Decision / System / efe6181cd93b2ea446e4d677a33e7aed820c0f7a41e4778a953e53b15150b6fb
+Plan de la ejecución 20261101-000005
+La persona aprobó el plan de la ejecución 20261101-000005 el 01/01/2026 a las 10:00 UTC.
+
+# Decision / System / d0bf4f8d3da25b71687b867cc250143cb19878f3a2ddd5641c64aff501addf76
+Plan de la ejecución 20261101-000014
+La persona aprobó el plan 68d3ca96eaaf de la ejecución 20261101-000014 (14 tareas) el 01/01/2026 a las 10:00 UTC.
+
+# KnownError / System / 71184f644e4d88a5f291422f034d8d9204218888dcd4b354796f9cbc53ca702c
+Pruebas fallidas en T1 en el debate deb-20261019-a1b2c3
+La verificación «Tests (test)» de T1 (intento 1) falló sobre el commit 1111111111111111111111111111111111111111: fallaron 2 pruebas (8 correctas, 0 omitidas, código de salida 1).
+
+# KnownError / System / 3103c8197a5b61daf8510727279451dcb413c3a20040d4f9d9eb6e8b08c85d05
+Pruebas fallidas en T1 en la auditoría aud-20261019-0000a1
+La verificación «Tests (test)» de T1 (intento 1) falló sobre el commit 1111111111111111111111111111111111111111: fallaron 2 pruebas (8 correctas, 0 omitidas, código de salida 1).
+
+# KnownError / System / bd2bdfe9ebecda8e64248f6979107ff4c2dc9308151d62c2f644dac2aadcede0
+Pruebas fallidas en T1 en la ejecución 20261101-000032
+La verificación «Tests (test)» de T1 (intento 1) falló sobre el commit 1111111111111111111111111111111111111111: fallaron 2 pruebas (8 correctas, 0 omitidas, código de salida 1).
+
+# KnownError / System / 0c0a103bcb76654e9a248d329b597009885f91bb4ee8c48e607eb5828f84e991
+Pruebas fallidas en T1 en la ejecución 20261101-000032
+La verificación «Tests (test)» de T1 (intento 2) falló sobre el commit 2222222222222222222222222222222222222222: falló 1 prueba (5 correctas, 0 omitidas, código de salida 1).
+
+# KnownError / System / fe4cb9b132939593b7ae0f6950325b4aadffca3d3f3e79c15be49dc8d91e206f
+Pruebas fallidas en T2 en la ejecución 20261101-000032
+La verificación «Tests (build)» de T2 falló: el proceso de las pruebas terminó con el código de salida 7 (4 correctas, 2 omitidas).
+
+# KnownError / System / e1737f940005665590f91fc10cbe2e408466932022677280b7263d997a7be64e
+Pruebas fallidas en el debate deb-20261019-a1b2c3
+La verificación «Tests (test)» del debate deb-20261019-a1b2c3 falló sobre el commit 1111111111111111111111111111111111111111: fallaron 2 pruebas (8 correctas, 0 omitidas, código de salida 1).
+
+# KnownError / System / 67d0b1eabdfd726d806b1e32512f6a0ebc7b130f576fefbc5ecef07fbe253ff5
+Pruebas fallidas en la auditoría aud-20261019-0000a1
+La verificación «Tests (test)» de la auditoría aud-20261019-0000a1 falló sobre el commit 1111111111111111111111111111111111111111: fallaron 2 pruebas (8 correctas, 0 omitidas, código de salida 1).
+
+# KnownError / System / 9f12b2ac1f6f10779bc35bd9d73a07694743aa4c69916334f826ab91c79e4e9e
+Pruebas fallidas en la ejecución 20261101-000032
+La verificación «Tests (test)» de la ejecución 20261101-000032 falló sobre el commit 1111111111111111111111111111111111111111: no pasó ninguna prueba (3 omitidas, código de salida 1).
+
+# Decision / Agent / 3354967089da1a78fbd10d1f9a96c3d4f3689c55582eddbff97acb5f59eefb92
+Resumen del plan aprobado de la ejecución 20261101-000001
+Plan de una tarea.
+
+# Decision / Agent / 8f639e26a8e6e7d1d4b44ffc7cbe11136fb60cfe0a2e9e81ac5f0f8461031ab3
+Resumen del plan aprobado de la ejecución 20261101-000002
+Plan de varias tareas.
+
+# Decision / Agent / ffbd147c098499f06514046539eeecaac80e20bdade776a29e3bcc3d9e50dc5c
+Resumen del plan aprobado de la ejecución 20261101-000014
+Plan con todo.
+
+# PendingTask / System / c4212c3ba666e3d14ab1fa443db4396de8082b9a5fbb7079865ec676f8c8b0bd
+Tareas pendientes de la ejecución 20261101-000014
+Al terminar la ejecución 20261101-000014 (fallida) quedaron sin completar 12 tareas: T2 (condición): en curso, tras 1 intento; T3 (herramienta): esperando una aprobación, tras 1 intento; T4 (revisión): no llegó a empezar; T5 (debate): cancelada, tras 1 intento; T6 (aprobación de una persona): fallida, tras 3 intentos; T7 (integración): pendiente, tras 1 intento; T8 (trabajo de agente): bloqueada, tras 1 intento, motivo: espera a una persona; T9 (trabajo de agente): bloqueada, tras 2 intentos, motivo: la aplicación se cerró mientras trabajaba; T10 (trabajo de agente): bloqueada, tras 1 intento, motivo: no se pudo lanzar el agente o la herramienta; T11 (trabajo de agente): bloqueada, tras 1 intento, motivo: límite de uso del proveedor hasta el 01/11/2026 a las 10:30 UTC; T12 (trabajo de agente): bloqueada, tras 1 intento, motivo: límite de uso del proveedor hasta el 01/11/2026 a las 11:45 UTC (espera estimada); T13 (trabajo de agente): bloqueada, tras 1 intento.
+
+# PendingTask / System / 403db8c8f92fe086a611b5d0b2994f812abbd22b63d482d8ca5ac099abd204d7
+Tareas pendientes de la ejecución 20261101-00001e
+Al terminar la ejecución 20261101-00001e (en curso) quedaron sin completar 1 tarea: T1 (trabajo de agente): no llegó a empezar.
+
+# PendingTask / System / 933ccf757443d72fd3f5e106cefce89155fe072418df9f7cd32b52ac24cee6f1
+Tareas pendientes de la ejecución 20261101-00001f
+Al terminar la ejecución 20261101-00001f (en pausa) quedaron sin completar 1 tarea: T1 (trabajo de agente): no llegó a empezar.
+
+# PendingTask / System / 540fb7ac0cc2c97880712302cd1c518ad638ed08cd2d79f2b86f317920274441
+Tareas pendientes de la ejecución 20261101-000020
+Al terminar la ejecución 20261101-000020 (esperando cuota) quedaron sin completar 1 tarea: T1 (trabajo de agente): no llegó a empezar.
+
+# PendingTask / System / 22258393976dab86362cad184042c594a3247b74a5183d44a5209ede60bb09ef
+Tareas pendientes de la ejecución 20261101-000021
+Al terminar la ejecución 20261101-000021 (esperando a una persona) quedaron sin completar 1 tarea: T1 (trabajo de agente): no llegó a empezar.
+
+# PendingTask / System / 23ae9ed041e4f80cde69039e214bd4c7ab9cdc82a591345042d94bd8e943708a
+Tareas pendientes de la ejecución 20261101-000022
+Al terminar la ejecución 20261101-000022 (interrumpida) quedaron sin completar 1 tarea: T1 (trabajo de agente): no llegó a empezar.
+
+# PendingTask / System / ffbab861c907ab6cfb41982b6e61003fe2cdb8cdb0029888165116c3eab885b5
+Tareas pendientes de la ejecución 20261101-000023
+Al terminar la ejecución 20261101-000023 (completada) quedaron sin completar 1 tarea: T1 (trabajo de agente): no llegó a empezar.
+
+# PendingTask / System / 9e218919f8eac0b71cee101e5620b00937ce2f43e974859f0add8989a88241bb
+Tareas pendientes de la ejecución 20261101-000024
+Al terminar la ejecución 20261101-000024 (fallida) quedaron sin completar 1 tarea: T1 (trabajo de agente): no llegó a empezar.
+
+# PendingTask / System / e981b7d2249092718e79025de39dd9ce6029c8b5abb92c6b9e36a3d5dd4ddcd3
+Tareas pendientes de la ejecución 20261101-000025
+Al terminar la ejecución 20261101-000025 (bloqueada) quedaron sin completar 1 tarea: T1 (trabajo de agente): no llegó a empezar.
+
+# PendingTask / System / 204e81f7cddeb83acf47ccb4a64b25830f0d2bd5e415ce887106ac17da608ee6
+Tareas pendientes de la ejecución 20261101-000026
+Al terminar la ejecución 20261101-000026 (cancelada) quedaron sin completar 1 tarea: T1 (trabajo de agente): no llegó a empezar.
+
+# Verdict / System / 2f71e4e834468bde5813e4254c46ed235bfc59f8913330a2fb957117769a15c1
+Veredicto de juez-a en el debate deb-20261101-00005c
+El juez juez emitió el veredicto vd-1 para el debate deb-20261101-00005c: aprobado, válido. Juez en 'openai'; vendors que produjeron el trabajo: anthropic (ADR-0014).
+
+# Verdict / System / 3d46d20ab465ad5f31308d357bee55b93d904995a2cc231d0cb3660ae78ae3c6
+Veredicto de juez-b en el debate deb-20261101-00005c
+El juez juez emitió el veredicto vd-2 para el debate deb-20261101-00005c: pide cambios, no válido. Juez en 'openai'; vendors que produjeron el trabajo: anthropic (ADR-0014).
+
+# Verdict / System / d4550fd458adae2978b05605e3ccde60403321637183051e9d1b9883fb42d325
+Veredicto de juez-codex en el debate deb-20261019-a1b2c3
+El juez juez emitió el veredicto vu-1 para el debate deb-20261019-a1b2c3: rechazado, válido. Juez en 'openai'; vendors que produjeron el trabajo: anthropic (ADR-0014).
+
+# Verdict / System / 3056b776f687eca53f99e5b8689bcea27ab948f7e0685863d4f1a24abae6bcba
+Veredicto de juez-codex en la auditoría aud-20261019-0000a1
+El juez juez emitió el veredicto vu-1 para la auditoría aud-20261019-0000a1: rechazado, válido. Juez en 'openai'; vendors que produjeron el trabajo: anthropic (ADR-0014).
+
+# Verdict / System / 0ee331fd71a054f184a15f32acdedd94123daa784560611699f7df317a1cce80
+Veredicto de la auditoría aud-20261019-0000a1
+El juez juez emitió el veredicto vu-2 para la auditoría aud-20261019-0000a1: aprobado, válido. Nota.
+
+# Verdict / System / 29e447b55dac29bef9f6480049b74c0faaed844e788d6800aa6681e614243e9e
+Veredicto de la ejecución 20261101-00003c
+El juez juez emitió el veredicto v6 para la ejecución 20261101-00003c: aprobado, válido.
+
+# Verdict / System / 162560e9cf4e182e09faf041f527131738590db167f10edf776527fc063726d5
+Veredicto de la ejecución 20261101-00003d
+El juez juez emitió el veredicto r2 para la ejecución 20261101-00003d: aprobado, válido.
+
+# Verdict / System / 839e28747ebcee9842231d40150af23ccbcd919bfe3fa74192094f33df399ac0
+Veredicto de la revisión T7 en la ejecución 20261101-00003c
+El juez juez emitió el veredicto v1 para la revisión T7: aprobado, válido. Juez en 'openai'; vendors que produjeron el trabajo: anthropic (ADR-0014).
+
+# Verdict / System / 23f0ca15c32ecf91a168c51efbfbfbdba8392d8b18d0cff04b07841d568dc04b
+Veredicto de la revisión T7 en la ejecución 20261101-00003c
+El juez juez emitió el veredicto v2 para la revisión T7: pide cambios, no válido. Juez en 'openai'; vendors que produjeron el trabajo: anthropic (ADR-0014).
+
+# Verdict / System / adbb2d0352e13a585e2b3784d697218412e38f7912a2cc12ff06ac9d47194eb5
+Veredicto de la revisión T7 en la ejecución 20261101-00003c
+El juez juez emitió el veredicto v3 para la revisión T7: rechazado, no válido (incidencias: ApprovedWithoutTestRun); corrige al veredicto v1. Juez en 'openai'; vendors que produjeron el trabajo: anthropic (ADR-0014).
+
+# Verdict / System / 80abe6a0fb1a6cb6d49560a73520634f192a9c60b81820fa8bb1d10ca85dd2bf
+Veredicto de la revisión T7 en la ejecución 20261101-00003d
+El juez juez emitió el veredicto v0 para la revisión T7: lo deja en manos de una persona, válido. Juez en 'openai'; vendors que produjeron el trabajo: anthropic (ADR-0014).
+
+# Verdict / System / 8a9210528a1a9537b51eab4eeaf4112cbc3a518024ed47148f9526595678c59d
+Veredicto de la revisión T8 en la ejecución 20261101-00003c
+El juez juez emitió el veredicto v4 para la revisión T8: lo deja en manos de una persona, válido. Juez en 'openai'; vendors que produjeron el trabajo: anthropic (ADR-0014).
+
+# Verdict / System / 5204410d508abf7c1fc2d03aea1bc4d432cc61f2ccd4c39b0f37945cf7d670ef
+Veredicto de la revisión T8 en la ejecución 20261101-00003c
+El juez juez emitió el veredicto v5 para la revisión T8: sin resolver, válido. Juez en 'openai'; vendors que produjeron el trabajo: anthropic (ADR-0014).
+
+# Verdict / System / 2a79eafe900d67b131fbebb3861523c6888c2eb3dae61dba1f7d062fd702ed4e
+Veredicto de la revisión de la impugnación del veredicto v0 en la ejecución 20261101-00003d
+El juez juez emitió el veredicto r1 para la revisión de la impugnación del veredicto v0: aprobado, válido; revisa el veredicto v0 tras su impugnación. Juez en 'openai'; vendors que produjeron el trabajo: anthropic (ADR-0014).
+
+# Verdict / System / 084bbf3c7966e7c658cdb48c6f66510418a37deacc9c3601d5fdb5ecfd4c85f6
+Veredicto del debate deb-20261019-a1b2c3
+El juez juez emitió el veredicto vu-2 para el debate deb-20261019-a1b2c3: aprobado, válido. Nota.
+
