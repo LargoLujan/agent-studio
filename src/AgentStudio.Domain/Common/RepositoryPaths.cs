@@ -12,8 +12,9 @@ public static class RepositoryPaths
 
     /// <summary>
     /// Whether <paramref name="path"/> is relative to the root of a repository: not empty and at most <see cref="MaxLength"/> characters;
-    /// no control character, no <c>\</c>, no <c>:</c> (a drive, a stream or a device), no <c>%</c>, <c>?</c>, <c>*</c>, <c>"</c>, <c>&lt;</c>,
-    /// <c>&gt;</c> or <c>|</c>; not starting with <c>/</c> (rooted or UNC); and no empty, <c>.</c> or <c>..</c> segment.
+    /// no control character, no <c>\</c>, no <c>:</c> (a drive, a stream or a device), no <c>?</c>, <c>*</c>, <c>"</c>, <c>&lt;</c>,
+    /// <c>&gt;</c> or <c>|</c>; not starting with <c>/</c> (rooted or UNC); and no empty, <c>.</c> or <c>..</c> segment. A <c>%</c> is a legal
+    /// character of a file name (<c>50%.md</c>) and the file system does not decode it, so it is not refused here.
     /// A segment that ends in a space or a dot is refused too: Windows trims them, so it would name another file.
     /// </summary>
     public static bool IsSafeRelative(string? path)
@@ -25,7 +26,7 @@ public static class RepositoryPaths
 
         foreach (var c in path)
         {
-            if (char.IsControl(c) || c is '\\' or ':' or '%' or '?' or '*' or '"' or '<' or '>' or '|')
+            if (char.IsControl(c) || c is '\\' or ':' or '?' or '*' or '"' or '<' or '>' or '|')
             {
                 return false;
             }

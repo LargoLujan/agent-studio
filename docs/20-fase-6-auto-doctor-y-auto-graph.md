@@ -1450,8 +1450,9 @@ docs/19. Ninguno de ellos existe todavía. Esta fase usa el 0045 y propone 0061 
   decía este apartado: se fija la 5.6.0, cuya ficha apunta a `release/stable`. Licencia MIT, autor Microsoft; dependencias en
   `net10.0`: `Microsoft.CodeAnalysis.Common` 5.6.0 y `Microsoft.CodeAnalysis.Analyzers` 5.3.0, también MIT; listada, publicada el
   2026-07-02, sin retirada; ninguno de los tres figura en el feed de vulnerabilidades de nuget.org del 2026-11-11. Compila con 0
-  avisos con `TreatWarningsAsErrors` (el proyecto de análisis la referencia con `PrivateAssets="compile"`). Peso publicado (`dotnet publish -c Release` del proyecto de análisis): 12,1 MB en 11
-  ficheros, de ellos `Microsoft.CodeAnalysis.CSharp.dll` 6,7 MB y `Microsoft.CodeAnalysis.dll` 2,9 MB (unos 9,6 MB de Roslyn, que no se carga en la app).
+  avisos con `TreatWarningsAsErrors` (el proyecto de análisis la referencia con `PrivateAssets="compile"`). Peso publicado (`dotnet publish -c Release` del proyecto de análisis, con
+  su satélite de idioma): 12,6 MB en 13 ficheros; sin él, 12,1 MB en 11, de ellos `Microsoft.CodeAnalysis.CSharp.dll` 6,7 MB y
+  `Microsoft.CodeAnalysis.dll` 2,9 MB (unos 9,6 MB de Roslyn, que no se carga en la app).
 - **Que el analizador de Roslyn no agote la pila al analizar** (no al recorrer) un fichero con anidamiento extremo. Por eso
   el proceso aparte y el relanzamiento de D-18.
 - **Los límites del analizador con ficheros hostiles:** que un fichero con anidamiento extremo termine con un error y no con

@@ -22,7 +22,8 @@
      proyecto abierto deja de encontrarse, y Auto Doctor lo avisa con `doctor.project.path-inside`.
   4. **La excepción de git** (decisión 13 (a)). Las comprobaciones de la sección «Proyecto» que preguntan a git van por la capa endurecida
      ([ADR-0012](0012-worktrees-fuera-del-repo.md)), que lanza `git` (el del sistema, sin hooks ni red) con la carpeta de trabajo en el repositorio. Es una lectura
-     de F6-7: «leer el entorno declarado no lanza nada en el repositorio»; [docs/08](../08-plan-y-criterios-de-aceptacion.md) lo dice con esas palabras.
+     de F6-7: «leer el entorno declarado no lanza nada en el repositorio». **Pendiente de la integración:** el P0 solo añadió F6-12 y F6-13 a
+     [docs/08](../08-plan-y-criterios-de-aceptacion.md); reescribir F6-7 con esas palabras lo hace el lead al integrar.
   5. **Los manifiestos son datos no fiables** (D-05 y D-06): una lista cerrada de 15 ficheros (`DeclaredFiles`) en la raíz del proyecto, nunca en subcarpetas;
      256 KB por fichero; sin seguir enlaces ni referencias (`include`, `dockerComposeFile`, `FROM` se nombran, nunca se abren); JSON con profundidad 32 y sin claves
      repetidas; líneas de hasta 4 096 caracteres; valores de hasta 200 caracteres que nunca pasan a una línea de órdenes. La Fase 6 **no interpreta YAML**

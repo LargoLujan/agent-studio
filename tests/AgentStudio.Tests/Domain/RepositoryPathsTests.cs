@@ -15,6 +15,8 @@ public sealed class RepositoryPathsTests
     [InlineData("docs/20-fase-6-auto-doctor-y-auto-graph.md")]
     [InlineData("a b/c d.cs")]
     [InlineData("ñandú/ü.cs")]
+    [InlineData("docs/50%.md")]
+    [InlineData("a/%2e%2e/b.cs")]
     public void A_relative_path_with_forward_slashes_is_safe(string path)
     {
         Assert.True(RepositoryPaths.IsSafeRelative(path));
@@ -41,7 +43,6 @@ public sealed class RepositoryPathsTests
     [InlineData("file.cs\n")]
     [InlineData("a\nb")]
     [InlineData("a\0b")]
-    [InlineData("%2e%2e/x")]
     [InlineData("a?b")]
     [InlineData("a*b")]
     [InlineData("a|b")]
