@@ -147,8 +147,11 @@ public sealed partial class QuickOpenViewModel : ObservableObject
 
         _paths = index.RelativePaths;
         IsTruncated = index.IsTruncated;
+
+        // The first list is ranked while the index still counts as being read: whoever sees it ready (IsIndexing false) finds
+        // the list in place, and a query typed at that moment is not overwritten by this ranking.
+        Rank();
         IsIndexing = false;
-        Refresh();
     }
 
     /// <summary>Moves the highlight by <paramref name="delta"/> rows, wrapping around the ends of the list.</summary>
@@ -208,6 +211,11 @@ public sealed partial class QuickOpenViewModel : ObservableObject
             return;
         }
 
+        Rank();
+    }
+
+    private void Rank()
+    {
         var ranked = FuzzyPathMatcher.Rank(_paths, Query, MaxResults);
         Results = ranked.Paths.Select(path => new QuickOpenItem(path, Path.GetFullPath(Path.Combine(_projectRoot, path)))).ToList();
         SelectedIndex = Results.Count > 0 ? 0 : -1;
