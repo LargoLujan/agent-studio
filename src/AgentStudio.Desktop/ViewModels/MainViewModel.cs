@@ -12,6 +12,7 @@ using AgentStudio.Desktop.Debate;
 using AgentStudio.Desktop.Help;
 using AgentStudio.Desktop.Documents;
 using AgentStudio.Desktop.Memory;
+using AgentStudio.Desktop.Work;
 using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Orchestrator;
 using AgentStudio.Desktop.Orchestrator.Monitor;
@@ -168,7 +169,8 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         SetupViewModelFactory? setup = null,
         SetupSuggestions? setupSuggestions = null,
         HelpDocumentViewModel? help = null,
-        ClientDocumentsViewModel? clientDocuments = null)
+        ClientDocumentsViewModel? clientDocuments = null,
+        WorkDocumentViewModel? workDocument = null)
     {
         ArgumentNullException.ThrowIfNull(settingsStore);
         ArgumentNullException.ThrowIfNull(folderPicker);
@@ -193,6 +195,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         _usage = usage;
         _memory = memory;
         _clientDocuments = clientDocuments;
+        _workDocument = workDocument;
         _upkeep = upkeep;
         _debates = debates;
         _review = review;
@@ -228,6 +231,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
             .. BuilderToolActivities(),
             .. ObservabilityActivities(),
             .. ClientDocumentActivities(),
+            .. WorkActivities(),
             .. DebateActivities(),
             new("terminal", Texts.Get("Main_Panel_Terminal"), "", null, PanelIds.Terminal, TogglePanelCommand) { Shortcut = TerminalShortcutHint },
             new("autodoctor", Texts.Get("Main_Panel_AutoDoctor"), "", null, PanelIds.AutoDoctor, TogglePanelCommand),
@@ -601,6 +605,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         }
 
         await ShowProjectInDocumentsAsync(projectPath);
+        await ShowProjectInWorkAsync(projectPath);
     }
 
     /// <summary>

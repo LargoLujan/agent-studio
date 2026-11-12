@@ -1,0 +1,85 @@
+<UserControl x:Class="AgentStudio.Desktop.Views.Work.BacklogView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
+             xmlns:work="clr-namespace:AgentStudio.Desktop.Work"
+             xmlns:views="clr-namespace:AgentStudio.Desktop.Views.Work"
+             xmlns:orchestratorViews="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=work:BacklogSection}">
+    <!-- «Backlog» (docs/16 D-18): the requirements in draft the person notes for later. Each change is a new version with all its
+         content; nothing is edited in place or deleted. Bindings only. -->
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="Work.BoolToVisibility"/>
+        <orchestratorViews:FalseToVisibilityConverter x:Key="Work.InverseBoolToVisibility"/>
+    </UserControl.Resources>
+
+    <StackPanel>
+        <views:SectionHeader/>
+
+        <TextBlock Style="{StaticResource FieldLabel}" Margin="0,10,0,0" Text="{l:T Work_Backlog_List}"/>
+        <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{l:T Work_Backlog_Empty}"
+                   Visibility="{Binding HasItems, Converter={StaticResource Work.InverseBoolToVisibility}}"/>
+        <ListBox ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}" MaxHeight="240" Background="Transparent" BorderThickness="0"
+                 AutomationProperties.Name="{l:T Work_Backlog_List}" Visibility="{Binding HasItems, Converter={StaticResource Work.BoolToVisibility}}">
+            <ListBox.ItemTemplate>
+                <DataTemplate DataType="{x:Type work:BacklogRow}">
+                    <StackPanel Margin="2,3">
+                        <TextBlock Style="{StaticResource BodyText}" Text="{Binding Statement}"/>
+                        <TextBlock Style="{StaticResource SecondaryText}">
+                            <Run Text="{Binding PriorityText, Mode=OneWay}"/>
+                            <Run Text=" · "/>
+                            <Run Text="{Binding CriteriaText, Mode=OneWay}"/>
+                            <Run Text=" · "/>
+                            <Run Text="{Binding VersionText, Mode=OneWay}"/>
+                        </TextBlock>
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <Border Style="{StaticResource Card}" Padding="12" Margin="0,10,0,0">
+            <StackPanel>
+                <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Work_Backlog_Statement}"/>
+                <TextBox Style="{StaticResource MultilineFieldTextBox}" MinHeight="54" Text="{Binding Statement, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.Name="{l:T Work_Backlog_Statement}"/>
+                <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Work_Backlog_Priority}"/>
+                <ComboBox ItemsSource="{x:Static work:BacklogSection.Priorities}" SelectedItem="{Binding SelectedPriority}" DisplayMemberPath="Label"
+                          MinWidth="200" HorizontalAlignment="Left" AutomationProperties.Name="{l:T Work_Backlog_Priority}"/>
+                <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Work_Backlog_Criteria}"/>
+                <ItemsControl ItemsSource="{Binding Criteria}" Focusable="False">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type work:CriterionRowViewModel}">
+                            <Grid Margin="0,2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox Grid.Column="0" Style="{StaticResource FieldTextBox}" Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
+                                         AutomationProperties.Name="{l:T Work_Backlog_CriterionText}"/>
+                                <ComboBox Grid.Column="1" Margin="6,0" MinWidth="170" ItemsSource="{Binding MethodOptions}" SelectedItem="{Binding SelectedMethod}"
+                                          DisplayMemberPath="Label" AutomationProperties.Name="{l:T Work_Backlog_CriterionMethod}"/>
+                                <Button Grid.Column="2" Style="{StaticResource ToolbarButton}" Content="{l:T Work_Backlog_RemoveCriterion}"
+                                        Command="{Binding DataContext.RemoveCriterionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                        CommandParameter="{Binding}"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Button Style="{StaticResource ToolbarButton}" HorizontalAlignment="Left" Margin="0,4,0,0" Content="{l:T Work_Backlog_AddCriterion}"
+                        Command="{Binding AddCriterionCommand}"/>
+                <WrapPanel Margin="0,10,0,0">
+                    <Button Style="{StaticResource PrimaryButton}" Margin="0,0,8,0" Content="{Binding SaveLabel}" Command="{Binding SaveCommand}"/>
+                    <Button Style="{StaticResource ToolbarButton}" Margin="0,0,8,0" Content="{l:T Work_Backlog_New}" Command="{Binding NewItemCommand}"/>
+                    <Button Style="{StaticResource ToolbarButton}" Margin="0,0,8,0" Content="{l:T Work_Backlog_Retire}" Command="{Binding RetireCommand}"
+                            Visibility="{Binding IsEditing, Converter={StaticResource Work.BoolToVisibility}}"/>
+                    <Button Style="{StaticResource ToolbarButton}" Content="{l:T Work_ViewChain}" Command="{Binding ViewChainCommand}"
+                            Visibility="{Binding IsEditing, Converter={StaticResource Work.BoolToVisibility}}"/>
+                </WrapPanel>
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

@@ -1,0 +1,21 @@
+<UserControl x:Class="AgentStudio.Desktop.Views.Work.SectionHeader"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
+             xmlns:work="clr-namespace:AgentStudio.Desktop.Work"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=work:WorkSection}">
+    <!-- The head every section of «Trabajo» shares: its title with its ⓘ, what is missing when a port was not composed, and the
+         message and the error of the last thing the person did. Bindings only. -->
+    <StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Style="{StaticResource SectionTitleText}" VerticalAlignment="Center" Text="{Binding Title}"/>
+            <info:InfoButton InfoKey="{Binding InfoKey}" Margin="6,0,0,0" VerticalAlignment="Center"/>
+        </StackPanel>
+        <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="0,4,0,0" Text="{Binding Notice, TargetNullValue=''}"/>
+        <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="0,4,0,0" Text="{Binding Message, TargetNullValue=''}" AutomationProperties.LiveSetting="Polite"/>
+        <TextBlock Style="{StaticResource ErrorText}" Margin="0,4,0,0" Text="{Binding Error, TargetNullValue=''}" AutomationProperties.LiveSetting="Assertive"/>
+    </StackPanel>
+</UserControl>

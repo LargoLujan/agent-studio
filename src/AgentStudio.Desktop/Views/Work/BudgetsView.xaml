@@ -1,0 +1,72 @@
+<UserControl x:Class="AgentStudio.Desktop.Views.Work.BudgetsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
+             xmlns:work="clr-namespace:AgentStudio.Desktop.Work"
+             xmlns:views="clr-namespace:AgentStudio.Desktop.Views.Work"
+             xmlns:orchestratorViews="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=work:BudgetsSection}">
+    <!-- «Presupuestos» (docs/16 D-05, F9-8; ADR-0040): the optional budget of the project, which the person saves on this computer, and
+         the budgets of the milestones, read from their headers. Bindings only. -->
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="Work.BoolToVisibility"/>
+        <orchestratorViews:FalseToVisibilityConverter x:Key="Work.InverseBoolToVisibility"/>
+    </UserControl.Resources>
+
+    <StackPanel>
+        <views:SectionHeader/>
+        <TextBlock Style="{StaticResource SecondaryText}" Margin="0,8,0,0" Text="{l:T Work_Budget_Explain}"/>
+
+        <Border Style="{StaticResource Card}" Padding="12" Margin="0,10,0,0">
+            <StackPanel>
+                <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Work_Budget_Project}"/>
+                <TextBlock Style="{StaticResource BodyText}" Text="{Binding CurrentText}"/>
+                <WrapPanel Margin="0,6,0,0">
+                    <StackPanel Margin="0,0,12,0" MinWidth="180">
+                        <TextBlock Style="{StaticResource SecondaryText}" Text="{l:T Work_Budget_TokensLabel}"/>
+                        <TextBox Style="{StaticResource FieldTextBox}" Text="{Binding MaxTokens, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.Name="{l:T Work_Budget_TokensLabel}"/>
+                    </StackPanel>
+                    <StackPanel Margin="0,0,12,0" MinWidth="180">
+                        <TextBlock Style="{StaticResource SecondaryText}" Text="{l:T Work_Budget_RunsLabel}"/>
+                        <TextBox Style="{StaticResource FieldTextBox}" Text="{Binding MaxRuns, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.Name="{l:T Work_Budget_RunsLabel}"/>
+                    </StackPanel>
+                    <StackPanel MinWidth="180">
+                        <TextBlock Style="{StaticResource SecondaryText}" Text="{l:T Work_Budget_PeriodLabel}"/>
+                        <ComboBox ItemsSource="{x:Static work:BudgetsSection.Periods}" SelectedItem="{Binding SelectedPeriod}" DisplayMemberPath="Label"
+                                  AutomationProperties.Name="{l:T Work_Budget_PeriodLabel}"/>
+                    </StackPanel>
+                </WrapPanel>
+                <ItemsControl ItemsSource="{Binding Problems}" Focusable="False" Margin="0,6,0,0">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Style="{StaticResource ProblemText}" Text="{Binding}"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <WrapPanel Margin="0,8,0,0">
+                    <Button Style="{StaticResource PrimaryButton}" Margin="0,0,8,0" Content="{l:T Work_Budget_Save}" Command="{Binding SaveCommand}"/>
+                    <Button Style="{StaticResource ToolbarButton}" Content="{l:T Work_Budget_Remove}" Command="{Binding RemoveCommand}"/>
+                </WrapPanel>
+            </StackPanel>
+        </Border>
+
+        <TextBlock Style="{StaticResource FieldLabel}" Margin="0,14,0,0" Text="{l:T Work_Budget_Milestones}"/>
+        <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{l:T Work_Budget_NoMilestones}"
+                   Visibility="{Binding HasMilestones, Converter={StaticResource Work.InverseBoolToVisibility}}"/>
+        <ItemsControl ItemsSource="{Binding Milestones}" Focusable="False">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type work:MilestoneBudgetRow}">
+                    <StackPanel Margin="0,3">
+                        <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{Binding Name}"/>
+                        <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding BudgetText}"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </StackPanel>
+</UserControl>

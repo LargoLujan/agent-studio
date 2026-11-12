@@ -1,0 +1,1036 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the Work area (docs/16 section 4.6, ADR-0054) in Spanish of Spain, the source language. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Work_Title" xml:space="preserve">
+    <value>Trabajo</value>
+    <comment>Title of the tab and of the entry of the bar.</comment>
+  </data>
+  <data name="Work_Intro" xml:space="preserve">
+    <value>Hitos, backlog, tablero y trazabilidad del proyecto abierto. Todo sale del historial verificado.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Sections_Name" xml:space="preserve">
+    <value>Apartados de Trabajo</value>
+    <comment>Accessible name of the list of sections.</comment>
+  </data>
+  <data name="Work_Status_OpenFolder" xml:space="preserve">
+    <value>Abre una carpeta para ver su trabajo.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Status_Unavailable" xml:space="preserve">
+    <value>Esta instalación no puede abrir proyectos.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Error" xml:space="preserve">
+    <value>Algo falló: {0}</value>
+    <comment>{0}: the reason.</comment>
+  </data>
+  <data name="Work_Error_BudgetRead" xml:space="preserve">
+    <value>No se pudo leer el presupuesto: {0}</value>
+    <comment>{0}: the reason.</comment>
+  </data>
+  <data name="Work_Error_BudgetSave" xml:space="preserve">
+    <value>No se pudo guardar el presupuesto: {0}</value>
+    <comment>{0}: the reason.</comment>
+  </data>
+  <data name="Work_ViewChain" xml:space="preserve">
+    <value>Ver cadena</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Close_Viewer" xml:space="preserve">
+    <value>Cerrar visor</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Notice_NoMilestones" xml:space="preserve">
+    <value>Falta el servicio de hitos: este apartado no puede leer ni escribir.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Notice_NoBacklog" xml:space="preserve">
+    <value>Falta el servicio del backlog: este apartado no puede leer ni escribir.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Notice_NoBoard" xml:space="preserve">
+    <value>Falta el servicio del tablero: no se puede dibujar.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Notice_NoChain" xml:space="preserve">
+    <value>Falta el servicio de la cadena: no se puede recorrer.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Notice_NoParticipation" xml:space="preserve">
+    <value>Falta el servicio de participantes: no se puede leer.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Notice_NoLinks" xml:space="preserve">
+    <value>Falta el servicio de vínculos: no se pueden ver ni cambiar.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Notice_NoBudgets" xml:space="preserve">
+    <value>Falta el almacén de presupuestos: no se puede guardar ninguno.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Notice_NoEvidence" xml:space="preserve">
+    <value>No hay dónde leer las pruebas guardadas.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Problem_NoProject" xml:space="preserve">
+    <value>Abre una carpeta primero.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Info_Work_Milestones_Title" xml:space="preserve">
+    <value>Hitos</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Work_Milestones_What" xml:space="preserve">
+    <value>Un hito es una meta con nombre. Fija sus requisitos al abrirlo y no los cambia después. Le vinculas ejecuciones y debates. Para cerrarlo, un juez lo audita.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Work_Milestones_Actions" xml:space="preserve">
+    <value>Elige los requisitos del backlog y abre el hito.
+Vincula las ejecuciones y los debates que lo forman.
+Cierra el hito: pide tu aprobación, como una auditoría.
+Lee el informe del cierre. Puedes reabrir el hito.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Work_Milestone_New" xml:space="preserve">
+    <value>Abrir un hito nuevo</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Milestone_NameLabel" xml:space="preserve">
+    <value>Nombre</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Milestone_ObjectiveLabel" xml:space="preserve">
+    <value>Objetivo</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Milestone_PickRequirements" xml:space="preserve">
+    <value>Requisitos del hito (del backlog)</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Milestone_NoBacklog" xml:space="preserve">
+    <value>El backlog está vacío. Anota primero los requisitos en el apartado Backlog.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Milestone_BudgetLabel" xml:space="preserve">
+    <value>Presupuesto del hito (opcional)</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Milestone_Open" xml:space="preserve">
+    <value>Abrir hito</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Milestone_Opened" xml:space="preserve">
+    <value>Hito abierto: {0}.</value>
+    <comment>{0}: its name.</comment>
+  </data>
+  <data name="Work_Milestone_List" xml:space="preserve">
+    <value>Hitos del proyecto</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Milestone_Empty" xml:space="preserve">
+    <value>Todavía no hay ningún hito.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Milestone_Targets" xml:space="preserve">
+    <value>{0} ejecuciones y {1} debates</value>
+    <comment>{0}: runs, {1}: debates.</comment>
+  </data>
+  <data name="Work_Milestone_Requirements" xml:space="preserve">
+    <value>Conjuntos de requisitos congelados: {0}</value>
+    <comment>{0}: how many.</comment>
+  </data>
+  <data name="Work_Milestone_Linked" xml:space="preserve">
+    <value>Ejecuciones y debates vinculados</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Milestone_NothingLinked" xml:space="preserve">
+    <value>Todavía no tiene nada vinculado. Cerrarlo exige al menos una ejecución.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Milestone_TargetRun" xml:space="preserve">
+    <value>Ejecución {0}</value>
+    <comment>{0}: id.</comment>
+  </data>
+  <data name="Work_Milestone_TargetDebate" xml:space="preserve">
+    <value>Debate {0}</value>
+    <comment>{0}: id.</comment>
+  </data>
+  <data name="Work_Milestone_RunPick" xml:space="preserve">
+    <value>Ejecución que vincular</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Milestone_DebatePick" xml:space="preserve">
+    <value>Debate que vincular</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Milestone_LinkRun" xml:space="preserve">
+    <value>Vincular ejecución</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Milestone_LinkDebate" xml:space="preserve">
+    <value>Vincular debate</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Milestone_RunLinked" xml:space="preserve">
+    <value>Ejecución vinculada.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Milestone_DebateLinked" xml:space="preserve">
+    <value>Debate vinculado.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Milestone_Reports" xml:space="preserve">
+    <value>Informes del cierre</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Milestone_NoReports" xml:space="preserve">
+    <value>Todavía no se ha cerrado: no hay informe.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Milestone_Problem" xml:space="preserve">
+    <value>Problema del hito: {0}</value>
+    <comment>{0}: what the replay found.</comment>
+  </data>
+  <data name="Work_Milestone_Reopened" xml:space="preserve">
+    <value>Hito reabierto. El informe anterior se conserva.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Status_Problems" xml:space="preserve">
+    <value>Con problemas</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Status_Open" xml:space="preserve">
+    <value>Abierto</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Status_Closed" xml:space="preserve">
+    <value>Cerrado</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Problem_NoName" xml:space="preserve">
+    <value>Falta el nombre.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Problem_NoObjective" xml:space="preserve">
+    <value>Falta el objetivo.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Problem_NoRequirements" xml:space="preserve">
+    <value>Elige al menos un requisito del backlog.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Problem_NeedsCriteria" xml:space="preserve">
+    <value>«{0}» es obligatorio y no tiene criterios.</value>
+    <comment>{0}: the requirement.</comment>
+  </data>
+  <data name="Work_Problem_BadTokens" xml:space="preserve">
+    <value>El límite de tokens debe ser un número entero mayor que cero, o quedar vacío.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Problem_BadRuns" xml:space="preserve">
+    <value>El límite de ejecuciones debe ser un número entero mayor que cero, o quedar vacío.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Problem_NoLimit" xml:space="preserve">
+    <value>Pon un límite de tokens, de ejecuciones o de los dos.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Close_Heading" xml:space="preserve">
+    <value>Cerrar el hito</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Close_Explain" xml:space="preserve">
+    <value>Cerrar un hito es auditarlo. Un juez que no escribió el código lo revisa. Se te pide aprobación y consumirá el límite de uso de tu plan.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Close_Judge" xml:space="preserve">
+    <value>Juez</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Close_Authors" xml:space="preserve">
+    <value>Quién escribió el código</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Close_Button" xml:space="preserve">
+    <value>Cerrar hito</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Close_Waiting" xml:space="preserve">
+    <value>Esperando tu aprobación y el veredicto del juez…</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Close_Done" xml:space="preserve">
+    <value>Hito cerrado. Informe número {0}.</value>
+    <comment>{0}: revision of the report.</comment>
+  </data>
+  <data name="Work_Close_Refused" xml:space="preserve">
+    <value>No se cerró el hito: {0}</value>
+    <comment>{0}: the reason.</comment>
+  </data>
+  <data name="Work_Refused_milestone_not_found" xml:space="preserve">
+    <value>no existe ese hito.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Refused_milestone_problems" xml:space="preserve">
+    <value>el hito tiene problemas en su historial.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Refused_milestone_not_open" xml:space="preserve">
+    <value>el hito ya está cerrado.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Refused_milestone_nothing_to_close" xml:space="preserve">
+    <value>no tiene ninguna ejecución vinculada: no hay nada que auditar.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Refused_milestone_no_judge" xml:space="preserve">
+    <value>nadie puede juzgarlo sin repetir la empresa que escribió el código.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Refused_log_not_intact" xml:space="preserve">
+    <value>el historial de decisiones no está íntegro.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Refused_milestone_audit_not_run" xml:space="preserve">
+    <value>la auditoría no llegó a ejecutarse (no se aprobó o no pudo correr).</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Refused_milestone_closing" xml:space="preserve">
+    <value>ya hay un cierre de este hito en curso.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Refused_milestone_requirements" xml:space="preserve">
+    <value>faltan los requisitos congelados del hito.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Refused_Other" xml:space="preserve">
+    <value>regla {0}.</value>
+    <comment>{0}: the code of the rule.</comment>
+  </data>
+  <data name="Work_Reopen_Heading" xml:space="preserve">
+    <value>Reabrir el hito</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Reopen_Note" xml:space="preserve">
+    <value>Por qué lo reabres (opcional)</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Reopen_Button" xml:space="preserve">
+    <value>Reabrir hito</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Report_Row" xml:space="preserve">
+    <value>Informe {0} · {1}</value>
+    <comment>{0}: revision, {1}: date.</comment>
+  </data>
+  <data name="Work_Report_Audit" xml:space="preserve">
+    <value>Auditoría {0}</value>
+    <comment>{0}: id.</comment>
+  </data>
+  <data name="Work_Report_Commit" xml:space="preserve">
+    <value>Versión guardada (commit) {0}</value>
+    <comment>{0}: short id.</comment>
+  </data>
+  <data name="Work_Report_NoCommit" xml:space="preserve">
+    <value>Sin versión guardada auditada.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Report_Open" xml:space="preserve">
+    <value>Ver informe</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Report_Text" xml:space="preserve">
+    <value>Texto del informe</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Info_Work_Backlog_Title" xml:space="preserve">
+    <value>Backlog</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Work_Backlog_What" xml:space="preserve">
+    <value>El backlog guarda requisitos que aún no has planificado. Cada cambio crea una versión nueva. Nada se borra: lo que retiras sale de la lista y su historia se queda.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Work_Backlog_Actions" xml:space="preserve">
+    <value>Escribe el requisito y elige su prioridad.
+Añade los criterios con los que se comprueba.
+Elige un elemento de la lista para guardar una versión nueva.
+Retira lo que ya no quieres.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Work_Backlog_List" xml:space="preserve">
+    <value>Elementos del backlog</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Backlog_Empty" xml:space="preserve">
+    <value>El backlog está vacío.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Backlog_Statement" xml:space="preserve">
+    <value>Requisito</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Backlog_Priority" xml:space="preserve">
+    <value>Prioridad</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Backlog_Criteria" xml:space="preserve">
+    <value>Criterios de aceptación</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Backlog_CriterionText" xml:space="preserve">
+    <value>Qué debe cumplirse</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Work_Backlog_CriterionMethod" xml:space="preserve">
+    <value>Cómo se comprueba</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Work_Backlog_AddCriterion" xml:space="preserve">
+    <value>Añadir criterio</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Backlog_RemoveCriterion" xml:space="preserve">
+    <value>Quitar</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Backlog_Add" xml:space="preserve">
+    <value>Anotar elemento</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Backlog_SaveVersion" xml:space="preserve">
+    <value>Guardar versión nueva</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Backlog_New" xml:space="preserve">
+    <value>Elemento nuevo</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Backlog_Retire" xml:space="preserve">
+    <value>Retirar</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Backlog_Added" xml:space="preserve">
+    <value>Elemento anotado (versión {0}).</value>
+    <comment>{0}: version.</comment>
+  </data>
+  <data name="Work_Backlog_Revised" xml:space="preserve">
+    <value>Versión {0} guardada.</value>
+    <comment>{0}: version.</comment>
+  </data>
+  <data name="Work_Backlog_Retired" xml:space="preserve">
+    <value>Elemento retirado. Su historia se conserva.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Backlog_Version" xml:space="preserve">
+    <value>Versión {0}</value>
+    <comment>{0}: version.</comment>
+  </data>
+  <data name="Work_Count_Criterion_One" xml:space="preserve">
+    <value>{0} criterio</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Count_Criterion_Other" xml:space="preserve">
+    <value>{0} criterios</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Priority_Mandatory" xml:space="preserve">
+    <value>Obligatorio</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Priority_Desirable" xml:space="preserve">
+    <value>Deseable</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Method_AutomatedTest" xml:space="preserve">
+    <value>Prueba automática</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Method_CommandCheck" xml:space="preserve">
+    <value>Comprobación con un comando</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Method_HumanReview" xml:space="preserve">
+    <value>Revisión de una persona</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Method_JudgeAssessment" xml:space="preserve">
+    <value>Valoración del juez</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Info_Work_Board_Title" xml:space="preserve">
+    <value>Tablero</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Work_Board_What" xml:space="preserve">
+    <value>El tablero muestra el estado de cada requisito del hito. Sus columnas salen del historial verificado. Nada se arrastra a Hecho: sin veredicto aprobado, ninguna tarjeta llega ahí.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Work_Board_Actions" xml:space="preserve">
+    <value>Elige un hito en el apartado Hitos.
+Lee en qué columna está cada tarjeta.
+Una tarjeta en revisión dice por qué.
+Pulsa Ver cadena para seguir su camino.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Work_Board_Milestone" xml:space="preserve">
+    <value>Hito: {0}</value>
+    <comment>{0}: id.</comment>
+  </data>
+  <data name="Work_Board_NoMilestone" xml:space="preserve">
+    <value>Elige un hito en el apartado Hitos para ver su tablero.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Board_Read" xml:space="preserve">
+    <value>Leído del historial verificado ({0} entradas).</value>
+    <comment>{0}: entries.</comment>
+  </data>
+  <data name="Work_Board_Count" xml:space="preserve">
+    <value>Tarjetas: {0}</value>
+    <comment>{0}: how many.</comment>
+  </data>
+  <data name="Work_Board_Run" xml:space="preserve">
+    <value>Ejecución {0}</value>
+    <comment>{0}: id.</comment>
+  </data>
+  <data name="Work_Board_ProjectBacklog" xml:space="preserve">
+    <value>Backlog del proyecto</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Board_ProjectBacklogEmpty" xml:space="preserve">
+    <value>No hay elementos en el backlog.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Column_Backlog" xml:space="preserve">
+    <value>Backlog</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Column_Planned" xml:space="preserve">
+    <value>Planificado</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Column_InProgress" xml:space="preserve">
+    <value>En curso</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Column_InReview" xml:space="preserve">
+    <value>En revisión</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Column_Returned" xml:space="preserve">
+    <value>Devuelto</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Column_Done" xml:space="preserve">
+    <value>Hecho</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Column_Integrated" xml:space="preserve">
+    <value>Integrado</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_CardKind_Requirement" xml:space="preserve">
+    <value>Requisito</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_CardKind_Task" xml:space="preserve">
+    <value>Tarea</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Reason_AwaitingApproval" xml:space="preserve">
+    <value>Espera tu aprobación.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Reason_WaitingForQuota" xml:space="preserve">
+    <value>Espera a que se renueve el límite de uso de tu plan.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Reason_AwaitingAnswer" xml:space="preserve">
+    <value>Espera tu respuesta a una pregunta del agente.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Reason_Blocked" xml:space="preserve">
+    <value>Está bloqueada, por ejemplo por un reinicio que la interrumpió.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Reason_Challenged" xml:space="preserve">
+    <value>Impugnaste el veredicto y su revisión no ha terminado.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Reason_EscalatedToPerson" xml:space="preserve">
+    <value>El veredicto deja la decisión en tus manos.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Reason_Unresolved" xml:space="preserve">
+    <value>El juez no pudo decidir con las pruebas que hay.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Reason_RunFailed" xml:space="preserve">
+    <value>La ejecución falló o se canceló.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Rules_Heading" xml:space="preserve">
+    <value>Cómo se decide la columna</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Rule_NeedsVerdict" xml:space="preserve">
+    <value>Ninguna tarjeta llega a Hecho ni a Integrado sin un veredicto válido y aprobado.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Rule_IntegratedNeedsDone" xml:space="preserve">
+    <value>Hoy Integrado exige también Hecho: una entrega sin veredicto aprobado no pasa de su columna.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Rule_ApprovedNotMet" xml:space="preserve">
+    <value>Hoy un veredicto aprobado que no da el requisito por cumplido lo deja en revisión.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Rule_CloseNeedsRun" xml:space="preserve">
+    <value>Hoy cerrar un hito exige una ejecución vinculada.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Rule_TestsAndDocs" xml:space="preserve">
+    <value>Hoy un cambio que solo toca pruebas o documentos cuenta como pruebas.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Info_Work_Chain_Title" xml:space="preserve">
+    <value>Cadena</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Work_Chain_What" xml:space="preserve">
+    <value>La cadena une un requisito con su entrega. Pasa por el hito, la tarea, el intento, el cambio, la verificación y el veredicto. Solo cuenta lo que consta en el historial.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Work_Chain_Actions" xml:space="preserve">
+    <value>Pulsa Ver cadena en una tarjeta, un hito o un elemento.
+Abre un diff, una prueba guardada o un veredicto.
+Un nodo sin enlace no se puede abrir desde aquí.
+Centra la cadena en cualquier nodo.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Work_Chain_NoStart" xml:space="preserve">
+    <value>Elige una tarjeta, un hito o un elemento y pulsa Ver cadena.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Chain_Start" xml:space="preserve">
+    <value>Cadena desde: {0} {1}</value>
+    <comment>{0}: kind of node, {1}: id.</comment>
+  </data>
+  <data name="Work_Chain_Node" xml:space="preserve">
+    <value>{0} · {1}</value>
+    <comment>{0}: kind of node, {1}: id.</comment>
+  </data>
+  <data name="Work_Chain_Empty" xml:space="preserve">
+    <value>No hay cadena que mostrar para este nodo.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Chain_Suggested" xml:space="preserve">
+    <value>Deducido, sin confirmar.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Chain_NoLink" xml:space="preserve">
+    <value>Sin enlace: la aplicación no tiene dónde abrirlo.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Chain_Open" xml:space="preserve">
+    <value>Abrir</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Chain_Center" xml:space="preserve">
+    <value>Centrar aquí</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Chain_ProofText" xml:space="preserve">
+    <value>Contenido de la prueba guardada</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Work_Verdict_Title" xml:space="preserve">
+    <value>Veredicto {0}</value>
+    <comment>{0}: short id.</comment>
+  </data>
+  <data name="Work_Verdict_Missing" xml:space="preserve">
+    <value>El veredicto no está guardado.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Verdict_Judge" xml:space="preserve">
+    <value>Juez: {0} ({1})</value>
+    <comment>{0}: agent, {1}: company of the model.</comment>
+  </data>
+  <data name="Work_Verdict_Valid" xml:space="preserve">
+    <value>Es válido.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Verdict_Invalid" xml:space="preserve">
+    <value>No es válido: no cuenta.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Stage_Requirement" xml:space="preserve">
+    <value>Requisito</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Stage_Milestone" xml:space="preserve">
+    <value>Hito</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Stage_Task" xml:space="preserve">
+    <value>Tarea</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Stage_Attempt" xml:space="preserve">
+    <value>Intento</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Stage_Change" xml:space="preserve">
+    <value>Cambio (diff)</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Stage_Verification" xml:space="preserve">
+    <value>Verificación</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Stage_Verdict" xml:space="preserve">
+    <value>Veredicto</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Stage_Delivery" xml:space="preserve">
+    <value>Entrega</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Node_Requirement" xml:space="preserve">
+    <value>Requisito</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Node_BacklogItem" xml:space="preserve">
+    <value>Elemento del backlog</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Node_Milestone" xml:space="preserve">
+    <value>Hito</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Node_Run" xml:space="preserve">
+    <value>Ejecución</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Node_Task" xml:space="preserve">
+    <value>Tarea</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Node_Attempt" xml:space="preserve">
+    <value>Intento</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Node_Commit" xml:space="preserve">
+    <value>Versión guardada</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Node_Evidence" xml:space="preserve">
+    <value>Prueba guardada</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Node_Verdict" xml:space="preserve">
+    <value>Veredicto</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Node_Debate" xml:space="preserve">
+    <value>Debate</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Node_Audit" xml:space="preserve">
+    <value>Auditoría</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Node_Document" xml:space="preserve">
+    <value>Documento</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Info_Work_Participation_Title" xml:space="preserve">
+    <value>Participantes</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Work_Participation_What" xml:space="preserve">
+    <value>Aquí ves quién hizo cada papel en una tarea, una ejecución o un hito. Son seis papeles y nunca se confunden. Si ninguna fuente lo dice, pone No consta.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Work_Participation_Actions" xml:space="preserve">
+    <value>Pulsa Ver cadena en una tarjeta para elegir el sujeto.
+Elige la tarea, la ejecución o el hito.
+Lee quién es cada papel y de dónde sale.
+Un papel sin fuente no se deduce de otro.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Work_Participation_NoSubject" xml:space="preserve">
+    <value>Elige una tarjeta o un hito para ver sus participantes.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Participation_Subject" xml:space="preserve">
+    <value>Sujeto</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Participation_NotRecorded" xml:space="preserve">
+    <value>No consta</value>
+    <comment>Said when no source gives the role.</comment>
+  </data>
+  <data name="Work_Participation_Source" xml:space="preserve">
+    <value>Fuente: {0}</value>
+    <comment>{0}: where it comes from.</comment>
+  </data>
+  <data name="Work_Role_ProducingAgent" xml:space="preserve">
+    <value>Agente que produce</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Role_GitAuthorAndCommitter" xml:space="preserve">
+    <value>Autor de la versión guardada</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Role_PublishingAccount" xml:space="preserve">
+    <value>Cuenta que publica</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Role_Reviewer" xml:space="preserve">
+    <value>Revisor</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Role_Approver" xml:space="preserve">
+    <value>Quien aprueba</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Role_Integrator" xml:space="preserve">
+    <value>Quien integra</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Source_Attempt" xml:space="preserve">
+    <value>el intento del agente</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Source_Commit" xml:space="preserve">
+    <value>la versión guardada (commit)</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Source_Verdict" xml:space="preserve">
+    <value>el veredicto del juez</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Source_Approval" xml:space="preserve">
+    <value>la aprobación firmada</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Source_LocalDelivery" xml:space="preserve">
+    <value>la entrega local</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Source_SkippedReview" xml:space="preserve">
+    <value>la revisión se omitió</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Info_Work_Links_Title" xml:space="preserve">
+    <value>Vínculos</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Work_Links_What" xml:space="preserve">
+    <value>Un vínculo une dos cosas del trabajo, por ejemplo un requisito y una versión guardada. El sistema propone vínculos que deduce. Solo cuentan cuando tú los confirmas.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Work_Links_Actions" xml:space="preserve">
+    <value>Pulsa Ver cadena para elegir el nodo.
+Confirma una sugerencia si es correcta.
+Retira un vínculo y di por qué.
+Un vínculo retirado sigue en el historial.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Work_Link_InForce" xml:space="preserve">
+    <value>Vínculos vigentes</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Link_None" xml:space="preserve">
+    <value>Este nodo no tiene vínculos.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Link_Line" xml:space="preserve">
+    <value>{0} → {1}</value>
+    <comment>{0}: one end, {1}: the other.</comment>
+  </data>
+  <data name="Work_Link_By" xml:space="preserve">
+    <value>Lo afirma: {0}</value>
+    <comment>{0}: who states it.</comment>
+  </data>
+  <data name="Work_Asserted_System" xml:space="preserve">
+    <value>el sistema</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Asserted_User" xml:space="preserve">
+    <value>una persona</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Link_Retract" xml:space="preserve">
+    <value>Retirar vínculo</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Link_ReasonLabel" xml:space="preserve">
+    <value>Por qué lo retiras</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Link_NeedsReason" xml:space="preserve">
+    <value>Escribe por qué retiras el vínculo.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Link_Retracted" xml:space="preserve">
+    <value>Vínculo retirado. Sigue en el historial.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Link_Suggested" xml:space="preserve">
+    <value>Sugerencias del sistema</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Link_NoSuggestions" xml:space="preserve">
+    <value>No hay sugerencias para este nodo.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Link_Inferred" xml:space="preserve">
+    <value>Deducido de {0}: {1}</value>
+    <comment>{0}: source, {1}: the text it was read from.</comment>
+  </data>
+  <data name="Work_Link_Confirm" xml:space="preserve">
+    <value>Confirmar vínculo</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Link_Confirmed" xml:space="preserve">
+    <value>Vínculo confirmado.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Suggestion_CommitMessageMention" xml:space="preserve">
+    <value>el mensaje de una versión guardada</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Suggestion_CommitTrailer" xml:space="preserve">
+    <value>las marcas de una versión guardada</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Suggestion_RunBranchName" xml:space="preserve">
+    <value>el nombre de una rama</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Suggestion_PullRequestMention" xml:space="preserve">
+    <value>una solicitud de cambios</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Info_Work_Budgets_Title" xml:space="preserve">
+    <value>Presupuestos</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Work_Budgets_What" xml:space="preserve">
+    <value>Un presupuesto limita los tokens o las ejecuciones de un proyecto o de un hito. Si un intento lo pasaría, el motor no lo lanza y lo dice. No amplía el límite de uso de tu plan.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Work_Budgets_Actions" xml:space="preserve">
+    <value>Pon un límite de tokens, de ejecuciones o de los dos.
+Elige el periodo que cubre.
+Guarda el presupuesto del proyecto.
+El del hito se fija al abrirlo y no cambia.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Work_Budget_Explain" xml:space="preserve">
+    <value>El presupuesto del proyecto se guarda en este equipo y no entra en el repositorio.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Budget_Project" xml:space="preserve">
+    <value>Presupuesto del proyecto</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Budget_None" xml:space="preserve">
+    <value>Sin presupuesto</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Budget_Line" xml:space="preserve">
+    <value>Presupuesto: {0} ({1})</value>
+    <comment>{0}: the limits, {1}: the period.</comment>
+  </data>
+  <data name="Work_Budget_Tokens" xml:space="preserve">
+    <value>{0} tokens</value>
+    <comment>{0}: how many.</comment>
+  </data>
+  <data name="Work_Budget_Runs" xml:space="preserve">
+    <value>{0} ejecuciones de agente</value>
+    <comment>{0}: how many.</comment>
+  </data>
+  <data name="Work_Budget_TokensLabel" xml:space="preserve">
+    <value>Límite de tokens</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Budget_RunsLabel" xml:space="preserve">
+    <value>Límite de ejecuciones</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Budget_PeriodLabel" xml:space="preserve">
+    <value>Periodo</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Budget_Save" xml:space="preserve">
+    <value>Guardar presupuesto</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Budget_Remove" xml:space="preserve">
+    <value>Quitar presupuesto</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Budget_Saved" xml:space="preserve">
+    <value>Presupuesto guardado. El motor lo lee antes de lanzar un intento.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Budget_Removed" xml:space="preserve">
+    <value>Presupuesto quitado.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Budget_Milestones" xml:space="preserve">
+    <value>Presupuesto de cada hito</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Budget_NoMilestones" xml:space="preserve">
+    <value>Todavía no hay hitos.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Period_Total" xml:space="preserve">
+    <value>en total</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Period_Day" xml:space="preserve">
+    <value>por día</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Period_Week" xml:space="preserve">
+    <value>por semana</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Period_Month" xml:space="preserve">
+    <value>por mes</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Info_Work_Title" xml:space="preserve">
+    <value>Trabajo</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Work_What" xml:space="preserve">
+    <value>Aquí sigues el trabajo del proyecto: hitos, backlog, tablero, cadena, participantes, vínculos y presupuestos. Todo se lee del historial verificado, nada se inventa.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Work_Actions" xml:space="preserve">
+    <value>Elige un apartado en la lista de la izquierda.
+Anota requisitos y abre un hito con ellos.
+Sigue el tablero y recorre la cadena de cada tarjeta.
+Pon un presupuesto si quieres un límite.</value>
+    <comment>Information button.</comment>
+  </data>
+</root>
