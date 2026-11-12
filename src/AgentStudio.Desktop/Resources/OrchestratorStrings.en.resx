@@ -2682,4 +2682,223 @@ Open the consumption analysis, if it is there, to see the detail.</value>
   <data name="Text_verification_medium_reason_step_without_isolation" xml:space="preserve">
     <value>the step "{0}" runs without isolation</value>
   </data>
+  <data name="Text_plan_list_space" xml:space="preserve">
+    <value>{0} {1}</value>
+  </data>
+  <data name="Text_run_verdict_succeeded" xml:space="preserve">
+    <value>Finished well: {0} tasks completed and {1} skipped.</value>
+  </data>
+  <data name="Text_run_verdict_cancelled_after_stop" xml:space="preserve">
+    <value>Cancelled: every task was already cancelled before the interruption.</value>
+  </data>
+  <data name="Text_run_verdict_cancelled_by_user" xml:space="preserve">
+    <value>Cancelled by you: {0}</value>
+  </data>
+  <data name="Text_run_verdict_review_required" xml:space="preserve">
+    <value>Failed: the review policy asks for an approved independent review of {0}. There was none.</value>
+  </data>
+  <data name="Text_run_verdict_tests_required" xml:space="preserve">
+    <value>Failed: the test policy asks that the last saved version (commit) pass tests captured by the system. None passed on {0}.</value>
+  </data>
+  <data name="Text_run_verdict_untested_commit" xml:space="preserve">
+    <value>{0} ({1})</value>
+  </data>
+  <data name="Text_run_verdict_untested_no_commit" xml:space="preserve">
+    <value>{0} (no saved version)</value>
+  </data>
+  <data name="Text_run_verdict_stopped_repository" xml:space="preserve">
+    <value>Stopped: your repository changed during the run.</value>
+  </data>
+  <data name="Text_run_verdict_stopped_source_moved" xml:space="preserve">
+    <value>Stopped: the branch of a task no longer points to the saved version that was verified. Nothing from it was integrated.</value>
+  </data>
+  <data name="Text_run_verdict_stopped_evidence" xml:space="preserve">
+    <value>Stopped: the evidence of the integration changed in the store between being captured and being read. That integration is not trusted: it is neither reviewed nor delivered.</value>
+  </data>
+  <data name="Text_run_verdict_failed" xml:space="preserve">
+    <value>Failed. {0}</value>
+  </data>
+  <data name="Text_run_verdict_no_retries" xml:space="preserve">
+    <value>No retries left: {0}.</value>
+  </data>
+  <data name="Text_run_verdict_unreachable" xml:space="preserve">
+    <value>Unreachable: {0}.</value>
+  </data>
+  <data name="Text_run_verdict_budget_spent" xml:space="preserve">
+    <value>The budget of agent runs ({0}) is spent.</value>
+  </data>
+  <data name="Text_run_verdict_interrupted" xml:space="preserve">
+    <value>Interrupted: resume it whenever you want.</value>
+  </data>
+  <data name="Text_run_verdict_awaiting_human" xml:space="preserve">
+    <value>Waiting for a decision of yours on: {0}.</value>
+  </data>
+  <data name="Text_run_verdict_blocked_launch" xml:space="preserve">
+    <value>Blocked: {0} could not be launched. Check the provider and retry them.</value>
+  </data>
+  <data name="Text_run_verdict_waiting_quota" xml:space="preserve">
+    <value>Waiting for the usage limit of your plan, until {0:yyyy-MM-dd} at {0:HH:mm} (UTC).</value>
+  </data>
+  <data name="Text_run_verdict_waiting_quota_estimated" xml:space="preserve">
+    <value>Waiting for the usage limit of your plan, until {0:yyyy-MM-dd} at {0:HH:mm} (UTC), an estimated time.</value>
+  </data>
+  <data name="Text_run_verdict_paused_checks" xml:space="preserve">
+    <value>Paused: the usage limit was still active in {0} checks in a row of {1}. Retry the task whenever you want.</value>
+  </data>
+  <data name="Text_run_verdict_paused_long" xml:space="preserve">
+    <value>Paused: the usage limit of the provider lasts longer than the run waits by itself. Retry the task whenever you want.</value>
+  </data>
+  <data name="Text_run_verdict_paused" xml:space="preserve">
+    <value>Paused.</value>
+  </data>
+  <data name="Text_run_verdict_deadlock" xml:space="preserve">
+    <value>Blocked: no task can move forward.</value>
+  </data>
+  <data name="Text_task_attempt_launched" xml:space="preserve">
+    <value>Attempt {0} starts: the provider launched the agent.</value>
+  </data>
+  <data name="Text_task_attempt_started" xml:space="preserve">
+    <value>Attempt {0} starts.</value>
+  </data>
+  <data name="Text_task_evaluating_condition" xml:space="preserve">
+    <value>Evaluating the condition.</value>
+  </data>
+  <data name="Text_task_retry_by_user" xml:space="preserve">
+    <value>You asked to retry it.</value>
+  </data>
+  <data name="Text_task_quota_wait_ended" xml:space="preserve">
+    <value>The wait for the usage limit of the provider ended.</value>
+  </data>
+  <data name="Text_task_awaiting_approval" xml:space="preserve">
+    <value>Waiting for your approval.</value>
+  </data>
+  <data name="Text_task_node_unavailable" xml:space="preserve">
+    <value>Nodes of type {0} are not available yet.</value>
+  </data>
+  <data name="Text_task_no_provider" xml:space="preserve">
+    <value>There is no provider "{0}" for {1}.</value>
+  </data>
+  <data name="Text_task_cancelled_by_user" xml:space="preserve">
+    <value>Cancelled by you: {0}</value>
+  </data>
+  <data name="Text_task_interrupted" xml:space="preserve">
+    <value>Interrupted: the app closed while it was being worked on.</value>
+  </data>
+  <data name="Text_task_judge_approved_resumed" xml:space="preserve">
+    <value>The judge approved (verdict {0}). It is concluded on resume with the verdict already in the log.</value>
+  </data>
+  <data name="Text_task_verdict_needs_person_resumed" xml:space="preserve">
+    <value>Verdict {0} needs a person. It is concluded on resume with the verdict already in the log.</value>
+  </data>
+  <data name="Text_task_question_answered_before_close" xml:space="preserve">
+    <value>Its question was already answered when the app closed: it goes on with a new attempt.</value>
+  </data>
+  <data name="Text_task_resumed_by_user" xml:space="preserve">
+    <value>Resumed at your request.</value>
+  </data>
+  <data name="Text_task_resumed_by_consent" xml:space="preserve">
+    <value>It resumed by itself with your consent.</value>
+  </data>
+  <data name="Text_run_verdict_interrupted_in_log" xml:space="preserve">
+    <value>Interrupted: it did not finish and no process is behind it. It can be resumed.</value>
+  </data>
+  <data name="Text_run_resumed_consent_quota" xml:space="preserve">
+    <value>It resumed by itself with your consent: it was waiting for the usage limit when the app closed.</value>
+  </data>
+  <data name="Text_run_resumed_consent_close" xml:space="preserve">
+    <value>It resumed by itself with your consent: an exit you did not ask for cut it.</value>
+  </data>
+  <data name="Text_run_resumed_consent_session" xml:space="preserve">
+    <value>It resumed by itself with your consent: Windows ended the session.</value>
+  </data>
+  <data name="Text_run_resumed_from_log" xml:space="preserve">
+    <value>Resumed from the decision log.</value>
+  </data>
+  <data name="Text_run_paused_by_you" xml:space="preserve">
+    <value>You paused it.</value>
+  </data>
+  <data name="Text_run_resumed_by_you" xml:space="preserve">
+    <value>You resumed it.</value>
+  </data>
+  <data name="Text_run_paused_by" xml:space="preserve">
+    <value>{0} paused it.</value>
+  </data>
+  <data name="Text_run_resumed_by" xml:space="preserve">
+    <value>{0} resumed it.</value>
+  </data>
+  <data name="Text_run_notice_uncommitted_changes" xml:space="preserve">
+    <value>You have changes not saved as a version. They are not part of the run, which starts from the last saved version (commit).</value>
+  </data>
+  <data name="Text_project_budget_name_project_day" xml:space="preserve">
+    <value>budget of the project for today</value>
+  </data>
+  <data name="Text_project_budget_name_project_week" xml:space="preserve">
+    <value>budget of the project for this week</value>
+  </data>
+  <data name="Text_project_budget_name_project_month" xml:space="preserve">
+    <value>budget of the project for this month</value>
+  </data>
+  <data name="Text_project_budget_name_project_total" xml:space="preserve">
+    <value>budget of the project</value>
+  </data>
+  <data name="Text_project_budget_name_milestone_day" xml:space="preserve">
+    <value>budget of milestone {0} for today</value>
+  </data>
+  <data name="Text_project_budget_name_milestone_week" xml:space="preserve">
+    <value>budget of milestone {0} for this week</value>
+  </data>
+  <data name="Text_project_budget_name_milestone_month" xml:space="preserve">
+    <value>budget of milestone {0} for this month</value>
+  </data>
+  <data name="Text_project_budget_name_milestone_total" xml:space="preserve">
+    <value>budget of milestone {0}</value>
+  </data>
+  <data name="Text_project_budget_exceeded_tokens" xml:space="preserve">
+    <value>The attempt does not start: the {0} is {1} tokens and {2} are already used. With this attempt it would be {3}.</value>
+  </data>
+  <data name="Text_project_budget_exceeded_tokens_unknown" xml:space="preserve">
+    <value>The attempt does not start: the {0} is {1} tokens and {2} are already used. This attempt has no estimate.</value>
+  </data>
+  <data name="Text_project_budget_exceeded_runs" xml:space="preserve">
+    <value>The attempt does not start: the {0} is {1} agent runs and {2} are already used. With this attempt it would be {3}.</value>
+  </data>
+  <data name="Text_project_budget_partial" xml:space="preserve">
+    <value>({0} attempts without a token figure are not counted).</value>
+  </data>
+  <data name="Text_project_budget_raise" xml:space="preserve">
+    <value>Raise the budget and retry the task.</value>
+  </data>
+  <data name="Text_project_budget_unreadable" xml:space="preserve">
+    <value>The attempt does not start: the budget could not be checked ({0}). Without knowing, the usage limit of your plan is not put at risk.</value>
+  </data>
+  <data name="Text_project_budget_why_no_usage" xml:space="preserve">
+    <value>there is nothing to read what was spent with</value>
+  </data>
+  <data name="Text_project_budget_why_untrusted" xml:space="preserve">
+    <value>the log of the project is not trusted</value>
+  </data>
+  <data name="Text_project_budget_why_failed" xml:space="preserve">
+    <value>there was a technical failure reading it</value>
+  </data>
+  <data name="Text_planner_schema_too_big" xml:space="preserve">
+    <value>The schema of the plan takes {0} bytes and the agent program accepts only {1}. Reduce the requirements, the agents or the steps of the profile.</value>
+  </data>
+  <data name="Text_planner_no_provider" xml:space="preserve">
+    <value>There is no provider "{0}" for the orchestrator "{1}".</value>
+  </data>
+  <data name="Text_planner_memory_too_small" xml:space="preserve">
+    <value>The orchestrator does not start: the memory and the requirements do not fit in its context. Reduce the mandatory requirements or remove the orchestrator memory from the roster.</value>
+  </data>
+  <data name="Text_planner_repository_changed" xml:space="preserve">
+    <value>Your repository changed while the orchestrator was planning. The plan is discarded.</value>
+  </data>
+  <data name="Text_planner_cancelled" xml:space="preserve">
+    <value>Planning was cancelled.</value>
+  </data>
+  <data name="Text_planner_launch_failed" xml:space="preserve">
+    <value>The orchestrator could not be launched: {0}</value>
+  </data>
+  <data name="Text_planner_ended" xml:space="preserve">
+    <value>The orchestrator ended with status {0}.</value>
+  </data>
 </root>

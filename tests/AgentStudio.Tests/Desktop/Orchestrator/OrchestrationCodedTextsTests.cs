@@ -52,7 +52,8 @@ public sealed partial class OrchestrationCodedTextsTests
         Assert.True(Spanish.Has(key), key + " (es)");
         Assert.True(English.Has(key), key + " (en)");
         Assert.Equal(Markers(Spanish.Get(key)), Markers(English.Get(key)));
-        Assert.True(Spanish.Get(key) != English.Get(key) || code is OrchestrationUserTexts.ListComma or OrchestrationUserTexts.MediumTask, key);
+        // Only a text that is nothing but pieces and punctuation (a list, «{0}: {1}.», «{0} ({1})») reads the same in both.
+        Assert.True(Spanish.Get(key) != English.Get(key) || !Placeholder().Replace(Spanish.Get(key), string.Empty).Any(char.IsLetter), key);
     }
 
     [Fact]

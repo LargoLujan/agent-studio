@@ -5,6 +5,7 @@ using System.Text;
 using AgentStudio.Application.Coordination;
 using AgentStudio.Application.Git;
 using AgentStudio.Application.Judging;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Projects;
@@ -698,7 +699,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
             case TaskStatusChangedEvent change:
                 var changed = TaskFor(change.Task);
                 changed.Status = change.To;
-                changed.Transitioned(change.To, change.Reason);
+                changed.Transitioned(change.To, change.Reason, change.ReasonText);
                 if (change.To == WorkTaskStatus.Running)
                 {
                     // A new attempt: its context is followed from its first event (P36), with the windows the project knows.
@@ -833,8 +834,9 @@ public sealed partial class RunMonitorViewModel : ObservableObject
 
             case RunPhaseChangedEvent phase:
                 Phase = phase.Phase;
-                PhaseDetail = phase.Detail;
-                Log(phase.At, null, phase.Detail is null ? Texts.Format("Orchestrator_Mon_LogPhase", RunPhaseText.Label(phase.Phase)) : Texts.Format("Orchestrator_Mon_LogPhaseDetail", RunPhaseText.Label(phase.Phase), phase.Detail));
+                var detail = OrchestratorCodedText.Painted(phase.DetailText, phase.Detail);
+                PhaseDetail = detail;
+                Log(phase.At, null, detail is null ? Texts.Format("Orchestrator_Mon_LogPhase", RunPhaseText.Label(phase.Phase)) : Texts.Format("Orchestrator_Mon_LogPhaseDetail", RunPhaseText.Label(phase.Phase), detail));
                 MarkLiveRun();
                 break;
 
@@ -856,7 +858,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
     {
         Phase = result.Phase;
         Health = result.Health;
-        ResultSummary = result.Summary;
+        ResultSummary = OrchestratorCodedText.Painted(result.SummaryText, result.Summary);
         IntegrationCommit = result.IntegrationCommit;
         VerdictId = result.VerdictId;
         MarkLiveRun();
@@ -1575,21 +1577,30 @@ public sealed partial class MonitorTaskViewModel : ObservableObject
     /// </summary>
     public string? ReasonText => Status switch
     {
-        WorkTaskStatus.Failed => FailureReason ?? Reason,
-        WorkTaskStatus.Pending or WorkTaskStatus.Running when FailureReason is not null => Texts.Format("Orchestrator_Mon_PreviousAttempt", FailureReason),
+        WorkTaskStatus.Failed => FailureReason is null ? PaintedReason : OrchestratorCodedText.Painted(_failureReasonText, FailureReason),
+        WorkTaskStatus.Pending or WorkTaskStatus.Running when FailureReason is not null => Texts.Format("Orchestrator_Mon_PreviousAttempt", OrchestratorCodedText.Painted(_failureReasonText, FailureReason)),
         WorkTaskStatus.Blocked when BlockReason is { } block
             && (block.StartsWith("Interrupted", StringComparison.OrdinalIgnoreCase) || block.StartsWith("RateLimitedUntil", StringComparison.OrdinalIgnoreCase)) => null,
-        WorkTaskStatus.Blocked or WorkTaskStatus.AwaitingApproval or WorkTaskStatus.Cancelled or WorkTaskStatus.Skipped => Reason,
+        WorkTaskStatus.Blocked or WorkTaskStatus.AwaitingApproval or WorkTaskStatus.Cancelled or WorkTaskStatus.Skipped => PaintedReason,
         _ => null,
     };
+
+    /// <summary>The coded text of the reason of the last transition, when the engine gave one (docs/17 D-47); the raw reason is kept for what reads it.</summary>
+    private UserText? _reasonText;
+
+    /// <summary>The coded text of the reason of the last failure.</summary>
+    private UserText? _failureReasonText;
+
+    private string? PaintedReason => OrchestratorCodedText.Painted(_reasonText, Reason);
 
     /// <summary>The error line of the last failure is shown: the task failed, or is being tried again after it.</summary>
     public bool ShowsFailureLine => FailureLine is not null && FailureReason is not null
         && Status is WorkTaskStatus.Failed or WorkTaskStatus.Pending or WorkTaskStatus.Running;
 
     /// <summary>Takes a transition: its reason, a new attempt (its evidence starts again), a failure or a completion.</summary>
-    internal void Transitioned(WorkTaskStatus to, string? reason)
+    internal void Transitioned(WorkTaskStatus to, string? reason, UserText? reasonText = null)
     {
+        _reasonText = reasonText;
         Reason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
         switch (to)
         {
@@ -1600,6 +1611,7 @@ public sealed partial class MonitorTaskViewModel : ObservableObject
             case WorkTaskStatus.Failed:
                 Failures++;
                 FailureLine = null;
+                _failureReasonText = _reasonText;
                 FailureReason = Reason;
                 break;
             case WorkTaskStatus.Completed:

@@ -1,5 +1,6 @@
 using System.IO;
 using AgentStudio.Application.Decisions;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Usage;
@@ -11,6 +12,7 @@ using AgentStudio.Domain.Providers;
 using AgentStudio.Domain.Work;
 using AgentStudio.Domain.Work.Milestones;
 using AgentStudio.Observability.Usage;
+using AgentStudio.Orchestration;
 using AgentStudio.Orchestration.Engine;
 using AgentStudio.Tests.Observability.Usage;
 using AgentStudio.Tests.Orchestration.Fakes;
@@ -109,6 +111,14 @@ public sealed class ProjectBudgetTests
         Assert.Equal(ProjectBudgetGate.ExceededCode, refused.Code);
         Assert.Contains("1000", refused.Reason, StringComparison.Ordinal);
         Assert.Contains("1001", refused.Reason, StringComparison.Ordinal);
+
+        // The coded text carries the same figures, for the screen in the language in use; the Reason of the log stays as it is.
+        Assert.Equal(
+            UserText.Of(
+                OrchestrationUserTexts.ListSpace,
+                UserText.Of(OrchestrationUserTexts.BudgetExceededTokens, UserText.Of(OrchestrationUserTexts.BudgetNameProjectTotal), 1_000L, 801L, 1_001L),
+                UserText.Of(OrchestrationUserTexts.BudgetRaise)),
+            refused.Text);
     }
 
     [Fact]
@@ -201,6 +211,7 @@ public sealed class ProjectBudgetTests
         Assert.False(verdict.Allowed);
         Assert.Equal(ProjectBudgetGate.UnreadableCode, verdict.Code);
         Assert.Contains("no se pudo comprobar", verdict.Reason, StringComparison.Ordinal);
+        Assert.Equal(UserText.Of(OrchestrationUserTexts.BudgetUnreadable, UserText.Of(OrchestrationUserTexts.BudgetWhyFailed)), verdict.Text);
     }
 
     [Fact]

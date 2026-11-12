@@ -1,5 +1,6 @@
 using System.Globalization;
 using AgentStudio.Application.Decisions;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Git;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Persistence;
@@ -45,6 +46,21 @@ internal sealed class RunResumer(EnginePorts ports)
         RunResumeCause.ConsentAfterSessionEnded => "Reanudada sola por el consentimiento de su cabecera: Windows cerró la sesión.",
         _ => "Reanudada desde el registro de decisiones.",
     };
+
+    /// <summary>The coded text of <see cref="Notice"/>, for the screen (docs/17 D-47).</summary>
+    public static UserText NoticeText(RunResumeCause cause) => UserText.Of(cause switch
+    {
+        RunResumeCause.ConsentAfterQuotaWait => OrchestrationUserTexts.RunResumedConsentQuota,
+        RunResumeCause.ConsentAfterUnrequestedClose => OrchestrationUserTexts.RunResumedConsentClose,
+        RunResumeCause.ConsentAfterSessionEnded => OrchestrationUserTexts.RunResumedConsentSession,
+        _ => OrchestrationUserTexts.RunResumedFromLog,
+    });
+
+    /// <summary>The reason of the transition that reopens an interrupted task when the person asked for the resume.</summary>
+    public const string ReopenedByUser = "Reanudada a petición del usuario.";
+
+    /// <summary>The reason of that transition when the consent of the header resumed it.</summary>
+    public const string ReopenedByConsent = "Reanudada sola por el consentimiento de la cabecera de su ejecución.";
 
     public async Task<ResumedRun> ResumeAsync(ProjectContext project, RunId run, IReadOnlyList<DecisionEntry> log, RunResumeCause cause, CancellationToken cancellationToken)
     {
@@ -770,7 +786,7 @@ internal sealed class RunResumer(EnginePorts ports)
             {
                 ledger.Renew[task.Id] = HandoffReason.Interrupted;
             }
-            var why = cause == RunResumeCause.UserRequested ? "Reanudada a petición del usuario." : "Reanudada sola por el consentimiento de la cabecera de su ejecución.";
+            var why = cause == RunResumeCause.UserRequested ? ReopenedByUser : ReopenedByConsent;
             await MoveAsync(recorder, graph, ledger, task.Id, WorkTaskStatus.Pending, why, null, context, cancellationToken).ConfigureAwait(false);
         }
     }

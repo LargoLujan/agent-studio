@@ -1297,7 +1297,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
             ProposalStatus = WithHistoryNotice(
                 proposal.Error is null
                     ? Texts.Format("Orchestrator_Plan_NoUsable", AgentActivityText.Outcome(proposal.Status))
-                    : Texts.Format("Orchestrator_Plan_NoUsableWhy", AgentActivityText.Outcome(proposal.Status), proposal.Error),
+                    : Texts.Format("Orchestrator_Plan_NoUsableWhy", AgentActivityText.Outcome(proposal.Status), OrchestratorCodedText.Painted(proposal.ErrorText, proposal.Error)),
                 proposal);
             return;
         }

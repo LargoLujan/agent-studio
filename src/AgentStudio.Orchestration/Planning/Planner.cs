@@ -2,6 +2,7 @@ using System.Globalization;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Git;
 using AgentStudio.Application.Knowledge;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Prompts;
 using AgentStudio.Application.Providers;
@@ -78,13 +79,19 @@ internal sealed class Planner(EnginePorts ports)
         var schema = PlanSchema.Build(context);
         if (!PlanSchema.Fits(schema))
         {
-            return Failed(run, string.Create(CultureInfo.InvariantCulture, $"El esquema del plan ocupa {StrictJsonSchema.Utf8Bytes(schema)} bytes y Claude Code solo acepta {PlanSchema.MaxBytes} en la línea de órdenes: reduce los requisitos, los agentes o los pasos del perfil."));
+            return Failed(
+                run,
+                string.Create(CultureInfo.InvariantCulture, $"El esquema del plan ocupa {StrictJsonSchema.Utf8Bytes(schema)} bytes y Claude Code solo acepta {PlanSchema.MaxBytes} en la línea de órdenes: reduce los requisitos, los agentes o los pasos del perfil."),
+                UserText.Of(OrchestrationUserTexts.PlannerSchemaTooBig, StrictJsonSchema.Utf8Bytes(schema), PlanSchema.MaxBytes));
         }
 
         var provider = ports.ProviderFor(project.RootPath, orchestrator.Model.Provider);
         if (provider is null)
         {
-            return Failed(run, $"No hay ningún proveedor «{orchestrator.Model.Provider}» para el orquestador «{orchestrator.Id}».");
+            return Failed(
+                run,
+                $"No hay ningún proveedor «{orchestrator.Model.Provider}» para el orquestador «{orchestrator.Id}».",
+                UserText.Of(OrchestrationUserTexts.PlannerNoProvider, orchestrator.Model.Provider.ToString(), orchestrator.Id.ToString()));
         }
 
         // Project memory, with ReadSelected (docs/14 D-23 and D-24): before anything is written, because it fails closed.
@@ -102,7 +109,10 @@ internal sealed class Planner(EnginePorts ports)
         }
         catch (ContextBudgetTooSmallException problem)
         {
-            return Failed(run, $"No se lanza el orquestador: {ProjectMemoryPrompt.TooSmall(problem)}. Reduce los requisitos obligatorios o quita la memoria del orquestador en la plantilla.");
+            return Failed(
+                run,
+                $"No se lanza el orquestador: {ProjectMemoryPrompt.TooSmall(problem)}. Reduce los requisitos obligatorios o quita la memoria del orquestador en la plantilla.",
+                UserText.Of(OrchestrationUserTexts.PlannerMemoryTooSmall));
         }
 
         // The history tool (docs/17 D-06), after the memory and before anything is written: a log that does not verify stops
@@ -180,7 +190,7 @@ internal sealed class Planner(EnginePorts ports)
         }
     }
 
-    private static PlanProposal Failed(RunId run, string error) => new(run, null, [], false, AgentRunStatus.Failed, error, null);
+    private static PlanProposal Failed(RunId run, string error, UserText? text = null) => new(run, null, [], false, AgentRunStatus.Failed, error, null) { ErrorText = text };
 
     /// <summary>
     /// Records each answer of the person (docs/17 D-29), before the orchestrator runs with them: the option chosen, or the
@@ -457,7 +467,7 @@ internal sealed class Planner(EnginePorts ports)
                     attempt > 1,
                     AgentRunStatus.Failed,
                     "El repositorio del usuario cambió mientras planificaba el orquestador; el plan se descarta. " + string.Join(" ", result.RepositoryDifferences),
-                    result.Report?.Id));
+                    result.Report?.Id) { ErrorText = UserText.Of(OrchestrationUserTexts.PlannerRepositoryChanged) });
             }
 
             if (!result.Launched)
@@ -470,7 +480,7 @@ internal sealed class Planner(EnginePorts ports)
                     attempt > 1,
                     cancelled ? AgentRunStatus.Cancelled : AgentRunStatus.Failed,
                     cancelled ? "Se canceló la planificación." : "No se pudo lanzar el orquestador: " + result.LaunchError?.Message,
-                    null));
+                    null) { ErrorText = cancelled ? UserText.Of(OrchestrationUserTexts.PlannerCancelled) : UserText.Of(OrchestrationUserTexts.PlannerLaunchFailed, result.LaunchError?.Message ?? string.Empty) });
             }
 
             var outcome = result.Outcome!;
@@ -483,7 +493,7 @@ internal sealed class Planner(EnginePorts ports)
                     attempt > 1,
                     outcome.Status,
                     outcome.Error ?? $"El orquestador terminó con estado {outcome.Status}.",
-                    result.Report?.Id));
+                    result.Report?.Id) { ErrorText = outcome.Error is null ? UserText.Of(OrchestrationUserTexts.PlannerEnded, outcome.Status.ToString()) : null });
             }
 
             return new Answer(outcome.StructuredOutputJson, result.Report, result.SessionId, null);

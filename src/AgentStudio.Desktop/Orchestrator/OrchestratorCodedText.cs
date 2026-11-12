@@ -20,6 +20,16 @@ public static class OrchestratorCodedText
         return texts.Count == 0 ? null : string.Join(' ', texts.Select(provider.RenderNested));
     }
 
+    /// <summary>
+    /// What the engine says of a phase, a transition or the end of a run, in the language in use: its coded text when it gives one, or
+    /// the sentence it anchored (a run read from an older log, a worker, an agent). Null when there is neither.
+    /// </summary>
+    public static string? Painted(UserText? text, string? anchored, IUiTextProvider? provider = null)
+    {
+        provider ??= Texts.Current;
+        return text is not null ? provider.RenderNested(text) : anchored;
+    }
+
     /// <summary>A step of the profile as the person reads it before approving: id, title, command, what it requires and its lack of isolation.</summary>
     public static string StepLine(VerificationStep step, IUiTextProvider? provider = null)
     {

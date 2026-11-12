@@ -1,5 +1,6 @@
 using System.Globalization;
 using AgentStudio.Application.Decisions;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Usage;
 using AgentStudio.Application.Work;
@@ -11,12 +12,15 @@ namespace AgentStudio.Orchestration.Engine;
 /// <summary>
 /// The decision of the budget gate for one attempt about to launch (docs/16 D-05, F9-8). <see cref="Reason"/> is the sentence the
 /// person reads (Spanish) and <see cref="Code"/> a stable one for the alert in the log; both are null when it may launch.
+/// <see cref="Reason"/> goes to the log as it is (it is anchored); <see cref="Text"/> is the same reason as a coded text, with what
+/// the screen needs to say it in the language of the person (docs/17 D-47), and the free text the report gives for a log it does not
+/// trust is left out of it.
 /// </summary>
 /// <param name="Allowed">The attempt may launch.</param>
 /// <param name="Scope">Whose budget decided: <c>project</c> or the id of the milestone; null when allowed.</param>
 /// <param name="Reached">The limit the projection passes; null when allowed or when the gate could not tell (<see cref="Code"/> says why).</param>
 /// <param name="ProjectionUnknown">The attempt had no estimate, so the check was only against what was already used.</param>
-public sealed record BudgetGateVerdict(bool Allowed, string? Scope, BudgetLimit? Reached, string? Code, string? Reason, bool ProjectionUnknown = false)
+public sealed record BudgetGateVerdict(bool Allowed, string? Scope, BudgetLimit? Reached, string? Code, string? Reason, bool ProjectionUnknown = false, UserText? Text = null)
 {
     public static readonly BudgetGateVerdict Free = new(true, null, null, null, null);
 }
@@ -77,7 +81,7 @@ public sealed class ProjectBudgetGate(
 
             if (usage is null)
             {
-                return Unreadable("no hay con qué leer lo gastado");
+                return Unreadable("no hay con qué leer lo gastado", UserText.Of(OrchestrationUserTexts.BudgetWhyNoUsage));
             }
 
             // Only what the budgets can count: from the start of the widest period among them (the whole history only for a total).
@@ -85,7 +89,7 @@ public sealed class ProjectBudgetGate(
             var report = await usage.QueryAsync([project.RootPath], new UsageQuery(since, DateTimeOffset.MaxValue, time.LocalTimeZone, []), ct).ConfigureAwait(false);
             if (report.Excluded.Count > 0)
             {
-                return Unreadable("el registro del proyecto no es de confianza: " + report.Excluded[0].Reason);
+                return Unreadable("el registro del proyecto no es de confianza: " + report.Excluded[0].Reason, UserText.Of(OrchestrationUserTexts.BudgetWhyUntrusted));
             }
 
             var estimated = await EstimateAsync(request, ct).ConfigureAwait(false);
@@ -112,7 +116,7 @@ public sealed class ProjectBudgetGate(
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            return Unreadable(ex.Message);
+            return Unreadable(ex.Message, UserText.Of(OrchestrationUserTexts.BudgetWhyFailed));
         }
     }
 
@@ -221,8 +225,27 @@ public sealed class ProjectBudgetGate(
         };
     }
 
-    private static BudgetGateVerdict Unreadable(string why) =>
-        new(false, null, null, UnreadableCode, "No se lanza el intento: no se pudo comprobar el presupuesto (" + why + "), y sin saberlo no se arriesga la cuota.");
+    private static BudgetGateVerdict Unreadable(string why, UserText whyText) =>
+        new(
+            false,
+            null,
+            null,
+            UnreadableCode,
+            "No se lanza el intento: no se pudo comprobar el presupuesto (" + why + "), y sin saberlo no se arriesga la cuota.",
+            Text: UserText.Of(OrchestrationUserTexts.BudgetUnreadable, whyText));
+
+    /// <summary>The name of a budget as a piece of the sentence: «presupuesto de hoy del proyecto», «presupuesto del hito M1».</summary>
+    private static UserText NameOf(string scope, BudgetPeriod period)
+    {
+        var project = scope == "project";
+        return period switch
+        {
+            BudgetPeriod.Day => project ? UserText.Of(OrchestrationUserTexts.BudgetNameProjectDay) : UserText.Of(OrchestrationUserTexts.BudgetNameMilestoneDay, scope),
+            BudgetPeriod.Week => project ? UserText.Of(OrchestrationUserTexts.BudgetNameProjectWeek) : UserText.Of(OrchestrationUserTexts.BudgetNameMilestoneWeek, scope),
+            BudgetPeriod.Month => project ? UserText.Of(OrchestrationUserTexts.BudgetNameProjectMonth) : UserText.Of(OrchestrationUserTexts.BudgetNameMilestoneMonth, scope),
+            _ => project ? UserText.Of(OrchestrationUserTexts.BudgetNameProjectTotal) : UserText.Of(OrchestrationUserTexts.BudgetNameMilestoneTotal, scope),
+        };
+    }
 
     private static BudgetGateVerdict Exceeded(string scope, WorkBudget budget, BudgetLimit reached, BudgetUsage used, BudgetUsage projected, bool unknown, int withoutTokens)
     {
@@ -238,6 +261,21 @@ public sealed class ProjectBudgetGate(
             ? string.Create(CultureInfo.InvariantCulture, $"el presupuesto{period} {whose} es de {budget.MaxTokens} tokens y ya van {used.Tokens}{(unknown ? " (sin estimación de este intento)" : $"; con este intento serían {used.Tokens + projected.Tokens}")}")
             : string.Create(CultureInfo.InvariantCulture, $"el presupuesto{period} {whose} es de {budget.MaxAgentRuns} ejecuciones de agente y ya van {used.AgentRuns}; con este intento serían {used.AgentRuns + projected.AgentRuns}");
         var partial = withoutTokens > 0 && reached == BudgetLimit.Tokens ? string.Create(CultureInfo.InvariantCulture, $" ({withoutTokens} intentos sin cifra de tokens no cuentan)") : string.Empty;
-        return new BudgetGateVerdict(false, scope, reached, ExceededCode, $"No se lanza el intento: {text}{partial}. Sube el presupuesto y reintenta la tarea.", unknown);
+        var name = NameOf(scope, budget.Period);
+        var sentences = new List<UserText>
+        {
+            reached == BudgetLimit.Tokens
+                ? unknown
+                    ? UserText.Of(OrchestrationUserTexts.BudgetExceededTokensUnknown, name, budget.MaxTokens ?? 0L, used.Tokens)
+                    : UserText.Of(OrchestrationUserTexts.BudgetExceededTokens, name, budget.MaxTokens ?? 0L, used.Tokens, used.Tokens + projected.Tokens)
+                : UserText.Of(OrchestrationUserTexts.BudgetExceededRuns, name, budget.MaxAgentRuns ?? 0, used.AgentRuns, used.AgentRuns + projected.AgentRuns),
+        };
+        if (withoutTokens > 0 && reached == BudgetLimit.Tokens)
+        {
+            sentences.Add(UserText.Of(OrchestrationUserTexts.BudgetPartial, withoutTokens));
+        }
+
+        sentences.Add(UserText.Of(OrchestrationUserTexts.BudgetRaise));
+        return new BudgetGateVerdict(false, scope, reached, ExceededCode, $"No se lanza el intento: {text}{partial}. Sube el presupuesto y reintenta la tarea.", unknown, OrchestrationUserTexts.Sentences(sentences));
     }
 }
