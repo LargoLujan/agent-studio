@@ -1,3 +1,0 @@
-Observability/UsageDashboardViewModel.cs
-Views/Observability/UsageDashboardView.xaml
-Views/Observability/UsageDashboardView.xaml.cs

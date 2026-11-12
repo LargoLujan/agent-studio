@@ -5,6 +5,7 @@ using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Memory;
 using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Orchestrator;
+using AgentStudio.Desktop.Repository;
 using AgentStudio.Desktop.Settings;
 using AgentStudio.Desktop.Setup;
 using AgentStudio.Desktop.Skills;
@@ -29,6 +30,7 @@ public static class HelpScreens
     public const string Consumption = "consumption";
     public const string Settings = "settings";
     public const string Lock = "lock";
+    public const string Repository = "repository";
 
     /// <summary>The screen shown by the content of the dock (a document, or a panel's view); null when it is none of the screens that have help (the welcome tab, a file).</summary>
     public static string? Of(object? content) => content switch
@@ -41,6 +43,7 @@ public static class HelpScreens
         MemoryViewModel => Memory,
         SkillsDocumentViewModel => Skills,
         UsageDashboardViewModel => Consumption,
+        RepositoryViewModel => Repository,
         SettingsDocumentViewModel => Settings,
         _ => null,
     };
@@ -68,5 +71,5 @@ public static class HelpScreens
     }
 
     /// <summary>Every screen code that has an article, for the tests of the corpus.</summary>
-    public static IReadOnlyList<string> All { get; } = [Preparation, Canvas, Monitor, Debates, Audit, Memory, Skills, Consumption, Settings, Lock];
+    public static IReadOnlyList<string> All { get; } = [Preparation, Canvas, Monitor, Debates, Audit, Memory, Skills, Consumption, Settings, Lock, Repository];
 }

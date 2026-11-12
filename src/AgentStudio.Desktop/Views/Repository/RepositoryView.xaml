@@ -1,0 +1,276 @@
+<UserControl x:Class="AgentStudio.Desktop.Views.Repository.RepositoryView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
+             xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
+             xmlns:repository="clr-namespace:AgentStudio.Desktop.Repository"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=repository:RepositoryViewModel}">
+    <!-- «Repositorio y cambios» (docs/16 F9-9, D-44): what the agents and the person did to the repository, read through the
+         hardened git layer and annotated from the verified log. Four sections: Resumen, Ramas, Versiones guardadas and Actividad,
+         each with its ⓘ. It is not a git client: nothing here writes. What git says (a subject, an author, a branch) is data of
+         whoever wrote it and is shown as it is. When the reader refuses the repository the screen says why. Bindings only. -->
+    <UserControl.Resources>
+        <Style x:Key="Repository.Section" TargetType="ScrollViewer">
+            <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="HorizontalScrollBarVisibility" Value="Disabled"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Visibility" Value="Collapsed"/>
+        </Style>
+
+        <Style x:Key="Repository.Summary" TargetType="ScrollViewer" BasedOn="{StaticResource Repository.Section}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding SelectedSection.Value}" Value="Summary">
+                    <Setter Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="Repository.Branches" TargetType="ScrollViewer" BasedOn="{StaticResource Repository.Section}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding SelectedSection.Value}" Value="Branches">
+                    <Setter Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="Repository.Commits" TargetType="ScrollViewer" BasedOn="{StaticResource Repository.Section}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding SelectedSection.Value}" Value="Commits">
+                    <Setter Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="Repository.Activity" TargetType="ScrollViewer" BasedOn="{StaticResource Repository.Section}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding SelectedSection.Value}" Value="Activity">
+                    <Setter Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- What the reader refused, in words: it disappears when there is nothing to say. -->
+        <Style x:Key="Repository.Warning" TargetType="TextBlock" BasedOn="{StaticResource BodyText}">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="{StaticResource WarningBrush}"/>
+            <Style.Triggers>
+                <Trigger Property="Text" Value="">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- «Ver su cadena» is only offered when someone connected a way to open it: a button that does nothing is not shown. -->
+        <Style x:Key="Repository.ChainButton" TargetType="Button" BasedOn="{StaticResource ToolbarButton}">
+            <Setter Property="Visibility" Value="Collapsed"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding CanOpenChain}" Value="True">
+                    <Setter Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- A label with its value on one line. -->
+        <Style x:Key="Repository.Label" TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
+            <Setter Property="Width" Value="190"/>
+            <Setter Property="TextWrapping" Value="NoWrap"/>
+        </Style>
+
+        <!-- A line of what the log says of a version; a suggestion nobody confirmed is drawn apart, in italics and with the warning colour. -->
+        <DataTemplate x:Key="Repository.OriginLine" DataType="{x:Type repository:OriginLine}">
+            <TextBlock Text="{Binding Text}">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsSuggestion}" Value="True">
+                                <Setter Property="FontStyle" Value="Italic"/>
+                                <Setter Property="Foreground" Value="{StaticResource WarningBrush}"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid Background="{StaticResource SurfaceBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- The title, «Actualizar», the four sections and what is wrong with the repository, when something is. -->
+        <Border Grid.Row="0" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,10">
+            <StackPanel>
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarPrimaryButton}" Content="{l:T Repository_Refresh}" Command="{Binding RefreshCommand}"
+                            ToolTip="{l:T Repository_RefreshTip}"/>
+                    <TextBlock Style="{StaticResource SectionTitleText}" VerticalAlignment="Center" Margin="0,0,16,6" Text="{l:T Repository_Title}"/>
+                </DockPanel>
+                <ListBox ItemsSource="{Binding Sections}" SelectedItem="{Binding SelectedSection}" BorderThickness="0" Margin="0,0,0,4"
+                         AutomationProperties.Name="{l:T Repository_Sections_Name}">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                </ListBox>
+                <TextBlock Style="{StaticResource Repository.Warning}" Text="{Binding RefusalText, TargetNullValue=''}" AutomationProperties.LiveSetting="Polite"/>
+                <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding StatusMessage, TargetNullValue=''}" AutomationProperties.LiveSetting="Polite"/>
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <!-- Resumen: the branch, the unsaved changes and the remotes. -->
+            <ScrollViewer Style="{StaticResource Repository.Summary}">
+                <StackPanel Margin="12,10,12,12">
+                    <DockPanel>
+                        <info:InfoButton DockPanel.Dock="Right" InfoKey="Info_RepositorySummary" VerticalAlignment="Center"/>
+                        <TextBlock Style="{StaticResource SectionTitleText}" Text="{l:T Repository_Section_Summary}"/>
+                    </DockPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0"><TextBlock Style="{StaticResource Repository.Label}" Text="{l:T Repository_Summary_Branch}"/><TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{Binding BranchText, TargetNullValue=''}"/></StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0"><TextBlock Style="{StaticResource Repository.Label}" Text="{l:T Repository_Summary_Head}"/><TextBlock Style="{StaticResource BodyText}" FontFamily="{StaticResource MonoFont}" Text="{Binding HeadText, TargetNullValue=''}"/></StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0"><TextBlock Style="{StaticResource Repository.Label}" Text="{l:T Repository_Summary_Changes}"/><TextBlock Style="{StaticResource BodyText}" Text="{Binding ChangesText, TargetNullValue=''}"/></StackPanel>
+                    <TextBlock Style="{StaticResource SectionTitleText}" Margin="0,14,0,0" Text="{l:T Repository_Summary_Remotes}"/>
+                    <ItemsControl ItemsSource="{Binding Remotes}" Focusable="False" Margin="0,4,0,0" AutomationProperties.Name="{l:T Repository_Summary_RemotesName}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type repository:RemoteRow}">
+                                <Border Style="{StaticResource InnerCard}" Padding="10,6">
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{Binding Name}"/>
+                                        <TextBlock Style="{StaticResource SecondaryText}" FontFamily="{StaticResource MonoFont}" Text="{Binding Url}"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="0,4,0,0" Text="{Binding RemotesNote, TargetNullValue=''}"/>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Ramas: the local ones; those of the runs of the system say so. -->
+            <ScrollViewer Style="{StaticResource Repository.Branches}">
+                <StackPanel Margin="12,10,12,12">
+                    <DockPanel>
+                        <info:InfoButton DockPanel.Dock="Right" InfoKey="Info_RepositoryBranches" VerticalAlignment="Center"/>
+                        <TextBlock Style="{StaticResource SectionTitleText}" Text="{l:T Repository_Branches_Title}"/>
+                    </DockPanel>
+                    <ItemsControl ItemsSource="{Binding Branches}" Focusable="False" Margin="0,6,0,0" AutomationProperties.Name="{l:T Repository_Branches_Name}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type repository:BranchRow}">
+                                <Border Style="{StaticResource InnerCard}" Padding="10,6">
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{Binding Name}"/>
+                                        <TextBlock Style="{StaticResource SecondaryText}" FontFamily="{StaticResource MonoFont}" Text="{Binding Version}"/>
+                                        <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding Marks}"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="0,4,0,0" Text="{Binding BranchesNote, TargetNullValue=''}"/>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Versiones guardadas: the bounded graph, newest first, annotated from the log. -->
+            <ScrollViewer Style="{StaticResource Repository.Commits}">
+                <StackPanel Margin="12,10,12,12">
+                    <DockPanel>
+                        <info:InfoButton DockPanel.Dock="Right" InfoKey="Info_RepositoryCommits" VerticalAlignment="Center"/>
+                        <TextBlock Style="{StaticResource SectionTitleText}" Text="{l:T Repository_Section_Commits}"/>
+                    </DockPanel>
+                    <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="0,4,0,0" Text="{Binding CommitsNote, TargetNullValue=''}"/>
+                    <ItemsControl ItemsSource="{Binding Commits}" Focusable="False" Margin="0,6,0,0" AutomationProperties.Name="{l:T Repository_Commits_Name}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type repository:CommitRow}">
+                                <Border Style="{StaticResource InnerCard}" Padding="10,8">
+                                    <DockPanel>
+                                        <Button DockPanel.Dock="Right" VerticalAlignment="Top" Margin="8,0,0,0" Style="{StaticResource Repository.ChainButton}"
+                                                Content="{l:T Repository_Commit_Chain}" Command="{Binding OpenChainCommand}" ToolTip="{l:T Repository_Commit_ChainTip}"/>
+                                        <StackPanel>
+                                            <TextBlock Style="{StaticResource BodyText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" ToolTip="{l:T Repository_Commit_DataTip}">
+                                                <Run Text="{Binding ShortId, Mode=OneWay}" FontFamily="{StaticResource MonoFont}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                                <Run Text="{Binding Subject, Mode=OneWay}" FontWeight="SemiBold"/>
+                                            </TextBlock>
+                                            <TextBlock Style="{StaticResource SecondaryText}" ToolTip="{l:T Repository_Commit_DataTip}">
+                                                <Run Text="{Binding When, Mode=OneWay}"/> · <Run Text="{Binding Author, Mode=OneWay}"/>
+                                            </TextBlock>
+                                            <TextBlock Style="{StaticResource OptionalSecondaryText}" FontFamily="{StaticResource MonoFont}" Text="{Binding Refs}"/>
+                                            <ItemsControl ItemsSource="{Binding Origin}" ItemTemplate="{StaticResource Repository.OriginLine}" Focusable="False" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Actividad: the timeline of the log, with its filters. -->
+            <ScrollViewer Style="{StaticResource Repository.Activity}">
+                <StackPanel Margin="12,10,12,12">
+                    <DockPanel>
+                        <info:InfoButton DockPanel.Dock="Right" InfoKey="Info_RepositoryActivity" VerticalAlignment="Center"/>
+                        <TextBlock Style="{StaticResource SectionTitleText}" Text="{l:T Repository_Section_Activity}"/>
+                    </DockPanel>
+                    <WrapPanel Margin="0,8,0,0" AutomationProperties.Name="{l:T Repository_Activity_Filters}">
+                        <TextBlock x:Name="RunLabel" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="0,0,6,6" Text="{l:T Repository_Filter_Run}"/>
+                        <TextBox Style="{StaticResource FieldTextBox}" Width="130" Margin="0,0,12,6" Text="{Binding RunFilter, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.Name="{l:T Repository_Filter_Run}" AutomationProperties.LabeledBy="{Binding ElementName=RunLabel}"/>
+                        <TextBlock x:Name="TaskLabel" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="0,0,6,6" Text="{l:T Repository_Filter_Task}"/>
+                        <TextBox Style="{StaticResource FieldTextBox}" Width="90" Margin="0,0,12,6" Text="{Binding TaskFilter, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.Name="{l:T Repository_Filter_Task}" AutomationProperties.LabeledBy="{Binding ElementName=TaskLabel}"/>
+                        <TextBlock x:Name="MilestoneLabel" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="0,0,6,6" Text="{l:T Repository_Filter_Milestone}"/>
+                        <TextBox Style="{StaticResource FieldTextBox}" Width="150" Margin="0,0,12,6" Text="{Binding MilestoneFilter, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.Name="{l:T Repository_Filter_Milestone}" AutomationProperties.LabeledBy="{Binding ElementName=MilestoneLabel}"/>
+                        <TextBlock x:Name="AgentLabel" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="0,0,6,6" Text="{l:T Repository_Filter_Agent}"/>
+                        <TextBox Style="{StaticResource FieldTextBox}" Width="110" Margin="0,0,12,6" Text="{Binding AgentFilter, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.Name="{l:T Repository_Filter_Agent}" AutomationProperties.LabeledBy="{Binding ElementName=AgentLabel}"/>
+                        <TextBlock x:Name="ProviderLabel" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="0,0,6,6" Text="{l:T Repository_Filter_Provider}"/>
+                        <ComboBox MinWidth="110" Margin="0,0,12,6" ItemsSource="{Binding Providers}" SelectedItem="{Binding SelectedProvider}" DisplayMemberPath="Label"
+                                  AutomationProperties.Name="{l:T Repository_Filter_Provider}" AutomationProperties.LabeledBy="{Binding ElementName=ProviderLabel}"/>
+                        <TextBlock x:Name="ModelLabel" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="0,0,6,6" Text="{l:T Repository_Filter_Model}"/>
+                        <TextBox Style="{StaticResource FieldTextBox}" Width="150" Margin="0,0,12,6" Text="{Binding ModelFilter, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.Name="{l:T Repository_Filter_Model}" AutomationProperties.LabeledBy="{Binding ElementName=ModelLabel}"/>
+                        <TextBlock x:Name="PeriodLabel" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="0,0,6,6" Text="{l:T Repository_Filter_Period}"/>
+                        <ComboBox MinWidth="140" Margin="0,0,12,6" ItemsSource="{Binding Periods}" SelectedItem="{Binding SelectedPeriod}" DisplayMemberPath="Label"
+                                  AutomationProperties.Name="{l:T Repository_Filter_Period}" AutomationProperties.LabeledBy="{Binding ElementName=PeriodLabel}"/>
+                        <Button Style="{StaticResource ToolbarPrimaryButton}" Margin="0,0,6,6" Content="{l:T Repository_Filter_Apply}" Command="{Binding ApplyFiltersCommand}"/>
+                        <Button Style="{StaticResource ToolbarButton}" Margin="0,0,0,6" Content="{l:T Repository_Filter_Clear}" Command="{Binding ClearFiltersCommand}"/>
+                    </WrapPanel>
+                    <TextBlock Style="{StaticResource ErrorText}" Text="{Binding FilterError}" AutomationProperties.LiveSetting="Assertive"/>
+                    <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="0,2,0,0" Text="{Binding ActivityNote, TargetNullValue=''}" AutomationProperties.LiveSetting="Polite"/>
+                    <ItemsControl ItemsSource="{Binding Activities}" Focusable="False" Margin="0,6,0,0" AutomationProperties.Name="{l:T Repository_Activity_Name}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type repository:ActivityRow}">
+                                <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,6">
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource BodyText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap">
+                                            <Run Text="{Binding When, Mode=OneWay}" FontFamily="{StaticResource MonoFont}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                            <Run Text="{Binding Kind, Mode=OneWay}" FontWeight="SemiBold"/>
+                                        </TextBlock>
+                                        <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding Where}"/>
+                                        <TextBlock Style="{StaticResource OptionalSecondaryText}" FontFamily="{StaticResource MonoFont}" Text="{Binding Version}"/>
+                                        <TextBlock Text="{Binding Result}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource BodyText}">
+                                                    <Setter Property="FontSize" Value="12"/>
+                                                    <Setter Property="Foreground" Value="{StaticResource SuccessBrush}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Succeeded}" Value="False">
+                                                            <Setter Property="Foreground" Value="{StaticResource ErrorBrush}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</UserControl>

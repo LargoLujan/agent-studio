@@ -10,6 +10,8 @@
                     xmlns:observabilityViews="clr-namespace:AgentStudio.Desktop.Views.Observability"
                     xmlns:memory="clr-namespace:AgentStudio.Desktop.Memory"
                     xmlns:memoryViews="clr-namespace:AgentStudio.Desktop.Views.Memory"
+                    xmlns:repository="clr-namespace:AgentStudio.Desktop.Repository"
+                    xmlns:repositoryViews="clr-namespace:AgentStudio.Desktop.Views.Repository"
                     xmlns:documents="clr-namespace:AgentStudio.Desktop.Documents"
                     xmlns:documentsViews="clr-namespace:AgentStudio.Desktop.Views.Documents"
                     xmlns:debate="clr-namespace:AgentStudio.Desktop.Debate"
@@ -52,6 +54,11 @@
 
     <DataTemplate DataType="{x:Type memory:MemoryViewModel}">
         <memoryViews:MemoryView/>
+    </DataTemplate>
+
+    <!-- Phase 9 (docs/16 F9-9): «Repositorio y cambios». -->
+    <DataTemplate DataType="{x:Type repository:RepositoryViewModel}">
+        <repositoryViews:RepositoryView/>
     </DataTemplate>
 
     <!-- Phase 14 (docs/17 section 5.5): «Documentación para clientes». -->

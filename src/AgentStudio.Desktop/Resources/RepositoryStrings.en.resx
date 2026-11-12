@@ -1,0 +1,399 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of "Repository and changes" (docs/16 F9-9, D-44) in English: Summary, Branches, Saved versions and Activity. What comes from git (a subject, an author, a branch) is the data of whoever wrote it and is not translated. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Main_Activity_Repository" xml:space="preserve">
+    <value>Repository</value>
+  </data>
+  <data name="Repository_Title" xml:space="preserve">
+    <value>Repository and changes</value>
+  </data>
+  <data name="Repository_Refresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="Repository_RefreshTip" xml:space="preserve">
+    <value>Reads the repository again. It is only read: nothing is changed.</value>
+  </data>
+  <data name="Repository_Sections_Name" xml:space="preserve">
+    <value>Sections of the repository</value>
+  </data>
+  <data name="Repository_Section_Summary" xml:space="preserve">
+    <value>Summary</value>
+  </data>
+  <data name="Repository_Section_Branches" xml:space="preserve">
+    <value>Branches</value>
+  </data>
+  <data name="Repository_Section_Commits" xml:space="preserve">
+    <value>Saved versions</value>
+  </data>
+  <data name="Repository_Section_Activity" xml:space="preserve">
+    <value>Activity</value>
+  </data>
+  <data name="Repository_Status_OpenFolder" xml:space="preserve">
+    <value>Open a folder to see its repository.</value>
+  </data>
+  <data name="Repository_Status_Unavailable" xml:space="preserve">
+    <value>The repository is not available in this composition: the history reader is missing.</value>
+  </data>
+  <data name="Repository_Status_Loading" xml:space="preserve">
+    <value>Reading the repository…</value>
+  </data>
+  <data name="Repository_Refused" xml:space="preserve">
+    <value>Agent Studio does not read this repository: {0}</value>
+  </data>
+  <data name="Repository_Refusal_NotARepository" xml:space="preserve">
+    <value>the folder is not a git repository.</value>
+  </data>
+  <data name="Repository_Refusal_InsideWorkRoot" xml:space="preserve">
+    <value>the folder is inside the isolated working copies of Agent Studio.</value>
+  </data>
+  <data name="Repository_Refusal_UnsafeConfiguration" xml:space="preserve">
+    <value>it can launch a program of the repository. For safety, it is not read.</value>
+  </data>
+  <data name="Repository_Refusal_UnsafeRepository" xml:space="preserve">
+    <value>the folder is not yours, or git does not consider it safe.</value>
+  </data>
+  <data name="Repository_Refusal_GitUnavailable" xml:space="preserve">
+    <value>git was not found or could not be run.</value>
+  </data>
+  <data name="Repository_Refusal_GitFailed" xml:space="preserve">
+    <value>git failed while reading the repository.</value>
+  </data>
+  <data name="Repository_Refusal_Unreadable" xml:space="preserve">
+    <value>the folder could not be read.</value>
+  </data>
+  <data name="Repository_Refusal_Refused" xml:space="preserve">
+    <value>the reading was refused.</value>
+  </data>
+  <data name="Repository_Refusal_TooBig" xml:space="preserve">
+    <value>the answer of git was too big.</value>
+  </data>
+  <data name="Repository_Refusal_Unknown" xml:space="preserve">
+    <value>unknown reason ({0}).</value>
+  </data>
+  <data name="Repository_Summary_Branch" xml:space="preserve">
+    <value>Current branch</value>
+  </data>
+  <data name="Repository_Summary_NoBranch" xml:space="preserve">
+    <value>none: you are on a loose version</value>
+  </data>
+  <data name="Repository_Summary_Head" xml:space="preserve">
+    <value>Latest saved version</value>
+  </data>
+  <data name="Repository_Summary_NoHead" xml:space="preserve">
+    <value>there is none yet</value>
+  </data>
+  <data name="Repository_Summary_Changes" xml:space="preserve">
+    <value>Unsaved changes</value>
+  </data>
+  <data name="Repository_Summary_ChangesYes" xml:space="preserve">
+    <value>Yes, there are unsaved changes.</value>
+  </data>
+  <data name="Repository_Summary_ChangesNo" xml:space="preserve">
+    <value>No, everything is saved.</value>
+  </data>
+  <data name="Repository_Summary_Remotes" xml:space="preserve">
+    <value>Remotes</value>
+  </data>
+  <data name="Repository_Summary_NoRemotes" xml:space="preserve">
+    <value>No remotes: the repository is only on this computer.</value>
+  </data>
+  <data name="Repository_Summary_RemotesRefused" xml:space="preserve">
+    <value>The remotes could not be read: {0}</value>
+  </data>
+  <data name="Repository_Summary_RemotesName" xml:space="preserve">
+    <value>Remotes of the repository</value>
+  </data>
+  <data name="Repository_Branches_Title" xml:space="preserve">
+    <value>Local branches</value>
+  </data>
+  <data name="Repository_Branches_Name" xml:space="preserve">
+    <value>Local branches of the repository</value>
+  </data>
+  <data name="Repository_Branches_None" xml:space="preserve">
+    <value>No branches.</value>
+  </data>
+  <data name="Repository_Branch_Current" xml:space="preserve">
+    <value>current</value>
+  </data>
+  <data name="Repository_Branch_Run" xml:space="preserve">
+    <value>of a run of Agent Studio</value>
+  </data>
+  <data name="Repository_Branch_Points" xml:space="preserve">
+    <value>points to {0}</value>
+  </data>
+  <data name="Repository_Commits_Name" xml:space="preserve">
+    <value>Saved versions of the repository</value>
+  </data>
+  <data name="Repository_Commits_Showing" xml:space="preserve">
+    <value>Showing the latest {0} saved versions, newest first.</value>
+  </data>
+  <data name="Repository_Commits_None" xml:space="preserve">
+    <value>There are no saved versions yet.</value>
+  </data>
+  <data name="Repository_Commits_NotAnnotated" xml:space="preserve">
+    <value>The decision log could not be verified, so the saved versions are shown without annotations.</value>
+  </data>
+  <data name="Repository_Commit_DataTip" xml:space="preserve">
+    <value>Text of whoever made this version: it is shown as it is, untranslated.</value>
+  </data>
+  <data name="Repository_Commit_Version" xml:space="preserve">
+    <value>version {0}</value>
+  </data>
+  <data name="Repository_Commit_By" xml:space="preserve">
+    <value>by {0}</value>
+  </data>
+  <data name="Repository_Commit_Chain" xml:space="preserve">
+    <value>See its chain</value>
+  </data>
+  <data name="Repository_Commit_ChainTip" xml:space="preserve">
+    <value>Opens the chain of this version. You will see its task, its proof and its verdict.</value>
+  </data>
+  <data name="Repository_Origin_System" xml:space="preserve">
+    <value>Made by Agent Studio</value>
+  </data>
+  <data name="Repository_Origin_Run" xml:space="preserve">
+    <value>run {0}</value>
+  </data>
+  <data name="Repository_Origin_Task" xml:space="preserve">
+    <value>task {0}</value>
+  </data>
+  <data name="Repository_Origin_Attempt" xml:space="preserve">
+    <value>attempt {0}</value>
+  </data>
+  <data name="Repository_Origin_Agent" xml:space="preserve">
+    <value>agent {0}</value>
+  </data>
+  <data name="Repository_Origin_Model" xml:space="preserve">
+    <value>model {0}</value>
+  </data>
+  <data name="Repository_Origin_Link" xml:space="preserve">
+    <value>Linked by {0} to {1}.</value>
+  </data>
+  <data name="Repository_Origin_LinkPerson" xml:space="preserve">
+    <value>you</value>
+  </data>
+  <data name="Repository_Origin_LinkSystem" xml:space="preserve">
+    <value>Agent Studio</value>
+  </data>
+  <data name="Repository_Origin_Node" xml:space="preserve">
+    <value>{0} {1}</value>
+  </data>
+  <data name="Repository_Origin_Suggestion" xml:space="preserve">
+    <value>Suggestion, not confirmed: it seems related to {0}, according to {1}.</value>
+  </data>
+  <data name="Repository_Origin_None" xml:space="preserve">
+    <value>The log knows nothing of this version.</value>
+  </data>
+  <data name="Repository_Source_CommitMessageMention" xml:space="preserve">
+    <value>a mention in its message</value>
+  </data>
+  <data name="Repository_Source_CommitTrailer" xml:space="preserve">
+    <value>the marks of its message</value>
+  </data>
+  <data name="Repository_Source_RunBranchName" xml:space="preserve">
+    <value>the name of its branch</value>
+  </data>
+  <data name="Repository_Source_PullRequestMention" xml:space="preserve">
+    <value>a pull request</value>
+  </data>
+  <data name="Repository_Source_Other" xml:space="preserve">
+    <value>another clue</value>
+  </data>
+  <data name="Repository_Node_Requirement" xml:space="preserve">
+    <value>requirement</value>
+  </data>
+  <data name="Repository_Node_BacklogItem" xml:space="preserve">
+    <value>backlog item</value>
+  </data>
+  <data name="Repository_Node_Milestone" xml:space="preserve">
+    <value>milestone</value>
+  </data>
+  <data name="Repository_Node_Run" xml:space="preserve">
+    <value>run</value>
+  </data>
+  <data name="Repository_Node_Task" xml:space="preserve">
+    <value>task</value>
+  </data>
+  <data name="Repository_Node_Attempt" xml:space="preserve">
+    <value>attempt</value>
+  </data>
+  <data name="Repository_Node_Commit" xml:space="preserve">
+    <value>saved version</value>
+  </data>
+  <data name="Repository_Node_Evidence" xml:space="preserve">
+    <value>stored proof</value>
+  </data>
+  <data name="Repository_Node_Verdict" xml:space="preserve">
+    <value>verdict</value>
+  </data>
+  <data name="Repository_Node_Debate" xml:space="preserve">
+    <value>debate</value>
+  </data>
+  <data name="Repository_Node_Audit" xml:space="preserve">
+    <value>audit</value>
+  </data>
+  <data name="Repository_Node_Document" xml:space="preserve">
+    <value>document</value>
+  </data>
+  <data name="Repository_Node_Other" xml:space="preserve">
+    <value>item</value>
+  </data>
+  <data name="Repository_Activity_Name" xml:space="preserve">
+    <value>Activity of the repository</value>
+  </data>
+  <data name="Repository_Activity_Filters" xml:space="preserve">
+    <value>Filters of the activity</value>
+  </data>
+  <data name="Repository_Filter_Run" xml:space="preserve">
+    <value>Run</value>
+  </data>
+  <data name="Repository_Filter_Task" xml:space="preserve">
+    <value>Task</value>
+  </data>
+  <data name="Repository_Filter_Milestone" xml:space="preserve">
+    <value>Milestone</value>
+  </data>
+  <data name="Repository_Filter_Agent" xml:space="preserve">
+    <value>Agent</value>
+  </data>
+  <data name="Repository_Filter_Provider" xml:space="preserve">
+    <value>Provider</value>
+  </data>
+  <data name="Repository_Filter_Model" xml:space="preserve">
+    <value>Model</value>
+  </data>
+  <data name="Repository_Filter_Period" xml:space="preserve">
+    <value>Period</value>
+  </data>
+  <data name="Repository_Filter_Apply" xml:space="preserve">
+    <value>Filter</value>
+  </data>
+  <data name="Repository_Filter_Clear" xml:space="preserve">
+    <value>Clear filters</value>
+  </data>
+  <data name="Repository_Filter_Provider_All" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="Repository_Filter_Provider_ClaudeCode" xml:space="preserve">
+    <value>Claude Code</value>
+  </data>
+  <data name="Repository_Filter_Provider_CodexCli" xml:space="preserve">
+    <value>Codex</value>
+  </data>
+  <data name="Repository_Filter_Provider_GeminiCli" xml:space="preserve">
+    <value>Gemini</value>
+  </data>
+  <data name="Repository_Filter_Period_All" xml:space="preserve">
+    <value>All time</value>
+  </data>
+  <data name="Repository_Filter_Period_Today" xml:space="preserve">
+    <value>Today</value>
+  </data>
+  <data name="Repository_Filter_Period_Last7Days" xml:space="preserve">
+    <value>Last 7 days</value>
+  </data>
+  <data name="Repository_Filter_Period_Last30Days" xml:space="preserve">
+    <value>Last 30 days</value>
+  </data>
+  <data name="Repository_Filter_InvalidMilestone" xml:space="preserve">
+    <value>"{0}" is not a valid milestone: it starts with "mil-".</value>
+  </data>
+  <data name="Repository_Filter_InvalidAgent" xml:space="preserve">
+    <value>"{0}" is not a valid agent.</value>
+  </data>
+  <data name="Repository_Activity_None" xml:space="preserve">
+    <value>There is no activity with these filters.</value>
+  </data>
+  <data name="Repository_Activity_Failed" xml:space="preserve">
+    <value>The activity could not be read: the decision log could not be verified.</value>
+  </data>
+  <data name="Repository_Activity_Integration" xml:space="preserve">
+    <value>Integration</value>
+  </data>
+  <data name="Repository_Activity_Delivery" xml:space="preserve">
+    <value>Delivery</value>
+  </data>
+  <data name="Repository_Activity_WorktreeRemoved" xml:space="preserve">
+    <value>Working copy removed</value>
+  </data>
+  <data name="Repository_Activity_Succeeded" xml:space="preserve">
+    <value>It worked</value>
+  </data>
+  <data name="Repository_Activity_FailedWith" xml:space="preserve">
+    <value>It failed: {0}</value>
+  </data>
+  <data name="Repository_Activity_ErrorConflict" xml:space="preserve">
+    <value>there was a conflict while integrating</value>
+  </data>
+  <data name="Repository_Activity_ErrorNoCommit" xml:space="preserve">
+    <value>it left no saved version</value>
+  </data>
+  <data name="Repository_Activity_ErrorOther" xml:space="preserve">
+    <value>code {0}</value>
+  </data>
+  <data name="Repository_Activity_Of" xml:space="preserve">
+    <value>run {0} · task {1}</value>
+  </data>
+  <data name="Repository_Activity_OfRun" xml:space="preserve">
+    <value>run {0}</value>
+  </data>
+  <data name="Info_RepositorySummary_Title" xml:space="preserve">
+    <value>Summary of the repository</value>
+  </data>
+  <data name="Info_RepositorySummary_What" xml:space="preserve">
+    <value>Here you see how the project folder is: its branch, whether it has unsaved changes and where it is published. It is only read: nothing is changed here.</value>
+  </data>
+  <data name="Info_RepositorySummary_Actions" xml:space="preserve">
+    <value>See which branch you are on and which is the latest saved version.
+Check whether there are unsaved changes.
+Review the remotes: the places where the repository is published.
+Press "Refresh" to read it again.</value>
+  </data>
+  <data name="Info_RepositoryBranches_Title" xml:space="preserve">
+    <value>Branches of the repository</value>
+  </data>
+  <data name="Info_RepositoryBranches_What" xml:space="preserve">
+    <value>Branches are lines of work of the repository. Here are yours and those Agent Studio creates for each run.</value>
+  </data>
+  <data name="Info_RepositoryBranches_Actions" xml:space="preserve">
+    <value>Look for the current branch: it has a mark.
+Recognize the branches of a run: they say they are from Agent Studio.
+See which saved version each one points to.</value>
+  </data>
+  <data name="Info_RepositoryCommits_Title" xml:space="preserve">
+    <value>Saved versions</value>
+  </data>
+  <data name="Info_RepositoryCommits_What" xml:space="preserve">
+    <value>Each saved version (commit) is a point in the history of the project. If Agent Studio made it, it says the run, the task, the attempt, the agent and the model. It only says so if the log backs it.</value>
+  </data>
+  <data name="Info_RepositoryCommits_Actions" xml:space="preserve">
+    <value>See who made each version and when.
+Look at the suggestions: they are marked and they are not certain.
+If it is available, open the chain of a version: its requirement, its proof and its verdict.
+Press "Refresh" to read the history again.</value>
+  </data>
+  <data name="Info_RepositoryActivity_Title" xml:space="preserve">
+    <value>Activity of the repository</value>
+  </data>
+  <data name="Info_RepositoryActivity_What" xml:space="preserve">
+    <value>Here is what happened in the repository: the integrations, the deliveries and the working copies that were removed. Each line says whether it worked or why it failed.</value>
+  </data>
+  <data name="Info_RepositoryActivity_Actions" xml:space="preserve">
+    <value>Filter by run, task, milestone, agent, provider or model.
+Pick a period to see only what is recent.
+See the real result of each integration or delivery.
+Clear the filters to see everything.</value>
+  </data>
+</root>
