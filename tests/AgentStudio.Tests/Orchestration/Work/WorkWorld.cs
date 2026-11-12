@@ -129,6 +129,9 @@ internal sealed class WorkWorld : IDisposable
         return id;
     }
 
+    public Task RecordAsUserAsync(DecisionKind kind, DecisionPayload payload) =>
+        Instance.Recorder.RecordAsync(ProjectId, new Actor(ActorKind.User, "manuel"), kind, "test", payload, null, Ct);
+
     public Task RecordAsync(string run, DecisionKind kind, DecisionPayload payload) =>
         Instance.Recorder.RecordAsync(ProjectId, new Actor(ActorKind.System, "agent-studio"), kind, "test", payload, null, Ct);
 

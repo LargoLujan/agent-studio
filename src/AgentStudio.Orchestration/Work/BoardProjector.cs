@@ -4,7 +4,7 @@ using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Work;
 using AgentStudio.Domain.Common;
-using AgentStudio.Domain.Debate;
+using AgentStudio.Application.Judging;
 using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Judging;
 using AgentStudio.Domain.Orchestration;
@@ -26,7 +26,7 @@ namespace AgentStudio.Orchestration.Work;
 /// (<see cref="RunStateReplayer"/>), as the inspection of a run does.</item>
 /// <item><b>A verdict counts</b> only when the log announced it valid (<c>VerdictIssued.Valid</c>) and the store holds it with the same decision
 /// and as valid: the one that judged the requirement (an assessment of it), the last. A verdict a person challenged is set aside (in review)
-/// until its revision debate closes resolved: if it confirms the decision, the verdict stands; if it withdraws an approval, the decision
+/// until its revision debate closes resolved (the rules of ChallengeLog, read by ChallengeReader): if it confirms the decision, the verdict stands; if it withdraws an approval, the decision
 /// of the revision stands; if it turns an unapproved verdict towards an approval, the card stays in review (a person accepts that, D-40).
 /// A revision that is not closed, aborted, decided by a person or without valid verdicts leaves it in review.</item>
 /// <item><b>When several runs cover a requirement</b> the last one started decides: a follow-up replaces what an earlier run left.</item>
@@ -165,72 +165,37 @@ public sealed class BoardProjector(
         var delivered = entries.Select(e => e.Payload).OfType<IntegrationPerformedPayload>().Any(p => p.IsDelivery && p.ResultCommit is not null && p.ConflictPaths.Count == 0);
 
         // The valid verdicts of the run, oldest first: valid in the log and in the store, with the same decision.
-        var judged = new List<(VerdictIssuedPayload Issued, Verdict Verdict)>();
+        var judged = new List<(VerdictIssuedPayload Issued, StoredVerdict Stored)>();
         foreach (var issued in entries.Select(e => e.Payload).OfType<VerdictIssuedPayload>())
         {
             if (issued.Valid && storedVerdicts.TryGetValue(issued.VerdictId, out var stored) && stored.Valid && stored.Verdict.Decision == issued.Decision)
             {
-                judged.Add((issued, stored.Verdict));
+                judged.Add((issued, stored));
             }
         }
 
-        var standing = judged.Select(j => (j.Issued, j.Verdict, Standing: Standing(log, j.Issued.VerdictId, j.Verdict.Decision))).ToList();
+        var standing = judged.Select(j => (j.Issued, j.Stored.Verdict, Standing: Standing(log, j.Stored, storedVerdicts))).ToList();
         var lastStanding = standing.LastOrDefault(s => !s.Standing.Challenged);
         return new RunFacts(run, tasks, finished is not null, finished?.Phase is RunPhase.Failed or RunPhase.Cancelled, delivered, standing, lastStanding.Issued is null ? null : lastStanding.Standing.Decision);
     }
 
     /// <summary>What a person's challenge of a verdict leaves of it (docs/15 D-38 to D-40), from the verified log: see the class.</summary>
-    private static StandingOf Standing(IReadOnlyList<DecisionEntry> log, string verdict, VerdictDecision decision)
+    private static StandingOf Standing(IReadOnlyList<DecisionEntry> log, StoredVerdict stored, IReadOnlyDictionary<string, StoredVerdict> storedVerdicts)
     {
-        string? revision = null;
-        foreach (var entry in log)
+        var decision = stored.Verdict.Decision;
+        var reading = ChallengeReader.Read(log, stored, storedVerdicts);
+        return reading.Status switch
         {
-            switch (RunLog.Payload(entry))
-            {
-                case VerdictChallengedPayload challenged when string.Equals(challenged.Verdict, verdict, StringComparison.Ordinal):
-                    revision = challenged.RevisionDebate;
-                    break;
-                case DebateOpenedPayload opened when string.Equals(opened.Challenges, verdict, StringComparison.Ordinal):
-                    revision = opened.RunId;
-                    break;
-            }
-        }
+            ChallengeStatus.None or ChallengeStatus.Confirmed => new StandingOf(decision, false),
 
-        if (revision is null)
-        {
-            return new StandingOf(decision, false);
-        }
+            // The revision withdrew an approval: its decision stands.
+            ChallengeStatus.Revoked => new StandingOf(reading.Revised ?? decision, false),
 
-        var payloads = log.Select(RunLog.Payload).ToList();
-        if (payloads.OfType<DebateClosedPayload>().LastOrDefault(c => string.Equals(c.RunId, revision, StringComparison.Ordinal)) is not { Outcome: DebateOutcome.Resolved, Verdicts.Count: > 0 } closed)
-        {
-            return new StandingOf(decision, true);
-        }
+            // A person accepted a revision that turned towards an approval.
+            ChallengeStatus.Accepted => new StandingOf(VerdictDecision.Approved, false),
 
-        var decisions = new HashSet<VerdictDecision>();
-        foreach (var id in closed.Verdicts)
-        {
-            if (payloads.OfType<VerdictIssuedPayload>().LastOrDefault(v => string.Equals(v.VerdictId, id, StringComparison.Ordinal)) is not { Valid: true } issued)
-            {
-                return new StandingOf(decision, true);
-            }
-
-            decisions.Add(issued.Decision);
-        }
-
-        if (decisions.Count != 1)
-        {
-            return new StandingOf(decision, true);
-        }
-
-        var revised = decisions.Single();
-        var approved = decision == VerdictDecision.Approved;
-        return (approved, revised == VerdictDecision.Approved) switch
-        {
-            (true, true) => new StandingOf(decision, false),
-            (true, false) => new StandingOf(revised, false),
-            (false, true) => new StandingOf(decision, true),
-            _ => new StandingOf(revised, false),
+            // Not closed, decided by the person («Decidir yo»: the entry does not say what they decided) or awaiting their acceptance: in review.
+            _ => new StandingOf(decision, true),
         };
     }
 

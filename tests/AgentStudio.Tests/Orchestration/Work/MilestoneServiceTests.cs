@@ -172,6 +172,24 @@ public sealed class MilestoneServiceTests
     }
 
     [Fact]
+    public async Task Each_report_is_matched_with_its_own_closing_entry_across_a_close_a_reopening_and_a_new_close()
+    {
+        using var world = await WorkWorld.OpenAsync();
+        var view = await world.OpenMilestoneAsync();
+        await world.MentionUnitAsync(WorkWorld.Run1);
+        await world.Milestones.LinkAsync(world.Project, view.Header.Id, new MilestoneTarget(MilestoneTargetKind.Run, WorkWorld.Run1), "manuel", Ct);
+        var id = view.Header.Id;
+        await world.RecordAsync(id.Value, DecisionKind.MilestoneClosed, MilestoneClosedPayload.Closing(id, 1, "aud-1", new EvidenceId("informe-1"), new string('d', 64), null, "manuel"));
+        await world.Milestones.ReopenAsync(world.Project, id, MilestoneReopenReason.ByPerson, null, "manuel", null, Ct);
+        await world.RecordAsync(id.Value, DecisionKind.MilestoneClosed, MilestoneClosedPayload.Closing(id, 2, "aud-2", new EvidenceId("informe-2"), new string('c', 64), null, "manuel"));
+
+        var closed = await world.Milestones.GetAsync(world.Project, id, Ct);
+
+        Assert.Empty(closed!.Problems);
+        Assert.Equal([(1, "aud-1", "informe-1"), (2, "aud-2", "informe-2")], closed.Reports.Select(r => (r.Revision, r.Audit, r.Report.Value)));
+    }
+
+    [Fact]
     public async Task A_write_waits_until_the_project_is_idle()
     {
         using var world = await WorkWorld.OpenAsync(TimeProvider.System);
