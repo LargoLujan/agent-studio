@@ -36,27 +36,30 @@ internal static class UiScreens
     public static IReadOnlyList<UiScreen> All { get; } = Build();
 
     /// <summary>A document, shown the way the dock shows it: the template of its view model, from the resources of the app.</summary>
-    private static UiBuilt Document(object viewModel) => new(new ContentControl { Content = viewModel });
+    internal static UiBuilt Document(object viewModel) => new(new ContentControl { Content = viewModel });
 
-    private static UiBuilt Of(FrameworkElement view, object? dataContext = null)
+    internal static UiBuilt Of(FrameworkElement view, object? dataContext = null)
     {
         view.DataContext = dataContext;
         return new UiBuilt(view);
     }
 
-    private static UiBuilt OfWindow(Window window, object? dataContext = null)
+    internal static UiBuilt OfWindow(Window window, object? dataContext = null)
     {
         window.DataContext = dataContext;
         return new UiBuilt((FrameworkElement)window.Content, window);
     }
 
-    private static UiScreen Screen(string name, Func<UiBuilt> create, double width = 1100, double height = 760, params string[] dataTexts) =>
+    internal static UiScreen Screen(string name, Func<UiBuilt> create, double width = 1100, double height = 760, params string[] dataTexts) =>
         new(name, () => Task.FromResult(create()), width, height, dataTexts);
 
-    private static UiScreen ScreenAsync(string name, Func<Task<UiBuilt>> create, double width = 1100, double height = 760, params string[] dataTexts) =>
+    internal static UiScreen ScreenAsync(string name, Func<Task<UiBuilt>> create, double width = 1100, double height = 760, params string[] dataTexts) =>
         new(name, create, width, height, dataTexts);
 
     private static IReadOnlyList<UiScreen> Build() =>
+        [.. Core(), .. UiScreensShell.All, .. UiScreensOrchestrator.All, .. UiScreensDebate.All, .. UiScreensServices.All];
+
+    private static IReadOnlyList<UiScreen> Core() =>
     [
         Screen("Welcome", () =>
         {
@@ -75,7 +78,7 @@ internal static class UiScreens
             var document = new SkillsWorld().Document();
             await document.OpenAsync(CancellationToken.None);
             return Document(document);
-        }),
+        }, 1100, 760, "Ingeniería de", "Tokens de diseño", "Patrones MVVM", "Escribe la prueba"),
         Screen("Help", () => Document(new HelpDocumentViewModel(new HelpBackend(HelpCorpus.FromAssembly(), new HelpSearch(HelpCorpus.FromAssembly()), new HelpActionCatalog())))),
     ];
 
