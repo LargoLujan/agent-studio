@@ -25,8 +25,14 @@ internal sealed record VerdictStanding(VerdictDecision Decision, bool Challenged
 /// A verdict a person challenged is set aside («en revisión») until its revision debate closes (<see cref="Standing"/>).</item>
 /// <item><b>Revision verdicts.</b> A verdict that supersedes (through <c>Supersedes</c>) a challenged verdict, or one of its own chain, is part of the revision (D-40): it never
 /// competes to be the one in force, and its decision reaches the work only through the standing of the challenged verdict (<see cref="Revises"/>, <see cref="Standing"/>), so
-/// that a revision turned towards an approval stays in review until a person accepts it. A <c>Supersedes</c> with no challenge behind it (a judge correcting itself) replaces
-/// the earlier verdict as usual.</item>
+/// that a revision turned towards an approval stays in review until a person accepts it. A <c>Supersedes</c> with no challenge behind it (a judge correcting itself, or a
+/// correction issued before the challenge was opened, by the order of the log) replaces the earlier verdict as usual.</item>
+/// <item><b>Challenges.</b> A challenge whose revision a person declined to open counts for nothing. A person has to accept a revision that turns towards an approval only for
+/// the verdict the run ended with; the challenge of another verdict of the run (an attempt its judge corrected) is read as if that verdict were an approval, as the delivery does
+/// (<see cref="ChallengeReader"/>, <c>DeliveryService.Revisions</c>).</item>
+/// <item><b>Tasks.</b> A task is judged as a requirement is: the card of a completed task follows the last verdict that judged it, with its standing, and is in review while that
+/// verdict is set aside or when none judged it. A task that covers no requirement (an integration, a review) is judged by every verdict of its scope
+/// (<see cref="JudgesUncovered"/>).</item>
 /// </list>
 /// </summary>
 internal static class VerdictReach
@@ -48,31 +54,55 @@ internal static class VerdictReach
         return InScope(issuedOn, issuedOnOrdinaryTask, task) && (verdict.Assessments.Count == 0 || verdict.Assessments.Any(a => a.Requirement == requirement));
     }
 
+    /// <summary>
+    /// Whether the verdict judged a task that covers no requirement (an integration, a review): it has none to be assessed on, so every verdict of its scope judged it, whatever
+    /// requirements the verdict assessed.
+    /// </summary>
+    public static bool JudgesUncovered(TaskId? issuedOn, bool issuedOnOrdinaryTask, TaskId task) => InScope(issuedOn, issuedOnOrdinaryTask, task);
+
     private static bool InScope(TaskId? issuedOn, bool issuedOnOrdinaryTask, TaskId task) => !issuedOnOrdinaryTask || issuedOn == task;
 
     /// <summary>
     /// The challenged verdict that <paramref name="stored"/> belongs to the revision of (it supersedes it, or a verdict of the same chain of corrections), or null when it is
-    /// not a verdict of a revision: no <c>Supersedes</c>, or one with no challenge behind it (a judge correcting itself).
+    /// not a verdict of a revision: no <c>Supersedes</c>, one with no challenge behind it (a judge correcting itself), or one issued before the challenge opened. The order is
+    /// the one of the log (the sequence of its entries), as in the delivery (<c>DeliveryService.Revisions</c>): every verdict of the chain, up to the challenged one, must have
+    /// been issued after its challenge. A verdict the log does not announce has no order to check.
     /// </summary>
     public static StoredVerdict? Revises(IReadOnlyList<(DecisionEntry Entry, DecisionPayload? Payload)> log, StoredVerdict stored, IReadOnlyDictionary<string, StoredVerdict> storedVerdicts)
     {
         ArgumentNullException.ThrowIfNull(log);
         ArgumentNullException.ThrowIfNull(stored);
         ArgumentNullException.ThrowIfNull(storedVerdicts);
+        return Revises(log, stored, storedVerdicts, new HashSet<string>(StringComparer.Ordinal) { stored.Id });
+    }
+
+    /// <param name="seen">The verdicts already walked, shared by the whole walk, so that a cycle in <c>Supersedes</c> (a store that was tampered with) ends.</param>
+    private static StoredVerdict? Revises(IReadOnlyList<(DecisionEntry Entry, DecisionPayload? Payload)> log, StoredVerdict stored, IReadOnlyDictionary<string, StoredVerdict> storedVerdicts, HashSet<string> seen)
+    {
         var current = stored;
-        var seen = new HashSet<string>(StringComparer.Ordinal) { stored.Id };
+        var path = new List<string> { stored.Id };
         while (current.Supersedes is { } previous && storedVerdicts.TryGetValue(previous, out var parent) && seen.Add(parent.Id))
         {
-            if (ChallengeReader.Read(log, parent, storedVerdicts).Status != ChallengeStatus.None)
+            if (ChallengeReader.Read(log, parent, storedVerdicts).Status != ChallengeStatus.None
+                && ChallengeReader.ChallengedAt(log, parent.Id) is { } challengedAt
+                && path.All(id => IssuedAfter(log, id, challengedAt)))
             {
                 // A challenged verdict that is itself part of an earlier revision hands the question to the challenged verdict of that revision.
-                return Revises(log, parent, storedVerdicts) ?? parent;
+                return Revises(log, parent, storedVerdicts, seen) ?? parent;
             }
 
             current = parent;
+            path.Add(parent.Id);
         }
 
         return null;
+    }
+
+    /// <summary>Whether the verdict was announced (the last time) after <paramref name="sequence"/>; true when the log does not announce it, since there is no order to hold against it.</summary>
+    private static bool IssuedAfter(IReadOnlyList<(DecisionEntry Entry, DecisionPayload? Payload)> log, string verdict, long sequence)
+    {
+        var issued = log.LastOrDefault(i => i.Payload is VerdictIssuedPayload v && string.Equals(v.VerdictId, verdict, StringComparison.Ordinal));
+        return issued.Payload is null || issued.Entry.Sequence > sequence;
     }
 
     /// <summary>What a person's challenge of a verdict leaves of it (docs/15 D-38 to D-40), from the verified log.</summary>

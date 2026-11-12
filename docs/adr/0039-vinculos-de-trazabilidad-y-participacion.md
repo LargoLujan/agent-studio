@@ -79,3 +79,22 @@
   «vigente» en el tablero, la cadena y la participación. Su decisión llega solo por el estado del impugnado (D-40): una revisión que vuelve hacia una aprobación sigue en
   revisión hasta que la persona la acepta; abierta o decidida por la persona, también. Un `Supersedes` sin impugnación (un juez que corrige el suyo) sustituye como siempre.
   Las pruebas guardan ahora el veredicto de revisión con el formato del producto, y una prueba de integración (Fase 9) lee el tablero tras una impugnación real.
+
+## Adenda de la regla del veredicto en vigor · 2026-11-12
+
+Una revisión independiente encontró cinco huecos en la regla compartida; esta es la regla que queda (detalle en docs/04 §23.6):
+
+- **Las tarjetas de tarea siguen la misma regla que las de requisito.** Una tarea completada va con el último veredicto válido que la juzgó (`VerdictReach.Judges`) y su estado
+  (`VerdictReach.Standing`); en revisión si está impugnado o ninguno la juzgó. Antes tomaba «el último veredicto no impugnado de la ejecución», que se saltaba uno posterior
+  impugnado y daba por juzgada una tarea que el veredicto no tocó. Una tarea que no cubre requisitos la juzga todo veredicto de su alcance.
+- **«De la revisión» es cuestión de orden.** Solo es de una revisión el veredicto emitido después de abrirse la impugnación del que sustituye (la secuencia del registro, como la
+  entrega); una corrección anterior a la impugnación sustituye como siempre. Decisión tomada con D-40, que no fija el orden: coincide con lo que ya exigía `DeliveryService`
+  («el veredicto es anterior a la impugnación» es incoherencia). La recursión de `Revises` recuerda lo recorrido, de modo que un ciclo de `Supersedes` no desborda la pila.
+- **Dos lecturas del estado de una impugnación, no una, que no se contradicen.** No se unificó en una sola función: `DeliveryService.Revisions` es el evaluador delicado de lo que
+  se entrega (comprueba además la coherencia de cada revisión: requisitos, commit, almacén, aceptación atada) y no se toca más de lo necesario. `ChallengeReader` (que repite
+  `ChallengeLog.StatusOf` de Debate) se alinea con él en dos puntos: la impugnación cuya revisión la persona rechazó abrir no cuenta; y solo la del veredicto con el que terminó la
+  ejecución exige aceptación, la de cualquier otro se lee como un veredicto aprobado. Una tabla de escenarios (`RevisionAgreementTests`) lee el mismo registro con el tablero y con
+  la entrega: nada se entrega que el tablero tenga en revisión ni queda en revisión algo que la entrega dejaría pasar. Se mantiene un caso en que la entrega es más estricta (ver docs/04).
+  Riesgo abierto: `ChallengeLog.StatusOf` (Debate; lo usan `VerdictChallengeService` para no impugnar dos veces y para aceptar una revisión) sigue diciendo `Pending` ante una
+  impugnación rechazada y `AwaitingAcceptance` ante la de un veredicto que no es el de cierre.
+- **La cadena respeta el orden del registro al marcar una entrega:** solo las tareas completadas (e integradas) cuando se hizo.

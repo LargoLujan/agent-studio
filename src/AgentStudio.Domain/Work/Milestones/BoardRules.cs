@@ -54,7 +54,7 @@ public sealed record RequirementBoardFacts(
 
 /// <summary>What the verified log says about one task of a plan, for its card.</summary>
 /// <param name="Status">The status of the task, rebuilt by replaying the run.</param>
-/// <param name="RunVerdict">The decision of the last valid verdict of its run that nobody challenged, or null when there is none (yet).</param>
+/// <param name="RunVerdict">The decision the last valid verdict that judged the task leaves of it (the rule of the verdict in force), or null when none did or that verdict is set aside by a challenge.</param>
 public sealed record TaskBoardFacts(WorkTaskStatus Status, VerdictDecision? RunVerdict);
 
 /// <summary>
