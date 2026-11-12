@@ -2031,6 +2031,24 @@ public sealed record ClientDocumentExportedPayload(int Version, string? Mileston
   acciones, `IHelpAgent` y los textos de la tarjeta; WP-14D, el constructor, los textos `Text_document_…`, los escritores, el
   exportador, el borrador con un agente y la pantalla de revisión. Los dos añaden sus tests (F14-7 a F14-9).
 
+### 22.6 Memoria: textos en códigos (WP-14A, parte e, 2026-11-12)
+
+Lo que cambia en los contratos de `Application/Knowledge` y `Domain/Common` para que los textos de `Memory` lleguen a la pantalla como
+códigos ([ADR-0054](adr/0054-idiomas-y-lenguaje-claro.md), adenda del 2026-11-12). Lo anclado no cambia: ni los textos de las entradas
+derivadas ni su hash ni los payloads del registro; no hay migración.
+
+| Contrato | Cambio | Quién lo usa |
+|---|---|---|
+| `INestedText` (`Domain/Common/TextArguments.cs`, nuevo) | `TextArguments.IsAllowed` admite también un argumento que es otro `UserText` (que lo implementa): una frase del sistema se compone de piezas | `Memory`, y `NestedTextRendering.RenderNested` en el escritorio |
+| `IMemoryExporter.ExportAsync(project, language, ct)` | **Rompe la firma**: gana `language` (`LanguageTags`), el idioma del marco de los ficheros; nunca se lee de la cultura del hilo. Lo anclado de cada entrada sale como se ancló | `MemoryMarkdownExporter`, `MemoryViewModel`, `ProjectMemoryUpkeep` |
+| `MemoryExportResult.ReasonText` y `MemoryDerivationResult.ReasonText` (`UserText?`, al final) | El motivo, como código, para la pantalla; `Reason` sigue en castellano para el registro y las pruebas | `MemoryReasonTexts.Say` |
+| `MemoryEntryText` e `IMemoryEntryTexts.ReadAsync(project, entries, ct)` (nuevos) | El tema y el contenido de una entrada, como códigos, por id de entrada; solo se da lo que dice exactamente lo que la entrada tiene anclado. No se guarda: se deriva al leer | `MemoryDerivation` lo implementa; `MemoryViewModel` lo lee por `MemorySearchBackend.EntryTexts` |
+
+`MemoryMarkdownExporter` gana un parámetro de constructor, `IUserTextRenderer` (el puerto de los documentos para clientes);
+`AddAgentStudioProjectMemory` lo toma del contenedor y, sin él, el exportador sigue resolviéndose y falla con un mensaje claro solo cuando
+tiene un fichero que escribir. Las claves son `Text_memory_…` en `Resources/MemoryStrings.resx` y `.en.resx`; la lista de los 250
+códigos, en la adenda del ADR. Lo que sigue en castellano a propósito, y por qué, también.
+
 ## 23. Fase 9: trabajo y trazabilidad
 
 Lo que el P0 de la Fase 9 deja fijado para los paquetes WP1 a WP5, que van en paralelo encima ([16](16-ampliacion-plataforma-de-proyectos.md)

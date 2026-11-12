@@ -24,12 +24,6 @@ public sealed partial class DerivedUserTextsTests
 {
     private const string TextPrefix = "Text_memory_";
 
-    /// <summary>
-    /// The one Spanish word the screens say differently from the anchored text: the guide of texts asks for «límite de uso», not «cuota»
-    /// (D-52), and the entries are anchored, and go to the agents, with the word they were written with.
-    /// </summary>
-    private static readonly (string Anchored, string Screen) Glossary = ("esperando cuota", "esperando el límite de uso");
-
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     private static async Task<(DerivationWorld World, IReadOnlyList<MemoryEntry> Entries, IReadOnlyDictionary<string, MemoryEntryText> Coded)> DeriveAllAsync()
@@ -41,6 +35,17 @@ public sealed partial class DerivedUserTextsTests
         var coded = await world.Derivation.ReadAsync(world.Project, result.Recorded, Ct);
         return (world, result.Recorded, coded);
     }
+
+    /// <summary>
+    /// What a text names, as the tokens that carry a digit, a slash, an underscore or a dot (an id, a path, a number, a date, a code), cleaned of the
+    /// punctuation around them; the debate question, text of a person, is not one of them.
+    /// </summary>
+    private static IEnumerable<string> DataOf(string anchored) =>
+        anchored.Split([' ', '\n'], StringSplitOptions.RemoveEmptyEntries)
+            .Select(t => t.Trim('.', ',', ';', ':', '(', ')', '«', '»'))
+            .Where(t => t.Length > 0 && t.Any(c => char.IsAsciiDigit(c) || c is '/' or '_' or '.'))
+            .Where(t => !t.Contains('¿', StringComparison.Ordinal) && !t.Contains('?', StringComparison.Ordinal))
+            .Distinct(StringComparer.Ordinal);
 
     /// <summary>Every piece and sentence a coded text is made of, itself included.</summary>
     private static IEnumerable<UserText> Flatten(UserText text) =>
@@ -60,7 +65,13 @@ public sealed partial class DerivedUserTextsTests
                 var topic = Assert.IsType<UserText>(text.Topic);
                 var content = Assert.IsType<UserText>(text.Content);
                 Assert.Equal(entry.Topic, Spanish.RenderNested(topic));
-                Assert.Equal(entry.Content.Replace(Glossary.Anchored, Glossary.Screen, StringComparison.Ordinal), Spanish.RenderNested(content));
+
+                // The screen follows the guide of texts (short sentences, «versión guardada (commit)», «prueba guardada», «límite de
+                // uso»), so its words are not the anchored ones, which go to the agents; what it names is: every identifier, path,
+                // number and time of the anchored text is in it.
+                var screen = Spanish.RenderNested(content);
+                Assert.DoesNotContain("[Text_", screen, StringComparison.Ordinal);
+                Assert.All(DataOf(entry.Content), token => Assert.Contains(token, screen, StringComparison.Ordinal));
             }
 
             // What an agent wrote is never translated; only the topic, which the system wrote, is.
@@ -152,7 +163,7 @@ public sealed partial class DerivedUserTextsTests
             Assert.EndsWith("The question is empty.", English.RenderNested(coded[empty.Id].Content!), StringComparison.Ordinal);
             var byAgent = summaries.First(s => s.Content.EndsWith("no la escribió una persona: no se cita.", StringComparison.Ordinal));
             Assert.EndsWith("was not written by a person: it is not quoted.", English.RenderNested(coded[byAgent.Id].Content!), StringComparison.Ordinal);
-            Assert.All(summaries, s => Assert.Equal(s.Content, Spanish.RenderNested(coded[s.Id].Content!)));
+            Assert.All(summaries, s => Assert.All(DataOf(s.Content), token => Assert.Contains(token, Spanish.RenderNested(coded[s.Id].Content!), StringComparison.Ordinal)));
         }
     }
 
@@ -172,27 +183,33 @@ public sealed partial class DerivedUserTextsTests
     }
 
     [Fact]
-    public void The_reasons_say_in_Spanish_what_the_anchored_text_of_the_log_says_and_in_English_the_same()
+    public void Each_reason_the_log_and_the_tests_read_in_Spanish_has_its_code_and_a_text_of_the_screen_in_both_languages()
     {
-        foreach (var reason in new[] { DerivationTexts.BusyReason, DerivationTexts.StoppedReason, DerivationTexts.UnanchoredReason, DerivationTexts.BrokenMidwayReason })
+        // The reason as a string is anchored for the tests and the log; the screen says it with the words of the guide of texts.
+        var expected = new[]
+        {
+            (DerivationTexts.BusyReason, "Hay agentes trabajando en el proyecto. La memoria se actualiza cuando terminen.", "Agents are working in the project. The memory is updated when they finish."),
+            (DerivationTexts.StoppedReason, "Los agentes empezaron a trabajar. La actualización de la memoria se detuvo; la próxima la completa.", "Agents started working. The memory update stopped; the next one completes it."),
+            (DerivationTexts.UnanchoredReason, "No se reconoce el historial del registro de decisiones en esta carpeta. La memoria no se actualiza hasta que lo aceptes como nuevo origen.", "The history of the decision log is not recognised in this folder. The memory is not updated until you accept it as a new origin."),
+            (DerivationTexts.BrokenMidwayReason, "El registro de decisiones dejó de verificar durante la actualización. No se escribió nada más.", "The decision log stopped verifying during the update. Nothing more was written."),
+        };
+        foreach (var (reason, es, en) in expected)
         {
             var code = DerivationUserTexts.ReasonOf(reason);
             Assert.NotNull(code);
-            Assert.Equal(reason, Spanish.Render(code));
-            Assert.DoesNotContain("[Text_", English.Render(code), StringComparison.Ordinal);
-            Assert.NotEqual(reason, English.Render(code));
+            Assert.Equal(es, Spanish.Render(code));
+            Assert.Equal(en, English.Render(code));
         }
 
         var broken = new DecisionLogVerification(false, 12, "x");
         var withEntry = DerivationUserTexts.NotVerifiedReason(broken);
-        Assert.Equal(DerivationTexts.NotVerifiedReason(broken), Spanish.Render(withEntry));
-        Assert.Equal("The decision log does not verify (entry 12). No memory is derived.", English.Render(withEntry));
+        Assert.Equal("El registro de decisiones no verifica en la entrada 12. No se actualiza la memoria.", Spanish.Render(withEntry));
+        Assert.Equal("The decision log does not verify at entry 12. The memory is not updated.", English.Render(withEntry));
         var without = DerivationUserTexts.NotVerifiedReason(new DecisionLogVerification(false, null, "x"));
-        Assert.Equal(DerivationTexts.NotVerifiedReason(new DecisionLogVerification(false, null, "x")), Spanish.Render(without));
+        Assert.Equal("El registro de decisiones no verifica. No se actualiza la memoria.", Spanish.Render(without));
         Assert.Null(DerivationUserTexts.ReasonOf("Otra razón"));
-        Assert.Equal(
-            "Hay una ejecución, una planificación, un debate o una auditoría en curso en el proyecto: la memoria se exporta cuando termine.",
-            Spanish.Render(DerivationUserTexts.ExportBusyReason()));
+        Assert.Equal("Hay agentes trabajando en el proyecto. La memoria se exporta cuando terminen.", Spanish.Render(DerivationUserTexts.ExportBusyReason()));
+        Assert.Equal("Agents are working in the project. The memory is exported when they finish.", English.Render(DerivationUserTexts.ExportBusyReason()));
     }
 
     /// <summary>Each code has its text in both languages with the same markers: the number of an argument, and how a time or a number is written.</summary>

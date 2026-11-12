@@ -202,9 +202,10 @@ internal static class DerivationUserTexts
             : bySystem ? Code("memory.replan.findings", List(request.Findings)) : Count("findings", request.Findings.Count);
         object tasks = request.Tasks.Count > 0 ? Code("memory.replan.tasks", string.Join(", ", request.Tasks.Select(t => t.Value))) : string.Empty;
         object verdict = request.Verdict is { } id ? Code("memory.replan.verdict", id) : string.Empty;
+        var reason = Code("memory.replan.reason", findings, tasks, verdict);
         return bySystem && !string.IsNullOrWhiteSpace(request.Message)
-            ? Code("memory.replan-detail", who, Unit(unit), When(at), findings, tasks, verdict, request.Message.Trim())
-            : Code("memory.replan", who, Unit(unit), When(at), findings, tasks, verdict);
+            ? Code("memory.replan-detail", who, Unit(unit), When(at), reason, request.Message.Trim())
+            : Code("memory.replan", who, Unit(unit), When(at), reason);
     }
 
     // ---- Change ----

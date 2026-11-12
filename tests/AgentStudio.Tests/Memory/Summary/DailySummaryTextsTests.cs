@@ -17,6 +17,7 @@ public sealed class DailySummaryTextsTests
     /// <summary>The words the screen says differently from the anchored text, because the guide of texts asks for «petición» and not «prompt» (D-52).</summary>
     private static readonly (string Anchored, string Screen)[] Glossary =
     [
+        ("Resumen determinista de la bitácora del día: solo cuenta y cita, no interpreta.", "Resumen de la bitácora del día. Solo cuenta y cita; no interpreta."),
         ("## Prompts: ", "## Peticiones: "),
         (" prompts del producto)", " peticiones de Agent Studio)"),
         ("- Sin prompts del producto: el hook de desarrollo no registra tokens.", "- Sin peticiones de Agent Studio: las de desarrollo no registran tokens."),
@@ -38,7 +39,7 @@ public sealed class DailySummaryTextsTests
     {
         var english = English.RenderNested(DailySummaryTexts.Coded(Expected));
 
-        Assert.StartsWith("# Summary of 2026-03-10\n\nDeterministic summary of the journal of the day.", english, StringComparison.Ordinal);
+        Assert.StartsWith("# Summary of 2026-03-10\n\nSummary of the journal of the day.", english, StringComparison.Ordinal);
         Assert.Contains("\n## Requests: 9\n", english, StringComparison.Ordinal);
         Assert.Contains("\n## Results: 5\n", english, StringComparison.Ordinal);
         Assert.Contains("\n- Total time: 562.9 s\n", english, StringComparison.Ordinal);
@@ -76,7 +77,7 @@ public sealed class DailySummaryTextsTests
 
         var english = English.RenderNested(DailySummaryTexts.Coded(text));
 
-        Assert.Equal(title + "\n\nDeterministic summary of the journal of the day. It only counts and quotes, it does not interpret.\n\nThere is no journal for this day.\n", english);
+        Assert.Equal(title + "\n\nSummary of the journal of the day. It only counts and quotes; it does not interpret.\n\nThere is no journal for this day.\n", english);
     }
 
     /// <summary>The summary of the day with more failures and «Hecho» lines than it lists says how many more are in the journal.</summary>
@@ -88,6 +89,51 @@ public sealed class DailySummaryTextsTests
         Assert.Equal(
             "- … and 4 more.\n- … and 7 more “Done” lines in the journal.\n- None.\n- Input 1,200 → output 340 (exact)\n- No Agent Studio requests: development requests do not record tokens.",
             english);
+    }
+
+    /// <summary>
+    /// The builder and the decoder cannot drift: what the builder writes for the branches the sample does not reach (failures and
+    /// «Hecho» lines that do not fit, no tags, a journal of development only) leaves no line of a template in Spanish in the English
+    /// text, and every Spanish line that is not from the journal is one of the templates.
+    /// </summary>
+    [Fact]
+    public void The_branches_of_the_builder_the_sample_does_not_reach_are_all_decoded()
+    {
+        var journal = new StringBuilder("# Bitácora\n\n");
+        for (var i = 1; i <= 25; i++)
+        {
+            journal.Append($"- **09:{i:00}:00** · P-{i:0000} · Backend · codex-cli/gpt-5 · #prompt · «x»\n");
+            journal.Append($"  - Resultado P-{i:0000} · 09:{i:00}:30 · Failed · 12,3 s · tokens 1.200 → 340 (exactos)\n");
+        }
+
+        for (var i = 1; i <= 30; i++)
+        {
+            journal.Append($"  - Hecho: {new string('a', 300)} {i}\n");
+        }
+
+        var overflow = DailySummaryBuilder.Build(new DateOnly(2026, 3, 10), false, journal.ToString()).Text;
+        var development = DailySummaryBuilder.Build(new DateOnly(2026, 3, 10), true, "- **09:00:00** · sesión `abc` · #fase-4 · «extracto»\n").Text;
+
+        Assert.Contains("- … y 5 más.", overflow, StringComparison.Ordinal);
+        Assert.Contains("líneas «Hecho» más en la bitácora.", overflow, StringComparison.Ordinal);
+        Assert.Contains("- Ninguna.", overflow, StringComparison.Ordinal);
+        Assert.Contains("- Sin prompts del producto: el hook de desarrollo no registra tokens.", development, StringComparison.Ordinal);
+        foreach (var text in new[] { overflow, development })
+        {
+            var english = English.RenderNested(DailySummaryTexts.Coded(text));
+            Assert.DoesNotContain("[Text_", english, StringComparison.Ordinal);
+            foreach (var spanish in new[] { "Resultados", "Prompts", "Fallos y límites", "Etiquetas más frecuentes", "Líneas no reconocidas", "Duración total", "Sin resultado", "(exactos", "parcial:", "Ninguna", "Resumen determinista", "Entrada 1" })
+            {
+                Assert.DoesNotContain(spanish, english, StringComparison.Ordinal);
+            }
+
+            // And no line of the journal is lost: the text keeps as many lines, which the journal wrote or a template says.
+            Assert.Equal(text.Count(c => c == '\n'), english.Count(c => c == '\n'));
+        }
+
+        Assert.Contains("\n- … and 5 more.\n", English.RenderNested(DailySummaryTexts.Coded(overflow)), StringComparison.Ordinal);
+        Assert.Contains("\n- None.\n", English.RenderNested(DailySummaryTexts.Coded(overflow)), StringComparison.Ordinal);
+        Assert.Contains("- No Agent Studio requests: development requests do not record tokens.", English.RenderNested(DailySummaryTexts.Coded(development)), StringComparison.Ordinal);
     }
 
     /// <summary>A text that is not one the builder wrote is never lost: every line goes through as it is.</summary>

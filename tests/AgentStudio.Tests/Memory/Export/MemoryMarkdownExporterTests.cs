@@ -259,6 +259,24 @@ public sealed class MemoryMarkdownExporterTests
         }
     }
 
+    /// <summary>
+    /// The month of a chronological file came from a list of Spanish names and now comes from the culture of the language: the twelve
+    /// months say what the list said, and in English they are the English ones.
+    /// </summary>
+    [Fact]
+    public void The_twelve_months_of_the_title_say_what_the_old_list_of_names_said()
+    {
+        string[] names = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+        var renderer = new ResourceUserTextRenderer();
+        for (var month = 1; month <= 12; month++)
+        {
+            var first = new DateTimeOffset(2026, month, 1, 0, 0, 0, TimeSpan.Zero);
+            var piece = new AgentStudio.Application.Localization.UserText("memory.export.month", [first]);
+            Assert.Equal($"{names[month - 1]} de 2026", renderer.Render(piece, "es-ES"));
+            Assert.Equal(first.ToString("MMMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("en")), renderer.Render(piece, "en"));
+        }
+    }
+
     /// <summary>The language is a parameter, not the culture of the thread: the same memory and language give the same bytes on any thread.</summary>
     [Fact]
     public async Task The_culture_of_the_thread_does_not_change_the_files()

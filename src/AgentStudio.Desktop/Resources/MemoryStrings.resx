@@ -852,11 +852,11 @@ El de hoy es provisional y no se guarda.</value>
     <comment>Text of the memory (memory.count.attempts-other).</comment>
   </data>
   <data name="Text_memory_count_commits_one" xml:space="preserve">
-    <value>1 commit</value>
+    <value>1 versión guardada (commit)</value>
     <comment>Text of the memory (memory.count.commits-one).</comment>
   </data>
   <data name="Text_memory_count_commits_other" xml:space="preserve">
-    <value>{0} commits</value>
+    <value>{0} versiones guardadas (commit)</value>
     <comment>Text of the memory (memory.count.commits-other).</comment>
   </data>
   <data name="Text_memory_count_findings_one" xml:space="preserve">
@@ -1248,7 +1248,7 @@ El de hoy es provisional y no se guarda.</value>
     <comment>Text of the memory (memory.pending).</comment>
   </data>
   <data name="Text_memory_challenge" xml:space="preserve">
-    <value>{0} impugnó el veredicto {1} {2} el {3}; la revisión es el debate {4} y sus razones están en la evidencia {5}.</value>
+    <value>{0} impugnó el veredicto {1} {2} el {3}. La revisión es el debate {4}; sus razones están en la prueba guardada {5}.</value>
     <comment>Text of the memory (memory.challenge).</comment>
   </data>
   <data name="Text_memory_revision_acceptance_granted" xml:space="preserve">
@@ -1272,7 +1272,7 @@ El de hoy es provisional y no se guarda.</value>
     <comment>Text of the memory (memory.debate.challenge).</comment>
   </data>
   <data name="Text_memory_debate_subject_commit" xml:space="preserve">
-    <value>, sobre el commit {0}</value>
+    <value>, sobre la versión guardada (commit) {0}</value>
     <comment>Text of the memory (memory.debate.subject-commit).</comment>
   </data>
   <data name="Text_memory_debate_subject_run" xml:space="preserve">
@@ -1312,7 +1312,7 @@ El de hoy es provisional y no se guarda.</value>
     <comment>Text of the memory (memory.debate.verdict-missing).</comment>
   </data>
   <data name="Text_memory_debate_summary" xml:space="preserve">
-    <value>Debate {0} ({1}){2}, abierto el {3} y cerrado el {4}. Resultado: {5} ({6}){7}. {8}</value>
+    <value>Debate {0}, modo {1}{2}. Se abrió el {3} y se cerró el {4}. Resultado: {5} ({6}){7}. {8}</value>
     <comment>Text of the memory (memory.debate-summary).</comment>
   </data>
   <data name="Text_memory_with_question" xml:space="preserve">
@@ -1328,15 +1328,15 @@ El de hoy es provisional y no se guarda.</value>
     <comment>Text of the memory (memory.question.empty).</comment>
   </data>
   <data name="Text_memory_question_not_anchored" xml:space="preserve">
-    <value>La pregunta (evidencia {0}) no está anclada en el registro de decisiones: no se cita.</value>
+    <value>La pregunta (prueba guardada {0}) no está anclada en el registro de decisiones: no se cita.</value>
     <comment>Text of the memory (memory.question.not-anchored).</comment>
   </data>
   <data name="Text_memory_question_not_by_person" xml:space="preserve">
-    <value>La pregunta (evidencia {0}) no la escribió una persona: no se cita.</value>
+    <value>La pregunta (prueba guardada {0}) no la escribió una persona: no se cita.</value>
     <comment>Text of the memory (memory.question.not-by-person).</comment>
   </data>
   <data name="Text_memory_question_tampered" xml:space="preserve">
-    <value>La pregunta (evidencia {0}) no es la que ancló el registro de decisiones: no se cita.</value>
+    <value>La pregunta (prueba guardada {0}) no es la que ancló el registro de decisiones: no se cita.</value>
     <comment>Text of the memory (memory.question.tampered).</comment>
   </data>
   <data name="Text_memory_failed_tests_where_task" xml:space="preserve">
@@ -1356,7 +1356,7 @@ El de hoy es provisional y no se guarda.</value>
     <comment>Text of the memory (memory.failed-tests).</comment>
   </data>
   <data name="Text_memory_failed_tests_commit" xml:space="preserve">
-    <value>La verificación {0} falló sobre el commit {1}: {2}.</value>
+    <value>La verificación {0} falló sobre la versión guardada (commit) {1}: {2}.</value>
     <comment>Text of the memory (memory.failed-tests-commit).</comment>
   </data>
   <data name="Text_memory_tests_failed_one" xml:space="preserve">
@@ -1384,19 +1384,19 @@ El de hoy es provisional y no se guarda.</value>
     <comment>Text of the memory (memory.conflict-task).</comment>
   </data>
   <data name="Text_memory_alert" xml:space="preserve">
-    <value>Alerta de auditoría «{0}» {1}.</value>
+    <value>Alerta «{0}» {1}.</value>
     <comment>Text of the memory (memory.alert).</comment>
   </data>
   <data name="Text_memory_alert_tasks" xml:space="preserve">
-    <value>Alerta de auditoría «{0}» {1} (tareas: {2}).</value>
+    <value>Alerta «{0}» {1}. Tareas: {2}.</value>
     <comment>Text of the memory (memory.alert-tasks).</comment>
   </data>
   <data name="Text_memory_alert_detail" xml:space="preserve">
-    <value>Alerta de auditoría «{0}» {1}. Detalle del registro: {2}</value>
+    <value>Alerta «{0}» {1}. Detalle: {2}</value>
     <comment>Text of the memory (memory.alert-detail).</comment>
   </data>
   <data name="Text_memory_alert_tasks_detail" xml:space="preserve">
-    <value>Alerta de auditoría «{0}» {1} (tareas: {2}). Detalle del registro: {3}</value>
+    <value>Alerta «{0}» {1}. Tareas: {2}. Detalle: {3}</value>
     <comment>Text of the memory (memory.alert-tasks-detail).</comment>
   </data>
   <data name="Text_memory_replan_who_auditor" xml:space="preserve">
@@ -1428,11 +1428,11 @@ El de hoy es provisional y no se guarda.</value>
     <comment>Text of the memory (memory.replan.verdict).</comment>
   </data>
   <data name="Text_memory_replan" xml:space="preserve">
-    <value>{0} pidió replanificar {1} el {2} ({3}{4}{5}).</value>
+    <value>{0} pidió un plan nuevo para {1} el {2}. Motivo: {3}.</value>
     <comment>Text of the memory (memory.replan).</comment>
   </data>
   <data name="Text_memory_replan_detail" xml:space="preserve">
-    <value>{0} pidió replanificar {1} el {2} ({3}{4}{5}). Detalle del registro: {6}</value>
+    <value>{0} pidió un plan nuevo para {1} el {2}. Motivo: {3}. Detalle: {4}</value>
     <comment>Text of the memory (memory.replan-detail).</comment>
   </data>
   <data name="Text_memory_sources" xml:space="preserve">
@@ -1440,23 +1440,23 @@ El de hoy es provisional y no se guarda.</value>
     <comment>Text of the memory (memory.sources).</comment>
   </data>
   <data name="Text_memory_integration" xml:space="preserve">
-    <value>La integración de la ejecución {0} dejó {1} en el commit {2}{3}.</value>
+    <value>La integración de la ejecución {0} dejó {1} en la versión guardada (commit) {2}{3}.</value>
     <comment>Text of the memory (memory.integration).</comment>
   </data>
   <data name="Text_memory_integration_task" xml:space="preserve">
-    <value>La integración {0} de la ejecución {1} dejó {2} en el commit {3}{4}.</value>
+    <value>La integración {0} de la ejecución {1} dejó {2} en la versión guardada (commit) {3}{4}.</value>
     <comment>Text of the memory (memory.integration-task).</comment>
   </data>
   <data name="Text_memory_delivery" xml:space="preserve">
-    <value>La entrega de la ejecución {0} dejó {1} en el commit {2}{3}.</value>
+    <value>La entrega de la ejecución {0} dejó {1} en la versión guardada (commit) {2}{3}.</value>
     <comment>Text of the memory (memory.delivery).</comment>
   </data>
   <data name="Text_memory_delivery_no_changes" xml:space="preserve">
-    <value>La entrega de la ejecución {0} dejó {1} en el commit {2}{3}. No cambia ningún fichero.</value>
+    <value>La entrega de la ejecución {0} dejó {1} en la versión guardada (commit) {2}{3}. No cambia ningún fichero.</value>
     <comment>Text of the memory (memory.delivery-no-changes).</comment>
   </data>
   <data name="Text_memory_delivery_changes" xml:space="preserve">
-    <value>La entrega de la ejecución {0} dejó {1} en el commit {2}{3}. {4}: {5}.</value>
+    <value>La entrega de la ejecución {0} dejó {1} en la versión guardada (commit) {2}{3}. {4}: {5}.</value>
     <comment>Text of the memory (memory.delivery-changes).</comment>
   </data>
   <data name="Text_memory_verdict_target_unit" xml:space="preserve">
@@ -1492,31 +1492,31 @@ El de hoy es provisional y no se guarda.</value>
     <comment>Text of the memory (memory.verdict-note).</comment>
   </data>
   <data name="Text_memory_reason_busy" xml:space="preserve">
-    <value>Hay una actividad con agentes en curso en el proyecto (una ejecución, una planificación, un debate o una auditoría): la memoria se deriva cuando termine.</value>
+    <value>Hay agentes trabajando en el proyecto. La memoria se actualiza cuando terminen.</value>
     <comment>Text of the memory (memory.reason.busy).</comment>
   </data>
   <data name="Text_memory_reason_stopped" xml:space="preserve">
-    <value>Empezó una actividad con agentes en el proyecto (una ejecución, una planificación, un debate o una auditoría): la derivación se detuvo y la próxima completa lo que falta.</value>
+    <value>Los agentes empezaron a trabajar. La actualización de la memoria se detuvo; la próxima la completa.</value>
     <comment>Text of the memory (memory.reason.stopped).</comment>
   </data>
   <data name="Text_memory_reason_unanchored" xml:space="preserve">
-    <value>El historial del registro de decisiones no tiene un ancla que lo reconozca en esta ubicación: no se deriva memoria hasta que lo aceptes como nuevo origen.</value>
+    <value>No se reconoce el historial del registro de decisiones en esta carpeta. La memoria no se actualiza hasta que lo aceptes como nuevo origen.</value>
     <comment>Text of the memory (memory.reason.unanchored).</comment>
   </data>
   <data name="Text_memory_reason_broken_midway" xml:space="preserve">
-    <value>El registro de decisiones dejó de verificar durante la derivación: no se escribió nada más.</value>
+    <value>El registro de decisiones dejó de verificar durante la actualización. No se escribió nada más.</value>
     <comment>Text of the memory (memory.reason.broken-midway).</comment>
   </data>
   <data name="Text_memory_reason_not_verified" xml:space="preserve">
-    <value>El registro de decisiones no verifica: no se deriva memoria.</value>
+    <value>El registro de decisiones no verifica. No se actualiza la memoria.</value>
     <comment>Text of the memory (memory.reason.not-verified).</comment>
   </data>
   <data name="Text_memory_reason_not_verified_at" xml:space="preserve">
-    <value>El registro de decisiones no verifica (entrada {0}): no se deriva memoria.</value>
+    <value>El registro de decisiones no verifica en la entrada {0}. No se actualiza la memoria.</value>
     <comment>Text of the memory (memory.reason.not-verified-at).</comment>
   </data>
   <data name="Text_memory_reason_export_busy" xml:space="preserve">
-    <value>Hay una ejecución, una planificación, un debate o una auditoría en curso en el proyecto: la memoria se exporta cuando termine.</value>
+    <value>Hay agentes trabajando en el proyecto. La memoria se exporta cuando terminen.</value>
     <comment>Text of the memory (memory.reason.export-busy).</comment>
   </data>
   <data name="Text_memory_export_header" xml:space="preserve">
@@ -1692,7 +1692,7 @@ El de hoy es provisional y no se guarda.</value>
     <comment>Text of the memory (memory.daily.title-provisional).</comment>
   </data>
   <data name="Text_memory_daily_intro" xml:space="preserve">
-    <value>Resumen determinista de la bitácora del día: solo cuenta y cita, no interpreta.</value>
+    <value>Resumen de la bitácora del día. Solo cuenta y cita; no interpreta.</value>
     <comment>Text of the memory (memory.daily.intro).</comment>
   </data>
   <data name="Text_memory_daily_no_journal" xml:space="preserve">
@@ -1758,5 +1758,9 @@ El de hoy es provisional y no se guarda.</value>
   <data name="Text_memory_daily_no_tags" xml:space="preserve">
     <value>- Ninguna.</value>
     <comment>Text of the memory (memory.daily.no-tags).</comment>
+  </data>
+  <data name="Text_memory_replan_reason" xml:space="preserve">
+    <value>{0}{1}{2}</value>
+    <comment>Text of the memory (memory.replan.reason).</comment>
   </data>
 </root>

@@ -236,3 +236,95 @@ claridad) añade su adenda cuando se haga.
   lo que va a la pantalla o a un agente, la misma regla de las preguntas de los agentes) y `LocalPaths` (qué es una ruta de tu
   equipo, que ni la tarjeta de la ayuda sin tu marca ni un documento para clientes pueden llevar). Son reglas sobre el texto, no
   traducciones: valen igual en todos los idiomas.
+
+## Adenda · 2026-11-12 · lo que la memoria dice en tu idioma sin tocar lo anclado (WP-14A, parte e, `Memory`)
+
+Los textos de `src/AgentStudio.Memory/**` que llegan a la pantalla pasan a códigos con argumentos. No cambia ninguna decisión de
+arriba: aplica el punto 3 (las capas de abajo devuelven un código) y el punto 5 (lo anclado no se traduce) a la memoria, donde los
+dos chocan, porque la misma frase se ancla con su SHA-256, va a los agentes y la lee la persona.
+
+- **Una frase del sistema se compone de piezas** (`Domain/Common/TextArguments.cs`). Un argumento puede ser otro `UserText`
+  (`INestedText`, que `UserText` implementa): «La persona aprobó el plan abc… de la ejecución R (2 tareas) el 01/01/2026 a las
+  10:00 UTC» son una frase y cinco piezas (quién, el plan, cuántas tareas, la hora), y cada idioma las ordena como quiere. Las pinta
+  `NestedTextRendering.RenderNested` (`Desktop/Localization`): primero las piezas, en el mismo idioma, y luego la frase con ellas
+  como texto. `IUiTextProvider.Render` y `ResourceTextProvider` no cambian; `ResourceUserTextRenderer` (el puerto de los documentos y
+  de la exportación) usa `RenderNested`. Una pieza no empieza ni acaba en espacio: una parte opcional que empieza por espacio tiene
+  su propia frase para cuando está, y una que empieza por coma o punto y coma es una pieza que vale texto vacío cuando no está.
+- **Lo anclado queda como estaba (M).** `DerivationTexts` sigue escribiendo, byte a byte, el tema y el contenido de cada entrada
+  derivada; el hash (`MemoryContent.Sha256`), la fuente y lo que llega a los agentes son los de siempre. `DerivationUserTexts` es su
+  gemelo: cada método toma los mismos argumentos y dice lo mismo como código, con las mismas cifras, identificadores y rutas (no con las mismas palabras: ver el punto siguiente). `DerivationRules` pone el código al lado de cada
+  hecho (`TopicText` y `ContentText` de `SystemFact` y `DebateSummaryFact`, `TopicText` de `AgentQuote`), fuera de lo que entra en el
+  hash. `DerivedTextsGoldenTests` lo fija: un registro con todas las formas de frase da, entrada por entrada, el tema, el contenido y el hash que
+  da `derived-entries.golden.txt`, escrito desde el código de antes.
+- **El castellano de la pantalla sigue la guía de textos, y no es palabra por palabra el anclado.** Los textos de `Text_memory_*`
+  pasan las pruebas de la guía (D-52): frases de 20 palabras como mucho, «versión guardada (commit)», «prueba guardada»,
+  «límite de uso» y las explicaciones con INFLESZ 55 o más. El texto anclado, que va a los agentes, dice «commit», «evidencia»,
+  «Prompts» y frases de 28 palabras, y no cambia. Los temas sí salen palabra por palabra; en los contenidos cambia la
+  redacción (las frases largas se parten, «Detalle del registro» es «Detalle», «Motivo» abre lo que antes iba entre paréntesis).
+  Lo que la pantalla nombra es lo mismo: cada identificador, ruta, número y hora del texto anclado está en el de la pantalla, y
+  una prueba lo comprueba entrada por entrada. Dos diferencias que se ven: la alerta dice «Alerta» y el código (el anclado dice «Alerta
+  de auditoría»; el código ya es el de la auditoría), y el contenido de una petición de replanificar dice «un plan nuevo» mientras
+  su tema, que es el anclado, dice «replanificar» (la palabra larga rompía el INFLESZ).
+- **El código no se guarda, se deriva al leer.** `memory_entries` es de solo añadir: una columna nueva no cubriría las entradas que ya
+  existen, pediría una migración y pondría texto sin anclar junto a una fila anclada. `IMemoryEntryTexts.ReadAsync` (lo implementa
+  `MemoryDerivation`) lee los mismos hechos del registro verificado que `DerivationRules` y da el código de una parte **solo si su
+  texto en castellano es exactamente el que tiene la entrada**: una entrada recortada, con secretos tapados o escrita por otra
+  versión se enseña como se ancló, y la otra parte, si aún coincide, va en el idioma de la persona. Lo que escribe un agente
+  (`AgentQuote`) no se traduce: solo su tema, que escribe el sistema. El resumen de un debate acaba con una de las cinco frases de
+  la pregunta (`memory.question.*`); la pregunta se cita como se ancló, y el código sale de leer ese final de la propia entrada.
+  Los temas de la bitácora (`Bitácora del <día> · <clave>`) salen de leer el tema. Si no hay código, o el registro no verifica, o
+  la lectura falla, la pantalla enseña lo anclado: el código solo cambia el idioma. **Coste:** cada refresco de la lista y cada
+  búsqueda lee el registro con `LoadAsync` (carga incremental: solo verifica lo nuevo desde la última vez) y recorre los hechos en
+  memoria; no se memoriza por la cabeza del registro, porque la lista ya es una pantalla de acción de la persona, y si pesara se
+  puede memoizar sin cambiar nada de lo de arriba.
+- **Qué queda fijo, y por qué.**
+
+  | Texto | Dónde va | Por qué no cambia |
+  |---|---|---|
+  | `DerivationTexts` (tema y contenido de cada entrada) | La memoria, el hash y los prompts de los agentes | Anclado (D-48) |
+  | `MemoryLabels` (categoría, origen y revisión) | El resumen que `ProjectMemory` deja en el registro («Memoria registrada: …», «Memoria aceptada por …») | Anclado |
+  | `SemanticLabels` | `HistoryFragment.Label`, que lee la herramienta del orquestador, y `SemanticHit.Label` de un fragmento de memoria, que la pantalla no pinta (usa la categoría de la entrada) | Va a un agente |
+  | `AlertSummary`, `JournalAlertSummary`, `JournalTrustSummary` y los mensajes de las alertas | El registro (los mensajes, en inglés) | Anclado |
+  | `Problems` de `MemoryDerivationResult` | Solo se cuentan en la pantalla; el texto va a las pruebas | No se muestra |
+  | El «Detalle del registro» de una alerta, la nota del veredicto y las razones de los hallazgos | Argumentos de una frase, tal como los escribió quien los escribió | Es contenido (D-48): sale en su idioma |
+
+- **N · categorías, orígenes y revisiones.** La pantalla ya los decía con `Memory_Kind_*`, `Memory_Origin_*` y `Memory_Trust_*`
+  (`MemoryTexts`); ahora esas funciones y `MemoryEntryViewModel` aceptan el `IUiTextProvider` del idioma que se pinta, para una
+  pantalla de prueba o un render por idioma. `MemoryLabels` y `SemanticLabels` quedan como están, por la tabla de arriba. La
+  exportación usa `memory.export.kind.*`, `memory.export.title.*` y `memory.export.origin.*`.
+- **O · decisiones.**
+  - **El resumen diario es M.** Se ancla cuando su día se cierra (`DailySummaryService` lo guarda como entrada `DailySummary` del
+    sistema) y va a los agentes, así que `DailySummaryBuilder` lo sigue escribiendo igual. Lo que enseña la pantalla (el de hoy, que
+    no se ancla, y la entrada de un día cerrado) sale de `DailySummaryTexts.Coded`, una función pura del texto: cada línea que el
+    constructor escribe con una plantilla vuelve a su código y sus cifras (con los números en castellano de la bitácora, `1.200` y
+    `12,3`), y cualquier otra línea (una petición de la bitácora, una etiqueta, una línea «Hecho») pasa como está. Un texto que no es
+    un resumen se enseña entero. En castellano la pantalla dice «Peticiones» donde lo anclado dice «Prompts» y abrevia la frase de
+    arriba (el glosario y la guía, D-52); son las diferencias, y la prueba las nombra.
+  - **La exportación a Markdown usa el idioma que eligió la persona, como parámetro.** `IMemoryExporter.ExportAsync(project,
+    language, ct)` valida el idioma con `LanguageTags` y nunca lee la cultura del hilo (la exportación corre en un hilo de trabajo).
+    El marco de los ficheros (títulos, introducciones, nombres de campo, categorías, orígenes y el mes) sale de `memory.export.*` por
+    `IUserTextRenderer`, el mismo puerto de los documentos para clientes. Lo que cada entrada tiene (tema y contenido) sale como se
+    ancló: la exportación imprime su SHA-256 al lado, y traducirlo lo haría mentir. El castellano da los mismos bytes de antes (los
+    ficheros dorados de `Memory/Export/Fixtures` siguen en verde) y el mismo recuerdo con el mismo idioma da siempre los mismos
+    bytes. El escritorio le pasa `Texts.Current.Culture.Name`, el idioma ya aplicado de la interfaz. Sin un `IUserTextRenderer`
+    compuesto, la exportación se puede resolver y falla con un mensaje claro solo cuando tiene un fichero que escribir.
+  - **La documentación para clientes no cambia.** Ya tiene su idioma (D-59). Lo que `ClientDocumentExporter` escribe en español
+    (el título de la evidencia «Documento para clientes · versión N» y el resumen del registro) va al registro y a las evidencias,
+    anclado.
+- **Por qué se llega a la pantalla.** `Reason` de `MemoryDerivationResult` y de `MemoryExportResult` sigue en castellano, para las
+  pruebas y el registro; cada uno gana `ReasonText` (un `UserText?`) para la pantalla, y `MemoryReasonTexts.Say` la pinta y, sin
+  código, enseña el texto en castellano, nunca una línea vacía.
+- **Los códigos de `Memory`** (250, claves `Text_<código con _>` en `MemoryStrings.resx` y `MemoryStrings.en.resx`, mismos
+  marcadores en los dos). Las piezas: `who.*`, `unit.*`, `of-unit.*`, `in-unit.*`, `when`, `count.*`, `changes.*`,
+  `changes-capital.*`, `phase.*`, `status.*`, `task-kind.*`, `block.*`, `decision.*`, `validity.*`, `mode.*`, `outcome.*`, `rule.*`,
+  `plan.*`, `list.more`, `join`, `join-lines`, `raw`. Los temas: `topic.*` (23). Los contenidos: `plan-decision.*`,
+  `delivery-decision.*`, `revision-acceptance.*`, `replan-dismissal.*`, `challenge`, `pending` y `unfinished*`, `debate-summary`
+  con `debate.*` y `question.*`, `failed-tests*` con `tests.*`, `conflict*`, `alert*`, `replan*` con `replan-who.*`, `integration*`,
+  `delivery*`, `sources`, `verdict*` con `verdict-target.*`, `with-question`. Los motivos: `reason.*` (7). La exportación:
+  `export.*` (39). El resumen diario: `daily.*` (19). Una prueba los recorre: cada código que el código fuente nombra, y cada valor
+  de las enumeraciones que las frases dicen por su nombre, tiene su texto en los dos idiomas con los mismos marcadores.
+- **Pruebas.** `DerivedTextsGoldenTests` (los hashes no cambian), `DerivedUserTextsTests` (el castellano del código es el texto
+  anclado, palabra por palabra, en los temas, y con todos los datos en los contenidos, de las 94 entradas del sistema de un registro con todas las formas; el
+  inglés no tiene claves que falten; una parte que no es la que dan los hechos se deja como se ancló; las claves), `DailySummaryTextsTests`,
+  `MemoryMarkdownExporterTests` (el marco en inglés, la cultura del hilo y un idioma que no lo es) y `MemoryEntryTextsTests` (con la
+  interfaz en inglés, la pantalla enseña el texto en inglés y la entrada anclada no cambia).
