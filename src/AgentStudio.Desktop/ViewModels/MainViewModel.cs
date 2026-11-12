@@ -82,6 +82,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
     private readonly RunReviewServices? _review;
     private readonly BackgroundWorkRegistry? _work;
     private readonly IConsentedResumes? _resumes;
+    private readonly OpenProjectRoots? _projectRoots;
     private readonly SettingsDocumentViewModel? _settingsDocument;
     private readonly ContextWindowCatalogs? _contextWindows;
     private readonly SynchronizationContext? _ui;
@@ -172,7 +173,8 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         HelpDocumentViewModel? help = null,
         ClientDocumentsViewModel? clientDocuments = null,
         RepositoryViewModel? repository = null,
-        WorkDocumentViewModel? workDocument = null)
+        WorkDocumentViewModel? workDocument = null,
+        OpenProjectRoots? projectRoots = null)
     {
         ArgumentNullException.ThrowIfNull(settingsStore);
         ArgumentNullException.ThrowIfNull(folderPicker);
@@ -198,6 +200,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         _memory = memory;
         _clientDocuments = clientDocuments;
         _workDocument = workDocument;
+        _projectRoots = projectRoots;
         _upkeep = upkeep;
         _debates = debates;
         _review = review;
@@ -399,6 +402,9 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         {
             if (Directory.Exists(last))
             {
+                // Before the first await: the window starts the check of the providers right after this call begins, and that check
+                // must not resolve a program from the folder of the project that is about to open.
+                _projectRoots?.Open(last);
                 await OpenProjectAsync(last);
             }
             else
@@ -882,6 +888,8 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
             RemoveDocument(document);
         }
 
+        // Untrusted before anything of the project runs (git, memory, the screens): see OpenProjectRoots.
+        _projectRoots?.Open(normalized);
         ProjectPath = normalized;
         Explorer.Load(normalized);
         _settings = _settings.WithProjectOpened(normalized);

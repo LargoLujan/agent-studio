@@ -72,9 +72,29 @@ public interface IProcessRunner
     Task<ProcessResult> RunAsync(ProcessSpec spec, CancellationToken cancellationToken);
 }
 
-/// <summary>Finds an executable on the PATH, honouring PATHEXT on Windows (claude.exe, codex.cmd...).</summary>
+/// <summary>
+/// Finds an executable on the PATH, honouring PATHEXT on Windows (claude.exe, codex.cmd...). It never returns a program that
+/// lies inside an <see cref="IUntrustedRoots">untrusted root</see>, however the PATH reaches it (ADR-0018, addendum of 2026-11-12).
+/// </summary>
 public interface IExecutableLocator
 {
-    /// <summary>Full path of the first match, or null when the command is not installed.</summary>
+    /// <summary>Full path of the first match outside every untrusted root, or null when the command is not installed.</summary>
     string? Find(string command);
+
+    /// <summary>
+    /// Full path of the first match that <see cref="Find"/> discarded for lying inside an untrusted root (the open project): what
+    /// the diagnosis tells the person when the program is only there. Null when there is none, and for a locator without roots.
+    /// </summary>
+    string? FindInUntrustedRoot(string command) => null;
+}
+
+/// <summary>
+/// The folders no executable may be resolved from, because what they hold is not trusted: the root of every project that was open
+/// in the session, which a repository or an agent can write to (ADR-0018). The list is a snapshot that may grow; it is read
+/// from any thread.
+/// </summary>
+public interface IUntrustedRoots
+{
+    /// <summary>Full paths of the untrusted folders, as given; whoever compares them resolves links, case and the <c>\\?\</c> prefix.</summary>
+    IReadOnlyList<string> Roots { get; }
 }

@@ -29,7 +29,8 @@
 | Contrato | Fichero | Estado | Lo implementa |
 |---|---|---|---|
 | `IProcessRunner`, `ProcessSpec`, `ProcessResult` | `src/AgentStudio.Application/Execution/ProcessContracts.cs` | Implementado | `Infrastructure/Processes/ProcessRunner` |
-| `IExecutableLocator` | ídem | Implementado | `Infrastructure/Processes/ExecutableLocator` |
+| `IExecutableLocator` | ídem | Implementado | `Infrastructure/Processes/ExecutableLocator` (no devuelve nada que caiga dentro de un `IUntrustedRoots`; ADR-0018, adenda de 2026-11-12) |
+| `IUntrustedRoots` | ídem | Implementado | `Desktop/Services/OpenProjectRoots` (WP-0 de la Fase 6) |
 | `IProviderProbe`, `ProviderProbeResult` | `src/AgentStudio.Application/Providers/ProviderProbe.cs` | Implementado | `Providers/Cli/ClaudeCodeProbe`, `CodexCliProbe`, `GeminiCliProbe` |
 | `ProviderDiagnostics` (caso de uso) | `src/AgentStudio.Application/Diagnostics/ProviderDiagnostics.cs` | Implementado | — (es la implementación) |
 | `IAgentProvider`, `IAgentRun`, `AgentEvent`, `ProviderCapabilities`, `PermissionProfile` | `src/AgentStudio.Application/Providers/AgentProvider.cs` | Implementado (adaptadores de la Fase 2) | `Providers/Cli/*` |
@@ -172,6 +173,28 @@ Regla de seguridad del contrato: el texto libre (prompts, contenidos) viaja por 
 La implementación rechaza metacaracteres en argumentos de `.cmd`/`.bat` (los CLIs de npm en Windows son shims `.cmd`).
 El streaming de eventos línea a línea se añade en la Fase 2 junto con los adaptadores.
 
+**Dónde se resuelve un programa (WP-0 de la Fase 6, [ADR-0018](adr/0018-modelo-de-amenaza-fase-3.md), adenda de 2026-11-12).**
+
+```csharp
+public interface IExecutableLocator
+{
+    string? Find(string command);                       // nunca devuelve nada que caiga dentro de una raíz no fiable
+    string? FindInUntrustedRoot(string command) => null; // lo que Find descartó por eso: para decirlo en el diagnóstico
+}
+
+public interface IUntrustedRoots { IReadOnlyList<string> Roots { get; } }   // los proyectos abiertos en la sesión y la raíz de las copias de trabajo
+```
+
+- `Find` descarta las entradas relativas del PATH y toda entrada o resultado que, con los enlaces y uniones resueltos, caiga
+  dentro de una raíz (rutas finales de Windows, sin distinguir mayúsculas, con frontera de carpeta). Sin raíces, solo se
+  descartan las relativas.
+- `ProcessRunner` y `StreamingProcessRunner` resuelven con la misma regla todo `ProcessSpec.FileName` **sin ruta**
+  (`dotnet`, `node`): carpeta del sistema, de Windows y PATH. Un nombre con ruta no se filtra. Si solo está dentro de una
+  raíz lanzan `Win32Exception` (2) y no arrancan nada.
+- Las sondas de los proveedores (`CliProbe`, `CliWriteConfinementProbe`, la versión de `CodexAppServerQuotaReader`) fijan
+  `WorkingDirectory` a `%LOCALAPPDATA%\AgentStudio\doctor\cwd` (`NeutralWorkingFolder`), nunca el proyecto.
+  `ProviderProbeResult.FoundInsideProject` lleva la ruta del programa que solo estaba dentro del proyecto, y el panel lo pinta
+  (`Providers_InsideProject`).
 ## 5. Juez y auditoría
 
 ```csharp

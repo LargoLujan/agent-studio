@@ -12,6 +12,12 @@ public sealed class ProcessRunner : IProcessRunner
 {
     private static readonly TimeSpan DrainGrace = TimeSpan.FromSeconds(2);
 
+    private readonly ExecutableSearch _search;
+
+    /// <param name="roots">The folders an executable named without a path is never resolved from (see <see cref="ExecutableSearch"/>).</param>
+    /// <param name="pathVariable">The PATH to resolve those names on; the one of the process when null.</param>
+    public ProcessRunner(IUntrustedRoots? roots = null, Func<string?>? pathVariable = null) => _search = new ExecutableSearch(roots, pathVariable);
+
     public async Task<ProcessResult> RunAsync(ProcessSpec spec, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(spec);
@@ -21,7 +27,7 @@ public sealed class ProcessRunner : IProcessRunner
         }
 
         var stopwatch = Stopwatch.StartNew();
-        using var process = ProcessLaunch.Start(spec);
+        using var process = ProcessLaunch.Start(spec, _search);
 
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var limit = new OutputLimit(spec.MaxOutputCharacters, linked);

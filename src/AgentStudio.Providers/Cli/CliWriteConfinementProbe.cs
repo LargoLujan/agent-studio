@@ -58,7 +58,7 @@ public sealed class CliWriteConfinementProbe : IWriteConfinementProbe
         ProcessResult result;
         try
         {
-            result = await _runner.RunAsync(new ProcessSpec(executable, ["--version"], Timeout: CommandTimeout), cancellationToken).ConfigureAwait(false);
+            result = await _runner.RunAsync(new ProcessSpec(executable, ["--version"], NeutralWorkingFolder.Prepare(null), Timeout: CommandTimeout), cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {

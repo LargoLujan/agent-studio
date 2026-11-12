@@ -591,6 +591,10 @@ Si eliges No, los cambios siguen en el editor, sin guardar.</value>
   <data name="Providers_GeminiParked" xml:space="preserve">
     <value>Aparcado por decisión (ADR-0009). Sin una clave de API (GEMINI_API_KEY), Agent Studio trabaja con Claude Code y Codex. Gemini no cuenta en el estado de los programas.</value>
   </data>
+  <data name="Providers_InsideProject" xml:space="preserve">
+    <value>Este programa del agente está dentro de la carpeta del proyecto ({0}). Por eso no se usa. Agent Studio solo ejecuta programas instalados fuera de ella. Instálalo fuera del proyecto o quita esa carpeta del PATH.</value>
+    <comment>Note of an agent program found only inside the open project (ADR-0018). {0}: the path of the file, with the home folder as ~.</comment>
+  </data>
   <data name="Providers_Summary_Checking" xml:space="preserve">
     <value>Comprobando los programas…</value>
   </data>

@@ -165,7 +165,7 @@ public sealed class CodexAppServerQuotaReader : IProviderQuotaReader
         string? version = null;
         try
         {
-            var result = await _probes.RunAsync(new ProcessSpec(executable, ["--version"], Timeout: VersionTimeout), ct).ConfigureAwait(false);
+            var result = await _probes.RunAsync(new ProcessSpec(executable, ["--version"], NeutralWorkingFolder.Prepare(null), Timeout: VersionTimeout), ct).ConfigureAwait(false);
             if (!result.TimedOut && result.ExitCode == 0)
             {
                 version = CliVersionParser.Parse(result.StandardOutput);

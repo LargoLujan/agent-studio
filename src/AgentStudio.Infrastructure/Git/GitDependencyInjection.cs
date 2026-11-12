@@ -20,7 +20,7 @@ public static class GitDependencyInjection
         ArgumentNullException.ThrowIfNull(services);
 
         services.TryAddSingleton<IProcessRunner, ProcessRunner>();
-        services.TryAddSingleton<IExecutableLocator>(_ => new ExecutableLocator());
+        services.TryAddSingleton<IExecutableLocator>(provider => new ExecutableLocator(roots: provider.GetService<IUntrustedRoots>()));
         if (options is null)
         {
             services.TryAddSingleton(new GitWorktreeOptions(GitWorktreeOptions.DefaultWorktreeRoot));

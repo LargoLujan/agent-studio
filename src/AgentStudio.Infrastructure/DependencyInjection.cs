@@ -13,7 +13,10 @@ public static class DependencyInjection
 
         services.AddSingleton<IProcessRunner, ProcessRunner>();
         services.AddSingleton<IStreamingProcessRunner, StreamingProcessRunner>();
-        services.AddSingleton<IExecutableLocator>(_ => new ExecutableLocator());
+
+        // The untrusted roots (the open project, ADR-0018) are the composition root's: without them nothing is excluded but the relative
+        // entries of the PATH. The runners resolve bare program names with the same roots.
+        services.AddSingleton<IExecutableLocator>(provider => new ExecutableLocator(roots: provider.GetService<IUntrustedRoots>()));
 
         // The Low work areas of isolated verification (ADR-0017), under %USERPROFILE%\AppData\LocalLow\AgentStudio\verify.
         // The copy of the commit in each one is written by the git layer (AddAgentStudioGit).

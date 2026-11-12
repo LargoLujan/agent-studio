@@ -1,5 +1,6 @@
 using System.IO;
 using AgentStudio.Application.Decisions;
+using AgentStudio.Application.Execution;
 using AgentStudio.Application.Coordination;
 using AgentStudio.Application.Git;
 using AgentStudio.Application.Judging;
@@ -191,6 +192,44 @@ public sealed class AppCompositionTests
         Assert.Equal(3, providers.Count);
         Assert.All(providers, p => Assert.True(AgentProviderPipeline.IsJournaled(p), $"{p.Provider} is not journaled."));
         Assert.Empty(provider.GetServices<IAgentProvider>());
+    }
+
+    [Fact]
+    public async Task The_locator_of_the_app_follows_the_untrusted_roots_the_shell_keeps_for_the_open_project()
+    {
+        using var temp = new TempDirectory();
+        var a = temp.CreateDirectory("a");
+        var b = temp.CreateDirectory("b");
+        var folders = FoldersIn(temp);
+        using var provider = Build(folders);
+        var roots = provider.GetRequiredService<IUntrustedRoots>();
+        var locator = Assert.IsType<AgentStudio.Infrastructure.Processes.ExecutableLocator>(provider.GetRequiredService<AgentStudio.Application.Execution.IExecutableLocator>());
+        var main = provider.GetRequiredService<MainViewModel>();
+
+        // Before any project: only the folder where the runs make their copies of work.
+        Assert.Same(roots, locator.UntrustedRoots);
+        Assert.Equal([folders.Local.Orchestration.WorktreeRoot], roots.Roots);
+
+        await main.OpenProjectAsync(a);
+
+        Assert.Contains(a, roots.Roots);
+
+        // A project that opens later counts too, and the one it replaces stays: a run of it may still be going on.
+        await main.OpenProjectAsync(b);
+
+        Assert.Contains(b, roots.Roots);
+        Assert.Contains(a, roots.Roots);
+    }
+
+    [Fact]
+    public void The_runners_of_the_app_read_the_same_untrusted_roots()
+    {
+        using var temp = new TempDirectory();
+        using var provider = Build(FoldersIn(temp));
+
+        // One list for the lookup of the providers, git and the verification: the roots are registered once.
+        Assert.Same(provider.GetRequiredService<IUntrustedRoots>(), provider.GetRequiredService<OpenProjectRoots>());
+        Assert.Single(provider.GetServices<IUntrustedRoots>());
     }
 
     [Fact]

@@ -259,3 +259,43 @@
       ([ADR-0017](0017-verificacion-aislada-baja-integridad.md)). Borrar y volver a crear dejaría además un hueco entre
       los dos pasos.
     - Sigue siendo un residual del punto 2: un proceso Medium del usuario puede sustituir el fichero o su carpeta.
+
+## Adenda · 2026-11-12 · el localizador no resuelve programas desde un proyecto (WP-0 de la Fase 6)
+
+Cierra la mitad del residual «un PATH controlado por otro programa del usuario» (punto 2 de arriba): la que el propio
+repositorio, o un agente que escribe en él, puede provocar. No cambia ninguna decisión anterior; precisa cómo se resuelve un
+programa. Es la decisión 14 (a) del diseño de la Fase 6 (docs/20): vale para toda la app, no solo para Auto Doctor.
+
+- **El problema.** `ExecutableLocator` solo descartaba las entradas **relativas** del PATH. Una carpeta del proyecto abierto que
+  estuviera en el PATH con ruta absoluta dejaba resolver, y ejecutar, un `claude.cmd`, un `git.exe` o un `node.exe` plantado por
+  el repositorio. Las sondas arrancaban en la carpeta que tuviera la app, y los pasos de verificación llevaban el nombre
+  suelto (`dotnet`, `node`) a `CreateProcess`, que también mira la carpeta de la app, la actual y todo el PATH.
+- **Un puerto: `IUntrustedRoots`** (`Application/Execution/ProcessContracts.cs`). Las carpetas de las que no se resuelve ningún
+  programa. En la app lo implementa `OpenProjectRoots` (Desktop): la raíz de **cada proyecto abierto en la sesión** y la raíz de
+  las copias de trabajo de las ejecuciones. Un proyecto no se retira al abrir otro: su ejecución sigue en segundo plano y su
+  carpeta no es más fiable por eso. Se añade antes de que nada del proyecto arranque (también el último proyecto, antes de la
+  primera comprobación de los programas).
+- **La regla, en un solo sitio** (`ExecutableSearch`, con `UntrustedPaths`): se descarta toda entrada del PATH no
+  cualificada y toda entrada o resultado que, **resueltos sus enlaces y uniones**, caiga dentro de una raíz. Se comparan las
+  rutas finales de Windows (`GetFinalPathNameByHandle`: uniones a media ruta, nombres cortos 8.3, mayúsculas reales), sin
+  prefijo `\\?\`, sin barras finales y con frontera de carpeta (`C:\proy` no contiene `C:\proy2`). Se resuelve también la raíz.
+  Una raíz que contenga la carpeta del sistema (un proyecto abierto en `C:\`) se ignora: ocultaría todo el sistema.
+- **Quién la aplica.** `ExecutableLocator` (los programas de los proveedores, git, Node, Python, el shell del terminal, el
+  lanzador de Gemini y las sondas); `ProcessRunner` y `StreamingProcessRunner` para todo nombre **sin ruta** (los pasos de la
+  verificación, aislados o no: `dotnet`, `node`, `cmd`…), en el orden de `CreateProcess` menos la carpeta de la app y la
+  actual: carpeta del sistema, carpeta de Windows y PATH; y `LowIntegrityProcess`, que ya no recorre el PATH por su cuenta. Un
+  nombre con ruta es decisión de quien llama y no se toca: los pasos aislados ejecutan a propósito herramientas sobre una copia
+  del repositorio, pero el ejecutable (`dotnet`, `node`) se resuelve fuera del proyecto aunque la carpeta de trabajo sea la
+  copia. Si un nombre solo está dentro de una raíz, no se arranca nada y el error lo dice.
+- **Las sondas** (`CliProbe`, `CliWriteConfinementProbe` y la lectura de cuota de Codex) arrancan en una carpeta neutra y
+  vacía de la app (`%LOCALAPPDATA%\AgentStudio\doctor\cwd`, la misma que usará Auto Doctor), nunca en el proyecto. Si el programa
+  solo estaba dentro del proyecto, el diagnóstico lo dice («programa del agente», con la ruta y qué hacer) en vez de un
+  «No instalado» mudo.
+- **Lo que se nota.** Un programa instalado dentro de la carpeta de un proyecto abierto deja de encontrarse, aunque esa carpeta
+  esté en el PATH, para las sondas, la verificación, git y el terminal (que busca su shell con el mismo localizador; lo que la
+  persona escribe después en él no cambia). Un proyecto abierto en la carpeta personal o en una unidad entera esconde lo que haya
+  instalado debajo; una raíz que contiene el sistema, no.
+- **Residuales que se aceptan.** Un enlace duro es solo otro nombre del fichero y no se distingue. Entre la comprobación y el uso
+  un proceso del usuario puede cambiar un enlace (la misma carrera de ADR-0017). Git guarda la ruta que resolvió la primera vez:
+  si luego se abre un proyecto que la contiene, la conserva hasta reiniciar. Una herramienta comprometida **fuera** del proyecto
+  sigue engañando a todo lo anterior.

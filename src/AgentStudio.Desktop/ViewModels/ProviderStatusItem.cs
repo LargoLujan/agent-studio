@@ -93,10 +93,22 @@ public sealed record ProviderStatusItem(
             authentication,
             string.IsNullOrWhiteSpace(result.AuthenticationMethod) ? "—" : result.AuthenticationMethod,
             result.ExecutablePath is null ? string.Empty : PathDisplay.CollapseHome(result.ExecutablePath),
-            result.Notes ?? [])
+            WithInsideProject(result))
         {
             ParkedNote = parked,
         };
+    }
+
+    /// <summary>
+    /// The notes of the check, and first of them, in the language in use, that the program was found only inside the open project and
+    /// so is not used (ADR-0018): the person would otherwise see only «No instalado» for something they did install.
+    /// </summary>
+    private static IReadOnlyList<string> WithInsideProject(ProviderProbeResult result)
+    {
+        var notes = result.Notes ?? [];
+        return result.FoundInsideProject is { } path
+            ? [Texts.Format("Providers_InsideProject", PathDisplay.CollapseHome(path)), .. notes]
+            : notes;
     }
 
     /// <summary>

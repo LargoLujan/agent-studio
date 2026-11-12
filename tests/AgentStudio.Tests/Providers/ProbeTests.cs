@@ -1,9 +1,11 @@
 using System.Diagnostics;
+using System.IO;
 using AgentStudio.Application.Execution;
 using AgentStudio.Application.Providers;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Infrastructure.Processes;
 using AgentStudio.Providers.Cli;
+using AgentStudio.Tests.Desktop;
 
 namespace AgentStudio.Tests.Providers;
 
@@ -229,5 +231,104 @@ public sealed class ProbeTests
 
             Console.WriteLine($"{result.Provider}: {result.Installation}, version={result.Version}, auth={result.Authentication}, metodo={result.AuthenticationMethod}, notas={result.Notes.Count}");
         }
+    }
+
+    // WP-0 of Phase 6 (ADR-0018, addendum of 2026-11-12): the probes never run what a project plants, and never start in the project.
+    private sealed class RejectingLocator(string rejected) : IExecutableLocator
+    {
+        public string? Find(string command) => null;
+
+        public string? FindInUntrustedRoot(string command) => rejected;
+    }
+
+    private sealed class FixedRoots(params string[] roots) : IUntrustedRoots
+    {
+        public IReadOnlyList<string> Roots { get; } = roots;
+    }
+
+    [Fact]
+    public async Task A_program_found_only_inside_the_project_is_not_installed_says_so_and_runs_nothing()
+    {
+        var runner = new FakeRunner(_ => throw new InvalidOperationException("no debe ejecutarse"));
+        var planted = @"C:\proyecto\herramientas\programa.cmd";
+
+        foreach (var probe in new IProviderProbe[]
+        {
+            new ClaudeCodeProbe(new RejectingLocator(planted), runner),
+            new CodexCliProbe(new RejectingLocator(planted), runner),
+            new GeminiCliProbe(new RejectingLocator(planted), runner),
+        })
+        {
+            var result = await probe.ProbeAsync(TestContext.Current.CancellationToken);
+
+            Assert.Equal(InstallationState.NotInstalled, result.Installation);
+            Assert.Null(result.ExecutablePath);
+            Assert.Equal(planted, result.FoundInsideProject);
+        }
+
+        Assert.Empty(runner.Calls);
+    }
+
+    [Fact]
+    public async Task A_program_that_is_simply_missing_does_not_claim_to_be_inside_the_project()
+    {
+        var result = await new ClaudeCodeProbe(new FakeLocator(null), new FakeRunner(_ => Ok(""))).ProbeAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(InstallationState.NotInstalled, result.Installation);
+        Assert.Null(result.FoundInsideProject);
+    }
+
+    [Fact]
+    public async Task Every_probe_command_starts_in_the_folder_it_was_given_never_in_the_inherited_one()
+    {
+        using var temp = new TempDirectory();
+        var neutral = temp.Combine("carpeta-neutra");
+        var runner = new FakeRunner(spec => spec.Arguments[0] == "--version" ? Ok("2.1.290 (Claude Code)") : Ok(ClaudeJson));
+        var probe = new ClaudeCodeProbe(new FakeLocator("C:/bin/claude.exe"), runner) { WorkingDirectory = neutral };
+
+        await probe.ProbeAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(2, runner.Calls.Count);
+        Assert.All(runner.Calls, call => Assert.Equal(neutral, call.WorkingDirectory));
+    }
+
+    [Fact]
+    public void The_default_folder_of_the_probes_is_one_of_Agent_Studio_under_the_local_data()
+    {
+        var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+
+        Assert.Equal(Path.Combine(local, "AgentStudio", "doctor", "cwd"), NeutralWorkingFolder.DefaultPath);
+    }
+
+    [Fact]
+    [Trait("Category", "LocalTools")]
+    public async Task A_claude_cmd_planted_in_a_project_folder_that_is_on_the_PATH_is_not_run_by_the_probe()
+    {
+        using var temp = new TempDirectory();
+        var project = temp.CreateDirectory("proyecto");
+        var bin = temp.CreateDirectory(Path.Combine("proyecto", "bin"));
+        var neutral = temp.CreateDirectory("neutra");
+        var planted = Path.Combine(bin, "claude.cmd");
+        var marker = Path.Combine(bin, "ejecutado.txt");
+
+        // A harmless fake: it only leaves a marker file and answers like the real one would.
+        File.WriteAllText(planted, "@echo off\r\necho ran> \"%~dp0ejecutado.txt\"\r\necho 2.1.290 (Claude Code)\r\n");
+        var path = bin + Path.PathSeparator + Environment.SystemDirectory;
+
+        // Control: with nothing untrusted the fake is what the old lookup ran, so the marker is the proof of the exploit.
+        var trusting = new ClaudeCodeProbe(new ExecutableLocator(() => path), new ProcessRunner()) { WorkingDirectory = neutral };
+        var before = await trusting.ProbeAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(InstallationState.Installed, before.Installation);
+        Assert.True(File.Exists(marker), "The planted program should have run when nothing is untrusted.");
+        File.Delete(marker);
+
+        var roots = new FixedRoots(project);
+        var probe = new ClaudeCodeProbe(new ExecutableLocator(() => path, null, roots), new ProcessRunner(roots, () => path)) { WorkingDirectory = neutral };
+
+        var result = await probe.ProbeAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(InstallationState.NotInstalled, result.Installation);
+        Assert.Equal(planted, result.FoundInsideProject, ignoreCase: true);
+        Assert.False(File.Exists(marker), "The planted program must not run.");
     }
 }
