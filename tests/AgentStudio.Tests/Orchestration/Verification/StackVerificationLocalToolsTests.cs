@@ -23,6 +23,35 @@ public sealed class StackVerificationLocalToolsTests
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
+    [Theory]
+    [InlineData('&')]
+    [InlineData('|')]
+    [InlineData('<')]
+    [InlineData('>')]
+    [InlineData('^')]
+    [InlineData('%')]
+    [InlineData('"')]
+    public async Task A_failing_step_with_a_cmd_character_in_its_reason_prints_the_reason_and_runs_nothing(char character)
+    {
+        var marker = Path.Combine(Path.GetTempPath(), "as-injected-" + Guid.NewGuid().ToString("N")[..8]);
+        var reason = $"odd{character}dir{character}x {character}PATH{character} {character}{character} calc & echo hi > {marker}";
+        var step = StackStepSupport.Failing("build", "Compilar", AgentStudio.Domain.Evidence.EvidenceKind.BuildLog, reason);
+
+        var result = await new ProcessRunner().RunAsync(new AgentStudio.Application.Execution.ProcessSpec(step.Executable, step.Arguments, Path.GetTempPath(), Timeout: TimeSpan.FromSeconds(30)), Ct);
+
+        try
+        {
+            Assert.Equal(1, result.ExitCode);
+            Assert.False(File.Exists(marker), "the reason was read by cmd: " + result.StandardError);
+            // Intact, but for the double quote: it prints as a single one (see StackStepSupport.SafeMessage).
+            Assert.Equal(reason.Replace('"', '\''), result.StandardError.Trim());
+        }
+        finally
+        {
+            File.Delete(marker);
+        }
+    }
+
     private static VerificationRunner Runner(TempGitRepo repo, InMemoryEvidenceStore store)
     {
         var git = new GitWorktreeManager(new ProcessRunner(), new ExecutableLocator(), new GitWorktreeOptions(repo.WorktreeRoot));

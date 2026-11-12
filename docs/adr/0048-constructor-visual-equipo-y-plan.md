@@ -189,3 +189,20 @@ cambiada. Tres correcciones, mínimas:
 - **La aprobación sigue al estado final.** `OnRosterSavedAsync` relee primero y compara `RosterHash` de la plantilla aprobada
   con la que quedó (el mismo hash con el que el motor se niega a arrancar). Si coincide, la aprobación se conserva; si difiere,
   se retira con el mismo aviso de antes. Un cambio de los requisitos congelados sigue retirándola en `OnContextChanging`.
+
+## Adenda · 2026-11-12 · los remotos del nodo del repositorio por la capa git endurecida (P51)
+
+- **`ListRemotesAsync`.** Los remotos del nodo ya no salen del texto de `.git/config` si el lector tiene la capa git:
+  `IRepositoryRemoteReader.ListRemotesAsync` (`Infrastructure/Git/RepositoryRemoteReader.cs`, sobre `GitCommandRunner`) pregunta
+  `git config --local --no-includes -z --get-regexp ^remote\..*\.url$`. Solo la configuración del repositorio (la común, en un
+  worktree), ningún `include` ni `includeIf`, la configuración neutralizada de la capa, `core.hooksPath` sobre un fichero vacío, sin
+  transporte y con el recorrido del directorio git por enlaces plantados. La respuesta es una lista de claves y valores, no un
+  fichero, y git no ejecuta nada para darla, así que no pide la revisión de callbacks de los comandos de contenido.
+- **Acotado y fallando cerrado.** La salida se acota en origen (256 KiB de caracteres: git muere al pasarlo y la lectura se rechaza
+  con `output-too-big`, no se corta), con 2048 caracteres por dirección, y más de 100 remotos se rechazan igual, nunca se muestran cortados; un repositorio no aceptado, git fallando o
+  una excepción de la capa dan cero remotos con un código, nunca una ruta. Una negativa **no vuelve al fichero**.
+- **El respaldo, acotado mientras se lee.** Sin la capa (`IRepositoryStateReader.ListRemotesAsync` da `null`: lectores de prueba y
+  composiciones sin git) se sigue leyendo el fichero, pero el tope de 1 MB ya no se mira antes (un fichero que crecía entre la
+  comprobación y la lectura se leía entero): se leen como mucho el tope más un byte, y pasarlo es «demasiado grande».
+- **Sigue igual:** `FileSetupRepositoryReader` (el paso 1 del configurador de ADR-0055) no usa aún el lector y deja los remotos vacíos.
+

@@ -70,14 +70,69 @@ public static class NodeVerificationProfile
     /// The profile for the repository whose files are <paramref name="relativeFiles"/>, with npm found from the <c>node</c> that
     /// <paramref name="locator"/> finds; null when it is not a Node repository (<see cref="Detect"/>).
     /// </summary>
-    public static VerificationProfile? ProposeFor(IReadOnlyList<string> relativeFiles, IExecutableLocator locator)
+    /// <param name="relativeFiles">The paths of the files of the repository.</param>
+    /// <param name="locator">Finds the <c>node</c> on the path.</param>
+    /// <param name="readVersion">The version of the <c>node.exe</c> at a path, null when it cannot be told; by default <see cref="InstalledVersion"/>. A test answers without a Node.</param>
+    public static VerificationProfile? ProposeFor(IReadOnlyList<string> relativeFiles, IExecutableLocator locator, Func<string?, Version?>? readVersion = null)
     {
         ArgumentNullException.ThrowIfNull(relativeFiles);
         ArgumentNullException.ThrowIfNull(locator);
-        return Detect(relativeFiles) ? Propose(relativeFiles.Any(f => IsRootFile(f, LockFileName)), NpmLaunch.From(locator.Find("node"))) : null;
+        if (!Detect(relativeFiles))
+        {
+            return null;
+        }
+
+        var node = locator.Find("node");
+        return Propose(relativeFiles.Any(f => IsRootFile(f, LockFileName)), NpmLaunch.From(node), (readVersion ?? InstalledVersion)(node));
     }
 
-    public static VerificationProfile Propose(bool hasLockFile, NpmLaunch npm)
+    /// <summary>
+    /// The first release of each line of Node with the <c>junit</c> test reporter (<c>node --test --test-reporter=junit</c>), from the
+    /// changelogs of nodejs.org (<c>doc/changelogs/CHANGELOG_V18.md</c> and <c>V20</c>: «test_runner: add junit reporter», nodejs/node#49614):
+    /// 18.19.0, 20.8.0 and 21.0.0 (which branched after it). Node 19 ended before the change and never had it. The flags
+    /// <c>--test-reporter</c> and <c>--test-reporter-destination</c> are older (19.6.0, 18.15.0), so the reporter is the limit.
+    /// </summary>
+    public static bool HasJUnitReporter(Version version)
+    {
+        ArgumentNullException.ThrowIfNull(version);
+        return version.Major switch
+        {
+            < 18 => false,
+            18 => version >= new Version(18, 19, 0),
+            19 => false,
+            20 => version >= new Version(20, 8, 0),
+            _ => true,
+        };
+    }
+
+    /// <summary>The version of the <c>node.exe</c> at <paramref name="nodeExecutable"/> as its file says (its version resource; nothing is run); null when it has none or the file cannot be read.</summary>
+    public static Version? InstalledVersion(string? nodeExecutable)
+    {
+        if (string.IsNullOrWhiteSpace(nodeExecutable) || !File.Exists(nodeExecutable))
+        {
+            return null;
+        }
+
+        try
+        {
+            var info = System.Diagnostics.FileVersionInfo.GetVersionInfo(nodeExecutable);
+            // A shim named node.exe (Volta, Scoop...) carries a version of its own: only the resource of Node itself is trusted.
+            if (!string.Equals(info.ProductName, "Node.js", StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            var version = new Version(info.FileMajorPart, info.FileMinorPart, info.FileBuildPart);
+            return version.Major == 0 ? null : version;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            return null;
+        }
+    }
+
+    /// <param name="nodeVersion">The version of Node when it is known: one without the JUnit reporter makes the <c>test</c> step fail and say so. Null (unknown) leaves the step as it is.</param>
+    public static VerificationProfile Propose(bool hasLockFile, NpmLaunch npm, Version? nodeVersion = null)
     {
         ArgumentNullException.ThrowIfNull(npm);
         List<string> install = [hasLockFile ? "ci" : "install", "--ignore-scripts", "--no-audit", "--no-fund"];
@@ -96,6 +151,15 @@ public static class NodeVerificationProfile
             VerificationRunner.ResultsFolderToken + "/test.xml",
             TimeSpan.FromMinutes(20),
             Requires: ["build"]);
+        if (nodeVersion is not null && !HasJUnitReporter(nodeVersion))
+        {
+            test = StackStepSupport.Failing(
+                "test",
+                "Pruebas",
+                EvidenceKind.CommandOutput,
+                $"Node {nodeVersion} has no JUnit test reporter (it came with 18.19.0, 20.8.0 and 21.0.0). Install a newer Node.js, or edit this profile.") with { Requires = ["build"] };
+        }
+
         if (npm.CliScript is not { } script)
         {
             return new VerificationProfile(
