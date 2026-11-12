@@ -119,5 +119,5 @@ public sealed record GraphRelationsProposedPayload(
     }
 
     private static bool IsName(string? value) =>
-        !string.IsNullOrWhiteSpace(value) && value.Length <= 100 && value == value.Trim() && !value.Any(char.IsControl);
+        !string.IsNullOrWhiteSpace(value) && value.Length <= 100 && value == value.Trim() && !UntrustedText.HasHidden(value);
 }

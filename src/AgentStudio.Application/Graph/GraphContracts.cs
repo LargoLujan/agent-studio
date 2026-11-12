@@ -66,7 +66,7 @@ public sealed record GraphTaskRef
     {
         ArgumentNullException.ThrowIfNull(changedPaths);
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
-        if (title.Length > 200 || title.Any(char.IsControl) || changedPaths.Any(p => !RepositoryPaths.IsSafeRelative(p)))
+        if (title.Length > 200 || UntrustedText.HasHidden(title) || changedPaths.Any(p => !RepositoryPaths.IsSafeRelative(p)))
         {
             throw new ArgumentException("A task of the graph has a title of one line and the relative paths of what it changed.", nameof(title));
         }

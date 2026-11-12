@@ -24,9 +24,14 @@ public static class RepositoryPaths
             return false;
         }
 
+        if (UntrustedText.HasHidden(path))
+        {
+            return false;
+        }
+
         foreach (var c in path)
         {
-            if (char.IsControl(c) || c is '\\' or ':' or '?' or '*' or '"' or '<' or '>' or '|')
+            if (c is '\\' or ':' or '?' or '*' or '"' or '<' or '>' or '|')
             {
                 return false;
             }
@@ -34,13 +39,40 @@ public static class RepositoryPaths
 
         foreach (var segment in path.Split('/'))
         {
-            if (segment is "" or "." or ".." || segment[^1] is ' ' or '.')
+            if (segment is "" or "." or ".." || segment[^1] is ' ' or '.' || IsReservedDeviceName(segment))
             {
                 return false;
             }
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Whether a segment names a device of Windows, which opening would not read a file from: <c>CON</c>, <c>PRN</c>, <c>AUX</c>, <c>NUL</c>, <c>COM1</c> to
+    /// <c>COM9</c>, <c>LPT1</c> to <c>LPT9</c> (also with the superscript digits <c>¹</c>, <c>²</c> and <c>³</c>), <c>CONIN$</c> and <c>CONOUT$</c>, in any case, and also
+    /// with an extension (<c>NUL.cs</c>) or with spaces before the dot (<c>aux .csproj</c>): Windows ignores all of that.
+    /// </summary>
+    public static bool IsReservedDeviceName(string segment)
+    {
+        ArgumentNullException.ThrowIfNull(segment);
+        var dot = segment.IndexOf('.');
+        var stem = (dot < 0 ? segment : segment[..dot]).TrimEnd(' ');
+        if (stem.Length == 0)
+        {
+            return false;
+        }
+
+        if (stem.Equals("CON", StringComparison.OrdinalIgnoreCase) || stem.Equals("PRN", StringComparison.OrdinalIgnoreCase)
+            || stem.Equals("AUX", StringComparison.OrdinalIgnoreCase) || stem.Equals("NUL", StringComparison.OrdinalIgnoreCase)
+            || stem.Equals("CONIN$", StringComparison.OrdinalIgnoreCase) || stem.Equals("CONOUT$", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return stem.Length == 4
+            && (stem.StartsWith("COM", StringComparison.OrdinalIgnoreCase) || stem.StartsWith("LPT", StringComparison.OrdinalIgnoreCase))
+            && (stem[3] is >= '0' and <= '9' or '¹' or '²' or '³');
     }
 
     /// <summary>The same rule for a path that is relative to the root of a project or a folder and may be empty (the root itself).</summary>

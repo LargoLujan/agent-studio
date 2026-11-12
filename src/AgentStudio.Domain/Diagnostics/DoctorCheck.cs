@@ -1,3 +1,5 @@
+using AgentStudio.Domain.Common;
+
 namespace AgentStudio.Domain.Diagnostics;
 
 /// <summary>
@@ -103,7 +105,8 @@ public static class DoctorCodes
     {
         if (!IsCode(code) || (prefix is not null && !code.StartsWith(prefix, StringComparison.Ordinal)))
         {
-            throw new ArgumentException($"'{code}' is not a code{(prefix is null ? string.Empty : $" that starts with '{prefix}'")}: lowercase words joined by '.' and '-'.", parameterName);
+            // The message never quotes the value: a code may come from a file or from the output of a tool, and a message goes to logs.
+            throw new ArgumentException($"The value is not a code{(prefix is null ? string.Empty : $" that starts with '{prefix}'")}: lowercase words joined by '.' and '-', at most {MaxLength} characters.", parameterName);
         }
 
         return code;
@@ -130,10 +133,10 @@ public sealed record DoctorFact
     {
         if (!DoctorCodes.IsCode(name) || name.Length > MaxNameLength)
         {
-            throw new ArgumentException($"'{name}' is not the name of a fact: lowercase words joined by '.' and '-', up to {MaxNameLength} characters.", nameof(name));
+            throw new ArgumentException($"The value is not the name of a fact: lowercase words joined by '.' and '-', up to {MaxNameLength} characters.", nameof(name));
         }
 
-        if (string.IsNullOrEmpty(value) || value.Length > MaxValueLength || value.Any(char.IsControl))
+        if (string.IsNullOrEmpty(value) || value.Length > MaxValueLength || UntrustedText.HasHidden(value))
         {
             throw new ArgumentException($"The value of a fact is one line of 1 to {MaxValueLength} characters, with no control characters.", nameof(value));
         }
@@ -153,13 +156,7 @@ public sealed record DoctorFact
     public static DoctorFact Of(string name, string untrustedValue)
     {
         ArgumentNullException.ThrowIfNull(untrustedValue);
-        var clean = string.Create(untrustedValue.Length, untrustedValue, static (span, source) =>
-        {
-            for (var i = 0; i < span.Length; i++)
-            {
-                span[i] = char.IsControl(source[i]) ? ' ' : source[i];
-            }
-        }).Trim();
+        var clean = UntrustedText.Clean(untrustedValue).Trim();
         if (clean.Length > MaxValueLength)
         {
             // Never cut a surrogate pair in half.

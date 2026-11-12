@@ -56,12 +56,59 @@ public sealed partial class GraphArchitectureTests
                 if (match.Groups["id"].Value.StartsWith("Microsoft.CodeAnalysis", StringComparison.OrdinalIgnoreCase))
                 {
                     referencing.Add($"{Path.GetFileNameWithoutExtension(project)}:{match.Groups["id"].Value}");
-                    Assert.Contains("PrivateAssets=\"compile\"", match.Groups["rest"].Value, StringComparison.Ordinal);
+                    // PrivateAssets replaces the default (analyzers;build), so every asset but the runtime one must be named.
+                    var rest = match.Groups["rest"].Value;
+                    if (match.Groups["id"].Value == "Microsoft.CodeAnalysis.Analyzers")
+                    {
+                        // The rules for analyzer authors flow as a build asset through Common: a direct, private reference stops them.
+                        Assert.Contains("PrivateAssets=\"all\"", rest, StringComparison.Ordinal);
+                        continue;
+                    }
+
+                    Assert.Matches("PrivateAssets=\"[^\"]*\\bcompile\\b[^\"]*\"", rest);
+                    Assert.Matches("PrivateAssets=\"[^\"]*\\banalyzers\\b[^\"]*\"", rest);
+                    Assert.Matches("PrivateAssets=\"[^\"]*\\bbuild\\b[^\"]*\"", rest);
+                    Assert.DoesNotMatch("PrivateAssets=\"[^\"]*\\bruntime\\b[^\"]*\"", rest);
                 }
             }
         }
 
-        Assert.Equal(["AgentStudio.GraphWorker:Microsoft.CodeAnalysis.CSharp"], referencing);
+        Assert.Equal(["AgentStudio.GraphWorker:Microsoft.CodeAnalysis.CSharp", "AgentStudio.GraphWorker:Microsoft.CodeAnalysis.Analyzers"], referencing);
+    }
+
+    [Fact]
+    public void The_analysis_process_is_in_the_solution()
+    {
+        var solution = File.ReadAllText(Path.Combine(RepositoryRoot, "AgentStudio.slnx"));
+
+        Assert.Contains("src/AgentStudio.GraphWorker/AgentStudio.GraphWorker.csproj", solution, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("src", "AgentStudio.Desktop")]
+    [InlineData("tests", "AgentStudio.Tests")]
+    public void Roslyn_reaches_the_projects_that_ship_the_process_only_as_runtime_files_with_no_types_and_no_analyzer_or_build_asset(string folder, string project)
+    {
+        var assets = Path.Combine(RepositoryRoot, folder, project, "obj", "project.assets.json");
+        Assert.True(File.Exists(assets), "Restore the solution first: " + assets);
+        using var document = System.Text.Json.JsonDocument.Parse(File.ReadAllText(assets));
+
+        var seen = 0;
+        foreach (var target in document.RootElement.GetProperty("targets").EnumerateObject())
+        {
+            foreach (var package in target.Value.EnumerateObject().Where(p => p.Name.StartsWith("Microsoft.CodeAnalysis.", StringComparison.Ordinal)))
+            {
+                seen++;
+                Assert.False(package.Value.TryGetProperty("analyzers", out _), $"{package.Name} flows as an analyzer to {project}.");
+                Assert.False(package.Value.TryGetProperty("build", out _), $"{package.Name} flows build files to {project}.");
+                if (package.Value.TryGetProperty("compile", out var compile))
+                {
+                    Assert.All(compile.EnumerateObject(), file => Assert.EndsWith("_._", file.Name, StringComparison.Ordinal));
+                }
+            }
+        }
+
+        Assert.True(seen >= 2, "Roslyn is expected to flow as runtime files to " + project);
     }
 
     [Fact]

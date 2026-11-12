@@ -23,7 +23,9 @@
      no baja a cuerpos ni expresiones (se corta a 64 niveles).
   3. **El análisis corre en un proceso aparte, a integridad baja** (D-18, decisión 4 (a)): `AgentStudio.GraphWorker`, un ejecutable de consola como SkillsMcp, que
      depende solo de Application. **`PackageReference` de Roslyn con `PrivateAssets="compile"`**: ningún otro proyecto ve un tipo de Roslyn (Application,
-     Desktop e Infrastructure no lo referencian), mientras sus ficheros de ejecución llegan a la salida de quien publica el ejecutable (Desktop lo referencia solo
+     Desktop e Infrastructure no lo referencian; `PrivateAssets` sustituye al valor por defecto, así que nombra también `analyzers` y `build`, y una referencia
+     directa y privada a `Microsoft.CodeAnalysis.Analyzers` 5.3.0 evita que sus reglas para autores de analizadores lleguen como activo de compilación a Desktop y a
+     las pruebas, que una prueba comprueba en sus `project.assets.json`), mientras sus ficheros de ejecución llegan a la salida de quien publica el ejecutable (Desktop lo referencia solo
      para que salga junto a la app, como SkillsMcp). Roslyn (unos 10 MB) no se carga en el proceso de la interfaz y un fallo del analizador no tira la app.
   4. **El protocolo es un contrato compartido** (`GraphWorkerProtocol`, `GraphWorkerRequest`, `GraphWorkerExitCodes`, `CodeGraphJson`): `--root`, `--commit` y
      `--skip`; el modelo en JSON por la salida estándar o nada; una línea `progress:<ruta>` por la salida de error antes de abrir cada fichero, para relanzar saltando

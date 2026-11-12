@@ -15,7 +15,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="compile" />
+    <!-- PrivateAssets replaces the default (analyzers;build), so it names them too: only the runtime assets flow to whoever ships the executable. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="compile;analyzers;build;buildTransitive;contentfiles" />
+    <!-- Roslyn brings its rules for analyzer authors as a build asset through Common, and that would flow to Desktop and the tests: a direct, private
+         reference with no assets stops it (the process has no use for them). -->
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all" ExcludeAssets="build;buildTransitive;analyzers;contentfiles" />
   </ItemGroup>
 
   <ItemGroup>

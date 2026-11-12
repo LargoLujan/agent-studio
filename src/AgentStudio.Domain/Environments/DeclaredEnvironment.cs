@@ -1,3 +1,4 @@
+using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Diagnostics;
 
 namespace AgentStudio.Domain.Environments;
@@ -131,12 +132,12 @@ public sealed record DeclaredEntry
             throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown kind of declared entry.");
         }
 
-        if (name is not null && (name.Length is < 1 or > 214 || name.Any(char.IsControl)))
+        if (name is not null && (name.Length is < 1 or > 214 || UntrustedText.HasHidden(name)))
         {
             throw new ArgumentException("The name of a declared entry is one line of up to 214 characters.", nameof(name));
         }
 
-        if (string.IsNullOrEmpty(value) || value.Length > MaxValueLength || value.Any(char.IsControl))
+        if (string.IsNullOrEmpty(value) || value.Length > MaxValueLength || UntrustedText.HasHidden(value))
         {
             throw new ArgumentException($"The value of a declared entry is one line of 1 to {MaxValueLength} characters.", nameof(value));
         }
@@ -195,7 +196,7 @@ public sealed record DeclaredIssue
             throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown kind of issue.");
         }
 
-        if (text is not null && (text.Length is < 1 or > DeclaredEntry.MaxValueLength || text.Any(char.IsControl)))
+        if (text is not null && (text.Length is < 1 or > DeclaredEntry.MaxValueLength || UntrustedText.HasHidden(text)))
         {
             throw new ArgumentException($"The text of an issue is one line of 1 to {DeclaredEntry.MaxValueLength} characters.", nameof(text));
         }

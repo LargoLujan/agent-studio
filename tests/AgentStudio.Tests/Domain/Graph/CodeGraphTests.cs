@@ -214,6 +214,90 @@ public sealed class CodeGraphTests
         Assert.Equal(7, new GraphGap(App.Id, "graph.unevaluated", "src/App/App.csproj", 7).Line);
     }
 
+    // ---- folders of the solution and the shape of the tree ----
+
+    private static readonly GraphNode SrcFolder = new("/src/", GraphNodeKind.SolutionFolder, "src", null, false);
+    private static readonly GraphNode LibsFolder = new("/src/libs/", GraphNodeKind.SolutionFolder, "libs", null, false);
+
+    [Fact]
+    public void A_solution_holds_folders_that_hold_folders_and_projects_and_the_enum_only_grew_at_its_end()
+    {
+        Assert.Equal(["Solution", "Project", "Namespace", "Package", "SolutionFolder"], Enum.GetNames<GraphNodeKind>());
+
+        var model = Build(
+            nodes: [.. AllNodes, SrcFolder, LibsFolder],
+            edges:
+            [
+                new GraphEdge(Solution.Id, SrcFolder.Id, GraphEdgeKind.Contains, GraphEdgeOrigin.Static),
+                new GraphEdge(SrcFolder.Id, LibsFolder.Id, GraphEdgeKind.Contains, GraphEdgeOrigin.Static),
+                new GraphEdge(LibsFolder.Id, Domain.Id, GraphEdgeKind.Contains, GraphEdgeOrigin.Static),
+                new GraphEdge(SrcFolder.Id, App.Id, GraphEdgeKind.Contains, GraphEdgeOrigin.Static),
+                new GraphEdge(Domain.Id, DomainNs.Id, GraphEdgeKind.Contains, GraphEdgeOrigin.Static),
+                new GraphEdge(App.Id, AppNs.Id, GraphEdgeKind.Contains, GraphEdgeOrigin.Static),
+                new GraphEdge(App.Id, Domain.Id, GraphEdgeKind.ProjectReference, GraphEdgeOrigin.Static),
+            ]);
+
+        Assert.Equal(2, model.Nodes.Count(n => n.Kind == GraphNodeKind.SolutionFolder));
+        Assert.Equal(model, AgentStudio.Application.Graph.CodeGraphJson.Parse(AgentStudio.Application.Graph.CodeGraphJson.Serialize(model)));
+        Assert.NotEqual(Build().ModelHash, model.ModelHash);
+    }
+
+    [Fact]
+    public void A_folder_is_virtual_and_has_no_path_and_it_is_contained_by_a_solution_or_a_folder_never_by_a_project_or_a_namespace()
+    {
+        Assert.Throws<ArgumentException>(() => new GraphNode("/src/", GraphNodeKind.SolutionFolder, "src", "src", false));
+        Assert.Throws<ArgumentException>(() => Build(nodes: [.. AllNodes, SrcFolder], edges: [new GraphEdge(Domain.Id, SrcFolder.Id, GraphEdgeKind.Contains, GraphEdgeOrigin.Static)]));
+        Assert.Throws<ArgumentException>(() => Build(nodes: [.. AllNodes, SrcFolder], edges: [new GraphEdge(SrcFolder.Id, DomainNs.Id, GraphEdgeKind.Contains, GraphEdgeOrigin.Static)]));
+        Assert.Throws<ArgumentException>(() => Build(nodes: [.. AllNodes, SrcFolder], edges: [new GraphEdge(SrcFolder.Id, Package.Id, GraphEdgeKind.PackageReference, GraphEdgeOrigin.Static)]));
+    }
+
+    [Fact]
+    public void Folders_do_not_hold_themselves_even_through_others()
+    {
+        GraphEdge Holds(GraphNode from, GraphNode to) => new(from.Id, to.Id, GraphEdgeKind.Contains, GraphEdgeOrigin.Static);
+
+        Assert.Throws<ArgumentException>(() => Build(nodes: [.. AllNodes, SrcFolder, LibsFolder], edges: [Holds(SrcFolder, LibsFolder), Holds(LibsFolder, SrcFolder)]));
+    }
+
+    [Fact]
+    public void A_project_a_folder_and_a_namespace_have_one_parent()
+    {
+        GraphEdge Holds(GraphNode from, GraphNode to) => new(from.Id, to.Id, GraphEdgeKind.Contains, GraphEdgeOrigin.Static);
+
+        Assert.Throws<ArgumentException>(() => Build(nodes: [.. AllNodes, SrcFolder], edges: [Holds(Solution, Domain), Holds(SrcFolder, Domain)]));
+        Assert.Throws<ArgumentException>(() => Build(nodes: [.. AllNodes], edges: [Holds(Domain, DomainNs), Holds(App, DomainNs)]));
+    }
+
+    [Fact]
+    public void A_project_is_its_relative_path()
+    {
+        Assert.Throws<ArgumentException>(() => new GraphNode("p1", GraphNodeKind.Project, "P", "src/P/P.csproj", false));
+        Assert.Throws<ArgumentException>(() => new GraphNode("src/P/P.csproj", GraphNodeKind.Project, "P", null, false));
+        Assert.Equal("src/P/P.csproj", new GraphNode("src/P/P.csproj", GraphNodeKind.Project, "P", "src/P/P.csproj", false).Path);
+    }
+
+    [Theory]
+    [InlineData("AUX.csproj")]
+    [InlineData("src/NUL/x.csproj")]
+    [InlineData("COM1.cs")]
+    public void The_path_of_a_node_is_never_a_device_of_windows(string path)
+    {
+        Assert.Throws<ArgumentException>(() => new GraphNode(path, GraphNodeKind.Project, "P", path, false));
+        Assert.Throws<ArgumentException>(() => new GraphNode("x", GraphNodeKind.Package, "P", path, false));
+        Assert.Throws<ArgumentException>(() => new GraphGap("x", "graph.unevaluated", path, null));
+    }
+
+    [Theory]
+    [InlineData("a\u2028b")]
+    [InlineData("a\u202Eb")]
+    [InlineData("a\u200Bb")]
+    [InlineData("a\u2066b")]
+    public void A_name_with_a_hidden_character_is_refused(string name)
+    {
+        Assert.Throws<ArgumentException>(() => new GraphNode("x", GraphNodeKind.Package, name, null, false));
+        Assert.Throws<ArgumentException>(() => new GraphInference("a", "m", T0, name));
+    }
+
     // ---- what an AI proposed ----
 
     [Fact]

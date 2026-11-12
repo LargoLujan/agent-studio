@@ -125,9 +125,15 @@ public sealed record GitHubSkillOrigin
         value is { Length: >= 1 and <= MaxBranchLength }
         && value.All(c => IsNameCharacter(c) || c == '/')
         && !value.Contains("..", StringComparison.Ordinal)
-        && !value.StartsWith('/')
-        && !value.EndsWith('/')
-        && !value.Contains("//", StringComparison.Ordinal);
+        && !value.Contains("@{", StringComparison.Ordinal)
+        && value.Split('/').All(IsRefSegment);
+
+    /// <summary>
+    /// The rules of <c>git check-ref-format</c> that matter for an address: no empty segment (so no leading, trailing or doubled <c>/</c>), none that starts with a
+    /// dot (<c>.</c> would be collapsed by <c>Uri</c> and git refuses it as a ref), none that ends with a dot or with <c>.lock</c>.
+    /// </summary>
+    private static bool IsRefSegment(string segment) =>
+        segment.Length > 0 && segment[0] != '.' && segment[^1] != '.' && !segment.EndsWith(".lock", StringComparison.OrdinalIgnoreCase);
 
     public static bool IsFolder([NotNullWhen(true)] string? value) =>
         value is not null

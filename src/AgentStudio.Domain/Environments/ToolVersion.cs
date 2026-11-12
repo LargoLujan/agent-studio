@@ -127,12 +127,39 @@ public sealed class ToolVersion : IComparable<ToolVersion>, IEquatable<ToolVersi
         return ComparePreRelease(PreRelease, other.PreRelease);
     }
 
-    /// <summary>Equal in text: <c>10.0</c> and <c>10.0.0</c> compare as the same version but are not the same text.</summary>
-    public bool Equals(ToolVersion? other) => other is not null && string.Equals(Text, other.Text, StringComparison.Ordinal);
+    /// <summary>
+    /// Equal in value, the same as <see cref="CompareTo"/>: <c>10.0</c> and <c>10.0.0</c> are the same version, and so are <c>1.2.3+a</c> and <c>1.2.3+b</c>.
+    /// <see cref="Text"/> keeps what was read, to be shown; it is not what equality looks at.
+    /// </summary>
+    public bool Equals(ToolVersion? other) => other is not null && CompareTo(other) == 0;
 
     public override bool Equals(object? obj) => obj is ToolVersion other && Equals(other);
 
-    public override int GetHashCode() => StringComparer.Ordinal.GetHashCode(Text);
+    public override int GetHashCode()
+    {
+        // The same normalization as the comparison: trailing zeros of the numbers, leading zeros of the numeric labels, no build label.
+        var hash = new HashCode();
+        var last = _numbers.Length;
+        while (last > 0 && _numbers[last - 1] == 0)
+        {
+            last--;
+        }
+
+        for (var i = 0; i < last; i++)
+        {
+            hash.Add(_numbers[i]);
+        }
+
+        if (PreRelease is not null)
+        {
+            foreach (var part in PreRelease.Split('.'))
+            {
+                hash.Add(part.All(char.IsAsciiDigit) ? part.TrimStart('0') : part, StringComparer.Ordinal);
+            }
+        }
+
+        return hash.ToHashCode();
+    }
 
     public override string ToString() => Text;
 

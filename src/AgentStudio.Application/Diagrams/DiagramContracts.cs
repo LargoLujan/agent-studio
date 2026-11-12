@@ -78,7 +78,7 @@ public sealed record DiagramSource
             throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown kind of diagram.");
         }
 
-        if (subject is null || subject.Length > MaxSubjectLength || subject.Any(char.IsControl) || (kind == DiagramKind.Solution) != (subject.Length == 0))
+        if (subject is null || subject.Length > MaxSubjectLength || UntrustedText.HasHidden(subject) || (kind == DiagramKind.Solution) != (subject.Length == 0))
         {
             throw new ArgumentException("The subject is one line: empty for the solution and the id of a project or of a run for the others.", nameof(subject));
         }

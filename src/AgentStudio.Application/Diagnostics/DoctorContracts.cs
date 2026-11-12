@@ -1,3 +1,4 @@
+using AgentStudio.Domain.Common;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Security;
 using AgentStudio.Domain.Diagnostics;
@@ -188,7 +189,7 @@ public abstract class DoctorFix
                 throw new ArgumentException("A guide gives a command to copy, a page to open, or both.", nameof(command));
             }
 
-            if (command is not null && (command.Length is < 1 or > MaxCommandLength || command.Any(char.IsControl) || command != command.Trim()))
+            if (command is not null && (command.Length is < 1 or > MaxCommandLength || UntrustedText.HasHidden(command) || command != command.Trim()))
             {
                 throw new ArgumentException($"A command to copy is one line of up to {MaxCommandLength} characters.", nameof(command));
             }

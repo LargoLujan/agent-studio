@@ -85,6 +85,34 @@ public sealed class DoctorCheckTests
         Assert.Null(check.Fact(DoctorFactNames.Path));
     }
 
+    [Fact]
+    public void The_message_of_a_refused_code_never_quotes_it()
+    {
+        var hostile = "evil\u202Ecode\n" + new string('x', 5000);
+
+        var code = Assert.Throws<ArgumentException>(() => Check(code: hostile));
+        var name = Assert.Throws<ArgumentException>(() => new DoctorFact(hostile, "x"));
+        var fix = Assert.Throws<ArgumentException>(() => new DoctorCheck("doctor.x", DoctorSection.Tools, DoctorStatus.Ok, [], hostile));
+
+        foreach (var error in new[] { code, name, fix })
+        {
+            Assert.DoesNotContain("evil", error.Message, StringComparison.Ordinal);
+            Assert.DoesNotContain('\u202E', error.Message);
+            Assert.True(error.Message.Length < 400);
+        }
+    }
+
+    [Theory]
+    [InlineData("a\u2028b")]
+    [InlineData("a\u202Eb")]
+    [InlineData("a\u200Bb")]
+    [InlineData("a\u2066b")]
+    public void A_value_with_a_hidden_character_is_refused_and_a_cleaned_one_loses_it(string value)
+    {
+        Assert.Throws<ArgumentException>(() => new DoctorFact("path", value));
+        Assert.DoesNotContain(DoctorFact.Of("path", value).Value, c => c is '\u2028' or '\u202E' or '\u200B' or '\u2066');
+    }
+
     // ---- equality ----
 
     [Fact]

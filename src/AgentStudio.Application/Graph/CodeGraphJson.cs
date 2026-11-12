@@ -71,13 +71,14 @@ public static class CodeGraphJson
                 [.. document.Edges.Select(e => new GraphEdge(e.From, e.To, e.Kind, GraphEdgeOrigin.Static))],
                 [.. document.Gaps.Select(g => new GraphGap(g.Node, g.Code, g.Path, g.Line))]);
         }
-        catch (JsonException ex)
+        catch (JsonException)
         {
-            throw new InvalidDataException("The model is not valid JSON of the schema.", ex);
+            // No inner exception: its message may quote what the process wrote, which is not trusted and must not reach a log.
+            throw new InvalidDataException("The model is not valid JSON of the schema.");
         }
-        catch (ArgumentException ex)
+        catch (ArgumentException)
         {
-            throw new InvalidDataException("The model breaks an invariant of the graph.", ex);
+            throw new InvalidDataException("The model breaks an invariant of the graph.");
         }
     }
 

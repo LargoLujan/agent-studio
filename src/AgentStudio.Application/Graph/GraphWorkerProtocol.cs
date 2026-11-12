@@ -17,6 +17,12 @@ namespace AgentStudio.Application.Graph;
 /// process dies (an exhausted stack cannot be caught), the host knows which file it was reading and launches it again with <c>--skip</c>
 /// for that file; that file is then a <c>graph.file-skipped</c> gap and its project partial. At most <see cref="MaxRelaunches"/> times; after that
 /// the graph is partial with what there is.
+/// <para>
+/// What the host (WP-G) must do when it reads the process, because the process is not trusted: <b>apply <see cref="MaxOutputBytes"/> while it reads</b> the
+/// standard output (stop reading, kill the process and fail the analysis when the cap is passed; never read it all to check afterwards), apply the same
+/// kind of cap to the lines of the standard error, kill the process after <see cref="MaxRuntime"/>, trim a trailing <c>\r</c> from every line before it is
+/// compared (<see cref="TryParseProgress"/> does it) and believe a progress line only when its path is safe.
+/// </para>
 /// </remarks>
 public static class GraphWorkerProtocol
 {
@@ -59,7 +65,8 @@ public static class GraphWorkerProtocol
             return false;
         }
 
-        var path = line[ProgressPrefix.Length..];
+        // A line read from a pipe may still carry the CR of a CRLF line end (the console of Windows): it is not part of the path.
+        var path = line[ProgressPrefix.Length..].TrimEnd('\r');
         if (!RepositoryPaths.IsSafeRelative(path))
         {
             return false;
@@ -97,7 +104,7 @@ public sealed record GraphWorkerRequest
 {
     public GraphWorkerRequest(string root, string commit, IReadOnlyList<string>? skipped = null)
     {
-        if (string.IsNullOrWhiteSpace(root) || root.Any(char.IsControl) || !Path.IsPathFullyQualified(root))
+        if (string.IsNullOrWhiteSpace(root) || UntrustedText.HasHidden(root) || !Path.IsPathFullyQualified(root))
         {
             throw new ArgumentException("The root of the copy is an absolute path.", nameof(root));
         }

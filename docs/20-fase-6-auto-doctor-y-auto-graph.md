@@ -660,7 +660,10 @@ primero. Sin texto libre ni rutas de tu equipo en el payload.
 - **Si aun así el proceso cae** (una pila agotada no se puede capturar): antes de cada fichero escribe su ruta en su
   salida de progreso. El cliente lo relanza saltando ese fichero, que sale `graph.file-skipped`; como mucho tres veces, y
   después el grafo sale «parcial» con lo que haya.
-- **La salida del proceso es un dato no fiable para la app:** se lee con un esquema estricto y los mismos topes.
+- **La salida del proceso es un dato no fiable para la app:** se lee con un esquema estricto y los mismos topes. **El anfitrión (WP-G) aplica el
+  tope de bytes mientras lee** (deja de leer, mata el proceso y falla el análisis al pasarlo; no lee todo para comprobarlo después), acota también las
+  líneas del error estándar, recorta el `\r` final de cada línea `progress:` antes de compararla (`TryParseProgress` ya lo hace) y solo cree una ruta segura. Ningún
+  mensaje de excepción cita lo que escribió el proceso (`CodeGraphJson.Parse` no pasa la excepción interna).
 
 **D-19 · El grafo describe un commit, no tu carpeta.**
 
@@ -681,8 +684,10 @@ primero. Sin texto libre ni rutas de tu equipo en el payload.
 
 **D-20 · El modelo: nodos, relaciones, origen y huella.** Vive en `src/AgentStudio.Domain/Graph/**` (nuevo), sin dependencias.
 
-- **Nodos:** solución, proyecto, espacio de nombres y paquete. Cada uno con su identificador estable (la ruta relativa del
-  proyecto, o proyecto más nombre), su ruta si la tiene y si es «parcial».
+- **Nodos:** solución, carpeta de la solución (`SolutionFolder`, añadida por el P0 al final del enum: virtual, sin ruta), proyecto, espacio de nombres y
+  paquete. Cada uno con su identificador estable (la ruta relativa del proyecto, que **es** su ruta; o proyecto más nombre), su ruta si la tiene y si es «parcial».
+  La estructura es un árbol: la solución contiene carpetas y proyectos, una carpeta contiene carpetas y proyectos, un proyecto contiene espacios de nombres, y
+  cada proyecto, carpeta y espacio de nombres tiene un solo padre (las carpetas no se contienen a sí mismas).
 - **Relaciones:** contiene, referencia de proyecto, referencia de paquete y uso entre espacios de nombres.
 - **Origen de cada relación:** estática (leída) o inferida (D-21).
 - **Huella del modelo:** SHA-256 de su JSON canónico (ordenado de forma ordinal), solo con lo estático, más la versión del
@@ -889,7 +894,7 @@ puros.
 `src/AgentStudio.Domain/Graph/CodeGraph.cs`:
 
 ```csharp
-public enum GraphNodeKind { Solution, Project, Namespace, Package }
+public enum GraphNodeKind { Solution, Project, Namespace, Package, SolutionFolder }   // SolutionFolder: D-23, a subgraph per folder
 public enum GraphEdgeKind { Contains, ProjectReference, PackageReference, NamespaceUse }
 public enum GraphEdgeOrigin { Static, Inferred }
 public sealed record GraphNode(string Id, GraphNodeKind Kind, string Name, string? Path, bool Partial);
@@ -1067,6 +1072,12 @@ Los contratos de arriba son los del diseño; al escribirlos el P0 cambió esto, 
 - **Los tipos de dominio validan.** `DoctorFact`, `DoctorCheck`, `GraphNode`, `GraphEdge`, `GraphGap` y `CodeGraph` son tipos con constructor que rechaza lo que no es válido (en vez de records
   posicionales a secas): ids únicos, relaciones entre nodos que existen y de la clase que cada tipo de relación une, un nodo parcial con su hueco, rutas relativas
   que no salen de la copia, topes. `CodeGraph` se ordena al construirse y se compara por lo que tiene. Las listas se copian.
+- **Carpetas de la solución** (D-23): `GraphNodeKind.SolutionFolder` al final del enum, con su regla de `Contains` (solución o carpeta → carpeta o proyecto), su unicidad de padre y la
+  ausencia de ciclos, ya en el contrato, en `CodeGraphJson` y en `ModelHash`; así no hay que subir la versión del generador después. Un nodo `Project` tiene por id su ruta.
+- **Textos no fiables:** ningún texto del modelo, de un hecho ni de lo declarado admite caracteres de control, separadores de línea o párrafo (U+2028 y U+2029) ni
+  caracteres de formato (marcas de dirección, ancho cero, BOM); una ruta tampoco admite los nombres de dispositivo de Windows (`CON`, `NUL`, `COM1`…, con o sin
+  extensión). Una rama sigue las reglas de `git check-ref-format` que afectan a la dirección.
+- **`ToolVersion`:** la igualdad es por valor, la misma que la comparación (`10.0` es `10.0.0`); el texto original se conserva para mostrarlo.
 - **`CodeGraph.ModelHash`** cubre nodos, relaciones estáticas, huecos y la versión del generador; **no** el commit ni lo inferido (el §3.7 decía «solo con lo estático»; el commit
   no es parte del modelo). `StaticOnly()` y `WithInferred(…)` dejan poner encima las relaciones de una IA sin mover la huella.
 - **`GitHubSkillOrigin`** (la validación de D-14) vive en **Domain**, no en `Infrastructure/Skills/GitHub`: es una regla pura y la prueba el P0. WP-S construye la dirección a partir de él.

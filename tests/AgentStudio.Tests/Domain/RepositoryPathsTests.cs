@@ -57,6 +57,70 @@ public sealed class RepositoryPathsTests
         Assert.False(RepositoryPaths.IsSafeRelative(path));
     }
 
+    [Theory]
+    [InlineData("CON")]
+    [InlineData("con")]
+    [InlineData("PRN")]
+    [InlineData("AUX")]
+    [InlineData("NUL")]
+    [InlineData("Nul")]
+    [InlineData("COM1")]
+    [InlineData("com9")]
+    [InlineData("COM¹")]
+    [InlineData("COM²")]
+    [InlineData("COM³")]
+    [InlineData("LPT1")]
+    [InlineData("lpt9")]
+    [InlineData("LPT¹")]
+    [InlineData("CONIN$")]
+    [InlineData("CONOUT$")]
+    [InlineData("conout$")]
+    [InlineData("NUL.cs")]
+    [InlineData("aux.csproj")]
+    [InlineData("COM1.txt.bak")]
+    [InlineData("NUL .cs")]
+    [InlineData("aux  .csproj")]
+    [InlineData("CON.")]
+    [InlineData("NUL ")]
+    public void A_name_that_windows_reserves_for_a_device_is_refused_in_any_segment_in_any_case_and_with_an_extension(string name)
+    {
+        Assert.False(RepositoryPaths.IsSafeRelative(name), name);
+        Assert.False(RepositoryPaths.IsSafeRelative("src/" + name), name);
+        Assert.False(RepositoryPaths.IsSafeRelative(name + "/x.cs"), name);
+        Assert.False(RepositoryPaths.IsSafeRelative("src/" + name + "/x.cs"), name);
+    }
+
+    [Theory]
+    [InlineData("CONSOLE")]
+    [InlineData("COM")]
+    [InlineData("COM10")]
+    [InlineData("LPT")]
+    [InlineData("auxiliary.cs")]
+    [InlineData("nullable.cs")]
+    [InlineData("CONIN")]
+    [InlineData("x.NUL")]
+    [InlineData("src/com1x/a.cs")]
+    public void A_name_that_only_looks_like_a_device_is_a_name(string path)
+    {
+        Assert.True(RepositoryPaths.IsSafeRelative(path), path);
+    }
+
+    [Theory]
+    [InlineData("a\u2028b")]
+    [InlineData("a\u2029b")]
+    [InlineData("a\u202Eb")]
+    [InlineData("a\u202Ab")]
+    [InlineData("a\u2066b")]
+    [InlineData("a\u2069b")]
+    [InlineData("a\u200Bb")]
+    [InlineData("a\u200Db")]
+    [InlineData("a\uFEFFb")]
+    [InlineData("a\U000E0041b")]
+    public void A_path_with_a_hidden_character_is_refused(string path)
+    {
+        Assert.False(RepositoryPaths.IsSafeRelative(path));
+    }
+
     [Fact]
     public void A_path_longer_than_the_cap_is_refused_and_one_of_the_cap_is_not()
     {

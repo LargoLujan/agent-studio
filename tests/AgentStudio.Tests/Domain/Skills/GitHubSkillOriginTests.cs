@@ -136,6 +136,20 @@ public sealed class GitHubSkillOriginTests
     [InlineData("a:b")]
     [InlineData("a~b")]
     [InlineData("a^b")]
+    [InlineData(".")]
+    [InlineData("a/./b")]
+    [InlineData("a/.")]
+    [InlineData("./a")]
+    [InlineData(".hidden")]
+    [InlineData("a/.hidden")]
+    [InlineData("a/.hidden/b")]
+    [InlineData("main.lock")]
+    [InlineData("a/b.lock/c")]
+    [InlineData("a/B.LOCK")]
+    [InlineData("main.")]
+    [InlineData("a./b")]
+    [InlineData("a@{1}")]
+    [InlineData("@{u}")]
     public void A_branch_that_could_change_the_address_or_lead_up_is_refused(string? branch)
     {
         Assert.False(GitHubSkillOrigin.IsBranch(branch));

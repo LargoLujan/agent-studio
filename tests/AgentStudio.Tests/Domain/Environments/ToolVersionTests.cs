@@ -115,13 +115,20 @@ public sealed class ToolVersionTests
     }
 
     [Fact]
-    public void A_missing_number_is_a_zero_for_comparing_but_not_for_equality_of_the_text()
+    public void A_missing_number_is_a_zero_and_equality_is_the_same_as_comparing_while_the_text_keeps_what_was_read()
     {
         var short1 = ToolVersion.Parse("10.0");
         var long1 = ToolVersion.Parse("10.0.0");
 
         Assert.Equal(0, short1.CompareTo(long1));
-        Assert.NotEqual(short1, long1);
+        Assert.Equal(short1, long1);
+        Assert.Equal(short1.GetHashCode(), long1.GetHashCode());
+        Assert.NotEqual(short1.Text, long1.Text);
+        Assert.Equal(ToolVersion.Parse("1.2.3+a"), ToolVersion.Parse("1.2.3+b"));
+        Assert.Equal(ToolVersion.Parse("1.2.3+a").GetHashCode(), ToolVersion.Parse("1.2.3+b").GetHashCode());
+        Assert.Equal(ToolVersion.Parse("1.0.0-0001").GetHashCode(), ToolVersion.Parse("1.0.0-1").GetHashCode());
+        Assert.NotEqual(ToolVersion.Parse("1.0.0-rc.1"), ToolVersion.Parse("1.0.0"));
+        Assert.NotEqual(ToolVersion.Parse("10.0.1"), long1);
         Assert.True(short1 <= long1 && short1 >= long1);
         Assert.Equal(ToolVersion.Parse("10.0"), ToolVersion.Parse("10.0"));
         Assert.Equal(ToolVersion.Parse("10.0").GetHashCode(), ToolVersion.Parse("10.0").GetHashCode());

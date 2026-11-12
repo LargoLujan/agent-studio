@@ -12,6 +12,9 @@ public enum GraphNodeKind
     Project,
     Namespace,
     Package,
+
+    /// <summary>A folder of the solution (<c>&lt;Folder Name="/src/"&gt;</c> of a <c>.slnx</c>, a «solution folder» of a <c>.sln</c>): virtual, it has no path. Appended by the P0 so the diagram can have a <c>subgraph</c> per folder (docs/20 D-23).</summary>
+    SolutionFolder,
 }
 
 /// <summary>What joins two nodes (docs/20 D-20). The names are written to the cache of models, so new kinds are appended.</summary>
@@ -61,6 +64,17 @@ public sealed record GraphNode
         if (path is not null && !RepositoryPaths.IsSafeRelative(path))
         {
             throw new ArgumentException("The path of a node is relative to the copy of the commit, in forward slashes, and never leads out of it.", nameof(path));
+        }
+
+        // A project is its path (docs/20 D-20: «la ruta relativa del proyecto»), and a folder of the solution is virtual: nothing on disk to point to.
+        if (kind == GraphNodeKind.Project && !string.Equals(id, path, StringComparison.Ordinal))
+        {
+            throw new ArgumentException("The id of a project is its relative path.", nameof(id));
+        }
+
+        if (kind == GraphNodeKind.SolutionFolder && path is not null)
+        {
+            throw new ArgumentException("A folder of the solution is virtual and has no path.", nameof(path));
         }
 
         Kind = kind;
@@ -259,6 +273,30 @@ public sealed record CodeGraph
             }
         }
 
+        // The structure is a tree: a project, a folder of the solution and a namespace each have one parent, and the folders do not hold themselves.
+        var parents = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var edge in edges.Where(e => e.Kind == GraphEdgeKind.Contains && e.Origin == GraphEdgeOrigin.Static))
+        {
+            if (!parents.TryAdd(edge.To, edge.From))
+            {
+                throw new ArgumentException($"The node '{edge.To}' is contained by two nodes.", nameof(edges));
+            }
+        }
+
+        foreach (var folder in nodes.Where(n => n.Kind == GraphNodeKind.SolutionFolder))
+        {
+            var current = folder.Id;
+            for (var steps = 0; parents.TryGetValue(current, out var parent); steps++)
+            {
+                if (parent == folder.Id || steps > nodes.Count)
+                {
+                    throw new ArgumentException($"The folder '{folder.Id}' contains itself.", nameof(edges));
+                }
+
+                current = parent;
+            }
+        }
+
         foreach (var gap in gaps)
         {
             if (!byId.ContainsKey(gap.NodeId))
@@ -365,7 +403,7 @@ public sealed record CodeGraph
     /// <summary>Which kind of node each kind of relation joins: the structure is checked when the model is built, never trusted.</summary>
     private static bool Fits(GraphEdgeKind kind, GraphNodeKind from, GraphNodeKind to) => kind switch
     {
-        GraphEdgeKind.Contains => (from == GraphNodeKind.Solution && to == GraphNodeKind.Project)
+        GraphEdgeKind.Contains => (from is GraphNodeKind.Solution or GraphNodeKind.SolutionFolder && to is GraphNodeKind.Project or GraphNodeKind.SolutionFolder)
             || (from == GraphNodeKind.Project && to == GraphNodeKind.Namespace),
         GraphEdgeKind.ProjectReference => from == GraphNodeKind.Project && to == GraphNodeKind.Project,
         GraphEdgeKind.PackageReference => from == GraphNodeKind.Project && to == GraphNodeKind.Package,
@@ -436,7 +474,7 @@ internal static class GraphText
 {
     internal static string RequireLine(string? value, int maxLength, string parameterName)
     {
-        if (string.IsNullOrWhiteSpace(value) || value.Length > maxLength || value != value.Trim() || value.Any(char.IsControl))
+        if (string.IsNullOrWhiteSpace(value) || value.Length > maxLength || value != value.Trim() || UntrustedText.HasHidden(value))
         {
             throw new ArgumentException($"Expected one line of 1 to {maxLength} characters with no control characters and no spaces at its ends.", parameterName);
         }

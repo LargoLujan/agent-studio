@@ -1,3 +1,4 @@
+using AgentStudio.Domain.Common;
 namespace AgentStudio.Domain.Environments;
 
 /// <summary>A .NET SDK installed (a line of <c>dotnet --list-sdks</c>): its version and the folder it lives in.</summary>
@@ -21,7 +22,7 @@ public sealed record InstalledRuntime
     public InstalledRuntime(string name, ToolVersion version)
     {
         ArgumentNullException.ThrowIfNull(version);
-        if (string.IsNullOrWhiteSpace(name) || name.Length > 100 || name.Any(char.IsControl) || name != name.Trim())
+        if (string.IsNullOrWhiteSpace(name) || name.Length > 100 || UntrustedText.HasHidden(name) || name != name.Trim())
         {
             throw new ArgumentException("The name of a runtime is one line of up to 100 characters.", nameof(name));
         }
@@ -115,7 +116,7 @@ public sealed record WslStatus
         }
 
         if ((state == WslState.Ready) != (defaultDistribution is not null)
-            || (defaultDistribution is not null && (defaultDistribution.Length is < 1 or > 100 || defaultDistribution.Any(char.IsControl))))
+            || (defaultDistribution is not null && (defaultDistribution.Length is < 1 or > 100 || UntrustedText.HasHidden(defaultDistribution))))
         {
             throw new ArgumentException("Only WSL ready has a default distribution, of one line of up to 100 characters.", nameof(defaultDistribution));
         }
@@ -218,7 +219,7 @@ internal static class InstalledText
             return null;
         }
 
-        if (path.Length is < 1 or > 520 || path.Any(char.IsControl))
+        if (path.Length is < 1 or > 520 || UntrustedText.HasHidden(path))
         {
             throw new ArgumentException("A path is one line of up to 520 characters.", parameterName);
         }

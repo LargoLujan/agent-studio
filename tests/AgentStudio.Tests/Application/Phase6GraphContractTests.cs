@@ -224,6 +224,34 @@ public sealed class Phase6GraphContractTests
     }
 
     [Fact]
+    public void A_refused_model_has_no_inner_exception_so_nothing_the_process_wrote_reaches_a_log()
+    {
+        var good = CodeGraphJson.Serialize(Graph);
+        var hostileCode = good.Replace("\"code\":\"graph.unevaluated\"", "\"code\":\"secret-marker\\u202E\\n\"", StringComparison.Ordinal);
+        var hostileName = good.Replace("\"name\":\"A.App\"", "\"name\":\"secret-marker\\u202E\"", StringComparison.Ordinal);
+        var unknown = good.Replace("{\"schema\":1,", "{\"secret-marker\":1,\"schema\":1,", StringComparison.Ordinal);
+
+        foreach (var json in new[] { hostileCode, hostileName, unknown })
+        {
+            var error = Assert.Throws<InvalidDataException>(() => CodeGraphJson.Parse(json));
+
+            Assert.Null(error.InnerException);
+            Assert.DoesNotContain("secret-marker", error.Message, StringComparison.Ordinal);
+            Assert.DoesNotContain("secret-marker", error.ToString(), StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void A_progress_line_that_still_has_the_carriage_return_of_a_windows_line_end_names_the_same_file()
+    {
+        Assert.True(GraphWorkerProtocol.TryParseProgress("progress:src/App/Big.cs\r", out var path));
+        Assert.Equal("src/App/Big.cs", path);
+        Assert.False(GraphWorkerProtocol.TryParseProgress("progress:src/App/Big.cs\r\r\n", out _));
+        Assert.False(GraphWorkerProtocol.TryParseProgress("progress:NUL.cs", out _));
+        Assert.False(GraphWorkerProtocol.TryParseProgress("progress:src/\u202Eevil.cs", out _));
+    }
+
+    [Fact]
     public void A_text_over_the_cap_of_the_output_is_refused_before_it_is_parsed()
     {
         var text = new string(' ', GraphWorkerProtocol.MaxOutputBytes + 1);

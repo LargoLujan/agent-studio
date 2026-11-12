@@ -70,6 +70,23 @@ public sealed class DeclaredAndInstalledTests
         Assert.Throws<ArgumentNullException>(() => new DeclaredEntry(DeclaredKind.NodeEngine, null, "x", null!));
     }
 
+    [Theory]
+    [InlineData("a\u2028b")]
+    [InlineData("a\u2029b")]
+    [InlineData("a\u202Eb")]
+    [InlineData("a\u2066b")]
+    [InlineData("a\u200Bb")]
+    [InlineData("a\uFEFFb")]
+    public void A_hidden_character_is_refused_in_a_value_a_name_and_an_issue_text(string text)
+    {
+        Assert.Throws<ArgumentException>(() => new DeclaredEntry(DeclaredKind.NodeEngine, null, text, GlobalJson));
+        Assert.Throws<ArgumentException>(() => new DeclaredEntry(DeclaredKind.DotNetLocalTool, text, "1.0.0", GlobalJson));
+        Assert.Throws<ArgumentException>(() => new DeclaredIssue(GlobalJson, DeclaredIssueKind.NotInterpreted, text));
+        Assert.Throws<ArgumentException>(() => new InstalledRuntime(text, V("1.0")));
+        Assert.Throws<ArgumentException>(() => new WslStatus(WslState.Ready, text));
+        Assert.Throws<ArgumentException>(() => new InstalledTool(V("1.0"), text));
+    }
+
     [Fact]
     public void An_issue_says_where_and_why_and_may_show_what_was_there_as_data()
     {
