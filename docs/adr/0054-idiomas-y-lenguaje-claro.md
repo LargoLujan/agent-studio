@@ -443,3 +443,73 @@ dos chocan, porque la misma frase se ancla con su SHA-256, va a los agentes y la
   inglés no tiene claves que falten; una parte que no es la que dan los hechos se deja como se ancló; las claves), `DailySummaryTextsTests`,
   `MemoryMarkdownExporterTests` (el marco en inglés, la cultura del hilo y un idioma que no lo es) y `MemoryEntryTextsTests` (con la
   interfaz en inglés, la pantalla enseña el texto en inglés y la entrada anclada no cambia).
+
+## Adenda · 2026-11-12 · lo que la orquestación dice en tu idioma sin tocar lo anclado (WP-14A, parte e, `Orchestration`)
+
+Los textos de `src/AgentStudio.Orchestration/**` que llegan a la pantalla del orquestador pasan a códigos con argumentos. Aplica el
+punto 3 (las capas de abajo devuelven un código) y el punto 5 (lo anclado no se traduce) donde chocan: el motor ancla la misma frase
+(el motivo de cada transición, el resumen de `RunFinished`, el aviso que lleva la aprobación) y la lee la persona.
+
+- **Un código al lado de la frase, nunca en su lugar.** La frase en castellano se escribe y se ancla como siempre. El código viaja en
+  un campo nuevo, opcional y al final de cada contrato: `TaskStatusChangedEvent.ReasonText`, `RunPhaseChangedEvent.DetailText`,
+  `RunResult.SummaryText`, `BudgetGateVerdict.Text` y `PlanProposal.ErrorText`. Ninguno entra en un payload del registro ni en una
+  huella. Si el campo es nulo, la pantalla enseña la frase (`OrchestratorCodedText.Painted`).
+- **Una ejecución releída del registro no guarda código: se deriva al leer** (`LoggedTexts`, público). Es el mismo camino que usa la
+  memoria: el código sale de la frase exacta que el motor escribe (plantillas con regex, frases fijas), y una frase que no es de esas
+  (el motivo de un trabajador, las palabras de un agente, una frase de otra versión) da `null` y se enseña como se ancló. Una prueba
+  recorre cada frase y comprueba que el código que el motor da en vivo es el que se deriva del registro (`CodedTextsInTheEngineTests`).
+- **Quién pinta.** `OrchestratorCodedText` (`Desktop/Orchestrator`) pinta piezas y frases con `RenderNested`; `OrchestratorErrorText.Detail`
+  (calcado de `DebateTexts.Reason`) pinta una `UserTextException` desde recursos y, para cualquier otro fallo, enseña su mensaje técnico,
+  en inglés. `RunMonitorViewModel` (los nueve sitios de `ex.Message`) y `OrchestratorDocumentViewModel*` lo usan.
+- **B está anclado.** `VerificationStepText.PlanWarning` es el aviso que viaja en la aprobación y que el motor recalcula y compara
+  byte a byte (`OrchestratorDocumentViewModel.IsolationWarning`, `Orchestrator.EnsureApprovedWarning`, `RunResumer`). No cambia.
+  `IsolationWarningText` es otra propiedad, pintada desde `PlanWarningTexts` (los mismos escritores, las mismas tareas, agentes y pasos), y
+  es la que enseña la vista. `Notice` de `PlanWarningText` (A) va al registro como primera nota y tampoco cambia; la revisión del plan
+  usa `Texts`. `Line` de un paso se queda para quien no es la pantalla y `LineParts` da sus piezas.
+- **Una enumeración es una pieza.** «a, b y c» es `plan.list.and` y `plan.list.comma` (cada idioma pone su «y»); las frases en fila son
+  `plan.list.space`. Una pieza no empieza ni acaba en espacio, como en la memoria.
+- **El castellano de la pantalla sigue la guía de textos** (D-52, D-53) y no es palabra por palabra el anclado: no dice «worktree»,
+  «integridad Medium» ni «cuota», parte las frases largas y escribe «versión guardada (commit)». Lo que nombra es lo mismo.
+
+**Códigos de `Orchestration`** (`OrchestrationUserTexts.All`, 101; claves `Text_<código con _>` en `OrchestratorStrings.resx` y `.en.resx`,
+mismos marcadores; `DebateCodedTextsTests` tiene gemela en `OrchestrationCodedTextsTests`):
+
+| Grupo | Códigos |
+|---|---|
+| Listas (piezas) | `plan.list.and`, `plan.list.comma`, `plan.list.space` |
+| A · entrega del plan | `plan.delivery.not-checked`, `.never-one`, `.never-many`, `.maybe-one`, `.maybe-many`, `.reason-branch`, `.reason-timing`, `.branch-yes`, `.branch-no`, `.branch-other`, `.how` |
+| B · perfil y escritores con permisos amplios | `verification.step-requires`, `verification.step-without-isolation`, `verification.medium.opening`, `.task`, `.meaning` y `verification.medium.reason-*` (10: agente desconocido, sin agente, Bash, Codex, CLI sin medir, Claude sin medir, herramientas de más, permisos de más, paso desconocido, paso sin aislamiento) |
+| C · cómo acaba o está una ejecución | `run.verdict.*` (24): `succeeded`, `cancelled-after-stop`, `cancelled-by-user`, `review-required`, `tests-required`, `untested-commit`, `untested-no-commit`, `stopped-repository`, `stopped-source-moved`, `stopped-evidence`, `failed`, `no-retries`, `unreachable`, `budget-spent`, `interrupted`, `interrupted-in-log`, `awaiting-human`, `blocked-launch`, `waiting-quota`, `waiting-quota-estimated`, `paused-checks`, `paused-long`, `paused`, `deadlock` |
+| D · presupuesto | `project.budget-name-{project,milestone}-{day,week,month,total}` (8 piezas), `project.budget-exceeded-tokens`, `-tokens-unknown`, `-exceeded-runs`, `project.budget-partial`, `project.budget-raise`, `project.budget-unreadable`, `project.budget-why-no-usage`, `-why-untrusted`, `-why-failed` |
+| E · por qué una tarea está donde está | `task.attempt-launched`, `.attempt-started`, `.evaluating-condition`, `.retry-by-user`, `.quota-wait-ended`, `.awaiting-approval`, `.node-unavailable`, `.no-provider`, `.cancelled-by-user`, `.interrupted`, `.judge-approved-resumed`, `.verdict-needs-person-resumed`, `.question-answered-before-close`, `.resumed-by-user`, `.resumed-by-consent` |
+| E · lo que se cuenta de una ejecución reanudada o releída | `run.resumed-consent-quota`, `.resumed-consent-close`, `.resumed-consent-session`, `.resumed-from-log`, `.paused-by-you`, `.resumed-by-you`, `.paused-by`, `.resumed-by`, `run.notice-uncommitted-changes` |
+| F · el planificador no dio un plan | `planner.schema-too-big`, `.no-provider`, `.memory-too-small`, `.repository-changed`, `.cancelled`, `.launch-failed`, `.ended` |
+| G · preguntas | `question.awaiting-answer` y `question.too-many`, que ya eran de `UserTextCodes`: el motor los pone al lado del motivo de la tarea |
+
+**Lo que queda fijo, y por qué (D-48).**
+
+| Texto | Dónde va | Por qué no cambia |
+|---|---|---|
+| `VerificationStepText.PlanWarning` | La aprobación del plan (`ApprovedWarning`), `RunResumer` y `EnsureApprovedWarning` | Se compara byte a byte; es lo que la persona aprobó |
+| `PlanWarningText.Notice`, el aviso de cambios sin guardar y `RunResumer.Notice` | `RunPhaseChangedEvent.Detail` y el registro | Anclado; el código va en `DetailText` |
+| Motivo de cada transición, `RunFinished.Summary` | El registro, encadenado con SHA-256 | Anclado; el código va al lado y se deriva al releer |
+| `BudgetGateVerdict.Reason` y la alerta `project.budget-*` | El registro | Anclado. El texto libre que da el informe de uso de un registro sin confianza (`Excluded[0].Reason`) no es argumento de una frase: la pantalla no lo enseña |
+| Prompts de `Planner`, `PlannerQuestions`, `OrderReviewService`, `PreparationChatService` y `ExecutorPrompt`, esquemas de `PlanSchema` | Los agentes | Van al agente (D-48) |
+| `QuestionDocuments.DecisionTitle` y los motivos de las decisiones de preguntas | El registro y las pruebas guardadas | Anclado |
+| `Orchestration` no tenía excepciones en castellano | — | Los mensajes ya estaban en inglés; ninguna pasó a `UserTextException` |
+
+**Pendiente (sigue en castellano a mano, con pantalla).**
+
+- `DeliveryService` (≈70 líneas): `DeliveryResult.Message` y `DeliveryReadiness.Reason`, que enseña `RunMonitorViewModel` (`DeliveryMessage`).
+  Necesita su propio juego de códigos; lo que va al registro de la entrega se queda.
+- Los motivos que escribe un trabajador (`end.Reason` de `Workers`, de `AgentRunner` y del juez) y los de reintento («Reintento n de m
+  tras: …», que lleva el motivo de un fallo), y el resumen del fallo de `ReadFailureLine`.
+- `RunInspector`: el aviso «El registro de esta ejecución no se puede reproducir entero (…)» y los `problems` de la relectura.
+- `ResumeScheduler`: los `Reason` de `ScheduledResume` y los de `QuotaWaitPolicy` (comprobación antes de relanzar, sesión no iniciada,
+  límite agotado según el app-server) que llegan al monitor por alertas y por el motivo de la transición.
+- Los avisos que `Planner` pone en `Problems`/`Notes` y `HistoryToolNotice`, y los de `OrderReviewService` y `PreparationChatService`.
+- Los `ex.Message` de `Preparation/*`, `Questions/*`, `Team/*` y `Canvas/*`: pasan por el mensaje técnico en inglés mientras ninguna
+  excepción de Orchestration lleve código para esos casos; usar `OrchestratorErrorText.Detail` cuando la lleven.
+- `PlanViolationText` ya pinta desde recursos por código estable (`PlanViolationCode`, claves `Orchestrator_Violation_*`) con la interfaz
+  en el idioma en uso. Pasarlo a `UserText` obliga a renombrar sus claves a `Text_*`; no se hizo porque no añade nada visible.
+- `RunMonitorViewModel` enseña `finding.Message` (~1110, hallazgos del análisis): su traducción es la del análisis (`FindingCodes`).
