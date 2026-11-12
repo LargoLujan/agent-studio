@@ -222,11 +222,17 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
         var skipped = new HashSet<(string Run, string Task)>();
         var integrated = new HashSet<(string Run, string Task)>();
         var integrates = new HashSet<string>(StringComparer.Ordinal);
+
+        // What each delivery delivered, as the log stood when it was made: a task completed or integrated afterwards is not part of it.
+        var deliveredBy = new Dictionary<long, HashSet<string>>();
         var hidden = AgentStudio.Orchestration.Integration.IntegrationNames.HiddenRefPrefix;
-        foreach (var (_, payload) in payloads)
+        foreach (var (entry, payload) in payloads)
         {
             switch (payload)
             {
+                case IntegrationPerformedPayload { IsDelivery: true } delivery when tasksOfRun.TryGetValue(delivery.RunId, out var plannedTasks):
+                    deliveredBy[entry.Sequence] = [.. plannedTasks.Select(t => t.Id.Value).Where(id => completed.Contains((delivery.RunId, id)) && (!integrates.Contains(delivery.RunId) || integrated.Contains((delivery.RunId, id))))];
+                    break;
                 case TaskStatusChangedPayload change:
                     if (change.To == AgentStudio.Domain.Work.WorkTaskStatus.Completed)
                     {
@@ -289,12 +295,6 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
 
                     break;
             }
-        }
-
-        bool IsDelivered(string run, TraceRef task)
-        {
-            var id = task.Id[(task.Id.IndexOf('/', StringComparison.Ordinal) + 1)..];
-            return completed.Contains((run, id)) && (!integrates.Contains(run) || integrated.Contains((run, id)));
         }
 
         var last = new Dictionary<string, (int Run, int Sequence, string Verdict)>(StringComparer.Ordinal);
@@ -374,7 +374,7 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
                 case IntegrationPerformedPayload { IsDelivery: true, ResultCommit: { } commit, ConflictPaths.Count: 0 } delivery when tasksOfRun.TryGetValue(delivery.RunId, out var delivered) && TraceRef.IsFullCommitId(commit):
                     var deliveryNode = TraceRef.Commit(commit);
                     graph.Place(deliveryNode, DeliveryAt);
-                    foreach (var task in delivered.Where(t => IsDelivered(delivery.RunId, t.Node)))
+                    foreach (var task in delivered.Where(t => deliveredBy.TryGetValue(entry.Sequence, out var ids) && ids.Contains(t.Id.Value)))
                     {
                         graph.Edge(task.Node, deliveryNode, DeliveryAt);
                     }

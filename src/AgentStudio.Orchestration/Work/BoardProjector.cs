@@ -27,7 +27,8 @@ namespace AgentStudio.Orchestration.Work;
 /// <item><b>A verdict counts</b> only when the log announced it valid (<c>VerdictIssued.Valid</c>) and the store holds it with the same decision
 /// and as valid: the one that judged the requirement (an assessment of it), the last. A verdict a person challenged is set aside (in review)
 /// until its revision debate closes resolved (the rules of ChallengeLog, read by ChallengeReader): if it confirms the decision, the verdict stands; if it withdraws an approval, the decision
-/// of the revision stands; if it turns an unapproved verdict towards an approval, the card stays in review (a person accepts that, D-40).
+/// of the revision stands; if it turns an unapproved verdict towards an approval, the card stays in review (a person accepts that, D-40). The card of a task follows the last verdict
+/// that judged it, the same way (<see cref="VerdictReach"/>).
 /// A revision that is not closed, aborted, decided by a person or without valid verdicts leaves it in review.</item>
 /// <item><b>When several runs cover a requirement</b> the last one started decides: a follow-up replaces what an earlier run left.</item>
 /// <item>A log that does not verify throws <see cref="DecisionLogIntegrityException"/>. A milestone with problems has its
@@ -96,7 +97,7 @@ public sealed class BoardProjector(
         {
             foreach (var task in run.Tasks)
             {
-                if (BoardRules.ColumnOf(new TaskBoardFacts(task.Status, run.StandingDecision)) is not { } column)
+                if (BoardRules.ColumnOf(new TaskBoardFacts(task.Status, run.DecisionFor(task))) is not { } column)
                 {
                     continue;
                 }
@@ -162,8 +163,7 @@ public sealed class BoardProjector(
         }
 
         var standing = judged.Select(j => (j.Issued, j.Stored.Verdict, Standing: VerdictReach.Standing(log, j.Stored, storedVerdicts))).ToList();
-        var lastStanding = standing.LastOrDefault(s => !s.Standing.Challenged);
-        return new RunFacts(run, tasks, finished is not null, finished?.Phase is RunPhase.Failed or RunPhase.Cancelled, delivered, standing, lastStanding.Issued is null ? null : lastStanding.Standing.Decision);
+        return new RunFacts(run, tasks, finished is not null, finished?.Phase is RunPhase.Failed or RunPhase.Cancelled, delivered, standing);
     }
 
     private static BlockKind? BlockedKind(IReadOnlyList<(DecisionEntry Entry, DecisionPayload Payload)> entries, TaskId task) =>
@@ -211,10 +211,27 @@ public sealed class BoardProjector(
         bool Ended,
         bool Failed,
         bool Delivered,
-        IReadOnlyList<(VerdictIssuedPayload Issued, Verdict Verdict, VerdictStanding Standing)> Verdicts,
-        VerdictDecision? StandingDecision)
+        IReadOnlyList<(VerdictIssuedPayload Issued, Verdict Verdict, VerdictStanding Standing)> Verdicts)
     {
         public IReadOnlyList<TaskFacts> Covering(RequirementId requirement) => [.. Tasks.Where(t => t.Covers.Contains(requirement))];
+
+        /// <summary>
+        /// What the last valid verdict that judged the task says of it, by the same rule as for a requirement (<see cref="VerdictReach"/>), or null when none did or the one that did is
+        /// set aside by a challenge: the card of a completed task then waits in review, as the card of its requirement does.
+        /// </summary>
+        public VerdictDecision? DecisionFor(TaskFacts task)
+        {
+            foreach (var (issued, verdict, standing) in Verdicts.Reverse())
+            {
+                var onOrdinaryTask = issued.Task is { } one && Tasks.Any(t => t.Id == one && !t.IsReview);
+                if (task.Covers.Count == 0 ? VerdictReach.JudgesUncovered(issued.Task, onOrdinaryTask, task.Id) : VerdictReach.Judges(verdict, issued.Task, onOrdinaryTask, task.Id, task.Covers))
+                {
+                    return standing.Challenged ? null : standing.Decision;
+                }
+            }
+
+            return null;
+        }
 
         /// <summary>The last valid verdict that judged the requirement (<see cref="VerdictReach"/>, the rule the chain and the participation share), with what it says of it.</summary>
         public RequirementVerdict? VerdictFor(RequirementId requirement)

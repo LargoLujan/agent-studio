@@ -123,9 +123,15 @@ internal sealed class WorkWorld : IDisposable
         RecordAsync(run, DecisionKind.EvidenceRegistered, new EvidenceRegisteredPayload(Eid(id), kind, AgentStudio.Domain.Evidence.EvidenceOrigin.CapturedBySystem, new string('a', 64), Tid(task), attempt, null, null, null, null, commit) { RunId = run });
 
     /// <summary>A verdict of the run: stored (valid or not) and announced in the log (valid or not).</summary>
-    public async Task<string> VerdictAsync(string run, VerdictDecision decision, bool validInLog = true, bool validInStore = true, string id = "v1", bool store = true, string? task = null, IReadOnlyList<string>? assessing = null, string issuedOn = "T7", string? supersedes = null)
+    public async Task<string> VerdictAsync(string run, VerdictDecision decision, bool validInLog = true, bool validInStore = true, string id = "v1", bool store = true, string? task = null, IReadOnlyList<string>? assessing = null, string issuedOn = "T7", string? supersedes = null, string? head = null)
     {
         var verdict = ValidVerdict(Dossier(), decision);
+
+        // The head of the log the dossier was built on (the delivery reads which integration the judge was shown from it).
+        if (head is not null)
+        {
+            verdict = verdict with { DecisionLogHeadHash = head };
+        }
 
         // By default it assesses every requirement (R1 and R2); «assessing» keeps only those.
         if (assessing is not null)
