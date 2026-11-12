@@ -36,7 +36,7 @@ public sealed class HelpSearch : IHelpSearch, IDisposable
         }
 
         ct.ThrowIfCancellationRequested();
-        var match = MatchOf(query);
+        var match = MatchOf(query, IsEnglish(KeyOf(language)));
         if (match is null)
         {
             return Task.FromResult<IReadOnlyList<HelpSearchHit>>([]);
@@ -68,8 +68,11 @@ public sealed class HelpSearch : IHelpSearch, IDisposable
         }
     }
 
-    /// <summary>The FTS5 query of <paramref name="query"/>, or null when no term is left: each term a quoted phrase with a prefix mark, joined by <c>OR</c>.</summary>
-    internal static string? MatchOf(string query)
+    /// <summary>
+    /// The FTS5 query of <paramref name="query"/>, or null when no term is left: each term a quoted phrase with a prefix mark, joined by <c>OR</c>,
+    /// followed by the phrases the articles use for the technical words among them (<see cref="HelpSynonyms"/>), cleaned and quoted in the same way.
+    /// </summary>
+    public static string? MatchOf(string query, bool english = false)
     {
         var terms = LexicalTerms.From(query);
         if (terms.Count == 0)
@@ -78,7 +81,7 @@ public sealed class HelpSearch : IHelpSearch, IDisposable
         }
 
         var text = new StringBuilder();
-        foreach (var term in terms)
+        foreach (var term in terms.Concat(terms.SelectMany(t => HelpSynonyms.For(t, english))))
         {
             var clean = new string([.. term.Where(c => !char.IsControl(c))]).Replace("\"", "\"\"", StringComparison.Ordinal);
             if (clean.Length == 0)
@@ -97,9 +100,13 @@ public sealed class HelpSearch : IHelpSearch, IDisposable
         return text.Length == 0 ? null : text.ToString();
     }
 
+    private string KeyOf(string language) => _corpus.Articles(language).FirstOrDefault()?.Language ?? language;
+
+    private static bool IsEnglish(string key) => key.StartsWith("en", StringComparison.OrdinalIgnoreCase);
+
     private SqliteConnection IndexFor(string language)
     {
-        var key = _corpus.Articles(language).FirstOrDefault()?.Language ?? language;
+        var key = KeyOf(language);
         if (_indexes.TryGetValue(key, out var existing))
         {
             return existing;

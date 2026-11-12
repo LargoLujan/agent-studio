@@ -143,3 +143,11 @@
   - Sin ⓘ en el nodo del repositorio, la clave `Info_Canvas_Repository` sale del artículo del lienzo; una prueba exige que ninguna clave de artículo carezca de su botón.
 - **Residual nuevo:** la comprobación de que la carpeta no es un enlace es una foto: queda una ventana hasta que arranca el CLI y la carpeta no se fija con un handle. El riesgo práctico es nulo: haría falta un atacante local con tus mismos privilegios.
 - **Residual nuevo:** si la carpeta temporal del usuario o un padre es un enlace (una junction), el agente de ayuda falla cerrado.
+
+## Adenda del 2026-11-12 · P59: sinónimos en el buscador
+
+- **Hecho (P59).** Los artículos dicen «límite de uso», «prueba guardada» o «memoria de trabajo» (guía de textos, ADR-0054 punto 9), así que buscar «cuota», «evidencia» o «ventana» no encontraba nada. `HelpSearch` añade ahora a la consulta las frases con que los artículos dicen cada palabra técnica, en el idioma del índice (`quota` → `usage limit`, `CLI` → «programa del agente», `commit` → «versión guardada», y el resto del glosario).
+- **Dónde vive.** Una sola tabla en código, `Desktop/Help/HelpSynonyms.cs`, con las palabras como las escribiría la persona en cualquiera de los dos idiomas. Los artículos y los textos de pantalla no cambian.
+- **La consulta sigue siendo dato.** Las frases de la tabla pasan por el mismo saneado que los términos de la persona: entre comillas (con las comillas dobladas), con marca de prefijo y unidas por `OR`. Ningún operador de FTS5 llega desde lo que se escribe.
+- **Que no se desalinee.** Una prueba recorre el glosario de `TextGuide` (`Jargon`, `Glossary` y `Commit`) y exige que cada término tenga su sinónimo; solo quedan fuera `payload`, `RunId` y `GUID`, que la guía dice que no aparecen.
+- **Límite.** Es una tabla, no stemming: las formas que no están no se expanden. Que un sinónimo encuentre algo depende de que algún artículo use esa frase (hoy ningún artículo dice «programa del agente», así que «CLI» amplía la consulta pero no encuentra nada).
