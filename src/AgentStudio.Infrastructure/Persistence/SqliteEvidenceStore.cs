@@ -180,6 +180,11 @@ public sealed class SqliteEvidenceStore(ProjectDatabases databases, TimeProvider
                 {
                     return;
                 }
+
+                if (attempt >= PlaceAttempts)
+                {
+                    throw new IOException("The stored evidence file kept vanishing while the capture was putting its content in place.");
+                }
             }
             catch (IOException) when (attempt < PlaceAttempts)
             {
