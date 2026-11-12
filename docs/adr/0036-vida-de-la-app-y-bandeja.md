@@ -256,3 +256,11 @@
     tokens de un debate frente a su límite. Si falta el máximo, el texto lo dice.
   - **El registro de la app dice por qué se suelta «Mantener despierto»** (V26): «ya no hay trabajo en marcha», «se desactivó
     el ajuste…» o «Agent Studio se cierra». Antes repetía por qué se había pedido.
+
+- **Adenda (2026-11-12, P52: seguimiento en segundo plano).** La decisión no cambia. El monitor que el shell crea para una
+  ejecución que ningún documento sigue (`FollowInBackground`) recibe ahora su plantilla (`Roster`) y las dependencias del plan
+  (`PlanDependencies`) de lo que la propia ejecución guardó, no de una pantalla: `MonitorServices.GiveLiveContextAsync` lee con
+  `RegistryRunLiveContextSource` la cabecera de la ejecución (`IRunRegistry`: su plantilla y el hash de su plan) y el plan
+  (`IPlanStore`). Así salen los agentes libres y los pulsos. La lectura es asíncrona y no bloquea el alta del monitor; no hace
+  nada si falta la fuente, si la ejecución no guardó cabecera o si el monitor ya sigue otra ejecución; un plan que el almacén no
+  tiene deja la plantilla sin pulsos.
