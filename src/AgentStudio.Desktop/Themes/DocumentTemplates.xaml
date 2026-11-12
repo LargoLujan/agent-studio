@@ -14,6 +14,8 @@
                     xmlns:repositoryViews="clr-namespace:AgentStudio.Desktop.Views.Repository"
                     xmlns:documents="clr-namespace:AgentStudio.Desktop.Documents"
                     xmlns:documentsViews="clr-namespace:AgentStudio.Desktop.Views.Documents"
+                    xmlns:work="clr-namespace:AgentStudio.Desktop.Work"
+                    xmlns:workViews="clr-namespace:AgentStudio.Desktop.Views.Work"
                     xmlns:debate="clr-namespace:AgentStudio.Desktop.Debate"
                     xmlns:debateViews="clr-namespace:AgentStudio.Desktop.Views.Debate"
                     xmlns:audit="clr-namespace:AgentStudio.Desktop.Audit"
@@ -64,6 +66,11 @@
     <!-- Phase 14 (docs/17 section 5.5): «Documentación para clientes». -->
     <DataTemplate DataType="{x:Type documents:ClientDocumentsViewModel}">
         <documentsViews:ClientDocumentsView/>
+    </DataTemplate>
+
+    <!-- Phase 9 (docs/16 section 4.6): «Trabajo» (milestones, backlog, board, chain, participants, links and budgets). -->
+    <DataTemplate DataType="{x:Type work:WorkDocumentViewModel}">
+        <workViews:WorkView/>
     </DataTemplate>
 
     <!-- Phase 5 (docs/15 section 4.10): «Debates» (room, history, new debate, verdict cards) and «Auditoría». -->

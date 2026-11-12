@@ -2116,7 +2116,7 @@ y se leen con `CommitTrailers.Read` (solo el último párrafo; clave repetida o 
 | `IBoardProjector` | `ProjectAsync`, `BacklogAsync` (tarjetas con su columna y su motivo `BoardCardReasons`) | WP1 |
 | `ITraceLinkService`, `ITraceSuggester`, `ITraceChainReader` | registrar, confirmar, retirar, vínculos de un nodo / sugerencias / la cadena de F9-4 | WP1 |
 | `IParticipationProjector` | los seis papeles de D-32 (`ParticipationRole`); un papel sin fuente es `ParticipationEntry.NotRecorded` («no consta») | WP1 |
-| `IProjectBudgetStore` | presupuesto del proyecto, de la persona y de su equipo; el del hito va en su cabecera | su contrato y la puerta del motor, WP2; la implementación, pendiente (WP5 o el lead) |
+| `IProjectBudgetStore` | presupuesto del proyecto, de la persona y de su equipo; el del hito va en su cabecera | su contrato y la puerta del motor, WP2; la implementación, WP5 (`LocalProjectBudgetStore`, ver §23.7) |
 | `IRepositoryHistoryReader` | `SummaryAsync`, `BranchesAsync`, `CommitsAsync` por la capa git endurecida (`Infrastructure/Git/RepositoryHistoryReader.cs`, registrado en `AddAgentStudioGit`). Acotado: 1000 commits y 500 ramas; la salida se acota en origen (el log y la lista de ramas, 4 MiB de caracteres por flujo: `ProcessSpec.MaxOutputCharacters` mata a git al pasarlo y la lectura se rechaza; HEAD y las rutas, 64 KiB; «¿hay cambios?» se pregunta con 512 caracteres de margen, y pasarlo ya significa que los hay), asunto, autor y refs cortados por el propio git (`%<(N,trunc)`) y otra vez aquí, sin caracteres de control; los campos del log van enmarcados por un marcador aleatorio de cada lectura, de modo que ningún texto de un commit (ni un `| `IRepositoryAnnotator`, `IRepositoryActivityReader` | commits anotados desde el registro / la línea de tiempo de «Actividad» | WP1 y WP5 |
 | `IRepositoryRemoteReader`, `RemoteListing` | `ListRemotesAsync` por la capa git endurecida (`Infrastructure/Git/RepositoryRemoteReader.cs`, registrado en `AddAgentStudioGit`, P51): `git config --local --no-includes -z --get-regexp` de `remote.*.url`, sin seguir ningún `include`, con la configuración neutralizada y sin hooks, y con el recorrido del directorio git para enlaces plantados. Acotado en origen (256 KiB de caracteres: pasarlo mata a git y la lectura se rechaza con `output-too-big`, nunca se corta), más de 100 remotos se rechazan igual y una dirección de más de 2048 caracteres se omite; cada URL sale limpia (`RepositoryRemote.Cleaned`). Falla cerrado: un repositorio no aceptado, git fallando o la salida enorme dan `Remotes` vacío y un `RefusalCode` (`not-a-repository`, `inside-worktree-root`, `unsafe-repository`, `git-unavailable`, `git-failed`, `output-too-big`), nunca una ruta ni una excepción; sin remotos es una lista vacía sin código | P51 |
 
@@ -2139,7 +2139,7 @@ en otro grupo de la dimensión (un hito), de modo que los grupos pueden sumar m�
   puerta. Un rechazo deja `AuditAlertRaised` con `project.budget-exceeded` (o `project.budget-unreadable` si no pudo comprobarlo: falla cerrado) y la tarea queda
   `Blocked` (`AwaitingHuman`) con el motivo: subir el presupuesto y reintentarla sigue la ejecución. Sin presupuesto en el proyecto ni en los hitos no se lee el registro.
 - **Pendiente de WP5:** `UsageDashboardViewModel.Dimensions` ofrece todas con `Enum.GetValues`; el filtro que las oculta mientras el agregador no las soportaba ya sobra. WP5
-  etiqueta las dimensiones, enseña `SharedAttempts` y las esperas, y da pantalla al presupuesto. **`IProjectBudgetStore` no tiene implementación todavía.**
+  etiqueta las dimensiones, enseña `SharedAttempts` y las esperas, y da pantalla al presupuesto (el presupuesto ya la tiene: «Trabajo», ver §23.7; las dimensiones y las esperas de «Consumo» quedan pendientes). **`IProjectBudgetStore` tiene implementación desde WP5: `LocalProjectBudgetStore`.**
 
 ### 23.4 Diferencias con docs/16 §4.6
 
@@ -2188,3 +2188,21 @@ en otro grupo de la dimensión (un hito), de modo que los grupos pueden sumar m�
 - **Tablero:** un veredicto cuenta si el registro lo anunció válido y el almacén lo guarda válido y con la misma decisión; uno impugnado se aparta (revisión) hasta que
   su debate de revisión cierra resuelto: si confirma la decisión se queda, si retira una aprobación manda la de la revisión, y si vuelve hacia una aprobación la tarjeta
   sigue en revisión (la acepta una persona, D-40). Si varias ejecuciones cubren un requisito decide la última que empezó.
+
+### 23.7 Lo que WP5 hizo con estos contratos (escritorio)
+
+- **Ningún contrato cambió.** WP5 solo consume los de §23.3 y no toca `Orchestration/Work/**`.
+- **`LocalProjectBudgetStore`** (`Desktop/Work`) implementa `IProjectBudgetStore`: el presupuesto del proyecto es de la persona y de este equipo,
+  como las opciones del proyecto ([ADR-0040](adr/0040-consumo-por-hito-y-actividad-y-presupuestos.md), decisión 5), así que vive en
+  `%LOCALAPPDATA%\AgentStudio\budgets\<id del proyecto>.json` (la carpeta local de la aplicación, `budgets`) y nada entra en el repositorio. Se escribe
+  entero junto al fichero y se mueve encima. **Falla cerrado**, a diferencia del almacén de las opciones: un fichero que no se puede leer o no
+  valida lanza `InvalidDataException`, de modo que `ProjectBudgetGate` rechaza con `project.budget-unreadable` en lugar de dejar pasar todo; solo la falta del
+  fichero es «sin presupuesto». `SaveAsync` valida (`WorkBudget.EnsureValid`) antes de escribir, rechaza un id de proyecto que no sirve para nombrar un fichero y,
+  con `null`, borra el fichero.
+- **Composición.** `AddWorkUiServices` (llamada desde `AddAgentStudioApp` con la carpeta local) registra el almacén (el `Orchestrator` lo toma como el
+  puerto opcional `budgets` de su puerta, así que lo que la persona guarda es lo que el motor comprueba antes de lanzar un intento), el `WorkBackend` (los puertos de la pantalla, todos
+  opcionales) y el documento «Trabajo». `MainViewModel` gana un parámetro opcional al final (`workDocument`) y la entrada «Trabajo» de la barra lateral.
+- **La pantalla** ([03 §8.2](03-pantallas-y-navegacion.md#82-trabajo-fase-9-wp5)): cerrar un hito va por `IMilestoneCloser`, nunca por la auditoría
+  directamente, y la aprobación y el consentimiento son los de la auditoría. Los nodos de la cadena abren una prueba guardada (lectura con
+  comprobación de huella, como la sala de un debate) o un veredicto; el resto se enseña sin enlace. El tablero agrupa por la columna que da
+  `IBoardProjector` y no calcula ninguna; las cuatro reglas aún por decidir se dejan como las tiene `BoardRules`.

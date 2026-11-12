@@ -1,0 +1,787 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the Work area (docs/16 section 4.6, ADR-0054) in English: the same keys and placeholders as WorkStrings.resx. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Work_Title" xml:space="preserve">
+    <value>Work</value>
+  </data>
+  <data name="Work_Intro" xml:space="preserve">
+    <value>Here you see the work of the project. Everything comes from the verified history.</value>
+  </data>
+  <data name="Work_Sections_Name" xml:space="preserve">
+    <value>Sections of Work</value>
+  </data>
+  <data name="Work_Status_OpenFolder" xml:space="preserve">
+    <value>Open a folder to see its work.</value>
+  </data>
+  <data name="Work_Status_Unavailable" xml:space="preserve">
+    <value>This installation cannot open projects.</value>
+  </data>
+  <data name="Work_Error" xml:space="preserve">
+    <value>Something failed: {0}</value>
+  </data>
+  <data name="Work_Error_BudgetRead" xml:space="preserve">
+    <value>The budget could not be read: {0}</value>
+  </data>
+  <data name="Work_Error_BudgetSave" xml:space="preserve">
+    <value>The budget could not be saved: {0}</value>
+  </data>
+  <data name="Work_ViewChain" xml:space="preserve">
+    <value>View chain</value>
+  </data>
+  <data name="Work_Close_Viewer" xml:space="preserve">
+    <value>Close viewer</value>
+  </data>
+  <data name="Work_Notice_NoMilestones" xml:space="preserve">
+    <value>The milestone service is missing: this section cannot read or write.</value>
+  </data>
+  <data name="Work_Notice_NoBacklog" xml:space="preserve">
+    <value>The backlog service is missing: this section cannot read or write.</value>
+  </data>
+  <data name="Work_Notice_NoBoard" xml:space="preserve">
+    <value>The board service is missing: it cannot be drawn.</value>
+  </data>
+  <data name="Work_Notice_NoChain" xml:space="preserve">
+    <value>The chain service is missing: it cannot be walked.</value>
+  </data>
+  <data name="Work_Notice_NoParticipation" xml:space="preserve">
+    <value>The participants service is missing: it cannot be read.</value>
+  </data>
+  <data name="Work_Notice_NoLinks" xml:space="preserve">
+    <value>The links service is missing: they cannot be seen or changed.</value>
+  </data>
+  <data name="Work_Notice_NoBudgets" xml:space="preserve">
+    <value>The budget store is missing: none can be saved.</value>
+  </data>
+  <data name="Work_Notice_NoEvidence" xml:space="preserve">
+    <value>There is no store to read the evidence from.</value>
+  </data>
+  <data name="Work_Problem_NoProject" xml:space="preserve">
+    <value>Open a folder first.</value>
+  </data>
+  <data name="Info_Work_Milestones_Title" xml:space="preserve">
+    <value>Milestones</value>
+  </data>
+  <data name="Info_Work_Milestones_What" xml:space="preserve">
+    <value>A milestone is a named goal. Its requirements are frozen when you open it. You link runs and debates to it. To close it, a judge audits it.</value>
+  </data>
+  <data name="Info_Work_Milestones_Actions" xml:space="preserve">
+    <value>Pick the backlog requirements and open the milestone.
+Link the runs and debates that make it up.
+Close the milestone: it asks your approval, like an audit.
+Read the report of the close. You can reopen the milestone.</value>
+  </data>
+  <data name="Work_Milestone_New" xml:space="preserve">
+    <value>Open a new milestone</value>
+  </data>
+  <data name="Work_Milestone_NameLabel" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Work_Milestone_ObjectiveLabel" xml:space="preserve">
+    <value>Objective</value>
+  </data>
+  <data name="Work_Milestone_PickRequirements" xml:space="preserve">
+    <value>Requirements of the milestone (from the backlog)</value>
+  </data>
+  <data name="Work_Milestone_NoBacklog" xml:space="preserve">
+    <value>The backlog is empty. Note the requirements first in the Backlog section.</value>
+  </data>
+  <data name="Work_Milestone_BudgetLabel" xml:space="preserve">
+    <value>Budget of the milestone (optional)</value>
+  </data>
+  <data name="Work_Milestone_Open" xml:space="preserve">
+    <value>Open milestone</value>
+  </data>
+  <data name="Work_Milestone_Opened" xml:space="preserve">
+    <value>Milestone opened: {0}.</value>
+  </data>
+  <data name="Work_Milestone_List" xml:space="preserve">
+    <value>Milestones of the project</value>
+  </data>
+  <data name="Work_Milestone_Empty" xml:space="preserve">
+    <value>There is no milestone yet.</value>
+  </data>
+  <data name="Work_Milestone_Targets" xml:space="preserve">
+    <value>{0} runs and {1} debates</value>
+  </data>
+  <data name="Work_Milestone_Requirements" xml:space="preserve">
+    <value>Frozen sets of requirements: {0}</value>
+  </data>
+  <data name="Work_Milestone_Linked" xml:space="preserve">
+    <value>Linked runs and debates</value>
+  </data>
+  <data name="Work_Milestone_NothingLinked" xml:space="preserve">
+    <value>Nothing is linked. To close it you need one run.</value>
+  </data>
+  <data name="Work_Milestone_TargetRun" xml:space="preserve">
+    <value>Run {0}</value>
+  </data>
+  <data name="Work_Milestone_TargetDebate" xml:space="preserve">
+    <value>Debate {0}</value>
+  </data>
+  <data name="Work_Milestone_RunPick" xml:space="preserve">
+    <value>Run to link</value>
+  </data>
+  <data name="Work_Milestone_DebatePick" xml:space="preserve">
+    <value>Debate to link</value>
+  </data>
+  <data name="Work_Milestone_LinkRun" xml:space="preserve">
+    <value>Link run</value>
+  </data>
+  <data name="Work_Milestone_LinkDebate" xml:space="preserve">
+    <value>Link debate</value>
+  </data>
+  <data name="Work_Milestone_RunLinked" xml:space="preserve">
+    <value>Run linked.</value>
+  </data>
+  <data name="Work_Milestone_DebateLinked" xml:space="preserve">
+    <value>Debate linked.</value>
+  </data>
+  <data name="Work_Milestone_Reports" xml:space="preserve">
+    <value>Reports of the close</value>
+  </data>
+  <data name="Work_Milestone_NoReports" xml:space="preserve">
+    <value>It has not been closed yet: there is no report.</value>
+  </data>
+  <data name="Work_Milestone_Problem" xml:space="preserve">
+    <value>Problem of the milestone: {0}</value>
+  </data>
+  <data name="Work_Milestone_Reopened" xml:space="preserve">
+    <value>Milestone reopened. The previous report is kept.</value>
+  </data>
+  <data name="Work_Status_Problems" xml:space="preserve">
+    <value>With problems</value>
+  </data>
+  <data name="Work_Status_Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Work_Status_Closed" xml:space="preserve">
+    <value>Closed</value>
+  </data>
+  <data name="Work_Problem_NoName" xml:space="preserve">
+    <value>The name is missing.</value>
+  </data>
+  <data name="Work_Problem_NoObjective" xml:space="preserve">
+    <value>The objective is missing.</value>
+  </data>
+  <data name="Work_Problem_NoRequirements" xml:space="preserve">
+    <value>Pick at least one requirement from the backlog.</value>
+  </data>
+  <data name="Work_Problem_NeedsCriteria" xml:space="preserve">
+    <value>"{0}" is mandatory and has no criteria.</value>
+  </data>
+  <data name="Work_Problem_BadTokens" xml:space="preserve">
+    <value>The token limit must be a whole number above zero, or empty.</value>
+  </data>
+  <data name="Work_Problem_BadRuns" xml:space="preserve">
+    <value>The run limit must be a whole number above zero, or empty.</value>
+  </data>
+  <data name="Work_Problem_NoLimit" xml:space="preserve">
+    <value>Set a limit of tokens, of runs or of both.</value>
+  </data>
+  <data name="Work_Close_Heading" xml:space="preserve">
+    <value>Close the milestone</value>
+  </data>
+  <data name="Work_Close_Explain" xml:space="preserve">
+    <value>Closing a milestone means auditing it. A judge that did not write the code reviews it. Your approval is asked and it uses the usage limit of your plan.</value>
+  </data>
+  <data name="Work_Close_Judge" xml:space="preserve">
+    <value>Judge</value>
+  </data>
+  <data name="Work_Close_Authors" xml:space="preserve">
+    <value>Who wrote the code</value>
+  </data>
+  <data name="Work_Close_Button" xml:space="preserve">
+    <value>Close milestone</value>
+  </data>
+  <data name="Work_Close_Waiting" xml:space="preserve">
+    <value>Waiting for your approval and the verdict of the judge…</value>
+  </data>
+  <data name="Work_Close_Done" xml:space="preserve">
+    <value>Milestone closed. Report number {0}.</value>
+  </data>
+  <data name="Work_Close_Refused" xml:space="preserve">
+    <value>The milestone was not closed: {0}</value>
+  </data>
+  <data name="Work_Refused_milestone_not_found" xml:space="preserve">
+    <value>that milestone does not exist.</value>
+  </data>
+  <data name="Work_Refused_milestone_problems" xml:space="preserve">
+    <value>the milestone has problems in its history.</value>
+  </data>
+  <data name="Work_Refused_milestone_not_open" xml:space="preserve">
+    <value>the milestone is already closed.</value>
+  </data>
+  <data name="Work_Refused_milestone_nothing_to_close" xml:space="preserve">
+    <value>it has no linked run: there is nothing to audit.</value>
+  </data>
+  <data name="Work_Refused_milestone_no_judge" xml:space="preserve">
+    <value>nobody can judge it without repeating the company that wrote the code.</value>
+  </data>
+  <data name="Work_Refused_log_not_intact" xml:space="preserve">
+    <value>the decision history is not intact.</value>
+  </data>
+  <data name="Work_Refused_milestone_audit_not_run" xml:space="preserve">
+    <value>the audit did not run (it was not approved or it could not run).</value>
+  </data>
+  <data name="Work_Refused_milestone_closing" xml:space="preserve">
+    <value>a close of this milestone is already going on.</value>
+  </data>
+  <data name="Work_Refused_milestone_requirements" xml:space="preserve">
+    <value>the frozen requirements of the milestone are missing.</value>
+  </data>
+  <data name="Work_Refused_Other" xml:space="preserve">
+    <value>rule {0}.</value>
+  </data>
+  <data name="Work_Reopen_Heading" xml:space="preserve">
+    <value>Reopen the milestone</value>
+  </data>
+  <data name="Work_Reopen_Note" xml:space="preserve">
+    <value>Why you reopen it (optional)</value>
+  </data>
+  <data name="Work_Reopen_Button" xml:space="preserve">
+    <value>Reopen milestone</value>
+  </data>
+  <data name="Work_Report_Row" xml:space="preserve">
+    <value>Report {0} · {1}</value>
+  </data>
+  <data name="Work_Report_Audit" xml:space="preserve">
+    <value>Audit {0}</value>
+  </data>
+  <data name="Work_Report_Commit" xml:space="preserve">
+    <value>Saved version (commit) {0}</value>
+  </data>
+  <data name="Work_Report_NoCommit" xml:space="preserve">
+    <value>No saved version was audited.</value>
+  </data>
+  <data name="Work_Report_Open" xml:space="preserve">
+    <value>View report</value>
+  </data>
+  <data name="Work_Report_Text" xml:space="preserve">
+    <value>Text of the report</value>
+  </data>
+  <data name="Info_Work_Backlog_Title" xml:space="preserve">
+    <value>Backlog</value>
+  </data>
+  <data name="Info_Work_Backlog_What" xml:space="preserve">
+    <value>The backlog keeps requirements you have not planned yet. Each change creates a new version. Nothing is deleted: what you retire leaves the list and its history stays.</value>
+  </data>
+  <data name="Info_Work_Backlog_Actions" xml:space="preserve">
+    <value>Write the requirement and choose its priority.
+Add the criteria that check it.
+Pick an item from the list to save a new version.
+Retire what you no longer want.</value>
+  </data>
+  <data name="Work_Backlog_List" xml:space="preserve">
+    <value>Items of the backlog</value>
+  </data>
+  <data name="Work_Backlog_Empty" xml:space="preserve">
+    <value>The backlog is empty.</value>
+  </data>
+  <data name="Work_Backlog_Statement" xml:space="preserve">
+    <value>Requirement</value>
+  </data>
+  <data name="Work_Backlog_Priority" xml:space="preserve">
+    <value>Priority</value>
+  </data>
+  <data name="Work_Backlog_Criteria" xml:space="preserve">
+    <value>Acceptance criteria</value>
+  </data>
+  <data name="Work_Backlog_CriterionText" xml:space="preserve">
+    <value>What must hold</value>
+  </data>
+  <data name="Work_Backlog_CriterionMethod" xml:space="preserve">
+    <value>How it is checked</value>
+  </data>
+  <data name="Work_Backlog_AddCriterion" xml:space="preserve">
+    <value>Add criterion</value>
+  </data>
+  <data name="Work_Backlog_RemoveCriterion" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="Work_Backlog_Add" xml:space="preserve">
+    <value>Note item</value>
+  </data>
+  <data name="Work_Backlog_SaveVersion" xml:space="preserve">
+    <value>Save new version</value>
+  </data>
+  <data name="Work_Backlog_New" xml:space="preserve">
+    <value>New item</value>
+  </data>
+  <data name="Work_Backlog_Retire" xml:space="preserve">
+    <value>Retire</value>
+  </data>
+  <data name="Work_Backlog_Added" xml:space="preserve">
+    <value>Item noted (version {0}).</value>
+  </data>
+  <data name="Work_Backlog_Revised" xml:space="preserve">
+    <value>Version {0} saved.</value>
+  </data>
+  <data name="Work_Backlog_Retired" xml:space="preserve">
+    <value>Item retired. Its history is kept.</value>
+  </data>
+  <data name="Work_Backlog_Version" xml:space="preserve">
+    <value>Version {0}</value>
+  </data>
+  <data name="Work_Count_Criterion_One" xml:space="preserve">
+    <value>{0} criterion</value>
+  </data>
+  <data name="Work_Count_Criterion_Other" xml:space="preserve">
+    <value>{0} criteria</value>
+  </data>
+  <data name="Work_Priority_Mandatory" xml:space="preserve">
+    <value>Mandatory</value>
+  </data>
+  <data name="Work_Priority_Desirable" xml:space="preserve">
+    <value>Desirable</value>
+  </data>
+  <data name="Work_Method_AutomatedTest" xml:space="preserve">
+    <value>Automated test</value>
+  </data>
+  <data name="Work_Method_CommandCheck" xml:space="preserve">
+    <value>Command check</value>
+  </data>
+  <data name="Work_Method_HumanReview" xml:space="preserve">
+    <value>Review by a person</value>
+  </data>
+  <data name="Work_Method_JudgeAssessment" xml:space="preserve">
+    <value>Assessment by the judge</value>
+  </data>
+  <data name="Info_Work_Board_Title" xml:space="preserve">
+    <value>Board</value>
+  </data>
+  <data name="Info_Work_Board_What" xml:space="preserve">
+    <value>The board shows the state of each requirement of the milestone. Its columns come from the verified history. Nothing is dragged to Done: without an approved verdict, no card gets there.</value>
+  </data>
+  <data name="Info_Work_Board_Actions" xml:space="preserve">
+    <value>Choose a milestone in the Milestones section.
+Read which column each card is in.
+A card in review says why.
+Press View chain to follow its path.</value>
+  </data>
+  <data name="Work_Board_Milestone" xml:space="preserve">
+    <value>Milestone: {0}</value>
+  </data>
+  <data name="Work_Board_NoMilestone" xml:space="preserve">
+    <value>Choose a milestone in the Milestones section to see its board.</value>
+  </data>
+  <data name="Work_Board_Read" xml:space="preserve">
+    <value>Read from the verified history ({0} entries).</value>
+  </data>
+  <data name="Work_Board_Count" xml:space="preserve">
+    <value>Cards: {0}</value>
+  </data>
+  <data name="Work_Board_Run" xml:space="preserve">
+    <value>Run {0}</value>
+  </data>
+  <data name="Work_Board_ProjectBacklog" xml:space="preserve">
+    <value>Backlog of the project</value>
+  </data>
+  <data name="Work_Board_ProjectBacklogEmpty" xml:space="preserve">
+    <value>There are no items in the backlog.</value>
+  </data>
+  <data name="Work_Column_Backlog" xml:space="preserve">
+    <value>Backlog</value>
+  </data>
+  <data name="Work_Column_Planned" xml:space="preserve">
+    <value>Planned</value>
+  </data>
+  <data name="Work_Column_InProgress" xml:space="preserve">
+    <value>In progress</value>
+  </data>
+  <data name="Work_Column_InReview" xml:space="preserve">
+    <value>In review</value>
+  </data>
+  <data name="Work_Column_Returned" xml:space="preserve">
+    <value>Returned</value>
+  </data>
+  <data name="Work_Column_Done" xml:space="preserve">
+    <value>Done</value>
+  </data>
+  <data name="Work_Column_Integrated" xml:space="preserve">
+    <value>Integrated</value>
+  </data>
+  <data name="Work_CardKind_Requirement" xml:space="preserve">
+    <value>Requirement</value>
+  </data>
+  <data name="Work_CardKind_Task" xml:space="preserve">
+    <value>Task</value>
+  </data>
+  <data name="Work_Reason_AwaitingApproval" xml:space="preserve">
+    <value>Waiting for your approval.</value>
+  </data>
+  <data name="Work_Reason_WaitingForQuota" xml:space="preserve">
+    <value>Waiting for the usage limit of your plan to renew.</value>
+  </data>
+  <data name="Work_Reason_AwaitingAnswer" xml:space="preserve">
+    <value>Waiting for your answer to a question of the agent.</value>
+  </data>
+  <data name="Work_Reason_Blocked" xml:space="preserve">
+    <value>It is blocked, for example by a restart that interrupted it.</value>
+  </data>
+  <data name="Work_Reason_Challenged" xml:space="preserve">
+    <value>You challenged the verdict and its review has not ended.</value>
+  </data>
+  <data name="Work_Reason_EscalatedToPerson" xml:space="preserve">
+    <value>The verdict leaves the decision to you.</value>
+  </data>
+  <data name="Work_Reason_Unresolved" xml:space="preserve">
+    <value>The judge could not decide with the evidence there is.</value>
+  </data>
+  <data name="Work_Reason_RunFailed" xml:space="preserve">
+    <value>The run failed or was cancelled.</value>
+  </data>
+  <data name="Work_Rules_Heading" xml:space="preserve">
+    <value>How the column is decided</value>
+  </data>
+  <data name="Work_Rule_NeedsVerdict" xml:space="preserve">
+    <value>A card only reaches Done or Integrated with a valid, approved verdict.</value>
+  </data>
+  <data name="Work_Rule_IntegratedNeedsDone" xml:space="preserve">
+    <value>Today, to be Integrated a card must be Done. A delivery without an approved verdict stays where it is.</value>
+  </data>
+  <data name="Work_Rule_ApprovedNotMet" xml:space="preserve">
+    <value>Today an approved verdict that does not say the requirement is met leaves it in review.</value>
+  </data>
+  <data name="Work_Rule_CloseNeedsRun" xml:space="preserve">
+    <value>Today closing a milestone needs a linked run.</value>
+  </data>
+  <data name="Work_Rule_TestsAndDocs" xml:space="preserve">
+    <value>Today a change that only touches tests or documents counts as tests.</value>
+  </data>
+  <data name="Info_Work_Chain_Title" xml:space="preserve">
+    <value>Chain</value>
+  </data>
+  <data name="Info_Work_Chain_What" xml:space="preserve">
+    <value>The chain joins a requirement to its delivery. It goes through the milestone, the task, the attempt, the change, the verification and the verdict. Only what is in the history counts.</value>
+  </data>
+  <data name="Info_Work_Chain_Actions" xml:space="preserve">
+    <value>Press View chain on a card, a milestone or an item.
+Open a diff, a saved test run or a verdict.
+A node without a link cannot be opened from here.
+Center the chain on any node.</value>
+  </data>
+  <data name="Work_Chain_NoStart" xml:space="preserve">
+    <value>Choose a card, a milestone or an item and press View chain.</value>
+  </data>
+  <data name="Work_Chain_Start" xml:space="preserve">
+    <value>Chain from: {0} {1}</value>
+  </data>
+  <data name="Work_Chain_Node" xml:space="preserve">
+    <value>{0} · {1}</value>
+  </data>
+  <data name="Work_Chain_Empty" xml:space="preserve">
+    <value>There is no chain to show for this node.</value>
+  </data>
+  <data name="Work_Chain_Suggested" xml:space="preserve">
+    <value>Inferred, not confirmed.</value>
+  </data>
+  <data name="Work_Chain_NoLink" xml:space="preserve">
+    <value>No link: the app has nowhere to open it.</value>
+  </data>
+  <data name="Work_Chain_Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Work_Chain_Center" xml:space="preserve">
+    <value>Center here</value>
+  </data>
+  <data name="Work_Chain_ProofText" xml:space="preserve">
+    <value>Content of the saved proof</value>
+  </data>
+  <data name="Work_Verdict_Title" xml:space="preserve">
+    <value>Verdict {0}</value>
+  </data>
+  <data name="Work_Verdict_Missing" xml:space="preserve">
+    <value>The verdict is not stored.</value>
+  </data>
+  <data name="Work_Verdict_Judge" xml:space="preserve">
+    <value>Judge: {0} ({1})</value>
+  </data>
+  <data name="Work_Verdict_Valid" xml:space="preserve">
+    <value>It is valid.</value>
+  </data>
+  <data name="Work_Verdict_Invalid" xml:space="preserve">
+    <value>It is not valid: it does not count.</value>
+  </data>
+  <data name="Work_Stage_Requirement" xml:space="preserve">
+    <value>Requirement</value>
+  </data>
+  <data name="Work_Stage_Milestone" xml:space="preserve">
+    <value>Milestone</value>
+  </data>
+  <data name="Work_Stage_Task" xml:space="preserve">
+    <value>Task</value>
+  </data>
+  <data name="Work_Stage_Attempt" xml:space="preserve">
+    <value>Attempt</value>
+  </data>
+  <data name="Work_Stage_Change" xml:space="preserve">
+    <value>Change (diff)</value>
+  </data>
+  <data name="Work_Stage_Verification" xml:space="preserve">
+    <value>Verification</value>
+  </data>
+  <data name="Work_Stage_Verdict" xml:space="preserve">
+    <value>Verdict</value>
+  </data>
+  <data name="Work_Stage_Delivery" xml:space="preserve">
+    <value>Delivery</value>
+  </data>
+  <data name="Work_Node_Requirement" xml:space="preserve">
+    <value>Requirement</value>
+  </data>
+  <data name="Work_Node_BacklogItem" xml:space="preserve">
+    <value>Backlog item</value>
+  </data>
+  <data name="Work_Node_Milestone" xml:space="preserve">
+    <value>Milestone</value>
+  </data>
+  <data name="Work_Node_Run" xml:space="preserve">
+    <value>Run</value>
+  </data>
+  <data name="Work_Node_Task" xml:space="preserve">
+    <value>Task</value>
+  </data>
+  <data name="Work_Node_Attempt" xml:space="preserve">
+    <value>Attempt</value>
+  </data>
+  <data name="Work_Node_Commit" xml:space="preserve">
+    <value>Saved version</value>
+  </data>
+  <data name="Work_Node_Evidence" xml:space="preserve">
+    <value>Evidence</value>
+  </data>
+  <data name="Work_Node_Verdict" xml:space="preserve">
+    <value>Verdict</value>
+  </data>
+  <data name="Work_Node_Debate" xml:space="preserve">
+    <value>Debate</value>
+  </data>
+  <data name="Work_Node_Audit" xml:space="preserve">
+    <value>Audit</value>
+  </data>
+  <data name="Work_Node_Document" xml:space="preserve">
+    <value>Document</value>
+  </data>
+  <data name="Info_Work_Participation_Title" xml:space="preserve">
+    <value>Participants</value>
+  </data>
+  <data name="Info_Work_Participation_What" xml:space="preserve">
+    <value>Here you see who took each role in a task, a run or a milestone. There are six roles and they are never mixed up. If no source says so, it reads No consta.</value>
+  </data>
+  <data name="Info_Work_Participation_Actions" xml:space="preserve">
+    <value>Press View chain on a card to choose the subject.
+Pick the task, the run or the milestone.
+Read who each role is and where it comes from.
+A role without a source is never deduced from another.</value>
+  </data>
+  <data name="Work_Participation_NoSubject" xml:space="preserve">
+    <value>Choose a card or a milestone to see its participants.</value>
+  </data>
+  <data name="Work_Participation_Subject" xml:space="preserve">
+    <value>Subject</value>
+  </data>
+  <data name="Work_Participation_NotRecorded" xml:space="preserve">
+    <value>No consta</value>
+  </data>
+  <data name="Work_Participation_Source" xml:space="preserve">
+    <value>Source: {0}</value>
+  </data>
+  <data name="Work_Role_ProducingAgent" xml:space="preserve">
+    <value>Producing agent</value>
+  </data>
+  <data name="Work_Role_GitAuthorAndCommitter" xml:space="preserve">
+    <value>Author of the saved version</value>
+  </data>
+  <data name="Work_Role_PublishingAccount" xml:space="preserve">
+    <value>Publishing account</value>
+  </data>
+  <data name="Work_Role_Reviewer" xml:space="preserve">
+    <value>Reviewer</value>
+  </data>
+  <data name="Work_Role_Approver" xml:space="preserve">
+    <value>Approver</value>
+  </data>
+  <data name="Work_Role_Integrator" xml:space="preserve">
+    <value>Integrator</value>
+  </data>
+  <data name="Work_Source_Attempt" xml:space="preserve">
+    <value>the attempt of the agent</value>
+  </data>
+  <data name="Work_Source_Commit" xml:space="preserve">
+    <value>the saved version (commit)</value>
+  </data>
+  <data name="Work_Source_Verdict" xml:space="preserve">
+    <value>the verdict of the judge</value>
+  </data>
+  <data name="Work_Source_Approval" xml:space="preserve">
+    <value>the signed approval</value>
+  </data>
+  <data name="Work_Source_LocalDelivery" xml:space="preserve">
+    <value>the local delivery</value>
+  </data>
+  <data name="Work_Source_SkippedReview" xml:space="preserve">
+    <value>the review was skipped</value>
+  </data>
+  <data name="Info_Work_Links_Title" xml:space="preserve">
+    <value>Links</value>
+  </data>
+  <data name="Info_Work_Links_What" xml:space="preserve">
+    <value>A link joins two things of the work, for example a requirement and a saved version. The system proposes links it infers. They count only when you confirm them.</value>
+  </data>
+  <data name="Info_Work_Links_Actions" xml:space="preserve">
+    <value>Press View chain to choose the node.
+Confirm a suggestion if it is right.
+Retire a link and say why.
+A retired link stays in the history.</value>
+  </data>
+  <data name="Work_Link_InForce" xml:space="preserve">
+    <value>Links in force</value>
+  </data>
+  <data name="Work_Link_None" xml:space="preserve">
+    <value>This node has no links.</value>
+  </data>
+  <data name="Work_Link_Line" xml:space="preserve">
+    <value>{0} → {1}</value>
+  </data>
+  <data name="Work_Link_By" xml:space="preserve">
+    <value>Stated by: {0}</value>
+  </data>
+  <data name="Work_Asserted_System" xml:space="preserve">
+    <value>the system</value>
+  </data>
+  <data name="Work_Asserted_User" xml:space="preserve">
+    <value>a person</value>
+  </data>
+  <data name="Work_Link_Retract" xml:space="preserve">
+    <value>Retire link</value>
+  </data>
+  <data name="Work_Link_ReasonLabel" xml:space="preserve">
+    <value>Why you retire it</value>
+  </data>
+  <data name="Work_Link_NeedsReason" xml:space="preserve">
+    <value>Write why you retire the link.</value>
+  </data>
+  <data name="Work_Link_Retracted" xml:space="preserve">
+    <value>Link retired. It stays in the history.</value>
+  </data>
+  <data name="Work_Link_Suggested" xml:space="preserve">
+    <value>Suggestions of the system</value>
+  </data>
+  <data name="Work_Link_NoSuggestions" xml:space="preserve">
+    <value>There are no suggestions for this node.</value>
+  </data>
+  <data name="Work_Link_Inferred" xml:space="preserve">
+    <value>Inferred from {0}: {1}</value>
+  </data>
+  <data name="Work_Link_Confirm" xml:space="preserve">
+    <value>Confirm link</value>
+  </data>
+  <data name="Work_Link_Confirmed" xml:space="preserve">
+    <value>Link confirmed.</value>
+  </data>
+  <data name="Work_Suggestion_CommitMessageMention" xml:space="preserve">
+    <value>the message of a saved version</value>
+  </data>
+  <data name="Work_Suggestion_CommitTrailer" xml:space="preserve">
+    <value>the marks of a saved version</value>
+  </data>
+  <data name="Work_Suggestion_RunBranchName" xml:space="preserve">
+    <value>the name of a branch</value>
+  </data>
+  <data name="Work_Suggestion_PullRequestMention" xml:space="preserve">
+    <value>a pull request</value>
+  </data>
+  <data name="Info_Work_Budgets_Title" xml:space="preserve">
+    <value>Budgets</value>
+  </data>
+  <data name="Info_Work_Budgets_What" xml:space="preserve">
+    <value>A budget limits the tokens or the runs of a project or a milestone. If an attempt would pass it, the engine does not launch it and says so. It does not widen the usage limit of your plan.</value>
+  </data>
+  <data name="Info_Work_Budgets_Actions" xml:space="preserve">
+    <value>Set a limit of tokens, of runs or of both.
+Choose the period it covers.
+Save the budget of the project.
+That of a milestone is fixed when it opens and never changes.</value>
+  </data>
+  <data name="Work_Budget_Explain" xml:space="preserve">
+    <value>The budget of the project is kept on this computer and never enters the repository.</value>
+  </data>
+  <data name="Work_Budget_Project" xml:space="preserve">
+    <value>Budget of the project</value>
+  </data>
+  <data name="Work_Budget_None" xml:space="preserve">
+    <value>No budget</value>
+  </data>
+  <data name="Work_Budget_Line" xml:space="preserve">
+    <value>Budget: {0} ({1})</value>
+  </data>
+  <data name="Work_Budget_Tokens" xml:space="preserve">
+    <value>{0} tokens</value>
+  </data>
+  <data name="Work_Budget_Runs" xml:space="preserve">
+    <value>{0} agent runs</value>
+  </data>
+  <data name="Work_Budget_TokensLabel" xml:space="preserve">
+    <value>Token limit</value>
+  </data>
+  <data name="Work_Budget_RunsLabel" xml:space="preserve">
+    <value>Run limit</value>
+  </data>
+  <data name="Work_Budget_PeriodLabel" xml:space="preserve">
+    <value>Period</value>
+  </data>
+  <data name="Work_Budget_Save" xml:space="preserve">
+    <value>Save budget</value>
+  </data>
+  <data name="Work_Budget_Remove" xml:space="preserve">
+    <value>Remove budget</value>
+  </data>
+  <data name="Work_Budget_Saved" xml:space="preserve">
+    <value>Budget saved. The engine reads it before launching an attempt.</value>
+  </data>
+  <data name="Work_Budget_Removed" xml:space="preserve">
+    <value>Budget removed.</value>
+  </data>
+  <data name="Work_Budget_Milestones" xml:space="preserve">
+    <value>Budget of each milestone</value>
+  </data>
+  <data name="Work_Budget_NoMilestones" xml:space="preserve">
+    <value>There are no milestones yet.</value>
+  </data>
+  <data name="Work_Period_Total" xml:space="preserve">
+    <value>in total</value>
+  </data>
+  <data name="Work_Period_Day" xml:space="preserve">
+    <value>per day</value>
+  </data>
+  <data name="Work_Period_Week" xml:space="preserve">
+    <value>per week</value>
+  </data>
+  <data name="Work_Period_Month" xml:space="preserve">
+    <value>per month</value>
+  </data>
+  <data name="Info_Work_Title" xml:space="preserve">
+    <value>Work</value>
+  </data>
+  <data name="Info_Work_What" xml:space="preserve">
+    <value>Here you follow the work of the project. You see milestones, backlog, board, chain and budgets. Everything is read from the verified history.</value>
+  </data>
+  <data name="Info_Work_Actions" xml:space="preserve">
+    <value>Choose a section in the list on the left.
+Note requirements and open a milestone with them.
+Follow the board and walk the chain of each card.
+Set a budget if you want a limit.</value>
+  </data>
+</root>

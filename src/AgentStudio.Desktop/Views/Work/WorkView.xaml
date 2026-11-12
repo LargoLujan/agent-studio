@@ -1,0 +1,62 @@
+<UserControl x:Class="AgentStudio.Desktop.Views.Work.WorkView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
+             xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
+             xmlns:work="clr-namespace:AgentStudio.Desktop.Work"
+             xmlns:views="clr-namespace:AgentStudio.Desktop.Views.Work"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=work:WorkDocumentViewModel}">
+    <!-- «Trabajo» (docs/16 §4.6, docs/03): the milestones, the backlog, the board, the chain, the participants, the links and the
+         budgets of the project open, each one a projection of the verified log. A list of sections on the left and the one chosen on the
+         right. Bindings only. -->
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="Work.BoolToVisibility"/>
+        <DataTemplate DataType="{x:Type work:MilestonesSection}"><views:MilestonesView/></DataTemplate>
+        <DataTemplate DataType="{x:Type work:BacklogSection}"><views:BacklogView/></DataTemplate>
+        <DataTemplate DataType="{x:Type work:BoardSection}"><views:BoardView/></DataTemplate>
+        <DataTemplate DataType="{x:Type work:ChainSection}"><views:ChainView/></DataTemplate>
+        <DataTemplate DataType="{x:Type work:ParticipationSection}"><views:ParticipationView/></DataTemplate>
+        <DataTemplate DataType="{x:Type work:LinksSection}"><views:LinksView/></DataTemplate>
+        <DataTemplate DataType="{x:Type work:BudgetsSection}"><views:BudgetsView/></DataTemplate>
+    </UserControl.Resources>
+
+    <Grid Background="{StaticResource SurfaceBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,10">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Style="{StaticResource TitleText}" VerticalAlignment="Center" Text="{l:T Work_Title}"/>
+                    <info:InfoButton InfoKey="Info_Work" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="{l:T Work_Intro}"/>
+                <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="0,4,0,0" Text="{Binding StatusMessage, TargetNullValue=''}"/>
+                <TextBlock Style="{StaticResource ErrorText}" Margin="0,4,0,0" Text="{Binding ErrorMessage, TargetNullValue=''}"/>
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="190"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <ListBox Grid.Column="0" ItemsSource="{Binding Sections}" SelectedItem="{Binding SelectedSection}" Margin="8"
+                     AutomationProperties.Name="{l:T Work_Sections_Name}" Background="Transparent" BorderThickness="0">
+                <ListBox.ItemTemplate>
+                    <DataTemplate DataType="{x:Type work:WorkSection}">
+                        <TextBlock Style="{StaticResource BodyText}" Margin="4,3" Text="{Binding Title}"/>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+            <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <ContentControl Margin="12" Content="{Binding SelectedSection}" IsTabStop="False"/>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</UserControl>

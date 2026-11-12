@@ -51,6 +51,7 @@ public static class AppComposition
         services.AddShellServices(app.Roaming);
         services.AddAgentStudioHelp();
         services.AddClientDocumentsServices();
+        services.AddWorkUiServices(Path.Combine(app.Local.BaseDirectory, "budgets"));
         return services;
     }
 }

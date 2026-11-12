@@ -33,7 +33,7 @@ internal static partial class TextGuide
         "Strings", "CanvasStrings", "MonitorStrings", "SetupStrings", "ModelsStrings", "EstimatesStrings", "ConsumptionStrings",
         "HelloStrings", "IntegrationStrings", "MontageStrings", "PanelsStrings", "OrchestratorStrings", "DebateStrings", "AuditStrings",
         "BackgroundStrings", "LockStrings", "ObservabilityStrings", "MemoryStrings", "SkillsStrings", "ShellStrings",
-        "ControlsStrings", "ServicesStrings", "UsageStrings", "RepositoryStrings",
+        "ControlsStrings", "ServicesStrings", "UsageStrings", "RepositoryStrings", "WorkStrings",
         // HelpStrings and DocumentsStrings (Desktop/Help, Desktop/Documents) are written by other packages of Phase 14: they join
         // this list when they are integrated.
     ];
