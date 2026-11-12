@@ -10,6 +10,7 @@ using AgentStudio.Desktop.Background;
 using AgentStudio.Desktop.Controls.Editor;
 using AgentStudio.Desktop.Debate;
 using AgentStudio.Desktop.Help;
+using AgentStudio.Desktop.Graph;
 using AgentStudio.Desktop.Documents;
 using AgentStudio.Desktop.Memory;
 using AgentStudio.Desktop.Repository;
@@ -180,7 +181,8 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         RepositoryViewModel? repository = null,
         WorkDocumentViewModel? workDocument = null,
         HeadTestsServices? headTests = null,
-        OpenProjectRoots? projectRoots = null)
+        OpenProjectRoots? projectRoots = null,
+        GraphDocumentViewModel? graphDocument = null)
     {
         ArgumentNullException.ThrowIfNull(settingsStore);
         ArgumentNullException.ThrowIfNull(folderPicker);
@@ -206,6 +208,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         _memory = memory;
         _clientDocuments = clientDocuments;
         _workDocument = workDocument;
+        _graphDocument = graphDocument;
         _projectRoots = projectRoots;
         _upkeep = upkeep;
         _debates = debates;
@@ -235,6 +238,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         InitializeHelp(help);
         InitializeRepository(repository);
         ConnectRepositoryToWork();
+        ConnectGraph();
         Activities =
         [
             new("explorer", Texts.Get("Main_Panel_Explorer"), "", null, PanelIds.Explorer, TogglePanelCommand),
@@ -246,6 +250,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
             .. RepositoryActivities(),
             .. ClientDocumentActivities(),
             .. WorkActivities(),
+            .. GraphActivities(),
             .. DebateActivities(),
             new("terminal", Texts.Get("Main_Panel_Terminal"), "", null, PanelIds.Terminal, TogglePanelCommand) { Shortcut = TerminalShortcutHint },
             new("autodoctor", Texts.Get("Main_Panel_AutoDoctor"), "", null, PanelIds.AutoDoctor, TogglePanelCommand),
@@ -629,6 +634,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         await ShowProjectInRepositoryAsync(projectPath);
         await ShowProjectInDocumentsAsync(projectPath);
         await ShowProjectInWorkAsync(projectPath);
+        await ShowProjectInGraphAsync(projectPath);
     }
 
     /// <summary>

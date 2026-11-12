@@ -16,10 +16,14 @@ public sealed partial class GraphDocumentViewModel : DocumentViewModel
 
     private readonly List<GraphSection> _sections;
 
-    public GraphDocumentViewModel(IEnumerable<GraphSection> sections)
+    private readonly IProjectWorkspace? _workspace;
+
+    /// <param name="workspace">Opens the project the shell follows as a <see cref="ProjectContext"/> (<see cref="SetProjectRootAsync"/>); without it only <see cref="SetProjectAsync"/> sets one.</param>
+    public GraphDocumentViewModel(IEnumerable<GraphSection> sections, IProjectWorkspace? workspace = null)
         : base(DocumentId, Texts.Get("Graph_Title"))
     {
         ArgumentNullException.ThrowIfNull(sections);
+        _workspace = workspace;
         _sections = [.. sections];
         if (_sections.Any(s => s is null))
         {
@@ -51,6 +55,27 @@ public sealed partial class GraphDocumentViewModel : DocumentViewModel
 
         OnPropertyChanged(nameof(HasProject));
         await ReloadAsync(ct).ConfigureAwait(true);
+    }
+
+    /// <summary>The shell follows a project by its folder (null: none): the document opens it as the project the sections read. Without a workspace nothing is shown.</summary>
+    public async Task SetProjectRootAsync(string? projectRoot, CancellationToken ct)
+    {
+        ProjectContext? project = null;
+        if (projectRoot is { Length: > 0 } && _workspace is { } workspace)
+        {
+            try
+            {
+                project = await workspace.OpenAsync(projectRoot, ct).ConfigureAwait(true);
+            }
+#pragma warning disable CA1031 // The store of projects is behind a port: a project that cannot be opened is shown as none, never thrown into the UI.
+            catch (Exception ex) when (ex is not OperationCanceledException)
+#pragma warning restore CA1031
+            {
+                project = null;
+            }
+        }
+
+        await SetProjectAsync(project, ct).ConfigureAwait(true);
     }
 
     /// <summary>Reads every section again, one after the other.</summary>

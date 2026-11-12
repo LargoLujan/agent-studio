@@ -52,6 +52,7 @@ public static class AppComposition
         services.AddAgentStudioHelp();
         services.AddClientDocumentsServices();
         services.AddWorkUiServices(Path.Combine(app.Local.BaseDirectory, "budgets"));
+        services.AddGraphUiServices(Path.Combine(app.Local.BaseDirectory, "graph"));
         return services;
     }
 }
