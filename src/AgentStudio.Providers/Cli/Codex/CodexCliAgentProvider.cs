@@ -47,7 +47,7 @@ public sealed class CodexCliAgentProvider(IExecutableLocator locator, IStreaming
             throw new ArgumentException("codex exec does not load the local MCP servers of Agent Studio: only Claude Code launches them, read-only.", nameof(request));
         }
 
-        var located = locator.Find("codex") ?? throw new InvalidOperationException("Codex CLI was not found on the PATH.");
+        var located = locator.Find("codex") ?? throw new InvalidOperationException("Codex CLI was not found on the PATH." + InsideProjectNote.English(locator.FindInUntrustedRoot("codex")));
         var executable = CodexExecutableResolver.Resolve(located);
 
         string? tempDirectory = null;

@@ -12,45 +12,44 @@ public sealed class ExecutableLocator : IExecutableLocator
 
     private readonly Func<string?> _pathVariable;
     private readonly Func<string?> _pathExtVariable;
+    private readonly ExecutableSearch _search;
 
-    public ExecutableLocator(Func<string?>? pathVariable = null, Func<string?>? pathExtVariable = null)
+    public ExecutableLocator(Func<string?>? pathVariable = null, Func<string?>? pathExtVariable = null, IUntrustedRoots? roots = null)
     {
         _pathVariable = pathVariable ?? (() => Environment.GetEnvironmentVariable("PATH"));
         _pathExtVariable = pathExtVariable ?? (() => Environment.GetEnvironmentVariable("PATHEXT"));
+        UntrustedRoots = roots;
+        _search = new ExecutableSearch(roots, () => _pathVariable());
     }
+
+    /// <summary>The folders nothing is resolved from; null for a locator that trusts the whole PATH (the relative entries are still dropped).</summary>
+    public IUntrustedRoots? UntrustedRoots { get; }
 
     public string? Find(string command)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(command);
 
-        var path = _pathVariable();
-        if (string.IsNullOrWhiteSpace(path))
+        // Only fully qualified directories are searched (a relative entry would resolve against the current directory, which may
+        // be a repository that plants its own claude.cmd), and nothing inside an untrusted root is taken, wherever a link leads.
+        return _search.Find(_search.PathDirectories(), BuildCandidateNames(command), out _);
+    }
+
+    public string? FindInUntrustedRoot(string command)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(command);
+        if (UntrustedRoots is null)
         {
             return null;
         }
 
-        var candidates = BuildCandidateNames(command);
-        foreach (var rawDirectory in path.Split(Path.PathSeparator))
-        {
-            var directory = rawDirectory.Trim().Trim('"');
-            // A relative entry ("." or "bin") would resolve against the current directory, which may be a repository
-            // that plants its own claude.cmd: only fully qualified directories are searched.
-            if (directory.Length == 0 || !IsFullyQualified(directory))
-            {
-                continue;
-            }
+        _search.Find(_search.PathDirectories(), BuildCandidateNames(command), out var rejected);
+        return rejected;
+    }
 
-            foreach (var candidate in candidates)
-            {
-                var found = TryFile(directory, candidate);
-                if (found is not null)
-                {
-                    return found;
-                }
-            }
-        }
-
-        return null;
+    public bool IsUntrusted(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        return UntrustedRoots is not null && _search.IsUntrusted(path);
     }
 
     private List<string> BuildCandidateNames(string command)
@@ -81,38 +80,5 @@ public sealed class ExecutableLocator : IExecutableLocator
         }
 
         return names;
-    }
-
-    private static bool IsFullyQualified(string directory)
-    {
-        try
-        {
-            return Path.IsPathFullyQualified(directory);
-        }
-        catch (ArgumentException)
-        {
-            return false;
-        }
-    }
-
-    private static string? TryFile(string directory, string name)
-    {
-        try
-        {
-            var full = Path.Combine(directory, name);
-            return File.Exists(full) ? full : null;
-        }
-        catch (ArgumentException)
-        {
-            return null;
-        }
-        catch (NotSupportedException)
-        {
-            return null;
-        }
-        catch (IOException)
-        {
-            return null;
-        }
     }
 }

@@ -21,14 +21,13 @@ namespace AgentStudio.Infrastructure.Processes.Isolation;
 /// </list>
 /// The executable is resolved to a full path first, in the order <c>CreateProcess</c> uses for a process without isolation
 /// (the system folder, the Windows folder, then the PATH, adding <c>.exe</c> to a name without extension) except that
-/// neither the folder of Agent Studio nor its current folder are searched, and only fully qualified PATH entries are.
+/// neither the folder of Agent Studio nor its current folder are searched, only fully qualified PATH entries are, and nothing
+/// that lies inside an untrusted root is taken (<see cref="ExecutableSearch"/>, the rule the locator shares).
 /// Any step that fails throws and starts nothing.
 /// </summary>
 [SupportedOSPlatform("windows")]
 internal sealed class LowIntegrityProcess : IStartedProcess
 {
-    private const int ErrorFileNotFound = 2;
-
     private readonly SafeProcessHandle _process;
     private readonly SafeJobHandle _job;
     private readonly AnonymousPipeServerStream? _stdinPipe;
@@ -95,11 +94,11 @@ internal sealed class LowIntegrityProcess : IStartedProcess
     /// <summary>Starts <paramref name="spec"/> at Low integrity. Its arguments were already validated.</summary>
     /// <exception cref="ProcessIsolationException">The isolation could not be applied; nothing runs.</exception>
     /// <exception cref="Win32Exception">The executable was not found or could not be started.</exception>
-    internal static LowIntegrityProcess Start(ProcessSpec spec)
+    internal static LowIntegrityProcess Start(ProcessSpec spec, ExecutableSearch search)
     {
-        var executable = ResolveExecutable(spec);
+        var executable = ResolveExecutable(spec, search);
         var commandLine = WindowsCommandLine.Build(executable, spec.Arguments);
-        var environment = WindowsCommandLine.EnvironmentBlock(spec.Environment);
+        var environment = WindowsCommandLine.EnvironmentBlock(search.EnvironmentFor(spec));
 
         using var token = LowIntegrityToken.Create();
         var job = CreateJob();
@@ -205,7 +204,7 @@ internal sealed class LowIntegrityProcess : IStartedProcess
         _stderrPipe.Dispose();
     }
 
-    private static string ResolveExecutable(ProcessSpec spec)
+    private static string ResolveExecutable(ProcessSpec spec, ExecutableSearch search)
     {
         var name = spec.FileName;
         if (Path.IsPathFullyQualified(name))
@@ -218,37 +217,8 @@ internal sealed class LowIntegrityProcess : IStartedProcess
             return Path.GetFullPath(name, spec.WorkingDirectory ?? Environment.CurrentDirectory);
         }
 
-        var file = Path.HasExtension(name) ? name : name + ".exe";
-        var folders = new[] { Environment.SystemDirectory, Environment.GetFolderPath(Environment.SpecialFolder.Windows) }
-            .Concat((Environment.GetEnvironmentVariable("PATH") ?? string.Empty).Split(Path.PathSeparator));
-        foreach (var raw in folders)
-        {
-            var folder = raw.Trim().Trim('"');
-            if (folder.Length == 0 || !IsFullyQualified(folder))
-            {
-                continue;
-            }
-
-            var candidate = Path.Combine(folder, file);
-            if (File.Exists(candidate))
-            {
-                return candidate;
-            }
-        }
-
-        throw new Win32Exception(ErrorFileNotFound, $"'{name}' was not found in the system folders or on the PATH, so the isolated process was not started.");
-    }
-
-    private static bool IsFullyQualified(string folder)
-    {
-        try
-        {
-            return Path.IsPathFullyQualified(folder);
-        }
-        catch (ArgumentException)
-        {
-            return false;
-        }
+        // A bare name: the system folder, the Windows folder and the PATH, outside the untrusted roots (the shared rule).
+        return search.ResolveBareName(name);
     }
 
     private static SafeJobHandle CreateJob()

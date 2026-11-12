@@ -203,8 +203,12 @@ public partial class MainWindow : Window
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         Loaded -= OnLoaded;
+
+        // InitializeAsync runs up to its first await before it returns, and there the last project is made untrusted for
+        // the lookup of programs: the check of the providers must start after that, not before.
+        var initialization = _viewModel.InitializeAsync();
         _viewModel.Diagnostics.RefreshCommand.Execute(null);
-        await _viewModel.InitializeAsync();
+        await initialization;
     }
 
     /// <summary>

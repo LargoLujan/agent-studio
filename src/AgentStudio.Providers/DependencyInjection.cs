@@ -15,16 +15,16 @@ public static class DependencyInjection
         ArgumentNullException.ThrowIfNull(services);
 
         services.AddSingleton<IProviderProbe>(sp => new ClaudeCodeProbe(
-            sp.GetRequiredService<IExecutableLocator>(), sp.GetRequiredService<IProcessRunner>()));
+            sp.GetRequiredService<IExecutableLocator>(), sp.GetRequiredService<IProcessRunner>()) { WorkingDirectory = NeutralFolder(sp) });
         services.AddSingleton<IProviderProbe>(sp => new CodexCliProbe(
-            sp.GetRequiredService<IExecutableLocator>(), sp.GetRequiredService<IProcessRunner>()));
+            sp.GetRequiredService<IExecutableLocator>(), sp.GetRequiredService<IProcessRunner>()) { WorkingDirectory = NeutralFolder(sp) });
         services.AddSingleton<IProviderProbe>(sp => new GeminiCliProbe(
-            sp.GetRequiredService<IExecutableLocator>(), sp.GetRequiredService<IProcessRunner>()));
+            sp.GetRequiredService<IExecutableLocator>(), sp.GetRequiredService<IProcessRunner>()) { WorkingDirectory = NeutralFolder(sp) });
         services.AddSingleton<ProviderDiagnostics>();
 
         // Which CLI keeps an executor's writes in its worktree at the version installed now (ADR-0018): --version only.
         services.AddSingleton<IWriteConfinementProbe>(sp => new CliWriteConfinementProbe(
-            sp.GetRequiredService<IExecutableLocator>(), sp.GetRequiredService<IProcessRunner>()));
+            sp.GetRequiredService<IExecutableLocator>(), sp.GetRequiredService<IProcessRunner>()) { WorkingDirectory = NeutralFolder(sp) });
 
         // Agent providers are only reachable composed with the project's journal (criterion F2-9): the adapters are
         // never registered as IAgentProvider. Needs an IPromptJournalFactory (AddAgentStudioMemory) and a TimeProvider.
@@ -52,7 +52,10 @@ public static class DependencyInjection
             sp.GetRequiredService<IStreamingProcessRunner>(),
             sp.GetRequiredService<IProcessRunner>(),
             optedIn(sp),
-            sp.GetRequiredService<TimeProvider>())));
+            sp.GetRequiredService<TimeProvider>()) { WorkingDirectory = NeutralFolder(sp) }));
         return services;
     }
+
+    // The neutral folder of the probes (ADR-0018): the composition's, or none, which means the system folder.
+    private static string? NeutralFolder(IServiceProvider provider) => provider.GetService<NeutralWorkingFolderOptions>()?.Path;
 }

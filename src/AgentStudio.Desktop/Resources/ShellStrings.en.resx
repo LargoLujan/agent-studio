@@ -536,6 +536,12 @@ If you choose No, your changes stay in the editor, unsaved.</value>
   <data name="Providers_GeminiParked" xml:space="preserve">
     <value>Parked by decision (ADR-0009). Without an API key (GEMINI_API_KEY), Agent Studio works with Claude Code and Codex. Gemini does not count in the state of the programs.</value>
   </data>
+  <data name="Providers_InsideProject" xml:space="preserve">
+    <value>This agent program is inside the project folder ({0}). So it is not used. Agent Studio only runs programs installed outside it. Install it outside the project or take that folder off your PATH.</value>
+  </data>
+  <data name="Providers_ProjectTooBroad" xml:space="preserve">
+    <value>The open folder ({0}) is too broad. The protection of executables does not apply to it. Open the folder of the repository.</value>
+  </data>
   <data name="Providers_Summary_Checking" xml:space="preserve">
     <value>Checking the programs…</value>
   </data>

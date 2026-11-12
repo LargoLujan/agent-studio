@@ -274,15 +274,24 @@ internal sealed class GitCommandRunner
 
     internal string ResolveGit()
     {
-        if (_gitPath is not null)
+        // A path kept from an earlier lookup is asked again: a project opened since may contain it (ADR-0018, second addendum).
+        if (_gitPath is { } kept && !_locator.IsUntrusted(kept))
         {
-            return _gitPath;
+            return kept;
         }
 
+        _gitPath = null;
         var path = _options.GitExecutable ?? _locator.Find("git");
         if (string.IsNullOrWhiteSpace(path))
         {
-            throw new GitUnavailableException("git.exe was not found on the PATH; Agent Studio needs git 2.38 or later.");
+            throw _locator.FindInUntrustedRoot("git") is { } inside
+                ? new GitUnavailableException($"git.exe was found only inside a project folder ('{inside}'), which is not trusted to provide programs, so it was not used; install git outside the project (Agent Studio needs git 2.38 or later).")
+                : new GitUnavailableException("git.exe was not found on the PATH; Agent Studio needs git 2.38 or later.");
+        }
+
+        if (_locator.IsUntrusted(path))
+        {
+            throw new GitUnavailableException($"git.exe at '{path}' lies inside a project folder, which is not trusted to provide programs, so it was not used; install git outside the project.");
         }
 
         _gitPath = path;

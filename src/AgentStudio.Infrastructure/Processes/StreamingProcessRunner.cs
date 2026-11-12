@@ -11,12 +11,18 @@ namespace AgentStudio.Infrastructure.Processes;
 /// marker line on the standard error stream, so a runaway output cannot exhaust memory.
 /// </summary>
 /// <param name="maxLineLength">Longest line, in characters, that is delivered.</param>
-public sealed class StreamingProcessRunner(int maxLineLength = StreamingProcessRunner.DefaultMaxLineLength) : IStreamingProcessRunner
+/// <param name="roots">The folders an executable named without a path is never resolved from (see <see cref="ExecutableSearch"/>).</param>
+/// <param name="pathVariable">The PATH to resolve those names on; the one of the process when null.</param>
+public sealed class StreamingProcessRunner(
+    int maxLineLength = StreamingProcessRunner.DefaultMaxLineLength,
+    IUntrustedRoots? roots = null,
+    Func<string?>? pathVariable = null) : IStreamingProcessRunner
 {
     /// <summary>Default line limit: 8 M characters.</summary>
     public const int DefaultMaxLineLength = 8 * 1024 * 1024;
 
     private readonly int _maxLineLength = maxLineLength > 0 ? maxLineLength : throw new ArgumentOutOfRangeException(nameof(maxLineLength));
+    private readonly ExecutableSearch _search = new(roots, pathVariable);
 
     public Task<IProcessSession> StartAsync(ProcessSpec spec, CancellationToken cancellationToken)
     {
@@ -24,7 +30,7 @@ public sealed class StreamingProcessRunner(int maxLineLength = StreamingProcessR
 
         // The token only governs the start; once the process runs, KillAsync/DisposeAsync/Timeout end it.
         cancellationToken.ThrowIfCancellationRequested();
-        var process = ProcessLaunch.Start(spec);
+        var process = ProcessLaunch.Start(spec, _search);
         return Task.FromResult<IProcessSession>(new ProcessSession(process, spec, _maxLineLength));
     }
 

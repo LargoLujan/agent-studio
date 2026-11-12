@@ -53,6 +53,10 @@ public sealed record ProviderStatusItem(
         : Installation == InstalledText ? $"{Version} · {Authentication}"
         : Installation;
 
+    /// <summary>This item with the warning that the open folder is too wide for the protection of programs to apply.</summary>
+    public ProviderStatusItem WithProjectTooBroad(string folder) =>
+        this with { Notes = [Texts.Format("Providers_ProjectTooBroad", PathDisplay.CollapseHome(folder)), .. Notes] };
+
     public static ProviderStatusItem From(ProviderProbeResult result)
     {
         ArgumentNullException.ThrowIfNull(result);
@@ -93,10 +97,22 @@ public sealed record ProviderStatusItem(
             authentication,
             string.IsNullOrWhiteSpace(result.AuthenticationMethod) ? "—" : result.AuthenticationMethod,
             result.ExecutablePath is null ? string.Empty : PathDisplay.CollapseHome(result.ExecutablePath),
-            result.Notes ?? [])
+            WithInsideProject(result))
         {
             ParkedNote = parked,
         };
+    }
+
+    /// <summary>
+    /// The notes of the check, and first of them, in the language in use, that the program was found only inside the open project and
+    /// so is not used (ADR-0018): the person would otherwise see only «No instalado» for something they did install.
+    /// </summary>
+    private static IReadOnlyList<string> WithInsideProject(ProviderProbeResult result)
+    {
+        var notes = result.Notes ?? [];
+        return result.FoundInsideProject is { } path
+            ? [Texts.Format("Providers_InsideProject", PathDisplay.CollapseHome(path)), .. notes]
+            : notes;
     }
 
     /// <summary>

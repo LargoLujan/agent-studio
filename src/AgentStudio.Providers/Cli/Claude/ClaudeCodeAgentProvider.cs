@@ -33,7 +33,7 @@ public sealed class ClaudeCodeAgentProvider(IExecutableLocator locator, IStreami
         ArgumentNullException.ThrowIfNull(request);
 
         var executable = locator.Find("claude")
-            ?? throw new InvalidOperationException("Claude Code no está instalado o no está en el PATH. Instálalo desde https://claude.com/claude-code e inicia sesión con «claude».");
+            ?? throw new InvalidOperationException("Claude Code no está instalado o no está en el PATH. Instálalo desde https://claude.com/claude-code e inicia sesión con «claude»." + InsideProjectNote.Spanish(locator.FindInUntrustedRoot("claude")));
 
         // The schema travels inline in argv (claude --help documents no file form). A .cmd/.bat shim would re-parse
         // it with cmd.exe, so fail clearly instead of relying on the generic metacharacter rejection.
