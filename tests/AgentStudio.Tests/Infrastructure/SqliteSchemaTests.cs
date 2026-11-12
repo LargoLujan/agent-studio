@@ -35,8 +35,8 @@ public sealed class SqliteSchemaTests : IDisposable
     private void SeedProject() =>
         Exec($"INSERT INTO projects(id, name, root_path, created_at) VALUES ('p1', 'Proyecto', 'C:/x', '{Now}')");
 
-    /// <summary>The number of the last migration: 0006, the milestones and the backlog of Phase 9.</summary>
-    private const int LastVersion = 6;
+    /// <summary>The number of the last migration: 0007, the replace triggers closed against the rowid (P45).</summary>
+    private const int LastVersion = 7;
 
     [Fact]
     public void Apply_is_idempotent()

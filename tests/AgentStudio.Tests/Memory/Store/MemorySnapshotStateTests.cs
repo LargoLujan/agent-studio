@@ -181,24 +181,25 @@ public sealed class MemorySnapshotStateTests
     }
 
     [Fact]
-    public async Task A_row_replaced_through_its_rowid_by_a_connection_without_recursive_triggers_is_never_served_and_is_found_at_the_next_whole_verification()
+    public async Task A_replace_through_the_rowid_by_a_connection_without_recursive_triggers_is_rejected_and_nothing_changes()
     {
         using var world = await MemoryWorld.CreateAsync();
         var entry = await RecordAsync(world, Draft(1));
         Assert.Single(await EverythingAsync(world));
 
-        // REPLACE deletes the row it conflicts with by rowid without its DELETE trigger; the new id is no one's, so the
-        // trigger of the insert lets it in. The schema does not change.
+        // REPLACE would delete the row it conflicts with by rowid without its DELETE trigger, and the new id is no one's: since
+        // migration 0007 (P45) the trigger of the insert rejects the rowid instead, and the row stays as it was.
         using (var foreign = Foreign(world))
         {
-            Exec(foreign, $"INSERT OR REPLACE INTO memory_entries(rowid, id, project_id, kind, topic, content, source, created_at, origin, content_sha256, supersedes_entry_id) SELECT rowid, 'mem-plantada', project_id, kind, topic, 'Se despliega a mano.', source, created_at, origin, content_sha256, supersedes_entry_id FROM memory_entries WHERE id = '{entry.Id}';");
+            var ex = Assert.Throws<SqliteException>(() => Exec(foreign, $"INSERT OR REPLACE INTO memory_entries(rowid, id, project_id, kind, topic, content, source, created_at, origin, content_sha256, supersedes_entry_id) SELECT rowid, 'mem-plantada', project_id, kind, topic, 'Se despliega a mano.', source, created_at, origin, content_sha256, supersedes_entry_id FROM memory_entries WHERE id = '{entry.Id}';"));
+            Assert.Contains("memory_entries is append-only", ex.Message, StringComparison.Ordinal);
         }
 
         var served = Assert.Single(await EverythingAsync(world));
         Assert.Equal(entry.Content, served.Content);
         Assert.True((await world.Instance.Recorder.LoadAsync(world.Project.ProjectId, LogLoad.Full, Ct)).Verification.IsValid);
 
-        Assert.Empty(await EverythingAsync(world));
-        Assert.Equal([ProjectMemory.MissingRowAlert, ProjectMemory.NotAnchoredAlert], (await world.AlertsAsync()).Select(a => a.Code).Order(StringComparer.Ordinal));
+        Assert.Equal(entry.Id, Assert.Single(await EverythingAsync(world)).Id);
+        Assert.Empty(await world.AlertsAsync());
     }
 }

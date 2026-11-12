@@ -42,17 +42,18 @@ public sealed partial class SqliteDecisionLogStore(ProjectDatabases databases) :
 {
     /// <summary>
     /// The triggers that keep <c>decision_log</c> append-only (<c>0001_initial.sql</c>) and <c>memory_entries</c> too
-    /// (<c>0004_memory.sql</c>), as the schema creates them, with their blanks collapsed: what <c>sqlite_master</c> must hold
+    /// (<c>0004_memory.sql</c>), as the schema creates them (the replace ones as <c>0007_replace_by_rowid.sql</c> recreates
+    /// them, with the rowid closed), with their blanks collapsed: what <c>sqlite_master</c> must hold
     /// for the log to be read only from its tail.
     /// </summary>
     internal static readonly IReadOnlyDictionary<string, string> AppendOnlyTriggers = new Dictionary<string, string>(StringComparer.Ordinal)
     {
         ["decision_log_no_update"] = "CREATE TRIGGER decision_log_no_update BEFORE UPDATE ON decision_log BEGIN SELECT RAISE(ABORT, 'decision_log is append-only'); END",
         ["decision_log_no_delete"] = "CREATE TRIGGER decision_log_no_delete BEFORE DELETE ON decision_log BEGIN SELECT RAISE(ABORT, 'decision_log is append-only'); END",
-        ["decision_log_no_replace"] = "CREATE TRIGGER decision_log_no_replace BEFORE INSERT ON decision_log WHEN EXISTS (SELECT 1 FROM decision_log WHERE project_id = NEW.project_id AND sequence = NEW.sequence) BEGIN SELECT RAISE(ABORT, 'decision_log is append-only'); END",
+        ["decision_log_no_replace"] = "CREATE TRIGGER decision_log_no_replace BEFORE INSERT ON decision_log WHEN EXISTS (SELECT 1 FROM decision_log WHERE project_id = NEW.project_id AND sequence = NEW.sequence) OR EXISTS (SELECT 1 FROM decision_log WHERE rowid = NEW.rowid) BEGIN SELECT RAISE(ABORT, 'decision_log is append-only'); END",
         ["memory_entries_no_update"] = "CREATE TRIGGER memory_entries_no_update BEFORE UPDATE ON memory_entries BEGIN SELECT RAISE(ABORT, 'memory_entries is append-only'); END",
         ["memory_entries_no_delete"] = "CREATE TRIGGER memory_entries_no_delete BEFORE DELETE ON memory_entries BEGIN SELECT RAISE(ABORT, 'memory_entries is append-only'); END",
-        ["memory_entries_no_replace"] = "CREATE TRIGGER memory_entries_no_replace BEFORE INSERT ON memory_entries WHEN EXISTS (SELECT 1 FROM memory_entries WHERE id = NEW.id) BEGIN SELECT RAISE(ABORT, 'memory_entries is append-only'); END",
+        ["memory_entries_no_replace"] = "CREATE TRIGGER memory_entries_no_replace BEFORE INSERT ON memory_entries WHEN EXISTS (SELECT 1 FROM memory_entries WHERE id = NEW.id) OR EXISTS (SELECT 1 FROM memory_entries WHERE rowid = NEW.rowid) BEGIN SELECT RAISE(ABORT, 'memory_entries is append-only'); END",
     };
 
     public async Task AppendAsync(string projectId, DecisionEntry entry, CancellationToken cancellationToken)
