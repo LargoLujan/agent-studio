@@ -313,7 +313,11 @@ internal sealed class Planner(EnginePorts ports)
                     true,
                     AgentRunStatus.Succeeded,
                     "El plan corregido no se pudo leer: " + string.Join(" ", reparsed.Problems),
-                    second.Raw?.Id) { OrderNotes = NotesOf(parsed) });
+                    second.Raw?.Id)
+                {
+                    OrderNotes = NotesOf(parsed),
+                    ErrorText = UserText.Of(OrchestrationUserTexts.PlannerCorrectedUnreadable, string.Join(" ", reparsed.Problems)),
+                });
             }
 
             var finalViolations = PlanValidator.Validate(reparsed.Plan, context);
@@ -339,7 +343,11 @@ internal sealed class Planner(EnginePorts ports)
                 true,
                 AgentRunStatus.Succeeded,
                 finalViolations.Count == 0 ? null : "El plan corregido sigue sin ser válido: revísalo antes de aprobarlo.",
-                second.Raw?.Id) { OrderNotes = NotesOf(reparsed) });
+                second.Raw?.Id)
+            {
+                OrderNotes = NotesOf(reparsed),
+                ErrorText = finalViolations.Count == 0 ? null : UserText.Of(OrchestrationUserTexts.PlannerCorrectedInvalid),
+            });
         }
 
         /// <summary>Why an answer with questions is not valid when the orchestrator may no longer ask (in English: it goes back to the agent).</summary>

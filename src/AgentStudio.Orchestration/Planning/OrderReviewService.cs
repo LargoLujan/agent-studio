@@ -1,3 +1,4 @@
+using AgentStudio.Application.Localization;
 using System.Globalization;
 using System.Text;
 using AgentStudio.Application.Decisions;
@@ -129,13 +130,13 @@ public sealed class OrderReviewService : IOrderReview
         var result = await _runner.RunAsync(request.Project, new AuxiliaryRunRequest(AgentRunPurpose.OrderReview, launch), progress, ct).ConfigureAwait(false);
         if (result.Outcome.Status != AgentRunStatus.Succeeded || string.IsNullOrWhiteSpace(result.Outcome.StructuredOutputJson))
         {
-            return new OrderReviewResult(result.Run, result.Outcome.Status, result.AnswerEvidence, OrderNotes.None, [], [], result.Outcome.Error ?? "The orchestrator gave no notes of order.");
+            return new OrderReviewResult(result.Run, result.Outcome.Status, result.AnswerEvidence, OrderNotes.None, [], [], result.Outcome.Error ?? "The orchestrator gave no notes of order.", result.Outcome.Error is null ? UserText.Of(OrchestrationUserTexts.OrderNoNotes) : null);
         }
 
         var (notes, problems, blanks) = PlanParser.ParseOrderNotes(result.Outcome.StructuredOutputJson);
         if (notes is null)
         {
-            return new OrderReviewResult(result.Run, result.Outcome.Status, result.AnswerEvidence, OrderNotes.None, [], problems, "The answer of the orchestrator does not follow the schema of the notes of order.");
+            return new OrderReviewResult(result.Run, result.Outcome.Status, result.AnswerEvidence, OrderNotes.None, [], problems, "The answer of the orchestrator does not follow the schema of the notes of order.", UserText.Of(OrchestrationUserTexts.OrderSchemaMismatch));
         }
 
         var (kept, discarded) = OrderNotesCheck.Check(notes, request.Plan.Tasks.Select(t => t.Id));

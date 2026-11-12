@@ -174,7 +174,7 @@ public sealed partial class OrderReviewViewModel : ObservableObject
         catch (Exception ex) when (ex is not OperationCanceledException)
 #pragma warning restore CA1031
         {
-            Status = _text.Format("Canvas_Order_Failed", ex.Message);
+            Status = _text.Format("Canvas_Order_Failed", OrchestratorErrorText.Detail(ex, _text.Provider));
         }
         finally
         {
@@ -187,7 +187,7 @@ public sealed partial class OrderReviewViewModel : ObservableObject
     {
         if (result.Error is { Length: > 0 } error)
         {
-            Status = _text.Format("Canvas_Order_Failed", error);
+            Status = _text.Format("Canvas_Order_Failed", OrchestratorCodedText.Painted(result.ErrorText, error, _text.Provider));
         }
         else
         {

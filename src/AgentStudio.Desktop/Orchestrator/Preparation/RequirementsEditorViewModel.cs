@@ -346,7 +346,7 @@ public sealed partial class RequirementsEditorViewModel : ObservableObject
         }
         catch (DomainRuleViolationException ex)
         {
-            ErrorMessage = Texts.Format("Orchestrator_Req_CannotFreeze", ex.Message);
+            ErrorMessage = Texts.Format("Orchestrator_Req_CannotFreeze", OrchestratorErrorText.Detail(ex));
         }
         catch (OperationCanceledException)
         {
@@ -356,7 +356,7 @@ public sealed partial class RequirementsEditorViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = Texts.Format("Orchestrator_Req_FreezeFailed", ex.Message);
+            ErrorMessage = Texts.Format("Orchestrator_Req_FreezeFailed", OrchestratorErrorText.Detail(ex));
         }
         finally
         {

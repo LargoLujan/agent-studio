@@ -985,12 +985,12 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         if (resumed.Count > 0)
         {
             StatusMessage = resumed.Count == 1
-                ? Texts.Format("Main_Resumed_One", resumed[0].Run, resumed[0].Reason)
+                ? Texts.Format("Main_Resumed_One", resumed[0].Run, OrchestratorCodedText.Painted(resumed[0].ReasonText, resumed[0].Reason))
                 : Texts.Format("Main_Resumed_Many", resumed.Count);
         }
         else if (failed.Count > 0)
         {
-            StatusMessage = Texts.Format("Main_Resume_Failed", failed[0].Run, failed[0].Reason);
+            StatusMessage = Texts.Format("Main_Resume_Failed", failed[0].Run, OrchestratorCodedText.Painted(failed[0].ReasonText, failed[0].Reason));
         }
     }
 

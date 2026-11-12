@@ -35,7 +35,7 @@ public sealed class DeliveryLocalToolsTests : IDisposable
 
     private ProjectContext Project => new(ProjectId, _repo.Root);
 
-    private DeliveryService Service() => new(_worktrees, _gate, _records.Recorder, _records.Verdicts);
+    private IDeliveryService Service() => new CodedTextChecks(new DeliveryService(_worktrees, _gate, _records.Recorder, _records.Verdicts));
 
     private Task<UserRepositoryState> CaptureAsync() => _worktrees.CaptureUserRepositoryStateAsync(_repo.Root, Ct);
 

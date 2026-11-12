@@ -73,6 +73,9 @@ internal enum EndKind
 /// <summary>How one attempt of a task ended, with what the loop needs to record it.</summary>
 internal sealed record AttemptEnd(EndKind Kind, string Reason)
 {
+    /// <summary>The reason as a coded text for the screen (ADR-0054 addendum of 2026-11-12), next to the anchored sentence; null when the reason has none (it carries the words of an agent, say).</summary>
+    public AgentStudio.Application.Localization.UserText? Text { get; init; }
+
     public IReadOnlyList<EvidenceId> Evidence { get; init; } = [];
 
     public TaskResult? Result { get; init; }

@@ -115,7 +115,7 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
 
     public Task RetryBlockedAsync(TaskId task) => SendAsync(CommandKind.RetryBlocked, task, null);
 
-    public Task CancelAsync(string reason) => SendAsync(CommandKind.Cancel, null, string.IsNullOrWhiteSpace(reason) ? "sin motivo" : reason);
+    public Task CancelAsync(string reason) => SendAsync(CommandKind.Cancel, null, string.IsNullOrWhiteSpace(reason) ? LoggedTexts.NoReasonGiven : reason);
 
     /// <summary>
     /// Phase 13 (docs/17 D-30): the answer of a person to the question the agent of its task asked. It goes to the loop through
@@ -507,13 +507,13 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
                     _ledger.IntegrationCommit = commit;
                 }
 
-                await MoveAsync(id, WorkTaskStatus.Completed, end.Reason, end.Evidence).ConfigureAwait(false);
+                await MoveAsync(id, WorkTaskStatus.Completed, end.Reason, end.Evidence, text: end.Text).ConfigureAwait(false);
                 break;
             case EndKind.Failed:
-                await FailAsync(id, flight.Attempt, end.Reason, end.Evidence).ConfigureAwait(false);
+                await FailAsync(id, flight.Attempt, end.Reason, end.Evidence, end.Text).ConfigureAwait(false);
                 break;
             case EndKind.AwaitingHuman:
-                await MoveAsync(id, WorkTaskStatus.Blocked, end.Reason, end.Evidence, BlockReason.AwaitingHuman).ConfigureAwait(false);
+                await MoveAsync(id, WorkTaskStatus.Blocked, end.Reason, end.Evidence, BlockReason.AwaitingHuman, text: end.Text).ConfigureAwait(false);
                 break;
             case EndKind.RateLimited:
                 // The wait follows the policy of the header (F8-2): the reset the provider announced (plus the margin, with
@@ -538,10 +538,10 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
                 }
 
                 var why = announced is null ? QuotaWaitPolicy.Unannounced(_ctx.Specs[id], limit, overload, end.RetryAt) : end.Reason;
-                await MoveAsync(id, WorkTaskStatus.Blocked, why, end.Evidence, limit).ConfigureAwait(false);
+                await MoveAsync(id, WorkTaskStatus.Blocked, why, end.Evidence, limit, text: announced is null ? QuotaWaitPolicy.UnannouncedText(_ctx.Specs[id], limit, overload, end.RetryAt) : end.Text).ConfigureAwait(false);
                 break;
             case EndKind.LaunchFailed or EndKind.Broken:
-                await MoveAsync(id, WorkTaskStatus.Blocked, end.Reason, end.Evidence, BlockReason.ProviderUnavailable).ConfigureAwait(false);
+                await MoveAsync(id, WorkTaskStatus.Blocked, end.Reason, end.Evidence, BlockReason.ProviderUnavailable, text: end.Text).ConfigureAwait(false);
                 break;
             case EndKind.RepositoryChanged:
                 _integrityBreached = true;
@@ -549,7 +549,7 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
                 await AgentRunner.RecordRepositoryAlertAsync(_recorder, id, end.Differences, Token).ConfigureAwait(false);
                 if (status == WorkTaskStatus.Running)
                 {
-                    await FailAsync(id, flight.Attempt, end.Reason, end.Evidence).ConfigureAwait(false);
+                    await FailAsync(id, flight.Attempt, end.Reason, end.Evidence, end.Text).ConfigureAwait(false);
                 }
 
                 break;
@@ -563,7 +563,7 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
                     Token).ConfigureAwait(false);
                 if (status == WorkTaskStatus.Running)
                 {
-                    await FailAsync(id, flight.Attempt, end.Reason, end.Evidence).ConfigureAwait(false);
+                    await FailAsync(id, flight.Attempt, end.Reason, end.Evidence, end.Text).ConfigureAwait(false);
                 }
 
                 break;
@@ -581,26 +581,26 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
                     Token).ConfigureAwait(false);
                 if (status == WorkTaskStatus.Running)
                 {
-                    await FailAsync(id, flight.Attempt, end.Reason, end.Evidence).ConfigureAwait(false);
+                    await FailAsync(id, flight.Attempt, end.Reason, end.Evidence, end.Text).ConfigureAwait(false);
                 }
 
                 break;
             case EndKind.Cancelled:
                 if (status is WorkTaskStatus.Pending or WorkTaskStatus.Running or WorkTaskStatus.Blocked or WorkTaskStatus.AwaitingApproval)
                 {
-                    await MoveAsync(id, WorkTaskStatus.Cancelled, end.Reason, end.Evidence).ConfigureAwait(false);
+                    await MoveAsync(id, WorkTaskStatus.Cancelled, end.Reason, end.Evidence, text: end.Text).ConfigureAwait(false);
                 }
 
                 break;
             case EndKind.ApprovalNeeded:
-                await MoveAsync(id, WorkTaskStatus.AwaitingApproval, end.Reason).ConfigureAwait(false);
+                await MoveAsync(id, WorkTaskStatus.AwaitingApproval, end.Reason, text: end.Text).ConfigureAwait(false);
                 StartApproval(_ctx.Specs[id], flight.Attempt, Orchestrator.ReviewEscalationAction, $"La revisión de la tarea {id} necesita tu decisión: {end.Reason}");
                 break;
             case EndKind.Approved:
-                await MoveAsync(id, WorkTaskStatus.Completed, end.Reason).ConfigureAwait(false);
+                await MoveAsync(id, WorkTaskStatus.Completed, end.Reason, text: end.Text).ConfigureAwait(false);
                 break;
             case EndKind.Denied:
-                await FailAsync(id, flight.Attempt, end.Reason, []).ConfigureAwait(false);
+                await FailAsync(id, flight.Attempt, end.Reason, [], end.Text).ConfigureAwait(false);
                 break;
             case EndKind.AsksQuestion:
                 await AskAsync(id, flight.Attempt, end).ConfigureAwait(false);
@@ -608,10 +608,10 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
         }
     }
 
-    private async Task FailAsync(TaskId id, int attempt, string reason, IReadOnlyList<EvidenceId> evidence)
+    private async Task FailAsync(TaskId id, int attempt, string reason, IReadOnlyList<EvidenceId> evidence, UserText? text = null)
     {
-        await MoveAsync(id, WorkTaskStatus.Failed, reason, evidence).ConfigureAwait(false);
-        _ledger.Failures[id] = new FailureNote(attempt, reason, evidence);
+        await MoveAsync(id, WorkTaskStatus.Failed, reason, evidence, text: text).ConfigureAwait(false);
+        _ledger.Failures[id] = new FailureNote(attempt, reason, evidence, text);
     }
 
     private async Task OnCommandAsync(UserCommand command)
@@ -634,7 +634,7 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
                     break;
                 case CommandKind.Cancel when !_cancelling:
                     _cancelling = true;
-                    _cancelReason = command.Reason ?? "sin motivo";
+                    _cancelReason = command.Reason ?? LoggedTexts.NoReasonGiven;
                     _cancelDeadline = Now + CancelGrace;
                     foreach (var flight in _inFlight.Values)
                     {
@@ -768,7 +768,11 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
             }
 
             var reason = _ledger.Failures.TryGetValue(task.Id, out var failure) ? failure.Reason : "fallo";
-            await MoveAsync(task.Id, WorkTaskStatus.Pending, string.Create(CultureInfo.InvariantCulture, $"Reintento {task.RetryCount + 1} de {task.MaxRetries} tras: {reason}")).ConfigureAwait(false);
+            await MoveAsync(
+                task.Id,
+                WorkTaskStatus.Pending,
+                string.Create(CultureInfo.InvariantCulture, $"Reintento {task.RetryCount + 1} de {task.MaxRetries} tras: {reason}"),
+                text: UserText.Of(OrchestrationUserTexts.TaskRetry, task.RetryCount + 1, task.MaxRetries, (object?)failure?.Text ?? LoggedTexts.TaskReason(reason) ?? (object)reason)).ConfigureAwait(false);
             changed = true;
         }
 
@@ -1531,10 +1535,10 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
     {
         foreach (var task in _graph.Tasks.Where(t => t.Status is WorkTaskStatus.Pending or WorkTaskStatus.Running or WorkTaskStatus.Blocked or WorkTaskStatus.AwaitingApproval).ToList())
         {
-            await MoveAsync(task.Id, WorkTaskStatus.Cancelled, "Cancelada por el usuario: " + _cancelReason, text: UserText.Of(OrchestrationUserTexts.TaskCancelledByUser, _cancelReason)).ConfigureAwait(false);
+            await MoveAsync(task.Id, WorkTaskStatus.Cancelled, "Cancelada por el usuario: " + _cancelReason, text: UserText.Of(OrchestrationUserTexts.TaskCancelledByUser, LoggedTexts.CancelReason(_cancelReason))).ConfigureAwait(false);
         }
 
-        return await FinishAsync(RunPhase.Cancelled, "Cancelada por el usuario: " + _cancelReason, UserText.Of(OrchestrationUserTexts.VerdictCancelledByUser, _cancelReason)).ConfigureAwait(false);
+        return await FinishAsync(RunPhase.Cancelled, "Cancelada por el usuario: " + _cancelReason, UserText.Of(OrchestrationUserTexts.VerdictCancelledByUser, LoggedTexts.CancelReason(_cancelReason))).ConfigureAwait(false);
     }
 
     private async Task<RunResult> FinishAsync(RunPhase phase, string summary, UserText? text = null)

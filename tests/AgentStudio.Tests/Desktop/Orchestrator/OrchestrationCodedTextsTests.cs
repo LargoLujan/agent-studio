@@ -151,4 +151,118 @@ public sealed partial class OrchestrationCodedTextsTests
             OrchestratorCodedText.StepLine(step, English));
         Assert.StartsWith("test · Pruebas · dotnet test --no-build · requiere restore y build · SIN AISLAMIENTO", OrchestratorCodedText.StepLine(step, Spanish), StringComparison.Ordinal);
     }
+    // ---- the rest of the screen texts of the orchestration (restos de WP-14A (e)) ----
+
+    private static string Say(UserText? text, string anchored, IUiTextProvider provider) => OrchestratorCodedText.Painted(text, anchored, provider)!;
+
+    [Fact]
+    public void With_the_interface_in_english_the_reasons_of_the_workers_and_of_a_retry_come_out_in_english_and_in_spanish_as_they_were_written()
+    {
+        var failure = UserText.Of(OrchestrationUserTexts.WorkerVerificationFailed, "build, test");
+        var retry = UserText.Of(OrchestrationUserTexts.TaskRetry, 2, 3, failure);
+
+        Assert.Equal("Retry 2 of 3 after: The verification failed in: build, test", Say(retry, "Reintento 2 de 3 tras: La verificación falló en: build, test", English));
+        Assert.Equal("Reintento 2 de 3 tras: La verificación falló en: build, test", Say(retry, "anchored", Spanish));
+        // A reason that carries the words of an agent has no code: it is shown as it was anchored.
+        Assert.Equal("Completada: terminé", Say(null, "Completada: terminé", English));
+        Assert.Equal(
+            "Retry 1 of 3 after: Completada a medias",
+            Say(UserText.Of(OrchestrationUserTexts.TaskRetry, 1, 3, "Completada a medias"), "x", English));
+    }
+
+    [Fact]
+    public void A_limit_of_use_is_told_with_its_instant_in_the_culture_of_the_language()
+    {
+        var at = new DateTimeOffset(2026, 11, 12, 18, 30, 0, TimeSpan.Zero);
+        var spanish = Say(UserText.Of(OrchestrationUserTexts.WorkerRateLimitedUntil, at), "x", Spanish);
+        var english = Say(UserText.Of(OrchestrationUserTexts.WorkerRateLimitedUntil, at), "x", English);
+
+        Assert.StartsWith("Límite de uso del proveedor hasta ", spanish, StringComparison.Ordinal);
+        Assert.StartsWith("Usage limit of the provider until ", english, StringComparison.Ordinal);
+        Assert.DoesNotContain("T18:30", spanish, StringComparison.Ordinal);
+        Assert.NotEqual(spanish[(spanish.IndexOf("hasta", StringComparison.Ordinal) + 6)..], english[(english.IndexOf("until", StringComparison.Ordinal) + 6)..]);
+    }
+
+    [Fact]
+    public void The_delivery_says_why_it_does_not_deliver_in_the_language_in_use_with_the_pieces_nested()
+    {
+        var reason = UserText.Of(OrchestrationUserTexts.DeliveryVerdictNotApproved, UserText.Of(OrchestrationUserTexts.DeliveryDecisionRejected));
+        Assert.StartsWith("The judge's verdict is \"rejected\".", Say(reason, "x", English), StringComparison.Ordinal);
+        Assert.StartsWith("El veredicto del juez es «rechazado».", Say(reason, "x", Spanish), StringComparison.Ordinal);
+
+        var inconsistent = UserText.Of(
+            OrchestrationUserTexts.DeliveryRevisionInconsistent,
+            "debate-1",
+            "V1",
+            UserText.Of(OrchestrationUserTexts.DeliveryInconsistentCopyOtherCommit, "aaaaaaaaaa", "bbbbbbbbbb"));
+        var english = Say(inconsistent, "x", English);
+        Assert.Contains("(its copy is of saved version (commit) aaaaaaaaaa, not of the integration bbbbbbbbbb of the run)", english, StringComparison.Ordinal);
+        Assert.Contains("debate-1", english, StringComparison.Ordinal);
+
+        var delivered = OrchestrationUserTexts.Sentences([
+            UserText.Of(OrchestrationUserTexts.DeliveryDelivered, "main", "abc", "agentstudio/run-1"),
+            UserText.Of(OrchestrationUserTexts.DeliveryUnrecorded, "disk full")]);
+        Assert.Equal("Delivered: main is at abc and includes agentstudio/run-1. Warning: the delivery could not be recorded in the decision log (disk full).", Say(delivered, "x", English));
+    }
+
+    [Fact]
+    public void The_notice_of_the_search_in_the_history_is_painted_in_the_language_in_use_from_the_sentence_it_was_saved_with()
+    {
+        var sentences = new[]
+        {
+            AgentStudio.Application.Semantic.ProjectHistoryTool.NotThePlannerReason,
+            AgentStudio.Application.Semantic.ProjectHistoryTool.DisabledReason,
+            AgentStudio.Application.Semantic.ProjectHistoryTool.NoMemoryReason,
+            AgentStudio.Application.Semantic.ProjectHistoryTool.NotReadOnlyReason,
+            AgentStudio.Application.Semantic.ProjectHistoryTool.EmptyReason,
+            AgentStudio.Application.Semantic.ProjectHistoryTool.NoMcpReason(ProviderId.CodexCli),
+            AgentStudio.Application.Semantic.ProjectHistoryTool.FailedReason("the disk is full."),
+        };
+        foreach (var sentence in sentences)
+        {
+            var text = LoggedTexts.HistoryToolNotice(sentence);
+            Assert.NotNull(text);
+            Assert.Contains("history", Say(text, sentence, English), StringComparison.OrdinalIgnoreCase);
+            Assert.NotEqual(Say(text, sentence, English), Say(text, sentence, Spanish));
+        }
+
+        Assert.Equal(
+            "The orchestrator did not have the search in the history. Codex does not take outside tools.",
+            Say(LoggedTexts.HistoryToolNotice(AgentStudio.Application.Semantic.ProjectHistoryTool.NoMcpReason(ProviderId.CodexCli)), "x", English));
+        Assert.Equal(
+            UserText.Of(OrchestrationUserTexts.HistoryFailed, "the disk is full"),
+            LoggedTexts.HistoryToolNotice(AgentStudio.Application.Semantic.ProjectHistoryTool.FailedReason("the disk is full.")));
+        Assert.Null(LoggedTexts.HistoryToolNotice("otra cosa"));
+    }
+
+    [Fact]
+    public void Why_a_run_is_not_resumed_by_itself_and_why_a_log_cannot_be_replayed_are_painted_in_the_language_in_use()
+    {
+        Assert.Equal("You paused it: it never resumes by itself.", Say(LoggedTexts.ResumeReason("La pausaste: nunca se reanuda sola.")!, "x", English));
+        Assert.Equal("It could not be resumed: boom", Say(LoggedTexts.ResumeReason("No se pudo reanudar: boom")!, "x", English));
+
+        var notice = UserText.Of(
+            OrchestrationUserTexts.InspectLogNotReplayable,
+            OrchestrationUserTexts.Sentences([UserText.Of(OrchestrationUserTexts.InspectProblemUnknownTasks), UserText.Of(OrchestrationUserTexts.InspectProblemDetail, "An entry repeats a sequence.")]));
+        Assert.Equal(
+            "The log of this run cannot be replayed in full (The log names tasks that are not in the plan of the run. An entry repeats a sequence.): it is shown up to that point.",
+            Say(notice, "x", English));
+    }
+
+    [Fact]
+    public void A_cancellation_without_a_reason_and_the_one_of_the_monitor_are_painted_as_pieces()
+    {
+        Assert.Equal("Cancelled by you: no reason given", Say(UserText.Of(OrchestrationUserTexts.VerdictCancelledByUser, UserText.Of(OrchestrationUserTexts.NoReason)), "x", English));
+        Assert.Equal("Cancelada por ti: desde el monitor", Say(UserText.Of(OrchestrationUserTexts.TaskCancelledByUser, UserText.Of(OrchestrationUserTexts.CancelledFromMonitor)), "x", Spanish));
+        Assert.Equal("Cancelled by you: me aburrí", Say(UserText.Of(OrchestrationUserTexts.TaskCancelledByUser, "me aburrí"), "x", English));
+    }
+
+    [Fact]
+    public void The_failures_of_the_system_in_the_review_of_the_order_and_in_the_chat_come_out_in_english()
+    {
+        Assert.Equal("The orchestrator gave no answer.", Say(UserText.Of(OrchestrationUserTexts.ChatNoAnswer), "x", English));
+        Assert.Equal("La respuesta del orquestador está vacía.", Say(UserText.Of(OrchestrationUserTexts.ChatAnswerNull), "x", Spanish));
+        Assert.Equal("The orchestrator gave no notes of order.", Say(UserText.Of(OrchestrationUserTexts.OrderNoNotes), "x", English));
+        Assert.Equal("The corrected plan could not be read: no tasks", Say(UserText.Of(OrchestrationUserTexts.PlannerCorrectedUnreadable, "no tasks"), "x", English));
+    }
 }

@@ -527,18 +527,41 @@ mismos marcadores; `DebateCodedTextsTests` tiene gemela en `OrchestrationCodedTe
 | `QuestionDocuments.DecisionTitle` y los motivos de las decisiones de preguntas | El registro y las pruebas guardadas | Anclado |
 | `Orchestration` no tenía excepciones en castellano | — | Los mensajes ya estaban en inglés; ninguna pasó a `UserTextException` |
 
-**Pendiente (sigue en castellano a mano, con pantalla).**
+**Segunda parte (2026-11-12, WP-14A (e), restos de `Orchestration`).** Lo que quedaba a mano pasa a códigos con los mismos mecanismos
+(un `UserText?` opcional junto a la frase, que no cambia; `LoggedTexts` deriva el código de la frase exacta del registro). Hay 161 códigos
+más (`OrchestrationUserTexts.All` suma ahora 262; claves `Text_…` en `OrchestratorStrings.resx` y `.en.resx`, mismos marcadores):
 
-- `DeliveryService` (≈70 líneas): `DeliveryResult.Message` y `DeliveryReadiness.Reason`, que enseña `RunMonitorViewModel` (`DeliveryMessage`).
-  Necesita su propio juego de códigos; lo que va al registro de la entrega se queda.
-- Los motivos que escribe un trabajador (`end.Reason` de `Workers`, de `AgentRunner` y del juez) y los de reintento («Reintento n de m
-  tras: …», que lleva el motivo de un fallo), y el resumen del fallo de `ReadFailureLine`.
-- `RunInspector`: el aviso «El registro de esta ejecución no se puede reproducir entero (…)» y los `problems` de la relectura.
-- `ResumeScheduler`: los `Reason` de `ScheduledResume` y los de `QuotaWaitPolicy` (comprobación antes de relanzar, sesión no iniciada,
-  límite agotado según el app-server) que llegan al monitor por alertas y por el motivo de la transición.
-- Los avisos que `Planner` pone en `Problems`/`Notes` y `HistoryToolNotice`, y los de `OrderReviewService` y `PreparationChatService`.
-- Los `ex.Message` de `Preparation/*`, `Questions/*`, `Team/*` y `Canvas/*`: pasan por el mensaje técnico en inglés mientras ninguna
-  excepción de Orchestration lleve código para esos casos; usar `OrchestratorErrorText.Detail` cuando la lleven.
-- `PlanViolationText` ya pinta desde recursos por código estable (`PlanViolationCode`, claves `Orchestrator_Violation_*`) con la interfaz
-  en el idioma en uso. Pasarlo a `UserText` obliga a renombrar sus claves a `Text_*`; no se hizo porque no añade nada visible.
-- `RunMonitorViewModel` enseña `finding.Message` (~1110, hallazgos del análisis): su traducción es la del análisis (`FindingCodes`).
+| Qué | Contrato o sitio | Códigos |
+|---|---|---|
+| Entrega a tu rama | `DeliveryReadiness.ReasonText` y `DeliveryResult.MessageText` (al final, opcionales). Cada frase y su código nacen juntos (`Said`), sin que se separen. Las frases de la aprobación de la entrega, el resumen del registro (`Entrega de la ejecución…`) y el mensaje del commit de fusión siguen como estaban (anclados) | `delivery.*` (77): por qué no se entrega (registro, veredicto, almacén, integración, revisión, replanificación), las revisiones de una impugnación y sus incoherencias como piezas (`delivery.inconsistent-*`, `delivery.decision-*`), y cómo acabó una entrega |
+| Motivos de los trabajadores | `AttemptEnd.Text` (`init`), `FailureNote.Text` y el parámetro `text` de `MoveAsync`; `LoggedTexts` deriva cada código de su frase | `worker.*` (43): cancelaciones, tiempos, verificación, pasos, integración, juez, aprobación, sesión no iniciada, límite de uso |
+| Reintento | `Reintento n de m tras: …` lleva el motivo del fallo como pieza anidada: su código si lo tiene, o el texto tal cual (palabras de un agente) | `task.retry` |
+| Reanudar sola | `ScheduledResume.ReasonText` y `ConsentResume.ReasonText`; el código se deriva de la frase (`LoggedTexts.ResumeReason`). `MainViewModel` los pinta | `resume.*` (12) |
+| Espera del límite de uso | `QuotaWaitPolicy.UnannouncedText` junto a `Unannounced`. Si la frase es la misma que la de un trabajador (el proveedor sí dijo la hora), el código es el mismo, así el vivo y el derivado coinciden | `quota.*` (8) |
+| Relectura de un registro | `RunPhaseChangedEvent.DetailText` de `RunInspector` («no se puede reproducir entero») con cada problema como pieza | `inspect.*` (4) |
+| Planificador | `PlanProposal.ErrorText` para el plan corregido que no se lee o sigue sin ser válido; `HistoryToolNotice` se pinta derivando el código de su frase (`LoggedTexts.HistoryToolNotice`), también en un borrador guardado | `planner.corrected-*`, `history.*` (9) |
+| Revisar el orden y chat de preparación | `OrderReviewResult.ErrorText` y `PreparationChatReply.ErrorText` (al final, opcionales) cuando el fallo es del sistema; si lo dice el agente o su programa se enseña como está | `order.*`, `chat.*` (5) |
+| «sin motivo» y «desde el monitor» | El motivo de una cancelación es una pieza (`run.no-reason`, `run.cancelled-from-monitor`) elegida por una constante compartida (`LoggedTexts.CancelReason`) en el motor vivo y en la derivación | 2 |
+
+Desktop: los `ex.Message` de `Orchestrator/**` (Preparation, Questions, Team, Canvas, Session, Approvals) pasan por
+`OrchestratorErrorText.Detail(ex)`: una `UserTextException` se pinta desde recursos y cualquier otro fallo enseña su mensaje técnico, en inglés.
+`RunMonitorViewModel` pinta `DeliveryMessage` con `OrchestratorCodedText.Painted(texto, frase)`. `ReadFailureLine` no necesitaba cambio: lee
+de la frase anclada (`La verificación falló en: …`, `El paso … falló.`) solo qué paso falló, para buscar su prueba guardada, y lo que enseña la tarjeta es el motivo
+pintado desde su código más la línea de error del propio registro del paso, sin ninguna frase del sistema armada con ella.
+
+**Pendiente (sigue en castellano a mano o como texto técnico, con pantalla).**
+
+- Los motivos de un trabajador que llevan palabras de un agente, de su programa o de la guarda del repositorio, y por eso no tienen código:
+  `Completada: …`, `El agente necesita a una persona: …`, `El agente declaró que no pudo terminar: …`, el motivo de un fallo que da el propio
+  proveedor (`outcome.Error`), `El repositorio del usuario cambió …: <diferencias>`, `La evidencia de la integración …: <líneas>` y los de la
+  memoria (`ProjectMemoryPrompt.TooSmall` y `Unverified`, que son de otro módulo). D-47: el texto de un agente no es argumento de una frase del sistema.
+- Los mensajes de la lista `Discarded` de `OrderReviewResult` y de `PreparationChatReply` («a risk was cut to 400 characters», lo que el
+  esquema o `OrderNotesCheck` descartan): son avisos técnicos en inglés sobre la respuesta del agente y siguen como están.
+- `finding.Message` de `RunMonitorViewModel` (~1110): lo escribe `src/AgentStudio.Debate/Audit/AuditedRun.cs` (`OrchestratorFinding`), que es de
+  otro paquete; la fila ya enseña el título de la comprobación por su código (`AuditFindingText.Check`) y el detalle sigue en inglés. Pasarlo a código es un cambio de `Debate/Audit`.
+- `delivery.run-not-succeeded` enseña el estado con que terminó la ejecución con el nombre del tipo (`Failed`, `Cancelled`), sin traducirlo: es un valor técnico
+  como un identificador. Traducirlo pide una pieza por estado.
+- `PlanViolationText` se queda como está: ya pinta desde recursos por código estable (`PlanViolationCode`, claves `Orchestrator_Violation_*`) en
+  el idioma en uso; pasarlo a `UserText` obliga a renombrar sus claves a `Text_*` y no añade nada visible.
+- Las suites de `tests/AgentStudio.Tests/Integration/**` y `Debate/**` leen `DeliveryReadiness.Reason` y `DeliveryResult.Message`: no se tocaron ni se ejecutaron
+  en este paquete (las frases no cambian).

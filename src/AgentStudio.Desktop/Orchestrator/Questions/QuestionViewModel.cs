@@ -232,7 +232,7 @@ public sealed partial class QuestionViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = _texts.Format("Monitor_Question_Failed", ex.Message);
+            ErrorMessage = _texts.Format("Monitor_Question_Failed", OrchestratorErrorText.Detail(ex, _texts));
         }
         finally
         {

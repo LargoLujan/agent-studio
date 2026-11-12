@@ -1,3 +1,4 @@
+using AgentStudio.Application.Localization;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -140,7 +141,7 @@ public sealed class PreparationChatService : IPreparationChat
         var session = new PreparationChatSession(workspace, result.Outcome.SessionId ?? resume, (request.Session?.Messages ?? 0) + 1);
         if (result.Outcome.Status != AgentRunStatus.Succeeded || string.IsNullOrWhiteSpace(result.Outcome.StructuredOutputJson))
         {
-            return Empty(result, session, [], result.Outcome.Error ?? "The orchestrator gave no answer.");
+            return Empty(result, session, [], result.Outcome.Error ?? "The orchestrator gave no answer.", result.Outcome.Error is null ? UserText.Of(OrchestrationUserTexts.ChatNoAnswer) : null);
         }
 
         AnswerDocument? answer;
@@ -150,12 +151,12 @@ public sealed class PreparationChatService : IPreparationChat
         }
         catch (JsonException ex)
         {
-            return Empty(result, session, [ex.Message], "The answer of the orchestrator does not follow the schema of the chat.");
+            return Empty(result, session, [ex.Message], "The answer of the orchestrator does not follow the schema of the chat.", UserText.Of(OrchestrationUserTexts.ChatSchemaMismatch));
         }
 
         if (answer is null)
         {
-            return Empty(result, session, [], "The answer of the orchestrator is null.");
+            return Empty(result, session, [], "The answer of the orchestrator is null.", UserText.Of(OrchestrationUserTexts.ChatAnswerNull));
         }
 
         var discarded = new List<string>();
@@ -193,8 +194,8 @@ public sealed class PreparationChatService : IPreparationChat
         }
     }
 
-    private static PreparationChatReply Empty(AuxiliaryRunResult result, PreparationChatSession session, IReadOnlyList<string> discarded, string error) =>
-        new(result.Run, result.Outcome.Status, result.AnswerEvidence, string.Empty, [], [], [], [], discarded, session, error);
+    private static PreparationChatReply Empty(AuxiliaryRunResult result, PreparationChatSession session, IReadOnlyList<string> discarded, string error, UserText? errorText = null) =>
+        new(result.Run, result.Outcome.Status, result.AnswerEvidence, string.Empty, [], [], [], [], discarded, session, error, errorText);
 
     private async Task<string> BaseOfAsync(ProjectContext project, RunId workspace, CancellationToken ct)
     {

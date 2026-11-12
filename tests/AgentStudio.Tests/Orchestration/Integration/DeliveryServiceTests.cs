@@ -29,7 +29,7 @@ public sealed class DeliveryServiceTests
 
     private ProjectContext Project => new("proyecto-1", _repo.Root);
 
-    private DeliveryService Service() => new(_worktrees, _gate, _records.Recorder, _records.Verdicts);
+    private IDeliveryService Service() => new CodedTextChecks(new DeliveryService(_worktrees, _gate, _records.Recorder, _records.Verdicts));
 
     /// <summary>The run's branch, one commit ahead of the base, and a run the log shows succeeded with that integration approved.</summary>
     private async Task<string> IntegrationAsync()

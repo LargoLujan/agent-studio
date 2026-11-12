@@ -1,3 +1,4 @@
+using AgentStudio.Application.Localization;
 using System.Threading.Channels;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Orchestration;
@@ -14,7 +15,7 @@ namespace AgentStudio.Orchestration.Engine;
 /// What the scheduler did with one run that was left unfinished: resumed it by the consent of its header (<see cref="Cause"/>,
 /// and the run going again in <see cref="Resumed"/>), or left it for a person, with <see cref="Reason"/> in Spanish.
 /// </summary>
-public sealed record ScheduledResume(RunId Run, RunResumeCause? Cause, IOrchestrationRun? Resumed, string Reason);
+public sealed record ScheduledResume(RunId Run, RunResumeCause? Cause, IOrchestrationRun? Resumed, string Reason, UserText? ReasonText = null);
 
 /// <summary>A run of <see cref="Project"/> that the scheduler resumed by the consent of its header, going now.</summary>
 public sealed class ScheduledResumeEventArgs(ProjectContext project, IOrchestrationRun run, RunResumeCause cause) : EventArgs
@@ -30,7 +31,7 @@ public sealed class ScheduledResumeEventArgs(ProjectContext project, IOrchestrat
 /// What a resume by consent did (<see cref="Orchestrator.ResumeByConsentAsync"/>): the run going again and its cause, or
 /// why not, with nothing written.
 /// </summary>
-internal sealed record ConsentResume(IOrchestrationRun? Run, RunResumeCause? Cause, string Reason);
+internal sealed record ConsentResume(IOrchestrationRun? Run, RunResumeCause? Cause, string Reason, UserText? ReasonText = null);
 
 /// <summary>
 /// The resume after a restart that the consent of a header allows (F8-4; docs/16 D-39, ADR-0034 decisions 1, 5 and 6). When the
@@ -285,13 +286,17 @@ public sealed class ResumeScheduler
         return outcome;
     }
 
+    /// <summary>A result with its sentence and the coded text derived from it (the same sentences <see cref="LoggedTexts.ResumeReason"/> knows).</summary>
+    private static ScheduledResume Said(RunId run, RunResumeCause? cause, IOrchestrationRun? resumed, string reason) =>
+        new(run, cause, resumed, reason, LoggedTexts.ResumeReason(reason));
+
     /// <summary>What the pass does with one run left unfinished; null for one that is not registered.</summary>
     private async Task<ScheduledResume?> OneAsync(ProjectContext project, RunId run, IReadOnlyList<DecisionEntry> log, CancellationToken cancellationToken)
     {
         var key = project.ProjectId + "/" + run.Value;
         if (_failed.TryGetValue(key, out var failure))
         {
-            return new ScheduledResume(run, null, null, "En esta sesión de la aplicación ya no se intenta reanudarla sola: el intento anterior falló (" + failure + ").");
+            return Said(run, null, null, "En esta sesión de la aplicación ya no se intenta reanudarla sola: el intento anterior falló (" + failure + ").");
         }
 
         var entries = RunLog.Of(log, run.Value);
@@ -306,16 +311,16 @@ public sealed class ResumeScheduler
             (cause, var reason) = Decide(record, entries);
             if (cause is null)
             {
-                return new ScheduledResume(run, null, null, reason);
+                return Said(run, null, null, reason);
             }
 
             if (Suspended)
             {
-                return new ScheduledResume(run, null, null, "La reanudación sola está suspendida mientras la aplicación sale.");
+                return Said(run, null, null, "La reanudación sola está suspendida mientras la aplicación sale.");
             }
 
             var resume = await _orchestrator.ResumeByConsentAsync(project, run, cancellationToken).ConfigureAwait(false);
-            return new ScheduledResume(run, resume.Cause, resume.Run, resume.Reason);
+            return new ScheduledResume(run, resume.Cause, resume.Run, resume.Reason, resume.ReasonText ?? LoggedTexts.ResumeReason(resume.Reason));
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -330,7 +335,7 @@ public sealed class ResumeScheduler
                 _failed[key] = ex.Message;
             }
 
-            return new ScheduledResume(run, cause, null, "No se pudo reanudar: " + ex.Message);
+            return Said(run, cause, null, "No se pudo reanudar: " + ex.Message);
         }
     }
 

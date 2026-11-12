@@ -1335,7 +1335,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
     /// (<see cref="PlanProposal.HistoryToolNotice"/>, Phase 12): it is not an error, but the person should know.
     /// </summary>
     private static string WithHistoryNotice(string status, PlanProposal proposal) =>
-        proposal.HistoryToolNotice is { Length: > 0 } notice ? $"{status} {notice}" : status;
+        proposal.HistoryToolNotice is { Length: > 0 } notice ? $"{status} {OrchestratorCodedText.Painted(AgentStudio.Orchestration.Engine.LoggedTexts.HistoryToolNotice(notice), notice)}" : status;
 
     partial void OnProposalChanged(PlanProposal? value)
     {

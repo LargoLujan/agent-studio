@@ -2095,9 +2095,14 @@ motivo de cada transición, ni el resumen de `RunFinished`, ni ningún payload d
 | `BudgetGateVerdict.Text` (`UserText?`, al final) | El motivo del bloqueo con sus cifras como piezas; `Reason` sigue igual en el registro y en la alerta | `ProjectBudgetGate`, `OrchestrationRun` |
 | `LoggedTexts` (`Orchestration/Engine`, público) | `TaskReason(reason)` y `RunSummary(summary)`: el código de la frase exacta que el motor ancla, o `null` | `RunInspector`; las pruebas |
 | `VerificationStepText.PlanWarningTexts`, `LineParts` y `PlanWarningText.Texts` | Las mismas frases que `PlanWarning`, `Line` y `Notice`, como códigos y piezas. Las tres originales no cambian | `OrchestratorDocumentViewModel`, `Audit` |
-| `OrchestrationUserTexts` (`Orchestration/`, nuevo) | Los 101 códigos de la orquestación (`All`) y las piezas de lista | todo lo de arriba |
+| `OrchestrationUserTexts` (`Orchestration/`, nuevo) | Los 262 códigos de la orquestación (`All`) y las piezas de lista: 101 de la primera parte y 161 de los restos | todo lo de arriba |
+| `DeliveryReadiness.ReasonText`, `DeliveryResult.MessageText` (`Application/Git`, `UserText?`, al final) | Por qué no se entrega y cómo acabó la entrega, como código; `Reason` y `Message` siguen en castellano | `DeliveryService`; el monitor (`DeliveryMessage`) |
+| `AttemptEnd.Text`, `FailureNote.Text` (internos) | El motivo de un trabajador como código, junto a la frase anclada; el reintento lo lleva como pieza anidada | `Workers`, `OrchestrationRun`; `LoggedTexts.TaskReason` lo deriva del registro |
+| `ScheduledResume.ReasonText` (`UserText?`, al final) | Por qué una ejecución no se reanuda sola, o cómo se reanudó, como código derivado de la frase (`LoggedTexts.ResumeReason`) | `ResumeScheduler`; `MainViewModel` |
+| `PlanProposal.ErrorText` (ya existía) | Se añaden «el plan corregido no se pudo leer» y «sigue sin ser válido»; `HistoryToolNotice` se pinta con `LoggedTexts.HistoryToolNotice(frase)` | `Planner`; `OrchestratorDocumentViewModel` |
+| `OrderReviewResult.ErrorText`, `PreparationChatReply.ErrorText` (`UserText?`, al final) | Fallo del sistema al revisar el orden o al hablar con el orquestador, como código; el del agente se enseña tal cual | `OrderReviewService`, `PreparationChatService`; sus vistas |
 
-Escritorio: `OrchestratorCodedText` (pinta frases, líneas de paso y `Painted(texto, frase)`) y `OrchestratorErrorText.Detail(ex)` (una
+Escritorio: `OrchestratorCodedText` (pinta frases, líneas de paso y `Painted(texto, frase)`) y `OrchestratorErrorText.Detail(ex)`, que ya usan todos los `ex.Message` de `Orchestrator/**` (una
 `UserTextException` desde recursos, y cualquier otro fallo con su mensaje técnico). Las claves son `Text_…` en
 `Resources/OrchestratorStrings.resx` y `.en.resx`; la lista de los códigos, lo que queda fijo y lo pendiente, en la adenda del ADR.
 
