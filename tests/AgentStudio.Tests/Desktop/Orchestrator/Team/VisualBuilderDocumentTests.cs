@@ -14,6 +14,7 @@ using AgentStudio.Desktop.Orchestrator.Team;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Orchestration;
+using AgentStudio.Domain.Orchestration.Analysis;
 using AgentStudio.Domain.Team;
 using AgentStudio.Domain.Work;
 using AgentStudio.Tests.Desktop.Lock;
@@ -275,6 +276,70 @@ public sealed class VisualBuilderDocumentTests
         Assert.Equal("Ejecutor principal", document.Canvas.Team.Agents.Single(a => a.Id.Value == "ejecutor").Name);
         Assert.Contains("vuelve a aprobar el plan", document.Canvas.NoticeText, StringComparison.Ordinal);
         Assert.Contains("retira la aprobación", editor.Notice, StringComparison.Ordinal);
+    }
+
+    /// <summary>P55: Ctrl+Z of a fix that changed the template reaches the store, because the reading the document does after the save keeps the history.</summary>
+    [Fact]
+    public async Task Undoing_a_fix_that_changed_the_template_gives_the_store_back_its_previous_state_and_redo_applies_it_again()
+    {
+        var roster = new MutableRoster();
+        var document = await OpenAsync(Backend(roster), BuilderServices.None);
+        var band = document.Builder!.Band;
+        var original = roster.Agents.Single(a => a.Id.Value == "ejecutor");
+        var hashBefore = RosterHash.Of(roster.Agents);
+
+        await band.ApplyFixAsync(new ChangeModelFix(original.Id, "modelo-nuevo"));
+        Assert.Equal("modelo-nuevo", roster.Agents.Single(a => a.Id.Value == "ejecutor").Model.Model);
+        Assert.True(band.CanUndo);
+
+        await band.UndoCommand.ExecuteAsync(null);
+        Assert.Equal(original, roster.Agents.Single(a => a.Id.Value == "ejecutor"));
+        Assert.Equal(hashBefore, RosterHash.Of(roster.Agents));
+        Assert.Equal(hashBefore, RosterHash.Of(document.Context!.Roster));
+        Assert.True(band.CanRedo);
+
+        await band.RedoCommand.ExecuteAsync(null);
+        Assert.Equal("modelo-nuevo", roster.Agents.Single(a => a.Id.Value == "ejecutor").Model.Model);
+    }
+
+    [Fact]
+    public async Task Applying_a_state_with_the_same_agents_read_again_changes_none_of_them()
+    {
+        var roster = new MutableRoster();
+        var document = await OpenAsync(Backend(roster), BuilderServices.None);
+        var host = DraftHostOf(document);
+        var before = host.ReadState();
+        var copies = before.Roster.Select(a => a with
+        {
+            Objectives = [.. a.Objectives],
+            AllowedTools = [.. a.AllowedTools],
+            PathGrants = [.. a.PathGrants],
+        }).ToList();
+
+        Assert.True(await host.ApplyAsync(before, before with { Roster = copies }, null));
+
+        Assert.Empty(roster.Operations);
+    }
+
+    [Fact]
+    public async Task A_save_that_leaves_the_template_as_it_was_approved_keeps_the_approval_and_a_different_one_withdraws_it()
+    {
+        var roster = new MutableRoster();
+        var document = await OpenAsync(Backend(roster), BuilderServices.None);
+        document.LoadProposal(new PlanProposal(new RunId("20261109-abc123"), PlanFixtures.Plan(), [], false, AgentRunStatus.Succeeded, null, null));
+        document.ValidateCommand.Execute(null);
+        await document.Builder!.Band.RefreshAsync();
+        await document.ApproveCommand.ExecuteAsync(null);
+        Assert.True(document.IsApproved);
+        var editor = document.Builder!.Editor;
+        var executor = document.Context!.Roster.Single(a => a.Id.Value == "ejecutor");
+
+        Assert.True(await editor.ApplyAsync(executor with { Objectives = [.. executor.Objectives] }, "Igual."));
+        Assert.True(document.IsApproved);
+        Assert.Contains("ejecutor", roster.Operations.Select(o => o.Replace("save:", string.Empty, StringComparison.Ordinal)));
+
+        Assert.True(await editor.ApplyAsync(executor with { Name = "Otro nombre" }, "Distinto."));
+        Assert.False(document.IsApproved);
     }
 
     private static IReadOnlyList<TaskSpec> TasksWithoutIntegration() =>

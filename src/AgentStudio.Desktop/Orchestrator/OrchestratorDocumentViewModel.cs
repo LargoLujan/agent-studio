@@ -800,7 +800,15 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
     /// </summary>
     private async Task OnRosterSavedAsync()
     {
-        if (PlanDecision is { Approved: true })
+        // The template is read again first, so the approval is judged against the template as it ended: a set of changes that left it
+        // as it was when the plan was approved (Ctrl+Z of a fix, say) withdraws nothing (P55). The engine compares the same hash.
+        var approvedRoster = PlanDecision is { Approved: true } ? _approvedRoster : null;
+        var wasApproved = PlanDecision is { Approved: true };
+        await ReloadAsync().ConfigureAwait(true);
+        if (wasApproved
+            && PlanDecision is { Approved: true }
+            && (approvedRoster is null
+                || !string.Equals(RosterHash.Of(approvedRoster), RosterHash.Of(Context?.Roster), StringComparison.Ordinal)))
         {
             _approvedHash = null;
             _approvedRoster = null;
@@ -808,9 +816,8 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
             PlanDecision = null;
             Canvas.Notify(Texts.Get("Orchestrator_Doc_RosterChanged"), NoticeKind.Error);
             RefreshCommands();
+            RefreshBuilder();
         }
-
-        await ReloadAsync().ConfigureAwait(true);
     }
 
     partial void OnShowValidationChanged(bool value) => Revalidate();
