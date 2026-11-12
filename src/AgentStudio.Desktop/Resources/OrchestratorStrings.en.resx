@@ -2914,10 +2914,10 @@ Open the consumption analysis, if it is there, to see the detail.</value>
     <value>Run {0} has not finished: there is nothing to deliver.</value>
   </data>
   <data name="Text_delivery_run_not_succeeded" xml:space="preserve">
-    <value>Run {0} ended as {1}: only a completed run is delivered.</value>
+    <value>Run {0} ended as {1}. Only a run that ended well is delivered.</value>
   </data>
   <data name="Text_delivery_no_approved_integration" xml:space="preserve">
-    <value>Run {0} has no integration approved by an independent judge: it is not delivered.</value>
+    <value>No independent judge approved the integration of run {0}. It is not delivered.</value>
   </data>
   <data name="Text_delivery_verdict_missing" xml:space="preserve">
     <value>Verdict {0}, the one the run ended with, is not in the decision log: it is not delivered.</value>
@@ -2929,7 +2929,7 @@ Open the consumption analysis, if it is there, to see the detail.</value>
     <value>The judge&apos;s verdict is &quot;{0}&quot; and it is not valid. Only what an independent judge approved with a valid verdict is delivered.</value>
   </data>
   <data name="Text_delivery_store_not_valid_approval" xml:space="preserve">
-    <value>The verdict store does not confirm that verdict {0} is a valid approval: it is not delivered.</value>
+    <value>The verdict store does not see verdict {0} as a valid approval. It is not delivered.</value>
   </data>
   <data name="Text_delivery_verdict_superseded" xml:space="preserve">
     <value>Verdict {0} was replaced by another one: it is not delivered.</value>
@@ -2983,10 +2983,10 @@ Open the consumption analysis, if it is there, to see the detail.</value>
     <value>Integration {0} of run {1} can be delivered: {2}.</value>
   </data>
   <data name="Text_delivery_revision_confirmed" xml:space="preserve">
-    <value>the review (debate {0}) of the challenge to verdict {1} confirmed the approval</value>
+    <value>the review (debate {0}) of the challenged verdict {1} confirmed the approval</value>
   </data>
   <data name="Text_delivery_revision_accepted" xml:space="preserve">
-    <value>you accepted the review (debate {0}) of the challenge to verdict {1}, which approves it</value>
+    <value>you accepted the review (debate {0}) of verdict {1}, which approves it</value>
   </data>
   <data name="Text_delivery_revision_open_unannounced" xml:space="preserve">
     <value>A review (debate {0}) of a verdict of this run is open and has not finished. The log did not record the challenge (the app closed halfway). It is not delivered until the review ends.</value>
@@ -3001,16 +3001,16 @@ Open the consumption analysis, if it is there, to see the detail.</value>
     <value>The verdict the run ended with is not a valid approval by a judge: it is not delivered.</value>
   </data>
   <data name="Text_delivery_revision_withdraws" xml:space="preserve">
-    <value>The review (debate {0}) of the challenge to verdict {1} left the integration as &quot;{2}&quot;: it withdraws the approval and nothing is delivered.</value>
+    <value>The review (debate {0}) of verdict {1} left the integration as &quot;{2}&quot;. It withdraws the approval, so nothing is delivered.</value>
   </data>
   <data name="Text_delivery_revision_not_approves" xml:space="preserve">
-    <value>The review (debate {0}) of the challenge to verdict {1} left the integration as &quot;{2}&quot;: it does not approve it and nothing is delivered.</value>
+    <value>The review (debate {0}) of verdict {1} left the integration as &quot;{2}&quot;. It does not approve it, so nothing is delivered.</value>
   </data>
   <data name="Text_delivery_revision_unaccepted_confirms" xml:space="preserve">
-    <value>The review (debate {0}) of the challenge to verdict {1} confirms an approval you had not accepted yet (verdict {2}). It only counts if you accept it expressly, so nothing is delivered until then.</value>
+    <value>The review (debate {0}) of verdict {1} confirms an approval you have not accepted yet (verdict {2}). It only counts if you accept it. Nothing is delivered until then.</value>
   </data>
   <data name="Text_delivery_revision_unaccepted_turns" xml:space="preserve">
-    <value>The review (debate {0}) of the challenge to verdict {1} turns towards an approval (verdict {2}). It only counts if you accept it expressly, so nothing is delivered until then.</value>
+    <value>The review (debate {0}) of verdict {1} turns towards an approval (verdict {2}). It only counts if you accept it. Nothing is delivered until then.</value>
   </data>
   <data name="Text_delivery_store_unannounced_supersession" xml:space="preserve">
     <value>The verdict store holds a verdict ({0}) that replaces {1} and that the decision log does not announce. It is not delivered.</value>
@@ -3262,7 +3262,7 @@ Open the consumption analysis, if it is there, to see the detail.</value>
     <value>Denied by {0}: {1}</value>
   </data>
   <data name="Text_resume_no_consent" xml:space="preserve">
-    <value>Its header has no consent to resume by itself: you resume it.</value>
+    <value>It has no permission to go on by itself. You resume it.</value>
   </data>
   <data name="Text_resume_not_halfway" xml:space="preserve">
     <value>It is not halfway.</value>

@@ -335,7 +335,7 @@ public sealed class QuotaWaitTests
             }
         }
 
-        Assert.All(transitions.Where(t => t.ReasonText is not null), t => Assert.Equal(t.ReasonText, LoggedTexts.TaskReason(t.Reason)));
+        Assert.All(transitions, t => Assert.Equal(t.ReasonText, LoggedTexts.TaskReason(t.Reason)));
         Assert.All(transitions.Where(t => t.To == WorkTaskStatus.Blocked), t => Assert.NotNull(t.ReasonText));
         return transitions;
     }

@@ -516,7 +516,9 @@ más (`OrchestrationUserTexts.All` suma ahora 262; claves `Text_…` en `Orchest
 
 Desktop: los `ex.Message` de `Orchestrator/**` (Preparation, Questions, Team, Canvas, Session, Approvals) pasan por
 `OrchestratorErrorText.Detail(ex)`: una `UserTextException` se pinta desde recursos y cualquier otro fallo enseña su mensaje técnico, en inglés.
-`RunMonitorViewModel` pinta `DeliveryMessage` con `OrchestratorCodedText.Painted(texto, frase)`.
+`RunMonitorViewModel` pinta `DeliveryMessage` con `OrchestratorCodedText.Painted(texto, frase)`. `ReadFailureLine` no necesitaba cambio: lee
+de la frase anclada (`La verificación falló en: …`, `El paso … falló.`) solo qué paso falló, para buscar su prueba guardada, y lo que enseña la tarjeta es el motivo
+pintado desde su código más la línea de error del propio registro del paso, sin ninguna frase del sistema armada con ella.
 
 **Pendiente (sigue en castellano a mano o como texto técnico, con pantalla).**
 

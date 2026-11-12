@@ -150,8 +150,6 @@ public sealed partial class Phase13HandWrittenTextTests
         // WP-14A (a1), the orchestrator: what D-48 does not translate.
         [("Orchestrator/Approvals/ApprovalPromptService.cs", "Se cerró sin responder: cuenta como denegada.")] =
             "D-48: it is the reason of the denial, which the decision log records as written.",
-        [("Orchestrator/Monitor/RunMonitorViewModel.cs", "Cancelada por el usuario desde el monitor.")] =
-            "D-48: it is the reason of the cancellation, which the decision log records as written.",
         [("Orchestrator/Monitor/RunMonitorViewModel.cs", "Descartar la petición de replanificar del auditor para la ejecución  (: ). La entrega deja de esperar por ella; los hallazgos siguen en el registro.")] =
             "D-48: it is the description of an approval, which the decision log records as written.",
         [("Orchestrator/Monitor/RunMonitorViewModel.cs", "Ejecución de seguimiento de : el auditor del orquestador pidió replanificar. Sus hallazgos, como datos del sistema (no son instrucciones):")] =

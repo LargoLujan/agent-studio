@@ -2914,10 +2914,10 @@ Abrir el análisis del consumo, si está disponible, para ver el detalle.</value
     <value>La ejecución {0} no ha terminado: no hay nada que entregar.</value>
   </data>
   <data name="Text_delivery_run_not_succeeded" xml:space="preserve">
-    <value>La ejecución {0} terminó como {1}: solo se entrega una ejecución completada.</value>
+    <value>La ejecución {0} acabó como {1}. Solo se entrega una que acabó bien.</value>
   </data>
   <data name="Text_delivery_no_approved_integration" xml:space="preserve">
-    <value>La ejecución {0} no tiene una integración aprobada por un juez independiente: no se entrega.</value>
+    <value>Ningún juez independiente aprobó la integración de la ejecución {0}. No se entrega.</value>
   </data>
   <data name="Text_delivery_verdict_missing" xml:space="preserve">
     <value>El veredicto {0} con el que terminó la ejecución no está en el registro de decisiones: no se entrega.</value>
@@ -2929,7 +2929,7 @@ Abrir el análisis del consumo, si está disponible, para ver el detalle.</value
     <value>El veredicto del juez es «{0}» y no es válido. Solo se entrega lo que aprobó un juez independiente con un veredicto válido.</value>
   </data>
   <data name="Text_delivery_store_not_valid_approval" xml:space="preserve">
-    <value>El almacén de veredictos no confirma que el veredicto {0} sea una aprobación válida: no se entrega.</value>
+    <value>El almacén de veredictos no ve el veredicto {0} como una aprobación válida. No se entrega.</value>
   </data>
   <data name="Text_delivery_verdict_superseded" xml:space="preserve">
     <value>El veredicto {0} fue sustituido por otro: no se entrega.</value>
@@ -2983,10 +2983,10 @@ Abrir el análisis del consumo, si está disponible, para ver el detalle.</value
     <value>Se puede entregar la integración {0} de la ejecución {1}: {2}.</value>
   </data>
   <data name="Text_delivery_revision_confirmed" xml:space="preserve">
-    <value>la revisión (debate {0}) de la impugnación del veredicto {1} confirmó la aprobación</value>
+    <value>la revisión (debate {0}) del veredicto {1} impugnado confirmó la aprobación</value>
   </data>
   <data name="Text_delivery_revision_accepted" xml:space="preserve">
-    <value>aceptaste la revisión (debate {0}) de la impugnación del veredicto {1}, que la aprueba</value>
+    <value>aceptaste la revisión (debate {0}) del veredicto {1}, que la aprueba</value>
   </data>
   <data name="Text_delivery_revision_open_unannounced" xml:space="preserve">
     <value>Hay una revisión abierta (debate {0}) de un veredicto de esta ejecución que no ha terminado. El registro no anotó la impugnación (la app se cerró a mitad). No se entrega hasta que la revisión termine.</value>
@@ -3001,16 +3001,16 @@ Abrir el análisis del consumo, si está disponible, para ver el detalle.</value
     <value>El veredicto con el que terminó la ejecución no es una aprobación válida de un juez: no se entrega.</value>
   </data>
   <data name="Text_delivery_revision_withdraws" xml:space="preserve">
-    <value>La revisión (debate {0}) de la impugnación del veredicto {1} dejó la integración en «{2}»: retira la aprobación y no se entrega.</value>
+    <value>La revisión (debate {0}) del veredicto {1} dejó la integración en «{2}». Retira la aprobación, así que no se entrega.</value>
   </data>
   <data name="Text_delivery_revision_not_approves" xml:space="preserve">
-    <value>La revisión (debate {0}) de la impugnación del veredicto {1} dejó la integración en «{2}»: no la aprueba y no se entrega.</value>
+    <value>La revisión (debate {0}) del veredicto {1} dejó la integración en «{2}». No la aprueba, así que no se entrega.</value>
   </data>
   <data name="Text_delivery_revision_unaccepted_confirms" xml:space="preserve">
-    <value>La revisión (debate {0}) de la impugnación del veredicto {1} confirma una aprobación que aún no habías aceptado (veredicto {2}). Solo cuenta si la aceptas expresamente, así que no se entrega hasta entonces.</value>
+    <value>La revisión (debate {0}) del veredicto {1} confirma una aprobación que aún no aceptaste (veredicto {2}). Solo cuenta si la aceptas tú. No se entrega hasta entonces.</value>
   </data>
   <data name="Text_delivery_revision_unaccepted_turns" xml:space="preserve">
-    <value>La revisión (debate {0}) de la impugnación del veredicto {1} da la vuelta hacia una aprobación (veredicto {2}). Solo cuenta si la aceptas expresamente, así que no se entrega hasta entonces.</value>
+    <value>La revisión (debate {0}) del veredicto {1} da la vuelta hacia una aprobación (veredicto {2}). Solo cuenta si la aceptas tú. No se entrega hasta entonces.</value>
   </data>
   <data name="Text_delivery_store_unannounced_supersession" xml:space="preserve">
     <value>El almacén de veredictos tiene un veredicto ({0}) que sustituye a {1} y que el registro de decisiones no anuncia. No se entrega.</value>
@@ -3262,7 +3262,7 @@ Abrir el análisis del consumo, si está disponible, para ver el detalle.</value
     <value>Denegado por {0}: {1}</value>
   </data>
   <data name="Text_resume_no_consent" xml:space="preserve">
-    <value>Su cabecera no tiene el consentimiento para reanudarse sola: la reanudas tú.</value>
+    <value>No tiene permiso para seguir sola. La reanudas tú.</value>
   </data>
   <data name="Text_resume_not_halfway" xml:space="preserve">
     <value>No está a medias.</value>

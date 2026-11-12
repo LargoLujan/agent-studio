@@ -411,7 +411,7 @@ internal static class AgentAttemptWorker
         catch (Exception ex)
         {
             var kind = flight.Launched ? EndKind.Broken : EndKind.LaunchFailed;
-            w.Post(new WorkerEnded(task, attempt, new AttemptEnd(kind, "Error del sistema: " + ex.Message) { AgentRunRecorded = recorded, Worktree = info }));
+            w.Post(new WorkerEnded(task, attempt, new AttemptEnd(kind, "Error del sistema: " + ex.Message) { AgentRunRecorded = recorded, Worktree = info, Text = UserText.Of(OrchestrationUserTexts.WorkerSystemError, ex.Message) }));
         }
         finally
         {
@@ -1109,7 +1109,7 @@ internal static class SystemWorkers
         }
         catch (Exception ex)
         {
-            w.Post(new WorkerEnded(task, attempt, new AttemptEnd(EndKind.Broken, "Error del sistema: " + ex.Message) { Worktree = info }));
+            w.Post(new WorkerEnded(task, attempt, new AttemptEnd(EndKind.Broken, "Error del sistema: " + ex.Message) { Worktree = info, Text = UserText.Of(OrchestrationUserTexts.WorkerSystemError, ex.Message) }));
         }
     }
 

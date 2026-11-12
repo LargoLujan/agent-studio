@@ -167,7 +167,7 @@ public sealed class CodedTextsInTheEngineTests
         Assert.Equal(UserText.Of(OrchestrationUserTexts.WorkerVerificationFailed, "test"), expectedRetry.Arguments[2]);
 
         // Every transition says the same as a code live and read back from the log.
-        Assert.All(transitions.Where(t => t.ReasonText is not null), t => Assert.Equal(t.ReasonText, DerivedReason(t.Reason)));
+        Assert.All(transitions, t => Assert.Equal(t.ReasonText, DerivedReason(t.Reason)));
         await using var inspected = await harness.CreateOrchestrator().InspectAsync(harness.Project, id, Ct);
         var history = (await ReadAllAsync(inspected)).OfType<TaskStatusChangedEvent>().ToList();
         Assert.Equal(transitions.Select(t => t.ReasonText), history.Select(t => t.ReasonText));
@@ -216,6 +216,7 @@ public sealed class CodedTextsInTheEngineTests
         Assert.Equal(UserText.Of(OrchestrationUserTexts.WorkerOutsideScope, "a.cs"), DerivedReason("Cambios fuera del alcance de escritura: a.cs"));
         Assert.Equal(UserText.Of(OrchestrationUserTexts.WorkerDenied, "Ana"), DerivedReason("Denegado por Ana."));
         Assert.Equal(UserText.Of(OrchestrationUserTexts.WorkerDeniedWithComment, "Ana", "no me fío"), DerivedReason("Denegado por Ana: no me fío"));
+        Assert.Equal(UserText.Of(OrchestrationUserTexts.WorkerDeniedWithComment, "Ana", "no me fío."), DerivedReason("Denegado por Ana: no me fío."));
         Assert.Equal(UserText.Of(OrchestrationUserTexts.WorkerApproved, "Ana"), DerivedReason("Aprobado por Ana."));
         Assert.Equal(UserText.Of(OrchestrationUserTexts.TaskRetry, 2, 3, UserText.Of(OrchestrationUserTexts.WorkerStepFailed, "test")), DerivedReason("Reintento 2 de 3 tras: El paso test falló."));
         Assert.Equal(UserText.Of(OrchestrationUserTexts.TaskRetry, 1, 3, "Completada a medias"), DerivedReason("Reintento 1 de 3 tras: Completada a medias"));

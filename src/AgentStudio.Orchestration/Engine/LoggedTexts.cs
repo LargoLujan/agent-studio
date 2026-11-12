@@ -464,13 +464,14 @@ public static partial class LoggedTexts
             return UserText.Of(OrchestrationUserTexts.WorkerApproved, by.Groups[1].Value);
         }
 
-        if (Denied().Match(reason) is { Success: true } deniedBy)
+        // With a comment first: the comment of a person may end in a full stop, and the sentence without one ends in it too.
+        if (DeniedWithComment().Match(reason) is { Success: true } commented)
         {
-            return UserText.Of(OrchestrationUserTexts.WorkerDenied, deniedBy.Groups[1].Value);
+            return UserText.Of(OrchestrationUserTexts.WorkerDeniedWithComment, commented.Groups[1].Value, commented.Groups[2].Value);
         }
 
-        return DeniedWithComment().Match(reason) is { Success: true } commented
-            ? UserText.Of(OrchestrationUserTexts.WorkerDeniedWithComment, commented.Groups[1].Value, commented.Groups[2].Value)
+        return Denied().Match(reason) is { Success: true } deniedBy
+            ? UserText.Of(OrchestrationUserTexts.WorkerDenied, deniedBy.Groups[1].Value)
             : null;
     }
 
