@@ -17,6 +17,7 @@ public static class DoctorTexts
     public const int ArgumentCount = 6;
 
     private const string CodePrefix = "doctor.";
+    private const string FixPrefix = "doctor.fix.";
     private const string ProviderPrefix = "doctor.provider.";
     private const string SourceFailedPrefix = "doctor.source-failed.";
 
@@ -39,7 +40,11 @@ public static class DoctorTexts
     public static string ExplanationKey(string code, DoctorStatus status) => "Doctor_Check_" + Part(Family(code)) + "_" + status;
 
     /// <summary>The key of the sentence of a fix.</summary>
-    public static string FixKey(string fixCode) => "Doctor_Fix_" + Part(DoctorFixCatalog.TextFamily(fixCode));
+    public static string FixKey(string fixCode)
+    {
+        var family = DoctorFixCatalog.TextFamily(fixCode);
+        return "Doctor_Fix_" + (family.StartsWith(FixPrefix, StringComparison.Ordinal) ? family[FixPrefix.Length..] : family).Replace('.', '_').Replace('-', '_');
+    }
 
     /// <summary>The key of the name of a state («Correcto», «Aviso»…).</summary>
     public static string StatusKey(DoctorStatus status) => "Doctor_Status_" + status;

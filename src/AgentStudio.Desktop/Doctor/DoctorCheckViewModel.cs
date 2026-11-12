@@ -17,7 +17,11 @@ public enum DoctorFixKind
 }
 
 /// <summary>A fact of a check, with the label in the language in use (the «Detalles» of a check).</summary>
-public sealed record DoctorFactItem(string Label, string Value);
+public sealed record DoctorFactItem(string Label, string Value)
+{
+    /// <summary>A list item that is not a control is named by its text: the label and the value, as the row shows them.</summary>
+    public override string ToString() => Label + ": " + Value;
+}
 
 /// <summary>One check of the panel: its state with a shape as well as a colour, its title and sentence in the language in use, its facts and its fix (docs/20 D-04).</summary>
 public sealed partial class DoctorCheckViewModel : ObservableObject
@@ -190,6 +194,9 @@ public sealed partial class DoctorCheckViewModel : ObservableObject
             _ => "Doctor_Fix_Failed",
         });
     }
+
+    /// <summary>What a screen reader says for the row: the title and the state, not the name of the type.</summary>
+    public override string ToString() => AutomationName;
 
     internal void Undone() => (AppliedSequence, FixMessage) = (null, Texts.Get("Doctor_Fix_Undone"));
 }

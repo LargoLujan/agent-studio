@@ -38,6 +38,9 @@ public sealed partial class DoctorSectionViewModel : ObservableObject
         IsExpanded = worst is DoctorStatus.Warning or DoctorStatus.Error or DoctorStatus.Unknown;
     }
 
+    /// <summary>What a screen reader says for the section: its title and its worst state, not the name of the type.</summary>
+    public override string ToString() => AutomationName;
+
     public DoctorSection Section { get; }
 
     public string Title { get; }
@@ -61,6 +64,12 @@ public sealed partial class DoctorSectionViewModel : ObservableObject
     public bool HasActionChecks => ActionChecks.Count > 0;
 
     public bool IsProviders => Section == DoctorSection.Providers;
+
+    public bool IsTools => Section == DoctorSection.Tools;
+
+    public bool IsProject => Section == DoctorSection.Project;
+
+    public bool IsContainers => Section == DoctorSection.Containers;
 
     public bool IsTable => Section == DoctorSection.DeclaredEnvironment;
 

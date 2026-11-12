@@ -199,7 +199,14 @@
                                             <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" TextWrapping="Wrap" Text="{Binding Title}"/>
                                             <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{Binding Summary}"/>
                                         </StackPanel>
-                                        <info:InfoButton Grid.Column="2" InfoKey="{Binding InfoKey}" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                        <!-- The ⓘ of the section: one button for each, with its key written out (the corpus of the help links the articles by those keys). -->
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="6,0,0,0" VerticalAlignment="Center">
+                                            <info:InfoButton InfoKey="Info_Doctor_Providers" Visibility="{Binding IsProviders, Converter={StaticResource BoolToVisibility}}"/>
+                                            <info:InfoButton InfoKey="Info_Doctor_Tools" Visibility="{Binding IsTools, Converter={StaticResource BoolToVisibility}}"/>
+                                            <info:InfoButton InfoKey="Info_Doctor_Project" Visibility="{Binding IsProject, Converter={StaticResource BoolToVisibility}}"/>
+                                            <info:InfoButton InfoKey="Info_Doctor_DeclaredEnvironment" Visibility="{Binding IsTable, Converter={StaticResource BoolToVisibility}}"/>
+                                            <info:InfoButton InfoKey="Info_Doctor_Containers" Visibility="{Binding IsContainers, Converter={StaticResource BoolToVisibility}}"/>
+                                        </StackPanel>
                                         <ToggleButton Grid.Column="3" Style="{StaticResource DetailsToggle}" IsChecked="{Binding IsExpanded, Mode=TwoWay}"
                                                       ToolTip="{l:T Doctor_Section_Hint}" AutomationProperties.Name="{Binding AutomationName}"/>
                                     </Grid>
