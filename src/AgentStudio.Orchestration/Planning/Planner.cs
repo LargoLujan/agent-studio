@@ -112,7 +112,7 @@ internal sealed class Planner(EnginePorts ports)
             return Failed(
                 run,
                 $"No se lanza el orquestador: {ProjectMemoryPrompt.TooSmall(problem)}. Reduce los requisitos obligatorios o quita la memoria del orquestador en la plantilla.",
-                UserText.Of(OrchestrationUserTexts.PlannerMemoryTooSmall));
+                UserText.Of(OrchestrationUserTexts.PlannerMemoryTooSmall, OrchestrationUserTexts.MemoryTooSmall(problem)));
         }
 
         // The history tool (docs/17 D-06), after the memory and before anything is written: a log that does not verify stops
@@ -475,7 +475,7 @@ internal sealed class Planner(EnginePorts ports)
                     attempt > 1,
                     AgentRunStatus.Failed,
                     "El repositorio del usuario cambió mientras planificaba el orquestador; el plan se descarta. " + string.Join(" ", result.RepositoryDifferences),
-                    result.Report?.Id) { ErrorText = UserText.Of(OrchestrationUserTexts.PlannerRepositoryChanged) });
+                    result.Report?.Id) { ErrorText = UserText.Of(OrchestrationUserTexts.PlannerRepositoryChanged, string.Join(" ", result.RepositoryDifferences)) });
             }
 
             if (!result.Launched)

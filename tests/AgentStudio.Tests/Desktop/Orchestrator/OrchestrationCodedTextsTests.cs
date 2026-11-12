@@ -258,6 +258,49 @@ public sealed partial class OrchestrationCodedTextsTests
     }
 
     [Fact]
+    public void The_phase_a_delivery_names_is_the_word_the_desktop_already_has_in_both_languages()
+    {
+        foreach (var phase in Enum.GetValues<AgentStudio.Application.Orchestration.RunPhase>())
+        {
+            var piece = OrchestrationUserTexts.Phase(phase);
+            Assert.True(Spanish.Has(piece.ResourceKey), piece.Code + " (es)");
+            Assert.True(English.Has(piece.ResourceKey), piece.Code + " (en)");
+        }
+
+        var reason = UserText.Of(OrchestrationUserTexts.DeliveryRunNotSucceeded, "R1", OrchestrationUserTexts.Phase(AgentStudio.Application.Orchestration.RunPhase.Failed));
+        Assert.Equal("La ejecución R1 acabó como fallida. Solo se entrega una que acabó bien.", Say(reason, "x", Spanish));
+        Assert.Equal("Run R1 ended as failed. Only a run that ended well is delivered.", Say(reason, "x", English));
+        Assert.Equal(
+            "El registro de decisiones no está íntegro: no se entrega nada.",
+            Say(UserText.Of(OrchestrationUserTexts.DeliveryLogNotIntactUnknown), "x", Spanish));
+    }
+
+    [Fact]
+    public void What_the_planner_could_not_do_says_what_is_missing_or_what_changed_in_both_languages()
+    {
+        var figures = UserText.Of(OrchestrationUserTexts.PlannerMemoryTooSmall, OrchestrationUserTexts.MemoryTooSmall(new AgentStudio.Application.Knowledge.ContextBudgetTooSmallException(5000, 4000)));
+        var unknown = UserText.Of(OrchestrationUserTexts.PlannerMemoryTooSmall, OrchestrationUserTexts.MemoryTooSmall(new AgentStudio.Application.Knowledge.ContextBudgetTooSmallException("technical message")));
+
+        Assert.Matches("its requirements take 5,?000 characters and the context only holds 4,?000", Say(figures, "x", English));
+        Assert.Contains("caracteres", Say(figures, "x", Spanish), StringComparison.Ordinal);
+        Assert.StartsWith("The orchestrator does not start: the memory and the requirements do not fit in its context.", Say(unknown, "x", English), StringComparison.Ordinal);
+        Assert.DoesNotContain("technical message", Say(unknown, "x", English), StringComparison.Ordinal);
+        Assert.EndsWith("HEAD moved.", Say(UserText.Of(OrchestrationUserTexts.PlannerRepositoryChanged, "HEAD moved."), "x", English), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_repository_that_changed_and_the_memory_that_does_not_fit_are_painted_with_their_pieces_nested()
+    {
+        var steps = UserText.Of(OrchestrationUserTexts.StepsMany, UserText.Of(OrchestrationUserTexts.ListAnd, "build", "test"));
+        var changed = UserText.Of(OrchestrationUserTexts.WorkerRepositoryChanged, UserText.Of(OrchestrationUserTexts.RepositoryDuringStepsStopped, steps), "HEAD moved.");
+        Assert.Equal("Your repository changed during steps build and test, which were stopped before they finished: HEAD moved.", Say(changed, "x", English));
+        Assert.Equal("Tu repositorio cambió durante los pasos build y test, que se detuvieron antes de terminar: HEAD moved.", Say(changed, "x", Spanish));
+
+        var memory = UserText.Of(OrchestrationUserTexts.WorkerMemoryUnverifiedEntry, "T1", 7L, "hash roto", "ejecutor");
+        Assert.Contains("(entry 7: hash roto)", Say(memory, "x", English), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_failures_of_the_system_in_the_review_of_the_order_and_in_the_chat_come_out_in_english()
     {
         Assert.Equal("The orchestrator gave no answer.", Say(UserText.Of(OrchestrationUserTexts.ChatNoAnswer), "x", English));
