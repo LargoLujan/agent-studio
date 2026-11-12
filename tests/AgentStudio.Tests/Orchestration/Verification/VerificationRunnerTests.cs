@@ -391,6 +391,34 @@ public sealed class VerificationRunnerTests : IDisposable
         Assert.Equal(new TestRunSummary(1, 1, 0, 2), result.Evidence.TestRun);
     }
 
+    [Fact]
+    public async Task A_failed_test_step_carries_the_names_of_the_tests_its_report_says_failed()
+    {
+        var report = $"<TestRun xmlns=\"{TrxReportParser.Namespace}\"><Results>"
+            + "<UnitTestResult testName=\"Suma_devuelve_cuatro\" outcome=\"Passed\" />"
+            + "<UnitTestResult testName=\"Resta_devuelve_cero\" outcome=\"Failed\"><Output><ErrorInfo><Message>Assert.Equal() Failure: esperado 0</Message><StackTrace>en Calc.Resta</StackTrace></ErrorInfo></Output></UnitTestResult>"
+            + "</Results></TestRun>";
+        var script = ProcessScript.Exit(2) with { OnStart = WritesReport("test.trx", report) };
+
+        var result = Assert.Single(await Runner(new ScriptedProcessRunner(script)).RunAsync(_workingDirectory, [TrxTest()], Scope, null, Ct));
+
+        var failed = Assert.Single(result.FailedTests!);
+        Assert.Equal("Resta_devuelve_cero", failed.Name);
+        Assert.Equal("Assert.Equal() Failure: esperado 0", failed.Message);
+    }
+
+    [Fact]
+    public async Task A_step_that_passes_or_has_no_report_carries_no_failed_tests()
+    {
+        var passing = ProcessScript.Exit(0) with { OnStart = WritesReport("test.trx", Trx("Passed", "Passed")) };
+
+        var passed = Assert.Single(await Runner(new ScriptedProcessRunner(passing)).RunAsync(_workingDirectory, [TrxTest()], Scope, null, Ct));
+        var build = Assert.Single(await Runner(new ScriptedProcessRunner(ProcessScript.Exit(0))).RunAsync(_workingDirectory, [Build()], Scope, null, Ct));
+
+        Assert.Empty(passed.FailedTests!);
+        Assert.Empty(build.FailedTests!);
+    }
+
     [Theory]
     [InlineData("", 8)]
     [InlineData("", 0)]

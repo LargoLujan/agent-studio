@@ -5,10 +5,14 @@ using AgentStudio.Application.Providers;
 using AgentStudio.Desktop.Background;
 using AgentStudio.Desktop.Orchestrator;
 using AgentStudio.Desktop.Orchestrator.Canvas;
+using AgentStudio.Desktop.Orchestrator.Monitor;
+using AgentStudio.Desktop.Orchestrator.Questions;
 using AgentStudio.Desktop.Orchestrator.Session;
 using AgentStudio.Desktop.ViewModels;
+using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Tests.Desktop.Orchestrator;
+using AgentStudio.Tests.Desktop.Orchestrator.Monitor;
 using AgentStudio.Tests.Domain.Orchestration;
 using Microsoft.Extensions.Time.Testing;
 using static AgentStudio.Tests.Domain.TestData;
@@ -206,6 +210,118 @@ public sealed class ResumeRaceTests
         Assert.Contains(startedId.Value, tracked);
         Assert.Contains(Scheduled.Value, tracked);
         Assert.Equal($"La ejecución {startedId} empezó, pero su pestaña seguía otra ejecución. La sigue la bandeja del sistema.", message);
+    }
+
+    [Fact]
+    public async Task The_monitor_the_shell_makes_for_a_run_followed_in_the_background_gets_the_template_and_the_plan_of_the_run_from_what_the_run_stored()
+    {
+        // P52: no document gives this monitor its Roster or its PlanDependencies, so the shell reads them from the registry of the run.
+        using var temp = new TempDirectory();
+        var root = temp.CreateDirectory("calc");
+        var plan = PlanFixtures.Plan();
+        var inner = new FakeOrchestrator();
+        var startedId = new RunId("20260101-start1");
+        inner.Plan = (_, _, _) => Task.FromResult(new PlanProposal(startedId, plan, [], Corrected: false, AgentRunStatus.Succeeded, Error: null, RawPlanEvidence: null));
+        inner.Start = request => new FakeRun(new RunSnapshot(startedId, RunPhase.Running, [.. request.Plan.Tasks.Select(t => FakeRun.View(t.Id.Value, t.Kind))], FakeRun.Healthy, 0));
+        var engine = new GatedEngine(inner);
+        var factory = new OrchestratorDocumentFactory(new OrchestrationSession(Backends.Complete(inner) with { Orchestrator = engine }), new MemoryCanvasLayout(), new FakeTimeProvider(T0));
+        var roster = new[] { MonitorTestSupport.AgentDef("libre", "Agente libre") };
+        var dependencies = new Dictionary<TaskId, IReadOnlyList<TaskId>> { [new TaskId("T2")] = [new TaskId("T1")] };
+        var source = new ScriptedLiveContext(new RunLiveContext(roster, dependencies));
+
+        var (read, followed, free) = await WpfHost.RunAsync(async () =>
+        {
+            var main = new MainViewModel(
+                new InMemorySettingsStore(),
+                new FakeFolderPicker(),
+                new FakeUnsavedChangesPrompt(),
+                new ProviderDiagnosticsViewModel(new ProviderDiagnostics([]), TimeProvider.System),
+                new ExplorerViewModel(),
+                new JournalViewModel(TimeProvider.System),
+                new QuickOpenViewModel(),
+                orchestrators: factory,
+                work: new BackgroundWorkRegistry(new FakeTimeProvider(T0), pollInterval: Timeout.InfiniteTimeSpan),
+                monitors: new MonitorServices(hostFactory: () => new NoWindows(), liveContext: source));
+            await main.OpenProjectAsync(root);
+            await main.OpenOrchestratorCommand.ExecuteAsync(null);
+            var tab = Assert.IsType<OrchestratorDocumentViewModel>(main.ActiveContent);
+            tab.RequestText = "Calc.Multiply";
+            await tab.RequestPlanCommand.ExecuteAsync(null);
+            tab.ApproveCommand.Execute(null);
+            engine.Start = new TaskCompletionSource();
+
+            var executing = tab.ExecuteCommand.ExecuteAsync(null);
+            tab.Monitor.Attach(ScheduledRun(), Project);
+            engine.Start.SetResult();
+            await executing;
+
+            var background = Assert.Single(main.BackgroundMonitors, m => m.RunId == startedId);
+            for (var wait = 0; wait < 200 && background.Roster.Count == 0; wait++)
+            {
+                await Task.Delay(25);
+            }
+
+            return (source.Reads.ToList(), background.RunId, background.Roster.Select(a => a.Id.Value).ToList());
+        });
+
+        Assert.Equal<RunId?>(startedId, followed);
+        Assert.Equal([startedId], read.Select(r => r.Run));
+        Assert.Equal(["libre"], free);
+    }
+
+    [Fact]
+    public async Task A_monitor_that_follows_another_run_by_the_time_the_context_is_read_does_not_take_it()
+    {
+        var (monitor, _, _, _) = MonitorTestSupport.Open(MonitorTestSupport.View("T1", "a"));
+        var services = new MonitorServices(liveContext: new ScriptedLiveContext(new RunLiveContext([MonitorTestSupport.AgentDef("x", "X")], new Dictionary<TaskId, IReadOnlyList<TaskId>>())));
+
+        await services.GiveLiveContextAsync(monitor, Project, new RunId("20260101-other1"), TestContext.Current.CancellationToken);
+
+        Assert.Empty(monitor.Roster);
+    }
+
+    [Fact]
+    public async Task Without_a_source_or_with_a_run_that_stored_nothing_the_monitor_keeps_what_it_had()
+    {
+        var (monitor, run, _, _) = MonitorTestSupport.Open(MonitorTestSupport.View("T1", "a"));
+
+        await new MonitorServices().GiveLiveContextAsync(monitor, Project, run.Id, TestContext.Current.CancellationToken);
+        await new MonitorServices(liveContext: new ScriptedLiveContext(null)).GiveLiveContextAsync(monitor, Project, run.Id, TestContext.Current.CancellationToken);
+
+        Assert.Empty(monitor.Roster);
+        Assert.Empty(monitor.PlanDependencies);
+    }
+
+    private sealed class ScriptedLiveContext(RunLiveContext? context) : IRunLiveContextSource
+    {
+        public List<(ProjectContext Project, RunId Run)> Reads { get; } = [];
+
+        public Task<RunLiveContext?> ReadAsync(ProjectContext project, RunId run, CancellationToken cancellationToken)
+        {
+            Reads.Add((project, run));
+            return Task.FromResult(context);
+        }
+    }
+
+    private sealed class NoWindows : IQuestionWindowHost
+    {
+        public bool IsAppInView => true;
+
+        public void Show(QuestionViewModel question, bool activate = true)
+        {
+        }
+
+        public void Close(QuestionViewModel question)
+        {
+        }
+
+        public void Withdraw()
+        {
+        }
+
+        public void Restore()
+        {
+        }
     }
 
     [Fact]

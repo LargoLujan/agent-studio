@@ -34,6 +34,30 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
+            <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Margin="0,6,0,2" Text="{l:T Panels_Tests_HeadFailuresTitle}"
+                       Visibility="{Binding HeadFailures.Count, Converter={StaticResource Orchestrator.NotZeroToVisibility}}"/>
+            <!-- Bounded height, so the list virtualizes: a suite can name hundreds of failed tests. The message is the report's, shown as text. -->
+            <ListBox ItemsSource="{Binding HeadFailures}" MaxHeight="180" Background="{StaticResource BackgroundBrush}" BorderThickness="0"
+                     VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="{l:T Panels_Tests_HeadFailuresTitle}"
+                     Visibility="{Binding HeadFailures.Count, Converter={StaticResource Orchestrator.NotZeroToVisibility}}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate DataType="{x:Type panels:FailedTestRow}">
+                        <StackPanel Margin="0,1" AutomationProperties.Name="{Binding AccessibleName}">
+                            <TextBlock Style="{StaticResource BodyText}" FontFamily="{StaticResource MonoFont}" TextWrapping="Wrap" Text="{Binding Name}"/>
+                            <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{Binding Message}"
+                                       Visibility="{Binding Message, Converter={StaticResource Orchestrator.NotNullToVisibility}}"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+            <ItemsControl ItemsSource="{Binding HeadNotes}" Focusable="False">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{Binding}"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
         </StackPanel>
         <ItemsControl DockPanel.Dock="Top" ItemsSource="{Binding Notes}" Focusable="False" Margin="12,0,12,4">
             <ItemsControl.ItemTemplate>

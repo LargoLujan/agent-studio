@@ -223,8 +223,20 @@ public sealed record VerificationProfile(string Name, IReadOnlyList<Verification
 /// </param>
 public sealed record EvidenceScope(string ProjectId, RunId? Run, TaskId? Task, int? Attempt, string? SubjectCommit = null, string? RepositoryRoot = null);
 
+/// <summary>
+/// A test that failed, as its report names it (P50). The report is untrusted data: the name and the message are cut to a bounded
+/// length when they are read, and the message is the first thing the report says about the failure, never its stack.
+/// </summary>
+/// <param name="Name">The name of the test as the report gives it.</param>
+/// <param name="Message">What the report says went wrong, cut; null when it says nothing.</param>
+public sealed record FailedTest(string Name, string? Message);
+
 /// <summary>The outcome of one verification step. <see cref="Evidence"/> is what the runner captured, with its own hash.</summary>
-public sealed record VerificationResult(string StepId, EvidenceRecord Evidence, bool Succeeded, bool TimedOut, int ExitCode);
+/// <param name="FailedTests">
+/// The tests the report of a test step says failed (the first ones, bounded), in the order of the report; empty when the step has no
+/// report, the report could not be read or no test failed. They are not stored: the evidence keeps the counters.
+/// </param>
+public sealed record VerificationResult(string StepId, EvidenceRecord Evidence, bool Succeeded, bool TimedOut, int ExitCode, IReadOnlyList<FailedTest>? FailedTests = null);
 
 /// <summary>
 /// Runs verification steps in a working directory and captures their output as evidence. A step that runs no tests

@@ -154,6 +154,48 @@
   <data name="Panels_Tests_HeadCancelled" xml:space="preserve">
     <value>You cancelled the tests of the latest version.</value>
   </data>
+  <data name="Panels_Tests_HeadFailuresTitle" xml:space="preserve">
+    <value>Tests that fail</value>
+  </data>
+  <data name="Panels_Tests_HeadNotRun" xml:space="preserve">
+    <value>Not run, because the profile would pass them without isolation: {0}.</value>
+  </data>
+  <data name="Panels_Tests_HeadMore" xml:space="preserve">
+    <value>{0} more tests fail and are not shown: the list is cut at the first ones.</value>
+  </data>
+  <data name="Panels_Tests_HeadStopped" xml:space="preserve">
+    <value>It stopped at the first step that failed and did not run: {0}.</value>
+  </data>
+  <data name="Panels_Tests_HeadOtherProject" xml:space="preserve">
+    <value>You opened another project while the tests ran: their result was discarded.</value>
+  </data>
+  <data name="Panels_Tests_HeadNoProject" xml:space="preserve">
+    <value>no project is open.</value>
+  </data>
+  <data name="Panels_Tests_HeadBusy" xml:space="preserve">
+    <value>the project is busy with {0}; wait for it to finish.</value>
+  </data>
+  <data name="Panels_Tests_BusyRun" xml:space="preserve">
+    <value>a run</value>
+  </data>
+  <data name="Panels_Tests_BusyPlanning" xml:space="preserve">
+    <value>a planning</value>
+  </data>
+  <data name="Panels_Tests_BusyDebate" xml:space="preserve">
+    <value>a debate</value>
+  </data>
+  <data name="Panels_Tests_BusyAudit" xml:space="preserve">
+    <value>an audit or other tests</value>
+  </data>
+  <data name="Panels_Tests_HeadNoProfile" xml:space="preserve">
+    <value>the project has no verification profile.</value>
+  </data>
+  <data name="Panels_Tests_HeadNoIsolatedStep" xml:space="preserve">
+    <value>no step of the profile runs isolated, and nothing here runs with your permissions.</value>
+  </data>
+  <data name="Panels_Tests_HeadTimeBudget" xml:space="preserve">
+    <value>the tests passed the time limit ({0} min) and were stopped.</value>
+  </data>
   <data name="Info_Problems_Title" xml:space="preserve">
     <value>Problems</value>
   </data>

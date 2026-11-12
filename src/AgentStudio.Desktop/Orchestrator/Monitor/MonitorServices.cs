@@ -1,6 +1,7 @@
 using AgentStudio.Application.Analysis;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Usage;
+using AgentStudio.Domain.Orchestration;
 using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Lock;
 using AgentStudio.Desktop.Observability;
@@ -25,6 +26,7 @@ public sealed class MonitorServices
     private readonly IInterfaceLock? _lock;
     private readonly Func<IQuestionWindowHost> _hostFactory;
     private readonly IUiTextProvider _texts;
+    private readonly IRunLiveContextSource? _liveContext;
     private IQuestionWindowHost? _plannerHost;
 
     public MonitorServices(
@@ -35,8 +37,10 @@ public sealed class MonitorServices
         Func<ProjectContext, CancellationToken, Task<UsageEstimate>>? estimateAssisted = null,
         IInterfaceLock? interfaceLock = null,
         Func<IQuestionWindowHost>? hostFactory = null,
-        IUiTextProvider? texts = null)
+        IUiTextProvider? texts = null,
+        IRunLiveContextSource? liveContext = null)
     {
+        _liveContext = liveContext;
         _parts = parts;
         _quota = quota;
         _analyzer = analyzer;
@@ -98,6 +102,29 @@ public sealed class MonitorServices
         var prompts = new QuestionPromptService(monitor, _hostFactory(), _lock);
         prompts.AttentionRequested += OnAttention;
         return new Release(prompts, this);
+    }
+
+    /// <summary>
+    /// A run followed in the background has no document to give it the template and the dependencies of its plan: they are read from
+    /// what the run stored (its header and its plan) and given to the monitor, so it shows the free agents and the pulses (P52). It
+    /// does nothing without the source, when the run stores no header, or when the monitor follows another run by then.
+    /// </summary>
+    public async Task GiveLiveContextAsync(RunMonitorViewModel monitor, ProjectContext project, RunId run, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(monitor);
+        ArgumentNullException.ThrowIfNull(project);
+        if (_liveContext is not { } source || await source.ReadAsync(project, run, cancellationToken).ConfigureAwait(true) is not { } context)
+        {
+            return;
+        }
+
+        if (monitor.RunId != run)
+        {
+            return;
+        }
+
+        monitor.PlanDependencies = context.Dependencies;
+        monitor.Roster = context.Roster;
     }
 
     /// <summary>

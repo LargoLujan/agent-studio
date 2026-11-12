@@ -198,3 +198,38 @@
     etiquetan Medium explícitamente para que un hijo Low no herede Low por encima.
   - **Sin verificar:** el rechazo a aislar desde un proceso elevado (no se dispone de uno elevado para probarlo);
     AppContainer; la caché del usuario como *fallback*.
+
+- **Adenda (2026-11-12, P50: «Ejecutar las pruebas de HEAD»).** La decisión no cambia: el verificador sigue siendo el único sitio
+  donde se ejecutan los pasos, y los pasos aislados nunca tocan el árbol de trabajo. Cambia esto:
+  - **`HeadTestsService`** (`Desktop/Panels`, implementa `IHeadTestsService`) pasa los pasos del perfil del proyecto que están
+    aislados sobre el commit al que apunta HEAD, con `IVerificationRunner` y `EvidenceScope(proyecto, sin ejecución, …, HEAD,
+    raíz del repositorio)`: la copia sale de los objetos del repositorio (`git archive`), en integridad Low y sin red, igual que en
+    los debates y la auditoría. Un paso que el perfil marca `none` **no se ejecuta** y el panel dice cuál.
+  - **No pide aprobación.** Lo que exige aprobación en este producto es lo que ejecuta código con los permisos de la persona o
+    gasta cuota: «Aprobar plan» (pasos `none` y agentes con Bash) y la auditoría (gasta un juez). Aquí nada corre con los
+    permisos de la persona y no se gasta cuota, que es lo mismo que ya hacen sin aprobación las pruebas de un debate; el botón
+    es, además, el gesto explícito de la persona.
+  - **Ocupado del proyecto:** entra en `IProjectActivity` con el tipo `Audit` (exclusivo: no a la vez que una ejecución, una
+    planificación, un debate, una auditoría u otras pruebas de HEAD) y se niega, diciendo qué lo tiene, si está ocupado. No se
+    añadió un tipo nuevo para no tocar la pantalla de bloqueo ni el registro del trabajo; el coste es que, mientras corre, la
+    actividad del proyecto se llama «auditoría» en esos sitios.
+  - **Cancelación y tiempo:** la cancelación de la persona se propaga al verificador, que mata el árbol de procesos; el conjunto
+    tiene un tope de tiempo (la suma de los `Timeout` de los pasos más un minuto) y, al pasarlo, se dice como tal.
+  - **Prueba guardada:** el verificador guarda lo que captura como prueba guardada capturada por el sistema, ligada al commit de
+    HEAD y sin ejecución. El servicio **no la anuncia en el registro de decisiones** (no pertenece a ninguna ejecución), así que
+    ninguna aprobación puede apoyarse en ella; el diseño (docs/17 D-45) no pedía más que enseñarla.
+  - **Nombres de las pruebas que fallan:** `TrxReportParser` y `JUnitReportParser` leen ahora, en la misma pasada del informe, el
+    nombre de cada prueba fallida y la primera línea de su mensaje (`VerificationResult.FailedTests`; solo se pasa al panel, no
+    se guarda). El informe es un dato no fiable: sin DTD ni entidades (como ya), como mucho 200 fallos, nombre de 300 caracteres y
+    mensaje de 400 en una línea, y el mensaje se lee por trozos, de modo que un mensaje enorme no cuesta memoria. El panel los
+    enseña en una lista con altura acotada, que virtualiza, y dice cuántos más fallan y no se enseñan. Las verificaciones de una
+    ejecución siguen mostrando contadores y la línea principal del error: su informe no se conserva.
+- **Ajustes de la revisión (2026-11-12).** (a) Los nombres y mensajes quitan también los caracteres de formato (marcas de dirección
+  como U+202E, de ancho cero) y no parten un par sustituto al cortar. (b) El lector de XML entrega un atributo entero: el tope real
+  de un valor es el del documento (`MaxCharactersInDocument`, 1 000 000 000 caracteres); un valor de varios MB se lee una vez y se
+  corta al momento (hay una prueba con 8 MB que termina en segundos), pero no se evita que se materialice. (c) Como el verificador
+  se para en el primer paso que falla, el panel dice qué pasos no se ejecutaron por ello. (d) Si la persona abre otro proyecto, las
+  pruebas que corren se cancelan y un resultado que llegue de otro proyecto se descarta y se dice. (e) Al cerrar la app con las
+  pruebas en marcha no hay cancelación ordenada: el objeto Job de Windows mata los procesos con el proceso de la app y los restos
+  de la copia aislada los borra la siguiente verificación, bajo el cierre del usuario (`LowIntegrityWorkAreaFactory`); no se ha
+  probado a mano.
