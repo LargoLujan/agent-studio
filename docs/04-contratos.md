@@ -2132,11 +2132,22 @@ en otro grupo de la dimensión (un hito), de modo que los grupos pueden sumar m�
 ### 23.6 Lo que WP1 hizo con estos contratos
 
 - **Un cambio de contrato:** `CommitNode` gana `Message` (opcional, al final): el mensaje entero cuando el lector lo da. Los trailers de los commits del
-  sistema están en el último párrafo, que el asunto solo no trae, y las sugerencias los leen de ahí; sin `Message` se lee el asunto. `IRepositoryHistoryReader`
-  (WP4) debería rellenarlo.
+  sistema están en el último párrafo, que el asunto solo no trae, y las sugerencias los leen de ahí; sin `Message` se lee el asunto. `RepositoryHistoryReader` lo rellena.
 - **Servicios** en `Orchestration/Work`: `MilestoneService`, `BacklogService`, `TraceLinkService`, `TraceSuggester` y `BoardProjector`, con `WorkWriteGate`
   (espera a que `IRunActivity` deje libre el proyecto y toma la puerta del proyecto, como la memoria). Los almacenes son `SqliteMilestoneRegistry` y
-  `SqliteBacklogStore`. `ITraceChainReader`, `IParticipationProjector`, `IRepositoryAnnotator` e `IRepositoryActivityReader` no están en este paquete.
+  `SqliteBacklogStore`, y las cuatro piezas de lectura que siguen (todas leen el registro verificado y fallan cerrado con `DecisionLogIntegrityException` si no lo está):
+  - `TraceChainReader` (`ITraceChainReader`; recibe `IVerdictStore`): la cadena requisito, hito, tarea, intento, cambio (diff y commit), verificación, veredicto y entrega es la
+    misma arranques desde el nodo que arranques (requisito, tarea, intento, commit, prueba, veredicto o entrega). El veredicto cuelga de la tarea que juzgó (o de todas las de la
+    ejecución si no dice cuál) y solo cuenta si es válido en el registro y en el almacén con la misma decisión; la entrega, solo de las tareas entregadas (completadas e, si el
+    registro anota integraciones de tareas, integradas). Nada inferido entra: `TraceChainStep.Suggested` siempre es `false`.
+  - `ParticipationProjector` (`IParticipationProjector`): los seis papeles de D-32 por tarea, ejecución o hito; el revisor es el juez del almacén del veredicto válido que el
+    registro anuncia, y una revisión omitida no se atribuye a nadie (`ParticipationSources.SkippedReview`); una tarea sin la forma `ejecución/tarea` se rechaza con `ArgumentException`.
+  - `RepositoryAnnotator` (`IRepositoryAnnotator`): un commit es «del sistema» solo si sus trailers nombran un intento del registro **y** el registro anotó ese mismo commit
+    para el intento (`SubjectCommit` de una evidencia suya); un cherry-pick, un rebase o un mensaje copiado no se atribuyen, a lo sumo son una sugerencia.
+  - `RepositoryActivityReader` (`IRepositoryActivityReader`): integraciones, entregas y limpiezas de worktree, de la más antigua a la más nueva, con su resultado real
+    (`RepositoryActivityReader.ConflictCode` si hubo conflicto, `FailedCode` si no dejó commit) y los filtros de `RepositoryActivityFilter`.
+  - `RepositoryHistoryReader` rellena `CommitNode.Message` con el asunto y, tras una línea en blanco, solo los trailers `Agent-Studio-*` del último párrafo (los pide a git por
+    clave, así otros trailers anteriores no los desplazan del ancho), acotados como el resto: sin leer el cuerpo y dentro del tope de salida del lector.
 - **Orden de escritura:** el hito como un debate (requisitos congelados, fila, `MilestoneOpened` con el hash de la cabecera que devuelve el registro; una fila sin
   `MilestoneOpened` no se lista y abrir otra vez con lo mismo la completa); el backlog como la memoria (`BacklogItemRecorded` primero, la fila después con la hora
   del anuncio; escribir otra vez la misma versión completa la fila, con otro contenido se rechaza).

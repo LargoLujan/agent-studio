@@ -66,22 +66,26 @@ internal static class WorkLog
     /// The runs linked to a milestone by <c>MilestoneLinked</c> and those that follow them (<c>RunStarted.Follows</c>, transitively), in the order they
     /// started; a linked run that never started comes after.
     /// </summary>
-    public static List<string> RunsOfMilestone(IReadOnlyList<DecisionEntry> entries, string milestone)
+    public static List<string> RunsOfMilestone(IReadOnlyList<(DecisionEntry Entry, DecisionPayload? Payload)> parsed, string milestone)
     {
-        var linked = entries
-            .Select(RunLog.Payload)
+        var linked = parsed
+            .Select(p => p.Payload)
             .OfType<MilestoneLinkedPayload>()
             .Where(p => string.Equals(p.RunId, milestone, StringComparison.Ordinal) && p.Kind == AgentStudio.Domain.Work.Milestones.MilestoneTargetKind.Run)
             .Select(p => p.Target)
             .ToHashSet(StringComparer.Ordinal);
-        return Followed(entries, linked);
+        return Followed(parsed, linked);
     }
 
+    /// <summary>Each entry with its payload (null when it has none), deserialized once: what a reader that asks the log several things passes around.</summary>
+    public static IReadOnlyList<(DecisionEntry Entry, DecisionPayload? Payload)> Parse(IEnumerable<DecisionEntry> entries) =>
+        [.. entries.Select(e => (Entry: e, Payload: RunLog.Payload(e)))];
+
     /// <summary>The runs in <paramref name="linked"/> and those that follow them, in the order they started, then the linked ones that never started.</summary>
-    public static List<string> Followed(IReadOnlyList<DecisionEntry> entries, HashSet<string> linked)
+    public static List<string> Followed(IReadOnlyList<(DecisionEntry Entry, DecisionPayload? Payload)> parsed, HashSet<string> linked)
     {
-        var starts = entries
-            .Select(e => RunLog.Payload(e) as RunStartedPayload)
+        var starts = parsed
+            .Select(p => p.Payload as RunStartedPayload)
             .Where(p => p is not null && !string.IsNullOrEmpty(p.RunId))
             .Select(p => p!)
             .DistinctBy(p => p.RunId)

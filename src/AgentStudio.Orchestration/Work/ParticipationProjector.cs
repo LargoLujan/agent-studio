@@ -36,6 +36,8 @@ public sealed class ParticipationProjector(IDecisionRecorder recorder, IVerdictS
         ArgumentNullException.ThrowIfNull(project);
         ArgumentNullException.ThrowIfNull(subject);
         var entries = await WorkLog.LoadAsync(recorder, project.ProjectId, cancellationToken).ConfigureAwait(false);
+        var parsed = WorkLog.Parse(entries);
+        var payloads = parsed.Where(p => p.Payload is not null).Select(p => p.Payload!).ToList();
         string? onlyTask = null;
         List<string> runs;
         switch (subject.Kind)
@@ -44,12 +46,17 @@ public sealed class ParticipationProjector(IDecisionRecorder recorder, IVerdictS
                 runs = [subject.Id];
                 break;
             case TraceNodeKind.Task:
-                var slash = subject.Id.IndexOf('/', StringComparison.Ordinal);
+                var slash = subject.Id.IndexOf('/',StringComparison.Ordinal);
+                if (slash <= 0)
+                {
+                    throw new ArgumentException($"The task {subject.Id} is not named as run/task.", nameof(subject));
+                }
+
                 runs = [subject.Id[..slash]];
                 onlyTask = subject.Id[(slash + 1)..];
                 break;
             case TraceNodeKind.Milestone:
-                runs = WorkLog.RunsOfMilestone(entries, subject.Id);
+                runs = WorkLog.RunsOfMilestone(parsed,subject.Id);
                 break;
             default:
                 throw new ArgumentException($"Participation is projected for a task, a run or a milestone, not for a {subject.Kind}.", nameof(subject));
@@ -62,20 +69,20 @@ public sealed class ParticipationProjector(IDecisionRecorder recorder, IVerdictS
         var storedVerdicts = (await verdicts.ListAsync(project.ProjectId, null, cancellationToken).ConfigureAwait(false)).GroupBy(v => v.Id, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.Last(), StringComparer.Ordinal);
 
         // Producing agents, by attempt.
-        var launches = entries.Select(RunLog.Payload).OfType<AgentRunStartedPayload>()
+        var launches = payloads.OfType<AgentRunStartedPayload>()
             .Where(p => p.Task is not null && (p.Purpose is null or AgentRunPurpose.Executor) && Mine(p.RunId, p.Task?.Value))
             .ToList();
         all.AddRange(launches.GroupBy(l => l.Agent).Select(g =>
             new ParticipationEntry(ParticipationRole.ProducingAgent, g.Key.Value, $"{g.First().Provider} {g.Last().Model ?? "-"}, {g.Count()} intento(s)", ParticipationSources.Attempt)));
 
         // Git author and committer: the system's own commits.
-        if (entries.Select(RunLog.Payload).OfType<EvidenceRegisteredPayload>().Any(e => e.Kind == EvidenceKind.CodeDiff && e.Origin == EvidenceOrigin.CapturedBySystem && e.Attempt is not null && Mine(e.RunId, e.Task?.Value)))
+        if (payloads.OfType<EvidenceRegisteredPayload>().Any(e => e.Kind == EvidenceKind.CodeDiff && e.Origin == EvidenceOrigin.CapturedBySystem && e.Attempt is not null && Mine(e.RunId, e.Task?.Value)))
         {
             all.Add(new ParticipationEntry(ParticipationRole.GitAuthorAndCommitter, SystemGit, "commits internos de los intentos", ParticipationSources.Commit));
         }
 
         // Reviewer: each valid verdict's judge, and each review skipped.
-        foreach (var issued in entries.Select(RunLog.Payload).OfType<VerdictIssuedPayload>().Where(v => v.Valid && Mine(v.RunId, v.Task?.Value)))
+        foreach (var issued in payloads.OfType<VerdictIssuedPayload>().Where(v => v.Valid && Mine(v.RunId, v.Task?.Value)))
         {
             if (storedVerdicts.TryGetValue(issued.VerdictId, out var stored) && stored.Valid && stored.Verdict.Decision == issued.Decision)
             {
@@ -95,16 +102,16 @@ public sealed class ParticipationProjector(IDecisionRecorder recorder, IVerdictS
         }
 
         // Approver: the people who said yes.
-        foreach (var entry in entries.Where(e => e.Kind == DecisionKind.ApprovalGranted && e.Actor.Kind == ActorKind.User))
+        foreach (var (entry, payload) in parsed.Where(p => p.Entry.Kind == DecisionKind.ApprovalGranted && p.Entry.Actor.Kind == ActorKind.User))
         {
-            if (RunLog.Payload(entry) is ApprovalAnsweredPayload { Approved: true } answer && Mine(answer.RunId, answer.Task?.Value))
+            if (payload is ApprovalAnsweredPayload { Approved: true } answer && Mine(answer.RunId, answer.Task?.Value))
             {
                 all.Add(new ParticipationEntry(ParticipationRole.Approver, answer.DecidedBy, answer.Action, ParticipationSources.Approval));
             }
         }
 
         // Integrator: the local delivery that left a commit.
-        foreach (var delivery in entries.Select(RunLog.Payload).OfType<IntegrationPerformedPayload>().Where(p => p.IsDelivery && p.ResultCommit is not null && p.ConflictPaths.Count == 0 && Mine(p.RunId, p.Task?.Value)))
+        foreach (var delivery in payloads.OfType<IntegrationPerformedPayload>().Where(p => p.IsDelivery && p.ResultCommit is not null && p.ConflictPaths.Count == 0 && Mine(p.RunId, p.Task?.Value)))
         {
             all.Add(new ParticipationEntry(ParticipationRole.Integrator, SystemGit, $"entrega a {delivery.TargetRef} en {delivery.ResultCommit}", ParticipationSources.LocalDelivery));
         }

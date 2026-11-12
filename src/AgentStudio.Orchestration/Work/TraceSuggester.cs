@@ -85,6 +85,12 @@ public sealed partial class TraceSuggester(IDecisionRecorder recorder, IReposito
         ArgumentNullException.ThrowIfNull(project);
         ArgumentNullException.ThrowIfNull(commits);
         var state = await TraceLinkService.ReadAsync(recorder, project.ProjectId, cancellationToken).ConfigureAwait(false);
+        return SuggestForCommits(state, commits);
+    }
+
+    /// <summary>The same over a state of the log already read and verified, so a caller that needs it for more reads it once.</summary>
+    internal IReadOnlyDictionary<string, IReadOnlyList<TraceSuggestion>> SuggestForCommits(TraceState state, IReadOnlyList<CommitNode> commits)
+    {
         var known = RunLog.RunIds(state.Entries);
         var result = new Dictionary<string, IReadOnlyList<TraceSuggestion>>(StringComparer.Ordinal);
         foreach (var commit in commits.Where(c => TraceRef.IsFullCommitId(c.Id)))

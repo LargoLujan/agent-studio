@@ -113,11 +113,17 @@ internal sealed class WorkWorld : IDisposable
     public Task FinishAsync(string run, RunPhase phase) =>
         RecordAsync(run, DecisionKind.RunFinished, new RunFinishedPayload(phase, "fin", null, null) { RunId = run });
 
-    public Task DeliverAsync(string run) =>
-        RecordAsync(run, DecisionKind.IntegrationPerformed, new IntegrationPerformedPayload(null, "main", [], new string('a', 40), [], true) { RunId = run });
+    public Task DeliverAsync(string run, string? commit = null, bool conflict = false) =>
+        RecordAsync(run, DecisionKind.IntegrationPerformed, new IntegrationPerformedPayload(null, "main", [], conflict ? null : commit ?? new string('a', 40), conflict ? ["a.txt"] : [], true) { RunId = run });
+
+    public Task LaunchAsync(string run, string task, int attempt, string agent = "ejecutor", string model = "sonnet") =>
+        RecordAsync(run, DecisionKind.AgentRunStarted, new AgentRunStartedPayload(Tid(task), attempt, Aid(agent), AgentStudio.Domain.Providers.ProviderId.ClaudeCode, AgentStudio.Domain.Providers.VendorId.Anthropic, model, "wd", Eid("prompt"), new string('c', 64), [], AgentRunPurpose.Executor) { RunId = run });
+
+    public Task EvidenceAsync(string run, string task, int attempt, AgentStudio.Domain.Evidence.EvidenceKind kind, string id, string? commit = null) =>
+        RecordAsync(run, DecisionKind.EvidenceRegistered, new EvidenceRegisteredPayload(Eid(id), kind, AgentStudio.Domain.Evidence.EvidenceOrigin.CapturedBySystem, new string('a', 64), Tid(task), attempt, null, null, null, null, commit) { RunId = run });
 
     /// <summary>A verdict of the run: stored (valid or not) and announced in the log (valid or not).</summary>
-    public async Task<string> VerdictAsync(string run, VerdictDecision decision, bool validInLog = true, bool validInStore = true, string id = "v1", bool store = true)
+    public async Task<string> VerdictAsync(string run, VerdictDecision decision, bool validInLog = true, bool validInStore = true, string id = "v1", bool store = true, string? task = null)
     {
         var verdict = ValidVerdict(Dossier(), decision);
         if (store)
@@ -125,7 +131,7 @@ internal sealed class WorkWorld : IDisposable
             await Instance.Verdicts.AppendAsync(ProjectId, new StoredVerdict(id, verdict, run, "T7", AuditScope.CurrentPlan, validInStore, [], null), Ct);
         }
 
-        await RecordAsync(run, DecisionKind.VerdictIssued, new VerdictIssuedPayload(id, null, decision, validInLog, [], verdict.RequirementSetHash, verdict.DecisionLogHeadHash, null, null) { RunId = run });
+        await RecordAsync(run, DecisionKind.VerdictIssued, new VerdictIssuedPayload(id, task is null ? null : Tid(task), decision, validInLog, [], verdict.RequirementSetHash, verdict.DecisionLogHeadHash, null, null) { RunId = run });
         return id;
     }
 

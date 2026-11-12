@@ -27,9 +27,15 @@ public static class ChallengeReader
     public static ChallengeReading Read(IReadOnlyList<DecisionEntry> log, StoredVerdict challenged, IReadOnlyDictionary<string, StoredVerdict> stored)
     {
         ArgumentNullException.ThrowIfNull(log);
+        return Read(WorkLog.Parse(log), challenged, stored);
+    }
+
+    /// <summary>The same over the log already deserialized (<see cref="WorkLog.Parse"/>), so a caller that reads many verdicts deserializes it once.</summary>
+    public static ChallengeReading Read(IReadOnlyList<(DecisionEntry Entry, DecisionPayload? Payload)> items, StoredVerdict challenged, IReadOnlyDictionary<string, StoredVerdict> stored)
+    {
+        ArgumentNullException.ThrowIfNull(items);
         ArgumentNullException.ThrowIfNull(challenged);
         ArgumentNullException.ThrowIfNull(stored);
-        var items = log.Select(e => (Entry: e, Payload: RunLog.Payload(e))).ToList();
 
         string? debate = null;
         foreach (var (_, payload) in items)
@@ -106,7 +112,7 @@ public static class ChallengeReader
     }
 
     /// <summary>A person's yes to the acceptance whose request comes after the close, in the unit of the verdict or in the revision debate.</summary>
-    private static bool Accepted(List<(DecisionEntry Entry, DecisionPayload? Payload)> items, string? unit, string debate, long closedAt)
+    private static bool Accepted(IReadOnlyList<(DecisionEntry Entry, DecisionPayload? Payload)> items, string? unit, string debate, long closedAt)
     {
         var requests = new Dictionary<string, long>(StringComparer.Ordinal);
         foreach (var (entry, payload) in items)

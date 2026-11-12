@@ -13,6 +13,7 @@ namespace AgentStudio.Orchestration.Work;
 /// <summary>
 /// Walks the chain of a node (docs/16 F9-4, D-29): requirement, milestone, task, attempt, change (the commit and the diff), verification, verdict and
 /// delivery, from the verified log in both directions. It reads only; a log that does not verify throws <see cref="DecisionLogIntegrityException"/>.
+/// The chain is the same whichever node it starts from (a requirement, a task, a commit, a test run, a verdict or the delivery).
 /// </summary>
 /// <remarks>
 /// <list type="bullet">
@@ -22,12 +23,15 @@ namespace AgentStudio.Orchestration.Work;
 /// is never set here.</item>
 /// <item><b>Which way it walks.</b> From the node it goes towards the delivery only through nodes of a later stage, and towards the requirement only through nodes of an
 /// earlier one; so the chain of a task is its own, not that of every task of its run. A milestone met on the way is where that way ends. The run is a hub between the
-/// milestone and its tasks and is not a step.</item>
+/// milestone and its tasks and is not a step. The verdicts and the delivery hang off the task they judged (or, with no task in the verdict, off every task of the run) and off
+/// the tasks that were delivered (completed, and integrated when the log records the integrations of tasks): a chain that reaches a task has them, and a chain that starts
+/// at a verdict or the delivery has the work of its tasks (attempts, changes and verifications), so it is complete from any node. A verdict counts only when it is valid in
+/// the log and in the store, with the same decision.</item>
 /// <item><b>The steps</b> come in the order of the stages, each node once, with the title the log or the plan gives (the statement of a requirement, the name of a
 /// milestone, the title of a task).</item>
 /// </list>
 /// </remarks>
-public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementStore requirements, IPlanStore plans) : ITraceChainReader
+public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementStore requirements, IPlanStore plans, IVerdictStore verdicts) : ITraceChainReader
 {
     // Positions on the way from requirement to delivery; the run is a hub between the milestone and its tasks.
     private const int RequirementAt = 0;
@@ -52,9 +56,31 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
             return new TraceChain(start, []);
         }
 
+        var up = Walk(graph, start, upstream: true);
+        var down = Walk(graph, start, upstream: false);
+        var core = up.Append(start).Concat(down).ToList();
+        var startAt = graph.At(start)!.Value;
+
+        // What hangs off the tasks of the chain: their verdicts and their delivery; and, from a verdict or the delivery, the work of those tasks.
+        var extra = new List<TraceRef>();
+        foreach (var task in core.Where(n => graph.At(n) == TaskAt))
+        {
+            extra.AddRange(graph.Neighbours(task).Where(n => graph.At(n) is { } at && at >= VerdictAt));
+            if (startAt >= VerdictAt)
+            {
+                extra.AddRange(Walk(graph, task, upstream: false).Where(n => graph.At(n) is { } at && at < VerdictAt));
+            }
+        }
+
+        // The change of an attempt is its diff and its commit, on the same stage: one does not reach the other, nor the verification of the other; the attempt above them does.
+        foreach (var attempt in up.Where(n => graph.At(n) == AttemptAt))
+        {
+            extra.AddRange(graph.Neighbours(attempt).Where(n => graph.At(n) is ChangeAt or VerificationAt));
+        }
+
         var steps = new List<(int At, int Order, TraceRef Node)>();
         var order = 0;
-        foreach (var node in Enumerable.Reverse(Walk(graph, start, upstream: true)).Append(start).Concat(Walk(graph, start, upstream: false)))
+        foreach (var node in Enumerable.Reverse(up).Append(start).Concat(down).Concat(extra).Distinct())
         {
             if (graph.At(node) is { } at && at != RunAt)
             {
@@ -64,7 +90,7 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
 
         return new TraceChain(
             start,
-            [.. steps.OrderBy(s => s.At).ThenBy(s => s.Order).Select(s => new TraceChainStep(StageOf(s.At), s.Node, graph.Titles.GetValueOrDefault(s.Node), false))]);
+            [.. steps.OrderBy(s => s.At).ThenBy(s => s.Node.Kind).ThenBy(s => s.Node.Id, StringComparer.Ordinal).Select(s => new TraceChainStep(StageOf(s.At), s.Node, graph.Titles.GetValueOrDefault(s.Node), false))]);
     }
 
     /// <summary>The nodes reached from <paramref name="start"/> through nodes of an earlier (or later) stage, breadth first, without the start.</summary>
@@ -115,7 +141,9 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
     {
         var graph = new ChainGraph();
         var entries = state.Entries;
-        var payloads = entries.Select(e => (Entry: e, Payload: RunLog.Payload(e))).Where(x => x.Payload is not null).Select(x => (x.Entry, Payload: x.Payload!)).ToList();
+        var parsed = WorkLog.Parse(entries);
+        var payloads = parsed.Where(x => x.Payload is not null).Select(x => (x.Entry, Payload: x.Payload!)).ToList();
+        var storedVerdicts = (await verdicts.ListAsync(projectId, null, cancellationToken).ConfigureAwait(false)).GroupBy(v => v.Id, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.Last(), StringComparer.Ordinal);
 
         // Milestones: their name, the requirements of the set they work against now, and their runs.
         foreach (var opened in payloads.Select(p => p.Payload).OfType<MilestoneOpenedPayload>())
@@ -124,7 +152,7 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
             graph.Add(milestone, MilestoneAt, opened.Name);
             var current = payloads.Select(p => p.Payload).OfType<MilestoneRequirementsRevisedPayload>().LastOrDefault(r => r.RunId == opened.RunId)?.RequirementSetHash ?? opened.RequirementSetHash;
             await AddRequirementsAsync(graph, projectId, current, milestone, cancellationToken).ConfigureAwait(false);
-            foreach (var run in WorkLog.RunsOfMilestone(entries, opened.RunId))
+            foreach (var run in WorkLog.RunsOfMilestone(parsed, opened.RunId))
             {
                 graph.Edge(milestone, TraceRef.Run(run), RunAt);
             }
@@ -132,11 +160,16 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
 
         // Runs: their tasks and what the tasks cover.
         var tasksOfRun = new Dictionary<string, List<TraceRef>>(StringComparer.Ordinal);
+        var planCache = new Dictionary<string, AgentStudio.Domain.Orchestration.PlanDefinition?>(StringComparer.Ordinal);
         foreach (var started in payloads.Select(p => p.Payload).OfType<RunStartedPayload>().DistinctBy(p => p.RunId))
         {
             var run = TraceRef.Run(started.RunId);
             graph.Add(run, RunAt, null);
-            var plan = await plans.FindAsync(projectId, started.PlanHash, cancellationToken).ConfigureAwait(false);
+            if (!planCache.TryGetValue(started.PlanHash, out var plan))
+            {
+                planCache[started.PlanHash] = plan = await plans.FindAsync(projectId, started.PlanHash, cancellationToken).ConfigureAwait(false);
+            }
+
             var tasks = tasksOfRun[started.RunId] = [];
             foreach (var spec in plan?.Tasks ?? [])
             {
@@ -148,6 +181,42 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
                     graph.Edge(task, TraceRef.Requirement(covered.Value), RequirementAt);
                 }
             }
+        }
+
+        // Which tasks a delivery delivered: those that finished completed and, when the log records the integrations of tasks of the run, were integrated.
+        var completed = new HashSet<(string Run, string Task)>();
+        var integrated = new HashSet<(string Run, string Task)>();
+        var integrates = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var (_, payload) in payloads)
+        {
+            switch (payload)
+            {
+                case TaskStatusChangedPayload change:
+                    if (change.To == AgentStudio.Domain.Work.WorkTaskStatus.Completed)
+                    {
+                        completed.Add((change.RunId, change.Task.Value));
+                    }
+                    else
+                    {
+                        completed.Remove((change.RunId, change.Task.Value));
+                    }
+
+                    break;
+                case IntegrationPerformedPayload { IsDelivery: false, Task: { } integratedTask } integration:
+                    integrates.Add(integration.RunId);
+                    if (integration.ResultCommit is not null && integration.ConflictPaths.Count == 0)
+                    {
+                        integrated.Add((integration.RunId, integratedTask.Value));
+                    }
+
+                    break;
+            }
+        }
+
+        bool IsDelivered(string run, TraceRef task)
+        {
+            var id = task.Id[(task.Id.IndexOf('/', StringComparison.Ordinal) + 1)..];
+            return completed.Contains((run, id)) && (!integrates.Contains(run) || integrated.Contains((run, id)));
         }
 
         foreach (var (entry, payload) in payloads)
@@ -176,7 +245,8 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
                     }
 
                     break;
-                case VerdictIssuedPayload { Valid: true } verdict when tasksOfRun.TryGetValue(verdict.RunId, out var judged):
+                case VerdictIssuedPayload { Valid: true } verdict when tasksOfRun.TryGetValue(verdict.RunId, out var judged)
+                    && storedVerdicts.TryGetValue(verdict.VerdictId, out var stored) && stored.Valid && stored.Verdict.Decision == verdict.Decision:
                     foreach (var task in verdict.Task is { } one ? judged.Where(t => t == TraceRef.Task(verdict.RunId, one.Value)) : judged)
                     {
                         graph.Edge(task, TraceRef.Verdict(verdict.VerdictId), VerdictAt);
@@ -186,7 +256,7 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
                 case IntegrationPerformedPayload { IsDelivery: true, ResultCommit: { } commit, ConflictPaths.Count: 0 } delivery when tasksOfRun.TryGetValue(delivery.RunId, out var delivered) && TraceRef.IsFullCommitId(commit):
                     var deliveryNode = TraceRef.Commit(commit);
                     graph.Place(deliveryNode, DeliveryAt);
-                    foreach (var task in delivered)
+                    foreach (var task in delivered.Where(t => IsDelivered(delivery.RunId, t)))
                     {
                         graph.Edge(task, deliveryNode, DeliveryAt);
                     }

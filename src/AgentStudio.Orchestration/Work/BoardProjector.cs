@@ -48,6 +48,7 @@ public sealed class BoardProjector(
         ArgumentNullException.ThrowIfNull(project);
         var entries = await WorkLog.LoadAsync(recorder, project.ProjectId, cancellationToken).ConfigureAwait(false);
         var head = entries.Count == 0 ? DecisionLog.GenesisHash : entries[^1].Hash;
+        var parsed = WorkLog.Parse(entries);
         var view = await milestones.GetAsync(project, milestone, cancellationToken).ConfigureAwait(false)
             ?? throw new ArgumentException($"Milestone '{milestone.Value}' was never opened in this project.", nameof(milestone));
         if (view.Problems.Count > 0)
@@ -60,9 +61,9 @@ public sealed class BoardProjector(
         var storedVerdicts = (await verdicts.ListAsync(project.ProjectId, null, cancellationToken).ConfigureAwait(false)).GroupBy(v => v.Id, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.Last(), StringComparer.Ordinal);
 
         var facts = new List<RunFacts>();
-        foreach (var run in LinkedRuns(view, entries))
+        foreach (var run in LinkedRuns(view, parsed))
         {
-            if (await FactsOfAsync(project.ProjectId, run, entries, storedVerdicts, cancellationToken).ConfigureAwait(false) is { } found)
+            if (await FactsOfAsync(project.ProjectId, run, parsed, storedVerdicts, cancellationToken).ConfigureAwait(false) is { } found)
             {
                 facts.Add(found);
             }
@@ -115,31 +116,15 @@ public sealed class BoardProjector(
     }
 
     /// <summary>The runs linked to the milestone and those that follow them, in the order they started.</summary>
-    private static List<string> LinkedRuns(MilestoneView view, IReadOnlyList<DecisionEntry> entries)
+    private static List<string> LinkedRuns(MilestoneView view, IReadOnlyList<(DecisionEntry Entry, DecisionPayload? Payload)> parsed) =>
+        WorkLog.Followed(parsed, view.Targets.Where(t => t.Kind == MilestoneTargetKind.Run).Select(t => t.Id).ToHashSet(StringComparer.Ordinal));
+
+    private async Task<RunFacts?> FactsOfAsync(string projectId, string run, IReadOnlyList<(DecisionEntry Entry, DecisionPayload? Payload)> log, IReadOnlyDictionary<string, StoredVerdict> storedVerdicts, CancellationToken cancellationToken)
     {
-        var linked = view.Targets.Where(t => t.Kind == MilestoneTargetKind.Run).Select(t => t.Id).ToHashSet(StringComparer.Ordinal);
-        var starts = entries
-            .Select(e => RunLog.Payload(e) as RunStartedPayload)
-            .Where(p => p is not null && !string.IsNullOrEmpty(p.RunId))
-            .Select(p => p!)
-            .DistinctBy(p => p.RunId)
+        var entries = log
+            .Where(item => item.Payload is not null && string.Equals(item.Payload.RunId, run, StringComparison.Ordinal))
+            .Select(item => (item.Entry, Payload: item.Payload!))
             .ToList();
-        for (var changed = true; changed;)
-        {
-            changed = false;
-            foreach (var start in starts.Where(s => s.Follows is { } follows && linked.Contains(follows) && !linked.Contains(s.RunId)))
-            {
-                linked.Add(start.RunId);
-                changed = true;
-            }
-        }
-
-        return [.. starts.Where(s => linked.Contains(s.RunId)).Select(s => s.RunId), .. linked.Except(starts.Select(s => s.RunId))];
-    }
-
-    private async Task<RunFacts?> FactsOfAsync(string projectId, string run, IReadOnlyList<DecisionEntry> log, IReadOnlyDictionary<string, StoredVerdict> storedVerdicts, CancellationToken cancellationToken)
-    {
-        var entries = RunLog.Of(log, run);
         var started = entries.Select(e => e.Payload).OfType<RunStartedPayload>().FirstOrDefault();
         var record = await runs.FindAsync(projectId, new RunId(run), cancellationToken).ConfigureAwait(false);
         if (started is null || record is null)
@@ -180,16 +165,16 @@ public sealed class BoardProjector(
     }
 
     /// <summary>What a person's challenge of a verdict leaves of it (docs/15 D-38 to D-40), from the verified log: see the class.</summary>
-    private static StandingOf Standing(IReadOnlyList<DecisionEntry> log, StoredVerdict stored, IReadOnlyDictionary<string, StoredVerdict> storedVerdicts)
+    private static StandingOf Standing(IReadOnlyList<(DecisionEntry Entry, DecisionPayload? Payload)> log, StoredVerdict stored, IReadOnlyDictionary<string, StoredVerdict> storedVerdicts)
     {
         var decision = stored.Verdict.Decision;
         var reading = ChallengeReader.Read(log, stored, storedVerdicts);
         return reading.Status switch
         {
-            ChallengeStatus.None or ChallengeStatus.Confirmed => new StandingOf(decision, false),
+            ChallengeStatus.None => new StandingOf(decision, false),
 
-            // The revision withdrew an approval: its decision stands.
-            ChallengeStatus.Revoked => new StandingOf(reading.Revised ?? decision, false),
+            // The revision confirmed the verdict (or, when none approved, settled the decision that stands) or withdrew an approval: its decision stands.
+            ChallengeStatus.Confirmed or ChallengeStatus.Revoked => new StandingOf(reading.Revised ?? decision, false),
 
             // A person accepted a revision that turned towards an approval.
             ChallengeStatus.Accepted => new StandingOf(VerdictDecision.Approved, false),

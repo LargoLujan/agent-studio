@@ -115,6 +115,9 @@ public sealed class ChallengedVerdictBoardTests
         { VerdictDecision.ChangesRequested, Closing.Judge, VerdictDecision.Approved, false, ChallengeStatus.AwaitingAcceptance, BoardColumn.InReview },
         { VerdictDecision.ChangesRequested, Closing.Judge, VerdictDecision.Approved, true, ChallengeStatus.Accepted, BoardColumn.Done },
         { VerdictDecision.ChangesRequested, Closing.Judge, VerdictDecision.Rejected, false, ChallengeStatus.Confirmed, BoardColumn.Returned },
+
+        // Confirmed with nobody approving: the decision of the revision is the one that stands (here it takes the card out of review).
+        { VerdictDecision.EscalateToHuman, Closing.Judge, VerdictDecision.Rejected, false, ChallengeStatus.Confirmed, BoardColumn.Returned },
     };
 
     [Theory]

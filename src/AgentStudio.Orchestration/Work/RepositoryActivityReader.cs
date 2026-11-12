@@ -32,17 +32,18 @@ public sealed class RepositoryActivityReader(AgentStudio.Application.Decisions.I
     {
         ArgumentNullException.ThrowIfNull(project);
         var entries = await WorkLog.LoadAsync(recorder, project.ProjectId, cancellationToken).ConfigureAwait(false);
-        var milestoneRuns = filter?.Milestone is { } milestone ? WorkLog.RunsOfMilestone(entries, milestone.Value).ToHashSet(StringComparer.Ordinal) : null;
-        var launches = entries
-            .Select(RunLog.Payload)
+        var parsed = WorkLog.Parse(entries);
+        var milestoneRuns = filter?.Milestone is { } milestone ? WorkLog.RunsOfMilestone(parsed, milestone.Value).ToHashSet(StringComparer.Ordinal) : null;
+        var launches = parsed
+            .Select(p => p.Payload)
             .OfType<AgentRunStartedPayload>()
             .Where(p => !string.IsNullOrEmpty(p.RunId))
             .ToList();
 
         var activities = new List<RepositoryActivity>();
-        foreach (var entry in entries)
+        foreach (var (entry, parsedPayload) in parsed)
         {
-            if (RunLog.Payload(entry) is not { } payload || string.IsNullOrEmpty(payload.RunId))
+            if (parsedPayload is not { } payload || string.IsNullOrEmpty(payload.RunId))
             {
                 continue;
             }

@@ -12,8 +12,10 @@ namespace AgentStudio.Orchestration.Work;
 /// <see cref="DecisionLogIntegrityException"/>.
 /// </summary>
 /// <remarks>
-/// A commit is «of the system» only when its trailers name an attempt the log has (run, task and attempt): then the agent and the model are the log's, not the
-/// message's. Trailers the log does not back (a message copied or typed by hand) annotate nothing as a commit of the system, since anyone can write them.
+/// A commit is «of the system» only when its trailers name an attempt the log has (run, task and attempt) <b>and</b> the log registered that very commit for the
+/// attempt (the <c>SubjectCommit</c> of one of its evidence): then the agent and the model are the log's, not the message's. Trailers the log does not back (a message
+/// copied or typed by hand, a cherry-pick or a rebase that carries them to another commit) annotate nothing as a commit of the system, since anyone can write them; at most
+/// they are a suggestion (<see cref="TraceSuggester"/>), never an annotation of the attempt.
 /// A commit with nothing to say has no annotation (<see cref="AnnotatedCommit.Annotation"/> null).
 /// </remarks>
 public sealed class RepositoryAnnotator(IDecisionRecorder recorder, TraceSuggester suggester) : IRepositoryAnnotator
@@ -29,7 +31,13 @@ public sealed class RepositoryAnnotator(IDecisionRecorder recorder, TraceSuggest
             .Where(p => p.Task is not null && p.Purpose is null or AgentRunPurpose.Executor)
             .GroupBy(p => (p.RunId, Task: p.Task!.Value.Value, p.Attempt))
             .ToDictionary(g => g.Key, g => g.First());
-        var suggestions = await suggester.SuggestForCommitsAsync(project, commits, cancellationToken).ConfigureAwait(false);
+        var registered = state.Entries
+            .Select(RunLog.Payload)
+            .OfType<EvidenceRegisteredPayload>()
+            .Where(p => p.Task is not null && p.Attempt is not null && TraceRef.IsFullCommitId(p.SubjectCommit))
+            .Select(p => (p.RunId, Task: p.Task!.Value.Value, Attempt: p.Attempt!.Value, Commit: p.SubjectCommit!.ToLowerInvariant()))
+            .ToHashSet();
+        var suggestions = suggester.SuggestForCommits(state, commits);
 
         var annotated = new List<AnnotatedCommit>(commits.Count);
         foreach (var commit in commits)
@@ -40,7 +48,10 @@ public sealed class RepositoryAnnotator(IDecisionRecorder recorder, TraceSuggest
             var trailers = CommitTrailers.Read(commit.Message ?? commit.Subject);
             if (trailers is not null)
             {
-                attempts.TryGetValue((trailers.Run.Value, trailers.Task.Value, trailers.Attempt), out attempt);
+                if (TraceRef.IsFullCommitId(commit.Id) && registered.Contains((trailers.Run.Value, trailers.Task.Value, trailers.Attempt, commit.Id.ToLowerInvariant())))
+                {
+                    attempts.TryGetValue((trailers.Run.Value, trailers.Task.Value, trailers.Attempt), out attempt);
+                }
             }
 
             annotated.Add(new AnnotatedCommit(

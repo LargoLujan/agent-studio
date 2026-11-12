@@ -63,6 +63,10 @@ public sealed class RepositoryHistoryReader : IRepositoryHistoryReader
     private const int GitRefsWidth = 1200;
     private const int GitParentsWidth = 1300;
     private const int GitTrailersWidth = 480;
+    private static readonly string TrailerKeys = string.Concat(
+        new[] { AgentStudio.Domain.Tracing.CommitTrailers.RunKey, AgentStudio.Domain.Tracing.CommitTrailers.TaskKey, AgentStudio.Domain.Tracing.CommitTrailers.AttemptKey, AgentStudio.Domain.Tracing.CommitTrailers.AgentKey }
+            .Select(key => $"key={key},"));
+
     private const int MaxTrailerLineCharacters = 240;
     private const int MaxTrailerLines = 8;
     private const int FieldsPerRecord = 8;
@@ -201,8 +205,9 @@ public sealed class RepositoryHistoryReader : IRepositoryHistoryReader
             $"%<({GitSubjectWidth.ToString(CultureInfo.InvariantCulture)},trunc)%s",
 
             // Not the body: the trailers of the last paragraph, which git finds itself and cuts, so a message of megabytes costs nothing here
-            // and its trailers (at the end, where a cut of the body would lose them) still arrive. The lines are kept raw (not unfolded).
-            $"%<({GitTrailersWidth.ToString(CultureInfo.InvariantCulture)},trunc)%(trailers:unfold=false)",
+            // and its trailers (at the end, where a cut of the body would lose them) still arrive. Only the keys the system writes: other trailers
+            // (a Signed-off-by, a Co-authored-by) written before them cannot push them out of the width. The lines are kept raw (not unfolded).
+            $"%<({GitTrailersWidth.ToString(CultureInfo.InvariantCulture)},trunc)%(trailers:{TrailerKeys}unfold=false)",
             string.Empty);
         var arguments = new List<string>
         {
@@ -418,11 +423,11 @@ public sealed class RepositoryHistoryReader : IRepositoryHistoryReader
     private static bool IsObjectId(string value) =>
         value.Length is 40 or 64 && value.All(char.IsAsciiHexDigitLower);
 
-    /// <summary>The text of git cut to <paramref name="limit"/> characters, without control characters (a writer cannot add a line or an escape sequence).</summary>
     /// <summary>The non-empty lines of <paramref name="text"/> (git pads the field with spaces), each cleaned and cut, at most <paramref name="maxLines"/>, joined with a line feed.</summary>
     private static string CleanLines(string text, int limit, int maxLines) =>
         string.Join('\n', text.Split('\n').Select(line => Clean(line, limit)).Where(line => line.Length > 0).Take(maxLines));
 
+    /// <summary>The text of git cut to <paramref name="limit"/> characters, without control characters (a writer cannot add a line or an escape sequence).</summary>
     private static string Clean(string text, int limit)
     {
         var builder = new StringBuilder(Math.Min(text.Length, limit));

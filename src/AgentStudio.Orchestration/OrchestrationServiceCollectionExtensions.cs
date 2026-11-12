@@ -62,7 +62,8 @@ public static class OrchestrationServiceCollectionExtensions
         services.TryAddSingleton<ITraceChainReader>(provider => new TraceChainReader(
             provider.GetRequiredService<IDecisionRecorder>(),
             provider.GetRequiredService<IRequirementStore>(),
-            provider.GetRequiredService<IPlanStore>()));
+            provider.GetRequiredService<IPlanStore>(),
+            provider.GetRequiredService<IVerdictStore>()));
         services.TryAddSingleton<IParticipationProjector>(provider => new ParticipationProjector(
             provider.GetRequiredService<IDecisionRecorder>(),
             provider.GetRequiredService<IVerdictStore>()));

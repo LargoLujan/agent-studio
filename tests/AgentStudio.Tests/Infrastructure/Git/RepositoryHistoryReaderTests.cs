@@ -227,6 +227,24 @@ public sealed class RepositoryHistoryReaderTests : IDisposable
     }
 
     [Fact]
+    public async Task Trailers_of_others_written_before_the_ones_of_the_system_cannot_push_them_out_of_the_width()
+    {
+        var path = Path.Combine(Path.GetDirectoryName(_repo.Root)!, "mensaje-con-ajenos.txt");
+        var foreign = string.Join('\n', Enumerable.Range(0, 20).Select(i => $"Reviewed-by: Alguien Con Un Nombre Bastante Largo {i} <alguien{i}@example.com>"));
+        File.WriteAllText(path, $"T1: con ajenos\n\n{foreign}\nAgent-Studio-Run: 20261111-a1b2c3\nAgent-Studio-Task: T1\nAgent-Studio-Attempt: 1\nAgent-Studio-Agent: ejecutor; model=sonnet\n");
+        _repo.Write("f.txt", "f\n");
+        _repo.Run("add", "-A");
+        _repo.Run("commit", "-q", "-F", path);
+
+        var commits = await NewReader().CommitsAsync(Project, new CommitGraphQuery(), Ct);
+
+        var trailers = AgentStudio.Domain.Tracing.CommitTrailers.Read(commits[0].Message);
+        Assert.NotNull(trailers);
+        Assert.Equal(("20261111-a1b2c3", "T1", 1), (trailers.Run.Value, trailers.Task.Value, trailers.Attempt));
+        Assert.DoesNotContain("Reviewed-by", commits[0].Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task A_last_paragraph_that_is_not_a_block_of_trailers_gives_no_message_and_one_with_a_control_character_is_cleaned()
     {
         var path = Path.Combine(Path.GetDirectoryName(_repo.Root)!, "mensaje-raro.txt");
