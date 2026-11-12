@@ -108,6 +108,9 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
     /// <summary>Monitors of runs the scheduler resumed while the monitor of their document followed another run: the tray follows them.</summary>
     private readonly List<RunMonitorViewModel> _backgroundMonitors = [];
 
+    /// <summary>The monitors the shell created for runs no document follows (the tray, the exit and «mantener despierto» follow them).</summary>
+    public IReadOnlyList<RunMonitorViewModel> BackgroundMonitors => _backgroundMonitors;
+
     /// <summary>The project of each of <see cref="_backgroundMonitors"/>, whose learned windows reach it.</summary>
     private readonly Dictionary<RunMonitorViewModel, string> _backgroundRoots = [];
     private AppSettings _settings = AppSettings.Default;

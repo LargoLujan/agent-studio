@@ -80,7 +80,9 @@ public sealed class HeadTestsServices(
 public sealed class HeadTestsService : IHeadTestsService
 {
     /// <summary>What is added to the sum of the timeouts of the steps: the copy of the commit and the reading of the reports.</summary>
-    public static readonly TimeSpan BudgetSlack = TimeSpan.FromMinutes(1);
+    public static readonly TimeSpan DefaultBudgetSlack = TimeSpan.FromMinutes(1);
+
+    private readonly TimeSpan _slack;
 
     private readonly IVerificationRunner _runner;
     private readonly IVerificationProfileSource _profiles;
@@ -97,8 +99,10 @@ public sealed class HeadTestsService : IHeadTestsService
         IProjectWorkspace workspace,
         IProjectActivity activity,
         Func<string?> projectRoot,
-        IUiTextProvider? texts = null)
+        IUiTextProvider? texts = null,
+        TimeSpan? budgetSlack = null)
     {
+        _slack = budgetSlack ?? DefaultBudgetSlack;
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(profiles);
         ArgumentNullException.ThrowIfNull(git);
@@ -136,7 +140,7 @@ public sealed class HeadTestsService : IHeadTestsService
         var notRun = profile.Steps.Where(s => s.Isolation == ProcessIsolation.None).Select(s => s.Id).ToList();
         var head = (await _git.InspectAsync(project.RootPath, cancellationToken).ConfigureAwait(false)).HeadCommit;
 
-        var budget = steps.Aggregate(BudgetSlack, (total, step) => total + step.Timeout);
+        var budget = steps.Aggregate(_slack,(total, step) => total + step.Timeout);
         using var limit = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         limit.CancelAfter(budget);
         IReadOnlyList<VerificationResult> results;
