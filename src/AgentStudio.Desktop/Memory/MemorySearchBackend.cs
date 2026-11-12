@@ -28,11 +28,16 @@ public sealed class ModelInstalledEventArgs(ProjectContext? project, EmbeddingMo
 /// The context of the UI thread, where the progress of a download is shown whatever thread reports it; null takes the one
 /// of the thread that starts the download.
 /// </param>
+/// <param name="EntryTexts">
+/// The coded form of the entries the derivation wrote, so the list says them in the language of the person (docs/17 D-47, ADR-0054);
+/// without it every entry shows as it was anchored.
+/// </param>
 public sealed record MemorySearchBackend(
     ISemanticIndex? Index = null,
     IJournalTrust? JournalTrust = null,
     IEmbeddingModelInstaller? Installer = null,
-    SynchronizationContext? UiContext = null)
+    SynchronizationContext? UiContext = null,
+    IMemoryEntryTexts? EntryTexts = null)
 {
     /// <summary>The model the installer downloads, pinned in the code (its files, sizes, addresses and hashes).</summary>
     public EmbeddingModelDescriptor Model { get; init; } = EmbeddingModels.MultilingualE5Small;

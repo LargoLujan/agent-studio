@@ -1,5 +1,6 @@
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Knowledge;
+using AgentStudio.Application.Localization;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Evidence;
@@ -41,18 +42,24 @@ internal sealed record DebateSummaryFact(
     string Content,
     EvidenceId QuestionEvidence,
     EvidenceRegisteredPayload? Question,
-    string QuestionSha256)
-    : DerivedFact(MemoryKind.DebateSummary, MemoryOrigin.System, Topic, Source, Order);
+    string QuestionSha256,
+    UserText? TopicText = null,
+    UserText? ContentText = null)
+    : DerivedFact(MemoryKind.DebateSummary, MemoryOrigin.System, Topic, Source, Order, TopicText);
 
 /// <summary>
 /// A fact of the log the memory keeps, with the one source it cites (<see cref="MemorySources"/>) and its place in the log
 /// (<paramref name="Order"/>, the sequence of the entry that settles it), so the entries are recorded in log order.
 /// </summary>
-internal abstract record DerivedFact(MemoryKind Kind, MemoryOrigin Origin, string Topic, string Source, long Order);
+internal abstract record DerivedFact(MemoryKind Kind, MemoryOrigin Origin, string Topic, string Source, long Order, UserText? TopicText = null);
 
-/// <summary>A fact in the system's own words (<see cref="DerivationTexts"/>).</summary>
-internal sealed record SystemFact(MemoryKind Kind, string Topic, string Source, long Order, string Content)
-    : DerivedFact(Kind, MemoryOrigin.System, Topic, Source, Order);
+/// <summary>
+/// A fact in the system's own words (<see cref="DerivationTexts"/>). <paramref name="TopicText"/> and <paramref name="ContentText"/>
+/// say the same as <paramref name="Topic"/> and <paramref name="Content"/> as coded texts (<see cref="DerivationUserTexts"/>): what
+/// is anchored stays the Spanish text, and the screens paint the code in the language of the person.
+/// </summary>
+internal sealed record SystemFact(MemoryKind Kind, string Topic, string Source, long Order, string Content, UserText? TopicText = null, UserText? ContentText = null)
+    : DerivedFact(Kind, MemoryOrigin.System, Topic, Source, Order, TopicText);
 
 /// <summary>What text of an agent a piece of evidence holds.</summary>
 internal enum QuotedText
@@ -68,8 +75,8 @@ internal enum QuotedText
 /// Text an agent wrote, to be quoted from the evidence the log anchored (<paramref name="Anchor"/>) once it is read and its
 /// SHA-256 checked. Its source is that evidence and that hash, known before reading it.
 /// </summary>
-internal sealed record AgentQuote(MemoryKind Kind, string Topic, long Order, string Run, EvidenceRegisteredPayload Anchor, QuotedText What, string? Task)
-    : DerivedFact(Kind, MemoryOrigin.Agent, Topic, MemorySources.Evidence(Anchor.Evidence, Anchor.Sha256), Order);
+internal sealed record AgentQuote(MemoryKind Kind, string Topic, long Order, string Run, EvidenceRegisteredPayload Anchor, QuotedText What, string? Task, UserText? TopicText = null)
+    : DerivedFact(Kind, MemoryOrigin.Agent, Topic, MemorySources.Evidence(Anchor.Evidence, Anchor.Sha256), Order, TopicText);
 
 /// <summary>
 /// The table of docs/14 D-18, over the payloads of Application (the derivation cannot reference the engine, ADR-0002). One
@@ -155,10 +162,12 @@ internal static class DerivationRules
                     DerivationTexts.PlanTopic(run),
                     source,
                     item.Sequence,
-                    DerivationTexts.PlanDecision(item.Entry.Actor, granted, plan, tasks, run, item.Entry.RecordedAt)));
+                    DerivationTexts.PlanDecision(item.Entry.Actor, granted, plan, tasks, run, item.Entry.RecordedAt),
+                    DerivationUserTexts.PlanTopic(run),
+                    DerivationUserTexts.PlanDecision(item.Entry.Actor, granted, plan, tasks, run, item.Entry.RecordedAt)));
                 if (granted && plan is not null && log.ProposedPlan(plan)?.RawPlanEvidence is { } raw && log.Anchor(raw) is { } anchor)
                 {
-                    facts.Add(new AgentQuote(MemoryKind.Decision, DerivationTexts.PlanSummaryTopic(run), item.Sequence, run, anchor, QuotedText.PlanSummary, null));
+                    facts.Add(new AgentQuote(MemoryKind.Decision, DerivationTexts.PlanSummaryTopic(run), item.Sequence, run, anchor, QuotedText.PlanSummary, null, DerivationUserTexts.PlanSummaryTopic(run)));
                 }
             }
             else if (string.Equals(answer.Action, MemoryDerivation.DeliveryApprovalAction, StringComparison.Ordinal))
@@ -168,7 +177,9 @@ internal static class DerivationRules
                     DerivationTexts.DeliveryTopic(run),
                     source,
                     item.Sequence,
-                    DerivationTexts.DeliveryDecision(item.Entry.Actor, granted, DeliveryRequest(items, item.Sequence)?.AffectedPaths.Count, run, item.Entry.RecordedAt)));
+                    DerivationTexts.DeliveryDecision(item.Entry.Actor, granted, DeliveryRequest(items, item.Sequence)?.AffectedPaths.Count, run, item.Entry.RecordedAt),
+                    DerivationUserTexts.DeliveryTopic(run),
+                    DerivationUserTexts.DeliveryDecision(item.Entry.Actor, granted, DeliveryRequest(items, item.Sequence)?.AffectedPaths.Count, run, item.Entry.RecordedAt)));
             }
             else if (string.Equals(answer.Action, MemoryDerivation.RevisionAcceptanceAction, StringComparison.Ordinal))
             {
@@ -177,7 +188,9 @@ internal static class DerivationRules
                     DerivationTexts.RevisionAcceptanceTopic(run),
                     source,
                     item.Sequence,
-                    DerivationTexts.RevisionAcceptance(item.Entry.Actor, granted, run, item.Entry.RecordedAt)));
+                    DerivationTexts.RevisionAcceptance(item.Entry.Actor, granted, run, item.Entry.RecordedAt),
+                    DerivationUserTexts.RevisionAcceptanceTopic(run),
+                    DerivationUserTexts.RevisionAcceptance(item.Entry.Actor, granted, run, item.Entry.RecordedAt)));
             }
             else if (string.Equals(answer.Action, MemoryDerivation.ReplanDismissalAction, StringComparison.Ordinal))
             {
@@ -186,7 +199,9 @@ internal static class DerivationRules
                     DerivationTexts.ReplanTopic(run),
                     source,
                     item.Sequence,
-                    DerivationTexts.ReplanDismissal(item.Entry.Actor, granted, run, item.Entry.RecordedAt)));
+                    DerivationTexts.ReplanDismissal(item.Entry.Actor, granted, run, item.Entry.RecordedAt),
+                    DerivationUserTexts.ReplanTopic(run),
+                    DerivationUserTexts.ReplanDismissal(item.Entry.Actor, granted, run, item.Entry.RecordedAt)));
             }
         }
     }
@@ -229,14 +244,16 @@ internal static class DerivationRules
                 DerivationTexts.PendingTopic(run),
                 MemorySources.LogEntry(run, finished.Sequence),
                 finished.Sequence,
-                DerivationTexts.Pending(run, end.Phase, unfinished)));
+                DerivationTexts.Pending(run, end.Phase, unfinished),
+                DerivationUserTexts.PendingTopic(run),
+                DerivationUserTexts.Pending(run, end.Phase, unfinished)));
         }
 
         foreach (var (task, (sequence, report)) in reports.OrderBy(r => r.Value.Sequence))
         {
             if (log.Anchor(report) is { } anchor)
             {
-                facts.Add(new AgentQuote(MemoryKind.PendingTask, DerivationTexts.OpenIssuesTopic(task, run), sequence, run, anchor, QuotedText.OpenIssues, task.Value));
+                facts.Add(new AgentQuote(MemoryKind.PendingTask, DerivationTexts.OpenIssuesTopic(task, run), sequence, run, anchor, QuotedText.OpenIssues, task.Value, DerivationUserTexts.OpenIssuesTopic(task, run)));
             }
         }
     }
@@ -250,16 +267,44 @@ internal static class DerivationRules
             {
                 case EvidenceRegisteredPayload { Kind: EvidenceKind.TestRun, Origin: EvidenceOrigin.CapturedBySystem, TestRun: { } tests } test
                     when test.AnchorsMetadata() && !tests.ToSummary().Succeeded:
-                    facts.Add(new SystemFact(MemoryKind.KnownError, DerivationTexts.FailedTestsTopic(test.Task, run), source, item.Sequence, DerivationTexts.FailedTests(test, tests, run)));
+                    facts.Add(new SystemFact(
+                        MemoryKind.KnownError,
+                        DerivationTexts.FailedTestsTopic(test.Task, run),
+                        source,
+                        item.Sequence,
+                        DerivationTexts.FailedTests(test, tests, run),
+                        DerivationUserTexts.FailedTestsTopic(test.Task, run),
+                        DerivationUserTexts.FailedTests(test, tests, run)));
                     break;
                 case IntegrationPerformedPayload { ConflictPaths.Count: > 0 } conflict:
-                    facts.Add(new SystemFact(MemoryKind.KnownError, DerivationTexts.ConflictTopic(conflict.Task, run), source, item.Sequence, DerivationTexts.Conflict(conflict, run)));
+                    facts.Add(new SystemFact(
+                        MemoryKind.KnownError,
+                        DerivationTexts.ConflictTopic(conflict.Task, run),
+                        source,
+                        item.Sequence,
+                        DerivationTexts.Conflict(conflict, run),
+                        DerivationUserTexts.ConflictTopic(conflict.Task, run),
+                        DerivationUserTexts.Conflict(conflict, run)));
                     break;
                 case AuditAlertPayload alert:
-                    facts.Add(new SystemFact(MemoryKind.KnownError, DerivationTexts.AlertTopic(alert.Code, run), source, item.Sequence, DerivationTexts.Alert(alert, run)));
+                    facts.Add(new SystemFact(
+                        MemoryKind.KnownError,
+                        DerivationTexts.AlertTopic(alert.Code, run),
+                        source,
+                        item.Sequence,
+                        DerivationTexts.Alert(alert, run),
+                        DerivationUserTexts.AlertTopic(alert.Code, run),
+                        DerivationUserTexts.Alert(alert, run)));
                     break;
                 case ReplanRequestedPayload replan:
-                    facts.Add(new SystemFact(MemoryKind.KnownError, DerivationTexts.ReplanTopic(run), source, item.Sequence, DerivationTexts.Replan(item.Entry.Actor, replan, run, item.Entry.RecordedAt)));
+                    facts.Add(new SystemFact(
+                        MemoryKind.KnownError,
+                        DerivationTexts.ReplanTopic(run),
+                        source,
+                        item.Sequence,
+                        DerivationTexts.Replan(item.Entry.Actor, replan, run, item.Entry.RecordedAt),
+                        DerivationUserTexts.ReplanTopic(run),
+                        DerivationUserTexts.Replan(item.Entry.Actor, replan, run, item.Entry.RecordedAt)));
                     break;
             }
         }
@@ -282,11 +327,20 @@ internal static class DerivationRules
                     DerivationTexts.DeliveryTopic(run),
                     source,
                     item.Sequence,
-                    DerivationTexts.Delivery(merge, commit, DeliveryRequest(items, item.Sequence)?.AffectedPaths, run)));
+                    DerivationTexts.Delivery(merge, commit, DeliveryRequest(items, item.Sequence)?.AffectedPaths, run),
+                    DerivationUserTexts.DeliveryTopic(run),
+                    DerivationUserTexts.Delivery(merge, commit, DeliveryRequest(items, item.Sequence)?.AffectedPaths, run)));
             }
             else if (!merge.TargetRef.StartsWith(MemoryDerivation.CandidateRefPrefix, StringComparison.Ordinal))
             {
-                facts.Add(new SystemFact(MemoryKind.Change, DerivationTexts.IntegrationTopic(merge.Task, run), source, item.Sequence, DerivationTexts.Integration(merge, commit, run)));
+                facts.Add(new SystemFact(
+                    MemoryKind.Change,
+                    DerivationTexts.IntegrationTopic(merge.Task, run),
+                    source,
+                    item.Sequence,
+                    DerivationTexts.Integration(merge, commit, run),
+                    DerivationUserTexts.IntegrationTopic(merge.Task, run),
+                    DerivationUserTexts.Integration(merge, commit, run)));
             }
         }
     }
@@ -308,7 +362,9 @@ internal static class DerivationRules
                     DerivationTexts.VerdictTopic(verdict.Task, run, revises),
                     MemorySources.LogEntry(run, item.Sequence),
                     item.Sequence,
-                    DerivationTexts.Verdict(verdict, item.Entry.Actor.Id, run, revises)));
+                    DerivationTexts.Verdict(verdict, item.Entry.Actor.Id, run, revises),
+                    DerivationUserTexts.VerdictTopic(verdict.Task, run, revises),
+                    DerivationUserTexts.Verdict(verdict, item.Entry.Actor.Id, run, revises)));
             }
         }
     }
@@ -331,7 +387,9 @@ internal static class DerivationRules
             DerivationTexts.DebateSummary(run, opened, closed, verdicts, opening.Entry.RecordedAt, closing.Entry.RecordedAt),
             opened.Question,
             log.Anchor(opened.Question),
-            opened.QuestionSha256));
+            opened.QuestionSha256,
+            DerivationUserTexts.DebateTopic(run, opened.Mode),
+            DerivationUserTexts.DebateSummary(run, opened, closed, verdicts, opening.Entry.RecordedAt, closing.Entry.RecordedAt)));
     }
 
     /// <summary>Each challenge of a verdict of the unit (D-38): a decision of the person who made it.</summary>
@@ -346,7 +404,9 @@ internal static class DerivationRules
                     DerivationTexts.ChallengeTopic(challenge.Verdict, run),
                     MemorySources.LogEntry(run, item.Sequence),
                     item.Sequence,
-                    DerivationTexts.Challenge(item.Entry.Actor, challenge, run, item.Entry.RecordedAt)));
+                    DerivationTexts.Challenge(item.Entry.Actor, challenge, run, item.Entry.RecordedAt),
+                    DerivationUserTexts.ChallengeTopic(challenge.Verdict, run),
+                    DerivationUserTexts.Challenge(item.Entry.Actor, challenge, run, item.Entry.RecordedAt)));
             }
         }
     }

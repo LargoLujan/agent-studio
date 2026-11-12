@@ -284,7 +284,7 @@ public sealed class Phase5CompositionTests
         Assert.False(derived.Completed);
         Assert.Contains("debate", derived.Reason, StringComparison.Ordinal);
         Assert.Empty(derived.Recorded);
-        var export = await app.Get<IMemoryExporter>().ExportAsync(project, Ct);
+        var export = await app.Get<IMemoryExporter>().ExportAsync(project, "es-ES", Ct);
         Assert.False(export.Exported);
         Assert.False(Directory.Exists(Path.Combine(repo.Root, ".agentstudio", "memory")));
         var write = app.Get<IProjectMemory>().RecordAsync(project, new MemoryDraft(MemoryKind.Convention, "Pruebas", "Las pruebas usan solo Assert de xUnit.", MemoryOrigin.User, "usuario:nota-1"), Ct);

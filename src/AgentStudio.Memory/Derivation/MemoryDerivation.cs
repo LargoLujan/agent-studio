@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Knowledge;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Projects;
@@ -10,6 +11,7 @@ using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Evidence;
 using AgentStudio.Memory.Store;
+using AgentStudio.Memory.Summary;
 
 namespace AgentStudio.Memory.Derivation;
 
@@ -71,7 +73,7 @@ public sealed class MemoryDerivation(
     IMemoryStore store,
     IProjectMemory memory,
     IRunActivity activity,
-    IProjectStorageReader journal) : IMemoryDerivation
+    IProjectStorageReader journal) : IMemoryDerivation, IMemoryEntryTexts
 {
     /// <summary>The action of the approval of a plan, as the orchestrator records it when the run starts (<c>Orchestrator.RecordStartAsync</c>).</summary>
     public const string PlanApprovalAction = "plan.approve";
@@ -110,7 +112,7 @@ public sealed class MemoryDerivation(
         var projectId = project.ProjectId;
         if (activity.IsBusy(projectId))
         {
-            return MemoryDerivationResult.NotDerived(DerivationTexts.BusyReason);
+            return MemoryDerivationResult.NotDerived(DerivationTexts.BusyReason, DerivationUserTexts.BusyReason());
         }
 
         var gate = _gates.GetOrAdd(projectId, _ => new SemaphoreSlim(1, 1));
@@ -119,7 +121,7 @@ public sealed class MemoryDerivation(
         {
             if (activity.IsBusy(projectId))
             {
-                return MemoryDerivationResult.NotDerived(DerivationTexts.BusyReason);
+                return MemoryDerivationResult.NotDerived(DerivationTexts.BusyReason, DerivationUserTexts.BusyReason());
             }
 
             // The journal first, then the log: a launch that ends in between (an auxiliary run is no activity of the
@@ -128,7 +130,9 @@ public sealed class MemoryDerivation(
             var state = await recorder.LoadAsync(projectId, ct).ConfigureAwait(false);
             if (!state.Verification.IsValid)
             {
-                return MemoryDerivationResult.NotDerived(state.Unanchored is not null ? DerivationTexts.UnanchoredReason : DerivationTexts.NotVerifiedReason(state.Verification));
+                return state.Unanchored is not null
+                    ? MemoryDerivationResult.NotDerived(DerivationTexts.UnanchoredReason, DerivationUserTexts.UnanchoredReason())
+                    : MemoryDerivationResult.NotDerived(DerivationTexts.NotVerifiedReason(state.Verification), DerivationUserTexts.NotVerifiedReason(state.Verification));
             }
 
             return await DeriveAsync(project, state.Entries, read, ct).ConfigureAwait(false);
@@ -137,6 +141,106 @@ public sealed class MemoryDerivation(
         {
             gate.Release();
         }
+    }
+
+    /// <summary>
+    /// The coded form of the entries the derivation wrote (<see cref="IMemoryEntryTexts"/>), from the same facts of the verified log
+    /// <see cref="DerivationRules"/> reads: a part is given only when its Spanish text is exactly the one the entry holds, so the
+    /// anchored words are what decides, never a guess. The entries of the journal have only their topic coded, read from the topic
+    /// itself (the day and the key it names).
+    /// </summary>
+    public async Task<IReadOnlyDictionary<string, MemoryEntryText>> ReadAsync(ProjectContext project, IReadOnlyList<MemoryEntry> entries, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(project);
+        ArgumentNullException.ThrowIfNull(entries);
+        var texts = new Dictionary<string, MemoryEntryText>(StringComparer.Ordinal);
+        foreach (var entry in entries.Where(e => e.Kind == MemoryKind.JournalEntry))
+        {
+            if (DerivationUserTexts.TryJournalTopic(entry.Topic) is { } topic)
+            {
+                texts[entry.Id] = new MemoryEntryText(topic, null);
+            }
+        }
+
+        // The daily summary the system wrote is read from its own text: its lines are templates (DailySummaryTexts).
+        foreach (var entry in entries.Where(e => e is { Kind: MemoryKind.DailySummary, Origin: MemoryOrigin.System }))
+        {
+            texts[entry.Id] = new MemoryEntryText(DailySummaryTexts.TryTopic(entry.Topic), DailySummaryTexts.Coded(entry.Content));
+        }
+
+        var derived = entries
+            .Where(e => e.Kind is not (MemoryKind.JournalEntry or MemoryKind.DailySummary or MemoryKind.ProjectBrief)
+                && (e.Source.StartsWith(MemorySources.LogEntryPrefix, StringComparison.Ordinal) || e.Source.StartsWith(MemorySources.EvidencePrefix, StringComparison.Ordinal)))
+            .ToList();
+        if (derived.Count == 0)
+        {
+            return texts;
+        }
+
+        var state = await recorder.LoadAsync(project.ProjectId, ct).ConfigureAwait(false);
+        if (!state.Verification.IsValid)
+        {
+            return texts;
+        }
+
+        var facts = DerivationRules.Facts(DerivationLog.Of(state.Entries)).ToDictionary(f => (f.Origin, f.Source));
+        foreach (var entry in derived)
+        {
+            if (!facts.TryGetValue((entry.Origin, entry.Source), out var fact))
+            {
+                continue;
+            }
+
+            var topic = fact.TopicText is not null && string.Equals(entry.Topic, fact.Topic, StringComparison.Ordinal) ? fact.TopicText : null;
+            var content = ContentText(fact, entry);
+            if (topic is not null || content is not null)
+            {
+                texts[entry.Id] = new MemoryEntryText(topic, content);
+            }
+        }
+
+        return texts;
+    }
+
+    /// <summary>The coded content of <paramref name="fact"/> when the entry holds exactly its Spanish text (a debate summary also with the sentence about its question).</summary>
+    private static UserText? ContentText(DerivedFact fact, MemoryEntry entry)
+    {
+        switch (fact)
+        {
+            case SystemFact { ContentText: not null } system when string.Equals(entry.Content, system.Content, StringComparison.Ordinal):
+                return system.ContentText;
+            case DebateSummaryFact { ContentText: not null } debate when entry.Content.StartsWith(debate.Content, StringComparison.Ordinal):
+                return QuestionText(debate, entry.Content[debate.Content.Length..]) is { } question ? DerivationUserTexts.WithQuestion(debate.ContentText, question) : null;
+            default:
+                return null;
+        }
+    }
+
+    /// <summary>The sentence about the question of a debate, from what follows its summary in the entry; null when it is none of the five the derivation writes.</summary>
+    private static UserText? QuestionText(DebateSummaryFact debate, string tail)
+    {
+        var evidence = debate.QuestionEvidence.Value;
+        const string QuotedStart = " Pregunta: «";
+        if (tail.StartsWith(QuotedStart, StringComparison.Ordinal) && tail.EndsWith('»') && tail.Length >= QuotedStart.Length + 1)
+        {
+            return DerivationUserTexts.QuestionQuoted(tail[QuotedStart.Length..^1]);
+        }
+
+        foreach (var (state, text) in new[]
+        {
+            (QuestionState.Empty, DerivationUserTexts.QuestionEmpty()),
+            (QuestionState.NotAnchored, DerivationUserTexts.QuestionNotAnchored(evidence)),
+            (QuestionState.NotByAPerson, DerivationUserTexts.QuestionNotByAPerson(evidence)),
+            (QuestionState.Tampered, DerivationUserTexts.QuestionTampered(evidence)),
+        })
+        {
+            if (string.Equals(tail, DerivationTexts.WithQuestion(string.Empty, state, null, debate.QuestionEvidence), StringComparison.Ordinal))
+            {
+                return text;
+            }
+        }
+
+        return null;
     }
 
     private async Task<MemoryDerivationResult> DeriveAsync(ProjectContext project, IReadOnlyList<DecisionEntry> entries, JournalRead read, CancellationToken ct)
@@ -150,7 +254,7 @@ public sealed class MemoryDerivation(
         var recorded = new List<MemoryEntry>();
         var already = new List<string>();
         var problems = new List<string>();
-        MemoryDerivationResult Stop(string reason) => new(recorded, already, problems, reason);
+        MemoryDerivationResult Stop(string reason) => new(recorded, already, problems, reason, DerivationUserTexts.ReasonOf(reason));
 
         foreach (var fact in DerivationRules.Facts(log))
         {

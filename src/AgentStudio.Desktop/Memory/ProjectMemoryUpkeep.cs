@@ -58,10 +58,10 @@ public sealed class ProjectMemoryUpkeep
             return line;
         }
 
-        var exported = await _exporter.ExportAsync(project, ct).ConfigureAwait(true);
+        var exported = await _exporter.ExportAsync(project, MemoryReasonTexts.ExportLanguage, ct).ConfigureAwait(true);
         var export = exported.Exported
             ? Texts.Format("Memory_Upkeep_Exported", exported.Files.Count, exported.Entries)
-            : Texts.Format("Memory_Upkeep_NotExported", exported.Reason);
+            : Texts.Format("Memory_Upkeep_NotExported", MemoryReasonTexts.Say(exported.ReasonText, exported.Reason));
         return line is null ? Texts.Format("Memory_Upkeep_Alone", export) : Texts.Format("Memory_Upkeep_Joined", line.TrimEnd('.'), export);
     }
 
@@ -108,7 +108,7 @@ public sealed class ProjectMemoryUpkeep
     {
         if (!derived.Completed)
         {
-            return Texts.Format("Memory_Upkeep_NotDerived", derived.Reason);
+            return Texts.Format("Memory_Upkeep_NotDerived", MemoryReasonTexts.Say(derived.ReasonText, derived.Reason));
         }
 
         var parts = new List<string>();

@@ -11,6 +11,8 @@ using AgentStudio.Security;
 using AgentStudio.Tests.Infrastructure.Persistence;
 using Microsoft.Extensions.DependencyInjection;
 using static AgentStudio.Tests.Domain.TestData;
+using AgentStudio.Application.Documents;
+using AgentStudio.Desktop.Documents;
 
 namespace AgentStudio.Tests.Memory.Store;
 
@@ -38,6 +40,7 @@ public sealed class ProjectMemoryCompositionTests : IDisposable
         services.AddAgentStudioPersistence(new DecisionLogAnchorOptions(_anchors));
         services.AddAgentStudioSecurity();
         services.AddAgentStudioProjectMemory();
+        services.AddSingleton<IUserTextRenderer, ResourceUserTextRenderer>();
         return services;
     }
 
@@ -51,7 +54,7 @@ public sealed class ProjectMemoryCompositionTests : IDisposable
 
         Assert.Same(provider.GetRequiredService<ProjectMemory>(), provider.GetRequiredService<IProjectMemory>());
         var entry = await provider.GetRequiredService<IProjectMemory>().RecordAsync(project, new MemoryDraft(MemoryKind.Decision, "Despliegue", "Se despliega con blue green.", MemoryOrigin.User, "nota:1"), Ct);
-        var export = await provider.GetRequiredService<IMemoryExporter>().ExportAsync(project, Ct);
+        var export = await provider.GetRequiredService<IMemoryExporter>().ExportAsync(project, "es-ES", Ct);
         var executor = new AgentDefinition(Aid("ejecutor"), "Ejecutor", AgentRole.Executor, new ModelBinding(ProviderId.ClaudeCode, VendorId.Anthropic), "i", [], [], [], new ExecutionBudget(10, TimeSpan.FromMinutes(5)), 1, MemoryPolicy.ReadSelected, new ReviewPolicy(false, false));
         var pack = await provider.GetRequiredService<IContextPacker>().PackAsync(project, new ContextPackRequest(executor, "Desplegar", [], 1000), Ct);
         var summary = await provider.GetRequiredService<IDailySummaryService>().SummarizeAsync(project, new DateOnly(2020, 1, 1), Ct);

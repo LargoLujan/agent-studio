@@ -25,6 +25,8 @@ using AgentStudio.Tests.Integration.Phase3;
 using AgentStudio.Tests.Orchestration.Fakes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using AgentStudio.Application.Documents;
+using AgentStudio.Desktop.Documents;
 
 namespace AgentStudio.Tests.Integration.Phase4;
 
@@ -72,6 +74,7 @@ internal static class Phase4Composition
             .AddAgentStudioObservability(new QuotaLogOptions { FilePath = paths.QuotaLog })
             .AddCodexQuotaReader(_ => codexOptedIn ?? (() => false))
             .AddAgentStudioProjectMemory()
+            .AddSingleton<IUserTextRenderer, ResourceUserTextRenderer>()
             .AddAgentStudioSkillRecommendation(paths.SkillRecommendations, paths.SkillsServer);
         return services;
     }
