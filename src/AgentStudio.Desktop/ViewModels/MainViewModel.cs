@@ -18,6 +18,7 @@ using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Orchestrator;
 using AgentStudio.Desktop.Orchestrator.Monitor;
 using AgentStudio.Desktop.Orchestrator.Session;
+using AgentStudio.Desktop.Panels;
 using AgentStudio.Desktop.Services;
 using AgentStudio.Desktop.Settings;
 using AgentStudio.Desktop.Setup;
@@ -145,6 +146,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
     /// <param name="monitors">What the monitors the shell creates for itself are given (docs/04 section 21.10); without it they have none of it.</param>
     /// <param name="setup">Creates the configurator of a project (docs/17 section 4.6); without it «Configurar proyecto» is not offered.</param>
     /// <param name="setupSuggestions">Which projects the configurator was already suggested for; without it nothing is suggested.</param>
+    /// <param name="headTests">What composes «Ejecutar las pruebas de HEAD» of the panel «Pruebas»; without it, or with a part missing, the button is not offered.</param>
     /// <param name="clientDocuments">The «Documentación para clientes» document of the session; without it the activity is not offered.</param>
     public MainViewModel(
         IAppSettingsStore settingsStore,
@@ -172,7 +174,8 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         HelpDocumentViewModel? help = null,
         ClientDocumentsViewModel? clientDocuments = null,
         RepositoryViewModel? repository = null,
-        WorkDocumentViewModel? workDocument = null)
+        WorkDocumentViewModel? workDocument = null,
+        HeadTestsServices? headTests = null)
     {
         ArgumentNullException.ThrowIfNull(settingsStore);
         ArgumentNullException.ThrowIfNull(folderPicker);
@@ -244,6 +247,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
             .. HelpActivities(),
             .. SettingsActivities(),
         ];
+        Tests.HeadTests = headTests?.For(() => ProjectPath);
         InitializeBuilderShell(monitors, setup, setupSuggestions);
     }
 
@@ -1073,6 +1077,13 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
 
         LearnContextWindows(root, monitor);
         monitor.Attach(run, project);
+
+        // No document gives this monitor the template or the plan: they are read from what the run stored (P52), never from a screen.
+        if (_monitors is { } services)
+        {
+            _ = services.GiveLiveContextAsync(monitor, project, run.Id);
+        }
+
         monitor.ResumeConsent = resumeConsent;
         _runsActive[monitor] = monitor.IsActive;
         monitor.PropertyChanged += OnMonitorPropertyChanged;

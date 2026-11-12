@@ -23,7 +23,24 @@ public sealed record TestRunRow(string? Task, string Title, string Counters, boo
 
 /// <summary>What the tests of HEAD said when they were run on demand, as the panel shows it.</summary>
 /// <param name="Lines">One line per step: its title, whether it passed and its counters.</param>
-public sealed record HeadTestsResult(IReadOnlyList<TestRunRow> Lines);
+/// <param name="FailedTests">The tests the reports of the steps name as failed, in the order of the steps (bounded by the verifier).</param>
+/// <param name="NotRun">The steps the profile runs without isolation: they are never run here, and the panel says which.</param>
+/// <param name="MoreFailures">How many failed tests the counters count that <paramref name="FailedTests"/> does not list.</param>
+public sealed record HeadTestsResult(IReadOnlyList<TestRunRow> Lines, IReadOnlyList<FailedTestRow>? FailedTests = null, IReadOnlyList<string>? NotRun = null, int MoreFailures = 0);
+
+/// <summary>How a verification step is said in the panel, shared by the ones the run captured and the ones of HEAD.</summary>
+internal static class TestRunRows
+{
+    public static TestRunRow Build(string? task, string title, TestRunSummary? summary, string shortHash, IUiTextProvider texts, bool? forceFailed = null)
+    {
+        var failed = forceFailed ?? (summary is not null && !summary.Succeeded);
+        var counters = summary is null
+            ? texts.Get("Panels_Tests_NoCounters")
+            : texts.Format("Panels_Tests_Counters", summary.Passed.ToString(texts.Culture), summary.Failed.ToString(texts.Culture), summary.Skipped.ToString(texts.Culture), summary.ExitCode.ToString(texts.Culture));
+        var state = summary is null && forceFailed is not true ? texts.Get("Panels_Tests_Captured") : texts.Get(failed ? "Panels_Tests_Failed" : "Panels_Tests_Passed");
+        return new TestRunRow(task, title, counters, failed, state, null, shortHash);
+    }
+}
 
 /// <summary>
 /// Runs the profile of verification on the HEAD of the project in an isolated copy, without quota (docs/17 D-45): the shell composes
@@ -63,6 +80,12 @@ public sealed partial class TestsPanelViewModel : ObservableObject
 
     /// <summary>What the tests of HEAD said the last time the person ran them.</summary>
     public ObservableCollection<TestRunRow> HeadRows { get; } = [];
+
+    /// <summary>The tests that failed in the last tests of HEAD, read from the reports of the steps (a list that virtualizes: a suite can have hundreds).</summary>
+    public ObservableCollection<FailedTestRow> HeadFailures { get; } = [];
+
+    /// <summary>What the last tests of HEAD leave to say apart: the steps not run without isolation and the failures not listed.</summary>
+    public ObservableCollection<string> HeadNotes { get; } = [];
 
     [ObservableProperty]
     private string _summary = string.Empty;
@@ -136,16 +159,8 @@ public sealed partial class TestsPanelViewModel : ObservableObject
         evidence.RawOrigin == EvidenceOrigin.CapturedBySystem
         && evidence.RawKind is EvidenceKind.TestRun or EvidenceKind.BuildLog or EvidenceKind.CommandOutput;
 
-    private TestRunRow RowOf(EvidenceEntry evidence)
-    {
-        var summary = evidence.Summary;
-        var failed = summary is not null && !summary.Succeeded;
-        var counters = summary is null
-            ? _texts.Get("Panels_Tests_NoCounters")
-            : _texts.Format("Panels_Tests_Counters", summary.Passed.ToString(_texts.Culture), summary.Failed.ToString(_texts.Culture), summary.Skipped.ToString(_texts.Culture), summary.ExitCode.ToString(_texts.Culture));
-        var state = summary is null ? _texts.Get("Panels_Tests_Captured") : _texts.Get(failed ? "Panels_Tests_Failed" : "Panels_Tests_Passed");
-        return new TestRunRow(evidence.Task, evidence.Title, counters, failed, state, null, evidence.ShortHash);
-    }
+    private TestRunRow RowOf(EvidenceEntry evidence) =>
+        TestRunRows.Build(evidence.Task, evidence.Title, evidence.Summary, evidence.ShortHash, _texts);
 
     /// <summary>«Ejecutar las pruebas de HEAD»: passes the profile in the isolated copy, without quota. Only when the shell composed the service.</summary>
     [RelayCommand(CanExecute = nameof(CanRunHeadNow))]
@@ -160,6 +175,8 @@ public sealed partial class TestsPanelViewModel : ObservableObject
         ErrorMessage = null;
         HeadSummary = null;
         HeadRows.Clear();
+        HeadFailures.Clear();
+        HeadNotes.Clear();
         _running = new CancellationTokenSource();
         try
         {
@@ -167,6 +184,21 @@ public sealed partial class TestsPanelViewModel : ObservableObject
             foreach (var line in result.Lines)
             {
                 HeadRows.Add(line);
+            }
+
+            foreach (var test in result.FailedTests ?? [])
+            {
+                HeadFailures.Add(test);
+            }
+
+            if (result.NotRun is { Count: > 0 } notRun)
+            {
+                HeadNotes.Add(_texts.Format("Panels_Tests_HeadNotRun", string.Join(", ", notRun)));
+            }
+
+            if (result.MoreFailures > 0)
+            {
+                HeadNotes.Add(_texts.Format("Panels_Tests_HeadMore", result.MoreFailures.ToString(_texts.Culture)));
             }
 
             var failed = result.Lines.Count(l => l.Failed);
@@ -177,6 +209,13 @@ public sealed partial class TestsPanelViewModel : ObservableObject
         catch (OperationCanceledException)
         {
             HeadSummary = _texts.Get("Panels_Tests_HeadCancelled");
+        }
+        catch (HeadTestsRefusedException refused)
+        {
+            // The service says why in a key of the panel: the person reads it in their language, never the English of the log.
+            ErrorMessage = _texts.Format(
+                "Panels_Tests_HeadError",
+                _texts.Format(refused.TextKey, [.. refused.Arguments]));
         }
 #pragma warning disable CA1031 // The service is behind a port: whatever it refuses is said in the panel, never thrown into the UI.
         catch (Exception ex)

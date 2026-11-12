@@ -282,11 +282,12 @@ public sealed class VerificationRunner : IVerificationRunner
 
                     TestRunSummary? summary = null;
                     string? reportProblem = null;
+                    IReadOnlyList<FailedTest> failedTests = [];
                     if (step.Report != TestReportFormat.None)
                     {
-                        (summary, reportProblem) = outcome.Started
+                        (summary, reportProblem, failedTests) = outcome.Started
                             ? ReadReport(step.Report, reportPath!, area, outcome.ExitCode)
-                            : (new TestRunSummary(0, 0, 0, outcome.ExitCode), null);
+                            : (new TestRunSummary(0, 0, 0, outcome.ExitCode), null, []);
                     }
 
                     var succeeded = outcome.Started
@@ -312,7 +313,7 @@ public sealed class VerificationRunner : IVerificationRunner
                         MediaType: EvidenceMediaType,
                         SubjectCommit: scope.SubjectCommit);
                     var evidence = await _evidence.CaptureAsync(scope.ProjectId, draft, log, cancellationToken).ConfigureAwait(false);
-                    return new VerificationResult(step.Id, evidence, succeeded, outcome.TimedOut, outcome.ExitCode);
+                    return new VerificationResult(step.Id, evidence, succeeded, outcome.TimedOut, outcome.ExitCode, failedTests);
                 }
             }
         }
@@ -423,33 +424,35 @@ public sealed class VerificationRunner : IVerificationRunner
         }
     }
 
-    private static (TestRunSummary Summary, string? Problem) ReadReport(TestReportFormat format, string path, IIsolatedWorkArea? area, int exitCode)
+    private static (TestRunSummary Summary, string? Problem, IReadOnlyList<FailedTest> Failed) ReadReport(TestReportFormat format, string path, IIsolatedWorkArea? area, int exitCode)
     {
         try
         {
+            var failures = new FailureCollector();
             if (area is null)
             {
+                using var file = TestReportXml.OpenFile(path, format.ToString());
                 var summary = format == TestReportFormat.Trx
-                    ? TrxReportParser.ParseFile(path, exitCode)
-                    : JUnitReportParser.ParseFile(path, exitCode);
-                return (summary, null);
+                    ? TrxReportParser.Parse(file, exitCode, failures)
+                    : JUnitReportParser.Parse(file, exitCode, failures);
+                return (summary, null, failures.Failures);
             }
 
             // The processes of the step have ended (their session is disposed): only a regular file of the area is read.
             using var report = area.OpenReport(path, MaxIsolatedReportBytes);
             var parsed = format == TestReportFormat.Trx
-                ? TrxReportParser.Parse(report, exitCode)
-                : JUnitReportParser.Parse(report, exitCode);
-            return (parsed, null);
+                ? TrxReportParser.Parse(report, exitCode, failures)
+                : JUnitReportParser.Parse(report, exitCode, failures);
+            return (parsed, null, failures.Failures);
         }
         catch (TestReportException ex)
         {
             // A report that cannot be read proves nothing: no passes, so the step can never count as a success.
-            return (new TestRunSummary(0, 0, 0, exitCode), ex.Message);
+            return (new TestRunSummary(0, 0, 0, exitCode), ex.Message, []);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            return (new TestRunSummary(0, 0, 0, exitCode), $"The {format} report '{path}' cannot be read: {ex.Message}");
+            return (new TestRunSummary(0, 0, 0, exitCode), $"The {format} report '{path}' cannot be read: {ex.Message}", []);
         }
     }
 
