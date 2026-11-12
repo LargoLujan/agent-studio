@@ -38,7 +38,7 @@ public sealed class BacklogService(IDecisionRecorder recorder, IBacklogStore sto
             async () =>
             {
                 var entries = await WorkLog.LoadAsync(recorder, project.ProjectId, cancellationToken).ConfigureAwait(false);
-                var item = Draft(NewId(entries), 1, draft);
+                var item = Draft(await OrphanIdOrNewAsync(project.ProjectId, draft, entries, cancellationToken).ConfigureAwait(false), 1, draft);
                 return await PutAsync(project.ProjectId, item, addedBy, entries, cancellationToken).ConfigureAwait(false);
             },
             cancellationToken);
@@ -203,6 +203,32 @@ public sealed class BacklogService(IDecisionRecorder recorder, IBacklogStore sto
         var row = item with { CreatedAt = entry.RecordedAt };
         await store.AppendAsync(projectId, row, cancellationToken).ConfigureAwait(false);
         return row;
+    }
+
+    /// <summary>
+    /// The id of an item announced as version 1 whose row was never stored and whose announced hash is this draft's: adding the same thing
+    /// again after the app died between the two steps completes that item instead of leaving it orphaned and making another. Otherwise a new id.
+    /// </summary>
+    private async Task<BacklogItemId> OrphanIdOrNewAsync(string projectId, BacklogDraft draft, IReadOnlyList<DecisionEntry> entries, CancellationToken cancellationToken)
+    {
+        var rows = (await store.ListAsync(projectId, cancellationToken).ConfigureAwait(false)).Select(i => (i.Id.Value, i.Version)).ToHashSet();
+        foreach (var announced in WorkLog.OutsideRuns(entries).Select(e => e.Payload).OfType<BacklogItemRecordedPayload>().Where(p => p.Version == 1 && !rows.Contains((p.Item, 1))))
+        {
+            try
+            {
+                var id = new BacklogItemId(announced.Item);
+                if (string.Equals(Draft(id, 1, draft).Sha256(), announced.Sha256, StringComparison.Ordinal))
+                {
+                    return id;
+                }
+            }
+            catch (ArgumentException)
+            {
+                // An id of the log that is not one of ours is not an item to complete.
+            }
+        }
+
+        return NewId(entries);
     }
 
     private BacklogItem Draft(BacklogItemId id, int version, BacklogDraft draft)

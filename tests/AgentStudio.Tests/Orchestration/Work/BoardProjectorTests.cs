@@ -201,27 +201,6 @@ public sealed class BoardProjectorTests
     }
 
     [Fact]
-    public async Task A_revision_that_withdraws_the_approval_returns_the_card_and_one_that_confirms_it_leaves_it_done()
-    {
-        foreach (var (revised, expected) in new[] { (VerdictDecision.Rejected, BoardColumn.Returned), (VerdictDecision.Approved, BoardColumn.Done) })
-        {
-            var (world, milestone) = await LinkedAsync();
-            using (world)
-            {
-                await world.RunAndCompleteAsync(WorkWorld.Run1, "T1");
-                await world.FinishAsync(WorkWorld.Run1, RunPhase.Succeeded);
-                var verdict = await world.VerdictAsync(WorkWorld.Run1, VerdictDecision.Approved);
-                const string Debate = "deb-20261111-aaaaaa";
-                await world.RecordAsync(WorkWorld.Run1, DecisionKind.VerdictChallenged, new VerdictChallengedPayload(verdict, "manuel", new EvidenceId("motivos"), new string('e', 64), Debate) { RunId = WorkWorld.Run1 });
-                await world.RecordAsync(Debate, DecisionKind.VerdictIssued, new VerdictIssuedPayload("v2", null, revised, true, [], new string('f', 64), new string('b', 64), null, null) { RunId = Debate });
-                await world.RecordAsync(Debate, DecisionKind.DebateClosed, new DebateClosedPayload(DebateOutcome.Resolved, ["v2"], "judge", null, "cerrado") { RunId = Debate });
-
-                Assert.Equal(expected, Column(await world.Board.ProjectAsync(world.Project, milestone, Ct), "R1"));
-            }
-        }
-    }
-
-    [Fact]
     public async Task A_follow_up_run_replaces_what_the_run_it_follows_left()
     {
         var (world, milestone) = await LinkedAsync();

@@ -76,6 +76,42 @@ public sealed partial class TraceSuggester(IDecisionRecorder recorder, IReposito
         return result;
     }
 
+    /// <summary>
+    /// The suggestions of each commit given, by the commit's id (one read of the log for all of them, none of the history): what the annotator of the
+    /// graph shows next to each commit. The branch of a run is not read here, only what each commit's message says.
+    /// </summary>
+    public async Task<IReadOnlyDictionary<string, IReadOnlyList<TraceSuggestion>>> SuggestForCommitsAsync(ProjectContext project, IReadOnlyList<CommitNode> commits, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(project);
+        ArgumentNullException.ThrowIfNull(commits);
+        var state = await TraceLinkService.ReadAsync(recorder, project.ProjectId, cancellationToken).ConfigureAwait(false);
+        return SuggestForCommits(state, commits);
+    }
+
+    /// <summary>The same over a state of the log already read and verified, so a caller that needs it for more reads it once.</summary>
+    internal IReadOnlyDictionary<string, IReadOnlyList<TraceSuggestion>> SuggestForCommits(TraceState state, IReadOnlyList<CommitNode> commits)
+    {
+        var known = RunLog.RunIds(state.Entries);
+        var result = new Dictionary<string, IReadOnlyList<TraceSuggestion>>(StringComparer.Ordinal);
+        foreach (var commit in commits.Where(c => TraceRef.IsFullCommitId(c.Id)))
+        {
+            var offered = new HashSet<string>(StringComparer.Ordinal);
+            var list = new List<TraceSuggestion>();
+            foreach (var suggestion in FromMessage(commit, known))
+            {
+                var id = TraceLinks.IdOf(suggestion.From, suggestion.To, TraceAssertedBy.User);
+                if (offered.Add(id) && !IsSettled(state, suggestion, id))
+                {
+                    list.Add(suggestion);
+                }
+            }
+
+            result[commit.Id] = list;
+        }
+
+        return result;
+    }
+
     private static IEnumerable<TraceSuggestion> FromMessage(CommitNode commit, IReadOnlySet<string> known)
     {
         var from = TraceRef.Commit(commit.Id);

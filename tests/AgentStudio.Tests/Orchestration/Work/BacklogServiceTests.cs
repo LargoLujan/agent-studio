@@ -114,6 +114,25 @@ public sealed class BacklogServiceTests
     }
 
     [Fact]
+    public async Task Adding_the_same_thing_again_after_an_announcement_lost_its_row_reuses_the_announced_id()
+    {
+        using var world = await WorkWorld.OpenAsync();
+        var lost = new BacklogItem(new BacklogItemId("bk-20261111-abcdef"), 1, "Que el informe se exporte a PDF", RequirementPriority.Mandatory, Draft().Criteria, world.Instance.Clock.GetUtcNow());
+        await world.Instance.Recorder.RecordAsync(world.ProjectId, new Actor(ActorKind.User, "manuel"), DecisionKind.BacklogItemRecorded, "anuncio", BacklogItemRecordedPayload.Announcing(lost), null, Ct);
+        Assert.Empty(await world.Backlog.ListAsync(world.Project, Ct));
+
+        var item = await world.Backlog.AddAsync(world.Project, Draft(), "manuel", Ct);
+
+        Assert.Equal(lost.Id, item.Id);
+        Assert.Single(await world.Backlog.ListAsync(world.Project, Ct));
+        Assert.Single((await world.Instance.Recorder.LoadAsync(world.ProjectId, Ct)).Entries, e => e.Kind == DecisionKind.BacklogItemRecorded);
+
+        // Other content is another item, with its own id.
+        var other = await world.Backlog.AddAsync(world.Project, Draft("Otra cosa"), "manuel", Ct);
+        Assert.NotEqual(lost.Id, other.Id);
+    }
+
+    [Fact]
     public async Task A_row_nobody_announced_is_not_read()
     {
         using var world = await WorkWorld.OpenAsync();

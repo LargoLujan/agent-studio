@@ -244,8 +244,23 @@ public sealed class MilestoneService(
         }
 
         var closed = RunLog.Of(entries, header.Id.Value).Select(e => (e.Entry, e.Payload)).Where(e => e.Payload is MilestoneClosedPayload).Select(e => (MilestoneClosedPayload)e.Payload).ToList();
-        var reports = milestone.Closures.Select((c, i) => new MilestoneReportReference(c.Revision, c.Audit, closed[i].Report, c.ReportSha256, c.IntegratedCommit, c.At)).ToList();
-        return new MilestoneView(header, milestone.Status, milestone.CurrentRequirementSetHash, [.. milestone.RequirementSetHistory], [.. milestone.Targets], reports, replay.Problems);
+
+        // Each closure of the replay is matched with the entry that recorded it by what identifies it, never by position.
+        var reports = new List<MilestoneReportReference>();
+        var problems = new List<string>(replay.Problems);
+        foreach (var closure in milestone.Closures)
+        {
+            var payload = closed.FirstOrDefault(c => c.Revision == closure.Revision && string.Equals(c.Audit, closure.Audit, StringComparison.Ordinal) && string.Equals(c.ReportSha256, closure.ReportSha256, StringComparison.Ordinal));
+            if (payload is null)
+            {
+                problems.Add($"milestone.report-without-entry: revision {closure.Revision} of {header.Id.Value} has no MilestoneClosed entry that matches it.");
+                continue;
+            }
+
+            reports.Add(new MilestoneReportReference(closure.Revision, closure.Audit, payload.Report, closure.ReportSha256, closure.IntegratedCommit, closure.At));
+        }
+
+        return new MilestoneView(header, milestone.Status, milestone.CurrentRequirementSetHash, [.. milestone.RequirementSetHistory], [.. milestone.Targets], reports, problems);
     }
 
     /// <summary>The events of a milestone in its unit of the log, as the replayer takes them.</summary>

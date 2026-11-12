@@ -180,6 +180,92 @@ public sealed class RepositoryHistoryReaderTests : IDisposable
     }
 
     [Fact]
+    public async Task The_trailers_of_a_commit_of_the_system_arrive_in_its_message_and_read_back()
+    {
+        var run = new AgentStudio.Domain.Orchestration.RunId("20261111-a1b2c3");
+        var message = AgentStudio.Domain.Tracing.CommitTrailers.Append("T1: Tarea (intento 2)\n\nCuerpo del mensaje con varias líneas\ny un párrafo más.", run, new AgentStudio.Domain.Common.TaskId("T1"), 2, new AgentStudio.Domain.Common.AgentId("ejecutor"), "sonnet");
+        var path = Path.Combine(Path.GetDirectoryName(_repo.Root)!, "mensaje-del-sistema.txt");
+        File.WriteAllText(path, message);
+        _repo.Write("sistema.txt", "s\n");
+        _repo.Run("add", "-A");
+        _repo.Run("commit", "-q", "-F", path);
+        var system = _repo.Head;
+        var plain = Commit("plano.txt", "p\n", "un commit de la persona");
+
+        var commits = await NewReader().CommitsAsync(Project, new CommitGraphQuery(), Ct);
+
+        Assert.Equal(plain, commits[0].Id);
+        Assert.Null(commits[0].Message);
+        Assert.Equal(system, commits[1].Id);
+        var trailers = AgentStudio.Domain.Tracing.CommitTrailers.Read(commits[1].Message);
+        Assert.NotNull(trailers);
+        Assert.Equal((run, new AgentStudio.Domain.Common.TaskId("T1"), 2, new AgentStudio.Domain.Common.AgentId("ejecutor"), "sonnet"), (trailers.Run, trailers.Task, trailers.Attempt, trailers.Agent, trailers.Model));
+        Assert.StartsWith("T1: Tarea (intento 2)\n\n", commits[1].Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("Cuerpo del mensaje", commits[1].Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_message_of_megabytes_costs_nothing_and_its_trailers_at_the_end_still_arrive()
+    {
+        var run = new AgentStudio.Domain.Orchestration.RunId("20261111-a1b2c3");
+        var body = string.Join('\n', Enumerable.Repeat(new string('z', 99), 50_000));
+        var message = AgentStudio.Domain.Tracing.CommitTrailers.Append("T1: enorme\n\n" + body, run, new AgentStudio.Domain.Common.TaskId("T1"), 1, new AgentStudio.Domain.Common.AgentId("ejecutor"), null);
+        var path = Path.Combine(Path.GetDirectoryName(_repo.Root)!, "mensaje-de-megas.txt");
+        File.WriteAllText(path, message);
+        _repo.Write("m.txt", "m\n");
+        _repo.Run("add", "-A");
+        _repo.Run("commit", "-q", "-F", path);
+        var huge = _repo.Head;
+        var after = Commit("n.txt", "n\n", "el siguiente");
+
+        var commits = await NewReader().CommitsAsync(Project, new CommitGraphQuery(), Ct);
+
+        Assert.Equal([after, huge, _repo.BaseCommit], commits.Select(c => c.Id).ToArray());
+        Assert.NotNull(AgentStudio.Domain.Tracing.CommitTrailers.Read(commits[1].Message));
+        Assert.True(commits[1].Message!.Length < 1000);
+        Assert.DoesNotContain("zzzzzzzz", commits[1].Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Trailers_of_others_written_before_the_ones_of_the_system_cannot_push_them_out_of_the_width()
+    {
+        var path = Path.Combine(Path.GetDirectoryName(_repo.Root)!, "mensaje-con-ajenos.txt");
+        var foreign = string.Join('\n', Enumerable.Range(0, 20).Select(i => $"Reviewed-by: Alguien Con Un Nombre Bastante Largo {i} <alguien{i}@example.com>"));
+        File.WriteAllText(path, $"T1: con ajenos\n\n{foreign}\nAgent-Studio-Run: 20261111-a1b2c3\nAgent-Studio-Task: T1\nAgent-Studio-Attempt: 1\nAgent-Studio-Agent: ejecutor; model=sonnet\n");
+        _repo.Write("f.txt", "f\n");
+        _repo.Run("add", "-A");
+        _repo.Run("commit", "-q", "-F", path);
+
+        var commits = await NewReader().CommitsAsync(Project, new CommitGraphQuery(), Ct);
+
+        var trailers = AgentStudio.Domain.Tracing.CommitTrailers.Read(commits[0].Message);
+        Assert.NotNull(trailers);
+        Assert.Equal(("20261111-a1b2c3", "T1", 1), (trailers.Run.Value, trailers.Task.Value, trailers.Attempt));
+        Assert.DoesNotContain("Reviewed-by", commits[0].Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_last_paragraph_that_is_not_a_block_of_trailers_gives_no_message_and_one_with_a_control_character_is_cleaned()
+    {
+        var path = Path.Combine(Path.GetDirectoryName(_repo.Root)!, "mensaje-raro.txt");
+        File.WriteAllText(path, "asunto\n\nAgent-Studio-Run: 20261111-a1b2c3\ny esto no es un trailer sino texto libre que sigue\n");
+        _repo.Write("r.txt", "r\n");
+        _repo.Run("add", "-A");
+        _repo.Run("commit", "-q", "-F", path);
+        var odd = _repo.Head;
+        File.WriteAllText(path, "otro\n\nAgent-Studio-Run: 20261111-a1b2c3\u001b[31m\nAgent-Studio-Task: T1\nAgent-Studio-Attempt: 1\nAgent-Studio-Agent: ejecutor\n");
+        _repo.Write("c.txt", "c\n");
+        _repo.Run("add", "-A");
+        _repo.Run("commit", "-q", "-F", path);
+
+        var commits = await NewReader().CommitsAsync(Project, new CommitGraphQuery(), Ct);
+
+        Assert.Equal(odd, commits[1].Id);
+        Assert.Null(AgentStudio.Domain.Tracing.CommitTrailers.Read(commits[1].Message));
+        Assert.DoesNotContain(commits[0].Message ?? string.Empty, character => char.IsControl(character) && character != '\n');
+    }
+
+    [Fact]
     public async Task A_huge_subject_and_a_commit_with_many_refs_are_cut_in_git_and_lose_no_commit()
     {
         for (var index = 0; index < 25; index++)

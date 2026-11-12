@@ -55,9 +55,22 @@ public static class OrchestrationServiceCollectionExtensions
             provider.GetRequiredService<IDecisionRecorder>(),
             provider.GetRequiredService<WorkWriteGate>(),
             provider.GetRequiredService<TimeProvider>()));
-        services.TryAddSingleton<ITraceSuggester>(provider => new TraceSuggester(
+        services.TryAddSingleton(provider => new TraceSuggester(
             provider.GetRequiredService<IDecisionRecorder>(),
             provider.GetRequiredService<IRepositoryHistoryReader>()));
+        services.TryAddSingleton<ITraceSuggester>(provider => provider.GetRequiredService<TraceSuggester>());
+        services.TryAddSingleton<ITraceChainReader>(provider => new TraceChainReader(
+            provider.GetRequiredService<IDecisionRecorder>(),
+            provider.GetRequiredService<IRequirementStore>(),
+            provider.GetRequiredService<IPlanStore>(),
+            provider.GetRequiredService<IVerdictStore>()));
+        services.TryAddSingleton<IParticipationProjector>(provider => new ParticipationProjector(
+            provider.GetRequiredService<IDecisionRecorder>(),
+            provider.GetRequiredService<IVerdictStore>()));
+        services.TryAddSingleton<IRepositoryAnnotator>(provider => new RepositoryAnnotator(
+            provider.GetRequiredService<IDecisionRecorder>(),
+            provider.GetRequiredService<TraceSuggester>()));
+        services.TryAddSingleton<IRepositoryActivityReader>(provider => new RepositoryActivityReader(provider.GetRequiredService<IDecisionRecorder>()));
         services.TryAddSingleton<IBoardProjector>(provider => new BoardProjector(
             provider.GetRequiredService<IDecisionRecorder>(),
             provider.GetRequiredService<IMilestoneService>(),
