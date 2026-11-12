@@ -1643,6 +1643,10 @@ public sealed record ContextPartSnapshot(ContextPartKind Kind, int Characters);
   - El dosier del juez deja fuera los prompts de los ejecutores, la pregunta tal como la escribió el agente, todo informe de
     ejecutor que traiga una pregunta (registrada o no) o que no se pueda leer, y las entradas `QuestionAsked`. La decisión
     que captura el sistema (`agent-studio/question-decision/1`) solo lleva ids, huellas e instantes, ningún texto del agente.
+  - La copia del registro del intento (`agent-studio/attempt-record`) que lee el juez mueve los `outputs` del informe del
+    ejecutor a `outputsSaidByAgent` (`origin: ReportedByAgent`) y la evidencia lleva `saidByAgent: ["outputs"]` en
+    `dossier.json` (`DossierEvidenceFile.SaidByAgent`); el registro guardado, que lee la reanudación, no cambia (P46, adenda de
+    ADR-0051).
 
 ### 21.4 Estimación, análisis, idioma y presencia (`Application`)
 
