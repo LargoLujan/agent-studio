@@ -40,7 +40,7 @@ internal static class PlannerPrompt
     /// Phase 13 (docs/17 D-28): with the person's answers (<see cref="PlanningRequest.Answers"/>) the prompt carries them as data
     /// and says the orchestrator may not ask again; without them it may ask, once, instead of planning.
     /// </remarks>
-    public static string Build(PlanningRequest request, RunId run, ContextPack? memory = null, bool historyTool = false)
+    public static string Build(PlanningRequest request, RunId run, ContextPack? memory = null, bool historyTool = false, string? responseLanguage = null)
     {
         var answers = request?.Answers ?? [];
         var questionsAllowed = answers.Count == 0;
@@ -55,6 +55,7 @@ internal static class PlannerPrompt
         }
 
         text.AppendLine();
+        ResponseLanguage.Append(text, responseLanguage);
         text.AppendLine("## Petición del usuario");
         text.AppendLine("Es lo que hay que planificar. Va como dato entre las marcas, en forma de cadena JSON.");
         text.AppendLine("<original_request>");

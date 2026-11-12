@@ -61,7 +61,8 @@ public sealed partial class AssistedConsumptionAnalysisService(
     IAuxiliaryAgentRunner runner,
     TimeProvider time,
     AssistedConsumptionOptions? options = null,
-    IQuotaConsentLedger? consents = null) : IAssistedConsumptionAnalysis
+    IQuotaConsentLedger? consents = null,
+    IResponseLanguage? language = null) : IAssistedConsumptionAnalysis
 {
     /// <summary>The id of the agent that analyses: outside every template, so it never takes the memory or the skills of one.</summary>
     public static readonly AgentId AnalystId = new("analista-consumo");
@@ -130,7 +131,7 @@ public sealed partial class AssistedConsumptionAnalysisService(
         {
             var launch = new AgentRunRequest(
                 analyst,
-                Prompt(request.Run, request.Deterministic, facts, team),
+                Prompt(request.Run, request.Deterministic, facts, team, ResponseLanguage.Resolve(language)),
                 folder,
                 new PermissionProfile(AllowFileWrites: false, AllowShell: false, AllowNetwork: false, [], [], []),
                 OutputJsonSchema: AnswerSchema,
@@ -301,7 +302,7 @@ public sealed partial class AssistedConsumptionAnalysisService(
     }
 
     /// <summary>The whole prompt: what to do, the rules, and the data as one block of JSON that cannot close its tag. No text of a prompt, a report or the memory.</summary>
-    internal static string Prompt(RunId run, ConsumptionReport report, RunFacts facts, IReadOnlyList<RosterEntry> team)
+    internal static string Prompt(RunId run, ConsumptionReport report, RunFacts facts, IReadOnlyList<RosterEntry> team, string? responseLanguage = null)
     {
         var data = new
         {
@@ -349,10 +350,11 @@ public sealed partial class AssistedConsumptionAnalysisService(
         prompt.AppendLine("- Tienes el informe determinista (findings), la tabla de uso de cada intento con el origen de cada cifra y las partes de cada prompt en caracteres. No tienes el texto de ningún prompt ni de ningún informe.");
         prompt.AppendLine("- No inventes cifras: si una cifra no está, dilo. savingTokens es tu estimación del ahorro, o null si no la sabes.");
         prompt.AppendLine("- targetKind y targetId: Run (targetId null), Agent (un agente de team), Task (una tarea de attempts), Attempt (un id de attempts, como T1#2) o Setting (un ajuste, en minúsculas).");
-        prompt.AppendLine(string.Create(CultureInfo.InvariantCulture, $"- text: una o dos frases en castellano, de tú, de {AssistedConsumptionLimits.MaxSuggestionText} caracteres como mucho. Como mucho {AssistedConsumptionLimits.MaxSuggestions} sugerencias, las más útiles primero."));
+        prompt.AppendLine(string.Create(CultureInfo.InvariantCulture, $"- text: una o dos frases, de {AssistedConsumptionLimits.MaxSuggestionText} caracteres como mucho. Como mucho {AssistedConsumptionLimits.MaxSuggestions} sugerencias, las más útiles primero."));
         prompt.AppendLine("- fix: null, o uno de estos arreglos sobre un agente de team: SetMemory (memory None o ReadSelected), RemoveSkills (skills), ChangeModel (model), RaiseContextBudget (characters) o RaiseRunBudget (maxAgentRuns, sin agente). Los campos que no use el arreglo van a null. Nada se aplica solo: la persona lo revisa.");
         prompt.AppendLine("- Los jueces y los auditores nunca reciben memoria.");
         prompt.AppendLine();
+        ResponseLanguage.Append(prompt, responseLanguage);
         prompt.Append("<consumption_data>").Append(PromptData.Json(data)).AppendLine("</consumption_data>");
         prompt.AppendLine();
         prompt.Append("Responde con el JSON del esquema pedido.");

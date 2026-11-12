@@ -3,6 +3,7 @@ using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Git;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Persistence;
+using AgentStudio.Application.Prompts;
 using AgentStudio.Application.Providers;
 using AgentStudio.Application.Security;
 using AgentStudio.Application.Verification;
@@ -58,6 +59,7 @@ public static class ArenaServiceCollectionExtensions
             Audits = sp.GetService<IProjectAuditRegistry>(),
             Verification = sp.GetService<IVerificationRunner>(),
             TestProfiles = sp.GetService<IDebateTestProfiles>(),
+            Language = sp.GetService<IResponseLanguage>(),
         });
         services.TryAddSingleton<DebateCoordinator>();
         services.TryAddSingleton<IDebateCoordinator>(sp => sp.GetRequiredService<DebateCoordinator>());

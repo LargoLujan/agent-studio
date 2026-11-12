@@ -3,6 +3,7 @@ using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Git;
 using AgentStudio.Application.Knowledge;
 using AgentStudio.Application.Orchestration;
+using AgentStudio.Application.Prompts;
 using AgentStudio.Application.Providers;
 using AgentStudio.Application.Semantic;
 using AgentStudio.Application.Skills;
@@ -242,7 +243,7 @@ internal sealed class Planner(EnginePorts ports)
 
         public async Task<PlanProposal> RunAsync(PlanContext context, ProvisionedSkills skills, CancellationToken cancellationToken)
         {
-            var first = await AskAsync(1, PlannerPrompt.Build(request, Run, memory, history is not null), null, memory, skills, cancellationToken).ConfigureAwait(false);
+            var first = await AskAsync(1, PlannerPrompt.Build(request, Run, memory, history is not null, ResponseLanguage.Resolve(ports.Language)), null, memory, skills, cancellationToken).ConfigureAwait(false);
             if (first.Failure is { } failure)
             {
                 return failure;
@@ -280,7 +281,7 @@ internal sealed class Planner(EnginePorts ports)
             var resumed = first.SessionId is not null;
             var correction = resumed
                 ? PlannerPrompt.Correction(Run, problems)
-                : PlannerPrompt.Build(request, Run, memory, history is not null) + Environment.NewLine + PlannerPrompt.Correction(Run, problems);
+                : PlannerPrompt.Build(request, Run, memory, history is not null, ResponseLanguage.Resolve(ports.Language)) + Environment.NewLine + PlannerPrompt.Correction(Run, problems);
             var second = await AskAsync(2, correction, first.SessionId, resumed ? null : memory, skills, cancellationToken).ConfigureAwait(false);
             if (second.Failure is { } secondFailure)
             {

@@ -23,6 +23,9 @@ internal static class ShellServices
     {
         services.AddSingleton(paths ?? AppDataPaths.ForCurrentUser());
         services.TryAddSingleton<IAppSettingsStore>(provider => new JsonAppSettingsStore(provider.GetRequiredService<AppDataPaths>()));
+
+        // V44 (docs/17 D-48): the language the agents write in for the person is the one of the interface; the layers below ask for it.
+        services.TryAddSingleton<AgentStudio.Application.Prompts.IResponseLanguage, AgentStudio.Desktop.Localization.UiResponseLanguage>();
         return services
             .AddSingleton<ILayoutStore, FileLayoutStore>()
             .AddSingleton<IFolderPicker, WindowsFolderPicker>()

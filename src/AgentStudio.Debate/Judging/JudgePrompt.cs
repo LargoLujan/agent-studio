@@ -12,7 +12,8 @@ namespace AgentStudio.Debate.Judging;
 /// own text cannot close (see <see cref="DossierDocument"/>): it is material to evaluate, never instructions.
 /// </summary>
 /// <remarks>
-/// The instructions are in English; the free text of the verdict is asked in Spanish because the user reads it. The
+/// The instructions are in English; the free text of the verdict is asked in the language the person chose, which
+/// <see cref="AgentJudge"/> appends as a block of data (V44, docs/17 D-48), because the user reads it. The
 /// examples are illustrative: there are no human-labelled traces yet to take them from, so the judge's agreement with
 /// people is still to be measured (validate-evaluator).
 /// </remarks>
@@ -80,8 +81,8 @@ public static class JudgePrompt
           requiresHumanIntervention = true.
         - Always justify the confidence.
         - Copy requirementSetHash and decisionLogHeadHash from the dossier exactly.
-        - Write rationales, descriptions, objections, risks, corrective actions, the justification and the summary in
-          Spanish.
+        - Write rationales, descriptions, objections, risks, corrective actions, the justification and the summary in the
+          language of the response_language block of this prompt (data); a code, an id or a command stays as it is.
 
         # Examples (illustrative: their ids are not in your dossier, never cite them)
         Example 1, Approved. RQ-A is mandatory, AutomatedTest. EX-7 is a TestRun, CapturedBySystem, 12 passed, 0 failed,

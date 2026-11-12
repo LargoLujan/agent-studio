@@ -23,7 +23,7 @@ namespace AgentStudio.Debate.Arena;
 /// command line, and within OpenAI's limits on enums (1 000 values in all, and 7 500 characters for one enum of more than
 /// 250 values, the stricter figure OpenAI has published): a material too large for the enum of the support leaves that
 /// enum out, and the parser alone closes the set.</para>
-/// <para>The descriptions are in English, like the prompt; the free texts are asked in Spanish, because the user reads
+/// <para>The descriptions are in English, like the prompt; the free texts are asked in the response language (a block of data of the prompt, V44), because the user reads
 /// them. The schema of round 1 names no contribution, because its rules hold none (D-17).</para>
 /// </remarks>
 public static class ContributionSchema
@@ -68,7 +68,7 @@ public static class ContributionSchema
         List<string> support = [.. published, .. rules.Evidence.Select(e => e.Value), .. ContributionLabels.Citations];
 
         var claim = ObjectOf(
-            ("claim", StringOf(Invariant($"One assertion, at most {ContributionLimits.MaxClaimChars} characters. In Spanish."))),
+            ("claim", StringOf(Invariant($"One assertion, at most {ContributionLimits.MaxClaimChars} characters. In the response language."))),
             ("support", ArrayOf(
                 "What backs the claim, each id once: published contributions, evidence of the material and citations of this contribution only.",
                 supportEnum
@@ -80,7 +80,7 @@ public static class ContributionSchema
             ("path", StringOf(Invariant($"The file, relative to the root of the copy of the commit, with / between folders (src/Program.cs); at most {ContributionLimits.MaxPathChars} characters."))),
             ("startLine", IntegerOf("The first cited line; lines are numbered from 1.")),
             ("endLine", IntegerOf(Invariant($"The last cited line, not before startLine; at most {ContributionLimits.MaxCitedLines} lines in all."))),
-            ("why", StringOf(Invariant($"Why these lines matter, at most {ContributionLimits.MaxWhyChars} characters. In Spanish."))));
+            ("why", StringOf(Invariant($"Why these lines matter, at most {ContributionLimits.MaxWhyChars} characters. In the response language."))));
 
         return ObjectOf(
             ("kind", EnumOf(
@@ -89,8 +89,8 @@ public static class ContributionSchema
             ("repliesTo", EnumOf(
                 published.Count == 0 ? "Nothing is published yet, so it is ninguna." : "The published contribution this one answers, or ninguna when it answers none.",
                 [.. published, ContributionLabels.None])),
-            ("summary", StringOf(Invariant($"The contribution in one or two sentences, at most {ContributionLimits.MaxSummaryChars} characters. In Spanish."))),
-            ("argument", StringOf(Invariant($"The reasoning, at most {ContributionLimits.MaxArgumentChars} characters. In Spanish."))),
+            ("summary", StringOf(Invariant($"The contribution in one or two sentences, at most {ContributionLimits.MaxSummaryChars} characters. In the response language."))),
+            ("argument", StringOf(Invariant($"The reasoning, at most {ContributionLimits.MaxArgumentChars} characters. In the response language."))),
             ("claims", ArrayOf(Invariant($"At most {ContributionLimits.MaxClaims} claims."), claim)),
             ("citations", ArrayOf(Invariant($"At most {ContributionLimits.MaxCitations} citations of the code of the copy of the commit."), citation)),
             ("concedes", published.Count == 0
