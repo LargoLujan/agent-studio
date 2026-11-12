@@ -67,7 +67,7 @@ public sealed class HelpAgentServiceTests
 
         /// <summary>The OK of the person for this card and this question: its description carries their fingerprint, as the panel writes it.</summary>
         public QuotaConsent Consent(HelpContextCard? card = null, string question = "¿Dónde veo cuánto he gastado?") =>
-            new("miveritas", Clock.GetUtcNow().AddSeconds(-++_consents), "Una pregunta a la ayuda: ~2.000 tokens (estimado) " + HelpAgentService.ConsentTag(card ?? Card(), question, "es-ES", HelpAgentChoice.Default));
+            new("ana", Clock.GetUtcNow().AddSeconds(-++_consents), "Una pregunta a la ayuda: ~2.000 tokens (estimado) " + HelpAgentService.ConsentTag(card ?? Card(), question, "es-ES", HelpAgentChoice.Default));
 
         public HelpAskRequest Request(string question = "¿Dónde veo cuánto he gastado?", HelpContextCard? card = null, QuotaConsent? consent = null)
         {
@@ -269,15 +269,15 @@ public sealed class HelpAgentServiceTests
         var spent = await Assert.ThrowsAsync<InvalidOperationException>(() => world.AskAsync(request));
         Assert.Contains("spent", spent.Message, StringComparison.Ordinal);
 
-        var old = new QuotaConsent("miveritas", world.Clock.GetUtcNow().AddMinutes(-11), "Una pregunta a la ayuda");
+        var old = new QuotaConsent("ana", world.Clock.GetUtcNow().AddMinutes(-11), "Una pregunta a la ayuda");
         var stale = await Assert.ThrowsAsync<InvalidOperationException>(() => world.AskAsync(world.Request(consent: old)));
         Assert.Contains("ago", stale.Message, StringComparison.Ordinal);
 
-        var future = new QuotaConsent("miveritas", world.Clock.GetUtcNow().AddMinutes(5), "Una pregunta a la ayuda");
+        var future = new QuotaConsent("ana", world.Clock.GetUtcNow().AddMinutes(5), "Una pregunta a la ayuda");
         await Assert.ThrowsAsync<InvalidOperationException>(() => world.AskAsync(world.Request(consent: future)));
 
         await Assert.ThrowsAsync<ArgumentException>(() => world.AskAsync(world.Request(consent: new QuotaConsent(" ", world.Clock.GetUtcNow(), "Una pregunta"))));
-        await Assert.ThrowsAsync<ArgumentException>(() => world.AskAsync(world.Request(consent: new QuotaConsent("miveritas", world.Clock.GetUtcNow(), " "))));
+        await Assert.ThrowsAsync<ArgumentException>(() => world.AskAsync(world.Request(consent: new QuotaConsent("ana", world.Clock.GetUtcNow(), " "))));
         await Assert.ThrowsAsync<ArgumentNullException>(() => world.AskAsync(world.Request() with { Consent = null! }));
         await Assert.ThrowsAsync<ArgumentNullException>(() => world.Service.AskAsync(null!, null, TestContext.Current.CancellationToken));
 

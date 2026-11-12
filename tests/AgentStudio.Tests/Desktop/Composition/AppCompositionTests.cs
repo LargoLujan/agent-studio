@@ -143,7 +143,7 @@ public sealed class AppCompositionTests
         Assert.Same(provider.GetRequiredService<IPreparationChat>(), provider.GetRequiredService<IPreparationChat>());
         var ledger = provider.GetRequiredService<IQuotaConsentLedger>();
         Assert.IsType<QuotaConsentLedger>(ledger);
-        var consent = new QuotaConsent("miveritas", DateTimeOffset.UnixEpoch, "Revisar el orden");
+        var consent = new QuotaConsent("ana", DateTimeOffset.UnixEpoch, "Revisar el orden");
         Assert.True(ledger.TrySpend(consent));
         Assert.False(provider.GetRequiredService<IQuotaConsentLedger>().TrySpend(consent)); // the same register for the whole app
     }

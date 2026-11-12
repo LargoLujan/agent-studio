@@ -45,7 +45,7 @@ public sealed class PreparationChatServiceTests
 
         public PreparationChatService Service { get; }
 
-        public QuotaConsent Consent() => new("miveritas", Harness.Time.GetUtcNow().AddSeconds(-++_consents), "Un mensaje al orquestador: ~4.000 tokens (estimado)");
+        public QuotaConsent Consent() => new("ana", Harness.Time.GetUtcNow().AddSeconds(-++_consents), "Un mensaje al orquestador: ~4.000 tokens (estimado)");
 
         public PreparationChatRequest Request(string message, PreparationChatSession? session = null, QuotaConsent? consent = null) =>
             new(Harness.Project, Roster(), new AgentId("orquestador"), message, session, consent ?? Consent()) { Catalog = Catalog };
