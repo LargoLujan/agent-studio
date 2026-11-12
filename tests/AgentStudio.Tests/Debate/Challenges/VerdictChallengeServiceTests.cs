@@ -231,6 +231,19 @@ public sealed class VerdictChallengeServiceTests
     }
 
     [Fact]
+    public async Task A_verdict_whose_revision_was_aborted_can_be_challenged_again()
+    {
+        var (bench, revision) = await ChallengedAsync();
+        await bench.JudgeRevisionAsync(revision.Id.Value, RunVerdict, Run.Value, DebateOutcome.Aborted, DebateClosedPayload.AbortedRule);
+        Assert.Equal(ChallengeStatus.Aborted, await bench.StatusAsync());
+
+        // Nobody judged it: it counts for nothing and does not stop another revision from opening (D-40), unlike one still open.
+        var again = await bench.PrepareAsync(bench.Request());
+
+        Assert.DoesNotContain(again.Problems, p => p.Contains("sin cerrar", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task A_verdict_never_challenged_has_no_challenge()
     {
         var bench = await OverRunAsync();
@@ -240,7 +253,7 @@ public sealed class VerdictChallengeServiceTests
 
     [Theory]
     [InlineData(VerdictDecision.Approved, "open", null, ChallengeStatus.Pending)]
-    [InlineData(VerdictDecision.Approved, "aborted", null, ChallengeStatus.Pending)]
+    [InlineData(VerdictDecision.Approved, "aborted", null, ChallengeStatus.Aborted)]
     [InlineData(VerdictDecision.Approved, "disagree", null, ChallengeStatus.Pending)]
     [InlineData(VerdictDecision.Approved, "invalid", VerdictDecision.Approved, ChallengeStatus.Pending)]
     [InlineData(VerdictDecision.Approved, "user", null, ChallengeStatus.DecidedByUser)]

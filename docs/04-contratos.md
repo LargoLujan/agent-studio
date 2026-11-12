@@ -2256,9 +2256,19 @@ en otro grupo de la dimensión (un hito), de modo que los grupos pueden sumar m�
     - **Tarjetas de tarea.** Una tarea completada sigue al último veredicto válido que la juzgó (`VerdictReach.Judges` con los requisitos que cubre; a una tarea que no cubre
       ninguno, como la de integración o la de revisión, la juzga todo veredicto de su alcance), con su estado (`VerdictReach.Standing`), igual que el requisito: va a «En revisión»
       si ese veredicto está impugnado o si ninguno la juzgó. Tarea y requisito no se contradicen: con un veredicto aprobado, la tarea sigue a lo que ese veredicto dice de los requisitos que cubre y evaluó (`BoardRules.ColumnOf(TaskBoardFacts)`, `TaskBoardFacts.Assessed`): alguno no satisfecho la deja en «Devuelto», alguno no verificable (o un veredicto sin evaluaciones por requisito) en «En revisión», y solo con todos satisfechos en «Hecho». **Provisional:** el destino del requisito en «aprobado pero no cumplido» es una regla del tablero que el dueño tiene pendiente de decidir; la tarea solo lo sigue, y cambiará con él.
-    - **Límite conocido.** La entrega es más estricta que el tablero en un caso: una revisión que retiró la aprobación de un intento que el juez corrigió, o que sigue abierta,
-      bloquea la entrega, mientras que la tarjeta sigue al último veredicto, el de la ejecución, que nadie impugnó. Lo que nunca ocurre es lo contrario: nada se entrega que el tablero
-      tenga en revisión, ni queda en revisión algo que la entrega dejaría pasar (`RevisionAgreementTests` recorre los escenarios con las dos lecturas sobre el mismo registro).
+    - **Cadena de impugnaciones.** El veredicto de una revisión puede impugnarse a su vez, y su revisión también, y así sucesivamente. `ChallengeRules.Follow` recorre la cadena entera
+      como `DeliveryService.Revisions.Evaluate`: cada revisión que un juez o un jurado cerró es una rama; una revisión abierta, abortada, decidida por una persona o sin decisión deja
+      el veredicto en revisión; la que no aprueba termina la cadena con la decisión que fijó; una aprobación cuenta solo si la que revisa contaba o si una persona la aceptó. Termina
+      con la profundidad máxima de la entrega (16 niveles, más allá se queda en revisión), con cada veredicto visitado una sola vez (un ciclo, o una revisión que nombra un veredicto
+      ya recorrido, se queda en revisión) y su coste es el de los veredictos del almacén. `VerdictReach.Standing` la usa, de modo que el tablero, la cadena
+      (`TraceChainStep.Standing`: un veredicto de revisión desplazado por la siguiente es «revisado») y la participación salen coherentes. El veredicto de una revisión no se lee como
+      una aprobación por el hecho de no ser el de cierre: su decisión propia es la que la siguiente revisión confirma, retira o da la vuelta. Un intento que el juez corrigió y cuya
+      revisión sigue abierta, o retiró la aprobación, arrastra la tarjeta del veredicto que lo corrige, como bloquea la entrega. `RevisionAgreementTests` recorre 28 escenarios con las
+      tres lecturas (entrega, tablero y Debate) sobre el mismo registro, sin divergencias conocidas.
+    - **Impugnación abortada.** Si el debate de la revisión se abortó (nadie juzgó), la impugnación es `ChallengeStatus.Aborted`: no cuenta, y a diferencia de `Pending` (revisión sin
+      cerrar) deja volver a impugnar el veredicto, que es lo que dice la entrega («vuelve a impugnarlo»). Mientras sea la última palabra la entrega sigue bloqueada y la tarjeta en
+      «En revisión»; una nueva impugnación juzgada la sustituye. Una revisión cerrada sin decisión (un jurado que discrepa, un veredicto no válido) sigue en `Pending` y falla cerrado
+      (**abierto:** la entrega también pide volver a impugnar en ese caso y Debate no lo permite).
   - **La entrega en la cadena.** `IntegrationPerformed` con tarea (la tarea de integración, I1) cuenta solo si el motor la aceptó (la rama de la ejecución como destino, no la
     ref candidata oculta `refs/agentstudio/<ejecución>/_candidate/<tarea>` donde deja la que no aceptó aunque dejara commit), con commit y sin conflicto. Fusionó el código de las
     tareas completadas que producen código y de las que depende (`RunContext.ProducesCode`), pasando a través de las que no lo producen (condición, aprobación, revisión), y de

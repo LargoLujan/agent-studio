@@ -421,6 +421,9 @@
   <data name="Verdict_Challenge_DecidedByUser" xml:space="preserve">
     <value>Challenged: the review needed a person and you decided.</value>
   </data>
+  <data name="Verdict_Challenge_Aborted" xml:space="preserve">
+    <value>Challenged: the review was aborted without a judgment; the delivery waits and you can challenge it again.</value>
+  </data>
   <data name="Verdict_Disposition_Approved" xml:space="preserve">
     <value>Approved</value>
   </data>

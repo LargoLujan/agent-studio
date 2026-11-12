@@ -557,6 +557,10 @@
     <value>Impugnado: la revisión necesitó a una persona y decidiste tú.</value>
     <comment>Where the challenge of a verdict stands.</comment>
   </data>
+  <data name="Verdict_Challenge_Aborted" xml:space="preserve">
+    <value>Impugnado: la revisión se abortó sin juicio; la entrega espera y puedes volver a impugnarlo.</value>
+    <comment>Where the challenge of a verdict stands.</comment>
+  </data>
   <data name="Verdict_Disposition_Approved" xml:space="preserve">
     <value>Aprobado</value>
     <comment>How a review ended.</comment>

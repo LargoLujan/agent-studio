@@ -118,7 +118,7 @@ public sealed class ChallengedVerdictBoardTests
     public static TheoryData<VerdictDecision, Closing, VerdictDecision, bool, ChallengeStatus, BoardColumn> Cases => new()
     {
         { VerdictDecision.Approved, Closing.NotClosed, VerdictDecision.Approved, false, ChallengeStatus.Pending, BoardColumn.InReview },
-        { VerdictDecision.Approved, Closing.Aborted, VerdictDecision.Approved, false, ChallengeStatus.Pending, BoardColumn.InReview },
+        { VerdictDecision.Approved, Closing.Aborted, VerdictDecision.Approved, false, ChallengeStatus.Aborted, BoardColumn.InReview },
         { VerdictDecision.Approved, Closing.Judge, VerdictDecision.Approved, false, ChallengeStatus.Confirmed, BoardColumn.Done },
         { VerdictDecision.Approved, Closing.Judge, VerdictDecision.Rejected, false, ChallengeStatus.Revoked, BoardColumn.Returned },
         { VerdictDecision.Approved, Closing.Judge, VerdictDecision.ChangesRequested, false, ChallengeStatus.Revoked, BoardColumn.Returned },
