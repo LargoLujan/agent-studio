@@ -20,6 +20,8 @@ public static class RunTempFolder
     /// <summary>
     /// Best-effort sweep: deletes the run folders under <paramref name="baseDirectory"/> last written more than
     /// <paramref name="maxAge"/> before <paramref name="now"/>. Links are never followed (a link is only unlinked).
+    /// Only folders named like <see cref="NewPath"/> names them are touched, so a misconfigured base never loses
+    /// anything that is not a run folder.
     /// </summary>
     /// <param name="stopAt">Ancestor (excluded) up to which a link on the way cancels the sweep; defaults to %LOCALAPPDATA%.</param>
     public static void SweepStale(string baseDirectory, TimeSpan maxAge, DateTimeOffset now, string? stopAt = null)
@@ -33,7 +35,8 @@ public static class RunTempFolder
 
             foreach (var child in new DirectoryInfo(baseDirectory).EnumerateDirectories())
             {
-                if (now - new DateTimeOffset(child.LastWriteTimeUtc, TimeSpan.Zero) <= maxAge)
+                if (!Guid.TryParseExact(child.Name, "N", out _)
+                    || now - new DateTimeOffset(child.LastWriteTimeUtc, TimeSpan.Zero) <= maxAge)
                 {
                     continue;
                 }

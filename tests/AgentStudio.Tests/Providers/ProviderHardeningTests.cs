@@ -536,8 +536,8 @@ public sealed class ProviderHardeningTests
         var baseDirectory = Path.Combine(Path.GetTempPath(), "agentstudio-sweep-" + Guid.NewGuid().ToString("N"));
         try
         {
-            var old = Path.Combine(baseDirectory, "old");
-            var fresh = Path.Combine(baseDirectory, "fresh");
+            var old = RunTempFolder.NewPath(baseDirectory);
+            var fresh = RunTempFolder.NewPath(baseDirectory);
             Directory.CreateDirectory(old);
             Directory.CreateDirectory(fresh);
             File.WriteAllText(Path.Combine(old, "schema.json"), "{}");
@@ -547,6 +547,31 @@ public sealed class ProviderHardeningTests
 
             Assert.False(Directory.Exists(old));
             Assert.True(Directory.Exists(fresh));
+        }
+        finally
+        {
+            Directory.Delete(baseDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void A_stale_folder_that_is_not_a_run_folder_is_never_swept()
+    {
+        var baseDirectory = Path.Combine(Path.GetTempPath(), "agentstudio-sweepn-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var foreign = Path.Combine(baseDirectory, "notes");
+            var dashed = Path.Combine(baseDirectory, Guid.NewGuid().ToString("D"));
+            Directory.CreateDirectory(foreign);
+            Directory.CreateDirectory(dashed);
+            File.WriteAllText(Path.Combine(foreign, "keep.txt"), "mine");
+            Directory.SetLastWriteTimeUtc(foreign, DateTime.UtcNow.AddDays(-30));
+            Directory.SetLastWriteTimeUtc(dashed, DateTime.UtcNow.AddDays(-30));
+
+            RunTempFolder.SweepStale(baseDirectory, TimeSpan.FromDays(7), DateTimeOffset.UtcNow, stopAt: Path.GetTempPath());
+
+            Assert.True(File.Exists(Path.Combine(foreign, "keep.txt")));
+            Assert.True(Directory.Exists(dashed));
         }
         finally
         {
@@ -637,7 +662,7 @@ public sealed class ProviderHardeningTests
         var link = Path.Combine(parent, "link");
         try
         {
-            var old = Path.Combine(real, "old");
+            var old = RunTempFolder.NewPath(real);
             Directory.CreateDirectory(old);
             Directory.SetLastWriteTimeUtc(old, DateTime.UtcNow.AddDays(-30));
             var info = new System.Diagnostics.ProcessStartInfo("cmd.exe", $"/c mklink /J \"{link}\" \"{real}\"")
