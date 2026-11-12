@@ -31,6 +31,8 @@ public sealed class ListItemTypesGuardTests
     /// </summary>
     private static readonly Dictionary<string, string> NeverOnScreen = new(StringComparer.Ordinal)
     {
+        ["AgentStudio.Desktop.Help.HelpSynonyms+Entry"] =
+            "A row of the table of synonyms of the help search: it only widens the query sent to the index, and is never shown.",
         ["AgentStudio.Desktop.Markdown.MarkdownListItem"] =
             "The parse of a line of the journal: the converter builds a FlowDocument from it, and the viewer shows its text, never the object.",
         ["AgentStudio.Desktop.Markdown.MarkdownSpan"] =
