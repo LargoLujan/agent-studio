@@ -1,3 +1,4 @@
+using AgentStudio.Application.Prompts;
 using AgentStudio.Application.Knowledge;
 using AgentStudio.Application.Models;
 using AgentStudio.Application.Orchestration;
@@ -169,7 +170,7 @@ public sealed class MontageFactsCache : IDisposable
                 (missingSkills ??= []).Add(agent);
             }
 
-            var size = ExecutorContextPreview.Measure(task, subject.Requirements, subject.Profile, agent, pack, subject.Brief, skills);
+            var size = ExecutorContextPreview.Measure(task, subject.Requirements, subject.Profile, agent, pack, subject.Brief, skills, ResponseLanguage.Resolve(_services.Language));
             facts.Add(new TaskContextFacts(
                 task.Id,
                 size.Tokens,

@@ -292,3 +292,14 @@ docs/17 (el inventario automático de la interfaz, D-62, en verde en castellano,
   ventana principal con las que alcanza algún recorrido: una vista nueva sin recorrer, o una excluida que ya se recorre, hace
   fallar la prueba. La Fase 15 (traducción de la primera ola) se apoya en este inventario: una traducción que alargue un texto
   más de lo previsto lo rompe en la pseudolocalización antes de llegar a nadie.
+
+## Adenda · 2026-11-12 · el esquema del juez, el recomendador de skills y la estimación de contexto (V44, revisión)
+
+- **Los esquemas del juez ya no dicen «In Spanish.»** `VerdictSchema` y `DebateVerdictSchema` describen los campos que lee la
+  persona con «In the language of the response_language block of the prompt.»: con la interfaz en inglés el juez ya no recibe
+  dos órdenes contrarias. El texto del esquema no se ancla en nada (no entra en `JudgeRunStarted`, ni en el expediente, ni en
+  una huella): viaja solo como `OutputJsonSchema` de cada ejecución, así que cambiarlo no toca lo antiguo.
+- **El recomendador de skills** (`SkillRecommendationService`) recibe `IResponseLanguage?` como el chat de preparación: su
+  `reason` ya no es «en castellano», y el prompt lleva el bloque y la regla de `ResponseLanguage`.
+- **La estimación de contexto** (`ExecutorContextPreview.Measure`) recibe el idioma y lo pasa a `ExecutorPrompt.Build`: la barra
+  mide el prompt real, con su bloque de idioma.

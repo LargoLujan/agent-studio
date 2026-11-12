@@ -1,3 +1,4 @@
+using AgentStudio.Application.Prompts;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Knowledge;
 using AgentStudio.Application.Projects;
@@ -105,6 +106,7 @@ public static class ExecutorContextPreview
     /// </summary>
     /// <param name="profile">The verification profile, for the steps the prompt lists; null for none.</param>
     /// <param name="brief">The brief in force; ignored for an agent it does not reach (<see cref="ReceivesBrief"/>).</param>
+    /// <param name="responseLanguage">The language of the person (V44), as the engine writes it in every prompt; null is <see cref="ResponseLanguage.Default"/>.</param>
     /// <param name="skillCharacters">What the CLI presents of the skills of the agent (<see cref="SkillCharacters"/>); the engine adds it to the parts apart from the prompt.</param>
     public static ExecutorContextSize Measure(
         TaskSpec spec,
@@ -113,7 +115,8 @@ public static class ExecutorContextPreview
         AgentDefinition agent,
         ContextPack? memory,
         ProjectBrief? brief,
-        int skillCharacters = 0)
+        int skillCharacters = 0,
+        string? responseLanguage = null)
     {
         ArgumentNullException.ThrowIfNull(spec);
         ArgumentNullException.ThrowIfNull(requirements);
@@ -131,7 +134,8 @@ public static class ExecutorContextPreview
             handoff: null,
             renewal: null,
             agent: agent,
-            brief: ReceivesBrief(agent) ? brief : null);
+            brief: ReceivesBrief(agent) ? brief : null,
+            responseLanguage: ResponseLanguage.Resolve(responseLanguage));
         var parts = PromptParts.Measure(prompt, skillsDirectory: null);
         return new ExecutorContextSize(skillCharacters > 0
             ? [.. parts.Append(new ContextPartSnapshot(ContextPartKind.Skills, skillCharacters)).OrderBy(p => p.Kind)]

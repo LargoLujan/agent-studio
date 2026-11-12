@@ -1,4 +1,5 @@
 using System.Globalization;
+using AgentStudio.Orchestration.Engine;
 using System.Text;
 using System.Text.RegularExpressions;
 using AgentStudio.Application.Prompts;
@@ -108,5 +109,25 @@ public sealed partial class ResponseLanguageInPromptsTests
         var english = await ExecutorPromptAsync("en", "es-ES");
 
         Assert.Equal(spanish.Replace("\"es-ES\"", "\"en\"", StringComparison.Ordinal), english);
+    }
+
+    /// <summary>V44: the bar of context estimates the prompt the engine really writes, so it measures it with the language block too.</summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData("en")]
+    [InlineData("es-ES")]
+    [InlineData("pt-BR")]
+    public async Task The_estimated_context_size_is_the_size_of_the_prompt_the_engine_writes(string? language)
+    {
+        using var harness = new EngineHarness { ResponseLanguage = language is null ? null : new Fixed(language) };
+        await using var run = await harness.StartAsync(Plan(Work("T1")));
+        await run.CompleteAsync(harness);
+        var real = Assert.Single(harness.Claude.Starts).Request.Prompt;
+        var executor = Roster().Single(a => a.Id.Value == "ejecutor");
+
+        var size = ExecutorContextPreview.Measure(Work("T1"), Requirements(), Profile(), executor, memory: null, brief: null, responseLanguage: language);
+
+        Assert.Equal(real.Length, size.Characters);
+        Assert.Contains(ResponseLanguage.Block(language), real, StringComparison.Ordinal);
     }
 }
