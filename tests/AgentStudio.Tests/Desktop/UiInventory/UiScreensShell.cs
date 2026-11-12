@@ -27,7 +27,7 @@ namespace AgentStudio.Tests.Desktop.UiInventory;
 /// <summary>The screens of the shell: the main window, the file tab, the configurator, the documents for clients and the small windows.</summary>
 internal static class UiScreensShell
 {
-    private static IProviderProbe[] Providers() =>
+    internal static IProviderProbe[] Providers() =>
     [
         new StubProbe("claude-code", InstallationState.Installed, AuthenticationState.Authenticated),
         new StubProbe("codex-cli", InstallationState.Installed, AuthenticationState.Authenticated),
@@ -130,12 +130,7 @@ internal static class UiScreensShell
         }, 640, 420),
         UiScreens.Screen("Unsaved changes window", () => UiScreens.OfWindow(new UnsavedChangesWindow(), new UnsavedChangesPromptViewModel(["Program.cs"], canSave: false)), 520, 360),
         UiScreens.Screen("Terminal", () => UiScreens.Of(new TerminalControl(), new TerminalViewModel(new NoLauncher(), new NoShells())), 900, 320),
-        UiScreens.ScreenAsync("Auto Doctor", async () =>
-        {
-            var diagnostics = new ProviderDiagnosticsViewModel(new ProviderDiagnostics(Providers()), TimeProvider.System);
-            await diagnostics.RefreshCommand.ExecuteAsync(null);
-            return UiScreens.Of(new AutoDoctorView(), diagnostics);
-        }, 340, 400),
+        // The panel of Auto Doctor moved to UiScreensDoctor (Phase 6, WP-A): its view model is the DoctorViewModel now.
     ];
 
     private sealed class Workspace : IProjectWorkspace

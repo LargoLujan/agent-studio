@@ -51,6 +51,18 @@ public static class DoctorFixCatalog
     /// <summary>The code of the guide that signs in to the provider, or null when none is known.</summary>
     public static string? ProviderLoginFixCode(string providerId) => Providers.TryGetValue(providerId, out var p) && p.Login is not null ? ProviderLoginPrefix + providerId : null;
 
+    /// <summary>The code of the texts of a fix: the guides of every provider share one sentence (doctor.fix.install-provider, doctor.fix.login-provider), with the name of the program as an argument.</summary>
+    public static string TextFamily(string fixCode)
+    {
+        ArgumentNullException.ThrowIfNull(fixCode);
+        if (fixCode.StartsWith(ProviderInstallPrefix, StringComparison.Ordinal) && Providers.ContainsKey(fixCode[ProviderInstallPrefix.Length..]))
+        {
+            return ProviderInstallPrefix + "provider";
+        }
+
+        return fixCode.StartsWith(ProviderLoginPrefix, StringComparison.Ordinal) && Providers.ContainsKey(fixCode[ProviderLoginPrefix.Length..]) ? ProviderLoginPrefix + "provider" : fixCode;
+    }
+
     private static Dictionary<string, DoctorFix> Build()
     {
         var fixes = new List<DoctorFix>

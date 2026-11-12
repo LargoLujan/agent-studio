@@ -1,6 +1,7 @@
 using AgentStudio.Application.Help;
 using AgentStudio.Desktop.Audit;
 using AgentStudio.Desktop.Debate;
+using AgentStudio.Desktop.Doctor;
 using AgentStudio.Desktop.Graph;
 using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Memory;
@@ -55,7 +56,7 @@ public static class HelpScreens
         RepositoryViewModel => Repository,
         SettingsDocumentViewModel => Settings,
         WorkDocumentViewModel => Work,
-        ProviderDiagnosticsViewModel => Doctor,
+        ProviderDiagnosticsViewModel or DoctorViewModel => Doctor,
         GraphDocumentViewModel => Graph,
         _ => null,
     };

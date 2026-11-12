@@ -100,7 +100,8 @@ public sealed class ProviderCheckSource(ProviderDiagnostics diagnostics, Provide
                 AuthenticationState.NotAuthenticated => DoctorStatus.Error,
                 _ => DoctorStatus.Warning,
             },
-            sessionFacts);
+            sessionFacts,
+            !parked && result.Authentication == AuthenticationState.NotAuthenticated ? DoctorFixCatalog.ProviderLoginFixCode(id) : null);
     }
 
     /// <summary>The provider as a piece of a code: lowercase letters and digits joined by <c>-</c>.</summary>
