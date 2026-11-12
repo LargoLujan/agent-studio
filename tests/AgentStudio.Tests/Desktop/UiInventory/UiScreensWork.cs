@@ -191,6 +191,7 @@ internal static class UiScreensWork
         {
             d.Milestones.OpenedReport = new EvidenceViewer("ev-informe", "Informe del hito", "Informe · generado por el sistema", "Misma huella: 0123456789ab", Tone.Success, "{ \"formato\": \"informe\" }");
             d.Milestones.NewName = "Segunda entrega";
+            d.Milestones.Message = "Hito abierto: Primera entrega.";
             return Task.CompletedTask;
         }),
         SectionScreen("Work · closed milestone", d => d.Milestones, d =>

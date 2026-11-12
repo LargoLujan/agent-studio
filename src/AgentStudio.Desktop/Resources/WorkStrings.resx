@@ -18,7 +18,7 @@
     <comment>Title of the tab and of the entry of the bar.</comment>
   </data>
   <data name="Work_Intro" xml:space="preserve">
-    <value>Hitos, backlog, tablero y trazabilidad del proyecto abierto. Todo sale del historial verificado.</value>
+    <value>Aquí ves el trabajo del proyecto. Todo sale del historial verificado.</value>
     <comment>Text.</comment>
   </data>
   <data name="Work_Sections_Name" xml:space="preserve">
@@ -157,7 +157,7 @@ Lee el informe del cierre. Puedes reabrir el hito.</value>
     <comment>Text.</comment>
   </data>
   <data name="Work_Milestone_NothingLinked" xml:space="preserve">
-    <value>Todavía no tiene nada vinculado. Cerrarlo exige al menos una ejecución.</value>
+    <value>No hay nada vinculado. Para cerrarlo hace falta una ejecución.</value>
     <comment>Text.</comment>
   </data>
   <data name="Work_Milestone_TargetRun" xml:space="preserve">
@@ -587,11 +587,11 @@ Pulsa Ver cadena para seguir su camino.</value>
     <comment>Text.</comment>
   </data>
   <data name="Work_Rule_NeedsVerdict" xml:space="preserve">
-    <value>Ninguna tarjeta llega a Hecho ni a Integrado sin un veredicto válido y aprobado.</value>
+    <value>Una tarjeta solo llega a Hecho o a Integrado con un veredicto válido y aprobado.</value>
     <comment>Text.</comment>
   </data>
   <data name="Work_Rule_IntegratedNeedsDone" xml:space="preserve">
-    <value>Hoy Integrado exige también Hecho: una entrega sin veredicto aprobado no pasa de su columna.</value>
+    <value>Hoy, para estar Integrado hay que estar Hecho. Una entrega sin veredicto aprobado se queda donde está.</value>
     <comment>Text.</comment>
   </data>
   <data name="Work_Rule_ApprovedNotMet" xml:space="preserve">
@@ -1023,7 +1023,7 @@ El del hito se fija al abrirlo y no cambia.</value>
     <comment>Information button.</comment>
   </data>
   <data name="Info_Work_What" xml:space="preserve">
-    <value>Aquí sigues el trabajo del proyecto: hitos, backlog, tablero, cadena, participantes, vínculos y presupuestos. Todo se lee del historial verificado, nada se inventa.</value>
+    <value>Aquí sigues el trabajo del proyecto. Ves hitos, backlog, tablero, cadena y presupuestos. Todo se lee del historial verificado.</value>
     <comment>Information button.</comment>
   </data>
   <data name="Info_Work_Actions" xml:space="preserve">

@@ -118,21 +118,34 @@ public sealed partial class BacklogSection(WorkContext context) : WorkSection(co
         OnPropertyChanged(nameof(HasItems));
     }
 
-    partial void OnSelectedItemChanged(BacklogRow? value)
+    partial void OnSelectedItemChanged(BacklogRow? oldValue, BacklogRow? newValue)
     {
-        Message = null;
-        if (value is null)
+        // The same item read again (after a version was saved) keeps the message and the form the person has.
+        if (oldValue is not null && newValue is not null && oldValue.Id == newValue.Id)
         {
             return;
         }
 
-        Statement = value.Entry.Item.Statement;
-        SelectedPriority = Priorities.First(p => p.Value == value.Entry.Item.Priority);
+        Message = null;
+        if (newValue is null)
+        {
+            return;
+        }
+
+        Statement = newValue.Entry.Item.Statement;
+        SelectedPriority = Priorities.First(p => p.Value == newValue.Entry.Item.Priority);
         Criteria.Clear();
-        foreach (var criterion in value.Entry.Item.Criteria)
+        foreach (var criterion in newValue.Entry.Item.Criteria)
         {
             Criteria.Add(new CriterionRowViewModel(criterion.Id, criterion.Description, criterion.Method));
         }
+    }
+
+    private void ClearForm()
+    {
+        Statement = string.Empty;
+        SelectedPriority = Priorities[0];
+        Criteria.Clear();
     }
 
     /// <summary>«Nuevo elemento»: leaves the item selected and empties the form.</summary>
@@ -140,9 +153,7 @@ public sealed partial class BacklogSection(WorkContext context) : WorkSection(co
     private void NewItem()
     {
         SelectedItem = null;
-        Statement = string.Empty;
-        SelectedPriority = Priorities[0];
-        Criteria.Clear();
+        ClearForm();
         Message = null;
     }
 
@@ -191,6 +202,12 @@ public sealed partial class BacklogSection(WorkContext context) : WorkSection(co
             }).ConfigureAwait(true) && saved is not null)
             {
                 Message = Texts.Format(editing is null ? "Work_Backlog_Added" : "Work_Backlog_Revised", saved.Version);
+                if (editing is null)
+                {
+                    // The item is noted: the form is ready for the next one, not left to add the same twice.
+                    ClearForm();
+                }
+
                 Context.NotifyWritten();
             }
         }

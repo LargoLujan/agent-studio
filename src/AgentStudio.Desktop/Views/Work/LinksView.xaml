@@ -4,6 +4,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
+             xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
              xmlns:work="clr-namespace:AgentStudio.Desktop.Work"
              xmlns:views="clr-namespace:AgentStudio.Desktop.Views.Work"
              xmlns:orchestratorViews="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
@@ -17,7 +18,11 @@
     </UserControl.Resources>
 
     <StackPanel>
-        <views:SectionHeader/>
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Style="{StaticResource SectionTitleText}" VerticalAlignment="Center" Text="{Binding Title}"/>
+            <info:InfoButton InfoKey="Info_Work_Links" Margin="6,0,0,0" VerticalAlignment="Center"/>
+        </StackPanel>
+        <views:SectionNotices/>
         <TextBlock Style="{StaticResource SecondaryText}" Margin="0,8,0,0" Text="{Binding NodeText}"/>
 
         <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Work_Link_InForce}"/>

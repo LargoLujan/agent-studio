@@ -247,19 +247,28 @@ public sealed partial class MilestonesSection : WorkSection
         RefreshOpenProblems();
     }
 
-    partial void OnSelectedItemChanged(MilestoneRow? value)
+    partial void OnSelectedItemChanged(MilestoneRow? oldValue, MilestoneRow? newValue)
     {
         if (_loading)
         {
             return;
         }
 
-        Message = null;
-        CloseStatus = null;
-        OpenedReport = null;
+        // The same milestone read again (after something was written) keeps what the person was told about it.
+        var same = oldValue is not null && newValue is not null && oldValue.Id == newValue.Id;
+        if (!same)
+        {
+            Message = null;
+            CloseStatus = null;
+            OpenedReport = null;
+        }
+
         ShowSelected();
-        Context.SelectMilestone(value is null ? null : value.View.Header.Id);
-        _ = RefreshLinkChoicesAsync();
+        if (!same)
+        {
+            Context.SelectMilestone(newValue is null ? null : newValue.View.Header.Id);
+            _ = RefreshLinkChoicesAsync();
+        }
     }
 
     /// <summary>Reads again the runs and debates that can still be linked to the milestone selected.</summary>

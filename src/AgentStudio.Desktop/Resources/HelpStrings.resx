@@ -160,6 +160,9 @@
   <data name="Help_Screen_debates" xml:space="preserve">
     <value>Debates</value>
   </data>
+  <data name="Help_Screen_work" xml:space="preserve">
+    <value>Trabajo</value>
+  </data>
   <data name="Help_Screen_audit" xml:space="preserve">
     <value>Auditoría</value>
   </data>

@@ -17,7 +17,7 @@
     <value>Work</value>
   </data>
   <data name="Work_Intro" xml:space="preserve">
-    <value>Milestones, backlog, board and traceability of the open project. Everything comes from the verified history.</value>
+    <value>Here you see the work of the project. Everything comes from the verified history.</value>
   </data>
   <data name="Work_Sections_Name" xml:space="preserve">
     <value>Sections of Work</value>
@@ -122,7 +122,7 @@ Read the report of the close. You can reopen the milestone.</value>
     <value>Linked runs and debates</value>
   </data>
   <data name="Work_Milestone_NothingLinked" xml:space="preserve">
-    <value>Nothing is linked yet. Closing it needs at least one run.</value>
+    <value>Nothing is linked. To close it you need one run.</value>
   </data>
   <data name="Work_Milestone_TargetRun" xml:space="preserve">
     <value>Run {0}</value>
@@ -446,10 +446,10 @@ Press View chain to follow its path.</value>
     <value>How the column is decided</value>
   </data>
   <data name="Work_Rule_NeedsVerdict" xml:space="preserve">
-    <value>No card reaches Done or Integrated without a valid, approved verdict.</value>
+    <value>A card only reaches Done or Integrated with a valid, approved verdict.</value>
   </data>
   <data name="Work_Rule_IntegratedNeedsDone" xml:space="preserve">
-    <value>Today Integrated also needs Done: a delivery without an approved verdict stays in its column.</value>
+    <value>Today, to be Integrated a card must be Done. A delivery without an approved verdict stays where it is.</value>
   </data>
   <data name="Work_Rule_ApprovedNotMet" xml:space="preserve">
     <value>Today an approved verdict that does not say the requirement is met leaves it in review.</value>
@@ -776,7 +776,7 @@ That of a milestone is fixed when it opens and never changes.</value>
     <value>Work</value>
   </data>
   <data name="Info_Work_What" xml:space="preserve">
-    <value>Here you follow the work of the project: milestones, backlog, board, chain, participants, links and budgets. Everything is read from the verified history, nothing is invented.</value>
+    <value>Here you follow the work of the project. You see milestones, backlog, board, chain and budgets. Everything is read from the verified history.</value>
   </data>
   <data name="Info_Work_Actions" xml:space="preserve">
     <value>Choose a section in the list on the left.
