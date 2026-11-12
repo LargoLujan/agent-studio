@@ -30,7 +30,7 @@ public sealed partial class DebateCodedTextsTests
     public static TheoryData<string> Codes()
     {
         var data = new TheoryData<string>();
-        foreach (var code in DebateUserTexts.All.Concat(PendingProblems.TextCodes))
+        foreach (var code in DebateUserTexts.All.Concat(PendingProblems.TextCodes).Concat(AuditUserTexts.All))
         {
             data.Add(code);
         }
@@ -53,10 +53,32 @@ public sealed partial class DebateCodedTextsTests
     [Fact]
     public void The_codes_of_debate_and_of_the_audit_are_all_different_and_valid()
     {
-        var all = DebateUserTexts.All.Concat(PendingProblems.TextCodes).ToList();
+        var all = DebateUserTexts.All.Concat(PendingProblems.TextCodes).Concat(AuditUserTexts.All).ToList();
 
         Assert.Equal(all.Count, all.Distinct(StringComparer.Ordinal).Count());
         Assert.All(all, code => Assert.True(UserText.IsCode(code), code));
+    }
+
+    [Fact]
+    public void The_lists_of_codes_hold_every_constant_of_their_class()
+    {
+        static IEnumerable<string> Constants(Type type, string prefix = "") => type
+            .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+            .Where(f => f.IsLiteral && f.FieldType == typeof(string) && f.Name.StartsWith(prefix, StringComparison.Ordinal))
+            .Select(f => (string)f.GetRawConstantValue()!);
+
+        Assert.Equal(Constants(typeof(DebateUserTexts)).Order(StringComparer.Ordinal), DebateUserTexts.All.Order(StringComparer.Ordinal));
+        Assert.Equal(Constants(typeof(AuditUserTexts)).Order(StringComparer.Ordinal), AuditUserTexts.All.Order(StringComparer.Ordinal));
+        Assert.Equal(Constants(typeof(PendingProblems), "Text").Order(StringComparer.Ordinal), PendingProblems.TextCodes.Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void An_audit_that_ends_without_a_judge_says_why_in_the_language_in_use()
+    {
+        var text = UserText.Of(AuditUserTexts.EscalationNotApproved, "user");
+
+        Assert.Equal("No se aprobó la auditoría (user). No se ha ejecutado nada.", Spanish.Render(text));
+        Assert.Equal("The audit was not approved (user). Nothing was run.", English.Render(text));
     }
 
     [Fact]

@@ -269,14 +269,14 @@ public sealed class Phase5CompositionTests
         var entries = (await app.LoadLogAsync()).Entries.Count;
 
         // Nothing else with agents starts, and nothing is written for trying: the run, the audit and a second debate are refused.
-        var run = await Assert.ThrowsAsync<InvalidOperationException>(() => app.Orchestrator.StartAsync(runRequest, Ct));
+        var run = await Assert.ThrowsAnyAsync<InvalidOperationException>(() => app.Orchestrator.StartAsync(runRequest, Ct));
         Assert.Contains(nameof(ProjectActivityKind.Debate), run.Message, StringComparison.Ordinal);
         var proposal = await audits.PrepareAsync(auditRequest, Ct);
         Assert.True(proposal.CanJudge, string.Join(" | ", proposal.Problems));
-        var audit = await Assert.ThrowsAsync<InvalidOperationException>(() => audits.AuditAsync(proposal, null, Ct));
+        var audit = await Assert.ThrowsAnyAsync<InvalidOperationException>(() => audits.AuditAsync(proposal, null, Ct));
         Assert.Contains(nameof(ProjectActivityKind.Debate), audit.Message, StringComparison.Ordinal);
         var second = await coordinator.PrepareAsync(Debate("¿Y la caché de las sesiones?"), Ct);
-        var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => coordinator.OpenAsync(second, Ct));
+        var refused = await Assert.ThrowsAnyAsync<InvalidOperationException>(() => coordinator.OpenAsync(second, Ct));
         Assert.Contains("ocupado", refused.Message, StringComparison.Ordinal);
 
         // The memory waits (D-05): it derives nothing, exports nothing, and a write of a person waits for the debate to end.
@@ -314,13 +314,13 @@ public sealed class Phase5CompositionTests
         await Phase3Checks.WaitUntilAsync(() => clis.Launches.Any(r => r.Agent.Role == AgentRole.Executor), "the executor of T1 to be working", Phase5Runs.Guard);
         Assert.Equal(ProjectActivityKind.Run, activity.Current(project.ProjectId));
         var third = await coordinator.PrepareAsync(Debate("¿Y la caché de las imágenes?"), Ct);
-        refused = await Assert.ThrowsAsync<InvalidOperationException>(() => coordinator.OpenAsync(third, Ct));
+        refused = await Assert.ThrowsAnyAsync<InvalidOperationException>(() => coordinator.OpenAsync(third, Ct));
         Assert.Contains(nameof(ProjectActivityKind.Run), refused.Message, StringComparison.Ordinal);
 
         // Prepared now, with the run in the log (its producers count): only the project being busy can refuse it.
         proposal = await audits.PrepareAsync(auditRequest, Ct);
         Assert.True(proposal.CanJudge, string.Join(" | ", proposal.Problems));
-        audit = await Assert.ThrowsAsync<InvalidOperationException>(() => audits.AuditAsync(proposal, null, Ct));
+        audit = await Assert.ThrowsAnyAsync<InvalidOperationException>(() => audits.AuditAsync(proposal, null, Ct));
         Assert.Contains(nameof(ProjectActivityKind.Run), audit.Message, StringComparison.Ordinal);
         Assert.False((await app.Get<IMemoryDerivation>().DeriveAsync(project, Ct)).Completed);
 
@@ -338,10 +338,10 @@ public sealed class Phase5CompositionTests
         await Phase3Checks.WaitUntilAsync(() => clis.Launches.Any(r => r.DebateId?.StartsWith(AuditIds.Prefix, StringComparison.Ordinal) == true) || auditing.IsCompleted, "the judge of the audit to be launched", Phase5Runs.Guard);
         Assert.False(auditing.IsCompleted, auditing.IsCompletedSuccessfully ? "The audit ended without launching its judge." : auditing.Exception?.Message);
         Assert.Equal(ProjectActivityKind.Audit, activity.Current(project.ProjectId));
-        run = await Assert.ThrowsAsync<InvalidOperationException>(() => app.Orchestrator.StartAsync(runRequest, Ct));
+        run = await Assert.ThrowsAnyAsync<InvalidOperationException>(() => app.Orchestrator.StartAsync(runRequest, Ct));
         Assert.Contains(nameof(ProjectActivityKind.Audit), run.Message, StringComparison.Ordinal);
         var fourth = await coordinator.PrepareAsync(Debate("¿Y la caché de los informes?"), Ct);
-        refused = await Assert.ThrowsAsync<InvalidOperationException>(() => coordinator.OpenAsync(fourth, Ct));
+        refused = await Assert.ThrowsAnyAsync<InvalidOperationException>(() => coordinator.OpenAsync(fourth, Ct));
         Assert.Contains(nameof(ProjectActivityKind.Audit), refused.Message, StringComparison.Ordinal);
 
         judging.SetResult();

@@ -1487,4 +1487,7 @@ Press "Challenge" and approve to open the review.</value>
   <data name="Debate_Error_Unexpected" xml:space="preserve">
     <value>Something unexpected happened (technical detail: {0})</value>
   </data>
+  <data name="Text_debate_cannot_open" xml:space="preserve">
+    <value>The debate cannot be opened. See the problems of the proposal.</value>
+  </data>
 </root>

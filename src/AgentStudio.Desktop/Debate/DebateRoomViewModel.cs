@@ -836,7 +836,7 @@ public sealed partial class DebateRoomViewModel : ObservableObject
     {
         var who = waiting.Participant is { Length: > 0 } participant ? $" · {participant}" : string.Empty;
         var until = waiting.Until is { } at ? " · " + Texts.Format("Debate_Awaiting_Until", TimeZoneInfo.ConvertTime(at, _time.LocalTimeZone).ToString("HH:mm", CultureInfo.InvariantCulture)) : string.Empty;
-        return $"{DebateTexts.Awaiting(waiting)}{who}{until}. {DebateTexts.Await(waiting.Reason)}";
+        return $"{DebateTexts.Awaiting(waiting).TrimEnd('.')}{who}{until}. {DebateTexts.Await(waiting.Reason)}";
     }
 
     private static string TokensLine(DebateSnapshot snapshot)

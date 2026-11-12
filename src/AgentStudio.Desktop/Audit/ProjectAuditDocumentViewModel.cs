@@ -83,7 +83,7 @@ public sealed class AuditReportViewModel
         DispositionText = Texts.Format("Audit_Disposition", VerdictTexts.Disposition(report.Disposition));
         DispositionTone = VerdictTexts.ToneOf(report.Disposition);
         EscalationText = report.VerdictId is null
-            ? Texts.Format("Audit_Escalation", report.Verdict.Summary)
+            ? Texts.Format("Audit_Escalation", report.EscalationText is { } escalation ? Texts.Current.Render(escalation) : report.Verdict.Summary)
             : null;
         Verification = [.. report.Verification.Select(e => new VerificationRow(
             e.Title,
@@ -321,7 +321,7 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = Texts.Format("Audit_Error_Prepare", ex.Message);
+            ErrorMessage = Texts.Format("Audit_Error_Prepare", DebateTexts.Reason(ex));
         }
         finally
         {
@@ -355,7 +355,7 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
         {
             Show(null);
             StatusMessage = null;
-            ErrorMessage = Texts.Format("Audit_Error_Prepare", ex.Message);
+            ErrorMessage = Texts.Format("Audit_Error_Prepare", DebateTexts.Reason(ex));
         }
         finally
         {
@@ -389,7 +389,7 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
 #pragma warning restore CA1031
         {
             StatusMessage = null;
-            ErrorMessage = Texts.Format("Audit_Error_Audit", ex.Message);
+            ErrorMessage = Texts.Format("Audit_Error_Audit", DebateTexts.Reason(ex));
         }
         finally
         {
@@ -501,9 +501,9 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
             SkippedSteps.Add(Texts.Format("Audit_Prep_Skipped", skipped));
         }
 
-        foreach (var problem in proposal.Problems)
+        for (var i = 0; i < proposal.Problems.Count; i++)
         {
-            ProposalProblems.Add(problem);
+            ProposalProblems.Add(proposal.ProblemTexts is { } coded && coded.Count == proposal.Problems.Count ? Texts.Current.Render(coded[i]) : proposal.Problems[i]);
         }
 
         var tokens = MetricText.Tokens(proposal.EstimatedTokens);

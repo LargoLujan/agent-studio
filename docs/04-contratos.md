@@ -2052,7 +2052,7 @@ public sealed record ClientDocumentExportedPayload(int Version, string? Mileston
 - **`UserTextException`** (`Application/Localization`): `InvalidOperationException` con mensaje en inglés y `UserText Text`. La lanzan `DebateRun` y `DebateCoordinator`
   en los rechazos que la persona lee; Desktop la pinta con `DebateTexts.Reason`. Quien captura `InvalidOperationException` no cambia.
 - **`DebateAwaiting`** gana `IReadOnlyList<UserText>? Texts = null` al final. `Message` sigue siendo la frase en castellano. Un turno fallido da un `UserText` por turno.
-- **`PendingProblem`** gana `UserText? Text = null` al final. `Code` y `Message` no cambian: entran en el expediente del juez. Los códigos de texto son `audit.pending.*`
+- **`PendingProblem`** gana `UserText? Text = null` al final; **`ProjectAuditProposal`** gana `IReadOnlyList<UserText>? ProblemTexts = null` (uno por `Problems`, mismo orden; `CodedMessages` en `Application/Localization` los lleva a la vez) y **`AuditReport`** gana `UserText? EscalationText = null`. `Code` y `Message` no cambian: entran en el expediente del juez. Los códigos de texto son `audit.pending.*`
   (`PendingProblems.TextCodes`).
 - **Códigos:** `Debate/Arena/DebateUserTexts.cs` (`All`) y `Debate/Audit/PendingProblems.cs` (`TextCodes`); claves `Text_…` en `DebateStrings` y `AuditStrings`. Lista completa
   en la adenda de [ADR-0054](adr/0054-idiomas-y-lenguaje-claro.md) del 2026-11-12.

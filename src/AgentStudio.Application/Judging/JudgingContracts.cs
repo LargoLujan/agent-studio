@@ -88,7 +88,8 @@ public sealed record ProjectAuditProposal(
     MetricValue<long> EstimatedTokens,
     IReadOnlyList<string> Problems,
     string HeaderHash,
-    string ApprovalText)
+    string ApprovalText,
+    IReadOnlyList<UserText>? ProblemTexts = null)
 {
     /// <summary>Whether a judge will be launched: there is one and nothing stops it.</summary>
     public bool CanJudge => Judge is not null && Problems.Count == 0;
@@ -120,7 +121,8 @@ public sealed record AuditReport(
     ReviewDisposition Disposition,
     IReadOnlyList<EvidenceRecord> Verification,
     IReadOnlyList<PendingProblem> Pending,
-    DateTimeOffset GeneratedAt)
+    DateTimeOffset GeneratedAt,
+    UserText? EscalationText = null)
 {
     /// <summary>The verdict is usable only if a judge gave it, it passed validation and the log it refers to is intact.</summary>
     public bool IsTrustworthy => ValidationIssues.Count == 0 && DecisionLogIntact && VerdictId is not null;

@@ -84,7 +84,7 @@ public sealed class DebateCoordinator : IDebateCoordinator
         ArgumentNullException.ThrowIfNull(proposal);
         if (proposal.Problems.Count > 0)
         {
-            throw new InvalidOperationException("El debate no se puede abrir: " + string.Join(" ", proposal.Problems));
+            throw DebateUserTexts.Refusal(DebateUserTexts.CannotOpen, "The debate cannot be opened: " + string.Join(" ", proposal.Problems));
         }
 
         var project = proposal.Request.Project;

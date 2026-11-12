@@ -259,6 +259,18 @@ public sealed class DebateRoomViewModelTests
     }
 
     [Fact]
+    public void What_the_debate_waits_for_is_painted_from_its_coded_texts_without_repeating_the_full_stop()
+    {
+        var failed = new DebateAwaiting(DebateAwaitReason.FailedTurn, "El turno de P2 falló", "P2", Texts: [UserText.Of("debate.turn.ended-badly", "P2")]);
+        var room = NewRoom();
+
+        room.Attach(new FakeDebateRun(Snapshot(turnsInFlight: 0, awaiting: failed)), Project, Context);
+
+        Assert.StartsWith("P2: el turno no terminó bien · P2. ", room.AwaitingText, StringComparison.Ordinal);
+        Assert.DoesNotContain("..", room.AwaitingText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Once_the_debate_ended_no_action_is_offered()
     {
         var run = new FakeDebateRun(Snapshot());

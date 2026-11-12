@@ -1943,4 +1943,7 @@ Pulsa «Impugnar» y aprueba para abrir la revisión.</value>
   <data name="Debate_Error_Unexpected" xml:space="preserve">
     <value>Ha pasado algo inesperado (detalle técnico: {0})</value>
   </data>
+  <data name="Text_debate_cannot_open" xml:space="preserve">
+    <value>El debate no se puede abrir. Mira los problemas de la propuesta.</value>
+  </data>
 </root>

@@ -25,6 +25,7 @@ public static class DebateUserTexts
 
     // ---- refusals of the coordinator ----
     public const string ProposalOutdated = "debate.proposal-outdated";
+    public const string CannotOpen = "debate.cannot-open";
     public const string OpeningNotApproved = "debate.opening-not-approved";
     public const string OpeningInconsistent = "debate.opening-inconsistent";
     public const string ResumeNotApproved = "debate.resume-not-approved";
@@ -51,7 +52,7 @@ public static class DebateUserTexts
     public static IReadOnlyList<string> All { get; } =
     [
         JudgmentTooEarly, NotWaitingRetry, ClosedEvidence, ClosedTests, NoTestCommit, NoTrustProfile, NoIsolatedStep, NotWaitingDecision,
-        AlreadyClosed, DecisionNotApproved, CannotJudgeNow, ProposalOutdated, OpeningNotApproved, OpeningInconsistent, ResumeNotApproved,
+        AlreadyClosed, DecisionNotApproved, CannotJudgeNow, ProposalOutdated, CannotOpen, OpeningNotApproved, OpeningInconsistent, ResumeNotApproved,
         AlreadyRunning, NotFound, AlreadyFinished, CannotResume, ProjectBusy, NoProvider, AwaitJuryDisagrees, AwaitNeedsPerson,
         AwaitVerdictsUnusable, AwaitNoVerdict, TurnNoBudget, TurnInvalidAnswer, TurnLimitResets, TurnLimitUnknown, TurnOverloaded, TurnEndedBadly,
     ];

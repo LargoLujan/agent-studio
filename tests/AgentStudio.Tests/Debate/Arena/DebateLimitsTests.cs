@@ -166,6 +166,7 @@ public sealed class DebateLimitsTests
         var awaiting = run.Snapshot().Awaiting!;
         Assert.Equal((DebateAwaitReason.FailedTurn, "P1"), (awaiting.Reason, awaiting.Participant));
         Assert.Contains("el CLI falló", awaiting.Message, StringComparison.Ordinal);
+        Assert.Equal(AgentStudio.Debate.Arena.DebateUserTexts.TurnEndedBadly, Assert.Single(awaiting.Texts!).Code);
         var waiting = await world.DebateLogAsync(run.Id);
         Assert.Empty(waiting.Contributions);
         Assert.Equal([1, 2], waiting.Turns.Where(t => t.Task!.Value.Value == "r1-arquitecto").Select(t => t.Attempt));
@@ -250,6 +251,7 @@ public sealed class DebateLimitsTests
         await WaitUntilAsync(() => Task.FromResult(run.Snapshot().Awaiting is not null));
 
         Assert.Equal(DebateAwaitReason.ProviderLimit, run.Snapshot().Awaiting!.Reason);
+        Assert.Contains(Assert.Single(run.Snapshot().Awaiting!.Texts!).Code, new[] { AgentStudio.Debate.Arena.DebateUserTexts.TurnLimitResets, AgentStudio.Debate.Arena.DebateUserTexts.TurnLimitUnknown });
         await run.AbortAsync("Sin cuota.");
         await CompletedAsync(run);
     }
