@@ -107,6 +107,7 @@ public static class DossierDocument
         ["contentVerified"] = copy?.ContentVerified,
         ["truncated"] = copy?.Truncated,
         ["sizeBytes"] = copy?.SizeBytes,
+        ["saidByAgent"] = copy is { SaidByAgent.Count: > 0 } ? Texts(copy.SaidByAgent) : null,
     };
 
     private static JsonObject Decision(DecisionEntry entry) => new()
