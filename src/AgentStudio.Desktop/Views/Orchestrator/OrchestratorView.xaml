@@ -115,7 +115,7 @@
                     </WrapPanel>
                     <!-- Part of what «Aprobar plan» approves: the steps that run the agents' code with the user's rights (ADR-0017). -->
                     <TextBlock Style="{StaticResource BodyText}" Margin="0,4,0,0" TextWrapping="Wrap" FontWeight="SemiBold"
-                               Foreground="{StaticResource WarningBrush}" Text="{Binding IsolationWarning}"
+                               Foreground="{StaticResource WarningBrush}" Text="{Binding IsolationWarningText}"
                                Visibility="{Binding HasIsolationWarning, Converter={StaticResource Orchestrator.BoolToVisibility}}"
                                AutomationProperties.Name="{l:T Orchestrator_Review_IsolationName}" AutomationProperties.LiveSetting="Polite"/>
                     <!-- B10: a valid plan whose writing no integration reviewed by the judge takes in cannot be delivered. -->

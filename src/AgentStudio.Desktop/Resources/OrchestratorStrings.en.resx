@@ -2598,4 +2598,88 @@ Open the consumption analysis, if it is there, to see the detail.</value>
     <value>Attempt {0} · {1} retries</value>
     <comment>Attempt of a task.</comment>
   </data>
+  <data name="Text_plan_list_and" xml:space="preserve">
+    <value>{0} and {1}</value>
+  </data>
+  <data name="Text_plan_list_comma" xml:space="preserve">
+    <value>{0}, {1}</value>
+  </data>
+  <data name="Text_plan_delivery_not_checked" xml:space="preserve">
+    <value>Warning: the plan is too big to check whether it can be delivered to your branch.</value>
+  </data>
+  <data name="Text_plan_delivery_never_one" xml:space="preserve">
+    <value>Warning: what {0} writes cannot be delivered to your branch. No branch of the plan merges it in an integration the judge reviews.</value>
+  </data>
+  <data name="Text_plan_delivery_never_many" xml:space="preserve">
+    <value>Warning: what {0} write cannot be delivered to your branch. No branch of the plan merges it in an integration the judge reviews.</value>
+  </data>
+  <data name="Text_plan_delivery_maybe_one" xml:space="preserve">
+    <value>Warning: what {0} writes may not be deliverable to your branch: {1}.</value>
+  </data>
+  <data name="Text_plan_delivery_maybe_many" xml:space="preserve">
+    <value>Warning: what {0} write may not be deliverable to your branch: {1}.</value>
+  </data>
+  <data name="Text_plan_delivery_reason_branch" xml:space="preserve">
+    <value>it depends on the branch their conditions take (for example, {0})</value>
+  </data>
+  <data name="Text_plan_delivery_reason_timing" xml:space="preserve">
+    <value>it depends on which tasks finish first: the last review of the judge must start from the last integration</value>
+  </data>
+  <data name="Text_plan_delivery_branch_yes" xml:space="preserve">
+    <value>if {0} takes the yes branch</value>
+  </data>
+  <data name="Text_plan_delivery_branch_no" xml:space="preserve">
+    <value>if {0} takes the no branch</value>
+  </data>
+  <data name="Text_plan_delivery_branch_other" xml:space="preserve">
+    <value>if {0} takes the {1} branch</value>
+  </data>
+  <data name="Text_plan_delivery_how" xml:space="preserve">
+    <value>To deliver it, every branch needs an integration after the tasks that write. Then it needs a review of the judge that depends on the last integration. No other task that writes code can sit between the two. Any other review goes before some integration or also depends on the last one.</value>
+  </data>
+  <data name="Text_verification_step_requires" xml:space="preserve">
+    <value>requires {0}</value>
+  </data>
+  <data name="Text_verification_step_without_isolation" xml:space="preserve">
+    <value>NO ISOLATION: the code the agents write runs with your own rights, in the working copy</value>
+  </data>
+  <data name="Text_verification_medium_opening" xml:space="preserve">
+    <value>Warning: this plan has agents that write with wide permissions, outside the strictest sandbox.</value>
+  </data>
+  <data name="Text_verification_medium_task" xml:space="preserve">
+    <value>{0}: {1}.</value>
+  </data>
+  <data name="Text_verification_medium_meaning" xml:space="preserve">
+    <value>They can write anywhere you can write, and what they do is outside the threat model (ADR-0018). So your repository is checked strictly: an ignored folder that cannot be verified blocks the run.</value>
+  </data>
+  <data name="Text_verification_medium_reason_unknown_agent" xml:space="preserve">
+    <value>the agent "{0}" is not in the roster</value>
+  </data>
+  <data name="Text_verification_medium_reason_no_agent" xml:space="preserve">
+    <value>it has no agent assigned</value>
+  </data>
+  <data name="Text_verification_medium_reason_shell" xml:space="preserve">
+    <value>the agent "{0}" has Bash</value>
+  </data>
+  <data name="Text_verification_medium_reason_codex" xml:space="preserve">
+    <value>the agent "{0}" writes with Codex, whose workspace always has a shell</value>
+  </data>
+  <data name="Text_verification_medium_reason_unmeasured_cli" xml:space="preserve">
+    <value>the agent "{0}" writes with {1}, whose confinement was not measured</value>
+  </data>
+  <data name="Text_verification_medium_reason_unmeasured_claude" xml:space="preserve">
+    <value>the agent "{0}" writes with a version of Claude Code whose confinement was not measured</value>
+  </data>
+  <data name="Text_verification_medium_reason_tools_beyond" xml:space="preserve">
+    <value>the agent "{0}" has tools outside the measured profile ({1})</value>
+  </data>
+  <data name="Text_verification_medium_reason_permissions_beyond" xml:space="preserve">
+    <value>the agent "{0}" has permissions outside the measured profile</value>
+  </data>
+  <data name="Text_verification_medium_reason_unknown_step" xml:space="preserve">
+    <value>the step "{0}" is not in the profile</value>
+  </data>
+  <data name="Text_verification_medium_reason_step_without_isolation" xml:space="preserve">
+    <value>the step "{0}" runs without isolation</value>
+  </data>
 </root>

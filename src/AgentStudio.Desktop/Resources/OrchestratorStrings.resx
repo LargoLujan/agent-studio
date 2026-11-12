@@ -2598,4 +2598,88 @@ Abrir el análisis del consumo, si está disponible, para ver el detalle.</value
     <value>Intento {0} · {1} reintentos</value>
     <comment>Attempt of a task.</comment>
   </data>
+  <data name="Text_plan_list_and" xml:space="preserve">
+    <value>{0} y {1}</value>
+  </data>
+  <data name="Text_plan_list_comma" xml:space="preserve">
+    <value>{0}, {1}</value>
+  </data>
+  <data name="Text_plan_delivery_not_checked" xml:space="preserve">
+    <value>Atención: el plan es demasiado grande para comprobar si se podrá entregar a tu rama.</value>
+  </data>
+  <data name="Text_plan_delivery_never_one" xml:space="preserve">
+    <value>Atención: lo que escribe {0} no se podrá entregar a tu rama. Ninguna rama del plan lo une con una integración que revise el juez.</value>
+  </data>
+  <data name="Text_plan_delivery_never_many" xml:space="preserve">
+    <value>Atención: lo que escriben {0} no se podrá entregar a tu rama. Ninguna rama del plan lo une con una integración que revise el juez.</value>
+  </data>
+  <data name="Text_plan_delivery_maybe_one" xml:space="preserve">
+    <value>Atención: puede que lo que escribe {0} no se pueda entregar a tu rama: {1}.</value>
+  </data>
+  <data name="Text_plan_delivery_maybe_many" xml:space="preserve">
+    <value>Atención: puede que lo que escriben {0} no se pueda entregar a tu rama: {1}.</value>
+  </data>
+  <data name="Text_plan_delivery_reason_branch" xml:space="preserve">
+    <value>depende de la rama que tomen sus condiciones (por ejemplo, {0})</value>
+  </data>
+  <data name="Text_plan_delivery_reason_timing" xml:space="preserve">
+    <value>depende de qué tareas acaben antes: la última revisión del juez debe partir de la última integración</value>
+  </data>
+  <data name="Text_plan_delivery_branch_yes" xml:space="preserve">
+    <value>si {0} toma la rama sí</value>
+  </data>
+  <data name="Text_plan_delivery_branch_no" xml:space="preserve">
+    <value>si {0} toma la rama no</value>
+  </data>
+  <data name="Text_plan_delivery_branch_other" xml:space="preserve">
+    <value>si {0} toma la rama {1}</value>
+  </data>
+  <data name="Text_plan_delivery_how" xml:space="preserve">
+    <value>Para entregarlo, cada rama necesita una integración después de las tareas que escriben. Después tiene que haber una revisión del juez que dependa de la última integración. Entre las dos no puede haber otra tarea que escriba código. Cualquier otra revisión va antes de alguna integración o depende también de la última.</value>
+  </data>
+  <data name="Text_verification_step_requires" xml:space="preserve">
+    <value>requiere {0}</value>
+  </data>
+  <data name="Text_verification_step_without_isolation" xml:space="preserve">
+    <value>SIN AISLAMIENTO: el código que escriben los agentes se ejecuta con tus permisos, en la copia de trabajo</value>
+  </data>
+  <data name="Text_verification_medium_opening" xml:space="preserve">
+    <value>Atención: este plan tiene agentes que escriben con permisos amplios, fuera de la zona aislada más estricta.</value>
+  </data>
+  <data name="Text_verification_medium_task" xml:space="preserve">
+    <value>{0}: {1}.</value>
+  </data>
+  <data name="Text_verification_medium_meaning" xml:space="preserve">
+    <value>Pueden escribir en cualquier sitio donde puedas escribir tú, y lo que hagan queda fuera del modelo de amenazas (ADR-0018). Por eso se comprobará tu repositorio sin margen: una carpeta ignorada que no se pueda verificar bloquea la ejecución.</value>
+  </data>
+  <data name="Text_verification_medium_reason_unknown_agent" xml:space="preserve">
+    <value>el agente «{0}» no está en la plantilla</value>
+  </data>
+  <data name="Text_verification_medium_reason_no_agent" xml:space="preserve">
+    <value>no tiene agente asignado</value>
+  </data>
+  <data name="Text_verification_medium_reason_shell" xml:space="preserve">
+    <value>el agente «{0}» tiene Bash</value>
+  </data>
+  <data name="Text_verification_medium_reason_codex" xml:space="preserve">
+    <value>el agente «{0}» escribe con Codex, cuya zona de trabajo siempre tiene terminal</value>
+  </data>
+  <data name="Text_verification_medium_reason_unmeasured_cli" xml:space="preserve">
+    <value>el agente «{0}» escribe con {1}, cuyo confinamiento no se ha medido</value>
+  </data>
+  <data name="Text_verification_medium_reason_unmeasured_claude" xml:space="preserve">
+    <value>el agente «{0}» escribe con una versión de Claude Code cuyo confinamiento no se ha medido</value>
+  </data>
+  <data name="Text_verification_medium_reason_tools_beyond" xml:space="preserve">
+    <value>el agente «{0}» tiene herramientas fuera del perfil medido ({1})</value>
+  </data>
+  <data name="Text_verification_medium_reason_permissions_beyond" xml:space="preserve">
+    <value>el agente «{0}» tiene permisos fuera del perfil medido</value>
+  </data>
+  <data name="Text_verification_medium_reason_unknown_step" xml:space="preserve">
+    <value>el paso «{0}» no está en el perfil</value>
+  </data>
+  <data name="Text_verification_medium_reason_step_without_isolation" xml:space="preserve">
+    <value>el paso «{0}» se ejecuta sin aislamiento</value>
+  </data>
 </root>

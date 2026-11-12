@@ -569,7 +569,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = Texts.Format("Orchestrator_Mon_DeliverFailed", ex.Message);
+            ErrorMessage = Texts.Format("Orchestrator_Mon_DeliverFailed", OrchestratorErrorText.Detail(ex));
         }
         finally
         {
@@ -600,7 +600,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            readiness = new DeliveryReadiness(false, null, Texts.Format("Orchestrator_Mon_DeliveryCheckFailed", ex.Message));
+            readiness = new DeliveryReadiness(false, null, Texts.Format("Orchestrator_Mon_DeliveryCheckFailed", OrchestratorErrorText.Detail(ex)));
         }
 
         Post(generation, () =>
@@ -637,7 +637,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = Texts.Format("Orchestrator_Mon_CouldNot", what, ex.Message);
+            ErrorMessage = Texts.Format("Orchestrator_Mon_CouldNot", what, OrchestratorErrorText.Detail(ex));
             return false;
         }
     }
@@ -662,7 +662,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            Post(generation, () => Fail(Texts.Format("Orchestrator_Mon_EndedWithError", ex.Message)));
+            Post(generation, () => Fail(Texts.Format("Orchestrator_Mon_EndedWithError", OrchestratorErrorText.Detail(ex))));
         }
     }
 
@@ -953,7 +953,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = Texts.Format("Orchestrator_Mon_DismissFailed", ex.Message);
+            ErrorMessage = Texts.Format("Orchestrator_Mon_DismissFailed", OrchestratorErrorText.Detail(ex));
         }
         finally
         {
@@ -981,7 +981,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = Texts.Format("Orchestrator_Mon_FollowUpFailed", ex.Message);
+            ErrorMessage = Texts.Format("Orchestrator_Mon_FollowUpFailed", OrchestratorErrorText.Detail(ex));
         }
     }
 
@@ -1012,7 +1012,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = Texts.Format("Orchestrator_Mon_RevisionFailed", ex.Message);
+            ErrorMessage = Texts.Format("Orchestrator_Mon_RevisionFailed", OrchestratorErrorText.Detail(ex));
         }
     }
 
@@ -1056,7 +1056,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            failure = Texts.Format("Orchestrator_Mon_AuditFailed", ex.Message);
+            failure = Texts.Format("Orchestrator_Mon_AuditFailed", OrchestratorErrorText.Detail(ex));
         }
 
         Post(generation, () =>
@@ -1163,7 +1163,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            failure = Texts.Format("Orchestrator_Mon_VerdictFailed", ex.Message);
+            failure = Texts.Format("Orchestrator_Mon_VerdictFailed", OrchestratorErrorText.Detail(ex));
         }
 
         Post(generation, () => ApplyReview(review, project, run, verdictId, verdicts, stored, requirements, status, failure));

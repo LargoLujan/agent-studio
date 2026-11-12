@@ -62,7 +62,7 @@ public sealed partial class OrchestratorDocumentViewModel
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            Canvas.Notify(Texts.Format("Orchestrator_Doc_DraftSaveFailed", ex.Message), NoticeKind.Error);
+            Canvas.Notify(Texts.Format("Orchestrator_Doc_DraftSaveFailed", OrchestratorErrorText.Detail(ex)), NoticeKind.Error);
         }
     }
 
