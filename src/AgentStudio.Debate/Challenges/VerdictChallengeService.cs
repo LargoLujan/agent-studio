@@ -2,9 +2,11 @@ using System.Text;
 using AgentStudio.Application.Coordination;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Judging;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Security;
+using AgentStudio.Debate.Arena;
 using AgentStudio.Debate.Audit;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Common;
@@ -60,19 +62,19 @@ public sealed class VerdictChallengeService(
         ArgumentNullException.ThrowIfNull(request.Project);
         ArgumentNullException.ThrowIfNull(request.Revision);
         var project = request.Project;
-        var problems = new List<string>();
-        var notes = new List<string>();
+        var problems = new CodedMessages();
+        var notes = new CodedMessages();
 
         // A critical moment (ADR-0010, addendum of 2026-11-04): who may judge the revision comes from the whole log.
         var log = await decisions.LoadAsync(project.ProjectId, LogLoad.Full, ct).ConfigureAwait(false);
         if (!log.Verification.IsValid)
         {
-            problems.Add($"El registro de decisiones no está íntegro: no se impugna sobre un registro que no admite entradas ({log.Verification.Problem}).");
+            problems.Add($"El registro de decisiones no está íntegro: no se impugna sobre un registro que no admite entradas ({log.Verification.Problem}).", UserText.Of(DebateUserTexts.ChallengeProblemLogBroken));
         }
 
         if (string.IsNullOrWhiteSpace(request.Reasons))
         {
-            problems.Add("Escribe tus razones: la ronda 1 de la revisión parte de ellas.");
+            problems.Add("Escribe tus razones: la ronda 1 de la revisión parte de ellas.", UserText.Of(DebateUserTexts.ChallengeProblemReasonsMissing));
         }
 
         var challenged = await FindAsync(project.ProjectId, request.Verdict, ct).ConfigureAwait(false);
@@ -80,30 +82,30 @@ public sealed class VerdictChallengeService(
         ChallengedObject? target = null;
         if (challenged?.RunId is not { } unit)
         {
-            problems.Add($"El veredicto {request.Verdict} no está guardado, o no es de ninguna ejecución, debate ni auditoría.");
+            problems.Add($"El veredicto {request.Verdict} no está guardado, o no es de ninguna ejecución, debate ni auditoría.", UserText.Of(DebateUserTexts.ChallengeProblemVerdictNotFound, request.Verdict));
         }
         else
         {
             if (!Announced(log.Entries, challenged))
             {
-                problems.Add($"El registro no anuncia el veredicto {challenged.Id} en {unit} (VerdictIssued): no se impugna lo que el registro no recoge.");
+                problems.Add($"El registro no anuncia el veredicto {challenged.Id} en {unit} (VerdictIssued): no se impugna lo que el registro no recoge.", UserText.Of(DebateUserTexts.ChallengeProblemNotAnnounced, challenged.Id, unit));
             }
 
             target = ChallengeLog.ObjectOf(log.Entries, unit, challenged.Id);
             if (target.Kind == ChallengedUnitKind.Unknown)
             {
-                problems.Add($"El registro no tiene el inicio de {unit}, el objeto del veredicto: no se sabe quién no puede juzgar la revisión.");
+                problems.Add($"El registro no tiene el inicio de {unit}, el objeto del veredicto: no se sabe quién no puede juzgar la revisión.", UserText.Of(DebateUserTexts.ChallengeProblemUnitNotStarted, unit));
             }
 
             if (ChallengeLog.StatusOf(log.Entries, challenged) == ChallengeStatus.Pending)
             {
-                problems.Add($"El veredicto {challenged.Id} ya tiene una impugnación sin cerrar (debate {ChallengeLog.LatestRevision(log.Entries, challenged.Id)}): espera a que termine.");
+                problems.Add($"El veredicto {challenged.Id} ya tiene una impugnación sin cerrar (debate {ChallengeLog.LatestRevision(log.Entries, challenged.Id)}): espera a que termine.", UserText.Of(DebateUserTexts.ChallengeProblemAlreadyChallenged, challenged.Id, ChallengeLog.LatestRevision(log.Entries, challenged.Id) ?? "?"));
             }
 
             var own = await requirements.FindAsync(project.ProjectId, challenged.Verdict.RequirementSetHash, ct).ConfigureAwait(false);
             if (own is null)
             {
-                problems.Add($"Los requisitos congelados {challenged.Verdict.RequirementSetHash} del veredicto impugnado no están guardados: la revisión se juzga con ellos.");
+                problems.Add($"Los requisitos congelados {challenged.Verdict.RequirementSetHash} del veredicto impugnado no están guardados: la revisión se juzga con ellos.", UserText.Of(DebateUserTexts.ChallengeProblemRequirementsMissing, challenged.Verdict.RequirementSetHash));
             }
             else
             {
@@ -124,16 +126,49 @@ public sealed class VerdictChallengeService(
         };
 
         var proposal = await coordinator.PrepareAsync(revision, ct).ConfigureAwait(false);
-        problems.AddRange(Inheritance(proposal, excluded, target));
+        foreach (var (message, text) in Inheritance(proposal, excluded, target))
+        {
+            problems.Add(message, text);
+        }
+
         if (challenged is not null && proposal.Judging.Judges.Any(j => j.Agent == challenged.Verdict.Judge.Agent))
         {
-            notes.Add($"Juzga el mismo agente que emitió el veredicto impugnado ({challenged.Verdict.Judge.Agent}), en una sesión nueva: la plantilla no tiene otro juez elegible.");
+            notes.Add($"Juzga el mismo agente que emitió el veredicto impugnado ({challenged.Verdict.Judge.Agent}), en una sesión nueva: la plantilla no tiene otro juez elegible.", UserText.Of(DebateUserTexts.ChallengeNoteSameJudge, challenged.Verdict.Judge.Agent.ToString()));
+        }
+
+        // The codes go one for one with the sentences; when the proposal came without them, none is given (the sentences are shown).
+        var coded = proposal.ProblemTexts is { } givenProblems && givenProblems.Count == proposal.Problems.Count;
+        var merged = new CodedMessages();
+        for (var i = 0; i < proposal.Problems.Count; i++)
+        {
+            merged.Add(proposal.Problems[i], coded ? proposal.ProblemTexts![i] : UserText.Of(DebateUserTexts.ProblemSessionRefused, proposal.Problems[i]));
+        }
+
+        for (var i = 0; i < problems.Count; i++)
+        {
+            if (!proposal.Problems.Contains(problems.Messages[i]))
+            {
+                merged.Add(problems.Messages[i], problems.Texts[i]);
+            }
+        }
+
+        var codedNotes = proposal.Estimate.NoteTexts is { } ownNotes && ownNotes.Count == proposal.Estimate.Notes.Count;
+        var mergedNotes = new CodedMessages();
+        for (var i = 0; i < proposal.Estimate.Notes.Count; i++)
+        {
+            mergedNotes.Add(proposal.Estimate.Notes[i], codedNotes ? proposal.Estimate.NoteTexts![i] : UserText.Of(DebateUserTexts.ProblemSessionRefused, proposal.Estimate.Notes[i]));
+        }
+
+        for (var i = 0; i < notes.Count; i++)
+        {
+            mergedNotes.Add(notes.Messages[i], notes.Texts[i]);
         }
 
         return proposal with
         {
-            Problems = [.. proposal.Problems, .. problems.Where(p => !proposal.Problems.Contains(p))],
-            Estimate = proposal.Estimate with { Notes = [.. proposal.Estimate.Notes, .. notes] },
+            Problems = merged.Messages,
+            ProblemTexts = coded ? merged.Texts : null,
+            Estimate = proposal.Estimate with { Notes = mergedNotes.Messages, NoteTexts = codedNotes ? mergedNotes.Texts : null },
         };
     }
 
@@ -144,12 +179,12 @@ public sealed class VerdictChallengeService(
         var request = proposal.Request;
         if (request.Mode != DebateMode.Adversarial || request.Subject is not { Kind: DebateSubjectKind.Verdict, Reference: { Length: > 0 } verdict })
         {
-            throw new InvalidOperationException("This proposal is not the revision of a verdict: prepare the challenge with the challenge service.");
+            throw DebateUserTexts.Refusal(DebateUserTexts.ChallengeNotRevision, "This proposal is not the revision of a verdict: prepare the challenge with the challenge service.");
         }
 
         if (proposal.Problems.Count > 0)
         {
-            throw new InvalidOperationException("The challenge cannot be opened: " + string.Join(" ", proposal.Problems));
+            throw DebateUserTexts.Refusal(DebateUserTexts.ChallengeCannotOpen, "The challenge cannot be opened: " + string.Join(" ", proposal.Problems));
         }
 
         // What was shown is prepared again: the verdict, its object and who may judge it must be as they were.
@@ -157,12 +192,13 @@ public sealed class VerdictChallengeService(
         var again = await PrepareAsync(new VerdictChallengeRequest(project, verdict, request.Question, request), ct).ConfigureAwait(false);
         if (again.Problems.Count > 0 || !string.Equals(again.HeaderHash, proposal.HeaderHash, StringComparison.Ordinal))
         {
-            throw new InvalidOperationException(
+            throw DebateUserTexts.Refusal(
+                DebateUserTexts.ChallengeProposalOutdated,
                 "What the challenge would open now is not what was shown (the verdict, its object or who may judge it changed): prepare it again. " + string.Join(" ", again.Problems));
         }
 
         var challenged = await FindAsync(project.ProjectId, verdict, ct).ConfigureAwait(false)
-            ?? throw new InvalidOperationException($"The verdict {verdict} is not stored.");
+            ?? throw DebateUserTexts.Refusal(DebateUserTexts.ChallengeVerdictNotStored, $"The verdict {verdict} is not stored.", verdict);
         var unit = challenged.RunId!;
         var revision = await coordinator.OpenAsync(proposal, ct).ConfigureAwait(false);
         try
@@ -203,15 +239,15 @@ public sealed class VerdictChallengeService(
         var log = await VerifiedAsync(project.ProjectId, LogLoad.Full, ct).ConfigureAwait(false);
         if (ChallengeLog.RevisionOf(log, revisionVerdict) is not var (debate, challengedId))
         {
-            throw new InvalidOperationException($"The verdict {revisionVerdict} did not close the revision of a challenged verdict: there is nothing to accept.");
+            throw DebateUserTexts.Refusal(DebateUserTexts.ChallengeNothingToAccept, $"The verdict {revisionVerdict} did not close the revision of a challenged verdict: there is nothing to accept.", revisionVerdict);
         }
 
         var challenged = await FindAsync(project.ProjectId, challengedId, ct).ConfigureAwait(false)
-            ?? throw new InvalidOperationException($"The challenged verdict {challengedId} is not stored.");
+            ?? throw DebateUserTexts.Refusal(DebateUserTexts.ChallengeVerdictNotStored, $"The challenged verdict {challengedId} is not stored.", challengedId);
         var status = ChallengeLog.StatusOf(log, challenged);
         if (status != ChallengeStatus.AwaitingAcceptance || !string.Equals(ChallengeLog.LatestRevision(log, challengedId), debate, StringComparison.Ordinal))
         {
-            throw new InvalidOperationException($"The revision {debate} of {challengedId} does not await acceptance ({status}): only the latest revision that turned towards an approval is accepted.");
+            throw DebateUserTexts.Refusal(DebateUserTexts.ChallengeNotAwaitingAcceptance, $"The revision {debate} of {challengedId} does not await acceptance ({status}): only the latest revision that turned towards an approval is accepted.", debate, challengedId);
         }
 
         var issued = log.LastOrDefault(e => e.Kind == DecisionKind.VerdictIssued
@@ -230,7 +266,7 @@ public sealed class VerdictChallengeService(
             ct).ConfigureAwait(false);
         if (decision.Approved && !string.Equals(decision.Answers, binding, StringComparison.Ordinal))
         {
-            throw new InvalidOperationException("The approval received does not answer the acceptance of this revision.");
+            throw DebateUserTexts.Refusal(DebateUserTexts.ChallengeAcceptanceNotAnswered, "The approval received does not answer the acceptance of this revision.");
         }
     }
 
@@ -279,7 +315,7 @@ public sealed class VerdictChallengeService(
         StoredVerdict? challenged,
         ChallengedObject? target,
         IReadOnlySet<VendorId> excluded,
-        List<string> notes,
+        CodedMessages notes,
         CancellationToken ct)
     {
         var template = await roster.ListAsync(request.Project.ProjectId, ct).ConfigureAwait(false);
@@ -315,29 +351,33 @@ public sealed class VerdictChallengeService(
             }
         }
 
-        notes.Add("Con estos participantes y jueces nadie puede juzgar la revisión sin juzgar el trabajo de su propio vendor.");
+        notes.Add("Con estos participantes y jueces nadie puede juzgar la revisión sin juzgar el trabajo de su propio vendor.", UserText.Of(DebateUserTexts.ChallengeNoteNobodyCanJudge));
         return (kinds[0], [.. candidates.Select(c => c.Agent)]);
     }
 
     /// <summary>What a proposal must keep of the object (D-39): every vendor it excludes, no judge on one of them and, for a jury's verdict, a jury.</summary>
-    private static IEnumerable<string> Inheritance(DebateProposal proposal, IReadOnlySet<VendorId> excluded, ChallengedObject? target)
+    private static IEnumerable<(string Message, UserText Text)> Inheritance(DebateProposal proposal, IReadOnlySet<VendorId> excluded, ChallengedObject? target)
     {
         var producers = proposal.Judging.ProducerVendors ?? new HashSet<VendorId>();
         var missing = excluded.Where(v => !producers.Contains(v)).Select(v => v.Value).Order(StringComparer.Ordinal).ToList();
         if (missing.Count > 0)
         {
-            yield return $"La revisión no hereda los vendors que el objeto del veredicto excluye ({string.Join(", ", missing)}): con ella podría juzgar un vendor que produjo el trabajo.";
+            yield return (
+                $"La revisión no hereda los vendors que el objeto del veredicto excluye ({string.Join(", ", missing)}): con ella podría juzgar un vendor que produjo el trabajo.",
+                UserText.Of(DebateUserTexts.ChallengeProblemNotInherited, string.Join(", ", missing)));
         }
 
         var dependent = proposal.Judging.Judges.Where(j => excluded.Contains(j.Model.Vendor)).Select(j => $"{j.Agent} ({j.Model.Vendor})").ToList();
         if (dependent.Count > 0)
         {
-            yield return $"Un juez de la revisión corre en un vendor que el objeto excluye: {string.Join(", ", dependent)}.";
+            yield return (
+                $"Un juez de la revisión corre en un vendor que el objeto excluye: {string.Join(", ", dependent)}.",
+                UserText.Of(DebateUserTexts.ChallengeProblemJudgeOnExcluded, string.Join(", ", dependent)));
         }
 
         if (target is { FromJury: true } && proposal.Judging.Kind != DebateJudgingKind.CrossVendorPanel)
         {
-            yield return "El veredicto impugnado es de un jurado cruzado: su revisión se juzga con jurado cruzado.";
+            yield return ("El veredicto impugnado es de un jurado cruzado: su revisión se juzga con jurado cruzado.", UserText.Of(DebateUserTexts.ChallengeProblemJuryNeeded));
         }
     }
 

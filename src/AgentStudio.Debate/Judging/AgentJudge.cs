@@ -1,6 +1,8 @@
 using System.Diagnostics;
+using System.Text;
 using AgentStudio.Application.Judging;
 using AgentStudio.Application.Projects;
+using AgentStudio.Application.Prompts;
 using AgentStudio.Application.Providers;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Judging;
@@ -15,6 +17,11 @@ namespace AgentStudio.Debate.Judging;
 /// <param name="Purpose">The prompt-journal summary of its runs.</param>
 /// <param name="TaskId">The review task, for the prompt journal.</param>
 /// <param name="Brief">What the judge is asked and how its answer is read (docs/15 D-23); null is the review of a run (<see cref="JudgeBrief.RunReview"/>).</param>
+/// <param name="Language">
+/// V44 (docs/17 D-48): the language the person chose, which the judge writes the free text of its verdict in. It travels as a block of
+/// data at the end of the prompt (<see cref="ResponseLanguage"/>), never inside the brief, so no prompt of a brief changes with it;
+/// null is <see cref="ResponseLanguage.Default"/> (the factory fills it from the <see cref="IResponseLanguage"/> of the app).
+/// </param>
 public sealed record JudgeLaunch(
     AgentDefinition Agent,
     string WorkingDirectory,
@@ -23,7 +30,8 @@ public sealed record JudgeLaunch(
     IJudgeRunObserver? Observer = null,
     string? Purpose = null,
     string? TaskId = null,
-    JudgeBrief? Brief = null);
+    JudgeBrief? Brief = null,
+    string? Language = null);
 
 /// <summary>
 /// What a judge is asked and how its answer is read (docs/15 D-23): the rubric with the material (the prompt of the verdict
@@ -209,9 +217,30 @@ public sealed class AgentJudge : IJudge
         return JudgeAsync(dossier, prompt, resume, cancellationToken);
     }
 
+    /// <summary>The prompt of a brief followed by the block of data with the language of the person (V44).</summary>
+    internal static string WithLanguage(string prompt, string? language)
+    {
+        var text = new StringBuilder(prompt);
+        if (!prompt.EndsWith('\n'))
+        {
+            text.AppendLine();
+        }
+
+        text.AppendLine();
+        ResponseLanguage.AppendEnglish(text, language);
+        return text.ToString();
+    }
+
     private async Task<Verdict> JudgeAsync(JudgeDossier dossier, string prompt, string? resume, CancellationToken cancellationToken)
     {
         var brief = Brief;
+
+        // A resumed correction already has the language the first prompt gave; every other prompt carries it, after the material.
+        if (resume is null)
+        {
+            prompt = WithLanguage(prompt, _launch.Language);
+        }
+
         var request = new AgentRunRequest(
             _launch.Agent,
             prompt,
@@ -337,7 +366,7 @@ public interface IAgentJudgeFactory
 /// Runs each judge on the project's provider for its CLI, taken from <see cref="IProjectAgentProviders"/>: composed
 /// with the prompt journal and the per-provider concurrency limit, never a bare adapter.
 /// </summary>
-public sealed class AgentJudgeFactory(IProjectAgentProviders providers, TimeProvider timeProvider) : IAgentJudgeFactory
+public sealed class AgentJudgeFactory(IProjectAgentProviders providers, TimeProvider timeProvider, IResponseLanguage? language = null) : IAgentJudgeFactory
 {
     /// <exception cref="InvalidOperationException">The project has no provider for the judge's CLI.</exception>
     public IJudge Create(ProjectContext project, JudgeLaunch launch)
@@ -347,6 +376,6 @@ public sealed class AgentJudgeFactory(IProjectAgentProviders providers, TimeProv
         var cli = launch.Agent.Model.Provider;
         var provider = providers.For(project.RootPath).FirstOrDefault(p => p.Provider == cli)
             ?? throw new InvalidOperationException($"Project '{project.ProjectId}' has no provider for '{cli}', the CLI of judge '{launch.Agent.Id}'.");
-        return new AgentJudge(provider, launch, timeProvider);
+        return new AgentJudge(provider, launch with { Language = launch.Language ?? ResponseLanguage.Resolve(language) }, timeProvider);
     }
 }

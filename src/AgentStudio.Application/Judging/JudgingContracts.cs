@@ -1,4 +1,5 @@
 using AgentStudio.Application.Coordination;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Providers;
 using AgentStudio.Application.Verification;
@@ -60,7 +61,14 @@ public interface IJudgeDossierBuilder
 /// «Auditar proyecto completo» (D-28): the frozen requirements to audit against (by hash), the judge of the template and the
 /// vendors of the authors the user declares, because the log does not know who wrote what Agent Studio did not.
 /// </summary>
-public sealed record ProjectAuditRequest(ProjectContext Project, string RequirementSetHash, AgentId Judge, IReadOnlyList<VendorId> DeclaredAuthors);
+public sealed record ProjectAuditRequest(ProjectContext Project, string RequirementSetHash, AgentId Judge, IReadOnlyList<VendorId> DeclaredAuthors, AuditMilestoneScope? Milestone = null);
+
+/// <summary>
+/// What closing a milestone narrows an audit to (docs/16 D-49): the milestone, and the runs (the linked ones with their follow-ups)
+/// and debates the dossier of the judge lists. Null on a request is the whole project. The rule of the producers is not narrowed:
+/// the code at HEAD is the project's, so the vendors of every run of the log are still excluded from judging.
+/// </summary>
+public sealed record AuditMilestoneScope(string Milestone, string Name, string Objective, IReadOnlyList<string> Runs, IReadOnlyList<string> Debates);
 
 /// <summary>
 /// What the preparation of an audit shows; nothing is written (D-06 and D-43). <see cref="Judge"/> is null when nobody may
@@ -80,14 +88,20 @@ public sealed record ProjectAuditProposal(
     MetricValue<long> EstimatedTokens,
     IReadOnlyList<string> Problems,
     string HeaderHash,
-    string ApprovalText)
+    string ApprovalText,
+    IReadOnlyList<UserText>? ProblemTexts = null)
 {
     /// <summary>Whether a judge will be launched: there is one and nothing stops it.</summary>
     public bool CanJudge => Judge is not null && Problems.Count == 0;
 }
 
-/// <summary>A problem the system lists without a judge (D-31): its stable code, where it is (a run, a debate, a memory entry) and what it is, in Spanish.</summary>
-public sealed record PendingProblem(string Code, string Source, string Message);
+/// <summary>
+/// A problem the system lists without a judge (D-31): its stable code, where it is (a run, a debate, a memory entry) and what it is,
+/// in Spanish. <paramref name="Message"/> is what the dossier of the judge and the log carry, so it never changes; <paramref name="Text"/>
+/// says the same as a coded text that the desktop paints in the language of the person (docs/17 D-47), or null when a producer gives
+/// only the message.
+/// </summary>
+public sealed record PendingProblem(string Code, string Source, string Message, UserText? Text = null);
 
 /// <summary>
 /// The conformity report of an audit (D-31). It replaces the record of Phase 0, which nothing implemented.
@@ -107,7 +121,8 @@ public sealed record AuditReport(
     ReviewDisposition Disposition,
     IReadOnlyList<EvidenceRecord> Verification,
     IReadOnlyList<PendingProblem> Pending,
-    DateTimeOffset GeneratedAt)
+    DateTimeOffset GeneratedAt,
+    UserText? EscalationText = null)
 {
     /// <summary>The verdict is usable only if a judge gave it, it passed validation and the log it refers to is intact.</summary>
     public bool IsTrustworthy => ValidationIssues.Count == 0 && DecisionLogIntact && VerdictId is not null;

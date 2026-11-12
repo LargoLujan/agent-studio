@@ -54,7 +54,7 @@ public sealed class PlanViolationTextTests
     public void A_judge_on_the_vendor_of_the_producers_is_reported_with_its_vendor()
     {
         Assert.Equal(
-            ["El juez «juezA» de T7 usa el vendor anthropic, el mismo que el orquestador o un ejecutor del plan: el juez tiene que ser de otro vendor."],
+            ["El juez «juezA» de T7 usa un modelo de anthropic, igual que el orquestador o un ejecutor del plan. El juez tiene que ser de otra empresa."],
             TextsFor(PlanFixtures.Replace("T7", t => t with { Agent = Aid("juezA") })));
     }
 
@@ -84,9 +84,9 @@ public sealed class PlanViolationTextTests
 
         Assert.Equal(
             [
-                "Las integraciones T3 y T9 pueden ejecutarse a la vez: las integraciones de un plan van en cadena, cada una después de la anterior.",
-                "Las integraciones T3 y Ta pueden ejecutarse a la vez: las integraciones de un plan van en cadena, cada una después de la anterior.",
-                "Las integraciones T9 y Ta pueden ejecutarse a la vez: las integraciones de un plan van en cadena, cada una después de la anterior.",
+                "Las integraciones T3 y T9 pueden ejecutarse a la vez. Las integraciones de un plan van en cadena, cada una después de la anterior.",
+                "Las integraciones T3 y Ta pueden ejecutarse a la vez. Las integraciones de un plan van en cadena, cada una después de la anterior.",
+                "Las integraciones T9 y Ta pueden ejecutarse a la vez. Las integraciones de un plan van en cadena, cada una después de la anterior.",
             ],
             texts);
     }
@@ -95,7 +95,7 @@ public sealed class PlanViolationTextTests
     public void A_writer_whose_agent_asks_for_tests_is_told_to_add_verification_steps()
     {
         Assert.Equal(
-            ["La tarea T6 la hace «ejecutor», cuya política exige pruebas capturadas por el sistema: añade pasos de verificación a la tarea."],
+            ["La tarea T6 la hace «ejecutor». Su política exige pruebas hechas por el sistema. Añade pasos de verificación a la tarea."],
             TextsFor(PlanFixtures.ValidTasks(), WithPolicy("ejecutor", new ReviewPolicy(false, true))));
     }
 
@@ -103,7 +103,7 @@ public sealed class PlanViolationTextTests
     public void A_writer_whose_agent_asks_for_tests_and_only_builds_is_told_to_add_a_test_step()
     {
         Assert.Equal(
-            ["La tarea T2 la hace «ejecutor2», cuya política exige pruebas capturadas por el sistema, pero ninguno de sus pasos de verificación ejecuta pruebas: añade un paso de pruebas del perfil (una compilación no es una prueba)."],
+            ["La tarea T2 la hace «ejecutor2», cuya política exige pruebas capturadas por el sistema. Ninguno de sus pasos de verificación ejecuta pruebas. Añade un paso de pruebas del perfil: una compilación no es una prueba."],
             TextsFor(PlanFixtures.ValidTasks(), WithPolicy("ejecutor2", new ReviewPolicy(false, true))));
     }
 
@@ -119,7 +119,7 @@ public sealed class PlanViolationTextTests
         };
 
         Assert.Equal(
-            ["La tarea T9 la hace «ejecutor2», cuya política exige una revisión independiente: hace falta una tarea de revisión que dependa de todas las tareas que escriben con esa exigencia."],
+            ["La tarea T9 la hace «ejecutor2». Su política exige una revisión independiente. Añade una tarea de revisión que dependa de todas las que escriben."],
             TextsFor([.. PlanFixtures.ValidTasks(), late], WithPolicy("ejecutor2", new ReviewPolicy(true, false))));
     }
 

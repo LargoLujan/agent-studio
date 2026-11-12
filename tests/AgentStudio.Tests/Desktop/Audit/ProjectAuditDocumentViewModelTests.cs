@@ -53,7 +53,7 @@ public sealed class ProjectAuditDocumentViewModelTests
         Assert.Equal(Requirements.ContentHash, request.RequirementSetHash);
         Assert.Equal("juez-revision", request.Judge.Value);
         Assert.Equal([VendorId.Anthropic], request.DeclaredAuthors);
-        Assert.StartsWith("Contra los últimos requisitos congelados del proyecto: 2 requisitos", document.RequirementsText, StringComparison.Ordinal);
+        Assert.StartsWith("Se audita contra los últimos requisitos congelados: 2 requisitos", document.RequirementsText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -63,13 +63,13 @@ public sealed class ProjectAuditDocumentViewModelTests
 
         await document.PrepareCommand.ExecuteAsync(null);
 
-        Assert.Equal("Se audita el commit HEAD 777777777777.", document.HeadText);
-        Assert.Equal("Hay cambios sin commit: no entran en la auditoría, y el informe lo dirá.", document.UncommittedText);
-        Assert.Equal("Juez: juez-revision · Codex CLI · OpenAI · modelo predeterminado del CLI", document.JudgeText);
-        Assert.Equal("Produjeron el código (el juez no puede ser de estos vendors): Anthropic.", document.ProducersText);
-        Assert.Equal(["e2e: no se ejecuta en una auditoría (isolation: none), porque lo haría con tus permisos."], document.SkippedSteps);
+        Assert.Equal("Se audita la última versión guardada (commit): 777777777777.", document.HeadText);
+        Assert.Equal("Hay cambios sin guardar como versión (commit): no entran en la auditoría, y el informe lo dirá.", document.UncommittedText);
+        Assert.Equal("Juez: juez-revision · Codex CLI · OpenAI · modelo predeterminado del programa", document.JudgeText);
+        Assert.Equal("Estas empresas produjeron el código: Anthropic. El juez no puede ser de ninguna de ellas.", document.ProducersText);
+        Assert.Equal(["e2e: no se ejecuta en una auditoría, porque lo haría con tus permisos."], document.SkippedSteps);
         Assert.Equal(["test · Pruebas · dotnet test"], document.ProfileSteps);
-        Assert.Equal("Estimación: ~320.000 tokens (estimado por Agent Studio), más una corrección del juez como mucho. La verificación no gasta cuota.", document.EstimateText);
+        Assert.Equal("Estimación: ~320.000 tokens (estimado por Agent Studio), más como mucho una corrección del juez. Verificar no gasta el límite de uso de tu plan.", document.EstimateText);
         Assert.True(document.AuditCommand.CanExecute(null));
     }
 
@@ -82,10 +82,10 @@ public sealed class ProjectAuditDocumentViewModelTests
 
         await document.PrepareCommand.ExecuteAsync(null);
 
-        Assert.Equal("Nadie puede juzgar: la regla de los productores no se dispensa.", document.JudgeText);
+        Assert.Equal("Nadie puede juzgar: quien produjo el código no puede ser juez, y esa regla no admite excepciones.", document.JudgeText);
         Assert.Equal(["audit.no-judge: los dos vendors produjeron código"], document.ProposalProblems);
         Assert.StartsWith("«Auditar» no lanzará a ningún juez", document.AuditMode, StringComparison.Ordinal);
-        Assert.Equal("Sin juez no se gasta cuota: solo se verifica HEAD y se listan los problemas pendientes.", document.EstimateText);
+        Assert.Equal("Sin juez no se gasta el límite de uso de tu plan. Solo se verifica la última versión guardada y se listan los problemas pendientes.", document.EstimateText);
         Assert.True(document.AuditCommand.CanExecute(null));
     }
 
@@ -100,17 +100,18 @@ public sealed class ProjectAuditDocumentViewModelTests
         Assert.Single(audits.Audited);
         var report = Assert.IsType<AuditReportViewModel>(document.Report);
         Assert.True(document.ShowsReport);
-        Assert.Equal("Fiable: lo emitió un juez, pasó la validación y el registro de decisiones está íntegro.", report.TrustText);
+        Assert.Equal("Fiable: lo emitió un juez, pasó la validación y el historial de decisiones está íntegro.", report.TrustText);
         Assert.Equal(Tone.Success, report.TrustTone);
-        Assert.Equal("Commit auditado: 777777777777", report.CommitText);
-        Assert.Equal("Hay cambios sin commit: no entran en la auditoría.", report.UncommittedText);
-        Assert.Equal("Disposición: Cambios solicitados", report.DispositionText);
-        Assert.Equal(new VerificationRow("dotnet test (HEAD)", "Pruebas · capturada por el sistema · commit 777777777777", "5354 correctas, 0 fallidas, 12 omitidas"), Assert.Single(report.Verification));
+        Assert.Equal("Versión guardada (commit) auditada: 777777777777", report.CommitText);
+        Assert.Equal("Hay cambios sin guardar como versión (commit): no entran en la auditoría.", report.UncommittedText);
+        Assert.Equal("Conclusión: Cambios solicitados", report.DispositionText);
+        Assert.Equal(new VerificationRow("dotnet test (HEAD)", "Pruebas · capturada por el sistema · versión guardada (commit) 777777777777", "5354 correctas, 0 fallidas, 12 omitidas"), Assert.Single(report.Verification));
         Assert.Equal(["La ejecución 20261018-c4a1f2 espera a una persona. · 20261018-c4a1f2 (run.awaiting-human)", "Una propuesta de memoria sin revisar. · m-12 (memory.proposal-unreviewed)"], report.Pending);
         var card = Assert.IsType<VerdictCardViewModel>(report.Card);
         Assert.Equal("Cambios solicitados · veredicto válido", card.OutcomeText);
         Assert.True(card.Verdicts[0].CanBeChallenged);
         Assert.True(card.CanCreateCorrectiveTasks);
+        Assert.StartsWith("Tareas correctivas de «Veredicto de la auditoría» (veredictos ", card.CorrectiveRequest, StringComparison.Ordinal);
 
         await card.CreateCorrectiveTasksCommand.ExecuteAsync(null);
         Assert.Equal(Root, Assert.Single(navigation.CorrectiveTasks).ProjectRoot);
@@ -126,10 +127,10 @@ public sealed class ProjectAuditDocumentViewModelTests
         await document.AuditCommand.ExecuteAsync(null);
 
         var report = document.Report!;
-        Assert.Equal("No fiable: el registro de decisiones no está íntegro, ningún juez emitió un veredicto.", report.TrustText);
+        Assert.Equal("No fiable: el historial de decisiones no está íntegro, ningún juez emitió un veredicto.", report.TrustText);
         Assert.Equal(Tone.Error, report.TrustTone);
-        Assert.StartsWith("Registro de decisiones roto: no se lanzó al juez", report.IntegrityText, StringComparison.Ordinal);
-        Assert.StartsWith("Escalado del sistema, no de un juez:", report.EscalationText, StringComparison.Ordinal);
+        Assert.StartsWith("El historial de decisiones está roto. No se lanzó al juez", report.IntegrityText, StringComparison.Ordinal);
+        Assert.StartsWith("Lo escaló el sistema, no un juez:", report.EscalationText, StringComparison.Ordinal);
         Assert.Null(report.Card);
     }
 
@@ -162,7 +163,7 @@ public sealed class ProjectAuditDocumentViewModelTests
     {
         var (document, _, _) = await DocumentAsync(withRequirements: false);
 
-        Assert.Contains("Sin requisitos congelados no se audita: congélalos en «Requisitos» del orquestador.", document.Problems);
+        Assert.Contains("No se puede auditar sin requisitos congelados. Ve a «Requisitos», en el orquestador, y congélalos.", document.Problems);
         Assert.False(document.PrepareCommand.CanExecute(null));
     }
 

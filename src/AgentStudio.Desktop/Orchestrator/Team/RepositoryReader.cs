@@ -13,13 +13,22 @@ namespace AgentStudio.Desktop.Orchestrator.Team;
 public interface IRepositoryStateReader
 {
     Task<RepositoryState> InspectAsync(string repoRoot, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The remotes of the repository as the hardened git layer lists them (<see cref="IRepositoryRemoteReader"/>); null when this reader
+    /// has no such layer, and the node then reads the configuration file itself, bounded.
+    /// </summary>
+    Task<RemoteListing?> ListRemotesAsync(string repoRoot, CancellationToken cancellationToken) => Task.FromResult<RemoteListing?>(null);
 }
 
-/// <summary>The hardened git layer as the reader of the state of the repository.</summary>
-public sealed class WorktreeRepositoryStateReader(IWorktreeManager worktrees) : IRepositoryStateReader
+/// <summary>The hardened git layer as the reader of the state of the repository and of its remotes.</summary>
+public sealed class WorktreeRepositoryStateReader(IWorktreeManager worktrees, IRepositoryRemoteReader? remotes = null) : IRepositoryStateReader
 {
     public Task<RepositoryState> InspectAsync(string repoRoot, CancellationToken cancellationToken) =>
         worktrees.InspectAsync(repoRoot, cancellationToken);
+
+    public async Task<RemoteListing?> ListRemotesAsync(string repoRoot, CancellationToken cancellationToken) =>
+        remotes is null ? null : await remotes.ListRemotesAsync(repoRoot, cancellationToken).ConfigureAwait(false);
 }
 
 /// <summary>What was read of the repository: the node, or why there is none.</summary>
@@ -41,8 +50,10 @@ public sealed record RepositoryReading(RepositoryNode? Node, string? Problem)
 /// <list type="bullet">
 /// <item>The branch, the short HEAD and the changes not committed come from the hardened git layer (<see cref="IRepositoryStateReader"/>),
 /// which reviews the configuration of the repository before it runs git.</item>
-/// <item>The remotes are read from the text of the configuration file of the repository, with no git process at all (git runs
-/// nothing from a file this code only reads). Each URL is cleaned with <see cref="RepositoryRemote.Cleaned"/> the moment it is
+/// <item>The remotes come from <see cref="IRepositoryRemoteReader"/> (<c>ListRemotesAsync</c> of the hardened git layer: local
+/// configuration only, no <c>include</c> followed, bounded output, fail closed). Without that layer (a reader that does not give it)
+/// they are read from the text of the configuration file of the repository, with no git process, and the cap of
+/// <see cref="MaxConfigBytes"/> is applied while reading. Each URL is cleaned with <see cref="RepositoryRemote.Cleaned"/> the moment it is
 /// read: no user and no password is ever held, shown or saved. Only <c>[remote "name"]</c> and its <c>url</c> are read; the
 /// files an <c>include</c> names are not followed.</item>
 /// <item>The main folders are, by default, the top-level ones with most files, without <c>.git</c>, <c>bin</c>, <c>obj</c> nor
@@ -74,11 +85,11 @@ public sealed class RepositoryReader(IRepositoryStateReader? state)
         catch (Exception ex) when (ex is not OperationCanceledException)
 #pragma warning restore CA1031
         {
-            return RepositoryReading.Failed(WithoutCredentials(ex.Message));
+            return RepositoryReading.Failed(WithoutCredentials(OrchestratorErrorText.Detail(ex)));
         }
 
         var root = inspected.Root;
-        var remotes = ReadRemotes(root, out var remotesNote);
+        var (remotes, remotesNote) = await ReadRemotesAsync(state, root, cancellationToken).ConfigureAwait(false);
         var (folders, paths) = Look(projectRoot);
         var stack = ProjectStackDetector.Detect(paths);
         return RepositoryReading.Of(new RepositoryNode(
@@ -105,6 +116,33 @@ public sealed class RepositoryReader(IRepositoryStateReader? state)
             System.Text.RegularExpressions.RegexOptions.CultureInvariant,
             TimeSpan.FromSeconds(1));
 
+    /// <summary>
+    /// The remotes through the hardened git layer when <paramref name="source"/> has it (P51): a refusal gives none (and, for an answer
+    /// past the bound, says so), never a fallback to the file. Without that layer, the bounded read of the configuration file.
+    /// </summary>
+    private static async Task<(IReadOnlyList<RepositoryRemote> Remotes, string? Note)> ReadRemotesAsync(IRepositoryStateReader source, string root, CancellationToken cancellationToken)
+    {
+        RemoteListing? listing = null;
+        try
+        {
+            listing = await source.ListRemotesAsync(root, cancellationToken).ConfigureAwait(false);
+        }
+#pragma warning disable CA1031 // The git layer is behind a port: a failure there reads as «no remotes», never as an error on the node.
+        catch (Exception ex) when (ex is not OperationCanceledException)
+#pragma warning restore CA1031
+        {
+            return ([], null);
+        }
+
+        if (listing is null)
+        {
+            var remotes = ReadRemotes(root, out var note);
+            return (remotes, note);
+        }
+
+        return (listing.Remotes, listing.RefusalCode == RemoteListing.OutputTooBig ? RepositoryProblems.ConfigurationTooBig : null);
+    }
+
     /// <summary>The remotes of the repository at <paramref name="root"/>, with their URL clean, in the order of the file.</summary>
     public static IReadOnlyList<RepositoryRemote> ReadRemotes(string root) => ReadRemotes(root, out _);
 
@@ -121,28 +159,36 @@ public sealed class RepositoryReader(IRepositoryStateReader? state)
             return [];
         }
 
+        // The cap is applied while reading (never more than the cap plus one byte is held), not by a check before it: a file that
+        // grows between the check and the read cannot be read in full.
+        string text;
         try
         {
-            if (new FileInfo(config).Length > MaxConfigBytes)
+            using var stream = new FileStream(config, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            var buffer = new byte[MaxConfigBytes + 1];
+            var length = 0;
+            int read;
+            while (length < buffer.Length && (read = stream.Read(buffer, length, buffer.Length - length)) > 0)
+            {
+                length += read;
+            }
+
+            if (length > MaxConfigBytes)
             {
                 note = RepositoryProblems.ConfigurationTooBig;
                 return [];
             }
+
+            // Through a reader, so a UTF-8 byte order mark is dropped (as File.ReadAllLines did) and does not spoil the first section.
+            using var reader = new StreamReader(new MemoryStream(buffer, 0, length), System.Text.Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+            text = reader.ReadToEnd();
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             return [];
         }
 
-        string[] lines;
-        try
-        {
-            lines = File.ReadAllLines(config);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            return [];
-        }
+        var lines = text.Split('\n');
 
         var remotes = new List<RepositoryRemote>();
         string? current = null;

@@ -36,6 +36,7 @@ Especificación funcional: [referencias/prompt-maestro.md](referencias/prompt-ma
 | 5 · Debate Arena y juez (cerrada el 2026-10-21; [demostraciones](evidencias/fase5-demostraciones.md)) | [15-fase-5-debate-arena-y-juez.md](15-fase-5-debate-arena-y-juez.md) |
 | 6 a 11 · Ampliación «plataforma de proyectos»: trabajo desatendido, trazabilidad, Git remoto, entornos (aprobada el 2026-10-20) | [16-ampliacion-plataforma-de-proyectos.md](16-ampliacion-plataforma-de-proyectos.md) |
 | 12 a 15 · Índice semántico, constructor visual de agentes, bloque final (idiomas, lenguaje claro, ayuda, documentación para clientes y la Fase 9) y comprobación completa (propuesta del 2026-10-30, pendiente de tus decisiones) | [17-constructor-visual-de-agentes.md](17-constructor-visual-de-agentes.md) |
+| 16 · Documentación viva del proyecto: documentación ejecutiva, funcional, técnica, de calidad y de cambios, con diagramas y diccionarios, que se construye mientras trabajan los agentes y se exporta como un paquete (propuesta del 2026-11-12, pendiente de tus decisiones) | [19-documentacion-viva-del-proyecto.md](19-documentacion-viva-del-proyecto.md) |
 
 ## Decisiones de arquitectura (ADR)
 
@@ -78,6 +79,9 @@ Especificación funcional: [referencias/prompt-maestro.md](referencias/prompt-ma
 | [0035](adr/0035-final-clasificado-y-renovacion-del-contexto.md) | El final clasificado de cada intento y la renovación del contexto con un traspaso que construye el sistema; nunca `--resume` de un intento interrumpido |
 | [0036](adr/0036-vida-de-la-app-y-bandeja.md) | La vida de la app y la bandeja: cerrar y seguir, el panel como proyección, la salida gestionada en el registro, la suspensión y el reloj |
 | [0037](adr/0037-windows-hello-y-bloqueo-de-la-interfaz.md) | Windows Hello en las aprobaciones críticas y un bloqueo de la interfaz que no detiene el trabajo; el SDK de Windows solo en Desktop (amplía ADR-0001) |
+| [0038](adr/0038-hito-backlog-y-tablero.md) | El hito como conjunto de requisitos congelado con nombre (cabecera inmutable y anclada, estado reproducido), el backlog de solo añadir y anclado, y el tablero como proyección del registro: ninguna tarjeta llega a «hecho» sin veredicto (Fase 9) |
+| [0039](adr/0039-vinculos-de-trazabilidad-y-participacion.md) | Vínculos de trazabilidad explícitos y de solo añadir, inferencias como sugerencia que solo cuenta si la confirmas, trailers de los commits del sistema y seis papeles de participación (Fase 9) |
+| [0040](adr/0040-consumo-por-hito-y-actividad-y-presupuestos.md) | Consumo por hito y por actividad, presupuestos por proyecto y por hito y real frente a estimado (esqueleto del P0 de la Fase 9, completado por WP2; amplía ADR-0019) |
 | [0047](adr/0047-indice-semantico-local.md) | Índice semántico local (Fase 12): multilingual-e5-small int8 en tu equipo y sin red, descargado una vez con tu OK y su huella fijada; búsqueda híbrida (palabras sin palabras vacías y significado, RRF k = 60); la bitácora anclada como memoria con su confianza; el juez no lo recibe (enmienda ADR-0023, amplía ADR-0022 y ADR-0024). Adendas del 2026-11-03 (el casado exige el recibo de la bitácora; los nativos de ONNX Runtime; el corte de lo que solo encuentra el significado) y del 2026-11-04 (la bitácora con dos textos y la fusión de D-05) |
 | [0048](adr/0048-constructor-visual-equipo-y-plan.md) | El constructor visual (Fase 13): un lienzo con las capas «Equipo» y «Plan», la tira del equipo, el nodo del repositorio y la ficha del proyecto; la capa Equipo es la plantilla, y las carpetas y las instrucciones de cada agente pasan a mandar |
 | [0049](adr/0049-analizador-del-montaje-y-orden.md) | El analizador del montaje y el orden: reglas deterministas con arreglos tipados; las notas de orden y «Revisar el orden» solo sugieren, y decide el validador |
@@ -87,6 +91,8 @@ Especificación funcional: [referencias/prompt-maestro.md](referencias/prompt-ma
 | [0053](adr/0053-windows-hello-como-barrera-fija.md) | Windows Hello como barrera fija: una lista en el código que ningún ajuste ni fichero desactiva, el bloqueo de Windows comprobado como alternativa y una sola confirmación a la vez (amplía ADR-0037) |
 | [0054](adr/0054-idiomas-y-lenguaje-claro.md) | Idiomas y lenguaje claro: recursos `.resx` con el castellano de España de origen, códigos con parámetros en las capas de abajo, el idioma de Windows por defecto y elegible en Ajustes (al reiniciar), lo que no se traduce y la guía de textos |
 | [0055](adr/0055-configurador-por-proyecto.md) | El configurador por proyecto (Fase 13): siete pasos que proponen, dejan revisar y aplican por las puertas de siempre y dejan `ProjectSetupApplied`; los perfiles de verificación de Node y Python, en integridad baja y con su entorno aislado |
+| [0056](adr/0056-ayuda-y-agente-de-ayuda.md) | La ayuda (Fase 14): local y sin cuota primero, y un agente de solo lectura con tu OK en cada pregunta, con una tarjeta de lo que se le envía (sin el proyecto ni las rutas salvo que lo marques) y acciones de una lista cerrada |
+| [0057](adr/0057-documentacion-para-clientes.md) | La documentación para clientes (Fase 14): un modelo determinista y sin idioma desde el registro, cuatro formatos (Markdown, HTML, PDF y Word), lo escrito por agentes marcado y tu revisión antes de exportar con `ClientDocumentExported` |
 
 ## Investigación y evidencias
 

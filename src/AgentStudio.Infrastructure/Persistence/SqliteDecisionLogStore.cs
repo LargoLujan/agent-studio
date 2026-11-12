@@ -30,29 +30,29 @@ namespace AgentStudio.Infrastructure.Persistence;
 /// <para>
 /// The stamp is no proof that nothing changed. Whoever can write to the database can set its schema version back
 /// (<c>PRAGMA schema_version</c>) or replace the file with a crafted copy that keeps its creation time, and bytes can be
-/// written in place: the stamp stays as it was. So can a connection without recursive triggers (another program's: the
-/// app turns them on), with <c>INSERT OR REPLACE</c> through the rowid of a row: the row it conflicts with is deleted
-/// without its DELETE trigger, and a key no row has (a sequence, an id) passes the trigger of the insert, in
-/// <c>decision_log</c> as in <c>memory_entries</c>, with the triggers intact and the same schema version. Those are found
-/// by the recorder's whole verifications (at the critical moments, after a time and a number of loads, and on opening
-/// the project again: ADR-0010, addenda of 2026-11-04 and 2026-11-05).
+/// written in place: the stamp stays as it was. Those are found by the recorder's whole verifications (at the critical
+/// moments, after a time and a number of loads, and on opening the project again: ADR-0010, addenda of 2026-11-04 and
+/// 2026-11-05). An <c>INSERT OR REPLACE</c> through the rowid of a row, from a connection without recursive triggers, no
+/// longer gets through: since <c>0007_replace_by_rowid.sql</c> the replace triggers also reject a rowid already taken
+/// (ADR-0010, addendum of 2026-11-12).
 /// </para>
 /// </summary>
 public sealed partial class SqliteDecisionLogStore(ProjectDatabases databases) : IDecisionLogStore, IDecisionLogTailReader
 {
     /// <summary>
     /// The triggers that keep <c>decision_log</c> append-only (<c>0001_initial.sql</c>) and <c>memory_entries</c> too
-    /// (<c>0004_memory.sql</c>), as the schema creates them, with their blanks collapsed: what <c>sqlite_master</c> must hold
+    /// (<c>0004_memory.sql</c>), as the schema creates them (the replace ones as <c>0007_replace_by_rowid.sql</c> recreates
+    /// them, with the rowid closed), with their blanks collapsed: what <c>sqlite_master</c> must hold
     /// for the log to be read only from its tail.
     /// </summary>
     internal static readonly IReadOnlyDictionary<string, string> AppendOnlyTriggers = new Dictionary<string, string>(StringComparer.Ordinal)
     {
         ["decision_log_no_update"] = "CREATE TRIGGER decision_log_no_update BEFORE UPDATE ON decision_log BEGIN SELECT RAISE(ABORT, 'decision_log is append-only'); END",
         ["decision_log_no_delete"] = "CREATE TRIGGER decision_log_no_delete BEFORE DELETE ON decision_log BEGIN SELECT RAISE(ABORT, 'decision_log is append-only'); END",
-        ["decision_log_no_replace"] = "CREATE TRIGGER decision_log_no_replace BEFORE INSERT ON decision_log WHEN EXISTS (SELECT 1 FROM decision_log WHERE project_id = NEW.project_id AND sequence = NEW.sequence) BEGIN SELECT RAISE(ABORT, 'decision_log is append-only'); END",
+        ["decision_log_no_replace"] = "CREATE TRIGGER decision_log_no_replace BEFORE INSERT ON decision_log WHEN EXISTS (SELECT 1 FROM decision_log WHERE project_id = NEW.project_id AND sequence = NEW.sequence) OR EXISTS (SELECT 1 FROM decision_log WHERE rowid = NEW.rowid) BEGIN SELECT RAISE(ABORT, 'decision_log is append-only'); END",
         ["memory_entries_no_update"] = "CREATE TRIGGER memory_entries_no_update BEFORE UPDATE ON memory_entries BEGIN SELECT RAISE(ABORT, 'memory_entries is append-only'); END",
         ["memory_entries_no_delete"] = "CREATE TRIGGER memory_entries_no_delete BEFORE DELETE ON memory_entries BEGIN SELECT RAISE(ABORT, 'memory_entries is append-only'); END",
-        ["memory_entries_no_replace"] = "CREATE TRIGGER memory_entries_no_replace BEFORE INSERT ON memory_entries WHEN EXISTS (SELECT 1 FROM memory_entries WHERE id = NEW.id) BEGIN SELECT RAISE(ABORT, 'memory_entries is append-only'); END",
+        ["memory_entries_no_replace"] = "CREATE TRIGGER memory_entries_no_replace BEFORE INSERT ON memory_entries WHEN EXISTS (SELECT 1 FROM memory_entries WHERE id = NEW.id) OR EXISTS (SELECT 1 FROM memory_entries WHERE rowid = NEW.rowid) BEGIN SELECT RAISE(ABORT, 'memory_entries is append-only'); END",
     };
 
     public async Task AppendAsync(string projectId, DecisionEntry entry, CancellationToken cancellationToken)

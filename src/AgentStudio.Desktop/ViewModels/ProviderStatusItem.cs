@@ -1,4 +1,5 @@
 using AgentStudio.Application.Providers;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Domain.Providers;
 
 namespace AgentStudio.Desktop.ViewModels;
@@ -14,7 +15,7 @@ public enum StatusKind
     Parked,
 }
 
-/// <summary>Display-ready (Spanish) projection of a <see cref="ProviderProbeResult"/>.</summary>
+/// <summary>Display-ready projection of a <see cref="ProviderProbeResult"/>, in the language of the interface.</summary>
 public sealed record ProviderStatusItem(
     string Name,
     StatusKind Status,
@@ -26,18 +27,17 @@ public sealed record ProviderStatusItem(
     IReadOnlyList<string> Notes)
 {
     /// <summary>What the row of a parked provider says in its details, above what its check found (ADR-0009).</summary>
-    public const string GeminiParkedNote =
-        "Aparcado (ADR-0009): sin una clave de API (GEMINI_API_KEY), Agent Studio trabaja con Claude Code y Codex, y Gemini no cuenta en el estado de los proveedores.";
+    public static string GeminiParkedNote => Texts.Get("Providers_GeminiParked");
 
-    private const string InstalledText = "Instalado";
+    private static string InstalledText => Texts.Get("Providers_Installed");
 
     /// <summary>
-    /// The providers parked by a decision, with what their row says: their check still runs and is shown. One comes back as a
-    /// provider like the others as soon as its check finds a way to authenticate (ADR-0009: Gemini, with an API key).
+    /// The providers parked by a decision, with the key of what their row says: their check still runs and is shown. One comes
+    /// back as a provider like the others as soon as its check finds a way to authenticate (ADR-0009: Gemini, with an API key).
     /// </summary>
     private static readonly Dictionary<ProviderId, string> Parked = new()
     {
-        [ProviderId.GeminiCli] = GeminiParkedNote,
+        [ProviderId.GeminiCli] = "Providers_GeminiParked",
     };
 
     /// <summary>Why the provider is parked; null when it is in use. A parked provider is neutral and does not count in the summary.</summary>
@@ -49,7 +49,7 @@ public sealed record ProviderStatusItem(
     /// The one line of its row in Auto Doctor: «Aparcado» when it is; the version and the session when it is installed; what
     /// went wrong otherwise. The rest (installation, method, path and notes) is in the details of the row.
     /// </summary>
-    public string Summary => IsParked ? "Aparcado"
+    public string Summary => IsParked ? Texts.Get("Providers_Parked")
         : Installation == InstalledText ? $"{Version} · {Authentication}"
         : Installation;
 
@@ -60,18 +60,19 @@ public sealed record ProviderStatusItem(
         var installation = result.Installation switch
         {
             InstallationState.Installed => InstalledText,
-            InstallationState.NotInstalled => "No instalado",
-            _ => "Error",
+            InstallationState.NotInstalled => Texts.Get("Providers_NotInstalled"),
+            _ => Texts.Get("Providers_InstallationError"),
         };
 
         var authentication = result.Authentication switch
         {
-            AuthenticationState.Authenticated => "Sesión iniciada",
-            AuthenticationState.NotAuthenticated => "Sin sesión",
-            _ => "Desconocida",
+            AuthenticationState.Authenticated => Texts.Get("Providers_SignedIn"),
+            AuthenticationState.NotAuthenticated => Texts.Get("Providers_NotSignedIn"),
+            _ => Texts.Get("Providers_SessionUnknown"),
         };
 
-        var parked = HasUsableAuthentication(result) ? null : Parked.GetValueOrDefault(result.Provider);
+        var parkedKey = HasUsableAuthentication(result) ? null : Parked.GetValueOrDefault(result.Provider);
+        var parked = parkedKey is null ? null : Texts.Get(parkedKey);
         var status = parked is not null ? StatusKind.Parked : result.Installation switch
         {
             InstallationState.Error => StatusKind.Error,
@@ -106,5 +107,5 @@ public sealed record ProviderStatusItem(
         result.Authentication == AuthenticationState.Authenticated || !string.IsNullOrWhiteSpace(result.AuthenticationMethod);
 
     /// <summary>The name and, when parked, that it is: what a screen reader says for the card, instead of every field of the record.</summary>
-    public override string ToString() => IsParked ? $"{Name} (aparcado)" : Name;
+    public override string ToString() => IsParked ? Texts.Format("Providers_ParkedName", Name) : Name;
 }

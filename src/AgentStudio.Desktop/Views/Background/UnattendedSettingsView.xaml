@@ -4,12 +4,15 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:background="clr-namespace:AgentStudio.Desktop.Background"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
+             xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=background:UnattendedSettingsViewModel}"
-             AutomationProperties.Name="{x:Static background:UnattendedSettingsViewModel.Title}">
+             AutomationProperties.Name="{l:T Background_Unattended_Title}">
     <!-- «Trabajo desatendido», a section of «Ajustes» (docs/16 D-14 and D-40): what closing the window does and keeping the
          computer awake while there is work. «Guardar» is the document's, for every section at once, and «Windows Hello y
-         bloqueo» is a section of its own. Nothing changes until it is saved. Bindings only. -->
+         bloqueo» is a section of its own. Nothing changes until it is saved. Every text comes from the resources
+         (Resources/BackgroundStrings.resx); the ⓘ explains the section (docs/17 D-54). Bindings only. -->
     <UserControl.Resources>
         <Style x:Key="Unattended.Choice" TargetType="RadioButton" BasedOn="{StaticResource {x:Type RadioButton}}">
             <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
@@ -20,12 +23,14 @@
     </UserControl.Resources>
 
     <StackPanel>
-        <TextBlock Style="{StaticResource SectionTitleText}" Text="{x:Static background:UnattendedSettingsViewModel.Title}"/>
-        <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,0"
-                   Text="Qué pasa al cerrar la ventana con trabajo en marcha, y si el equipo se mantiene despierto mientras sigue."/>
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Style="{StaticResource SectionTitleText}" VerticalAlignment="Center" Text="{l:T Background_Unattended_Title}"/>
+            <info:InfoButton InfoKey="Info_Unattended" Margin="6,0,0,0" VerticalAlignment="Center"/>
+        </StackPanel>
+        <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,0" Text="{l:T Background_Unattended_Intro}"/>
 
-        <TextBlock Style="{StaticResource FieldLabel}" Margin="0,14,0,2" Text="Al cerrar la ventana"/>
-        <ItemsControl ItemsSource="{Binding CloseWindowChoices}" Focusable="False" AutomationProperties.Name="Al cerrar la ventana">
+        <TextBlock Style="{StaticResource FieldLabel}" Margin="0,14,0,2" Text="{l:T Background_Unattended_CloseWindow}"/>
+        <ItemsControl ItemsSource="{Binding CloseWindowChoices}" Focusable="False" AutomationProperties.Name="{l:T Background_Unattended_CloseWindow}">
             <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="{x:Type background:CloseWindowChoice}">
                     <!-- A string as the content never wraps: a wrapping TextBlock does, and the name is set by hand. -->
@@ -36,13 +41,13 @@
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
-        <TextBlock Style="{StaticResource SecondaryText}" Margin="22,4,0,0" Text="{x:Static background:UnattendedSettingsViewModel.CloseWindowExplanation}"/>
+        <TextBlock Style="{StaticResource SecondaryText}" Margin="22,4,0,0" Text="{l:T Background_Unattended_CloseExplanation}"/>
 
         <CheckBox Style="{StaticResource FieldCheckBox}" Margin="0,16,0,0" IsChecked="{Binding PreventSleepWhileWorking}"
-                  AutomationProperties.Name="Impedir la suspensión mientras hay trabajo"
-                  AutomationProperties.HelpText="{x:Static background:UnattendedSettingsViewModel.PreventSleepExplanation}">
-            <TextBlock TextWrapping="Wrap" Text="Impedir la suspensión mientras hay trabajo"/>
+                  AutomationProperties.Name="{l:T Background_Unattended_PreventSleep}"
+                  AutomationProperties.HelpText="{l:T Background_Unattended_PreventSleepExplanation}">
+            <TextBlock TextWrapping="Wrap" Text="{l:T Background_Unattended_PreventSleep}"/>
         </CheckBox>
-        <TextBlock Style="{StaticResource SecondaryText}" Margin="22,2,0,0" Text="{x:Static background:UnattendedSettingsViewModel.PreventSleepExplanation}"/>
+        <TextBlock Style="{StaticResource SecondaryText}" Margin="22,2,0,0" Text="{l:T Background_Unattended_PreventSleepExplanation}"/>
     </StackPanel>
 </UserControl>

@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.IO;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -105,11 +106,11 @@ public sealed partial class ExplorerNodeViewModel : ObservableObject
         }
         catch (IOException ex)
         {
-            return [CreateMessage($"No se pudo leer la carpeta: {ex.Message}")];
+            return [CreateMessage(Texts.Format("Explorer_ReadFailed", ex.Message))];
         }
         catch (UnauthorizedAccessException)
         {
-            return [CreateMessage("Sin permiso para leer la carpeta")];
+            return [CreateMessage(Texts.Get("Explorer_NoPermission"))];
         }
 
         return entries

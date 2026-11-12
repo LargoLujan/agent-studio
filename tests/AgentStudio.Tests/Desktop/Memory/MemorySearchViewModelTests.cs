@@ -217,10 +217,10 @@ public sealed class MemorySearchViewModelTests
         memory.SearchText = "pruebas";
         await memory.SearchCommand.ExecuteAsync(null);
 
-        Assert.Equal("Solo por palabras: la búsqueda por significado no está disponible en esta composición.", memory.SearchNotice);
+        Assert.Equal("Solo por palabras: la búsqueda por significado no está disponible aquí.", memory.SearchNotice);
         Assert.Equal("pruebas", store.Recalls[^1].Query.Text);
         Assert.False(memory.Model.IsIndexAvailable);
-        Assert.Equal("La búsqueda por significado no está disponible en esta composición: la memoria se busca por palabras.", memory.Model.StatusText);
+        Assert.Equal("La búsqueda por significado no está disponible aquí: la memoria se busca por palabras.", memory.Model.StatusText);
     }
 
     [Fact]

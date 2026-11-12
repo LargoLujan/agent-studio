@@ -179,7 +179,7 @@ public sealed class CanvasViewModelTests
 
         Assert.Single(canvas.Connections);
         Assert.Equal(
-            "Conexión rechazada. T2 ya espera a T1 por la otra rama: una tarea solo puede esperar una rama de cada condición.",
+            "Conexión rechazada. T2 ya espera a T1 por la otra rama. Una tarea solo puede esperar una rama de cada condición.",
             canvas.NoticeText);
     }
 
@@ -214,7 +214,7 @@ public sealed class CanvasViewModelTests
         Assert.True(t3.Inputs[0].IsConnected);
         Assert.False(t2.Inputs[0].IsConnected);
         Assert.False(t2.Outputs[0].IsConnected);
-        Assert.Equal("Eliminados 1 nodos y 2 conexiones.", canvas.NoticeText);
+        Assert.Equal("Selección eliminada. Nodos: 1. Conexiones: 2.", canvas.NoticeText);
         Assert.Equal([new DependencySpec(Tid("T1"))], SpecOf(canvas, "T3").DependsOn);
     }
 
@@ -314,7 +314,7 @@ public sealed class CanvasViewModelTests
 
         Assert.Equal(Enum.GetValues<WorkTaskStatus>(), nodes.Select(n => n.Status));
         Assert.Equal(
-            ["Pendiente", "En curso", "Bloqueada", "Espera aprobación", "Completada", "Fallida", "Cancelada", "Omitida"],
+            ["Pendiente", "En curso", "Bloqueada", "Espera tu aprobación", "Completada", "Fallida", "Cancelada", "Omitida"],
             nodes.Select(n => n.StatusLabel));
         Assert.Equal(8, canvas.StatusLegend.Count);
 

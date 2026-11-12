@@ -4,7 +4,7 @@ using AgentStudio.Application.Execution;
 
 namespace AgentStudio.Infrastructure.Git;
 
-internal sealed partial record GitResult(int ExitCode, string StandardOutput, string StandardError)
+internal sealed partial record GitResult(int ExitCode, string StandardOutput, string StandardError, bool OutputLimitExceeded = false)
 {
     // git quotes the path in its (possibly translated) message: "Unable to create '<path>.lock': File exists."
     [GeneratedRegex(@"'(?<path>[^'\r\n]+\.lock)'", RegexOptions.CultureInvariant)]
@@ -225,12 +225,12 @@ internal sealed class GitCommandRunner
     /// it the command is not run. So does a command that writes refs or objects, and before either the git directory of
     /// that scope is walked for planted links (S-01 to S-03).
     /// </summary>
-    internal async Task<GitResult> RunAsync(string workingDirectory, IReadOnlyList<string> arguments, string? standardInput, CancellationToken cancellationToken, GitScope? scope = null)
+    internal async Task<GitResult> RunAsync(string workingDirectory, IReadOnlyList<string> arguments, string? standardInput, CancellationToken cancellationToken, GitScope? scope = null, int? maxOutputCharacters = null)
     {
         EnsureNoHookCanRun(arguments, scope);
         EnsureNoPlantedLink(arguments, scope);
         await EnsureNoRepositoryCallbackAsync(workingDirectory, arguments, scope, cancellationToken).ConfigureAwait(false);
-        return await RunCoreAsync(_configuration, _options.CommandTimeout ?? GitWorktreeOptions.DefaultCommandTimeout, workingDirectory, arguments, standardInput, cancellationToken)
+        return await RunCoreAsync(_configuration, _options.CommandTimeout ?? GitWorktreeOptions.DefaultCommandTimeout, workingDirectory, arguments, standardInput, cancellationToken, maxOutputCharacters)
             .ConfigureAwait(false);
     }
 
@@ -240,21 +240,22 @@ internal sealed class GitCommandRunner
         string workingDirectory,
         IReadOnlyList<string> arguments,
         string? standardInput,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int? maxOutputCharacters = null)
     {
         var all = new List<string>(configuration.Count + arguments.Count);
         all.AddRange(configuration);
         all.AddRange(arguments);
 
         var environment = BuildEnvironment(Environment.GetEnvironmentVariables());
-        var spec = new ProcessSpec(ResolveGit(), all, workingDirectory, environment, timeout, standardInput);
+        var spec = new ProcessSpec(ResolveGit(), all, workingDirectory, environment, timeout, standardInput, MaxOutputCharacters: maxOutputCharacters);
         var result = await _runner.RunAsync(spec, cancellationToken).ConfigureAwait(false);
         if (result.TimedOut)
         {
             throw new GitCommandException($"git {Describe(arguments)} timed out after {timeout}.", -1, result.StandardError);
         }
 
-        return new GitResult(result.ExitCode, result.StandardOutput, result.StandardError);
+        return new GitResult(result.ExitCode, result.StandardOutput, result.StandardError, result.OutputLimitExceeded);
     }
 
     /// <summary>Runs the command and throws <see cref="GitCommandException"/> unless it exits with 0.</summary>

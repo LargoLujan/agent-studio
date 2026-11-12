@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows;
 using AgentStudio.Application.Projects;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Work;
@@ -56,11 +57,11 @@ public sealed class FileCanvasLayoutStore(IProjectStorageFiles files) : ICanvasL
     /// <summary>Version 2 (docs/17 D-08): <c>{version:2, plan:{…}, team:{…}}</c>. Version 1 (<c>nodes</c>) is read as the Plan layer.</summary>
     private const int CurrentVersion = 2;
 
-    private const string Damaged = "no se puede leer: está dañado o incompleto";
+    private static string Damaged => Texts.Get("Orchestrator_Draft_Damaged");
 
-    private const string TooBig = "es demasiado grande para traerlo de vuelta";
+    private static string TooBig => Texts.Get("Orchestrator_Draft_TooBig");
 
-    private const string NotOurs = "no lo guardó Agent Studio en este equipo para esta carpeta";
+    private static string NotOurs => Texts.Get("Orchestrator_Draft_NotOurs");
 
     private static readonly JsonSerializerOptions Json = new()
     {

@@ -119,13 +119,13 @@ public sealed class LiveProjectionTests
         Assert.Equal(AgentLiveStatus.WaitingForQuota, agents[Agent("quota")].Status);
         Assert.Equal<DateTimeOffset?>(until, agents[Agent("quota")].WaitingUntil);
         Assert.Equal(AgentLiveStatus.Blocked, agents[Agent("blocked")].Status);
-        Assert.Equal("Bloqueada · proveedor no disponible", agents[Agent("blocked")].BlockReason);
+        Assert.Equal("Bloqueada · el programa del agente no está disponible", agents[Agent("blocked")].BlockReason);
         Assert.Equal(AgentLiveStatus.Finished, agents[Agent("done")].Status);
         Assert.Equal(AgentLiveStatus.Idle, agents[Agent("idle")].Status);
         Assert.Null(agents[Agent("idle")].Task);
 
         // The node of the task says why it is blocked as the monitor says it, not only «Bloqueada».
-        Assert.Equal("Bloqueada · proveedor no disponible", monitor.Current.Tasks[Tid("T6")].BlockReason);
+        Assert.Equal("Bloqueada · el programa del agente no está disponible", monitor.Current.Tasks[Tid("T6")].BlockReason);
         Assert.Equal("Espera tu respuesta", monitor.Current.Tasks[Tid("T3")].BlockReason);
     }
 

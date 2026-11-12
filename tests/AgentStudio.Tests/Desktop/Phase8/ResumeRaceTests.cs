@@ -205,7 +205,7 @@ public sealed class ResumeRaceTests
 
         Assert.Contains(startedId.Value, tracked);
         Assert.Contains(Scheduled.Value, tracked);
-        Assert.Equal($"La ejecución {startedId} empezó mientras su pestaña seguía otra ejecución: la sigue la bandeja.", message);
+        Assert.Equal($"La ejecución {startedId} empezó, pero su pestaña seguía otra ejecución. La sigue la bandeja del sistema.", message);
     }
 
     [Fact]

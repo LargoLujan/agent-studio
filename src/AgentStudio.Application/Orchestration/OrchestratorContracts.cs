@@ -114,6 +114,12 @@ public sealed record PlanProposal(
     public string? HistoryToolNotice { get; init; }
 
     /// <summary>
+    /// <see cref="Error"/> as a coded text for the screen (docs/17 D-47, ADR-0054) when the planner gives one; null when it does not
+    /// (the error is what the agent or its program said, which is shown as it is). <see cref="Error"/> stays in Spanish for the log.
+    /// </summary>
+    public Localization.UserText? ErrorText { get; init; }
+
+    /// <summary>
     /// Phase 13 (docs/17 D-28): the questions the orchestrator asked instead of a plan, before planning, in one round and
     /// <see cref="QuestionRules.MaxPlannerQuestions"/> at most, each validated and recorded (<c>QuestionAsked</c> with a null
     /// task, in <see cref="Run"/>). With questions, <see cref="Plan"/> is null; the person answers them and the next planning
@@ -337,4 +343,11 @@ public sealed record PendingQuestion(
 /// </summary>
 public sealed record RunSnapshot(RunId Id, RunPhase Phase, IReadOnlyList<TaskView> Tasks, GraphHealthReport Health, int AgentRunsUsed, int? MaxAgentRuns = null);
 
-public sealed record RunResult(RunId Id, RunPhase Phase, GraphHealthReport Health, string? IntegrationCommit, string? VerdictId, string Summary);
+/// <param name="Id">The run.</param>
+/// <param name="Phase">How it ended.</param>
+/// <param name="Health">The health of its graph.</param>
+/// <param name="IntegrationCommit">The commit of the integration, if any.</param>
+/// <param name="VerdictId">The verdict that closed it, if any.</param>
+/// <param name="Summary">The summary the log anchors (<c>RunFinished</c>), in Spanish: it never changes with the language of the screen.</param>
+/// <param name="SummaryText">The same summary as a coded text for the screen (docs/17 D-47, ADR-0054); null for a run read back from the log, and then the screen shows <paramref name="Summary"/>.</param>
+public sealed record RunResult(RunId Id, RunPhase Phase, GraphHealthReport Health, string? IntegrationCommit, string? VerdictId, string Summary, Localization.UserText? SummaryText = null);

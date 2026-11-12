@@ -26,7 +26,7 @@ namespace AgentStudio.Tests.Desktop.Localization;
 /// text when it has a letter beyond ASCII or a word of <see cref="SpanishWords"/>.</item>
 /// <item>C#: no string literal with a letter beyond ASCII (á, é, í, ó, ú, ü, ñ, ¿, ¡…); no literal with a word of
 /// <see cref="SpanishWords"/>, the frequent Spanish words of an interface that have no accent («Guardar el plan»); and no
-/// literal with a letter assigned to a visible property (<c>.Text = "…"</c>) or given as an accessible name
+/// literal with a letter assigned to a visible property or field (<c>.Text = "…"</c>, <c>_statusText = "…"</c>, <c>ErrorMessage = "…"</c>: any name ending in Text, Content, Header, ToolTip, Title, Message, Status, Caption or Hint) or given as an accessible name
 /// (<c>AutomationProperties.SetName(x, "…")</c>). Comments are not code: they are not read. Exception messages and logs are in
 /// English, as CLAUDE.md asks, and pass.</item>
 /// <item>Every key a scanned file names literally (<c>{l:T Key}</c>, <c>Get("Key")</c>, <c>Format("Key", …)</c>) exists in the
@@ -41,8 +41,9 @@ public sealed partial class Phase13HandWrittenTextTests
     private static string TestFolder => Path.Combine(RepositoryRoot, "tests", "AgentStudio.Tests", "Desktop", "Localization");
 
     /// <summary>
-    /// The XAML and C# files of the desktop before Phase 13, relative to <c>src/AgentStudio.Desktop</c> with <c>/</c>: fixed, never
-    /// edited by a package. Every other file of the desktop is a file of Phase 13 or later, and is checked.
+    /// The XAML and C# files of the desktop before Phase 13 that Phase 14 has not left clean yet, relative to
+    /// <c>src/AgentStudio.Desktop</c> with <c>/</c>: a package of Phase 14 takes a file out when it extracts its texts. Every other
+    /// file of the desktop is a file of Phase 13 or later, or one Phase 14 cleaned, and is checked.
     /// </summary>
     private static IReadOnlySet<string> FilesBeforePhase13 { get; } =
         File.ReadAllLines(Path.Combine(TestFolder, "DesktopFilesBeforePhase13.txt"))
@@ -62,6 +63,9 @@ public sealed partial class Phase13HandWrittenTextTests
         "espera", "tarea", "tareas", "agente", "agentes", "ejecutor", "juez", "cuota", "ventana", "contexto", "memoria", "requisitos",
         "prueba", "pruebas", "ficha", "proyecto", "aprobar", "respuesta", "pregunta", "ayuda", "idioma", "ajustes", "consumo",
         "entrega", "rama", "hasta", "desde", "todo", "todos", "nada", "falta", "hay", "tiene", "tienes",
+        // Added with the revision of d2, which found two texts without accents and with none of the words above.
+        "ninguna", "ninguno", "encontrado", "encontrada", "instalado", "instalada", "desconocido", "desconocida", "pudo", "pudieron",
+        "faltan", "vuelve", "intentarlo", "comprueba", "ejecuta", "fichero", "ficheros",
     };
 
     /// <summary>Literals allowed in the files of Phase 13, by file and literal, each with why. An exception nobody uses fails, so the list never goes stale.</summary>
@@ -69,6 +73,160 @@ public sealed partial class Phase13HandWrittenTextTests
     {
         [("Localization/UiLanguages.cs", "Español (España)")] =
             "D-49: each language is named in its own language in the list of languages, and that name is never translated.",
+
+        // Debate and Audit (Phase 14, WP-14A part b): what is sent to the debaters and the judge, or written in the decision log.
+        [("Debate/ProtocolTexts.cs", "¿Se sostiene el veredicto  () frente a la impugnación? El proponente defiende el veredicto y el crítico, la impugnación.")] =
+            "D-48: the default question of a review is what the debaters and the judge receive, a prompt of the protocol that is never translated.",
+        [("Debate/ProtocolTexts.cs", "Veredicto de la auditoría")] =
+            "D-48: the label of the verdict of an audit inside the request the orchestrator receives, a prompt of the protocol that is never translated.",
+        [("Debate/ProtocolTexts.cs", "Escalado a una persona")] =
+            "D-48: the decision named inside the question the debaters and the judge receive, fixed in Spanish whatever the language of the interface.",
+        [("Debate/ProtocolTexts.cs", "Sin resolver")] =
+            "D-48: the decision named inside the question the debaters and the judge receive, fixed in Spanish whatever the language of the interface.",
+        [("Debate/DebateRoomViewModel.cs", "Abortado por el usuario desde la sala.")] =
+            "D-48: the reason an aborted debate is closed with is written in the decision log, which is never translated.",
+        [("Debate/NewDebateViewModel.cs", "Mantenibilidad: el diseño se entiende, se prueba y se cambia sin romper lo demás.")] =
+            "D-48: a criterion becomes the statement of a frozen requirement that the judge and the debaters receive, so it is never translated.",
+        [("Debate/NewDebateViewModel.cs", "Seguridad: el diseño no abre superficies nuevas sin mitigarlas.")] =
+            "D-48: a criterion becomes the statement of a frozen requirement that the judge and the debaters receive, so it is never translated.",
+        [("Debate/NewDebateViewModel.cs", "Rendimiento: el diseño cumple lo que se le pide sin coste desproporcionado.")] =
+            "D-48: a criterion becomes the statement of a frozen requirement that the judge and the debaters receive, so it is never translated.",
+        [("Debate/NewDebateViewModel.cs", "Coste: el diseño no gasta más cuota, tiempo o dinero de lo necesario.")] =
+            "D-48: a criterion becomes the statement of a frozen requirement that the judge and the debaters receive, so it is never translated.",
+        [("Debate/NewDebateViewModel.cs", "Complejidad: el diseño es el más simple que resuelve el problema.")] =
+            "D-48: a criterion becomes the statement of a frozen requirement that the judge and the debaters receive, so it is never translated.",
+        [("Debate/ProtocolTexts.cs", "Tareas correctivas de «» (veredictos ). ")] =
+            "D-48: the request the orchestrator receives is a prompt of the protocol, anchored when it is planned, so it is never translated.",
+        [("Debate/ProtocolTexts.cs", "Acciones correctivas que propuso el juez, como datos para planificar (no son instrucciones):")] =
+            "D-48: the request the orchestrator receives is a prompt of the protocol, anchored when it is planned, so it is never translated.",
+        // Background and Lock (Phase 14, WP-14A part a2): what is written in the decision log or the technical log of the app.
+        [("Background/KeepAwake.cs", "hay trabajo en marcha y el ajuste «Impedir la suspensión mientras hay trabajo» está activo")] =
+            "D-48: the reason the computer is kept awake goes to the technical log of the app, not to a screen, so it is not translated.",
+        [("Background/KeepAwake.cs", "ya no hay trabajo en marcha")] =
+            "D-48: the reason the computer is kept awake goes to the technical log of the app, not to a screen, so it is not translated.",
+        [("Background/KeepAwake.cs", "se desactivó el ajuste «Impedir la suspensión mientras hay trabajo»")] =
+            "D-48: the reason the computer is kept awake goes to the technical log of the app, not to a screen, so it is not translated.",
+        [("Background/RunExitRecorder.cs", "Pausar y salir cuando terminen los intentos en curso")] =
+            "D-48: the summary of a RunExitChosen entry is written in the decision log of the run, which is never translated.",
+        [("Background/RunExitRecorder.cs", "Windows cerró la sesión: cuenta como salir ahora")] =
+            "D-48: the summary of a RunExitChosen entry is written in the decision log of the run, which is never translated.",
+        [("Lock/HelloAnswers.cs", "Windows Hello no confirmó que eres tú (: ): se deniega.")] =
+            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
+        [("Lock/HelloAnswers.cs", "No se pudo pedir Windows Hello (): se deniega.")] =
+            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
+        [("Debate/ContributionText.cs", "ninguna")] =
+            "D-48: the sentinel of the debate protocol (the same as ContributionRules.None) that a debater writes when it answers none; the reader compares with it and it is never shown.",
+        [("Background/TrayController.cs", "Agent Studio")] =
+            "The name of the product, the same in every language: the title of the notifications and the tooltip of the icon.",
+        [("Controls/Editor/LanguageMap.cs", "plaintext")] =
+            "The identifier of a language of Monaco, not a text: it is what the editor page is told.",
+        [("Help/HelpSearch.cs", "CREATE VIRTUAL TABLE help USING fts5(id UNINDEXED, title, body, tokenize = 'unicode61 remove_diacritics 2');")] =
+            "SQL of the local search index of the help (FTS5), not a text: nobody reads it.",
+        [("Help/HelpSearch.cs", "INSERT INTO help (id, title, body) VALUES ($id, $title, $body);")] =
+            "SQL of the local search index of the help (FTS5), not a text: nobody reads it.",
+        [("Help/HelpSynonyms.cs", "cuota")] = "Search keyword of the local help index (HelpSynonyms, P59): matched against the articles, never shown.",
+        [("Help/HelpSynonyms.cs", "límite de uso")] = "Search keyword of the local help index (HelpSynonyms, P59): matched against the articles, never shown.",
+        [("Help/HelpSynonyms.cs", "prueba guardada")] = "Search keyword of the local help index (HelpSynonyms, P59): matched against the articles, never shown.",
+        [("Help/HelpSynonyms.cs", "pruebas guardadas")] = "Search keyword of the local help index (HelpSynonyms, P59): matched against the articles, never shown.",
+        [("Help/HelpSynonyms.cs", "programa del agente")] = "Search keyword of the local help index (HelpSynonyms, P59): matched against the articles, never shown.",
+        [("Help/HelpSynonyms.cs", "ventana")] = "Search keyword of the local help index (HelpSynonyms, P59): matched against the articles, never shown.",
+        [("Help/HelpSynonyms.cs", "contexto")] = "Search keyword of the local help index (HelpSynonyms, P59): matched against the articles, never shown.",
+        [("Help/HelpSynonyms.cs", "memoria de trabajo")] = "Search keyword of the local help index (HelpSynonyms, P59): matched against the articles, never shown.",
+        [("Help/HelpSynonyms.cs", "versión guardada")] = "Search keyword of the local help index (HelpSynonyms, P59): matched against the articles, never shown.",
+        [("Help/HelpSynonyms.cs", "última versión guardada")] = "Search keyword of the local help index (HelpSynonyms, P59): matched against the articles, never shown.",
+        [("Help/HelpSynonyms.cs", "sin mezclar")] = "Search keyword of the local help index (HelpSynonyms, P59): matched against the articles, never shown.",
+        [("Help/HelpSynonyms.cs", "expediente para el juez")] = "Search keyword of the local help index (HelpSynonyms, P59): matched against the articles, never shown.",
+        [("Help/HelpSynonyms.cs", "historial que no se puede borrar")] = "Search keyword of the local help index (HelpSynonyms, P59): matched against the articles, never shown.",
+        [("Orchestrator/Monitor/StepLogText.cs", @"\berror\b|\bfailed\b|\bfailure\b|\bexception\b|no test|not found|could not|cannot|\bfatal\b|\bfallid|\bno se (pudo|encontr)")] =
+            "D-48: a pattern that tells which lines of a step log (the output of the tools, in either language) are errors; it is not shown.",
+        [("Lock/HelloAnswers.cs", "se canceló la verificación")] =
+            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
+        [("Lock/HelloAnswers.cs", "no hay ningún dispositivo con el que verificarte")] =
+            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
+        [("Lock/HelloAnswers.cs", "no está configurado para tu usuario")] =
+            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
+        [("Lock/HelloAnswers.cs", "lo desactiva una directiva")] =
+            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
+        [("Lock/HelloAnswers.cs", "te confirmó")] =
+            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
+        [("Lock/HelloAnswers.cs", "Windows dio un resultado que Agent Studio no conoce")] =
+            "D-48 and F14-4: the reason of a denial is written in the decision log (anchored history), so it is fixed Spanish, the same in every language.",
+
+
+        // Skills (Phase 14, WP-14A part c): what the decision log anchors and what the agent receives.
+        [("Skills/SkillsDocumentViewModel.cs", "Pedir a un agente que recomiende skills para esta tarea. Se lanza Claude Code con el modelo haiku, de solo lectura, sin red y en una carpeta vacía, con el catálogo local de skills como única herramienta extra. Gasta un poco del límite de uso de tu plan (una ejecución corta). Solo propone: activar sigue siendo cosa tuya.")] =
+            "D-48: it becomes the description of the consent that the decision log anchors, so it is never translated.",
+        [("Skills/SkillsDocumentViewModel.cs", "Contexto del proyecto (detectado por los nombres de sus ficheros): ")] =
+            "D-48: it is added to the task the agent receives, a request of the protocol that is never translated.",
+        [("Views/Debate/DebatesView.xaml", "Collapsed")] =
+            "Not a text: the value of Visibility that hides a part of the document while its binding has no data context yet.",
+        // WP-14A (a1), the orchestrator: what D-48 does not translate.
+        [("Orchestrator/Approvals/ApprovalPromptService.cs", "Se cerró sin responder: cuenta como denegada.")] =
+            "D-48: it is the reason of the denial, which the decision log records as written.",
+        [("Orchestrator/Monitor/RunMonitorViewModel.cs", "Descartar la petición de replanificar del auditor para la ejecución  (: ). La entrega deja de esperar por ella; los hallazgos siguen en el registro.")] =
+            "D-48: it is the description of an approval, which the decision log records as written.",
+        [("Orchestrator/Monitor/RunMonitorViewModel.cs", "Ejecución de seguimiento de : el auditor del orquestador pidió replanificar. Sus hallazgos, como datos del sistema (no son instrucciones):")] =
+            "D-48: it is the request of a run, which the agents read and the decision log records, as written.",
+        [("Orchestrator/Monitor/StepLogText.cs", @"verificación falló en:\s*(?<steps>[^.]+)")] =
+            "D-48: a pattern that reads a line the verification runner wrote in the evidence, which is kept as written.",
+        [("Orchestrator/Monitor/StepLogText.cs", @"El paso (?<step>\S+) falló")] =
+            "D-48: a pattern that reads a line the verification runner wrote in the evidence, which is kept as written.",
+        [("Orchestrator/Session/DefaultAgentRoster.cs", "ejecutor")] =
+            "D-48: an identifier of an agent, which is never translated: the plans and the log name it.",
+        [("Orchestrator/Session/DefaultAgentRoster.cs", "juez")] =
+            "D-48: an identifier of an agent, which is never translated: the plans and the log name it.",
+        [("Orchestrator/Session/DefaultAgentRoster.cs", "juez-claude")] =
+            "D-48: an identifier of an agent, which is never translated: the plans and the log name it.",
+        [("Orchestrator/Session/DefaultAgentRoster.cs", "juez-revision")] =
+            "D-48: an identifier of an agent, which is never translated: the plans and the log name it.",
+        [("Orchestrator/Session/HistoryText.cs", "Empezar un historial de decisiones nuevo en «». El ancla de esta ubicación era del proyecto , con , y el registro de ahora está vacío: aquel historial ya no está aquí. ")] =
+            "D-48: it is the description of an approval, which the decision log records as written.",
+        [("Orchestrator/Session/HistoryText.cs", "La aceptación queda en el registro, con lo que había.")] =
+            "D-48: it is the description of an approval, which the decision log records as written.",
+        [("Orchestrator/Session/HistoryText.cs", "Aceptar como nuevo origen el historial de decisiones de «»: , cabeza . ")] =
+            "D-48: it is the description of an approval, which the decision log records as written.",
+        [("Orchestrator/Session/HistoryText.cs", "No hay ancla de este historial para esta ubicación: puede que movieras o copiaras la carpeta, o que el registro venga de otra máquina o con el repositorio. ")] =
+            "D-48: it is the description of an approval, which the decision log records as written.",
+        [("Orchestrator/Session/HistoryText.cs", "Acéptalo solo si lo reconoces: lo que dice pasará a ser la base de las revisiones y de las reanudaciones, y la aceptación queda en el registro.")] =
+            "D-48: it is the description of an approval, which the decision log records as written.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "No se pudo bloquear Windows para confirmar que eres tú (): se deniega. ")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "El bloqueo de Windows no confirmó que eres tú (: ): se deniega.")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "Integración")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "Trabajo de agente nuevo")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "Condición nueva")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "Herramienta nueva")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "Revisión nueva")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "Debate nuevo")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "Aprobación humana nueva")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "Integración nueva")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "Crítica")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "Veredicto de la revisión de la ejecución ")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "Ya hay una confirmación pendiente: termina primero la de Windows Hello o la del bloqueo de Windows que está abierta. Esta aprobación se deniega; vuelve a pedirla después.")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "Para aprobarlo, configura Windows Hello: abre Configuración, entra en Cuentas y luego en Opciones de inicio de sesión, y elige el PIN, la huella o la cara.")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "lo desbloqueaste después de la petición")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "Windows no se bloqueó")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "el estado de la sesión no confirma que lo desbloqueaste después de la petición")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "nadie lo desbloqueó a tiempo")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
+        [("Orchestrator/OrchestratorProtocolTexts.cs", "Windows dio un resultado que Agent Studio no conoce")] =
+            "D-48, F14-4: it is a text of the plan, the agents or the decision log, fixed in Spanish whatever the language of the interface.",
     };
 
     /// <summary>The attributes of XAML that show text to the person, or say it to a screen reader.</summary>
@@ -95,7 +253,10 @@ public sealed partial class Phase13HandWrittenTextTests
     [GeneratedRegex("""^(?:[A-Za-z]\d{0,2}|[dfFghHKmMstyz:\-/., #0%]+)$""")]
     private static partial Regex FormatSpecifier();
 
-    [GeneratedRegex("""(?:\.|\b)(?:Text|Content|Header|ToolTip|Title)\s*=\s*"([^"]*)""")]
+    // Any property or field whose name ends in a word that says «what the person reads» (Text, Message, Status…), with or without
+    // a prefix and an underscore (_statusText, ErrorMessage, StatusText): the first Phase 14 revision found «No se ha encontrado
+    // ninguna shell instalada» assigned to _statusText, which the old pattern (Text/Content/… alone) did not see.
+    [GeneratedRegex("""\b\w*(?:Text|Content|Header|ToolTip|Title|Message|Status|Caption|Hint)\s*(?:=|\?\?=)\s*"([^"]*)""")]
     private static partial Regex VisibleAssignment();
 
     [GeneratedRegex("""AutomationProperties\.Set(?:Name|HelpText|ItemStatus)\([^,]+,\s*"([^"]*)""")]
@@ -139,9 +300,18 @@ public sealed partial class Phase13HandWrittenTextTests
         Assert.Contains("Localization/UiLanguages.cs", scanned);
         Assert.Contains("Controls/Info/InfoButton.xaml", scanned);
         Assert.Contains("Orchestrator/Live/IRunLiveProjection.cs", scanned);
-        Assert.DoesNotContain("Orchestrator/Canvas/CanvasViewModel.cs", scanned);
-        Assert.DoesNotContain("Controls/MetricBar.xaml.cs", scanned);
-        Assert.Equal(262, FilesBeforePhase13.Count);
+        Assert.Contains("Controls/MetricBar.xaml.cs", scanned);
+
+        // Phase 14 takes a file out of the inventory when it leaves it clean, so it is scanned from then on. WP-14A cleaned (b) the
+        // 23 files of Debate and Audit, (a1) the 49 of the orchestrator, (d1) the 45 of the shell, (a2) the 46 of Background and Lock,
+        // (c) the 39 of Observability, Memory and Skills and (d2) the 57 of the controls, the services, the composition, the themes
+        // and the Markdown viewer; WP5 of Phase 9 cleaned the 3 of the usage dashboard, the last ones, so none is left.
+        Assert.Contains("Orchestrator/Canvas/CanvasViewModel.cs", scanned);
+        Assert.Contains("MainWindow.xaml.cs", scanned);
+        Assert.Contains("ViewModels/MainViewModel.cs", scanned);
+        Assert.Contains("Services/UnsavedChangesPromptViewModel.cs", scanned);
+        Assert.Contains("Controls/Terminal/TerminalViewModel.cs", scanned);
+        Assert.Empty(FilesBeforePhase13);
         Assert.DoesNotContain(FilesBeforePhase13, f => f.StartsWith("Localization/", StringComparison.Ordinal) || f.StartsWith("Controls/Info/", StringComparison.Ordinal) || f.StartsWith("Orchestrator/Live/", StringComparison.Ordinal));
     }
 
@@ -223,6 +393,10 @@ public sealed partial class Phase13HandWrittenTextTests
                     <ContentControl ContentStringFormat="{}{0} %"/>
                     <ContentControl ContentStringFormat="Valor: {0}"/>
                     <TextBlock Text="{}Literal escapado"/>
+                    <TextBlock Text="{Binding Count, StringFormat={l:T Info_WhatIsThis}}"/>
+                    <TextBlock Text="{Binding Name, FallbackValue={x:Static l:Texts.None}}"/>
+                    <Color Key="Brand">#2E68F9</Color>
+                    <FontFamily Key="MonoFont">Cascadia Mono, Consolas</FontFamily>
                   </StackPanel>
                 </UserControl>
                 """);
@@ -243,6 +417,10 @@ public sealed partial class Phase13HandWrittenTextTests
             var b = 'á';
             var c = $"Trabajando en {task}";
             label.Text = "Libre";
+            _statusText = "Conexion cerrada";
+            ErrorMessage = "Disk full";
+            if (view.Text == "Done") { }
+            var timeout = TimeSpan.Zero;
             AutomationProperties.SetName(button, "Close");
             var d = "The run '{0}' is in use.";
             var e = @"C:\carpeta";
@@ -253,7 +431,7 @@ public sealed partial class Phase13HandWrittenTextTests
             var j = "Info_Language_Title";
             """;
 
-        Assert.Equal(["Información sobre el plan", "Trabajando en ", "Libre", "Close", " y más", "Guardar el plan"], CodeLiterals(code));
+        Assert.Equal(["Información sobre el plan", "Trabajando en ", "Libre", "Conexion cerrada", "Disk full", "Close", " y más", "Guardar el plan"], CodeLiterals(code));
     }
 
     // ---- XAML ----
@@ -275,8 +453,10 @@ public sealed partial class Phase13HandWrittenTextTests
                 var escaped = value.StartsWith("{}", StringComparison.Ordinal);
                 if (value.StartsWith('{') && !escaped)
                 {
-                    // A markup extension: a binding may still carry texts of its own.
-                    literals.AddRange(BindingTextParts.SelectMany(part => ExtensionPart(value, part)).Where(s => FormatText(s).Any(char.IsLetter)));
+                    // A markup extension: a binding may still carry texts of its own. A part that is itself an extension
+                    // (StringFormat={l:T Key}, FallbackValue={x:Static …}) gives its value from elsewhere: it is no literal.
+                    literals.AddRange(BindingTextParts.SelectMany(part => ExtensionPart(value, part))
+                        .Where(s => !IsExtension(s) && FormatText(s).Any(char.IsLetter)));
                     literals.AddRange(ExtensionPart(value, "ConverterParameter").Where(LooksLikeText));
                     continue;
                 }
@@ -286,6 +466,12 @@ public sealed partial class Phase13HandWrittenTextTests
                 {
                     literals.Add(value);
                 }
+            }
+
+            // The text of a colour or of a font family is not a text for the person: «#0A1020», «Segoe UI».
+            if (element.Name.LocalName is "Color" or "FontFamily")
+            {
+                continue;
             }
 
             foreach (var text in element.Nodes().OfType<XText>().Where(t => t is not XCData))
@@ -299,6 +485,9 @@ public sealed partial class Phase13HandWrittenTextTests
 
         return literals;
     }
+
+    /// <summary>A value that is a markup extension of its own (<c>{l:T Key}</c>, <c>{x:Static …}</c>), not an escaped format (<c>{}{0} …</c>).</summary>
+    private static bool IsExtension(string value) => value.StartsWith('{') && !value.StartsWith("{}", StringComparison.Ordinal);
 
     /// <summary>
     /// The values of <paramref name="part"/> (<c>StringFormat=…</c>) inside the markup extension <paramref name="extension"/>,

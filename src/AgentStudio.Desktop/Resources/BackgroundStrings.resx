@@ -1,0 +1,571 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the Background area (docs/17 D-47, ADR-0054; Phase 14 WP-14A part a2) in Spanish of Spain, the source language. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Background_Exit_WindowName" xml:space="preserve">
+    <value>Salir con trabajo en marcha</value>
+  </data>
+  <data name="Background_Exit_WindowTitle" xml:space="preserve">
+    <value>Salir con trabajo en marcha · Agent Studio</value>
+  </data>
+  <data name="Background_Exit_WorkListName" xml:space="preserve">
+    <value>Trabajo en marcha</value>
+  </data>
+  <data name="Background_Exit_Title" xml:space="preserve">
+    <value>Hay trabajo en marcha</value>
+  </data>
+  <data name="Background_Exit_IntroWindow_One" xml:space="preserve">
+    <value>Vas a cerrar la ventana y hay {0} trabajo en marcha. ¿Qué quieres hacer con él?</value>
+  </data>
+  <data name="Background_Exit_IntroWindow_Other" xml:space="preserve">
+    <value>Vas a cerrar la ventana y hay {0} trabajos en marcha. ¿Qué quieres hacer con ellos?</value>
+  </data>
+  <data name="Background_Exit_IntroExit_One" xml:space="preserve">
+    <value>Vas a salir de Agent Studio y hay {0} trabajo en marcha. ¿Qué quieres hacer con él?</value>
+  </data>
+  <data name="Background_Exit_IntroExit_Other" xml:space="preserve">
+    <value>Vas a salir de Agent Studio y hay {0} trabajos en marcha. ¿Qué quieres hacer con ellos?</value>
+  </data>
+  <data name="Background_Exit_KeepInTray" xml:space="preserve">
+    <value>Seguir en la bandeja</value>
+  </data>
+  <data name="Background_Exit_KeepInTray_Help" xml:space="preserve">
+    <value>La ventana se cierra y todo sigue en marcha. Agent Studio queda en la bandeja del sistema, junto al reloj.</value>
+  </data>
+  <data name="Background_Exit_Pause" xml:space="preserve">
+    <value>Pausar y salir cuando terminen los intentos en curso</value>
+  </data>
+  <data name="Background_Exit_Pause_Help" xml:space="preserve">
+    <value>No empieza nada nuevo. Agent Studio espera en la bandeja a que acaben los intentos en marcha y luego sale. Las ejecuciones quedan en pausa y no se reanudan solas: las reanudas tú.</value>
+  </data>
+  <data name="Background_Exit_Pause_HelpCannotPause" xml:space="preserve">
+    <value>Los debates y las auditorías no se pueden pausar: Agent Studio espera a que terminen.</value>
+  </data>
+  <data name="Background_Exit_Now" xml:space="preserve">
+    <value>Salir ahora e interrumpir el trabajo</value>
+  </data>
+  <data name="Background_Exit_Now_Help" xml:space="preserve">
+    <value>Los agentes se detienen ahora y el trabajo queda interrumpido. No se reanuda solo: lo reanudas tú desde el orquestador, sin repetir lo que ya terminó.</value>
+  </data>
+  <data name="Background_Exit_Cancel" xml:space="preserve">
+    <value>No salir</value>
+  </data>
+  <data name="Background_Exit_RecordNote" xml:space="preserve">
+    <value>Tu elección queda anotada en el historial de cada ejecución afectada. «No salir» no cambia ni anota nada.</value>
+  </data>
+  <data name="Background_Exit_PendingCancelled" xml:space="preserve">
+    <value>Has abierto Agent Studio, así que ya no saldrá cuando terminen los intentos en curso. Las ejecuciones siguen en pausa hasta que las reanudes.</value>
+  </data>
+  <data name="Background_Count_Work_One" xml:space="preserve">
+    <value>{0} trabajo en marcha</value>
+  </data>
+  <data name="Background_Count_Work_Other" xml:space="preserve">
+    <value>{0} trabajos en marcha</value>
+  </data>
+  <data name="Background_Count_Attempt_One" xml:space="preserve">
+    <value>{0} intento en curso</value>
+  </data>
+  <data name="Background_Count_Attempt_Other" xml:space="preserve">
+    <value>{0} intentos en curso</value>
+  </data>
+  <data name="Background_Count_Run_One" xml:space="preserve">
+    <value>{0} ejecución</value>
+  </data>
+  <data name="Background_Count_Run_Other" xml:space="preserve">
+    <value>{0} ejecuciones</value>
+  </data>
+  <data name="Background_Count_Debate_One" xml:space="preserve">
+    <value>{0} debate</value>
+  </data>
+  <data name="Background_Count_Debate_Other" xml:space="preserve">
+    <value>{0} debates</value>
+  </data>
+  <data name="Background_Count_Audit_One" xml:space="preserve">
+    <value>{0} auditoría</value>
+  </data>
+  <data name="Background_Count_Audit_Other" xml:space="preserve">
+    <value>{0} auditorías</value>
+  </data>
+  <data name="Background_Count_Planning_One" xml:space="preserve">
+    <value>{0} planificación</value>
+  </data>
+  <data name="Background_Count_Planning_Other" xml:space="preserve">
+    <value>{0} planificaciones</value>
+  </data>
+  <data name="Background_Count_Paused_One" xml:space="preserve">
+    <value>{0} en pausa</value>
+  </data>
+  <data name="Background_Count_Paused_Other" xml:space="preserve">
+    <value>{0} en pausa</value>
+  </data>
+  <data name="Background_Count_Blocked_One" xml:space="preserve">
+    <value>{0} bloqueada</value>
+  </data>
+  <data name="Background_Count_Blocked_Other" xml:space="preserve">
+    <value>{0} bloqueadas</value>
+  </data>
+  <data name="Background_Tooltip_Locked" xml:space="preserve">
+    <value>bloqueado</value>
+  </data>
+  <data name="Background_Tooltip_ExitWhenIdle" xml:space="preserve">
+    <value>saldrá cuando termine lo que está en curso</value>
+  </data>
+  <data name="Background_Tooltip_Exiting" xml:space="preserve">
+    <value>saliendo</value>
+  </data>
+  <data name="Background_Tooltip_ExitAfter_One" xml:space="preserve">
+    <value>saldrá al terminar {0} intento en curso</value>
+  </data>
+  <data name="Background_Tooltip_ExitAfter_Other" xml:space="preserve">
+    <value>saldrá al terminar {0} intentos en curso</value>
+  </data>
+  <data name="Background_Tooltip_NoWork" xml:space="preserve">
+    <value>sin trabajo en marcha</value>
+  </data>
+  <data name="Background_Tooltip_Quota" xml:space="preserve">
+    <value>{0} en espera por el límite de uso hasta las {1}</value>
+  </data>
+  <data name="Background_Tooltip_QuotaNoTime" xml:space="preserve">
+    <value>{0} en espera por el límite de uso</value>
+  </data>
+  <data name="Background_Tooltip_Person_One" xml:space="preserve">
+    <value>{0} espera tu decisión</value>
+  </data>
+  <data name="Background_Tooltip_Person_Other" xml:space="preserve">
+    <value>{0} esperan tu decisión</value>
+  </data>
+  <data name="Background_Tray_Open" xml:space="preserve">
+    <value>Abrir Agent Studio</value>
+  </data>
+  <data name="Background_Tray_ShowPanel" xml:space="preserve">
+    <value>Ver el estado del trabajo</value>
+  </data>
+  <data name="Background_Tray_HidePanel" xml:space="preserve">
+    <value>Ocultar el estado del trabajo</value>
+  </data>
+  <data name="Background_Tray_OpenLogs" xml:space="preserve">
+    <value>Abrir los registros</value>
+  </data>
+  <data name="Background_Tray_OpenProject" xml:space="preserve">
+    <value>Abrir proyecto</value>
+  </data>
+  <data name="Background_Tray_OpenFolder" xml:space="preserve">
+    <value>Abrir carpeta…</value>
+  </data>
+  <data name="Background_Tray_NoWork" xml:space="preserve">
+    <value>Sin trabajo en marcha</value>
+  </data>
+  <data name="Background_Tray_LockedWork_One" xml:space="preserve">
+    <value>Bloqueado: {0} trabajo en marcha; desbloquea para verlo</value>
+  </data>
+  <data name="Background_Tray_LockedWork_Other" xml:space="preserve">
+    <value>Bloqueado: {0} trabajos en marcha; desbloquea para verlos</value>
+  </data>
+  <data name="Background_Tray_Pause" xml:space="preserve">
+    <value>Pausar</value>
+  </data>
+  <data name="Background_Tray_Resume" xml:space="preserve">
+    <value>Reanudar</value>
+  </data>
+  <data name="Background_Tray_Stop" xml:space="preserve">
+    <value>Detener (cancela la ejecución)</value>
+  </data>
+  <data name="Background_Tray_PauseFailed" xml:space="preserve">
+    <value>No se pudo pausar</value>
+  </data>
+  <data name="Background_Tray_ResumeFailed" xml:space="preserve">
+    <value>No se pudo reanudar</value>
+  </data>
+  <data name="Background_Tray_StopFailed" xml:space="preserve">
+    <value>No se pudo detener</value>
+  </data>
+  <data name="Background_Tray_Lock" xml:space="preserve">
+    <value>Bloquear</value>
+  </data>
+  <data name="Background_Tray_Locked" xml:space="preserve">
+    <value>Bloqueado</value>
+  </data>
+  <data name="Background_Tray_ExitNow" xml:space="preserve">
+    <value>Salir ahora e interrumpir el trabajo</value>
+  </data>
+  <data name="Background_Tray_DontExit" xml:space="preserve">
+    <value>No salir</value>
+  </data>
+  <data name="Background_Tray_Exit" xml:space="preserve">
+    <value>Salir</value>
+  </data>
+  <data name="Background_Tray_CommandNotApplied" xml:space="preserve">
+    <value>No se aplicó la orden: la ejecución ya había terminado o había cambiado de estado. Abre Agent Studio para ver cómo quedó.</value>
+  </data>
+  <data name="Background_Tray_NoLongerExits" xml:space="preserve">
+    <value>Agent Studio ya no sale</value>
+  </data>
+  <data name="Background_Tray_RunEnded_Title" xml:space="preserve">
+    <value>Ejecución terminada</value>
+  </data>
+  <data name="Background_Tray_RunEnded_Text" xml:space="preserve">
+    <value>Una ejecución terminó: {0}.</value>
+  </data>
+  <data name="Background_Tray_RunEnd_Succeeded" xml:space="preserve">
+    <value>completada</value>
+  </data>
+  <data name="Background_Tray_RunEnd_Failed" xml:space="preserve">
+    <value>fallida</value>
+  </data>
+  <data name="Background_Tray_RunEnd_Cancelled" xml:space="preserve">
+    <value>cancelada</value>
+  </data>
+  <data name="Background_Tray_RunEnd_Blocked" xml:space="preserve">
+    <value>bloqueada</value>
+  </data>
+  <data name="Background_Tray_RunEnd_Interrupted" xml:space="preserve">
+    <value>interrumpida</value>
+  </data>
+  <data name="Background_Tray_RunEnd_None" xml:space="preserve">
+    <value>sin resultado</value>
+  </data>
+  <data name="Background_Tray_DebateEnded_Title" xml:space="preserve">
+    <value>Debate terminado</value>
+  </data>
+  <data name="Background_Tray_DebateEnded_Text" xml:space="preserve">
+    <value>Un debate terminó.</value>
+  </data>
+  <data name="Background_Tray_RunApproval_Title" xml:space="preserve">
+    <value>Agent Studio espera tu aprobación</value>
+  </data>
+  <data name="Background_Tray_RunApproval_Text" xml:space="preserve">
+    <value>Una ejecución necesita tu aprobación para seguir.</value>
+  </data>
+  <data name="Background_Tray_DebateAwaiting_Title" xml:space="preserve">
+    <value>Agent Studio espera tu decisión</value>
+  </data>
+  <data name="Background_Tray_DebateAwaiting_Text" xml:space="preserve">
+    <value>Un debate necesita una decisión tuya para seguir.</value>
+  </data>
+  <data name="Background_Tray_QuotaOver_Title" xml:space="preserve">
+    <value>Terminó la espera por el límite de uso</value>
+  </data>
+  <data name="Background_Tray_RunQuotaOver_Text" xml:space="preserve">
+    <value>Una ejecución dejó de esperar el límite de uso de tu plan y sigue.</value>
+  </data>
+  <data name="Background_Tray_DebateQuotaOver_Text" xml:space="preserve">
+    <value>Un debate dejó de esperar el límite de uso de tu plan y sigue.</value>
+  </data>
+  <data name="Background_Work_Run" xml:space="preserve">
+    <value>Ejecución</value>
+  </data>
+  <data name="Background_Work_RunTitle" xml:space="preserve">
+    <value>Ejecución {0}</value>
+  </data>
+  <data name="Background_Work_DebateTitle" xml:space="preserve">
+    <value>Debate {0}</value>
+  </data>
+  <data name="Background_Work_DebateRound" xml:space="preserve">
+    <value>{0} · ronda {1}</value>
+  </data>
+  <data name="Background_Work_DebateInProgress" xml:space="preserve">
+    <value>En curso</value>
+  </data>
+  <data name="Background_Work_DebateEnded" xml:space="preserve">
+    <value>Terminado</value>
+  </data>
+  <data name="Background_Work_ResumedAutomatically" xml:space="preserve">
+    <value>Reanudada automáticamente</value>
+  </data>
+  <data name="Background_Work_Activity_Run" xml:space="preserve">
+    <value>Ejecución del orquestador</value>
+  </data>
+  <data name="Background_Work_Activity_Debate" xml:space="preserve">
+    <value>Debate</value>
+  </data>
+  <data name="Background_Work_Activity_Planning" xml:space="preserve">
+    <value>Planificación del orquestador</value>
+  </data>
+  <data name="Background_Work_Activity_Audit" xml:space="preserve">
+    <value>Auditoría del proyecto</value>
+  </data>
+  <data name="Background_Work_Activity_None" xml:space="preserve">
+    <value>Sin actividad</value>
+  </data>
+  <data name="Background_Work_Activity_InProgress" xml:space="preserve">
+    <value>En curso (aquí no hay más detalle)</value>
+  </data>
+  <data name="Background_Panel_Name" xml:space="preserve">
+    <value>Estado del trabajo de Agent Studio</value>
+  </data>
+  <data name="Background_Panel_WindowTitle" xml:space="preserve">
+    <value>Estado del trabajo · Agent Studio</value>
+  </data>
+  <data name="Background_Panel_WindowName" xml:space="preserve">
+    <value>Estado del trabajo</value>
+  </data>
+  <data name="Background_Panel_Title" xml:space="preserve">
+    <value>Estado del trabajo</value>
+  </data>
+  <data name="Background_Panel_OpenApp" xml:space="preserve">
+    <value>Abrir Agent Studio</value>
+  </data>
+  <data name="Background_Panel_ContextName" xml:space="preserve">
+    <value>Contexto: {0}</value>
+  </data>
+  <data name="Background_Panel_ContextRow" xml:space="preserve">
+    <value>Contexto de {0}: {1}</value>
+  </data>
+  <data name="Background_Panel_Agents" xml:space="preserve">
+    <value>Agentes</value>
+  </data>
+  <data name="Background_Panel_ContextOfTasks" xml:space="preserve">
+    <value>Contexto de las tareas en curso</value>
+  </data>
+  <data name="Background_Panel_Tokens" xml:space="preserve">
+    <value>Tokens</value>
+  </data>
+  <data name="Background_Panel_WaitingForYou" xml:space="preserve">
+    <value>Pendiente de tu respuesta</value>
+  </data>
+  <data name="Background_Panel_Blocks" xml:space="preserve">
+    <value>Bloqueos</value>
+  </data>
+  <data name="Background_Panel_Errors" xml:space="preserve">
+    <value>Errores</value>
+  </data>
+  <data name="Background_Panel_Nothing" xml:space="preserve">
+    <value>No hay trabajo en marcha: ninguna ejecución, debate ni auditoría.</value>
+  </data>
+  <data name="Background_Panel_ProjectsName" xml:space="preserve">
+    <value>Proyectos con trabajo en marcha</value>
+  </data>
+  <data name="Background_Panel_Quota" xml:space="preserve">
+    <value>Límite de uso</value>
+  </data>
+  <data name="Background_Panel_QuotaName" xml:space="preserve">
+    <value>Límite de uso de tu plan</value>
+  </data>
+  <data name="Background_Panel_Updated" xml:space="preserve">
+    <value>Actualizado a las {0}</value>
+  </data>
+  <data name="Background_Panel_Locked_Head" xml:space="preserve">
+    <value>Agent Studio está bloqueado.</value>
+  </data>
+  <data name="Background_Panel_Locked_NoWork" xml:space="preserve">
+    <value>No hay trabajo en marcha.</value>
+  </data>
+  <data name="Background_Panel_Locked_Work" xml:space="preserve">
+    <value>El trabajo sigue: {0}.</value>
+  </data>
+  <data name="Background_Panel_Locked_Waiting_One" xml:space="preserve">
+    <value>{0} espera tu decisión.</value>
+  </data>
+  <data name="Background_Panel_Locked_Waiting_Other" xml:space="preserve">
+    <value>{0} esperan tu decisión.</value>
+  </data>
+  <data name="Background_Panel_Locked_Tail" xml:space="preserve">
+    <value>Desbloquéalo para ver el detalle.</value>
+  </data>
+  <data name="Background_Panel_Detail_Audit" xml:space="preserve">
+    <value>Su detalle está en «Auditoría».</value>
+  </data>
+  <data name="Background_Panel_Detail_Debate" xml:space="preserve">
+    <value>Su detalle está en «Debates».</value>
+  </data>
+  <data name="Background_Panel_Detail_Orchestrator" xml:space="preserve">
+    <value>Su detalle está en el «Orquestador».</value>
+  </data>
+  <data name="Background_Panel_NoData" xml:space="preserve">
+    <value>sin dato</value>
+  </data>
+  <data name="Background_Panel_Tasks_NoData" xml:space="preserve">
+    <value>Tareas: sin dato</value>
+  </data>
+  <data name="Background_Panel_Tasks" xml:space="preserve">
+    <value>Tareas: {0}</value>
+  </data>
+  <data name="Background_Panel_TaskCount_Running_One" xml:space="preserve">
+    <value>{0} en curso</value>
+  </data>
+  <data name="Background_Panel_TaskCount_Running_Other" xml:space="preserve">
+    <value>{0} en curso</value>
+  </data>
+  <data name="Background_Panel_TaskCount_AwaitingApproval_One" xml:space="preserve">
+    <value>{0} espera aprobación</value>
+  </data>
+  <data name="Background_Panel_TaskCount_AwaitingApproval_Other" xml:space="preserve">
+    <value>{0} esperan aprobación</value>
+  </data>
+  <data name="Background_Panel_TaskCount_Blocked_One" xml:space="preserve">
+    <value>{0} bloqueada</value>
+  </data>
+  <data name="Background_Panel_TaskCount_Blocked_Other" xml:space="preserve">
+    <value>{0} bloqueadas</value>
+  </data>
+  <data name="Background_Panel_TaskCount_Pending_One" xml:space="preserve">
+    <value>{0} pendiente</value>
+  </data>
+  <data name="Background_Panel_TaskCount_Pending_Other" xml:space="preserve">
+    <value>{0} pendientes</value>
+  </data>
+  <data name="Background_Panel_TaskCount_Completed_One" xml:space="preserve">
+    <value>{0} completada</value>
+  </data>
+  <data name="Background_Panel_TaskCount_Completed_Other" xml:space="preserve">
+    <value>{0} completadas</value>
+  </data>
+  <data name="Background_Panel_TaskCount_Failed_One" xml:space="preserve">
+    <value>{0} fallida</value>
+  </data>
+  <data name="Background_Panel_TaskCount_Failed_Other" xml:space="preserve">
+    <value>{0} fallidas</value>
+  </data>
+  <data name="Background_Panel_TaskCount_Cancelled_One" xml:space="preserve">
+    <value>{0} cancelada</value>
+  </data>
+  <data name="Background_Panel_TaskCount_Cancelled_Other" xml:space="preserve">
+    <value>{0} canceladas</value>
+  </data>
+  <data name="Background_Panel_TaskCount_Skipped_One" xml:space="preserve">
+    <value>{0} omitida</value>
+  </data>
+  <data name="Background_Panel_TaskCount_Skipped_Other" xml:space="preserve">
+    <value>{0} omitidas</value>
+  </data>
+  <data name="Background_Panel_Tokens_NoUsage" xml:space="preserve">
+    <value>Tokens: sin dato (el consumo no está disponible aquí).</value>
+  </data>
+  <data name="Background_Panel_Tokens_NotYet" xml:space="preserve">
+    <value>Tokens: sin dato todavía.</value>
+  </data>
+  <data name="Background_Panel_Tokens_NoAttempt" xml:space="preserve">
+    <value>Tokens: ningún intento de esta ejecución ha terminado todavía.</value>
+  </data>
+  <data name="Background_Panel_Tokens_Excluded" xml:space="preserve">
+    <value>Tokens: sin dato ({0}).</value>
+  </data>
+  <data name="Background_Panel_Tokens_Failed" xml:space="preserve">
+    <value>Tokens: sin dato (no se pudo leer el consumo: {0}).</value>
+  </data>
+  <data name="Background_Panel_TokensNote_One" xml:space="preserve">
+    <value>De {0} intento terminado de esta ejecución; los intentos en curso cuentan al terminar.</value>
+  </data>
+  <data name="Background_Panel_TokensNote_Other" xml:space="preserve">
+    <value>De {0} intentos terminados de esta ejecución; los intentos en curso cuentan al terminar.</value>
+  </data>
+  <data name="Background_Panel_Budget_Label" xml:space="preserve">
+    <value>Presupuesto</value>
+  </data>
+  <data name="Background_Panel_Budget_NoHeader_One" xml:space="preserve">
+    <value>Presupuesto: {0} ejecución de agente usada. No se sabe el máximo: faltan los datos del inicio.</value>
+  </data>
+  <data name="Background_Panel_Budget_NoHeader_Other" xml:space="preserve">
+    <value>Presupuesto: {0} ejecuciones de agente usadas. No se sabe el máximo: faltan los datos del inicio.</value>
+  </data>
+  <data name="Background_Panel_Budget_Used" xml:space="preserve">
+    <value>Presupuesto: {0} de {1} ejecuciones de agente</value>
+  </data>
+  <data name="Background_Panel_Budget_NoHeaderNote" xml:space="preserve">
+    <value>faltan los datos con los que empezó la ejecución</value>
+  </data>
+  <data name="Background_Panel_Approval" xml:space="preserve">
+    <value>{0} espera tu aprobación: {1}</value>
+  </data>
+  <data name="Background_Panel_Agents_NoHeader" xml:space="preserve">
+    <value>Agentes: sin dato (no se pudieron leer los datos con los que empezó la ejecución)</value>
+  </data>
+  <data name="Background_Panel_Agents_NoProject" xml:space="preserve">
+    <value>Agentes: sin dato (el proyecto no está abierto aquí)</value>
+  </data>
+  <data name="Background_Panel_Model_Default" xml:space="preserve">
+    <value>modelo predeterminado del programa del agente (no expuesto)</value>
+  </data>
+  <data name="Background_Panel_Model" xml:space="preserve">
+    <value>modelo {0}</value>
+  </data>
+  <data name="Background_Panel_Model_Reported" xml:space="preserve">
+    <value>informado por el programa del agente: {0}</value>
+  </data>
+  <data name="Background_Panel_Agent_Working" xml:space="preserve">
+    <value>en marcha</value>
+  </data>
+  <data name="Background_Panel_Figure_Input" xml:space="preserve">
+    <value>Entrada</value>
+  </data>
+  <data name="Background_Panel_Figure_CacheRead" xml:space="preserve">
+    <value>Caché leída</value>
+  </data>
+  <data name="Background_Panel_Figure_CacheWrite" xml:space="preserve">
+    <value>Caché escrita</value>
+  </data>
+  <data name="Background_Panel_Figure_Output" xml:space="preserve">
+    <value>Salida</value>
+  </data>
+  <data name="Background_Panel_Figure_Reasoning" xml:space="preserve">
+    <value>Razonamiento</value>
+  </data>
+  <data name="Background_Panel_Figure_Cost" xml:space="preserve">
+    <value>Coste</value>
+  </data>
+  <data name="Background_Panel_DebateTokens_Note" xml:space="preserve">
+    <value>Del debate, por turno (como en la sala).</value>
+  </data>
+  <data name="Background_Panel_DebateTokens_Label" xml:space="preserve">
+    <value>Tokens del debate</value>
+  </data>
+  <data name="Background_Panel_Block_Limit" xml:space="preserve">
+    <value>Límite de uso del plan hasta las {0}</value>
+  </data>
+  <data name="Background_Panel_Quota_NoData" xml:space="preserve">
+    <value>Límite de uso: sin dato (no está disponible aquí).</value>
+  </data>
+  <data name="Background_Panel_Quota_Note" xml:space="preserve">
+    <value>Límite de uso de tu plan (no del proyecto), tal como lo anuncia cada empresa del modelo.</value>
+  </data>
+  <data name="Background_Unattended_Title" xml:space="preserve">
+    <value>Trabajo desatendido</value>
+  </data>
+  <data name="Background_Unattended_Intro" xml:space="preserve">
+    <value>Qué hace Agent Studio al cerrar la ventana con trabajo en marcha, y si deja el equipo despierto mientras sigue.</value>
+  </data>
+  <data name="Background_Unattended_CloseWindow" xml:space="preserve">
+    <value>Al cerrar la ventana</value>
+  </data>
+  <data name="Background_Unattended_Close_Ask" xml:space="preserve">
+    <value>Preguntar si hay trabajo en marcha (si no hay, sale)</value>
+  </data>
+  <data name="Background_Unattended_Close_KeepInTray" xml:space="preserve">
+    <value>Seguir siempre en la bandeja</value>
+  </data>
+  <data name="Background_Unattended_Close_Exit" xml:space="preserve">
+    <value>Salir de Agent Studio</value>
+  </data>
+  <data name="Background_Unattended_CloseExplanation" xml:space="preserve">
+    <value>Con trabajo en marcha, «Preguntar» te ofrece tres opciones. Seguir en la bandeja, pausar y salir al terminar los intentos en curso, o salir ahora. Si eliges «Salir de Agent Studio» y hay trabajo en marcha, también pregunta cómo dejarlo. Tu elección queda anotada en el historial de cada ejecución.</value>
+  </data>
+  <data name="Background_Unattended_PreventSleep" xml:space="preserve">
+    <value>Impedir la suspensión mientras hay trabajo</value>
+  </data>
+  <data name="Background_Unattended_PreventSleepExplanation" xml:space="preserve">
+    <value>Mientras haya una ejecución, un debate o una auditoría en marcha, el equipo no se suspende por inactividad. La pantalla sí se puede apagar. Tú puedes suspender el equipo cuando quieras.</value>
+  </data>
+  <data name="Info_Unattended_Title" xml:space="preserve">
+    <value>Trabajo desatendido</value>
+  </data>
+  <data name="Info_Unattended_What" xml:space="preserve">
+    <value>Aquí eliges qué pasa al cerrar la ventana con trabajo en marcha. Agent Studio puede seguir en la bandeja, junto al reloj. También puede mantener el equipo despierto, para que no se suspenda a mitad del trabajo.</value>
+  </data>
+  <data name="Info_Unattended_Actions" xml:space="preserve">
+    <value>Elige qué hace Agent Studio al cerrar la ventana: preguntar, seguir en la bandeja o salir.
+Activa «Impedir la suspensión mientras hay trabajo» si dejas el equipo solo.
+Haz clic en el icono de la bandeja para ver el estado del trabajo.
+Pulsa «Guardar» para aplicar los cambios.</value>
+  </data>
+</root>

@@ -3,6 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
+             xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
              xmlns:observability="clr-namespace:AgentStudio.Desktop.Observability"
              xmlns:orchestratorViews="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
              xmlns:controls="clr-namespace:AgentStudio.Desktop.Controls"
@@ -56,22 +58,24 @@
     </UserControl.Resources>
 
     <StackPanel>
-        <TextBlock Style="{StaticResource SectionTitleText}" Text="Cuota de suscripción"/>
-        <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,8"
-                   Text="La utilización es siempre la del proveedor: Agent Studio no la calcula ni la adivina."/>
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Style="{StaticResource SectionTitleText}" VerticalAlignment="Center" Text="{l:T Observability_Quota_Title}"/>
+            <info:InfoButton InfoKey="Info_Quota" Margin="6,0,0,0" VerticalAlignment="Center"/>
+        </StackPanel>
+        <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,8" Text="{l:T Observability_Quota_Intro}"/>
         <Border Style="{StaticResource InnerCard}" Padding="10,8">
-            <ContentPresenter Content="{Binding Claude}" AutomationProperties.Name="Cuota de Claude Code"/>
+            <ContentPresenter Content="{Binding Claude}" AutomationProperties.Name="{l:T Observability_Quota_ClaudeName}"/>
         </Border>
         <Border Style="{StaticResource InnerCard}" Padding="10,8">
             <StackPanel>
-                <ContentPresenter Content="{Binding Codex}" AutomationProperties.Name="Cuota de Codex CLI"/>
-                <Button Style="{StaticResource ToolbarButton}" Margin="0,8,0,0" HorizontalAlignment="Left" Content="Consultar cuota de Codex"
+                <ContentPresenter Content="{Binding Codex}" AutomationProperties.Name="{l:T Observability_Quota_CodexName}"/>
+                <Button Style="{StaticResource ToolbarButton}" Margin="0,8,0,0" HorizontalAlignment="Left" Content="{l:T Observability_Quota_ReadCodex}"
                         Command="{Binding ReadCodexCommand}"
-                        ToolTip="Una lectura del app-server de Codex (account/rateLimits/read) con su sesión, sin turno del modelo. Solo con tu permiso en «Ajustes»."/>
+                        ToolTip="{l:T Observability_Quota_ReadCodexTip}"/>
             </StackPanel>
         </Border>
         <Border Style="{StaticResource InnerCard}" Padding="10,8" Margin="0">
-            <ContentPresenter Content="{Binding Gemini}" AutomationProperties.Name="Cuota de Gemini CLI"/>
+            <ContentPresenter Content="{Binding Gemini}" AutomationProperties.Name="{l:T Observability_Quota_GeminiName}"/>
         </Border>
     </StackPanel>
 </UserControl>

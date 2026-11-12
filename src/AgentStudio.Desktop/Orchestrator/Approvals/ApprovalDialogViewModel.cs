@@ -1,4 +1,5 @@
 using AgentStudio.Application.Security;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Lock;
 using AgentStudio.Domain.Security;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -63,11 +64,10 @@ public sealed partial class ApprovalDialogViewModel : ObservableObject
     public string? HelloNotice => Confirmation switch
     {
         ApprovalVerification.WindowsHello when Requirement == PresenceRequirement.Always => HelloTexts.AlwaysAsksHello,
-        ApprovalVerification.WindowsHello => "Al aprobar, Windows Hello te pedirá que confirmes que eres tú. Sin esa confirmación no se aprueba nada.",
+        ApprovalVerification.WindowsHello => Texts.Get("Orchestrator_Approval_HelloNotice"),
         ApprovalVerification.WindowsLock => HelloTexts.LocksWindowsAfterYes,
         ApprovalVerification.WindowsHelloUnavailable =>
-            $"Windows Hello no está disponible en este equipo ({HelloAnswers.WhyAbsent(_availability ?? UserPresenceAvailability.NotConfiguredForUser)}): "
-            + "esta aprobación la decide solo este diálogo, y el registro lo dice.",
+            Texts.Format("Orchestrator_Approval_HelloUnavailable", HelloAnswers.WhyAbsent(_availability ?? UserPresenceAvailability.NotConfiguredForUser)),
         _ => null,
     };
 
@@ -82,19 +82,22 @@ public sealed partial class ApprovalDialogViewModel : ObservableObject
     /// <summary>What is asked, as a plain sentence (<see cref="ApprovalTitles"/>): the title of the question, never the identifier.</summary>
     public string Title => ApprovalTitles.For(Request.Action);
 
+    /// <summary>The accessible name of the title: «Acción: …», so a screen reader says what the sentence is.</summary>
+    public string AccessibleTitle => Texts.Format("Orchestrator_Approval_ActionName", Title);
+
     /// <summary>
     /// The identifier the log records the action with, as a technical detail under the question; null when the action is
     /// already a sentence (then the title is that sentence).
     /// </summary>
-    public string? ActionDetail => ApprovalTitles.IsIdentifier(Request.Action) ? $"Acción en el registro: {Request.Action.Trim()}" : null;
+    public string? ActionDetail => ApprovalTitles.IsIdentifier(Request.Action) ? Texts.Format("Orchestrator_Approval_ActionDetail", Request.Action.Trim()) : null;
 
     public string Description => Request.Description;
 
     public string RiskLabel => Request.Risk switch
     {
-        RiskLevel.Critical => "Riesgo crítico",
-        RiskLevel.Destructive => "Acción destructiva",
-        _ => "Riesgo bajo",
+        RiskLevel.Critical => Texts.Get("Orchestrator_Approval_RiskCritical"),
+        RiskLevel.Destructive => Texts.Get("Orchestrator_Approval_RiskDestructive"),
+        _ => Texts.Get("Orchestrator_Approval_RiskLow"),
     };
 
     public Tone RiskTone => Request.Risk switch
@@ -108,9 +111,9 @@ public sealed partial class ApprovalDialogViewModel : ObservableObject
 
     public bool HasPaths => AffectedPaths.Count > 0;
 
-    public string PathsHeader => AffectedPaths.Count == 1 ? "Ruta afectada" : $"Rutas afectadas ({AffectedPaths.Count})";
+    public string PathsHeader => AffectedPaths.Count == 1 ? Texts.Get("Orchestrator_Approval_PathOne") : Texts.Format("Orchestrator_Approval_PathMany", AffectedPaths.Count);
 
-    public string? RequestedBy => Request.RequestedBy is { } agent ? $"Lo pide el agente «{agent}»." : null;
+    public string? RequestedBy => Request.RequestedBy is { } agent ? Texts.Format("Orchestrator_Approval_RequestedBy", agent) : null;
 
     /// <summary>
     /// Project, run and task the action belongs to, when the request says. The project goes by its name, and is left out
@@ -123,20 +126,20 @@ public sealed partial class ApprovalDialogViewModel : ObservableObject
             var parts = new List<string>();
             if (Request.ProjectId is not null && _projectName is { } project)
             {
-                parts.Add($"proyecto {project}");
+                parts.Add(Texts.Format("Orchestrator_Approval_OriginProject", project));
             }
 
             if (Request.RunId is { } run)
             {
-                parts.Add($"ejecución {run}");
+                parts.Add(Texts.Format("Orchestrator_Approval_OriginRun", run));
             }
 
             if (Request.TaskId is { } task)
             {
-                parts.Add($"tarea {task}");
+                parts.Add(Texts.Format("Orchestrator_Approval_OriginTask", task));
             }
 
-            return parts.Count == 0 ? null : "Origen: " + string.Join(" · ", parts);
+            return parts.Count == 0 ? null : Texts.Format("Orchestrator_Approval_Origin", string.Join(" · ", parts));
         }
     }
 

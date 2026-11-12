@@ -6,6 +6,7 @@ using AgentStudio.Application.Judging;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Providers;
 using AgentStudio.Desktop.Debate;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Orchestrator;
 using AgentStudio.Desktop.Orchestrator.Monitor;
@@ -55,42 +56,51 @@ public sealed class AuditReportViewModel
         ArgumentNullException.ThrowIfNull(zone);
         Report = report;
         Card = card;
-        Title = $"Auditoría del proyecto · {TimeZoneInfo.ConvertTime(report.GeneratedAt, zone).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture)} · {report.Audit}";
+        Title = Texts.Format("Audit_Report_Title", TimeZoneInfo.ConvertTime(report.GeneratedAt, zone).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture), report.Audit);
         var why = new List<string>();
         if (!report.DecisionLogIntact)
         {
-            why.Add("el registro de decisiones no está íntegro");
+            why.Add(Texts.Get("Audit_Why_LogBroken"));
         }
 
         if (report.VerdictId is null)
         {
-            why.Add("ningún juez emitió un veredicto");
+            why.Add(Texts.Get("Audit_Why_NoVerdict"));
         }
 
         if (report.ValidationIssues.Count > 0)
         {
-            why.Add(DebateTexts.Count(report.ValidationIssues.Count, "incidencia de validación", "incidencias de validación"));
+            why.Add(DebateTexts.Plural(report.ValidationIssues.Count, "Audit_Why_Issues"));
         }
 
         TrustText = report.IsTrustworthy
-            ? "Fiable: lo emitió un juez, pasó la validación y el registro de decisiones está íntegro."
-            : "No fiable: " + string.Join(", ", why) + ".";
+            ? Texts.Get("Audit_Trust_Yes")
+            : Texts.Format("Audit_Trust_No", string.Join(", ", why));
         TrustTone = report.IsTrustworthy ? Tone.Success : Tone.Error;
-        IntegrityText = report.DecisionLogIntact
-            ? "Registro de decisiones íntegro."
-            : "Registro de decisiones roto: no se lanzó al juez, y lo que sigue es solo lo que el sistema comprueba sin escribir.";
-        CommitText = report.HeadCommit is { } head ? $"Commit auditado: {DebateTexts.Short(head)}" : "Sin commit: el repositorio no tiene HEAD.";
-        UncommittedText = report.UncommittedChanges ? "Hay cambios sin commit: no entran en la auditoría." : null;
-        DispositionText = $"Disposición: {VerdictTexts.Disposition(report.Disposition)}";
+        IntegrityText = Texts.Get(report.DecisionLogIntact ? "Audit_Integrity_Intact" : "Audit_Integrity_Broken");
+        CommitText = report.HeadCommit is { } head ? Texts.Format("Audit_Commit", DebateTexts.Short(head)) : Texts.Get("Audit_NoCommit");
+        UncommittedText = report.UncommittedChanges ? Texts.Get("Audit_Report_Uncommitted") : null;
+        DispositionText = Texts.Format("Audit_Disposition", VerdictTexts.Disposition(report.Disposition));
         DispositionTone = VerdictTexts.ToneOf(report.Disposition);
         EscalationText = report.VerdictId is null
-            ? $"Escalado del sistema, no de un juez: {report.Verdict.Summary}"
+            ? Texts.Format("Audit_Escalation", report.EscalationText is { } escalation ? Texts.Current.Render(escalation) : report.Verdict.Summary)
             : null;
         Verification = [.. report.Verification.Select(e => new VerificationRow(
             e.Title,
-            $"{EvidenceText.Kind(e.Kind)} · {EvidenceText.Origin(e.Origin)}{(e.SubjectCommit is { } commit ? $" · commit {DebateTexts.Short(commit)}" : " · sin commit")}",
+            $"{EvidenceText.Kind(e.Kind)} · {EvidenceText.Origin(e.Origin)} · {(e.SubjectCommit is { } commit ? Texts.Format("Debate_Evidence_Commit", DebateTexts.Short(commit)) : Texts.Get("Audit_Verification_NoCommit"))}",
             EvidenceText.Tests(e.TestRun)))];
-        Pending = [.. report.Pending.Select(p => $"{p.Message} · {p.Source} ({p.Code})")];
+        Pending = [.. report.Pending.Select(p => PendingLine(p))];
+    }
+
+    /// <summary>
+    /// A pending problem of the report in the language in use: its coded text and where it is. A problem without a coded text (one a
+    /// producer of before gives) says its sentence and its code.
+    /// </summary>
+    public static string PendingLine(PendingProblem problem, IUiTextProvider? texts = null)
+    {
+        ArgumentNullException.ThrowIfNull(problem);
+        texts ??= Texts.Current;
+        return problem.Text is { } coded ? $"{texts.Render(coded)} · {problem.Source}" : $"{problem.Message} · {problem.Source} ({problem.Code})";
     }
 
     public AuditReport Report { get; }
@@ -148,7 +158,7 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
     private bool _loading;
 
     public ProjectAuditDocumentViewModel(string projectRoot, DebateScreenBackend backend, TimeProvider time, DebateScreens? screens = null, SynchronizationContext? uiContext = null)
-        : base(CreateId(projectRoot), $"Auditoría · {RecentProjectItem.From(projectRoot).Name}")
+        : base(CreateId(projectRoot), Texts.Format("Audit_Doc_Title", RecentProjectItem.From(projectRoot).Name))
     {
         ArgumentNullException.ThrowIfNull(backend);
         ArgumentNullException.ThrowIfNull(time);
@@ -171,7 +181,7 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
 
     /// <summary>The frozen requirements the audit is against: the latest of the project.</summary>
     [ObservableProperty]
-    private string _requirementsText = "Sin requisitos congelados.";
+    private string _requirementsText = Texts.Get("Audit_Requirements_None");
 
     /// <summary>The judges of the template.</summary>
     public ObservableCollection<AgentChoice> Judges { get; } = [];
@@ -219,7 +229,11 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
     private string? _estimateText;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ApprovalLine))]
     private string? _approvalText;
+
+    /// <summary>The approval «Auditar» asks for, introduced.</summary>
+    public string? ApprovalLine => ApprovalText is { } text ? Texts.Format("Debate_Form_ApprovalAsked", text) : null;
 
     /// <summary>What «Auditar» will do: with a judge, or only what the system checks without one.</summary>
     [ObservableProperty]
@@ -262,12 +276,12 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
         Notices.Clear();
         if (_backend.Audits is null)
         {
-            Notices.Add("Falta el servicio de auditoría en esta composición: no se puede auditar el proyecto.");
+            Notices.Add(Texts.Get("Audit_Notice_NoService"));
         }
 
         if (_backend.Workspace is null)
         {
-            Notices.Add("Falta el almacén del proyecto: no se puede abrir el proyecto.");
+            Notices.Add(Texts.Get("Audit_Notice_NoWorkspace"));
             Changed();
             return;
         }
@@ -283,12 +297,12 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
             }
             else
             {
-                Notices.Add("Falta el almacén de requisitos: sin requisitos congelados no se audita.");
+                Notices.Add(Texts.Get("Audit_Notice_NoRequirementStore"));
             }
 
             RequirementsText = _requirements is { } set
-                ? $"Contra los últimos requisitos congelados del proyecto: {DebateTexts.Count(set.Requirements.Count, "requisito", "requisitos")} · hash {DebateTexts.Short(set.ContentHash)}. Para auditar contra otros, congélalos antes en «Requisitos» del orquestador."
-                : "El proyecto no tiene requisitos congelados: congélalos en «Requisitos» del orquestador para poder auditar.";
+                ? Texts.Format("Audit_Requirements_Latest", DebateTexts.Plural(set.Requirements.Count, "Debate_Count_Requirement"), DebateTexts.Short(set.ContentHash))
+                : Texts.Get("Audit_Requirements_Missing");
             if (_backend.Roster is { } roster)
             {
                 foreach (var judge in (await roster.ListAsync(Project.ProjectId, CancellationToken.None).ConfigureAwait(true)).Where(a => a.Role == AgentRole.Judge).OrderBy(a => a.Id.Value, StringComparer.Ordinal))
@@ -298,7 +312,7 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
             }
             else
             {
-                Notices.Add("Falta la plantilla de agentes: no hay juez que elegir.");
+                Notices.Add(Texts.Get("Audit_Notice_NoRoster"));
             }
 
             SelectedJudge = Judges.FirstOrDefault();
@@ -307,7 +321,7 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = $"No se pudo preparar la auditoría: {ex.Message}";
+            ErrorMessage = Texts.Format("Audit_Error_Prepare", DebateTexts.Reason(ex));
         }
         finally
         {
@@ -328,12 +342,12 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
 
         IsBusy = true;
         ErrorMessage = null;
-        StatusMessage = "Preparando la auditoría: sin gastar cuota ni escribir nada…";
+        StatusMessage = Texts.Get("Audit_Status_Preparing");
         try
         {
             var request = new ProjectAuditRequest(project, requirements.ContentHash, judge.Agent.Id, [.. Authors.Where(a => a.IsDeclared).Select(a => a.Vendor)]);
             Show(await audits.PrepareAsync(request, CancellationToken.None).ConfigureAwait(true));
-            StatusMessage = "Revisa la configuración y la estimación: «Auditar» te pedirá aprobación.";
+            StatusMessage = Texts.Get("Audit_Status_Prepared");
         }
 #pragma warning disable CA1031 // The audit service is behind a port: a failure is shown in the document, never thrown into the UI.
         catch (Exception ex)
@@ -341,7 +355,7 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
         {
             Show(null);
             StatusMessage = null;
-            ErrorMessage = $"No se pudo preparar la auditoría: {ex.Message}";
+            ErrorMessage = Texts.Format("Audit_Error_Prepare", DebateTexts.Reason(ex));
         }
         finally
         {
@@ -363,7 +377,7 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
         IsBusy = true;
         ErrorMessage = null;
         Activity.Clear();
-        StatusMessage = "Esperando tu aprobación…";
+        StatusMessage = Texts.Get("Debate_Status_WaitingApproval");
         try
         {
             var report = await audits.AuditAsync(proposal, new UiProgress(_ui, OnProgress), CancellationToken.None).ConfigureAwait(true);
@@ -375,7 +389,7 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
 #pragma warning restore CA1031
         {
             StatusMessage = null;
-            ErrorMessage = $"No se auditó: {ex.Message}";
+            ErrorMessage = Texts.Format("Audit_Error_Audit", DebateTexts.Reason(ex));
         }
         finally
         {
@@ -425,23 +439,23 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
         var problems = new List<string>();
         if (_backend.Audits is null)
         {
-            problems.Add("Falta el servicio de auditoría en esta composición.");
+            problems.Add(Texts.Get("Audit_Problem_NoService"));
         }
 
         if (Project is null)
         {
-            problems.Add("Abre el proyecto para auditarlo.");
+            problems.Add(Texts.Get("Audit_Problem_NoProject"));
             return problems;
         }
 
         if (_requirements is null)
         {
-            problems.Add("Sin requisitos congelados no se audita: congélalos en «Requisitos» del orquestador.");
+            problems.Add(Texts.Get("Audit_Problem_NoRequirements"));
         }
 
         if (SelectedJudge is null)
         {
-            problems.Add(Judges.Count == 0 ? "La plantilla del proyecto no tiene ningún juez." : "Elige el juez de la auditoría.");
+            problems.Add(Texts.Get(Judges.Count == 0 ? "Debate_Problem_NoJudgeInRoster" : "Audit_Problem_PickJudge"));
         }
 
         return problems;
@@ -466,40 +480,38 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
             return;
         }
 
-        HeadText = proposal.HeadCommit is { } head ? $"Se audita el commit HEAD {DebateTexts.Short(head)}." : "El repositorio no tiene commit HEAD.";
-        UncommittedText = proposal.UncommittedChanges ? "Hay cambios sin commit: no entran en la auditoría, y el informe lo dirá." : null;
+        HeadText = proposal.HeadCommit is { } head ? Texts.Format("Audit_Prep_Head", DebateTexts.Short(head)) : Texts.Get("Audit_Prep_NoHead");
+        UncommittedText = proposal.UncommittedChanges ? Texts.Get("Audit_Prep_Uncommitted") : null;
         JudgeText = proposal.Judge is { } judge
-            ? $"Juez: {judge.Id} · {NewDebateViewModel.Where(judge.Model)}"
-            : "Nadie puede juzgar: la regla de los productores no se dispensa.";
+            ? Texts.Format("Audit_Prep_Judge", judge.Id, NewDebateViewModel.Where(judge.Model))
+            : Texts.Get("Audit_Prep_NoJudge");
         ProducersText = proposal.ProducerVendors.Count == 0
-            ? "El registro no conoce ningún productor y no declaraste autores."
-            : $"Produjeron el código (el juez no puede ser de estos vendors): {string.Join(", ", proposal.ProducerVendors.Select(DebateTexts.Vendor).Order(StringComparer.Ordinal))}.";
+            ? Texts.Get("Audit_Prep_NoProducers")
+            : Texts.Format("Audit_Prep_Producers", string.Join(", ", proposal.ProducerVendors.Select(DebateTexts.Vendor).Order(StringComparer.Ordinal)));
         ProfileText = proposal.Verification is { } profile
-            ? $"Perfil de verificación «{profile.Name}» · hash {DebateTexts.Short(profile.ContentHash)}: se ejecuta aislado a integridad Low sobre una copia de HEAD."
-            : "Sin perfil de verificación: no se ejecutan pruebas.";
+            ? Texts.Format("Audit_Prep_Profile", profile.Name, DebateTexts.Short(profile.ContentHash))
+            : Texts.Get("Audit_Prep_NoProfile");
         foreach (var step in proposal.Verification?.Steps ?? [])
         {
-            ProfileSteps.Add(VerificationStepText.Line(step));
+            ProfileSteps.Add(OrchestratorCodedText.StepLine(step));
         }
 
         foreach (var skipped in proposal.SkippedSteps)
         {
-            SkippedSteps.Add($"{skipped}: no se ejecuta en una auditoría (isolation: none), porque lo haría con tus permisos.");
+            SkippedSteps.Add(Texts.Format("Audit_Prep_Skipped", skipped));
         }
 
-        foreach (var problem in proposal.Problems)
+        for (var i = 0; i < proposal.Problems.Count; i++)
         {
-            ProposalProblems.Add(problem);
+            ProposalProblems.Add(proposal.ProblemTexts is { } coded && coded.Count == proposal.Problems.Count ? Texts.Current.Render(coded[i]) : proposal.Problems[i]);
         }
 
         var tokens = MetricText.Tokens(proposal.EstimatedTokens);
         EstimateText = proposal.CanJudge
-            ? $"Estimación: {tokens.Shown} tokens ({tokens.Origin}), más una corrección del juez como mucho. La verificación no gasta cuota."
-            : "Sin juez no se gasta cuota: solo se verifica HEAD y se listan los problemas pendientes.";
+            ? Texts.Format("Audit_Prep_Estimate", tokens.Shown, tokens.Origin)
+            : Texts.Get("Audit_Prep_EstimateNoJudge");
         ApprovalText = proposal.ApprovalText;
-        AuditMode = proposal.CanJudge
-            ? "«Auditar» lanza al juez tras la verificación aislada."
-            : "«Auditar» no lanzará a ningún juez: el informe dará solo lo que el sistema comprueba sin juez (la verificación y los problemas pendientes).";
+        AuditMode = Texts.Get(proposal.CanJudge ? "Audit_Prep_ModeJudge" : "Audit_Prep_ModeNoJudge");
     }
 
     private async Task<VerdictCardViewModel?> CardAsync(ProjectContext project, AuditReport report)
@@ -529,7 +541,7 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
             _screens is { CanNavigate: true } screens && _backend.Challenges is not null ? verdict => screens.ChallengeAsync(ProjectRoot, verdict) : null,
             null,
             _screens is { CanNavigate: true } navigation ? request => navigation.CreateCorrectiveTasksAsync(ProjectRoot, request) : null);
-        var context = new VerdictCardContext("Veredicto de la auditoría", Requirements: requirements);
+        var context = new VerdictCardContext(Texts.Get("Audit_Card_Title"), Requirements: requirements, RequestLabel: ProtocolTexts.AuditVerdictLabel);
         return new VerdictCardViewModel([judged], null, context, _time.LocalTimeZone, actions);
     }
 

@@ -1,3 +1,4 @@
+using AgentStudio.Desktop.Localization;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace AgentStudio.Desktop.Controls.Editor;
@@ -44,9 +45,9 @@ public sealed class EditorDocument : ObservableObject
     /// <summary>The file mixed line endings when read; saving unifies them, after which this turns false.</summary>
     public bool HasMixedLineEndings => _hasMixedLineEndings;
 
-    /// <summary>One-line notice (Spanish) for the editor tab; null when the line endings are uniform.</summary>
+    /// <summary>One-line notice (from the resources) for the editor tab; null when the line endings are uniform.</summary>
     public string? MixedLineEndingsNotice => _hasMixedLineEndings
-        ? $"Este fichero mezcla finales de línea (CRLF y LF); al guardar se unificarán a {(_format.LineEnding == LineEnding.CrLf ? "CRLF" : "LF")}."
+        ? Texts.Format("Editor_MixedLineEndings", _format.LineEnding == LineEnding.CrLf ? "CRLF" : "LF")
         : null;
 
     /// <summary>True while the editor holds changes that are not on disk. Updated by the editor bridge.</summary>

@@ -1,3 +1,4 @@
+using AgentStudio.Application.Localization;
 using System.Runtime.CompilerServices;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Orchestration;
@@ -42,7 +43,8 @@ internal sealed class RunInspector(EnginePorts ports)
         var graph = replay.Graph;
         var context = new RunContext(project, run, plan, requirements, record.Verification, record.Roster, record.Options, record.BaseCommit, record.CreatedAt);
         var problems = new List<string>(replay.Problems);
-        var ledger = LedgerOf(entries, context, graph, problems);
+        var problemTexts = replay.Problems.Select(p => UserText.Of(OrchestrationUserTexts.InspectProblemDetail, p)).ToList();
+        var ledger = LedgerOf(entries, context, graph, problems, problemTexts);
 
         // The health as the log left it: measured at its last entry, so a task that was running when the app stopped is not
         // taken for one abandoned since.
@@ -51,8 +53,8 @@ internal sealed class RunInspector(EnginePorts ports)
         var finished = entries.Select(e => e.Payload).OfType<RunFinishedPayload>().LastOrDefault();
         var phase = finished?.Phase ?? RunPhase.Interrupted;
         var result = finished is null
-            ? new RunResult(run, phase, health, null, ledger.VerdictId, InterruptedSummary)
-            : new RunResult(run, phase, health, finished.IntegrationCommit, finished.VerdictId, finished.Summary);
+            ? new RunResult(run, phase, health, null, ledger.VerdictId, InterruptedSummary, LoggedTexts.RunSummary(InterruptedSummary))
+            : new RunResult(run, phase, health, finished.IntegrationCommit, finished.VerdictId, finished.Summary, LoggedTexts.RunSummary(finished.Summary));
 
         // A run that did not finish has nothing running behind it: what was running was interrupted, as a resume records it.
         var interrupted = finished is null
@@ -78,13 +80,14 @@ internal sealed class RunInspector(EnginePorts ports)
             record.Options.MaxAgentRuns);
 
         var history = History(entries, evidence, context);
-        history.AddRange(interrupted.Select(task => new TaskStatusChangedEvent(lastAt, task, WorkTaskStatus.Running, WorkTaskStatus.Blocked, InterruptedReason)));
+        history.AddRange(interrupted.Select(task => new TaskStatusChangedEvent(lastAt, task, WorkTaskStatus.Running, WorkTaskStatus.Blocked, InterruptedReason, LoggedTexts.TaskReason(InterruptedReason))));
         if (problems.Count > 0)
         {
             history.Add(new RunPhaseChangedEvent(
                 lastAt,
                 phase,
-                $"El registro de esta ejecución no se puede reproducir entero ({string.Join(" ", problems)}): se muestra hasta ese punto."));
+                $"El registro de esta ejecución no se puede reproducir entero ({string.Join(" ", problems)}): se muestra hasta ese punto.",
+                UserText.Of(OrchestrationUserTexts.InspectLogNotReplayable, OrchestrationUserTexts.Sentences(problemTexts))));
         }
 
         return new InspectedRun(snapshot, history, result);
@@ -95,12 +98,13 @@ internal sealed class RunInspector(EnginePorts ports)
     /// other tasks is shown up to its problem, never refused for it. What cannot be rebuilt leaves the attempts and blocks
     /// unknown, and the problem is said.
     /// </summary>
-    private static RunLedger LedgerOf(IReadOnlyList<(DecisionEntry Entry, DecisionPayload Payload)> entries, RunContext context, TaskGraph graph, List<string> problems)
+    private static RunLedger LedgerOf(IReadOnlyList<(DecisionEntry Entry, DecisionPayload Payload)> entries, RunContext context, TaskGraph graph, List<string> problems, List<UserText> problemTexts)
     {
         var known = entries.Where(e => TaskOf(e.Payload) is not { } task || context.Specs.ContainsKey(task)).ToList();
         if (known.Count < entries.Count && problems.Count == 0)
         {
             problems.Add("El registro nombra tareas que no están en el plan de la ejecución.");
+            problemTexts.Add(UserText.Of(OrchestrationUserTexts.InspectProblemUnknownTasks));
         }
 
         try
@@ -110,6 +114,7 @@ internal sealed class RunInspector(EnginePorts ports)
         catch (Exception ex) when (ex is KeyNotFoundException or InvalidOperationException or ArgumentException)
         {
             problems.Add($"No se pudieron reconstruir los intentos ni los bloqueos: {ex.Message}");
+            problemTexts.Add(UserText.Of(OrchestrationUserTexts.InspectProblemNotRebuilt, ex.Message));
             return new RunLedger();
         }
     }
@@ -138,7 +143,7 @@ internal sealed class RunInspector(EnginePorts ports)
             switch (payload)
             {
                 case TaskStatusChangedPayload change when context.Specs.ContainsKey(change.Task):
-                    history.Add(new TaskStatusChangedEvent(entry.RecordedAt, change.Task, change.From, change.To, change.Reason));
+                    history.Add(new TaskStatusChangedEvent(entry.RecordedAt, change.Task, change.From, change.To, change.Reason, LoggedTexts.TaskReason(change.Reason)));
                     break;
                 case EvidenceRegisteredPayload registered when evidence.TryGetValue(registered.Evidence, out var row):
                     var owner = registered.Task is { } task && context.Specs.ContainsKey(task) ? task : (TaskId?)null;
@@ -148,10 +153,14 @@ internal sealed class RunInspector(EnginePorts ports)
                     history.Add(new RunPhaseChangedEvent(
                         entry.RecordedAt,
                         dispatch.Change == RunDispatchChange.Paused ? RunPhase.Paused : RunPhase.Running,
-                        Dispatch(dispatch)));
+                        Dispatch(dispatch),
+                        LoggedTexts.Dispatch(
+                            dispatch.Change == RunDispatchChange.Paused,
+                            dispatch.DecidedBy,
+                            string.Equals(dispatch.DecidedBy, OrchestrationRun.DecidedByUser, StringComparison.Ordinal))));
                     break;
                 case RunResumedPayload resumed:
-                    history.Add(new RunPhaseChangedEvent(entry.RecordedAt, RunPhase.Running, RunResumer.Notice(resumed.Cause)));
+                    history.Add(new RunPhaseChangedEvent(entry.RecordedAt, RunPhase.Running, RunResumer.Notice(resumed.Cause), RunResumer.NoticeText(resumed.Cause)));
                     break;
                 case IntegrationPerformedPayload { IsDelivery: true } delivered:
                     history.Add(new RunDeliveredEvent(entry.RecordedAt, delivered.TargetRef, delivered.ResultCommit));

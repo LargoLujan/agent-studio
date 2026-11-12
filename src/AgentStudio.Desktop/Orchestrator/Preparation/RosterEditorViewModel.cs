@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using AgentStudio.Application.Projects;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Orchestrator.Session;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Common;
@@ -23,9 +24,9 @@ public sealed record ModelOption(string Label, string? Model, bool IsOther = fal
 /// </summary>
 public static class AgentModels
 {
-    public const string DefaultLabel = "Predeterminado del CLI";
+    public static string DefaultLabel => Texts.Get("Orchestrator_Roster_ModelDefault");
 
-    public const string OtherLabel = "Otro modelo…";
+    public static string OtherLabel => Texts.Get("Orchestrator_Roster_ModelOther");
 
     /// <summary>
     /// The names offered for <paramref name="provider"/>: Claude Code's aliases for <c>--model</c> (<c>opus</c>, <c>sonnet</c>,
@@ -42,7 +43,7 @@ public static class AgentModels
     {
         if (string.IsNullOrWhiteSpace(model))
         {
-            return "Escribe el nombre del modelo, o elige «Predeterminado del CLI».";
+            return Texts.Format("Orchestrator_Roster_ModelEmpty", DefaultLabel);
         }
 
         try
@@ -52,12 +53,12 @@ public static class AgentModels
         }
         catch (ArgumentException)
         {
-            return "El nombre del modelo empieza por una letra o un número, solo lleva letras, números y . _ : / [ ] - y tiene 128 caracteres como mucho.";
+            return Texts.Get("Orchestrator_Roster_ModelBad");
         }
     }
 
     /// <summary>The model in words: «el modelo sonnet», or «el modelo predeterminado del CLI».</summary>
-    public static string Describe(string? model) => string.IsNullOrWhiteSpace(model) ? "modelo predeterminado del CLI" : $"modelo {model}";
+    public static string Describe(string? model) => string.IsNullOrWhiteSpace(model) ? Texts.Get("Orchestrator_Roster_DescribeDefault") : Texts.Format("Orchestrator_Roster_DescribeModel", model);
 }
 
 /// <summary>
@@ -105,8 +106,8 @@ public sealed partial class AgentMemoryViewModel : ObservableObject
     private bool _receivesMemory;
 
     public string MemoryText => !CanReceiveMemory
-        ? "Nunca recibe memoria: su veredicto solo se apoya en el dossier."
-        : ReceivesMemory ? "Recibe la memoria del proyecto (solo la de confianza)." : "Sin memoria del proyecto.";
+        ? Texts.Get("Orchestrator_Roster_JudgeNoMemory")
+        : ReceivesMemory ? Texts.Get("Orchestrator_Roster_MemoryOn") : Texts.Get("Orchestrator_Roster_MemoryOff");
 
     /// <summary>The models offered: the CLI's default, the names it is known to take, the one stored when it is another, and «Otro modelo…».</summary>
     public IReadOnlyList<ModelOption> ModelOptions { get; }
@@ -129,7 +130,16 @@ public sealed partial class AgentMemoryViewModel : ObservableObject
     public string? TypedModelProblem => string.IsNullOrWhiteSpace(TypedModel) ? null : AgentModels.Problem(TypedModel.Trim());
 
     /// <summary>The model the agent runs on now, in words.</summary>
-    public string ModelText => $"Usa el {AgentModels.Describe(Definition.Model.Model)}.";
+    public string ModelText => Texts.Format("Orchestrator_Roster_ModelText", AgentModels.Describe(Definition.Model.Model));
+
+    /// <summary>The accessible name of the box of the model: «Modelo de &lt;agente&gt;».</summary>
+    public string ModelAccessibleName => Texts.Format("Orchestrator_Prep_ModelName", Name);
+
+    /// <summary>The accessible name of the box to type a model.</summary>
+    public string TypedModelAccessibleName => Texts.Format("Orchestrator_Prep_TypedModelName", Name);
+
+    /// <summary>The accessible name of the switch of the memory.</summary>
+    public string MemoryAccessibleName => Texts.Format("Orchestrator_Prep_MemoryName", Name);
 
     partial void OnReceivesMemoryChanged(bool value)
     {
@@ -309,8 +319,8 @@ public sealed partial class RosterEditorViewModel : ObservableObject
         agent.Definition with { Memory = receives ? MemoryPolicy.ReadSelected : MemoryPolicy.None },
         agent.Restore,
         receives
-            ? $"«{agent.Name}» recibe ahora la memoria del proyecto: solo la de confianza y relevante para su tarea."
-            : $"«{agent.Name}» ya no recibe memoria del proyecto.");
+            ? Texts.Format("Orchestrator_Roster_MemoryNowOn", agent.Name)
+            : Texts.Format("Orchestrator_Roster_MemoryNowOff", agent.Name));
 
     private Task SaveModelAsync(AgentMemoryViewModel agent, string? model)
     {
@@ -327,7 +337,7 @@ public sealed partial class RosterEditorViewModel : ObservableObject
             agent.CanChangeModel,
             agent.Definition with { Model = agent.Definition.Model with { Model = model } },
             agent.RestoreModel,
-            $"«{agent.Name}» usará el {AgentModels.Describe(model)} desde la próxima ejecución o planificación.");
+            Texts.Format("Orchestrator_Roster_ModelChanged", agent.Name, AgentModels.Describe(model)));
     }
 
     private async Task SaveAsync(AgentMemoryViewModel agent, bool allowed, AgentDefinition updated, Action restore, string notice)
@@ -343,7 +353,7 @@ public sealed partial class RosterEditorViewModel : ObservableObject
         if (updated.Validate() is { Count: > 0 } problems)
         {
             restore();
-            ErrorMessage = $"La plantilla no admite ese cambio: {string.Join(", ", problems)}.";
+            ErrorMessage = Texts.Format("Orchestrator_Roster_ChangeRefused", string.Join(", ", problems));
             return;
         }
 
@@ -356,7 +366,7 @@ public sealed partial class RosterEditorViewModel : ObservableObject
 #pragma warning restore CA1031
         {
             restore();
-            ErrorMessage = $"No se pudo guardar la plantilla: {ex.Message}";
+            ErrorMessage = Texts.Format("Orchestrator_Roster_SaveFailed", OrchestratorErrorText.Detail(ex));
             return;
         }
 
@@ -372,7 +382,7 @@ public static class RosterText
     public static string Line(AgentDefinition agent)
     {
         ArgumentNullException.ThrowIfNull(agent);
-        var model = string.IsNullOrWhiteSpace(agent.Model.Model) ? string.Empty : $" · modelo {agent.Model.Model}";
+        var model = string.IsNullOrWhiteSpace(agent.Model.Model) ? string.Empty : $" · {Texts.Format("Orchestrator_Roster_LineModel", agent.Model.Model)}";
         return $"{agent.Id} · {agent.Name} · {agent.Model.Provider} ({agent.Model.Vendor}){model} · {ToolsOf(agent)}";
     }
 
@@ -386,5 +396,5 @@ public static class RosterText
     private static string ToolsOf(AgentDefinition agent) =>
         agent.AllowedTools.Count > 0
             ? string.Join(", ", agent.AllowedTools)
-            : agent.Role is AgentRole.Judge or AgentRole.Auditor ? "solo lectura" : "sin herramientas declaradas";
+            : agent.Role is AgentRole.Judge or AgentRole.Auditor ? Texts.Get("Orchestrator_Roster_ToolsReadOnly") : Texts.Get("Orchestrator_Roster_ToolsNone");
 }

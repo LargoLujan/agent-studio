@@ -59,7 +59,7 @@ public sealed class ProjectMemoryUpkeepTests : IDisposable
 
         var line = await upkeep.AfterRunAsync(@"C:\proyectos\calc", TestContext.Current.CancellationToken);
 
-        Assert.Equal("Memoria: 1 texto sin guardar en la memoria (no cuadra con el registro o es un día de la bitácora que no se pudo leer); sin exportar: hay una ejecución en curso.", line);
+        Assert.Equal("Memoria: 1 texto sin guardar en la memoria. No cuadra con el registro, o es un día de la bitácora que no se pudo leer; sin exportar: hay una ejecución en curso.", line);
     }
 
     [Fact]

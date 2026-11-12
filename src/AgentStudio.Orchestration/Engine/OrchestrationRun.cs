@@ -4,8 +4,10 @@ using System.Threading.Channels;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Execution;
 using AgentStudio.Application.Git;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Providers;
+using AgentStudio.Application.Usage;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Evidence;
@@ -72,6 +74,7 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
         _graph = graph;
         _ledger = ledger;
         _onFinished = onFinished;
+        ports.BudgetGate?.Forget(recorder.RunValue); // a start or a resume reads the milestones of the run again
         _integrityBreached = ledger.RepositoryChanged || ledger.SourceMoved || ledger.IntegrationEvidenceTampered;
         _workers = new WorkerContext(
             context,
@@ -112,7 +115,7 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
 
     public Task RetryBlockedAsync(TaskId task) => SendAsync(CommandKind.RetryBlocked, task, null);
 
-    public Task CancelAsync(string reason) => SendAsync(CommandKind.Cancel, null, string.IsNullOrWhiteSpace(reason) ? "sin motivo" : reason);
+    public Task CancelAsync(string reason) => SendAsync(CommandKind.Cancel, null, string.IsNullOrWhiteSpace(reason) ? LoggedTexts.NoReasonGiven : reason);
 
     /// <summary>
     /// Phase 13 (docs/17 D-30): the answer of a person to the question the agent of its task asked. It goes to the loop through
@@ -161,12 +164,17 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
         }
     }
 
-    /// <summary>Starts the loop. <paramref name="notices"/> are shown first (for example, that uncommitted changes are left out).</summary>
-    internal void Start(IReadOnlyList<string>? notices = null)
+    /// <summary>
+    /// Starts the loop. <paramref name="notices"/> are shown first (for example, that uncommitted changes are left out), and
+    /// <paramref name="noticeTexts"/>, in step with them, are the same notices as coded texts for the screen (docs/17 D-47).
+    /// </summary>
+    internal void Start(IReadOnlyList<string>? notices = null, IReadOnlyList<UserText?>? noticeTexts = null)
     {
+        var position = 0;
         foreach (var notice in notices ?? [])
         {
-            Emit(new RunPhaseChangedEvent(Now, RunPhase.Running, notice));
+            Emit(new RunPhaseChangedEvent(Now, RunPhase.Running, notice, noticeTexts is not null && position < noticeTexts.Count ? noticeTexts[position] : null));
+            position++;
         }
 
         AnnouncePendingQuestions();
@@ -324,10 +332,10 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
                 var verdict = await ClassifyAsync().ConfigureAwait(false);
                 if (verdict.Final)
                 {
-                    return await FinishAsync(verdict.Phase, verdict.Summary).ConfigureAwait(false);
+                    return await FinishAsync(verdict.Phase, verdict.Summary, verdict.Text).ConfigureAwait(false);
                 }
 
-                SetPhase(verdict.Phase, verdict.Summary);
+                SetPhase(verdict.Phase, verdict.Summary, verdict.Text);
                 Publish();
                 await WaitAsync(verdict.WakeAt).ConfigureAwait(false);
                 continue;
@@ -337,7 +345,8 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
             var onlyPeople = _inFlight.Values.All(f => !f.CountsForParallel);
             SetPhase(
                 _paused ? RunPhase.Paused : onlyPeople ? RunPhase.AwaitingHuman : RunPhase.Running,
-                onlyPeople ? "Esperando una decisión tuya en: " + string.Join(", ", _inFlight.Keys) + "." : null);
+                onlyPeople ? "Esperando una decisión tuya en: " + string.Join(", ", _inFlight.Keys) + "." : null,
+                onlyPeople ? UserText.Of(OrchestrationUserTexts.VerdictAwaitingHuman, OrchestrationUserTexts.List([.. _inFlight.Keys.Select(k => k.Value)])) : null);
             Publish();
             await WaitAsync(QuotaWake()).ConfigureAwait(false);
         }
@@ -423,7 +432,7 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
 
         if (_graph[launched.Task].Status == WorkTaskStatus.Pending)
         {
-            await MoveAsync(launched.Task, WorkTaskStatus.Running, $"Arranca el intento {launched.Attempt}: el proveedor lanzó al agente.").ConfigureAwait(false);
+            await MoveAsync(launched.Task, WorkTaskStatus.Running, $"Arranca el intento {launched.Attempt}: el proveedor lanzó al agente.", text: UserText.Of(OrchestrationUserTexts.TaskAttemptLaunched, launched.Attempt)).ConfigureAwait(false);
         }
     }
 
@@ -498,13 +507,13 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
                     _ledger.IntegrationCommit = commit;
                 }
 
-                await MoveAsync(id, WorkTaskStatus.Completed, end.Reason, end.Evidence).ConfigureAwait(false);
+                await MoveAsync(id, WorkTaskStatus.Completed, end.Reason, end.Evidence, text: end.Text).ConfigureAwait(false);
                 break;
             case EndKind.Failed:
-                await FailAsync(id, flight.Attempt, end.Reason, end.Evidence).ConfigureAwait(false);
+                await FailAsync(id, flight.Attempt, end.Reason, end.Evidence, end.Text).ConfigureAwait(false);
                 break;
             case EndKind.AwaitingHuman:
-                await MoveAsync(id, WorkTaskStatus.Blocked, end.Reason, end.Evidence, BlockReason.AwaitingHuman).ConfigureAwait(false);
+                await MoveAsync(id, WorkTaskStatus.Blocked, end.Reason, end.Evidence, BlockReason.AwaitingHuman, text: end.Text).ConfigureAwait(false);
                 break;
             case EndKind.RateLimited:
                 // The wait follows the policy of the header (F8-2): the reset the provider announced (plus the margin, with
@@ -529,10 +538,10 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
                 }
 
                 var why = announced is null ? QuotaWaitPolicy.Unannounced(_ctx.Specs[id], limit, overload, end.RetryAt) : end.Reason;
-                await MoveAsync(id, WorkTaskStatus.Blocked, why, end.Evidence, limit).ConfigureAwait(false);
+                await MoveAsync(id, WorkTaskStatus.Blocked, why, end.Evidence, limit, text: announced is null ? QuotaWaitPolicy.UnannouncedText(_ctx.Specs[id], limit, overload, end.RetryAt) : end.Text).ConfigureAwait(false);
                 break;
             case EndKind.LaunchFailed or EndKind.Broken:
-                await MoveAsync(id, WorkTaskStatus.Blocked, end.Reason, end.Evidence, BlockReason.ProviderUnavailable).ConfigureAwait(false);
+                await MoveAsync(id, WorkTaskStatus.Blocked, end.Reason, end.Evidence, BlockReason.ProviderUnavailable, text: end.Text).ConfigureAwait(false);
                 break;
             case EndKind.RepositoryChanged:
                 _integrityBreached = true;
@@ -540,7 +549,7 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
                 await AgentRunner.RecordRepositoryAlertAsync(_recorder, id, end.Differences, Token).ConfigureAwait(false);
                 if (status == WorkTaskStatus.Running)
                 {
-                    await FailAsync(id, flight.Attempt, end.Reason, end.Evidence).ConfigureAwait(false);
+                    await FailAsync(id, flight.Attempt, end.Reason, end.Evidence, end.Text).ConfigureAwait(false);
                 }
 
                 break;
@@ -554,7 +563,7 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
                     Token).ConfigureAwait(false);
                 if (status == WorkTaskStatus.Running)
                 {
-                    await FailAsync(id, flight.Attempt, end.Reason, end.Evidence).ConfigureAwait(false);
+                    await FailAsync(id, flight.Attempt, end.Reason, end.Evidence, end.Text).ConfigureAwait(false);
                 }
 
                 break;
@@ -572,26 +581,26 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
                     Token).ConfigureAwait(false);
                 if (status == WorkTaskStatus.Running)
                 {
-                    await FailAsync(id, flight.Attempt, end.Reason, end.Evidence).ConfigureAwait(false);
+                    await FailAsync(id, flight.Attempt, end.Reason, end.Evidence, end.Text).ConfigureAwait(false);
                 }
 
                 break;
             case EndKind.Cancelled:
                 if (status is WorkTaskStatus.Pending or WorkTaskStatus.Running or WorkTaskStatus.Blocked or WorkTaskStatus.AwaitingApproval)
                 {
-                    await MoveAsync(id, WorkTaskStatus.Cancelled, end.Reason, end.Evidence).ConfigureAwait(false);
+                    await MoveAsync(id, WorkTaskStatus.Cancelled, end.Reason, end.Evidence, text: end.Text).ConfigureAwait(false);
                 }
 
                 break;
             case EndKind.ApprovalNeeded:
-                await MoveAsync(id, WorkTaskStatus.AwaitingApproval, end.Reason).ConfigureAwait(false);
+                await MoveAsync(id, WorkTaskStatus.AwaitingApproval, end.Reason, text: end.Text).ConfigureAwait(false);
                 StartApproval(_ctx.Specs[id], flight.Attempt, Orchestrator.ReviewEscalationAction, $"La revisión de la tarea {id} necesita tu decisión: {end.Reason}");
                 break;
             case EndKind.Approved:
-                await MoveAsync(id, WorkTaskStatus.Completed, end.Reason).ConfigureAwait(false);
+                await MoveAsync(id, WorkTaskStatus.Completed, end.Reason, text: end.Text).ConfigureAwait(false);
                 break;
             case EndKind.Denied:
-                await FailAsync(id, flight.Attempt, end.Reason, []).ConfigureAwait(false);
+                await FailAsync(id, flight.Attempt, end.Reason, [], end.Text).ConfigureAwait(false);
                 break;
             case EndKind.AsksQuestion:
                 await AskAsync(id, flight.Attempt, end).ConfigureAwait(false);
@@ -599,10 +608,10 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
         }
     }
 
-    private async Task FailAsync(TaskId id, int attempt, string reason, IReadOnlyList<EvidenceId> evidence)
+    private async Task FailAsync(TaskId id, int attempt, string reason, IReadOnlyList<EvidenceId> evidence, UserText? text = null)
     {
-        await MoveAsync(id, WorkTaskStatus.Failed, reason, evidence).ConfigureAwait(false);
-        _ledger.Failures[id] = new FailureNote(attempt, reason, evidence);
+        await MoveAsync(id, WorkTaskStatus.Failed, reason, evidence, text: text).ConfigureAwait(false);
+        _ledger.Failures[id] = new FailureNote(attempt, reason, evidence, text);
     }
 
     private async Task OnCommandAsync(UserCommand command)
@@ -625,7 +634,7 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
                     break;
                 case CommandKind.Cancel when !_cancelling:
                     _cancelling = true;
-                    _cancelReason = command.Reason ?? "sin motivo";
+                    _cancelReason = command.Reason ?? LoggedTexts.NoReasonGiven;
                     _cancelDeadline = Now + CancelGrace;
                     foreach (var flight in _inFlight.Values)
                     {
@@ -694,7 +703,7 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
         // A person's retry starts the checks in a row again (ADR-0034, decision 9): the automatic waits are armed anew. The
         // transition is the person's in the log, so a resume rebuilds the count from it.
         _ledger.StoppedChecks.Remove(id);
-        await MoveAsync(id, WorkTaskStatus.Pending, "El usuario pidió reintentarla.", actor: new Actor(ActorKind.User, DecidedByUser)).ConfigureAwait(false);
+        await MoveAsync(id, WorkTaskStatus.Pending, "El usuario pidió reintentarla.", actor: new Actor(ActorKind.User, DecidedByUser), text: UserText.Of(OrchestrationUserTexts.TaskRetryByUser)).ConfigureAwait(false);
         return null;
     }
 
@@ -759,7 +768,11 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
             }
 
             var reason = _ledger.Failures.TryGetValue(task.Id, out var failure) ? failure.Reason : "fallo";
-            await MoveAsync(task.Id, WorkTaskStatus.Pending, string.Create(CultureInfo.InvariantCulture, $"Reintento {task.RetryCount + 1} de {task.MaxRetries} tras: {reason}")).ConfigureAwait(false);
+            await MoveAsync(
+                task.Id,
+                WorkTaskStatus.Pending,
+                string.Create(CultureInfo.InvariantCulture, $"Reintento {task.RetryCount + 1} de {task.MaxRetries} tras: {reason}"),
+                text: UserText.Of(OrchestrationUserTexts.TaskRetry, task.RetryCount + 1, task.MaxRetries, (object?)failure?.Text ?? LoggedTexts.TaskReason(reason) ?? (object)reason)).ConfigureAwait(false);
             changed = true;
         }
 
@@ -773,7 +786,7 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
         {
             if (block.Until <= Now && AutoWait(id, block))
             {
-                await MoveAsync(id, WorkTaskStatus.Pending, "Terminó la espera de cuota del proveedor.").ConfigureAwait(false);
+                await MoveAsync(id, WorkTaskStatus.Pending, "Terminó la espera de cuota del proveedor.", text: UserText.Of(OrchestrationUserTexts.TaskQuotaWaitEnded)).ConfigureAwait(false);
                 _ledger.CheckAccess.Add(id); // before it is launched again, its access is checked (F8-3)
                 changed = true;
             }
@@ -901,7 +914,7 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
                     break;
                 case WorkTaskKind.HumanApproval:
                     var approvalAttempt = NextAttempt(spec.Id);
-                    await MoveAsync(spec.Id, WorkTaskStatus.AwaitingApproval, "Esperando la aprobación del usuario.").ConfigureAwait(false);
+                    await MoveAsync(spec.Id, WorkTaskStatus.AwaitingApproval, "Esperando la aprobación del usuario.", text: UserText.Of(OrchestrationUserTexts.TaskAwaitingApproval)).ConfigureAwait(false);
                     StartApproval(spec, approvalAttempt, Orchestrator.HumanApprovalAction, HumanApprovalText(spec));
                     changed = true;
                     break;
@@ -912,7 +925,7 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
                     changed |= await DispatchSystemAsync(spec).ConfigureAwait(false);
                     break;
                 default:
-                    await MoveAsync(spec.Id, WorkTaskStatus.Blocked, $"Los nodos {spec.Kind} no están disponibles en la Fase 3.", null, BlockReason.AwaitingHuman).ConfigureAwait(false);
+                    await MoveAsync(spec.Id, WorkTaskStatus.Blocked, $"Los nodos {spec.Kind} no están disponibles en la Fase 3.", null, BlockReason.AwaitingHuman, text: UserText.Of(OrchestrationUserTexts.TaskNodeUnavailable, spec.Kind.ToString())).ConfigureAwait(false);
                     changed = true;
                     break;
             }
@@ -960,7 +973,7 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
         var provider = _ports.ProviderFor(_ctx.Project.RootPath, agent.Model.Provider);
         if (provider is null)
         {
-            await MoveAsync(id, WorkTaskStatus.Blocked, $"No hay ningún proveedor «{agent.Model.Provider}» para {agent.Id}.", null, BlockReason.ProviderUnavailable).ConfigureAwait(false);
+            await MoveAsync(id, WorkTaskStatus.Blocked, $"No hay ningún proveedor «{agent.Model.Provider}» para {agent.Id}.", null, BlockReason.ProviderUnavailable, text: UserText.Of(OrchestrationUserTexts.TaskNoProvider, agent.Model.Provider.ToString(), agent.Id.ToString())).ConfigureAwait(false);
             return true;
         }
 
@@ -975,9 +988,26 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
             return false; // another task of the same provider may still go first: no head-of-line blocking
         }
 
-        if (!TryBases(spec, out var taskBase, out var attemptBase, out var recordWorktree, out var problem))
+        // The budget of the project and of the milestone (docs/16 D-05, F9-8): checked once the attempt could launch, never when it
+        // would wait anyway. A refusal (or a budget that cannot be read) blocks the task waiting for the person, like AwaitingHuman, and says
+        // why; it launches nothing and nothing is final: raising the budget and retrying the task launches it, and a transient reading
+        // failure is read again at the next launch.
+        if (_ports.BudgetGate is { } budgetGate)
         {
-            await MoveAsync(id, WorkTaskStatus.Blocked, problem!, null, BlockReason.AwaitingHuman).ConfigureAwait(false);
+            var inFlightAgents = _inFlight.Values.Count(f => f.Kind == WorkTaskKind.AgentWork);
+            var estimate = new UsageEstimateRequest(_ctx.Project, agent.Id, provider.Provider, agent.Model.Model, AgentRunPurpose.Executor, null, agent.Effort);
+            var verdict = await budgetGate.CheckAsync(_ctx.Project, _recorder.RunValue, estimate, inFlightAgents, Token).ConfigureAwait(false);
+            if (!verdict.Allowed)
+            {
+                await AlertOnceAsync($"{verdict.Code}|{id}", verdict.Code!, [id], verdict.Reason!).ConfigureAwait(false);
+                await MoveAsync(id, WorkTaskStatus.Blocked, verdict.Reason!, null, BlockReason.AwaitingHuman, text: verdict.Text).ConfigureAwait(false);
+                return true;
+            }
+        }
+
+        if (!TryBases(spec, out var taskBase, out var attemptBase, out var recordWorktree, out var problem, out var problemText))
+        {
+            await MoveAsync(id, WorkTaskStatus.Blocked, problem!, null, BlockReason.AwaitingHuman, text: problemText).ConfigureAwait(false);
             return true;
         }
 
@@ -1063,9 +1093,9 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
                 .Where(f => _ctx.Specs[f].Kind == WorkTaskKind.AgentWork && _ledger.Worktrees.ContainsKey(f) && _ledger.Results[f].Commit is not null)
                 .Select(f => new VerifiedRef(f, _ledger.Worktrees[f].RefName, _ledger.Results[f].Commit!))];
         }
-        else if (!TryBases(spec, out baseCommit, out _, out recordWorktree, out var problem))
+        else if (!TryBases(spec, out baseCommit, out _, out recordWorktree, out var problem, out var problemText))
         {
-            await MoveAsync(id, WorkTaskStatus.Blocked, problem!, null, BlockReason.AwaitingHuman).ConfigureAwait(false);
+            await MoveAsync(id, WorkTaskStatus.Blocked, problem!, null, BlockReason.AwaitingHuman, text: problemText).ConfigureAwait(false);
             return true;
         }
 
@@ -1082,7 +1112,7 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
             }
         }
 
-        await MoveAsync(id, WorkTaskStatus.Running, $"Arranca el intento {attempt}.").ConfigureAwait(false);
+        await MoveAsync(id, WorkTaskStatus.Running, $"Arranca el intento {attempt}.", text: UserText.Of(OrchestrationUserTexts.TaskAttemptStarted, attempt)).ConfigureAwait(false);
         var flight = new InFlight(id, attempt, spec.Kind, null, countsForParallel: true);
         _inFlight[id] = flight;
         var baseForWorker = baseCommit;
@@ -1100,12 +1130,13 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
     /// The base of a task's worktree (docs/13 section 4.6): an existing worktree keeps its recorded base; a new one starts
     /// on the head of the task's code frontier (the run base with no producer, the producer's commit with one).
     /// </summary>
-    private bool TryBases(TaskSpec spec, out string? taskBase, out string? attemptBase, out bool recordWorktree, out string? problem)
+    private bool TryBases(TaskSpec spec, out string? taskBase, out string? attemptBase, out bool recordWorktree, out string? problem, out UserText? problemText)
     {
         taskBase = null;
         attemptBase = null;
         recordWorktree = false;
         problem = null;
+        problemText = null;
         if (spec.Kind == WorkTaskKind.AgentWork && spec.Workspace == WorkspaceMode.None)
         {
             return true;
@@ -1122,6 +1153,7 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
         if (frontier.Count > 1)
         {
             problem = $"La tarea {spec.Id} parte del código de varias tareas ({string.Join(", ", frontier)}) sin una integración.";
+            problemText = UserText.Of(OrchestrationUserTexts.TaskNoIntegration, spec.Id.ToString(), string.Join(", ", frontier));
             return false;
         }
 
@@ -1180,7 +1212,7 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
     {
         var id = spec.Id;
         NextAttempt(id);
-        await MoveAsync(id, WorkTaskStatus.Running, "Evaluando la condición.").ConfigureAwait(false);
+        await MoveAsync(id, WorkTaskStatus.Running, "Evaluando la condición.", text: UserText.Of(OrchestrationUserTexts.TaskEvaluatingCondition)).ConfigureAwait(false);
         var predicate = spec.Condition!;
         var facts = _graph.Tasks.ToDictionary(t => t.Id, t => Facts(t.Id, t.Status));
         var result = ConditionEvaluator.Evaluate(predicate, facts);
@@ -1229,7 +1261,7 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
 
     // ---- the end ----
 
-    private sealed record Verdict(RunPhase Phase, bool Final, string Summary, DateTimeOffset? WakeAt = null);
+    private sealed record Verdict(RunPhase Phase, bool Final, string Summary, DateTimeOffset? WakeAt = null, UserText? Text = null);
 
     private async Task<Verdict> ClassifyAsync()
     {
@@ -1248,7 +1280,7 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
                     "run.review-required",
                     unreviewed,
                     $"The review policy of the agents that wrote {list} asks for an approved independent review after them, and none was completed (a skipped review does not count).").ConfigureAwait(false);
-                return new Verdict(RunPhase.Failed, true, $"Falló: la política de revisión exige una revisión independiente aprobada de {list}, y no la hubo.");
+                return new Verdict(RunPhase.Failed, true, $"Falló: la política de revisión exige una revisión independiente aprobada de {list}, y no la hubo.", null, UserText.Of(OrchestrationUserTexts.VerdictReviewRequired, OrchestrationUserTexts.List([.. unreviewed.Select(u => u.Value)])));
             }
 
             // The test policy holds at the end too (N-06): the commit the run ends with must have passed tests the system
@@ -1262,26 +1294,47 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
                     "run.tests-required",
                     [.. untested.Select(u => u.Task)],
                     $"The review policy of an agent that wrote code asks for tests captured by the system, and no passing system-captured test run the decision log anchored verified the final commit of {string.Join(", ", untested.Select(u => $"{u.Task} ({u.Commit ?? "no commit"})"))}.").ConfigureAwait(false);
-                return new Verdict(RunPhase.Failed, true, $"Falló: la política de pruebas exige que el commit final de la ejecución pase pruebas capturadas por el sistema, y no hay ninguna ejecución de pruebas que pase sobre {commits}.");
+                return new Verdict(
+                    RunPhase.Failed,
+                    true,
+                    $"Falló: la política de pruebas exige que el commit final de la ejecución pase pruebas capturadas por el sistema, y no hay ninguna ejecución de pruebas que pase sobre {commits}.",
+                    null,
+                    UserText.Of(
+                        OrchestrationUserTexts.VerdictTestsRequired,
+                        OrchestrationUserTexts.List([.. untested.Select(u => u.Commit is null
+                            ? UserText.Of(OrchestrationUserTexts.VerdictUntestedNoCommit, u.Task.Value)
+                            : UserText.Of(OrchestrationUserTexts.VerdictUntestedCommit, u.Task.Value, u.Commit))])));
             }
 
             var completed = tasks.Count(t => t.Status == WorkTaskStatus.Completed);
-            return new Verdict(RunPhase.Succeeded, true, string.Create(CultureInfo.InvariantCulture, $"Terminó bien: {completed} tareas completadas y {tasks.Count - completed} omitidas."));
+            return new Verdict(
+                RunPhase.Succeeded,
+                true,
+                string.Create(CultureInfo.InvariantCulture, $"Terminó bien: {completed} tareas completadas y {tasks.Count - completed} omitidas."),
+                null,
+                UserText.Of(OrchestrationUserTexts.VerdictSucceeded, completed, tasks.Count - completed));
         }
 
         if (tasks.All(t => WorkTaskTransitions.IsTerminal(t.Status)))
         {
             // Only a cancellation leaves every task terminal with some cancelled: the app stopped before RunFinished.
-            return new Verdict(RunPhase.Cancelled, true, "Cancelada: la cancelación se había aplicado a todas las tareas antes de la interrupción.");
+            return new Verdict(RunPhase.Cancelled, true, "Cancelada: la cancelación se había aplicado a todas las tareas antes de la interrupción.", null, UserText.Of(OrchestrationUserTexts.VerdictCancelledAfterStop));
         }
 
         if (_integrityBreached)
         {
-            return new Verdict(RunPhase.Failed, true, _ledger.RepositoryChanged
-                ? "Se detuvo: el repositorio del usuario cambió durante la ejecución."
-                : _ledger.SourceMoved
-                    ? "Se detuvo: la ref de una tarea ya no apunta al commit que se verificó, y no se integró nada de ella."
-                    : "Se detuvo: una evidencia de la integración cambió en el almacén entre su captura y su lectura; esa integración no se da por buena, ni se revisa ni se entrega.");
+            return new Verdict(
+                RunPhase.Failed,
+                true,
+                _ledger.RepositoryChanged
+                    ? "Se detuvo: el repositorio del usuario cambió durante la ejecución."
+                    : _ledger.SourceMoved
+                        ? "Se detuvo: la ref de una tarea ya no apunta al commit que se verificó, y no se integró nada de ella."
+                        : "Se detuvo: una evidencia de la integración cambió en el almacén entre su captura y su lectura; esa integración no se da por buena, ni se revisa ni se entrega.",
+                null,
+                UserText.Of(_ledger.RepositoryChanged
+                    ? OrchestrationUserTexts.VerdictStoppedRepository
+                    : _ledger.SourceMoved ? OrchestrationUserTexts.VerdictStoppedSourceMoved : OrchestrationUserTexts.VerdictStoppedEvidence));
         }
 
         // Work the budget holds back (a ready agent task, or a failed one whose retry it refused) is always explained,
@@ -1300,28 +1353,32 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
         if (health.RetryExhaustedTasks.Count > 0 || health.UnreachableTasks.Count > 0 || budgetHeld)
         {
             var parts = new List<string> { "Falló." };
+            var coded = new List<UserText>();
             if (health.RetryExhaustedTasks.Count > 0)
             {
                 parts.Add("Sin reintentos: " + string.Join(", ", health.RetryExhaustedTasks) + ".");
+                coded.Add(UserText.Of(OrchestrationUserTexts.VerdictNoRetries, OrchestrationUserTexts.List([.. health.RetryExhaustedTasks.Select(t => t.Value)])));
             }
 
             if (health.UnreachableTasks.Count > 0)
             {
                 parts.Add("Inalcanzables: " + string.Join(", ", health.UnreachableTasks) + ".");
+                coded.Add(UserText.Of(OrchestrationUserTexts.VerdictUnreachable, OrchestrationUserTexts.List([.. health.UnreachableTasks.Select(t => t.Value)])));
             }
 
             if (budgetHeld)
             {
                 parts.Add(string.Create(CultureInfo.InvariantCulture, $"Se agotó el presupuesto de ejecuciones de agente ({_ctx.Options.MaxAgentRuns})."));
+                coded.Add(UserText.Of(OrchestrationUserTexts.VerdictBudgetSpent, _ctx.Options.MaxAgentRuns));
             }
 
-            return new Verdict(RunPhase.Failed, true, string.Join(" ", parts));
+            return new Verdict(RunPhase.Failed, true, string.Join(" ", parts), null, UserText.Of(OrchestrationUserTexts.VerdictFailed, OrchestrationUserTexts.Sentences(coded)));
         }
 
         var blocked = tasks.Where(t => t.Status == WorkTaskStatus.Blocked).Select(t => (Task: t, Reason: _ledger.Blocks.GetValueOrDefault(t.Id))).ToList();
         if (blocked.Any(b => b.Reason?.Kind == BlockKind.Interrupted))
         {
-            return new Verdict(RunPhase.Interrupted, false, "Interrumpida: reanúdala cuando quieras.");
+            return new Verdict(RunPhase.Interrupted, false, "Interrumpida: reanúdala cuando quieras.", null, UserText.Of(OrchestrationUserTexts.VerdictInterrupted));
         }
 
         // A task waiting for the answer to its question waits for a person too (docs/17 D-29), and the consent of the run may
@@ -1329,21 +1386,36 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
         if (blocked.Any(b => b.Reason?.Kind is BlockKind.AwaitingHuman or BlockKind.AwaitingAnswer) || tasks.Any(t => t.Status == WorkTaskStatus.AwaitingApproval))
         {
             var waiting = blocked.Where(b => b.Reason?.Kind is BlockKind.AwaitingHuman or BlockKind.AwaitingAnswer).Select(b => b.Task.Id).Concat(tasks.Where(t => t.Status == WorkTaskStatus.AwaitingApproval).Select(t => t.Id));
-            return new Verdict(RunPhase.AwaitingHuman, false, "Esperando una decisión tuya en: " + string.Join(", ", waiting) + ".", ConsentWake());
+            return new Verdict(
+                RunPhase.AwaitingHuman,
+                false,
+                "Esperando una decisión tuya en: " + string.Join(", ", waiting) + ".",
+                ConsentWake(),
+                UserText.Of(OrchestrationUserTexts.VerdictAwaitingHuman, OrchestrationUserTexts.List([.. waiting.Select(w => w.Value)])));
         }
 
         if (blocked.Any(b => b.Reason?.Kind == BlockKind.ProviderUnavailable))
         {
             var stuck = blocked.Where(b => b.Reason?.Kind == BlockKind.ProviderUnavailable).Select(b => b.Task.Id).ToList();
             await AlertOnceAsync("run.blocked|" + string.Join(",", stuck), "run.blocked", stuck, "The run cannot progress: these tasks could not be launched and wait for the user to retry them.").ConfigureAwait(false);
-            return new Verdict(RunPhase.Blocked, false, "Bloqueada: no se pudo lanzar " + string.Join(", ", stuck) + ". Revisa el proveedor y reinténtalas.");
+            return new Verdict(
+                RunPhase.Blocked,
+                false,
+                "Bloqueada: no se pudo lanzar " + string.Join(", ", stuck) + ". Revisa el proveedor y reinténtalas.",
+                null,
+                UserText.Of(OrchestrationUserTexts.VerdictBlockedLaunch, OrchestrationUserTexts.List([.. stuck.Select(t => t.Value)])));
         }
 
         var quota = QuotaWake();
         if (quota is { } wake)
         {
             var estimated = _ledger.Blocks.Values.Any(b => b.Estimated && b.Until == wake) ? " (estimada)" : string.Empty;
-            return new Verdict(RunPhase.WaitingForQuota, false, $"En espera de cuota hasta {wake.ToString("O", CultureInfo.InvariantCulture)}{estimated}.", wake);
+            return new Verdict(
+                RunPhase.WaitingForQuota,
+                false,
+                $"En espera de cuota hasta {wake.ToString("O", CultureInfo.InvariantCulture)}{estimated}.",
+                wake,
+                UserText.Of(estimated.Length > 0 ? OrchestrationUserTexts.VerdictWaitingQuotaEstimated : OrchestrationUserTexts.VerdictWaitingQuota, wake.ToUniversalTime()));
         }
 
         if (blocked.Any(b => b.Reason?.Kind == BlockKind.RateLimitedUntil))
@@ -1352,19 +1424,26 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
                 .Where(b => b.Reason?.Kind == BlockKind.RateLimitedUntil && QuotaWaitPolicy.ChecksExhausted(_ctx, _ledger.StoppedChecks.GetValueOrDefault(b.Task.Id)))
                 .Select(b => b.Task.Id)
                 .ToList();
-            return new Verdict(RunPhase.Paused, false, checkedOut.Count > 0
-                ? string.Create(CultureInfo.InvariantCulture, $"En pausa: el límite de uso seguía activo en {_ctx.Options.MaxAgentRuns} comprobaciones seguidas de {string.Join(", ", checkedOut)}; reintenta la tarea cuando quieras.")
-                : "En pausa: el límite de uso del proveedor dura más de lo que se espera sola; reintenta la tarea cuando quieras.");
+            return new Verdict(
+                RunPhase.Paused,
+                false,
+                checkedOut.Count > 0
+                    ? string.Create(CultureInfo.InvariantCulture, $"En pausa: el límite de uso seguía activo en {_ctx.Options.MaxAgentRuns} comprobaciones seguidas de {string.Join(", ", checkedOut)}; reintenta la tarea cuando quieras.")
+                    : "En pausa: el límite de uso del proveedor dura más de lo que se espera sola; reintenta la tarea cuando quieras.",
+                null,
+                checkedOut.Count > 0
+                    ? UserText.Of(OrchestrationUserTexts.VerdictPausedChecks, _ctx.Options.MaxAgentRuns, OrchestrationUserTexts.List([.. checkedOut.Select(t => t.Value)]))
+                    : UserText.Of(OrchestrationUserTexts.VerdictPausedLong));
         }
 
         if (_paused)
         {
-            return new Verdict(RunPhase.Paused, false, "En pausa.");
+            return new Verdict(RunPhase.Paused, false, "En pausa.", null, UserText.Of(OrchestrationUserTexts.VerdictPaused));
         }
 
         var unfinished = tasks.Where(t => !WorkTaskTransitions.IsTerminal(t.Status)).Select(t => t.Id).ToList();
         await AlertOnceAsync("graph.deadlock|" + string.Join(",", unfinished), "graph.deadlock", unfinished, "No task can progress and nothing explains why (deadlock).").ConfigureAwait(false);
-        return new Verdict(RunPhase.Blocked, false, "Bloqueada: ninguna tarea puede avanzar.");
+        return new Verdict(RunPhase.Blocked, false, "Bloqueada: ninguna tarea puede avanzar.", null, UserText.Of(OrchestrationUserTexts.VerdictDeadlock));
     }
 
     /// <summary>
@@ -1458,15 +1537,15 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
     {
         foreach (var task in _graph.Tasks.Where(t => t.Status is WorkTaskStatus.Pending or WorkTaskStatus.Running or WorkTaskStatus.Blocked or WorkTaskStatus.AwaitingApproval).ToList())
         {
-            await MoveAsync(task.Id, WorkTaskStatus.Cancelled, "Cancelada por el usuario: " + _cancelReason).ConfigureAwait(false);
+            await MoveAsync(task.Id, WorkTaskStatus.Cancelled, "Cancelada por el usuario: " + _cancelReason, text: UserText.Of(OrchestrationUserTexts.TaskCancelledByUser, LoggedTexts.CancelReason(_cancelReason))).ConfigureAwait(false);
         }
 
-        return await FinishAsync(RunPhase.Cancelled, "Cancelada por el usuario: " + _cancelReason).ConfigureAwait(false);
+        return await FinishAsync(RunPhase.Cancelled, "Cancelada por el usuario: " + _cancelReason, UserText.Of(OrchestrationUserTexts.VerdictCancelledByUser, LoggedTexts.CancelReason(_cancelReason))).ConfigureAwait(false);
     }
 
-    private async Task<RunResult> FinishAsync(RunPhase phase, string summary)
+    private async Task<RunResult> FinishAsync(RunPhase phase, string summary, UserText? text = null)
     {
-        SetPhase(phase, summary);
+        SetPhase(phase, summary, text);
         await _recorder.RecordAsync(
             DecisionKind.RunFinished,
             $"La ejecución {Id} termina: {phase}",
@@ -1474,7 +1553,7 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
             Token).ConfigureAwait(false);
         var health = _graph.Analyze(Now, _ctx.StallThreshold);
         Volatile.Write(ref _snapshot, BuildSnapshot(health));
-        var result = new RunResult(Id, phase, health, _ledger.IntegrationCommit, _ledger.VerdictId, summary);
+        var result = new RunResult(Id, phase, health, _ledger.IntegrationCommit, _ledger.VerdictId, summary, text);
         Emit(new RunFinishedEvent(Now, result));
         return result;
     }
@@ -1483,7 +1562,7 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
 
     /// <summary>Applies a transition to the graph (the domain rejects an illegal one before anything is written) and records it.</summary>
     /// <param name="actor">Who moved the task: the system, unless a person decided it (their retry).</param>
-    private async Task MoveAsync(TaskId id, WorkTaskStatus to, string reason, IReadOnlyList<EvidenceId>? evidence = null, BlockReason? block = null, Actor? actor = null)
+    private async Task MoveAsync(TaskId id, WorkTaskStatus to, string reason, IReadOnlyList<EvidenceId>? evidence = null, BlockReason? block = null, Actor? actor = null, UserText? text = null)
     {
         var task = _graph[id];
         var from = task.Status;
@@ -1502,10 +1581,10 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
             task.TransitionTo(to, at, reason);
         }
 
-        await RecordTransitionAsync(id, from, to, reason, items, block, actor).ConfigureAwait(false);
+        await RecordTransitionAsync(id, from, to, reason, items, block, actor, text).ConfigureAwait(false);
     }
 
-    private async Task RecordTransitionAsync(TaskId id, WorkTaskStatus from, WorkTaskStatus to, string reason, IReadOnlyList<EvidenceId> evidence, BlockReason? block, Actor? actor = null)
+    private async Task RecordTransitionAsync(TaskId id, WorkTaskStatus from, WorkTaskStatus to, string reason, IReadOnlyList<EvidenceId> evidence, BlockReason? block, Actor? actor = null, UserText? text = null)
     {
         if (to == WorkTaskStatus.Blocked)
         {
@@ -1525,17 +1604,17 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
             $"{id}: {from} → {to}",
             new TaskStatusChangedPayload(id, from, to, reason, to == WorkTaskStatus.Blocked ? _ledger.Blocks[id].ToString() : null, evidence, _ledger.Attempts.GetValueOrDefault(id)) { RunId = _recorder.RunValue },
             Token).ConfigureAwait(false);
-        Emit(new TaskStatusChangedEvent(Now, id, from, to, reason));
+        Emit(new TaskStatusChangedEvent(Now, id, from, to, reason, text));
     }
 
     // ---- what the UI sees ----
 
-    private void SetPhase(RunPhase phase, string? detail)
+    private void SetPhase(RunPhase phase, string? detail, UserText? detailText = null)
     {
         if (phase != _phase)
         {
             _phase = phase;
-            Emit(new RunPhaseChangedEvent(Now, phase, detail));
+            Emit(new RunPhaseChangedEvent(Now, phase, detail, detailText));
         }
     }
 

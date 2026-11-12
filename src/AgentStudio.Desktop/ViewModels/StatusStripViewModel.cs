@@ -1,6 +1,7 @@
 using System.Collections.Specialized;
 using System.ComponentModel;
 using AgentStudio.Desktop.Controls;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Orchestrator;
 using AgentStudio.Desktop.Orchestrator.Monitor;
@@ -83,7 +84,7 @@ public sealed partial class StatusStripViewModel : ObservableObject, IDisposable
 
     /// <summary>The context of the task in course, the fullest of several, or «sin tareas en curso».</summary>
     [ObservableProperty]
-    private MetricBarReading _context = MetricBars.Empty("Contexto", "sin tareas en curso");
+    private MetricBarReading _context = MetricBars.Empty(Texts.Get("Strip_Context"), Texts.Get("Strip_NoTasks"));
 
     /// <summary>The windows of the quota of the account: Claude's 5 hours and 7 days, and Codex's with the opt-in.</summary>
     [ObservableProperty]
@@ -414,7 +415,7 @@ public sealed partial class StatusStripViewModel : ObservableObject, IDisposable
         _lastBuilt = _time.GetUtcNow();
         if (IsLocked)
         {
-            Context = MetricBars.Empty("Contexto", "bloqueado");
+            Context = MetricBars.Empty(Texts.Get("Strip_Context"), Texts.Get("Strip_Locked"));
             QuotaBars = [];
             Budget = null;
             ToolTip = null;
@@ -452,15 +453,15 @@ public sealed partial class StatusStripViewModel : ObservableObject, IDisposable
             .Where(m => m.IsActive)
             .SelectMany(m => m.Tasks)
             .Where(t => t.Status == WorkTaskStatus.Running && t.ContextBar is not null)
-            .Select(t => (Who: t.Id.ToString(), Line: $"Contexto de {t.Id} {t.Title}", Bar: t.ContextBar!))
+            .Select(t => (Who: t.Id.ToString(), Line: Texts.Format("Strip_Line_Task", t.Id, t.Title), Bar: t.ContextBar!))
             .Concat(_planners
                 .Where(p => p.IsPlanningInProgress && p.PlanningContext is not null)
-                .Select(p => (Who: PlannerName, Line: "Contexto del orquestador, que planifica", Bar: p.PlanningContext!)))
+                .Select(p => (Who: PlannerName, Line: Texts.Get("Strip_Line_Planner"), Bar: p.PlanningContext!)))
             .ToList();
         if (running.Count == 0)
         {
-            lines.Add("Contexto: sin tareas en curso.");
-            return MetricBars.Empty("Contexto", "sin tareas en curso");
+            lines.Add(Texts.Get("Strip_Line_NoTasks"));
+            return MetricBars.Empty(Texts.Get("Strip_Context"), Texts.Get("Strip_NoTasks"));
         }
 
         foreach (var (_, line, bar) in running)
@@ -469,24 +470,24 @@ public sealed partial class StatusStripViewModel : ObservableObject, IDisposable
         }
 
         var fullest = running.OrderByDescending(r => r.Bar.Fraction ?? -1).First();
-        var label = running.Count == 1 ? $"Contexto · {fullest.Who}" : $"Contexto · {fullest.Who}, la más llena de {running.Count}";
+        var label = running.Count == 1 ? Texts.Format("Strip_Label_One", fullest.Who) : Texts.Format("Strip_Label_Many", fullest.Who, running.Count);
         return fullest.Bar with { Label = label };
     }
 
     /// <summary>How the bar names the orchestrator while it plans: «Contexto · orquestador».</summary>
-    private const string PlannerName = "orquestador";
+    private static string PlannerName => Texts.Get("Strip_PlannerName");
 
     /// <summary>Claude's 5 hours and 7 days, and Codex's windows only with the opt-in; «sin dato» for what was not seen.</summary>
     private List<MetricBarReading> QuotaReadings(List<string> lines)
     {
         if (_quota is not { } quota)
         {
-            lines.Add("Cuota: sin dato (no está disponible en esta composición).");
-            return [MetricBars.Empty("Cuota", "sin dato")];
+            lines.Add(Texts.Get("Strip_Quota_Unavailable"));
+            return [MetricBars.Empty(Texts.Get("Strip_Quota"), Texts.Get("Strip_NoData"))];
         }
 
         var bars = new List<MetricBarReading>();
-        foreach (var (window, label) in new[] { ("five_hour", "Claude 5 h"), ("seven_day", "Claude 7 días") })
+        foreach (var (window, label) in new[] { ("five_hour", Texts.Get("Strip_Claude_5h")), ("seven_day", Texts.Get("Strip_Claude_7d")) })
         {
             if (quota.Claude.Windows.FirstOrDefault(w => w.Window == window) is { Bar: { } bar })
             {
@@ -495,7 +496,7 @@ public sealed partial class StatusStripViewModel : ObservableObject, IDisposable
             }
             else
             {
-                bars.Add(MetricBars.Empty(label, "sin dato"));
+                bars.Add(MetricBars.Empty(label, Texts.Get("Strip_NoData")));
                 lines.Add($"{label}: {quota.Claude.Status}");
             }
         }
@@ -512,7 +513,7 @@ public sealed partial class StatusStripViewModel : ObservableObject, IDisposable
 
             if (windows.Count == 0)
             {
-                bars.Add(MetricBars.Empty("Codex", "sin leer"));
+                bars.Add(MetricBars.Empty("Codex", Texts.Get("Strip_NotRead")));
                 lines.Add("Codex: " + quota.Codex.Status);
             }
         }
@@ -531,11 +532,11 @@ public sealed partial class StatusStripViewModel : ObservableObject, IDisposable
 
         foreach (var (monitor, bar) in budgets)
         {
-            lines.Add($"Presupuesto de la ejecución {monitor.RunId}: {bar.Text}");
+            lines.Add(Texts.Format("Strip_Budget_Line", monitor.RunId, bar.Text));
         }
 
         var fullest = budgets.OrderByDescending(b => b.Bar.Fraction ?? -1).First();
-        return budgets.Count == 1 ? fullest.Bar : fullest.Bar with { Label = $"Presupuesto, la más gastada de {budgets.Count}" };
+        return budgets.Count == 1 ? fullest.Bar : fullest.Bar with { Label = Texts.Format("Strip_Budget_Many", budgets.Count) };
     }
 
     private void Post(Action action)

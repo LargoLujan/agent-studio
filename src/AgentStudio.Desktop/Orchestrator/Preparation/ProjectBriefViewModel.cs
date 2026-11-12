@@ -69,7 +69,7 @@ public sealed partial class ProjectBriefViewModel : ObservableObject
         catch (Exception ex) when (ex is not OperationCanceledException)
 #pragma warning restore CA1031
         {
-            Status = _text.Format("Canvas_Brief_Failed", ex.Message);
+            Status = _text.Format("Canvas_Brief_Failed", OrchestratorErrorText.Detail(ex, _text.Provider));
         }
 
         OnPropertyChanged(nameof(VersionText));
@@ -109,7 +109,7 @@ public sealed partial class ProjectBriefViewModel : ObservableObject
         catch (Exception ex) when (ex is not OperationCanceledException)
 #pragma warning restore CA1031
         {
-            Status = _text.Format("Canvas_Brief_Failed", ex.Message);
+            Status = _text.Format("Canvas_Brief_Failed", OrchestratorErrorText.Detail(ex, _text.Provider));
         }
 
         OnPropertyChanged(nameof(VersionText));

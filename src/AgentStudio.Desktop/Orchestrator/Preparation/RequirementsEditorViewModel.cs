@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using AgentStudio.Application.Projects;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Orchestrator.Canvas;
 using AgentStudio.Desktop.Orchestrator.Session;
 using AgentStudio.Domain.Common;
@@ -25,13 +26,13 @@ public sealed partial class CriterionDraftViewModel : ObservableObject
         _changed = changed;
     }
 
-    /// <summary>How a criterion is checked (only the first two give objective evidence: docs/07).</summary>
-    public static IReadOnlyList<Choice<VerificationMethod>> Methods { get; } =
+    /// <summary>How a criterion is checked (only the first two give objective evidence: docs/07). Built on each read, so it follows the language.</summary>
+    public static IReadOnlyList<Choice<VerificationMethod>> Methods =>
     [
-        new(VerificationMethod.AutomatedTest, "Prueba automática"),
-        new(VerificationMethod.CommandCheck, "Comprobación con un comando"),
-        new(VerificationMethod.HumanReview, "Revisión de una persona"),
-        new(VerificationMethod.JudgeAssessment, "Valoración del juez"),
+        new(VerificationMethod.AutomatedTest, Texts.Get("Orchestrator_Req_MethodTest")),
+        new(VerificationMethod.CommandCheck, Texts.Get("Orchestrator_Req_MethodCommand")),
+        new(VerificationMethod.HumanReview, Texts.Get("Orchestrator_Req_MethodHuman")),
+        new(VerificationMethod.JudgeAssessment, Texts.Get("Orchestrator_Req_MethodJudge")),
     ];
 
     public IReadOnlyList<Choice<VerificationMethod>> MethodOptions => Methods;
@@ -336,16 +337,16 @@ public sealed partial class RequirementsEditorViewModel : ObservableObject
                 case FreezeOutcome.Unchanged:
                     Frozen = result.Set;
                     ShowFrozen();
-                    Notice = "Sin cambios: siguen congelados los mismos requisitos.";
+                    Notice = Texts.Get("Orchestrator_Req_NoChange");
                     break;
                 default:
-                    ErrorMessage = $"Ese contenido es el de una versión anterior ({Short(result.Set.ContentHash)}), y una versión congelada no vuelve a ser la vigente: cambia algo para congelar una versión nueva.";
+                    ErrorMessage = Texts.Format("Orchestrator_Req_OldVersion", Short(result.Set.ContentHash));
                     break;
             }
         }
         catch (DomainRuleViolationException ex)
         {
-            ErrorMessage = $"Los requisitos no se pueden congelar: {ex.Message}";
+            ErrorMessage = Texts.Format("Orchestrator_Req_CannotFreeze", OrchestratorErrorText.Detail(ex));
         }
         catch (OperationCanceledException)
         {
@@ -355,7 +356,7 @@ public sealed partial class RequirementsEditorViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = $"No se pudieron congelar los requisitos: {ex.Message}";
+            ErrorMessage = Texts.Format("Orchestrator_Req_FreezeFailed", OrchestratorErrorText.Detail(ex));
         }
         finally
         {
@@ -449,7 +450,7 @@ public sealed partial class RequirementsEditorViewModel : ObservableObject
         var problems = new List<string>();
         if (Drafts.Count == 0)
         {
-            problems.Add("Añade al menos un requisito.");
+            problems.Add(Texts.Get("Orchestrator_Req_AddOne"));
             return problems;
         }
 
@@ -458,28 +459,28 @@ public sealed partial class RequirementsEditorViewModel : ObservableObject
         {
             var draft = Drafts[i];
             var id = draft.Id.Trim();
-            var name = id.Length == 0 ? $"n.º {i + 1}" : id;
+            var name = id.Length == 0 ? Texts.Format("Orchestrator_Req_Number", i + 1) : id;
             if (id.Length == 0)
             {
-                problems.Add($"El requisito n.º {i + 1} no tiene identificador.");
+                problems.Add(Texts.Format("Orchestrator_Req_NoId", i + 1));
             }
             else if (!IdPattern.IsMatch(id))
             {
-                problems.Add($"El identificador «{id}» solo admite letras, números, «.», «-» y «_», sin espacios y con 32 caracteres como mucho.");
+                problems.Add(Texts.Format("Orchestrator_Req_BadId", id));
             }
             else if (!ids.Add(id))
             {
-                problems.Add($"El identificador {id} está repetido.");
+                problems.Add(Texts.Format("Orchestrator_Req_RepeatedId", id));
             }
 
             if (string.IsNullOrWhiteSpace(draft.Statement))
             {
-                problems.Add($"El requisito {name} no tiene texto.");
+                problems.Add(Texts.Format("Orchestrator_Req_NoStatement", name));
             }
 
             if (draft.IsMandatory && draft.Criteria.Count == 0)
             {
-                problems.Add($"El requisito obligatorio {name} necesita al menos un criterio de aceptación.");
+                problems.Add(Texts.Format("Orchestrator_Req_NoCriterion", name));
             }
 
             var criteria = new HashSet<string>(StringComparer.Ordinal);
@@ -489,16 +490,16 @@ public sealed partial class RequirementsEditorViewModel : ObservableObject
                 var criterionId = criterion.Id.Trim();
                 if (criterionId.Length == 0)
                 {
-                    problems.Add($"El criterio n.º {j + 1} de {name} no tiene identificador.");
+                    problems.Add(Texts.Format("Orchestrator_Req_CriterionNoId", j + 1, name));
                 }
                 else if (!criteria.Add(criterionId))
                 {
-                    problems.Add($"El criterio {criterionId} de {name} está repetido.");
+                    problems.Add(Texts.Format("Orchestrator_Req_CriterionRepeated", criterionId, name));
                 }
 
                 if (string.IsNullOrWhiteSpace(criterion.Description))
                 {
-                    problems.Add($"El criterio {(criterionId.Length == 0 ? $"n.º {j + 1}" : criterionId)} de {name} no tiene descripción.");
+                    problems.Add(Texts.Format("Orchestrator_Req_CriterionNoDescription", criterionId.Length == 0 ? Texts.Format("Orchestrator_Req_Number", j + 1) : criterionId, name));
                 }
             }
         }
@@ -510,31 +511,34 @@ public sealed partial class RequirementsEditorViewModel : ObservableObject
     {
         if (_project is null)
         {
-            return "Abre el proyecto para congelar sus requisitos.";
+            return Texts.Get("Orchestrator_Req_StatusNoProject");
         }
 
         if (!_session.CanStoreRequirements)
         {
-            return "Falta el almacén de requisitos: no se pueden congelar.";
+            return Texts.Get("Orchestrator_Req_StatusNoStore");
         }
 
         if (Frozen is not { } frozen)
         {
-            return "Sin requisitos congelados: escríbelos y congélalos para poder planificar.";
+            return Texts.Get("Orchestrator_Req_StatusNone");
         }
 
         if (IsEditing)
         {
-            return $"Versión nueva sin congelar: sigue vigente la congelada (hash {Short(frozen.ContentHash)}).";
+            return Texts.Format("Orchestrator_Req_StatusDraft", Short(frozen.ContentHash));
         }
 
         var mandatory = frozen.Mandatory.Count();
         var when = TimeZoneInfo.ConvertTime(frozen.FrozenAt, _time.LocalTimeZone).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture);
-        return $"Congelados el {when}: {Count(frozen.Requirements.Count, "requisito", "requisitos")} ({Count(mandatory, "obligatorio", "obligatorios")}) · hash {Short(frozen.ContentHash)}";
+        return Texts.Format("Orchestrator_Req_StatusFrozen", when, CountOfRequirements(frozen.Requirements.Count), CountOfMandatory(mandatory), Short(frozen.ContentHash));
     }
 
-    private static string Count(int count, string one, string many) =>
-        count.ToString(CultureInfo.InvariantCulture) + " " + (count == 1 ? one : many);
+    private static string CountOfRequirements(int count) =>
+        count == 1 ? Texts.Get("Orchestrator_Req_CountOne") : Texts.Format("Orchestrator_Req_CountMany", count.ToString(CultureInfo.InvariantCulture));
+
+    private static string CountOfMandatory(int count) =>
+        count == 1 ? Texts.Get("Orchestrator_Req_MandatoryOne") : Texts.Format("Orchestrator_Req_MandatoryMany", count.ToString(CultureInfo.InvariantCulture));
 
     private static string Short(string hash) => hash.Length > 12 ? hash[..12] : hash;
 }

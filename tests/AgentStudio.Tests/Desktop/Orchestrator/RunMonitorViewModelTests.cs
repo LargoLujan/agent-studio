@@ -137,6 +137,30 @@ public sealed class RunMonitorViewModelTests
         Assert.Equal("Falló: la política de pruebas exige pruebas capturadas por el sistema.", other.ResultSummaryText);
     }
 
+    /// <summary>
+    /// ADR-0054 addendum of 2026-11-12: what the engine says of a phase, of a task and of the end of the run comes with a code, and the
+    /// monitor paints it in the language in use; a sentence with no code (a worker, an older log) is shown as it was anchored.
+    /// </summary>
+    [Fact]
+    public async Task The_monitor_paints_the_coded_texts_of_the_engine_in_the_language_in_use_and_keeps_the_sentence_that_has_none()
+    {
+        using var scope = global::AgentStudio.Desktop.Localization.Texts.Scope(new global::AgentStudio.Desktop.Localization.ResourceTextProvider(System.Globalization.CultureInfo.GetCultureInfo("en")));
+        var summary = new global::AgentStudio.Application.Localization.UserText("run.verdict.succeeded", [3, 0]);
+        var result = new RunResult(new("20261103-abc123"), RunPhase.Succeeded, FakeRun.Healthy, null, null, "Terminó bien: 3 tareas completadas y 0 omitidas.", summary);
+        var monitor = await FollowOpenAsync(
+            new FakeRun(FakeRun.SnapshotOf(RunPhase.Running, FakeRun.View("T1"), FakeRun.View("T2"))),
+            new TaskStatusChangedEvent(T0, Tid("T1"), WorkTaskStatus.Pending, WorkTaskStatus.Blocked, "Los nodos Debate no están disponibles en la Fase 3.", new global::AgentStudio.Application.Localization.UserText("task.node-unavailable", ["Debate"])),
+            new TaskStatusChangedEvent(T0, Tid("T2"), WorkTaskStatus.Pending, WorkTaskStatus.Blocked, "Un motivo de un trabajador."),
+            new RunPhaseChangedEvent(T0, RunPhase.Succeeded, summary.Code, summary),
+            new RunFinishedEvent(T0, result));
+
+        Assert.Equal("Nodes of type Debate are not available yet.", monitor.Tasks[0].ReasonText);
+        Assert.Equal("Un motivo de un trabajador.", monitor.Tasks[1].ReasonText);
+        Assert.Equal("Finished well: 3 tasks completed and 0 skipped.", monitor.PhaseDetail);
+        Assert.Equal("Finished well: 3 tasks completed and 0 skipped.", monitor.ResultSummary);
+        Assert.Null(monitor.ResultSummaryText);
+    }
+
     [Fact]
     public async Task An_interrupted_run_is_not_blocked_and_raises_no_deadlock_alert()
     {
@@ -157,7 +181,7 @@ public sealed class RunMonitorViewModelTests
         Assert.Equal("Bloqueada", blocked.PhaseLabel);
         Assert.Equal(Tone.Error, blocked.PhaseTone);
         Assert.True(blocked.ShowsDeadlockAlert);
-        Assert.Equal("Bloqueada · proveedor no disponible", blocked.Tasks[0].StatusLabel);
+        Assert.Equal("Bloqueada · el programa del agente no está disponible", blocked.Tasks[0].StatusLabel);
     }
 
     [Fact]
@@ -168,9 +192,9 @@ public sealed class RunMonitorViewModelTests
             new GraphHealthEvent(T0, Deadlocked),
             new RunPhaseChangedEvent(T0, RunPhase.WaitingForQuota, null));
 
-        Assert.Equal("Esperando cuota", monitor.PhaseLabel);
+        Assert.Equal("En pausa por el límite de uso", monitor.PhaseLabel);
         Assert.False(monitor.ShowsDeadlockAlert);
-        Assert.Equal("Esperando cuota hasta las 10:15", monitor.Tasks[0].StatusLabel);
+        Assert.Equal("En pausa por el límite de uso hasta las 10:15", monitor.Tasks[0].StatusLabel);
     }
 
     [Fact]
@@ -225,8 +249,8 @@ public sealed class RunMonitorViewModelTests
                 MetricValue<decimal>.Unavailable("subscription")))),
             new EvidenceCapturedEvent(T0, Tid("T1"), evidence));
 
-        Assert.Equal(["Usa Edit: src/Calc/Calc.cs", "Uso: 1200 tokens de entrada, 340 de salida"], monitor.Activity.Where(a => a.Task == "T1").Select(a => a.Text));
-        Assert.Equal("Uso: 1200 tokens de entrada, 340 de salida", monitor.Tasks[0].LastActivity);
+        Assert.Equal(["Usa Edit: src/Calc/Calc.cs", "Uso: 1.200 tokens de entrada y 340 de salida"], monitor.Activity.Where(a => a.Task == "T1").Select(a => a.Text));
+        Assert.Equal("Uso: 1.200 tokens de entrada y 340 de salida", monitor.Tasks[0].LastActivity);
         var entry = Assert.Single(monitor.Evidence);
         Assert.Equal(("T1", "Pruebas de T1", "Pruebas", "capturada por el sistema", "aaaaaaaaaaaa", "10 correctas, 0 fallidas, 0 omitidas"),
             (entry.Task, entry.Title, entry.Kind, entry.Origin, entry.ShortHash, entry.Tests));
@@ -453,7 +477,7 @@ public sealed class RunMonitorViewModelTests
         var monitor = await FollowOpenAsync(RunningAgentTask(), new AgentActivityEvent(T0, Tid("T1"), Context(30_822, 1_000_000)));
 
         var task = monitor.Tasks[0];
-        Assert.Equal("Contexto: 3 % · exacto · informado por el CLI · 30.822 de 1.000.000 tokens · claude-sonnet-5-5 · sano", task.Context);
+        Assert.Equal("Contexto: 3 % · exacto · informado por el programa del agente · 30.822 de 1.000.000 tokens · claude-sonnet-5-5 · sano", task.Context);
         Assert.Equal(ContextHealthLevel.Healthy, task.ContextLevel);
         Assert.Equal(Tone.Success, task.ContextTone);
 
@@ -478,7 +502,7 @@ public sealed class RunMonitorViewModelTests
         // A model neither the log of the project nor the base table knows: only its tokens (docs/14 D-10).
         var monitor = await FollowOpenAsync(RunningAgentTask(), new AgentActivityEvent(T0, Tid("T1"), Context(30_822, null, model: "modelo-desconocido")));
 
-        Assert.Equal("Contexto: 30.822 tokens · exacto · informado por el CLI · sin porcentaje: la ventana no se conoce todavía · modelo-desconocido · sin evaluar", monitor.Tasks[0].Context);
+        Assert.Equal("Contexto: 30.822 tokens · exacto · informado por el programa del agente · sin porcentaje: aún no se conoce la memoria de trabajo del modelo · modelo-desconocido · sin evaluar", monitor.Tasks[0].Context);
         Assert.Equal(Tone.Neutral, monitor.Tasks[0].ContextTone);
         Assert.False(monitor.Tasks[0].ContextBar!.HasValue);
         Assert.Equal("30.822 tokens", monitor.Tasks[0].ContextBar!.ValueText);
@@ -540,8 +564,8 @@ public sealed class RunMonitorViewModelTests
 
         var exact = monitor.Tasks[0].ContextBar!;
         Assert.False(exact.IsEstimate);
-        Assert.Equal("exacto · informado por el CLI", exact.Origin);
-        Assert.Equal("Tokens del último intento: 1.000 de entrada y 50 de salida · exacto · informado por el CLI", monitor.Tasks[0].TokensText);
+        Assert.Equal("exacto · informado por el programa del agente", exact.Origin);
+        Assert.Equal("Tokens del último intento: 1.000 de entrada y 50 de salida · exacto · informado por el programa del agente", monitor.Tasks[0].TokensText);
     }
 
     [Fact]
@@ -647,8 +671,8 @@ public sealed class RunMonitorViewModelTests
             new AgentActivityEvent(T0, Tid("T1"), new CompactionObserved(T0, "auto", MetricValue<long>.Exact(180_000, "claude compact_boundary.pre_tokens"))),
             new AgentActivityEvent(T0, Tid("T1"), Context(20_000, 1_000_000)));
 
-        Assert.Equal("Contexto: 2 % · exacto · informado por el CLI · 20.000 de 1.000.000 tokens · claude-sonnet-5-5 · sano · 1 compactación del CLI (posible pérdida de información)", monitor.Tasks[0].Context);
-        Assert.Contains(monitor.Activity, a => a.Text == "El CLI compactó el contexto (auto): 180.000 tokens antes · exacto · informado por el CLI");
+        Assert.Equal("Contexto: 2 % · exacto · informado por el programa del agente · 20.000 de 1.000.000 tokens · claude-sonnet-5-5 · sano · 1 compactación del contexto (posible pérdida de información)", monitor.Tasks[0].Context);
+        Assert.Contains(monitor.Activity, a => a.Text == "El programa del agente compactó el contexto (auto): 180.000 tokens antes · exacto · informado por el programa del agente");
     }
 
     [Fact]
@@ -708,7 +732,7 @@ public sealed class RunMonitorViewModelTests
         Assert.Equal([new RunId("20260101-abc123")], auditor.Audited);
         Assert.Equal(0, checksWhenAudited);
         Assert.Single(delivery.Checks);
-        Assert.Equal("Auditor del orquestador: 2 hallazgos, 1 de gravedad alta o crítica (2 alertas nuevas en el registro).", monitor.AuditSummary);
+        Assert.Equal("Auditor del orquestador: 2 hallazgos, 1 de gravedad alta o crítica (2 alertas nuevas en el historial).", monitor.AuditSummary);
         Assert.Equal(Tone.Error, monitor.AuditTone);
         Assert.Equal(
             [
@@ -717,7 +741,7 @@ public sealed class RunMonitorViewModelTests
             ],
             monitor.AuditFindings);
         Assert.True(monitor.ReplanPending);
-        Assert.Equal("El auditor pide replanificar: prepara una ejecución de seguimiento o descarta la petición. Hasta que decidas, la entrega espera.", monitor.ReplanText);
+        Assert.Equal("El auditor pide planificar de nuevo. Prepara una ejecución de seguimiento o descarta la petición. Hasta que decidas, la entrega espera.", monitor.ReplanText);
         Assert.True(monitor.HasReviewSection);
     }
 
@@ -726,7 +750,7 @@ public sealed class RunMonitorViewModelTests
     {
         var monitor = await ReviewedAsync(new FakeDeliveryService(), new RunReviewServices(new FakeOrchestratorAuditService()));
 
-        Assert.Equal("Auditor del orquestador: sin hallazgos en el registro verificado de la ejecución.", monitor.AuditSummary);
+        Assert.Equal("El auditor del orquestador no halló nada en el historial verificado de la ejecución.", monitor.AuditSummary);
         Assert.Equal(Tone.Success, monitor.AuditTone);
         Assert.Empty(monitor.AuditFindings);
         Assert.False(monitor.ReplanPending);
@@ -741,7 +765,7 @@ public sealed class RunMonitorViewModelTests
 
         var monitor = await ReviewedAsync(new FakeDeliveryService(), new RunReviewServices(auditor));
 
-        Assert.Equal("El registro de la ejecución no verifica desde la entrada 7: hash roto. El auditor no escribió nada.", monitor.AuditSummary);
+        Assert.Equal("El historial de la ejecución no se pudo verificar desde la entrada 7: hash roto. El auditor no escribió nada.", monitor.AuditSummary);
         Assert.Equal(Tone.Error, monitor.AuditTone);
         Assert.False(monitor.ReplanPending);
     }

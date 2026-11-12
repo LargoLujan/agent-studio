@@ -231,7 +231,9 @@ public sealed class PlanDraftTests : IDisposable
     [Fact]
     public async Task Why_the_orchestrator_planned_without_the_history_search_is_said_with_the_proposal_and_comes_back_with_its_draft()
     {
+        // What the proposal carries and the draft keeps is the sentence as it was anchored; what the screen says is its text in the language in use.
         const string Codex = "El orquestador no tuvo la búsqueda en el historial: Codex no admite herramientas externas.";
+        const string CodexOnScreen = "El orquestador no tuvo la búsqueda en el historial. Codex no admite herramientas externas.";
         var store = new MemoryCanvasStore();
         var time = new FakeTimeProvider(T0);
         var plan = PlanFixtures.Plan();
@@ -244,12 +246,12 @@ public sealed class PlanDraftTests : IDisposable
         Assert.DoesNotContain("historial", first.ProposalStatus, StringComparison.Ordinal);
         first.LoadProposal(ProposalOf(plan) with { HistoryToolNotice = Codex });
         Assert.StartsWith("Plan propuesto por el orquestador", first.ProposalStatus, StringComparison.Ordinal);
-        Assert.EndsWith(" " + Codex, first.ProposalStatus, StringComparison.Ordinal);
+        Assert.EndsWith(" " + CodexOnScreen, first.ProposalStatus, StringComparison.Ordinal);
         Assert.Equal(Codex, store.Draft?.Proposal?.HistoryToolNotice);
 
         // A proposal without a plan says it too.
         first.LoadProposal(new PlanProposal(Planning, null, [], false, AgentRunStatus.Failed, "boom", null) { HistoryToolNotice = Codex });
-        Assert.EndsWith(" " + Codex, first.ProposalStatus, StringComparison.Ordinal);
+        Assert.EndsWith(" " + CodexOnScreen, first.ProposalStatus, StringComparison.Ordinal);
 
         // The draft keeps it: the tab opened again still says it.
         first.LoadProposal(ProposalOf(plan) with { HistoryToolNotice = Codex });
@@ -257,7 +259,7 @@ public sealed class PlanDraftTests : IDisposable
         var again = await OpenAsync(store, time, plans: plans);
         Assert.Equal(Codex, again.Proposal?.HistoryToolNotice);
         Assert.StartsWith("Borrador recuperado", again.ProposalStatus, StringComparison.Ordinal);
-        Assert.EndsWith(" " + Codex, again.ProposalStatus, StringComparison.Ordinal);
+        Assert.EndsWith(" " + CodexOnScreen, again.ProposalStatus, StringComparison.Ordinal);
     }
 
     [Fact]

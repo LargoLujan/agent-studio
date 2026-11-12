@@ -1,6 +1,7 @@
 using System.Text.Json;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Git;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Projects;
@@ -125,7 +126,10 @@ public sealed class DeliveryService : IDeliveryService
         var log = await _decisions.LoadAsync(project.ProjectId, LogLoad.Full, cancellationToken).ConfigureAwait(false);
         if (!log.Verification.IsValid)
         {
-            return NotReady($"El registro de decisiones no está íntegro (entrada {log.Verification.FirstInvalidSequence}): no se entrega nada.");
+            var brokenSentence = $"El registro de decisiones no está íntegro (entrada {log.Verification.FirstInvalidSequence}): no se entrega nada.";
+            return log.Verification.FirstInvalidSequence is { } brokenEntry
+                ? NotReady(brokenSentence, OrchestrationUserTexts.DeliveryLogNotIntact, brokenEntry)
+                : NotReady(brokenSentence, OrchestrationUserTexts.DeliveryLogNotIntactUnknown);
         }
 
         var all = TypedEntries(log.Entries);
@@ -133,24 +137,24 @@ public sealed class DeliveryService : IDeliveryService
         var finished = entries.Select(e => e.Payload).OfType<RunFinishedPayload>().LastOrDefault();
         if (finished is null)
         {
-            return NotReady($"La ejecución {run.Value} no ha terminado: no hay nada que entregar.");
+            return NotReady($"La ejecución {run.Value} no ha terminado: no hay nada que entregar.", OrchestrationUserTexts.DeliveryRunNotFinished, run.Value);
         }
 
         if (finished.Phase != RunPhase.Succeeded)
         {
-            return NotReady($"La ejecución {run.Value} terminó como {finished.Phase}: solo se entrega una ejecución completada.");
+            return NotReady($"La ejecución {run.Value} terminó como {finished.Phase}: solo se entrega una ejecución completada.", OrchestrationUserTexts.DeliveryRunNotSucceeded, run.Value, OrchestrationUserTexts.Phase(finished.Phase));
         }
 
         if (finished.VerdictId is not { } verdictId || finished.IntegrationCommit is not { } integrationCommit)
         {
-            return NotReady($"La ejecución {run.Value} no tiene una integración aprobada por un juez independiente: no se entrega.");
+            return NotReady($"La ejecución {run.Value} no tiene una integración aprobada por un juez independiente: no se entrega.", OrchestrationUserTexts.DeliveryNoApprovedIntegration, run.Value);
         }
 
         var issued = entries.Where(e => e.Payload is VerdictIssuedPayload).ToList();
         var verdict = issued.LastOrDefault(e => ((VerdictIssuedPayload)e.Payload).VerdictId == verdictId);
         if (verdict.Payload is not VerdictIssuedPayload announced)
         {
-            return NotReady($"El veredicto {verdictId} con el que terminó la ejecución no está en el registro de decisiones: no se entrega.");
+            return NotReady($"El veredicto {verdictId} con el que terminó la ejecución no está en el registro de decisiones: no se entrega.", OrchestrationUserTexts.DeliveryVerdictMissing, verdictId);
         }
 
         var stored = await _verdicts.ListAsync(project.ProjectId, run.Value, cancellationToken).ConfigureAwait(false);
@@ -162,18 +166,21 @@ public sealed class DeliveryService : IDeliveryService
             // Phase 3, as it was: a valid approval of a judge, confirmed by the store and superseded by none.
             if (!approved)
             {
-                return NotReady($"El veredicto del juez es {announced.Decision}{(announced.Valid ? string.Empty : " y no es válido")}: "
-                    + "solo se entrega lo que un juez independiente aprobó con un veredicto válido.");
+                return NotReady(
+                    $"El veredicto del juez es {announced.Decision}{(announced.Valid ? string.Empty : " y no es válido")}: "
+                    + "solo se entrega lo que un juez independiente aprobó con un veredicto válido.",
+                    announced.Valid ? OrchestrationUserTexts.DeliveryVerdictNotApproved : OrchestrationUserTexts.DeliveryVerdictNotApprovedInvalid,
+                    DecisionPiece(announced.Decision));
             }
 
             if (kept is not { Valid: true, Verdict.Decision: VerdictDecision.Approved } || kept.RunId != run.Value)
             {
-                return NotReady($"El almacén de veredictos no confirma que el veredicto {verdictId} sea una aprobación válida: no se entrega.");
+                return NotReady($"El almacén de veredictos no confirma que el veredicto {verdictId} sea una aprobación válida: no se entrega.", OrchestrationUserTexts.DeliveryStoreNotValidApproval, verdictId);
             }
 
             if (stored.Any(v => v.Supersedes == verdictId) || issued.Any(e => ((VerdictIssuedPayload)e.Payload).Supersedes == verdictId))
             {
-                return NotReady($"El veredicto {verdictId} fue sustituido por otro: no se entrega.");
+                return NotReady($"El veredicto {verdictId} fue sustituido por otro: no se entrega.", OrchestrationUserTexts.DeliveryVerdictSuperseded, verdictId);
             }
         }
         else
@@ -181,7 +188,7 @@ public sealed class DeliveryService : IDeliveryService
             // Challenged (D-40): the store must say what the log announced of it, and its revision decides.
             if (kept is null || kept.RunId != run.Value || kept.Valid != announced.Valid || kept.Verdict.Decision != announced.Decision)
             {
-                return NotReady($"El almacén de veredictos no confirma el veredicto {verdictId} tal como lo anunció el registro de decisiones: no se entrega.");
+                return NotReady($"El almacén de veredictos no confirma el veredicto {verdictId} tal como lo anunció el registro de decisiones: no se entrega.", OrchestrationUserTexts.DeliveryStoreDiffers, verdictId);
             }
         }
 
@@ -202,14 +209,14 @@ public sealed class DeliveryService : IDeliveryService
         var integrations = entries.Where(e => e.Payload is IntegrationPerformedPayload { IsDelivery: false }).ToList();
         if (integrations.Any(e => e.Entry.Sequence > verdict.Entry.Sequence))
         {
-            return NotReady($"Hubo una integración en {runBranch} después del veredicto: el juez no revisó lo que se entregaría.");
+            return NotReady($"Hubo una integración en {runBranch} después del veredicto: el juez no revisó lo que se entregaría.", OrchestrationUserTexts.DeliveryIntegrationAfterVerdict, runBranch);
         }
 
         var reviewed = integrations.LastOrDefault(e => e.Entry.Sequence < verdict.Entry.Sequence).Payload as IntegrationPerformedPayload;
         if (reviewed is not { ResultCommit: { } reviewedCommit, ConflictPaths.Count: 0 }
             || !string.Equals(reviewedCommit, integrationCommit, StringComparison.OrdinalIgnoreCase))
         {
-            return NotReady($"La integración que revisó el juez no es la que dio por buena la ejecución ({Short(integrationCommit)}): no se entrega.");
+            return NotReady($"La integración que revisó el juez no es la que dio por buena la ejecución ({Short(integrationCommit)}): no se entrega.", OrchestrationUserTexts.DeliveryIntegrationNotJudged, Short(integrationCommit));
         }
 
         // The order of the log is not enough: a review that did not wait for a later integration can end after it, and the
@@ -219,15 +226,16 @@ public sealed class DeliveryService : IDeliveryService
         // The run ends with the verdict of the review that finished last (OrchestrationRun), which need not be the one that
         // was shown the last integration.
         var review = announced.Task is { } task ? $"de la revisión {task}" : "de una revisión sin tarea";
+        var reviewPiece = announced.Task is { } taskOfReview ? UserText.Of(OrchestrationUserTexts.DeliveryReviewOfTask, taskOfReview.ToString()) : UserText.Of(OrchestrationUserTexts.DeliveryReviewWithoutTask);
         var shown = ShownCommit(log.Entries, announced.DecisionLogHeadHash, run);
         if (shown is null)
         {
-            return NotReady($"El veredicto {verdictId} no dice qué integración se le mostró al juez (el registro no tiene la cabeza que cita, o no había ninguna integración): no se entrega.");
+            return NotReady($"El veredicto {verdictId} no dice qué integración se le mostró al juez (el registro no tiene la cabeza que cita, o no había ninguna integración): no se entrega.", OrchestrationUserTexts.DeliveryShownUnknown, verdictId);
         }
 
         if (!string.Equals(shown, integrationCommit, StringComparison.OrdinalIgnoreCase))
         {
-            return NotReady($"La ejecución terminó con el veredicto {verdictId}, {review}, la última que acabó, y a esa revisión se le mostró la integración {Short(shown)}; lo que se entregaría es {Short(integrationCommit)}: no se entrega.");
+            return NotReady($"La ejecución terminó con el veredicto {verdictId}, {review}, la última que acabó, y a esa revisión se le mostró la integración {Short(shown)}; lo que se entregaría es {Short(integrationCommit)}: no se entrega.", OrchestrationUserTexts.DeliveryShownDiffers, verdictId, reviewPiece, Short(shown), Short(integrationCommit));
         }
 
         // What the judge had in front of it is also its worktree («Workspace with the integrated code», JudgePrompt), which
@@ -240,12 +248,12 @@ public sealed class DeliveryService : IDeliveryService
             .ToList();
         if (worktrees.Count == 0)
         {
-            return NotReady($"El registro no dice sobre qué código trabajó el juez del veredicto {verdictId} (no tiene el espacio de trabajo {review}): no se entrega.");
+            return NotReady($"El registro no dice sobre qué código trabajó el juez del veredicto {verdictId} (no tiene el espacio de trabajo {review}): no se entrega.", OrchestrationUserTexts.DeliveryJudgeCodeUnknown, verdictId, reviewPiece);
         }
 
         if (worktrees.FirstOrDefault(w => !string.Equals(w.BaseCommit, integrationCommit, StringComparison.OrdinalIgnoreCase)) is { } elsewhere)
         {
-            return NotReady($"El juez del veredicto {verdictId} trabajó sobre {Short(elsewhere.BaseCommit)} (el espacio de trabajo {review}), no sobre la integración {Short(integrationCommit)} que se entregaría: no tuvo delante ese código, así que no se entrega.");
+            return NotReady($"El juez del veredicto {verdictId} trabajó sobre {Short(elsewhere.BaseCommit)} (el espacio de trabajo {review}), no sobre la integración {Short(integrationCommit)} que se entregaría: no tuvo delante ese código, así que no se entrega.", OrchestrationUserTexts.DeliveryJudgeElsewhere, verdictId, Short(elsewhere.BaseCommit), reviewPiece, Short(integrationCommit));
         }
 
         // D-35: a request to replan that nobody attended (dismissed, or followed by a follow-up run) blocks the delivery.
@@ -260,7 +268,10 @@ public sealed class DeliveryService : IDeliveryService
             commit,
             revised is null
                 ? $"El juez aprobó la integración {Short(commit)} de la ejecución {run.Value}."
-                : $"Se puede entregar la integración {Short(commit)} de la ejecución {run.Value}: {revised}.");
+                : $"Se puede entregar la integración {Short(commit)} de la ejecución {run.Value}: {revised.Sentence}.",
+            revised is null
+                ? UserText.Of(OrchestrationUserTexts.DeliveryReady, Short(commit), run.Value)
+                : UserText.Of(OrchestrationUserTexts.DeliveryReadyRevised, Short(commit), run.Value, revised.Text));
     }
 
     public async Task<DeliveryResult> DeliverAsync(ProjectContext project, RunId run, DeliveryMode mode, CancellationToken cancellationToken)
@@ -275,21 +286,21 @@ public sealed class DeliveryService : IDeliveryService
         var readiness = await CheckAsync(project, run, cancellationToken).ConfigureAwait(false);
         if (readiness is not { Ready: true, Commit: { } integration })
         {
-            return new DeliveryResult(false, null, string.Empty, readiness.Reason);
+            return new DeliveryResult(false, null, string.Empty, readiness.Reason, readiness.ReasonText);
         }
 
         var runBranch = IntegrationNames.BranchName(run);
         var before = await _worktrees.InspectAsync(project.RootPath, cancellationToken).ConfigureAwait(false);
         if (before.HeadBranch is null)
         {
-            return new DeliveryResult(false, null, "HEAD", $"HEAD no está en ninguna rama: no hay a qué rama entregar {runBranch}.");
+            return new DeliveryResult(false, null, "HEAD", $"HEAD no está en ninguna rama: no hay a qué rama entregar {runBranch}.", UserText.Of(OrchestrationUserTexts.DeliveryHeadDetached, runBranch));
         }
 
         var target = before.HeadBranch;
         var tip = await _worktrees.ResolveCommitAsync(before.Root, IntegrationNames.BranchRef(run), cancellationToken).ConfigureAwait(false);
         if (tip is null)
         {
-            return new DeliveryResult(false, null, target, $"No existe la rama {runBranch}: no hay nada que entregar.");
+            return new DeliveryResult(false, null, target, $"No existe la rama {runBranch}: no hay nada que entregar.", UserText.Of(OrchestrationUserTexts.DeliveryBranchMissing, runBranch));
         }
 
         // The branch is only a pointer an agent with a shell can move: it must still be at what the judge approved.
@@ -299,12 +310,13 @@ public sealed class DeliveryService : IDeliveryService
                 false,
                 null,
                 target,
-                $"La rama {runBranch} está en {Short(tip)}, pero el juez aprobó {Short(integration)}: se movió después de la revisión y no se entrega nada.");
+                $"La rama {runBranch} está en {Short(tip)}, pero el juez aprobó {Short(integration)}: se movió después de la revisión y no se entrega nada.",
+                UserText.Of(OrchestrationUserTexts.DeliveryBranchMoved, runBranch, Short(tip), Short(integration)));
         }
 
         if (await ContainsAsync(before.Root, before.HeadCommit, integration, cancellationToken).ConfigureAwait(false))
         {
-            return new DeliveryResult(true, before.HeadCommit, target, $"{target} ya contiene {runBranch}: no hay nada que entregar.");
+            return new DeliveryResult(true, before.HeadCommit, target, $"{target} ya contiene {runBranch}: no hay nada que entregar.", UserText.Of(OrchestrationUserTexts.DeliveryAlreadyContained, target, runBranch));
         }
 
         if (mode == DeliveryMode.FastForwardOnly
@@ -315,7 +327,8 @@ public sealed class DeliveryService : IDeliveryService
                 null,
                 target,
                 $"{target} ha avanzado desde que empezó la ejecución, así que no se puede entregar con --ff-only. "
-                + "Entrega con un commit de fusión o lanza una ejecución de seguimiento.");
+                + "Entrega con un commit de fusión o lanza una ejecución de seguimiento.",
+                UserText.Of(OrchestrationUserTexts.DeliveryTargetAdvanced, target));
         }
 
         // Before asking: what changes (the approval names the count and the paths).
@@ -328,7 +341,7 @@ public sealed class DeliveryService : IDeliveryService
         var refusals = await _worktrees.FindDeliveryRefusalsAsync(before.Root, before.HeadCommit, integration, cancellationToken).ConfigureAwait(false);
         if (refusals.Count > 0)
         {
-            return new DeliveryResult(false, null, target, Refused(target, refusals));
+            return new DeliveryResult(false, null, target, Refused(target, refusals), UserText.Of(OrchestrationUserTexts.DeliveryConfigRefused, target, RefusedList(refusals)));
         }
 
         // The approval is bound to exactly this delivery: the git layer refuses it for anything else, and only once.
@@ -346,12 +359,19 @@ public sealed class DeliveryService : IDeliveryService
         if (!decision.Approved)
         {
             var comment = string.IsNullOrWhiteSpace(decision.Comment) ? string.Empty : $" ({decision.Comment})";
-            return new DeliveryResult(false, null, target, $"Entrega denegada por {decision.DecidedBy}{comment}: {target} no se ha tocado.");
+            return new DeliveryResult(
+                false,
+                null,
+                target,
+                $"Entrega denegada por {decision.DecidedBy}{comment}: {target} no se ha tocado.",
+                string.IsNullOrWhiteSpace(decision.Comment)
+                    ? UserText.Of(OrchestrationUserTexts.DeliveryDenied, decision.DecidedBy, target)
+                    : UserText.Of(OrchestrationUserTexts.DeliveryDeniedWithComment, decision.DecidedBy, decision.Comment, target));
         }
 
         if (!string.Equals(decision.Answers, binding, StringComparison.Ordinal))
         {
-            return new DeliveryResult(false, null, target, $"La aprobación recibida no responde a la petición de esta entrega: {target} no se ha tocado. Vuelve a pedir la entrega.");
+            return new DeliveryResult(false, null, target, $"La aprobación recibida no responde a la petición de esta entrega: {target} no se ha tocado. Vuelve a pedir la entrega.", UserText.Of(OrchestrationUserTexts.DeliveryApprovalMismatch, target));
         }
 
         var now = await _worktrees.InspectAsync(project.RootPath, cancellationToken).ConfigureAwait(false);
@@ -368,12 +388,16 @@ public sealed class DeliveryService : IDeliveryService
         if (outcome.Status == UserBranchDeliveryStatus.Delivered)
         {
             var delivered = $"Entregado: {target} está en {Short(outcome.HeadCommit)} e incluye {runBranch}.";
+            var deliveredText = UserText.Of(OrchestrationUserTexts.DeliveryDelivered, target, Short(outcome.HeadCommit), runBranch);
             var unrecorded = await RecordDeliveryAsync(project, run, target, integration, outcome.HeadCommit).ConfigureAwait(false);
             return new DeliveryResult(
                 true,
                 outcome.HeadCommit,
                 target,
-                unrecorded is null ? delivered : $"{delivered} Atención: la entrega no se pudo anotar en el registro de decisiones ({unrecorded}).");
+                unrecorded is null ? delivered : $"{delivered} Atención: la entrega no se pudo anotar en el registro de decisiones ({unrecorded}).",
+                unrecorded is null
+                    ? deliveredText
+                    : OrchestrationUserTexts.Sentences([deliveredText, UserText.Of(OrchestrationUserTexts.DeliveryUnrecorded, unrecorded)]));
         }
 
         return outcome.Status switch
@@ -384,24 +408,28 @@ public sealed class DeliveryService : IDeliveryService
                 null,
                 target,
                 $"Tienes cambios sin confirmar, ficheros sin seguimiento o ignorados en rutas que cambia la entrega ({string.Join(", ", outcome.Paths)}): "
-                + $"{target} no se ha tocado. Confírmalos o apártalos y vuelve a pedir la entrega."),
+                + $"{target} no se ha tocado. Confírmalos o apártalos y vuelve a pedir la entrega.",
+                UserText.Of(OrchestrationUserTexts.DeliveryDirtyPaths, string.Join(", ", outcome.Paths), target)),
             UserBranchDeliveryStatus.Conflicts => new DeliveryResult(
                 false,
                 null,
                 target,
                 $"Fusionar {runBranch} en {target} tendría conflictos en {string.Join(", ", outcome.Paths)}: no se ha tocado nada. "
-                + $"Lanza una ejecución de seguimiento desde {target}."),
+                + $"Lanza una ejecución de seguimiento desde {target}.",
+                UserText.Of(OrchestrationUserTexts.DeliveryConflicts, runBranch, target, string.Join(", ", outcome.Paths))),
             UserBranchDeliveryStatus.IncompleteMerge => new DeliveryResult(
                 false,
                 null,
                 target,
                 $"git fusionó {runBranch} en tu árbol de trabajo pero no pudo crear el commit (¿lo rechazó un hook tuyo?): {target} no se ha movido y la "
-                + $"fusión sigue en curso. Termínala con git commit o deshazla con git merge --abort. git dijo: {outcome.Output}"),
+                + $"fusión sigue en curso. Termínala con git commit o deshazla con git merge --abort. git dijo: {outcome.Output}",
+                UserText.Of(OrchestrationUserTexts.DeliveryMergeIncomplete, runBranch, target, outcome.Output ?? string.Empty)),
             _ => new DeliveryResult(
                 false,
                 null,
                 target,
-                $"git no completó la entrega y {target} no se ha movido; revisa tu repositorio (git status). git dijo: {outcome.Output}"),
+                $"git no completó la entrega y {target} no se ha movido; revisa tu repositorio (git status). git dijo: {outcome.Output}",
+                UserText.Of(OrchestrationUserTexts.DeliveryGitFailed, target, outcome.Output ?? string.Empty)),
         };
     }
 
@@ -491,7 +519,7 @@ public sealed class DeliveryService : IDeliveryService
     /// it, or by a follow-up run of this one (<c>RunStarted.Follows</c>) that started after it. A dismissal or a follow-up
     /// that came before a request does not answer it, so a new request blocks again.
     /// </summary>
-    private static string? UnattendedReplan(IReadOnlyList<(DecisionEntry Entry, DecisionPayload Payload)> all, string run)
+    private static Said? UnattendedReplan(IReadOnlyList<(DecisionEntry Entry, DecisionPayload Payload)> all, string run)
     {
         var dismissals = GrantedByPerson(all, ReplanDismissalAction, unit => string.Equals(unit, run, StringComparison.Ordinal));
         var followUps = all
@@ -511,18 +539,25 @@ public sealed class DeliveryService : IDeliveryService
             }
 
             var findings = request.Findings.Count == 0 ? "ninguno" : string.Join(", ", request.Findings);
-            return $"Hay una petición de replanificar la ejecución {run} sin atender ({ReplanAuthor(entry.Actor)}; hallazgos: {findings}): "
-                + "no se entrega hasta que la descartes o lances la ejecución de seguimiento.";
+            var author = ReplanAuthor(entry.Actor);
+            return new Said(
+                $"Hay una petición de replanificar la ejecución {run} sin atender ({author.Sentence}; hallazgos: {findings}): "
+                + "no se entrega hasta que la descartes o lances la ejecución de seguimiento.",
+                UserText.Of(
+                    OrchestrationUserTexts.DeliveryReplanPending,
+                    run,
+                    author.Text,
+                    request.Findings.Count == 0 ? UserText.Of(OrchestrationUserTexts.DeliveryReplanNoFindings) : string.Join(", ", request.Findings)));
         }
 
         return null;
     }
 
-    private static string ReplanAuthor(Actor actor) => actor.Kind switch
+    private static Said ReplanAuthor(Actor actor) => actor.Kind switch
     {
-        ActorKind.Auditor => "la pidió el auditor del orquestador",
-        ActorKind.Judge => $"la pidió el juez {actor.Id} de la revisión del orquestador",
-        _ => $"la pidió {actor.Id}",
+        ActorKind.Auditor => Said.Of("la pidió el auditor del orquestador", OrchestrationUserTexts.DeliveryReplanByAuditor),
+        ActorKind.Judge => Said.Of($"la pidió el juez {actor.Id} de la revisión del orquestador", OrchestrationUserTexts.DeliveryReplanByJudge, actor.Id.ToString()),
+        _ => Said.Of($"la pidió {actor.Id}", OrchestrationUserTexts.DeliveryReplanByOther, actor.Id.ToString()),
     };
 
     /// <summary>
@@ -688,7 +723,7 @@ public sealed class DeliveryService : IDeliveryService
         public bool Challenged(string verdict) => _challenges.Any(c => string.Equals(c.Payload.Verdict, verdict, StringComparison.Ordinal));
 
         /// <summary>A revision of a challenge of this run that opened and has not closed, told for the person, or null.</summary>
-        public string? Pending()
+        public Said? Pending()
         {
             foreach (var (_, challenge) in _challenges)
             {
@@ -700,7 +735,7 @@ public sealed class DeliveryService : IDeliveryService
 
             // Fail closed when the challenge itself was never written (the app stopped right after opening its revision).
             return _unannouncedOpen.Count > 0
-                ? $"Hay una revisión abierta (debate {_unannouncedOpen[0]}) de un veredicto de esta ejecución que no ha terminado, aunque el registro no anotó la impugnación (la app se cerró a mitad): no se entrega hasta que la revisión termine."
+                ? Said.Of($"Hay una revisión abierta (debate {_unannouncedOpen[0]}) de un veredicto de esta ejecución que no ha terminado, aunque el registro no anotó la impugnación (la app se cerró a mitad): no se entrega hasta que la revisión termine.", OrchestrationUserTexts.DeliveryRevisionOpenUnannounced, _unannouncedOpen[0])
                 : null;
         }
 
@@ -742,7 +777,7 @@ public sealed class DeliveryService : IDeliveryService
         {
             if (depth > MaxDepth)
             {
-                return Standing.Block($"La cadena de revisiones de los veredictos de la ejecución {_run} es más larga de lo que se comprueba ({MaxDepth}): no se entrega.");
+                return Standing.Block(Said.Of($"La cadena de revisiones de los veredictos de la ejecución {_run} es más larga de lo que se comprueba ({MaxDepth}): no se entrega.", OrchestrationUserTexts.DeliveryRevisionChainTooLong, _run, MaxDepth));
             }
 
             var all = _challenges
@@ -783,12 +818,12 @@ public sealed class DeliveryService : IDeliveryService
             }
 
             var counted = node.Approved && node.Trusted;
-            var standing = Standing.Block("Ninguna revisión decide.");
+            var standing = Standing.Block(Said.Of("Ninguna revisión decide.", OrchestrationUserTexts.DeliveryRevisionNoneDecides));
             foreach (var revision in judged)
             {
                 if (revision.Verdicts.Any(visited.Contains))
                 {
-                    return Standing.Block(Inconsistent(revision.Challenged, revision.Debate, "sus veredictos ya estaban en la cadena de revisiones").Reason!);
+                    return Standing.Block(Inconsistent(revision.Challenged, revision.Debate, Said.Of("sus veredictos ya estaban en la cadena de revisiones", OrchestrationUserTexts.DeliveryInconsistentChainRepeated)).Reason!);
                 }
 
                 visited.UnionWith(revision.Verdicts);
@@ -809,36 +844,44 @@ public sealed class DeliveryService : IDeliveryService
         {
             if (node.Via is not { } via)
             {
-                return node.Approved && node.Trusted ? new Standing(null, null) : Standing.Block("El veredicto con el que terminó la ejecución no es una aprobación válida de un juez: no se entrega.");
+                return node.Approved && node.Trusted ? new Standing(null, null) : Standing.Block(Said.Of("El veredicto con el que terminó la ejecución no es una aprobación válida de un juez: no se entrega.", OrchestrationUserTexts.DeliveryVerdictNotValidApproval));
             }
 
             if (!node.Approved)
             {
-                return Standing.Block(
+                return Standing.Block(Said.Of(
                     $"La revisión (debate {via.Debate}) de la impugnación del veredicto {via.Challenged} dejó la integración en «{DecisionText(via.Decision)}»: "
-                    + (node.ParentApproved ? "retira la aprobación y no se entrega." : "no la aprueba y no se entrega."));
+                    + (node.ParentApproved ? "retira la aprobación y no se entrega." : "no la aprueba y no se entrega."),
+                    node.ParentApproved ? OrchestrationUserTexts.DeliveryRevisionWithdraws : OrchestrationUserTexts.DeliveryRevisionNotApproves,
+                    via.Debate,
+                    via.Challenged,
+                    DecisionPiece(via.Decision)));
             }
 
             if (!node.Trusted)
             {
-                return Standing.Block(
+                return Standing.Block(Said.Of(
                     $"La revisión (debate {via.Debate}) de la impugnación del veredicto {via.Challenged} "
                     + (node.ParentApproved ? "confirma una aprobación que aún no habías aceptado" : "da la vuelta hacia una aprobación")
-                    + $" (veredicto {string.Join(", ", via.Verdicts)}): solo cuenta si la aceptas expresamente, así que no se entrega hasta que la aceptes.");
+                    + $" (veredicto {string.Join(", ", via.Verdicts)}): solo cuenta si la aceptas expresamente, así que no se entrega hasta que la aceptes.",
+                    node.ParentApproved ? OrchestrationUserTexts.DeliveryRevisionUnacceptedConfirms : OrchestrationUserTexts.DeliveryRevisionUnacceptedTurns,
+                    via.Debate,
+                    via.Challenged,
+                    string.Join(", ", via.Verdicts)));
             }
 
             return new Standing(
                 null,
                 node.ParentCounted
-                    ? $"la revisión (debate {via.Debate}) de la impugnación del veredicto {via.Challenged} confirmó la aprobación"
-                    : $"aceptaste la revisión (debate {via.Debate}) de la impugnación del veredicto {via.Challenged}, que la aprueba");
+                    ? Said.Of($"la revisión (debate {via.Debate}) de la impugnación del veredicto {via.Challenged} confirmó la aprobación", OrchestrationUserTexts.DeliveryRevisionConfirmed, via.Debate, via.Challenged)
+                    : Said.Of($"aceptaste la revisión (debate {via.Debate}) de la impugnación del veredicto {via.Challenged}, que la aprueba", OrchestrationUserTexts.DeliveryRevisionAccepted, via.Debate, via.Challenged));
         }
 
         /// <summary>
         /// A verdict that supersedes one of <paramref name="node"/> without a challenge of it before (Phase 3: a superseded
         /// verdict is not delivered), or one only the store holds; null when there is none.
         /// </summary>
-        private string? Supersession(Node node, IReadOnlyList<(DecisionEntry Entry, VerdictChallengedPayload Payload)> challenges)
+        private Said? Supersession(Node node, IReadOnlyList<(DecisionEntry Entry, VerdictChallengedPayload Payload)> challenges)
         {
             foreach (var member in node.Verdicts)
             {
@@ -846,7 +889,7 @@ public sealed class DeliveryService : IDeliveryService
                 {
                     if (!challenges.Any(c => string.Equals(c.Payload.Verdict, member, StringComparison.Ordinal) && c.Entry.Sequence < entry.Sequence))
                     {
-                        return $"El veredicto {member} fue sustituido por otro: no se entrega.";
+                        return Said.Of($"El veredicto {member} fue sustituido por otro: no se entrega.", OrchestrationUserTexts.DeliveryVerdictSuperseded, member);
                     }
                 }
 
@@ -854,7 +897,7 @@ public sealed class DeliveryService : IDeliveryService
                 {
                     if (!_issued.Any(v => string.Equals(v.Payload.VerdictId, kept.Id, StringComparison.Ordinal)))
                     {
-                        return $"El almacén de veredictos tiene un veredicto ({kept.Id}) que sustituye a {member} y que el registro de decisiones no anuncia: no se entrega.";
+                        return Said.Of($"El almacén de veredictos tiene un veredicto ({kept.Id}) que sustituye a {member} y que el registro de decisiones no anuncia: no se entrega.", OrchestrationUserTexts.DeliveryStoreUnannouncedSupersession, kept.Id, member);
                     }
                 }
             }
@@ -876,22 +919,22 @@ public sealed class DeliveryService : IDeliveryService
 
                 return new State(
                     StateKind.NotOpened,
-                    $"El veredicto {verdict} está impugnado y su revisión (debate {debate}) no llegó a abrirse: no se entrega. Vuelve a impugnarlo para abrir la revisión.");
+                    Said.Of($"El veredicto {verdict} está impugnado y su revisión (debate {debate}) no llegó a abrirse: no se entrega. Vuelve a impugnarlo para abrir la revisión.", OrchestrationUserTexts.DeliveryRevisionNotOpened, verdict, debate));
             }
 
             if (!string.Equals(opened.Payload.Challenges, verdict, StringComparison.Ordinal))
             {
-                return Inconsistent(verdict, debate, "su apertura no impugna ese veredicto");
+                return Inconsistent(verdict, debate, Said.Of("su apertura no impugna ese veredicto", OrchestrationUserTexts.DeliveryInconsistentOpeningOtherVerdict));
             }
 
             if (!string.Equals(opened.Payload.RequirementSetHash, _requirements, StringComparison.Ordinal))
             {
-                return Inconsistent(verdict, debate, "su apertura juzga otros requisitos");
+                return Inconsistent(verdict, debate, Said.Of("su apertura juzga otros requisitos", OrchestrationUserTexts.DeliveryInconsistentOpeningOtherRequirements));
             }
 
             if (opened.Payload.SnapshotCommit is { } snapshot && !string.Equals(snapshot, _commit, StringComparison.OrdinalIgnoreCase))
             {
-                return Inconsistent(verdict, debate, $"su copia es del commit {Short(snapshot)}, no de la integración {Short(_commit)} de la ejecución");
+                return Inconsistent(verdict, debate, Said.Of($"su copia es del commit {Short(snapshot)}, no de la integración {Short(_commit)} de la ejecución", OrchestrationUserTexts.DeliveryInconsistentCopyOtherCommit, Short(snapshot), Short(_commit)));
             }
 
             if (!_closed.TryGetValue(debate, out var closures))
@@ -905,33 +948,41 @@ public sealed class DeliveryService : IDeliveryService
             {
                 return new State(
                     StateKind.DecidedByUser,
-                    $"La revisión (debate {debate}) de la impugnación del veredicto {verdict} la decidiste tú («Decidir yo»): una decisión tuya no es la aprobación "
-                    + "de un juez independiente, así que no se entrega. Vuelve a impugnar el veredicto para otra revisión o lanza una ejecución de seguimiento.");
+                    Said.Of(
+                        $"La revisión (debate {debate}) de la impugnación del veredicto {verdict} la decidiste tú («Decidir yo»): una decisión tuya no es la aprobación "
+                        + "de un juez independiente, así que no se entrega. Vuelve a impugnar el veredicto para otra revisión o lanza una ejecución de seguimiento.",
+                        OrchestrationUserTexts.DeliveryRevisionDecidedByUser,
+                        debate,
+                        verdict));
             }
 
             if (closures.Count > 1)
             {
-                return Inconsistent(verdict, debate, "el debate se cerró más de una vez");
+                return Inconsistent(verdict, debate, Said.Of("el debate se cerró más de una vez", OrchestrationUserTexts.DeliveryInconsistentClosedTwice));
             }
 
             if (closed.Outcome == DebateOutcome.Aborted || string.Equals(closed.Rule, DebateClosedPayload.AbortedRule, StringComparison.Ordinal))
             {
                 return new State(
                     StateKind.Aborted,
-                    $"La revisión (debate {debate}) de la impugnación del veredicto {verdict} se abortó sin juicio: la impugnación sigue abierta y no se entrega. Vuelve a impugnar el veredicto.");
+                    Said.Of($"La revisión (debate {debate}) de la impugnación del veredicto {verdict} se abortó sin juicio: la impugnación sigue abierta y no se entrega. Vuelve a impugnar el veredicto.", OrchestrationUserTexts.DeliveryRevisionAborted, debate, verdict));
             }
 
             if (closed.Outcome != DebateOutcome.Resolved || closed.Rule is not (JudgingPanel.Single or JudgingPanel.Agree))
             {
                 return new State(
                     StateKind.NeedsPerson,
-                    $"La revisión (debate {debate}) de la impugnación del veredicto {verdict} necesita a una persona: ni un veredicto sin resolver ni una decisión "
-                    + "tuya son la aprobación de un juez independiente, así que no se entrega. Vuelve a impugnar el veredicto para otra revisión o lanza una ejecución de seguimiento.");
+                    Said.Of(
+                        $"La revisión (debate {debate}) de la impugnación del veredicto {verdict} necesita a una persona: ni un veredicto sin resolver ni una decisión "
+                        + "tuya son la aprobación de un juez independiente, así que no se entrega. Vuelve a impugnar el veredicto para otra revisión o lanza una ejecución de seguimiento.",
+                        OrchestrationUserTexts.DeliveryRevisionNeedsPerson,
+                        debate,
+                        verdict));
             }
 
             if (closed.Verdicts.Count == 0)
             {
-                return Inconsistent(verdict, debate, "su cierre no nombra ningún veredicto");
+                return Inconsistent(verdict, debate, Said.Of("su cierre no nombra ningún veredicto", OrchestrationUserTexts.DeliveryInconsistentNoVerdicts));
             }
 
             var announced = new List<(DecisionEntry Entry, VerdictIssuedPayload Payload)>();
@@ -940,27 +991,27 @@ public sealed class DeliveryService : IDeliveryService
                 var issued = _issued.LastOrDefault(v => string.Equals(v.Payload.VerdictId, id, StringComparison.Ordinal));
                 if (issued.Payload is null)
                 {
-                    return Inconsistent(verdict, debate, $"el veredicto {id} no está en el registro de la ejecución {_run}");
+                    return Inconsistent(verdict, debate, Said.Of($"el veredicto {id} no está en el registro de la ejecución {_run}", OrchestrationUserTexts.DeliveryInconsistentVerdictMissing, id, _run));
                 }
 
                 if (issued.Entry.Sequence <= entry.Sequence)
                 {
-                    return Inconsistent(verdict, debate, $"el veredicto {id} es anterior a la impugnación");
+                    return Inconsistent(verdict, debate, Said.Of($"el veredicto {id} es anterior a la impugnación", OrchestrationUserTexts.DeliveryInconsistentVerdictBefore, id));
                 }
 
                 if (!issued.Payload.Valid)
                 {
-                    return Inconsistent(verdict, debate, $"el veredicto {id} no es válido");
+                    return Inconsistent(verdict, debate, Said.Of($"el veredicto {id} no es válido", OrchestrationUserTexts.DeliveryInconsistentVerdictInvalid, id));
                 }
 
                 if (!string.Equals(issued.Payload.RequirementSetHash, _requirements, StringComparison.Ordinal))
                 {
-                    return Inconsistent(verdict, debate, $"el veredicto {id} juzga otros requisitos");
+                    return Inconsistent(verdict, debate, Said.Of($"el veredicto {id} juzga otros requisitos", OrchestrationUserTexts.DeliveryInconsistentVerdictOtherRequirements, id));
                 }
 
                 if (!Revises(issued.Payload, verdict, entry.Sequence))
                 {
-                    return Inconsistent(verdict, debate, $"el veredicto {id} no sustituye al impugnado");
+                    return Inconsistent(verdict, debate, Said.Of($"el veredicto {id} no sustituye al impugnado", OrchestrationUserTexts.DeliveryInconsistentVerdictNotSuperseding, id));
                 }
 
                 var kept = _stored.FirstOrDefault(v => string.Equals(v.Id, id, StringComparison.Ordinal));
@@ -969,7 +1020,7 @@ public sealed class DeliveryService : IDeliveryService
                     || kept.Verdict.Decision != issued.Payload.Decision
                     || !string.Equals(kept.Supersedes, issued.Payload.Supersedes, StringComparison.Ordinal))
                 {
-                    return Inconsistent(verdict, debate, $"el almacén de veredictos no confirma el veredicto {id}");
+                    return Inconsistent(verdict, debate, Said.Of($"el almacén de veredictos no confirma el veredicto {id}", OrchestrationUserTexts.DeliveryInconsistentStoreNoConfirm, id));
                 }
 
                 announced.Add(issued);
@@ -978,7 +1029,7 @@ public sealed class DeliveryService : IDeliveryService
             var decisions = announced.Select(a => a.Payload.Decision).Distinct().ToList();
             if (decisions is not [VerdictDecision.Approved or VerdictDecision.ChangesRequested or VerdictDecision.Rejected])
             {
-                return Inconsistent(verdict, debate, "sus veredictos no dicen lo mismo, o no deciden");
+                return Inconsistent(verdict, debate, Said.Of("sus veredictos no dicen lo mismo, o no deciden", OrchestrationUserTexts.DeliveryInconsistentVerdictsDisagree));
             }
 
             var after = Math.Max(closedAt, announced.Max(a => a.Entry.Sequence));
@@ -1026,13 +1077,18 @@ public sealed class DeliveryService : IDeliveryService
                 .Select(c => c.Debate)
                 .FirstOrDefault();
 
-        private static string PendingReason(string verdict, string debate) =>
-            $"El veredicto {verdict} está impugnado y su revisión (debate {debate}) no ha terminado: no se entrega hasta que se cierre.";
+        private static Said PendingReason(string verdict, string debate) =>
+            Said.Of($"El veredicto {verdict} está impugnado y su revisión (debate {debate}) no ha terminado: no se entrega hasta que se cierre.", OrchestrationUserTexts.DeliveryRevisionPending, verdict, debate);
 
-        private static State Inconsistent(string verdict, string debate, string detail) =>
+        private static State Inconsistent(string verdict, string debate, Said detail) =>
             new(
                 StateKind.Inconsistent,
-                $"La revisión (debate {debate}) de la impugnación del veredicto {verdict} no cuadra con el registro de decisiones o con el almacén de veredictos ({detail}): no se entrega.");
+                Said.Of(
+                    $"La revisión (debate {debate}) de la impugnación del veredicto {verdict} no cuadra con el registro de decisiones o con el almacén de veredictos ({detail.Sentence}): no se entrega.",
+                    OrchestrationUserTexts.DeliveryRevisionInconsistent,
+                    debate,
+                    verdict,
+                    detail.Text));
 
         private static string DecisionText(VerdictDecision decision) => decision switch
         {
@@ -1048,7 +1104,7 @@ public sealed class DeliveryService : IDeliveryService
         private sealed record Revision(string Challenged, string Debate, VerdictDecision Decision, IReadOnlyList<string> Verdicts, bool Accepted);
 
         /// <summary>Where a challenge stands; <see cref="Reason"/> says why it blocks, for the person.</summary>
-        private sealed record State(StateKind Kind, string? Reason, Revision? Revision = null);
+        private sealed record State(StateKind Kind, Said? Reason, Revision? Revision = null);
 
         /// <summary>
         /// A judgment of the chain: its verdicts, whether they approve, whether that approval counts (the original's, a
@@ -1059,18 +1115,41 @@ public sealed class DeliveryService : IDeliveryService
     }
 
     /// <summary>What the challenges leave of a delivery: why it is blocked, or a note on the revision it stands on (null for none).</summary>
-    private sealed record Standing(string? Blocked, string? Note)
+    private sealed record Standing(Said? Blocked, Said? Note)
     {
-        public static Standing Block(string reason) => new(reason, null);
+        public static Standing Block(Said reason) => new(reason, null);
     }
 
-    private static DeliveryReadiness NotReady(string reason) => new(false, null, reason);
+    /// <summary>A sentence of the delivery and its coded text, together so that they cannot drift (the sentence is for the log and the tests, the code for the screen).</summary>
+    private sealed record Said(string Sentence, UserText Text)
+    {
+        public static Said Of(string sentence, string code, params object[] arguments) => new(sentence, UserText.Of(code, arguments));
+    }
+
+    private static DeliveryReadiness NotReady(string reason, string code, params object[] arguments) => new(false, null, reason, UserText.Of(code, arguments));
+
+    private static DeliveryReadiness NotReady(Said said) => new(false, null, said.Sentence, said.Text);
+
+    /// <summary>The decision of a verdict as a piece of a sentence.</summary>
+    private static object DecisionPiece(VerdictDecision decision) => decision switch
+    {
+        VerdictDecision.Approved => UserText.Of(OrchestrationUserTexts.DeliveryDecisionApproved),
+        VerdictDecision.ChangesRequested => UserText.Of(OrchestrationUserTexts.DeliveryDecisionChangesRequested),
+        VerdictDecision.Rejected => UserText.Of(OrchestrationUserTexts.DeliveryDecisionRejected),
+        VerdictDecision.EscalateToHuman => UserText.Of(OrchestrationUserTexts.DeliveryDecisionEscalate),
+        VerdictDecision.Unresolved => UserText.Of(OrchestrationUserTexts.DeliveryDecisionUnresolved),
+        _ => decision.ToString(),
+    };
 
     private static string TargetRef(string branch) => branch.StartsWith("refs/heads/", StringComparison.Ordinal) ? branch : "refs/heads/" + branch;
 
     private async Task<bool> ContainsAsync(string repoRoot, string head, string commit, CancellationToken cancellationToken) =>
         string.Equals(head, commit, StringComparison.OrdinalIgnoreCase)
         || await _worktrees.IsAncestorAsync(repoRoot, commit, head, cancellationToken).ConfigureAwait(false);
+
+    /// <summary>What the git layer refused, as one argument: «key» and its reason when it gives one.</summary>
+    private static string RefusedList(IReadOnlyList<DeliveryRefusal> refusals) =>
+        string.Join(", ", refusals.Select(r => $"«{r.Key}»{(string.IsNullOrEmpty(r.Reason) ? string.Empty : $" ({r.Reason})")}"));
 
     private static string Refused(string target, IReadOnlyList<DeliveryRefusal> refusals) =>
         "Tu repositorio tiene configurado un programa que controla el propio repositorio o un worktree, y la entrega se "
@@ -1084,7 +1163,10 @@ public sealed class DeliveryService : IDeliveryService
             null,
             target,
             $"Tu repositorio cambió mientras se esperaba la aprobación (HEAD está en {branch ?? "otra rama o en ninguna"}, {Short(commit)}): "
-            + "no se ha entregado nada. Vuelve a pedir la entrega.");
+            + "no se ha entregado nada. Vuelve a pedir la entrega.",
+            branch is null
+                ? UserText.Of(OrchestrationUserTexts.DeliveryRepositoryChangedElsewhere, Short(commit))
+                : UserText.Of(OrchestrationUserTexts.DeliveryRepositoryChanged, branch, Short(commit)));
 
     private static string DescribeRequest(
         RunId run,

@@ -171,3 +171,45 @@ antes de guardar nada.
    que llegue después con ese id arranca con esas skills apagadas **a su nivel, que gana al del proyecto** (el lado de menos poder), y
    la pantalla de Skills enseña el apagado como decisión del agente. La alternativa, no reutilizar ids, obligaba al editor a conocer
    el almacén de skills y dejaba el residuo en el historial; no se tomó.
+
+## Adenda · 2026-11-12 · deshacer llega al almacén y la aprobación sigue al estado final (P55)
+
+Ctrl+Z de un arreglo que cambiaba la plantilla no llegaba al almacén: al guardar, el documento relee el contexto y
+`BuilderContextChanged` reiniciaba la banda (`Band.Reset()`), así que su historial solo conocía estados con la plantilla ya
+cambiada. Tres correcciones, mínimas:
+
+- **El reinicio no pisa una escritura de la propia banda.** `AnalysisBandViewModel.Reset()` no hace nada mientras la banda escribe
+  un estado (un arreglo, Ctrl+Z o Ctrl+Y): esa relectura no es un punto de partida nuevo, y el historial que conoce el estado
+  anterior se conserva. Deshacer vuelve a pasar por `ApplyAsync`, que guarda los agentes que difieren (la compensación). Se
+  descartó que deshacer compense a mano en el almacén: duplicaría el conjunto todo o nada, el Windows Hello único y los
+  rechazos que ya tiene `ApplyManyAsync`. Una relectura ajena a la banda (abrir, «Recargar») sigue reiniciándola.
+- **`AgentDefinition.Equals` compara el contenido.** Las listas (objetivos, herramientas, carpetas) se comparan elemento a
+  elemento y en orden, como las codifica `RosterHash`, con un `GetHashCode` coherente. Un agente releído sin cambios ya no cuenta
+  como cambiado al aplicar un conjunto, así que una compensación no reescribe agentes que no cambian.
+- **La aprobación sigue al estado final.** `OnRosterSavedAsync` relee primero y compara `RosterHash` de la plantilla aprobada
+  con la que quedó (el mismo hash con el que el motor se niega a arrancar). Si coincide, la aprobación se conserva; si difiere,
+  se retira con el mismo aviso de antes. Un cambio de los requisitos congelados sigue retirándola en `OnContextChanging`.
+
+## Adenda · 2026-11-12 · los remotos del nodo del repositorio por la capa git endurecida (P51)
+
+- **`ListRemotesAsync`.** Los remotos del nodo ya no salen del texto de `.git/config` si el lector tiene la capa git:
+  `IRepositoryRemoteReader.ListRemotesAsync` (`Infrastructure/Git/RepositoryRemoteReader.cs`, sobre `GitCommandRunner`) pregunta
+  `git config --local --no-includes -z --get-regexp ^remote\..*\.url$`. Solo la configuración del repositorio (la común, en un
+  worktree), ningún `include` ni `includeIf`, la configuración neutralizada de la capa, `core.hooksPath` sobre un fichero vacío, sin
+  transporte y con el recorrido del directorio git por enlaces plantados. La respuesta es una lista de claves y valores, no un
+  fichero, y git no ejecuta nada para darla, así que no pide la revisión de callbacks de los comandos de contenido.
+- **Acotado y fallando cerrado.** La salida se acota en origen (256 KiB de caracteres: git muere al pasarlo y la lectura se rechaza
+  con `output-too-big`, no se corta), con 2048 caracteres por dirección, y más de 100 remotos se rechazan igual, nunca se muestran cortados; un repositorio no aceptado, git fallando o
+  una excepción de la capa dan cero remotos con un código, nunca una ruta. Una negativa **no vuelve al fichero**.
+- **El respaldo, acotado mientras se lee.** Sin la capa (`IRepositoryStateReader.ListRemotesAsync` da `null`: lectores de prueba y
+  composiciones sin git) se sigue leyendo el fichero, pero el tope de 1 MB ya no se mira antes (un fichero que crecía entre la
+  comprobación y la lectura se leía entero): se leen como mucho el tope más un byte, y pasarlo es «demasiado grande».
+- **Sigue igual:** `FileSetupRepositoryReader` (el paso 1 del configurador de ADR-0055) no usa aún el lector y deja los remotos vacíos.
+
+## Adenda · 2026-11-12 · un fallo de la relectura retira la aprobación y una aprobación nueva no se toca (revisión de P55)
+
+- Si `ReloadAsync` lanza después de guardar, el almacén ya cambió y la aprobación no se puede juzgar: se retira, como cuando la
+  retirada iba antes de la relectura, y el fallo sigue siendo de quien llamó.
+- Solo se juzga la decisión que había antes de releer. Si durante la relectura el plan se aprobó de nuevo, esa aprobación es
+  más nueva que la plantilla leída y se deja como está.
+

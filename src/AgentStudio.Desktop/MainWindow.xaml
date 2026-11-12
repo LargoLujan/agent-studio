@@ -14,7 +14,7 @@
         xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
-        Title="Agent Studio" Height="800" Width="1280" MinWidth="900" MinHeight="560"
+        Title="{l:T App_Name}" Height="800" Width="1280" MinWidth="900" MinHeight="560"
         Background="{StaticResource BackgroundBrush}"
         WindowStartupLocation="CenterScreen">
     <Window.InputBindings>
@@ -27,6 +27,8 @@
              the key Visual Studio Code uses for its terminal. It is not a dead key on either, and WebView2 hands it to the window
              like Ctrl+P. -->
         <KeyBinding Key="Oem3" Modifiers="Ctrl" Command="{Binding ToggleTerminalCommand}"/>
+        <!-- Phase 14 (docs/17 D-55): «Ayuda» on the article of the screen that has the focus. Taken out while locked, like the others. -->
+        <KeyBinding Key="F1" Command="{Binding OpenHelpCommand}"/>
         <!-- Phase 8: «Bloquear» (Ctrl+Alt+L and Ctrl+Shift+B) is added by MainWindow when the lock is composed. While the interface is locked,
              every shortcut of the window is taken out: Ctrl+P must not open the list of files over the lock screen. -->
     </Window.InputBindings>
@@ -70,18 +72,18 @@
                                TextWrapping="NoWrap" MaxWidth="360" ToolTip="{Binding ProjectPath}"
                                FontFamily="{StaticResource MonoFont}"/>
                 </StackPanel>
-                <Button Grid.Column="1" Style="{StaticResource PrimaryButton}" Padding="14,6" Content="Abrir carpeta"
+                <Button Grid.Column="1" Style="{StaticResource PrimaryButton}" Padding="14,6" Content="{l:T Main_OpenFolder}"
                         Command="{Binding OpenFolderCommand}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                <Button Grid.Column="2" Style="{StaticResource GhostButton}" Content="Inicio"
-                        Command="{Binding ShowWelcomeCommand}" VerticalAlignment="Center" ToolTip="Mostrar la pestaña de bienvenida"/>
-                <Button x:Name="GoToFileButton" Grid.Column="3" Style="{StaticResource GhostButton}" Content="Ir al fichero" Margin="8,0,0,0"
+                <Button Grid.Column="2" Style="{StaticResource GhostButton}" Content="{l:T Main_Home}"
+                        Command="{Binding ShowWelcomeCommand}" VerticalAlignment="Center" ToolTip="{l:T Main_Home_Hint}"/>
+                <Button x:Name="GoToFileButton" Grid.Column="3" Style="{StaticResource GhostButton}" Content="{l:T Main_GoToFile}" Margin="8,0,0,0"
                         Command="{Binding GoToFileCommand}" VerticalAlignment="Center"
                         ToolTip="{Binding GoToFileToolTip}" ToolTipService.ShowOnDisabled="True"
-                        AutomationProperties.Name="Ir al fichero"/>
-                <Button Grid.Column="4" Style="{StaticResource GhostButton}" Content="Auditar proyecto completo" Margin="8,0,0,0"
+                        AutomationProperties.Name="{l:T Main_GoToFile}"/>
+                <Button Grid.Column="4" Style="{StaticResource GhostButton}" Content="{l:T Main_Audit}" Margin="8,0,0,0"
                         Command="{Binding OpenAuditCommand}" VerticalAlignment="Center"
-                        ToolTip="Audita el commit HEAD del proyecto con la verificación del sistema y un juez independiente (Ctrl+Mayús+A)"
-                        AutomationProperties.Name="Auditar proyecto completo"/>
+                        ToolTip="{l:T Main_Audit_Hint}"
+                        AutomationProperties.Name="{l:T Main_Audit}"/>
                 <!-- The agents of the run followed in the open project (docs/17 D-43): «Agentes: 2 trabajando · 1 te pregunta». Empty without a run. -->
                 <TextBlock x:Name="AgentCounterText" Grid.Column="5" Style="{StaticResource SecondaryText}" HorizontalAlignment="Right"
                            VerticalAlignment="Center" Margin="0,0,16,0" TextTrimming="CharacterEllipsis" Text="{Binding AgentCounter}"
@@ -91,19 +93,19 @@
                 <!-- The providers in use (a parked one does not count, ADR-0009); pressed, it shows Auto Doctor with the detail. -->
                 <Button x:Name="ProviderSummaryButton" Grid.Column="6" Style="{StaticResource SummaryButton}" VerticalAlignment="Center"
                         Command="{Binding ToggleAutoDoctorCommand}"
-                        ToolTip="Muestra u oculta Auto Doctor, con el detalle de cada proveedor"
+                        ToolTip="{l:T Main_AutoDoctor_Hint}"
                         AutomationProperties.Name="{Binding ProviderSummary.Text}"
-                        AutomationProperties.HelpText="Muestra u oculta Auto Doctor, con el detalle de cada proveedor">
+                        AutomationProperties.HelpText="{l:T Main_AutoDoctor_Hint}">
                     <StackPanel Orientation="Horizontal">
                         <Ellipse Style="{StaticResource StatusDot}" Margin="0,0,8,0" VerticalAlignment="Center" DataContext="{Binding ProviderSummary}"/>
                         <TextBlock Style="{StaticResource BodyText}" Text="{Binding ProviderSummary.Text}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
                 <!-- «Bloquear» (docs/16 D-13, F8-10): MainWindow gives it the command of the lock screen when the lock is composed. -->
-                <Button x:Name="LockButton" Grid.Column="7" Style="{StaticResource GhostButton}" Content="Bloquear" Margin="16,0,0,0"
+                <Button x:Name="LockButton" Grid.Column="7" Style="{StaticResource GhostButton}" Content="{l:T Main_Lock}" Margin="16,0,0,0"
                         VerticalAlignment="Center" Visibility="Collapsed"
-                        ToolTip="Bloquea la interfaz: el trabajo sigue y las aprobaciones esperan; se desbloquea con Windows Hello (Ctrl+Alt+L o Ctrl+Mayús+B)"
-                        AutomationProperties.Name="Bloquear la interfaz"/>
+                        ToolTip="{l:T Main_Lock_Hint}"
+                        AutomationProperties.Name="{l:T Main_Lock_Name}"/>
             </Grid>
         </Border>
 
@@ -154,18 +156,18 @@
                 <xcad:LayoutRoot>
                     <xcad:LayoutPanel Orientation="Horizontal">
                         <xcad:LayoutAnchorablePane DockWidth="240">
-                            <xcad:LayoutAnchorable ContentId="panel:explorer" Title="Explorador" CanFloat="True">
+                            <xcad:LayoutAnchorable ContentId="panel:explorer" Title="{l:T Main_Panel_Explorer}" CanFloat="True">
                                 <views:ExplorerView x:Name="ExplorerPanel"/>
                             </xcad:LayoutAnchorable>
                         </xcad:LayoutAnchorablePane>
                         <xcad:LayoutPanel Orientation="Vertical">
                             <xcad:LayoutDocumentPane/>
                             <xcad:LayoutAnchorablePane DockHeight="180">
-                                <xcad:LayoutAnchorable ContentId="panel:terminal" Title="Terminal" CanFloat="True">
+                                <xcad:LayoutAnchorable ContentId="panel:terminal" Title="{l:T Main_Panel_Terminal}" CanFloat="True">
                                     <!-- MainWindow puts a TerminalControl here when a TerminalViewModel is available. -->
                                     <ContentControl x:Name="TerminalHost" Background="{StaticResource BackgroundBrush}">
                                         <TextBlock Style="{StaticResource SecondaryText}" Margin="12"
-                                                   Text="Terminal no disponible."/>
+                                                   Text="{l:T Main_Panel_TerminalUnavailable}"/>
                                     </ContentControl>
                                 </xcad:LayoutAnchorable>
                                 <!-- Phase 13 (docs/17 D-45, F13-18): the panels of the run, next to the terminal. MainWindow gives them their view models. -->
@@ -184,11 +186,11 @@
                     <xcad:LayoutRoot.RightSide>
                         <xcad:LayoutAnchorSide>
                             <xcad:LayoutAnchorGroup>
-                                <xcad:LayoutAnchorable ContentId="panel:autodoctor" Title="Auto Doctor" CanFloat="True"
+                                <xcad:LayoutAnchorable ContentId="panel:autodoctor" Title="{l:T Main_Panel_AutoDoctor}" CanFloat="True"
                                                        AutoHideWidth="340" CanShowOnHover="False">
                                     <views:AutoDoctorView x:Name="AutoDoctorPanel"/>
                                 </xcad:LayoutAnchorable>
-                                <xcad:LayoutAnchorable ContentId="panel:journal" Title="Bitácora de hoy" CanFloat="True"
+                                <xcad:LayoutAnchorable ContentId="panel:journal" Title="{l:T Main_Panel_Journal}" CanFloat="True"
                                                        AutoHideWidth="420" CanShowOnHover="False">
                                     <views:JournalView x:Name="JournalPanel"/>
                                 </xcad:LayoutAnchorable>
@@ -219,7 +221,7 @@
                               DataContext="{Binding StatusStrip}" ItemsSource="{Binding Bars}" Focusable="False" Background="Transparent"
                               Visibility="{Binding ShowsBars, Converter={StaticResource Shell.BoolToVisibility}}"
                               ToolTip="{Binding ToolTip}" ToolTipService.ShowDuration="60000"
-                              AutomationProperties.Name="Contexto, cuota y presupuesto">
+                              AutomationProperties.Name="{l:T Main_Strip_Name}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <WrapPanel Orientation="Horizontal"/>
@@ -252,7 +254,7 @@
                 </TextBlock>
                 <!-- The version and the commit the app was built from, to tell the installed build apart. -->
                 <TextBlock x:Name="VersionText" Grid.Column="2" Style="{StaticResource SecondaryText}" Margin="12,0,0,0" VerticalAlignment="Center"
-                           Text="{Binding AppVersion}" ToolTip="Versión de Agent Studio y commit del que se compiló"/>
+                           Text="{Binding AppVersion}" ToolTip="{l:T Main_Version_Hint}"/>
             </Grid>
         </Border>
     </Grid>

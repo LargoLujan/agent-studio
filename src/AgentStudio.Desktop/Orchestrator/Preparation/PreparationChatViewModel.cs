@@ -187,7 +187,7 @@ public sealed partial class PreparationChatViewModel : ObservableObject
     [RelayCommand]
     private async Task ConfirmAsync()
     {
-        if (_services.Chat is not { } chat || _subject() is not { } subject || !Consent.IsOpen || _pending is not { Length: > 0 } message)
+        if (_services.Chat is not { } chat || _subject() is not { } subject || !Consent.IsOpen || !Consent.IsReady || _pending is not { Length: > 0 } message)
         {
             return;
         }
@@ -211,7 +211,7 @@ public sealed partial class PreparationChatViewModel : ObservableObject
         catch (Exception ex) when (ex is not OperationCanceledException)
 #pragma warning restore CA1031
         {
-            Status = _text.Format("Canvas_Chat_Failed", ex.Message);
+            Status = _text.Format("Canvas_Chat_Failed", OrchestratorErrorText.Detail(ex, _text.Provider));
         }
         finally
         {
@@ -223,7 +223,7 @@ public sealed partial class PreparationChatViewModel : ObservableObject
     {
         _session = reply.Session;
         OnPropertyChanged(nameof(HasConversation));
-        Status = reply.Error is { Length: > 0 } error ? _text.Format("Canvas_Chat_Failed", error) : null;
+        Status = reply.Error is { Length: > 0 } error ? _text.Format("Canvas_Chat_Failed", OrchestratorCodedText.Painted(reply.ErrorText, error, _text.Provider)) : null;
         if (reply.Text.Length > 0)
         {
             Turns.Add(new ChatTurn(false, _text.Get("Canvas_Chat_Orchestrator"), reply.Text));
@@ -270,7 +270,7 @@ public sealed partial class PreparationChatViewModel : ObservableObject
             catch (Exception ex) when (ex is not OperationCanceledException)
 #pragma warning restore CA1031
             {
-                Status = _text.Format("Canvas_Chat_Failed", ex.Message);
+                Status = _text.Format("Canvas_Chat_Failed", OrchestratorErrorText.Detail(ex, _text.Provider));
                 return;
             }
         }

@@ -650,7 +650,8 @@ public sealed class JudgeDossierBuilder(
                     checks.Add($"Evidence '{record.Id}': its content does not match the SHA-256 recorded at capture; it changed afterwards and proves nothing.");
                 }
 
-                return new DossierEvidenceFile(record.Id, "evidence/" + name, verified, written < size, size);
+                var copy = new DossierEvidenceFile(record.Id, "evidence/" + name, verified, written < size, size);
+                return AgentSaidFields.MayBeAttemptRecord(record) ? await MarkWhatTheAgentSaidAsync(record, Path.Combine(evidenceFolder, name), copy, checks, cancellationToken).ConfigureAwait(false) : copy;
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -658,6 +659,33 @@ public sealed class JudgeDossierBuilder(
             checks.Add($"Evidence '{record.Id}': its content cannot be read ({ex.Message}); it proves nothing.");
             return new DossierEvidenceFile(record.Id, null, false, false, 0);
         }
+    }
+
+    /// <summary>
+    /// An attempt record is captured by the system but carries the <c>outputs</c> the agent wrote in its report: the copy the judge
+    /// reads moves them under a mark that says so (ADR-0051). The stored record is untouched. When the copy cannot be marked, it is
+    /// left as it was and the dossier says so in its system checks, so the outputs in it are never taken for captured facts.
+    /// </summary>
+    private static async Task<DossierEvidenceFile> MarkWhatTheAgentSaidAsync(EvidenceRecord record, string path, DossierEvidenceFile copy, List<string> checks, CancellationToken cancellationToken)
+    {
+        var text = await File.ReadAllTextAsync(path, Utf8NoBom, cancellationToken).ConfigureAwait(false);
+        if (!copy.Truncated && AgentSaidFields.TryMark(text, out var marked))
+        {
+            var file = new FileStream(path, FileMode.Truncate, FileAccess.Write, FileShare.None, 4096, FileOptions.Asynchronous);
+            await using (file.ConfigureAwait(false))
+            {
+                await file.WriteAsync(Utf8NoBom.GetBytes(marked), cancellationToken).ConfigureAwait(false);
+            }
+
+            return copy with { SaidByAgent = [AgentSaidFields.OutputsKey] };
+        }
+
+        if (text.Contains($"\"{AgentSaidFields.OutputsKey}\"", StringComparison.Ordinal))
+        {
+            checks.Add($"Evidence '{record.Id}': it is an attempt record whose outputs could not be marked; they were written by the agent, not captured by the system.");
+        }
+
+        return copy;
     }
 
     /// <summary>Copies at most <paramref name="limit"/> bytes, but hashes the whole content.</summary>

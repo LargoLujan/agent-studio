@@ -5,6 +5,8 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:approvals="clr-namespace:AgentStudio.Desktop.Orchestrator.Approvals"
              xmlns:lock="clr-namespace:AgentStudio.Desktop.Views.Lock"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
+             xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=approvals:ApprovalDialogViewModel}">
     <!-- The approval question (F3-7). Only «Aprobar» approves; «Denegar», Esc and closing the window deny. -->
@@ -14,11 +16,12 @@
                 <Ellipse Width="10" Height="10" Margin="0,0,8,0" VerticalAlignment="Center"
                          Fill="{Binding RiskTone, Converter={StaticResource Orchestrator.ToneToBrush}}"/>
                 <TextBlock Style="{StaticResource SectionTitleText}" Text="{Binding RiskLabel}"/>
+                <info:InfoButton InfoKey="Info_Approval" Margin="8,0,0,0" VerticalAlignment="Center"/>
             </StackPanel>
 
             <!-- V25: the title is a plain sentence; the identifier the log records goes last, as a technical detail. -->
             <TextBlock Style="{StaticResource BodyText}" FontSize="17" FontWeight="SemiBold" Margin="0,12,0,0"
-                       Text="{Binding Title}" AutomationProperties.Name="{Binding Title, StringFormat='Acción: {0}'}"/>
+                       Text="{Binding Title}" AutomationProperties.Name="{Binding AccessibleTitle}"/>
             <TextBlock Style="{StaticResource BodyText}" Margin="0,8,0,0" Text="{Binding Description}"/>
             <TextBlock Style="{StaticResource SecondaryText}" Margin="0,8,0,0" Text="{Binding RequestedBy}"
                        Visibility="{Binding RequestedBy, Converter={StaticResource Orchestrator.NotNullToVisibility}}"/>
@@ -32,7 +35,7 @@
                 <Border Background="{StaticResource BackgroundBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
                         CornerRadius="4" Padding="10,6">
                     <ScrollViewer MaxHeight="160" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Focusable="False">
-                        <ItemsControl ItemsSource="{Binding AffectedPaths}" AutomationProperties.Name="Rutas afectadas">
+                        <ItemsControl ItemsSource="{Binding AffectedPaths}" AutomationProperties.Name="{l:T Orchestrator_Approval_PathsName}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <TextBlock Style="{StaticResource BodyText}" FontFamily="{StaticResource MonoFont}" FontSize="12"
@@ -44,23 +47,23 @@
                 </Border>
             </StackPanel>
 
-            <TextBlock Style="{StaticResource FieldLabel}" Text="Comentario (opcional, queda en el registro)"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Orchestrator_Approval_CommentLabel}"/>
             <TextBox Style="{StaticResource FieldTextBox}" Text="{Binding Comment, UpdateSourceTrigger=PropertyChanged}"
-                     AutomationProperties.Name="Comentario"/>
+                     AutomationProperties.Name="{l:T Orchestrator_Approval_CommentName}"/>
 
             <CheckBox Style="{StaticResource FieldCheckBox}" Margin="0,12,0,0" IsChecked="{Binding IsConfirmed}"
                       Visibility="{Binding RequiresConfirmation, Converter={StaticResource Orchestrator.BoolToVisibility}}"
-                      Content="Entiendo que es una acción crítica y quiero aprobarla"/>
+                      Content="{l:T Orchestrator_Approval_ConfirmCritical}"/>
 
             <!-- What a critical approval says of Windows Hello (docs/16 D-13, F8-11): asked after «Aprobar», or not there. -->
             <lock:HelloNoticeView/>
 
             <DockPanel Margin="0,18,0,0" LastChildFill="False">
                 <TextBlock DockPanel.Dock="Left" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" MaxWidth="260"
-                           Text="Cerrar esta ventana cuenta como denegar."/>
-                <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" Content="Aprobar" Margin="8,0,0,0"
+                           Text="{l:T Orchestrator_Approval_CloseIsDeny}"/>
+                <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" Content="{l:T Orchestrator_Approval_Approve}" Margin="8,0,0,0"
                         Command="{Binding ApproveCommand}"/>
-                <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Content="Denegar" IsCancel="True" IsDefault="True"
+                <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Content="{l:T Orchestrator_Approval_Deny}" IsCancel="True" IsDefault="True"
                         Command="{Binding DenyCommand}"/>
             </DockPanel>
         </StackPanel>

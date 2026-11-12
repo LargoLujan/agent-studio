@@ -14,7 +14,7 @@ namespace AgentStudio.Tests.Desktop.Phase8;
 /// </summary>
 public sealed class UnattendedSettingsViewModelTests
 {
-    /// <summary>«Ajustes» with this section and «Contexto y cuota», over the same store.</summary>
+    /// <summary>«Ajustes» with this section and «Contexto y límite de uso», over the same store.</summary>
     private static SettingsDocumentViewModel Ajustes(IAppSettingsStore store, UnattendedSettingsViewModel settings) =>
         new(store, new ObservabilitySettingsViewModel(store), settings);
 
@@ -67,7 +67,7 @@ public sealed class UnattendedSettingsViewModelTests
         settings.Choose(CloseWindowAction.Exit);
         ajustes.SaveCommand.Execute(null);
 
-        Assert.Equal("No se pudieron guardar los ajustes: The disk is full.", ajustes.ErrorMessage);
+        Assert.Equal("No se pudieron guardar los ajustes. Vuelve a intentarlo. Detalle: The disk is full.", ajustes.ErrorMessage);
         Assert.Null(ajustes.Notice);
         Assert.Equal(0, saved);
         Assert.Equal(CloseWindowAction.Exit, settings.CloseWindow);

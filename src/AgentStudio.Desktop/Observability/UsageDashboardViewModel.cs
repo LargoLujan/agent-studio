@@ -4,9 +4,11 @@ using System.IO;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Usage;
 using AgentStudio.Desktop.Controls;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Services;
 using AgentStudio.Desktop.ViewModels;
 using AgentStudio.Domain.Metrics;
+using AgentStudio.Observability.Usage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -72,8 +74,30 @@ public sealed record UsageGroupRow(
     /// <summary>The context peak of the group as a bar (V39, docs/18 P3): its percentage, origin and level, or why there is none.</summary>
     public required MetricBarReading ContextPeakBar { get; init; }
 
+    /// <summary>Phase 9 (docs/16 D-34): the time the attempts of the group waited in the queue of their provider, apart from their duration.</summary>
+    public Figure QueueWait { get; init; } = new(null, string.Empty);
+
+    /// <summary>Phase 9 (docs/16 D-34): the time the tasks waited for the usage limit of their plan after these attempts hit it, apart from their duration.</summary>
+    public Figure QuotaWait { get; init; } = new(null, string.Empty);
+
+    /// <summary>
+    /// How many attempts of the group are also in another group of the same dimension (a milestone), said apart (F9-6); null when none is.
+    /// The groups of that dimension add up to the total plus exactly these.
+    /// </summary>
+    public string? SharedNote { get; init; }
+
     /// <summary>What a screen reader says of a group of the report (V34): its key.</summary>
     public override string ToString() => Key;
+}
+
+/// <summary>
+/// One axis of Phase 9 (docs/16 D-34, F9-6): the attempts of the report split by milestone or by one of the three axes of the activity,
+/// each with its total, so its rows add up to it. <see cref="SharedNote"/> is the attempts of more than one milestone, said apart.
+/// </summary>
+public sealed record UsageAxis(string Title, string TotalText, IReadOnlyList<UsageGroupRow> Rows, string? SharedNote)
+{
+    /// <summary>What a screen reader says of an axis: its title.</summary>
+    public override string ToString() => Title;
 }
 
 /// <summary>One attempt as a row: when it finished, who ran it, where and how it ended, its own figures, its context peak and its models.</summary>
@@ -101,18 +125,17 @@ public sealed partial class UsageDashboardViewModel : DocumentViewModel
 {
     public const string DocumentId = "observability:usage";
 
-    /// <summary>What the cost is, as the panel states it (docs/14 D-06).</summary>
-    public const string CostNote =
-        "El coste es la estimación del CLI con su propia tabla de precios (precio de lista): con suscripción no es lo que pagas. Codex no lo expone.";
+    /// <summary>What the cost is, as the panel states it (docs/14 D-06), from the resources.</summary>
+    public static string CostNote => Texts.Get("Usage_CostNote");
 
-    /// <summary>Where the settings of the report and of the quota are, as the panel states it.</summary>
-    public const string SettingsNote =
-        "Los umbrales de salud del contexto y el permiso para leer la cuota de Codex se cambian en «Ajustes» (el engranaje de la barra de la izquierda).";
+    /// <summary>Where the settings of the report and of the quota are, as the panel states it, from the resources.</summary>
+    public static string SettingsNote => Texts.Get("Usage_SettingsNote");
 
-    /// <summary>What the bar of a context peak is called, in a group and in an attempt (V39).</summary>
-    public const string PeakLabel = "Contexto máximo";
+    /// <summary>What the bar of a context peak is called, in a group and in an attempt (V39), from the resources.</summary>
+    public static string PeakLabel => Texts.Get("Usage_Peak_Label");
 
-    private const string NoModel = "predeterminado del CLI (no expuesto)";
+    /// <summary>The model of an attempt that has none, in the language in use: the group of the aggregator says it the same way.</summary>
+    private static string NoModel => Texts.Get("Usage_Value_NoModel");
 
     private readonly IUsageReport? _report;
     private readonly IUsageExporter? _exporter;
@@ -137,7 +160,7 @@ public sealed partial class UsageDashboardViewModel : DocumentViewModel
         TimeProvider time,
         QuotaViewModel quota,
         ObservabilitySettingsViewModel preferences)
-        : base(DocumentId, "Consumo")
+        : base(DocumentId, Texts.Get("Usage_Title"))
     {
         ArgumentNullException.ThrowIfNull(picker);
         ArgumentNullException.ThrowIfNull(settings);
@@ -169,19 +192,22 @@ public sealed partial class UsageDashboardViewModel : DocumentViewModel
 
     public IReadOnlyList<Option<UsageScope>> Scopes { get; } =
     [
-        new(UsageScope.ThisProject, "Este proyecto"),
-        new(UsageScope.RecentProjects, "Todos los proyectos recientes"),
+        new(UsageScope.ThisProject, Texts.Get("Usage_Scope_This")),
+        new(UsageScope.RecentProjects, Texts.Get("Usage_Scope_Recent")),
     ];
 
     public IReadOnlyList<Option<UsagePeriod>> Periods { get; } =
     [
-        new(UsagePeriod.Today, "Hoy"),
-        new(UsagePeriod.Last7Days, "Últimos 7 días"),
-        new(UsagePeriod.ThisMonth, "Este mes"),
-        new(UsagePeriod.Last30Days, "Últimos 30 días"),
+        new(UsagePeriod.Today, Texts.Get("Usage_Period_Today")),
+        new(UsagePeriod.Last7Days, Texts.Get("Usage_Period_Last7Days")),
+        new(UsagePeriod.ThisMonth, Texts.Get("Usage_Period_ThisMonth")),
+        new(UsagePeriod.Last30Days, Texts.Get("Usage_Period_Last30Days")),
     ];
 
-    /// <summary>What the report can group by, in the order the query takes them (D-04).</summary>
+    /// <summary>
+    /// What the report can group by, in the order the query takes them (D-04): every dimension of <see cref="UsageDimension"/>,
+    /// the milestone and the three axes of the activity of Phase 9 (docs/16 D-34) included, since the aggregator groups by them.
+    /// </summary>
     public IReadOnlyList<DimensionOption> Dimensions { get; } = [.. Enum.GetValues<UsageDimension>().Select(d => new DimensionOption(d, DimensionLabel(d)))];
 
     [ObservableProperty]
@@ -193,6 +219,12 @@ public sealed partial class UsageDashboardViewModel : DocumentViewModel
     public ObservableCollection<UsageGroupRow> Groups { get; } = [];
 
     public ObservableCollection<UsageAttemptRow> Attempts { get; } = [];
+
+    /// <summary>
+    /// Phase 9 (docs/16 D-34, F9-6): the attempts of the report split by milestone and by each of the three axes of the activity,
+    /// apart from the groups the person picks. Each axis adds up to the total; what a milestone shares is said apart.
+    /// </summary>
+    public ObservableCollection<UsageAxis> Axes { get; } = [];
 
     /// <summary>The projects left out of the report, each with why (D-05).</summary>
     public ObservableCollection<string> Excluded { get; } = [];
@@ -239,7 +271,7 @@ public sealed partial class UsageDashboardViewModel : DocumentViewModel
         if (_report is null)
         {
             Show(null);
-            StatusMessage = "El consumo no está disponible en esta composición: falta la proyección del registro.";
+            StatusMessage = Texts.Get("Usage_Status_Unavailable");
             return;
         }
 
@@ -248,21 +280,21 @@ public sealed partial class UsageDashboardViewModel : DocumentViewModel
         {
             Show(null);
             StatusMessage = SelectedScope.Value == UsageScope.ThisProject
-                ? "Abre una carpeta para ver su consumo, o elige «Todos los proyectos recientes»."
-                : "No hay proyectos recientes en los ajustes.";
+                ? Texts.Get("Usage_Status_OpenFolder")
+                : Texts.Get("Usage_Status_NoRecent");
             return;
         }
 
         var (from, to) = Range(SelectedPeriod.Value);
         var query = new UsageQuery(from, to, _time.LocalTimeZone, [.. Dimensions.Where(d => d.IsSelected).Select(d => d.Dimension)]);
         IsBusy = true;
-        StatusMessage = "Calculando el consumo…";
+        StatusMessage = Texts.Get("Usage_Status_Calculating");
         try
         {
             var report = await _report.QueryAsync(roots, query, CancellationToken.None).ConfigureAwait(true);
             Show(report);
-            RangeText = $"Del {Day(from)} al {Day(to.AddDays(-1))}, en tu hora local.";
-            StatusMessage = report.Attempts.Count == 0 && report.Groups.Count == 0 ? "Sin intentos en el periodo." : null;
+            RangeText = Texts.Format("Usage_Range", Day(from), Day(to.AddDays(-1)));
+            StatusMessage = report.Attempts.Count == 0 && report.Groups.Count == 0 ? Texts.Get("Usage_Status_NoAttempts") : null;
         }
 #pragma warning disable CA1031 // The projection is behind a port: a failure is shown in the panel, never thrown into the UI.
         catch (Exception ex)
@@ -270,7 +302,7 @@ public sealed partial class UsageDashboardViewModel : DocumentViewModel
         {
             Show(null);
             StatusMessage = null;
-            ErrorMessage = $"No se pudo calcular el consumo: {ex.Message}";
+            ErrorMessage = Texts.Format("Usage_Error_Calculate", ex.Message);
         }
         finally
         {
@@ -297,8 +329,8 @@ public sealed partial class UsageDashboardViewModel : DocumentViewModel
             return;
         }
 
-        var suggested = $"consumo-{_time.GetLocalNow().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}.{extension}";
-        if (_picker.PickSaveFile($"Exportar el consumo a {format}", suggested, $"{format} (*.{extension})|*.{extension}") is not { } path)
+        var suggested = Texts.Format("Usage_Export_FileName", _time.GetLocalNow().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), extension);
+        if (_picker.PickSaveFile(Texts.Format("Usage_Export_Title", format), suggested, $"{format} (*.{extension})|*.{extension}") is not { } path)
         {
             return;
         }
@@ -309,13 +341,13 @@ public sealed partial class UsageDashboardViewModel : DocumentViewModel
         try
         {
             await ExportFile.WriteAtomicallyAsync(path, stream => write(exporter, report, stream)).ConfigureAwait(true);
-            ExportStatus = $"Exportado a {path}";
+            ExportStatus = Texts.Format("Usage_Export_Done", path);
         }
 #pragma warning disable CA1031 // The exporter is behind a port: a failure is shown in the panel, never thrown into the UI.
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = $"No se pudo exportar: {ex.Message}";
+            ErrorMessage = Texts.Format("Usage_Export_Error", ex.Message);
         }
         finally
         {
@@ -383,8 +415,9 @@ public sealed partial class UsageDashboardViewModel : DocumentViewModel
         var thresholds = Preferences.Thresholds;
         Replace(Groups, report?.Groups.Select(g => Row(g, thresholds)) ?? []);
         Replace(Attempts, report?.Attempts.Select(a => Row(a, thresholds)) ?? []);
-        Replace(Excluded, report?.Excluded.Select(e => $"{e.Root}: {e.Reason}") ?? []);
-        Replace(ReconciliationWarnings, report?.Journal.Warnings ?? []);
+        Replace(Axes, report is null ? [] : AxesOf(report, thresholds));
+        Replace(Excluded, report?.Excluded.Select(e => $"{e.Root}: {UsageNotes.Translate(e.Reason)}") ?? []);
+        Replace(ReconciliationWarnings, report?.Journal.Warnings.Select(UsageNotes.Translate) ?? []);
         Reconciliation = report is null ? null : ReconciliationText(report.Journal);
         if (report is null)
         {
@@ -398,7 +431,13 @@ public sealed partial class UsageDashboardViewModel : DocumentViewModel
     private static UsageGroupRow Row(UsageGroup group, ContextHealthThresholds thresholds)
     {
         var totals = group.Totals;
-        var key = group.Key.Count == 0 ? "Total" : string.Join(" · ", group.Key.Select(k => $"{DimensionLabel(k.Dimension)}: {k.Value}"));
+        var key = group.Key.Count == 0 ? Texts.Get("Usage_Total") : string.Join(" · ", group.Key.Select(k => $"{DimensionLabel(k.Dimension)}: {ValueLabel(k.Dimension, k.Value)}"));
+        return Row(key, group, thresholds);
+    }
+
+    private static UsageGroupRow Row(string key, UsageGroup group, ContextHealthThresholds thresholds)
+    {
+        var totals = group.Totals;
         return new UsageGroupRow(
             key,
             MetricText.Measured(totals.Attempts),
@@ -415,21 +454,59 @@ public sealed partial class UsageDashboardViewModel : DocumentViewModel
             MetricText.Tokens(totals.Compactions))
         {
             ContextPeakBar = PeakBar(totals.ContextPeak, thresholds),
+            QueueWait = totals.QueueWaitMilliseconds is { } queue ? MetricText.Duration(queue) : new Figure(null, MetricText.Origin(MetricOrigin.Missing)),
+            QuotaWait = totals.QuotaWaitMilliseconds is { } quota ? MetricText.Duration(quota) : new Figure(null, MetricText.Origin(MetricOrigin.Missing)),
+            SharedNote = group.SharedAttempts > 0 ? Texts.Format("Usage_Shared_Row", group.SharedAttempts.ToString("N0", MetricText.Culture)) : null,
         };
+    }
+
+    /// <summary>
+    /// The four axes of Phase 9 (milestone, kind of work, first attempt or retry, what became of the work) over the attempts of the
+    /// report, grouped by the aggregator of the projection itself, so the rows of an axis add up to its total (F9-6). Nothing is shown
+    /// for a report without attempts.
+    /// </summary>
+    private IEnumerable<UsageAxis> AxesOf(UsageReport report, ContextHealthThresholds thresholds)
+    {
+        if (report.Attempts.Count == 0)
+        {
+            yield break;
+        }
+
+        var (from, to) = (report.Attempts.Min(a => a.FinishedAt), report.Attempts.Max(a => a.FinishedAt).AddTicks(1));
+        foreach (var (dimension, titleKey) in new[]
+        {
+            (UsageDimension.Milestone, "Usage_Axis_Milestone"),
+            (UsageDimension.Activity, "Usage_Axis_Activity"),
+            (UsageDimension.ActivityAttempt, "Usage_Axis_Order"),
+            (UsageDimension.ActivityDestination, "Usage_Axis_Fate"),
+        })
+        {
+            var groups = UsageAggregator.Group(report.Attempts, new UsageQuery(from, to, _time.LocalTimeZone, [dimension]));
+            var shared = dimension == UsageDimension.Milestone ? report.Attempts.Count(a => a.Milestones.Count > 1) : 0;
+            yield return new UsageAxis(
+                Texts.Get(titleKey),
+                Texts.Format("Usage_Axis_Total", groups[0].Totals.Attempts.ToString("N0", MetricText.Culture)),
+                [.. groups.Skip(1).Select(g => Row(ValueLabel(dimension, g.Key[0].Value), g, thresholds))],
+                shared > 0 ? Texts.Format("Usage_Axis_Shared", shared.ToString("N0", MetricText.Culture)) : null);
+        }
     }
 
     private UsageAttemptRow Row(UsageAttempt attempt, ContextHealthThresholds thresholds)
     {
         var finished = TimeZoneInfo.ConvertTime(attempt.FinishedAt, _time.LocalTimeZone);
-        var who = string.Join(" · ", new[] { attempt.RunId, attempt.TaskId, $"intento {attempt.Attempt}", PurposeLabel(attempt.Purpose), attempt.Agent.Value }.Where(p => !string.IsNullOrWhiteSpace(p)));
+        var who = string.Join(" · ", new[] { attempt.RunId, attempt.TaskId, Texts.Format("Usage_AttemptNumber", attempt.Attempt), PurposeLabel(attempt.Purpose), attempt.Agent.Value }.Where(p => !string.IsNullOrWhiteSpace(p)));
         var where = string.Join(" · ", attempt.Provider.Value, attempt.ReportedModel ?? attempt.ConfiguredModel ?? NoModel, OutcomeLabel(attempt.Outcome));
         var duration = attempt.LaunchedAt is { } launched
             ? MetricValue<long>.Measured(Math.Max(0, (long)(attempt.FinishedAt - launched).TotalMilliseconds), "process start to finish")
             : MetricValue<long>.Missing("no launch time before version 2");
         IReadOnlyList<string> perModel = attempt.RecordedVersion < 2
-            ? ["sin desglose (registro anterior a la Fase 4)"]
-            : [.. attempt.PerModel.Select(m =>
-                $"{m.Model}: entrada {MetricText.Tokens(m.Figures.InputTokens).Text}; salida {MetricText.Tokens(m.Figures.OutputTokens).Text}; coste {MetricText.Cost(m.Figures.CostUsd, m.CostBasis).Text}")];
+            ? [Texts.Get("Usage_NoBreakdown")]
+            : [.. attempt.PerModel.Select(m => Texts.Format(
+                "Usage_PerModel",
+                m.Model,
+                MetricText.Tokens(m.Figures.InputTokens).Text,
+                MetricText.Tokens(m.Figures.OutputTokens).Text,
+                MetricText.Cost(m.Figures.CostUsd, m.CostBasis).Text))];
         return new UsageAttemptRow(
             finished.ToString("dd/MM/yyyy HH:mm:ss", CultureInfo.InvariantCulture),
             who,
@@ -438,7 +515,7 @@ public sealed partial class UsageDashboardViewModel : DocumentViewModel
             MetricText.Tokens(attempt.Own.InputTokens),
             MetricText.Tokens(attempt.Own.OutputTokens),
             MetricText.Cost(attempt.Own.CostUsd),
-            "Contexto máximo: " + Peak(attempt.ContextPeak, thresholds),
+            Texts.Format("Usage_Peak_Of", Peak(attempt.ContextPeak, thresholds)),
             perModel)
         {
             ContextPeakBar = PeakBar(attempt.ContextPeak, thresholds),
@@ -446,72 +523,59 @@ public sealed partial class UsageDashboardViewModel : DocumentViewModel
     }
 
     private static string Peak(ContextPeakFigures? peak, ContextHealthThresholds thresholds) =>
-        peak is null ? "sin dato" : ContextText.Read(peak.Model, peak.UsedTokens, peak.ContextWindow, thresholds).Text;
+        peak is null ? Texts.Get("Usage_Peak_NoData") : ContextText.Read(peak.Model, peak.UsedTokens, peak.ContextWindow, thresholds).Text;
 
     /// <summary>
     /// The bar of a context peak (V39): read as every context bar is (<see cref="MetricBars"/>), judged with the thresholds of
     /// the settings; without a peak, an empty track that says «sin dato».
     /// </summary>
     private static MetricBarReading PeakBar(ContextPeakFigures? peak, ContextHealthThresholds thresholds) =>
-        peak is null ? MetricBars.Empty(PeakLabel, "sin dato") : MetricBars.Context(PeakLabel, peak.Model, peak.UsedTokens, peak.ContextWindow, thresholds);
+        peak is null ? MetricBars.Empty(PeakLabel, Texts.Get("Usage_Peak_NoData")) : MetricBars.Context(PeakLabel, peak.Model, peak.UsedTokens, peak.ContextWindow, thresholds);
 
     private static string ReconciliationText(UsageReconciliation journal)
     {
         if (journal.JournalPrompts is not { } prompts)
         {
-            return "Sin bitácora que conciliar en el periodo.";
+            return Texts.Get("Usage_Reconciliation_None");
         }
 
-        var said = string.Create(CultureInfo.InvariantCulture, $"La bitácora del periodo tiene {prompts} prompts y el registro, {journal.RecordedAttempts} intentos");
+        var said = Texts.Format("Usage_Reconciliation_Said", prompts, journal.RecordedAttempts);
         return journal.Difference switch
         {
-            0 => said + ": coinciden.",
-            var difference => string.Create(CultureInfo.InvariantCulture, $"{said}: {Math.Abs(difference ?? 0)} de diferencia, que se muestran y no se cuentan."),
+            0 => Texts.Format("Usage_Reconciliation_Equal", said),
+            var difference => Texts.Format("Usage_Reconciliation_Difference", said, Math.Abs(difference ?? 0)),
         };
     }
 
-    internal static string DimensionLabel(UsageDimension dimension) => dimension switch
+    /// <summary>The name of a dimension, from the resources; one the resources do not know yet is shown as its name, never as <c>[key]</c>.</summary>
+    internal static string DimensionLabel(UsageDimension dimension) => Named("Usage_Dim_", dimension) ?? dimension.ToString();
+
+    /// <summary>
+    /// The value of a group on a dimension. The aggregator gives the values of the milestone and of the three axes of the activity as
+    /// names (<c>Implementation</c>, <c>First</c>, <c>Kept</c>) and as markers (<c>sin hito</c>, <c>sin sesión</c>, <c>sin tarea</c>, the model
+    /// and the purpose of an attempt that has none) that the export keeps as they are, so the screen says them in the language in use. Every other value is data and is shown as it is.
+    /// </summary>
+    internal static string ValueLabel(UsageDimension dimension, string value) => dimension switch
     {
-        UsageDimension.Provider => "Proveedor",
-        UsageDimension.Vendor => "Vendor",
-        UsageDimension.Model => "Modelo",
-        UsageDimension.Session => "Sesión",
-        UsageDimension.Run => "Ejecución",
-        UsageDimension.Task => "Tarea",
-        UsageDimension.Agent => "Agente",
-        UsageDimension.Purpose => "Propósito",
-        UsageDimension.Project => "Proyecto",
-        UsageDimension.Day => "Día",
-        UsageDimension.Week => "Semana",
-        UsageDimension.Month => "Mes",
-        _ => dimension.ToString(),
+        UsageDimension.Model => value == UsageAttemptFacts.DefaultModel ? Texts.Get("Usage_Value_NoModel") : value,
+        UsageDimension.Session => value == UsageAggregator.NoSession ? Texts.Get("Usage_Value_NoSession") : value,
+        UsageDimension.Task => value == UsageAggregator.NoTask ? Texts.Get("Usage_Value_NoTask") : value,
+        UsageDimension.Purpose => value == UsageAggregator.NoPurpose ? Texts.Get("Usage_Value_NoPurpose") : Texts.Current.Has("Usage_Purpose_" + value) ? Texts.Get("Usage_Purpose_" + value) : value,
+        UsageDimension.Milestone => value == UsageAggregator.NoMilestone ? Texts.Get("Usage_Value_NoMilestone") : value,
+        UsageDimension.Activity => value == UsageAggregator.NoActivity ? Texts.Get("Usage_Value_NoActivity") : Texts.Current.Has("Usage_Activity_" + value) ? Texts.Get("Usage_Activity_" + value) : value,
+        UsageDimension.ActivityAttempt => value == UsageAggregator.NoActivity ? Texts.Get("Usage_Value_NoActivity") : Texts.Current.Has("Usage_Order_" + value) ? Texts.Get("Usage_Order_" + value) : value,
+        UsageDimension.ActivityDestination => value == UsageAggregator.NoActivity ? Texts.Get("Usage_Value_NoActivity")
+            : value == UsageAggregator.DiscardedWithCommit ? Texts.Get("Usage_Fate_DiscardedWithCommit")
+            : Texts.Current.Has("Usage_Fate_" + value) ? Texts.Get("Usage_Fate_" + value) : value,
+        _ => value,
     };
 
-    private static string? PurposeLabel(AgentRunPurpose? purpose) => purpose switch
-    {
-        AgentRunPurpose.Planner => "Planificador",
-        AgentRunPurpose.Executor => "Ejecutor",
-        AgentRunPurpose.Judge => "Juez",
-        AgentRunPurpose.SkillRecommendation => "Recomendación de skills",
-        AgentRunPurpose.DailySummary => "Resumen diario",
+    private static string? PurposeLabel(AgentRunPurpose? purpose) => purpose is { } known ? Named("Usage_Purpose_", known) : null;
 
-        // Phase 5 (docs/15 D-44): the turns and the judge of a debate, and the judge of a whole-project audit.
-        AgentRunPurpose.DebateParticipant => "Participante de debate",
-        AgentRunPurpose.DebateJudge => "Juez de debate",
-        AgentRunPurpose.ProjectAudit => "Auditoría del proyecto",
-        _ => null,
-    };
+    private static string OutcomeLabel(AttemptOutcome outcome) => Named("Usage_Outcome_", outcome) ?? outcome.ToString();
 
-    private static string OutcomeLabel(AttemptOutcome outcome) => outcome switch
-    {
-        AttemptOutcome.Succeeded => "correcto",
-        AttemptOutcome.Failed => "fallido",
-        AttemptOutcome.Cancelled => "cancelado",
-        AttemptOutcome.LimitReached => "límite alcanzado",
-        AttemptOutcome.RateLimited => "límite de uso del proveedor",
-        AttemptOutcome.Interrupted => "interrumpido",
-        _ => outcome.ToString(),
-    };
+    /// <summary>The text of <c>prefix + value</c>; null when the resources do not have it (a value appended later).</summary>
+    private static string? Named(string prefix, Enum value) => Texts.Current.Has(prefix + value) ? Texts.Get(prefix + value) : null;
 
     private static void Replace<T>(ObservableCollection<T> target, IEnumerable<T> items)
     {

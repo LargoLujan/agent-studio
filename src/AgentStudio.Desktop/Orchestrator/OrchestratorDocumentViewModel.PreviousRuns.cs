@@ -1,4 +1,5 @@
 using AgentStudio.Application.Orchestration;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Orchestrator.Canvas;
 using AgentStudio.Domain.Orchestration;
 using CommunityToolkit.Mvvm.Input;
@@ -33,7 +34,7 @@ public sealed partial class OrchestratorDocumentViewModel
         }
 
         IsBusy = true;
-        BusyText = $"Abriendo la ejecución {item.Summary.Id} desde el registro…";
+        BusyText = Texts.Format("Orchestrator_Doc_OpeningRun", item.Summary.Id);
         ErrorMessage = null;
         IOrchestrationRun? inspected = null;
         try
@@ -42,7 +43,7 @@ public sealed partial class OrchestratorDocumentViewModel
             inspected = await _session.InspectAsync(project, item.Summary.Id, CancellationToken.None).ConfigureAwait(true);
             if (Monitor.IsActive || Monitor.IsDelivering)
             {
-                ErrorMessage = $"No se abrió la ejecución {item.Summary.Id}: el monitor de esta pestaña está ocupado con otra ejecución.";
+                ErrorMessage = Texts.Format("Orchestrator_Doc_MonitorBusy", item.Summary.Id);
                 return;
             }
 
@@ -86,7 +87,7 @@ public sealed partial class OrchestratorDocumentViewModel
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = $"No se pudo abrir la ejecución {item.Summary.Id}: {ex.Message}";
+            ErrorMessage = Texts.Format("Orchestrator_Doc_OpenRunFailed", item.Summary.Id, OrchestratorErrorText.Detail(ex));
         }
         finally
         {
@@ -206,7 +207,7 @@ public sealed partial class OrchestratorDocumentViewModel
             ProposalStatus = null;
             ClearCanvasPlan();
             Revalidate();
-            Canvas.Notify("No se pudo recuperar el plan del borrador: el lienzo queda vacío.", NoticeKind.Error);
+            Canvas.Notify(Texts.Get("Orchestrator_Doc_DraftPlanLost"), NoticeKind.Error);
             return false;
         }
     }

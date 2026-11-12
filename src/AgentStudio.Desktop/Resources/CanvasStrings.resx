@@ -151,11 +151,11 @@ Pulsar «Guardar» para que se guarde.</value>
     <comment>State of an agent. {0}: task id.</comment>
   </data>
   <data name="Canvas_Status_WaitingForQuota" xml:space="preserve">
-    <value>Esperando cuota</value>
+    <value>En pausa por el límite de uso</value>
     <comment>State of an agent without the hour.</comment>
   </data>
   <data name="Canvas_Status_WaitingUntil" xml:space="preserve">
-    <value>Esperando cuota hasta las {0}</value>
+    <value>En pausa por el límite de uso hasta las {0}</value>
     <comment>State of an agent. {0}: hour.</comment>
   </data>
   <data name="Canvas_Status_Asking" xml:space="preserve">
@@ -191,7 +191,7 @@ Pulsar «Guardar» para que se guarde.</value>
     <comment>Label of the bar of the agent runs against the maximum.</comment>
   </data>
   <data name="Canvas_Bar_Quota" xml:space="preserve">
-    <value>Cuota {0} {1}</value>
+    <value>Límite de uso {0} {1}</value>
     <comment>Label of a bar of quota. {0}: program; {1}: window.</comment>
   </data>
   <data name="Canvas_Bar_NoObservationYet" xml:space="preserve">
@@ -223,11 +223,11 @@ Pulsar «Guardar» para que se guarde.</value>
     <comment>{0}: branch.</comment>
   </data>
   <data name="Canvas_Repo_DetachedHead" xml:space="preserve">
-    <value>sin rama (HEAD suelto)</value>
+    <value>sin rama (versión suelta)</value>
     <comment>The repository is on a detached HEAD.</comment>
   </data>
   <data name="Canvas_Repo_Head" xml:space="preserve">
-    <value>HEAD {0}</value>
+    <value>Versión {0}</value>
     <comment>{0}: short hash.</comment>
   </data>
   <data name="Canvas_Repo_NoCommits" xml:space="preserve">
@@ -239,7 +239,7 @@ Pulsar «Guardar» para que se guarde.</value>
     <comment>The repository has no remotes.</comment>
   </data>
   <data name="Canvas_Repo_Dirty" xml:space="preserve">
-    <value>Hay cambios sin confirmar: si trabajas en tu repositorio durante una ejecución, la tarea falla.</value>
+    <value>Hay cambios sin guardar como versión: si trabajas en tu repositorio durante una ejecución, la tarea falla.</value>
     <comment>Warning of the node (ADR-0013, point 7).</comment>
   </data>
   <data name="Canvas_Repo_Clean" xml:space="preserve">
@@ -303,7 +303,7 @@ Pulsar «Guardar» para que se guarde.</value>
     <comment>Why taking the orchestrator out of the team is refused (TeamRemoval, team.orchestrator-required).</comment>
   </data>
   <data name="Canvas_Problem_main_folder_invalid" xml:space="preserve">
-    <value>Una carpeta principal no es válida: tiene que ser relativa al repositorio.</value>
+    <value>Una carpeta principal no vale: tiene que ser relativa al repositorio.</value>
     <comment>Problem of the Team layer (TeamGraph.Validate, team.main-folder-invalid).</comment>
   </data>
   <data name="Canvas_Problem_duplicate_edge" xml:space="preserve">
@@ -671,7 +671,7 @@ Leer el origen de cada barra: exacto, estimado o no expuesto.</value>
     <comment>Title of the info button.</comment>
   </data>
   <data name="Info_Canvas_Inspector_What" xml:space="preserve">
-    <value>Enseña solo lo que manda en la ejecución del agente: su modelo y su esfuerzo, sus herramientas, sus carpetas, su memoria y sus instrucciones. Cambiarlos cambia la plantilla.</value>
+    <value>Enseña solo lo que manda en la ejecución del agente. Es su modelo y su esfuerzo, sus herramientas, sus carpetas, su memoria y sus instrucciones. Cambiarlos cambia la plantilla.</value>
     <comment>What the inspector is.</comment>
   </data>
   <data name="Info_Canvas_Inspector_Actions" xml:space="preserve">
@@ -685,7 +685,7 @@ Escribir las instrucciones del agente y pulsar «Aplicar».</value>
     <comment>Title of the info button.</comment>
   </data>
   <data name="Info_Canvas_Repository_What" xml:space="preserve">
-    <value>Enseña tu repositorio sin conectarse a ninguna red: la rama, la versión actual, los remotos sin usuario ni contraseña, si hay cambios sin confirmar y las carpetas principales.</value>
+    <value>Enseña tu repositorio sin usar la red. Ves la rama, la versión actual y los remotos, sin usuario ni contraseña. También si hay cambios sin guardar y las carpetas principales.</value>
     <comment>What the node is.</comment>
   </data>
   <data name="Info_Canvas_Repository_Actions" xml:space="preserve">
@@ -698,7 +698,7 @@ Trabajar en tu repositorio durante una ejecución hace fallar la tarea.</value>
     <comment>Title of the info button.</comment>
   </data>
   <data name="Info_Canvas_Analysis_What" xml:space="preserve">
-    <value>Mientras montas, Agent Studio revisa el equipo y el plan y te dice lo que ya se puede saber. No gasta cuota. Los errores impiden aprobar el plan.</value>
+    <value>Mientras montas, Agent Studio revisa el equipo y el plan y te dice lo que ya se puede saber. No gasta tu límite de uso. Los errores impiden aprobar el plan.</value>
     <comment>What the band is.</comment>
   </data>
   <data name="Info_Canvas_Analysis_Actions" xml:space="preserve">
@@ -712,7 +712,7 @@ Pedir al orquestador que revise el orden, con tu OK.</value>
     <comment>Title of the info button.</comment>
   </data>
   <data name="Info_Canvas_Chat_What" xml:space="preserve">
-    <value>Escribe lo que quieres hacer y el orquestador lo lee en tu proyecto, sin escribir nada. Te propone requisitos, cambios del equipo, riesgos y preguntas. Cada mensaje gasta cuota y pide tu OK.</value>
+    <value>Escribe lo que quieres hacer y el orquestador lo lee en tu proyecto, sin escribir nada. Te propone requisitos, cambios del equipo, riesgos y preguntas. Cada mensaje gasta tu límite de uso y pide tu OK.</value>
     <comment>What the chat is.</comment>
   </data>
   <data name="Info_Canvas_Chat_Actions" xml:space="preserve">
@@ -794,7 +794,7 @@ Aplicar una sugerencia del equipo: nunca se aplica sola.</value>
     <comment>Toggle.</comment>
   </data>
   <data name="Canvas_Analysis_NeverSpends" xml:space="preserve">
-    <value>El análisis no gasta cuota.</value>
+    <value>El análisis no gasta tu límite de uso.</value>
     <comment>Note of the band.</comment>
   </data>
   <data name="Canvas_Order_Offer" xml:space="preserve">
@@ -858,7 +858,7 @@ Aplicar una sugerencia del equipo: nunca se aplica sola.</value>
     <comment>Label of the reason, which is text of an agent.</comment>
   </data>
   <data name="Canvas_Consent_Title" xml:space="preserve">
-    <value>Esto gasta cuota</value>
+    <value>Esto gasta tu límite de uso</value>
     <comment>Title of the card of the OK.</comment>
   </data>
   <data name="Canvas_Consent_Estimating" xml:space="preserve">
@@ -1014,7 +1014,7 @@ Aplicar una sugerencia del equipo: nunca se aplica sola.</value>
     <comment>The task writes now.</comment>
   </data>
   <data name="Canvas_Quota_Header" xml:space="preserve">
-    <value>Cuota de la cuenta</value>
+    <value>Límite de uso de la cuenta</value>
     <comment>Title of the quota bars of the strip.</comment>
   </data>
   <data name="Canvas_Quota_NotExposed" xml:space="preserve">
@@ -1147,7 +1147,7 @@ Pulsar «Guardar la ficha»: cada versión sustituye a la anterior.</value>
     <comment>Why the plan cannot be approved.</comment>
   </data>
   <data name="Canvas_Analysis_RefusesPending" xml:space="preserve">
-    <value>El análisis del montaje todavía no ha terminado: espera un momento para aprobar el plan.</value>
+    <value>El análisis del montaje todavía no ha terminado. Espera un momento para aprobar el plan.</value>
     <comment>Why the plan cannot be approved.</comment>
   </data>
   <data name="Canvas_Analysis_RefusesFailed" xml:space="preserve">
@@ -1175,7 +1175,7 @@ Pulsar «Guardar la ficha»: cada versión sustituye a la anterior.</value>
     <comment>{0}: the reason. Said when the template was written and the document could not read it again.</comment>
   </data>
   <data name="Canvas_Remove_Question" xml:space="preserve">
-    <value>¿Quitar a {1} ({0}) del equipo? Su definición se pierde de la plantilla y desde aquí no se puede recuperar, y se apagan las skills que tenía activadas. Las ejecuciones y los debates que ya hubo la conservan.</value>
+    <value>¿Quitar a {1} ({0}) del equipo? Su definición se pierde de la plantilla y no se puede recuperar desde aquí. Además, se apagan las skills que tenía activadas. Las ejecuciones y los debates que ya hubo la conservan.</value>
     <comment>{0}: id; {1}: name. Question before taking an agent out of the team.</comment>
   </data>
   <data name="Canvas_Remove_Confirm" xml:space="preserve">
@@ -1195,7 +1195,7 @@ Pulsar «Guardar la ficha»: cada versión sustituye a la anterior.</value>
     <comment>Said when no confirmation is composed.</comment>
   </data>
   <data name="Canvas_Repo_ConfigTooBig" xml:space="preserve">
-    <value>No se leyeron los remotos: el fichero de configuración del repositorio es demasiado grande.</value>
+    <value>No se leyeron los remotos. El fichero de configuración del repositorio es demasiado grande.</value>
     <comment>Said on the node instead of the remotes.</comment>
   </data>
 </root>

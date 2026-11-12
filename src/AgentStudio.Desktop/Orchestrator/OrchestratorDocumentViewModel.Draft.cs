@@ -1,6 +1,7 @@
 using System.IO;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Providers;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Orchestrator.Canvas;
 using AgentStudio.Domain.Orchestration;
 
@@ -61,7 +62,7 @@ public sealed partial class OrchestratorDocumentViewModel
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            Canvas.Notify($"No se pudo guardar el borrador de la petición y el plan: {ex.Message}", NoticeKind.Error);
+            Canvas.Notify(Texts.Format("Orchestrator_Doc_DraftSaveFailed", OrchestratorErrorText.Detail(ex)), NoticeKind.Error);
         }
     }
 
@@ -146,7 +147,7 @@ public sealed partial class OrchestratorDocumentViewModel
         var reading = Read(drafts, root);
         if (reading.Ignored is { } why)
         {
-            Canvas.Notify($"Se ignoró el borrador que había en el proyecto: {why}.", NoticeKind.Info);
+            Canvas.Notify(Texts.Format("Orchestrator_Doc_DraftIgnored", why), NoticeKind.Info);
         }
 
         if (reading.Draft is not { } draft)
@@ -199,8 +200,8 @@ public sealed partial class OrchestratorDocumentViewModel
             {
                 ProposalStatus = proposal is null
                     ? null
-                    : WithHistoryNotice("Borrador recuperado: es el plan que propuso el orquestador, sin aprobar. Revísalo y apruébalo para ejecutarlo.", proposal);
-                Canvas.Notify("Se recuperó el borrador de la sesión anterior: la petición y el plan, sin aprobar.", NoticeKind.Info);
+                    : WithHistoryNotice(Texts.Get("Orchestrator_Doc_DraftRecoveredProposal"), proposal);
+                Canvas.Notify(Texts.Get("Orchestrator_Doc_DraftRecovered"), NoticeKind.Info);
             }
         }
     }
@@ -225,7 +226,7 @@ public sealed partial class OrchestratorDocumentViewModel
         catch (Exception)
 #pragma warning restore CA1031
         {
-            return new DraftReading(null, "no se pudo leer");
+            return new DraftReading(null, Texts.Get("Orchestrator_Draft_Unreadable"));
         }
     }
 

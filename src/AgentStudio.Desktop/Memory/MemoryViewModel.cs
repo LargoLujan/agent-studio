@@ -16,37 +16,28 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace AgentStudio.Desktop.Memory;
 
-/// <summary>Spanish names of the categories, origins and trust of the memory (docs/14 D-18 and D-20).</summary>
+/// <summary>
+/// Names of the categories, origins and trust of the memory (docs/14 D-18 and D-20), from <c>Resources/MemoryStrings.resx</c> in
+/// the language in use. What an entry holds is shown as it was anchored: it is never translated (docs/17 D-48).
+/// </summary>
 public static class MemoryTexts
 {
     /// <summary>The trust of a journal entry in quarantine because who wrote it cannot be checked (V40).</summary>
-    public const string UncheckedJournalEntry =
-        "En cuarentena: no se puede comprobar quién la escribió. Acéptala, o confía en su día o en toda la bitácora";
+    public static string UncheckedJournalEntry => Texts.Get("Memory_Trust_JournalUnchecked");
 
-    public static string Kind(MemoryKind kind) => kind switch
+    /// <summary>
+    /// The text of <c>prefix + value</c>; a value the resources do not know (a new one) is shown as its name, never as <c>[key]</c>.
+    /// The names go in the language of <paramref name="texts"/>, the one in use when it is null.
+    /// </summary>
+    private static string Named(string prefix, Enum value, IUiTextProvider? texts)
     {
-        MemoryKind.Architecture => "Arquitectura",
-        MemoryKind.Convention => "Convención",
-        MemoryKind.Decision => "Decisión",
-        MemoryKind.KnownError => "Error conocido",
-        MemoryKind.Solution => "Solución",
-        MemoryKind.PendingTask => "Tarea pendiente",
-        MemoryKind.Change => "Cambio",
-        MemoryKind.DebateSummary => "Resumen de debate",
-        MemoryKind.Verdict => "Veredicto",
-        MemoryKind.DailySummary => "Resumen diario",
-        MemoryKind.JournalEntry => "Bitácora",
-        MemoryKind.ProjectBrief => Texts.Get("Memory_Kind_ProjectBrief"),
-        _ => kind.ToString(),
-    };
+        texts ??= Texts.Current;
+        return texts.Has(prefix + value) ? texts.Get(prefix + value) : value.ToString();
+    }
 
-    public static string Origin(MemoryOrigin origin) => origin switch
-    {
-        MemoryOrigin.System => "Sistema",
-        MemoryOrigin.User => "Tú",
-        MemoryOrigin.Agent => "Agente",
-        _ => origin.ToString(),
-    };
+    public static string Kind(MemoryKind kind, IUiTextProvider? texts = null) => Named("Memory_Kind_", kind, texts);
+
+    public static string Origin(MemoryOrigin origin, IUiTextProvider? texts = null) => Named("Memory_Origin_", origin, texts);
 
     /// <summary>
     /// Who wrote an entry of <paramref name="kind"/>. For a journal entry (docs/17 D-02) <see cref="MemoryOrigin.System"/>
@@ -54,24 +45,16 @@ public static class MemoryTexts
     /// whose author cannot be checked: the development hook, a third party, or Agent Studio itself before it left a receipt
     /// (V40). It is never an agent of the run, and it is never said to be someone else.
     /// </summary>
-    public static string Origin(MemoryKind kind, MemoryOrigin origin) => kind == MemoryKind.JournalEntry
+    public static string Origin(MemoryKind kind, MemoryOrigin origin, IUiTextProvider? texts = null) => kind == MemoryKind.JournalEntry
         ? origin switch
         {
             MemoryOrigin.System => "Agent Studio",
-            MemoryOrigin.Agent => "Autor sin comprobar",
-            _ => Origin(origin),
+            MemoryOrigin.Agent => (texts ?? Texts.Current).Get("Memory_Origin_JournalUnchecked"),
+            _ => Origin(origin, texts),
         }
-        : Origin(origin);
+        : Origin(origin, texts);
 
-    public static string Trust(MemoryTrust trust) => trust switch
-    {
-        MemoryTrust.Trusted => "De confianza",
-        MemoryTrust.Proposed => "Propuesta de un agente: sin revisar",
-        MemoryTrust.Quarantined => "En cuarentena: heredada de un historial aceptado como nuevo origen; revísala",
-        MemoryTrust.Rejected => "Rechazada",
-        MemoryTrust.Retracted => "Retirada",
-        _ => trust.ToString(),
-    };
+    public static string Trust(MemoryTrust trust, IUiTextProvider? texts = null) => Named("Memory_Trust_", trust, texts);
 
     /// <summary>
     /// The trust of an entry, said for its category: a journal entry whose author cannot be checked waits in quarantine
@@ -79,10 +62,10 @@ public static class MemoryTexts
     /// entry of the hook and one Agent Studio wrote before it left receipts look the same, and the format of a line can be
     /// copied, so it does not say who wrote it.
     /// </summary>
-    public static string Trust(MemoryKind kind, MemoryOrigin origin, MemoryTrust trust) =>
+    public static string Trust(MemoryKind kind, MemoryOrigin origin, MemoryTrust trust, IUiTextProvider? texts = null) =>
         kind == MemoryKind.JournalEntry && origin == MemoryOrigin.Agent && trust == MemoryTrust.Quarantined
-            ? UncheckedJournalEntry
-            : Trust(trust);
+            ? (texts ?? Texts.Current).Get("Memory_Trust_JournalUnchecked")
+            : Trust(trust, texts);
 
     /// <summary>The tone of the dot of the trust: what waits for a person is a warning; what is out of use, neutral.</summary>
     public static Tone Tone(MemoryTrust trust) => trust switch
@@ -96,35 +79,48 @@ public static class MemoryTexts
 /// <summary>One entry of the memory as the screen shows it, and whether a decision about it waits to be recorded.</summary>
 public sealed partial class MemoryEntryViewModel : ObservableObject
 {
+    private readonly IUiTextProvider _texts;
+
     /// <param name="entry">The entry, as recall or the search gives it now.</param>
     /// <param name="zone">The local time zone of its date.</param>
     /// <param name="match">Why it came out of a search (its words, its meaning or both); null when it was listed, not searched.</param>
-    public MemoryEntryViewModel(MemoryEntry entry, TimeZoneInfo zone, string? match = null)
+    /// <param name="coded">
+    /// What the topic and the content of the entry say as coded texts (<see cref="IMemoryEntryTexts"/>): the screen paints them in the
+    /// language of <paramref name="texts"/> while the anchored words stay in <see cref="Entry"/>. Null shows the entry as anchored.
+    /// </param>
+    /// <param name="texts">The language the screen paints in; the one in use when it is null.</param>
+    public MemoryEntryViewModel(MemoryEntry entry, TimeZoneInfo zone, string? match = null, MemoryEntryText? coded = null, IUiTextProvider? texts = null)
     {
         ArgumentNullException.ThrowIfNull(entry);
         ArgumentNullException.ThrowIfNull(zone);
+        texts ??= Texts.Current;
+        _texts = texts;
         Entry = entry;
         Match = match;
         Created = TimeZoneInfo.ConvertTime(entry.CreatedAt, zone).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture);
-        Content = entry.Kind == MemoryKind.JournalEntry ? MarkdownLite.ToPlainText(entry.Content) : entry.Content;
+        Topic = MemoryReasonTexts.Say(texts, coded?.Topic, entry.Topic);
+        Content = coded?.Content is not null
+            ? MemoryReasonTexts.Say(texts, coded.Content, entry.Content)
+            : entry.Kind == MemoryKind.JournalEntry ? MarkdownLite.ToPlainText(entry.Content) : entry.Content;
     }
 
     public MemoryEntry Entry { get; }
 
     public string Id => Entry.Id;
 
-    public string KindLabel => MemoryTexts.Kind(Entry.Kind);
+    public string KindLabel => MemoryTexts.Kind(Entry.Kind, _texts);
 
-    public string OriginLabel => MemoryTexts.Origin(Entry.Kind, Entry.Origin);
+    public string OriginLabel => MemoryTexts.Origin(Entry.Kind, Entry.Origin, _texts);
 
-    public string TrustLabel => MemoryTexts.Trust(Entry.Kind, Entry.Origin, Entry.Trust);
+    public string TrustLabel => MemoryTexts.Trust(Entry.Kind, Entry.Origin, Entry.Trust, _texts);
 
     /// <summary>Why it came out of a search by meaning and by words; null when it was not searched that way.</summary>
     public string? Match { get; }
 
     public Tone TrustTone => MemoryTexts.Tone(Entry.Trust);
 
-    public string Topic => Entry.Topic;
+    /// <summary>The topic in the language of the screen when the entry has a coded form, and as it was anchored otherwise.</summary>
+    public string Topic { get; }
 
     /// <summary>
     /// The content as it reads. An entry of the journal is Markdown (<c>- **04:22:31** · P-0001 · … \(intento 1\)</c>): it
@@ -140,8 +136,8 @@ public sealed partial class MemoryEntryViewModel : ObservableObject
     public string Source => Entry.Source;
 
     /// <summary>Which entry replaces it, or which one it replaces; null when neither.</summary>
-    public string? Superseded => Entry.SupersededBy is { } by ? $"Sustituida por {by}"
-        : Entry.Supersedes is { } old ? $"Sustituye a {old}"
+    public string? Superseded => Entry.SupersededBy is { } by ? _texts.Format("Memory_Entry_SupersededBy", by)
+        : Entry.Supersedes is { } old ? _texts.Format("Memory_Entry_Supersedes", old)
         : null;
 
     /// <summary>A decision about the entry that is being recorded or waits in the queue; null when none.</summary>
@@ -192,6 +188,7 @@ public sealed partial class MemoryViewModel : DocumentViewModel
     private readonly IMemoryExporter? _exporter;
     private readonly IRunActivity? _activity;
     private readonly ISemanticIndex? _index;
+    private readonly IMemoryEntryTexts? _entryTexts;
     private readonly TimeProvider _time;
     private readonly RefreshQueue _refreshes;
     private ProjectContext? _project;
@@ -214,7 +211,7 @@ public sealed partial class MemoryViewModel : DocumentViewModel
         DailySummaryViewModel summary,
         TimeProvider time,
         MemorySearchBackend? search = null)
-        : base(DocumentId, "Memoria")
+        : base(DocumentId, Texts.Get("Memory_Title"))
     {
         ArgumentNullException.ThrowIfNull(summary);
         ArgumentNullException.ThrowIfNull(time);
@@ -224,6 +221,7 @@ public sealed partial class MemoryViewModel : DocumentViewModel
         _exporter = exporter;
         _activity = activity;
         _index = search.Index;
+        _entryTexts = search.EntryTexts;
         _time = time;
         _refreshes = new RefreshQueue(RunRefreshAsync, search.UiContext);
         Summary = summary;
@@ -265,7 +263,7 @@ public sealed partial class MemoryViewModel : DocumentViewModel
 
     /// <summary>The categories to filter by; the first one is «Todas».</summary>
     public IReadOnlyList<Option<MemoryKind?>> Kinds { get; } =
-        [new(null, "Todas"), .. Enum.GetValues<MemoryKind>().Select(k => new Option<MemoryKind?>(k, MemoryTexts.Kind(k)))];
+        [new(null, Texts.Get("Memory_Kind_All")), .. Enum.GetValues<MemoryKind>().Select(k => new Option<MemoryKind?>(k, MemoryTexts.Kind(k)))];
 
     /// <summary>The memory entries on screen, in their order: every entry listed, or those a search found.</summary>
     public ObservableCollection<MemoryEntryViewModel> Entries { get; } = [];
@@ -316,7 +314,7 @@ public sealed partial class MemoryViewModel : DocumentViewModel
     private bool _isBusy;
 
     /// <summary>Why «Exportar a Markdown» is not offered now (a run or a planning goes on); null when it is.</summary>
-    public string? ExportBlocked => RunIsActive ? "Hay una ejecución, una planificación, un debate o una auditoría en curso: la exportación espera a que termine." : null;
+    public string? ExportBlocked => RunIsActive ? Texts.Get("Memory_Export_Blocked") : null;
 
     private bool RunIsActive => _project is { } project && _activity?.IsBusy(project.ProjectId) == true;
 
@@ -335,7 +333,7 @@ public sealed partial class MemoryViewModel : DocumentViewModel
         if (projectRoot is null)
         {
             Summary.SetProject(null);
-            StatusMessage = "Abre una carpeta para ver su memoria.";
+            StatusMessage = Texts.Get("Memory_Status_OpenFolder");
             await _refreshes.RequestAsync(MemoryRefresh.All).ConfigureAwait(true);
             return;
         }
@@ -343,7 +341,7 @@ public sealed partial class MemoryViewModel : DocumentViewModel
         if (_memory is null || _workspace is null)
         {
             Summary.SetProject(null);
-            StatusMessage = "La memoria del proyecto no está disponible en esta composición.";
+            StatusMessage = Texts.Get("Memory_Status_Unavailable");
             await _refreshes.RequestAsync(MemoryRefresh.All).ConfigureAwait(true);
             return;
         }
@@ -358,7 +356,7 @@ public sealed partial class MemoryViewModel : DocumentViewModel
         {
             Summary.SetProject(null);
             StatusMessage = null;
-            ErrorMessage = $"No se pudo abrir el proyecto: {ex.Message}";
+            ErrorMessage = Texts.Format("Memory_Error_OpenProject", ex.Message);
             await _refreshes.RequestAsync(MemoryRefresh.All).ConfigureAwait(true);
             return;
         }
@@ -468,7 +466,30 @@ public sealed partial class MemoryViewModel : DocumentViewModel
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = $"No se pudo leer la memoria: {ex.Message}";
+            ErrorMessage = Texts.Format("Memory_Error_Read", ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// The coded form of the entries (<see cref="IMemoryEntryTexts"/>), by id; none when it was not composed or it fails: it only
+    /// changes the language an entry is said in, so the anchored words are shown in its place and the screen never fails for it.
+    /// </summary>
+    private async Task<IReadOnlyDictionary<string, MemoryEntryText>> CodedTextsAsync(ProjectContext project, IReadOnlyList<MemoryEntry> entries)
+    {
+        if (_entryTexts is not { } texts || entries.Count == 0)
+        {
+            return new Dictionary<string, MemoryEntryText>();
+        }
+
+        try
+        {
+            return await texts.ReadAsync(project, entries, CancellationToken.None).ConfigureAwait(true);
+        }
+#pragma warning disable CA1031 // The coded form is a nicety behind a port: its failure leaves the anchored words.
+        catch (Exception)
+#pragma warning restore CA1031
+        {
+            return new Dictionary<string, MemoryEntryText>();
         }
     }
 
@@ -481,6 +502,7 @@ public sealed partial class MemoryViewModel : DocumentViewModel
             MaxEntries: MaxEntries,
             TrustedOnly: false);
         var entries = await memory.RecallAsync(project, query, CancellationToken.None).ConfigureAwait(true);
+        var coded = await CodedTextsAsync(project, entries).ConfigureAwait(true);
         if (!Equals(project, _project))
         {
             return; // another project opened meanwhile: its own refresh follows this one.
@@ -490,12 +512,12 @@ public sealed partial class MemoryViewModel : DocumentViewModel
         Results.Clear();
         foreach (var entry in entries)
         {
-            var item = new MemoryEntryViewModel(entry, _time.LocalTimeZone);
+            var item = new MemoryEntryViewModel(entry, _time.LocalTimeZone, coded: coded.GetValueOrDefault(entry.Id));
             Entries.Add(item);
             Results.Add(item);
         }
 
-        StatusMessage = entries.Count == 0 ? "No hay entradas que coincidan." : null;
+        StatusMessage = entries.Count == 0 ? Texts.Get("Memory_Status_NoMatches") : null;
     }
 
     /// <summary>
@@ -522,10 +544,16 @@ public sealed partial class MemoryViewModel : DocumentViewModel
 #pragma warning restore CA1031
         {
             await ListAsync(memory, project, text).ConfigureAwait(true);
-            SearchNotice = $"Solo por palabras: la búsqueda en el índice falló ({ex.Message.TrimEnd('.')}).";
+            SearchNotice = Texts.Format("Memory_Search_IndexFailed", ex.Message.TrimEnd('.'));
             return;
         }
 
+        if (!Equals(project, _project))
+        {
+            return; // another project opened meanwhile: its own refresh follows this one.
+        }
+
+        var coded = await CodedTextsAsync(project, [.. result.Hits.Select(h => h.Entry).OfType<MemoryEntry>()]).ConfigureAwait(true);
         if (!Equals(project, _project))
         {
             return; // another project opened meanwhile: its own refresh follows this one.
@@ -540,7 +568,7 @@ public sealed partial class MemoryViewModel : DocumentViewModel
             {
                 if (shown.Add(SemanticFragment.MemoryPrefix + entry.Id))
                 {
-                    var item = new MemoryEntryViewModel(entry, _time.LocalTimeZone, MemorySearchTexts.Match(hit.Rank));
+                    var item = new MemoryEntryViewModel(entry, _time.LocalTimeZone, MemorySearchTexts.Match(hit.Rank), coded.GetValueOrDefault(entry.Id));
                     Entries.Add(item);
                     Results.Add(item);
                 }
@@ -552,7 +580,7 @@ public sealed partial class MemoryViewModel : DocumentViewModel
         }
 
         SearchNotice = result.Notice ?? MemorySearchTexts.Hybrid(Results.Count);
-        StatusMessage = Results.Count == 0 ? "No hay entradas que coincidan." : null;
+        StatusMessage = Results.Count == 0 ? Texts.Get("Memory_Status_NoMatches") : null;
     }
 
     /// <summary>
@@ -622,8 +650,8 @@ public sealed partial class MemoryViewModel : DocumentViewModel
 
         ErrorMessage = null;
         entry.Pending = RunIsActive
-            ? "En cola: se registrará cuando termine la ejecución o la planificación en curso."
-            : "Registrando tu decisión…";
+            ? Texts.Get("Memory_Decision_Queued")
+            : Texts.Get("Memory_Decision_Recording");
         RefreshEntryCommands();
         try
         {
@@ -634,7 +662,7 @@ public sealed partial class MemoryViewModel : DocumentViewModel
 #pragma warning restore CA1031
         {
             entry.Pending = null;
-            ErrorMessage = $"No se pudo registrar la revisión: {ex.Message}";
+            ErrorMessage = Texts.Format("Memory_Error_Review", ex.Message);
             RefreshEntryCommands();
             return;
         }
@@ -661,29 +689,29 @@ public sealed partial class MemoryViewModel : DocumentViewModel
         ExportWarning = null;
         try
         {
-            var result = await exporter.ExportAsync(project, CancellationToken.None).ConfigureAwait(true);
+            var result = await exporter.ExportAsync(project, MemoryReasonTexts.ExportLanguage, CancellationToken.None).ConfigureAwait(true);
             if (result.Exported)
             {
-                ExportStatus = string.Create(CultureInfo.InvariantCulture, $"Exportadas {result.Entries} entradas a .agentstudio/memory/ ({result.Files.Count} {(result.Files.Count == 1 ? "fichero" : "ficheros")}). El Markdown nunca se lee de vuelta.");
+                ExportStatus = Texts.Format(result.Files.Count == 1 ? "Memory_Export_Done_One" : "Memory_Export_Done_Other", result.Entries, result.Files.Count);
             }
             else if (result.Files.Count == 0)
             {
-                ExportWarning = $"No se exportó: {result.Reason}";
+                ExportWarning = Texts.Format("Memory_Export_NotExported", MemoryReasonTexts.Say(result.ReasonText, result.Reason));
             }
             else
             {
                 // A run started while the files were written: the exporter stopped before the next one (docs/14 D-22).
                 var rewritten = result.Files.Count == 1
-                    ? $"Se reescribió 1 fichero ({result.Files[0]})"
-                    : string.Create(CultureInfo.InvariantCulture, $"Se reescribieron {result.Files.Count} ficheros ({string.Join(", ", result.Files)})");
-                ExportWarning = $"Exportación incompleta: {result.Reason} {rewritten} antes de parar; el resto sigue como estaba hasta la próxima exportación, que lo reescribe todo.";
+                    ? Texts.Format("Memory_Export_Rewritten_One", result.Files[0])
+                    : Texts.Format("Memory_Export_Rewritten_Other", result.Files.Count, string.Join(", ", result.Files));
+                ExportWarning = Texts.Format("Memory_Export_Incomplete", MemoryReasonTexts.Say(result.ReasonText, result.Reason), rewritten);
             }
         }
 #pragma warning disable CA1031 // The exporter is behind a port: a failure is shown in the screen, never thrown into the UI.
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = $"No se pudo exportar la memoria: {ex.Message}";
+            ErrorMessage = Texts.Format("Memory_Error_Export", ex.Message);
         }
         finally
         {

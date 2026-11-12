@@ -214,7 +214,7 @@ public sealed partial class OrchestratorDocumentViewModel
     private sealed class DraftHost(OrchestratorDocumentViewModel owner, CanvasText text, BuilderServices services) : IDraftHost
     {
         public FixEnvironment Environment => new(
-            text.Get("Canvas_Fix_IntegrationTitle"),
+            OrchestratorProtocolTexts.IntegrationTitle,
             Steps(),
             owner.Context?.Roster.FirstOrDefault(a => a.Role == AgentRole.Judge) is null ? DefaultAgentRoster.Create().First(a => a.Role == AgentRole.Judge) : null);
 

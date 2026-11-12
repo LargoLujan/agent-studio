@@ -518,6 +518,71 @@ public sealed class ResumeAfterRestartTests
         await resumed.CompleteAsync(harness);
     }
 
+    /// <summary>
+    /// A listing reads the log and then asks which runs are going in this process. A run that ends in between (its end is
+    /// in the log after the read, and it has left the live ones before the question) must not be listed as interrupted: the
+    /// scheduler would take a run that has just finished for one left unfinished. The live runs are seen before the log is read.
+    /// </summary>
+    [Fact]
+    public async Task A_run_that_ends_while_the_runs_are_being_listed_is_never_listed_as_interrupted()
+    {
+        using var harness = new EngineHarness();
+        var gate = new TaskCompletionSource();
+        harness.Claude.Script("ejecutor", "T1", 1, AgentScript.Completed() with { Gate = gate });
+        var loads = new GatedLoads(harness.Decisions);
+        var engine = new Orchestrator(
+            loads, harness.Evidence, harness.Plans, harness.Runs, harness.RequirementStore, harness.Roster, harness.Providers, harness.Worktrees,
+            harness.Verification, harness.Integrator, harness.Review, harness.Approvals, harness.Skills, harness.Paths, harness.Time, harness.WriteConfinement);
+        await using var run = await engine.StartAsync(harness.Request(Plan(Work("T1")), Consent), Ct);
+        await harness.WaitForStatusAsync(run, "T1", WorkTaskStatus.Running);
+        loads.Arm();
+
+        var listing = engine.ListRunsAsync(harness.Project, Ct);
+        await loads.Loaded.Task.WaitAsync(RunTestSupport.Guard, Ct); // the listing read the log: the run has not ended yet
+        gate.SetResult();
+        await run.Completion.WaitAsync(RunTestSupport.Guard, Ct);
+        loads.Release.SetResult();
+
+        Assert.NotEqual(RunPhase.Interrupted, Assert.Single(await listing).Phase);
+    }
+
+    /// <summary>The recorder of the harness, whose first incremental load after <see cref="Arm"/> waits until <see cref="Release"/> once it has read the log.</summary>
+    private sealed class GatedLoads(IDecisionRecorder inner) : IDecisionRecorder
+    {
+        private int _armed;
+
+        public TaskCompletionSource Loaded { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public void Arm() => Volatile.Write(ref _armed, 1);
+
+        public Task<DecisionLogState> LoadAsync(string projectId, CancellationToken cancellationToken) =>
+            LoadAsync(projectId, LogLoad.Incremental, cancellationToken);
+
+        public async Task<DecisionLogState> LoadAsync(string projectId, LogLoad load, CancellationToken cancellationToken)
+        {
+            var state = await inner.LoadAsync(projectId, load, cancellationToken);
+            if (load == LogLoad.Incremental && Interlocked.CompareExchange(ref _armed, 0, 1) == 1)
+            {
+                Loaded.TrySetResult();
+                await Release.Task.WaitAsync(cancellationToken);
+            }
+
+            return state;
+        }
+
+        public Task<DecisionEntry> RecordAsync(
+            string projectId,
+            Actor actor,
+            DecisionKind kind,
+            string summary,
+            DecisionPayload payload,
+            long? corrects = null,
+            CancellationToken cancellationToken = default) =>
+            inner.RecordAsync(projectId, actor, kind, summary, payload, corrects, cancellationToken);
+    }
+
     /// <summary>The run registry of the harness, whose first look-up of a run waits until <see cref="Release"/>.</summary>
     private sealed class GatedRuns(IRunRegistry inner) : IRunRegistry
     {

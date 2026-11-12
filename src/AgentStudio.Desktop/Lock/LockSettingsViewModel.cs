@@ -1,4 +1,5 @@
 using System.Globalization;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -17,12 +18,13 @@ namespace AgentStudio.Desktop.Lock;
 public sealed partial class LockSettingsViewModel : ObservableObject
 {
     /// <summary>The title of the section in «Ajustes».</summary>
-    public const string Title = "Windows Hello y bloqueo";
+    public static string Title => Texts.Get("Lock_Settings_Title");
 
     /// <summary>What the idle lock does, as the screen says it.</summary>
-    public const string IdleExplanation =
-        "Bloquea la interfaz tras ese tiempo sin usar el teclado ni el ratón en Windows. El trabajo sigue y las aprobaciones "
-        + "esperan; se desbloquea con Windows Hello o, sin él, desbloqueando Windows.";
+    public static string IdleExplanation => Texts.Get("Lock_Settings_IdleExplanation");
+
+    /// <summary>The unit next to the time of the idle lock, with the longest time it accepts.</summary>
+    public static string MinutesUnit => Texts.Format("Lock_Settings_MinutesUnit", AppSettings.MaxIdleLockMinutes);
 
     private AppSettings _inForce = AppSettings.Default;
 
@@ -62,7 +64,7 @@ public sealed partial class LockSettingsViewModel : ObservableObject
     internal string? Validate()
     {
         ErrorMessage = Minutes() is null
-            ? $"El bloqueo no se guarda: «{(IdleLockMinutesText ?? string.Empty).Trim()}» no es un número entero de minutos de 1 a {AppSettings.MaxIdleLockMinutes}."
+            ? Texts.Format("Lock_Settings_Invalid", (IdleLockMinutesText ?? string.Empty).Trim(), AppSettings.MaxIdleLockMinutes)
             : null;
         return ErrorMessage;
     }

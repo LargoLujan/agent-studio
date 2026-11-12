@@ -59,7 +59,11 @@ public sealed class DecisionLogRunExitRecorder : IRunExitRecorder
             cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
-    /// <summary>The summary of the entry, in Spanish: the choice as the dialog said it.</summary>
+    /// <summary>
+    /// The summary of the entry, in Spanish: the choice as the dialog said it when the entry was first written. It is history of
+    /// the log, signed with the rest of the entry and never translated (docs/17 D-48), so it does not follow the language of the
+    /// interface, nor the wording of the dialog, which can be clearer.
+    /// </summary>
     public static string Summary(RunExitChoice choice) => choice switch
     {
         RunExitChoice.PauseAndExitWhenIdle => "Pausar y salir cuando terminen los intentos en curso",

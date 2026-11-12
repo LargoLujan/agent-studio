@@ -262,3 +262,25 @@
     propuesta), la misma contra la que se comprueba la opción elegida, y no de la lista de `QuestionAsked`.
   - Los títulos de lo retirado («Pregunta plan-1 del orquestador», «Prompt del orquestador (intento 1)») siguen en las entradas
     `EvidenceRegistered` del dosier: solo títulos, sin texto del agente.
+
+## Adenda (2026-11-12): los `outputs` del registro del intento llegan al juez como dichos por el agente (P46)
+
+- **Qué pasaba.** El registro de cada intento (`AttemptRecord`, evidencia `CapturedBySystem`) copia los `outputs` del informe del
+  ejecutor, que escribe el agente, y el juez recibía ese documento entero como un hecho del sistema. Es anterior a la Fase 13.
+  Los `outputs` hacen falta para reanudar (las tareas posteriores los reciben como `<upstream_output>`), así que no se quitan
+  del registro.
+- **Decisión.** El registro guardado no cambia (ni su contenido ni su SHA-256, que sigue anclado en el registro de decisiones).
+  Cambia la copia que va al paquete del dosier (`JudgeDossierBuilder`): el juez lee `outputsSaidByAgent` en lugar de `outputs`,
+  con `origin: "ReportedByAgent"` y una nota que dice que es una afirmación del agente que hay que contrastar, y la entrada de
+  esa evidencia en `dossier.json` lleva `"saidByAgent": ["outputs"]`. Es el mismo criterio que el resto del dosier aplica a lo
+  que escribe un agente: una afirmación, nunca una prueba. Los demás campos (`outcome`, `attemptBase`, `head`, `changedPaths`,
+  `tests`, `reportEvidence`, `reportSha256`) los captura el sistema y no se marcan.
+- **`contentVerified`** sigue comparando el contenido original con su huella; la copia difiere de él solo por esa marca. Si la
+  copia no se puede marcar (versión desconocida, contenido cortado), se deja como estaba y el dosier añade un `systemCheck` que
+  dice que esos `outputs` los escribió el agente, así que nunca pasan por capturados sin aviso.
+- **Protocolo del juez.** `JudgePrompt` añade a sus reglas de confianza que lo marcado como dicho por el agente dentro de un
+  documento del sistema no es un hecho del sistema. Las auditorías del proyecto y los debates no reciben registros de intento
+  (su dosier no los incluye), así que sus prompts no cambian.
+- **Efecto en los hashes.** Ninguno de los anclados cambia: el dosier solo se escribe en disco y las huellas del registro de
+  decisiones son las del contenido guardado. Cambia `dossier.json` (campo `saidByAgent` por evidencia, nulo salvo en estos
+  registros) y el texto de las reglas del prompt.

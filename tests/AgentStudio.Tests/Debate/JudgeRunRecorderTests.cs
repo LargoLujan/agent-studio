@@ -205,7 +205,10 @@ public sealed class JudgeRunRecorderTests
         await judge.ReviseAsync(dossier, verdict, [new VerdictViolation(VerdictViolationCode.MalformedVerdict, "x")], TestContext.Current.CancellationToken);
 
         var asked = provider.Requests[0];
-        Assert.Equal(("EVALUA C:\\snapshot", "{\"type\":\"object\"}", "Juicio del debate", Debate), (asked.Prompt, asked.OutputJsonSchema, asked.Purpose, asked.DebateId));
+        // The prompt of the brief, then the block with the language of the person (V44): nothing of the brief changes.
+        Assert.StartsWith("EVALUA C:\\snapshot", asked.Prompt, StringComparison.Ordinal);
+        Assert.Contains("<response_language>\"es-ES\"</response_language>", asked.Prompt, StringComparison.Ordinal);
+        Assert.Equal(("{\"type\":\"object\"}", "Juicio del debate", Debate), (asked.OutputJsonSchema, asked.Purpose, asked.DebateId));
         Assert.Equal(["#juicio"], asked.Tags!);
         Assert.Equal("CORRIGE 1 True", provider.Requests[1].Prompt);
         Assert.All(provider.Requests, r => Assert.Equal((false, false, false, true), (r.Permissions.AllowFileWrites, r.Permissions.AllowShell, r.Permissions.AllowNetwork, r.PersistSession)));

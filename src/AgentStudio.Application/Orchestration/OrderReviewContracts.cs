@@ -59,7 +59,8 @@ public sealed record OrderReviewResult(
     OrderNotes Notes,
     IReadOnlyList<OrderSuggestion> Suggestions,
     IReadOnlyList<string> Discarded,
-    string? Error);
+    string? Error,
+    Localization.UserText? ErrorText = null);
 
 /// <summary>«Revisar el orden con el orquestador» (docs/17 D-20): read-only, with the person's OK each time; nothing is applied by itself.</summary>
 public interface IOrderReview

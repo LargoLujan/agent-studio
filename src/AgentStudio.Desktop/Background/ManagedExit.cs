@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Projects;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Services;
 using Microsoft.Extensions.Logging;
 
@@ -149,8 +150,7 @@ public enum CloseOutcome
 public sealed class ManagedExit : IDisposable
 {
     /// <summary>What the person is told when opening the window cancelled the exit that waited for the attempts to end.</summary>
-    public const string PendingExitCancelledNotice =
-        "Abriste Agent Studio, así que ya no sale cuando terminen los intentos en curso. Las ejecuciones siguen en pausa hasta que las reanudes.";
+    public static string PendingExitCancelledNotice => Texts.Get("Background_Exit_PendingCancelled");
 
     private readonly BackgroundWorkRegistry _work;
     private readonly IExitPrompt _prompt;

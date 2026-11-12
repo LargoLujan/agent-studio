@@ -128,7 +128,7 @@ public sealed class ResumedRunTests
         });
 
         Assert.Equal([Run.Value, other.Value], titles);
-        Assert.Contains("la sigue la bandeja", message, StringComparison.Ordinal);
+        Assert.Contains("La sigue la bandeja del sistema", message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -181,7 +181,7 @@ public sealed class ResumedRunTests
 
         // The announcement of the run stays: the tray shows it, and the exit asks about it, pauses it and writes its choice.
         Assert.Equal([(Run.Value, BackgroundWorkKind.Run)], tracked);
-        Assert.Equal($"La ejecución {Run} se reanudó sola, pero no se pudo seguir en su pestaña. Sigue en marcha: la bandeja la muestra, y al salir se te pregunta por ella.", message);
+        Assert.Equal($"La ejecución {Run} se reanudó sola, pero su pestaña no pudo seguirla. Sigue en marcha. La bandeja la muestra y, al salir, se te pregunta por ella.", message);
     }
 
     [Fact]

@@ -42,19 +42,9 @@ public static class HelloTexts
     /// <summary>Why a plan was not approved: Windows could not be locked to confirm the person; and what to do.</summary>
     public static string PlanLockNotAsked(string problem) => Texts.Format(nameof(HelloStrings.Hello_Plan_LockNotAsked), problem) + " " + SetUpHello;
 
-    /// <summary>The reason of the denial of a yes the verified lock of Windows did not confirm, and what to do when Windows did not lock; the log keeps it.</summary>
-    public static string ApprovalLockNotConfirmed(WindowsLockResult result) =>
-        WithWhatToDo(Texts.Format(nameof(HelloStrings.Hello_Approval_LockNotConfirmed), result, WhyNotConfirmed(result)), result);
-
-    /// <summary>The reason of the denial of a yes when Windows could not be locked to confirm the person, and what to do; the log keeps it.</summary>
-    public static string ApprovalLockNotAsked(string problem) => Texts.Format(nameof(HelloStrings.Hello_Approval_LockNotAsked), problem) + " " + SetUpHello;
-
     /// <summary><paramref name="text"/> and, when Windows did not lock, what to do (<see cref="SetUpHello"/>).</summary>
     private static string WithWhatToDo(string text, WindowsLockResult result) =>
         result == WindowsLockResult.LockFailed ? text + " " + SetUpHello : text;
-
-    /// <summary>The reason of the denial of a yes whose confirmation was not asked because another one was pending; the log keeps it.</summary>
-    public static string ApprovalConfirmationPending => Texts.Get(nameof(HelloStrings.Hello_Approval_ConfirmationPending));
 
     /// <summary>Why a plan was not approved: another confirmation of the person was pending.</summary>
     public static string PlanConfirmationPending => Texts.Get(nameof(HelloStrings.Hello_Plan_ConfirmationPending));

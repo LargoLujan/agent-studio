@@ -75,7 +75,7 @@ public sealed class ConsumptionAnalysisViewModelTests
         Assert.Equal(ConsumptionFindingCodes.PackOmitted, first.Code);
         Assert.Equal("El paquete de contexto de exec1 dejó fuera 5 entradas en 2 intentos: le faltó contexto.", first.Sentence);
         Assert.Equal("Sugerencia: Sube el presupuesto de contexto o activa la memoria de ese agente.", first.Suggestion);
-        Assert.Equal("Costó 42.000 tokens · exacto · informado por el CLI", first.Cost);
+        Assert.Equal("Costó 42.000 tokens · exacto · informado por el programa del agente", first.Cost);
         Assert.Equal("Sobre el agente exec1", first.About);
         Assert.Contains("exec1", first.AccessibleName, StringComparison.Ordinal);
     }

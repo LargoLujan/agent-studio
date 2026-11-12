@@ -23,7 +23,7 @@
     <value>It is the recommended level for this role.</value>
   </data>
   <data name="Text_model_reason_light_second_executor" xml:space="preserve">
-    <value>A second, “light” executor: your plans often have tasks that only touch documentation or tests.</value>
+    <value>A second, “light” executor. Your plans often have tasks that only touch documentation or tests.</value>
   </data>
   <data name="Text_model_reason_judge_highest_other_vendor" xml:space="preserve">
     <value>The highest level for the independent reviewer (judge): everything else depends on its review.</value>
@@ -98,7 +98,7 @@
     <value>no data yet</value>
   </data>
   <data name="Models_Performance" xml:space="preserve">
-    <value>{0} tasks: {1} approved at the first attempt, {2} retries and {3} rejections (estimated by Agent Studio).</value>
+    <value>{0} tasks: {1} approved at the first attempt, {2} retries and {3} rejections. Agent Studio estimates it.</value>
   </data>
   <data name="Models_Performance_Unknown" xml:space="preserve">
     <value>Unknown: {0} of the {1} tasks needed.</value>

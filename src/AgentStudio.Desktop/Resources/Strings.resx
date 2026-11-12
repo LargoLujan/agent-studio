@@ -75,7 +75,7 @@ Reiniciar Agent Studio para verlo: el cambio se aplica al reiniciar.</value>
     <comment>The Hello setting with its new name (D-38).</comment>
   </data>
   <data name="Settings_HelloImportant_Help" xml:space="preserve">
-    <value>Lo crítico siempre pide Windows Hello: entregar a tu rama, dar a un agente shell, red o más carpetas, o cambiar el perfil de verificación.</value>
+    <value>Lo crítico siempre pide Windows Hello. Es entregar a tu rama, dar a un agente shell, red o más carpetas, o cambiar el perfil de verificación.</value>
     <comment>Help of the Hello setting: what it does not govern.</comment>
   </data>
   <data name="ContextPart_Protocol" xml:space="preserve">
@@ -139,7 +139,7 @@ Reiniciar Agent Studio para verlo: el cambio se aplica al reiniciar.</value>
     <comment>{0}: the task.</comment>
   </data>
   <data name="AgentState_WaitingForQuota" xml:space="preserve">
-    <value>Esperando cuota hasta las {0}</value>
+    <value>En pausa por el límite de uso hasta las {0}</value>
     <comment>{0}: the time the window resets.</comment>
   </data>
   <data name="AgentState_Asking" xml:space="preserve">

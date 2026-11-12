@@ -63,8 +63,8 @@ public sealed class WithdrawnQuestionsTests
         Assert.Equal(11, savable.Listed.Count);
         Assert.Equal("• fichero1.cs", savable.Listed[0]);
         Assert.Equal("… y 2 más", savable.Listed[^1]);
-        Assert.Equal(("Hay cambios sin guardar en:", "¿Quieres guardarlos?", "No guardar", "Cancelar"), (savable.Intro, savable.Question, savable.DiscardText, savable.CancelText));
-        Assert.Equal(("Descartar", "Volver"), (notSavable.DiscardText, notSavable.CancelText));
+        Assert.Equal(("Tienes cambios sin guardar en:", "¿Quieres guardarlos?", "Descartar cambios", "Cancelar"), (savable.Intro, savable.Question, savable.DiscardText, savable.CancelText));
+        Assert.Equal(("Descartar cambios", "Volver"), (notSavable.DiscardText, notSavable.CancelText));
         Assert.Null(ignored);
         Assert.Equal(UnsavedChangesChoice.Discard, savable.Answer);
         Assert.Equal(1, closes);

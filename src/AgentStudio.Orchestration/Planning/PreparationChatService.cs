@@ -1,3 +1,4 @@
+using AgentStudio.Application.Localization;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -58,9 +59,10 @@ public sealed class PreparationChatService : IPreparationChat
     private readonly ISecretRedactor _redactor;
     private readonly TimeProvider _time;
     private readonly IQuotaConsentLedger _consents;
+    private readonly IResponseLanguage? _language;
 
     /// <param name="consents">The register of the OKs spent that the whole app shares (one instance, from the composition).</param>
-    public PreparationChatService(IAuxiliaryAgentRunner runner, IWorktreeManager worktrees, ISecretRedactor redactor, IQuotaConsentLedger consents, TimeProvider time)
+    public PreparationChatService(IAuxiliaryAgentRunner runner, IWorktreeManager worktrees, ISecretRedactor redactor, IQuotaConsentLedger consents, TimeProvider time, IResponseLanguage? language = null)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(worktrees);
@@ -72,6 +74,7 @@ public sealed class PreparationChatService : IPreparationChat
         _redactor = redactor;
         _consents = consents;
         _time = time;
+        _language = language;
     }
 
     /// <summary>The kinds of suggestions for the team the answer may carry, each a typed fix (docs/17 D-44).</summary>
@@ -124,7 +127,7 @@ public sealed class PreparationChatService : IPreparationChat
         var folder = await BaseOfAsync(request.Project, workspace, ct).ConfigureAwait(false);
         var message = _redactor.Redact(request.Message);
         var resume = request.Session?.AgentSession;
-        var prompt = resume is null ? FirstPrompt(request.Roster, message) : NextPrompt(message);
+        var prompt = resume is null ? FirstPrompt(request.Roster, message, ResponseLanguage.Resolve(_language)) : NextPrompt(message);
         var launch = new AgentRunRequest(
             orchestrator,
             prompt,
@@ -138,7 +141,7 @@ public sealed class PreparationChatService : IPreparationChat
         var session = new PreparationChatSession(workspace, result.Outcome.SessionId ?? resume, (request.Session?.Messages ?? 0) + 1);
         if (result.Outcome.Status != AgentRunStatus.Succeeded || string.IsNullOrWhiteSpace(result.Outcome.StructuredOutputJson))
         {
-            return Empty(result, session, [], result.Outcome.Error ?? "The orchestrator gave no answer.");
+            return Empty(result, session, [], result.Outcome.Error ?? "The orchestrator gave no answer.", result.Outcome.Error is null ? UserText.Of(OrchestrationUserTexts.ChatNoAnswer) : null);
         }
 
         AnswerDocument? answer;
@@ -148,12 +151,12 @@ public sealed class PreparationChatService : IPreparationChat
         }
         catch (JsonException ex)
         {
-            return Empty(result, session, [ex.Message], "The answer of the orchestrator does not follow the schema of the chat.");
+            return Empty(result, session, [ex.Message], "The answer of the orchestrator does not follow the schema of the chat.", UserText.Of(OrchestrationUserTexts.ChatSchemaMismatch));
         }
 
         if (answer is null)
         {
-            return Empty(result, session, [], "The answer of the orchestrator is null.");
+            return Empty(result, session, [], "The answer of the orchestrator is null.", UserText.Of(OrchestrationUserTexts.ChatAnswerNull));
         }
 
         var discarded = new List<string>();
@@ -191,8 +194,8 @@ public sealed class PreparationChatService : IPreparationChat
         }
     }
 
-    private static PreparationChatReply Empty(AuxiliaryRunResult result, PreparationChatSession session, IReadOnlyList<string> discarded, string error) =>
-        new(result.Run, result.Outcome.Status, result.AnswerEvidence, string.Empty, [], [], [], [], discarded, session, error);
+    private static PreparationChatReply Empty(AuxiliaryRunResult result, PreparationChatSession session, IReadOnlyList<string> discarded, string error, UserText? errorText = null) =>
+        new(result.Run, result.Outcome.Status, result.AnswerEvidence, string.Empty, [], [], [], [], discarded, session, error, errorText);
 
     private async Task<string> BaseOfAsync(ProjectContext project, RunId workspace, CancellationToken ct)
     {
@@ -206,15 +209,16 @@ public sealed class PreparationChatService : IPreparationChat
         return (await _worktrees.EnsureAsync(new WorktreeRequest(project, workspace, "_base", head), ct).ConfigureAwait(false)).Path;
     }
 
-    private static string FirstPrompt(IReadOnlyList<AgentDefinition> roster, string message)
+    private static string FirstPrompt(IReadOnlyList<AgentDefinition> roster, string message, string language)
     {
         var text = new StringBuilder();
         text.AppendLine("# Chat de preparación de Agent Studio");
         text.AppendLine();
         text.AppendLine("Eres el agente orquestador. La persona prepara el trabajo de su proyecto y habla contigo antes de planificar. No modificas ficheros ni ejecutas órdenes: puedes leer el repositorio (Read, Grep, Glob). Respondes con el esquema: un texto breve, borradores de requisitos (los escribe y congela la persona), sugerencias para el equipo, riesgos y preguntas para la persona. Nada de lo que propones se aplica solo.");
-        text.AppendLine(CultureInfo.InvariantCulture, $"El texto, {PreparationChatLimits.MaxTextLength} caracteres como mucho; cada elemento de una lista, {PreparationChatLimits.MaxItemLength}; como mucho {PreparationChatLimits.MaxItems} de cada. Todo en castellano y en texto plano, sin enlaces.");
+        text.AppendLine(CultureInfo.InvariantCulture, $"El texto, {PreparationChatLimits.MaxTextLength} caracteres como mucho; cada elemento de una lista, {PreparationChatLimits.MaxItemLength}; como mucho {PreparationChatLimits.MaxItems} de cada. Todo en texto plano, sin enlaces.");
         text.AppendLine("Sugerencias para el equipo: changeModel (agent y model), memoryOn o memoryOff (agent), addJudge (un juez de otra empresa) y removeCapability (agent y tool), cada una con su reason.");
         text.AppendLine();
+        ResponseLanguage.Append(text, language);
         text.AppendLine("## El equipo");
         text.AppendLine("Va como datos entre las marcas.");
         text.AppendLine("<team>");

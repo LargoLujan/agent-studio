@@ -113,7 +113,7 @@ public sealed class Phase4ShellTests : IDisposable
         Assert.Equal(
             [
                 "Explorador", "Orquestador", Texts.Get("Shell_Activity_Agents"), "Skills", Texts.Get("Shell_Activity_Tools"), Texts.Get("Shell_Activity_Tests"),
-                "Consumo", "Memoria", "Terminal", "Auto Doctor", "Historial · bitácora",
+                "Consumo", "Memoria", "Terminal", "Auto Doctor", "Historial (bitácora)",
             ],
             shell.Main.Activities.Select(a => a.Title));
         foreach (var id in new[] { "skills", "usage", "memory" })
@@ -234,7 +234,7 @@ public sealed class Phase4ShellTests : IDisposable
 
         Assert.Equal((0.60, 0.80, 0.90), Thresholds(calc));
 
-        // Saved by the «Guardar» of «Ajustes», whose «Contexto y cuota» is the one «Consumo» judges its report with.
+        // Saved by the «Guardar» of «Ajustes», whose «Contexto y límite de uso» is the one «Consumo» judges its report with.
         shell.Usage.Preferences.WarningText = "50";
         shell.Usage.Preferences.CompressText = "75";
         shell.Usage.Preferences.CriticalText = "92";

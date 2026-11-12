@@ -7,6 +7,7 @@
              xmlns:preparation="clr-namespace:AgentStudio.Desktop.Orchestrator.Preparation"
              xmlns:views="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
              xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
+             xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=orchestrator:OrchestratorDocumentViewModel}">
     <!-- The preparation of a run (F3-8, steps 0 and 1): the literal request, the frozen requirements, the agents of the
@@ -21,14 +22,15 @@
         <DockPanel>
             <DockPanel DockPanel.Dock="Top">
                 <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Margin="12,0,0,0" Content="{Binding PreparationToggleText}"
-                        Command="{Binding TogglePreparationCommand}" AutomationProperties.Name="Mostrar u ocultar la preparación"/>
+                        Command="{Binding TogglePreparationCommand}" AutomationProperties.Name="{l:T Orchestrator_Prep_ToggleName}"/>
                 <!-- «Configurar proyecto» (docs/17 section 4.6): the configurator of seven steps, in a tab of its own; it writes nothing until «Aplicar». -->
                 <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Margin="12,0,0,0" Content="{l:T Shell_Setup_Action}"
                         Command="{Binding ConfigureProjectCommand}" ToolTip="{l:T Shell_Setup_ActionHelp}"
                         AutomationProperties.Name="{l:T Shell_Setup_Action}" AutomationProperties.HelpText="{l:T Shell_Setup_ActionHelp}"/>
-                <TextBlock DockPanel.Dock="Left" Style="{StaticResource SectionTitleText}" Margin="0,0,12,0" VerticalAlignment="Center" Text="Preparación"/>
+                <TextBlock DockPanel.Dock="Left" Style="{StaticResource SectionTitleText}" Margin="0,0,6,0" VerticalAlignment="Center" Text="{l:T Orchestrator_Prep_Title}"/>
+                <info:InfoButton DockPanel.Dock="Left" InfoKey="Info_Preparation" Margin="0,0,12,0" VerticalAlignment="Center"/>
                 <TextBlock Style="{StaticResource SecondaryText}" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
-                           Text="{Binding PreparationSummary}" ToolTip="{Binding PreparationSummary}" AutomationProperties.Name="Resumen de la preparación"/>
+                           Text="{Binding PreparationSummary}" ToolTip="{Binding PreparationSummary}" AutomationProperties.Name="{l:T Orchestrator_Prep_SummaryName}"/>
             </DockPanel>
 
             <ScrollViewer x:Name="Sections" Margin="0,8,0,0" VerticalAlignment="Top" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False"
@@ -38,23 +40,29 @@
 
                     <!-- The request and the requirements. -->
                     <StackPanel x:Name="RequirementsSection" views:AdaptiveColumnsPanel.Weight="2" MinWidth="320">
-                        <TextBlock Style="{StaticResource SectionTitleText}" Text="Requisitos"/>
-                        <TextBlock Style="{StaticResource FieldLabel}" Text="Petición, literal: el orquestador planifica para ella y la ejecución la registra"/>
+                        <DockPanel>
+                            <info:InfoButton DockPanel.Dock="Right" InfoKey="Info_Requirements" VerticalAlignment="Center"/>
+                            <TextBlock Style="{StaticResource SectionTitleText}" Text="{l:T Orchestrator_Prep_Requirements}"/>
+                        </DockPanel>
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Orchestrator_Prep_RequestLabel}"/>
                         <TextBox Style="{StaticResource MultilineFieldTextBox}" MinHeight="44" MaxHeight="88"
-                                 Text="{Binding RequestText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Petición"
-                                 AutomationProperties.HelpText="Lo que quieres que se haga, literal: el orquestador planifica para ello y la ejecución lo registra"/>
-                        <TextBlock Style="{StaticResource FieldLabel}" Text="Requisitos (los congelas tú; el orquestador solo puede sugerirlos)"/>
+                                 Text="{Binding RequestText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{l:T Orchestrator_Prep_RequestName}"
+                                 AutomationProperties.HelpText="{l:T Orchestrator_Prep_RequestHelp}"/>
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="{l:T Orchestrator_Prep_RequirementsLabel}"/>
                         <views:RequirementsEditorView DataContext="{Binding Requirements}"/>
                     </StackPanel>
 
                     <!-- The agents of the project: each with its CLI, its tools, its model and whether it gets the memory. -->
                     <StackPanel x:Name="AgentsSection" views:AdaptiveColumnsPanel.Weight="1.4" MinWidth="300">
-                        <TextBlock Style="{StaticResource SectionTitleText}" Text="Plantilla de agentes"/>
+                        <DockPanel>
+                            <info:InfoButton DockPanel.Dock="Right" InfoKey="Info_Roster" VerticalAlignment="Center"/>
+                            <TextBlock Style="{StaticResource SectionTitleText}" Text="{l:T Orchestrator_Prep_Roster}"/>
+                        </DockPanel>
                         <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="{Binding RosterNotice}"
                                    Visibility="{Binding RosterNotice, Converter={StaticResource Orchestrator.HasTextToVisibility}}"/>
                         <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,8"
-                                   Text="El juez corre en un vendor distinto del orquestador y de los ejecutores (ADR-0014): el validador del plan lo comprueba. Un modelo nuevo vale desde la próxima planificación o ejecución."/>
-                        <ItemsControl ItemsSource="{Binding Roster.Agents}" Focusable="False" AutomationProperties.Name="Agentes del proyecto">
+                                   Text="{l:T Orchestrator_Prep_RosterJudgeNote}"/>
+                        <ItemsControl ItemsSource="{Binding Roster.Agents}" Focusable="False" AutomationProperties.Name="{l:T Orchestrator_Prep_RosterName}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type preparation:AgentMemoryViewModel}">
                                     <Border Background="{StaticResource SurfaceRaisedBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
@@ -69,33 +77,33 @@
 
                                             <!-- G1: the model of the agent; «Otro modelo…» opens a box to type it. -->
                                             <DockPanel Margin="0,6,0,0">
-                                                <TextBlock DockPanel.Dock="Left" Style="{StaticResource SecondaryText}" Margin="0,0,8,0" VerticalAlignment="Center" Text="Modelo"/>
+                                                <TextBlock DockPanel.Dock="Left" Style="{StaticResource SecondaryText}" Margin="0,0,8,0" VerticalAlignment="Center" Text="{l:T Orchestrator_Prep_ModelLabel}"/>
                                                 <ComboBox ItemsSource="{Binding ModelOptions}" SelectedItem="{Binding SelectedModel}" DisplayMemberPath="Label"
-                                                          MaxWidth="260" HorizontalAlignment="Left" MinWidth="170"
+                                                          MaxWidth="340" HorizontalAlignment="Left" MinWidth="170"
                                                           IsEnabled="{Binding CanChangeModel}"
                                                           ToolTip="{Binding ModelText}" ToolTipService.ShowOnDisabled="True"
-                                                          AutomationProperties.Name="{Binding Name, StringFormat='Modelo de {0}'}"
+                                                          AutomationProperties.Name="{Binding ModelAccessibleName}"
                                                           AutomationProperties.HelpText="{Binding ModelText}"/>
                                             </DockPanel>
                                             <StackPanel Margin="0,6,0,0" Visibility="{Binding IsTypingModel, Converter={StaticResource Orchestrator.BoolToVisibility}}">
                                                 <DockPanel>
-                                                    <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Margin="6,0,0,0" Content="Cancelar"
+                                                    <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Margin="6,0,0,0" Content="{l:T Orchestrator_Prep_Cancel}"
                                                             Command="{Binding CancelTypedModelCommand}"/>
-                                                    <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarPrimaryButton}" Margin="6,0,0,0" Content="Usar"
+                                                    <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarPrimaryButton}" Margin="6,0,0,0" Content="{l:T Orchestrator_Prep_UseModel}"
                                                             Command="{Binding UseTypedModelCommand}"/>
                                                     <TextBox Style="{StaticResource FieldTextBox}" FontFamily="{StaticResource MonoFont}"
                                                              Text="{Binding TypedModel, UpdateSourceTrigger=PropertyChanged}"
-                                                             AutomationProperties.Name="{Binding Name, StringFormat='Nombre del modelo de {0}'}"/>
+                                                             AutomationProperties.Name="{Binding TypedModelAccessibleName}"/>
                                                 </DockPanel>
                                                 <TextBlock Style="{StaticResource ErrorText}" FontSize="12" Text="{Binding TypedModelProblem}"
                                                            AutomationProperties.LiveSetting="Polite"/>
                                             </StackPanel>
 
                                             <!-- «Memoria del proyecto» (docs/14 D-23): the judge has no switch, it never receives memory. -->
-                                            <CheckBox Style="{StaticResource FieldCheckBox}" Margin="0,6,0,0" Content="Recibe la memoria del proyecto"
+                                            <CheckBox Style="{StaticResource FieldCheckBox}" Margin="0,6,0,0" Content="{l:T Orchestrator_Prep_ReceivesMemory}"
                                                       IsChecked="{Binding ReceivesMemory}" IsEnabled="{Binding CanEdit}"
                                                       Visibility="{Binding CanReceiveMemory, Converter={StaticResource Orchestrator.BoolToVisibility}}"
-                                                      AutomationProperties.Name="{Binding Name, StringFormat='Memoria del proyecto de {0}'}"
+                                                      AutomationProperties.Name="{Binding MemoryAccessibleName}"
                                                       AutomationProperties.HelpText="{Binding MemoryText}"/>
                                             <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="{Binding MemoryText}"/>
                                         </StackPanel>
@@ -110,9 +118,12 @@
 
                     <!-- The trusted verification profile. -->
                     <StackPanel x:Name="ProfileSection" views:AdaptiveColumnsPanel.Weight="1.2" MinWidth="260">
-                        <TextBlock Style="{StaticResource SectionTitleText}" Text="Perfil de verificación"/>
-                        <TextBlock Style="{StaticResource BodyText}" Margin="0,4,0,0" Text="{Binding ProfileText}" AutomationProperties.Name="Perfil de verificación"/>
-                        <ItemsControl ItemsSource="{Binding ProfileSteps}" Margin="0,6,0,0" Focusable="False" AutomationProperties.Name="Pasos del perfil">
+                        <DockPanel>
+                            <info:InfoButton DockPanel.Dock="Right" InfoKey="Info_VerificationProfile" VerticalAlignment="Center"/>
+                            <TextBlock Style="{StaticResource SectionTitleText}" Text="{l:T Orchestrator_Prep_Profile}"/>
+                        </DockPanel>
+                        <TextBlock Style="{StaticResource BodyText}" Margin="0,4,0,0" Text="{Binding ProfileText}" AutomationProperties.Name="{l:T Orchestrator_Prep_Profile}"/>
+                        <ItemsControl ItemsSource="{Binding ProfileSteps}" Margin="0,6,0,0" Focusable="False" AutomationProperties.Name="{l:T Orchestrator_Prep_ProfileSteps}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <TextBlock Style="{StaticResource SecondaryText}" Margin="0,0,0,3" FontFamily="{StaticResource MonoFont}" Text="{Binding}"/>
@@ -120,11 +131,11 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                         <StackPanel Margin="0,6,0,0" Visibility="{Binding ShowsProfileProposal, Converter={StaticResource Orchestrator.BoolToVisibility}}">
-                            <Button Style="{StaticResource ToolbarPrimaryButton}" HorizontalAlignment="Left" Content="Usar perfil propuesto"
+                            <Button Style="{StaticResource ToolbarPrimaryButton}" HorizontalAlignment="Left" Content="{l:T Orchestrator_Prep_UseProposedProfile}"
                                     Command="{Binding UseProposedProfileCommand}"
-                                    ToolTip="Lo guarda en .agentstudio/verification.json: desde entonces es el perfil del proyecto"/>
+                                    ToolTip="{l:T Orchestrator_Prep_UseProposedProfileHelp}"/>
                             <TextBlock Style="{StaticResource SecondaryText}"
-                                       Text="Se guarda en .agentstudio/verification.json, excluido de git. Sin este paso no se aplica nada."/>
+                                       Text="{l:T Orchestrator_Prep_ProposedProfileNote}"/>
                             <TextBlock Style="{StaticResource ProblemText}" Text="{Binding ProfileConfirmationMissing}"
                                        Visibility="{Binding ProfileConfirmationMissing, Converter={StaticResource Orchestrator.NotNullToVisibility}}"/>
                         </StackPanel>

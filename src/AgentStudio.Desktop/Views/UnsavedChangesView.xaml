@@ -3,11 +3,12 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
              xmlns:services="clr-namespace:AgentStudio.Desktop.Services"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=services:UnsavedChangesPromptViewModel}"
              Width="520" UseLayoutRounding="True"
-             AutomationProperties.Name="Cambios sin guardar">
+             AutomationProperties.Name="{l:T UnsavedView_Name}">
     <!-- The question about unsaved edits (WpfUnsavedChangesPrompt). Esc and Enter are «Cancelar» («Volver»): nothing changes.
          «Guardar» only when every document can be saved from here. -->
     <UserControl.Resources>
@@ -20,7 +21,7 @@
             <TextBlock Style="{StaticResource BodyText}" Margin="0,6,0,0" TextWrapping="Wrap" Text="{Binding Intro}"/>
 
             <Border Style="{StaticResource InnerCard}" Padding="12,8" Margin="0,10,0,0">
-                <ItemsControl ItemsSource="{Binding Listed}" Focusable="False" AutomationProperties.Name="Documentos con cambios sin guardar">
+                <ItemsControl ItemsSource="{Binding Listed}" Focusable="False" AutomationProperties.Name="{l:T UnsavedView_ListName}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <TextBlock Style="{StaticResource BodyText}" FontSize="12" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" Text="{Binding}"/>

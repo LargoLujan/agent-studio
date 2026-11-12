@@ -2,7 +2,9 @@ using System.Globalization;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Git;
 using AgentStudio.Application.Knowledge;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Orchestration;
+using AgentStudio.Application.Prompts;
 using AgentStudio.Application.Providers;
 using AgentStudio.Application.Semantic;
 using AgentStudio.Application.Skills;
@@ -78,13 +80,19 @@ internal sealed class Planner(EnginePorts ports)
         var schema = PlanSchema.Build(context);
         if (!PlanSchema.Fits(schema))
         {
-            return Failed(run, string.Create(CultureInfo.InvariantCulture, $"El esquema del plan ocupa {StrictJsonSchema.Utf8Bytes(schema)} bytes y Claude Code solo acepta {PlanSchema.MaxBytes} en la línea de órdenes: reduce los requisitos, los agentes o los pasos del perfil."));
+            return Failed(
+                run,
+                string.Create(CultureInfo.InvariantCulture, $"El esquema del plan ocupa {StrictJsonSchema.Utf8Bytes(schema)} bytes y Claude Code solo acepta {PlanSchema.MaxBytes} en la línea de órdenes: reduce los requisitos, los agentes o los pasos del perfil."),
+                UserText.Of(OrchestrationUserTexts.PlannerSchemaTooBig, StrictJsonSchema.Utf8Bytes(schema), PlanSchema.MaxBytes));
         }
 
         var provider = ports.ProviderFor(project.RootPath, orchestrator.Model.Provider);
         if (provider is null)
         {
-            return Failed(run, $"No hay ningún proveedor «{orchestrator.Model.Provider}» para el orquestador «{orchestrator.Id}».");
+            return Failed(
+                run,
+                $"No hay ningún proveedor «{orchestrator.Model.Provider}» para el orquestador «{orchestrator.Id}».",
+                UserText.Of(OrchestrationUserTexts.PlannerNoProvider, orchestrator.Model.Provider.ToString(), orchestrator.Id.ToString()));
         }
 
         // Project memory, with ReadSelected (docs/14 D-23 and D-24): before anything is written, because it fails closed.
@@ -102,7 +110,10 @@ internal sealed class Planner(EnginePorts ports)
         }
         catch (ContextBudgetTooSmallException problem)
         {
-            return Failed(run, $"No se lanza el orquestador: {ProjectMemoryPrompt.TooSmall(problem)}. Reduce los requisitos obligatorios o quita la memoria del orquestador en la plantilla.");
+            return Failed(
+                run,
+                $"No se lanza el orquestador: {ProjectMemoryPrompt.TooSmall(problem)}. Reduce los requisitos obligatorios o quita la memoria del orquestador en la plantilla.",
+                UserText.Of(OrchestrationUserTexts.PlannerMemoryTooSmall, OrchestrationUserTexts.MemoryTooSmall(problem)));
         }
 
         // The history tool (docs/17 D-06), after the memory and before anything is written: a log that does not verify stops
@@ -178,7 +189,7 @@ internal sealed class Planner(EnginePorts ports)
         }
     }
 
-    private static PlanProposal Failed(RunId run, string error) => new(run, null, [], false, AgentRunStatus.Failed, error, null);
+    private static PlanProposal Failed(RunId run, string error, UserText? text = null) => new(run, null, [], false, AgentRunStatus.Failed, error, null) { ErrorText = text };
 
     /// <summary>
     /// Records each answer of the person (docs/17 D-29), before the orchestrator runs with them: the option chosen, or the
@@ -304,7 +315,7 @@ internal sealed class Planner(EnginePorts ports)
 
         public async Task<PlanProposal> RunAsync(PlanContext context, ProvisionedSkills skills, CancellationToken cancellationToken)
         {
-            var first = await AskAsync(1, PlannerPrompt.Build(request, Run, memory, history is not null), null, memory, skills, cancellationToken).ConfigureAwait(false);
+            var first = await AskAsync(1, PlannerPrompt.Build(request, Run, memory, history is not null, ResponseLanguage.Resolve(ports.Language)), null, memory, skills, cancellationToken).ConfigureAwait(false);
             if (first.Failure is { } failure)
             {
                 return failure;
@@ -342,7 +353,7 @@ internal sealed class Planner(EnginePorts ports)
             var resumed = first.SessionId is not null;
             var correction = resumed
                 ? PlannerPrompt.Correction(Run, problems)
-                : PlannerPrompt.Build(request, Run, memory, history is not null) + Environment.NewLine + PlannerPrompt.Correction(Run, problems);
+                : PlannerPrompt.Build(request, Run, memory, history is not null, ResponseLanguage.Resolve(ports.Language)) + Environment.NewLine + PlannerPrompt.Correction(Run, problems);
             var second = await AskAsync(2, correction, first.SessionId, resumed ? null : memory, skills, cancellationToken).ConfigureAwait(false);
             if (second.Failure is { } secondFailure)
             {
@@ -364,7 +375,11 @@ internal sealed class Planner(EnginePorts ports)
                     true,
                     AgentRunStatus.Succeeded,
                     "El plan corregido no se pudo leer: " + string.Join(" ", reparsed.Problems),
-                    second.Raw?.Id) { OrderNotes = NotesOf(parsed) });
+                    second.Raw?.Id)
+                {
+                    OrderNotes = NotesOf(parsed),
+                    ErrorText = UserText.Of(OrchestrationUserTexts.PlannerCorrectedUnreadable, string.Join(" ", reparsed.Problems)),
+                });
             }
 
             var finalViolations = PlanValidator.Validate(reparsed.Plan, context);
@@ -390,7 +405,11 @@ internal sealed class Planner(EnginePorts ports)
                 true,
                 AgentRunStatus.Succeeded,
                 finalViolations.Count == 0 ? null : "El plan corregido sigue sin ser válido: revísalo antes de aprobarlo.",
-                second.Raw?.Id) { OrderNotes = NotesOf(reparsed) });
+                second.Raw?.Id)
+            {
+                OrderNotes = NotesOf(reparsed),
+                ErrorText = finalViolations.Count == 0 ? null : UserText.Of(OrchestrationUserTexts.PlannerCorrectedInvalid),
+            });
         }
 
         /// <summary>Why an answer with questions is not valid when the orchestrator may no longer ask (in English: it goes back to the agent).</summary>
@@ -518,7 +537,7 @@ internal sealed class Planner(EnginePorts ports)
                     attempt > 1,
                     AgentRunStatus.Failed,
                     "El repositorio del usuario cambió mientras planificaba el orquestador; el plan se descarta. " + string.Join(" ", result.RepositoryDifferences),
-                    result.Report?.Id));
+                    result.Report?.Id) { ErrorText = UserText.Of(OrchestrationUserTexts.PlannerRepositoryChanged, string.Join(" ", result.RepositoryDifferences)) });
             }
 
             if (!result.Launched)
@@ -531,7 +550,7 @@ internal sealed class Planner(EnginePorts ports)
                     attempt > 1,
                     cancelled ? AgentRunStatus.Cancelled : AgentRunStatus.Failed,
                     cancelled ? "Se canceló la planificación." : "No se pudo lanzar el orquestador: " + result.LaunchError?.Message,
-                    null));
+                    null) { ErrorText = cancelled ? UserText.Of(OrchestrationUserTexts.PlannerCancelled) : UserText.Of(OrchestrationUserTexts.PlannerLaunchFailed, result.LaunchError?.Message ?? string.Empty) });
             }
 
             var outcome = result.Outcome!;
@@ -544,7 +563,7 @@ internal sealed class Planner(EnginePorts ports)
                     attempt > 1,
                     outcome.Status,
                     outcome.Error ?? $"El orquestador terminó con estado {outcome.Status}.",
-                    result.Report?.Id));
+                    result.Report?.Id) { ErrorText = outcome.Error is null ? UserText.Of(OrchestrationUserTexts.PlannerEnded, outcome.Status.ToString()) : null });
             }
 
             return new Answer(outcome.StructuredOutputJson, result.Report, result.SessionId, null);

@@ -3,6 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
+             xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
              xmlns:memory="clr-namespace:AgentStudio.Desktop.Memory"
              xmlns:orchestratorViews="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
              mc:Ignorable="d"
@@ -18,21 +20,21 @@
     </UserControl.Resources>
 
     <StackPanel>
-        <TextBlock Style="{StaticResource SectionTitleText}" Text="Búsqueda por significado"/>
+        <TextBlock Style="{StaticResource SectionTitleText}" Text="{l:T Memory_Model_Title}"/>
         <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,6" TextWrapping="Wrap"
-                   Text="Encuentra lo que dice lo mismo con otras palabras: «test en rojo» encuentra «pruebas que fallan». La calcula tu equipo, sin red y sin gastar cuota."/>
+                   Text="{l:T Memory_Model_Intro}"/>
         <DockPanel>
             <Ellipse DockPanel.Dock="Left" Width="9" Height="9" Margin="0,5,8,0" VerticalAlignment="Top"
                      Fill="{Binding StatusTone, Converter={StaticResource Model.ToneToBrush}}"/>
             <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" Text="{Binding StatusText}"
-                       AutomationProperties.Name="Estado de la búsqueda por significado" AutomationProperties.LiveSetting="Polite"/>
+                       AutomationProperties.Name="{l:T Memory_Model_StateName}" AutomationProperties.LiveSetting="Polite"/>
         </DockPanel>
 
         <Button Style="{StaticResource ToolbarPrimaryButton}" HorizontalAlignment="Left" Margin="0,8,0,0"
                 Content="{Binding DownloadLabel}" Command="{Binding AskDownloadCommand}"
                 Visibility="{Binding CanDownload, Converter={StaticResource Model.BoolToVisibility}}"
                 AutomationProperties.Name="{Binding DownloadLabel}"
-                AutomationProperties.HelpText="Abre una confirmación con lo que se descarga, de dónde, su tamaño y dónde se guarda. Nada se descarga sin tu OK."/>
+                AutomationProperties.HelpText="{l:T Memory_Model_DownloadHelp}"/>
 
         <!-- The confirmation: nothing has been downloaded, and nothing will be until «Descargar». -->
         <Border Style="{StaticResource InnerCard}" Padding="12,10" Margin="0,8,0,0"
@@ -41,7 +43,7 @@
             <StackPanel>
                 <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" TextWrapping="Wrap" Text="{Binding ConfirmationTitle}"/>
                 <TextBlock Style="{StaticResource BodyText}" Margin="0,6,0,0" TextWrapping="Wrap" Text="{Binding WhatText}"/>
-                <ItemsControl Margin="8,4,0,0" ItemsSource="{Binding Files}" Focusable="False" AutomationProperties.Name="Ficheros que se descargan">
+                <ItemsControl Margin="8,4,0,0" ItemsSource="{Binding Files}" Focusable="False" AutomationProperties.Name="{l:T Memory_Model_FilesName}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type memory:ModelFileLine}">
                             <StackPanel Margin="0,2,0,2">
@@ -72,11 +74,11 @@
         <!-- The download, while it goes: how much has arrived, and how to stop it. -->
         <StackPanel Margin="0,8,0,0" Visibility="{Binding IsDownloading, Converter={StaticResource Model.BoolToVisibility}}">
             <ProgressBar Style="{StaticResource AccentProgress}" IsIndeterminate="False" Height="6" Minimum="0" Maximum="100"
-                         Value="{Binding ProgressPercent, Mode=OneWay}" AutomationProperties.Name="Progreso de la descarga del modelo"/>
+                         Value="{Binding ProgressPercent, Mode=OneWay}" AutomationProperties.Name="{l:T Memory_Model_ProgressName}"/>
             <TextBlock Style="{StaticResource BodyText}" Margin="0,4,0,0" TextWrapping="Wrap" Text="{Binding ProgressText}"
                        AutomationProperties.LiveSetting="Polite"/>
-            <Button Style="{StaticResource ToolbarButton}" HorizontalAlignment="Left" Margin="0,6,0,0" Content="Cancelar la descarga"
-                    Command="{Binding CancelDownloadCommand}" AutomationProperties.Name="Cancelar la descarga del modelo"/>
+            <Button Style="{StaticResource ToolbarButton}" HorizontalAlignment="Left" Margin="0,6,0,0" Content="{l:T Memory_Model_Cancel}"
+                    Command="{Binding CancelDownloadCommand}" AutomationProperties.Name="{l:T Memory_Model_CancelName}"/>
         </StackPanel>
 
         <TextBlock Style="{StaticResource BodyText}" Margin="0,6,0,0" TextWrapping="Wrap" Text="{Binding Outcome}"

@@ -312,6 +312,17 @@ public sealed class AgentJudgeTests
     }
 
     [Fact]
+    public void The_rubric_says_that_what_is_marked_as_said_by_the_agent_is_not_a_fact_of_the_system()
+    {
+        var prompt = JudgePrompt.Evaluation(Dossier(), null, Workspace);
+
+        var rubric = prompt[..prompt.IndexOf(JudgePrompt.DataOpen, StringComparison.Ordinal)];
+        Assert.Contains("outputsSaidByAgent", rubric, StringComparison.Ordinal);
+        Assert.Contains("\"saidByAgent\"", rubric, StringComparison.Ordinal);
+        Assert.Contains("not a fact of the system", rubric, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_rubric_says_only_tests_of_the_commit_under_review_count_and_system_checks_forbid_approval()
     {
         var prompt = JudgePrompt.Evaluation(Dossier() with { CandidateCommit = CommitB }, null, Workspace);

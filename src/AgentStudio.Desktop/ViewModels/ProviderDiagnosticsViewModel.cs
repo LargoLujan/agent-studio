@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using AgentStudio.Application.Diagnostics;
+using AgentStudio.Desktop.Localization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -55,7 +56,7 @@ public partial class ProviderDiagnosticsViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = $"No se pudo completar la comprobación: {ex.Message}";
+            ErrorMessage = Texts.Format("Providers_CheckFailed", ex.Message);
         }
         finally
         {

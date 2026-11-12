@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Reflection;
 using System.Resources;
 using AgentStudio.Application.Localization;
+using AgentStudio.Domain.Common;
 
 namespace AgentStudio.Desktop.Localization;
 
@@ -71,7 +72,9 @@ public sealed class ResourceTextProvider : IUiTextProvider
     public string Render(UserText text)
     {
         ArgumentNullException.ThrowIfNull(text);
-        return Format(text.ResourceKey, [.. text.Arguments]);
+
+        // A text with pieces paints them first (RenderNested comes back here with every piece already a string).
+        return text.Arguments.Any(a => a is INestedText) ? this.RenderNested(text) : Format(text.ResourceKey, [.. text.Arguments]);
     }
 
     private string? Find(string key)
@@ -116,6 +119,8 @@ public static class Texts
 
     private static CultureInfo? _windowsUiCulture;
 
+    private static readonly AsyncLocal<IUiTextProvider?> Scoped = new();
+
     /// <summary>
     /// The language of the interface of Windows, as it was before <see cref="UseLanguage"/> put the one of the app on the
     /// threads; the current one until a language is applied. «Ajustes» names it in «El de Windows».
@@ -123,7 +128,34 @@ public static class Texts
     public static CultureInfo WindowsUiCulture => _windowsUiCulture ?? CultureInfo.CurrentUICulture;
 
     /// <summary>The provider of the language in use.</summary>
-    public static IUiTextProvider Current => _applied ?? Default.Value;
+    public static IUiTextProvider Current => Scoped.Value ?? _applied ?? Default.Value;
+
+    /// <summary>
+    /// Makes <paramref name="provider"/> the one of <see cref="Current"/> in this flow of execution (it follows
+    /// the awaits, and nothing running beside it sees it) until the returned scope is disposed: for a test or a render that paints one screen in each language (the XAML reads <see cref="Current"/> when it is built),
+    /// since the language of the app cannot change twice. The app never calls it; scopes nest and each restores the previous one.
+    /// </summary>
+    public static IDisposable Scope(IUiTextProvider provider)
+    {
+        ArgumentNullException.ThrowIfNull(provider);
+        var previous = Scoped.Value;
+        Scoped.Value = provider;
+        return new ScopeToken(previous);
+    }
+
+    private sealed class ScopeToken(IUiTextProvider? previous) : IDisposable
+    {
+        private bool _disposed;
+
+        public void Dispose()
+        {
+            if (!_disposed)
+            {
+                _disposed = true;
+                Scoped.Value = previous;
+            }
+        }
+    }
 
     /// <summary>The text of <paramref name="key"/> in the language in use.</summary>
     public static string Get(string key) => Current.Get(key);

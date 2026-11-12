@@ -10,9 +10,9 @@ namespace AgentStudio.Tests.Desktop.Observability;
 public sealed class MetricTextTests
 {
     [Theory]
-    [InlineData(MetricOrigin.ReportedByProvider, "exacto · informado por el CLI")]
+    [InlineData(MetricOrigin.ReportedByProvider, "exacto · informado por el programa del agente")]
     [InlineData(MetricOrigin.MeasuredBySystem, "exacto · medido por Agent Studio")]
-    [InlineData(MetricOrigin.EstimatedByProvider, "estimado por el CLI")]
+    [InlineData(MetricOrigin.EstimatedByProvider, "estimado por el programa del agente")]
     [InlineData(MetricOrigin.EstimatedBySystem, "estimado por Agent Studio")]
     [InlineData(MetricOrigin.NotExposed, "no expuesto")]
     [InlineData(MetricOrigin.Missing, "sin dato")]
@@ -24,7 +24,7 @@ public sealed class MetricTextTests
         var figure = MetricText.Tokens(MetricValue<long>.Exact(1_234_567, "claude result.usage"));
 
         Assert.Equal("1.234.567", figure.Value);
-        Assert.Equal("1.234.567 · exacto · informado por el CLI", figure.Text);
+        Assert.Equal("1.234.567 · exacto · informado por el programa del agente", figure.Text);
     }
 
     [Fact]
@@ -33,7 +33,7 @@ public sealed class MetricTextTests
         var byCli = MetricText.Tokens(MetricValue<long>.Estimated(800, "claude thinking_tokens"));
         var bySystem = MetricText.Tokens(MetricValue<long>.EstimatedBySystem(2_500, "10000 chars / 4"));
 
-        Assert.Equal("~800 · estimado por el CLI", byCli.Text);
+        Assert.Equal("~800 · estimado por el programa del agente", byCli.Text);
         Assert.Equal("~2.500 · estimado por Agent Studio", bySystem.Text);
         Assert.DoesNotContain("exacto", byCli.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("exacto", bySystem.Text, StringComparison.Ordinal);
@@ -59,7 +59,7 @@ public sealed class MetricTextTests
 
         var figure = MetricText.Tokens(aggregate);
 
-        Assert.Equal("300 · parcial (3 de 5) · exacto · informado por el CLI", figure.Text);
+        Assert.Equal("300 · parcial (3 de 5) · exacto · informado por el programa del agente", figure.Text);
     }
 
     [Fact]
@@ -84,16 +84,16 @@ public sealed class MetricTextTests
     [Fact]
     public void A_cost_is_the_CLIs_list_price_estimate_and_Codex_does_not_expose_it()
     {
-        Assert.Equal("~0,42 USD · estimado por el CLI (precio de lista)", MetricText.Cost(MetricValue<decimal>.Estimated(0.4215m, "claude total_cost_usd")).Text);
-        Assert.Equal("~1,05 USD · estimado por el CLI (precio de lista)", MetricText.Cost(new MetricAggregate<decimal>(1.05m, MetricOrigin.EstimatedByProvider, 2, 0, ["claude total_cost_usd"])).Text);
+        Assert.Equal("~0,42 USD · estimado por el programa del agente (precio de lista)", MetricText.Cost(MetricValue<decimal>.Estimated(0.4215m, "claude total_cost_usd")).Text);
+        Assert.Equal("~1,05 USD · estimado por el programa del agente (precio de lista)", MetricText.Cost(new MetricAggregate<decimal>(1.05m, MetricOrigin.EstimatedByProvider, 2, 0, ["claude total_cost_usd"])).Text);
         Assert.Equal("no expuesto", MetricText.Cost(MetricValue<decimal>.NotExposed("codex has no cost")).Text);
     }
 
     [Fact]
     public void A_cost_on_another_basis_than_the_list_price_says_which()
     {
-        Assert.Equal("~0,42 USD · estimado por el CLI (base «managed»)", MetricText.Cost(MetricValue<decimal>.Estimated(0.42m, "claude costUSD"), "managed").Text);
-        Assert.Equal("~0,42 USD · estimado por el CLI (precio de lista)", MetricText.Cost(MetricValue<decimal>.Estimated(0.42m, "claude costUSD"), "list").Text);
+        Assert.Equal("~0,42 USD · estimado por el programa del agente (base «managed»)", MetricText.Cost(MetricValue<decimal>.Estimated(0.42m, "claude costUSD"), "managed").Text);
+        Assert.Equal("~0,42 USD · estimado por el programa del agente (precio de lista)", MetricText.Cost(MetricValue<decimal>.Estimated(0.42m, "claude costUSD"), "list").Text);
     }
 
     [Theory]
@@ -117,7 +117,7 @@ public sealed class MetricTextTests
     [Fact]
     public void A_utilization_is_a_percentage_with_its_origin()
     {
-        Assert.Equal("47 % · exacto · informado por el CLI", MetricText.Percent(MetricValue<double>.Exact(0.47, "claude rate_limit_event")).Text);
+        Assert.Equal("47 % · exacto · informado por el programa del agente", MetricText.Percent(MetricValue<double>.Exact(0.47, "claude rate_limit_event")).Text);
         Assert.Equal("~68 % · estimado por Agent Studio", MetricText.Percent(MetricValue<double>.EstimatedBySystem(0.68, "learned window")).Text);
         Assert.Equal("no expuesto", MetricText.Percent(MetricValue<double>.NotExposed("gemini")).Text);
     }

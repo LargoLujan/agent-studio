@@ -5,6 +5,7 @@ using System.Text.Json;
 using AgentStudio.Application.Coordination;
 using AgentStudio.Application.Debate;
 using AgentStudio.Application.Decisions;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Judging;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Persistence;
@@ -83,7 +84,7 @@ public sealed class DebateCoordinator : IDebateCoordinator
         ArgumentNullException.ThrowIfNull(proposal);
         if (proposal.Problems.Count > 0)
         {
-            throw new InvalidOperationException("El debate no se puede abrir: " + string.Join(" ", proposal.Problems));
+            throw DebateUserTexts.Refusal(DebateUserTexts.CannotOpen, "The debate cannot be opened: " + string.Join(" ", proposal.Problems));
         }
 
         var project = proposal.Request.Project;
@@ -93,8 +94,9 @@ public sealed class DebateCoordinator : IDebateCoordinator
             var plan = await PlanAsync(proposal.Request, ct).ConfigureAwait(false);
             if (plan.Proposal.Problems.Count > 0 || !string.Equals(plan.Proposal.HeaderHash, proposal.HeaderHash, StringComparison.Ordinal))
             {
-                throw new InvalidOperationException(
-                    "Lo que se te enseñó para aprobar ya no es lo que hay (la plantilla, el commit o el objeto cambiaron): prepara el debate otra vez. "
+                throw DebateUserTexts.Refusal(
+                    DebateUserTexts.ProposalOutdated,
+                    "What you were shown to approve is no longer what there is (the template, the commit or the subject changed): prepare the debate again. "
                     + string.Join(" ", plan.Proposal.Problems));
             }
 
@@ -115,7 +117,7 @@ public sealed class DebateCoordinator : IDebateCoordinator
                 ct).ConfigureAwait(false);
             if (approval is not { Approved: true } || !string.Equals(approval.Answers, plan.Proposal.HeaderHash, StringComparison.Ordinal))
             {
-                throw new InvalidOperationException("No se aprobó la apertura del debate: no se abre.");
+                throw DebateUserTexts.Refusal(DebateUserTexts.OpeningNotApproved, "The opening of the debate was not approved: it is not opened.");
             }
 
             var request = plan.Proposal.Request;
@@ -139,11 +141,11 @@ public sealed class DebateCoordinator : IDebateCoordinator
             // gives it back, and the proposal the user approved is checked on that same header with the hash of the question
             // captured, as the dossier of the judgment recomputes both.
             var record = await _ports.Debates.FindAsync(project.ProjectId, debate, CancellationToken.None).ConfigureAwait(false)
-                ?? throw new InvalidOperationException($"El registro de debates no devuelve la cabecera de {debate} que acaba de guardar: no se abre.");
+                ?? throw DebateUserTexts.Refusal(DebateUserTexts.OpeningInconsistent, $"The debate registry does not return the header of {debate} it has just saved: it is not opened.");
             var approved = DebateHeaderHash.Proposal(record, question.ContentSha256);
             if (!string.Equals(approved, proposal.HeaderHash, StringComparison.Ordinal))
             {
-                throw new InvalidOperationException($"La cabecera que guardó el registro de debates no es la propuesta que aprobaste (su hash es {approved}, no {proposal.HeaderHash}): el debate no se abre.");
+                throw DebateUserTexts.Refusal(DebateUserTexts.OpeningInconsistent, $"The header the debate registry saved is not the proposal that was approved (its hash is {approved}, not {proposal.HeaderHash}): the debate is not opened.");
             }
 
             var opened = Opened(record, plan, approved, question);
@@ -172,7 +174,7 @@ public sealed class DebateCoordinator : IDebateCoordinator
         ArgumentNullException.ThrowIfNull(project);
         if (_live.ContainsKey(Key(project.ProjectId, debate)))
         {
-            throw new InvalidOperationException($"El debate {debate} ya está en curso en este proceso.");
+            throw DebateUserTexts.Refusal(DebateUserTexts.AlreadyRunning, $"Debate {debate} is already running in this process.", debate.Value);
         }
 
         var lease = Enter(project);
@@ -180,17 +182,17 @@ public sealed class DebateCoordinator : IDebateCoordinator
         {
             var log = await LoadVerifiedAsync(project, ct).ConfigureAwait(false);
             var record = await _ports.Debates.FindAsync(project.ProjectId, debate, ct).ConfigureAwait(false)
-                ?? throw new InvalidOperationException($"El debate {debate} no existe en este proyecto.");
+                ?? throw DebateUserTexts.Refusal(DebateUserTexts.NotFound, $"Debate {debate} does not exist in this project.", debate.Value);
             var debateLog = DebateLog.Of(log.Entries, debate);
-            var opened = debateLog.Opened ?? throw new InvalidOperationException($"El registro no tiene DebateOpened para {debate}.");
+            var opened = debateLog.Opened ?? throw DebateUserTexts.Refusal(DebateUserTexts.CannotResume, $"The log has no DebateOpened for {debate}.", debate.Value);
             if (!string.Equals(DebateHeaderHash.Of(record), opened.HeaderHash, StringComparison.Ordinal))
             {
-                throw new InvalidOperationException($"La cabecera guardada del debate {debate} no es la que se abrió (su hash no es el que ancló DebateOpened): no se reanuda.");
+                throw DebateUserTexts.Refusal(DebateUserTexts.CannotResume, $"The stored header of debate {debate} is not the one that was opened (its hash is not the one DebateOpened anchored): it is not resumed.", debate.Value);
             }
 
             if (debateLog.Closed is not null)
             {
-                throw new InvalidOperationException($"El debate {debate} ya terminó.");
+                throw DebateUserTexts.Refusal(DebateUserTexts.AlreadyFinished, $"Debate {debate} has already finished.", debate.Value);
             }
 
             var recorder = new DebateTurnRecorder(_ports.Decisions, _ports.Evidence, project.ProjectId, debate);
@@ -201,15 +203,15 @@ public sealed class DebateCoordinator : IDebateCoordinator
             }
             catch (Exception ex) when (ex is IOException or InvalidDataException or KeyNotFoundException)
             {
-                throw new InvalidOperationException($"La pregunta del debate {debate} no se puede leer contra el hash que ancló DebateOpened: no se reanuda. {ex.Message}", ex);
+                throw new UserTextException(UserText.Of(DebateUserTexts.CannotResume, debate.Value), $"The question of debate {debate} cannot be read against the hash DebateOpened anchored: it is not resumed. {ex.Message}", ex);
             }
             var requirements = await _ports.Requirements.FindAsync(project.ProjectId, record.RequirementSetHash, ct).ConfigureAwait(false)
-                ?? throw new InvalidOperationException($"Los requisitos congelados {record.RequirementSetHash} del debate no están guardados.");
+                ?? throw DebateUserTexts.Refusal(DebateUserTexts.CannotResume, $"The frozen requirements {record.RequirementSetHash} of the debate are not stored.", debate.Value);
             var arrangement = Arrangement(record);
             var replay = await ReplayAsync(project, record, debateLog, question, requirements, arrangement, ct).ConfigureAwait(false);
             if (!replay.IsResumable)
             {
-                throw new InvalidOperationException($"El registro del debate {debate} no describe un debate que se pueda reanudar: {string.Join(" ", replay.Problems)}");
+                throw DebateUserTexts.Refusal(DebateUserTexts.CannotResumeDetail, $"The log of debate {debate} does not describe a debate that can be resumed: {string.Join(" ", replay.Problems)}", debate.Value, string.Join(" ", replay.Problems));
             }
 
             var guard = new DebateRepositoryGuard(_ports.Worktrees, project.RootPath, recorder);
@@ -220,7 +222,7 @@ public sealed class DebateCoordinator : IDebateCoordinator
                 ct).ConfigureAwait(false);
             if (approval is not { Approved: true } || !string.Equals(approval.Answers, binding, StringComparison.Ordinal))
             {
-                throw new InvalidOperationException("No se aprobó reanudar el debate: no se reanuda.");
+                throw DebateUserTexts.Refusal(DebateUserTexts.ResumeNotApproved, "Resuming the debate was not approved: it is not resumed.");
             }
 
             // D-04: every launch the log shows open ended with the process; it is closed as interrupted (not a retry).
@@ -271,7 +273,7 @@ public sealed class DebateCoordinator : IDebateCoordinator
         ArgumentNullException.ThrowIfNull(project);
         var log = await _ports.Decisions.LoadAsync(project.ProjectId, ct).ConfigureAwait(false);
         var record = await _ports.Debates.FindAsync(project.ProjectId, debate, ct).ConfigureAwait(false)
-            ?? throw new InvalidOperationException($"El debate {debate} no existe en este proyecto.");
+            ?? throw DebateUserTexts.Refusal(DebateUserTexts.NotFound, $"Debate {debate} does not exist in this project.", debate.Value);
         return await ReadOneAsync(project, record, log, ct).ConfigureAwait(false);
     }
 
@@ -300,8 +302,8 @@ public sealed class DebateCoordinator : IDebateCoordinator
         ArgumentNullException.ThrowIfNull(request.Limits);
 
         var project = request.Project;
-        var problems = new List<string>();
-        var notes = new List<string>();
+        var problems = new CodedMessages();
+        var notes = new CodedMessages();
         var roster = await _ports.Roster.ListAsync(project.ProjectId, ct).ConfigureAwait(false);
         var providers = _ports.Providers.For(project.RootPath);
 
@@ -311,18 +313,18 @@ public sealed class DebateCoordinator : IDebateCoordinator
             var agent = roster.FirstOrDefault(a => a.Id == asked.Agent);
             if (agent is null)
             {
-                problems.Add($"El participante '{asked.Agent}' no está en la plantilla del proyecto.");
+                problems.Add($"El participante '{asked.Agent}' no está en la plantilla del proyecto.", UserText.Of(DebateUserTexts.ProblemParticipantMissing, asked.Agent.ToString()));
                 continue;
             }
 
             if (agent.Role is AgentRole.Judge or AgentRole.Auditor or AgentRole.Orchestrator)
             {
-                problems.Add($"'{agent.Id}' es un {agent.Role}: un juez, un auditor o el orquestador no participan en un debate.");
+                problems.Add($"'{agent.Id}' es un {agent.Role}: un juez, un auditor o el orquestador no participan en un debate.", UserText.Of(DebateUserTexts.ProblemParticipantRole, agent.Id.ToString()));
             }
 
             if (!providers.Any(p => p.Provider == agent.Model.Provider))
             {
-                problems.Add($"No hay proveedor para {agent.Model.Provider}, el CLI de '{agent.Id}'.");
+                problems.Add($"No hay proveedor para {agent.Model.Provider}, el CLI de '{agent.Id}'.", UserText.Of(DebateUserTexts.ProblemNoProvider, ProviderNames.Of(agent.Model.Provider), agent.Id.ToString()));
             }
 
             definitions.Add(new DebateParticipantDefinition(agent, asked.Role, DebateIds.Participant(index)));
@@ -334,11 +336,11 @@ public sealed class DebateCoordinator : IDebateCoordinator
             var judge = roster.FirstOrDefault(a => a.Id == id);
             if (judge is null)
             {
-                problems.Add($"El juez '{id}' no está en la plantilla del proyecto.");
+                problems.Add($"El juez '{id}' no está en la plantilla del proyecto.", UserText.Of(DebateUserTexts.ProblemJudgeMissing, id.ToString()));
             }
             else if (judge.Role is not (AgentRole.Judge or AgentRole.Auditor))
             {
-                problems.Add($"'{judge.Id}' es un {judge.Role}, no un juez.");
+                problems.Add($"'{judge.Id}' es un {judge.Role}, no un juez.", UserText.Of(DebateUserTexts.ProblemJudgeRole, judge.Id.ToString()));
             }
             else
             {
@@ -349,7 +351,7 @@ public sealed class DebateCoordinator : IDebateCoordinator
         var subject = await ResolveSubjectAsync(request, problems, notes, ct).ConfigureAwait(false);
         if (request.Mode == DebateMode.OrchestratorReview && request.Requirements.ContentHash != DebateModes.OrchestratorReview(request.Requirements.FrozenAt).ContentHash)
         {
-            problems.Add("La revisión del orquestador se juzga con sus requisitos fijos, orq-1 a orq-7 (DebateModes.OrchestratorReview).");
+            problems.Add("La revisión del orquestador se juzga con sus requisitos fijos, orq-1 a orq-7 (DebateModes.OrchestratorReview).", UserText.Of(DebateUserTexts.ProblemOrchestratorRequirements));
         }
 
         var participants = definitions.Select(d => new DebateParticipant(d.Agent.Id, d.Role, d.Agent.Model)).ToList();
@@ -358,7 +360,7 @@ public sealed class DebateCoordinator : IDebateCoordinator
             .FirstOrDefault(a => a.Kind == request.Judging);
         if (arrangement is null)
         {
-            problems.Add($"Con estos participantes y jueces no cabe ninguna disposición «{request.Judging}»: ningún juez la puede ocupar sin juzgar el trabajo de su propio vendor.");
+            problems.Add($"Con estos participantes y jueces no cabe ninguna disposición «{request.Judging}»: ningún juez la puede ocupar sin juzgar el trabajo de su propio vendor.", UserText.Of(DebateUserTexts.ProblemNoArrangement));
         }
         else
         {
@@ -368,7 +370,8 @@ public sealed class DebateCoordinator : IDebateCoordinator
             }
             catch (Exception ex) when (ex is DomainRuleViolationException or ArgumentException)
             {
-                problems.Add(ex is DomainRuleViolationException { Rule.Length: > 0 } violation ? $"{violation.Rule}: {ex.Message}" : ex.Message);
+                // The rule of the domain says it in English: it goes as the technical detail of a text the person can read.
+                problems.Add(ex is DomainRuleViolationException { Rule.Length: > 0 } violation ? $"{violation.Rule}: {ex.Message}" : ex.Message, UserText.Of(DebateUserTexts.ProblemSessionRefused, ex.Message));
             }
         }
 
@@ -376,7 +379,7 @@ public sealed class DebateCoordinator : IDebateCoordinator
         var maxAgentRuns = request.MaxAgentRuns ?? (definitions.Count * rounds) + 2;
         if (maxAgentRuns < definitions.Count)
         {
-            problems.Add(Invariant($"Con {maxAgentRuns} ejecuciones no cabe ni la ronda 1 de {definitions.Count} participantes."));
+            problems.Add(Invariant($"Con {maxAgentRuns} ejecuciones no cabe ni la ronda 1 de {definitions.Count} participantes."), UserText.Of(DebateUserTexts.ProblemNoRoundFits, maxAgentRuns, definitions.Count));
         }
 
         var judgesOfArrangement = arrangement is null
@@ -405,14 +408,15 @@ public sealed class DebateCoordinator : IDebateCoordinator
         var proposal = new DebateProposal(
             request,
             arrangement ?? new JudgingArrangement(request.Judging, [], new HashSet<VendorId>(subject.Producers), new HashSet<VendorId>()),
-            problems,
+            problems.Messages,
             estimate,
             hash,
-            ApprovalText(request, definitions, judgesOfArrangement, arrangement, subject, maxAgentRuns, estimate));
+            ApprovalText(request, definitions, judgesOfArrangement, arrangement, subject, maxAgentRuns, estimate),
+            problems.Texts);
         return new Plan(proposal, record, participants, arrangement, subject.Challenged, questionSha256);
     }
 
-    private async Task<ResolvedSubject> ResolveSubjectAsync(DebateRequest request, List<string> problems, List<string> notes, CancellationToken ct)
+    private async Task<ResolvedSubject> ResolveSubjectAsync(DebateRequest request, CodedMessages problems, CodedMessages notes, CancellationToken ct)
     {
         var project = request.Project;
         var none = new HashSet<VendorId>();
@@ -425,7 +429,7 @@ public sealed class DebateCoordinator : IDebateCoordinator
                 var repository = await _ports.Worktrees.InspectAsync(project.RootPath, ct).ConfigureAwait(false);
                 if (repository.HasUncommittedChanges)
                 {
-                    notes.Add("Tienes cambios sin confirmar: no entran en el debate, que parte del último commit.");
+                    notes.Add("Tienes cambios sin confirmar: no entran en el debate, que parte del último commit.", UserText.Of(DebateUserTexts.NoteUncommitted));
                 }
 
                 return new ResolvedSubject(new DebateSubject(DebateSubjectKind.Commit, repository.HeadCommit), repository.HeadCommit, none, null);
@@ -435,7 +439,7 @@ public sealed class DebateCoordinator : IDebateCoordinator
             {
                 if (string.IsNullOrWhiteSpace(request.Subject.Reference))
                 {
-                    problems.Add("Un debate sobre una ejecución tiene que nombrarla.");
+                    problems.Add("Un debate sobre una ejecución tiene que nombrarla.", UserText.Of(DebateUserTexts.ProblemRunUnnamed));
                     return new ResolvedSubject(request.Subject, null, none, null);
                 }
 
@@ -444,7 +448,7 @@ public sealed class DebateCoordinator : IDebateCoordinator
                 var started = RunLog.RunStarted(entries);
                 if (started is null)
                 {
-                    problems.Add($"La ejecución {request.Subject.Reference} no está en el registro.");
+                    problems.Add($"La ejecución {request.Subject.Reference} no está en el registro.", UserText.Of(DebateUserTexts.ProblemRunNotInLog, request.Subject.Reference));
                     return new ResolvedSubject(request.Subject, null, none, null);
                 }
 
@@ -453,12 +457,12 @@ public sealed class DebateCoordinator : IDebateCoordinator
                 {
                     if (candidate is null)
                     {
-                        problems.Add($"La ejecución {request.Subject.Reference} no tiene commit candidato: una auditoría de implementación no se abre sin él.");
+                        problems.Add($"La ejecución {request.Subject.Reference} no tiene commit candidato: una auditoría de implementación no se abre sin él.", UserText.Of(DebateUserTexts.ProblemNoCandidateCommit, request.Subject.Reference));
                     }
 
                     if (!string.Equals(request.Requirements.ContentHash, started.RequirementSetHash, StringComparison.Ordinal))
                     {
-                        problems.Add("Una auditoría de implementación se juzga con los requisitos congelados de su ejecución.");
+                        problems.Add("Una auditoría de implementación se juzga con los requisitos congelados de su ejecución.", UserText.Of(DebateUserTexts.ProblemAuditRequirements));
                     }
                 }
 
@@ -468,7 +472,7 @@ public sealed class DebateCoordinator : IDebateCoordinator
             case DebateSubjectKind.Verdict:
                 return await ChallengedAsync(request, problems, ct).ConfigureAwait(false);
             default:
-                problems.Add($"Objeto de debate desconocido: {request.Subject.Kind}.");
+                problems.Add($"Objeto de debate desconocido: {request.Subject.Kind}.", UserText.Of(DebateUserTexts.ProblemUnknownSubject));
                 return new ResolvedSubject(request.Subject, null, none, null);
         }
     }
@@ -478,20 +482,20 @@ public sealed class DebateCoordinator : IDebateCoordinator
     /// of the revision may run on, inherited from that object (its producers, the participants of a debate it closed that were
     /// not waived, the producers and declared authors of an audit). The vendor of the judge that issued it is not added.
     /// </summary>
-    private async Task<ResolvedSubject> ChallengedAsync(DebateRequest request, List<string> problems, CancellationToken ct)
+    private async Task<ResolvedSubject> ChallengedAsync(DebateRequest request, CodedMessages problems, CancellationToken ct)
     {
         var project = request.Project;
         var none = new HashSet<VendorId>();
         if (string.IsNullOrWhiteSpace(request.Subject.Reference))
         {
-            problems.Add("Una impugnación tiene que nombrar el veredicto que impugna.");
+            problems.Add("Una impugnación tiene que nombrar el veredicto que impugna.", UserText.Of(DebateUserTexts.ProblemVerdictUnnamed));
             return new ResolvedSubject(request.Subject, null, none, null);
         }
 
         var stored = (await _ports.Verdicts.ListAsync(project.ProjectId, null, ct).ConfigureAwait(false)).FirstOrDefault(v => v.Id == request.Subject.Reference);
         if (stored?.RunId is not { } of)
         {
-            problems.Add($"El veredicto {request.Subject.Reference} no está guardado, o no es de ninguna ejecución, debate ni auditoría.");
+            problems.Add($"El veredicto {request.Subject.Reference} no está guardado, o no es de ninguna ejecución, debate ni auditoría.", UserText.Of(DebateUserTexts.ProblemVerdictNotStored, request.Subject.Reference));
             return new ResolvedSubject(request.Subject, null, none, null);
         }
 
@@ -501,7 +505,7 @@ public sealed class DebateCoordinator : IDebateCoordinator
             var debate = await _ports.Debates.FindAsync(project.ProjectId, new RunId(of), ct).ConfigureAwait(false);
             if (debate is null)
             {
-                problems.Add($"El debate {of} del veredicto impugnado no existe.");
+                problems.Add($"El debate {of} del veredicto impugnado no existe.", UserText.Of(DebateUserTexts.ProblemDebateMissing, of));
                 return new ResolvedSubject(subject, null, none, stored);
             }
 
@@ -515,7 +519,7 @@ public sealed class DebateCoordinator : IDebateCoordinator
             var audit = _ports.Audits is null ? null : await _ports.Audits.FindAsync(project.ProjectId, new RunId(of), ct).ConfigureAwait(false);
             if (audit is null)
             {
-                problems.Add($"La auditoría {of} del veredicto impugnado no existe.");
+                problems.Add($"La auditoría {of} del veredicto impugnado no existe.", UserText.Of(DebateUserTexts.ProblemAuditMissing, of));
                 return new ResolvedSubject(subject, null, none, stored);
             }
 
@@ -528,20 +532,24 @@ public sealed class DebateCoordinator : IDebateCoordinator
     }
 
     /// <summary>What the debate may spend at most (D-21), «estimado por Agent Studio».</summary>
-    private static DebateEstimate Estimate(DebateRequest request, IReadOnlyList<DebateParticipantDefinition> participants, int rounds, int maxAgentRuns, List<string> notes)
+    private static DebateEstimate Estimate(DebateRequest request, IReadOnlyList<DebateParticipantDefinition> participants, int rounds, int maxAgentRuns, CodedMessages notes)
     {
         var perRound = participants.Sum(p => TurnTokens.GetValueOrDefault(p.Agent.Model.Provider, 160_000));
         var total = checked(perRound * rounds);
-        notes.Add(Invariant($"Como mucho {maxAgentRuns} ejecuciones: {participants.Count} participantes por {rounds} {(rounds == 1 ? "ronda" : "rondas")} y los reintentos."));
-        notes.Add("Cada turno de Claude con haiku ronda los 40 000 a 160 000 tokens y uno de Codex los 20 000 a 80 000, según lo que lea.");
+        notes.Add(
+            Invariant($"Como mucho {maxAgentRuns} ejecuciones: {participants.Count} participantes por {rounds} {(rounds == 1 ? "ronda" : "rondas")} y los reintentos."),
+            rounds == 1
+                ? UserText.Of(DebateUserTexts.NoteMaxRunsOneRound, maxAgentRuns, participants.Count)
+                : UserText.Of(DebateUserTexts.NoteMaxRuns, maxAgentRuns, participants.Count, rounds));
+        notes.Add("Cada turno de Claude con haiku ronda los 40 000 a 160 000 tokens y uno de Codex los 20 000 a 80 000, según lo que lea.", UserText.Of(DebateUserTexts.NoteTokensPerTurn));
         if (request.Limits.MaxTotalTokens is { } limit && limit < total)
         {
-            notes.Add(Invariant($"El límite de {limit} tokens corta el debate antes: se va a juicio al alcanzarlo."));
+            notes.Add(Invariant($"El límite de {limit} tokens corta el debate antes: se va a juicio al alcanzarlo."), UserText.Of(DebateUserTexts.NoteTokenLimit, limit));
             total = limit;
         }
 
-        notes.Add("Estimado por Agent Studio: con suscripción no es lo que pagas.");
-        return new DebateEstimate(maxAgentRuns, MetricValue<long>.EstimatedBySystem(total, "estimate: measured tokens per turn × rounds (docs/15 D-21)"), notes);
+        notes.Add("Estimado por Agent Studio: con suscripción no es lo que pagas.", UserText.Of(DebateUserTexts.NoteEstimated));
+        return new DebateEstimate(maxAgentRuns, MetricValue<long>.EstimatedBySystem(total, "estimate: measured tokens per turn × rounds (docs/15 D-21)"), notes.Messages, notes.Texts);
     }
 
     private static string ApprovalText(
@@ -626,7 +634,7 @@ public sealed class DebateCoordinator : IDebateCoordinator
         var providers = _ports.Providers.For(project.RootPath);
         var seats = record.Participants
             .Select(p => new DebateSeat(p, providers.FirstOrDefault(x => x.Provider == p.Agent.Model.Provider)
-                ?? throw new InvalidOperationException($"No hay proveedor para {p.Agent.Model.Provider}, el CLI de '{p.Agent.Id}'.")))
+                ?? throw DebateUserTexts.Refusal(DebateUserTexts.NoProvider, $"There is no provider for {p.Agent.Model.Provider}, the CLI of '{p.Agent.Id}'.", ProviderNames.Of(p.Agent.Model.Provider), p.Agent.Id.ToString())))
             .ToList();
 
         string? subjectFolder = null;
@@ -669,10 +677,10 @@ public sealed class DebateCoordinator : IDebateCoordinator
 
     private async Task<DebateTranscript> ReadOneAsync(ProjectContext project, DebateRecord record, DecisionLogState log, CancellationToken ct)
     {
-        var problems = new List<string>();
+        var problems = new CodedMessages();
         if (!log.Verification.IsValid)
         {
-            problems.Add($"El registro de decisiones no verifica (entrada {log.Verification.FirstInvalidSequence}): {log.Verification.Problem}");
+            problems.Add($"El registro de decisiones no verifica (entrada {log.Verification.FirstInvalidSequence}): {log.Verification.Problem}", UserText.Of(DebateUserTexts.ProblemLogUnverified, log.Verification.FirstInvalidSequence?.ToString(CultureInfo.InvariantCulture) ?? "?"));
         }
 
         var debateLog = DebateLog.Of(log.Entries, record.Id);
@@ -681,13 +689,13 @@ public sealed class DebateCoordinator : IDebateCoordinator
         string? question = null;
         if (opened is null)
         {
-            problems.Add($"El registro no tiene DebateOpened para {record.Id}.");
+            problems.Add($"El registro no tiene DebateOpened para {record.Id}.", UserText.Of(DebateUserTexts.ProblemNotOpened, record.Id.Value));
         }
         else
         {
             if (!string.Equals(DebateHeaderHash.Of(record), opened.HeaderHash, StringComparison.Ordinal))
             {
-                problems.Add("La cabecera guardada no es la que ancló DebateOpened.");
+                problems.Add("La cabecera guardada no es la que ancló DebateOpened.", UserText.Of(DebateUserTexts.ProblemHeaderMismatch));
             }
 
             try
@@ -696,7 +704,7 @@ public sealed class DebateCoordinator : IDebateCoordinator
             }
             catch (Exception ex) when (ex is IOException or InvalidDataException or KeyNotFoundException or InvalidOperationException)
             {
-                problems.Add("La pregunta no se puede leer contra su hash: " + ex.Message);
+                problems.Add("La pregunta no se puede leer contra su hash: " + ex.Message, UserText.Of(DebateUserTexts.ProblemQuestionUnreadable));
             }
         }
 
@@ -706,11 +714,14 @@ public sealed class DebateCoordinator : IDebateCoordinator
         {
             var replay = await ReplayAsync(project, record, debateLog, question, requirements, Arrangement(record), ct).ConfigureAwait(false);
             session = replay.Session;
-            problems.AddRange(replay.Problems);
+            foreach (var replayed in replay.Problems.Where(p => !debateLog.Problems.Contains(p)))
+            {
+                problems.Add(replayed, UserText.Of(DebateUserTexts.ProblemReplay, replayed));
+            }
         }
         else if (requirements is null)
         {
-            problems.Add($"Los requisitos congelados {record.RequirementSetHash} no están guardados.");
+            problems.Add($"Los requisitos congelados {record.RequirementSetHash} no están guardados.", UserText.Of(DebateUserTexts.ProblemRequirementsMissing, record.RequirementSetHash));
         }
 
         var stored = await _ports.Verdicts.ListAsync(project.ProjectId, record.Id.Value, ct).ConfigureAwait(false);
@@ -727,7 +738,7 @@ public sealed class DebateCoordinator : IDebateCoordinator
                 }
                 catch (Exception ex) when (ex is IOException or InvalidDataException or KeyNotFoundException or InvalidOperationException)
                 {
-                    problems.Add($"La contribución {ContributionLabels.Of(payload.Index)} no se puede leer contra su hash: {ex.Message}");
+                    problems.Add($"La contribución {ContributionLabels.Of(payload.Index)} no se puede leer contra su hash: {ex.Message}", UserText.Of(DebateUserTexts.ProblemContributionUnreadable, ContributionLabels.Of(payload.Index)));
                 }
 
                 contributions.Add(DebateViews.Contribution(opened, payload, text));
@@ -749,7 +760,8 @@ public sealed class DebateCoordinator : IDebateCoordinator
             closed is null && !_live.ContainsKey(Key(project.ProjectId, record.Id)),
             debateLog.Of<VerdictChallengedPayload>().Any(),
             record.Challenges,
-            [.. debateLog.Problems, .. problems]);
+            [.. debateLog.Problems, .. problems.Messages],
+            [.. debateLog.ProblemTexts, .. problems.Texts]);
         return new DebateTranscript(
             summary,
             record.RequirementSetHash,
@@ -761,15 +773,17 @@ public sealed class DebateCoordinator : IDebateCoordinator
             panel,
             session?.LimitReached ?? DebateLimitReached.None,
             session?.JudgmentReason,
-            summary.Problems);
+            summary.Problems,
+            summary.ProblemTexts);
     }
 
     // ---- helpers ----
 
     private IDisposable Enter(ProjectContext project) =>
         _ports.Activity.TryEnter(project.ProjectId, ProjectActivityKind.Debate)
-            ?? throw new InvalidOperationException(
-                $"El proyecto está ocupado ({_ports.Activity.Current(project.ProjectId)?.ToString() ?? "otra actividad"}): un debate no comparte el proyecto con ninguna otra actividad con agentes.");
+            ?? throw DebateUserTexts.Refusal(
+                DebateUserTexts.ProjectBusy,
+                $"The project is busy ({_ports.Activity.Current(project.ProjectId)?.ToString() ?? "another activity"}): a debate does not share the project with any other activity with agents.");
 
     private async Task<DecisionLogState> LoadVerifiedAsync(ProjectContext project, CancellationToken ct)
     {

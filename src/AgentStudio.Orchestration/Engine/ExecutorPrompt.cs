@@ -241,6 +241,11 @@ internal static class ExecutorPrompt
     /// preceded by the ones the orchestrator asked before it planned (V43, marked <c>askedBy="orchestrator"</c>), which every
     /// task gets. When there are any, the protocol also tells the agent not to ask again what they decide.
     /// </param>
+    /// <param name="responseLanguage">
+    /// V44 (docs/17 D-48, F14-4): the language the person chose, as a block of data with the fixed rule to write what the person
+    /// reads in it (<see cref="ResponseLanguage"/>); null or a name that is not a culture is <see cref="ResponseLanguage.Default"/>.
+    /// Nothing else of the prompt changes with it.
+    /// </param>
     public static string Build(
         RunId run,
         TaskSpec spec,
@@ -254,7 +259,8 @@ internal static class ExecutorPrompt
         string? renewal = null,
         AgentDefinition? agent = null,
         ProjectBrief? brief = null,
-        IReadOnlyList<RecordedAnswer>? answers = null)
+        IReadOnlyList<RecordedAnswer>? answers = null,
+        string? responseLanguage = null)
     {
         var instructions = agent is null ? null : AuthoredPrompt.AgentInstructions(agent);
         var answered = answers ?? [];
@@ -289,6 +295,7 @@ internal static class ExecutorPrompt
         Rule("Si no puedes seguir sin una decisión de una persona, devuelve status \"blocked\". Si la decisión es elegir entre opciones concretas, pregúntalo en question: el texto (400 caracteres como mucho), por qué lo preguntas (why, 400), de 2 a 5 opciones con un id (a, b…), una etiqueta (80), un detalle (300), el esfuerzo (small, medium o large) y si la recomiendas (una como mucho), y allowOther si admites otra respuesta. Todo en texto plano, sin saltos de línea, enlaces ni formato. Si no, deja question en null y explica en openIssues qué necesitas.");
         Rule("Termina devolviendo el informe con el esquema JSON indicado.");
         text.AppendLine();
+        ResponseLanguage.Append(text, responseLanguage);
         text.AppendLine("## Objetivo");
         text.AppendLine(spec.Objective);
         text.AppendLine();

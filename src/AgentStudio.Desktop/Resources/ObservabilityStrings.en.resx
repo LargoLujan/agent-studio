@@ -1,0 +1,311 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the Observability area in English: the same keys and placeholders as ObservabilityStrings.resx. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Observability_Origin_ReportedByProvider" xml:space="preserve">
+    <value>exact · reported by the agent program</value>
+  </data>
+  <data name="Observability_Origin_MeasuredBySystem" xml:space="preserve">
+    <value>exact · measured by Agent Studio</value>
+  </data>
+  <data name="Observability_Origin_EstimatedByProvider" xml:space="preserve">
+    <value>estimated by the agent program</value>
+  </data>
+  <data name="Observability_Origin_EstimatedBySystem" xml:space="preserve">
+    <value>estimated by Agent Studio</value>
+  </data>
+  <data name="Observability_Origin_NotExposed" xml:space="preserve">
+    <value>not exposed</value>
+  </data>
+  <data name="Observability_Origin_Missing" xml:space="preserve">
+    <value>no data</value>
+  </data>
+  <data name="Observability_Figure_Partial" xml:space="preserve">
+    <value>partial ({0} of {1}) · {2}</value>
+  </data>
+  <data name="Observability_Figure_PriceList" xml:space="preserve">
+    <value>(list price)</value>
+  </data>
+  <data name="Observability_Figure_PriceBasis" xml:space="preserve">
+    <value>(basis "{0}")</value>
+  </data>
+  <data name="Observability_Figure_TokensOf" xml:space="preserve">
+    <value>{0} of {1} tokens</value>
+  </data>
+  <data name="Observability_Figure_Of" xml:space="preserve">
+    <value>{0} of {1}</value>
+  </data>
+  <data name="Observability_Level_Healthy" xml:space="preserve">
+    <value>healthy</value>
+  </data>
+  <data name="Observability_Level_Warning" xml:space="preserve">
+    <value>warning</value>
+  </data>
+  <data name="Observability_Level_Compression" xml:space="preserve">
+    <value>compression recommended</value>
+  </data>
+  <data name="Observability_Level_Critical" xml:space="preserve">
+    <value>critical</value>
+  </data>
+  <data name="Observability_Level_Unknown" xml:space="preserve">
+    <value>not assessed</value>
+  </data>
+  <data name="Observability_Context_NoPercent" xml:space="preserve">
+    <value>no percentage: the working memory of the model is not known yet</value>
+  </data>
+  <data name="Observability_Bar_NoObservationYet" xml:space="preserve">
+    <value>no observations yet</value>
+  </data>
+  <data name="Observability_Bar_NoStepYet" xml:space="preserve">
+    <value>the agent has not reported any step yet</value>
+  </data>
+  <data name="Observability_Bar_RunsUsed_One" xml:space="preserve">
+    <value>{0} agent run used</value>
+  </data>
+  <data name="Observability_Bar_RunsUsed_Other" xml:space="preserve">
+    <value>{0} agent runs used</value>
+  </data>
+  <data name="Observability_Bar_MaxMissing" xml:space="preserve">
+    <value>maximum unknown</value>
+  </data>
+  <data name="Observability_Bar_BudgetSpent" xml:space="preserve">
+    <value>budget spent</value>
+  </data>
+  <data name="Observability_Bar_BudgetDetail" xml:space="preserve">
+    <value>agent runs used against the maximum of the run</value>
+  </data>
+  <data name="Observability_Bar_NoLimit" xml:space="preserve">
+    <value>no limit</value>
+  </data>
+  <data name="Observability_Bar_LimitReached" xml:space="preserve">
+    <value>limit reached</value>
+  </data>
+  <data name="Observability_Bar_SumOfTurns" xml:space="preserve">
+    <value>the sum of the turns</value>
+  </data>
+  <data name="Observability_Bar_ResetNoData" xml:space="preserve">
+    <value>reset {0}, no new data</value>
+  </data>
+  <data name="Observability_Bar_ResetShort" xml:space="preserve">
+    <value>reset · no data</value>
+  </data>
+  <data name="Observability_Bar_BeforeReset" xml:space="preserve">
+    <value>before the reset: {0}</value>
+  </data>
+  <data name="Observability_Bar_EstimatedWindow" xml:space="preserve">
+    <value>estimated working memory: {0}</value>
+  </data>
+  <data name="Observability_Window_FiveHour" xml:space="preserve">
+    <value>5 hours</value>
+  </data>
+  <data name="Observability_Window_SevenDay" xml:space="preserve">
+    <value>7 days</value>
+  </data>
+  <data name="Observability_Window_SevenDayOpus" xml:space="preserve">
+    <value>7 days · Opus</value>
+  </data>
+  <data name="Observability_Window_SevenDaySonnet" xml:space="preserve">
+    <value>7 days · Sonnet</value>
+  </data>
+  <data name="Observability_Window_FiveHourShort" xml:space="preserve">
+    <value>5 h</value>
+  </data>
+  <data name="Observability_Window_SevenDayShort" xml:space="preserve">
+    <value>7 d</value>
+  </data>
+  <data name="Observability_Window_WithLength" xml:space="preserve">
+    <value>{0} · period: {1}</value>
+  </data>
+  <data name="Observability_Length_Minutes" xml:space="preserve">
+    <value>{0} min</value>
+  </data>
+  <data name="Observability_Length_Hours" xml:space="preserve">
+    <value>{0} h</value>
+  </data>
+  <data name="Observability_Length_Day" xml:space="preserve">
+    <value>1 day</value>
+  </data>
+  <data name="Observability_Length_Days" xml:space="preserve">
+    <value>{0} days</value>
+  </data>
+  <data name="Observability_Seen_Now" xml:space="preserve">
+    <value>seen less than 1 min ago</value>
+  </data>
+  <data name="Observability_Seen_Minutes" xml:space="preserve">
+    <value>seen {0} min ago</value>
+  </data>
+  <data name="Observability_Seen_Hours" xml:space="preserve">
+    <value>seen {0} h ago</value>
+  </data>
+  <data name="Observability_Seen_Days" xml:space="preserve">
+    <value>seen {0} days ago</value>
+  </data>
+  <data name="Observability_Reset_Today" xml:space="preserve">
+    <value>resets today {0}</value>
+  </data>
+  <data name="Observability_Reset_Later" xml:space="preserve">
+    <value>resets {0}</value>
+  </data>
+  <data name="Observability_Clock_At" xml:space="preserve">
+    <value>at {0}</value>
+  </data>
+  <data name="Observability_Clock_OnDate" xml:space="preserve">
+    <value>on {0} at {1}</value>
+  </data>
+  <data name="Observability_Clock_DateFormat" xml:space="preserve">
+    <value>MM/dd</value>
+  </data>
+  <data name="Observability_Quota_Reached" xml:space="preserve">
+    <value>limit reached: {0}</value>
+  </data>
+  <data name="Observability_Quota_Plan" xml:space="preserve">
+    <value>Plan: {0}</value>
+  </data>
+  <data name="Observability_Quota_RecordUnreadable" xml:space="preserve">
+    <value>no data: the record of the usage limit could not be read: {0}</value>
+  </data>
+  <data name="Observability_Quota_CodexReadFailed" xml:space="preserve">
+    <value>the usage limit of Codex could not be read: {0}</value>
+  </data>
+  <data name="Observability_Quota_GeminiNotExposed" xml:space="preserve">
+    <value>not exposed: Gemini is parked and its usage limit cannot be read.</value>
+  </data>
+  <data name="Observability_Quota_NoRecord" xml:space="preserve">
+    <value>No data: the record of the usage limit is not available here.</value>
+  </data>
+  <data name="Observability_Quota_ClaudeNone" xml:space="preserve">
+    <value>No data yet: Claude tells your usage limit when each run starts.</value>
+  </data>
+  <data name="Observability_Quota_ClaudeSeen" xml:space="preserve">
+    <value>From the last notice of Claude when a run started. It makes no extra calls.</value>
+  </data>
+  <data name="Observability_Quota_CodexOff" xml:space="preserve">
+    <value>Off: turn on "Read the usage limit of Codex" in "Settings". Nothing is launched without your permission.</value>
+  </data>
+  <data name="Observability_Quota_CodexUnavailable" xml:space="preserve">
+    <value>Reading the usage limit of Codex is not available here.</value>
+  </data>
+  <data name="Observability_Quota_CodexNotRead" xml:space="preserve">
+    <value>Not read yet: press "Check the usage limit of Codex".</value>
+  </data>
+  <data name="Observability_Quota_CodexKept" xml:space="preserve">
+    <value>Last read of Codex that was saved.</value>
+  </data>
+  <data name="Observability_Quota_CodexRead" xml:space="preserve">
+    <value>Read from Codex now, without a model turn.</value>
+  </data>
+  <data name="Observability_Quota_CodexNotAllowed" xml:space="preserve">
+    <value>Codex says ordinary use is not allowed now.</value>
+  </data>
+  <data name="Observability_Quota_NotExposed" xml:space="preserve">
+    <value>not exposed: {0}</value>
+  </data>
+  <data name="Observability_Quota_NotExposedDefault" xml:space="preserve">
+    <value>Codex does not offer it here</value>
+  </data>
+  <data name="Observability_Quota_NoPermission" xml:space="preserve">
+    <value>Nothing was launched without your permission.</value>
+  </data>
+  <data name="Observability_Quota_Missing" xml:space="preserve">
+    <value>no data: {0}</value>
+  </data>
+  <data name="Observability_Quota_MissingDefault" xml:space="preserve">
+    <value>the read did not arrive</value>
+  </data>
+  <data name="Observability_Quota_Title" xml:space="preserve">
+    <value>Usage limit of your plan</value>
+  </data>
+  <data name="Observability_Quota_Intro" xml:space="preserve">
+    <value>The percentage of use is always the one the agent program reports: Agent Studio neither calculates nor guesses it.</value>
+  </data>
+  <data name="Observability_Quota_ClaudeName" xml:space="preserve">
+    <value>Usage limit of Claude Code</value>
+  </data>
+  <data name="Observability_Quota_CodexName" xml:space="preserve">
+    <value>Usage limit of Codex CLI</value>
+  </data>
+  <data name="Observability_Quota_GeminiName" xml:space="preserve">
+    <value>Usage limit of Gemini CLI</value>
+  </data>
+  <data name="Observability_Quota_ReadCodex" xml:space="preserve">
+    <value>Check the usage limit of Codex</value>
+  </data>
+  <data name="Observability_Quota_ReadCodexTip" xml:space="preserve">
+    <value>Reads the usage limit of Codex once, with its session and without a model turn. Only with your permission in "Settings".</value>
+  </data>
+  <data name="Observability_Settings_Title" xml:space="preserve">
+    <value>Context and usage limit</value>
+  </data>
+  <data name="Observability_Settings_Intro" xml:space="preserve">
+    <value>The monitor warns when the working memory of a task is filling up. Here you also decide whether Agent Studio may read the usage limit of Codex.</value>
+  </data>
+  <data name="Observability_Settings_Thresholds" xml:space="preserve">
+    <value>Working memory thresholds (% used)</value>
+  </data>
+  <data name="Observability_Settings_Warning" xml:space="preserve">
+    <value>Warning</value>
+  </data>
+  <data name="Observability_Settings_WarningName" xml:space="preserve">
+    <value>Warning threshold, as a percentage</value>
+  </data>
+  <data name="Observability_Settings_Compress" xml:space="preserve">
+    <value>Compression recommended</value>
+  </data>
+  <data name="Observability_Settings_CompressName" xml:space="preserve">
+    <value>Compression threshold, as a percentage</value>
+  </data>
+  <data name="Observability_Settings_Critical" xml:space="preserve">
+    <value>Critical</value>
+  </data>
+  <data name="Observability_Settings_CriticalName" xml:space="preserve">
+    <value>Critical threshold, as a percentage</value>
+  </data>
+  <data name="Observability_Settings_Rule" xml:space="preserve">
+    <value>Each threshold is above the one before and the last is at most 100: 0 &lt; warning &lt; compression &lt; critical ≤ 100. They are measured on the working memory of the model that served each step.</value>
+  </data>
+  <data name="Observability_Settings_CodexRead" xml:space="preserve">
+    <value>Read the usage limit of Codex</value>
+  </data>
+  <data name="Observability_Settings_CodexExplanation" xml:space="preserve">
+    <value>It reads your usage limit with the Codex program and your ChatGPT session, without any model turn. It is read when you ask and after each Codex run, at most once every 5 minutes. If a run waits for a Codex limit, it is read to learn the reset time and before going on.</value>
+  </data>
+  <data name="Observability_Settings_NotWhole" xml:space="preserve">
+    <value>The thresholds were not saved. "{0}" is not a whole number from 1 to 100: fix it.</value>
+  </data>
+  <data name="Observability_Settings_BadOrder" xml:space="preserve">
+    <value>The thresholds were not saved. Each one must be above the one before, and the critical one cannot pass 100: 0 &lt; warning &lt; compression &lt; critical ≤ 100.</value>
+  </data>
+  <data name="Info_Quota_Title" xml:space="preserve">
+    <value>Usage limit of your plan</value>
+  </data>
+  <data name="Info_Quota_What" xml:space="preserve">
+    <value>How much of your plan you used in each period, like the last 5 hours or 7 days. The percentage comes from the agent program. Agent Studio does not calculate it.</value>
+  </data>
+  <data name="Info_Quota_Actions" xml:space="preserve">
+    <value>Look at each bar: it says what percentage you have used and where it comes from.
+Look under the bar for when the limit resets.
+Press "Check the usage limit of Codex" to read it now, if you allowed it in "Settings".</value>
+  </data>
+  <data name="Info_ContextSettings_Title" xml:space="preserve">
+    <value>Working memory thresholds</value>
+  </data>
+  <data name="Info_ContextSettings_What" xml:space="preserve">
+    <value>The monitor warns when the working memory of an agent fills up. Here you choose at which percentage each warning goes off: the warning, the recommended compression and the critical one.</value>
+  </data>
+  <data name="Info_ContextSettings_Actions" xml:space="preserve">
+    <value>Change the three percentages. Each one must be higher than the one before.
+Save the settings to apply them.
+Turn on reading the usage limit of Codex only if you want to see it in the bars.</value>
+  </data>
+</root>

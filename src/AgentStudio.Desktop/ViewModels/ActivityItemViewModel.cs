@@ -1,4 +1,5 @@
 using System.Windows.Input;
+using AgentStudio.Desktop.Localization;
 
 namespace AgentStudio.Desktop.ViewModels;
 
@@ -36,7 +37,7 @@ public sealed class ActivityItemViewModel
 
     public bool IsEnabled => AvailableInPhase is null;
 
-    public string ToolTip => !IsEnabled ? $"{Title}: Disponible en la Fase {AvailableInPhase}"
+    public string ToolTip => !IsEnabled ? Texts.Format("Main_Activity_Phase", Title, AvailableInPhase)
         : Shortcut is null ? Title
         : $"{Title} ({Shortcut})";
 

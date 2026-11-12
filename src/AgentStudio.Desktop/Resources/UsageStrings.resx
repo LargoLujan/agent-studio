@@ -1,0 +1,464 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- Los textos del panel «Consumo» (docs/14 F4-1 y F4-2; Fase 9, F9-6) en castellano de España: la vista UsageDashboardView y su ViewModel. Las claves Usage_Purpose_Help y Usage_Purpose_ClientDocumentDraft están en ConsumptionStrings. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Usage_Title" xml:space="preserve">
+    <value>Consumo</value>
+  </data>
+  <data name="Usage_View_Refresh" xml:space="preserve">
+    <value>Actualizar</value>
+  </data>
+  <data name="Usage_View_ExportCsv" xml:space="preserve">
+    <value>Exportar CSV</value>
+  </data>
+  <data name="Usage_View_ExportCsvTip" xml:space="preserve">
+    <value>El informe que ves, en CSV: cada cifra con su valor, su origen y su fuente.</value>
+  </data>
+  <data name="Usage_View_ExportJson" xml:space="preserve">
+    <value>Exportar JSON</value>
+  </data>
+  <data name="Usage_View_ExportJsonTip" xml:space="preserve">
+    <value>El informe que ves, en JSON: cada cifra con su valor, su origen y su fuente.</value>
+  </data>
+  <data name="Usage_View_ScopeName" xml:space="preserve">
+    <value>Proyectos del informe</value>
+  </data>
+  <data name="Usage_View_PeriodName" xml:space="preserve">
+    <value>Periodo del informe</value>
+  </data>
+  <data name="Usage_View_DimensionsName" xml:space="preserve">
+    <value>Dimensiones del informe</value>
+  </data>
+  <data name="Usage_View_GroupBy" xml:space="preserve">
+    <value>Agrupar por:</value>
+  </data>
+  <data name="Usage_View_Groups" xml:space="preserve">
+    <value>Por grupo</value>
+  </data>
+  <data name="Usage_View_GroupsName" xml:space="preserve">
+    <value>Consumo por grupo</value>
+  </data>
+  <data name="Usage_View_Attempts" xml:space="preserve">
+    <value>Intentos</value>
+  </data>
+  <data name="Usage_View_AttemptsName" xml:space="preserve">
+    <value>Intentos del periodo</value>
+  </data>
+  <data name="Usage_View_Excluded" xml:space="preserve">
+    <value>Proyectos excluidos y conciliación</value>
+  </data>
+  <data name="Usage_View_ExcludedName" xml:space="preserve">
+    <value>Proyectos excluidos</value>
+  </data>
+  <data name="Usage_CostNote" xml:space="preserve">
+    <value>El coste es lo que estima el programa del agente con su tabla de precios de lista. Con una suscripción no es lo que pagas. Codex no lo expone.</value>
+  </data>
+  <data name="Usage_SettingsNote" xml:space="preserve">
+    <value>Los umbrales del contexto y el permiso para leer el límite de Codex se cambian en «Ajustes». Es el engranaje de la barra de la izquierda.</value>
+  </data>
+  <data name="Usage_Scope_This" xml:space="preserve">
+    <value>Este proyecto</value>
+  </data>
+  <data name="Usage_Scope_Recent" xml:space="preserve">
+    <value>Todos los proyectos recientes</value>
+  </data>
+  <data name="Usage_Period_Today" xml:space="preserve">
+    <value>Hoy</value>
+  </data>
+  <data name="Usage_Period_Last7Days" xml:space="preserve">
+    <value>Últimos 7 días</value>
+  </data>
+  <data name="Usage_Period_ThisMonth" xml:space="preserve">
+    <value>Este mes</value>
+  </data>
+  <data name="Usage_Period_Last30Days" xml:space="preserve">
+    <value>Últimos 30 días</value>
+  </data>
+  <data name="Usage_Cap_Runs" xml:space="preserve">
+    <value>Ejecuciones</value>
+  </data>
+  <data name="Usage_Cap_Duration" xml:space="preserve">
+    <value>Duración</value>
+  </data>
+  <data name="Usage_Cap_Input" xml:space="preserve">
+    <value>Tokens de entrada</value>
+  </data>
+  <data name="Usage_Cap_CacheRead" xml:space="preserve">
+    <value>Caché leída</value>
+  </data>
+  <data name="Usage_Cap_CacheWrite" xml:space="preserve">
+    <value>Caché escrita</value>
+  </data>
+  <data name="Usage_Cap_Output" xml:space="preserve">
+    <value>Tokens de salida</value>
+  </data>
+  <data name="Usage_Cap_Reasoning" xml:space="preserve">
+    <value>Razonamiento</value>
+  </data>
+  <data name="Usage_Cap_Cost" xml:space="preserve">
+    <value>Coste</value>
+  </data>
+  <data name="Usage_Cap_RateLimited" xml:space="preserve">
+    <value>Límites de uso</value>
+  </data>
+  <data name="Usage_Cap_LimitReached" xml:space="preserve">
+    <value>Límites de presupuesto</value>
+  </data>
+  <data name="Usage_Cap_Compactions" xml:space="preserve">
+    <value>Compactaciones</value>
+  </data>
+  <data name="Usage_Cap_QueueWait" xml:space="preserve">
+    <value>Espera en cola</value>
+  </data>
+  <data name="Usage_Cap_QuotaWait" xml:space="preserve">
+    <value>Espera por límite de uso</value>
+  </data>
+  <data name="Usage_Cap_InputOwn" xml:space="preserve">
+    <value>Entrada (propia)</value>
+  </data>
+  <data name="Usage_Cap_OutputOwn" xml:space="preserve">
+    <value>Salida (propia)</value>
+  </data>
+  <data name="Usage_Shared_Row" xml:space="preserve">
+    <value>{0} compartidos con otro hito</value>
+  </data>
+  <data name="Usage_Status_Unavailable" xml:space="preserve">
+    <value>El consumo no está disponible en esta composición: falta la proyección del registro.</value>
+  </data>
+  <data name="Usage_Status_OpenFolder" xml:space="preserve">
+    <value>Abre una carpeta para ver su consumo, o elige «Todos los proyectos recientes».</value>
+  </data>
+  <data name="Usage_Status_NoRecent" xml:space="preserve">
+    <value>No hay proyectos recientes en los ajustes.</value>
+  </data>
+  <data name="Usage_Status_Calculating" xml:space="preserve">
+    <value>Calculando el consumo…</value>
+  </data>
+  <data name="Usage_Status_NoAttempts" xml:space="preserve">
+    <value>Sin intentos en el periodo.</value>
+  </data>
+  <data name="Usage_Range" xml:space="preserve">
+    <value>Del {0} al {1}, en tu hora local.</value>
+  </data>
+  <data name="Usage_Error_Calculate" xml:space="preserve">
+    <value>No se pudo calcular el consumo: {0}</value>
+  </data>
+  <data name="Usage_Export_Title" xml:space="preserve">
+    <value>Exportar el consumo a {0}</value>
+  </data>
+  <data name="Usage_Export_FileName" xml:space="preserve">
+    <value>consumo-{0}.{1}</value>
+  </data>
+  <data name="Usage_Export_Done" xml:space="preserve">
+    <value>Exportado a {0}</value>
+  </data>
+  <data name="Usage_Export_Error" xml:space="preserve">
+    <value>No se pudo exportar: {0}</value>
+  </data>
+  <data name="Usage_Total" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="Usage_AttemptNumber" xml:space="preserve">
+    <value>intento {0}</value>
+  </data>
+  <data name="Usage_NoBreakdown" xml:space="preserve">
+    <value>sin desglose (registro anterior a la Fase 4)</value>
+  </data>
+  <data name="Usage_PerModel" xml:space="preserve">
+    <value>{0}: entrada {1}; salida {2}; coste {3}</value>
+  </data>
+  <data name="Usage_Peak_Label" xml:space="preserve">
+    <value>Contexto máximo</value>
+  </data>
+  <data name="Usage_Peak_NoData" xml:space="preserve">
+    <value>sin dato</value>
+  </data>
+  <data name="Usage_Peak_Of" xml:space="preserve">
+    <value>Contexto máximo: {0}</value>
+  </data>
+  <data name="Usage_Reconciliation_None" xml:space="preserve">
+    <value>Sin bitácora que conciliar en el periodo.</value>
+  </data>
+  <data name="Usage_Reconciliation_Said" xml:space="preserve">
+    <value>La bitácora del periodo tiene {0} prompts y el registro, {1} intentos</value>
+  </data>
+  <data name="Usage_Reconciliation_Equal" xml:space="preserve">
+    <value>{0}: coinciden.</value>
+  </data>
+  <data name="Usage_Reconciliation_Difference" xml:space="preserve">
+    <value>{0}: {1} de diferencia, que se muestran y no se cuentan.</value>
+  </data>
+  <data name="Usage_Dim_Provider" xml:space="preserve">
+    <value>Proveedor</value>
+  </data>
+  <data name="Usage_Dim_Vendor" xml:space="preserve">
+    <value>Empresa del modelo</value>
+  </data>
+  <data name="Usage_Dim_Model" xml:space="preserve">
+    <value>Modelo</value>
+  </data>
+  <data name="Usage_Dim_Session" xml:space="preserve">
+    <value>Sesión</value>
+  </data>
+  <data name="Usage_Dim_Run" xml:space="preserve">
+    <value>Ejecución</value>
+  </data>
+  <data name="Usage_Dim_Task" xml:space="preserve">
+    <value>Tarea</value>
+  </data>
+  <data name="Usage_Dim_Agent" xml:space="preserve">
+    <value>Agente</value>
+  </data>
+  <data name="Usage_Dim_Purpose" xml:space="preserve">
+    <value>Propósito</value>
+  </data>
+  <data name="Usage_Dim_Project" xml:space="preserve">
+    <value>Proyecto</value>
+  </data>
+  <data name="Usage_Dim_Day" xml:space="preserve">
+    <value>Día</value>
+  </data>
+  <data name="Usage_Dim_Week" xml:space="preserve">
+    <value>Semana</value>
+  </data>
+  <data name="Usage_Dim_Month" xml:space="preserve">
+    <value>Mes</value>
+  </data>
+  <data name="Usage_Dim_Milestone" xml:space="preserve">
+    <value>Hito</value>
+  </data>
+  <data name="Usage_Dim_Activity" xml:space="preserve">
+    <value>Tipo de trabajo</value>
+  </data>
+  <data name="Usage_Dim_ActivityAttempt" xml:space="preserve">
+    <value>Primer intento o reintento</value>
+  </data>
+  <data name="Usage_Dim_ActivityDestination" xml:space="preserve">
+    <value>Qué pasó con el trabajo</value>
+  </data>
+  <data name="Usage_Value_NoMilestone" xml:space="preserve">
+    <value>sin hito</value>
+  </data>
+  <data name="Usage_Value_NoActivity" xml:space="preserve">
+    <value>sin clasificar</value>
+  </data>
+  <data name="Usage_Activity_Coordination" xml:space="preserve">
+    <value>Coordinación</value>
+  </data>
+  <data name="Usage_Activity_Analysis" xml:space="preserve">
+    <value>Análisis</value>
+  </data>
+  <data name="Usage_Activity_Implementation" xml:space="preserve">
+    <value>Implementación</value>
+  </data>
+  <data name="Usage_Activity_Tests" xml:space="preserve">
+    <value>Pruebas</value>
+  </data>
+  <data name="Usage_Activity_Documentation" xml:space="preserve">
+    <value>Documentación</value>
+  </data>
+  <data name="Usage_Activity_Review" xml:space="preserve">
+    <value>Revisión</value>
+  </data>
+  <data name="Usage_Activity_Conflicts" xml:space="preserve">
+    <value>Conflictos</value>
+  </data>
+  <data name="Usage_Order_First" xml:space="preserve">
+    <value>Primer intento</value>
+  </data>
+  <data name="Usage_Order_Retry" xml:space="preserve">
+    <value>Reintento</value>
+  </data>
+  <data name="Usage_Fate_Kept" xml:space="preserve">
+    <value>Conservado</value>
+  </data>
+  <data name="Usage_Fate_Discarded" xml:space="preserve">
+    <value>Descartado</value>
+  </data>
+  <data name="Usage_Fate_DiscardedWithCommit" xml:space="preserve">
+    <value>Descartado, con versión guardada</value>
+  </data>
+  <data name="Usage_Fate_Pending" xml:space="preserve">
+    <value>Pendiente</value>
+  </data>
+  <data name="Usage_Axes_Title" xml:space="preserve">
+    <value>Por hito y por tipo de trabajo</value>
+  </data>
+  <data name="Usage_Axes_Name" xml:space="preserve">
+    <value>Consumo por hito y por tipo de trabajo</value>
+  </data>
+  <data name="Usage_Axes_Note" xml:space="preserve">
+    <value>Cada eje reparte los mismos intentos: sus filas suman el total.</value>
+  </data>
+  <data name="Usage_Axis_Milestone" xml:space="preserve">
+    <value>Por hito</value>
+  </data>
+  <data name="Usage_Axis_Activity" xml:space="preserve">
+    <value>Por tipo de trabajo</value>
+  </data>
+  <data name="Usage_Axis_Order" xml:space="preserve">
+    <value>Primer intento o reintento</value>
+  </data>
+  <data name="Usage_Axis_Fate" xml:space="preserve">
+    <value>Qué pasó con el trabajo</value>
+  </data>
+  <data name="Usage_Axis_Total" xml:space="preserve">
+    <value>Total: {0} intentos</value>
+  </data>
+  <data name="Usage_Axis_Shared" xml:space="preserve">
+    <value>Compartidos: {0} intentos están en más de un hito. Cuentan en cada hito y una sola vez en el total.</value>
+  </data>
+  <data name="Usage_Purpose_Planner" xml:space="preserve">
+    <value>Planificador</value>
+  </data>
+  <data name="Usage_Purpose_Executor" xml:space="preserve">
+    <value>Ejecutor</value>
+  </data>
+  <data name="Usage_Purpose_Judge" xml:space="preserve">
+    <value>Juez</value>
+  </data>
+  <data name="Usage_Purpose_SkillRecommendation" xml:space="preserve">
+    <value>Recomendación de skills</value>
+  </data>
+  <data name="Usage_Purpose_DailySummary" xml:space="preserve">
+    <value>Resumen diario</value>
+  </data>
+  <data name="Usage_Purpose_DebateParticipant" xml:space="preserve">
+    <value>Participante de debate</value>
+  </data>
+  <data name="Usage_Purpose_DebateJudge" xml:space="preserve">
+    <value>Juez de debate</value>
+  </data>
+  <data name="Usage_Purpose_ProjectAudit" xml:space="preserve">
+    <value>Auditoría del proyecto</value>
+  </data>
+  <data name="Usage_Outcome_Succeeded" xml:space="preserve">
+    <value>correcto</value>
+  </data>
+  <data name="Usage_Outcome_Failed" xml:space="preserve">
+    <value>fallido</value>
+  </data>
+  <data name="Usage_Outcome_Cancelled" xml:space="preserve">
+    <value>cancelado</value>
+  </data>
+  <data name="Usage_Outcome_LimitReached" xml:space="preserve">
+    <value>límite alcanzado</value>
+  </data>
+  <data name="Usage_Outcome_RateLimited" xml:space="preserve">
+    <value>límite de uso del proveedor</value>
+  </data>
+  <data name="Usage_Outcome_Interrupted" xml:space="preserve">
+    <value>interrumpido</value>
+  </data>
+  <data name="Usage_Value_NoSession" xml:space="preserve">
+    <value>sin sesión</value>
+    <comment>Text. Marker of a group of attempts without a session id; the aggregator keeps its own value for the export.</comment>
+  </data>
+  <data name="Usage_Value_NoTask" xml:space="preserve">
+    <value>sin tarea</value>
+    <comment>Text. Marker of a group of attempts without a task.</comment>
+  </data>
+  <data name="Usage_Value_NoPurpose" xml:space="preserve">
+    <value>sin propósito (registro anterior a la Fase 4)</value>
+    <comment>Text. Marker of a group of attempts whose start did not record its purpose.</comment>
+  </data>
+  <data name="Usage_Value_NoModel" xml:space="preserve">
+    <value>predeterminado del programa del agente (no expuesto)</value>
+    <comment>Text. The model of an attempt that has none: the one the CLI chooses.</comment>
+  </data>
+  <data name="Usage_Note_NoJournal" xml:space="preserve">
+    <value>Sin bitácora del periodo.</value>
+    <comment>Text. Note of the reconciliation; the neutral text must equal the one the projection writes.</comment>
+  </data>
+  <data name="Usage_Note_NoPhase4" xml:space="preserve">
+    <value>No hay intentos de la Fase 4 en el periodo: la bitácora no se concilia con el registro.</value>
+    <comment>Text. Note of the reconciliation; the neutral text must equal the one the projection writes.</comment>
+  </data>
+  <data name="Usage_Note_JournalUnreadable" xml:space="preserve">
+    <value>No se pudo leer la bitácora {0} de {1}, así que no se concilia: {2}</value>
+    <comment>Text. {0}: the file; {1}: the project; {2}: the reason.</comment>
+  </data>
+  <data name="Usage_Note_Difference" xml:space="preserve">
+    <value>Bitácora: {0}; registro: {1}. Diferencia de {2}, que no se suma (pruebas en vivo, versiones anteriores o intentos que no llegaron al proveedor).</value>
+    <comment>Text. {0} and {2}: counts of prompts; {1}: count of attempts.</comment>
+  </data>
+  <data name="Usage_Count_Prompt_One" xml:space="preserve">
+    <value>{0} prompt</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Usage_Count_Prompt_Other" xml:space="preserve">
+    <value>{0} prompts</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Usage_Count_Attempt_One" xml:space="preserve">
+    <value>{0} intento</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Usage_Count_Attempt_Other" xml:space="preserve">
+    <value>{0} intentos</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Usage_Note_NoStart" xml:space="preserve">
+    <value>La entrada {0} cierra el intento {1} de {2} ({3}) sin su AgentRunStarted: no se cuenta.</value>
+    <comment>Text. {0}: entry; {1}: attempt; {2}: the task or the run; {3}: run.</comment>
+  </data>
+  <data name="Usage_Note_TheRun" xml:space="preserve">
+    <value>la ejecución</value>
+    <comment>Text. Said in place of the task when the entry has none.</comment>
+  </data>
+  <data name="Usage_Note_EntryUnreadableActivity" xml:space="preserve">
+    <value>La entrada {0} ({1}) no se puede leer: no cuenta para el hito, la actividad ni la espera: {2}</value>
+    <comment>Text. {0}: entry; {1}: kind; {2}: the reason.</comment>
+  </data>
+  <data name="Usage_Note_EntryUnreadable" xml:space="preserve">
+    <value>La entrada {0} ({1}) no se puede leer y no se cuenta: {2}</value>
+    <comment>Text. {0}: entry; {1}: kind; {2}: the reason.</comment>
+  </data>
+  <data name="Usage_Note_FigureUnreadable" xml:space="preserve">
+    <value>La entrada {0} tiene una cifra ilegible ({1}): {2}</value>
+    <comment>Text. {0}: entry; {1}: source; {2}: the reason.</comment>
+  </data>
+  <data name="Usage_Note_LogUnreadable" xml:space="preserve">
+    <value>No se puede leer el registro: {0}</value>
+    <comment>Text. {0}: the reason.</comment>
+  </data>
+  <data name="Usage_Note_LogInvalidAt" xml:space="preserve">
+    <value>El registro no verifica (entrada {0}): {1}</value>
+    <comment>Text. {0}: entry; {1}: the problem.</comment>
+  </data>
+  <data name="Usage_Note_LogInvalid" xml:space="preserve">
+    <value>El registro no verifica: {0}</value>
+    <comment>Text. {0}: the problem.</comment>
+  </data>
+  <data name="Usage_Note_Unanchored" xml:space="preserve">
+    <value>Ningún ancla reconoce este historial aquí (se movió, se copió o vino con el repositorio). No se cuenta hasta que se acepte como nuevo origen.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Usage_Note_AnotherProject" xml:space="preserve">
+    <value>El ancla de esta ubicación es de otro proyecto: no se cuenta.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Usage_Note_AnchorUnreadable" xml:space="preserve">
+    <value>No se puede leer el ancla del registro: no se cuenta.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Usage_Note_Untrusted" xml:space="preserve">
+    <value>El registro no es de confianza ({0}): no se cuenta.</value>
+    <comment>Text. {0}: the state of the anchor.</comment>
+  </data>
+  <data name="Usage_Note_PathInvalid" xml:space="preserve">
+    <value>La ruta del proyecto no es válida: {0}</value>
+    <comment>Text. {0}: the reason.</comment>
+  </data>
+</root>

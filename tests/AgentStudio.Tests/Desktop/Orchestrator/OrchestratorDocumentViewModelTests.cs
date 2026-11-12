@@ -140,7 +140,7 @@ public sealed class OrchestratorDocumentViewModelTests
 
         document.ValidateCommand.Execute(null);
 
-        const string Expected = "La tarea T2 la hace «ejecutor2», cuya política exige pruebas capturadas por el sistema, pero ninguno de sus pasos de verificación ejecuta pruebas: añade un paso de pruebas del perfil (una compilación no es una prueba).";
+        const string Expected = "La tarea T2 la hace «ejecutor2», cuya política exige pruebas capturadas por el sistema. Ninguno de sus pasos de verificación ejecuta pruebas. Añade un paso de pruebas del perfil: una compilación no es una prueba.";
         Assert.Equal(PlanViolationCode.TestStepRequiredByPolicy, Assert.Single(document.Violations).Code);
         Assert.Equal([Expected], NodeOf(document, "T2").Problems);
         Assert.Equal([new PlanProblem(Tid("T2"), Expected)], document.Problems);
@@ -179,7 +179,7 @@ public sealed class OrchestratorDocumentViewModelTests
         Assert.False(document.ExecuteCommand.CanExecute(null));
         Assert.False(document.ApproveCommand.CanExecute(null));
         Assert.False(document.IsApproved);
-        Assert.Equal("El plan tiene problemas: pulsa «Validar»", document.ExecuteBlockers);
+        Assert.Equal("El plan tiene problemas: pulsa «Validar el plan»", document.ExecuteBlockers);
 
         // Back to exactly the approved content: that is the plan the user approved.
         NodeOf(document, "T1").Objective = "Do T1";
@@ -276,7 +276,7 @@ public sealed class OrchestratorDocumentViewModelTests
         var bar = document.PlanningContext!;
         Assert.Equal("Contexto del orquestador", bar.Label);
         Assert.Equal("24 %", bar.ValueText);
-        Assert.Equal("exacto · informado por el CLI", bar.Origin);
+        Assert.Equal("exacto · informado por el programa del agente", bar.Origin);
     }
 
     [Fact]
@@ -721,7 +721,7 @@ public sealed class OrchestratorDocumentViewModelTests
 
         Assert.Equal(
             [
-                "build · Compilar · dotnet build · SIN AISLAMIENTO: el código que escriben los agentes se ejecuta con tus permisos en el worktree",
+                "build · Compilar · dotnet build · SIN AISLAMIENTO: el código que escriben los agentes se ejecuta con tus permisos, en la copia de trabajo",
                 "test · Probar · dotnet test",
                 "lint · Analizar · dotnet format --verify-no-changes",
             ],
@@ -730,6 +730,10 @@ public sealed class OrchestratorDocumentViewModelTests
         Assert.Equal(
             Opening + "T1: el paso «build» se ejecuta sin aislamiento. T2: el paso «build» se ejecuta sin aislamiento. T3: el paso «build» se ejecuta sin aislamiento." + Meaning,
             document.IsolationWarning);
+
+        // What the screen paints is the coded text, in the language in use; the anchored sentence above is what the approval carries.
+        Assert.Contains("T1: el paso «build» se ejecuta sin aislamiento.", document.IsolationWarningText, StringComparison.Ordinal);
+        Assert.NotEqual(document.IsolationWarning, document.IsolationWarningText);
 
         // The warning stays on screen while the plan is approved: it is part of what the user approves.
         document.ApproveCommand.Execute(null);
@@ -1012,7 +1016,7 @@ public sealed class OrchestratorDocumentViewModelTests
         Assert.Contains($"No se reanuda la ejecución {Run}", document.ErrorMessage, StringComparison.Ordinal);
         Assert.Contains($"«{UnmeasuredWarning}»", document.ErrorMessage, StringComparison.Ordinal);
         Assert.Contains("ejecución de seguimiento", document.ErrorMessage, StringComparison.Ordinal);
-        Assert.Contains("«Rechazar»", document.ErrorMessage, StringComparison.Ordinal);
+        Assert.Contains("«Rechazar el plan»", document.ErrorMessage, StringComparison.Ordinal);
 
         // The plan of the run is on the canvas, for review, with the warning it would run with now next to «Aprobar
         // plan»; nothing is approved until the user approves it.
@@ -1250,7 +1254,7 @@ public sealed class OrchestratorDocumentViewModelTests
         Assert.True(document.CanAcceptHistory);
         Assert.True(document.AcceptHistoryCommand.CanExecute(null));
         Assert.False(document.RequestPlanCommand.CanExecute(null));
-        Assert.Contains("El registro de decisiones no es íntegro", document.ExecuteBlockers, StringComparison.Ordinal);
+        Assert.Contains("El historial de decisiones no es íntegro", document.ExecuteBlockers, StringComparison.Ordinal);
 
         await document.AcceptHistoryCommand.ExecuteAsync(null);
 
@@ -1289,6 +1293,6 @@ public sealed class OrchestratorDocumentViewModelTests
         Assert.True(document.HasIntegrityProblem);
         Assert.False(document.CanAcceptHistory);
         Assert.False(document.AcceptHistoryCommand.CanExecute(null));
-        Assert.Contains("El registro de decisiones no es íntegro", document.ExecuteBlockers, StringComparison.Ordinal);
+        Assert.Contains("El historial de decisiones no es íntegro", document.ExecuteBlockers, StringComparison.Ordinal);
     }
 }

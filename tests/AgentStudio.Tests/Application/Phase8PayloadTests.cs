@@ -191,6 +191,11 @@ public sealed class Phase8PayloadTests
                 "JournalTrustChanged",
                 // Phase 13 appends after the Phase 12 kind.
                 "QuestionAsked", "QuestionAnswered", "ProjectSetupApplied",
+                // Phase 14 appends after the Phase 13 kinds.
+                "ClientDocumentExported",
+                // Phase 9 appends after the Phase 14 kind.
+                "MilestoneOpened", "MilestoneRequirementsRevised", "MilestoneLinked", "MilestoneClosed", "MilestoneReopened",
+                "BacklogItemRecorded", "BacklogItemRetired", "BacklogOrderChanged", "TraceLinkRecorded", "TraceLinkRetracted",
             ],
             Enum.GetNames<DecisionKind>());
     }

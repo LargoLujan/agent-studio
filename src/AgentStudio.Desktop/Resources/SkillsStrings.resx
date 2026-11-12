@@ -1,0 +1,612 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the Skills area (docs/17 D-47, ADR-0054; Phase 14 WP-14A part c) in Spanish of Spain, the source language: the catalog of skills, their health, their activation by scope, the cost in context and the recommendations. What goes to an agent or to the decision log (the description of the consent of the assisted recommendation, the context added to the task) is fixed text in the code, never here (D-48). -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Skills_Health_Healthy" xml:space="preserve">
+    <value>Sana</value>
+    <comment>Health of a skill.</comment>
+  </data>
+  <data name="Skills_Health_Warning" xml:space="preserve">
+    <value>Aviso</value>
+    <comment>Health of a skill.</comment>
+  </data>
+  <data name="Skills_Health_Critical" xml:space="preserve">
+    <value>Crítico</value>
+    <comment>Health of a skill.</comment>
+  </data>
+  <data name="Skills_Health_Unknown" xml:space="preserve">
+    <value>Sin comprobar</value>
+    <comment>Health of a skill.</comment>
+  </data>
+  <data name="Skills_Check_Frontmatter" xml:space="preserve">
+    <value>Cabecera</value>
+    <comment>A health check.</comment>
+  </data>
+  <data name="Skills_Check_Size" xml:space="preserve">
+    <value>Tamaño</value>
+    <comment>A health check.</comment>
+  </data>
+  <data name="Skills_Check_License" xml:space="preserve">
+    <value>Licencia</value>
+    <comment>A health check.</comment>
+  </data>
+  <data name="Skills_Check_Pinned" xml:space="preserve">
+    <value>Fijada a una versión (commit)</value>
+    <comment>A health check.</comment>
+  </data>
+  <data name="Skills_Check_Upstream" xml:space="preserve">
+    <value>Cambios en origen</value>
+    <comment>A health check.</comment>
+  </data>
+  <data name="Skills_Check_Archived" xml:space="preserve">
+    <value>Origen archivado</value>
+    <comment>A health check.</comment>
+  </data>
+  <data name="Skills_Check_Scripts" xml:space="preserve">
+    <value>Scripts</value>
+    <comment>A health check.</comment>
+  </data>
+  <data name="Skills_Decision_None" xml:space="preserve">
+    <value>Sin decisión</value>
+    <comment>Decision of a scope.</comment>
+  </data>
+  <data name="Skills_Decision_On" xml:space="preserve">
+    <value>Activada</value>
+    <comment>Decision of a scope.</comment>
+  </data>
+  <data name="Skills_Decision_Off" xml:space="preserve">
+    <value>Desactivada</value>
+    <comment>Decision of a scope.</comment>
+  </data>
+  <data name="Skills_Scope_Global" xml:space="preserve">
+    <value>Global</value>
+    <comment>Scope of an activation.</comment>
+  </data>
+  <data name="Skills_Scope_Project" xml:space="preserve">
+    <value>Proyecto</value>
+    <comment>Scope of an activation.</comment>
+  </data>
+  <data name="Skills_Scope_Agent" xml:space="preserve">
+    <value>Agente «{0}»</value>
+    <comment>Scope of an activation. {0}: id of the agent.</comment>
+  </data>
+  <data name="Skills_Item_Linked" xml:space="preserve">
+    <value> · enlazada</value>
+    <comment>Added to the tooltip of a skill that has no local copy.</comment>
+  </data>
+  <data name="Skills_Cost_Agent_One" xml:space="preserve">
+    <value>{0}: {1} skill · ~{2} tokens por ejecución (estimado)</value>
+    <comment>Cost of the skills of an agent. {0}: agent; {1}: skills; {2}: tokens.</comment>
+  </data>
+  <data name="Skills_Cost_Agent_Other" xml:space="preserve">
+    <value>{0}: {1} skills · ~{2} tokens por ejecución (estimado)</value>
+    <comment>Cost of the skills of an agent. {0}: agent; {1}: skills; {2}: tokens.</comment>
+  </data>
+  <data name="Skills_Title" xml:space="preserve">
+    <value>Skills</value>
+    <comment>Title of the document (tab).</comment>
+  </data>
+  <data name="Skills_Warnings_Hide" xml:space="preserve">
+    <value>Ocultar el detalle</value>
+    <comment>Button that hides the warnings of the index.</comment>
+  </data>
+  <data name="Skills_Warnings_Show" xml:space="preserve">
+    <value>Ver el detalle ({0})</value>
+    <comment>Button that shows the warnings of the index. {0}: how many.</comment>
+  </data>
+  <data name="Skills_Summary_Loading" xml:space="preserve">
+    <value>Cargando el catálogo…</value>
+    <comment>Summary while loading.</comment>
+  </data>
+  <data name="Skills_Summary_Empty" xml:space="preserve">
+    <value>El catálogo está vacío.</value>
+    <comment>Summary.</comment>
+  </data>
+  <data name="Skills_Summary_Sectors_One" xml:space="preserve">
+    <value>{0} skills en {1} sector</value>
+    <comment>Summary. {0}: skills; {1}: sectors.</comment>
+  </data>
+  <data name="Skills_Summary_Sectors_Other" xml:space="preserve">
+    <value>{0} skills en {1} sectores</value>
+    <comment>Summary. {0}: skills; {1}: sectors.</comment>
+  </data>
+  <data name="Skills_Summary_NoMatch" xml:space="preserve">
+    <value>Ninguna skill coincide con «{0}».</value>
+    <comment>Summary of a search. {0}: the text.</comment>
+  </data>
+  <data name="Skills_Summary_Matches" xml:space="preserve">
+    <value>{0} de {1} skills coinciden con «{2}»</value>
+    <comment>Summary of a search. {0}: matches; {1}: skills; {2}: the text.</comment>
+  </data>
+  <data name="Skills_Stack_NoProject" xml:space="preserve">
+    <value>Sin proyecto: no hay tecnologías que detectar.</value>
+    <comment>Technologies of the project without a project.</comment>
+  </data>
+  <data name="Skills_Stack_None" xml:space="preserve">
+    <value>No se reconoce ninguna tecnología por los nombres de los ficheros.</value>
+    <comment>Technologies of the project when none is found.</comment>
+  </data>
+  <data name="Skills_Notice_NoAssisted" xml:space="preserve">
+    <value>Falta la recomendación asistida. Solo está la determinista, que no gasta límite de uso.</value>
+    <comment>Notice.</comment>
+  </data>
+  <data name="Skills_Notice_NoApproval" xml:space="preserve">
+    <value>Falta el diálogo de aprobación: sin él no se puede pedir el OK de la recomendación asistida.</value>
+    <comment>Notice.</comment>
+  </data>
+  <data name="Skills_Notice_CodexGlobal" xml:space="preserve">
+    <value>Codex carga además tus skills globales (~/.agents/skills): activar una aquí solo añade, no oculta las que ya tienes.</value>
+    <comment>Notice.</comment>
+  </data>
+  <data name="Skills_Notice_OpenProject" xml:space="preserve">
+    <value>Abre un proyecto para activar skills: sin él solo se consulta el catálogo.</value>
+    <comment>Notice.</comment>
+  </data>
+  <data name="Skills_Notice_NoStore" xml:space="preserve">
+    <value>Falta el almacén del proyecto: no se puede activar ni ver qué está activo en él.</value>
+    <comment>Notice.</comment>
+  </data>
+  <data name="Skills_Notice_OpenFailed" xml:space="preserve">
+    <value>No se pudo abrir el proyecto, así que no se puede activar nada: {0}</value>
+    <comment>Notice. {0}: why.</comment>
+  </data>
+  <data name="Skills_Notice_NoCatalog" xml:space="preserve">
+    <value>Falta el catálogo de skills: no hay nada que mostrar.</value>
+    <comment>Notice.</comment>
+  </data>
+  <data name="Skills_Notice_CatalogFailed" xml:space="preserve">
+    <value>No se pudo leer el catálogo de skills: {0}</value>
+    <comment>Notice. {0}: why.</comment>
+  </data>
+  <data name="Skills_Notice_NoTemplate" xml:space="preserve">
+    <value>Falta la plantilla de agentes: solo se activan los ámbitos Global y Proyecto.</value>
+    <comment>Notice.</comment>
+  </data>
+  <data name="Skills_Notice_NoTemplateYet" xml:space="preserve">
+    <value>El proyecto aún no tiene plantilla de agentes (el Orquestador crea la de por defecto al abrirlo). Hasta entonces solo hay ámbitos Global y Proyecto.</value>
+    <comment>Notice.</comment>
+  </data>
+  <data name="Skills_Notice_TemplateFailed" xml:space="preserve">
+    <value>No se pudo leer la plantilla de agentes: {0}</value>
+    <comment>Notice. {0}: why.</comment>
+  </data>
+  <data name="Skills_Notice_NoActivations" xml:space="preserve">
+    <value>Falta el almacén de activaciones: no se puede activar ni ver qué está activo.</value>
+    <comment>Notice.</comment>
+  </data>
+  <data name="Skills_Notice_ActivationsFailed" xml:space="preserve">
+    <value>No se pudieron leer las activaciones: {0}</value>
+    <comment>Notice. {0}: why.</comment>
+  </data>
+  <data name="Skills_Notice_NoHealth" xml:space="preserve">
+    <value>Falta el lector de salud de las skills: todas salen «sin comprobar».</value>
+    <comment>Notice.</comment>
+  </data>
+  <data name="Skills_Notice_FilesFailed" xml:space="preserve">
+    <value>No se pudieron listar los ficheros del proyecto para detectar sus tecnologías: {0}</value>
+    <comment>Notice. {0}: why.</comment>
+  </data>
+  <data name="Skills_Health_CheckFailed" xml:space="preserve">
+    <value>No se pudo comprobar: {0}</value>
+    <comment>Message of a health check that failed. {0}: why.</comment>
+  </data>
+  <data name="Skills_Linked_One" xml:space="preserve">
+    <value>{0} skill enlazada</value>
+    <comment>Part of the summary of the warnings of the index. {0}: count.</comment>
+  </data>
+  <data name="Skills_Linked_Other" xml:space="preserve">
+    <value>{0} skills enlazadas</value>
+    <comment>Part of the summary of the warnings of the index. {0}: count.</comment>
+  </data>
+  <data name="Skills_Unusable_Both" xml:space="preserve">
+    <value>{0} y {1} sin copia local válida no se pueden dar a un agente</value>
+    <comment>Summary of the warnings. {0}: linked skills; {1}: count without copy.</comment>
+  </data>
+  <data name="Skills_UnusableLinked_One" xml:space="preserve">
+    <value>{0} skill enlazada no se puede dar a un agente</value>
+    <comment>Summary of the warnings. {0}: count.</comment>
+  </data>
+  <data name="Skills_UnusableLinked_Other" xml:space="preserve">
+    <value>{0} skills enlazadas no se pueden dar a un agente</value>
+    <comment>Summary of the warnings. {0}: count.</comment>
+  </data>
+  <data name="Skills_UnusableNoCopy_One" xml:space="preserve">
+    <value>{0} skill sin copia local válida no se puede dar a un agente</value>
+    <comment>Summary of the warnings. {0}: count.</comment>
+  </data>
+  <data name="Skills_UnusableNoCopy_Other" xml:space="preserve">
+    <value>{0} skills sin copia local válida no se pueden dar a un agente</value>
+    <comment>Summary of the warnings. {0}: count.</comment>
+  </data>
+  <data name="Skills_Warnings_Index_One" xml:space="preserve">
+    <value>{0} aviso del índice de skills</value>
+    <comment>Summary of the warnings. {0}: count.</comment>
+  </data>
+  <data name="Skills_Warnings_Index_Other" xml:space="preserve">
+    <value>{0} avisos del índice de skills</value>
+    <comment>Summary of the warnings. {0}: count.</comment>
+  </data>
+  <data name="Skills_Warnings_More_One" xml:space="preserve">
+    <value>{0} aviso más del índice</value>
+    <comment>Summary of the warnings. {0}: count.</comment>
+  </data>
+  <data name="Skills_Warnings_More_Other" xml:space="preserve">
+    <value>{0} avisos más del índice</value>
+    <comment>Summary of the warnings. {0}: count.</comment>
+  </data>
+  <data name="Skills_Source_Commit" xml:space="preserve">
+    <value>versión {0}</value>
+    <comment>Pinned version of the source of a skill. {0}: first characters of the commit.</comment>
+  </data>
+  <data name="Skills_Source_NoCommit" xml:space="preserve">
+    <value>sin versión fijada</value>
+    <comment>Source of a skill without a pinned version.</comment>
+  </data>
+  <data name="Skills_Source_NoLicense" xml:space="preserve">
+    <value>sin licencia declarada</value>
+    <comment>Source of a skill without a license.</comment>
+  </data>
+  <data name="Skills_Card_LinkedWarning" xml:space="preserve">
+    <value>Está enlazada: el índice no guarda copia local. Por eso no se puede dar a ningún agente ni activar aquí. Para usarla, añade una copia local a tu índice.</value>
+    <comment>Warning on the card of a linked skill.</comment>
+  </data>
+  <data name="Skills_Card_ModeLinked" xml:space="preserve">
+    <value>Enlazada: sin copia local</value>
+    <comment>Mode of a skill.</comment>
+  </data>
+  <data name="Skills_Card_ModeLocal" xml:space="preserve">
+    <value>Copia local revisada</value>
+    <comment>Mode of a skill.</comment>
+  </data>
+  <data name="Skills_Card_NoTags" xml:space="preserve">
+    <value>Sin etiquetas</value>
+    <comment>Tags of a skill when it has none.</comment>
+  </data>
+  <data name="Skills_Card_Cost" xml:space="preserve">
+    <value>~{0} tokens en cada ejecución en la que esté activa. Estimado por Agent Studio: caracteres del nombre y la descripción, entre {1}.</value>
+    <comment>Cost of a skill. {0}: tokens; {1}: characters per token.</comment>
+  </data>
+  <data name="Skills_Activation_SaveFailed" xml:space="preserve">
+    <value>No se pudo guardar la decisión: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Skills_By_Agent" xml:space="preserve">
+    <value>por el agente</value>
+    <comment>Which scope decided.</comment>
+  </data>
+  <data name="Skills_By_Project" xml:space="preserve">
+    <value>por el proyecto</value>
+    <comment>Which scope decided.</comment>
+  </data>
+  <data name="Skills_By_Global" xml:space="preserve">
+    <value>global</value>
+    <comment>Which scope decided.</comment>
+  </data>
+  <data name="Skills_Effective_None" xml:space="preserve">
+    <value>Sin activar (ninguna decisión)</value>
+    <comment>What an agent gets.</comment>
+  </data>
+  <data name="Skills_Effective_On" xml:space="preserve">
+    <value>Activada ({0})</value>
+    <comment>What an agent gets. {0}: which scope decided.</comment>
+  </data>
+  <data name="Skills_Effective_Off" xml:space="preserve">
+    <value>Desactivada ({0})</value>
+    <comment>What an agent gets. {0}: which scope decided.</comment>
+  </data>
+  <data name="Skills_Badge_Project" xml:space="preserve">
+    <value>Proy.</value>
+    <comment>Badge of a skill turned on for the project.</comment>
+  </data>
+  <data name="Skills_Badge_Global" xml:space="preserve">
+    <value>Global</value>
+    <comment>Badge of a skill turned on in global.</comment>
+  </data>
+  <data name="Skills_Badge_Agents_One" xml:space="preserve">
+    <value>1 agente</value>
+    <comment>Badge of a skill turned on for one agent.</comment>
+  </data>
+  <data name="Skills_Badge_Agents_Other" xml:space="preserve">
+    <value>{0} agentes</value>
+    <comment>Badge of a skill turned on for several agents. {0}: count.</comment>
+  </data>
+  <data name="Skills_Points_One" xml:space="preserve">
+    <value>{0} punto</value>
+    <comment>Score of a recommendation. {0}: points.</comment>
+  </data>
+  <data name="Skills_Points_Other" xml:space="preserve">
+    <value>{0} puntos</value>
+    <comment>Score of a recommendation. {0}: points.</comment>
+  </data>
+  <data name="Skills_Recommend_None" xml:space="preserve">
+    <value>Ninguna skill coincide con la tarea ni con las tecnologías del proyecto.</value>
+    <comment>Status of a deterministic recommendation.</comment>
+  </data>
+  <data name="Skills_Recommend_Some" xml:space="preserve">
+    <value>{0} recomendadas, sin gastar límite de uso. Nada se ha activado.</value>
+    <comment>Status of a deterministic recommendation. {0}: count.</comment>
+  </data>
+  <data name="Skills_Assisted_WaitingOk" xml:space="preserve">
+    <value>Esperando tu OK…</value>
+    <comment>Status of the assisted recommendation.</comment>
+  </data>
+  <data name="Skills_Assisted_NotGiven" xml:space="preserve">
+    <value>No se pidió nada: no diste el OK, así que no se gastó límite de uso.</value>
+    <comment>Status of the assisted recommendation.</comment>
+  </data>
+  <data name="Skills_Assisted_Asking" xml:space="preserve">
+    <value>Preguntando al agente…</value>
+    <comment>Status of the assisted recommendation.</comment>
+  </data>
+  <data name="Skills_Assisted_Reason" xml:space="preserve">
+    <value>{0} · Razón del agente: {1}</value>
+    <comment>Detail of a recommendation of the agent. {0}: scope; {1}: its reason (text of an agent).</comment>
+  </data>
+  <data name="Skills_Assisted_Run" xml:space="preserve">
+    <value> (ejecución {0})</value>
+    <comment>Added to the status. {0}: id of the run.</comment>
+  </data>
+  <data name="Skills_Assisted_NoneProposed" xml:space="preserve">
+    <value>El agente no propuso ninguna skill{0}.</value>
+    <comment>Status. {0}: the run.</comment>
+  </data>
+  <data name="Skills_Assisted_Proposed_One" xml:space="preserve">
+    <value>El agente propuso 1 skill{0}. Nada se ha activado: actívala tú en su ficha si te convence.</value>
+    <comment>Status. {0}: the run.</comment>
+  </data>
+  <data name="Skills_Assisted_Proposed_Other" xml:space="preserve">
+    <value>El agente propuso {0} skills{1}. Nada se ha activado: actívalas tú en su ficha si te convencen.</value>
+    <comment>Status. {0}: count; {1}: the run.</comment>
+  </data>
+  <data name="Skills_Assisted_Failed" xml:space="preserve">
+    <value>No se pudo pedir la recomendación: {0}</value>
+    <comment>Status. {0}: why.</comment>
+  </data>
+  <data name="Skills_Assisted_Cancelled" xml:space="preserve">
+    <value>Se canceló la pregunta: no se pidió nada.</value>
+    <comment>Status.</comment>
+  </data>
+  <data name="Skills_View_ShowCard" xml:space="preserve">
+    <value>Ver su ficha en el árbol</value>
+    <comment>Tooltip.</comment>
+  </data>
+  <data name="Skills_View_HealthName" xml:space="preserve">
+    <value>Salud de la skill</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Skills_View_SourceName" xml:space="preserve">
+    <value>Fuente de la skill</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Skills_View_Tags" xml:space="preserve">
+    <value>Etiquetas</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Skills_View_Activation" xml:space="preserve">
+    <value>Activación</value>
+    <comment>Heading.</comment>
+  </data>
+  <data name="Skills_View_ActivationName" xml:space="preserve">
+    <value>Activación por ámbito</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Skills_View_ActivationHelp" xml:space="preserve">
+    <value>Añade una decisión tuya para este ámbito. La anterior queda en el historial.</value>
+    <comment>Help text.</comment>
+  </data>
+  <data name="Skills_View_ActivationNote" xml:space="preserve">
+    <value>Activar añade una decisión tuya y no borra las anteriores. Manda la del ámbito más concreto: primero Agente, luego Proyecto y luego Global. Sin ninguna decisión, la skill está desactivada.</value>
+    <comment>Note under the activation.</comment>
+  </data>
+  <data name="Skills_View_Cost" xml:space="preserve">
+    <value>Coste de contexto</value>
+    <comment>Heading.</comment>
+  </data>
+  <data name="Skills_View_CostName" xml:space="preserve">
+    <value>Coste de contexto estimado</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Skills_View_Health" xml:space="preserve">
+    <value>Salud (comprobaciones locales, sin red)</value>
+    <comment>Heading.</comment>
+  </data>
+  <data name="Skills_View_HealthChecks" xml:space="preserve">
+    <value>Comprobaciones de salud</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Skills_View_Reload" xml:space="preserve">
+    <value>Recargar</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Skills_View_ReloadName" xml:space="preserve">
+    <value>Recargar el catálogo</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Skills_View_ReloadTip" xml:space="preserve">
+    <value>Vuelve a leer el índice, la plantilla de agentes y las decisiones</value>
+    <comment>Tooltip.</comment>
+  </data>
+  <data name="Skills_View_SearchName" xml:space="preserve">
+    <value>Buscar skills</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Skills_View_SearchTip" xml:space="preserve">
+    <value>Busca por nombre, resumen y etiquetas, sin distinguir mayúsculas ni acentos</value>
+    <comment>Tooltip.</comment>
+  </data>
+  <data name="Skills_View_Search" xml:space="preserve">
+    <value>Buscar</value>
+    <comment>Label.</comment>
+  </data>
+  <data name="Skills_View_Title" xml:space="preserve">
+    <value>Catálogo de skills</value>
+    <comment>Heading.</comment>
+  </data>
+  <data name="Skills_View_SummaryName" xml:space="preserve">
+    <value>Resumen del catálogo</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Skills_View_NoticesName" xml:space="preserve">
+    <value>Avisos del catálogo</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Skills_View_WarningsDetailName" xml:space="preserve">
+    <value>Detalle de los avisos del índice</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Skills_View_WarningsToggleHelp" xml:space="preserve">
+    <value>Muestra u oculta cada aviso del índice de skills</value>
+    <comment>Help text.</comment>
+  </data>
+  <data name="Skills_View_WarningsSummaryName" xml:space="preserve">
+    <value>Resumen de los avisos del índice</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Skills_View_WarningsName" xml:space="preserve">
+    <value>Avisos del índice de skills</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Skills_View_TreeName" xml:space="preserve">
+    <value>Skills por sector</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Skills_View_Pick" xml:space="preserve">
+    <value>Elige una skill del árbol para ver su ficha: fuente, salud, coste y activación.</value>
+    <comment>Empty state.</comment>
+  </data>
+  <data name="Skills_View_Recommend" xml:space="preserve">
+    <value>Recomendar para una tarea</value>
+    <comment>Heading.</comment>
+  </data>
+  <data name="Skills_View_Stack" xml:space="preserve">
+    <value>Tecnologías del proyecto: {0}</value>
+    <comment>Technologies detected. {0}: the tags.</comment>
+  </data>
+  <data name="Skills_View_StackName" xml:space="preserve">
+    <value>Tecnologías del proyecto</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Skills_View_TaskName" xml:space="preserve">
+    <value>Tarea para la que recomendar skills</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Skills_View_RecommendButton" xml:space="preserve">
+    <value>Recomendar (sin gastar límite de uso)</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Skills_View_RecommendName" xml:space="preserve">
+    <value>Recomendar</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Skills_View_DeterministicName" xml:space="preserve">
+    <value>Recomendaciones deterministas</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Skills_View_Ask" xml:space="preserve">
+    <value>Pedir a un agente</value>
+    <comment>Heading, button and accessible name.</comment>
+  </data>
+  <data name="Skills_View_AllowName" xml:space="preserve">
+    <value>Permitir la recomendación asistida</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Skills_View_Allow" xml:space="preserve">
+    <value>Permitir la recomendación asistida (gasta límite de uso de Claude)</value>
+    <comment>Label of the switch.</comment>
+  </data>
+  <data name="Skills_View_AskNote" xml:space="preserve">
+    <value>Cada uso pide tu OK. Claude (modelo haiku) consulta el catálogo en local, solo en lectura, sin red ni ficheros. Solo propone.</value>
+    <comment>Note under the switch.</comment>
+  </data>
+  <data name="Skills_View_AskStatusName" xml:space="preserve">
+    <value>Estado de la recomendación asistida</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Skills_View_AssistedName" xml:space="preserve">
+    <value>Recomendaciones del agente</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Skills_View_PerAgent" xml:space="preserve">
+    <value>Lo que recibe cada agente</value>
+    <comment>Heading.</comment>
+  </data>
+  <data name="Skills_View_CostPerAgent" xml:space="preserve">
+    <value>Coste por agente</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Info_Skills_Title" xml:space="preserve">
+    <value>Skills</value>
+    <comment>Title of the information button.</comment>
+  </data>
+  <data name="Info_Skills_What" xml:space="preserve">
+    <value>Las skills son instrucciones y recursos que se dan a un agente para que trabaje mejor. Aquí ves el catálogo, la salud de cada skill y qué agentes la reciben.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Skills_Actions" xml:space="preserve">
+    <value>Elige una skill del árbol para ver su ficha.
+Actívala para el proyecto, para un agente o en global: cada decisión se guarda y se puede cambiar.
+Pide una recomendación para tu tarea. La determinista no gasta límite de uso; la de un agente sí.
+Mira el coste: cada skill activa suma tokens en cada ejecución.</value>
+    <comment>Information button: one action per line.</comment>
+  </data>
+  <data name="Skills_Sector_arquitectura-software" xml:space="preserve">
+    <value>Arquitectura de software</value>
+    <comment>Sector of the skills catalog; the key ends with the id of the sector.</comment>
+  </data>
+  <data name="Skills_Sector_arquitectura-datos" xml:space="preserve">
+    <value>Arquitectura de datos</value>
+  </data>
+  <data name="Skills_Sector_ingenieria-datos" xml:space="preserve">
+    <value>Ingeniería de datos</value>
+  </data>
+  <data name="Skills_Sector_ciencia-datos" xml:space="preserve">
+    <value>Ciencia de datos</value>
+  </data>
+  <data name="Skills_Sector_analitica-bi" xml:space="preserve">
+    <value>Analítica y BI</value>
+  </data>
+  <data name="Skills_Sector_ux-ui" xml:space="preserve">
+    <value>UX/UI</value>
+  </data>
+  <data name="Skills_Sector_frontend" xml:space="preserve">
+    <value>Frontend</value>
+  </data>
+  <data name="Skills_Sector_backend" xml:space="preserve">
+    <value>Backend</value>
+  </data>
+  <data name="Skills_Sector_movil" xml:space="preserve">
+    <value>Desarrollo móvil</value>
+  </data>
+  <data name="Skills_Sector_escritorio" xml:space="preserve">
+    <value>Desarrollo de escritorio</value>
+  </data>
+  <data name="Skills_Sector_devops-cloud" xml:space="preserve">
+    <value>DevOps y cloud</value>
+  </data>
+  <data name="Skills_Sector_ciberseguridad" xml:space="preserve">
+    <value>Ciberseguridad</value>
+  </data>
+  <data name="Skills_Sector_testing-qa" xml:space="preserve">
+    <value>Testing y QA</value>
+  </data>
+  <data name="Skills_Sector_ia-llm" xml:space="preserve">
+    <value>IA y LLM</value>
+  </data>
+  <data name="Skills_Sector_ingenieria-software" xml:space="preserve">
+    <value>Ingeniería de software</value>
+  </data>
+  <data name="Skills_Sector_documentacion" xml:space="preserve">
+    <value>Documentación</value>
+  </data>
+</root>

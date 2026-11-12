@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the Help area (docs/17 D-47 and D-55, ADR-0054 and ADR-0056; Phase 14 WP-14C) in Spanish of Spain, the source language: the Ayuda tab, its search, the card of what is sent to the help agent and its answer. What goes to the agent is fixed text in the code, never here (D-48). -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Help_Title" xml:space="preserve">
+    <value>Ayuda</value>
+  </data>
+  <data name="Help_Activity" xml:space="preserve">
+    <value>Ayuda</value>
+  </data>
+  <data name="Help_Search_Name" xml:space="preserve">
+    <value>Buscar en la ayuda</value>
+  </data>
+  <data name="Help_Search_Heading" xml:space="preserve">
+    <value>Buscar</value>
+  </data>
+  <data name="Help_Search_NoResults" xml:space="preserve">
+    <value>No hay nada sobre «{0}». Prueba con otras palabras o pregunta a un agente.</value>
+  </data>
+  <data name="Help_Results_Heading" xml:space="preserve">
+    <value>Resultados</value>
+  </data>
+  <data name="Help_Topics_Heading" xml:space="preserve">
+    <value>Todos los temas</value>
+  </data>
+  <data name="Help_Article_None" xml:space="preserve">
+    <value>Elige un tema de la lista o busca una palabra. Esta ayuda es gratis y no gasta el límite de uso de tu plan.</value>
+  </data>
+  <data name="Help_Article_NoScreen" xml:space="preserve">
+    <value>Esta pantalla no tiene un artículo propio. Mira la lista de temas.</value>
+  </data>
+  <data name="Help_Ask_Heading" xml:space="preserve">
+    <value>¿No lo encuentras? Pregunta a un agente</value>
+  </data>
+  <data name="Help_Ask_Intro" xml:space="preserve">
+    <value>Mira primero lo de arriba, que es gratis. Preguntar a un agente gasta un poco del límite de uso de tu plan y necesita tu OK cada vez.</value>
+  </data>
+  <data name="Help_Ask_Question" xml:space="preserve">
+    <value>Tu pregunta</value>
+  </data>
+  <data name="Help_Ask_IncludeProject" xml:space="preserve">
+    <value>Incluir datos del proyecto</value>
+  </data>
+  <data name="Help_Ask_IncludeProject_Hint" xml:space="preserve">
+    <value>Añade el nombre del proyecto y los avisos que nombren rutas de tu equipo. Sin marcar, no se envía nada de eso.</value>
+  </data>
+  <data name="Help_Ask_UseCodex" xml:space="preserve">
+    <value>Preguntar con Codex en lugar de Claude</value>
+  </data>
+  <data name="Help_Ask_CodexWarning" xml:space="preserve">
+    <value>Con Codex, el modo de solo lectura puede leer todo tu disco. Claude, en una carpeta vacía, no ve nada de tu equipo.</value>
+  </data>
+  <data name="Help_Ask_Button" xml:space="preserve">
+    <value>Preguntar a un agente</value>
+  </data>
+  <data name="Help_Ask_NoProject" xml:space="preserve">
+    <value>Abre un proyecto para preguntar a un agente: sin proyecto no hay dónde contar lo que gasta. La ayuda de arriba sigue funcionando.</value>
+  </data>
+  <data name="Help_Ask_NotComposed" xml:space="preserve">
+    <value>El agente de ayuda no está disponible en esta instalación.</value>
+  </data>
+  <data name="Help_Ask_PathInQuestion" xml:space="preserve">
+    <value>Tu pregunta nombra una ruta de tu equipo. Quítala o marca «Incluir datos del proyecto».</value>
+  </data>
+  <data name="Help_Ask_ConsentDescription" xml:space="preserve">
+    <value>Una pregunta al agente de ayuda: se envía la tarjeta de abajo y tu pregunta.</value>
+  </data>
+  <data name="Help_Card_Heading" xml:space="preserve">
+    <value>Se enviará esto</value>
+  </data>
+  <data name="Help_Card_Kind_Screen" xml:space="preserve">
+    <value>La pantalla: {0}</value>
+  </data>
+  <data name="Help_Card_Kind_State" xml:space="preserve">
+    <value>Su estado: {0}</value>
+  </data>
+  <data name="Help_Card_Kind_LastNotice" xml:space="preserve">
+    <value>El último aviso: {0}</value>
+  </data>
+  <data name="Help_Card_Kind_ProjectName" xml:space="preserve">
+    <value>El nombre del proyecto: {0}</value>
+  </data>
+  <data name="Help_Card_Question" xml:space="preserve">
+    <value>Tu pregunta: {0}</value>
+  </data>
+  <data name="Help_Card_Agent" xml:space="preserve">
+    <value>Contesta: {0}</value>
+  </data>
+  <data name="Help_Card_Withheld" xml:space="preserve">
+    <value>No se envía (falta la marca): {0}</value>
+  </data>
+  <data name="Help_Card_Withheld_ProjectName" xml:space="preserve">
+    <value>el nombre del proyecto</value>
+  </data>
+  <data name="Help_Card_Withheld_State" xml:space="preserve">
+    <value>datos del estado que nombran rutas de tu equipo</value>
+  </data>
+  <data name="Help_Card_Withheld_LastNotice" xml:space="preserve">
+    <value>un aviso que nombra rutas de tu equipo</value>
+  </data>
+  <data name="Help_Card_Withheld_Screen" xml:space="preserve">
+    <value>la pantalla</value>
+  </data>
+  <data name="Help_Card_Never" xml:space="preserve">
+    <value>Nunca se envía: credenciales, tus ficheros, el código, la memoria, el registro ni los prompts de otros agentes.</value>
+  </data>
+  <data name="Help_Agent_Claude" xml:space="preserve">
+    <value>Claude Code, con un modelo ligero</value>
+  </data>
+  <data name="Help_Agent_Codex" xml:space="preserve">
+    <value>Codex CLI</value>
+  </data>
+  <data name="Help_Send" xml:space="preserve">
+    <value>Dar mi OK y enviar</value>
+  </data>
+  <data name="Help_Cancel" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <data name="Help_Waiting" xml:space="preserve">
+    <value>El agente de ayuda está respondiendo...</value>
+  </data>
+  <data name="Help_Failed" xml:space="preserve">
+    <value>No se pudo preguntar: {0}</value>
+  </data>
+  <data name="Help_Reply_Heading" xml:space="preserve">
+    <value>Respuesta del agente de ayuda</value>
+  </data>
+  <data name="Help_Reply_Notice" xml:space="preserve">
+    <value>Es texto de un agente y puede equivocarse. Los artículos de arriba son la ayuda de la aplicación.</value>
+  </data>
+  <data name="Help_Reply_Articles" xml:space="preserve">
+    <value>Artículos que cita</value>
+  </data>
+  <data name="Help_Reply_Actions" xml:space="preserve">
+    <value>Puedes ir a</value>
+  </data>
+  <data name="Help_Reply_Discarded" xml:space="preserve">
+    <value>Detalles</value>
+  </data>
+  <data name="Help_Screen_preparation" xml:space="preserve">
+    <value>Preparación</value>
+  </data>
+  <data name="Help_Screen_canvas" xml:space="preserve">
+    <value>Lienzo</value>
+  </data>
+  <data name="Help_Screen_monitor" xml:space="preserve">
+    <value>Monitor</value>
+  </data>
+  <data name="Help_Screen_debates" xml:space="preserve">
+    <value>Debates</value>
+  </data>
+  <data name="Help_Screen_work" xml:space="preserve">
+    <value>Trabajo</value>
+  </data>
+  <data name="Help_Screen_audit" xml:space="preserve">
+    <value>Auditoría</value>
+  </data>
+  <data name="Help_Screen_memory" xml:space="preserve">
+    <value>Memoria</value>
+  </data>
+  <data name="Help_Screen_skills" xml:space="preserve">
+    <value>Skills</value>
+  </data>
+  <data name="Help_Screen_consumption" xml:space="preserve">
+    <value>Consumo</value>
+  </data>
+  <data name="Help_Screen_settings" xml:space="preserve">
+    <value>Ajustes</value>
+  </data>
+  <data name="Help_Screen_lock" xml:space="preserve">
+    <value>Bloqueo</value>
+  </data>
+  <data name="Help_Screen_repository" xml:space="preserve">
+    <value>Repositorio y cambios</value>
+  </data>
+  <data name="Text_help_action_open_orchestrator" xml:space="preserve">
+    <value>Abrir el Orquestador</value>
+  </data>
+  <data name="Text_help_action_open_agents" xml:space="preserve">
+    <value>Abrir Agentes</value>
+  </data>
+  <data name="Text_help_action_open_tools" xml:space="preserve">
+    <value>Abrir Herramientas</value>
+  </data>
+  <data name="Text_help_action_open_skills" xml:space="preserve">
+    <value>Abrir Skills</value>
+  </data>
+  <data name="Text_help_action_open_usage" xml:space="preserve">
+    <value>Abrir Consumo</value>
+  </data>
+  <data name="Text_help_action_open_memory" xml:space="preserve">
+    <value>Abrir Memoria</value>
+  </data>
+  <data name="Text_help_action_open_debates" xml:space="preserve">
+    <value>Abrir Debates</value>
+  </data>
+  <data name="Text_help_action_open_audit" xml:space="preserve">
+    <value>Abrir Auditoría</value>
+  </data>
+  <data name="Text_help_action_open_settings" xml:space="preserve">
+    <value>Abrir Ajustes</value>
+  </data>
+</root>

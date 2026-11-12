@@ -1638,6 +1638,14 @@ inglés; los botones ⓘ; la ayuda; la documentación para clientes; y la Fase 9
 | F14-8 | El agente de ayuda: una auxiliar de solo lectura en una carpeta vacía, con la tarjeta a la vista, tu OK con la estimación, el propósito `Help` en el consumo y acciones de una lista cerrada; nunca credenciales ni datos del proyecto sin tu marca | Pruebas con un agente guionizado, y una que busca un secreto sembrado en lo enviado |
 | F14-9 | La documentación para clientes: el modelo determinista con las secciones de D-58, en Markdown, HTML, PDF y Word; lo escrito por agentes, marcado; la lista de lo que sale; `ClientDocumentExported` | Pruebas de los generadores con ficheros dorados, una de fuga (un secreto sembrado y rutas de tu equipo) y una demostración |
 | F14-10 | El inventario automático de la interfaz (D-62), en verde en castellano, en inglés y en pseudolocalización | La suite |
+
+**Pruebas de integración de la Fase 14** (`tests/AgentStudio.Tests/Integration/Phase14/`, la app compuesta con `AddAgentStudioApp`, carpetas
+temporales y CLIs guionizados): `ResponseLanguageInTheAppTests` cubre F14-2 (idioma por defecto con culturas simuladas) y F14-4 (el agente
+recibe `<response_language>"en"</response_language>` con la interfaz en inglés y el prompt es el mismo, byte a byte, con dos culturas de
+hilo); `HelpWithAScriptedAgentTests`, F14-8 (tarjeta y estimación antes del OK, carpeta vacía, solo lectura, propósito `Help` en el consumo,
+acciones de la lista cerrada y un secreto sembrado que no sale sin tu marca); `ClientDocumentsExportTests`, F14-9 (Markdown, HTML y Word,
+lo escrito por agentes marcado, la lista de lo que sale, `ClientDocumentExported` en el registro y una prueba de fuga con un secreto y rutas
+de tu equipo). El PDF queda fuera de la integración: imprime el mismo HTML con WebView2, que estas pruebas no arrancan.
 | F9-1 a F9-10 | Los de [08](08-plan-y-criterios-de-aceptacion.md#fase-9--trabajo-y-trazabilidad), sin cambios (F9-7, salvo lo adelantado a la Fase 13) | Lo que dice 08 |
 
 **P0 · Contratos, payloads y paquetes (S-M).** `src/AgentStudio.Application/{Help/HelpContracts.cs, Documents/ClientDocumentContracts.cs}`

@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
              xmlns:observability="clr-namespace:AgentStudio.Desktop.Observability"
              xmlns:views="clr-namespace:AgentStudio.Desktop.Views.Observability"
              xmlns:controls="clr-namespace:AgentStudio.Desktop.Controls"
@@ -10,8 +11,11 @@
              d:DataContext="{d:DesignInstance Type=observability:UsageDashboardViewModel}">
     <!-- «Consumo» (docs/14 F4-1 and F4-2): the usage of the period from the verified decision logs, grouped by what the
          user picks; every figure with its origin (D-03); what was left out and the reconciliation with the journal; the
-         export of the report on screen. On the right, the quota of each provider; the settings are in «Ajustes». Bindings
-         only. -->
+         export of the report on screen. On the right, the quota of each provider; the settings are in «Ajustes».
+         Phase 9 (docs/16 D-34, F9-6): the milestone and the three axes of the activity are dimensions like the others; every group
+         says the wait in the queue and the wait for the usage limit apart from its duration, and what a milestone shares is said
+         apart; «Por hito y por tipo de trabajo» splits the same attempts on each axis, so its rows add up to the total. Every
+         text comes from the resources (ADR-0054). Bindings only. -->
     <UserControl.Resources>
         <!-- A figure: its value (a dash when there is none) and, always, where it came from. -->
         <DataTemplate DataType="{x:Type observability:Figure}">
@@ -29,7 +33,38 @@
         <Style x:Key="Usage.Caption" TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="TextWrapping" Value="NoWrap"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
         </Style>
+
+        <!-- A group of the report (and a row of an axis): its key, every figure, the waits, what it shares and its context peak. -->
+        <DataTemplate x:Key="Usage.GroupRow" DataType="{x:Type observability:UsageGroupRow}">
+            <Border Style="{StaticResource InnerCard}" Padding="10,8">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Margin="0,0,0,6" Text="{Binding Key}"/>
+                    <WrapPanel>
+                        <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="{l:T Usage_Cap_Runs}"/><ContentPresenter Content="{Binding Attempts}"/></StackPanel>
+                        <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="{l:T Usage_Cap_Duration}"/><ContentPresenter Content="{Binding Duration}"/></StackPanel>
+                        <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="{l:T Usage_Cap_QueueWait}"/><ContentPresenter Content="{Binding QueueWait}"/></StackPanel>
+                        <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="{l:T Usage_Cap_QuotaWait}"/><ContentPresenter Content="{Binding QuotaWait}"/></StackPanel>
+                        <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="{l:T Usage_Cap_Input}"/><ContentPresenter Content="{Binding Input}"/></StackPanel>
+                        <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="{l:T Usage_Cap_CacheRead}"/><ContentPresenter Content="{Binding CacheRead}"/></StackPanel>
+                        <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="{l:T Usage_Cap_CacheWrite}"/><ContentPresenter Content="{Binding CacheWrite}"/></StackPanel>
+                        <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="{l:T Usage_Cap_Output}"/><ContentPresenter Content="{Binding Output}"/></StackPanel>
+                        <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="{l:T Usage_Cap_Reasoning}"/><ContentPresenter Content="{Binding Reasoning}"/></StackPanel>
+                        <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="{l:T Usage_Cap_Cost}"/><ContentPresenter Content="{Binding Cost}"/></StackPanel>
+                        <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="{l:T Usage_Cap_RateLimited}"/><ContentPresenter Content="{Binding RateLimited}"/></StackPanel>
+                        <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="{l:T Usage_Cap_LimitReached}"/><ContentPresenter Content="{Binding LimitReached}"/></StackPanel>
+                        <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="{l:T Usage_Cap_Compactions}"/><ContentPresenter Content="{Binding Compactions}"/></StackPanel>
+                    </WrapPanel>
+                    <!-- F9-6: what a milestone shares with another one, apart from its own figures. -->
+                    <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding SharedNote, TargetNullValue=''}"/>
+                    <!-- V39: the context peak is a bar like every percentage (docs/18 P3), with its origin and
+                         level; under it, the tokens against the window and the model. -->
+                    <controls:MetricBar TrackWidth="120" Reading="{Binding ContextPeakBar}"/>
+                    <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding ContextPeakBar.Detail, TargetNullValue=''}"/>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
     </UserControl.Resources>
 
     <Grid Background="{StaticResource SurfaceBrush}">
@@ -42,24 +77,24 @@
         <Border Grid.Row="0" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,10">
             <StackPanel>
                 <DockPanel>
-                    <TextBlock DockPanel.Dock="Left" Style="{StaticResource SectionTitleText}" VerticalAlignment="Center" Margin="0,0,16,0" Text="Consumo"/>
+                    <TextBlock DockPanel.Dock="Left" Style="{StaticResource SectionTitleText}" VerticalAlignment="Center" Margin="0,0,16,0" Text="{l:T Usage_Title}"/>
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                        <Button Style="{StaticResource ToolbarPrimaryButton}" Content="Actualizar" Command="{Binding RefreshCommand}"/>
-                        <Button Style="{StaticResource ToolbarButton}" Content="Exportar CSV" Command="{Binding ExportCsvCommand}"
-                                ToolTip="El informe que ves, en CSV (RFC 4180, UTF-8 con BOM): cada cifra con su valor, su origen y su fuente."/>
-                        <Button Style="{StaticResource ToolbarButton}" Content="Exportar JSON" Command="{Binding ExportJsonCommand}"
-                                ToolTip="El informe que ves, en JSON (agentstudio-usage/1): cada cifra con su valor, su origen y su fuente."/>
+                        <Button Style="{StaticResource ToolbarPrimaryButton}" Content="{l:T Usage_View_Refresh}" Command="{Binding RefreshCommand}"/>
+                        <Button Style="{StaticResource ToolbarButton}" Content="{l:T Usage_View_ExportCsv}" Command="{Binding ExportCsvCommand}"
+                                ToolTip="{l:T Usage_View_ExportCsvTip}"/>
+                        <Button Style="{StaticResource ToolbarButton}" Content="{l:T Usage_View_ExportJson}" Command="{Binding ExportJsonCommand}"
+                                ToolTip="{l:T Usage_View_ExportJsonTip}"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <ComboBox MinWidth="200" Margin="0,0,8,6" ItemsSource="{Binding Scopes}" SelectedItem="{Binding SelectedScope}" DisplayMemberPath="Label"
-                                  AutomationProperties.Name="Proyectos del informe"/>
+                                  AutomationProperties.Name="{l:T Usage_View_ScopeName}"/>
                         <ComboBox MinWidth="150" Margin="0,0,8,6" ItemsSource="{Binding Periods}" SelectedItem="{Binding SelectedPeriod}" DisplayMemberPath="Label"
-                                  AutomationProperties.Name="Periodo del informe"/>
+                                  AutomationProperties.Name="{l:T Usage_View_PeriodName}"/>
                     </StackPanel>
                 </DockPanel>
                 <WrapPanel Margin="0,2,0,0">
-                    <TextBlock Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="0,0,10,0" Text="Agrupar por:"/>
-                    <ItemsControl ItemsSource="{Binding Dimensions}" Focusable="False" AutomationProperties.Name="Dimensiones del informe">
+                    <TextBlock Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="0,0,10,0" Text="{l:T Usage_View_GroupBy}"/>
+                    <ItemsControl ItemsSource="{Binding Dimensions}" Focusable="False" AutomationProperties.Name="{l:T Usage_View_DimensionsName}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <WrapPanel/>
@@ -76,7 +111,7 @@
                 <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="0,2,0,0" Text="{Binding StatusMessage, TargetNullValue=''}" AutomationProperties.LiveSetting="Polite"/>
                 <TextBlock Style="{StaticResource OptionalSecondaryText}" Margin="0,2,0,0" Text="{Binding ExportStatus, TargetNullValue=''}" AutomationProperties.LiveSetting="Polite"/>
                 <TextBlock Style="{StaticResource ErrorText}" Margin="0,2,0,0" Text="{Binding ErrorMessage}" AutomationProperties.LiveSetting="Assertive"/>
-                <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="{x:Static observability:UsageDashboardViewModel.CostNote}"/>
+                <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="{l:T Usage_CostNote}"/>
             </StackPanel>
         </Border>
 
@@ -88,38 +123,38 @@
 
             <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
                 <StackPanel Margin="12,10,12,12">
-                    <TextBlock Style="{StaticResource SectionTitleText}" Text="Por grupo"/>
-                    <ItemsControl ItemsSource="{Binding Groups}" Focusable="False" Margin="0,6,0,0" AutomationProperties.Name="Consumo por grupo">
+                    <TextBlock Style="{StaticResource SectionTitleText}" Text="{l:T Usage_View_Groups}"/>
+                    <ItemsControl ItemsSource="{Binding Groups}" ItemTemplate="{StaticResource Usage.GroupRow}" Focusable="False" Margin="0,6,0,0" AutomationProperties.Name="{l:T Usage_View_GroupsName}"/>
+
+                    <!-- F9-6: the same attempts split by milestone and by each axis of the activity; each axis adds up to its total. -->
+                    <StackPanel Margin="0,12,0,0">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Axes.Count}" Value="0">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <TextBlock Style="{StaticResource SectionTitleText}" Text="{l:T Usage_Axes_Title}"/>
+                        <TextBlock Style="{StaticResource SecondaryText}" Text="{l:T Usage_Axes_Note}"/>
+                    </StackPanel>
+                    <ItemsControl x:Name="AxesList" ItemsSource="{Binding Axes}" Focusable="False" Margin="0,6,0,0" AutomationProperties.Name="{l:T Usage_Axes_Name}">
                         <ItemsControl.ItemTemplate>
-                            <DataTemplate DataType="{x:Type observability:UsageGroupRow}">
-                                <Border Style="{StaticResource InnerCard}" Padding="10,8">
-                                    <StackPanel>
-                                        <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Margin="0,0,0,6" Text="{Binding Key}"/>
-                                        <WrapPanel>
-                                            <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="Ejecuciones"/><ContentPresenter Content="{Binding Attempts}"/></StackPanel>
-                                            <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="Duración"/><ContentPresenter Content="{Binding Duration}"/></StackPanel>
-                                            <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="Tokens de entrada"/><ContentPresenter Content="{Binding Input}"/></StackPanel>
-                                            <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="Caché leída"/><ContentPresenter Content="{Binding CacheRead}"/></StackPanel>
-                                            <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="Caché escrita"/><ContentPresenter Content="{Binding CacheWrite}"/></StackPanel>
-                                            <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="Tokens de salida"/><ContentPresenter Content="{Binding Output}"/></StackPanel>
-                                            <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="Razonamiento"/><ContentPresenter Content="{Binding Reasoning}"/></StackPanel>
-                                            <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="Coste"/><ContentPresenter Content="{Binding Cost}"/></StackPanel>
-                                            <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="Límites de uso"/><ContentPresenter Content="{Binding RateLimited}"/></StackPanel>
-                                            <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="Límites de presupuesto"/><ContentPresenter Content="{Binding LimitReached}"/></StackPanel>
-                                            <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="Compactaciones"/><ContentPresenter Content="{Binding Compactions}"/></StackPanel>
-                                        </WrapPanel>
-                                        <!-- V39: the context peak is a bar like every percentage (docs/18 P3), with its origin and
-                                             level; under it, the tokens against the window and the model. -->
-                                        <controls:MetricBar TrackWidth="120" Reading="{Binding ContextPeakBar}"/>
-                                        <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding ContextPeakBar.Detail, TargetNullValue=''}"/>
-                                    </StackPanel>
-                                </Border>
+                            <DataTemplate DataType="{x:Type observability:UsageAxis}">
+                                <StackPanel Margin="0,0,0,10">
+                                    <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" Text="{Binding Title}"/>
+                                    <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding TotalText}"/>
+                                    <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding SharedNote, TargetNullValue=''}"/>
+                                    <ItemsControl ItemsSource="{Binding Rows}" ItemTemplate="{StaticResource Usage.GroupRow}" Focusable="False" Margin="0,4,0,0" AutomationProperties.Name="{Binding Title}"/>
+                                </StackPanel>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
-                    <TextBlock Style="{StaticResource SectionTitleText}" Margin="0,8,0,0" Text="Intentos"/>
-                    <ItemsControl ItemsSource="{Binding Attempts}" Focusable="False" Margin="0,6,0,0" AutomationProperties.Name="Intentos del periodo">
+                    <TextBlock Style="{StaticResource SectionTitleText}" Margin="0,8,0,0" Text="{l:T Usage_View_Attempts}"/>
+                    <ItemsControl ItemsSource="{Binding Attempts}" Focusable="False" Margin="0,6,0,0" AutomationProperties.Name="{l:T Usage_View_AttemptsName}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type observability:UsageAttemptRow}">
                                 <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,6">
@@ -130,10 +165,10 @@
                                         </TextBlock>
                                         <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding Where}"/>
                                         <WrapPanel Margin="0,4,0,0">
-                                            <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="Duración"/><ContentPresenter Content="{Binding Duration}"/></StackPanel>
-                                            <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="Entrada (propia)"/><ContentPresenter Content="{Binding Input}"/></StackPanel>
-                                            <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="Salida (propia)"/><ContentPresenter Content="{Binding Output}"/></StackPanel>
-                                            <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="Coste"/><ContentPresenter Content="{Binding Cost}"/></StackPanel>
+                                            <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="{l:T Usage_Cap_Duration}"/><ContentPresenter Content="{Binding Duration}"/></StackPanel>
+                                            <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="{l:T Usage_Cap_InputOwn}"/><ContentPresenter Content="{Binding Input}"/></StackPanel>
+                                            <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="{l:T Usage_Cap_OutputOwn}"/><ContentPresenter Content="{Binding Output}"/></StackPanel>
+                                            <StackPanel Style="{StaticResource Usage.Cell}"><TextBlock Style="{StaticResource Usage.Caption}" Text="{l:T Usage_Cap_Cost}"/><ContentPresenter Content="{Binding Cost}"/></StackPanel>
                                         </WrapPanel>
                                         <controls:MetricBar Margin="0,2,0,0" TrackWidth="120" Reading="{Binding ContextPeakBar}"/>
                                         <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding ContextPeakBar.Detail, TargetNullValue=''}"/>
@@ -150,8 +185,8 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
-                    <TextBlock Style="{StaticResource SectionTitleText}" Margin="0,12,0,0" Text="Proyectos excluidos y conciliación"/>
-                    <ItemsControl ItemsSource="{Binding Excluded}" Focusable="False" Margin="0,4,0,0" AutomationProperties.Name="Proyectos excluidos">
+                    <TextBlock Style="{StaticResource SectionTitleText}" Margin="0,12,0,0" Text="{l:T Usage_View_Excluded}"/>
+                    <ItemsControl ItemsSource="{Binding Excluded}" Focusable="False" Margin="0,4,0,0" AutomationProperties.Name="{l:T Usage_View_ExcludedName}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <TextBlock Style="{StaticResource BodyText}" FontSize="12" Foreground="{StaticResource WarningBrush}" Text="{Binding}"/>
@@ -174,7 +209,7 @@
                     <StackPanel Margin="12,10,12,12">
                         <views:QuotaView DataContext="{Binding Quota}"/>
                         <!-- The thresholds the report is judged with and the Codex opt-in are changed in «Ajustes», a document of its own. -->
-                        <TextBlock Style="{StaticResource SecondaryText}" Margin="0,12,0,0" Text="{x:Static observability:UsageDashboardViewModel.SettingsNote}"/>
+                        <TextBlock Style="{StaticResource SecondaryText}" Margin="0,12,0,0" Text="{l:T Usage_SettingsNote}"/>
                     </StackPanel>
                 </ScrollViewer>
             </Border>

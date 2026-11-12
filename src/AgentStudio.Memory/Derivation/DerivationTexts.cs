@@ -381,6 +381,9 @@ internal static partial class DerivationTexts
     [GeneratedRegex(@"^[\p{L}\p{N}_.:-]{1,80}$", RegexOptions.CultureInvariant)]
     private static partial Regex Label();
 
+    /// <summary>Whether <paramref name="text"/> is such an identifier (the coded form of the texts says the same as these).</summary>
+    internal static bool IsLabel(string text) => Label().IsMatch(text);
+
     /// <summary>A moment in UTC, said so: «29/10/2026 a las 22:40 UTC». Never in the zone of the machine (the text is anchored).</summary>
     private static string When(DateTimeOffset at) =>
         at.UtcDateTime.ToString("dd/MM/yyyy 'a las' HH:mm", CultureInfo.InvariantCulture) + " UTC";

@@ -1,3 +1,4 @@
+using AgentStudio.Application.Prompts;
 using AgentStudio.Application.Knowledge;
 using AgentStudio.Application.Models;
 using AgentStudio.Application.Orchestration;
@@ -48,7 +49,8 @@ public sealed record BuilderServices(
     Func<bool>? WindowsAnimates = null,
     IContextPacker? ContextPacker = null,
     Func<string, CancellationToken, Task<ProjectFileCount>>? ProjectFiles = null,
-    Func<ProjectContext, AgentDefinition, CancellationToken, Task<int>>? SkillCharacters = null)
+    Func<ProjectContext, AgentDefinition, CancellationToken, Task<int>>? SkillCharacters = null,
+    IResponseLanguage? Language = null)
 {
     /// <summary>Nothing composed: the canvas works with what it always had.</summary>
     public static BuilderServices None { get; } = new();
@@ -77,6 +79,13 @@ public sealed partial class QuotaConsentCardViewModel : ObservableObject
     [ObservableProperty]
     private string _estimateText = string.Empty;
 
+    /// <summary>
+    /// The estimate is final (a figure, or «sin estimación» with its reason): the OK can be given. While it says «Calculando…» it cannot,
+    /// because the OK is the person's with the estimate in front of them (docs/17 F14-8).
+    /// </summary>
+    [ObservableProperty]
+    private bool _isReady;
+
     /// <summary>What the OK is for, as the service records it.</summary>
     public string Description { get; private set; } = string.Empty;
 
@@ -85,6 +94,7 @@ public sealed partial class QuotaConsentCardViewModel : ObservableObject
     {
         Description = description;
         EstimateText = _text.Get("Canvas_Consent_Estimating");
+        IsReady = false;
         IsOpen = true;
         UsageEstimate? known = null;
         if (estimate is not null)
@@ -97,15 +107,21 @@ public sealed partial class QuotaConsentCardViewModel : ObservableObject
             catch (Exception ex) when (ex is not OperationCanceledException)
 #pragma warning restore CA1031
             {
-                EstimateText = _text.Format("Canvas_Consent_EstimateFailed", ex.Message);
+                EstimateText = _text.Format("Canvas_Consent_EstimateFailed", OrchestratorErrorText.Detail(ex, _text.Provider));
+                IsReady = true;
                 return;
             }
         }
 
         EstimateText = Describe(known);
+        IsReady = true;
     }
 
-    public void Close() => IsOpen = false;
+    public void Close()
+    {
+        IsOpen = false;
+        IsReady = false;
+    }
 
     /// <summary>The consent of the person, now: who decided, when and what it is for.</summary>
     public QuotaConsent Grant() => new(ApprovalPromptService.DecidedBy, _time.GetUtcNow(), Description);

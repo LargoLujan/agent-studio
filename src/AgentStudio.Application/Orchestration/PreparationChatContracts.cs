@@ -75,7 +75,8 @@ public sealed record PreparationChatReply(
     IReadOnlyList<string> Questions,
     IReadOnlyList<string> Discarded,
     PreparationChatSession Session,
-    string? Error);
+    string? Error,
+    Localization.UserText? ErrorText = null);
 
 /// <summary>
 /// The chat with the orchestrator to prepare the work (docs/17 D-44): read-only, with the person's OK for each message;

@@ -1,0 +1,53 @@
+# Project documentation: Mi tienda
+
+- **Project:** Mi tienda
+- **Milestone:** Hito 1
+- **Date:** 2026-11-11 07:30 UTC
+- **Document version:** 2
+- **Saved version \(commit\):** 0123456789abcdef0123456789abcdef01234567
+
+## Summary
+
+The project has 3 requirements: 2 verified by the judge and 1 not verified. The tests captured by the system add up to 120 passed and 0 failed. There are 2 risks or pending items.
+
+Primera línea con \<b\>etiqueta\</b\> y \* asteriscos.  
+Segunda línea.
+
+_Written by an agent \(run aux-7\). Reviewed by the person in charge: yes._
+
+## Scope
+
+Each requirement has a state. Implemented: passing tests the system saved cover it. Reviewed: a valid, approved verdict says it is satisfied. Integrated: it was delivered to the branch.
+
+| Id | Requirement | Integrated |
+| --- | --- | --- |
+| R1 | Pagar con tarjeta \| sin recargos | Yes |
+| R2 | \- Catálogo con búsqueda | No data |
+
+There is a delivery with saved version \(commit\) 0123456789ab. The system cannot say requirement by requirement whether it covers it. Those requirements show «no data».
+
+## Verification
+
+1. dotnet test
+2. Revisado a mano _(Written by an agent \(run aux-8\). Reviewed by the person in charge: no.)_
+
+## Decisions
+
+There are no recorded decisions.
+
+## Changes
+
+- Delivered to refs/heads/main with saved version \(commit\) 0123456789ab \(2026-11-11 07:30 UTC\).
+
+## Risks and pending items
+
+There are no recorded risks or pending items.
+
+## Annexes
+
+- ev-1 · Prueba de la caja · SHA-256: `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`
+
+Not included in this document:
+
+- The state of each requirement according to the milestones of the project.
+- Whether the change is deployed: Agent Studio deploys nothing and does not know.

@@ -5,6 +5,7 @@ using AgentStudio.Application.Judging;
 using AgentStudio.Application.Knowledge;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Persistence;
+using AgentStudio.Application.Prompts;
 using AgentStudio.Application.Providers;
 using AgentStudio.Application.Security;
 using AgentStudio.Application.Semantic;
@@ -80,6 +81,19 @@ internal sealed record EnginePorts(
     /// estimated, and the question carries no estimates, never a number made up.
     /// </summary>
     public IUsageEstimator? Estimator { get; init; }
+
+    /// <summary>
+    /// Phase 9 (docs/16 D-05, F9-8): the budget of the project and of the milestone, checked before an agent attempt launches
+    /// (<see cref="ProjectBudgetGate"/>). Null: there is no budget to apply, and nothing is read for it.
+    /// </summary>
+    public ProjectBudgetGate? BudgetGate { get; init; }
+
+    /// <summary>
+    /// V44 (docs/17 D-48, F14-4): the language the person chose, which reaches the prompt of the planner and of every executor as a
+    /// block of data. Null: <see cref="Application.Prompts.ResponseLanguage.Default"/>. It is read when each prompt is written and
+    /// never stored in a header, so it cannot change anything the log anchors.
+    /// </summary>
+    public IResponseLanguage? Language { get; init; }
 
     /// <summary>The composed provider (journal and concurrency limit included) of a CLI for a project, or null.</summary>
     public IAgentProvider? ProviderFor(string projectRoot, Domain.Providers.ProviderId provider) =>

@@ -89,7 +89,7 @@ internal static class DemoReport
 {
     public const string FileName = "fase5-demostraciones.md";
 
-    private static readonly CultureInfo Spanish = MetricText.Spanish;
+    private static readonly CultureInfo Spanish = CultureInfo.GetCultureInfo("es-ES");
 
     public static string Compose(IReadOnlyList<DemoCapture> captures, IReadOnlyList<string> unreadable, DateTimeOffset generatedAt)
     {
@@ -100,7 +100,7 @@ internal static class DemoReport
         md.AppendLine("# Fase 5 · Demostraciones reales de la Debate Arena y el juez");
         md.AppendLine();
         md.AppendLine(Invariant($"> Generado por `{nameof(DemoReport)}` el {generatedAt:yyyy-MM-dd HH:mm} UTC a partir de {byBlock.Count} capturas de `AGENTSTUDIO_CAPTURE_DIR\\fase5`. Las rutas del perfil del usuario se sustituyen por `<usuario>`."));
-        md.AppendLine("> Cada cifra lleva su origen: el coste de Claude es «estimado por el CLI» (precio de lista; con suscripción no es lo que pagas) y Codex no informa coste en dinero; sus tokens son «exacto · informado por el CLI». Lo que la demostración no pudo leer sale «sin dato», nunca como cero.");
+        md.AppendLine("> Cada cifra lleva su origen: el coste de Claude es «estimado por el programa del agente» (precio de lista; con suscripción no es lo que pagas) y Codex no informa coste en dinero; sus tokens son «exacto · informado por el programa del agente». Lo que la demostración no pudo leer sale «sin dato», nunca como cero.");
         md.AppendLine();
         Summary(md, byBlock);
         Plan(md, byBlock);

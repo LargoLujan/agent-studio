@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Globalization;
 using AgentStudio.Application.Coordination;
 using AgentStudio.Application.Projects;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Observability;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Common;
@@ -37,7 +38,12 @@ public sealed partial class ParticipantChoiceViewModel : ObservableObject
 
     public string Where => NewDebateViewModel.Where(Agent.Model);
 
-    public static IReadOnlyList<Option<DebateRole>> Roles { get; } = [.. Enum.GetValues<DebateRole>().Select(r => new Option<DebateRole>(r, DebateTexts.Role(r)))];
+    /// <summary>What a screen reader says of the role box of this agent.</summary>
+    public string RoleName => Texts.Format("Debate_NewView_RoleName", Name);
+
+    // Built on each read, not once: a static list would keep the language it was first built in (records compare by value, so
+    // a selection still matches).
+    public static IReadOnlyList<Option<DebateRole>> Roles => [.. Enum.GetValues<DebateRole>().Select(r => new Option<DebateRole>(r, DebateTexts.Role(r)))];
 
     public IReadOnlyList<Option<DebateRole>> RoleOptions => Roles;
 
@@ -112,15 +118,24 @@ public sealed partial class DebateCriterionViewModel : ObservableObject
         Method = _selectedMethod.Value;
     }
 
-    public static IReadOnlyList<Option<VerificationMethod>> Methods { get; } =
+    public static IReadOnlyList<Option<VerificationMethod>> Methods =>
     [
-        new(VerificationMethod.JudgeAssessment, "Valoración del juez"),
-        new(VerificationMethod.HumanReview, "Revisión de una persona"),
+        new(VerificationMethod.JudgeAssessment, Texts.Get("Debate_Method_JudgeAssessment")),
+        new(VerificationMethod.HumanReview, Texts.Get("Debate_Method_HumanReview")),
     ];
 
     public IReadOnlyList<Option<VerificationMethod>> MethodOptions => Methods;
 
     public string Id { get; }
+
+    /// <summary>What a screen reader says of the text box of this criterion.</summary>
+    public string TextName => Texts.Format("Debate_NewView_CriterionTextName", Id);
+
+    /// <summary>What a screen reader says of the box that says how this criterion is checked.</summary>
+    public string MethodName => Texts.Format("Debate_NewView_CriterionMethodName", Id);
+
+    /// <summary>What a screen reader says of the button that removes this criterion.</summary>
+    public string RemoveName => Texts.Format("Debate_NewView_RemoveName", Id);
 
     [ObservableProperty]
     private string _text;
@@ -177,7 +192,10 @@ public sealed record OpenedDebate(IDebateRun Run, DebateProposal? Proposal, Deba
 /// </summary>
 public sealed partial class NewDebateViewModel : ObservableObject
 {
-    /// <summary>The criteria a «Revisión de arquitectura» starts with (D-07); you add yours.</summary>
+    /// <summary>
+    /// The criteria a «Revisión de arquitectura» starts with (D-07); you add yours. They become the statements of frozen
+    /// requirements that the judge and the debaters receive, so they are never translated (docs/17 D-48).
+    /// </summary>
     public static IReadOnlyList<string> ArchitectureCriteria { get; } =
     [
         "Mantenibilidad: el diseño se entiende, se prueba y se cambia sin romper lo demás.",
@@ -227,11 +245,11 @@ public sealed partial class NewDebateViewModel : ObservableObject
     /// <summary>The subjects the mode admits.</summary>
     public IReadOnlyList<Option<DebateSubjectKind>> Subjects { get; private set; }
 
-    private static IReadOnlyList<Option<DebateSubjectKind>> SubjectOptions { get; } =
+    private static IReadOnlyList<Option<DebateSubjectKind>> SubjectOptions =>
     [
-        new(DebateSubjectKind.None, "Ninguno"),
-        new(DebateSubjectKind.Commit, "El commit HEAD del repositorio"),
-        new(DebateSubjectKind.Run, "Una ejecución terminada"),
+        new(DebateSubjectKind.None, Texts.Get("Debate_SubjectOption_None")),
+        new(DebateSubjectKind.Commit, Texts.Get("Debate_SubjectOption_Commit")),
+        new(DebateSubjectKind.Run, Texts.Get("Debate_SubjectOption_Run")),
     ];
 
     [ObservableProperty]
@@ -293,6 +311,7 @@ public sealed partial class NewDebateViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(ProposalProblems))]
     [NotifyPropertyChangedFor(nameof(Notes))]
     [NotifyPropertyChangedFor(nameof(ApprovalText))]
+    [NotifyPropertyChangedFor(nameof(ApprovalLine))]
     [NotifyPropertyChangedFor(nameof(ProposalHash))]
     [NotifyCanExecuteChangedFor(nameof(OpenCommand))]
     private DebateProposal? _proposal;
@@ -308,22 +327,25 @@ public sealed partial class NewDebateViewModel : ObservableObject
     public string? WaiverText => Proposal is { } proposal ? DebateTexts.Waiver([.. proposal.Judging.WaivedParticipantVendors]) : null;
 
     public string? ProducersText => Proposal is { Judging.ProducerVendors.Count: > 0 } proposal
-        ? $"Vendors que produjeron el objeto (regla de los productores, nunca se dispensa): {string.Join(", ", proposal.Judging.ProducerVendors.Select(DebateTexts.Vendor).Order(StringComparer.Ordinal))}."
+        ? Texts.Format("Debate_New_Producers", string.Join(", ", proposal.Judging.ProducerVendors.Select(DebateTexts.Vendor).Order(StringComparer.Ordinal)))
         : null;
 
     /// <summary>What the debate may spend at most (D-21), with its origin: an estimate of Agent Studio, never exact.</summary>
     public string? EstimateText => Proposal is { } proposal && MetricText.Tokens(proposal.Estimate.Tokens) is var tokens
-        ? $"Como mucho {DebateTexts.Count(proposal.Estimate.MaxAgentRuns, "ejecución", "ejecuciones")} de agente y {tokens.Shown} tokens ({tokens.Origin})."
+        ? Texts.Format("Debate_New_Estimate", DebateTexts.Plural(proposal.Estimate.MaxAgentRuns, "Debate_Count_AgentRun"), tokens.Shown, tokens.Origin)
         : null;
 
-    public IReadOnlyList<string> ProposalProblems => Proposal?.Problems ?? [];
+    public IReadOnlyList<string> ProposalProblems => Proposal is { } shown ? DebateTexts.Painted(shown.Problems, shown.ProblemTexts) : [];
 
-    public IReadOnlyList<string> Notes => Proposal?.Estimate.Notes ?? [];
+    public IReadOnlyList<string> Notes => Proposal is { } shown ? DebateTexts.Painted(shown.Estimate.Notes, shown.Estimate.NoteTexts) : [];
 
     /// <summary>The text of the approval «Abrir debate» asks for.</summary>
     public string? ApprovalText => Proposal?.ApprovalText;
 
-    public string? ProposalHash => Proposal is { } proposal ? $"Hash de lo que apruebas: {DebateTexts.Short(proposal.HeaderHash)}" : null;
+    /// <summary>The approval «Abrir debate» asks for, introduced.</summary>
+    public string? ApprovalLine => ApprovalText is { } text ? Texts.Format("Debate_Form_ApprovalAsked", text) : null;
+
+    public string? ProposalHash => Proposal is { } proposal ? Texts.Format("Debate_New_ProposalHash", DebateTexts.Short(proposal.HeaderHash)) : null;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(PrepareCommand))]
@@ -393,7 +415,7 @@ public sealed partial class NewDebateViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = $"No se pudo leer la plantilla o las ejecuciones del proyecto: {ex.Message}";
+            ErrorMessage = Texts.Format("Debate_New_Error_Load", DebateTexts.Reason(ex));
         }
         finally
         {
@@ -434,13 +456,13 @@ public sealed partial class NewDebateViewModel : ObservableObject
 
         IsBusy = true;
         ErrorMessage = null;
-        StatusMessage = "Preparando: sin gastar cuota ni escribir nada…";
+        StatusMessage = Texts.Get("Debate_New_Status_Preparing");
         try
         {
             Proposal = await coordinator.PrepareAsync(request, CancellationToken.None).ConfigureAwait(true);
             StatusMessage = Proposal.Problems.Count == 0
-                ? "Revisa la configuración y la estimación: «Abrir debate» te pedirá aprobación."
-                : "El debate no se puede abrir así: mira los problemas.";
+                ? Texts.Get("Debate_New_Status_Prepared")
+                : Texts.Get("Debate_New_Status_Problems");
         }
 #pragma warning disable CA1031 // The coordinator is behind a port: a failure is shown in the form, never thrown into the UI.
         catch (Exception ex)
@@ -448,7 +470,7 @@ public sealed partial class NewDebateViewModel : ObservableObject
         {
             Proposal = null;
             StatusMessage = null;
-            ErrorMessage = $"No se pudo preparar el debate: {ex.Message}";
+            ErrorMessage = Texts.Format("Debate_New_Error_Prepare", DebateTexts.Reason(ex));
         }
         finally
         {
@@ -469,11 +491,11 @@ public sealed partial class NewDebateViewModel : ObservableObject
 
         IsBusy = true;
         ErrorMessage = null;
-        StatusMessage = "Esperando tu aprobación…";
+        StatusMessage = Texts.Get("Debate_Status_WaitingApproval");
         try
         {
             var run = await coordinator.OpenAsync(proposal, CancellationToken.None).ConfigureAwait(true);
-            StatusMessage = $"Debate {run.Id} abierto.";
+            StatusMessage = Texts.Format("Debate_New_Status_Opened", run.Id);
             var context = new DebateRoomContext(proposal.Request.Question, proposal.Request.Requirements, proposal.Judging.Kind, [.. proposal.Judging.WaivedParticipantVendors], proposal.Judging.Judges);
             Opened?.Invoke(this, new OpenedDebate(run, proposal, context));
         }
@@ -482,7 +504,7 @@ public sealed partial class NewDebateViewModel : ObservableObject
 #pragma warning restore CA1031
         {
             StatusMessage = null;
-            ErrorMessage = $"No se abrió el debate: {ex.Message}";
+            ErrorMessage = Texts.Format("Debate_New_Error_Open", DebateTexts.Reason(ex));
         }
         finally
         {
@@ -547,7 +569,7 @@ public sealed partial class NewDebateViewModel : ObservableObject
 
         if (_backend.Requirements is not { } store)
         {
-            _runRequirementsProblem = "Falta el almacén de requisitos: no se pueden leer los de la ejecución.";
+            _runRequirementsProblem = Texts.Get("Debate_New_Problem_NoRequirementStore");
             Changed();
             return;
         }
@@ -558,14 +580,14 @@ public sealed partial class NewDebateViewModel : ObservableObject
             if (SelectedRun == run)
             {
                 _runRequirements = set;
-                _runRequirementsProblem = set is null ? $"No están los requisitos congelados de {run.Id} ({DebateTexts.Short(run.RequirementSetHash)})." : null;
+                _runRequirementsProblem = set is null ? Texts.Format("Debate_New_Problem_RunRequirementsGone", run.Id, DebateTexts.Short(run.RequirementSetHash)) : null;
             }
         }
 #pragma warning disable CA1031 // The store is behind a port: a failure is shown in the form, never thrown into the UI.
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            _runRequirementsProblem = $"No se pudieron leer los requisitos de {run.Id}: {ex.Message}";
+            _runRequirementsProblem = Texts.Format("Debate_New_Problem_RunRequirementsFailed", run.Id, DebateTexts.Reason(ex));
         }
 
         Changed();
@@ -659,63 +681,63 @@ public sealed partial class NewDebateViewModel : ObservableObject
         var problems = new List<string>();
         if (_project is null)
         {
-            problems.Add("Abre un proyecto para preparar un debate.");
+            problems.Add(Texts.Get("Debate_New_Problem_NoProject"));
             return problems;
         }
 
         if (_backend.Coordinator is null)
         {
-            problems.Add("Falta el coordinador de debates en esta composición: no se puede preparar ni abrir ningún debate.");
+            problems.Add(Texts.Get("Debate_New_Problem_NoCoordinator"));
         }
 
         var mode = SelectedMode?.Value ?? DebateMode.Free;
         if (string.IsNullOrWhiteSpace(Question))
         {
-            problems.Add("Escribe la pregunta del debate.");
+            problems.Add(Texts.Get("Debate_New_Problem_NoQuestion"));
         }
 
         if (_backend.Roster is null)
         {
-            problems.Add("Falta la plantilla de agentes en esta composición: no hay participantes ni jueces que elegir.");
+            problems.Add(Texts.Get("Debate_New_Problem_NoRoster"));
         }
         else
         {
             var included = Participants.Where(p => p.IsIncluded).ToList();
             if (included.Count < 2)
             {
-                problems.Add("Hacen falta dos participantes como mínimo.");
+                problems.Add(Texts.Get("Debate_New_Problem_TwoParticipants"));
             }
 
             problems.AddRange(RoleProblems(mode, included.Select(p => p.Role).ToList()));
             if (!Judges.Any(j => j.IsIncluded))
             {
-                problems.Add(Judges.Count == 0 ? "La plantilla del proyecto no tiene ningún juez." : "Deja al menos un juez como candidato.");
+                problems.Add(Texts.Get(Judges.Count == 0 ? "Debate_Problem_NoJudgeInRoster" : "Debate_Problem_KeepAJudge"));
             }
         }
 
         if (SelectedSubject?.Value == DebateSubjectKind.Run && SelectedRun is null)
         {
-            problems.Add(_backend.Runs is null
-                ? "Falta el registro de ejecuciones en esta composición: no se puede debatir sobre una ejecución."
-                : Runs.Count == 0 ? "El proyecto no tiene ejecuciones que debatir." : "Elige la ejecución que se debate.");
+            problems.Add(Texts.Get(_backend.Runs is null
+                ? "Debate_New_Problem_NoRunRegistry"
+                : Runs.Count == 0 ? "Debate_New_Problem_NoRuns" : "Debate_New_Problem_PickRun"));
         }
 
         switch (RequirementsKind)
         {
             case RequirementsSource.Fixed when _backend.FixedRequirements?.Invoke(mode) is null:
-                problems.Add("Los requisitos fijos de este modo (orq-1 a orq-7) no están disponibles en esta composición.");
+                problems.Add(Texts.Get("Debate_New_Problem_NoFixedRequirements"));
                 break;
             case RequirementsSource.Run when SelectedRun is not null && _runRequirements is null:
-                problems.Add(_runRequirementsProblem ?? "Leyendo los requisitos congelados de la ejecución…");
+                problems.Add(_runRequirementsProblem ?? Texts.Get("Debate_New_Problem_ReadingRequirements"));
                 break;
             case RequirementsSource.Criteria when !Criteria.Any(c => !string.IsNullOrWhiteSpace(c.Text)):
-                problems.Add("Escribe al menos un criterio: es lo que el juez evalúa.");
+                problems.Add(Texts.Get("Debate_New_Problem_NoCriterion"));
                 break;
         }
 
         if (Limits() is null)
         {
-            problems.Add("Los límites tienen que ser números enteros mayores que cero (los tokens, vacío para no limitarlos).");
+            problems.Add(Texts.Get("Debate_Problem_Limits"));
         }
 
         return problems;
@@ -732,13 +754,13 @@ public sealed partial class NewDebateViewModel : ObservableObject
         switch (mode)
         {
             case DebateMode.Adversarial or DebateMode.ImplementationAudit when !roles.Contains(DebateRole.Proponent) || !roles.Contains(DebateRole.Critic):
-                yield return "Este modo necesita un proponente y un crítico como mínimo.";
+                yield return Texts.Get("Debate_New_Problem_NeedProponentCritic");
                 break;
             case DebateMode.Tribunal when roles.Any(r => r != DebateRole.Panelist):
-                yield return "Un tribunal es solo de panelistas.";
+                yield return Texts.Get("Debate_New_Problem_TribunalOnly");
                 break;
             case DebateMode.OrchestratorReview when roles.Contains(DebateRole.Proponent):
-                yield return "La revisión del orquestador es solo de revisores: críticos o panelistas.";
+                yield return Texts.Get("Debate_New_Problem_ReviewersOnly");
                 break;
         }
     }
@@ -756,38 +778,38 @@ public sealed partial class NewDebateViewModel : ObservableObject
         var subject = SelectedSubject?.Value ?? DebateSubjectKind.None;
         if (subject == DebateSubjectKind.Run)
         {
-            return ("Los vendors que produjeron la ejecución los conoce el registro: la disposición posible la calcula el coordinador al preparar.", false);
+            return (Texts.Get("Debate_New_Hint_Run"), false);
         }
 
         var participants = Participants.Where(p => p.IsIncluded).Select(p => new DebateParticipant(p.Agent.Id, p.Role, p.Agent.Model)).ToList();
         var candidates = Judges.Where(j => j.IsIncluded).Select(j => new JudgeIdentity(j.Agent.Id, j.Agent.Model)).ToList();
         if (participants.Count == 0 || candidates.Count == 0)
         {
-            return ("Elige participantes y jueces para ver qué disposiciones caben.", false);
+            return (Texts.Get("Debate_New_Hint_Choose"), false);
         }
 
         var possible = DebateJudgingRules.Possible(mode, subject, participants, new HashSet<VendorId>(), candidates);
         if (possible.Count == 0)
         {
-            return ("Con estos participantes y jueces nadie puede juzgar: ningún juez es de un vendor libre ni cabe una dispensa.", true);
+            return (Texts.Get("Debate_New_Hint_Nobody"), true);
         }
 
         var kinds = possible.Select(a => a.Kind).Distinct().ToList();
-        var text = "Caben: " + string.Join("; ", kinds.Select(k => $"{DebateTexts.Judging(k)} ({string.Join(" | ", possible.Where(a => a.Kind == k).Select(a => string.Join(" + ", a.Judges.Select(j => j.Agent.Value))).Distinct())})"));
+        var text = Texts.Format("Debate_New_Hint_Fits", string.Join("; ", kinds.Select(k => $"{DebateTexts.Judging(k)} ({string.Join(" | ", possible.Where(a => a.Kind == k).Select(a => string.Join(" + ", a.Judges.Select(j => j.Agent.Value))).Distinct())})")));
         return SelectedJudging?.Value is { } chosen && !kinds.Contains(chosen)
-            ? ($"La disposición elegida ({DebateTexts.Judging(chosen)}) no cabe con esta configuración. {text}.", true)
-            : (text + ".", false);
+            ? (Texts.Format("Debate_New_Hint_NotFit", DebateTexts.Judging(chosen), text), true)
+            : (text, false);
     }
 
     private string RequirementsLine() => RequirementsKind switch
     {
         RequirementsSource.Fixed => _backend.FixedRequirements?.Invoke(SelectedMode.Value) is { } set
-            ? $"Requisitos fijos del modo ({DebateTexts.Count(set.Requirements.Count, "requisito", "requisitos")}, hash {DebateTexts.Short(set.ContentHash)}): {string.Join(", ", set.Requirements.Select(r => r.Id.Value))}."
-            : "Requisitos fijos del modo: no disponibles en esta composición.",
+            ? Texts.Format("Debate_New_Req_Fixed", DebateTexts.Plural(set.Requirements.Count, "Debate_Count_Requirement"), DebateTexts.Short(set.ContentHash), string.Join(", ", set.Requirements.Select(r => r.Id.Value)))
+            : Texts.Get("Debate_New_Req_FixedNone"),
         RequirementsSource.Run => _runRequirements is { } frozen
-            ? $"Los requisitos congelados de la ejecución ({DebateTexts.Count(frozen.Requirements.Count, "requisito", "requisitos")}, hash {DebateTexts.Short(frozen.ContentHash)})."
-            : "Los requisitos congelados de la ejecución que elijas.",
-        _ => "Tus criterios, uno por requisito: solo la valoración del juez o la revisión de una persona, porque aquí no hay código que probar.",
+            ? Texts.Format("Debate_New_Req_Run", DebateTexts.Plural(frozen.Requirements.Count, "Debate_Count_Requirement"), DebateTexts.Short(frozen.ContentHash))
+            : Texts.Get("Debate_New_Req_RunPick"),
+        _ => Texts.Get("Debate_New_Req_Criteria"),
     };
 
     private void ResetCriteria()
@@ -828,5 +850,5 @@ public sealed partial class NewDebateViewModel : ObservableObject
     private static string CriterionId(int number) => "D-" + number.ToString("00", CultureInfo.InvariantCulture);
 
     internal static string Where(ModelBinding model) =>
-        $"{DebateTexts.Provider(model.Provider)} · {DebateTexts.Vendor(model.Vendor)} · {(string.IsNullOrWhiteSpace(model.Model) ? "modelo predeterminado del CLI" : model.Model)}";
+        $"{DebateTexts.Provider(model.Provider)} · {DebateTexts.Vendor(model.Vendor)} · {(string.IsNullOrWhiteSpace(model.Model) ? Texts.Get("Debate_Model_Default") : model.Model)}";
 }

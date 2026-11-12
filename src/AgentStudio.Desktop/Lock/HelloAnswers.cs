@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using AgentStudio.Application.Security;
+using AgentStudio.Desktop.Localization;
 
 namespace AgentStudio.Desktop.Lock;
 
@@ -12,7 +13,7 @@ namespace AgentStudio.Desktop.Lock;
 public static class HelloAnswers
 {
     /// <summary>What Windows Hello shows when it is asked to unlock the interface.</summary>
-    public const string UnlockMessage = "Agent Studio: confirma que eres tú para desbloquear la interfaz.";
+    public static string UnlockMessage => Texts.Get("Lock_Hello_UnlockMessage");
 
     /// <summary>
     /// How long Windows has to say whether Windows Hello is there (it answers in milliseconds). Past it, Windows «could not
@@ -54,23 +55,28 @@ public static class HelloAnswers
     }
 
     /// <summary>What Windows Hello shows when it is asked to confirm a critical approval.</summary>
-    public static string ApprovalMessage(string action) => $"Agent Studio: confirma que eres tú para aprobar «{action}».";
+    public static string ApprovalMessage(string action) => Texts.Format("Lock_Hello_ApprovalMessage", action);
 
     /// <summary>What Windows Hello shows when it is asked to confirm the approval of a plan.</summary>
-    public static string PlanMessage(string planHash) => $"Agent Studio: confirma que eres tú para aprobar el plan {planHash}.";
+    public static string PlanMessage(string planHash) => Texts.Format("Lock_Hello_PlanMessage", planHash);
 
     /// <summary>Why Windows Hello is not there, as the screens say it.</summary>
     public static string WhyAbsent(UserPresenceAvailability availability) => availability switch
     {
-        UserPresenceAvailability.NotConfiguredForUser => "no está configurado para tu usuario",
-        UserPresenceAvailability.DeviceNotPresent => "no hay ningún dispositivo con el que verificarte",
-        UserPresenceAvailability.DisabledByPolicy => "lo desactiva una directiva",
-        UserPresenceAvailability.DeviceBusy => "el dispositivo está ocupado",
-        _ => "Windows no lo pudo decir",
+        UserPresenceAvailability.NotConfiguredForUser or UserPresenceAvailability.DeviceNotPresent
+            or UserPresenceAvailability.DisabledByPolicy or UserPresenceAvailability.DeviceBusy => Texts.Get("Lock_Absent_" + availability),
+        _ => Texts.Get("Lock_Absent_Unknown"),
     };
 
-    /// <summary>What a result other than a confirmation means, as the screens and the log say it.</summary>
-    public static string WhyNotConfirmed(UserPresenceResult result) => result switch
+    /// <summary>What a result other than a confirmation means, as the screens say it, in the language in use.</summary>
+    public static string WhyNotConfirmed(UserPresenceResult result) =>
+        Enum.IsDefined(result) ? Texts.Get("Lock_NotConfirmed_" + result) : Texts.Get("Lock_NotConfirmed_Unknown");
+
+    /// <summary>
+    /// What a result other than a confirmation means, as the decision log says it: fixed Spanish, whatever the language of the
+    /// interface. The reason of a denial is history of the log, anchored and never translated (docs/17 D-48, F14-4).
+    /// </summary>
+    private static string WhyNotConfirmedForLog(UserPresenceResult result) => result switch
     {
         UserPresenceResult.Canceled => "se canceló la verificación",
         UserPresenceResult.RetriesExhausted => "demasiados intentos fallidos",
@@ -82,10 +88,13 @@ public static class HelloAnswers
         _ => "Windows dio un resultado que Agent Studio no conoce",
     };
 
-    /// <summary>The reason of the denial of a yes that Windows Hello did not confirm: it names the result, so the log says why.</summary>
+    /// <summary>
+    /// The reason of the denial of a yes that Windows Hello did not confirm: it names the result, so the log says why. Fixed
+    /// Spanish, never translated and never read from the resources (docs/17 D-48, F14-4).
+    /// </summary>
     public static string ApprovalNotConfirmed(UserPresenceResult result) =>
-        $"Windows Hello no confirmó que eres tú ({result}: {WhyNotConfirmed(result)}): se deniega.";
+        $"Windows Hello no confirmó que eres tú ({result}: {WhyNotConfirmedForLog(result)}): se deniega.";
 
-    /// <summary>The reason of the denial of a yes when Windows Hello could not be asked at all.</summary>
+    /// <summary>The reason of the denial of a yes when Windows Hello could not be asked at all. Fixed Spanish, like <see cref="ApprovalNotConfirmed"/>.</summary>
     public static string ApprovalNotAsked(string problem) => $"No se pudo pedir Windows Hello ({problem}): se deniega.";
 }

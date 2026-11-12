@@ -2,6 +2,7 @@ using System.IO;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using AgentStudio.Application.Decisions;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Skills;
 using AgentStudio.Domain.Common;
@@ -10,6 +11,8 @@ using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Domain.Skills;
 using AgentStudio.Domain.Work;
+using AgentStudio.Orchestration;
+using AgentStudio.Orchestration.Engine;
 using AgentStudio.Tests.Orchestration.Fakes;
 using static AgentStudio.Tests.Orchestration.Fakes.OrchestrationFixtures;
 
@@ -47,6 +50,19 @@ public sealed class IntegrityAndSkillsTests
         Assert.Contains("HEAD moved", alert.Message, StringComparison.Ordinal);
         Assert.Contains("Branch 'refs/heads/main' moved", alert.Message, StringComparison.Ordinal);
         Assert.Contains("HEAD moved", harness.Payloads<TaskStatusChangedPayload>().Single(p => p.Payload.To == WorkTaskStatus.Failed).Payload.Reason, StringComparison.Ordinal);
+        AssertCoded(await run.CodedTransitionsAsync(), OrchestrationUserTexts.RepositoryWhileAgent);
+        Assert.Equal(UserText.Of(OrchestrationUserTexts.VerdictStoppedRepository), result.SummaryText);
+        Assert.Equal(result.SummaryText, LoggedTexts.RunSummary(result.Summary));
+    }
+
+    /// <summary>The one transition that says the repository changed carries the code, the moment as a piece and the differences as they were written.</summary>
+    private static void AssertCoded(IReadOnlyList<TaskStatusChangedEvent> transitions, string whenCode)
+    {
+        var changed = Assert.Single(transitions, t => t.Reason.StartsWith("El repositorio del usuario ", StringComparison.Ordinal));
+        var text = Assert.IsType<UserText>(changed.ReasonText);
+        Assert.Equal(OrchestrationUserTexts.WorkerRepositoryChanged, text.Code);
+        Assert.Equal(whenCode, Assert.IsType<UserText>(text.Arguments[0]).Code);
+        Assert.EndsWith(Assert.IsType<string>(text.Arguments[1]), changed.Reason, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -400,6 +416,7 @@ public sealed class IntegrityAndSkillsTests
         Assert.Equal([new TaskId("T1")], alert.Tasks);
         Assert.Contains("HEAD moved", alert.Message, StringComparison.Ordinal);
         Assert.Contains("Status line added:  M src/Program.cs", alert.Message, StringComparison.Ordinal);
+        AssertCoded(await run.CodedTransitionsAsync(), OrchestrationUserTexts.RepositoryDuringVerification);
     }
 
     [Fact]
@@ -428,6 +445,7 @@ public sealed class IntegrityAndSkillsTests
         var (_, alert) = Assert.Single(harness.Alerts("user-repository.changed"));
         Assert.Equal([new TaskId("L1")], alert.Tasks);
         Assert.Contains("HEAD moved", alert.Message, StringComparison.Ordinal);
+        AssertCoded(await run.CodedTransitionsAsync(), OrchestrationUserTexts.RepositoryDuringSteps);
     }
 
     [Fact]
@@ -452,6 +470,7 @@ public sealed class IntegrityAndSkillsTests
         Assert.Equal(["T1"], harness.Claude.Starts.Select(s => s.Request.TaskId));
         var (_, alert) = Assert.Single(harness.Alerts("user-repository.changed"));
         Assert.Equal([new TaskId("I1")], alert.Tasks);
+        AssertCoded(await run.CodedTransitionsAsync(), OrchestrationUserTexts.RepositoryDuringIntegration);
     }
 
     [Fact]
@@ -495,6 +514,7 @@ public sealed class IntegrityAndSkillsTests
         Assert.Equal(RunPhase.Failed, result.Phase);
         Assert.Equal(WorkTaskStatus.Failed, run.Snapshot().View("R1").Status);
         Assert.Equal([new TaskId("R1")], Assert.Single(harness.Alerts("user-repository.changed")).Payload.Tasks);
+        AssertCoded(await run.CodedTransitionsAsync(), OrchestrationUserTexts.RepositoryDuringReview);
     }
 
     [Fact]

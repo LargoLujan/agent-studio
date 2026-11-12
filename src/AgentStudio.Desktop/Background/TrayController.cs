@@ -1,5 +1,6 @@
 using System.IO;
 using AgentStudio.Application.Orchestration;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Orchestrator.Monitor;
 using AgentStudio.Desktop.Orchestrator.Questions;
 using AgentStudio.Desktop.ViewModels;
@@ -88,8 +89,7 @@ public sealed class TrayController : IDisposable
     }
 
     /// <summary>What the tray says when a run did not take «Pausar», «Reanudar» or «Detener» of its menu: nothing of the project.</summary>
-    public const string RunCommandNotApplied =
-        "La ejecución ya había terminado, se paró o cambió de estado antes de aplicarlo, y no se aplicó. Abre Agent Studio para ver en qué quedó.";
+    public static string RunCommandNotApplied => Texts.Get("Background_Tray_CommandNotApplied");
 
     /// <summary>The title of the notice that an agent asks something: the name of the app, nothing of the project (docs/17 D-41).</summary>
     public const string AttentionTitle = "Agent Studio";
@@ -169,23 +169,23 @@ public sealed class TrayController : IDisposable
     {
         var items = new List<TrayMenuItem>
         {
-            new("Abrir Agent Studio", ShowWindowAsync),
-            new(_panel.IsShown ? "Ocultar el estado del trabajo" : "Ver el estado del trabajo", TogglePanelAsync),
+            new(Texts.Get("Background_Tray_Open"), ShowWindowAsync),
+            new(Texts.Get(_panel.IsShown ? "Background_Tray_HidePanel" : "Background_Tray_ShowPanel"), TogglePanelAsync),
             TrayMenuItem.Separator,
             OpenProjectItem(),
-            new("Abrir los registros", OpenLogsAsync, IsEnabled: !IsLocked),
+            new(Texts.Get("Background_Tray_OpenLogs"), OpenLogsAsync, IsEnabled: !IsLocked),
             TrayMenuItem.Separator,
         };
 
         items.AddRange(WorkItems());
         items.Add(TrayMenuItem.Separator);
-        items.Add(new TrayMenuItem(IsLocked ? "Bloqueado" : "Bloquear", _actions.Lock, IsEnabled: _actions.Lock is not null && !IsLocked));
+        items.Add(new TrayMenuItem(Texts.Get(IsLocked ? "Background_Tray_Locked" : "Background_Tray_Lock"), _actions.Lock, IsEnabled: _actions.Lock is not null && !IsLocked));
 
         // Locked, leaving the work is a decision on it like any other: it waits for the person to unlock.
         if (_exit.State == ExitState.WaitingForIdle)
         {
-            items.Add(new TrayMenuItem("Salir ahora y dejarlas interrumpidas", _exit.ExitNowAsync, IsEnabled: !IsLocked));
-            items.Add(new TrayMenuItem("No salir", () =>
+            items.Add(new TrayMenuItem(Texts.Get("Background_Tray_ExitNow"), _exit.ExitNowAsync, IsEnabled: !IsLocked));
+            items.Add(new TrayMenuItem(Texts.Get("Background_Tray_DontExit"), () =>
             {
                 _exit.CancelPendingExit();
                 return Task.CompletedTask;
@@ -193,7 +193,7 @@ public sealed class TrayController : IDisposable
         }
         else
         {
-            items.Add(new TrayMenuItem("Salir", ExitAsync, IsEnabled: _exit.State == ExitState.None && !IsLocked));
+            items.Add(new TrayMenuItem(Texts.Get("Background_Tray_Exit"), ExitAsync, IsEnabled: _exit.State == ExitState.None && !IsLocked));
         }
 
         return items;
@@ -234,7 +234,7 @@ public sealed class TrayController : IDisposable
     {
         if (IsLocked)
         {
-            return new TrayMenuItem("Abrir proyecto", IsEnabled: false);
+            return new TrayMenuItem(Texts.Get("Background_Tray_OpenProject"), IsEnabled: false);
         }
 
         var children = new List<TrayMenuItem>();
@@ -257,14 +257,14 @@ public sealed class TrayController : IDisposable
                 children.Add(TrayMenuItem.Separator);
             }
 
-            children.Add(new TrayMenuItem("Abrir carpeta…", async () =>
+            children.Add(new TrayMenuItem(Texts.Get("Background_Tray_OpenFolder"), async () =>
             {
                 _exit.ShowWindow();
                 await folder().ConfigureAwait(true);
             }));
         }
 
-        return new TrayMenuItem("Abrir proyecto", IsEnabled: children.Count > 0, Children: children);
+        return new TrayMenuItem(Texts.Get("Background_Tray_OpenProject"), IsEnabled: children.Count > 0, Children: children);
     }
 
     /// <summary>One submenu per run going on, with «Pausar», «Reanudar» and «Detener»; the other work only says what it is.</summary>
@@ -273,15 +273,13 @@ public sealed class TrayController : IDisposable
         var active = _work.Active;
         if (active.Count == 0)
         {
-            yield return new TrayMenuItem("Sin trabajo en marcha", IsEnabled: false);
+            yield return new TrayMenuItem(Texts.Get("Background_Tray_NoWork"), IsEnabled: false);
             yield break;
         }
 
         if (IsLocked)
         {
-            yield return new TrayMenuItem(
-                $"Bloqueado: {WorkTexts.Count(active.Count, "trabajo en marcha", "trabajos en marcha")}; desbloquea para {(active.Count == 1 ? "verlo" : "verlos")}",
-                IsEnabled: false);
+            yield return new TrayMenuItem(WorkTexts.Count(active.Count, "Background_Tray_LockedWork"), IsEnabled: false);
             yield break;
         }
 
@@ -293,9 +291,9 @@ public sealed class TrayController : IDisposable
             {
                 yield return new TrayMenuItem(text, Children:
                 [
-                    new TrayMenuItem("Pausar", OnRun(() => run.CanPause, run.PauseAsync, "No se pudo pausar"), IsEnabled: !exiting && run.CanPause),
-                    new TrayMenuItem("Reanudar", OnRun(() => run.CanResume, run.ResumeAsync, "No se pudo reanudar"), IsEnabled: !exiting && run.CanResume),
-                    new TrayMenuItem("Detener (cancela la ejecución)", OnRun(() => run.CanCancel, run.CancelAsync, "No se pudo detener"), IsEnabled: !exiting && run.CanCancel),
+                    new TrayMenuItem(Texts.Get("Background_Tray_Pause"), OnRun(() => run.CanPause, run.PauseAsync, "Background_Tray_PauseFailed"), IsEnabled: !exiting && run.CanPause),
+                    new TrayMenuItem(Texts.Get("Background_Tray_Resume"), OnRun(() => run.CanResume, run.ResumeAsync, "Background_Tray_ResumeFailed"), IsEnabled: !exiting && run.CanResume),
+                    new TrayMenuItem(Texts.Get("Background_Tray_Stop"), OnRun(() => run.CanCancel, run.CancelAsync, "Background_Tray_StopFailed"), IsEnabled: !exiting && run.CanCancel),
                 ]);
             }
             else
@@ -311,11 +309,11 @@ public sealed class TrayController : IDisposable
     /// hidden, so the tray says so itself, with nothing of the project; the monitor keeps the detail. A pause that does not reach
     /// the log would let the run resume by itself after a close (docs/16 D-39): the person must know.
     /// </summary>
-    private Func<Task> OnRun(Func<bool> canNow, Func<Task> command, string failed) => async () =>
+    private Func<Task> OnRun(Func<bool> canNow, Func<Task> command, string failedKey) => async () =>
     {
         if (!canNow())
         {
-            _tray.Notify(new TrayNotification(failed, RunCommandNotApplied));
+            _tray.Notify(new TrayNotification(Texts.Get(failedKey), RunCommandNotApplied));
             return;
         }
 
@@ -328,7 +326,7 @@ public sealed class TrayController : IDisposable
 #pragma warning restore CA1031
         {
             _log?.LogWarning(ex, "A command of the tray menu was not taken by its run.");
-            _tray.Notify(new TrayNotification(failed, RunCommandNotApplied));
+            _tray.Notify(new TrayNotification(Texts.Get(failedKey), RunCommandNotApplied));
         }
     };
 
@@ -378,7 +376,7 @@ public sealed class TrayController : IDisposable
 
     private void OnNotificationClicked(object? sender, EventArgs e) => _exit.ShowWindow();
 
-    private void OnPendingExitCancelled(object? sender, string notice) => _tray.Notify(new TrayNotification("Agent Studio ya no sale", notice));
+    private void OnPendingExitCancelled(object? sender, string notice) => _tray.Notify(new TrayNotification(Texts.Get("Background_Tray_NoLongerExits"), notice));
 
     private void OnChanged(object? sender, EventArgs e) => Refresh();
 
@@ -414,8 +412,8 @@ public sealed class TrayController : IDisposable
         {
             return work switch
             {
-                RunWork run => new TrayNotification("Ejecución terminada", $"Una ejecución terminó: {RunEnd(run)}."),
-                DebateWork => new TrayNotification("Debate terminado", "Un debate terminó."),
+                RunWork run => new TrayNotification(Texts.Get("Background_Tray_RunEnded_Title"), Texts.Format("Background_Tray_RunEnded_Text", RunEnd(run))),
+                DebateWork => new TrayNotification(Texts.Get("Background_Tray_DebateEnded_Title"), Texts.Get("Background_Tray_DebateEnded_Text")),
                 _ => null,
             };
         }
@@ -428,13 +426,13 @@ public sealed class TrayController : IDisposable
         if (now.AwaitingPerson > before.AwaitingPerson)
         {
             return work is RunWork
-                ? new TrayNotification("Agent Studio espera tu aprobación", "Una ejecución necesita tu aprobación para seguir.")
-                : new TrayNotification("Agent Studio espera por ti", "Un debate necesita una decisión tuya.");
+                ? new TrayNotification(Texts.Get("Background_Tray_RunApproval_Title"), Texts.Get("Background_Tray_RunApproval_Text"))
+                : new TrayNotification(Texts.Get("Background_Tray_DebateAwaiting_Title"), Texts.Get("Background_Tray_DebateAwaiting_Text"));
         }
 
         if (before.WaitsForQuota && !now.WaitsForQuota && now.Phase is null or RunPhase.Running)
         {
-            return new TrayNotification("La espera de cuota terminó", work is RunWork ? "Una ejecución dejó de esperar cuota y sigue." : "Un debate dejó de esperar cuota y sigue.");
+            return new TrayNotification(Texts.Get("Background_Tray_QuotaOver_Title"), Texts.Get(work is RunWork ? "Background_Tray_RunQuotaOver_Text" : "Background_Tray_DebateQuotaOver_Text"));
         }
 
         return null;
@@ -443,12 +441,8 @@ public sealed class TrayController : IDisposable
     /// <summary>How a run ended, as the notification says it (never anything of the project).</summary>
     private static string RunEnd(RunWork run) => run.Monitor.Phase switch
     {
-        RunPhase.Succeeded => "completada",
-        RunPhase.Failed => "fallida",
-        RunPhase.Cancelled => "cancelada",
-        RunPhase.Blocked => "bloqueada",
-        RunPhase.Interrupted => "interrumpida",
-        null => "sin resultado",
+        RunPhase.Succeeded or RunPhase.Failed or RunPhase.Cancelled or RunPhase.Blocked or RunPhase.Interrupted => Texts.Get("Background_Tray_RunEnd_" + run.Monitor.Phase),
+        null => Texts.Get("Background_Tray_RunEnd_None"),
         var phase => RunPhaseText.Label(phase.Value),
     };
 }

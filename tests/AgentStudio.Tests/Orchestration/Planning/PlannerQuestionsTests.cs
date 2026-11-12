@@ -117,14 +117,14 @@ public sealed class PlannerQuestionsTests
         var question = Assert.Single(asked.Questions!);
 
         harness.Claude.Script("orquestador", null, 1, Answer(ValidPlanWithNotes()));
-        var answer = QuestionAnswer.Choosing(null, question.Id, "a", "miveritas");
+        var answer = QuestionAnswer.Choosing(null, question.Id, "a", "ana");
         var proposal = await PlanAsync(harness, harness.PlanningRequest() with { Answers = [new AnsweredQuestion(asked.Run, question, answer)] });
 
         Assert.Equal(asked.Run, proposal.Run);
         Assert.NotNull(proposal.Plan);
         Assert.Null(proposal.Questions);
         var (entry, answered) = Assert.Single(harness.Payloads<QuestionAnsweredPayload>());
-        Assert.Equal(new Actor(ActorKind.User, "miveritas"), entry.Actor);
+        Assert.Equal(new Actor(ActorKind.User, "ana"), entry.Actor);
         Assert.Equal((asked.Run.Value, (TaskId?)null, "plan-1", "a", QuestionAnswerMethod.ChosenByPerson), (answered.RunId, answered.Task, answered.Question, answered.ChosenOption, answered.Method));
         Assert.Single(harness.Payloads<WorktreeCreatedPayload>()); // the _base of the run that asked, reused
 
@@ -147,7 +147,7 @@ public sealed class PlannerQuestionsTests
         Assert.Equal("¿Uso la clave [REDACTED] para la API?", question.Question.Text);
 
         harness.Claude.Script("orquestador", null, 1, Answer(ValidPlanWithNotes()));
-        var answer = QuestionAnswer.Writing(null, question.Id, "Usa sk-secreto solo en local", "miveritas");
+        var answer = QuestionAnswer.Writing(null, question.Id, "Usa sk-secreto solo en local", "ana");
         var request = harness.PlanningRequest() with { Answers = [new AnsweredQuestion(asked.Run, question, answer)] };
         var proposal = await PlanAsync(harness, request);
 
@@ -183,7 +183,7 @@ public sealed class PlannerQuestionsTests
         var question = Assert.Single(asked.Questions!);
         harness.Claude.Script("orquestador", null, 1, Answer(ValidPlanWithNotes()));
 
-        await PlanAsync(harness, harness.PlanningRequest() with { Answers = [new AnsweredQuestion(asked.Run, question, QuestionAnswer.Writing(null, question.Id, "Usa LiteDB", "miveritas"))] });
+        await PlanAsync(harness, harness.PlanningRequest() with { Answers = [new AnsweredQuestion(asked.Run, question, QuestionAnswer.Writing(null, question.Id, "Usa LiteDB", "ana"))] });
 
         var (_, answered) = Assert.Single(harness.Payloads<QuestionAnsweredPayload>());
         Assert.Null(answered.ChosenOption);
@@ -204,7 +204,7 @@ public sealed class PlannerQuestionsTests
         harness.Claude.Script("orquestador", null, 1, Answer(Asking()));
         harness.Claude.Script("orquestador", null, 2, Answer(ValidPlanWithNotes()));
 
-        var proposal = await PlanAsync(harness, harness.PlanningRequest() with { Answers = [new AnsweredQuestion(asked.Run, question, QuestionAnswer.Choosing(null, question.Id, "b", "miveritas"))] });
+        var proposal = await PlanAsync(harness, harness.PlanningRequest() with { Answers = [new AnsweredQuestion(asked.Run, question, QuestionAnswer.Choosing(null, question.Id, "b", "ana"))] });
 
         Assert.True(proposal.Corrected);
         Assert.NotNull(proposal.Plan);
@@ -223,18 +223,18 @@ public sealed class PlannerQuestionsTests
         var starts = harness.Claude.Starts.Count;
 
         var ghost = question with { Id = "plan-9" };
-        await Assert.ThrowsAsync<ArgumentException>(() => PlanAsync(harness, harness.PlanningRequest() with { Answers = [new AnsweredQuestion(asked.Run, ghost, QuestionAnswer.Choosing(null, "plan-9", "a", "miveritas"))] }));
-        await Assert.ThrowsAsync<ArgumentException>(() => PlanAsync(harness, harness.PlanningRequest() with { Answers = [new AnsweredQuestion(asked.Run, question, QuestionAnswer.Choosing(null, question.Id, "z", "miveritas"))] }));
+        await Assert.ThrowsAsync<ArgumentException>(() => PlanAsync(harness, harness.PlanningRequest() with { Answers = [new AnsweredQuestion(asked.Run, ghost, QuestionAnswer.Choosing(null, "plan-9", "a", "ana"))] }));
+        await Assert.ThrowsAsync<ArgumentException>(() => PlanAsync(harness, harness.PlanningRequest() with { Answers = [new AnsweredQuestion(asked.Run, question, QuestionAnswer.Choosing(null, question.Id, "z", "ana"))] }));
         await Assert.ThrowsAsync<ArgumentException>(() => PlanAsync(harness, harness.PlanningRequest() with { Answers = [new AnsweredQuestion(asked.Run, question, QuestionAnswer.RecommendedByConsent(null, question.Id, "a"))] }));
         var closed = question with { Question = question.Question with { AllowOther = false } };
-        await Assert.ThrowsAsync<ArgumentException>(() => PlanAsync(harness, harness.PlanningRequest() with { Answers = [new AnsweredQuestion(asked.Run, closed, QuestionAnswer.Writing(null, question.Id, "Otra cosa", "miveritas"))] }));
+        await Assert.ThrowsAsync<ArgumentException>(() => PlanAsync(harness, harness.PlanningRequest() with { Answers = [new AnsweredQuestion(asked.Run, closed, QuestionAnswer.Writing(null, question.Id, "Otra cosa", "ana"))] }));
         Assert.Equal(starts, harness.Claude.Starts.Count);
         Assert.Empty(harness.Payloads<QuestionAnsweredPayload>());
 
         harness.Claude.Script("orquestador", null, 1, Answer(ValidPlanWithNotes()));
-        var answers = new[] { new AnsweredQuestion(asked.Run, question, QuestionAnswer.Choosing(null, question.Id, "a", "miveritas")) };
+        var answers = new[] { new AnsweredQuestion(asked.Run, question, QuestionAnswer.Choosing(null, question.Id, "a", "ana")) };
         await PlanAsync(harness, harness.PlanningRequest() with { Answers = answers });
-        var other = new[] { new AnsweredQuestion(asked.Run, question, QuestionAnswer.Choosing(null, question.Id, "b", "miveritas")) };
+        var other = new[] { new AnsweredQuestion(asked.Run, question, QuestionAnswer.Choosing(null, question.Id, "b", "ana")) };
         await Assert.ThrowsAsync<ArgumentException>(() => PlanAsync(harness, harness.PlanningRequest() with { Answers = other })); // answered already, otherwise
     }
 
@@ -245,7 +245,7 @@ public sealed class PlannerQuestionsTests
         harness.Claude.Script("orquestador", null, 1, Answer(Asking()));
         var asked = await PlanAsync(harness);
         var question = Assert.Single(asked.Questions!);
-        var answers = new[] { new AnsweredQuestion(asked.Run, question, QuestionAnswer.Writing(null, question.Id, "Usa LiteDB", "miveritas")) };
+        var answers = new[] { new AnsweredQuestion(asked.Run, question, QuestionAnswer.Writing(null, question.Id, "Usa LiteDB", "ana")) };
         harness.Claude.Script("orquestador", null, 1, AgentScript.Failing("Límite de uso alcanzado."));
 
         var failed = await PlanAsync(harness, harness.PlanningRequest() with { Answers = answers });
@@ -272,7 +272,7 @@ public sealed class PlannerQuestionsTests
         harness.Worktrees.UserState = harness.Worktrees.UserState with { HeadCommit = new string('f', 40) }; // the person committed since
         harness.Claude.Script("orquestador", null, 1, Answer(ValidPlanWithNotes()));
 
-        var proposal = await PlanAsync(harness, harness.PlanningRequest() with { Answers = [new AnsweredQuestion(asked.Run, question, QuestionAnswer.Choosing(null, question.Id, "a", "miveritas"))] });
+        var proposal = await PlanAsync(harness, harness.PlanningRequest() with { Answers = [new AnsweredQuestion(asked.Run, question, QuestionAnswer.Choosing(null, question.Id, "a", "ana"))] });
 
         Assert.NotNull(proposal.Plan);
         var bases = harness.Payloads<WorktreeCreatedPayload>().Select(p => p.Payload.BaseCommit).ToList();
@@ -290,7 +290,7 @@ public sealed class PlannerQuestionsTests
         Assert.Equal(["plan-1", "plan-2"], asked.Questions!.Select(q => q.Id));
         var starts = harness.Claude.Starts.Count;
 
-        var partial = new[] { new AnsweredQuestion(asked.Run, asked.Questions![0], QuestionAnswer.Choosing(null, "plan-1", "a", "miveritas")) };
+        var partial = new[] { new AnsweredQuestion(asked.Run, asked.Questions![0], QuestionAnswer.Choosing(null, "plan-1", "a", "ana")) };
         await Assert.ThrowsAsync<ArgumentException>(() => PlanAsync(harness, harness.PlanningRequest() with { Answers = partial }));
 
         Assert.Equal(starts, harness.Claude.Starts.Count);

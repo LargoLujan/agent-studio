@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Work;
@@ -32,14 +33,14 @@ public sealed partial class NodeViewModel : ObservableObject
         _workspace = NodeKinds.DefaultWorkspace(kind);
         _maxRetries = NodeKinds.DefaultRetries(kind);
 
-        Inputs = [new ConnectorViewModel(this, ConnectorFlow.Input, "Entrada")];
+        Inputs = [new ConnectorViewModel(this, ConnectorFlow.Input, Texts.Get("Orchestrator_Node_Input"))];
         Outputs = kind == WorkTaskKind.Condition
             ?
             [
-                new ConnectorViewModel(this, ConnectorFlow.Output, "Sí", ConditionBranches.Yes),
-                new ConnectorViewModel(this, ConnectorFlow.Output, "No", ConditionBranches.No),
+                new ConnectorViewModel(this, ConnectorFlow.Output, Texts.Get("Orchestrator_Node_Yes"), ConditionBranches.Yes),
+                new ConnectorViewModel(this, ConnectorFlow.Output, Texts.Get("Orchestrator_Node_No"), ConditionBranches.No),
             ]
-            : [new ConnectorViewModel(this, ConnectorFlow.Output, "Salida")];
+            : [new ConnectorViewModel(this, ConnectorFlow.Output, Texts.Get("Orchestrator_Node_Output"))];
         Problems.CollectionChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(HasProblems));
@@ -81,7 +82,7 @@ public sealed partial class NodeViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(AutomationName))]
     private WorkTaskStatus _status = WorkTaskStatus.Pending;
 
-    public string StatusLabel => IsDisabled ? "Aplazado" : TaskStatusText.Label(Status);
+    public string StatusLabel => IsDisabled ? Texts.Get("Orchestrator_Node_Postponed") : TaskStatusText.Label(Status);
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(AutomationName))]
@@ -95,7 +96,7 @@ public sealed partial class NodeViewModel : ObservableObject
     public string? AgentLabel => Agent?.Value;
 
     /// <summary>The label of the agent in words («Agente: ejecutor»), from the resources; null when the task has none.</summary>
-    public string? AgentText => Agent is { } agent ? AgentStudio.Desktop.Localization.Texts.Format("Canvas_Node_AgentLabel", agent.Value) : null;
+    public string? AgentText => Agent is { } agent ? Texts.Format("Canvas_Node_AgentLabel", agent.Value) : null;
 
     /// <summary>The agent selected in the Team layer owns this task: the node shines (selection linked, D-07).</summary>
     [ObservableProperty]
@@ -156,7 +157,7 @@ public sealed partial class NodeViewModel : ObservableObject
 
     public bool HasProblems => Problems.Count > 0;
 
-    public string ProblemSummary => Problems.Count == 1 ? "1 problema" : $"{Problems.Count} problemas";
+    public string ProblemSummary => Problems.Count == 1 ? Texts.Get("Orchestrator_Node_ProblemOne") : Texts.Format("Orchestrator_Node_ProblemMany", Problems.Count);
 
     /// <summary>What a screen reader announces for the node (Nodify ships no automation peers).</summary>
     public string AutomationName => HasProblems

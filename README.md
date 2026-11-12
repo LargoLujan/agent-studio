@@ -517,6 +517,9 @@ ADR numbers 0038 to 0046 are reserved for the decisions of Phases 6 to 11, which
 | [0035](docs/adr/0035-final-clasificado-y-renovacion-del-contexto.md) | Classified attempt endings and context renewal with a hand-off |
 | [0036](docs/adr/0036-vida-de-la-app-y-bandeja.md) | App lifetime, tray, managed exit, sleep and clock |
 | [0037](docs/adr/0037-windows-hello-y-bloqueo-de-la-interfaz.md) | Windows Hello for critical approvals and an interface lock |
+| [0038](docs/adr/0038-hito-backlog-y-tablero.md) | Milestones as named frozen requirement sets, an append-only anchored backlog and the board as a projection of the log |
+| [0039](docs/adr/0039-vinculos-de-trazabilidad-y-participacion.md) | Explicit append-only trace links, inferences as suggestions, commit trailers and six participation roles |
+| [0040](docs/adr/0040-consumo-por-hito-y-actividad-y-presupuestos.md) | Usage by milestone and activity, budgets per project and milestone, actual versus estimate |
 | [0047](docs/adr/0047-indice-semantico-local.md) | Local semantic index with on-device embeddings and hybrid search |
 | [0048](docs/adr/0048-constructor-visual-equipo-y-plan.md) | Visual builder: a canvas with the Team and Plan layers; the Team layer is the template |
 | [0049](docs/adr/0049-analizador-del-montaje-y-orden.md) | Team and order analyzer: deterministic rules with typed fixes; order notes only suggest |
@@ -526,6 +529,8 @@ ADR numbers 0038 to 0046 are reserved for the decisions of Phases 6 to 11, which
 | [0053](docs/adr/0053-windows-hello-como-barrera-fija.md) | Windows Hello as a fixed barrier that no setting or file turns off |
 | [0054](docs/adr/0054-idiomas-y-lenguaje-claro.md) | Languages and plain language: `.resx` resources, Windows language by default |
 | [0055](docs/adr/0055-configurador-por-proyecto.md) | Per-project setup wizard and Node and Python verification profiles |
+| [0056](docs/adr/0056-ayuda-y-agente-de-ayuda.md) | Help: local and free first, then a read-only agent with your OK on each question and a card of what it is sent |
+| [0057](docs/adr/0057-documentacion-para-clientes.md) | Client documentation: a deterministic, language-neutral model, four formats, agent-written parts marked, reviewed before export |
 
 </details>
 

@@ -207,8 +207,8 @@ public sealed class DemoHarnessTests
         Assert.Contains("> ¿Cómo debería la biblioteca Calc tratar el desbordamiento?", document, StringComparison.Ordinal);
         Assert.Contains("| P1 | ", document, StringComparison.Ordinal);
         Assert.Contains("valoración del juez, no verificable por pruebas", document, StringComparison.Ordinal);
-        Assert.Contains("exacto · informado por el CLI", document, StringComparison.Ordinal);
-        Assert.Contains("estimado por el CLI", document, StringComparison.Ordinal);
+        Assert.Contains("exacto · informado por el programa del agente", document, StringComparison.Ordinal);
+        Assert.Contains("estimado por el programa del agente", document, StringComparison.Ordinal);
         Assert.Contains("no expuesto", document, StringComparison.Ordinal);
         Assert.Contains("`ApprovedOnAgentClaimsOnly`", document, StringComparison.Ordinal);
         Assert.Contains("Regla del jurado", document, StringComparison.Ordinal);

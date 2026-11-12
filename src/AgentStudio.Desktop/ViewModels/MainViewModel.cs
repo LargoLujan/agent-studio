@@ -9,7 +9,11 @@ using AgentStudio.Desktop.Audit;
 using AgentStudio.Desktop.Background;
 using AgentStudio.Desktop.Controls.Editor;
 using AgentStudio.Desktop.Debate;
+using AgentStudio.Desktop.Help;
+using AgentStudio.Desktop.Documents;
 using AgentStudio.Desktop.Memory;
+using AgentStudio.Desktop.Repository;
+using AgentStudio.Desktop.Work;
 using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Orchestrator;
 using AgentStudio.Desktop.Orchestrator.Monitor;
@@ -45,19 +49,19 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
     /// The shortcut that shows or hides the terminal (MainWindow binds it): Ctrl and the key to the right of «L» (VK_OEM_3),
     /// which is «Ñ» on a Spanish keyboard and «`» on a US one, the key Visual Studio Code uses for its terminal.
     /// </summary>
-    public const string TerminalShortcut = "Ctrl+Ñ";
+    public static string TerminalShortcut => Texts.Get("Main_Shortcut_Terminal");
 
     /// <summary>The shortcuts the window binds for «Ir al fichero», «Debates» and «Auditar proyecto completo», as the tooltips say them.</summary>
     public const string GoToFileShortcut = "Ctrl+P";
 
     /// <inheritdoc cref="GoToFileShortcut"/>
-    public const string DebatesShortcut = "Ctrl+Mayús+D";
+    public static string DebatesShortcut => Texts.Get("Main_Shortcut_Debates");
 
     /// <inheritdoc cref="GoToFileShortcut"/>
-    public const string AuditShortcut = "Ctrl+Mayús+A";
+    public static string AuditShortcut => Texts.Get("Main_Shortcut_Audit");
 
     /// <summary>The shortcut of the «Terminal» entry as its tooltip says it: on a US keyboard the same key is «`».</summary>
-    private const string TerminalShortcutHint = $"{TerminalShortcut}; en un teclado de EE. UU., Ctrl+`";
+    private static string TerminalShortcutHint => Texts.Get("Main_Shortcut_TerminalHint");
 
     private readonly IAppSettingsStore _settingsStore;
     private readonly IFolderPicker _folderPicker;
@@ -141,6 +145,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
     /// <param name="monitors">What the monitors the shell creates for itself are given (docs/04 section 21.10); without it they have none of it.</param>
     /// <param name="setup">Creates the configurator of a project (docs/17 section 4.6); without it «Configurar proyecto» is not offered.</param>
     /// <param name="setupSuggestions">Which projects the configurator was already suggested for; without it nothing is suggested.</param>
+    /// <param name="clientDocuments">The «Documentación para clientes» document of the session; without it the activity is not offered.</param>
     public MainViewModel(
         IAppSettingsStore settingsStore,
         IFolderPicker folderPicker,
@@ -163,7 +168,11 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         ContextWindowCatalogs? contextWindows = null,
         MonitorServices? monitors = null,
         SetupViewModelFactory? setup = null,
-        SetupSuggestions? setupSuggestions = null)
+        SetupSuggestions? setupSuggestions = null,
+        HelpDocumentViewModel? help = null,
+        ClientDocumentsViewModel? clientDocuments = null,
+        RepositoryViewModel? repository = null,
+        WorkDocumentViewModel? workDocument = null)
     {
         ArgumentNullException.ThrowIfNull(settingsStore);
         ArgumentNullException.ThrowIfNull(folderPicker);
@@ -187,6 +196,8 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         _skillsFactory = skills ?? new SkillsDocumentFactory(SkillsBackend.None, TimeProvider.System);
         _usage = usage;
         _memory = memory;
+        _clientDocuments = clientDocuments;
+        _workDocument = workDocument;
         _upkeep = upkeep;
         _debates = debates;
         _review = review;
@@ -212,18 +223,25 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         Diagnostics.PropertyChanged += OnDiagnosticsPropertyChanged;
         UpdateProviderSummary();
 
+        InitializeHelp(help);
+        InitializeRepository(repository);
+        ConnectRepositoryToWork();
         Activities =
         [
-            new("explorer", "Explorador", "", null, PanelIds.Explorer, TogglePanelCommand),
-            new("orchestrator", "Orquestador", "\uE9F5", null, null, OpenOrchestratorCommand),
+            new("explorer", Texts.Get("Main_Panel_Explorer"), "", null, PanelIds.Explorer, TogglePanelCommand),
+            new("orchestrator", Texts.Get("Main_Activity_Orchestrator"), "\uE9F5", null, null, OpenOrchestratorCommand),
             .. AgentActivities(),
-            new("skills", "Skills", "", null, null, OpenSkillsCommand),
+            new("skills", Texts.Get("Main_Activity_Skills"), "", null, null, OpenSkillsCommand),
             .. BuilderToolActivities(),
             .. ObservabilityActivities(),
+            .. RepositoryActivities(),
+            .. ClientDocumentActivities(),
+            .. WorkActivities(),
             .. DebateActivities(),
-            new("terminal", "Terminal", "", null, PanelIds.Terminal, TogglePanelCommand) { Shortcut = TerminalShortcutHint },
-            new("autodoctor", "Auto Doctor", "", null, PanelIds.AutoDoctor, TogglePanelCommand),
-            new("history", "Historial · bitácora", "", null, PanelIds.Journal, TogglePanelCommand),
+            new("terminal", Texts.Get("Main_Panel_Terminal"), "", null, PanelIds.Terminal, TogglePanelCommand) { Shortcut = TerminalShortcutHint },
+            new("autodoctor", Texts.Get("Main_Panel_AutoDoctor"), "", null, PanelIds.AutoDoctor, TogglePanelCommand),
+            new("history", Texts.Get("Main_Activity_History"), "", null, PanelIds.Journal, TogglePanelCommand),
+            .. HelpActivities(),
             .. SettingsActivities(),
         ];
         InitializeBuilderShell(monitors, setup, setupSuggestions);
@@ -251,7 +269,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
     {
         if (_debates is not null)
         {
-            yield return new ActivityItemViewModel("debates", "Debates", "", null, null, OpenDebatesCommand) { Shortcut = DebatesShortcut };
+            yield return new ActivityItemViewModel("debates", Texts.Get("Main_Activity_Debates"), "", null, null, OpenDebatesCommand) { Shortcut = DebatesShortcut };
         }
     }
 
@@ -260,7 +278,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
     {
         if (_settingsDocument is not null)
         {
-            yield return new ActivityItemViewModel("settings", "Ajustes", "", null, null, OpenSettingsCommand);
+            yield return new ActivityItemViewModel("settings", Texts.Get("SettingsDoc_Title"), "", null, null, OpenSettingsCommand);
         }
     }
 
@@ -279,12 +297,12 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
     {
         if (_usage is not null)
         {
-            yield return new ActivityItemViewModel("usage", "Consumo", "", null, null, OpenUsageCommand);
+            yield return new ActivityItemViewModel("usage", Texts.Get("Main_Activity_Usage"), "", null, null, OpenUsageCommand);
         }
 
         if (_memory is not null)
         {
-            yield return new ActivityItemViewModel("memory", "Memoria", "", null, null, OpenMemoryCommand);
+            yield return new ActivityItemViewModel("memory", Texts.Get("Main_Activity_Memory"), "", null, null, OpenMemoryCommand);
         }
     }
 
@@ -309,15 +327,15 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
 
     /// <summary>Tooltip of the "go to file" button; says why it is disabled when no project is open.</summary>
     public string GoToFileToolTip => HasProject
-        ? "Ir a un fichero del proyecto (Ctrl+P)"
-        : "Abre una carpeta de proyecto para poder ir a sus ficheros (Ctrl+P)";
+        ? Texts.Get("Main_GoToFile_Hint")
+        : Texts.Get("Main_GoToFile_NoProject");
 
-    public string ProjectName => ProjectPath is null ? "Sin proyecto" : RecentProjectItem.From(ProjectPath).Name;
+    public string ProjectName => ProjectPath is null ? Texts.Get("Main_Project_None") : RecentProjectItem.From(ProjectPath).Name;
 
     /// <summary>What a screen reader says for the name of the project in the top bar: that one is open, and which.</summary>
-    public string ProjectAccessibleName => ProjectPath is null ? "Sin proyecto abierto" : $"Proyecto abierto: {ProjectName}";
+    public string ProjectAccessibleName => ProjectPath is null ? Texts.Get("Main_Project_NoneName") : Texts.Format("Main_Project_OpenNamed", ProjectName);
 
-    public string ProjectPathDisplay => ProjectPath is null ? "Abre una carpeta para empezar" : PathDisplay.CollapseHome(ProjectPath);
+    public string ProjectPathDisplay => ProjectPath is null ? Texts.Get("Main_Project_Start") : PathDisplay.CollapseHome(ProjectPath);
 
     /// <summary>
     /// The version of the app in the status bar: the version and the commit it was built from («v1.0.0 · 87f7a07»), so the
@@ -395,7 +413,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
     [RelayCommand]
     private async Task OpenFolderAsync()
     {
-        var folder = _folderPicker.PickFolder("Abrir carpeta de proyecto");
+        var folder = _folderPicker.PickFolder(Texts.Get("Main_OpenFolder_Dialog"));
         if (!string.IsNullOrWhiteSpace(folder))
         {
             await OpenProjectAsync(folder);
@@ -432,24 +450,24 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
     {
         var actions = new List<WelcomeActionViewModel>
         {
-            new("Orquestador", "Planifica una petición con agentes y ejecútala con un juez independiente.", null, OpenOrchestratorCommand),
-            new("Ir al fichero", "Busca un fichero del proyecto y ábrelo en el editor.", GoToFileShortcut, GoToFileCommand),
+            new(Texts.Get("Main_Activity_Orchestrator"), Texts.Get("Welcome_Action_Orchestrator"), null, OpenOrchestratorCommand),
+            new(Texts.Get("Main_GoToFile"), Texts.Get("Welcome_Action_GoToFile"), GoToFileShortcut, GoToFileCommand),
         };
 
         if (_debates is not null)
         {
-            actions.Add(new("Debates", "Contrasta una decisión entre agentes de proveedores distintos.", DebatesShortcut, OpenDebatesCommand));
-            actions.Add(new("Auditar proyecto completo", "Audita el commit HEAD con la verificación del sistema y un juez independiente.", AuditShortcut, OpenAuditCommand));
+            actions.Add(new(Texts.Get("Main_Activity_Debates"), Texts.Get("Welcome_Action_Debates"), DebatesShortcut, OpenDebatesCommand));
+            actions.Add(new(Texts.Get("Main_Audit"), Texts.Get("Welcome_Action_Audit"), AuditShortcut, OpenAuditCommand));
         }
 
         if (_usage is not null)
         {
-            actions.Add(new("Consumo", "Tokens y coste de las ejecuciones, y la cuota de tus suscripciones.", null, OpenUsageCommand));
+            actions.Add(new(Texts.Get("Main_Activity_Usage"), Texts.Get("Welcome_Action_Usage"), null, OpenUsageCommand));
         }
 
         if (_memory is not null)
         {
-            actions.Add(new("Memoria", "Lo que el proyecto aprende de sus ejecuciones y llega a los agentes.", null, OpenMemoryCommand));
+            actions.Add(new(Texts.Get("Main_Activity_Memory"), Texts.Get("Welcome_Action_Memory"), null, OpenMemoryCommand));
         }
 
         if (_setupFactory is not null)
@@ -457,14 +475,14 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
             actions.Add(new(Texts.Get("Shell_Setup_Action"), Texts.Get("Shell_Setup_ActionHelp"), null, OpenSetupCommand));
         }
 
-        actions.Add(new("Terminal", "Muestra u oculta el terminal, abierto en la carpeta del proyecto.", TerminalShortcut, ToggleTerminalCommand));
+        actions.Add(new(Texts.Get("Main_Panel_Terminal"), Texts.Get("Welcome_Action_Terminal"), TerminalShortcut, ToggleTerminalCommand));
         return actions;
     }
 
     /// <summary>Ctrl+P: search the files of the open project and open the one chosen in a tab.</summary>
     [RelayCommand(CanExecute = nameof(HasProject))]
     private Task GoToFileAsync() =>
-        ProjectPath is { } root ? QuickOpen.OpenAsync(root, "Ir al fichero", OpenFileAsync) : Task.CompletedTask;
+        ProjectPath is { } root ? QuickOpen.OpenAsync(root, Texts.Get("Main_GoToFile"), OpenFileAsync) : Task.CompletedTask;
 
     /// <summary>
     /// Opens the «Orquestador» tab of the open project: one document per project, created the first time and kept for the
@@ -475,7 +493,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
     {
         if (ProjectPath is not { } root)
         {
-            StatusMessage = "Abre una carpeta de proyecto para usar el orquestador.";
+            StatusMessage = Texts.Get("Main_NeedProject_Orchestrator");
             return;
         }
 
@@ -590,6 +608,10 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
                 await _memory.SetProjectAsync(projectPath);
             }
         }
+
+        await ShowProjectInRepositoryAsync(projectPath);
+        await ShowProjectInDocumentsAsync(projectPath);
+        await ShowProjectInWorkAsync(projectPath);
     }
 
     /// <summary>
@@ -647,7 +669,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
 
         if (ProjectPath is not { } root)
         {
-            StatusMessage = "Abre una carpeta de proyecto para debatir.";
+            StatusMessage = Texts.Get("Main_NeedProject_Debate");
             return;
         }
 
@@ -667,7 +689,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
 
         if (ProjectPath is not { } root)
         {
-            StatusMessage = "Abre una carpeta de proyecto para auditarlo.";
+            StatusMessage = Texts.Get("Main_NeedProject_Audit");
             return;
         }
 
@@ -693,7 +715,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         ArgumentException.ThrowIfNullOrWhiteSpace(request);
         if (!SameProject(ProjectPath, projectRoot))
         {
-            StatusMessage = "Las tareas correctivas son de otro proyecto: ábrelo para crearlas.";
+            StatusMessage = Texts.Get("Main_Corrective_OtherProject");
             return;
         }
 
@@ -795,7 +817,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            StatusMessage = $"No se pudo derivar la memoria del proyecto: {ex.Message}";
+            StatusMessage = Texts.Format("Main_Memory_UpdateFailed", ex.Message);
             return false;
         }
     }
@@ -831,13 +853,13 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         }
         catch (ArgumentException ex)
         {
-            StatusMessage = $"Ruta no válida: {ex.Message}";
+            StatusMessage = Texts.Format("Main_Path_Invalid", ex.Message);
             return;
         }
 
         if (!Directory.Exists(normalized))
         {
-            StatusMessage = $"La carpeta ya no existe: {PathDisplay.CollapseHome(normalized)}";
+            StatusMessage = Texts.Format("Main_Folder_Gone", PathDisplay.CollapseHome(normalized));
             _settings = _settings.WithProjectRemoved(normalized);
             TrySaveSettings();
             RefreshRecents();
@@ -938,7 +960,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
             // A failure does not go away by asking again in this session: the project counts as checked.
             _resumeChecked.Add(projectRoot);
             _resumeAgain.Remove(projectRoot);
-            StatusMessage = $"No se pudo comprobar si alguna ejecución se reanuda sola: {ex.Message}";
+            StatusMessage = Texts.Format("Main_Resume_CheckFailed", ex.Message);
             return;
         }
         finally
@@ -963,12 +985,12 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         if (resumed.Count > 0)
         {
             StatusMessage = resumed.Count == 1
-                ? $"La ejecución {resumed[0].Run} se reanudó sola, con tu consentimiento: {resumed[0].Reason}"
-                : $"Se reanudaron solas {resumed.Count} ejecuciones, con tu consentimiento.";
+                ? Texts.Format("Main_Resumed_One", resumed[0].Run, OrchestratorCodedText.Painted(resumed[0].ReasonText, resumed[0].Reason))
+                : Texts.Format("Main_Resumed_Many", resumed.Count);
         }
         else if (failed.Count > 0)
         {
-            StatusMessage = $"La ejecución {failed[0].Run} tenía tu consentimiento para reanudarse sola. {failed[0].Reason}";
+            StatusMessage = Texts.Format("Main_Resume_Failed", failed[0].Run, OrchestratorCodedText.Painted(failed[0].ReasonText, failed[0].Reason));
         }
     }
 
@@ -1014,7 +1036,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
             if (!document.FollowResumed(run, project))
             {
                 FollowInBackground(root, project, run, resumeConsent: null);
-                StatusMessage = $"La ejecución {run.Id} se reanudó sola mientras su pestaña estaba ocupada o seguía otra ejecución: la sigue la bandeja.";
+                StatusMessage = Texts.Format("Main_Resumed_Busy", run.Id);
             }
         }
 #pragma warning disable CA1031 // A run no monitor could take keeps its announcement in the registry: it is said, never thrown into the dispatcher.
@@ -1023,7 +1045,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         {
             if (!IsFollowed(run.Id))
             {
-                StatusMessage = $"La ejecución {run.Id} se reanudó sola, pero no se pudo seguir en su pestaña. Sigue en marcha: la bandeja la muestra, y al salir se te pregunta por ella.";
+                StatusMessage = Texts.Format("Main_Resumed_NotFollowed", run.Id);
                 return;
             }
         }
@@ -1093,7 +1115,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
     private void OnRunHandedOff(object? sender, HandedOffRun handed)
     {
         FollowInBackground(AppSettings.NormalizePath(handed.Project.RootPath), handed.Project, handed.Run, handed.ResumeConsent);
-        StatusMessage = $"La ejecución {handed.Run.Id} empezó mientras su pestaña seguía otra ejecución: la sigue la bandeja.";
+        StatusMessage = Texts.Format("Main_Run_HandedOff", handed.Run.Id);
     }
 
     private static bool IsIdleOrchestratorOfAnotherProject(DocumentViewModel document, string projectPath) =>
@@ -1223,7 +1245,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
 
         await QuickOpen.OpenAsync(
             root,
-            $"Comparar {document.Title} con…",
+            Texts.Format("QuickOpen_CompareTitle", document.Title),
             path => document.CompareWithFileAsync(path, Path.GetRelativePath(root, path)));
     }
 
@@ -1302,15 +1324,15 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or TimeoutException or InvalidOperationException or OperationCanceledException)
             {
                 StatusMessage = ex is FileChangedOnDiskException
-                    ? $"No se guardó {document.Title}: el fichero cambió en disco. Guárdalo desde su pestaña para elegir si sobrescribirlo."
-                    : $"No se pudo guardar {document.Title}: {ex.Message}";
+                    ? Texts.Format("Main_Save_ChangedOnDisk", document.Title)
+                    : Texts.Format("Main_Save_Failed", document.Title, ex.Message);
                 return false;
             }
 
             if (document.IsDirty)
             {
                 // A save that returns without clearing the flag did not persist the edits (or they changed meanwhile).
-                StatusMessage = $"No se pudo guardar {document.Title}: los cambios siguen pendientes.";
+                StatusMessage = Texts.Format("Main_Save_Pending", document.Title);
                 return false;
             }
         }
@@ -1335,11 +1357,11 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         }
         catch (IOException ex)
         {
-            StatusMessage = $"No se pudieron guardar los ajustes: {ex.Message}";
+            StatusMessage = Texts.Format("Main_Settings_SaveFailed", ex.Message);
         }
         catch (UnauthorizedAccessException ex)
         {
-            StatusMessage = $"No se pudieron guardar los ajustes: {ex.Message}";
+            StatusMessage = Texts.Format("Main_Settings_SaveFailed", ex.Message);
         }
     }
 

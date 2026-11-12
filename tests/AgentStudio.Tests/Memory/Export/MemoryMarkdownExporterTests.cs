@@ -10,6 +10,7 @@ using AgentStudio.Memory.Store;
 using AgentStudio.Tests.Infrastructure.Persistence;
 using AgentStudio.Tests.Memory.Store;
 using static AgentStudio.Tests.Domain.TestData;
+using AgentStudio.Desktop.Documents;
 
 namespace AgentStudio.Tests.Memory.Export;
 
@@ -36,7 +37,7 @@ public sealed class MemoryMarkdownExporterTests
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     private static MemoryMarkdownExporter Exporter(MemoryWorld world, IProjectStorageFiles? files = null) =>
-        new(world.Memory, files ?? new ProjectStorageFiles(), world.Activity, world.Redactor, world.Clock);
+        new(world.Memory, files ?? new ProjectStorageFiles(), world.Activity, world.Redactor, world.Clock, new ResourceUserTextRenderer());
 
     private static string MemoryFolder(MemoryWorld world) => Path.Combine(world.DataDirectory, "memory");
 
@@ -83,7 +84,7 @@ public sealed class MemoryMarkdownExporterTests
         using var world = await MemoryWorld.CreateAsync();
         var values = await SeedAsync(world);
 
-        var result = await Exporter(world).ExportAsync(world.Project, Ct);
+        var result = await Exporter(world).ExportAsync(world.Project, "es-ES", Ct);
 
         Assert.True(result.Exported);
         Assert.Null(result.Reason);
@@ -101,10 +102,10 @@ public sealed class MemoryMarkdownExporterTests
     {
         using var world = await MemoryWorld.CreateAsync();
         await SeedAsync(world);
-        await Exporter(world).ExportAsync(world.Project, Ct);
+        await Exporter(world).ExportAsync(world.Project, "es-ES", Ct);
         var first = GoldenFiles.Select(f => File.ReadAllBytes(Path.Combine(MemoryFolder(world), f))).ToList();
 
-        await Exporter(world).ExportAsync(world.Project, Ct);
+        await Exporter(world).ExportAsync(world.Project, "es-ES", Ct);
 
         Assert.Equal(first, GoldenFiles.Select(f => File.ReadAllBytes(Path.Combine(MemoryFolder(world), f))));
         Assert.Empty(Directory.GetFiles(Path.Combine(world.DataDirectory, "tmp")));
@@ -115,11 +116,11 @@ public sealed class MemoryMarkdownExporterTests
     {
         using var world = await MemoryWorld.CreateAsync();
         var entry = await world.Memory.RecordAsync(world.Project, new MemoryDraft(MemoryKind.Convention, "Commits", "Los mensajes van en castellano.", MemoryOrigin.User, "nota:1"), Ct);
-        await Exporter(world).ExportAsync(world.Project, Ct);
+        await Exporter(world).ExportAsync(world.Project, "es-ES", Ct);
         Assert.Contains("castellano", Read(world, "tema-convenciones.md"), StringComparison.Ordinal);
 
         await world.Memory.ReviewAsync(world.Project, entry.Id, MemoryReview.Retracted, "manuel", null, Ct);
-        var result = await Exporter(world).ExportAsync(world.Project, Ct);
+        var result = await Exporter(world).ExportAsync(world.Project, "es-ES", Ct);
 
         Assert.Equal(0, result.Entries);
         Assert.DoesNotContain("castellano", Read(world, "tema-convenciones.md"), StringComparison.Ordinal);
@@ -132,7 +133,7 @@ public sealed class MemoryMarkdownExporterTests
         using var world = await MemoryWorld.CreateAsync();
         await world.Memory.RecordAsync(world.Project, new MemoryDraft(MemoryKind.DailySummary, "Resumen del 2026-01-01", "# Resumen\n\n- Prompts: 2\n", MemoryOrigin.System, "bitacora/2026-01-01.md#sha256:x"), Ct);
 
-        await Exporter(world).ExportAsync(world.Project, Ct);
+        await Exporter(world).ExportAsync(world.Project, "es-ES", Ct);
 
         Assert.Contains("\n> \\# Resumen\n>\n> - Prompts: 2\n\n- Entrada: ", Read(world, "tema-resumenes-diarios.md"), StringComparison.Ordinal);
     }
@@ -146,7 +147,7 @@ public sealed class MemoryMarkdownExporterTests
         var unredacted = new ProjectMemory(world.Instance.Recorder, world.Store, world.Activity, new NoRedaction(), world.Clock);
         await unredacted.RecordAsync(world.Project, new MemoryDraft(MemoryKind.Convention, "Acceso", "Clona con token=ghp_abcdefghijklmnopqrstuvwxyz0123456789 y listo.", MemoryOrigin.User, "nota:1"), Ct);
 
-        await Exporter(world).ExportAsync(world.Project, Ct);
+        await Exporter(world).ExportAsync(world.Project, "es-ES", Ct);
 
         var exported = Read(world, "tema-convenciones.md") + Read(world, $"cronologico-{T0:yyyy-MM}.md");
         Assert.DoesNotContain("ghp_", exported, StringComparison.Ordinal);
@@ -160,7 +161,7 @@ public sealed class MemoryMarkdownExporterTests
         await SeedAsync(world);
         world.Activity.Busy = true;
 
-        var result = await Exporter(world).ExportAsync(world.Project, Ct);
+        var result = await Exporter(world).ExportAsync(world.Project, "es-ES", Ct);
 
         Assert.False(result.Exported);
         Assert.False(string.IsNullOrWhiteSpace(result.Reason));
@@ -175,7 +176,7 @@ public sealed class MemoryMarkdownExporterTests
         await SeedAsync(world);
         var files = new BusyAfterFirstWrite(new ProjectStorageFiles(), world.Activity);
 
-        var result = await Exporter(world, files).ExportAsync(world.Project, Ct);
+        var result = await Exporter(world, files).ExportAsync(world.Project, "es-ES", Ct);
 
         Assert.False(result.Exported);
         Assert.False(string.IsNullOrWhiteSpace(result.Reason));
@@ -193,7 +194,7 @@ public sealed class MemoryMarkdownExporterTests
         using var links = new PlantedLinks();
         links.Junction(MemoryFolder(world), outside);
 
-        await Assert.ThrowsAsync<ProjectStorageIntegrityException>(() => Exporter(world).ExportAsync(world.Project, Ct));
+        await Assert.ThrowsAsync<ProjectStorageIntegrityException>(() => Exporter(world).ExportAsync(world.Project, "es-ES", Ct));
 
         Assert.Empty(Directory.GetFileSystemEntries(outside));
     }
@@ -208,7 +209,7 @@ public sealed class MemoryMarkdownExporterTests
             await File.WriteAllTextAsync(anchor, "{}", Ct);
         }
 
-        await Assert.ThrowsAsync<DecisionLogIntegrityException>(() => Exporter(world).ExportAsync(world.Project, Ct));
+        await Assert.ThrowsAsync<DecisionLogIntegrityException>(() => Exporter(world).ExportAsync(world.Project, "es-ES", Ct));
 
         Assert.False(Directory.Exists(MemoryFolder(world)));
     }
@@ -218,11 +219,99 @@ public sealed class MemoryMarkdownExporterTests
     {
         using var world = await MemoryWorld.CreateAsync();
 
-        var result = await Exporter(world).ExportAsync(world.Project, Ct);
+        var result = await Exporter(world).ExportAsync(world.Project, "es-ES", Ct);
 
         Assert.True(result.Exported);
         Assert.Empty(result.Files);
         Assert.Equal(0, result.Entries);
+        Assert.False(Directory.Exists(MemoryFolder(world)));
+    }
+
+    /// <summary>
+    /// The frame of the files is in the language the person chose, given as a parameter: titles, introductions, the names of the
+    /// fields, the categories, the origins and the month. What each entry holds, and its hash, are as they were anchored.
+    /// </summary>
+    [Fact]
+    public async Task The_frame_of_the_files_is_in_the_language_asked_and_what_the_entries_hold_is_as_anchored()
+    {
+        using var world = await MemoryWorld.CreateAsync();
+        var values = await SeedAsync(world);
+
+        var result = await Exporter(world).ExportAsync(world.Project, "en", Ct);
+
+        Assert.True(result.Exported);
+        Assert.Equal(GoldenFiles.Select(f => "memory/" + f), result.Files);
+        var january = Read(world, "cronologico-2026-01.md");
+        Assert.StartsWith("<!-- Generated by Agent Studio from the memory of the project.", january, StringComparison.Ordinal);
+        Assert.Contains("# Project memory · January 2026", january, StringComparison.Ordinal);
+        Assert.Contains("## 2026-01-01 11:00 · Decision · Despliegue", january, StringComparison.Ordinal);
+        Assert.Contains("> Se despliega a mano.", january, StringComparison.Ordinal);
+        Assert.Contains($"- Entry: {values["e1"]} (from the system)", january, StringComparison.Ordinal);
+        Assert.Contains($"- Source: registro:20260101-aaaaaa\\#3", january, StringComparison.Ordinal);
+        Assert.Contains($"- SHA-256: {values["e1.sha"]}", january, StringComparison.Ordinal);
+        Assert.Contains("- Replaced by: ", january, StringComparison.Ordinal);
+        Assert.Contains("# Project memory · Decisions", Read(world, "tema-decisiones.md"), StringComparison.Ordinal);
+        Assert.Contains("# Project memory · Known errors", Read(world, "tema-errores-conocidos.md"), StringComparison.Ordinal);
+        Assert.Contains("_There is no current trusted memory in this category._", Read(world, "tema-errores-conocidos.md"), StringComparison.Ordinal);
+        foreach (var file in GoldenFiles)
+        {
+            Assert.DoesNotContain("Memoria del proyecto", Read(world, file), StringComparison.Ordinal);
+        }
+    }
+
+    /// <summary>
+    /// The month of a chronological file came from a list of Spanish names and now comes from the culture of the language: the twelve
+    /// months say what the list said, and in English they are the English ones.
+    /// </summary>
+    [Fact]
+    public void The_twelve_months_of_the_title_say_what_the_old_list_of_names_said()
+    {
+        string[] names = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+        var renderer = new ResourceUserTextRenderer();
+        for (var month = 1; month <= 12; month++)
+        {
+            var first = new DateTimeOffset(2026, month, 1, 0, 0, 0, TimeSpan.Zero);
+            var piece = new AgentStudio.Application.Localization.UserText("memory.export.month", [first]);
+            Assert.Equal($"{names[month - 1]} de 2026", renderer.Render(piece, "es-ES"));
+            Assert.Equal(first.ToString("MMMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("en")), renderer.Render(piece, "en"));
+        }
+    }
+
+    /// <summary>The language is a parameter, not the culture of the thread: the same memory and language give the same bytes on any thread.</summary>
+    [Fact]
+    public async Task The_culture_of_the_thread_does_not_change_the_files()
+    {
+        using var world = await MemoryWorld.CreateAsync();
+        var values = await SeedAsync(world);
+        var previous = (Thread.CurrentThread.CurrentCulture, Thread.CurrentThread.CurrentUICulture);
+        try
+        {
+            Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.GetCultureInfo("en-US");
+            Thread.CurrentThread.CurrentUICulture = System.Globalization.CultureInfo.GetCultureInfo("en-US");
+            await Exporter(world).ExportAsync(world.Project, "es-ES", Ct);
+        }
+        finally
+        {
+            (Thread.CurrentThread.CurrentCulture, Thread.CurrentThread.CurrentUICulture) = previous;
+        }
+
+        foreach (var file in GoldenFiles)
+        {
+            Assert.Equal(Golden(file, values), Read(world, file));
+        }
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("not a language")]
+    [InlineData("C:\\Users\\persona")]
+    public async Task A_language_that_is_not_the_name_of_a_culture_is_refused_before_anything_is_written(string language)
+    {
+        using var world = await MemoryWorld.CreateAsync();
+        await SeedAsync(world);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => Exporter(world).ExportAsync(world.Project, language, Ct));
+
         Assert.False(Directory.Exists(MemoryFolder(world)));
     }
 

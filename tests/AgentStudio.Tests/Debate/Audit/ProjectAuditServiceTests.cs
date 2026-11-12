@@ -125,7 +125,7 @@ public sealed class ProjectAuditServiceTests
         bench.Verdict = (_, _) => throw new InvalidOperationException("se cayó el juez");
         var proposal = await bench.PrepareAsync(bench.Request());
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => bench.AuditAsync(proposal));
+        await Assert.ThrowsAnyAsync<InvalidOperationException>(() => bench.AuditAsync(proposal));
 
         Assert.Equal(DecisionKind.ProjectAuditFinished, bench.Entries[^1].Kind);
         Assert.Equal(5, bench.Recorder.Loads.Count);
@@ -391,7 +391,7 @@ public sealed class ProjectAuditServiceTests
         bench.Activity.Hold(ProjectActivityKind.Debate);
         var before = bench.Entries.Count;
 
-        var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => bench.AuditAsync(proposal));
+        var refused = await Assert.ThrowsAnyAsync<InvalidOperationException>(() => bench.AuditAsync(proposal));
 
         Assert.Contains("Debate", refused.Message, StringComparison.Ordinal);
         AssertNothingRan(bench, before);
@@ -424,7 +424,7 @@ public sealed class ProjectAuditServiceTests
         var proposal = await bench.PrepareAsync(bench.Request());
         var before = bench.Entries.Count;
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => bench.AuditAsync(proposal));
+        await Assert.ThrowsAnyAsync<InvalidOperationException>(() => bench.AuditAsync(proposal));
 
         Assert.Equal(before, bench.Entries.Count);
         Assert.Empty(bench.Verifier.Calls);
@@ -459,7 +459,7 @@ public sealed class ProjectAuditServiceTests
 
         var before = bench.Entries.Count;
 
-        var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => bench.AuditAsync(proposal));
+        var refused = await Assert.ThrowsAnyAsync<InvalidOperationException>(() => bench.AuditAsync(proposal));
 
         Assert.Contains("prepare it again", refused.Message, StringComparison.Ordinal);
         AssertNothingRan(bench, before);
@@ -542,7 +542,7 @@ public sealed class ProjectAuditServiceTests
         bench.Verdict = (_, _) => throw new InvalidOperationException("se cayó el juez");
         var proposal = await bench.PrepareAsync(bench.Request());
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => bench.AuditAsync(proposal));
+        await Assert.ThrowsAnyAsync<InvalidOperationException>(() => bench.AuditAsync(proposal));
 
         var started = bench.Entries.Last(e => e.Kind == DecisionKind.ProjectAuditStarted);
         var audit = Payload<ProjectAuditStartedPayload>(started).RunId;

@@ -169,7 +169,7 @@ internal sealed record TaskResult(
     string? ReportSha256);
 
 /// <summary>Why the last attempt failed, given to the next attempt as data.</summary>
-internal sealed record FailureNote(int Attempt, string Reason, IReadOnlyList<EvidenceId> Evidence);
+internal sealed record FailureNote(int Attempt, string Reason, IReadOnlyList<EvidenceId> Evidence, AgentStudio.Application.Localization.UserText? Text = null);
 
 /// <summary>The loop's own memory of the run, beyond the graph. It can be rebuilt from the log and the attempt records.</summary>
 internal sealed class RunLedger

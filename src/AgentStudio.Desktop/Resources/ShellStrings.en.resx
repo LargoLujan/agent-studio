@@ -1,0 +1,644 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the shell in English: the same keys and placeholders as ShellStrings.resx. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="App_Name" xml:space="preserve">
+    <value>Agent Studio</value>
+  </data>
+  <data name="App_StartFailed" xml:space="preserve">
+    <value>Agent Studio could not start.</value>
+  </data>
+  <data name="App_TrayFailed" xml:space="preserve">
+    <value>The system tray could not start. If you close the window, Agent Studio closes.</value>
+  </data>
+  <data name="App_UnexpectedError" xml:space="preserve">
+    <value>An unexpected error happened in the window.</value>
+  </data>
+  <data name="Main_OpenFolder" xml:space="preserve">
+    <value>Open folder</value>
+  </data>
+  <data name="Main_OpenFolder_Dialog" xml:space="preserve">
+    <value>Open project folder</value>
+  </data>
+  <data name="Main_Home" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="Main_Home_Hint" xml:space="preserve">
+    <value>Shows the welcome tab.</value>
+  </data>
+  <data name="Main_GoToFile" xml:space="preserve">
+    <value>Go to file</value>
+  </data>
+  <data name="Main_GoToFile_Hint" xml:space="preserve">
+    <value>Searches a project file. Shortcut: Ctrl+P.</value>
+  </data>
+  <data name="Main_GoToFile_NoProject" xml:space="preserve">
+    <value>Open a project folder to search its files. Shortcut: Ctrl+P.</value>
+  </data>
+  <data name="Main_Audit" xml:space="preserve">
+    <value>Audit the whole project</value>
+  </data>
+  <data name="Main_Audit_Hint" xml:space="preserve">
+    <value>Audits the latest saved version (commit) of the project. The system checks it and an independent reviewer (judge) reviews it. Shortcut: Ctrl+Shift+A.</value>
+  </data>
+  <data name="Main_AutoDoctor_Hint" xml:space="preserve">
+    <value>Shows or hides Auto Doctor, with the detail of each agent program.</value>
+  </data>
+  <data name="Main_Lock" xml:space="preserve">
+    <value>Lock</value>
+  </data>
+  <data name="Main_Lock_Name" xml:space="preserve">
+    <value>Lock the window</value>
+  </data>
+  <data name="Main_Lock_Hint" xml:space="preserve">
+    <value>Locks the window. Work goes on and approvals wait. Unlock it with Windows Hello. Shortcuts: Ctrl+Alt+L or Ctrl+Shift+B.</value>
+  </data>
+  <data name="Main_Panel_Explorer" xml:space="preserve">
+    <value>Explorer</value>
+  </data>
+  <data name="Main_Panel_Terminal" xml:space="preserve">
+    <value>Terminal</value>
+  </data>
+  <data name="Main_Panel_TerminalUnavailable" xml:space="preserve">
+    <value>The terminal is not available.</value>
+  </data>
+  <data name="Main_Panel_AutoDoctor" xml:space="preserve">
+    <value>Auto Doctor</value>
+  </data>
+  <data name="Main_Panel_Journal" xml:space="preserve">
+    <value>Today's journal</value>
+  </data>
+  <data name="Main_Strip_Name" xml:space="preserve">
+    <value>Context, usage limit and budget</value>
+  </data>
+  <data name="Main_Version_Hint" xml:space="preserve">
+    <value>Version of Agent Studio and the saved version (commit) it was built from.</value>
+  </data>
+  <data name="Main_CloseFailed" xml:space="preserve">
+    <value>The window could not be closed. Try again. Detail: {0}</value>
+  </data>
+  <data name="Main_PlacementFailed" xml:space="preserve">
+    <value>The position of the window could not be saved. Detail: {0}</value>
+  </data>
+  <data name="Main_LayoutFailed" xml:space="preserve">
+    <value>The layout of the panels could not be saved. Detail: {0}</value>
+  </data>
+  <data name="Main_Activity_Orchestrator" xml:space="preserve">
+    <value>Orchestrator</value>
+  </data>
+  <data name="Main_Activity_Skills" xml:space="preserve">
+    <value>Skills</value>
+  </data>
+  <data name="Main_Activity_History" xml:space="preserve">
+    <value>History (journal)</value>
+  </data>
+  <data name="Main_Activity_Debates" xml:space="preserve">
+    <value>Debates</value>
+  </data>
+  <data name="Main_Activity_Usage" xml:space="preserve">
+    <value>Usage</value>
+  </data>
+  <data name="Main_Activity_Memory" xml:space="preserve">
+    <value>Memory</value>
+  </data>
+  <data name="Main_Activity_Phase" xml:space="preserve">
+    <value>{0}: available in Phase {1}</value>
+  </data>
+  <data name="Main_Project_None" xml:space="preserve">
+    <value>No project</value>
+  </data>
+  <data name="Main_Project_NoneName" xml:space="preserve">
+    <value>No project open</value>
+  </data>
+  <data name="Main_Project_OpenNamed" xml:space="preserve">
+    <value>Open project: {0}</value>
+  </data>
+  <data name="Main_Project_Start" xml:space="preserve">
+    <value>Open a folder to start</value>
+  </data>
+  <data name="Main_Shortcut_Terminal" xml:space="preserve">
+    <value>Ctrl+`</value>
+  </data>
+  <data name="Main_Shortcut_TerminalHint" xml:space="preserve">
+    <value>Ctrl+`, or Ctrl+Ñ on a Spanish keyboard</value>
+  </data>
+  <data name="Main_Shortcut_Debates" xml:space="preserve">
+    <value>Ctrl+Shift+D</value>
+  </data>
+  <data name="Main_Shortcut_Audit" xml:space="preserve">
+    <value>Ctrl+Shift+A</value>
+  </data>
+  <data name="Document_UnsavedName" xml:space="preserve">
+    <value>{0}, with unsaved changes</value>
+  </data>
+  <data name="Welcome_Title" xml:space="preserve">
+    <value>Welcome</value>
+  </data>
+  <data name="Welcome_Intro" xml:space="preserve">
+    <value>Open a project folder. You will see its files, its journal and the state of the agent programs.</value>
+  </data>
+  <data name="Welcome_ProjectOpen" xml:space="preserve">
+    <value>Open project</value>
+  </data>
+  <data name="Welcome_InProject" xml:space="preserve">
+    <value>In this project</value>
+  </data>
+  <data name="Welcome_OpenOther" xml:space="preserve">
+    <value>Open another folder</value>
+  </data>
+  <data name="Welcome_Recent" xml:space="preserve">
+    <value>Recent projects</value>
+  </data>
+  <data name="Welcome_NoRecent" xml:space="preserve">
+    <value>You have not opened any project yet.</value>
+  </data>
+  <data name="Welcome_Action_Orchestrator" xml:space="preserve">
+    <value>Ask the agents for a job. You review the plan and an independent reviewer (judge) checks the result.</value>
+  </data>
+  <data name="Welcome_Action_GoToFile" xml:space="preserve">
+    <value>Find a project file and open it in the editor.</value>
+  </data>
+  <data name="Welcome_Action_Debates" xml:space="preserve">
+    <value>Have agents from different companies debate to test a decision.</value>
+  </data>
+  <data name="Welcome_Action_Audit" xml:space="preserve">
+    <value>Audits the latest saved version (commit). The system checks it and an independent reviewer (judge) reviews it.</value>
+  </data>
+  <data name="Welcome_Action_Usage" xml:space="preserve">
+    <value>Tokens and cost of the runs, and your plan's usage limit.</value>
+  </data>
+  <data name="Welcome_Action_Memory" xml:space="preserve">
+    <value>What the project learns from its runs and the agents receive.</value>
+  </data>
+  <data name="Welcome_Action_Terminal" xml:space="preserve">
+    <value>Shows or hides the terminal, open in the project folder.</value>
+  </data>
+  <data name="Main_NeedProject_Orchestrator" xml:space="preserve">
+    <value>Open a project folder to use the orchestrator.</value>
+  </data>
+  <data name="Main_NeedProject_Debate" xml:space="preserve">
+    <value>Open a project folder to hold a debate.</value>
+  </data>
+  <data name="Main_NeedProject_Audit" xml:space="preserve">
+    <value>Open a project folder to audit it.</value>
+  </data>
+  <data name="Main_Corrective_OtherProject" xml:space="preserve">
+    <value>These corrective tasks belong to another project. Open it to create them.</value>
+  </data>
+  <data name="Main_Memory_UpdateFailed" xml:space="preserve">
+    <value>The project memory could not be updated. Detail: {0}</value>
+  </data>
+  <data name="Main_Path_Invalid" xml:space="preserve">
+    <value>The path is not valid. Detail: {0}</value>
+  </data>
+  <data name="Main_Folder_Gone" xml:space="preserve">
+    <value>The folder no longer exists: {0}. It was removed from the recent projects.</value>
+  </data>
+  <data name="Main_Resume_CheckFailed" xml:space="preserve">
+    <value>Could not check whether any run resumes by itself. Detail: {0}</value>
+  </data>
+  <data name="Main_Resumed_One" xml:space="preserve">
+    <value>Run {0} resumed by itself, with your consent: {1}</value>
+  </data>
+  <data name="Main_Resumed_Many" xml:space="preserve">
+    <value>{0} runs resumed by themselves, with your consent.</value>
+  </data>
+  <data name="Main_Resume_Failed" xml:space="preserve">
+    <value>Run {0} had your consent to resume by itself. {1}</value>
+  </data>
+  <data name="Main_Resumed_Busy" xml:space="preserve">
+    <value>Run {0} resumed by itself, but its tab was busy. The system tray follows it.</value>
+  </data>
+  <data name="Main_Resumed_NotFollowed" xml:space="preserve">
+    <value>Run {0} resumed by itself, but its tab could not follow it. It keeps running. The tray shows it and, when you exit, it asks you about it.</value>
+  </data>
+  <data name="Main_Run_HandedOff" xml:space="preserve">
+    <value>Run {0} started, but its tab was following another run. The system tray follows it.</value>
+  </data>
+  <data name="Main_Save_ChangedOnDisk" xml:space="preserve">
+    <value>{0} was not saved: the file changed on disk. Save it from its tab and choose whether to overwrite it.</value>
+  </data>
+  <data name="Main_Save_Failed" xml:space="preserve">
+    <value>{0} could not be saved. Try again. Detail: {1}</value>
+  </data>
+  <data name="Main_Save_Pending" xml:space="preserve">
+    <value>{0} could not be saved. The changes are still pending: try again.</value>
+  </data>
+  <data name="Main_Settings_SaveFailed" xml:space="preserve">
+    <value>The settings could not be saved. Try again. Detail: {0}</value>
+  </data>
+  <data name="Explorer_NoFolder" xml:space="preserve">
+    <value>No folder is open. Press "Open folder" in the top bar.</value>
+  </data>
+  <data name="Explorer_Refresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="Explorer_ReadFailed" xml:space="preserve">
+    <value>The folder could not be read. Detail: {0}</value>
+  </data>
+  <data name="Explorer_NoPermission" xml:space="preserve">
+    <value>You do not have permission to read this folder.</value>
+  </data>
+  <data name="FileDoc_CompareSaved" xml:space="preserve">
+    <value>Compare with the saved version</value>
+  </data>
+  <data name="FileDoc_CompareSaved_Hint" xml:space="preserve">
+    <value>Compares what is in the editor with the version saved on disk. Shortcut: Ctrl+Alt+D.</value>
+  </data>
+  <data name="FileDoc_CompareFile" xml:space="preserve">
+    <value>Compare with another file…</value>
+  </data>
+  <data name="FileDoc_CompareFile_Name" xml:space="preserve">
+    <value>Compare with another file</value>
+  </data>
+  <data name="FileDoc_CompareFile_Hint" xml:space="preserve">
+    <value>Compares what is in the editor with another file of the project. Shortcut: Ctrl+Alt+F.</value>
+  </data>
+  <data name="FileDoc_BackToEditor" xml:space="preserve">
+    <value>Back to the editor</value>
+  </data>
+  <data name="FileDoc_BackToEditor_Hint" xml:space="preserve">
+    <value>Leaves the comparison and goes back to editing the file. Shortcut: Esc.</value>
+  </data>
+  <data name="FileDoc_OriginalName" xml:space="preserve">
+    <value>Original side of the comparison</value>
+  </data>
+  <data name="FileDoc_ModifiedName" xml:space="preserve">
+    <value>Modified side of the comparison</value>
+  </data>
+  <data name="FileDoc_Original" xml:space="preserve">
+    <value>Original: </value>
+  </data>
+  <data name="FileDoc_Modified" xml:space="preserve">
+    <value>Modified: </value>
+  </data>
+  <data name="FileDoc_ReadOnlyNote" xml:space="preserve">
+    <value>The comparison is read-only. Press "Back to the editor" or Esc to keep editing.</value>
+  </data>
+  <data name="FileDoc_DiffErrorName" xml:space="preserve">
+    <value>Comparison error</value>
+  </data>
+  <data name="FileDoc_LineEndingsName" xml:space="preserve">
+    <value>Line endings notice</value>
+  </data>
+  <data name="FileDoc_ContentName" xml:space="preserve">
+    <value>File content</value>
+  </data>
+  <data name="FileDoc_Label_SavedOnDisk" xml:space="preserve">
+    <value>saved on disk</value>
+  </data>
+  <data name="FileDoc_Label_Editor" xml:space="preserve">
+    <value>editor</value>
+  </data>
+  <data name="FileDoc_Label_EditorUnsaved" xml:space="preserve">
+    <value>editor (with unsaved changes)</value>
+  </data>
+  <data name="FileDoc_Label_EditorOf" xml:space="preserve">
+    <value>{0} (editor)</value>
+  </data>
+  <data name="FileDoc_CompareFailed" xml:space="preserve">
+    <value>Cannot compare with "{0}": {1}</value>
+  </data>
+  <data name="FileDoc_Problem_Missing" xml:space="preserve">
+    <value>the file does not exist.</value>
+  </data>
+  <data name="FileDoc_Problem_TooLarge" xml:space="preserve">
+    <value>it weighs {0} MB and the limit is {1} MB.</value>
+  </data>
+  <data name="FileDoc_Problem_Binary" xml:space="preserve">
+    <value>it is a binary file.</value>
+  </data>
+  <data name="FileDoc_Problem_Encoding" xml:space="preserve">
+    <value>only UTF-8 files are supported, and this one is UTF-16 or UTF-32.</value>
+  </data>
+  <data name="FileDoc_Problem_NotUtf8" xml:space="preserve">
+    <value>it is not a valid UTF-8 file.</value>
+  </data>
+  <data name="FileDoc_Problem_Unreadable" xml:space="preserve">
+    <value>it could not be read: {0}</value>
+  </data>
+  <data name="FileDoc_ShowDiffFailed" xml:space="preserve">
+    <value>The comparison could not be shown. Try again. Detail: {0}</value>
+  </data>
+  <data name="FileDoc_ReadOnlyShown" xml:space="preserve">
+    <value>The file is shown read-only: {0}</value>
+  </data>
+  <data name="FileDoc_TooLargeViewer" xml:space="preserve">
+    <value>The file weighs {0} MB and the viewer does not take more than {1} MB.</value>
+  </data>
+  <data name="FileDoc_Binary" xml:space="preserve">
+    <value>The file is binary and cannot be shown as text.</value>
+  </data>
+  <data name="FileDoc_ReadFailed" xml:space="preserve">
+    <value>The file could not be read. Check that it exists and that you have permission. Detail: {0}</value>
+  </data>
+  <data name="FileDoc_TheFile" xml:space="preserve">
+    <value>the file</value>
+  </data>
+  <data name="FileDoc_UnknownError" xml:space="preserve">
+    <value>unknown error</value>
+  </data>
+  <data name="FileDoc_SaveFailed_Caption" xml:space="preserve">
+    <value>Save file</value>
+  </data>
+  <data name="FileDoc_SaveFailed_Text" xml:space="preserve">
+    <value>{0} could not be saved.
+
+Reason: {1}
+
+Your changes are still in the editor, unsaved. Try again.</value>
+  </data>
+  <data name="FileDoc_Overwrite_Caption" xml:space="preserve">
+    <value>Overwrite file</value>
+  </data>
+  <data name="FileDoc_Overwrite_Changed" xml:space="preserve">
+    <value>{0} has changed on disk since you opened it.
+
+Do you want to overwrite it with what is in the editor? The changes made outside the editor will be lost.
+If you choose No, your changes stay in the editor, unsaved.</value>
+  </data>
+  <data name="FileDoc_Overwrite_Deleted" xml:space="preserve">
+    <value>{0} has been deleted from disk since you opened it.
+
+Do you want to create it again with what is in the editor?
+If you choose No, your changes stay in the editor, unsaved.</value>
+  </data>
+  <data name="QuickOpen_SearchName" xml:space="preserve">
+    <value>Search file</value>
+  </data>
+  <data name="QuickOpen_SearchHelp" xml:space="preserve">
+    <value>Type part of the path of the file.</value>
+  </data>
+  <data name="QuickOpen_SearchHint" xml:space="preserve">
+    <value>Type part of the path of the file…</value>
+  </data>
+  <data name="QuickOpen_ResultsName" xml:space="preserve">
+    <value>Files found</value>
+  </data>
+  <data name="QuickOpen_NoticeName" xml:space="preserve">
+    <value>Search status</value>
+  </data>
+  <data name="QuickOpen_TruncatedName" xml:space="preserve">
+    <value>Incomplete index notice</value>
+  </data>
+  <data name="QuickOpen_Keys" xml:space="preserve">
+    <value>↑ ↓ to move · Enter to choose · Esc to close</value>
+  </data>
+  <data name="QuickOpen_Indexing" xml:space="preserve">
+    <value>Listing the project files…</value>
+  </data>
+  <data name="QuickOpen_Truncated" xml:space="preserve">
+    <value>Only the first {0} files are listed. The project has more, but they do not appear here.</value>
+  </data>
+  <data name="QuickOpen_ReadFailed" xml:space="preserve">
+    <value>The project could not be read. Check that the folder exists. Detail: {0}</value>
+  </data>
+  <data name="QuickOpen_NoFiles" xml:space="preserve">
+    <value>The project has no files to show.</value>
+  </data>
+  <data name="QuickOpen_NoMatches" xml:space="preserve">
+    <value>No matches.</value>
+  </data>
+  <data name="QuickOpen_Showing_Matches" xml:space="preserve">
+    <value>Showing {0} of {1} matches. Keep typing to narrow them down.</value>
+  </data>
+  <data name="QuickOpen_Showing_Files" xml:space="preserve">
+    <value>Showing {0} of {1} files. Type to search.</value>
+  </data>
+  <data name="QuickOpen_OneMatch" xml:space="preserve">
+    <value>1 match</value>
+  </data>
+  <data name="QuickOpen_OneFile" xml:space="preserve">
+    <value>1 file</value>
+  </data>
+  <data name="QuickOpen_Matches" xml:space="preserve">
+    <value>{0} matches</value>
+  </data>
+  <data name="QuickOpen_Files" xml:space="preserve">
+    <value>{0} files</value>
+  </data>
+  <data name="QuickOpen_CompareTitle" xml:space="preserve">
+    <value>Compare {0} with…</value>
+  </data>
+  <data name="Journal_Refresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="Journal_Reload" xml:space="preserve">
+    <value>Reload</value>
+  </data>
+  <data name="Journal_Reload_Name" xml:space="preserve">
+    <value>Reload the whole day</value>
+  </data>
+  <data name="Journal_PlainName" xml:space="preserve">
+    <value>Today's journal, as text</value>
+  </data>
+  <data name="Journal_NoFolder" xml:space="preserve">
+    <value>Open a folder to see its journal.</value>
+  </data>
+  <data name="Journal_NoReader" xml:space="preserve">
+    <value>The journal cannot be read. The checked reader of .agentstudio is missing, and without it the app opens no project file.</value>
+  </data>
+  <data name="Journal_NewEntries" xml:space="preserve">
+    <value>There are new entries. Press "Reload" to see them here. The formatted view already shows them.</value>
+  </data>
+  <data name="Journal_Trim_Plain" xml:space="preserve">
+    <value>The whole day is shown as plain text, without formatting.</value>
+  </data>
+  <data name="Journal_Trim_Entries" xml:space="preserve">
+    <value>Long journal: showing the latest {0} of {1} entries.</value>
+  </data>
+  <data name="Journal_Trim_Lines" xml:space="preserve">
+    <value>Long journal: showing the last {0} of {1} lines.</value>
+  </data>
+  <data name="Journal_Toggle_Formatted" xml:space="preserve">
+    <value>Formatted view</value>
+  </data>
+  <data name="Journal_Toggle_All" xml:space="preserve">
+    <value>Show all</value>
+  </data>
+  <data name="Journal_NoToday" xml:space="preserve">
+    <value>There is no journal for today yet ({0}). It is created with the first request of the day.</value>
+  </data>
+  <data name="Journal_ReadFailed" xml:space="preserve">
+    <value>The journal could not be read. Press "Refresh" to try again. Detail: {0}</value>
+  </data>
+  <data name="Providers_Title" xml:space="preserve">
+    <value>Agent programs</value>
+  </data>
+  <data name="Providers_LastChecked" xml:space="preserve">
+    <value>Last check: {0:HH:mm:ss}</value>
+  </data>
+  <data name="Providers_NeverChecked" xml:space="preserve">
+    <value>Last check: —</value>
+  </data>
+  <data name="Providers_Recheck" xml:space="preserve">
+    <value>Check again</value>
+  </data>
+  <data name="Providers_Recheck_Hint" xml:space="preserve">
+    <value>Checks each agent program again: installation, version and session. It does not use your plan's usage limit.</value>
+  </data>
+  <data name="Providers_None" xml:space="preserve">
+    <value>No agent program is registered.</value>
+  </data>
+  <data name="Providers_Details_Hint" xml:space="preserve">
+    <value>Details: installation, method, path and notes of the check.</value>
+  </data>
+  <data name="Providers_Details_Name" xml:space="preserve">
+    <value>Details of {0}</value>
+  </data>
+  <data name="Providers_Installation" xml:space="preserve">
+    <value>Installation: {0}</value>
+  </data>
+  <data name="Providers_Version" xml:space="preserve">
+    <value>Version: {0}</value>
+  </data>
+  <data name="Providers_Session" xml:space="preserve">
+    <value>Session: {0}</value>
+  </data>
+  <data name="Providers_Method" xml:space="preserve">
+    <value>Method: {0}</value>
+  </data>
+  <data name="Providers_Installed" xml:space="preserve">
+    <value>Installed</value>
+  </data>
+  <data name="Providers_NotInstalled" xml:space="preserve">
+    <value>Not installed</value>
+  </data>
+  <data name="Providers_InstallationError" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="Providers_SignedIn" xml:space="preserve">
+    <value>Signed in</value>
+  </data>
+  <data name="Providers_NotSignedIn" xml:space="preserve">
+    <value>Not signed in</value>
+  </data>
+  <data name="Providers_SessionUnknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="Providers_Parked" xml:space="preserve">
+    <value>Parked</value>
+  </data>
+  <data name="Providers_ParkedName" xml:space="preserve">
+    <value>{0} (parked)</value>
+  </data>
+  <data name="Providers_GeminiParked" xml:space="preserve">
+    <value>Parked by decision (ADR-0009). Without an API key (GEMINI_API_KEY), Agent Studio works with Claude Code and Codex. Gemini does not count in the state of the programs.</value>
+  </data>
+  <data name="Providers_Summary_Checking" xml:space="preserve">
+    <value>Checking the programs…</value>
+  </data>
+  <data name="Providers_Summary_Failed" xml:space="preserve">
+    <value>Programs: the check failed</value>
+  </data>
+  <data name="Providers_Summary_NotChecked" xml:space="preserve">
+    <value>Programs: not checked</value>
+  </data>
+  <data name="Providers_Summary_NoneRegistered" xml:space="preserve">
+    <value>No programs registered</value>
+  </data>
+  <data name="Providers_Summary_AllParked" xml:space="preserve">
+    <value>Programs: all parked</value>
+  </data>
+  <data name="Providers_Summary_Ready" xml:space="preserve">
+    <value>Programs: {0} of {1} ready</value>
+  </data>
+  <data name="Providers_CheckFailed" xml:space="preserve">
+    <value>The check of the programs did not finish. Press "Check again" to repeat it. Detail: {0}</value>
+  </data>
+  <data name="Strip_Context" xml:space="preserve">
+    <value>Context</value>
+  </data>
+  <data name="Strip_NoTasks" xml:space="preserve">
+    <value>no tasks in progress</value>
+  </data>
+  <data name="Strip_Locked" xml:space="preserve">
+    <value>locked</value>
+  </data>
+  <data name="Strip_Line_Task" xml:space="preserve">
+    <value>Context of {0} {1}</value>
+  </data>
+  <data name="Strip_Line_Planner" xml:space="preserve">
+    <value>Context of the orchestrator, which is planning</value>
+  </data>
+  <data name="Strip_Line_NoTasks" xml:space="preserve">
+    <value>Context: no tasks in progress.</value>
+  </data>
+  <data name="Strip_Label_One" xml:space="preserve">
+    <value>Context · {0}</value>
+  </data>
+  <data name="Strip_Label_Many" xml:space="preserve">
+    <value>Context · {0}, the fullest of {1}</value>
+  </data>
+  <data name="Strip_PlannerName" xml:space="preserve">
+    <value>orchestrator</value>
+  </data>
+  <data name="Strip_Quota" xml:space="preserve">
+    <value>Usage limit</value>
+  </data>
+  <data name="Strip_Quota_Unavailable" xml:space="preserve">
+    <value>Usage limit: no data. This window does not receive it.</value>
+  </data>
+  <data name="Strip_NoData" xml:space="preserve">
+    <value>no data</value>
+  </data>
+  <data name="Strip_NotRead" xml:space="preserve">
+    <value>not read</value>
+  </data>
+  <data name="Strip_Claude_5h" xml:space="preserve">
+    <value>Claude 5 h</value>
+  </data>
+  <data name="Strip_Claude_7d" xml:space="preserve">
+    <value>Claude 7 days</value>
+  </data>
+  <data name="Strip_Budget_Line" xml:space="preserve">
+    <value>Budget of run {0}: {1}</value>
+  </data>
+  <data name="Strip_Budget_Many" xml:space="preserve">
+    <value>Budget, the most spent of {0}</value>
+  </data>
+  <data name="SettingsDoc_Title" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="SettingsDoc_Scope" xml:space="preserve">
+    <value>They apply to all projects. They are saved in your Windows profile (%APPDATA%\AgentStudio\settings.json).</value>
+  </data>
+  <data name="SettingsDoc_Save" xml:space="preserve">
+    <value>Save settings</value>
+  </data>
+  <data name="SettingsDoc_SaveExplanation" xml:space="preserve">
+    <value>"Save settings" checks all the sections and saves them together. If one is not valid, nothing is saved. If you close the tab without saving, it asks you.</value>
+  </data>
+  <data name="SettingsDoc_Wrong_One" xml:space="preserve">
+    <value>Nothing was saved. Fix "{0}".</value>
+  </data>
+  <data name="SettingsDoc_Wrong_Two" xml:space="preserve">
+    <value>Nothing was saved. Fix "{0}" and "{1}".</value>
+  </data>
+  <data name="SettingsDoc_SaveFailed" xml:space="preserve">
+    <value>The settings could not be saved. Try again. Detail: {0}</value>
+  </data>
+  <data name="SettingsDoc_Saved" xml:space="preserve">
+    <value>Settings saved at {0}.</value>
+  </data>
+  <data name="UnsavedView_Name" xml:space="preserve">
+    <value>Unsaved changes</value>
+  </data>
+  <data name="UnsavedView_WindowTitle" xml:space="preserve">
+    <value>Unsaved changes · Agent Studio</value>
+  </data>
+  <data name="UnsavedView_ListName" xml:space="preserve">
+    <value>Documents with unsaved changes</value>
+  </data>
+</root>

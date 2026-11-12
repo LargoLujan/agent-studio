@@ -31,6 +31,21 @@ public enum UsageDimension
     Day,
     Week,
     Month,
+
+    // Phase 9 (docs/16 D-34, ADR-0040), appended. UsageAggregator.KeyOf computes them from UsageAttempt.Milestones and
+    // UsageAttempt.Activity; the dimension list of the dashboard (WP5) still has to label them.
+
+    /// <summary>The milestone an attempt is linked to (by <c>MilestoneLinked</c>); an attempt in two milestones is in each, marked shared, and once in the total.</summary>
+    Milestone,
+
+    /// <summary>What the attempt was for: the <c>ActivityKind</c> (first axis of the activity).</summary>
+    Activity,
+
+    /// <summary>First attempt of its task or retry: the <c>AttemptOrder</c> (second axis).</summary>
+    ActivityAttempt,
+
+    /// <summary>What became of the work: the <c>AttemptFate</c> (third axis).</summary>
+    ActivityDestination,
 }
 
 /// <summary>What a report keeps (D-04). A list that is null or empty lets every value through.</summary>
@@ -103,6 +118,25 @@ public sealed record UsageAttempt(
     /// when none was set, and for every start written before the field existed.
     /// </summary>
     public ReasoningEffort? Effort { get; init; }
+
+    /// <summary>
+    /// Phase 9 (docs/16 D-34, ADR-0040): the ids of the milestones the attempt belongs to, through <c>MilestoneLinked</c> (a run is
+    /// linked with its follow-ups). Empty when it is in none; two or more make it shared. The projection fills it.
+    /// </summary>
+    public IReadOnlyList<string> Milestones { get; init; } = [];
+
+    /// <summary>The value of the attempt on the three axes of the activity (D-34, <c>ActivityClassifier</c>); null for an attempt built by hand.</summary>
+    public ActivityClass? Activity { get; init; }
+
+    /// <summary>
+    /// How long the task waited for its quota window after this attempt hit the limit, in milliseconds: from the block
+    /// <c>RateLimitedUntil</c> to the task leaving it. Measured from the log and never part of the duration of the attempt. Null when
+    /// the attempt began no such wait.
+    /// </summary>
+    public long? QuotaWaitMilliseconds { get; init; }
+
+    /// <summary>The wait for quota this attempt began had not ended when the log ends (the task never left the block), so it has no length yet.</summary>
+    public bool OpenQuotaWait { get; init; }
 }
 
 /// <summary>
@@ -122,13 +156,29 @@ public sealed record UsageTotals(
     int RateLimited,
     int LimitReached,
     ContextPeakFigures? ContextPeak,
-    MetricAggregate<long> Compactions);
+    MetricAggregate<long> Compactions)
+{
+    /// <summary>
+    /// Phase 9 (D-34): the time the attempts waited in the provider's queue, from <c>AgentRunStarted</c> to <c>LaunchedAt</c>, apart from
+    /// their duration. Null in a total built by hand.
+    /// </summary>
+    public MetricAggregate<long>? QueueWaitMilliseconds { get; init; }
+
+    /// <summary>Phase 9 (D-34): the time the tasks waited for their quota window after these attempts hit a limit, apart from their duration.</summary>
+    public MetricAggregate<long>? QuotaWaitMilliseconds { get; init; }
+}
 
 /// <summary>The value of one dimension in the key of a group, such as (<see cref="UsageDimension.Model"/>, <c>claude-sonnet-5-5</c>).</summary>
 public sealed record UsageGroupKey(UsageDimension Dimension, string Value);
 
 /// <summary>One group of a report: its key, in the order of the query's dimensions (empty for the grand total), and its figures.</summary>
-public sealed record UsageGroup(IReadOnlyList<UsageGroupKey> Key, UsageTotals Totals);
+/// <param name="SharedAttempts">
+/// Phase 9 (D-34): how many of the attempts of the group also belong to another group of the same dimension (a milestone). The
+/// groups of that dimension add up to more than the grand total, which counts each attempt once, but not by the sum of this number:
+/// an attempt of n milestones is in n groups and marked shared in each, so it adds n - 1 to the excess and n to the sum of this number.
+/// Only when every shared attempt belongs to exactly two milestones is the excess half of that sum.
+/// </param>
+public sealed record UsageGroup(IReadOnlyList<UsageGroupKey> Key, UsageTotals Totals, int SharedAttempts = 0);
 
 /// <summary>A project left out of a report and why (D-05): its log does not verify, no anchor recognises it, or it cannot be read.</summary>
 public sealed record ExcludedProject(string Root, string? ProjectId, string Reason);

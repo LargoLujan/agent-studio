@@ -155,7 +155,7 @@ public sealed class Tanda2bRenderTests
     [Fact]
     public void V38_the_message_cut_at_180_px_is_read_whole_and_announced()
     {
-        const string Message = "La ejecución 20261103-abc123 se reanudó sola mientras su pestaña estaba ocupada o seguía otra ejecución: la sigue la bandeja.";
+        const string Message = "La ejecución 20261103-abc123 se reanudó sola, pero su pestaña estaba ocupada. La sigue la bandeja del sistema.";
         using var temp = new TempDirectory();
         var (width, live, name) = WpfHost.Run(() =>
         {
@@ -300,7 +300,11 @@ public sealed class Tanda2bRenderTests
             var view = new UsageDashboardView { DataContext = model };
             var bitmap = OffscreenRender.Render(view, 1500, 1180);
             OffscreenRender.SaveIfRequested(bitmap, "tanda2b-consumo-contexto-maximo.png");
-            var bars = Descendants<MetricBar>(view).Where(b => b.ActualWidth > 0 && b.Reading?.Label == UsageDashboardViewModel.PeakLabel).Select(b => b.Reading!.ValueText).ToList();
+            // The groups and the attempts; the rows of the axes of Phase 9 (their own list) have a bar too, and are counted apart.
+            var axes = (System.Windows.Media.Visual)view.FindName("AxesList");
+            var all = Descendants<MetricBar>(view).Where(b => b.ActualWidth > 0 && b.Reading?.Label == UsageDashboardViewModel.PeakLabel).ToList();
+            var bars = all.Where(b => !b.IsDescendantOf(axes)).Select(b => b.Reading!.ValueText).ToList();
+            Assert.Equal(model.Axes.Sum(a => a.Rows.Count), all.Count - bars.Count);
             return (bars, model.Groups.Count, model.Attempts.Count);
         });
 

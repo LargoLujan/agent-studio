@@ -1,6 +1,7 @@
 using System.Globalization;
 using AgentStudio.Application.Providers;
 using AgentStudio.Desktop.Controls;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Domain.Providers;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -142,7 +143,7 @@ public sealed partial class QuotaViewModel : ObservableObject
 #pragma warning restore CA1031
         {
             _latest = [];
-            _recordProblem = $"sin dato: no se pudo leer el registro de cuota: {ex.Message}";
+            _recordProblem = Texts.Format("Observability_Quota_RecordUnreadable", ex.Message);
         }
 
         Rebuild();
@@ -188,7 +189,7 @@ public sealed partial class QuotaViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            _lastRead = new QuotaReadResult(QuotaReadStatus.Missing, [], $"no se pudo leer la cuota de Codex: {ex.Message}");
+            _lastRead = new QuotaReadResult(QuotaReadStatus.Missing, [], Texts.Format("Observability_Quota_CodexReadFailed", ex.Message));
         }
         finally
         {
@@ -205,7 +206,7 @@ public sealed partial class QuotaViewModel : ObservableObject
     {
         Claude = ClaudeQuota();
         Codex = CodexQuota();
-        Gemini = new ProviderQuota("Gemini CLI", "no expuesto: Gemini está aparcado (ADR-0009) y su cuota de plan no tiene interfaz.", [], []);
+        Gemini = new ProviderQuota("Gemini CLI", Texts.Get("Observability_Quota_GeminiNotExposed"), [], []);
         OnPropertyChanged(nameof(Claude));
         OnPropertyChanged(nameof(Codex));
         OnPropertyChanged(nameof(Gemini));
@@ -214,10 +215,10 @@ public sealed partial class QuotaViewModel : ObservableObject
     private ProviderQuota ClaudeQuota()
     {
         var windows = Rows(_latest.Where(o => o.Provider == ProviderId.ClaudeCode));
-        var status = _observations is null ? "Sin dato: el registro de cuota no está disponible en esta composición."
+        var status = _observations is null ? Texts.Get("Observability_Quota_NoRecord")
             : _recordProblem is { } problem ? problem
-            : windows.Count == 0 ? "Sin dato todavía: Claude anuncia su cuota al empezar cada ejecución."
-            : "Del último anuncio de Claude al empezar una ejecución (rate_limit_event): sin llamadas extra.";
+            : windows.Count == 0 ? Texts.Get("Observability_Quota_ClaudeNone")
+            : Texts.Get("Observability_Quota_ClaudeSeen");
         return new ProviderQuota("Claude Code", status, windows, []);
     }
 
@@ -226,12 +227,12 @@ public sealed partial class QuotaViewModel : ObservableObject
         const string Name = "Codex CLI";
         if (!CodexOptedIn)
         {
-            return new ProviderQuota(Name, "Desactivado: activa «Leer la cuota de Codex» en «Ajustes». Sin tu permiso no se lanza nada.", [], []);
+            return new ProviderQuota(Name, Texts.Get("Observability_Quota_CodexOff"), [], []);
         }
 
         if (_codex is null)
         {
-            return new ProviderQuota(Name, "La lectura de la cuota de Codex no está disponible en esta composición.", [], []);
+            return new ProviderQuota(Name, Texts.Get("Observability_Quota_CodexUnavailable"), [], []);
         }
 
         if (_lastRead is not { } read)
@@ -239,25 +240,25 @@ public sealed partial class QuotaViewModel : ObservableObject
             var kept = Rows(_latest.Where(o => o.Provider == ProviderId.CodexCli));
             return new ProviderQuota(
                 Name,
-                kept.Count == 0 ? "Sin leer todavía: pulsa «Consultar cuota de Codex»." : "Última lectura guardada del app-server de Codex (account/rateLimits/read).",
+                kept.Count == 0 ? Texts.Get("Observability_Quota_CodexNotRead") : Texts.Get("Observability_Quota_CodexKept"),
                 kept,
                 []);
         }
 
-        List<string> notes = read.PlanType is { Length: > 0 } plan ? [$"Plan: {plan}"] : [];
+        List<string> notes = read.PlanType is { Length: > 0 } plan ? [Texts.Format("Observability_Quota_Plan", plan)] : [];
         var warnings = new List<string>();
         if (read.OrdinaryUsageAllowed is false)
         {
-            warnings.Add("Codex dice que el uso ordinario no está permitido ahora.");
+            warnings.Add(Texts.Get("Observability_Quota_CodexNotAllowed"));
         }
 
         warnings.AddRange(read.Warnings);
         var quota = read.Status switch
         {
-            QuotaReadStatus.Read => new ProviderQuota(Name, "Leída del app-server de Codex (account/rateLimits/read), sin turno del modelo.", Rows(read.Observations), notes),
-            QuotaReadStatus.NotExposed => new ProviderQuota(Name, $"no expuesto: {read.Reason ?? "Codex no la ofrece aquí"}", [], notes),
-            QuotaReadStatus.NotOptedIn => new ProviderQuota(Name, "Sin tu permiso no se lanzó nada.", [], notes),
-            _ => new ProviderQuota(Name, $"sin dato: {read.Reason ?? "la lectura no llegó"}", [], notes),
+            QuotaReadStatus.Read => new ProviderQuota(Name, Texts.Get("Observability_Quota_CodexRead"), Rows(read.Observations), notes),
+            QuotaReadStatus.NotExposed => new ProviderQuota(Name, Texts.Format("Observability_Quota_NotExposed", read.Reason ?? Texts.Get("Observability_Quota_NotExposedDefault")), [], notes),
+            QuotaReadStatus.NotOptedIn => new ProviderQuota(Name, Texts.Get("Observability_Quota_NoPermission"), [], notes),
+            _ => new ProviderQuota(Name, Texts.Format("Observability_Quota_Missing", read.Reason ?? Texts.Get("Observability_Quota_MissingDefault")), [], notes),
         };
         return quota with { Warnings = warnings };
     }
@@ -275,7 +276,7 @@ public sealed partial class QuotaViewModel : ObservableObject
                 // bar says when it reset, so the line under the bar does not say it again (V36).
                 var reset = o.ResetsAt is { } at && at <= _time.GetUtcNow() ? at : (DateTimeOffset?)null;
                 var resets = reset is null && o.ResetsAt is { } when ? Resets(when) : null;
-                var reached = reset is null && !string.IsNullOrWhiteSpace(o.Reached) ? $"límite alcanzado: {o.Reached}" : null;
+                var reached = reset is null && !string.IsNullOrWhiteSpace(o.Reached) ? Texts.Format("Observability_Quota_Reached", o.Reached) : null;
                 return new QuotaWindowRow(name, MetricText.Percent(o.Utilization), seen, resets, reached)
                 {
                     Window = o.Window,
@@ -290,8 +291,8 @@ public sealed partial class QuotaViewModel : ObservableObject
     /// <summary>The window in a few words for the status bar: «5 h» and «7 días» for Claude, the length of any other, or its name.</summary>
     private static string ShortName(QuotaObservation observation) => observation.Window switch
     {
-        "five_hour" => "5 h",
-        "seven_day" => "7 días",
+        "five_hour" => Texts.Get("Observability_Window_FiveHourShort"),
+        "seven_day" => Texts.Get("Observability_Window_SevenDayShort"),
         _ when observation.Length is { } length => Length(length),
         _ => observation.Label ?? WindowLabel(observation.Window),
     };
@@ -305,10 +306,10 @@ public sealed partial class QuotaViewModel : ObservableObject
         ArgumentNullException.ThrowIfNull(window);
         return window switch
         {
-            "five_hour" => "5 horas",
-            "seven_day" => "7 días",
-            "seven_day_opus" => "7 días · Opus",
-            "seven_day_sonnet" => "7 días · Sonnet",
+            "five_hour" => Texts.Get("Observability_Window_FiveHour"),
+            "seven_day" => Texts.Get("Observability_Window_SevenDay"),
+            "seven_day_opus" => Texts.Get("Observability_Window_SevenDayOpus"),
+            "seven_day_sonnet" => Texts.Get("Observability_Window_SevenDaySonnet"),
             var raw => raw,
         };
     }
@@ -316,28 +317,28 @@ public sealed partial class QuotaViewModel : ObservableObject
     private static string WindowName(QuotaObservation observation)
     {
         var name = observation.Label ?? WindowLabel(observation.Window);
-        return observation.Length is { } length ? $"{name} · ventana de {Length(length)}" : name;
+        return observation.Length is { } length ? Texts.Format("Observability_Window_WithLength", name, Length(length)) : name;
     }
 
     private static string Length(TimeSpan length) =>
-        length.TotalHours < 1 ? string.Create(CultureInfo.InvariantCulture, $"{(int)length.TotalMinutes} min")
-        : length.TotalDays >= 1 && length.Ticks % TimeSpan.TicksPerDay == 0 ? ((int)length.TotalDays == 1 ? "1 día" : string.Create(CultureInfo.InvariantCulture, $"{(int)length.TotalDays} días"))
-        : string.Create(CultureInfo.InvariantCulture, $"{(int)length.TotalHours} h");
+        length.TotalHours < 1 ? Texts.Format("Observability_Length_Minutes", (int)length.TotalMinutes)
+        : length.TotalDays >= 1 && length.Ticks % TimeSpan.TicksPerDay == 0 ? ((int)length.TotalDays == 1 ? Texts.Get("Observability_Length_Day") : Texts.Format("Observability_Length_Days", (int)length.TotalDays))
+        : Texts.Format("Observability_Length_Hours", (int)length.TotalHours);
 
     private string Seen(DateTimeOffset observedAt)
     {
         var age = _time.GetUtcNow() - observedAt;
-        return age.TotalMinutes < 1 ? "vista hace menos de 1 min"
-            : age.TotalHours < 1 ? string.Create(CultureInfo.InvariantCulture, $"vista hace {(int)age.TotalMinutes} min")
-            : age.TotalHours < 48 ? string.Create(CultureInfo.InvariantCulture, $"vista hace {(int)age.TotalHours} h")
-            : string.Create(CultureInfo.InvariantCulture, $"vista hace {(int)age.TotalDays} días");
+        return age.TotalMinutes < 1 ? Texts.Get("Observability_Seen_Now")
+            : age.TotalHours < 1 ? Texts.Format("Observability_Seen_Minutes", (int)age.TotalMinutes)
+            : age.TotalHours < 48 ? Texts.Format("Observability_Seen_Hours", (int)age.TotalHours)
+            : Texts.Format("Observability_Seen_Days", (int)age.TotalDays);
     }
 
     /// <summary>When the window resets, a moment still to come: «se reinicia hoy a las 15:00», «se reinicia el 04/11 a las 10:00».</summary>
     private string Resets(DateTimeOffset at)
     {
         var local = TimeZoneInfo.ConvertTime(at, _time.LocalTimeZone);
-        return local.Date == _time.GetLocalNow().Date ? $"se reinicia hoy {ResetClock(at)}" : $"se reinicia {ResetClock(at)}";
+        return Texts.Format(local.Date == _time.GetLocalNow().Date ? "Observability_Reset_Today" : "Observability_Reset_Later", ResetClock(at));
     }
 
     /// <summary>The moment of a reset as people say it: «a las 15:00» today, «el 04/11 a las 10:00» another day.</summary>
@@ -345,6 +346,8 @@ public sealed partial class QuotaViewModel : ObservableObject
     {
         var local = TimeZoneInfo.ConvertTime(at, _time.LocalTimeZone);
         var clock = local.ToString("HH:mm", CultureInfo.InvariantCulture);
-        return local.Date == _time.GetLocalNow().Date ? $"a las {clock}" : $"el {local.ToString("dd/MM", CultureInfo.InvariantCulture)} a las {clock}";
+        return local.Date == _time.GetLocalNow().Date
+            ? Texts.Format("Observability_Clock_At", clock)
+            : Texts.Format("Observability_Clock_OnDate", local.ToString(Texts.Get("Observability_Clock_DateFormat"), CultureInfo.InvariantCulture), clock);
     }
 }

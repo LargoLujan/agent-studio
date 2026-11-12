@@ -44,6 +44,11 @@ Las fases 1 y 2 pueden avanzar en paralelo: la 1 es interfaz y la 2 integración
 criterios en docs/17 §9. La 12 (el índice semántico) va primero, justo después de la tanda 2, y su estado está en la
 [Fase 12](#fase-12--índice-semántico-de-la-bitácora-y-la-memoria).
 
+**Documentación viva del proyecto ([19](19-documentacion-viva-del-proyecto.md)).** Propuesta del 2026-11-12, pendiente de
+tus decisiones (19 §14): una Fase 16 después de la 6 y antes de la 7 y la 15, en paralelo con la 10, que se lleva el paquete
+WP-D de la Fase 6 (diagramas y discrepancias). Sus criterios, F16-1 a F16-16, están en 19 §11.3; se copiarán aquí cuando la
+apruebes.
+
 El prototipo «orquestador + ejecutor + juez de otro proveedor» que recomienda el prompt (parte 5) queda al final de la
 Fase 3 como primera demostración de extremo a extremo, y se amplía en la Fase 5.
 
@@ -603,6 +608,14 @@ la sección «Repositorio y cambios» en local y el cierre de un hito, todo como
 | F9-8 | Presupuestos opcionales por proyecto y por hito: el motor no lanza un intento que los pasaría por proyección, y lo dice | Tests del motor |
 | F9-9 | «Repositorio y cambios»: Resumen, Ramas, Commits con el grafo anotado y Actividad, con filtros; la historia se lee por la capa endurecida | Tests del lector con repositorios temporales y tests de ViewModel |
 | F9-10 | Cerrar un hito es auditarlo (juez no productor y verificación aislada) y genera el informe determinista de D-49, con los estados implementado, revisado e integrado; reabrirlo conserva el informe anterior | Tests con un juez guionizado; prueba de integración de un hito con dos ejecuciones y un seguimiento |
+
+**Pruebas de integración de la Fase 9** (`tests/AgentStudio.Tests/Integration/Phase9/`, la app compuesta con `AddAgentStudioApp`, carpetas
+temporales, git real y CLIs guionizados; todas con `Category=LocalTools`): `MilestoneWithTwoRunsTests` cubre F9-1 (estado y cabecera
+anclada, con el seguimiento que pertenece al hito por la ejecución que sigue), F9-2 (tablero: ninguna tarjeta en «Hecho» o «Integrado»
+sin veredicto aprobado), F9-4 (cadena de requisito a entrega desde el ViewModel de «Trabajo»), F9-5 (participación, con papeles «No consta»),
+F9-6 (consumo por hito, que suma el total) y F9-9 (commits del sistema anotados en «Repositorio y cambios»); `MilestoneCloseTests`, F9-10
+(auditoría con un juez de otro proveedor, informe determinista, reapertura que conserva el informe y cierres rechazados que no escriben);
+`MilestoneBudgetTests`, F9-8 (el motor no lanza el intento que pasaría el presupuesto, la tarea espera y, subido el del proyecto, sigue).
 
 ## Fase 10 — Git remoto: publicación, PR y sincronización
 

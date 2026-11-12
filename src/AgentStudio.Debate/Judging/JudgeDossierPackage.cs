@@ -25,9 +25,14 @@ public sealed record JudgingOptions
 
 /// <summary>
 /// The copy of one evidence in a package. <see cref="RelativePath"/> is null when its content could not be read;
-/// <see cref="ContentVerified"/> says the whole content still matches the SHA-256 recorded when it was captured.
+/// <see cref="ContentVerified"/> says the whole content still matches the SHA-256 recorded when it was captured (the original,
+/// not the copy). <see cref="SaidByAgent"/> names the fields of a system-captured document that the agent wrote and the copy
+/// marks as such (an attempt record's <c>outputs</c>, ADR-0051); the copy then differs from the stored content in that mark only.
 /// </summary>
-public sealed record DossierEvidenceFile(EvidenceId Evidence, string? RelativePath, bool ContentVerified, bool Truncated, long SizeBytes);
+public sealed record DossierEvidenceFile(EvidenceId Evidence, string? RelativePath, bool ContentVerified, bool Truncated, long SizeBytes)
+{
+    public IReadOnlyList<string> SaidByAgent { get; init; } = [];
+}
 
 /// <summary>
 /// The files of a dossier on disk, under the dossier root: <c>dossier.json</c> (the same data the judge gets in its

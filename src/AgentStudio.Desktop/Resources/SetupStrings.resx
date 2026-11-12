@@ -18,7 +18,7 @@
     <comment>Name of the section for the information button.</comment>
   </data>
   <data name="Setup_Info_What" xml:space="preserve">
-    <value>Un asistente de siete pasos que propone cómo preparar este proyecto: equipo, modelos, pruebas y límites. Propone a partir de los ficheros del proyecto, sin red y sin gastar cuota. Nada se aplica hasta que pulsas «Aplicar».</value>
+    <value>Un asistente de siete pasos que propone cómo preparar este proyecto: equipo, modelos, pruebas y límites. Propone a partir de los ficheros del proyecto, sin red y sin gastar tu límite de uso. Nada se aplica hasta que pulsas «Aplicar».</value>
     <comment>What it is (D-54).</comment>
   </data>
   <data name="Setup_Info_Actions" xml:space="preserve">
@@ -215,7 +215,7 @@ Aplicar: el perfil de pruebas y los permisos delicados piden Windows Hello.</val
     <value>Sin cambios</value>
   </data>
   <data name="Setup_Models_Hint" xml:space="preserve">
-    <value>La recomendación sale del catálogo local y de tu historial, sin gastar cuota, y dice por qué. Tú decides agente por agente.</value>
+    <value>La recomendación sale del catálogo local y de tu historial, sin gastar tu límite de uso, y dice por qué. Tú decides agente por agente.</value>
   </data>
   <data name="Setup_Models_None" xml:space="preserve">
     <value>El catálogo no tiene un modelo para el programa de este agente.</value>
@@ -289,7 +289,7 @@ Aplicar: el perfil de pruebas y los permisos delicados piden Windows Hello.</val
     <value>Vacío: el tiempo que el motor decide por su cuenta.</value>
   </data>
   <data name="Setup_Budget_Unattended_Note" xml:space="preserve">
-    <value>Trabajo sin ti delante: que una ejecución se reanude sola tras un límite de cuota o un reinicio es un permiso que das al aprobar cada plan, no aquí.</value>
+    <value>Trabajo sin ti delante. Una ejecución puede reanudarse sola tras un límite de uso o un reinicio. Das ese permiso al aprobar cada plan, no aquí.</value>
   </data>
   <data name="Setup_Summary_Hint" xml:space="preserve">
     <value>Esto es lo que cambia, con lo de antes al lado. Nada se escribe hasta que pulses «Aplicar los cambios».</value>

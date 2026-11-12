@@ -88,7 +88,7 @@ public sealed class Phase8RenderTests
                 OffscreenRender.CountUnlike(bitmap, Background),
                 OffscreenRender.Count(bitmap, Accent),
                 Descendants<RadioButton>(view).Count(r => r.IsChecked == true),
-                Descendants<Button>(view).Count(b => Equals(b.Content, "Guardar")),
+                Descendants<Button>(view).Count(b => Equals(b.Content, "Guardar ajustes")),
                 Descendants<UnattendedSettingsView>(view).Count(v => v.ActualHeight > 100) + Descendants<AgentStudio.Desktop.Views.Lock.LockSettingsView>(view).Count(v => v.ActualHeight > 100));
         });
 

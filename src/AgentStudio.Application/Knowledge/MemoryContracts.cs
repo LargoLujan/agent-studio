@@ -1,3 +1,4 @@
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Projects;
 using AgentStudio.Domain.Common;
 
@@ -222,25 +223,33 @@ public interface IMemoryStore
     Task<IReadOnlyList<MemoryRow>> FindAsync(string projectId, IReadOnlyCollection<string> ids, CancellationToken ct);
 }
 
-/// <summary>What an export of the memory to Markdown did, or why it was refused.</summary>
-public sealed record MemoryExportResult(bool Exported, IReadOnlyList<string> Files, int Entries, string? Reason = null)
+/// <summary>
+/// What an export of the memory to Markdown did, or why it was refused. <paramref name="Reason"/> is in Spanish, for the log and the
+/// tests; <paramref name="ReasonText"/> says the same as a code, for the screen (docs/17 D-47).
+/// </summary>
+public sealed record MemoryExportResult(bool Exported, IReadOnlyList<string> Files, int Entries, string? Reason = null, UserText? ReasonText = null)
 {
     /// <summary>An export that did not happen (a run or a planning goes on), with the reason in Spanish; nothing was written.</summary>
-    public static MemoryExportResult Refused(string reason)
+    public static MemoryExportResult Refused(string reason, UserText? reasonText = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(reason);
-        return new MemoryExportResult(false, [], 0, reason);
+        return new MemoryExportResult(false, [], 0, reason, reasonText);
     }
 }
 
 /// <summary>
 /// Exports the trusted and accepted memory to <c>.agentstudio/memory/</c> (D-22): flat names, whole files replaced in a
 /// fixed order, a header saying they are generated. The export is never read back, and it is refused while the project
-/// is busy (<c>IRunActivity</c>).
+/// is busy (<c>IRunActivity</c>). The frame of the files (titles, introductions, names of fields) is in the language the person
+/// chose, which arrives as a parameter and never from the culture of the thread (<see cref="LanguageTags"/>); what each entry holds
+/// is exported as it was anchored.
 /// </summary>
 public interface IMemoryExporter
 {
-    Task<MemoryExportResult> ExportAsync(ProjectContext project, CancellationToken ct);
+    /// <param name="project">The project whose memory is exported.</param>
+    /// <param name="language">The language of the frame of the files (<c>es-ES</c>, <c>en</c>…), the one the person chose.</param>
+    /// <param name="ct">Cancels the export between two files.</param>
+    Task<MemoryExportResult> ExportAsync(ProjectContext project, string language, CancellationToken ct);
 }
 
 /// <summary>What a decision about the trust of the journal covers (docs/17 D-02).</summary>

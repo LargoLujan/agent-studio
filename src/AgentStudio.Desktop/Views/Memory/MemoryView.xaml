@@ -3,6 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
+             xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
              xmlns:memory="clr-namespace:AgentStudio.Desktop.Memory"
              xmlns:views="clr-namespace:AgentStudio.Desktop.Views.Memory"
              xmlns:orchestratorViews="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
@@ -29,9 +31,12 @@
         <Border Grid.Row="0" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,10">
             <StackPanel>
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Content="Exportar a Markdown" Command="{Binding ExportCommand}"
-                            ToolTip="Escribe lo de confianza y lo aceptado en .agentstudio/memory/. Nunca durante una ejecución, y el Markdown nunca se lee de vuelta."/>
-                    <TextBlock Style="{StaticResource SectionTitleText}" VerticalAlignment="Center" Margin="0,0,16,6" Text="Memoria del proyecto"/>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button Style="{StaticResource ToolbarButton}" Content="{l:T Memory_View_Export}" Command="{Binding ExportCommand}"
+                                ToolTip="{l:T Memory_View_ExportTip}"/>
+                        <info:InfoButton InfoKey="Info_Memory" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock Style="{StaticResource SectionTitleText}" VerticalAlignment="Center" Margin="0,0,16,6" Text="{l:T Memory_View_Title}"/>
                 </DockPanel>
 
                 <!-- The search: a visible label (by meaning and by words, or by words), a hint inside the empty box, and Intro or
@@ -42,12 +47,12 @@
                         <TextBox x:Name="SearchBox" Style="{StaticResource FieldTextBox}" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                                  AutomationProperties.Name="{Binding SearchAutomationName}"
                                  AutomationProperties.LabeledBy="{Binding ElementName=SearchLabel}"
-                                 AutomationProperties.HelpText="Lo que buscas en el contenido, el tema o la fuente de las entradas, con tus palabras. Intro o «Buscar» aplica la búsqueda.">
+                                 AutomationProperties.HelpText="{l:T Memory_View_SearchHelp}">
                             <TextBox.InputBindings>
                                 <KeyBinding Key="Enter" Command="{Binding SearchCommand}"/>
                             </TextBox.InputBindings>
                         </TextBox>
-                        <TextBlock Margin="9,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" Text="contenido, tema o fuente…">
+                        <TextBlock Margin="9,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" Text="{l:T Memory_View_SearchHint}">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
                                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -60,15 +65,15 @@
                             </TextBlock.Style>
                         </TextBlock>
                     </Grid>
-                    <TextBlock x:Name="KindLabel" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="0,0,8,6" Text="Categoría"/>
+                    <TextBlock x:Name="KindLabel" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="0,0,8,6" Text="{l:T Memory_View_Kind}"/>
                     <ComboBox MinWidth="160" Margin="0,0,8,6" VerticalAlignment="Center" ItemsSource="{Binding Kinds}" SelectedItem="{Binding SelectedKind}" DisplayMemberPath="Label"
-                              AutomationProperties.Name="Categoría" AutomationProperties.LabeledBy="{Binding ElementName=KindLabel}"/>
-                    <Button Style="{StaticResource ToolbarPrimaryButton}" VerticalAlignment="Center" Content="Buscar" Command="{Binding SearchCommand}"
-                            AutomationProperties.Name="Buscar en la memoria"/>
+                              AutomationProperties.Name="{l:T Memory_View_Kind}" AutomationProperties.LabeledBy="{Binding ElementName=KindLabel}"/>
+                    <Button Style="{StaticResource ToolbarPrimaryButton}" VerticalAlignment="Center" Content="{l:T Memory_View_Search}" Command="{Binding SearchCommand}"
+                            AutomationProperties.Name="{l:T Memory_View_SearchName}"/>
                 </WrapPanel>
                 <!-- How the last search went: by meaning and by words, or by words only and why (F12-6). -->
                 <TextBlock Style="{StaticResource OptionalSecondaryText}" TextWrapping="Wrap" Text="{Binding SearchNotice, TargetNullValue=''}"
-                           AutomationProperties.Name="Cómo se ha buscado" AutomationProperties.LiveSetting="Polite"/>
+                           AutomationProperties.Name="{l:T Memory_View_HowSearched}" AutomationProperties.LiveSetting="Polite"/>
                 <TextBlock Style="{StaticResource BodyText}" FontSize="12" Foreground="{StaticResource WarningBrush}" Text="{Binding ExportBlocked}"
                            Visibility="{Binding ExportBlocked, Converter={StaticResource Memory.NotNullToVisibility}}" AutomationProperties.LiveSetting="Polite"/>
                 <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding ExportStatus, TargetNullValue=''}" AutomationProperties.LiveSetting="Polite"/>
@@ -77,7 +82,7 @@
                 <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding StatusMessage, TargetNullValue=''}"/>
                 <TextBlock Style="{StaticResource ErrorText}" Text="{Binding ErrorMessage}" AutomationProperties.LiveSetting="Assertive"/>
                 <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0"
-                           Text="Solo lo de confianza llega a los prompts de los agentes con «Memoria del proyecto» activada; el juez nunca recibe memoria."/>
+                           Text="{l:T Memory_View_Note}"/>
             </StackPanel>
         </Border>
 
@@ -88,7 +93,7 @@
             </Grid.ColumnDefinitions>
 
             <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
-                <ItemsControl ItemsSource="{Binding Results}" Margin="12,10,12,12" Focusable="False" AutomationProperties.Name="Entradas de la memoria">
+                <ItemsControl ItemsSource="{Binding Results}" Margin="12,10,12,12" Focusable="False" AutomationProperties.Name="{l:T Memory_View_Entries}">
                     <ItemsControl.Resources>
                         <!-- An entry of the memory: its trust, what can be decided about it, and why a search found it. -->
                         <DataTemplate DataType="{x:Type memory:MemoryEntryViewModel}">
@@ -96,18 +101,18 @@
                                 <StackPanel>
                                     <DockPanel>
                                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                                            <Button Style="{StaticResource ToolbarButton}" Content="Aceptar"
+                                            <Button Style="{StaticResource ToolbarButton}" Content="{l:T Memory_Entry_Accept}"
                                                     Visibility="{Binding CanBeAccepted, Converter={StaticResource Memory.BoolToVisibility}}"
                                                     Command="{Binding DataContext.AcceptCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
-                                                    AutomationProperties.Name="{Binding Id, StringFormat='Aceptar {0}'}"/>
-                                            <Button Style="{StaticResource ToolbarButton}" Content="Rechazar"
+                                                    AutomationProperties.Name="{Binding Id, StringFormat={l:T Memory_Entry_AcceptName}}"/>
+                                            <Button Style="{StaticResource ToolbarButton}" Content="{l:T Memory_Entry_Reject}"
                                                     Visibility="{Binding CanBeAccepted, Converter={StaticResource Memory.BoolToVisibility}}"
                                                     Command="{Binding DataContext.RejectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
-                                                    AutomationProperties.Name="{Binding Id, StringFormat='Rechazar {0}'}"/>
-                                            <Button Style="{StaticResource ToolbarButton}" Content="Retirar"
+                                                    AutomationProperties.Name="{Binding Id, StringFormat={l:T Memory_Entry_RejectName}}"/>
+                                            <Button Style="{StaticResource ToolbarButton}" Content="{l:T Memory_Entry_Retract}"
                                                     Visibility="{Binding CanBeRetracted, Converter={StaticResource Memory.BoolToVisibility}}"
                                                     Command="{Binding DataContext.RetractCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
-                                                    AutomationProperties.Name="{Binding Id, StringFormat='Retirar {0}'}"/>
+                                                    AutomationProperties.Name="{Binding Id, StringFormat={l:T Memory_Entry_RetractName}}"/>
                                         </StackPanel>
                                         <!-- A dock, not a horizontal stack: a long trust wraps before the buttons instead of running under them. -->
                                         <DockPanel VerticalAlignment="Center">
@@ -127,7 +132,7 @@
                                         <Run Text="{Binding Id, Mode=OneWay}" FontFamily="{StaticResource MonoFont}"/>
                                     </TextBlock>
                                     <TextBlock Style="{StaticResource BodyText}" Margin="0,4,0,0" Text="{Binding Content}"/>
-                                    <TextBlock Style="{StaticResource SecondaryText}" FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap" Text="{Binding Source, StringFormat='Fuente: {0}'}"/>
+                                    <TextBlock Style="{StaticResource SecondaryText}" FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap" Text="{Binding Source, StringFormat={l:T Memory_Entry_Source}}"/>
                                     <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding Match, TargetNullValue=''}"/>
                                     <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding Superseded, TargetNullValue=''}"/>
                                     <TextBlock Style="{StaticResource BodyText}" FontSize="12" Foreground="{StaticResource WarningBrush}" Text="{Binding Pending}"
@@ -153,7 +158,7 @@
                                         <Run Text="{Binding Id, Mode=OneWay}" FontFamily="{StaticResource MonoFont}"/>
                                     </TextBlock>
                                     <TextBlock Style="{StaticResource BodyText}" Margin="0,4,0,0" Text="{Binding Content}"/>
-                                    <TextBlock Style="{StaticResource SecondaryText}" FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap" Text="{Binding Source, StringFormat='Fuente: {0}'}"/>
+                                    <TextBlock Style="{StaticResource SecondaryText}" FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap" Text="{Binding Source, StringFormat={l:T Memory_Entry_Source}}"/>
                                     <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding Match}"/>
                                 </StackPanel>
                             </Border>

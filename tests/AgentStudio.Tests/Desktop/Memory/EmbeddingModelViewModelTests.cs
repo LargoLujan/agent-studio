@@ -141,12 +141,12 @@ public sealed class EmbeddingModelViewModelTests
     {
         var (model, _, _) = Create(new SemanticIndexStatus(120, 0, new EmbeddingModelStatus(EmbeddingModelState.Unloadable, ModelFolder, "Falta memoria.")));
 
-        Assert.Equal("El modelo está descargado y verifica, pero no se ha podido cargar: la búsqueda va por palabras. Falta memoria.", model.StatusText);
+        Assert.Equal("El modelo está descargado y comprobado, pero no se pudo cargar. La búsqueda va por palabras. Falta memoria.", model.StatusText);
         Assert.False(model.CanDownload);
     }
 
     [Theory]
-    [InlineData(120, 120, "Activa: el modelo está descargado y comprobado, y los 120 fragmentos del índice tienen su significado calculado.")]
+    [InlineData(120, 120, "Activa: el modelo está descargado y comprobado. Los 120 fragmentos del índice ya tienen su significado listo.")]
     [InlineData(1500, 300, "Activa a medias: 300 de 1.500 fragmentos tienen su significado calculado. El resto se calcula en segundo plano y, mientras tanto, solo se encuentra por palabras.")]
     [InlineData(0, 0, "Activa: el modelo está descargado y comprobado. El índice de este proyecto aún no tiene fragmentos: se construye en segundo plano.")]
     public void With_the_model_the_panel_says_how_much_of_the_index_has_its_meaning(int fragments, int withVectors, string text)
@@ -188,8 +188,8 @@ public sealed class EmbeddingModelViewModelTests
         Assert.Equal("En total, 123,4 MB, una sola vez.", model.TotalText);
         Assert.Equal("De dónde: huggingface.co, solo de esas direcciones.", model.FromText);
         Assert.StartsWith($"Dónde se guarda: {ModelFolder}.", model.WhereText, StringComparison.Ordinal);
-        Assert.Contains("huella SHA-256", model.CheckText, StringComparison.Ordinal);
-        Assert.Contains("no gasta cuota", model.CheckText, StringComparison.Ordinal);
+        Assert.Contains("la huella de cada fichero", model.CheckText, StringComparison.Ordinal);
+        Assert.Contains("no gasta límite de uso", model.CheckText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -334,7 +334,7 @@ public sealed class EmbeddingModelViewModelTests
         model.Show(true, Ready(fragments: 58, withVectors: 58), null);
 
         Assert.Null(model.Outcome);
-        Assert.StartsWith("Activa: el modelo está descargado y comprobado, y los 58 fragmentos", model.StatusText, StringComparison.Ordinal);
+        Assert.StartsWith("Activa: el modelo está descargado y comprobado. Los 58 fragmentos", model.StatusText, StringComparison.Ordinal);
     }
 
     [Fact]

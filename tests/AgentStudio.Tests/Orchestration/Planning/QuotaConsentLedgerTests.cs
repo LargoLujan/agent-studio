@@ -15,7 +15,7 @@ namespace AgentStudio.Tests.Orchestration.Planning;
 /// </summary>
 public sealed class QuotaConsentLedgerTests
 {
-    private static readonly QuotaConsent Consent = new("miveritas", Start, "Revisar el orden: ~3.000 tokens (estimado)");
+    private static readonly QuotaConsent Consent = new("ana", Start, "Revisar el orden: ~3.000 tokens (estimado)");
 
     [Fact]
     public void An_OK_is_spent_once()
@@ -47,7 +47,7 @@ public sealed class QuotaConsentLedgerTests
         var review = new OrderReviewService(runner, harness.Worktrees, harness.Decisions, ledger, harness.Time);
         OrderReviewServiceTests.Planned(harness, new RunId("20261015-a1b2c3"));
         var chat = new PreparationChatService(runner, harness.Worktrees, new NoSecrets(), ledger, harness.Time);
-        var consent = new QuotaConsent("miveritas", harness.Time.GetUtcNow(), "Un uso");
+        var consent = new QuotaConsent("ana", harness.Time.GetUtcNow(), "Un uso");
         harness.Claude.Fallback = (_, _) => new AgentScript { StructuredOutput = "{\"dependencies\":[],\"parallelOk\":[],\"harmful\":[]}" };
         var plan = Plan(Work("T1").Covering("RQ-01"));
 

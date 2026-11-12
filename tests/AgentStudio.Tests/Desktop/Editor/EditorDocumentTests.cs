@@ -243,7 +243,7 @@ public sealed class EditorDocumentTests : IDisposable
 
         Assert.True(document.HasMixedLineEndings);
         Assert.Contains("CRLF y LF", document.MixedLineEndingsNotice);
-        Assert.Contains("unificarán a CRLF", document.MixedLineEndingsNotice);
+        Assert.Contains("todos pasarán a CRLF", document.MixedLineEndingsNotice);
 
         await document.SaveAsync("a\nb\nc\n", TestContext.Current.CancellationToken);
 

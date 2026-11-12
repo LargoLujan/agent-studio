@@ -88,7 +88,7 @@
 
                 <!-- Plan layer: create nodes and act on the selection and the view. -->
                 <WrapPanel Orientation="Horizontal" Visibility="{Binding IsPlanLayer, Converter={StaticResource Orchestrator.BoolToVisibility}}">
-                    <TextBlock Text="Crear nodo" Style="{StaticResource SecondaryText}" VerticalAlignment="Top" Margin="0,7,10,0"/>
+                    <TextBlock Text="{l:T Orchestrator_Canvas_CreateNode}" Style="{StaticResource SecondaryText}" VerticalAlignment="Top" Margin="0,7,10,0"/>
                     <ItemsControl ItemsSource="{Binding Palette}" Focusable="False">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
@@ -104,15 +104,16 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <Button Style="{StaticResource ToolbarButton}" Content="Eliminar selección (Supr)" Margin="12,0,6,6"
+                    <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_Canvas_DeleteSelection}" Margin="12,0,6,6"
                             Command="{Binding DeleteSelectionCommand}"/>
                     <!-- Frames every node, never below a zoom whose words can be read (CanvasViewModel.MinFitZoom). -->
-                    <Button Style="{StaticResource ToolbarButton}" Content="Ajustar vista" Command="{Binding FitViewCommand}"
-                            ToolTip="Encuadra todos los nodos con un zoom en el que se leen; un plan más grande se ve desde su esquina"/>
-                    <Button Style="{StaticResource ToolbarButton}" Content="Acercar" Command="{x:Static nodify:EditorCommands.ZoomIn}"
+                    <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_Canvas_FitView}" Command="{Binding FitViewCommand}"
+                            ToolTip="{l:T Orchestrator_Canvas_FitViewHelp}"/>
+                    <Button Style="{StaticResource ToolbarButton}" Content="{l:T Canvas_Team_Zoom_In}" Command="{x:Static nodify:EditorCommands.ZoomIn}"
                             CommandTarget="{Binding ElementName=Editor}"/>
-                    <Button Style="{StaticResource ToolbarButton}" Content="Alejar" Command="{x:Static nodify:EditorCommands.ZoomOut}"
+                    <Button Style="{StaticResource ToolbarButton}" Content="{l:T Canvas_Team_Zoom_Out}" Command="{x:Static nodify:EditorCommands.ZoomOut}"
                             CommandTarget="{Binding ElementName=Editor}"/>
+                    <info:InfoButton InfoKey="Info_Canvas_Plan" VerticalAlignment="Center" Margin="6,0,0,6"/>
                 </WrapPanel>
 
                 <!-- Team layer: add agents (with the limits seen), take one out when the store can, connect with the keyboard, filter. -->
@@ -224,7 +225,7 @@
             <!-- Empty canvas: what to do first. -->
             <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
                        TextAlignment="Center" MaxWidth="420" IsHitTestVisible="False"
-                       Text="El plan está vacío. Crea nodos con la barra de arriba o pide un plan al orquestador, y únelos arrastrando de una salida a una entrada.">
+                       Text="{l:T Orchestrator_Canvas_EmptyPlan}">
                 <TextBlock.Style>
                     <Style TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
                         <Setter Property="Visibility" Value="Collapsed"/>
@@ -258,7 +259,7 @@
                 </Border.Style>
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="{Binding NoticeText}" Style="{StaticResource BodyText}" TextWrapping="NoWrap" VerticalAlignment="Center"/>
-                    <Button Style="{StaticResource GhostButton}" Content="Cerrar" Margin="14,0,0,0" Padding="8,2" FontSize="12"
+                    <Button Style="{StaticResource GhostButton}" Content="{l:T Canvas_Team_Close}" Margin="14,0,0,0" Padding="8,2" FontSize="12"
                             Command="{Binding DismissNoticeCommand}"/>
                 </StackPanel>
             </Border>
@@ -285,10 +286,10 @@
         <Border Grid.Row="4" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
                 BorderThickness="0,1,0,0" Padding="12,6">
             <WrapPanel Orientation="Horizontal">
-                <TextBlock Text="{Binding Nodes.Count, StringFormat='Nodos: {0}'}" Style="{StaticResource SecondaryText}" Margin="0,0,18,0"/>
-                <TextBlock Text="{Binding Connections.Count, StringFormat='Conexiones: {0}'}" Style="{StaticResource SecondaryText}" Margin="0,0,18,0"/>
-                <TextBlock Text="{Binding ZoomText, StringFormat='Zoom: {0}'}" Style="{StaticResource SecondaryText}" Margin="0,0,24,0"/>
-                <ItemsControl ItemsSource="{Binding StatusLegend}" Focusable="False" AutomationProperties.Name="Leyenda de estados">
+                <TextBlock Style="{StaticResource SecondaryText}" Margin="0,0,18,0"><Run Text="{l:T Orchestrator_Canvas_NodesCount}"/><Run Text=" "/><Run Text="{Binding Nodes.Count, Mode=OneWay}"/></TextBlock>
+                <TextBlock Style="{StaticResource SecondaryText}" Margin="0,0,18,0"><Run Text="{l:T Orchestrator_Canvas_ConnectionsCount}"/><Run Text=" "/><Run Text="{Binding Connections.Count, Mode=OneWay}"/></TextBlock>
+                <TextBlock Style="{StaticResource SecondaryText}" Margin="0,0,24,0"><Run Text="{l:T Orchestrator_Canvas_ZoomLabel}"/><Run Text=" "/><Run Text="{Binding ZoomText, Mode=OneWay}"/></TextBlock>
+                <ItemsControl ItemsSource="{Binding StatusLegend}" Focusable="False" AutomationProperties.Name="{l:T Orchestrator_Canvas_LegendName}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <WrapPanel/>

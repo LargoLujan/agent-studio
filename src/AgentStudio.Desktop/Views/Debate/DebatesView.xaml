@@ -3,6 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
+             xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
              xmlns:debate="clr-namespace:AgentStudio.Desktop.Debate"
              xmlns:views="clr-namespace:AgentStudio.Desktop.Views.Debate"
              xmlns:orchestratorViews="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
@@ -27,14 +29,15 @@
             <StackPanel>
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                        <Button Style="{StaticResource ToolbarButton}" Content="Volver al debate en curso" Command="{Binding BackToLiveCommand}"
+                        <Button Style="{StaticResource ToolbarButton}" Content="{l:T Debate_View_BackToLive}" Command="{Binding BackToLiveCommand}"
                                 Visibility="{Binding ShowsAnotherThanLive, Converter={StaticResource Debates.BoolToVisibility}}"/>
-                        <Button Style="{StaticResource ToolbarButton}" Content="Actualizar" Command="{Binding RefreshCommand}"/>
-                        <Button Style="{StaticResource ToolbarPrimaryButton}" Content="Nuevo debate" Command="{Binding ShowNewDebateCommand}"/>
+                        <Button Style="{StaticResource ToolbarButton}" Content="{l:T Debate_View_Refresh}" Command="{Binding RefreshCommand}"/>
+                        <Button Style="{StaticResource ToolbarPrimaryButton}" Content="{l:T Debate_View_NewDebate}" Command="{Binding ShowNewDebateCommand}"/>
+                        <info:InfoButton InfoKey="Info_Debates" Margin="6,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
                     <TextBlock Style="{StaticResource SectionTitleText}" VerticalAlignment="Center" Text="{Binding Title}"/>
                 </DockPanel>
-                <ItemsControl ItemsSource="{Binding Notices}" Focusable="False" AutomationProperties.Name="Avisos">
+                <ItemsControl ItemsSource="{Binding Notices}" Focusable="False" AutomationProperties.Name="{l:T Debate_View_Notices}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <TextBlock Style="{StaticResource BodyText}" FontSize="12" Foreground="{StaticResource WarningBrush}" Text="{Binding}"/>
@@ -55,9 +58,9 @@
             <!-- History. -->
             <DockPanel Grid.Column="0" Margin="12,10,12,12">
                 <ComboBox DockPanel.Dock="Top" HorizontalAlignment="Left" MinWidth="200" Margin="0,0,0,8" ItemsSource="{Binding ModeFilters}" SelectedItem="{Binding SelectedFilter}"
-                          DisplayMemberPath="Label" AutomationProperties.Name="Filtrar por modo"/>
+                          DisplayMemberPath="Label" AutomationProperties.Name="{l:T Debate_View_FilterByMode}"/>
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
-                    <ItemsControl ItemsSource="{Binding History}" Focusable="False" AutomationProperties.Name="Historial de debates">
+                    <ItemsControl ItemsSource="{Binding History}" Focusable="False" AutomationProperties.Name="{l:T Debate_View_History}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type debate:DebateHistoryItem}">
                                 <Border Style="{StaticResource InnerCard}" Padding="10,8" AutomationProperties.Name="{Binding StateText}">
@@ -78,14 +81,14 @@
                                         <TextBlock Style="{StaticResource ProblemText}" Text="{Binding ProblemsText}" Visibility="{Binding ProblemsText, Converter={StaticResource Debates.NotNullToVisibility}}"/>
                                         <TextBlock Style="{StaticResource SecondaryText}" FontFamily="{StaticResource MonoFont}" FontSize="11" Text="{Binding Debate}"/>
                                         <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                            <Button Style="{StaticResource ToolbarButton}" Content="Abrir"
+                                            <Button Style="{StaticResource ToolbarButton}" Content="{l:T Debate_View_Open}"
                                                     Command="{Binding DataContext.OpenItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
-                                                    AutomationProperties.Name="{Binding Debate, StringFormat='Abrir el debate {0}'}"/>
-                                            <Button Style="{StaticResource ToolbarButton}" Content="Reanudar"
+                                                    AutomationProperties.Name="{Binding OpenName}"/>
+                                            <Button Style="{StaticResource ToolbarButton}" Content="{l:T Debate_View_Resume}"
                                                     Visibility="{Binding CanResume, Converter={StaticResource Debates.BoolToVisibility}}"
                                                     Command="{Binding DataContext.ResumeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
-                                                    ToolTip="Gasta cuota: te pide aprobación. Los turnos abiertos se cierran como interrumpidos y lo anunciado no se repite."
-                                                    AutomationProperties.Name="{Binding Debate, StringFormat='Reanudar el debate {0}'}"/>
+                                                    ToolTip="{l:T Debate_View_ResumeHint}"
+                                                    AutomationProperties.Name="{Binding ResumeName}"/>
                                         </StackPanel>
                                     </StackPanel>
                                 </Border>
@@ -106,7 +109,7 @@
                                           Visibility="{Binding DataContext.ShowsRoom, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource Debates.BoolToVisibility}, FallbackValue=Collapsed}"/>
                     <TextBlock Style="{StaticResource SecondaryText}" Margin="16" TextWrapping="Wrap"
                                Visibility="{Binding ShowsNothing, Converter={StaticResource Debates.BoolToVisibility}}"
-                               Text="Abre un debate del historial o pulsa «Nuevo debate». Un debate gasta cuota de tus suscripciones: «Abrir debate» te enseña antes la configuración exacta y la estimación, y te pide aprobación."/>
+                               Text="{l:T Debate_View_Empty}"/>
                 </Grid>
             </Border>
         </Grid>

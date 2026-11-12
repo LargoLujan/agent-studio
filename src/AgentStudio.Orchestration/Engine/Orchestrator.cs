@@ -3,6 +3,7 @@ using AgentStudio.Application.Execution;
 using AgentStudio.Application.Git;
 using AgentStudio.Application.Judging;
 using AgentStudio.Application.Knowledge;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Projects;
@@ -215,7 +216,12 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
         IProjectHistoryTool? history = null,
         IProjectBrief? brief = null,
         ISecretRedactor? redactor = null,
-        Application.Usage.IUsageEstimator? estimator = null)
+        Application.Usage.IUsageEstimator? estimator = null,
+        Application.Work.IProjectBudgetStore? budgets = null,
+        Application.Usage.IUsageReport? usage = null,
+        Application.Work.IMilestoneRegistry? milestones = null,
+        Application.Projects.IProjectLogReader? logReader = null,
+        Application.Prompts.IResponseLanguage? responseLanguage = null)
     {
         ArgumentNullException.ThrowIfNull(decisions);
         ArgumentNullException.ThrowIfNull(evidence);
@@ -241,6 +247,8 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
             Brief = brief,
             Redactor = redactor,
             Estimator = estimator,
+            Language = responseLanguage,
+            BudgetGate = budgets is null && milestones is null ? null : new ProjectBudgetGate(budgets, usage, estimator, milestones, logReader, time),
         };
         _planner = new Planner(_ports);
         Activity = activity ?? new OrchestrationActivity();
@@ -338,18 +346,21 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
 
         await guard.EstablishBaselineAsync(cancellationToken).ConfigureAwait(false);
         var notices = new List<string>();
+        var noticeTexts = new List<UserText?>();
 
         // Only the user's own changes: what Agent Studio keeps in .agentstudio/ (the journal, the memory export) does not
         // count (RepositoryState.HasUncommittedChanges), the same answer the notes of a debate and of an audit get.
         if (repository.HasUncommittedChanges)
         {
             notices.Add("Tienes cambios sin confirmar: no entran en la ejecución, que parte del último commit.");
+            noticeTexts.Add(UserText.Of(OrchestrationUserTexts.NoticeUncommittedChanges));
         }
 
         // A plan that may run but whose work no integration reviewed by the judge merges can never be delivered.
         if (PlanWarningText.Notice(PlanValidator.Warnings(request.Plan)) is { } undeliverable)
         {
             notices.Add(undeliverable);
+            noticeTexts.Add(OrchestrationUserTexts.Sentences(PlanWarningText.Texts(PlanValidator.Warnings(request.Plan))));
         }
 
         var baseCommit = await BaseCommitAsync(request, run, log.Entries, entries, repository, recorder, cancellationToken).ConfigureAwait(false);
@@ -378,7 +389,7 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
         var context = new RunContext(project, run, request.Plan, request.Requirements, request.Verification, roster, request.Options, baseCommit, createdAt);
         var orchestration = new OrchestrationRun(context, _ports, recorder, request.Plan.BuildGraph(createdAt), ledger, guard, Forget);
         Track(orchestration);
-        orchestration.Start(notices);
+        orchestration.Start(notices, noticeTexts);
         return orchestration;
     }
 
@@ -417,8 +428,8 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
                 ? ResumeScheduler.Decide(record, RunLog.Of(log.Entries, run.Value))
                 : ((RunResumeCause?)null, "No está registrada.");
         return cause is { } why
-            ? new ConsentResume(await GoOnAsync(project, run, log, why, cancellationToken).ConfigureAwait(false), why, reason)
-            : new ConsentResume(null, null, reason);
+            ? new ConsentResume(await GoOnAsync(project, run, log, why, cancellationToken).ConfigureAwait(false), why, reason, LoggedTexts.ResumeReason(reason))
+            : new ConsentResume(null, null, reason, LoggedTexts.ResumeReason(reason));
     }
 
     /// <summary>
@@ -432,7 +443,7 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
         var resumed = await new RunResumer(_ports).ResumeAsync(project, run, log.Entries, cause, cancellationToken).ConfigureAwait(false);
         var orchestration = new OrchestrationRun(resumed.Context, _ports, resumed.Recorder, resumed.Graph, resumed.Ledger, resumed.Guard, Forget);
         Track(orchestration);
-        orchestration.Start([RunResumer.Notice(cause)]);
+        orchestration.Start([RunResumer.Notice(cause)], [RunResumer.NoticeText(cause)]);
         return orchestration;
     }
 
@@ -455,6 +466,9 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
     public async Task<IReadOnlyList<RunSummary>> ListRunsAsync(ProjectContext project, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(project);
+        // The live runs first, then the log: a run that ends in between has its end in the log read next (it is recorded before
+        // the run leaves the live ones), whereas the other order lists a run that has just finished as left unfinished.
+        var going = _live.ToArray().ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal);
         var log = await LoadVerifiedAsync(project.ProjectId, LogLoad.Incremental, cancellationToken).ConfigureAwait(false);
         var records = await _ports.Runs.ListAsync(project.ProjectId, cancellationToken).ConfigureAwait(false);
         var summaries = new List<RunSummary>();
@@ -463,7 +477,7 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
             var entries = RunLog.Of(log.Entries, record.Id.Value);
             RunPhase phase;
             string summary;
-            if (_live.TryGetValue(Key(project.ProjectId, record.Id), out var live))
+            if (going.TryGetValue(Key(project.ProjectId, record.Id), out var live))
             {
                 var snapshot = live.Snapshot();
                 phase = snapshot.Phase;

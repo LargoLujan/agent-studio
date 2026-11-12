@@ -355,8 +355,9 @@ public sealed class HelloBarrierTests
         var gate = await world.ApproveAsync(Via.Gate);
         var plan = await world.ApproveAsync(Via.Plan);
 
+        // The gate's reason is the comment of the decision, which the log keeps in its fixed text; the plan's is the screen's.
         Assert.False(gate.Approved);
-        Assert.EndsWith(HelloTexts.SetUpHello, gate.Said, StringComparison.Ordinal);
+        Assert.EndsWith(OrchestratorProtocolTexts.SetUpHello, gate.Said, StringComparison.Ordinal);
         Assert.False(plan.Approved);
         Assert.EndsWith(HelloTexts.SetUpHello, plan.Said, StringComparison.Ordinal);
     }

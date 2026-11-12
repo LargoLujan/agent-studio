@@ -1,0 +1,475 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the Skills area in English: the same keys and placeholders as SkillsStrings.resx. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Skills_Health_Healthy" xml:space="preserve">
+    <value>Healthy</value>
+  </data>
+  <data name="Skills_Health_Warning" xml:space="preserve">
+    <value>Warning</value>
+  </data>
+  <data name="Skills_Health_Critical" xml:space="preserve">
+    <value>Critical</value>
+  </data>
+  <data name="Skills_Health_Unknown" xml:space="preserve">
+    <value>Not checked</value>
+  </data>
+  <data name="Skills_Check_Frontmatter" xml:space="preserve">
+    <value>Header</value>
+  </data>
+  <data name="Skills_Check_Size" xml:space="preserve">
+    <value>Size</value>
+  </data>
+  <data name="Skills_Check_License" xml:space="preserve">
+    <value>License</value>
+  </data>
+  <data name="Skills_Check_Pinned" xml:space="preserve">
+    <value>Pinned to a version (commit)</value>
+  </data>
+  <data name="Skills_Check_Upstream" xml:space="preserve">
+    <value>Changes at the source</value>
+  </data>
+  <data name="Skills_Check_Archived" xml:space="preserve">
+    <value>Source archived</value>
+  </data>
+  <data name="Skills_Check_Scripts" xml:space="preserve">
+    <value>Scripts</value>
+  </data>
+  <data name="Skills_Decision_None" xml:space="preserve">
+    <value>No decision</value>
+  </data>
+  <data name="Skills_Decision_On" xml:space="preserve">
+    <value>On</value>
+  </data>
+  <data name="Skills_Decision_Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="Skills_Scope_Global" xml:space="preserve">
+    <value>Global</value>
+  </data>
+  <data name="Skills_Scope_Project" xml:space="preserve">
+    <value>Project</value>
+  </data>
+  <data name="Skills_Scope_Agent" xml:space="preserve">
+    <value>Agent "{0}"</value>
+  </data>
+  <data name="Skills_Item_Linked" xml:space="preserve">
+    <value> · linked</value>
+  </data>
+  <data name="Skills_Cost_Agent_One" xml:space="preserve">
+    <value>{0}: {1} skill · ~{2} tokens per run (estimated)</value>
+  </data>
+  <data name="Skills_Cost_Agent_Other" xml:space="preserve">
+    <value>{0}: {1} skills · ~{2} tokens per run (estimated)</value>
+  </data>
+  <data name="Skills_Title" xml:space="preserve">
+    <value>Skills</value>
+  </data>
+  <data name="Skills_Warnings_Hide" xml:space="preserve">
+    <value>Hide the detail</value>
+  </data>
+  <data name="Skills_Warnings_Show" xml:space="preserve">
+    <value>Show the detail ({0})</value>
+  </data>
+  <data name="Skills_Summary_Loading" xml:space="preserve">
+    <value>Loading the catalog…</value>
+  </data>
+  <data name="Skills_Summary_Empty" xml:space="preserve">
+    <value>The catalog is empty.</value>
+  </data>
+  <data name="Skills_Summary_Sectors_One" xml:space="preserve">
+    <value>{0} skills in {1} sector</value>
+  </data>
+  <data name="Skills_Summary_Sectors_Other" xml:space="preserve">
+    <value>{0} skills in {1} sectors</value>
+  </data>
+  <data name="Skills_Summary_NoMatch" xml:space="preserve">
+    <value>No skill matches "{0}".</value>
+  </data>
+  <data name="Skills_Summary_Matches" xml:space="preserve">
+    <value>{0} of {1} skills match "{2}"</value>
+  </data>
+  <data name="Skills_Stack_NoProject" xml:space="preserve">
+    <value>No project: there are no technologies to detect.</value>
+  </data>
+  <data name="Skills_Stack_None" xml:space="preserve">
+    <value>No technology is recognized from the names of the files.</value>
+  </data>
+  <data name="Skills_Notice_NoAssisted" xml:space="preserve">
+    <value>The assisted recommendation is missing. Only the deterministic one is there, which spends no usage limit.</value>
+  </data>
+  <data name="Skills_Notice_NoApproval" xml:space="preserve">
+    <value>The approval dialog is missing: without it the OK of the assisted recommendation cannot be asked.</value>
+  </data>
+  <data name="Skills_Notice_CodexGlobal" xml:space="preserve">
+    <value>Codex also loads your global skills (~/.agents/skills). Turning one on here only adds: it does not hide the ones you already have.</value>
+  </data>
+  <data name="Skills_Notice_OpenProject" xml:space="preserve">
+    <value>Open a project to turn skills on: without one you can only browse the catalog.</value>
+  </data>
+  <data name="Skills_Notice_NoStore" xml:space="preserve">
+    <value>The store of the project is missing: nothing can be turned on or seen as on.</value>
+  </data>
+  <data name="Skills_Notice_OpenFailed" xml:space="preserve">
+    <value>The project could not be opened, so nothing can be turned on: {0}</value>
+  </data>
+  <data name="Skills_Notice_NoCatalog" xml:space="preserve">
+    <value>The catalog of skills is missing: there is nothing to show.</value>
+  </data>
+  <data name="Skills_Notice_CatalogFailed" xml:space="preserve">
+    <value>The catalog of skills could not be read: {0}</value>
+  </data>
+  <data name="Skills_Notice_NoTemplate" xml:space="preserve">
+    <value>The template of agents is missing: only the Global and Project scopes can be turned on.</value>
+  </data>
+  <data name="Skills_Notice_NoTemplateYet" xml:space="preserve">
+    <value>The project has no template of agents yet (the Orchestrator creates the default one when it opens). Until then there are only Global and Project scopes.</value>
+  </data>
+  <data name="Skills_Notice_TemplateFailed" xml:space="preserve">
+    <value>The template of agents could not be read: {0}</value>
+  </data>
+  <data name="Skills_Notice_NoActivations" xml:space="preserve">
+    <value>The store of activations is missing: nothing can be turned on or seen as on.</value>
+  </data>
+  <data name="Skills_Notice_ActivationsFailed" xml:space="preserve">
+    <value>The activations could not be read: {0}</value>
+  </data>
+  <data name="Skills_Notice_NoHealth" xml:space="preserve">
+    <value>The health reader of the skills is missing: all of them show "not checked".</value>
+  </data>
+  <data name="Skills_Notice_FilesFailed" xml:space="preserve">
+    <value>The files of the project could not be listed to detect its technologies: {0}</value>
+  </data>
+  <data name="Skills_Health_CheckFailed" xml:space="preserve">
+    <value>It could not be checked: {0}</value>
+  </data>
+  <data name="Skills_Linked_One" xml:space="preserve">
+    <value>{0} linked skill</value>
+  </data>
+  <data name="Skills_Linked_Other" xml:space="preserve">
+    <value>{0} linked skills</value>
+  </data>
+  <data name="Skills_Unusable_Both" xml:space="preserve">
+    <value>{0} and {1} without a valid local copy cannot be given to an agent</value>
+  </data>
+  <data name="Skills_UnusableLinked_One" xml:space="preserve">
+    <value>{0} linked skill cannot be given to an agent</value>
+  </data>
+  <data name="Skills_UnusableLinked_Other" xml:space="preserve">
+    <value>{0} linked skills cannot be given to an agent</value>
+  </data>
+  <data name="Skills_UnusableNoCopy_One" xml:space="preserve">
+    <value>{0} skill without a valid local copy cannot be given to an agent</value>
+  </data>
+  <data name="Skills_UnusableNoCopy_Other" xml:space="preserve">
+    <value>{0} skills without a valid local copy cannot be given to an agent</value>
+  </data>
+  <data name="Skills_Warnings_Index_One" xml:space="preserve">
+    <value>{0} warning of the skills index</value>
+  </data>
+  <data name="Skills_Warnings_Index_Other" xml:space="preserve">
+    <value>{0} warnings of the skills index</value>
+  </data>
+  <data name="Skills_Warnings_More_One" xml:space="preserve">
+    <value>{0} more warning of the index</value>
+  </data>
+  <data name="Skills_Warnings_More_Other" xml:space="preserve">
+    <value>{0} more warnings of the index</value>
+  </data>
+  <data name="Skills_Source_Commit" xml:space="preserve">
+    <value>version {0}</value>
+  </data>
+  <data name="Skills_Source_NoCommit" xml:space="preserve">
+    <value>no pinned version</value>
+  </data>
+  <data name="Skills_Source_NoLicense" xml:space="preserve">
+    <value>no declared license</value>
+  </data>
+  <data name="Skills_Card_LinkedWarning" xml:space="preserve">
+    <value>It is linked: the index keeps no local copy. So it cannot be given to any agent or turned on here. To use it, add a local copy to your index.</value>
+  </data>
+  <data name="Skills_Card_ModeLinked" xml:space="preserve">
+    <value>Linked: no local copy</value>
+  </data>
+  <data name="Skills_Card_ModeLocal" xml:space="preserve">
+    <value>Reviewed local copy</value>
+  </data>
+  <data name="Skills_Card_NoTags" xml:space="preserve">
+    <value>No tags</value>
+  </data>
+  <data name="Skills_Card_Cost" xml:space="preserve">
+    <value>~{0} tokens in each run where it is on. Estimated by Agent Studio: characters of the name and the description, divided by {1}.</value>
+  </data>
+  <data name="Skills_Activation_SaveFailed" xml:space="preserve">
+    <value>The decision could not be saved: {0}</value>
+  </data>
+  <data name="Skills_By_Agent" xml:space="preserve">
+    <value>by the agent</value>
+  </data>
+  <data name="Skills_By_Project" xml:space="preserve">
+    <value>by the project</value>
+  </data>
+  <data name="Skills_By_Global" xml:space="preserve">
+    <value>global</value>
+  </data>
+  <data name="Skills_Effective_None" xml:space="preserve">
+    <value>Not turned on (no decision)</value>
+  </data>
+  <data name="Skills_Effective_On" xml:space="preserve">
+    <value>On ({0})</value>
+  </data>
+  <data name="Skills_Effective_Off" xml:space="preserve">
+    <value>Off ({0})</value>
+  </data>
+  <data name="Skills_Badge_Project" xml:space="preserve">
+    <value>Proj.</value>
+  </data>
+  <data name="Skills_Badge_Global" xml:space="preserve">
+    <value>Global</value>
+  </data>
+  <data name="Skills_Badge_Agents_One" xml:space="preserve">
+    <value>1 agent</value>
+  </data>
+  <data name="Skills_Badge_Agents_Other" xml:space="preserve">
+    <value>{0} agents</value>
+  </data>
+  <data name="Skills_Points_One" xml:space="preserve">
+    <value>{0} point</value>
+  </data>
+  <data name="Skills_Points_Other" xml:space="preserve">
+    <value>{0} points</value>
+  </data>
+  <data name="Skills_Recommend_None" xml:space="preserve">
+    <value>No skill matches the task or the technologies of the project.</value>
+  </data>
+  <data name="Skills_Recommend_Some" xml:space="preserve">
+    <value>{0} recommended, spending no usage limit. Nothing was turned on.</value>
+  </data>
+  <data name="Skills_Assisted_WaitingOk" xml:space="preserve">
+    <value>Waiting for your OK…</value>
+  </data>
+  <data name="Skills_Assisted_NotGiven" xml:space="preserve">
+    <value>Nothing was asked: you did not give the OK, so no usage limit was spent.</value>
+  </data>
+  <data name="Skills_Assisted_Asking" xml:space="preserve">
+    <value>Asking the agent…</value>
+  </data>
+  <data name="Skills_Assisted_Reason" xml:space="preserve">
+    <value>{0} · Reason of the agent: {1}</value>
+  </data>
+  <data name="Skills_Assisted_Run" xml:space="preserve">
+    <value> (run {0})</value>
+  </data>
+  <data name="Skills_Assisted_NoneProposed" xml:space="preserve">
+    <value>The agent proposed no skill{0}.</value>
+  </data>
+  <data name="Skills_Assisted_Proposed_One" xml:space="preserve">
+    <value>The agent proposed 1 skill{0}. Nothing was turned on: turn it on yourself in its card if you like it.</value>
+  </data>
+  <data name="Skills_Assisted_Proposed_Other" xml:space="preserve">
+    <value>The agent proposed {0} skills{1}. Nothing was turned on: turn them on yourself in their cards if you like them.</value>
+  </data>
+  <data name="Skills_Assisted_Failed" xml:space="preserve">
+    <value>The recommendation could not be requested: {0}</value>
+  </data>
+  <data name="Skills_Assisted_Cancelled" xml:space="preserve">
+    <value>The question was cancelled: nothing was asked.</value>
+  </data>
+  <data name="Skills_View_ShowCard" xml:space="preserve">
+    <value>Show its card in the tree</value>
+  </data>
+  <data name="Skills_View_HealthName" xml:space="preserve">
+    <value>Health of the skill</value>
+  </data>
+  <data name="Skills_View_SourceName" xml:space="preserve">
+    <value>Source of the skill</value>
+  </data>
+  <data name="Skills_View_Tags" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="Skills_View_Activation" xml:space="preserve">
+    <value>Activation</value>
+  </data>
+  <data name="Skills_View_ActivationName" xml:space="preserve">
+    <value>Activation by scope</value>
+  </data>
+  <data name="Skills_View_ActivationHelp" xml:space="preserve">
+    <value>Adds a decision of yours for this scope. The previous one stays in the history.</value>
+  </data>
+  <data name="Skills_View_ActivationNote" xml:space="preserve">
+    <value>Turning on adds a decision of yours and does not delete the earlier ones. The most specific scope wins: first Agent, then Project, then Global. With no decision, the skill is off.</value>
+  </data>
+  <data name="Skills_View_Cost" xml:space="preserve">
+    <value>Context cost</value>
+  </data>
+  <data name="Skills_View_CostName" xml:space="preserve">
+    <value>Estimated context cost</value>
+  </data>
+  <data name="Skills_View_Health" xml:space="preserve">
+    <value>Health (local checks, no network)</value>
+  </data>
+  <data name="Skills_View_HealthChecks" xml:space="preserve">
+    <value>Health checks</value>
+  </data>
+  <data name="Skills_View_Reload" xml:space="preserve">
+    <value>Reload</value>
+  </data>
+  <data name="Skills_View_ReloadName" xml:space="preserve">
+    <value>Reload the catalog</value>
+  </data>
+  <data name="Skills_View_ReloadTip" xml:space="preserve">
+    <value>Reads the index, the template of agents and the decisions again</value>
+  </data>
+  <data name="Skills_View_SearchName" xml:space="preserve">
+    <value>Search skills</value>
+  </data>
+  <data name="Skills_View_SearchTip" xml:space="preserve">
+    <value>Searches by name, summary and tags, ignoring case and accents</value>
+  </data>
+  <data name="Skills_View_Search" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="Skills_View_Title" xml:space="preserve">
+    <value>Catalog of skills</value>
+  </data>
+  <data name="Skills_View_SummaryName" xml:space="preserve">
+    <value>Summary of the catalog</value>
+  </data>
+  <data name="Skills_View_NoticesName" xml:space="preserve">
+    <value>Notices of the catalog</value>
+  </data>
+  <data name="Skills_View_WarningsDetailName" xml:space="preserve">
+    <value>Detail of the warnings of the index</value>
+  </data>
+  <data name="Skills_View_WarningsToggleHelp" xml:space="preserve">
+    <value>Shows or hides each warning of the skills index</value>
+  </data>
+  <data name="Skills_View_WarningsSummaryName" xml:space="preserve">
+    <value>Summary of the warnings of the index</value>
+  </data>
+  <data name="Skills_View_WarningsName" xml:space="preserve">
+    <value>Warnings of the skills index</value>
+  </data>
+  <data name="Skills_View_TreeName" xml:space="preserve">
+    <value>Skills by sector</value>
+  </data>
+  <data name="Skills_View_Pick" xml:space="preserve">
+    <value>Pick a skill in the tree to see its card: source, health, cost and activation.</value>
+  </data>
+  <data name="Skills_View_Recommend" xml:space="preserve">
+    <value>Recommend for a task</value>
+  </data>
+  <data name="Skills_View_Stack" xml:space="preserve">
+    <value>Technologies of the project: {0}</value>
+  </data>
+  <data name="Skills_View_StackName" xml:space="preserve">
+    <value>Technologies of the project</value>
+  </data>
+  <data name="Skills_View_TaskName" xml:space="preserve">
+    <value>Task to recommend skills for</value>
+  </data>
+  <data name="Skills_View_RecommendButton" xml:space="preserve">
+    <value>Recommend (spends no usage limit)</value>
+  </data>
+  <data name="Skills_View_RecommendName" xml:space="preserve">
+    <value>Recommend</value>
+  </data>
+  <data name="Skills_View_DeterministicName" xml:space="preserve">
+    <value>Deterministic recommendations</value>
+  </data>
+  <data name="Skills_View_Ask" xml:space="preserve">
+    <value>Ask an agent</value>
+  </data>
+  <data name="Skills_View_AllowName" xml:space="preserve">
+    <value>Allow the assisted recommendation</value>
+  </data>
+  <data name="Skills_View_Allow" xml:space="preserve">
+    <value>Allow the assisted recommendation (spends usage limit of Claude)</value>
+  </data>
+  <data name="Skills_View_AskNote" xml:space="preserve">
+    <value>Each use asks for your OK. Claude (model haiku) reads the catalog locally, read only, with no network or files. It only proposes.</value>
+  </data>
+  <data name="Skills_View_AskStatusName" xml:space="preserve">
+    <value>State of the assisted recommendation</value>
+  </data>
+  <data name="Skills_View_AssistedName" xml:space="preserve">
+    <value>Recommendations of the agent</value>
+  </data>
+  <data name="Skills_View_PerAgent" xml:space="preserve">
+    <value>What each agent receives</value>
+  </data>
+  <data name="Skills_View_CostPerAgent" xml:space="preserve">
+    <value>Cost per agent</value>
+  </data>
+  <data name="Info_Skills_Title" xml:space="preserve">
+    <value>Skills</value>
+  </data>
+  <data name="Info_Skills_What" xml:space="preserve">
+    <value>Skills are instructions and resources given to an agent so it works better. Here you see the catalog, the health of each skill and which agents receive it.</value>
+  </data>
+  <data name="Info_Skills_Actions" xml:space="preserve">
+    <value>Pick a skill in the tree to see its card.
+Turn it on for the project, for an agent or globally: each decision is saved and can be changed.
+Ask for a recommendation for your task. The deterministic one spends no usage limit; the one of an agent does.
+Look at the cost: each skill that is on adds tokens to every run.</value>
+  </data>
+  <data name="Skills_Sector_arquitectura-software" xml:space="preserve">
+    <value>Software architecture</value>
+  </data>
+  <data name="Skills_Sector_arquitectura-datos" xml:space="preserve">
+    <value>Data architecture</value>
+  </data>
+  <data name="Skills_Sector_ingenieria-datos" xml:space="preserve">
+    <value>Data engineering</value>
+  </data>
+  <data name="Skills_Sector_ciencia-datos" xml:space="preserve">
+    <value>Data science</value>
+  </data>
+  <data name="Skills_Sector_analitica-bi" xml:space="preserve">
+    <value>Analytics and BI</value>
+  </data>
+  <data name="Skills_Sector_ux-ui" xml:space="preserve">
+    <value>UX/UI</value>
+  </data>
+  <data name="Skills_Sector_frontend" xml:space="preserve">
+    <value>Frontend</value>
+  </data>
+  <data name="Skills_Sector_backend" xml:space="preserve">
+    <value>Backend</value>
+  </data>
+  <data name="Skills_Sector_movil" xml:space="preserve">
+    <value>Mobile development</value>
+  </data>
+  <data name="Skills_Sector_escritorio" xml:space="preserve">
+    <value>Desktop development</value>
+  </data>
+  <data name="Skills_Sector_devops-cloud" xml:space="preserve">
+    <value>DevOps and cloud</value>
+  </data>
+  <data name="Skills_Sector_ciberseguridad" xml:space="preserve">
+    <value>Cybersecurity</value>
+  </data>
+  <data name="Skills_Sector_testing-qa" xml:space="preserve">
+    <value>Testing and QA</value>
+  </data>
+  <data name="Skills_Sector_ia-llm" xml:space="preserve">
+    <value>AI and LLM</value>
+  </data>
+  <data name="Skills_Sector_ingenieria-software" xml:space="preserve">
+    <value>Software engineering</value>
+  </data>
+  <data name="Skills_Sector_documentacion" xml:space="preserve">
+    <value>Documentation</value>
+  </data>
+</root>

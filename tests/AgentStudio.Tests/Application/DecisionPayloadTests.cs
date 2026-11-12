@@ -64,6 +64,8 @@ public sealed class DecisionPayloadTests
         .. DebatePayloadTests.Samples,
         .. Phase8PayloadTests.Samples,
         .. Phase13PayloadTests.Samples,
+        .. Phase14PayloadTests.Samples,
+        .. Phase9PayloadTests.Samples,
     ];
 
     private static UsageSnapshot UsageOf(long tokens, decimal cost) => UsageSnapshot.From(new TokenUsage(
@@ -289,6 +291,8 @@ public sealed class DecisionPayloadTests
                 "Planner", "Executor", "Judge", "SkillRecommendation", "DailySummary", "DebateParticipant", "DebateJudge", "ProjectAudit",
                 // Phase 13 (docs/17 §8.2) appends the auxiliary runs of the visual builder.
                 "OrderReview", "ConsumptionAnalysis", "PreparationChat",
+                // Phase 14 (docs/17 §8.2) appends the agent of the help and the draft of a document for clients.
+                "Help", "ClientDocumentDraft",
             ],
             Enum.GetNames<AgentRunPurpose>());
     }

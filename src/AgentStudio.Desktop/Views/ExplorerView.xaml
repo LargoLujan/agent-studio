@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
              xmlns:vm="clr-namespace:AgentStudio.Desktop.ViewModels"
              xmlns:views="clr-namespace:AgentStudio.Desktop.Views"
              mc:Ignorable="d"
@@ -36,12 +37,12 @@
     </UserControl.Resources>
     <Grid Background="{StaticResource SurfaceBrush}">
         <TextBlock Style="{StaticResource SecondaryText}" Margin="12" VerticalAlignment="Top"
-                   Text="No hay ninguna carpeta abierta. Usa «Abrir carpeta» en la barra superior."
+                   Text="{l:T Explorer_NoFolder}"
                    Visibility="{Binding HasNoProject, Converter={StaticResource BoolToVisibility}}"/>
 
         <DockPanel Visibility="{Binding HasProject, Converter={StaticResource BoolToVisibility}}">
             <Button DockPanel.Dock="Top" Style="{StaticResource GhostButton}" Margin="8" HorizontalAlignment="Left"
-                    Content="Actualizar" Command="{Binding RefreshCommand}"/>
+                    Content="{l:T Explorer_Refresh}" Command="{Binding RefreshCommand}"/>
             <TreeView x:Name="Tree" ItemsSource="{Binding Roots}" Background="Transparent" BorderThickness="0"
                       Foreground="{StaticResource TextPrimaryBrush}" FontFamily="{StaticResource UiFont}" FontSize="13"
                       VirtualizingPanel.IsVirtualizing="True" KeyDown="OnTreeKeyDown">
@@ -110,7 +111,7 @@
                 </TreeView.ItemContainerStyle>
                 <TreeView.ItemTemplate>
                     <HierarchicalDataTemplate DataType="{x:Type vm:ExplorerNodeViewModel}" ItemsSource="{Binding Children}">
-                        <TextBlock Text="{Binding Name}" Padding="2,2">
+                        <TextBlock Text="{Binding Name}" Padding="2,2" TextTrimming="CharacterEllipsis">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="ToolTip" Value="{Binding FullPath}"/>

@@ -61,7 +61,7 @@ public partial class App : System.Windows.Application
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ReportFatal(ex, "No se pudo iniciar Agent Studio.");
+            ReportFatal(ex, "Agent Studio could not start.", Texts.Get("App_StartFailed"));
             Shutdown(1);
         }
     }
@@ -87,7 +87,7 @@ public partial class App : System.Windows.Application
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ReportFatal(ex, "No se pudo iniciar la bandeja de Agent Studio: cerrar la ventana sale de la aplicación.");
+            ReportFatal(ex, "The tray could not start: closing the window exits the app.", Texts.Get("App_TrayFailed"));
         }
     }
 
@@ -122,7 +122,7 @@ public partial class App : System.Windows.Application
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            _host?.Services.GetService<ILogger<App>>()?.LogError(ex, "Error al detener el host.");
+            _host?.Services.GetService<ILogger<App>>()?.LogError(ex, "Error stopping the host.");
         }
 
         base.OnExit(e);
@@ -131,12 +131,12 @@ public partial class App : System.Windows.Application
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         e.Handled = true;
-        ReportFatal(e.Exception, "Error inesperado en la interfaz.");
+        ReportFatal(e.Exception, "Unexpected error in the interface.", Texts.Get("App_UnexpectedError"));
     }
 
-    private void ReportFatal(Exception ex, string title)
+    private void ReportFatal(Exception ex, string logMessage, string title)
     {
-        _host?.Services.GetService<ILogger<App>>()?.LogError(ex, "{Title}", title);
+        _host?.Services.GetService<ILogger<App>>()?.LogError(ex, "{Message}", logMessage);
         MessageBox.Show(ex.Message, title, MessageBoxButton.OK, MessageBoxImage.Error);
     }
 }

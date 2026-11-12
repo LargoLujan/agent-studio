@@ -1,0 +1,1766 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the Memory area (docs/17 D-47, ADR-0054; Phase 14 WP-14A part c) in Spanish of Spain, the source language: the memory of the project, the search by meaning and its model, the trust of the journal and the daily summary. What the memory holds (entries, journal lines, summaries written by the modules) is shown as it was anchored and is not here (D-48). -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Memory_Kind_Architecture" xml:space="preserve">
+    <value>Arquitectura</value>
+    <comment>Category of a memory entry (MemoryKind.Architecture).</comment>
+  </data>
+  <data name="Memory_Kind_Convention" xml:space="preserve">
+    <value>Convención</value>
+    <comment>Category of a memory entry (MemoryKind.Convention).</comment>
+  </data>
+  <data name="Memory_Kind_Decision" xml:space="preserve">
+    <value>Decisión</value>
+    <comment>Category of a memory entry (MemoryKind.Decision).</comment>
+  </data>
+  <data name="Memory_Kind_KnownError" xml:space="preserve">
+    <value>Error conocido</value>
+    <comment>Category of a memory entry (MemoryKind.KnownError).</comment>
+  </data>
+  <data name="Memory_Kind_Solution" xml:space="preserve">
+    <value>Solución</value>
+    <comment>Category of a memory entry (MemoryKind.Solution).</comment>
+  </data>
+  <data name="Memory_Kind_PendingTask" xml:space="preserve">
+    <value>Tarea pendiente</value>
+    <comment>Category of a memory entry (MemoryKind.PendingTask).</comment>
+  </data>
+  <data name="Memory_Kind_Change" xml:space="preserve">
+    <value>Cambio</value>
+    <comment>Category of a memory entry (MemoryKind.Change).</comment>
+  </data>
+  <data name="Memory_Kind_DebateSummary" xml:space="preserve">
+    <value>Resumen de debate</value>
+    <comment>Category of a memory entry (MemoryKind.DebateSummary).</comment>
+  </data>
+  <data name="Memory_Kind_Verdict" xml:space="preserve">
+    <value>Veredicto</value>
+    <comment>Category of a memory entry (MemoryKind.Verdict).</comment>
+  </data>
+  <data name="Memory_Kind_DailySummary" xml:space="preserve">
+    <value>Resumen diario</value>
+    <comment>Category of a memory entry (MemoryKind.DailySummary).</comment>
+  </data>
+  <data name="Memory_Kind_JournalEntry" xml:space="preserve">
+    <value>Bitácora</value>
+    <comment>Category of a memory entry (MemoryKind.JournalEntry).</comment>
+  </data>
+  <data name="Memory_Kind_All" xml:space="preserve">
+    <value>Todas</value>
+    <comment>First option of the filter by category.</comment>
+  </data>
+  <data name="Memory_Origin_System" xml:space="preserve">
+    <value>Sistema</value>
+    <comment>Who wrote an entry: the system.</comment>
+  </data>
+  <data name="Memory_Origin_User" xml:space="preserve">
+    <value>Tú</value>
+    <comment>Who wrote an entry: the person.</comment>
+  </data>
+  <data name="Memory_Origin_Agent" xml:space="preserve">
+    <value>Agente</value>
+    <comment>Who wrote an entry: an agent.</comment>
+  </data>
+  <data name="Memory_Origin_JournalUnchecked" xml:space="preserve">
+    <value>Autor sin comprobar</value>
+    <comment>Who wrote a journal line whose author cannot be checked.</comment>
+  </data>
+  <data name="Memory_Trust_Trusted" xml:space="preserve">
+    <value>De confianza</value>
+    <comment>Trust of an entry.</comment>
+  </data>
+  <data name="Memory_Trust_Proposed" xml:space="preserve">
+    <value>Propuesta de un agente: sin revisar</value>
+    <comment>Trust of an entry.</comment>
+  </data>
+  <data name="Memory_Trust_Quarantined" xml:space="preserve">
+    <value>En cuarentena: viene de un historial que aceptaste como nuevo origen. Revísala.</value>
+    <comment>Trust of an entry.</comment>
+  </data>
+  <data name="Memory_Trust_Rejected" xml:space="preserve">
+    <value>Rechazada</value>
+    <comment>Trust of an entry.</comment>
+  </data>
+  <data name="Memory_Trust_Retracted" xml:space="preserve">
+    <value>Retirada</value>
+    <comment>Trust of an entry.</comment>
+  </data>
+  <data name="Memory_Trust_JournalUnchecked" xml:space="preserve">
+    <value>En cuarentena: no se puede comprobar quién la escribió. Acéptala, o confía en su día o en toda la bitácora</value>
+    <comment>Trust of a journal line whose author cannot be checked (V40).</comment>
+  </data>
+  <data name="Memory_Entry_SupersededBy" xml:space="preserve">
+    <value>Sustituida por {0}</value>
+    <comment>An entry that another replaced. {0}: id of the new one.</comment>
+  </data>
+  <data name="Memory_Entry_Supersedes" xml:space="preserve">
+    <value>Sustituye a {0}</value>
+    <comment>An entry that replaces another. {0}: id of the old one.</comment>
+  </data>
+  <data name="Memory_Title" xml:space="preserve">
+    <value>Memoria</value>
+    <comment>Title of the document (tab).</comment>
+  </data>
+  <data name="Memory_View_Title" xml:space="preserve">
+    <value>Memoria del proyecto</value>
+    <comment>Heading of the screen.</comment>
+  </data>
+  <data name="Memory_View_Export" xml:space="preserve">
+    <value>Exportar a Markdown</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Memory_View_ExportTip" xml:space="preserve">
+    <value>Escribe lo de confianza y lo aceptado en .agentstudio/memory/. Nunca durante una ejecución, y el Markdown nunca se lee de vuelta.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Memory_View_SearchHelp" xml:space="preserve">
+    <value>Lo que buscas en el contenido, el tema o la fuente de las entradas, con tus palabras. Intro o «Buscar» aplica la búsqueda.</value>
+    <comment>Help text of the search box.</comment>
+  </data>
+  <data name="Memory_View_SearchHint" xml:space="preserve">
+    <value>contenido, tema o fuente…</value>
+    <comment>Hint inside the empty search box.</comment>
+  </data>
+  <data name="Memory_View_Kind" xml:space="preserve">
+    <value>Categoría</value>
+    <comment>Label and accessible name of the filter.</comment>
+  </data>
+  <data name="Memory_View_Search" xml:space="preserve">
+    <value>Buscar</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Memory_View_SearchName" xml:space="preserve">
+    <value>Buscar en la memoria</value>
+    <comment>Accessible name of the button.</comment>
+  </data>
+  <data name="Memory_View_HowSearched" xml:space="preserve">
+    <value>Cómo se ha buscado</value>
+    <comment>Accessible name of the note on the search.</comment>
+  </data>
+  <data name="Memory_View_Note" xml:space="preserve">
+    <value>Solo lo de confianza llega a las instrucciones de los agentes con «Memoria del proyecto» activada. El juez nunca recibe memoria.</value>
+    <comment>Note under the toolbar.</comment>
+  </data>
+  <data name="Memory_View_Entries" xml:space="preserve">
+    <value>Entradas de la memoria</value>
+    <comment>Accessible name of the list.</comment>
+  </data>
+  <data name="Memory_Entry_Accept" xml:space="preserve">
+    <value>Aceptar</value>
+    <comment>Button on an entry.</comment>
+  </data>
+  <data name="Memory_Entry_AcceptName" xml:space="preserve">
+    <value>Aceptar {0}</value>
+    <comment>Accessible name. {0}: id of the entry.</comment>
+  </data>
+  <data name="Memory_Entry_Reject" xml:space="preserve">
+    <value>Rechazar</value>
+    <comment>Button on an entry.</comment>
+  </data>
+  <data name="Memory_Entry_RejectName" xml:space="preserve">
+    <value>Rechazar {0}</value>
+    <comment>Accessible name. {0}: id of the entry.</comment>
+  </data>
+  <data name="Memory_Entry_Retract" xml:space="preserve">
+    <value>Retirar</value>
+    <comment>Button on an entry.</comment>
+  </data>
+  <data name="Memory_Entry_RetractName" xml:space="preserve">
+    <value>Retirar {0}</value>
+    <comment>Accessible name. {0}: id of the entry.</comment>
+  </data>
+  <data name="Memory_Entry_Source" xml:space="preserve">
+    <value>Fuente: {0}</value>
+    <comment>Where an entry comes from. {0}: the source as anchored.</comment>
+  </data>
+  <data name="Memory_Status_OpenFolder" xml:space="preserve">
+    <value>Abre una carpeta para ver su memoria.</value>
+    <comment>Status without a project.</comment>
+  </data>
+  <data name="Memory_Status_Unavailable" xml:space="preserve">
+    <value>La memoria del proyecto no está disponible aquí.</value>
+    <comment>Status when the shell has no memory.</comment>
+  </data>
+  <data name="Memory_Status_NoMatches" xml:space="preserve">
+    <value>No hay entradas que coincidan.</value>
+    <comment>Status of an empty list or search.</comment>
+  </data>
+  <data name="Memory_Error_OpenProject" xml:space="preserve">
+    <value>No se pudo abrir el proyecto: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Memory_Error_Read" xml:space="preserve">
+    <value>No se pudo leer la memoria: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Memory_Error_Review" xml:space="preserve">
+    <value>No se pudo registrar la revisión: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Memory_Error_Export" xml:space="preserve">
+    <value>No se pudo exportar la memoria: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Memory_Search_IndexFailed" xml:space="preserve">
+    <value>Solo por palabras: la búsqueda en el índice falló ({0}).</value>
+    <comment>Note of a search. {0}: why.</comment>
+  </data>
+  <data name="Memory_Decision_Queued" xml:space="preserve">
+    <value>En cola: se registrará cuando termine la ejecución o la planificación en curso.</value>
+    <comment>A decision waits for the run.</comment>
+  </data>
+  <data name="Memory_Decision_Recording" xml:space="preserve">
+    <value>Registrando tu decisión…</value>
+    <comment>A decision is being recorded.</comment>
+  </data>
+  <data name="Memory_Export_Blocked" xml:space="preserve">
+    <value>Hay trabajo en curso. Es una ejecución, una planificación, un debate o una auditoría. La exportación espera a que acabe.</value>
+    <comment>Why the export is not offered.</comment>
+  </data>
+  <data name="Memory_Export_Done_One" xml:space="preserve">
+    <value>Se exportaron {0} entradas a .agentstudio/memory/ ({1} fichero). Nunca se lee el Markdown de vuelta.</value>
+    <comment>Result of an export with one file. {0}: entries; {1}: files.</comment>
+  </data>
+  <data name="Memory_Export_Done_Other" xml:space="preserve">
+    <value>Se exportaron {0} entradas a .agentstudio/memory/ ({1} ficheros). Nunca se lee el Markdown de vuelta.</value>
+    <comment>Result of an export. {0}: entries; {1}: files.</comment>
+  </data>
+  <data name="Memory_Export_NotExported" xml:space="preserve">
+    <value>No se exportó: {0}</value>
+    <comment>An export that did not happen. {0}: why (from the module).</comment>
+  </data>
+  <data name="Memory_Export_Rewritten_One" xml:space="preserve">
+    <value>Se reescribió 1 fichero ({0})</value>
+    <comment>An incomplete export. {0}: the file.</comment>
+  </data>
+  <data name="Memory_Export_Rewritten_Other" xml:space="preserve">
+    <value>Se reescribieron {0} ficheros ({1})</value>
+    <comment>An incomplete export. {0}: count; {1}: the files.</comment>
+  </data>
+  <data name="Memory_Export_Incomplete" xml:space="preserve">
+    <value>Exportación incompleta: {0} {1} antes de parar. El resto sigue como estaba hasta la próxima exportación, que lo reescribe todo.</value>
+    <comment>Warning. {0}: why (from the module); {1}: what was rewritten.</comment>
+  </data>
+  <data name="Memory_Search_WordsLabel" xml:space="preserve">
+    <value>Buscar por palabras</value>
+    <comment>Label of the search box.</comment>
+  </data>
+  <data name="Memory_Search_HybridLabel" xml:space="preserve">
+    <value>Buscar por significado y por palabras</value>
+    <comment>Label of the search box with the model.</comment>
+  </data>
+  <data name="Memory_Search_WordsName" xml:space="preserve">
+    <value>Buscar en la memoria por palabras</value>
+    <comment>Accessible name of the search box.</comment>
+  </data>
+  <data name="Memory_Search_HybridName" xml:space="preserve">
+    <value>Buscar en la memoria por significado y por palabras</value>
+    <comment>Accessible name of the search box with the model.</comment>
+  </data>
+  <data name="Memory_Search_NoIndex" xml:space="preserve">
+    <value>Solo por palabras: la búsqueda por significado no está disponible aquí.</value>
+    <comment>Note of a search without the index.</comment>
+  </data>
+  <data name="Memory_Search_EmptyIndex" xml:space="preserve">
+    <value>Solo por palabras: el índice de búsqueda de este proyecto aún no tiene fragmentos. Se construye en segundo plano.</value>
+    <comment>Note of a search while the index is empty.</comment>
+  </data>
+  <data name="Memory_Search_UnreadableIndex" xml:space="preserve">
+    <value>Solo por palabras: no se pudo leer el índice de búsqueda de este proyecto.</value>
+    <comment>Note of a search when the index cannot be read.</comment>
+  </data>
+  <data name="Memory_Search_HybridNone" xml:space="preserve">
+    <value>Por significado y por palabras: nada coincide.</value>
+    <comment>Result of a hybrid search with no hits.</comment>
+  </data>
+  <data name="Memory_Search_HybridOne" xml:space="preserve">
+    <value>Por significado y por palabras: 1 resultado.</value>
+    <comment>Result of a hybrid search with one hit.</comment>
+  </data>
+  <data name="Memory_Search_HybridMany" xml:space="preserve">
+    <value>Por significado y por palabras: {0} resultados, del más cercano al menos.</value>
+    <comment>Result of a hybrid search. {0}: hits.</comment>
+  </data>
+  <data name="Memory_Search_MatchBoth" xml:space="preserve">
+    <value>Coincide por palabras y por significado</value>
+    <comment>Why a result came out.</comment>
+  </data>
+  <data name="Memory_Search_MatchWords" xml:space="preserve">
+    <value>Coincide por palabras</value>
+    <comment>Why a result came out.</comment>
+  </data>
+  <data name="Memory_Search_MatchMeaning" xml:space="preserve">
+    <value>Coincide por significado</value>
+    <comment>Why a result came out.</comment>
+  </data>
+  <data name="Memory_Log_DefaultKind" xml:space="preserve">
+    <value>Registro</value>
+    <comment>Kind of a result from the decision log when the index gives none.</comment>
+  </data>
+  <data name="Memory_Log_Trust" xml:space="preserve">
+    <value>De confianza: lo escribió Agent Studio a partir del registro verificado</value>
+    <comment>Trust of a result from the log.</comment>
+  </data>
+  <data name="Memory_Log_Source" xml:space="preserve">
+    <value>Registro de decisiones, entrada {0}</value>
+    <comment>Source of a result from the log. {0}: sequence number.</comment>
+  </data>
+  <data name="Memory_Day_Format" xml:space="preserve">
+    <value>dddd dd/MM/yyyy</value>
+    <comment>Format of a day with its weekday, as the language writes it.</comment>
+  </data>
+  <data name="Memory_Day_Today" xml:space="preserve">
+    <value> (hoy)</value>
+    <comment>Added to the text of today.</comment>
+  </data>
+  <data name="Memory_Journal_Title" xml:space="preserve">
+    <value>Bitácora</value>
+    <comment>Heading.</comment>
+  </data>
+  <data name="Memory_Journal_Explanation" xml:space="preserve">
+    <value>La bitácora del proyecto (.agentstudio/bitacora/) también es memoria. Lo que Agent Studio anota en sus ejecuciones deja un recibo en el registro. Con ese recibo se comprueba, y es de confianza. Lo demás espera en cuarentena. Son tus anotaciones de desarrollo, lo que llega con el repositorio y lo anotado antes de los recibos. Ningún agente lo recibe hasta que lo aceptes: entrada a entrada, por días o para todo el proyecto. Cada decisión queda en el registro y la puedes retirar. El juez nunca recibe la bitácora.</value>
+    <comment>Explanation of the trust of the journal.</comment>
+  </data>
+  <data name="Memory_Journal_StateName" xml:space="preserve">
+    <value>Confianza en la bitácora</value>
+    <comment>Accessible name of the state.</comment>
+  </data>
+  <data name="Memory_Journal_ByDay" xml:space="preserve">
+    <value>Por días</value>
+    <comment>Subheading.</comment>
+  </data>
+  <data name="Memory_Journal_Days" xml:space="preserve">
+    <value>Días de la bitácora</value>
+    <comment>Accessible name of the list.</comment>
+  </data>
+  <data name="Memory_Journal_DayTrusted" xml:space="preserve">
+    <value>De confianza: confías en este día</value>
+    <comment>Summary of a day.</comment>
+  </data>
+  <data name="Memory_Journal_DayQuarantine_One" xml:space="preserve">
+    <value>1 entrada en cuarentena</value>
+    <comment>Summary of a day.</comment>
+  </data>
+  <data name="Memory_Journal_DayQuarantine_Other" xml:space="preserve">
+    <value>{0} entradas en cuarentena</value>
+    <comment>Summary of a day. {0}: entries.</comment>
+  </data>
+  <data name="Memory_Journal_DayRetract" xml:space="preserve">
+    <value>Retirar la confianza</value>
+    <comment>Button on a trusted day.</comment>
+  </data>
+  <data name="Memory_Journal_DayTrust" xml:space="preserve">
+    <value>Confiar en este día</value>
+    <comment>Button on a day.</comment>
+  </data>
+  <data name="Memory_Journal_DayActionName" xml:space="preserve">
+    <value>{0}: {1}</value>
+    <comment>Accessible name of the button. {0}: the action; {1}: the day.</comment>
+  </data>
+  <data name="Memory_Journal_Unavailable" xml:space="preserve">
+    <value>La decisión de confiar en la bitácora no está disponible aquí.</value>
+    <comment>State without the service.</comment>
+  </data>
+  <data name="Memory_Journal_OpenFolder" xml:space="preserve">
+    <value>Abre una carpeta de proyecto para ver su bitácora.</value>
+    <comment>State without a project.</comment>
+  </data>
+  <data name="Memory_Journal_Unknown" xml:space="preserve">
+    <value>Aún no se sabe cuánto confías en la bitácora de este proyecto.</value>
+    <comment>State before it is read.</comment>
+  </data>
+  <data name="Memory_Journal_QuarantineNone" xml:space="preserve">
+    <value>Ninguna entrada de la bitácora espera en cuarentena.</value>
+    <comment>State.</comment>
+  </data>
+  <data name="Memory_Journal_QuarantineOne" xml:space="preserve">
+    <value>1 entrada de la bitácora espera en cuarentena: no llega a ningún agente.</value>
+    <comment>State.</comment>
+  </data>
+  <data name="Memory_Journal_QuarantineMany" xml:space="preserve">
+    <value>{0} entradas de la bitácora esperan en cuarentena: no llegan a ningún agente.</value>
+    <comment>State. {0}: entries.</comment>
+  </data>
+  <data name="Memory_Journal_ProjectTrustedNone" xml:space="preserve">
+    <value>Confías en toda la bitácora de este proyecto, también en los días que vengan.</value>
+    <comment>State.</comment>
+  </data>
+  <data name="Memory_Journal_ProjectTrustedSome" xml:space="preserve">
+    <value>Confías en toda la bitácora de este proyecto. {0} Vienen de un historial aceptado como nuevo origen, y esas se revisan una a una.</value>
+    <comment>State. {0}: the quarantine sentence.</comment>
+  </data>
+  <data name="Memory_Journal_TrustedDays_One" xml:space="preserve">
+    <value> Confías en 1 día.</value>
+    <comment>State.</comment>
+  </data>
+  <data name="Memory_Journal_TrustedDays_Other" xml:space="preserve">
+    <value> Confías en {0} días.</value>
+    <comment>State. {0}: days.</comment>
+  </data>
+  <data name="Memory_Journal_ProjectRetract" xml:space="preserve">
+    <value>Dejar de confiar en la bitácora de este proyecto</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Memory_Journal_ProjectTrust" xml:space="preserve">
+    <value>Confiar en la bitácora de este proyecto</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Memory_Journal_ProjectRetractHelp" xml:space="preserve">
+    <value>Las entradas cuyo autor no se puede comprobar vuelven a cuarentena. Se salvan las de los días en que confías y las que aceptaste una a una.</value>
+    <comment>Help of the button.</comment>
+  </data>
+  <data name="Memory_Journal_ProjectTrustHelp" xml:space="preserve">
+    <value>Las entradas cuyo autor no se puede comprobar podrán llegar a los agentes con «Memoria del proyecto». Vale también para los días que vengan. Úsalo si la bitácora es tuya (tus sesiones de desarrollo) y no te llega de terceros.</value>
+    <comment>Help of the button.</comment>
+  </data>
+  <data name="Memory_Journal_ReadError" xml:space="preserve">
+    <value>No se pudo leer la confianza de la bitácora: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Memory_Journal_DecideError" xml:space="preserve">
+    <value>No se pudo registrar tu decisión sobre la bitácora: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Memory_Model_Title" xml:space="preserve">
+    <value>Búsqueda por significado</value>
+    <comment>Heading.</comment>
+  </data>
+  <data name="Memory_Model_Intro" xml:space="preserve">
+    <value>Encuentra lo que dice lo mismo con otras palabras: «test en rojo» encuentra «pruebas que fallan». La calcula tu equipo, sin red y sin gastar límite de uso.</value>
+    <comment>Intro.</comment>
+  </data>
+  <data name="Memory_Model_StateName" xml:space="preserve">
+    <value>Estado de la búsqueda por significado</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Memory_Model_DownloadHelp" xml:space="preserve">
+    <value>Abre una confirmación con lo que se descarga, de dónde, su tamaño y dónde se guarda. Nada se descarga sin tu OK.</value>
+    <comment>Help of the download button.</comment>
+  </data>
+  <data name="Memory_Model_FilesName" xml:space="preserve">
+    <value>Ficheros que se descargan</value>
+    <comment>Accessible name of the list.</comment>
+  </data>
+  <data name="Memory_Model_ProgressName" xml:space="preserve">
+    <value>Progreso de la descarga del modelo</value>
+    <comment>Accessible name of the bar.</comment>
+  </data>
+  <data name="Memory_Model_Cancel" xml:space="preserve">
+    <value>Cancelar la descarga</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Memory_Model_CancelName" xml:space="preserve">
+    <value>Cancelar la descarga del modelo</value>
+    <comment>Accessible name of the button.</comment>
+  </data>
+  <data name="Memory_Model_NoIndex" xml:space="preserve">
+    <value>La búsqueda por significado no está disponible aquí: la memoria se busca por palabras.</value>
+    <comment>State without the index.</comment>
+  </data>
+  <data name="Memory_Model_OpenFolder" xml:space="preserve">
+    <value>Abre una carpeta de proyecto para ver el estado de la búsqueda por significado.</value>
+    <comment>State without a project.</comment>
+  </data>
+  <data name="Memory_Model_ReadError" xml:space="preserve">
+    <value>No se pudo leer el estado del índice de búsqueda: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Memory_Model_Reading" xml:space="preserve">
+    <value>Leyendo el estado del índice de búsqueda…</value>
+    <comment>State while reading.</comment>
+  </data>
+  <data name="Memory_Model_Missing" xml:space="preserve">
+    <value>Falta el modelo de búsqueda por significado. Sin él, la memoria se busca solo por palabras. Así, «prueba» no encuentra «pruebas», ni «test en rojo» encuentra «pruebas que fallan».</value>
+    <comment>State: model missing.</comment>
+  </data>
+  <data name="Memory_Model_Mismatch" xml:space="preserve">
+    <value>El modelo descargado no coincide con su huella fijada, así que no se carga y la búsqueda va por palabras. Vuelve a descargarlo.</value>
+    <comment>State: model altered.</comment>
+  </data>
+  <data name="Memory_Model_Unloadable" xml:space="preserve">
+    <value>El modelo está descargado y comprobado, pero no se pudo cargar. La búsqueda va por palabras.</value>
+    <comment>State: model cannot be loaded.</comment>
+  </data>
+  <data name="Memory_Model_Redownload" xml:space="preserve">
+    <value>Volver a descargar el modelo de búsqueda ({0})</value>
+    <comment>Button. {0}: size.</comment>
+  </data>
+  <data name="Memory_Model_Download" xml:space="preserve">
+    <value>Descargar el modelo de búsqueda ({0})</value>
+    <comment>Button. {0}: size.</comment>
+  </data>
+  <data name="Memory_Model_ConfirmTitle" xml:space="preserve">
+    <value>¿Descargar el modelo de búsqueda por significado?</value>
+    <comment>Title of the confirmation.</comment>
+  </data>
+  <data name="Memory_Model_What" xml:space="preserve">
+    <value>Qué: el modelo {0} (licencia {1}) y su tokenizador, en la versión {2} que fija Agent Studio. Son estos ficheros:</value>
+    <comment>Confirmation. {0}: model; {1}: license; {2}: revision.</comment>
+  </data>
+  <data name="Memory_Model_Total" xml:space="preserve">
+    <value>En total, {0}, una sola vez.</value>
+    <comment>Confirmation. {0}: size.</comment>
+  </data>
+  <data name="Memory_Model_From" xml:space="preserve">
+    <value>De dónde: {0}, solo de esas direcciones.</value>
+    <comment>Confirmation. {0}: the hosts.</comment>
+  </data>
+  <data name="Memory_Model_And" xml:space="preserve">
+    <value> y </value>
+    <comment>Joins two hosts.</comment>
+  </data>
+  <data name="Memory_Model_Where" xml:space="preserve">
+    <value>Dónde se guarda: {0}. Está fuera de tus proyectos: git no lo ve y se puede borrar.</value>
+    <comment>Confirmation. {0}: folder.</comment>
+  </data>
+  <data name="Memory_Model_WhereDefault" xml:space="preserve">
+    <value>Dónde se guarda: en la carpeta de Agent Studio de tu equipo, fuera de tus proyectos.</value>
+    <comment>Confirmation without the folder.</comment>
+  </data>
+  <data name="Memory_Model_Check" xml:space="preserve">
+    <value>Antes de usarlo, Agent Studio comprueba el tamaño y la huella de cada fichero. Si no coinciden, lo borra y no lo carga. Es lo único de la búsqueda que usa la red. Después funciona sin conexión y no gasta límite de uso.</value>
+    <comment>Confirmation.</comment>
+  </data>
+  <data name="Memory_Model_Confirm" xml:space="preserve">
+    <value>Descargar {0}</value>
+    <comment>Button. {0}: size.</comment>
+  </data>
+  <data name="Memory_Model_Decline" xml:space="preserve">
+    <value>No descargar</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Memory_Model_Declined" xml:space="preserve">
+    <value>No se ha descargado nada.</value>
+    <comment>Outcome.</comment>
+  </data>
+  <data name="Memory_Model_Starting" xml:space="preserve">
+    <value>Empezando la descarga…</value>
+    <comment>Progress.</comment>
+  </data>
+  <data name="Memory_Model_Cancelling" xml:space="preserve">
+    <value>Cancelando la descarga…</value>
+    <comment>Progress.</comment>
+  </data>
+  <data name="Memory_Model_ProgressKnown" xml:space="preserve">
+    <value>Descargando {0}: {1} de {2} · {3} % del total</value>
+    <comment>Progress. {0}: file; {1}: MB so far; {2}: MB of the file; {3}: percent.</comment>
+  </data>
+  <data name="Memory_Model_ProgressUnknown" xml:space="preserve">
+    <value>Descargando {0}: {1} · {2} % del total</value>
+    <comment>Progress without the size. {0}: file; {1}: MB so far; {2}: percent.</comment>
+  </data>
+  <data name="Memory_Model_Cancelled" xml:space="preserve">
+    <value>Descarga cancelada: no se ha guardado nada a medias.</value>
+    <comment>Outcome.</comment>
+  </data>
+  <data name="Memory_Model_Failed" xml:space="preserve">
+    <value>No se pudo descargar el modelo ({0}). No se ha guardado nada a medias.</value>
+    <comment>Outcome. {0}: why.</comment>
+  </data>
+  <data name="Memory_Model_Downloaded" xml:space="preserve">
+    <value>Modelo descargado y comprobado. El índice calculará el significado de los fragmentos en segundo plano. Hasta entonces, la búsqueda va por palabras.</value>
+    <comment>Outcome of a good download.</comment>
+  </data>
+  <data name="Memory_Model_EndMismatch" xml:space="preserve">
+    <value>Lo descargado no coincide con su huella fijada: se ha borrado y no se carga.</value>
+    <comment>Outcome.</comment>
+  </data>
+  <data name="Memory_Model_EndUnloadable" xml:space="preserve">
+    <value>El modelo se descargó y está comprobado, pero no se pudo cargar.</value>
+    <comment>Outcome.</comment>
+  </data>
+  <data name="Memory_Model_EndNotInPlace" xml:space="preserve">
+    <value>La descarga no dejó el modelo en su sitio: no se ha guardado nada.</value>
+    <comment>Outcome.</comment>
+  </data>
+  <data name="Memory_Model_ReadyEmpty" xml:space="preserve">
+    <value>Activa: el modelo está descargado y comprobado. El índice de este proyecto aún no tiene fragmentos: se construye en segundo plano.</value>
+    <comment>State.</comment>
+  </data>
+  <data name="Memory_Model_ReadyAll" xml:space="preserve">
+    <value>Activa: el modelo está descargado y comprobado. Los {0} fragmentos del índice ya tienen su significado listo.</value>
+    <comment>State. {0}: fragments.</comment>
+  </data>
+  <data name="Memory_Model_ReadyPartial" xml:space="preserve">
+    <value>Activa a medias: {0} de {1} fragmentos tienen su significado calculado. El resto se calcula en segundo plano y, mientras tanto, solo se encuentra por palabras.</value>
+    <comment>State. {0}: with meaning; {1}: fragments.</comment>
+  </data>
+  <data name="Memory_Daily_Title" xml:space="preserve">
+    <value>Resumen del día</value>
+    <comment>Heading and accessible name.</comment>
+  </data>
+  <data name="Memory_Daily_Intro" xml:space="preserve">
+    <value>Lo calcula Agent Studio a partir de la bitácora, sin agentes ni límite de uso: cuenta y lista, no redacta.</value>
+    <comment>Intro.</comment>
+  </data>
+  <data name="Memory_Daily_Previous" xml:space="preserve">
+    <value>Día anterior</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Memory_Daily_Next" xml:space="preserve">
+    <value>Día siguiente</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Memory_Daily_Summarize" xml:space="preserve">
+    <value>Resumir el día</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Memory_Daily_Unavailable" xml:space="preserve">
+    <value>El resumen diario no está disponible aquí.</value>
+    <comment>Hint and status.</comment>
+  </data>
+  <data name="Memory_Daily_OpenFolderHint" xml:space="preserve">
+    <value>Abre una carpeta de proyecto: aquí verás el resumen de cada día de su bitácora.</value>
+    <comment>Hint.</comment>
+  </data>
+  <data name="Memory_Daily_Busy" xml:space="preserve">
+    <value>Resumiendo el día…</value>
+    <comment>Hint while working.</comment>
+  </data>
+  <data name="Memory_Daily_Hint" xml:space="preserve">
+    <value>Pulsa «Resumir el día» para ver aquí el resumen del {0}. Verás las peticiones de la bitácora de ese día, cómo acabaron y lo hecho. Cambia de día con «Día anterior» y «Día siguiente».</value>
+    <comment>Hint. {0}: the day.</comment>
+  </data>
+  <data name="Memory_Daily_OpenFolder" xml:space="preserve">
+    <value>Abre una carpeta para resumir su bitácora.</value>
+    <comment>Status without a project.</comment>
+  </data>
+  <data name="Memory_Daily_Requests_One" xml:space="preserve">
+    <value>{0} petición</value>
+    <comment>Count of requests of the day.</comment>
+  </data>
+  <data name="Memory_Daily_Requests_Other" xml:space="preserve">
+    <value>{0} peticiones</value>
+    <comment>Count of requests of the day.</comment>
+  </data>
+  <data name="Memory_Daily_Unrecognized_One" xml:space="preserve">
+    <value>{0} línea sin reconocer (solo se cuentan)</value>
+    <comment>Lines of the journal that were not understood.</comment>
+  </data>
+  <data name="Memory_Daily_Unrecognized_Other" xml:space="preserve">
+    <value>{0} líneas sin reconocer (solo se cuentan)</value>
+    <comment>Lines of the journal that were not understood.</comment>
+  </data>
+  <data name="Memory_Daily_Provisional" xml:space="preserve">
+    <value>Provisional: el día no ha terminado, así que no se guarda en la memoria.</value>
+    <comment>Status.</comment>
+  </data>
+  <data name="Memory_Daily_Recorded" xml:space="preserve">
+    <value>Guardado en la memoria como resumen diario (entrada {0}).</value>
+    <comment>Status. {0}: id of the entry.</comment>
+  </data>
+  <data name="Memory_Daily_AlreadyDone" xml:space="preserve">
+    <value>Ya estaba resumido: no se guarda otra vez.</value>
+    <comment>Status.</comment>
+  </data>
+  <data name="Memory_Daily_Error" xml:space="preserve">
+    <value>No se pudo resumir el día: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Memory_Settings_Title" xml:space="preserve">
+    <value>Memoria del proyecto</value>
+    <comment>Title of the section in the settings.</comment>
+  </data>
+  <data name="Memory_Settings_Intro" xml:space="preserve">
+    <value>Qué recuerda Agent Studio de días anteriores cuando el orquestador planifica.</value>
+    <comment>Intro of the section.</comment>
+  </data>
+  <data name="Memory_Settings_Label" xml:space="preserve">
+    <value>Búsqueda en el historial para el orquestador</value>
+    <comment>Name of the switch.</comment>
+  </data>
+  <data name="Memory_Settings_Explanation" xml:space="preserve">
+    <value>Al planificar, el orquestador puede buscar lo de días anteriores del proyecto: decisiones, errores conocidos y la bitácora de confianza. Solo lee, no sale de tu equipo y no gasta límite de uso aparte. Solo funciona con Claude Code y si el orquestador recibe la memoria del proyecto en la plantilla. Si la apagas, planifica como antes, y la propuesta lo dice.</value>
+    <comment>What the switch does.</comment>
+  </data>
+  <data name="Memory_Upkeep_Exported" xml:space="preserve">
+    <value>exportada a .agentstudio/memory/ ({0} ficheros, {1} entradas)</value>
+    <comment>Line after a run. {0}: files; {1}: entries.</comment>
+  </data>
+  <data name="Memory_Upkeep_NotExported" xml:space="preserve">
+    <value>sin exportar: {0}</value>
+    <comment>Line after a run. {0}: why (from the module).</comment>
+  </data>
+  <data name="Memory_Upkeep_Alone" xml:space="preserve">
+    <value>Memoria {0}.</value>
+    <comment>Line after a run. {0}: the export.</comment>
+  </data>
+  <data name="Memory_Upkeep_Joined" xml:space="preserve">
+    <value>{0}; {1}.</value>
+    <comment>Line after a run. {0}: what was derived; {1}: the export.</comment>
+  </data>
+  <data name="Memory_Upkeep_NotDerived" xml:space="preserve">
+    <value>Memoria sin derivar: {0}</value>
+    <comment>Line. {0}: why (from the module).</comment>
+  </data>
+  <data name="Memory_Upkeep_New_One" xml:space="preserve">
+    <value>1 entrada nueva derivada del registro</value>
+    <comment>Part of the line.</comment>
+  </data>
+  <data name="Memory_Upkeep_New_Other" xml:space="preserve">
+    <value>{0} entradas nuevas derivadas del registro</value>
+    <comment>Part of the line. {0}: entries.</comment>
+  </data>
+  <data name="Memory_Upkeep_Problems_One" xml:space="preserve">
+    <value>1 texto sin guardar en la memoria. No cuadra con el registro, o es un día de la bitácora que no se pudo leer</value>
+    <comment>Part of the line.</comment>
+  </data>
+  <data name="Memory_Upkeep_Problems_Other" xml:space="preserve">
+    <value>{0} textos sin guardar en la memoria. No cuadran con el registro, o son días de la bitácora que no se pudieron leer</value>
+    <comment>Part of the line. {0}: texts.</comment>
+  </data>
+  <data name="Memory_Upkeep_Summary" xml:space="preserve">
+    <value>Memoria: {0}.</value>
+    <comment>Line. {0}: the parts.</comment>
+  </data>
+  <data name="Memory_Index_Failed" xml:space="preserve">
+    <value>No se pudo actualizar el índice semántico ({0}): la búsqueda sigue con lo que ya tenía.</value>
+    <comment>Reason of a failed refresh. {0}: why.</comment>
+  </data>
+  <data name="Memory_Index_Stopped" xml:space="preserve">
+    <value>La actualización del índice se detuvo al cerrar Agent Studio.</value>
+    <comment>Reason of a refresh cut by closing.</comment>
+  </data>
+  <data name="Info_Memory_Title" xml:space="preserve">
+    <value>Memoria y búsqueda</value>
+    <comment>Title of the information button.</comment>
+  </data>
+  <data name="Info_Memory_What" xml:space="preserve">
+    <value>Aquí está lo que Agent Studio recuerda del proyecto: decisiones, errores conocidos, soluciones y resúmenes. Cada entrada dice quién la escribió y si es de confianza. Solo lo de confianza llega a los agentes.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Memory_Actions" xml:space="preserve">
+    <value>Escribe en el cuadro y pulsa «Buscar»: busca por palabras y, con el modelo, por significado.
+Acepta o rechaza lo que propuso un agente o espera en cuarentena.
+Retira lo que ya no quieras que sepan los agentes.
+Exporta lo de confianza a Markdown cuando no haya nada en marcha.</value>
+    <comment>Information button: one action per line.</comment>
+  </data>
+  <data name="Info_DailySummary_Title" xml:space="preserve">
+    <value>Resumen del día</value>
+    <comment>Title of the information button.</comment>
+  </data>
+  <data name="Info_DailySummary_What" xml:space="preserve">
+    <value>Un resumen de un día de la bitácora: cuántas peticiones hubo, cómo acabaron y qué se hizo. Lo calcula Agent Studio, sin agentes y sin gastar límite de uso.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_DailySummary_Actions" xml:space="preserve">
+    <value>Elige el día con «Día anterior» y «Día siguiente».
+Pulsa «Resumir el día» para verlo.
+El resumen de un día cerrado se guarda una vez en la memoria.
+El de hoy es provisional y no se guarda.</value>
+    <comment>Information button: one action per line.</comment>
+  </data>
+  <data name="Text_memory_who_person" xml:space="preserve">
+    <value>La persona</value>
+    <comment>Text of the memory (memory.who.person).</comment>
+  </data>
+  <data name="Text_memory_who_system_no_answer" xml:space="preserve">
+    <value>Agent Studio, sin una respuesta válida de una persona,</value>
+    <comment>Text of the memory (memory.who.system-no-answer).</comment>
+  </data>
+  <data name="Text_memory_who_system" xml:space="preserve">
+    <value>Agent Studio</value>
+    <comment>Text of the memory (memory.who.system).</comment>
+  </data>
+  <data name="Text_memory_unit_run" xml:space="preserve">
+    <value>la ejecución {0}</value>
+    <comment>Text of the memory (memory.unit.run).</comment>
+  </data>
+  <data name="Text_memory_unit_debate" xml:space="preserve">
+    <value>el debate {0}</value>
+    <comment>Text of the memory (memory.unit.debate).</comment>
+  </data>
+  <data name="Text_memory_unit_audit" xml:space="preserve">
+    <value>la auditoría {0}</value>
+    <comment>Text of the memory (memory.unit.audit).</comment>
+  </data>
+  <data name="Text_memory_of_unit_run" xml:space="preserve">
+    <value>de la ejecución {0}</value>
+    <comment>Text of the memory (memory.of-unit.run).</comment>
+  </data>
+  <data name="Text_memory_of_unit_debate" xml:space="preserve">
+    <value>del debate {0}</value>
+    <comment>Text of the memory (memory.of-unit.debate).</comment>
+  </data>
+  <data name="Text_memory_of_unit_audit" xml:space="preserve">
+    <value>de la auditoría {0}</value>
+    <comment>Text of the memory (memory.of-unit.audit).</comment>
+  </data>
+  <data name="Text_memory_in_unit_run" xml:space="preserve">
+    <value>en la ejecución {0}</value>
+    <comment>Text of the memory (memory.in-unit.run).</comment>
+  </data>
+  <data name="Text_memory_in_unit_debate" xml:space="preserve">
+    <value>en el debate {0}</value>
+    <comment>Text of the memory (memory.in-unit.debate).</comment>
+  </data>
+  <data name="Text_memory_in_unit_audit" xml:space="preserve">
+    <value>en la auditoría {0}</value>
+    <comment>Text of the memory (memory.in-unit.audit).</comment>
+  </data>
+  <data name="Text_memory_when" xml:space="preserve">
+    <value>{0:dd'/'MM'/'yyyy} a las {0:HH':'mm} UTC</value>
+    <comment>Text of the memory (memory.when).</comment>
+  </data>
+  <data name="Text_memory_raw" xml:space="preserve">
+    <value>{0}</value>
+    <comment>Text of the memory (memory.raw).</comment>
+  </data>
+  <data name="Text_memory_join" xml:space="preserve">
+    <value>{0}; {1}</value>
+    <comment>Text of the memory (memory.join).</comment>
+  </data>
+  <data name="Text_memory_list_more" xml:space="preserve">
+    <value>{0} y {1} más</value>
+    <comment>Text of the memory (memory.list.more).</comment>
+  </data>
+  <data name="Text_memory_count_tasks_one" xml:space="preserve">
+    <value>1 tarea</value>
+    <comment>Text of the memory (memory.count.tasks-one).</comment>
+  </data>
+  <data name="Text_memory_count_tasks_other" xml:space="preserve">
+    <value>{0} tareas</value>
+    <comment>Text of the memory (memory.count.tasks-other).</comment>
+  </data>
+  <data name="Text_memory_count_files_one" xml:space="preserve">
+    <value>1 fichero</value>
+    <comment>Text of the memory (memory.count.files-one).</comment>
+  </data>
+  <data name="Text_memory_count_files_other" xml:space="preserve">
+    <value>{0} ficheros</value>
+    <comment>Text of the memory (memory.count.files-other).</comment>
+  </data>
+  <data name="Text_memory_count_attempts_one" xml:space="preserve">
+    <value>1 intento</value>
+    <comment>Text of the memory (memory.count.attempts-one).</comment>
+  </data>
+  <data name="Text_memory_count_attempts_other" xml:space="preserve">
+    <value>{0} intentos</value>
+    <comment>Text of the memory (memory.count.attempts-other).</comment>
+  </data>
+  <data name="Text_memory_count_commits_one" xml:space="preserve">
+    <value>1 versión guardada (commit)</value>
+    <comment>Text of the memory (memory.count.commits-one).</comment>
+  </data>
+  <data name="Text_memory_count_commits_other" xml:space="preserve">
+    <value>{0} versiones guardadas (commit)</value>
+    <comment>Text of the memory (memory.count.commits-other).</comment>
+  </data>
+  <data name="Text_memory_count_findings_one" xml:space="preserve">
+    <value>1 hallazgo</value>
+    <comment>Text of the memory (memory.count.findings-one).</comment>
+  </data>
+  <data name="Text_memory_count_findings_other" xml:space="preserve">
+    <value>{0} hallazgos</value>
+    <comment>Text of the memory (memory.count.findings-other).</comment>
+  </data>
+  <data name="Text_memory_changes_none" xml:space="preserve">
+    <value>no cambia ningún fichero</value>
+    <comment>Text of the memory (memory.changes.none).</comment>
+  </data>
+  <data name="Text_memory_changes_one" xml:space="preserve">
+    <value>cambia 1 fichero</value>
+    <comment>Text of the memory (memory.changes.one).</comment>
+  </data>
+  <data name="Text_memory_changes_other" xml:space="preserve">
+    <value>cambian {0} ficheros</value>
+    <comment>Text of the memory (memory.changes.other).</comment>
+  </data>
+  <data name="Text_memory_changes_capital_one" xml:space="preserve">
+    <value>Cambia 1 fichero</value>
+    <comment>Text of the memory (memory.changes-capital.one).</comment>
+  </data>
+  <data name="Text_memory_changes_capital_other" xml:space="preserve">
+    <value>Cambian {0} ficheros</value>
+    <comment>Text of the memory (memory.changes-capital.other).</comment>
+  </data>
+  <data name="Text_memory_phase_running" xml:space="preserve">
+    <value>en curso</value>
+    <comment>Text of the memory (memory.phase.running).</comment>
+  </data>
+  <data name="Text_memory_phase_paused" xml:space="preserve">
+    <value>en pausa</value>
+    <comment>Text of the memory (memory.phase.paused).</comment>
+  </data>
+  <data name="Text_memory_phase_waiting_for_quota" xml:space="preserve">
+    <value>esperando el límite de uso</value>
+    <comment>Text of the memory (memory.phase.waiting-for-quota).</comment>
+  </data>
+  <data name="Text_memory_phase_awaiting_human" xml:space="preserve">
+    <value>esperando a una persona</value>
+    <comment>Text of the memory (memory.phase.awaiting-human).</comment>
+  </data>
+  <data name="Text_memory_phase_interrupted" xml:space="preserve">
+    <value>interrumpida</value>
+    <comment>Text of the memory (memory.phase.interrupted).</comment>
+  </data>
+  <data name="Text_memory_phase_succeeded" xml:space="preserve">
+    <value>completada</value>
+    <comment>Text of the memory (memory.phase.succeeded).</comment>
+  </data>
+  <data name="Text_memory_phase_failed" xml:space="preserve">
+    <value>fallida</value>
+    <comment>Text of the memory (memory.phase.failed).</comment>
+  </data>
+  <data name="Text_memory_phase_blocked" xml:space="preserve">
+    <value>bloqueada</value>
+    <comment>Text of the memory (memory.phase.blocked).</comment>
+  </data>
+  <data name="Text_memory_phase_cancelled" xml:space="preserve">
+    <value>cancelada</value>
+    <comment>Text of the memory (memory.phase.cancelled).</comment>
+  </data>
+  <data name="Text_memory_status_never_started" xml:space="preserve">
+    <value>no llegó a empezar</value>
+    <comment>Text of the memory (memory.status.never-started).</comment>
+  </data>
+  <data name="Text_memory_status_pending" xml:space="preserve">
+    <value>pendiente</value>
+    <comment>Text of the memory (memory.status.pending).</comment>
+  </data>
+  <data name="Text_memory_status_running" xml:space="preserve">
+    <value>en curso</value>
+    <comment>Text of the memory (memory.status.running).</comment>
+  </data>
+  <data name="Text_memory_status_blocked" xml:space="preserve">
+    <value>bloqueada</value>
+    <comment>Text of the memory (memory.status.blocked).</comment>
+  </data>
+  <data name="Text_memory_status_awaiting_approval" xml:space="preserve">
+    <value>esperando una aprobación</value>
+    <comment>Text of the memory (memory.status.awaiting-approval).</comment>
+  </data>
+  <data name="Text_memory_status_completed" xml:space="preserve">
+    <value>completada</value>
+    <comment>Text of the memory (memory.status.completed).</comment>
+  </data>
+  <data name="Text_memory_status_failed" xml:space="preserve">
+    <value>fallida</value>
+    <comment>Text of the memory (memory.status.failed).</comment>
+  </data>
+  <data name="Text_memory_status_cancelled" xml:space="preserve">
+    <value>cancelada</value>
+    <comment>Text of the memory (memory.status.cancelled).</comment>
+  </data>
+  <data name="Text_memory_status_skipped" xml:space="preserve">
+    <value>omitida</value>
+    <comment>Text of the memory (memory.status.skipped).</comment>
+  </data>
+  <data name="Text_memory_task_kind_agent_work" xml:space="preserve">
+    <value>trabajo de agente</value>
+    <comment>Text of the memory (memory.task-kind.agent-work).</comment>
+  </data>
+  <data name="Text_memory_task_kind_condition" xml:space="preserve">
+    <value>condición</value>
+    <comment>Text of the memory (memory.task-kind.condition).</comment>
+  </data>
+  <data name="Text_memory_task_kind_tool_run" xml:space="preserve">
+    <value>herramienta</value>
+    <comment>Text of the memory (memory.task-kind.tool-run).</comment>
+  </data>
+  <data name="Text_memory_task_kind_review" xml:space="preserve">
+    <value>revisión</value>
+    <comment>Text of the memory (memory.task-kind.review).</comment>
+  </data>
+  <data name="Text_memory_task_kind_debate" xml:space="preserve">
+    <value>debate</value>
+    <comment>Text of the memory (memory.task-kind.debate).</comment>
+  </data>
+  <data name="Text_memory_task_kind_human_approval" xml:space="preserve">
+    <value>aprobación de una persona</value>
+    <comment>Text of the memory (memory.task-kind.human-approval).</comment>
+  </data>
+  <data name="Text_memory_task_kind_integration" xml:space="preserve">
+    <value>integración</value>
+    <comment>Text of the memory (memory.task-kind.integration).</comment>
+  </data>
+  <data name="Text_memory_block_rate_limit" xml:space="preserve">
+    <value>límite de uso del proveedor hasta el {0}</value>
+    <comment>Text of the memory (memory.block.rate-limit).</comment>
+  </data>
+  <data name="Text_memory_block_rate_limit_estimated" xml:space="preserve">
+    <value>límite de uso del proveedor hasta el {0} (espera estimada)</value>
+    <comment>Text of the memory (memory.block.rate-limit-estimated).</comment>
+  </data>
+  <data name="Text_memory_block_interrupted" xml:space="preserve">
+    <value>la aplicación se cerró mientras trabajaba</value>
+    <comment>Text of the memory (memory.block.interrupted).</comment>
+  </data>
+  <data name="Text_memory_block_provider_unavailable" xml:space="preserve">
+    <value>no se pudo lanzar el agente o la herramienta</value>
+    <comment>Text of the memory (memory.block.provider-unavailable).</comment>
+  </data>
+  <data name="Text_memory_block_awaiting_human" xml:space="preserve">
+    <value>espera a una persona</value>
+    <comment>Text of the memory (memory.block.awaiting-human).</comment>
+  </data>
+  <data name="Text_memory_unfinished" xml:space="preserve">
+    <value>{0} ({1}): {2}{3}{4}</value>
+    <comment>Text of the memory (memory.unfinished).</comment>
+  </data>
+  <data name="Text_memory_unfinished_attempts" xml:space="preserve">
+    <value>, tras {0}</value>
+    <comment>Text of the memory (memory.unfinished.attempts).</comment>
+  </data>
+  <data name="Text_memory_unfinished_reason" xml:space="preserve">
+    <value>, motivo: {0}</value>
+    <comment>Text of the memory (memory.unfinished.reason).</comment>
+  </data>
+  <data name="Text_memory_decision_approved" xml:space="preserve">
+    <value>aprobado</value>
+    <comment>Text of the memory (memory.decision.approved).</comment>
+  </data>
+  <data name="Text_memory_decision_changes_requested" xml:space="preserve">
+    <value>pide cambios</value>
+    <comment>Text of the memory (memory.decision.changes-requested).</comment>
+  </data>
+  <data name="Text_memory_decision_rejected" xml:space="preserve">
+    <value>rechazado</value>
+    <comment>Text of the memory (memory.decision.rejected).</comment>
+  </data>
+  <data name="Text_memory_decision_escalate_to_human" xml:space="preserve">
+    <value>lo deja en manos de una persona</value>
+    <comment>Text of the memory (memory.decision.escalate-to-human).</comment>
+  </data>
+  <data name="Text_memory_decision_unresolved" xml:space="preserve">
+    <value>sin resolver</value>
+    <comment>Text of the memory (memory.decision.unresolved).</comment>
+  </data>
+  <data name="Text_memory_validity_valid" xml:space="preserve">
+    <value>válido</value>
+    <comment>Text of the memory (memory.validity.valid).</comment>
+  </data>
+  <data name="Text_memory_validity_invalid" xml:space="preserve">
+    <value>no válido</value>
+    <comment>Text of the memory (memory.validity.invalid).</comment>
+  </data>
+  <data name="Text_memory_validity_invalid_with" xml:space="preserve">
+    <value>no válido (incidencias: {0})</value>
+    <comment>Text of the memory (memory.validity.invalid-with).</comment>
+  </data>
+  <data name="Text_memory_mode_free" xml:space="preserve">
+    <value>libre</value>
+    <comment>Text of the memory (memory.mode.free).</comment>
+  </data>
+  <data name="Text_memory_mode_adversarial" xml:space="preserve">
+    <value>adversarial</value>
+    <comment>Text of the memory (memory.mode.adversarial).</comment>
+  </data>
+  <data name="Text_memory_mode_architecture_review" xml:space="preserve">
+    <value>revisión de arquitectura</value>
+    <comment>Text of the memory (memory.mode.architecture-review).</comment>
+  </data>
+  <data name="Text_memory_mode_implementation_audit" xml:space="preserve">
+    <value>auditoría de implementación</value>
+    <comment>Text of the memory (memory.mode.implementation-audit).</comment>
+  </data>
+  <data name="Text_memory_mode_orchestrator_review" xml:space="preserve">
+    <value>revisión del orquestador</value>
+    <comment>Text of the memory (memory.mode.orchestrator-review).</comment>
+  </data>
+  <data name="Text_memory_mode_tribunal" xml:space="preserve">
+    <value>tribunal</value>
+    <comment>Text of the memory (memory.mode.tribunal).</comment>
+  </data>
+  <data name="Text_memory_outcome_open" xml:space="preserve">
+    <value>abierto</value>
+    <comment>Text of the memory (memory.outcome.open).</comment>
+  </data>
+  <data name="Text_memory_outcome_resolved" xml:space="preserve">
+    <value>resuelto</value>
+    <comment>Text of the memory (memory.outcome.resolved).</comment>
+  </data>
+  <data name="Text_memory_outcome_unresolved" xml:space="preserve">
+    <value>sin resolver</value>
+    <comment>Text of the memory (memory.outcome.unresolved).</comment>
+  </data>
+  <data name="Text_memory_outcome_escalated_to_user" xml:space="preserve">
+    <value>lo deja en manos de una persona</value>
+    <comment>Text of the memory (memory.outcome.escalated-to-user).</comment>
+  </data>
+  <data name="Text_memory_outcome_aborted" xml:space="preserve">
+    <value>abortado</value>
+    <comment>Text of the memory (memory.outcome.aborted).</comment>
+  </data>
+  <data name="Text_memory_rule_single" xml:space="preserve">
+    <value>juez único</value>
+    <comment>Text of the memory (memory.rule.single).</comment>
+  </data>
+  <data name="Text_memory_rule_agree" xml:space="preserve">
+    <value>el jurado coincide</value>
+    <comment>Text of the memory (memory.rule.agree).</comment>
+  </data>
+  <data name="Text_memory_rule_disagree" xml:space="preserve">
+    <value>el jurado discrepa</value>
+    <comment>Text of the memory (memory.rule.disagree).</comment>
+  </data>
+  <data name="Text_memory_rule_invalid" xml:space="preserve">
+    <value>veredictos no válidos o incompletos</value>
+    <comment>Text of the memory (memory.rule.invalid).</comment>
+  </data>
+  <data name="Text_memory_rule_user" xml:space="preserve">
+    <value>decisión del usuario («Decidir yo»)</value>
+    <comment>Text of the memory (memory.rule.user).</comment>
+  </data>
+  <data name="Text_memory_rule_aborted" xml:space="preserve">
+    <value>abortado</value>
+    <comment>Text of the memory (memory.rule.aborted).</comment>
+  </data>
+  <data name="Text_memory_rule_unknown" xml:space="preserve">
+    <value>regla desconocida</value>
+    <comment>Text of the memory (memory.rule.unknown).</comment>
+  </data>
+  <data name="Text_memory_plan_hash" xml:space="preserve">
+    <value>el plan {0}</value>
+    <comment>Text of the memory (memory.plan.hash).</comment>
+  </data>
+  <data name="Text_memory_plan_none" xml:space="preserve">
+    <value>el plan</value>
+    <comment>Text of the memory (memory.plan.none).</comment>
+  </data>
+  <data name="Text_memory_topic_plan" xml:space="preserve">
+    <value>Plan de la ejecución {0}</value>
+    <comment>Text of the memory (memory.topic.plan).</comment>
+  </data>
+  <data name="Text_memory_topic_plan_summary" xml:space="preserve">
+    <value>Resumen del plan aprobado de la ejecución {0}</value>
+    <comment>Text of the memory (memory.topic.plan-summary).</comment>
+  </data>
+  <data name="Text_memory_topic_delivery" xml:space="preserve">
+    <value>Entrega de la ejecución {0}</value>
+    <comment>Text of the memory (memory.topic.delivery).</comment>
+  </data>
+  <data name="Text_memory_topic_pending" xml:space="preserve">
+    <value>Tareas pendientes de la ejecución {0}</value>
+    <comment>Text of the memory (memory.topic.pending).</comment>
+  </data>
+  <data name="Text_memory_topic_open_issues" xml:space="preserve">
+    <value>Problemas abiertos que dejó el informe de {0} en la ejecución {1}</value>
+    <comment>Text of the memory (memory.topic.open-issues).</comment>
+  </data>
+  <data name="Text_memory_topic_challenge" xml:space="preserve">
+    <value>Impugnación del veredicto {0} {1}</value>
+    <comment>Text of the memory (memory.topic.challenge).</comment>
+  </data>
+  <data name="Text_memory_topic_revision_acceptance" xml:space="preserve">
+    <value>Aceptación de una revisión {0}</value>
+    <comment>Text of the memory (memory.topic.revision-acceptance).</comment>
+  </data>
+  <data name="Text_memory_topic_replan" xml:space="preserve">
+    <value>Petición de replanificar {0}</value>
+    <comment>Text of the memory (memory.topic.replan).</comment>
+  </data>
+  <data name="Text_memory_topic_debate" xml:space="preserve">
+    <value>Debate {0} ({1})</value>
+    <comment>Text of the memory (memory.topic.debate).</comment>
+  </data>
+  <data name="Text_memory_topic_failed_tests_task" xml:space="preserve">
+    <value>Pruebas fallidas en {0} {1}</value>
+    <comment>Text of the memory (memory.topic.failed-tests-task).</comment>
+  </data>
+  <data name="Text_memory_topic_failed_tests" xml:space="preserve">
+    <value>Pruebas fallidas {0}</value>
+    <comment>Text of the memory (memory.topic.failed-tests).</comment>
+  </data>
+  <data name="Text_memory_topic_conflict_task" xml:space="preserve">
+    <value>Conflicto de integración en {0} en la ejecución {1}</value>
+    <comment>Text of the memory (memory.topic.conflict-task).</comment>
+  </data>
+  <data name="Text_memory_topic_conflict" xml:space="preserve">
+    <value>Conflicto de integración en la ejecución {0}</value>
+    <comment>Text of the memory (memory.topic.conflict).</comment>
+  </data>
+  <data name="Text_memory_topic_alert" xml:space="preserve">
+    <value>Alerta {0} {1}</value>
+    <comment>Text of the memory (memory.topic.alert).</comment>
+  </data>
+  <data name="Text_memory_topic_integration_task" xml:space="preserve">
+    <value>Integración {0} en la ejecución {1}</value>
+    <comment>Text of the memory (memory.topic.integration-task).</comment>
+  </data>
+  <data name="Text_memory_topic_integration" xml:space="preserve">
+    <value>Integración en la ejecución {0}</value>
+    <comment>Text of the memory (memory.topic.integration).</comment>
+  </data>
+  <data name="Text_memory_topic_verdict_unit_task" xml:space="preserve">
+    <value>Veredicto de {0} {1}</value>
+    <comment>Text of the memory (memory.topic.verdict-unit-task).</comment>
+  </data>
+  <data name="Text_memory_topic_verdict_unit" xml:space="preserve">
+    <value>Veredicto {0}</value>
+    <comment>Text of the memory (memory.topic.verdict-unit).</comment>
+  </data>
+  <data name="Text_memory_topic_verdict_revision" xml:space="preserve">
+    <value>Veredicto de la revisión de la impugnación del veredicto {0} en la ejecución {1}</value>
+    <comment>Text of the memory (memory.topic.verdict-revision).</comment>
+  </data>
+  <data name="Text_memory_topic_verdict_review" xml:space="preserve">
+    <value>Veredicto de la revisión {0} en la ejecución {1}</value>
+    <comment>Text of the memory (memory.topic.verdict-review).</comment>
+  </data>
+  <data name="Text_memory_topic_verdict_run" xml:space="preserve">
+    <value>Veredicto de la ejecución {0}</value>
+    <comment>Text of the memory (memory.topic.verdict-run).</comment>
+  </data>
+  <data name="Text_memory_topic_journal" xml:space="preserve">
+    <value>Bitácora del {0} · {1}</value>
+    <comment>Text of the memory (memory.topic.journal).</comment>
+  </data>
+  <data name="Text_memory_plan_decision_granted" xml:space="preserve">
+    <value>{0} aprobó {1} de la ejecución {2} el {3}.</value>
+    <comment>Text of the memory (memory.plan-decision.granted).</comment>
+  </data>
+  <data name="Text_memory_plan_decision_granted_sized" xml:space="preserve">
+    <value>{0} aprobó {1} de la ejecución {2} ({3}) el {4}.</value>
+    <comment>Text of the memory (memory.plan-decision.granted-sized).</comment>
+  </data>
+  <data name="Text_memory_plan_decision_denied" xml:space="preserve">
+    <value>{0} denegó {1} de la ejecución {2} el {3}.</value>
+    <comment>Text of the memory (memory.plan-decision.denied).</comment>
+  </data>
+  <data name="Text_memory_delivery_decision_granted" xml:space="preserve">
+    <value>{0} aprobó entregar la ejecución {1} a su rama el {2}.</value>
+    <comment>Text of the memory (memory.delivery-decision.granted).</comment>
+  </data>
+  <data name="Text_memory_delivery_decision_granted_changes" xml:space="preserve">
+    <value>{0} aprobó entregar la ejecución {1} a su rama el {2}: {3}.</value>
+    <comment>Text of the memory (memory.delivery-decision.granted-changes).</comment>
+  </data>
+  <data name="Text_memory_delivery_decision_denied" xml:space="preserve">
+    <value>{0} denegó entregar la ejecución {1} a su rama el {2}.</value>
+    <comment>Text of the memory (memory.delivery-decision.denied).</comment>
+  </data>
+  <data name="Text_memory_pending" xml:space="preserve">
+    <value>Al terminar la ejecución {0} ({1}) quedaron sin completar {2}: {3}.</value>
+    <comment>Text of the memory (memory.pending).</comment>
+  </data>
+  <data name="Text_memory_challenge" xml:space="preserve">
+    <value>{0} impugnó el veredicto {1} {2} el {3}. La revisión es el debate {4}; sus razones están en la prueba guardada {5}.</value>
+    <comment>Text of the memory (memory.challenge).</comment>
+  </data>
+  <data name="Text_memory_revision_acceptance_granted" xml:space="preserve">
+    <value>{0} aceptó la revisión de un veredicto impugnado {1} el {2}.</value>
+    <comment>Text of the memory (memory.revision-acceptance.granted).</comment>
+  </data>
+  <data name="Text_memory_revision_acceptance_denied" xml:space="preserve">
+    <value>{0} no aceptó la revisión de un veredicto impugnado {1} el {2}.</value>
+    <comment>Text of the memory (memory.revision-acceptance.denied).</comment>
+  </data>
+  <data name="Text_memory_replan_dismissal_granted" xml:space="preserve">
+    <value>{0} descartó la petición de replanificar {1} el {2}.</value>
+    <comment>Text of the memory (memory.replan-dismissal.granted).</comment>
+  </data>
+  <data name="Text_memory_replan_dismissal_denied" xml:space="preserve">
+    <value>{0} no descartó la petición de replanificar {1} el {2}.</value>
+    <comment>Text of the memory (memory.replan-dismissal.denied).</comment>
+  </data>
+  <data name="Text_memory_debate_challenge" xml:space="preserve">
+    <value>: revisión de la impugnación del veredicto {0}</value>
+    <comment>Text of the memory (memory.debate.challenge).</comment>
+  </data>
+  <data name="Text_memory_debate_subject_commit" xml:space="preserve">
+    <value>, sobre la versión guardada (commit) {0}</value>
+    <comment>Text of the memory (memory.debate.subject-commit).</comment>
+  </data>
+  <data name="Text_memory_debate_subject_run" xml:space="preserve">
+    <value>, sobre la ejecución {0}</value>
+    <comment>Text of the memory (memory.debate.subject-run).</comment>
+  </data>
+  <data name="Text_memory_debate_subject_verdict" xml:space="preserve">
+    <value>, sobre el veredicto {0}</value>
+    <comment>Text of the memory (memory.debate.subject-verdict).</comment>
+  </data>
+  <data name="Text_memory_debate_subject_unnamed" xml:space="preserve">
+    <value>, con un objeto que el registro no nombra</value>
+    <comment>Text of the memory (memory.debate.subject-unnamed).</comment>
+  </data>
+  <data name="Text_memory_debate_chosen" xml:space="preserve">
+    <value>; propuesta elegida: {0}</value>
+    <comment>Text of the memory (memory.debate.chosen).</comment>
+  </data>
+  <data name="Text_memory_debate_not_cited" xml:space="preserve">
+    <value>no citada</value>
+    <comment>Text of the memory (memory.debate.not-cited).</comment>
+  </data>
+  <data name="Text_memory_debate_no_verdicts" xml:space="preserve">
+    <value>Sin veredictos.</value>
+    <comment>Text of the memory (memory.debate.no-verdicts).</comment>
+  </data>
+  <data name="Text_memory_debate_verdicts" xml:space="preserve">
+    <value>Veredictos: {0}.</value>
+    <comment>Text of the memory (memory.debate.verdicts).</comment>
+  </data>
+  <data name="Text_memory_debate_verdict_line" xml:space="preserve">
+    <value>{0} ({1}, {2})</value>
+    <comment>Text of the memory (memory.debate.verdict-line).</comment>
+  </data>
+  <data name="Text_memory_debate_verdict_missing" xml:space="preserve">
+    <value>{0} (no está en el registro)</value>
+    <comment>Text of the memory (memory.debate.verdict-missing).</comment>
+  </data>
+  <data name="Text_memory_debate_summary" xml:space="preserve">
+    <value>Debate {0}, modo {1}{2}. Se abrió el {3} y se cerró el {4}. Resultado: {5} ({6}){7}. {8}</value>
+    <comment>Text of the memory (memory.debate-summary).</comment>
+  </data>
+  <data name="Text_memory_with_question" xml:space="preserve">
+    <value>{0} {1}</value>
+    <comment>Text of the memory (memory.with-question).</comment>
+  </data>
+  <data name="Text_memory_question_quoted" xml:space="preserve">
+    <value>Pregunta: «{0}»</value>
+    <comment>Text of the memory (memory.question.quoted).</comment>
+  </data>
+  <data name="Text_memory_question_empty" xml:space="preserve">
+    <value>La pregunta está vacía.</value>
+    <comment>Text of the memory (memory.question.empty).</comment>
+  </data>
+  <data name="Text_memory_question_not_anchored" xml:space="preserve">
+    <value>La pregunta (prueba guardada {0}) no está anclada en el registro de decisiones: no se cita.</value>
+    <comment>Text of the memory (memory.question.not-anchored).</comment>
+  </data>
+  <data name="Text_memory_question_not_by_person" xml:space="preserve">
+    <value>La pregunta (prueba guardada {0}) no la escribió una persona: no se cita.</value>
+    <comment>Text of the memory (memory.question.not-by-person).</comment>
+  </data>
+  <data name="Text_memory_question_tampered" xml:space="preserve">
+    <value>La pregunta (prueba guardada {0}) no es la que ancló el registro de decisiones: no se cita.</value>
+    <comment>Text of the memory (memory.question.tampered).</comment>
+  </data>
+  <data name="Text_memory_failed_tests_where_task" xml:space="preserve">
+    <value>de {0}</value>
+    <comment>Text of the memory (memory.failed-tests.where-task).</comment>
+  </data>
+  <data name="Text_memory_failed_tests_where_attempt" xml:space="preserve">
+    <value>de {0} (intento {1})</value>
+    <comment>Text of the memory (memory.failed-tests.where-attempt).</comment>
+  </data>
+  <data name="Text_memory_failed_tests_subject_titled" xml:space="preserve">
+    <value>«{0}» {1}</value>
+    <comment>Text of the memory (memory.failed-tests.subject-titled).</comment>
+  </data>
+  <data name="Text_memory_failed_tests" xml:space="preserve">
+    <value>La verificación {0} falló: {1}.</value>
+    <comment>Text of the memory (memory.failed-tests).</comment>
+  </data>
+  <data name="Text_memory_failed_tests_commit" xml:space="preserve">
+    <value>La verificación {0} falló sobre la versión guardada (commit) {1}: {2}.</value>
+    <comment>Text of the memory (memory.failed-tests-commit).</comment>
+  </data>
+  <data name="Text_memory_tests_failed_one" xml:space="preserve">
+    <value>falló 1 prueba ({0} correctas, {1} omitidas, código de salida {2})</value>
+    <comment>Text of the memory (memory.tests.failed-one).</comment>
+  </data>
+  <data name="Text_memory_tests_failed_other" xml:space="preserve">
+    <value>fallaron {0} pruebas ({1} correctas, {2} omitidas, código de salida {3})</value>
+    <comment>Text of the memory (memory.tests.failed-other).</comment>
+  </data>
+  <data name="Text_memory_tests_none_passed" xml:space="preserve">
+    <value>no pasó ninguna prueba ({0} omitidas, código de salida {1})</value>
+    <comment>Text of the memory (memory.tests.none-passed).</comment>
+  </data>
+  <data name="Text_memory_tests_bad_exit" xml:space="preserve">
+    <value>el proceso de las pruebas terminó con el código de salida {0} ({1} correctas, {2} omitidas)</value>
+    <comment>Text of the memory (memory.tests.bad-exit).</comment>
+  </data>
+  <data name="Text_memory_conflict" xml:space="preserve">
+    <value>La integración de la ejecución {0} tuvo conflictos en {1} y no se integró: {2}.</value>
+    <comment>Text of the memory (memory.conflict).</comment>
+  </data>
+  <data name="Text_memory_conflict_task" xml:space="preserve">
+    <value>La integración {0} de la ejecución {1} tuvo conflictos en {2} y no se integró: {3}.</value>
+    <comment>Text of the memory (memory.conflict-task).</comment>
+  </data>
+  <data name="Text_memory_alert" xml:space="preserve">
+    <value>Alerta «{0}» {1}.</value>
+    <comment>Text of the memory (memory.alert).</comment>
+  </data>
+  <data name="Text_memory_alert_tasks" xml:space="preserve">
+    <value>Alerta «{0}» {1}. Tareas: {2}.</value>
+    <comment>Text of the memory (memory.alert-tasks).</comment>
+  </data>
+  <data name="Text_memory_alert_detail" xml:space="preserve">
+    <value>Alerta «{0}» {1}. Detalle: {2}</value>
+    <comment>Text of the memory (memory.alert-detail).</comment>
+  </data>
+  <data name="Text_memory_alert_tasks_detail" xml:space="preserve">
+    <value>Alerta «{0}» {1}. Tareas: {2}. Detalle: {3}</value>
+    <comment>Text of the memory (memory.alert-tasks-detail).</comment>
+  </data>
+  <data name="Text_memory_replan_who_auditor" xml:space="preserve">
+    <value>El auditor del orquestador</value>
+    <comment>Text of the memory (memory.replan-who.auditor).</comment>
+  </data>
+  <data name="Text_memory_replan_who_judge" xml:space="preserve">
+    <value>El juez {0} de la revisión del orquestador</value>
+    <comment>Text of the memory (memory.replan-who.judge).</comment>
+  </data>
+  <data name="Text_memory_replan_who_system" xml:space="preserve">
+    <value>Agent Studio</value>
+    <comment>Text of the memory (memory.replan-who.system).</comment>
+  </data>
+  <data name="Text_memory_replan_no_findings" xml:space="preserve">
+    <value>sin hallazgos</value>
+    <comment>Text of the memory (memory.replan.no-findings).</comment>
+  </data>
+  <data name="Text_memory_replan_findings" xml:space="preserve">
+    <value>hallazgos: {0}</value>
+    <comment>Text of the memory (memory.replan.findings).</comment>
+  </data>
+  <data name="Text_memory_replan_tasks" xml:space="preserve">
+    <value>; tareas: {0}</value>
+    <comment>Text of the memory (memory.replan.tasks).</comment>
+  </data>
+  <data name="Text_memory_replan_verdict" xml:space="preserve">
+    <value>; veredicto {0}</value>
+    <comment>Text of the memory (memory.replan.verdict).</comment>
+  </data>
+  <data name="Text_memory_replan" xml:space="preserve">
+    <value>{0} pidió un plan nuevo para {1} el {2}. Motivo: {3}.</value>
+    <comment>Text of the memory (memory.replan).</comment>
+  </data>
+  <data name="Text_memory_replan_detail" xml:space="preserve">
+    <value>{0} pidió un plan nuevo para {1} el {2}. Motivo: {3}. Detalle: {4}</value>
+    <comment>Text of the memory (memory.replan-detail).</comment>
+  </data>
+  <data name="Text_memory_sources" xml:space="preserve">
+    <value>; integra {0}: {1}</value>
+    <comment>Text of the memory (memory.sources).</comment>
+  </data>
+  <data name="Text_memory_integration" xml:space="preserve">
+    <value>La integración de la ejecución {0} dejó {1} en la versión guardada (commit) {2}{3}.</value>
+    <comment>Text of the memory (memory.integration).</comment>
+  </data>
+  <data name="Text_memory_integration_task" xml:space="preserve">
+    <value>La integración {0} de la ejecución {1} dejó {2} en la versión guardada (commit) {3}{4}.</value>
+    <comment>Text of the memory (memory.integration-task).</comment>
+  </data>
+  <data name="Text_memory_delivery" xml:space="preserve">
+    <value>La entrega de la ejecución {0} dejó {1} en la versión guardada (commit) {2}{3}.</value>
+    <comment>Text of the memory (memory.delivery).</comment>
+  </data>
+  <data name="Text_memory_delivery_no_changes" xml:space="preserve">
+    <value>La entrega de la ejecución {0} dejó {1} en la versión guardada (commit) {2}{3}. No cambia ningún fichero.</value>
+    <comment>Text of the memory (memory.delivery-no-changes).</comment>
+  </data>
+  <data name="Text_memory_delivery_changes" xml:space="preserve">
+    <value>La entrega de la ejecución {0} dejó {1} en la versión guardada (commit) {2}{3}. {4}: {5}.</value>
+    <comment>Text of the memory (memory.delivery-changes).</comment>
+  </data>
+  <data name="Text_memory_verdict_target_unit" xml:space="preserve">
+    <value>para {0}</value>
+    <comment>Text of the memory (memory.verdict-target.unit).</comment>
+  </data>
+  <data name="Text_memory_verdict_target_revision" xml:space="preserve">
+    <value>para la revisión de la impugnación del veredicto {0}</value>
+    <comment>Text of the memory (memory.verdict-target.revision).</comment>
+  </data>
+  <data name="Text_memory_verdict_target_review" xml:space="preserve">
+    <value>para la revisión {0}</value>
+    <comment>Text of the memory (memory.verdict-target.review).</comment>
+  </data>
+  <data name="Text_memory_verdict_target_run" xml:space="preserve">
+    <value>para la ejecución {0}</value>
+    <comment>Text of the memory (memory.verdict-target.run).</comment>
+  </data>
+  <data name="Text_memory_verdict_revises" xml:space="preserve">
+    <value>; revisa el veredicto {0} tras su impugnación</value>
+    <comment>Text of the memory (memory.verdict.revises).</comment>
+  </data>
+  <data name="Text_memory_verdict_corrects" xml:space="preserve">
+    <value>; corrige al veredicto {0}</value>
+    <comment>Text of the memory (memory.verdict.corrects).</comment>
+  </data>
+  <data name="Text_memory_verdict" xml:space="preserve">
+    <value>El juez {0} emitió el veredicto {1} {2}: {3}, {4}{5}.</value>
+    <comment>Text of the memory (memory.verdict).</comment>
+  </data>
+  <data name="Text_memory_verdict_note" xml:space="preserve">
+    <value>El juez {0} emitió el veredicto {1} {2}: {3}, {4}{5}. {6}</value>
+    <comment>Text of the memory (memory.verdict-note).</comment>
+  </data>
+  <data name="Text_memory_reason_busy" xml:space="preserve">
+    <value>Hay agentes trabajando en el proyecto. La memoria se actualiza cuando terminen.</value>
+    <comment>Text of the memory (memory.reason.busy).</comment>
+  </data>
+  <data name="Text_memory_reason_stopped" xml:space="preserve">
+    <value>Los agentes empezaron a trabajar. La actualización de la memoria se detuvo; la próxima la completa.</value>
+    <comment>Text of the memory (memory.reason.stopped).</comment>
+  </data>
+  <data name="Text_memory_reason_unanchored" xml:space="preserve">
+    <value>No se reconoce el historial del registro de decisiones en esta carpeta. La memoria no se actualiza hasta que lo aceptes como nuevo origen.</value>
+    <comment>Text of the memory (memory.reason.unanchored).</comment>
+  </data>
+  <data name="Text_memory_reason_broken_midway" xml:space="preserve">
+    <value>El registro de decisiones dejó de verificar durante la actualización. No se escribió nada más.</value>
+    <comment>Text of the memory (memory.reason.broken-midway).</comment>
+  </data>
+  <data name="Text_memory_reason_not_verified" xml:space="preserve">
+    <value>El registro de decisiones no verifica. No se actualiza la memoria.</value>
+    <comment>Text of the memory (memory.reason.not-verified).</comment>
+  </data>
+  <data name="Text_memory_reason_not_verified_at" xml:space="preserve">
+    <value>El registro de decisiones no verifica en la entrada {0}. No se actualiza la memoria.</value>
+    <comment>Text of the memory (memory.reason.not-verified-at).</comment>
+  </data>
+  <data name="Text_memory_reason_export_busy" xml:space="preserve">
+    <value>Hay agentes trabajando en el proyecto. La memoria se exporta cuando terminen.</value>
+    <comment>Text of the memory (memory.reason.export-busy).</comment>
+  </data>
+  <data name="Text_memory_export_header" xml:space="preserve">
+    <value>&lt;!-- Generado por Agent Studio a partir de la memoria del proyecto. Editar este fichero no cambia la memoria: la próxima exportación lo sustituye. --&gt;</value>
+    <comment>Text of the memory (memory.export.header).</comment>
+  </data>
+  <data name="Text_memory_export_chronological_title" xml:space="preserve">
+    <value>Memoria del proyecto · {0}</value>
+    <comment>Text of the memory (memory.export.chronological-title).</comment>
+  </data>
+  <data name="Text_memory_export_month" xml:space="preserve">
+    <value>{0:MMMM} de {0:yyyy}</value>
+    <comment>Text of the memory (memory.export.month).</comment>
+  </data>
+  <data name="Text_memory_export_chronological_intro" xml:space="preserve">
+    <value>Memoria de confianza (del sistema, del usuario y la aceptada) en orden cronológico y en hora local.</value>
+    <comment>Text of the memory (memory.export.chronological-intro).</comment>
+  </data>
+  <data name="Text_memory_export_thematic_intro" xml:space="preserve">
+    <value>Memoria de confianza vigente (del sistema, del usuario y la aceptada, sin lo sustituido), por tema y en hora local.</value>
+    <comment>Text of the memory (memory.export.thematic-intro).</comment>
+  </data>
+  <data name="Text_memory_export_thematic_title" xml:space="preserve">
+    <value>Memoria del proyecto · {0}</value>
+    <comment>Text of the memory (memory.export.thematic-title).</comment>
+  </data>
+  <data name="Text_memory_export_no_month_memory" xml:space="preserve">
+    <value>_No queda memoria de confianza de este mes._</value>
+    <comment>Text of the memory (memory.export.no-month-memory).</comment>
+  </data>
+  <data name="Text_memory_export_no_kind_memory" xml:space="preserve">
+    <value>_No hay memoria de confianza vigente en esta categoría._</value>
+    <comment>Text of the memory (memory.export.no-kind-memory).</comment>
+  </data>
+  <data name="Text_memory_export_entry_line" xml:space="preserve">
+    <value>- Entrada: {0} ({1})</value>
+    <comment>Text of the memory (memory.export.entry-line).</comment>
+  </data>
+  <data name="Text_memory_export_source_line" xml:space="preserve">
+    <value>- Fuente: {0}</value>
+    <comment>Text of the memory (memory.export.source-line).</comment>
+  </data>
+  <data name="Text_memory_export_sha_line" xml:space="preserve">
+    <value>- {0}: {1}</value>
+    <comment>Text of the memory (memory.export.sha-line).</comment>
+  </data>
+  <data name="Text_memory_export_supersedes_line" xml:space="preserve">
+    <value>- Sustituye a: {0}</value>
+    <comment>Text of the memory (memory.export.supersedes-line).</comment>
+  </data>
+  <data name="Text_memory_export_superseded_by_line" xml:space="preserve">
+    <value>- Sustituida por: {0}</value>
+    <comment>Text of the memory (memory.export.superseded-by-line).</comment>
+  </data>
+  <data name="Text_memory_export_origin_system" xml:space="preserve">
+    <value>del sistema</value>
+    <comment>Text of the memory (memory.export.origin.system).</comment>
+  </data>
+  <data name="Text_memory_export_origin_user" xml:space="preserve">
+    <value>del usuario</value>
+    <comment>Text of the memory (memory.export.origin.user).</comment>
+  </data>
+  <data name="Text_memory_export_origin_agent" xml:space="preserve">
+    <value>de un agente</value>
+    <comment>Text of the memory (memory.export.origin.agent).</comment>
+  </data>
+  <data name="Text_memory_export_kind_architecture" xml:space="preserve">
+    <value>Arquitectura</value>
+    <comment>Text of the memory (memory.export.kind.architecture).</comment>
+  </data>
+  <data name="Text_memory_export_kind_convention" xml:space="preserve">
+    <value>Convención</value>
+    <comment>Text of the memory (memory.export.kind.convention).</comment>
+  </data>
+  <data name="Text_memory_export_kind_decision" xml:space="preserve">
+    <value>Decisión</value>
+    <comment>Text of the memory (memory.export.kind.decision).</comment>
+  </data>
+  <data name="Text_memory_export_kind_known_error" xml:space="preserve">
+    <value>Error conocido</value>
+    <comment>Text of the memory (memory.export.kind.known-error).</comment>
+  </data>
+  <data name="Text_memory_export_kind_solution" xml:space="preserve">
+    <value>Solución</value>
+    <comment>Text of the memory (memory.export.kind.solution).</comment>
+  </data>
+  <data name="Text_memory_export_kind_pending_task" xml:space="preserve">
+    <value>Tarea pendiente</value>
+    <comment>Text of the memory (memory.export.kind.pending-task).</comment>
+  </data>
+  <data name="Text_memory_export_kind_change" xml:space="preserve">
+    <value>Cambio</value>
+    <comment>Text of the memory (memory.export.kind.change).</comment>
+  </data>
+  <data name="Text_memory_export_kind_debate_summary" xml:space="preserve">
+    <value>Resumen de debate</value>
+    <comment>Text of the memory (memory.export.kind.debate-summary).</comment>
+  </data>
+  <data name="Text_memory_export_kind_verdict" xml:space="preserve">
+    <value>Veredicto</value>
+    <comment>Text of the memory (memory.export.kind.verdict).</comment>
+  </data>
+  <data name="Text_memory_export_kind_daily_summary" xml:space="preserve">
+    <value>Resumen diario</value>
+    <comment>Text of the memory (memory.export.kind.daily-summary).</comment>
+  </data>
+  <data name="Text_memory_export_kind_journal_entry" xml:space="preserve">
+    <value>Entrada de la bitácora</value>
+    <comment>Text of the memory (memory.export.kind.journal-entry).</comment>
+  </data>
+  <data name="Text_memory_export_kind_project_brief" xml:space="preserve">
+    <value>Ficha del proyecto</value>
+    <comment>Text of the memory (memory.export.kind.project-brief).</comment>
+  </data>
+  <data name="Text_memory_export_title_architecture" xml:space="preserve">
+    <value>Arquitectura</value>
+    <comment>Text of the memory (memory.export.title.architecture).</comment>
+  </data>
+  <data name="Text_memory_export_title_convention" xml:space="preserve">
+    <value>Convenciones</value>
+    <comment>Text of the memory (memory.export.title.convention).</comment>
+  </data>
+  <data name="Text_memory_export_title_decision" xml:space="preserve">
+    <value>Decisiones</value>
+    <comment>Text of the memory (memory.export.title.decision).</comment>
+  </data>
+  <data name="Text_memory_export_title_known_error" xml:space="preserve">
+    <value>Errores conocidos</value>
+    <comment>Text of the memory (memory.export.title.known-error).</comment>
+  </data>
+  <data name="Text_memory_export_title_solution" xml:space="preserve">
+    <value>Soluciones</value>
+    <comment>Text of the memory (memory.export.title.solution).</comment>
+  </data>
+  <data name="Text_memory_export_title_pending_task" xml:space="preserve">
+    <value>Tareas pendientes</value>
+    <comment>Text of the memory (memory.export.title.pending-task).</comment>
+  </data>
+  <data name="Text_memory_export_title_change" xml:space="preserve">
+    <value>Cambios</value>
+    <comment>Text of the memory (memory.export.title.change).</comment>
+  </data>
+  <data name="Text_memory_export_title_debate_summary" xml:space="preserve">
+    <value>Resúmenes de debate</value>
+    <comment>Text of the memory (memory.export.title.debate-summary).</comment>
+  </data>
+  <data name="Text_memory_export_title_verdict" xml:space="preserve">
+    <value>Veredictos</value>
+    <comment>Text of the memory (memory.export.title.verdict).</comment>
+  </data>
+  <data name="Text_memory_export_title_daily_summary" xml:space="preserve">
+    <value>Resúmenes diarios</value>
+    <comment>Text of the memory (memory.export.title.daily-summary).</comment>
+  </data>
+  <data name="Text_memory_export_title_project_brief" xml:space="preserve">
+    <value>Ficha del proyecto</value>
+    <comment>Text of the memory (memory.export.title.project-brief).</comment>
+  </data>
+  <data name="Text_memory_join_lines" xml:space="preserve">
+    <value>{0}&#10;{1}</value>
+    <comment>Text of the memory (memory.join-lines).</comment>
+  </data>
+  <data name="Text_memory_topic_daily_summary" xml:space="preserve">
+    <value>Resumen del {0}</value>
+    <comment>Text of the memory (memory.topic.daily-summary).</comment>
+  </data>
+  <data name="Text_memory_daily_title" xml:space="preserve">
+    <value># Resumen del {0}</value>
+    <comment>Text of the memory (memory.daily.title).</comment>
+  </data>
+  <data name="Text_memory_daily_title_provisional" xml:space="preserve">
+    <value># Resumen del {0} (provisional)</value>
+    <comment>Text of the memory (memory.daily.title-provisional).</comment>
+  </data>
+  <data name="Text_memory_daily_intro" xml:space="preserve">
+    <value>Resumen de la bitácora del día. Solo cuenta y cita; no interpreta.</value>
+    <comment>Text of the memory (memory.daily.intro).</comment>
+  </data>
+  <data name="Text_memory_daily_no_journal" xml:space="preserve">
+    <value>No hay bitácora de este día.</value>
+    <comment>Text of the memory (memory.daily.no-journal).</comment>
+  </data>
+  <data name="Text_memory_daily_requests" xml:space="preserve">
+    <value>## Peticiones: {0}</value>
+    <comment>Text of the memory (memory.daily.requests).</comment>
+  </data>
+  <data name="Text_memory_daily_results" xml:space="preserve">
+    <value>## Resultados: {0}</value>
+    <comment>Text of the memory (memory.daily.results).</comment>
+  </data>
+  <data name="Text_memory_daily_tokens" xml:space="preserve">
+    <value>## Tokens</value>
+    <comment>Text of the memory (memory.daily.tokens).</comment>
+  </data>
+  <data name="Text_memory_daily_failures" xml:space="preserve">
+    <value>## Fallos y límites: {0}</value>
+    <comment>Text of the memory (memory.daily.failures).</comment>
+  </data>
+  <data name="Text_memory_daily_tags" xml:space="preserve">
+    <value>## Etiquetas más frecuentes</value>
+    <comment>Text of the memory (memory.daily.tags).</comment>
+  </data>
+  <data name="Text_memory_daily_done_lines" xml:space="preserve">
+    <value>## Líneas «Hecho»: {0}</value>
+    <comment>Text of the memory (memory.daily.done-lines).</comment>
+  </data>
+  <data name="Text_memory_daily_unrecognized" xml:space="preserve">
+    <value>## Líneas no reconocidas: {0}</value>
+    <comment>Text of the memory (memory.daily.unrecognized).</comment>
+  </data>
+  <data name="Text_memory_daily_duration" xml:space="preserve">
+    <value>- Duración total: {0:F1} s</value>
+    <comment>Text of the memory (memory.daily.duration).</comment>
+  </data>
+  <data name="Text_memory_daily_unanswered" xml:space="preserve">
+    <value>- Sin resultado en la bitácora: {0}</value>
+    <comment>Text of the memory (memory.daily.unanswered).</comment>
+  </data>
+  <data name="Text_memory_daily_no_product_requests" xml:space="preserve">
+    <value>- Sin peticiones de Agent Studio: las de desarrollo no registran tokens.</value>
+    <comment>Text of the memory (memory.daily.no-product-requests).</comment>
+  </data>
+  <data name="Text_memory_daily_tokens_exact" xml:space="preserve">
+    <value>- Entrada {0:N0} → salida {1:N0} (exactos)</value>
+    <comment>Text of the memory (memory.daily.tokens-exact).</comment>
+  </data>
+  <data name="Text_memory_daily_tokens_partial" xml:space="preserve">
+    <value>- Entrada {0:N0} → salida {1:N0} (parcial: exactos en {2} de {3} peticiones de Agent Studio)</value>
+    <comment>Text of the memory (memory.daily.tokens-partial).</comment>
+  </data>
+  <data name="Text_memory_daily_more_failures" xml:space="preserve">
+    <value>- … y {0} más.</value>
+    <comment>Text of the memory (memory.daily.more-failures).</comment>
+  </data>
+  <data name="Text_memory_daily_more_done" xml:space="preserve">
+    <value>- … y {0} líneas «Hecho» más en la bitácora.</value>
+    <comment>Text of the memory (memory.daily.more-done).</comment>
+  </data>
+  <data name="Text_memory_daily_no_tags" xml:space="preserve">
+    <value>- Ninguna.</value>
+    <comment>Text of the memory (memory.daily.no-tags).</comment>
+  </data>
+  <data name="Text_memory_replan_reason" xml:space="preserve">
+    <value>{0}{1}{2}</value>
+    <comment>Text of the memory (memory.replan.reason).</comment>
+  </data>
+</root>

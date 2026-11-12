@@ -1,4 +1,5 @@
 using AgentStudio.Application.Skills;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Domain.Metrics;
 using AgentStudio.Domain.Skills;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -73,7 +74,7 @@ public sealed partial class SkillItemViewModel : ObservableObject
 
     public string HealthLabel => SkillsTexts.Health(HealthStatus);
 
-    public string ToolTip => $"{Name} · {HealthLabel}{(IsLinked ? " · enlazada" : string.Empty)}\n{Summary}";
+    public string ToolTip => $"{Name} · {HealthLabel}{(IsLinked ? Texts.Get("Skills_Item_Linked") : string.Empty)}\n{Summary}";
 
     /// <summary>«Proy.», «Global», «2 agentes» or nothing.</summary>
     [ObservableProperty]
@@ -179,7 +180,7 @@ public sealed class SkillScopeViewModel
 public sealed record AgentCostViewModel(string Agent, int Skills, MetricValue<long> Tokens)
 {
     /// <summary>«ejecutor: 2 skills · ~37 tokens por ejecución (estimado)».</summary>
-    public string Text => $"{Agent}: {Skills} {(Skills == 1 ? "skill" : "skills")} · ~{Tokens.Value ?? 0} tokens por ejecución (estimado)";
+    public string Text => Texts.Format(Skills == 1 ? "Skills_Cost_Agent_One" : "Skills_Cost_Agent_Other", Agent, Skills, Tokens.Value ?? 0);
 
     /// <summary>What a screen reader says of the line (A1-bis): its text, never the members of the record.</summary>
     public override string ToString() => Text;
@@ -197,35 +198,35 @@ internal static class SkillsTexts
 {
     public static string Health(SkillHealthStatus status) => status switch
     {
-        SkillHealthStatus.Healthy => "Sana",
-        SkillHealthStatus.Warning => "Aviso",
-        SkillHealthStatus.Critical => "Crítico",
-        _ => "Sin comprobar",
+        SkillHealthStatus.Healthy => Texts.Get("Skills_Health_Healthy"),
+        SkillHealthStatus.Warning => Texts.Get("Skills_Health_Warning"),
+        SkillHealthStatus.Critical => Texts.Get("Skills_Health_Critical"),
+        _ => Texts.Get("Skills_Health_Unknown"),
     };
 
     public static string Check(string code) => code switch
     {
-        SkillHealthCodes.Frontmatter => "Cabecera",
-        SkillHealthCodes.Size => "Tamaño",
-        SkillHealthCodes.License => "Licencia",
-        SkillHealthCodes.Pinned => "Fijada a un commit",
-        SkillHealthCodes.Upstream => "Cambios en origen",
-        SkillHealthCodes.Archived => "Origen archivado",
-        SkillHealthCodes.Scripts => "Scripts",
+        SkillHealthCodes.Frontmatter => Texts.Get("Skills_Check_Frontmatter"),
+        SkillHealthCodes.Size => Texts.Get("Skills_Check_Size"),
+        SkillHealthCodes.License => Texts.Get("Skills_Check_License"),
+        SkillHealthCodes.Pinned => Texts.Get("Skills_Check_Pinned"),
+        SkillHealthCodes.Upstream => Texts.Get("Skills_Check_Upstream"),
+        SkillHealthCodes.Archived => Texts.Get("Skills_Check_Archived"),
+        SkillHealthCodes.Scripts => Texts.Get("Skills_Check_Scripts"),
         _ => code,
     };
 
     public static string Decision(bool? decision) => decision switch
     {
-        null => "Sin decisión",
-        true => "Activada",
-        false => "Desactivada",
+        null => Texts.Get("Skills_Decision_None"),
+        true => Texts.Get("Skills_Decision_On"),
+        false => Texts.Get("Skills_Decision_Off"),
     };
 
     public static string Scope(SkillScopeKind scope, string? agent) => scope switch
     {
-        SkillScopeKind.Global => "Global",
-        SkillScopeKind.Project => "Proyecto",
-        _ => $"Agente «{agent}»",
+        SkillScopeKind.Global => Texts.Get("Skills_Scope_Global"),
+        SkillScopeKind.Project => Texts.Get("Skills_Scope_Project"),
+        _ => Texts.Format("Skills_Scope_Agent", agent),
     };
 }

@@ -1,4 +1,5 @@
 using System.Globalization;
+using AgentStudio.Application.Documents;
 using AgentStudio.Application.Knowledge;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Providers;
@@ -171,6 +172,14 @@ public enum AgentRunPurpose
 
     /// <summary>The chat of preparation with the orchestrator (D-44): read-only, in the band of preparation.</summary>
     PreparationChat,
+
+    // Phase 14 (docs/17 §8.2), appended: auxiliary runs again, each with the person's OK and the estimate in front.
+
+    /// <summary>The agent of the help (D-56): read-only, in an empty folder, with the card of what it is sent in front of the person.</summary>
+    Help,
+
+    /// <summary>The part of a document for clients written by an agent (D-59): the summary or an explanation of use, read-only, marked in the document.</summary>
+    ClientDocumentDraft,
 }
 
 /// <summary>
@@ -765,6 +774,170 @@ public sealed record JournalTrustChangedPayload(JournalTrustScope Scope, DateOnl
         }
 
         return new JournalTrustChangedPayload(scope, day, trusted, decidedBy, comment) { RunId = NoRun };
+    }
+}
+
+/// <summary>A file an export of a document for clients wrote (docs/17 D-60): its format, its name (never a path: the folder is the person's), its SHA-256 and its size.</summary>
+public sealed record ClientDocumentFileSnapshot(ClientDocumentFormat Format, string FileName, string Sha256, long Bytes);
+
+/// <summary>A part of the document an agent wrote (docs/17 D-59): the section it is in, the run that wrote it (no text) and whether the person reviewed it.</summary>
+public sealed record ClientDocumentAgentPartSnapshot(ClientDocumentSectionKind Section, RunId Run, bool ReviewedByPerson);
+
+/// <summary>
+/// A person approved and exported a document for clients (docs/17 D-60, ADR-0057). Each export is a version and the earlier one stays.
+/// The payload records what was exported without any of its text: the SHA-256 of the model (<see cref="ClientDocument.Sha256"/>), the
+/// evidence of the Markdown the system generated (kept whichever formats were chosen) with its SHA-256, the name and SHA-256 of each
+/// file, and what the list of what goes out said: how many secrets were redacted, how many paths of the machine were removed (their
+/// text is never written to the log), the parts agents wrote with their run and whether the person reviewed them, how many risks go
+/// and whether the consumption does. It belongs to no run (<see cref="DecisionPayload.NoRun"/>): D-60 exports outside every run.
+/// </summary>
+/// <param name="Version">The version of the document, from 1: one more than the last export of the same milestone.</param>
+/// <param name="Milestone">The name of the milestone it is for, or null for a delivery without one.</param>
+/// <param name="Commit">The commit of the cover, or null.</param>
+/// <param name="Language">The language the document was exported in (<see cref="Localization.LanguageTags"/>).</param>
+/// <param name="ModelSha256">The SHA-256 of the model the files were written from.</param>
+/// <param name="MarkdownEvidence">The evidence of the generated Markdown.</param>
+/// <param name="MarkdownSha256">Its SHA-256.</param>
+/// <param name="Files">The files written, one per format.</param>
+/// <param name="SecretsRedacted">How many secrets the redactor took out.</param>
+/// <param name="PathsRemoved">How many paths of the machine were removed.</param>
+/// <param name="RisksIncluded">How many risks go in the section of risks and pending.</param>
+/// <param name="IncludesConsumption">Whether the person ticked the consumption.</param>
+/// <param name="AgentParts">The parts agents wrote; empty when none.</param>
+/// <param name="DecidedBy">Who approved the export.</param>
+public sealed record ClientDocumentExportedPayload(
+    int Version,
+    string? Milestone,
+    string? Commit,
+    string Language,
+    string ModelSha256,
+    EvidenceId MarkdownEvidence,
+    string MarkdownSha256,
+    IReadOnlyList<ClientDocumentFileSnapshot> Files,
+    int SecretsRedacted,
+    int PathsRemoved,
+    int RisksIncluded,
+    bool IncludesConsumption,
+    IReadOnlyList<ClientDocumentAgentPartSnapshot> AgentParts,
+    string DecidedBy) : DecisionPayload
+{
+    /// <summary>
+    /// The export as the log records it, outside every run.
+    /// </summary>
+    /// <exception cref="ArgumentException">
+    /// A version below 1, a commit that is not one, a language that is not a name, a hash that is not a SHA-256, no file, two files of one
+    /// format or with one name, a name that is not a plain file name or does not end with the extension of its format, a size below 1,
+    /// a count below 0, or no one decided.
+    /// </exception>
+    public static ClientDocumentExportedPayload Exporting(
+        int version,
+        string? milestone,
+        string? commit,
+        string language,
+        string modelSha256,
+        EvidenceId markdownEvidence,
+        string markdownSha256,
+        IReadOnlyList<ClientDocumentFileSnapshot> files,
+        int secretsRedacted,
+        int pathsRemoved,
+        int risksIncluded,
+        bool includesConsumption,
+        IReadOnlyList<ClientDocumentAgentPartSnapshot> agentParts,
+        string decidedBy)
+    {
+        ArgumentNullException.ThrowIfNull(files);
+        ArgumentNullException.ThrowIfNull(agentParts);
+        ArgumentException.ThrowIfNullOrWhiteSpace(decidedBy);
+        ArgumentOutOfRangeException.ThrowIfLessThan(version, 1);
+        if (commit is not null && !ClientDocumentRules.IsCommit(commit))
+        {
+            throw new ArgumentException("The commit of the cover is 7 to 64 lowercase hex characters.", nameof(commit));
+        }
+
+        // The name of the milestone is text the log keeps: it is held to the rules of the rest of the text of the document.
+        if (milestone is not null && (string.IsNullOrWhiteSpace(milestone) || LocalPaths.Contains(milestone) || PlainText.HasHiddenCharacter(milestone, allowLineBreaks: false)))
+        {
+            throw new ArgumentException("The milestone has a name, with no path of the machine and no hidden character.", nameof(milestone));
+        }
+
+        if (!Localization.LanguageTags.IsValid(language))
+        {
+            throw new ArgumentException("The language is the name of a culture, such as es-ES or en.", nameof(language));
+        }
+
+        if (!ContentHash.IsSha256Hex(modelSha256) || !ContentHash.IsSha256Hex(markdownSha256))
+        {
+            throw new ArgumentException("The model and the Markdown are named by their SHA-256 (64 lowercase hex characters).", nameof(modelSha256));
+        }
+
+        if (files.Count == 0)
+        {
+            throw new ArgumentException("An export writes at least one file.", nameof(files));
+        }
+
+        foreach (var file in files)
+        {
+            if (!Enum.IsDefined(file.Format)
+                || !ClientDocumentFiles.IsPlainFileName(file.FileName)
+                || !file.FileName.EndsWith(ClientDocumentFormats.Extension(file.Format), StringComparison.Ordinal))
+            {
+                throw new ArgumentException("Each file has a plain file name that ends with the extension of its format.", nameof(files));
+            }
+
+            if (!ContentHash.IsSha256Hex(file.Sha256) || file.Bytes < 1)
+            {
+                throw new ArgumentException("Each file has its SHA-256 and a size of at least one byte.", nameof(files));
+            }
+        }
+
+        if (files.Select(f => f.Format).Distinct().Count() != files.Count || files.Select(f => f.FileName).Distinct(StringComparer.OrdinalIgnoreCase).Count() != files.Count)
+        {
+            throw new ArgumentException("An export writes one file per format, each with its own name.", nameof(files));
+        }
+
+        if (secretsRedacted < 0 || pathsRemoved < 0 || risksIncluded < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(secretsRedacted), "The counts of what goes out cannot be negative.");
+        }
+
+        return new ClientDocumentExportedPayload(
+            version, milestone, commit, language, modelSha256, markdownEvidence, markdownSha256, files, secretsRedacted, pathsRemoved, risksIncluded, includesConsumption, agentParts, decidedBy)
+        {
+            RunId = NoRun,
+        };
+    }
+
+    /// <summary>
+    /// The export as the log records it, from the request the person approved and what the exporter did: the cover and the list of what
+    /// goes out of the build, the files and the evidence of the result.
+    /// </summary>
+    /// <exception cref="ArgumentException">The version of the result is not the one of the cover, or <see cref="Exporting"/> refuses a value.</exception>
+    public static ClientDocumentExportedPayload Of(ClientDocumentExportRequest request, ClientDocumentExportResult result)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(result);
+        var cover = request.Build.Document.Cover;
+        if (result.Version != cover.Version)
+        {
+            throw new ArgumentException("The version exported is the one of the cover.", nameof(result));
+        }
+
+        var disclosure = request.Build.Disclosure;
+        return Exporting(
+            result.Version,
+            cover.Milestone,
+            cover.Commit,
+            request.Language,
+            request.Build.Document.Sha256(),
+            result.MarkdownEvidence,
+            result.MarkdownSha256,
+            [.. result.Files.Select(f => new ClientDocumentFileSnapshot(f.Format, f.FileName, f.Sha256, f.Bytes))],
+            disclosure.SecretsRedacted,
+            disclosure.PathsRemoved.Count,
+            disclosure.RisksIncluded,
+            disclosure.IncludesConsumption,
+            [.. ClientDocumentDisclosure.AgentPartsOf(request.Build.Document).Select(p => new ClientDocumentAgentPartSnapshot(p.Section, p.Run, p.ReviewedByPerson))],
+            request.DecidedBy);
     }
 }
 

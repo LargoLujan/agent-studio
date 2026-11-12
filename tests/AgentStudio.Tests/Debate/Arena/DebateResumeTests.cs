@@ -1,5 +1,6 @@
 using AgentStudio.Application.Coordination;
 using AgentStudio.Application.Decisions;
+using AgentStudio.Application.Localization;
 using AgentStudio.Debate.Arena;
 using AgentStudio.Domain.Debate;
 using AgentStudio.Domain.Evidence;
@@ -105,9 +106,9 @@ public sealed class DebateResumeTests
         world.Debates.Replace(first.Id, r => r with { Limits = r.Limits with { MaxRounds = 9 } });
         var entries = (await world.LogAsync()).Entries.Count;
 
-        var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => world.Coordinator.ResumeAsync(world.Context, first.Id, TestContext.Current.CancellationToken));
+        var refused = await Assert.ThrowsAnyAsync<InvalidOperationException>(() => world.Coordinator.ResumeAsync(world.Context, first.Id, TestContext.Current.CancellationToken));
 
-        Assert.Contains("cabecera", refused.Message, StringComparison.Ordinal);
+        Assert.Equal(DebateUserTexts.CannotResume, Assert.IsType<UserTextException>(refused).Text.Code);
         Assert.Equal(entries, (await world.LogAsync()).Entries.Count);
         Assert.DoesNotContain(world.Prompt.Asked, a => a.Action == DebateCoordinator.ResumeAction);
         Assert.False(world.Activity.IsBusy(Project));
@@ -123,7 +124,7 @@ public sealed class DebateResumeTests
         world.Prompt.Approve = a => a.Action != DebateCoordinator.ResumeAction;
         var launches = world.Claude.Requests.Count + world.Codex.Requests.Count;
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => world.Coordinator.ResumeAsync(world.Context, first.Id, TestContext.Current.CancellationToken));
+        await Assert.ThrowsAnyAsync<InvalidOperationException>(() => world.Coordinator.ResumeAsync(world.Context, first.Id, TestContext.Current.CancellationToken));
 
         var log = await world.DebateLogAsync(first.Id);
         Assert.True(log.Turns.Single(t => t.Task!.Value.Value == "r2-critico").IsOpen);
@@ -140,9 +141,9 @@ public sealed class DebateResumeTests
         await using var run = await world.OpenAsync(world.FreeOnAnthropic());
         await CompletedAsync(run);
 
-        var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => world.Coordinator.ResumeAsync(world.Context, run.Id, TestContext.Current.CancellationToken));
+        var refused = await Assert.ThrowsAnyAsync<InvalidOperationException>(() => world.Coordinator.ResumeAsync(world.Context, run.Id, TestContext.Current.CancellationToken));
 
-        Assert.Contains("ya terminó", refused.Message, StringComparison.Ordinal);
+        Assert.Equal(DebateUserTexts.AlreadyFinished, Assert.IsType<UserTextException>(refused).Text.Code);
         Assert.False(world.Activity.IsBusy(Project));
     }
 
@@ -153,9 +154,9 @@ public sealed class DebateResumeTests
         world.Claude.Hold = true;
         await using var run = await world.OpenAsync(world.FreeOnAnthropic());
 
-        var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => world.Coordinator.ResumeAsync(world.Context, run.Id, TestContext.Current.CancellationToken));
+        var refused = await Assert.ThrowsAnyAsync<InvalidOperationException>(() => world.Coordinator.ResumeAsync(world.Context, run.Id, TestContext.Current.CancellationToken));
 
-        Assert.Contains("en curso", refused.Message, StringComparison.Ordinal);
+        Assert.Equal(DebateUserTexts.AlreadyRunning, Assert.IsType<UserTextException>(refused).Text.Code);
         world.Claude.Release();
         await CompletedAsync(run);
     }

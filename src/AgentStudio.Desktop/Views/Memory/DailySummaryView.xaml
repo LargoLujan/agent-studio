@@ -3,6 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
+             xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
              xmlns:memory="clr-namespace:AgentStudio.Desktop.Memory"
              xmlns:orchestratorViews="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
              mc:Ignorable="d"
@@ -15,15 +17,17 @@
 
     <DockPanel>
         <StackPanel DockPanel.Dock="Top">
-            <TextBlock Style="{StaticResource SectionTitleText}" Text="Resumen del día"/>
-            <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,6"
-                       Text="Lo calcula Agent Studio a partir de la bitácora, sin agentes ni cuota: cuenta y lista, no redacta."/>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Style="{StaticResource SectionTitleText}" VerticalAlignment="Center" Text="{l:T Memory_Daily_Title}"/>
+                <info:InfoButton InfoKey="Info_DailySummary" Margin="6,0,0,0" VerticalAlignment="Center"/>
+            </StackPanel>
+            <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,6" Text="{l:T Memory_Daily_Intro}"/>
             <WrapPanel>
-                <Button Style="{StaticResource ToolbarButton}" Content="Día anterior" Command="{Binding PreviousDayCommand}"/>
+                <Button Style="{StaticResource ToolbarButton}" Content="{l:T Memory_Daily_Previous}" Command="{Binding PreviousDayCommand}"/>
                 <TextBlock Style="{StaticResource BodyText}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="4,0,10,6" Text="{Binding DayText}"
                            AutomationProperties.LiveSetting="Polite"/>
-                <Button Style="{StaticResource ToolbarButton}" Content="Día siguiente" Command="{Binding NextDayCommand}"/>
-                <Button Style="{StaticResource ToolbarPrimaryButton}" Content="Resumir el día" Command="{Binding SummarizeCommand}"/>
+                <Button Style="{StaticResource ToolbarButton}" Content="{l:T Memory_Daily_Next}" Command="{Binding NextDayCommand}"/>
+                <Button Style="{StaticResource ToolbarPrimaryButton}" Content="{l:T Memory_Daily_Summarize}" Command="{Binding SummarizeCommand}"/>
             </WrapPanel>
             <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding Status, TargetNullValue=''}" AutomationProperties.LiveSetting="Polite"/>
             <TextBlock Style="{StaticResource OptionalSecondaryText}" Text="{Binding Counts, TargetNullValue=''}"/>
@@ -32,7 +36,7 @@
         <!-- Empty, the box says what to do to fill it (or why it cannot be filled), instead of saying nothing. -->
         <Grid Margin="0,8,0,0">
             <TextBox Style="{StaticResource MonoViewer}" MinHeight="120" TextWrapping="Wrap" HorizontalScrollBarVisibility="Disabled"
-                     Text="{Binding Summary, Mode=OneWay}" AutomationProperties.Name="Resumen del día"
+                     Text="{Binding Summary, Mode=OneWay}" AutomationProperties.Name="{l:T Memory_Daily_Title}"
                      AutomationProperties.HelpText="{Binding EmptyHint}"/>
             <TextBlock Style="{StaticResource SecondaryText}" Margin="14,10,14,0" VerticalAlignment="Top" IsHitTestVisible="False"
                        Text="{Binding EmptyHint}" Visibility="{Binding EmptyHint, Converter={StaticResource DailySummary.NotNullToVisibility}}"/>

@@ -228,7 +228,7 @@ public sealed class ToolsViewModelTests
         Assert.Equal("Pasos del perfil de verificación (dotnet)", group.Title);
         Assert.Equal(["build", "test"], group.Rows.Select(r => r.Name));
         Assert.Equal("Compilar: dotnet build (sin aislamiento)", group.Rows[0].Description);
-        Assert.Equal("Pruebas: dotnet test (en una zona aislada de integridad baja)", group.Rows[1].Description);
+        Assert.Equal("Pruebas: dotnet test (en una zona aislada con menos permisos)", group.Rows[1].Description);
         Assert.Equal("Cambiar el perfil pide Windows Hello", group.Rows[0].HelloText);
         Assert.Equal("Úsalo como tarea de herramienta en el plan.", group.Rows[0].AgentsText);
     }

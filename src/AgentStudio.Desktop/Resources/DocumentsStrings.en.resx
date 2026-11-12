@@ -1,0 +1,388 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- English texts of the documentation for clients. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Text_document_title" xml:space="preserve">
+    <value>Project documentation: {0}</value>
+  </data>
+  <data name="Text_document_section_summary" xml:space="preserve">
+    <value>Summary</value>
+  </data>
+  <data name="Text_document_section_scope" xml:space="preserve">
+    <value>Scope</value>
+  </data>
+  <data name="Text_document_section_verification" xml:space="preserve">
+    <value>Verification</value>
+  </data>
+  <data name="Text_document_section_decisions" xml:space="preserve">
+    <value>Decisions</value>
+  </data>
+  <data name="Text_document_section_changes" xml:space="preserve">
+    <value>Changes</value>
+  </data>
+  <data name="Text_document_section_risks" xml:space="preserve">
+    <value>Risks and pending items</value>
+  </data>
+  <data name="Text_document_section_annexes" xml:space="preserve">
+    <value>Annexes</value>
+  </data>
+  <data name="Text_document_cover_project" xml:space="preserve">
+    <value>Project</value>
+  </data>
+  <data name="Text_document_cover_milestone" xml:space="preserve">
+    <value>Milestone</value>
+  </data>
+  <data name="Text_document_cover_date" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="Text_document_cover_version" xml:space="preserve">
+    <value>Document version</value>
+  </data>
+  <data name="Text_document_cover_commit" xml:space="preserve">
+    <value>Saved version (commit)</value>
+  </data>
+  <data name="Text_document_date_value" xml:space="preserve">
+    <value>{0:yyyy-MM-dd HH:mm} UTC</value>
+  </data>
+  <data name="Text_document_agent_reviewed" xml:space="preserve">
+    <value>Written by an agent (run {0}). Reviewed by the person in charge: yes.</value>
+  </data>
+  <data name="Text_document_agent_not_reviewed" xml:space="preserve">
+    <value>Written by an agent (run {0}). Reviewed by the person in charge: no.</value>
+  </data>
+  <data name="Text_document_summary_figures" xml:space="preserve">
+    <value>The project has {0} requirements: {1} verified by the judge and {2} not verified. The tests captured by the system add up to {3} passed and {4} failed. There are {5} risks or pending items.</value>
+  </data>
+  <data name="Text_document_summary_no_requirements" xml:space="preserve">
+    <value>There are no frozen requirements in this project yet.</value>
+  </data>
+  <data name="Text_document_scope_intro" xml:space="preserve">
+    <value>Each requirement has a state. Implemented: passing tests the system saved cover it. Reviewed: a valid, approved verdict says it is satisfied. Integrated: it was delivered to the branch.</value>
+  </data>
+  <data name="Text_document_scope_none" xml:space="preserve">
+    <value>There are no frozen requirements.</value>
+  </data>
+  <data name="Text_document_col_id" xml:space="preserve">
+    <value>Id</value>
+  </data>
+  <data name="Text_document_col_requirement" xml:space="preserve">
+    <value>Requirement</value>
+  </data>
+  <data name="Text_document_col_priority" xml:space="preserve">
+    <value>Priority</value>
+  </data>
+  <data name="Text_document_col_implemented" xml:space="preserve">
+    <value>Implemented</value>
+  </data>
+  <data name="Text_document_col_reviewed" xml:space="preserve">
+    <value>Reviewed</value>
+  </data>
+  <data name="Text_document_col_integrated" xml:space="preserve">
+    <value>Integrated</value>
+  </data>
+  <data name="Text_document_priority_mandatory" xml:space="preserve">
+    <value>Mandatory</value>
+  </data>
+  <data name="Text_document_priority_desirable" xml:space="preserve">
+    <value>Desirable</value>
+  </data>
+  <data name="Text_document_yes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="Text_document_no" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="Text_document_verification_tests_intro" xml:space="preserve">
+    <value>Tests run by Agent Studio, with the counters the system captured:</value>
+  </data>
+  <data name="Text_document_verification_no_tests" xml:space="preserve">
+    <value>There are no tests captured by the system.</value>
+  </data>
+  <data name="Text_document_verification_verdicts_intro" xml:space="preserve">
+    <value>Verdict of the independent judge, requirement by requirement:</value>
+  </data>
+  <data name="Text_document_verification_no_verdict" xml:space="preserve">
+    <value>No verdict assesses the requirements yet.</value>
+  </data>
+  <data name="Text_document_col_test" xml:space="preserve">
+    <value>Test</value>
+  </data>
+  <data name="Text_document_col_passed" xml:space="preserve">
+    <value>Passed</value>
+  </data>
+  <data name="Text_document_col_failed" xml:space="preserve">
+    <value>Failed</value>
+  </data>
+  <data name="Text_document_col_skipped" xml:space="preserve">
+    <value>Skipped</value>
+  </data>
+  <data name="Text_document_col_exit" xml:space="preserve">
+    <value>Exit code</value>
+  </data>
+  <data name="Text_document_col_date" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="Text_document_col_status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Text_document_col_confidence" xml:space="preserve">
+    <value>Confidence</value>
+  </data>
+  <data name="Text_document_col_valid" xml:space="preserve">
+    <value>Valid</value>
+  </data>
+  <data name="Text_document_status_satisfied" xml:space="preserve">
+    <value>Satisfied</value>
+  </data>
+  <data name="Text_document_status_not_satisfied" xml:space="preserve">
+    <value>Not satisfied</value>
+  </data>
+  <data name="Text_document_status_not_verifiable" xml:space="preserve">
+    <value>Not verifiable</value>
+  </data>
+  <data name="Text_document_confidence_low" xml:space="preserve">
+    <value>Low</value>
+  </data>
+  <data name="Text_document_confidence_medium" xml:space="preserve">
+    <value>Medium</value>
+  </data>
+  <data name="Text_document_confidence_high" xml:space="preserve">
+    <value>High</value>
+  </data>
+  <data name="Text_document_decisions_intro" xml:space="preserve">
+    <value>What the project has decided, how it is built and which conventions it follows. It comes from its trusted memory.</value>
+  </data>
+  <data name="Text_document_decisions_none" xml:space="preserve">
+    <value>There are no recorded decisions.</value>
+  </data>
+  <data name="Text_document_col_topic" xml:space="preserve">
+    <value>Topic</value>
+  </data>
+  <data name="Text_document_col_category" xml:space="preserve">
+    <value>Category</value>
+  </data>
+  <data name="Text_document_col_content" xml:space="preserve">
+    <value>Content</value>
+  </data>
+  <data name="Text_document_kind_decision" xml:space="preserve">
+    <value>Decision</value>
+  </data>
+  <data name="Text_document_kind_architecture" xml:space="preserve">
+    <value>Architecture</value>
+  </data>
+  <data name="Text_document_kind_convention" xml:space="preserve">
+    <value>Convention</value>
+  </data>
+  <data name="Text_document_change_delivery" xml:space="preserve">
+    <value>Delivered to {0} with saved version (commit) {1} ({2:yyyy-MM-dd HH:mm} UTC).</value>
+  </data>
+  <data name="Text_document_changes_none" xml:space="preserve">
+    <value>There are no recorded deliveries.</value>
+  </data>
+  <data name="Text_document_changes_memory_intro" xml:space="preserve">
+    <value>Changes noted in the memory of the project:</value>
+  </data>
+  <data name="Text_document_risk_unsatisfied" xml:space="preserve">
+    <value>Requirement {0} is not satisfied according to the last verdict.</value>
+  </data>
+  <data name="Text_document_risk_not_verifiable" xml:space="preserve">
+    <value>Requirement {0} could not be verified.</value>
+  </data>
+  <data name="Text_document_risk_challenges" xml:space="preserve">
+    <value>{0} verdicts have been challenged.</value>
+  </data>
+  <data name="Text_document_risks_alerts_intro" xml:space="preserve">
+    <value>Alerts of the auditor:</value>
+  </data>
+  <data name="Text_document_risks_errors_intro" xml:space="preserve">
+    <value>Known errors:</value>
+  </data>
+  <data name="Text_document_risks_objections_intro" xml:space="preserve">
+    <value>Pending objections of the judge:</value>
+  </data>
+  <data name="Text_document_risks_none" xml:space="preserve">
+    <value>There are no recorded risks or pending items.</value>
+  </data>
+  <data name="Text_document_annex_evidence_intro" xml:space="preserve">
+    <value>Index of evidence, with the fingerprint of each one:</value>
+  </data>
+  <data name="Text_document_annex_evidence_none" xml:space="preserve">
+    <value>There is no evidence captured by the system.</value>
+  </data>
+  <data name="Text_document_annex_glossary_intro" xml:space="preserve">
+    <value>Glossary:</value>
+  </data>
+  <data name="Text_document_glossary_requirement" xml:space="preserve">
+    <value>Requirement: what the system must meet, frozen before the work starts.</value>
+  </data>
+  <data name="Text_document_glossary_evidence" xml:space="preserve">
+    <value>Evidence: a result Agent Studio captures with its fingerprint, so any later change is detected.</value>
+  </data>
+  <data name="Text_document_glossary_verdict" xml:space="preserve">
+    <value>Verdict: the assessment of an independent judge, requirement by requirement.</value>
+  </data>
+  <data name="Text_document_glossary_fingerprint" xml:space="preserve">
+    <value>Fingerprint: a unique code for the content. If the content changes, the fingerprint changes.</value>
+  </data>
+  <data name="Text_document_unknown" xml:space="preserve">
+    <value>No data</value>
+  </data>
+  <data name="Text_document_scope_delivery_note" xml:space="preserve">
+    <value>There is a delivery with saved version (commit) {0}. The system cannot say requirement by requirement whether it covers it. Those requirements show «no data».</value>
+  </data>
+  <data name="Text_document_not_included_intro" xml:space="preserve">
+    <value>Not included in this document:</value>
+  </data>
+  <data name="Text_document_not_included_requirement_state" xml:space="preserve">
+    <value>The state of each requirement according to the milestones of the project.</value>
+  </data>
+  <data name="Text_document_not_included_pull_requests" xml:space="preserve">
+    <value>The pull requests.</value>
+  </data>
+  <data name="Text_document_not_included_files" xml:space="preserve">
+    <value>The files changed, grouped by area.</value>
+  </data>
+  <data name="Text_document_not_included_deployed" xml:space="preserve">
+    <value>Whether the change is deployed: Agent Studio deploys nothing and does not know.</value>
+  </data>
+  <data name="Documents_NotIncluded" xml:space="preserve">
+    <value>Not included: the state of each requirement by milestone and the pull requests. Also the files by area and whether it is deployed. The document says so in its annexes.</value>
+  </data>
+  <data name="Documents_Status_Approval" xml:space="preserve">
+    <value>The approval is about this preview and this list. If you change the milestone or the language, generate it again.</value>
+  </data>
+  <data name="Documents_MilestoneClosed" xml:space="preserve">
+    <value>The milestone «{0}» was closed: generate its document to review it. Nothing is exported without your approval.</value>
+  </data>
+  <data name="Documents_Title" xml:space="preserve">
+    <value>Client documentation</value>
+  </data>
+  <data name="Documents_Intro" xml:space="preserve">
+    <value>Builds a document to hand to a client. Agent Studio makes it from the verified log and the memory of trust. Review the preview and the list of what goes out before you export it.</value>
+  </data>
+  <data name="Documents_Milestone_Label" xml:space="preserve">
+    <value>Milestone or delivery (optional)</value>
+  </data>
+  <data name="Documents_Milestone_Hint" xml:space="preserve">
+    <value>The name of the milestone. Empty, the document is the one of the delivery of the project.</value>
+  </data>
+  <data name="Documents_Language_Label" xml:space="preserve">
+    <value>Document language</value>
+  </data>
+  <data name="Documents_Formats_Label" xml:space="preserve">
+    <value>Formats</value>
+  </data>
+  <data name="Documents_Format_Markdown" xml:space="preserve">
+    <value>Markdown</value>
+  </data>
+  <data name="Documents_Format_Html" xml:space="preserve">
+    <value>HTML</value>
+  </data>
+  <data name="Documents_Format_Pdf" xml:space="preserve">
+    <value>PDF</value>
+  </data>
+  <data name="Documents_Format_Word" xml:space="preserve">
+    <value>Word (.docx)</value>
+  </data>
+  <data name="Documents_Pdf_Unavailable" xml:space="preserve">
+    <value>PDF is not available in this installation.</value>
+  </data>
+  <data name="Documents_Destination_Label" xml:space="preserve">
+    <value>Destination folder</value>
+  </data>
+  <data name="Documents_Destination_Choose" xml:space="preserve">
+    <value>Choose folder…</value>
+  </data>
+  <data name="Documents_Destination_Title" xml:space="preserve">
+    <value>Folder where the files are saved</value>
+  </data>
+  <data name="Documents_Generate" xml:space="preserve">
+    <value>Generate preview</value>
+  </data>
+  <data name="Documents_Preview_Heading" xml:space="preserve">
+    <value>Preview (Markdown)</value>
+  </data>
+  <data name="Documents_Preview_Empty" xml:space="preserve">
+    <value>Generate the preview to see the document.</value>
+  </data>
+  <data name="Documents_Disclosure_Heading" xml:space="preserve">
+    <value>What goes out in the document</value>
+  </data>
+  <data name="Documents_Disclosure_Secrets" xml:space="preserve">
+    <value>Secrets redacted: {0}</value>
+  </data>
+  <data name="Documents_Disclosure_Paths" xml:space="preserve">
+    <value>Paths of your computer removed: {0}</value>
+  </data>
+  <data name="Documents_Disclosure_Agents" xml:space="preserve">
+    <value>Parts written by agents: {0}</value>
+  </data>
+  <data name="Documents_Disclosure_AgentPart" xml:space="preserve">
+    <value>{0} · run {1} · reviewed by you: {2}</value>
+  </data>
+  <data name="Documents_Disclosure_Yes" xml:space="preserve">
+    <value>yes</value>
+  </data>
+  <data name="Documents_Disclosure_No" xml:space="preserve">
+    <value>no</value>
+  </data>
+  <data name="Documents_Disclosure_Risks" xml:space="preserve">
+    <value>Risks and pending items that go: {0}</value>
+  </data>
+  <data name="Documents_Disclosure_NoConsumption" xml:space="preserve">
+    <value>Consumption is not included.</value>
+  </data>
+  <data name="Documents_Approve_Label" xml:space="preserve">
+    <value>I reviewed the preview and the list of what goes out, and I approve exporting the document</value>
+  </data>
+  <data name="Documents_Export" xml:space="preserve">
+    <value>Approve and export</value>
+  </data>
+  <data name="Documents_Status_OpenFolder" xml:space="preserve">
+    <value>Open a project folder to build its documentation.</value>
+  </data>
+  <data name="Documents_Status_Unavailable" xml:space="preserve">
+    <value>Client documentation is not available: a service is missing.</value>
+  </data>
+  <data name="Documents_Status_Generating" xml:space="preserve">
+    <value>Generating the preview…</value>
+  </data>
+  <data name="Documents_Status_Ready" xml:space="preserve">
+    <value>Preview of version {0} is ready. Review the list of what goes out and approve to export.</value>
+  </data>
+  <data name="Documents_Status_Exporting" xml:space="preserve">
+    <value>Exporting…</value>
+  </data>
+  <data name="Documents_Status_Exported" xml:space="preserve">
+    <value>Exported: {0} files of version {1}.</value>
+  </data>
+  <data name="Documents_Error_Generate" xml:space="preserve">
+    <value>The document could not be generated: {0}</value>
+  </data>
+  <data name="Documents_Error_Export" xml:space="preserve">
+    <value>It could not be exported: {0}</value>
+  </data>
+  <data name="Documents_Error_RunBusy" xml:space="preserve">
+    <value>A run is going in the project: export to a folder outside the project or wait for it to end.</value>
+  </data>
+  <data name="Documents_Error_LogIntegrity" xml:space="preserve">
+    <value>The log of the project does not verify: nothing is generated or exported.</value>
+  </data>
+  <data name="Documents_Error_NeedFormat" xml:space="preserve">
+    <value>Choose at least one format.</value>
+  </data>
+  <data name="Documents_Error_NeedFolder" xml:space="preserve">
+    <value>Choose the destination folder.</value>
+  </data>
+</root>

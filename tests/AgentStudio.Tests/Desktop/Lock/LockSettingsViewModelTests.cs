@@ -22,7 +22,7 @@ public sealed class LockSettingsViewModelTests
         public void SavePreferences(AppSettings settings) => throw new IOException("Disco lleno.");
     }
 
-    /// <summary>«Ajustes» with this section and «Contexto y cuota», over the same store.</summary>
+    /// <summary>«Ajustes» with this section and «Contexto y límite de uso», over the same store.</summary>
     private static SettingsDocumentViewModel Ajustes(IAppSettingsStore store, LockSettingsViewModel settings) =>
         new(store, new ObservabilitySettingsViewModel(store), lockSettings: settings);
 
@@ -74,7 +74,7 @@ public sealed class LockSettingsViewModelTests
         ajustes.SaveCommand.Execute(null);
 
         Assert.Equal(0, store.Saves);
-        Assert.Equal($"El bloqueo no se guarda: «{minutes.Trim()}» no es un número entero de minutos de 1 a 1440.", settings.ErrorMessage);
+        Assert.Equal($"No se guardó el bloqueo: «{minutes.Trim()}» no es un número entero de minutos entre 1 y 1440. Escribe un número válido.", settings.ErrorMessage);
         Assert.Null(ajustes.Notice);
     }
 
@@ -87,7 +87,7 @@ public sealed class LockSettingsViewModelTests
 
         ajustes.SaveCommand.Execute(null);
 
-        Assert.Equal("No se pudieron guardar los ajustes: Disco lleno.", ajustes.ErrorMessage);
+        Assert.Equal("No se pudieron guardar los ajustes. Vuelve a intentarlo. Detalle: Disco lleno.", ajustes.ErrorMessage);
         Assert.Null(ajustes.Notice);
         Assert.True(settings.IdleLockEnabled);
     }

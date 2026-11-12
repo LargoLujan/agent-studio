@@ -60,7 +60,7 @@ public sealed class JournalViewModelTests
         await journal.SetProjectAsync(Root);
 
         Assert.Equal(string.Empty, journal.Text);
-        Assert.Contains("No hay bitácora de hoy", journal.StatusMessage, StringComparison.Ordinal);
+        Assert.Contains("Todavía no hay bitácora de hoy", journal.StatusMessage, StringComparison.Ordinal);
         Assert.Contains("2026-10-15.md", journal.StatusMessage, StringComparison.Ordinal);
     }
 
@@ -73,7 +73,7 @@ public sealed class JournalViewModelTests
         await journal.SetProjectAsync(Root);
 
         Assert.Equal(string.Empty, journal.Text);
-        Assert.Contains("No hay bitácora de hoy", journal.StatusMessage, StringComparison.Ordinal);
+        Assert.Contains("Todavía no hay bitácora de hoy", journal.StatusMessage, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -120,7 +120,7 @@ public sealed class JournalViewModelTests
         await journal.SetProjectAsync(Root);
 
         Assert.Equal(string.Empty, journal.Text);
-        Assert.Equal(@"No se pudo leer la bitácora: '.agentstudio\bitacora\2026-10-15.md' is a link: Agent Studio never follows one.", journal.StatusMessage);
+        Assert.Equal(@"No se pudo leer la bitácora. Pulsa «Actualizar» para intentarlo otra vez. Detalle: '.agentstudio\bitacora\2026-10-15.md' is a link: Agent Studio never follows one.",journal.StatusMessage);
     }
 
     /// <summary>Without the checked reader the day is never opened directly, even when the file is there.</summary>
@@ -134,7 +134,7 @@ public sealed class JournalViewModelTests
         await journal.SetProjectAsync(temp.Path);
 
         Assert.Equal(string.Empty, journal.Text);
-        Assert.Equal("La bitácora no se puede leer: falta la lectura comprobada de .agentstudio (sin ella no se abre ningún fichero del proyecto).", journal.StatusMessage);
+        Assert.Equal("No se puede leer la bitácora. Falta la lectura comprobada de .agentstudio, y sin ella la app no abre ficheros del proyecto.", journal.StatusMessage);
     }
 
     /// <summary>
@@ -175,7 +175,7 @@ public sealed class JournalViewModelTests
         await journal.SetProjectAsync(project);
 
         Assert.Equal(string.Empty, journal.Text);
-        Assert.StartsWith("No se pudo leer la bitácora: ", journal.StatusMessage, StringComparison.Ordinal);
+        Assert.StartsWith("No se pudo leer la bitácora. Pulsa «Actualizar» para intentarlo otra vez. Detalle: ",journal.StatusMessage, StringComparison.Ordinal);
         Assert.Contains("bitacora", journal.StatusMessage, StringComparison.Ordinal);
     }
 
@@ -213,7 +213,7 @@ public sealed class JournalViewModelTests
         Assert.True(journal.ShowPlainText);
         Assert.False(journal.ShowReadable);
         Assert.Equal(day, journal.PlainText);
-        Assert.Equal("Ver legible", journal.ToggleText);
+        Assert.Equal("Ver con formato", journal.ToggleText);
         Assert.Equal("Se ve el día completo como texto, sin formato.", journal.TrimNote);
 
         // Another project starts readable again; a short day is drawn whole, with nothing to toggle.
@@ -230,7 +230,7 @@ public sealed class JournalViewModelTests
     private const string Day = "bitacora/2026-10-15.md";
 
     /// <summary>
-    /// V32, seen live: after a run that wrote the day, the panel still said «No hay bitácora de hoy» until «Actualizar». A
+    /// V32, seen live: after a run that wrote the day, the panel still said «Todavía no hay bitácora de hoy» until «Actualizar». A
     /// change of the journal folder is read again by itself, through the checked reader.
     /// </summary>
     [Fact]
@@ -240,7 +240,7 @@ public sealed class JournalViewModelTests
         var watcher = new FakeJournalWatcher();
         using var journal = new JournalViewModel(Clock(), reader, watcher);
         await journal.SetProjectAsync(Root);
-        Assert.Contains("No hay bitácora de hoy", journal.StatusMessage, StringComparison.Ordinal);
+        Assert.Contains("Todavía no hay bitácora de hoy", journal.StatusMessage, StringComparison.Ordinal);
         Assert.Equal(Root, Assert.Single(watcher.Watched).Root);
 
         reader.Files[Day] = "# 2026-10-15\n- Ejecutor · empezó\n";
@@ -403,7 +403,7 @@ public sealed class JournalViewModelTests
         using var provider = ComposedApp(temp);
         var journal = provider.GetRequiredService<JournalViewModel>();
         await journal.SetProjectAsync(project);
-        Assert.Contains("No hay bitácora de hoy", journal.StatusMessage, StringComparison.Ordinal);
+        Assert.Contains("Todavía no hay bitácora de hoy", journal.StatusMessage, StringComparison.Ordinal);
 
         temp.WriteFile("calc/.agentstudio/bitacora/2026-10-15.md", "# 2026-10-15\n- Ejecutor · empezó\n");
         await WaitUntilAsync(() => journal.Text == "# 2026-10-15\n- Ejecutor · empezó\n", seconds: 15);
@@ -552,7 +552,7 @@ public sealed class JournalViewModelTests
         Assert.Equal(first, journal.PlainText);
         Assert.Equal(0, plainChanges);
         Assert.True(journal.HasNewEntries);
-        Assert.Equal("Hay entradas nuevas: «Recargar» las enseña aquí; la vista legible ya las tiene.", journal.NewEntriesNote);
+        Assert.Equal("Hay entradas nuevas. Pulsa «Recargar» para verlas aquí. La vista con formato ya las muestra.", journal.NewEntriesNote);
 
         journal.ReloadPlainTextCommand.Execute(null);
         Assert.Equal(second, journal.PlainText);

@@ -10,7 +10,7 @@ namespace AgentStudio.Debate.Audit;
 /// delivers the frozen requirements, judged on the evidence of the system (the isolated verification of HEAD) and on the
 /// code, which it reads in the read-only copy of the commit. The dossier is an index (R8): it does not hold the repository,
 /// it says what there is and where. It answers with the verdict schema of Phase 3 and its answer is read the same way; the
-/// instructions are in English and the free text of the verdict is asked in Spanish, as in <see cref="JudgePrompt"/>.
+/// instructions are in English and the free text of the verdict is asked in the language of the person (a block of data), as in <see cref="JudgePrompt"/>.
 /// </summary>
 /// <param name="audit">The audit (<c>aud-…</c>), for the journal of its runs.</param>
 /// <param name="index">The index document of the dossier (<c>agent-studio/project-dossier/1</c>), which travels as data.</param>
@@ -61,7 +61,7 @@ public sealed class ProjectAuditPrompt(string audit, string index) : JudgeBrief
           requiresHumanIntervention = true.
         - Copy requirementSetHash and decisionLogHeadHash from the dossier exactly.
         - Write rationales, descriptions, objections, risks, corrective actions, the justification and the summary in
-          Spanish.
+          the language of the response_language block of this prompt (data); a code, an id or a command stays as it is.
         """;
 
     public override string Purpose => "Auditoría del proyecto completo (juez)";

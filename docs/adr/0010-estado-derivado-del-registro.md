@@ -664,3 +664,35 @@ gravedad media y cuatro menores. Se hicieron así:
    - el olvido de un proyecto.
 
    `ProjectMemoryCompositionTests` prueba el aviso de cierre.
+
+## Adenda · 2026-11-12 · el canal del `rowid` queda cerrado (P45)
+
+La defensa del punto 5 de la revisión del 2026-11-05 se aplica con la migración `0007_replace_by_rowid.sql`.
+
+- **Qué cambia.** Los triggers `*_no_replace` de once tablas se vuelven a crear (`DROP TRIGGER` y `CREATE TRIGGER`) con
+  `WHEN <la condición de siempre> OR EXISTS (SELECT 1 FROM <tabla> WHERE rowid = NEW.rowid)`:
+  - `decision_log`, `evidence`, `verdicts`, `requirement_sets` (`0001`);
+  - `plans`, `orchestration_runs` (`0002`);
+  - `memory_entries` (`0004`);
+  - `debate_sessions`, `project_audits` (`0005`);
+  - `milestones`, `backlog_items` (`0006`).
+
+  No se toca ninguna tabla ni ninguna fila. `AppendOnlyTriggers` (el registro y la memoria) lleva el texto nuevo, así que
+  una base que conserve el trigger de `0001` o `0004` ya no cuenta como genuina y las lecturas por la cola piden la
+  verificación entera hasta que migre; `Apply` la migra al abrir el proyecto.
+- **Qué no cambia.** `debate_contributions` y `skill_activations` conservan su trigger: su `id` es un
+  `INTEGER PRIMARY KEY`, es decir, el propio `rowid`, y la condición sobre `NEW.id` ya lo cubre (con `id` nulo se asigna un
+  `rowid` nuevo y no choca con nada).
+- **Qué se probó** (`ReplaceByRowidTests`, 38 casos):
+  - con las migraciones hasta `0006`, el `REPLACE` por `rowid` cambia la fila en cada una de las once tablas;
+  - con `0007`, en una base migrada y en una nueva, se rechaza con `<tabla> is append-only` y la fila queda igual;
+  - una base en `0006` pasa a `0007` sin perder filas ni triggers y `Apply` es idempotente;
+  - siguen pasando anexar con `rowid` automático o con uno nuevo explícito, un fallo seguido de otra inserción legítima, las
+    versiones del backlog y las cabeceras nuevas de debates y de hitos.
+  - `MemorySnapshotStateTests` e `IncrementalLogVerificationTests` ya no prueban que el canal funcione: prueban que se
+    rechaza y que el registro y la memoria siguen válidos.
+- **Qué queda fuera.**
+  - Una conexión que borre los triggers o escriba en el fichero sigue siendo lo que vigilan `AppendOnlyTriggers` y las
+    verificaciones enteras; esta adenda no lo cambia.
+  - `NEW.rowid` en un `BEFORE INSERT` sin `rowid` explícito no está definido por SQLite. La prueba de las inserciones
+    automáticas muestra que hoy no choca con ninguna fila, pero es una propiedad del motor, no una garantía documentada.

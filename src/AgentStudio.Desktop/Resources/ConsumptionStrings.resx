@@ -105,4 +105,12 @@
     <value>Usa menos ejecutores del mismo programa a la vez.</value>
     <comment>What wait.queue suggests.</comment>
   </data>
+  <data name="Usage_Purpose_Help" xml:space="preserve">
+    <value>Ayuda</value>
+    <comment>The purpose of a run of the agent of the help (AgentRunPurpose.Help), as the usage panel names it in each attempt.</comment>
+  </data>
+  <data name="Usage_Purpose_ClientDocumentDraft" xml:space="preserve">
+    <value>Borrador del documento para clientes</value>
+    <comment>The purpose of a run that drafts a part of a document for clients (AgentRunPurpose.ClientDocumentDraft), as the usage panel names it in each attempt.</comment>
+  </data>
 </root>

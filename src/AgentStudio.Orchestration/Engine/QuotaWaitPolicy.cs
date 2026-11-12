@@ -1,3 +1,4 @@
+using AgentStudio.Application.Localization;
 using System.Globalization;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Providers;
@@ -85,6 +86,28 @@ internal static class QuotaWaitPolicy
     /// Why a task is blocked by a limit whose reset its provider did not announce, in Spanish. <paramref name="overload"/>: the
     /// provider is overloaded or limits the rate. <paramref name="passed"/>: the reset it gave, which had already passed.
     /// </summary>
+    public static UserText UnannouncedText(TaskSpec spec, BlockReason block, bool overload = false, DateTimeOffset? passed = null)
+    {
+        var until = block.Until!.Value;
+        var judge = spec.Kind == WorkTaskKind.Review;
+        var who = UserText.Of(judge ? OrchestrationUserTexts.QuotaWhoJudge : overload ? OrchestrationUserTexts.QuotaWhoOverload : OrchestrationUserTexts.QuotaWhoPlain);
+        var wait = UserText.Of(block.Estimated ? OrchestrationUserTexts.QuotaWaitEstimated : OrchestrationUserTexts.QuotaWait);
+        if (passed is { } reset)
+        {
+            return UserText.Of(OrchestrationUserTexts.QuotaPassedReset, who, reset, wait, until);
+        }
+
+        if (block.Estimated)
+        {
+            return UserText.Of(OrchestrationUserTexts.QuotaNoReset, who, wait, until);
+        }
+
+        // The same sentences the workers write when the provider announced the reset: the same codes.
+        return judge ? UserText.Of(OrchestrationUserTexts.WorkerJudgeLimitUntil, until)
+            : !overload ? UserText.Of(OrchestrationUserTexts.WorkerRateLimitedUntil, until)
+            : UserText.Of(OrchestrationUserTexts.QuotaUntil, who, until);
+    }
+
     public static string Unannounced(TaskSpec spec, BlockReason block, bool overload = false, DateTimeOffset? passed = null)
     {
         var until = block.Until!.Value.ToString("O", CultureInfo.InvariantCulture);
@@ -125,6 +148,7 @@ internal static class AccessCheck
                     EndKind.AwaitingHuman,
                     $"La sesión de {probe.DisplayName} no está iniciada: inicia sesión con «{LoginCommand(provider)}» y reintenta la tarea.")
                 {
+                    Text = UserText.Of(OrchestrationUserTexts.WorkerNotSignedIn, probe.DisplayName, LoginCommand(provider)),
                     Unlaunched = true,
                 };
             }
@@ -142,6 +166,9 @@ internal static class AccessCheck
                         ? $"La cuota de {provider} sigue agotada según su app-server, hasta {at.ToString("O", CultureInfo.InvariantCulture)}."
                         : $"La cuota de {provider} sigue agotada según su app-server, sin hora de reinicio.")
                 {
+                    Text = resetsAt is { } stillUntil
+                        ? UserText.Of(OrchestrationUserTexts.WorkerLimitStillOnUntil, provider.ToString(), stillUntil)
+                        : UserText.Of(OrchestrationUserTexts.WorkerLimitStillOnNoReset, provider.ToString()),
                     RetryAt = resetsAt,
                     Unlaunched = true,
                 };

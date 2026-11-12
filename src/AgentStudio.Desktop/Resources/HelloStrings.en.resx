@@ -17,9 +17,9 @@
     <value>Also ask for Windows Hello in important approvals</value>
   </data>
   <data name="Hello_Setting_Explanation" xml:space="preserve">
-    <value>Delivering, accepting a history, giving an agent a shell or the network and changing the verification profile always ask for Windows Hello.
+    <value>Delivering and accepting a history always ask for Windows Hello. So do giving an agent a shell or the network and changing the verification profile.
 This setting also asks for it to approve other plans, open debates, audit, accept reviews and discard work.
-Without Windows Hello on this computer, what always asks for it locks Windows: you unlock it with your PIN or password.</value>
+Without Windows Hello on this computer, what always asks for it locks Windows. You unlock it with your PIN or password.</value>
   </data>
   <data name="Hello_Notice_AlwaysHello" xml:space="preserve">
     <value>This action always asks for Windows Hello, whatever the setting says. When you approve, confirm it is you: without that, nothing is approved.</value>
@@ -39,20 +39,11 @@ Without Windows Hello on this computer, what always asks for it locks Windows: y
   <data name="Hello_Plan_LockNotAsked" xml:space="preserve">
     <value>Windows could not be locked to confirm it is you ({0}): the plan is not approved.</value>
   </data>
-  <data name="Hello_Approval_LockNotConfirmed" xml:space="preserve">
-    <value>Locking Windows did not confirm it is you ({0}: {1}): denied.</value>
-  </data>
-  <data name="Hello_Approval_LockNotAsked" xml:space="preserve">
-    <value>Windows could not be locked to confirm it is you ({0}): denied.</value>
-  </data>
-  <data name="Hello_Approval_ConfirmationPending" xml:space="preserve">
-    <value>A confirmation is already pending: finish the open Windows Hello or Windows lock confirmation first. This approval is denied; ask for it again afterwards.</value>
-  </data>
   <data name="Hello_Plan_ConfirmationPending" xml:space="preserve">
     <value>A confirmation is already pending: finish the open one first, then approve the plan again.</value>
   </data>
   <data name="Hello_SetUpHello" xml:space="preserve">
-    <value>To approve it, set up Windows Hello: open Settings, go to Accounts and then Sign-in options, and choose a PIN, your fingerprint or your face.</value>
+    <value>To approve it, set up Windows Hello. Open Settings, go to Accounts and then Sign-in options. Choose a PIN, your fingerprint or your face.</value>
   </data>
   <data name="Hello_LockNotComposed" xml:space="preserve">
     <value>this computer has no Windows Hello and the verified lock of Windows is not available</value>

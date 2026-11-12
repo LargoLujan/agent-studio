@@ -10,6 +10,12 @@
                     xmlns:observabilityViews="clr-namespace:AgentStudio.Desktop.Views.Observability"
                     xmlns:memory="clr-namespace:AgentStudio.Desktop.Memory"
                     xmlns:memoryViews="clr-namespace:AgentStudio.Desktop.Views.Memory"
+                    xmlns:repository="clr-namespace:AgentStudio.Desktop.Repository"
+                    xmlns:repositoryViews="clr-namespace:AgentStudio.Desktop.Views.Repository"
+                    xmlns:documents="clr-namespace:AgentStudio.Desktop.Documents"
+                    xmlns:documentsViews="clr-namespace:AgentStudio.Desktop.Views.Documents"
+                    xmlns:work="clr-namespace:AgentStudio.Desktop.Work"
+                    xmlns:workViews="clr-namespace:AgentStudio.Desktop.Views.Work"
                     xmlns:debate="clr-namespace:AgentStudio.Desktop.Debate"
                     xmlns:debateViews="clr-namespace:AgentStudio.Desktop.Views.Debate"
                     xmlns:audit="clr-namespace:AgentStudio.Desktop.Audit"
@@ -19,7 +25,10 @@
                     xmlns:setup="clr-namespace:AgentStudio.Desktop.Setup"
                     xmlns:setupViews="clr-namespace:AgentStudio.Desktop.Views.Setup"
                     xmlns:tools="clr-namespace:AgentStudio.Desktop.Tools"
-                    xmlns:toolsViews="clr-namespace:AgentStudio.Desktop.Views.Tools">
+                    xmlns:toolsViews="clr-namespace:AgentStudio.Desktop.Views.Tools"
+                    xmlns:help="clr-namespace:AgentStudio.Desktop.Help"
+                    xmlns:helpViews="clr-namespace:AgentStudio.Desktop.Views.Help"
+                    xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info">
 
     <!-- One DataTemplate per document ViewModel type. Application-level so floating windows find them too.
          FileEditorView shows Monaco and falls back to the read-only viewer when a file cannot be edited. -->
@@ -49,6 +58,21 @@
         <memoryViews:MemoryView/>
     </DataTemplate>
 
+    <!-- Phase 9 (docs/16 F9-9): «Repositorio y cambios». -->
+    <DataTemplate DataType="{x:Type repository:RepositoryViewModel}">
+        <repositoryViews:RepositoryView/>
+    </DataTemplate>
+
+    <!-- Phase 14 (docs/17 section 5.5): «Documentación para clientes». -->
+    <DataTemplate DataType="{x:Type documents:ClientDocumentsViewModel}">
+        <documentsViews:ClientDocumentsView/>
+    </DataTemplate>
+
+    <!-- Phase 9 (docs/16 section 4.6): «Trabajo» (milestones, backlog, board, chain, participants, links and budgets). -->
+    <DataTemplate DataType="{x:Type work:WorkDocumentViewModel}">
+        <workViews:WorkView/>
+    </DataTemplate>
+
     <!-- Phase 5 (docs/15 section 4.10): «Debates» (room, history, new debate, verdict cards) and «Auditoría». -->
     <DataTemplate DataType="{x:Type debate:DebatesDocumentViewModel}">
         <debateViews:DebatesView/>
@@ -71,4 +95,14 @@
     <DataTemplate DataType="{x:Type tools:ToolsDocumentViewModel}">
         <toolsViews:ToolsView DataContext="{Binding Tools}"/>
     </DataTemplate>
+
+    <!-- Phase 14 (docs/17 D-55, ADR-0056): «Ayuda», and the «Más ayuda» of every ⓘ, which opens the article of its section through the
+         command of the shell (it is shown only when the section has an article). -->
+    <DataTemplate DataType="{x:Type help:HelpDocumentViewModel}">
+        <helpViews:HelpView/>
+    </DataTemplate>
+
+    <Style TargetType="{x:Type info:InfoButton}">
+        <Setter Property="MoreHelpCommand" Value="{Binding DataContext.OpenInfoHelpCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+    </Style>
 </ResourceDictionary>

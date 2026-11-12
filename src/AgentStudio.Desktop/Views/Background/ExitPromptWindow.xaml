@@ -2,10 +2,11 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:views="clr-namespace:AgentStudio.Desktop.Views.Background"
-        Title="Salir con trabajo en marcha · Agent Studio"
+        xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
+        Title="{l:T Background_Exit_WindowTitle}"
         SizeToContent="WidthAndHeight" ResizeMode="NoResize" ShowInTaskbar="True" Topmost="True"
         Background="{StaticResource SurfaceBrush}" UseLayoutRounding="True"
-        AutomationProperties.Name="Salir con trabajo en marcha">
+        AutomationProperties.Name="{l:T Background_Exit_WindowName}">
     <!-- Modal window of WpfExitPrompt. Its DataContext is the question; the buttons close it through the view model. -->
     <views:ExitPromptView/>
 </Window>

@@ -26,7 +26,7 @@
     <comment>Reason of a recommendation (model.reason.role-default).</comment>
   </data>
   <data name="Text_model_reason_light_second_executor" xml:space="preserve">
-    <value>Un segundo ejecutor «ligero»: tus planes suelen tener tareas solo de documentación o de pruebas.</value>
+    <value>Un segundo ejecutor «ligero». Tus planes suelen tener tareas solo de documentación o de pruebas.</value>
     <comment>Reason of a recommendation (model.reason.light-second-executor).</comment>
   </data>
   <data name="Text_model_reason_judge_highest_other_vendor" xml:space="preserve">
@@ -126,7 +126,7 @@
     <comment>A model this project has not used yet («Otro modelo», D-23).</comment>
   </data>
   <data name="Models_Performance" xml:space="preserve">
-    <value>{0} tareas: {1} aprobadas a la primera, {2} reintentos y {3} rechazos (estimado por Agent Studio).</value>
+    <value>{0} tareas: {1} aprobadas a la primera, {2} reintentos y {3} rechazos. Lo estima Agent Studio.</value>
     <comment>How a model did in this project. {0}: its tasks; {1}: approved at the first attempt; {2}: retries; {3}: rejections of the judge.</comment>
   </data>
   <data name="Models_Performance_Unknown" xml:space="preserve">

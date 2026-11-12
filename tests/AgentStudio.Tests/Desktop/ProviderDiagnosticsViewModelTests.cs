@@ -94,7 +94,7 @@ public sealed class ProviderDiagnosticsViewModelTests
         Assert.Equal(StatusKind.Warning, item.Status);
         Assert.Equal("1.2.3 · Desconocida", item.Summary);
         Assert.Equal("Variables de entorno (GEMINI_API_KEY)", item.Method);
-        Assert.Equal(ProviderSummary.From(vm), new ProviderSummary("Proveedores: 0 de 1 listos", StatusKind.Warning));
+        Assert.Equal(ProviderSummary.From(vm), new ProviderSummary("Programas: 0 de 1 listos", StatusKind.Warning));
     }
 
     [Fact]

@@ -19,6 +19,10 @@
 > constructor visual, los payloads de las preguntas y del configurador, los contratos del estimador, del análisis del
 > consumo, del idioma y de la barrera de Windows Hello, y los cimientos del escritorio; diseño en
 > [17](17-constructor-visual-de-agentes.md) §4 y §9.3): lo resume la [sección 21](#21-fase-13-constructor-visual-de-agentes).
+> Y con el P0 de la Fase 14 (los contratos de la ayuda y de la documentación para clientes, la carga
+> `ClientDocumentExported` y los propósitos `Help` y `ClientDocumentDraft`; diseño en
+> [17](17-constructor-visual-de-agentes.md) §5 y §9.4): lo resume la
+> [sección 22](#22-fase-14-ayuda-y-documentación-para-clientes).
 
 ## 1. Mapa
 
@@ -1639,6 +1643,10 @@ public sealed record ContextPartSnapshot(ContextPartKind Kind, int Characters);
   - El dosier del juez deja fuera los prompts de los ejecutores, la pregunta tal como la escribió el agente, todo informe de
     ejecutor que traiga una pregunta (registrada o no) o que no se pueda leer, y las entradas `QuestionAsked`. La decisión
     que captura el sistema (`agent-studio/question-decision/1`) solo lleva ids, huellas e instantes, ningún texto del agente.
+  - La copia del registro del intento (`agent-studio/attempt-record`) que lee el juez mueve los `outputs` del informe del
+    ejecutor a `outputsSaidByAgent` (`origin: ReportedByAgent`) y la evidencia lleva `saidByAgent: ["outputs"]` en
+    `dossier.json` (`DossierEvidenceFile.SaidByAgent`); el registro guardado, que lee la reanudación, no cambia (P46, adenda de
+    ADR-0051).
     Desde P54 (2026-11-11) lo mismo vale para las preguntas del orquestador: queda fuera el prompt de su planificación (en cada
     intento; lo nombra el `AgentRunStarted` sin tarea y con propósito `Planner`) y todo informe de esa planificación que traiga
     `questions` o no se pueda leer, y el planificador captura la misma decisión, con `task` nulo, al registrar la respuesta. Si la
@@ -1738,7 +1746,7 @@ es obligatorio, y un documento creado sin él (`builder: null`) es el de antes d
 | `BuilderServices` (`OrderReview`, `Chat`, `Ledger`, `Catalog`, `Learning`, `Estimator`, `Repository`, `Live`, `Quota`, `Brief`, `WindowsAnimates`, y, desde P49, `ContextPacker`, `ProjectFiles` y `SkillCharacters`) | `Orchestrator/Preparation/BuilderServices.cs` | Los puertos que lee el constructor, todos opcionales: lo que falta apaga solo lo que lo necesita. `OrchestratorDocumentViewModel(…, builder, reduceMotion)` los recibe al final de su constructor |
 | `CanvasLayer`, `CanvasViewModel.Team` y `CanvasLayout.TeamPositions` | `Orchestrator/Canvas/` | Las capas, y la disposición v2 (`{version:2, plan, team}`), que lee la v1 como la capa «Plan» |
 | `TeamCanvasViewModel`, `AgentNodeViewModel`, `RepositoryNodeViewModel`, `TeamConnectionViewModel` | `Orchestrator/Team/` | La capa Equipo y la tira: los nodos son la plantilla y los cables «Reparte», «Revisa» y «Trabaja en». No hay ningún tipo de la capa en `BuildTasks` ni en `DependsOn` |
-| `RepositoryReader`, `IRepositoryStateReader`, `RepositoryReading` | `Orchestrator/Team/RepositoryReader.cs` | El nodo del repositorio sin red: la rama, la versión y los cambios por `IWorktreeManager.InspectAsync`; los remotos, del texto de `.git/config` con `RepositoryRemote.Cleaned`, sin lanzar git |
+| `RepositoryReader`, `IRepositoryStateReader`, `RepositoryReading` | `Orchestrator/Team/RepositoryReader.cs` | El nodo del repositorio sin red: la rama, la versión y los cambios por `IWorktreeManager.InspectAsync`; los remotos, por `IRepositoryRemoteReader.ListRemotesAsync` (`IRepositoryStateReader.ListRemotesAsync`, que da `null` si el lector no tiene esa capa; una negativa da cero remotos y no vuelve al fichero); sin esa capa, del texto de `.git/config` con `RepositoryRemote.Cleaned`, sin lanzar git y con el tope de 1 MB aplicado mientras se lee |
 | `TeamEditorViewModel`, `NewAgentViewModel`, `AgentCapabilities`, `PresenceConfirmer` | `Orchestrator/Team/TeamEditorViewModel.cs` | Añadir, quitar y configurar agentes con las consecuencias de siempre; lo que concede más poder (carpetas, shell, red) pide Windows Hello (`PresenceAction.GrantHighRiskCapability`) |
 | `AgentInspectorViewModel`, `InspectorContext` | `Orchestrator/Team/AgentInspectorViewModel.cs` | El inspector con los datos de WP2 (`ModelCatalog`, `LearnedModels`, `ModelRecommender`) y la barra de contexto por partes |
 | `VisualBuilder` | `Orchestrator/Team/VisualBuilder.cs` | Reúne el editor, la banda, «Revisar el orden» y el chat; aplica el estado vivo solo a los nodos que el cambio nombra y lee el repositorio, lo aprendido y la cuota una vez |
@@ -1927,3 +1935,384 @@ Todo vive en `Desktop`; no hay puertos nuevos en `Application`, y los textos sal
 - **Las partes del prompt** dependen de que `AgentRunStarted` v3 ya esté en el registro cuando llega el primer paso: si no, el monitor pregunta una vez más al llegar ese paso.
 - **Los nombres de las pruebas que fallan** no se leen del TRX: el panel «Pruebas» enseña los contadores y la línea principal del error del paso, que es lo que el monitor ya tiene.
 - **Los permisos de un ejecutor** son la regla pública `Orchestration/Engine/AgentPermissions.For(escribe, agente)`, la que lanza `Workers` y la que usa `EffectiveTools`: no hay copia. La prueba compara «Herramientas» con `ClaudeCodeArguments.Build` con un lanzamiento escrito aparte.
+
+## 22. Fase 14: ayuda y documentación para clientes
+
+Lo que el P0 de la Fase 14 deja fijado para **WP-14C** (la ayuda) y **WP-14D** (la documentación para clientes), que van en
+paralelo encima ([17](17-constructor-visual-de-agentes.md) §5 y §9.4; [ADR-0056](adr/0056-ayuda-y-agente-de-ayuda.md),
+[ADR-0057](adr/0057-documentacion-para-clientes.md) y la adenda del 2026-11-11 de [ADR-0054](adr/0054-idiomas-y-lenguaje-claro.md)).
+Hay un tipo nuevo del registro al final de `DecisionKind` (`ClientDocumentExported`, en `V = 1`, detrás de `ProjectSetupApplied`; los
+de la Fase 9 van después) y dos propósitos al final de `AgentRunPurpose` (`Help` y `ClientDocumentDraft`); los payloads anteriores se
+leen y se reescriben byte a byte. No hay migración ni proyecto nuevo. Solo contratos y reglas puras: ningún servicio, fichero ni
+proceso. `Phase14PayloadTests`, `HelpContractsTests`, `ClientDocumentContractsTests`, `Phase14TextRulesTests` y
+`DecisionKindCompatibilityTests` fallan si un contrato compartido cambia.
+
+### 22.1 La ayuda (`Application/Help/HelpContracts.cs`, nuevo)
+
+| Contrato | Qué es | Lo implementa |
+|---|---|---|
+| `HelpLimits` | Los topes: título 80, búsqueda 200 y 10 resultados, pregunta 1 000, respuesta 1 200, 4 artículos enviados y 4 citados, 2 acciones, 6 hechos de estado de 200 caracteres | — |
+| `HelpArticle` (`Id` código, `Language`, `Title`, `Markdown`, `Screens`, `InfoKeys`), `HelpArticleRules.Validate` e `IsInfoKey` | Un artículo del corpus, en un idioma, y los códigos de lo que incumple (`help.article-id-invalid`…) | WP-14C (el cargador; una prueba sobre todo el corpus) |
+| `IHelpCorpus` (`Articles`, `Find`, `ForScreen`, `ForInfoKey`) | Los artículos de un idioma (lo que falta, en castellano de España), el de una pantalla (`F1`) y el del ⓘ con esa clave (`MoreHelpCommand`) | WP-14C (`Desktop/Help`) |
+| `IHelpSearch.SearchAsync`, `HelpSearchHit`, `HelpMatchKind`, `HelpSearchRules.Validate` | La búsqueda local y gratis: FTS5 más los vectores si el modelo está instalado. Sus parámetros no incluyen proyecto ni consentimiento | WP-14C |
+| `HelpAgent.Id` (`ayuda`), `HelpAgentChoice` (`Default`, `IsDefault`, `ReadsWholeDisk`) | El agente de ayuda: Claude con el modelo más ligero del catálogo por defecto; Codex a elección, con el aviso de que su solo lectura lee todo el disco | WP-14C |
+| `HelpScreenFacts`, `HelpContextKind`, `HelpContextPart`, `HelpContextCard` (`Build`, `Validate`, `Withheld`, `IncludesProjectData`) | La tarjeta de lo que se envía: el texto exacto de cada parte, redactado, sin caracteres ocultos y cortado; el proyecto y lo que nombra una ruta solo con la marca | `Build` y `Validate` son reglas puras del contrato; la compone WP-14C |
+| `HelpAskRequest` (con `ProjectContext` y `QuotaConsent`), `HelpAskRules` (`CleanQuestion`, `Validate`) | Una pregunta al agente: un OK por pregunta (decisión 8 (a)), cada una una ejecución nueva | WP-14C |
+| `HelpAction`, `IHelpActionCatalog` | La lista cerrada de acciones: un id con forma de código y el texto de su botón como `UserText` | WP-14C (el catálogo, en el escritorio) |
+| `HelpAnswerCheck`, `HelpAnswerRules.Check`, `HelpAskReply` | Lo que el sistema se queda de la respuesta: texto cortado a 1 200, artículos entre los enviados, acciones de la lista; lo demás, en `Discarded` | WP-14C |
+| `IHelpAgent.AskAsync` | La ejecución auxiliar de solo lectura, con propósito `Help` | WP-14C (`AuxiliaryAgentRunner`) |
+
+**Implementado por WP-14C (2026-11-11):** `HelpCorpus` (`IHelpCorpus`, `Desktop/Help`, artículos incrustados), `HelpSearch` (FTS5 en memoria, solo léxica), `HelpActionCatalog` (nueve acciones: `open.orchestrator`, `open.agents`, `open.tools`, `open.skills`, `open.usage`, `open.memory`, `open.debates`, `open.audit`, `open.settings`), `HelpAgentService` (`Application/Help`, sobre `IAuxiliaryAgentRunner`, `IQuotaConsentLedger`, `IHelpCorpus`, `IHelpSearch`, `IHelpActionCatalog` e `IModelCatalogSource?`), `HelpDocumentViewModel` y `HelpView`, y `HelpServices.AddAgentStudioHelp()`. `AuxiliaryAgentRunner` gana `WorkingDirectoryProblems` y los refuerzos de la adenda de [ADR-0056](adr/0056-ayuda-y-agente-de-ayuda.md).
+
+### 22.2 La documentación para clientes (`Application/Documents/ClientDocumentContracts.cs`, nuevo)
+
+| Contrato | Qué es | Lo implementa |
+|---|---|---|
+| `ClientDocumentFormat` (`Markdown`, `Html`, `Pdf`, `Word`), `ClientDocumentFormats` (`All`, `Extension`, `MediaType`) | Los cuatro formatos de D-59 | — |
+| `ClientDocumentSectionKind` (siete, en el orden de D-58), `ClientDocumentSections` (`Order`, `TitleCode`) | Las secciones después de la portada; el título de cada una es un código | — |
+| `ClientText` (`OfSystem`, `Written`, `ByAgent`), `ClientTextSource`, `ClientAgentMark` | Un texto por quien lo escribió: el sistema (código con argumentos), una persona o los registros anclados (tal cual) o un agente (siempre con su marca: la ejecución y si lo revisaste) | — |
+| `ClientDocumentBlock`: `ClientParagraph`, `ClientList`, `ClientTable`, `ClientEvidenceList` (`ClientEvidenceReference`) | Los bloques de D-58 | — |
+| `ClientDocumentCover`, `ClientDocumentSection`, `ClientDocument` (`Texts()`, `Sha256()`, `CanonicalVersion`) | El modelo, sin idioma, y su hash canónico, igual en cualquier cultura | El constructor lo hace (WP-14D) |
+| `ClientDocumentRules.Validate` e `IsCommit` | Lo que el modelo puede comprobar solo: sin rutas de tu equipo ni caracteres ocultos en lo que escribieron personas o agentes, secciones en orden, bloques bien formados, huellas SHA-256 | — |
+| `ClientDraftKind` (`Summary`, `UsageExplanation`), `ClientDraftKinds.SectionOf`, `ClientDocumentLimits`, `ClientDraftRules.Check`, `ClientAgentDraft` | Lo que un agente puede redactar (6 párrafos de 800 caracteres como mucho) y lo que el sistema se queda | WP-14D |
+| `ClientDocumentDraftRequest`, `ClientDocumentDraftReply`, `IClientDocumentDrafter.DraftAsync` | La auxiliar de solo lectura con propósito `ClientDocumentDraft`, con tu OK por uso | WP-14D (`AuxiliaryAgentRunner`) |
+| `ClientDocumentBuildRequest`, `ClientDocumentBuild`, `ClientDocumentDisclosure` (`Of`, `Validate`), `ClientAgentPart`, `IClientDocumentBuilder.BuildAsync` | Construir el modelo y la lista de lo que sale (secretos redactados, rutas quitadas, partes de agentes, riesgos y consumo); la petición no tiene dónde pedir prompts, transcripciones ni la bitácora | WP-14D (`Memory/Documents`) |
+| `IUserTextRenderer.Render(UserText, idioma)` | Pinta los códigos del sistema en el idioma elegido al exportar, con la cultura de ese idioma | WP-14D (`Desktop/Documents`, con los recursos) |
+| `IClientDocumentFormatWriter` (`Format`, `RenderAsync`) | Un escritor por formato: Markdown y HTML en Memory, Word en Infrastructure (`DocumentFormat.OpenXml`), PDF en Desktop (WebView2) | WP-14D |
+| `ClientDocumentFiles` (`FileName`, `IsPlainFileName`) | El nombre de cada fichero con su versión (`mi-tienda-hito-1-v2.docx`): ninguna exportación sobrescribe otra | WP-14D |
+| `ClientDocumentExportRequest`, `ClientDocumentExportRules.Validate`, `ExportedClientFile`, `ClientDocumentExportResult`, `IClientDocumentExporter.ExportAsync` | «Aprobar y exportar»: escritura atómica, Markdown como evidencia, `ClientDocumentExported` al final; dentro de la carpeta del proyecto, nunca durante una ejecución | WP-14D |
+
+### 22.3 Registro (`Application/Decisions`)
+
+```csharp
+// DecisionKind gana, al final: ClientDocumentExported (los de la Fase 9 van después).
+// AgentRunPurpose gana, al final: Help y ClientDocumentDraft.
+public sealed record ClientDocumentFileSnapshot(ClientDocumentFormat Format, string FileName, string Sha256, long Bytes);
+public sealed record ClientDocumentAgentPartSnapshot(ClientDocumentSectionKind Section, RunId Run, bool ReviewedByPerson);
+public sealed record ClientDocumentExportedPayload(int Version, string? Milestone, string? Commit, string Language, string ModelSha256,
+    EvidenceId MarkdownEvidence, string MarkdownSha256, IReadOnlyList<ClientDocumentFileSnapshot> Files, int SecretsRedacted,
+    int PathsRemoved, int RisksIncluded, bool IncludesConsumption, IReadOnlyList<ClientDocumentAgentPartSnapshot> AgentParts,
+    string DecidedBy) { static Exporting(...); static Of(request, result); }   // fuera de toda ejecución
+```
+
+- **Ningún payload lleva texto del documento, ni de un agente, ni una ruta de tu equipo:** el nombre de un fichero va sin
+  carpeta y las rutas quitadas solo se cuentan. El JSON está fijado en `Phase14PayloadTests`, con el hash de una entrada
+  calculado aparte (Python) y leído de vuelta byte a byte.
+- **El hito es un nombre** (`string?`) hasta que exista el de la Fase 9, y la versión es una más que la mayor registrada para el
+  mismo hito.
+- **`AuxiliaryAgentRunner.IsAuxiliary` y `RecordsEndClass`** admiten los dos propósitos nuevos desde el P0 (versión 3 de
+  `AgentRunFinished`, con la clase del final), para que WP-14C y WP-14D no editen las mismas líneas de un fichero compartido.
+  Además `RequiresReadOnlyLaunch` y `ReadOnlyViolations` los obligan a un lanzamiento de solo lectura en una carpeta vacía
+  (sin escritura, shell ni red; solo `Read`, `Grep` y `Glob`; sin directorios adicionales, MCP, skills ni sesión que reanudar):
+  si no, `RunAsync` lanza `ArgumentException` antes de registrar nada.
+- **Revisión del P0 (2026-11-11):** `ClientDocumentRules.Validate`, `ClientDocumentExportRules.Validate` y `ClientDraftRules.Check`
+  reciben un `ISecretRedactor` (`document.not-redacted`); las reglas de exportación comparan la lista de lo que sale con
+  `ClientDocumentDisclosure.AgentPartsOf(documento)` (`document.disclosure-agent-parts-mismatch`) y el registro lee las partes de
+  agentes del documento; un modelo con huecos da `document.malformed`; la carpeta de destino ha de ser una ruta completa;
+  `ClientDocumentFiles.WithCollisionSuffix` da el nombre alternativo cuando el de `FileName` está tomado; `LocalPaths` quita la
+  ruta entera aunque tenga espacios (y reconoce `file:///`).
+
+### 22.4 Reglas de texto compartidas
+
+| Pieza | Fichero | Qué es | Lo usan |
+|---|---|---|---|
+| `LocalPaths` (`Find`, `Contains`, `Remove`) | `Application/Security/LocalPaths.cs` | Qué es una ruta de tu equipo: con unidad (`C:\…`, `D:/…`), de red (`\\servidor\recurso`) o bajo la carpeta personal (`~/…`). Una ruta relativa, una URL o un id como `T3:2` no lo son | La tarjeta de la ayuda, las reglas del documento y los borradores |
+| `PlainText` (`HasHiddenCharacter`, `Strip`) | `Application/Security/PlainText.cs` | Ni caracteres de control ni bidireccionales en lo que va a la pantalla o a un agente; la misma regla que las preguntas de los agentes (`QuestionRules`) | Ídem, la búsqueda y la respuesta del agente |
+| `LanguageTags.IsValid` | `Application/Localization/LanguageTags.cs` | Que un idioma tenga la forma del nombre de una cultura (`es-ES`, `en`, `pt-BR`) | La ayuda y los documentos |
+
+### 22.5 Escritorio y dependencias
+
+- **El consumo** nombra los propósitos nuevos con `Usage_Purpose_Help` y `Usage_Purpose_ClientDocumentDraft` en
+  `Resources/ConsumptionStrings.resx` y `.en.resx` (`UsageDashboardViewModel.PurposeLabel`). Los tres de la Fase 13 siguen sin
+  nombre en ese detalle: es de WP-14A (c).
+- **`DocumentFormat.OpenXml` 3.5.1** está en `Directory.Packages.props` (MIT, comprobada en nuget.org el 2026-11-11); ningún
+  proyecto la referencia todavía. La referencia el proyecto que escribe el `.docx` (Infrastructure, WP-14D).
+- **Implementado por WP-14D (2026-11-11):** `ClientDocumentBuilder`, `MarkdownDocumentWriter`, `HtmlDocumentWriter`,
+  `ClientDocumentExporter` y `ClientDocumentRunBusyException` en `Memory/Documents` (se registran con `AddAgentStudioClientDocuments`);
+  `WordDocumentWriter` en `Infrastructure/Documents/Docx` (ya referencia `DocumentFormat.OpenXml`); `ResourceUserTextRenderer`,
+  `PdfDocumentWriter`, `IHtmlPdfPrinter`, `WebView2PdfPrinter` y `ClientDocumentsViewModel` en `Desktop/Documents`, compuestos en
+  `Composition/DocumentsServices.cs`. En `Application/Documents` se añaden `ClientDocumentTexts` (los códigos `document.*`) y
+  `ClientDocumentReading` (la lectura común del modelo de los escritores). Los textos están en `Resources/DocumentsStrings*.resx`.
+  `ClientDocumentExportRequest` gana al final `ClientDocumentApproval? Approval` (`Of(build, quién)`; la huella de la lista es
+  `ClientDocumentDisclosure.Sha256()`), que el exportador exige. `ClientDocumentsMilestoneListener` implementa
+  `IMilestoneCloseListener` (§23). Sigue sin implementar `IClientDocumentDrafter`. Ver la adenda de [ADR-0057](adr/0057-documentacion-para-clientes.md).
+- **Qué hace cada paquete encima:** WP-14C pone el corpus (`Desktop/Help`), el índice de búsqueda, el panel, `F1`, el catálogo de
+  acciones, `IHelpAgent` y los textos de la tarjeta; WP-14D, el constructor, los textos `Text_document_…`, los escritores, el
+  exportador, el borrador con un agente y la pantalla de revisión. Los dos añaden sus tests (F14-7 a F14-9).
+
+### 22.6 El idioma de respuesta como dato de los prompts (V44, ADR-0054)
+
+- **Puerto:** `Application/Prompts/ResponseLanguage.cs` define `IResponseLanguage` (`string Tag`) y `ResponseLanguage`: `Default = "es-ES"`, `Resolve` (un nombre
+  que no es una cultura, `LanguageTags.IsValid`, da el de por defecto), `Block` (`<response_language>"es-ES"</response_language>`, citado con `PromptData.Quote`) y
+  `Append`/`AppendEnglish` (título, regla fija y bloque). La regla es texto fijo en castellano o inglés según el idioma del prompt, nunca de recursos.
+- **Quién lo da:** el escritorio, con `UiResponseLanguage` (el idioma de la interfaz de «Ajustes»), registrado en `ShellServices`; nunca `CurrentUICulture`.
+- **Por dónde viaja:** `EnginePorts.Language` (planificador y ejecutores; `Orchestrator` lo recibe como `responseLanguage`), `DebateArenaPorts.Language`
+  (`ParticipantPrompt.Build(..., responseLanguage)`), `JudgeLaunch.Language` (el juez lo añade tras el material, fuera del `JudgeBrief`; `AgentJudgeFactory` lo rellena) y un
+  `IResponseLanguage?` opcional en `PreparationChatService`, `OrderReviewService` y `AssistedConsumptionAnalysisService`. `HelpAgentService` sigue con
+  `HelpAskRequest.Language`, ahora con el mismo bloque. Sin valor: `es-ES`.
+- **No se ancla:** ninguna cabecera ni hash incluye el idioma. Con el mismo idioma, dos culturas de hilo dan el mismo prompt byte a byte.
+
+### 22.7 Textos de Debate con código (WP-14A parte e, ADR-0054)
+
+- **`UserTextException`** (`Application/Localization`): `InvalidOperationException` con mensaje en inglés y `UserText Text`. La lanzan `DebateRun` y `DebateCoordinator`
+  en los rechazos que la persona lee; Desktop la pinta con `DebateTexts.Reason`. Quien captura `InvalidOperationException` no cambia.
+- **`DebateAwaiting`** gana `IReadOnlyList<UserText>? Texts = null` al final. `Message` sigue siendo la frase en castellano. Un turno fallido da un `UserText` por turno.
+- **`PendingProblem`** gana `UserText? Text = null` al final; **`ProjectAuditProposal`** gana `IReadOnlyList<UserText>? ProblemTexts = null` (uno por `Problems`, mismo orden; `CodedMessages` en `Application/Localization` los lleva a la vez) y **`AuditReport`** gana `UserText? EscalationText = null`. `Code` y `Message` no cambian: entran en el expediente del juez. Los códigos de texto son `audit.pending.*`
+  (`PendingProblems.TextCodes`).
+- **Códigos:** `Debate/Arena/DebateUserTexts.cs` (`All`) y `Debate/Audit/PendingProblems.cs` (`TextCodes`); claves `Text_…` en `DebateStrings` y `AuditStrings`. Lista completa
+  en la adenda de [ADR-0054](adr/0054-idiomas-y-lenguaje-claro.md) del 2026-11-12.
+- **Fijo:** los motivos de `DebateRoundClosed` y `DebateClosed`, el texto de aprobación, `DebateModes` y `orq-1` a `orq-7`, y el informe del hito.
+- **Restos cerrados (2026-11-12):** `DebateProposal.ProblemTexts`, `DebateEstimate.NoteTexts`, `DebateSummary.ProblemTexts`, `DebateSnapshot.ProblemTexts` y
+  `DebateTranscript.ProblemTexts` (`IReadOnlyList<UserText>? = null` al final, uno por frase y en el mismo orden; `CodedList.Paint` las pinta). `DebateLog.ProblemTexts` y
+  `ProviderNames.Of` (nombre del proveedor para la persona). Las excepciones de `VerdictChallengeService` son `UserTextException` (`debate.challenge.*`).
+  `MilestoneCloseRefusedException` ya llegaba con código (`Rule`) y «Trabajo» la pinta con `Work_Refused_*`. Detalle en la adenda de ADR-0054.
+
+### 22.8 Memoria: textos en códigos (WP-14A, parte e, 2026-11-12)
+
+Lo que cambia en los contratos de `Application/Knowledge` y `Domain/Common` para que los textos de `Memory` lleguen a la pantalla como
+códigos ([ADR-0054](adr/0054-idiomas-y-lenguaje-claro.md), adenda del 2026-11-12). Lo anclado no cambia: ni los textos de las entradas
+derivadas ni su hash ni los payloads del registro; no hay migración.
+
+| Contrato | Cambio | Quién lo usa |
+|---|---|---|
+| `INestedText` (`Domain/Common/TextArguments.cs`, nuevo) | `TextArguments.IsAllowed` admite también un argumento que es otro `UserText` (que lo implementa): una frase del sistema se compone de piezas | `Memory`, y `NestedTextRendering.RenderNested` en el escritorio |
+| `IMemoryExporter.ExportAsync(project, language, ct)` | **Rompe la firma**: gana `language` (`LanguageTags`), el idioma del marco de los ficheros; nunca se lee de la cultura del hilo. Lo anclado de cada entrada sale como se ancló | `MemoryMarkdownExporter`, `MemoryViewModel`, `ProjectMemoryUpkeep` |
+| `MemoryExportResult.ReasonText` y `MemoryDerivationResult.ReasonText` (`UserText?`, al final) | El motivo, como código, para la pantalla; `Reason` sigue en castellano para el registro y las pruebas | `MemoryReasonTexts.Say` |
+| `MemoryEntryText` e `IMemoryEntryTexts.ReadAsync(project, entries, ct)` (nuevos) | El tema y el contenido de una entrada, como códigos, por id de entrada; solo se da lo que dice exactamente lo que la entrada tiene anclado. No se guarda: se deriva al leer | `MemoryDerivation` lo implementa; `MemoryViewModel` lo lee por `MemorySearchBackend.EntryTexts` |
+
+`MemoryMarkdownExporter` gana un parámetro de constructor, `IUserTextRenderer` (el puerto de los documentos para clientes);
+`AddAgentStudioProjectMemory` lo toma del contenedor y, sin él, el exportador sigue resolviéndose y falla con un mensaje claro solo cuando
+tiene un fichero que escribir. Las claves son `Text_memory_…` en `Resources/MemoryStrings.resx` y `.en.resx`; la lista de los 250
+códigos, en la adenda del ADR. Lo que sigue en castellano a propósito, y por qué, también.
+
+### 22.9 Orquestación: textos en códigos (WP-14A, parte e, 2026-11-12)
+
+Lo que cambia en los contratos de `Application/Orchestration` para que los textos de `Orchestration` lleguen a la pantalla como códigos
+([ADR-0054](adr/0054-idiomas-y-lenguaje-claro.md), adenda del 2026-11-12). Lo anclado no cambia: ni el aviso de la aprobación, ni el
+motivo de cada transición, ni el resumen de `RunFinished`, ni ningún payload del registro; no hay migración.
+
+| Contrato | Cambio | Quién lo usa |
+|---|---|---|
+| `TaskStatusChangedEvent.ReasonText` (`UserText?`, al final) | El motivo de la transición como código, para la pantalla; `Reason` sigue en castellano, anclado | `OrchestrationRun.MoveAsync`, `RunInspector`; el monitor |
+| `RunPhaseChangedEvent.DetailText` (`UserText?`, al final) | Lo que el motor dice de una fase, como código; `Detail` sigue como está | `OrchestrationRun.SetPhase`, `Start(notices, noticeTexts)`, `RunInspector`; el monitor |
+| `RunResult.SummaryText` (`UserText?`, al final) | El resumen del final como código; `Summary` es el de `RunFinished`. Una ejecución releída lo deriva de la frase | `FinishAsync`, `RunInspector`; el monitor |
+| `PlanProposal.ErrorText` (`UserText?`, propiedad `init`) | Por qué no hubo plan, como código; `Error` sigue para el registro | `Planner`; `OrchestratorDocumentViewModel` |
+| `BudgetGateVerdict.Text` (`UserText?`, al final) | El motivo del bloqueo con sus cifras como piezas; `Reason` sigue igual en el registro y en la alerta | `ProjectBudgetGate`, `OrchestrationRun` |
+| `LoggedTexts` (`Orchestration/Engine`, público) | `TaskReason(reason)` y `RunSummary(summary)`: el código de la frase exacta que el motor ancla, o `null` | `RunInspector`; las pruebas |
+| `VerificationStepText.PlanWarningTexts`, `LineParts` y `PlanWarningText.Texts` | Las mismas frases que `PlanWarning`, `Line` y `Notice`, como códigos y piezas. Las tres originales no cambian | `OrchestratorDocumentViewModel`, `Audit` |
+| `OrchestrationUserTexts` (`Orchestration/`, nuevo) | Los 262 códigos de la orquestación (`All`) y las piezas de lista: 101 de la primera parte y 161 de los restos | todo lo de arriba |
+| `DeliveryReadiness.ReasonText`, `DeliveryResult.MessageText` (`Application/Git`, `UserText?`, al final) | Por qué no se entrega y cómo acabó la entrega, como código; `Reason` y `Message` siguen en castellano | `DeliveryService`; el monitor (`DeliveryMessage`) |
+| `AttemptEnd.Text`, `FailureNote.Text` (internos) | El motivo de un trabajador como código, junto a la frase anclada; el reintento lo lleva como pieza anidada | `Workers`, `OrchestrationRun`; `LoggedTexts.TaskReason` lo deriva del registro |
+| `ScheduledResume.ReasonText` (`UserText?`, al final) | Por qué una ejecución no se reanuda sola, o cómo se reanudó, como código derivado de la frase (`LoggedTexts.ResumeReason`) | `ResumeScheduler`; `MainViewModel` |
+| `PlanProposal.ErrorText` (ya existía) | Se añaden «el plan corregido no se pudo leer» y «sigue sin ser válido»; `HistoryToolNotice` se pinta con `LoggedTexts.HistoryToolNotice(frase)` | `Planner`; `OrchestratorDocumentViewModel` |
+| `OrderReviewResult.ErrorText`, `PreparationChatReply.ErrorText` (`UserText?`, al final) | Fallo del sistema al revisar el orden o al hablar con el orquestador, como código; el del agente se enseña tal cual | `OrderReviewService`, `PreparationChatService`; sus vistas |
+
+Escritorio: `OrchestratorCodedText` (pinta frases, líneas de paso y `Painted(texto, frase)`) y `OrchestratorErrorText.Detail(ex)`, que ya usan todos los `ex.Message` de `Orchestrator/**` (una
+`UserTextException` desde recursos, y cualquier otro fallo con su mensaje técnico). Las claves son `Text_…` en
+`Resources/OrchestratorStrings.resx` y `.en.resx`; la lista de los códigos, lo que queda fijo y lo pendiente, en la adenda del ADR.
+
+## 23. Fase 9: trabajo y trazabilidad
+
+Lo que el P0 de la Fase 9 deja fijado para los paquetes WP1 a WP5, que van en paralelo encima ([16](16-ampliacion-plataforma-de-proyectos.md)
+§4.6, D-05, D-17 a D-20, D-29 a D-34, D-44, D-49 y D-50; [ADR-0038](adr/0038-hito-backlog-y-tablero.md),
+[ADR-0039](adr/0039-vinculos-de-trazabilidad-y-participacion.md) y [ADR-0040](adr/0040-consumo-por-hito-y-actividad-y-presupuestos.md)).
+Hay **diez tipos nuevos** al final de `DecisionKind`, todos en `V = 1`, y la migración **0006**
+([05 §4](05-modelo-de-datos.md#4-migraciones)). Los payloads anteriores se leen y se reescriben byte a byte. La sección 19 que
+nombra docs/16 era la de la Tanda 2: esta es la 22. `Phase9PayloadTests`, `DecisionKindCompatibilityTests`, `ContractSurfaceTests`
+y las de `Domain/Work`, `Domain/Tracing` y `SqliteSchemaTests` fallan si un contrato compartido cambia.
+
+### 23.1 Registro (`Application/Decisions/WorkPayloads.cs`)
+
+| Tipo | Payload | `runId` | Contenido |
+|---|---|---|---|
+| `MilestoneOpened` | `MilestoneOpenedPayload` | el hito (`mil-…`) | Hash canónico de la cabecera (`MilestoneHeaderHash.Of`), nombre, hash del primer conjunto de requisitos, presupuesto opcional y quién |
+| `MilestoneRequirementsRevised` | `MilestoneRequirementsRevisedPayload` | el hito | Hash del conjunto nuevo y del que sustituye, quién y por qué. Uno distinto del vigente |
+| `MilestoneLinked` | `MilestoneLinkedPayload` | el hito | `Run` o `Debate`, su id y quién (`agent-studio` si el sistema lanzó la ejecución desde el hito). Los seguimientos se encuentran por `RunStarted.Follows`, no se escriben |
+| `MilestoneClosed` | `MilestoneClosedPayload` | el hito | Revisión del informe (desde 1), la auditoría (`aud-…`), la evidencia del informe y su SHA-256, el commit auditado y quién |
+| `MilestoneReopened` | `MilestoneReopenedPayload` | el hito | `Revert`, `CheckFailed`, `Challenge` o `ByPerson`, la evidencia con su SHA-256 (obligatoria salvo `ByPerson`) y quién |
+| `BacklogItemRecorded` | `BacklogItemRecordedPayload` | ninguno | Id, versión, prioridad y SHA-256 canónico del contenido (`BacklogItem.Sha256`); sin texto |
+| `BacklogItemRetired` | `BacklogItemRetiredPayload` | ninguno | Id, última versión, quién y por qué |
+| `BacklogOrderChanged` | `BacklogOrderChangedPayload` | ninguno | Los ids en su orden nuevo; los no listados siguen en orden de alta |
+| `TraceLinkRecorded` | `TraceLinkRecordedPayload` | ninguno | Id del vínculo (`TraceLinks.IdOf`), tipo e id de cada extremo, quién lo afirma, motivo y, si es una sugerencia confirmada, su origen |
+| `TraceLinkRetracted` | `TraceLinkRetractedPayload` | ninguno | Id del vínculo, quién y por qué. El vínculo sigue en el registro |
+
+Cada payload tiene su fábrica (`Opening`, `Revising`, `Linking`, `Closing`, `Reopening`, `Announcing`, `Retiring`, `Ordering`,
+`Recording`, `Retracting`), que rechaza lo que el dominio rechaza. Ningún payload lleva texto de un agente; el nombre de un hito y
+los motivos son texto de la persona. Las entradas sin ejecución esperan, como las de la memoria, a que `IProjectActivity` deje libre
+el proyecto (ADR-0022, decisión 3).
+
+### 23.2 Dominio
+
+- **`Domain/Work`:** `WorkBudget` (D-05: tokens y ejecuciones, por periodo `Total`, `Day`, `Week` o `Month`; `Check(usado, proyectado)` dice si un intento
+  puede lanzarse y qué límite pasa; llegar justo al límite está dentro).
+- **`Domain/Work/Milestones`:** `MilestoneId`, `MilestoneHeader`, `Milestone` (reglas: un conjunto distinto del vigente, cada ejecución o debate una vez, cerrar
+  exige una ejecución vinculada y la revisión siguiente del informe, reabrir conserva los informes, el tiempo solo avanza), `MilestoneStateReplayer` (como el de un
+  debate: hallazgos, no excepciones), y `BoardRules` con `BoardColumn` (D-19).
+- **`Domain/Work/Backlog`:** `BacklogItemId`, `BacklogItem` (un requisito en borrador; cada cambio, una versión con todo su contenido), `BacklogState` y su reproductor.
+- **`Domain/Tracing`:** `TraceNodeKind`, `TraceRef` (ids estables: un commit siempre completo; una tarea `<run>/<tarea>`; un intento `<run>/<tarea>#<n>`; un documento
+  `<ruta>@<commit>`), `TraceLink` y `TraceLinks.IdOf`, `TraceLinkSet` y su reproductor (bidireccional, idempotente), `TraceSuggestion` (solo `Confirm` la convierte en vínculo) y `CommitTrailers`.
+- **`Domain/Metrics`:** `ActivityKind`, `AttemptOrder`, `AttemptFate` y `ActivityClass` (los tres ejes de D-34), `ActivityPaths.OfDiff` y `EstimateComparison`
+  (real frente a estimado). **No hay `Estimate.cs`:** el estimador lo hizo la Fase 13 (`Application/Usage/EstimateContracts.cs`, ADR-0050).
+
+**Trailers** de los commits del sistema: un bloque al final del mensaje, tras una línea en blanco, `Agent-Studio-Run: <run>`, `Agent-Studio-Task: <tarea>`,
+`Agent-Studio-Attempt: <n>` y `Agent-Studio-Agent: <agente>[; model=<modelo>]`. Se escriben con `CommitTrailers.Append` (rechaza saltos de línea y otros caracteres de control)
+y se leen con `CommitTrailers.Read` (solo el último párrafo; clave repetida o valor que no corresponde, nada). Son ayuda para inferir, nunca la fuente.
+
+### 23.3 Contratos (`Application/Work`, `Application/Git/RepositoryViewContracts.cs`, `Application/Usage`)
+
+| Puerto | Operaciones | Lo implementa |
+|---|---|---|
+| `IMilestoneRegistry` | `CreateAsync`, `FindAsync`, `ListAsync` (cabeceras, solo añadir) | WP1 |
+| `IMilestoneService` | `OpenAsync`, `ReviseRequirementsAsync`, `LinkAsync`, `ReopenAsync`, `GetAsync`, `ListAsync` | WP1 |
+| `IMilestoneCloser` | `CloseAsync(CloseMilestoneRequest, progress)` (auditoría del hito e informe determinista; la petición lleva el juez y los autores declarados; rechaza con `MilestoneCloseRefusedException`) y `IMilestoneCloseListener.OnClosedAsync` (el punto de enganche de la documentación para clientes), ver §23.4 | WP3 (`MilestoneCloser`) |
+| `IBacklogStore` / `IBacklogService` | filas por versión / añadir, revisar, retirar, reordenar, listar, historia | WP1 |
+| `IBoardProjector` | `ProjectAsync`, `BacklogAsync` (tarjetas con su columna y su motivo `BoardCardReasons`) | WP1 |
+| `ITraceLinkService`, `ITraceSuggester`, `ITraceChainReader` | registrar, confirmar, retirar, vínculos de un nodo / sugerencias / la cadena de F9-4 | WP1 |
+| `IParticipationProjector` | los seis papeles de D-32 (`ParticipationRole`); un papel sin fuente es `ParticipationEntry.NotRecorded` («no consta») | WP1 |
+| `IProjectBudgetStore` | presupuesto del proyecto, de la persona y de su equipo; el del hito va en su cabecera | su contrato y la puerta del motor, WP2; la implementación, WP5 (`LocalProjectBudgetStore`, ver §23.7) |
+| `IRepositoryHistoryReader` | `SummaryAsync`, `BranchesAsync`, `CommitsAsync` por la capa git endurecida (`Infrastructure/Git/RepositoryHistoryReader.cs`, registrado en `AddAgentStudioGit`). Acotado: 1000 commits y 500 ramas; la salida se acota en origen (el log y la lista de ramas, 4 MiB de caracteres por flujo: `ProcessSpec.MaxOutputCharacters` mata a git al pasarlo y la lectura se rechaza; HEAD y las rutas, 64 KiB; «¿hay cambios?» se pregunta con 512 caracteres de margen, y pasarlo ya significa que los hay), asunto, autor y refs cortados por el propio git (`%<(N,trunc)`) y otra vez aquí, sin caracteres de control; los campos del log van enmarcados por un marcador aleatorio de cada lectura, de modo que ningún texto de un commit (ni un `| `IRepositoryAnnotator`, `IRepositoryActivityReader` | commits anotados desde el registro / la línea de tiempo de «Actividad» | WP1 y WP5 |
+| `IRepositoryRemoteReader`, `RemoteListing` | `ListRemotesAsync` por la capa git endurecida (`Infrastructure/Git/RepositoryRemoteReader.cs`, registrado en `AddAgentStudioGit`, P51): `git config --local --no-includes -z --get-regexp` de `remote.*.url`, sin seguir ningún `include`, con la configuración neutralizada y sin hooks, y con el recorrido del directorio git para enlaces plantados. Acotado en origen (256 KiB de caracteres: pasarlo mata a git y la lectura se rechaza con `output-too-big`, nunca se corta), más de 100 remotos se rechazan igual y una dirección de más de 2048 caracteres se omite; cada URL sale limpia (`RepositoryRemote.Cleaned`). Falla cerrado: un repositorio no aceptado, git fallando o la salida enorme dan `Remotes` vacío y un `RefusalCode` (`not-a-repository`, `inside-worktree-root`, `unsafe-repository`, `git-unavailable`, `git-failed`, `output-too-big`), nunca una ruta ni una excepción; sin remotos es una lista vacía sin código | P51 |
+
+`UsageDimension` gana cuatro valores al final: `Milestone`, `Activity`, `ActivityAttempt` y `ActivityDestination` (los tres ejes de D-34 son
+tres dimensiones, para que los grupos de un eje sumen el total), y `UsageGroup` gana `SharedAttempts` (opcional, 0): cuántos intentos del grupo están también
+en otro grupo de la dimensión (un hito), de modo que los grupos pueden sumar más que el total exactamente en eso.
+
+**Lo que añade WP2 ([ADR-0040](adr/0040-consumo-por-hito-y-actividad-y-presupuestos.md), decisiones 8 a 13):**
+
+- `UsageAttempt` gana, como propiedades `init` (el patrón de `Effort`), `Milestones` (ids de hito; vacía si no está en ninguno), `Activity` (`ActivityClass`),
+  `QuotaWaitMilliseconds` y `OpenQuotaWait`; `UsageTotals` gana `QueueWaitMilliseconds` y `QuotaWaitMilliseconds` (`MetricAggregate<long>`), aparte de la duración.
+- `UsageAggregator.KeyOf` ya no lanza con ninguna dimensión; `KeysOf` da todos los valores de una (solo `Milestone` tiene más de uno). Claves: el id del hito o
+  «sin hito»; `Activity`, `ActivityAttempt` y `ActivityDestination` son los nombres de `ActivityKind`, `AttemptOrder` y `AttemptFate`, con `Discarded+commit` para lo
+  descartado que dejó commit y «sin clasificar» para un intento sin actividad (hecho a mano). Un intento de dos hitos sale en cada grupo y una vez en el total;
+  `UsageGroup.SharedAttempts` cuenta los miembros con más de un hito.
+- `MilestoneMembership` (`Application/Work`): a qué hitos pertenece una ejecución o un debate, por `MilestoneLinked` y `RunStarted.Follows`. `ActivityClassifier`
+  (`Observability/Usage`): `Classify(ActivityInput)`, puro. `ScopedEstimation` (`Observability/Estimates`): estimación por actividad o por hito y `CompareWithPlan`.
+- `ProjectBudgetGate` (`Orchestration/Engine`, pública para poder probarla; la usa el motor): `CheckAsync(proyecto, ejecución, petición de estimación, intentos en vuelo)`
+  da un `BudgetGateVerdict`. `Orchestrator` gana cuatro parámetros opcionales al final (`budgets`, `usage`, `milestones`, `logReader`); sin `budgets` ni `milestones` no hay
+  puerta. Un rechazo deja `AuditAlertRaised` con `project.budget-exceeded` (o `project.budget-unreadable` si no pudo comprobarlo: falla cerrado) y la tarea queda
+  `Blocked` (`AwaitingHuman`) con el motivo: subir el presupuesto y reintentarla sigue la ejecución. Sin presupuesto en el proyecto ni en los hitos no se lee el registro.
+- **Pendiente de WP5:** `UsageDashboardViewModel.Dimensions` ofrece todas con `Enum.GetValues`; el filtro que las oculta mientras el agregador no las soportaba ya sobra. WP5
+  etiqueta las dimensiones, enseña `SharedAttempts` y las esperas, y da pantalla al presupuesto (el presupuesto ya la tiene: «Trabajo», ver §23.7; las dimensiones y las esperas de «Consumo» quedan pendientes). **`IProjectBudgetStore` tiene implementación desde WP5: `LocalProjectBudgetStore`.**
+
+### 23.4 Diferencias con docs/16 §4.6
+
+- La sección de docs/04 es la 22, no la 19. La migración es la `0006`, la siguiente libre.
+- `Domain/Metrics/Estimate.cs` no existe (ADR-0050). `ActivityClass.cs` sí, con un valor más en el destino (`Pending`, un intento de una ejecución en marcha).
+- `MilestoneLinked` es el vínculo del hito con su ejecución o debate: no se duplica como `TraceLinkRecorded`, y la traza lee los dos.
+- La prioridad de un elemento del backlog es la de un requisito (`Mandatory` o `Desirable`); el orden manual es `BacklogOrderChanged`.
+- «Integrado» exige además «hecho»: una tarjeta entregada sin veredicto aprobado que la dé por satisfecha no pasa de su columna.
+- ADR-0040 llega con el P0 como esqueleto de lo que fija (dimensiones, `ActivityClass`, presupuesto); WP2 lo completa.
+
+### 23.5 Cierre de un hito (WP3)
+
+- `ProjectAuditRequest` gana `AuditMilestoneScope? Milestone` (hito, ejecuciones con sus seguimientos y debates): el dossier del juez y la petición que ve la persona se limitan a ese alcance. La regla de los productores no se estrecha. El propósito sigue siendo `WholeProject`.
+- `MilestoneCloser` rechaza antes de gastar cuota (`MilestoneCloseRefusedException`: `milestone.not-found`, `milestone.problems`, `milestone.not-open`, `milestone.nothing-to-close`, `milestone.no-judge`, `log.not-intact`) y después si la auditoría no llegó a ejecutarse (`milestone.audit-not-run`: aprobación denegada, registro roto). Una auditoría que se ejecutó cierra el hito sea cual sea su disposición; el informe recoge las desviaciones y reabrir (D-50) existe para eso.
+- Orden de lo que escribe: la auditoría (su unidad `aud-…`), `EvidenceRegistered` del informe (unidad del hito) y `MilestoneClosed`. Después avisa a los `IMilestoneCloseListener` (un fallo suyo no deshace el cierre).
+- `MilestoneReport` (`agent-studio/milestone-report/1`; JSON con claves y saltos `\n` fijos, sin reloj ni texto de agentes): cabecera, anclaje (entradas y cabeza del registro, commit auditado, cabeza del registro del tablero), conjuntos de requisitos, requisitos con sus estados (implementado: lo da por satisfecho la auditoría fiable; revisado e integrado: columnas `Done` e `Integrated` del tablero; sin «desplegado»), ejecuciones (agentes, veredictos, entregas, alertas), debates, auditoría y verificación, desviaciones con códigos estables, problemas pendientes del alcance, informes anteriores y `NotIncluded` (consumo y estimación son de WP2).
+
+### 23.6 Lo que WP1 hizo con estos contratos
+
+- **Un cambio de contrato:** `CommitNode` gana `Message` (opcional, al final): el mensaje entero cuando el lector lo da. Los trailers de los commits del
+  sistema están en el último párrafo, que el asunto solo no trae, y las sugerencias los leen de ahí; sin `Message` se lee el asunto. `RepositoryHistoryReader` lo rellena.
+- **Servicios** en `Orchestration/Work`: `MilestoneService`, `BacklogService`, `TraceLinkService`, `TraceSuggester` y `BoardProjector`, con `WorkWriteGate`
+  (espera a que `IRunActivity` deje libre el proyecto y toma la puerta del proyecto, como la memoria). Los almacenes son `SqliteMilestoneRegistry` y
+  `SqliteBacklogStore`, y las cuatro piezas de lectura que siguen (todas leen el registro verificado y fallan cerrado con `DecisionLogIntegrityException` si no lo está):
+  - `TraceChainReader` (`ITraceChainReader`; recibe `IVerdictStore`): la cadena requisito, hito, tarea, intento, cambio (diff y commit), verificación, veredicto y entrega es la
+    misma arranques desde el nodo que arranques (requisito, tarea, intento, commit, prueba, veredicto o entrega). Un veredicto solo cuenta si es válido en el registro y en el almacén con
+    la misma decisión; la entrega, solo de las tareas entregadas (ver más abajo). Nada inferido entra: `TraceChainStep.Suggested` siempre es `false`.
+  - **A qué cuelga un veredicto: una sola regla** (`VerdictReach`, interna de `Orchestration/Work`; la usan el tablero, la cadena y la participación, de modo que no pueden
+    contar historias distintas). El alcance: un veredicto emitido sobre una tarea corriente del plan juzgó esa tarea; uno emitido sobre la tarea de revisión (el motor emite el de la
+    ejecución ahí, y no cubre requisitos), sin tarea, o sobre una tarea que el plan no tiene (la tarea del juez de una revisión, D-40, que conserva la ejecución del impugnado) juzgó
+    el trabajo de la ejecución. Dentro de su alcance, juzga una tarea solo si evaluó (`Verdict.Assessments`) un requisito que la tarea cubre, y un requisito solo si lo evaluó; un
+    veredicto sin evaluaciones por requisito juzga todas las tareas y requisitos de su alcance. Un veredicto que evaluó solo R1 no está en la cadena de R2 ni en el tablero de R2.
+    **Límite conocido:** la unidad de la cadena es la tarea, así que una tarea que cubre R1 y R2 lleva el veredicto que evaluó cualquiera de los dos (el tablero, por requisito,
+    lo dice más fino).
+  - **La cadena es la misma desde cualquier nodo que contiene.** El veredicto y la entrega son nodos compartidos: todas las tareas de las que cuelgan, con sus requisitos y su
+    trabajo, están en la cadena desde cualquiera de ellos. Un veredicto que juzgó R1 y R2 da una sola cadena desde R1, R2, sus tareas, intentos, commits, pruebas, el veredicto
+    y la entrega; uno que solo juzgó R1 (y sin entrega compartida) deja R2 fuera, y la cadena de R2 no lo tiene.
+  - **Varios veredictos** sobre el mismo trabajo (un reintento tras un `Rejected`, una impugnación y su revisión, el seguimiento de una ejecución), según D-38 a D-40: la cadena
+    los enseña todos, **en el orden del registro**, y `TraceChainStep.Standing` (`TraceVerdictStanding`, solo en los pasos de veredicto) dice cuál está en vigor (`InForce`: como en
+    el tablero, el último que juzgó el requisito, y si varias ejecuciones lo cubren, el de la última que empezó), cuál fue sustituido (`Superseded`: ya no decide ningún
+    requisito; también el de una ejecución anterior si la posterior cubre el requisito aunque aún no tenga veredicto), cuál es el último pero está impugnado (`Challenged`: en
+    revisión hasta que cierre su debate; la regla es la de `ChallengeReader`) y cuál es el último pero su impugnación cerró con otra decisión que la suya (`Revised`: una
+    aprobación retirada o aceptada por la persona; manda la decisión de la revisión). Nunca se presenta como vigente uno que no lo es.
+  - **El veredicto de una revisión no compite** (`VerdictReach.Revises`). El producto guarda el veredicto de una revisión en la ejecución del original, con `Supersedes` = el
+    veredicto impugnado (o la corrección anterior de la misma revisión) y tarea `juez-<agente>`, y lo anuncia con `VerdictIssued` antes de `DebateClosed`. Un veredicto cuya cadena de
+    `Supersedes` llega a un veredicto con impugnación (`ChallengeReader` distinto de `None`) es de esa revisión: no entra a decidir «el vigente» de ningún requisito ni tarea, y
+    su decisión solo llega a través del estado del impugnado (`VerdictReach.Standing`): confirma, retira una aprobación (manda la revisión), o vuelve hacia una aprobación y
+    sigue en revisión hasta que la persona la acepte (`verdict.revision.accept`); abierta, o decidida por la persona («Decidir yo»), la tarjeta sigue en revisión. En la cadena
+    se enseña con el estado del impugnado (`Challenged` mientras este lo esté, `Superseded` si lo está el impugnado, `InForce` solo cuando la revisión quedó asentada) y en la
+    participación no se atribuye «aprobó» por un veredicto de revisión que nadie aceptó. Un `Supersedes` sin impugnación detrás (un juez que corrige su propio veredicto) sí
+    sustituye al anterior. La entrega (`DeliveryService`) ya lo cumplía por su cuenta.
+  - **Regla final del veredicto en vigor** (`VerdictReach` y `ChallengeReader` la aplican al tablero, la cadena y la participación; `DeliveryService` conserva su propio evaluador,
+    más estricto, y una tabla de escenarios de `RevisionAgreementTests` comprueba que ambas lecturas del mismo registro no se contradicen):
+    - **Orden.** Un veredicto es «de la revisión» solo si se emitió después de abrirse la impugnación del que sustituye, por el orden del registro (la secuencia de las
+      entradas, como hace `DeliveryService`): cada veredicto de la cadena, hasta el impugnado, tiene que ser posterior a la impugnación. Una corrección del juez emitida antes de que
+      se impugnara el original lo sustituye como siempre (impugnar un veredicto ya sustituido no lo resucita); emitida después, es de la revisión. Si el registro no anuncia el
+      veredicto no hay orden que oponerle. La búsqueda de la cadena de `Supersedes` recuerda lo ya recorrido: un ciclo o una autorreferencia (un almacén manipulado) termina.
+    - **Estado de una impugnación** (`ChallengeReader.Read`, que repite `ChallengeLog.StatusOf` salvo en estos dos puntos, donde sigue a la entrega). Una impugnación cuya revisión la persona rechazó abrir
+      (su no a `debate.open` en el debate, sin que este llegara a abrirse) no cuenta: es como no haberla hecho, salvo que una impugnación anterior ya juzgada, o una revisión abierta,
+      siga mandando; las anteriores sin juicio ceden ante ella. Solo el veredicto con el que terminó la ejecución (`RunFinished.VerdictId`) exige que la persona acepte una revisión
+      que vuelve hacia una aprobación; la impugnación de otro veredicto de la ejecución (un intento que su juez corrigió) se lee como si ese veredicto fuera una aprobación, que es como
+      la lee la entrega: una revisión que aprueba no pide aceptación y una que no aprueba la retira.
+    - **Tarjetas de tarea.** Una tarea completada sigue al último veredicto válido que la juzgó (`VerdictReach.Judges` con los requisitos que cubre; a una tarea que no cubre
+      ninguno, como la de integración o la de revisión, la juzga todo veredicto de su alcance), con su estado (`VerdictReach.Standing`), igual que el requisito: va a «En revisión»
+      si ese veredicto está impugnado o si ninguno la juzgó. Tarea y requisito no se contradicen.
+    - **Límite conocido.** La entrega es más estricta que el tablero en un caso: una revisión que retiró la aprobación de un intento que el juez corrigió, o que sigue abierta,
+      bloquea la entrega, mientras que la tarjeta sigue al último veredicto, el de la ejecución, que nadie impugnó. Lo que nunca ocurre es lo contrario: nada se entrega que el tablero
+      tenga en revisión, ni queda en revisión algo que la entrega dejaría pasar (`RevisionAgreementTests` recorre los escenarios con las dos lecturas sobre el mismo registro).
+  - **La entrega en la cadena.** `IntegrationPerformed` con tarea (la tarea de integración, I1) cuenta solo si el motor la aceptó (la rama de la ejecución como destino, no la
+    ref candidata oculta `refs/agentstudio/<ejecución>/_candidate/<tarea>` donde deja la que no aceptó aunque dejara commit), con commit y sin conflicto. Fusionó el código de las
+    tareas completadas que producen código y de las que depende (`RunContext.ProducesCode`), pasando a través de las que no lo producen (condición, aprobación, revisión), y de
+    aquello sobre lo que se construyeron; una tarea fallida u omitida, lo que solo se alcanza por ella, o una tarea que no es prerrequisito de la integración (otra rama del grafo)
+    no estaba fusionada y no queda entregada. `Sources` de la carga son los commits que el sistema verificó, no tareas, así que la comprobación se hace por el grafo del plan. La entrega
+    respeta el orden del registro: marca como entregadas las tareas completadas (e integradas) cuando se hizo, no las que se completaron después.
+  - `ParticipationProjector` (`IParticipationProjector`, recibe `IVerdictStore` e `IPlanStore`): los seis papeles de D-32 por tarea, ejecución o hito; el revisor es el juez del
+    almacén del veredicto válido que el registro anuncia, y para una tarea cuentan los veredictos que la juzgaron por la regla de arriba (también el de la tarea de revisión de la
+    ejecución, si evaluó un requisito que la tarea cubre); una revisión omitida no se atribuye a nadie (`ParticipationSources.SkippedReview`); una tarea sin la forma
+    `ejecución/tarea` se rechaza con `ArgumentException`. Sin el plan de la ejecución en el almacén solo cuenta el veredicto de esa tarea o el que no nombra ninguna.
+  - `RepositoryAnnotator` (`IRepositoryAnnotator`): un commit es «del sistema» solo si sus trailers nombran un intento del registro **y** el registro anotó ese mismo commit
+    para el intento (`SubjectCommit` de una evidencia suya); un cherry-pick, un rebase o un mensaje copiado no se atribuyen, a lo sumo son una sugerencia.
+  - `RepositoryActivityReader` (`IRepositoryActivityReader`): integraciones, entregas y limpiezas de worktree, de la más antigua a la más nueva, con su resultado real
+    (`RepositoryActivityReader.ConflictCode` si hubo conflicto, `FailedCode` si no dejó commit) y los filtros de `RepositoryActivityFilter`.
+  - `RepositoryHistoryReader` rellena `CommitNode.Message` con el asunto y, tras una línea en blanco, solo los trailers `Agent-Studio-*` del último párrafo (los pide a git por
+    clave, así otros trailers anteriores no los desplazan del ancho), acotados como el resto: sin leer el cuerpo y dentro del tope de salida del lector.
+- **Orden de escritura:** el hito como un debate (requisitos congelados, fila, `MilestoneOpened` con el hash de la cabecera que devuelve el registro; una fila sin
+  `MilestoneOpened` no se lista y abrir otra vez con lo mismo la completa); el backlog como la memoria (`BacklogItemRecorded` primero, la fila después con la hora
+  del anuncio; escribir otra vez la misma versión completa la fila, con otro contenido se rechaza).
+- **Lectura que falla cerrada:** un registro que no verifica lanza `DecisionLogIntegrityException`; una cabecera que no es la que ancló `MilestoneOpened` sale con su
+  problema (`milestone.header-not-anchored`) y no se le escribe nada; una fila del backlog que no coincide con su anuncio (contenido, prioridad u hora) hace
+  `InvalidOperationException` y no se lee el backlog; una fila sin anuncio no se lee; un anuncio sin fila aún no es un elemento.
+- **Trailers:** `Workers.cs` escribe el mensaje del commit de un intento con `CommitTrailers.Append` (ejecución, tarea, intento y agente con su modelo). Sin modelo
+  válido se omite el modelo, y sin trailers válidos queda el asunto. El commit del intento interrumpido de `RunResumer` y el de integración de `Integrator` siguen con
+  sus líneas antiguas, que `CommitTrailers.Read` lee como ninguna (el sistema no las toma por trailers).
+- **Tablero:** un veredicto cuenta si el registro lo anunció válido y el almacén lo guarda válido y con la misma decisión; uno impugnado se aparta (revisión) hasta que
+  su debate de revisión cierra resuelto: si confirma la decisión se queda, si retira una aprobación manda la de la revisión, y si vuelve hacia una aprobación la tarjeta
+  sigue en revisión (la acepta una persona, D-40). Si varias ejecuciones cubren un requisito decide la última que empezó. Dentro de la ejecución decide el último veredicto que
+  juzgó el requisito por la regla compartida (`VerdictReach`); ya no cae al último veredicto cualquiera cuando ninguno evaluó ese requisito: sin veredicto que lo juzgue, la
+  tarjeta no tiene veredicto.
+- **Un cambio de contrato (ajuste de la cadena):** `TraceChainStep` gana `Standing` (`TraceVerdictStanding?`, opcional, al final): en vigor, sustituido, impugnado o revisado, solo en los
+  pasos de veredicto. «Cadena» lo enseña bajo el veredicto.
+- **«Participantes» (escritorio):** `ParticipationSection` ya leía con el patrón de generación de las demás secciones (`BeginRead`/`IsLatest`) al pedir la proyección; se añade que
+  cambiar de proyecto invalida la lectura en vuelo, y `WorkSection.GuardAsync` acepta la lectura a la que pertenece (`read:`) para que el error de una lectura vieja que termina
+  tarde no tape ni borre el de la más nueva: al cambiar el foco y elegir el sujeto hay dos lecturas, y manda la última que se pidió, no la última en terminar.
+- **Tablero, cambio de comportamiento:** `VerdictFor` ya no cae a «el último veredicto cualquiera» cuando ninguno evaluó el requisito (la tarjeta se queda sin veredicto), para no
+  divergir de la cadena. Un veredicto emitido sobre una tarea que el plan no tiene (la del juez de una revisión) cuenta como del trabajo de la ejecución.
+
+### 23.7 Lo que WP5 hizo con estos contratos (escritorio)
+
+- **Ningún contrato cambió.** WP5 solo consume los de §23.3 y no toca `Orchestration/Work/**`.
+- **`LocalProjectBudgetStore`** (`Desktop/Work`) implementa `IProjectBudgetStore`: el presupuesto del proyecto es de la persona y de este equipo,
+  como las opciones del proyecto ([ADR-0040](adr/0040-consumo-por-hito-y-actividad-y-presupuestos.md), decisión 5), así que vive en
+  `%LOCALAPPDATA%\AgentStudio\budgets\<id del proyecto>.json` (la carpeta local de la aplicación, `budgets`) y nada entra en el repositorio. Se escribe
+  entero junto al fichero y se mueve encima. **Falla cerrado**, a diferencia del almacén de las opciones: un fichero que no se puede leer o no
+  valida lanza `InvalidDataException`, de modo que `ProjectBudgetGate` rechaza con `project.budget-unreadable` en lugar de dejar pasar todo; solo la falta del
+  fichero es «sin presupuesto». `SaveAsync` valida (`WorkBudget.EnsureValid`) antes de escribir, rechaza un id de proyecto que no sirve para nombrar un fichero y,
+  con `null`, borra el fichero.
+- **Composición.** `AddWorkUiServices` (llamada desde `AddAgentStudioApp` con la carpeta local) registra el almacén (el `Orchestrator` lo toma como el
+  puerto opcional `budgets` de su puerta, así que lo que la persona guarda es lo que el motor comprueba antes de lanzar un intento), el `WorkBackend` (los puertos de la pantalla, todos
+  opcionales) y el documento «Trabajo». `MainViewModel` gana un parámetro opcional al final (`workDocument`) y la entrada «Trabajo» de la barra lateral.
+- **La pantalla** ([03 §8.2](03-pantallas-y-navegacion.md#82-trabajo-fase-9-wp5)): cerrar un hito va por `IMilestoneCloser`, nunca por la auditoría
+  directamente, y la aprobación y el consentimiento son los de la auditoría. Los nodos de la cadena abren una prueba guardada (lectura con
+  comprobación de huella, como la sala de un debate) o un veredicto; el resto se enseña sin enlace. El tablero agrupa por la columna que da
+  `IBoardProjector` y no calcula ninguna; las cuatro reglas aún por decidir se dejan como las tiene `BoardRules`.

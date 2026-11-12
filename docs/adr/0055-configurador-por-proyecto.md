@@ -116,3 +116,22 @@
     códigos (ADR-0054).
   - **La integración** tiene que dar de alta `AddAgentStudioSetup`, alojar la vista, leer las opciones del proyecto en la
     pestaña del orquestador y suscribirse a `SetupViewModel.Applied` (docs/04 §21.9).
+
+## Adenda · 2026-11-12 · los restos de los perfiles de Node y Python (P53)
+
+- **Un motivo con caracteres de `cmd` ya no lanza.** `StackStepSupport.Failing` lanzaba `ArgumentException` si el motivo traía
+  `&`, `|`, `<`, `>`, `^`, `%` o `"` (una ruta de `node.exe` rara llegaba así a proponer el perfil). Ahora el motivo pasa por
+  `StackStepSupport.SafeMessage` antes de llegar a `cmd`: `& | < > ^ %` se escapan con `^` y `cmd` los imprime tal cual (medido con
+  un `cmd` real, una prueba `LocalTools` por carácter que comprueba código de salida 1, que lo impreso es el motivo y que no se
+  ejecutó nada, ni siquiera un `%PATH%`). **Excepción:** la comilla doble pasa a comilla simple, porque el lanzador la convierte en
+  `\"` y `cmd` imprimiría la barra; así que el motivo queda íntegro salvo en ese carácter. Cualquier carácter de control (un salto
+  de línea incluido) pasa a un espacio, y un motivo en blanco dice que no se dio ninguno.
+- **La versión mínima de Node con el informe JUnit está comprobada.** Fuente: los registros de cambios de nodejs.org
+  (`doc/changelogs/CHANGELOG_V18.md` y `CHANGELOG_V20.md`, «test_runner: add junit reporter», nodejs/node#49614): el informador
+  `junit` llegó con **18.19.0**, **20.8.0** y **21.0.0** (la 21 se ramificó después del cambio); Node 19 acabó antes y no lo tiene.
+  Las opciones `--test-reporter` y `--test-reporter-destination` son anteriores (19.6.0 y 18.15.0; documentación de `cli`), así que
+  el límite es el informador. `NodeVerificationProfile.HasJUnitReporter` lo aplica y, con una versión menor, el paso `test` es un paso
+  que falla y dice «Node X has no JUnit test reporter (it came with 18.19.0, 20.8.0 and 21.0.0)». La versión sale del recurso de
+  versión de `node.exe` (`FileVersionInfo`, sin ejecutar nada); sin recurso o sin fichero es desconocida y el paso queda como
+  estaba. Las pruebas dan la versión por un parámetro (`readVersion`), sin Node real. En esta máquina (2026-11-12) Node es 24.14.0.
+

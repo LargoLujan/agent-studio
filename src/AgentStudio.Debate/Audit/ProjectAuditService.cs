@@ -5,6 +5,7 @@ using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Execution;
 using AgentStudio.Application.Git;
 using AgentStudio.Application.Judging;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Projects;
@@ -105,32 +106,33 @@ public sealed class ProjectAuditService(
         var pending = PendingProblems.From(log.Entries);
         if (!log.Verification.IsValid)
         {
-            return Unjudged(audit, proposal, logIntact: false, pending,
+            return Unjudged(audit, proposal, logIntact: false, pending, UserText.Of(AuditUserTexts.EscalationLogBroken),
                 $"El registro de decisiones no está íntegro ({Broken(log.Verification)}). No se lanza el juez y no se escribe nada: un veredicto no se puede anclar a un registro que no admite entradas. Los problemas pendientes se leen del registro tal como está, sin anclar.");
         }
 
         if (!proposal.CanJudge)
         {
             var reasons = proposal.Problems.Count > 0 ? proposal.Problems : ["Nadie puede juzgar esta auditoría."];
-            return Unjudged(audit, proposal, logIntact: true, pending,
+            return Unjudged(audit, proposal, logIntact: true, pending, UserText.Of(AuditUserTexts.EscalationCannotLaunch),
                 $"No se lanza la auditoría, y no se ejecuta ni se escribe nada: {string.Join(" ", reasons)}");
         }
 
         var (fresh, material) = await ProposeAsync(proposal.Request, ct).ConfigureAwait(false);
         if (material is null || !fresh.CanJudge || !string.Equals(fresh.HeaderHash, proposal.HeaderHash, StringComparison.Ordinal))
         {
-            throw new InvalidOperationException(
+            throw new UserTextException(
+                UserText.Of(AuditUserTexts.ProposalOutdated),
                 "What the audit would do now is not what was shown (HEAD, the requirements, the judge, the producers or the profile changed): prepare it again.");
         }
 
         using var lease = activity.TryEnter(projectId, ProjectActivityKind.Audit)
-            ?? throw new InvalidOperationException($"Project '{projectId}' is busy ({activity.Current(projectId)}): an audit shares the project with no other activity.");
+            ?? throw new UserTextException(UserText.Of(AuditUserTexts.ProjectBusy), $"Project '{projectId}' is busy ({activity.Current(projectId)}): an audit shares the project with no other activity.");
         var decision = await approvals.RequestAsync(
             new ApprovalRequest(ApprovalAction, proposal.ApprovalText, RiskLevel.Critical, null, [], projectId, audit.Value, Binding: proposal.HeaderHash),
             ct).ConfigureAwait(false);
         if (!decision.Approved)
         {
-            return Unjudged(audit, proposal, logIntact: true, pending,
+            return Unjudged(audit, proposal, logIntact: true, pending, UserText.Of(AuditUserTexts.EscalationNotApproved, decision.DecidedBy),
                 $"La auditoría no se aprobó ({decision.DecidedBy}{(string.IsNullOrWhiteSpace(decision.Comment) ? string.Empty : ": " + decision.Comment)}): no se ha ejecutado nada.");
         }
 
@@ -187,7 +189,7 @@ public sealed class ProjectAuditService(
             if (await CopyCommitAsync(project, head, snapshot, ct).ConfigureAwait(false) is { } copyProblem)
             {
                 var reason = $"No se pudo extraer una copia del commit {Short(head)} para el juez ({copyProblem}): no se lanza, porque no podría leer el código que audita. La verificación de HEAD sí se hizo.";
-                return await FinishAsync(audit, material, Escalation(reason, material.Requirements.ContentHash, string.Empty), null, [], false, ReviewDisposition.NeedsHuman, verified, pending, []).ConfigureAwait(false);
+                return await FinishAsync(audit, material, Escalation(reason, material.Requirements.ContentHash, string.Empty), null, [], false, ReviewDisposition.NeedsHuman, verified, pending, [], UserText.Of(AuditUserTexts.EscalationCopyFailed, Short(head))).ConfigureAwait(false);
             }
 
             // The recorder appends to the log it holds in memory: only reading it back, whole and from its first entry, shows
@@ -196,11 +198,11 @@ public sealed class ProjectAuditService(
             if (!log.Verification.IsValid)
             {
                 var broken = $"El registro de decisiones dejó de verificar durante la auditoría ({Broken(log.Verification)}): no se lanza el juez y no se escribe nada más.";
-                return Report(audit, material, Escalation(broken, material.Requirements.ContentHash, string.Empty), null, [], false, logIntact: false, ReviewDisposition.NeedsHuman, verified, pending);
+                return Report(audit, material, Escalation(broken, material.Requirements.ContentHash, string.Empty), null, [], false, logIntact: false, ReviewDisposition.NeedsHuman, verified, pending, UserText.Of(AuditUserTexts.EscalationLogBrokeMidway));
             }
 
             var (package, index) = await dossiers.BuildAsync(
-                new ProjectDossierRequest(projectId, audit, material.Text, material.Requirements, head, log.Entries, material.Producers, material.Declared, material.Skipped, snapshot, pending, checks, ProjectAuditExclusions.Of(material.Profile)),
+                new ProjectDossierRequest(projectId, audit, material.Text, material.Requirements, head, log.Entries, material.Producers, material.Declared, material.Skipped, snapshot, pending, checks, ProjectAuditExclusions.Of(material.Profile), material.Request.Milestone),
                 ct).ConfigureAwait(false);
 
             // The index the judge reads is kept as evidence of the audit, announced after the dossier was built (so it is not
@@ -249,7 +251,7 @@ public sealed class ProjectAuditService(
             var reason = $"No se lanza el juez '{agent.Id}': corre en '{vendor}', que produjo código del proyecto o lo firma ({excluded}).";
             await decisions.RecordAsync(projectId, SystemActor, DecisionKind.AuditAlertRaised, "Juez no independiente",
                 new AuditAlertPayload(JudgeNotIndependentAlert, [task], reason) { RunId = run }, cancellationToken: ct).ConfigureAwait(false);
-            return await FinishAsync(audit, material, Escalation(reason, requirementSetHash, dossier.DecisionLogHeadHash), null, [], false, ReviewDisposition.NeedsHuman, verified, pending, []).ConfigureAwait(false);
+            return await FinishAsync(audit, material, Escalation(reason, requirementSetHash, dossier.DecisionLogHeadHash), null, [], false, ReviewDisposition.NeedsHuman, verified, pending, [], UserText.Of(AuditUserTexts.EscalationJudgeExcluded, agent.Id.ToString(), vendor.ToString())).ConfigureAwait(false);
         }
 
         var note = $"Juez en '{vendor}'; vendors que produjeron el código o lo firman: {excluded} (regla de los productores, ADR-0014).";
@@ -266,7 +268,7 @@ public sealed class ProjectAuditService(
         catch (JudgeRunException ex) when (ex.Status == AgentRunStatus.RateLimited)
         {
             var reason = $"El juez '{agent.Id}' alcanzó el límite de uso de '{vendor}' antes de dar un veredicto: vuelve a auditar cuando termine la espera.";
-            return await FinishAsync(audit, material, Escalation(reason, requirementSetHash, dossier.DecisionLogHeadHash), null, [], false, ReviewDisposition.RateLimited, verified, pending, []).ConfigureAwait(false);
+            return await FinishAsync(audit, material, Escalation(reason, requirementSetHash, dossier.DecisionLogHeadHash), null, [], false, ReviewDisposition.RateLimited, verified, pending, [], UserText.Of(AuditUserTexts.EscalationJudgeLimit, agent.Id.ToString(), vendor.ToString())).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is JudgeOutputException or JudgeRunException)
         {
@@ -274,7 +276,8 @@ public sealed class ProjectAuditService(
             var reason = ex is JudgeRunException { Status: not AgentRunStatus.Succeeded } failed
                 ? $"El juez '{agent.Id}' no terminó ({failed.Status}): {ex.Message}"
                 : $"El juez '{agent.Id}' respondió sin un veredicto que se pueda leer: {ex.Message}";
-            return await FinishAsync(audit, material, Escalation(reason, requirementSetHash, dossier.DecisionLogHeadHash), null, [], false, ReviewDisposition.NeedsHuman, verified, pending, []).ConfigureAwait(false);
+            var code = ex is JudgeRunException { Status: not AgentRunStatus.Succeeded } ? AuditUserTexts.EscalationJudgeFailed : AuditUserTexts.EscalationJudgeUnreadable;
+            return await FinishAsync(audit, material, Escalation(reason, requirementSetHash, dossier.DecisionLogHeadHash), null, [], false, ReviewDisposition.NeedsHuman, verified, pending, [], UserText.Of(code, agent.Id.ToString())).ConfigureAwait(false);
         }
 
         var violations = VerdictValidator.Validate(verdict, dossier);
@@ -316,10 +319,11 @@ public sealed class ProjectAuditService(
         ReviewDisposition disposition,
         IReadOnlyList<EvidenceRecord> verified,
         IReadOnlyList<PendingProblem> pending,
-        IReadOnlyList<string> kept)
+        IReadOnlyList<string> kept,
+        UserText? escalation = null)
     {
         // Once there is a result it is recorded even if the caller is being cancelled: the quota was spent.
-        var report = Report(audit, material, verdict, verdictId, violations, corrected, logIntact: true, disposition, verified, pending);
+        var report = Report(audit, material, verdict, verdictId, violations, corrected, logIntact: true, disposition, verified, pending, escalation);
         var summary = verdictId is null
             ? $"Sin veredicto del juez: {verdict.Summary}"
             : $"Veredicto {verdict.Decision} {(violations.Count == 0 ? "válido" : $"inválido ({violations.Count} incidencias)")}; disposición {disposition}.";
@@ -378,11 +382,12 @@ public sealed class ProjectAuditService(
         bool logIntact,
         ReviewDisposition disposition,
         IReadOnlyList<EvidenceRecord> verified,
-        IReadOnlyList<PendingProblem> pending) =>
-        new(audit, AuditScope.WholeProject, material.Head, material.Uncommitted, verdict, verdictId, violations, corrected, logIntact, disposition, verified, pending, time.GetUtcNow());
+        IReadOnlyList<PendingProblem> pending,
+        UserText? escalation = null) =>
+        new(audit, AuditScope.WholeProject, material.Head, material.Uncommitted, verdict, verdictId, violations, corrected, logIntact, disposition, verified, pending, time.GetUtcNow(), escalation);
 
     /// <summary>The report of an audit that judged nothing and wrote nothing: the system's escalation, never a judge's verdict.</summary>
-    private AuditReport Unjudged(RunId audit, ProjectAuditProposal proposal, bool logIntact, IReadOnlyList<PendingProblem> pending, string reason) =>
+    private AuditReport Unjudged(RunId audit, ProjectAuditProposal proposal, bool logIntact, IReadOnlyList<PendingProblem> pending, UserText text, string reason) =>
         new(
             audit,
             AuditScope.WholeProject,
@@ -396,7 +401,8 @@ public sealed class ProjectAuditService(
             ReviewDisposition.NeedsHuman,
             [],
             pending,
-            time.GetUtcNow());
+            time.GetUtcNow(),
+            text);
 
     /// <summary>The system's escalation when no judge gave a verdict (as <c>IndependentReview</c> gives it): never stored as a judge's.</summary>
     private Verdict Escalation(string reason, string requirementSetHash, string head) => new(
@@ -434,20 +440,20 @@ public sealed class ProjectAuditService(
         ArgumentNullException.ThrowIfNull(request.DeclaredAuthors);
         var project = request.Project;
         var projectId = project.ProjectId;
-        var problems = new List<string>();
+        var problems = new CodedMessages();
 
         // Who produced code, and so who may judge (rule P), comes from the whole log.
         var log = await decisions.LoadAsync(projectId, LogLoad.Full, ct).ConfigureAwait(false);
         var intact = log.Verification.IsValid;
         if (!intact)
         {
-            problems.Add($"El registro de decisiones no está íntegro ({Broken(log.Verification)}): sin un registro que verifique no se lanza el juez.");
+            problems.Add($"El registro de decisiones no está íntegro ({Broken(log.Verification)}): sin un registro que verifique no se lanza el juez.", UserText.Of(AuditUserTexts.ProblemLogBroken));
         }
 
         var frozen = await requirements.FindAsync(projectId, request.RequirementSetHash, ct).ConfigureAwait(false);
         if (frozen is null)
         {
-            problems.Add($"El proyecto no tiene el conjunto de requisitos congelado {request.RequirementSetHash}: sin requisitos no se audita.");
+            problems.Add($"El proyecto no tiene el conjunto de requisitos congelado {request.RequirementSetHash}: sin requisitos no se audita.", UserText.Of(AuditUserTexts.ProblemRequirementsMissing, request.RequirementSetHash));
         }
 
         RepositoryState? repository = null;
@@ -457,7 +463,7 @@ public sealed class ProjectAuditService(
         }
         catch (Exception ex) when (ex is IOException or InvalidOperationException or UnauthorizedAccessException)
         {
-            problems.Add($"No se puede leer el repositorio del proyecto: {ex.Message}");
+            problems.Add($"No se puede leer el repositorio del proyecto: {ex.Message}", UserText.Of(AuditUserTexts.ProblemRepositoryUnreadable));
         }
 
         VerificationProfile? profile = null;
@@ -466,12 +472,12 @@ public sealed class ProjectAuditService(
             profile = await profiles.LoadAsync(project, ct).ConfigureAwait(false);
             if (profile is null)
             {
-                problems.Add("El proyecto no tiene perfil de verificación de confianza: guárdalo antes de auditar.");
+                problems.Add("El proyecto no tiene perfil de verificación de confianza: guárdalo antes de auditar.", UserText.Of(AuditUserTexts.ProblemNoTrustProfile));
             }
         }
         catch (Exception ex) when (ex is IOException or InvalidDataException or InvalidOperationException or UnauthorizedAccessException or System.Text.Json.JsonException)
         {
-            problems.Add($"El perfil de verificación del proyecto no se puede usar: {ex.Message}");
+            problems.Add($"El perfil de verificación del proyecto no se puede usar: {ex.Message}", UserText.Of(AuditUserTexts.ProblemProfileUnusable));
         }
 
         var producers = intact ? ProducersOf(log.Entries) : [];
@@ -479,7 +485,7 @@ public sealed class ProjectAuditService(
         var judge = intact ? await JudgeAsync(request, producers, declared, problems, ct).ConfigureAwait(false) : null;
 
         var skipped = profile?.Steps.Where(s => s.Isolation == ProcessIsolation.None).Select(s => s.Id).ToList() ?? [];
-        var text = RequestText(project, repository, frozen, request.RequirementSetHash, judge, producers, declared, profile, skipped);
+        var text = RequestText(project, repository, frozen, request.RequirementSetHash, judge, producers, declared, profile, skipped, request.Milestone);
         var textSha = ContentHash.Sha256Hex(text);
         Material? material = null;
         string headerHash;
@@ -497,37 +503,37 @@ public sealed class ProjectAuditService(
         }
 
         var estimate = MetricValue<long>.EstimatedBySystem(EstimatedJudgeTokens, "estimate: the judge of a whole-project audit reads the repository, plus one correction at most");
-        var proposal = new ProjectAuditProposal(request, repository?.HeadCommit, repository?.HasUncommittedChanges ?? false, judge, producers, profile, skipped, estimate, problems, headerHash, text);
+        var proposal = new ProjectAuditProposal(request, repository?.HeadCommit, repository?.HasUncommittedChanges ?? false, judge, producers, profile, skipped, estimate, problems.Messages, headerHash, text, problems.Texts);
         return (proposal, material);
     }
 
     /// <summary>The judge of the template, when it may judge: a judge or an auditor of a vendor that produced none of the code (rule P).</summary>
-    private async Task<AgentDefinition?> JudgeAsync(ProjectAuditRequest request, IReadOnlyList<VendorId> producers, IReadOnlyList<VendorId> declared, List<string> problems, CancellationToken ct)
+    private async Task<AgentDefinition?> JudgeAsync(ProjectAuditRequest request, IReadOnlyList<VendorId> producers, IReadOnlyList<VendorId> declared, CodedMessages problems, CancellationToken ct)
     {
         var template = await roster.ListAsync(request.Project.ProjectId, ct).ConfigureAwait(false);
         var judge = template.FirstOrDefault(a => a.Id == request.Judge);
         if (judge is null)
         {
-            problems.Add($"El juez '{request.Judge}' no está en la plantilla de agentes del proyecto.");
+            problems.Add($"El juez '{request.Judge}' no está en la plantilla de agentes del proyecto.", UserText.Of(AuditUserTexts.ProblemJudgeMissing, request.Judge.ToString()));
             return null;
         }
 
         if (judge.Role is not (AgentRole.Judge or AgentRole.Auditor))
         {
-            problems.Add($"'{judge.Id}' es {judge.Role}: solo un juez o un auditor juzga.");
+            problems.Add($"'{judge.Id}' es {judge.Role}: solo un juez o un auditor juzga.", UserText.Of(AuditUserTexts.ProblemJudgeWrongRole, judge.Id.ToString()));
             return null;
         }
 
         if (judge.Validate() is { Count: > 0 } broken)
         {
-            problems.Add($"La definición del juez '{judge.Id}' no es válida: {string.Join(", ", broken)}.");
+            problems.Add($"La definición del juez '{judge.Id}' no es válida: {string.Join(", ", broken)}.", UserText.Of(AuditUserTexts.ProblemJudgeInvalid, judge.Id.ToString()));
             return null;
         }
 
         var vendor = judge.Model.Vendor;
         if (producers.Contains(vendor) || declared.Contains(vendor))
         {
-            problems.Add($"El juez '{judge.Id}' corre en '{vendor}', que produjo código del proyecto (vendors productores según el registro: {List(producers.Select(v => v.Value))}; autores declarados: {List(declared.Select(v => v.Value))}). La regla de los productores no se dispensa: sin un juez de otro vendor la auditoría no se lanza.");
+            problems.Add($"El juez '{judge.Id}' corre en '{vendor}', que produjo código del proyecto (vendors productores según el registro: {List(producers.Select(v => v.Value))}; autores declarados: {List(declared.Select(v => v.Value))}). La regla de los productores no se dispensa: sin un juez de otro vendor la auditoría no se lanza.", UserText.Of(AuditUserTexts.ProblemJudgeProducer, judge.Id.ToString(), vendor.ToString()));
             return null;
         }
 
@@ -556,11 +562,19 @@ public sealed class ProjectAuditService(
         IReadOnlyList<VendorId> producers,
         IReadOnlyList<VendorId> declared,
         VerificationProfile? profile,
-        IReadOnlyList<string> skipped)
+        IReadOnlyList<string> skipped,
+        AuditMilestoneScope? milestone)
     {
         var text = new StringBuilder();
-        text.AppendLine("Auditoría del proyecto completo");
+        text.AppendLine(milestone is null ? "Auditoría del proyecto completo" : "Auditoría para cerrar un hito");
         text.AppendLine(CultureInfo.InvariantCulture, $"Proyecto: {project.ProjectId}");
+        if (milestone is not null)
+        {
+            text.AppendLine(CultureInfo.InvariantCulture, $"Hito: {OneLine(milestone.Name)} ({milestone.Milestone})");
+            text.AppendLine(CultureInfo.InvariantCulture, $"Objetivo del hito: {OneLine(milestone.Objective)}");
+            text.AppendLine(CultureInfo.InvariantCulture, $"Alcance: ejecuciones {List(milestone.Runs.Order(StringComparer.Ordinal))}; debates {List(milestone.Debates.Order(StringComparer.Ordinal))}");
+        }
+
         text.AppendLine(repository is null
             ? "Commit auditado (HEAD): no se pudo leer"
             : $"Commit auditado (HEAD): {repository.HeadCommit}{(repository.HasUncommittedChanges ? " (hay cambios sin confirmar: no entran en la auditoría)" : string.Empty)}");
@@ -667,6 +681,9 @@ public sealed class ProjectAuditService(
         var safe = new string([.. text.Select(c => c is (>= 'a' and <= 'z') or (>= 'A' and <= 'Z') or (>= '0' and <= '9') or '_' or '-' ? c : '_')]);
         return safe.Length == 0 ? "_" : safe.Length > 64 ? safe[..64] : safe;
     }
+
+    /// <summary>The text of a person on one line, so it cannot add lines to what is approved.</summary>
+    private static string OneLine(string text) => string.Join(' ', text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
 
     private static string Short(string commit) => commit.Length > 10 ? commit[..10] : commit;
 

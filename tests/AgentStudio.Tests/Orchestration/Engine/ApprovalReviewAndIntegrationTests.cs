@@ -2,6 +2,7 @@ using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Execution;
 using AgentStudio.Application.Git;
 using AgentStudio.Application.Judging;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Security;
 using AgentStudio.Domain.Agents;
@@ -10,6 +11,8 @@ using AgentStudio.Domain.Evidence;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Domain.Work;
+using AgentStudio.Orchestration;
+using AgentStudio.Orchestration.Engine;
 using AgentStudio.Orchestration.Integration;
 using AgentStudio.Tests.Orchestration.Fakes;
 using static AgentStudio.Tests.Orchestration.Fakes.OrchestrationFixtures;
@@ -186,6 +189,8 @@ public sealed class ApprovalReviewAndIntegrationTests
         var commit = Assert.IsType<string>(result.IntegrationCommit);
         Assert.Contains("pruebas", result.Summary, StringComparison.Ordinal);
         Assert.Contains(commit, result.Summary, StringComparison.Ordinal);
+        Assert.Equal(OrchestrationUserTexts.VerdictTestsRequired, Assert.IsType<UserText>(result.SummaryText).Code);
+        Assert.Equal(result.SummaryText, LoggedTexts.RunSummary(result.Summary));
         var (_, alert) = Assert.Single(harness.Alerts("run.tests-required"));
         Assert.Contains(commit, alert.Message, StringComparison.Ordinal);
         Assert.Equal(RunPhase.Failed, Assert.Single(harness.Payloads<RunFinishedPayload>()).Payload.Phase);
@@ -210,6 +215,8 @@ public sealed class ApprovalReviewAndIntegrationTests
         var (_, alert) = Assert.Single(harness.Alerts("run.tests-required"));
         Assert.Contains(harness.Worktrees.Head("T3"), alert.Message, StringComparison.Ordinal);
         Assert.Equal([new TaskId("T3")], alert.Tasks);
+        Assert.Equal(UserText.Of(OrchestrationUserTexts.VerdictTestsRequired, UserText.Of(OrchestrationUserTexts.VerdictUntestedCommit, "T3", harness.Worktrees.Head("T3"))), result.SummaryText);
+        Assert.Equal(result.SummaryText, LoggedTexts.RunSummary(result.Summary));
     }
 
     [Fact]

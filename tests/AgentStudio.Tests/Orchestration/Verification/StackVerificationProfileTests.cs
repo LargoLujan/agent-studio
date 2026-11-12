@@ -154,14 +154,14 @@ public sealed class StackVerificationProfileTests : IDisposable
             {
                 var step = profile.Find(id)!;
                 Assert.Equal("cmd", step.Executable);
-                Assert.Contains("npm-cli.js was not found next to node.exe", step.Arguments[2], StringComparison.Ordinal);
-                Assert.EndsWith("exit /b 1", step.Arguments[2], StringComparison.Ordinal);
+                Assert.Contains("npm-cli.js was not found next to node.exe", step.Arguments[^1], StringComparison.Ordinal);
+                Assert.EndsWith("exit /b 1", step.Arguments[^1], StringComparison.Ordinal);
             }
 
             Assert.Equal(["install", "build", "test"], profile.StepsToRun(["test"]).Select(s => s.Id));
 
             var noNode = NodeVerificationProfile.ProposeFor(["package.json"], new FakeLocator(null, null))!;
-            Assert.Contains("node was not found on the PATH", noNode.Find("install")!.Arguments[2], StringComparison.Ordinal);
+            Assert.Contains("node was not found on the PATH", noNode.Find("install")!.Arguments[^1], StringComparison.Ordinal);
         }
         finally
         {
@@ -189,12 +189,114 @@ public sealed class StackVerificationProfileTests : IDisposable
 
         Assert.Empty(VerificationRules.Check(alias));
         Assert.Equal("cmd", alias.Find("build")!.Executable);
-        Assert.Contains("alias of the Microsoft Store", alias.Find("build")!.Arguments[2], StringComparison.Ordinal);
-        Assert.Contains("python was not found on the PATH", missing.Find("build")!.Arguments[2], StringComparison.Ordinal);
+        Assert.Contains("alias of the Microsoft Store", alias.Find("build")!.Arguments[^1], StringComparison.Ordinal);
+        Assert.Contains("python was not found on the PATH", missing.Find("build")!.Arguments[^1], StringComparison.Ordinal);
         Assert.Equal("python", real.Find("build")!.Executable);
         Assert.Equal(PythonVerificationProfile.Propose().ContentHash, real.ContentHash);
         Assert.Equal("python", alias.Find("test")!.Executable);
-        Assert.Throws<ArgumentException>(() => StackStepSupport.Failing("x", "x", EvidenceKind.BuildLog, "a & b"));
+    }
+
+    [Theory]
+    [InlineData('&')]
+    [InlineData('|')]
+    [InlineData('<')]
+    [InlineData('>')]
+    [InlineData('^')]
+    [InlineData('%')]
+    [InlineData('"')]
+    public void A_reason_with_a_character_cmd_reads_gives_a_failing_step_that_cannot_inject_anything(char character)
+    {
+        var reason = $@"C:\odd{character}dir\node.exe{character}calc";
+
+        var step = StackStepSupport.Failing("build", "Compilar", EvidenceKind.BuildLog, reason);
+
+        Assert.Equal("cmd", step.Executable);
+        Assert.Equal(["/d", "/v:off", "/c"], step.Arguments.Take(3));
+        var line = step.Arguments[^1];
+        Assert.EndsWith(" 1>&2 & exit /b 1", line, StringComparison.Ordinal);
+        var echoed = line["echo ".Length..^" 1>&2 & exit /b 1".Length];
+        Assert.Equal(StackStepSupport.SafeMessage(reason), echoed);
+
+        // Six of the seven characters come escaped with a caret; the double quote is printed as a single one.
+        var escaped = character == '"' ? "'" : "^" + character;
+        Assert.Equal(@"C:\odd" + escaped + @"dir\node.exe" + escaped + "calc", echoed);
+        Assert.Empty(VerificationRules.Check(new VerificationProfile("x", [step])));
+    }
+
+    [Fact]
+    public void A_blank_reason_or_one_with_a_line_break_still_gives_one_line_that_fails()
+    {
+        Assert.Contains("no reason was given", StackStepSupport.Failing("x", "x", EvidenceKind.BuildLog, "  ").Arguments[^1], StringComparison.Ordinal);
+        var multiline = StackStepSupport.Failing("x", "x", EvidenceKind.BuildLog, "a\r\n& calc").Arguments[^1];
+        Assert.DoesNotContain('\n', multiline);
+        Assert.DoesNotContain('\r', multiline);
+        Assert.Equal("echo a  ^& calc 1>&2 & exit /b 1", multiline);
+    }
+
+    [Fact]
+    public void An_odd_node_path_in_the_reason_does_not_throw_when_a_profile_is_proposed()
+    {
+        var odd = Path.Combine(Directory.CreateTempSubdirectory("as-odd&dir^%x-").FullName, "node.exe");
+        try
+        {
+            File.WriteAllText(odd, string.Empty);
+
+            var profile = NodeVerificationProfile.ProposeFor(["package.json"], new FakeLocator(odd, null), _ => null)!;
+
+            Assert.Equal("cmd", profile.Find("install")!.Executable);
+            Assert.Empty(VerificationRules.Check(profile));
+        }
+        finally
+        {
+            Directory.Delete(Path.GetDirectoryName(odd)!, recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData("18.18.2", false)]
+    [InlineData("18.19.0", true)]
+    [InlineData("19.9.0", false)]
+    [InlineData("20.7.0", false)]
+    [InlineData("20.8.0", true)]
+    [InlineData("21.0.0", true)]
+    [InlineData("24.14.0", true)]
+    [InlineData("16.20.2", false)]
+    public void The_junit_reporter_of_node_test_exists_from_18_19_20_8_and_21(string version, bool expected) =>
+        Assert.Equal(expected, NodeVerificationProfile.HasJUnitReporter(Version.Parse(version)));
+
+    [Fact]
+    public void With_a_node_without_the_junit_reporter_the_test_step_fails_and_says_which_version_it_needs()
+    {
+        var old = NodeVerificationProfile.ProposeFor(["package.json"], Locator(), _ => new Version(20, 7, 0))!;
+        var current = NodeVerificationProfile.ProposeFor(["package.json"], Locator(), _ => new Version(20, 8, 0))!;
+        var unknown = NodeVerificationProfile.ProposeFor(["package.json"], Locator(), _ => null)!;
+
+        var test = old.Find("test")!;
+        Assert.Equal("cmd", test.Executable);
+        Assert.Contains("Node 20.7.0 has no JUnit test reporter", test.Arguments[^1], StringComparison.Ordinal);
+        Assert.Contains("20.8.0", test.Arguments[^1], StringComparison.Ordinal);
+        Assert.Equal(["build"], test.Requires);
+        Assert.Equal(TestReportFormat.None, test.Report);
+        Assert.Empty(VerificationRules.Check(old));
+        Assert.Equal("node", old.Find("install")!.Executable);
+        Assert.Equal("node", current.Find("test")!.Executable);
+        Assert.Equal(TestReportFormat.JUnit, current.Find("test")!.Report);
+        Assert.Equal(current.ContentHash, unknown.ContentHash);
+    }
+
+    [Fact]
+    public void A_node_executable_that_carries_no_version_resource_is_of_unknown_version()
+    {
+        // The real Node on this machine, if any: its version resource is read, nothing is run.
+        var real = new AgentStudio.Infrastructure.Processes.ExecutableLocator().Find("node");
+        if (real is not null && NodeVerificationProfile.InstalledVersion(real) is { } version)
+        {
+            Assert.True(version.Major >= 1);
+        }
+
+        Assert.Null(NodeVerificationProfile.InstalledVersion(NodeExe));
+        Assert.Null(NodeVerificationProfile.InstalledVersion(null));
+        Assert.Null(NodeVerificationProfile.InstalledVersion(Path.Combine(_node, "missing.exe")));
     }
 
     [Fact]

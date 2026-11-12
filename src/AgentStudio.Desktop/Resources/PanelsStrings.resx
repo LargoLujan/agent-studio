@@ -62,7 +62,7 @@
     <comment>AttemptEndClass.Completed.</comment>
   </data>
   <data name="Panels_EndClass_WindowQuota" xml:space="preserve">
-    <value>se agotó el límite de uso de la ventana</value>
+    <value>se agotó el límite de uso del periodo</value>
     <comment>AttemptEndClass.WindowQuota.</comment>
   </data>
   <data name="Panels_EndClass_RateOrOverload" xml:space="preserve">
@@ -158,11 +158,11 @@
     <comment>State of a step.</comment>
   </data>
   <data name="Panels_Tests_RunHead" xml:space="preserve">
-    <value>Ejecutar las pruebas de HEAD</value>
+    <value>Ejecutar las pruebas de la última versión</value>
     <comment>Button.</comment>
   </data>
   <data name="Panels_Tests_RunHeadHint" xml:space="preserve">
-    <value>Pasa el perfil de verificación en una copia aislada de la última versión guardada. No gasta cuota.</value>
+    <value>Pasa el perfil de verificación en una copia aislada de la última versión guardada. No gasta tu límite de uso.</value>
     <comment>Tooltip of the button.</comment>
   </data>
   <data name="Panels_Tests_Running" xml:space="preserve">
@@ -170,7 +170,7 @@
     <comment>While it runs.</comment>
   </data>
   <data name="Panels_Tests_HeadTitle" xml:space="preserve">
-    <value>Pruebas de HEAD</value>
+    <value>Pruebas de la última versión</value>
     <comment>Title of the results of the button.</comment>
   </data>
   <data name="Panels_Tests_HeadNone" xml:space="preserve">
@@ -178,15 +178,15 @@
     <comment>Result.</comment>
   </data>
   <data name="Panels_Tests_HeadPassed" xml:space="preserve">
-    <value>Las pruebas de HEAD pasan.</value>
+    <value>Las pruebas de la última versión pasan.</value>
     <comment>Result.</comment>
   </data>
   <data name="Panels_Tests_HeadFailed" xml:space="preserve">
-    <value>Fallan {0} pasos de las pruebas de HEAD.</value>
+    <value>Fallan {0} pasos de las pruebas de la última versión.</value>
     <comment>Result. {0}: number.</comment>
   </data>
   <data name="Panels_Tests_HeadError" xml:space="preserve">
-    <value>No se pudieron ejecutar las pruebas de HEAD: {0}</value>
+    <value>No se pudieron ejecutar las pruebas de la última versión: {0}</value>
     <comment>{0}: why.</comment>
   </data>
   <data name="Panels_Tests_TaskError" xml:space="preserve">
@@ -198,7 +198,7 @@
     <comment>Button that cancels the tests of HEAD.</comment>
   </data>
   <data name="Panels_Tests_HeadCancelled" xml:space="preserve">
-    <value>Cancelaste las pruebas de HEAD.</value>
+    <value>Cancelaste las pruebas de la última versión.</value>
     <comment>Result of a cancelled run.</comment>
   </data>
   <data name="Info_Problems_Title" xml:space="preserve">
@@ -206,7 +206,7 @@
     <comment>Information button.</comment>
   </data>
   <data name="Info_Problems_What" xml:space="preserve">
-    <value>Reúne lo que el analizador y el validador ven en tu montaje, y por qué falló o está bloqueada cada tarea de la ejecución.</value>
+    <value>Reúne lo que el analizador y el validador ven en tu montaje. También por qué falló o está bloqueada cada tarea de la ejecución.</value>
     <comment>Information button.</comment>
   </data>
   <data name="Info_Problems_Actions" xml:space="preserve">
@@ -239,7 +239,7 @@ Vuelve a la ejecución entera quitando la selección.</value>
   </data>
   <data name="Info_Tests_Actions" xml:space="preserve">
     <value>Mira qué paso falló y su error principal.
-Ejecuta las pruebas de HEAD: no gasta cuota.
+Ejecuta las pruebas de la última versión: no gasta tu límite de uso.
 Vuelve al monitor para reintentar la tarea.</value>
     <comment>Information button.</comment>
   </data>
@@ -256,7 +256,7 @@ Vuelve al monitor para reintentar la tarea.</value>
     <comment>Title of the group.</comment>
   </data>
   <data name="Tools_Group_ClaudeNote" xml:space="preserve">
-    <value>Cada agente de Claude Code solo tiene las que su lanzamiento le da; las que escriben o ejecutan órdenes solo van en tareas que escriben.</value>
+    <value>Cada agente de Claude Code solo tiene las que su lanzamiento le da. Las que escriben o ejecutan órdenes solo van en tareas que escriben.</value>
     <comment>Note of the group.</comment>
   </data>
   <data name="Tools_Group_Codex" xml:space="preserve">
@@ -380,7 +380,7 @@ Vuelve al monitor para reintentar la tarea.</value>
     <comment>ProcessIsolation.None.</comment>
   </data>
   <data name="Tools_Step_Isolation_LowIntegrity" xml:space="preserve">
-    <value>en una zona aislada de integridad baja</value>
+    <value>en una zona aislada con menos permisos</value>
     <comment>ProcessIsolation.LowIntegrity.</comment>
   </data>
   <data name="Tools_Step_Use" xml:space="preserve">

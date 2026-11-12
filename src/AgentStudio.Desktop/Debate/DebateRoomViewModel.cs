@@ -7,6 +7,7 @@ using AgentStudio.Application.Coordination;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Projects;
 using AgentStudio.Desktop.Controls;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Orchestrator;
 using AgentStudio.Desktop.Orchestrator.Monitor;
@@ -38,6 +39,9 @@ public sealed record DebateRoomContext(
 /// <summary>A participant as the room lists it: its label and role, and the agent, CLI, vendor and model behind them.</summary>
 public sealed record DebateParticipantRow(string Label, string Role, AgentId Agent, string Where)
 {
+    /// <summary>What a screen reader says of «Reintentar turno» next to this participant.</summary>
+    public string RetryName => Texts.Format("Debate_RoomView_RetryTurnName", Label);
+
     /// <summary>What a screen reader says of a participant of the room (V34): its label and its role.</summary>
     public override string ToString() => $"{Label} · {Role}";
 
@@ -47,8 +51,11 @@ public sealed record DebateParticipantRow(string Label, string Role, AgentId Age
 /// <summary>An evidence a contribution cites, as a button that opens it.</summary>
 public sealed record CitedEvidence(string Id)
 {
+    /// <summary>What a screen reader says of the button that opens this evidence.</summary>
+    public string OpenName => Texts.Format("Debate_RoomView_OpenEvidenceName", Id);
+
     /// <summary>What a screen reader says of an evidence a contribution cites (V34): the evidence.</summary>
-    public override string ToString() => $"Evidencia {Id}";
+    public override string ToString() => Texts.Format("Debate_Evidence_Cited", Id);
 }
 
 /// <summary>An evidence opened from a contribution: what it is, whether its bytes still give the SHA-256 of its record, and its text when they do.</summary>
@@ -64,22 +71,21 @@ public sealed class DebateContributionViewModel
         ArgumentNullException.ThrowIfNull(zone);
         View = view;
         var author = participants.TryGetValue(view.Author, out var who) ? $"{view.Author} · {DebateTexts.Role(who.Role)}" : view.Author;
-        Header = $"{view.Label} · {DebateTexts.Kind(view.Kind)} de {author}";
-        RepliesText = view.RepliesTo is { Length: > 0 } replies ? $"Responde a {replies}" : null;
-        AnsweredText = "Respondió a las " + TimeZoneInfo.ConvertTime(view.AnsweredAt, zone).ToString("HH:mm:ss", CultureInfo.InvariantCulture) + " (se publicó al cerrar la ronda)";
-        HashText = "SHA-256 " + DebateTexts.Short(view.Sha256);
+        Header = Texts.Format("Debate_Contribution_Header", view.Label, DebateTexts.Kind(view.Kind), author);
+        RepliesText = view.RepliesTo is { Length: > 0 } replies ? Texts.Format("Debate_Contribution_Replies", replies) : null;
+        AnsweredText = Texts.Format("Debate_Contribution_Answered", TimeZoneInfo.ConvertTime(view.AnsweredAt, zone).ToString("HH:mm:ss", CultureInfo.InvariantCulture));
+        HashText = Texts.Format("Debate_Contribution_Hash", DebateTexts.Short(view.Sha256));
         Cites = [.. view.Cites.Select(id => new CitedEvidence(id.Value))];
-        Unresolved = [.. view.UnresolvedCitations.Select(c => $"Cita que no se resolvió en el commit: {c}")];
+        Unresolved = [.. view.UnresolvedCitations.Select(c => Texts.Format("Debate_Contribution_Unresolved", c))];
         RedactionsText = view.Redactions switch
         {
             0 => null,
-            1 => "Se redactó 1 secreto antes de publicarla.",
-            var count => string.Create(CultureInfo.InvariantCulture, $"Se redactaron {count} secretos antes de publicarla."),
+            var count => DebateTexts.Plural(count, "Debate_Count_Redaction"),
         };
-        FinishedText = view.Finished ? "Marcó su posición como terminada." : null;
+        FinishedText = view.Finished ? Texts.Get("Debate_Contribution_Finished") : null;
         if (view.Text is not { } text)
         {
-            TextProblem = "El texto no se pudo leer o no cuadra con el hash que ancló el registro: no se muestra.";
+            TextProblem = Texts.Get("Debate_Contribution_TextProblem");
             Claims = [];
             Quotes = [];
             return;
@@ -88,9 +94,9 @@ public sealed class DebateContributionViewModel
         var content = ContributionText.Read(text);
         Summary = content.Summary;
         Argument = content.Argument ?? content.Raw;
-        Claims = [.. content.Claims.Select(c => c.Support.Count == 0 ? c.Claim : $"{c.Claim} (apoyo: {string.Join(", ", c.Support)})")];
+        Claims = [.. content.Claims.Select(c => c.Support.Count == 0 ? c.Claim : Texts.Format("Debate_Contribution_Support", c.Claim, string.Join(", ", c.Support)))];
         Quotes = [.. content.Quotes.Select(q => $"{q.Id} · {q.Where}{(string.IsNullOrWhiteSpace(q.Why) ? string.Empty : " · " + q.Why)}")];
-        ConcedesText = content.Concedes.Count == 0 ? null : "Concede: " + string.Join(", ", content.Concedes);
+        ConcedesText = content.Concedes.Count == 0 ? null : Texts.Format("Debate_Contribution_Concedes", string.Join(", ", content.Concedes));
     }
 
     public DebateContributionView View { get; }
@@ -163,6 +169,10 @@ public sealed record DebateRoundViewModel(int Round, string Title, IReadOnlyList
 /// </remarks>
 public sealed partial class DebateRoomViewModel : ObservableObject
 {
+    /// <summary>
+    /// Why the debate was closed as aborted: it is written in the decision log, which is never translated (docs/17 D-48), so it
+    /// stays in Spanish whatever the language of the interface.
+    /// </summary>
     public const string AbortReason = "Abortado por el usuario desde la sala.";
 
     /// <summary>The evidence opened from a contribution is shown up to this size.</summary>
@@ -233,16 +243,24 @@ public sealed partial class DebateRoomViewModel : ObservableObject
     private bool _isFinished;
 
     [ObservableProperty]
-    private string _title = "Sin debate";
+    private string _title = Texts.Get("Debate_Room_None");
 
     [ObservableProperty]
     private string? _subjectText;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(QuestionLine))]
     private string? _question;
 
+    /// <summary>The question of the debate, introduced.</summary>
+    public string? QuestionLine => Question is { } question ? Texts.Format("Debate_RoomView_QuestionLine", question) : null;
+
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(RequirementsShown))]
     private string? _requirementsText;
+
+    /// <summary>The requirements of the debate, or that they were not read.</summary>
+    public string RequirementsShown => RequirementsText ?? Texts.Get("Debate_RoomView_RequirementsUnread");
 
     [ObservableProperty]
     private string? _judgesText;
@@ -255,7 +273,7 @@ public sealed partial class DebateRoomViewModel : ObservableObject
     private DebatePhase? _phase;
 
     [ObservableProperty]
-    private string _phaseText = "Sin debate";
+    private string _phaseText = Texts.Get("Debate_Room_None");
 
     [ObservableProperty]
     private Tone _phaseTone = Tone.Neutral;
@@ -360,7 +378,7 @@ public sealed partial class DebateRoomViewModel : ObservableObject
         DebateId = run.Id;
         OnPropertyChanged(nameof(IsLive));
         Refresh(SafeSnapshot(run));
-        Log(_time.GetUtcNow(), $"Siguiendo el debate {run.Id}");
+        Log(_time.GetUtcNow(), Texts.Format("Debate_Log_Following", run.Id));
         Listening = ListenAsync(run, generation);
         NotifyCommands();
     }
@@ -383,7 +401,7 @@ public sealed partial class DebateRoomViewModel : ObservableObject
         var summary = transcript.Summary;
         ApplyContext();
         DebateId = summary.Debate;
-        Title = $"Debate · {DebateTexts.Mode(summary.Mode)}";
+        Title = Texts.Format("Debate_Room_Title", DebateTexts.Mode(summary.Mode));
         SubjectText = DebateTexts.Subject(summary.Subject);
         Phase = summary.Phase;
         PhaseText = PhaseLine(summary.Phase, summary.Outcome, summary.Interrupted);
@@ -392,7 +410,7 @@ public sealed partial class DebateRoomViewModel : ObservableObject
         SetParticipants(transcript.Participants);
         SetContributions(transcript.Contributions);
         JudgmentText = JudgmentLine(transcript.JudgmentReason, transcript.LimitReached);
-        Replace(Problems, [.. summary.Problems, .. transcript.Problems]);
+        Replace(Problems, [.. DebateTexts.Painted(summary.Problems, summary.ProblemTexts), .. DebateTexts.Painted(transcript.Problems, transcript.ProblemTexts)]);
         _verdicts.AddRange(transcript.Verdicts);
         if (transcript.Verdicts.Count > 0 || transcript.Outcome is not null)
         {
@@ -400,7 +418,7 @@ public sealed partial class DebateRoomViewModel : ObservableObject
         }
 
         IsFinished = summary.Phase == DebatePhase.Closed;
-        StatusMessage = summary.Interrupted ? "Interrumpido: el debate quedó sin cerrar y sin proceso detrás. «Reanudar» lo continúa (gasta cuota y te pide aprobación)." : null;
+        StatusMessage = summary.Interrupted ? Texts.Get("Debate_Room_Interrupted") : null;
     }
 
     /// <summary>Releases the debate followed once it ended; one in course is never released from here.</summary>
@@ -422,13 +440,13 @@ public sealed partial class DebateRoomViewModel : ObservableObject
 
     /// <summary>«Pedir juicio ahora», or «Pedir juicio con lo que hay» when a turn failed twice.</summary>
     [RelayCommand(CanExecute = nameof(CanRequestJudgment))]
-    private Task RequestJudgmentAsync() => SendAsync("pedir el juicio", run => run.RequestJudgmentAsync());
+    private Task RequestJudgmentAsync() => SendAsync("Debate_Room_Fail_Judgment", run => run.RequestJudgmentAsync());
 
     private bool CanRequestJudgment() => IsLive && Phase is DebatePhase.Proposals or DebatePhase.Deliberation;
 
     /// <summary>«Ejecutar pruebas»: the trusted profile on the commit of the subject, isolated at Low integrity; it spends no quota.</summary>
     [RelayCommand(CanExecute = nameof(CanRunTestsNow))]
-    private Task RunTestsAsync() => SendAsync("ejecutar las pruebas", run => run.RunTestsAsync());
+    private Task RunTestsAsync() => SendAsync("Debate_Room_Fail_Tests", run => run.RunTestsAsync());
 
     private bool CanRunTestsNow() => IsLive && CanRunTests && Phase is not DebatePhase.Closed;
 
@@ -438,11 +456,11 @@ public sealed partial class DebateRoomViewModel : ObservableObject
     {
         var title = NoteTitle.Trim();
         var text = NoteText.Trim();
-        if (await SendAsync("añadir la evidencia", run => run.AddHumanEvidenceAsync(title, text)).ConfigureAwait(true))
+        if (await SendAsync("Debate_Room_Fail_Evidence", run => run.AddHumanEvidenceAsync(title, text)).ConfigureAwait(true))
         {
             NoteTitle = string.Empty;
             NoteText = string.Empty;
-            StatusMessage = $"Evidencia «{title}» añadida: la verán la ronda siguiente y el juez.";
+            StatusMessage = Texts.Format("Debate_Room_EvidenceAdded", title);
         }
     }
 
@@ -451,7 +469,7 @@ public sealed partial class DebateRoomViewModel : ObservableObject
     /// <summary>«Reintentar turno» (D-22): a new attempt of the participant whose turn failed twice.</summary>
     [RelayCommand(CanExecute = nameof(CanRetryTurn))]
     private Task RetryTurnAsync(DebateParticipantRow? participant) =>
-        participant is null ? Task.CompletedTask : SendAsync($"reintentar el turno de {participant.Label}", run => run.RetryTurnAsync(participant.Agent));
+        participant is null ? Task.CompletedTask : SendAsync("Debate_Room_Fail_Retry", run => run.RetryTurnAsync(participant.Agent), participant.Label);
 
     private bool CanRetryTurn(DebateParticipantRow? participant) =>
         IsLive && participant is not null && Awaiting is { Reason: DebateAwaitReason.FailedTurn } waiting
@@ -459,7 +477,7 @@ public sealed partial class DebateRoomViewModel : ObservableObject
 
     /// <summary>«Abortar»: the turns in course are cancelled and the debate is closed as aborted.</summary>
     [RelayCommand(CanExecute = nameof(CanAbort))]
-    private Task AbortAsync() => SendAsync("abortar el debate", run => run.AbortAsync(AbortReason));
+    private Task AbortAsync() => SendAsync("Debate_Room_Fail_Abort", run => run.AbortAsync(AbortReason));
 
     private bool CanAbort() => IsLive && Phase is not DebatePhase.Closed;
 
@@ -474,7 +492,7 @@ public sealed partial class DebateRoomViewModel : ObservableObject
 
         if (_evidence is not { } store)
         {
-            OpenedEvidence = new EvidenceViewer(id, id, "Falta el almacén de evidencias en esta composición: no se puede abrir.", string.Empty, Tone.Warning, null);
+            OpenedEvidence = new EvidenceViewer(id, id, Texts.Get("Debate_Evidence_NoStore"), string.Empty, Tone.Warning, null);
             return;
         }
 
@@ -486,7 +504,7 @@ public sealed partial class DebateRoomViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            OpenedEvidence = new EvidenceViewer(id, id, $"No se pudo abrir: {ex.Message}", string.Empty, Tone.Error, null);
+            OpenedEvidence = new EvidenceViewer(id, id, Texts.Format("Debate_Evidence_Failed", DebateTexts.Reason(ex)), string.Empty, Tone.Error, null);
         }
     }
 
@@ -498,10 +516,10 @@ public sealed partial class DebateRoomViewModel : ObservableObject
         var records = await store.ListAsync(project.ProjectId, CancellationToken.None).ConfigureAwait(false);
         if (records.FirstOrDefault(r => r.Id == id) is not { } record)
         {
-            return new EvidenceViewer(id.Value, id.Value, "No está en el almacén de evidencias del proyecto.", string.Empty, Tone.Warning, null);
+            return new EvidenceViewer(id.Value, id.Value, Texts.Get("Debate_Evidence_Missing"), string.Empty, Tone.Warning, null);
         }
 
-        var description = $"{EvidenceText.Kind(record.Kind)} · {EvidenceText.Origin(record.Origin)}{(record.SubjectCommit is { } commit ? $" · commit {DebateTexts.Short(commit)}" : string.Empty)}";
+        var description = $"{EvidenceText.Kind(record.Kind)} · {EvidenceText.Origin(record.Origin)}{(record.SubjectCommit is { } commit ? " · " + Texts.Format("Debate_Evidence_Commit", DebateTexts.Short(commit)) : string.Empty)}";
         byte[] bytes;
         await using (var stream = await store.OpenContentAsync(project.ProjectId, id, CancellationToken.None).ConfigureAwait(false))
         {
@@ -513,16 +531,17 @@ public sealed partial class DebateRoomViewModel : ObservableObject
         var actual = Convert.ToHexStringLower(SHA256.HashData(bytes));
         if (!string.Equals(actual, record.ContentSha256, StringComparison.OrdinalIgnoreCase))
         {
-            return new EvidenceViewer(id.Value, record.Title, description, $"SHA-256 {DebateTexts.Short(actual)} · no cuadra con su registro ({DebateTexts.Short(record.ContentSha256)}): no se muestra", Tone.Error, null);
+            return new EvidenceViewer(id.Value, record.Title, description, Texts.Format("Debate_Evidence_HashMismatch", DebateTexts.Short(actual), DebateTexts.Short(record.ContentSha256)), Tone.Error, null);
         }
 
-        var hash = $"SHA-256 {DebateTexts.Short(actual)} · cuadra con su registro";
+        var hash = Texts.Format("Debate_Evidence_HashOk", DebateTexts.Short(actual));
         return bytes.Length > MaxEvidenceBytes
-            ? new EvidenceViewer(id.Value, record.Title, description, hash, Tone.Success, "Ocupa más de 1 MiB: no se muestra aquí.")
+            ? new EvidenceViewer(id.Value, record.Title, description, hash, Tone.Success, Texts.Get("Debate_Evidence_TooBig"))
             : new EvidenceViewer(id.Value, record.Title, description, hash, Tone.Success, Encoding.UTF8.GetString(bytes));
     }
 
-    private async Task<bool> SendAsync(string what, Func<IDebateRun, Task> action)
+    /// <summary>Asks the debate something; when it refuses, <paramref name="failureKey"/> says so with the arguments and then the reason.</summary>
+    private async Task<bool> SendAsync(string failureKey, Func<IDebateRun, Task> action, params object[] arguments)
     {
         if (_run is not { } run || !IsLive)
         {
@@ -539,7 +558,7 @@ public sealed partial class DebateRoomViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = $"No se pudo {what}: {ex.Message}";
+            ErrorMessage = Texts.Format(failureKey, [.. arguments, DebateTexts.Reason(ex)]);
             return false;
         }
     }
@@ -560,13 +579,13 @@ public sealed partial class DebateRoomViewModel : ObservableObject
         }
         catch (OperationCanceledException)
         {
-            Post(generation, () => Fail("El debate se dejó de seguir antes de terminar."));
+            Post(generation, () => Fail(Texts.Get("Debate_Room_Stopped")));
         }
 #pragma warning disable CA1031 // A failure of the debate must be shown in the room, never thrown on a background task.
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            Post(generation, () => Fail($"El debate terminó con un error: {ex.Message}"));
+            Post(generation, () => Fail(Texts.Format("Debate_Room_Error", DebateTexts.Reason(ex))));
         }
     }
 
@@ -595,29 +614,35 @@ public sealed partial class DebateRoomViewModel : ObservableObject
         switch (progress)
         {
             case DebateTurnStarted started:
-                Log(started.At, $"{started.Participant} · ronda {started.Round} · intento {started.Attempt}: turno lanzado");
+                Log(started.At, Texts.Format("Debate_Log_TurnStarted", started.Participant, started.Round, started.Attempt));
                 break;
             case DebateTurnFinished finished:
-                Log(finished.At, $"{finished.Participant} · ronda {finished.Round} · intento {finished.Attempt}: {DebateTexts.Turn(finished.Outcome)} (su respuesta sigue sellada hasta que cierre la ronda)");
+                Log(finished.At, Texts.Format("Debate_Log_TurnFinished", finished.Participant, finished.Round, finished.Attempt, DebateTexts.Turn(finished.Outcome)));
                 break;
             case DebateRoundSealed @sealed:
-                Log(@sealed.At, $"Ronda {@sealed.Round}: {DebateTexts.Count(@sealed.TurnsInFlight, "turno en curso", "turnos en curso")}, sellada");
+                Log(@sealed.At, Texts.Format("Debate_Log_RoundSealed", @sealed.Round, DebateTexts.Plural(@sealed.TurnsInFlight, "Debate_Count_TurnInProgress")));
                 break;
             case DebateContributionPublished published:
-                Log(published.At, $"{published.Contribution.Label} publicada: {DebateTexts.Kind(published.Contribution.Kind)} de {published.Contribution.Author}");
+                Log(published.At, Texts.Format("Debate_Log_Published", published.Contribution.Label, DebateTexts.Kind(published.Contribution.Kind), published.Contribution.Author));
                 break;
             case DebateRoundEnded ended:
-                Log(ended.At, $"Ronda {ended.Round} cerrada: {DebateTexts.Phase(ended.Next)}{(ended.Judgment is { } reason ? " · " + DebateTexts.Judgment(reason, ended.Limit) : string.Empty)}");
+                Log(ended.At, ended.Judgment is { } reason
+                    ? Texts.Format("Debate_Log_RoundEndedJudgment", ended.Round, DebateTexts.Phase(ended.Next), DebateTexts.Judgment(reason, ended.Limit))
+                    : Texts.Format("Debate_Log_RoundEnded", ended.Round, DebateTexts.Phase(ended.Next)));
                 break;
             case DebateJudgeLaunched judge:
-                Log(judge.At, judge.Attempt > 1 ? $"Juez {judge.Judge} lanzado para su corrección" : $"Juez {judge.Judge} lanzado");
+                Log(judge.At, Texts.Format(judge.Attempt > 1 ? "Debate_Log_JudgeRelaunched" : "Debate_Log_JudgeLaunched", judge.Judge));
                 break;
             case DebateVerdictReceived received:
                 Keep(received.Verdict);
-                Log(received.At, $"Veredicto {received.Verdict.Id} de {received.Verdict.Verdict.Judge.Agent}: {VerdictTexts.Decision(received.Verdict.Verdict.Decision)}{(received.Verdict.Violations.Count == 0 ? string.Empty : " · no válido")}");
+                Log(received.At, Texts.Format(
+                    received.Verdict.Violations.Count == 0 ? "Debate_Log_Verdict" : "Debate_Log_VerdictInvalid",
+                    received.Verdict.Id,
+                    received.Verdict.Verdict.Judge.Agent,
+                    VerdictTexts.Decision(received.Verdict.Verdict.Decision)));
                 break;
             case DebateAwaitingUser waiting:
-                Log(waiting.At, $"Espera: {waiting.Awaiting.Message}");
+                Log(waiting.At, Texts.Format("Debate_Log_Waiting", DebateTexts.Awaiting(waiting.Awaiting)));
                 break;
             case DebateFinished done:
                 Finish(run, done.Result);
@@ -656,7 +681,7 @@ public sealed partial class DebateRoomViewModel : ObservableObject
 
         IsFinished = true;
         OnPropertyChanged(nameof(IsLive));
-        Log(_time.GetUtcNow(), $"Debate terminado: {DebateTexts.Outcome(result.Outcome)}");
+        Log(_time.GetUtcNow(), Texts.Format("Debate_Log_Finished", DebateTexts.Outcome(result.Outcome)));
         NotifyCommands();
         Finished?.Invoke(this, EventArgs.Empty);
     }
@@ -700,33 +725,32 @@ public sealed partial class DebateRoomViewModel : ObservableObject
         }
 
         _snapshot = snapshot;
-        Title = $"Debate · {DebateTexts.Mode(snapshot.Mode)}";
+        Title = Texts.Format("Debate_Room_Title", DebateTexts.Mode(snapshot.Mode));
         SubjectText = DebateTexts.Subject(snapshot.Subject);
         Phase = snapshot.Phase;
         PhaseText = PhaseLine(snapshot.Phase, snapshot.Outcome, interrupted: false);
         PhaseTone = DebateTexts.ToneOf(snapshot.Phase, snapshot.Outcome);
-        RoundText = string.Create(CultureInfo.InvariantCulture, $"Ronda {snapshot.Round} de {snapshot.Limits.MaxRounds}");
-        TimeText = $"Tiempo: {MetricText.DurationText((long)snapshot.Elapsed.TotalMilliseconds)} de {MetricText.DurationText((long)snapshot.Limits.MaxDuration.TotalMilliseconds)} · {MetricText.Origin(MetricOrigin.MeasuredBySystem)} (reloj del sistema)";
+        RoundText = Texts.Format("Debate_Room_Round", snapshot.Round, snapshot.Limits.MaxRounds);
+        TimeText = Texts.Format("Debate_Room_Time", MetricText.DurationText((long)snapshot.Elapsed.TotalMilliseconds), MetricText.DurationText((long)snapshot.Limits.MaxDuration.TotalMilliseconds), MetricText.Origin(MetricOrigin.MeasuredBySystem));
         TokensText = TokensLine(snapshot);
-        RunsText = $"Ejecuciones: {MetricText.Integer(snapshot.AgentRuns)} de {MetricText.Integer(snapshot.MaxAgentRuns)} · {MetricText.Origin(MetricOrigin.MeasuredBySystem)}";
+        RunsText = Texts.Format("Debate_Room_Runs", MetricText.Integer(snapshot.AgentRuns), MetricText.Integer(snapshot.MaxAgentRuns), MetricText.Origin(MetricOrigin.MeasuredBySystem));
         var partial = snapshot.Tokens.Count > 0 && snapshot.ReportedTurns < snapshot.Tokens.Count
-            ? string.Create(CultureInfo.InvariantCulture, $"parcial ({snapshot.ReportedTurns} de {snapshot.Tokens.Count} turnos informados)")
+            ? Texts.Format("Debate_Room_PartialTurns", snapshot.ReportedTurns, snapshot.Tokens.Count)
             : null;
-        TokensBar = MetricBars.Tokens("Tokens del debate", snapshot.Tokens, snapshot.Limits.MaxTotalTokens, partial);
-        RunsBar = MetricBars.Budget("Ejecuciones", snapshot.AgentRuns, snapshot.MaxAgentRuns, "ejecuciones de agente del debate frente a su máximo");
+        TokensBar = MetricBars.Tokens(Texts.Get("Debate_Bar_Tokens"), snapshot.Tokens, snapshot.Limits.MaxTotalTokens, partial);
+        RunsBar = MetricBars.Budget(Texts.Get("Debate_Bar_Runs"), snapshot.AgentRuns, snapshot.MaxAgentRuns, Texts.Get("Debate_Bar_RunsDetail"));
         SetParticipants(snapshot.Participants);
         SetContributions(snapshot.Contributions);
         SealedText = snapshot.TurnsInFlight switch
         {
             <= 0 => null,
-            1 => string.Create(CultureInfo.InvariantCulture, $"Ronda {snapshot.Round}: 1 turno en curso, sellado hasta que termine"),
-            var turns => string.Create(CultureInfo.InvariantCulture, $"Ronda {snapshot.Round}: {turns} turnos en curso, sellados hasta que terminen todos"),
+            var turns => Texts.Format(turns == 1 ? "Debate_Room_Sealed_One" : "Debate_Room_Sealed_Other", snapshot.Round, turns),
         };
         Awaiting = snapshot.Awaiting;
         AwaitingText = snapshot.Awaiting is { } waiting ? AwaitingLine(waiting) : null;
         JudgmentText = JudgmentLine(snapshot.JudgmentReason, snapshot.LimitReached);
         CanRunTests = snapshot.CanRunTests;
-        Replace(Problems, snapshot.Problems);
+        Replace(Problems, DebateTexts.Painted(snapshot.Problems, snapshot.ProblemTexts));
         if (snapshot.Awaiting is { Reason: DebateAwaitReason.HumanResolution } && !IsFinished)
         {
             // Rebuilt only when the verdicts change, so what you are typing in «Decidir yo» is not lost on the next event.
@@ -745,12 +769,12 @@ public sealed partial class DebateRoomViewModel : ObservableObject
     {
         Question = _context.Question;
         RequirementsText = _context.Requirements is { } requirements
-            ? $"Requisitos congelados: {DebateTexts.Short(requirements.ContentHash)} ({DebateTexts.Count(requirements.Requirements.Count, "requisito", "requisitos")})"
+            ? Texts.Format("Debate_Room_Requirements", DebateTexts.Short(requirements.ContentHash), DebateTexts.Plural(requirements.Requirements.Count, "Debate_Count_Requirement"))
             : null;
         var judges = (_context.Judges ?? []).Select(VerdictPanelViewModel.JudgeLine).ToList();
         JudgesText = judges.Count == 0
-            ? _context.Judging is { } kind ? $"{DebateTexts.Judging(kind)} ({(kind == DebateJudgingKind.CrossVendorPanel ? "los jueces no participan" : "el juez no participa")})" : null
-            : $"{(judges.Count == 1 ? "Juez" : "Jurado")}: {string.Join(" | ", judges)} (no participa{(judges.Count == 1 ? string.Empty : "n")})";
+            ? _context.Judging is { } kind ? Texts.Format(kind == DebateJudgingKind.CrossVendorPanel ? "Debate_Room_JudgesKindMany" : "Debate_Room_JudgesKindOne", DebateTexts.Judging(kind)) : null
+            : Texts.Format(judges.Count == 1 ? "Debate_Room_JudgeOne" : "Debate_Room_JudgesMany", string.Join(" | ", judges));
     }
 
     private void SetParticipants(IReadOnlyList<DebateParticipantView> participants)
@@ -760,7 +784,7 @@ public sealed partial class DebateRoomViewModel : ObservableObject
             p.Label,
             DebateTexts.Role(p.Role),
             p.Agent,
-            $"{p.Agent} · {DebateTexts.Provider(p.Provider)} · {DebateTexts.Vendor(p.Vendor)} · {(string.IsNullOrWhiteSpace(p.Model) ? "modelo predeterminado del CLI" : p.Model)}")).ToList();
+            $"{p.Agent} · {DebateTexts.Provider(p.Provider)} · {DebateTexts.Vendor(p.Vendor)} · {(string.IsNullOrWhiteSpace(p.Model) ? Texts.Get("Debate_Model_Default") : p.Model)}")).ToList();
         if (!rows.SequenceEqual(Participants))
         {
             Replace(Participants, rows);
@@ -785,7 +809,7 @@ public sealed partial class DebateRoomViewModel : ObservableObject
             .OrderBy(g => g.Key)
             .Select(g => new DebateRoundViewModel(
                 g.Key,
-                g.Key == 1 ? "Ronda 1 · propuestas independientes, selladas hasta el final de la ronda" : string.Create(CultureInfo.InvariantCulture, $"Ronda {g.Key}"),
+                g.Key == 1 ? Texts.Get("Debate_Round_First") : Texts.Format("Debate_Round_N", g.Key),
                 [.. g.Select(c => new DebateContributionViewModel(c, byLabel, zone))])));
     }
 
@@ -795,7 +819,7 @@ public sealed partial class DebateRoomViewModel : ObservableObject
             ? (Func<VerdictDecision?, string?, string, Task>)((decision, proposal, comment) => run.DecideAsync(decision, proposal, comment))
             : null;
         var context = new VerdictCardContext(
-            DebateId is { } id ? $"Veredicto del debate {id}" : "Veredicto del debate",
+            DebateId is { } id ? Texts.Format("Debate_Card_TitleOf", id) : Texts.Get("Debate_Card_Title"),
             _context.Judging,
             _context.WaivedVendors,
             _participants,
@@ -803,35 +827,37 @@ public sealed partial class DebateRoomViewModel : ObservableObject
             mode is { } m && subject is { } s && DebateJudgingRules.IsChoice(m, s),
             Proposals: [.. _participants.Select(p => p.Label)],
             AwaitingHuman: awaitingHuman,
-            PendingOutcome: pending);
+            PendingOutcome: pending,
+            RequestLabel: ProtocolTexts.DebateVerdictLabel(DebateId?.ToString()));
         return new VerdictCardViewModel([.. _verdicts], outcome, context, _time.LocalTimeZone, new VerdictCardActions(_challenge, decide, _correctiveTasks));
     }
 
     private string AwaitingLine(DebateAwaiting waiting)
     {
         var who = waiting.Participant is { Length: > 0 } participant ? $" · {participant}" : string.Empty;
-        var until = waiting.Until is { } at ? " · hasta las " + TimeZoneInfo.ConvertTime(at, _time.LocalTimeZone).ToString("HH:mm", CultureInfo.InvariantCulture) : string.Empty;
-        return $"{waiting.Message}{who}{until}. {DebateTexts.Await(waiting.Reason)}";
+        var until = waiting.Until is { } at ? " · " + Texts.Format("Debate_Awaiting_Until", TimeZoneInfo.ConvertTime(at, _time.LocalTimeZone).ToString("HH:mm", CultureInfo.InvariantCulture)) : string.Empty;
+        return $"{DebateTexts.Awaiting(waiting).TrimEnd('.')}{who}{until}. {DebateTexts.Await(waiting.Reason)}";
     }
 
     private static string TokensLine(DebateSnapshot snapshot)
     {
         var figure = MetricText.Tokens(snapshot.Tokens);
-        var limit = snapshot.Limits.MaxTotalTokens is { } max ? " de " + MetricText.Integer(max) : " (sin límite de tokens)";
+        var limit = snapshot.Limits.MaxTotalTokens is { } max
+            ? Texts.Format("Debate_Tokens_Limited", figure.Shown, MetricText.Integer(max), figure.Origin)
+            : Texts.Format("Debate_Tokens_Free", figure.Shown, figure.Origin);
         var counted = snapshot.Tokens.Count;
-        var partial = counted > 0 && snapshot.ReportedTurns < counted
-            ? string.Create(CultureInfo.InvariantCulture, $" · parcial ({snapshot.ReportedTurns} de {counted} informados)")
-            : string.Empty;
-        return $"Tokens: {figure.Shown}{limit} · {figure.Origin}{partial}";
+        return counted > 0 && snapshot.ReportedTurns < counted
+            ? limit + " · " + Texts.Format("Debate_Tokens_Partial", snapshot.ReportedTurns, counted)
+            : limit;
     }
 
     private static string PhaseLine(DebatePhase phase, DebateOutcome outcome, bool interrupted) =>
-        interrupted ? $"Interrumpido · {DebateTexts.Phase(phase)}"
+        interrupted ? Texts.Format("Debate_Phase_Interrupted", DebateTexts.Phase(phase))
         : phase == DebatePhase.Closed || outcome != DebateOutcome.Open ? $"{DebateTexts.Phase(phase)} · {DebateTexts.Outcome(outcome)}"
         : DebateTexts.Phase(phase);
 
     private static string? JudgmentLine(DebateJudgmentReason? reason, DebateLimitReached limit) =>
-        reason is { } why ? "A juicio porque " + DebateTexts.Judgment(why, limit) + "." : null;
+        reason is { } why ? Texts.Format("Debate_Room_JudgmentLine", DebateTexts.Judgment(why, limit)) : null;
 
     private void NotifyCommands()
     {
@@ -868,13 +894,13 @@ public sealed partial class DebateRoomViewModel : ObservableObject
         DebateId = null;
         IsTranscript = false;
         IsFinished = false;
-        Title = "Sin debate";
+        Title = Texts.Get("Debate_Room_None");
         SubjectText = null;
         Question = null;
         RequirementsText = null;
         JudgesText = null;
         Phase = null;
-        PhaseText = "Sin debate";
+        PhaseText = Texts.Get("Debate_Room_None");
         PhaseTone = Tone.Neutral;
         RoundText = null;
         TimeText = null;

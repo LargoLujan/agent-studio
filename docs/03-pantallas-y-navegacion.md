@@ -48,11 +48,12 @@ debajo.
   **Agentes** (Fase 13: el orquestador en la capa «Equipo»), **Skills** ([10](10-catalogo-de-skills.md#8-pantalla)),
   **Herramientas** y **Pruebas** (Fase 13, [sección 5.5](#55-monitor-vivo-preguntas-análisis-del-consumo-paneles-y-herramientas-fase-13-wp8)),
   **Consumo** y **Memoria** (Fase 4,
-  [sección 5](#5-salud-del-contexto-consumo-cuota-y-memoria)), **Debates** (Fase 5, [sección 4](#4-debate-arena),
+  [sección 5](#5-salud-del-contexto-consumo-cuota-y-memoria)), **Repositorio** (Fase 9,
+  [sección 5.6](#56-repositorio-y-cambios-fase-9-wp5)), **Debates** (Fase 5, [sección 4](#4-debate-arena),
   `Ctrl+Shift+D`), **Terminal** (`Ctrl+Ñ`; en un teclado de EE. UU., `` Ctrl+` ``, que es la misma tecla), Auto Doctor,
   Historial · bitácora (la **bitácora** del día, [11](11-bitacora.md)) y, la última, **Ajustes**
   ([sección 5.2](#52-consumo-cuota-y-ajustes-documentos-consumo-y-ajustes)).
-  - Orquestador, Agentes, Skills, Herramientas, Consumo, Memoria, Debates y Ajustes abren un documento en el centro. Explorador,
+  - Orquestador, Agentes, Skills, Herramientas, Consumo, Memoria, Repositorio, Debates y Ajustes abren un documento en el centro. Explorador,
     Pruebas, Terminal, Auto Doctor e Historial muestran u ocultan su panel.
   - **Agentes** abre la pestaña del orquestador del proyecto (o la trae al frente) y la deja en la capa «Equipo», donde se
     añaden, configuran y quitan los agentes con el inspector de cada uno. **Herramientas** abre una pestaña con lo que puede
@@ -691,11 +692,22 @@ su propio documento, «Ajustes», que se describe al final de este apartado.
 
 - **Qué se pregunta.** El proyecto abierto o todos los recientes de los ajustes (el abierto primero), el periodo en días
   locales (hoy, últimos 7 días, este mes o últimos 30 días) y las dimensiones por las que agrupar, en un orden fijo:
-  proveedor, vendor, modelo, sesión, ejecución, tarea, agente, propósito, proyecto, día, semana ISO y mes. El informe
-  sale del registro de decisiones verificado ([ADR-0019](adr/0019-consumo-como-proyeccion-del-registro.md)).
+  proveedor, empresa del modelo (vendor), modelo, sesión, ejecución, tarea, agente, propósito, proyecto, día, semana ISO y
+  mes, y desde la Fase 9 (WP5) también **hito** y los tres ejes de la actividad: **tipo de trabajo** (coordinación,
+  análisis, implementación, pruebas, documentación, revisión y conflictos), **primer intento o reintento** y **qué pasó
+  con el trabajo** (conservado, descartado —con o sin versión guardada— o pendiente). El informe sale del registro de
+  decisiones verificado ([ADR-0019](adr/0019-consumo-como-proyeccion-del-registro.md),
+  [ADR-0040](adr/0040-consumo-por-hito-y-actividad-y-presupuestos.md)).
 - **Por grupo:** ejecuciones, duración, tokens de entrada, caché leída y escrita, salida, razonamiento, coste, errores
   por límite de uso y de presupuesto, compactaciones y el contexto máximo, cada cifra con su etiqueta. Un grupo sin
   clave es el total.
+- **Esperas, aparte de la duración** (Fase 9, F9-6): cada grupo dice cuánto esperaron sus intentos en la cola de su proveedor
+  y cuánto esperaron sus tareas el límite de uso de tu plan. Son cifras con su origen, y nunca se suman a la duración.
+- **Por hito y por tipo de trabajo** (Fase 9, F9-6): una sección fija, bajo «Por grupo», que reparte los mismos intentos
+  en los cuatro ejes (hito, tipo de trabajo, primer intento o reintento, qué pasó con el trabajo), cada uno con su total.
+  Las filas de un eje suman ese total. Un intento que está en dos hitos cuenta en cada uno y una sola vez en el total, y la
+  pantalla lo dice aparte («Compartidos: n intentos están en más de un hito»). No sale si el informe no tiene intentos.
+  Los valores salen en el idioma de la interfaz (el informe exportado los conserva como los da el registro).
 - **Por intento:** cuándo terminó, quién lo ejecutó (ejecución, tarea, intento, propósito y agente), dónde y cómo acabó,
   su uso propio, su contexto máximo y su desglose por modelo. Un intento registrado antes de la Fase 4 dice «sin desglose
   (registro anterior a la Fase 4)» y su duración, «sin dato».
@@ -942,6 +954,60 @@ nueva trae su ⓘ.
 - **El aviso de la bandeja.** Una pregunta que llega con la app fuera de vista (oculta en la bandeja, minimizada o bloqueada)
   muestra en la bandeja «Un agente te pregunta algo», con el nombre de la app como título y nada del proyecto.
 
+### 5.6 Repositorio y cambios (Fase 9, WP5)
+
+«Repositorio» abre un documento, uno por sesión, que sigue al proyecto abierto. Cuenta qué hicieron los agentes y tú en el
+repositorio, y lo cuenta desde el registro verificado ([ADR-0039](adr/0039-vinculos-de-trazabilidad-y-participacion.md), D-44 de
+[16](16-ampliacion-plataforma-de-proyectos.md)). **No es un cliente de git:** solo lee y nunca escribe. La historia se lee siempre por la capa
+endurecida de git ([ADR-0012](adr/0012-worktrees-fuera-del-repo.md): sin filtros, sin `textconv`, sin red); Desktop no lanza git.
+
+```text
+┌ Repositorio y cambios                                                                          [Actualizar] ┐
+│ [Resumen] [Ramas] [Versiones guardadas] [Actividad]                                                         │
+│ Agent Studio no lee este repositorio: su configuración podría ejecutar un programa del repositorio…   (si lo rechaza) │
+├ Versiones guardadas ───────────────────────────────────────────────────────────────────────────────── (i) ┤
+│ Se muestran las últimas 200 versiones guardadas, de la más nueva a la más antigua.                          │
+│ 3f2a91c0 Añade Calc.Multiply                                                          [Ver su cadena]       │
+│   12/11/2026 10:30 · Manuel · main                                                                          │
+│   Hecha por Agent Studio · ejecución 20261112-a1b2c3 · tarea T2 · intento 1 · agente ejecutor · modelo …    │
+│ 9b1c0d44 Arregla el README                                                                                  │
+│   Sugerencia, sin confirmar: parece relacionada con tarea 20261112-a1b2c3/T3, según las marcas de su mensaje│
+└─────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+- **Resumen:** la rama actual (o «ninguna: estás en una versión suelta»), la última versión guardada, si hay cambios sin
+  guardar, y los remotos con su dirección sin credenciales (`IRepositoryRemoteReader`).
+- **Ramas:** las ramas locales con la versión a la que apuntan. La actual lleva una marca, y las que crea Agent Studio para
+  una ejecución (`agentstudio/…`) dicen que lo son.
+- **Versiones guardadas:** el grafo acotado (200 versiones como mucho, de la más nueva a la más antigua), anotado con
+  `IRepositoryAnnotator`.
+  - Una versión **del sistema** dice su ejecución, tarea, intento, agente y modelo, y **solo si el registro lo respalda**. Un
+    mensaje copiado, un cherry-pick o unas marcas escritas a mano no la convierten en del sistema: la pantalla no lee los
+    mensajes, pinta lo que trae la anotación.
+  - Un vínculo que tú (o el sistema) confirmaste sale como «Vinculada por ti a requisito R-4».
+  - Lo que el registro no respalda es, como mucho, una **sugerencia**, en cursiva y en color de aviso, con «Sugerencia, sin
+    confirmar» por delante, y siempre detrás de lo confirmado. Sin nada que decir: «El registro no sabe nada de esta versión».
+    Si el registro no se pudo comprobar (no verifica, falla al leerlo o no hay anotador), cada versión dice «No se pudo comprobar con
+    el registro de decisiones», no «no sabe nada», y el recuento «Se muestran las últimas N versiones» sigue junto al aviso.
+  - El asunto y el autor son texto de quien hizo la versión: se muestran tal cual, sin traducir, y su ayuda lo dice.
+  - **«Ver su cadena»** (requisito, tarea, intento, verificación, veredicto y entrega) solo sale si alguien conectó una forma
+    de abrirla: el documento levanta `RepositoryViewModel.ChainRequested` con el proyecto y el nodo de la versión
+    (`TraceRef.Commit`, su id completo), y la pantalla de «Trabajo» lo recorre con `ITraceChainReader`. Sin esa conexión no hay
+    botón, porque un botón que no hace nada no se ofrece.
+- **Actividad:** la línea de tiempo del registro (`IRepositoryActivityReader`): integraciones, entregas y copias de trabajo
+  retiradas, de la más nueva a la más antigua, cada una con su resultado real («Salió bien» o «Falló: hubo un conflicto al
+  integrar»). Se filtra por ejecución, tarea, hito, agente, proveedor, modelo y periodo; un hito que no tiene la forma `mil-…`
+  se dice y no se lee nada. «Quitar filtros» lo deja todo, y los filtros se vacían al cambiar de proyecto. Si cualquier lector falla
+  (no solo un registro que no verifica), la pantalla lo dice con un texto y no deja datos a medias; «Actualizar» no se queda
+  deshabilitado si se cierra el proyecto mientras se leía.
+- **Si el lector se niega** (no es un repositorio, está dentro de las copias de trabajo aisladas de Agent Studio, su
+  configuración podría ejecutar un programa del repositorio, la carpeta no es tuya, git no está o falla), la pantalla dice por
+  qué, con un texto, y no pinta «sin ramas» ni «sin versiones»: no las leyó. La actividad, que sale del registro y no de git,
+  sigue viéndose. Si el registro de decisiones no verifica, las versiones se ven sin anotar y se dice.
+- **Cada apartado tiene su ⓘ** (qué es y qué puedes hacer). Los textos están en `RepositoryStrings`, en castellano y en inglés,
+  con el glosario de [ADR-0054](adr/0054-idiomas-y-lenguaje-claro.md): «commit» es «versión guardada», y «cuota», «límite de uso
+  de tu plan».
+
 ## 6. Auditoría y veredictos del juez
 
 > **Estado:** implementado en la Fase 5 (WP6 de [15](15-fase-5-debate-arena-y-juez.md), §9) sobre los puertos de P0,
@@ -1082,7 +1148,9 @@ flowchart LR
     Main --> Journal["Historial<br/>bitácora de hoy"]
     Main --> Memory["Memoria del proyecto<br/>revisión · exportación"]
     Memory --> Summary["Resumen del día"]
-    Main --> Usage["Consumo<br/>por grupo e intento"]
+    Main --> Usage["Consumo<br/>por grupo, hito, actividad e intento"]
+    Main --> Repo["Repositorio y cambios<br/>resumen · ramas · versiones · actividad"]
+    Repo -->|"ver su cadena (la conecta la pantalla de Trabajo)"| Chain["Cadena de una versión"]
     Usage --> Quota["Cuota por proveedor"]
     Usage -->|"Exportar CSV o JSON"| SaveAs["Guardar como"]
     Main --> Skills["Catálogo de skills"]
@@ -1102,6 +1170,9 @@ flowchart LR
     Verdict -->|"impugnar"| Challenge["Impugnación<br/>debate de revisión"]
     Challenge -->|"impugnar"| Room
     Verdict -->|"crear tareas correctivas"| Orq
+    Main -->|"Trabajo (barra lateral)"| Work["Trabajo<br/>hitos · backlog · tablero · cadena · participantes · vínculos · presupuestos"]
+    Work -->|"cerrar hito"| Audit
+    Work -->|"Ver cadena en una tarjeta"| Work
     Main -->|"Auditar proyecto completo"| Audit["Auditoría<br/>preparación · informe de conformidad"]
     Audit -->|"impugnar veredicto"| Challenge
     Audit -->|"crear tareas correctivas"| Orq
@@ -1182,6 +1253,83 @@ llega a la pestaña del orquestador, que la lee otra vez y retira la aprobación
   que queda anotado en el historial del proyecto.
 - **Accesible:** los textos salen de los recursos (castellano de España e inglés), cada elemento de las listas tiene su nombre y
   los controles se alcanzan con el teclado. El ⓘ de la cabecera explica qué es y qué se puede hacer.
+
+### 8.2 Trabajo (Fase 9, WP5)
+
+El documento «Trabajo» del proyecto abierto: [16 §4.6](16-ampliacion-plataforma-de-proyectos.md#46-fase-9-trabajo-y-trazabilidad) (F9-1 a F9-10),
+[04 §23](04-contratos.md#23-fase-9-trabajo-y-trazabilidad) y los ADR [0038](adr/0038-hito-backlog-y-tablero.md),
+[0039](adr/0039-vinculos-de-trazabilidad-y-participacion.md) y [0040](adr/0040-consumo-por-hito-y-actividad-y-presupuestos.md).
+Es una pestaña por sesión, con su entrada «Trabajo» en la barra lateral (entre «Documentación para clientes» y «Debates»), que sigue
+al proyecto abierto como «Memoria». A la izquierda, la lista de apartados; a la derecha, el elegido. Cada apartado lleva su ⓘ en
+castellano y en inglés, y todo sale del historial verificado: ningún apartado enseña lo que recuerda, y cuando algo se escribe
+(un hito, un vínculo, un presupuesto) todos lo vuelven a leer. Si falta un servicio, el apartado lo dice y no ofrece nada que lo necesite.
+
+```text
+┌ Trabajo ⓘ ────────────────────────────────────────────────────────────────────────────────────────────┐
+│ ┌ Apartados ───────┐  Hitos ⓘ                                                                         │
+│ │ Hitos            │  Abrir un hito nuevo: nombre · objetivo · requisitos del backlog · presupuesto   │
+│ │ Backlog          │  Primera entrega — Abierto — 1 ejecuciones y 1 debates                           │
+│ │ Tablero          │    Objetivo · Presupuesto · Ejecuciones y debates vinculados · [Ver cadena]      │
+│ │ Cadena           │    Cerrar el hito: juez · quién escribió el código · [Cerrar hito]               │
+│ │ Participantes    │    Informes del cierre: Informe 1 · [Ver informe]   Reabrir: [Reabrir hito]      │
+│ │ Vínculos         │                                                                                  │
+│ │ Presupuestos     │                                                                                  │
+│ └──────────────────┘                                                                                  │
+└───────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+- **Hitos (F9-1, F9-10).** La lista con el estado de cada uno, reproducido del registro (abierto, cerrado o «con problemas»: un hito con
+  problemas se enseña así y no se le escribe nada). «Abrir un hito nuevo» pide nombre, objetivo, los requisitos (los elementos del
+  backlog que marcas: se congelan al abrir, con el id del elemento) y, si quieres, un presupuesto en tokens o en ejecuciones. Lo que falta
+  se dice en palabras y «Abrir hito» no se ofrece hasta entonces; un requisito obligatorio sin criterios no puede congelarse. Un hito
+  seleccionado enseña su objetivo, su presupuesto (el de su cabecera, que no cambia), sus ejecuciones y debates vinculados, los informes
+  que le dejó cada cierre y los problemas de su reproducción. **Vincular** ofrece las ejecuciones que no siguen a otra (los seguimientos
+  vienen con la suya) y los debates que aún no están vinculados.
+  - **Cerrar es auditar.** «Cerrar hito» llama a `MilestoneCloser`, que es «Auditar proyecto completo» acotado al hito: el mismo juez que no
+    escribió el código (regla P), la misma aprobación de la auditoría y el mismo consentimiento del límite de uso del plan, que se piden en
+    la ventana de aprobación de siempre. La pantalla solo elige el juez y declara quién escribió el código. Una auditoría que se ejecutó cierra
+    el hito aunque escale o encuentre desviaciones, y el informe lo dice. Un cierre rechazado dice qué regla lo rechazó y no escribe nada
+    (`milestone.nothing-to-close`, `milestone.no-judge`, `milestone.audit-not-run`…).
+  - **Informe y reapertura.** «Ver informe» lee la prueba guardada del informe del cierre (el JSON determinista), comprobada con su huella:
+    si no coincide, lo dice y no enseña el texto. «Reabrir hito» reabre por decisión de la persona (`ByPerson`); los otros motivos exigen
+    una prueba guardada y los escribe el sistema. El informe anterior se conserva entre los del hito.
+- **Backlog (F9-2, D-18).** Los requisitos en borrador: enunciado, prioridad (obligatorio o deseable) y criterios de aceptación, cada uno con
+  su método de comprobación. «Anotar elemento» crea la versión 1; elegir uno de la lista y «Guardar versión nueva» crea la siguiente con
+  todo su contenido. «Retirar» lo saca de la lista y deja su historia. Nada se edita en su sitio ni se borra.
+- **Tablero (F9-2, D-19).** Las siete columnas del hito seleccionado (Backlog, Planificado, En curso, En revisión, Devuelto, Hecho,
+  Integrado), con las tarjetas de sus requisitos y de las tareas de las ejecuciones vinculadas, tal como las da `BoardProjector`: la
+  pantalla agrupa por la columna que recibe y **no calcula ninguna**, y no se arrastra nada. Ninguna tarjeta llega a «Hecho» ni a
+  «Integrado» sin un veredicto válido y aprobado. Una tarjeta que no se explica con su columna dice por qué (espera tu aprobación, espera
+  el límite de uso de tu plan, espera tu respuesta, está bloqueada, impugnaste su veredicto, el veredicto deja la decisión en tus manos,
+  el juez no pudo decidir, la ejecución falló). Debajo, los elementos del backlog en vigor, y un plegable «Cómo se decide la columna» que dice
+  lo que hace el código hoy, también en las cuatro reglas que la persona aún no ha decidido: «Integrado» exige «Hecho»; un veredicto
+  aprobado que no da el requisito por cumplido lo deja en revisión; cerrar un hito exige una ejecución vinculada; y un cambio que solo toca
+  pruebas o documentos cuenta como pruebas. Cada tarjeta tiene «Ver cadena».
+- **Cadena (F9-4).** Desde una tarjeta, un hito o un elemento del backlog: requisito, hito, tarea, intento, cambio (diff y versión guardada),
+  verificación, veredicto y entrega, leídos del registro verificado en los dos sentidos. Lo deducido sin confirmar saldría marcado (hoy
+  `ITraceChainReader` no da ninguno). Cada nodo abre lo que la aplicación ya tiene: **una prueba guardada** (el diff, la ejecución de pruebas, un
+  informe) se lee de las pruebas guardadas y se compara con su huella, y **un veredicto** se enseña con su decisión, su juez y si es válido.
+  Un nodo que la aplicación no sabe abrir (una versión guardada o *commit*, una tarea, un intento, una entrega, un debate, una auditoría) se
+  enseña **sin enlace** y lo dice. «Centrar aquí» vuelve a trazar la cadena desde cualquier nodo.
+- **Participantes (F9-5, D-32).** Los seis papeles (agente que produce, autor de la versión guardada, cuenta que publica, revisor, quien
+  aprueba, quien integra) de la tarea, la ejecución y el hito del nodo que mira la cadena, y del hito seleccionado. Cada papel dice quién y de
+  qué fuente sale; un papel sin fuente dice **«No consta»** y no se deduce de otro.
+- **Vínculos (F9-3, D-29 y D-30).** Los vínculos vigentes alrededor del nodo y las sugerencias que el sistema deduce (mensajes y marcas de
+  versiones guardadas, nombres de ramas, solicitudes de cambios). Una sugerencia no cuenta hasta que pulsas «Confirmar vínculo»; «Retirar
+  vínculo» pide el motivo (texto tuyo, obligatorio) y el vínculo sigue en el registro.
+- **Presupuestos (F9-8, D-05; [ADR-0040](adr/0040-consumo-por-hito-y-actividad-y-presupuestos.md)).** El presupuesto del proyecto (límite de
+  tokens, de ejecuciones o de los dos, por día, semana, mes o en total), que se guarda en este equipo (`%LOCALAPPDATA%\AgentStudio\budgets`,
+  un fichero por proyecto) y no entra en el repositorio, y el de cada hito, de solo lectura porque va en su cabecera anclada. El motor lee el
+  del proyecto antes de lanzar un intento y no lanza el que lo pasaría, y lo dice. Un fichero de presupuesto que no se puede leer no se
+  trata como «sin presupuesto»: el motor se detiene con `project.budget-unreadable` y la pantalla lo dice («No se pudo leer el
+  presupuesto»), y el mensaje lleva solo el nombre del fichero, nunca la carpeta de la persona. Un fichero que desaparece justo
+  mientras se lee es «sin presupuesto». Una recarga (cualquier escritura en el registro hace que todas las secciones lean de nuevo)
+  no pisa lo que la persona está escribiendo en el formulario del presupuesto ni en el del backlog, conserva el hito y el elemento
+  seleccionados por su identificador (no cuenta como que la persona eligió otra cosa) y no borra el mensaje de lo que acaba de pasar.
+
+Lo que no hace esta pantalla, y por qué: no revisa los requisitos de un hito después de abrirlo (`ReviseRequirementsAsync` existe, sin
+pantalla todavía), no reordena el backlog (`ReorderAsync` tampoco) y no enseña el consumo por hito y por actividad: eso es de «Consumo»
+(`UsageDashboardViewModel`, fuera de este paquete).
 
 ### Lista de comprobación de la demostración de las pantallas de la Fase 5
 

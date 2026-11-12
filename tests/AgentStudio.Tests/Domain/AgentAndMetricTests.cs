@@ -1,3 +1,4 @@
+using AgentStudio.Domain.Models;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Metrics;
 using AgentStudio.Domain.Providers;
@@ -26,6 +27,22 @@ public sealed class AgentDefinitionTests
             maxRounds,
             MemoryPolicy.None,
             new ReviewPolicy(false, false));
+
+    [Fact]
+    public void Two_definitions_with_the_same_content_are_equal_whatever_the_instances_of_their_lists_and_the_order_counts()
+    {
+        var grant = new PathGrant(@"C:\repo", FileAccessLevel.ReadWrite);
+        var a = Agent(grants: grant) with { Objectives = ["x", "y"], AllowedTools = ["Read", "Edit"] };
+        var copy = a with { Objectives = ["x", "y"], AllowedTools = ["Read", "Edit"], PathGrants = [new PathGrant(@"C:\repo", FileAccessLevel.ReadWrite)] };
+
+        Assert.False(ReferenceEquals(a.Objectives, copy.Objectives));
+        Assert.Equal(a, copy);
+        Assert.Equal(a.GetHashCode(), copy.GetHashCode());
+        Assert.NotEqual(a, copy with { Objectives = ["y", "x"] });
+        Assert.NotEqual(a, copy with { AllowedTools = ["Read"] });
+        Assert.NotEqual(a, copy with { PathGrants = [new PathGrant(@"C:\repo", FileAccessLevel.Read)] });
+        Assert.NotEqual(a, copy with { Effort = ReasoningEffort.High });
+    }
 
     [Fact]
     public void A_well_formed_definition_has_no_problems()

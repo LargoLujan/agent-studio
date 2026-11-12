@@ -1,4 +1,5 @@
 using System.IO;
+using AgentStudio.Desktop.Localization;
 
 namespace AgentStudio.Desktop.Controls.Editor;
 
@@ -8,8 +9,8 @@ public sealed class EditorAssets(string assetsFolder)
     /// <summary>Virtual host name mapped to the Assets folder.</summary>
     public const string HostName = "agentstudio.editor";
 
-    public const string MissingMonacoMessage =
-        "Editor no disponible: faltan los recursos de Monaco (ejecuta tools/assets/fetch-monaco.ps1)";
+    /// <summary>The text of the editor when the files of Monaco are not there, in the language in use.</summary>
+    public static string MissingMonacoMessage => Texts.Get("Editor_MonacoMissing");
 
     public static EditorAssets Default { get; } = new(Path.Combine(AppContext.BaseDirectory, "Assets"));
 
@@ -29,7 +30,7 @@ public sealed class EditorAssets(string assetsFolder)
             return MissingMonacoMessage;
         }
 
-        return IsPageAvailable ? null : "Editor no disponible: falta Assets/editor/editor.html";
+        return IsPageAvailable ? null : Texts.Get("Editor_PageMissing");
     }
 
     /// <summary>True when a navigation target stays on the virtual host (everything else is blocked).</summary>

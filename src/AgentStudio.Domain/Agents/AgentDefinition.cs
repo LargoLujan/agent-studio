@@ -76,6 +76,61 @@ public sealed record AgentDefinition(
     ReviewPolicy Review,
     ReasoningEffort? Effort = null)
 {
+    /// <summary>
+    /// Two definitions are equal when every member is, and the lists by their content and in their order (the order of the
+    /// objectives, the tools and the grants is part of the definition, as <c>RosterHash</c> takes it): a definition read again
+    /// from the store is the same one if nothing changed (P55). The generated equality compared the lists by reference.
+    /// </summary>
+    public bool Equals(AgentDefinition? other) =>
+        other is not null
+        && Id == other.Id
+        && string.Equals(Name, other.Name, StringComparison.Ordinal)
+        && Role == other.Role
+        && Model == other.Model
+        && string.Equals(SystemInstructions, other.SystemInstructions, StringComparison.Ordinal)
+        && SameItems(Objectives, other.Objectives)
+        && SameItems(AllowedTools, other.AllowedTools)
+        && SameItems(PathGrants, other.PathGrants)
+        && Budget == other.Budget
+        && MaxRounds == other.MaxRounds
+        && Memory == other.Memory
+        && Review == other.Review
+        && Effort == other.Effort;
+
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add(Id);
+        hash.Add(Name, StringComparer.Ordinal);
+        hash.Add(Role);
+        hash.Add(Model);
+        hash.Add(SystemInstructions, StringComparer.Ordinal);
+        foreach (var objective in Objectives ?? [])
+        {
+            hash.Add(objective, StringComparer.Ordinal);
+        }
+
+        foreach (var tool in AllowedTools ?? [])
+        {
+            hash.Add(tool, StringComparer.Ordinal);
+        }
+
+        foreach (var grant in PathGrants ?? [])
+        {
+            hash.Add(grant);
+        }
+
+        hash.Add(Budget);
+        hash.Add(MaxRounds);
+        hash.Add(Memory);
+        hash.Add(Review);
+        hash.Add(Effort);
+        return hash.ToHashCode();
+    }
+
+    private static bool SameItems<T>(IReadOnlyList<T>? a, IReadOnlyList<T>? b) =>
+        ReferenceEquals(a, b) || (a ?? []).SequenceEqual(b ?? []);
+
     /// <summary>Returns every rule this definition breaks; an empty list means it is valid.</summary>
     public IReadOnlyList<string> Validate()
     {

@@ -1,5 +1,6 @@
 using AgentStudio.Application.Judging;
 using AgentStudio.Application.Orchestration;
+using AgentStudio.Application.Work;
 using AgentStudio.Debate.Challenges;
 using AgentStudio.Debate.Judging;
 using Microsoft.Extensions.DependencyInjection;
@@ -35,6 +36,11 @@ public static class AuditServiceCollectionExtensions
         services.TryAddSingleton<ProjectDossierBuilder>();
         services.TryAddSingleton<IProjectAuditService, ProjectAuditService>();
         services.TryAddSingleton<IVerdictChallenges, VerdictChallengeService>();
+
+        // The close of a milestone (Phase 9, WP3). It needs IMilestoneService and IBoardProjector (WP1) and takes every
+        // IMilestoneCloseListener registered (the client documentation hooks in there); it resolves lazily, so a composition
+        // without the milestones is unaffected.
+        services.TryAddSingleton<IMilestoneCloser, MilestoneCloser>();
         return services;
     }
 

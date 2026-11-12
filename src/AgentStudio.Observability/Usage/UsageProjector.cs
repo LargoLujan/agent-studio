@@ -173,7 +173,7 @@ public sealed partial class UsageProjector(IProjectLogReader logs, IProjectStora
                 : $"El registro no verifica: {snapshot.Verification.Problem}"
             : snapshot.Anchor switch
             {
-                AnchorStatus.Unanchored => "Ningún ancla reconoce este historial en su ubicación (se movió, se copió o vino con el repositorio): no se cuenta hasta que se acepte como nuevo origen.",
+                AnchorStatus.Unanchored => "Ningún ancla reconoce este historial aquí (se movió, se copió o vino con el repositorio). No se cuenta hasta que se acepte como nuevo origen.",
                 AnchorStatus.AnotherProject => "El ancla de esta ubicación es de otro proyecto: no se cuenta.",
                 AnchorStatus.Unreadable => "No se puede leer el ancla del registro: no se cuenta.",
                 _ => $"El registro no es de confianza ({snapshot.Anchor}): no se cuenta.",
@@ -219,6 +219,7 @@ public sealed partial class UsageProjector(IProjectLogReader logs, IProjectStora
         var sessions = new Dictionary<(ProviderId Provider, string Session), Session>();
         var attempts = new List<UsageAttempt>();
         var sessionOf = new List<Session?>();
+        var facts = new LogFacts();
 
         // The log is read in chunks so that only one chunk of payloads is alive at a time: every attempt is closed (and
         // its own usage worked out) as soon as its end is read, and its payloads are left to the collector.
@@ -240,6 +241,10 @@ public sealed partial class UsageProjector(IProjectLogReader logs, IProjectStora
 
                 switch (payload)
                 {
+                    case { } other when IsActivityKind(entry.Kind):
+                        facts.Add(entry, other);
+                        break;
+
                     case AgentRunStartedPayload started:
                         starts.Add(entry.RecordedAt);
                         if (phase4 is null && started.RecordsPurpose())
@@ -275,6 +280,7 @@ public sealed partial class UsageProjector(IProjectLogReader logs, IProjectStora
         }
 
         WithSessionTotals(attempts, sessionOf);
+        facts.Apply(attempts);
         return new UsageProjection(attempts, warnings, starts, phase4);
     }
 
@@ -370,6 +376,7 @@ public sealed partial class UsageProjector(IProjectLogReader logs, IProjectStora
         {
             DecisionKind.AgentRunStarted => typeof(AgentRunStartedPayload),
             DecisionKind.AgentRunFinished => typeof(AgentRunFinishedPayload),
+            _ when IsActivityKind(entry.Kind) => DecisionPayloadSerializer.PayloadTypeFor(entry.Kind),
             _ => null,
         };
         if (type is null)
@@ -383,7 +390,9 @@ public sealed partial class UsageProjector(IProjectLogReader logs, IProjectStora
         }
         catch (Exception ex) when (ex is JsonException or NotSupportedException or InvalidCastException)
         {
-            return (null, string.Create(CultureInfo.InvariantCulture, $"La entrada {entry.Sequence} ({entry.Kind}) no se puede leer y no se cuenta: {ex.Message}"));
+            return (null, IsActivityKind(entry.Kind)
+                ? string.Create(CultureInfo.InvariantCulture, $"La entrada {entry.Sequence} ({entry.Kind}) no se puede leer: no cuenta para el hito, la actividad ni la espera: {ex.Message}")
+                : string.Create(CultureInfo.InvariantCulture, $"La entrada {entry.Sequence} ({entry.Kind}) no se puede leer y no se cuenta: {ex.Message}"));
         }
     }
 

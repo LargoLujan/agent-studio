@@ -1,0 +1,408 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the Observability area (docs/17 D-47, ADR-0054; Phase 14 WP-14A part c) in Spanish of Spain, the source language: the figures with their origin, the context bars, the quota of the plan and its settings. The analysis of consumption has its own file (ConsumptionStrings). -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Observability_Origin_ReportedByProvider" xml:space="preserve">
+    <value>exacto · informado por el programa del agente</value>
+    <comment>Origin of a figure: the agent program (the CLI of Claude Code, Codex…) gave it exactly.</comment>
+  </data>
+  <data name="Observability_Origin_MeasuredBySystem" xml:space="preserve">
+    <value>exacto · medido por Agent Studio</value>
+    <comment>Origin of a figure: Agent Studio measured it.</comment>
+  </data>
+  <data name="Observability_Origin_EstimatedByProvider" xml:space="preserve">
+    <value>estimado por el programa del agente</value>
+    <comment>Origin of a figure: the agent program estimated it.</comment>
+  </data>
+  <data name="Observability_Origin_EstimatedBySystem" xml:space="preserve">
+    <value>estimado por Agent Studio</value>
+    <comment>Origin of a figure: Agent Studio estimated it.</comment>
+  </data>
+  <data name="Observability_Origin_NotExposed" xml:space="preserve">
+    <value>no expuesto</value>
+    <comment>Origin of a figure: the agent program does not give it.</comment>
+  </data>
+  <data name="Observability_Origin_Missing" xml:space="preserve">
+    <value>sin dato</value>
+    <comment>Origin of a figure: there is no value.</comment>
+  </data>
+  <data name="Observability_Figure_Partial" xml:space="preserve">
+    <value>parcial ({0} de {1}) · {2}</value>
+    <comment>Origin of a sum that misses values. {0}: values reported; {1}: values expected; {2}: origin.</comment>
+  </data>
+  <data name="Observability_Figure_PriceList" xml:space="preserve">
+    <value>(precio de lista)</value>
+    <comment>Basis of an estimated cost: the list price.</comment>
+  </data>
+  <data name="Observability_Figure_PriceBasis" xml:space="preserve">
+    <value>(base «{0}»)</value>
+    <comment>Basis of an estimated cost other than the list price. {0}: the basis the program gives.</comment>
+  </data>
+  <data name="Observability_Figure_TokensOf" xml:space="preserve">
+    <value>{0} de {1} tokens</value>
+    <comment>Tokens against a total. {0}: tokens; {1}: total.</comment>
+  </data>
+  <data name="Observability_Figure_Of" xml:space="preserve">
+    <value>{0} de {1}</value>
+    <comment>A count against a total. {0}: count; {1}: total.</comment>
+  </data>
+  <data name="Observability_Level_Healthy" xml:space="preserve">
+    <value>sano</value>
+    <comment>Level of the working memory: below the first threshold.</comment>
+  </data>
+  <data name="Observability_Level_Warning" xml:space="preserve">
+    <value>aviso</value>
+    <comment>Level of the working memory: over the warning threshold.</comment>
+  </data>
+  <data name="Observability_Level_Compression" xml:space="preserve">
+    <value>compresión recomendada</value>
+    <comment>Level of the working memory: over the compression threshold.</comment>
+  </data>
+  <data name="Observability_Level_Critical" xml:space="preserve">
+    <value>crítico</value>
+    <comment>Level of the working memory: over the critical threshold.</comment>
+  </data>
+  <data name="Observability_Level_Unknown" xml:space="preserve">
+    <value>sin evaluar</value>
+    <comment>Level of the working memory when there is no percentage to judge.</comment>
+  </data>
+  <data name="Observability_Context_NoPercent" xml:space="preserve">
+    <value>sin porcentaje: aún no se conoce la memoria de trabajo del modelo</value>
+    <comment>Why a context figure has no percentage: the window of the model is not known.</comment>
+  </data>
+  <data name="Observability_Bar_NoObservationYet" xml:space="preserve">
+    <value>sin observaciones todavía</value>
+    <comment>What a context bar says before the first step of its agent.</comment>
+  </data>
+  <data name="Observability_Bar_NoStepYet" xml:space="preserve">
+    <value>el agente aún no ha informado de ningún paso</value>
+    <comment>Detail of a context bar before the first step.</comment>
+  </data>
+  <data name="Observability_Bar_RunsUsed_One" xml:space="preserve">
+    <value>{0} ejecución de agente usada</value>
+    <comment>Budget of runs without a maximum, one run. {0}: runs.</comment>
+  </data>
+  <data name="Observability_Bar_RunsUsed_Other" xml:space="preserve">
+    <value>{0} ejecuciones de agente usadas</value>
+    <comment>Budget of runs without a maximum, many runs. {0}: runs.</comment>
+  </data>
+  <data name="Observability_Bar_MaxMissing" xml:space="preserve">
+    <value>máximo sin dato</value>
+    <comment>Origin of a budget bar that has no maximum.</comment>
+  </data>
+  <data name="Observability_Bar_BudgetSpent" xml:space="preserve">
+    <value>presupuesto agotado</value>
+    <comment>Level of a budget bar that reached its maximum.</comment>
+  </data>
+  <data name="Observability_Bar_BudgetDetail" xml:space="preserve">
+    <value>ejecuciones de agente usadas frente al máximo de la ejecución</value>
+    <comment>Detail of the budget bar.</comment>
+  </data>
+  <data name="Observability_Bar_NoLimit" xml:space="preserve">
+    <value>sin límite</value>
+    <comment>Level of a tokens bar that has no maximum.</comment>
+  </data>
+  <data name="Observability_Bar_LimitReached" xml:space="preserve">
+    <value>límite alcanzado</value>
+    <comment>Level of a tokens bar that reached its maximum.</comment>
+  </data>
+  <data name="Observability_Bar_SumOfTurns" xml:space="preserve">
+    <value>la suma de los turnos</value>
+    <comment>Source of a sum of tokens of the turns of a debate.</comment>
+  </data>
+  <data name="Observability_Bar_ResetNoData" xml:space="preserve">
+    <value>se reinició {0}, sin dato nuevo</value>
+    <comment>A usage window that reset since it was seen. {0}: when («a las 15:00»).</comment>
+  </data>
+  <data name="Observability_Bar_ResetShort" xml:space="preserve">
+    <value>se reinició · sin dato</value>
+    <comment>Short form for the status bar of the previous text.</comment>
+  </data>
+  <data name="Observability_Bar_BeforeReset" xml:space="preserve">
+    <value>antes del reinicio: {0}</value>
+    <comment>The old figure of a window that reset. {0}: the figure with its origin.</comment>
+  </data>
+  <data name="Observability_Bar_EstimatedWindow" xml:space="preserve">
+    <value>memoria de trabajo estimada: {0}</value>
+    <comment>Where an estimated window of the model comes from. {0}: the source.</comment>
+  </data>
+  <data name="Observability_Window_FiveHour" xml:space="preserve">
+    <value>5 horas</value>
+    <comment>Window of the plan of Claude: five hours.</comment>
+  </data>
+  <data name="Observability_Window_SevenDay" xml:space="preserve">
+    <value>7 días</value>
+    <comment>Window of the plan of Claude: seven days.</comment>
+  </data>
+  <data name="Observability_Window_SevenDayOpus" xml:space="preserve">
+    <value>7 días · Opus</value>
+    <comment>Window of seven days of the model Opus.</comment>
+  </data>
+  <data name="Observability_Window_SevenDaySonnet" xml:space="preserve">
+    <value>7 días · Sonnet</value>
+    <comment>Window of seven days of the model Sonnet.</comment>
+  </data>
+  <data name="Observability_Window_FiveHourShort" xml:space="preserve">
+    <value>5 h</value>
+    <comment>Window of five hours, for the status bar.</comment>
+  </data>
+  <data name="Observability_Window_SevenDayShort" xml:space="preserve">
+    <value>7 días</value>
+    <comment>Window of seven days, for the status bar.</comment>
+  </data>
+  <data name="Observability_Window_WithLength" xml:space="preserve">
+    <value>{0} · periodo de {1}</value>
+    <comment>A window with its length. {0}: name; {1}: length.</comment>
+  </data>
+  <data name="Observability_Length_Minutes" xml:space="preserve">
+    <value>{0} min</value>
+    <comment>A length in minutes.</comment>
+  </data>
+  <data name="Observability_Length_Hours" xml:space="preserve">
+    <value>{0} h</value>
+    <comment>A length in hours.</comment>
+  </data>
+  <data name="Observability_Length_Day" xml:space="preserve">
+    <value>1 día</value>
+    <comment>A length of one day.</comment>
+  </data>
+  <data name="Observability_Length_Days" xml:space="preserve">
+    <value>{0} días</value>
+    <comment>A length in days (two or more).</comment>
+  </data>
+  <data name="Observability_Seen_Now" xml:space="preserve">
+    <value>vista hace menos de 1 min</value>
+    <comment>Age of an observation under a minute.</comment>
+  </data>
+  <data name="Observability_Seen_Minutes" xml:space="preserve">
+    <value>vista hace {0} min</value>
+    <comment>Age of an observation in minutes.</comment>
+  </data>
+  <data name="Observability_Seen_Hours" xml:space="preserve">
+    <value>vista hace {0} h</value>
+    <comment>Age of an observation in hours.</comment>
+  </data>
+  <data name="Observability_Seen_Days" xml:space="preserve">
+    <value>vista hace {0} días</value>
+    <comment>Age of an observation in days.</comment>
+  </data>
+  <data name="Observability_Reset_Today" xml:space="preserve">
+    <value>se reinicia hoy {0}</value>
+    <comment>When a window resets, today. {0}: the clock («a las 15:00»).</comment>
+  </data>
+  <data name="Observability_Reset_Later" xml:space="preserve">
+    <value>se reinicia {0}</value>
+    <comment>When a window resets, another day. {0}: the date and clock.</comment>
+  </data>
+  <data name="Observability_Clock_At" xml:space="preserve">
+    <value>a las {0}</value>
+    <comment>A moment today. {0}: HH:mm.</comment>
+  </data>
+  <data name="Observability_Clock_OnDate" xml:space="preserve">
+    <value>el {0} a las {1}</value>
+    <comment>A moment another day. {0}: the date; {1}: HH:mm.</comment>
+  </data>
+  <data name="Observability_Clock_DateFormat" xml:space="preserve">
+    <value>dd/MM</value>
+    <comment>The format of a date without year, as the language writes it.</comment>
+  </data>
+  <data name="Observability_Quota_Reached" xml:space="preserve">
+    <value>límite alcanzado: {0}</value>
+    <comment>A limit the provider says was reached. {0}: the limit as the provider names it.</comment>
+  </data>
+  <data name="Observability_Quota_Plan" xml:space="preserve">
+    <value>Plan: {0}</value>
+    <comment>The plan the program reports. {0}: its name.</comment>
+  </data>
+  <data name="Observability_Quota_RecordUnreadable" xml:space="preserve">
+    <value>sin dato: no se pudo leer el registro del límite de uso: {0}</value>
+    <comment>The record of observations could not be read. {0}: the error.</comment>
+  </data>
+  <data name="Observability_Quota_CodexReadFailed" xml:space="preserve">
+    <value>no se pudo leer el límite de uso de Codex: {0}</value>
+    <comment>A read of Codex failed. {0}: the error.</comment>
+  </data>
+  <data name="Observability_Quota_GeminiNotExposed" xml:space="preserve">
+    <value>no expuesto: Gemini está aparcado y su límite de uso no se puede leer.</value>
+    <comment>Status of Gemini.</comment>
+  </data>
+  <data name="Observability_Quota_NoRecord" xml:space="preserve">
+    <value>Sin dato: aquí no está disponible el registro del límite de uso.</value>
+    <comment>Status of Claude when the shell has no record.</comment>
+  </data>
+  <data name="Observability_Quota_ClaudeNone" xml:space="preserve">
+    <value>Sin dato todavía: Claude avisa de tu límite de uso al empezar cada ejecución.</value>
+    <comment>Status of Claude before any observation.</comment>
+  </data>
+  <data name="Observability_Quota_ClaudeSeen" xml:space="preserve">
+    <value>Del último aviso de Claude al empezar una ejecución. No hace llamadas extra.</value>
+    <comment>Status of Claude with observations.</comment>
+  </data>
+  <data name="Observability_Quota_CodexOff" xml:space="preserve">
+    <value>Desactivado: activa «Leer el límite de uso de Codex» en «Ajustes». Sin tu permiso no se lanza nada.</value>
+    <comment>Status of Codex without the opt-in.</comment>
+  </data>
+  <data name="Observability_Quota_CodexUnavailable" xml:space="preserve">
+    <value>La lectura del límite de uso de Codex no está disponible aquí.</value>
+    <comment>Status of Codex when the shell has no reader.</comment>
+  </data>
+  <data name="Observability_Quota_CodexNotRead" xml:space="preserve">
+    <value>Sin leer todavía: pulsa «Consultar el límite de uso de Codex».</value>
+    <comment>Status of Codex with the opt-in and no read.</comment>
+  </data>
+  <data name="Observability_Quota_CodexKept" xml:space="preserve">
+    <value>Última lectura guardada de Codex.</value>
+    <comment>Status of Codex with observations of an earlier read.</comment>
+  </data>
+  <data name="Observability_Quota_CodexRead" xml:space="preserve">
+    <value>Leída de Codex ahora, sin turno del modelo.</value>
+    <comment>Status of Codex after a read.</comment>
+  </data>
+  <data name="Observability_Quota_CodexNotAllowed" xml:space="preserve">
+    <value>Codex dice que el uso ordinario no está permitido ahora.</value>
+    <comment>Warning when Codex says ordinary use is not allowed.</comment>
+  </data>
+  <data name="Observability_Quota_NotExposed" xml:space="preserve">
+    <value>no expuesto: {0}</value>
+    <comment>Codex does not offer it. {0}: the reason.</comment>
+  </data>
+  <data name="Observability_Quota_NotExposedDefault" xml:space="preserve">
+    <value>Codex no lo ofrece aquí</value>
+    <comment>The reason when Codex gives none.</comment>
+  </data>
+  <data name="Observability_Quota_NoPermission" xml:space="preserve">
+    <value>Sin tu permiso no se lanzó nada.</value>
+    <comment>Status of Codex when the read was refused for lack of opt-in.</comment>
+  </data>
+  <data name="Observability_Quota_Missing" xml:space="preserve">
+    <value>sin dato: {0}</value>
+    <comment>A read gave no data. {0}: the reason.</comment>
+  </data>
+  <data name="Observability_Quota_MissingDefault" xml:space="preserve">
+    <value>la lectura no llegó</value>
+    <comment>The reason when the read gives none.</comment>
+  </data>
+  <data name="Observability_Quota_Title" xml:space="preserve">
+    <value>Límite de uso de tu plan</value>
+    <comment>Title of the panel.</comment>
+  </data>
+  <data name="Observability_Quota_Intro" xml:space="preserve">
+    <value>El porcentaje de uso lo informa siempre el programa del agente: Agent Studio no lo calcula ni lo adivina.</value>
+    <comment>Intro of the panel.</comment>
+  </data>
+  <data name="Observability_Quota_ClaudeName" xml:space="preserve">
+    <value>Límite de uso de Claude Code</value>
+    <comment>Accessible name of the block of Claude.</comment>
+  </data>
+  <data name="Observability_Quota_CodexName" xml:space="preserve">
+    <value>Límite de uso de Codex CLI</value>
+    <comment>Accessible name of the block of Codex.</comment>
+  </data>
+  <data name="Observability_Quota_GeminiName" xml:space="preserve">
+    <value>Límite de uso de Gemini CLI</value>
+    <comment>Accessible name of the block of Gemini.</comment>
+  </data>
+  <data name="Observability_Quota_ReadCodex" xml:space="preserve">
+    <value>Consultar el límite de uso de Codex</value>
+    <comment>Button that reads the quota of Codex.</comment>
+  </data>
+  <data name="Observability_Quota_ReadCodexTip" xml:space="preserve">
+    <value>Lee el límite de uso de Codex una vez, con su sesión y sin turno del modelo. Solo con tu permiso en «Ajustes».</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Observability_Settings_Title" xml:space="preserve">
+    <value>Contexto y límite de uso</value>
+    <comment>Title of the section in the settings.</comment>
+  </data>
+  <data name="Observability_Settings_Intro" xml:space="preserve">
+    <value>El monitor avisa cuando se llena la memoria de trabajo de una tarea. Aquí también decides si Agent Studio puede leer el límite de uso de Codex.</value>
+    <comment>Intro of the section.</comment>
+  </data>
+  <data name="Observability_Settings_Thresholds" xml:space="preserve">
+    <value>Umbrales de la memoria de trabajo (% que ocupa)</value>
+    <comment>Heading of the three thresholds.</comment>
+  </data>
+  <data name="Observability_Settings_Warning" xml:space="preserve">
+    <value>Aviso</value>
+    <comment>Label of the warning threshold.</comment>
+  </data>
+  <data name="Observability_Settings_WarningName" xml:space="preserve">
+    <value>Umbral de aviso, en porcentaje</value>
+    <comment>Accessible name of the field.</comment>
+  </data>
+  <data name="Observability_Settings_Compress" xml:space="preserve">
+    <value>Compresión recomendada</value>
+    <comment>Label of the compression threshold.</comment>
+  </data>
+  <data name="Observability_Settings_CompressName" xml:space="preserve">
+    <value>Umbral de compresión recomendada, en porcentaje</value>
+    <comment>Accessible name of the field.</comment>
+  </data>
+  <data name="Observability_Settings_Critical" xml:space="preserve">
+    <value>Crítico</value>
+    <comment>Label of the critical threshold.</comment>
+  </data>
+  <data name="Observability_Settings_CriticalName" xml:space="preserve">
+    <value>Umbral crítico, en porcentaje</value>
+    <comment>Accessible name of the field.</comment>
+  </data>
+  <data name="Observability_Settings_Rule" xml:space="preserve">
+    <value>Cada umbral es mayor que el anterior y el último no pasa de 100: 0 &lt; aviso &lt; compresión &lt; crítico ≤ 100. Se miden sobre la memoria de trabajo del modelo que sirvió cada paso.</value>
+    <comment>The rule of the thresholds.</comment>
+  </data>
+  <data name="Observability_Settings_CodexRead" xml:space="preserve">
+    <value>Leer el límite de uso de Codex</value>
+    <comment>Label of the opt-in.</comment>
+  </data>
+  <data name="Observability_Settings_CodexExplanation" xml:space="preserve">
+    <value>Lee tu límite de uso con el programa de Codex y la sesión de ChatGPT, sin ningún turno del modelo. Se lee cuando lo pides y al terminar cada ejecución de Codex, como mucho una vez cada 5 minutos. Si una ejecución espera por un límite de Codex, se lee para saber cuándo se reinicia y antes de seguir.</value>
+    <comment>What the opt-in allows: every moment the quota is read (F13-20).</comment>
+  </data>
+  <data name="Observability_Settings_NotWhole" xml:space="preserve">
+    <value>No se guardaron los umbrales. «{0}» no es un número entero de 1 a 100: corrígelo.</value>
+    <comment>Error. {0}: what the person wrote.</comment>
+  </data>
+  <data name="Observability_Settings_BadOrder" xml:space="preserve">
+    <value>No se guardaron los umbrales. Cada uno debe ser mayor que el anterior, y el crítico no pasa de 100: 0 &lt; aviso &lt; compresión &lt; crítico ≤ 100.</value>
+    <comment>Error: the order of the thresholds.</comment>
+  </data>
+  <data name="Info_Quota_Title" xml:space="preserve">
+    <value>Límite de uso de tu plan</value>
+    <comment>Title of the information button.</comment>
+  </data>
+  <data name="Info_Quota_What" xml:space="preserve">
+    <value>Cuánto has usado de tu plan en cada periodo, como las últimas 5 horas o los últimos 7 días. El porcentaje lo da el programa del agente. Agent Studio no lo calcula.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_Quota_Actions" xml:space="preserve">
+    <value>Mira cada barra: dice qué porcentaje llevas y de dónde sale.
+Busca debajo de la barra cuándo se reinicia el límite.
+Pulsa «Consultar el límite de uso de Codex» para leerlo ahora, si lo permitiste en «Ajustes».</value>
+    <comment>Information button: one action per line.</comment>
+  </data>
+  <data name="Info_ContextSettings_Title" xml:space="preserve">
+    <value>Umbrales de la memoria de trabajo</value>
+    <comment>Title of the information button.</comment>
+  </data>
+  <data name="Info_ContextSettings_What" xml:space="preserve">
+    <value>El monitor avisa cuando la memoria de trabajo de un agente se llena. Aquí eliges en qué porcentaje salta cada aviso: el de aviso, el de compresión recomendada y el crítico.</value>
+    <comment>Information button.</comment>
+  </data>
+  <data name="Info_ContextSettings_Actions" xml:space="preserve">
+    <value>Cambia los tres porcentajes. Cada uno debe ser mayor que el anterior.
+Guarda los ajustes para aplicarlos.
+Activa la lectura del límite de uso de Codex solo si quieres verlo en las barras.</value>
+    <comment>Information button: one action per line.</comment>
+  </data>
+</root>

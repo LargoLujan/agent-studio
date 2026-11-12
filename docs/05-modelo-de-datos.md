@@ -2,7 +2,8 @@
 
 > Entregable 8 de la sección 19. El esquema real está en las migraciones de
 > `src/AgentStudio.Infrastructure/Persistence/Schema/` (`0001_initial.sql`, `0002_orchestration.sql`,
-> `0003_evidence_subject_commit.sql`, `0004_memory.sql` y `0005_debates.sql`) y lo prueban
+> `0003_evidence_subject_commit.sql`, `0004_memory.sql`, `0005_debates.sql`, `0006_milestones.sql` y
+> `0007_replace_by_rowid.sql`) y lo prueban
 > los tests de `tests/AgentStudio.Tests/Infrastructure`. Los almacenes que lo leen y escriben están en
 > `src/AgentStudio.Infrastructure/Persistence/` (Fase 3, WP2). Este documento explica el porqué.
 
@@ -314,6 +315,14 @@ erDiagram
 | `0003_evidence_subject_commit.sql` | 3 | Columna `subject_commit` en `evidence`: el commit que verificó cada build o ejecución de tests. Nula en lo que no trata de un commit y en las filas anteriores. No necesita triggers propios: los de la `0001` impiden cambiar cualquier columna de la fila |
 | `0004_memory.sql` | 4 | Solo memoria: `memory_entries` pasa a ser append-only (triggers `no_update`, `no_delete` y `no_replace`; se retiran los de FTS de UPDATE y DELETE) y gana `origin` (con `CHECK`), `content_sha256` y `supersedes_entry_id`, además del índice `memory_by_project`. **No crea tablas**: el uso es una proyección del registro (D-01) y las tablas `skills` y `skill_health_checks`, que la numeración anterior reservaba para la `0004`, salen del plan porque el catálogo es del perfil (D-27) |
 | `0005_debates.sql` | 5 | `debate_sessions` y `project_audits`, las cabeceras inmutables de los debates y de las auditorías de proyecto, con `CHECK` del modo y del objeto, claves foráneas a `projects`, `requirement_sets`, `evidence` y (la impugnación) `verdicts`, índices por proyecto y fecha y sus triggers `no_update`, `no_delete` y `no_replace`. Idempotente sobre una base en la `0004`. **No borra** las tablas de debate de la `0001`, que quedan sin uso (§5) |
+| `0006_milestones.sql` | 9 | `milestones` (la cabecera inmutable de un hito: nombre, objetivo, el primer conjunto de requisitos congelado con clave foránea a `requirement_sets`, el presupuesto opcional y `header_hash`, que `MilestoneOpened` ancla) y `backlog_items` (una fila por versión de cada elemento del backlog, con clave `(item_id, version)`, `CHECK` de la prioridad `Mandatory` o `Desirable`, los criterios en JSON y `content_sha256`, que `BacklogItemRecorded` anuncia antes de guardar la fila). Índices por proyecto y fecha y triggers `no_update`, `no_delete` y `no_replace` en las dos. Idempotente sobre una base en la `0005`. **No crea tablas** para los vínculos de trazabilidad (son entradas del registro, [ADR-0039](adr/0039-vinculos-de-trazabilidad-y-participacion.md)), ni para el tablero, el consumo por hito o la estimación (proyecciones) |
+| `0007_replace_by_rowid.sql` | 14 | Solo triggers (P45): recrea los `no_replace` de `decision_log`, `evidence`, `verdicts`, `requirement_sets`, `plans`, `orchestration_runs`, `memory_entries`, `debate_sessions`, `project_audits`, `milestones` y `backlog_items` para que rechacen también un `INSERT` cuyo `rowid` ya existe. Así se cierra el `INSERT OR REPLACE` por `rowid` desde una conexión sin `recursive_triggers`. No toca tablas ni filas. `debate_contributions` y `skill_activations` no cambian: su `id` ya es el `rowid` ([ADR-0010](adr/0010-estado-derivado-del-registro.md), adenda del 2026-11-12) |
+
+### 4.1 Hitos y backlog (migración 0006)
+
+- **Un hito se reproduce, no se guarda.** Su estado (abierto o cerrado, el conjunto de requisitos vigente y su historia, lo vinculado, los informes de sus cierres y sus reaperturas) sale de reproducir las entradas `Milestone*` del registro con `MilestoneStateReplayer`. Esas entradas llevan el id del hito (`mil-yyyyMMdd-xxxxxx`) como `runId`, como las de un debate. La fila de `milestones` solo es lo que no cambia ([ADR-0038](adr/0038-hito-backlog-y-tablero.md)).
+- **El backlog es un registro de solo añadir.** Cada cambio de un elemento es una versión nueva con todo su contenido. Retirar y reordenar son entradas del registro (`BacklogItemRetired`, `BacklogOrderChanged`), sin `runId`. Leer el backlog solo devuelve filas anunciadas con el mismo SHA-256, como la memoria.
+- **Lo que no se guarda.** Las columnas del tablero y las cifras de consumo son proyecciones; las claves foráneas de `milestones` a `requirement_sets` y a `projects` impiden un hito sin requisitos congelados.
 
 ## 5. Tablas de la 0001 sin uso en la Fase 3
 

@@ -1,4 +1,5 @@
 using AgentStudio.Application.Decisions;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Providers;
 using AgentStudio.Domain.Common;
@@ -43,7 +44,7 @@ public sealed record DebateRequest(
     int? MaxAgentRuns = null);
 
 /// <summary>What a debate may spend at most (D-21): its launches and its tokens, «estimado por Agent Studio», with the notes that explain the figure.</summary>
-public sealed record DebateEstimate(int MaxAgentRuns, MetricValue<long> Tokens, IReadOnlyList<string> Notes);
+public sealed record DebateEstimate(int MaxAgentRuns, MetricValue<long> Tokens, IReadOnlyList<string> Notes, IReadOnlyList<UserText>? NoteTexts = null);
 
 /// <summary>
 /// What «Abrir debate» shows; nothing is written (D-06). <see cref="Judging"/> is the arrangement
@@ -57,7 +58,8 @@ public sealed record DebateProposal(
     IReadOnlyList<string> Problems,
     DebateEstimate Estimate,
     string HeaderHash,
-    string ApprovalText);
+    string ApprovalText,
+    IReadOnlyList<UserText>? ProblemTexts = null);
 
 /// <summary>Runs debates (docs/15 D-01 to D-22): prepares, opens after the user's approval, resumes, lists and reads them.</summary>
 public interface IDebateCoordinator
@@ -178,8 +180,12 @@ public enum DebateAwaitReason
     HumanResolution,
 }
 
-/// <summary>Why a debate is waiting, for whom (the label of a participant) and until when.</summary>
-public sealed record DebateAwaiting(DebateAwaitReason Reason, string Message, string? Participant = null, DateTimeOffset? Until = null);
+/// <summary>
+/// Why a debate is waiting, for whom (the label of a participant) and until when. <paramref name="Message"/> is the sentence in Spanish
+/// of the debate; <paramref name="Texts"/> says the same as coded texts, one per reason (one per failed turn), which the desktop paints
+/// in the language of the person (docs/17 D-47). Null when a producer gives only the message.
+/// </summary>
+public sealed record DebateAwaiting(DebateAwaitReason Reason, string Message, string? Participant = null, DateTimeOffset? Until = null, IReadOnlyList<UserText>? Texts = null);
 
 /// <summary>A debate in the history (D-41): from replaying its log.</summary>
 /// <param name="Question">The literal question, read against its anchored hash; null when it cannot be read.</param>
@@ -199,7 +205,8 @@ public sealed record DebateSummary(
     bool Interrupted,
     bool Challenged,
     string? Challenges,
-    IReadOnlyList<string> Problems);
+    IReadOnlyList<string> Problems,
+    IReadOnlyList<UserText>? ProblemTexts = null);
 
 /// <summary>
 /// The room (D-41): the header (mode, phase, round, time and tokens with their origin, «~» when an estimate is among them,
@@ -228,7 +235,8 @@ public sealed record DebateSnapshot(
     DebateJudgmentReason? JudgmentReason,
     DebateAwaiting? Awaiting,
     bool CanRunTests,
-    IReadOnlyList<string> Problems);
+    IReadOnlyList<string> Problems,
+    IReadOnlyList<UserText>? ProblemTexts = null);
 
 /// <summary>
 /// A whole debate read back (D-41 and D-42): its summary, the disposition of the judgment with its waivers, the participants
@@ -246,7 +254,8 @@ public sealed record DebateTranscript(
     PanelOutcome? Outcome,
     DebateLimitReached LimitReached,
     DebateJudgmentReason? JudgmentReason,
-    IReadOnlyList<string> Problems);
+    IReadOnlyList<string> Problems,
+    IReadOnlyList<UserText>? ProblemTexts = null);
 
 /// <summary>How a debate ended, or stood when this process stopped following it.</summary>
 public sealed record DebateResult(

@@ -59,7 +59,7 @@ public sealed class OrchestratorAuditorIntegrationTests
 
         // On what the real engine wrote the auditor finds nothing (no false positive), writes nothing, and the run can be delivered.
         Assert.True(monitor.AuditFindings.Count == 0, string.Join("\n", monitor.AuditFindings.Select(f => $"{f.Code}: {f.Message}")));
-        Assert.StartsWith("Auditor del orquestador: sin hallazgos", monitor.AuditSummary, StringComparison.Ordinal);
+        Assert.StartsWith(AgentStudio.Desktop.Localization.Texts.Get("Orchestrator_Mon_AuditClean"), monitor.AuditSummary, StringComparison.Ordinal);
         Assert.False(monitor.ReplanPending);
         Assert.True(monitor.DeliverCommand.CanExecute(null), monitor.DeliveryReadiness?.Reason);
         Assert.DoesNotContain(await app.PayloadsAsync<AuditAlertPayload>(run.Id.Value), a => a.Entry.Actor == OrchestratorAudit.Auditor);

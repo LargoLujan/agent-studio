@@ -4,6 +4,7 @@ using AgentStudio.Application.Usage;
 using AgentStudio.Desktop.Controls;
 using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Services;
+using AgentStudio.Observability.Usage;
 using AgentStudio.Tests.Memory;
 
 namespace AgentStudio.Tests.Desktop.Observability;
@@ -55,6 +56,19 @@ public sealed class UsageDashboardViewModelTests
         Assert.Equal(TimeSpan.FromHours(2), query.Zone.BaseUtcOffset);
         Assert.Equal([UsageDimension.Provider, UsageDimension.Model], query.GroupBy);
         Assert.Null(query.Filter);
+    }
+
+    [Fact]
+    public void Every_dimension_the_panel_offers_can_be_grouped_by_the_aggregator()
+    {
+        var dashboard = Dashboard();
+
+        foreach (var option in dashboard.Dimensions)
+        {
+            var query = new UsageQuery(Now.AddDays(-1), Now.AddDays(1), TimeZoneInfo.Utc, [option.Dimension]);
+            var groups = UsageAggregator.Group([UsageSamples.ClaudeAttempt], query);
+            Assert.True(groups.Count >= 1, option.Dimension.ToString());
+        }
     }
 
     [Fact]
@@ -116,19 +130,19 @@ public sealed class UsageDashboardViewModelTests
         Assert.Equal("Proveedor: claude-code · Modelo: claude-sonnet-5-5", claude.Key);
         Assert.Equal("14 · exacto · medido por Agent Studio", claude.Attempts.Text);
         Assert.Equal("41 min · exacto · medido por Agent Studio", claude.Duration.Text);
-        Assert.Equal("1.200.000 · exacto · informado por el CLI", claude.Input.Text);
-        Assert.Equal("900.000 · exacto · informado por el CLI", claude.CacheRead.Text);
-        Assert.Equal("250.000 · exacto · informado por el CLI", claude.CacheWrite.Text);
-        Assert.Equal("96.000 · exacto · informado por el CLI", claude.Output.Text);
+        Assert.Equal("1.200.000 · exacto · informado por el programa del agente", claude.Input.Text);
+        Assert.Equal("900.000 · exacto · informado por el programa del agente", claude.CacheRead.Text);
+        Assert.Equal("250.000 · exacto · informado por el programa del agente", claude.CacheWrite.Text);
+        Assert.Equal("96.000 · exacto · informado por el programa del agente", claude.Output.Text);
         Assert.Equal("no expuesto", claude.Reasoning.Text);
-        Assert.Equal("~3,25 USD · estimado por el CLI (precio de lista)", claude.Cost.Text);
+        Assert.Equal("~3,25 USD · estimado por el programa del agente (precio de lista)", claude.Cost.Text);
         Assert.Equal("0 · exacto · medido por Agent Studio", claude.RateLimited.Text);
-        Assert.Equal("30 % · exacto · informado por el CLI · 300.000 de 1.000.000 tokens · claude-sonnet-5-5 · sano", claude.ContextPeak);
-        Assert.Equal("0 · exacto · informado por el CLI", claude.Compactions.Text);
+        Assert.Equal("30 % · exacto · informado por el programa del agente · 300.000 de 1.000.000 tokens · claude-sonnet-5-5 · sano", claude.ContextPeak);
+        Assert.Equal("0 · exacto · informado por el programa del agente", claude.Compactions.Text);
 
         var codex = dashboard.Groups[1];
-        Assert.Equal("Proveedor: codex-cli · Modelo: predeterminado del CLI (no expuesto)", codex.Key);
-        Assert.Equal("640.000 · parcial (8 de 9) · exacto · informado por el CLI", codex.Input.Text);
+        Assert.Equal("Proveedor: codex-cli · Modelo: predeterminado del programa del agente (no expuesto)", codex.Key);
+        Assert.Equal("640.000 · parcial (8 de 9) · exacto · informado por el programa del agente", codex.Input.Text);
         Assert.Equal("no expuesto", codex.Cost.Text);
         Assert.Equal("1 · exacto · medido por Agent Studio", codex.RateLimited.Text);
         Assert.Equal("no expuesto", codex.ContextPeak);
@@ -169,7 +183,7 @@ public sealed class UsageDashboardViewModelTests
         await dashboard.SetProjectAsync(Root);
 
         var claude = dashboard.Groups[0].ContextPeakBar;
-        Assert.Equal(("Contexto máximo", "30 %", "exacto · informado por el CLI", "sano"), (claude.Label, claude.ValueText, claude.Origin, claude.LevelText));
+        Assert.Equal(("Contexto máximo", "30 %", "exacto · informado por el programa del agente", "sano"), (claude.Label, claude.ValueText, claude.Origin, claude.LevelText));
         Assert.Equal(30, claude.Value!.Value, 6);
         Assert.Equal(MetricBarLevel.Healthy, claude.Level);
         Assert.Contains("300.000 de 1.000.000 tokens", claude.Detail, StringComparison.Ordinal);
@@ -200,12 +214,12 @@ public sealed class UsageDashboardViewModelTests
         Assert.Equal("20261018-c4a1f2 · T1 · intento 1 · Ejecutor · ejecutor", attempt.Who);
         Assert.Equal("claude-code · claude-sonnet-5-5 · correcto", attempt.Where);
         Assert.Equal("3 min · exacto · medido por Agent Studio", attempt.Duration.Text);
-        Assert.Equal("31.000 · exacto · informado por el CLI", attempt.Input.Text);
-        Assert.Equal("~0,12 USD · estimado por el CLI (precio de lista)", attempt.Cost.Text);
+        Assert.Equal("31.000 · exacto · informado por el programa del agente", attempt.Input.Text);
+        Assert.Equal("~0,12 USD · estimado por el programa del agente (precio de lista)", attempt.Cost.Text);
         Assert.Equal(
             [
-                "claude-sonnet-5-5: entrada 30.000 · exacto · informado por el CLI; salida 1.100 · exacto · informado por el CLI; coste ~0,11 USD · estimado por el CLI (precio de lista)",
-                "claude-haiku-4-5-20251001: entrada 1.000 · exacto · informado por el CLI; salida 100 · exacto · informado por el CLI; coste ~0,01 USD · estimado por el CLI (precio de lista)",
+                "claude-sonnet-5-5: entrada 30.000 · exacto · informado por el programa del agente; salida 1.100 · exacto · informado por el programa del agente; coste ~0,11 USD · estimado por el programa del agente (precio de lista)",
+                "claude-haiku-4-5-20251001: entrada 1.000 · exacto · informado por el programa del agente; salida 100 · exacto · informado por el programa del agente; coste ~0,01 USD · estimado por el programa del agente (precio de lista)",
             ],
             attempt.PerModel);
     }
@@ -219,7 +233,7 @@ public sealed class UsageDashboardViewModelTests
 
         var attempt = dashboard.Attempts[1];
         Assert.Equal(["sin desglose (registro anterior a la Fase 4)"], attempt.PerModel);
-        Assert.Equal("codex-cli · predeterminado del CLI (no expuesto) · límite de uso del proveedor", attempt.Where);
+        Assert.Equal("codex-cli · predeterminado del programa del agente (no expuesto) · límite de uso del proveedor", attempt.Where);
         Assert.Equal("sin dato", attempt.Duration.Text);
         Assert.Equal("no expuesto", attempt.Cost.Text);
         Assert.Equal("Contexto máximo: sin dato", attempt.ContextPeak);

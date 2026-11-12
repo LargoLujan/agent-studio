@@ -138,6 +138,91 @@ public sealed class JudgeDossierBuilderTests
         Assert.Empty(package.Files.SystemChecks);
     }
 
+    private const string AttemptJson =
+        "{\"v\":1,\"kind\":\"agent-studio/attempt-record\",\"run\":\"run\",\"task\":\"T1\",\"attempt\":1,\"outcome\":\"Succeeded\",\"attemptBase\":\"aaa\",\"head\":\"bbb\","
+        + "\"changedPaths\":[\"src/Calc.cs\"],\"outputs\":[{\"key\":\"api\",\"value\":\"Calc.Multiply\"}],\"tests\":null,\"reportEvidence\":\"EX-9\",\"reportSha256\":\"abc\"}";
+
+    private static async Task<EvidenceRecord> RecordAttemptAsync(JudgingWorld world, string json = AttemptJson)
+    {
+        var record = await world.CaptureAsync(EvidenceKind.Document, EvidenceOrigin.CapturedBySystem, "Registro del intento T1 #1", json, JudgingWorld.Run, task: JudgingWorld.Work.Value);
+        await world.RegisterAsync(record, JudgingWorld.Run, JudgingWorld.Work, 1);
+        return record;
+    }
+
+    [Fact]
+    public async Task The_outputs_an_agent_reported_are_not_presented_as_captured_by_the_system_in_the_attempt_record()
+    {
+        using var world = await JudgingWorld.CreateAsync();
+        var record = await RecordAttemptAsync(world);
+
+        var package = await BuildAsync(world);
+
+        var file = Assert.Single(package.Files.Evidence, f => f.Evidence == record.Id);
+        Assert.True(file.ContentVerified);
+        Assert.Equal(["outputs"], file.SaidByAgent);
+        using var copy = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(package.Files.Folder, file.RelativePath!), TestContext.Current.CancellationToken));
+        var root = copy.RootElement;
+        Assert.False(root.TryGetProperty("outputs", out _));
+        var said = root.GetProperty("outputsSaidByAgent");
+        Assert.Equal("ReportedByAgent", said.GetProperty("origin").GetString());
+        Assert.Contains("Said by the agent", said.GetProperty("note").GetString(), StringComparison.Ordinal);
+        Assert.Equal("Calc.Multiply", said.GetProperty("outputs")[0].GetProperty("value").GetString());
+        // What the system captured stays where it was.
+        Assert.Equal("Succeeded", root.GetProperty("outcome").GetString());
+        Assert.Equal("bbb", root.GetProperty("head").GetString());
+        Assert.Equal("src/Calc.cs", root.GetProperty("changedPaths")[0].GetString());
+        Assert.Empty(package.Files.SystemChecks);
+
+        using var data = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(package.Files.Folder, "dossier.json"), TestContext.Current.CancellationToken));
+        var entries = data.RootElement.GetProperty("evidence").EnumerateArray().ToList();
+        Assert.Equal(["outputs"], entries.Single(e => e.GetProperty("id").GetString() == record.Id.Value).GetProperty("saidByAgent").EnumerateArray().Select(x => x.GetString()));
+        Assert.All(entries.Where(e => e.GetProperty("id").GetString() != record.Id.Value), e => Assert.Equal(JsonValueKind.Null, e.GetProperty("saidByAgent").ValueKind));
+    }
+
+    [Fact]
+    public async Task What_is_stored_of_the_attempt_record_is_untouched_so_resuming_still_reads_the_outputs()
+    {
+        using var world = await JudgingWorld.CreateAsync();
+        var record = await RecordAttemptAsync(world);
+
+        await BuildAsync(world);
+
+        // The record keeps its content and its hash (the anchors do not move); the engine reads "outputs" from it to resume.
+        await using var stored = await world.Evidence.OpenContentAsync(JudgingWorld.Project, record.Id, TestContext.Current.CancellationToken);
+        using var reader = new StreamReader(stored);
+        var content = await reader.ReadToEndAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(AttemptJson, content);
+        Assert.Equal(record.ContentSha256, Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(content))));
+        using var parsed = JsonDocument.Parse(content);
+        Assert.Equal("Calc.Multiply", parsed.RootElement.GetProperty("outputs")[0].GetProperty("value").GetString());
+    }
+
+    [Fact]
+    public async Task An_attempt_record_that_cannot_be_marked_is_reported_instead_of_passed_off_as_captured()
+    {
+        using var world = await JudgingWorld.CreateAsync();
+        var record = await RecordAttemptAsync(world, "{\"v\":2,\"kind\":\"agent-studio/attempt-record\",\"outputs\":[{\"key\":\"api\",\"value\":\"x\"}]}");
+
+        var package = await BuildAsync(world);
+
+        Assert.Empty(Assert.Single(package.Files.Evidence, f => f.Evidence == record.Id).SaidByAgent);
+        Assert.Contains(package.Files.SystemChecks, c => c.Contains(record.Id.Value, StringComparison.Ordinal) && c.Contains("outputs could not be marked", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_document_that_is_not_an_attempt_record_is_copied_as_it_is()
+    {
+        using var world = await JudgingWorld.CreateAsync();
+        var other = await world.CaptureAsync(EvidenceKind.Document, EvidenceOrigin.CapturedBySystem, "Otro documento", AttemptJson, JudgingWorld.Run, task: JudgingWorld.Work.Value);
+        await world.RegisterAsync(other, JudgingWorld.Run, JudgingWorld.Work, 1);
+
+        var package = await BuildAsync(world);
+
+        var file = Assert.Single(package.Files.Evidence, f => f.Evidence == other.Id);
+        Assert.Empty(file.SaidByAgent);
+        Assert.Equal(AttemptJson, await File.ReadAllTextAsync(Path.Combine(package.Files.Folder, file.RelativePath!), TestContext.Current.CancellationToken));
+    }
+
     [Fact]
     public async Task Evidence_changed_after_capture_is_flagged_for_the_judge_instead_of_hidden()
     {

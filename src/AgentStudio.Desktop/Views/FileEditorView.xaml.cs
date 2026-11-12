@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using AgentStudio.Desktop.Controls.Editor;
+using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.ViewModels;
 
 namespace AgentStudio.Desktop.Views;
@@ -48,15 +49,16 @@ public partial class FileEditorView : UserControl
             return;
         }
 
-        var reason = (e.ExceptionObject as Exception)?.Message ?? "error desconocido";
-        var text = $"No se pudo guardar {_document?.Title ?? "el fichero"}: {reason}\n\nLos cambios siguen en el editor sin guardar.";
+        var reason = (e.ExceptionObject as Exception)?.Message ?? Texts.Get("FileDoc_UnknownError");
+        var text = Texts.Format("FileDoc_SaveFailed_Text", _document?.Title ?? Texts.Get("FileDoc_TheFile"), reason);
+        var caption = Texts.Get("FileDoc_SaveFailed_Caption");
         if (Window.GetWindow(this) is { } owner)
         {
-            MessageBox.Show(owner, text, "Guardar", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(owner, text, caption, MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         else
         {
-            MessageBox.Show(text, "Guardar", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(text, caption, MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
@@ -66,15 +68,13 @@ public partial class FileEditorView : UserControl
     /// </summary>
     private async Task OfferOverwriteAsync(FileChangedOnDiskException changed)
     {
-        var title = _document?.Title ?? "el fichero";
-        var what = changed.Deleted ? "se ha eliminado en disco" : "ha cambiado en disco";
-        var text = $"{title} {what} desde que se abrió.\n\n"
-            + "¿Quieres sobrescribirlo con el contenido del editor? Los cambios hechos fuera se perderán.\n"
-            + "Los cambios del editor siguen sin guardar si eliges No.";
+        var title = _document?.Title ?? Texts.Get("FileDoc_TheFile");
+        var text = Texts.Format(changed.Deleted ? "FileDoc_Overwrite_Deleted" : "FileDoc_Overwrite_Changed", title);
+        var caption = Texts.Get("FileDoc_Overwrite_Caption");
         var owner = Window.GetWindow(this);
         var answer = owner is not null
-            ? MessageBox.Show(owner, text, "Sobrescribir", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No)
-            : MessageBox.Show(text, "Sobrescribir", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
+            ? MessageBox.Show(owner, text, caption, MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No)
+            : MessageBox.Show(text, caption, MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
         if (answer != MessageBoxResult.Yes)
         {
             return;

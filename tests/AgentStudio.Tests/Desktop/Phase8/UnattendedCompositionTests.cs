@@ -49,7 +49,7 @@ public sealed class UnattendedCompositionTests
         Assert.Same(doubles.Power, provider.GetRequiredService<IPowerEvents>());
 
         // «Trabajo desatendido» holds the settings of the lock, and «Ajustes» shows both, each in its section, next to
-        // «Contexto y cuota», which is the one «Consumo» judges its report with.
+        // «Contexto y límite de uso», which is the one «Consumo» judges its report with.
         var unattended = provider.GetRequiredService<UnattendedSettingsViewModel>();
         Assert.Same(provider.GetRequiredService<LockSettingsViewModel>(), unattended.Lock);
         var settings = provider.GetRequiredService<SettingsDocumentViewModel>();

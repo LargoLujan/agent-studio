@@ -1,3 +1,4 @@
+using AgentStudio.Application.Localization;
 using AgentStudio.Domain.Orchestration;
 
 namespace AgentStudio.Orchestration.Planning;
@@ -53,6 +54,59 @@ public static class PlanWarningText
         parts.Add("Para poder entregarlo, en todas las ramas tiene que haber una tarea de integración después de las tareas que escriben y una revisión del juez que dependa de la última integración, sin otra tarea que escriba código entre medias; cualquier otra revisión tiene que ir antes de alguna integración o depender también de la última.");
         return string.Join(' ', parts);
     }
+
+    /// <summary>
+    /// The same warning as <see cref="Notice"/> as coded sentences, in the same order, for the screen (docs/17 D-47): the desktop
+    /// paints them in the language of the person and joins them with a space. <see cref="Notice"/> stays as it is, because it goes to
+    /// the log as the first notice of the run. Empty when there is no warning.
+    /// </summary>
+    public static IReadOnlyList<UserText> Texts(IReadOnlyList<PlanWarning> warnings)
+    {
+        ArgumentNullException.ThrowIfNull(warnings);
+        if (warnings.Any(w => w.Code == PlanWarningCode.DeliveryNotChecked))
+        {
+            return [UserText.Of(OrchestrationUserTexts.DeliveryNotChecked)];
+        }
+
+        var never = Tasks(warnings, PlanWarningCode.NotDeliverable);
+        var maybe = Tasks(warnings, PlanWarningCode.MayNotBeDeliverable);
+        if (never.Count == 0 && maybe.Count == 0)
+        {
+            return [];
+        }
+
+        var parts = new List<UserText>();
+        if (never.Count > 0)
+        {
+            parts.Add(UserText.Of(never.Count == 1 ? OrchestrationUserTexts.DeliveryNeverOne : OrchestrationUserTexts.DeliveryNeverMany, OrchestrationUserTexts.List(never)));
+        }
+
+        if (maybe.Count > 0)
+        {
+            var uncertain = warnings.Where(w => w.Code == PlanWarningCode.MayNotBeDeliverable).ToList();
+            var reasons = new List<UserText>();
+            if (uncertain.FirstOrDefault(w => w.When.Count > 0)?.When is { } example)
+            {
+                reasons.Add(UserText.Of(OrchestrationUserTexts.DeliveryReasonBranch, OrchestrationUserTexts.List([.. example.Select(BranchText)])));
+            }
+
+            if (uncertain.Any(w => w.DependsOnTiming))
+            {
+                reasons.Add(UserText.Of(OrchestrationUserTexts.DeliveryReasonTiming));
+            }
+
+            parts.Add(UserText.Of(maybe.Count == 1 ? OrchestrationUserTexts.DeliveryMaybeOne : OrchestrationUserTexts.DeliveryMaybeMany, OrchestrationUserTexts.List(maybe), OrchestrationUserTexts.List(reasons)));
+        }
+
+        parts.Add(UserText.Of(OrchestrationUserTexts.DeliveryHow));
+        return parts;
+    }
+
+    private static UserText BranchText(ConditionBranch branch) => branch.Branch == ConditionBranches.Yes
+        ? UserText.Of(OrchestrationUserTexts.DeliveryBranchYes, branch.Condition.Value)
+        : branch.Branch == ConditionBranches.No
+            ? UserText.Of(OrchestrationUserTexts.DeliveryBranchNo, branch.Condition.Value)
+            : UserText.Of(OrchestrationUserTexts.DeliveryBranchOther, branch.Condition.Value, branch.Branch);
 
     private static List<string> Tasks(IReadOnlyList<PlanWarning> warnings, PlanWarningCode code) =>
         [.. warnings.Where(w => w.Code == code).Select(w => w.Task is { } task ? task.Value : null).OfType<string>().Distinct(StringComparer.Ordinal)];

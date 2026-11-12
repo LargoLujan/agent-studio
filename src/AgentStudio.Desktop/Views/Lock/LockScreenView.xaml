@@ -4,10 +4,11 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:lock="clr-namespace:AgentStudio.Desktop.Lock"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
              xmlns:orchestrator="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=lock:LockScreenViewModel}"
-             AutomationProperties.Name="Agent Studio está bloqueado">
+             AutomationProperties.Name="{l:T Lock_Screen_Title}">
     <!-- The lock screen (docs/16 D-13, F8-10). Opaque, so nothing of the interface shows through it; MainWindow puts it in
          place of the content while LockScreenViewModel.IsLocked (the editor and the terminal are WebView2 windows, which no
          WPF layer covers: the content is hidden, not only covered). It says what goes on and what waits, never the content.
@@ -23,16 +24,16 @@
                 HorizontalAlignment="Center" VerticalAlignment="Center">
             <StackPanel>
                 <TextBlock FontFamily="{StaticResource IconFont}" FontSize="30" Foreground="{StaticResource AccentBrush}"
-                           Text="&#xE72E;" AutomationProperties.Name="Candado"/>
-                <TextBlock Style="{StaticResource TitleText}" Margin="0,10,0,0" Text="{x:Static lock:LockScreenViewModel.Title}"/>
+                           Text="&#xE72E;" AutomationProperties.Name="{l:T Lock_Screen_Icon}"/>
+                <TextBlock Style="{StaticResource TitleText}" Margin="0,10,0,0" Text="{l:T Lock_Screen_Title}"/>
                 <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="{Binding LockedText}"/>
 
                 <TextBlock Style="{StaticResource BodyText}" Margin="0,18,0,0" Text="{Binding RunningText}"
-                           AutomationProperties.Name="Lo que sigue en marcha"/>
+                           AutomationProperties.Name="{l:T Lock_Screen_RunningName}"/>
                 <TextBlock Style="{StaticResource BodyText}" Margin="0,8,0,0" Text="{Binding WaitingText}"
-                           AutomationProperties.Name="Lo que espera por ti"/>
+                           AutomationProperties.Name="{l:T Lock_Screen_WaitingName}"/>
                 <ItemsControl ItemsSource="{Binding WaitingItems}" Margin="14,4,0,0" Focusable="False"
-                              AutomationProperties.Name="Aprobaciones que esperan">
+                              AutomationProperties.Name="{l:T Lock_Screen_ItemsName}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <TextBlock Style="{StaticResource SecondaryText}" FontFamily="{StaticResource MonoFont}" Text="{Binding}"/>
@@ -40,7 +41,7 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
-                <TextBlock Style="{StaticResource SecondaryText}" Margin="0,18,0,0" Text="{x:Static lock:LockScreenViewModel.Assurance}"/>
+                <TextBlock Style="{StaticResource SecondaryText}" Margin="0,18,0,0" Text="{l:T Lock_Screen_Assurance}"/>
 
                 <Border Margin="0,14,0,0" Padding="10,8" CornerRadius="6" BorderThickness="1" BorderBrush="{StaticResource WarningBrush}"
                         Visibility="{Binding HelloAbsentText, Converter={StaticResource Lock.NotNullToVisibility}}">
@@ -52,10 +53,10 @@
                            AutomationProperties.LiveSetting="Assertive"/>
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,22,0,0">
-                    <Button Style="{StaticResource GhostButton}" Content="Bloquear Windows" Command="{Binding LockWindowsCommand}"
-                            ToolTip="Windows se bloquea y el trabajo sigue; al desbloquear Windows, se desbloquea Agent Studio."/>
+                    <Button Style="{StaticResource GhostButton}" Content="{l:T Lock_Screen_LockWindows}" Command="{Binding LockWindowsCommand}"
+                            ToolTip="{l:T Lock_Screen_LockWindowsTip}"/>
                     <Button x:Name="UnlockButton" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0" IsDefault="True"
-                            Content="Desbloquear con Windows Hello" Command="{Binding UnlockCommand}"/>
+                            Content="{l:T Lock_Screen_Unlock}" Command="{Binding UnlockCommand}"/>
                 </StackPanel>
             </StackPanel>
         </Border>

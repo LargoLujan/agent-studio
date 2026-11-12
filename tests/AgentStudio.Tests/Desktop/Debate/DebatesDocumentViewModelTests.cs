@@ -139,10 +139,10 @@ public sealed class DebatesDocumentViewModelTests
 
         await document.OpenAsync();
 
-        Assert.Contains("Falta el coordinador de debates en esta composición: no se puede listar, abrir ni reanudar ningún debate.", document.Notices);
+        Assert.Contains("Falta el coordinador de debates: no se pueden listar, abrir ni reanudar debates.", document.Notices);
         Assert.Contains("Falta el servicio de impugnación: no se puede impugnar un veredicto.", document.Notices);
-        Assert.Contains("Falta la plantilla de agentes: no hay participantes ni jueces que elegir.", document.Notices);
-        Assert.Contains("Falta el registro de ejecuciones: no se puede debatir sobre una ejecución.", document.Notices);
+        Assert.Contains("Falta el equipo de agentes: no hay participantes ni jueces que elegir.", document.Notices);
+        Assert.Contains("Falta el registro de ejecuciones: no se puede debatir una ejecución.", document.Notices);
         Assert.Empty(document.History);
     }
 

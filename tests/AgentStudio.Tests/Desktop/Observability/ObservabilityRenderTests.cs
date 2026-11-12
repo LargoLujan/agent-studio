@@ -71,7 +71,7 @@ public sealed class ObservabilityRenderTests
             OrchestratorTheme.EnsureLoaded();
             var view = new UsageDashboardView { DataContext = dashboard };
 
-            var bitmap = OffscreenRender.Render(view, 1500, 1180);
+            var bitmap = OffscreenRender.Render(view, 1500, 3600);
             OffscreenRender.SaveIfRequested(bitmap, "fase4-consumo.png");
             // The text box inside the template of a combo box (its editable part, hidden) is not a field of the panel.
             var fieldsOfThePanel = Descendants<System.Windows.Controls.TextBox>(view).Count(t => t.TemplatedParent is not System.Windows.Controls.ComboBox);
@@ -82,7 +82,7 @@ public sealed class ObservabilityRenderTests
         Assert.Equal(0, fields);
         Assert.Contains("«Ajustes»", UsageDashboardViewModel.SettingsNote, StringComparison.Ordinal);
         Assert.Equal(2, dashboard.Groups.Count);
-        Assert.Equal("Leída del app-server de Codex (account/rateLimits/read), sin turno del modelo.", dashboard.Quota.Codex.Status);
+        Assert.Equal("Leída de Codex ahora, sin turno del modelo.", dashboard.Quota.Codex.Status);
         Assert.True(drawn > 60_000, $"Only {drawn} pixels differ from the panel: the report was not drawn.");
         Assert.True(cards > 20_000, $"Only {cards} pixels have the card colour: the groups and the quota were not drawn.");
         Assert.True(warning > 50, $"Only {warning} pixels have the warning colour (the project left out).");
@@ -119,7 +119,7 @@ public sealed class ObservabilityRenderTests
             return (OffscreenRender.CountUnlike(bitmap, Surface), OffscreenRender.Count(bitmap, Success), OffscreenRender.Count(bitmap, Warning), model);
         });
 
-        Assert.Equal("Contexto: 3 % · exacto · informado por el CLI · 30.822 de 1.000.000 tokens · claude-sonnet-5-5 · sano", monitor.Tasks[0].Context);
+        Assert.Equal("Contexto: 3 % · exacto · informado por el programa del agente · 30.822 de 1.000.000 tokens · claude-sonnet-5-5 · sano", monitor.Tasks[0].Context);
         Assert.StartsWith("Contexto: ~90 % · estimado por Agent Studio", monitor.Tasks[1].Context, StringComparison.Ordinal);
         Assert.Equal("Contexto: no expuesto", monitor.Tasks[2].Context);
         Assert.Null(monitor.Tasks[3].Context);

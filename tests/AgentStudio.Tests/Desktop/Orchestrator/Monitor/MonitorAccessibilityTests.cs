@@ -75,7 +75,7 @@ public sealed class MonitorAccessibilityTests
 
         Assert.Equal(2, cards.Count);
         Assert.StartsWith("Ejecutor 1 · Claude Code · sonnet · Trabajando en T1 · contexto 47 %", cards[0].Item1, StringComparison.Ordinal);
-        Assert.Contains("informado por el CLI", cards[0].Item1, StringComparison.Ordinal);
+        Assert.Contains("informado por el programa del agente", cards[0].Item1, StringComparison.Ordinal);
         Assert.Equal(AutomationLiveSetting.Polite, cards[0].Item2);
         Assert.StartsWith("Ejecutor 2 · Claude Code · sonnet · Te pregunta algo: espera tu respuesta", cards[1].Item1, StringComparison.Ordinal);
         Assert.Equal(AutomationLiveSetting.Assertive, cards[1].Item2);
@@ -154,10 +154,14 @@ public sealed class MonitorAccessibilityTests
             run.Emit([.. events]);
 
             // The UI thread keeps pumping while the burst is read and applied.
-            while (Stopwatch.GetElapsedTime(started).TotalSeconds < 2.5)
+            // On a loaded machine the reader of the burst may not get a turn in those 2.5 seconds: the measure waits for the first
+            // grouped change (30 seconds at most) instead of taking its absence for a failure of the monitor.
+            while (Stopwatch.GetElapsedTime(started).TotalSeconds < 2.5 || (changes.Count == 0 && Stopwatch.GetElapsedTime(started).TotalSeconds < 30))
             {
                 await Task.Delay(20);
             }
+
+            var measured = Stopwatch.GetElapsedTime(started);
 
             // The suite runs other tests at the same time on the same processors, and a thread that is preempted for tens of milliseconds
             // is not the monitor's doing: the limit is asked of 99 operations in 100, and no operation may be pathological (500 ms).
@@ -180,7 +184,7 @@ public sealed class MonitorAccessibilityTests
             }
 
             var virtualizing = new[] { "Agentes", "Tareas de la ejecución" }.All(name => Descendants<ItemsControl>(view).First(i => AutomationProperties.GetName(i) == name) is { } list && VirtualizingPanel.GetIsVirtualizing(list) && VirtualizingPanel.GetVirtualizationMode(list) == VirtualizationMode.Recycling);
-            return (DataP99: dataP99, DataMax: dataMax, Cards: cardsMs, Virtualizing: virtualizing, Count: dataCount, Changes: changed, Events: events.Count, Agents: monitor.AgentCards.Count);
+            return (DataP99: dataP99, DataMax: dataMax, Cards: cardsMs, Virtualizing: virtualizing, Count: dataCount, Changes: changed, Events: events.Count, Agents: monitor.AgentCards.Count, Measured: measured);
         });
 
         Assert.True(result.Count > 100, "The dispatcher ran too few operations for the measure to mean anything.");
@@ -190,8 +194,9 @@ public sealed class MonitorAccessibilityTests
 
         // A full layout pass of the whole monitor with the 40 tasks changing at once is not part of this limit (see docs/04 section 21.10).
 
-        // 2.5 seconds of burst: at most four grouped changes a second, plus the one that was waiting.
-        Assert.InRange(result.Changes.Count, 1, 12);
+        // The burst as long as it was measured (2.5 seconds, more on a loaded machine): at most four grouped changes a second, plus
+        // the one that was waiting and the one of the second under way.
+        Assert.InRange(result.Changes.Count, 1, (int)Math.Ceiling(result.Measured.TotalSeconds * 4) + 2);
         for (var i = 1; i < result.Changes.Count; i++)
         {
             Assert.True(result.Changes[i] - result.Changes[i - 1] >= LiveProjection.MinimumInterval - TimeSpan.FromMilliseconds(30), "Two grouped changes came closer than 250 ms.");

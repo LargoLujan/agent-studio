@@ -253,7 +253,7 @@ public sealed record ReinforcedConfirmation(
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            return new HelloOutcome(null, ex.Message);
+            return new HelloOutcome(null, OrchestratorErrorText.Detail(ex));
         }
     }
 }
@@ -409,9 +409,9 @@ public sealed class ApprovalPromptService : IApprovalPrompt
 
         return confirmed switch
         {
-            { AnotherPending: true } => Unconfirmed(HelloTexts.ApprovalConfirmationPending, plan.Confirmation),
-            { Problem: { } problem } => Unconfirmed(plan.LocksWindows ? HelloTexts.ApprovalLockNotAsked(problem) : HelloAnswers.ApprovalNotAsked(problem), plan.Confirmation),
-            { Lock: { } locked } => Unconfirmed(HelloTexts.ApprovalLockNotConfirmed(locked), plan.Confirmation),
+            { AnotherPending: true } => Unconfirmed(OrchestratorProtocolTexts.ConfirmationPending, plan.Confirmation),
+            { Problem: { } problem } => Unconfirmed(plan.LocksWindows ? OrchestratorProtocolTexts.LockNotAsked(problem) : HelloAnswers.ApprovalNotAsked(problem), plan.Confirmation),
+            { Lock: { } locked } => Unconfirmed(OrchestratorProtocolTexts.LockNotConfirmed(locked), plan.Confirmation),
             _ => Unconfirmed(HelloAnswers.ApprovalNotConfirmed(confirmed.Result ?? UserPresenceResult.Canceled), plan.Confirmation),
         };
     }

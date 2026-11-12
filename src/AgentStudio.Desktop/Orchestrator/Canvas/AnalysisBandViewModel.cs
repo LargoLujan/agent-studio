@@ -204,6 +204,13 @@ public sealed partial class AnalysisBandViewModel : ObservableObject, IDisposabl
     /// <summary>Starts the history of the edits from the draft as it is now: a proposal loaded or a project opened is not an edit to undo.</summary>
     public void Reset()
     {
+        // The band is writing a state itself (a fix, Ctrl+Z, Ctrl+Y) and the document read its context again because of it: that
+        // is not a new starting point, and the history that knows the state before has to survive it (P55).
+        if (_applying)
+        {
+            return;
+        }
+
         _history = new EditHistory<MontageEditState>(_host.ReadState());
         NotifyHistory();
     }
@@ -251,7 +258,7 @@ public sealed partial class AnalysisBandViewModel : ObservableObject, IDisposabl
         catch (Exception ex) when (ex is not OperationCanceledException)
 #pragma warning restore CA1031
         {
-            Show(null, _text.Format("Canvas_Analysis_Failed", ex.Message), failed: true);
+            Show(null, _text.Format("Canvas_Analysis_Failed", OrchestratorErrorText.Detail(ex, _text.Provider)), failed: true);
             return;
         }
 
@@ -271,7 +278,7 @@ public sealed partial class AnalysisBandViewModel : ObservableObject, IDisposabl
         catch (Exception ex) when (ex is not OperationCanceledException)
 #pragma warning restore CA1031
         {
-            Show(null, _text.Format("Canvas_Analysis_Failed", ex.Message), failed: true);
+            Show(null, _text.Format("Canvas_Analysis_Failed", OrchestratorErrorText.Detail(ex, _text.Provider)), failed: true);
             return;
         }
 

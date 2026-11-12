@@ -194,7 +194,7 @@ public sealed class FileDocumentViewModelDiffTests
         await document.CompareWithFileAsync(big, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Empty(handler.Requests);
-        Assert.Contains("límite", document.DiffError, StringComparison.Ordinal);
+        Assert.Equal("No se puede comparar con «big.txt»: pesa 2 MB y el límite es 2 MB.", document.DiffError);
     }
 
     [Fact]

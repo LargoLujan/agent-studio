@@ -80,7 +80,7 @@ public sealed partial class StatusStripViewModelTests
         Assert.Null(strip.Budget);
         Assert.Equal(["Contexto", "Claude 5 h", "Claude 7 días"], strip.Bars.Select(b => b.Label));
         Assert.Contains("Contexto: sin tareas en curso.", strip.ToolTip, StringComparison.Ordinal);
-        Assert.Contains("Claude 5 h: 47 % · exacto · informado por el CLI · vista hace 12 min", strip.ToolTip, StringComparison.Ordinal);
+        Assert.Contains("Claude 5 h: 47 % · exacto · informado por el programa del agente · vista hace 12 min", strip.ToolTip, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -116,7 +116,7 @@ public sealed partial class StatusStripViewModelTests
         Assert.Equal("~47 %", strip.Context.ValueText);
         Assert.True(strip.Context.IsEstimate);
         Assert.Equal("3 de 12", strip.Budget!.ValueText);
-        Assert.Equal(["Contexto · T1", "Cuota", "Presupuesto"], strip.Bars.Select(b => b.Label));
+        Assert.Equal(["Contexto · T1", "Límite de uso", "Presupuesto"], strip.Bars.Select(b => b.Label));
         Assert.Contains("Presupuesto de la ejecución", strip.ToolTip, StringComparison.Ordinal);
     }
 

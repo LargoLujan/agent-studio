@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Projects;
 using AgentStudio.Domain.Common;
 
@@ -112,17 +113,41 @@ public sealed record MemoryDerivationResult(
     IReadOnlyList<MemoryEntry> Recorded,
     IReadOnlyList<string> AlreadyRecorded,
     IReadOnlyList<string> Problems,
-    string? Reason = null)
+    string? Reason = null,
+    UserText? ReasonText = null)
 {
     /// <summary>Whether the derivation went through the whole log (it may still have <see cref="Problems"/>).</summary>
     public bool Completed => Reason is null;
 
-    /// <summary>A derivation that wrote nothing, with the reason in Spanish.</summary>
-    public static MemoryDerivationResult NotDerived(string reason)
+    /// <summary>
+    /// A derivation that wrote nothing, with the reason in Spanish (for the tests and the log) and, for the screen, the same reason
+    /// as a code (docs/17 D-47).
+    /// </summary>
+    public static MemoryDerivationResult NotDerived(string reason, UserText? reasonText = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(reason);
-        return new MemoryDerivationResult([], [], [], reason);
+        return new MemoryDerivationResult([], [], [], reason, reasonText);
     }
+}
+
+/// <summary>
+/// An entry of the memory as the screens say it in the language of the person (docs/17 D-47 and D-48): what its topic and its
+/// content say as coded texts. The entry itself, anchored by its hash, never changes; a part that cannot be said as a code (an
+/// entry written before the codes, redacted or cut, or text of a person or an agent) is null and the screen shows it as it was
+/// anchored.
+/// </summary>
+public sealed record MemoryEntryText(UserText? Topic, UserText? Content);
+
+/// <summary>
+/// The coded form of the entries the derivation wrote (docs/17 D-47 and D-48, ADR-0054 addendum of Phase 14). The words of an entry
+/// are anchored with its SHA-256 and go to the agents, so they stay in Spanish; what the screens show comes from the same facts of
+/// the verified log, said as a code. A part is returned only when the coded text says exactly what the entry holds in Spanish, so
+/// an entry that was redacted, cut or written by another version shows as it was anchored.
+/// </summary>
+public interface IMemoryEntryTexts
+{
+    /// <summary>The coded text of those of <paramref name="entries"/> that have one, by entry id; empty on a log that does not verify.</summary>
+    Task<IReadOnlyDictionary<string, MemoryEntryText>> ReadAsync(ProjectContext project, IReadOnlyList<MemoryEntry> entries, CancellationToken ct);
 }
 
 /// <summary>

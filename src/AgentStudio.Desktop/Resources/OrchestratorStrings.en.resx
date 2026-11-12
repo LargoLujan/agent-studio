@@ -1,0 +1,3453 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the Orchestrator area (docs/17 D-47, ADR-0054; Phase 14 WP-14A (a1)) in English. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Orchestrator_Approval_WindowTitle" xml:space="preserve">
+    <value>Approval needed · Agent Studio</value>
+    <comment>Title of the approval window.</comment>
+  </data>
+  <data name="Orchestrator_Approval_WindowName" xml:space="preserve">
+    <value>Approval needed</value>
+    <comment>Accessible name of the approval window.</comment>
+  </data>
+  <data name="Orchestrator_Approval_ActionName" xml:space="preserve">
+    <value>Action: {0}</value>
+    <comment>Accessible name of the title of the question. {0}: the title.</comment>
+  </data>
+  <data name="Orchestrator_Approval_PathsName" xml:space="preserve">
+    <value>Affected paths</value>
+    <comment>Accessible name of the list of paths.</comment>
+  </data>
+  <data name="Orchestrator_Approval_CommentLabel" xml:space="preserve">
+    <value>Comment (optional; it is saved in the history)</value>
+    <comment>Label of the comment box.</comment>
+  </data>
+  <data name="Orchestrator_Approval_CommentName" xml:space="preserve">
+    <value>Comment</value>
+    <comment>Accessible name of the comment box.</comment>
+  </data>
+  <data name="Orchestrator_Approval_ConfirmCritical" xml:space="preserve">
+    <value>I understand this is a critical action and I want to approve it</value>
+    <comment>Check box that a critical approval needs.</comment>
+  </data>
+  <data name="Orchestrator_Approval_CloseIsDeny" xml:space="preserve">
+    <value>Closing this window counts as denying.</value>
+    <comment>Hint next to the buttons.</comment>
+  </data>
+  <data name="Orchestrator_Approval_Approve" xml:space="preserve">
+    <value>Approve</value>
+    <comment>Button that approves.</comment>
+  </data>
+  <data name="Orchestrator_Approval_Deny" xml:space="preserve">
+    <value>Deny</value>
+    <comment>Button that denies.</comment>
+  </data>
+  <data name="Orchestrator_Approval_HelloNotice" xml:space="preserve">
+    <value>When you approve, Windows Hello will ask you to confirm it is you. Without that confirmation nothing is approved.</value>
+    <comment>What happens after Approve when Windows Hello is on.</comment>
+  </data>
+  <data name="Orchestrator_Approval_HelloUnavailable" xml:space="preserve">
+    <value>Windows Hello is not available on this computer ({0}). This dialog alone decides this approval, and the history records it.</value>
+    <comment>Why the dialog decides alone. {0}: why Windows Hello is absent.</comment>
+  </data>
+  <data name="Orchestrator_Approval_ActionDetail" xml:space="preserve">
+    <value>Action in the history: {0}</value>
+    <comment>Technical detail: the identifier of the action. {0}: identifier.</comment>
+  </data>
+  <data name="Orchestrator_Approval_RiskCritical" xml:space="preserve">
+    <value>Critical risk</value>
+    <comment>Risk label.</comment>
+  </data>
+  <data name="Orchestrator_Approval_RiskDestructive" xml:space="preserve">
+    <value>Destructive action</value>
+    <comment>Risk label.</comment>
+  </data>
+  <data name="Orchestrator_Approval_RiskLow" xml:space="preserve">
+    <value>Low risk</value>
+    <comment>Risk label.</comment>
+  </data>
+  <data name="Orchestrator_Approval_PathOne" xml:space="preserve">
+    <value>Affected path</value>
+    <comment>Header of the list when there is one path.</comment>
+  </data>
+  <data name="Orchestrator_Approval_PathMany" xml:space="preserve">
+    <value>Affected paths ({0})</value>
+    <comment>Header of the list. {0}: count.</comment>
+  </data>
+  <data name="Orchestrator_Approval_RequestedBy" xml:space="preserve">
+    <value>Requested by the agent "{0}".</value>
+    <comment>Who asks. {0}: agent name.</comment>
+  </data>
+  <data name="Orchestrator_Approval_OriginProject" xml:space="preserve">
+    <value>project {0}</value>
+    <comment>Part of the origin. {0}: project name.</comment>
+  </data>
+  <data name="Orchestrator_Approval_OriginRun" xml:space="preserve">
+    <value>run {0}</value>
+    <comment>Part of the origin. {0}: run id.</comment>
+  </data>
+  <data name="Orchestrator_Approval_OriginTask" xml:space="preserve">
+    <value>task {0}</value>
+    <comment>Part of the origin. {0}: task id.</comment>
+  </data>
+  <data name="Orchestrator_Approval_Origin" xml:space="preserve">
+    <value>Origin: {0}</value>
+    <comment>Where the action comes from. {0}: the parts joined with a dot.</comment>
+  </data>
+  <data name="Orchestrator_ApprovalTitle_Unknown" xml:space="preserve">
+    <value>An action needs your approval</value>
+    <comment>Title of an action the app does not know.</comment>
+  </data>
+  <data name="Orchestrator_ApprovalTitle_Deliver" xml:space="preserve">
+    <value>Deliver to your branch</value>
+    <comment>Title of the question.</comment>
+  </data>
+  <data name="Orchestrator_ApprovalTitle_Cleanup" xml:space="preserve">
+    <value>Discard the work of a run</value>
+    <comment>Title of the question.</comment>
+  </data>
+  <data name="Orchestrator_ApprovalTitle_Plan" xml:space="preserve">
+    <value>Approve the plan</value>
+    <comment>Title of the question.</comment>
+  </data>
+  <data name="Orchestrator_ApprovalTitle_HumanTask" xml:space="preserve">
+    <value>Approve a task of the plan</value>
+    <comment>Title of the question.</comment>
+  </data>
+  <data name="Orchestrator_ApprovalTitle_ReviewEscalation" xml:space="preserve">
+    <value>Decide on a review</value>
+    <comment>Title of the question.</comment>
+  </data>
+  <data name="Orchestrator_ApprovalTitle_Audit" xml:space="preserve">
+    <value>Audit the project</value>
+    <comment>Title of the question.</comment>
+  </data>
+  <data name="Orchestrator_ApprovalTitle_DebateOpen" xml:space="preserve">
+    <value>Open a debate</value>
+    <comment>Title of the question.</comment>
+  </data>
+  <data name="Orchestrator_ApprovalTitle_DebateResume" xml:space="preserve">
+    <value>Resume a debate</value>
+    <comment>Title of the question.</comment>
+  </data>
+  <data name="Orchestrator_ApprovalTitle_DebateResolve" xml:space="preserve">
+    <value>Decide the result of the debate</value>
+    <comment>Title of the question.</comment>
+  </data>
+  <data name="Orchestrator_ApprovalTitle_Revision" xml:space="preserve">
+    <value>Accept the revision of a verdict</value>
+    <comment>Title of the question.</comment>
+  </data>
+  <data name="Orchestrator_ApprovalTitle_Replan" xml:space="preserve">
+    <value>Dismiss the request to replan</value>
+    <comment>Title of the question.</comment>
+  </data>
+  <data name="Orchestrator_ApprovalTitle_Skills" xml:space="preserve">
+    <value>Ask an agent to recommend skills</value>
+    <comment>Title of the question.</comment>
+  </data>
+  <data name="Orchestrator_ApprovalTitle_History" xml:space="preserve">
+    <value>Accept the history as a new starting point</value>
+    <comment>Title of the question.</comment>
+  </data>
+  <data name="Info_Approval_Title" xml:space="preserve">
+    <value>Approvals and Windows Hello</value>
+    <comment>Title of the information button.</comment>
+  </data>
+  <data name="Info_Approval_What" xml:space="preserve">
+    <value>Some actions change your files or your branch. Before it does them, Agent Studio asks you. Only "Approve" approves: closing the window counts as denying. If Windows Hello is on, it also asks you to confirm it is you.</value>
+    <comment>What the approval question is.</comment>
+  </data>
+  <data name="Info_Approval_Actions" xml:space="preserve">
+    <value>Read what is asked, who asks and which paths it touches.
+Write a comment: it is saved in the history.
+Approve or deny with the buttons, or deny by closing the window.
+Confirm with Windows Hello when it asks you.</value>
+    <comment>What the person can do in the approval question.</comment>
+  </data>
+  <data name="Orchestrator_NodeKind_AgentWork" xml:space="preserve">
+    <value>Agent work</value>
+    <comment>Kind of node.</comment>
+  </data>
+  <data name="Orchestrator_NodeKind_Condition" xml:space="preserve">
+    <value>Condition</value>
+    <comment>Kind of node.</comment>
+  </data>
+  <data name="Orchestrator_NodeKind_ToolRun" xml:space="preserve">
+    <value>Tool</value>
+    <comment>Kind of node.</comment>
+  </data>
+  <data name="Orchestrator_NodeKind_Review" xml:space="preserve">
+    <value>Review</value>
+    <comment>Kind of node.</comment>
+  </data>
+  <data name="Orchestrator_NodeKind_Debate" xml:space="preserve">
+    <value>Debate</value>
+    <comment>Kind of node.</comment>
+  </data>
+  <data name="Orchestrator_NodeKind_HumanApproval" xml:space="preserve">
+    <value>Human approval</value>
+    <comment>Kind of node.</comment>
+  </data>
+  <data name="Orchestrator_NodeKind_Integration" xml:space="preserve">
+    <value>Integration</value>
+    <comment>Kind of node.</comment>
+  </data>
+  <data name="Orchestrator_NodeKind_Badge" xml:space="preserve">
+    <value>postponed</value>
+    <comment>Badge of a kind the validator rejects.</comment>
+  </data>
+  <data name="Orchestrator_NodeKind_Reason" xml:space="preserve">
+    <value>debate nodes on the canvas are postponed; open the debate from "Debates"</value>
+    <comment>Why a debate node cannot be used.</comment>
+  </data>
+  <data name="Orchestrator_TaskStatus_Pending" xml:space="preserve">
+    <value>Pending</value>
+    <comment>Status of a task.</comment>
+  </data>
+  <data name="Orchestrator_TaskStatus_Running" xml:space="preserve">
+    <value>Running</value>
+    <comment>Status of a task.</comment>
+  </data>
+  <data name="Orchestrator_TaskStatus_Blocked" xml:space="preserve">
+    <value>Blocked</value>
+    <comment>Status of a task.</comment>
+  </data>
+  <data name="Orchestrator_TaskStatus_AwaitingApproval" xml:space="preserve">
+    <value>Waiting for your approval</value>
+    <comment>Status of a task.</comment>
+  </data>
+  <data name="Orchestrator_TaskStatus_Completed" xml:space="preserve">
+    <value>Completed</value>
+    <comment>Status of a task.</comment>
+  </data>
+  <data name="Orchestrator_TaskStatus_Failed" xml:space="preserve">
+    <value>Failed</value>
+    <comment>Status of a task.</comment>
+  </data>
+  <data name="Orchestrator_TaskStatus_Cancelled" xml:space="preserve">
+    <value>Cancelled</value>
+    <comment>Status of a task.</comment>
+  </data>
+  <data name="Orchestrator_TaskStatus_Skipped" xml:space="preserve">
+    <value>Skipped</value>
+    <comment>Status of a task.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_AddNodeHint" xml:space="preserve">
+    <value>Add a "{0}" node</value>
+    <comment>Hint of a palette button. {0}: kind.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_PostponedHint" xml:space="preserve">
+    <value>Postponed: {0}.</value>
+    <comment>Hint of a palette button that is not available. {0}: reason.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_ReadOnly" xml:space="preserve">
+    <value>The plan is running: it cannot be changed.</value>
+    <comment>Why a connection is refused.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_WrongDirection" xml:space="preserve">
+    <value>Join an output to an input.</value>
+    <comment>Why a connection is refused.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_DebateNotAvailable" xml:space="preserve">
+    <value>Debate: {0}.</value>
+    <comment>Why a connection is refused. {0}: reason.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_Duplicate" xml:space="preserve">
+    <value>That connection already exists.</value>
+    <comment>Why a connection is refused.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_ConnectionRefused" xml:space="preserve">
+    <value>Connection refused. {0}</value>
+    <comment>Notice. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_NodeCreated" xml:space="preserve">
+    <value>Created {0} · {1}.</value>
+    <comment>Notice. {0}: id, {1}: kind.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_Deleted" xml:space="preserve">
+    <value>Selection deleted. Nodes: {0}. Connections: {1}.</value>
+    <comment>Notice.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_SaveFailed" xml:space="preserve">
+    <value>The layout of the canvas could not be saved: {0}</value>
+    <comment>Notice. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Connector_Name" xml:space="preserve">
+    <value>{0} of {1}</value>
+    <comment>Accessible name of a connector. {0}: title, {1}: node.</comment>
+  </data>
+  <data name="Orchestrator_Connector_Link" xml:space="preserve">
+    <value>{0} to {1}</value>
+    <comment>Accessible name of a wire. {0}: from, {1}: to.</comment>
+  </data>
+  <data name="Orchestrator_Connector_LinkWithBranch" xml:space="preserve">
+    <value>{0} ({1}) to {2}</value>
+    <comment>Accessible name of a wire out of a branch. {0}: from, {1}: branch, {2}: to.</comment>
+  </data>
+  <data name="Orchestrator_Link_ConnectWith" xml:space="preserve">
+    <value>Connect to {0}</value>
+    <comment>Preview of a wire. {0}: node.</comment>
+  </data>
+  <data name="Orchestrator_Link_PlanHasCycle" xml:space="preserve">
+    <value>The plan already has a cycle ({0}): remove it before adding connections.</value>
+    <comment>Why a connection is refused.</comment>
+  </data>
+  <data name="Orchestrator_Link_PlanBroken" xml:space="preserve">
+    <value>The connections of the plan already break a rule: fix them before adding another.</value>
+    <comment>Why a connection is refused.</comment>
+  </data>
+  <data name="Orchestrator_Link_Cycle" xml:space="preserve">
+    <value>Cycle: {0}</value>
+    <comment>Why a connection is refused.</comment>
+  </data>
+  <data name="Orchestrator_Link_OtherBranch" xml:space="preserve">
+    <value>{0} already waits for {1} through the other branch. A task can wait for only one branch of each condition.</value>
+    <comment>Why a connection is refused.</comment>
+  </data>
+  <data name="Orchestrator_Link_Rejected" xml:space="preserve">
+    <value>The plan does not accept that connection (rule {0}).</value>
+    <comment>Why a connection is refused.</comment>
+  </data>
+  <data name="Orchestrator_Node_Input" xml:space="preserve">
+    <value>Input</value>
+    <comment>Title of the input connector.</comment>
+  </data>
+  <data name="Orchestrator_Node_Output" xml:space="preserve">
+    <value>Output</value>
+    <comment>Title of the output connector.</comment>
+  </data>
+  <data name="Orchestrator_Node_Yes" xml:space="preserve">
+    <value>Yes</value>
+    <comment>Title of the Yes output of a condition.</comment>
+  </data>
+  <data name="Orchestrator_Node_No" xml:space="preserve">
+    <value>No</value>
+    <comment>Title of the No output of a condition.</comment>
+  </data>
+  <data name="Orchestrator_Node_Postponed" xml:space="preserve">
+    <value>Postponed</value>
+    <comment>Status of a node that is not available.</comment>
+  </data>
+  <data name="Orchestrator_Node_ProblemOne" xml:space="preserve">
+    <value>1 problem</value>
+    <comment>Problems of a node.</comment>
+  </data>
+  <data name="Orchestrator_Node_ProblemMany" xml:space="preserve">
+    <value>{0} problems</value>
+    <comment>Problems of a node.</comment>
+  </data>
+  <data name="Orchestrator_Node_WorkspaceNone" xml:space="preserve">
+    <value>No copy of the code</value>
+    <comment>Option of the workspace.</comment>
+  </data>
+  <data name="Orchestrator_Node_WorkspaceReadOnly" xml:space="preserve">
+    <value>Read only</value>
+    <comment>Option of the workspace.</comment>
+  </data>
+  <data name="Orchestrator_Node_WorkspaceWrite" xml:space="preserve">
+    <value>Writes in its own isolated working copy</value>
+    <comment>Option of the workspace.</comment>
+  </data>
+  <data name="Orchestrator_Node_JoinAll" xml:space="preserve">
+    <value>Wait for all its dependencies</value>
+    <comment>Option of when a task can start.</comment>
+  </data>
+  <data name="Orchestrator_Node_JoinAny" xml:space="preserve">
+    <value>One is enough (to join the branches of a condition)</value>
+    <comment>Option of when a task can start.</comment>
+  </data>
+  <data name="Orchestrator_Node_Mandatory" xml:space="preserve">
+    <value>mandatory</value>
+    <comment>Priority of a requirement.</comment>
+  </data>
+  <data name="Orchestrator_Node_Desirable" xml:space="preserve">
+    <value>desirable</value>
+    <comment>Priority of a requirement.</comment>
+  </data>
+  <data name="Orchestrator_Node_CoverUnknown" xml:space="preserve">
+    <value>{0} (not in the frozen requirements)</value>
+    <comment>A requirement the task covers that does not exist. {0}: id.</comment>
+  </data>
+  <data name="Orchestrator_Node_StepUnknown" xml:space="preserve">
+    <value>{0} (not in the profile)</value>
+    <comment>A step the task cites that does not exist. {0}: id.</comment>
+  </data>
+  <data name="Orchestrator_Node_PredicateNone" xml:space="preserve">
+    <value>Not chosen</value>
+    <comment>Option of what a condition checks.</comment>
+  </data>
+  <data name="Orchestrator_Node_PredicateSucceeded" xml:space="preserve">
+    <value>The task finished well</value>
+    <comment>Option of what a condition checks.</comment>
+  </data>
+  <data name="Orchestrator_Node_PredicateTests" xml:space="preserve">
+    <value>The tests of the task passed</value>
+    <comment>Option of what a condition checks.</comment>
+  </data>
+  <data name="Orchestrator_Node_PredicateOutput" xml:space="preserve">
+    <value>An output of the task equals…</value>
+    <comment>Option of what a condition checks.</comment>
+  </data>
+  <data name="Orchestrator_Node_PredicatePaths" xml:space="preserve">
+    <value>The task changed a path that starts with…</value>
+    <comment>Option of what a condition checks.</comment>
+  </data>
+  <data name="Orchestrator_Node_RetriesError" xml:space="preserve">
+    <value>Type a whole number, 0 or more.</value>
+    <comment>Error of the retries box.</comment>
+  </data>
+  <data name="Orchestrator_Node_TimeoutError" xml:space="preserve">
+    <value>Type the minutes (for example 20 or 2.5) or leave it empty.</value>
+    <comment>Error of the time limit box.</comment>
+  </data>
+  <data name="Orchestrator_Node_ExtraDependencyBranch" xml:space="preserve">
+    <value>{0} (branch "{1}")</value>
+    <comment>A dependency the canvas cannot draw. {0}: task, {1}: branch.</comment>
+  </data>
+  <data name="Orchestrator_Node_NoAgent" xml:space="preserve">
+    <value>No agent</value>
+    <comment>Option of the agent.</comment>
+  </data>
+  <data name="Orchestrator_Node_AgentMissing" xml:space="preserve">
+    <value>{0} (not in the team)</value>
+    <comment>An agent that does not exist. {0}: id.</comment>
+  </data>
+  <data name="Orchestrator_Node_NoTool" xml:space="preserve">
+    <value>No tool</value>
+    <comment>Option of the tool.</comment>
+  </data>
+  <data name="Orchestrator_Node_TaskMissing" xml:space="preserve">
+    <value>{0} (not in the plan)</value>
+    <comment>A task that does not exist. {0}: id.</comment>
+  </data>
+  <data name="Orchestrator_Draft_Damaged" xml:space="preserve">
+    <value>it cannot be read: it is damaged or incomplete</value>
+    <comment>Why a draft is ignored.</comment>
+  </data>
+  <data name="Orchestrator_Draft_TooBig" xml:space="preserve">
+    <value>it is too big to bring back</value>
+    <comment>Why a draft is ignored.</comment>
+  </data>
+  <data name="Orchestrator_Draft_NotOurs" xml:space="preserve">
+    <value>Agent Studio did not save it on this computer for this folder</value>
+    <comment>Why a draft is ignored.</comment>
+  </data>
+  <data name="Orchestrator_Violation_EmptyPlan" xml:space="preserve">
+    <value>The plan has no tasks.</value>
+    <comment>PlanViolationCode.EmptyPlan.</comment>
+  </data>
+  <data name="Orchestrator_Violation_TooManyTasks" xml:space="preserve">
+    <value>The plan has {0} tasks; the limit is {1}.</value>
+    <comment>TooManyTasks. {0}: count, {1}: limit.</comment>
+  </data>
+  <data name="Orchestrator_Violation_InvalidTaskId" xml:space="preserve">
+    <value>The identifier "{0}" is not valid. It starts with a letter and has at most 32 letters, digits, "_" or "-".</value>
+    <comment>InvalidTaskId. {0}: id.</comment>
+  </data>
+  <data name="Orchestrator_Violation_DuplicateTaskId" xml:space="preserve">
+    <value>The identifier {0} appears twice in the plan.</value>
+    <comment>DuplicateTaskId. {0}: id.</comment>
+  </data>
+  <data name="Orchestrator_Violation_TitleRequired" xml:space="preserve">
+    <value>Task {0} has no title.</value>
+    <comment>TitleRequired. {0}: task.</comment>
+  </data>
+  <data name="Orchestrator_Violation_ObjectiveRequired" xml:space="preserve">
+    <value>Task {0} has no objective.</value>
+    <comment>ObjectiveRequired. {0}: task.</comment>
+  </data>
+  <data name="Orchestrator_Violation_UnknownDependency" xml:space="preserve">
+    <value>Task {0} depends on {1}, which is not in the plan.</value>
+    <comment>UnknownDependency. {0}: task, {1}: missing task.</comment>
+  </data>
+  <data name="Orchestrator_Violation_UnknownDependencyAny" xml:space="preserve">
+    <value>Task {0} depends on a task that is not in the plan.</value>
+    <comment>UnknownDependency without the detail.</comment>
+  </data>
+  <data name="Orchestrator_Violation_DuplicateDependency" xml:space="preserve">
+    <value>Task {0} names {1} as a prerequisite more than once.</value>
+    <comment>DuplicateDependency. {0}: task, {1}: prerequisite.</comment>
+  </data>
+  <data name="Orchestrator_Violation_DuplicateDependencyAny" xml:space="preserve">
+    <value>Task {0} names a prerequisite more than once.</value>
+    <comment>DuplicateDependency without the detail.</comment>
+  </data>
+  <data name="Orchestrator_Violation_DependencyCycle" xml:space="preserve">
+    <value>There is a cycle of dependencies through {0}: a task cannot wait for itself.</value>
+    <comment>DependencyCycle. {0}: task.</comment>
+  </data>
+  <data name="Orchestrator_Violation_UnknownAgent" xml:space="preserve">
+    <value>Task {0} is assigned to "{1}", who is not in the team of agents.</value>
+    <comment>UnknownAgent. {0}: task, {1}: agent.</comment>
+  </data>
+  <data name="Orchestrator_Violation_AgentRequired" xml:space="preserve">
+    <value>Task {0} ({1}) needs an agent.</value>
+    <comment>AgentRequired. {0}: task, {1}: kind.</comment>
+  </data>
+  <data name="Orchestrator_Violation_OrchestratorHasTask" xml:space="preserve">
+    <value>Task {0} is assigned to the orchestrator "{1}", who only plans.</value>
+    <comment>OrchestratorHasTask. {0}: task, {1}: agent.</comment>
+  </data>
+  <data name="Orchestrator_Violation_JudgeOutsideReview" xml:space="preserve">
+    <value>"{0}" is a judge or auditor and can only do reviews; {1} is "{2}".</value>
+    <comment>JudgeOutsideReview. {0}: agent, {1}: task, {2}: kind.</comment>
+  </data>
+  <data name="Orchestrator_Violation_ReviewerNotJudge" xml:space="preserve">
+    <value>Review {0} is assigned to "{1}"; only a judge or an auditor can review.</value>
+    <comment>ReviewerNotJudge. {0}: task, {1}: agent.</comment>
+  </data>
+  <data name="Orchestrator_Violation_JudgeVendorNotIndependent" xml:space="preserve">
+    <value>The judge "{1}" of {0} uses a model from {2}, like the orchestrator or an executor of the plan. The judge has to be from another company.</value>
+    <comment>JudgeVendorNotIndependent. {0}: task, {1}: agent, {2}: company.</comment>
+  </data>
+  <data name="Orchestrator_Violation_JudgeVendorNotIndependentAny" xml:space="preserve">
+    <value>The judge "{1}" of {0} uses a model from the same company as the orchestrator or a plan executor. The judge has to be from another company.</value>
+    <comment>JudgeVendorNotIndependent without the company.</comment>
+  </data>
+  <data name="Orchestrator_Violation_ConditionWithoutPredicate" xml:space="preserve">
+    <value>Condition {0} does not say what it checks: choose it.</value>
+    <comment>ConditionWithoutPredicate. {0}: task.</comment>
+  </data>
+  <data name="Orchestrator_Violation_PredicateOnNonCondition" xml:space="preserve">
+    <value>Task {0} is not a condition, but it carries a condition check.</value>
+    <comment>PredicateOnNonCondition. {0}: task.</comment>
+  </data>
+  <data name="Orchestrator_Violation_PredicateNotAncestor" xml:space="preserve">
+    <value>Condition {0} reads task {1}, which is not one of its ancestors.</value>
+    <comment>PredicateNotAncestor. {0}: task, {1}: task read.</comment>
+  </data>
+  <data name="Orchestrator_Violation_PredicateNotAncestorAny" xml:space="preserve">
+    <value>Condition {0} reads a task that is not one of its ancestors.</value>
+    <comment>PredicateNotAncestor without the detail.</comment>
+  </data>
+  <data name="Orchestrator_Violation_BranchRequired" xml:space="preserve">
+    <value>Task {0} depends on a condition without saying which branch (Yes or No).</value>
+    <comment>BranchRequired. {0}: task.</comment>
+  </data>
+  <data name="Orchestrator_Violation_BranchOnNonCondition" xml:space="preserve">
+    <value>Task {0} waits for a branch of a task that is not a condition.</value>
+    <comment>BranchOnNonCondition. {0}: task.</comment>
+  </data>
+  <data name="Orchestrator_Violation_UnknownBranch" xml:space="preserve">
+    <value>Task {0} waits for an unknown branch. A condition has only the Yes and No branches.</value>
+    <comment>UnknownBranch. {0}: task.</comment>
+  </data>
+  <data name="Orchestrator_Violation_FanInWithoutIntegration" xml:space="preserve">
+    <value>Task {0} starts from the code of several tasks that were not joined: add an integration task first.</value>
+    <comment>FanInWithoutIntegration. {0}: task.</comment>
+  </data>
+  <data name="Orchestrator_Violation_UnsafeWriteScope" xml:space="preserve">
+    <value>The scope "{1}" of {0} is not allowed. Use relative paths, without "..", without wildcards and outside .git and .agentstudio.</value>
+    <comment>UnsafeWriteScope. {0}: task, {1}: entry.</comment>
+  </data>
+  <data name="Orchestrator_Violation_UnsafeWriteScopeAny" xml:space="preserve">
+    <value>A write scope of {0} is not allowed. Use relative paths, without "..", without wildcards and outside .git and .agentstudio.</value>
+    <comment>UnsafeWriteScope without the entry.</comment>
+  </data>
+  <data name="Orchestrator_Violation_WriteScopeRequired" xml:space="preserve">
+    <value>Task {0} writes in its isolated working copy, but it does not say which folders or files it may change.</value>
+    <comment>WriteScopeRequired. {0}: task.</comment>
+  </data>
+  <data name="Orchestrator_Violation_OverlappingWriteScopes" xml:space="preserve">
+    <value>The write scope of {0} overlaps with that of another task that can run at the same time.</value>
+    <comment>OverlappingWriteScopes. {0}: task.</comment>
+  </data>
+  <data name="Orchestrator_Violation_UnknownRequirement" xml:space="preserve">
+    <value>Task {0} covers the requirement {1}, which is not in the frozen requirements.</value>
+    <comment>UnknownRequirement. {0}: task, {1}: requirement.</comment>
+  </data>
+  <data name="Orchestrator_Violation_UnknownRequirementAny" xml:space="preserve">
+    <value>Task {0} covers a requirement that is not in the frozen requirements.</value>
+    <comment>UnknownRequirement without the detail.</comment>
+  </data>
+  <data name="Orchestrator_Violation_MandatoryRequirementUncovered" xml:space="preserve">
+    <value>No task covers the mandatory requirement {0}.</value>
+    <comment>MandatoryRequirementUncovered. {0}: requirement.</comment>
+  </data>
+  <data name="Orchestrator_Violation_MandatoryRequirementUncoveredAny" xml:space="preserve">
+    <value>There is a mandatory requirement that no task covers.</value>
+    <comment>MandatoryRequirementUncovered without the detail.</comment>
+  </data>
+  <data name="Orchestrator_Violation_UnknownVerificationStep" xml:space="preserve">
+    <value>Task {0} names the verification step "{1}", which is not in the profile.</value>
+    <comment>UnknownVerificationStep. {0}: task, {1}: step.</comment>
+  </data>
+  <data name="Orchestrator_Violation_UnknownVerificationStepAny" xml:space="preserve">
+    <value>Task {0} names a verification step that is not in the profile.</value>
+    <comment>UnknownVerificationStep without the detail.</comment>
+  </data>
+  <data name="Orchestrator_Violation_ToolRequired" xml:space="preserve">
+    <value>Tool {0} does not say which step of the profile to run.</value>
+    <comment>ToolRequired. {0}: task.</comment>
+  </data>
+  <data name="Orchestrator_Violation_UnknownTool" xml:space="preserve">
+    <value>Tool {0} names "{1}", which is not in the verification profile.</value>
+    <comment>UnknownTool. {0}: task, {1}: step.</comment>
+  </data>
+  <data name="Orchestrator_Violation_RetriesNotAllowed" xml:space="preserve">
+    <value>Task {0} ({1}) does not allow retries: a retry would spend your plan's usage or ask again.</value>
+    <comment>RetriesNotAllowed. {0}: task, {1}: kind.</comment>
+  </data>
+  <data name="Orchestrator_Violation_RetriesOutOfRange" xml:space="preserve">
+    <value>Task {0} allows {1} retries; the limit is {2}.</value>
+    <comment>RetriesOutOfRange. {0}: task, {1}: retries, {2}: limit.</comment>
+  </data>
+  <data name="Orchestrator_Violation_InvalidTimeout" xml:space="preserve">
+    <value>Task {0} has a time limit that is not positive.</value>
+    <comment>InvalidTimeout. {0}: task.</comment>
+  </data>
+  <data name="Orchestrator_Violation_DebateNotAvailable" xml:space="preserve">
+    <value>{0} is a debate node: {1}.</value>
+    <comment>DebateNotAvailable. {0}: task, {1}: reason.</comment>
+  </data>
+  <data name="Orchestrator_Violation_IntegrationWithoutVerification" xml:space="preserve">
+    <value>Integration {0} has no verification steps. The joined code would be neither built nor tested.</value>
+    <comment>IntegrationWithoutVerification. {0}: task.</comment>
+  </data>
+  <data name="Orchestrator_Violation_IntegrationsNotOrdered" xml:space="preserve">
+    <value>Integrations {1} and {0} can run at the same time. The integrations of a plan go in a chain, each after the previous one.</value>
+    <comment>IntegrationsNotOrdered. {0}: task, {1}: other integration.</comment>
+  </data>
+  <data name="Orchestrator_Violation_IntegrationsNotOrderedAny" xml:space="preserve">
+    <value>Integration {0} can run at the same time as another integration. The integrations of a plan go in a chain, each after the previous one.</value>
+    <comment>IntegrationsNotOrdered without the detail.</comment>
+  </data>
+  <data name="Orchestrator_Violation_VerificationRequiredByPolicy" xml:space="preserve">
+    <value>Task {0} is done by "{1}". Its policy requires tests run by the system. Add verification steps to the task.</value>
+    <comment>VerificationRequiredByPolicy. {0}: task, {1}: agent.</comment>
+  </data>
+  <data name="Orchestrator_Violation_ReviewRequiredByPolicy" xml:space="preserve">
+    <value>Task {0} is done by "{1}". Its policy requires an independent review. Add a review task that depends on all the tasks that write.</value>
+    <comment>ReviewRequiredByPolicy. {0}: task, {1}: agent.</comment>
+  </data>
+  <data name="Orchestrator_Violation_TestStepRequiredByPolicy" xml:space="preserve">
+    <value>Task {0} is done by "{1}", whose policy requires tests captured by the system. None of its verification steps runs tests. Add a test step of the profile: a build is not a test.</value>
+    <comment>TestStepRequiredByPolicy. {0}: task, {1}: agent.</comment>
+  </data>
+  <data name="Orchestrator_Violation_Default" xml:space="preserve">
+    <value>Task {0} breaks a rule of the validator.</value>
+    <comment>Any other code, about a task.</comment>
+  </data>
+  <data name="Orchestrator_Violation_DefaultPlan" xml:space="preserve">
+    <value>The plan breaks a rule of the validator.</value>
+    <comment>Any other code, about the plan.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_CreateNode" xml:space="preserve">
+    <value>Create node</value>
+    <comment>Label of the palette of the plan layer.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_DeleteSelection" xml:space="preserve">
+    <value>Delete the selection (Del)</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_FitView" xml:space="preserve">
+    <value>Fit the view</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_FitViewHelp" xml:space="preserve">
+    <value>Shows every node at a zoom where they can be read. If the plan is very big, it is shown from its corner.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_EmptyPlan" xml:space="preserve">
+    <value>The plan is empty. Create nodes with the bar above or ask the orchestrator for a plan. Join them by dragging from an output to an input.</value>
+    <comment>What to do first on an empty canvas.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_NodesCount" xml:space="preserve">
+    <value>Nodes:</value>
+    <comment>Status bar.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_ConnectionsCount" xml:space="preserve">
+    <value>Connections:</value>
+    <comment>Status bar.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_ZoomLabel" xml:space="preserve">
+    <value>Zoom:</value>
+    <comment>Status bar.</comment>
+  </data>
+  <data name="Orchestrator_Canvas_LegendName" xml:space="preserve">
+    <value>Status legend</value>
+    <comment>Accessible name of the legend.</comment>
+  </data>
+  <data name="Info_Canvas_Plan_Title" xml:space="preserve">
+    <value>Plan canvas and wires</value>
+    <comment>Title of the information button.</comment>
+  </data>
+  <data name="Info_Canvas_Plan_What" xml:space="preserve">
+    <value>Each node is a task of the plan. A wire joins the output of one task to the input of another: the second waits for the first. The canvas does not let you create cycles.</value>
+    <comment>What the plan canvas is.</comment>
+  </data>
+  <data name="Info_Canvas_Plan_Actions" xml:space="preserve">
+    <value>Create nodes with the bar above.
+Drag from an output to an input to join two tasks.
+Choose a node to change its properties.
+Delete the selection with Del, or undo with Ctrl+Z.</value>
+    <comment>What the person can do in the plan canvas.</comment>
+  </data>
+  <data name="Orchestrator_Props_ReadOnly" xml:space="preserve">
+    <value>Read only: the plan is running.</value>
+    <comment>Shown while a run follows the plan.</comment>
+  </data>
+  <data name="Orchestrator_Props_Title" xml:space="preserve">
+    <value>Title</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_TitleName" xml:space="preserve">
+    <value>Title of the task</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Props_Agent" xml:space="preserve">
+    <value>Agent</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_Objective" xml:space="preserve">
+    <value>Objective</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_Instructions" xml:space="preserve">
+    <value>Instructions</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_Workspace" xml:space="preserve">
+    <value>Workspace</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_WriteScope" xml:space="preserve">
+    <value>Write scope (one entry per line; a folder ends with /)</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_WriteScopeName" xml:space="preserve">
+    <value>Write scope</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Props_Covers" xml:space="preserve">
+    <value>Requirements it covers</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_NoRequirements" xml:space="preserve">
+    <value>The project has no frozen requirements.</value>
+    <comment>Shown when there is nothing to cover.</comment>
+  </data>
+  <data name="Orchestrator_Props_Steps" xml:space="preserve">
+    <value>Verification steps (from the profile of the project)</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_StepsName" xml:space="preserve">
+    <value>Verification steps</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Props_Tool" xml:space="preserve">
+    <value>Tool (a step of the profile)</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_Tool_Name" xml:space="preserve">
+    <value>Tool</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Props_Condition" xml:space="preserve">
+    <value>What the condition checks</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_ConditionName" xml:space="preserve">
+    <value>What the condition checks</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Props_ConditionTask" xml:space="preserve">
+    <value>About the task (an ancestor)</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_ConditionTaskName" xml:space="preserve">
+    <value>Task the condition reads</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Props_OutputKeyValue" xml:space="preserve">
+    <value>Output (key) and expected value</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_OutputKeyName" xml:space="preserve">
+    <value>Key of the output</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Props_OutputValueName" xml:space="preserve">
+    <value>Expected value</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Props_PathPrefix" xml:space="preserve">
+    <value>Path prefix (empty: any change)</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_PathPrefixName" xml:space="preserve">
+    <value>Path prefix</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Props_BranchHint" xml:space="preserve">
+    <value>Join the Yes output or the No output to the task that must run in each case.</value>
+    <comment>Hint of a condition.</comment>
+  </data>
+  <data name="Orchestrator_Props_WhenStarts" xml:space="preserve">
+    <value>When it can start</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_WhenStartsName" xml:space="preserve">
+    <value>When the task can start</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Props_ExtraDependencies" xml:space="preserve">
+    <value>Dependencies the canvas cannot draw</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_RemoveExtra" xml:space="preserve">
+    <value>Remove them</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Props_Retries" xml:space="preserve">
+    <value>Retries</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_Timeout" xml:space="preserve">
+    <value>Time limit in minutes (empty: the engine's)</value>
+    <comment>Field.</comment>
+  </data>
+  <data name="Orchestrator_Props_TimeoutName" xml:space="preserve">
+    <value>Time limit in minutes</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Prep_ToggleName" xml:space="preserve">
+    <value>Show or hide the preparation</value>
+    <comment>Accessible name of the button that folds the band.</comment>
+  </data>
+  <data name="Orchestrator_Prep_Title" xml:space="preserve">
+    <value>Preparation</value>
+    <comment>Title of the band.</comment>
+  </data>
+  <data name="Orchestrator_Prep_SummaryName" xml:space="preserve">
+    <value>Summary of the preparation</value>
+    <comment>Accessible name of the one-line summary.</comment>
+  </data>
+  <data name="Orchestrator_Prep_Requirements" xml:space="preserve">
+    <value>Requirements</value>
+    <comment>Title of the section of the request and the requirements.</comment>
+  </data>
+  <data name="Orchestrator_Prep_RequestLabel" xml:space="preserve">
+    <value>Your request, as you write it: the orchestrator plans from it and the run keeps it.</value>
+    <comment>Label of the request box.</comment>
+  </data>
+  <data name="Orchestrator_Prep_RequestName" xml:space="preserve">
+    <value>Request</value>
+    <comment>Accessible name of the request box.</comment>
+  </data>
+  <data name="Orchestrator_Prep_RequestHelp" xml:space="preserve">
+    <value>What you want done, as you write it. The orchestrator plans from it and the run keeps it.</value>
+    <comment>Help of the request box.</comment>
+  </data>
+  <data name="Orchestrator_Prep_RequirementsLabel" xml:space="preserve">
+    <value>Requirements (you freeze them; the orchestrator can only suggest them)</value>
+    <comment>Label of the requirements.</comment>
+  </data>
+  <data name="Orchestrator_Prep_Roster" xml:space="preserve">
+    <value>Team of agents</value>
+    <comment>Title of the section of the agents.</comment>
+  </data>
+  <data name="Orchestrator_Prep_RosterJudgeNote" xml:space="preserve">
+    <value>The judge uses a model company different from the orchestrator's and the executors'. The validator of the plan checks it. A new model counts from the next planning or run.</value>
+    <comment>Note under the title of the agents.</comment>
+  </data>
+  <data name="Orchestrator_Prep_RosterName" xml:space="preserve">
+    <value>Agents of the project</value>
+    <comment>Accessible name of the list.</comment>
+  </data>
+  <data name="Orchestrator_Prep_ModelLabel" xml:space="preserve">
+    <value>Model</value>
+    <comment>Label of the model box.</comment>
+  </data>
+  <data name="Orchestrator_Prep_ModelName" xml:space="preserve">
+    <value>Model of {0}</value>
+    <comment>Accessible name of the model box. {0}: agent name.</comment>
+  </data>
+  <data name="Orchestrator_Prep_TypedModelName" xml:space="preserve">
+    <value>Name of the model of {0}</value>
+    <comment>Accessible name of the box to type a model. {0}: agent name.</comment>
+  </data>
+  <data name="Orchestrator_Prep_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+    <comment>Button that drops the typed model.</comment>
+  </data>
+  <data name="Orchestrator_Prep_UseModel" xml:space="preserve">
+    <value>Use this model</value>
+    <comment>Button that takes the typed model.</comment>
+  </data>
+  <data name="Orchestrator_Prep_ReceivesMemory" xml:space="preserve">
+    <value>Receives the memory of the project</value>
+    <comment>Check box.</comment>
+  </data>
+  <data name="Orchestrator_Prep_MemoryName" xml:space="preserve">
+    <value>Memory of the project for {0}</value>
+    <comment>Accessible name of the check box. {0}: agent name.</comment>
+  </data>
+  <data name="Orchestrator_Prep_Profile" xml:space="preserve">
+    <value>Verification profile</value>
+    <comment>Title of the section.</comment>
+  </data>
+  <data name="Orchestrator_Prep_ProfileSteps" xml:space="preserve">
+    <value>Steps of the profile</value>
+    <comment>Accessible name of the list.</comment>
+  </data>
+  <data name="Orchestrator_Prep_UseProposedProfile" xml:space="preserve">
+    <value>Use the proposed profile</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Prep_UseProposedProfileHelp" xml:space="preserve">
+    <value>Saves it in .agentstudio/verification.json: from then on it is the profile of the project</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Orchestrator_Prep_ProposedProfileNote" xml:space="preserve">
+    <value>It is saved in .agentstudio/verification.json, which git does not upload. Without this step nothing is applied.</value>
+    <comment>Note under the button.</comment>
+  </data>
+  <data name="Info_Preparation_Title" xml:space="preserve">
+    <value>Preparation</value>
+    <comment>Title of the information button.</comment>
+  </data>
+  <data name="Info_Preparation_What" xml:space="preserve">
+    <value>Here you prepare what a run needs: your request, the requirements, the agents and the way the work is checked. The orchestrator plans from this.</value>
+    <comment>What the preparation is.</comment>
+  </data>
+  <data name="Info_Preparation_Actions" xml:space="preserve">
+    <value>Write your request.
+Freeze the requirements so they do not change during the run.
+Review the agents and the model of each one.
+Review how the work is checked.
+Set the project up step by step with the button above.</value>
+    <comment>What the person can do in the preparation.</comment>
+  </data>
+  <data name="Info_Requirements_Title" xml:space="preserve">
+    <value>Requirements</value>
+    <comment>Title of the information button.</comment>
+  </data>
+  <data name="Info_Requirements_What" xml:space="preserve">
+    <value>The requirements say what the result must meet. You freeze them: a frozen version does not change, and the plan and the judge work against it. The orchestrator can only suggest them.</value>
+    <comment>What the requirements are.</comment>
+  </data>
+  <data name="Info_Requirements_Actions" xml:space="preserve">
+    <value>Edit the requirements to create a new version.
+Mark a requirement as mandatory.
+Add acceptance criteria and say how each one is checked.
+Freeze the version when it is ready.</value>
+    <comment>What the person can do with the requirements.</comment>
+  </data>
+  <data name="Info_Roster_Title" xml:space="preserve">
+    <value>Team of agents</value>
+    <comment>Title of the information button.</comment>
+  </data>
+  <data name="Info_Roster_What" xml:space="preserve">
+    <value>These are the agents of the project: the orchestrator plans, the executors do the work and the judge reviews it. Each one uses a program and a model, and may receive the memory of the project.</value>
+    <comment>What the team of agents is.</comment>
+  </data>
+  <data name="Info_Roster_Actions" xml:space="preserve">
+    <value>Choose the model of each agent.
+Decide whether an agent receives the memory of the project (the judge never does).
+See the agents as a graph in the "Team" layer of the canvas.</value>
+    <comment>What the person can do with the team of agents.</comment>
+  </data>
+  <data name="Info_VerificationProfile_Title" xml:space="preserve">
+    <value>Verification profile</value>
+    <comment>Title of the information button.</comment>
+  </data>
+  <data name="Info_VerificationProfile_What" xml:space="preserve">
+    <value>It is a list of checks that Agent Studio runs on your computer. They verify the work, for example by building or testing it. Each run freezes this version.</value>
+    <comment>What the verification profile is.</comment>
+  </data>
+  <data name="Info_VerificationProfile_Actions" xml:space="preserve">
+    <value>Review the commands that will run.
+Use the proposed profile, if there is one, to make it the profile of the project.
+Choose in each task of the plan which steps are required.</value>
+    <comment>What the person can do with the profile.</comment>
+  </data>
+  <data name="Orchestrator_Req_StatusName" xml:space="preserve">
+    <value>State of the requirements</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Req_HashHelp" xml:space="preserve">
+    <value>Fingerprint of the frozen set. The run and the judge cite it to say which version they work against.</value>
+    <comment>Tooltip of the fingerprint.</comment>
+  </data>
+  <data name="Orchestrator_Req_HashName" xml:space="preserve">
+    <value>Fingerprint of the frozen requirements</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Req_Edit" xml:space="preserve">
+    <value>Edit · new version</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Req_EditHelp" xml:space="preserve">
+    <value>Opens a draft: what is frozen does not change until you freeze the new version</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Orchestrator_Req_Add" xml:space="preserve">
+    <value>Add requirement</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Req_Discard" xml:space="preserve">
+    <value>Discard changes</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Req_Freeze" xml:space="preserve">
+    <value>Freeze requirements</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Req_FreezeHelp" xml:space="preserve">
+    <value>Saves this version: from then on it does not change, and the plan and the judge work against it</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Orchestrator_Req_ListName" xml:space="preserve">
+    <value>Requirements</value>
+    <comment>Accessible name of the list.</comment>
+  </data>
+  <data name="Orchestrator_Req_IdName" xml:space="preserve">
+    <value>Identifier of the requirement</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Req_Mandatory" xml:space="preserve">
+    <value>Mandatory</value>
+    <comment>Check box.</comment>
+  </data>
+  <data name="Orchestrator_Req_Remove" xml:space="preserve">
+    <value>Remove</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Req_RemoveName" xml:space="preserve">
+    <value>Remove the requirement</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Req_StatementLabel" xml:space="preserve">
+    <value>Literal text (what the agents receive and the judge checks)</value>
+    <comment>Label.</comment>
+  </data>
+  <data name="Orchestrator_Req_StatementName" xml:space="preserve">
+    <value>Text of the requirement</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Req_Criteria" xml:space="preserve">
+    <value>Acceptance criteria</value>
+    <comment>Label and accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Req_CriterionIdName" xml:space="preserve">
+    <value>Identifier of the criterion</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Req_CriterionDescriptionName" xml:space="preserve">
+    <value>Description of the criterion</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Req_RemoveCriterionName" xml:space="preserve">
+    <value>Remove the criterion</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Req_CheckedWith" xml:space="preserve">
+    <value>Checked with</value>
+    <comment>Label of how a criterion is checked.</comment>
+  </data>
+  <data name="Orchestrator_Req_CheckedWithName" xml:space="preserve">
+    <value>How it is checked</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Req_AddCriterion" xml:space="preserve">
+    <value>Add criterion</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Req_ProblemsName" xml:space="preserve">
+    <value>What is missing to freeze</value>
+    <comment>Accessible name of the list.</comment>
+  </data>
+  <data name="Orchestrator_Req_MethodTest" xml:space="preserve">
+    <value>Automated test</value>
+    <comment>How a criterion is checked.</comment>
+  </data>
+  <data name="Orchestrator_Req_MethodCommand" xml:space="preserve">
+    <value>Check with a command</value>
+    <comment>How a criterion is checked.</comment>
+  </data>
+  <data name="Orchestrator_Req_MethodHuman" xml:space="preserve">
+    <value>Review by a person</value>
+    <comment>How a criterion is checked.</comment>
+  </data>
+  <data name="Orchestrator_Req_MethodJudge" xml:space="preserve">
+    <value>Assessment by the judge</value>
+    <comment>How a criterion is checked.</comment>
+  </data>
+  <data name="Orchestrator_Req_NoChange" xml:space="preserve">
+    <value>No changes: the same requirements stay frozen.</value>
+    <comment>Notice.</comment>
+  </data>
+  <data name="Orchestrator_Req_OldVersion" xml:space="preserve">
+    <value>That content is the one of an earlier version ({0}). A frozen version does not become the current one again: change something to freeze a new version.</value>
+    <comment>Error. {0}: fingerprint.</comment>
+  </data>
+  <data name="Orchestrator_Req_CannotFreeze" xml:space="preserve">
+    <value>The requirements cannot be frozen: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Req_FreezeFailed" xml:space="preserve">
+    <value>The requirements could not be frozen: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Req_AddOne" xml:space="preserve">
+    <value>Add at least one requirement.</value>
+    <comment>Problem.</comment>
+  </data>
+  <data name="Orchestrator_Req_Number" xml:space="preserve">
+    <value>no. {0}</value>
+    <comment>Name of an entry without identifier. {0}: position.</comment>
+  </data>
+  <data name="Orchestrator_Req_NoId" xml:space="preserve">
+    <value>Requirement no. {0} has no identifier.</value>
+    <comment>Problem.</comment>
+  </data>
+  <data name="Orchestrator_Req_BadId" xml:space="preserve">
+    <value>The identifier "{0}" is not valid. It only accepts letters, numbers, ".", "-" and "_", without spaces, and up to 32 characters.</value>
+    <comment>Problem.</comment>
+  </data>
+  <data name="Orchestrator_Req_RepeatedId" xml:space="preserve">
+    <value>The identifier {0} is repeated.</value>
+    <comment>Problem.</comment>
+  </data>
+  <data name="Orchestrator_Req_NoStatement" xml:space="preserve">
+    <value>Requirement {0} has no text.</value>
+    <comment>Problem.</comment>
+  </data>
+  <data name="Orchestrator_Req_NoCriterion" xml:space="preserve">
+    <value>The mandatory requirement {0} needs at least one acceptance criterion.</value>
+    <comment>Problem.</comment>
+  </data>
+  <data name="Orchestrator_Req_CriterionNoId" xml:space="preserve">
+    <value>Criterion no. {0} of {1} has no identifier.</value>
+    <comment>Problem.</comment>
+  </data>
+  <data name="Orchestrator_Req_CriterionRepeated" xml:space="preserve">
+    <value>Criterion {0} of {1} is repeated.</value>
+    <comment>Problem.</comment>
+  </data>
+  <data name="Orchestrator_Req_CriterionNoDescription" xml:space="preserve">
+    <value>Criterion {0} of {1} has no description.</value>
+    <comment>Problem.</comment>
+  </data>
+  <data name="Orchestrator_Req_StatusNoProject" xml:space="preserve">
+    <value>Open the project to freeze its requirements.</value>
+    <comment>Status.</comment>
+  </data>
+  <data name="Orchestrator_Req_StatusNoStore" xml:space="preserve">
+    <value>The requirements store is missing: they cannot be frozen.</value>
+    <comment>Status.</comment>
+  </data>
+  <data name="Orchestrator_Req_StatusNone" xml:space="preserve">
+    <value>No frozen requirements: write them and freeze them to be able to plan.</value>
+    <comment>Status.</comment>
+  </data>
+  <data name="Orchestrator_Req_StatusDraft" xml:space="preserve">
+    <value>New version not frozen yet: the frozen one is still current (fingerprint {0}).</value>
+    <comment>Status. {0}: fingerprint.</comment>
+  </data>
+  <data name="Orchestrator_Req_StatusFrozen" xml:space="preserve">
+    <value>Frozen on {0}: {1} ({2}) · fingerprint {3}</value>
+    <comment>Status. {0}: date, {1}: requirements, {2}: mandatory, {3}: fingerprint.</comment>
+  </data>
+  <data name="Orchestrator_Req_CountOne" xml:space="preserve">
+    <value>1 requirement</value>
+    <comment>Count of requirements.</comment>
+  </data>
+  <data name="Orchestrator_Req_CountMany" xml:space="preserve">
+    <value>{0} requirements</value>
+    <comment>Count of requirements.</comment>
+  </data>
+  <data name="Orchestrator_Req_MandatoryOne" xml:space="preserve">
+    <value>1 mandatory</value>
+    <comment>Count of mandatory requirements.</comment>
+  </data>
+  <data name="Orchestrator_Req_MandatoryMany" xml:space="preserve">
+    <value>{0} mandatory</value>
+    <comment>Count of mandatory requirements.</comment>
+  </data>
+  <data name="Orchestrator_Roster_ModelDefault" xml:space="preserve">
+    <value>The program's default</value>
+    <comment>Option of the model: the one the program of the agent picks.</comment>
+  </data>
+  <data name="Orchestrator_Roster_ModelOther" xml:space="preserve">
+    <value>Another model…</value>
+    <comment>Option of the model: type one.</comment>
+  </data>
+  <data name="Orchestrator_Roster_ModelEmpty" xml:space="preserve">
+    <value>Type the name of the model, or choose "{0}".</value>
+    <comment>Problem. {0}: the label of the default option.</comment>
+  </data>
+  <data name="Orchestrator_Roster_ModelBad" xml:space="preserve">
+    <value>The name of the model starts with a letter or a number. It only has letters, numbers and . _ : / [ ] -, and up to 128 characters.</value>
+    <comment>Problem.</comment>
+  </data>
+  <data name="Orchestrator_Roster_DescribeDefault" xml:space="preserve">
+    <value>default model of the program</value>
+    <comment>The model in words.</comment>
+  </data>
+  <data name="Orchestrator_Roster_DescribeModel" xml:space="preserve">
+    <value>model {0}</value>
+    <comment>The model in words. {0}: name.</comment>
+  </data>
+  <data name="Orchestrator_Roster_JudgeNoMemory" xml:space="preserve">
+    <value>It never receives memory: its verdict rests only on the file.</value>
+    <comment>Memory of a judge.</comment>
+  </data>
+  <data name="Orchestrator_Roster_MemoryOn" xml:space="preserve">
+    <value>It receives the memory of the project (only the trusted one).</value>
+    <comment>Memory of an agent.</comment>
+  </data>
+  <data name="Orchestrator_Roster_MemoryOff" xml:space="preserve">
+    <value>No project memory.</value>
+    <comment>Memory of an agent.</comment>
+  </data>
+  <data name="Orchestrator_Roster_ModelText" xml:space="preserve">
+    <value>It uses the {0}.</value>
+    <comment>Model of an agent. {0}: the model in words.</comment>
+  </data>
+  <data name="Orchestrator_Roster_MemoryNowOn" xml:space="preserve">
+    <value>"{0}" now receives the memory of the project: only the trusted one that is relevant to its task.</value>
+    <comment>Notice. {0}: agent.</comment>
+  </data>
+  <data name="Orchestrator_Roster_MemoryNowOff" xml:space="preserve">
+    <value>"{0}" no longer receives the memory of the project.</value>
+    <comment>Notice. {0}: agent.</comment>
+  </data>
+  <data name="Orchestrator_Roster_ModelChanged" xml:space="preserve">
+    <value>"{0}" will use the {1} from the next run or planning.</value>
+    <comment>Notice. {0}: agent, {1}: model in words.</comment>
+  </data>
+  <data name="Orchestrator_Roster_ChangeRefused" xml:space="preserve">
+    <value>The team does not accept that change: {0}.</value>
+    <comment>Error. {0}: problems.</comment>
+  </data>
+  <data name="Orchestrator_Roster_SaveFailed" xml:space="preserve">
+    <value>The team could not be saved: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Roster_LineModel" xml:space="preserve">
+    <value>model {0}</value>
+    <comment>Part of the line of an agent. {0}: model.</comment>
+  </data>
+  <data name="Orchestrator_Roster_ToolsReadOnly" xml:space="preserve">
+    <value>read only</value>
+    <comment>Tools of a judge.</comment>
+  </data>
+  <data name="Orchestrator_Roster_ToolsNone" xml:space="preserve">
+    <value>no tools declared</value>
+    <comment>An agent without tools.</comment>
+  </data>
+  <data name="Orchestrator_Roster_Orchestrator" xml:space="preserve">
+    <value>Orchestrator</value>
+    <comment>Default name of the agent.</comment>
+  </data>
+  <data name="Orchestrator_Roster_Executor" xml:space="preserve">
+    <value>Executor</value>
+    <comment>Default name of the agent.</comment>
+  </data>
+  <data name="Orchestrator_Roster_Judge" xml:space="preserve">
+    <value>Judge</value>
+    <comment>Default name of the agent.</comment>
+  </data>
+  <data name="Orchestrator_Roster_Architect" xml:space="preserve">
+    <value>Architect</value>
+    <comment>Default name of the agent.</comment>
+  </data>
+  <data name="Orchestrator_Roster_Critic" xml:space="preserve">
+    <value>Critic</value>
+    <comment>Default name of the agent.</comment>
+  </data>
+  <data name="Orchestrator_Roster_ClaudeJudge" xml:space="preserve">
+    <value>Claude judge</value>
+    <comment>Default name of the agent.</comment>
+  </data>
+  <data name="Orchestrator_Roster_RevisionJudge" xml:space="preserve">
+    <value>Review judge</value>
+    <comment>Default name of the agent.</comment>
+  </data>
+  <data name="Orchestrator_Session_EngineMissing" xml:space="preserve">
+    <value>Engine not available: the canvas works, but you cannot ask for a plan or run it.</value>
+    <comment>Line of what is missing.</comment>
+  </data>
+  <data name="Orchestrator_Session_StoreMissing" xml:space="preserve">
+    <value>The project store is missing: without it the requirements, the team of agents and the runs cannot be read.</value>
+    <comment>Line of what is missing.</comment>
+  </data>
+  <data name="Orchestrator_Session_OpenFailed" xml:space="preserve">
+    <value>The project could not be opened to orchestrate</value>
+    <comment>Start of the line of a failure.</comment>
+  </data>
+  <data name="Orchestrator_Session_LogFailed" xml:space="preserve">
+    <value>The decision history could not be read</value>
+    <comment>Start of the line of a failure.</comment>
+  </data>
+  <data name="Orchestrator_Session_RequirementsStoreMissing" xml:space="preserve">
+    <value>The requirements store is missing: without frozen requirements the plan cannot be validated.</value>
+    <comment>Line of what is missing.</comment>
+  </data>
+  <data name="Orchestrator_Session_RequirementsFailed" xml:space="preserve">
+    <value>The requirements could not be read</value>
+    <comment>Start of the line of a failure.</comment>
+  </data>
+  <data name="Orchestrator_Session_NoRequirements" xml:space="preserve">
+    <value>There are no frozen requirements yet. Go to "Requirements". Write what you want and freeze it. Then you can plan.</value>
+    <comment>Line of what is missing.</comment>
+  </data>
+  <data name="Orchestrator_Session_RosterMissing" xml:space="preserve">
+    <value>The team of agents of the project is missing.</value>
+    <comment>Line of what is missing.</comment>
+  </data>
+  <data name="Orchestrator_Session_ProfileMissing" xml:space="preserve">
+    <value>The verification profile is missing (.agentstudio/verification.json). Without it the plan cannot be validated.</value>
+    <comment>Line of what is missing.</comment>
+  </data>
+  <data name="Orchestrator_Session_ProfileFailed" xml:space="preserve">
+    <value>The verification profile could not be read</value>
+    <comment>Start of the line of a failure.</comment>
+  </data>
+  <data name="Orchestrator_Session_NoProfile" xml:space="preserve">
+    <value>The project has no verification profile (.agentstudio/verification.json).</value>
+    <comment>Line of what is missing.</comment>
+  </data>
+  <data name="Orchestrator_Session_NoProfileProposal" xml:space="preserve">
+    <value>This project has no verification profile. Look at the proposed one and press "Use the proposed profile".</value>
+    <comment>Line of what is missing.</comment>
+  </data>
+  <data name="Orchestrator_Session_RosterFailed" xml:space="preserve">
+    <value>The team of agents could not be read</value>
+    <comment>Start of the line of a failure.</comment>
+  </data>
+  <data name="Orchestrator_Session_RosterCreateFailed" xml:space="preserve">
+    <value>The default team of agents could not be created</value>
+    <comment>Start of the line of a failure.</comment>
+  </data>
+  <data name="Orchestrator_History_Entries" xml:space="preserve">
+    <value>{0} entries</value>
+    <comment>Count of entries of the history.</comment>
+  </data>
+  <data name="Orchestrator_History_EntryOne" xml:space="preserve">
+    <value>1 entry</value>
+    <comment>Count of entries of the history.</comment>
+  </data>
+  <data name="Orchestrator_History_Replaced" xml:space="preserve">
+    <value>The decision history of the project {0} ({1}) used to live in this location. The decision history now starts empty, and that one is no longer here. Nothing is planned, run or resumed until you accept to start a new one.</value>
+    <comment>Why the log cannot be trusted. {0}: project, {1}: entries.</comment>
+  </data>
+  <data name="Orchestrator_History_NoAnchor" xml:space="preserve">
+    <value>The decision history has {0}, but there is no anchor for this location. Perhaps the folder was moved or copied here. Or the history comes from another computer or with the repository. Nothing is planned, run or resumed until you accept this history as a new origin. Accept it only if you recognize it.</value>
+    <comment>Why the log cannot be trusted. {0}: entries.</comment>
+  </data>
+  <data name="Orchestrator_History_NotIntact" xml:space="preserve">
+    <value>The decision history is not intact: {0} Nothing is planned, run or resumed while it stays like this.</value>
+    <comment>Why the log cannot be trusted. {0}: the problem found.</comment>
+  </data>
+  <data name="Orchestrator_Phase_Running" xml:space="preserve">
+    <value>Running</value>
+    <comment>Phase of a run.</comment>
+  </data>
+  <data name="Orchestrator_Phase_Paused" xml:space="preserve">
+    <value>Paused</value>
+    <comment>Phase of a run.</comment>
+  </data>
+  <data name="Orchestrator_Phase_WaitingForQuota" xml:space="preserve">
+    <value>Paused by the usage limit</value>
+    <comment>Phase of a run.</comment>
+  </data>
+  <data name="Orchestrator_Phase_AwaitingHuman" xml:space="preserve">
+    <value>Waiting for a person</value>
+    <comment>Phase of a run.</comment>
+  </data>
+  <data name="Orchestrator_Phase_Interrupted" xml:space="preserve">
+    <value>Interrupted</value>
+    <comment>Phase of a run.</comment>
+  </data>
+  <data name="Orchestrator_Phase_Succeeded" xml:space="preserve">
+    <value>Completed</value>
+    <comment>Phase of a run.</comment>
+  </data>
+  <data name="Orchestrator_Phase_Failed" xml:space="preserve">
+    <value>Failed</value>
+    <comment>Phase of a run.</comment>
+  </data>
+  <data name="Orchestrator_Phase_Blocked" xml:space="preserve">
+    <value>Blocked</value>
+    <comment>Phase of a run.</comment>
+  </data>
+  <data name="Orchestrator_Phase_Cancelled" xml:space="preserve">
+    <value>Cancelled</value>
+    <comment>Phase of a run.</comment>
+  </data>
+  <data name="Orchestrator_Block_Blocked" xml:space="preserve">
+    <value>Blocked</value>
+    <comment>State of a blocked task without reason.</comment>
+  </data>
+  <data name="Orchestrator_Block_Interrupted" xml:space="preserve">
+    <value>Interrupted</value>
+    <comment>State of an interrupted task.</comment>
+  </data>
+  <data name="Orchestrator_Block_ProviderUnavailable" xml:space="preserve">
+    <value>Blocked · the program of the agent is not available</value>
+    <comment>State of a blocked task.</comment>
+  </data>
+  <data name="Orchestrator_Block_AwaitingHuman" xml:space="preserve">
+    <value>Blocked · waits for a person</value>
+    <comment>State of a blocked task.</comment>
+  </data>
+  <data name="Orchestrator_Block_Other" xml:space="preserve">
+    <value>Blocked · {0}</value>
+    <comment>State of a blocked task. {0}: the reason as the engine gives it.</comment>
+  </data>
+  <data name="Orchestrator_Activity_SessionStarted" xml:space="preserve">
+    <value>Session started</value>
+    <comment>Line of the activity.</comment>
+  </data>
+  <data name="Orchestrator_Activity_SessionStartedModel" xml:space="preserve">
+    <value>Session started · {0}</value>
+    <comment>Line of the activity. {0}: model.</comment>
+  </data>
+  <data name="Orchestrator_Activity_ToolUsed" xml:space="preserve">
+    <value>Uses {0}: {1}</value>
+    <comment>Line of the activity. {0}: tool, {1}: what it does.</comment>
+  </data>
+  <data name="Orchestrator_Activity_ToolDone" xml:space="preserve">
+    <value>{0}: done</value>
+    <comment>Line of the activity. {0}: tool.</comment>
+  </data>
+  <data name="Orchestrator_Activity_ToolFailed" xml:space="preserve">
+    <value>{0}: failed</value>
+    <comment>Line of the activity. {0}: tool.</comment>
+  </data>
+  <data name="Orchestrator_Activity_Permission" xml:space="preserve">
+    <value>Asks permission for {0}: {1}</value>
+    <comment>Line of the activity. {0}: tool, {1}: what for.</comment>
+  </data>
+  <data name="Orchestrator_Activity_Usage" xml:space="preserve">
+    <value>Usage: {0} input tokens and {1} output tokens</value>
+    <comment>Line of the activity.</comment>
+  </data>
+  <data name="Orchestrator_Activity_RateLimitUntil" xml:space="preserve">
+    <value>Usage limit of your plan ({0}) until {1}</value>
+    <comment>Line of the activity. {0}: status, {1}: time.</comment>
+  </data>
+  <data name="Orchestrator_Activity_RateLimit" xml:space="preserve">
+    <value>Usage limit of your plan ({0})</value>
+    <comment>Line of the activity. {0}: status.</comment>
+  </data>
+  <data name="Orchestrator_Activity_Quota" xml:space="preserve">
+    <value>Usage limit: {0}</value>
+    <comment>Line of the activity. {0}: the windows.</comment>
+  </data>
+  <data name="Orchestrator_Activity_Finished" xml:space="preserve">
+    <value>Agent finished: {0}</value>
+    <comment>Line of the activity. {0}: outcome.</comment>
+  </data>
+  <data name="Orchestrator_Outcome_Succeeded" xml:space="preserve">
+    <value>successful</value>
+    <comment>Outcome of an agent run.</comment>
+  </data>
+  <data name="Orchestrator_Outcome_Failed" xml:space="preserve">
+    <value>failed</value>
+    <comment>Outcome of an agent run.</comment>
+  </data>
+  <data name="Orchestrator_Outcome_Cancelled" xml:space="preserve">
+    <value>cancelled</value>
+    <comment>Outcome of an agent run.</comment>
+  </data>
+  <data name="Orchestrator_Outcome_LimitReached" xml:space="preserve">
+    <value>limit reached</value>
+    <comment>Outcome of an agent run.</comment>
+  </data>
+  <data name="Orchestrator_Outcome_RateLimited" xml:space="preserve">
+    <value>usage limit of your plan</value>
+    <comment>Outcome of an agent run.</comment>
+  </data>
+  <data name="Orchestrator_Activity_TokensEstimated" xml:space="preserve">
+    <value>~{0} (estimated)</value>
+    <comment>A count of tokens that is an estimate. {0}: number.</comment>
+  </data>
+  <data name="Orchestrator_Activity_NotExposed" xml:space="preserve">
+    <value>not exposed</value>
+    <comment>A figure the program does not give.</comment>
+  </data>
+  <data name="Orchestrator_Activity_NotExposedFeminine" xml:space="preserve">
+    <value>not exposed</value>
+    <comment>A figure the program does not give.</comment>
+  </data>
+  <data name="Orchestrator_Activity_Estimated" xml:space="preserve">
+    <value> (estimated)</value>
+    <comment>Added to a percentage that is an estimate.</comment>
+  </data>
+  <data name="Orchestrator_Activity_TokensBefore" xml:space="preserve">
+    <value>{0} tokens before · {1}</value>
+    <comment>Part of the compaction line. {0}: tokens, {1}: origin.</comment>
+  </data>
+  <data name="Orchestrator_Activity_TokensBeforeUnknown" xml:space="preserve">
+    <value>tokens before: {0}</value>
+    <comment>Part of the compaction line. {0}: origin.</comment>
+  </data>
+  <data name="Orchestrator_Activity_Compaction" xml:space="preserve">
+    <value>The program of the agent compacted the context ({0}): {1}</value>
+    <comment>Line of the activity. {0}: trigger, {1}: tokens.</comment>
+  </data>
+  <data name="Orchestrator_Quota_FiveHour" xml:space="preserve">
+    <value>5 hours</value>
+    <comment>Window of the quota.</comment>
+  </data>
+  <data name="Orchestrator_Quota_SevenDay" xml:space="preserve">
+    <value>7 days</value>
+    <comment>Window of the quota.</comment>
+  </data>
+  <data name="Orchestrator_Quota_SevenDayOpus" xml:space="preserve">
+    <value>7 days · Opus</value>
+    <comment>Window of the quota.</comment>
+  </data>
+  <data name="Orchestrator_Quota_SevenDaySonnet" xml:space="preserve">
+    <value>7 days · Sonnet</value>
+    <comment>Window of the quota.</comment>
+  </data>
+  <data name="Orchestrator_Audit_Assignment" xml:space="preserve">
+    <value>Assignment of tasks</value>
+    <comment>Check of the auditor.</comment>
+  </data>
+  <data name="Orchestrator_Audit_DependencyOrder" xml:space="preserve">
+    <value>Order of the dependencies</value>
+    <comment>Check of the auditor.</comment>
+  </data>
+  <data name="Orchestrator_Audit_Instructions" xml:space="preserve">
+    <value>Complete instructions</value>
+    <comment>Check of the auditor.</comment>
+  </data>
+  <data name="Orchestrator_Audit_ReviewOmitted" xml:space="preserve">
+    <value>Mandatory review skipped</value>
+    <comment>Check of the auditor.</comment>
+  </data>
+  <data name="Orchestrator_Audit_Permissions" xml:space="preserve">
+    <value>Permissions respected</value>
+    <comment>Check of the auditor.</comment>
+  </data>
+  <data name="Orchestrator_Audit_ApprovalMissing" xml:space="preserve">
+    <value>Approval not asked</value>
+    <comment>Check of the auditor.</comment>
+  </data>
+  <data name="Orchestrator_Audit_IntegrationUnverified" xml:space="preserve">
+    <value>Integration not verified</value>
+    <comment>Check of the auditor.</comment>
+  </data>
+  <data name="Orchestrator_Audit_Replay" xml:space="preserve">
+    <value>Replay of the history</value>
+    <comment>Check of the auditor.</comment>
+  </data>
+  <data name="Orchestrator_Audit_PrematureFinish" xml:space="preserve">
+    <value>Premature finish</value>
+    <comment>Check of the auditor.</comment>
+  </data>
+  <data name="Orchestrator_Evidence_TestRun" xml:space="preserve">
+    <value>Tests</value>
+    <comment>Kind of evidence.</comment>
+  </data>
+  <data name="Orchestrator_Evidence_BuildLog" xml:space="preserve">
+    <value>Build</value>
+    <comment>Kind of evidence.</comment>
+  </data>
+  <data name="Orchestrator_Evidence_CommandOutput" xml:space="preserve">
+    <value>Output of a command</value>
+    <comment>Kind of evidence.</comment>
+  </data>
+  <data name="Orchestrator_Evidence_CodeDiff" xml:space="preserve">
+    <value>Diff</value>
+    <comment>Kind of evidence.</comment>
+  </data>
+  <data name="Orchestrator_Evidence_Document" xml:space="preserve">
+    <value>Document</value>
+    <comment>Kind of evidence.</comment>
+  </data>
+  <data name="Orchestrator_Evidence_AgentStatement" xml:space="preserve">
+    <value>Statement of the agent</value>
+    <comment>Kind of evidence.</comment>
+  </data>
+  <data name="Orchestrator_Evidence_HumanNote" xml:space="preserve">
+    <value>Note from a person</value>
+    <comment>Kind of evidence.</comment>
+  </data>
+  <data name="Orchestrator_Evidence_CapturedBySystem" xml:space="preserve">
+    <value>captured by the system</value>
+    <comment>Origin of an evidence.</comment>
+  </data>
+  <data name="Orchestrator_Evidence_ReportedByAgent" xml:space="preserve">
+    <value>declared by the agent</value>
+    <comment>Origin of an evidence.</comment>
+  </data>
+  <data name="Orchestrator_Evidence_ProvidedByHuman" xml:space="preserve">
+    <value>provided by a person</value>
+    <comment>Origin of an evidence.</comment>
+  </data>
+  <data name="Orchestrator_Evidence_Tests" xml:space="preserve">
+    <value>{0} passed, {1} failed, {2} skipped</value>
+    <comment>Summary of a test run.</comment>
+  </data>
+  <data name="Orchestrator_Tokens_Unknown" xml:space="preserve">
+    <value>Tokens of the last attempt: {0}</value>
+    <comment>Tokens the program reported. {0}: origin.</comment>
+  </data>
+  <data name="Orchestrator_Tokens_Line" xml:space="preserve">
+    <value>Tokens of the last attempt: {0} input and {1} output · {2}</value>
+    <comment>Tokens the program reported.</comment>
+  </data>
+  <data name="Orchestrator_Review_Reload" xml:space="preserve">
+    <value>Reload the project</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Review_ReloadHelp" xml:space="preserve">
+    <value>Reads the requirements, the agents, the verification profile and the runs again.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Orchestrator_Review_EngineName" xml:space="preserve">
+    <value>State of the engine</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Review_MissingName" xml:space="preserve">
+    <value>What is missing</value>
+    <comment>Accessible name of the list.</comment>
+  </data>
+  <data name="Orchestrator_Review_IntegrityName" xml:space="preserve">
+    <value>Problem in the decision history</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Review_AcceptHistory" xml:space="preserve">
+    <value>Accept this history as a new origin</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Review_AcceptHistoryHelp" xml:space="preserve">
+    <value>It asks you whether this history is yours. If you accept it, it is recorded in the history and anchored to this folder.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Orchestrator_Review_PlanSummary" xml:space="preserve">
+    <value>Summary of the plan</value>
+    <comment>Label and accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Review_RequestPlan" xml:space="preserve">
+    <value>Ask the orchestrator for a plan</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Review_RequestPlanHelp" xml:space="preserve">
+    <value>The orchestrator proposes a plan for your request and the frozen requirements. It uses up part of your plan's usage limit.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Orchestrator_Review_CancelPlanning" xml:space="preserve">
+    <value>Cancel the planning</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Review_ApprovalName" xml:space="preserve">
+    <value>Approval of the plan</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Review_ToRun" xml:space="preserve">
+    <value>To run: {0}</value>
+    <comment>What is missing before the plan can run. {0}: the blockers.</comment>
+  </data>
+  <data name="Orchestrator_Review_IsolationName" xml:space="preserve">
+    <value>Warning: agents that write with your permissions</value>
+    <comment>Accessible name of the warning.</comment>
+  </data>
+  <data name="Orchestrator_Review_DeliveryWarningName" xml:space="preserve">
+    <value>Delivery warning of the plan</value>
+    <comment>Accessible name of the warning.</comment>
+  </data>
+  <data name="Orchestrator_Review_Validate" xml:space="preserve">
+    <value>Validate the plan</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Review_Approve" xml:space="preserve">
+    <value>Approve the plan</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Review_Reject" xml:space="preserve">
+    <value>Reject the plan</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Review_Execute" xml:space="preserve">
+    <value>Run the plan</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Review_EditPlan" xml:space="preserve">
+    <value>Edit the plan</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Review_SelectNode" xml:space="preserve">
+    <value>Select a node to see and change its properties.</value>
+    <comment>Shown when no node is selected.</comment>
+  </data>
+  <data name="Orchestrator_Review_Problems" xml:space="preserve">
+    <value>Problems of the plan</value>
+    <comment>Title and accessible name of the list.</comment>
+  </data>
+  <data name="Orchestrator_Review_Proposal" xml:space="preserve">
+    <value>Proposal of the orchestrator</value>
+    <comment>Title.</comment>
+  </data>
+  <data name="Orchestrator_Review_Risks" xml:space="preserve">
+    <value>Risks it points out</value>
+    <comment>Label of the list.</comment>
+  </data>
+  <data name="Orchestrator_Review_Activity" xml:space="preserve">
+    <value>What the orchestrator does</value>
+    <comment>Title.</comment>
+  </data>
+  <data name="Orchestrator_Review_NothingYet" xml:space="preserve">
+    <value>Nothing yet.</value>
+    <comment>Shown when the list is empty.</comment>
+  </data>
+  <data name="Orchestrator_Runs_Title" xml:space="preserve">
+    <value>Previous runs</value>
+    <comment>Title and accessible name.</comment>
+  </data>
+  <data name="Orchestrator_Runs_Hint" xml:space="preserve">
+    <value>"View the run" opens one in the monitor, read only and without spending your usage limit. You will see its tasks, evidence, review and delivery.</value>
+    <comment>Explanation under the title.</comment>
+  </data>
+  <data name="Orchestrator_Runs_None" xml:space="preserve">
+    <value>None yet.</value>
+    <comment>Shown when the list is empty.</comment>
+  </data>
+  <data name="Orchestrator_Runs_Viewed" xml:space="preserve">
+    <value>Open in the monitor, read only.</value>
+    <comment>Shown on the run the monitor shows.</comment>
+  </data>
+  <data name="Orchestrator_Runs_View" xml:space="preserve">
+    <value>View the run</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Runs_ViewHelp" xml:space="preserve">
+    <value>Opens the run in the monitor, read only, rebuilt from the history. It shows the tasks with their reason, the evidence and the review. If the judge approved the integration, you can use "Deliver to my branch". It does not spend your usage limit.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Orchestrator_Runs_ViewName" xml:space="preserve">
+    <value>View run {0}</value>
+    <comment>Accessible name. {0}: id.</comment>
+  </data>
+  <data name="Orchestrator_Runs_Resume" xml:space="preserve">
+    <value>Resume the run</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_Runs_ResumeHelp" xml:space="preserve">
+    <value>Continues the interrupted run. It uses up part of your plan's usage limit.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Orchestrator_Runs_ResumeName" xml:space="preserve">
+    <value>Resume run {0}</value>
+    <comment>Accessible name. {0}: id.</comment>
+  </data>
+  <data name="Info_ResumeConsent_Title" xml:space="preserve">
+    <value>Resume by itself</value>
+    <comment>Title of the information button.</comment>
+  </data>
+  <data name="Info_ResumeConsent_What" xml:space="preserve">
+    <value>If a usage limit or a shutdown interrupts the run, it can go on without asking you. It is off by default and only counts for the next run. It never goes over the approved budget.</value>
+    <comment>What the consent is.</comment>
+  </data>
+  <data name="Info_ResumeConsent_Actions" xml:space="preserve">
+    <value>Tick the box before running the plan to allow it.
+Leave it unticked to resume the run yourself.
+Pause the run: it never resumes by itself then.</value>
+    <comment>What the person can do with the consent.</comment>
+  </data>
+  <data name="Orchestrator_Doc_TabTitle" xml:space="preserve">
+    <value>Orchestrator · {0}</value>
+    <comment>Title of the tab of the orchestrator. {0}: name of the project.</comment>
+  </data>
+  <data name="Orchestrator_Doc_Hide" xml:space="preserve">
+    <value>Hide</value>
+    <comment>Button that folds the preparation.</comment>
+  </data>
+  <data name="Orchestrator_Doc_Show" xml:space="preserve">
+    <value>Show</value>
+    <comment>Button that unfolds the preparation.</comment>
+  </data>
+  <data name="Orchestrator_Doc_NoRequest" xml:space="preserve">
+    <value>No request</value>
+    <comment>Part of the summary of the preparation.</comment>
+  </data>
+  <data name="Orchestrator_Doc_RequestWritten" xml:space="preserve">
+    <value>Request written</value>
+    <comment>Part of the summary of the preparation.</comment>
+  </data>
+  <data name="Orchestrator_Doc_RequirementsPending" xml:space="preserve">
+    <value>requirements with changes not frozen</value>
+    <comment>Part of the summary of the preparation.</comment>
+  </data>
+  <data name="Orchestrator_Doc_RequirementsFrozen" xml:space="preserve">
+    <value>requirements frozen ({0})</value>
+    <comment>Part of the summary. {0}: fingerprint.</comment>
+  </data>
+  <data name="Orchestrator_Doc_RequirementsNone" xml:space="preserve">
+    <value>no frozen requirements</value>
+    <comment>Part of the summary of the preparation.</comment>
+  </data>
+  <data name="Orchestrator_Doc_AgentsNone" xml:space="preserve">
+    <value>no agents</value>
+    <comment>Part of the summary of the preparation.</comment>
+  </data>
+  <data name="Orchestrator_Doc_AgentsOne" xml:space="preserve">
+    <value>1 agent</value>
+    <comment>Part of the summary of the preparation.</comment>
+  </data>
+  <data name="Orchestrator_Doc_AgentsMany" xml:space="preserve">
+    <value>{0} agents</value>
+    <comment>Part of the summary of the preparation.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ProfileNamed" xml:space="preserve">
+    <value>profile "{0}" ({1})</value>
+    <comment>Part of the summary. {0}: name, {1}: fingerprint.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ProfileProposed" xml:space="preserve">
+    <value>proposed profile not accepted</value>
+    <comment>Part of the summary of the preparation.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ProfileNone" xml:space="preserve">
+    <value>no verification profile</value>
+    <comment>Part of the summary of the preparation.</comment>
+  </data>
+  <data name="Orchestrator_Doc_RosterCreated" xml:space="preserve">
+    <value>The project had no agents: the default team was created (Claude orchestrates and executes, Codex judges).</value>
+    <comment>Notice.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ProfileText" xml:space="preserve">
+    <value>"{0}" · fingerprint {1} · {2}. It is what Agent Studio runs to verify the work. Each run freezes this version.</value>
+    <comment>The profile of the project. {0}: name, {1}: fingerprint, {2}: steps.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ProfileProposalText" xml:space="preserve">
+    <value>Proposal "{0}" · fingerprint {1} · {2}. It is not the profile of the project yet. Review its commands: they will run on your computer.</value>
+    <comment>The proposed profile. {0}: name, {1}: fingerprint, {2}: steps.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ProfileNoneText" xml:space="preserve">
+    <value>No verification profile.</value>
+    <comment>The profile of the project.</comment>
+  </data>
+  <data name="Orchestrator_Doc_StepOne" xml:space="preserve">
+    <value>1 step</value>
+    <comment>Count of steps.</comment>
+  </data>
+  <data name="Orchestrator_Doc_StepMany" xml:space="preserve">
+    <value>{0} steps</value>
+    <comment>Count of steps.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ProfileSaveFailed" xml:space="preserve">
+    <value>The verification profile could not be saved: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Doc_EngineOn" xml:space="preserve">
+    <value>Orchestration engine connected</value>
+    <comment>State of the engine.</comment>
+  </data>
+  <data name="Orchestrator_Doc_EngineOff" xml:space="preserve">
+    <value>Engine not available</value>
+    <comment>State of the engine.</comment>
+  </data>
+  <data name="Orchestrator_Doc_WaitingHistory" xml:space="preserve">
+    <value>Waiting for your answer about the decision history…</value>
+    <comment>Text while the question is open.</comment>
+  </data>
+  <data name="Orchestrator_Doc_AcceptHistoryFailed" xml:space="preserve">
+    <value>The history could not be accepted: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Doc_HistoryNotAccepted" xml:space="preserve">
+    <value>You did not accept the history: the decision history stays locked.</value>
+    <comment>Error.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ApprovedFollowUp" xml:space="preserve">
+    <value>Plan approved ({0}). "Run the plan" starts a follow-up run of {1}.</value>
+    <comment>Approval line. {0}: fingerprint, {1}: run.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ApprovedHello" xml:space="preserve">
+    <value>Plan approved ({0}), confirmed with Windows Hello.</value>
+    <comment>Approval line. {0}: fingerprint.</comment>
+  </data>
+  <data name="Orchestrator_Doc_Approved" xml:space="preserve">
+    <value>Plan approved ({0}).</value>
+    <comment>Approval line. {0}: fingerprint.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ChangedAfterApproval" xml:space="preserve">
+    <value>The plan changed after you approved it: approve it again.</value>
+    <comment>Approval line.</comment>
+  </data>
+  <data name="Orchestrator_Doc_Rejected" xml:space="preserve">
+    <value>Plan rejected.</value>
+    <comment>Approval line.</comment>
+  </data>
+  <data name="Orchestrator_Doc_NotApproved" xml:space="preserve">
+    <value>Plan not approved.</value>
+    <comment>Approval line.</comment>
+  </data>
+  <data name="Orchestrator_Doc_PlanWithHash" xml:space="preserve">
+    <value>plan {0}</value>
+    <comment>The plan a run follows. {0}: fingerprint.</comment>
+  </data>
+  <data name="Orchestrator_Doc_PlanItStartedWith" xml:space="preserve">
+    <value>the plan it started with</value>
+    <comment>The plan a run follows.</comment>
+  </data>
+  <data name="Orchestrator_Doc_FollowedViewing" xml:space="preserve">
+    <value>Viewing run {0}: it followed {1}, approved when it started.</value>
+    <comment>Approval line. {0}: run, {1}: plan.</comment>
+  </data>
+  <data name="Orchestrator_Doc_FollowedActive" xml:space="preserve">
+    <value>Run {0} follows {1}, approved when it started.</value>
+    <comment>Approval line. {0}: run, {1}: plan.</comment>
+  </data>
+  <data name="Orchestrator_Doc_FollowedFinished" xml:space="preserve">
+    <value>Run {0} ended with {1}, approved when it started.</value>
+    <comment>Approval line. {0}: run, {1}: plan.</comment>
+  </data>
+  <data name="Orchestrator_Doc_HelloUnavailable" xml:space="preserve">
+    <value>Windows Hello is not available on this computer ({0}). Only the button approved the plan, and the history records it.</value>
+    <comment>Warning next to Approve. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ValidationNoContext" xml:space="preserve">
+    <value>No context to validate: the frozen requirements or the verification profile are missing.</value>
+    <comment>State of the validation.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ValidationValid" xml:space="preserve">
+    <value>Valid plan.</value>
+    <comment>State of the validation.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ValidationOne" xml:space="preserve">
+    <value>1 problem in the plan.</value>
+    <comment>State of the validation.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ValidationMany" xml:space="preserve">
+    <value>{0} problems in the plan.</value>
+    <comment>State of the validation.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ConsentLabel" xml:space="preserve">
+    <value>Resume by itself if a limit or a shutdown interrupts it</value>
+    <comment>Label of the consent of the next run.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ConsentHelp" xml:space="preserve">
+    <value>When ticked, the run goes on by itself in two cases. If a task reaches the usage limit, it waits for it to renew, plus 3 minutes, and continues. If the app closes without you asking, or Windows ends the session, the run goes on. It does so when you open the app again. It never resumes if you paused it or left it on exit. It never goes over the approved budget. It only counts for the next run and is kept in its header.</value>
+    <comment>Tooltip of the consent.</comment>
+  </data>
+  <data name="Orchestrator_Doc_OpeningProject" xml:space="preserve">
+    <value>Opening the project to orchestrate…</value>
+    <comment>Text while the project opens.</comment>
+  </data>
+  <data name="Orchestrator_Doc_RosterChanged" xml:space="preserve">
+    <value>You changed the team of agents: approve the plan again.</value>
+    <comment>Notice.</comment>
+  </data>
+  <data name="Orchestrator_Doc_HelloNotAsked" xml:space="preserve">
+    <value>Could not ask you for Windows Hello ({0}): the plan is not approved.</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Doc_HelloNotConfirmed" xml:space="preserve">
+    <value>Windows Hello did not confirm it is you ({0}): the plan is not approved.</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ChangedWhileConfirming" xml:space="preserve">
+    <value>The plan changed while it was being confirmed: approve it again.</value>
+    <comment>Error.</comment>
+  </data>
+  <data name="Orchestrator_Doc_RejectedByYou" xml:space="preserve">
+    <value>You rejected the plan of the orchestrator: fix it on the canvas or ask for another.</value>
+    <comment>Status of the proposal.</comment>
+  </data>
+  <data name="Orchestrator_Doc_Planning" xml:space="preserve">
+    <value>The orchestrator is preparing the plan…</value>
+    <comment>Text while it plans.</comment>
+  </data>
+  <data name="Orchestrator_Doc_PlanningCancelled" xml:space="preserve">
+    <value>Planning cancelled.</value>
+    <comment>Status of the proposal.</comment>
+  </data>
+  <data name="Orchestrator_Doc_PlanningFailed" xml:space="preserve">
+    <value>The orchestrator could not plan: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Doc_Starting" xml:space="preserve">
+    <value>Starting the run…</value>
+    <comment>Text while the run starts.</comment>
+  </data>
+  <data name="Orchestrator_Doc_StartFailed" xml:space="preserve">
+    <value>The run could not be started: {0} Approve the plan again to try once more.</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Doc_Resuming" xml:space="preserve">
+    <value>Resuming run {0}…</value>
+    <comment>Text while the run resumes. {0}: run.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ResumeFailed" xml:space="preserve">
+    <value>The run could not be resumed: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Resume_WhyChanged" xml:space="preserve">
+    <value>The agents that write with your permissions are no longer the ones you approved. Another version of Claude Code may be installed.</value>
+    <comment>Why a resume was refused.</comment>
+  </data>
+  <data name="Orchestrator_Resume_WhyOld" xml:space="preserve">
+    <value>It started before the history recorded which agents write with your permissions, and now its plan has some.</value>
+    <comment>Why a resume was refused.</comment>
+  </data>
+  <data name="Orchestrator_Resume_NowWarning" xml:space="preserve">
+    <value>Warning now: "{0}".</value>
+    <comment>What its plan says now. {0}: warning.</comment>
+  </data>
+  <data name="Orchestrator_Resume_NowNone" xml:space="preserve">
+    <value>Its plan now has no agents that write with your permissions.</value>
+    <comment>What its plan says now.</comment>
+  </data>
+  <data name="Orchestrator_Resume_NextShown" xml:space="preserve">
+    <value>Its plan is on the canvas. If you approve it again and press "Run the plan", a follow-up run of {0} starts. "Reject the plan" discards it.</value>
+    <comment>What can be done. {0}: run.</comment>
+  </data>
+  <data name="Orchestrator_Resume_NextHidden" xml:space="preserve">
+    <value>Its plan is not available here to approve it again.</value>
+    <comment>What can be done.</comment>
+  </data>
+  <data name="Orchestrator_Resume_Refused" xml:space="preserve">
+    <value>Run {0} is not resumed. {1} {2} {3}</value>
+    <comment>Error. {0}: run, {1}: why, {2}: what its plan says now, {3}: what can be done.</comment>
+  </data>
+  <data name="Orchestrator_Plan_NoUsable" xml:space="preserve">
+    <value>The orchestrator did not return a usable plan ({0}).</value>
+    <comment>Status of the proposal. {0}: outcome.</comment>
+  </data>
+  <data name="Orchestrator_Plan_NoUsableWhy" xml:space="preserve">
+    <value>The orchestrator did not return a usable plan ({0}): {1}</value>
+    <comment>Status of the proposal. {0}: outcome, {1}: error.</comment>
+  </data>
+  <data name="Orchestrator_Plan_Corrected" xml:space="preserve">
+    <value>A correction was asked of it.</value>
+    <comment>Added to the status of the proposal.</comment>
+  </data>
+  <data name="Orchestrator_Plan_Proposed" xml:space="preserve">
+    <value>Plan proposed by the orchestrator: review it and approve or reject it.</value>
+    <comment>Status of the proposal.</comment>
+  </data>
+  <data name="Orchestrator_Plan_ProposedWithProblems" xml:space="preserve">
+    <value>Plan proposed by the orchestrator with problems: {0}</value>
+    <comment>Status of the proposal. {0}: the validation.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ResumedHeaderFailed" xml:space="preserve">
+    <value>Run {0} resumed by itself, but its header could not be read: {1}</value>
+    <comment>Error. {0}: run, {1}: why.</comment>
+  </data>
+  <data name="Orchestrator_Doc_StartedWhileFollowingTray" xml:space="preserve">
+    <value>Run {0} started while this tab was following another run. It keeps going, and the tray follows it.</value>
+    <comment>Notice. {0}: run.</comment>
+  </data>
+  <data name="Orchestrator_Doc_StartedWhileFollowing" xml:space="preserve">
+    <value>Run {0} started while this tab was following another run. It is already running.</value>
+    <comment>Notice. {0}: run.</comment>
+  </data>
+  <data name="Orchestrator_Doc_ResumeNotDone" xml:space="preserve">
+    <value>Run {0} was not resumed. This tab is following another one. Resume it when the other one ends.</value>
+    <comment>Notice. {0}: run.</comment>
+  </data>
+  <data name="Orchestrator_Doc_RunsListFailed" xml:space="preserve">
+    <value>The list of runs could not be read: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Doc_WarningChanged" xml:space="preserve">
+    <value>The warning of the plan changed since you approved it: review it and approve it again.</value>
+    <comment>Error.</comment>
+  </data>
+  <data name="Orchestrator_Blocker_Engine" xml:space="preserve">
+    <value>Engine not available</value>
+    <comment>Why the plan cannot run.</comment>
+  </data>
+  <data name="Orchestrator_Blocker_RunActive" xml:space="preserve">
+    <value>A run is in progress</value>
+    <comment>Why the plan cannot run.</comment>
+  </data>
+  <data name="Orchestrator_Blocker_Viewing" xml:space="preserve">
+    <value>Close the run you are viewing to go back to your draft</value>
+    <comment>Why the plan cannot run.</comment>
+  </data>
+  <data name="Orchestrator_Blocker_Viewed" xml:space="preserve">
+    <value>Press "Edit the plan" to prepare another run</value>
+    <comment>Why the plan cannot run.</comment>
+  </data>
+  <data name="Orchestrator_Blocker_Busy" xml:space="preserve">
+    <value>Wait for the current operation to end</value>
+    <comment>Why the plan cannot run.</comment>
+  </data>
+  <data name="Orchestrator_Blocker_Integrity" xml:space="preserve">
+    <value>The decision history is not intact</value>
+    <comment>Why the plan cannot run.</comment>
+  </data>
+  <data name="Orchestrator_Blocker_NoContext" xml:space="preserve">
+    <value>The project, the frozen requirements or the verification profile are missing</value>
+    <comment>Why the plan cannot run.</comment>
+  </data>
+  <data name="Orchestrator_Blocker_Requirements" xml:space="preserve">
+    <value>Freeze or discard the changes to the requirements</value>
+    <comment>Why the plan cannot run.</comment>
+  </data>
+  <data name="Orchestrator_Blocker_Problems" xml:space="preserve">
+    <value>The plan has problems: press "Validate the plan"</value>
+    <comment>Why the plan cannot run.</comment>
+  </data>
+  <data name="Orchestrator_Blocker_Approve" xml:space="preserve">
+    <value>Approve the plan</value>
+    <comment>Why the plan cannot run.</comment>
+  </data>
+  <data name="Orchestrator_Blocker_Request" xml:space="preserve">
+    <value>Write the request</value>
+    <comment>Why the plan cannot run.</comment>
+  </data>
+  <data name="Orchestrator_Doc_PlanningContext" xml:space="preserve">
+    <value>Context of the orchestrator</value>
+    <comment>Name of the bar of the context while it plans.</comment>
+  </data>
+  <data name="Orchestrator_Doc_DraftSaveFailed" xml:space="preserve">
+    <value>The draft of the request and the plan could not be saved: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Doc_DraftIgnored" xml:space="preserve">
+    <value>The draft that was in the project was ignored: {0}.</value>
+    <comment>Notice. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Doc_DraftRecoveredProposal" xml:space="preserve">
+    <value>Draft recovered. It is the plan the orchestrator proposed, and it is not approved yet. Look at it and approve it if you want to run it.</value>
+    <comment>Status of the proposal.</comment>
+  </data>
+  <data name="Orchestrator_Doc_DraftRecovered" xml:space="preserve">
+    <value>The draft of the previous session was recovered: the request and the plan, not approved.</value>
+    <comment>Notice.</comment>
+  </data>
+  <data name="Orchestrator_Draft_Unreadable" xml:space="preserve">
+    <value>it could not be read</value>
+    <comment>Why a draft is ignored.</comment>
+  </data>
+  <data name="Orchestrator_Doc_OpeningRun" xml:space="preserve">
+    <value>Opening run {0} from the history…</value>
+    <comment>Text while the run opens. {0}: run.</comment>
+  </data>
+  <data name="Orchestrator_Doc_MonitorBusy" xml:space="preserve">
+    <value>Run {0} was not opened: the monitor of this tab is busy with another run.</value>
+    <comment>Error. {0}: run.</comment>
+  </data>
+  <data name="Orchestrator_Doc_OpenRunFailed" xml:space="preserve">
+    <value>Run {0} could not be opened: {1}</value>
+    <comment>Error. {0}: run, {1}: why.</comment>
+  </data>
+  <data name="Orchestrator_Doc_DraftPlanLost" xml:space="preserve">
+    <value>The plan of the draft could not be recovered: the canvas stays empty.</value>
+    <comment>Notice.</comment>
+  </data>
+  <data name="Orchestrator_MonView_PhaseName" xml:space="preserve">
+    <value>Phase of the run</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_MonView_Pause" xml:space="preserve">
+    <value>Pause the run</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_Resume" xml:space="preserve">
+    <value>Resume the run</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_Cancel" xml:space="preserve">
+    <value>Cancel the run</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_Deliver" xml:space="preserve">
+    <value>Deliver to my branch</value>
+    <comment>Button and accessible name.</comment>
+  </data>
+  <data name="Orchestrator_MonView_DeliverHelp" xml:space="preserve">
+    <value>Brings the integration the judge approved to the branch you have active, without mixing it with other changes. If your branch has moved on since then, it fails and delivers nothing. It asks your approval first.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_Close" xml:space="preserve">
+    <value>Close the view</value>
+    <comment>Button that stops viewing a previous run.</comment>
+  </data>
+  <data name="Orchestrator_MonView_CloseHelp" xml:space="preserve">
+    <value>Stops viewing this run and goes back to your draft on the canvas.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_CloseName" xml:space="preserve">
+    <value>Close the run you are viewing</value>
+    <comment>Accessible name of the button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_ConsentName" xml:space="preserve">
+    <value>Consent to resume by itself</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_MonView_DeliveryName" xml:space="preserve">
+    <value>Delivery to your branch</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_MonView_HealthName" xml:space="preserve">
+    <value>Health of the plan</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_MonView_NoRun" xml:space="preserve">
+    <value>No run. Validate and approve a plan and press "Run the plan". You can also resume an interrupted run or open a previous one with "View the run".</value>
+    <comment>What to do when there is no run.</comment>
+  </data>
+  <data name="Orchestrator_MonView_AuditAgain" xml:space="preserve">
+    <value>Audit again</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_AuditAgainHelp" xml:space="preserve">
+    <value>The automatic auditor reviews the history again. It does not spend your usage limit and does not repeat what it already recorded.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_Refresh" xml:space="preserve">
+    <value>Check again</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_RefreshHelp" xml:space="preserve">
+    <value>Reads again the verdict, its challenge and whether the run can be delivered.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_AuditorName" xml:space="preserve">
+    <value>Auditor of the orchestrator</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_MonView_FindingsName" xml:space="preserve">
+    <value>Findings of the auditor</value>
+    <comment>Accessible name of the list.</comment>
+  </data>
+  <data name="Orchestrator_MonView_ReplanName" xml:space="preserve">
+    <value>Request to replan</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_MonView_FollowUp" xml:space="preserve">
+    <value>Prepare a follow-up run</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_FollowUpHelp" xml:space="preserve">
+    <value>Puts on the canvas an empty plan that follows this run, with the findings as data. You plan and approve.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_DismissReplan" xml:space="preserve">
+    <value>Dismiss the request</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_DismissReplanHelp" xml:space="preserve">
+    <value>It asks your approval. The delivery stops waiting for the request; the findings stay in the history.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_AcceptRevision" xml:space="preserve">
+    <value>Accept the revision</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_AcceptRevisionHelp" xml:space="preserve">
+    <value>A revision that turns the verdict into an approval only counts if you accept it.</value>
+    <comment>Tooltip of the button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_ChallengeName" xml:space="preserve">
+    <value>Challenge of the verdict</value>
+    <comment>Accessible name.</comment>
+  </data>
+  <data name="Orchestrator_MonView_Tasks" xml:space="preserve">
+    <value>Tasks</value>
+    <comment>Title of the list.</comment>
+  </data>
+  <data name="Orchestrator_MonView_TasksName" xml:space="preserve">
+    <value>Tasks of the run</value>
+    <comment>Accessible name of the list.</comment>
+  </data>
+  <data name="Orchestrator_MonView_ReasonName" xml:space="preserve">
+    <value>Reason: {0}</value>
+    <comment>Accessible name of the reason of a task. {0}: reason.</comment>
+  </data>
+  <data name="Orchestrator_MonView_FailureName" xml:space="preserve">
+    <value>Error of the step: {0}</value>
+    <comment>Accessible name of the error line. {0}: line.</comment>
+  </data>
+  <data name="Orchestrator_MonView_AwaitingApproval" xml:space="preserve">
+    <value>Waiting for your approval: {0}</value>
+    <comment>Line of a task. {0}: the action.</comment>
+  </data>
+  <data name="Orchestrator_MonView_Retry" xml:space="preserve">
+    <value>Retry the task</value>
+    <comment>Button.</comment>
+  </data>
+  <data name="Orchestrator_MonView_RetryName" xml:space="preserve">
+    <value>Retry {0}</value>
+    <comment>Accessible name. {0}: task.</comment>
+  </data>
+  <data name="Orchestrator_MonView_Activity" xml:space="preserve">
+    <value>Activity</value>
+    <comment>Title of the list.</comment>
+  </data>
+  <data name="Orchestrator_MonView_ActivityName" xml:space="preserve">
+    <value>Activity of the run</value>
+    <comment>Accessible name of the list.</comment>
+  </data>
+  <data name="Orchestrator_MonView_Evidence" xml:space="preserve">
+    <value>Evidence</value>
+    <comment>Title of the list.</comment>
+  </data>
+  <data name="Orchestrator_MonView_EvidenceName" xml:space="preserve">
+    <value>Evidence of the run</value>
+    <comment>Accessible name of the list.</comment>
+  </data>
+  <data name="Info_Monitor_Context_Title" xml:space="preserve">
+    <value>Context and its bars</value>
+    <comment>Title of the information button.</comment>
+  </data>
+  <data name="Info_Monitor_Context_What" xml:space="preserve">
+    <value>The context is the working memory of the model: what it can keep in mind at each step. Each bar says how much is used, where the figure comes from and whether it nears the limit.</value>
+    <comment>What the context is.</comment>
+  </data>
+  <data name="Info_Monitor_Context_Actions" xml:space="preserve">
+    <value>Read the percentage and its origin on each bar.
+See which agent or task nears the limit.
+Open the consumption analysis, if it is there, to see the detail.</value>
+    <comment>What the person can do with the bars.</comment>
+  </data>
+  <data name="Orchestrator_Mon_Inspection" xml:space="preserve">
+    <value>Read-only view, rebuilt from the decision history: viewing it runs and records nothing. "Deliver to my branch" audits it first, as when a run ends. "Close the view" goes back to your draft.</value>
+    <comment>Says that the run on screen is only being looked at.</comment>
+  </data>
+  <data name="Orchestrator_Mon_Budget" xml:space="preserve">
+    <value>Budget</value>
+    <comment>Name of the bar of the budget.</comment>
+  </data>
+  <data name="Orchestrator_Mon_ConsentOn" xml:space="preserve">
+    <value>With your consent to resume by itself. It waits for your usage limit to renew. If a shutdown you did not ask for cuts it, it resumes when you open the app again.</value>
+    <comment>Whether the run may resume by itself.</comment>
+  </data>
+  <data name="Orchestrator_Mon_ConsentOff" xml:space="preserve">
+    <value>Without consent to resume by itself. A long wait leaves it paused. After a shutdown, you resume it.</value>
+    <comment>Whether the run may resume by itself.</comment>
+  </data>
+  <data name="Orchestrator_Mon_NoRun" xml:space="preserve">
+    <value>No run</value>
+    <comment>Label of the phase when there is no run.</comment>
+  </data>
+  <data name="Orchestrator_Mon_Deadlock" xml:space="preserve">
+    <value>Blocked: the run cannot go on without a decision from you. Retry or cancel the blocked tasks.</value>
+    <comment>Alert of a deadlock.</comment>
+  </data>
+  <data name="Orchestrator_Mon_HealthNone" xml:space="preserve">
+    <value>Health of the plan: no data</value>
+    <comment>Summary of the health.</comment>
+  </data>
+  <data name="Orchestrator_Mon_HealthOk" xml:space="preserve">
+    <value>Health of the plan: no problems</value>
+    <comment>Summary of the health.</comment>
+  </data>
+  <data name="Orchestrator_Mon_HealthWarn" xml:space="preserve">
+    <value>Health of the plan: with warnings</value>
+    <comment>Summary of the health.</comment>
+  </data>
+  <data name="Orchestrator_Mon_HealthStalled" xml:space="preserve">
+    <value>Abandoned</value>
+    <comment>Group of tasks in the health of the plan.</comment>
+  </data>
+  <data name="Orchestrator_Mon_HealthUnreachable" xml:space="preserve">
+    <value>Unreachable</value>
+    <comment>Group of tasks in the health of the plan.</comment>
+  </data>
+  <data name="Orchestrator_Mon_HealthNoRetries" xml:space="preserve">
+    <value>No retries left</value>
+    <comment>Group of tasks in the health of the plan.</comment>
+  </data>
+  <data name="Orchestrator_Mon_PauseNotApplied" xml:space="preserve">
+    <value>the run had already ended or stopped before the pause was applied, and the history does not record it.</value>
+    <comment>Why a pause did not apply.</comment>
+  </data>
+  <data name="Orchestrator_Mon_RetryNotApplied" xml:space="preserve">
+    <value>Not applied. The run had already ended or the task was no longer blocked. If it ended, resume it to retry its tasks.</value>
+    <comment>Why a retry did not apply.</comment>
+  </data>
+  <data name="Orchestrator_Mon_DoPause" xml:space="preserve">
+    <value>pause the run</value>
+    <comment>Action, for «No se pudo …».</comment>
+  </data>
+  <data name="Orchestrator_Mon_DoResume" xml:space="preserve">
+    <value>resume the run</value>
+    <comment>Action, for «No se pudo …».</comment>
+  </data>
+  <data name="Orchestrator_Mon_DoRetry" xml:space="preserve">
+    <value>retry {0}</value>
+    <comment>Action, for «No se pudo …». {0}: task.</comment>
+  </data>
+  <data name="Orchestrator_Mon_DoCancel" xml:space="preserve">
+    <value>cancel the run</value>
+    <comment>Action, for «No se pudo …».</comment>
+  </data>
+  <data name="Orchestrator_Mon_CouldNot" xml:space="preserve">
+    <value>Could not {0}: {1}</value>
+    <comment>Error. {0}: the action, {1}: why.</comment>
+  </data>
+  <data name="Orchestrator_Mon_DeliverFailed" xml:space="preserve">
+    <value>The delivery failed: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Mon_DeliveryCheckFailed" xml:space="preserve">
+    <value>Could not check whether the run can be delivered: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Mon_StoppedEarly" xml:space="preserve">
+    <value>The run stopped before it ended.</value>
+    <comment>Error.</comment>
+  </data>
+  <data name="Orchestrator_Mon_EndedWithError" xml:space="preserve">
+    <value>The run ended with an error: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Mon_LogOpened" xml:space="preserve">
+    <value>Run {0} opened from the history, read only</value>
+    <comment>Line of the activity. {0}: run.</comment>
+  </data>
+  <data name="Orchestrator_Mon_LogFollowing" xml:space="preserve">
+    <value>Following run {0}</value>
+    <comment>Line of the activity. {0}: run.</comment>
+  </data>
+  <data name="Orchestrator_Mon_LogQueued" xml:space="preserve">
+    <value>Queued for {0}</value>
+    <comment>Line of the activity. {0}: program.</comment>
+  </data>
+  <data name="Orchestrator_Mon_LogAwaiting" xml:space="preserve">
+    <value>Waiting for your approval: {0}</value>
+    <comment>Line of the activity. {0}: action.</comment>
+  </data>
+  <data name="Orchestrator_Mon_LogPhase" xml:space="preserve">
+    <value>Phase: {0}</value>
+    <comment>Line of the activity. {0}: phase.</comment>
+  </data>
+  <data name="Orchestrator_Mon_LogPhaseDetail" xml:space="preserve">
+    <value>Phase: {0} · {1}</value>
+    <comment>Line of the activity. {0}: phase, {1}: detail.</comment>
+  </data>
+  <data name="Orchestrator_Mon_PreviouslyDelivered" xml:space="preserve">
+    <value>It was already delivered to "{0}"{1} on {2}. If you deliver it again, the same integration goes to the branch you have active now.</value>
+    <comment>Warning on a run that was delivered. {0}: branch, {1}: commit, {2}: date.</comment>
+  </data>
+  <data name="Orchestrator_Mon_LogDelivered" xml:space="preserve">
+    <value>Delivered to {0}{1}</value>
+    <comment>Line of the activity. {0}: branch, {1}: commit.</comment>
+  </data>
+  <data name="Orchestrator_Mon_LogFinalState" xml:space="preserve">
+    <value>Final state according to the history: {0}</value>
+    <comment>Line of the activity. {0}: phase.</comment>
+  </data>
+  <data name="Orchestrator_Mon_LogFinished" xml:space="preserve">
+    <value>Run ended: {0}</value>
+    <comment>Line of the activity. {0}: phase.</comment>
+  </data>
+  <data name="Orchestrator_Mon_ReplanDismissed" xml:space="preserve">
+    <value>You dismissed the request to replan: the delivery no longer waits for it. The findings stay in the history.</value>
+    <comment>Text after dismissing.</comment>
+  </data>
+  <data name="Orchestrator_Mon_LogReplanDismissed" xml:space="preserve">
+    <value>Request to replan dismissed</value>
+    <comment>Line of the activity.</comment>
+  </data>
+  <data name="Orchestrator_Mon_ReplanStands" xml:space="preserve">
+    <value>The request to replan stands: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Mon_ReplanNotApproved" xml:space="preserve">
+    <value>dismissing it was not approved.</value>
+    <comment>Why the request stands.</comment>
+  </data>
+  <data name="Orchestrator_Mon_DismissFailed" xml:space="preserve">
+    <value>The request could not be dismissed: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Mon_FollowUpFailed" xml:space="preserve">
+    <value>The follow-up run could not be prepared: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Mon_LogRevisionAccepted" xml:space="preserve">
+    <value>Revision {0} accepted</value>
+    <comment>Line of the activity. {0}: revision.</comment>
+  </data>
+  <data name="Orchestrator_Mon_RevisionFailed" xml:space="preserve">
+    <value>The revision was not accepted: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Mon_AuditFailed" xml:space="preserve">
+    <value>The run could not be audited: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Mon_AuditFromEntry" xml:space="preserve">
+    <value> from entry {0}</value>
+    <comment>Added to the audit summary. {0}: entry.</comment>
+  </data>
+  <data name="Orchestrator_Mon_AuditLogBroken" xml:space="preserve">
+    <value>The history of the run could not be verified{0}: {1}. The auditor wrote nothing.</value>
+    <comment>Audit summary. {0}: from entry, {1}: problem.</comment>
+  </data>
+  <data name="Orchestrator_Mon_WhereTasks" xml:space="preserve">
+    <value>tasks {0}</value>
+    <comment>Where a finding is. {0}: tasks.</comment>
+  </data>
+  <data name="Orchestrator_Mon_WhereEntries" xml:space="preserve">
+    <value>entries {0}</value>
+    <comment>Where a finding is. {0}: entries.</comment>
+  </data>
+  <data name="Orchestrator_Mon_WhereAll" xml:space="preserve">
+    <value>the whole run</value>
+    <comment>Where a finding is.</comment>
+  </data>
+  <data name="Orchestrator_Mon_RecordedOne" xml:space="preserve">
+    <value> (1 new alert in the history)</value>
+    <comment>Added to the audit summary.</comment>
+  </data>
+  <data name="Orchestrator_Mon_RecordedMany" xml:space="preserve">
+    <value> ({0} new alerts in the history)</value>
+    <comment>Added to the audit summary.</comment>
+  </data>
+  <data name="Orchestrator_Mon_AuditClean" xml:space="preserve">
+    <value>The auditor of the orchestrator found nothing in the verified history of the run.</value>
+    <comment>Audit summary.</comment>
+  </data>
+  <data name="Orchestrator_Mon_AuditFindings" xml:space="preserve">
+    <value>Auditor of the orchestrator: {0}, {1} of high or critical severity{2}.</value>
+    <comment>Audit summary. {0}: findings, {1}: serious ones, {2}: alerts.</comment>
+  </data>
+  <data name="Orchestrator_Mon_FindingsOne" xml:space="preserve">
+    <value>1 finding</value>
+    <comment>Count of findings.</comment>
+  </data>
+  <data name="Orchestrator_Mon_FindingsMany" xml:space="preserve">
+    <value>{0} findings</value>
+    <comment>Count of findings.</comment>
+  </data>
+  <data name="Orchestrator_Mon_ReplanAsked" xml:space="preserve">
+    <value>The auditor asks to plan again. Prepare a follow-up run or dismiss the request. Until you decide, the delivery waits.</value>
+    <comment>Text of the request to replan.</comment>
+  </data>
+  <data name="Orchestrator_Mon_VerdictFailed" xml:space="preserve">
+    <value>The verdict of the review could not be read: {0}</value>
+    <comment>Error. {0}: why.</comment>
+  </data>
+  <data name="Orchestrator_Mon_VerdictTitle" xml:space="preserve">
+    <value>Verdict of the review · {0}</value>
+    <comment>Title of the card of the verdict. {0}: run.</comment>
+  </data>
+  <data name="Orchestrator_Mon_PreviousAttempt" xml:space="preserve">
+    <value>Previous attempt: {0}</value>
+    <comment>Reason of a task. {0}: why it failed.</comment>
+  </data>
+  <data name="Orchestrator_Mon_EvidenceOne" xml:space="preserve">
+    <value>1 piece of evidence</value>
+    <comment>Count of evidence.</comment>
+  </data>
+  <data name="Orchestrator_Mon_EvidenceMany" xml:space="preserve">
+    <value>{0} pieces of evidence</value>
+    <comment>Count of evidence.</comment>
+  </data>
+  <data name="Orchestrator_Mon_CompactionOne" xml:space="preserve">
+    <value>1 compaction of the context (possible loss of information)</value>
+    <comment>Compactions of the program.</comment>
+  </data>
+  <data name="Orchestrator_Mon_CompactionMany" xml:space="preserve">
+    <value>{0} compactions of the context (possible loss of information)</value>
+    <comment>Compactions of the program.</comment>
+  </data>
+  <data name="Orchestrator_Mon_ContextLabel" xml:space="preserve">
+    <value>Context</value>
+    <comment>Name of the bar of the context.</comment>
+  </data>
+  <data name="Orchestrator_Mon_ContextLine" xml:space="preserve">
+    <value>Context: {0}</value>
+    <comment>Line of the context. {0}: the reading.</comment>
+  </data>
+  <data name="Orchestrator_Mon_ContextNone" xml:space="preserve">
+    <value>Context: no observations yet</value>
+    <comment>Line of the context.</comment>
+  </data>
+  <data name="Orchestrator_Mon_ContextNoData" xml:space="preserve">
+    <value>no data</value>
+    <comment>Empty bar of the context.</comment>
+  </data>
+  <data name="Orchestrator_Mon_ContextFromLog" xml:space="preserve">
+    <value>view rebuilt from the history: the steps of the agent are not in it</value>
+    <comment>Why the bar of a run read from the history is empty.</comment>
+  </data>
+  <data name="Orchestrator_Mon_ContextNotStarted" xml:space="preserve">
+    <value>not started</value>
+    <comment>Empty bar of a task that has not started.</comment>
+  </data>
+  <data name="Orchestrator_Mon_Queued" xml:space="preserve">
+    <value>Queued · {0}</value>
+    <comment>Status of a task. {0}: program.</comment>
+  </data>
+  <data name="Orchestrator_Mon_Attempt" xml:space="preserve">
+    <value>Attempt {0}</value>
+    <comment>Attempt of a task.</comment>
+  </data>
+  <data name="Orchestrator_Mon_AttemptOne" xml:space="preserve">
+    <value>Attempt {0} · 1 retry</value>
+    <comment>Attempt of a task.</comment>
+  </data>
+  <data name="Orchestrator_Mon_AttemptMany" xml:space="preserve">
+    <value>Attempt {0} · {1} retries</value>
+    <comment>Attempt of a task.</comment>
+  </data>
+  <data name="Text_plan_list_and" xml:space="preserve">
+    <value>{0} and {1}</value>
+  </data>
+  <data name="Text_plan_list_comma" xml:space="preserve">
+    <value>{0}, {1}</value>
+  </data>
+  <data name="Text_plan_delivery_not_checked" xml:space="preserve">
+    <value>Warning: the plan is too big to check whether it can be delivered to your branch.</value>
+  </data>
+  <data name="Text_plan_delivery_never_one" xml:space="preserve">
+    <value>Warning: what {0} writes cannot be delivered to your branch. No branch of the plan merges it in an integration the judge reviews.</value>
+  </data>
+  <data name="Text_plan_delivery_never_many" xml:space="preserve">
+    <value>Warning: what {0} write cannot be delivered to your branch. No branch of the plan merges it in an integration the judge reviews.</value>
+  </data>
+  <data name="Text_plan_delivery_maybe_one" xml:space="preserve">
+    <value>Warning: what {0} writes may not be deliverable to your branch: {1}.</value>
+  </data>
+  <data name="Text_plan_delivery_maybe_many" xml:space="preserve">
+    <value>Warning: what {0} write may not be deliverable to your branch: {1}.</value>
+  </data>
+  <data name="Text_plan_delivery_reason_branch" xml:space="preserve">
+    <value>it depends on the branch their conditions take (for example, {0})</value>
+  </data>
+  <data name="Text_plan_delivery_reason_timing" xml:space="preserve">
+    <value>it depends on which tasks finish first: the last review of the judge must start from the last integration</value>
+  </data>
+  <data name="Text_plan_delivery_branch_yes" xml:space="preserve">
+    <value>if {0} takes the yes branch</value>
+  </data>
+  <data name="Text_plan_delivery_branch_no" xml:space="preserve">
+    <value>if {0} takes the no branch</value>
+  </data>
+  <data name="Text_plan_delivery_branch_other" xml:space="preserve">
+    <value>if {0} takes the {1} branch</value>
+  </data>
+  <data name="Text_plan_delivery_how" xml:space="preserve">
+    <value>To deliver it, every branch needs an integration after the tasks that write. Then it needs a review of the judge that depends on the last integration. No other task that writes code can sit between the two. Any other review goes before some integration or also depends on the last one.</value>
+  </data>
+  <data name="Text_verification_step_requires" xml:space="preserve">
+    <value>requires {0}</value>
+  </data>
+  <data name="Text_verification_step_without_isolation" xml:space="preserve">
+    <value>NO ISOLATION: the code the agents write runs with your own rights, in the working copy</value>
+  </data>
+  <data name="Text_verification_medium_opening" xml:space="preserve">
+    <value>Warning: this plan has agents that write with wide permissions, outside the strictest sandbox.</value>
+  </data>
+  <data name="Text_verification_medium_task" xml:space="preserve">
+    <value>{0}: {1}.</value>
+  </data>
+  <data name="Text_verification_medium_meaning" xml:space="preserve">
+    <value>They can write anywhere you can write, and what they do is outside the threat model (ADR-0018). So your repository is checked strictly: an ignored folder that cannot be verified blocks the run.</value>
+  </data>
+  <data name="Text_verification_medium_reason_unknown_agent" xml:space="preserve">
+    <value>the agent "{0}" is not in the roster</value>
+  </data>
+  <data name="Text_verification_medium_reason_no_agent" xml:space="preserve">
+    <value>it has no agent assigned</value>
+  </data>
+  <data name="Text_verification_medium_reason_shell" xml:space="preserve">
+    <value>the agent "{0}" has Bash</value>
+  </data>
+  <data name="Text_verification_medium_reason_codex" xml:space="preserve">
+    <value>the agent "{0}" writes with Codex, whose workspace always has a shell</value>
+  </data>
+  <data name="Text_verification_medium_reason_unmeasured_cli" xml:space="preserve">
+    <value>the agent "{0}" writes with {1}, whose confinement was not measured</value>
+  </data>
+  <data name="Text_verification_medium_reason_unmeasured_claude" xml:space="preserve">
+    <value>the agent "{0}" writes with a version of Claude Code whose confinement was not measured</value>
+  </data>
+  <data name="Text_verification_medium_reason_tools_beyond" xml:space="preserve">
+    <value>the agent "{0}" has tools outside the measured profile ({1})</value>
+  </data>
+  <data name="Text_verification_medium_reason_permissions_beyond" xml:space="preserve">
+    <value>the agent "{0}" has permissions outside the measured profile</value>
+  </data>
+  <data name="Text_verification_medium_reason_unknown_step" xml:space="preserve">
+    <value>the step "{0}" is not in the profile</value>
+  </data>
+  <data name="Text_verification_medium_reason_step_without_isolation" xml:space="preserve">
+    <value>the step "{0}" runs without isolation</value>
+  </data>
+  <data name="Text_plan_list_space" xml:space="preserve">
+    <value>{0} {1}</value>
+  </data>
+  <data name="Text_run_verdict_succeeded" xml:space="preserve">
+    <value>Finished well: {0} tasks completed and {1} skipped.</value>
+  </data>
+  <data name="Text_run_verdict_cancelled_after_stop" xml:space="preserve">
+    <value>Cancelled: every task was already cancelled before the interruption.</value>
+  </data>
+  <data name="Text_run_verdict_cancelled_by_user" xml:space="preserve">
+    <value>Cancelled by you: {0}</value>
+  </data>
+  <data name="Text_run_verdict_review_required" xml:space="preserve">
+    <value>Failed: the review policy asks for an approved independent review of {0}. There was none.</value>
+  </data>
+  <data name="Text_run_verdict_tests_required" xml:space="preserve">
+    <value>Failed: the test policy asks that the last saved version (commit) pass tests captured by the system. None passed on {0}.</value>
+  </data>
+  <data name="Text_run_verdict_untested_commit" xml:space="preserve">
+    <value>{0} ({1})</value>
+  </data>
+  <data name="Text_run_verdict_untested_no_commit" xml:space="preserve">
+    <value>{0} (no saved version)</value>
+  </data>
+  <data name="Text_run_verdict_stopped_repository" xml:space="preserve">
+    <value>Stopped: your repository changed during the run.</value>
+  </data>
+  <data name="Text_run_verdict_stopped_source_moved" xml:space="preserve">
+    <value>Stopped: the branch of a task no longer points to the saved version that was verified. Nothing from it was integrated.</value>
+  </data>
+  <data name="Text_run_verdict_stopped_evidence" xml:space="preserve">
+    <value>Stopped: the evidence of the integration changed in the store between being captured and being read. That integration is not trusted: it is neither reviewed nor delivered.</value>
+  </data>
+  <data name="Text_run_verdict_failed" xml:space="preserve">
+    <value>Failed. {0}</value>
+  </data>
+  <data name="Text_run_verdict_no_retries" xml:space="preserve">
+    <value>No retries left: {0}.</value>
+  </data>
+  <data name="Text_run_verdict_unreachable" xml:space="preserve">
+    <value>Unreachable: {0}.</value>
+  </data>
+  <data name="Text_run_verdict_budget_spent" xml:space="preserve">
+    <value>The budget of agent runs ({0}) is spent.</value>
+  </data>
+  <data name="Text_run_verdict_interrupted" xml:space="preserve">
+    <value>Interrupted: resume it whenever you want.</value>
+  </data>
+  <data name="Text_run_verdict_awaiting_human" xml:space="preserve">
+    <value>Waiting for a decision of yours on: {0}.</value>
+  </data>
+  <data name="Text_run_verdict_blocked_launch" xml:space="preserve">
+    <value>Blocked: {0} could not be launched. Check the provider and retry them.</value>
+  </data>
+  <data name="Text_run_verdict_waiting_quota" xml:space="preserve">
+    <value>Waiting for the usage limit of your plan, until {0:yyyy-MM-dd} at {0:HH:mm} (UTC).</value>
+  </data>
+  <data name="Text_run_verdict_waiting_quota_estimated" xml:space="preserve">
+    <value>Waiting for the usage limit of your plan, until {0:yyyy-MM-dd} at {0:HH:mm} (UTC), an estimated time.</value>
+  </data>
+  <data name="Text_run_verdict_paused_checks" xml:space="preserve">
+    <value>Paused: the usage limit was still active in {0} checks in a row of {1}. Retry the task whenever you want.</value>
+  </data>
+  <data name="Text_run_verdict_paused_long" xml:space="preserve">
+    <value>Paused: the usage limit of the provider lasts longer than the run waits by itself. Retry the task whenever you want.</value>
+  </data>
+  <data name="Text_run_verdict_paused" xml:space="preserve">
+    <value>Paused.</value>
+  </data>
+  <data name="Text_run_verdict_deadlock" xml:space="preserve">
+    <value>Blocked: no task can move forward.</value>
+  </data>
+  <data name="Text_task_attempt_launched" xml:space="preserve">
+    <value>Attempt {0} starts: the provider launched the agent.</value>
+  </data>
+  <data name="Text_task_attempt_started" xml:space="preserve">
+    <value>Attempt {0} starts.</value>
+  </data>
+  <data name="Text_task_evaluating_condition" xml:space="preserve">
+    <value>Evaluating the condition.</value>
+  </data>
+  <data name="Text_task_retry_by_user" xml:space="preserve">
+    <value>You asked to retry it.</value>
+  </data>
+  <data name="Text_task_quota_wait_ended" xml:space="preserve">
+    <value>The wait for the usage limit of the provider ended.</value>
+  </data>
+  <data name="Text_task_awaiting_approval" xml:space="preserve">
+    <value>Waiting for your approval.</value>
+  </data>
+  <data name="Text_task_node_unavailable" xml:space="preserve">
+    <value>Nodes of type {0} are not available yet.</value>
+  </data>
+  <data name="Text_task_no_provider" xml:space="preserve">
+    <value>There is no provider "{0}" for {1}.</value>
+  </data>
+  <data name="Text_task_cancelled_by_user" xml:space="preserve">
+    <value>Cancelled by you: {0}</value>
+  </data>
+  <data name="Text_task_interrupted" xml:space="preserve">
+    <value>Interrupted: the app closed while it was being worked on.</value>
+  </data>
+  <data name="Text_task_judge_approved_resumed" xml:space="preserve">
+    <value>The judge approved (verdict {0}). It is concluded on resume with the verdict already in the log.</value>
+  </data>
+  <data name="Text_task_verdict_needs_person_resumed" xml:space="preserve">
+    <value>Verdict {0} needs a person. It is concluded on resume with the verdict already in the log.</value>
+  </data>
+  <data name="Text_task_question_answered_before_close" xml:space="preserve">
+    <value>Its question was already answered when the app closed: it goes on with a new attempt.</value>
+  </data>
+  <data name="Text_task_resumed_by_user" xml:space="preserve">
+    <value>Resumed at your request.</value>
+  </data>
+  <data name="Text_task_resumed_by_consent" xml:space="preserve">
+    <value>It resumed by itself with your consent.</value>
+  </data>
+  <data name="Text_run_verdict_interrupted_in_log" xml:space="preserve">
+    <value>Interrupted: it did not finish and no process is behind it. It can be resumed.</value>
+  </data>
+  <data name="Text_run_resumed_consent_quota" xml:space="preserve">
+    <value>It resumed by itself with your consent. It was waiting for the usage limit when the app closed.</value>
+  </data>
+  <data name="Text_run_resumed_consent_close" xml:space="preserve">
+    <value>It resumed by itself with your consent: an exit you did not ask for cut it.</value>
+  </data>
+  <data name="Text_run_resumed_consent_session" xml:space="preserve">
+    <value>It resumed by itself with your consent: Windows ended the session.</value>
+  </data>
+  <data name="Text_run_resumed_from_log" xml:space="preserve">
+    <value>Resumed from the decision log.</value>
+  </data>
+  <data name="Text_run_paused_by_you" xml:space="preserve">
+    <value>You paused it.</value>
+  </data>
+  <data name="Text_run_resumed_by_you" xml:space="preserve">
+    <value>You resumed it.</value>
+  </data>
+  <data name="Text_run_paused_by" xml:space="preserve">
+    <value>{0} paused it.</value>
+  </data>
+  <data name="Text_run_resumed_by" xml:space="preserve">
+    <value>{0} resumed it.</value>
+  </data>
+  <data name="Text_run_notice_uncommitted_changes" xml:space="preserve">
+    <value>You have changes not saved as a version. They are not part of the run, which starts from the last saved version (commit).</value>
+  </data>
+  <data name="Text_project_budget_name_project_day" xml:space="preserve">
+    <value>budget of the project for today</value>
+  </data>
+  <data name="Text_project_budget_name_project_week" xml:space="preserve">
+    <value>budget of the project for this week</value>
+  </data>
+  <data name="Text_project_budget_name_project_month" xml:space="preserve">
+    <value>budget of the project for this month</value>
+  </data>
+  <data name="Text_project_budget_name_project_total" xml:space="preserve">
+    <value>budget of the project</value>
+  </data>
+  <data name="Text_project_budget_name_milestone_day" xml:space="preserve">
+    <value>budget of milestone {0} for today</value>
+  </data>
+  <data name="Text_project_budget_name_milestone_week" xml:space="preserve">
+    <value>budget of milestone {0} for this week</value>
+  </data>
+  <data name="Text_project_budget_name_milestone_month" xml:space="preserve">
+    <value>budget of milestone {0} for this month</value>
+  </data>
+  <data name="Text_project_budget_name_milestone_total" xml:space="preserve">
+    <value>budget of milestone {0}</value>
+  </data>
+  <data name="Text_project_budget_exceeded_tokens" xml:space="preserve">
+    <value>The attempt does not start: the {0} is {1} tokens and {2} are already used. With this attempt it would be {3}.</value>
+  </data>
+  <data name="Text_project_budget_exceeded_tokens_unknown" xml:space="preserve">
+    <value>The attempt does not start: the {0} is {1} tokens and {2} are already used. This attempt has no estimate.</value>
+  </data>
+  <data name="Text_project_budget_exceeded_runs" xml:space="preserve">
+    <value>The attempt does not start: the {0} is {1} agent runs and {2} are already used. With this attempt it would be {3}.</value>
+  </data>
+  <data name="Text_project_budget_partial" xml:space="preserve">
+    <value>({0} attempts without a token figure are not counted).</value>
+  </data>
+  <data name="Text_project_budget_raise" xml:space="preserve">
+    <value>Raise the budget and retry the task.</value>
+  </data>
+  <data name="Text_project_budget_unreadable" xml:space="preserve">
+    <value>The attempt does not start: the budget could not be checked ({0}). Without knowing, the usage limit of your plan is not put at risk.</value>
+  </data>
+  <data name="Text_project_budget_why_no_usage" xml:space="preserve">
+    <value>there is nothing to read what was spent with</value>
+  </data>
+  <data name="Text_project_budget_why_untrusted" xml:space="preserve">
+    <value>the log of the project is not trusted</value>
+  </data>
+  <data name="Text_project_budget_why_failed" xml:space="preserve">
+    <value>there was a technical failure reading it</value>
+  </data>
+  <data name="Text_planner_schema_too_big" xml:space="preserve">
+    <value>The schema of the plan takes {0} bytes and the agent program accepts only {1}. Reduce the requirements, the agents or the steps of the profile.</value>
+  </data>
+  <data name="Text_planner_no_provider" xml:space="preserve">
+    <value>There is no provider "{0}" for the orchestrator "{1}".</value>
+  </data>
+  <data name="Text_planner_memory_too_small" xml:space="preserve">
+    <value>The orchestrator does not start: {0}. Reduce the mandatory requirements or remove the orchestrator memory from the roster.</value>
+  </data>
+  <data name="Text_planner_repository_changed" xml:space="preserve">
+    <value>Your repository changed during planning. The plan is discarded. {0}</value>
+  </data>
+  <data name="Text_planner_cancelled" xml:space="preserve">
+    <value>Planning was cancelled.</value>
+  </data>
+  <data name="Text_planner_launch_failed" xml:space="preserve">
+    <value>The orchestrator could not be launched: {0}</value>
+  </data>
+  <data name="Text_planner_ended" xml:space="preserve">
+    <value>The orchestrator ended with status {0}.</value>
+  </data>
+  <data name="Text_run_no_reason" xml:space="preserve">
+    <value>no reason given</value>
+  </data>
+  <data name="Text_run_cancelled_from_monitor" xml:space="preserve">
+    <value>from the monitor</value>
+  </data>
+  <data name="Text_delivery_log_not_intact" xml:space="preserve">
+    <value>The decision log is not intact (entry {0}): nothing is delivered.</value>
+  </data>
+  <data name="Text_delivery_run_not_finished" xml:space="preserve">
+    <value>Run {0} has not finished: there is nothing to deliver.</value>
+  </data>
+  <data name="Text_delivery_run_not_succeeded" xml:space="preserve">
+    <value>Run {0} ended as {1}. Only a run that ended well is delivered.</value>
+  </data>
+  <data name="Text_delivery_no_approved_integration" xml:space="preserve">
+    <value>No independent judge approved the integration of run {0}. It is not delivered.</value>
+  </data>
+  <data name="Text_delivery_verdict_missing" xml:space="preserve">
+    <value>Verdict {0}, the one the run ended with, is not in the decision log: it is not delivered.</value>
+  </data>
+  <data name="Text_delivery_verdict_not_approved" xml:space="preserve">
+    <value>The judge&apos;s verdict is &quot;{0}&quot;. Only what an independent judge approved with a valid verdict is delivered.</value>
+  </data>
+  <data name="Text_delivery_verdict_not_approved_invalid" xml:space="preserve">
+    <value>The judge&apos;s verdict is &quot;{0}&quot; and it is not valid. Only what an independent judge approved with a valid verdict is delivered.</value>
+  </data>
+  <data name="Text_delivery_store_not_valid_approval" xml:space="preserve">
+    <value>The verdict store does not see verdict {0} as a valid approval. It is not delivered.</value>
+  </data>
+  <data name="Text_delivery_verdict_superseded" xml:space="preserve">
+    <value>Verdict {0} was replaced by another one: it is not delivered.</value>
+  </data>
+  <data name="Text_delivery_store_differs" xml:space="preserve">
+    <value>The verdict store does not confirm verdict {0} as the log recorded it. It is not delivered.</value>
+  </data>
+  <data name="Text_delivery_integration_after_verdict" xml:space="preserve">
+    <value>There was an integration in {0} after the verdict: the judge did not review what would be delivered.</value>
+  </data>
+  <data name="Text_delivery_integration_not_judged" xml:space="preserve">
+    <value>The integration the judge reviewed is not the one the run accepted ({0}). It is not delivered.</value>
+  </data>
+  <data name="Text_delivery_shown_unknown" xml:space="preserve">
+    <value>Verdict {0} does not say which integration the judge saw. The log lacks the entry it cites, or there was no integration yet. It is not delivered.</value>
+  </data>
+  <data name="Text_delivery_shown_differs" xml:space="preserve">
+    <value>The run ended with verdict {0}, {1}, the last one to finish. That review saw integration {2}, but {3} would be delivered. It is not delivered.</value>
+  </data>
+  <data name="Text_delivery_review_of_task" xml:space="preserve">
+    <value>of review {0}</value>
+  </data>
+  <data name="Text_delivery_review_without_task" xml:space="preserve">
+    <value>of a review without a task</value>
+  </data>
+  <data name="Text_delivery_judge_code_unknown" xml:space="preserve">
+    <value>The log does not say which code the judge of verdict {0} worked on: its working copy {1} is missing. It is not delivered.</value>
+  </data>
+  <data name="Text_delivery_judge_elsewhere" xml:space="preserve">
+    <value>The judge of verdict {0} worked on {1} (working copy {2}), not on integration {3}, which would be delivered. It never had that code in front of it, so it is not delivered.</value>
+  </data>
+  <data name="Text_delivery_replan_pending" xml:space="preserve">
+    <value>There is an unattended request to replan run {0} ({1}; findings: {2}). It is not delivered until you dismiss it or start the follow-up run.</value>
+  </data>
+  <data name="Text_delivery_replan_by_auditor" xml:space="preserve">
+    <value>the orchestrator&apos;s auditor asked for it</value>
+  </data>
+  <data name="Text_delivery_replan_by_judge" xml:space="preserve">
+    <value>judge {0} of the orchestrator&apos;s review asked for it</value>
+  </data>
+  <data name="Text_delivery_replan_by_other" xml:space="preserve">
+    <value>{0} asked for it</value>
+  </data>
+  <data name="Text_delivery_replan_no_findings" xml:space="preserve">
+    <value>none</value>
+  </data>
+  <data name="Text_delivery_ready" xml:space="preserve">
+    <value>The judge approved integration {0} of run {1}.</value>
+  </data>
+  <data name="Text_delivery_ready_revised" xml:space="preserve">
+    <value>Integration {0} of run {1} can be delivered: {2}.</value>
+  </data>
+  <data name="Text_delivery_revision_confirmed" xml:space="preserve">
+    <value>the review (debate {0}) of the challenged verdict {1} confirmed the approval</value>
+  </data>
+  <data name="Text_delivery_revision_accepted" xml:space="preserve">
+    <value>you accepted the review (debate {0}) of verdict {1}, which approves it</value>
+  </data>
+  <data name="Text_delivery_revision_open_unannounced" xml:space="preserve">
+    <value>A review (debate {0}) of a verdict of this run is open and has not finished. The log did not record the challenge (the app closed halfway). It is not delivered until the review ends.</value>
+  </data>
+  <data name="Text_delivery_revision_chain_too_long" xml:space="preserve">
+    <value>The chain of reviews of the verdicts of run {0} is longer than what is checked ({1}). It is not delivered.</value>
+  </data>
+  <data name="Text_delivery_revision_none_decides" xml:space="preserve">
+    <value>No review decides.</value>
+  </data>
+  <data name="Text_delivery_verdict_not_valid_approval" xml:space="preserve">
+    <value>The verdict the run ended with is not a valid approval by a judge: it is not delivered.</value>
+  </data>
+  <data name="Text_delivery_revision_withdraws" xml:space="preserve">
+    <value>The review (debate {0}) of verdict {1} left the integration as &quot;{2}&quot;. It withdraws the approval, so nothing is delivered.</value>
+  </data>
+  <data name="Text_delivery_revision_not_approves" xml:space="preserve">
+    <value>The review (debate {0}) of verdict {1} left the integration as &quot;{2}&quot;. It does not approve it, so nothing is delivered.</value>
+  </data>
+  <data name="Text_delivery_revision_unaccepted_confirms" xml:space="preserve">
+    <value>The review (debate {0}) of verdict {1} confirms an approval you have not accepted yet (verdict {2}). It only counts if you accept it. Nothing is delivered until then.</value>
+  </data>
+  <data name="Text_delivery_revision_unaccepted_turns" xml:space="preserve">
+    <value>The review (debate {0}) of verdict {1} turns towards an approval (verdict {2}). It only counts if you accept it. Nothing is delivered until then.</value>
+  </data>
+  <data name="Text_delivery_store_unannounced_supersession" xml:space="preserve">
+    <value>The verdict store holds a verdict ({0}) that replaces {1} and that the decision log does not announce. It is not delivered.</value>
+  </data>
+  <data name="Text_delivery_revision_not_opened" xml:space="preserve">
+    <value>Verdict {0} is challenged and its review (debate {1}) never opened. It is not delivered. Challenge it again to open the review.</value>
+  </data>
+  <data name="Text_delivery_revision_pending" xml:space="preserve">
+    <value>Verdict {0} is challenged and its review (debate {1}) has not finished. It is not delivered until it closes.</value>
+  </data>
+  <data name="Text_delivery_revision_decided_by_user" xml:space="preserve">
+    <value>You decided the review (debate {0}) of the challenge to verdict {1} (&quot;Decide myself&quot;). A decision of yours is not the approval of an independent judge, so it is not delivered. Challenge the verdict again for another review, or start a follow-up run.</value>
+  </data>
+  <data name="Text_delivery_revision_aborted" xml:space="preserve">
+    <value>The review (debate {0}) of the challenge to verdict {1} was aborted without a judgment. The challenge is still open and nothing is delivered. Challenge the verdict again.</value>
+  </data>
+  <data name="Text_delivery_revision_needs_person" xml:space="preserve">
+    <value>The review (debate {0}) of the challenge to verdict {1} needs a person. An unresolved verdict or a decision of yours does not count as the approval of an independent judge. It is not delivered. Challenge the verdict again for another review, or start a follow-up run.</value>
+  </data>
+  <data name="Text_delivery_revision_inconsistent" xml:space="preserve">
+    <value>The review (debate {0}) of the challenged verdict {1} does not match the log or the verdict store ({2}). It is not delivered.</value>
+  </data>
+  <data name="Text_delivery_inconsistent_opening_other_verdict" xml:space="preserve">
+    <value>its opening does not challenge that verdict</value>
+  </data>
+  <data name="Text_delivery_inconsistent_opening_other_requirements" xml:space="preserve">
+    <value>its opening judges other requirements</value>
+  </data>
+  <data name="Text_delivery_inconsistent_copy_other_commit" xml:space="preserve">
+    <value>its copy is of saved version (commit) {0}, not of the integration {1} of the run</value>
+  </data>
+  <data name="Text_delivery_inconsistent_closed_twice" xml:space="preserve">
+    <value>the debate closed more than once</value>
+  </data>
+  <data name="Text_delivery_inconsistent_no_verdicts" xml:space="preserve">
+    <value>its closing names no verdict</value>
+  </data>
+  <data name="Text_delivery_inconsistent_verdict_missing" xml:space="preserve">
+    <value>verdict {0} is not in the log of run {1}</value>
+  </data>
+  <data name="Text_delivery_inconsistent_verdict_before" xml:space="preserve">
+    <value>verdict {0} is older than the challenge</value>
+  </data>
+  <data name="Text_delivery_inconsistent_verdict_invalid" xml:space="preserve">
+    <value>verdict {0} is not valid</value>
+  </data>
+  <data name="Text_delivery_inconsistent_verdict_other_requirements" xml:space="preserve">
+    <value>verdict {0} judges other requirements</value>
+  </data>
+  <data name="Text_delivery_inconsistent_verdict_not_superseding" xml:space="preserve">
+    <value>verdict {0} does not replace the challenged one</value>
+  </data>
+  <data name="Text_delivery_inconsistent_store_no_confirm" xml:space="preserve">
+    <value>the verdict store does not confirm verdict {0}</value>
+  </data>
+  <data name="Text_delivery_inconsistent_verdicts_disagree" xml:space="preserve">
+    <value>its verdicts do not agree, or do not decide</value>
+  </data>
+  <data name="Text_delivery_inconsistent_chain_repeated" xml:space="preserve">
+    <value>its verdicts were already in the chain of reviews</value>
+  </data>
+  <data name="Text_delivery_decision_approved" xml:space="preserve">
+    <value>approved</value>
+  </data>
+  <data name="Text_delivery_decision_changes_requested" xml:space="preserve">
+    <value>asks for changes</value>
+  </data>
+  <data name="Text_delivery_decision_rejected" xml:space="preserve">
+    <value>rejected</value>
+  </data>
+  <data name="Text_delivery_decision_escalate" xml:space="preserve">
+    <value>leaves it to a person</value>
+  </data>
+  <data name="Text_delivery_decision_unresolved" xml:space="preserve">
+    <value>unresolved</value>
+  </data>
+  <data name="Text_delivery_head_detached" xml:space="preserve">
+    <value>Your repository is not on any branch: there is no branch to deliver {0} to.</value>
+  </data>
+  <data name="Text_delivery_branch_missing" xml:space="preserve">
+    <value>Branch {0} does not exist: there is nothing to deliver.</value>
+  </data>
+  <data name="Text_delivery_branch_moved" xml:space="preserve">
+    <value>Branch {0} is at {1}, but the judge approved {2}. It moved after the review, so nothing is delivered.</value>
+  </data>
+  <data name="Text_delivery_already_contained" xml:space="preserve">
+    <value>{0} already contains {1}: there is nothing to deliver.</value>
+  </data>
+  <data name="Text_delivery_target_advanced" xml:space="preserve">
+    <value>{0} has moved on since the run started, so it cannot be delivered without a merge. Deliver with a merge saved version (commit) or start a follow-up run.</value>
+  </data>
+  <data name="Text_delivery_config_refused" xml:space="preserve">
+    <value>Your repository is set up with a program that controls the repository or a working copy. The delivery refuses it, like any internal command: {1}. No approval was asked for and {0} was not touched. Review the change and merge it by hand.</value>
+  </data>
+  <data name="Text_delivery_denied" xml:space="preserve">
+    <value>Delivery denied by {0}: {1} was not touched.</value>
+  </data>
+  <data name="Text_delivery_denied_with_comment" xml:space="preserve">
+    <value>Delivery denied by {0} ({1}): {2} was not touched.</value>
+  </data>
+  <data name="Text_delivery_approval_mismatch" xml:space="preserve">
+    <value>The approval received does not answer the request for this delivery: {0} was not touched. Ask for the delivery again.</value>
+  </data>
+  <data name="Text_delivery_repository_changed" xml:space="preserve">
+    <value>Your repository changed while waiting for the approval (it is now on {0}, {1}). Nothing was delivered. Ask for the delivery again.</value>
+  </data>
+  <data name="Text_delivery_repository_changed_elsewhere" xml:space="preserve">
+    <value>Your repository changed while waiting for the approval (it is now on another branch or on none, {0}). Nothing was delivered. Ask for the delivery again.</value>
+  </data>
+  <data name="Text_delivery_delivered" xml:space="preserve">
+    <value>Delivered: {0} is at {1} and includes {2}.</value>
+  </data>
+  <data name="Text_delivery_unrecorded" xml:space="preserve">
+    <value>Warning: the delivery could not be recorded in the decision log ({0}).</value>
+  </data>
+  <data name="Text_delivery_dirty_paths" xml:space="preserve">
+    <value>You have unsaved changes, untracked or ignored files in paths the delivery changes ({0}). {1} was not touched. Save or set them aside and ask for the delivery again.</value>
+  </data>
+  <data name="Text_delivery_conflicts" xml:space="preserve">
+    <value>Merging {0} into {1} would conflict in {2}. Nothing was touched. Start a follow-up run from {1}.</value>
+  </data>
+  <data name="Text_delivery_merge_incomplete" xml:space="preserve">
+    <value>git merged {0} into your working tree but could not create the saved version (commit). Did a hook of yours refuse it? {1} has not moved and the merge is still in progress. Finish it in your terminal or undo it with git merge --abort. git said: {2}</value>
+  </data>
+  <data name="Text_delivery_git_failed" xml:space="preserve">
+    <value>git did not complete the delivery and {0} has not moved. Check your repository (git status). git said: {1}</value>
+  </data>
+  <data name="Text_worker_cancelled_before_start" xml:space="preserve">
+    <value>It was cancelled before it started.</value>
+  </data>
+  <data name="Text_worker_launch_failed" xml:space="preserve">
+    <value>The agent could not be launched: {0}</value>
+  </data>
+  <data name="Text_worker_provider_cancelled" xml:space="preserve">
+    <value>The provider cancelled the run.</value>
+  </data>
+  <data name="Text_worker_agent_ended_status" xml:space="preserve">
+    <value>The agent ended with status {0}.</value>
+  </data>
+  <data name="Text_worker_report_invalid" xml:space="preserve">
+    <value>The agent&apos;s report is not valid: {0}</value>
+  </data>
+  <data name="Text_worker_agent_asks" xml:space="preserve">
+    <value>The agent asks a person a question.</value>
+  </data>
+  <data name="Text_worker_outside_scope" xml:space="preserve">
+    <value>Changes outside the write scope: {0}</value>
+  </data>
+  <data name="Text_worker_verification_cancelled" xml:space="preserve">
+    <value>Cancelled by you during the verification.</value>
+  </data>
+  <data name="Text_worker_verification_timeout" xml:space="preserve">
+    <value>The verification did not finish in time.</value>
+  </data>
+  <data name="Text_worker_verification_failed" xml:space="preserve">
+    <value>The verification failed in: {0}</value>
+  </data>
+  <data name="Text_worker_cancelled_by_user" xml:space="preserve">
+    <value>Cancelled by you.</value>
+  </data>
+  <data name="Text_worker_abandoned" xml:space="preserve">
+    <value>Abandoned: no activity for more than {0} minutes.</value>
+  </data>
+  <data name="Text_worker_timed_out" xml:space="preserve">
+    <value>Time ran out: more than {0} minutes.</value>
+  </data>
+  <data name="Text_worker_signed_out" xml:space="preserve">
+    <value>The {0} session expired or is not signed in: sign in with &quot;{1}&quot; and retry the task.</value>
+  </data>
+  <data name="Text_worker_rate_limited_until" xml:space="preserve">
+    <value>Usage limit of the provider until {0}.</value>
+  </data>
+  <data name="Text_worker_rate_limited_no_reset" xml:space="preserve">
+    <value>Usage limit of the provider, with no reset time.</value>
+  </data>
+  <data name="Text_worker_step_succeeded" xml:space="preserve">
+    <value>Step {0} finished well.</value>
+  </data>
+  <data name="Text_worker_step_failed" xml:space="preserve">
+    <value>Step {0} failed.</value>
+  </data>
+  <data name="Text_worker_step_skipped" xml:space="preserve">
+    <value>Step {0}, which {1} requires, failed: {1} never ran.</value>
+  </data>
+  <data name="Text_worker_sources_moved" xml:space="preserve">
+    <value>Nothing is integrated: the branch of {0} no longer points to the saved version (commit) that was verified.</value>
+  </data>
+  <data name="Text_worker_integration_timeout" xml:space="preserve">
+    <value>The integration did not finish in time.</value>
+  </data>
+  <data name="Text_worker_integration_conflict" xml:space="preserve">
+    <value>Integration conflict in: {0}. Resolve it by hand or with a follow-up run.</value>
+  </data>
+  <data name="Text_worker_integration_verification_failed" xml:space="preserve">
+    <value>The verification of the integration failed.</value>
+  </data>
+  <data name="Text_worker_review_timeout" xml:space="preserve">
+    <value>The review did not finish in time.</value>
+  </data>
+  <data name="Text_worker_judge_approved" xml:space="preserve">
+    <value>The judge approved (verdict {0}).</value>
+  </data>
+  <data name="Text_worker_judge_changes_requested" xml:space="preserve">
+    <value>The judge asked for changes (verdict {0}). A follow-up run is proposed.</value>
+  </data>
+  <data name="Text_worker_judge_rejected" xml:space="preserve">
+    <value>The judge rejected the work (verdict {0}).</value>
+  </data>
+  <data name="Text_worker_judge_needs_person" xml:space="preserve">
+    <value>Verdict {0} needs a person.</value>
+  </data>
+  <data name="Text_worker_judge_limit_until" xml:space="preserve">
+    <value>The judge reached the usage limit of its provider until {0}.</value>
+  </data>
+  <data name="Text_worker_judge_limit_no_reset" xml:space="preserve">
+    <value>The judge reached the usage limit of its provider, with no reset time.</value>
+  </data>
+  <data name="Text_worker_approval_failed" xml:space="preserve">
+    <value>The approval could not be obtained (this counts as denying it): {0}</value>
+  </data>
+  <data name="Text_worker_brief_log_unverified" xml:space="preserve">
+    <value>{0} is not launched: the decision log does not verify, so the project brief cannot be checked. A person decides: check the log.</value>
+  </data>
+  <data name="Text_worker_upstream_tampered" xml:space="preserve">
+    <value>{0} is not launched: the report of {1} (evidence {2}) is not the one the log anchored. Someone rewrote it in the store. A person decides.</value>
+  </data>
+  <data name="Text_task_retry" xml:space="preserve">
+    <value>Retry {0} of {1} after: {2}</value>
+  </data>
+  <data name="Text_worker_integrated" xml:space="preserve">
+    <value>Integrated into {0}.</value>
+  </data>
+  <data name="Text_worker_tool_silent" xml:space="preserve">
+    <value>Abandoned: the tool gave no sign of life.</value>
+  </data>
+  <data name="Text_worker_tool_timeout" xml:space="preserve">
+    <value>Time ran out.</value>
+  </data>
+  <data name="Text_worker_system_error" xml:space="preserve">
+    <value>System error: {0}</value>
+  </data>
+  <data name="Text_worker_approved" xml:space="preserve">
+    <value>Approved by {0}.</value>
+  </data>
+  <data name="Text_worker_denied" xml:space="preserve">
+    <value>Denied by {0}.</value>
+  </data>
+  <data name="Text_worker_denied_with_comment" xml:space="preserve">
+    <value>Denied by {0}: {1}</value>
+  </data>
+  <data name="Text_resume_no_consent" xml:space="preserve">
+    <value>It has no permission to go on by itself. You resume it.</value>
+  </data>
+  <data name="Text_resume_not_halfway" xml:space="preserve">
+    <value>It is not halfway.</value>
+  </data>
+  <data name="Text_resume_paused" xml:space="preserve">
+    <value>You paused it: it never resumes by itself.</value>
+  </data>
+  <data name="Text_resume_left_on_exit" xml:space="preserve">
+    <value>You left it on exit: it never resumes by itself, even if Windows closed the session afterwards.</value>
+  </data>
+  <data name="Text_resume_session_ended" xml:space="preserve">
+    <value>Windows closed the session while the run was going.</value>
+  </data>
+  <data name="Text_resume_waiting_limit" xml:space="preserve">
+    <value>It was waiting for the usage limit of your plan to lift when the app closed.</value>
+  </data>
+  <data name="Text_resume_unrequested_close" xml:space="preserve">
+    <value>A close you did not ask for cut it off.</value>
+  </data>
+  <data name="Text_resume_failed_before" xml:space="preserve">
+    <value>In this session of the app it is no longer resumed by itself: the previous attempt failed ({0}).</value>
+  </data>
+  <data name="Text_resume_suspended" xml:space="preserve">
+    <value>Resuming by itself is suspended while the app exits.</value>
+  </data>
+  <data name="Text_resume_failed" xml:space="preserve">
+    <value>It could not be resumed: {0}</value>
+  </data>
+  <data name="Text_resume_stopped_by_error" xml:space="preserve">
+    <value>It stopped in this session of the app because of a system error ({0}): you resume it.</value>
+  </data>
+  <data name="Text_resume_not_registered" xml:space="preserve">
+    <value>It is not registered.</value>
+  </data>
+  <data name="Text_quota_who_judge" xml:space="preserve">
+    <value>The judge reached the usage limit of its provider</value>
+  </data>
+  <data name="Text_quota_who_overload" xml:space="preserve">
+    <value>The provider is overloaded or limiting the rate</value>
+  </data>
+  <data name="Text_quota_who_plain" xml:space="preserve">
+    <value>Usage limit of the provider</value>
+  </data>
+  <data name="Text_quota_wait" xml:space="preserve">
+    <value>wait</value>
+  </data>
+  <data name="Text_quota_wait_estimated" xml:space="preserve">
+    <value>estimated wait</value>
+  </data>
+  <data name="Text_quota_until" xml:space="preserve">
+    <value>{0} until {1}.</value>
+  </data>
+  <data name="Text_quota_no_reset" xml:space="preserve">
+    <value>{0} with no reset time: {1} until {2}.</value>
+  </data>
+  <data name="Text_quota_passed_reset" xml:space="preserve">
+    <value>{0}, with a reset time that has already passed ({1}): {2} until {3}.</value>
+  </data>
+  <data name="Text_worker_not_signed_in" xml:space="preserve">
+    <value>The {0} session is not signed in: sign in with &quot;{1}&quot; and retry the task.</value>
+  </data>
+  <data name="Text_worker_limit_still_on_until" xml:space="preserve">
+    <value>The usage limit of {0} is still reached according to its app-server, until {1}.</value>
+  </data>
+  <data name="Text_worker_limit_still_on_no_reset" xml:space="preserve">
+    <value>The usage limit of {0} is still reached according to its app-server, with no reset time.</value>
+  </data>
+  <data name="Text_inspect_log_not_replayable" xml:space="preserve">
+    <value>The log of this run cannot be replayed in full ({0}): it is shown up to that point.</value>
+  </data>
+  <data name="Text_inspect_problem_unknown_tasks" xml:space="preserve">
+    <value>The log names tasks that are not in the plan of the run.</value>
+  </data>
+  <data name="Text_inspect_problem_not_rebuilt" xml:space="preserve">
+    <value>The attempts and the blocks could not be rebuilt: {0}</value>
+  </data>
+  <data name="Text_inspect_problem_detail" xml:space="preserve">
+    <value>{0}</value>
+  </data>
+  <data name="Text_planner_corrected_unreadable" xml:space="preserve">
+    <value>The corrected plan could not be read: {0}</value>
+  </data>
+  <data name="Text_planner_corrected_invalid" xml:space="preserve">
+    <value>The corrected plan is still not valid: review it before approving it.</value>
+  </data>
+  <data name="Text_history_not_the_planner" xml:space="preserve">
+    <value>The search in the history is only for the orchestrator.</value>
+  </data>
+  <data name="Text_history_disabled" xml:space="preserve">
+    <value>The orchestrator did not have the search in the history. It is turned off in Settings (&quot;History search for the orchestrator&quot;).</value>
+  </data>
+  <data name="Text_history_no_memory" xml:space="preserve">
+    <value>The orchestrator did not have the search in the history. In the template it does not receive the project memory.</value>
+  </data>
+  <data name="Text_history_not_read_only" xml:space="preserve">
+    <value>The orchestrator did not have the search in the history. It is only given when it plans without changing files, without a console and without network.</value>
+  </data>
+  <data name="Text_history_empty" xml:space="preserve">
+    <value>The orchestrator did not have the search in the history. The project has nothing trusted yet in its memory or its journal.</value>
+  </data>
+  <data name="Text_history_no_mcp" xml:space="preserve">
+    <value>The orchestrator did not have the search in the history. {0} does not take outside tools.</value>
+  </data>
+  <data name="Text_history_failed" xml:space="preserve">
+    <value>The orchestrator did not have the search in the history. It could not be prepared ({0}).</value>
+  </data>
+  <data name="Text_order_no_notes" xml:space="preserve">
+    <value>The orchestrator gave no notes of order.</value>
+  </data>
+  <data name="Text_order_schema_mismatch" xml:space="preserve">
+    <value>The answer of the orchestrator does not follow the schema of the notes of order.</value>
+  </data>
+  <data name="Text_chat_no_answer" xml:space="preserve">
+    <value>The orchestrator gave no answer.</value>
+  </data>
+  <data name="Text_chat_schema_mismatch" xml:space="preserve">
+    <value>The answer of the orchestrator does not follow the schema of the chat.</value>
+  </data>
+  <data name="Text_chat_answer_null" xml:space="preserve">
+    <value>The answer of the orchestrator is empty.</value>
+  </data>
+  <data name="Text_worker_memory_too_small" xml:space="preserve">
+    <value>{0} is not launched: {1}. A person decides: reduce the task requirements or remove the memory of {2} from the roster.</value>
+  </data>
+  <data name="Text_worker_memory_detail_figures" xml:space="preserve">
+    <value>its requirements take {0} characters and the context only holds {1}</value>
+  </data>
+  <data name="Text_worker_memory_detail_unknown" xml:space="preserve">
+    <value>the memory and the requirements do not fit in its context</value>
+  </data>
+  <data name="Text_worker_memory_unverified" xml:space="preserve">
+    <value>{0} is not launched: the decision log does not verify, so the project memory cannot be checked. A person decides: check the log or remove the memory of {1} from the roster.</value>
+  </data>
+  <data name="Text_worker_memory_unverified_entry" xml:space="preserve">
+    <value>{0} is not launched: the decision log does not verify (entry {1}: {2}). The project memory cannot be checked. A person decides: check the log or remove the memory of {3} from the roster.</value>
+  </data>
+  <data name="Text_worker_repository_before_launch" xml:space="preserve">
+    <value>Your repository had changed before the agent was launched: {0}</value>
+  </data>
+  <data name="Text_worker_repository_changed" xml:space="preserve">
+    <value>Your repository changed {0}: {1}</value>
+  </data>
+  <data name="Text_worker_repository_when_while_agent" xml:space="preserve">
+    <value>while the agent was working</value>
+  </data>
+  <data name="Text_worker_repository_when_during_verification" xml:space="preserve">
+    <value>during the verification</value>
+  </data>
+  <data name="Text_worker_repository_when_during_integration" xml:space="preserve">
+    <value>during the integration</value>
+  </data>
+  <data name="Text_worker_repository_when_before_integration" xml:space="preserve">
+    <value>before the integration</value>
+  </data>
+  <data name="Text_worker_repository_when_during_review" xml:space="preserve">
+    <value>during the review</value>
+  </data>
+  <data name="Text_worker_repository_when_before_review" xml:space="preserve">
+    <value>before the review</value>
+  </data>
+  <data name="Text_worker_repository_when_during_steps" xml:space="preserve">
+    <value>during {0}</value>
+  </data>
+  <data name="Text_worker_repository_when_during_steps_stopped" xml:space="preserve">
+    <value>during {0}, which were stopped before they finished</value>
+  </data>
+  <data name="Text_worker_repository_when_before_steps" xml:space="preserve">
+    <value>before {0}</value>
+  </data>
+  <data name="Text_worker_steps_one" xml:space="preserve">
+    <value>step {0}</value>
+  </data>
+  <data name="Text_worker_steps_many" xml:space="preserve">
+    <value>steps {0}</value>
+  </data>
+  <data name="Text_worker_evidence_tampered" xml:space="preserve">
+    <value>A saved proof of the integration changed in the store between being taken and being read. Someone rewrote it: the integration is not accepted or retried. {0}</value>
+  </data>
+  <data name="Text_worker_evidence_unanchored" xml:space="preserve">
+    <value>The saved proof of the integration is not the one the integrator took, and it is not accepted: {0}</value>
+  </data>
+  <data name="Text_delivery_log_not_intact_unknown" xml:space="preserve">
+    <value>The decision log is not intact: nothing is delivered.</value>
+  </data>
+  <data name="Text_task_no_integration" xml:space="preserve">
+    <value>{0} starts from the code of several tasks ({1}) without an integration.</value>
+  </data>
+</root>

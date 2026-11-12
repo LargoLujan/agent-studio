@@ -56,7 +56,13 @@ public interface IOrchestrationRun : IAsyncDisposable
 /// <summary>Everything the UI needs to follow a run. The state itself is read from <see cref="IOrchestrationRun.Snapshot"/>.</summary>
 public abstract record OrchestrationEvent(DateTimeOffset At);
 
-public sealed record TaskStatusChangedEvent(DateTimeOffset At, TaskId Task, WorkTaskStatus From, WorkTaskStatus To, string Reason) : OrchestrationEvent(At);
+/// <param name="At">When.</param>
+/// <param name="Task">The task.</param>
+/// <param name="From">Where it was.</param>
+/// <param name="To">Where it is.</param>
+/// <param name="Reason">The reason as the log anchors it, in Spanish: it never changes with the language of the screen.</param>
+/// <param name="ReasonText">The same reason as a coded text for the screen (docs/17 D-47, ADR-0054); null when the engine gives none, and then the screen shows <paramref name="Reason"/>.</param>
+public sealed record TaskStatusChangedEvent(DateTimeOffset At, TaskId Task, WorkTaskStatus From, WorkTaskStatus To, string Reason, Localization.UserText? ReasonText = null) : OrchestrationEvent(At);
 
 /// <summary>The task is ready but its provider has no free slot ("en cola del proveedor"); it stays pending.</summary>
 public sealed record TaskQueuedEvent(DateTimeOffset At, TaskId Task, ProviderId Provider) : OrchestrationEvent(At);
@@ -81,7 +87,11 @@ public sealed record QuestionPendingEvent(DateTimeOffset At, PendingQuestion Que
 /// <summary>Phase 13 (docs/17 D-29): the question was answered (by the person, or by the consent of the run), and its task goes on.</summary>
 public sealed record QuestionAnsweredEvent(DateTimeOffset At, string Question, TaskId? Task, QuestionAnswerMethod Method) : OrchestrationEvent(At);
 
-public sealed record RunPhaseChangedEvent(DateTimeOffset At, RunPhase Phase, string? Detail) : OrchestrationEvent(At);
+/// <param name="At">When.</param>
+/// <param name="Phase">The phase.</param>
+/// <param name="Detail">What the engine says of it, in Spanish, as it anchors it.</param>
+/// <param name="DetailText">The same as a coded text for the screen (docs/17 D-47); null when the engine gives none, and then the screen shows <paramref name="Detail"/>.</param>
+public sealed record RunPhaseChangedEvent(DateTimeOffset At, RunPhase Phase, string? Detail, Localization.UserText? DetailText = null) : OrchestrationEvent(At);
 
 public sealed record RunFinishedEvent(DateTimeOffset At, RunResult Result) : OrchestrationEvent(At);
 
