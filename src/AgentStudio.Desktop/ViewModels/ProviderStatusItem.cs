@@ -75,7 +75,7 @@ public sealed record ProviderStatusItem(
             _ => Texts.Get("Providers_SessionUnknown"),
         };
 
-        var parkedKey = HasUsableAuthentication(result) ? null : Parked.GetValueOrDefault(result.Provider);
+        var parkedKey = IsParkedResult(result) ? Parked[result.Provider] : null;
         var parked = parkedKey is null ? null : Texts.Get(parkedKey);
         var status = parked is not null ? StatusKind.Parked : result.Installation switch
         {
@@ -113,6 +113,13 @@ public sealed record ProviderStatusItem(
         return result.FoundInsideProject is { } path
             ? [Texts.Format("Providers_InsideProject", PathDisplay.CollapseHome(path)), .. notes]
             : notes;
+    }
+
+    /// <summary>Whether this result is of a provider parked by a decision (ADR-0009) that has found no way to authenticate: Auto Doctor treats its checks as neutral too.</summary>
+    public static bool IsParkedResult(ProviderProbeResult result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        return !HasUsableAuthentication(result) && Parked.ContainsKey(result.Provider);
     }
 
     /// <summary>

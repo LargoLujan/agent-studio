@@ -261,7 +261,8 @@ public sealed record DoctorFixResult(DoctorFixOutcome Outcome, long? AppliedSequ
 /// </summary>
 public interface IDoctorFixRunner
 {
-    Task<DoctorFixResult> ApplyAsync(DoctorFix fix, ProjectContext? project, CancellationToken ct);
+    /// <param name="checkCode">The code of the check the fix answers (<c>doctor.…</c>): the entry of the log names it. WP-A added it to the contract of the P0: without it the entry could not say which check was fixed.</param>
+    Task<DoctorFixResult> ApplyAsync(DoctorFix fix, string checkCode, ProjectContext? project, CancellationToken ct);
 
     /// <summary>Undoes the fix that left the entry <paramref name="appliedSequence"/>. Only a <see cref="DoctorFix.Reversible"/> one can be undone.</summary>
     Task UndoAsync(long appliedSequence, ProjectContext? project, CancellationToken ct);
