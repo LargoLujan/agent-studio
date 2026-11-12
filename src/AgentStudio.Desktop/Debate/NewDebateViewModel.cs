@@ -41,7 +41,9 @@ public sealed partial class ParticipantChoiceViewModel : ObservableObject
     /// <summary>What a screen reader says of the role box of this agent.</summary>
     public string RoleName => Texts.Format("Debate_NewView_RoleName", Name);
 
-    public static IReadOnlyList<Option<DebateRole>> Roles { get; } = [.. Enum.GetValues<DebateRole>().Select(r => new Option<DebateRole>(r, DebateTexts.Role(r)))];
+    // Built on each read, not once: a static list would keep the language it was first built in (records compare by value, so
+    // a selection still matches).
+    public static IReadOnlyList<Option<DebateRole>> Roles => [.. Enum.GetValues<DebateRole>().Select(r => new Option<DebateRole>(r, DebateTexts.Role(r)))];
 
     public IReadOnlyList<Option<DebateRole>> RoleOptions => Roles;
 
@@ -116,7 +118,7 @@ public sealed partial class DebateCriterionViewModel : ObservableObject
         Method = _selectedMethod.Value;
     }
 
-    public static IReadOnlyList<Option<VerificationMethod>> Methods { get; } =
+    public static IReadOnlyList<Option<VerificationMethod>> Methods =>
     [
         new(VerificationMethod.JudgeAssessment, Texts.Get("Debate_Method_JudgeAssessment")),
         new(VerificationMethod.HumanReview, Texts.Get("Debate_Method_HumanReview")),
@@ -243,7 +245,7 @@ public sealed partial class NewDebateViewModel : ObservableObject
     /// <summary>The subjects the mode admits.</summary>
     public IReadOnlyList<Option<DebateSubjectKind>> Subjects { get; private set; }
 
-    private static IReadOnlyList<Option<DebateSubjectKind>> SubjectOptions { get; } =
+    private static IReadOnlyList<Option<DebateSubjectKind>> SubjectOptions =>
     [
         new(DebateSubjectKind.None, Texts.Get("Debate_SubjectOption_None")),
         new(DebateSubjectKind.Commit, Texts.Get("Debate_SubjectOption_Commit")),

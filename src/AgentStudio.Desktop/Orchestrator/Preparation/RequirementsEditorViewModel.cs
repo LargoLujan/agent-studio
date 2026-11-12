@@ -26,8 +26,8 @@ public sealed partial class CriterionDraftViewModel : ObservableObject
         _changed = changed;
     }
 
-    /// <summary>How a criterion is checked (only the first two give objective evidence: docs/07).</summary>
-    public static IReadOnlyList<Choice<VerificationMethod>> Methods { get; } =
+    /// <summary>How a criterion is checked (only the first two give objective evidence: docs/07). Built on each read, so it follows the language.</summary>
+    public static IReadOnlyList<Choice<VerificationMethod>> Methods =>
     [
         new(VerificationMethod.AutomatedTest, Texts.Get("Orchestrator_Req_MethodTest")),
         new(VerificationMethod.CommandCheck, Texts.Get("Orchestrator_Req_MethodCommand")),
