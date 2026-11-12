@@ -53,9 +53,11 @@
        implementación. El clasificador acepta las rutas reales (`ActivityTaskFacts.ChangedPaths`) y las de pruebas del perfil, por si una
        fase posterior las lee; hoy la proyección no las pasa.
      - *Intento:* primero o reintento (la corrección del planificador es un reintento).
-     - *Destino:* en una ejecución entregada, lo de una tarea completada y lo de la propia ejecución (planificador, juez) es **conservado**, y lo
-       de cualquier otra tarea, **descartado**; en una ejecución que acabó `Failed`, `Cancelled` o `Blocked`, todo es descartado; en las demás, una
-       tarea fallida, cancelada u omitida es descartada y el resto está **pendiente**. Una ejecución `Succeeded` que no se entregó (todavía) es
+     - *Destino:* primero el resultado del propio intento: uno que falló o se canceló es **descartado**, sea cual sea el destino de su tarea. Luego
+       la ejecución y la tarea: en una ejecución entregada, el intento que completó la tarea (`TaskStatusChanged` a `Completed` con su número) y
+       los de la propia ejecución (planificador, juez) que acabaron bien son **conservados**; un intento anterior de esa tarea, o de una tarea que no
+       se completó, es descartado; en una ejecución que acabó `Failed`, `Cancelled` o `Blocked`, todo es descartado; en las demás, una
+       tarea fallida, cancelada u omitida, o un intento que otro superó, es descartado y el resto está **pendiente**. Una ejecución `Succeeded` que no se entregó (todavía) es
        pendiente: puede entregarse; docs/16 la llamaba «no entregada, descartada», pero a una ejecución a la espera de tu aprobación no se la puede
        llamar descartada. Un debate, una auditoría o una ejecución auxiliar no tienen integración: lo que acabó bien es conservado y lo que no,
        descartado.
@@ -67,10 +69,12 @@
       bloqueo, y es del intento que llegó al límite; una espera sin salida es «sin dato», nunca cero, y un intento que no empezó ninguna tiene un
       cero medido. Ninguna entra en la duración. Los totales las suman aparte (`UsageTotals.QueueWaitMilliseconds` y `.QuotaWaitMilliseconds`).
   12. **El presupuesto en el motor (`ProjectBudgetGate`).** Falla cerrado y no gasta cuota:
-     - Sin presupuesto (puerto ausente, o ninguno guardado en el proyecto ni en los hitos de la ejecución) deja pasar y no lee ni el consumo ni
-       la estimación. Con un registro de hitos conectado, la primera comprobación de cada ejecución lee el registro una vez para saber a qué hitos
-       pertenece (se recuerda: un vínculo posterior cuenta desde la ejecución siguiente). Lo que no pueda saber (el almacén no se lee, el
-       registro no es de confianza, lo gastado no se proyecta, el presupuesto no valida) **rechaza** (`project.budget-unreadable`).
+     - Primero lo barato: el presupuesto del proyecto (su almacén) y las cabeceras de los hitos (`IMilestoneRegistry.ListAsync`). Sin presupuesto
+       en ninguno deja pasar **sin leer el registro, el consumo ni la estimación**, aunque el registro no sea de confianza. Solo si algún hito
+       tiene presupuesto se lee el registro, una vez por ejecución, para saber a qué hitos pertenece (se recuerda, y `Forget` lo olvida cuando la
+       ejecución arranca o se reanuda; un vínculo posterior cuenta desde entonces). Con un presupuesto que aplicar, lo que no pueda saber (el almacén
+       no se lee, el registro no es de confianza, lo gastado no se proyecta, el presupuesto no valida) **rechaza** (`project.budget-unreadable`).
+     - La consulta del consumo se acota al comienzo del periodo más ancho entre los presupuestos que aplican (todo el historial solo para un total).
      - Lo gastado sale de `IUsageReport` como lo cuenta el panel: tokens de entrada más salida de los intentos que terminaron y su número; el
        presupuesto de un proyecto, en su periodo (día, semana ISO desde el lunes o mes, en la zona local); el de un hito, en todos sus intentos
        (`MilestoneMembership`). Un intento sin cifra de tokens cuenta por lo que da y el aviso dice cuántos faltaron.
@@ -79,10 +83,12 @@
      - **Sin estimación** (menos de tres referencias, o el estimador no responde) el intento no es cero sin decirlo: sale solo mientras lo gastado
        esté por debajo del límite de tokens, y el veredicto lo marca (`ProjectionUnknown`). Rechazar siempre dejaría el presupuesto inservible en un
        proyecto sin historial. El límite de ejecuciones no depende de la estimación.
-     - Se comprueba en `DispatchAgentAsync`, ya decidido que el intento podría lanzarse. Un rechazo retiene el trabajo de agentes de la ejecución
-       como `MaxAgentRuns` (la ejecución acaba `Failed` con el motivo en el resumen) y deja un `AuditAlertRaised` con el código
-       `project.budget-exceeded`; no añade ningún `BlockReason`, que llegaría al registro y a la pantalla. La persona sube el presupuesto y lanza
-       otra ejecución. **El juez no se bloquea**, como el juicio de un debate: una ejecución no podría acabar.
+     - Se comprueba en `DispatchAgentAsync`, ya decidido que el intento podría lanzarse. Un rechazo **no es definitivo**: la tarea queda
+       `Blocked` con `BlockReason.AwaitingHuman` y el motivo en español (el patrón de las demás tareas que esperan a la persona; no se añade ningún
+       tipo de bloqueo nuevo), la ejecución queda `AwaitingHuman` y se deja un `AuditAlertRaised` con `project.budget-exceeded` (o
+       `project.budget-unreadable`). La persona sube el presupuesto y reintenta la tarea (`RetryBlockedAsync`): se vuelve a comprobar y sigue. Un fallo
+       de lectura pasajero se trata igual (bloqueada, nunca `Failed`) y el reintento lo lee de nuevo; no hay retención para toda la ejecución.
+       **El juez no se bloquea**, como el juicio de un debate: una ejecución no podría acabar.
   13. **Estimación por actividad o por hito, encima del estimador.** `ScopedEstimation` no duplica el cálculo: filtra los intentos de la historia por
       actividad o por hito y llama a `UsageEstimation.Estimate`. `CompareWithPlan` compara lo gastado (entrada, salida y ejecuciones) con los
       intervalos de un `PlanEstimate` con `EstimateComparison`; una suma con huecos o un intervalo desconocido es «desconocida». Hoy el plan

@@ -62,7 +62,7 @@ public sealed class ProjectBudgetTests
     [Fact]
     public async Task The_milestones_of_a_run_are_read_from_the_log_once_per_run_and_a_day_is_the_day_of_the_local_zone()
     {
-        var fakes = new Fakes { Budget = new WorkBudget(1_000_000, null), EstimateTotal = 1 };
+        var fakes = new Fakes { Budget = new WorkBudget(1_000_000, null), EstimateTotal = 1, Header = new MilestoneHeader(Mil, "Calc", "Una calculadora", HashA, new WorkBudget(1_000, null), T0) };
         var gate = Gate(fakes);
 
         await gate.CheckAsync(Project, "R1", Request, 0, TestContext.Current.CancellationToken);
@@ -79,6 +79,19 @@ public sealed class ProjectBudgetTests
         var verdict = await new ProjectBudgetGate(inMadrid.Budgets, inMadrid.Usage, inMadrid.Estimator, null, null, madrid).CheckAsync(Project, "R1", Request, 0, TestContext.Current.CancellationToken);
 
         Assert.False(verdict.Allowed);
+    }
+
+    [Fact]
+    public async Task The_usage_query_is_bounded_to_the_widest_period_of_the_budgets_that_apply()
+    {
+        var day = new Fakes { Budget = new WorkBudget(1_000, null, BudgetPeriod.Day), EstimateTotal = 1 };
+        await Gate(day).CheckAsync(Project, "R1", Request, 0, TestContext.Current.CancellationToken);
+        var from = day.Usage.LastQuery!.From;
+        Assert.True(from > DateTimeOffset.MinValue && from <= Now && Now - from < TimeSpan.FromDays(1));
+
+        var total = new Fakes { Budget = new WorkBudget(1_000, null), EstimateTotal = 1 };
+        await Gate(total).CheckAsync(Project, "R1", Request, 0, TestContext.Current.CancellationToken);
+        Assert.Equal(DateTimeOffset.MinValue, total.Usage.LastQuery!.From);
     }
 
     [Fact]
@@ -282,16 +295,81 @@ public sealed class ProjectBudgetTests
         using var harness = Harness(fakes);
 
         await using var run = await harness.StartAsync(Plan(Work("T1")));
-        var result = await run.CompleteAsync(harness);
+        await harness.WaitForPhaseAsync(run, RunPhase.AwaitingHuman);
 
-        Assert.Equal(RunPhase.Failed, result.Phase);
+        // Not Failed: the task waits for the person, so raising the budget and retrying it goes on.
+        Assert.Equal(RunPhase.AwaitingHuman, run.Snapshot().Phase);
         Assert.Empty(harness.Claude.Starts);
         Assert.Equal(0, run.Snapshot().AgentRunsUsed);
-        Assert.Equal(WorkTaskStatus.Pending, run.Snapshot().View("T1").Status);
+        Assert.Equal(WorkTaskStatus.Blocked, run.Snapshot().View("T1").Status);
+        Assert.Equal("AwaitingHuman", run.Snapshot().View("T1").BlockReason);
         var alert = Assert.Single(harness.Alerts(ProjectBudgetGate.ExceededCode));
         Assert.Contains("ejecuciones de agente", alert.Payload.Message, StringComparison.Ordinal);
-        Assert.Contains("presupuesto del proyecto", result.Summary, StringComparison.Ordinal);
         Assert.Empty(harness.Alerts("run.budget-exhausted"));
+
+        fakes.Budget = new WorkBudget(null, 10);
+        await run.RetryBlockedAsync(new TaskId("T1"));
+        var result = await run.CompleteAsync(harness);
+
+        Assert.Equal(RunPhase.Succeeded, result.Phase);
+        Assert.Single(harness.Claude.Starts);
+    }
+
+    [Fact]
+    public async Task A_transient_failure_reading_the_budget_blocks_the_task_never_fails_the_run_and_the_retry_reads_again()
+    {
+        var fakes = new Fakes { StoreFails = true, Budget = new WorkBudget(1_000_000, 100), EstimateTotal = 1 };
+        using var harness = Harness(fakes);
+
+        await using var run = await harness.StartAsync(Plan(Work("T1")));
+        await harness.WaitForPhaseAsync(run, RunPhase.AwaitingHuman);
+
+        Assert.Equal(WorkTaskStatus.Blocked, run.Snapshot().View("T1").Status);
+        Assert.Empty(harness.Claude.Starts);
+        Assert.Single(harness.Alerts(ProjectBudgetGate.UnreadableCode));
+
+        fakes.StoreFails = false;
+        await run.RetryBlockedAsync(new TaskId("T1"));
+        var result = await run.CompleteAsync(harness);
+
+        Assert.Equal(RunPhase.Succeeded, result.Phase);
+        Assert.Single(harness.Claude.Starts);
+    }
+
+    [Fact]
+    public async Task Without_any_budget_a_log_that_is_not_trusted_does_not_stop_the_dispatch()
+    {
+        var fakes = new Fakes { Budget = null, UntrustedLog = true, Header = new MilestoneHeader(Mil, "Calc", "Una calculadora", HashA, null, T0) };
+
+        var verdict = await Gate(fakes).CheckAsync(Project, "R1", Request, 0, TestContext.Current.CancellationToken);
+
+        Assert.True(verdict.Allowed);
+        Assert.Equal(0, fakes.Logs.Reads);
+        Assert.Equal(0, fakes.Usage.Queries);
+    }
+
+    [Fact]
+    public async Task With_a_milestone_budget_and_a_log_that_is_not_trusted_the_gate_fails_closed()
+    {
+        var fakes = new Fakes { Budget = null, UntrustedLog = true, Header = new MilestoneHeader(Mil, "Calc", "Una calculadora", HashA, new WorkBudget(1_000, null), T0) };
+
+        var verdict = await Gate(fakes).CheckAsync(Project, "R1", Request, 0, TestContext.Current.CancellationToken);
+
+        Assert.False(verdict.Allowed);
+        Assert.Equal(ProjectBudgetGate.UnreadableCode, verdict.Code);
+    }
+
+    [Fact]
+    public async Task A_resumed_run_reads_its_milestones_again()
+    {
+        var fakes = new Fakes { Header = new MilestoneHeader(Mil, "Calc", "Una calculadora", HashA, new WorkBudget(1_000, null), T0), EstimateTotal = 1 };
+        var gate = Gate(fakes);
+
+        await gate.CheckAsync(Project, "R1", Request, 0, TestContext.Current.CancellationToken);
+        gate.Forget("R1");
+        await gate.CheckAsync(Project, "R1", Request, 0, TestContext.Current.CancellationToken);
+
+        Assert.Equal(2, fakes.Logs.Reads);
     }
 
     [Fact]
@@ -316,9 +394,8 @@ public sealed class ProjectBudgetTests
         using var harness = Harness(fakes);
 
         await using var run = await harness.StartAsync(Plan(Work("T1")));
-        var result = await run.CompleteAsync(harness);
+        await harness.WaitForPhaseAsync(run, RunPhase.AwaitingHuman);
 
-        Assert.Equal(RunPhase.Failed, result.Phase);
         Assert.Empty(harness.Claude.Starts);
         Assert.Single(harness.Alerts(ProjectBudgetGate.UnreadableCode));
     }
@@ -350,9 +427,11 @@ public sealed class ProjectBudgetTests
             Logs = new LogSource(this);
         }
 
-        public WorkBudget? Budget { get; init; }
+        public WorkBudget? Budget { get; set; }
 
-        public bool StoreFails { get; init; }
+        public bool UntrustedLog { get; init; }
+
+        public bool StoreFails { get; set; }
 
         public bool UsageFails { get; init; }
 
@@ -392,9 +471,12 @@ public sealed class ProjectBudgetTests
         {
             public int Queries { get; private set; }
 
+            public UsageQuery? LastQuery { get; private set; }
+
             public Task<UsageReport> QueryAsync(IReadOnlyList<string> projectRoots, UsageQuery query, CancellationToken ct)
             {
                 Queries++;
+                LastQuery = query;
                 if (owner.UsageFails)
                 {
                     throw new IOException("the log cannot be read");
@@ -450,7 +532,7 @@ public sealed class ProjectBudgetTests
             public Task<ProjectLogSnapshot> ReadAsync(string projectRoot, CancellationToken ct)
             {
                 Reads++;
-                return Task.FromResult(new ProjectLogSnapshot("p1", projectRoot, owner.Entries ?? [], DecisionLogVerification.Valid, AnchorStatus.Anchored));
+                return Task.FromResult(new ProjectLogSnapshot("p1", projectRoot, owner.Entries ?? [], owner.UntrustedLog ? new DecisionLogVerification(false, 1, "broken") : DecisionLogVerification.Valid, AnchorStatus.Anchored));
             }
         }
     }

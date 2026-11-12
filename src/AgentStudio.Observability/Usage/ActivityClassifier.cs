@@ -32,7 +32,8 @@ public sealed record ActivityRunFacts(ActivityRunState State, bool FollowsConfli
 /// rule is <see cref="ActivityPaths.OfDiff"/> either way.
 /// </param>
 /// <param name="Merged">The work of the task reached an integration (a merge with a commit): the attempt left a commit that went somewhere.</param>
-public sealed record ActivityTaskFacts(WorkTaskStatus? Status, IReadOnlyList<string>? ChangedPaths, bool Merged);
+/// <param name="CompletedAttempt">The number of the attempt that completed the task; null when it has not completed (or the log does not say).</param>
+public sealed record ActivityTaskFacts(WorkTaskStatus? Status, IReadOnlyList<string>? ChangedPaths, bool Merged, int? CompletedAttempt = null);
 
 /// <summary>Everything the classification of one attempt reads.</summary>
 /// <param name="Purpose">What the attempt was for as its start recorded it; null for a start of before Phase 4.</param>
@@ -56,9 +57,11 @@ public sealed record ActivityInput(AgentRunPurpose? Purpose, bool HasTask, int A
 /// that ended in a conflict is <see cref="ActivityKind.Conflicts"/>; any other executor is told by <see cref="ActivityPaths.OfDiff"/>.
 /// A start of before Phase 4 records no purpose: with a task it is an executor, without one the planner.</para>
 /// <para><b>Order.</b> The first attempt of a task or a retry (number above 1; the correction of the planner is a retry).</para>
-/// <para><b>Destination.</b> From the run: in a delivered run, the work of a completed task (and the attempts of the run itself, which
-/// have no task) is <see cref="AttemptFate.Kept"/> and that of any other task <see cref="AttemptFate.Discarded"/>; in a dead run everything
-/// is discarded; in any other, a task that failed, was cancelled or skipped is discarded and the rest is <see cref="AttemptFate.Pending"/>.
+/// <para><b>Destination.</b> The attempt's own result first: one that failed or was cancelled is <see cref="AttemptFate.Discarded"/>, as is
+/// everything in a dead run. Then the run and the task: in a delivered run, the attempt that completed a task (and the attempts of the run
+/// itself that ended well, which have no task) is <see cref="AttemptFate.Kept"/>; an earlier attempt of that task, or any attempt of a task
+/// that did not complete, is discarded; in any other run, a task that failed, was cancelled or skipped, or an attempt another one superseded,
+/// is discarded and the rest is <see cref="AttemptFate.Pending"/>.
 /// A unit that is not an orchestration run (a debate, an audit, an auxiliary run) has no integration to reach: what ended well is kept
 /// and what did not, discarded. <see cref="ActivityClass.HasCommit"/> is whether the work of the task reached an integration.</para>
 /// </remarks>
@@ -95,12 +98,29 @@ public static class ActivityClassifier
             return input.Outcome == AttemptOutcome.Succeeded ? AttemptFate.Kept : AttemptFate.Discarded;
         }
 
-        var status = input.Task?.Status;
-        return run.State switch
+        // What the attempt itself did comes first: one that failed or was cancelled left nothing to keep, whatever became of its task.
+        if (input.Outcome is AttemptOutcome.Failed or AttemptOutcome.Cancelled || run.State == ActivityRunState.Dead)
         {
-            ActivityRunState.Delivered => input.Task is null || status == WorkTaskStatus.Completed ? AttemptFate.Kept : AttemptFate.Discarded,
-            ActivityRunState.Dead => AttemptFate.Discarded,
-            _ => status is WorkTaskStatus.Failed or WorkTaskStatus.Cancelled or WorkTaskStatus.Skipped ? AttemptFate.Discarded : AttemptFate.Pending,
-        };
+            return AttemptFate.Discarded;
+        }
+
+        if (input.Task is not { } task)
+        {
+            // An attempt of the run itself (planner, judge): it follows the run, and only if it ended well.
+            return input.Outcome != AttemptOutcome.Succeeded ? AttemptFate.Discarded
+                : run.State == ActivityRunState.Delivered ? AttemptFate.Kept
+                : AttemptFate.Pending;
+        }
+
+        // The task decides only for the attempt that completed it: an earlier attempt that was superseded is discarded.
+        if (task.Status is WorkTaskStatus.Failed or WorkTaskStatus.Cancelled or WorkTaskStatus.Skipped
+            || (task.CompletedAttempt is { } completed && completed != input.Attempt))
+        {
+            return AttemptFate.Discarded;
+        }
+
+        return run.State == ActivityRunState.Delivered
+            ? task.Status == WorkTaskStatus.Completed ? AttemptFate.Kept : AttemptFate.Discarded
+            : AttemptFate.Pending;
     }
 }
