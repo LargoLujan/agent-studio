@@ -86,6 +86,9 @@ public interface IExecutableLocator
     /// the diagnosis tells the person when the program is only there. Null when there is none, and for a locator without roots.
     /// </summary>
     string? FindInUntrustedRoot(string command) => null;
+
+    /// <summary>Whether <paramref name="path"/> lies inside an untrusted root now: a path kept from an earlier lookup is asked again before it is used.</summary>
+    bool IsUntrusted(string path) => false;
 }
 
 /// <summary>

@@ -29,6 +29,7 @@ using AgentStudio.Orchestration.Integration;
 using AgentStudio.Orchestration.Planning;
 using AgentStudio.Orchestration.Verification;
 using AgentStudio.Providers;
+using AgentStudio.Providers.Cli;
 using AgentStudio.Security;
 using AgentStudio.Security.Approvals;
 using Microsoft.Extensions.Configuration;
@@ -67,6 +68,7 @@ internal static class PlatformServices
         // shell tells this list which project opens; the locator and the runners (AddAgentStudioInfrastructure) read it.
         services.AddSingleton(new OpenProjectRoots([paths.WorktreeRoot]));
         services.AddSingleton<IUntrustedRoots>(provider => provider.GetRequiredService<OpenProjectRoots>());
+        services.AddSingleton(new NeutralWorkingFolderOptions(Path.Combine(folders.Local.BaseDirectory, "doctor", "cwd")));
         return services
             .AddAgentStudioInfrastructure()
             .AddAgentStudioMemory()

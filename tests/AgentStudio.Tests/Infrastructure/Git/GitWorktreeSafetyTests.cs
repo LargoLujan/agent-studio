@@ -352,6 +352,57 @@ public sealed class GitWorktreeSafetyTests : GitManagerTestBase
         await Assert.ThrowsAsync<GitUnavailableException>(() => manager.InspectAsync(Repo.Root, Ct));
     }
 
+    [Fact]
+    public async Task A_git_that_exists_only_inside_the_project_is_reported_as_such_not_as_missing()
+    {
+        var manager = new GitWorktreeManager(new ProcessRunner(), new InsideOnly(@"C:\proyecto\bin\git.exe"), new GitWorktreeOptions(Repo.WorktreeRoot));
+
+        var error = await Assert.ThrowsAsync<GitUnavailableException>(() => manager.InspectAsync(Repo.Root, Ct));
+
+        Assert.Contains(@"C:\proyecto\bin\git.exe", error.Message, StringComparison.Ordinal);
+        Assert.Contains("project folder", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_path_of_git_kept_from_an_earlier_lookup_is_checked_again_against_the_roots_of_now()
+    {
+        var locator = new Revocable(new ExecutableLocator().Find("git") ?? throw new InvalidOperationException("git is needed"));
+        var manager = new GitWorktreeManager(new ProcessRunner(), locator, new GitWorktreeOptions(Repo.WorktreeRoot));
+
+        await manager.InspectAsync(Repo.Root, Ct);
+        locator.Untrusted = true;
+
+        var error = await Assert.ThrowsAsync<GitUnavailableException>(() => manager.InspectAsync(Repo.Root, Ct));
+        Assert.Contains("project folder", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_configured_git_executable_goes_through_the_rule_too()
+    {
+        var real = new ExecutableLocator().Find("git") ?? throw new InvalidOperationException("git is needed");
+        var locator = new Revocable(real) { Untrusted = true };
+        var manager = new GitWorktreeManager(new ProcessRunner(), locator, new GitWorktreeOptions(Repo.WorktreeRoot, GitExecutable: real));
+
+        await Assert.ThrowsAsync<GitUnavailableException>(() => manager.InspectAsync(Repo.Root, Ct));
+    }
+
+    private sealed class InsideOnly(string path) : IExecutableLocator
+    {
+        public string? Find(string command) => null;
+
+        public string? FindInUntrustedRoot(string command) => path;
+    }
+
+    private sealed class Revocable(string path) : IExecutableLocator
+    {
+        public bool Untrusted { get; set; }
+
+        public string? Find(string command) => Untrusted ? null : path;
+
+        public string? FindInUntrustedRoot(string command) => Untrusted ? path : null;
+
+        public bool IsUntrusted(string candidate) => Untrusted && string.Equals(candidate, path, StringComparison.OrdinalIgnoreCase);
+    }
     private sealed class NoExecutables : IExecutableLocator
     {
         public string? Find(string command) => null;

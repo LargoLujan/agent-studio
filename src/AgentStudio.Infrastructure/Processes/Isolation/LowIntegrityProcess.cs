@@ -98,7 +98,7 @@ internal sealed class LowIntegrityProcess : IStartedProcess
     {
         var executable = ResolveExecutable(spec, search);
         var commandLine = WindowsCommandLine.Build(executable, spec.Arguments);
-        var environment = WindowsCommandLine.EnvironmentBlock(spec.Environment);
+        var environment = WindowsCommandLine.EnvironmentBlock(search.EnvironmentFor(spec));
 
         using var token = LowIntegrityToken.Create();
         var job = CreateJob();

@@ -895,7 +895,9 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         _settings = _settings.WithProjectOpened(normalized);
         TrySaveSettings();
         RefreshRecents();
-        StatusMessage = null;
+        StatusMessage = _projectRoots?.BroadRoots.Contains(normalized, StringComparer.OrdinalIgnoreCase) == true
+            ? Texts.Format("Providers_ProjectTooBroad", PathDisplay.CollapseHome(normalized))
+            : null;
         await Journal.SetProjectAsync(normalized);
         await KeepMemoryAsync(normalized, afterRun: false);
         await ShowProjectInScreensAsync(normalized);

@@ -43,6 +43,55 @@ internal sealed class ExecutableSearch(IUntrustedRoots? roots, Func<string?>? pa
         }
     }
 
+    /// <summary>The entries of <see cref="PathDirectories"/> that are not inside an untrusted root.</summary>
+    internal IEnumerable<string> TrustedPathDirectories()
+    {
+        var untrusted = UntrustedPaths.Resolve(roots?.Roots);
+        foreach (var directory in PathDirectories())
+        {
+            if (untrusted.Count == 0 || !UntrustedPaths.IsInside(directory, untrusted))
+            {
+                yield return directory;
+            }
+        }
+    }
+
+    /// <summary>Whether <paramref name="path"/> lies inside an untrusted root as they are now.</summary>
+    internal bool IsUntrusted(string path)
+    {
+        var untrusted = UntrustedPaths.Resolve(roots?.Roots);
+        return untrusted.Count > 0 && UntrustedPaths.IsInside(path, untrusted);
+    }
+
+    /// <summary>
+    /// The environment of a child of the app (ADR-0018, second addendum): the program was resolved outside the project, but it may look
+    /// for others by name (a <c>codex.cmd</c> shim calls <c>node</c>). So the PATH it inherits is the clean one, without relative entries and
+    /// without the untrusted roots, and, for a child without isolation, <c>NoDefaultCurrentDirectoryInExePath=1</c> makes cmd.exe and
+    /// CreateProcess stop looking in the current folder (the worktree, which holds what the repository versions). An isolated child keeps that
+    /// lookup: its working folder is the copy on purpose, it runs at Low integrity and cannot write. What <paramref name="spec"/> sets itself wins.
+    /// </summary>
+    internal IReadOnlyDictionary<string, string?> EnvironmentFor(ProcessSpec spec)
+    {
+        var environment = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["PATH"] = string.Join(Path.PathSeparator, TrustedPathDirectories()),
+        };
+        if (spec.Isolation == ProcessIsolation.None)
+        {
+            environment["NoDefaultCurrentDirectoryInExePath"] = "1";
+        }
+
+        if (spec.Environment is not null)
+        {
+            foreach (var (name, value) in spec.Environment)
+            {
+                environment[name] = value;
+            }
+        }
+
+        return environment;
+    }
+
     /// <summary>
     /// The first of <paramref name="names"/> in the first of <paramref name="directories"/> that exists and is not inside an untrusted
     /// root. <paramref name="rejected"/> is the first match that was left out for being inside one.

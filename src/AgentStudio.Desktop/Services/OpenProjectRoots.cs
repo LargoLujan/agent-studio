@@ -1,5 +1,6 @@
 using System.IO;
 using AgentStudio.Application.Execution;
+using AgentStudio.Infrastructure.Processes;
 
 namespace AgentStudio.Desktop.Services;
 
@@ -13,11 +14,14 @@ namespace AgentStudio.Desktop.Services;
 /// A project stays in the list until the app ends, not only while it is the open one: a run of it goes on in the background when
 /// another project is opened, and its folder is no more trustworthy for that. The list is replaced as a whole (an immutable snapshot),
 /// so the threads that read it never see it half changed.
+/// A folder too wide to be hostile (the whole profile, a program folder, a drive) is in <see cref="Roots"/> as it was opened and in
+/// <see cref="BroadRoots"/>; the locator ignores it, and the app tells the person so (ADR-0018, second addendum of 2026-11-12).
 /// </remarks>
 public sealed class OpenProjectRoots : IUntrustedRoots
 {
     private readonly object _gate = new();
     private IReadOnlyList<string> _roots;
+    private IReadOnlyList<string> _broad = [];
 
     /// <param name="fixedRoots">Folders that are untrusted from the start (the worktree root of the runs); the ones that are not a full path are ignored.</param>
     public OpenProjectRoots(IEnumerable<string>? fixedRoots = null)
@@ -26,6 +30,9 @@ public sealed class OpenProjectRoots : IUntrustedRoots
     }
 
     public IReadOnlyList<string> Roots => Volatile.Read(ref _roots);
+
+    /// <summary>The opened folders that are too wide for the protection to apply to them (the whole profile, a drive...).</summary>
+    public IReadOnlyList<string> BroadRoots => Volatile.Read(ref _broad);
 
     /// <summary>Adds the root of a project that is being opened. Idempotent; a path that is not a full one is ignored.</summary>
     public void Open(string projectRoot)
@@ -44,6 +51,10 @@ public sealed class OpenProjectRoots : IUntrustedRoots
             }
 
             Volatile.Write(ref _roots, [.. _roots, normalized]);
+            if (BroadFolders.IsTooBroad(normalized))
+            {
+                Volatile.Write(ref _broad, [.. _broad, normalized]);
+            }
         }
     }
 }

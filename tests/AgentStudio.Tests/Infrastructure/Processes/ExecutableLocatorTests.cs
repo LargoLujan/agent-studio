@@ -242,6 +242,94 @@ public sealed class ExecutableLocatorTests : IDisposable
         Assert.Null(locator.FindInUntrustedRoot("nothing"));
     }
 
+    // ---- A project opened too wide, and drives that are really folders (second addendum of 2026-11-12) ----
+
+    [Fact]
+    public void A_root_that_is_the_whole_profile_of_the_person_does_not_hide_what_is_installed_under_it()
+    {
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        Assert.SkipUnless(Path.GetFullPath(_base).StartsWith(home, StringComparison.OrdinalIgnoreCase), "The temporary folder is not under the profile on this machine.");
+        var bin = MakeDir("herramientas-personales");
+        var expected = Plant(bin, "claude.cmd");
+
+        Assert.Equal(expected, Locator(bin, home).Find("claude"), ignoreCase: true);
+        Assert.Equal(expected, Locator(bin, home + Path.DirectorySeparatorChar).Find("claude"), ignoreCase: true);
+        Assert.Null(Locator(bin, home).FindInUntrustedRoot("claude"));
+    }
+
+    [Theory]
+    [InlineData(Environment.SpecialFolder.UserProfile, true)]
+    [InlineData(Environment.SpecialFolder.ProgramFiles, true)]
+    [InlineData(Environment.SpecialFolder.ProgramFilesX86, true)]
+    [InlineData(Environment.SpecialFolder.CommonApplicationData, true)]
+    [InlineData(Environment.SpecialFolder.Windows, true)]
+    public void The_profile_the_program_folders_and_the_system_are_too_broad_to_be_a_project(Environment.SpecialFolder folder, bool broad)
+    {
+        var path = Environment.GetFolderPath(folder);
+        Assert.SkipWhen(string.IsNullOrEmpty(path), "This machine has no such folder.");
+
+        Assert.Equal(broad, BroadFolders.IsTooBroad(path));
+    }
+
+    [Fact]
+    public void The_root_of_a_drive_and_a_parent_of_the_profile_are_too_broad_but_a_folder_inside_it_is_not()
+    {
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
+        Assert.True(BroadFolders.IsTooBroad(Path.GetPathRoot(home)!));
+        Assert.True(BroadFolders.IsTooBroad(Path.GetDirectoryName(home)!));
+        Assert.True(BroadFolders.IsTooBroad(home.ToUpperInvariant() + Path.DirectorySeparatorChar));
+        Assert.False(BroadFolders.IsTooBroad(Path.Combine(home, "repos", "un-proyecto")));
+        Assert.False(BroadFolders.IsTooBroad(MakeDir("proj")));
+    }
+
+    [Fact]
+    [Trait("Category", "LocalTools")]
+    public void A_drive_made_with_subst_is_compared_by_the_folder_it_stands_for()
+    {
+        var project = MakeDir("proj");
+        var bin = MakeDir("proj", "bin");
+        Plant(bin, "node.exe");
+        var letter = "QRSTUVWXYZ".Select(c => c + ":").FirstOrDefault(d => !Directory.Exists(d + Path.DirectorySeparatorChar));
+        Assert.SkipWhen(letter is null, "No free drive letter for subst.");
+
+        if (!Subst(letter!, project))
+        {
+            Assert.Skip("subst is not available here.");
+        }
+
+        try
+        {
+            var viaDrive = letter + @"\bin";
+
+            // The root by its real folder and the PATH by the letter, and the other way round.
+            Assert.Null(Locator(viaDrive, project).Find("node"));
+            Assert.Null(Locator(bin, letter + @"\").Find("node"));
+            Assert.Null(Locator(viaDrive, letter + @"\").Find("node"));
+        }
+        finally
+        {
+            Subst(letter!, null);
+        }
+    }
+
+    private static bool Subst(string drive, string? target)
+    {
+        var start = new System.Diagnostics.ProcessStartInfo("subst.exe") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
+        start.ArgumentList.Add(drive);
+        if (target is null)
+        {
+            start.ArgumentList.Add("/d");
+        }
+        else
+        {
+            start.ArgumentList.Add(target);
+        }
+
+        using var process = System.Diagnostics.Process.Start(start)!;
+        process.WaitForExit();
+        return process.ExitCode == 0;
+    }
     private static string ShortPathOf(string path)
     {
         var buffer = new StringBuilder(1024);

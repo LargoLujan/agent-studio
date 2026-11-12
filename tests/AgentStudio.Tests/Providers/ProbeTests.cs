@@ -293,13 +293,41 @@ public sealed class ProbeTests
     }
 
     [Fact]
-    public void The_default_folder_of_the_probes_is_one_of_Agent_Studio_under_the_local_data()
+    public void Without_a_folder_the_probes_start_in_the_system_folder_and_create_nothing()
     {
-        var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var real = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AgentStudio", "doctor", "cwd");
+        var existed = Directory.Exists(real);
 
-        Assert.Equal(Path.Combine(local, "AgentStudio", "doctor", "cwd"), NeutralWorkingFolder.DefaultPath);
+        // The guard of the suite: no test of the probes may write in the real local data of the person (ADR-0017); only a composition
+        // that is given a folder creates one, and the tests give it a temporary one.
+        Assert.Equal(Environment.SystemDirectory, NeutralWorkingFolder.Prepare(null));
+        Assert.Equal(existed, Directory.Exists(real));
     }
 
+    [Fact]
+    public async Task The_confinement_probe_and_the_version_of_codex_start_in_the_folder_they_are_given()
+    {
+        using var temp = new TempDirectory();
+        var neutral = temp.Combine("neutra");
+        var runner = new FakeRunner(_ => Ok("2.1.290 (Claude Code)"));
+
+        var confined = new CliWriteConfinementProbe(new FakeLocator("C:/bin/claude.exe"), runner, _ => ["2.1.290"]) { WorkingDirectory = neutral };
+        Assert.True(await confined.IsWriteConfinedAsync(ProviderId.ClaudeCode, TestContext.Current.CancellationToken));
+        Assert.Equal(neutral, Assert.Single(runner.Calls).WorkingDirectory);
+
+        var codexVersions = new FakeRunner(_ => Ok("codex-cli 0.160.0"));
+        var reader = new AgentStudio.Providers.Cli.Codex.AppServer.CodexAppServerQuotaReader(
+            new FakeLocator("C:/bin/codex.exe"), new NoStreaming(), codexVersions, () => true, TimeProvider.System) { WorkingDirectory = neutral };
+        await reader.ReadAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(neutral, codexVersions.Calls[0].WorkingDirectory);
+    }
+
+    private sealed class NoStreaming : IStreamingProcessRunner
+    {
+        public Task<IProcessSession> StartAsync(ProcessSpec spec, CancellationToken cancellationToken) =>
+            throw new System.ComponentModel.Win32Exception("no se arranca nada en esta prueba");
+    }
     [Fact]
     [Trait("Category", "LocalTools")]
     public async Task A_claude_cmd_planted_in_a_project_folder_that_is_on_the_PATH_is_not_run_by_the_probe()

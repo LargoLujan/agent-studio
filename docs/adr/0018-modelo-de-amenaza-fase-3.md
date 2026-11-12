@@ -293,9 +293,51 @@ programa. Es la decisión 14 (a) del diseño de la Fase 6 (docs/20): vale para t
   «No instalado» mudo.
 - **Lo que se nota.** Un programa instalado dentro de la carpeta de un proyecto abierto deja de encontrarse, aunque esa carpeta
   esté en el PATH, para las sondas, la verificación, git y el terminal (que busca su shell con el mismo localizador; lo que la
-  persona escribe después en él no cambia). Un proyecto abierto en la carpeta personal o en una unidad entera esconde lo que haya
-  instalado debajo; una raíz que contiene el sistema, no.
+  persona escribe después en él no cambia). Una carpeta demasiado amplia (la personal, una unidad) no cuenta como raíz: ver la segunda adenda.
 - **Residuales que se aceptan.** Un enlace duro es solo otro nombre del fichero y no se distingue. Entre la comprobación y el uso
-  un proceso del usuario puede cambiar un enlace (la misma carrera de ADR-0017). Git guarda la ruta que resolvió la primera vez:
-  si luego se abre un proyecto que la contiene, la conserva hasta reiniciar. Una herramienta comprometida **fuera** del proyecto
+  un proceso del usuario puede cambiar un enlace (la misma carrera de ADR-0017). (Lo de que git guardara la ruta quedó cerrado en la segunda adenda.) Una herramienta comprometida **fuera** del proyecto
   sigue engañando a todo lo anterior.
+
+## Segunda adenda · 2026-11-12 · lo que el programa lanzado busca por su cuenta, las carpetas demasiado amplias y los residuales (WP-0, revisión)
+
+Precisa la adenda anterior después de una revisión independiente. Cambia tres cosas y deja los residuales como están ahora.
+
+- **El hijo ya no busca donde el proyecto puede plantar.** Resolver bien el programa no bastaba: un `codex.cmd` de npm, ya fuera del
+  proyecto, llama a `node` por nombre, y `cmd.exe` busca primero en la carpeta actual (la copia de trabajo, que contiene lo que el
+  repositorio versiona) y luego en el PATH heredado. Ahora todo hijo que lanzan `ProcessRunner` y `StreamingProcessRunner`
+  (`ExecutableSearch.EnvironmentFor`) recibe un `PATH` sin entradas relativas y sin raíces no fiables y, si no está aislado,
+  `NoDefaultCurrentDirectoryInExePath=1`. Lo que el `ProcessSpec` fija por su cuenta gana. La prueba real (`ChildEnvironmentTests`,
+  con shims `.cmd` que solo dejan un marcador) falla sin esto y pasa con ello.
+- **Decisión para la copia aislada** (ADR-0017). Un paso aislado recibe el `PATH` limpio, pero **conserva** la búsqueda en la carpeta
+  actual: su carpeta de trabajo es la copia a propósito, corre a integridad baja, sin escribir y sin permisos de la persona, y un
+  perfil de verificación puede apoyarse en ello. Lo que se cierra es lo que corre con los permisos de la persona.
+- **Decisión para el terminal integrado.** No cambia: lo lanza ConPTY, no los runners, así que su shell conserva el PATH completo y la
+  persona escribe sus órdenes. Solo la **búsqueda** del shell (`ShellLocator`) pasa por el localizador.
+- **`GeminiLaunchResolver` y los shims.** Ya lanza `node` con la ruta absoluta del paquete (`gemini.js`) cuando el paquete está en su sitio de
+  siempre, sin pasar por `cmd`; Codex hace lo mismo con su binario nativo (`CodexExecutableResolver`). Solo cuando el paquete no está donde
+  se espera se lanza el shim, y entonces vale lo anterior (PATH limpio, sin la carpeta actual).
+- **Carpetas demasiado amplias.** Una raíz que sea la carpeta personal entera, una carpeta de programas (`%ProgramFiles%`,
+  `%ProgramFiles(x86)%`, `%ProgramData%`), la de Windows, la raíz de una unidad o cualquiera que las contenga **no cuenta como raíz no
+  fiable** (`BroadFolders`): no se puede tratar todo el disco como hostil, y esconder el `git` y el `node` de la persona sería peor
+  que el riesgo. En su lugar la app lo **dice**: al abrir esa carpeta, la barra de estado, y en el diagnóstico de los programas, una
+  nota primera («la carpeta abierta es demasiado amplia, la protección de ejecutables no se aplica a ella; abre la carpeta del
+  repositorio»).
+- **«No encontrado» ya no es mudo.** Git, Claude Code, Codex y Gemini dicen, cuando el programa existe pero solo dentro de una raíz, dónde
+  está y por qué no se usa (`FindInUntrustedRoot`).
+- **Git revalida.** `GitCommandRunner` ya no guarda la ruta para siempre: antes de usarla pregunta de nuevo al localizador
+  (`IsUntrusted`) con las raíces de ese momento, y un `GitExecutable` configurado pasa por la misma regla.
+- **La carpeta neutra de las sondas la da la composición** (`NeutralWorkingFolderOptions`, `doctor\cwd` bajo los datos locales de la
+  app). Sin ella se usa la carpeta del sistema y no se escribe nada: ninguna prueba escribe en los datos reales de la persona.
+- **Unidades `subst` y de red.** `GetFinalPathNameByHandle` las resuelve (medido con `subst`; las asignadas de red devuelven la ruta UNC
+  real por el mismo mecanismo, sin medir aquí), así que una entrada escrita por la letra y una raíz por la ruta real, o al revés, se
+  comparan igual.
+
+**Residuales que quedan**, tras esto:
+
+- Un enlace duro es solo otro nombre del fichero y no se distingue.
+- Entre la comprobación y el uso un proceso de la persona puede cambiar un enlace (la carrera de ADR-0017).
+- Lo que el programa lanzado haga con su propia configuración (`.npmrc`, `global.json`) sigue siendo suyo: solo las sondas arrancan en una carpeta neutra.
+- Un paso aislado conserva la búsqueda en su carpeta actual (decisión de arriba).
+- Un shim `.cmd` o un programa que se busque otro por ruta absoluta o que cambie el PATH de sus hijos no lo ve esta regla.
+- Una carpeta demasiado amplia queda sin protección, avisada pero no cerrada.
+- Una herramienta comprometida **fuera** del proyecto sigue engañando a todo lo anterior.

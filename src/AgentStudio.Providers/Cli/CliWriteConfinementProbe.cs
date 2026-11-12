@@ -26,6 +26,10 @@ public sealed class CliWriteConfinementProbe : IWriteConfinementProbe
     };
 
     private readonly IExecutableLocator _locator;
+
+    /// <summary>The folder the command starts in (never the project); null means the system folder (see <see cref="NeutralWorkingFolder"/>).</summary>
+    public string? WorkingDirectory { get; init; }
+
     private readonly IProcessRunner _runner;
     private readonly Func<ProviderId, IReadOnlyList<string>> _measured;
 
@@ -58,7 +62,7 @@ public sealed class CliWriteConfinementProbe : IWriteConfinementProbe
         ProcessResult result;
         try
         {
-            result = await _runner.RunAsync(new ProcessSpec(executable, ["--version"], NeutralWorkingFolder.Prepare(null), Timeout: CommandTimeout), cancellationToken).ConfigureAwait(false);
+            result = await _runner.RunAsync(new ProcessSpec(executable, ["--version"], NeutralWorkingFolder.Prepare(WorkingDirectory), Timeout: CommandTimeout), cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {

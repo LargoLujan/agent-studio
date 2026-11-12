@@ -46,6 +46,12 @@ public sealed class ExecutableLocator : IExecutableLocator
         return rejected;
     }
 
+    public bool IsUntrusted(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        return UntrustedRoots is not null && _search.IsUntrusted(path);
+    }
+
     private List<string> BuildCandidateNames(string command)
     {
         if (!OperatingSystem.IsWindows())

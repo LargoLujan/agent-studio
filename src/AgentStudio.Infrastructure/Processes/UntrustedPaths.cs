@@ -15,7 +15,7 @@ internal static class UntrustedPaths
 {
     /// <summary>
     /// The roots as they are compared: resolved to where they really are. A root that is not a full path is dropped, and so is one
-    /// that contains the system folder (a project opened at the root of the drive would otherwise hide the whole system). Empty,
+    /// that is too broad (<see cref="BroadFolders"/>: the profile of the person, the program folders, the system or a whole drive: it would hide the programs the person installed). Empty,
     /// and no access to the disk, when there are no roots.
     /// </summary>
     internal static IReadOnlyList<string> Resolve(IReadOnlyList<string>? roots)
@@ -25,7 +25,6 @@ internal static class UntrustedPaths
             return [];
         }
 
-        var system = Canonical(Environment.SystemDirectory);
         var resolved = new List<string>(roots.Count);
         foreach (var root in roots)
         {
@@ -35,7 +34,7 @@ internal static class UntrustedPaths
             }
 
             var canonical = Canonical(root);
-            if (canonical.Length == 0 || IsInsideCanonical(system, canonical))
+            if (canonical.Length == 0 || BroadFolders.IsTooBroadCanonical(canonical))
             {
                 continue;
             }
@@ -66,7 +65,7 @@ internal static class UntrustedPaths
         return false;
     }
 
-    private static bool IsInsideCanonical(string path, string root) =>
+    internal static bool IsInsideCanonical(string path, string root) =>
         path.Equals(root, StringComparison.OrdinalIgnoreCase)
         || (path.Length > root.Length
             && path.StartsWith(root, StringComparison.OrdinalIgnoreCase)

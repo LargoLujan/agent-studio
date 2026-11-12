@@ -595,6 +595,10 @@ Si eliges No, los cambios siguen en el editor, sin guardar.</value>
     <value>Este programa del agente está dentro de la carpeta del proyecto ({0}). Por eso no se usa. Agent Studio solo ejecuta programas instalados fuera de ella. Instálalo fuera del proyecto o quita esa carpeta del PATH.</value>
     <comment>Note of an agent program found only inside the open project (ADR-0018). {0}: the path of the file, with the home folder as ~.</comment>
   </data>
+  <data name="Providers_ProjectTooBroad" xml:space="preserve">
+    <value>La carpeta abierta ({0}) es demasiado amplia. La protección de ejecutables no se aplica a ella. Abre la carpeta del repositorio.</value>
+    <comment>Warning when the open folder holds the whole profile, a program folder or a drive (ADR-0018). {0}: the folder, with the home folder as ~.</comment>
+  </data>
   <data name="Providers_Summary_Checking" xml:space="preserve">
     <value>Comprobando los programas…</value>
   </data>

@@ -222,6 +222,20 @@ public sealed class AppCompositionTests
     }
 
     [Fact]
+    public void The_probes_start_in_a_folder_under_the_local_data_the_composition_was_given()
+    {
+        using var temp = new TempDirectory();
+        var folders = FoldersIn(temp);
+        using var provider = Build(folders);
+
+        var expected = Path.Combine(folders.Local.BaseDirectory, "doctor", "cwd");
+
+        Assert.Equal(expected, provider.GetRequiredService<AgentStudio.Providers.Cli.NeutralWorkingFolderOptions>().Path);
+        Assert.All(provider.GetServices<IProviderProbe>().OfType<CliProbe>(), probe => Assert.Equal(expected, probe.WorkingDirectory));
+        Assert.Equal(expected, ((CliWriteConfinementProbe)provider.GetRequiredService<IWriteConfinementProbe>()).WorkingDirectory);
+        Assert.False(Directory.Exists(expected), "Nothing creates the folder until a probe runs.");
+    }
+    [Fact]
     public void The_runners_of_the_app_read_the_same_untrusted_roots()
     {
         using var temp = new TempDirectory();

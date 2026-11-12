@@ -25,7 +25,7 @@ public abstract class CliProbe : IProviderProbe
 
     /// <summary>
     /// The folder the probe commands start in: never the open project, whose files (<c>.npmrc</c>, a <c>global.json</c>...) a command could
-    /// read. Null means the folder of Agent Studio itself, <see cref="NeutralWorkingFolder.DefaultPath"/>, created on first use.
+    /// read. Null means the system folder (<see cref="NeutralWorkingFolder"/>); the composition gives one of the app.
     /// </summary>
     public string? WorkingDirectory { get; init; }
 

@@ -53,6 +53,10 @@ public sealed record ProviderStatusItem(
         : Installation == InstalledText ? $"{Version} · {Authentication}"
         : Installation;
 
+    /// <summary>This item with the warning that the open folder is too wide for the protection of programs to apply.</summary>
+    public ProviderStatusItem WithProjectTooBroad(string folder) =>
+        this with { Notes = [Texts.Format("Providers_ProjectTooBroad", PathDisplay.CollapseHome(folder)), .. Notes] };
+
     public static ProviderStatusItem From(ProviderProbeResult result)
     {
         ArgumentNullException.ThrowIfNull(result);

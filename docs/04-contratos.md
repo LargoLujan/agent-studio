@@ -191,8 +191,13 @@ public interface IUntrustedRoots { IReadOnlyList<string> Roots { get; } }   // l
 - `ProcessRunner` y `StreamingProcessRunner` resuelven con la misma regla todo `ProcessSpec.FileName` **sin ruta**
   (`dotnet`, `node`): carpeta del sistema, de Windows y PATH. Un nombre con ruta no se filtra. Si solo está dentro de una
   raíz lanzan `Win32Exception` (2) y no arrancan nada.
+- Todo hijo de `ProcessRunner`/`StreamingProcessRunner` recibe `PATH` limpio (sin entradas relativas ni raíces no fiables) y, sin
+  aislamiento, `NoDefaultCurrentDirectoryInExePath=1`; lo que fije el `ProcessSpec.Environment` gana. Un paso aislado conserva la
+  búsqueda en su carpeta actual (la copia, a integridad baja). El terminal integrado no pasa por los runners.
+- `IExecutableLocator.IsUntrusted(path)` vuelve a preguntar por una ruta guardada (git la revalida en cada uso). Una raíz demasiado amplia
+  (carpeta personal, programas, Windows, unidad) no cuenta como raíz (`BroadFolders`); la app avisa al abrirla.
 - Las sondas de los proveedores (`CliProbe`, `CliWriteConfinementProbe`, la versión de `CodexAppServerQuotaReader`) fijan
-  `WorkingDirectory` a `%LOCALAPPDATA%\AgentStudio\doctor\cwd` (`NeutralWorkingFolder`), nunca el proyecto.
+  `WorkingDirectory` a la carpeta que da la composición (`NeutralWorkingFolderOptions`: `doctor\cwd` bajo los datos locales; sin ella, la del sistema), nunca el proyecto.
   `ProviderProbeResult.FoundInsideProject` lleva la ruta del programa que solo estaba dentro del proyecto, y el panel lo pinta
   (`Providers_InsideProject`).
 ## 5. Juez y auditoría
