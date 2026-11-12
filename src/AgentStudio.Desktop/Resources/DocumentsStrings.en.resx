@@ -50,16 +50,16 @@
     <value>Document version</value>
   </data>
   <data name="Text_document_cover_commit" xml:space="preserve">
-    <value>Commit</value>
+    <value>Saved version (commit)</value>
   </data>
   <data name="Text_document_date_value" xml:space="preserve">
     <value>{0:yyyy-MM-dd HH:mm} UTC</value>
   </data>
   <data name="Text_document_agent_reviewed" xml:space="preserve">
-    <value>Written by an agent (run {0}) · reviewed by the person in charge: yes</value>
+    <value>Written by an agent (run {0}). Reviewed by the person in charge: yes.</value>
   </data>
   <data name="Text_document_agent_not_reviewed" xml:space="preserve">
-    <value>Written by an agent (run {0}) · reviewed by the person in charge: no</value>
+    <value>Written by an agent (run {0}). Reviewed by the person in charge: no.</value>
   </data>
   <data name="Text_document_summary_figures" xml:space="preserve">
     <value>The project has {0} requirements: {1} verified by the judge and {2} not verified. The tests captured by the system add up to {3} passed and {4} failed. There are {5} risks or pending items.</value>
@@ -68,7 +68,7 @@
     <value>There are no frozen requirements in this project yet.</value>
   </data>
   <data name="Text_document_scope_intro" xml:space="preserve">
-    <value>Each requirement with its state: implemented (covered by passing tests the system captured), reviewed (a valid, approved verdict says it is satisfied) and integrated (delivered to the branch).</value>
+    <value>Each requirement has a state. Implemented: passing tests the system saved cover it. Reviewed: a valid, approved verdict says it is satisfied. Integrated: it was delivered to the branch.</value>
   </data>
   <data name="Text_document_scope_none" xml:space="preserve">
     <value>There are no frozen requirements.</value>
@@ -161,7 +161,7 @@
     <value>High</value>
   </data>
   <data name="Text_document_decisions_intro" xml:space="preserve">
-    <value>Decisions, architecture and conventions of the current trusted memory of the project.</value>
+    <value>What the project has decided, how it is built and which conventions it follows. It comes from its trusted memory.</value>
   </data>
   <data name="Text_document_decisions_none" xml:space="preserve">
     <value>There are no recorded decisions.</value>
@@ -185,7 +185,7 @@
     <value>Convention</value>
   </data>
   <data name="Text_document_change_delivery" xml:space="preserve">
-    <value>Delivered to {0} with commit {1} ({2:yyyy-MM-dd HH:mm} UTC).</value>
+    <value>Delivered to {0} with saved version (commit) {1} ({2:yyyy-MM-dd HH:mm} UTC).</value>
   </data>
   <data name="Text_document_changes_none" xml:space="preserve">
     <value>There are no recorded deliveries.</value>
@@ -215,7 +215,7 @@
     <value>There are no recorded risks or pending items.</value>
   </data>
   <data name="Text_document_annex_evidence_intro" xml:space="preserve">
-    <value>Index of evidence, with the SHA-256 fingerprint of each one:</value>
+    <value>Index of evidence, with the fingerprint of each one:</value>
   </data>
   <data name="Text_document_annex_evidence_none" xml:space="preserve">
     <value>There is no evidence captured by the system.</value>
@@ -233,13 +233,13 @@
     <value>Verdict: the assessment of an independent judge, requirement by requirement.</value>
   </data>
   <data name="Text_document_glossary_fingerprint" xml:space="preserve">
-    <value>Fingerprint: the SHA-256 of the content.</value>
+    <value>Fingerprint: a unique code for the content. If the content changes, the fingerprint changes.</value>
   </data>
   <data name="Text_document_unknown" xml:space="preserve">
     <value>No data</value>
   </data>
   <data name="Text_document_scope_delivery_note" xml:space="preserve">
-    <value>There is a delivery with commit {0}; the system cannot say requirement by requirement whether it covers it, so those requirements show «no data».</value>
+    <value>There is a delivery with saved version (commit) {0}. The system cannot say requirement by requirement whether it covers it. Those requirements show «no data».</value>
   </data>
   <data name="Text_document_not_included_intro" xml:space="preserve">
     <value>Not included in this document:</value>
@@ -257,10 +257,10 @@
     <value>Whether the change is deployed: Agent Studio deploys nothing and does not know.</value>
   </data>
   <data name="Documents_NotIncluded" xml:space="preserve">
-    <value>Not included: the state of each requirement by milestone, pull requests, files by area and whether it is deployed. The document says so in its annexes.</value>
+    <value>Not included: the state of each requirement by milestone and the pull requests. Also the files by area and whether it is deployed. The document says so in its annexes.</value>
   </data>
   <data name="Documents_Status_Approval" xml:space="preserve">
-    <value>The approval is about this preview and this list: if you change the milestone or the language, generate it again.</value>
+    <value>The approval is about this preview and this list. If you change the milestone or the language, generate it again.</value>
   </data>
   <data name="Documents_MilestoneClosed" xml:space="preserve">
     <value>The milestone «{0}» was closed: generate its document to review it. Nothing is exported without your approval.</value>
@@ -269,7 +269,7 @@
     <value>Client documentation</value>
   </data>
   <data name="Documents_Intro" xml:space="preserve">
-    <value>Builds a document to hand to a client, made by Agent Studio from the verified log and the memory of trust. Review the preview and the list of what goes out before you export it.</value>
+    <value>Builds a document to hand to a client. Agent Studio makes it from the verified log and the memory of trust. Review the preview and the list of what goes out before you export it.</value>
   </data>
   <data name="Documents_Milestone_Label" xml:space="preserve">
     <value>Milestone or delivery (optional)</value>

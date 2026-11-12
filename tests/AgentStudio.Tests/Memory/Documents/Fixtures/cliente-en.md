@@ -4,7 +4,7 @@
 - **Milestone:** Hito 1
 - **Date:** 2026-11-11 07:30 UTC
 - **Document version:** 2
-- **Commit:** 0123456789abcdef0123456789abcdef01234567
+- **Saved version \(commit\):** 0123456789abcdef0123456789abcdef01234567
 
 ## Summary
 
@@ -13,23 +13,23 @@ The project has 3 requirements: 2 verified by the judge and 1 not verified. The 
 Primera línea con \<b\>etiqueta\</b\> y \* asteriscos.  
 Segunda línea.
 
-_Written by an agent \(run aux-7\) · reviewed by the person in charge: yes_
+_Written by an agent \(run aux-7\). Reviewed by the person in charge: yes._
 
 ## Scope
 
-Each requirement with its state: implemented \(covered by passing tests the system captured\), reviewed \(a valid, approved verdict says it is satisfied\) and integrated \(delivered to the branch\).
+Each requirement has a state. Implemented: passing tests the system saved cover it. Reviewed: a valid, approved verdict says it is satisfied. Integrated: it was delivered to the branch.
 
 | Id | Requirement | Integrated |
 | --- | --- | --- |
 | R1 | Pagar con tarjeta \| sin recargos | Yes |
 | R2 | \- Catálogo con búsqueda | No data |
 
-There is a delivery with commit 0123456789ab; the system cannot say requirement by requirement whether it covers it, so those requirements show «no data».
+There is a delivery with saved version \(commit\) 0123456789ab. The system cannot say requirement by requirement whether it covers it. Those requirements show «no data».
 
 ## Verification
 
 1. dotnet test
-2. Revisado a mano _(Written by an agent \(run aux-8\) · reviewed by the person in charge: no)_
+2. Revisado a mano _(Written by an agent \(run aux-8\). Reviewed by the person in charge: no.)_
 
 ## Decisions
 
@@ -37,7 +37,7 @@ There are no recorded decisions.
 
 ## Changes
 
-- Delivered to refs/heads/main with commit 0123456789ab \(2026-11-11 07:30 UTC\).
+- Delivered to refs/heads/main with saved version \(commit\) 0123456789ab \(2026-11-11 07:30 UTC\).
 
 ## Risks and pending items
 

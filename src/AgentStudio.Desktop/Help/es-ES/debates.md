@@ -15,4 +15,4 @@ Es una tarjeta con la decisión, las razones y lo que queda sin resolver. Si no 
 
 ## Consejos
 - Una pregunta clara y criterios concretos dan mejores debates.
-- Un debate gasta cuota de varios agentes: mira la estimación antes.
+- Un debate gasta el límite de uso de tu plan en varios agentes: mira la estimación antes.

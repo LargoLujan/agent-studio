@@ -6,7 +6,7 @@ info: Info_Consumption, Info_Quota
 Esta pantalla cuenta lo que gastan los agentes, para que no te lleves sorpresas.
 
 ## Qué ves
-- **La cuota** de cada cuenta y cuándo se renueva.
+- **El límite de uso de tu plan** en cada cuenta y cuándo se renueva.
 - **Qué agente y qué tarea** gastó cada parte, incluidas la ayuda y los resúmenes.
 - **Un análisis** de dónde se va más, con consejos. Puedes pedirlo también a un agente, con tu OK.
 

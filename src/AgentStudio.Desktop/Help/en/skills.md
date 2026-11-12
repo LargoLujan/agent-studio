@@ -8,7 +8,7 @@ A skill is a package of instructions an agent receives to do a specific task bet
 ## What you can do
 - See the catalog and its health.
 - Turn a skill on for one agent, for the project or for all your projects.
-- Ask for a recommendation. The free version uses rules; the agent version uses quota and asks for your OK.
+- Ask for a recommendation. The free version uses rules. The agent version uses the usage limit of your plan and asks for your OK.
 
 ## Mind the cost
 Each active skill takes room in the agent's working memory in all its runs. Turn on few and good ones.

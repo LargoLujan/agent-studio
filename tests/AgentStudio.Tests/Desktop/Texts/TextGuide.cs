@@ -34,8 +34,7 @@ internal static partial class TextGuide
         "HelloStrings", "IntegrationStrings", "MontageStrings", "PanelsStrings", "OrchestratorStrings", "DebateStrings", "AuditStrings",
         "BackgroundStrings", "LockStrings", "ObservabilityStrings", "MemoryStrings", "SkillsStrings", "ShellStrings",
         "ControlsStrings", "ServicesStrings", "UsageStrings", "RepositoryStrings", "WorkStrings",
-        // HelpStrings and DocumentsStrings (Desktop/Help, Desktop/Documents) are written by other packages of Phase 14: they join
-        // this list when they are integrated.
+        "HelpStrings", "DocumentsStrings",
     ];
 
     /// <summary>
@@ -44,10 +43,7 @@ internal static partial class TextGuide
     /// package, so from then on the guide is checked on its texts too. Any other area that appears in the folder and is in neither
     /// list is skipped in the same way (and listed by <c>Every_resource_area_is_checked_or_pending_its_extraction</c>).
     /// </summary>
-    public static readonly string[] PendingExtraction =
-    [
-        "HelpStrings", "DocumentsStrings",
-    ];
+    public static readonly string[] PendingExtraction = [];
 
     /// <summary>
     /// Key convention: a key whose last segment (after the last «_») is one of these is a text of «Detalles», the folded part of a
@@ -120,6 +116,9 @@ internal static partial class TextGuide
         ["CanvasStrings/Canvas_Provider_gemini_cli/CLI"] = "«Gemini CLI» is the name of the product the person installed; see the previous one.",
         ["ObservabilityStrings/Observability_Quota_CodexName/CLI"] = "«Codex CLI» is the name of the product whose usage limit the bar shows; see the exceptions of CanvasStrings.",
         ["ObservabilityStrings/Observability_Quota_GeminiName/CLI"] = "«Gemini CLI» is the name of the product whose usage limit the bar shows; see the exceptions of CanvasStrings.",
+        ["HelpStrings/Help_Agent_Codex/CLI"] = "«Codex CLI» is the name of the product that answers in the help card; see the exceptions of CanvasStrings.",
+        ["DocumentsStrings/Text_document_agent_reviewed/inflesz"] = "A disclosure line of the document (D-59) of two short sentences, with the run identifier as a placeholder; the formula penalises the name of the role («persona responsable») and nothing shorter keeps the meaning.",
+        ["DocumentsStrings/Text_document_agent_not_reviewed/inflesz"] = "The same disclosure line as Text_document_agent_reviewed, in its «no» form.",
         ["ControlsStrings/Terminal_AssetsMissing/inflesz"] = "The text is two short sentences, but the script path the person has to run (tools\\assets\\fetch-xterm.ps1) is one very long «word» that the formula counts as such.",
         ["ControlsStrings/Editor_MonacoMissing/inflesz"] = "The script path the person has to run (tools/assets/fetch-monaco.ps1) is one very long «word» for the formula; the sentences are short.",
     };

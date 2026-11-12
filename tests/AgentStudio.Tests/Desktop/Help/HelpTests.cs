@@ -141,7 +141,7 @@ public sealed partial class HelpTests
         using var search = new HelpSearch(Corpus);
         var ct = TestContext.Current.CancellationToken;
 
-        var byWord = await search.SearchAsync("cuota", "es-ES", 5, ct);
+        var byWord = await search.SearchAsync("límite de uso", "es-ES", 6, ct);
         Assert.Contains(byWord.Select(h => h.ArticleId), id => id == "consumption");
         Assert.All(byWord, hit => Assert.Equal(HelpMatchKind.Lexical, hit.Match));
         Assert.All(byWord, hit => Assert.False(string.IsNullOrWhiteSpace(hit.Excerpt)));
@@ -150,7 +150,7 @@ public sealed partial class HelpTests
         Assert.Contains((await search.SearchAsync("gast", "es-ES", 5, ct)).Select(h => h.ArticleId), id => id == "consumption");
         Assert.Equal("lock", (await search.SearchAsync("¿cómo bloqueo la aplicación?", "es-ES", 3, ct))[0].ArticleId);
         Assert.Equal("debates", (await search.SearchAsync("verdict judge", "en", 3, ct))[0].ArticleId);
-        Assert.Single(await search.SearchAsync("cuota", "es-ES", 1, ct));
+        Assert.Single(await search.SearchAsync("límite de uso", "es-ES", 1, ct));
     }
 
     [Fact]

@@ -35,7 +35,7 @@
     <value>Todos los temas</value>
   </data>
   <data name="Help_Article_None" xml:space="preserve">
-    <value>Elige un tema de la lista o busca una palabra. La ayuda de aquí es gratis y no usa tu cuota.</value>
+    <value>Elige un tema de la lista o busca una palabra. Esta ayuda es gratis y no gasta el límite de uso de tu plan.</value>
   </data>
   <data name="Help_Article_NoScreen" xml:space="preserve">
     <value>Esta pantalla no tiene un artículo propio. Mira la lista de temas.</value>
@@ -44,7 +44,7 @@
     <value>¿No lo encuentras? Pregunta a un agente</value>
   </data>
   <data name="Help_Ask_Intro" xml:space="preserve">
-    <value>Mira primero lo de arriba, que es gratis. Preguntar a un agente gasta un poco de tu cuota y necesita tu OK cada vez.</value>
+    <value>Mira primero lo de arriba, que es gratis. Preguntar a un agente gasta un poco del límite de uso de tu plan y necesita tu OK cada vez.</value>
   </data>
   <data name="Help_Ask_Question" xml:space="preserve">
     <value>Tu pregunta</value>

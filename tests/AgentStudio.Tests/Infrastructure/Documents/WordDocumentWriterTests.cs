@@ -73,7 +73,7 @@ public sealed class WordDocumentWriterTests
         var docx = await Writer().RenderAsync(GoldenModel.Build(), "es-ES", Ct);
         var xml = Entry(docx, "word/document.xml");
         Assert.Contains("Redactado por un agente (ejecución aux-7)", xml, StringComparison.Ordinal);
-        Assert.Contains("revisado por la persona responsable: no", xml, StringComparison.Ordinal);
+        Assert.Contains("Revisado por la persona responsable: no", xml, StringComparison.Ordinal);
     }
 
     [Fact]

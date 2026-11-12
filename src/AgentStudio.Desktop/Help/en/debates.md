@@ -15,4 +15,4 @@ It is a card with the decision, the reasons and what is left unresolved. If you 
 
 ## Tips
 - A clear question and concrete criteria make better debates.
-- A debate uses the quota of several agents: look at the estimate first.
+- A debate uses the usage limit of your plan on several agents: look at the estimate first.

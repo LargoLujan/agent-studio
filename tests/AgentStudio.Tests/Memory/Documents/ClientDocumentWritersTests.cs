@@ -54,7 +54,7 @@ public sealed class ClientDocumentWritersTests
         var markdown = await RenderAsync(new MarkdownDocumentWriter(Texts, Redactor), "es-ES");
         var html = await RenderAsync(new HtmlDocumentWriter(Texts, Redactor), "es-ES");
         Assert.Contains("Redactado por un agente \\(ejecución aux-7\\)", markdown, StringComparison.Ordinal);
-        Assert.Contains("revisado por la persona responsable: no", markdown, StringComparison.Ordinal);
+        Assert.Contains("Revisado por la persona responsable: no", markdown, StringComparison.Ordinal);
         Assert.Contains("class=\"mark\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("<b>etiqueta</b>", html, StringComparison.Ordinal);
         Assert.Contains("&lt;b&gt;etiqueta&lt;/b&gt;", html, StringComparison.Ordinal);

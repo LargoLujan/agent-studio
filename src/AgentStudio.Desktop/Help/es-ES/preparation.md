@@ -9,7 +9,7 @@ Aquí dejas todo listo antes de pedir nada a los agentes.
 - **Escribes lo que quieres** como requisitos. Cuando estén bien, los congelas: desde ese momento no cambian por sorpresa.
 - **Miras el equipo**: qué agentes hay y qué puede hacer cada uno.
 - **Eliges cómo se comprueba** el trabajo (por ejemplo, qué pruebas se ejecutan).
-- **Hablas con el orquestador** si prefieres contar tu idea con tus palabras. Cada mensaje gasta un poco de cuota y te pide tu OK.
+- **Hablas con el orquestador** si prefieres contar tu idea con tus palabras. Cada mensaje gasta un poco del límite de uso de tu plan y te pide tu OK.
 - **Apruebas el plan.** Sin tu aprobación no empieza nada.
 
 ## Consejos
