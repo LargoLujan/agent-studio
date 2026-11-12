@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using AgentStudio.Application.Execution;
 using AgentStudio.Application.Knowledge;
 using AgentStudio.Application.Providers;
+using AgentStudio.Providers.Cli;
 using AgentStudio.Providers.Cli.Claude;
 using AgentStudio.Providers.Cli.Codex;
 using AgentStudio.Providers.Cli.Gemini;
@@ -18,13 +19,15 @@ namespace AgentStudio.Providers.Composition;
 /// the composition registers none, the providers are composed without it.
 /// </param>
 /// <param name="ends">The ends of the agent runs of the process (docs/18 P37); when the composition registers none, nothing is noted.</param>
+/// <param name="tempFolders">Where the adapters make the folder of each run; when the composition registers none, the folder of the user.</param>
 public sealed class ProjectAgentProviders(
     IExecutableLocator locator,
     IStreamingProcessRunner runner,
     IPromptJournalFactory journals,
     TimeProvider time,
     IQuotaObservations? quota = null,
-    AgentRunEnds? ends = null) : IProjectAgentProviders
+    AgentRunEnds? ends = null,
+    RunTempFolderOptions? tempFolders = null) : IProjectAgentProviders
 {
     private readonly ConcurrentDictionary<string, Lazy<IReadOnlyList<IAgentProvider>>> _byProject =
         new(StringComparer.OrdinalIgnoreCase);
@@ -41,8 +44,8 @@ public sealed class ProjectAgentProviders(
         var journal = journals.ForProject(root);
         IAgentProvider[] adapters =
         [
-            new ClaudeCodeAgentProvider(locator, runner, time),
-            new CodexCliAgentProvider(locator, runner, time),
+            new ClaudeCodeAgentProvider(locator, runner, time, tempFolders),
+            new CodexCliAgentProvider(locator, runner, time, tempFolders),
             new GeminiCliAgentProvider(locator, runner),
         ];
         return [.. adapters.Select(adapter => AgentProviderPipeline.Compose(adapter, journal, time, quota: quota, ends: ends))];

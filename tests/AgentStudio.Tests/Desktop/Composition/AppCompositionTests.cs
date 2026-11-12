@@ -65,6 +65,7 @@ public sealed class AppCompositionTests
 
         // Nothing of the Windows session nor of its power transitions is hooked by a test (see WindowsDoubles).
         services.AddWindowsDoubles();
+        services.AddTestLocalData(folders.Local.BaseDirectory);
         services.AddAgentStudioApp(folders);
         return services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
     }

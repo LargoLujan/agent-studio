@@ -7,6 +7,7 @@ using AgentStudio.Desktop.Lock;
 using AgentStudio.Desktop.Services;
 using AgentStudio.Tests.Desktop.Background;
 using AgentStudio.Tests.Desktop.Lock;
+using AgentStudio.Tests.TestSupport;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AgentStudio.Tests.Desktop.Phase8;
@@ -66,6 +67,7 @@ internal sealed class Phase8Doubles
         var services = new ServiceCollection();
         Register(services);
         before?.Invoke(services);
+        services.AddTestLocalData(temp.Combine("local"));
         services.AddAgentStudioApp(new AppFolders(new AppDataPaths(temp.Combine("roaming")), new LocalDataPaths(temp.Combine("local")), null));
         return services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
     }

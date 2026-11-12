@@ -15,6 +15,7 @@ using AgentStudio.Tests.Desktop.Background;
 using AgentStudio.Tests.Desktop.Observability;
 using AgentStudio.Tests.Desktop.Orchestrator;
 using AgentStudio.Tests.Desktop.Phase8;
+using AgentStudio.Tests.TestSupport;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
 using static AgentStudio.Tests.Domain.TestData;
@@ -273,6 +274,7 @@ public sealed class SettingsShellTests
     {
         var services = new ServiceCollection();
         doubles.Register(services);
+        services.AddTestLocalData(temp.Combine("local"));
         services.AddAgentStudioApp(new AppFolders(new AppDataPaths(temp.Combine("roaming")), new LocalDataPaths(temp.Combine("local")), null));
         services.AddSingleton(unsaved);
         return services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });

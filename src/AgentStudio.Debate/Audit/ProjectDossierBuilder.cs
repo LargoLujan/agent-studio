@@ -18,6 +18,7 @@ namespace AgentStudio.Debate.Audit;
 /// <summary>What the dossier of a whole-project audit is built from: the verified log, the audit's unit in it and what the service knows.</summary>
 /// <param name="Log">The whole verified log, read after <c>ProjectAuditStarted</c> and the verification were recorded.</param>
 /// <param name="Snapshot">The read-only copy of the commit audited, or null when it could not be extracted.</param>
+/// <param name="NotExercised">What the profile's test steps leave out, with the reason; empty when they run every test.</param>
 public sealed record ProjectDossierRequest(
     string ProjectId,
     RunId Audit,
@@ -30,7 +31,8 @@ public sealed record ProjectDossierRequest(
     IReadOnlyList<string> SkippedSteps,
     string? Snapshot,
     IReadOnlyList<PendingProblem> Pending,
-    IReadOnlyList<string> Checks);
+    IReadOnlyList<string> Checks,
+    IReadOnlyList<ExcludedTests> NotExercised);
 
 /// <summary>
 /// Builds the dossier of a whole-project audit (docs/15 D-30): an index, because a repository does not fit in a prompt (R8).
@@ -244,6 +246,10 @@ public sealed class ProjectDossierBuilder(IEvidenceStore evidence, JudgingOption
                 ["file"] = files.GetValueOrDefault(e.Id),
             })]),
             ["skippedSteps"] = new JsonArray([.. request.SkippedSteps.Select(s => (JsonNode?)JsonValue.Create(s))]),
+
+            // The tests the profile leaves out: the verification above does not exercise them, and the judge must not read
+            // a passing test step as a check of what they cover.
+            ["testsNotExercised"] = new JsonArray([.. request.NotExercised.Select(e => (JsonNode)new JsonObject { ["filter"] = e.Filter, ["selector"] = e.Selector, ["reason"] = e.Reason })]),
             ["producerVendors"] = new JsonArray([.. request.ProducerVendors.Select(v => (JsonNode?)JsonValue.Create(v.Value))]),
             ["declaredAuthors"] = new JsonArray([.. request.DeclaredAuthors.Select(v => (JsonNode?)JsonValue.Create(v.Value))]),
             ["runs"] = new JsonArray([.. runs.Select(r => r.DeepClone())]),

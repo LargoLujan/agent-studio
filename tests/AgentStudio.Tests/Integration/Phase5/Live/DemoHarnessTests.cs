@@ -121,10 +121,13 @@ public sealed class DemoHarnessTests
 
         Assert.Empty(VerificationRules.Check(plain));
         Assert.Empty(VerificationRules.Check(filtered));
-        Assert.Equal(["--filter-not-trait", "Category=ProviderLive"], plain.Find("test")!.Arguments.TakeLast(2));
-        Assert.Equal(
-            ["--filter-not-trait", "Category=ProviderLive", "--filter-not-trait", "Category=ConPty", "--filter-not-class", "AgentStudio.Tests.Foo.BarTests"],
-            filtered.Find("test")!.Arguments.TakeLast(6));
+        string[] always =
+        [
+            "--filter-not-trait", "Category=ProviderLive", "--filter-not-trait", "Category=LocalTools", "--filter-not-trait", "Category=ConPty",
+            "--filter-not-trait", "Category=Measurement", "--filter-not-trait", "Category=NeedsMediumIntegrity",
+        ];
+        Assert.Equal(always, plain.Find("test")!.Arguments.TakeLast(10));
+        Assert.Equal([.. always, "--filter-not-class", "AgentStudio.Tests.Foo.BarTests"], filtered.Find("test")!.Arguments.TakeLast(12));
         Assert.All(filtered.Steps, s => Assert.Equal(ProcessIsolation.LowIntegrity, s.Isolation));
         Assert.Equal(DotNetVerificationProfile.Propose().Find("build")!.Arguments, plain.Find("build")!.Arguments);
         Assert.NotEqual(plain.ContentHash, filtered.ContentHash);

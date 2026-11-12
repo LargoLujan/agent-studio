@@ -4,6 +4,7 @@ using AgentStudio.Application.Knowledge;
 using AgentStudio.Application.Providers;
 using AgentStudio.Providers.Cli.Claude;
 using AgentStudio.Providers.Composition;
+using AgentStudio.Tests.TestSupport;
 using static AgentStudio.Tests.Providers.Claude.ClaudeTestSupport;
 
 namespace AgentStudio.Tests.Providers.Claude;
@@ -249,7 +250,7 @@ public sealed class ClaudeEndClassTests
         var token = TestContext.Current.CancellationToken;
         var journal = new RecordingJournal();
         var session = new ScriptedSession();
-        var provider = AgentProviderPipeline.Compose(new ClaudeCodeAgentProvider(new Locator(), new Runner(session), TimeProvider.System), journal, TimeProvider.System);
+        var provider = AgentProviderPipeline.Compose(new ClaudeCodeAgentProvider(new Locator(), new Runner(session), TimeProvider.System, TestLocalData.RunFolders), journal, TimeProvider.System);
 
         AgentRunOutcome outcome;
         await using (var run = await provider.StartAsync(Request(), token))
@@ -270,7 +271,7 @@ public sealed class ClaudeEndClassTests
         var token = TestContext.Current.CancellationToken;
         var journal = new RecordingJournal();
         var session = new ScriptedSession();
-        var provider = AgentProviderPipeline.Compose(new ClaudeCodeAgentProvider(new Locator(), new Runner(session), TimeProvider.System), journal, TimeProvider.System);
+        var provider = AgentProviderPipeline.Compose(new ClaudeCodeAgentProvider(new Locator(), new Runner(session), TimeProvider.System, TestLocalData.RunFolders), journal, TimeProvider.System);
 
         await using (var run = await provider.StartAsync(Request(), token))
         {

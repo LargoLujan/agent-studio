@@ -200,7 +200,7 @@ public sealed class ProjectAuditService(
             }
 
             var (package, index) = await dossiers.BuildAsync(
-                new ProjectDossierRequest(projectId, audit, material.Text, material.Requirements, head, log.Entries, material.Producers, material.Declared, material.Skipped, snapshot, pending, checks),
+                new ProjectDossierRequest(projectId, audit, material.Text, material.Requirements, head, log.Entries, material.Producers, material.Declared, material.Skipped, snapshot, pending, checks, ProjectAuditExclusions.Of(material.Profile)),
                 ct).ConfigureAwait(false);
 
             // The index the judge reads is kept as evidence of the audit, announced after the dossier was built (so it is not
@@ -571,6 +571,12 @@ public sealed class ProjectAuditService(
         text.AppendLine(profile is null
             ? "Verificación: sin perfil"
             : $"Verificación aislada de HEAD: {List(profile.Steps.Where(s => !skipped.Contains(s.Id)).Select(s => s.Id))}; sin aislamiento, no se ejecutan: {List(skipped)}");
+        if (profile is not null)
+        {
+            // The audit only checks what its tests run: it says what the filter of the profile leaves out (ADR-0017, addendum).
+            text.AppendLine(ProjectAuditExclusions.Line(ProjectAuditExclusions.Of(profile)));
+        }
+
         text.AppendLine(CultureInfo.InvariantCulture, $"Estimación: hasta {EstimatedJudgeTokens} tokens del juez y una corrección como mucho, «estimado por Agent Studio». La verificación no gasta cuota.");
         return text.ToString();
     }

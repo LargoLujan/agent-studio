@@ -6,7 +6,7 @@ using AgentStudio.Domain.Providers;
 namespace AgentStudio.Providers.Cli.Claude;
 
 /// <summary>Runs agents through the unmodified official <c>claude</c> CLI in headless stream-json mode.</summary>
-public sealed class ClaudeCodeAgentProvider(IExecutableLocator locator, IStreamingProcessRunner runner, TimeProvider clock) : IAgentProvider
+public sealed class ClaudeCodeAgentProvider(IExecutableLocator locator, IStreamingProcessRunner runner, TimeProvider clock, RunTempFolderOptions? tempFolders = null) : IAgentProvider
 {
     public ProviderId Provider => ProviderId.ClaudeCode;
 
@@ -43,30 +43,33 @@ public sealed class ClaudeCodeAgentProvider(IExecutableLocator locator, IStreami
                 $"Structured output needs the native claude executable: '{executable}' is a .cmd/.bat shim and the inline --json-schema cannot be passed through cmd.exe safely.");
         }
 
-        string? tempDirectory = null;
-        string? instructionsFile = null;
+        // The arguments are built, and so a launch that cannot be made is refused, before anything is written: the folder of the
+        // run is only planned here (its path) and made once the arguments are valid.
+        var baseDirectory = (tempFolders ?? RunTempFolderOptions.ForCurrentUser()).BaseDirectory;
+        var tempDirectory = RunTempFolder.NewPath(baseDirectory);
+        var settingsFile = Path.Combine(tempDirectory, "settings.json");
+        var instructionsFile = string.IsNullOrWhiteSpace(request.Agent.SystemInstructions) ? null : Path.Combine(tempDirectory, "instructions.md");
+
+        // Local MCP servers (docs/14 D-30) go in an app-controlled file of the run; Build refuses them for a launch
+        // that writes, has a shell or network before the file exists.
+        var mcpServers = request.McpServers is { Count: > 0 } servers ? servers : null;
+        var mcpConfigFile = mcpServers is null ? null : Path.Combine(tempDirectory, "mcp.json");
+        var arguments = ClaudeCodeArguments.Build(request, Guid.NewGuid().ToString(), instructionsFile, settingsFile, mcpConfigFile);
         try
         {
             // Every run gets its own folder: the settings file that turns hooks off always goes there.
-            tempDirectory = RunTempFolder.Create();
-            var settingsFile = Path.Combine(tempDirectory, "settings.json");
+            RunTempFolder.Create(baseDirectory, tempDirectory);
             await RunTempFolder.WriteNewFileAsync(settingsFile, ClaudeCodeArguments.IsolationSettingsJson, cancellationToken).ConfigureAwait(false);
-
-            if (!string.IsNullOrWhiteSpace(request.Agent.SystemInstructions))
+            if (instructionsFile is not null)
             {
-                instructionsFile = Path.Combine(tempDirectory, "instructions.md");
                 await RunTempFolder.WriteNewFileAsync(instructionsFile, request.Agent.SystemInstructions, cancellationToken).ConfigureAwait(false);
             }
 
-            // Local MCP servers (docs/14 D-30) go in an app-controlled file of the run; Build refuses them for a launch
-            // that writes, has a shell or network before the file exists.
-            var mcpServers = request.McpServers is { Count: > 0 } servers ? servers : null;
-            var mcpConfigFile = mcpServers is null ? null : Path.Combine(tempDirectory, "mcp.json");
-            var arguments = ClaudeCodeArguments.Build(request, Guid.NewGuid().ToString(), instructionsFile, settingsFile, mcpConfigFile);
             if (mcpServers is not null)
             {
                 await RunTempFolder.WriteNewFileAsync(mcpConfigFile!, ClaudeCodeArguments.McpConfigJson(mcpServers), cancellationToken).ConfigureAwait(false);
             }
+
             var spec = new ProcessSpec(
                 executable,
                 arguments,
