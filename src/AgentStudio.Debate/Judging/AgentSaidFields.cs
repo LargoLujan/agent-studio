@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using AgentStudio.Debate.Audit;
 using AgentStudio.Domain.Evidence;
 
 namespace AgentStudio.Debate.Judging;
@@ -18,8 +19,8 @@ internal static class AgentSaidFields
     /// <summary>The field of the stored record that the agent wrote (<c>AttemptRecord.Outputs</c>).</summary>
     public const string OutputsKey = "outputs";
 
-    private const string RecordKind = "agent-studio/attempt-record";
-    private const string TitlePrefix = "Registro del intento ";
+    private const string RecordKind = OrchestratorAudit.AttemptRecordKind;
+    private const string TitlePrefix = OrchestratorAudit.AttemptRecordTitlePrefix + " ";
 
     private const string Note =
         "Said by the agent, not captured by the system: the outputs the executor wrote in its report. " +
