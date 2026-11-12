@@ -15,6 +15,7 @@ using AgentStudio.Memory.Export;
 using AgentStudio.Tests.Debate.Fakes;
 using AgentStudio.Tests.Infrastructure.Persistence;
 using static AgentStudio.Tests.Memory.Derivation.JournalWorld;
+using AgentStudio.Desktop.Documents;
 
 namespace AgentStudio.Tests.Memory.Derivation;
 
@@ -458,9 +459,9 @@ public sealed class JournalDerivationTests
         await world.Trust.SetAsync(world.World.Project, JournalTrustScope.Project, null, true, "manuel", null, Ct);
         Assert.Equal(2, (await world.TrustedJournalAsync()).Count);
         var memory = world.World.World;
-        var exporter = new MemoryMarkdownExporter(memory.Memory, new ProjectStorageFiles(), memory.Activity, memory.Redactor, memory.Clock);
+        var exporter = new MemoryMarkdownExporter(memory.Memory, new ProjectStorageFiles(), memory.Activity, memory.Redactor, memory.Clock, new ResourceUserTextRenderer());
 
-        var exported = await exporter.ExportAsync(world.World.Project, Ct);
+        var exported = await exporter.ExportAsync(world.World.Project, "es-ES", Ct);
 
         Assert.True(exported.Exported);
         Assert.Equal(0, exported.Entries);

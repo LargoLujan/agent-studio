@@ -32,7 +32,7 @@ public static class UserTextCodes
 /// they are not texts of this kind (D-48). Exception messages and technical logs stay in English.</item>
 /// </list>
 /// </remarks>
-public sealed record UserText
+public sealed record UserText : INestedText
 {
     /// <summary>The prefix of the resource key of every coded text.</summary>
     public const string KeyPrefix = "Text_";

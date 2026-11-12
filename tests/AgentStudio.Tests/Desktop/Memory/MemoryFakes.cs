@@ -65,9 +65,13 @@ internal sealed class FakeMemoryExporter(MemoryExportResult? result = null) : IM
 
     public MemoryExportResult Result { get; set; } = result ?? new MemoryExportResult(true, ["memory/cronologico-2026-10.md", "memory/tema-decision.md"], 7);
 
-    public Task<MemoryExportResult> ExportAsync(ProjectContext project, CancellationToken ct)
+    /// <summary>The language each export was asked for, in order.</summary>
+    public List<string> Languages { get; } = [];
+
+    public Task<MemoryExportResult> ExportAsync(ProjectContext project, string language, CancellationToken ct)
     {
         Exports.Add(project);
+        Languages.Add(language);
         return Task.FromResult(Result);
     }
 }

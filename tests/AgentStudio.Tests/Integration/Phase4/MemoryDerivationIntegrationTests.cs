@@ -135,7 +135,7 @@ public sealed class MemoryDerivationIntegrationTests
         Assert.Equal(announced.Count, (await app.PayloadsAsync<MemoryRecordedPayload>()).Count);
 
         // The export writes the trusted memory to .agentstudio/memory/: the month and one file per category.
-        var export = await app.Get<IMemoryExporter>().ExportAsync(app.Project, Ct);
+        var export = await app.Get<IMemoryExporter>().ExportAsync(app.Project, "es-ES", Ct);
         Assert.True(export.Exported, export.Reason);
         // The journal entries are not exported (ADR-0047): the journal is already a file of the repository.
         Assert.Equal(fromLog.Count, export.Entries);

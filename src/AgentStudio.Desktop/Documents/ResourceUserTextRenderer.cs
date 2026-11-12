@@ -24,7 +24,7 @@ public sealed class ResourceUserTextRenderer : IUserTextRenderer
             throw new ArgumentException("The language is the name of a culture, such as es-ES or en.", nameof(language));
         }
 
-        return _providers.GetOrAdd(language, tag => new ResourceTextProvider(CultureOf(tag))).Render(text);
+        return _providers.GetOrAdd(language, tag => new ResourceTextProvider(CultureOf(tag))).RenderNested(text);
     }
 
     private static CultureInfo CultureOf(string tag)

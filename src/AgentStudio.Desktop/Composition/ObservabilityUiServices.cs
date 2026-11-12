@@ -92,7 +92,8 @@ internal static class ObservabilityUiServices
                         provider.GetService<ISemanticIndex>(),
                         provider.GetService<IJournalTrust>(),
                         provider.GetService<IEmbeddingModelInstaller>(),
-                        UiContext()));
+                        UiContext(),
+                        provider.GetService<IMemoryEntryTexts>()));
                 provider.GetRequiredService<SemanticIndexUpkeep>().Follow(memory);
                 return memory;
             })

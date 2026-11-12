@@ -7,6 +7,8 @@ using AgentStudio.Memory.Export;
 using AgentStudio.Memory.Semantic;
 using AgentStudio.Memory.Store;
 using AgentStudio.Tests.Memory.Store;
+using AgentStudio.Desktop.Documents;
+using AgentStudio.Application.Localization;
 
 namespace AgentStudio.Tests.Memory;
 
@@ -29,7 +31,13 @@ public sealed class MemoryKindNamesTests
         Assert.False(string.IsNullOrWhiteSpace(SemanticLabels.Of(kind)));
         if (MemoryKinds.IsExported(kind))
         {
-            Assert.False(string.IsNullOrWhiteSpace(MemoryMarkdownExporter.Title(kind)));
+            var renderer = new ResourceUserTextRenderer();
+            foreach (var language in new[] { "es-ES", "en" })
+            {
+                Assert.DoesNotMatch(@"^\[", renderer.Render(MemoryMarkdownExporter.TitleOf(kind), language));
+                Assert.DoesNotMatch(@"^\[", renderer.Render(new UserText(MemoryMarkdownExporter.KindLabel(kind)), language));
+            }
+
             Assert.StartsWith("tema-", AgentStudioFiles.ThematicMemoryFile(kind), StringComparison.Ordinal);
         }
     }
@@ -43,7 +51,7 @@ public sealed class MemoryKindNamesTests
             world.Project,
             new MemoryDraft(MemoryKind.ProjectBrief, ProjectBriefs.Topic, "Calculadora de consola en .NET.", MemoryOrigin.User, ProjectBriefs.Source),
             Ct);
-        var result = await new MemoryMarkdownExporter(world.Memory, new ProjectStorageFiles(), world.Activity, world.Redactor, world.Clock).ExportAsync(world.Project, Ct);
+        var result = await new MemoryMarkdownExporter(world.Memory, new ProjectStorageFiles(), world.Activity, world.Redactor, world.Clock, new ResourceUserTextRenderer()).ExportAsync(world.Project, "es-ES", Ct);
 
         Assert.Equal(MemoryKind.ProjectBrief, brief.Kind);
         Assert.True(result.Exported);

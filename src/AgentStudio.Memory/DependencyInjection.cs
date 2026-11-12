@@ -1,4 +1,6 @@
+using AgentStudio.Application.Documents;
 using AgentStudio.Application.Knowledge;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Projects;
 using AgentStudio.Memory.Context;
 using AgentStudio.Memory.Export;
@@ -57,11 +59,17 @@ public static class DependencyInjection
             return memory;
         });
         services.TryAddSingleton<IProjectMemory>(provider => provider.GetRequiredService<ProjectMemory>());
-        services.TryAddSingleton<IMemoryExporter, MemoryMarkdownExporter>();
+
+        // The frame of the exported files is painted by the renderer of the desktop (the resources live there); a host that composes
+        // none can still resolve the exporter, which says so only when it has something to write.
+        services.TryAddSingleton<IMemoryExporter>(provider => ActivatorUtilities.CreateInstance<MemoryMarkdownExporter>(
+            provider,
+            provider.GetService<IUserTextRenderer>() ?? new MissingUserTextRenderer()));
         services.TryAddSingleton<IProjectBrief, ProjectBriefStore>();
         services.TryAddSingleton<IContextPacker, ContextPacker>();
         services.TryAddSingleton<IDailySummaryService, DailySummaryService>();
         services.TryAddSingleton<IMemoryDerivation, Derivation.MemoryDerivation>();
+        services.TryAddSingleton<IMemoryEntryTexts>(provider => (Derivation.MemoryDerivation)provider.GetRequiredService<IMemoryDerivation>());
         services.TryAddSingleton<IJournalTrust, Derivation.JournalTrust>();
         return services;
     }
