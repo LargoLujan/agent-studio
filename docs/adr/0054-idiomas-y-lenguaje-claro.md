@@ -530,6 +530,8 @@ pintado desde su código más la línea de error del propio registro del paso, s
   esquema o `OrderNotesCheck` descartan): son avisos técnicos en inglés sobre la respuesta del agente y siguen como están.
 - `finding.Message` de `RunMonitorViewModel` (~1110): lo escribe `src/AgentStudio.Debate/Audit/AuditedRun.cs` (`OrchestratorFinding`), que es de
   otro paquete; la fila ya enseña el título de la comprobación por su código (`AuditFindingText.Check`) y el detalle sigue en inglés. Pasarlo a código es un cambio de `Debate/Audit`.
+- `delivery.run-not-succeeded` enseña el estado con que terminó la ejecución con el nombre del tipo (`Failed`, `Cancelled`), sin traducirlo: es un valor técnico
+  como un identificador. Traducirlo pide una pieza por estado.
 - `PlanViolationText` se queda como está: ya pinta desde recursos por código estable (`PlanViolationCode`, claves `Orchestrator_Violation_*`) en
   el idioma en uso; pasarlo a `UserText` obliga a renombrar sus claves a `Text_*` y no añade nada visible.
 - Las suites de `tests/AgentStudio.Tests/Integration/**` y `Debate/**` leen `DeliveryReadiness.Reason` y `DeliveryResult.Message`: no se tocaron ni se ejecutaron

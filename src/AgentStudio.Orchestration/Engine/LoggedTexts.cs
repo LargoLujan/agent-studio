@@ -9,7 +9,7 @@ namespace AgentStudio.Orchestration.Engine;
 /// The coded text of a reason or a summary the decision log anchored (docs/17 D-47, D-48, ADR-0054 addendum of 2026-11-12). The log
 /// keeps the Spanish sentence byte for byte (it is chained by SHA-256), so a run read back from it, or resumed, has no code stored: the
 /// code is <b>derived at read time</b> from the exact sentence the engine writes, as the memory does. A sentence that is not one of
-/// those (a reason of a worker, an agent's own words, a sentence of an older version) gives null, and the screen shows it as it was
+/// those (the words of an agent or of its program, the differences of the repository, a sentence of an older version) gives null, and the screen shows it as it was
 /// anchored. The sentences are the ones <see cref="OrchestrationRun"/> and <see cref="RunResumer"/> write; a test walks each of them.
 /// </summary>
 public static partial class LoggedTexts
