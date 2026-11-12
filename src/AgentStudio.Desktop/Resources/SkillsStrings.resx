@@ -560,4 +560,53 @@ Pide una recomendación para tu tarea. La determinista no gasta límite de uso; 
 Mira el coste: cada skill activa suma tokens en cada ejecución.</value>
     <comment>Information button: one action per line.</comment>
   </data>
+  <data name="Skills_Sector_arquitectura-software" xml:space="preserve">
+    <value>Arquitectura de software</value>
+    <comment>Sector of the skills catalog; the key ends with the id of the sector.</comment>
+  </data>
+  <data name="Skills_Sector_arquitectura-datos" xml:space="preserve">
+    <value>Arquitectura de datos</value>
+  </data>
+  <data name="Skills_Sector_ingenieria-datos" xml:space="preserve">
+    <value>Ingeniería de datos</value>
+  </data>
+  <data name="Skills_Sector_ciencia-datos" xml:space="preserve">
+    <value>Ciencia de datos</value>
+  </data>
+  <data name="Skills_Sector_analitica-bi" xml:space="preserve">
+    <value>Analítica y BI</value>
+  </data>
+  <data name="Skills_Sector_ux-ui" xml:space="preserve">
+    <value>UX/UI</value>
+  </data>
+  <data name="Skills_Sector_frontend" xml:space="preserve">
+    <value>Frontend</value>
+  </data>
+  <data name="Skills_Sector_backend" xml:space="preserve">
+    <value>Backend</value>
+  </data>
+  <data name="Skills_Sector_movil" xml:space="preserve">
+    <value>Desarrollo móvil</value>
+  </data>
+  <data name="Skills_Sector_escritorio" xml:space="preserve">
+    <value>Desarrollo de escritorio</value>
+  </data>
+  <data name="Skills_Sector_devops-cloud" xml:space="preserve">
+    <value>DevOps y cloud</value>
+  </data>
+  <data name="Skills_Sector_ciberseguridad" xml:space="preserve">
+    <value>Ciberseguridad</value>
+  </data>
+  <data name="Skills_Sector_testing-qa" xml:space="preserve">
+    <value>Testing y QA</value>
+  </data>
+  <data name="Skills_Sector_ia-llm" xml:space="preserve">
+    <value>IA y LLM</value>
+  </data>
+  <data name="Skills_Sector_ingenieria-software" xml:space="preserve">
+    <value>Ingeniería de software</value>
+  </data>
+  <data name="Skills_Sector_documentacion" xml:space="preserve">
+    <value>Documentación</value>
+  </data>
 </root>
