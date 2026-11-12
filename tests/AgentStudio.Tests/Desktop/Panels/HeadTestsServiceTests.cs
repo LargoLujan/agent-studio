@@ -215,6 +215,27 @@ public sealed class HeadTestsServiceTests
     }
 
     [Fact]
+    public async Task The_steps_after_the_first_one_that_fails_are_said_not_to_have_run()
+    {
+        var world = new World { Profile = new VerificationProfile("perfil", [Step("build"), Step("test"), Step("pack")]) };
+        world.Runner.Say = step => (null, false, []);
+
+        var result = await world.Service().RunAsync(Ct);
+
+        Assert.Single(result.Lines);
+        Assert.Equal(["test", "pack"], result.StoppedBefore);
+        Assert.Equal(Project.RootPath, result.ProjectRoot);
+    }
+
+    [Fact]
+    public async Task When_every_step_runs_nothing_is_said_to_be_stopped()
+    {
+        var result = await new World().Service().RunAsync(Ct);
+
+        Assert.Empty(result.StoppedBefore!);
+    }
+
+    [Fact]
     public async Task Cancelling_stops_the_run_and_is_not_said_as_a_refusal()
     {
         var world = new World();

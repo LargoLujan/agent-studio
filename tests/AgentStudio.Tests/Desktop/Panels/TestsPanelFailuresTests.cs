@@ -47,6 +47,53 @@ public sealed class TestsPanelFailuresTests
     }
 
     [Fact]
+    public async Task The_panel_says_which_steps_did_not_run_because_an_earlier_one_failed()
+    {
+        var result = new HeadTestsResult([Line(failed: true)], null, null, 0, ["test", "pack"]);
+        var panel = new TestsPanelViewModel(English) { HeadTests = new Scripted(result) };
+        var spanish = new TestsPanelViewModel(Spanish) { HeadTests = new Scripted(result) };
+
+        await panel.RunHeadTestsCommand.ExecuteAsync(null);
+        await spanish.RunHeadTestsCommand.ExecuteAsync(null);
+
+        Assert.Equal(["It stopped at the first step that failed and did not run: test, pack."], panel.HeadNotes);
+        Assert.Equal(["Se paró en el primer paso que falló y no se ejecutaron: test, pack."], spanish.HeadNotes);
+    }
+
+    [Fact]
+    public async Task A_result_that_arrives_after_the_person_opened_another_project_is_discarded_and_said()
+    {
+        var project = "C:\\a";
+        var gate = new TaskCompletionSource<HeadTestsResult>();
+        var panel = new TestsPanelViewModel(English) { HeadTests = new Waiting(gate.Task), CurrentProject = () => project };
+
+        var running = panel.RunHeadTestsCommand.ExecuteAsync(null);
+        project = "C:\\b";
+        gate.SetResult(new HeadTestsResult([Line(failed: true)], [new FailedTestRow("test", "A", null)]));
+        await running;
+
+        Assert.Empty(panel.HeadRows);
+        Assert.Empty(panel.HeadFailures);
+        Assert.Equal("You opened another project while the tests ran: their result was discarded.", panel.HeadSummary);
+        Assert.False(panel.IsRunning);
+    }
+
+    [Fact]
+    public async Task A_result_of_the_same_project_is_painted()
+    {
+        var panel = new TestsPanelViewModel(English) { HeadTests = new Scripted(new HeadTestsResult([Line(failed: false)])), CurrentProject = () => "C:\\a" };
+
+        await panel.RunHeadTestsCommand.ExecuteAsync(null);
+
+        Assert.Single(panel.HeadRows);
+    }
+
+    private sealed class Waiting(Task<HeadTestsResult> result) : IHeadTestsService
+    {
+        public Task<HeadTestsResult> RunAsync(CancellationToken cancellationToken) => result;
+    }
+
+    [Fact]
     public async Task A_new_run_replaces_the_failures_of_the_last_one()
     {
         var panel = new TestsPanelViewModel(English) { HeadTests = new Scripted(new HeadTestsResult([Line(failed: true)], [new FailedTestRow("test", "A", null)], ["x"], 1)) };

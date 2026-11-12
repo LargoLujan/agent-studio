@@ -183,3 +183,11 @@
   impresión real queda para la demostración.
 - **El cierre de un hito:** `ClientDocumentsViewModel.GenerateForMilestoneAsync(nombre)` es el punto de entrada; el disparador
   desde un hito cerrado espera al WP3 de la Fase 9.
+
+## Adenda 2026-11-12 · Qué pruebas guardadas cuenta el documento
+
+- **El documento solo cuenta pruebas guardadas ancladas.** `ClientDocumentBuilder` ya no toma todo lo que `IEvidenceStore.ListAsync`
+  devuelve: solo las que el registro de decisiones verificado anuncia (`EvidenceRegistered`, con el mismo id y el mismo SHA-256). El
+  almacén también guarda pruebas que no pertenecen a ninguna ejecución, como las de «Ejecutar las pruebas de HEAD» (ADR-0017, adenda
+  del 2026-11-12), y las cifras de pruebas del resumen y los anexos no deben cambiar porque la persona las ejecute. Los ficheros
+  dorados no cambian: sus pruebas se anclan igual que lo hace el motor.

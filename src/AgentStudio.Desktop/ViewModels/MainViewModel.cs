@@ -251,6 +251,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
             .. SettingsActivities(),
         ];
         Tests.HeadTests = headTests?.For(() => ProjectPath);
+        Tests.CurrentProject = () => ProjectPath;
         InitializeBuilderShell(monitors, setup, setupSuggestions);
     }
 
@@ -372,6 +373,9 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
     {
         _welcome?.ShowProject(value is null ? null : ProjectName, value is null ? null : ProjectPathDisplay);
         ShowSetupSuggestion(value);
+
+        // The tests of HEAD that run are of the project that was open: they are stopped (the copy is cleaned when the verifier ends).
+        Tests.CancelHeadTestsCommand.Execute(null);
         AttachPanels();
     }
 

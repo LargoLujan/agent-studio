@@ -63,6 +63,63 @@ public sealed class FailedTestsReportTests
     }
 
     [Fact]
+    public void Direction_marks_and_zero_width_characters_never_reach_a_name_or_a_message()
+    {
+        var name = "Calc‮tset⁦x⁩‎‏؜​‍Ok";
+        var xml = Trx(FailedResult(name, "men‮saje​"));
+
+        var (_, failed) = TrxReportParser.ParseWithFailures(Stream(xml), 1);
+
+        var test = Assert.Single(failed);
+        Assert.Equal("CalctsetxOk", test.Name);
+        Assert.Equal("mensaje", test.Message);
+    }
+
+    [Fact]
+    public void A_surrogate_pair_at_the_edge_of_the_bound_is_never_split()
+    {
+        // 298 letters and then an emoji (two chars): the emoji straddles the cut.
+        var edge = new string('a', 298) + "\U0001F600" + "bbb";
+        var xml = Trx(FailedResult(edge, new string('m', 396) + "\U0001F600\U0001F600"));
+
+        var (_, failed) = TrxReportParser.ParseWithFailures(Stream(xml), 1);
+
+        var test = Assert.Single(failed);
+        foreach (var text in new[] { test.Name, test.Message! })
+        {
+            for (var i = 0; i < text.Length; i++)
+            {
+                Assert.False(char.IsLowSurrogate(text[i]) && (i == 0 || !char.IsHighSurrogate(text[i - 1])), "A lone low surrogate.");
+                Assert.False(char.IsHighSurrogate(text[i]) && (i + 1 == text.Length || !char.IsLowSurrogate(text[i + 1])), "A lone high surrogate.");
+            }
+        }
+
+        Assert.True(test.Name.Length <= 300);
+        Assert.EndsWith("…", test.Name);
+        Assert.True(test.Message!.Length <= 400);
+    }
+
+    [Fact]
+    public void An_attribute_of_several_megabytes_ends_quickly_and_only_its_bound_is_kept()
+    {
+        // The XML reader gives an attribute whole: the real cap of a value is the one of the document (1 000 000 000 characters), so a value of
+        // some megabytes is read once and cut at once. What this checks is that nothing multiplies its cost afterwards.
+        var huge = new string('x', 8_000_000);
+        var trx = Trx(FailedResult(huge, "m"));
+        var junit = "<testsuite><testcase classname=\"" + huge + "\" name=\"" + huge + "\"><failure message=\"" + huge + "\"/></testcase></testsuite>";
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+
+        var (_, fromTrx) = TrxReportParser.ParseWithFailures(Stream(trx), 1);
+        var (_, fromJunit) = JUnitReportParser.ParseWithFailures(Stream(junit), 1);
+
+        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(10), $"Took {clock.Elapsed}.");
+        Assert.Equal(FailureCollectorLimits.Name, Assert.Single(fromTrx).Name.Length);
+        var test = Assert.Single(fromJunit);
+        Assert.Equal(FailureCollectorLimits.Name, test.Name.Length);
+        Assert.Equal(FailureCollectorLimits.Message, test.Message!.Length);
+    }
+
+    [Fact]
     public void Only_the_first_failures_are_listed_while_every_one_is_counted()
     {
         var xml = Trx(string.Concat(Enumerable.Range(0, 450).Select(i => FailedResult("t" + i, "m"))));

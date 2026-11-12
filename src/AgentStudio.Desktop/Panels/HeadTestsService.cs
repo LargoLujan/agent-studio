@@ -156,10 +156,12 @@ public sealed class HeadTestsService : IHeadTestsService
                 Math.Ceiling(budget.TotalMinutes));
         }
 
-        return Present(results, notRun);
+        // The verifier stops at the first step that does not succeed: the steps after it were not run, and the panel says so.
+        var stopped = steps.Skip(results.Count).Select(s => s.Id).ToList();
+        return Present(results, notRun, stopped, root);
     }
 
-    private HeadTestsResult Present(IReadOnlyList<VerificationResult> results, IReadOnlyList<string> notRun)
+    private HeadTestsResult Present(IReadOnlyList<VerificationResult> results, IReadOnlyList<string> notRun, IReadOnlyList<string> stopped, string projectRoot)
     {
         var lines = new List<TestRunRow>(results.Count);
         var failed = new List<FailedTestRow>();
@@ -172,7 +174,7 @@ public sealed class HeadTestsService : IHeadTestsService
             failed.AddRange((result.FailedTests ?? []).Select(f => new FailedTestRow(result.StepId, f.Name, f.Message)));
         }
 
-        return new HeadTestsResult(lines, failed, notRun, (int)Math.Clamp(totalFailed - failed.Count, 0, int.MaxValue));
+        return new HeadTestsResult(lines, failed, notRun, (int)Math.Clamp(totalFailed - failed.Count, 0, int.MaxValue), stopped, projectRoot);
     }
 
     private string BusyWith(ProjectActivityKind? kind) => _texts.Get(kind switch

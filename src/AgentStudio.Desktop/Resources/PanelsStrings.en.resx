@@ -163,6 +163,12 @@
   <data name="Panels_Tests_HeadMore" xml:space="preserve">
     <value>{0} more tests fail and are not shown: the list is cut at the first ones.</value>
   </data>
+  <data name="Panels_Tests_HeadStopped" xml:space="preserve">
+    <value>It stopped at the first step that failed and did not run: {0}.</value>
+  </data>
+  <data name="Panels_Tests_HeadOtherProject" xml:space="preserve">
+    <value>You opened another project while the tests ran: their result was discarded.</value>
+  </data>
   <data name="Panels_Tests_HeadNoProject" xml:space="preserve">
     <value>no project is open.</value>
   </data>

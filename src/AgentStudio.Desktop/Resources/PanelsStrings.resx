@@ -213,6 +213,14 @@
     <value>Hay {0} pruebas más que fallan y no se enseñan: la lista se corta a las primeras.</value>
     <comment>The list of failed tests is bounded. {0}: number.</comment>
   </data>
+  <data name="Panels_Tests_HeadStopped" xml:space="preserve">
+    <value>Se paró en el primer paso que falló y no se ejecutaron: {0}.</value>
+    <comment>Steps after the first one that failed. {0}: their ids.</comment>
+  </data>
+  <data name="Panels_Tests_HeadOtherProject" xml:space="preserve">
+    <value>Abriste otro proyecto mientras corrían las pruebas: su resultado se descartó.</value>
+    <comment>Result discarded because the open project changed.</comment>
+  </data>
   <data name="Panels_Tests_HeadNoProject" xml:space="preserve">
     <value>no hay ningún proyecto abierto.</value>
     <comment>Reason, after the error of the tests of HEAD.</comment>

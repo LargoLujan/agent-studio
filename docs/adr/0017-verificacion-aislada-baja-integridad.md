@@ -224,3 +224,12 @@
     mensaje de 400 en una línea, y el mensaje se lee por trozos, de modo que un mensaje enorme no cuesta memoria. El panel los
     enseña en una lista con altura acotada, que virtualiza, y dice cuántos más fallan y no se enseñan. Las verificaciones de una
     ejecución siguen mostrando contadores y la línea principal del error: su informe no se conserva.
+- **Ajustes de la revisión (2026-11-12).** (a) Los nombres y mensajes quitan también los caracteres de formato (marcas de dirección
+  como U+202E, de ancho cero) y no parten un par sustituto al cortar. (b) El lector de XML entrega un atributo entero: el tope real
+  de un valor es el del documento (`MaxCharactersInDocument`, 1 000 000 000 caracteres); un valor de varios MB se lee una vez y se
+  corta al momento (hay una prueba con 8 MB que termina en segundos), pero no se evita que se materialice. (c) Como el verificador
+  se para en el primer paso que falla, el panel dice qué pasos no se ejecutaron por ello. (d) Si la persona abre otro proyecto, las
+  pruebas que corren se cancelan y un resultado que llegue de otro proyecto se descarta y se dice. (e) Al cerrar la app con las
+  pruebas en marcha no hay cancelación ordenada: el objeto Job de Windows mata los procesos con el proceso de la app y los restos
+  de la copia aislada los borra la siguiente verificación, bajo el cierre del usuario (`LowIntegrityWorkAreaFactory`); no se ha
+  probado a mano.

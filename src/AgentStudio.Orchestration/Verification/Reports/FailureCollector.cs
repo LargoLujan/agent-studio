@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using System.Xml;
 using AgentStudio.Application.Verification;
@@ -80,18 +81,26 @@ internal sealed class FailureCollector
     /// <summary>One line, without control characters, cut with an ellipsis: what a person reads, never a block of the report.</summary>
     internal static string Clean(string? text, int max)
     {
-        if (string.IsNullOrWhiteSpace(text))
+        if (string.IsNullOrEmpty(text))
         {
             return string.Empty;
         }
 
-        var line = new StringBuilder(Math.Min(text.Length, max + 1));
+        // Control and format characters (direction marks such as U+202E, zero-width ones) never reach the screen: a name could
+        // otherwise be shown reversed or hide what it says. Runes, not chars, so a surrogate pair is never split; the work stops
+        // as soon as the line is longer than the bound, whatever the size of the text.
+        var line = new StringBuilder(Math.Min(text.Length, max + 2));
         var space = false;
-        foreach (var c in text.Trim())
+        foreach (var rune in text.EnumerateRunes())
         {
-            if (char.IsControl(c) || char.IsWhiteSpace(c))
+            if (Rune.IsControl(rune) || Rune.IsWhiteSpace(rune))
             {
                 space = line.Length > 0;
+                continue;
+            }
+
+            if (Rune.GetUnicodeCategory(rune) == UnicodeCategory.Format)
+            {
                 continue;
             }
 
@@ -101,14 +110,25 @@ internal sealed class FailureCollector
                 space = false;
             }
 
-            line.Append(c);
+            line.Append(rune.ToString());
             if (line.Length > max)
             {
                 break;
             }
         }
 
-        return line.Length > max ? line.ToString(0, max - 1) + "…" : line.ToString();
+        if (line.Length <= max)
+        {
+            return line.ToString();
+        }
+
+        var cut = max - 1;
+        if (char.IsHighSurrogate(line[cut - 1]))
+        {
+            cut--;
+        }
+
+        return line.ToString(0, cut) + "…";
     }
 
     private static string? NullIfEmpty(string text) => text.Length == 0 ? null : text;

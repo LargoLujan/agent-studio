@@ -26,7 +26,9 @@ public sealed record TestRunRow(string? Task, string Title, string Counters, boo
 /// <param name="FailedTests">The tests the reports of the steps name as failed, in the order of the steps (bounded by the verifier).</param>
 /// <param name="NotRun">The steps the profile runs without isolation: they are never run here, and the panel says which.</param>
 /// <param name="MoreFailures">How many failed tests the counters count that <paramref name="FailedTests"/> does not list.</param>
-public sealed record HeadTestsResult(IReadOnlyList<TestRunRow> Lines, IReadOnlyList<FailedTestRow>? FailedTests = null, IReadOnlyList<string>? NotRun = null, int MoreFailures = 0);
+/// <param name="StoppedBefore">The steps that were not run because an earlier step failed (the verifier stops at the first one that does not succeed).</param>
+/// <param name="ProjectRoot">The project the tests were run for. The panel discards a result that arrives after the person opened another project (<see cref="TestsPanelViewModel.CurrentProject"/>).</param>
+public sealed record HeadTestsResult(IReadOnlyList<TestRunRow> Lines, IReadOnlyList<FailedTestRow>? FailedTests = null, IReadOnlyList<string>? NotRun = null, int MoreFailures = 0, IReadOnlyList<string>? StoppedBefore = null, string? ProjectRoot = null);
 
 /// <summary>How a verification step is said in the panel, shared by the ones the run captured and the ones of HEAD.</summary>
 internal static class TestRunRows
@@ -66,6 +68,9 @@ public sealed partial class TestsPanelViewModel : ObservableObject
 
     /// <summary>Runs the tests of HEAD on demand; without it «Ejecutar las pruebas de HEAD» is not shown.</summary>
     public IHeadTestsService? HeadTests { get; set; }
+
+    /// <summary>The project that is open now. A result of the tests of HEAD that arrives when it is another one than the one they started in is discarded.</summary>
+    public Func<string?>? CurrentProject { get; set; }
 
     /// <summary>The verifications of the run, in the order they were captured.</summary>
     public ObservableCollection<TestRunRow> Rows { get; } = [];
@@ -178,9 +183,17 @@ public sealed partial class TestsPanelViewModel : ObservableObject
         HeadFailures.Clear();
         HeadNotes.Clear();
         _running = new CancellationTokenSource();
+        var startedIn = CurrentProject?.Invoke();
         try
         {
             var result = await service.RunAsync(_running.Token).ConfigureAwait(true);
+            if (CurrentProject is { } current && !string.Equals(current(), startedIn, StringComparison.OrdinalIgnoreCase))
+            {
+                // The person opened another project meanwhile: this result is not of it, and it is not painted as if it were.
+                HeadSummary = _texts.Get("Panels_Tests_HeadOtherProject");
+                return;
+            }
+
             foreach (var line in result.Lines)
             {
                 HeadRows.Add(line);
@@ -194,6 +207,11 @@ public sealed partial class TestsPanelViewModel : ObservableObject
             if (result.NotRun is { Count: > 0 } notRun)
             {
                 HeadNotes.Add(_texts.Format("Panels_Tests_HeadNotRun", string.Join(", ", notRun)));
+            }
+
+            if (result.StoppedBefore is { Count: > 0 } stopped)
+            {
+                HeadNotes.Add(_texts.Format("Panels_Tests_HeadStopped", string.Join(", ", stopped)));
             }
 
             if (result.MoreFailures > 0)

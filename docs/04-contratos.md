@@ -1894,12 +1894,15 @@ Todo vive en `Desktop`; no hay puertos nuevos en `Application`, y los textos sal
   trabajo; «desconocido» con el motivo si no hay juez), y crea el `QuestionPromptService(monitor, WpfQuestionWindowHost, IInterfaceLock)`
   de ese monitor, uno por monitor. Lo llaman (`Equip`) los tres sitios donde nace un `RunMonitorViewModel`: el constructor del
   documento del orquestador, el monitor de una ejecución entregada a la bandeja y el del shell para una ejecución que nadie sigue.
-- [ ] **`IHeadTestsService` no está implementado**: el panel «Pruebas» no muestra «Ejecutar las pruebas de HEAD» (a propósito, no hay
-  un botón que no haga nada). Lo implementaría la composición con `IVerificationRunner`, el perfil y una copia aislada de HEAD,
-  sin cuota.
+- [x] **`IHeadTestsService`** lo implementa `HeadTestsService` (`Panels/HeadTestsService.cs`, P50), compuesto por `HeadTestsServices` con
+  `IVerificationRunner`, `IVerificationProfileSource`, `IWorktreeManager`, `IProjectWorkspace` e `IProjectActivity`; si falta una
+  pieza, el botón no se muestra. Pasa los pasos aislados del perfil sobre HEAD en la copia aislada, sin cuota y sin pedir
+  aprobación, con el proyecto tomado como una auditoría, un tope de tiempo y la cancelación; el resultado trae los nombres de las
+  pruebas que fallan (`VerificationResult.FailedTests`, leídos del TRX o del JUnit) y los pasos no ejecutados. Ver la adenda del
+  ADR-0017.
 - [x] **Quien adjunta la ejecución** (el documento del orquestador) da `Roster` (la plantilla) y `PlanDependencies` (de qué tareas
   depende cada una) **antes** de `Attach`/`Inspect`, también al monitor de una ejecución entregada a otro. Una ejecución que
-  reanuda sola y cuyo plan aún no está leído al adjuntar no tiene pulsos hasta la siguiente. El monitor que el shell crea para una ejecución que nadie sigue (`FollowInBackground`) tampoco los tiene: el shell no lee la plantilla ni el plan de esa ejecución, así que no salen agentes libres ni pulsos (pendiente, no es sencillo desde el shell).
+  reanuda sola y cuyo plan aún no está leído al adjuntar no tiene pulsos hasta la siguiente. El monitor que el shell crea para una ejecución que nadie sigue (`FollowInBackground`) los recibe de lo que la ejecución guardó (P52): `MonitorServices.GiveLiveContextAsync` lee con `IRunLiveContextSource` (`RegistryRunLiveContextSource`: `IRunRegistry` e `IPlanStore`) su plantilla y las dependencias de su plan, de forma asíncrona, y salen agentes libres y pulsos. Ver la adenda del ADR-0036.
 - [x] **Barra lateral y pestañas:** «Herramientas» es una pestaña (`ToolsDocumentViewModel` con `ToolsView`, cargada con la plantilla y
   el perfil del proyecto abierto); su `GiveToAgentRequested` lleva al orquestador, a la capa Equipo, con un agente elegido en el
   inspector. «Pruebas» de la barra muestra u oculta el panel de abajo, y «Problemas», «Salida» y «Pruebas» son
