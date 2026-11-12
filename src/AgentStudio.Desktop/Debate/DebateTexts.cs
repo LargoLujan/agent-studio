@@ -33,6 +33,16 @@ public static class DebateTexts
         return exception is UserTextException coded ? texts.Render(coded.Text) : texts.Format("Debate_Error_Unexpected", exception.Message);
     }
 
+    /// <summary>
+    /// A list of problems or notes of a debate, in the language in use: painted from its coded texts when they go one for one with
+    /// the sentences, and as the sentences themselves (the layer's own) when a producer gave no codes.
+    /// </summary>
+    public static IReadOnlyList<string> Painted(IReadOnlyList<string> messages, IReadOnlyList<UserText>? texts, IUiTextProvider? provider = null)
+    {
+        provider ??= Texts.Current;
+        return CodedList.Paint(messages, texts, provider.Render);
+    }
+
     /// <summary>What a debate waits for, in the language in use: its coded texts when it gives them, or its own sentence.</summary>
     public static string Awaiting(DebateAwaiting waiting, IUiTextProvider? provider = null)
     {

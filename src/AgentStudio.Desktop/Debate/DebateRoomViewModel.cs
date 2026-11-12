@@ -410,7 +410,7 @@ public sealed partial class DebateRoomViewModel : ObservableObject
         SetParticipants(transcript.Participants);
         SetContributions(transcript.Contributions);
         JudgmentText = JudgmentLine(transcript.JudgmentReason, transcript.LimitReached);
-        Replace(Problems, [.. summary.Problems, .. transcript.Problems]);
+        Replace(Problems, [.. DebateTexts.Painted(summary.Problems, summary.ProblemTexts), .. DebateTexts.Painted(transcript.Problems, transcript.ProblemTexts)]);
         _verdicts.AddRange(transcript.Verdicts);
         if (transcript.Verdicts.Count > 0 || transcript.Outcome is not null)
         {
@@ -750,7 +750,7 @@ public sealed partial class DebateRoomViewModel : ObservableObject
         AwaitingText = snapshot.Awaiting is { } waiting ? AwaitingLine(waiting) : null;
         JudgmentText = JudgmentLine(snapshot.JudgmentReason, snapshot.LimitReached);
         CanRunTests = snapshot.CanRunTests;
-        Replace(Problems, snapshot.Problems);
+        Replace(Problems, DebateTexts.Painted(snapshot.Problems, snapshot.ProblemTexts));
         if (snapshot.Awaiting is { Reason: DebateAwaitReason.HumanResolution } && !IsFinished)
         {
             // Rebuilt only when the verdicts change, so what you are typing in «Decidir yo» is not lost on the next event.

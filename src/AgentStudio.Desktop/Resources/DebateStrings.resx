@@ -1946,4 +1946,172 @@ Pulsa «Impugnar» y aprueba para abrir la revisión.</value>
   <data name="Text_debate_cannot_open" xml:space="preserve">
     <value>El debate no se puede abrir. Mira los problemas de la propuesta.</value>
   </data>
+  <data name="Text_debate_problem_participant_missing" xml:space="preserve">
+    <value>El participante «{0}» no está en el equipo del proyecto.</value>
+  </data>
+  <data name="Text_debate_problem_participant_role" xml:space="preserve">
+    <value>«{0}» tiene un rol que no debate. Un juez, un auditor o el orquestador no participan.</value>
+  </data>
+  <data name="Text_debate_problem_no_provider" xml:space="preserve">
+    <value>No se encuentra el programa de {0} que usa el agente «{1}».</value>
+  </data>
+  <data name="Text_debate_problem_judge_missing" xml:space="preserve">
+    <value>El juez «{0}» no está en el equipo del proyecto.</value>
+  </data>
+  <data name="Text_debate_problem_judge_role" xml:space="preserve">
+    <value>«{0}» no es un juez ni un auditor: solo ellos pueden juzgar.</value>
+  </data>
+  <data name="Text_debate_problem_orchestrator_requirements" xml:space="preserve">
+    <value>La revisión del orquestador se juzga con sus requisitos fijos (orq-1 a orq-7), sin cambiarlos.</value>
+  </data>
+  <data name="Text_debate_problem_no_arrangement" xml:space="preserve">
+    <value>Con estos participantes y jueces no cabe esa disposición. Ningún juez podría ocuparla sin juzgar a su propia empresa.</value>
+  </data>
+  <data name="Text_debate_problem_session_refused" xml:space="preserve">
+    <value>La configuración del debate no es válida (detalle técnico: {0}).</value>
+  </data>
+  <data name="Text_debate_problem_no_round_fits" xml:space="preserve">
+    <value>Con {0} ejecuciones no cabe ni la ronda 1 de {1} participantes.</value>
+  </data>
+  <data name="Text_debate_problem_run_unnamed" xml:space="preserve">
+    <value>Un debate sobre una ejecución tiene que decir cuál.</value>
+  </data>
+  <data name="Text_debate_problem_run_not_in_log" xml:space="preserve">
+    <value>La ejecución {0} no está en el registro.</value>
+  </data>
+  <data name="Text_debate_problem_no_candidate_commit" xml:space="preserve">
+    <value>La ejecución {0} no guardó ninguna versión (commit). Sin ella no se puede auditar.</value>
+  </data>
+  <data name="Text_debate_problem_audit_requirements" xml:space="preserve">
+    <value>La auditoría usa los requisitos que se congelaron en su ejecución.</value>
+  </data>
+  <data name="Text_debate_problem_unknown_subject" xml:space="preserve">
+    <value>El debate trata de algo que Agent Studio no conoce.</value>
+  </data>
+  <data name="Text_debate_problem_verdict_unnamed" xml:space="preserve">
+    <value>Una impugnación tiene que decir qué veredicto impugna.</value>
+  </data>
+  <data name="Text_debate_problem_verdict_not_stored" xml:space="preserve">
+    <value>El veredicto {0} no está guardado. No es de ninguna ejecución, debate ni auditoría.</value>
+  </data>
+  <data name="Text_debate_problem_debate_missing" xml:space="preserve">
+    <value>El debate {0} del veredicto impugnado no existe.</value>
+  </data>
+  <data name="Text_debate_problem_audit_missing" xml:space="preserve">
+    <value>La auditoría {0} del veredicto impugnado no existe.</value>
+  </data>
+  <data name="Text_debate_note_uncommitted" xml:space="preserve">
+    <value>Tienes cambios sin guardar. No entran en el debate, que parte de la última versión guardada (commit).</value>
+  </data>
+  <data name="Text_debate_note_max_runs_one_round" xml:space="preserve">
+    <value>Se harán {0} ejecuciones como mucho. Cuentan {1} participantes, 1 ronda y los reintentos.</value>
+  </data>
+  <data name="Text_debate_note_max_runs" xml:space="preserve">
+    <value>Se harán {0} ejecuciones como mucho. Cuentan {1} participantes, {2} rondas y los reintentos.</value>
+  </data>
+  <data name="Text_debate_note_tokens_per_turn" xml:space="preserve">
+    <value>Un turno de Claude con haiku gasta de 40 000 a 160 000 tokens. Uno de Codex, de 20 000 a 80 000.</value>
+  </data>
+  <data name="Text_debate_note_token_limit" xml:space="preserve">
+    <value>El límite de {0:N0} tokens corta el debate antes: se va a juicio al alcanzarlo.</value>
+  </data>
+  <data name="Text_debate_note_estimated" xml:space="preserve">
+    <value>Estimado por Agent Studio: con suscripción no es lo que pagas.</value>
+  </data>
+  <data name="Text_debate_problem_log_unverified" xml:space="preserve">
+    <value>El registro de decisiones no verifica (desde la entrada {0}).</value>
+  </data>
+  <data name="Text_debate_problem_not_opened" xml:space="preserve">
+    <value>El registro no tiene el inicio del debate {0}.</value>
+  </data>
+  <data name="Text_debate_problem_header_mismatch" xml:space="preserve">
+    <value>La cabecera guardada del debate no es la que quedó anclada al abrirlo.</value>
+  </data>
+  <data name="Text_debate_problem_question_unreadable" xml:space="preserve">
+    <value>La pregunta del debate no se puede leer contra su huella.</value>
+  </data>
+  <data name="Text_debate_problem_requirements_missing" xml:space="preserve">
+    <value>Los requisitos congelados {0} del debate no están guardados.</value>
+  </data>
+  <data name="Text_debate_problem_contribution_unreadable" xml:space="preserve">
+    <value>La contribución {0} no se puede leer contra su huella.</value>
+  </data>
+  <data name="Text_debate_problem_entry_unreadable" xml:space="preserve">
+    <value>La entrada {0} del registro ({1}) no se puede leer.</value>
+  </data>
+  <data name="Text_debate_problem_replay" xml:space="preserve">
+    <value>El registro no cuenta un debate coherente (detalle técnico: {0}).</value>
+  </data>
+  <data name="Text_debate_problem_final_figures" xml:space="preserve">
+    <value>Las cifras finales del debate no se pudieron leer del registro.</value>
+  </data>
+  <data name="Text_debate_problem_stopped" xml:space="preserve">
+    <value>El debate se detuvo por un error (detalle técnico: {0}).</value>
+  </data>
+  <data name="Text_debate_problem_nothing_to_judge" xml:space="preserve">
+    <value>No hay ninguna contribución que juzgar: reintenta el turno o aborta el debate.</value>
+  </data>
+  <data name="Text_debate_problem_copy_not_deleted" xml:space="preserve">
+    <value>No se pudo borrar la copia de la versión guardada (commit) del debate.</value>
+  </data>
+  <data name="Text_debate_challenge_not_revision" xml:space="preserve">
+    <value>Esta propuesta no es la revisión de un veredicto: prepara la impugnación desde la tarjeta del veredicto.</value>
+  </data>
+  <data name="Text_debate_challenge_cannot_open" xml:space="preserve">
+    <value>La impugnación no se puede abrir. Mira los problemas de la propuesta.</value>
+  </data>
+  <data name="Text_debate_challenge_proposal_outdated" xml:space="preserve">
+    <value>Lo que viste ya no es lo que hay. Cambió el veredicto, su objeto o quién puede juzgarlo. Prepara la impugnación otra vez.</value>
+  </data>
+  <data name="Text_debate_challenge_verdict_not_stored" xml:space="preserve">
+    <value>El veredicto {0} no está guardado.</value>
+  </data>
+  <data name="Text_debate_challenge_nothing_to_accept" xml:space="preserve">
+    <value>El veredicto {0} no cerró la revisión de ningún veredicto impugnado: no hay nada que aceptar.</value>
+  </data>
+  <data name="Text_debate_challenge_not_awaiting_acceptance" xml:space="preserve">
+    <value>La revisión {0} del veredicto {1} no espera aceptación. Solo se acepta la última que dio la vuelta hacia una aprobación.</value>
+  </data>
+  <data name="Text_debate_challenge_acceptance_not_answered" xml:space="preserve">
+    <value>La aprobación recibida no responde a la aceptación de esta revisión.</value>
+  </data>
+  <data name="Text_debate_challenge_problem_log_broken" xml:space="preserve">
+    <value>El registro de decisiones no está íntegro: no se impugna sobre un registro que no admite entradas.</value>
+  </data>
+  <data name="Text_debate_challenge_problem_reasons_missing" xml:space="preserve">
+    <value>Escribe tus razones: la ronda 1 de la revisión parte de ellas.</value>
+  </data>
+  <data name="Text_debate_challenge_problem_verdict_not_found" xml:space="preserve">
+    <value>El veredicto {0} no está guardado. No es de ninguna ejecución, debate ni auditoría.</value>
+  </data>
+  <data name="Text_debate_challenge_problem_not_announced" xml:space="preserve">
+    <value>El registro no anuncia el veredicto {0} en {1}: no se impugna lo que el registro no recoge.</value>
+  </data>
+  <data name="Text_debate_challenge_problem_unit_not_started" xml:space="preserve">
+    <value>El registro no tiene el inicio de {0}, el objeto del veredicto. No se sabe quién no puede juzgar la revisión.</value>
+  </data>
+  <data name="Text_debate_challenge_problem_already_challenged" xml:space="preserve">
+    <value>El veredicto {0} ya tiene una impugnación sin cerrar (debate {1}): espera a que termine.</value>
+  </data>
+  <data name="Text_debate_challenge_problem_requirements_missing" xml:space="preserve">
+    <value>No están guardados los requisitos {0} del veredicto. La revisión los usa.</value>
+  </data>
+  <data name="Text_debate_challenge_problem_not_inherited" xml:space="preserve">
+    <value>La revisión no hereda las empresas que excluye el objeto del veredicto ({0}). Una empresa que hizo el trabajo podría juzgarlo.</value>
+  </data>
+  <data name="Text_debate_challenge_problem_judge_on_excluded" xml:space="preserve">
+    <value>Un juez de la revisión es de una empresa que el objeto excluye: {0}.</value>
+  </data>
+  <data name="Text_debate_challenge_problem_jury_needed" xml:space="preserve">
+    <value>El veredicto impugnado es de un jurado cruzado: su revisión se juzga con jurado cruzado.</value>
+  </data>
+  <data name="Text_debate_challenge_note_same_judge" xml:space="preserve">
+    <value>Juzga el mismo agente que emitió el veredicto impugnado ({0}), en una sesión nueva. El equipo no tiene otro juez.</value>
+  </data>
+  <data name="Text_debate_challenge_note_nobody_can_judge" xml:space="preserve">
+    <value>Con estos participantes y jueces nadie puede juzgar la revisión sin juzgar el trabajo de su propia empresa.</value>
+  </data>
+  <data name="Text_debate_cannot_resume_detail" xml:space="preserve">
+    <value>No se puede reanudar el debate {0}. Su registro no cuenta un debate coherente (detalle técnico: {1}).</value>
+  </data>
 </root>

@@ -95,9 +95,9 @@ public sealed class Phase5ContractTests
 
         Assert.Null(request.MaxAgentRuns);
         Assert.Equal(
-            ["ApprovalText", "Estimate", "HeaderHash", "Judging", "Problems", "Request"],
+            ["ApprovalText", "Estimate", "HeaderHash", "Judging", "ProblemTexts", "Problems", "Request"],
             PropertyNames(typeof(DebateProposal)));
-        Assert.Equal(["MaxAgentRuns", "Notes", "Tokens"], PropertyNames(typeof(DebateEstimate)));
+        Assert.Equal(["MaxAgentRuns", "NoteTexts", "Notes", "Tokens"], PropertyNames(typeof(DebateEstimate)));
     }
 
     [Fact]

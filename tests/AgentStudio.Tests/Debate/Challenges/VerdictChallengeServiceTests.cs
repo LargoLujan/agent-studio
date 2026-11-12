@@ -132,7 +132,7 @@ public sealed class VerdictChallengeServiceTests
         var proposal = await bench.PrepareAsync(bench.Request());
 
         Assert.Contains(proposal.Problems, p => p.Contains("anthropic", StringComparison.Ordinal) && p.Contains("hereda", StringComparison.Ordinal));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => bench.ChallengeAsync(proposal));
+        await Assert.ThrowsAnyAsync<InvalidOperationException>(() => bench.ChallengeAsync(proposal));
         Assert.Empty(bench.Coordinator.Opened);
     }
 
@@ -169,7 +169,7 @@ public sealed class VerdictChallengeServiceTests
 
         Assert.NotEmpty(proposal.Problems);
         var before = bench.Entries.Count;
-        await Assert.ThrowsAsync<InvalidOperationException>(() => bench.ChallengeAsync(proposal));
+        await Assert.ThrowsAnyAsync<InvalidOperationException>(() => bench.ChallengeAsync(proposal));
         Assert.Equal(before, bench.Entries.Count);
         Assert.Empty(bench.Coordinator.Opened);
     }
@@ -211,7 +211,7 @@ public sealed class VerdictChallengeServiceTests
         bench.Coordinator.Approve = false;
         var proposal = await bench.PrepareAsync(bench.Request());
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => bench.ChallengeAsync(proposal));
+        await Assert.ThrowsAnyAsync<InvalidOperationException>(() => bench.ChallengeAsync(proposal));
 
         Assert.DoesNotContain(bench.Entries, e => e.Kind == DecisionKind.VerdictChallenged);
         Assert.DoesNotContain(bench.World.Evidence.Drafts, d => d.Kind == EvidenceKind.HumanNote);
@@ -345,7 +345,7 @@ public sealed class VerdictChallengeServiceTests
             _ => ids[0],
         };
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => bench.AcceptAsync(verdict));
+        await Assert.ThrowsAnyAsync<InvalidOperationException>(() => bench.AcceptAsync(verdict));
 
         Assert.Empty(bench.Gate.Requests);
     }

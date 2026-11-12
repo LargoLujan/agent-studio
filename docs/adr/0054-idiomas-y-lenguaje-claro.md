@@ -345,12 +345,41 @@ junto a `Message`; `PendingProblem.Text`, `ProjectAuditProposal.ProblemTexts` (p
 - El texto de aprobación de la apertura y de la reanudación (`ApprovalText`, `ApprovalRequest.Description`), el informe del hito
   (`MilestoneReport`, D-49) y el de la auditoría de la orquestación, que se anclan o son determinista.
 
-**Pendiente (sigue en castellano a mano en Debate, con pantalla).** Las listas `Problems` y `Notes` de la propuesta de debate
-(`DebateCoordinator.PlanAsync`) y de impugnación (`VerdictChallengeService`), los `Problems` del resumen y de la instantánea de un
-debate (`DebateRun._problems`, `DebateCoordinator` al releer) y los `Reasons` de `MilestoneCloseRefusedException`, que aún no tienen
-pantalla. Cada uno necesita su propio código; la forma es la de esta adenda (un `UserText` junto a la frase, o `CodedMessages` si es
-una lista). En la auditoría, el motivo de `Verdict.Summary` cuando no corre un juez se guarda tal cual en `ProjectAuditFinished`
-(anclado): la pantalla lee `AuditReport.EscalationText`.
+**Lo que quedaba, cerrado después (2026-11-12, restos de WP-14A parte e en Debate y en la auditoría).**
+- **Los motivos de la tarjeta de un veredicto** («Decidir yo», «Impugnar», «Crear tareas correctivas»), de la lista de debates y de
+  «Nuevo debate» se pintan con `DebateTexts.Reason(ex)`: ya no se enseña `ex.Message`.
+- **Impugnar.** Las excepciones de `VerdictChallengeService` que llegan a la tarjeta son `UserTextException` (códigos
+  `debate.challenge.*`: `not-revision`, `cannot-open`, `proposal-outdated`, `verdict-not-stored`, `nothing-to-accept`,
+  `not-awaiting-acceptance`, `acceptance-not-answered`).
+- **Problemas y notas de las propuestas.** `DebateProposal` gana `ProblemTexts` y `DebateEstimate` gana `NoteTexts` (uno por frase, mismo
+  orden, valor por defecto `null`). `DebateCoordinator.PlanAsync` y `VerdictChallengeService.PrepareAsync` los rellenan con
+  `CodedMessages`; `NewDebateViewModel` y `ChallengeFormViewModel` los pintan con `DebateTexts.Painted`, que usa el código cuando va
+  uno por frase y la frase cuando no. Códigos `debate.problem.*` y `debate.note.*` del coordinador, y `debate.challenge.problem.*` y
+  `debate.challenge.note.*` de la impugnación. Las frases en castellano (`Problems`, `Notes`) no cambian.
+- **Problemas del resumen, la transcripción y la sala.** `DebateSummary`, `DebateTranscript` y `DebateSnapshot` ganan `ProblemTexts`;
+  `DebateLog.Problems` sigue siendo `IReadOnlyList<string>` y gana `ProblemTexts`; `DebateRun._problems` es un `CodedMessages`.
+  Códigos `debate.problem.*` (`log-unverified`, `not-opened`, `header-mismatch`, `question-unreadable`, `requirements-missing`,
+  `contribution-unreadable`, `entry-unreadable`, `replay`, `final-figures`, `stopped`, `nothing-to-judge`, `copy-not-deleted`). Los
+  problemas del reproductor del dominio (`DebateStateReplayer`) y `debate.problem.session-refused` (la regla de `DebateSession.Open`)
+  viajan con su mensaje técnico, en inglés, como argumento: «detalle técnico: …», igual que `Debate_Error_Unexpected`.
+- **`MilestoneCloseRefusedException`.** Ya estaba bien: los nueve motivos que lanza `MilestoneCloser` (`milestone.closing`,
+  `log.not-intact`, `milestone.audit-not-run`, `milestone.requirements`, `milestone.not-found`, `milestone.problems`,
+  `milestone.not-open`, `milestone.nothing-to-close`, `milestone.no-judge`) llegan como `Rule`, y «Trabajo» pinta solo la regla con
+  las claves `Work_Refused_*`; no enseña `Reasons` ni `Message`. `DebateRestosTextsTests` lo comprueba. Las frases de `Reasons` quedan en
+  castellano para el registro y el informe.
+- **Detalle que se había perdido.** `debate.cannot-resume-detail` devuelve la causa de `replay.Problems` (frases del dominio, en
+  inglés y sin rutas) como detalle técnico. No se devuelve el de `ProblemRepositoryUnreadable`, `ProblemProfileUnusable` ni
+  `TurnEndedBadly`: su causa es el mensaje de una `IOException` (con la ruta de la persona) o texto del programa del agente, que no se
+  enseña como frase del sistema. El debate tampoco enseña la causa de `debate.problem.question-unreadable`,
+  `contribution-unreadable` ni `copy-not-deleted`, por la misma razón.
+- **Nombre del proveedor.** `ProviderNames.Of` (`Application/Localization`) da el nombre que la persona conoce («Claude Code»,
+  «Codex CLI»); lo usan `debate.no-provider`, `debate.problem.no-provider` y los textos de turno (`turn.limit-resets`,
+  `turn.limit-unknown`, `turn.overloaded`) en lugar del id (`claude-code`).
+
+**Pendiente.** En la auditoría, el motivo de `Verdict.Summary` cuando no corre un juez se guarda tal cual en `ProjectAuditFinished`
+(anclado): la pantalla lee `AuditReport.EscalationText`. `MilestoneCloseRefusedException.Message` sigue en castellano (lleva `Reasons`).
+`DebateRoomViewModel` junta `summary.Problems` y `transcript.Problems`, que en una transcripción son la misma lista: se pintan dos
+veces (ya era así). `NewDebateViewModel._runRequirementsProblem` guarda la frase en el idioma en que se construyó.
 
 ## Adenda · 2026-11-12 · lo que la memoria dice en tu idioma sin tocar lo anclado (WP-14A, parte e, `Memory`)
 

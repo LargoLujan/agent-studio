@@ -2,9 +2,11 @@ using System.Runtime.CompilerServices;
 using AgentStudio.Application.Coordination;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Judging;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Security;
+using AgentStudio.Debate.Arena;
 using AgentStudio.Debate.Challenges;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Common;
@@ -203,9 +205,10 @@ internal sealed class FakeCoordinator(PreparedRun world, FakeTemplate template) 
             request,
             arrangement ?? new JudgingArrangement(request.Judging, [], Producers, new HashSet<VendorId>()),
             problems,
-            new DebateEstimate(10, MetricValue<long>.EstimatedBySystem(400_000, "estimate: test"), ["Estimado por Agent Studio."]),
+            new DebateEstimate(10, MetricValue<long>.EstimatedBySystem(400_000, "estimate: test"), ["Estimado por Agent Studio."], [UserText.Of(DebateUserTexts.NoteEstimated)]),
             hash,
-            "Abrir un debate de revisión."));
+            "Abrir un debate de revisión.",
+            [.. problems.Select(p => UserText.Of(DebateUserTexts.ProblemNoArrangement))]));
     }
 
     public async Task<IDebateRun> OpenAsync(DebateProposal proposal, CancellationToken ct)

@@ -104,7 +104,7 @@ public sealed class DebateRun : IDebateRun
     private readonly Dictionary<EvidenceId, long> _characters = [];
     private readonly List<DebateContributionView> _contributions = [];
     private readonly List<JudgedVerdict> _verdicts = [];
-    private readonly List<string> _problems = [];
+    private readonly CodedMessages _problems = new();
     private readonly DebateSession _session;
 
     private Task _loop = Task.CompletedTask;
@@ -180,7 +180,8 @@ public sealed class DebateRun : IDebateRun
                 _session.JudgmentReason,
                 _awaiting,
                 _canRunTests && _session.Phase != DebatePhase.Closed,
-                [.. _problems]);
+                _problems.Messages,
+                _problems.Texts);
         }
     }
 
@@ -421,7 +422,7 @@ public sealed class DebateRun : IDebateRun
             {
                 lock (_gate)
                 {
-                    _problems.Add("Las cifras finales del debate no se pudieron leer del registro: " + ex.Message);
+                    _problems.Add("Las cifras finales del debate no se pudieron leer del registro: " + ex.Message, UserText.Of(DebateUserTexts.ProblemFinalFigures));
                 }
             }
 
@@ -435,7 +436,7 @@ public sealed class DebateRun : IDebateRun
         {
             lock (_gate)
             {
-                _problems.Add("El debate se detuvo por un error: " + ex.Message);
+                _problems.Add("El debate se detuvo por un error: " + ex.Message, UserText.Of(DebateUserTexts.ProblemStopped, ex.Message));
             }
 
             Finish(interrupted: true);
@@ -644,7 +645,7 @@ public sealed class DebateRun : IDebateRun
                         {
                             lock (_gate)
                             {
-                                _problems.Add("No hay ninguna contribución que juzgar: reintenta el turno o aborta el debate.");
+                                _problems.Add("No hay ninguna contribución que juzgar: reintenta el turno o aborta el debate.", UserText.Of(DebateUserTexts.ProblemNothingToJudge));
                             }
 
                             break;
@@ -744,14 +745,14 @@ public sealed class DebateRun : IDebateRun
                         ? Invariant($"el límite de uso de {turn.Seat.Provider.Provider} se reinicia a las {at:HH:mm} UTC, después de lo que el debate espera solo")
                         : $"{turn.Seat.Provider.Provider} alcanzó su límite de uso sin decir cuándo se reinicia";
                     turn.FailureText = launched.ResetsAt is { } resetsAt
-                        ? UserText.Of(DebateUserTexts.TurnLimitResets, turn.Seat.Label, turn.Seat.Provider.Provider.ToString(), resetsAt.ToUniversalTime())
-                        : UserText.Of(DebateUserTexts.TurnLimitUnknown, turn.Seat.Label, turn.Seat.Provider.Provider.ToString());
+                        ? UserText.Of(DebateUserTexts.TurnLimitResets, turn.Seat.Label, ProviderNames.Of(turn.Seat.Provider.Provider), resetsAt.ToUniversalTime())
+                        : UserText.Of(DebateUserTexts.TurnLimitUnknown, turn.Seat.Label, ProviderNames.Of(turn.Seat.Provider.Provider));
                     return;
                 case var _ when launched.IsOverload:
                     // An overloaded provider is no usage limit (docs/16 D-41): a short wait in the same way, and the turn's
                     // one retry, as any failed turn has.
                     turn.Failure = launched.Error is { Length: > 0 } overloaded ? $"el turno terminó {launched.Status}: {overloaded}" : $"el turno terminó {launched.Status}";
-                    turn.FailureText = UserText.Of(DebateUserTexts.TurnOverloaded, turn.Seat.Label, turn.Seat.Provider.Provider.ToString());
+                    turn.FailureText = UserText.Of(DebateUserTexts.TurnOverloaded, turn.Seat.Label, ProviderNames.Of(turn.Seat.Provider.Provider));
                     if (!retried)
                     {
                         try
@@ -1446,7 +1447,7 @@ public sealed class DebateRun : IDebateRun
             {
                 lock (_gate)
                 {
-                    _problems.Add("No se pudo borrar la copia del commit: " + ex.Message);
+                    _problems.Add("No se pudo borrar la copia del commit: " + ex.Message, UserText.Of(DebateUserTexts.ProblemCopyNotDeleted));
                 }
             }
         }
@@ -1556,7 +1557,7 @@ public sealed class DebateRun : IDebateRun
         {
             lock (_gate)
             {
-                _problems.Add($"La contribución {id} no se puede leer contra su hash: {ex.Message}");
+                _problems.Add($"La contribución {id} no se puede leer contra su hash: {ex.Message}", UserText.Of(DebateUserTexts.ProblemContributionUnreadable, id.ToString()));
             }
 
             return null;
