@@ -1088,6 +1088,10 @@ Los contratos de arriba son los del diseño; al escribirlos el P0 cambió esto, 
 - **`ISkillHealthBatchChecker`** es la tanda contra GitHub (una entrada por skill, con su código de fallo); `ISkillHealthChecker` no cambia. `GitHubToken` y `SkillsDoctorTokenUse` modelan el
   token y el estado de la presencia para que el token no pueda salir en un texto.
 - **`DoctorFix.Guide`** solo admite una página `https` sin credenciales, y **`DoctorToolResult`** lleva el resultado de una herramienta que no corrió (`NotInstalled`, `InsideProject`, `TimedOut`, `FailedToStart`).
+- **Lo que WP-G ajustó (2026-11-13), documentado en [04 §25.6](04-contratos.md#256-auto-graph-wp-g) y en la adenda de ADR-0062:** `ICodeGraphBuilder.BuildAsync` devuelve `GraphBuild` (el modelo y los ficheros que
+  declaran cada espacio de nombres, que viajan al lado y no entran en la huella); `CommitAnalysis` lleva `Files`; `IGraphInferenceStore` tiene `AddAsync`; `AgentRunPurpose.GraphRelations`; los códigos de hueco
+  son los de `GraphGapCodes`; el desbordamiento de pila de Roslyn con anidamiento extremo está medido (§12 queda resuelto en este punto: sí ocurre, y el relanzamiento lo cubre); y un proceso que sigue cayendo
+  tras tres relanzamientos hace **fallar** el análisis, no lo deja «parcial con lo que haya» (D-18).
 - **No están en el P0:** `IUntrustedRoots` (WP-0), `EvidenceToolVersions` (WP-E, que decide cómo embebe el bloque `tools:` en la cabecera de la evidencia, hoy líneas `# …`) y el escapador de
   Mermaid (WP-D, en Memory). `DoctorFactNames` se reduce a lo que el §4.2 listaba.
 

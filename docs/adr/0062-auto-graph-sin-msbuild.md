@@ -48,3 +48,23 @@
   [ADR-0017](0017-verificacion-aislada-baja-integridad.md)); no ejecuta nada del repositorio y solo abre rutas de la copia, así que solo un fallo del propio
   analizador lo aprovecharía. `git archive` respeta `export-ignore`: esos ficheros no salen en el grafo. Un proyecto que depende de lógica de MSBuild sale parcial. Roslyn
   sube de versión mayor a menudo: se usa la parte más estable y la versión va fijada.
+
+## Adenda de WP-G (2026-11-13): lo que midió y decidió la implementación
+
+- **Lo medido.** El analizador sintáctico de Roslyn **sí agota la pila** con anidamiento extremo, y no se puede capturar: 20 000 paréntesis anidados y 3 000 `A<` anidados
+  (medido en el proceso real) terminan con el código `0xC00000FD`. El proceso aparte y el relanzamiento de D-18 no son un lujo. Una cuenta barata de corchetes anidados (`(`, `[`, `{`;
+  más de 256) devuelve el fichero como hueco antes de parsear y evita el caso más corriente; los genéricos anidados pasan y los cubre el relanzamiento (prueba real:
+  `GraphWorkerLocalToolsTests`).
+- **Los ficheros que declaran cada espacio de nombres** (F6-5) viajan **al lado** del modelo (`NamespaceFiles`, campo opcional `files` de `CodeGraphJson`) y nunca entran en
+  su huella. `ICodeGraphBuilder.BuildAsync` devuelve `GraphBuild`. Los códigos de hueco son los de `GraphGapCodes`.
+- **Un proceso relanzado tres veces que sigue cayendo** no da un grafo «parcial con lo que haya»: no queda salida de la que sacarlo, así que el análisis **falla** con un mensaje
+  sin texto del repositorio. Las cuatro cosas que sí dan grafo parcial son un fichero que falla con una excepción o un tope (hueco `graph.file-skipped`), el que mató al proceso
+  (el relanzamiento lo salta), un tope total (`graph.limit`) y lo que MSBuild resolvería (`graph.unevaluated`, `graph.build-props`). Residual aceptado.
+- **El anfitrión no usa `IProcessRunner.RunAsync`**: su tope es en caracteres, uno para las dos salidas, y un error estándar largo lo mataría aunque el proceso fuera legítimo. Lee
+  la salida por bytes con su tope y el error estándar en líneas acotadas, sobre el mismo arranque a integridad baja (`ProcessLaunch`), con el ejecutable por ruta absoluta.
+- **La copia comparte el cerrojo de la verificación** porque usa la misma fábrica de áreas (`IIsolatedWorkAreaFactory`); no hay un segundo cerrojo.
+- **Relaciones de una IA** (decisión 7 (a)): propósito propio `GraphRelations` en el consumo, auxiliar de solo lectura en carpeta vacía con el OK de la persona cada vez (el mismo
+  patrón que el agente de la ayuda, ADR-0056); el OK es para este grafo y este agente. Sus relaciones se guardan en un almacén derivado, aparte del modelo, y en el registro
+  (`GraphRelationsProposed`, con el texto del agente como prueba guardada).
+- **Lo que queda parcial:** `IConsistencyService` (WP-D) es opcional en `CommitAnalysisService`; sin él las discrepancias salen vacías con todos los códigos «no aplica» y la caché lo
+  apunta, de modo que el análisis se recalcula cuando WP-D lo componga.
