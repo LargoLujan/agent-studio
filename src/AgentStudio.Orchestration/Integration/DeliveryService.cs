@@ -126,7 +126,10 @@ public sealed class DeliveryService : IDeliveryService
         var log = await _decisions.LoadAsync(project.ProjectId, LogLoad.Full, cancellationToken).ConfigureAwait(false);
         if (!log.Verification.IsValid)
         {
-            return NotReady($"El registro de decisiones no está íntegro (entrada {log.Verification.FirstInvalidSequence}): no se entrega nada.", OrchestrationUserTexts.DeliveryLogNotIntact, log.Verification.FirstInvalidSequence ?? 0L);
+            var brokenSentence = $"El registro de decisiones no está íntegro (entrada {log.Verification.FirstInvalidSequence}): no se entrega nada.";
+            return log.Verification.FirstInvalidSequence is { } brokenEntry
+                ? NotReady(brokenSentence, OrchestrationUserTexts.DeliveryLogNotIntact, brokenEntry)
+                : NotReady(brokenSentence, OrchestrationUserTexts.DeliveryLogNotIntactUnknown);
         }
 
         var all = TypedEntries(log.Entries);
@@ -139,7 +142,7 @@ public sealed class DeliveryService : IDeliveryService
 
         if (finished.Phase != RunPhase.Succeeded)
         {
-            return NotReady($"La ejecución {run.Value} terminó como {finished.Phase}: solo se entrega una ejecución completada.", OrchestrationUserTexts.DeliveryRunNotSucceeded, run.Value, finished.Phase.ToString());
+            return NotReady($"La ejecución {run.Value} terminó como {finished.Phase}: solo se entrega una ejecución completada.", OrchestrationUserTexts.DeliveryRunNotSucceeded, run.Value, OrchestrationUserTexts.Phase(finished.Phase));
         }
 
         if (finished.VerdictId is not { } verdictId || finished.IntegrationCommit is not { } integrationCommit)

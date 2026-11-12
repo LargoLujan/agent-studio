@@ -50,6 +50,36 @@ internal static class RunTestSupport
     public static Task<IOrchestrationRun> StartAsync(this EngineHarness harness, PlanDefinition plan, RunOptions? options = null) =>
         harness.CreateOrchestrator().StartAsync(harness.Request(plan, options), TestContext.Current.CancellationToken);
 
+    /// <summary>The transitions of the tasks a finished run told live (its events are read once, after it ended).</summary>
+    public static async Task<List<TaskStatusChangedEvent>> TransitionsAsync(this IOrchestrationRun run)
+    {
+        var transitions = new List<TaskStatusChangedEvent>();
+        await foreach (var item in run.Events.WithCancellation(TestContext.Current.CancellationToken))
+        {
+            if (item is TaskStatusChangedEvent changed)
+            {
+                transitions.Add(changed);
+            }
+        }
+
+        return transitions;
+    }
+
+    /// <summary>
+    /// The transitions of a finished run, each with the code it carried live equal to the one derived from its sentence, as a run read
+    /// back from the log gets it (ADR-0054 addendum of 2026-11-12).
+    /// </summary>
+    public static async Task<List<TaskStatusChangedEvent>> CodedTransitionsAsync(this IOrchestrationRun run)
+    {
+        var transitions = await run.TransitionsAsync();
+        foreach (var transition in transitions.Where(t => t.ReasonText is not null))
+        {
+            Assert.Equal(transition.ReasonText, AgentStudio.Orchestration.Engine.LoggedTexts.TaskReason(transition.Reason));
+        }
+
+        return transitions;
+    }
+
     /// <summary>Waits for the run to end; on timeout the message carries the snapshot and the whole log.</summary>
     public static async Task<RunResult> CompleteAsync(this IOrchestrationRun run, EngineHarness harness, TimeSpan? guard = null)
     {

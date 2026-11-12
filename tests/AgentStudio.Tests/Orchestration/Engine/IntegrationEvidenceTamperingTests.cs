@@ -1,6 +1,7 @@
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Git;
 using AgentStudio.Application.Judging;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Domain.Common;
@@ -8,6 +9,8 @@ using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Evidence;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Work;
+using AgentStudio.Orchestration;
+using AgentStudio.Orchestration.Engine;
 using AgentStudio.Orchestration.Integration;
 using AgentStudio.Tests.Debate.Fakes;
 using AgentStudio.Tests.Orchestration.Fakes;
@@ -119,6 +122,12 @@ public sealed class IntegrationEvidenceTamperingTests
         Assert.Equal(RunPhase.Failed, finished.Phase);
         Assert.Null(finished.IntegrationCommit);
         Assert.Null(result.IntegrationCommit);
+
+        // The screen gets the code of the summary and of the reason of the failure, and the log read back derives the same ones.
+        Assert.Equal(UserText.Of(OrchestrationUserTexts.VerdictStoppedEvidence), result.SummaryText);
+        Assert.Equal(result.SummaryText, LoggedTexts.RunSummary(result.Summary));
+        var tampered = Assert.Single(await run.CodedTransitionsAsync(), t => t.Task == new TaskId("I1") && t.To == WorkTaskStatus.Failed);
+        Assert.Equal(OrchestrationUserTexts.WorkerEvidenceTampered, Assert.IsType<UserText>(tampered.ReasonText).Code);
     }
 
     /// <summary>

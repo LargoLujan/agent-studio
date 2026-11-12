@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using AgentStudio.Application.Localization;
 using AgentStudio.Domain.Common;
+using AgentStudio.Domain.Work;
 
 namespace AgentStudio.Orchestration.Engine;
 
@@ -176,6 +177,41 @@ public static partial class LoggedTexts
     [GeneratedRegex(@"^El orquestador no tuvo la búsqueda en el historial: no se pudo preparar \((.*)\)\.$", RegexOptions.Singleline, MatchTimeoutMs)]
     private static partial Regex HistoryFailed();
 
+    [GeneratedRegex(@"^Falló: la política de pruebas exige que el commit final de la ejecución pase pruebas capturadas por el sistema, y no hay ninguna ejecución de pruebas que pase sobre (.+)\.$", RegexOptions.None, MatchTimeoutMs)]
+    private static partial Regex TestsRequired();
+
+    [GeneratedRegex(@"^(.+) \(([^()]+)\)$", RegexOptions.None, MatchTimeoutMs)]
+    private static partial Regex TaskAndCommit();
+
+    [GeneratedRegex(@"^No se lanza el intento: el presupuesto( de hoy| de esta semana| de este mes)? (?:del proyecto|del hito (.+?)) es de (\d+) (tokens|ejecuciones de agente) y ya van (\d+)(?:; con este intento serían (\d+)| \(sin estimación de este intento\))(?: \((\d+) intentos sin cifra de tokens no cuentan\))?\. Sube el presupuesto y reintenta la tarea\.$", RegexOptions.None, MatchTimeoutMs)]
+    private static partial Regex BudgetExceeded();
+
+    [GeneratedRegex(@"^No se lanza el intento: no se pudo comprobar el presupuesto \((.*)\), y sin saberlo no se arriesga la cuota\.$", RegexOptions.Singleline, MatchTimeoutMs)]
+    private static partial Regex BudgetUnreadable();
+
+    [GeneratedRegex(@"^La tarea (.+) parte del código de varias tareas \((.+)\) sin una integración\.$", RegexOptions.None, MatchTimeoutMs)]
+    private static partial Regex TaskNoIntegration();
+
+    [GeneratedRegex(@"^No se lanza (.+): sus requisitos obligatorios necesitan (\d+) caracteres y el presupuesto de contexto es de (\d+), así que no caben junto con la memoria del proyecto\. Decide una persona: reduce los requisitos de la tarea o quita la memoria de (.+) en la plantilla\.$", RegexOptions.None, MatchTimeoutMs)]
+    private static partial Regex MemoryTooSmallFigures();
+
+    [GeneratedRegex(@"^No se lanza (.+): (.*)\. Decide una persona: reduce los requisitos de la tarea o quita la memoria de (.+) en la plantilla\.$", RegexOptions.Singleline, MatchTimeoutMs)]
+    private static partial Regex MemoryTooSmallOther();
+
+    [GeneratedRegex(@"^No se lanza (.+): el registro de decisiones no verifica(?: \(entrada (\d+): (.*)\))?, así que la memoria del proyecto no se puede comprobar\. Decide una persona: revisa el registro o quita la memoria de (.+) en la plantilla\.$", RegexOptions.Singleline, MatchTimeoutMs)]
+    private static partial Regex MemoryUnverified();
+
+    [GeneratedRegex(@"^El repositorio del usuario había cambiado antes de lanzar el agente: (.*)$", RegexOptions.Singleline, MatchTimeoutMs)]
+    private static partial Regex RepositoryBeforeLaunch();
+
+    [GeneratedRegex(@"^El repositorio del usuario cambió (.+?): (.*)$", RegexOptions.Singleline, MatchTimeoutMs)]
+    private static partial Regex RepositoryChanged();
+
+    [GeneratedRegex(@"^Una evidencia de la integración cambió en el almacén entre su captura y su lectura: alguien la reescribió, así que la integración no se da por buena ni se reintenta\. (.*)$", RegexOptions.Singleline, MatchTimeoutMs)]
+    private static partial Regex EvidenceTampered();
+
+    [GeneratedRegex(@"^La evidencia de la integración no es la que capturó el integrador y no se da por buena: (.*)$", RegexOptions.Singleline, MatchTimeoutMs)]
+    private static partial Regex EvidenceUnanchored();
     /// <summary>
     /// The coded text of the notice that tells why the orchestrator planned without the search in the history
     /// (<c>PlanProposal.HistoryToolNotice</c>, the sentences of <c>ProjectHistoryTool</c>), derived from the sentence so that a draft
@@ -323,7 +359,12 @@ public static partial class LoggedTexts
             return UserText.Of(OrchestrationUserTexts.TaskNoProvider, provider.Groups[1].Value, provider.Groups[2].Value);
         }
 
-        return WorkerReason(reason, depth);
+        if (TaskNoIntegration().Match(reason) is { Success: true } noIntegration)
+        {
+            return UserText.Of(OrchestrationUserTexts.TaskNoIntegration, noIntegration.Groups[1].Value, noIntegration.Groups[2].Value);
+        }
+
+        return BudgetReason(reason) ?? WorkerReason(reason, depth);
     }
 
     /// <summary>The reasons the workers write (<c>Workers</c>), with the same arguments the engine gives them live; null for the rest (an agent's own words, the differences of the repository).</summary>
@@ -484,6 +525,49 @@ public static partial class LoggedTexts
             return UserText.Of(OrchestrationUserTexts.QuotaUntil, Who(OverloadSentence), overloadUntil);
         }
 
+        if (MemoryTooSmallFigures().Match(reason) is { Success: true } figures && Int(figures, 2) is { } required && Int(figures, 3) is { } budget)
+        {
+            return UserText.Of(OrchestrationUserTexts.WorkerMemoryTooSmall, figures.Groups[1].Value, UserText.Of(OrchestrationUserTexts.MemoryDetailFigures, required, budget), figures.Groups[4].Value);
+        }
+
+        if (MemoryTooSmallOther().Match(reason) is { Success: true } tooSmall)
+        {
+            return UserText.Of(OrchestrationUserTexts.WorkerMemoryTooSmall, tooSmall.Groups[1].Value, UserText.Of(OrchestrationUserTexts.MemoryDetailUnknown), tooSmall.Groups[3].Value);
+        }
+
+        if (MemoryUnverified().Match(reason) is { Success: true } unverified)
+        {
+            if (!unverified.Groups[2].Success)
+            {
+                return UserText.Of(OrchestrationUserTexts.WorkerMemoryUnverified, unverified.Groups[1].Value, unverified.Groups[4].Value);
+            }
+
+            return Long(unverified, 2) is { } entry
+                ? UserText.Of(OrchestrationUserTexts.WorkerMemoryUnverifiedEntry, unverified.Groups[1].Value, entry, unverified.Groups[3].Value, unverified.Groups[4].Value)
+                : null;
+        }
+
+        if (RepositoryBeforeLaunch().Match(reason) is { Success: true } beforeLaunch)
+        {
+            return UserText.Of(OrchestrationUserTexts.WorkerRepositoryBeforeLaunch, beforeLaunch.Groups[1].Value);
+        }
+
+        if (RepositoryChanged().Match(reason) is { Success: true } repository)
+        {
+            return RepositoryWhen(repository.Groups[1].Value) is { } moment
+                ? UserText.Of(OrchestrationUserTexts.WorkerRepositoryChanged, moment, repository.Groups[2].Value)
+                : null;
+        }
+
+        if (EvidenceTampered().Match(reason) is { Success: true } tampered)
+        {
+            return UserText.Of(OrchestrationUserTexts.WorkerEvidenceTampered, tampered.Groups[1].Value);
+        }
+
+        if (EvidenceUnanchored().Match(reason) is { Success: true } unanchored)
+        {
+            return UserText.Of(OrchestrationUserTexts.WorkerEvidenceUnanchored, unanchored.Groups[1].Value);
+        }
         if (SystemError().Match(reason) is { Success: true } system)
         {
             return UserText.Of(OrchestrationUserTexts.WorkerSystemError, system.Groups[1].Value);
@@ -505,6 +589,157 @@ public static partial class LoggedTexts
             : null;
     }
 
+    /// <summary>When the user's repository changed, as the piece the live engine gives (<c>Workers</c>); null when it is not one of the moments it names.</summary>
+    private static UserText? RepositoryWhen(string when)
+    {
+        var fixedCode = when switch
+        {
+            "mientras trabajaba el agente" => OrchestrationUserTexts.RepositoryWhileAgent,
+            "durante la verificación" => OrchestrationUserTexts.RepositoryDuringVerification,
+            "durante la integración" => OrchestrationUserTexts.RepositoryDuringIntegration,
+            "antes de la integración" => OrchestrationUserTexts.RepositoryBeforeIntegration,
+            "durante la revisión" => OrchestrationUserTexts.RepositoryDuringReview,
+            "antes de la revisión" => OrchestrationUserTexts.RepositoryBeforeReview,
+            _ => null,
+        };
+        if (fixedCode is not null)
+        {
+            return UserText.Of(fixedCode);
+        }
+
+        const string stoppedTail = ", que se detuvieron antes de terminar";
+        if (when.StartsWith("durante ", StringComparison.Ordinal) && when.EndsWith(stoppedTail, StringComparison.Ordinal))
+        {
+            return StepsPiece(when["durante ".Length..^stoppedTail.Length]) is { } stopped ? UserText.Of(OrchestrationUserTexts.RepositoryDuringStepsStopped, stopped) : null;
+        }
+
+        if (when.StartsWith("durante ", StringComparison.Ordinal))
+        {
+            return StepsPiece(when["durante ".Length..]) is { } during ? UserText.Of(OrchestrationUserTexts.RepositoryDuringSteps, during) : null;
+        }
+
+        return when.StartsWith("antes de ", StringComparison.Ordinal) && StepsPiece(when["antes de ".Length..]) is { } before
+            ? UserText.Of(OrchestrationUserTexts.RepositoryBeforeSteps, before)
+            : null;
+    }
+
+    /// <summary>«el paso build» or «los pasos build, lint y test» as the piece <see cref="OrchestrationUserTexts.Steps"/> gives; null for anything else.</summary>
+    private static UserText? StepsPiece(string steps)
+    {
+        const string one = "el paso ";
+        const string many = "los pasos ";
+        if (steps.StartsWith(one, StringComparison.Ordinal) && steps.Length > one.Length)
+        {
+            return UserText.Of(OrchestrationUserTexts.StepsOne, steps[one.Length..]);
+        }
+
+        if (steps.StartsWith(many, StringComparison.Ordinal))
+        {
+            var list = steps[many.Length..];
+            var and = list.LastIndexOf(" y ", StringComparison.Ordinal);
+            return and > 0 ? UserText.Of(OrchestrationUserTexts.StepsMany, UserText.Of(OrchestrationUserTexts.ListAnd, list[..and], list[(and + 3)..])) : null;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// The reason the budget gate gives for not launching an attempt (<c>ProjectBudgetGate</c>) as the coded text it gives next to it:
+    /// the name of the budget and the figures, or why the budget could not be read. The free text the report gives for a log it does not
+    /// trust, and the message of an exception, are not in the coded text (the sentence anchored them, the screen does not need them).
+    /// </summary>
+    private static UserText? BudgetReason(string reason)
+    {
+        if (BudgetUnreadable().Match(reason) is { Success: true } unreadable)
+        {
+            var why = unreadable.Groups[1].Value;
+            return UserText.Of(
+                OrchestrationUserTexts.BudgetUnreadable,
+                UserText.Of(why switch
+                {
+                    "no hay con qué leer lo gastado" => OrchestrationUserTexts.BudgetWhyNoUsage,
+                    _ when why.StartsWith("el registro del proyecto no es de confianza: ", StringComparison.Ordinal) => OrchestrationUserTexts.BudgetWhyUntrusted,
+                    _ => OrchestrationUserTexts.BudgetWhyFailed,
+                }));
+        }
+
+        if (BudgetExceeded().Match(reason) is not { Success: true } exceeded)
+        {
+            return null;
+        }
+
+        var period = exceeded.Groups[1].Value switch
+        {
+            " de hoy" => BudgetPeriod.Day,
+            " de esta semana" => BudgetPeriod.Week,
+            " de este mes" => BudgetPeriod.Month,
+            _ => BudgetPeriod.Total,
+        };
+        var name = ProjectBudgetGate.NameOf(exceeded.Groups[2].Success ? exceeded.Groups[2].Value : "project", period);
+        var sentences = new List<UserText>();
+        if (exceeded.Groups[4].Value == "tokens")
+        {
+            if (Long(exceeded, 3) is not { } max || Long(exceeded, 5) is not { } used)
+            {
+                return null;
+            }
+
+            if (!exceeded.Groups[6].Success)
+            {
+                sentences.Add(UserText.Of(OrchestrationUserTexts.BudgetExceededTokensUnknown, name, max, used));
+            }
+            else if (Long(exceeded, 6) is { } projected)
+            {
+                sentences.Add(UserText.Of(OrchestrationUserTexts.BudgetExceededTokens, name, max, used, projected));
+            }
+            else
+            {
+                return null;
+            }
+
+            if (exceeded.Groups[7].Success)
+            {
+                if (Int(exceeded, 7) is not { } withoutTokens)
+                {
+                    return null;
+                }
+
+                sentences.Add(UserText.Of(OrchestrationUserTexts.BudgetPartial, withoutTokens));
+            }
+        }
+        else
+        {
+            // The attempts without a figure of tokens only count for a budget of tokens, and a budget of runs always says what it would reach.
+            if (exceeded.Groups[7].Success || !exceeded.Groups[6].Success || Int(exceeded, 3) is not { } maxRuns || Int(exceeded, 5) is not { } usedRuns || Int(exceeded, 6) is not { } projectedRuns)
+            {
+                return null;
+            }
+
+            sentences.Add(UserText.Of(OrchestrationUserTexts.BudgetExceededRuns, name, maxRuns, usedRuns, projectedRuns));
+        }
+
+        sentences.Add(UserText.Of(OrchestrationUserTexts.BudgetRaise));
+        return OrchestrationUserTexts.Sentences(sentences);
+    }
+
+    /// <summary>The tasks of a final summary of the test policy, each with its commit or without one, as the pieces the engine gives.</summary>
+    private static UserText? TestsRequiredSummary(Match required)
+    {
+        var items = new List<UserText>();
+        foreach (var item in required.Groups[1].Value.Split(", ", StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (TaskAndCommit().Match(item) is not { Success: true } part)
+            {
+                return null;
+            }
+
+            items.Add(part.Groups[2].Value == "sin commit"
+                ? UserText.Of(OrchestrationUserTexts.VerdictUntestedNoCommit, part.Groups[1].Value)
+                : UserText.Of(OrchestrationUserTexts.VerdictUntestedCommit, part.Groups[1].Value, part.Groups[2].Value));
+        }
+
+        return items.Count == 0 ? null : UserText.Of(OrchestrationUserTexts.VerdictTestsRequired, OrchestrationUserTexts.List(items));
+    }
     private const string OverloadSentence = "El proveedor está sobrecargado o limita la velocidad";
 
     private static UserText Who(string sentence) => UserText.Of(sentence switch
@@ -599,6 +834,11 @@ public static partial class LoggedTexts
             return UserText.Of(OrchestrationUserTexts.VerdictReviewRequired, OrchestrationUserTexts.List(Split(review.Groups[1].Value)));
         }
 
+        if (TestsRequired().Match(summary) is { Success: true } testsRequired)
+        {
+            return TestsRequiredSummary(testsRequired);
+        }
+
         if (Failed().Match(summary) is { Success: true } failed && (failed.Groups[1].Success || failed.Groups[2].Success || failed.Groups[3].Success) && (!failed.Groups[3].Success || Int(failed, 3) is not null))
         {
             var parts = new List<UserText>();
@@ -665,6 +905,9 @@ public static partial class LoggedTexts
         : UserText.Of(paused ? OrchestrationUserTexts.RunPausedBy : OrchestrationUserTexts.RunResumedBy, decidedBy);
 
     private static List<string> Split(string list) => [.. list.Split(", ", StringSplitOptions.RemoveEmptyEntries)];
+
+    private static long? Long(Match match, int group) =>
+        long.TryParse(match.Groups[group].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var value) ? value : null;
 
     private static int? Int(Match match, int group) =>
         int.TryParse(match.Groups[group].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var value) ? value : null;

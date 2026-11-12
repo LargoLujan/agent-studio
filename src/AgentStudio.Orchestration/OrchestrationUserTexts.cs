@@ -1,4 +1,6 @@
+using AgentStudio.Application.Knowledge;
 using AgentStudio.Application.Localization;
+using AgentStudio.Application.Orchestration;
 
 namespace AgentStudio.Orchestration;
 
@@ -306,6 +308,32 @@ public static class OrchestrationUserTexts
     public const string ChatSchemaMismatch = "chat.schema-mismatch";
     public const string ChatAnswerNull = "chat.answer-null";
 
+    // ---- the memory that does not fit or does not verify, the user's repository that changed under a step, the evidence of an integration ----
+    public const string TaskNoIntegration = "task.no-integration";
+    public const string WorkerMemoryTooSmall = "worker.memory-too-small";
+    public const string MemoryDetailFigures = "worker.memory-detail-figures";
+    public const string MemoryDetailUnknown = "worker.memory-detail-unknown";
+    public const string WorkerMemoryUnverified = "worker.memory-unverified";
+    public const string WorkerMemoryUnverifiedEntry = "worker.memory-unverified-entry";
+    public const string WorkerRepositoryBeforeLaunch = "worker.repository-before-launch";
+    public const string WorkerRepositoryChanged = "worker.repository-changed";
+    public const string RepositoryWhileAgent = "worker.repository-when-while-agent";
+    public const string RepositoryDuringVerification = "worker.repository-when-during-verification";
+    public const string RepositoryDuringIntegration = "worker.repository-when-during-integration";
+    public const string RepositoryBeforeIntegration = "worker.repository-when-before-integration";
+    public const string RepositoryDuringReview = "worker.repository-when-during-review";
+    public const string RepositoryBeforeReview = "worker.repository-when-before-review";
+    public const string RepositoryDuringSteps = "worker.repository-when-during-steps";
+    public const string RepositoryDuringStepsStopped = "worker.repository-when-during-steps-stopped";
+    public const string RepositoryBeforeSteps = "worker.repository-when-before-steps";
+    public const string StepsOne = "worker.steps-one";
+    public const string StepsMany = "worker.steps-many";
+    public const string WorkerEvidenceTampered = "worker.evidence-tampered";
+    public const string WorkerEvidenceUnanchored = "worker.evidence-unanchored";
+
+    /// <summary>«El registro de decisiones no está íntegro» without the number of an entry (the log does not say which).</summary>
+    public const string DeliveryLogNotIntactUnknown = "delivery.log-not-intact-unknown";
+
     /// <summary>Every code of this class: the desktop has a text for each of them in both languages (a test walks them).</summary>
     public static IReadOnlyList<string> All { get; } =
     [
@@ -367,7 +395,32 @@ public static class OrchestrationUserTexts
         PlannerCorrectedUnreadable, PlannerCorrectedInvalid, HistoryNotThePlanner, HistoryDisabled, HistoryNoMemory,
         HistoryNotReadOnly, HistoryEmpty, HistoryNoMcp, HistoryFailed, OrderNoNotes, OrderSchemaMismatch, ChatNoAnswer,
         ChatSchemaMismatch, ChatAnswerNull,
+        TaskNoIntegration, WorkerMemoryTooSmall, MemoryDetailFigures, MemoryDetailUnknown, WorkerMemoryUnverified, WorkerMemoryUnverifiedEntry, WorkerRepositoryBeforeLaunch, WorkerRepositoryChanged, RepositoryWhileAgent, RepositoryDuringVerification, RepositoryDuringIntegration, RepositoryBeforeIntegration, RepositoryDuringReview, RepositoryBeforeReview, RepositoryDuringSteps, RepositoryDuringStepsStopped, RepositoryBeforeSteps, StepsOne, StepsMany, WorkerEvidenceTampered, WorkerEvidenceUnanchored, DeliveryLogNotIntactUnknown,
     ];
+
+    /// <summary>
+    /// Why the mandatory requirements do not fit next to the memory, as a piece of «No se lanza …: {0}»: the figures when the exception
+    /// has them, and the plain fact when it does not (its message is for the logs and stays in English).
+    /// </summary>
+    public static UserText MemoryTooSmall(ContextBudgetTooSmallException problem)
+    {
+        ArgumentNullException.ThrowIfNull(problem);
+        return problem.Required > 0 ? UserText.Of(MemoryDetailFigures, problem.Required, problem.Budget) : UserText.Of(MemoryDetailUnknown);
+    }
+
+    /// <summary>«el paso build», «los pasos build y test»: the steps a sentence is about, as a piece.</summary>
+    public static UserText Steps(IReadOnlyList<string> ids)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+        return ids.Count == 1 ? UserText.Of(StepsOne, ids[0]) : UserText.Of(StepsMany, List(ids));
+    }
+
+    /// <summary>
+    /// How a run ended, as a piece of a sentence: the word that the desktop already has for each phase (the memory writes them in
+    /// lower case, <c>memory.phase.*</c>), so a phase is never shown by the name of its type.
+    /// </summary>
+    public static UserText Phase(RunPhase phase) => UserText.Of(
+        "memory.phase." + string.Concat(phase.ToString().Select((c, i) => char.IsUpper(c) ? (i == 0 ? char.ToLowerInvariant(c).ToString() : "-" + char.ToLowerInvariant(c)) : c.ToString())));
 
     /// <summary>The sentences one after another as a single text; the one itself when there is one.</summary>
     public static UserText Sentences(IReadOnlyList<UserText> sentences)

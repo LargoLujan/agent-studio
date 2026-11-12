@@ -1,5 +1,6 @@
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Knowledge;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Security;
@@ -9,6 +10,7 @@ using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Metrics;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Work;
+using AgentStudio.Orchestration;
 using AgentStudio.Orchestration.Engine;
 using AgentStudio.Tests.Orchestration.Fakes;
 using Microsoft.Extensions.DependencyInjection;
@@ -175,6 +177,13 @@ public sealed class MemoryInPromptTests
         Assert.Empty(harness.Payloads<InstructionsIssuedPayload>());
         await run.CancelAsync("fin de la prueba");
         await run.CompleteAsync(harness);
+
+        // The screen gets the figures as pieces, and the log read back gives the same code from the sentence.
+        var reason = Assert.Single(await run.CodedTransitionsAsync(), t => t.To == WorkTaskStatus.Blocked);
+        Assert.Equal(
+            UserText.Of(OrchestrationUserTexts.WorkerMemoryTooSmall, "T1", UserText.Of(OrchestrationUserTexts.MemoryDetailFigures, 5000, 4000), "ejecutor"),
+            reason.ReasonText);
+        Assert.Equal(reason.ReasonText, LoggedTexts.TaskReason(reason.Reason));
     }
 
     [Fact]
@@ -196,6 +205,10 @@ public sealed class MemoryInPromptTests
         Assert.Empty(harness.Payloads<AgentRunStartedPayload>());
         await run.CancelAsync("fin de la prueba");
         await run.CompleteAsync(harness);
+
+        var reason = Assert.Single(await run.CodedTransitionsAsync(), t => t.To == WorkTaskStatus.Blocked);
+        Assert.Equal(UserText.Of(OrchestrationUserTexts.WorkerMemoryUnverifiedEntry, "T1", 7L, "hash roto", "ejecutor"), reason.ReasonText);
+        Assert.Equal(reason.ReasonText, LoggedTexts.TaskReason(reason.Reason));
     }
 
     [Fact]

@@ -1005,9 +1005,9 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
             }
         }
 
-        if (!TryBases(spec, out var taskBase, out var attemptBase, out var recordWorktree, out var problem))
+        if (!TryBases(spec, out var taskBase, out var attemptBase, out var recordWorktree, out var problem, out var problemText))
         {
-            await MoveAsync(id, WorkTaskStatus.Blocked, problem!, null, BlockReason.AwaitingHuman).ConfigureAwait(false);
+            await MoveAsync(id, WorkTaskStatus.Blocked, problem!, null, BlockReason.AwaitingHuman, text: problemText).ConfigureAwait(false);
             return true;
         }
 
@@ -1093,9 +1093,9 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
                 .Where(f => _ctx.Specs[f].Kind == WorkTaskKind.AgentWork && _ledger.Worktrees.ContainsKey(f) && _ledger.Results[f].Commit is not null)
                 .Select(f => new VerifiedRef(f, _ledger.Worktrees[f].RefName, _ledger.Results[f].Commit!))];
         }
-        else if (!TryBases(spec, out baseCommit, out _, out recordWorktree, out var problem))
+        else if (!TryBases(spec, out baseCommit, out _, out recordWorktree, out var problem, out var problemText))
         {
-            await MoveAsync(id, WorkTaskStatus.Blocked, problem!, null, BlockReason.AwaitingHuman).ConfigureAwait(false);
+            await MoveAsync(id, WorkTaskStatus.Blocked, problem!, null, BlockReason.AwaitingHuman, text: problemText).ConfigureAwait(false);
             return true;
         }
 
@@ -1130,12 +1130,13 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
     /// The base of a task's worktree (docs/13 section 4.6): an existing worktree keeps its recorded base; a new one starts
     /// on the head of the task's code frontier (the run base with no producer, the producer's commit with one).
     /// </summary>
-    private bool TryBases(TaskSpec spec, out string? taskBase, out string? attemptBase, out bool recordWorktree, out string? problem)
+    private bool TryBases(TaskSpec spec, out string? taskBase, out string? attemptBase, out bool recordWorktree, out string? problem, out UserText? problemText)
     {
         taskBase = null;
         attemptBase = null;
         recordWorktree = false;
         problem = null;
+        problemText = null;
         if (spec.Kind == WorkTaskKind.AgentWork && spec.Workspace == WorkspaceMode.None)
         {
             return true;
@@ -1152,6 +1153,7 @@ internal sealed partial class OrchestrationRun : IOrchestrationRun
         if (frontier.Count > 1)
         {
             problem = $"La tarea {spec.Id} parte del código de varias tareas ({string.Join(", ", frontier)}) sin una integración.";
+            problemText = UserText.Of(OrchestrationUserTexts.TaskNoIntegration, spec.Id.ToString(), string.Join(", ", frontier));
             return false;
         }
 

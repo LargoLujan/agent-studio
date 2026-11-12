@@ -2887,10 +2887,10 @@ Open the consumption analysis, if it is there, to see the detail.</value>
     <value>There is no provider "{0}" for the orchestrator "{1}".</value>
   </data>
   <data name="Text_planner_memory_too_small" xml:space="preserve">
-    <value>The orchestrator does not start: the memory and the requirements do not fit in its context. Reduce the mandatory requirements or remove the orchestrator memory from the roster.</value>
+    <value>The orchestrator does not start: {0}. Reduce the mandatory requirements or remove the orchestrator memory from the roster.</value>
   </data>
   <data name="Text_planner_repository_changed" xml:space="preserve">
-    <value>Your repository changed during planning. The plan is discarded.</value>
+    <value>Your repository changed during planning. The plan is discarded. {0}</value>
   </data>
   <data name="Text_planner_cancelled" xml:space="preserve">
     <value>Planning was cancelled.</value>
@@ -3383,5 +3383,71 @@ Open the consumption analysis, if it is there, to see the detail.</value>
   </data>
   <data name="Text_chat_answer_null" xml:space="preserve">
     <value>The answer of the orchestrator is empty.</value>
+  </data>
+  <data name="Text_worker_memory_too_small" xml:space="preserve">
+    <value>{0} is not launched: {1}. A person decides: reduce the task requirements or remove the memory of {2} from the roster.</value>
+  </data>
+  <data name="Text_worker_memory_detail_figures" xml:space="preserve">
+    <value>its requirements take {0} characters and the context only holds {1}</value>
+  </data>
+  <data name="Text_worker_memory_detail_unknown" xml:space="preserve">
+    <value>the memory and the requirements do not fit in its context</value>
+  </data>
+  <data name="Text_worker_memory_unverified" xml:space="preserve">
+    <value>{0} is not launched: the decision log does not verify, so the project memory cannot be checked. A person decides: check the log or remove the memory of {1} from the roster.</value>
+  </data>
+  <data name="Text_worker_memory_unverified_entry" xml:space="preserve">
+    <value>{0} is not launched: the decision log does not verify (entry {1}: {2}). The project memory cannot be checked. A person decides: check the log or remove the memory of {3} from the roster.</value>
+  </data>
+  <data name="Text_worker_repository_before_launch" xml:space="preserve">
+    <value>Your repository had changed before the agent was launched: {0}</value>
+  </data>
+  <data name="Text_worker_repository_changed" xml:space="preserve">
+    <value>Your repository changed {0}: {1}</value>
+  </data>
+  <data name="Text_worker_repository_when_while_agent" xml:space="preserve">
+    <value>while the agent was working</value>
+  </data>
+  <data name="Text_worker_repository_when_during_verification" xml:space="preserve">
+    <value>during the verification</value>
+  </data>
+  <data name="Text_worker_repository_when_during_integration" xml:space="preserve">
+    <value>during the integration</value>
+  </data>
+  <data name="Text_worker_repository_when_before_integration" xml:space="preserve">
+    <value>before the integration</value>
+  </data>
+  <data name="Text_worker_repository_when_during_review" xml:space="preserve">
+    <value>during the review</value>
+  </data>
+  <data name="Text_worker_repository_when_before_review" xml:space="preserve">
+    <value>before the review</value>
+  </data>
+  <data name="Text_worker_repository_when_during_steps" xml:space="preserve">
+    <value>during {0}</value>
+  </data>
+  <data name="Text_worker_repository_when_during_steps_stopped" xml:space="preserve">
+    <value>during {0}, which were stopped before they finished</value>
+  </data>
+  <data name="Text_worker_repository_when_before_steps" xml:space="preserve">
+    <value>before {0}</value>
+  </data>
+  <data name="Text_worker_steps_one" xml:space="preserve">
+    <value>step {0}</value>
+  </data>
+  <data name="Text_worker_steps_many" xml:space="preserve">
+    <value>steps {0}</value>
+  </data>
+  <data name="Text_worker_evidence_tampered" xml:space="preserve">
+    <value>A saved proof of the integration changed in the store between being taken and being read. Someone rewrote it: the integration is not accepted or retried. {0}</value>
+  </data>
+  <data name="Text_worker_evidence_unanchored" xml:space="preserve">
+    <value>The saved proof of the integration is not the one the integrator took, and it is not accepted: {0}</value>
+  </data>
+  <data name="Text_delivery_log_not_intact_unknown" xml:space="preserve">
+    <value>The decision log is not intact: nothing is delivered.</value>
+  </data>
+  <data name="Text_task_no_integration" xml:space="preserve">
+    <value>{0} starts from the code of several tasks ({1}) without an integration.</value>
   </data>
 </root>

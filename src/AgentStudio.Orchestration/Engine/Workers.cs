@@ -242,7 +242,7 @@ internal static class AgentAttemptWorker
             {
                 w.Post(new WorkerEnded(task, attempt, new AttemptEnd(
                     EndKind.AwaitingHuman,
-                    $"No se lanza {task}: {ProjectMemoryPrompt.TooSmall(problem)}. Decide una persona: reduce los requisitos de la tarea o quita la memoria de {plan.Agent.Id} en la plantilla.")));
+                    $"No se lanza {task}: {ProjectMemoryPrompt.TooSmall(problem)}. Decide una persona: reduce los requisitos de la tarea o quita la memoria de {plan.Agent.Id} en la plantilla.") { Text = UserText.Of(OrchestrationUserTexts.WorkerMemoryTooSmall, task.ToString(), OrchestrationUserTexts.MemoryTooSmall(problem), plan.Agent.Id.ToString()) }));
                 return;
             }
             catch (DecisionLogIntegrityException problem)
@@ -250,7 +250,12 @@ internal static class AgentAttemptWorker
                 // Memory is anchored in the log (ADR-0022): with a log that does not verify, none can be trusted.
                 w.Post(new WorkerEnded(task, attempt, new AttemptEnd(
                     EndKind.AwaitingHuman,
-                    $"No se lanza {task}: {ProjectMemoryPrompt.Unverified(problem)}. Decide una persona: revisa el registro o quita la memoria de {plan.Agent.Id} en la plantilla.")));
+                    $"No se lanza {task}: {ProjectMemoryPrompt.Unverified(problem)}. Decide una persona: revisa el registro o quita la memoria de {plan.Agent.Id} en la plantilla.")
+                {
+                    Text = problem.Verification.FirstInvalidSequence is { } entry
+                        ? UserText.Of(OrchestrationUserTexts.WorkerMemoryUnverifiedEntry, task.ToString(), entry, problem.Verification.Problem ?? string.Empty, plan.Agent.Id.ToString())
+                        : UserText.Of(OrchestrationUserTexts.WorkerMemoryUnverified, task.ToString(), plan.Agent.Id.ToString()),
+                }));
                 return;
             }
 
@@ -499,6 +504,7 @@ internal static class AgentAttemptWorker
         {
             return new AttemptEnd(EndKind.RepositoryChanged, "El repositorio del usuario había cambiado antes de lanzar el agente: " + string.Join(" ", result.RepositoryDifferences))
             {
+                Text = UserText.Of(OrchestrationUserTexts.WorkerRepositoryBeforeLaunch, string.Join(" ", result.RepositoryDifferences)),
                 Differences = result.RepositoryDifferences,
                 Head = plan.AttemptBase,
             };
@@ -522,6 +528,7 @@ internal static class AgentAttemptWorker
         {
             return new AttemptEnd(EndKind.RepositoryChanged, "El repositorio del usuario cambió mientras trabajaba el agente: " + string.Join(" ", result.RepositoryDifferences))
             {
+                Text = UserText.Of(OrchestrationUserTexts.WorkerRepositoryChanged, UserText.Of(OrchestrationUserTexts.RepositoryWhileAgent), string.Join(" ", result.RepositoryDifferences)),
                 Differences = result.RepositoryDifferences,
                 Evidence = evidence,
                 SessionId = result.SessionId,
@@ -684,7 +691,7 @@ internal static class AgentAttemptWorker
             tests = verification.Results.Select(r => r.Evidence.TestRun).LastOrDefault(t => t is not null);
             if (verification.Differences.Count > 0)
             {
-                var repositoryChanged = await EndAsync(EndKind.RepositoryChanged, "El repositorio del usuario cambió durante la verificación: " + string.Join(" ", verification.Differences), parsed, tests, verificationEvidence).ConfigureAwait(false);
+                var repositoryChanged = await EndAsync(EndKind.RepositoryChanged, "El repositorio del usuario cambió durante la verificación: " + string.Join(" ", verification.Differences), parsed, tests, verificationEvidence, text: UserText.Of(OrchestrationUserTexts.WorkerRepositoryChanged, UserText.Of(OrchestrationUserTexts.RepositoryDuringVerification), string.Join(" ", verification.Differences))).ConfigureAwait(false);
                 return repositoryChanged with { Differences = verification.Differences };
             }
 
@@ -782,8 +789,14 @@ internal static class SystemWorkers
                     : results.Count == 0
                         ? "antes de " + Steps(steps.Select(s => s.Id))
                         : "durante " + Steps(results.Select(r => r.StepId));
+                var duringText = verification.Stopped
+                    ? UserText.Of(OrchestrationUserTexts.RepositoryDuringStepsStopped, OrchestrationUserTexts.Steps([.. steps.Select(s => s.Id)]))
+                    : results.Count == 0
+                        ? UserText.Of(OrchestrationUserTexts.RepositoryBeforeSteps, OrchestrationUserTexts.Steps([.. steps.Select(s => s.Id)]))
+                        : UserText.Of(OrchestrationUserTexts.RepositoryDuringSteps, OrchestrationUserTexts.Steps([.. results.Select(r => r.StepId)]));
                 end = new AttemptEnd(EndKind.RepositoryChanged, $"El repositorio del usuario cambió {during}: " + string.Join(" ", differences))
                 {
+                    Text = UserText.Of(OrchestrationUserTexts.WorkerRepositoryChanged, duringText, string.Join(" ", differences)),
                     Differences = differences,
                 };
             }
@@ -834,7 +847,7 @@ internal static class SystemWorkers
             var before = await w.Guard.CheckAsync(w.Abort).ConfigureAwait(false);
             if (before.Count > 0)
             {
-                w.Post(new WorkerEnded(task, attempt, RepositoryChanged("antes de la integración", before)));
+                w.Post(new WorkerEnded(task, attempt, RepositoryChanged("antes de la integración", OrchestrationUserTexts.RepositoryBeforeIntegration, before)));
                 return;
             }
 
@@ -874,7 +887,7 @@ internal static class SystemWorkers
             {
                 var stopped = await w.Guard.CheckAsync(w.Abort).ConfigureAwait(false);
                 w.Post(new WorkerEnded(task, attempt, stopped.Count > 0
-                    ? RepositoryChanged("durante la integración", stopped)
+                    ? RepositoryChanged("durante la integración", OrchestrationUserTexts.RepositoryDuringIntegration, stopped)
                     : flight.Cause == StopCause.User
                         ? new AttemptEnd(EndKind.Cancelled, "Cancelada por el usuario.") { Text = UserText.Of(OrchestrationUserTexts.WorkerCancelledByUser) }
                         : new AttemptEnd(EndKind.Failed, "La integración no terminó a tiempo.") { Text = UserText.Of(OrchestrationUserTexts.WorkerIntegrationTimeout) }));
@@ -919,7 +932,7 @@ internal static class SystemWorkers
             AttemptEnd end;
             if (after.Count > 0)
             {
-                end = RepositoryChanged("durante la integración", after);
+                end = RepositoryChanged("durante la integración", OrchestrationUserTexts.RepositoryDuringIntegration, after);
             }
             else if (tampered.Count > 0)
             {
@@ -928,12 +941,13 @@ internal static class SystemWorkers
                     : tampered;
                 end = new AttemptEnd(EndKind.IntegrationEvidenceTampered, "Una evidencia de la integración cambió en el almacén entre su captura y su lectura: alguien la reescribió, así que la integración no se da por buena ni se reintenta. " + string.Join(" ", tampered))
                 {
+                    Text = UserText.Of(OrchestrationUserTexts.WorkerEvidenceTampered, string.Join(" ", tampered)),
                     Differences = differences,
                 };
             }
             else if (unanchored.Count > 0)
             {
-                end = new AttemptEnd(EndKind.Failed, "La evidencia de la integración no es la que capturó el integrador y no se da por buena: " + string.Join(" ", unanchored));
+                end = new AttemptEnd(EndKind.Failed, "La evidencia de la integración no es la que capturó el integrador y no se da por buena: " + string.Join(" ", unanchored)) { Text = UserText.Of(OrchestrationUserTexts.WorkerEvidenceUnanchored, string.Join(" ", unanchored)) };
             }
             else if (result.Succeeded && result.ResultCommit is { } commit)
             {
@@ -978,9 +992,10 @@ internal static class SystemWorkers
     }
 
     /// <summary>A step that found the user's repository changed (<paramref name="when"/>, in Spanish: "durante la integración").</summary>
-    private static AttemptEnd RepositoryChanged(string when, IReadOnlyList<string> differences) =>
+    private static AttemptEnd RepositoryChanged(string when, string whenCode, IReadOnlyList<string> differences) =>
         new(EndKind.RepositoryChanged, $"El repositorio del usuario cambió {when}: " + string.Join(" ", differences))
         {
+            Text = UserText.Of(OrchestrationUserTexts.WorkerRepositoryChanged, UserText.Of(whenCode), string.Join(" ", differences)),
             Differences = differences,
         };
 
@@ -1042,7 +1057,7 @@ internal static class SystemWorkers
             var before = await w.Guard.CheckAsync(w.Abort).ConfigureAwait(false);
             if (before.Count > 0)
             {
-                w.Post(new WorkerEnded(task, attempt, RepositoryChanged("antes de la revisión", before) with { Worktree = info }));
+                w.Post(new WorkerEnded(task, attempt, RepositoryChanged("antes de la revisión", OrchestrationUserTexts.RepositoryBeforeReview, before) with { Worktree = info }));
                 return;
             }
 
@@ -1059,7 +1074,7 @@ internal static class SystemWorkers
             {
                 var stopped = await w.Guard.CheckAsync(w.Abort).ConfigureAwait(false);
                 w.Post(new WorkerEnded(task, attempt, (stopped.Count > 0
-                    ? RepositoryChanged("durante la revisión", stopped)
+                    ? RepositoryChanged("durante la revisión", OrchestrationUserTexts.RepositoryDuringReview, stopped)
                     : flight.Cause == StopCause.User
                         ? new AttemptEnd(EndKind.Cancelled, "Cancelada por el usuario.") { Text = UserText.Of(OrchestrationUserTexts.WorkerCancelledByUser) }
                         : new AttemptEnd(EndKind.Failed, "La revisión no terminó a tiempo.") { Text = UserText.Of(OrchestrationUserTexts.WorkerReviewTimeout) }) with { Worktree = info }));
@@ -1069,7 +1084,7 @@ internal static class SystemWorkers
             var differences = await w.Guard.CheckAsync(w.Abort).ConfigureAwait(false);
             if (differences.Count > 0)
             {
-                w.Post(new WorkerEnded(task, attempt, RepositoryChanged("durante la revisión", differences) with
+                w.Post(new WorkerEnded(task, attempt, RepositoryChanged("durante la revisión", OrchestrationUserTexts.RepositoryDuringReview, differences) with
                 {
                     VerdictId = outcome.VerdictId,
                     Worktree = info,

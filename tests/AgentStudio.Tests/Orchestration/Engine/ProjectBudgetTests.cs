@@ -291,6 +291,49 @@ public sealed class ProjectBudgetTests
         Assert.Contains("1 intentos sin cifra", verdict.Reason, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task Every_refusal_of_the_gate_gives_the_code_it_carries_live_when_it_is_derived_from_its_sentence_in_the_log()
+    {
+        var milestoneLog = new UsageLogBuilder()
+            .Record(DecisionKind.MilestoneLinked, MilestoneLinkedPayload.Linking(Mil, MilestoneTargetKind.Run, "R1", "agent-studio"));
+        var gaps = UsageAttempts.Make(Now.AddMinutes(-1), own: UsageAttempts.NoFigures());
+        var scenarios = new Dictionary<string, Fakes>
+        {
+            ["tokens"] = new() { Budget = new WorkBudget(1_000, null), Attempts = [Used(801)], EstimateTotal = 200 },
+            ["tokens without an estimate"] = new() { Budget = new WorkBudget(1_000, null), Attempts = [Used(1_000)], EstimateTotal = null },
+            ["tokens and attempts without a figure"] = new() { Budget = new WorkBudget(500, null), Attempts = [Used(500), gaps], EstimateTotal = 10 },
+            ["runs"] = new() { Budget = new WorkBudget(null, 2), Attempts = [Used(10), Used(10)], EstimateTotal = 1 },
+            ["day"] = new() { Budget = new WorkBudget(50, null, BudgetPeriod.Day), Attempts = [Used(100)], EstimateTotal = 1 },
+            ["week"] = new() { Budget = new WorkBudget(1_000, null, BudgetPeriod.Week), Attempts = [Used(900, Now.AddDays(-1))], EstimateTotal = 200 },
+            ["month"] = new() { Budget = new WorkBudget(1_000, null, BudgetPeriod.Month), Attempts = [Used(900, Now.AddDays(-1))], EstimateTotal = 200 },
+            ["milestone"] = new()
+            {
+                Header = new MilestoneHeader(Mil, "Calc", "Una calculadora", HashA, new WorkBudget(1_000, null), T0),
+                Entries = milestoneLog.Entries,
+                Attempts = [Used(900, null, Mil.Value)],
+                EstimateTotal = 200,
+            },
+            ["store fails"] = new() { StoreFails = true },
+            ["usage fails"] = new() { Budget = new WorkBudget(1_000, null), UsageFails = true },
+            ["untrusted log"] = new() { Budget = new WorkBudget(1_000, null), Excluded = true },
+            ["invalid budget"] = new() { Budget = new WorkBudget(null, null) },
+        };
+        var verdicts = new Dictionary<string, BudgetGateVerdict>();
+        foreach (var (scenario, fakes) in scenarios)
+        {
+            verdicts[scenario] = await Gate(fakes).CheckAsync(Project, "R1", Request, 0, TestContext.Current.CancellationToken);
+        }
+
+        verdicts["no way to read the usage"] = await new ProjectBudgetGate(new Fakes { Budget = new WorkBudget(1, null) }.Budgets, null, null, null, null, Clock()).CheckAsync(Project, "R1", Request, 0, TestContext.Current.CancellationToken);
+
+        foreach (var (name, verdict) in verdicts)
+        {
+            Assert.False(verdict.Allowed, name);
+            Assert.NotNull(verdict.Text);
+            Assert.Equal(verdict.Text, LoggedTexts.TaskReason(verdict.Reason));
+        }
+    }
+
     // ---- the engine ----
 
     private static EngineHarness Harness(Fakes fakes)

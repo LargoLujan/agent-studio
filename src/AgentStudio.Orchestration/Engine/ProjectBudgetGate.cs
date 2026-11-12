@@ -235,7 +235,7 @@ public sealed class ProjectBudgetGate(
             Text: UserText.Of(OrchestrationUserTexts.BudgetUnreadable, whyText));
 
     /// <summary>The name of a budget as a piece of the sentence: «presupuesto de hoy del proyecto», «presupuesto del hito M1».</summary>
-    private static UserText NameOf(string scope, BudgetPeriod period)
+    internal static UserText NameOf(string scope, BudgetPeriod period)
     {
         var project = scope == "project";
         return period switch

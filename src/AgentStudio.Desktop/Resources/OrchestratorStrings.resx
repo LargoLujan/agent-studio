@@ -2887,10 +2887,10 @@ Abrir el análisis del consumo, si está disponible, para ver el detalle.</value
     <value>No hay ningún proveedor «{0}» para el orquestador «{1}».</value>
   </data>
   <data name="Text_planner_memory_too_small" xml:space="preserve">
-    <value>No se lanza el orquestador: la memoria y los requisitos no caben en su contexto. Reduce los requisitos obligatorios o quita la memoria del orquestador en la plantilla.</value>
+    <value>No se lanza el orquestador: {0}. Reduce los requisitos obligatorios o quita la memoria del orquestador en la plantilla.</value>
   </data>
   <data name="Text_planner_repository_changed" xml:space="preserve">
-    <value>Tu repositorio cambió durante la planificación. Se descarta el plan.</value>
+    <value>Tu repositorio cambió durante la planificación. Se descarta el plan. {0}</value>
   </data>
   <data name="Text_planner_cancelled" xml:space="preserve">
     <value>Se canceló la planificación.</value>
@@ -3383,5 +3383,71 @@ Abrir el análisis del consumo, si está disponible, para ver el detalle.</value
   </data>
   <data name="Text_chat_answer_null" xml:space="preserve">
     <value>La respuesta del orquestador está vacía.</value>
+  </data>
+  <data name="Text_worker_memory_too_small" xml:space="preserve">
+    <value>No se lanza {0}: {1}. Decide una persona: reduce los requisitos de la tarea o quita la memoria de {2} en la plantilla.</value>
+  </data>
+  <data name="Text_worker_memory_detail_figures" xml:space="preserve">
+    <value>sus requisitos ocupan {0} caracteres y el contexto solo admite {1}</value>
+  </data>
+  <data name="Text_worker_memory_detail_unknown" xml:space="preserve">
+    <value>la memoria y los requisitos no caben en su contexto</value>
+  </data>
+  <data name="Text_worker_memory_unverified" xml:space="preserve">
+    <value>No se lanza {0}: el registro de decisiones no verifica, así que la memoria del proyecto no se puede comprobar. Decide una persona: revisa el registro o quita la memoria de {1} en la plantilla.</value>
+  </data>
+  <data name="Text_worker_memory_unverified_entry" xml:space="preserve">
+    <value>No se lanza {0}: el registro de decisiones no verifica (entrada {1}: {2}). La memoria del proyecto no se puede comprobar. Decide una persona: revisa el registro o quita la memoria de {3} en la plantilla.</value>
+  </data>
+  <data name="Text_worker_repository_before_launch" xml:space="preserve">
+    <value>Tu repositorio había cambiado antes de lanzar el agente: {0}</value>
+  </data>
+  <data name="Text_worker_repository_changed" xml:space="preserve">
+    <value>Tu repositorio cambió {0}: {1}</value>
+  </data>
+  <data name="Text_worker_repository_when_while_agent" xml:space="preserve">
+    <value>mientras trabajaba el agente</value>
+  </data>
+  <data name="Text_worker_repository_when_during_verification" xml:space="preserve">
+    <value>durante la verificación</value>
+  </data>
+  <data name="Text_worker_repository_when_during_integration" xml:space="preserve">
+    <value>durante la integración</value>
+  </data>
+  <data name="Text_worker_repository_when_before_integration" xml:space="preserve">
+    <value>antes de la integración</value>
+  </data>
+  <data name="Text_worker_repository_when_during_review" xml:space="preserve">
+    <value>durante la revisión</value>
+  </data>
+  <data name="Text_worker_repository_when_before_review" xml:space="preserve">
+    <value>antes de la revisión</value>
+  </data>
+  <data name="Text_worker_repository_when_during_steps" xml:space="preserve">
+    <value>durante {0}</value>
+  </data>
+  <data name="Text_worker_repository_when_during_steps_stopped" xml:space="preserve">
+    <value>durante {0}, que se detuvieron antes de terminar</value>
+  </data>
+  <data name="Text_worker_repository_when_before_steps" xml:space="preserve">
+    <value>antes de {0}</value>
+  </data>
+  <data name="Text_worker_steps_one" xml:space="preserve">
+    <value>el paso {0}</value>
+  </data>
+  <data name="Text_worker_steps_many" xml:space="preserve">
+    <value>los pasos {0}</value>
+  </data>
+  <data name="Text_worker_evidence_tampered" xml:space="preserve">
+    <value>Una prueba guardada de la integración cambió en el almacén entre que se tomó y se leyó. Alguien la reescribió: la integración no se da por buena ni se reintenta. {0}</value>
+  </data>
+  <data name="Text_worker_evidence_unanchored" xml:space="preserve">
+    <value>La prueba guardada de la integración no es la que tomó el integrador, y no se da por buena: {0}</value>
+  </data>
+  <data name="Text_delivery_log_not_intact_unknown" xml:space="preserve">
+    <value>El registro de decisiones no está íntegro: no se entrega nada.</value>
+  </data>
+  <data name="Text_task_no_integration" xml:space="preserve">
+    <value>{0} parte del código de varias tareas ({1}) sin una integración.</value>
   </data>
 </root>
