@@ -366,8 +366,10 @@
                          AutomationProperties.Name="{l:T Skills_View_StackName}"/>
               <TextBox Style="{StaticResource Skills.Field}" MinHeight="54" AcceptsReturn="True" TextWrapping="Wrap" VerticalContentAlignment="Top"
                        Text="{Binding TaskText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{l:T Skills_View_TaskName}"/>
-              <Button Style="{StaticResource GhostButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Content="{l:T Skills_View_RecommendButton}"
-                      Command="{Binding RecommendCommand}" AutomationProperties.Name="{l:T Skills_View_RecommendName}"/>
+              <Button Style="{StaticResource GhostButton}" HorizontalAlignment="Left" Margin="0,8,0,0"
+                      Command="{Binding RecommendCommand}" AutomationProperties.Name="{l:T Skills_View_RecommendName}">
+                <TextBlock TextWrapping="Wrap" Text="{l:T Skills_View_RecommendButton}"/>
+              </Button>
               <TextBlock Style="{StaticResource Skills.OptionalText}" Margin="0,6,0,0" Text="{Binding RecommendationStatus}"/>
               <ItemsControl Margin="0,4,0,0" ItemsSource="{Binding Recommendations}" ItemTemplate="{StaticResource Skills.RecommendationTemplate}"
                             Focusable="False" AutomationProperties.Name="{l:T Skills_View_DeterministicName}"/>

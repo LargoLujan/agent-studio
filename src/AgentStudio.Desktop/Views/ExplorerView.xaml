@@ -111,7 +111,7 @@
                 </TreeView.ItemContainerStyle>
                 <TreeView.ItemTemplate>
                     <HierarchicalDataTemplate DataType="{x:Type vm:ExplorerNodeViewModel}" ItemsSource="{Binding Children}">
-                        <TextBlock Text="{Binding Name}" Padding="2,2">
+                        <TextBlock Text="{Binding Name}" Padding="2,2" TextTrimming="CharacterEllipsis">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="ToolTip" Value="{Binding FullPath}"/>

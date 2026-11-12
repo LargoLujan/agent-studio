@@ -260,3 +260,35 @@ texto lee la persona:
   byte a byte con dos culturas de hilo distintas (F14-4) y que, al cambiar de idioma, solo cambia el bloque.
 - **Pendiente.** El borrador de la documentación para clientes (`IClientDocumentDrafter`) aún no existe; cuando lo escriba
   WP-14C o WP-14D debe llevar el mismo bloque. Tampoco lo llevan los prompts de las skills recomendadas.
+
+## Adenda · 2026-11-12 · la pseudolocalización y el inventario automático de la interfaz (WP-14E)
+
+Cumple lo que el punto 5 dejaba para la Fase 14 («la pseudolocalización para ver textos cortados») y el criterio F14-10 de
+docs/17 (el inventario automático de la interfaz, D-62, en verde en castellano, en inglés y en pseudolocalización).
+
+- **`PseudoTextProvider` (`Desktop/Localization`).** Un `IUiTextProvider` que envuelve a otro: pone acentos a las letras que
+  tienen gemela acentuada (`a`→`à`, `e`→`é`, `o`→`ö`…) y añade al final alrededor de un 40 % más de caracteres de relleno
+  (` ~ ~ ~`), nunca dentro de un marcador (`{0}`, `{1:N1}`) ni de una llave escapada, de modo que `Format` sigue rellenándolos.
+  Una clave que no existe sigue saliendo como `[clave]`, para que se encuentre. Su cultura es `qps-ploc`, como la nombra
+  Windows. **Solo lo usan las pruebas**: no está en la lista de idiomas (`UiLanguages.All`), ni en «Ajustes», ni la app lo
+  construye jamás.
+- **Un proveedor por ámbito, sin tocar el idioma de la app.** `Texts.Scope(proveedor)` hace que `Texts.Current` devuelva ese
+  proveedor solo en el flujo de ejecución que lo abrió (`AsyncLocal`, sigue a los `await` y nada que corra al lado lo ve) hasta
+  que se descarte el ámbito. Es lo que permite a una prueba pintar la misma pantalla en tres idiomas, ya que el idioma de la
+  app solo se aplica una vez (punto 4) y la cultura de las pruebas la fija `TestCulture`. La app no lo llama.
+- **El inventario** (`tests/AgentStudio.Tests/Desktop/UiInventory`) recorre cada documento, panel, diálogo y ventana con sus
+  modelos de vista de prueba, sin mostrarlos, y lee el árbol de diseño (nunca píxeles: el runner del CI no tiene ClearType).
+  Comprueba en los tres idiomas que cada control tiene nombre accesible (ni vacío, ni el nombre de su tipo, ni solo un icono) y
+  se alcanza con Tab, que cada ⓘ se llama «Información sobre …», que ningún texto sale como `[Clave]`, que ningún texto que no
+  puede partirse queda recortado sin `TextWrapping` ni `TextTrimming` (con la pseudolocalización ven los textos un 40 % más
+  largos) y que en inglés no queda texto en castellano ni al revés.
+- **El idioma se lee de lo que entrega el proveedor, no de lo que hay en pantalla.** Los datos de prueba de las pantallas (una
+  pregunta, el nombre de una tarea) están en castellano en cualquier idioma, y no se distinguen de un texto sin traducir; en
+  cambio un texto de los recursos sin traducir cae al castellano **a través del proveedor**, así que se encuentra ahí. Lo escrito
+  a mano en el código (sin pasar por el proveedor) lo guarda `Phase13HandWrittenTextTests` para todo lo posterior a la Fase 13;
+  lo anterior que sigue escrito a mano (`DesktopFilesBeforePhase13.txt`: el panel de consumo, su modelo de vista y su código detrás)
+  lo extrae WP-14A (c), y hasta entonces el inventario no lo ve en inglés.
+- **Una guardia por vistas.** `Every_view_of_the_app_is_walked` compara las clases XAML de `Views/**`, `Controls/**` y la
+  ventana principal con las que alcanza algún recorrido: una vista nueva sin recorrer, o una excluida que ya se recorre, hace
+  fallar la prueba. La Fase 15 (traducción de la primera ola) se apoya en este inventario: una traducción que alargue un texto
+  más de lo previsto lo rompe en la pseudolocalización antes de llegar a nadie.

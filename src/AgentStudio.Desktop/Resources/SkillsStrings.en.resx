@@ -424,4 +424,52 @@ Turn it on for the project, for an agent or globally: each decision is saved and
 Ask for a recommendation for your task. The deterministic one spends no usage limit; the one of an agent does.
 Look at the cost: each skill that is on adds tokens to every run.</value>
   </data>
+  <data name="Skills_Sector_arquitectura-software" xml:space="preserve">
+    <value>Software architecture</value>
+  </data>
+  <data name="Skills_Sector_arquitectura-datos" xml:space="preserve">
+    <value>Data architecture</value>
+  </data>
+  <data name="Skills_Sector_ingenieria-datos" xml:space="preserve">
+    <value>Data engineering</value>
+  </data>
+  <data name="Skills_Sector_ciencia-datos" xml:space="preserve">
+    <value>Data science</value>
+  </data>
+  <data name="Skills_Sector_analitica-bi" xml:space="preserve">
+    <value>Analytics and BI</value>
+  </data>
+  <data name="Skills_Sector_ux-ui" xml:space="preserve">
+    <value>UX/UI</value>
+  </data>
+  <data name="Skills_Sector_frontend" xml:space="preserve">
+    <value>Frontend</value>
+  </data>
+  <data name="Skills_Sector_backend" xml:space="preserve">
+    <value>Backend</value>
+  </data>
+  <data name="Skills_Sector_movil" xml:space="preserve">
+    <value>Mobile development</value>
+  </data>
+  <data name="Skills_Sector_escritorio" xml:space="preserve">
+    <value>Desktop development</value>
+  </data>
+  <data name="Skills_Sector_devops-cloud" xml:space="preserve">
+    <value>DevOps and cloud</value>
+  </data>
+  <data name="Skills_Sector_ciberseguridad" xml:space="preserve">
+    <value>Cybersecurity</value>
+  </data>
+  <data name="Skills_Sector_testing-qa" xml:space="preserve">
+    <value>Testing and QA</value>
+  </data>
+  <data name="Skills_Sector_ia-llm" xml:space="preserve">
+    <value>AI and LLM</value>
+  </data>
+  <data name="Skills_Sector_ingenieria-software" xml:space="preserve">
+    <value>Software engineering</value>
+  </data>
+  <data name="Skills_Sector_documentacion" xml:space="preserve">
+    <value>Documentation</value>
+  </data>
 </root>

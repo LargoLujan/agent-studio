@@ -110,6 +110,13 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
 
     public ObservableCollection<SkillSectorNodeViewModel> Sectors { get; } = [];
 
+    /// <summary>The name of a sector of the catalog in the language of the interface; one the resources do not know keeps the title of the catalog.</summary>
+    private static string SectorTitleOf(AgentStudio.Domain.Skills.SkillSector sector)
+    {
+        var key = "Skills_Sector_" + sector.Id;
+        return Texts.Current.Has(key) ? Texts.Get(key) : sector.Title;
+    }
+
     public ObservableCollection<AgentCostViewModel> AgentCosts { get; } = [];
 
     public ObservableCollection<SkillRecommendationItemViewModel> Recommendations { get; } = [];
@@ -533,7 +540,7 @@ public sealed partial class SkillsDocumentViewModel : DocumentViewModel
         {
             Id = item.Id,
             Name = entry.Name,
-            SectorTitle = entry.Sector.Title,
+            SectorTitle = SectorTitleOf(entry.Sector),
             Summary = entry.Summary,
             SourceText = $"{source.Repository} · {source.Path} · {commit} · {license}",
             ModeText = item.IsLinked ? Texts.Get("Skills_Card_ModeLinked") : Texts.Get("Skills_Card_ModeLocal"),
