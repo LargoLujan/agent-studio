@@ -281,8 +281,7 @@ public sealed partial class OrchestrationCodedTextsTests
         var figures = UserText.Of(OrchestrationUserTexts.PlannerMemoryTooSmall, OrchestrationUserTexts.MemoryTooSmall(new AgentStudio.Application.Knowledge.ContextBudgetTooSmallException(5000, 4000)));
         var unknown = UserText.Of(OrchestrationUserTexts.PlannerMemoryTooSmall, OrchestrationUserTexts.MemoryTooSmall(new AgentStudio.Application.Knowledge.ContextBudgetTooSmallException("technical message")));
 
-        Assert.Contains("5,000 characters", Say(figures, "x", English), StringComparison.Ordinal);
-        Assert.Contains("4,000", Say(figures, "x", English), StringComparison.Ordinal);
+        Assert.Matches("its requirements take 5,?000 characters and the context only holds 4,?000", Say(figures, "x", English));
         Assert.Contains("caracteres", Say(figures, "x", Spanish), StringComparison.Ordinal);
         Assert.StartsWith("The orchestrator does not start: the memory and the requirements do not fit in its context.", Say(unknown, "x", English), StringComparison.Ordinal);
         Assert.DoesNotContain("technical message", Say(unknown, "x", English), StringComparison.Ordinal);
