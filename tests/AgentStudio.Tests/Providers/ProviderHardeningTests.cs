@@ -9,6 +9,7 @@ using AgentStudio.Providers.Cli.Claude;
 using AgentStudio.Providers.Cli.Codex;
 using AgentStudio.Providers.Cli.Gemini;
 using AgentStudio.Tests.Providers.Gemini;
+using AgentStudio.Tests.TestSupport;
 using ClaudeSupport = AgentStudio.Tests.Providers.Claude.ClaudeTestSupport;
 using CodexSupport = AgentStudio.Tests.Providers.Codex.CodexTestSupport;
 
@@ -118,10 +119,10 @@ public sealed class ProviderHardeningTests
     }
 
     private static ClaudeCodeAgentProvider ClaudeProvider(Session session, string path = "C:/bin/claude.exe") =>
-        new(new Locator(path), new Runner(session), TimeProvider.System);
+        new(new Locator(path), new Runner(session), TimeProvider.System, TestLocalData.RunFolders);
 
     private static CodexCliAgentProvider CodexProvider(Session session) =>
-        new(new Locator("C:/bin/codex.exe"), new Runner(session), TimeProvider.System);
+        new(new Locator("C:/bin/codex.exe"), new Runner(session), TimeProvider.System, TestLocalData.RunFolders);
 
     private static GeminiCliAgentProvider GeminiProvider(Session session) =>
         new(new Locator("C:/bin/gemini.exe"), new Runner(session));
@@ -184,7 +185,7 @@ public sealed class ProviderHardeningTests
     {
         var session = new Session([], 0);
         var runner = new Runner(session);
-        var provider = new ClaudeCodeAgentProvider(new Locator("C:/npm/claude.cmd"), runner, TimeProvider.System);
+        var provider = new ClaudeCodeAgentProvider(new Locator("C:/npm/claude.cmd"), runner, TimeProvider.System, TestLocalData.RunFolders);
 
         var error = await Assert.ThrowsAsync<InvalidOperationException>(
             () => provider.StartAsync(ClaudeSupport.Request(schema: """{"type":"object"}"""), Token));
@@ -424,8 +425,8 @@ public sealed class ProviderHardeningTests
         await Assert.ThrowsAsync<ArgumentException>(
             () => provider.StartAsync(ClaudeSupport.Request(instructions: marker, resume: "--bad"), Token));
 
-        var leaked = Directory.Exists(RunTempFolder.BaseDirectory)
-            ? Directory.EnumerateFiles(RunTempFolder.BaseDirectory, "instructions.md", SearchOption.AllDirectories).Where(f => TryRead(f) == marker).ToList()
+        var leaked = Directory.Exists(TestLocalData.RunFolders.BaseDirectory)
+            ? Directory.EnumerateFiles(TestLocalData.RunFolders.BaseDirectory, "instructions.md", SearchOption.AllDirectories).Where(f => TryRead(f) == marker).ToList()
             : [];
         Assert.Empty(leaked);
     }
@@ -436,13 +437,13 @@ public sealed class ProviderHardeningTests
         var marker = "instrucciones-" + Guid.NewGuid().ToString("N");
         var session = new Session([], 0, holdOpen: true);
         var runner = new Runner(session);
-        var provider = new ClaudeCodeAgentProvider(new Locator("C:/bin/claude.exe"), runner, TimeProvider.System);
+        var provider = new ClaudeCodeAgentProvider(new Locator("C:/bin/claude.exe"), runner, TimeProvider.System, TestLocalData.RunFolders);
 
         await using var run = await provider.StartAsync(ClaudeSupport.Request(instructions: marker), Token);
         var args = runner.Spec!.Arguments.ToList();
         var file = args[args.IndexOf("--append-system-prompt-file") + 1];
 
-        Assert.StartsWith(RunTempFolder.BaseDirectory, file, StringComparison.OrdinalIgnoreCase);
+        Assert.StartsWith(TestLocalData.RunFolders.BaseDirectory, file, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(marker, File.ReadAllText(file));
 
         session.End(0);
@@ -456,7 +457,7 @@ public sealed class ProviderHardeningTests
     [Fact]
     public async Task Instruction_files_are_never_overwritten()
     {
-        var dir = RunTempFolder.Create();
+        var dir = RunTempFolder.Create(TestLocalData.RunFolders.BaseDirectory);
         try
         {
             var path = Path.Combine(dir, "x.md");
@@ -488,8 +489,8 @@ public sealed class ProviderHardeningTests
         await Assert.ThrowsAsync<ArgumentException>(
             () => provider.StartAsync(CodexSupport.Request(schema: "{\"title\":\"" + marker + "\"}", resume: "--bad"), Token));
 
-        var leaked = Directory.Exists(RunTempFolder.BaseDirectory)
-            ? Directory.EnumerateFiles(RunTempFolder.BaseDirectory, "schema.json", SearchOption.AllDirectories)
+        var leaked = Directory.Exists(TestLocalData.RunFolders.BaseDirectory)
+            ? Directory.EnumerateFiles(TestLocalData.RunFolders.BaseDirectory, "schema.json", SearchOption.AllDirectories)
                 .Where(f => TryRead(f)?.Contains(marker, StringComparison.Ordinal) == true).ToList()
             : [];
         Assert.Empty(leaked);
@@ -535,8 +536,8 @@ public sealed class ProviderHardeningTests
         var baseDirectory = Path.Combine(Path.GetTempPath(), "agentstudio-sweep-" + Guid.NewGuid().ToString("N"));
         try
         {
-            var old = Path.Combine(baseDirectory, "old");
-            var fresh = Path.Combine(baseDirectory, "fresh");
+            var old = RunTempFolder.NewPath(baseDirectory);
+            var fresh = RunTempFolder.NewPath(baseDirectory);
             Directory.CreateDirectory(old);
             Directory.CreateDirectory(fresh);
             File.WriteAllText(Path.Combine(old, "schema.json"), "{}");
@@ -554,11 +555,36 @@ public sealed class ProviderHardeningTests
     }
 
     [Fact]
+    public void A_stale_folder_that_is_not_a_run_folder_is_never_swept()
+    {
+        var baseDirectory = Path.Combine(Path.GetTempPath(), "agentstudio-sweepn-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var foreign = Path.Combine(baseDirectory, "notes");
+            var dashed = Path.Combine(baseDirectory, Guid.NewGuid().ToString("D"));
+            Directory.CreateDirectory(foreign);
+            Directory.CreateDirectory(dashed);
+            File.WriteAllText(Path.Combine(foreign, "keep.txt"), "mine");
+            Directory.SetLastWriteTimeUtc(foreign, DateTime.UtcNow.AddDays(-30));
+            Directory.SetLastWriteTimeUtc(dashed, DateTime.UtcNow.AddDays(-30));
+
+            RunTempFolder.SweepStale(baseDirectory, TimeSpan.FromDays(7), DateTimeOffset.UtcNow, stopAt: Path.GetTempPath());
+
+            Assert.True(File.Exists(Path.Combine(foreign, "keep.txt")));
+            Assert.True(Directory.Exists(dashed));
+        }
+        finally
+        {
+            Directory.Delete(baseDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task Claude_temp_folder_is_gone_by_the_time_completion_is_published()
     {
         var session = new Session([], 0, holdOpen: true);
         var runner = new Runner(session);
-        var provider = new ClaudeCodeAgentProvider(new Locator("C:/bin/claude.exe"), runner, TimeProvider.System);
+        var provider = new ClaudeCodeAgentProvider(new Locator("C:/bin/claude.exe"), runner, TimeProvider.System, TestLocalData.RunFolders);
         await using var run = await provider.StartAsync(ClaudeSupport.Request(instructions: "x"), Token);
         var args = runner.Spec!.Arguments.ToList();
         var file = args[args.IndexOf("--append-system-prompt-file") + 1];
@@ -636,7 +662,7 @@ public sealed class ProviderHardeningTests
         var link = Path.Combine(parent, "link");
         try
         {
-            var old = Path.Combine(real, "old");
+            var old = RunTempFolder.NewPath(real);
             Directory.CreateDirectory(old);
             Directory.SetLastWriteTimeUtc(old, DateTime.UtcNow.AddDays(-30));
             var info = new System.Diagnostics.ProcessStartInfo("cmd.exe", $"/c mklink /J \"{link}\" \"{real}\"")

@@ -8,6 +8,7 @@ using AgentStudio.Providers.Cli.Claude;
 using AgentStudio.Providers.Composition;
 using AgentStudio.Tests.Desktop;
 using AgentStudio.Tests.Providers.Live;
+using AgentStudio.Tests.TestSupport;
 using static AgentStudio.Tests.Providers.Claude.ClaudeTestSupport;
 
 namespace AgentStudio.Tests.Providers.Composition;
@@ -82,7 +83,7 @@ public sealed class ProviderConcurrencyScenarioTests
     private static (IAgentProvider Provider, RecordingProcessRunner Recorder) Compose(string projectRoot, int maxConcurrent, TimeSpan? lifetime = null)
     {
         var recorder = new RecordingProcessRunner(new FakeClaudeRunner(lifetime ?? FakeCliLifetime));
-        var adapter = new ClaudeCodeAgentProvider(new FakeClaudeLocator(), recorder, TimeProvider.System);
+        var adapter = new ClaudeCodeAgentProvider(new FakeClaudeLocator(), recorder, TimeProvider.System, TestLocalData.RunFolders);
         var journal = new MarkdownDailyJournalFactory(new ProjectStorageFiles(), TimeProvider.System).ForProject(projectRoot);
         return (AgentProviderPipeline.Compose(adapter, journal, TimeProvider.System, maxConcurrent), recorder);
     }

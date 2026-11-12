@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Prompts;
 using AgentStudio.Application.Security;
 using AgentStudio.Domain.Questions;
@@ -70,6 +71,16 @@ internal static class QuestionDocuments
     /// <summary>The title of the decision of the person about a question.</summary>
     public static string DecisionTitle(string question, string task) => $"Decisión sobre la pregunta {question} de {task}";
 
+    /// <summary>
+    /// The title of the decision of the person about <paramref name="asked"/>: the one of a question of a task, or, for a question of
+    /// the orchestrator before it plans (P54, no task owns it), the same words with «del orquestador».
+    /// </summary>
+    public static string DecisionTitle(AskedQuestion asked)
+    {
+        ArgumentNullException.ThrowIfNull(asked);
+        return asked.Task is { } task ? DecisionTitle(asked.Id, task.Value) : QuestionEvidenceTitles.OrchestratorDecision(asked.Id);
+    }
+
     /// <summary>The title of the person's own answer to a question.</summary>
     public static string OwnAnswerTitle(string question, string task) => $"Tu respuesta a la pregunta {question} de {task}";
 
@@ -133,7 +144,8 @@ internal static class QuestionDocuments
     /// The system captures it, so it is objective evidence for the judge (<c>CapturedBySystem</c>): it carries ids, hashes and
     /// instants only, never a text of the agent (its question, its reason, its labels), which would reach the judge as if the
     /// system had checked it (review of WP4, 2026-11-09). What the agent wrote stays in the evidence of the question, reported
-    /// by the agent, which the judge never gets.
+    /// by the agent, which the judge never gets. The question of the orchestrator before it plans (P54) has the same document
+    /// with <c>task</c> null (no task owns it) and <c>askedBy</c> naming the orchestrator's agent.
     /// </remarks>
     public static string DecisionJson(RecordedAnswer answered)
     {
@@ -142,7 +154,7 @@ internal static class QuestionDocuments
         {
             format = DecisionFormat,
             question = asked.Id,
-            task = asked.AskingTask.Value,
+            task = asked.Task?.Value,
             attempt = asked.Attempt,
             askedBy = asked.Agent.Value,
             questionEvidence = asked.Evidence.Value,

@@ -6,6 +6,7 @@ using AgentStudio.Application.Providers;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Providers.Cli;
 using AgentStudio.Providers.Cli.Codex.AppServer;
+using AgentStudio.Tests.TestSupport;
 using Microsoft.Extensions.Time.Testing;
 
 namespace AgentStudio.Tests.Providers.Codex;
@@ -128,7 +129,7 @@ public sealed class CodexAppServerQuotaReaderTests
             Versions = new VersionRunner(version);
             Clock = new FakeTimeProvider(new DateTimeOffset(2026, 10, 18, 9, 0, 0, TimeSpan.Zero));
             OptedIn = optedIn;
-            Reader = new CodexAppServerQuotaReader(Locator, Runner, Versions, () => OptedIn, Clock, clientVersion: "1.2.3");
+            Reader = new CodexAppServerQuotaReader(Locator, Runner, Versions, () => OptedIn, Clock, clientVersion: "1.2.3", tempFolders: TestLocalData.RunFolders);
         }
 
         public Session Session { get; }
@@ -190,7 +191,7 @@ public sealed class CodexAppServerQuotaReaderTests
         Assert.Equal(Codex, spec.FileName);
         Assert.Equal(["app-server", "--listen", "stdio://"], spec.Arguments);
         Assert.True(world.Session.StartedInEmptyFolder);
-        Assert.True(LiveFolderUnder(spec.WorkingDirectory!, RunTempFolder.BaseDirectory), spec.WorkingDirectory);
+        Assert.True(LiveFolderUnder(spec.WorkingDirectory!, TestLocalData.RunFolders.BaseDirectory), spec.WorkingDirectory);
         Assert.False(Directory.Exists(spec.WorkingDirectory));
         Assert.NotNull(spec.Timeout);
     }
@@ -281,7 +282,7 @@ public sealed class CodexAppServerQuotaReaderTests
     {
         var world = new World();
         var failing = new FailingRunner();
-        var reader = new CodexAppServerQuotaReader(world.Locator, failing, world.Versions, () => true, world.Clock, clientVersion: "1.2.3");
+        var reader = new CodexAppServerQuotaReader(world.Locator, failing, world.Versions, () => true, world.Clock, clientVersion: "1.2.3", tempFolders: TestLocalData.RunFolders);
 
         var result = await reader.ReadAsync(TestContext.Current.CancellationToken);
 

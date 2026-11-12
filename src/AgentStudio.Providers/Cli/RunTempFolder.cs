@@ -20,6 +20,8 @@ public static class RunTempFolder
     /// <summary>
     /// Best-effort sweep: deletes the run folders under <paramref name="baseDirectory"/> last written more than
     /// <paramref name="maxAge"/> before <paramref name="now"/>. Links are never followed (a link is only unlinked).
+    /// Only folders named like <see cref="NewPath"/> names them are touched, so a misconfigured base never loses
+    /// anything that is not a run folder.
     /// </summary>
     /// <param name="stopAt">Ancestor (excluded) up to which a link on the way cancels the sweep; defaults to %LOCALAPPDATA%.</param>
     public static void SweepStale(string baseDirectory, TimeSpan maxAge, DateTimeOffset now, string? stopAt = null)
@@ -33,7 +35,8 @@ public static class RunTempFolder
 
             foreach (var child in new DirectoryInfo(baseDirectory).EnumerateDirectories())
             {
-                if (now - new DateTimeOffset(child.LastWriteTimeUtc, TimeSpan.Zero) <= maxAge)
+                if (!Guid.TryParseExact(child.Name, "N", out _)
+                    || now - new DateTimeOffset(child.LastWriteTimeUtc, TimeSpan.Zero) <= maxAge)
                 {
                     continue;
                 }
@@ -74,14 +77,34 @@ public static class RunTempFolder
         return false;
     }
 
-    /// <summary>Creates a new, empty per-run folder.</summary>
-    public static string Create()
+    /// <summary>Creates a new, empty per-run folder under <see cref="BaseDirectory"/>.</summary>
+    public static string Create() => Create(BaseDirectory);
+
+    /// <summary>Creates a new, empty per-run folder under <paramref name="baseDirectory"/>.</summary>
+    public static string Create(string baseDirectory) => Create(baseDirectory, NewPath(baseDirectory));
+
+    /// <summary>
+    /// The path a new per-run folder under <paramref name="baseDirectory"/> will have, without touching the disk: an adapter
+    /// builds and validates the arguments of a launch with it, and only a valid launch creates the folder
+    /// (<see cref="Create(string, string)"/>).
+    /// </summary>
+    public static string NewPath(string baseDirectory)
     {
-        SweepStale(BaseDirectory, StaleAfter, DateTimeOffset.UtcNow);
-        var directory = Path.Combine(BaseDirectory, Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(directory);
-        return directory;
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseDirectory);
+        return Path.Combine(baseDirectory, Guid.NewGuid().ToString("N"));
     }
+
+    /// <summary>Creates the folder at <paramref name="path"/>, one of <see cref="NewPath"/>, after sweeping the stale ones.</summary>
+    public static string Create(string baseDirectory, string path)
+    {
+        SweepStale(baseDirectory, StaleAfter, DateTimeOffset.UtcNow, stopAt: StopAtFor(baseDirectory));
+        Directory.CreateDirectory(path);
+        return path;
+    }
+
+    // The sweep refuses a base with a link between it and %LOCALAPPDATA%; a base somewhere else only looks at itself.
+    private static string? StopAtFor(string baseDirectory) =>
+        string.Equals(baseDirectory, BaseDirectory, StringComparison.OrdinalIgnoreCase) ? null : Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(Path.GetFullPath(baseDirectory)));
 
     /// <summary>Writes a new file (<c>FileMode.CreateNew</c>: never overwrites) with UTF-8 without BOM.</summary>
     public static async Task WriteNewFileAsync(string path, string content, CancellationToken cancellationToken)

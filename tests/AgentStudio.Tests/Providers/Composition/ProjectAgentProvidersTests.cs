@@ -9,6 +9,7 @@ using AgentStudio.Memory;
 using AgentStudio.Providers;
 using AgentStudio.Providers.Composition;
 using AgentStudio.Tests.Desktop;
+using AgentStudio.Tests.TestSupport;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AgentStudio.Tests.Providers.Composition;
@@ -40,7 +41,7 @@ public sealed class ProjectAgentProvidersTests
             .AddSingleton(TimeProvider.System)
             .AddAgentStudioInfrastructure()
             .AddAgentStudioMemory()
-            .AddAgentStudioPersistence()
+            .AddAgentStudioPersistence(TestLocalData.Anchors(TestLocalData.Shared))
             .AddAgentStudioProviders()
             .BuildServiceProvider();
 

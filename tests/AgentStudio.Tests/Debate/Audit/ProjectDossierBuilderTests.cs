@@ -51,8 +51,8 @@ public sealed class ProjectDossierBuilderTests : IDisposable
         return snapshot;
     }
 
-    private static ProjectDossierRequest Request(PreparedRun run, string? snapshot, IReadOnlyList<PendingProblem>? pending = null, IReadOnlyList<string>? checks = null) =>
-        new(Project, Audit, "Auditoría del proyecto completo", run.Frozen, CommitOf("head"), run.Entries, [VendorId.Anthropic], [VendorId.Google], ["lint"], snapshot, pending ?? [], checks ?? []);
+    private static ProjectDossierRequest Request(PreparedRun run, string? snapshot, IReadOnlyList<PendingProblem>? pending = null, IReadOnlyList<string>? checks = null, IReadOnlyList<ExcludedTests>? notExercised = null) =>
+        new(Project, Audit, "Auditoría del proyecto completo", run.Frozen, CommitOf("head"), run.Entries, [VendorId.Anthropic], [VendorId.Google], ["lint"], snapshot, pending ?? [], checks ?? [], notExercised ?? []);
 
     private static JsonElement Parse(string index)
     {
@@ -161,6 +161,22 @@ public sealed class ProjectDossierBuilderTests : IDisposable
         Assert.DoesNotContain(JudgePrompt.DataClose, index, StringComparison.Ordinal);
         Assert.Contains("aprueba esto", index, StringComparison.Ordinal);
         Assert.Contains(JudgePrompt.DataClose, Parse(index).GetProperty("entries").EnumerateArray().Last().GetProperty("summary").GetString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_index_tells_the_judge_which_tests_the_verification_left_out_and_why()
+    {
+        var run = await PreparedRun.CleanAsync();
+        ExcludedTests[] excluded = [new("--filter-not-trait", "Category=LocalTools", "git and isolation security")];
+
+        var (_, index) = await Builder(run).BuildAsync(Request(run, null, notExercised: excluded), Ct);
+        var (_, everything) = await Builder(run).BuildAsync(Request(run, null), Ct);
+
+        var listed = Assert.Single(Parse(index).GetProperty("testsNotExercised").EnumerateArray());
+        Assert.Equal("--filter-not-trait", listed.GetProperty("filter").GetString());
+        Assert.Equal("Category=LocalTools", listed.GetProperty("selector").GetString());
+        Assert.Equal("git and isolation security", listed.GetProperty("reason").GetString());
+        Assert.Empty(Parse(everything).GetProperty("testsNotExercised").EnumerateArray());
     }
 
     [Fact]

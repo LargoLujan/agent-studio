@@ -9,6 +9,7 @@ using AgentStudio.Providers.Cli.Codex;
 using AgentStudio.Tests.Orchestration.Fakes;
 using AgentStudio.Tests.Providers.Claude;
 using AgentStudio.Tests.Providers.Codex;
+using AgentStudio.Tests.TestSupport;
 
 namespace AgentStudio.Tests.Integration.Phase8;
 
@@ -79,8 +80,8 @@ internal sealed class FakeCli : IAgentProvider, IExecutableLocator, IStreamingPr
         // Never run: the runner below starts no process. A native name, as the adapters require for an inline schema.
         _executable = Path.Combine(Path.GetTempPath(), "agentstudio-fake-cli", _command + ".exe");
         _adapter = provider == ProviderId.ClaudeCode
-            ? new ClaudeCodeAgentProvider(this, this, clock)
-            : new CodexCliAgentProvider(this, this, clock);
+            ? new ClaudeCodeAgentProvider(this, this, clock, TestLocalData.RunFolders)
+            : new CodexCliAgentProvider(this, this, clock, TestLocalData.RunFolders);
         Turn = launch => CliTurns.Works(launch);
     }
 

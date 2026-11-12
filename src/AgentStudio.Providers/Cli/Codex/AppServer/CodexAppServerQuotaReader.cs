@@ -52,6 +52,7 @@ public sealed class CodexAppServerQuotaReader : IProviderQuotaReader
     private readonly Func<bool> _optedIn;
     private readonly TimeProvider _time;
     private readonly string _clientVersion;
+    private readonly string _tempBase;
 
     /// <param name="locator">Finds <c>codex</c> on the PATH.</param>
     /// <param name="runner">Starts the app-server (Job Object).</param>
@@ -59,8 +60,10 @@ public sealed class CodexAppServerQuotaReader : IProviderQuotaReader
     /// <param name="optedIn">The user's opt-in, read on every call (the setting lives in the desktop settings).</param>
     /// <param name="time">The clock of the observations and of the time limit.</param>
     /// <param name="clientVersion">The version Agent Studio announces; by default the version of this assembly.</param>
-    public CodexAppServerQuotaReader(IExecutableLocator locator, IStreamingProcessRunner runner, IProcessRunner probes, Func<bool> optedIn, TimeProvider time, string? clientVersion = null)
+    /// <param name="tempFolders">Where the empty folder of each read is made; by default the one of the user (<see cref="RunTempFolder"/>).</param>
+    public CodexAppServerQuotaReader(IExecutableLocator locator, IStreamingProcessRunner runner, IProcessRunner probes, Func<bool> optedIn, TimeProvider time, string? clientVersion = null, RunTempFolderOptions? tempFolders = null)
     {
+        _tempBase = (tempFolders ?? RunTempFolderOptions.ForCurrentUser()).BaseDirectory;
         ArgumentNullException.ThrowIfNull(locator);
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(probes);
@@ -105,7 +108,7 @@ public sealed class CodexAppServerQuotaReader : IProviderQuotaReader
 
         var executable = CodexExecutableResolver.Resolve(located);
         var warnings = await VersionWarningsAsync(executable, ct).ConfigureAwait(false);
-        var folder = RunTempFolder.Create();
+        var folder = RunTempFolder.Create(_tempBase);
         try
         {
             var spec = new ProcessSpec(
