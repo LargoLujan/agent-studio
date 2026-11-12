@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The analysis process of Auto Graph (Phase 6, docs/20 D-16 to D-19; ADR-0062). It is the thirteenth project and, like
+       SkillsMcp, a second entry point: the host launches it at low integrity over a copy of a commit and reads the model from
+       its standard output; Agent Studio never runs it in-process. Like the modules of ADR-0002 it depends only on Application
+       (and, through it, on Domain); no module references it. Tests reference it to drive it over in-memory streams, and
+       Desktop references it only so the executable ships next to the app. Roslyn is used for its syntax parser alone
+       (no Compilation, no workspaces, no MSBuild): its compile assets are private, so no other project sees a type of Roslyn,
+       while its runtime assets still flow to the output of whoever ships the executable. The P0 of Phase 6 owns this file;
+       WP-G owns the rest of the folder. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>AgentStudio.GraphWorker</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="compile" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AgentStudio.Application\AgentStudio.Application.csproj" />
+  </ItemGroup>
+
+  <!-- The worker is tested directly and over in-memory streams (docs/20 section 8, F6-3 and F6-12). -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="AgentStudio.Tests" />
+  </ItemGroup>
+
+</Project>

@@ -37,12 +37,20 @@
     <None Include="Domain/**/Fixtures/**/*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Infrastructure/**/Fixtures/**/*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Integration/**/Fixtures/**/*" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Phase 6 fixtures (docs/20 section 9.2): the sample solution of Auto Graph, the sample repositories of the declared
+         environment and the recorded outputs of the doctor, in a Fixtures folder under GraphWorker, Infrastructure and Domain
+         (the last two are copied above). The sample solution has C# that must never be compiled with the tests: no .cs file
+         under a Fixtures folder of those three areas is part of the compilation (none exists there today). -->
+    <None Include="GraphWorker/**/Fixtures/**/*" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Remove="GraphWorker/**/Fixtures/**/*.cs;Infrastructure/**/Fixtures/**/*.cs;Domain/**/Fixtures/**/*.cs" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\AgentStudio.Desktop\AgentStudio.Desktop.csproj" />
     <!-- The MCP server is a second entry point that Desktop does not compose (docs/14 D-30): its tools are tested here. -->
     <ProjectReference Include="..\..\src\AgentStudio.SkillsMcp\AgentStudio.SkillsMcp.csproj" />
+    <!-- The analysis process of Auto Graph is another entry point that Desktop does not compose (docs/20 D-18): it is tested here. -->
+    <ProjectReference Include="..\..\src\AgentStudio.GraphWorker\AgentStudio.GraphWorker.csproj" />
   </ItemGroup>
 
 </Project>

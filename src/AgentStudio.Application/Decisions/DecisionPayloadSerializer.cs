@@ -82,6 +82,10 @@ public static class DecisionPayloadSerializer
         [DecisionKind.BacklogOrderChanged] = typeof(BacklogOrderChangedPayload),
         [DecisionKind.TraceLinkRecorded] = typeof(TraceLinkRecordedPayload),
         [DecisionKind.TraceLinkRetracted] = typeof(TraceLinkRetractedPayload),
+
+        // Phase 6 (docs/20 §4.3): the fixes of Auto Doctor and the relations an AI proposed for Auto Graph, outside every run.
+        [DecisionKind.DoctorFixApplied] = typeof(DoctorFixAppliedPayload),
+        [DecisionKind.GraphRelationsProposed] = typeof(GraphRelationsProposedPayload),
     };
 
     private static readonly JsonSerializerOptions Options = CreateOptions();

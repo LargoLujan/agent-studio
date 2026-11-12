@@ -151,4 +151,11 @@
     <ProjectReference Include="..\AgentStudio.SkillsMcp\AgentStudio.SkillsMcp.csproj" />
   </ItemGroup>
 
+  <!-- The analysis process of Auto Graph (Phase 6, docs/20 D-18; ADR-0062) ships next to the app the same way: referencing the
+       executable project copies its apphost, its runtimeconfig, its deps.json and its dependencies (Roslyn) into the output. No
+       code of the app uses its types: the host launches it at low integrity over a copy of a commit. -->
+  <ItemGroup>
+    <ProjectReference Include="..\AgentStudio.GraphWorker\AgentStudio.GraphWorker.csproj" />
+  </ItemGroup>
+
 </Project>
