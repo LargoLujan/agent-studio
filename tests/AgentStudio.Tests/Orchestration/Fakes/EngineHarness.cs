@@ -161,9 +161,13 @@ internal sealed class EngineHarness : IDisposable
     /// <summary>Phase 9: the log reader the gate finds the milestones of a run with.</summary>
     public AgentStudio.Application.Projects.IProjectLogReader? LogReader { get; set; }
 
+    /// <summary>V44 (docs/17 D-48): the language the person chose, which reaches the prompts as data; null, the default one.</summary>
+    public AgentStudio.Application.Prompts.IResponseLanguage? ResponseLanguage { get; set; }
+
     public Orchestrator CreateOrchestrator() =>
         new(Decisions, Evidence, Plans, Runs, RequirementStore, Roster, Providers, Worktrees, Verification, Integrator, ReviewPort ?? Review, Approvals, Skills, Paths, Time, WriteConfinement,
-            brief: Brief, redactor: Redactor, estimator: Estimator, budgets: Budgets, usage: UsageReport, milestones: Milestones, logReader: LogReader);
+            brief: Brief, redactor: Redactor, estimator: Estimator, budgets: Budgets, usage: UsageReport, milestones: Milestones, logReader: LogReader,
+            responseLanguage: ResponseLanguage);
 
     public PlanningRequest PlanningRequest(string request = "Añade Calc.Multiply(a,b) con sus pruebas", PlanLimits? limits = null) =>
         new(

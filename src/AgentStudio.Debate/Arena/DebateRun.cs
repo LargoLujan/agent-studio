@@ -6,6 +6,7 @@ using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Execution;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Projects;
+using AgentStudio.Application.Prompts;
 using AgentStudio.Application.Providers;
 using AgentStudio.Application.Security;
 using AgentStudio.Application.Verification;
@@ -833,7 +834,7 @@ public sealed class DebateRun : IDebateRun
                 setting.Published,
                 setting.Material),
             ct).ConfigureAwait(false);
-        var prompt = ParticipantPrompt.Build(_session.Mode, seat.Definition.Role, seat.Label, setting.Round, material, setting.Published, folder, _context.Snapshot, problems);
+        var prompt = ParticipantPrompt.Build(_session.Mode, seat.Definition.Role, seat.Label, setting.Round, material, setting.Published, folder, _context.Snapshot, problems, ResponseLanguage.Resolve(_ports.Language));
         var title = Invariant($"Prompt de {seat.Label}, ronda {setting.Round} (intento {attempt})");
         var promptRecord = await _recorder.CapturePromptAsync(turn.Task, attempt, title, prompt, ct).ConfigureAwait(false);
         lock (_gate)

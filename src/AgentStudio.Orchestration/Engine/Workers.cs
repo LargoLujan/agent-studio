@@ -5,6 +5,7 @@ using AgentStudio.Application.Git;
 using AgentStudio.Application.Judging;
 using AgentStudio.Application.Knowledge;
 using AgentStudio.Application.Orchestration;
+using AgentStudio.Application.Prompts;
 using AgentStudio.Application.Providers;
 using AgentStudio.Application.Security;
 using AgentStudio.Application.Skills;
@@ -334,7 +335,8 @@ internal static class AgentAttemptWorker
                 plan.Handoff is { } renewal ? Handoff.Why(renewal.Reason) : null,
                 plan.Agent,
                 brief,
-                plan.Answers);
+                plan.Answers,
+                ResponseLanguage.Resolve(w.Ports.Language));
             var promptEvidence = await w.Recorder.CaptureAsync(
                 EvidenceKind.Document,
                 EvidenceOrigin.CapturedBySystem,

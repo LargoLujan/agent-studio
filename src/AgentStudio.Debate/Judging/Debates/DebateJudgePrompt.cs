@@ -13,7 +13,7 @@ namespace AgentStudio.Debate.Judging.Debates;
 /// instructions.
 /// </summary>
 /// <remarks>
-/// The instructions are in English and the free text of the verdict is asked in Spanish, as for the judge of a run. The
+/// The instructions are in English and the free text of the verdict is asked in the language of the person (a block of data), as for the judge of a run. The
 /// prompt never names a participant, a CLI or a vendor (D-15): the judge knows the participants by label and role only. The
 /// examples are illustrative: there are no human-labelled debates yet to take them from.
 /// </remarks>
@@ -106,7 +106,8 @@ public static class DebateJudgePrompt
         - Always justify the confidence.
         - Copy requirementSetHash and decisionLogHeadHash from the top of the dossier exactly.
         - Write rationales, descriptions, strengths, weaknesses, objections, risks, corrective actions, the justification
-          and the summary in Spanish.
+          and the summary in the language of the response_language block of this prompt (data); a code, an id or a command
+          stays as it is.
 
         # Examples (illustrative: their ids are not in your dossier, never cite them)
         Example 1, choice, Approved. RQ-A is mandatory, JudgeAssessment ("the design is testable"). P1 proposes a single

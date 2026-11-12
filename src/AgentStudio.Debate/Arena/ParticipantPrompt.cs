@@ -31,6 +31,7 @@ public static class ParticipantPrompt
     /// <param name="turnFolder">The folder of the turn, with <c>debate.json</c> and the files of the material.</param>
     /// <param name="workingCopy">The copy of the commit the debate is about, or null when it is about none.</param>
     /// <param name="problems">The problems of the previous answer, for the one correction; null for the first answer.</param>
+    /// <param name="responseLanguage">V44 (docs/17 D-48): the language the person chose, as a block of data; null is <see cref="ResponseLanguage.Default"/>.</param>
     public static string Build(
         DebateMode mode,
         DebateRole role,
@@ -40,7 +41,8 @@ public static class ParticipantPrompt
         IReadOnlyList<PublishedContribution> contributions,
         string turnFolder,
         string? workingCopy,
-        IReadOnlyList<string>? problems = null)
+        IReadOnlyList<string>? problems = null,
+        string? responseLanguage = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(label);
         ArgumentException.ThrowIfNullOrWhiteSpace(material);
@@ -76,8 +78,9 @@ public static class ParticipantPrompt
             : "- 'repliesTo' names the published contribution you answer, or ninguna; 'concedes' lists the published contributions you accept.");
         prompt.AppendLine("- Set 'finished' to true when you have nothing more to add: when every participant of a round does, the debate goes to judgment.");
         prompt.AppendLine("- The judge decides with the evidence, never by agreement or by votes. Never write secrets or personal data.");
-        prompt.AppendLine("- Write summary, argument, claims and the reasons of your citations in Spanish.");
+        prompt.AppendLine("- Write summary, argument, claims and the reasons of your citations in the language of the response_language block.");
         prompt.AppendLine();
+        ResponseLanguage.AppendEnglish(prompt, responseLanguage);
         prompt.AppendLine("# Material");
         prompt.AppendLine($"The material of this turn is the JSON inside debate_material, also in {Path.Combine(turnFolder, DebateMaterial.FileName)}, with the");
         prompt.AppendLine("files it names in that folder.");

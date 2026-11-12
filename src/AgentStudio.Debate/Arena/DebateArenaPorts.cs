@@ -4,6 +4,7 @@ using AgentStudio.Application.Git;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Projects;
+using AgentStudio.Application.Prompts;
 using AgentStudio.Application.Providers;
 using AgentStudio.Application.Security;
 using AgentStudio.Application.Verification;
@@ -51,4 +52,7 @@ public sealed record DebateArenaPorts(
 
     /// <summary>The trusted profiles of «Ejecutar pruebas»; null when they are not composed.</summary>
     public IDebateTestProfiles? TestProfiles { get; init; }
+
+    /// <summary>V44 (docs/17 D-48): the language the person chose, which reaches the prompt of every participant as a block of data; null is the default one.</summary>
+    public IResponseLanguage? Language { get; init; }
 }

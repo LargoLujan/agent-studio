@@ -219,7 +219,8 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
         Application.Work.IProjectBudgetStore? budgets = null,
         Application.Usage.IUsageReport? usage = null,
         Application.Work.IMilestoneRegistry? milestones = null,
-        Application.Projects.IProjectLogReader? logReader = null)
+        Application.Projects.IProjectLogReader? logReader = null,
+        Application.Prompts.IResponseLanguage? responseLanguage = null)
     {
         ArgumentNullException.ThrowIfNull(decisions);
         ArgumentNullException.ThrowIfNull(evidence);
@@ -245,6 +246,7 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
             Brief = brief,
             Redactor = redactor,
             Estimator = estimator,
+            Language = responseLanguage,
             BudgetGate = budgets is null && milestones is null ? null : new ProjectBudgetGate(budgets, usage, estimator, milestones, logReader, time),
         };
         _planner = new Planner(_ports);

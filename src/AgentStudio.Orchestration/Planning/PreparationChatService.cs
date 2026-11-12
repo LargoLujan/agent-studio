@@ -58,9 +58,10 @@ public sealed class PreparationChatService : IPreparationChat
     private readonly ISecretRedactor _redactor;
     private readonly TimeProvider _time;
     private readonly IQuotaConsentLedger _consents;
+    private readonly IResponseLanguage? _language;
 
     /// <param name="consents">The register of the OKs spent that the whole app shares (one instance, from the composition).</param>
-    public PreparationChatService(IAuxiliaryAgentRunner runner, IWorktreeManager worktrees, ISecretRedactor redactor, IQuotaConsentLedger consents, TimeProvider time)
+    public PreparationChatService(IAuxiliaryAgentRunner runner, IWorktreeManager worktrees, ISecretRedactor redactor, IQuotaConsentLedger consents, TimeProvider time, IResponseLanguage? language = null)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(worktrees);
@@ -72,6 +73,7 @@ public sealed class PreparationChatService : IPreparationChat
         _redactor = redactor;
         _consents = consents;
         _time = time;
+        _language = language;
     }
 
     /// <summary>The kinds of suggestions for the team the answer may carry, each a typed fix (docs/17 D-44).</summary>
@@ -124,7 +126,7 @@ public sealed class PreparationChatService : IPreparationChat
         var folder = await BaseOfAsync(request.Project, workspace, ct).ConfigureAwait(false);
         var message = _redactor.Redact(request.Message);
         var resume = request.Session?.AgentSession;
-        var prompt = resume is null ? FirstPrompt(request.Roster, message) : NextPrompt(message);
+        var prompt = resume is null ? FirstPrompt(request.Roster, message, ResponseLanguage.Resolve(_language)) : NextPrompt(message);
         var launch = new AgentRunRequest(
             orchestrator,
             prompt,
@@ -206,15 +208,16 @@ public sealed class PreparationChatService : IPreparationChat
         return (await _worktrees.EnsureAsync(new WorktreeRequest(project, workspace, "_base", head), ct).ConfigureAwait(false)).Path;
     }
 
-    private static string FirstPrompt(IReadOnlyList<AgentDefinition> roster, string message)
+    private static string FirstPrompt(IReadOnlyList<AgentDefinition> roster, string message, string language)
     {
         var text = new StringBuilder();
         text.AppendLine("# Chat de preparación de Agent Studio");
         text.AppendLine();
         text.AppendLine("Eres el agente orquestador. La persona prepara el trabajo de su proyecto y habla contigo antes de planificar. No modificas ficheros ni ejecutas órdenes: puedes leer el repositorio (Read, Grep, Glob). Respondes con el esquema: un texto breve, borradores de requisitos (los escribe y congela la persona), sugerencias para el equipo, riesgos y preguntas para la persona. Nada de lo que propones se aplica solo.");
-        text.AppendLine(CultureInfo.InvariantCulture, $"El texto, {PreparationChatLimits.MaxTextLength} caracteres como mucho; cada elemento de una lista, {PreparationChatLimits.MaxItemLength}; como mucho {PreparationChatLimits.MaxItems} de cada. Todo en castellano y en texto plano, sin enlaces.");
+        text.AppendLine(CultureInfo.InvariantCulture, $"El texto, {PreparationChatLimits.MaxTextLength} caracteres como mucho; cada elemento de una lista, {PreparationChatLimits.MaxItemLength}; como mucho {PreparationChatLimits.MaxItems} de cada. Todo en texto plano, sin enlaces.");
         text.AppendLine("Sugerencias para el equipo: changeModel (agent y model), memoryOn o memoryOff (agent), addJudge (un juez de otra empresa) y removeCapability (agent y tool), cada una con su reason.");
         text.AppendLine();
+        ResponseLanguage.Append(text, language);
         text.AppendLine("## El equipo");
         text.AppendLine("Va como datos entre las marcas.");
         text.AppendLine("<team>");
