@@ -77,4 +77,8 @@
     <value>Elige en el inspector de la capa Equipo el agente al que dar «{0}»: el cambio se aprueba como siempre.</value>
     <comment>Status message after Give to an agent. {0}: the tool.</comment>
   </data>
+  <data name="Shell_Work_ChainFailed" xml:space="preserve">
+    <value>No se pudo abrir la cadena de esta versión en «Trabajo»: {0}</value>
+    <comment>Status message when «Ver su cadena» of a saved version cannot open «Trabajo». {0}: the reason.</comment>
+  </data>
 </root>

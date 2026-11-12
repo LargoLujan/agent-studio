@@ -61,4 +61,7 @@
   <data name="Shell_Tools_Give" xml:space="preserve">
     <value>Choose in the inspector of the Team layer the agent to give '{0}' to: the change is approved as always.</value>
   </data>
+  <data name="Shell_Work_ChainFailed" xml:space="preserve">
+    <value>The chain of this version could not be opened in «Work»: {0}</value>
+  </data>
 </root>

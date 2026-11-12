@@ -112,4 +112,39 @@ public sealed class WorkCompositionTests
         Assert.True(document.HasProject);
         Assert.Null(document.ErrorMessage);
     }
+
+    [Fact]
+    public async Task Ver_su_cadena_of_a_saved_version_opens_trabajo_on_the_chain_of_that_version()
+    {
+        using var temp = new TempDirectory();
+        using var project = new TempDirectory();
+        using var provider = Build(FoldersIn(temp));
+        var main = provider.GetRequiredService<MainViewModel>();
+        var repository = Assert.IsType<AgentStudio.Desktop.Repository.RepositoryViewModel>(main.Repository);
+        var document = provider.GetRequiredService<WorkDocumentViewModel>();
+
+        // The shell listens to «Ver su cadena», so every saved version with a full id offers it.
+        Assert.True(repository.CanOpenChain);
+
+        main.ProjectPath = project.Path;
+        var focused = new TaskCompletionSource();
+        document.Context.FocusChanged += (_, _) =>
+        {
+            if (document.Context.Focus is not null)
+            {
+                focused.TrySetResult();
+            }
+        };
+
+        // What the version's button raises, without a git history: the handler the shell connected to it.
+        var node = AgentStudio.Domain.Tracing.TraceRef.Commit(new string('a', 40));
+        var handler = typeof(MainViewModel).GetMethod("OnRepositoryChainRequested", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        handler.Invoke(main, [repository, new AgentStudio.Desktop.Repository.RepositoryChainRequest(new ProjectContext("p-1", project.Path), node)]);
+        await focused.Task.WaitAsync(TimeSpan.FromSeconds(30), Ct);
+
+        Assert.Contains(document, main.Documents);
+        Assert.Equal(project.Path, document.ProjectRoot);
+        Assert.Equal(node, document.Context.Focus);
+        Assert.Same(document.Chain, document.SelectedSection);
+    }
 }

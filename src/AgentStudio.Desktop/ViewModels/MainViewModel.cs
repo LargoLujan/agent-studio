@@ -225,6 +225,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
 
         InitializeHelp(help);
         InitializeRepository(repository);
+        ConnectRepositoryToWork();
         Activities =
         [
             new("explorer", Texts.Get("Main_Panel_Explorer"), "", null, PanelIds.Explorer, TogglePanelCommand),
