@@ -51,6 +51,9 @@ internal static class UiInventoryRun
         foreach (var screen in UiScreens.All)
         {
             results.Add(await WpfHost.RunAsync(() => WalkAsync(screen, language)));
+
+            // Whatever the screen left queued on the dispatcher (bindings, layout) runs now, while nothing else is on it.
+            WpfHost.Run(WpfHost.FlushBindings);
         }
 
         return results;

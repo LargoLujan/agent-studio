@@ -5,6 +5,18 @@ using static AgentStudio.Tests.Desktop.Localization.LocalizationTestSupport;
 namespace AgentStudio.Tests.Desktop.UiInventory;
 
 /// <summary>
+/// The inventory walks every screen under the language scope of each case (<c>Texts.Scope</c>), on the one dispatcher every WPF
+/// test shares. WPF batches work of bindings and layout of several callers into pending operations that can run in the execution
+/// context of whoever queued them: a screen of another test built meanwhile was painted in the inventory's English (seen with
+/// <c>MainWindowQuickOpenTests</c>). So the inventory runs alone, after every parallel test.
+/// </summary>
+[CollectionDefinition(Name, DisableParallelization = true)]
+public sealed class UiInventoryCollection
+{
+    public const string Name = "UI inventory";
+}
+
+/// <summary>
 /// F14-10 (docs/17 D-62): the automatic inventory of the interface. A walk of every screen of the app with synthetic data, off
 /// screen, in Spanish, in English and in pseudolocalization (<see cref="UiLanguageCase"/>), that checks with the tree of layout
 /// and UI Automation that:
@@ -18,6 +30,7 @@ namespace AgentStudio.Tests.Desktop.UiInventory;
 /// The guard <see cref="Every_view_of_the_app_is_walked"/> makes a view that appears in <c>Views/**</c> or <c>Controls/**</c> and
 /// is not reached by any screen fail the inventory.
 /// </summary>
+[Collection(UiInventoryCollection.Name)]
 [Trait("Category", "UiInventory")]
 public sealed partial class UiInventoryTests
 {
