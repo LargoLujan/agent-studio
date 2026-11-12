@@ -211,4 +211,97 @@ Press "Prepare" to see the estimate: it spends nothing.
 Press "Audit" and approve to launch it.
 Read in the report whether it is reliable and why.</value>
   </data>
+  <data name="Text_audit_pending_run_unfinished" xml:space="preserve">
+    <value>Run {0} has not finished. It stopped or is waiting for a person.</value>
+  </data>
+  <data name="Text_audit_pending_run_failed" xml:space="preserve">
+    <value>Run {0} ended with an error.</value>
+  </data>
+  <data name="Text_audit_pending_review_invalid" xml:space="preserve">
+    <value>Review {0} of run {1} needs a person. Verdict {2} is not valid.</value>
+  </data>
+  <data name="Text_audit_pending_review_escalated" xml:space="preserve">
+    <value>Review {0} of run {1} needs a person. Verdict {2} asks for someone to decide.</value>
+  </data>
+  <data name="Text_audit_pending_review_unresolved" xml:space="preserve">
+    <value>Review {0} of run {1} needs a person. Verdict {2} resolved nothing.</value>
+  </data>
+  <data name="Text_audit_pending_debate_unfinished" xml:space="preserve">
+    <value>Debate {0} has not finished: it is running or was interrupted.</value>
+  </data>
+  <data name="Text_audit_pending_debate_unresolved" xml:space="preserve">
+    <value>Debate {0} ended unresolved: it needs your decision.</value>
+  </data>
+  <data name="Text_audit_pending_challenge_open" xml:space="preserve">
+    <value>The challenge of verdict {0} is still open. Its review debate {1} has not finished.</value>
+  </data>
+  <data name="Text_audit_pending_replan_pending" xml:space="preserve">
+    <value>Run {0} has a request to replan nobody has attended ({1}).</value>
+  </data>
+  <data name="Text_audit_pending_memory_unreviewed" xml:space="preserve">
+    <value>Memory entry {0} quotes text of an agent and nobody has reviewed it.</value>
+  </data>
+  <data name="Text_audit_pending_memory_pending_task" xml:space="preserve">
+    <value>The memory has a pending task: entry {0}.</value>
+  </data>
+  <data name="Text_audit_problem_log_broken" xml:space="preserve">
+    <value>The decision log is not intact. Without a log that verifies, the judge is not launched.</value>
+  </data>
+  <data name="Text_audit_problem_requirements_missing" xml:space="preserve">
+    <value>The project does not have the set of requirements {0}. Without requirements there is no audit.</value>
+  </data>
+  <data name="Text_audit_problem_repository_unreadable" xml:space="preserve">
+    <value>The repository of the project cannot be read.</value>
+  </data>
+  <data name="Text_audit_problem_no_trust_profile" xml:space="preserve">
+    <value>The project has no trusted verification profile. Save it before auditing.</value>
+  </data>
+  <data name="Text_audit_problem_profile_unusable" xml:space="preserve">
+    <value>The verification profile of the project cannot be used.</value>
+  </data>
+  <data name="Text_audit_problem_judge_missing" xml:space="preserve">
+    <value>The judge "{0}" is not in the agent template of the project.</value>
+  </data>
+  <data name="Text_audit_problem_judge_wrong_role" xml:space="preserve">
+    <value>"{0}" is neither a judge nor an auditor. Only they judge.</value>
+  </data>
+  <data name="Text_audit_problem_judge_invalid" xml:space="preserve">
+    <value>The definition of the judge "{0}" is not valid.</value>
+  </data>
+  <data name="Text_audit_problem_judge_producer" xml:space="preserve">
+    <value>The judge "{0}" is from {1}, which wrote code of the project. A judge from another model company is needed.</value>
+  </data>
+  <data name="Text_audit_escalation_log_broken" xml:space="preserve">
+    <value>The decision log is not intact. The judge is not launched and nothing is written.</value>
+  </data>
+  <data name="Text_audit_escalation_cannot_launch" xml:space="preserve">
+    <value>The audit is not launched and nothing is run. See the problems of the preparation.</value>
+  </data>
+  <data name="Text_audit_escalation_not_approved" xml:space="preserve">
+    <value>The audit was not approved ({0}). Nothing was run.</value>
+  </data>
+  <data name="Text_audit_escalation_copy_failed" xml:space="preserve">
+    <value>A copy of the saved version {0} could not be made for the judge. It is not launched because it could not read the code. The verification was done.</value>
+  </data>
+  <data name="Text_audit_escalation_log_broke_midway" xml:space="preserve">
+    <value>The decision log stopped verifying during the audit. The judge is not launched and nothing more is written.</value>
+  </data>
+  <data name="Text_audit_escalation_judge_excluded" xml:space="preserve">
+    <value>The judge "{0}" is not launched: it is from {1}, which wrote code of the project or signs it.</value>
+  </data>
+  <data name="Text_audit_escalation_judge_limit" xml:space="preserve">
+    <value>The judge "{0}" reached the usage limit of {1} without giving a verdict. Audit again when the wait ends.</value>
+  </data>
+  <data name="Text_audit_escalation_judge_failed" xml:space="preserve">
+    <value>The judge "{0}" did not finish. A person decides.</value>
+  </data>
+  <data name="Text_audit_escalation_judge_unreadable" xml:space="preserve">
+    <value>The judge "{0}" answered without a verdict that can be read. A person decides.</value>
+  </data>
+  <data name="Text_audit_proposal_outdated" xml:space="preserve">
+    <value>What the audit would do has changed since you saw it. Prepare it again.</value>
+  </data>
+  <data name="Text_audit_project_busy" xml:space="preserve">
+    <value>The project is busy with another activity with agents. Wait for it to finish.</value>
+  </data>
 </root>

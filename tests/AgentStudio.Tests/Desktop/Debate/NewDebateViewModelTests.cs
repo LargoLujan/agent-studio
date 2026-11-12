@@ -1,4 +1,5 @@
 using AgentStudio.Application.Coordination;
+using AgentStudio.Application.Localization;
 using AgentStudio.Desktop.Debate;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Debate;
@@ -216,9 +217,9 @@ public sealed class NewDebateViewModelTests
         Assert.Equal(form.Proposal, opened.Proposal);
         Assert.Equal(["¿Procesos aislados por agente o un único proceso con hilos?"], [opened.Context.Question]);
 
-        coordinator.Open = _ => throw new InvalidOperationException("Aprobación denegada.");
+        coordinator.Open = _ => throw new UserTextException(UserText.Of("debate.opening-not-approved"), "The opening was not approved.");
         await form.OpenCommand.ExecuteAsync(null);
-        Assert.Equal("No se abrió el debate: Aprobación denegada.", form.ErrorMessage);
+        Assert.Equal("No se abrió el debate: No se aprobó la apertura.", form.ErrorMessage);
     }
 
     [Fact]

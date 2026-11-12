@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using AgentStudio.Application.Coordination;
 using AgentStudio.Application.Decisions;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Providers;
 using AgentStudio.Debate.Arena;
@@ -70,8 +71,9 @@ public sealed class DebateSafetyTests
 
         using (world.Activity.TryEnter(Project, ProjectActivityKind.Run))
         {
-            var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => world.Coordinator.OpenAsync(proposal, TestContext.Current.CancellationToken));
-            Assert.Contains("ocupado (Run)", refused.Message, StringComparison.Ordinal);
+            var refused = await Assert.ThrowsAnyAsync<InvalidOperationException>(() => world.Coordinator.OpenAsync(proposal, TestContext.Current.CancellationToken));
+            Assert.Equal(DebateUserTexts.ProjectBusy, Assert.IsType<UserTextException>(refused).Text.Code);
+            Assert.Contains("busy (Run)", refused.Message, StringComparison.Ordinal);
         }
 
         Assert.Empty((await world.LogAsync()).Entries);
@@ -96,8 +98,9 @@ public sealed class DebateSafetyTests
 
         Assert.Equal(ProjectActivityKind.Debate, world.Activity.Current(Project));
         Assert.Null(world.Activity.TryEnter(Project, ProjectActivityKind.Run));
-        var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => world.Coordinator.OpenAsync(second, TestContext.Current.CancellationToken));
-        Assert.Contains("ocupado (Debate)", refused.Message, StringComparison.Ordinal);
+        var refused = await Assert.ThrowsAnyAsync<InvalidOperationException>(() => world.Coordinator.OpenAsync(second, TestContext.Current.CancellationToken));
+        Assert.Equal(DebateUserTexts.ProjectBusy, Assert.IsType<UserTextException>(refused).Text.Code);
+        Assert.Contains("busy (Debate)", refused.Message, StringComparison.Ordinal);
 
         world.Claude.Release();
         await CompletedAsync(run);
@@ -112,9 +115,9 @@ public sealed class DebateSafetyTests
         world.Prompt.Approve = _ => false;
         var proposal = await world.Coordinator.PrepareAsync(world.FreeOnAnthropic(subject: new DebateSubject(DebateSubjectKind.Commit, null)), TestContext.Current.CancellationToken);
 
-        var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => world.Coordinator.OpenAsync(proposal, TestContext.Current.CancellationToken));
+        var refused = await Assert.ThrowsAnyAsync<InvalidOperationException>(() => world.Coordinator.OpenAsync(proposal, TestContext.Current.CancellationToken));
 
-        Assert.Contains("No se aprobó", refused.Message, StringComparison.Ordinal);
+        Assert.Equal(DebateUserTexts.OpeningNotApproved, Assert.IsType<UserTextException>(refused).Text.Code);
         var asked = Assert.Single(world.Prompt.Asked);
         Assert.Equal((DebateCoordinator.OpenAction, proposal.HeaderHash), (asked.Action, asked.Binding));
         var log = await world.LogAsync();

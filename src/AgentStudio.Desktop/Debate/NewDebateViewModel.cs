@@ -470,7 +470,7 @@ public sealed partial class NewDebateViewModel : ObservableObject
         {
             Proposal = null;
             StatusMessage = null;
-            ErrorMessage = Texts.Format("Debate_New_Error_Prepare", ex.Message);
+            ErrorMessage = Texts.Format("Debate_New_Error_Prepare", DebateTexts.Reason(ex));
         }
         finally
         {
@@ -504,7 +504,7 @@ public sealed partial class NewDebateViewModel : ObservableObject
 #pragma warning restore CA1031
         {
             StatusMessage = null;
-            ErrorMessage = Texts.Format("Debate_New_Error_Open", ex.Message);
+            ErrorMessage = Texts.Format("Debate_New_Error_Open", DebateTexts.Reason(ex));
         }
         finally
         {

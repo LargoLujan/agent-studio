@@ -1,6 +1,7 @@
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Judging;
 using AgentStudio.Application.Knowledge;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Debate;
@@ -27,6 +28,26 @@ public static class PendingProblems
     public const string ReplanPendingCode = "replan.pending";
     public const string MemoryUnreviewedCode = "memory.unreviewed";
     public const string MemoryPendingTaskCode = "memory.pending-task";
+
+    // The coded texts for the person (docs/17 D-47): the code above stays as the dossier of the judge carries it, the text has its own.
+    public const string TextRunUnfinished = "audit.pending.run-unfinished";
+    public const string TextRunFailed = "audit.pending.run-failed";
+    public const string TextReviewInvalid = "audit.pending.review-invalid";
+    public const string TextReviewEscalated = "audit.pending.review-escalated";
+    public const string TextReviewUnresolved = "audit.pending.review-unresolved";
+    public const string TextDebateUnfinished = "audit.pending.debate-unfinished";
+    public const string TextDebateUnresolved = "audit.pending.debate-unresolved";
+    public const string TextChallengeOpen = "audit.pending.challenge-open";
+    public const string TextReplanPending = "audit.pending.replan-pending";
+    public const string TextMemoryUnreviewed = "audit.pending.memory-unreviewed";
+    public const string TextMemoryPendingTask = "audit.pending.memory-pending-task";
+
+    /// <summary>Every code of text of this class: the desktop has a text for each in both languages (a test walks them).</summary>
+    public static IReadOnlyList<string> TextCodes { get; } =
+    [
+        TextRunUnfinished, TextRunFailed, TextReviewInvalid, TextReviewEscalated, TextReviewUnresolved, TextDebateUnfinished,
+        TextDebateUnresolved, TextChallengeOpen, TextReplanPending, TextMemoryUnreviewed, TextMemoryPendingTask,
+    ];
 
     /// <summary>
     /// The action of the approval that dismisses a request to replan (docs/15 D-35), in the run. The Debate module cannot
@@ -57,11 +78,11 @@ public static class PendingProblems
             var finished = items.Select(i => i.Payload).OfType<RunFinishedPayload>().LastOrDefault(p => p.RunId == run);
             if (finished is null)
             {
-                problems.Add(new PendingProblem(RunUnfinishedCode, run, $"La ejecución {run} no ha terminado: está interrumpida o espera a una persona."));
+                problems.Add(new PendingProblem(RunUnfinishedCode, run, $"La ejecución {run} no ha terminado: está interrumpida o espera a una persona.", UserText.Of(TextRunUnfinished, run)));
             }
             else if (finished.Phase == RunPhase.Failed)
             {
-                problems.Add(new PendingProblem(RunFailedCode, run, $"La ejecución {run} terminó como fallida: {finished.Summary}"));
+                problems.Add(new PendingProblem(RunFailedCode, run, $"La ejecución {run} terminó como fallida: {finished.Summary}", UserText.Of(TextRunFailed, run)));
             }
         }
     }
@@ -87,7 +108,8 @@ public static class PendingProblems
             if (needsHuman && !completed)
             {
                 var validity = verdict.Valid ? string.Empty : ", no válido";
-                problems.Add(new PendingProblem(ReviewNeedsHumanCode, run, $"La revisión {task} de la ejecución {run} necesita a una persona: el veredicto {verdict.VerdictId} es {verdict.Decision}{validity}."));
+                var text = !verdict.Valid ? TextReviewInvalid : verdict.Decision == VerdictDecision.EscalateToHuman ? TextReviewEscalated : TextReviewUnresolved;
+                problems.Add(new PendingProblem(ReviewNeedsHumanCode, run, $"La revisión {task} de la ejecución {run} necesita a una persona: el veredicto {verdict.VerdictId} es {verdict.Decision}{validity}.", UserText.Of(text, task.ToString(), run, verdict.VerdictId)));
             }
         }
     }
@@ -99,11 +121,11 @@ public static class PendingProblems
             var closed = items.Select(i => i.Payload).OfType<DebateClosedPayload>().LastOrDefault(p => p.RunId == debate);
             if (closed is null)
             {
-                problems.Add(new PendingProblem(DebateUnfinishedCode, debate, $"El debate {debate} no ha terminado: está en curso o interrumpido."));
+                problems.Add(new PendingProblem(DebateUnfinishedCode, debate, $"El debate {debate} no ha terminado: está en curso o interrumpido.", UserText.Of(TextDebateUnfinished, debate)));
             }
             else if (closed.Outcome is DebateOutcome.Unresolved or DebateOutcome.EscalatedToUser)
             {
-                problems.Add(new PendingProblem(DebateUnresolvedCode, debate, $"El debate {debate} terminó sin resolver (regla {closed.Rule}): necesita tu decisión."));
+                problems.Add(new PendingProblem(DebateUnresolvedCode, debate, $"El debate {debate} terminó sin resolver (regla {closed.Rule}): necesita tu decisión.", UserText.Of(TextDebateUnresolved, debate)));
             }
         }
     }
@@ -115,7 +137,7 @@ public static class PendingProblems
             var closed = items.Any(i => i.Payload is DebateClosedPayload done && done.RunId == challenge.RevisionDebate);
             if (!closed)
             {
-                problems.Add(new PendingProblem(ChallengeOpenCode, challenge.RunId, $"La impugnación del veredicto {challenge.Verdict} sigue abierta: su debate de revisión {challenge.RevisionDebate} no ha terminado."));
+                problems.Add(new PendingProblem(ChallengeOpenCode, challenge.RunId, $"La impugnación del veredicto {challenge.Verdict} sigue abierta: su debate de revisión {challenge.RevisionDebate} no ha terminado.", UserText.Of(TextChallengeOpen, challenge.Verdict.ToString(), challenge.RevisionDebate.ToString())));
             }
         }
     }
@@ -130,7 +152,7 @@ public static class PendingProblems
                 || items.Any(i => i.Sequence > item.Sequence && i.Payload is RunStartedPayload follow && string.Equals(follow.Follows, run, StringComparison.Ordinal));
             if (!attended)
             {
-                problems.Add(new PendingProblem(ReplanPendingCode, run, $"La ejecución {run} tiene una petición de replanificar sin atender ({string.Join(", ", request.Findings)})."));
+                problems.Add(new PendingProblem(ReplanPendingCode, run, $"La ejecución {run} tiene una petición de replanificar sin atender ({string.Join(", ", request.Findings)}).", UserText.Of(TextReplanPending, run, string.Join(", ", request.Findings))));
             }
         }
     }
@@ -153,11 +175,11 @@ public static class PendingProblems
 
             if (entry.Origin == MemoryOrigin.Agent && !reviewed)
             {
-                problems.Add(new PendingProblem(MemoryUnreviewedCode, entry.Entry, $"La entrada de memoria {entry.Entry} ({entry.Kind}) cita texto de un agente y nadie la ha revisado."));
+                problems.Add(new PendingProblem(MemoryUnreviewedCode, entry.Entry, $"La entrada de memoria {entry.Entry} ({entry.Kind}) cita texto de un agente y nadie la ha revisado.", UserText.Of(TextMemoryUnreviewed, entry.Entry)));
             }
             else if (entry.Kind == MemoryKind.PendingTask)
             {
-                problems.Add(new PendingProblem(MemoryPendingTaskCode, entry.Entry, $"La memoria tiene una tarea pendiente: la entrada {entry.Entry}."));
+                problems.Add(new PendingProblem(MemoryPendingTaskCode, entry.Entry, $"La memoria tiene una tarea pendiente: la entrada {entry.Entry}.", UserText.Of(TextMemoryPendingTask, entry.Entry)));
             }
         }
     }

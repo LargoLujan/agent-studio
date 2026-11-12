@@ -83,13 +83,24 @@ public sealed class AuditReportViewModel
         DispositionText = Texts.Format("Audit_Disposition", VerdictTexts.Disposition(report.Disposition));
         DispositionTone = VerdictTexts.ToneOf(report.Disposition);
         EscalationText = report.VerdictId is null
-            ? Texts.Format("Audit_Escalation", report.Verdict.Summary)
+            ? Texts.Format("Audit_Escalation", report.EscalationText is { } escalation ? Texts.Current.Render(escalation) : report.Verdict.Summary)
             : null;
         Verification = [.. report.Verification.Select(e => new VerificationRow(
             e.Title,
             $"{EvidenceText.Kind(e.Kind)} · {EvidenceText.Origin(e.Origin)} · {(e.SubjectCommit is { } commit ? Texts.Format("Debate_Evidence_Commit", DebateTexts.Short(commit)) : Texts.Get("Audit_Verification_NoCommit"))}",
             EvidenceText.Tests(e.TestRun)))];
-        Pending = [.. report.Pending.Select(p => $"{p.Message} · {p.Source} ({p.Code})")];
+        Pending = [.. report.Pending.Select(p => PendingLine(p))];
+    }
+
+    /// <summary>
+    /// A pending problem of the report in the language in use: its coded text and where it is. A problem without a coded text (one a
+    /// producer of before gives) says its sentence and its code.
+    /// </summary>
+    public static string PendingLine(PendingProblem problem, IUiTextProvider? texts = null)
+    {
+        ArgumentNullException.ThrowIfNull(problem);
+        texts ??= Texts.Current;
+        return problem.Text is { } coded ? $"{texts.Render(coded)} · {problem.Source}" : $"{problem.Message} · {problem.Source} ({problem.Code})";
     }
 
     public AuditReport Report { get; }
@@ -310,7 +321,7 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = Texts.Format("Audit_Error_Prepare", ex.Message);
+            ErrorMessage = Texts.Format("Audit_Error_Prepare", DebateTexts.Reason(ex));
         }
         finally
         {
@@ -344,7 +355,7 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
         {
             Show(null);
             StatusMessage = null;
-            ErrorMessage = Texts.Format("Audit_Error_Prepare", ex.Message);
+            ErrorMessage = Texts.Format("Audit_Error_Prepare", DebateTexts.Reason(ex));
         }
         finally
         {
@@ -378,7 +389,7 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
 #pragma warning restore CA1031
         {
             StatusMessage = null;
-            ErrorMessage = Texts.Format("Audit_Error_Audit", ex.Message);
+            ErrorMessage = Texts.Format("Audit_Error_Audit", DebateTexts.Reason(ex));
         }
         finally
         {
@@ -490,9 +501,9 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
             SkippedSteps.Add(Texts.Format("Audit_Prep_Skipped", skipped));
         }
 
-        foreach (var problem in proposal.Problems)
+        for (var i = 0; i < proposal.Problems.Count; i++)
         {
-            ProposalProblems.Add(problem);
+            ProposalProblems.Add(proposal.ProblemTexts is { } coded && coded.Count == proposal.Problems.Count ? Texts.Current.Render(coded[i]) : proposal.Problems[i]);
         }
 
         var tokens = MetricText.Tokens(proposal.EstimatedTokens);

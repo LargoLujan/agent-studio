@@ -1391,4 +1391,103 @@ Choose who defends the verdict and who defends the challenge.
 Press "Prepare" to see who judges and the estimate.
 Press "Challenge" and approve to open the review.</value>
   </data>
+  <data name="Text_debate_judgment_too_early" xml:space="preserve">
+    <value>There is no answer to judge yet: the first round is still running.</value>
+  </data>
+  <data name="Text_debate_not_waiting_retry" xml:space="preserve">
+    <value>The debate is not waiting for a turn to retry.</value>
+  </data>
+  <data name="Text_debate_closed_evidence" xml:space="preserve">
+    <value>The debate is closed: it no longer accepts evidence.</value>
+  </data>
+  <data name="Text_debate_closed_tests" xml:space="preserve">
+    <value>The debate is closed: tests can no longer be run.</value>
+  </data>
+  <data name="Text_debate_no_test_commit" xml:space="preserve">
+    <value>The tests cannot be run: a saved version (commit) or a verification profile is missing.</value>
+  </data>
+  <data name="Text_debate_no_trust_profile" xml:space="preserve">
+    <value>The project has no trusted verification profile.</value>
+  </data>
+  <data name="Text_debate_no_isolated_step" xml:space="preserve">
+    <value>The verification profile has no isolated step: a debate runs nothing with your permissions.</value>
+  </data>
+  <data name="Text_debate_not_waiting_decision" xml:space="preserve">
+    <value>The debate is not waiting for your decision.</value>
+  </data>
+  <data name="Text_debate_already_closed" xml:space="preserve">
+    <value>The debate is already closed.</value>
+  </data>
+  <data name="Text_debate_decision_not_approved" xml:space="preserve">
+    <value>Your decision was not approved: the debate keeps waiting for it.</value>
+  </data>
+  <data name="Text_debate_cannot_judge_now" xml:space="preserve">
+    <value>Judgment can no longer be requested: the debate is already being judged or is closed.</value>
+  </data>
+  <data name="Text_debate_proposal_outdated" xml:space="preserve">
+    <value>What you were shown to approve has changed: the template, the saved version (commit) or the subject. Prepare the debate again.</value>
+  </data>
+  <data name="Text_debate_opening_not_approved" xml:space="preserve">
+    <value>The opening was not approved.</value>
+  </data>
+  <data name="Text_debate_opening_inconsistent" xml:space="preserve">
+    <value>The debate could not be opened: what was saved does not match what you approved. It has not been opened.</value>
+  </data>
+  <data name="Text_debate_resume_not_approved" xml:space="preserve">
+    <value>Resuming it was not approved.</value>
+  </data>
+  <data name="Text_debate_already_running" xml:space="preserve">
+    <value>Debate {0} is already running.</value>
+  </data>
+  <data name="Text_debate_not_found" xml:space="preserve">
+    <value>Debate {0} does not exist in this project.</value>
+  </data>
+  <data name="Text_debate_already_finished" xml:space="preserve">
+    <value>Debate {0} has already finished.</value>
+  </data>
+  <data name="Text_debate_cannot_resume" xml:space="preserve">
+    <value>Debate {0} cannot be resumed: what was saved is not consistent with what was opened.</value>
+  </data>
+  <data name="Text_debate_project_busy" xml:space="preserve">
+    <value>The project is busy with another activity with agents. Wait for it to finish.</value>
+  </data>
+  <data name="Text_debate_no_provider" xml:space="preserve">
+    <value>The program of {0} used by agent "{1}" cannot be found.</value>
+  </data>
+  <data name="Text_debate_await_jury_disagrees" xml:space="preserve">
+    <value>The judges of the jury disagree: you decide.</value>
+  </data>
+  <data name="Text_debate_await_needs_person" xml:space="preserve">
+    <value>The judgment needs a person: you decide.</value>
+  </data>
+  <data name="Text_debate_await_verdicts_unusable" xml:space="preserve">
+    <value>The verdicts do not allow closing the debate: you decide.</value>
+  </data>
+  <data name="Text_debate_await_no_verdict" xml:space="preserve">
+    <value>The judgment gave no verdict: you decide.</value>
+  </data>
+  <data name="Text_debate_turn_no_budget" xml:space="preserve">
+    <value>{0}: the {1} allowed runs are used up.</value>
+  </data>
+  <data name="Text_debate_turn_invalid_answer" xml:space="preserve">
+    <value>{0}: its answer is not a valid contribution, even after asking it to correct it.</value>
+  </data>
+  <data name="Text_debate_turn_limit_resets" xml:space="preserve">
+    <value>{0}: the usage limit of your plan was reached on {1}. It resets at {2:HH:mm} (UTC), later than the debate waits.</value>
+  </data>
+  <data name="Text_debate_turn_limit_unknown" xml:space="preserve">
+    <value>{0}: the usage limit of your plan was reached on {1} and it does not say when it resets.</value>
+  </data>
+  <data name="Text_debate_turn_overloaded" xml:space="preserve">
+    <value>{0}: {1} is overloaded right now.</value>
+  </data>
+  <data name="Text_debate_turn_ended_badly" xml:space="preserve">
+    <value>{0}: the turn did not end well.</value>
+  </data>
+  <data name="Debate_Error_Unexpected" xml:space="preserve">
+    <value>Something unexpected happened (technical detail: {0})</value>
+  </data>
+  <data name="Text_debate_cannot_open" xml:space="preserve">
+    <value>The debate cannot be opened. See the problems of the proposal.</value>
+  </data>
 </root>

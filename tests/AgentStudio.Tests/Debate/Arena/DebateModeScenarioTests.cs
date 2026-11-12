@@ -151,7 +151,7 @@ public sealed class DebateModeScenarioTests
             TestContext.Current.CancellationToken);
 
         Assert.Contains(proposal.Problems, p => p.Contains("IndependentJudge", StringComparison.Ordinal));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => world.Coordinator.OpenAsync(proposal, TestContext.Current.CancellationToken));
+        await Assert.ThrowsAnyAsync<InvalidOperationException>(() => world.Coordinator.OpenAsync(proposal, TestContext.Current.CancellationToken));
         Assert.DoesNotContain((await world.LogAsync()).Entries, e => e.Kind != DecisionKind.RunStarted && e.Kind != DecisionKind.IntegrationPerformed);
     }
 

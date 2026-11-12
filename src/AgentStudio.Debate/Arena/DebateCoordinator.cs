@@ -5,6 +5,7 @@ using System.Text.Json;
 using AgentStudio.Application.Coordination;
 using AgentStudio.Application.Debate;
 using AgentStudio.Application.Decisions;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Judging;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Persistence;
@@ -83,7 +84,7 @@ public sealed class DebateCoordinator : IDebateCoordinator
         ArgumentNullException.ThrowIfNull(proposal);
         if (proposal.Problems.Count > 0)
         {
-            throw new InvalidOperationException("El debate no se puede abrir: " + string.Join(" ", proposal.Problems));
+            throw DebateUserTexts.Refusal(DebateUserTexts.CannotOpen, "The debate cannot be opened: " + string.Join(" ", proposal.Problems));
         }
 
         var project = proposal.Request.Project;
@@ -93,8 +94,9 @@ public sealed class DebateCoordinator : IDebateCoordinator
             var plan = await PlanAsync(proposal.Request, ct).ConfigureAwait(false);
             if (plan.Proposal.Problems.Count > 0 || !string.Equals(plan.Proposal.HeaderHash, proposal.HeaderHash, StringComparison.Ordinal))
             {
-                throw new InvalidOperationException(
-                    "Lo que se te enseñó para aprobar ya no es lo que hay (la plantilla, el commit o el objeto cambiaron): prepara el debate otra vez. "
+                throw DebateUserTexts.Refusal(
+                    DebateUserTexts.ProposalOutdated,
+                    "What you were shown to approve is no longer what there is (the template, the commit or the subject changed): prepare the debate again. "
                     + string.Join(" ", plan.Proposal.Problems));
             }
 
@@ -115,7 +117,7 @@ public sealed class DebateCoordinator : IDebateCoordinator
                 ct).ConfigureAwait(false);
             if (approval is not { Approved: true } || !string.Equals(approval.Answers, plan.Proposal.HeaderHash, StringComparison.Ordinal))
             {
-                throw new InvalidOperationException("No se aprobó la apertura del debate: no se abre.");
+                throw DebateUserTexts.Refusal(DebateUserTexts.OpeningNotApproved, "The opening of the debate was not approved: it is not opened.");
             }
 
             var request = plan.Proposal.Request;
@@ -139,11 +141,11 @@ public sealed class DebateCoordinator : IDebateCoordinator
             // gives it back, and the proposal the user approved is checked on that same header with the hash of the question
             // captured, as the dossier of the judgment recomputes both.
             var record = await _ports.Debates.FindAsync(project.ProjectId, debate, CancellationToken.None).ConfigureAwait(false)
-                ?? throw new InvalidOperationException($"El registro de debates no devuelve la cabecera de {debate} que acaba de guardar: no se abre.");
+                ?? throw DebateUserTexts.Refusal(DebateUserTexts.OpeningInconsistent, $"The debate registry does not return the header of {debate} it has just saved: it is not opened.");
             var approved = DebateHeaderHash.Proposal(record, question.ContentSha256);
             if (!string.Equals(approved, proposal.HeaderHash, StringComparison.Ordinal))
             {
-                throw new InvalidOperationException($"La cabecera que guardó el registro de debates no es la propuesta que aprobaste (su hash es {approved}, no {proposal.HeaderHash}): el debate no se abre.");
+                throw DebateUserTexts.Refusal(DebateUserTexts.OpeningInconsistent, $"The header the debate registry saved is not the proposal that was approved (its hash is {approved}, not {proposal.HeaderHash}): the debate is not opened.");
             }
 
             var opened = Opened(record, plan, approved, question);
@@ -172,7 +174,7 @@ public sealed class DebateCoordinator : IDebateCoordinator
         ArgumentNullException.ThrowIfNull(project);
         if (_live.ContainsKey(Key(project.ProjectId, debate)))
         {
-            throw new InvalidOperationException($"El debate {debate} ya está en curso en este proceso.");
+            throw DebateUserTexts.Refusal(DebateUserTexts.AlreadyRunning, $"Debate {debate} is already running in this process.", debate.Value);
         }
 
         var lease = Enter(project);
@@ -180,17 +182,17 @@ public sealed class DebateCoordinator : IDebateCoordinator
         {
             var log = await LoadVerifiedAsync(project, ct).ConfigureAwait(false);
             var record = await _ports.Debates.FindAsync(project.ProjectId, debate, ct).ConfigureAwait(false)
-                ?? throw new InvalidOperationException($"El debate {debate} no existe en este proyecto.");
+                ?? throw DebateUserTexts.Refusal(DebateUserTexts.NotFound, $"Debate {debate} does not exist in this project.", debate.Value);
             var debateLog = DebateLog.Of(log.Entries, debate);
-            var opened = debateLog.Opened ?? throw new InvalidOperationException($"El registro no tiene DebateOpened para {debate}.");
+            var opened = debateLog.Opened ?? throw DebateUserTexts.Refusal(DebateUserTexts.CannotResume, $"The log has no DebateOpened for {debate}.", debate.Value);
             if (!string.Equals(DebateHeaderHash.Of(record), opened.HeaderHash, StringComparison.Ordinal))
             {
-                throw new InvalidOperationException($"La cabecera guardada del debate {debate} no es la que se abrió (su hash no es el que ancló DebateOpened): no se reanuda.");
+                throw DebateUserTexts.Refusal(DebateUserTexts.CannotResume, $"The stored header of debate {debate} is not the one that was opened (its hash is not the one DebateOpened anchored): it is not resumed.", debate.Value);
             }
 
             if (debateLog.Closed is not null)
             {
-                throw new InvalidOperationException($"El debate {debate} ya terminó.");
+                throw DebateUserTexts.Refusal(DebateUserTexts.AlreadyFinished, $"Debate {debate} has already finished.", debate.Value);
             }
 
             var recorder = new DebateTurnRecorder(_ports.Decisions, _ports.Evidence, project.ProjectId, debate);
@@ -201,15 +203,15 @@ public sealed class DebateCoordinator : IDebateCoordinator
             }
             catch (Exception ex) when (ex is IOException or InvalidDataException or KeyNotFoundException)
             {
-                throw new InvalidOperationException($"La pregunta del debate {debate} no se puede leer contra el hash que ancló DebateOpened: no se reanuda. {ex.Message}", ex);
+                throw new UserTextException(UserText.Of(DebateUserTexts.CannotResume, debate.Value), $"The question of debate {debate} cannot be read against the hash DebateOpened anchored: it is not resumed. {ex.Message}", ex);
             }
             var requirements = await _ports.Requirements.FindAsync(project.ProjectId, record.RequirementSetHash, ct).ConfigureAwait(false)
-                ?? throw new InvalidOperationException($"Los requisitos congelados {record.RequirementSetHash} del debate no están guardados.");
+                ?? throw DebateUserTexts.Refusal(DebateUserTexts.CannotResume, $"The frozen requirements {record.RequirementSetHash} of the debate are not stored.", debate.Value);
             var arrangement = Arrangement(record);
             var replay = await ReplayAsync(project, record, debateLog, question, requirements, arrangement, ct).ConfigureAwait(false);
             if (!replay.IsResumable)
             {
-                throw new InvalidOperationException($"El registro del debate {debate} no describe un debate que se pueda reanudar: {string.Join(" ", replay.Problems)}");
+                throw DebateUserTexts.Refusal(DebateUserTexts.CannotResume, $"The log of debate {debate} does not describe a debate that can be resumed: {string.Join(" ", replay.Problems)}", debate.Value);
             }
 
             var guard = new DebateRepositoryGuard(_ports.Worktrees, project.RootPath, recorder);
@@ -220,7 +222,7 @@ public sealed class DebateCoordinator : IDebateCoordinator
                 ct).ConfigureAwait(false);
             if (approval is not { Approved: true } || !string.Equals(approval.Answers, binding, StringComparison.Ordinal))
             {
-                throw new InvalidOperationException("No se aprobó reanudar el debate: no se reanuda.");
+                throw DebateUserTexts.Refusal(DebateUserTexts.ResumeNotApproved, "Resuming the debate was not approved: it is not resumed.");
             }
 
             // D-04: every launch the log shows open ended with the process; it is closed as interrupted (not a retry).
@@ -271,7 +273,7 @@ public sealed class DebateCoordinator : IDebateCoordinator
         ArgumentNullException.ThrowIfNull(project);
         var log = await _ports.Decisions.LoadAsync(project.ProjectId, ct).ConfigureAwait(false);
         var record = await _ports.Debates.FindAsync(project.ProjectId, debate, ct).ConfigureAwait(false)
-            ?? throw new InvalidOperationException($"El debate {debate} no existe en este proyecto.");
+            ?? throw DebateUserTexts.Refusal(DebateUserTexts.NotFound, $"Debate {debate} does not exist in this project.", debate.Value);
         return await ReadOneAsync(project, record, log, ct).ConfigureAwait(false);
     }
 
@@ -626,7 +628,7 @@ public sealed class DebateCoordinator : IDebateCoordinator
         var providers = _ports.Providers.For(project.RootPath);
         var seats = record.Participants
             .Select(p => new DebateSeat(p, providers.FirstOrDefault(x => x.Provider == p.Agent.Model.Provider)
-                ?? throw new InvalidOperationException($"No hay proveedor para {p.Agent.Model.Provider}, el CLI de '{p.Agent.Id}'.")))
+                ?? throw DebateUserTexts.Refusal(DebateUserTexts.NoProvider, $"There is no provider for {p.Agent.Model.Provider}, the CLI of '{p.Agent.Id}'.", p.Agent.Model.Provider.ToString(), p.Agent.Id.ToString())))
             .ToList();
 
         string? subjectFolder = null;
@@ -768,8 +770,9 @@ public sealed class DebateCoordinator : IDebateCoordinator
 
     private IDisposable Enter(ProjectContext project) =>
         _ports.Activity.TryEnter(project.ProjectId, ProjectActivityKind.Debate)
-            ?? throw new InvalidOperationException(
-                $"El proyecto está ocupado ({_ports.Activity.Current(project.ProjectId)?.ToString() ?? "otra actividad"}): un debate no comparte el proyecto con ninguna otra actividad con agentes.");
+            ?? throw DebateUserTexts.Refusal(
+                DebateUserTexts.ProjectBusy,
+                $"The project is busy ({_ports.Activity.Current(project.ProjectId)?.ToString() ?? "another activity"}): a debate does not share the project with any other activity with agents.");
 
     private async Task<DecisionLogState> LoadVerifiedAsync(ProjectContext project, CancellationToken ct)
     {

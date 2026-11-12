@@ -42,6 +42,8 @@ public sealed class PendingProblemsTests
         var problem = Assert.Single(PendingProblems.From(run.Entries));
         Assert.Equal((code, Run.Value), (problem.Code, problem.Source));
         Assert.Contains(Run.Value, problem.Message, StringComparison.Ordinal);
+        Assert.Contains(problem.Text!.Code, PendingProblems.TextCodes);
+        Assert.Equal(Run.Value, Assert.Single(problem.Text.Arguments));
     }
 
     [Theory]
@@ -63,6 +65,7 @@ public sealed class PendingProblemsTests
         }
 
         Assert.Equal(completed ? [PendingProblems.RunUnfinishedCode] : [PendingProblems.RunUnfinishedCode, PendingProblems.ReviewNeedsHumanCode], Codes(run));
+        Assert.All(PendingProblems.From(run.Entries), p => Assert.Contains(p.Text!.Code, PendingProblems.TextCodes));
     }
 
     [Theory]
@@ -102,6 +105,7 @@ public sealed class PendingProblemsTests
         }
 
         Assert.Equal(closed ? [] : [PendingProblems.DebateUnfinishedCode, PendingProblems.ChallengeOpenCode], Codes(run));
+        Assert.All(PendingProblems.From(run.Entries), p => Assert.Contains(p.Text!.Code, PendingProblems.TextCodes));
     }
 
     [Theory]

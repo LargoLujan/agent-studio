@@ -337,7 +337,7 @@ public sealed partial class DebatesDocumentViewModel : DocumentViewModel
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = Texts.Format("Debate_Doc_Error_Read", item.Debate, ex.Message);
+            ErrorMessage = Texts.Format("Debate_Doc_Error_Read", item.Debate, DebateTexts.Reason(ex));
         }
     }
 
@@ -364,7 +364,7 @@ public sealed partial class DebatesDocumentViewModel : DocumentViewModel
 #pragma warning restore CA1031
         {
             StatusMessage = null;
-            ErrorMessage = Texts.Format("Debate_Doc_Error_Resume", item.Debate, ex.Message);
+            ErrorMessage = Texts.Format("Debate_Doc_Error_Resume", item.Debate, DebateTexts.Reason(ex));
         }
     }
 

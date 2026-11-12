@@ -220,7 +220,7 @@ public sealed partial class ChallengeFormViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = Texts.Format("Debate_Challenge_Error_Load", ex.Message);
+            ErrorMessage = Texts.Format("Debate_Challenge_Error_Load", DebateTexts.Reason(ex));
         }
         finally
         {
@@ -255,7 +255,7 @@ public sealed partial class ChallengeFormViewModel : ObservableObject
         {
             Proposal = null;
             StatusMessage = null;
-            ErrorMessage = Texts.Format("Debate_Challenge_Error_Prepare", ex.Message);
+            ErrorMessage = Texts.Format("Debate_Challenge_Error_Prepare", DebateTexts.Reason(ex));
         }
         finally
         {
@@ -289,7 +289,7 @@ public sealed partial class ChallengeFormViewModel : ObservableObject
 #pragma warning restore CA1031
         {
             StatusMessage = null;
-            ErrorMessage = Texts.Format("Debate_Challenge_Error_Challenge", ex.Message);
+            ErrorMessage = Texts.Format("Debate_Challenge_Error_Challenge", DebateTexts.Reason(ex));
         }
         finally
         {

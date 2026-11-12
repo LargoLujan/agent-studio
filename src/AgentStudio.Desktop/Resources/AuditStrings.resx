@@ -276,4 +276,97 @@ Pulsa «Auditar» y aprueba para lanzarla.
 Lee en el informe si es fiable y por qué.</value>
     <comment>Information button.</comment>
   </data>
+  <data name="Text_audit_pending_run_unfinished" xml:space="preserve">
+    <value>La ejecución {0} no ha terminado. Está parada o espera a una persona.</value>
+  </data>
+  <data name="Text_audit_pending_run_failed" xml:space="preserve">
+    <value>La ejecución {0} terminó con error.</value>
+  </data>
+  <data name="Text_audit_pending_review_invalid" xml:space="preserve">
+    <value>La revisión {0} de la ejecución {1} necesita a una persona. El veredicto {2} no es válido.</value>
+  </data>
+  <data name="Text_audit_pending_review_escalated" xml:space="preserve">
+    <value>La revisión {0} de la ejecución {1} necesita a una persona. El veredicto {2} pide que decida alguien.</value>
+  </data>
+  <data name="Text_audit_pending_review_unresolved" xml:space="preserve">
+    <value>La revisión {0} de la ejecución {1} necesita a una persona. El veredicto {2} no resolvió nada.</value>
+  </data>
+  <data name="Text_audit_pending_debate_unfinished" xml:space="preserve">
+    <value>El debate {0} no ha terminado: está en curso o interrumpido.</value>
+  </data>
+  <data name="Text_audit_pending_debate_unresolved" xml:space="preserve">
+    <value>El debate {0} terminó sin resolver: necesita tu decisión.</value>
+  </data>
+  <data name="Text_audit_pending_challenge_open" xml:space="preserve">
+    <value>La impugnación del veredicto {0} sigue abierta. Su debate de revisión {1} no ha terminado.</value>
+  </data>
+  <data name="Text_audit_pending_replan_pending" xml:space="preserve">
+    <value>La ejecución {0} tiene una petición de replanificar sin atender ({1}).</value>
+  </data>
+  <data name="Text_audit_pending_memory_unreviewed" xml:space="preserve">
+    <value>La entrada de memoria {0} cita texto de un agente y nadie la ha revisado.</value>
+  </data>
+  <data name="Text_audit_pending_memory_pending_task" xml:space="preserve">
+    <value>La memoria tiene una tarea pendiente: la entrada {0}.</value>
+  </data>
+  <data name="Text_audit_problem_log_broken" xml:space="preserve">
+    <value>El registro de decisiones no está íntegro. Sin un registro que verifique no se lanza el juez.</value>
+  </data>
+  <data name="Text_audit_problem_requirements_missing" xml:space="preserve">
+    <value>El proyecto no tiene el conjunto de requisitos {0}. Sin requisitos no se audita.</value>
+  </data>
+  <data name="Text_audit_problem_repository_unreadable" xml:space="preserve">
+    <value>No se puede leer el repositorio del proyecto.</value>
+  </data>
+  <data name="Text_audit_problem_no_trust_profile" xml:space="preserve">
+    <value>El proyecto no tiene perfil de verificación de confianza. Guárdalo antes de auditar.</value>
+  </data>
+  <data name="Text_audit_problem_profile_unusable" xml:space="preserve">
+    <value>El perfil de verificación del proyecto no se puede usar.</value>
+  </data>
+  <data name="Text_audit_problem_judge_missing" xml:space="preserve">
+    <value>El juez «{0}» no está en la plantilla de agentes del proyecto.</value>
+  </data>
+  <data name="Text_audit_problem_judge_wrong_role" xml:space="preserve">
+    <value>«{0}» no es juez ni auditor. Solo ellos juzgan.</value>
+  </data>
+  <data name="Text_audit_problem_judge_invalid" xml:space="preserve">
+    <value>La definición del juez «{0}» no es válida.</value>
+  </data>
+  <data name="Text_audit_problem_judge_producer" xml:space="preserve">
+    <value>El juez «{0}» es de {1}, que escribió código del proyecto. Hace falta un juez de otro proveedor.</value>
+  </data>
+  <data name="Text_audit_escalation_log_broken" xml:space="preserve">
+    <value>El registro de decisiones no está íntegro. No se lanza el juez ni se escribe nada.</value>
+  </data>
+  <data name="Text_audit_escalation_cannot_launch" xml:space="preserve">
+    <value>No se lanza la auditoría ni se ejecuta nada. Mira los problemas de la preparación.</value>
+  </data>
+  <data name="Text_audit_escalation_not_approved" xml:space="preserve">
+    <value>No se aprobó la auditoría ({0}). No se ha ejecutado nada.</value>
+  </data>
+  <data name="Text_audit_escalation_copy_failed" xml:space="preserve">
+    <value>No se pudo sacar una copia de la versión guardada {0} para el juez. No se lanza porque no podría leer el código. La verificación sí se hizo.</value>
+  </data>
+  <data name="Text_audit_escalation_log_broke_midway" xml:space="preserve">
+    <value>El registro de decisiones dejó de verificar durante la auditoría. No se lanza el juez ni se escribe nada más.</value>
+  </data>
+  <data name="Text_audit_escalation_judge_excluded" xml:space="preserve">
+    <value>No se lanza el juez «{0}»: es de {1}, que escribió código del proyecto o lo firma.</value>
+  </data>
+  <data name="Text_audit_escalation_judge_limit" xml:space="preserve">
+    <value>El juez «{0}» alcanzó el límite de uso de {1} sin dar veredicto. Vuelve a auditar cuando termine la espera.</value>
+  </data>
+  <data name="Text_audit_escalation_judge_failed" xml:space="preserve">
+    <value>El juez «{0}» no terminó. Decide una persona.</value>
+  </data>
+  <data name="Text_audit_escalation_judge_unreadable" xml:space="preserve">
+    <value>El juez «{0}» respondió sin un veredicto que se pueda leer. Decide una persona.</value>
+  </data>
+  <data name="Text_audit_proposal_outdated" xml:space="preserve">
+    <value>Lo que haría la auditoría ha cambiado desde que lo viste. Prepárala otra vez.</value>
+  </data>
+  <data name="Text_audit_project_busy" xml:space="preserve">
+    <value>El proyecto está ocupado con otra actividad con agentes. Espera a que termine.</value>
+  </data>
 </root>
