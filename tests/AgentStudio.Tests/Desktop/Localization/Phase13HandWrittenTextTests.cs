@@ -120,6 +120,10 @@ public sealed partial class Phase13HandWrittenTextTests
             "The name of the product, the same in every language: the title of the notifications and the tooltip of the icon.",
         [("Controls/Editor/LanguageMap.cs", "plaintext")] =
             "The identifier of a language of Monaco, not a text: it is what the editor page is told.",
+        [("Help/HelpSearch.cs", "CREATE VIRTUAL TABLE help USING fts5(id UNINDEXED, title, body, tokenize = 'unicode61 remove_diacritics 2');")] =
+            "SQL of the local search index of the help (FTS5), not a text: nobody reads it.",
+        [("Help/HelpSearch.cs", "INSERT INTO help (id, title, body) VALUES ($id, $title, $body);")] =
+            "SQL of the local search index of the help (FTS5), not a text: nobody reads it.",
         [("Orchestrator/Monitor/StepLogText.cs", @"\berror\b|\bfailed\b|\bfailure\b|\bexception\b|no test|not found|could not|cannot|\bfatal\b|\bfallid|\bno se (pudo|encontr)")] =
             "D-48: a pattern that tells which lines of a step log (the output of the tools, in either language) are errors; it is not shown.",
         [("Lock/HelloAnswers.cs", "se canceló la verificación")] =
