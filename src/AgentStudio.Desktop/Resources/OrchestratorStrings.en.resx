@@ -2803,7 +2803,7 @@ Open the consumption analysis, if it is there, to see the detail.</value>
     <value>Interrupted: it did not finish and no process is behind it. It can be resumed.</value>
   </data>
   <data name="Text_run_resumed_consent_quota" xml:space="preserve">
-    <value>It resumed by itself with your consent: it was waiting for the usage limit when the app closed.</value>
+    <value>It resumed by itself with your consent. It was waiting for the usage limit when the app closed.</value>
   </data>
   <data name="Text_run_resumed_consent_close" xml:space="preserve">
     <value>It resumed by itself with your consent: an exit you did not ask for cut it.</value>
@@ -2890,7 +2890,7 @@ Open the consumption analysis, if it is there, to see the detail.</value>
     <value>The orchestrator does not start: the memory and the requirements do not fit in its context. Reduce the mandatory requirements or remove the orchestrator memory from the roster.</value>
   </data>
   <data name="Text_planner_repository_changed" xml:space="preserve">
-    <value>Your repository changed while the orchestrator was planning. The plan is discarded.</value>
+    <value>Your repository changed during planning. The plan is discarded.</value>
   </data>
   <data name="Text_planner_cancelled" xml:space="preserve">
     <value>Planning was cancelled.</value>

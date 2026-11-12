@@ -2803,7 +2803,7 @@ Abrir el análisis del consumo, si está disponible, para ver el detalle.</value
     <value>Interrumpida: no terminó y no hay ningún proceso detrás. Se puede reanudar.</value>
   </data>
   <data name="Text_run_resumed_consent_quota" xml:space="preserve">
-    <value>Se reanudó sola con tu consentimiento: esperaba el límite de uso al cerrarse la aplicación.</value>
+    <value>Se reanudó sola con tu consentimiento. Esperaba el límite de uso cuando se cerró la aplicación.</value>
   </data>
   <data name="Text_run_resumed_consent_close" xml:space="preserve">
     <value>Se reanudó sola con tu consentimiento: un cierre que no pediste la cortó.</value>
@@ -2890,7 +2890,7 @@ Abrir el análisis del consumo, si está disponible, para ver el detalle.</value
     <value>No se lanza el orquestador: la memoria y los requisitos no caben en su contexto. Reduce los requisitos obligatorios o quita la memoria del orquestador en la plantilla.</value>
   </data>
   <data name="Text_planner_repository_changed" xml:space="preserve">
-    <value>Tu repositorio cambió mientras planificaba el orquestador. El plan se descarta.</value>
+    <value>Tu repositorio cambió durante la planificación. Se descarta el plan.</value>
   </data>
   <data name="Text_planner_cancelled" xml:space="preserve">
     <value>Se canceló la planificación.</value>
