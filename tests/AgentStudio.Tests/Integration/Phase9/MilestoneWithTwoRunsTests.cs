@@ -182,15 +182,21 @@ public sealed class MilestoneWithTwoRunsTests(MilestoneWorld fixture) : IClassFi
 
         document.Context.LookAt(TraceRef.Run(fixture.Reviewed.Id.Value));
         await document.Participation.ReloadAsync();
-        Assert.Equal(Enum.GetValues<ParticipationRole>(), document.Participation.Roles.Select(r => r.Entry.Role));
+        Assert.Equal(Enum.GetValues<ParticipationRole>(), document.Participation.Roles.Select(r => r.Entry.Role).Distinct());
         Assert.Equal("ejecutor", Role(document, ParticipationRole.ProducingAgent).WhoText);
         Assert.Equal("juez", Role(document, ParticipationRole.Reviewer).WhoText);
-        Assert.Equal(ScriptedPerson, Role(document, ParticipationRole.Approver).WhoText);
+        Assert.All(document.Participation.Roles.Where(r => r.Entry.Role == ParticipationRole.Approver), r => Assert.Equal(ScriptedPerson, r.WhoText)); // the plan and the delivery, both by the person
         Assert.Equal(none, Role(document, ParticipationRole.PublishingAccount).WhoText); // nobody published: no remote is involved
 
         // The run nobody reviewed has no reviewer, and is not given the name of another role.
         document.Context.LookAt(TraceRef.Run(fixture.Unreviewed.Id.Value));
         await document.Participation.ReloadAsync();
+        await Task.Delay(500, Ct); // the focus and the selected subject each start a reload of their own: let both end before reading
+        await document.Participation.ReloadAsync();
+        document.Participation.SelectedSubject = document.Participation.Subjects.Single(s => s.Value == TraceRef.Run(fixture.Unreviewed.Id.Value)); // the person picks the run among the subjects
+        await Task.Delay(500, Ct);
+        await document.Participation.ReloadAsync();
+        Assert.Equal(TraceRef.Run(fixture.Unreviewed.Id.Value), document.Participation.SelectedSubject!.Value);
         Assert.Equal("ejecutor", Role(document, ParticipationRole.ProducingAgent).WhoText);
         Assert.Equal(none, Role(document, ParticipationRole.Reviewer).WhoText);
         Assert.Equal(none, Role(document, ParticipationRole.Integrator).WhoText);

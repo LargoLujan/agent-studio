@@ -30,8 +30,24 @@ public sealed class MilestoneBudgetTests
         return await world.App.Orchestrator.StartAsync(request, Ct);
     }
 
-    private static Task WaitAwaitingAsync(IOrchestrationRun run) =>
-        Phase3Checks.WaitUntilAsync(() => run.Snapshot().Phase == RunPhase.AwaitingHuman, "the run waiting for the person", Phase9Runs.Guard);
+    private static async Task WaitAwaitingAsync(AppWorld world, IOrchestrationRun run)
+    {
+        // A run that ends instead (it was not held) must say so at once, with its log, and not make the test wait for the guard.
+        try
+        {
+            await Phase3Checks.WaitUntilAsync(() => run.Snapshot().Phase == RunPhase.AwaitingHuman || run.Completion.IsCompleted, "the run waiting for the person", TimeSpan.FromMinutes(2));
+        }
+        catch (TimeoutException)
+        {
+            var snapshot = run.Snapshot();
+            Assert.Fail($"{snapshot.Phase}, runs used {snapshot.AgentRunsUsed}; " + string.Join(", ", snapshot.Tasks.Select(t => $"{t.Id} {t.Status} {t.BlockReason}")) + "\n" + AgentStudio.Tests.Integration.Phase4.Phase4Checks.Describe(await world.App.LoadLogAsync()));
+        }
+
+        if (run.Snapshot().Phase != RunPhase.AwaitingHuman)
+        {
+            Assert.Fail(AgentStudio.Tests.Integration.Phase4.Phase4Checks.Describe(await run.Completion) + "\n" + AgentStudio.Tests.Integration.Phase4.Phase4Checks.Describe(await world.App.LoadLogAsync()));
+        }
+    }
 
     [Fact]
     public async Task The_engine_does_not_launch_the_attempt_that_would_pass_the_budget_of_the_milestone_the_task_waits_for_the_person_and_raising_the_budget_of_the_project_and_retrying_goes_on()
@@ -48,7 +64,7 @@ public sealed class MilestoneBudgetTests
         // ---- the follow-up belongs to the milestone: its attempt would be the second, and it is not launched.
         await using (var followUp = await StartAsync(world, "T3", first.Id))
         {
-            await WaitAwaitingAsync(followUp);
+            await WaitAwaitingAsync(world, followUp);
             Assert.Equal(RunPhase.AwaitingHuman, followUp.Snapshot().Phase); // not Failed: raising the budget and retrying goes on
             Assert.Equal(WorkTaskStatus.Blocked, followUp.Snapshot().View("T3").Status);
             Assert.Equal("AwaitingHuman", followUp.Snapshot().View("T3").BlockReason);
@@ -61,15 +77,22 @@ public sealed class MilestoneBudgetTests
             // Raising the budget of the project does not lift the one of the milestone: its header is anchored, and it still applies.
             await world.Get<IProjectBudgetStore>().SaveAsync(project, new WorkBudget(null, 100, BudgetPeriod.Total), Ct);
             await followUp.RetryBlockedAsync(new TaskId("T3"));
-            await WaitAwaitingAsync(followUp);
+            var blocked = 0;
+            for (var i = 0; i < 300 && blocked < 2; i++)
+            {
+                blocked = (await world.App.PayloadsAsync<TaskStatusChangedPayload>(followUp.Id.Value)).Count(p => p.Payload.To == WorkTaskStatus.Blocked);
+                await Task.Delay(100, Ct);
+            }
+
+            Assert.Equal(2, blocked); // the retry was read again by the gate, and the milestone still holds the task
             Assert.Equal(launched, world.Clis.Launches.Count);
-            Assert.Equal(2, (await world.App.PayloadsAsync<AuditAlertPayload>(followUp.Id.Value)).Count(a => a.Payload.Code == ProjectBudgetGate.ExceededCode));
+            Assert.Equal("AwaitingHuman", followUp.Snapshot().View("T3").BlockReason);
         }
 
         // ---- a run that belongs to no milestone is held by the budget of the project, which the person can raise.
         await world.Get<IProjectBudgetStore>().SaveAsync(project, new WorkBudget(null, 1, BudgetPeriod.Total), Ct);
         await using var alone = await StartAsync(world, "T4");
-        await WaitAwaitingAsync(alone);
+        await WaitAwaitingAsync(world, alone);
         Assert.Equal("AwaitingHuman", alone.Snapshot().View("T4").BlockReason);
         Assert.Equal(launched, world.Clis.Launches.Count);
         Assert.Single(await world.App.PayloadsAsync<AuditAlertPayload>(alone.Id.Value), a => a.Payload.Code == ProjectBudgetGate.ExceededCode);

@@ -74,7 +74,7 @@ public sealed class MilestoneCloseTests
         Assert.Equal(MilestoneReport.CurrentFormat, root.GetProperty("format").GetString());
         Assert.Equal(1, root.GetProperty("revision").GetInt32());
         Assert.Equal(id.Value, root.GetProperty("milestone").GetProperty("id").GetString());
-        Assert.Equal("OpenAI", root.GetProperty("audit").GetProperty("judgeVendor").GetString());
+        Assert.Equal(VendorId.OpenAI.Value, root.GetProperty("audit").GetProperty("judgeVendor").GetString());
         Assert.True(root.GetProperty("audit").GetProperty("decisionLogIntact").GetBoolean());
         Assert.Equal(run.Id.Value, Assert.Single(root.GetProperty("runs").EnumerateArray()).GetProperty("id").GetString());
         Assert.DoesNotContain("rationale", json, StringComparison.OrdinalIgnoreCase);

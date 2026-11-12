@@ -604,6 +604,14 @@ la sección «Repositorio y cambios» en local y el cierre de un hito, todo como
 | F9-9 | «Repositorio y cambios»: Resumen, Ramas, Commits con el grafo anotado y Actividad, con filtros; la historia se lee por la capa endurecida | Tests del lector con repositorios temporales y tests de ViewModel |
 | F9-10 | Cerrar un hito es auditarlo (juez no productor y verificación aislada) y genera el informe determinista de D-49, con los estados implementado, revisado e integrado; reabrirlo conserva el informe anterior | Tests con un juez guionizado; prueba de integración de un hito con dos ejecuciones y un seguimiento |
 
+**Pruebas de integración de la Fase 9** (`tests/AgentStudio.Tests/Integration/Phase9/`, la app compuesta con `AddAgentStudioApp`, carpetas
+temporales, git real y CLIs guionizados; todas con `Category=LocalTools`): `MilestoneWithTwoRunsTests` cubre F9-1 (estado y cabecera
+anclada, con el seguimiento que pertenece al hito por la ejecución que sigue), F9-2 (tablero: ninguna tarjeta en «Hecho» o «Integrado»
+sin veredicto aprobado), F9-4 (cadena de requisito a entrega desde el ViewModel de «Trabajo»), F9-5 (participación, con papeles «No consta»),
+F9-6 (consumo por hito, que suma el total) y F9-9 (commits del sistema anotados en «Repositorio y cambios»); `MilestoneCloseTests`, F9-10
+(auditoría con un juez de otro proveedor, informe determinista, reapertura que conserva el informe y cierres rechazados que no escriben);
+`MilestoneBudgetTests`, F9-8 (el motor no lanza el intento que pasaría el presupuesto, la tarea espera y, subido el del proyecto, sigue).
+
 ## Fase 10 — Git remoto: publicación, PR y sincronización
 
 **Objetivo.** Publicar el trabajo aprobado en GitHub (y en Azure DevOps si lo decides), seguir sus PR y reconciliar lo que
