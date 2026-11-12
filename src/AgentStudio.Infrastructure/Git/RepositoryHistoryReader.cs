@@ -62,7 +62,10 @@ public sealed class RepositoryHistoryReader : IRepositoryHistoryReader
     private const int GitAuthorWidth = 120;
     private const int GitRefsWidth = 1200;
     private const int GitParentsWidth = 1300;
-    private const int FieldsPerRecord = 7;
+    private const int GitTrailersWidth = 480;
+    private const int MaxTrailerLineCharacters = 240;
+    private const int MaxTrailerLines = 8;
+    private const int FieldsPerRecord = 8;
 
     /// <summary>The characters git refuses in a ref name (git check-ref-format), besides the control characters and the space.</summary>
     private static readonly char[] ForbiddenRefCharacters = ['~', '^', ':', '?', '*', '[', '\\'];
@@ -196,6 +199,10 @@ public sealed class RepositoryHistoryReader : IRepositoryHistoryReader
             $"%<({GitRefsWidth.ToString(CultureInfo.InvariantCulture)},trunc)%D",
             $"%<({GitAuthorWidth.ToString(CultureInfo.InvariantCulture)},trunc)%an",
             $"%<({GitSubjectWidth.ToString(CultureInfo.InvariantCulture)},trunc)%s",
+
+            // Not the body: the trailers of the last paragraph, which git finds itself and cuts, so a message of megabytes costs nothing here
+            // and its trailers (at the end, where a cut of the body would lose them) still arrive. The lines are kept raw (not unfolded).
+            $"%<({GitTrailersWidth.ToString(CultureInfo.InvariantCulture)},trunc)%(trailers:unfold=false)",
             string.Empty);
         var arguments = new List<string>
         {
@@ -272,7 +279,7 @@ public sealed class RepositoryHistoryReader : IRepositoryHistoryReader
         for (var start = 1; start + FieldsPerRecord <= segments.Length; start += FieldsPerRecord)
         {
             var fields = segments.AsSpan(start, FieldsPerRecord).ToArray();
-            if (fields[6].Trim().Length != 0 || !IsObjectId(fields[0]) || !long.TryParse(fields[2], NumberStyles.None, CultureInfo.InvariantCulture, out var seconds))
+            if (fields[7].Trim().Length != 0 || !IsObjectId(fields[0]) || !long.TryParse(fields[2], NumberStyles.None, CultureInfo.InvariantCulture, out var seconds))
             {
                 continue;
             }
@@ -300,7 +307,11 @@ public sealed class RepositoryHistoryReader : IRepositoryHistoryReader
                 .Take(MaxRefsPerCommit)
                 .Select(reference => Clean(reference, MaxRefCharacters))
                 .ToArray();
-            commits.Add(new CommitNode(fields[0], parents, at, Clean(fields[5], MaxSubjectCharacters), Clean(fields[4], MaxAuthorCharacters), refs));
+            var subject = Clean(fields[5], MaxSubjectCharacters);
+            var trailers = CleanLines(fields[6], MaxTrailerLineCharacters, MaxTrailerLines);
+
+            // The message as far as this read goes: the subject and, after a blank line, the trailers of the last paragraph when it has any.
+            commits.Add(new CommitNode(fields[0], parents, at, subject, Clean(fields[4], MaxAuthorCharacters), refs, trailers.Length == 0 ? null : subject + "\n\n" + trailers));
             if (commits.Count == max)
             {
                 break;
@@ -408,6 +419,10 @@ public sealed class RepositoryHistoryReader : IRepositoryHistoryReader
         value.Length is 40 or 64 && value.All(char.IsAsciiHexDigitLower);
 
     /// <summary>The text of git cut to <paramref name="limit"/> characters, without control characters (a writer cannot add a line or an escape sequence).</summary>
+    /// <summary>The non-empty lines of <paramref name="text"/> (git pads the field with spaces), each cleaned and cut, at most <paramref name="maxLines"/>, joined with a line feed.</summary>
+    private static string CleanLines(string text, int limit, int maxLines) =>
+        string.Join('\n', text.Split('\n').Select(line => Clean(line, limit)).Where(line => line.Length > 0).Take(maxLines));
+
     private static string Clean(string text, int limit)
     {
         var builder = new StringBuilder(Math.Min(text.Length, limit));

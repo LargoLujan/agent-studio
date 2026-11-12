@@ -62,6 +62,43 @@ internal static class WorkLog
         return log.Entries;
     }
 
+    /// <summary>
+    /// The runs linked to a milestone by <c>MilestoneLinked</c> and those that follow them (<c>RunStarted.Follows</c>, transitively), in the order they
+    /// started; a linked run that never started comes after.
+    /// </summary>
+    public static List<string> RunsOfMilestone(IReadOnlyList<DecisionEntry> entries, string milestone)
+    {
+        var linked = entries
+            .Select(RunLog.Payload)
+            .OfType<MilestoneLinkedPayload>()
+            .Where(p => string.Equals(p.RunId, milestone, StringComparison.Ordinal) && p.Kind == AgentStudio.Domain.Work.Milestones.MilestoneTargetKind.Run)
+            .Select(p => p.Target)
+            .ToHashSet(StringComparer.Ordinal);
+        return Followed(entries, linked);
+    }
+
+    /// <summary>The runs in <paramref name="linked"/> and those that follow them, in the order they started, then the linked ones that never started.</summary>
+    public static List<string> Followed(IReadOnlyList<DecisionEntry> entries, HashSet<string> linked)
+    {
+        var starts = entries
+            .Select(e => RunLog.Payload(e) as RunStartedPayload)
+            .Where(p => p is not null && !string.IsNullOrEmpty(p.RunId))
+            .Select(p => p!)
+            .DistinctBy(p => p.RunId)
+            .ToList();
+        for (var changed = true; changed;)
+        {
+            changed = false;
+            foreach (var start in starts.Where(s => s.Follows is { } follows && linked.Contains(follows) && !linked.Contains(s.RunId)))
+            {
+                linked.Add(start.RunId);
+                changed = true;
+            }
+        }
+
+        return [.. starts.Where(s => linked.Contains(s.RunId)).Select(s => s.RunId), .. linked.Except(starts.Select(s => s.RunId))];
+    }
+
     /// <summary>The entries outside every run (<see cref="DecisionPayload.NoRun"/>) with their payloads, in the order of the log.</summary>
     public static IReadOnlyList<(DecisionEntry Entry, DecisionPayload Payload)> OutsideRuns(IEnumerable<DecisionEntry> entries) =>
         [.. entries.Select(e => (Entry: e, Payload: RunLog.Payload(e))).Where(x => x.Payload is { RunId: DecisionPayload.NoRun }).Select(x => (x.Entry, x.Payload!))];
