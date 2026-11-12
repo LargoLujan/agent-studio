@@ -27,11 +27,9 @@ internal sealed record UiLanguageCase(string Name, Func<IUiTextProvider> Provide
 internal sealed record UiBuilt(FrameworkElement Root, Window? Window = null);
 
 /// <summary>
-/// A screen the inventory walks: how to build it with synthetic data, and the size of window it is laid out at. A text of the
-/// synthetic data that is written in one language (a title of a task, say) is listed in <see cref="DataTexts"/>, so the check of
-/// the language does not take it for a text of the interface.
+/// A screen the inventory walks: how to build it with synthetic data, and the size of window it is laid out at.
 /// </summary>
-internal sealed record UiScreen(string Name, Func<Task<UiBuilt>> Create, double Width = 1100, double Height = 760, IReadOnlyList<string>? DataTexts = null)
+internal sealed record UiScreen(string Name, Func<Task<UiBuilt>> Create, double Width = 1100, double Height = 760)
 {
     public override string ToString() => Name;
 }
@@ -64,11 +62,12 @@ internal static class UiInventoryRun
         var types = new HashSet<Type>();
         try
         {
-            using var scope = Texts.Scope(language.Provider());
+            var provider = new RecordingTextProvider(language.Provider());
+            using var scope = Texts.Scope(provider);
             Orchestrator.OrchestratorTheme.EnsureLoaded();
             var built = await screen.Create();
             var root = built.Root;
-            UiTree.Lay(root, screen.Width, screen.Height);
+            UiTree.Lay(root, screen.Width, screen.Height, built.Window is { } host ? host.SizeToContent : SizeToContent.Manual);
             foreach (var element in UiTree.All(root))
             {
                 types.Add(element.GetType());
@@ -89,16 +88,19 @@ internal static class UiInventoryRun
                 texts = [.. texts, (titled.GetType().Name + ".Title", titled.Title)];
             }
 
-            // The names of the languages are written in their own language, never translated (ADR-0054), and the one of Windows too.
-            var ignored = (screen.DataTexts ?? []).Concat(UiLanguages.All.Select(l => l.NativeName)).Append(CultureInfo.CurrentUICulture.NativeName).ToList();
-            var language1 = texts.Where(t => !ignored.Any(d => t.Text.Contains(d, StringComparison.Ordinal))).ToList();
             problems.AddRange(UiChecks.MissingKeys(texts));
             problems.AddRange(UiChecks.Names(root, section => Texts.Current.Format("Info_Button_Name", section)));
             problems.AddRange(UiChecks.Keyboard(root));
             problems.AddRange(UiChecks.Cut(root));
             if (!language.Pseudo)
             {
-                problems.AddRange(UiChecks.Language(language1, language.English));
+                // The language is read from what the provider handed out (the templates, placeholders unfilled), not from what is on
+                // screen: the synthetic data of the screens (a question, the name of a task) is in Spanish whatever the language, and a
+                // text of the resources that is not translated falls back to Spanish through the provider, so it is found here. The names
+                // of the languages are written in their own language, never translated (ADR-0054).
+                var own = UiLanguages.All.Select(l => l.NativeName).Append(CultureInfo.CurrentUICulture.NativeName).ToList();
+                var templates = provider.Templates.Where(t => !own.Contains(t.Text, StringComparer.Ordinal)).ToList();
+                problems.AddRange(UiChecks.Language(templates, language.English));
             }
         }
         catch (Exception ex)

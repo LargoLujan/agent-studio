@@ -20,11 +20,6 @@ internal static class UiScreensDebate
     private static readonly TimeZoneInfo Zone = TimeZoneInfo.CreateCustomTimeZone("UTC+2", TimeSpan.FromHours(2), "UTC+2", "UTC+2");
 
     /// <summary>The synthetic debates are written in Spanish (a question, a contribution): data, not interface.</summary>
-    private static readonly string[] SpanishData =
-    [
-        "Procesos aislados", "caché en memoria", "nombramos los ficheros", "Instrucciones de prueba", "Cada turno", "Cita ", "cita ",
-        "La tarea", "Las instrucciones", "Implementar", "Revisión independiente", "ejecución", "Ejecución", "El auditor", "requisito",
-    ];
 
     public static IReadOnlyList<UiScreen> All { get; } =
     [
@@ -39,7 +34,7 @@ internal static class UiScreensDebate
             await model.OpenAsync();
             await model.OpenItemCommand.ExecuteAsync(model.History[0]);
             return UiScreens.Document(model);
-        }, 1500, 1100, SpanishData),
+        }, 1500, 1100),
         UiScreens.ScreenAsync("New debate", async () =>
         {
             var model = new NewDebateViewModel(new DebateScreenBackend(new FakeDebateCoordinator(), Roster: new AgentStudio.Tests.Desktop.Orchestrator.FakeRoster(() => Roster)), new FakeClock(Now));
@@ -54,20 +49,20 @@ internal static class UiScreensDebate
             model.SelectedJudging = model.JudgingKinds.Single(k => k.Value == DebateJudgingKind.CrossVendorPanel);
             await model.PrepareCommand.ExecuteAsync(null);
             return UiScreens.Of(new NewDebateView(), model);
-        }, 1100, 1500, SpanishData),
+        }, 1100, 1500),
         UiScreens.Screen("Debate room", () =>
         {
             var model = new DebateRoomViewModel(new FakeClock(Now), new AgentStudio.Tests.Desktop.Orchestrator.InlineSynchronizationContext());
             var context = new DebateRoomContext("¿Procesos aislados por agente o un único proceso con hilos?", Requirements, DebateJudgingKind.CrossVendorPanel, [VendorId.Anthropic, VendorId.OpenAI], [ClaudeJudge, CodexJudge]);
             model.Attach(new FakeDebateRun(Snapshot(turnsInFlight: 2, contributions: RoundOne, tokens: Tokens(84_000))), Project, context);
             return UiScreens.Of(new DebateRoomView(), model);
-        }, 1180, 1180, SpanishData),
+        }, 1180, 1180),
         UiScreens.Screen("Verdict card", () =>
         {
             var context = new VerdictCardContext("Veredicto del debate deb-20261019-a1b2c3", DebateJudgingKind.CrossVendorPanel, [VendorId.Anthropic, VendorId.OpenAI], Participants, Requirements, Choice: true, Proposals: ["P1", "P2"]);
             var actions = new VerdictCardActions(_ => Task.CompletedTask, (_, _, _) => Task.CompletedTask, _ => Task.CompletedTask);
             return UiScreens.Of(new VerdictCardView(), new VerdictCardViewModel(PanelThatDisagrees, Disagree, context, Zone, actions));
-        }, 1320, 1180, SpanishData),
+        }, 1320, 1180),
         UiScreens.ScreenAsync("Challenge form", async () =>
         {
             var challenges = new FakeVerdictChallenges();
@@ -80,7 +75,7 @@ internal static class UiScreensDebate
             var model = new ChallengeFormViewModel(backend, new FakeClock(Now));
             await model.LoadAsync(Project, "v-1");
             return UiScreens.Of(new ChallengeFormView(), model);
-        }, 1100, 900, SpanishData),
+        }, 1100, 900),
         UiScreens.ScreenAsync("Project audit", async () =>
         {
             var backend = new DebateScreenBackend(
@@ -98,6 +93,6 @@ internal static class UiScreensDebate
             await model.PrepareCommand.ExecuteAsync(null);
             await model.AuditCommand.ExecuteAsync(null);
             return UiScreens.Of(new ProjectAuditView(), model);
-        }, 1180, 1500, SpanishData),
+        }, 1180, 1500),
     ];
 }

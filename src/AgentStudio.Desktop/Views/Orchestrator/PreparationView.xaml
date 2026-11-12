@@ -79,7 +79,7 @@
                                             <DockPanel Margin="0,6,0,0">
                                                 <TextBlock DockPanel.Dock="Left" Style="{StaticResource SecondaryText}" Margin="0,0,8,0" VerticalAlignment="Center" Text="{l:T Orchestrator_Prep_ModelLabel}"/>
                                                 <ComboBox ItemsSource="{Binding ModelOptions}" SelectedItem="{Binding SelectedModel}" DisplayMemberPath="Label"
-                                                          MaxWidth="260" HorizontalAlignment="Left" MinWidth="170"
+                                                          MaxWidth="340" HorizontalAlignment="Left" MinWidth="170"
                                                           IsEnabled="{Binding CanChangeModel}"
                                                           ToolTip="{Binding ModelText}" ToolTipService.ShowOnDisabled="True"
                                                           AutomationProperties.Name="{Binding ModelAccessibleName}"

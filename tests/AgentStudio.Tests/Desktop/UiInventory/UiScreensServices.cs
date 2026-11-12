@@ -37,12 +37,6 @@ internal static class UiScreensServices
     private static readonly ApprovalRequest Delivery = new(
         "deliver-integration", "Entregar la ejecución 20261021-abc123 en main.", RiskLevel.Critical, null, [@"src\Calc.cs"], "p-1", "20261021-abc123");
 
-    private static readonly string[] SpanishData =
-    [
-        "Plan aprobado", "Falta documentar", "CalcTests", "mensajes de excepción", "Entregar la ejecución", "Ejecución", "Debate ", "Auditoría",
-        "En ejecución", "En deliberación", "Límite de uso", "Prompts", "Resultados", "Hecho", "panel de consumo", "monorepo", "docs-internas",
-        "tienda", "Implementar", "Documentar", "Revisión", "entrada ", "ejecución", "evidencia ", "nota del usuario", "Leída de Codex",
-    ];
 
     private static MemoryEntry Entry(string id, MemoryKind kind, string topic, string content, MemoryOrigin origin, MemoryTrust trust, string source) =>
         new(id, kind, topic, content, origin, source, At, new string('b', 64), trust, null, null);
@@ -91,7 +85,7 @@ internal static class UiScreensServices
             model.RefreshRunActivity();
             await model.Summary.SummarizeCommand.ExecuteAsync(null);
             return UiScreens.Of(new MemoryView(), model);
-        }, 1500, 900, SpanishData),
+        }, 1500, 900),
         UiScreens.ScreenAsync("Usage dashboard", async () =>
         {
             var clock = new FakeClock(At);
@@ -121,7 +115,7 @@ internal static class UiScreensServices
             await model.SetProjectAsync(@"C:\proyectos\calc");
             await model.Quota.ReadCodexCommand.ExecuteAsync(null);
             return UiScreens.Of(new UsageDashboardView(), model);
-        }, 1500, 1400, SpanishData),
+        }, 1500, 1400),
         UiScreens.ScreenAsync("Lock screen", async () =>
         {
             var clock = new FakeTimeProvider(AgentStudio.Tests.Domain.TestData.T0);
@@ -133,15 +127,15 @@ internal static class UiScreensServices
             await interfaceLock.UnlockWithHelloAsync(CancellationToken.None);
             var screen = new LockScreenViewModel(interfaceLock, clock, new InlineSynchronizationContext(), new Work());
             return UiScreens.Of(new LockScreenView(), screen);
-        }, 1200, 760, SpanishData),
-        UiScreens.Screen("Windows Hello notice", () => UiScreens.Of(new HelloNoticeView(), new ApprovalDialogViewModel(Delivery, ApprovalVerification.WindowsHelloUnavailable, UserPresenceAvailability.NotConfiguredForUser)), 560, 120, SpanishData),
+        }, 1200, 760),
+        UiScreens.Screen("Windows Hello notice", () => UiScreens.Of(new HelloNoticeView(), new ApprovalDialogViewModel(Delivery, ApprovalVerification.WindowsHelloUnavailable, UserPresenceAvailability.NotConfiguredForUser)), 560, 120),
         UiScreens.ScreenAsync("Status panel", async () =>
         {
             var panel = await PanelAsync();
             return UiScreens.Of(new StatusPanelView { ContentMaxHeight = 4000 }, panel);
-        }, 540, 1950, SpanishData),
-        UiScreens.Screen("Exit question", () => UiScreens.Of(new ExitPromptView(), ExitPrompt()), 620, 450, SpanishData),
-        UiScreens.Screen("Exit question window", () => UiScreens.OfWindow(new ExitPromptWindow(), ExitPrompt()), 620, 450, SpanishData),
+        }, 540, 1950),
+        UiScreens.ScreenAsync("Status panel window", async () => UiScreens.OfWindow(new StatusPanelWindow(), await PanelAsync()), 540, 1950),
+        UiScreens.Screen("Exit question window", () => UiScreens.OfWindow(new ExitPromptWindow(), ExitPrompt()), 620, 450),
     ];
 
     private sealed class Work : IWorkInProgress

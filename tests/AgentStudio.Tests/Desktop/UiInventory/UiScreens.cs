@@ -46,15 +46,20 @@ internal static class UiScreens
 
     internal static UiBuilt OfWindow(Window window, object? dataContext = null)
     {
-        window.DataContext = dataContext;
+        // A window that composes itself (the main window) keeps the data context it gave itself.
+        if (dataContext is not null)
+        {
+            window.DataContext = dataContext;
+        }
+
         return new UiBuilt((FrameworkElement)window.Content, window);
     }
 
-    internal static UiScreen Screen(string name, Func<UiBuilt> create, double width = 1100, double height = 760, params string[] dataTexts) =>
-        new(name, () => Task.FromResult(create()), width, height, dataTexts);
+    internal static UiScreen Screen(string name, Func<UiBuilt> create, double width = 1100, double height = 760) =>
+        new(name, () => Task.FromResult(create()), width, height);
 
-    internal static UiScreen ScreenAsync(string name, Func<Task<UiBuilt>> create, double width = 1100, double height = 760, params string[] dataTexts) =>
-        new(name, create, width, height, dataTexts);
+    internal static UiScreen ScreenAsync(string name, Func<Task<UiBuilt>> create, double width = 1100, double height = 760) =>
+        new(name, create, width, height);
 
     private static IReadOnlyList<UiScreen> Build() =>
         [.. Core(), .. UiScreensShell.All, .. UiScreensOrchestrator.All, .. UiScreensDebate.All, .. UiScreensServices.All];
@@ -78,7 +83,7 @@ internal static class UiScreens
             var document = new SkillsWorld().Document();
             await document.OpenAsync(CancellationToken.None);
             return Document(document);
-        }, 1100, 760, "Ingeniería de", "Tokens de diseño", "Patrones MVVM", "Escribe la prueba"),
+        }),
         Screen("Help", () => Document(new HelpDocumentViewModel(new HelpBackend(HelpCorpus.FromAssembly(), new HelpSearch(HelpCorpus.FromAssembly()), new HelpActionCatalog())))),
     ];
 

@@ -71,20 +71,18 @@ internal static class UiTree
     /// Measures, arranges and lays out <paramref name="root"/> at the size given, and lets the bindings and the templates that WPF
     /// queues settle over a few passes (as <c>OffscreenRender</c> does, without drawing a bitmap). Call it on the UI thread.
     /// </summary>
-    public static void Lay(FrameworkElement root, double width, double height)
+    public static void Lay(FrameworkElement root, double width, double height, SizeToContent sizing = SizeToContent.Manual)
     {
-        var size = new Size(width, height);
-        for (var pass = 0; pass < 4; pass++)
+        var fitWidth = sizing is SizeToContent.Width or SizeToContent.WidthAndHeight;
+        var fitHeight = sizing is SizeToContent.Height or SizeToContent.WidthAndHeight;
+        for (var pass = 0; pass < 5; pass++)
         {
-            root.Measure(size);
-            root.Arrange(new Rect(size));
+            // A window that sizes itself to its content is measured without limit on that axis and given what it asks for.
+            root.Measure(new Size(fitWidth ? double.PositiveInfinity : width, fitHeight ? double.PositiveInfinity : height));
+            root.Arrange(new Rect(new Size(fitWidth ? root.DesiredSize.Width : width, fitHeight ? root.DesiredSize.Height : height)));
             root.UpdateLayout();
             System.Windows.Input.CommandManager.InvalidateRequerySuggested();
             WpfHost.FlushBindings();
         }
-
-        root.Measure(size);
-        root.Arrange(new Rect(size));
-        root.UpdateLayout();
     }
 }

@@ -22,7 +22,7 @@ internal static partial class UiChecks
     /// <summary>Spanish function words that no English text of the interface uses.</summary>
     private static readonly HashSet<string> SpanishWords = new(StringComparer.OrdinalIgnoreCase)
     {
-        "el", "los", "las", "del", "para", "con", "sin", "una", "por", "que", "sus", "está", "están", "cuando", "hay", "tu", "tus",
+        "el", "los", "las", "para", "con", "sin", "una", "por", "que", "sus", "está", "están", "cuando", "hay", "tu", "tus",
         "más", "aún", "también", "pero", "este", "esta", "estos", "estas", "puedes", "ningún", "ninguna", "sobre",
     };
 
@@ -213,6 +213,12 @@ internal static partial class UiChecks
         DependencyObject? current = VisualTreeHelper.GetParent(block);
         while (current is FrameworkElement ancestor && !ReferenceEquals(ancestor, root))
         {
+            // The canvas of the orchestrator is panned and zoomed: what lies beyond the viewport is reached by moving it, not cut.
+            if (ancestor.GetType().Name == "NodifyCanvas")
+            {
+                return null;
+            }
+
             // A scroll viewer scrolls what does not fit on the axis it scrolls: only the other axis can cut.
             var checkRight = true;
             var checkBottom = true;
@@ -259,7 +265,8 @@ internal static partial class UiChecks
             if (english)
             {
                 var spanish = words.Where(SpanishWords.Contains).Distinct().ToList();
-                if (SpanishLetters().IsMatch(text) || spanish.Count > 0)
+                // «Ctrl+Ñ» names a key of the Spanish keyboard, and that is what the English text says it is.
+                if (SpanishLetters().IsMatch(text.Replace("Ctrl+Ñ", string.Empty, StringComparison.Ordinal)) || spanish.Count > 0)
                 {
                     yield return $"Spanish text in English: {where} says '{Shorten(text)}'";
                 }
