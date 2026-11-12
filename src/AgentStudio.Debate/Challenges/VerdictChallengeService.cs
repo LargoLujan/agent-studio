@@ -97,7 +97,7 @@ public sealed class VerdictChallengeService(
                 problems.Add($"El registro no tiene el inicio de {unit}, el objeto del veredicto: no se sabe quién no puede juzgar la revisión.", UserText.Of(DebateUserTexts.ChallengeProblemUnitNotStarted, unit));
             }
 
-            if (ChallengeLog.StatusOf(log.Entries, challenged) == ChallengeStatus.Pending)
+            if (ChallengeLog.StatusOf(log.Entries, challenged, await StoredAsync(project.ProjectId, ct).ConfigureAwait(false)) == ChallengeStatus.Pending)
             {
                 problems.Add($"El veredicto {challenged.Id} ya tiene una impugnación sin cerrar (debate {ChallengeLog.LatestRevision(log.Entries, challenged.Id)}): espera a que termine.", UserText.Of(DebateUserTexts.ChallengeProblemAlreadyChallenged, challenged.Id, ChallengeLog.LatestRevision(log.Entries, challenged.Id) ?? "?"));
             }
@@ -227,7 +227,7 @@ public sealed class VerdictChallengeService(
             return ChallengeLog.LatestRevision(log, verdict) is null ? ChallengeStatus.None : ChallengeStatus.Pending;
         }
 
-        return ChallengeLog.StatusOf(log, challenged);
+        return ChallengeLog.StatusOf(log, challenged, await StoredAsync(project.ProjectId, ct).ConfigureAwait(false));
     }
 
     public async Task AcceptRevisionAsync(ProjectContext project, string revisionVerdict, CancellationToken ct)
@@ -244,7 +244,7 @@ public sealed class VerdictChallengeService(
 
         var challenged = await FindAsync(project.ProjectId, challengedId, ct).ConfigureAwait(false)
             ?? throw DebateUserTexts.Refusal(DebateUserTexts.ChallengeVerdictNotStored, $"The challenged verdict {challengedId} is not stored.", challengedId);
-        var status = ChallengeLog.StatusOf(log, challenged);
+        var status = ChallengeLog.StatusOf(log, challenged, await StoredAsync(project.ProjectId, ct).ConfigureAwait(false));
         if (status != ChallengeStatus.AwaitingAcceptance || !string.Equals(ChallengeLog.LatestRevision(log, challengedId), debate, StringComparison.Ordinal))
         {
             throw DebateUserTexts.Refusal(DebateUserTexts.ChallengeNotAwaitingAcceptance, $"The revision {debate} of {challengedId} does not await acceptance ({status}): only the latest revision that turned towards an approval is accepted.", debate, challengedId);
@@ -389,6 +389,18 @@ public sealed class VerdictChallengeService(
 
     private async Task<StoredVerdict?> FindAsync(string projectId, string verdict, CancellationToken ct) =>
         (await verdicts.ListAsync(projectId, null, ct).ConfigureAwait(false)).LastOrDefault(v => string.Equals(v.Id, verdict, StringComparison.Ordinal));
+
+    /// <summary>The verdicts of the project by id (the last one of an id wins), which the rule of a challenge checks the verdicts of a revision against.</summary>
+    private async Task<IReadOnlyDictionary<string, StoredVerdict>> StoredAsync(string projectId, CancellationToken ct)
+    {
+        var byId = new Dictionary<string, StoredVerdict>(StringComparer.Ordinal);
+        foreach (var verdict in await verdicts.ListAsync(projectId, null, ct).ConfigureAwait(false))
+        {
+            byId[verdict.Id] = verdict;
+        }
+
+        return byId;
+    }
 
     /// <summary>The verified log: whole (<see cref="LogLoad.Full"/>) to accept a revision, incremental to say where a challenge stands.</summary>
     private async Task<IReadOnlyList<DecisionEntry>> VerifiedAsync(string projectId, LogLoad load, CancellationToken ct)

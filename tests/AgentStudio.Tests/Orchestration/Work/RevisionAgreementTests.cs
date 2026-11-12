@@ -44,31 +44,73 @@ public sealed class RevisionAgreementTests
         NotOpenedThenDeclined,
         OtherVerdictRevisionApproves,
         OtherVerdictRevisionWithdraws,
+        TwoChallengesOfTheSameVerdict,
+        RevisionVerdictChallengedAndWithdrawn,
     }
 
-    public static TheoryData<Scenario, bool, BoardColumn> Cases => new()
-    {
-        { Scenario.Unchallenged, true, BoardColumn.Done },
-        { Scenario.RevisionOpen, false, BoardColumn.InReview },
-        { Scenario.RevisionConfirms, true, BoardColumn.Done },
-        { Scenario.RevisionWithdraws, false, BoardColumn.Returned },
-        { Scenario.DecidedByUser, false, BoardColumn.InReview },
-        { Scenario.RevisionAborted, false, BoardColumn.InReview },
-        { Scenario.TurnsTowardsApprovalUnaccepted, false, BoardColumn.InReview },
-        { Scenario.TurnsTowardsApprovalAccepted, true, BoardColumn.Done },
+    /// <summary>
+    /// Scenario, whether the delivery lets the run through, the column of the card of R1 (and of its task T1), the verdict whose challenge is read and the status that all three
+    /// readers (the delivery by what it blocks, the board and <c>ChallengeLog.StatusOf</c>, the one that tells a person whether they may challenge again or accept) give it.
+    /// </summary>
+    private static readonly (Scenario Scenario, bool Deliverable, BoardColumn Column, string Verdict, ChallengeStatus Status)[] Table =
+    [
+        (Scenario.Unchallenged, true, BoardColumn.Done, "v1", ChallengeStatus.None),
+        (Scenario.RevisionOpen, false, BoardColumn.InReview, "v1", ChallengeStatus.Pending),
+        (Scenario.RevisionConfirms, true, BoardColumn.Done, "v1", ChallengeStatus.Confirmed),
+        (Scenario.RevisionWithdraws, false, BoardColumn.Returned, "v1", ChallengeStatus.Revoked),
+        (Scenario.DecidedByUser, false, BoardColumn.InReview, "v1", ChallengeStatus.DecidedByUser),
+        (Scenario.RevisionAborted, false, BoardColumn.InReview, "v1", ChallengeStatus.Pending),
+        (Scenario.TurnsTowardsApprovalUnaccepted, false, BoardColumn.InReview, "v1", ChallengeStatus.AwaitingAcceptance),
+        (Scenario.TurnsTowardsApprovalAccepted, true, BoardColumn.Done, "v1", ChallengeStatus.Accepted),
 
-        // A person who declined to open the revision never started it: the challenge counts for nothing.
-        { Scenario.DeclinedByPerson, true, BoardColumn.Done },
-        { Scenario.JudgedThenDeclined, true, BoardColumn.Done },
-        { Scenario.NotOpenedThenDeclined, true, BoardColumn.Done },
+        // A person who declined to open the revision never started it: the challenge counts for nothing, and the verdict can be challenged again.
+        (Scenario.DeclinedByPerson, true, BoardColumn.Done, "v1", ChallengeStatus.None),
+        (Scenario.JudgedThenDeclined, true, BoardColumn.Done, "v1", ChallengeStatus.Confirmed),
+        (Scenario.NotOpenedThenDeclined, true, BoardColumn.Done, "v1", ChallengeStatus.None),
 
-        // The challenge of a verdict that is not the one the run ended with: its revision never has to be accepted.
-        { Scenario.OtherVerdictRevisionApproves, true, BoardColumn.Done },
+        // The challenge of a verdict that is not the one the run ended with: its revision never has to be accepted (it is read as if that verdict were an approval).
+        (Scenario.OtherVerdictRevisionApproves, true, BoardColumn.Done, "v0", ChallengeStatus.Confirmed),
 
         // The delivery is stricter than the board here: the card follows the last verdict (the one the run ended with, which nobody challenged) and the delivery also stops
         // for a revision of an attempt the judge corrected that withdrew its approval. The board never shows more done than the delivery lets through the other way round.
-        { Scenario.OtherVerdictRevisionWithdraws, false, BoardColumn.Done },
-    };
+        (Scenario.OtherVerdictRevisionWithdraws, false, BoardColumn.Done, "v0", ChallengeStatus.Revoked),
+
+        // The same verdict challenged twice, the two revisions confirming it.
+        (Scenario.TwoChallengesOfTheSameVerdict, true, BoardColumn.Done, "v1", ChallengeStatus.Confirmed),
+
+        // A verdict of a revision (v2, which confirmed v1) challenged in its turn: its own revision withdraws it, and nothing is delivered. All three readers agree on the status of
+        // v2 (Revoked), but the card still follows v1 confirmed by v2: the board does not walk the chain of challenges of revision verdicts as the delivery does (known limit, the
+        // same direction as the one above: the board is never ahead of the delivery in review, but here it shows Done while the delivery blocks; open in docs/18).
+        (Scenario.RevisionVerdictChallengedAndWithdrawn, false, BoardColumn.Done, "v2", ChallengeStatus.Revoked),
+    ];
+
+    public static TheoryData<Scenario, bool, BoardColumn, string, ChallengeStatus> Cases
+    {
+        get
+        {
+            var data = new TheoryData<Scenario, bool, BoardColumn, string, ChallengeStatus>();
+            foreach (var row in Table)
+            {
+                data.Add(row.Scenario, row.Deliverable, row.Column, row.Verdict, row.Status);
+            }
+
+            return data;
+        }
+    }
+
+    public static TheoryData<Scenario, string, ChallengeStatus> StatusCases
+    {
+        get
+        {
+            var data = new TheoryData<Scenario, string, ChallengeStatus>();
+            foreach (var row in Table)
+            {
+                data.Add(row.Scenario, row.Verdict, row.Status);
+            }
+
+            return data;
+        }
+    }
 
     private static async Task ChallengeAsync(WorkWorld world, string verdict, string debate, bool open = true)
     {
@@ -183,15 +225,30 @@ public sealed class RevisionAgreementTests
                 await world.RevisionVerdictAsync(WorkWorld.Run1, scenario == Scenario.OtherVerdictRevisionApproves ? VerdictDecision.Approved : VerdictDecision.Rejected, "v0");
                 await CloseAsync(world, Debate1, DebateOutcome.Resolved, JudgingPanel.Single, "v2");
                 break;
+            case Scenario.TwoChallengesOfTheSameVerdict:
+                await ChallengeAsync(world, "v1", Debate1);
+                await world.RevisionVerdictAsync(WorkWorld.Run1, VerdictDecision.Approved, "v1");
+                await CloseAsync(world, Debate1, DebateOutcome.Resolved, JudgingPanel.Single, "v2");
+                await ChallengeAsync(world, "v1", Debate2);
+                await world.RevisionVerdictAsync(WorkWorld.Run1, VerdictDecision.Approved, "v1", id: "v3");
+                await CloseAsync(world, Debate2, DebateOutcome.Resolved, JudgingPanel.Single, "v3");
+                break;
+            case Scenario.RevisionVerdictChallengedAndWithdrawn:
+                await ChallengeAsync(world, "v1", Debate1);
+                await world.RevisionVerdictAsync(WorkWorld.Run1, VerdictDecision.Approved, "v1");
+                await CloseAsync(world, Debate1, DebateOutcome.Resolved, JudgingPanel.Single, "v2");
+                await ChallengeAsync(world, "v2", Debate2);
+                await world.RevisionVerdictAsync(WorkWorld.Run1, VerdictDecision.Rejected, "v2", id: "v3");
+                await CloseAsync(world, Debate2, DebateOutcome.Resolved, JudgingPanel.Single, "v3");
+                break;
         }
 
         return (world, view.Header.Id);
     }
 
     [Theory]
-    [InlineData(Scenario.DeclinedByPerson, "v1", ChallengeStatus.Pending, ChallengeStatus.None)]
-    [InlineData(Scenario.OtherVerdictRevisionApproves, "v0", ChallengeStatus.AwaitingAcceptance, ChallengeStatus.Confirmed)]
-    public async Task The_two_readers_of_a_challenge_differ_only_in_the_two_cases_where_the_board_follows_the_delivery(Scenario scenario, string verdict, ChallengeStatus debateSays, ChallengeStatus boardSays)
+    [MemberData(nameof(StatusCases))]
+    public async Task The_debate_screen_and_the_board_read_the_same_status_of_a_challenge(Scenario scenario, string verdict, ChallengeStatus status)
     {
         var (world, _) = await ArrangeAsync(scenario);
         using (world)
@@ -199,17 +256,17 @@ public sealed class RevisionAgreementTests
             var log = (await world.Instance.Recorder.LoadAsync(world.ProjectId, Ct)).Entries;
             var byId = (await world.Instance.Verdicts.ListAsync(world.ProjectId, null, Ct)).ToDictionary(v => v.Id, StringComparer.Ordinal);
 
-            Assert.Equal(debateSays, ChallengeLog.StatusOf(log, byId[verdict]));
-            Assert.Equal(boardSays, ChallengeReader.Read(log, byId[verdict], byId).Status);
+            // ChallengeLog.StatusOf decides whether a person may challenge again (anything but Pending) and whether a revision awaits their acceptance.
+            Assert.Equal(status, ChallengeLog.StatusOf(log, byId[verdict], byId));
+            Assert.Equal(status, ChallengeReader.Read(log, byId[verdict], byId).Status);
         }
     }
-
     private static DeliveryService DeliveryOf(WorkWorld world) =>
         new(new FakeWorktreeManager(new FakeRepository()), new RecordingApprovalGate(), world.Instance.Recorder, world.Instance.Verdicts);
 
     [Theory]
     [MemberData(nameof(Cases))]
-    public async Task The_board_and_the_delivery_agree_on_what_a_challenge_leaves_of_the_verdict(Scenario scenario, bool deliverable, BoardColumn requirement)
+    public async Task The_board_and_the_delivery_agree_on_what_a_challenge_leaves_of_the_verdict(Scenario scenario, bool deliverable, BoardColumn requirement, string verdict, ChallengeStatus status)
     {
         var (world, milestone) = await ArrangeAsync(scenario);
         using (world)
@@ -219,12 +276,19 @@ public sealed class RevisionAgreementTests
             var r1 = board.Requirements.Single(c => c.Id == "R1").Column;
             var t1 = board.Tasks.Single(c => c.Id == "T1").Column;
 
+            // The one that tells a person whether they may challenge again or accept the revision says what the delivery and the board act on.
+            var log = (await world.Instance.Recorder.LoadAsync(world.ProjectId, Ct)).Entries;
+            var byId = (await world.Instance.Verdicts.ListAsync(world.ProjectId, null, Ct)).ToDictionary(v => v.Id, StringComparer.Ordinal);
+            Assert.Equal(status, ChallengeLog.StatusOf(log, byId[verdict], byId));
+
             Assert.Equal(deliverable, readiness.Ready);
             Assert.Equal(requirement, r1);
             Assert.Equal(r1, t1);
 
             // The two guarantees, whatever the scenario: nothing is delivered that the board has in review, and nothing stays in review that the delivery lets through.
             Assert.False(readiness.Ready && r1 == BoardColumn.InReview);
+            Assert.False(readiness.Ready && status is ChallengeStatus.Pending or ChallengeStatus.AwaitingAcceptance or ChallengeStatus.DecidedByUser or ChallengeStatus.Revoked);
+            Assert.False(status is ChallengeStatus.Pending or ChallengeStatus.AwaitingAcceptance or ChallengeStatus.DecidedByUser && r1 == BoardColumn.Done);
             Assert.False(readiness.Ready && r1 != BoardColumn.Done);
         }
     }

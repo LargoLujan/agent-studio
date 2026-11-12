@@ -15,7 +15,7 @@ namespace AgentStudio.Tests.Orchestration.WorkTracking;
 
 /// <summary>
 /// docs/15 D-38 to D-40 on the board: a challenged verdict is set aside until its revision settles it. The board reads the challenge with
-/// <see cref="ChallengeReader"/>, which repeats <c>ChallengeLog.StatusOf</c> (the Debate module is out of reach of Orchestration): for the same
+/// <see cref="ChallengeReader"/>, which is <c>ChallengeRules</c> (shared with <c>ChallengeLog.StatusOf</c>, the Debate module being out of reach of Orchestration): for the same
 /// log both must give the same status, and the card must follow it.
 /// </summary>
 public sealed class ChallengedVerdictBoardTests
@@ -112,7 +112,7 @@ public sealed class ChallengedVerdictBoardTests
         var log = (await world.Instance.Recorder.LoadAsync(world.ProjectId, Ct)).Entries;
         var all = await world.Instance.Verdicts.ListAsync(world.ProjectId, null, Ct);
         var byId = all.ToDictionary(v => v.Id, StringComparer.Ordinal);
-        return (ChallengeLog.StatusOf(log, byId["v1"]), ChallengeReader.Read(log, byId["v1"], byId).Status);
+        return (ChallengeLog.StatusOf(log, byId["v1"], byId), ChallengeReader.Read(log, byId["v1"], byId).Status);
     }
 
     public static TheoryData<VerdictDecision, Closing, VerdictDecision, bool, ChallengeStatus, BoardColumn> Cases => new()
