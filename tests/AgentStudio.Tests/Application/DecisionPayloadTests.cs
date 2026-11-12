@@ -66,6 +66,7 @@ public sealed class DecisionPayloadTests
         .. Phase13PayloadTests.Samples,
         .. Phase14PayloadTests.Samples,
         .. Phase9PayloadTests.Samples,
+        .. Phase6PayloadTests.Samples,
     ];
 
     private static UsageSnapshot UsageOf(long tokens, decimal cost) => UsageSnapshot.From(new TokenUsage(

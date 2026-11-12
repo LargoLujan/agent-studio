@@ -623,11 +623,11 @@ primero. Sin texto libre ni rutas de tu equipo en el payload.
 
 **D-17 · Roslyn, solo el analizador sintáctico.** Dependencia nueva: es la decisión 3.
 
-- **El paquete:** `Microsoft.CodeAnalysis.CSharp`. Se fija la versión estable que corresponde al compilador del SDK de
-  .NET 10 de `global.json` (10.0.303): averiguarla es el primer paso del P0. Como referencia, la última del índice de
-  nuget.org el 2026-11-12 es la 5.9.0, y su ficha (`.nuspec`) dice: licencia **MIT**, autor Microsoft, repositorio `dotnet/roslyn`. Para `net10.0` solo trae dos
-  dependencias: `Microsoft.CodeAnalysis.Common` 5.9.0 y `Microsoft.CodeAnalysis.Analyzers` (reglas para quien escribe
-  analizadores; solo actúan al compilar). El P0 la fija tras comprobar avisos de seguridad y que compila con 0 avisos.
+- **El paquete:** `Microsoft.CodeAnalysis.CSharp` **5.6.0** (fijada por el P0, §12): la versión de Roslyn que trae el SDK de
+  .NET 10 de `global.json` (10.0.303 trae `Microsoft.CodeAnalysis.CSharp.dll` 5.6.0-2.26377). Licencia **MIT**, autor Microsoft,
+  repositorio `dotnet/roslyn`, rama `release/stable`. Para `net10.0` solo trae dos dependencias: `Microsoft.CodeAnalysis.Common` 5.6.0 y
+  `Microsoft.CodeAnalysis.Analyzers` 5.3.0 (reglas para quien escribe analizadores; solo actúan al compilar), también MIT. La 5.9.0, que
+  la primera versión de este documento citaba como la última del índice, apunta a la rama `release/insiders`: no es la del SDK.
 - **Lo que no entra:** `Microsoft.CodeAnalysis.Workspaces.*`, `Microsoft.CodeAnalysis.Workspaces.MSBuild`,
   `Microsoft.Build.*` ni `Microsoft.Build.Locator`. Una prueba de arquitectura lo fija (F6-12).
 - **Cómo se usa:** `CSharpSyntaxTree.ParseText` con la versión más reciente del lenguaje. No se crea ninguna
@@ -1422,11 +1422,13 @@ docs/19. Ninguno de ellos existe todavía. Esta fase usa el 0045 y propone 0061 
 
 ## 12. Sin verificar
 
-- **`Microsoft.CodeAnalysis.CSharp`:** qué versión estable corresponde al compilador del SDK 10.0.303 (es el primer paso del
-  P0). De la 5.9.0, la última del índice de nuget.org, están comprobadas en su ficha la licencia MIT y las dependencias;
-  esa ficha apunta a la rama `release/insiders` de Roslyn, un motivo más para no fijarla sin mirar. Faltan los avisos de
-  seguridad, el peso publicado y que compile con 0 avisos con `TreatWarningsAsErrors` (su dependencia
-  `Microsoft.CodeAnalysis.Analyzers` añade reglas al compilar el proyecto que la referencia).
+- **`Microsoft.CodeAnalysis.CSharp`: verificado por el P0 el 2026-11-12.** La versión del compilador del SDK 10.0.303 es la **5.6.0**
+  (`dotnet --list-sdks` da 10.0.303 y `Roslyn\bincore\Microsoft.CodeAnalysis.CSharp.dll` del SDK es 5.6.0-2.26377), no la 5.9.0 que
+  decía este apartado: se fija la 5.6.0, cuya ficha apunta a `release/stable`. Licencia MIT, autor Microsoft; dependencias en
+  `net10.0`: `Microsoft.CodeAnalysis.Common` 5.6.0 y `Microsoft.CodeAnalysis.Analyzers` 5.3.0, también MIT; listada, publicada el
+  2026-07-02, sin retirada; ninguno de los tres figura en el feed de vulnerabilidades de nuget.org del 2026-11-11. Compila con 0
+  avisos con `TreatWarningsAsErrors` (el proyecto de análisis la referencia con `PrivateAssets="compile"`). Peso publicado: ver el informe del P0 (se
+  copian a la salida `Microsoft.CodeAnalysis.dll` y `Microsoft.CodeAnalysis.CSharp.dll`).
 - **Que el analizador de Roslyn no agote la pila al analizar** (no al recorrer) un fichero con anidamiento extremo. Por eso
   el proceso aparte y el relanzamiento de D-18.
 - **Los límites del analizador con ficheros hostiles:** que un fichero con anidamiento extremo termine con un error y no con
@@ -1439,8 +1441,10 @@ docs/19. Ninguno de ellos existe todavía. Esta fase usa el 0045 y propone 0061 
 - **La API de GitHub:** que `commits?sha=…&path=…&per_page=1` da el último commit que tocó la carpeta también cuando `sha` es
   un commit y no una rama, y que un 304 no cuenta contra el límite sin token. Lo segundo
   lo dicen sus buenas prácticas (citadas en docs/16).
-- **DPAPI en .NET 10:** la versión y la licencia del paquete `System.Security.Cryptography.ProtectedData`, si se elige
-  (decisión 15).
+- **DPAPI en .NET 10: verificado por el P0 el 2026-11-12.** `System.Security.Cryptography.ProtectedData` 10.0.13 (la última 10.x es la 10.0.15;
+  se fija la 10.0.13 para alinearla con los demás paquetes de `Microsoft.Extensions.*`): licencia MIT, autor Microsoft
+  (`dotnet/dotnet`), grupo `net10.0` sin dependencias, listada, publicada el 2026-10-13, sin retirada y sin aviso en el feed de
+  vulnerabilidades de nuget.org del 2026-11-11. La referencia está en `AgentStudio.Infrastructure.csproj` (la usará WP-S).
 - **`git archive` y `export-ignore`:** que la copia de la verificación se comporta así en esta capa.
 - **El coste de «Proponer relaciones»** (D-21): tokens por lanzamiento. Es una estimación hasta medirlo.
 - **Los tamaños de los paquetes** son estimaciones del diseño.

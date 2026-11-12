@@ -196,6 +196,8 @@ public sealed class Phase8PayloadTests
                 // Phase 9 appends after the Phase 14 kind.
                 "MilestoneOpened", "MilestoneRequirementsRevised", "MilestoneLinked", "MilestoneClosed", "MilestoneReopened",
                 "BacklogItemRecorded", "BacklogItemRetired", "BacklogOrderChanged", "TraceLinkRecorded", "TraceLinkRetracted",
+                // Phase 6 appends after the Phase 9 kinds.
+                "DoctorFixApplied", "GraphRelationsProposed",
             ],
             Enum.GetNames<DecisionKind>());
     }
