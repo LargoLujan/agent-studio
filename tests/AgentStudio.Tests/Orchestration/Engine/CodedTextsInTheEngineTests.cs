@@ -301,5 +301,83 @@ public sealed class CodedTextsInTheEngineTests
             UserText.Of(OrchestrationUserTexts.QuotaPassedReset, Piece(OrchestrationUserTexts.QuotaWhoOverload), passed, Piece(OrchestrationUserTexts.QuotaWait), until),
             DerivedReason($"El proveedor está sobrecargado o limita la velocidad, con una hora de reinicio que ya pasó ({p}): espera hasta {u}."));
     }
+
+    [Theory]
+    [InlineData("Arranca el intento 99999999999.")]
+    [InlineData("Arranca el intento 99999999999: el proveedor lanzó al agente.")]
+    [InlineData("Reintento 99999999999 de 3 tras: x")]
+    [InlineData("Reintento 1 de 99999999999 tras: x")]
+    public void A_number_that_does_not_fit_gives_no_code_instead_of_throwing(string reason)
+    {
+        Assert.Null(DerivedReason(reason));
+    }
+
+    [Theory]
+    [InlineData("Terminó bien: 99999999999 tareas completadas y 1 omitidas.")]
+    [InlineData("Terminó bien: 1 tareas completadas y 99999999999 omitidas.")]
+    [InlineData("Falló. Se agotó el presupuesto de ejecuciones de agente (99999999999).")]
+    public void A_summary_with_a_number_that_does_not_fit_gives_no_code_instead_of_throwing(string summary)
+    {
+        Assert.Null(LoggedTexts.RunSummary(summary));
+    }
+
+    [Fact]
+    public async Task An_agent_whose_error_is_a_sentence_with_a_huge_number_does_not_stop_the_run_and_the_log_reads_back()
+    {
+        foreach (var error in new[] { "Arranca el intento 99999999999.", "Reintento 99999999999 de 3 tras: x" })
+        {
+            using var harness = new EngineHarness();
+            harness.Claude.Script("ejecutor", "T1", 1, AgentScript.Failing(error));
+            harness.Claude.Script("ejecutor", "T1", 2, AgentScript.Completed(("src/T1/calc.cs", "v1")));
+            RunId id;
+            RunResult finished;
+            List<OrchestrationEvent> live;
+            await using (var run = await harness.StartAsync(Plan(Work("T1") with { MaxRetries = 1 })))
+            {
+                finished = await run.CompleteAsync(harness);
+                live = await ReadAllAsync(run);
+                id = run.Id;
+            }
+
+            Assert.Equal(RunPhase.Succeeded, finished.Phase);
+            var retry = live.OfType<TaskStatusChangedEvent>().Single(t => t.To == WorkTaskStatus.Pending && t.Reason.StartsWith("Reintento ", StringComparison.Ordinal) && t.Reason.EndsWith(" tras: " + error, StringComparison.Ordinal));
+            var text = Assert.IsType<UserText>(retry.ReasonText);
+            Assert.Equal(error, text.Arguments[2]);
+
+            await using var inspected = await harness.CreateOrchestrator().InspectAsync(harness.Project, id, Ct);
+            var history = (await ReadAllAsync(inspected)).OfType<TaskStatusChangedEvent>().ToList();
+            Assert.Equal(live.OfType<TaskStatusChangedEvent>().Select(t => t.Reason), history.Select(t => t.Reason));
+            Assert.Equal(live.OfType<TaskStatusChangedEvent>().Select(t => t.ReasonText), history.Select(t => t.ReasonText));
+        }
+    }
+
+    [Fact]
+    public void A_chain_of_retries_one_inside_another_does_not_run_the_stack_out()
+    {
+        var chain = string.Concat(Enumerable.Repeat("Reintento 1 de 3 tras: ", 20_000)) + "x";
+        var text = DerivedReason(chain);
+        Assert.NotNull(text);
+        Assert.Equal(OrchestrationUserTexts.TaskRetry, text.Code);
+    }
+
+    [Fact]
+    public void A_long_sentence_built_to_make_the_patterns_backtrack_gives_up_quickly_with_no_code()
+    {
+        // Each separator of the pattern repeated thousands of times, and none of its ending: the patterns with several «.+» backtrack for ever.
+        var sentences = new[]
+        {
+            "El paso " + string.Concat(Enumerable.Repeat(", que x requiere, falló: x", 2000)),
+            "No se lanza " + string.Concat(Enumerable.Repeat(": el informe de x (evidencia x) no es el que", 2000)),
+            "El agente de " + string.Concat(Enumerable.Repeat(" quiso hacer una pregunta más de x: demasiadas", 2000)),
+        };
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        foreach (var sentence in sentences)
+        {
+            Assert.Null(DerivedReason(sentence));
+        }
+
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(5), $"The derivation took {watch.Elapsed}.");
+    }
+
     private static UserText? DerivedReason(string? reason) => LoggedTexts.TaskReason(reason);
 }

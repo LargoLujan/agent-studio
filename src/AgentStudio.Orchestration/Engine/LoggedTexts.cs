@@ -14,157 +14,166 @@ namespace AgentStudio.Orchestration.Engine;
 /// </summary>
 public static partial class LoggedTexts
 {
-    [GeneratedRegex(@"^Arranca el intento (\d+): el proveedor lanzó al agente\.$")]
+    /// <summary>
+    /// The longest a sentence may take to match. The sentences come from the log and carry the words of providers and of agents, so
+    /// a long one built to make a pattern backtrack must give up (the derivation then gives null) instead of holding the engine.
+    /// </summary>
+    private const int MatchTimeoutMs = 250;
+
+    /// <summary>How many «Reintento N de M tras: » one inside another are derived; a longer chain (only a provider error written to look like one makes it) keeps the rest as text, so the derivation cannot run out of stack.</summary>
+    private const int MaxRetryNesting = 4;
+
+    [GeneratedRegex(@"^Arranca el intento (\d+): el proveedor lanzó al agente\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex AttemptLaunched();
 
-    [GeneratedRegex(@"^Arranca el intento (\d+)\.$")]
+    [GeneratedRegex(@"^Arranca el intento (\d+)\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex AttemptStarted();
 
-    [GeneratedRegex(@"^El juez aprobó \(veredicto (.+)\); se concluye al reanudar con el veredicto que ya estaba en el registro\.$")]
+    [GeneratedRegex(@"^El juez aprobó \(veredicto (.+)\); se concluye al reanudar con el veredicto que ya estaba en el registro\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex JudgeApprovedResumed();
 
-    [GeneratedRegex(@"^El veredicto (.+) necesita a una persona; se concluye al reanudar con el veredicto que ya estaba en el registro\.$")]
+    [GeneratedRegex(@"^El veredicto (.+) necesita a una persona; se concluye al reanudar con el veredicto que ya estaba en el registro\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex NeedsPersonResumed();
 
-    [GeneratedRegex(@"^Cancelada por el usuario: (.*)$", RegexOptions.Singleline)]
+    [GeneratedRegex(@"^Cancelada por el usuario: (.*)$", RegexOptions.Singleline, MatchTimeoutMs)]
     private static partial Regex CancelledByUser();
 
-    [GeneratedRegex(@"^Espera tu respuesta: el agente hace la pregunta .+\.$")]
+    [GeneratedRegex(@"^Espera tu respuesta: el agente hace la pregunta .+\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex AwaitingAnswer();
 
-    [GeneratedRegex(@"^El agente de .+ quiso hacer una pregunta más de .+: demasiadas preguntas, revisa los requisitos\.$")]
+    [GeneratedRegex(@"^El agente de .+ quiso hacer una pregunta más de .+: demasiadas preguntas, revisa los requisitos\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex TooManyQuestions();
 
-    [GeneratedRegex(@"^Los nodos (\w+) no están disponibles en la Fase 3\.$")]
+    [GeneratedRegex(@"^Los nodos (\w+) no están disponibles en la Fase 3\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex NodeUnavailable();
 
-    [GeneratedRegex(@"^No hay ningún proveedor «(.+)» para (.+)\.$")]
+    [GeneratedRegex(@"^No hay ningún proveedor «(.+)» para (.+)\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex NoProvider();
 
-    [GeneratedRegex(@"^Terminó bien: (\d+) tareas completadas y (\d+) omitidas\.$")]
+    [GeneratedRegex(@"^Terminó bien: (\d+) tareas completadas y (\d+) omitidas\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex Succeeded();
 
-    [GeneratedRegex(@"^Falló: la política de revisión exige una revisión independiente aprobada de (.+), y no la hubo\.$")]
+    [GeneratedRegex(@"^Falló: la política de revisión exige una revisión independiente aprobada de (.+), y no la hubo\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex ReviewRequired();
 
-    [GeneratedRegex(@"^Falló\.(?: Sin reintentos: (.+?)\.)?(?: Inalcanzables: (.+?)\.)?(?: Se agotó el presupuesto de ejecuciones de agente \((\d+)\)\.)?$")]
+    [GeneratedRegex(@"^Falló\.(?: Sin reintentos: (.+?)\.)?(?: Inalcanzables: (.+?)\.)?(?: Se agotó el presupuesto de ejecuciones de agente \((\d+)\)\.)?$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex Failed();
 
-    [GeneratedRegex(@"^El agente terminó con estado (\w+)\.$")]
+    [GeneratedRegex(@"^El agente terminó con estado (\w+)\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex AgentEndedStatus();
 
-    [GeneratedRegex(@"^No se pudo lanzar el agente: (.*)$", RegexOptions.Singleline)]
+    [GeneratedRegex(@"^No se pudo lanzar el agente: (.*)$", RegexOptions.Singleline, MatchTimeoutMs)]
     private static partial Regex LaunchFailed();
 
-    [GeneratedRegex(@"^El informe del agente no es válido: (.*)$", RegexOptions.Singleline)]
+    [GeneratedRegex(@"^El informe del agente no es válido: (.*)$", RegexOptions.Singleline, MatchTimeoutMs)]
     private static partial Regex ReportInvalid();
 
-    [GeneratedRegex(@"^Cambios fuera del alcance de escritura: (.*)$", RegexOptions.Singleline)]
+    [GeneratedRegex(@"^Cambios fuera del alcance de escritura: (.*)$", RegexOptions.Singleline, MatchTimeoutMs)]
     private static partial Regex OutsideScope();
 
-    [GeneratedRegex(@"^La verificación falló en: (.*)$", RegexOptions.Singleline)]
+    [GeneratedRegex(@"^La verificación falló en: (.*)$", RegexOptions.Singleline, MatchTimeoutMs)]
     private static partial Regex VerificationFailed();
 
-    [GeneratedRegex(@"^Abandonada: sin actividad durante más de ([\d.]+) minutos\.$")]
+    [GeneratedRegex(@"^Abandonada: sin actividad durante más de ([\d.]+) minutos\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex Abandoned();
 
-    [GeneratedRegex(@"^Tiempo agotado: más de ([\d.]+) minutos\.$")]
+    [GeneratedRegex(@"^Tiempo agotado: más de ([\d.]+) minutos\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex TimedOut();
 
-    [GeneratedRegex(@"^La sesión de (.+) caducó o no está iniciada: inicia sesión con «(.+)» y reintenta la tarea\.$")]
+    [GeneratedRegex(@"^La sesión de (.+) caducó o no está iniciada: inicia sesión con «(.+)» y reintenta la tarea\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex SignedOut();
 
-    [GeneratedRegex(@"^Límite de uso del proveedor hasta (\S+)\.$")]
+    [GeneratedRegex(@"^Límite de uso del proveedor hasta (\S+)\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex RateLimitedUntil();
 
-    [GeneratedRegex(@"^El paso (.+), que (.+) requiere, falló: (.+) no llegó a ejecutarse\.$")]
+    [GeneratedRegex(@"^El paso (.+), que (.+) requiere, falló: (.+) no llegó a ejecutarse\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex StepSkipped();
 
-    [GeneratedRegex(@"^El paso (.+) terminó bien\.$")]
+    [GeneratedRegex(@"^El paso (.+) terminó bien\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex StepSucceeded();
 
-    [GeneratedRegex(@"^El paso (.+) falló\.$")]
+    [GeneratedRegex(@"^El paso (.+) falló\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex StepFailed();
 
-    [GeneratedRegex(@"^No se integra nada: la ref de (.+) ya no apunta al commit que se verificó\.$")]
+    [GeneratedRegex(@"^No se integra nada: la ref de (.+) ya no apunta al commit que se verificó\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex SourcesMoved();
 
-    [GeneratedRegex(@"^Conflicto de integración en: (.+)\. Se resuelve a mano o con una ejecución de seguimiento\.$")]
+    [GeneratedRegex(@"^Conflicto de integración en: (.+)\. Se resuelve a mano o con una ejecución de seguimiento\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex IntegrationConflict();
 
-    [GeneratedRegex(@"^Integrada en (\S+)\.$")]
+    [GeneratedRegex(@"^Integrada en (\S+)\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex Integrated();
 
-    [GeneratedRegex(@"^El juez aprobó \(veredicto (.+)\)\.$")]
+    [GeneratedRegex(@"^El juez aprobó \(veredicto (.+)\)\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex JudgeApproved();
 
-    [GeneratedRegex(@"^El juez pidió cambios \(veredicto (.+)\); se propone una ejecución de seguimiento\.$")]
+    [GeneratedRegex(@"^El juez pidió cambios \(veredicto (.+)\); se propone una ejecución de seguimiento\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex JudgeChangesRequested();
 
-    [GeneratedRegex(@"^El juez rechazó el trabajo \(veredicto (.+)\)\.$")]
+    [GeneratedRegex(@"^El juez rechazó el trabajo \(veredicto (.+)\)\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex JudgeRejected();
 
-    [GeneratedRegex(@"^El veredicto (.+) necesita a una persona\.$")]
+    [GeneratedRegex(@"^El veredicto (.+) necesita a una persona\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex JudgeNeedsPerson();
 
-    [GeneratedRegex(@"^El juez alcanzó el límite de uso de su proveedor hasta (\S+)\.$")]
+    [GeneratedRegex(@"^El juez alcanzó el límite de uso de su proveedor hasta (\S+)\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex JudgeLimitUntil();
 
-    [GeneratedRegex(@"^No se pudo obtener la aprobación \(equivale a denegarla\): (.*)$", RegexOptions.Singleline)]
+    [GeneratedRegex(@"^No se pudo obtener la aprobación \(equivale a denegarla\): (.*)$", RegexOptions.Singleline, MatchTimeoutMs)]
     private static partial Regex ApprovalFailed();
 
-    [GeneratedRegex(@"^No se lanza (.+): el registro de decisiones no verifica, así que la ficha del proyecto no se puede comprobar\. Decide una persona: revisa el registro\.$")]
+    [GeneratedRegex(@"^No se lanza (.+): el registro de decisiones no verifica, así que la ficha del proyecto no se puede comprobar\. Decide una persona: revisa el registro\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex BriefLogUnverified();
 
-    [GeneratedRegex(@"^No se lanza (.+): el informe de (.+) \(evidencia (.+)\) no es el que ancló el registro de decisiones; alguien lo reescribió en el almacén\. Decide una persona\.$")]
+    [GeneratedRegex(@"^No se lanza (.+): el informe de (.+) \(evidencia (.+)\) no es el que ancló el registro de decisiones; alguien lo reescribió en el almacén\. Decide una persona\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex UpstreamTampered();
 
-    [GeneratedRegex(@"^Error del sistema: (.*)$", RegexOptions.Singleline)]
+    [GeneratedRegex(@"^Error del sistema: (.*)$", RegexOptions.Singleline, MatchTimeoutMs)]
     private static partial Regex SystemError();
 
-    [GeneratedRegex(@"^Aprobado por (.+)\.$")]
+    [GeneratedRegex(@"^Aprobado por (.+)\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex Approved();
 
-    [GeneratedRegex(@"^Denegado por (.+)\.$")]
+    [GeneratedRegex(@"^Denegado por (.+)\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex Denied();
 
-    [GeneratedRegex(@"^Denegado por ([^:]+): (.*)$", RegexOptions.Singleline)]
+    [GeneratedRegex(@"^Denegado por ([^:]+): (.*)$", RegexOptions.Singleline, MatchTimeoutMs)]
     private static partial Regex DeniedWithComment();
 
-    [GeneratedRegex(@"^Reintento (\d+) de (\d+) tras: (.*)$", RegexOptions.Singleline)]
+    [GeneratedRegex(@"^Reintento (\d+) de (\d+) tras: (.*)$", RegexOptions.Singleline, MatchTimeoutMs)]
     private static partial Regex Retry();
 
-    [GeneratedRegex(@"^La sesión de (.+) no está iniciada: inicia sesión con «(.+)» y reintenta la tarea\.$")]
+    [GeneratedRegex(@"^La sesión de (.+) no está iniciada: inicia sesión con «(.+)» y reintenta la tarea\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex NotSignedIn();
 
-    [GeneratedRegex(@"^La cuota de (.+) sigue agotada según su app-server, hasta (\S+)\.$")]
+    [GeneratedRegex(@"^La cuota de (.+) sigue agotada según su app-server, hasta (\S+)\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex LimitStillOnUntil();
 
-    [GeneratedRegex(@"^La cuota de (.+) sigue agotada según su app-server, sin hora de reinicio\.$")]
+    [GeneratedRegex(@"^La cuota de (.+) sigue agotada según su app-server, sin hora de reinicio\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex LimitStillOnNoReset();
 
-    [GeneratedRegex(@"^(El juez alcanzó el límite de uso de su proveedor|El proveedor está sobrecargado o limita la velocidad|Límite de uso del proveedor) sin hora de reinicio: (espera estimada|espera) hasta (\S+)\.$")]
+    [GeneratedRegex(@"^(El juez alcanzó el límite de uso de su proveedor|El proveedor está sobrecargado o limita la velocidad|Límite de uso del proveedor) sin hora de reinicio: (espera estimada|espera) hasta (\S+)\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex WaitNoReset();
 
-    [GeneratedRegex(@"^(El juez alcanzó el límite de uso de su proveedor|El proveedor está sobrecargado o limita la velocidad|Límite de uso del proveedor), con una hora de reinicio que ya pasó \((\S+)\): (espera estimada|espera) hasta (\S+)\.$")]
+    [GeneratedRegex(@"^(El juez alcanzó el límite de uso de su proveedor|El proveedor está sobrecargado o limita la velocidad|Límite de uso del proveedor), con una hora de reinicio que ya pasó \((\S+)\): (espera estimada|espera) hasta (\S+)\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex WaitPassedReset();
 
-    [GeneratedRegex(@"^El proveedor está sobrecargado o limita la velocidad hasta (\S+)\.$")]
+    [GeneratedRegex(@"^El proveedor está sobrecargado o limita la velocidad hasta (\S+)\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex OverloadUntil();
 
-    [GeneratedRegex(@"^En esta sesión de la aplicación ya no se intenta reanudarla sola: el intento anterior falló \((.*)\)\.$", RegexOptions.Singleline)]
+    [GeneratedRegex(@"^En esta sesión de la aplicación ya no se intenta reanudarla sola: el intento anterior falló \((.*)\)\.$", RegexOptions.Singleline, MatchTimeoutMs)]
     private static partial Regex ResumeFailedBefore();
 
-    [GeneratedRegex(@"^No se pudo reanudar: (.*)$", RegexOptions.Singleline)]
+    [GeneratedRegex(@"^No se pudo reanudar: (.*)$", RegexOptions.Singleline, MatchTimeoutMs)]
     private static partial Regex ResumeFailed();
 
-    [GeneratedRegex(@"^Se detuvo en esta sesión de la aplicación por un error del sistema \((.*)\): la reanudas tú\.$", RegexOptions.Singleline)]
+    [GeneratedRegex(@"^Se detuvo en esta sesión de la aplicación por un error del sistema \((.*)\): la reanudas tú\.$", RegexOptions.Singleline, MatchTimeoutMs)]
     private static partial Regex ResumeStoppedByError();
 
-    [GeneratedRegex(@"^El orquestador no tuvo la búsqueda en el historial: (.+) no admite herramientas externas\.$")]
+    [GeneratedRegex(@"^El orquestador no tuvo la búsqueda en el historial: (.+) no admite herramientas externas\.$", RegexOptions.None, MatchTimeoutMs)]
     private static partial Regex HistoryNoMcp();
 
-    [GeneratedRegex(@"^El orquestador no tuvo la búsqueda en el historial: no se pudo preparar \((.*)\)\.$", RegexOptions.Singleline)]
+    [GeneratedRegex(@"^El orquestador no tuvo la búsqueda en el historial: no se pudo preparar \((.*)\)\.$", RegexOptions.Singleline, MatchTimeoutMs)]
     private static partial Regex HistoryFailed();
 
     /// <summary>
@@ -172,7 +181,9 @@ public static partial class LoggedTexts
     /// (<c>PlanProposal.HistoryToolNotice</c>, the sentences of <c>ProjectHistoryTool</c>), derived from the sentence so that a draft
     /// saved with it gets the same one; null when it is not one of them.
     /// </summary>
-    public static UserText? HistoryToolNotice(string? notice)
+    public static UserText? HistoryToolNotice(string? notice) => Derive(() => DeriveHistoryToolNotice(notice));
+
+    private static UserText? DeriveHistoryToolNotice(string? notice)
     {
         if (string.IsNullOrWhiteSpace(notice))
         {
@@ -214,6 +225,23 @@ public static partial class LoggedTexts
             : null;
     }
 
+    /// <summary>
+    /// Runs a derivation so that none can throw: the sentences come from a log and from providers (an error of a provider reaches a
+    /// reason whole), so a number that does not fit, a pattern that gives up or anything else unexpected gives null, and the screen
+    /// paints the sentence as it was anchored. Called while the engine runs and when a log is read back, where an exception would
+    /// stop a run or leave it closed.
+    /// </summary>
+    private static UserText? Derive(Func<UserText?> derivation)
+    {
+        try
+        {
+            return derivation();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return null;
+        }
+    }
     /// <summary>The minutes of a threshold as the sentences of the engine write them («0.#», invariant), as the number a coded text carries.</summary>
     public static double Minutes(TimeSpan span) =>
         double.Parse(span.TotalMinutes.ToString("0.#", CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
@@ -236,7 +264,9 @@ public static partial class LoggedTexts
     };
 
     /// <summary>The coded text of a reason of a transition of a task, or null when it is not one the engine writes with a template.</summary>
-    public static UserText? TaskReason(string? reason)
+    public static UserText? TaskReason(string? reason) => Derive(() => DeriveTaskReason(reason, 0));
+
+    private static UserText? DeriveTaskReason(string? reason, int depth)
     {
         if (string.IsNullOrWhiteSpace(reason))
         {
@@ -248,14 +278,14 @@ public static partial class LoggedTexts
             return UserText.Of(code);
         }
 
-        if (AttemptLaunched().Match(reason) is { Success: true } launched)
+        if (AttemptLaunched().Match(reason) is { Success: true } launched && Int(launched, 1) is { } launchedAttempt)
         {
-            return UserText.Of(OrchestrationUserTexts.TaskAttemptLaunched, Int(launched, 1));
+            return UserText.Of(OrchestrationUserTexts.TaskAttemptLaunched, launchedAttempt);
         }
 
-        if (AttemptStarted().Match(reason) is { Success: true } started)
+        if (AttemptStarted().Match(reason) is { Success: true } started && Int(started, 1) is { } startedAttempt)
         {
-            return UserText.Of(OrchestrationUserTexts.TaskAttemptStarted, Int(started, 1));
+            return UserText.Of(OrchestrationUserTexts.TaskAttemptStarted, startedAttempt);
         }
 
         if (JudgeApprovedResumed().Match(reason) is { Success: true } approved)
@@ -293,20 +323,20 @@ public static partial class LoggedTexts
             return UserText.Of(OrchestrationUserTexts.TaskNoProvider, provider.Groups[1].Value, provider.Groups[2].Value);
         }
 
-        return WorkerReason(reason);
+        return WorkerReason(reason, depth);
     }
 
     /// <summary>The reasons the workers write (<c>Workers</c>), with the same arguments the engine gives them live; null for the rest (an agent's own words, the differences of the repository).</summary>
-    private static UserText? WorkerReason(string reason)
+    private static UserText? WorkerReason(string reason, int depth)
     {
-        if (Retry().Match(reason) is { Success: true } retry)
+        if (Retry().Match(reason) is { Success: true } retry && Int(retry, 1) is { } retryNumber && Int(retry, 2) is { } retryOf)
         {
             var tail = retry.Groups[3].Value;
             return UserText.Of(
                 OrchestrationUserTexts.TaskRetry,
-                Int(retry, 1),
-                Int(retry, 2),
-                (object?)TaskReason(tail) ?? tail);
+                retryNumber,
+                retryOf,
+                (object?)(depth < MaxRetryNesting ? DeriveTaskReason(tail, depth + 1) : null) ?? tail);
         }
 
         if (AgentEndedStatus().Match(reason) is { Success: true } status)
@@ -491,7 +521,9 @@ public static partial class LoggedTexts
     /// The coded text of the reason a pass of the scheduler or a resume by consent gives for not resuming a run or for how it did
     /// (<c>ScheduledResume.Reason</c>), or null when it is not one of the sentences of <c>ResumeScheduler</c>.
     /// </summary>
-    public static UserText? ResumeReason(string? reason)
+    public static UserText? ResumeReason(string? reason) => Derive(() => DeriveResumeReason(reason));
+
+    private static UserText? DeriveResumeReason(string? reason)
     {
         if (string.IsNullOrWhiteSpace(reason))
         {
@@ -538,7 +570,9 @@ public static partial class LoggedTexts
         DateTimeOffset.TryParseExact(match.Groups[group].Value, "O", CultureInfo.InvariantCulture, DateTimeStyles.None, out var value) ? value : null;
 
     /// <summary>The coded text of the summary a run finished with (<c>RunFinished</c>), or null when it is not one the engine writes with a template.</summary>
-    public static UserText? RunSummary(string? summary)
+    public static UserText? RunSummary(string? summary) => Derive(() => DeriveRunSummary(summary));
+
+    private static UserText? DeriveRunSummary(string? summary)
     {
         if (string.IsNullOrWhiteSpace(summary))
         {
@@ -550,9 +584,9 @@ public static partial class LoggedTexts
             return UserText.Of(code);
         }
 
-        if (Succeeded().Match(summary) is { Success: true } done)
+        if (Succeeded().Match(summary) is { Success: true } done && Int(done, 1) is { } completed && Int(done, 2) is { } skipped)
         {
-            return UserText.Of(OrchestrationUserTexts.VerdictSucceeded, Int(done, 1), Int(done, 2));
+            return UserText.Of(OrchestrationUserTexts.VerdictSucceeded, completed, skipped);
         }
 
         if (CancelledByUser().Match(summary) is { Success: true } cancelled)
@@ -565,7 +599,7 @@ public static partial class LoggedTexts
             return UserText.Of(OrchestrationUserTexts.VerdictReviewRequired, OrchestrationUserTexts.List(Split(review.Groups[1].Value)));
         }
 
-        if (Failed().Match(summary) is { Success: true } failed && (failed.Groups[1].Success || failed.Groups[2].Success || failed.Groups[3].Success))
+        if (Failed().Match(summary) is { Success: true } failed && (failed.Groups[1].Success || failed.Groups[2].Success || failed.Groups[3].Success) && (!failed.Groups[3].Success || Int(failed, 3) is not null))
         {
             var parts = new List<UserText>();
             if (failed.Groups[1].Success)
@@ -580,7 +614,7 @@ public static partial class LoggedTexts
 
             if (failed.Groups[3].Success)
             {
-                parts.Add(UserText.Of(OrchestrationUserTexts.VerdictBudgetSpent, Int(failed, 3)));
+                parts.Add(UserText.Of(OrchestrationUserTexts.VerdictBudgetSpent, Int(failed, 3)!.Value));
             }
 
             return UserText.Of(OrchestrationUserTexts.VerdictFailed, OrchestrationUserTexts.Sentences(parts));
@@ -632,5 +666,6 @@ public static partial class LoggedTexts
 
     private static List<string> Split(string list) => [.. list.Split(", ", StringSplitOptions.RemoveEmptyEntries)];
 
-    private static int Int(Match match, int group) => int.Parse(match.Groups[group].Value, CultureInfo.InvariantCulture);
+    private static int? Int(Match match, int group) =>
+        int.TryParse(match.Groups[group].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var value) ? value : null;
 }
