@@ -276,4 +276,37 @@ Pulsa «Auditar» y aprueba para lanzarla.
 Lee en el informe si es fiable y por qué.</value>
     <comment>Information button.</comment>
   </data>
+  <data name="Text_audit_pending_run_unfinished" xml:space="preserve">
+    <value>La ejecución {0} no ha terminado. Está parada o espera a una persona.</value>
+  </data>
+  <data name="Text_audit_pending_run_failed" xml:space="preserve">
+    <value>La ejecución {0} terminó con error.</value>
+  </data>
+  <data name="Text_audit_pending_review_invalid" xml:space="preserve">
+    <value>La revisión {0} de la ejecución {1} necesita a una persona. El veredicto {2} no es válido.</value>
+  </data>
+  <data name="Text_audit_pending_review_escalated" xml:space="preserve">
+    <value>La revisión {0} de la ejecución {1} necesita a una persona. El veredicto {2} pide que decida alguien.</value>
+  </data>
+  <data name="Text_audit_pending_review_unresolved" xml:space="preserve">
+    <value>La revisión {0} de la ejecución {1} necesita a una persona. El veredicto {2} no resolvió nada.</value>
+  </data>
+  <data name="Text_audit_pending_debate_unfinished" xml:space="preserve">
+    <value>El debate {0} no ha terminado: está en curso o interrumpido.</value>
+  </data>
+  <data name="Text_audit_pending_debate_unresolved" xml:space="preserve">
+    <value>El debate {0} terminó sin resolver: necesita tu decisión.</value>
+  </data>
+  <data name="Text_audit_pending_challenge_open" xml:space="preserve">
+    <value>La impugnación del veredicto {0} sigue abierta. Su debate de revisión {1} no ha terminado.</value>
+  </data>
+  <data name="Text_audit_pending_replan_pending" xml:space="preserve">
+    <value>La ejecución {0} tiene una petición de replanificar sin atender ({1}).</value>
+  </data>
+  <data name="Text_audit_pending_memory_unreviewed" xml:space="preserve">
+    <value>La entrada de memoria {0} cita texto de un agente y nadie la ha revisado.</value>
+  </data>
+  <data name="Text_audit_pending_memory_pending_task" xml:space="preserve">
+    <value>La memoria tiene una tarea pendiente: la entrada {0}.</value>
+  </data>
 </root>

@@ -4,6 +4,7 @@ using System.Threading.Channels;
 using AgentStudio.Application.Coordination;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Execution;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Prompts;
@@ -192,7 +193,7 @@ public sealed class DebateRun : IDebateRun
     {
         lock (_gate)
         {
-            EnsureDebating("pedir juicio");
+            EnsureDebating();
             if (_human is { } human && _awaiting?.Reason is DebateAwaitReason.FailedTurn or DebateAwaitReason.ProviderLimit)
             {
                 human.TrySetResult(new HumanAction.Judge());
@@ -201,7 +202,7 @@ public sealed class DebateRun : IDebateRun
 
             if (_session.Contributions.Count == 0 && _session.CurrentRound == 1)
             {
-                throw new InvalidOperationException("Todavía no hay ninguna contribución que juzgar: la ronda 1 sigue en curso.");
+                throw DebateUserTexts.Refusal(DebateUserTexts.JudgmentTooEarly, "There is no contribution to judge yet: round 1 is still running.");
             }
 
             _judgmentRequested = true;
@@ -219,7 +220,7 @@ public sealed class DebateRun : IDebateRun
         {
             if (_human is not { } human || _awaiting?.Reason is not (DebateAwaitReason.FailedTurn or DebateAwaitReason.ProviderLimit))
             {
-                throw new InvalidOperationException("El debate no está esperando ningún turno que reintentar.");
+                throw DebateUserTexts.Refusal(DebateUserTexts.NotWaitingRetry, "The debate is not waiting for a turn to retry.");
             }
 
             human.TrySetResult(new HumanAction.Retry(participant));
@@ -238,7 +239,7 @@ public sealed class DebateRun : IDebateRun
         {
             if (_session.Phase == DebatePhase.Closed)
             {
-                throw new InvalidOperationException("El debate está cerrado: ya no admite evidencias.");
+                throw DebateUserTexts.Refusal(DebateUserTexts.ClosedEvidence, "The debate is closed: it no longer admits evidence.");
             }
         }
 
@@ -271,12 +272,12 @@ public sealed class DebateRun : IDebateRun
         {
             if (_session.Phase == DebatePhase.Closed)
             {
-                throw new InvalidOperationException("El debate está cerrado: ya no se ejecutan pruebas.");
+                throw DebateUserTexts.Refusal(DebateUserTexts.ClosedTests, "The debate is closed: tests are no longer run.");
             }
 
             if (_context.Snapshot is not { } copy || _context.Record.SnapshotCommit is not { } subject || _ports.Verification is null || _ports.TestProfiles is null)
             {
-                throw new InvalidOperationException("Este debate no tiene un commit sobre el que ejecutar pruebas, o el proyecto no tiene perfil de verificación.");
+                throw DebateUserTexts.Refusal(DebateUserTexts.NoTestCommit, "This debate has no commit to run tests on, or the project has no verification profile.");
             }
 
             snapshot = copy;
@@ -284,11 +285,11 @@ public sealed class DebateRun : IDebateRun
         }
 
         var profile = await _ports.TestProfiles.FindAsync(_context.Project, _stop.Token).ConfigureAwait(false)
-            ?? throw new InvalidOperationException("El proyecto no tiene perfil de verificación de confianza.");
+            ?? throw DebateUserTexts.Refusal(DebateUserTexts.NoTrustProfile, "The project has no trusted verification profile.");
         var steps = profile.Steps.Where(s => s.Isolation != ProcessIsolation.None).ToList();
         if (steps.Count == 0)
         {
-            throw new InvalidOperationException("El perfil de verificación no tiene ningún paso aislado: en un debate no se ejecuta nada con tus permisos.");
+            throw DebateUserTexts.Refusal(DebateUserTexts.NoIsolatedStep, "The verification profile has no isolated step: a debate runs nothing with the permissions of the person.");
         }
 
         await _writeGate.WaitAsync(_stop.Token).ConfigureAwait(false);
@@ -327,7 +328,7 @@ public sealed class DebateRun : IDebateRun
         {
             if (_human is not { } human || _awaiting?.Reason != DebateAwaitReason.HumanResolution)
             {
-                throw new InvalidOperationException("El debate no está esperando tu decisión.");
+                throw DebateUserTexts.Refusal(DebateUserTexts.NotWaitingDecision, "The debate is not waiting for a decision.");
             }
 
             human.TrySetResult(new HumanAction.Decide(decision, chosenProposal, comment, done));
@@ -345,7 +346,7 @@ public sealed class DebateRun : IDebateRun
         {
             if (_session.Phase == DebatePhase.Closed)
             {
-                throw new InvalidOperationException("El debate ya está cerrado.");
+                throw DebateUserTexts.Refusal(DebateUserTexts.AlreadyClosed, "The debate is already closed.");
             }
 
             _abortReason ??= reason.Trim();
@@ -619,7 +620,8 @@ public sealed class DebateRun : IDebateRun
                     first.End == TurnEnd.ProviderLimit ? DebateAwaitReason.ProviderLimit : DebateAwaitReason.FailedTurn,
                     string.Join(" ", failed.Select(t => $"{t.Seat.Label}: {t.Failure}")),
                     first.Seat.Label,
-                    first.ResetsAt);
+                    first.ResetsAt,
+                    [.. failed.Where(t => t.FailureText is not null).Select(t => t.FailureText!)]);
                 var action = await WaitForPersonAsync(awaiting, deadline.Token, ct).ConfigureAwait(false);
                 switch (action)
                 {
@@ -688,6 +690,7 @@ public sealed class DebateRun : IDebateRun
             {
                 turn.End = TurnEnd.NoBudget;
                 turn.Failure = Invariant($"se agotaron las {_context.Record.MaxAgentRuns} ejecuciones permitidas");
+                turn.FailureText = UserText.Of(DebateUserTexts.TurnNoBudget, turn.Seat.Label, _context.Record.MaxAgentRuns);
                 return;
             }
 
@@ -714,6 +717,7 @@ public sealed class DebateRun : IDebateRun
                     }
 
                     turn.Failure = "su respuesta no es una contribución válida tras su corrección";
+                    turn.FailureText = UserText.Of(DebateUserTexts.TurnInvalidAnswer, turn.Seat.Label);
                     break;
                 case AttemptOutcome.Cancelled when stop.IsCancellationRequested:
                     turn.End = TurnEnd.Cancelled;
@@ -739,11 +743,15 @@ public sealed class DebateRun : IDebateRun
                     turn.Failure = launched.ResetsAt is { } at
                         ? Invariant($"el límite de uso de {turn.Seat.Provider.Provider} se reinicia a las {at:HH:mm} UTC, después de lo que el debate espera solo")
                         : $"{turn.Seat.Provider.Provider} alcanzó su límite de uso sin decir cuándo se reinicia";
+                    turn.FailureText = launched.ResetsAt is { } resetsAt
+                        ? UserText.Of(DebateUserTexts.TurnLimitResets, turn.Seat.Label, turn.Seat.Provider.Provider.ToString(), resetsAt.ToUniversalTime())
+                        : UserText.Of(DebateUserTexts.TurnLimitUnknown, turn.Seat.Label, turn.Seat.Provider.Provider.ToString());
                     return;
                 case var _ when launched.IsOverload:
                     // An overloaded provider is no usage limit (docs/16 D-41): a short wait in the same way, and the turn's
                     // one retry, as any failed turn has.
                     turn.Failure = launched.Error is { Length: > 0 } overloaded ? $"el turno terminó {launched.Status}: {overloaded}" : $"el turno terminó {launched.Status}";
+                    turn.FailureText = UserText.Of(DebateUserTexts.TurnOverloaded, turn.Seat.Label, turn.Seat.Provider.Provider.ToString());
                     if (!retried)
                     {
                         try
@@ -760,6 +768,7 @@ public sealed class DebateRun : IDebateRun
                     break;
                 default:
                     turn.Failure = launched.Error is { Length: > 0 } error ? $"el turno terminó {launched.Status}: {error}" : $"el turno terminó {launched.Status}";
+                    turn.FailureText = UserText.Of(DebateUserTexts.TurnEndedBadly, turn.Seat.Label);
                     break;
             }
 
@@ -1171,6 +1180,7 @@ public sealed class DebateRun : IDebateRun
 
         DebateJudgmentResult? result = null;
         string? failure = null;
+        var failureCode = DebateUserTexts.AwaitNeedsPerson;
         using (var judgment = CancellationTokenSource.CreateLinkedTokenSource(ct))
         {
             lock (_gate)
@@ -1197,6 +1207,7 @@ public sealed class DebateRun : IDebateRun
             catch (Exception ex)
             {
                 failure = "El juicio no dio veredicto: " + ex.Message;
+                failureCode = DebateUserTexts.AwaitNoVerdict;
             }
             finally
             {
@@ -1243,6 +1254,7 @@ public sealed class DebateRun : IDebateRun
                 catch (DomainRuleViolationException ex)
                 {
                     failure = "Los veredictos no permiten cerrar el debate: " + ex.Message;
+                    failureCode = DebateUserTexts.AwaitVerdictsUnusable;
                 }
             }
             else
@@ -1250,18 +1262,19 @@ public sealed class DebateRun : IDebateRun
                 failure = result.Outcome.Rule == JudgingPanel.Disagree
                     ? "Los jueces del jurado no coinciden: decides tú."
                     : "El juicio necesita a una persona: decides tú.";
+                failureCode = result.Outcome.Rule == JudgingPanel.Disagree ? DebateUserTexts.AwaitJuryDisagrees : DebateUserTexts.AwaitNeedsPerson;
             }
         }
 
-        await AwaitDecisionAsync(failure ?? "El juicio necesita a una persona.", ct).ConfigureAwait(false);
+        await AwaitDecisionAsync(failure ?? "El juicio necesita a una persona.", UserText.Of(failureCode), ct).ConfigureAwait(false);
     }
 
     /// <summary>Waits for «Decidir yo» (or «Abortar») and applies it, through the approval gate, bound to the verdicts and the decision.</summary>
-    private async Task AwaitDecisionAsync(string message, CancellationToken ct)
+    private async Task AwaitDecisionAsync(string message, UserText text, CancellationToken ct)
     {
         while (true)
         {
-            var action = await WaitForPersonAsync(new DebateAwaiting(DebateAwaitReason.HumanResolution, message), CancellationToken.None, ct).ConfigureAwait(false);
+            var action = await WaitForPersonAsync(new DebateAwaiting(DebateAwaitReason.HumanResolution, message, Texts: [text]), CancellationToken.None, ct).ConfigureAwait(false);
             switch (action)
             {
                 case HumanAction.Abort:
@@ -1303,7 +1316,7 @@ public sealed class DebateRun : IDebateRun
             ct).ConfigureAwait(false);
         if (approval is not { Approved: true } || !string.Equals(approval.Answers, binding, StringComparison.Ordinal))
         {
-            throw new InvalidOperationException("Tu decisión no se aprobó: el debate sigue esperándola.");
+            throw DebateUserTexts.Refusal(DebateUserTexts.DecisionNotApproved, "The decision was not approved: the debate keeps waiting for it.");
         }
 
         var valid = verdicts.Where(v => v.Violations.Count == 0).Select(v => v.Verdict).ToList();
@@ -1681,11 +1694,11 @@ public sealed class DebateRun : IDebateRun
         }
     }
 
-    private void EnsureDebating(string what)
+    private void EnsureDebating()
     {
         if (_session.Phase is DebatePhase.AwaitingJudgment or DebatePhase.Closed)
         {
-            throw new InvalidOperationException($"No se puede {what}: el debate está en {_session.Phase}.");
+            throw DebateUserTexts.Refusal(DebateUserTexts.CannotJudgeNow, $"Judgment cannot be requested: the debate is in {_session.Phase}.");
         }
     }
 
@@ -1780,6 +1793,9 @@ public sealed class DebateRun : IDebateRun
 
         public string? Failure { get; set; }
 
+        /// <summary>What <see cref="Failure"/> says, as a coded text for the person.</summary>
+        public UserText? FailureText { get; set; }
+
         public DateTimeOffset? ResetsAt { get; set; }
 
         public bool Published { get; set; }
@@ -1788,6 +1804,7 @@ public sealed class DebateRun : IDebateRun
         {
             End = TurnEnd.None;
             Failure = null;
+            FailureText = null;
             ResetsAt = null;
         }
     }

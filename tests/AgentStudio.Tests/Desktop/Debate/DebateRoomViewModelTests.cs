@@ -1,5 +1,6 @@
 using AgentStudio.Application.Coordination;
 using AgentStudio.Application.Decisions;
+using AgentStudio.Application.Localization;
 using AgentStudio.Desktop.Debate;
 using AgentStudio.Desktop.Orchestrator;
 using AgentStudio.Domain.Common;
@@ -223,9 +224,9 @@ public sealed class DebateRoomViewModelTests
         Assert.Equal(string.Empty, room.NoteTitle);
         Assert.Equal("Prueba guardada «Medición» añadida. La verán la ronda siguiente y el juez.", room.StatusMessage);
 
-        run.ActionFailure = new InvalidOperationException("debate.judgment-phase");
+        run.ActionFailure = new UserTextException(UserText.Of("debate.cannot-judge-now"), "Judgment cannot be requested.");
         await room.RequestJudgmentCommand.ExecuteAsync(null);
-        Assert.Equal("No se pudo pedir el juicio: debate.judgment-phase", room.ErrorMessage);
+        Assert.Equal("No se pudo pedir el juicio: Ya no se puede pedir juicio: el debate ya está en juicio o cerrado.", room.ErrorMessage);
     }
 
     [Fact]
@@ -285,7 +286,7 @@ public sealed class DebateRoomViewModelTests
         run.Fail(new InvalidOperationException("el proceso se detuvo"));
         await room.Listening;
 
-        Assert.Equal("El debate terminó con un error: el proceso se detuvo", room.ErrorMessage);
+        Assert.Equal("El debate terminó con un error: Ha pasado algo inesperado (detalle técnico: el proceso se detuvo)", room.ErrorMessage);
         Assert.True(room.IsFinished);
         Assert.Equal(1, finished);
     }

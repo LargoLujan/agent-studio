@@ -1,4 +1,5 @@
 using AgentStudio.Application.Coordination;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Providers;
 using AgentStudio.Application.Verification;
@@ -93,8 +94,13 @@ public sealed record ProjectAuditProposal(
     public bool CanJudge => Judge is not null && Problems.Count == 0;
 }
 
-/// <summary>A problem the system lists without a judge (D-31): its stable code, where it is (a run, a debate, a memory entry) and what it is, in Spanish.</summary>
-public sealed record PendingProblem(string Code, string Source, string Message);
+/// <summary>
+/// A problem the system lists without a judge (D-31): its stable code, where it is (a run, a debate, a memory entry) and what it is,
+/// in Spanish. <paramref name="Message"/> is what the dossier of the judge and the log carry, so it never changes; <paramref name="Text"/>
+/// says the same as a coded text that the desktop paints in the language of the person (docs/17 D-47), or null when a producer gives
+/// only the message.
+/// </summary>
+public sealed record PendingProblem(string Code, string Source, string Message, UserText? Text = null);
 
 /// <summary>
 /// The conformity report of an audit (D-31). It replaces the record of Phase 0, which nothing implemented.

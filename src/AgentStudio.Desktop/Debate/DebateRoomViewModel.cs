@@ -504,7 +504,7 @@ public sealed partial class DebateRoomViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            OpenedEvidence = new EvidenceViewer(id, id, Texts.Format("Debate_Evidence_Failed", ex.Message), string.Empty, Tone.Error, null);
+            OpenedEvidence = new EvidenceViewer(id, id, Texts.Format("Debate_Evidence_Failed", DebateTexts.Reason(ex)), string.Empty, Tone.Error, null);
         }
     }
 
@@ -558,7 +558,7 @@ public sealed partial class DebateRoomViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = Texts.Format(failureKey, [.. arguments, ex.Message]);
+            ErrorMessage = Texts.Format(failureKey, [.. arguments, DebateTexts.Reason(ex)]);
             return false;
         }
     }
@@ -585,7 +585,7 @@ public sealed partial class DebateRoomViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            Post(generation, () => Fail(Texts.Format("Debate_Room_Error", ex.Message)));
+            Post(generation, () => Fail(Texts.Format("Debate_Room_Error", DebateTexts.Reason(ex))));
         }
     }
 
@@ -642,7 +642,7 @@ public sealed partial class DebateRoomViewModel : ObservableObject
                     VerdictTexts.Decision(received.Verdict.Verdict.Decision)));
                 break;
             case DebateAwaitingUser waiting:
-                Log(waiting.At, Texts.Format("Debate_Log_Waiting", waiting.Awaiting.Message));
+                Log(waiting.At, Texts.Format("Debate_Log_Waiting", DebateTexts.Awaiting(waiting.Awaiting)));
                 break;
             case DebateFinished done:
                 Finish(run, done.Result);
@@ -836,7 +836,7 @@ public sealed partial class DebateRoomViewModel : ObservableObject
     {
         var who = waiting.Participant is { Length: > 0 } participant ? $" · {participant}" : string.Empty;
         var until = waiting.Until is { } at ? " · " + Texts.Format("Debate_Awaiting_Until", TimeZoneInfo.ConvertTime(at, _time.LocalTimeZone).ToString("HH:mm", CultureInfo.InvariantCulture)) : string.Empty;
-        return $"{waiting.Message}{who}{until}. {DebateTexts.Await(waiting.Reason)}";
+        return $"{DebateTexts.Awaiting(waiting)}{who}{until}. {DebateTexts.Await(waiting.Reason)}";
     }
 
     private static string TokensLine(DebateSnapshot snapshot)

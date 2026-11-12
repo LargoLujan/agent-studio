@@ -1847,4 +1847,100 @@ Pulsa «Preparar» para ver quién juzga y la estimación.
 Pulsa «Impugnar» y aprueba para abrir la revisión.</value>
     <comment>Information button.</comment>
   </data>
+  <data name="Text_debate_judgment_too_early" xml:space="preserve">
+    <value>Todavía no hay ninguna respuesta que juzgar: la primera ronda sigue en curso.</value>
+  </data>
+  <data name="Text_debate_not_waiting_retry" xml:space="preserve">
+    <value>El debate no está esperando ningún turno que reintentar.</value>
+  </data>
+  <data name="Text_debate_closed_evidence" xml:space="preserve">
+    <value>El debate está cerrado: ya no admite más pruebas guardadas.</value>
+  </data>
+  <data name="Text_debate_closed_tests" xml:space="preserve">
+    <value>El debate está cerrado: ya no se pueden ejecutar las pruebas.</value>
+  </data>
+  <data name="Text_debate_no_test_commit" xml:space="preserve">
+    <value>No se pueden ejecutar las pruebas: falta una versión guardada (commit) o un perfil de verificación.</value>
+  </data>
+  <data name="Text_debate_no_trust_profile" xml:space="preserve">
+    <value>El proyecto no tiene un perfil de verificación de confianza.</value>
+  </data>
+  <data name="Text_debate_no_isolated_step" xml:space="preserve">
+    <value>El perfil de verificación no tiene ningún paso aislado: un debate no ejecuta nada con tus permisos.</value>
+  </data>
+  <data name="Text_debate_not_waiting_decision" xml:space="preserve">
+    <value>El debate no está esperando tu decisión.</value>
+  </data>
+  <data name="Text_debate_already_closed" xml:space="preserve">
+    <value>El debate ya está cerrado.</value>
+  </data>
+  <data name="Text_debate_decision_not_approved" xml:space="preserve">
+    <value>No aprobaste tu decisión: el debate sigue esperándola.</value>
+  </data>
+  <data name="Text_debate_cannot_judge_now" xml:space="preserve">
+    <value>Ya no se puede pedir juicio: el debate ya está en juicio o cerrado.</value>
+  </data>
+  <data name="Text_debate_proposal_outdated" xml:space="preserve">
+    <value>Lo que viste para aprobar ha cambiado: la plantilla, la versión guardada (commit) o el asunto. Prepara el debate otra vez.</value>
+  </data>
+  <data name="Text_debate_opening_not_approved" xml:space="preserve">
+    <value>No se aprobó la apertura.</value>
+  </data>
+  <data name="Text_debate_opening_inconsistent" xml:space="preserve">
+    <value>No se pudo abrir el debate: lo que se guardó no coincide con lo que aprobaste. No se ha abierto.</value>
+  </data>
+  <data name="Text_debate_resume_not_approved" xml:space="preserve">
+    <value>No se aprobó reanudarlo.</value>
+  </data>
+  <data name="Text_debate_already_running" xml:space="preserve">
+    <value>El debate {0} ya está en marcha.</value>
+  </data>
+  <data name="Text_debate_not_found" xml:space="preserve">
+    <value>El debate {0} no existe en este proyecto.</value>
+  </data>
+  <data name="Text_debate_already_finished" xml:space="preserve">
+    <value>El debate {0} ya terminó.</value>
+  </data>
+  <data name="Text_debate_cannot_resume" xml:space="preserve">
+    <value>El debate {0} no se puede reanudar: lo guardado no es coherente con lo que se abrió.</value>
+  </data>
+  <data name="Text_debate_project_busy" xml:space="preserve">
+    <value>El proyecto está ocupado con otra actividad con agentes. Espera a que termine.</value>
+  </data>
+  <data name="Text_debate_no_provider" xml:space="preserve">
+    <value>No se encuentra el programa de {0} que usa el agente «{1}».</value>
+  </data>
+  <data name="Text_debate_await_jury_disagrees" xml:space="preserve">
+    <value>Los jueces del jurado no coinciden: decides tú.</value>
+  </data>
+  <data name="Text_debate_await_needs_person" xml:space="preserve">
+    <value>El juicio necesita a una persona: decides tú.</value>
+  </data>
+  <data name="Text_debate_await_verdicts_unusable" xml:space="preserve">
+    <value>Los veredictos no permiten cerrar el debate: decides tú.</value>
+  </data>
+  <data name="Text_debate_await_no_verdict" xml:space="preserve">
+    <value>El juicio no dio veredicto: decides tú.</value>
+  </data>
+  <data name="Text_debate_turn_no_budget" xml:space="preserve">
+    <value>{0}: se agotaron las {1} ejecuciones permitidas.</value>
+  </data>
+  <data name="Text_debate_turn_invalid_answer" xml:space="preserve">
+    <value>{0}: su respuesta no es una contribución válida, ni siquiera tras pedirle que la corrigiera.</value>
+  </data>
+  <data name="Text_debate_turn_limit_resets" xml:space="preserve">
+    <value>{0}: se alcanzó el límite de uso de tu plan en {1}. Se reinicia a las {2:HH:mm} (UTC), más tarde de lo que el debate espera.</value>
+  </data>
+  <data name="Text_debate_turn_limit_unknown" xml:space="preserve">
+    <value>{0}: se alcanzó el límite de uso de tu plan en {1} y no dice cuándo se reinicia.</value>
+  </data>
+  <data name="Text_debate_turn_overloaded" xml:space="preserve">
+    <value>{0}: {1} está saturado ahora mismo.</value>
+  </data>
+  <data name="Text_debate_turn_ended_badly" xml:space="preserve">
+    <value>{0}: el turno no terminó bien.</value>
+  </data>
+  <data name="Debate_Error_Unexpected" xml:space="preserve">
+    <value>Ha pasado algo inesperado (detalle técnico: {0})</value>
+  </data>
 </root>

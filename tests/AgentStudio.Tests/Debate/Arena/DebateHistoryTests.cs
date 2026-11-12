@@ -93,7 +93,7 @@ public sealed class DebateHistoryTests
     {
         using var world = new ScriptedDebateWorld();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => world.Coordinator.ReadAsync(world.Context, new RunId("deb-20261020-abcdef"), TestContext.Current.CancellationToken));
+        await Assert.ThrowsAnyAsync<InvalidOperationException>(() => world.Coordinator.ReadAsync(world.Context, new RunId("deb-20261020-abcdef"), TestContext.Current.CancellationToken));
     }
 
     [Fact]

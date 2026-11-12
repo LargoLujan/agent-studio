@@ -211,4 +211,37 @@ Press "Prepare" to see the estimate: it spends nothing.
 Press "Audit" and approve to launch it.
 Read in the report whether it is reliable and why.</value>
   </data>
+  <data name="Text_audit_pending_run_unfinished" xml:space="preserve">
+    <value>Run {0} has not finished. It stopped or is waiting for a person.</value>
+  </data>
+  <data name="Text_audit_pending_run_failed" xml:space="preserve">
+    <value>Run {0} ended with an error.</value>
+  </data>
+  <data name="Text_audit_pending_review_invalid" xml:space="preserve">
+    <value>Review {0} of run {1} needs a person. Verdict {2} is not valid.</value>
+  </data>
+  <data name="Text_audit_pending_review_escalated" xml:space="preserve">
+    <value>Review {0} of run {1} needs a person. Verdict {2} asks for someone to decide.</value>
+  </data>
+  <data name="Text_audit_pending_review_unresolved" xml:space="preserve">
+    <value>Review {0} of run {1} needs a person. Verdict {2} resolved nothing.</value>
+  </data>
+  <data name="Text_audit_pending_debate_unfinished" xml:space="preserve">
+    <value>Debate {0} has not finished: it is running or was interrupted.</value>
+  </data>
+  <data name="Text_audit_pending_debate_unresolved" xml:space="preserve">
+    <value>Debate {0} ended unresolved: it needs your decision.</value>
+  </data>
+  <data name="Text_audit_pending_challenge_open" xml:space="preserve">
+    <value>The challenge of verdict {0} is still open. Its review debate {1} has not finished.</value>
+  </data>
+  <data name="Text_audit_pending_replan_pending" xml:space="preserve">
+    <value>Run {0} has a request to replan nobody has attended ({1}).</value>
+  </data>
+  <data name="Text_audit_pending_memory_unreviewed" xml:space="preserve">
+    <value>Memory entry {0} quotes text of an agent and nobody has reviewed it.</value>
+  </data>
+  <data name="Text_audit_pending_memory_pending_task" xml:space="preserve">
+    <value>The memory has a pending task: entry {0}.</value>
+  </data>
 </root>

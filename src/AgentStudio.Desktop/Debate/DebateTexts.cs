@@ -1,6 +1,7 @@
 using System.Globalization;
 using AgentStudio.Application.Coordination;
 using AgentStudio.Application.Decisions;
+using AgentStudio.Application.Localization;
 using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Orchestrator;
 using AgentStudio.Domain.Debate;
@@ -20,6 +21,25 @@ public static class DebateTexts
     /// <summary>The text of <c>prefix + value</c>; a value the resources do not know (a new one) is shown as its name, never as <c>[key]</c>.</summary>
     private static string Named(string prefix, Enum value, string? fallback = null) =>
         Texts.Current.Has(prefix + value) ? Texts.Get(prefix + value) : fallback ?? value.ToString();
+
+    /// <summary>
+    /// Why a debate refused or failed, for the person: a refusal with a code (<see cref="UserTextException"/>) is painted from the
+    /// resources in the language in use; any other failure is a technical one, shown as such with its message (in English).
+    /// </summary>
+    public static string Reason(Exception exception, IUiTextProvider? texts = null)
+    {
+        ArgumentNullException.ThrowIfNull(exception);
+        texts ??= Texts.Current;
+        return exception is UserTextException coded ? texts.Render(coded.Text) : texts.Format("Debate_Error_Unexpected", exception.Message);
+    }
+
+    /// <summary>What a debate waits for, in the language in use: its coded texts when it gives them, or its own sentence.</summary>
+    public static string Awaiting(DebateAwaiting waiting, IUiTextProvider? provider = null)
+    {
+        ArgumentNullException.ThrowIfNull(waiting);
+        provider ??= Texts.Current;
+        return waiting.Texts is { Count: > 0 } texts ? string.Join(" ", texts.Select(provider.Render)) : waiting.Message;
+    }
 
     public static string Mode(DebateMode mode) => Named("Debate_Mode_", mode);
 

@@ -1,4 +1,5 @@
 using AgentStudio.Application.Decisions;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Providers;
 using AgentStudio.Domain.Common;
@@ -178,8 +179,12 @@ public enum DebateAwaitReason
     HumanResolution,
 }
 
-/// <summary>Why a debate is waiting, for whom (the label of a participant) and until when.</summary>
-public sealed record DebateAwaiting(DebateAwaitReason Reason, string Message, string? Participant = null, DateTimeOffset? Until = null);
+/// <summary>
+/// Why a debate is waiting, for whom (the label of a participant) and until when. <paramref name="Message"/> is the sentence in Spanish
+/// of the debate; <paramref name="Texts"/> says the same as coded texts, one per reason (one per failed turn), which the desktop paints
+/// in the language of the person (docs/17 D-47). Null when a producer gives only the message.
+/// </summary>
+public sealed record DebateAwaiting(DebateAwaitReason Reason, string Message, string? Participant = null, DateTimeOffset? Until = null, IReadOnlyList<UserText>? Texts = null);
 
 /// <summary>A debate in the history (D-41): from replaying its log.</summary>
 /// <param name="Question">The literal question, read against its anchored hash; null when it cannot be read.</param>

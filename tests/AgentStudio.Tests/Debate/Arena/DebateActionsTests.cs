@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using AgentStudio.Application.Coordination;
 using AgentStudio.Application.Decisions;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Verification;
 using AgentStudio.Debate.Arena;
 using AgentStudio.Domain.Debate;
@@ -79,9 +80,9 @@ public sealed class DebateActionsTests
         world.Claude.Reply = (r, _) => ScriptedDebateProvider.Valid(r, finished: true);
 
         await using var run = await world.OpenAsync(world.FreeOnAnthropic());
-        var refused = await Assert.ThrowsAsync<InvalidOperationException>(run.RequestJudgmentAsync);
+        var refused = await Assert.ThrowsAnyAsync<InvalidOperationException>(run.RequestJudgmentAsync);
 
-        Assert.Contains("ninguna contribución", refused.Message, StringComparison.Ordinal);
+        Assert.Equal(DebateUserTexts.JudgmentTooEarly, Assert.IsType<UserTextException>(refused).Text.Code);
         world.Claude.Release();
         Assert.Equal(DebateJudgmentReason.Converged, (await CompletedAsync(run)).JudgmentReason);
     }
@@ -118,9 +119,9 @@ public sealed class DebateActionsTests
 
         await using var run = await world.OpenAsync(world.FreeOnAnthropic());
         await WaitUntilAsync(() => run.Snapshot().Awaiting?.Reason == DebateAwaitReason.HumanResolution);
-        var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => run.DecideAsync(VerdictDecision.Rejected, null, "No me convence."));
+        var refused = await Assert.ThrowsAnyAsync<InvalidOperationException>(() => run.DecideAsync(VerdictDecision.Rejected, null, "No me convence."));
 
-        Assert.Contains("no se aprobó", refused.Message, StringComparison.Ordinal);
+        Assert.Equal(DebateUserTexts.DecisionNotApproved, Assert.IsType<UserTextException>(refused).Text.Code);
         await WaitUntilAsync(() => run.Snapshot().Awaiting?.Reason == DebateAwaitReason.HumanResolution);
         Assert.Null((await world.DebateLogAsync(run.Id)).Closed);
 
@@ -137,8 +138,8 @@ public sealed class DebateActionsTests
 
         await using var run = await world.OpenAsync(world.FreeOnAnthropic());
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => run.DecideAsync(VerdictDecision.Approved, "C1", "Ya."));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => run.RetryTurnAsync(Arquitecto));
+        await Assert.ThrowsAnyAsync<InvalidOperationException>(() => run.DecideAsync(VerdictDecision.Approved, "C1", "Ya."));
+        await Assert.ThrowsAnyAsync<InvalidOperationException>(() => run.RetryTurnAsync(Arquitecto));
         world.Claude.Release();
         await CompletedAsync(run);
     }
@@ -204,7 +205,7 @@ public sealed class DebateActionsTests
             world.Claude.Reply = (r, _) => ScriptedDebateProvider.Valid(r, finished: true);
             await using var run = await world.OpenAsync(world.FreeOnAnthropic());
             Assert.False(run.Snapshot().CanRunTests);
-            await Assert.ThrowsAsync<InvalidOperationException>(run.RunTestsAsync);
+            await Assert.ThrowsAnyAsync<InvalidOperationException>(run.RunTestsAsync);
             await CompletedAsync(run);
             Assert.Empty(runner.Calls);
         }
@@ -214,7 +215,7 @@ public sealed class DebateActionsTests
             world.Claude.Hold = true;
             await using var run = await world.OpenAsync(world.FreeOnAnthropic(subject: new DebateSubject(DebateSubjectKind.Commit, null)));
             Assert.False(run.Snapshot().CanRunTests);
-            await Assert.ThrowsAsync<InvalidOperationException>(run.RunTestsAsync);
+            await Assert.ThrowsAnyAsync<InvalidOperationException>(run.RunTestsAsync);
             Assert.Empty(runner.Calls);
             await run.AbortAsync("Fin de la prueba.");
             await CompletedAsync(run);
@@ -225,8 +226,8 @@ public sealed class DebateActionsTests
         {
             world.Claude.Hold = true;
             await using var run = await world.OpenAsync(world.FreeOnAnthropic(subject: new DebateSubject(DebateSubjectKind.Commit, null)));
-            var refused = await Assert.ThrowsAsync<InvalidOperationException>(run.RunTestsAsync);
-            Assert.Contains("ningún paso aislado", refused.Message, StringComparison.Ordinal);
+            var refused = await Assert.ThrowsAnyAsync<InvalidOperationException>(run.RunTestsAsync);
+            Assert.Equal(DebateUserTexts.NoIsolatedStep, Assert.IsType<UserTextException>(refused).Text.Code);
             Assert.Empty(runner.Calls);
             await run.AbortAsync("Fin de la prueba.");
             await CompletedAsync(run);

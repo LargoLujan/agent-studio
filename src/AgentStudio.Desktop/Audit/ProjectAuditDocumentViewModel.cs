@@ -89,7 +89,18 @@ public sealed class AuditReportViewModel
             e.Title,
             $"{EvidenceText.Kind(e.Kind)} · {EvidenceText.Origin(e.Origin)} · {(e.SubjectCommit is { } commit ? Texts.Format("Debate_Evidence_Commit", DebateTexts.Short(commit)) : Texts.Get("Audit_Verification_NoCommit"))}",
             EvidenceText.Tests(e.TestRun)))];
-        Pending = [.. report.Pending.Select(p => $"{p.Message} · {p.Source} ({p.Code})")];
+        Pending = [.. report.Pending.Select(p => PendingLine(p))];
+    }
+
+    /// <summary>
+    /// A pending problem of the report in the language in use: its coded text and where it is. A problem without a coded text (one a
+    /// producer of before gives) says its sentence and its code.
+    /// </summary>
+    public static string PendingLine(PendingProblem problem, IUiTextProvider? texts = null)
+    {
+        ArgumentNullException.ThrowIfNull(problem);
+        texts ??= Texts.Current;
+        return problem.Text is { } coded ? $"{texts.Render(coded)} · {problem.Source}" : $"{problem.Message} · {problem.Source} ({problem.Code})";
     }
 
     public AuditReport Report { get; }

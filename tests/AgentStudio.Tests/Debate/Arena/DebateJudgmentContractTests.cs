@@ -5,6 +5,7 @@ using System.Text.Json.Nodes;
 using AgentStudio.Application.Coordination;
 using AgentStudio.Application.Debate;
 using AgentStudio.Application.Decisions;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Providers;
@@ -104,9 +105,9 @@ public sealed class DebateJudgmentContractTests
         using var world = new ScriptedDebateWorld();
         world.Debates.OnStore = debate => debate with { MaxAgentRuns = debate.MaxAgentRuns + 1 };
 
-        var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => world.OpenAsync(world.FreeOnAnthropic()));
+        var refused = await Assert.ThrowsAnyAsync<InvalidOperationException>(() => world.OpenAsync(world.FreeOnAnthropic()));
 
-        Assert.Contains("no es la propuesta que aprobaste", refused.Message, StringComparison.Ordinal);
+        Assert.Equal(DebateUserTexts.OpeningInconsistent, Assert.IsType<UserTextException>(refused).Text.Code);
         Assert.DoesNotContain((await world.LogAsync()).Entries, e => e.Kind == DecisionKind.DebateOpened);
         Assert.Empty(world.Claude.Requests);
         Assert.False(world.Activity.IsBusy(Project));
@@ -201,7 +202,7 @@ public sealed class DebateJudgmentContractTests
 
         using (activity.TryEnter(Project, ProjectActivityKind.Run))
         {
-            await Assert.ThrowsAsync<InvalidOperationException>(() => world.Coordinator.OpenAsync(proposal, TestContext.Current.CancellationToken));
+            await Assert.ThrowsAnyAsync<InvalidOperationException>(() => world.Coordinator.OpenAsync(proposal, TestContext.Current.CancellationToken));
         }
 
         Assert.Empty((await world.LogAsync()).Entries);
