@@ -114,7 +114,7 @@ internal static class OrchestrationUiServices
         provider.GetService<IModelCatalogSource>(),
         provider.GetService<IModelLearning>(),
         provider.GetService<IUsageEstimator>(),
-        provider.GetService<IWorktreeManager>() is { } worktrees ? new WorktreeRepositoryStateReader(worktrees) : null,
+        provider.GetService<IWorktreeManager>() is { } worktrees ? new WorktreeRepositoryStateReader(worktrees, provider.GetService<IRepositoryRemoteReader>()) : null,
         Live: null,
         Quota: provider.GetService<IQuotaObservations>(),
         Brief: provider.GetService<IProjectBrief>(),

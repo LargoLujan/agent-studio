@@ -22,11 +22,19 @@ public sealed class RepositoryNodeTests : IDisposable
 
     public void Dispose() => _folder.Dispose();
 
-    private sealed class FakeState(RepositoryState? state = null, Exception? failure = null) : IRepositoryStateReader
+    private sealed class FakeState(RepositoryState? state = null, Exception? failure = null, RemoteListing? listing = null, Exception? listingFailure = null) : IRepositoryStateReader
     {
         public int Calls { get; private set; }
 
         public string? Root { get; private set; }
+
+        public int ListCalls { get; private set; }
+
+        public Task<RemoteListing?> ListRemotesAsync(string repoRoot, CancellationToken cancellationToken)
+        {
+            ListCalls++;
+            return listingFailure is null ? Task.FromResult(listing) : Task.FromException<RemoteListing?>(listingFailure);
+        }
 
         public Task<RepositoryState> InspectAsync(string repoRoot, CancellationToken cancellationToken)
         {
@@ -261,5 +269,80 @@ public sealed class RepositoryNodeTests : IDisposable
         Assert.Empty(RepositoryReader.ReadRemotes(_folder.Root));
         Assert.Empty(RepositoryReader.ReadRemotes(Path.Combine(_folder.Root, "no existe")));
         await Task.CompletedTask;
+    }
+
+    [Fact]
+    public async Task The_remotes_come_from_the_git_layer_when_it_gives_them_and_the_file_is_not_read()
+    {
+        var root = Repo(ConfigWithCredentials);
+        var listing = new RemoteListing([RepositoryRemote.Cleaned("origin", "https://host.example/r.git")], null);
+        var state = new FakeState(State(root), listing: listing);
+
+        var reading = await new RepositoryReader(state).ReadAsync(root, CancellationToken.None);
+
+        Assert.Equal(1, state.ListCalls);
+        Assert.Equal(["origin"], reading.Node!.Remotes.Select(r => r.Name));
+        Assert.Null(reading.RemotesNote);
+    }
+
+    [Fact]
+    public async Task A_refusal_of_the_git_layer_gives_no_remotes_and_never_falls_back_to_the_file()
+    {
+        var root = Repo(ConfigWithCredentials);
+        var refused = new FakeState(State(root), listing: RemoteListing.Refused("unsafe-repository"));
+        var tooBig = new FakeState(State(root), listing: RemoteListing.Refused(RemoteListing.OutputTooBig));
+        var failing = new FakeState(State(root), listingFailure: new InvalidOperationException("boom"));
+
+        var a = await new RepositoryReader(refused).ReadAsync(root, CancellationToken.None);
+        var b = await new RepositoryReader(tooBig).ReadAsync(root, CancellationToken.None);
+        var c = await new RepositoryReader(failing).ReadAsync(root, CancellationToken.None);
+
+        Assert.Empty(a.Node!.Remotes);
+        Assert.Null(a.RemotesNote);
+        Assert.Empty(b.Node!.Remotes);
+        Assert.Equal(RepositoryProblems.ConfigurationTooBig, b.RemotesNote);
+        Assert.Empty(c.Node!.Remotes);
+        Assert.Null(c.RemotesNote);
+    }
+
+    [Fact]
+    public async Task A_file_past_the_cap_is_refused_by_what_is_read_with_the_cap_applied_while_reading()
+    {
+        // The race itself (a file that grows between a check and the read) cannot be staged here: the code holds at most the cap plus one byte.
+        var root = Repo(ConfigWithCredentials);
+        await using (var stream = new FileStream(Path.Combine(root, ".git", "config"), FileMode.Append, FileAccess.Write))
+        {
+            stream.SetLength(stream.Length + RepositoryReader.MaxConfigBytes);
+        }
+
+        var remotes = RepositoryReader.ReadRemotes(root, out var note);
+
+        Assert.Empty(remotes);
+        Assert.Equal(RepositoryProblems.ConfigurationTooBig, note);
+    }
+
+    [Fact]
+    public void A_configuration_with_a_byte_order_mark_keeps_its_first_remote()
+    {
+        Directory.CreateDirectory(Path.Combine(_folder.Root, ".git"));
+        File.WriteAllText(Path.Combine(_folder.Root, ".git", "config"), "[remote \"primero\"]\n\turl = https://host.example/a.git\n", new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+
+        var remotes = RepositoryReader.ReadRemotes(_folder.Root);
+
+        Assert.Equal(["primero"], remotes.Select(r => r.Name));
+    }
+
+    [Fact]
+    public void A_file_just_under_the_cap_is_still_read()
+    {
+        var root = Repo(ConfigWithCredentials);
+        var config = Path.Combine(root, ".git", "config");
+        var padding = RepositoryReader.MaxConfigBytes - new FileInfo(config).Length - 10;
+        File.AppendAllText(config, "\n#" + new string('x', (int)padding));
+
+        var remotes = RepositoryReader.ReadRemotes(root, out var note);
+
+        Assert.Null(note);
+        Assert.Equal(3, remotes.Count);
     }
 }

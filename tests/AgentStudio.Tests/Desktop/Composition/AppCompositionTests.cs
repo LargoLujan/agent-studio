@@ -456,6 +456,7 @@ public sealed class AppCompositionTests
         Assert.Same(provider.GetRequiredService<IQuotaObservations>(), services.Quota);
         Assert.Same(provider.GetRequiredService<IProjectBrief>(), services.Brief);
         Assert.IsType<WorktreeRepositoryStateReader>(services.Repository);
+        Assert.NotNull(provider.GetRequiredService<IRepositoryRemoteReader>());
 
         // The live state is the monitor of this same document.
         Assert.Same(document.Monitor, services.Live);
