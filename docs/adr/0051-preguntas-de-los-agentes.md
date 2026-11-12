@@ -170,18 +170,17 @@
     tiene dos respuestas a la misma pregunta, cuenta la primera. (Una ejecución que se reanuda con sus propias entradas ni
     llega ahí: la reproducción rechaza un registro que contesta dos veces la misma pregunta.)
   - No cuentan en los topes de D-29 (tres por tarea, diez por ejecución), que son de los ejecutores, y el motor no registra nada
-    nuevo por ellas: sin decisión capturada, porque nunca hubo una tarea cuyo juez la reciba. Tampoco se copian las entradas a la
-    ejecución nueva: duplicarían la pregunta y su evidencia.
-- **Decisión 4: los prompts de los ejecutores siguen fuera del dosier del juez; el prompt de la planificación, no.** El bloque
-  nuevo y la regla no llegan al juez, porque `InstructionsIssued` (el prompt de cada ejecutor) sigue fuera del dosier, y una
-  prueba de integración con el juez guionizado lo comprueba (`OrchestratorQuestionReachesTheExecutorsTests`: su prompt y todo
-  lo que puede leer carecen de `askedBy` y de los prompts de los ejecutores). Pero **hoy** el dosier sí incluye, de la ejecución
-  en la que planificó el orquestador, la evidencia «Prompt del orquestador (intento N)» (`CapturedBySystem`, la registra el
-  planificador) y el informe del primer intento del planificador: `JudgeDossierBuilder` solo retira los prompts y los informes
-  de los ejecutores y la evidencia de `QuestionAsked`. Esos dos documentos llevan la pregunta del orquestador tal como la
-  escribió, con sus opciones, la recomendada y la respuesta. Es anterior a V43, esta adenda no lo cambia y D-33 («el juez
-  solo ve tu elección») no se cumple del todo para las preguntas del orquestador: queda **pendiente** de decidir si también se
-  dejan fuera (fila nueva de docs/18). De la pregunta del orquestador el juez recibe además, como antes, `QuestionAnswered`
+    nuevo por ellas al empezar ni al reanudar: solo las lee. La decisión que recibe el juez la captura la planificación al
+    registrar la respuesta (adenda siguiente, P54). Tampoco se copian las entradas a la ejecución nueva: duplicarían la pregunta
+    y su evidencia.
+- **Decisión 4 (corregida el mismo día por P54, adenda siguiente): ni los prompts de los ejecutores ni el de la planificación
+  llegan al juez.** El bloque nuevo y la regla no llegan al juez, porque `InstructionsIssued` (el prompt de cada ejecutor) sigue
+  fuera del dosier, y una prueba de integración con el juez guionizado lo comprueba (`OrchestratorQuestionReachesTheExecutorsTests`:
+  su prompt y todo lo que puede leer carecen de `askedBy` y de los prompts de los ejecutores). La primera redacción de esta
+  decisión añadía que el dosier sí incluía, de la ejecución en la que planificó el orquestador, la evidencia «Prompt del
+  orquestador (intento N)» y el informe del primer intento del planificador, con la pregunta tal como la escribió, sus
+  opciones, la recomendada y la respuesta, y lo dejaba pendiente. Ya no es así: ninguno de los dos llega al juez. De la pregunta
+  del orquestador el juez recibe lo mismo que de la de un ejecutor: la decisión que captura el sistema, `QuestionAnswered`
   (ids y huellas) y, si la persona escribió su texto, esa evidencia (`ProvidedByHuman`).
 - **Alternativas descartadas:**
   - Escribir la decisión en `PlanTask.Instructions` al planificar: es texto del orquestador, no dato de la persona, y un plan
@@ -200,6 +199,69 @@
   - Que el ejecutor haga caso de la regla depende del modelo: el sistema se lo dice y se lo da como dato, pero no puede
     impedir que pregunte. Lo comprobará la próxima demostración en vivo.
   - Un plan escrito a mano, sin propuesta del orquestador, no tiene `PlannedIn` y no recibe respuestas: no las hubo.
+
+## Adenda · 2026-11-11 · el juez ve la decisión sobre la pregunta del orquestador, no la pregunta (P54)
+
+- **Contexto.** La decisión 4 de la adenda de V43 dejó dicho que el dosier incluía, de la ejecución en la que planificó el
+  orquestador, el «Prompt del orquestador (intento N)» y el informe del primer intento del planificador: los dos llevan la
+  pregunta tal como el orquestador la escribió, con sus opciones, la recomendada y tu respuesta, y D-30 y D-33 dicen que el juez
+  solo ve la decisión del sistema. `JudgeDossierBuilder` retiraba los prompts y los informes de los ejecutores, no los de la
+  planificación, y la planificación no capturaba ninguna decisión.
+- **Decisión 1: el prompt de la planificación nunca llega al juez.** Haya preguntas o no, y en cada intento. Como el de un
+  ejecutor, guía al agente y no dice nada de si se cumplen los requisitos, y puede llevar la ficha, la memoria y tus respuestas.
+  La planificación no escribe `InstructionsIssued`: se identifica por su `AgentRunStarted`, el que no tiene tarea y dice
+  `Purpose = Planner`, cuyo `PromptEvidenceId` es la evidencia. Como ese inicio se escribe después de la guarda del repositorio
+  del usuario, un lanzamiento que la guarda rechaza deja el prompt registrado sin inicio: por eso se retira también la evidencia
+  `Document`, `CapturedBySystem` y sin tarea cuyo título, anclado por `EvidenceRegistered` v2, es «Prompt del orquestador
+  (intento N)». Un inicio de versión 1 (sin propósito) que no tiene tarea solo podía ser del planificador o del juez, y el prompt
+  de ninguno de los dos es evidencia del trabajo: también se retira. Un inicio sin tarea con otro propósito (el del propio juez)
+  no cambia.
+- **Decisión 2: los informes de la planificación siguen la regla de los del ejecutor.** `AgentRunFinished` no lleva propósito ni
+  agente, y el juez también lanza sin tarea, así que el informe se atribuye al planificador por el `AgentRunStarted` anterior,
+  del mismo intento, en el orden del registro. Queda fuera si trae `questions` con algún elemento (o con un valor que no es una
+  lista) o si no es un objeto JSON, y, con un aviso del sistema que impide que ninguna aprobación se apoye en el dosier, si no
+  se puede leer como lo ancló el registro (falta, otro contenido, ilegible): fallar cerrado, como con un informe de ejecutor. El
+  informe que solo trae el plan (`questions` vacío, nulo o ausente) llega al juez, como antes. Un informe de planificación de
+  antes del propósito (versión 1) no se examina: las preguntas del orquestador son posteriores.
+- **Decisión 3: la decisión de la persona sí llega, y la captura la planificación.** Al registrar la respuesta
+  (`Planner.RecordAnswersAsync`, justo después de `QuestionAnswered`) el sistema captura el mismo documento que para un ejecutor
+  (`QuestionDocuments.DecisionJson`, `agent-studio/question-decision/1`, con `OrchestrationRun.CaptureDecisionAsync`): ids,
+  huellas e instantes, la opción elegida o la evidencia de tu texto, quién y cómo, y nunca el texto del agente, la recomendada ni
+  las estimaciones. Va con `task` nulo (ninguna tarea la hizo) y el título «Decisión sobre la pregunta plan-1 del orquestador».
+  Se construye con lo que anclaron `QuestionAsked` (la evidencia y su huella, el agente, el intento y el instante) y
+  `QuestionAnswered` (el instante), no con lo que devuelve quien llama. Es idempotente: una planificación que se repite con las
+  mismas respuestas no registra dos veces la respuesta ni la decisión, y captura la que la anterior no llegó a capturar (un
+  cierre entre las dos escrituras). La entrada y la evidencia de `QuestionAsked` del orquestador ya se retiraban por la regla
+  general, y una prueba lo fija.
+- **Corrección de la adenda de V43.** Su decisión 3 decía que el motor no registraba nada por las preguntas del orquestador,
+  «sin decisión capturada, porque nunca hubo una tarea cuyo juez la reciba». El motor sigue sin registrar nada al empezar ni al
+  reanudar, pero la decisión sí existe: la captura la planificación.
+- **Qué ve ahora el juez de una ejecución en la que el orquestador preguntó.** Ve `QuestionAnswered` (ids y huellas), la decisión
+  que captura el sistema, el texto propio de la persona si lo hay, el plan y el informe de la planificación que planificó (solo
+  el plan). No ve la pregunta, sus etiquetas, su motivo, la recomendada ni las estimaciones (ni la evidencia ni la entrada
+  `QuestionAsked`), ni el prompt de ninguna planificación, ni el informe del intento que preguntó. Una ejecución en la que el
+  orquestador no preguntó pierde solo el prompt de la planificación.
+- **Alternativas descartadas:**
+  - Retirarlos solo por el título de la evidencia: el título está anclado, pero es un texto que cambia con el idioma; por eso
+    es el respaldo del inicio (`AgentRunStarted`) y no su sustituto, y los informes se atribuyen por el inicio.
+  - Retirar solo el prompt que lleva la pregunta, o solo en las ejecuciones con preguntas: el prompt lleva ficha, memoria y
+    respuestas aunque no hubiera preguntas, y lo que el orquestador se dijo a sí mismo no es lo que el juez juzga.
+  - Examinar todo `AgentRunFinished` sin tarea: alcanzaría los informes del juez, que no son evidencia registrada, y pondría un
+    aviso falso en cada ejecución con juez.
+  - Copiar el texto de la pregunta en la decisión: ya descartado en la revisión de WP4 (llegaría como un hecho comprobado por el
+    sistema).
+- **Consecuencias y lo que queda abierto:**
+  - Una ejecución propia para un plan editado después de responder (`PlannedIn`) no tiene esas entradas entre las suyas: el
+    dosier las lee de la planificación que nombra `RunStarted.PlannedIn` (entradas verificadas del mismo registro) y lleva al juez
+    solo los `QuestionAnswered` sin tarea y la evidencia de la decisión (con el texto propio, si lo hay), como el registro la ancló;
+    nada más de esa planificación (ni su prompt, ni sus informes, ni `QuestionAsked`), y un `PlannedIn` que el registro no tiene, o
+    una decisión o un texto que no se pueden leer como se anclaron, son un aviso del sistema que impide aprobar.
+  - Una pregunta del orquestador que se respondió antes de esta adenda no tiene decisión capturada: el juez ve solo
+    `QuestionAnswered` (el prompt y el informe sí se retiran, porque eso se decide al construir el dosier).
+  - El campo `options` de la decisión sale de la pregunta que devuelve quien llama con las respuestas (la ventana la guarda de la
+    propuesta), la misma contra la que se comprueba la opción elegida, y no de la lista de `QuestionAsked`.
+  - Los títulos de lo retirado («Pregunta plan-1 del orquestador», «Prompt del orquestador (intento 1)») siguen en las entradas
+    `EvidenceRegistered` del dosier: solo títulos, sin texto del agente.
 
 ## Adenda (2026-11-12): los `outputs` del registro del intento llegan al juez como dichos por el agente (P46)
 

@@ -3,8 +3,10 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using AgentStudio.Application.Decisions;
+using AgentStudio.Application.Judging;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Persistence;
+using AgentStudio.Debate.Judging;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Evidence;
@@ -12,6 +14,7 @@ using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Questions;
 using AgentStudio.Tests.Orchestration.Fakes;
 using AgentStudio.Tests.Orchestration.Planning;
+using PlanJson = AgentStudio.Tests.Orchestration.Planning.PlanJson; // the dossier's own PlanJson (Debate.Judging) is in scope too
 using static AgentStudio.Tests.Orchestration.Fakes.OrchestrationFixtures;
 using static AgentStudio.Tests.Orchestration.Fakes.RunTestSupport;
 
@@ -23,13 +26,16 @@ namespace AgentStudio.Tests.Orchestration.Engine;
 /// task, in the first prompt of each, as a <c>&lt;human_answer askedBy="orchestrator"&gt;</c> block of data with no task and
 /// no attempt, and the protocol tells the executor not to ask again what the blocks decide. It also reaches the handoff, and
 /// a run that resumes keeps it; an unreadable question or answer of the orchestrator leaves the run unstarted or not
-/// resumable. The judge is not touched: <c>QuestionScenarioTests</c>' sibling in Integration/Phase13 checks that end to end.
+/// resumable. What the judge gets of them is P54's: its dossier carries neither the question, nor its options and recommended
+/// one, nor the prompt of the planning, but the decision of the person (the sections at the end); <c>QuestionScenarioTests</c>'
+/// sibling in Integration/Phase13 checks that end to end.
 /// </summary>
 public sealed class OrchestratorAnswersInPromptTests
 {
     private const string AskedText = "¿Qué debe hacer Power(base, exponent) cuando el exponente es negativo?";
     private const string Why = "Las dos cumplen RQ-01; cambia el contrato de la función.";
     private const string Rule = "No vuelvas a preguntar lo que un bloque <human_answer> ya decide";
+    private const string DecisionTitle = "Decisión sobre la pregunta plan-1 del orquestador";
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -120,10 +126,14 @@ public sealed class OrchestratorAnswersInPromptTests
             Assert.Contains("valen para todas las tareas de la ejecución", prompt, StringComparison.Ordinal);
         }
 
-        // The engine only reads the log for them: nothing is asked, answered or captured for the judge again.
+        // The engine only reads the log for them: nothing is asked, answered or captured for the judge again. The decision the
+        // judge gets was captured by the planning, when it recorded the answer (P54): once, before the run started, with no task.
         Assert.Single(harness.Payloads<QuestionAskedPayload>());
         Assert.Single(harness.Payloads<QuestionAnsweredPayload>());
-        Assert.DoesNotContain(harness.Payloads<EvidenceRegisteredPayload>(), p => p.Payload.Title?.StartsWith("Decisión sobre la pregunta", StringComparison.Ordinal) == true);
+        var (decisionEntry, decision) = Assert.Single(harness.Payloads<EvidenceRegisteredPayload>(), p => p.Payload.Title?.StartsWith("Decisión sobre la pregunta", StringComparison.Ordinal) == true);
+        Assert.Equal(DecisionTitle, decision.Title);
+        Assert.Null(decision.Task);
+        Assert.True(decisionEntry.Sequence < Assert.Single(harness.Payloads<RunStartedPayload>()).Entry.Sequence);
     }
 
     [Fact]
@@ -481,6 +491,335 @@ public sealed class OrchestratorAnswersInPromptTests
 
     private static Task AppendAsync(EngineHarness harness, DecisionKind kind, DecisionPayload payload) =>
         harness.Decisions.RecordAsync(harness.Project.ProjectId, new Actor(ActorKind.User, "usuario"), kind, "entrada de prueba", payload, null, Ct);
+
+    // ---- what the judge gets of them (P54, docs/17 D-33) ----
+
+    private static async Task<JudgeDossierPackage> DossierOfAsync(EngineHarness harness, RunId run) =>
+        await new JudgeDossierBuilder(harness.Decisions, harness.Runs, harness.Plans, harness.RequirementStore, harness.Evidence, new JudgingOptions(Path.Combine(harness.Paths.DossierRoot, "juez")))
+            .BuildPackageAsync(new DossierRequest(harness.Project.ProjectId, AuditScope.CurrentPlan, run.Value), Ct);
+
+    private static async Task RunToTheEndAsync(EngineHarness harness, RunId run)
+    {
+        await using var orchestration = await harness.CreateOrchestrator().StartAsync(harness.Request(TwoTasks(), run: run), Ct);
+        Assert.Equal(RunPhase.Succeeded, (await orchestration.CompleteAsync(harness)).Phase);
+    }
+
+    /// <summary>The prompts and the reports of the planner, in log order: the two plannings of V43 have one attempt each.</summary>
+    private static (IReadOnlyList<EvidenceId> Prompts, IReadOnlyList<EvidenceId> Reports) PlannerOf(EngineHarness harness) =>
+    (
+        [.. harness.Payloads<AgentRunStartedPayload>().Where(p => p.Payload.Task is null).Select(p => p.Payload.PromptEvidenceId)],
+        [.. harness.Payloads<AgentRunFinishedPayload>().Where(p => p.Payload.Task is null).Select(p => p.Payload.ReportEvidenceId!.Value)]);
+
+    [Fact]
+    public async Task The_judge_gets_the_decision_about_a_question_of_the_orchestrator_and_nothing_the_orchestrator_wrote_or_was_told()
+    {
+        using var harness = new EngineHarness();
+        var (run, _) = await AskedAndAnsweredAsync(harness, ChoosingA);
+        await RunToTheEndAsync(harness, run);
+
+        var package = await DossierOfAsync(harness, run);
+
+        // Not the prompts of the planning (the second one carries the question, its options and the answer), nor the question
+        // as the orchestrator wrote it, nor the report of the planning that asked: it carries the question and its recommendation.
+        var asked = Assert.Single(harness.Payloads<QuestionAskedPayload>());
+        var (prompts, reports) = PlannerOf(harness);
+        Assert.Equal(2, prompts.Count);
+        Assert.Equal(2, reports.Count);
+        var evidence = package.Dossier.Evidence.Select(e => e.Id).ToHashSet();
+        Assert.All(prompts, prompt => Assert.DoesNotContain(prompt, evidence));
+        Assert.DoesNotContain(asked.Payload.QuestionEvidence, evidence);
+        Assert.DoesNotContain(reports[0], evidence);
+        Assert.DoesNotContain(package.Dossier.Decisions, e => e.Kind == DecisionKind.QuestionAsked);
+
+        // The report of the planning that planned has only the plan: it still reaches the judge, as it did.
+        Assert.Contains(reports[1], evidence);
+
+        // What it does get: the answer in the log and the decision the system captured, with no task.
+        var (answeredEntry, answered) = Assert.Single(harness.Payloads<QuestionAnsweredPayload>());
+        Assert.Equal(answeredEntry.Hash, Assert.Single(package.Dossier.Decisions, e => e.Kind == DecisionKind.QuestionAnswered).Hash);
+        var decision = Assert.Single(package.Dossier.Evidence, e => e.Title == DecisionTitle);
+        Assert.Equal((EvidenceKind.Document, EvidenceOrigin.CapturedBySystem), (decision.Kind, decision.Origin));
+        using (var document = JsonDocument.Parse(harness.Evidence.Text(decision.Id)))
+        {
+            var root = document.RootElement;
+            Assert.Equal("agent-studio/question-decision/1", root.GetProperty("format").GetString());
+            Assert.Equal(("plan-1", JsonValueKind.Null, 1, "orquestador"), (root.GetProperty("question").GetString(), root.GetProperty("task").ValueKind, root.GetProperty("attempt").GetInt32(), root.GetProperty("askedBy").GetString()));
+            Assert.Equal((asked.Payload.QuestionEvidence.Value, asked.Payload.QuestionSha256), (root.GetProperty("questionEvidence").GetString(), root.GetProperty("questionSha256").GetString()));
+            Assert.Equal(["a", "b"], root.GetProperty("options").EnumerateArray().Select(o => o.GetString()));
+            Assert.Equal("a", root.GetProperty("decision").GetProperty("option").GetString());
+            Assert.Equal(("usuario", "ChosenByPerson"), (root.GetProperty("decidedBy").GetString(), root.GetProperty("method").GetString()));
+            Assert.Equal(asked.Entry.RecordedAt, DateTimeOffset.Parse(root.GetProperty("askedAt").GetString()!, System.Globalization.CultureInfo.InvariantCulture));
+            Assert.Equal(answeredEntry.RecordedAt, DateTimeOffset.Parse(root.GetProperty("answeredAt").GetString()!, System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        Assert.Equal(("plan-1", "a"), (answered.Question, answered.ChosenOption));
+
+        // Nothing the orchestrator wrote or was told is in anything the judge reads: every file of its package.
+        var everything = string.Join("\n", Directory.EnumerateFiles(package.Files.Folder, "*", SearchOption.AllDirectories).Select(File.ReadAllText));
+        foreach (var text in new[] { AskedText, Why, "Lanzar ArgumentOutOfRangeException", "Devolver 1 / base^|exponent|", "Falla rápido.", "No falla nunca.", "Respuestas de la persona a tus preguntas", "<human_answer" })
+        {
+            Assert.DoesNotContain(text, everything, StringComparison.Ordinal);
+        }
+
+        Assert.DoesNotContain("recommended", everything, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("estimates", everything, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(package.Dossier.IntegrityProblems);
+    }
+
+    [Fact]
+    public async Task The_own_words_of_the_person_to_the_orchestrator_reach_the_judge_with_their_decision()
+    {
+        const string Own = "Que lance ArgumentOutOfRangeException y lo documente.";
+        using var harness = new EngineHarness();
+        var (run, _) = await AskedAndAnsweredAsync(harness, q => QuestionAnswer.Writing(null, q.Id, Own, "usuario"));
+        await RunToTheEndAsync(harness, run);
+
+        var package = await DossierOfAsync(harness, run);
+
+        var answered = Assert.Single(harness.Payloads<QuestionAnsweredPayload>()).Payload;
+        var decision = Assert.Single(package.Dossier.Evidence, e => e.Title == DecisionTitle);
+        Assert.Contains(package.Dossier.Evidence, e => e.Id == answered.AnswerEvidence);
+        using var document = JsonDocument.Parse(harness.Evidence.Text(decision.Id));
+        var own = document.RootElement.GetProperty("decision").GetProperty("ownAnswer");
+        Assert.Equal((answered.AnswerEvidence!.Value.Value, answered.AnswerSha256), (own.GetProperty("evidence").GetString(), own.GetProperty("sha256").GetString()));
+        Assert.DoesNotContain(AskedText, string.Join("\n", Directory.EnumerateFiles(package.Files.Folder, "*", SearchOption.AllDirectories).Select(File.ReadAllText)), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_run_planned_without_questions_loses_only_the_prompt_of_the_orchestrator()
+    {
+        using var harness = new EngineHarness();
+        harness.Claude.Script("orquestador", null, 1, Answer(Planned()));
+        var proposal = await harness.CreateOrchestrator().PlanAsync(harness.PlanningRequest(), null, Ct);
+        Assert.NotNull(proposal.Plan);
+        Assert.Null(proposal.Questions);
+        await RunToTheEndAsync(harness, proposal.Run);
+
+        var package = await DossierOfAsync(harness, proposal.Run);
+
+        // What the dossier held before: every evidence the log registered for the run, but the prompts of the executors.
+        var (prompts, reports) = PlannerOf(harness);
+        var plannerPrompt = Assert.Single(prompts);
+        var registered = harness.Payloads<EvidenceRegisteredPayload>().Where(p => p.Payload.RunId == proposal.Run.Value).Select(p => p.Payload.Evidence).ToHashSet();
+        var executorPrompts = harness.Payloads<InstructionsIssuedPayload>().Select(p => p.Payload.PromptEvidenceId).ToHashSet();
+        Assert.Contains(plannerPrompt, registered);
+        Assert.NotEmpty(executorPrompts);
+        var expected = registered.Except(executorPrompts).Except([plannerPrompt]).ToHashSet();
+        Assert.True(expected.SetEquals(package.Dossier.Evidence.Select(e => e.Id)), "The dossier loses the prompt of the orchestrator and nothing else.");
+
+        // The report of the one planning, with only the plan, is still there, and nothing was captured for a question nobody asked.
+        Assert.Equal(proposal.RawPlanEvidence, Assert.Single(reports));
+        Assert.Contains(package.Dossier.Evidence, e => e.Id == proposal.RawPlanEvidence);
+        Assert.DoesNotContain(package.Dossier.Evidence, e => e.Title.StartsWith("Decisión sobre la pregunta", StringComparison.Ordinal));
+        Assert.Empty(package.Dossier.IntegrityProblems);
+    }
+
+    [Fact]
+    public async Task A_report_of_the_planning_that_cannot_be_read_as_the_log_anchored_it_is_withheld_with_a_check()
+    {
+        using var harness = new EngineHarness();
+        var (run, _) = await AskedAndAnsweredAsync(harness, ChoosingA);
+        await RunToTheEndAsync(harness, run);
+        var (_, reports) = PlannerOf(harness);
+
+        // The plan with no question, rewritten together with the hash its row holds: only the log says it is not what was reported.
+        harness.Evidence.Rewrite(reports[1], "{\"questions\":[]}");
+        var package = await DossierOfAsync(harness, run);
+
+        Assert.DoesNotContain(package.Dossier.Evidence, e => e.Id == reports[1]);
+        Assert.Contains(package.Dossier.IntegrityProblems, c => c.Contains(reports[1].Value, StringComparison.Ordinal) && c.Contains("the report of the orchestrator's planning cannot be read", StringComparison.Ordinal));
+        Assert.DoesNotContain(package.Dossier.Evidence, e => e.Id == reports[0]); // the one that asked stays out either way
+    }
+
+    /// <summary>The run of a plan the person edited after answering: it has an id of its own and names the one that planned.</summary>
+    private static async Task<RunId> RunPlannedElsewhereAsync(EngineHarness harness, RunId planned)
+    {
+        await using var orchestration = await harness.CreateOrchestrator().StartAsync(harness.Request(TwoTasks()) with { PlannedIn = planned }, Ct);
+        Assert.NotEqual(planned, orchestration.Id);
+        Assert.Equal(RunPhase.Succeeded, (await orchestration.CompleteAsync(harness)).Phase);
+        return orchestration.Id;
+    }
+
+    [Fact]
+    public async Task The_judge_of_a_run_planned_elsewhere_gets_the_decision_and_the_answer_about_the_orchestrators_question_and_nothing_else_of_that_planning()
+    {
+        using var harness = new EngineHarness();
+        var (planned, _) = await AskedAndAnsweredAsync(harness, ChoosingA);
+        var run = await RunPlannedElsewhereAsync(harness, planned);
+
+        var package = await DossierOfAsync(harness, run);
+
+        // The answer and the decision, which live in the entries of the planning; not the question as the orchestrator asked it.
+        var (answeredEntry, _) = Assert.Single(harness.Payloads<QuestionAnsweredPayload>());
+        Assert.Equal(answeredEntry.Hash, Assert.Single(package.Dossier.Decisions, e => e.Kind == DecisionKind.QuestionAnswered).Hash);
+        Assert.DoesNotContain(package.Dossier.Decisions, e => e.Kind == DecisionKind.QuestionAsked);
+        var decision = Assert.Single(package.Dossier.Evidence, e => e.Title == DecisionTitle);
+
+        // Nothing else of that planning: of its entries only the answer, of its evidence only the decision.
+        Assert.DoesNotContain(package.Dossier.Decisions, e => e.Kind != DecisionKind.QuestionAnswered && e.PayloadJson.Contains($"\"runId\":\"{planned.Value}\"", StringComparison.Ordinal));
+        var ofPlanning = harness.Payloads<EvidenceRegisteredPayload>().Where(p => p.Payload.RunId == planned.Value).Select(p => p.Payload.Evidence).ToHashSet();
+        Assert.Equal([decision.Id], package.Dossier.Evidence.Select(e => e.Id).Where(ofPlanning.Contains));
+        var (prompts, reports) = PlannerOf(harness);
+        Assert.All(prompts.Concat(reports), id => Assert.DoesNotContain(package.Dossier.Evidence, e => e.Id == id));
+
+        var everything = string.Join("\n", Directory.EnumerateFiles(package.Files.Folder, "*", SearchOption.AllDirectories).Select(File.ReadAllText));
+        foreach (var text in new[] { AskedText, Why, "Lanzar ArgumentOutOfRangeException", "Devolver 1 / base^|exponent|", "Falla rápido.", "No falla nunca.", "Respuestas de la persona a tus preguntas", "<human_answer" })
+        {
+            Assert.DoesNotContain(text, everything, StringComparison.Ordinal);
+        }
+
+        Assert.DoesNotContain("recommended", everything, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("estimates", everything, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("agent-studio/question-decision/1", everything, StringComparison.Ordinal);
+        Assert.Empty(package.Dossier.IntegrityProblems);
+    }
+
+    [Fact]
+    public async Task A_decision_of_the_planning_that_was_rewritten_is_a_check_for_a_run_planned_elsewhere()
+    {
+        using var harness = new EngineHarness();
+        var (planned, _) = await AskedAndAnsweredAsync(harness, ChoosingA);
+        var run = await RunPlannedElsewhereAsync(harness, planned);
+        var decision = Assert.Single(harness.Payloads<EvidenceRegisteredPayload>(), p => p.Payload.Title == DecisionTitle).Payload.Evidence;
+
+        // Rewritten together with the hash its row holds: only the log, which anchored the original, says it is not that.
+        harness.Evidence.Rewrite(decision, "{\"decision\":{\"option\":\"b\"}}");
+        var package = await DossierOfAsync(harness, run);
+
+        Assert.Contains(package.Dossier.IntegrityProblems, c => c.Contains(decision.Value, StringComparison.Ordinal));
+        Assert.DoesNotContain(package.Dossier.Evidence, e => e.Id == decision);
+        Assert.Single(package.Dossier.Decisions, e => e.Kind == DecisionKind.QuestionAnswered);
+    }
+
+    [Fact]
+    public async Task With_two_questions_a_failure_capturing_the_first_decision_leaves_every_answer_recorded_and_the_planning_can_be_tried_again()
+    {
+        using var harness = new EngineHarness();
+        var asking = Asking();
+        ((JsonArray)asking["questions"]!).Add(new JsonObject
+        {
+            ["text"] = "¿Y con un exponente cero?",
+            ["why"] = "Cambia el contrato.",
+            ["options"] = new JsonArray(
+                new JsonObject { ["id"] = "a", ["label"] = "Devolver 1", ["detail"] = "Lo habitual.", ["effort"] = "small", ["recommended"] = true },
+                new JsonObject { ["id"] = "b", ["label"] = "Lanzar", ["detail"] = "Estricto.", ["effort"] = "small", ["recommended"] = false }),
+            ["allowOther"] = true,
+        });
+        harness.Claude.Script("orquestador", null, 1, Answer(asking));
+        var asked = await harness.CreateOrchestrator().PlanAsync(harness.PlanningRequest(), null, Ct);
+        Assert.Equal(2, asked.Questions!.Count);
+        var request = harness.PlanningRequest() with { Answers = [.. asked.Questions.Select(q => new AnsweredQuestion(asked.Run, q, ChoosingA(q)))] };
+
+        // A transient failure capturing the decision of the first question, and only that one.
+        var failed = false;
+        harness.Evidence.FailWhen = draft =>
+        {
+            if (failed || !draft.Title.StartsWith("Decisión sobre la pregunta", StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            failed = true;
+            return new IOException("disco lleno");
+        };
+        await Assert.ThrowsAsync<IOException>(() => harness.CreateOrchestrator().PlanAsync(request, null, Ct));
+        Assert.Equal(2, harness.Payloads<QuestionAnsweredPayload>().Count); // both answers were recorded before any decision
+
+        harness.Claude.Script("orquestador", null, 1, Answer(Planned()));
+        var proposal = await harness.CreateOrchestrator().PlanAsync(request, null, Ct);
+
+        Assert.NotNull(proposal.Plan);
+        Assert.Equal(2, harness.Payloads<QuestionAnsweredPayload>().Count);
+        foreach (var id in new[] { "plan-1", "plan-2" })
+        {
+            Assert.Single(harness.Payloads<EvidenceRegisteredPayload>(), p => p.Payload.Title == $"Decisión sobre la pregunta {id} del orquestador");
+        }
+    }
+
+    [Fact]
+    public async Task With_two_questions_a_failure_recording_the_second_answer_leaves_the_first_and_the_retry_with_the_same_answers_finishes()
+    {
+        using var harness = new EngineHarness();
+        var asking = Asking();
+        ((JsonArray)asking["questions"]!).Add(new JsonObject
+        {
+            ["text"] = "¿Y con un exponente cero?",
+            ["why"] = "Cambia el contrato.",
+            ["options"] = new JsonArray(
+                new JsonObject { ["id"] = "a", ["label"] = "Devolver 1", ["detail"] = "Lo habitual.", ["effort"] = "small", ["recommended"] = true },
+                new JsonObject { ["id"] = "b", ["label"] = "Lanzar", ["detail"] = "Estricto.", ["effort"] = "small", ["recommended"] = false }),
+            ["allowOther"] = true,
+        });
+        harness.Claude.Script("orquestador", null, 1, Answer(asking));
+        var asked = await harness.CreateOrchestrator().PlanAsync(harness.PlanningRequest(), null, Ct);
+        var questions = asked.Questions!;
+        Assert.Equal(2, questions.Count);
+        IReadOnlyList<AnsweredQuestion> Answers(string first) =>
+        [
+            new AnsweredQuestion(asked.Run, questions[0], QuestionAnswer.Choosing(null, questions[0].Id, first, "usuario")),
+            new AnsweredQuestion(asked.Run, questions[1], QuestionAnswer.Writing(null, questions[1].Id, "Que devuelva 1.", "usuario")),
+        ];
+        var request = harness.PlanningRequest() with { Answers = Answers("a") };
+
+        // The text of the second answer cannot be captured, once: the first answer is recorded and the second is not.
+        var failed = false;
+        harness.Evidence.FailWhen = draft =>
+        {
+            if (failed || !draft.Title.StartsWith("Respuesta a la pregunta plan-2", StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            failed = true;
+            return new IOException("disco lleno");
+        };
+        await Assert.ThrowsAsync<IOException>(() => harness.CreateOrchestrator().PlanAsync(request, null, Ct));
+        Assert.Single(harness.Payloads<QuestionAnsweredPayload>());
+
+        // Another answer for the first question is still refused; the same ones go on.
+        await Assert.ThrowsAsync<ArgumentException>(() => harness.CreateOrchestrator().PlanAsync(harness.PlanningRequest() with { Answers = Answers("b") }, null, Ct));
+        Assert.Single(harness.Payloads<QuestionAnsweredPayload>());
+
+        harness.Claude.Script("orquestador", null, 1, Answer(Planned()));
+        var proposal = await harness.CreateOrchestrator().PlanAsync(request, null, Ct);
+
+        Assert.NotNull(proposal.Plan);
+        Assert.Equal(["plan-1", "plan-2"], harness.Payloads<QuestionAnsweredPayload>().Select(p => p.Payload.Question));
+        foreach (var id in new[] { "plan-1", "plan-2" })
+        {
+            Assert.Single(harness.Payloads<EvidenceRegisteredPayload>(), p => p.Payload.Title == $"Decisión sobre la pregunta {id} del orquestador");
+        }
+    }
+
+    [Fact]
+    public async Task A_planning_tried_again_with_its_answers_captures_the_decision_it_had_not_reached_and_records_nothing_twice()
+    {
+        using var harness = new EngineHarness();
+        harness.Claude.Script("orquestador", null, 1, Answer(Asking()));
+        var asked = await harness.CreateOrchestrator().PlanAsync(harness.PlanningRequest(), null, Ct);
+        var question = Assert.Single(asked.Questions!);
+        var request = harness.PlanningRequest() with { Answers = [new AnsweredQuestion(asked.Run, question, ChoosingA(question))] };
+
+        // The answer is recorded, and the app stops before its decision is: the capture fails once.
+        harness.Evidence.FailWhen = draft => draft.Title.StartsWith("Decisión sobre la pregunta", StringComparison.Ordinal) ? new IOException("disco lleno") : null;
+        await Assert.ThrowsAsync<IOException>(() => harness.CreateOrchestrator().PlanAsync(request, null, Ct));
+        Assert.Single(harness.Payloads<QuestionAnsweredPayload>());
+        Assert.DoesNotContain(harness.Payloads<EvidenceRegisteredPayload>(), p => p.Payload.Title == DecisionTitle);
+
+        harness.Evidence.FailWhen = null;
+        harness.Claude.Script("orquestador", null, 1, Answer(Planned()));
+        var proposal = await harness.CreateOrchestrator().PlanAsync(request, null, Ct);
+
+        Assert.NotNull(proposal.Plan);
+        Assert.Single(harness.Payloads<QuestionAnsweredPayload>());
+        Assert.Single(harness.Payloads<EvidenceRegisteredPayload>(), p => p.Payload.Title == DecisionTitle);
+        Assert.Single(harness.Payloads<EvidenceRegisteredPayload>(), p => p.Payload.Title == "Pregunta plan-1 del orquestador");
+
+        // And once more, with everything recorded: nothing is recorded or captured again.
+        await harness.CreateOrchestrator().PlanAsync(request, null, Ct);
+        Assert.Single(harness.Payloads<QuestionAnsweredPayload>());
+        Assert.Single(harness.Payloads<EvidenceRegisteredPayload>(), p => p.Payload.Title == DecisionTitle);
+    }
 
     // ---- helpers ----
 

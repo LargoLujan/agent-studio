@@ -5,6 +5,7 @@ using AgentStudio.Application.Execution;
 using AgentStudio.Application.Providers;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Providers.Cli.Codex;
+using AgentStudio.Tests.TestSupport;
 
 namespace AgentStudio.Tests.Providers.Codex;
 
@@ -101,7 +102,7 @@ public sealed class CodexCliAgentProviderTests
     private static ProcessOutputLine Stderr(string text) => new(ProcessStream.StandardError, text, Now);
 
     private static CodexCliAgentProvider Provider(FakeRunner runner, string? path = "C:/bin/codex.exe") =>
-        new(new FakeLocator(path), runner, TimeProvider.System);
+        new(new FakeLocator(path), runner, TimeProvider.System, TestLocalData.RunFolders);
 
     private static async Task<List<AgentEvent>> DrainAsync(IAgentRun run)
     {

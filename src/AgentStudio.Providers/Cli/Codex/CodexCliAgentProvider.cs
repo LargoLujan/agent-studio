@@ -17,7 +17,7 @@ namespace AgentStudio.Providers.Cli.Codex;
 /// <c>AllowNetwork=false</c> are enforced by the sandbox.
 /// </para>
 /// </summary>
-public sealed class CodexCliAgentProvider(IExecutableLocator locator, IStreamingProcessRunner runner, TimeProvider timeProvider) : IAgentProvider
+public sealed class CodexCliAgentProvider(IExecutableLocator locator, IStreamingProcessRunner runner, TimeProvider timeProvider, RunTempFolderOptions? tempFolders = null) : IAgentProvider
 {
     public ProviderId Provider => ProviderId.CodexCli;
 
@@ -50,24 +50,32 @@ public sealed class CodexCliAgentProvider(IExecutableLocator locator, IStreaming
         var located = locator.Find("codex") ?? throw new InvalidOperationException("Codex CLI was not found on the PATH." + InsideProjectNote.English(locator.FindInUntrustedRoot("codex")));
         var executable = CodexExecutableResolver.Resolve(located);
 
+        // The arguments are built, and so a launch that cannot be made is refused, before anything is written: the folder of the
+        // run is only planned here (its path) and made once the arguments are valid.
+        var baseDirectory = (tempFolders ?? RunTempFolderOptions.ForCurrentUser()).BaseDirectory;
         string? tempDirectory = null;
+        string? schemaPath = null;
+        if (request.OutputJsonSchema is not null)
+        {
+            tempDirectory = RunTempFolder.NewPath(baseDirectory);
+            schemaPath = Path.Combine(tempDirectory, "schema.json");
+        }
+
+        var maxDuration = request.Agent.Budget.MaxDuration;
+        var spec = new ProcessSpec(
+            executable,
+            CodexExecArguments.Build(request, schemaPath, CodexExecArguments.IsRepository(request.WorkingDirectory)),
+            WorkingDirectory: request.WorkingDirectory,
+            Timeout: maxDuration > TimeSpan.Zero ? maxDuration : null,
+            StandardInput: CodexExecArguments.BuildStandardInput(request));
+
         try
         {
-            string? schemaPath = null;
-            if (request.OutputJsonSchema is not null)
+            if (tempDirectory is not null)
             {
-                tempDirectory = RunTempFolder.Create();
-                schemaPath = Path.Combine(tempDirectory, "schema.json");
-                await RunTempFolder.WriteNewFileAsync(schemaPath, request.OutputJsonSchema, cancellationToken).ConfigureAwait(false);
+                RunTempFolder.Create(baseDirectory, tempDirectory);
+                await RunTempFolder.WriteNewFileAsync(schemaPath!, request.OutputJsonSchema!, cancellationToken).ConfigureAwait(false);
             }
-
-            var maxDuration = request.Agent.Budget.MaxDuration;
-            var spec = new ProcessSpec(
-                executable,
-                CodexExecArguments.Build(request, schemaPath, CodexExecArguments.IsRepository(request.WorkingDirectory)),
-                WorkingDirectory: request.WorkingDirectory,
-                Timeout: maxDuration > TimeSpan.Zero ? maxDuration : null,
-                StandardInput: CodexExecArguments.BuildStandardInput(request));
 
             var session = await runner.StartAsync(spec, cancellationToken).ConfigureAwait(false);
             return new Run(session, tempDirectory, maxDuration, request, timeProvider);

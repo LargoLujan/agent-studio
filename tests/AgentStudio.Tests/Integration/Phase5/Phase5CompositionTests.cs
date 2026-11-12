@@ -138,6 +138,7 @@ public sealed class Phase5CompositionTests
         var processes = new NoProcesses();
         var services = new ServiceCollection();
         services.AddWindowsDoubles();
+        services.AddTestLocalData(temp.Combine("local"));
         services.AddAgentStudioApp(folders);
         services.Replace(ServiceDescriptor.Singleton<IExecutableLocator>(processes));
         services.Replace(ServiceDescriptor.Singleton<IProcessRunner>(processes));
@@ -277,7 +278,8 @@ public sealed class Phase5CompositionTests
         Assert.Contains(nameof(ProjectActivityKind.Debate), audit.Message, StringComparison.Ordinal);
         var second = await coordinator.PrepareAsync(Debate("¿Y la caché de las sesiones?"), Ct);
         var refused = await Assert.ThrowsAnyAsync<InvalidOperationException>(() => coordinator.OpenAsync(second, Ct));
-        Assert.Contains("ocupado", refused.Message, StringComparison.Ordinal);
+        Assert.Equal(DebateUserTexts.ProjectBusy, Assert.IsType<AgentStudio.Application.Localization.UserTextException>(refused).Text.Code);
+        Assert.Contains(nameof(ProjectActivityKind.Debate), refused.Message, StringComparison.Ordinal);
 
         // The memory waits (D-05): it derives nothing, exports nothing, and a write of a person waits for the debate to end.
         var derived = await app.Get<IMemoryDerivation>().DeriveAsync(project, Ct);

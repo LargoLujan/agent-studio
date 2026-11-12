@@ -208,12 +208,15 @@ internal sealed partial class OrchestrationRun
         return null;
     }
 
-    /// <summary>The decision of the person about a question, as evidence the system captures: what the judge gets of it (D-33).</summary>
+    /// <summary>
+    /// The decision of the person about a question, as evidence the system captures: what the judge gets of it (D-33). The
+    /// planner captures it too, for a question of the orchestrator before it plans (P54: no task, <c>Task</c> null).
+    /// </summary>
     internal static Task<EvidenceRecord> CaptureDecisionAsync(RunRecorder recorder, RecordedAnswer answered, CancellationToken cancellationToken) =>
         recorder.CaptureAsync(
             EvidenceKind.Document,
             EvidenceOrigin.CapturedBySystem,
-            QuestionDocuments.DecisionTitle(answered.Asked.Id, answered.Asked.AskingTask.Value),
+            QuestionDocuments.DecisionTitle(answered.Asked),
             RunRecorder.ProducedBySystem,
             QuestionDocuments.DecisionJson(answered),
             QuestionDocuments.MediaType,

@@ -9,6 +9,7 @@ using AgentStudio.Domain.Skills;
 using AgentStudio.Infrastructure.Persistence;
 using AgentStudio.Infrastructure.Skills;
 using AgentStudio.Providers;
+using AgentStudio.Tests.TestSupport;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AgentStudio.Tests.Infrastructure.Skills;
@@ -207,7 +208,7 @@ public sealed class SkillCatalogTests : IDisposable
         Directory.CreateDirectory(project);
         Directory.CreateDirectory(work);
         var services = new ServiceCollection()
-            .AddAgentStudioPersistence()
+            .AddAgentStudioPersistence(new DecisionLogAnchorOptions(Path.Combine(_container, "anclas")))
             .AddAgentStudioSkills(new SkillCatalogOptions(CatalogPath), new SkillActivationStoreOptions(Path.Combine(_container, "perfil", "skill-activations.jsonl")))
             .AddAgentStudioProviders();
         await using var provider = services.BuildServiceProvider();

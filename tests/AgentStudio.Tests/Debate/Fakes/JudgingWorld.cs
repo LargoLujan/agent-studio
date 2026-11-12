@@ -45,6 +45,9 @@ internal sealed record JudgingWorldOptions
     /// versions before the header was anchored did (version 1, without it).
     /// </summary>
     public bool AnchorHeader { get; init; } = true;
+
+    /// <summary>The run in which the orchestrator planned, when it is not this one (<c>RunStarted.PlannedIn</c>, V43); null, this run planned.</summary>
+    public string? PlannedIn { get; init; }
 }
 
 /// <summary>
@@ -245,7 +248,7 @@ internal sealed class JudgingWorld : IDisposable
         var header = new RunRecord(Run, Project, Clock.GetUtcNow(), Plan.ContentHash, Frozen.ContentHash, RequestEvidence.Id, "abc123", "main", profile, Roster, new RunOptions(), null);
         await Runs.CreateAsync(header, ct);
         var started = new RunStartedPayload(Plan.ContentHash, Frozen.ContentHash, "abc123", "main", profile.ContentHash,
-            [.. Roster.Select(a => new RosterEntry(a.Id, a.Role, a.Model.Provider, a.Model.Vendor))], null) { RunId = run };
+            [.. Roster.Select(a => new RosterEntry(a.Id, a.Role, a.Model.Provider, a.Model.Vendor))], null) { RunId = run, PlannedIn = Options.PlannedIn };
         await RecordAsync(System, DecisionKind.RunStarted, "Ejecución iniciada", Options.AnchorHeader
             ? started with { HeaderHash = RunHeaderHash.Of(header), V = RunStartedPayload.HeaderVersion }
             : started);
