@@ -260,3 +260,47 @@ texto lee la persona:
   byte a byte con dos culturas de hilo distintas (F14-4) y que, al cambiar de idioma, solo cambia el bloque.
 - **Pendiente.** El borrador de la documentación para clientes (`IClientDocumentDrafter`) aún no existe; cuando lo escriba
   WP-14C o WP-14D debe llevar el mismo bloque. Tampoco lo llevan los prompts de las skills recomendadas.
+
+## Adenda · 2026-11-12 · los textos de Debate que se ven en pantalla pasan a código (WP-14A parte e)
+
+Lo que `src/AgentStudio.Debate` escribía para la pantalla como frases en castellano llega ahora como código y argumentos
+(`UserText`), y el escritorio lo pinta en el idioma de la persona con `Render`. Los códigos viven junto a su código, no en
+`UserTextCodes`; cada uno tiene su clave `Text_` en `DebateStrings` o `AuditStrings`, en los dos idiomas y con los mismos marcadores
+(`DebateCodedTextsTests` recorre las listas `DebateUserTexts.All` y `PendingProblems.TextCodes`).
+
+**Mecanismo nuevo, mínimo.** `UserTextException` (`Application/Localization`) es una `InvalidOperationException` con el mensaje en
+inglés y un `UserText`. Quien ya capturaba `InvalidOperationException` sigue funcionando. `DebateTexts.Reason(exception)` pinta una
+excepción con código desde recursos; cualquier otra se enseña como «Ha pasado algo inesperado (detalle técnico: …)». La pantalla
+ya no muestra `ex.Message` a secas en la sala, el nuevo debate ni el historial de debates.
+
+**Contratos con un campo más, con valor por defecto.** `DebateAwaiting.Texts` (lista de `UserText`, uno por turno fallido o uno solo)
+junto a `Message`; `PendingProblem.Text` junto a `Message`. Quien no los rellena sigue pintando la frase, como antes.
+
+**Códigos de Debate** (`DebateUserTexts`):
+
+| Grupo | Códigos |
+|---|---|
+| Rechazos de un debate en marcha | `debate.judgment-too-early`, `debate.not-waiting-retry`, `debate.closed-evidence`, `debate.closed-tests`, `debate.no-test-commit`, `debate.no-trust-profile`, `debate.no-isolated-step`, `debate.not-waiting-decision`, `debate.already-closed`, `debate.decision-not-approved`, `debate.cannot-judge-now` |
+| Rechazos del coordinador | `debate.proposal-outdated`, `debate.opening-not-approved`, `debate.opening-inconsistent`, `debate.resume-not-approved`, `debate.already-running`, `debate.not-found`, `debate.already-finished`, `debate.cannot-resume`, `debate.project-busy`, `debate.no-provider` |
+| Por qué espera la persona | `debate.await.jury-disagrees`, `debate.await.needs-person`, `debate.await.verdicts-unusable`, `debate.await.no-verdict` |
+| Turno fallido (uno por turno) | `debate.turn.no-budget`, `debate.turn.invalid-answer`, `debate.turn.limit-resets`, `debate.turn.limit-unknown`, `debate.turn.overloaded`, `debate.turn.ended-badly` |
+| Problemas pendientes de la auditoría (`PendingProblems.TextCodes`) | `audit.pending.run-unfinished`, `audit.pending.run-failed`, `audit.pending.review-invalid`, `audit.pending.review-escalated`, `audit.pending.review-unresolved`, `audit.pending.debate-unfinished`, `audit.pending.debate-unresolved`, `audit.pending.challenge-open`, `audit.pending.replan-pending`, `audit.pending.memory-unreviewed`, `audit.pending.memory-pending-task` |
+
+**Lo que queda fijo, y por qué (D-48).**
+
+- `DebateRoundClosed.Reason`, `DebateClosed.Reason` y el motivo de aborto (la hora del límite, los tokens, las ejecuciones que
+  quedan): están en el registro, con su SHA-256 encadenado. La sala ya no los pinta; usa los enumerados `DebateJudgmentReason` y
+  `DebateLimitReached`, que salen de recursos. No se les añadió nada.
+- `PendingProblem.Message` y `PendingProblem.Code`: entran en el expediente del juez (`ProjectDossierBuilder`), así que no cambian.
+  El texto para la persona es otro código (`audit.pending.*`) y omite lo que era texto ajeno (el resumen de la ejecución fallida,
+  el tipo de entrada de memoria, la regla del jurado).
+- `DebateModes` (propósito y tarea de cada modo, para los agentes) y los requisitos `orq-1` a `orq-7`, con su `ContentHash`
+  (`DebateAnchoredTextsTests` lo fija). Los nombres de modo que ve la persona ya salían de `DebateStrings` (`DebateTexts.Mode`).
+- El texto de aprobación de la apertura y de la reanudación (`ApprovalText`, `ApprovalRequest.Description`), el informe del hito
+  (`MilestoneReport`, D-49) y el de la auditoría de la orquestación, que se anclan o son determinista.
+
+**Pendiente (sigue en castellano a mano en Debate, con pantalla).** Las listas `Problems` y `Notes` de las propuestas de debate,
+de auditoría y de impugnación (`DebateCoordinator.PlanAsync`, `ProjectAuditService.Prepare` y `VerdictChallengeService`), los
+`Problems` del resumen y de la instantánea de un debate (`DebateRun._problems`, `DebateCoordinator` al releer), el motivo de
+`Verdict.Summary` cuando no corre un juez (`Audit_Escalation`) y los `Reasons` de `MilestoneCloseRefusedException`, que aún no
+tienen pantalla. Cada uno necesita su propio código; la forma es la de esta adenda (un `UserText` junto a la frase).

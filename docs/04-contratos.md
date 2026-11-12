@@ -2047,6 +2047,17 @@ public sealed record ClientDocumentExportedPayload(int Version, string? Mileston
   `HelpAskRequest.Language`, ahora con el mismo bloque. Sin valor: `es-ES`.
 - **No se ancla:** ninguna cabecera ni hash incluye el idioma. Con el mismo idioma, dos culturas de hilo dan el mismo prompt byte a byte.
 
+### 22.7 Textos de Debate con código (WP-14A parte e, ADR-0054)
+
+- **`UserTextException`** (`Application/Localization`): `InvalidOperationException` con mensaje en inglés y `UserText Text`. La lanzan `DebateRun` y `DebateCoordinator`
+  en los rechazos que la persona lee; Desktop la pinta con `DebateTexts.Reason`. Quien captura `InvalidOperationException` no cambia.
+- **`DebateAwaiting`** gana `IReadOnlyList<UserText>? Texts = null` al final. `Message` sigue siendo la frase en castellano. Un turno fallido da un `UserText` por turno.
+- **`PendingProblem`** gana `UserText? Text = null` al final. `Code` y `Message` no cambian: entran en el expediente del juez. Los códigos de texto son `audit.pending.*`
+  (`PendingProblems.TextCodes`).
+- **Códigos:** `Debate/Arena/DebateUserTexts.cs` (`All`) y `Debate/Audit/PendingProblems.cs` (`TextCodes`); claves `Text_…` en `DebateStrings` y `AuditStrings`. Lista completa
+  en la adenda de [ADR-0054](adr/0054-idiomas-y-lenguaje-claro.md) del 2026-11-12.
+- **Fijo:** los motivos de `DebateRoundClosed` y `DebateClosed`, el texto de aprobación, `DebateModes` y `orq-1` a `orq-7`, y el informe del hito.
+
 ## 23. Fase 9: trabajo y trazabilidad
 
 Lo que el P0 de la Fase 9 deja fijado para los paquetes WP1 a WP5, que van en paralelo encima ([16](16-ampliacion-plataforma-de-proyectos.md)
