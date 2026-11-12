@@ -1494,7 +1494,7 @@ Press "Challenge" and approve to open the review.</value>
     <value>Participant "{0}" is not in the project team.</value>
   </data>
   <data name="Text_debate_problem_participant_role" xml:space="preserve">
-    <value>"{0}" has a role that does not take part in a debate: a judge, an auditor or the orchestrator do not debate.</value>
+    <value>"{0}" has a role that does not debate. A judge, an auditor or the orchestrator do not take part.</value>
   </data>
   <data name="Text_debate_problem_no_provider" xml:space="preserve">
     <value>The program of {0} used by agent "{1}" cannot be found.</value>
@@ -1509,7 +1509,7 @@ Press "Challenge" and approve to open the review.</value>
     <value>The orchestrator review is judged with its fixed requirements (orq-1 to orq-7), unchanged.</value>
   </data>
   <data name="Text_debate_problem_no_arrangement" xml:space="preserve">
-    <value>With these participants and judges the chosen judging arrangement does not fit: no judge can hold it without judging the work of their own company.</value>
+    <value>This arrangement does not fit these participants and judges. No judge could hold it without judging their own company.</value>
   </data>
   <data name="Text_debate_problem_session_refused" xml:space="preserve">
     <value>The debate setup is not valid (technical detail: {0}).</value>
@@ -1524,10 +1524,10 @@ Press "Challenge" and approve to open the review.</value>
     <value>Run {0} is not in the log.</value>
   </data>
   <data name="Text_debate_problem_no_candidate_commit" xml:space="preserve">
-    <value>Run {0} has no candidate commit: an implementation audit cannot open without one.</value>
+    <value>Run {0} saved no version (commit). Without it there is nothing to audit.</value>
   </data>
   <data name="Text_debate_problem_audit_requirements" xml:space="preserve">
-    <value>An implementation audit is judged with the frozen requirements of its run.</value>
+    <value>The audit uses the requirements frozen in its run.</value>
   </data>
   <data name="Text_debate_problem_unknown_subject" xml:space="preserve">
     <value>The debate is about something Agent Studio does not know.</value>
@@ -1536,7 +1536,7 @@ Press "Challenge" and approve to open the review.</value>
     <value>A challenge has to say which verdict it challenges.</value>
   </data>
   <data name="Text_debate_problem_verdict_not_stored" xml:space="preserve">
-    <value>Verdict {0} is not stored, or it belongs to no run, debate or audit.</value>
+    <value>Verdict {0} is not stored. It belongs to no run, debate or audit.</value>
   </data>
   <data name="Text_debate_problem_debate_missing" xml:space="preserve">
     <value>Debate {0} of the challenged verdict does not exist.</value>
@@ -1545,16 +1545,16 @@ Press "Challenge" and approve to open the review.</value>
     <value>Audit {0} of the challenged verdict does not exist.</value>
   </data>
   <data name="Text_debate_note_uncommitted" xml:space="preserve">
-    <value>You have uncommitted changes: they are not part of the debate, which starts from the last commit.</value>
+    <value>You have unsaved changes. They are not part of the debate, which starts from the last saved version (commit).</value>
   </data>
   <data name="Text_debate_note_max_runs_one_round" xml:space="preserve">
-    <value>At most {0} runs: {1} participants in 1 round, and the retries.</value>
+    <value>At most {0} runs. They count {1} participants, 1 round and the retries.</value>
   </data>
   <data name="Text_debate_note_max_runs" xml:space="preserve">
-    <value>At most {0} runs: {1} participants times {2} rounds, and the retries.</value>
+    <value>At most {0} runs. They count {1} participants, {2} rounds and the retries.</value>
   </data>
   <data name="Text_debate_note_tokens_per_turn" xml:space="preserve">
-    <value>Each Claude turn with haiku takes about 40,000 to 160,000 tokens and each Codex turn about 20,000 to 80,000, depending on what it reads.</value>
+    <value>A Claude turn with haiku takes 40,000 to 160,000 tokens. A Codex turn takes 20,000 to 80,000.</value>
   </data>
   <data name="Text_debate_note_token_limit" xml:space="preserve">
     <value>The limit of {0:N0} tokens cuts the debate short: it goes to judgment when it is reached.</value>
@@ -1596,7 +1596,7 @@ Press "Challenge" and approve to open the review.</value>
     <value>There is no contribution to judge: retry the turn or abort the debate.</value>
   </data>
   <data name="Text_debate_problem_copy_not_deleted" xml:space="preserve">
-    <value>The copy of the commit of the debate could not be deleted.</value>
+    <value>The copy of the saved version (commit) of the debate could not be deleted.</value>
   </data>
   <data name="Text_debate_challenge_not_revision" xml:space="preserve">
     <value>This proposal is not the review of a verdict: prepare the challenge from the verdict card.</value>
@@ -1605,7 +1605,7 @@ Press "Challenge" and approve to open the review.</value>
     <value>The challenge cannot be opened. See the problems of the proposal.</value>
   </data>
   <data name="Text_debate_challenge_proposal_outdated" xml:space="preserve">
-    <value>What you were shown is no longer what there is (the verdict, its object or who may judge it changed): prepare the challenge again.</value>
+    <value>What you saw is no longer current. The verdict, its object or who may judge it changed. Prepare the challenge again.</value>
   </data>
   <data name="Text_debate_challenge_verdict_not_stored" xml:space="preserve">
     <value>Verdict {0} is not stored.</value>
@@ -1614,7 +1614,7 @@ Press "Challenge" and approve to open the review.</value>
     <value>Verdict {0} did not close the review of any challenged verdict: there is nothing to accept.</value>
   </data>
   <data name="Text_debate_challenge_not_awaiting_acceptance" xml:space="preserve">
-    <value>Review {0} of verdict {1} is not awaiting acceptance: only the latest review that turned towards an approval is accepted.</value>
+    <value>Review {0} of verdict {1} is not awaiting acceptance. Only the latest one that turned towards an approval is accepted.</value>
   </data>
   <data name="Text_debate_challenge_acceptance_not_answered" xml:space="preserve">
     <value>The approval received does not answer the acceptance of this review.</value>
@@ -1626,22 +1626,22 @@ Press "Challenge" and approve to open the review.</value>
     <value>Write your reasons: round 1 of the review starts from them.</value>
   </data>
   <data name="Text_debate_challenge_problem_verdict_not_found" xml:space="preserve">
-    <value>Verdict {0} is not stored, or it belongs to no run, debate or audit.</value>
+    <value>Verdict {0} is not stored. It belongs to no run, debate or audit.</value>
   </data>
   <data name="Text_debate_challenge_problem_not_announced" xml:space="preserve">
     <value>The log does not announce verdict {0} in {1}: what the log does not hold cannot be challenged.</value>
   </data>
   <data name="Text_debate_challenge_problem_unit_not_started" xml:space="preserve">
-    <value>The log has no start of {0}, the object of the verdict: it is not known who cannot judge the review.</value>
+    <value>The log has no start of {0}, the object of the verdict. It is not known who cannot judge the review.</value>
   </data>
   <data name="Text_debate_challenge_problem_already_challenged" xml:space="preserve">
     <value>Verdict {0} already has an open challenge (debate {1}): wait for it to finish.</value>
   </data>
   <data name="Text_debate_challenge_problem_requirements_missing" xml:space="preserve">
-    <value>The frozen requirements {0} of the challenged verdict are not stored: the review is judged with them.</value>
+    <value>The requirements {0} of the verdict are not stored. The review uses them.</value>
   </data>
   <data name="Text_debate_challenge_problem_not_inherited" xml:space="preserve">
-    <value>The review does not inherit the companies the object of the verdict excludes ({0}): a company that produced the work could judge it.</value>
+    <value>The review does not inherit the companies the object of the verdict excludes ({0}). A company that did the work could judge it.</value>
   </data>
   <data name="Text_debate_challenge_problem_judge_on_excluded" xml:space="preserve">
     <value>A judge of the review belongs to a company the object excludes: {0}.</value>
@@ -1650,12 +1650,12 @@ Press "Challenge" and approve to open the review.</value>
     <value>The challenged verdict comes from a cross panel: its review is judged by a cross panel.</value>
   </data>
   <data name="Text_debate_challenge_note_same_judge" xml:space="preserve">
-    <value>The same agent that issued the challenged verdict ({0}) judges, in a new session: the team has no other eligible judge.</value>
+    <value>The agent that issued the challenged verdict ({0}) judges again, in a new session. The team has no other judge.</value>
   </data>
   <data name="Text_debate_challenge_note_nobody_can_judge" xml:space="preserve">
     <value>With these participants and judges nobody can judge the review without judging the work of their own company.</value>
   </data>
   <data name="Text_debate_cannot_resume_detail" xml:space="preserve">
-    <value>Debate {0} cannot be resumed: its log does not tell a coherent debate (technical detail: {1}).</value>
+    <value>Debate {0} cannot be resumed. Its log does not tell a coherent debate (technical detail: {1}).</value>
   </data>
 </root>
