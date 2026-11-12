@@ -2415,7 +2415,7 @@ para manejarlo; ningún módulo lo referencia.
   las invariantes de `CodeGraph` mandan; todo lo que falla es `InvalidDataException` sin citar el texto.
 - **Lo que debe hacer el anfitrión (WP-G):** aplicar el tope de bytes (`MaxOutputBytes`) **mientras lee** la salida estándar (dejar de leer, matar el proceso y fallar al pasarlo), acotar las líneas del error estándar, matar tras `MaxRuntime` y recortar el `\r` final de cada línea antes de compararla (`TryParseProgress` lo hace).
 - **Error estándar:** una línea `progress:<ruta relativa>` antes de abrir cada fichero, para que un fallo del proceso nombre su fichero y el anfitrión
-  lo relance con `--skip` (hasta tres veces, después el grafo sale parcial). Cualquier otra línea es un diagnóstico sin rutas ni texto del repositorio.
+  lo relance con `--skip` (hasta tres veces; si sigue cayendo no queda salida de la que sacar un grafo, y el análisis falla: §25.6). Cualquier otra línea es un diagnóstico sin rutas ni texto del repositorio.
 - **Códigos de salida:** 0 completado, 2 uso, 3 la raíz no es una carpeta, 4 análisis no disponible, 5 fallo del análisis.
 - **El esqueleto del P0 no analizaba nada** (terminaba con el código 4 y la salida vacía). WP-G lo sustituye por el análisis real (§25.6); `UnavailableGraphAnalysis` queda
   como el doble de ese caso en las pruebas. Una copia vacía da un modelo con cero nodos: es un modelo, no un fallo.

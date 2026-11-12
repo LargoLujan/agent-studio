@@ -15,8 +15,8 @@ namespace AgentStudio.Application.Graph;
 /// <remarks>
 /// Progress: before it opens each file, the process writes one line <c>progress:&lt;relative path&gt;</c> to the standard error and flushes it. If the
 /// process dies (an exhausted stack cannot be caught), the host knows which file it was reading and launches it again with <c>--skip</c>
-/// for that file; that file is then a <c>graph.file-skipped</c> gap and its project partial. At most <see cref="MaxRelaunches"/> times; after that
-/// the graph is partial with what there is.
+/// for that file; that file is then a <c>graph.file-skipped</c> gap and its project partial. At most <see cref="MaxRelaunches"/> times; a process that
+/// still dies after that leaves no output to build a graph from, so the analysis fails (WP-G: docs/20 section 4.4, ADR-0062 addendum).
 /// <para>
 /// What the host (WP-G) must do when it reads the process, because the process is not trusted: <b>apply <see cref="MaxOutputBytes"/> while it reads</b> the
 /// standard output (stop reading, kill the process and fail the analysis when the cap is passed; never read it all to check afterwards), apply the same

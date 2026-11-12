@@ -659,7 +659,7 @@ primero. Sin texto libre ni rutas de tu equipo en el payload.
   saltan), y los ficheros generados (`*.g.cs`, `*.Designer.cs`) fuera.
 - **Si aun así el proceso cae** (una pila agotada no se puede capturar): antes de cada fichero escribe su ruta en su
   salida de progreso. El cliente lo relanza saltando ese fichero, que sale `graph.file-skipped`; como mucho tres veces, y
-  después el grafo sale «parcial» con lo que haya.
+  si aun así cae, el análisis **falla** (no queda salida de la que sacar un grafo «parcial con lo que haya»: lo ajustó WP-G, §4.4).
 - **La salida del proceso es un dato no fiable para la app:** se lee con un esquema estricto y los mismos topes. **El anfitrión (WP-G) aplica el
   tope de bytes mientras lee** (deja de leer, mata el proceso y falla el análisis al pasarlo; no lee todo para comprobarlo después), acota también las
   líneas del error estándar, recorta el `\r` final de cada línea `progress:` antes de compararla (`TryParseProgress` ya lo hace) y solo cree una ruta segura. Ningún

@@ -49,15 +49,20 @@ public sealed class CommitAnalysisServiceTests
         }
     }
 
-    private sealed class Builder(List<string> log, bool fail = false) : ICodeGraphBuilder
+    private sealed class Builder(List<string> log, bool fail = false, Task? gate = null) : ICodeGraphBuilder
     {
         public IRepositorySnapshot? Saw { get; private set; }
 
-        public Task<GraphBuild> BuildAsync(IRepositorySnapshot snapshot, CancellationToken ct)
+        public async Task<GraphBuild> BuildAsync(IRepositorySnapshot snapshot, CancellationToken ct)
         {
             Saw = snapshot;
             log.Add("graph");
-            return fail ? throw new GraphAnalysisException("fails") : Task.FromResult(new GraphBuild(Model, NamespaceFiles.Empty));
+            if (gate is not null)
+            {
+                await gate;
+            }
+
+            return fail ? throw new GraphAnalysisException("fails") : new GraphBuild(Model, NamespaceFiles.Empty);
         }
     }
 
@@ -105,7 +110,7 @@ public sealed class CommitAnalysisServiceTests
     }
 
     [Fact]
-    public async Task What_is_cached_by_commit_is_not_calculated_again_and_find_never_starts_anything()
+    public async Task What_is_cached_by_commit_is_what_find_gives_and_asking_to_analyze_again_reads_the_commit_again()
     {
         var log = new List<string>();
         var snapshots = new Snapshots(log);
@@ -115,13 +120,17 @@ public sealed class CommitAnalysisServiceTests
         Assert.Equal(0, snapshots.Opened);
 
         var first = await service.AnalyzeAsync(Project, CommitA, Ct);
-        var second = await service.AnalyzeAsync(Project, CommitA, Ct);
         var found = await service.FindAsync(Project, CommitA, Ct);
 
         Assert.Equal(1, snapshots.Opened);
-        Assert.Equal(first, second);
         Assert.Equal(first, found);
         Assert.Null(await service.FindAsync(Project, CommitB, Ct));
+
+        // «Actualizar»: the commit is read again (a file that timed out on a busy machine gets another chance); the cache is rewritten.
+        var again = await service.AnalyzeAsync(Project, CommitA, Ct);
+
+        Assert.Equal(2, snapshots.Opened);
+        Assert.Equal(first, again);
     }
 
     [Fact]
@@ -181,15 +190,22 @@ public sealed class CommitAnalysisServiceTests
     }
 
     [Fact]
-    public async Task Two_analyses_at_once_run_one_after_the_other_and_the_second_finds_the_first_in_the_cache()
+    public async Task A_second_analysis_of_the_same_commit_asked_while_the_first_runs_takes_its_result_instead_of_reading_the_commit_again()
     {
         var log = new List<string>();
         var snapshots = new Snapshots(log);
-        var service = new CommitAnalysisService(snapshots, new Builder(log), new MemoryCache());
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var service = new CommitAnalysisService(snapshots, new Builder(log, gate: gate.Task), new MemoryCache());
 
-        var both = await Task.WhenAll(service.AnalyzeAsync(Project, CommitA, Ct), service.AnalyzeAsync(Project, CommitA, Ct));
+        var first = service.AnalyzeAsync(Project, CommitA, Ct);
+        var second = service.AnalyzeAsync(Project, CommitA, Ct);
+        await Task.Delay(100, Ct);
 
         Assert.Equal(1, snapshots.Opened);
+        gate.SetResult();
+        var both = await Task.WhenAll(first, second);
+
         Assert.Equal(both[0], both[1]);
+        Assert.Equal(1, snapshots.Opened);
     }
 }

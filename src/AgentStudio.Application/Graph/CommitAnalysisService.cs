@@ -24,7 +24,7 @@ public interface ICommitAnalysisCache
 /// <summary>
 /// The analysis of a commit (docs/20 D-19, ADR-0062): opens one copy of the commit, lets the process of analysis read it, hands the same copy to the checks of
 /// the discrepancies, closes it and keeps both results by commit. A single analysis runs at a time (a queue of one: the copy shares the lock of the
-/// verification, «una a la vez»), and one that was asked while another ran finds the result in the cache.
+/// verification, «una a la vez»), and one that was asked while another of the same commit ran takes its result instead of reading the commit again.
 /// </summary>
 /// <param name="consistency">The checks (WP-D). Without them the discrepancies of the analysis are empty and every code is «no aplica», and the cache says so.</param>
 public sealed class CommitAnalysisService(
@@ -34,6 +34,8 @@ public sealed class CommitAnalysisService(
     IConsistencyService? consistency = null) : ICommitAnalysisService
 {
     private readonly SemaphoreSlim _one = new(1, 1);
+    private long _finished;
+    private (string Project, string Commit, CommitAnalysis Analysis)? _last;
 
     public async Task<CommitAnalysis?> FindAsync(ProjectContext project, string commit, CancellationToken ct)
     {
@@ -47,13 +49,15 @@ public sealed class CommitAnalysisService(
     {
         ArgumentNullException.ThrowIfNull(project);
         RequireCommit(commit);
+        var seen = Interlocked.Read(ref _finished);
         await _one.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            var cached = await cache.LoadAsync(project, commit, ct).ConfigureAwait(false);
-            if (IsAnswer(cached))
+            // «Calculates, caches and returns» (docs/20 D-19): what is cached is what FindAsync gives, and asking to analyze again reads the commit again (a file that
+            // timed out on a busy machine is given another chance). Only a caller that waited behind a run of the same commit that finished meanwhile takes its result.
+            if (_last is { } last && last.Project == project.ProjectId && last.Commit == commit && Interlocked.Read(ref _finished) != seen)
             {
-                return cached!.Analysis;
+                return last.Analysis;
             }
 
             var snapshot = await snapshots.OpenAsync(project, commit, ct).ConfigureAwait(false);
@@ -65,6 +69,8 @@ public sealed class CommitAnalysisService(
                     : await consistency.RunAsync(project, snapshot, ct).ConfigureAwait(false);
                 var analysis = new CommitAnalysis(build.Graph, report, build.Files);
                 await cache.SaveAsync(project, new CachedAnalysis(analysis, consistency is not null), ct).ConfigureAwait(false);
+                _last = (project.ProjectId, commit, analysis);
+                Interlocked.Increment(ref _finished);
                 return analysis;
             }
         }

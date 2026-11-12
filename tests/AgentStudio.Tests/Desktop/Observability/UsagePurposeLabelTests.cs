@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Usage;
 using AgentStudio.Desktop.Localization;
@@ -34,6 +34,7 @@ public sealed class UsagePurposeLabelTests
     [Theory]
     [InlineData(AgentRunPurpose.Help, "aux-20261111-a1b2c3", "ayuda", "Ayuda", "Help")]
     [InlineData(AgentRunPurpose.ClientDocumentDraft, "aux-20261111-d4e5f6", "borrador", "Borrador del documento para clientes", "Draft of the document for clients")]
+    [InlineData(AgentRunPurpose.GraphRelations, "aux-20261112-a1b2c3", "relaciones-grafo", "Relaciones propuestas del grafo", "Relations proposed for the graph")]
     public async Task The_purposes_of_phase_14_are_named_from_the_resources_in_each_attempt(AgentRunPurpose purpose, string run, string agent, string spanish, string english)
     {
         var attempt = UsageSamples.ClaudeAttempt with { RunId = run, TaskId = null, Purpose = purpose, Agent = new AgentId(agent) };

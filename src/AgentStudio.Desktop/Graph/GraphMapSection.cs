@@ -99,6 +99,7 @@ public sealed partial class GraphMapSection : GraphSection
     private ProjectContext? _pendingProject;
     private CodeGraph? _pendingGraph;
     private int _selectionGeneration;
+    private int _loadGeneration;
 
     public GraphMapSection(GraphBackend backend, TimeProvider? time = null, IUiTextProvider? texts = null)
         : base("Info_Graph_Map")
@@ -110,6 +111,22 @@ public sealed partial class GraphMapSection : GraphSection
         Consent = new QuotaConsentCardViewModel(_text, _time);
         TaskRows.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasNoTasks));
         Gaps.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasNoGaps));
+
+        // «Proponer relaciones» can be pressed once there is a graph and nothing is running or open: when any of that changes, the button is asked again.
+        PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is nameof(IsBusy) or nameof(Graph))
+            {
+                ProposeCommand.NotifyCanExecuteChanged();
+            }
+        };
+        Consent.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(QuotaConsentCardViewModel.IsOpen))
+            {
+                ProposeCommand.NotifyCanExecuteChanged();
+            }
+        };
     }
 
     public bool HasNoTasks => TaskRows.Count == 0;
@@ -222,6 +239,9 @@ public sealed partial class GraphMapSection : GraphSection
 
     protected override void ProjectChanged()
     {
+        // What an earlier load or proposal is still waiting for is not this project's: it will find itself stale and show nothing.
+        _loadGeneration++;
+        IsBusy = false;
         _analysis = null;
         _inferred = [];
         _unfolded.Clear();
@@ -237,7 +257,13 @@ public sealed partial class GraphMapSection : GraphSection
     }
 
     /// <summary>Reads what is kept for the version the project is at; when nothing is, it calculates it (D-19: «al abrir la pantalla si HEAD cambió»).</summary>
-    public override async Task ReloadAsync(CancellationToken ct)
+    public override Task ReloadAsync(CancellationToken ct) => LoadAsync(recalculate: false, ct);
+
+    /// <summary>
+    /// The one way the graph is read. A load is stale when the project changed, or a newer load began, while it waited (the analysis can take minutes or wait for
+    /// the lock of a verification): a stale load shows nothing, so the graph of a project is never painted under another.
+    /// </summary>
+    private async Task LoadAsync(bool recalculate, CancellationToken ct)
     {
         if (Project is not { } project || !CanAnalyze)
         {
@@ -245,58 +271,87 @@ public sealed partial class GraphMapSection : GraphSection
             return;
         }
 
+        var generation = ++_loadGeneration;
+        bool Stale() => generation != _loadGeneration;
         IsBusy = true;
         Error = null;
         try
         {
             var state = await _backend.Git!.SummaryAsync(project, ct).ConfigureAwait(true);
+            if (Stale())
+            {
+                return;
+            }
+
             if (!state.Accepted || state.HeadCommit is not { } head || !TraceRef.IsFullCommitId(head))
             {
                 Error = Texts.Get("Graph_Error_NoVersion");
                 return;
             }
 
-            var cached = await _backend.Analysis!.FindAsync(project, head, ct).ConfigureAwait(true);
-            if (cached is null)
+            var analysis = recalculate ? null : await _backend.Analysis!.FindAsync(project, head, ct).ConfigureAwait(true);
+            if (Stale())
+            {
+                return;
+            }
+
+            if (analysis is null)
             {
                 Status = Texts.Get("Graph_Status_Calculating");
-                cached = await _backend.Analysis.AnalyzeAsync(project, head, ct).ConfigureAwait(true);
+                analysis = await _backend.Analysis!.AnalyzeAsync(project, head, ct).ConfigureAwait(true);
+                if (Stale())
+                {
+                    return;
+                }
+
                 Status = null;
             }
 
-            await ShowAsync(project, cached, state.HasUncommittedChanges, ct).ConfigureAwait(true);
+            await ShowAsync(project, analysis, state.HasUncommittedChanges, Stale, ct).ConfigureAwait(true);
         }
         catch (OperationCanceledException)
         {
-            Status = null;
+            if (!Stale())
+            {
+                Status = null;
+            }
+
             throw;
         }
 #pragma warning disable CA1031 // The analysis is behind a port: why it failed is said, never thrown into the UI.
         catch (Exception ex) when (ex is not OperationCanceledException)
 #pragma warning restore CA1031
         {
-            Status = null;
-            Error = Texts.Format("Graph_Error_Analysis", ex.Message);
+            if (!Stale())
+            {
+                Status = null;
+                Error = Texts.Format("Graph_Error_Analysis", ex.Message);
+            }
         }
         finally
         {
-            IsBusy = false;
-            OnPropertyChanged(nameof(IsEmpty));
+            if (!Stale())
+            {
+                IsBusy = false;
+                OnPropertyChanged(nameof(IsEmpty));
+            }
         }
     }
 
-    /// <summary>«Actualizar»: calculates the version the project is at now, even when something is kept for it.</summary>
+    /// <summary>«Actualizar»: calculates the version the project is at now, even when something is kept for it (a file that timed out on a busy machine is read again).</summary>
     [RelayCommand]
-    private async Task RefreshAsync(CancellationToken ct)
-    {
-        _analysis = null;
-        await ReloadAsync(ct).ConfigureAwait(true);
-    }
+    private Task RefreshAsync(CancellationToken ct) => LoadAsync(recalculate: true, ct);
 
-    private async Task ShowAsync(ProjectContext project, CommitAnalysis analysis, bool hasChanges, CancellationToken ct)
+    private async Task ShowAsync(ProjectContext project, CommitAnalysis analysis, bool hasChanges, Func<bool> stale, CancellationToken ct)
     {
+        var inferred = _backend.Inference is { } store ? await store.ListAsync(project, ct).ConfigureAwait(true) : [];
+        if (stale())
+        {
+            return;
+        }
+
         _analysis = analysis;
-        _inferred = _backend.Inference is { } store ? await store.ListAsync(project, ct).ConfigureAwait(true) : [];
+        _inferred = inferred;
         VersionText = Texts.Format(hasChanges ? "Graph_Version_WithChanges" : "Graph_Version", analysis.Commit[..Math.Min(7, analysis.Commit.Length)]);
         Graph = analysis.Graph;
         var coverage = analysis.Graph.Coverage;
@@ -612,11 +667,19 @@ public sealed partial class GraphMapSection : GraphSection
         _pendingProject = null;
         _pendingGraph = null;
         CardLines.Clear();
+        var generation = _loadGeneration;
+        bool Stale() => generation != _loadGeneration;
         IsBusy = true;
         Status = Texts.Get("Graph_Status_Proposing");
         try
         {
+            // What the person paid for is kept by the service whatever happens here; if the project changed meanwhile, the screen shows nothing of it.
             var reply = await proposer.ProposeAsync(new GraphProposalRequest(project, graph, HelpAgentChoice.Default, _text.Provider.Culture.Name, consent), null, CancellationToken.None).ConfigureAwait(true);
+            if (Stale())
+            {
+                return;
+            }
+
             if (reply.Error is { } error)
             {
                 Error = Texts.Format("Graph_Error_Proposal", error);
@@ -624,20 +687,31 @@ public sealed partial class GraphMapSection : GraphSection
             else
             {
                 Message = Texts.Format("Graph_Message_Proposed", reply.Accepted.Count, reply.Discarded);
-                _inferred = _backend.Inference is { } store ? await store.ListAsync(project, CancellationToken.None).ConfigureAwait(true) : _inferred;
-                Rebuild();
+                var inferred = _backend.Inference is { } store ? await store.ListAsync(project, CancellationToken.None).ConfigureAwait(true) : _inferred;
+                if (!Stale())
+                {
+                    _inferred = inferred;
+                    Rebuild();
+                }
             }
         }
 #pragma warning disable CA1031 // The service is behind a port: why it failed is said, never thrown into the UI.
         catch (Exception ex) when (ex is not OperationCanceledException)
 #pragma warning restore CA1031
         {
-            Error = Texts.Format("Graph_Error_Proposal", ex.Message);
+            if (!Stale())
+            {
+                Error = Texts.Format("Graph_Error_Proposal", ex.Message);
+            }
         }
         finally
         {
-            IsBusy = false;
-            Status = null;
+            if (!Stale())
+            {
+                IsBusy = false;
+                Status = null;
+            }
+
             ProposeCommand.NotifyCanExecuteChanged();
         }
     }

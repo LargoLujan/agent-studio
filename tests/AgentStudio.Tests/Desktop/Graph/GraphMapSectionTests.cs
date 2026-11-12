@@ -106,6 +106,116 @@ public sealed class GraphMapSectionTests
     }
 
     [Fact]
+    public async Task Actualizar_calculates_the_version_again_even_when_something_is_kept_for_it()
+    {
+        var analysis = new Analysis();
+        var section = new GraphMapSection(new GraphBackend(analysis, new History()));
+        var document = new GraphDocumentViewModel([section]);
+        await document.SetProjectAsync(GraphDesktopFakes.Project, Ct);
+        Assert.Equal(0, analysis.Analyzed);
+
+        await section.RefreshCommand.ExecuteAsync(null);
+
+        Assert.Equal(1, analysis.Analyzed);
+        Assert.True(section.HasGraph);
+        Assert.False(section.IsBusy);
+    }
+
+    [Fact]
+    public async Task Proponer_relaciones_is_enabled_once_the_graph_is_there_and_the_button_is_asked_again_when_it_arrives_while_it_runs_and_when_the_card_opens()
+    {
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var analysis = new GatedAnalysis(gate.Task);
+        var section = new GraphMapSection(new GraphBackend(analysis, new History(), null, null, new Proposer()));
+        var document = new GraphDocumentViewModel([section]);
+        var asked = 0;
+        section.ProposeCommand.CanExecuteChanged += (_, _) => asked++;
+
+        var load = document.SetProjectAsync(GraphDesktopFakes.Project, Ct);
+        await WaitForAsync(() => section.IsBusy);
+
+        Assert.False(section.ProposeCommand.CanExecute(null), "no graph yet");
+        gate.SetResult();
+        await load;
+
+        Assert.True(section.ProposeCommand.CanExecute(null), "the graph arrived");
+        Assert.True(asked > 0, "the button was asked again: nothing re-enables it otherwise");
+
+        var before = asked;
+        await section.ProposeCommand.ExecuteAsync(null);
+
+        Assert.True(asked > before, "opening the card asks again");
+        Assert.False(section.ProposeCommand.CanExecute(null), "the card is open");
+        section.CancelProposalCommand.Execute(null);
+        Assert.True(section.ProposeCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task Changing_the_project_while_the_graph_of_the_other_is_being_calculated_never_paints_the_old_one_under_the_new_one()
+    {
+        var other = new AgentStudio.Application.Projects.ProjectContext("p-other", @"C:\work\other");
+        var otherCommit = new string('b', 40);
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var analysis = new PerProjectAnalysis(Commit, gate.Task, otherCommit);
+        var section = new GraphMapSection(new GraphBackend(analysis, new PerProjectHistory(GraphDesktopFakes.Project.RootPath, Commit, otherCommit)));
+        var document = new GraphDocumentViewModel([section]);
+
+        var slow = document.SetProjectAsync(GraphDesktopFakes.Project, Ct);
+        await WaitForAsync(() => analysis.Waiting);
+        await document.SetProjectAsync(other, Ct);
+        Assert.Equal(Texts.Format("Graph_Version", "bbbbbbb"), section.VersionText);
+
+        gate.SetResult();
+        await slow;
+
+        Assert.Equal(other, section.Project);
+        Assert.Equal(otherCommit, section.Graph!.Commit);
+        Assert.Contains("bbbbbbb", section.VersionText, StringComparison.Ordinal);
+        Assert.DoesNotContain("aaaaaaa", section.VersionText, StringComparison.Ordinal);
+        Assert.False(section.IsBusy);
+        Assert.Null(section.Status);
+    }
+
+    private sealed class GatedAnalysis(Task gate) : AgentStudio.Application.Graph.ICommitAnalysisService
+    {
+        public Task<CommitAnalysis?> FindAsync(AgentStudio.Application.Projects.ProjectContext project, string commit, CancellationToken ct) => Task.FromResult<CommitAnalysis?>(null);
+
+        public async Task<CommitAnalysis> AnalyzeAsync(AgentStudio.Application.Projects.ProjectContext project, string commit, CancellationToken ct)
+        {
+            await gate;
+            return (await new Analysis().AnalyzeAsync(project, commit, ct));
+        }
+    }
+
+    private sealed class PerProjectAnalysis(string slowCommit, Task gate, string fastCommit) : AgentStudio.Application.Graph.ICommitAnalysisService
+    {
+        public bool Waiting { get; private set; }
+
+        public Task<CommitAnalysis?> FindAsync(AgentStudio.Application.Projects.ProjectContext project, string commit, CancellationToken ct) => Task.FromResult<CommitAnalysis?>(null);
+
+        public async Task<CommitAnalysis> AnalyzeAsync(AgentStudio.Application.Projects.ProjectContext project, string commit, CancellationToken ct)
+        {
+            if (commit == slowCommit)
+            {
+                Waiting = true;
+                await gate;
+            }
+
+            return await new Analysis(commit == fastCommit ? fastCommit : slowCommit).AnalyzeAsync(project, commit, ct);
+        }
+    }
+
+    private sealed class PerProjectHistory(string rootA, string commitA, string commitB) : AgentStudio.Application.Git.IRepositoryHistoryReader
+    {
+        public Task<AgentStudio.Application.Git.RepositorySummary> SummaryAsync(AgentStudio.Application.Projects.ProjectContext project, CancellationToken cancellationToken) =>
+            Task.FromResult(new AgentStudio.Application.Git.RepositorySummary(project.RootPath, true, "main", project.RootPath == rootA ? commitA : commitB, false, []));
+
+        public Task<IReadOnlyList<AgentStudio.Application.Git.BranchSummary>> BranchesAsync(AgentStudio.Application.Projects.ProjectContext project, CancellationToken cancellationToken) => throw new NotSupportedException();
+
+        public Task<IReadOnlyList<AgentStudio.Application.Git.CommitNode>> CommitsAsync(AgentStudio.Application.Projects.ProjectContext project, AgentStudio.Application.Git.CommitGraphQuery query, CancellationToken cancellationToken) => throw new NotSupportedException();
+    }
+
+    [Fact]
     public async Task A_project_with_no_saved_version_says_so_and_a_section_without_its_services_says_it_is_not_available()
     {
         var none = new GraphMapSection(new GraphBackend(new Analysis(), new History(accepted: false)));
