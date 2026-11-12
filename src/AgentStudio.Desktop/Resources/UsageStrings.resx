@@ -374,7 +374,7 @@
     <comment>Text. Marker of a group of attempts whose start did not record its purpose.</comment>
   </data>
   <data name="Usage_Value_NoModel" xml:space="preserve">
-    <value>predeterminado del CLI (no expuesto)</value>
+    <value>predeterminado del programa del agente (no expuesto)</value>
     <comment>Text. The model of an attempt that has none: the one the CLI chooses.</comment>
   </data>
   <data name="Usage_Note_NoJournal" xml:space="preserve">
@@ -442,7 +442,7 @@
     <comment>Text. {0}: the problem.</comment>
   </data>
   <data name="Usage_Note_Unanchored" xml:space="preserve">
-    <value>Ningún ancla reconoce este historial en su ubicación (se movió, se copió o vino con el repositorio): no se cuenta hasta que se acepte como nuevo origen.</value>
+    <value>Ningún ancla reconoce este historial aquí (se movió, se copió o vino con el repositorio). No se cuenta hasta que se acepte como nuevo origen.</value>
     <comment>Text.</comment>
   </data>
   <data name="Usage_Note_AnotherProject" xml:space="preserve">

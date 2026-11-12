@@ -371,7 +371,7 @@
     <value>no purpose (log from before Phase 4)</value>
   </data>
   <data name="Usage_Value_NoModel" xml:space="preserve">
-    <value>CLI default (not exposed)</value>
+    <value>agent program default (not exposed)</value>
   </data>
   <data name="Usage_Note_NoJournal" xml:space="preserve">
     <value>No journal for the period.</value>
@@ -422,7 +422,7 @@
     <value>The log does not verify: {0}</value>
   </data>
   <data name="Usage_Note_Unanchored" xml:space="preserve">
-    <value>No anchor recognises this history in its location (it was moved, copied or came with the repository): it is not counted until it is accepted as a new origin.</value>
+    <value>No anchor recognises this history here (it was moved, copied or came with the repository). It is not counted until it is accepted as a new origin.</value>
   </data>
   <data name="Usage_Note_AnotherProject" xml:space="preserve">
     <value>The anchor of this location belongs to another project: it is not counted.</value>

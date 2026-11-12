@@ -70,7 +70,7 @@ public sealed class UsageMarkersLanguageTests
         Assert.Contains("no session", key, StringComparison.Ordinal);
         Assert.Contains("no task", key, StringComparison.Ordinal);
         Assert.Contains("no purpose", key, StringComparison.Ordinal);
-        Assert.Contains("CLI default (not exposed)", key, StringComparison.Ordinal);
+        Assert.Contains("agent program default (not exposed)", key, StringComparison.Ordinal);
         Assert.DoesNotContain(UsageAggregator.NoSession, key, StringComparison.Ordinal);
         Assert.DoesNotContain(UsageAggregator.NoTask, key, StringComparison.Ordinal);
         Assert.DoesNotContain(UsageAttemptFacts.DefaultModel, key, StringComparison.Ordinal);
@@ -101,7 +101,7 @@ public sealed class UsageMarkersLanguageTests
         Assert.Equal(Report().Journal.Warnings, dashboard.ReconciliationWarnings);
         Assert.Equal(Report().Excluded.Select(e => $"{e.Root}: {e.Reason}"), dashboard.Excluded);
         Assert.Contains(UsageAggregator.NoSession, dashboard.Groups[1].Key, StringComparison.Ordinal);
-        Assert.Contains(UsageAttemptFacts.DefaultModel, dashboard.Groups[1].Key, StringComparison.Ordinal);
+        Assert.Contains(Texts.Get("Usage_Value_NoModel"), dashboard.Groups[1].Key, StringComparison.Ordinal);
 
         // The aggregator keeps its raw values for the export.
         Assert.Equal(UsageAggregator.NoSession, Report().Groups[1].Key[0].Value);
