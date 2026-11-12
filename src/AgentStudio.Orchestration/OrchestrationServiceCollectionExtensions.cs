@@ -66,7 +66,8 @@ public static class OrchestrationServiceCollectionExtensions
             provider.GetRequiredService<IVerdictStore>()));
         services.TryAddSingleton<IParticipationProjector>(provider => new ParticipationProjector(
             provider.GetRequiredService<IDecisionRecorder>(),
-            provider.GetRequiredService<IVerdictStore>()));
+            provider.GetRequiredService<IVerdictStore>(),
+            provider.GetRequiredService<IPlanStore>()));
         services.TryAddSingleton<IRepositoryAnnotator>(provider => new RepositoryAnnotator(
             provider.GetRequiredService<IDecisionRecorder>(),
             provider.GetRequiredService<TraceSuggester>()));

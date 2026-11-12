@@ -641,6 +641,22 @@ Centra la cadena en cualquier nodo.</value>
     <value>Deducido, sin confirmar.</value>
     <comment>Text.</comment>
   </data>
+  <data name="Work_Chain_Standing_InForce" xml:space="preserve">
+    <value>En vigor.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Chain_Standing_Superseded" xml:space="preserve">
+    <value>Sustituido por un veredicto posterior.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Chain_Standing_Challenged" xml:space="preserve">
+    <value>Impugnado: en revisión.</value>
+    <comment>Text.</comment>
+  </data>
+  <data name="Work_Chain_Standing_Revised" xml:space="preserve">
+    <value>Revisado: manda la decisión de la revisión.</value>
+    <comment>Text.</comment>
+  </data>
   <data name="Work_Chain_NoLink" xml:space="preserve">
     <value>Sin enlace: la aplicación no tiene dónde abrirlo.</value>
     <comment>Text.</comment>

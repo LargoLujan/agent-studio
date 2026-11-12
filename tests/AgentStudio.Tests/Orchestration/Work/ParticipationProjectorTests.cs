@@ -24,7 +24,7 @@ public sealed class ParticipationProjectorTests
 
     private static CancellationToken Ct => WorkWorld.Ct;
 
-    private static ParticipationProjector Projector(WorkWorld world) => new(world.Instance.Recorder, world.Instance.Verdicts);
+    private static ParticipationProjector Projector(WorkWorld world) => new(world.Instance.Recorder, world.Instance.Verdicts, world.Instance.Plans);
 
     private static TraceRef T1 => TraceRef.Task(WorkWorld.Run1, "T1");
 
@@ -124,6 +124,39 @@ public sealed class ParticipationProjectorTests
     }
 
     [Fact]
+    public async Task The_verdict_issued_on_the_review_task_counts_for_the_tasks_whose_requirements_it_assessed_and_for_no_other()
+    {
+        // The engine issues the verdict of a run on its review task (T7); the chain hangs it from the tasks it judged and the participation must agree with it.
+        using var world = await RunningAsync();
+        await world.VerdictAsync(WorkWorld.Run1, VerdictDecision.Approved, task: "T7", assessing: ["R1"]);
+        var projector = Projector(world);
+
+        var first = await projector.ProjectAsync(world.Project, T1, Ct);
+        var second = await projector.ProjectAsync(world.Project, TraceRef.Task(WorkWorld.Run1, "T2"), Ct);
+        var run = await projector.ProjectAsync(world.Project, TraceRef.Run(WorkWorld.Run1), Ct);
+
+        Assert.Equal(("judge", ParticipationSources.Verdict), (Role(first, ParticipationRole.Reviewer).Who, Role(first, ParticipationRole.Reviewer).Source));
+        Assert.False(Role(second, ParticipationRole.Reviewer).IsRecorded);
+        Assert.True(Role(run, ParticipationRole.Reviewer).IsRecorded);
+    }
+
+    [Fact]
+    public async Task A_verdict_with_no_assessments_counts_for_every_task_and_one_issued_on_another_task_only_for_that_one()
+    {
+        using var world = await RunningAsync();
+        await world.VerdictAsync(WorkWorld.Run1, VerdictDecision.Approved, task: "T7", assessing: [], id: "whole");
+        await world.VerdictAsync(WorkWorld.Run1, VerdictDecision.Rejected, task: "T2", id: "of-t2");
+        var projector = Projector(world);
+
+        var first = await projector.ProjectAsync(world.Project, T1, Ct);
+        var second = await projector.ProjectAsync(world.Project, TraceRef.Task(WorkWorld.Run1, "T2"), Ct);
+
+        // The details differ by the decision, so each verdict is its own entry.
+        Assert.Contains("Approved", Assert.Single(first.Entries, e => e.Role == ParticipationRole.Reviewer).Detail);
+        Assert.Equal(["Approved", "Rejected"], second.Entries.Where(e => e.Role == ParticipationRole.Reviewer).Select(e => e.Detail!.Split(": ")[1]).Order());
+    }
+
+    [Fact]
     public async Task A_milestone_gathers_the_runs_linked_to_it_and_the_ones_that_follow()
     {
         using var world = await WorkWorld.OpenAsync();
@@ -148,7 +181,7 @@ public sealed class ParticipationProjectorTests
 
         await Assert.ThrowsAsync<ArgumentException>(() => Projector(world).ProjectAsync(world.Project, TraceRef.Commit(CommitA), Ct));
         await Assert.ThrowsAsync<ArgumentException>(() => Projector(world).ProjectAsync(world.Project, new TraceRef(TraceNodeKind.Task, "sin-barra"), Ct));
-        var broken = new ParticipationProjector(new BrokenLogRecorder(world.Instance.Recorder), world.Instance.Verdicts);
+        var broken = new ParticipationProjector(new BrokenLogRecorder(world.Instance.Recorder), world.Instance.Verdicts, world.Instance.Plans);
         await Assert.ThrowsAsync<DecisionLogIntegrityException>(() => broken.ProjectAsync(world.Project, T1, Ct));
     }
 }

@@ -87,6 +87,8 @@ public sealed partial class ParticipationSection : WorkSection
 
     protected override void ProjectChanged()
     {
+        // A read of the other project still in flight must not fill the lists of this one when it ends.
+        BeginRead();
         Subjects.Clear();
         Roles.Clear();
         OnPropertyChanged(nameof(HasSubjects));
@@ -111,7 +113,7 @@ public sealed partial class ParticipationSection : WorkSection
             {
                 var view = await participation.ProjectAsync(project, subject.Value, CancellationToken.None).ConfigureAwait(true);
                 roles.AddRange(view.Entries.Select(entry => new ParticipationRowViewModel(entry)));
-            }).ConfigureAwait(true);
+            }, read: read).ConfigureAwait(true);
         }
 
         if (!IsLatest(read))

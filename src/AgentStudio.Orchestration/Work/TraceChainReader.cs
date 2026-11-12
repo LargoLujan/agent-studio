@@ -2,6 +2,7 @@ using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Work;
+using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Evidence;
 using AgentStudio.Domain.Tracing;
@@ -23,10 +24,21 @@ namespace AgentStudio.Orchestration.Work;
 /// is never set here.</item>
 /// <item><b>Which way it walks.</b> From the node it goes towards the delivery only through nodes of a later stage, and towards the requirement only through nodes of an
 /// earlier one; so the chain of a task is its own, not that of every task of its run. A milestone met on the way is where that way ends. The run is a hub between the
-/// milestone and its tasks and is not a step. The verdicts and the delivery hang off the task they judged (or, with no task in the verdict, off every task of the run) and off
-/// the tasks that were delivered (completed, and integrated when the log records the integrations of tasks): a chain that reaches a task has them, and a chain that starts
-/// at a verdict or the delivery has the work of its tasks (attempts, changes and verifications), so it is complete from any node. A verdict counts only when it is valid in
-/// the log and in the store, with the same decision.</item>
+/// milestone and its tasks and is not a step. The verdicts and the delivery hang off the tasks they judged and delivered (see below): a chain that reaches a task has them, and a
+/// chain that starts at a verdict or the delivery has the work of its tasks (attempts, changes and verifications). A verdict counts only when it is valid in the log and in the
+/// store, with the same decision.</item>
+/// <item><b>A verdict and a delivery are shared nodes</b>: every task they hang off, with its requirements and its work, is in the chain from any of them, so the chain is the
+/// same from every node it contains. A verdict that judged R1 and R2 puts them in one chain; one that judged only R1 leaves R2 out of it, unless the two were delivered together.
+/// The unit is the task: a task that covers R1 and R2 carries the verdict that judged either of them (the board, per requirement, says it more finely).</item>
+/// <item><b>Which tasks a verdict hangs from</b> is the rule the board and the participation use too (<see cref="VerdictReach"/>): a verdict judges a task only if it assessed a
+/// requirement the task covers (all of its scope if it assessed none), and so a chain from a requirement the verdict did not assess does not have it.</item>
+/// <item><b>Several verdicts</b> over the same work (a retry after a rejection, a revision, a follow-up run) are all shown, in the order of the log, each with its
+/// <see cref="TraceChainStep.Standing"/>: the last one that judged a requirement (in the last run that started that covers it) is in force, an earlier one is superseded, and a
+/// person's challenge leaves it challenged or, once closed with another decision, revised (docs/15 D-38 to D-40, as on the board). A verdict that is not in force is never shown
+/// as the one that stands.</item>
+/// <item><b>Which tasks a delivery delivered.</b> The integration task is recorded when the engine accepted its integration (the branch of the run, not a hidden candidate
+/// ref), with a commit and no conflict. It merged the code of the completed tasks that produce code and that it depends on, looking through those that produce none, and of
+/// what they were built on; a task that failed or was skipped, or one that is not a prerequisite of the integration, was not merged.</item>
 /// <item><b>The steps</b> come in the order of the stages, each node once, with the title the log or the plan gives (the statement of a requirement, the name of a
 /// milestone, the title of a task).</item>
 /// </list>
@@ -61,14 +73,32 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
         var core = up.Append(start).Concat(down).ToList();
         var startAt = graph.At(start)!.Value;
 
-        // What hangs off the tasks of the chain: their verdicts and their delivery; and, from a verdict or the delivery, the work of those tasks.
+        // What hangs off the tasks of the chain: their verdicts and their delivery; and, from a verdict or the delivery, the work of those tasks. A verdict and a delivery
+        // are shared nodes: the other tasks they hang off (and with them their requirements and work) are in the chain too, so the chain is the same from every node it holds.
         var extra = new List<TraceRef>();
-        foreach (var task in core.Where(n => graph.At(n) == TaskAt))
+        var pending = new Queue<TraceRef>(core.Where(n => graph.At(n) == TaskAt));
+        var inChain = new HashSet<TraceRef>(pending);
+        while (pending.Count > 0)
         {
-            extra.AddRange(graph.Neighbours(task).Where(n => graph.At(n) is { } at && at >= VerdictAt));
-            if (startAt >= VerdictAt)
+            var task = pending.Dequeue();
+            if (startAt >= VerdictAt && core.Contains(task))
             {
                 extra.AddRange(Walk(graph, task, upstream: false).Where(n => graph.At(n) is { } at && at < VerdictAt));
+            }
+
+            foreach (var hanging in graph.Neighbours(task).Where(n => graph.At(n) is { } at && at >= VerdictAt))
+            {
+                extra.Add(hanging);
+                foreach (var other in graph.Neighbours(hanging).Where(n => graph.At(n) == TaskAt))
+                {
+                    if (inChain.Add(other))
+                    {
+                        extra.Add(other);
+                        extra.AddRange(Walk(graph, other, upstream: true));
+                        extra.AddRange(Walk(graph, other, upstream: false).Where(n => graph.At(n) is { } at && at < VerdictAt));
+                        pending.Enqueue(other);
+                    }
+                }
             }
         }
 
@@ -90,7 +120,7 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
 
         return new TraceChain(
             start,
-            [.. steps.OrderBy(s => s.At).ThenBy(s => s.Node.Kind).ThenBy(s => s.Node.Id, StringComparer.Ordinal).Select(s => new TraceChainStep(StageOf(s.At), s.Node, graph.Titles.GetValueOrDefault(s.Node), false))]);
+            [.. steps.OrderBy(s => s.At).ThenBy(s => graph.Sequence.GetValueOrDefault(s.Node)).ThenBy(s => s.Node.Kind).ThenBy(s => s.Node.Id, StringComparer.Ordinal).Select(s => new TraceChainStep(StageOf(s.At), s.Node, graph.Titles.GetValueOrDefault(s.Node), false, graph.Standings.TryGetValue(s.Node, out var standing) ? standing : null))]);
     }
 
     /// <summary>The nodes reached from <paramref name="start"/> through nodes of an earlier (or later) stage, breadth first, without the start.</summary>
@@ -159,8 +189,7 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
         }
 
         // Runs: their tasks and what the tasks cover.
-        var tasksOfRun = new Dictionary<string, List<TraceRef>>(StringComparer.Ordinal);
-        var reviewTasks = new HashSet<TraceRef>();
+        var tasksOfRun = new Dictionary<string, List<PlannedTask>>(StringComparer.Ordinal);
         var prerequisites = new Dictionary<(string Run, string Task), string[]>();
         var planCache = new Dictionary<string, AgentStudio.Domain.Orchestration.PlanDefinition?>(StringComparer.Ordinal);
         foreach (var started in payloads.Select(p => p.Payload).OfType<RunStartedPayload>().DistinctBy(p => p.RunId))
@@ -176,11 +205,7 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
             foreach (var spec in plan?.Tasks ?? [])
             {
                 var task = TraceRef.Task(started.RunId, spec.Id.Value);
-                tasks.Add(task);
-                if (spec.Kind == AgentStudio.Domain.Work.WorkTaskKind.Review)
-                {
-                    reviewTasks.Add(task);
-                }
+                tasks.Add(new PlannedTask(task, spec.Id, spec.Covers, spec.Kind == AgentStudio.Domain.Work.WorkTaskKind.Review, RunContext.ProducesCode(spec)));
 
                 prerequisites[(started.RunId, spec.Id.Value)] = [.. spec.DependsOn.Select(d => d.Prerequisite.Value)];
 
@@ -194,8 +219,10 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
 
         // Which tasks a delivery delivered: those that finished completed and, when the log records the integrations of tasks of the run, were integrated.
         var completed = new HashSet<(string Run, string Task)>();
+        var skipped = new HashSet<(string Run, string Task)>();
         var integrated = new HashSet<(string Run, string Task)>();
         var integrates = new HashSet<string>(StringComparer.Ordinal);
+        var hidden = AgentStudio.Orchestration.Integration.IntegrationNames.HiddenRefPrefix;
         foreach (var (_, payload) in payloads)
         {
             switch (payload)
@@ -210,22 +237,52 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
                         completed.Remove((change.RunId, change.Task.Value));
                     }
 
+                    if (change.To == AgentStudio.Domain.Work.WorkTaskStatus.Skipped)
+                    {
+                        skipped.Add((change.RunId, change.Task.Value));
+                    }
+                    else
+                    {
+                        skipped.Remove((change.RunId, change.Task.Value));
+                    }
+
                     break;
                 case IntegrationPerformedPayload { IsDelivery: false, Task: { } integratedTask } integration:
                     integrates.Add(integration.RunId);
-                    if (integration.ResultCommit is not null && integration.ConflictPaths.Count == 0)
+                    // The engine records an integration it did not accept (a failed one, or one whose evidence it could not anchor) on the hidden candidate ref of the task,
+                    // never on the branch of the run, and one that left no commit or conflicted merged nothing.
+                    if (integration.ResultCommit is not null && integration.ConflictPaths.Count == 0 && !integration.TargetRef.StartsWith(hidden, StringComparison.Ordinal))
                     {
-                        // The integration task (I1) merges the work of the tasks it depends on, however far: they are integrated with it.
-                        var pending = new Stack<string>([integratedTask.Value]);
-                        while (pending.Count > 0)
+                        // The integration task (I1) merges the code of the completed tasks it depends on, through the tasks that produce none (a condition, an approval, a
+                        // review), and with each of them the code it was built on. A task that did not complete merged nothing, and what is reachable only through it neither;
+                        // a task that is not a prerequisite of the integration, however near, is not merged by it.
+                        var toVisit = new Stack<string>([integratedTask.Value]);
+                        var seen = new HashSet<string>(StringComparer.Ordinal);
+                        while (toVisit.Count > 0)
                         {
-                            var id = pending.Pop();
-                            if (integrated.Add((integration.RunId, id)) && prerequisites.TryGetValue((integration.RunId, id), out var before))
+                            var id = toVisit.Pop();
+                            if (!seen.Add(id) || skipped.Contains((integration.RunId, id)) || !prerequisites.TryGetValue((integration.RunId, id), out var before))
                             {
-                                foreach (var prerequisite in before)
-                                {
-                                    pending.Push(prerequisite);
-                                }
+                                continue;
+                            }
+
+                            // The integration task itself records before it completes. Any other task that produces code merged only if it completed; one that does not
+                            // (a condition, an approval, a review) is looked through and merged nothing.
+                            var isIntegration = id == integratedTask.Value;
+                            var producesCode = tasksOfRun.TryGetValue(integration.RunId, out var planned) && planned.Any(t => t.Id.Value == id && t.ProducesCode);
+                            if (!isIntegration && producesCode && !completed.Contains((integration.RunId, id)))
+                            {
+                                continue;
+                            }
+
+                            if (isIntegration || producesCode)
+                            {
+                                integrated.Add((integration.RunId, id));
+                            }
+
+                            foreach (var prerequisite in before)
+                            {
+                                toVisit.Push(prerequisite);
                             }
                         }
                     }
@@ -240,6 +297,10 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
             return completed.Contains((run, id)) && (!integrates.Contains(run) || integrated.Contains((run, id)));
         }
 
+        var last = new Dictionary<string, (int Run, int Sequence, string Verdict)>(StringComparer.Ordinal);
+        var verdictStanding = new Dictionary<TraceRef, VerdictStanding>();
+        var sequence = 0;
+        var runOrder = payloads.Select(p => p.Payload).OfType<RunStartedPayload>().Select(p => p.RunId).Distinct(StringComparer.Ordinal).Select((run, index) => (run, index)).ToDictionary(x => x.run, x => x.index, StringComparer.Ordinal);
         foreach (var (entry, payload) in payloads)
         {
             switch (payload)
@@ -268,24 +329,68 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
                     break;
                 case VerdictIssuedPayload { Valid: true } verdict when tasksOfRun.TryGetValue(verdict.RunId, out var judged)
                     && storedVerdicts.TryGetValue(verdict.VerdictId, out var stored) && stored.Valid && stored.Verdict.Decision == verdict.Decision:
-                    // The verdict of a run is issued on its review task (VerdictKeeper), which covers nothing: it judged the work of the run,
-                    // so it hangs from every task of the run. A verdict of any other task judged that task.
-                    foreach (var task in verdict.Task is { } one && !reviewTasks.Contains(TraceRef.Task(verdict.RunId, one.Value)) ? judged.Where(t => t == TraceRef.Task(verdict.RunId, one.Value)) : judged)
+                    // The same rule as the board and the participation (VerdictReach): a verdict hangs from a task only if it judged it, and so only from the requirements
+                    // it assessed. The verdict of a run is issued on its review task (VerdictKeeper), which covers nothing: it judged the work of the run.
+                    var onOrdinaryTask = verdict.Task is { } issuedOn && judged.Any(t => t.Id == issuedOn && !t.IsReview);
+                    var verdictNode = TraceRef.Verdict(verdict.VerdictId);
+                    var hung = false;
+                    sequence++;
+                    foreach (var task in judged.Where(t => VerdictReach.Judges(stored.Verdict, verdict.Task, onOrdinaryTask, t.Id, t.Covers)))
                     {
-                        graph.Edge(task, TraceRef.Verdict(verdict.VerdictId), VerdictAt);
+                        graph.Edge(task.Node, verdictNode, VerdictAt);
+
+                        // The last verdict of the last run that judged a requirement is the one in force for it (a task that covers none, for the task).
+                        foreach (var key in stored.Verdict.Assessments.Count == 0
+                            ? (task.Covers.Count == 0 ? [TaskKey(task.Node)] : task.Covers.Select(c => c.Value))
+                            : stored.Verdict.Assessments.Where(a => task.Covers.Contains(a.Requirement)).Select(a => a.Requirement.Value))
+                        {
+                            if (!last.TryGetValue(key, out var known) || (runOrder[verdict.RunId], sequence).CompareTo((known.Run, known.Sequence)) > 0)
+                            {
+                                last[key] = (runOrder[verdict.RunId], sequence, verdict.VerdictId);
+                            }
+                        }
+
+                        hung = true;
+                    }
+
+                    if (hung)
+                    {
+                        verdictStanding[verdictNode] = VerdictReach.Standing(parsed, stored, storedVerdicts);
+                        graph.Sequence[verdictNode] = sequence;
                     }
 
                     break;
                 case IntegrationPerformedPayload { IsDelivery: true, ResultCommit: { } commit, ConflictPaths.Count: 0 } delivery when tasksOfRun.TryGetValue(delivery.RunId, out var delivered) && TraceRef.IsFullCommitId(commit):
                     var deliveryNode = TraceRef.Commit(commit);
                     graph.Place(deliveryNode, DeliveryAt);
-                    foreach (var task in delivered.Where(t => IsDelivered(delivery.RunId, t)))
+                    foreach (var task in delivered.Where(t => IsDelivered(delivery.RunId, t.Node)))
                     {
-                        graph.Edge(task, deliveryNode, DeliveryAt);
+                        graph.Edge(task.Node, deliveryNode, DeliveryAt);
                     }
 
                     break;
             }
+        }
+
+        // Several verdicts can judge the same work (a retry after a rejection, a revision, a follow-up run): as on the board, the last verdict that judged a requirement decides
+        // it, and where several runs cover it the last run that started (and a later run that covers it with no verdict leaves the earlier runs' verdicts superseded). One that
+        // decides nowhere was superseded. A verdict a person challenged is shown as such while it is the last, and one whose revision settled another decision as revised, never as
+        // the one that stands.
+        var lastCoveringRun = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var (run, planned) in tasksOfRun)
+        {
+            foreach (var requirement in planned.SelectMany(t => t.Covers).Select(c => c.Value))
+            {
+                lastCoveringRun[requirement] = Math.Max(lastCoveringRun.GetValueOrDefault(requirement, -1), runOrder.GetValueOrDefault(run, -1));
+            }
+        }
+
+        var inForce = last.Where(k => !lastCoveringRun.TryGetValue(k.Key, out var covering) || k.Value.Run >= covering).Select(k => k.Value.Verdict).ToHashSet(StringComparer.Ordinal);
+        foreach (var (node, standing) in verdictStanding)
+        {
+            graph.Standings[node] = !inForce.Contains(node.Id)
+                ? TraceVerdictStanding.Superseded
+                : standing.Challenged ? TraceVerdictStanding.Challenged : standing.Revised ? TraceVerdictStanding.Revised : TraceVerdictStanding.InForce;
         }
 
         // The explicit links in force, between nodes that have a place on the chain.
@@ -339,6 +444,11 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
         return at;
     }
 
+    private static string TaskKey(TraceRef task) => "task:" + task.Id;
+
+    /// <summary>A task of the plan of a run: its node, what it covers and whether it is the review task (which covers nothing) or produces code.</summary>
+    private sealed record PlannedTask(TraceRef Node, TaskId Id, IReadOnlyList<RequirementId> Covers, bool IsReview, bool ProducesCode);
+
     /// <summary>The nodes with their place on the chain and their title, and the edges between them (read in both directions).</summary>
     private sealed class ChainGraph
     {
@@ -346,6 +456,12 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
         private readonly Dictionary<TraceRef, List<TraceRef>> _edges = [];
 
         public Dictionary<TraceRef, string?> Titles { get; } = [];
+
+        /// <summary>Where each verdict of the chain stands (docs/15 D-40): in force, superseded by a later one, or challenged.</summary>
+        public Dictionary<TraceRef, TraceVerdictStanding> Standings { get; } = [];
+
+        /// <summary>The place of each verdict in the log, so that verdicts come in the order they were issued and not by id.</summary>
+        public Dictionary<TraceRef, int> Sequence { get; } = [];
 
         public int? At(TraceRef node) => _at.TryGetValue(node, out var at) ? at : null;
 

@@ -140,6 +140,31 @@ public sealed class BoardProjectorTests
         }
     }
 
+    [Fact]
+    public async Task A_verdict_counts_only_for_the_requirements_it_assessed()
+    {
+        // The rule the chain and the participation share (VerdictReach): a verdict that assessed only R1 says nothing of R2, whatever the last verdict of the run was.
+        var (world, milestone) = await LinkedAsync();
+        using (world)
+        {
+            await world.RunAndCompleteAsync(WorkWorld.Run1, "T1");
+            await world.RunAndCompleteAsync(WorkWorld.Run1, "T2");
+            await world.FinishAsync(WorkWorld.Run1, RunPhase.Succeeded);
+            await world.VerdictAsync(WorkWorld.Run1, VerdictDecision.Approved, task: "T7", assessing: ["R1"]);
+
+            var board = await world.Board.ProjectAsync(world.Project, milestone, Ct);
+
+            Assert.Equal(BoardColumn.Done, Column(board, "R1"));
+            Assert.Equal(BoardColumn.InReview, Column(board, "R2"));
+
+            await world.VerdictAsync(WorkWorld.Run1, VerdictDecision.Rejected, task: "T7", assessing: ["R2"], id: "v2");
+
+            board = await world.Board.ProjectAsync(world.Project, milestone, Ct);
+            Assert.Equal(BoardColumn.Done, Column(board, "R1"));
+            Assert.Equal(BoardColumn.Returned, Column(board, "R2"));
+        }
+    }
+
     [Theory]
     [InlineData(VerdictDecision.ChangesRequested, BoardColumn.Returned)]
     [InlineData(VerdictDecision.Rejected, BoardColumn.Returned)]
