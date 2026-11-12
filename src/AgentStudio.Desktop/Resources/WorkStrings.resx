@@ -1033,4 +1033,8 @@ Sigue el tablero y recorre la cadena de cada tarjeta.
 Pon un presupuesto si quieres un límite.</value>
     <comment>Information button.</comment>
   </data>
+  <data name="Work_Budget_Unreadable" xml:space="preserve">
+    <value>No se pudo leer el presupuesto</value>
+    <comment>Text. Shown instead of the current budget when its file cannot be read; the engine does not launch attempts while that holds.</comment>
+  </data>
 </root>

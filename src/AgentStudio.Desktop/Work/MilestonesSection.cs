@@ -79,8 +79,13 @@ public sealed partial class BacklogChoiceViewModel : ObservableObject
 /// </summary>
 public sealed partial class MilestonesSection : WorkSection
 {
+    // True only while a reload swaps the lists: the list box (two-way binding) puts the selection to null when its items are cleared, and
+    // that is not the person choosing something else.
     private bool _loading;
     private int _linkRead;
+
+    // The milestone the person has selected, by identity: a reload gives new row objects and, with a binding, a null in between.
+    private string? _selectedId;
 
     public MilestonesSection(WorkContext context)
         : base(context, "Info_Work_Milestones")
@@ -206,35 +211,85 @@ public sealed partial class MilestonesSection : WorkSection
             return;
         }
 
+        // Everything is read aside and applied only if this is still the latest read: two overlapped reloads never both fill the lists.
+        var read = BeginRead();
+        var keep = _selectedId;
+        var included = BacklogChoices.Where(c => c.IsIncluded).Select(c => c.Entry.Item.Id.Value).ToHashSet(StringComparer.Ordinal);
+        var judgeId = SelectedJudge?.Agent.Id.Value;
+        var rows = new List<MilestoneRow>();
+        var entries = new List<BacklogEntry>();
+        var judges = new List<AgentChoice>();
+        var ok = await GuardAsync(async () =>
+        {
+            rows.AddRange((await milestones.ListAsync(project, CancellationToken.None).ConfigureAwait(true)).Select(view => new MilestoneRow(view)));
+            if (Context.Backend.Backlog is { } backlog)
+            {
+                entries.AddRange(await backlog.ListAsync(project, CancellationToken.None).ConfigureAwait(true));
+            }
+
+            if (Context.Backend.Roster is { } roster)
+            {
+                judges.AddRange((await roster.ListAsync(project.ProjectId, CancellationToken.None).ConfigureAwait(true)).Where(a => a.Role == AgentRole.Judge).OrderBy(a => a.Id.Value, StringComparer.Ordinal).Select(a => new AgentChoice(a)));
+            }
+        }).ConfigureAwait(true);
+        if (!ok || !IsLatest(read))
+        {
+            return;
+        }
+
+        MilestoneRow? row;
         _loading = true;
-        var keep = SelectedItem?.Id;
         try
         {
-            await GuardAsync(async () =>
+            Items.Clear();
+            foreach (var item in rows)
             {
-                var views = await milestones.ListAsync(project, CancellationToken.None).ConfigureAwait(true);
-                Items.Clear();
-                foreach (var view in views)
-                {
-                    Items.Add(new MilestoneRow(view));
-                }
+                Items.Add(item);
+            }
 
-                await LoadChoicesAsync(project).ConfigureAwait(true);
-            }).ConfigureAwait(true);
+            BacklogChoices.Clear();
+            foreach (var entry in entries)
+            {
+                BacklogChoices.Add(new BacklogChoiceViewModel(entry, RefreshOpenProblems) { IsIncluded = included.Contains(entry.Item.Id.Value) });
+            }
+
+            Judges.Clear();
+            foreach (var judge in judges)
+            {
+                Judges.Add(judge);
+            }
+
+            SelectedJudge = Judges.FirstOrDefault(j => j.Agent.Id.Value == judgeId) ?? Judges.FirstOrDefault();
+            row = keep is null ? null : Items.FirstOrDefault(r => r.Id == keep);
+            SelectedItem = row;
         }
         finally
         {
             _loading = false;
         }
 
+        _selectedId = row?.Id;
+        if (keep is not null && row is null)
+        {
+            // The milestone the person had is gone: what was said about it goes with it.
+            Message = null;
+            CloseStatus = null;
+            OpenedReport = null;
+            Context.SelectMilestone(null);
+        }
+
         OnPropertyChanged(nameof(HasItems));
-        SelectedItem = keep is not null ? Items.FirstOrDefault(r => r.Id == keep) : null;
+        OnPropertyChanged(nameof(HasBacklogChoices));
         ShowSelected();
         RefreshOpenProblems();
+        await GuardAsync(() => LoadLinkChoicesAsync(project)).ConfigureAwait(true);
     }
 
     protected override void ProjectChanged()
     {
+        BeginRead();
+        _linkRead++;
+        _selectedId = null;
         Items.Clear();
         BacklogChoices.Clear();
         RunChoices.Clear();
@@ -253,6 +308,8 @@ public sealed partial class MilestonesSection : WorkSection
         {
             return;
         }
+
+        _selectedId = newValue?.Id;
 
         // The same milestone read again (after something was written) keeps what the person was told about it.
         var same = oldValue is not null && newValue is not null && oldValue.Id == newValue.Id;
@@ -278,31 +335,6 @@ public sealed partial class MilestonesSection : WorkSection
         {
             await GuardAsync(() => LoadLinkChoicesAsync(project)).ConfigureAwait(true);
         }
-    }
-
-    private async Task LoadChoicesAsync(AgentStudio.Application.Projects.ProjectContext project)
-    {
-        BacklogChoices.Clear();
-        if (Context.Backend.Backlog is { } backlog)
-        {
-            foreach (var entry in await backlog.ListAsync(project, CancellationToken.None).ConfigureAwait(true))
-            {
-                BacklogChoices.Add(new BacklogChoiceViewModel(entry, RefreshOpenProblems));
-            }
-        }
-
-        OnPropertyChanged(nameof(HasBacklogChoices));
-        Judges.Clear();
-        if (Context.Backend.Roster is { } roster)
-        {
-            foreach (var judge in (await roster.ListAsync(project.ProjectId, CancellationToken.None).ConfigureAwait(true)).Where(a => a.Role == AgentRole.Judge).OrderBy(a => a.Id.Value, StringComparer.Ordinal))
-            {
-                Judges.Add(new AgentChoice(judge));
-            }
-        }
-
-        SelectedJudge = Judges.FirstOrDefault();
-        await LoadLinkChoicesAsync(project).ConfigureAwait(true);
     }
 
     private async Task LoadLinkChoicesAsync(AgentStudio.Application.Projects.ProjectContext project)
@@ -544,8 +576,9 @@ public sealed partial class MilestonesSection : WorkSection
 
     private async Task LinkAsync(Choice<string>? choice, MilestoneTargetKind kind)
     {
-        if (Context.Backend.Milestones is not { } milestones || Context.Project is not { } project || SelectedItem is not { } row || choice is null)
+        if (IsBusy || Context.Backend.Milestones is not { } milestones || Context.Project is not { } project || SelectedItem is not { } row || choice is null)
         {
+            // A second click while the first link is being written would send the same link twice.
             return;
         }
 

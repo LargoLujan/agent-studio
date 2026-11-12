@@ -396,4 +396,13 @@ Elige un periodo para ver solo lo reciente.
 Mira el resultado real de cada integración o entrega.
 Quita los filtros para verlo todo.</value>
   </data>
+  <data name="Repository_Origin_Unchecked" xml:space="preserve">
+    <value>No se pudo comprobar con el registro de decisiones.</value>
+  </data>
+  <data name="Repository_Commits_ShowingNotAnnotated" xml:space="preserve">
+    <value>{0} {1}</value>
+  </data>
+  <data name="Repository_Activity_Unreadable" xml:space="preserve">
+    <value>No se pudo leer la actividad.</value>
+  </data>
 </root>

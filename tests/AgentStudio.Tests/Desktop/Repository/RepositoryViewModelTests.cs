@@ -179,7 +179,7 @@ public sealed class RepositoryViewModelTests
         await model.SetProjectAsync(Root);
 
         Assert.Equal("Primero", Assert.Single(model.Commits).Subject);
-        Assert.Equal("El registro de decisiones no se pudo comprobar, así que las versiones se muestran sin anotar.", model.CommitsNote);
+        Assert.Equal("Se muestran las últimas 1 versiones guardadas, de la más nueva a la más antigua. El registro de decisiones no se pudo comprobar, así que las versiones se muestran sin anotar.", model.CommitsNote);
         Assert.False(model.Commits[0].IsSystem);
     }
 

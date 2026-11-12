@@ -232,6 +232,9 @@ public sealed partial class RepositoryViewModel : DocumentViewModel
     public async Task SetProjectAsync(string? projectRoot)
     {
         var generation = ++_generation;
+
+        // Every read started before this call is dropped when it ends, and none of them lowers the flag: this call does.
+        IsBusy = false;
         _project = null;
         OnPropertyChanged(nameof(Project));
         Clear();
@@ -323,6 +326,12 @@ public sealed partial class RepositoryViewModel : DocumentViewModel
     [RelayCommand]
     private async Task ClearFiltersAsync()
     {
+        ResetFilters();
+        await ApplyFiltersAsync().ConfigureAwait(true);
+    }
+
+    private void ResetFilters()
+    {
         RunFilter = string.Empty;
         TaskFilter = string.Empty;
         MilestoneFilter = string.Empty;
@@ -330,30 +339,43 @@ public sealed partial class RepositoryViewModel : DocumentViewModel
         ModelFilter = string.Empty;
         SelectedProvider = Providers[0];
         SelectedPeriod = Periods[0];
-        await ApplyFiltersAsync().ConfigureAwait(true);
     }
 
     private async Task ReadAllAsync(ProjectContext project, int generation)
     {
-        // The summary comes first: it is the only call that says why the layer refused. Branches and commits return empty without a reason.
-        var summary = await _history!.SummaryAsync(project, CancellationToken.None).ConfigureAwait(true);
-        if (generation != _generation)
+        try
         {
-            return;
-        }
+            // The summary comes first: it is the only call that says why the layer refused. Branches and commits return empty without a reason.
+            var summary = await _history!.SummaryAsync(project, CancellationToken.None).ConfigureAwait(true);
+            if (generation != _generation)
+            {
+                return;
+            }
 
-        StatusMessage = null;
-        if (!summary.Accepted)
-        {
-            Refuse(RepositoryTexts.Refusal(summary.Warnings));
+            StatusMessage = null;
+            if (!summary.Accepted)
+            {
+                Refuse(RepositoryTexts.Refusal(summary.Warnings));
+            }
+            else
+            {
+                RefusalText = null;
+                ShowSummary(summary);
+                await ReadBranchesAsync(project, generation).ConfigureAwait(true);
+                await ReadCommitsAsync(project, generation).ConfigureAwait(true);
+                await ReadRemotesAsync(project, generation).ConfigureAwait(true);
+            }
         }
-        else
+#pragma warning disable CA1031 // The readers are behind ports: a failure is said in the screen, never thrown out of the command.
+        catch (Exception exception) when (exception is not OperationCanceledException)
+#pragma warning restore CA1031
         {
-            RefusalText = null;
-            ShowSummary(summary);
-            await ReadBranchesAsync(project, generation).ConfigureAwait(true);
-            await ReadCommitsAsync(project, generation).ConfigureAwait(true);
-            await ReadRemotesAsync(project, generation).ConfigureAwait(true);
+            if (generation == _generation)
+            {
+                // What was read before the failure would look complete next to what was not: nothing partial stays.
+                StatusMessage = null;
+                Refuse(RepositoryTexts.Refusal("unreadable"));
+            }
         }
 
         if (generation == _generation)
@@ -410,16 +432,21 @@ public sealed partial class RepositoryViewModel : DocumentViewModel
 
         IReadOnlyList<AnnotatedCommit> annotated = [.. nodes.Select(n => new AnnotatedCommit(n, null))];
         var note = nodes.Count == 0 ? Texts.Get("Repository_Commits_None") : Texts.Format("Repository_Commits_Showing", nodes.Count.ToString("N0", Texts.Current.Culture));
+
+        // Without an annotator, or when the log could not be checked, nothing is known: that is not «the log knows nothing of this version».
+        var checkedAgainstLog = _annotator is not null;
         if (_annotator is not null && nodes.Count > 0)
         {
             try
             {
                 annotated = await _annotator.AnnotateAsync(project, nodes, CancellationToken.None).ConfigureAwait(true);
             }
-            catch (DecisionLogIntegrityException)
+#pragma warning disable CA1031 // The annotator is behind a port: the history of git is still worth seeing, and whatever it fails with is said.
+            catch (Exception exception) when (exception is not OperationCanceledException)
+#pragma warning restore CA1031
             {
-                // The history of git is still worth seeing; what the log would add is not trusted, so it is not drawn.
-                note = Texts.Get("Repository_Commits_NotAnnotated");
+                // What the log would add is not trusted, so it is not drawn; the count stays.
+                checkedAgainstLog = false;
             }
 
             if (generation != _generation)
@@ -428,7 +455,12 @@ public sealed partial class RepositoryViewModel : DocumentViewModel
             }
         }
 
-        Replace(Commits, annotated.Select(CommitRowOf));
+        if (!checkedAgainstLog && nodes.Count > 0)
+        {
+            note = Texts.Format("Repository_Commits_ShowingNotAnnotated", note, Texts.Get("Repository_Commits_NotAnnotated"));
+        }
+
+        Replace(Commits, annotated.Select(a => CommitRowOf(a, checkedAgainstLog)));
         CommitsNote = note;
     }
 
@@ -456,6 +488,9 @@ public sealed partial class RepositoryViewModel : DocumentViewModel
     private async Task ReadActivityAsync(ProjectContext project, int generation)
     {
         FilterError = null;
+
+        // Counted before the filter is checked: a read that was still running must not paint its list over a filter that is refused.
+        var read = ++_activityReads;
         if (_activity is null)
         {
             Activities.Clear();
@@ -468,7 +503,6 @@ public sealed partial class RepositoryViewModel : DocumentViewModel
             return;
         }
 
-        var read = ++_activityReads;
         try
         {
             var events = await _activity.ListAsync(project, filter, CancellationToken.None).ConfigureAwait(true);
@@ -487,6 +521,16 @@ public sealed partial class RepositoryViewModel : DocumentViewModel
             {
                 Activities.Clear();
                 ActivityNote = Texts.Get("Repository_Activity_Failed");
+            }
+        }
+#pragma warning disable CA1031 // The reader is behind a port: a failure is said in the screen, never thrown out of the command.
+        catch (Exception exception) when (exception is not OperationCanceledException)
+#pragma warning restore CA1031
+        {
+            if (generation == _generation && read == _activityReads)
+            {
+                Activities.Clear();
+                ActivityNote = Texts.Get("Repository_Activity_Unreadable");
             }
         }
     }
@@ -555,10 +599,21 @@ public sealed partial class RepositoryViewModel : DocumentViewModel
         return new DateTimeOffset(local, _time.LocalTimeZone.GetUtcOffset(local));
     }
 
-    private CommitRow CommitRowOf(AnnotatedCommit annotated)
+    private CommitRow CommitRowOf(AnnotatedCommit annotated, bool checkedAgainstLog)
     {
         var commit = annotated.Commit;
-        var origin = OriginOf(annotated.Annotation, out var isSystem);
+        bool isSystem;
+        List<OriginLine> origin;
+        if (checkedAgainstLog)
+        {
+            origin = OriginOf(annotated.Annotation, out isSystem);
+        }
+        else
+        {
+            origin = [new OriginLine(Texts.Get("Repository_Origin_Unchecked"), false)];
+            isSystem = false;
+        }
+
         return new CommitRow(
             commit.Id,
             ShortId(commit.Id),
@@ -680,6 +735,9 @@ public sealed partial class RepositoryViewModel : DocumentViewModel
         Activities.Clear();
         ActivityNote = null;
         FilterError = null;
+
+        // The filters belong to the project they were typed for.
+        ResetFilters();
     }
 
     private static string ShortId(string id) => id.Length <= ShortIdLength ? id : id[..ShortIdLength];
