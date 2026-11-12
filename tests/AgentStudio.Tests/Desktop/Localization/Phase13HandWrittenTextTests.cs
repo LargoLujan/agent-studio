@@ -124,6 +124,19 @@ public sealed partial class Phase13HandWrittenTextTests
             "SQL of the local search index of the help (FTS5), not a text: nobody reads it.",
         [("Help/HelpSearch.cs", "INSERT INTO help (id, title, body) VALUES ($id, $title, $body);")] =
             "SQL of the local search index of the help (FTS5), not a text: nobody reads it.",
+        [("Help/HelpSynonyms.cs", "cuota")] = "Search keyword of the local help index (HelpSynonyms, P59): matched against the articles, never shown.",
+        [("Help/HelpSynonyms.cs", "límite de uso")] = "Search keyword of the local help index (HelpSynonyms, P59): matched against the articles, never shown.",
+        [("Help/HelpSynonyms.cs", "prueba guardada")] = "Search keyword of the local help index (HelpSynonyms, P59): matched against the articles, never shown.",
+        [("Help/HelpSynonyms.cs", "pruebas guardadas")] = "Search keyword of the local help index (HelpSynonyms, P59): matched against the articles, never shown.",
+        [("Help/HelpSynonyms.cs", "programa del agente")] = "Search keyword of the local help index (HelpSynonyms, P59): matched against the articles, never shown.",
+        [("Help/HelpSynonyms.cs", "ventana")] = "Search keyword of the local help index (HelpSynonyms, P59): matched against the articles, never shown.",
+        [("Help/HelpSynonyms.cs", "contexto")] = "Search keyword of the local help index (HelpSynonyms, P59): matched against the articles, never shown.",
+        [("Help/HelpSynonyms.cs", "memoria de trabajo")] = "Search keyword of the local help index (HelpSynonyms, P59): matched against the articles, never shown.",
+        [("Help/HelpSynonyms.cs", "versión guardada")] = "Search keyword of the local help index (HelpSynonyms, P59): matched against the articles, never shown.",
+        [("Help/HelpSynonyms.cs", "última versión guardada")] = "Search keyword of the local help index (HelpSynonyms, P59): matched against the articles, never shown.",
+        [("Help/HelpSynonyms.cs", "sin mezclar")] = "Search keyword of the local help index (HelpSynonyms, P59): matched against the articles, never shown.",
+        [("Help/HelpSynonyms.cs", "expediente para el juez")] = "Search keyword of the local help index (HelpSynonyms, P59): matched against the articles, never shown.",
+        [("Help/HelpSynonyms.cs", "historial que no se puede borrar")] = "Search keyword of the local help index (HelpSynonyms, P59): matched against the articles, never shown.",
         [("Orchestrator/Monitor/StepLogText.cs", @"\berror\b|\bfailed\b|\bfailure\b|\bexception\b|no test|not found|could not|cannot|\bfatal\b|\bfallid|\bno se (pudo|encontr)")] =
             "D-48: a pattern that tells which lines of a step log (the output of the tools, in either language) are errors; it is not shown.",
         [("Lock/HelloAnswers.cs", "se canceló la verificación")] =
