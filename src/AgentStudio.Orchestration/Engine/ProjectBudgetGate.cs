@@ -50,6 +50,9 @@ public sealed class ProjectBudgetGate(
 {
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, IReadOnlyList<string>> _membership = new(StringComparer.Ordinal);
 
+    /// <summary>Forgets the milestones remembered for a run: a start or a resume of the run reads them again.</summary>
+    public void Forget(string run) => _membership.TryRemove(run, out _);
+
     /// <summary>The code of the alert and of the sentence when a limit would be passed.</summary>
     public const string ExceededCode = "project.budget-exceeded";
 
@@ -77,7 +80,9 @@ public sealed class ProjectBudgetGate(
                 return Unreadable("no hay con qué leer lo gastado");
             }
 
-            var report = await usage.QueryAsync([project.RootPath], new UsageQuery(DateTimeOffset.MinValue, DateTimeOffset.MaxValue, time.LocalTimeZone, []), ct).ConfigureAwait(false);
+            // Only what the budgets can count: from the start of the widest period among them (the whole history only for a total).
+            var since = limits.Min(l => PeriodStart(l.Budget.Period));
+            var report = await usage.QueryAsync([project.RootPath], new UsageQuery(since, DateTimeOffset.MaxValue, time.LocalTimeZone, []), ct).ConfigureAwait(false);
             if (report.Excluded.Count > 0)
             {
                 return Unreadable("el registro del proyecto no es de confianza: " + report.Excluded[0].Reason);
@@ -121,10 +126,13 @@ public sealed class ProjectBudgetGate(
             limits.Add(("project", own, _ => true));
         }
 
-        if (milestones is not null && logs is not null)
+        // Cheap first: the headers of the milestones say whether any has a budget. With none, and none of the project, nothing applies and
+        // the log is not read (a log that is not trusted must not stop a project that has no budget).
+        var budgeted = milestones is null ? [] : (await milestones.ListAsync(project.ProjectId, ct).ConfigureAwait(false)).Where(h => h.Budget is not null).ToDictionary(h => h.Id.Value, StringComparer.Ordinal);
+        if (budgeted.Count > 0 && milestones is not null && logs is not null)
         {
-            // The milestones of a run are read from the log once, the first time the run is checked: a link written later counts from the
-            // next run (a milestone is linked when the run starts), so a launch of the run does not read the whole log again.
+            // The milestones of a run are read from the log once, the first time the run is checked (and again when the run resumes,
+            // <see cref="Forget"/>), so a launch of the run does not read the whole log again.
             if (!_membership.TryGetValue(run, out var ids))
             {
                 var snapshot = await logs.ReadAsync(project.RootPath, ct).ConfigureAwait(false);
@@ -138,7 +146,7 @@ public sealed class ProjectBudgetGate(
 
             foreach (var id in ids)
             {
-                if (await milestones.FindAsync(project.ProjectId, new MilestoneId(id), ct).ConfigureAwait(false) is { Budget: { } budget })
+                if (budgeted.TryGetValue(id, out var header) && header.Budget is { } budget)
                 {
                     budget.EnsureValid();
                     var milestone = id;
@@ -171,6 +179,25 @@ public sealed class ProjectBudgetGate(
 
     private static long? TokensOf(UsageAttempt attempt) =>
         attempt.Own.InputTokens.Value is { } input && attempt.Own.OutputTokens.Value is { } output ? input + output : null;
+
+    /// <summary>The first instant of the period that contains now, in the local zone; the start of time for a total.</summary>
+    private DateTimeOffset PeriodStart(BudgetPeriod period)
+    {
+        if (period == BudgetPeriod.Total)
+        {
+            return DateTimeOffset.MinValue;
+        }
+
+        var zone = time.LocalTimeZone;
+        var today = TimeZoneInfo.ConvertTime(time.GetUtcNow(), zone).Date;
+        var start = period switch
+        {
+            BudgetPeriod.Week => today.AddDays(-(((int)today.DayOfWeek + 6) % 7)),
+            BudgetPeriod.Month => new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Unspecified),
+            _ => today,
+        };
+        return new DateTimeOffset(start, zone.GetUtcOffset(start));
+    }
 
     /// <summary>Whether the attempt ended in the period that contains <paramref name="now"/> (the day, the ISO week from Monday or the month, in the local zone).</summary>
     private bool InPeriod(UsageAttempt attempt, BudgetPeriod period, DateTimeOffset now)
@@ -211,6 +238,6 @@ public sealed class ProjectBudgetGate(
             ? string.Create(CultureInfo.InvariantCulture, $"el presupuesto{period} {whose} es de {budget.MaxTokens} tokens y ya van {used.Tokens}{(unknown ? " (sin estimación de este intento)" : $"; con este intento serían {used.Tokens + projected.Tokens}")}")
             : string.Create(CultureInfo.InvariantCulture, $"el presupuesto{period} {whose} es de {budget.MaxAgentRuns} ejecuciones de agente y ya van {used.AgentRuns}; con este intento serían {used.AgentRuns + projected.AgentRuns}");
         var partial = withoutTokens > 0 && reached == BudgetLimit.Tokens ? string.Create(CultureInfo.InvariantCulture, $" ({withoutTokens} intentos sin cifra de tokens no cuentan)") : string.Empty;
-        return new BudgetGateVerdict(false, scope, reached, ExceededCode, $"No se lanza el intento: {text}{partial}. Sube el presupuesto o reanuda cuando quieras.", unknown);
+        return new BudgetGateVerdict(false, scope, reached, ExceededCode, $"No se lanza el intento: {text}{partial}. Sube el presupuesto y reintenta la tarea.", unknown);
     }
 }

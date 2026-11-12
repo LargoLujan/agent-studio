@@ -76,7 +76,13 @@ public sealed partial class UsageProjector
                     break;
 
                 case TaskStatusChangedPayload change:
-                    RunOf(change.RunId).TaskOf(change.Task.Value).Status = change.To;
+                    var changed = RunOf(change.RunId).TaskOf(change.Task.Value);
+                    changed.Status = change.To;
+                    if (change.To == WorkTaskStatus.Completed)
+                    {
+                        changed.CompletedAttempt = change.Attempt;
+                    }
+
                     TrackQuotaWait(entry, change);
                     break;
             }
@@ -129,7 +135,7 @@ public sealed partial class UsageProjector
                     attempt.Attempt,
                     attempt.Outcome,
                     orchestration is null ? null : new ActivityRunFacts(StateOf(orchestration), orchestration.Follows is { } followed && _runs.GetValueOrDefault(followed) is { HadConflict: true }),
-                    task is null ? null : new ActivityTaskFacts(task.Status, task.Scope, task.Merged));
+                    task is null ? null : new ActivityTaskFacts(task.Status, task.Scope, task.Merged, task.CompletedAttempt));
                 var key = (attempt.RunId, attempt.TaskId ?? string.Empty, attempt.Attempt);
                 attempts[i] = attempt with
                 {
@@ -181,5 +187,7 @@ public sealed partial class UsageProjector
         public IReadOnlyList<string>? Scope { get; set; }
 
         public bool Merged { get; set; }
+
+        public int? CompletedAttempt { get; set; }
     }
 }

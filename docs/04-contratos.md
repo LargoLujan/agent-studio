@@ -2108,8 +2108,8 @@ en otro grupo de la dimensión (un hito), de modo que los grupos pueden sumar m�
   (`Observability/Usage`): `Classify(ActivityInput)`, puro. `ScopedEstimation` (`Observability/Estimates`): estimación por actividad o por hito y `CompareWithPlan`.
 - `ProjectBudgetGate` (`Orchestration/Engine`, pública para poder probarla; la usa el motor): `CheckAsync(proyecto, ejecución, petición de estimación, intentos en vuelo)`
   da un `BudgetGateVerdict`. `Orchestrator` gana cuatro parámetros opcionales al final (`budgets`, `usage`, `milestones`, `logReader`); sin `budgets` ni `milestones` no hay
-  puerta. Un rechazo deja `AuditAlertRaised` con `project.budget-exceeded` (o `project.budget-unreadable` si no pudo comprobarlo: falla cerrado) y la ejecución acaba `Failed`
-  con el motivo en el resumen.
+  puerta. Un rechazo deja `AuditAlertRaised` con `project.budget-exceeded` (o `project.budget-unreadable` si no pudo comprobarlo: falla cerrado) y la tarea queda
+  `Blocked` (`AwaitingHuman`) con el motivo: subir el presupuesto y reintentarla sigue la ejecución. Sin presupuesto en el proyecto ni en los hitos no se lee el registro.
 - **Pendiente de WP5:** `UsageDashboardViewModel.Dimensions` ofrece todas con `Enum.GetValues`; el filtro que las oculta mientras el agregador no las soportaba ya sobra. WP5
   etiqueta las dimensiones, enseña `SharedAttempts` y las esperas, y da pantalla al presupuesto. **`IProjectBudgetStore` no tiene implementación todavía.**
 

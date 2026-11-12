@@ -77,7 +77,7 @@ public sealed class ActivityAndMilestoneUsageTests
         Assert.Equal(new ActivityClass(ActivityKind.Coordination, AttemptOrder.First, AttemptFate.Kept, false), planner.Activity);
         var first = attempts.Single(a => a.TaskId == "T1" && a.Attempt == 1);
         var retry = attempts.Single(a => a.TaskId == "T1" && a.Attempt == 2);
-        Assert.Equal(new ActivityClass(ActivityKind.Tests, AttemptOrder.First, AttemptFate.Kept, true), first.Activity);
+        Assert.Equal(new ActivityClass(ActivityKind.Tests, AttemptOrder.First, AttemptFate.Discarded, true), first.Activity); // it failed: the task completed only on attempt 2
         Assert.Equal(new ActivityClass(ActivityKind.Tests, AttemptOrder.Retry, AttemptFate.Kept, true), retry.Activity);
         Assert.Equal(ActivityKind.Review, attempts.Single(a => a.Purpose == AgentRunPurpose.Judge).Activity!.Kind);
         Assert.All(attempts, a => Assert.Equal(["mil-20261110-aaaaaa"], a.Milestones));

@@ -97,6 +97,21 @@ public sealed class ActivityClassifierTests
         Assert.Equal(expected, ActivityClassifier.FateOf(Input(AgentRunPurpose.Executor, run: new ActivityRunFacts(state), task: new ActivityTaskFacts(status, null, false))));
 
     [Fact]
+    public void In_a_delivered_run_a_failed_attempt_is_discarded_and_the_task_decides_only_for_the_attempt_that_completed_it()
+    {
+        var delivered = new ActivityRunFacts(ActivityRunState.Delivered);
+        var completed = new ActivityTaskFacts(WorkTaskStatus.Completed, null, true, CompletedAttempt: 2);
+
+        Assert.Equal(AttemptFate.Discarded, ActivityClassifier.FateOf(Input(AgentRunPurpose.Executor, attempt: 1, outcome: AttemptOutcome.Failed, run: delivered, task: completed)));
+        Assert.Equal(AttemptFate.Discarded, ActivityClassifier.FateOf(Input(AgentRunPurpose.Executor, attempt: 1, outcome: AttemptOutcome.Succeeded, run: delivered, task: completed)));
+        Assert.Equal(AttemptFate.Kept, ActivityClassifier.FateOf(Input(AgentRunPurpose.Executor, attempt: 2, run: delivered, task: completed)));
+        // an attempt of the run itself that failed (the planner's first try) is discarded, its correction kept
+        Assert.Equal(AttemptFate.Discarded, ActivityClassifier.FateOf(Input(AgentRunPurpose.Planner, attempt: 1, outcome: AttemptOutcome.Failed, run: delivered, hasTask: false)));
+        Assert.Equal(AttemptFate.Kept, ActivityClassifier.FateOf(Input(AgentRunPurpose.Planner, attempt: 2, run: delivered, hasTask: false)));
+        Assert.Equal(AttemptFate.Discarded, ActivityClassifier.FateOf(Input(AgentRunPurpose.Judge, outcome: AttemptOutcome.Interrupted, run: delivered, hasTask: false)));
+    }
+
+    [Fact]
     public void An_attempt_of_the_run_itself_follows_the_run_and_a_unit_without_a_run_follows_its_outcome()
     {
         Assert.Equal(AttemptFate.Kept, ActivityClassifier.FateOf(Input(AgentRunPurpose.Judge, run: new ActivityRunFacts(ActivityRunState.Delivered), hasTask: false)));
