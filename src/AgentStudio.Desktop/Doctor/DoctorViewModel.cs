@@ -70,7 +70,7 @@ public sealed partial class DoctorViewModel : ObservableObject
     private readonly ProviderCheckSource? _providerSource;
     private readonly IDoctorFixRunner? _fixRunner;
     private readonly TimeProvider _time;
-    private readonly IProjectWorkspace? _workspace;
+    private readonly IOpenProjects? _openProjects;
     private readonly IDoctorActions _actions;
     private readonly Func<string?, DoctorFix?> _findFix;
     private readonly IUiTextProvider? _texts;
@@ -92,7 +92,7 @@ public sealed partial class DoctorViewModel : ObservableObject
     /// <param name="service">Runs every source; without it the panel shows only the providers, as before Phase 6 (a shell built by hand).</param>
     /// <param name="providers">The rows of the providers, which this panel contains and feeds.</param>
     /// <param name="providerSource">Gives the results of the probes of the run, to hand them to <paramref name="providers"/>.</param>
-    /// <param name="workspace">Opens the open project to give its context to the sources of the project; without it, no project is checked.</param>
+    /// <param name="openProjects">Tells whether the open folder is a project the workspace has already opened, to give its identity to the sources of the project. Auto Doctor never opens one itself: that would write in it.</param>
     /// <param name="findFix">Finds the fix a check names by code; the closed list of <see cref="DoctorFixCatalog"/> by default.</param>
     /// <param name="texts">The texts of the language in use at the time the panel runs; <see cref="Texts.Current"/> when null.</param>
     public DoctorViewModel(
@@ -101,7 +101,7 @@ public sealed partial class DoctorViewModel : ObservableObject
         ProviderCheckSource? providerSource,
         IDoctorFixRunner? fixRunner,
         TimeProvider time,
-        IProjectWorkspace? workspace = null,
+        IOpenProjects? openProjects = null,
         IDoctorActions? actions = null,
         Func<string?, DoctorFix?>? findFix = null,
         IUiTextProvider? texts = null)
@@ -113,7 +113,7 @@ public sealed partial class DoctorViewModel : ObservableObject
         _providerSource = providerSource;
         _fixRunner = fixRunner;
         _time = time;
-        _workspace = workspace;
+        _openProjects = openProjects;
         _actions = actions ?? new SystemDoctorActions();
         _findFix = findFix ?? DoctorFixCatalog.Find;
         _texts = texts;
@@ -209,13 +209,22 @@ public sealed partial class DoctorViewModel : ObservableObject
         try
         {
             var root = ProjectRoot?.Invoke();
-            _project = await OpenProjectAsync(root);
+            _project = FindProject(root);
             if (_service is null)
             {
                 // A shell built by hand: only the providers, as before.
                 await Providers.RefreshCommand.ExecuteAsync(null);
                 Sections.Clear();
-                Sections.Add(ProvidersOnlySection());
+                ErrorMessage = Providers.ErrorMessage;
+                if (Providers.IsEmpty)
+                {
+                    Notice = Texts.Get("Providers_None");
+                }
+                else
+                {
+                    Sections.Add(ProvidersOnlySection());
+                }
+
                 LastCheckedAt = Providers.LastCheckedAt ?? _time.GetLocalNow();
                 return;
             }
@@ -245,25 +254,24 @@ public sealed partial class DoctorViewModel : ObservableObject
 
     private bool CanRefresh() => !IsBusy;
 
-    /// <summary>The context of the open project, or null: opening it creates nothing the orchestrator would not, and a project that cannot be opened is said, not hidden.</summary>
-    private async Task<ProjectContext?> OpenProjectAsync(string? root)
+    /// <summary>
+    /// The project of the open folder: the one the workspace has open when it has (with its identity and its log), or the folder alone when nothing opened it yet (what needs its log is then
+    /// «sin comprobar», and a notice says so). Auto Doctor never opens a project: that creates <c>.agentstudio/</c>, takes the lock and edits <c>.git/info/exclude</c>.
+    /// </summary>
+    private ProjectContext? FindProject(string? root)
     {
-        if (string.IsNullOrWhiteSpace(root) || _workspace is null)
+        if (string.IsNullOrWhiteSpace(root))
         {
             return null;
         }
 
-        try
+        var open = _openProjects?.Find(root);
+        if (open is null)
         {
-            return await _workspace.OpenAsync(root, CancellationToken.None);
+            Notice = Texts.Get("Doctor_ProjectNotOpened");
         }
-#pragma warning disable CA1031 // A project in use by another instance or with a storage that is refused is a finding of its own, not a failure of the panel.
-        catch (Exception)
-#pragma warning restore CA1031
-        {
-            Notice = Texts.Get("Doctor_ProjectUnavailable");
-            return null;
-        }
+
+        return open ?? DoctorProject.Unopened(root);
     }
 
     /// <summary>The section of the providers over the rows alone, for a panel with no service of checks: the worst row decides its state, and a parked provider is neutral.</summary>

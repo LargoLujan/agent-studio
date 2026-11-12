@@ -31,6 +31,9 @@ internal static class DiagnosticsServices
                 IsParked: ProviderStatusItem.IsParkedResult)));
         services.AddSingleton<IDoctorCheckSource>(provider => provider.GetRequiredService<ProviderCheckSource>());
         services.AddSingleton<IDoctorCheckSource, ProjectCheckSource>();
+
+        // Auto Doctor only looks: it asks which projects the workspace has open and never opens one (it would write in the project).
+        services.AddSingleton<IOpenProjects>(provider => new OpenProjectLookup(provider.GetRequiredService<AgentStudio.Infrastructure.Persistence.ProjectDatabases>()));
         services.AddSingleton<IDoctorService>(provider => new DoctorService(provider.GetServices<IDoctorCheckSource>(), provider.GetServices<IDoctorRunScope>()));
 
         // No fix of Phase 6 asks or records anything beyond what the runner does; the gate and the log are the ones of the engine.
@@ -41,7 +44,7 @@ internal static class DiagnosticsServices
             provider.GetService<ProviderCheckSource>(),
             provider.GetService<IDoctorFixRunner>(),
             provider.GetService<TimeProvider>() ?? TimeProvider.System,
-            provider.GetService<IProjectWorkspace>()));
+            provider.GetService<IOpenProjects>()));
         return services;
     }
 }

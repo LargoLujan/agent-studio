@@ -29,6 +29,7 @@ public sealed class DoctorCompositionTests
 
         Assert.IsType<DoctorService>(provider.GetRequiredService<IDoctorService>());
         Assert.IsType<DoctorToolRunner>(provider.GetRequiredService<IDoctorToolRunner>());
+        Assert.IsType<OpenProjectLookup>(provider.GetRequiredService<IOpenProjects>());
         Assert.IsType<DoctorFixRunner>(provider.GetRequiredService<IDoctorFixRunner>());
         Assert.Same(provider.GetRequiredService<ToolSnapshotProvider>(), provider.GetRequiredService<IInstalledToolInventory>());
         Assert.Contains(provider.GetServices<IDoctorRunScope>(), s => ReferenceEquals(s, provider.GetRequiredService<ToolSnapshotProvider>()));

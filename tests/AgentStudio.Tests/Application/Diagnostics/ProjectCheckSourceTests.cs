@@ -25,8 +25,13 @@ internal sealed class LogRecorder : IDecisionRecorder
 
     public List<(DecisionKind Kind, DecisionPayload Payload, string Summary)> Recorded { get; } = [];
 
-    public Task<DecisionLogState> LoadAsync(string projectId, CancellationToken cancellationToken) =>
-        LoadFailure is { } failure ? Task.FromException<DecisionLogState>(failure) : Task.FromResult(new DecisionLogState(Entries, Verification));
+    public int Loads { get; private set; }
+
+    public Task<DecisionLogState> LoadAsync(string projectId, CancellationToken cancellationToken)
+    {
+        Loads++;
+        return LoadFailure is { } failure ? Task.FromException<DecisionLogState>(failure) : Task.FromResult(new DecisionLogState(Entries, Verification));
+    }
 
     public Task<DecisionLogState> LoadAsync(string projectId, LogLoad load, CancellationToken cancellationToken) => LoadAsync(projectId, cancellationToken);
 
@@ -234,6 +239,21 @@ public sealed class ProjectCheckSourceTests
 
         Assert.Equal(DoctorStatus.Warning, check.Status);
         Assert.Equal(@"C:\work\calc\node_modules\.bin", check.Fact("folder"));
+    }
+
+    [Fact]
+    public async Task A_project_that_nothing_opened_has_no_log_to_read_so_the_history_and_the_setup_are_not_checked_and_the_rest_is()
+    {
+        var rig = Healthy();
+        var unopened = DoctorProject.Unopened(Project.RootPath);
+
+        var checks = (await new ProjectCheckSource(rig.Git, rig.Remotes, rig.Log, rig.Profiles, new FixedInventory(rig.Installed), rig.Environment).CheckAsync(unopened, CancellationToken.None)).ToDictionary(c => c.Code);
+
+        Assert.Equal(DoctorStatus.Unknown, checks["doctor.project.decision-log"].Status);
+        Assert.Equal(DoctorStatus.Unknown, checks["doctor.project.setup"].Status);
+        Assert.Equal(DoctorStatus.Ok, checks["doctor.project.repository"].Status);
+        Assert.Equal(DoctorStatus.Ok, checks["doctor.project.verification-profile"].Status);
+        Assert.Equal(0, rig.Log.Loads);
     }
 
     [Fact]

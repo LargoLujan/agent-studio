@@ -27,14 +27,15 @@ public sealed class DoctorViewModelTests
         public void OpenPage(Uri page) => Opened.Add(page);
     }
 
-    private sealed class Workspace(bool fails = false) : IProjectWorkspace
+    /// <summary>The projects the workspace has open: none, or all the roots it is given. It records what it was asked; there is no way to open one.</summary>
+    private sealed class OpenProjects(bool open = true) : IOpenProjects
     {
-        public List<string> Opened { get; } = [];
+        public List<string> Asked { get; } = [];
 
-        public Task<ProjectContext> OpenAsync(string projectRoot, CancellationToken cancellationToken)
+        public ProjectContext? Find(string projectRoot)
         {
-            Opened.Add(projectRoot);
-            return fails ? throw new IOException("in use") : Task.FromResult(new ProjectContext("p1", projectRoot));
+            Asked.Add(projectRoot);
+            return open ? new ProjectContext("p1", projectRoot) : null;
         }
     }
 
@@ -60,7 +61,7 @@ public sealed class DoctorViewModelTests
     private static DoctorViewModel Panel(
         IEnumerable<IDoctorCheckSource> sources,
         TimeProvider? time = null,
-        IProjectWorkspace? workspace = null,
+        IOpenProjects? workspace = null,
         IDoctorActions? actions = null,
         Func<string?, DoctorFix?>? findFix = null,
         IDoctorFixRunner? runner = null,
@@ -180,7 +181,7 @@ public sealed class DoctorViewModelTests
     public async Task A_check_of_another_package_with_no_text_yet_is_named_by_what_it_declares_and_never_by_a_missing_key()
     {
         var check = Check("doctor.env.sample", DoctorSection.DeclaredEnvironment, DoctorStatus.Ok, null, new DoctorFact(DoctorFactNames.Declared, "10.0.303"), new DoctorFact(DoctorFactNames.Source, "global.json:3"), new DoctorFact(DoctorFactNames.Installed, "10.0.303"));
-        var withProject = Panel([Source(DoctorSection.DeclaredEnvironment, check)], workspace: new Workspace());
+        var withProject = Panel([Source(DoctorSection.DeclaredEnvironment, check)], workspace: new OpenProjects());
         withProject.ProjectRoot = () => @"C:\x";
 
         await withProject.RefreshCommand.ExecuteAsync(null);
@@ -228,27 +229,46 @@ public sealed class DoctorViewModelTests
     }
 
     [Fact]
-    public async Task The_project_is_checked_only_when_one_is_open_and_one_that_cannot_be_opened_is_said()
+    public async Task The_project_is_checked_only_when_a_folder_is_open_and_the_doctor_never_opens_it()
     {
-        var project = new ScriptedSource(DoctorSection.Project, p => p is null ? [] : [Check("doctor.project.repository", DoctorSection.Project, DoctorStatus.Ok)]);
-        var workspace = new Workspace();
-        var doctor = Panel([project], workspace: workspace);
+        var seen = new List<ProjectContext?>();
+        var project = new ScriptedSource(DoctorSection.Project, p => { seen.Add(p); return p is null ? [] : [Check("doctor.project.repository", DoctorSection.Project, DoctorStatus.Ok)]; });
+        var opened = new OpenProjects();
+        var doctor = Panel([project], workspace: opened);
 
         await doctor.RefreshCommand.ExecuteAsync(null);
         Assert.Empty(doctor.Sections);
-        Assert.Empty(workspace.Opened);
+        Assert.Empty(opened.Asked);
 
         doctor.ProjectRoot = () => @"C:\work\calc";
         await doctor.RefreshCommand.ExecuteAsync(null);
         Assert.Single(doctor.Sections);
-        Assert.Equal([@"C:\work\calc"], workspace.Opened.ToArray());
+        Assert.Equal([@"C:\work\calc"], opened.Asked.ToArray());
+        Assert.Equal("p1", seen[^1]!.ProjectId);
         Assert.Null(doctor.Notice);
+    }
 
-        var failing = Panel([project], workspace: new Workspace(fails: true));
-        failing.ProjectRoot = () => @"C:\work\calc";
-        await failing.RefreshCommand.ExecuteAsync(null);
-        Assert.Empty(failing.Sections);
-        Assert.NotNull(failing.Notice);
+    [Fact]
+    public async Task A_folder_that_nothing_opened_is_checked_without_an_identity_and_says_so_instead_of_being_opened()
+    {
+        var seen = new List<ProjectContext?>();
+        var project = new ScriptedSource(DoctorSection.Project, p => { seen.Add(p); return [Check("doctor.project.repository", DoctorSection.Project, DoctorStatus.Ok)]; });
+        var doctor = Panel([project], workspace: new OpenProjects(open: false));
+        doctor.ProjectRoot = () => @"C:\work\calc";
+
+        await doctor.RefreshCommand.ExecuteAsync(null);
+
+        Assert.Single(doctor.Sections);
+        var context = Assert.Single(seen)!;
+        Assert.Equal((string.Empty, @"C:\work\calc"), (context.ProjectId, context.RootPath));
+        Assert.False(DoctorProject.IsOpen(context));
+        Assert.Equal("El historial y la configuración se comprueban cuando abres el proyecto en el orquestador.", doctor.Notice);
+
+        // Without even the port, the same: the folder alone.
+        var without = Panel([project]);
+        without.ProjectRoot = () => @"C:\work\calc";
+        await without.RefreshCommand.ExecuteAsync(null);
+        Assert.False(DoctorProject.IsOpen(seen[^1]));
     }
 
     [Fact]
@@ -256,10 +276,10 @@ public sealed class DoctorViewModelTests
     {
         var opened = new List<string>();
         var warning = Check("doctor.project.setup", DoctorSection.Project, DoctorStatus.Warning, DoctorFixCatalog.OpenSetup);
-        var doctor = Panel([Source(DoctorSection.Project, warning)], workspace: new Workspace());
+        var doctor = Panel([Source(DoctorSection.Project, warning)], workspace: new OpenProjects());
         doctor.ProjectRoot = () => @"C:\x";
         doctor.Navigation = new DoctorNavigation(new HashSet<string> { "setup" }, opened.Add);
-        var without = Panel([Source(DoctorSection.Project, warning)], workspace: new Workspace());
+        var without = Panel([Source(DoctorSection.Project, warning)], workspace: new OpenProjects());
         without.ProjectRoot = () => @"C:\x";
         without.Navigation = new DoctorNavigation(new HashSet<string>(), opened.Add);
 
@@ -322,7 +342,7 @@ public sealed class DoctorViewModelTests
         var recorder = new LogRecorder();
         var fix = new DoctorFix.Reversible("doctor.fix.test-increment", (_, _) => { state[0]++; return Task.CompletedTask; }, (_, _) => { state[0]--; return Task.CompletedTask; });
         var check = Check("doctor.project.setup", DoctorSection.Project, DoctorStatus.Warning, "doctor.fix.test-increment");
-        var doctor = Panel([Source(DoctorSection.Project, check)], workspace: new Workspace(), findFix: code => code == fix.Code ? fix : null, runner: new DoctorFixRunner(recorder));
+        var doctor = Panel([Source(DoctorSection.Project, check)], workspace: new OpenProjects(), findFix: code => code == fix.Code ? fix : null, runner: new DoctorFixRunner(recorder));
         doctor.ProjectRoot = () => @"C:\x";
         await doctor.RefreshCommand.ExecuteAsync(null);
         var item = doctor.Sections[0].Checks[0];

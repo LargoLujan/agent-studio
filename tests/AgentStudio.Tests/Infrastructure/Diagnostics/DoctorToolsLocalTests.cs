@@ -30,10 +30,28 @@ public sealed class DoctorToolsLocalTests : IDisposable
 
         var snapshot = await snapshotProvider.SnapshotAsync(_temp.Combine("repo"), CancellationToken.None);
 
-        // A tool that ran must be understood (Found) or be reported as not understood (Unreadable): never an exception.
-        Assert.All(
-            new[] { snapshot.Node.State, snapshot.Npm.State, snapshot.Git.State, snapshot.DotNetSdks.State, snapshot.Docker.State, snapshot.Wsl.State },
-            state => Assert.NotEqual(ToolState.InsideProject, state));
+        // A program the locator finds outside the project must come back understood through the allow list of the environment, the neutral folder and the empty configuration of
+        // Docker: «Unreadable» for a tool that exists would mean the door breaks it (the states are in the message, for the report).
+        var locator = new ExecutableLocator();
+        var states = string.Join(", ", new[]
+        {
+            $"dotnet={snapshot.DotNetSdks.State}", $"node={snapshot.Node.State}", $"npm={snapshot.Npm.State}", $"python={snapshot.Python.State}",
+            $"git={snapshot.Git.State}", $"docker={snapshot.Docker.State}", $"wsl={snapshot.Wsl.State}", $"webview2={snapshot.WebView2.State}",
+        });
+        TestContext.Current.SendDiagnosticMessage("Auto Doctor, real door: " + states);
+        foreach (var (command, state) in new[]
+        {
+            ("dotnet", snapshot.DotNetSdks.State), ("git", snapshot.Git.State), ("node", snapshot.Node.State), ("npm", snapshot.Npm.State),
+            ("docker", snapshot.Docker.State), ("wsl", snapshot.Wsl.State),
+        })
+        {
+            if (locator.Find(command) is not null)
+            {
+                Assert.True(state == ToolState.Found, $"{command} is installed outside the project and the door did not read it: {states}");
+            }
+        }
+
+        Assert.NotEqual(ToolState.InsideProject, snapshot.Node.State);
         if (snapshot.DotNetSdks.State == ToolState.Found)
         {
             Assert.NotEmpty(snapshot.DotNetSdks.Value!);

@@ -140,9 +140,9 @@ public sealed class DoctorFixRunner(IDecisionRecorder? decisions = null, IApprov
         }
 
         await applied.Fix.Undo(project, ct).ConfigureAwait(false);
-        if (project is not null && decisions is not null)
+        if (DoctorProject.IsOpen(project) && decisions is not null)
         {
-            await RecordAsync(project, DoctorFixAppliedPayload.Undoing(applied.Fix.Code, applied.CheckCode, appliedSequence), ct).ConfigureAwait(false);
+            await RecordAsync(project!, DoctorFixAppliedPayload.Undoing(applied.Fix.Code, applied.CheckCode, appliedSequence), ct).ConfigureAwait(false);
         }
     }
 
@@ -162,24 +162,35 @@ public sealed class DoctorFixRunner(IDecisionRecorder? decisions = null, IApprov
         {
             if (undo is not null)
             {
-                try
-                {
-                    await undo(project, CancellationToken.None).ConfigureAwait(false);
-                }
-#pragma warning disable CA1031 // Best effort: the failure of the fix is what the person is told.
-                catch (Exception)
-#pragma warning restore CA1031
-                {
-                }
+                await UndoQuietlyAsync(undo, project, CancellationToken.None).ConfigureAwait(false);
             }
 
             return new DoctorFixResult(DoctorFixOutcome.Failed);
         }
 
         long? sequence = null;
-        if (project is not null && decisions is not null)
+        if (DoctorProject.IsOpen(project) && decisions is not null)
         {
-            sequence = (await RecordAsync(project, DoctorFixAppliedPayload.Applying(fix.Code, checkCode), ct).ConfigureAwait(false)).Sequence;
+            try
+            {
+                sequence = (await RecordAsync(project!, DoctorFixAppliedPayload.Applying(fix.Code, checkCode), ct).ConfigureAwait(false)).Sequence;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+#pragma warning disable CA1031 // A change that cannot be recorded must not stay applied and unseen: it is undone when it can be, and the person is told it failed.
+            catch (Exception)
+#pragma warning restore CA1031
+            {
+                if (undo is not null)
+                {
+                    await UndoQuietlyAsync(undo, project, ct).ConfigureAwait(false);
+                }
+
+                return new DoctorFixResult(DoctorFixOutcome.Failed);
+            }
+
             if (fix is DoctorFix.Reversible reversible)
             {
                 _undoable[sequence.Value] = new Applied(reversible, checkCode);
@@ -187,6 +198,19 @@ public sealed class DoctorFixRunner(IDecisionRecorder? decisions = null, IApprov
         }
 
         return new DoctorFixResult(DoctorFixOutcome.Done, sequence);
+    }
+
+    private static async Task UndoQuietlyAsync(DoctorAction undo, ProjectContext? project, CancellationToken ct)
+    {
+        try
+        {
+            await undo(project, ct).ConfigureAwait(false);
+        }
+#pragma warning disable CA1031 // Best effort: the failure of the fix is what the person is told.
+        catch (Exception)
+#pragma warning restore CA1031
+        {
+        }
     }
 
     private Task<DecisionEntry> RecordAsync(ProjectContext project, DoctorFixAppliedPayload payload, CancellationToken ct) =>

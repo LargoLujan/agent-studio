@@ -21,9 +21,9 @@
     <value>No hay nada que comprobar.</value>
     <comment>Shown when no section has a check.</comment>
   </data>
-  <data name="Doctor_ProjectUnavailable" xml:space="preserve">
-    <value>No se pudo abrir el proyecto. Solo se comprueba el equipo.</value>
-    <comment>Notice when the open project cannot be opened for the checks.</comment>
+  <data name="Doctor_ProjectNotOpened" xml:space="preserve">
+    <value>El historial y la configuración se comprueban cuando abres el proyecto en el orquestador.</value>
+    <comment>Notice when the open folder was not opened by the workspace yet: Auto Doctor does not open it.</comment>
   </data>
   <data name="Doctor_Details_Hint" xml:space="preserve">
     <value>Mostrar u ocultar los detalles</value>

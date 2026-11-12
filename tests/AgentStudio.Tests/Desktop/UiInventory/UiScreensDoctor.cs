@@ -1,5 +1,6 @@
 using AgentStudio.Application.Diagnostics;
 using AgentStudio.Application.Projects;
+using AgentStudio.Application.Providers;
 using AgentStudio.Desktop.Doctor;
 using AgentStudio.Desktop.ViewModels;
 using AgentStudio.Desktop.Views;
@@ -21,9 +22,9 @@ namespace AgentStudio.Tests.Desktop.UiInventory;
 /// </summary>
 internal static class UiScreensDoctor
 {
-    private sealed class Workspace : IProjectWorkspace
+    private sealed class OpenProjects : IOpenProjects
     {
-        public Task<ProjectContext> OpenAsync(string projectRoot, CancellationToken cancellationToken) => Task.FromResult(new ProjectContext("p-1", @"C:\x\proyecto"));
+        public ProjectContext? Find(string projectRoot) => new("p-1", projectRoot);
     }
 
     public static IReadOnlyList<UiScreen> All { get; } =
@@ -58,6 +59,29 @@ internal static class UiScreensDoctor
             await doctor.RefreshCommand.ExecuteAsync(null);
             return UiScreens.Of(new AutoDoctorView(), doctor);
         }, 600, 400),
+        UiScreens.ScreenAsync("Auto Doctor providers open with their guides", async () =>
+        {
+            // A program of an agent that is not installed and another without a session: the rows of today, and under them the two guides, open.
+            IProviderProbe[] probes =
+            [
+                new StubProbe("claude-code", InstallationState.NotInstalled, AuthenticationState.Unknown, method: null),
+                new StubProbe("codex-cli", InstallationState.Installed, AuthenticationState.NotAuthenticated, method: null),
+                new StubProbe("gemini-cli", InstallationState.Installed, AuthenticationState.Authenticated),
+            ];
+            var diagnostics = new ProviderDiagnostics(probes);
+            var providers = new ProviderDiagnosticsViewModel(diagnostics, TimeProvider.System);
+            var source = new ProviderCheckSource(diagnostics);
+            var doctor = Panel(new DoctorService([source]), source, providers);
+            await doctor.RefreshCommand.ExecuteAsync(null);
+            var section = doctor.Sections.Single(s => s.IsProviders);
+            section.IsExpanded = true;
+            foreach (var check in section.ActionChecks)
+            {
+                check.RunFixCommand.Execute(null);
+            }
+
+            return UiScreens.Of(new AutoDoctorView(), doctor);
+        }, 700, 900),
         UiScreens.ScreenAsync("Auto Doctor providers only", async () =>
         {
             // A shell built by hand: the panel has no service of checks and shows the providers as before Phase 6.
@@ -94,7 +118,7 @@ internal static class UiScreensDoctor
     private static DoctorViewModel Panel(IDoctorService service, ProviderCheckSource? providerSource, ProviderDiagnosticsViewModel? providers = null)
     {
         providers ??= new ProviderDiagnosticsViewModel(new ProviderDiagnostics(UiScreensShell.Providers()), TimeProvider.System);
-        var doctor = new DoctorViewModel(service, providers, providerSource, new DoctorFixRunner(), TimeProvider.System, new Workspace(), new NoActions())
+        var doctor = new DoctorViewModel(service, providers, providerSource, new DoctorFixRunner(), TimeProvider.System, new OpenProjects(), new NoActions())
         {
             ProjectRoot = () => @"C:\x\proyecto",
             Navigation = new DoctorNavigation(new HashSet<string> { "setup", "settings", "skills" }, _ => { }),

@@ -162,6 +162,42 @@ public sealed class DoctorFixTests
     }
 
     [Fact]
+    public async Task A_change_that_cannot_be_recorded_is_undone_and_reported_as_failed_not_left_unseen()
+    {
+        var state = new State();
+        var recorder = new FailingRecorder();
+
+        var result = await new DoctorFixRunner(recorder).ApplyAsync(Increment(state), "doctor.git", Project, CancellationToken.None);
+
+        Assert.Equal(DoctorFixOutcome.Failed, result.Outcome);
+        Assert.Equal(1, state.Value);
+        Assert.Null(result.AppliedSequence);
+    }
+
+    [Fact]
+    public async Task A_project_that_nothing_opened_gets_no_entry_because_it_has_no_log()
+    {
+        var state = new State();
+        var recorder = new LogRecorder();
+
+        var result = await new DoctorFixRunner(recorder).ApplyAsync(Increment(state), "doctor.git", DoctorProject.Unopened(@"C:\work\calc"), CancellationToken.None);
+
+        Assert.Equal((DoctorFixOutcome.Done, 2), (result.Outcome, state.Value));
+        Assert.Null(result.AppliedSequence);
+        Assert.Empty(recorder.Recorded);
+    }
+
+    private sealed class FailingRecorder : IDecisionRecorder
+    {
+        public Task<DecisionLogState> LoadAsync(string projectId, CancellationToken cancellationToken) => throw new NotSupportedException();
+
+        public Task<DecisionLogState> LoadAsync(string projectId, LogLoad load, CancellationToken cancellationToken) => throw new NotSupportedException();
+
+        public Task<DecisionEntry> RecordAsync(string projectId, Actor actor, DecisionKind kind, string summary, DecisionPayload payload, long? corrects = null, CancellationToken cancellationToken = default) =>
+            throw new IOException("the log is full");
+    }
+
+    [Fact]
     public async Task A_fix_with_an_approval_that_is_denied_applies_nothing_and_records_nothing()
     {
         var state = new State();

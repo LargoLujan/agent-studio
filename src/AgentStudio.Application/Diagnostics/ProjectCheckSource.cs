@@ -126,6 +126,16 @@ public sealed class ProjectCheckSource(
 
     private async Task<LogReading> LogChecksAsync(ProjectContext project, CancellationToken ct)
     {
+        if (!DoctorProject.IsOpen(project))
+        {
+            // Nothing opened the project in this session, so it has no identity and no log to read (docs/20 D-03): Auto Doctor does not open it, which would write in it.
+            return new LogReading(
+            [
+                new DoctorCheck("doctor.project.decision-log", DoctorSection.Project, DoctorStatus.Unknown, []),
+                new DoctorCheck("doctor.project.setup", DoctorSection.Project, DoctorStatus.Unknown, []),
+            ]);
+        }
+
         try
         {
             var state = await decisions.LoadAsync(project.ProjectId, ct).ConfigureAwait(false);
