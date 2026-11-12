@@ -71,8 +71,9 @@ Cosas que salieron al leer el código y que afectan a esta fase:
 - **`ExecutableLocator` acepta una carpeta del repositorio si está en el PATH con ruta absoluta.** Solo descarta las entradas
   relativas (`src/AgentStudio.Infrastructure/Processes/ExecutableLocator.cs`). Para F6-7 no basta: D-02 lo resuelve para Auto
   Doctor y añade una comprobación que lo avisa.
-- **`CliProbe` no fija carpeta de trabajo:** las sondas de `--version` heredan la de la app
-  (`src/AgentStudio.Providers/Cli/CliProbe.cs`). WP-A la fija a la carpeta neutra.
+- **`CliProbe` no fija carpeta de trabajo y usa el localizador general:** las sondas heredan la carpeta de la app, y un
+  `claude.cmd` de una carpeta del proyecto que esté en el PATH se ejecutaría (`src/AgentStudio.Providers/Cli/CliProbe.cs`).
+  WP-A les da la carpeta neutra y el localizador que excluye el proyecto (D-02).
 - **`global.json` admite `sdk.paths` desde el SDK de .NET 10:** un proyecto puede decir al host que busque el SDK en una
   carpeta suya (por ejemplo `.dotnet`). La verificación ejecuta `dotnet` en la copia del commit, así que usaría ese SDK del
   repositorio (a integridad baja, eso sí). Auto Doctor lo avisa (D-07); cambiar la verificación queda fuera de esta fase y se
@@ -308,7 +309,17 @@ no por cuidado.
 - **No se cambia `ExecutableLocator` para todos.** La verificación y los proveedores siguen igual; cambiar su resolución es
   otro riesgo y otra prueba. Auto Doctor, en cambio, añade la comprobación `doctor.project.path-inside` (aviso): «tu PATH
   tiene una carpeta de este proyecto».
-- **Las sondas de proveedores** (`CliProbe`) pasan a fijar la misma carpeta neutra. Sus argumentos no cambian.
+- **Las sondas de proveedores** (`CliProbe`) no entran en el catálogo: sus órdenes son las tres de siempre (`--version`,
+  `claude auth status` y `codex login status`). Pero pasan a usar **el mismo localizador que excluye el proyecto** y la
+  misma carpeta neutra. Como `ProbeAsync` no recibe el proyecto, el localizador lo pregunta a un puerto nuevo
+  (`IUntrustedRoots`: las raíces de los proyectos abiertos), que implementa Desktop. Sin esto, un `claude.cmd` plantado en
+  una carpeta del proyecto que esté en tu PATH se ejecutaría al abrir el panel.
+- **Lo que queda fuera de esta puerta, dicho con claridad:** las comprobaciones de la sección «Proyecto» que preguntan a git
+  (`InspectAsync`, `FindHookPathsAsync`, los remotos) van por la capa git endurecida, que por definición trabaja **sobre** el
+  repositorio y resuelve `git` con el localizador general (`GitCommandRunner`). Auto Doctor comprueba antes que `git` se
+  resuelve fuera del proyecto; si no, no las lanza y sale el error `doctor.git.inside-project`. La garantía de F6-7 («ningún
+  proceso arranca dentro del repositorio ni con un ejecutable suyo») cubre la lectura del entorno, las herramientas y los
+  proveedores; de la capa git se garantiza el ejecutable, no la carpeta.
 - **Descartado:** lanzar las sondas a integridad baja. Son herramientas del sistema instaladas por ti, fuera del proyecto;
   la integridad baja rompería algunas (`docker` habla con su servicio por una tubería con nombre) sin quitar ningún riesgo
   nuevo.
@@ -506,8 +517,10 @@ primero. Sin texto libre ni rutas de tu equipo en el payload.
 - **Con token:** 5 000 por hora. Un token personal de acceso fino, solo de lectura de repositorios públicos.
 - **Dónde se guarda:** en la bóveda de `ICredentialVault`, cifrado con DPAPI para tu usuario de Windows. Hoy ese contrato no
   tiene implementación: esta fase escribe la mínima, y la Fase 7 (ADR-0043) la amplía por proyecto. Es la decisión 6.
-- **Guardar o borrar el token pide Hello** (`RemoteOrSecretOperation`, de la lista fija). Usarlo en una comprobación, no: ya
-  lo autorizaste con el ajuste y con el botón.
+- **Hello, según la lista fija de ADR-0053.** `RemoteOrSecretOperation` cubre «usar o revelar un secreto» y está en
+  «siempre». Por tanto: guardar, sustituir o borrar el token pide Hello, y **cada tanda de «Comprobar en GitHub» que use el
+  token pide Hello una vez** (una confirmación para toda la tanda, no una por skill). Sin token no hay secreto ni operación
+  que cambie nada en el remoto (son lecturas de datos públicos): no pide Hello, solo el permiso de Ajustes y tu clic.
 - **Nunca** se lee `gh auth token`, el gestor de credenciales de git ni ninguna carpeta de un CLI. El token no se escribe en
   el registro, en la bitácora ni en un log: `SecretRedactor` ya reconoce su forma, y una prueba lo comprueba.
 
@@ -539,9 +552,10 @@ primero. Sin texto libre ni rutas de tu equipo en el payload.
 
 **D-17 · Roslyn, solo el analizador sintáctico.** Dependencia nueva: es la decisión 3.
 
-- **El paquete:** `Microsoft.CodeAnalysis.CSharp` (trae `Microsoft.CodeAnalysis.Common`). Licencia MIT, de Microsoft y la
-  .NET Foundation. La última versión estable en nuget.org el 2026-11-12 es la **5.9.0**; el P0 la fija tras comprobar avisos
-  de seguridad y que compila con 0 avisos.
+- **El paquete:** `Microsoft.CodeAnalysis.CSharp`. La última versión estable en nuget.org el 2026-11-12 es la **5.9.0**. Su
+  ficha (`.nuspec`) dice: licencia **MIT**, autor Microsoft, repositorio `dotnet/roslyn`. Para `net10.0` solo trae dos
+  dependencias: `Microsoft.CodeAnalysis.Common` 5.9.0 y `Microsoft.CodeAnalysis.Analyzers` (reglas para quien escribe
+  analizadores; solo actúan al compilar). El P0 la fija tras comprobar avisos de seguridad y que compila con 0 avisos.
 - **Lo que no entra:** `Microsoft.CodeAnalysis.Workspaces.*`, `Microsoft.CodeAnalysis.Workspaces.MSBuild`,
   `Microsoft.Build.*` ni `Microsoft.Build.Locator`. Una prueba de arquitectura lo fija (F6-12).
 - **Cómo se usa:** `CSharpSyntaxTree.ParseText` con la versión más reciente del lenguaje, y se recorre el árbol. No se crea
@@ -616,12 +630,14 @@ primero. Sin texto libre ni rutas de tu equipo en el payload.
 
 ### 3.8 Diagramas (F6-10)
 
-**D-23 · Tres generadores, de modelo a texto, puros.** Viven en `src/AgentStudio.Memory/Diagrams/**` (nuevo).
+**D-23 · Tres generadores, de modelo a texto, puros.** Viven en `src/AgentStudio.Memory/Diagrams/**` (nuevo). Son los tres
+diagramas de F6-10; el de la solución escribe dos clases de fichero (la solución, y los espacios de nombres de cada
+proyecto), y por eso `DiagramKind` tiene cuatro valores.
 
 | Diagrama | Sintaxis Mermaid | Modelo de origen |
 |---|---|---|
-| La solución | `flowchart LR`, con un `subgraph` por carpeta de solución | `CodeGraph` (proyectos y referencias; los espacios de nombres, en un segundo diagrama por proyecto) |
-| El plan de una ejecución | `flowchart TD` | `PlanDefinition` de esa ejecución |
+| La solución | `flowchart LR`, con un `subgraph` por carpeta de solución; y uno por proyecto con sus espacios de nombres | `CodeGraph` |
+| El plan de una ejecución | `flowchart TD` | `PlanDefinition` de esa ejecución, por `IPlanStore` (`src/AgentStudio.Application/Persistence/StoreContracts.cs`) |
 | La secuencia de una ejecución | `sequenceDiagram` | Las entradas del registro de esa ejecución: lanzamientos, informes, verificaciones, integraciones, veredictos y aprobaciones |
 
 - **Participantes de la secuencia:** tú, el orquestador, cada agente por su nombre de la plantilla, el sistema (verificación
@@ -655,6 +671,9 @@ primero. Sin texto libre ni rutas de tu equipo en el payload.
   ```
 
   Para el plan y la secuencia, en vez del commit va la ejecución y la cabeza del registro que describe.
+- **La fecha no rompe el determinismo:** sale de un reloj inyectado (`TimeProvider`), que las pruebas fijan. Y un diagrama
+  «al día» **no se reescribe**: «Regenerar» sobre uno al día no toca el fichero, así que la fecha solo cambia cuando cambia
+  el modelo. Lo que se compara byte a byte en los dorados es el fichero entero con el reloj fijo.
 - **Nunca se lee de vuelta.** Agent Studio no interpreta ese fichero: ni su cabecera ni su contenido. Para saber qué generó,
   guarda **su propio índice** en `%LOCALAPPDATA%\AgentStudio\diagrams\<proyecto>\index.json`: fichero, diagrama, huella del
   modelo y SHA-256 de lo que escribió.
@@ -798,6 +817,10 @@ public interface IDoctorFix
 ```
 
 - `IDoctorToolRunner` no tiene ninguna sobrecarga con un ejecutable o argumentos libres: es la garantía de D-02.
+- En el mismo fichero, `IUntrustedRoots { IReadOnlyList<string> Roots { get; } }` (las raíces de los proyectos abiertos, que
+  implementa Desktop) y el localizador que las excluye, que usan la puerta y las sondas de proveedores.
+- `DoctorFactNames` fija los nombres de los hechos que comparten paquetes: `declared`, `source`, `installed` y `resolved`
+  para la tabla del entorno (la pinta WP-A, la rellena WP-E), y `version` y `path` para las herramientas.
 
 `src/AgentStudio.Application/Diagnostics/EnvironmentContracts.cs` (la ruta que ya nombraba docs/16):
 
@@ -875,8 +898,10 @@ public interface IConsistencyService { Task<ConsistencyReport> RunAsync(ProjectC
 - La Fase 16 añade sus `doc.*` como más `IConsistencyCheck`.
 
 `src/AgentStudio.Application/Skills/SkillPorts.cs` (existe): `ISkillHealthChecker` no cambia. Se añaden
-`ISkillScriptReviews` (guardar y leer la huella revisada) y el resultado de una tanda con su motivo cuando no se pudo
-comprobar.
+`ISkillScriptReviews` (guardar y leer la huella revisada), el resultado de una tanda con su motivo cuando no se pudo
+comprobar, e `ISkillsDoctorPolicy { bool NetworkAllowed { get; } }`: el permiso de Ajustes visto desde abajo. `AppSettings`
+vive en Desktop, así que el cliente de GitHub pregunta a este puerto antes de cada tanda, y la prueba de F6-13 lo apaga con
+un doble.
 
 `src/AgentStudio.Application/Security/SecurityContracts.cs` (existe): `ICredentialVault` no cambia; se implementa (D-15).
 
@@ -948,7 +973,8 @@ automático.
 ### 6.3 Ajustes
 
 - El permiso «Comprobar las skills en GitHub» (apagado), y debajo «Token de GitHub (opcional)»: guardar, sustituir y borrar,
-  cada uno con Hello. El token nunca se vuelve a mostrar: solo «hay un token guardado».
+  cada uno con Hello. El token nunca se vuelve a mostrar: solo «hay un token guardado». Un texto avisa de que, con token,
+  cada comprobación pedirá Hello (D-15).
 
 ### 6.4 Auto Graph (documento nuevo, con tres secciones)
 
@@ -1009,7 +1035,7 @@ Aquí se concreta la prueba de cada uno.
 | F6-4 | Prueba de ViewModel: una relación inferida tiene otro estilo, su etiqueta y su nombre accesible, y el interruptor la oculta; la huella del modelo no cambia al añadirla | `tests/.../Desktop/Graph/**` |
 | F6-5 | Demostración: de un proyecto a su `.csproj`, de un espacio de nombres a un fichero y de un proyecto a una tarea. Más una prueba de ViewModel de cada orden | Demostración y `tests/.../Desktop/Graph/**` |
 | F6-6 | Respuestas grabadas de la API (archivado, comparación con y sin cambios bajo la carpeta, truncada, 304, 403 por límite, 404); la huella de scripts cambia y vuelve a «sin revisar»; con y sin token | `tests/.../Infrastructure/Skills/GitHub/**` con `Fixtures/` |
-| F6-7 | Un repositorio de ejemplo por pila y uno con todo; lectores con ficheros hostiles (enorme, enlace, JSON profundo, `include`). **La prueba central:** un repositorio con `dotnet.cmd`, `node.exe`, `git.exe` y `.venv\Scripts\python.exe` plantados, su carpeta en el PATH y un `global.json` con `sdk.paths`; un lanzador que registra cada `ProcessSpec` comprueba que ninguno tiene la carpeta de trabajo ni el ejecutable dentro del repositorio | `tests/.../Domain/Environments/**`, `tests/.../Infrastructure/Diagnostics/**` |
+| F6-7 | Un repositorio de ejemplo por pila y uno con todo; lectores con ficheros hostiles (enorme, enlace, JSON profundo, `include`). **La prueba central:** un repositorio con `dotnet.cmd`, `node.exe`, `git.exe`, `claude.cmd`, `codex.cmd` y `.venv\Scripts\python.exe` plantados, su carpeta en el PATH y un `global.json` con `sdk.paths`; un lanzador que registra cada `ProcessSpec` comprueba que ninguno (herramientas, entorno ni sondas de proveedores) tiene la carpeta de trabajo ni el ejecutable dentro del repositorio, y que las comprobaciones de git no se lanzan (`doctor.git.inside-project`) | `tests/.../Domain/Environments/**`, `tests/.../Infrastructure/Diagnostics/**` |
 | F6-8 | El verificador con un perfil de dos pasos (dos herramientas distintas): cada evidencia lleva su bloque `tools:` con la versión de su paso, y `EvidenceToolVersions.Parse` lo lee | `tests/.../Orchestration/Verification/**` |
 | F6-9 | Salidas grabadas de `docker version --format json` (sin motor y con él) y de `wsl --status` (sin WSL, sin distribución y listo), en castellano y en inglés; cada una da su estado, su versión y su arreglo | `tests/.../Infrastructure/Diagnostics/Fixtures/**` |
 | F6-10 | Dorados de los tres generadores: la propia solución, y un plan y un registro preparados; dos generaciones seguidas, iguales byte a byte; cambia el modelo y sale «desactualizado»; se edita el fichero y sale «cambiado fuera» sin que nada lo interprete; nombres hostiles (comillas, `click`, saltos de línea) salen escapados | `tests/.../Memory/Diagrams/**` |
@@ -1043,8 +1069,9 @@ Las de [17 §9.1](17-constructor-visual-de-agentes.md#91-reglas-comunes) y docs/
 
 - **El P0:** `Directory.Packages.props`, `AgentStudio.slnx`, los `*.csproj`, los enums compartidos y los contratos de §4.
 - **El lead, en la integración:** `src/AgentStudio.Desktop/Composition/**`, `MainViewModel*.cs`, `MainWindow.xaml(.cs)`,
-  `App.xaml(.cs)`, `Themes/DocumentTemplates.xaml`, `Help/HelpScreens.cs`, `Settings/**`, `Services/AppSettings.cs`,
-  `tests/AgentStudio.Tests/Desktop/UiInventory/UiScreens.cs`, `docs/03`, `docs/08`, `docs/18`, `docs/README.md` y la bitácora.
+  `App.xaml(.cs)`, `Themes/DocumentTemplates.xaml`, `Settings/**`, `Services/AppSettings.cs`, `docs/03`, `docs/08`, `docs/18`,
+  `docs/README.md` y la bitácora. `Help/HelpScreens.cs` y `tests/.../UiInventory/UiScreens.cs` los toca el P0 una vez (§9.2)
+  y nadie más.
 
 **«Hecho»** exige `dotnet build AgentStudio.slnx` con 0 avisos, `dotnet test` en verde sin `ProviderLive`, los ADR y documentos
 del paquete, su artículo de ayuda, su pantalla en el inventario y nada simulado en la interfaz.
@@ -1060,9 +1087,14 @@ del paquete, su artículo de ayuda, su pantalla en el inventario y nada simulado
 - **Dependencias y solución:** `Directory.Packages.props` (`Microsoft.CodeAnalysis.CSharp`, tras comprobar versión, licencia
   y avisos); el proyecto `src/AgentStudio.GraphWorker/AgentStudio.GraphWorker.csproj` (nuevo, vacío, con su entrada en
   `AgentStudio.slnx`), si la decisión 4 es (a).
-- **Escritorio, lo mínimo para repartir:** `src/AgentStudio.Desktop/Graph/{GraphDocumentViewModel,GraphSection}.cs` (el
-  anfitrión y el contrato de sección) y los pares de recursos vacíos `DoctorStrings`, `GraphStrings` y `DocsStrings` en
-  `src/AgentStudio.Desktop/Resources/`.
+- **Escritorio, lo mínimo para que cada paquete llegue a verde solo:**
+  - `src/AgentStudio.Desktop/Graph/{GraphDocumentViewModel,GraphSection}.cs` (el anfitrión y el contrato de sección);
+  - los pares de recursos `DoctorStrings`, `GraphStrings` y `DocsStrings` en `src/AgentStudio.Desktop/Resources/`;
+  - los códigos `doctor` y `graph` en `Help/HelpScreens.cs`, con la primera versión de sus dos artículos
+    (`Help/{es-ES,en}/{doctor,graph}.md`): `HelpTests` exige un artículo por código, así que van juntos. Cada paquete
+    completa después **su** artículo con las claves ⓘ de sus vistas;
+  - `tests/AgentStudio.Tests/Desktop/UiInventory/{UiScreensDoctor,UiScreensGraph,UiScreensDocs}.cs` con su lista `All`
+    vacía, ya sumadas en `UiScreens.cs`. Cada paquete añade sus `Screen(...)` en su fichero y no toca el agregador.
 - **Pruebas:** `tests/AgentStudio.Tests/Domain/{Diagnostics,Graph}/**`, `Application/Phase6PayloadTests.cs`,
   `DecisionKindCompatibilityTests` y `DecisionPayloadTests` al día, y la prueba de arquitectura de F6-12.
 - **Documentos:** [04](04-contratos.md) §25 y los esqueletos de los ADR de §10.
@@ -1074,11 +1106,12 @@ del paquete, su artículo de ayuda, su pantalla en el inventario y nada simulado
 - `src/AgentStudio.Infrastructure/Diagnostics/**` (nuevo): la puerta de D-02, el localizador que excluye el proyecto, el
   inventario de lo instalado, WebView2 por el registro, Docker y WSL.
 - `src/AgentStudio.Application/Diagnostics/{DoctorService,ProviderCheckSource,ProjectCheckSource,DoctorFixes}.cs` (nuevos).
-- `src/AgentStudio.Providers/Cli/CliProbe.cs` (existe): la carpeta neutra.
-- `src/AgentStudio.Desktop/Doctor/**` y `Views/Doctor/**` (nuevos), `Views/AutoDoctorView.xaml(.cs)` y
-  `ViewModels/ProviderDiagnosticsViewModel.cs` (existen), `Resources/DoctorStrings*.resx`, `Help/{es-ES,en}/doctor.md` (nuevo).
-- Pruebas: `tests/AgentStudio.Tests/{Application,Infrastructure}/Diagnostics/**`, `Desktop/Doctor/**` y
-  `Desktop/UiInventory/UiScreensDoctor.cs` (nuevo).
+- `src/AgentStudio.Providers/Cli/CliProbe.cs` (existe): la carpeta neutra y el localizador que excluye el proyecto.
+- `src/AgentStudio.Desktop/Doctor/**` y `Views/Doctor/**` (nuevos; aquí va también la tabla del entorno, que pinta con los
+  hechos de `DoctorFactNames` y rellena WP-E), `Views/AutoDoctorView.xaml(.cs)` y
+  `ViewModels/ProviderDiagnosticsViewModel.cs` (existen), `Resources/DoctorStrings*.resx` y `Help/{es-ES,en}/doctor.md`.
+- Pruebas: `tests/AgentStudio.Tests/{Application,Infrastructure}/Diagnostics/**`, `Providers/Cli/**` (las de las sondas),
+  `Desktop/Doctor/**` y `Desktop/UiInventory/UiScreensDoctor.cs`.
 - Criterios: F6-1, F6-2, F6-9 y la mitad de F6-7 (la prueba de «ningún proceso»). ADR-0061.
 
 ### 9.4 WP-E · Entorno declarado y versiones en las evidencias (M)
@@ -1132,8 +1165,10 @@ del paquete, su artículo de ayuda, su pantalla en el inventario y nada simulado
 
 ### 9.8 Integración (el lead; M)
 
-- La composición (`Composition/{DiagnosticsServices,GraphServices}.cs`, nuevos), «Auto Graph» en la barra de actividad, las
-  plantillas de documento, los códigos `doctor` y `graph` en `HelpScreens.cs`, y el permiso y el token en Ajustes.
+- La composición (`Composition/{DiagnosticsServices,GraphServices}.cs`, nuevos, con `IUntrustedRoots` e
+  `ISkillsDoctorPolicy`), «Auto Graph» en la barra de actividad, las plantillas de documento, y el permiso y el token en
+  Ajustes. Los textos de WP-E y de WP-S que salen en el panel van en `DoctorStrings` y `SkillsStrings`: los de WP-E los
+  añade el lead al integrar, para que WP-E no toque el fichero de recursos de WP-A.
 - La línea de discrepancias en Auto Doctor (D-30) y los arreglos «Regenerar los diagramas» y «Desactivar la skill», que cruzan
   paquetes.
 - `tests/AgentStudio.Tests/Integration/Phase6/**`: Auto Doctor sobre este repositorio; el grafo, los diagramas y las
@@ -1198,9 +1233,11 @@ docs/19. Ninguno de ellos existe todavía. Esta fase usa el 0045 y propone 0061 
 
 ## 12. Sin verificar
 
-- **`Microsoft.CodeAnalysis.CSharp` 5.9.0:** que sea la versión que conviene fijar (es la última del índice de nuget.org, que
-  no dice su fecha), sus avisos de seguridad, su peso publicado y que compila con 0 avisos con `TreatWarningsAsErrors`. Su
-  licencia MIT es la del repositorio `dotnet/roslyn`; el P0 la confirma en la ficha del paquete.
+- **`Microsoft.CodeAnalysis.CSharp` 5.9.0:** la licencia MIT y las dependencias están comprobadas en su ficha. Falta: que sea
+  la versión que conviene fijar (es la última del índice de nuget.org, que no dice su fecha; su ficha apunta a la rama
+  `release/insiders` de Roslyn), sus avisos de seguridad, su peso publicado y que compila con 0 avisos con
+  `TreatWarningsAsErrors` (su dependencia `Microsoft.CodeAnalysis.Analyzers` añade reglas al compilar el proyecto que la
+  referencia).
 - **Los límites del analizador con ficheros hostiles:** que un fichero con anidamiento extremo termine con un error y no con
   la caída del proceso. Por eso va en un proceso aparte.
 - **`wsl --status`:** su codificación (UTF-16, y `WSL_UTF8=1`), sus códigos de salida y su texto en castellano.
