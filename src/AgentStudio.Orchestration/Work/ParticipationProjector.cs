@@ -97,6 +97,13 @@ public sealed class ParticipationProjector(IDecisionRecorder recorder, IVerdictS
                     continue;
                 }
 
+                // A revision verdict that turned towards an approval nobody accepted yet (VerdictReach) is the approval of nobody.
+                if (issued.Decision == VerdictDecision.Approved && VerdictReach.Revises(parsed, stored, storedVerdicts) is { } revised
+                    && VerdictReach.Standing(parsed, revised, storedVerdicts).Challenged)
+                {
+                    continue;
+                }
+
                 var judge = stored.Verdict.Judge;
                 var line = $"{judge.Model.Vendor.Value} {judge.Model.Model ?? "-"}: {issued.Decision}";
                 all.Add(new ParticipationEntry(ParticipationRole.Reviewer, judge.Agent.Value, line, ParticipationSources.Verdict));

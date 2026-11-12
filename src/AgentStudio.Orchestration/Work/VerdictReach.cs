@@ -23,6 +23,10 @@ internal sealed record VerdictStanding(VerdictDecision Decision, bool Challenged
 /// with no assessments by requirement judges every task and requirement of its scope.</item>
 /// <item><b>In force.</b> Of the valid verdicts that judged a requirement the last one decides, and where several runs cover it, the last run that started (the board's rule).
 /// A verdict a person challenged is set aside («en revisión») until its revision debate closes (<see cref="Standing"/>).</item>
+/// <item><b>Revision verdicts.</b> A verdict that supersedes (through <c>Supersedes</c>) a challenged verdict, or one of its own chain, is part of the revision (D-40): it never
+/// competes to be the one in force, and its decision reaches the work only through the standing of the challenged verdict (<see cref="Revises"/>, <see cref="Standing"/>), so
+/// that a revision turned towards an approval stays in review until a person accepts it. A <c>Supersedes</c> with no challenge behind it (a judge correcting itself) replaces
+/// the earlier verdict as usual.</item>
 /// </list>
 /// </summary>
 internal static class VerdictReach
@@ -45,6 +49,31 @@ internal static class VerdictReach
     }
 
     private static bool InScope(TaskId? issuedOn, bool issuedOnOrdinaryTask, TaskId task) => !issuedOnOrdinaryTask || issuedOn == task;
+
+    /// <summary>
+    /// The challenged verdict that <paramref name="stored"/> belongs to the revision of (it supersedes it, or a verdict of the same chain of corrections), or null when it is
+    /// not a verdict of a revision: no <c>Supersedes</c>, or one with no challenge behind it (a judge correcting itself).
+    /// </summary>
+    public static StoredVerdict? Revises(IReadOnlyList<(DecisionEntry Entry, DecisionPayload? Payload)> log, StoredVerdict stored, IReadOnlyDictionary<string, StoredVerdict> storedVerdicts)
+    {
+        ArgumentNullException.ThrowIfNull(log);
+        ArgumentNullException.ThrowIfNull(stored);
+        ArgumentNullException.ThrowIfNull(storedVerdicts);
+        var current = stored;
+        var seen = new HashSet<string>(StringComparer.Ordinal) { stored.Id };
+        while (current.Supersedes is { } previous && storedVerdicts.TryGetValue(previous, out var parent) && seen.Add(parent.Id))
+        {
+            if (ChallengeReader.Read(log, parent, storedVerdicts).Status != ChallengeStatus.None)
+            {
+                // A challenged verdict that is itself part of an earlier revision hands the question to the challenged verdict of that revision.
+                return Revises(log, parent, storedVerdicts) ?? parent;
+            }
+
+            current = parent;
+        }
+
+        return null;
+    }
 
     /// <summary>What a person's challenge of a verdict leaves of it (docs/15 D-38 to D-40), from the verified log.</summary>
     public static VerdictStanding Standing(IReadOnlyList<(DecisionEntry Entry, DecisionPayload? Payload)> log, StoredVerdict stored, IReadOnlyDictionary<string, StoredVerdict> storedVerdicts)

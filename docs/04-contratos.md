@@ -2231,6 +2231,14 @@ en otro grupo de la dimensión (un hito), de modo que los grupos pueden sumar m�
     requisito; también el de una ejecución anterior si la posterior cubre el requisito aunque aún no tenga veredicto), cuál es el último pero está impugnado (`Challenged`: en
     revisión hasta que cierre su debate; la regla es la de `ChallengeReader`) y cuál es el último pero su impugnación cerró con otra decisión que la suya (`Revised`: una
     aprobación retirada o aceptada por la persona; manda la decisión de la revisión). Nunca se presenta como vigente uno que no lo es.
+  - **El veredicto de una revisión no compite** (`VerdictReach.Revises`). El producto guarda el veredicto de una revisión en la ejecución del original, con `Supersedes` = el
+    veredicto impugnado (o la corrección anterior de la misma revisión) y tarea `juez-<agente>`, y lo anuncia con `VerdictIssued` antes de `DebateClosed`. Un veredicto cuya cadena de
+    `Supersedes` llega a un veredicto con impugnación (`ChallengeReader` distinto de `None`) es de esa revisión: no entra a decidir «el vigente» de ningún requisito ni tarea, y
+    su decisión solo llega a través del estado del impugnado (`VerdictReach.Standing`): confirma, retira una aprobación (manda la revisión), o vuelve hacia una aprobación y
+    sigue en revisión hasta que la persona la acepte (`verdict.revision.accept`); abierta, o decidida por la persona («Decidir yo»), la tarjeta sigue en revisión. En la cadena
+    se enseña con el estado del impugnado (`Challenged` mientras este lo esté, `Superseded` si lo está el impugnado, `InForce` solo cuando la revisión quedó asentada) y en la
+    participación no se atribuye «aprobó» por un veredicto de revisión que nadie aceptó. Un `Supersedes` sin impugnación detrás (un juez que corrige su propio veredicto) sí
+    sustituye al anterior. La entrega (`DeliveryService`) ya lo cumplía por su cuenta.
   - **La entrega en la cadena.** `IntegrationPerformed` con tarea (la tarea de integración, I1) cuenta solo si el motor la aceptó (la rama de la ejecución como destino, no la
     ref candidata oculta `refs/agentstudio/<ejecución>/_candidate/<tarea>` donde deja la que no aceptó aunque dejara commit), con commit y sin conflicto. Fusionó el código de las
     tareas completadas que producen código y de las que depende (`RunContext.ProducesCode`), pasando a través de las que no lo producen (condición, aprobación, revisión), y de

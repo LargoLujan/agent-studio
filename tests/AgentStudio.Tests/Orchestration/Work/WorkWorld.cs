@@ -123,7 +123,7 @@ internal sealed class WorkWorld : IDisposable
         RecordAsync(run, DecisionKind.EvidenceRegistered, new EvidenceRegisteredPayload(Eid(id), kind, AgentStudio.Domain.Evidence.EvidenceOrigin.CapturedBySystem, new string('a', 64), Tid(task), attempt, null, null, null, null, commit) { RunId = run });
 
     /// <summary>A verdict of the run: stored (valid or not) and announced in the log (valid or not).</summary>
-    public async Task<string> VerdictAsync(string run, VerdictDecision decision, bool validInLog = true, bool validInStore = true, string id = "v1", bool store = true, string? task = null, IReadOnlyList<string>? assessing = null, string issuedOn = "T7")
+    public async Task<string> VerdictAsync(string run, VerdictDecision decision, bool validInLog = true, bool validInStore = true, string id = "v1", bool store = true, string? task = null, IReadOnlyList<string>? assessing = null, string issuedOn = "T7", string? supersedes = null)
     {
         var verdict = ValidVerdict(Dossier(), decision);
 
@@ -135,12 +135,19 @@ internal sealed class WorkWorld : IDisposable
 
         if (store)
         {
-            await Instance.Verdicts.AppendAsync(ProjectId, new StoredVerdict(id, verdict, run, issuedOn, AuditScope.CurrentPlan, validInStore, [], null), Ct);
+            await Instance.Verdicts.AppendAsync(ProjectId, new StoredVerdict(id, verdict, run, issuedOn, AuditScope.CurrentPlan, validInStore, [], supersedes), Ct);
         }
 
-        await RecordAsync(run, DecisionKind.VerdictIssued, new VerdictIssuedPayload(id, task is null ? null : Tid(task), decision, validInLog, [], verdict.RequirementSetHash, verdict.DecisionLogHeadHash, null, null) { RunId = run });
+        await RecordAsync(run, DecisionKind.VerdictIssued, new VerdictIssuedPayload(id, task is null ? null : Tid(task), decision, validInLog, [], verdict.RequirementSetHash, verdict.DecisionLogHeadHash, supersedes, null) { RunId = run });
         return id;
     }
+
+    /// <summary>
+    /// A verdict of a revision as the product writes it (VerdictKeeper, docs/15 D-40): in the run of the verdict it challenges, on the judge task of the revision
+    /// (not a task of the plan), superseding that verdict (or the correction of it that comes before).
+    /// </summary>
+    public Task<string> RevisionVerdictAsync(string run, VerdictDecision decision, string supersedes, string id = "v2", bool store = true) =>
+        VerdictAsync(run, decision, id: id, store: store, task: "juez-x", issuedOn: "juez-x", supersedes: supersedes);
 
     public Task RecordAsUserAsync(DecisionKind kind, DecisionPayload payload) =>
         Instance.Recorder.RecordAsync(ProjectId, new Actor(ActorKind.User, "manuel"), kind, "test", payload, null, Ct);

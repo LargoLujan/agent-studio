@@ -299,6 +299,9 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
 
         var last = new Dictionary<string, (int Run, int Sequence, string Verdict)>(StringComparer.Ordinal);
         var verdictStanding = new Dictionary<TraceRef, VerdictStanding>();
+
+        // The verdicts of a revision (VerdictReach.Revises) and the challenged verdict each one belongs to: they never compete to be the one in force.
+        var revisionOf = new Dictionary<TraceRef, StoredVerdict>();
         var sequence = 0;
         var runOrder = payloads.Select(p => p.Payload).OfType<RunStartedPayload>().Select(p => p.RunId).Distinct(StringComparer.Ordinal).Select((run, index) => (run, index)).ToDictionary(x => x.run, x => x.index, StringComparer.Ordinal);
         foreach (var (entry, payload) in payloads)
@@ -334,15 +337,18 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
                     var onOrdinaryTask = verdict.Task is { } issuedOn && judged.Any(t => t.Id == issuedOn && !t.IsReview);
                     var verdictNode = TraceRef.Verdict(verdict.VerdictId);
                     var hung = false;
+                    var revises = VerdictReach.Revises(parsed, stored, storedVerdicts);
                     sequence++;
                     foreach (var task in judged.Where(t => VerdictReach.Judges(stored.Verdict, verdict.Task, onOrdinaryTask, t.Id, t.Covers)))
                     {
                         graph.Edge(task.Node, verdictNode, VerdictAt);
 
                         // The last verdict of the last run that judged a requirement is the one in force for it (a task that covers none, for the task).
-                        foreach (var key in stored.Verdict.Assessments.Count == 0
-                            ? (task.Covers.Count == 0 ? [TaskKey(task.Node)] : task.Covers.Select(c => c.Value))
-                            : stored.Verdict.Assessments.Where(a => task.Covers.Contains(a.Requirement)).Select(a => a.Requirement.Value))
+                        IEnumerable<string> keys = revises is not null ? []
+                            : stored.Verdict.Assessments.Count == 0
+                                ? (task.Covers.Count == 0 ? [TaskKey(task.Node)] : task.Covers.Select(c => c.Value))
+                                : stored.Verdict.Assessments.Where(a => task.Covers.Contains(a.Requirement)).Select(a => a.Requirement.Value);
+                        foreach (var key in keys)
                         {
                             if (!last.TryGetValue(key, out var known) || (runOrder[verdict.RunId], sequence).CompareTo((known.Run, known.Sequence)) > 0)
                             {
@@ -356,6 +362,11 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
                     if (hung)
                     {
                         verdictStanding[verdictNode] = VerdictReach.Standing(parsed, stored, storedVerdicts);
+                        if (revises is not null)
+                        {
+                            revisionOf[verdictNode] = revises;
+                        }
+
                         graph.Sequence[verdictNode] = sequence;
                     }
 
@@ -388,6 +399,15 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
         var inForce = last.Where(k => !lastCoveringRun.TryGetValue(k.Key, out var covering) || k.Value.Run >= covering).Select(k => k.Value.Verdict).ToHashSet(StringComparer.Ordinal);
         foreach (var (node, standing) in verdictStanding)
         {
+            if (revisionOf.TryGetValue(node, out var revised))
+            {
+                // A verdict of a revision stands as the verdict it revises does: in review while that one is, never the one in force by itself.
+                graph.Standings[node] = verdictStanding.ContainsKey(TraceRef.Verdict(revised.Id)) && !inForce.Contains(revised.Id) ? TraceVerdictStanding.Superseded
+                    : VerdictReach.Standing(parsed, revised, storedVerdicts).Challenged ? TraceVerdictStanding.Challenged
+                    : TraceVerdictStanding.InForce;
+                continue;
+            }
+
             graph.Standings[node] = !inForce.Contains(node.Id)
                 ? TraceVerdictStanding.Superseded
                 : standing.Challenged ? TraceVerdictStanding.Challenged : standing.Revised ? TraceVerdictStanding.Revised : TraceVerdictStanding.InForce;
