@@ -14,7 +14,7 @@ internal interface IGraphAnalysis
     /// <param name="fileStarted">Called with the relative path of each file before it is opened: the runner writes it as a progress line, so a crash names its file.</param>
     /// <param name="ct">Cancellation.</param>
     /// <exception cref="GraphAnalysisUnavailableException">This build of the process has no analysis.</exception>
-    Task<CodeGraph> AnalyzeAsync(GraphWorkerRequest request, Action<string> fileStarted, CancellationToken ct);
+    Task<GraphBuild> AnalyzeAsync(GraphWorkerRequest request, Action<string> fileStarted, CancellationToken ct);
 }
 
 /// <summary>This build of the process cannot analyze anything yet: it ends with <see cref="GraphWorkerExitCodes.AnalysisUnavailable"/>.</summary>
@@ -26,7 +26,7 @@ internal sealed class GraphAnalysisUnavailableException(string message) : Except
 /// </summary>
 internal sealed class UnavailableGraphAnalysis : IGraphAnalysis
 {
-    public Task<CodeGraph> AnalyzeAsync(GraphWorkerRequest request, Action<string> fileStarted, CancellationToken ct) =>
+    public Task<GraphBuild> AnalyzeAsync(GraphWorkerRequest request, Action<string> fileStarted, CancellationToken ct) =>
         throw new GraphAnalysisUnavailableException("The analysis is not implemented in this build of the process.");
 }
 
@@ -67,14 +67,14 @@ internal static class GraphWorkerRunner
 
         try
         {
-            var graph = await analysis.AnalyzeAsync(request, path => ReportProgress(standardError, path), ct).ConfigureAwait(false);
-            if (!string.Equals(graph.Commit, request.Commit, StringComparison.Ordinal))
+            var build = await analysis.AnalyzeAsync(request, path => ReportProgress(standardError, path), ct).ConfigureAwait(false);
+            if (!string.Equals(build.Graph.Commit, request.Commit, StringComparison.Ordinal))
             {
                 await standardError.WriteLineAsync("The analysis described another commit than the one asked.").ConfigureAwait(false);
                 return GraphWorkerExitCodes.Failed;
             }
 
-            await standardOutput.WriteAsync(CodeGraphJson.Serialize(graph)).ConfigureAwait(false);
+            await standardOutput.WriteAsync(CodeGraphJson.Serialize(build.Graph, build.Files)).ConfigureAwait(false);
             await standardOutput.FlushAsync(ct).ConfigureAwait(false);
             return GraphWorkerExitCodes.Completed;
         }

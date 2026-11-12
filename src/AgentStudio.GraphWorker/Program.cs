@@ -24,7 +24,7 @@ internal static class Program
 
         try
         {
-            return await GraphWorkerRunner.RunAsync(args, output, error, new UnavailableGraphAnalysis(), cancellation.Token).ConfigureAwait(false);
+            return await GraphWorkerRunner.RunAsync(args, output, error, new SolutionGraphAnalysis(), cancellation.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {

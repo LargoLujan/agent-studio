@@ -24,7 +24,10 @@ public static class CodeGraphJson
     private static readonly JsonSerializerOptions Options = CreateOptions();
 
     /// <summary>The static model as text. A model that holds inferred relations is written without them.</summary>
-    public static string Serialize(CodeGraph graph)
+    public static string Serialize(CodeGraph graph) => Serialize(graph, null);
+
+    /// <summary>The static model and, when it is given, the files that declare each namespace (docs/20 D-22): they travel beside the model and never enter its hash.</summary>
+    public static string Serialize(CodeGraph graph, NamespaceFiles? files)
     {
         ArgumentNullException.ThrowIfNull(graph);
         var model = graph.StaticOnly();
@@ -36,13 +39,20 @@ public static class CodeGraphJson
             Nodes = [.. model.Nodes.Select(n => new NodeDto { Id = n.Id, Kind = n.Kind, Name = n.Name, Path = n.Path, Partial = n.Partial })],
             Edges = [.. model.Edges.Select(e => new EdgeDto { From = e.From, To = e.To, Kind = e.Kind })],
             Gaps = [.. model.Gaps.Select(g => new GapDto { Node = g.NodeId, Code = g.Code, Path = g.Path, Line = g.Line })],
+            Files = files is null || files.Entries.Count == 0
+                ? null
+                : [.. files.Entries.OrderBy(e => e.Key, StringComparer.Ordinal).Select(e => new FilesDto { Node = e.Key, Paths = [.. e.Value] })],
         };
         return JsonSerializer.Serialize(document, Options);
     }
 
     /// <summary>Reads a model from text that is not trusted.</summary>
     /// <exception cref="InvalidDataException">The text is not a valid model.</exception>
-    public static CodeGraph Parse(string json)
+    public static CodeGraph Parse(string json) => ParseBuild(json).Graph;
+
+    /// <summary>Reads a model and the files that declare its namespaces from text that is not trusted; a list for a node that is not a namespace of the model is refused.</summary>
+    /// <exception cref="InvalidDataException">The text is not a valid model.</exception>
+    public static GraphBuild ParseBuild(string json)
     {
         ArgumentNullException.ThrowIfNull(json);
         if (Encoding.UTF8.GetByteCount(json) > GraphWorkerProtocol.MaxOutputBytes)
@@ -64,12 +74,23 @@ public static class CodeGraphJson
                 throw new InvalidDataException("The model holds more than the caps allow.");
             }
 
-            return new CodeGraph(
+            var graph = new CodeGraph(
                 document.Commit,
                 document.Generator,
                 [.. document.Nodes.Select(n => new GraphNode(n.Id, n.Kind, n.Name, n.Path, n.Partial))],
                 [.. document.Edges.Select(e => new GraphEdge(e.From, e.To, e.Kind, GraphEdgeOrigin.Static))],
                 [.. document.Gaps.Select(g => new GraphGap(g.Node, g.Code, g.Path, g.Line))]);
+            var byNode = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
+            var namespaces = graph.Nodes.Where(n => n.Kind == GraphNodeKind.Namespace).Select(n => n.Id).ToHashSet(StringComparer.Ordinal);
+            foreach (var entry in document.Files ?? [])
+            {
+                if (!namespaces.Contains(entry.Node) || !byNode.TryAdd(entry.Node, entry.Paths))
+                {
+                    throw new InvalidDataException("The model lists files for something that is not a namespace of the model, or twice.");
+                }
+            }
+
+            return new GraphBuild(graph, new NamespaceFiles(byNode));
         }
         catch (JsonException)
         {
@@ -113,6 +134,16 @@ public static class CodeGraphJson
         public required List<EdgeDto> Edges { get; init; }
 
         public required List<GapDto> Gaps { get; init; }
+
+        /// <summary>The files that declare each namespace; absent in a model that lists none.</summary>
+        public List<FilesDto>? Files { get; init; }
+    }
+
+    private sealed class FilesDto
+    {
+        public required string Node { get; init; }
+
+        public required List<string> Paths { get; init; }
     }
 
     private sealed class NodeDto
