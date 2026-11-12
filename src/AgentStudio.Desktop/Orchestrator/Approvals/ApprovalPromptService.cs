@@ -253,7 +253,7 @@ public sealed record ReinforcedConfirmation(
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            return new HelloOutcome(null, ex.Message);
+            return new HelloOutcome(null, OrchestratorErrorText.Detail(ex));
         }
     }
 }

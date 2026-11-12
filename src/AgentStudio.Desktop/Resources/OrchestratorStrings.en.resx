@@ -2901,4 +2901,487 @@ Open the consumption analysis, if it is there, to see the detail.</value>
   <data name="Text_planner_ended" xml:space="preserve">
     <value>The orchestrator ended with status {0}.</value>
   </data>
+  <data name="Text_run_no_reason" xml:space="preserve">
+    <value>no reason given</value>
+  </data>
+  <data name="Text_run_cancelled_from_monitor" xml:space="preserve">
+    <value>from the monitor</value>
+  </data>
+  <data name="Text_delivery_log_not_intact" xml:space="preserve">
+    <value>The decision log is not intact (entry {0}): nothing is delivered.</value>
+  </data>
+  <data name="Text_delivery_run_not_finished" xml:space="preserve">
+    <value>Run {0} has not finished: there is nothing to deliver.</value>
+  </data>
+  <data name="Text_delivery_run_not_succeeded" xml:space="preserve">
+    <value>Run {0} ended as {1}: only a completed run is delivered.</value>
+  </data>
+  <data name="Text_delivery_no_approved_integration" xml:space="preserve">
+    <value>Run {0} has no integration approved by an independent judge: it is not delivered.</value>
+  </data>
+  <data name="Text_delivery_verdict_missing" xml:space="preserve">
+    <value>Verdict {0}, the one the run ended with, is not in the decision log: it is not delivered.</value>
+  </data>
+  <data name="Text_delivery_verdict_not_approved" xml:space="preserve">
+    <value>The judge&apos;s verdict is &quot;{0}&quot;. Only what an independent judge approved with a valid verdict is delivered.</value>
+  </data>
+  <data name="Text_delivery_verdict_not_approved_invalid" xml:space="preserve">
+    <value>The judge&apos;s verdict is &quot;{0}&quot; and it is not valid. Only what an independent judge approved with a valid verdict is delivered.</value>
+  </data>
+  <data name="Text_delivery_store_not_valid_approval" xml:space="preserve">
+    <value>The verdict store does not confirm that verdict {0} is a valid approval: it is not delivered.</value>
+  </data>
+  <data name="Text_delivery_verdict_superseded" xml:space="preserve">
+    <value>Verdict {0} was replaced by another one: it is not delivered.</value>
+  </data>
+  <data name="Text_delivery_store_differs" xml:space="preserve">
+    <value>The verdict store does not confirm verdict {0} as the log recorded it. It is not delivered.</value>
+  </data>
+  <data name="Text_delivery_integration_after_verdict" xml:space="preserve">
+    <value>There was an integration in {0} after the verdict: the judge did not review what would be delivered.</value>
+  </data>
+  <data name="Text_delivery_integration_not_judged" xml:space="preserve">
+    <value>The integration the judge reviewed is not the one the run accepted ({0}). It is not delivered.</value>
+  </data>
+  <data name="Text_delivery_shown_unknown" xml:space="preserve">
+    <value>Verdict {0} does not say which integration the judge saw. The log lacks the entry it cites, or there was no integration yet. It is not delivered.</value>
+  </data>
+  <data name="Text_delivery_shown_differs" xml:space="preserve">
+    <value>The run ended with verdict {0}, {1}, the last one to finish. That review saw integration {2}, but {3} would be delivered. It is not delivered.</value>
+  </data>
+  <data name="Text_delivery_review_of_task" xml:space="preserve">
+    <value>of review {0}</value>
+  </data>
+  <data name="Text_delivery_review_without_task" xml:space="preserve">
+    <value>of a review without a task</value>
+  </data>
+  <data name="Text_delivery_judge_code_unknown" xml:space="preserve">
+    <value>The log does not say which code the judge of verdict {0} worked on: its working copy {1} is missing. It is not delivered.</value>
+  </data>
+  <data name="Text_delivery_judge_elsewhere" xml:space="preserve">
+    <value>The judge of verdict {0} worked on {1} (working copy {2}), not on integration {3}, which would be delivered. It never had that code in front of it, so it is not delivered.</value>
+  </data>
+  <data name="Text_delivery_replan_pending" xml:space="preserve">
+    <value>There is an unattended request to replan run {0} ({1}; findings: {2}). It is not delivered until you dismiss it or start the follow-up run.</value>
+  </data>
+  <data name="Text_delivery_replan_by_auditor" xml:space="preserve">
+    <value>the orchestrator&apos;s auditor asked for it</value>
+  </data>
+  <data name="Text_delivery_replan_by_judge" xml:space="preserve">
+    <value>judge {0} of the orchestrator&apos;s review asked for it</value>
+  </data>
+  <data name="Text_delivery_replan_by_other" xml:space="preserve">
+    <value>{0} asked for it</value>
+  </data>
+  <data name="Text_delivery_replan_no_findings" xml:space="preserve">
+    <value>none</value>
+  </data>
+  <data name="Text_delivery_ready" xml:space="preserve">
+    <value>The judge approved integration {0} of run {1}.</value>
+  </data>
+  <data name="Text_delivery_ready_revised" xml:space="preserve">
+    <value>Integration {0} of run {1} can be delivered: {2}.</value>
+  </data>
+  <data name="Text_delivery_revision_confirmed" xml:space="preserve">
+    <value>the review (debate {0}) of the challenge to verdict {1} confirmed the approval</value>
+  </data>
+  <data name="Text_delivery_revision_accepted" xml:space="preserve">
+    <value>you accepted the review (debate {0}) of the challenge to verdict {1}, which approves it</value>
+  </data>
+  <data name="Text_delivery_revision_open_unannounced" xml:space="preserve">
+    <value>A review (debate {0}) of a verdict of this run is open and has not finished. The log did not record the challenge (the app closed halfway). It is not delivered until the review ends.</value>
+  </data>
+  <data name="Text_delivery_revision_chain_too_long" xml:space="preserve">
+    <value>The chain of reviews of the verdicts of run {0} is longer than what is checked ({1}). It is not delivered.</value>
+  </data>
+  <data name="Text_delivery_revision_none_decides" xml:space="preserve">
+    <value>No review decides.</value>
+  </data>
+  <data name="Text_delivery_verdict_not_valid_approval" xml:space="preserve">
+    <value>The verdict the run ended with is not a valid approval by a judge: it is not delivered.</value>
+  </data>
+  <data name="Text_delivery_revision_withdraws" xml:space="preserve">
+    <value>The review (debate {0}) of the challenge to verdict {1} left the integration as &quot;{2}&quot;: it withdraws the approval and nothing is delivered.</value>
+  </data>
+  <data name="Text_delivery_revision_not_approves" xml:space="preserve">
+    <value>The review (debate {0}) of the challenge to verdict {1} left the integration as &quot;{2}&quot;: it does not approve it and nothing is delivered.</value>
+  </data>
+  <data name="Text_delivery_revision_unaccepted_confirms" xml:space="preserve">
+    <value>The review (debate {0}) of the challenge to verdict {1} confirms an approval you had not accepted yet (verdict {2}). It only counts if you accept it expressly, so nothing is delivered until then.</value>
+  </data>
+  <data name="Text_delivery_revision_unaccepted_turns" xml:space="preserve">
+    <value>The review (debate {0}) of the challenge to verdict {1} turns towards an approval (verdict {2}). It only counts if you accept it expressly, so nothing is delivered until then.</value>
+  </data>
+  <data name="Text_delivery_store_unannounced_supersession" xml:space="preserve">
+    <value>The verdict store holds a verdict ({0}) that replaces {1} and that the decision log does not announce. It is not delivered.</value>
+  </data>
+  <data name="Text_delivery_revision_not_opened" xml:space="preserve">
+    <value>Verdict {0} is challenged and its review (debate {1}) never opened. It is not delivered. Challenge it again to open the review.</value>
+  </data>
+  <data name="Text_delivery_revision_pending" xml:space="preserve">
+    <value>Verdict {0} is challenged and its review (debate {1}) has not finished. It is not delivered until it closes.</value>
+  </data>
+  <data name="Text_delivery_revision_decided_by_user" xml:space="preserve">
+    <value>You decided the review (debate {0}) of the challenge to verdict {1} (&quot;Decide myself&quot;). A decision of yours is not the approval of an independent judge, so it is not delivered. Challenge the verdict again for another review, or start a follow-up run.</value>
+  </data>
+  <data name="Text_delivery_revision_aborted" xml:space="preserve">
+    <value>The review (debate {0}) of the challenge to verdict {1} was aborted without a judgment. The challenge is still open and nothing is delivered. Challenge the verdict again.</value>
+  </data>
+  <data name="Text_delivery_revision_needs_person" xml:space="preserve">
+    <value>The review (debate {0}) of the challenge to verdict {1} needs a person. An unresolved verdict or a decision of yours does not count as the approval of an independent judge. It is not delivered. Challenge the verdict again for another review, or start a follow-up run.</value>
+  </data>
+  <data name="Text_delivery_revision_inconsistent" xml:space="preserve">
+    <value>The review (debate {0}) of the challenged verdict {1} does not match the log or the verdict store ({2}). It is not delivered.</value>
+  </data>
+  <data name="Text_delivery_inconsistent_opening_other_verdict" xml:space="preserve">
+    <value>its opening does not challenge that verdict</value>
+  </data>
+  <data name="Text_delivery_inconsistent_opening_other_requirements" xml:space="preserve">
+    <value>its opening judges other requirements</value>
+  </data>
+  <data name="Text_delivery_inconsistent_copy_other_commit" xml:space="preserve">
+    <value>its copy is of saved version (commit) {0}, not of the integration {1} of the run</value>
+  </data>
+  <data name="Text_delivery_inconsistent_closed_twice" xml:space="preserve">
+    <value>the debate closed more than once</value>
+  </data>
+  <data name="Text_delivery_inconsistent_no_verdicts" xml:space="preserve">
+    <value>its closing names no verdict</value>
+  </data>
+  <data name="Text_delivery_inconsistent_verdict_missing" xml:space="preserve">
+    <value>verdict {0} is not in the log of run {1}</value>
+  </data>
+  <data name="Text_delivery_inconsistent_verdict_before" xml:space="preserve">
+    <value>verdict {0} is older than the challenge</value>
+  </data>
+  <data name="Text_delivery_inconsistent_verdict_invalid" xml:space="preserve">
+    <value>verdict {0} is not valid</value>
+  </data>
+  <data name="Text_delivery_inconsistent_verdict_other_requirements" xml:space="preserve">
+    <value>verdict {0} judges other requirements</value>
+  </data>
+  <data name="Text_delivery_inconsistent_verdict_not_superseding" xml:space="preserve">
+    <value>verdict {0} does not replace the challenged one</value>
+  </data>
+  <data name="Text_delivery_inconsistent_store_no_confirm" xml:space="preserve">
+    <value>the verdict store does not confirm verdict {0}</value>
+  </data>
+  <data name="Text_delivery_inconsistent_verdicts_disagree" xml:space="preserve">
+    <value>its verdicts do not agree, or do not decide</value>
+  </data>
+  <data name="Text_delivery_inconsistent_chain_repeated" xml:space="preserve">
+    <value>its verdicts were already in the chain of reviews</value>
+  </data>
+  <data name="Text_delivery_decision_approved" xml:space="preserve">
+    <value>approved</value>
+  </data>
+  <data name="Text_delivery_decision_changes_requested" xml:space="preserve">
+    <value>asks for changes</value>
+  </data>
+  <data name="Text_delivery_decision_rejected" xml:space="preserve">
+    <value>rejected</value>
+  </data>
+  <data name="Text_delivery_decision_escalate" xml:space="preserve">
+    <value>leaves it to a person</value>
+  </data>
+  <data name="Text_delivery_decision_unresolved" xml:space="preserve">
+    <value>unresolved</value>
+  </data>
+  <data name="Text_delivery_head_detached" xml:space="preserve">
+    <value>Your repository is not on any branch: there is no branch to deliver {0} to.</value>
+  </data>
+  <data name="Text_delivery_branch_missing" xml:space="preserve">
+    <value>Branch {0} does not exist: there is nothing to deliver.</value>
+  </data>
+  <data name="Text_delivery_branch_moved" xml:space="preserve">
+    <value>Branch {0} is at {1}, but the judge approved {2}. It moved after the review, so nothing is delivered.</value>
+  </data>
+  <data name="Text_delivery_already_contained" xml:space="preserve">
+    <value>{0} already contains {1}: there is nothing to deliver.</value>
+  </data>
+  <data name="Text_delivery_target_advanced" xml:space="preserve">
+    <value>{0} has moved on since the run started, so it cannot be delivered without a merge. Deliver with a merge saved version (commit) or start a follow-up run.</value>
+  </data>
+  <data name="Text_delivery_config_refused" xml:space="preserve">
+    <value>Your repository is set up with a program that controls the repository or a working copy. The delivery refuses it, like any internal command: {1}. No approval was asked for and {0} was not touched. Review the change and merge it by hand.</value>
+  </data>
+  <data name="Text_delivery_denied" xml:space="preserve">
+    <value>Delivery denied by {0}: {1} was not touched.</value>
+  </data>
+  <data name="Text_delivery_denied_with_comment" xml:space="preserve">
+    <value>Delivery denied by {0} ({1}): {2} was not touched.</value>
+  </data>
+  <data name="Text_delivery_approval_mismatch" xml:space="preserve">
+    <value>The approval received does not answer the request for this delivery: {0} was not touched. Ask for the delivery again.</value>
+  </data>
+  <data name="Text_delivery_repository_changed" xml:space="preserve">
+    <value>Your repository changed while waiting for the approval (it is now on {0}, {1}). Nothing was delivered. Ask for the delivery again.</value>
+  </data>
+  <data name="Text_delivery_repository_changed_elsewhere" xml:space="preserve">
+    <value>Your repository changed while waiting for the approval (it is now on another branch or on none, {0}). Nothing was delivered. Ask for the delivery again.</value>
+  </data>
+  <data name="Text_delivery_delivered" xml:space="preserve">
+    <value>Delivered: {0} is at {1} and includes {2}.</value>
+  </data>
+  <data name="Text_delivery_unrecorded" xml:space="preserve">
+    <value>Warning: the delivery could not be recorded in the decision log ({0}).</value>
+  </data>
+  <data name="Text_delivery_dirty_paths" xml:space="preserve">
+    <value>You have unsaved changes, untracked or ignored files in paths the delivery changes ({0}). {1} was not touched. Save or set them aside and ask for the delivery again.</value>
+  </data>
+  <data name="Text_delivery_conflicts" xml:space="preserve">
+    <value>Merging {0} into {1} would conflict in {2}. Nothing was touched. Start a follow-up run from {1}.</value>
+  </data>
+  <data name="Text_delivery_merge_incomplete" xml:space="preserve">
+    <value>git merged {0} into your working tree but could not create the saved version (commit). Did a hook of yours refuse it? {1} has not moved and the merge is still in progress. Finish it in your terminal or undo it with git merge --abort. git said: {2}</value>
+  </data>
+  <data name="Text_delivery_git_failed" xml:space="preserve">
+    <value>git did not complete the delivery and {0} has not moved. Check your repository (git status). git said: {1}</value>
+  </data>
+  <data name="Text_worker_cancelled_before_start" xml:space="preserve">
+    <value>It was cancelled before it started.</value>
+  </data>
+  <data name="Text_worker_launch_failed" xml:space="preserve">
+    <value>The agent could not be launched: {0}</value>
+  </data>
+  <data name="Text_worker_provider_cancelled" xml:space="preserve">
+    <value>The provider cancelled the run.</value>
+  </data>
+  <data name="Text_worker_agent_ended_status" xml:space="preserve">
+    <value>The agent ended with status {0}.</value>
+  </data>
+  <data name="Text_worker_report_invalid" xml:space="preserve">
+    <value>The agent&apos;s report is not valid: {0}</value>
+  </data>
+  <data name="Text_worker_agent_asks" xml:space="preserve">
+    <value>The agent asks a person a question.</value>
+  </data>
+  <data name="Text_worker_outside_scope" xml:space="preserve">
+    <value>Changes outside the write scope: {0}</value>
+  </data>
+  <data name="Text_worker_verification_cancelled" xml:space="preserve">
+    <value>Cancelled by you during the verification.</value>
+  </data>
+  <data name="Text_worker_verification_timeout" xml:space="preserve">
+    <value>The verification did not finish in time.</value>
+  </data>
+  <data name="Text_worker_verification_failed" xml:space="preserve">
+    <value>The verification failed in: {0}</value>
+  </data>
+  <data name="Text_worker_cancelled_by_user" xml:space="preserve">
+    <value>Cancelled by you.</value>
+  </data>
+  <data name="Text_worker_abandoned" xml:space="preserve">
+    <value>Abandoned: no activity for more than {0} minutes.</value>
+  </data>
+  <data name="Text_worker_timed_out" xml:space="preserve">
+    <value>Time ran out: more than {0} minutes.</value>
+  </data>
+  <data name="Text_worker_signed_out" xml:space="preserve">
+    <value>The {0} session expired or is not signed in: sign in with &quot;{1}&quot; and retry the task.</value>
+  </data>
+  <data name="Text_worker_rate_limited_until" xml:space="preserve">
+    <value>Usage limit of the provider until {0}.</value>
+  </data>
+  <data name="Text_worker_rate_limited_no_reset" xml:space="preserve">
+    <value>Usage limit of the provider, with no reset time.</value>
+  </data>
+  <data name="Text_worker_step_succeeded" xml:space="preserve">
+    <value>Step {0} finished well.</value>
+  </data>
+  <data name="Text_worker_step_failed" xml:space="preserve">
+    <value>Step {0} failed.</value>
+  </data>
+  <data name="Text_worker_step_skipped" xml:space="preserve">
+    <value>Step {0}, which {1} requires, failed: {1} never ran.</value>
+  </data>
+  <data name="Text_worker_sources_moved" xml:space="preserve">
+    <value>Nothing is integrated: the branch of {0} no longer points to the saved version (commit) that was verified.</value>
+  </data>
+  <data name="Text_worker_integration_timeout" xml:space="preserve">
+    <value>The integration did not finish in time.</value>
+  </data>
+  <data name="Text_worker_integration_conflict" xml:space="preserve">
+    <value>Integration conflict in: {0}. Resolve it by hand or with a follow-up run.</value>
+  </data>
+  <data name="Text_worker_integration_verification_failed" xml:space="preserve">
+    <value>The verification of the integration failed.</value>
+  </data>
+  <data name="Text_worker_review_timeout" xml:space="preserve">
+    <value>The review did not finish in time.</value>
+  </data>
+  <data name="Text_worker_judge_approved" xml:space="preserve">
+    <value>The judge approved (verdict {0}).</value>
+  </data>
+  <data name="Text_worker_judge_changes_requested" xml:space="preserve">
+    <value>The judge asked for changes (verdict {0}). A follow-up run is proposed.</value>
+  </data>
+  <data name="Text_worker_judge_rejected" xml:space="preserve">
+    <value>The judge rejected the work (verdict {0}).</value>
+  </data>
+  <data name="Text_worker_judge_needs_person" xml:space="preserve">
+    <value>Verdict {0} needs a person.</value>
+  </data>
+  <data name="Text_worker_judge_limit_until" xml:space="preserve">
+    <value>The judge reached the usage limit of its provider until {0}.</value>
+  </data>
+  <data name="Text_worker_judge_limit_no_reset" xml:space="preserve">
+    <value>The judge reached the usage limit of its provider, with no reset time.</value>
+  </data>
+  <data name="Text_worker_approval_failed" xml:space="preserve">
+    <value>The approval could not be obtained (this counts as denying it): {0}</value>
+  </data>
+  <data name="Text_worker_brief_log_unverified" xml:space="preserve">
+    <value>{0} is not launched: the decision log does not verify, so the project brief cannot be checked. A person decides: check the log.</value>
+  </data>
+  <data name="Text_worker_upstream_tampered" xml:space="preserve">
+    <value>{0} is not launched: the report of {1} (evidence {2}) is not the one the log anchored. Someone rewrote it in the store. A person decides.</value>
+  </data>
+  <data name="Text_task_retry" xml:space="preserve">
+    <value>Retry {0} of {1} after: {2}</value>
+  </data>
+  <data name="Text_worker_integrated" xml:space="preserve">
+    <value>Integrated into {0}.</value>
+  </data>
+  <data name="Text_worker_tool_silent" xml:space="preserve">
+    <value>Abandoned: the tool gave no sign of life.</value>
+  </data>
+  <data name="Text_worker_tool_timeout" xml:space="preserve">
+    <value>Time ran out.</value>
+  </data>
+  <data name="Text_worker_system_error" xml:space="preserve">
+    <value>System error: {0}</value>
+  </data>
+  <data name="Text_worker_approved" xml:space="preserve">
+    <value>Approved by {0}.</value>
+  </data>
+  <data name="Text_worker_denied" xml:space="preserve">
+    <value>Denied by {0}.</value>
+  </data>
+  <data name="Text_worker_denied_with_comment" xml:space="preserve">
+    <value>Denied by {0}: {1}</value>
+  </data>
+  <data name="Text_resume_no_consent" xml:space="preserve">
+    <value>Its header has no consent to resume by itself: you resume it.</value>
+  </data>
+  <data name="Text_resume_not_halfway" xml:space="preserve">
+    <value>It is not halfway.</value>
+  </data>
+  <data name="Text_resume_paused" xml:space="preserve">
+    <value>You paused it: it never resumes by itself.</value>
+  </data>
+  <data name="Text_resume_left_on_exit" xml:space="preserve">
+    <value>You left it on exit: it never resumes by itself, even if Windows closed the session afterwards.</value>
+  </data>
+  <data name="Text_resume_session_ended" xml:space="preserve">
+    <value>Windows closed the session while the run was going.</value>
+  </data>
+  <data name="Text_resume_waiting_limit" xml:space="preserve">
+    <value>It was waiting for the usage limit of your plan to lift when the app closed.</value>
+  </data>
+  <data name="Text_resume_unrequested_close" xml:space="preserve">
+    <value>A close you did not ask for cut it off.</value>
+  </data>
+  <data name="Text_resume_failed_before" xml:space="preserve">
+    <value>In this session of the app it is no longer resumed by itself: the previous attempt failed ({0}).</value>
+  </data>
+  <data name="Text_resume_suspended" xml:space="preserve">
+    <value>Resuming by itself is suspended while the app exits.</value>
+  </data>
+  <data name="Text_resume_failed" xml:space="preserve">
+    <value>It could not be resumed: {0}</value>
+  </data>
+  <data name="Text_resume_stopped_by_error" xml:space="preserve">
+    <value>It stopped in this session of the app because of a system error ({0}): you resume it.</value>
+  </data>
+  <data name="Text_resume_not_registered" xml:space="preserve">
+    <value>It is not registered.</value>
+  </data>
+  <data name="Text_quota_who_judge" xml:space="preserve">
+    <value>The judge reached the usage limit of its provider</value>
+  </data>
+  <data name="Text_quota_who_overload" xml:space="preserve">
+    <value>The provider is overloaded or limiting the rate</value>
+  </data>
+  <data name="Text_quota_who_plain" xml:space="preserve">
+    <value>Usage limit of the provider</value>
+  </data>
+  <data name="Text_quota_wait" xml:space="preserve">
+    <value>wait</value>
+  </data>
+  <data name="Text_quota_wait_estimated" xml:space="preserve">
+    <value>estimated wait</value>
+  </data>
+  <data name="Text_quota_until" xml:space="preserve">
+    <value>{0} until {1}.</value>
+  </data>
+  <data name="Text_quota_no_reset" xml:space="preserve">
+    <value>{0} with no reset time: {1} until {2}.</value>
+  </data>
+  <data name="Text_quota_passed_reset" xml:space="preserve">
+    <value>{0}, with a reset time that has already passed ({1}): {2} until {3}.</value>
+  </data>
+  <data name="Text_worker_not_signed_in" xml:space="preserve">
+    <value>The {0} session is not signed in: sign in with &quot;{1}&quot; and retry the task.</value>
+  </data>
+  <data name="Text_worker_limit_still_on_until" xml:space="preserve">
+    <value>The usage limit of {0} is still reached according to its app-server, until {1}.</value>
+  </data>
+  <data name="Text_worker_limit_still_on_no_reset" xml:space="preserve">
+    <value>The usage limit of {0} is still reached according to its app-server, with no reset time.</value>
+  </data>
+  <data name="Text_inspect_log_not_replayable" xml:space="preserve">
+    <value>The log of this run cannot be replayed in full ({0}): it is shown up to that point.</value>
+  </data>
+  <data name="Text_inspect_problem_unknown_tasks" xml:space="preserve">
+    <value>The log names tasks that are not in the plan of the run.</value>
+  </data>
+  <data name="Text_inspect_problem_not_rebuilt" xml:space="preserve">
+    <value>The attempts and the blocks could not be rebuilt: {0}</value>
+  </data>
+  <data name="Text_inspect_problem_detail" xml:space="preserve">
+    <value>{0}</value>
+  </data>
+  <data name="Text_planner_corrected_unreadable" xml:space="preserve">
+    <value>The corrected plan could not be read: {0}</value>
+  </data>
+  <data name="Text_planner_corrected_invalid" xml:space="preserve">
+    <value>The corrected plan is still not valid: review it before approving it.</value>
+  </data>
+  <data name="Text_history_not_the_planner" xml:space="preserve">
+    <value>The search in the history is only for the orchestrator.</value>
+  </data>
+  <data name="Text_history_disabled" xml:space="preserve">
+    <value>The orchestrator did not have the search in the history. It is turned off in Settings (&quot;History search for the orchestrator&quot;).</value>
+  </data>
+  <data name="Text_history_no_memory" xml:space="preserve">
+    <value>The orchestrator did not have the search in the history. In the template it does not receive the project memory.</value>
+  </data>
+  <data name="Text_history_not_read_only" xml:space="preserve">
+    <value>The orchestrator did not have the search in the history. It is only given when it plans without changing files, without a console and without network.</value>
+  </data>
+  <data name="Text_history_empty" xml:space="preserve">
+    <value>The orchestrator did not have the search in the history. The project has nothing trusted yet in its memory or its journal.</value>
+  </data>
+  <data name="Text_history_no_mcp" xml:space="preserve">
+    <value>The orchestrator did not have the search in the history. {0} does not take outside tools.</value>
+  </data>
+  <data name="Text_history_failed" xml:space="preserve">
+    <value>The orchestrator did not have the search in the history. It could not be prepared ({0}).</value>
+  </data>
+  <data name="Text_order_no_notes" xml:space="preserve">
+    <value>The orchestrator gave no notes of order.</value>
+  </data>
+  <data name="Text_order_schema_mismatch" xml:space="preserve">
+    <value>The answer of the orchestrator does not follow the schema of the notes of order.</value>
+  </data>
+  <data name="Text_chat_no_answer" xml:space="preserve">
+    <value>The orchestrator gave no answer.</value>
+  </data>
+  <data name="Text_chat_schema_mismatch" xml:space="preserve">
+    <value>The answer of the orchestrator does not follow the schema of the chat.</value>
+  </data>
+  <data name="Text_chat_answer_null" xml:space="preserve">
+    <value>The answer of the orchestrator is empty.</value>
+  </data>
 </root>

@@ -133,6 +133,179 @@ public static class OrchestrationUserTexts
     public const string BudgetWhyUntrusted = "project.budget-why-untrusted";
     public const string BudgetWhyFailed = "project.budget-why-failed";
 
+    // ---- the reason of a cancellation, as a piece of «Cancelada por ti: {0}» (E) ----
+    public const string NoReason = "run.no-reason";
+    public const string CancelledFromMonitor = "run.cancelled-from-monitor";
+
+    // ---- delivery: why a run is not delivered, how a delivery ended (DeliveryReadiness.ReasonText, DeliveryResult.MessageText) ----
+    public const string DeliveryLogNotIntact = "delivery.log-not-intact";
+    public const string DeliveryRunNotFinished = "delivery.run-not-finished";
+    public const string DeliveryRunNotSucceeded = "delivery.run-not-succeeded";
+    public const string DeliveryNoApprovedIntegration = "delivery.no-approved-integration";
+    public const string DeliveryVerdictMissing = "delivery.verdict-missing";
+    public const string DeliveryVerdictNotApproved = "delivery.verdict-not-approved";
+    public const string DeliveryVerdictNotApprovedInvalid = "delivery.verdict-not-approved-invalid";
+    public const string DeliveryStoreNotValidApproval = "delivery.store-not-valid-approval";
+    public const string DeliveryVerdictSuperseded = "delivery.verdict-superseded";
+    public const string DeliveryStoreDiffers = "delivery.store-differs";
+    public const string DeliveryIntegrationAfterVerdict = "delivery.integration-after-verdict";
+    public const string DeliveryIntegrationNotJudged = "delivery.integration-not-judged";
+    public const string DeliveryShownUnknown = "delivery.shown-unknown";
+    public const string DeliveryShownDiffers = "delivery.shown-differs";
+    public const string DeliveryReviewOfTask = "delivery.review-of-task";
+    public const string DeliveryReviewWithoutTask = "delivery.review-without-task";
+    public const string DeliveryJudgeCodeUnknown = "delivery.judge-code-unknown";
+    public const string DeliveryJudgeElsewhere = "delivery.judge-elsewhere";
+    public const string DeliveryReplanPending = "delivery.replan-pending";
+    public const string DeliveryReplanByAuditor = "delivery.replan-by-auditor";
+    public const string DeliveryReplanByJudge = "delivery.replan-by-judge";
+    public const string DeliveryReplanByOther = "delivery.replan-by-other";
+    public const string DeliveryReplanNoFindings = "delivery.replan-no-findings";
+    public const string DeliveryReady = "delivery.ready";
+    public const string DeliveryReadyRevised = "delivery.ready-revised";
+    public const string DeliveryRevisionConfirmed = "delivery.revision-confirmed";
+    public const string DeliveryRevisionAccepted = "delivery.revision-accepted";
+    public const string DeliveryRevisionOpenUnannounced = "delivery.revision-open-unannounced";
+    public const string DeliveryRevisionChainTooLong = "delivery.revision-chain-too-long";
+    public const string DeliveryRevisionNoneDecides = "delivery.revision-none-decides";
+    public const string DeliveryVerdictNotValidApproval = "delivery.verdict-not-valid-approval";
+    public const string DeliveryRevisionWithdraws = "delivery.revision-withdraws";
+    public const string DeliveryRevisionNotApproves = "delivery.revision-not-approves";
+    public const string DeliveryRevisionUnacceptedConfirms = "delivery.revision-unaccepted-confirms";
+    public const string DeliveryRevisionUnacceptedTurns = "delivery.revision-unaccepted-turns";
+    public const string DeliveryStoreUnannouncedSupersession = "delivery.store-unannounced-supersession";
+    public const string DeliveryRevisionNotOpened = "delivery.revision-not-opened";
+    public const string DeliveryRevisionPending = "delivery.revision-pending";
+    public const string DeliveryRevisionDecidedByUser = "delivery.revision-decided-by-user";
+    public const string DeliveryRevisionAborted = "delivery.revision-aborted";
+    public const string DeliveryRevisionNeedsPerson = "delivery.revision-needs-person";
+    public const string DeliveryRevisionInconsistent = "delivery.revision-inconsistent";
+    public const string DeliveryInconsistentOpeningOtherVerdict = "delivery.inconsistent-opening-other-verdict";
+    public const string DeliveryInconsistentOpeningOtherRequirements = "delivery.inconsistent-opening-other-requirements";
+    public const string DeliveryInconsistentCopyOtherCommit = "delivery.inconsistent-copy-other-commit";
+    public const string DeliveryInconsistentClosedTwice = "delivery.inconsistent-closed-twice";
+    public const string DeliveryInconsistentNoVerdicts = "delivery.inconsistent-no-verdicts";
+    public const string DeliveryInconsistentVerdictMissing = "delivery.inconsistent-verdict-missing";
+    public const string DeliveryInconsistentVerdictBefore = "delivery.inconsistent-verdict-before";
+    public const string DeliveryInconsistentVerdictInvalid = "delivery.inconsistent-verdict-invalid";
+    public const string DeliveryInconsistentVerdictOtherRequirements = "delivery.inconsistent-verdict-other-requirements";
+    public const string DeliveryInconsistentVerdictNotSuperseding = "delivery.inconsistent-verdict-not-superseding";
+    public const string DeliveryInconsistentStoreNoConfirm = "delivery.inconsistent-store-no-confirm";
+    public const string DeliveryInconsistentVerdictsDisagree = "delivery.inconsistent-verdicts-disagree";
+    public const string DeliveryInconsistentChainRepeated = "delivery.inconsistent-chain-repeated";
+    public const string DeliveryDecisionApproved = "delivery.decision-approved";
+    public const string DeliveryDecisionChangesRequested = "delivery.decision-changes-requested";
+    public const string DeliveryDecisionRejected = "delivery.decision-rejected";
+    public const string DeliveryDecisionEscalate = "delivery.decision-escalate";
+    public const string DeliveryDecisionUnresolved = "delivery.decision-unresolved";
+    public const string DeliveryHeadDetached = "delivery.head-detached";
+    public const string DeliveryBranchMissing = "delivery.branch-missing";
+    public const string DeliveryBranchMoved = "delivery.branch-moved";
+    public const string DeliveryAlreadyContained = "delivery.already-contained";
+    public const string DeliveryTargetAdvanced = "delivery.target-advanced";
+    public const string DeliveryConfigRefused = "delivery.config-refused";
+    public const string DeliveryDenied = "delivery.denied";
+    public const string DeliveryDeniedWithComment = "delivery.denied-with-comment";
+    public const string DeliveryApprovalMismatch = "delivery.approval-mismatch";
+    public const string DeliveryRepositoryChanged = "delivery.repository-changed";
+    public const string DeliveryRepositoryChangedElsewhere = "delivery.repository-changed-elsewhere";
+    public const string DeliveryDelivered = "delivery.delivered";
+    public const string DeliveryUnrecorded = "delivery.unrecorded";
+    public const string DeliveryDirtyPaths = "delivery.dirty-paths";
+    public const string DeliveryConflicts = "delivery.conflicts";
+    public const string DeliveryMergeIncomplete = "delivery.merge-incomplete";
+    public const string DeliveryGitFailed = "delivery.git-failed";
+
+    // ---- the reasons of the workers and of a retry (TaskStatusChangedEvent.ReasonText) ----
+    public const string WorkerCancelledBeforeStart = "worker.cancelled-before-start";
+    public const string WorkerLaunchFailed = "worker.launch-failed";
+    public const string WorkerProviderCancelled = "worker.provider-cancelled";
+    public const string WorkerAgentEndedStatus = "worker.agent-ended-status";
+    public const string WorkerReportInvalid = "worker.report-invalid";
+    public const string WorkerAgentAsks = "worker.agent-asks";
+    public const string WorkerOutsideScope = "worker.outside-scope";
+    public const string WorkerVerificationCancelled = "worker.verification-cancelled";
+    public const string WorkerVerificationTimeout = "worker.verification-timeout";
+    public const string WorkerVerificationFailed = "worker.verification-failed";
+    public const string WorkerCancelledByUser = "worker.cancelled-by-user";
+    public const string WorkerAbandoned = "worker.abandoned";
+    public const string WorkerTimedOut = "worker.timed-out";
+    public const string WorkerSignedOut = "worker.signed-out";
+    public const string WorkerRateLimitedUntil = "worker.rate-limited-until";
+    public const string WorkerRateLimitedNoReset = "worker.rate-limited-no-reset";
+    public const string WorkerStepSucceeded = "worker.step-succeeded";
+    public const string WorkerStepFailed = "worker.step-failed";
+    public const string WorkerStepSkipped = "worker.step-skipped";
+    public const string WorkerSourcesMoved = "worker.sources-moved";
+    public const string WorkerIntegrationTimeout = "worker.integration-timeout";
+    public const string WorkerIntegrationConflict = "worker.integration-conflict";
+    public const string WorkerIntegrationVerificationFailed = "worker.integration-verification-failed";
+    public const string WorkerReviewTimeout = "worker.review-timeout";
+    public const string WorkerJudgeApproved = "worker.judge-approved";
+    public const string WorkerJudgeChangesRequested = "worker.judge-changes-requested";
+    public const string WorkerJudgeRejected = "worker.judge-rejected";
+    public const string WorkerJudgeNeedsPerson = "worker.judge-needs-person";
+    public const string WorkerJudgeLimitUntil = "worker.judge-limit-until";
+    public const string WorkerJudgeLimitNoReset = "worker.judge-limit-no-reset";
+    public const string WorkerApprovalFailed = "worker.approval-failed";
+    public const string WorkerBriefLogUnverified = "worker.brief-log-unverified";
+    public const string WorkerUpstreamTampered = "worker.upstream-tampered";
+    public const string TaskRetry = "task.retry";
+
+    // ---- more reasons of the workers ----
+    public const string WorkerIntegrated = "worker.integrated";
+    public const string WorkerToolSilent = "worker.tool-silent";
+    public const string WorkerToolTimeout = "worker.tool-timeout";
+    public const string WorkerSystemError = "worker.system-error";
+    public const string WorkerApproved = "worker.approved";
+    public const string WorkerDenied = "worker.denied";
+    public const string WorkerDeniedWithComment = "worker.denied-with-comment";
+
+    // ---- resuming by itself, the wait for the usage limit, the check before relaunching and the inspection of a log ----
+    public const string ResumeNoConsent = "resume.no-consent";
+    public const string ResumeNotHalfway = "resume.not-halfway";
+    public const string ResumePaused = "resume.paused";
+    public const string ResumeLeftOnExit = "resume.left-on-exit";
+    public const string ResumeSessionEnded = "resume.session-ended";
+    public const string ResumeWaitingLimit = "resume.waiting-limit";
+    public const string ResumeUnrequestedClose = "resume.unrequested-close";
+    public const string ResumeFailedBefore = "resume.failed-before";
+    public const string ResumeSuspended = "resume.suspended";
+    public const string ResumeFailed = "resume.failed";
+    public const string ResumeStoppedByError = "resume.stopped-by-error";
+    public const string ResumeNotRegistered = "resume.not-registered";
+    public const string QuotaWhoJudge = "quota.who-judge";
+    public const string QuotaWhoOverload = "quota.who-overload";
+    public const string QuotaWhoPlain = "quota.who-plain";
+    public const string QuotaWait = "quota.wait";
+    public const string QuotaWaitEstimated = "quota.wait-estimated";
+    public const string QuotaUntil = "quota.until";
+    public const string QuotaNoReset = "quota.no-reset";
+    public const string QuotaPassedReset = "quota.passed-reset";
+    public const string WorkerNotSignedIn = "worker.not-signed-in";
+    public const string WorkerLimitStillOnUntil = "worker.limit-still-on-until";
+    public const string WorkerLimitStillOnNoReset = "worker.limit-still-on-no-reset";
+    public const string InspectLogNotReplayable = "inspect.log-not-replayable";
+    public const string InspectProblemUnknownTasks = "inspect.problem-unknown-tasks";
+    public const string InspectProblemNotRebuilt = "inspect.problem-not-rebuilt";
+    public const string InspectProblemDetail = "inspect.problem-detail";
+
+    // ---- the planner, the notice of the search in the history, the review of the order and the chat of preparation ----
+    public const string PlannerCorrectedUnreadable = "planner.corrected-unreadable";
+    public const string PlannerCorrectedInvalid = "planner.corrected-invalid";
+    public const string HistoryNotThePlanner = "history.not-the-planner";
+    public const string HistoryDisabled = "history.disabled";
+    public const string HistoryNoMemory = "history.no-memory";
+    public const string HistoryNotReadOnly = "history.not-read-only";
+    public const string HistoryEmpty = "history.empty";
+    public const string HistoryNoMcp = "history.no-mcp";
+    public const string HistoryFailed = "history.failed";
+    public const string OrderNoNotes = "order.no-notes";
+    public const string OrderSchemaMismatch = "order.schema-mismatch";
+    public const string ChatNoAnswer = "chat.no-answer";
+    public const string ChatSchemaMismatch = "chat.schema-mismatch";
+    public const string ChatAnswerNull = "chat.answer-null";
+
     /// <summary>Every code of this class: the desktop has a text for each of them in both languages (a test walks them).</summary>
     public static IReadOnlyList<string> All { get; } =
     [
@@ -156,6 +329,44 @@ public static class OrchestrationUserTexts
         BudgetNameProjectDay, BudgetNameProjectWeek, BudgetNameProjectMonth, BudgetNameProjectTotal, BudgetNameMilestoneDay,
         BudgetNameMilestoneWeek, BudgetNameMilestoneMonth, BudgetNameMilestoneTotal, BudgetExceededTokens, BudgetExceededTokensUnknown,
         BudgetExceededRuns, BudgetPartial, BudgetRaise, BudgetUnreadable, BudgetWhyNoUsage, BudgetWhyUntrusted, BudgetWhyFailed,
+        NoReason, CancelledFromMonitor,
+        DeliveryLogNotIntact, DeliveryRunNotFinished, DeliveryRunNotSucceeded, DeliveryNoApprovedIntegration,
+        DeliveryVerdictMissing, DeliveryVerdictNotApproved, DeliveryVerdictNotApprovedInvalid, DeliveryStoreNotValidApproval,
+        DeliveryVerdictSuperseded, DeliveryStoreDiffers, DeliveryIntegrationAfterVerdict, DeliveryIntegrationNotJudged,
+        DeliveryShownUnknown, DeliveryShownDiffers, DeliveryReviewOfTask, DeliveryReviewWithoutTask, DeliveryJudgeCodeUnknown,
+        DeliveryJudgeElsewhere, DeliveryReplanPending, DeliveryReplanByAuditor, DeliveryReplanByJudge, DeliveryReplanByOther,
+        DeliveryReplanNoFindings, DeliveryReady, DeliveryReadyRevised, DeliveryRevisionConfirmed, DeliveryRevisionAccepted,
+        DeliveryRevisionOpenUnannounced, DeliveryRevisionChainTooLong, DeliveryRevisionNoneDecides,
+        DeliveryVerdictNotValidApproval, DeliveryRevisionWithdraws, DeliveryRevisionNotApproves,
+        DeliveryRevisionUnacceptedConfirms, DeliveryRevisionUnacceptedTurns, DeliveryStoreUnannouncedSupersession,
+        DeliveryRevisionNotOpened, DeliveryRevisionPending, DeliveryRevisionDecidedByUser, DeliveryRevisionAborted,
+        DeliveryRevisionNeedsPerson, DeliveryRevisionInconsistent, DeliveryInconsistentOpeningOtherVerdict,
+        DeliveryInconsistentOpeningOtherRequirements, DeliveryInconsistentCopyOtherCommit, DeliveryInconsistentClosedTwice,
+        DeliveryInconsistentNoVerdicts, DeliveryInconsistentVerdictMissing, DeliveryInconsistentVerdictBefore,
+        DeliveryInconsistentVerdictInvalid, DeliveryInconsistentVerdictOtherRequirements,
+        DeliveryInconsistentVerdictNotSuperseding, DeliveryInconsistentStoreNoConfirm, DeliveryInconsistentVerdictsDisagree,
+        DeliveryInconsistentChainRepeated, DeliveryDecisionApproved, DeliveryDecisionChangesRequested, DeliveryDecisionRejected,
+        DeliveryDecisionEscalate, DeliveryDecisionUnresolved, DeliveryHeadDetached, DeliveryBranchMissing, DeliveryBranchMoved,
+        DeliveryAlreadyContained, DeliveryTargetAdvanced, DeliveryConfigRefused, DeliveryDenied, DeliveryDeniedWithComment,
+        DeliveryApprovalMismatch, DeliveryRepositoryChanged, DeliveryRepositoryChangedElsewhere, DeliveryDelivered,
+        DeliveryUnrecorded, DeliveryDirtyPaths, DeliveryConflicts, DeliveryMergeIncomplete, DeliveryGitFailed,
+        WorkerCancelledBeforeStart, WorkerLaunchFailed, WorkerProviderCancelled, WorkerAgentEndedStatus, WorkerReportInvalid,
+        WorkerAgentAsks, WorkerOutsideScope, WorkerVerificationCancelled, WorkerVerificationTimeout, WorkerVerificationFailed,
+        WorkerCancelledByUser, WorkerAbandoned, WorkerTimedOut, WorkerSignedOut, WorkerRateLimitedUntil,
+        WorkerRateLimitedNoReset, WorkerStepSucceeded, WorkerStepFailed, WorkerStepSkipped, WorkerSourcesMoved,
+        WorkerIntegrationTimeout, WorkerIntegrationConflict, WorkerIntegrationVerificationFailed, WorkerReviewTimeout,
+        WorkerJudgeApproved, WorkerJudgeChangesRequested, WorkerJudgeRejected, WorkerJudgeNeedsPerson, WorkerJudgeLimitUntil,
+        WorkerJudgeLimitNoReset, WorkerApprovalFailed, WorkerBriefLogUnverified, WorkerUpstreamTampered, TaskRetry,
+        WorkerIntegrated, WorkerToolSilent, WorkerToolTimeout, WorkerSystemError, WorkerApproved, WorkerDenied,
+        WorkerDeniedWithComment,
+        ResumeNoConsent, ResumeNotHalfway, ResumePaused, ResumeLeftOnExit, ResumeSessionEnded, ResumeWaitingLimit,
+        ResumeUnrequestedClose, ResumeFailedBefore, ResumeSuspended, ResumeFailed, ResumeStoppedByError, ResumeNotRegistered,
+        QuotaWhoJudge, QuotaWhoOverload, QuotaWhoPlain, QuotaWait, QuotaWaitEstimated, QuotaUntil, QuotaNoReset,
+        QuotaPassedReset, WorkerNotSignedIn, WorkerLimitStillOnUntil, WorkerLimitStillOnNoReset, InspectLogNotReplayable,
+        InspectProblemUnknownTasks, InspectProblemNotRebuilt, InspectProblemDetail,
+        PlannerCorrectedUnreadable, PlannerCorrectedInvalid, HistoryNotThePlanner, HistoryDisabled, HistoryNoMemory,
+        HistoryNotReadOnly, HistoryEmpty, HistoryNoMcp, HistoryFailed, OrderNoNotes, OrderSchemaMismatch, ChatNoAnswer,
+        ChatSchemaMismatch, ChatAnswerNull,
     ];
 
     /// <summary>The sentences one after another as a single text; the one itself when there is one.</summary>

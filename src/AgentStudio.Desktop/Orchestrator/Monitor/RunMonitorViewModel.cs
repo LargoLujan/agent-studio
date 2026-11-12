@@ -95,7 +95,7 @@ public sealed record AuditFindingRow(string Severity, Tone Tone, string Check, s
 /// </remarks>
 public sealed partial class RunMonitorViewModel : ObservableObject
 {
-    public const string CancelReason = "Cancelada por el usuario desde el monitor.";
+    public const string CancelReason = AgentStudio.Orchestration.Engine.LoggedTexts.CancelledFromMonitorReason;
 
     /// <summary>The approval that dismisses the auditor's request to replan (docs/15 D-35), recorded in the run.</summary>
     public const string ReplanDismissAction = "replan.dismiss";
@@ -563,7 +563,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
             }
 
             var result = await delivery.DeliverAsync(project, run, DeliveryMode.FastForwardOnly, CancellationToken.None).ConfigureAwait(true);
-            DeliveryMessage = result.Message;
+            DeliveryMessage = OrchestratorCodedText.Painted(result.MessageText, result.Message);
             IsDelivered = result.Delivered;
         }
 #pragma warning disable CA1031 // The delivery is behind a port: whatever it throws is shown, never thrown into the UI.
@@ -607,7 +607,7 @@ public sealed partial class RunMonitorViewModel : ObservableObject
         Post(generation, () =>
         {
             DeliveryReadiness = readiness;
-            DeliveryMessage = readiness.Reason;
+            DeliveryMessage = OrchestratorCodedText.Painted(readiness.ReasonText, readiness.Reason);
         });
     }
 

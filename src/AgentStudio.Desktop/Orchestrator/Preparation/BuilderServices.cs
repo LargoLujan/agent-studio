@@ -107,7 +107,7 @@ public sealed partial class QuotaConsentCardViewModel : ObservableObject
             catch (Exception ex) when (ex is not OperationCanceledException)
 #pragma warning restore CA1031
             {
-                EstimateText = _text.Format("Canvas_Consent_EstimateFailed", ex.Message);
+                EstimateText = _text.Format("Canvas_Consent_EstimateFailed", OrchestratorErrorText.Detail(ex, _text.Provider));
                 IsReady = true;
                 return;
             }

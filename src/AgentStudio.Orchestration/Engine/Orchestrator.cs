@@ -428,8 +428,8 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
                 ? ResumeScheduler.Decide(record, RunLog.Of(log.Entries, run.Value))
                 : ((RunResumeCause?)null, "No está registrada.");
         return cause is { } why
-            ? new ConsentResume(await GoOnAsync(project, run, log, why, cancellationToken).ConfigureAwait(false), why, reason)
-            : new ConsentResume(null, null, reason);
+            ? new ConsentResume(await GoOnAsync(project, run, log, why, cancellationToken).ConfigureAwait(false), why, reason, LoggedTexts.ResumeReason(reason))
+            : new ConsentResume(null, null, reason, LoggedTexts.ResumeReason(reason));
     }
 
     /// <summary>

@@ -85,7 +85,7 @@ public sealed class RepositoryReader(IRepositoryStateReader? state)
         catch (Exception ex) when (ex is not OperationCanceledException)
 #pragma warning restore CA1031
         {
-            return RepositoryReading.Failed(WithoutCredentials(ex.Message));
+            return RepositoryReading.Failed(WithoutCredentials(OrchestratorErrorText.Detail(ex)));
         }
 
         var root = inspected.Root;

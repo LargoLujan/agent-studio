@@ -366,7 +366,7 @@ public sealed partial class RosterEditorViewModel : ObservableObject
 #pragma warning restore CA1031
         {
             restore();
-            ErrorMessage = Texts.Format("Orchestrator_Roster_SaveFailed", ex.Message);
+            ErrorMessage = Texts.Format("Orchestrator_Roster_SaveFailed", OrchestratorErrorText.Detail(ex));
             return;
         }
 

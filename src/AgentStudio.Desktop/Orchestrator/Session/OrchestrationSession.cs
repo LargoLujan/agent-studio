@@ -449,7 +449,7 @@ public sealed class OrchestrationSession
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            missing.Add($"{failure}: {ex.Message}");
+            missing.Add($"{failure}: {OrchestratorErrorText.Detail(ex)}");
             return (null, true);
         }
     }

@@ -1,5 +1,6 @@
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Judging;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Providers;
 using AgentStudio.Domain.Common;
@@ -8,6 +9,7 @@ using AgentStudio.Domain.Metrics;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Domain.Work;
+using AgentStudio.Orchestration;
 using AgentStudio.Orchestration.Engine;
 using AgentStudio.Tests.Orchestration.Fakes;
 using static AgentStudio.Tests.Orchestration.Fakes.OrchestrationFixtures;
@@ -317,6 +319,83 @@ public sealed class QuotaWaitTests
         Assert.Single(harness.Claude.Starts);
         await run.CancelAsync("fin");
         await run.CompleteAsync(harness);
+    }
+
+    // ---- the reasons as codes: what the engine says live is what is derived from the sentence it anchors (ADR-0054 addendum of 2026-11-12) ----
+
+    /// <summary>Every transition that has a coded reason says what its anchored sentence gives when it is read back, and every one that blocks a task has one.</summary>
+    private static async Task<List<TaskStatusChangedEvent>> CodedTransitionsAsync(IOrchestrationRun run)
+    {
+        var transitions = new List<TaskStatusChangedEvent>();
+        await foreach (var item in run.Events.WithCancellation(TestContext.Current.CancellationToken))
+        {
+            if (item is TaskStatusChangedEvent change)
+            {
+                transitions.Add(change);
+            }
+        }
+
+        Assert.All(transitions.Where(t => t.ReasonText is not null), t => Assert.Equal(t.ReasonText, LoggedTexts.TaskReason(t.Reason)));
+        Assert.All(transitions.Where(t => t.To == WorkTaskStatus.Blocked), t => Assert.NotNull(t.ReasonText));
+        return transitions;
+    }
+
+    [Fact]
+    public async Task The_wait_of_a_limit_nobody_announced_and_the_one_of_an_overload_say_why_as_codes()
+    {
+        using var harness = new EngineHarness();
+        harness.Claude.Script("ejecutor", "T1", 1, AgentScript.Failing("Overloaded"));
+        ClassifiedEnds.Install(harness, (_, attempt) => attempt == 1 ? new AgentRunEnd(AttemptEndClass.RateOrOverload) : null);
+
+        await using var run = await harness.StartAsync(Plan(Work("T1")), Consent);
+        var expected = $"RateLimitedUntilEstimated({Start + QuotaWaitPolicyShortStep:O})";
+        await harness.WaitUntilAsync(run, s => s.View("T1").BlockReason == expected, expected);
+        harness.Time.Advance(QuotaWaitPolicyShortStep);
+        await run.CompleteAsync(harness);
+
+        var blocked = (await CodedTransitionsAsync(run)).Single(t => t.To == WorkTaskStatus.Blocked);
+        Assert.Equal(OrchestrationUserTexts.QuotaNoReset, blocked.ReasonText!.Code);
+    }
+
+    [Fact]
+    public async Task A_cli_signed_out_after_the_wait_says_so_as_a_code_with_the_command_that_fixes_it()
+    {
+        using var harness = new EngineHarness();
+        harness.Claude.Script("ejecutor", "T1", 1, new AgentScript { RateLimitResetsAt = Start + TimeSpan.FromMinutes(10) });
+
+        await using var run = await StartAsync(harness, Plan(Work("T1")), Consent, [new FakeProbe(ProviderId.ClaudeCode, AuthenticationState.NotAuthenticated)], []);
+        await harness.WaitForPhaseAsync(run, RunPhase.WaitingForQuota);
+        harness.Time.Advance(TimeSpan.FromMinutes(13));
+        await harness.WaitForPhaseAsync(run, RunPhase.AwaitingHuman);
+        await run.CancelAsync("fin");
+        await run.CompleteAsync(harness);
+
+        var transitions = await CodedTransitionsAsync(run);
+        var stopped = transitions.Single(t => t.Reason.Contains("no está iniciada", StringComparison.Ordinal));
+        Assert.Equal(OrchestrationUserTexts.WorkerNotSignedIn, stopped.ReasonText!.Code);
+        Assert.Equal("claude auth login", stopped.ReasonText.Arguments[1]);
+        // The wait that came before, announced by the provider, has its own code with the instant as an argument.
+        Assert.Contains(transitions, t => t.ReasonText is { Code: OrchestrationUserTexts.WorkerRateLimitedUntil });
+    }
+
+    [Fact]
+    public async Task For_codex_a_quota_still_limited_says_so_as_a_code_with_its_reset()
+    {
+        using var harness = new EngineHarness();
+        harness.Codex.Script("ejecutorCodex", "C1", 1, new AgentScript { RateLimitResetsAt = Start + TimeSpan.FromMinutes(10) });
+        var later = Start + TimeSpan.FromMinutes(40);
+        var quota = new FakeQuotaReader(ProviderId.CodexCli, call => call == 1 ? StillLimited(later) : Allowed());
+
+        await using var run = await StartAsync(harness, Plan(Work("C1", agent: "ejecutorCodex")), Consent, [new FakeProbe(ProviderId.CodexCli, AuthenticationState.Authenticated)], [quota]);
+        await harness.WaitForPhaseAsync(run, RunPhase.WaitingForQuota);
+        harness.Time.Advance(TimeSpan.FromMinutes(13));
+        var again = $"RateLimitedUntil({later + RunOptions.DefaultQuotaResetMargin:O})";
+        await harness.WaitUntilAsync(run, s => s.View("C1").BlockReason == again, again);
+        harness.Time.Advance(TimeSpan.FromMinutes(30));
+        await run.CompleteAsync(harness);
+
+        var still = (await CodedTransitionsAsync(run)).Single(t => t.ReasonText is { Code: OrchestrationUserTexts.WorkerLimitStillOnUntil });
+        Assert.Equal(UserText.Of(OrchestrationUserTexts.WorkerLimitStillOnUntil, ProviderId.CodexCli.ToString(), later), still.ReasonText);
     }
 
     /// <summary>The first short step of an overload (docs/16 D-41: a short and progressive wait).</summary>

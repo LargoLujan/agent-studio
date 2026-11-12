@@ -689,7 +689,7 @@ public sealed partial class CanvasViewModel : ObservableObject
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            Notify(Texts.Format("Orchestrator_Canvas_SaveFailed", ex.Message), NoticeKind.Error);
+            Notify(Texts.Format("Orchestrator_Canvas_SaveFailed", OrchestratorErrorText.Detail(ex)), NoticeKind.Error);
         }
     }
 

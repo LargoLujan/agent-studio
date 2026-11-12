@@ -4,6 +4,7 @@ using AgentStudio.Application.Execution;
 using AgentStudio.Application.Git;
 using AgentStudio.Application.Judging;
 using AgentStudio.Application.Knowledge;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Prompts;
 using AgentStudio.Application.Providers;
@@ -264,7 +265,7 @@ internal static class AgentAttemptWorker
             {
                 w.Post(new WorkerEnded(task, attempt, new AttemptEnd(
                     EndKind.AwaitingHuman,
-                    $"No se lanza {task}: el registro de decisiones no verifica, así que la ficha del proyecto no se puede comprobar. Decide una persona: revisa el registro.")));
+                    $"No se lanza {task}: el registro de decisiones no verifica, así que la ficha del proyecto no se puede comprobar. Decide una persona: revisa el registro.") { Text = UserText.Of(OrchestrationUserTexts.WorkerBriefLogUnverified, task.ToString()) }));
                 return;
             }
 
@@ -438,7 +439,10 @@ internal static class AgentAttemptWorker
             w.Abort).ConfigureAwait(false);
         return new AttemptEnd(
             EndKind.AwaitingHuman,
-            $"No se lanza {task}: el informe de {upstreamTask} (evidencia {report}) no es el que ancló el registro de decisiones; alguien lo reescribió en el almacén. Decide una persona.");
+            $"No se lanza {task}: el informe de {upstreamTask} (evidencia {report}) no es el que ancló el registro de decisiones; alguien lo reescribió en el almacén. Decide una persona.")
+        {
+            Text = UserText.Of(OrchestrationUserTexts.WorkerUpstreamTampered, task.ToString(), upstreamTask.ToString(), report.ToString()),
+        };
     }
 
     /// <summary>
@@ -503,8 +507,8 @@ internal static class AgentAttemptWorker
         if (!result.Launched)
         {
             return result.LaunchError is OperationCanceledException
-                ? new AttemptEnd(EndKind.Cancelled, "Se canceló antes de arrancar.")
-                : new AttemptEnd(EndKind.LaunchFailed, "No se pudo lanzar el agente: " + result.LaunchError?.Message);
+                ? new AttemptEnd(EndKind.Cancelled, "Se canceló antes de arrancar.") { Text = UserText.Of(OrchestrationUserTexts.WorkerCancelledBeforeStart) }
+                : new AttemptEnd(EndKind.LaunchFailed, "No se pudo lanzar el agente: " + result.LaunchError?.Message) { Text = UserText.Of(OrchestrationUserTexts.WorkerLaunchFailed, result.LaunchError?.Message ?? string.Empty) };
         }
 
         var outcome = result.Outcome!;
@@ -551,13 +555,14 @@ internal static class AgentAttemptWorker
             }
         }
 
-        async Task<AttemptEnd> EndAsync(EndKind kind, string reason, ExecutorReport? report = null, TestRunSummary? tests = null, IReadOnlyList<EvidenceId>? more = null, DateTimeOffset? retryAt = null, string? finalHead = null)
+        async Task<AttemptEnd> EndAsync(EndKind kind, string reason, ExecutorReport? report = null, TestRunSummary? tests = null, IReadOnlyList<EvidenceId>? more = null, DateTimeOffset? retryAt = null, string? finalHead = null, UserText? text = null)
         {
             var finalCommit = finalHead ?? head;
             var record = await w.RecordAttemptAsync(task, attempt, kind.ToString(), plan.AttemptBase, finalCommit, changed, report, result.Report, tests).ConfigureAwait(false);
             IReadOnlyList<EvidenceId> all = [record, .. evidence, .. more ?? []];
             return new AttemptEnd(kind, reason)
             {
+                Text = text,
                 Evidence = all,
                 SessionId = result.SessionId,
                 Head = finalCommit,
@@ -585,9 +590,12 @@ internal static class AgentAttemptWorker
                     flight.Cause == StopCause.Stalled
                         ? string.Create(CultureInfo.InvariantCulture, $"Abandonada: sin actividad durante más de {w.Run.StallThreshold.TotalMinutes:0.#} minutos.")
                         : string.Create(CultureInfo.InvariantCulture, $"Tiempo agotado: más de {w.Run.TimeoutOf(spec).TotalMinutes:0.#} minutos."),
-                    finalHead: plan.AttemptBase).ConfigureAwait(false);
+                    finalHead: plan.AttemptBase,
+                    text: flight.Cause == StopCause.Stalled
+                        ? UserText.Of(OrchestrationUserTexts.WorkerAbandoned, LoggedTexts.Minutes(w.Run.StallThreshold))
+                        : UserText.Of(OrchestrationUserTexts.WorkerTimedOut, LoggedTexts.Minutes(w.Run.TimeoutOf(spec)))).ConfigureAwait(false);
             case StopCause.User:
-                return await EndAsync(EndKind.Cancelled, "Cancelada por el usuario.").ConfigureAwait(false);
+                return await EndAsync(EndKind.Cancelled, "Cancelada por el usuario.", text: UserText.Of(OrchestrationUserTexts.WorkerCancelledByUser)).ConfigureAwait(false);
         }
 
         // The class of the end decides, not the status (docs/16 D-41): a window of Claude rejected without a 429 ends Failed
@@ -598,7 +606,8 @@ internal static class AgentAttemptWorker
             // No retry: only signing in fixes it, and that is a person's.
             return await EndAsync(
                 EndKind.AwaitingHuman,
-                $"La sesión de {plan.Provider.Provider} caducó o no está iniciada: inicia sesión con «{AccessCheck.LoginCommand(plan.Provider.Provider)}» y reintenta la tarea.").ConfigureAwait(false);
+                $"La sesión de {plan.Provider.Provider} caducó o no está iniciada: inicia sesión con «{AccessCheck.LoginCommand(plan.Provider.Provider)}» y reintenta la tarea.",
+                text: UserText.Of(OrchestrationUserTexts.WorkerSignedOut, plan.Provider.Provider.ToString(), AccessCheck.LoginCommand(plan.Provider.Provider))).ConfigureAwait(false);
         }
 
         if (outcome.Status == AgentRunStatus.RateLimited || classified.Class is AttemptEndClass.WindowQuota or AttemptEndClass.RateOrOverload)
@@ -615,29 +624,35 @@ internal static class AgentAttemptWorker
             var limited = resetsAt is { } reset
                 ? $"Límite de uso del proveedor hasta {reset.ToString("O", CultureInfo.InvariantCulture)}."
                 : "Límite de uso del proveedor, sin hora de reinicio.";
-            var waiting = await EndAsync(EndKind.RateLimited, limited, retryAt: resetsAt).ConfigureAwait(false);
+            var waiting = await EndAsync(
+                EndKind.RateLimited,
+                limited,
+                retryAt: resetsAt,
+                text: resetsAt is { } resetAt
+                    ? UserText.Of(OrchestrationUserTexts.WorkerRateLimitedUntil, resetAt)
+                    : UserText.Of(OrchestrationUserTexts.WorkerRateLimitedNoReset)).ConfigureAwait(false);
             return waiting with { EndClass = classified.Class };
         }
 
         switch (outcome.Status)
         {
             case AgentRunStatus.Cancelled:
-                return await EndAsync(EndKind.Failed, outcome.Error ?? "El proveedor canceló la ejecución.").ConfigureAwait(false);
+                return await EndAsync(EndKind.Failed, outcome.Error ?? "El proveedor canceló la ejecución.", text: outcome.Error is null ? UserText.Of(OrchestrationUserTexts.WorkerProviderCancelled) : null).ConfigureAwait(false);
             case not AgentRunStatus.Succeeded:
-                return await EndAsync(EndKind.Failed, outcome.Error ?? $"El agente terminó con estado {outcome.Status}.").ConfigureAwait(false);
+                return await EndAsync(EndKind.Failed, outcome.Error ?? $"El agente terminó con estado {outcome.Status}.", text: outcome.Error is null ? UserText.Of(OrchestrationUserTexts.WorkerAgentEndedStatus, outcome.Status.ToString()) : null).ConfigureAwait(false);
         }
 
         var parsed = ExecutorReport.Parse(outcome.StructuredOutputJson, out var problem);
         if (parsed is null)
         {
-            return await EndAsync(EndKind.Failed, "El informe del agente no es válido: " + problem).ConfigureAwait(false);
+            return await EndAsync(EndKind.Failed, "El informe del agente no es válido: " + problem, text: UserText.Of(OrchestrationUserTexts.WorkerReportInvalid, problem ?? string.Empty)).ConfigureAwait(false);
         }
 
         if (parsed.Status == ExecutorReport.Blocked && parsed.AgentQuestion() is { } question)
         {
             // A doubt with options (docs/17 D-28): the loop records it within the caps, and the task waits for the answer. The
             // worktree stays where the system's commit left it, the base of the attempt with the answer.
-            var asks = await EndAsync(EndKind.AsksQuestion, "El agente hace una pregunta a una persona.", parsed).ConfigureAwait(false);
+            var asks = await EndAsync(EndKind.AsksQuestion, "El agente hace una pregunta a una persona.", parsed, text: UserText.Of(OrchestrationUserTexts.WorkerAgentAsks)).ConfigureAwait(false);
             return asks with { Question = question, QuestionEstimates = await QuestionEstimator.EstimateAsync(w, plan, question).ConfigureAwait(false) };
         }
 
@@ -655,7 +670,7 @@ internal static class AgentAttemptWorker
         var outside = lease is null ? [] : changed.Where(p => !WriteScope.Contains(spec.WriteScope, p)).ToList();
         if (outside.Count > 0)
         {
-            return await EndAsync(EndKind.Failed, "Cambios fuera del alcance de escritura: " + string.Join(", ", outside), parsed).ConfigureAwait(false);
+            return await EndAsync(EndKind.Failed, "Cambios fuera del alcance de escritura: " + string.Join(", ", outside), parsed, text: UserText.Of(OrchestrationUserTexts.WorkerOutsideScope, string.Join(", ", outside))).ConfigureAwait(false);
         }
 
         var steps = w.Run.StepsOf(spec);
@@ -676,14 +691,14 @@ internal static class AgentAttemptWorker
             if (verification.Stopped)
             {
                 return flight.Cause == StopCause.User
-                    ? await EndAsync(EndKind.Cancelled, "Cancelada por el usuario durante la verificación.", parsed).ConfigureAwait(false)
-                    : await EndAsync(EndKind.Failed, "La verificación no terminó a tiempo.", parsed).ConfigureAwait(false);
+                    ? await EndAsync(EndKind.Cancelled, "Cancelada por el usuario durante la verificación.", parsed, text: UserText.Of(OrchestrationUserTexts.WorkerVerificationCancelled)).ConfigureAwait(false)
+                    : await EndAsync(EndKind.Failed, "La verificación no terminó a tiempo.", parsed, text: UserText.Of(OrchestrationUserTexts.WorkerVerificationTimeout)).ConfigureAwait(false);
             }
 
             var failed = verification.Results.Where(r => !r.Succeeded || r.TimedOut).Select(r => r.StepId).ToList();
             if (failed.Count > 0)
             {
-                return await EndAsync(EndKind.Failed, "La verificación falló en: " + string.Join(", ", failed), parsed, tests, verificationEvidence).ConfigureAwait(false);
+                return await EndAsync(EndKind.Failed, "La verificación falló en: " + string.Join(", ", failed), parsed, tests, verificationEvidence, text: UserText.Of(OrchestrationUserTexts.WorkerVerificationFailed, string.Join(", ", failed))).ConfigureAwait(false);
             }
         }
 
@@ -741,8 +756,11 @@ internal static class SystemWorkers
             if (differences.Count == 0 && verification.Stopped)
             {
                 var stopped = flight.Cause == StopCause.User
-                    ? new AttemptEnd(EndKind.Cancelled, "Cancelada por el usuario.")
-                    : new AttemptEnd(EndKind.Failed, flight.Cause == StopCause.Stalled ? "Abandonada: la herramienta no dio señales de vida." : "Tiempo agotado.");
+                    ? new AttemptEnd(EndKind.Cancelled, "Cancelada por el usuario.") { Text = UserText.Of(OrchestrationUserTexts.WorkerCancelledByUser) }
+                    : new AttemptEnd(EndKind.Failed, flight.Cause == StopCause.Stalled ? "Abandonada: la herramienta no dio señales de vida." : "Tiempo agotado.")
+                    {
+                        Text = UserText.Of(flight.Cause == StopCause.Stalled ? OrchestrationUserTexts.WorkerToolSilent : OrchestrationUserTexts.WorkerToolTimeout),
+                    };
                 w.Post(new WorkerEnded(task, attempt, stopped with { Worktree = info }));
                 return;
             }
@@ -773,6 +791,7 @@ internal static class SystemWorkers
             {
                 end = new AttemptEnd(EndKind.Completed, $"El paso {step.Id} terminó bien.")
                 {
+                    Text = UserText.Of(OrchestrationUserTexts.WorkerStepSucceeded, step.Id),
                     Result = new TaskResult(baseCommit, [], new Dictionary<string, string>(), tests, null, null),
                 };
             }
@@ -782,7 +801,12 @@ internal static class SystemWorkers
                 var failed = results.FirstOrDefault(r => !r.Succeeded || r.TimedOut)?.StepId ?? steps[Math.Min(results.Count, steps.Count - 1)].Id;
                 end = new AttemptEnd(EndKind.Failed, failed == step.Id
                     ? $"El paso {step.Id} falló."
-                    : $"El paso {failed}, que {step.Id} requiere, falló: {step.Id} no llegó a ejecutarse.");
+                    : $"El paso {failed}, que {step.Id} requiere, falló: {step.Id} no llegó a ejecutarse.")
+                {
+                    Text = failed == step.Id
+                        ? UserText.Of(OrchestrationUserTexts.WorkerStepFailed, step.Id)
+                        : UserText.Of(OrchestrationUserTexts.WorkerStepSkipped, failed, step.Id),
+                };
             }
 
             w.Post(new WorkerEnded(task, attempt, end with { Evidence = evidence, Head = baseCommit, Worktree = info }));
@@ -792,7 +816,7 @@ internal static class SystemWorkers
         }
         catch (Exception ex)
         {
-            w.Post(new WorkerEnded(task, attempt, new AttemptEnd(EndKind.Broken, "Error del sistema: " + ex.Message) { Worktree = info }));
+            w.Post(new WorkerEnded(task, attempt, new AttemptEnd(EndKind.Broken, "Error del sistema: " + ex.Message) { Worktree = info, Text = UserText.Of(OrchestrationUserTexts.WorkerSystemError, ex.Message) }));
         }
     }
 
@@ -831,6 +855,7 @@ internal static class SystemWorkers
                     EndKind.SourceMoved,
                     "No se integra nada: la ref de " + string.Join(", ", moved.Select(m => m.Ref.Task)) + " ya no apunta al commit que se verificó.")
                 {
+                    Text = UserText.Of(OrchestrationUserTexts.WorkerSourcesMoved, string.Join(", ", moved.Select(m => m.Ref.Task))),
                     Differences = [.. moved.Select(m => $"The ref {m.Ref.RefName} of task '{m.Ref.Task}' points at {m.Now ?? "nothing"}, not at {m.Ref.Commit}, the commit the system verified; nothing was merged.")],
                     MovedSources = [.. moved.Select(m => m.Ref.Task)],
                 }));
@@ -851,8 +876,8 @@ internal static class SystemWorkers
                 w.Post(new WorkerEnded(task, attempt, stopped.Count > 0
                     ? RepositoryChanged("durante la integración", stopped)
                     : flight.Cause == StopCause.User
-                        ? new AttemptEnd(EndKind.Cancelled, "Cancelada por el usuario.")
-                        : new AttemptEnd(EndKind.Failed, "La integración no terminó a tiempo.")));
+                        ? new AttemptEnd(EndKind.Cancelled, "Cancelada por el usuario.") { Text = UserText.Of(OrchestrationUserTexts.WorkerCancelledByUser) }
+                        : new AttemptEnd(EndKind.Failed, "La integración no terminó a tiempo.") { Text = UserText.Of(OrchestrationUserTexts.WorkerIntegrationTimeout) }));
                 return;
             }
 
@@ -914,6 +939,7 @@ internal static class SystemWorkers
             {
                 end = new AttemptEnd(EndKind.Completed, $"Integrada en {commit}.")
                 {
+                    Text = UserText.Of(OrchestrationUserTexts.WorkerIntegrated, commit),
                     Result = new TaskResult(commit, [], new Dictionary<string, string>(), tests, null, null),
                     IntegrationCommit = commit,
                     Head = commit,
@@ -921,11 +947,14 @@ internal static class SystemWorkers
             }
             else if (result.ConflictPaths.Count > 0)
             {
-                end = new AttemptEnd(EndKind.Failed, "Conflicto de integración en: " + string.Join(", ", result.ConflictPaths) + ". Se resuelve a mano o con una ejecución de seguimiento.");
+                end = new AttemptEnd(EndKind.Failed, "Conflicto de integración en: " + string.Join(", ", result.ConflictPaths) + ". Se resuelve a mano o con una ejecución de seguimiento.")
+                {
+                    Text = UserText.Of(OrchestrationUserTexts.WorkerIntegrationConflict, string.Join(", ", result.ConflictPaths)),
+                };
             }
             else
             {
-                end = new AttemptEnd(EndKind.Failed, "La verificación de la integración falló.");
+                end = new AttemptEnd(EndKind.Failed, "La verificación de la integración falló.") { Text = UserText.Of(OrchestrationUserTexts.WorkerIntegrationVerificationFailed) };
             }
 
             w.Post(new WorkerEnded(task, attempt, end with { Evidence = evidence }));
@@ -935,7 +964,7 @@ internal static class SystemWorkers
         }
         catch (Exception ex)
         {
-            w.Post(new WorkerEnded(task, attempt, new AttemptEnd(EndKind.Broken, "Error del sistema: " + ex.Message)));
+            w.Post(new WorkerEnded(task, attempt, new AttemptEnd(EndKind.Broken, "Error del sistema: " + ex.Message) { Text = UserText.Of(OrchestrationUserTexts.WorkerSystemError, ex.Message) }));
         }
     }
 
@@ -1032,8 +1061,8 @@ internal static class SystemWorkers
                 w.Post(new WorkerEnded(task, attempt, (stopped.Count > 0
                     ? RepositoryChanged("durante la revisión", stopped)
                     : flight.Cause == StopCause.User
-                        ? new AttemptEnd(EndKind.Cancelled, "Cancelada por el usuario.")
-                        : new AttemptEnd(EndKind.Failed, "La revisión no terminó a tiempo.")) with { Worktree = info }));
+                        ? new AttemptEnd(EndKind.Cancelled, "Cancelada por el usuario.") { Text = UserText.Of(OrchestrationUserTexts.WorkerCancelledByUser) }
+                        : new AttemptEnd(EndKind.Failed, "La revisión no terminó a tiempo.") { Text = UserText.Of(OrchestrationUserTexts.WorkerReviewTimeout) }) with { Worktree = info }));
                 return;
             }
 
@@ -1057,6 +1086,9 @@ internal static class SystemWorkers
                     : "El juez alcanzó el límite de uso de su proveedor, sin hora de reinicio.";
                 w.Post(new WorkerEnded(task, attempt, new AttemptEnd(EndKind.RateLimited, limited)
                 {
+                    Text = outcome.RetryAfter is { } limitEnds
+                        ? UserText.Of(OrchestrationUserTexts.WorkerJudgeLimitUntil, limitEnds)
+                        : UserText.Of(OrchestrationUserTexts.WorkerJudgeLimitNoReset),
                     RetryAt = outcome.RetryAfter,
                     Worktree = info,
                 }));
@@ -1065,10 +1097,10 @@ internal static class SystemWorkers
 
             var end = outcome.Disposition switch
             {
-                ReviewDisposition.Approved => new AttemptEnd(EndKind.Completed, $"El juez aprobó (veredicto {outcome.VerdictId})."),
-                ReviewDisposition.ChangesRequested => new AttemptEnd(EndKind.Failed, $"El juez pidió cambios (veredicto {outcome.VerdictId}); se propone una ejecución de seguimiento."),
-                ReviewDisposition.Rejected => new AttemptEnd(EndKind.Failed, $"El juez rechazó el trabajo (veredicto {outcome.VerdictId})."),
-                _ => new AttemptEnd(EndKind.ApprovalNeeded, $"El veredicto {outcome.VerdictId} necesita a una persona."),
+                ReviewDisposition.Approved => new AttemptEnd(EndKind.Completed, $"El juez aprobó (veredicto {outcome.VerdictId}).") { Text = UserText.Of(OrchestrationUserTexts.WorkerJudgeApproved, outcome.VerdictId.ToString()) },
+                ReviewDisposition.ChangesRequested => new AttemptEnd(EndKind.Failed, $"El juez pidió cambios (veredicto {outcome.VerdictId}); se propone una ejecución de seguimiento.") { Text = UserText.Of(OrchestrationUserTexts.WorkerJudgeChangesRequested, outcome.VerdictId.ToString()) },
+                ReviewDisposition.Rejected => new AttemptEnd(EndKind.Failed, $"El juez rechazó el trabajo (veredicto {outcome.VerdictId}).") { Text = UserText.Of(OrchestrationUserTexts.WorkerJudgeRejected, outcome.VerdictId.ToString()) },
+                _ => new AttemptEnd(EndKind.ApprovalNeeded, $"El veredicto {outcome.VerdictId} necesita a una persona.") { Text = UserText.Of(OrchestrationUserTexts.WorkerJudgeNeedsPerson, outcome.VerdictId.ToString()) },
             };
             w.Post(new WorkerEnded(task, attempt, end with { VerdictId = outcome.VerdictId, Worktree = info }));
         }
@@ -1093,8 +1125,13 @@ internal static class SystemWorkers
         {
             var decision = await w.Ports.Approvals.RequestAsync(request, linked.Token).ConfigureAwait(false);
             end = decision.Approved
-                ? new AttemptEnd(EndKind.Approved, $"Aprobado por {decision.DecidedBy}.")
-                : new AttemptEnd(EndKind.Denied, $"Denegado por {decision.DecidedBy}{(string.IsNullOrWhiteSpace(decision.Comment) ? "." : ": " + decision.Comment)}");
+                ? new AttemptEnd(EndKind.Approved, $"Aprobado por {decision.DecidedBy}.") { Text = UserText.Of(OrchestrationUserTexts.WorkerApproved, decision.DecidedBy) }
+                : new AttemptEnd(EndKind.Denied, $"Denegado por {decision.DecidedBy}{(string.IsNullOrWhiteSpace(decision.Comment) ? "." : ": " + decision.Comment)}")
+                {
+                    Text = string.IsNullOrWhiteSpace(decision.Comment)
+                        ? UserText.Of(OrchestrationUserTexts.WorkerDenied, decision.DecidedBy)
+                        : UserText.Of(OrchestrationUserTexts.WorkerDeniedWithComment, decision.DecidedBy, decision.Comment),
+                };
         }
         catch (OperationCanceledException) when (w.Abort.IsCancellationRequested)
         {
@@ -1102,11 +1139,11 @@ internal static class SystemWorkers
         }
         catch (OperationCanceledException) when (flight.Cause == StopCause.User)
         {
-            end = new AttemptEnd(EndKind.Cancelled, "Cancelada por el usuario.");
+            end = new AttemptEnd(EndKind.Cancelled, "Cancelada por el usuario.") { Text = UserText.Of(OrchestrationUserTexts.WorkerCancelledByUser) };
         }
         catch (Exception ex)
         {
-            end = new AttemptEnd(EndKind.Denied, "No se pudo obtener la aprobación (equivale a denegarla): " + ex.Message);
+            end = new AttemptEnd(EndKind.Denied, "No se pudo obtener la aprobación (equivale a denegarla): " + ex.Message) { Text = UserText.Of(OrchestrationUserTexts.WorkerApprovalFailed, ex.Message) };
         }
 
         w.Post(new WorkerEnded(task, attempt, end));

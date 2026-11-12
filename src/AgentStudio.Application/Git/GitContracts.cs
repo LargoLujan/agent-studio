@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using AgentStudio.Application.Execution;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Security;
 using AgentStudio.Application.Verification;
@@ -731,14 +732,18 @@ public enum DeliveryMode
     MergeCommit,
 }
 
-public sealed record DeliveryResult(bool Delivered, string? ResultCommit, string TargetBranch, string Message);
+/// <summary>
+/// The outcome of a delivery. <see cref="Message"/> is the Spanish sentence; <see cref="MessageText"/> is the same as a coded text
+/// for the screen (ADR-0054 addendum of 2026-11-12), null when the producer gives none: the screen then shows the sentence.
+/// </summary>
+public sealed record DeliveryResult(bool Delivered, string? ResultCommit, string TargetBranch, string Message, UserText? MessageText = null);
 
 /// <summary>
 /// Whether a run may be delivered, from its decision log and its verdicts. <see cref="Commit"/> is the integration commit
 /// an independent judge approved (the only one a delivery takes), or null when the run may not be delivered;
 /// <see cref="Reason"/> says why, for the person.
 /// </summary>
-public sealed record DeliveryReadiness(bool Ready, string? Commit, string Reason);
+public sealed record DeliveryReadiness(bool Ready, string? Commit, string Reason, UserText? ReasonText = null);
 
 /// <summary>Delivers the integration branch to the user's own branch. It always asks <c>IApprovalGate</c> first (critical action).</summary>
 public interface IDeliveryService

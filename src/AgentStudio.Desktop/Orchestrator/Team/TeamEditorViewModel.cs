@@ -532,7 +532,7 @@ public sealed partial class TeamEditorViewModel : ObservableObject
 #pragma warning restore CA1031
         {
             var reverted = await RevertAsync(project, written, removed).ConfigureAwait(true);
-            ErrorMessage = _text.Format(reverted ? "Canvas_Editor_NotSaved" : "Canvas_Editor_NotSavedHalfway", ex.Message);
+            ErrorMessage = _text.Format(reverted ? "Canvas_Editor_NotSaved" : "Canvas_Editor_NotSavedHalfway", OrchestratorErrorText.Detail(ex, _text.Provider));
             return false;
         }
 
@@ -555,7 +555,7 @@ public sealed partial class TeamEditorViewModel : ObservableObject
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            return ex.Message;
+            return OrchestratorErrorText.Detail(ex, _text.Provider);
         }
     }
 

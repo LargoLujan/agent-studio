@@ -258,7 +258,7 @@ public sealed partial class AnalysisBandViewModel : ObservableObject, IDisposabl
         catch (Exception ex) when (ex is not OperationCanceledException)
 #pragma warning restore CA1031
         {
-            Show(null, _text.Format("Canvas_Analysis_Failed", ex.Message), failed: true);
+            Show(null, _text.Format("Canvas_Analysis_Failed", OrchestratorErrorText.Detail(ex, _text.Provider)), failed: true);
             return;
         }
 
@@ -278,7 +278,7 @@ public sealed partial class AnalysisBandViewModel : ObservableObject, IDisposabl
         catch (Exception ex) when (ex is not OperationCanceledException)
 #pragma warning restore CA1031
         {
-            Show(null, _text.Format("Canvas_Analysis_Failed", ex.Message), failed: true);
+            Show(null, _text.Format("Canvas_Analysis_Failed", OrchestratorErrorText.Detail(ex, _text.Provider)), failed: true);
             return;
         }
 
