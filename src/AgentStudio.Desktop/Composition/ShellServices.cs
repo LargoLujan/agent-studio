@@ -49,6 +49,7 @@ internal static class ShellServices
             .AddOrchestrationUiServices()
             .AddAgentStudioSkillsScreen()
             .AddObservabilityUiServices()
+            .AddRepositoryUiServices()
             .AddDebateUiServices()
             .AddUnattendedWorkServices();
     }

@@ -294,13 +294,13 @@ public sealed partial class Phase13HandWrittenTextTests
         // Phase 14 takes a file out of the inventory when it leaves it clean, so it is scanned from then on. WP-14A cleaned (b) the
         // 23 files of Debate and Audit, (a1) the 49 of the orchestrator, (d1) the 45 of the shell, (a2) the 46 of Background and Lock,
         // (c) the 39 of Observability, Memory and Skills and (d2) the 57 of the controls, the services, the composition, the themes
-        // and the Markdown viewer. The 3 left are the usage dashboard, which waits for WP5 of Phase 9.
+        // and the Markdown viewer; WP5 of Phase 9 cleaned the 3 of the usage dashboard, the last ones, so none is left.
         Assert.Contains("Orchestrator/Canvas/CanvasViewModel.cs", scanned);
         Assert.Contains("MainWindow.xaml.cs", scanned);
         Assert.Contains("ViewModels/MainViewModel.cs", scanned);
         Assert.Contains("Services/UnsavedChangesPromptViewModel.cs", scanned);
         Assert.Contains("Controls/Terminal/TerminalViewModel.cs", scanned);
-        Assert.Equal(3, FilesBeforePhase13.Count);
+        Assert.Empty(FilesBeforePhase13);
         Assert.DoesNotContain(FilesBeforePhase13, f => f.StartsWith("Localization/", StringComparison.Ordinal) || f.StartsWith("Controls/Info/", StringComparison.Ordinal) || f.StartsWith("Orchestrator/Live/", StringComparison.Ordinal));
     }
 

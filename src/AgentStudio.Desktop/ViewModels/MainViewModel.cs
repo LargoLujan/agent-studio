@@ -12,6 +12,7 @@ using AgentStudio.Desktop.Debate;
 using AgentStudio.Desktop.Help;
 using AgentStudio.Desktop.Documents;
 using AgentStudio.Desktop.Memory;
+using AgentStudio.Desktop.Repository;
 using AgentStudio.Desktop.Observability;
 using AgentStudio.Desktop.Orchestrator;
 using AgentStudio.Desktop.Orchestrator.Monitor;
@@ -168,7 +169,8 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         SetupViewModelFactory? setup = null,
         SetupSuggestions? setupSuggestions = null,
         HelpDocumentViewModel? help = null,
-        ClientDocumentsViewModel? clientDocuments = null)
+        ClientDocumentsViewModel? clientDocuments = null,
+        RepositoryViewModel? repository = null)
     {
         ArgumentNullException.ThrowIfNull(settingsStore);
         ArgumentNullException.ThrowIfNull(folderPicker);
@@ -219,6 +221,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         UpdateProviderSummary();
 
         InitializeHelp(help);
+        InitializeRepository(repository);
         Activities =
         [
             new("explorer", Texts.Get("Main_Panel_Explorer"), "", null, PanelIds.Explorer, TogglePanelCommand),
@@ -227,6 +230,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
             new("skills", Texts.Get("Main_Activity_Skills"), "", null, null, OpenSkillsCommand),
             .. BuilderToolActivities(),
             .. ObservabilityActivities(),
+            .. RepositoryActivities(),
             .. ClientDocumentActivities(),
             .. DebateActivities(),
             new("terminal", Texts.Get("Main_Panel_Terminal"), "", null, PanelIds.Terminal, TogglePanelCommand) { Shortcut = TerminalShortcutHint },
@@ -600,6 +604,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
             }
         }
 
+        await ShowProjectInRepositoryAsync(projectPath);
         await ShowProjectInDocumentsAsync(projectPath);
     }
 

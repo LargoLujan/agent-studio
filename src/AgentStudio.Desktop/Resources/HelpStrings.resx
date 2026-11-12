@@ -178,6 +178,9 @@
   <data name="Help_Screen_lock" xml:space="preserve">
     <value>Bloqueo</value>
   </data>
+  <data name="Help_Screen_repository" xml:space="preserve">
+    <value>Repositorio y cambios</value>
+  </data>
   <data name="Text_help_action_open_orchestrator" xml:space="preserve">
     <value>Abrir el Orquestador</value>
   </data>

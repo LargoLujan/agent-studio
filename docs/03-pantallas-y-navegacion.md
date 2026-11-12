@@ -48,11 +48,12 @@ debajo.
   **Agentes** (Fase 13: el orquestador en la capa «Equipo»), **Skills** ([10](10-catalogo-de-skills.md#8-pantalla)),
   **Herramientas** y **Pruebas** (Fase 13, [sección 5.5](#55-monitor-vivo-preguntas-análisis-del-consumo-paneles-y-herramientas-fase-13-wp8)),
   **Consumo** y **Memoria** (Fase 4,
-  [sección 5](#5-salud-del-contexto-consumo-cuota-y-memoria)), **Debates** (Fase 5, [sección 4](#4-debate-arena),
+  [sección 5](#5-salud-del-contexto-consumo-cuota-y-memoria)), **Repositorio** (Fase 9,
+  [sección 5.6](#56-repositorio-y-cambios-fase-9-wp5)), **Debates** (Fase 5, [sección 4](#4-debate-arena),
   `Ctrl+Shift+D`), **Terminal** (`Ctrl+Ñ`; en un teclado de EE. UU., `` Ctrl+` ``, que es la misma tecla), Auto Doctor,
   Historial · bitácora (la **bitácora** del día, [11](11-bitacora.md)) y, la última, **Ajustes**
   ([sección 5.2](#52-consumo-cuota-y-ajustes-documentos-consumo-y-ajustes)).
-  - Orquestador, Agentes, Skills, Herramientas, Consumo, Memoria, Debates y Ajustes abren un documento en el centro. Explorador,
+  - Orquestador, Agentes, Skills, Herramientas, Consumo, Memoria, Repositorio, Debates y Ajustes abren un documento en el centro. Explorador,
     Pruebas, Terminal, Auto Doctor e Historial muestran u ocultan su panel.
   - **Agentes** abre la pestaña del orquestador del proyecto (o la trae al frente) y la deja en la capa «Equipo», donde se
     añaden, configuran y quitan los agentes con el inspector de cada uno. **Herramientas** abre una pestaña con lo que puede
@@ -691,11 +692,22 @@ su propio documento, «Ajustes», que se describe al final de este apartado.
 
 - **Qué se pregunta.** El proyecto abierto o todos los recientes de los ajustes (el abierto primero), el periodo en días
   locales (hoy, últimos 7 días, este mes o últimos 30 días) y las dimensiones por las que agrupar, en un orden fijo:
-  proveedor, vendor, modelo, sesión, ejecución, tarea, agente, propósito, proyecto, día, semana ISO y mes. El informe
-  sale del registro de decisiones verificado ([ADR-0019](adr/0019-consumo-como-proyeccion-del-registro.md)).
+  proveedor, empresa del modelo (vendor), modelo, sesión, ejecución, tarea, agente, propósito, proyecto, día, semana ISO y
+  mes, y desde la Fase 9 (WP5) también **hito** y los tres ejes de la actividad: **tipo de trabajo** (coordinación,
+  análisis, implementación, pruebas, documentación, revisión y conflictos), **primer intento o reintento** y **qué pasó
+  con el trabajo** (conservado, descartado —con o sin versión guardada— o pendiente). El informe sale del registro de
+  decisiones verificado ([ADR-0019](adr/0019-consumo-como-proyeccion-del-registro.md),
+  [ADR-0040](adr/0040-consumo-por-hito-y-actividad-y-presupuestos.md)).
 - **Por grupo:** ejecuciones, duración, tokens de entrada, caché leída y escrita, salida, razonamiento, coste, errores
   por límite de uso y de presupuesto, compactaciones y el contexto máximo, cada cifra con su etiqueta. Un grupo sin
   clave es el total.
+- **Esperas, aparte de la duración** (Fase 9, F9-6): cada grupo dice cuánto esperaron sus intentos en la cola de su proveedor
+  y cuánto esperaron sus tareas el límite de uso de tu plan. Son cifras con su origen, y nunca se suman a la duración.
+- **Por hito y por tipo de trabajo** (Fase 9, F9-6): una sección fija, bajo «Por grupo», que reparte los mismos intentos
+  en los cuatro ejes (hito, tipo de trabajo, primer intento o reintento, qué pasó con el trabajo), cada uno con su total.
+  Las filas de un eje suman ese total. Un intento que está en dos hitos cuenta en cada uno y una sola vez en el total, y la
+  pantalla lo dice aparte («Compartidos: n intentos están en más de un hito»). No sale si el informe no tiene intentos.
+  Los valores salen en el idioma de la interfaz (el informe exportado los conserva como los da el registro).
 - **Por intento:** cuándo terminó, quién lo ejecutó (ejecución, tarea, intento, propósito y agente), dónde y cómo acabó,
   su uso propio, su contexto máximo y su desglose por modelo. Un intento registrado antes de la Fase 4 dice «sin desglose
   (registro anterior a la Fase 4)» y su duración, «sin dato».
@@ -942,6 +954,56 @@ nueva trae su ⓘ.
 - **El aviso de la bandeja.** Una pregunta que llega con la app fuera de vista (oculta en la bandeja, minimizada o bloqueada)
   muestra en la bandeja «Un agente te pregunta algo», con el nombre de la app como título y nada del proyecto.
 
+### 5.6 Repositorio y cambios (Fase 9, WP5)
+
+«Repositorio» abre un documento, uno por sesión, que sigue al proyecto abierto. Cuenta qué hicieron los agentes y tú en el
+repositorio, y lo cuenta desde el registro verificado ([ADR-0039](adr/0039-vinculos-de-trazabilidad-y-participacion.md), D-44 de
+[16](16-ampliacion-plataforma-de-proyectos.md)). **No es un cliente de git:** solo lee y nunca escribe. La historia se lee siempre por la capa
+endurecida de git ([ADR-0012](adr/0012-worktrees-fuera-del-repo.md): sin filtros, sin `textconv`, sin red); Desktop no lanza git.
+
+```text
+┌ Repositorio y cambios                                                                          [Actualizar] ┐
+│ [Resumen] [Ramas] [Versiones guardadas] [Actividad]                                                         │
+│ Agent Studio no lee este repositorio: su configuración podría ejecutar un programa del repositorio…   (si lo rechaza) │
+├ Versiones guardadas ───────────────────────────────────────────────────────────────────────────────── (i) ┤
+│ Se muestran las últimas 200 versiones guardadas, de la más nueva a la más antigua.                          │
+│ 3f2a91c0 Añade Calc.Multiply                                                          [Ver su cadena]       │
+│   12/11/2026 10:30 · Manuel · main                                                                          │
+│   Hecha por Agent Studio · ejecución 20261112-a1b2c3 · tarea T2 · intento 1 · agente ejecutor · modelo …    │
+│ 9b1c0d44 Arregla el README                                                                                  │
+│   Sugerencia, sin confirmar: parece relacionada con tarea 20261112-a1b2c3/T3, según las marcas de su mensaje│
+└─────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+- **Resumen:** la rama actual (o «ninguna: estás en una versión suelta»), la última versión guardada, si hay cambios sin
+  guardar, y los remotos con su dirección sin credenciales (`IRepositoryRemoteReader`).
+- **Ramas:** las ramas locales con la versión a la que apuntan. La actual lleva una marca, y las que crea Agent Studio para
+  una ejecución (`agentstudio/…`) dicen que lo son.
+- **Versiones guardadas:** el grafo acotado (200 versiones como mucho, de la más nueva a la más antigua), anotado con
+  `IRepositoryAnnotator`.
+  - Una versión **del sistema** dice su ejecución, tarea, intento, agente y modelo, y **solo si el registro lo respalda**. Un
+    mensaje copiado, un cherry-pick o unas marcas escritas a mano no la convierten en del sistema: la pantalla no lee los
+    mensajes, pinta lo que trae la anotación.
+  - Un vínculo que tú (o el sistema) confirmaste sale como «Vinculada por ti a requisito R-4».
+  - Lo que el registro no respalda es, como mucho, una **sugerencia**, en cursiva y en color de aviso, con «Sugerencia, sin
+    confirmar» por delante, y siempre detrás de lo confirmado. Sin nada que decir: «El registro no sabe nada de esta versión».
+  - El asunto y el autor son texto de quien hizo la versión: se muestran tal cual, sin traducir, y su ayuda lo dice.
+  - **«Ver su cadena»** (requisito, tarea, intento, verificación, veredicto y entrega) solo sale si alguien conectó una forma
+    de abrirla: el documento levanta `RepositoryViewModel.ChainRequested` con el proyecto y el nodo de la versión
+    (`TraceRef.Commit`, su id completo), y la pantalla de «Trabajo» lo recorre con `ITraceChainReader`. Sin esa conexión no hay
+    botón, porque un botón que no hace nada no se ofrece.
+- **Actividad:** la línea de tiempo del registro (`IRepositoryActivityReader`): integraciones, entregas y copias de trabajo
+  retiradas, de la más nueva a la más antigua, cada una con su resultado real («Salió bien» o «Falló: hubo un conflicto al
+  integrar»). Se filtra por ejecución, tarea, hito, agente, proveedor, modelo y periodo; un hito que no tiene la forma `mil-…`
+  se dice y no se lee nada. «Quitar filtros» lo deja todo.
+- **Si el lector se niega** (no es un repositorio, está dentro de las copias de trabajo aisladas de Agent Studio, su
+  configuración podría ejecutar un programa del repositorio, la carpeta no es tuya, git no está o falla), la pantalla dice por
+  qué, con un texto, y no pinta «sin ramas» ni «sin versiones»: no las leyó. La actividad, que sale del registro y no de git,
+  sigue viéndose. Si el registro de decisiones no verifica, las versiones se ven sin anotar y se dice.
+- **Cada apartado tiene su ⓘ** (qué es y qué puedes hacer). Los textos están en `RepositoryStrings`, en castellano y en inglés,
+  con el glosario de [ADR-0054](adr/0054-idiomas-y-lenguaje-claro.md): «commit» es «versión guardada», y «cuota», «límite de uso
+  de tu plan».
+
 ## 6. Auditoría y veredictos del juez
 
 > **Estado:** implementado en la Fase 5 (WP6 de [15](15-fase-5-debate-arena-y-juez.md), §9) sobre los puertos de P0,
@@ -1082,7 +1144,9 @@ flowchart LR
     Main --> Journal["Historial<br/>bitácora de hoy"]
     Main --> Memory["Memoria del proyecto<br/>revisión · exportación"]
     Memory --> Summary["Resumen del día"]
-    Main --> Usage["Consumo<br/>por grupo e intento"]
+    Main --> Usage["Consumo<br/>por grupo, hito, actividad e intento"]
+    Main --> Repo["Repositorio y cambios<br/>resumen · ramas · versiones · actividad"]
+    Repo -->|"ver su cadena (la conecta la pantalla de Trabajo)"| Chain["Cadena de una versión"]
     Usage --> Quota["Cuota por proveedor"]
     Usage -->|"Exportar CSV o JSON"| SaveAs["Guardar como"]
     Main --> Skills["Catálogo de skills"]
