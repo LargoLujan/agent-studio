@@ -87,7 +87,7 @@ public sealed partial class OrchestratorDocumentViewModel
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = Texts.Format("Orchestrator_Doc_OpenRunFailed", item.Summary.Id, ex.Message);
+            ErrorMessage = Texts.Format("Orchestrator_Doc_OpenRunFailed", item.Summary.Id, OrchestratorErrorText.Detail(ex));
         }
         finally
         {

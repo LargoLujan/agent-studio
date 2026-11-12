@@ -3,6 +3,7 @@ using AgentStudio.Application.Execution;
 using AgentStudio.Application.Git;
 using AgentStudio.Application.Judging;
 using AgentStudio.Application.Knowledge;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Projects;
@@ -345,18 +346,21 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
 
         await guard.EstablishBaselineAsync(cancellationToken).ConfigureAwait(false);
         var notices = new List<string>();
+        var noticeTexts = new List<UserText?>();
 
         // Only the user's own changes: what Agent Studio keeps in .agentstudio/ (the journal, the memory export) does not
         // count (RepositoryState.HasUncommittedChanges), the same answer the notes of a debate and of an audit get.
         if (repository.HasUncommittedChanges)
         {
             notices.Add("Tienes cambios sin confirmar: no entran en la ejecución, que parte del último commit.");
+            noticeTexts.Add(UserText.Of(OrchestrationUserTexts.NoticeUncommittedChanges));
         }
 
         // A plan that may run but whose work no integration reviewed by the judge merges can never be delivered.
         if (PlanWarningText.Notice(PlanValidator.Warnings(request.Plan)) is { } undeliverable)
         {
             notices.Add(undeliverable);
+            noticeTexts.Add(OrchestrationUserTexts.Sentences(PlanWarningText.Texts(PlanValidator.Warnings(request.Plan))));
         }
 
         var baseCommit = await BaseCommitAsync(request, run, log.Entries, entries, repository, recorder, cancellationToken).ConfigureAwait(false);
@@ -385,7 +389,7 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
         var context = new RunContext(project, run, request.Plan, request.Requirements, request.Verification, roster, request.Options, baseCommit, createdAt);
         var orchestration = new OrchestrationRun(context, _ports, recorder, request.Plan.BuildGraph(createdAt), ledger, guard, Forget);
         Track(orchestration);
-        orchestration.Start(notices);
+        orchestration.Start(notices, noticeTexts);
         return orchestration;
     }
 
@@ -439,7 +443,7 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
         var resumed = await new RunResumer(_ports).ResumeAsync(project, run, log.Entries, cause, cancellationToken).ConfigureAwait(false);
         var orchestration = new OrchestrationRun(resumed.Context, _ports, resumed.Recorder, resumed.Graph, resumed.Ledger, resumed.Guard, Forget);
         Track(orchestration);
-        orchestration.Start([RunResumer.Notice(cause)]);
+        orchestration.Start([RunResumer.Notice(cause)], [RunResumer.NoticeText(cause)]);
         return orchestration;
     }
 

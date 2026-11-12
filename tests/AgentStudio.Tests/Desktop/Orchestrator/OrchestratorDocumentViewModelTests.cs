@@ -721,7 +721,7 @@ public sealed class OrchestratorDocumentViewModelTests
 
         Assert.Equal(
             [
-                "build · Compilar · dotnet build · SIN AISLAMIENTO: el código que escriben los agentes se ejecuta con tus permisos en el worktree",
+                "build · Compilar · dotnet build · SIN AISLAMIENTO: el código que escriben los agentes se ejecuta con tus permisos, en la copia de trabajo",
                 "test · Probar · dotnet test",
                 "lint · Analizar · dotnet format --verify-no-changes",
             ],
@@ -730,6 +730,10 @@ public sealed class OrchestratorDocumentViewModelTests
         Assert.Equal(
             Opening + "T1: el paso «build» se ejecuta sin aislamiento. T2: el paso «build» se ejecuta sin aislamiento. T3: el paso «build» se ejecuta sin aislamiento." + Meaning,
             document.IsolationWarning);
+
+        // What the screen paints is the coded text, in the language in use; the anchored sentence above is what the approval carries.
+        Assert.Contains("T1: el paso «build» se ejecuta sin aislamiento.", document.IsolationWarningText, StringComparison.Ordinal);
+        Assert.NotEqual(document.IsolationWarning, document.IsolationWarningText);
 
         // The warning stays on screen while the plan is approved: it is part of what the user approves.
         document.ApproveCommand.Execute(null);

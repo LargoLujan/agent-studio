@@ -493,7 +493,7 @@ public sealed partial class ProjectAuditDocumentViewModel : DocumentViewModel
             : Texts.Get("Audit_Prep_NoProfile");
         foreach (var step in proposal.Verification?.Steps ?? [])
         {
-            ProfileSteps.Add(VerificationStepText.Line(step));
+            ProfileSteps.Add(OrchestratorCodedText.StepLine(step));
         }
 
         foreach (var skipped in proposal.SkippedSteps)

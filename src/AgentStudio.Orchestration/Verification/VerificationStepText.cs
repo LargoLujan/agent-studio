@@ -1,6 +1,8 @@
 using AgentStudio.Application.Execution;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Verification;
 using AgentStudio.Domain.Agents;
+using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Orchestration.Engine;
 
@@ -64,6 +66,61 @@ public static class VerificationStepText
         return string.Join(' ', [Opening, .. tasks, Meaning]);
     }
 
+    /// <summary>
+    /// The line of a step as pieces for the screen (docs/17 D-47): what is not language (<see cref="StepLineParts.Plain"/>: id, title and
+    /// exact command line) and, when they apply, the coded texts of the steps it requires and of its lack of isolation. The desktop
+    /// joins them with « · » in the language of the person. <see cref="Line"/> stays as it is, for what is not the screen.
+    /// </summary>
+    public static StepLineParts LineParts(VerificationStep step)
+    {
+        ArgumentNullException.ThrowIfNull(step);
+        var plain = $"{step.Id} · {step.Title} · {string.Join(' ', [step.Executable, .. step.Arguments.Select(Quote)])}";
+        var requires = step.Requires is { Count: > 0 } ids ? UserText.Of(OrchestrationUserTexts.StepRequires, OrchestrationUserTexts.List([.. ids])) : null;
+        var withoutIsolation = step.Isolation == ProcessIsolation.LowIntegrity ? null : UserText.Of(OrchestrationUserTexts.StepWithoutIsolation);
+        return new StepLineParts(plain, requires, withoutIsolation);
+    }
+
+    /// <summary>
+    /// The warning of <see cref="PlanWarning(IReadOnlyList{MediumIntegrityWriter})"/> as coded sentences for the screen, in the same
+    /// order (the opening, one per task and what it means). The desktop paints them in the language of the person and joins them with
+    /// a space; <see cref="PlanWarning(IReadOnlyList{MediumIntegrityWriter})"/> stays as it is, because the approval of the plan
+    /// carries it and the run compares it byte by byte. Empty when there is no writer.
+    /// </summary>
+    public static IReadOnlyList<UserText> PlanWarningTexts(IReadOnlyList<MediumIntegrityWriter> writers)
+    {
+        ArgumentNullException.ThrowIfNull(writers);
+        if (writers.Count == 0)
+        {
+            return [];
+        }
+
+        var tasks = writers
+            .GroupBy(w => w.Task)
+            .Select(task => UserText.Of(
+                OrchestrationUserTexts.MediumTask,
+                task.Key.Value,
+                OrchestrationUserTexts.List([.. task.Select(ReasonText).Distinct()])));
+        return [UserText.Of(OrchestrationUserTexts.MediumOpening), .. tasks, UserText.Of(OrchestrationUserTexts.MediumMeaning)];
+    }
+
+    private static UserText ReasonText(MediumIntegrityWriter writer) => writer.Reason switch
+    {
+        MediumIntegrityReason.UnknownAgent => writer.Agent is { } agent
+            ? UserText.Of(OrchestrationUserTexts.MediumReasonUnknownAgent, agent.ToString())
+            : UserText.Of(OrchestrationUserTexts.MediumReasonNoAgent),
+        MediumIntegrityReason.Shell => UserText.Of(OrchestrationUserTexts.MediumReasonShell, Name(writer.Agent)),
+        MediumIntegrityReason.CodexWrites => UserText.Of(OrchestrationUserTexts.MediumReasonCodex, Name(writer.Agent)),
+        MediumIntegrityReason.UnmeasuredCli => UserText.Of(OrchestrationUserTexts.MediumReasonUnmeasuredCli, Name(writer.Agent), writer.Provider?.ToString() ?? string.Empty),
+        MediumIntegrityReason.UnmeasuredClaudeVersion => UserText.Of(OrchestrationUserTexts.MediumReasonUnmeasuredClaude, Name(writer.Agent)),
+        MediumIntegrityReason.ToolsBeyondMeasuredProfile => writer.Tools.Count > 0
+            ? UserText.Of(OrchestrationUserTexts.MediumReasonToolsBeyond, Name(writer.Agent), string.Join(", ", writer.Tools))
+            : UserText.Of(OrchestrationUserTexts.MediumReasonPermissionsBeyond, Name(writer.Agent)),
+        MediumIntegrityReason.UnknownStep => UserText.Of(OrchestrationUserTexts.MediumReasonUnknownStep, writer.Step ?? string.Empty),
+        _ => UserText.Of(OrchestrationUserTexts.MediumReasonStepWithoutIsolation, writer.Step ?? string.Empty),
+    };
+
+    private static string Name(AgentId? agent) => agent?.ToString() ?? string.Empty;
+
     private static string Reason(MediumIntegrityWriter writer) => writer.Reason switch
     {
         MediumIntegrityReason.UnknownAgent => writer.Agent is { } agent ? $"el agente «{agent}» no está en la plantilla" : "no tiene agente asignado",
@@ -85,3 +142,9 @@ public static class VerificationStepText
     private static string Quote(string argument) =>
         argument.Length == 0 || argument.Any(char.IsWhiteSpace) ? "\"" + argument + "\"" : argument;
 }
+
+/// <summary>
+/// A step of the verification profile as the screen paints it: <see cref="Plain"/> is id, title and command line (not language);
+/// <see cref="Requires"/> and <see cref="WithoutIsolation"/> are coded texts, null when they do not apply.
+/// </summary>
+public sealed record StepLineParts(string Plain, UserText? Requires, UserText? WithoutIsolation);

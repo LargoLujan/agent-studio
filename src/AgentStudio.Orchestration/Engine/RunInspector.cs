@@ -51,8 +51,8 @@ internal sealed class RunInspector(EnginePorts ports)
         var finished = entries.Select(e => e.Payload).OfType<RunFinishedPayload>().LastOrDefault();
         var phase = finished?.Phase ?? RunPhase.Interrupted;
         var result = finished is null
-            ? new RunResult(run, phase, health, null, ledger.VerdictId, InterruptedSummary)
-            : new RunResult(run, phase, health, finished.IntegrationCommit, finished.VerdictId, finished.Summary);
+            ? new RunResult(run, phase, health, null, ledger.VerdictId, InterruptedSummary, LoggedTexts.RunSummary(InterruptedSummary))
+            : new RunResult(run, phase, health, finished.IntegrationCommit, finished.VerdictId, finished.Summary, LoggedTexts.RunSummary(finished.Summary));
 
         // A run that did not finish has nothing running behind it: what was running was interrupted, as a resume records it.
         var interrupted = finished is null
@@ -78,7 +78,7 @@ internal sealed class RunInspector(EnginePorts ports)
             record.Options.MaxAgentRuns);
 
         var history = History(entries, evidence, context);
-        history.AddRange(interrupted.Select(task => new TaskStatusChangedEvent(lastAt, task, WorkTaskStatus.Running, WorkTaskStatus.Blocked, InterruptedReason)));
+        history.AddRange(interrupted.Select(task => new TaskStatusChangedEvent(lastAt, task, WorkTaskStatus.Running, WorkTaskStatus.Blocked, InterruptedReason, LoggedTexts.TaskReason(InterruptedReason))));
         if (problems.Count > 0)
         {
             history.Add(new RunPhaseChangedEvent(
@@ -138,7 +138,7 @@ internal sealed class RunInspector(EnginePorts ports)
             switch (payload)
             {
                 case TaskStatusChangedPayload change when context.Specs.ContainsKey(change.Task):
-                    history.Add(new TaskStatusChangedEvent(entry.RecordedAt, change.Task, change.From, change.To, change.Reason));
+                    history.Add(new TaskStatusChangedEvent(entry.RecordedAt, change.Task, change.From, change.To, change.Reason, LoggedTexts.TaskReason(change.Reason)));
                     break;
                 case EvidenceRegisteredPayload registered when evidence.TryGetValue(registered.Evidence, out var row):
                     var owner = registered.Task is { } task && context.Specs.ContainsKey(task) ? task : (TaskId?)null;
@@ -148,10 +148,14 @@ internal sealed class RunInspector(EnginePorts ports)
                     history.Add(new RunPhaseChangedEvent(
                         entry.RecordedAt,
                         dispatch.Change == RunDispatchChange.Paused ? RunPhase.Paused : RunPhase.Running,
-                        Dispatch(dispatch)));
+                        Dispatch(dispatch),
+                        LoggedTexts.Dispatch(
+                            dispatch.Change == RunDispatchChange.Paused,
+                            dispatch.DecidedBy,
+                            string.Equals(dispatch.DecidedBy, OrchestrationRun.DecidedByUser, StringComparison.Ordinal))));
                     break;
                 case RunResumedPayload resumed:
-                    history.Add(new RunPhaseChangedEvent(entry.RecordedAt, RunPhase.Running, RunResumer.Notice(resumed.Cause)));
+                    history.Add(new RunPhaseChangedEvent(entry.RecordedAt, RunPhase.Running, RunResumer.Notice(resumed.Cause), RunResumer.NoticeText(resumed.Cause)));
                     break;
                 case IntegrationPerformedPayload { IsDelivery: true } delivered:
                     history.Add(new RunDeliveredEvent(entry.RecordedAt, delivered.TargetRef, delivered.ResultCommit));

@@ -26,6 +26,7 @@ using AgentStudio.Domain.Providers;
 using AgentStudio.Domain.Security;
 using AgentStudio.Domain.Work;
 using AgentStudio.Observability.Context;
+using AgentStudio.Orchestration.Engine;
 using AgentStudio.Orchestration.Verification;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -323,7 +324,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
     /// on the machine: id, title, command line and, for a step without isolation, that the agents' code runs with the
     /// user's own rights (<see cref="VerificationStepText.Line"/>).
     /// </summary>
-    public IReadOnlyList<string> ProfileSteps => [.. ((Context?.Verification ?? Context?.VerificationProposal)?.Steps ?? []).Select(VerificationStepText.Line)];
+    public IReadOnlyList<string> ProfileSteps => [.. ((Context?.Verification ?? Context?.VerificationProposal)?.Steps ?? []).Select(step => OrchestratorCodedText.StepLine(step))];
 
     /// <summary>
     /// Shown next to «Aprobar plan»: the writers at medium integrity of the plan as drawn now, each with its task and why
@@ -334,6 +335,12 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
     /// text. Recomputed on every change of the plan or the context; null when there is no writer of that kind.
     /// </summary>
     public string? IsolationWarning { get; private set; }
+
+    /// <summary>
+    /// What <see cref="IsolationWarning"/> says, in the language in use, for the screen (docs/17 D-47). <see cref="IsolationWarning"/>
+    /// itself is the Spanish sentence the approval carries and the run compares, so it is never painted.
+    /// </summary>
+    public string? IsolationWarningText { get; private set; }
 
     public bool HasIsolationWarning => IsolationWarning is not null;
 
@@ -380,7 +387,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = Texts.Format("Orchestrator_Doc_ProfileSaveFailed", ex.Message);
+            ErrorMessage = Texts.Format("Orchestrator_Doc_ProfileSaveFailed", OrchestratorErrorText.Detail(ex));
             return;
         }
 
@@ -450,7 +457,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = Texts.Format("Orchestrator_Doc_AcceptHistoryFailed", ex.Message);
+            ErrorMessage = Texts.Format("Orchestrator_Doc_AcceptHistoryFailed", OrchestratorErrorText.Detail(ex));
             return;
         }
         finally
@@ -1007,7 +1014,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = Texts.Format("Orchestrator_Doc_PlanningFailed", ex.Message);
+            ErrorMessage = Texts.Format("Orchestrator_Doc_PlanningFailed", OrchestratorErrorText.Detail(ex));
         }
         finally
         {
@@ -1092,7 +1099,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
             // The engine may have recorded the start before failing: the approval is never used twice, so the next «Ejecutar»
             // asks for a new one (and for Windows Hello again when it is on).
             ForgetApproval();
-            ErrorMessage = Texts.Format("Orchestrator_Doc_StartFailed", ex.Message);
+            ErrorMessage = Texts.Format("Orchestrator_Doc_StartFailed", OrchestratorErrorText.Detail(ex));
         }
         finally
         {
@@ -1182,7 +1189,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = Texts.Format("Orchestrator_Doc_ResumeFailed", ex.Message);
+            ErrorMessage = Texts.Format("Orchestrator_Doc_ResumeFailed", OrchestratorErrorText.Detail(ex));
         }
         finally
         {
@@ -1290,7 +1297,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
             ProposalStatus = WithHistoryNotice(
                 proposal.Error is null
                     ? Texts.Format("Orchestrator_Plan_NoUsable", AgentActivityText.Outcome(proposal.Status))
-                    : Texts.Format("Orchestrator_Plan_NoUsableWhy", AgentActivityText.Outcome(proposal.Status), proposal.Error),
+                    : Texts.Format("Orchestrator_Plan_NoUsableWhy", AgentActivityText.Outcome(proposal.Status), OrchestratorCodedText.Painted(proposal.ErrorText, proposal.Error)),
                 proposal);
             return;
         }
@@ -1420,7 +1427,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = Texts.Format("Orchestrator_Doc_ResumedHeaderFailed", run, ex.Message);
+            ErrorMessage = Texts.Format("Orchestrator_Doc_ResumedHeaderFailed", run, OrchestratorErrorText.Detail(ex));
         }
     }
 
@@ -1514,7 +1521,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            ErrorMessage = Texts.Format("Orchestrator_Doc_RunsListFailed", ex.Message);
+            ErrorMessage = Texts.Format("Orchestrator_Doc_RunsListFailed", OrchestratorErrorText.Detail(ex));
         }
     }
 
@@ -1528,6 +1535,9 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         CurrentHash = plan.ContentHash;
         IsolationWarning = Context is { Verification: { } profile } opened
             ? VerificationStepText.PlanWarning(plan, opened.Roster, profile, opened.ClaudeWritesConfined)
+            : null;
+        IsolationWarningText = Context is { Verification: { } shown } seen && IsolationWarning is not null
+            ? OrchestratorCodedText.Sentences(VerificationStepText.PlanWarningTexts(MediumIntegrityWriters.Find(plan, seen.Roster, shown, seen.ClaudeWritesConfined)))
             : null;
         // While the canvas shows the plan of a run, the approval waits on the draft that comes back: nothing is withdrawn.
         if (PlanDecision is { Approved: true } && _approvedWarning is { } approvedWarning && !Monitor.IsAttached
@@ -1558,7 +1568,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
 
         // Only for a valid plan: the warnings are not computed over violations (a plan proposed with too many tasks, say).
         DeliveryWarning = ValidationState == ValidationState.Valid && plan.Tasks.Count > 0
-            ? AgentStudio.Orchestration.Planning.PlanWarningText.Notice(PlanValidator.Warnings(plan))
+            ? OrchestratorCodedText.Sentences(AgentStudio.Orchestration.Planning.PlanWarningText.Texts(PlanValidator.Warnings(plan)))
             : null;
 
         Problems.Clear();
@@ -1582,6 +1592,7 @@ public sealed partial class OrchestratorDocumentViewModel : DocumentViewModel, I
         OnPropertyChanged(nameof(HelloNotice));
         OnPropertyChanged(nameof(HasHelloNotice));
         OnPropertyChanged(nameof(IsolationWarning));
+        OnPropertyChanged(nameof(IsolationWarningText));
         OnPropertyChanged(nameof(HasIsolationWarning));
         OnPropertyChanged(nameof(DeliveryWarning));
         OnPropertyChanged(nameof(HasDeliveryWarning));

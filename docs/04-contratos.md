@@ -2076,6 +2076,27 @@ derivadas ni su hash ni los payloads del registro; no hay migración.
 tiene un fichero que escribir. Las claves son `Text_memory_…` en `Resources/MemoryStrings.resx` y `.en.resx`; la lista de los 250
 códigos, en la adenda del ADR. Lo que sigue en castellano a propósito, y por qué, también.
 
+### 22.9 Orquestación: textos en códigos (WP-14A, parte e, 2026-11-12)
+
+Lo que cambia en los contratos de `Application/Orchestration` para que los textos de `Orchestration` lleguen a la pantalla como códigos
+([ADR-0054](adr/0054-idiomas-y-lenguaje-claro.md), adenda del 2026-11-12). Lo anclado no cambia: ni el aviso de la aprobación, ni el
+motivo de cada transición, ni el resumen de `RunFinished`, ni ningún payload del registro; no hay migración.
+
+| Contrato | Cambio | Quién lo usa |
+|---|---|---|
+| `TaskStatusChangedEvent.ReasonText` (`UserText?`, al final) | El motivo de la transición como código, para la pantalla; `Reason` sigue en castellano, anclado | `OrchestrationRun.MoveAsync`, `RunInspector`; el monitor |
+| `RunPhaseChangedEvent.DetailText` (`UserText?`, al final) | Lo que el motor dice de una fase, como código; `Detail` sigue como está | `OrchestrationRun.SetPhase`, `Start(notices, noticeTexts)`, `RunInspector`; el monitor |
+| `RunResult.SummaryText` (`UserText?`, al final) | El resumen del final como código; `Summary` es el de `RunFinished`. Una ejecución releída lo deriva de la frase | `FinishAsync`, `RunInspector`; el monitor |
+| `PlanProposal.ErrorText` (`UserText?`, propiedad `init`) | Por qué no hubo plan, como código; `Error` sigue para el registro | `Planner`; `OrchestratorDocumentViewModel` |
+| `BudgetGateVerdict.Text` (`UserText?`, al final) | El motivo del bloqueo con sus cifras como piezas; `Reason` sigue igual en el registro y en la alerta | `ProjectBudgetGate`, `OrchestrationRun` |
+| `LoggedTexts` (`Orchestration/Engine`, público) | `TaskReason(reason)` y `RunSummary(summary)`: el código de la frase exacta que el motor ancla, o `null` | `RunInspector`; las pruebas |
+| `VerificationStepText.PlanWarningTexts`, `LineParts` y `PlanWarningText.Texts` | Las mismas frases que `PlanWarning`, `Line` y `Notice`, como códigos y piezas. Las tres originales no cambian | `OrchestratorDocumentViewModel`, `Audit` |
+| `OrchestrationUserTexts` (`Orchestration/`, nuevo) | Los 101 códigos de la orquestación (`All`) y las piezas de lista | todo lo de arriba |
+
+Escritorio: `OrchestratorCodedText` (pinta frases, líneas de paso y `Painted(texto, frase)`) y `OrchestratorErrorText.Detail(ex)` (una
+`UserTextException` desde recursos, y cualquier otro fallo con su mensaje técnico). Las claves son `Text_…` en
+`Resources/OrchestratorStrings.resx` y `.en.resx`; la lista de los códigos, lo que queda fijo y lo pendiente, en la adenda del ADR.
+
 ## 23. Fase 9: trabajo y trazabilidad
 
 Lo que el P0 de la Fase 9 deja fijado para los paquetes WP1 a WP5, que van en paralelo encima ([16](16-ampliacion-plataforma-de-proyectos.md)

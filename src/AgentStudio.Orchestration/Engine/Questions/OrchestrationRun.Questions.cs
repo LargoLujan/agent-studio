@@ -1,5 +1,6 @@
 using System.Globalization;
 using AgentStudio.Application.Decisions;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Decisions;
@@ -48,7 +49,7 @@ internal sealed partial class OrchestrationRun
             var cap = book.AskedBy(id) >= QuestionRules.MaxQuestionsPerTask
                 ? string.Create(CultureInfo.InvariantCulture, $"las {QuestionRules.MaxQuestionsPerTask} que admite una tarea")
                 : string.Create(CultureInfo.InvariantCulture, $"las {QuestionRules.MaxQuestionsPerRun} que admite una ejecución");
-            await MoveAsync(id, WorkTaskStatus.Blocked, $"El agente de {id} quiso hacer una pregunta más de {cap}: demasiadas preguntas, revisa los requisitos.", end.Evidence, BlockReason.AwaitingHuman).ConfigureAwait(false);
+            await MoveAsync(id, WorkTaskStatus.Blocked, $"El agente de {id} quiso hacer una pregunta más de {cap}: demasiadas preguntas, revisa los requisitos.", end.Evidence, BlockReason.AwaitingHuman, text: UserText.Of(UserTextCodes.QuestionTooMany)).ConfigureAwait(false);
             return;
         }
 
@@ -87,7 +88,7 @@ internal sealed partial class OrchestrationRun
             _ledger.Renew[id] = renew;
         }
 
-        await MoveAsync(id, WorkTaskStatus.Blocked, $"Espera tu respuesta: el agente hace la pregunta {questionId}.", [.. end.Evidence, evidence.Id], BlockReason.AwaitingAnswer).ConfigureAwait(false);
+        await MoveAsync(id, WorkTaskStatus.Blocked, $"Espera tu respuesta: el agente hace la pregunta {questionId}.", [.. end.Evidence, evidence.Id], BlockReason.AwaitingAnswer, text: UserText.Of(UserTextCodes.QuestionAwaitingAnswer)).ConfigureAwait(false);
         Emit(new QuestionPendingEvent(Now, asked.ToPending()));
     }
 

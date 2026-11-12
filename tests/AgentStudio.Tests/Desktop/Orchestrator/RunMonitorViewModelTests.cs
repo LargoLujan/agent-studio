@@ -137,6 +137,30 @@ public sealed class RunMonitorViewModelTests
         Assert.Equal("Falló: la política de pruebas exige pruebas capturadas por el sistema.", other.ResultSummaryText);
     }
 
+    /// <summary>
+    /// ADR-0054 addendum of 2026-11-12: what the engine says of a phase, of a task and of the end of the run comes with a code, and the
+    /// monitor paints it in the language in use; a sentence with no code (a worker, an older log) is shown as it was anchored.
+    /// </summary>
+    [Fact]
+    public async Task The_monitor_paints_the_coded_texts_of_the_engine_in_the_language_in_use_and_keeps_the_sentence_that_has_none()
+    {
+        using var scope = global::AgentStudio.Desktop.Localization.Texts.Scope(new global::AgentStudio.Desktop.Localization.ResourceTextProvider(System.Globalization.CultureInfo.GetCultureInfo("en")));
+        var summary = new global::AgentStudio.Application.Localization.UserText("run.verdict.succeeded", [3, 0]);
+        var result = new RunResult(new("20261103-abc123"), RunPhase.Succeeded, FakeRun.Healthy, null, null, "Terminó bien: 3 tareas completadas y 0 omitidas.", summary);
+        var monitor = await FollowOpenAsync(
+            new FakeRun(FakeRun.SnapshotOf(RunPhase.Running, FakeRun.View("T1"), FakeRun.View("T2"))),
+            new TaskStatusChangedEvent(T0, Tid("T1"), WorkTaskStatus.Pending, WorkTaskStatus.Blocked, "Los nodos Debate no están disponibles en la Fase 3.", new global::AgentStudio.Application.Localization.UserText("task.node-unavailable", ["Debate"])),
+            new TaskStatusChangedEvent(T0, Tid("T2"), WorkTaskStatus.Pending, WorkTaskStatus.Blocked, "Un motivo de un trabajador."),
+            new RunPhaseChangedEvent(T0, RunPhase.Succeeded, summary.Code, summary),
+            new RunFinishedEvent(T0, result));
+
+        Assert.Equal("Nodes of type Debate are not available yet.", monitor.Tasks[0].ReasonText);
+        Assert.Equal("Un motivo de un trabajador.", monitor.Tasks[1].ReasonText);
+        Assert.Equal("Finished well: 3 tasks completed and 0 skipped.", monitor.PhaseDetail);
+        Assert.Equal("Finished well: 3 tasks completed and 0 skipped.", monitor.ResultSummary);
+        Assert.Null(monitor.ResultSummaryText);
+    }
+
     [Fact]
     public async Task An_interrupted_run_is_not_blocked_and_raises_no_deadlock_alert()
     {
