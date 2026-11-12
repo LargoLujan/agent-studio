@@ -301,15 +301,15 @@ public sealed class IncrementalLogVerificationTests : IDisposable
     }
 
     [Fact]
-    public async Task An_entry_replaced_through_its_rowid_by_a_connection_without_recursive_triggers_is_found_at_the_next_whole_verification()
+    public async Task A_replace_through_the_rowid_by_a_connection_without_recursive_triggers_is_rejected_and_the_log_stays_valid()
     {
         using var world = await OpenAsync();
         await world.WriteAsync(6);
         Assert.True((await world.LoadAsync()).Verification.IsValid);
 
-        // REPLACE deletes the row it conflicts with by rowid without its DELETE trigger (recursive triggers are off in a
-        // connection of another program), and a sequence no entry has passes the trigger of the insert: the schema, the
-        // count and the last entry stay as they were.
+        // REPLACE would delete the row it conflicts with by rowid without its DELETE trigger (recursive triggers are off in a
+        // connection of another program), and a sequence no entry has passed the trigger of the insert. Since migration 0007
+        // (P45) that trigger rejects the rowid, so nothing changes.
         var database = world.Instance.Databases.Get(world.ProjectId).DatabasePath;
         using (var foreign = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = database, Pooling = false }.ToString()))
         {
@@ -320,14 +320,14 @@ public sealed class IncrementalLogVerificationTests : IDisposable
                 SELECT rowid, project_id, 0, recorded_at, actor_kind, actor_id, kind, 'Cambiada sin trigger', payload_json, corrects_sequence, previous_hash, hash
                 FROM decision_log WHERE sequence = 2;
                 """;
-            Assert.Equal(1, replace.ExecuteNonQuery());
+            Assert.Contains("decision_log is append-only", Assert.Throws<SqliteException>(() => replace.ExecuteNonQuery()).Message, StringComparison.Ordinal);
         }
 
         var unseen = await world.LoadAsync();
         Assert.True(unseen.Verification.IsValid);
-        Assert.Equal("Entrada 2", unseen.Entries[1].Summary); // served from memory, as verified
+        Assert.Equal("Entrada 2", unseen.Entries[1].Summary);
 
-        Assert.False((await world.Recorder.LoadAsync(world.ProjectId, LogLoad.Full, Ct)).Verification.IsValid);
+        Assert.True((await world.Recorder.LoadAsync(world.ProjectId, LogLoad.Full, Ct)).Verification.IsValid);
     }
 
     [Fact]
