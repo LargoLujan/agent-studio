@@ -223,7 +223,13 @@ public sealed record ClientText
         double number => "d:" + number.ToString("R", CultureInfo.InvariantCulture),
         DateTimeOffset instant => "t:" + instant.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture),
         TimeSpan span => "u:" + span.ToString("c", CultureInfo.InvariantCulture),
-        _ => throw new InvalidOperationException("A coded text carries only text, numbers, instants and durations."),
+
+        // A piece that is itself a coded text (INestedText): its code, its count and each argument, each part prefixed with its length so
+        // no two different pieces give the same field.
+        UserText piece => "x:" + string.Concat(new[] { piece.Code, piece.Arguments.Count.ToString(CultureInfo.InvariantCulture) }
+            .Concat(piece.Arguments.Select(Argument))
+            .Select(part => part.Length.ToString(CultureInfo.InvariantCulture) + ":" + part)),
+        _ => throw new InvalidOperationException("A coded text carries only text, numbers, instants, durations and coded pieces."),
     };
 }
 

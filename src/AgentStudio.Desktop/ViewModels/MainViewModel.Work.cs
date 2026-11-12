@@ -1,4 +1,5 @@
 using AgentStudio.Desktop.Localization;
+using AgentStudio.Desktop.Repository;
 using AgentStudio.Desktop.Work;
 using CommunityToolkit.Mvvm.Input;
 

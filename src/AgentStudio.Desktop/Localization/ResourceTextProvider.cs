@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Reflection;
 using System.Resources;
 using AgentStudio.Application.Localization;
+using AgentStudio.Domain.Common;
 
 namespace AgentStudio.Desktop.Localization;
 
@@ -71,7 +72,9 @@ public sealed class ResourceTextProvider : IUiTextProvider
     public string Render(UserText text)
     {
         ArgumentNullException.ThrowIfNull(text);
-        return Format(text.ResourceKey, [.. text.Arguments]);
+
+        // A text with pieces paints them first (RenderNested comes back here with every piece already a string).
+        return text.Arguments.Any(a => a is INestedText) ? this.RenderNested(text) : Format(text.ResourceKey, [.. text.Arguments]);
     }
 
     private string? Find(string key)

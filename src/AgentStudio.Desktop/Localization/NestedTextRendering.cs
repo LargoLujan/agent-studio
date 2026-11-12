@@ -5,8 +5,8 @@ namespace AgentStudio.Desktop.Localization;
 
 /// <summary>
 /// Paints a coded text whose arguments include other coded texts (<see cref="INestedText"/>, Phase 14, ADR-0054 addendum): the
-/// pieces first, in the same language, and then the sentence with them as text. <see cref="IUiTextProvider.Render"/> stays as it
-/// is: it knows only the arguments a culture can format, so a screen that shows a text with pieces goes through here.
+/// pieces first, in the same language, and then the sentence with them as text. <see cref="ResourceTextProvider.Render"/> comes
+/// here for a text with pieces, so a screen may call either.
 /// </summary>
 public static class NestedTextRendering
 {
