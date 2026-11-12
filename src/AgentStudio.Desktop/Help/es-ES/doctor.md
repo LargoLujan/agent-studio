@@ -14,4 +14,4 @@ Auto Doctor mira si tu equipo está listo para trabajar en el proyecto. No ejecu
 Cada comprobación termina en correcto, aviso, error o sin comprobar. Sin comprobar no es correcto: significa que nadie lo ha mirado.
 
 ## Los arreglos
-Un arreglo te lleva a una pantalla, te explica qué hacer o cambia algo de Agent Studio que luego puedes deshacer. Nunca instala nada en tu equipo.
+Un arreglo te lleva a una pantalla o te explica qué hacer. También puede cambiar algo de Agent Studio, y eso lo puedes deshacer. Nunca instala nada en tu equipo.

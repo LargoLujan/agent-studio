@@ -2,7 +2,7 @@
 title: Auto Graph: cómo está hecho el proyecto
 screens: graph
 ---
-Auto Graph dibuja cómo está hecha una solución de C#: sus proyectos, sus espacios de nombres y lo que usa cada uno.
+Auto Graph dibuja cómo está hecha una solución de C#. Enseña sus proyectos, sus espacios de nombres y lo que usa cada uno.
 
 ## Qué ves
 - El grafo, con una versión guardada concreta del proyecto. La pantalla dice cuál.

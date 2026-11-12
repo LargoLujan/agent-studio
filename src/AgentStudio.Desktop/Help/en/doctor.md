@@ -14,4 +14,4 @@ Auto Doctor checks whether your computer is ready to work on the project. It run
 Each check ends as correct, warning, error or not checked. Not checked is not correct: it means nobody has looked at it.
 
 ## The fixes
-A fix takes you to a screen, explains what to do, or changes something of Agent Studio that you can undo later. It never installs anything on your computer.
+A fix takes you to a screen or explains what to do. It can also change something of Agent Studio, and you can undo that. It never installs anything on your computer.

@@ -1,6 +1,7 @@
 # 20 · Fase 6 · Auto Doctor, Auto Graph, entorno declarado y diagramas: diseño
 
-> **Estado:** propuesta, pendiente de tus decisiones (§13). Revisada el 2026-11-12 tras una revisión independiente: endurece
+> **Estado:** las 15 decisiones de §13 se toman con la opción (a), la recomendada (2026-11-12), y el P0 (§9.2) está hecho en la rama `fase6-p0`: lo que
+> verificó y ajustó está en §4.3, §4.4 y §12. Revisada el 2026-11-12 tras una revisión independiente: endurece
 > los diagramas, las rutas del análisis, las direcciones de GitHub y Docker, alinea con docs/19 dónde viven los diagramas y
 > quién lee YAML, y separa el paquete previo WP-0 (§9.0). Parte de la rama `fase14-integracion` en `45f243d3` (la Fase 14 y
 > la Fase 9 integrándose, sin publicar). Es el documento que pedía [16 §4.3](16-ampliacion-plataforma-de-proyectos.md#43-fase-6-ampliada-auto-doctor-auto-graph-entorno-y-diagramas):
@@ -1054,8 +1055,30 @@ public sealed record GraphRelationsProposedPayload(string Commit, string ModelHa
 ```
 
 - Las dos con `RunId = NoRun`. Sin texto libre, sin rutas absolutas y sin nada del token.
-- `ProposedRelation` lleva los identificadores de los dos nodos y un motivo de 200 caracteres como máximo, ya saneado.
+- `ProposedRelation` lleva los identificadores de los dos nodos y la clase de la relación. **Corregido por el P0:** el diseño le daba además un motivo de
+  200 caracteres, pero es texto de un agente y las entradas del registro no llevan texto de un agente (como `QuestionAsked`): el motivo vive en la
+  evidencia de la propuesta y en `GraphInference.Reason` del almacén de relaciones inferidas.
 - El segundo solo existe con la decisión 7 (a).
+
+### 4.4 Lo que el P0 ajustó respecto a esta sección
+
+Los contratos de arriba son los del diseño; al escribirlos el P0 cambió esto, y la referencia es ahora [04 §25](04-contratos.md#25-fase-6-auto-doctor-auto-graph-entorno-declarado-y-diagramas):
+
+- **Los tipos de dominio validan.** `DoctorFact`, `DoctorCheck`, `GraphNode`, `GraphEdge`, `GraphGap` y `CodeGraph` son tipos con constructor que rechaza lo que no es válido (en vez de records
+  posicionales a secas): ids únicos, relaciones entre nodos que existen y de la clase que cada tipo de relación une, un nodo parcial con su hueco, rutas relativas
+  que no salen de la copia, topes. `CodeGraph` se ordena al construirse y se compara por lo que tiene. Las listas se copian.
+- **`CodeGraph.ModelHash`** cubre nodos, relaciones estáticas, huecos y la versión del generador; **no** el commit ni lo inferido (el §3.7 decía «solo con lo estático»; el commit
+  no es parte del modelo). `StaticOnly()` y `WithInferred(…)` dejan poner encima las relaciones de una IA sin mover la huella.
+- **`GitHubSkillOrigin`** (la validación de D-14) vive en **Domain**, no en `Infrastructure/Skills/GitHub`: es una regla pura y la prueba el P0. WP-S construye la dirección a partir de él.
+- **El protocolo del proceso de análisis** (`GraphWorkerProtocol`, `GraphWorkerRequest`, `GraphWorkerExitCodes` y `CodeGraphJson`, en `Application/Graph`) lo fija el P0: el §3.7 decía
+  que el proceso «devuelve el modelo en JSON por su salida» sin más detalle. El esqueleto termina con el código 4 y no devuelve nada.
+- **`IConsistencyCheck.RunAsync`** devuelve `null` cuando la comprobación no aplica, y `ConsistencyReport` lleva `NotApplicable` y `Truncated`. **`IDiagramCatalog`** usa `DiagramRef`,
+  `DiagramStatus` (con la huella, el commit y la fecha), `DiagramExportRequest` (con la carpeta y qué hacer ante un conflicto) y `DiagramExportResult`.
+- **`ISkillHealthBatchChecker`** es la tanda contra GitHub (una entrada por skill, con su código de fallo); `ISkillHealthChecker` no cambia. `GitHubToken` y `SkillsDoctorTokenUse` modelan el
+  token y el estado de la presencia para que el token no pueda salir en un texto.
+- **`DoctorFix.Guide`** solo admite una página `https` sin credenciales, y **`DoctorToolResult`** lleva el resultado de una herramienta que no corrió (`NotInstalled`, `InsideProject`, `TimedOut`, `FailedToStart`).
+- **No están en el P0:** `IUntrustedRoots` (WP-0), `EvidenceToolVersions` (WP-E, que decide cómo embebe el bloque `tools:` en la cabecera de la evidencia, hoy líneas `# …`) y el escapador de
+  Mermaid (WP-D, en Memory). `DoctorFactNames` se reduce a lo que el §4.2 listaba.
 
 ---
 
@@ -1427,8 +1450,8 @@ docs/19. Ninguno de ellos existe todavía. Esta fase usa el 0045 y propone 0061 
   decía este apartado: se fija la 5.6.0, cuya ficha apunta a `release/stable`. Licencia MIT, autor Microsoft; dependencias en
   `net10.0`: `Microsoft.CodeAnalysis.Common` 5.6.0 y `Microsoft.CodeAnalysis.Analyzers` 5.3.0, también MIT; listada, publicada el
   2026-07-02, sin retirada; ninguno de los tres figura en el feed de vulnerabilidades de nuget.org del 2026-11-11. Compila con 0
-  avisos con `TreatWarningsAsErrors` (el proyecto de análisis la referencia con `PrivateAssets="compile"`). Peso publicado: ver el informe del P0 (se
-  copian a la salida `Microsoft.CodeAnalysis.dll` y `Microsoft.CodeAnalysis.CSharp.dll`).
+  avisos con `TreatWarningsAsErrors` (el proyecto de análisis la referencia con `PrivateAssets="compile"`). Peso publicado (`dotnet publish -c Release` del proyecto de análisis): 12,1 MB en 11
+  ficheros, de ellos `Microsoft.CodeAnalysis.CSharp.dll` 6,7 MB y `Microsoft.CodeAnalysis.dll` 2,9 MB (unos 9,6 MB de Roslyn, que no se carga en la app).
 - **Que el analizador de Roslyn no agote la pila al analizar** (no al recorrer) un fichero con anidamiento extremo. Por eso
   el proceso aparte y el relanzamiento de D-18.
 - **Los límites del analizador con ficheros hostiles:** que un fichero con anidamiento extremo termine con un error y no con

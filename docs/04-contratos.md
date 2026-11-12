@@ -2391,7 +2391,8 @@ para manejarlo; ningún módulo lo referencia.
 - `Desktop/Graph/GraphDocumentViewModel.cs` y `GraphSection.cs`: el anfitrión del documento «Auto Graph» y el contrato de sección. El documento recibe sus
   secciones inyectadas, no conoce ninguna concreta y tolera cero; WP-G aporta «Grafo» y WP-D «Diagramas» y «Discrepancias». No tiene vista aún: la plantilla
   la añade el lead con la primera sección.
-- Recursos `DoctorStrings`, `GraphStrings` (con `Graph_Title`, que el documento necesita) y `DocsStrings`, cada uno con su par `.en.resx`, en `PendingExtraction` de
-  la guía de textos hasta que su paquete los cierre.
+- Recursos `DoctorStrings`, `GraphStrings` y `DocsStrings`, cada uno con su par `.en.resx`, en `PendingExtraction` de la guía de textos hasta que su paquete los
+  cierre. No pueden estar vacíos (`LocalizationResourcesTests` exige claves en cada fichero), así que cada uno trae su título: `Doctor_Title`, `Graph_Title`
+  (que el documento anfitrión usa) y `Docs_Title`.
 - Códigos de ayuda `doctor` y `graph` en `HelpScreens` y la primera versión de sus artículos, sin claves ⓘ todavía (cada paquete añade las de sus vistas).
 - `UiScreensDoctor`, `UiScreensGraph` y `UiScreensDocs` con su lista vacía, ya sumadas en `UiScreens`.

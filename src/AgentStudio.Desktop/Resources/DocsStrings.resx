@@ -13,4 +13,8 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="Docs_Title" xml:space="preserve">
+    <value>Diagramas y discrepancias</value>
+    <comment>Title of the sections Diagramas and Discrepancias of Auto Graph.</comment>
+  </data>
 </root>
