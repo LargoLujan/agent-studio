@@ -1639,6 +1639,11 @@ public sealed record ContextPartSnapshot(ContextPartKind Kind, int Characters);
   - El dosier del juez deja fuera los prompts de los ejecutores, la pregunta tal como la escribió el agente, todo informe de
     ejecutor que traiga una pregunta (registrada o no) o que no se pueda leer, y las entradas `QuestionAsked`. La decisión
     que captura el sistema (`agent-studio/question-decision/1`) solo lleva ids, huellas e instantes, ningún texto del agente.
+    Desde P54 (2026-11-11) lo mismo vale para las preguntas del orquestador: queda fuera el prompt de su planificación (en cada
+    intento; lo nombra el `AgentRunStarted` sin tarea y con propósito `Planner`) y todo informe de esa planificación que traiga
+    `questions` o no se pueda leer, y el planificador captura la misma decisión, con `task` nulo, al registrar la respuesta. Si la
+    ejecución revisada se planificó en otra (`RunStarted.PlannedIn`), el dosier toma de aquella solo esos `QuestionAnswered` y esa
+    evidencia.
 
 ### 21.4 Estimación, análisis, idioma y presencia (`Application`)
 

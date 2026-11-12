@@ -47,10 +47,11 @@ namespace AgentStudio.Debate.Judging;
 /// deleted nor written through a link (junction or symbolic link) from the root down, and the files of the package
 /// are always new files.</item>
 /// <item>Phase 13: the prompts of the executors (with the brief, the instructions of the agents and the answers of the
-/// person), the questions as the agents wrote them (with their recommended option and efforts), every report of an executor
-/// that brings a question or cannot be read, and the <c>QuestionAsked</c> entries (with the recommendation and the
-/// estimates) never reach the judge: of every question, the judge gets the decision of the person, only the choice, with no
-/// text of the agent (docs/17 D-33).</item>
+/// person), the prompt of the orchestrator's planning (in every attempt, with questions or without them), the questions as
+/// the agents wrote them (with their recommended option and efforts), every report of an executor or of the orchestrator's
+/// planning that brings a question or cannot be read, and the <c>QuestionAsked</c> entries (with the recommendation and the
+/// estimates) never reach the judge: of every question, those of the executors and those of the orchestrator alike, the
+/// judge gets the decision of the person, only the choice, with no text of the agent (docs/17 D-33, docs/18 P54).</item>
 /// </list>
 /// Phase 3 only reviews runs: a request without a run id is refused (the whole-project audit is Phase 5).
 /// </remarks>
@@ -124,6 +125,11 @@ public sealed class JudgeDossierBuilder(
             checks.Add($"The original request (evidence '{header.OriginalRequest}') named by the run header is not evidence the decision log registered for this run.");
         }
 
+        // A run that came from a planning of another run (the plan was edited after the orchestrator proposed it) has not the
+        // answers of the person to the orchestrator's questions among its entries: only those decisions come from that planning.
+        var planned = await PlannedInAsync(projectId, run, started, log.Entries, checks, cancellationToken).ConfigureAwait(false);
+        runEvidence.AddRange(planned.Evidence);
+
         var replayProblems = new List<string>();
         var events = RunLog.ReplayEvents(runEntries, replayProblems);
         var replay = RunStateReplayer.Replay(plan, header.CreatedAt, events, started.PlanHash);
@@ -133,7 +139,7 @@ public sealed class JudgeDossierBuilder(
             originalRequest,
             frozen,
             PlanJson.Render(plan),
-            [.. runEntries.Where(e => e.Kind != DecisionKind.QuestionAsked)],
+            [.. runEntries.Where(e => e.Kind != DecisionKind.QuestionAsked).Concat(planned.Answers).OrderBy(e => e.Sequence)],
             log.HeadHash,
             runEvidence,
             [.. replay.Graph.Tasks.Select(t => t.Snapshot())],
@@ -146,6 +152,124 @@ public sealed class JudgeDossierBuilder(
         return await WritePackageAsync(folder, projectId, run, dossier, checks, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>What the dossier takes from the planning of another run: the answers of the person and the evidence of their decisions.</summary>
+    private sealed record PlannedDecisions(IReadOnlyList<DecisionEntry> Answers, IReadOnlyList<EvidenceRecord> Evidence)
+    {
+        public static PlannedDecisions None { get; } = new([], []);
+    }
+
+    /// <summary>
+    /// P54 (docs/17 D-33): the decisions of the person about the questions the orchestrator asked before it planned, when this run
+    /// did not plan (<c>RunStarted.PlannedIn</c> names the run that did: the plan was edited after the orchestrator proposed it, so
+    /// the run got an id of its own). From the verified entries of that planning, and only from them, the dossier takes:
+    /// <list type="bullet">
+    /// <item>each <c>QuestionAnswered</c> with no task (the first one of each question, as the engine reads them);</item>
+    /// <item>the document the system captured for it (found by the title <see cref="QuestionEvidenceTitles.OrchestratorDecision"/>
+    /// among the evidence the log registered, <c>CapturedBySystem</c>, with no task) and the person's own text when there is one
+    /// (the evidence the answer cites), each only as <see cref="RunLog.RegisteredEvidence"/> admits it.</item>
+    /// </list>
+    /// Nothing else of that run reaches the judge: not its prompts, its reports, its <c>QuestionAsked</c> nor any other evidence.
+    /// Fail closed: a <c>PlannedIn</c> the log has no entry of, an entry that cannot be read, and a document of a decision or a text
+    /// of the person that cannot be admitted as the log anchored it are system checks, so no approval can rest on the dossier. A
+    /// question answered before the planner captured decisions has none: the judge only gets its <c>QuestionAnswered</c>, as for
+    /// any run.
+    /// </summary>
+    private async Task<PlannedDecisions> PlannedInAsync(
+        string projectId,
+        RunId run,
+        RunStartedPayload started,
+        IReadOnlyList<DecisionEntry> log,
+        List<string> checks,
+        CancellationToken cancellationToken)
+    {
+        if (started.PlannedIn is not { } plannedIn || string.Equals(plannedIn, run.Value, StringComparison.Ordinal))
+        {
+            return PlannedDecisions.None; // a run that planned itself has those entries among its own
+        }
+
+        IReadOnlyList<DecisionEntry> planning = string.IsNullOrWhiteSpace(plannedIn) ? [] : RunLog.EntriesOf(log, plannedIn);
+        if (planning.Count == 0)
+        {
+            checks.Add($"RunStarted of run '{run}' says the orchestrator planned in run '{plannedIn}', which the decision log has no entry of: the decisions of the person about the orchestrator's questions cannot be read, so no approval can rest on the dossier.");
+            return PlannedDecisions.None;
+        }
+
+        var answers = new List<DecisionEntry>();
+        var asked = new List<(string Question, EvidenceId? OwnText)>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var entry in planning.Where(e => e.Kind == DecisionKind.QuestionAnswered))
+        {
+            QuestionAnsweredPayload answer;
+            try
+            {
+                answer = DecisionPayloadSerializer.Deserialize<QuestionAnsweredPayload>(entry.PayloadJson);
+            }
+            catch (System.Text.Json.JsonException ex)
+            {
+                checks.Add($"Entry {entry.Sequence} (QuestionAnswered) of run '{plannedIn}': its payload cannot be read, so the decision of the person it records cannot be given to the judge; the dossier cannot support an approval: {ex.Message}");
+                continue;
+            }
+
+            if (answer.Task is null && seen.Add(answer.Question))
+            {
+                answers.Add(entry);
+                asked.Add((answer.Question, answer.AnswerEvidence));
+            }
+        }
+
+        var registered = new List<EvidenceRegisteredPayload>();
+        foreach (var entry in planning.Where(e => e.Kind == DecisionKind.EvidenceRegistered))
+        {
+            try
+            {
+                registered.Add(DecisionPayloadSerializer.Deserialize<EvidenceRegisteredPayload>(entry.PayloadJson));
+            }
+            catch (System.Text.Json.JsonException ex)
+            {
+                checks.Add($"Entry {entry.Sequence} (EvidenceRegistered) of run '{plannedIn}': its payload cannot be read, so the document of a decision of the person cannot be told from it; the dossier cannot support an approval: {ex.Message}");
+            }
+        }
+
+        var wanted = new List<(EvidenceId Evidence, EvidenceOrigin Origin, string What)>();
+        foreach (var (question, ownText) in asked)
+        {
+            var title = QuestionEvidenceTitles.OrchestratorDecision(question);
+            if (registered.FirstOrDefault(p => p.Task is null && p.Kind == EvidenceKind.Document && p.Origin == EvidenceOrigin.CapturedBySystem && string.Equals(p.Title, title, StringComparison.Ordinal)) is { } decision)
+            {
+                wanted.Add((decision.Evidence, EvidenceOrigin.CapturedBySystem, $"the decision about question '{question}' of the orchestrator"));
+            }
+
+            if (ownText is { } text)
+            {
+                wanted.Add((text, EvidenceOrigin.ProvidedByHuman, $"the person's own answer to question '{question}' of the orchestrator"));
+            }
+        }
+
+        var records = new List<EvidenceRecord>();
+        if (wanted.Count > 0)
+        {
+            var stored = await evidence.ListByRunAsync(projectId, plannedIn, cancellationToken).ConfigureAwait(false);
+            var problems = new List<string>(); // of all the evidence of that run: only what concerns the wanted evidence is the dossier's
+            var admitted = RunLog.RegisteredEvidence(planning, stored, problems);
+            foreach (var (id, origin, what) in wanted)
+            {
+                if (admitted.FirstOrDefault(e => e.Id == id) is { } record && record.Origin == origin)
+                {
+                    // Admitted with a problem (anchored only by version 1 of EvidenceRegistered, say): it reaches the judge, and the
+                    // problem with it, as it would from the run's own evidence.
+                    records.Add(record);
+                    checks.AddRange(problems.Where(p => p.Contains($"'{id}'", StringComparison.Ordinal)));
+                    continue;
+                }
+
+                var why = problems.Where(p => p.Contains($"'{id}'", StringComparison.Ordinal)).ToList();
+                checks.Add($"Evidence '{id}' of run '{plannedIn}' ({what}) cannot be admitted as the decision log anchored it{(why.Count == 0 ? string.Empty : ": " + string.Join(" ", why))}; it is left out of the dossier and proves nothing.");
+            }
+        }
+
+        return new PlannedDecisions(answers, records);
+    }
+
     /// <summary>
     /// Phase 13 (docs/17 D-10, D-33 and D-42; F13-4 and F13-13): what of the run never reaches the judge, quietly, as the prompts
     /// with memory never do (ADR-0022). The judge gets the decisions of the person, and only the choice:
@@ -153,17 +277,26 @@ public sealed class JudgeDossierBuilder(
     /// <item>the prompt of every executor (<c>InstructionsIssued</c>): it carries the brief of the project, the instructions of
     /// its agent and the answers of the person in their blocks of data, which guide the agent and say nothing of whether the
     /// requirements are met;</item>
-    /// <item>the question as the agent wrote it (<c>QuestionAsked</c>), with the option it recommended and the effort of each
-    /// option; the entry itself also stays out of the decisions of the dossier, for it names the recommended option and the
-    /// estimates of the system;</item>
+    /// <item>the prompt of the orchestrator's planning, in every attempt (P54): the run that planned has no
+    /// <c>InstructionsIssued</c> for it, but its <c>AgentRunStarted</c> names it and says what the launch is for
+    /// (<see cref="AgentRunPurpose.Planner"/>), so it is found by that and never by the title of its evidence. It carries the
+    /// brief, the memory and, after a question, the questions with their options and the answers of the person, and says
+    /// nothing of whether the requirements are met. A start written before the purpose was recorded (version 1) that has no
+    /// task is the planner's or the judge's, and neither prompt is evidence of the work: it is withheld too;</item>
+    /// <item>the question as the agent wrote it (<c>QuestionAsked</c>, an executor's or the orchestrator's), with the option it
+    /// recommended and the effort of each option; the entry itself also stays out of the decisions of the dossier, for it names
+    /// the recommended option and the estimates of the system;</item>
     /// <item>every report of an executor that brings a question, whether the question was recorded or not (one beyond the caps,
-    /// one that broke its rules): it carries the question as the agent wrote it, its recommendation included. A report that
-    /// cannot be read as the log anchored it, or as JSON, is withheld too (fail closed).</item>
+    /// one that broke its rules): it carries the question as the agent wrote it, its recommendation included. The same rule
+    /// for the reports of the orchestrator's planning (the <c>AgentRunFinished</c> with no task whose <c>AgentRunStarted</c>, of
+    /// the same attempt, says <see cref="AgentRunPurpose.Planner"/>): the one with <c>questions</c> is withheld, the one that
+    /// only has the plan may reach the judge. A report that cannot be read as the log anchored it, or as JSON, is withheld too
+    /// (fail closed).</item>
     /// </list>
     /// A payload of these kinds that cannot be read is a system check: what of it the judge must not get cannot be told, so no
     /// approval can rest on the dossier. What the judge gets of a question is its decision: the document the system captured
-    /// when it was answered (ids, hashes and instants, no text of the agent), the <c>QuestionAnswered</c> entry, and the
-    /// person's own text when there is one.
+    /// when it was answered (ids, hashes and instants, no text of the agent; for a question of the orchestrator, with no task),
+    /// the <c>QuestionAnswered</c> entry, and the person's own text when there is one.
     /// </summary>
     private async Task<HashSet<EvidenceId>> WithheldFromTheJudgeAsync(
         string projectId,
@@ -174,7 +307,12 @@ public sealed class JudgeDossierBuilder(
     {
         var withheld = new HashSet<EvidenceId>();
         var executors = plan.Tasks.Where(t => t.Kind == WorkTaskKind.AgentWork).Select(t => t.Id).ToHashSet();
-        var reports = new List<EvidenceId>();
+        var reports = new List<(EvidenceId Report, ReportOf Of)>();
+
+        // What each launch with no task is for, as the latest AgentRunStarted of its attempt said (the entries are in log order,
+        // and a launch records its start before its end). AgentRunFinished carries neither the purpose nor the agent, and the
+        // judge's own launches have no task either, so an end is told apart by the start of the same attempt that came before.
+        var launchedFor = new Dictionary<int, AgentRunPurpose?>();
         foreach (var entry in runEntries)
         {
             try
@@ -184,8 +322,45 @@ public sealed class JudgeDossierBuilder(
                     case DecisionKind.InstructionsIssued:
                         withheld.Add(DecisionPayloadSerializer.Deserialize<InstructionsIssuedPayload>(entry.PayloadJson).PromptEvidenceId);
                         break;
-                    case DecisionKind.AgentRunFinished when DecisionPayloadSerializer.Deserialize<AgentRunFinishedPayload>(entry.PayloadJson) is { Task: { } task, ReportEvidenceId: { } report } && executors.Contains(task):
-                        reports.Add(report);
+                    case DecisionKind.EvidenceRegistered:
+                        // The prompt of the planning also by its anchored title: its AgentRunStarted comes after the guard of the user's
+                        // repository, so a launch it refused leaves the prompt registered with no start to name it. A payload that
+                        // cannot be read is reported by RegisteredEvidence.
+                        if (TryReadRegistered(entry) is { Task: null, Kind: EvidenceKind.Document, Origin: EvidenceOrigin.CapturedBySystem } registered && PlannerEvidenceTitles.IsPrompt(registered.Title))
+                        {
+                            withheld.Add(registered.Evidence);
+                        }
+
+                        break;
+                    case DecisionKind.AgentRunStarted:
+                        var started = DecisionPayloadSerializer.Deserialize<AgentRunStartedPayload>(entry.PayloadJson);
+                        if (started.Task is null)
+                        {
+                            launchedFor[started.Attempt] = started.Purpose;
+                            if (started.Purpose is null or AgentRunPurpose.Planner)
+                            {
+                                withheld.Add(started.PromptEvidenceId);
+                            }
+                        }
+
+                        break;
+                    case DecisionKind.AgentRunFinished:
+                        var finished = DecisionPayloadSerializer.Deserialize<AgentRunFinishedPayload>(entry.PayloadJson);
+                        if (finished.ReportEvidenceId is { } report)
+                        {
+                            if (finished.Task is { } task)
+                            {
+                                if (executors.Contains(task))
+                                {
+                                    reports.Add((report, ReportOf.Executor));
+                                }
+                            }
+                            else if (launchedFor.GetValueOrDefault(finished.Attempt) is AgentRunPurpose.Planner)
+                            {
+                                reports.Add((report, ReportOf.Planner));
+                            }
+                        }
+
                         break;
                     case DecisionKind.QuestionAsked:
                         withheld.Add(DecisionPayloadSerializer.Deserialize<QuestionAskedPayload>(entry.PayloadJson).QuestionEvidence);
@@ -198,16 +373,16 @@ public sealed class JudgeDossierBuilder(
             }
         }
 
-        foreach (var report in reports.Distinct())
+        foreach (var (report, of) in reports.Distinct())
         {
-            switch (await ReadReportAsync(projectId, report, RunLog.AnchoredSha256(runEntries, report), cancellationToken).ConfigureAwait(false))
+            switch (await ReadReportAsync(projectId, report, of, RunLog.AnchoredSha256(runEntries, report), cancellationToken).ConfigureAwait(false))
             {
                 case ReportRead.WithoutQuestion:
                     break;
                 case ReportRead.Unreadable:
                     // Fail closed twice over: its content never reaches the judge, and the check makes an approval impossible.
                     withheld.Add(report);
-                    checks.Add($"Evidence '{report}': the report of an executor cannot be read as the decision log anchored it, so it cannot be told whether it brings a question; it is withheld from the judge and proves nothing.");
+                    checks.Add($"Evidence '{report}': the report of {(of == ReportOf.Planner ? "the orchestrator's planning" : "an executor")} cannot be read as the decision log anchored it, so it cannot be told whether it brings a question; it is withheld from the judge and proves nothing.");
                     break;
                 default:
                     withheld.Add(report);
@@ -218,7 +393,17 @@ public sealed class JudgeDossierBuilder(
         return withheld;
     }
 
-    /// <summary>What reading the report of an executor found.</summary>
+    /// <summary>Whose report it is: the question it may bring has not the same shape.</summary>
+    private enum ReportOf
+    {
+        /// <summary>An executor's: a <c>question</c> object, or none.</summary>
+        Executor,
+
+        /// <summary>The orchestrator's planning (P54): <c>questions</c>, an array that is empty when it plans.</summary>
+        Planner,
+    }
+
+    /// <summary>What reading the report of an executor or of the orchestrator's planning found.</summary>
     private enum ReportRead
     {
         /// <summary>The content the log anchored, a JSON object without a question: it may reach the judge.</summary>
@@ -232,10 +417,12 @@ public sealed class JudgeDossierBuilder(
     }
 
     /// <summary>
-    /// Whether the report of an executor may reach the judge: its content is the one the log anchored, it is a JSON object, and
-    /// it brings no question (none, or <c>null</c>). Anything else is withheld (<see cref="ReportRead"/>).
+    /// Whether the report of an executor, or of the orchestrator's planning, may reach the judge: its content is the one the log
+    /// anchored, it is a JSON object, and it brings no question. An executor's brings none when it has no <c>question</c> or it is
+    /// <c>null</c>; the planner's, when it has no <c>questions</c> or it is <c>null</c> or an empty array (any other value there
+    /// is not a plan). Anything else is withheld (<see cref="ReportRead"/>).
     /// </summary>
-    private async Task<ReportRead> ReadReportAsync(string projectId, EvidenceId report, string? anchoredSha256, CancellationToken cancellationToken)
+    private async Task<ReportRead> ReadReportAsync(string projectId, EvidenceId report, ReportOf of, string? anchoredSha256, CancellationToken cancellationToken)
     {
         if (anchoredSha256 is null)
         {
@@ -259,8 +446,7 @@ public sealed class JudgeDossierBuilder(
             }
 
             using var document = System.Text.Json.JsonDocument.Parse(content);
-            return document.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object
-                && (!document.RootElement.TryGetProperty("question", out var question) || question.ValueKind == System.Text.Json.JsonValueKind.Null)
+            return document.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object && BringsNoQuestion(document.RootElement, of)
                 ? ReportRead.WithoutQuestion
                 : ReportRead.Withheld;
         }
@@ -272,6 +458,30 @@ public sealed class JudgeDossierBuilder(
         {
             return ReportRead.Unreadable;
         }
+    }
+
+    private static EvidenceRegisteredPayload? TryReadRegistered(DecisionEntry entry)
+    {
+        try
+        {
+            return DecisionPayloadSerializer.Deserialize<EvidenceRegisteredPayload>(entry.PayloadJson);
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static bool BringsNoQuestion(System.Text.Json.JsonElement report, ReportOf of)
+    {
+        if (of == ReportOf.Executor)
+        {
+            return !report.TryGetProperty("question", out var question) || question.ValueKind == System.Text.Json.JsonValueKind.Null;
+        }
+
+        return !report.TryGetProperty("questions", out var questions)
+            || questions.ValueKind == System.Text.Json.JsonValueKind.Null
+            || (questions.ValueKind == System.Text.Json.JsonValueKind.Array && questions.GetArrayLength() == 0);
     }
 
     /// <summary>
