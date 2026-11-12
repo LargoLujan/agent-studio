@@ -153,7 +153,9 @@ public sealed class BoardProjector(
         var judged = new List<(VerdictIssuedPayload Issued, StoredVerdict Stored)>();
         foreach (var issued in entries.Select(e => e.Payload).OfType<VerdictIssuedPayload>())
         {
-            if (issued.Valid && storedVerdicts.TryGetValue(issued.VerdictId, out var stored) && stored.Valid && stored.Verdict.Decision == issued.Decision)
+            // A verdict of a revision never competes (VerdictReach.Revises): its decision reaches the card through the standing of the verdict it revises.
+            if (issued.Valid && storedVerdicts.TryGetValue(issued.VerdictId, out var stored) && stored.Valid && stored.Verdict.Decision == issued.Decision
+                && VerdictReach.Revises(log, stored, storedVerdicts) is null)
             {
                 judged.Add((issued, stored));
             }

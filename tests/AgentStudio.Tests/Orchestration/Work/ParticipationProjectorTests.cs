@@ -104,6 +104,25 @@ public sealed class ParticipationProjectorTests
     }
 
     [Fact]
+    public async Task A_revision_verdict_turned_towards_an_approval_nobody_accepted_attributes_no_approval()
+    {
+        const string debate = "deb-20261111-aaaaaa";
+        using var world = await RunningAsync();
+        await world.VerdictAsync(WorkWorld.Run1, VerdictDecision.ChangesRequested);
+        await world.RecordAsync(WorkWorld.Run1, DecisionKind.VerdictChallenged, new VerdictChallengedPayload("v1", "manuel", new EvidenceId("motivos"), new string('e', 64), debate) { RunId = WorkWorld.Run1 });
+        await world.RecordAsync(debate, DecisionKind.DebateOpened, new DebateOpenedPayload(
+            AgentStudio.Domain.Debate.DebateMode.Adversarial, new string('1', 64), new string('2', 64), new string('3', 64), new EvidenceId("pregunta"), new string('4', 64),
+            AgentStudio.Domain.Debate.DebateSubjectKind.Verdict, "v1", null, [], [], AgentStudio.Domain.Debate.DebateJudgingKind.IndependentJudge, [], [], 3, 600, null, 8, "v1") { RunId = debate });
+        await world.RevisionVerdictAsync(WorkWorld.Run1, VerdictDecision.Approved, "v1");
+        await world.RecordAsync(debate, DecisionKind.DebateClosed, new DebateClosedPayload(AgentStudio.Domain.Debate.DebateOutcome.Resolved, ["v2"], "judge", null, "cerrado") { RunId = debate });
+
+        var view = await Projector(world).ProjectAsync(world.Project, TraceRef.Run(WorkWorld.Run1), Ct);
+
+        var reviewers = view.Entries.Where(e => e.Role == ParticipationRole.Reviewer).ToList();
+        Assert.Contains("ChangesRequested", Assert.Single(reviewers).Detail);
+    }
+
+    [Fact]
     public async Task A_task_has_its_own_agents_and_what_has_no_task_counts_for_all_of_them()
     {
         using var world = await RunningAsync();

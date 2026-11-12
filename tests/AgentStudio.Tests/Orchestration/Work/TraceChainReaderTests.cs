@@ -440,6 +440,71 @@ public sealed class TraceChainReaderTests
         Assert.Equal(TraceVerdictStanding.InForce, chain.Steps.Single(s => s.Stage == TraceChainStage.Verdict).Standing);
     }
 
+    private static async Task CloseRevisionAsync(WorkWorld world, params string[] verdicts) =>
+        await world.RecordAsync("deb-20261111-aaaaaa", DecisionKind.DebateClosed, new DebateClosedPayload(AgentStudio.Domain.Debate.DebateOutcome.Resolved, verdicts, "judge", null, "cerrado") { RunId = "deb-20261111-aaaaaa" });
+
+    [Fact]
+    public async Task A_revision_verdict_turned_towards_an_approval_nobody_accepted_is_shown_in_review_and_never_in_force()
+    {
+        // As the product keeps it: the verdict of the revision is in the run of the original, on the judge task, superseding the challenged verdict.
+        using var world = await TwoRequirementsAsync();
+        await world.VerdictAsync(WorkWorld.Run1, VerdictDecision.ChangesRequested, task: "T7");
+        await ChallengeAsync(world);
+        await world.RevisionVerdictAsync(WorkWorld.Run1, VerdictDecision.Approved, "v1");
+        await CloseRevisionAsync(world, "v2");
+
+        var chain = await Reader(world).ChainAsync(world.Project, TraceRef.Requirement("R1"), Ct);
+
+        Assert.Equal<(string, TraceVerdictStanding?)>(
+            [("v1", TraceVerdictStanding.Challenged), ("v2", TraceVerdictStanding.Challenged)],
+            chain.Steps.Where(s => s.Stage == TraceChainStage.Verdict).Select(s => (s.Node.Id, s.Standing)));
+    }
+
+    [Fact]
+    public async Task A_revision_verdict_that_withdrew_an_approval_is_the_one_in_force_and_the_challenged_one_is_revised()
+    {
+        using var world = await TwoRequirementsAsync();
+        await world.VerdictAsync(WorkWorld.Run1, VerdictDecision.Approved, task: "T7");
+        await ChallengeAsync(world);
+        await world.RevisionVerdictAsync(WorkWorld.Run1, VerdictDecision.Rejected, "v1");
+        await CloseRevisionAsync(world, "v2");
+
+        var chain = await Reader(world).ChainAsync(world.Project, TraceRef.Requirement("R1"), Ct);
+
+        Assert.Equal<(string, TraceVerdictStanding?)>(
+            [("v1", TraceVerdictStanding.Revised), ("v2", TraceVerdictStanding.InForce)],
+            chain.Steps.Where(s => s.Stage == TraceChainStage.Verdict).Select(s => (s.Node.Id, s.Standing)));
+    }
+
+    [Fact]
+    public async Task A_correction_chained_on_a_revision_verdict_is_shown_in_review_too()
+    {
+        using var world = await TwoRequirementsAsync();
+        await world.VerdictAsync(WorkWorld.Run1, VerdictDecision.ChangesRequested, task: "T7");
+        await ChallengeAsync(world);
+        await world.RevisionVerdictAsync(WorkWorld.Run1, VerdictDecision.Rejected, "v1");
+        await world.RevisionVerdictAsync(WorkWorld.Run1, VerdictDecision.Approved, "v2", id: "v3");
+        await CloseRevisionAsync(world, "v3");
+
+        var chain = await Reader(world).ChainAsync(world.Project, TraceRef.Requirement("R1"), Ct);
+
+        Assert.DoesNotContain(TraceVerdictStanding.InForce, chain.Steps.Where(s => s.Stage == TraceChainStage.Verdict).Select(s => s.Standing).OfType<TraceVerdictStanding>());
+    }
+
+    [Fact]
+    public async Task A_judge_correcting_its_own_verdict_with_no_challenge_supersedes_it()
+    {
+        using var world = await TwoRequirementsAsync();
+        await world.VerdictAsync(WorkWorld.Run1, VerdictDecision.Rejected, task: "T7");
+        await world.VerdictAsync(WorkWorld.Run1, VerdictDecision.Approved, task: "T7", id: "v1b", supersedes: "v1");
+
+        var chain = await Reader(world).ChainAsync(world.Project, TraceRef.Requirement("R1"), Ct);
+
+        Assert.Equal<(string, TraceVerdictStanding?)>(
+            [("v1", TraceVerdictStanding.Superseded), ("v1b", TraceVerdictStanding.InForce)],
+            chain.Steps.Where(s => s.Stage == TraceChainStage.Verdict).Select(s => (s.Node.Id, s.Standing)));
+    }
+
     [Fact]
     public async Task The_verdict_of_a_follow_up_run_supersedes_that_of_the_run_it_follows_and_a_later_run_without_one_leaves_the_earlier_superseded()
     {

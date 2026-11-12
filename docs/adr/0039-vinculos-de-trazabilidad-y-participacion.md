@@ -71,3 +71,11 @@
 - **El veredicto y la entrega son nodos compartidos**: la cadena es la misma desde cualquiera de los nodos que contiene, y la unidad es la tarea (límite conocido: una tarea que
   cubre dos requisitos lleva el veredicto que evaluó cualquiera de ellos).- **La entrega** solo cuenta tareas fusionadas de verdad: una integración que el motor no aceptó (destino en la ref candidata oculta) no entrega nada, y la clausura por
   prerrequisitos no pasa por tareas que producen código y no completaron.
+
+## Adenda del veredicto de una revisión · 2026-11-12
+
+- **El veredicto de una revisión no compite por ser el vigente.** El producto lo guarda en la ejecución del original con `Supersedes` = el veredicto impugnado y lo anuncia antes
+  de cerrar el debate; la regla compartida (`VerdictReach.Revises`) lo reconoce porque su cadena de `Supersedes` llega a un veredicto impugnado, y lo deja fuera de la decisión del
+  «vigente» en el tablero, la cadena y la participación. Su decisión llega solo por el estado del impugnado (D-40): una revisión que vuelve hacia una aprobación sigue en
+  revisión hasta que la persona la acepta; abierta o decidida por la persona, también. Un `Supersedes` sin impugnación (un juez que corrige el suyo) sustituye como siempre.
+  Las pruebas guardan ahora el veredicto de revisión con el formato del producto, y una prueba de integración (Fase 9) lee el tablero tras una impugnación real.
