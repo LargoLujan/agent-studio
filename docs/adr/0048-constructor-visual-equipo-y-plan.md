@@ -171,3 +171,21 @@ antes de guardar nada.
    que llegue después con ese id arranca con esas skills apagadas **a su nivel, que gana al del proyecto** (el lado de menos poder), y
    la pantalla de Skills enseña el apagado como decisión del agente. La alternativa, no reutilizar ids, obligaba al editor a conocer
    el almacén de skills y dejaba el residuo en el historial; no se tomó.
+
+## Adenda · 2026-11-12 · deshacer llega al almacén y la aprobación sigue al estado final (P55)
+
+Ctrl+Z de un arreglo que cambiaba la plantilla no llegaba al almacén: al guardar, el documento relee el contexto y
+`BuilderContextChanged` reiniciaba la banda (`Band.Reset()`), así que su historial solo conocía estados con la plantilla ya
+cambiada. Tres correcciones, mínimas:
+
+- **El reinicio no pisa una escritura de la propia banda.** `AnalysisBandViewModel.Reset()` no hace nada mientras la banda escribe
+  un estado (un arreglo, Ctrl+Z o Ctrl+Y): esa relectura no es un punto de partida nuevo, y el historial que conoce el estado
+  anterior se conserva. Deshacer vuelve a pasar por `ApplyAsync`, que guarda los agentes que difieren (la compensación). Se
+  descartó que deshacer compense a mano en el almacén: duplicaría el conjunto todo o nada, el Windows Hello único y los
+  rechazos que ya tiene `ApplyManyAsync`. Una relectura ajena a la banda (abrir, «Recargar») sigue reiniciándola.
+- **`AgentDefinition.Equals` compara el contenido.** Las listas (objetivos, herramientas, carpetas) se comparan elemento a
+  elemento y en orden, como las codifica `RosterHash`, con un `GetHashCode` coherente. Un agente releído sin cambios ya no cuenta
+  como cambiado al aplicar un conjunto, así que una compensación no reescribe agentes que no cambian.
+- **La aprobación sigue al estado final.** `OnRosterSavedAsync` relee primero y compara `RosterHash` de la plantilla aprobada
+  con la que quedó (el mismo hash con el que el motor se niega a arrancar). Si coincide, la aprobación se conserva; si difiere,
+  se retira con el mismo aviso de antes. Un cambio de los requisitos congelados sigue retirándola en `OnContextChanging`.
