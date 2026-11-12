@@ -2035,6 +2035,18 @@ public sealed record ClientDocumentExportedPayload(int Version, string? Mileston
   acciones, `IHelpAgent` y los textos de la tarjeta; WP-14D, el constructor, los textos `Text_document_…`, los escritores, el
   exportador, el borrador con un agente y la pantalla de revisión. Los dos añaden sus tests (F14-7 a F14-9).
 
+### 22.6 El idioma de respuesta como dato de los prompts (V44, ADR-0054)
+
+- **Puerto:** `Application/Prompts/ResponseLanguage.cs` define `IResponseLanguage` (`string Tag`) y `ResponseLanguage`: `Default = "es-ES"`, `Resolve` (un nombre
+  que no es una cultura, `LanguageTags.IsValid`, da el de por defecto), `Block` (`<response_language>"es-ES"</response_language>`, citado con `PromptData.Quote`) y
+  `Append`/`AppendEnglish` (título, regla fija y bloque). La regla es texto fijo en castellano o inglés según el idioma del prompt, nunca de recursos.
+- **Quién lo da:** el escritorio, con `UiResponseLanguage` (el idioma de la interfaz de «Ajustes»), registrado en `ShellServices`; nunca `CurrentUICulture`.
+- **Por dónde viaja:** `EnginePorts.Language` (planificador y ejecutores; `Orchestrator` lo recibe como `responseLanguage`), `DebateArenaPorts.Language`
+  (`ParticipantPrompt.Build(..., responseLanguage)`), `JudgeLaunch.Language` (el juez lo añade tras el material, fuera del `JudgeBrief`; `AgentJudgeFactory` lo rellena) y un
+  `IResponseLanguage?` opcional en `PreparationChatService`, `OrderReviewService` y `AssistedConsumptionAnalysisService`. `HelpAgentService` sigue con
+  `HelpAskRequest.Language`, ahora con el mismo bloque. Sin valor: `es-ES`.
+- **No se ancla:** ninguna cabecera ni hash incluye el idioma. Con el mismo idioma, dos culturas de hilo dan el mismo prompt byte a byte.
+
 ## 23. Fase 9: trabajo y trazabilidad
 
 Lo que el P0 de la Fase 9 deja fijado para los paquetes WP1 a WP5, que van en paralelo encima ([16](16-ampliacion-plataforma-de-proyectos.md)
@@ -2153,15 +2165,3 @@ en otro grupo de la dimensión (un hito), de modo que los grupos pueden sumar m�
 - **Tablero:** un veredicto cuenta si el registro lo anunció válido y el almacén lo guarda válido y con la misma decisión; uno impugnado se aparta (revisión) hasta que
   su debate de revisión cierra resuelto: si confirma la decisión se queda, si retira una aprobación manda la de la revisión, y si vuelve hacia una aprobación la tarjeta
   sigue en revisión (la acepta una persona, D-40). Si varias ejecuciones cubren un requisito decide la última que empezó.
-
-### 23.x El idioma de respuesta como dato de los prompts (V44, ADR-0054)
-
-- **Puerto:** `Application/Prompts/ResponseLanguage.cs` define `IResponseLanguage` (`string Tag`) y `ResponseLanguage`: `Default = "es-ES"`, `Resolve` (un nombre
-  que no es una cultura, `LanguageTags.IsValid`, da el de por defecto), `Block` (`<response_language>"es-ES"</response_language>`, citado con `PromptData.Quote`) y
-  `Append`/`AppendEnglish` (título, regla fija y bloque). La regla es texto fijo en castellano o inglés según el idioma del prompt, nunca de recursos.
-- **Quién lo da:** el escritorio, con `UiResponseLanguage` (el idioma de la interfaz de «Ajustes»), registrado en `ShellServices`; nunca `CurrentUICulture`.
-- **Por dónde viaja:** `EnginePorts.Language` (planificador y ejecutores; `Orchestrator` lo recibe como `responseLanguage`), `DebateArenaPorts.Language`
-  (`ParticipantPrompt.Build(..., responseLanguage)`), `JudgeLaunch.Language` (el juez lo añade tras el material, fuera del `JudgeBrief`; `AgentJudgeFactory` lo rellena) y un
-  `IResponseLanguage?` opcional en `PreparationChatService`, `OrderReviewService` y `AssistedConsumptionAnalysisService`. `HelpAgentService` sigue con
-  `HelpAskRequest.Language`, ahora con el mismo bloque. Sin valor: `es-ES`.
-- **No se ancla:** ninguna cabecera ni hash incluye el idioma. Con el mismo idioma, dos culturas de hilo dan el mismo prompt byte a byte.
