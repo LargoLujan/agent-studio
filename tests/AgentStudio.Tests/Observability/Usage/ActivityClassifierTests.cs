@@ -25,6 +25,7 @@ public sealed class ActivityClassifierTests
     [InlineData(AgentRunPurpose.SkillRecommendation, ActivityKind.Analysis)]
     [InlineData(AgentRunPurpose.ConsumptionAnalysis, ActivityKind.Analysis)]
     [InlineData(AgentRunPurpose.Help, ActivityKind.Analysis)]
+    [InlineData(AgentRunPurpose.GraphRelations, ActivityKind.Analysis)]
     [InlineData(AgentRunPurpose.Judge, ActivityKind.Review)]
     [InlineData(AgentRunPurpose.DebateJudge, ActivityKind.Review)]
     [InlineData(AgentRunPurpose.ProjectAudit, ActivityKind.Review)]

@@ -11,8 +11,27 @@ namespace AgentStudio.Infrastructure.Graph;
 /// layer's <see cref="IWorktreeManager.ArchiveCommitAsync"/>, into a work area that <see cref="IIsolatedWorkAreaFactory"/> prepares. The factory holds the lock of
 /// «una a la vez» until the copy is disposed, so with a verification running this waits. No git runs here and no object of git is read.
 /// </summary>
-public sealed class RepositorySnapshots(IIsolatedWorkAreaFactory areas, IWorktreeManager git) : IRepositorySnapshots
+public sealed class RepositorySnapshots : IRepositorySnapshots
 {
+    private readonly IIsolatedWorkAreaFactory _areas;
+    private readonly Func<ProjectContext, string, string, CancellationToken, Task> _archive;
+
+    /// <summary>The composition: the copy is written by the hardened git layer.</summary>
+    public RepositorySnapshots(IIsolatedWorkAreaFactory areas, IWorktreeManager git)
+        : this(areas, (project, commit, destination, ct) => git.ArchiveCommitAsync(project.RootPath, commit, destination, ct))
+    {
+        ArgumentNullException.ThrowIfNull(git);
+    }
+
+    /// <param name="archive">Writes the tree of a commit of the project into an empty folder; only a test gives its own.</param>
+    public RepositorySnapshots(IIsolatedWorkAreaFactory areas, Func<ProjectContext, string, string, CancellationToken, Task> archive)
+    {
+        ArgumentNullException.ThrowIfNull(areas);
+        ArgumentNullException.ThrowIfNull(archive);
+        _areas = areas;
+        _archive = archive;
+    }
+
     public async Task<IRepositorySnapshot> OpenAsync(ProjectContext project, string commit, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(project);
@@ -21,7 +40,7 @@ public sealed class RepositorySnapshots(IIsolatedWorkAreaFactory areas, IWorktre
             throw new ArgumentException("The commit is a full id (40 or 64 lowercase hexadecimal characters).", nameof(commit));
         }
 
-        var area = await areas.CreateAsync(commit, (folder, token) => git.ArchiveCommitAsync(project.RootPath, commit, folder, token), ct).ConfigureAwait(false);
+        var area = await _areas.CreateAsync(commit, (folder, token) => _archive(project, commit, folder, token), ct).ConfigureAwait(false);
         try
         {
             return new RepositorySnapshot(area, commit);

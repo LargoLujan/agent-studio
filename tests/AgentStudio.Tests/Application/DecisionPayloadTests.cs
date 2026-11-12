@@ -294,6 +294,8 @@ public sealed class DecisionPayloadTests
                 "OrderReview", "ConsumptionAnalysis", "PreparationChat",
                 // Phase 14 (docs/17 §8.2) appends the agent of the help and the draft of a document for clients.
                 "Help", "ClientDocumentDraft",
+                // Phase 6 (docs/20 D-21) appends the relations of Auto Graph proposed by an agent.
+                "GraphRelations",
             ],
             Enum.GetNames<AgentRunPurpose>());
     }
