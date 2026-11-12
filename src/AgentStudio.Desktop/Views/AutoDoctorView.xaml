@@ -137,7 +137,7 @@
                     </Border>
 
                     <StackPanel Orientation="Horizontal" Margin="26,4,0,0">
-                        <TextBlock Style="{StaticResource OptionalSecondaryText}" TextWrapping="Wrap" VerticalAlignment="Center" Text="{Binding FixMessage}"/>
+                        <TextBlock Style="{StaticResource OptionalSecondaryText}" TextWrapping="Wrap" VerticalAlignment="Center" Text="{Binding FixMessage}" AutomationProperties.LiveSetting="Polite"/>
                         <Button Style="{StaticResource GhostButton}" Padding="8,3" Margin="8,0,0,0" Content="{l:T Doctor_Fix_Undo}" Command="{Binding UndoCommand}"
                                 Visibility="{Binding CanUndo, Converter={StaticResource BoolToVisibility}}"/>
                     </StackPanel>
@@ -171,8 +171,10 @@
                     ToolTip="{l:T Providers_Recheck_Hint}"/>
         </Grid>
 
-        <ProgressBar Grid.Row="1" Style="{StaticResource AccentProgress}" Margin="12,8,12,0"
-                     Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}"/>
+        <StackPanel Grid.Row="1" Margin="12,8,12,0" Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}">
+            <ProgressBar Style="{StaticResource AccentProgress}"/>
+            <TextBlock Style="{StaticResource OptionalSecondaryText}" TextWrapping="Wrap" Margin="0,4,0,0" Text="{l:T Doctor_Checking}" AutomationProperties.LiveSetting="Polite"/>
+        </StackPanel>
 
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,8,0,0" Focusable="False">
             <StackPanel Margin="12,0,12,12">

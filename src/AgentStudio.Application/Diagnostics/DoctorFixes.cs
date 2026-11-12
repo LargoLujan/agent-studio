@@ -32,7 +32,7 @@ public static class DoctorFixCatalog
     // The providers whose install and sign-in the guide knows, by the id of the probe: the command to copy and the page of the vendor.
     private static readonly IReadOnlyDictionary<string, (string Install, Uri Page, string? Login)> Providers = new Dictionary<string, (string, Uri, string?)>(StringComparer.Ordinal)
     {
-        ["claude-code"] = ("npm install -g @anthropic-ai/claude-code", new Uri("https://docs.anthropic.com/en/docs/claude-code/setup"), "claude auth login"),
+        ["claude-code"] = ("npm install -g @anthropic-ai/claude-code", new Uri("https://code.claude.com/docs/en/setup"), "claude auth login"),
         ["codex-cli"] = ("npm install -g @openai/codex", new Uri("https://github.com/openai/codex"), "codex login"),
         ["gemini-cli"] = ("npm install -g @google/gemini-cli", new Uri("https://github.com/google-gemini/gemini-cli"), null),
     };
@@ -68,15 +68,15 @@ public static class DoctorFixCatalog
         var fixes = new List<DoctorFix>
         {
             new DoctorFix.Navigate(OpenSetup, "setup"),
-            new DoctorFix.Guide(InstallDotNet, "winget install Microsoft.DotNet.SDK.10", new Uri("https://dotnet.microsoft.com/download")),
-            new DoctorFix.Guide(InstallNode, "winget install OpenJS.NodeJS.LTS", new Uri("https://nodejs.org/en/download")),
-            new DoctorFix.Guide(InstallPython, "winget install Python.Python.3.13", new Uri("https://www.python.org/downloads/")),
-            new DoctorFix.Guide(InstallGit, "winget install Git.Git", new Uri("https://git-scm.com/downloads")),
-            new DoctorFix.Guide(InstallWebView2, "winget install Microsoft.EdgeWebView2Runtime", new Uri("https://developer.microsoft.com/microsoft-edge/webview2/")),
-            new DoctorFix.Guide(InstallDocker, "winget install Docker.DockerDesktop", new Uri("https://www.docker.com/products/docker-desktop/")),
+            new DoctorFix.Guide(InstallDotNet, "winget install --id Microsoft.DotNet.SDK.10 --exact", new Uri("https://dotnet.microsoft.com/en-us/download")),
+            new DoctorFix.Guide(InstallNode, "winget install --id OpenJS.NodeJS.LTS --exact", new Uri("https://nodejs.org/en/download")),
+            new DoctorFix.Guide(InstallPython, "winget install --id Python.Python.3.13 --exact", new Uri("https://www.python.org/downloads/")),
+            new DoctorFix.Guide(InstallGit, "winget install --id Git.Git --exact", new Uri("https://git-scm.com/downloads/")),
+            new DoctorFix.Guide(InstallWebView2, "winget install --id Microsoft.EdgeWebView2Runtime --exact", new Uri("https://learn.microsoft.com/en-us/microsoft-edge/webview2/")),
+            new DoctorFix.Guide(InstallDocker, "winget install --id Docker.DockerDesktop --exact", new Uri("https://www.docker.com/products/docker-desktop/")),
             new DoctorFix.Guide(StartDocker, null, new Uri("https://docs.docker.com/desktop/use-desktop/")),
-            new DoctorFix.Guide(InstallWsl, "wsl --install", new Uri("https://learn.microsoft.com/windows/wsl/install")),
-            new DoctorFix.Guide(InstallWslDistribution, "wsl --install -d Ubuntu", new Uri("https://learn.microsoft.com/windows/wsl/install")),
+            new DoctorFix.Guide(InstallWsl, "wsl --install", new Uri("https://learn.microsoft.com/en-us/windows/wsl/install")),
+            new DoctorFix.Guide(InstallWslDistribution, "wsl --install -d Ubuntu", new Uri("https://learn.microsoft.com/en-us/windows/wsl/install")),
         };
         foreach (var (id, provider) in Providers)
         {

@@ -62,8 +62,9 @@ public sealed record DoctorNavigation(IReadOnlySet<string> Targets, Action<strin
 /// It runs when the panel is opened and when the person presses «Volver a comprobar»; the result is not kept (docs/20 section 5). The probes of the providers
 /// run once per run and their results go to the rows of today (<see cref="ProviderDiagnosticsViewModel.Apply"/>).
 /// </summary>
-public sealed partial class DoctorViewModel : ObservableObject
+public sealed partial class DoctorViewModel : ObservableObject, IDisposable
 {
+    private CancellationTokenSource? _run;
     private static readonly TimeSpan StaleAfter = TimeSpan.FromSeconds(60);
 
     private readonly IDoctorService? _service;
@@ -143,8 +144,34 @@ public sealed partial class DoctorViewModel : ObservableObject
     {
         if (!IsBusy && (LastCheckedAt is null || _time.GetLocalNow() - LastCheckedAt > StaleAfter))
         {
-            await RefreshAsync();
+            // The top bar checked the providers at start-up: opening the panel right after uses those results instead of launching every program again.
+            if (_providerSource is not null)
+            {
+                _providerSource.ReuseWithin = TimeSpan.FromSeconds(20);
+            }
+
+            try
+            {
+                await RefreshAsync();
+            }
+            finally
+            {
+                if (_providerSource is not null)
+                {
+                    _providerSource.ReuseWithin = TimeSpan.Zero;
+                }
+            }
         }
+    }
+
+    /// <summary>The panel was hidden or the app closes: the run in course stops (what it asked of the tools is cancelled) and nothing is shown for it.</summary>
+    public void Cancel() => _run?.Cancel();
+
+    public void Dispose()
+    {
+        _run?.Cancel();
+        _run?.Dispose();
+        _run = null;
     }
 
     internal bool CanNavigate(string target) => Navigation?.Targets.Contains(target) == true;
@@ -206,6 +233,9 @@ public sealed partial class DoctorViewModel : ObservableObject
         IsBusy = true;
         ErrorMessage = null;
         Notice = null;
+        _run?.Dispose();
+        _run = new CancellationTokenSource();
+        var token = _run.Token;
         try
         {
             var root = ProjectRoot?.Invoke();
@@ -229,7 +259,7 @@ public sealed partial class DoctorViewModel : ObservableObject
                 return;
             }
 
-            var report = await _service.RunAsync(_project, CancellationToken.None);
+            var report = await _service.RunAsync(_project, token);
             if (_providerSource is not null)
             {
                 Providers.Apply(_providerSource.LastResults);
@@ -237,6 +267,11 @@ public sealed partial class DoctorViewModel : ObservableObject
 
             Show(report);
             LastCheckedAt = _time.GetLocalNow();
+        }
+#pragma warning disable CA1031 // The UI must show any failure instead of crashing.
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            // Hidden or closed meanwhile: not a failure, and nothing of the interrupted run is shown.
         }
 #pragma warning disable CA1031 // The UI must show any failure instead of crashing.
         catch (Exception ex)

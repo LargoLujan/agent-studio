@@ -150,6 +150,9 @@ public sealed class ToolSnapshotProvider(IDoctorToolRunner runner, IWebView2Prob
     public async Task<InstalledTools> ReadAsync(string? projectRoot, CancellationToken ct) =>
         (await SnapshotAsync(projectRoot, ct).ConfigureAwait(false)).ToInstalledTools();
 
+    /// <summary>The most a whole reading may take: ten tools of 10 seconds each would be 100; past this the rest is «sin comprobar» and the panel answers.</summary>
+    public static readonly TimeSpan Budget = TimeSpan.FromSeconds(30);
+
     /// <summary>The snapshot of this computer; the same one for every caller while a run is open.</summary>
     public Task<ToolSnapshot> SnapshotAsync(string? projectRoot, CancellationToken ct)
     {
@@ -158,21 +161,29 @@ public sealed class ToolSnapshotProvider(IDoctorToolRunner runner, IWebView2Prob
             return ReadAllAsync(projectRoot, ct);
         }
 
-        var lazy = _run.GetOrAdd(projectRoot ?? string.Empty, _ => new Lazy<Task<ToolSnapshot>>(() => ReadAllAsync(projectRoot, CancellationToken.None)));
+        // Every caller of a run shares its token (the service gives the same one to every source), so the first one's is the run's.
+        var lazy = _run.GetOrAdd(projectRoot ?? string.Empty, _ => new Lazy<Task<ToolSnapshot>>(() => ReadAllAsync(projectRoot, ct)));
         return lazy.Value.WaitAsync(ct);
+    }
+
+    private sealed record Run(string? Root, CancellationToken Ct, System.Diagnostics.Stopwatch Clock)
+    {
+        public bool OverBudget => Clock.Elapsed > Budget;
     }
 
     private async Task<ToolSnapshot> ReadAllAsync(string? projectRoot, CancellationToken ct)
     {
+        var run = new Run(projectRoot, ct, System.Diagnostics.Stopwatch.StartNew());
+
         // The door answers one question at a time, in the order they are asked.
-        var sdks = await ListAsync(DoctorTool.DotNetListSdks, ToolOutputParsers.DotNetSdks, projectRoot, ct).ConfigureAwait(false);
-        var runtimes = await ListAsync(DoctorTool.DotNetListRuntimes, ToolOutputParsers.DotNetRuntimes, projectRoot, ct).ConfigureAwait(false);
-        var node = await VersionAsync(DoctorTool.NodeVersion, projectRoot, ct).ConfigureAwait(false);
-        var npm = await VersionAsync(DoctorTool.NpmVersion, projectRoot, ct).ConfigureAwait(false);
-        var python = await PythonAsync(projectRoot, ct).ConfigureAwait(false);
-        var git = await VersionAsync(DoctorTool.GitVersion, projectRoot, ct).ConfigureAwait(false);
-        var docker = await DockerAsync(projectRoot, ct).ConfigureAwait(false);
-        var wsl = await WslAsync(projectRoot, ct).ConfigureAwait(false);
+        var sdks = await ListAsync(DoctorTool.DotNetListSdks, ToolOutputParsers.DotNetSdks, run).ConfigureAwait(false);
+        var runtimes = await ListAsync(DoctorTool.DotNetListRuntimes, ToolOutputParsers.DotNetRuntimes, run).ConfigureAwait(false);
+        var node = await VersionAsync(DoctorTool.NodeVersion, run).ConfigureAwait(false);
+        var npm = await VersionAsync(DoctorTool.NpmVersion, run).ConfigureAwait(false);
+        var python = await PythonAsync(run).ConfigureAwait(false);
+        var git = await VersionAsync(DoctorTool.GitVersion, run).ConfigureAwait(false);
+        var docker = await DockerAsync(run).ConfigureAwait(false);
+        var wsl = await WslAsync(run).ConfigureAwait(false);
         var webView = webView2.Read();
         return new ToolSnapshot(
             sdks,
@@ -186,10 +197,15 @@ public sealed class ToolSnapshotProvider(IDoctorToolRunner runner, IWebView2Prob
             webView is null ? new ToolReading<ToolVersion>(ToolState.NotInstalled) : new ToolReading<ToolVersion>(ToolState.Found, webView));
     }
 
-    private async Task<ToolReading<T>> ReadAsync<T>(DoctorTool tool, string? projectRoot, Func<DoctorToolResult, T?> parse, CancellationToken ct)
+    private async Task<ToolReading<T>> ReadAsync<T>(DoctorTool tool, Run run, Func<DoctorToolResult, T?> parse, Func<DoctorToolResult, bool>? notInstalled = null)
         where T : class
     {
-        var result = await runner.RunAsync(tool, projectRoot, ct).ConfigureAwait(false);
+        if (run.OverBudget)
+        {
+            return new ToolReading<T>(ToolState.Unreadable);
+        }
+
+        var result = await runner.RunAsync(tool, run.Root, run.Ct).ConfigureAwait(false);
         switch (result.Outcome)
         {
             case DoctorToolOutcome.NotInstalled:
@@ -198,30 +214,35 @@ public sealed class ToolSnapshotProvider(IDoctorToolRunner runner, IWebView2Prob
                 return new ToolReading<T>(ToolState.InsideProject, null, result.ExecutablePath);
             case DoctorToolOutcome.Completed:
                 var value = result.Truncated ? null : parse(result);
-                return value is null
-                    ? new ToolReading<T>(ToolState.Unreadable, null, result.ExecutablePath)
-                    : new ToolReading<T>(ToolState.Found, value, result.ExecutablePath);
+                if (value is not null)
+                {
+                    return new ToolReading<T>(ToolState.Found, value, result.ExecutablePath);
+                }
+
+                return !result.Truncated && notInstalled?.Invoke(result) == true
+                    ? new ToolReading<T>(ToolState.NotInstalled, null, result.ExecutablePath)
+                    : new ToolReading<T>(ToolState.Unreadable, null, result.ExecutablePath);
             default:
                 return new ToolReading<T>(ToolState.Unreadable, null, result.ExecutablePath);
         }
     }
 
-    private Task<ToolReading<IReadOnlyList<T>>> ListAsync<T>(DoctorTool tool, Func<string?, IReadOnlyList<T>?> parse, string? projectRoot, CancellationToken ct) =>
-        ReadAsync<IReadOnlyList<T>>(tool, projectRoot, r => r.ExitCode == 0 ? parse(r.Output) : null, ct);
+    private Task<ToolReading<IReadOnlyList<T>>> ListAsync<T>(DoctorTool tool, Func<string?, IReadOnlyList<T>?> parse, Run run) =>
+        ReadAsync<IReadOnlyList<T>>(tool, run, r => r.ExitCode == 0 ? parse(r.Output) : null);
 
-    private Task<ToolReading<ToolVersion>> VersionAsync(DoctorTool tool, string? projectRoot, CancellationToken ct) =>
-        ReadAsync(tool, projectRoot, r => r.ExitCode == 0 ? ToolOutputParsers.Version(tool, r.Output) : null, ct);
+    private Task<ToolReading<ToolVersion>> VersionAsync(DoctorTool tool, Run run) =>
+        ReadAsync(tool, run, r => r.ExitCode == 0 ? ToolOutputParsers.Version(tool, r.Output) : null);
 
-    private async Task<ToolReading<ToolVersion>> PythonAsync(string? projectRoot, CancellationToken ct)
+    private async Task<ToolReading<ToolVersion>> PythonAsync(Run run)
     {
-        var python = await VersionAsync(DoctorTool.PythonVersion, projectRoot, ct).ConfigureAwait(false);
+        var python = await VersionAsync(DoctorTool.PythonVersion, run).ConfigureAwait(false);
         if (python.IsFound)
         {
             return python;
         }
 
         // The Windows launcher is the way most installs of Python are reached when «python» is the alias of the Store or is not on the PATH.
-        var launcher = await VersionAsync(DoctorTool.PyVersion, projectRoot, ct).ConfigureAwait(false);
+        var launcher = await VersionAsync(DoctorTool.PyVersion, run).ConfigureAwait(false);
         if (launcher.IsFound)
         {
             return launcher;
@@ -230,9 +251,26 @@ public sealed class ToolSnapshotProvider(IDoctorToolRunner runner, IWebView2Prob
         return python.State == ToolState.NotInstalled && StoreAlias.Is(python.Path) ? python with { State = ToolState.StoreAlias } : python;
     }
 
-    private Task<ToolReading<DockerReading>> DockerAsync(string? projectRoot, CancellationToken ct) =>
-        ReadAsync(DoctorTool.DockerVersionJson, projectRoot, r => ToolOutputParsers.Docker(r.Output, r.Truncated), ct);
+    /// <summary>
+    /// Docker by the default context (what an empty <c>DOCKER_CONFIG</c> gives). If that does not show a running engine, the same question goes to the pipe of the Linux engine of Docker Desktop,
+    /// which is where its engine may listen only; the first that shows an engine wins. Neither reads the configuration of the person.
+    /// </summary>
+    private async Task<ToolReading<DockerReading>> DockerAsync(Run run)
+    {
+        var byDefault = await ReadAsync(DoctorTool.DockerVersionJson, run, r => ToolOutputParsers.Docker(r.Output, r.Truncated)).ConfigureAwait(false);
+        if ((byDefault.IsFound && byDefault.Value!.Server is not null) || byDefault.State is ToolState.NotInstalled or ToolState.InsideProject)
+        {
+            return byDefault;
+        }
 
-    private Task<ToolReading<WslReading>> WslAsync(string? projectRoot, CancellationToken ct) =>
-        ReadAsync(DoctorTool.WslStatus, projectRoot, r => r.ExitCode == 0 ? ToolOutputParsers.Wsl(r.Output, r.Truncated) : null, ct);
+        var desktop = await ReadAsync(DoctorTool.DockerVersionDesktopPipe, run, r => ToolOutputParsers.Docker(r.Output, r.Truncated)).ConfigureAwait(false);
+        return desktop.IsFound && desktop.Value!.Server is not null ? desktop : byDefault;
+    }
+
+    private Task<ToolReading<WslReading>> WslAsync(Run run) =>
+        ReadAsync(
+            DoctorTool.WslStatus,
+            run,
+            r => r.ExitCode == 0 ? ToolOutputParsers.Wsl(r.Output, r.Truncated) : null,
+            r => ToolOutputParsers.WslNotInstalled(r.Output));
 }

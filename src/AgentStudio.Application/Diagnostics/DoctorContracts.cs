@@ -83,6 +83,12 @@ public enum DoctorTool
 
     /// <summary><c>wsl --status</c>, with its output in UTF-8.</summary>
     WslStatus,
+
+    /// <summary>
+    /// <c>docker --host npipe:////./pipe/dockerDesktopLinuxEngine version --format json</c>: the same question to the pipe of the Linux engine of Docker Desktop, asked only
+    /// when the default context (the one an empty <c>DOCKER_CONFIG</c> gives) does not answer, so an engine that listens only there is not reported as stopped. WP-A added it.
+    /// </summary>
+    DockerVersionDesktopPipe,
 }
 
 /// <summary>How a question to a tool ended. A result is always one of these: the door never throws for a tool that is not there.</summary>

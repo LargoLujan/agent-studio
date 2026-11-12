@@ -90,6 +90,9 @@ public sealed class DoctorFixTests
             Assert.True(guide.Command is null || (guide.Command.Length <= DoctorFix.MaxCommandLength && !guide.Command.Contains('\n') && !guide.Command.Contains('&') && !guide.Command.Contains('|')));
             Assert.True(guide.Page is null || (guide.Page.Scheme == Uri.UriSchemeHttps && guide.Page.UserInfo.Length == 0));
         });
+        // The installs name the package exactly (confirmed with winget show --id … --exact on 2026-11-13) and the pages are the final ones, with no redirect.
+        Assert.All(DoctorFixCatalog.All.OfType<DoctorFix.Guide>().Where(g => g.Command?.StartsWith("winget", StringComparison.Ordinal) == true), g => Assert.Matches(@"^winget install --id [A-Za-z0-9.]+ --exact$", g.Command!));
+        Assert.DoesNotContain(DoctorFixCatalog.All.OfType<DoctorFix.Guide>(), g => g.Page?.Host == "docs.anthropic.com");
         Assert.Throws<ArgumentException>(() => new DoctorFix.Guide("doctor.fix.nothing", null, null));
         Assert.Throws<ArgumentException>(() => new DoctorFix.Guide("doctor.fix.http", null, new Uri("http://example.test/")));
         Assert.Throws<ArgumentException>(() => new DoctorFix.Guide("doctor.fix.multi", "a\nb", null));

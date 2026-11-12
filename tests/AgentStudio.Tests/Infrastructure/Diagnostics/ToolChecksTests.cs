@@ -117,7 +117,8 @@ public sealed class ToolChecksTests
 
         var checks = await ToolsAsync(door);
 
-        Assert.Equal(DoctorStatus.Warning, checks["doctor.python"].Status);
+        // Not «missing»: the empty alias and a Python that was never run look the same, so it is not checked.
+        Assert.Equal(DoctorStatus.Unknown, checks["doctor.python"].Status);
         Assert.Equal(alias, checks["doctor.python"].Fact("alias"));
         Assert.Equal(DoctorFixCatalog.InstallPython, checks["doctor.python"].FixCode);
     }
@@ -203,7 +204,7 @@ public sealed class ToolChecksTests
     [InlineData("handmade-wsl-status-es-no-distribution.txt", DoctorStatus.Warning, DoctorFixCatalog.InstallWslDistribution)]
     [InlineData("handmade-wsl-status-en-no-distribution.txt", DoctorStatus.Warning, DoctorFixCatalog.InstallWslDistribution)]
     [InlineData("handmade-wsl-status-en-ubuntu-wsl1.txt", DoctorStatus.Warning, null)]
-    [InlineData("handmade-wsl-status-garbage.txt", DoctorStatus.Unknown, null)]
+    [InlineData("handmade-wsl-status-garbage.txt", DoctorStatus.Error, DoctorFixCatalog.InstallWsl)]
     public async Task Wsl_has_its_state_and_its_guide_in_both_languages(string fixture, DoctorStatus status, string? fix)
     {
         var door = new ScriptedDoor().Says(DoctorTool.WslStatus, DoctorFixtures.Read(fixture));
@@ -212,6 +213,53 @@ public sealed class ToolChecksTests
 
         Assert.Equal(status, wsl.Status);
         Assert.Equal(fix, wsl.FixCode);
+    }
+
+    [Fact]
+    public async Task Wsl_without_wsl_ends_with_an_error_code_and_its_message_and_that_is_not_installed_while_another_failure_is_not_checked()
+    {
+        var notInstalled = await ContainersAsync(new ScriptedDoor().Says(DoctorTool.WslStatus, "WSL no está instalado. Ejecuta wsl.exe --install.", exit: 1), declared: true);
+        var other = await ContainersAsync(new ScriptedDoor().Says(DoctorTool.WslStatus, "Something went wrong.", exit: 1), declared: true);
+
+        Assert.Equal((DoctorStatus.Error, DoctorFixCatalog.InstallWsl), (notInstalled["doctor.wsl"].Status, notInstalled["doctor.wsl"].FixCode));
+        Assert.Equal(DoctorStatus.Unknown, other["doctor.wsl"].Status);
+    }
+
+    [Fact]
+    public async Task An_engine_that_listens_only_on_the_pipe_of_docker_desktop_is_not_reported_as_stopped()
+    {
+        var door = ScriptedDoor.LikeTheDevelopmentMachine().Says(DoctorTool.DockerVersionDesktopPipe, DoctorFixtures.Read("handmade-docker-version-running.json"));
+
+        var docker = (await ContainersAsync(door, declared: true))["doctor.docker"];
+
+        Assert.Equal(DoctorStatus.Ok, docker.Status);
+        Assert.Equal("27.3.1", docker.Fact("server"));
+        Assert.Contains(door.Asked, a => a.Tool == DoctorTool.DockerVersionDesktopPipe);
+    }
+
+    [Fact]
+    public async Task The_pipe_of_docker_desktop_is_asked_only_when_the_default_context_does_not_show_an_engine()
+    {
+        var running = new ScriptedDoor().Says(DoctorTool.DockerVersionJson, DoctorFixtures.Read("handmade-docker-version-running.json"));
+        var missing = new ScriptedDoor();
+
+        await ContainersAsync(running, declared: true);
+        await ContainersAsync(missing, declared: true);
+
+        Assert.DoesNotContain(running.Asked, a => a.Tool == DoctorTool.DockerVersionDesktopPipe);
+        Assert.DoesNotContain(missing.Asked, a => a.Tool == DoctorTool.DockerVersionDesktopPipe);
+    }
+
+    [Fact]
+    public async Task A_cancelled_read_stops_asking_and_the_whole_read_has_a_budget()
+    {
+        var door = new ScriptedDoor();
+        var provider = new ToolSnapshotProvider(door, new FixedWebView2(null));
+        using var cancel = new CancellationTokenSource();
+        await cancel.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => provider.SnapshotAsync(null, cancel.Token));
+        Assert.True(ToolSnapshotProvider.Budget <= TimeSpan.FromSeconds(30));
     }
 
     [Fact]

@@ -51,7 +51,7 @@ public sealed class DoctorStringsTests
 
         // The project, healthy and in every kind of trouble.
         var project = new AgentStudio.Application.Projects.ProjectContext("p", @"C:\p");
-        for (var scenario = 0; scenario < 4; scenario++)
+        for (var scenario = 0; scenario < 5; scenario++)
         {
             var git = new AuditRepository("a".PadRight(40, 'a'));
             var remotes = new FakeRemotes();
@@ -64,6 +64,10 @@ public sealed class DoctorStringsTests
                 case 0:
                     log.Entries.Add(LogRecorder.Entry(AgentStudio.Domain.Decisions.DecisionKind.ProjectSetupApplied));
                     profiles.Stored = SetupFakes.Profile("dotnet");
+                    break;
+                case 4:
+                    log.Entries.Add(LogRecorder.Entry(AgentStudio.Domain.Decisions.DecisionKind.ProjectSetupApplied));
+                    profiles.Stored = new AgentStudio.Application.Verification.VerificationProfile("local", [SetupFakes.Profile("dotnet", @".\dotnet.cmd").Steps[0]]);
                     break;
                 case 1:
                     env.Layout = new AgentStudio.Application.Diagnostics.ProjectLayout(true, true, ["pre-push"]);

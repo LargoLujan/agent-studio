@@ -20,7 +20,9 @@ public sealed class DoctorToolRunnerTests : IDisposable
         pairs.ToDictionary(p => p.Name, p => p.Value, StringComparer.OrdinalIgnoreCase);
 
     private DoctorToolRunner Door(RecordingProcessRunner runner, FakeLocator? locator = null, IReadOnlyDictionary<string, string>? ambient = null) =>
-        new(locator ?? new FakeLocator(c => @"C:\Tools\" + c + ".exe"), runner, Folders, () => ambient ?? Ambient());
+        new(locator ?? new FakeLocator(c => @"C:\Tools\" + c + ".exe"), runner, Folders, () => ambient ?? Ambient(), () => _storePython);
+
+    private bool _storePython;
 
     [Fact]
     public void The_catalog_has_one_entry_per_tool_with_the_exact_arguments_of_the_design()
@@ -37,6 +39,7 @@ public sealed class DoctorToolRunnerTests : IDisposable
         Assert.Equal("git --version", catalog[DoctorTool.GitVersion]);
         Assert.Equal("docker version --format json", catalog[DoctorTool.DockerVersionJson]);
         Assert.Equal("wsl --status", catalog[DoctorTool.WslStatus]);
+        Assert.Equal("docker --host npipe:////./pipe/dockerDesktopLinuxEngine version --format json", catalog[DoctorTool.DockerVersionDesktopPipe]);
     }
 
     [Fact]
@@ -131,7 +134,10 @@ public sealed class DoctorToolRunnerTests : IDisposable
 
         await door.RunAsync(DoctorTool.DockerVersionJson, null, CancellationToken.None);
         await door.RunAsync(DoctorTool.WslStatus, null, CancellationToken.None);
+        await door.RunAsync(DoctorTool.DockerVersionDesktopPipe, null, CancellationToken.None);
 
+        // The pipe of Docker Desktop is also asked with the empty configuration: the context of the person is never read.
+        Assert.Equal(Folders.DockerConfigFolder, runner.Specs[2].Environment!["DOCKER_CONFIG"]);
         var docker = runner.Specs[0].Environment!;
         Assert.Equal(Folders.DockerConfigFolder, docker["DOCKER_CONFIG"]);
         Assert.Null(docker["DOCKER_CONTEXT"]);
@@ -198,6 +204,20 @@ public sealed class DoctorToolRunnerTests : IDisposable
         Assert.Equal(alias, python.ExecutablePath);
         Assert.Equal(DoctorToolOutcome.Completed, launcher.Outcome);
         Assert.Single(runner.Specs);
+    }
+
+    [Fact]
+    public async Task A_python_of_the_store_with_its_package_in_the_profile_is_the_real_one_and_is_asked()
+    {
+        var alias = @"C:\Users\x\AppData\Local\Microsoft\WindowsApps\python.exe";
+        var runner = new RecordingProcessRunner(_ => RecordingProcessRunner.Ok("Python 3.13.1"));
+        _storePython = true;
+        await using var door = Door(runner, new FakeLocator(c => c == "python" ? alias : null));
+
+        var python = await door.RunAsync(DoctorTool.PythonVersion, null, CancellationToken.None);
+
+        Assert.Equal(DoctorToolOutcome.Completed, python.Outcome);
+        Assert.Equal(alias, runner.Specs.Single().FileName);
     }
 
     [Fact]

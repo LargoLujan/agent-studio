@@ -23,12 +23,15 @@ public sealed class ProviderCheckSource(ProviderDiagnostics diagnostics, Provide
 
     public DoctorSection Section => DoctorSection.Providers;
 
+    /// <summary>Results of the probes younger than this are used as they are (the panel sets it when it opens just after the start-up check of the top bar); zero runs them again.</summary>
+    public TimeSpan ReuseWithin { get; set; }
+
     /// <summary>The results of the last run of the probes.</summary>
     public IReadOnlyList<ProviderProbeResult> LastResults => _lastResults;
 
     public async Task<IReadOnlyList<DoctorCheck>> CheckAsync(ProjectContext? project, CancellationToken ct)
     {
-        var results = await diagnostics.RunAsync(ct).ConfigureAwait(false);
+        var results = await diagnostics.RunAsync(ReuseWithin, ct).ConfigureAwait(false);
         _lastResults = results;
         return [.. results.SelectMany(Checks)];
     }

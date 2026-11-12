@@ -27,6 +27,21 @@ public sealed class ProjectEnvironmentProbeTests : IDisposable
     }
 
     [Fact]
+    public void A_hooks_folder_with_a_huge_number_of_files_is_not_listed_whole()
+    {
+        var repo = _temp.CreateDirectory("repo");
+        for (var i = 0; i < 1200; i++)
+        {
+            _temp.WriteFile($"repo/.git/hooks/h{i:D4}", string.Empty);
+        }
+
+        var layout = new ProjectEnvironmentProbe().ReadLayout(repo);
+
+        Assert.True(layout.HooksReadable);
+        Assert.Equal(50, layout.HookNames.Count);
+    }
+
+    [Fact]
     public void A_repository_without_hooks_and_a_folder_without_git_are_told_apart()
     {
         var repo = _temp.CreateDirectory("repo/.git");

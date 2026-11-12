@@ -10,6 +10,7 @@ namespace AgentStudio.Infrastructure.Diagnostics;
 public sealed class ProjectEnvironmentProbe(Func<string?>? pathVariable = null) : IProjectEnvironmentProbe
 {
     private const int MaxHooks = 50;
+    private const int MaxHooksScanned = 500;
 
     // The container files of docs/20 D-05, relative to the root. Only whether they exist.
     private static readonly string[] ContainerFiles =
@@ -44,7 +45,9 @@ public sealed class ProjectEnvironmentProbe(Func<string?>? pathVariable = null) 
                 return new ProjectLayout(true, false, []);
             }
 
+            // Bounded before it is sorted: a folder with a huge number of files is not listed whole.
             var names = Directory.EnumerateFiles(hooks)
+                .Take(MaxHooksScanned)
                 .Select(Path.GetFileName)
                 .Where(n => !string.IsNullOrEmpty(n) && !n.EndsWith(".sample", StringComparison.OrdinalIgnoreCase))
                 .Select(n => n!)

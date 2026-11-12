@@ -15,9 +15,18 @@ public partial class AutoDoctorView : UserControl
     /// <summary>«Al abrir el panel» (docs/20 D-03): the checks run when the panel is shown, and again only when the person asks or a minute has passed.</summary>
     private async void OnIsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
-        if (e.NewValue is true && DataContext is DoctorViewModel doctor)
+        if (DataContext is not DoctorViewModel doctor)
+        {
+            return;
+        }
+
+        if (e.NewValue is true)
         {
             await doctor.OpenedAsync();
+        }
+        else
+        {
+            doctor.Cancel();
         }
     }
 }

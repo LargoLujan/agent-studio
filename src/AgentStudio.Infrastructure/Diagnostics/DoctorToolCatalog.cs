@@ -27,7 +27,9 @@ public static class DoctorToolCatalog
         new(DoctorTool.PyVersion, "py", Version, true, false),
         new(DoctorTool.GitVersion, "git", Version, true, false),
         new(DoctorTool.DockerVersionJson, "docker", ["version", "--format", "json"], false, false),
-        new(DoctorTool.WslStatus, "wsl", ["--status"], false, false),
+        // WSL: its message when it is not installed may go to the error output.
+        new(DoctorTool.WslStatus, "wsl", ["--status"], true, false),
+        new(DoctorTool.DockerVersionDesktopPipe, "docker", ["--host", "npipe:////./pipe/dockerDesktopLinuxEngine", "version", "--format", "json"], false, false),
     ];
 
     /// <exception cref="ArgumentOutOfRangeException">A value that is not in the list.</exception>

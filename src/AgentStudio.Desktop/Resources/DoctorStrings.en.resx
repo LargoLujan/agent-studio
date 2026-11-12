@@ -117,6 +117,10 @@
     <value>Not applied: you did not give your permission.</value>
     <comment>Message after the approval of a fix was denied.</comment>
   </data>
+  <data name="Doctor_Checking" xml:space="preserve">
+    <value>Checking. It can take up to 30 seconds.</value>
+    <comment>Shown under the title while the checks run.</comment>
+  </data>
   <data name="Doctor_Fix_Failed" xml:space="preserve">
     <value>It could not be applied. Nothing changed.</value>
     <comment>Message after a fix failed.</comment>
@@ -163,6 +167,10 @@
   </data>
   <data name="Doctor_Fact_version" xml:space="preserve">
     <value>Version</value>
+    <comment>Label of a fact.</comment>
+  </data>
+  <data name="Doctor_Fact_default_version" xml:space="preserve">
+    <value>Version of new distributions</value>
     <comment>Label of a fact.</comment>
   </data>
   <data name="Doctor_Fact_path" xml:space="preserve">
@@ -372,10 +380,10 @@
     <value>Python {0} is installed.</value>
   </data>
   <data name="Doctor_Check_python_Warning" xml:space="preserve">
-    <value>There is no Python installed. The Microsoft Store shortcut does not count.</value>
+    <value>There is no Python installed outside the project.</value>
   </data>
   <data name="Doctor_Check_python_Unknown" xml:space="preserve">
-    <value>The version of Python could not be read.</value>
+    <value>Python could not be checked. Windows may only have the Microsoft Store shortcut.</value>
   </data>
   <data name="Doctor_Check_git_Title" xml:space="preserve">
     <value>Git</value>
@@ -488,6 +496,12 @@
   <data name="Doctor_Check_project_verification_profile_Unknown" xml:space="preserve">
     <value>The test file could not be read.</value>
   </data>
+  <data name="Doctor_Check_project_profile_local_tools_Title" xml:space="preserve">
+    <value>Programs of the project in the tests</value>
+  </data>
+  <data name="Doctor_Check_project_profile_local_tools_Warning" xml:space="preserve">
+    <value>The tests use programs of the project itself: {0}. Auto Doctor does not run them or count them as installed.</value>
+  </data>
   <data name="Doctor_Check_project_profile_tools_Title" xml:space="preserve">
     <value>Tools of the tests</value>
   </data>
@@ -519,7 +533,7 @@
     <value>Docker is running: engine {1}.</value>
   </data>
   <data name="Doctor_Check_docker_Warning" xml:space="preserve">
-    <value>Docker is installed, but its engine is stopped.</value>
+    <value>Docker is installed, but its engine does not answer.</value>
   </data>
   <data name="Doctor_Check_docker_Error" xml:space="preserve">
     <value>Docker is not installed.</value>
@@ -534,10 +548,10 @@
     <value>WSL 2</value>
   </data>
   <data name="Doctor_Check_wsl_Ok" xml:space="preserve">
-    <value>WSL 2 is ready with the distribution {0}.</value>
+    <value>WSL has {0} as its default distribution. New ones use version {1}. This command does not say which version {0} uses.</value>
   </data>
   <data name="Doctor_Check_wsl_Warning" xml:space="preserve">
-    <value>WSL has no distribution of its own at version 2.</value>
+    <value>WSL has no distribution of its own, or new ones use version 1.</value>
   </data>
   <data name="Doctor_Check_wsl_Error" xml:space="preserve">
     <value>WSL is not installed.</value>

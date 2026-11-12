@@ -127,6 +127,57 @@ public sealed class ProviderCheckSourceTests
     }
 
     [Fact]
+    public async Task Two_runs_that_overlap_share_one_launch_of_the_probes_and_a_later_one_launches_again_unless_it_accepts_recent_results()
+    {
+        var probe = new SlowProbe();
+        var diagnostics = new ProviderDiagnostics([probe]);
+
+        var first = diagnostics.RunAsync(CancellationToken.None);
+        var second = diagnostics.RunAsync(CancellationToken.None);
+        await Task.WhenAll(first, second);
+        Assert.Equal(1, probe.Runs);
+
+        await diagnostics.RunAsync(CancellationToken.None);
+        Assert.Equal(2, probe.Runs);
+
+        await diagnostics.RunAsync(TimeSpan.FromSeconds(30), CancellationToken.None);
+        Assert.Equal(2, probe.Runs);
+    }
+
+    [Fact]
+    public async Task A_caller_that_cancels_leaves_the_shared_run_to_the_others()
+    {
+        var probe = new SlowProbe();
+        var diagnostics = new ProviderDiagnostics([probe]);
+        using var cancel = new CancellationTokenSource();
+
+        var leaving = diagnostics.RunAsync(cancel.Token);
+        var staying = diagnostics.RunAsync(CancellationToken.None);
+        await cancel.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => leaving);
+        Assert.Single(await staying);
+    }
+
+    private sealed class SlowProbe : IProviderProbe
+    {
+        public int Runs;
+
+        public ProviderId Provider { get; } = new("claude-code");
+
+        public VendorId Vendor => VendorId.Anthropic;
+
+        public string DisplayName => "Agent";
+
+        public async Task<ProviderProbeResult> ProbeAsync(CancellationToken cancellationToken)
+        {
+            Interlocked.Increment(ref Runs);
+            await Task.Delay(100, CancellationToken.None);
+            return new ProviderProbeResult(Provider, "Agent", InstallationState.Installed, null, "1.0", AuthenticationState.Authenticated, null, []);
+        }
+    }
+
+    [Fact]
     public async Task The_probes_run_once_per_run_and_their_results_are_kept_for_the_rows_of_today()
     {
         var probe = new Probe("claude-code", Result("claude-code", InstallationState.Installed));

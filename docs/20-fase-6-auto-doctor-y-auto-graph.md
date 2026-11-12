@@ -1478,7 +1478,18 @@ docs/19. Ninguno de ellos existe todavía. Esta fase usa el 0045 y propone 0061 
   motor en marcha un `DOCKER_CONFIG` vacío responda por la tubería por defecto.
 - **Las claves del registro de WebView2:** son las de Microsoft Learn («Distribute your app and the WebView2 Runtime», consultada el 2026-11-12); la prueba `LocalTools` las lee en este equipo
   sin fallar. Falta probarlas con una instalación por usuario.
-- **Las órdenes y páginas de las guías** (`winget install …`, `npm install -g …`, las páginas oficiales) están escritas de memoria y no se ejecutaron: solo se copian y se abren a petición.- **La API de GitHub:** que `commits?sha=…&path=…&per_page=1` da el último commit que tocó la carpeta también cuando `sha` es
+- **Las guías (revisadas el 2026-11-13):** los identificadores de `winget` (`Microsoft.DotNet.SDK.10`, `OpenJS.NodeJS.LTS`, `Python.Python.3.13`, `Git.Git`, `Microsoft.EdgeWebView2Runtime`, `Docker.DockerDesktop`) se comprobaron con
+  `winget show --id … --exact` en este equipo, y las órdenes llevan `--id … --exact`. Las páginas son las finales, sin redirección (se comprobó con peticiones HEAD; `docs.anthropic.com` redirigía a `code.claude.com/docs/en/setup`).
+  Siguen sin comprobar `npm install -g @anthropic-ai/claude-code`, `@openai/codex` y `@google/gemini-cli`, `claude auth login` y `codex login`: ninguna se ejecuta, solo se copian y se abren a petición.
+- **Docker y el contexto:** con un `DOCKER_CONFIG` vacío el contexto es `default`, y un Docker Desktop puede escuchar solo en la tubería de su contexto `desktop-linux` (`npipe:////./pipe/dockerDesktopLinuxEngine`).
+  Si el contexto por defecto no muestra un motor, la puerta pregunta también a esa tubería (`DoctorTool.DockerVersionDesktopPipe`, `docker --host npipe:////./pipe/dockerDesktopLinuxEngine version --format json`, también con el `DOCKER_CONFIG` vacío: no se lee la configuración de la persona).
+  **No se pudo medir aquí** (el motor está parado en este equipo): cuál de las dos tuberías sirve cada contexto. **Prueba manual que lo cierra:** con Docker Desktop en marcha, ejecutar la prueba `LocalTools` de la puerta y comprobar que
+  `docker=Found` con `Server`; luego `docker context ls` para ver qué tubería usa `default`. Mientras el motor no responde, la pantalla dice «no responde», no «parado».
+- **WSL no instalado:** Microsoft documenta que sin WSL `wsl.exe` termina con un código distinto de cero y un mensaje (Learn, «WSL interop»), pero no documenta el código ni el texto. La puerta lee también el error estándar y reconoce el caso por la orden `--install`, que no se traduce,
+  sin ninguna línea con la versión por defecto; cualquier otra cosa que falle es «sin comprobar». **Sin verificar:** el texto real en un equipo sin WSL (la fixture `handmade-wsl-status-garbage.txt` es a mano). Prueba manual: en un equipo o una máquina virtual sin WSL, `wsl --status` y comprobar que el mensaje nombra `wsl.exe --install`.
+  `Default Version` es la versión de las distribuciones nuevas, no la de la distribución por defecto: la pantalla lo dice y no afirma «WSL 2».
+- **Python de la Tienda:** el `python.exe` real de la Tienda y el acceso directo vacío son el mismo tipo de fichero en la misma carpeta. Se mira si existe `%LOCALAPPDATA%\Packages\PythonSoftwareFoundation.Python.*` (solo nombres de carpeta): con él se pregunta como a cualquier Python; sin él no se arranca y sale «sin comprobar» con su explicación, porque un Python instalado y nunca ejecutado tampoco tiene esa carpeta.
+- **La API de GitHub:** que `commits?sha=…&path=…&per_page=1` da el último commit que tocó la carpeta también cuando `sha` es
   un commit y no una rama, y que un 304 no cuenta contra el límite sin token. Lo segundo
   lo dicen sus buenas prácticas (citadas en docs/16).
 - **DPAPI en .NET 10: verificado por el P0 el 2026-11-12.** `System.Security.Cryptography.ProtectedData` 10.0.13 (la última 10.x es la 10.0.15;

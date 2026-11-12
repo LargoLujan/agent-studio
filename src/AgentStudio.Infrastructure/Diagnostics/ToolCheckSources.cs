@@ -79,8 +79,8 @@ public sealed class ToolsCheckSource(ToolSnapshotProvider tools) : IDoctorCheckS
     {
         if (reading.State == ToolState.StoreAlias)
         {
-            // The alias of the Microsoft Store is not an interpreter: it does not count as installed (docs/20 D-03).
-            return new DoctorCheck("doctor.python", DoctorSection.Tools, DoctorStatus.Warning, reading.Path is null ? [] : [DoctorFact.Of("alias", reading.Path)], DoctorFixCatalog.InstallPython);
+            // The empty alias of the Microsoft Store and a Python of the Store that was never run look the same: it is not started and it is not said to be missing (docs/20 D-03).
+            return new DoctorCheck("doctor.python", DoctorSection.Tools, DoctorStatus.Unknown, reading.Path is null ? [] : [DoctorFact.Of("alias", reading.Path)], DoctorFixCatalog.InstallPython);
         }
 
         return Version("doctor.python", reading, DoctorStatus.Warning, DoctorFixCatalog.InstallPython);
@@ -161,7 +161,8 @@ public sealed class ContainersCheckSource(ToolSnapshotProvider tools, IProjectEn
         if (reading.IsFound)
         {
             var wsl = reading.Value!;
-            var facts = new List<DoctorFact> { DoctorFact.Of(DoctorFactNames.Version, wsl.DefaultVersion.ToString(System.Globalization.CultureInfo.InvariantCulture)) };
+            // The default version is the one new distributions get; the version of the default distribution is not in the status.
+            var facts = new List<DoctorFact> { DoctorFact.Of("default-version", wsl.DefaultVersion.ToString(System.Globalization.CultureInfo.InvariantCulture)) };
             if (wsl.DefaultDistribution is not null)
             {
                 facts.Insert(0, DoctorFact.Of("distribution", wsl.DefaultDistribution));

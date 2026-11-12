@@ -41,6 +41,39 @@ public sealed class ToolOutputParsersTests
     public void The_version_of_a_tool_is_read_from_its_first_line(DoctorTool tool, string fixture, string expected) =>
         Assert.Equal(expected, ToolOutputParsers.Version(tool, DoctorFixtures.Read(fixture))!.Text);
 
+    [Theory]
+    [InlineData("Python 3.13.0rc1", "3.13.0-rc1")]
+    [InlineData("Python 3.14.0a1", "3.14.0-a1")]
+    [InlineData("Python 3.12.3+", "3.12.3")]
+    [InlineData("Python 3.13.0b2\r\n", "3.13.0-b2")]
+    public void Python_pre_releases_and_builds_with_a_suffix_are_read(string output, string expected)
+    {
+        Assert.Equal(expected, ToolOutputParsers.Version(DoctorTool.PythonVersion, output)!.Text);
+        Assert.Equal(expected, ToolOutputParsers.Version(DoctorTool.PyVersion, output)!.Text);
+        Assert.True(ToolOutputParsers.Version(DoctorTool.PythonVersion, "Python 3.13.0rc1")! < ToolOutputParsers.Version(DoctorTool.PythonVersion, "Python 3.13.0")!);
+    }
+
+    [Fact]
+    public void Wsl_reads_the_distribution_only_from_the_line_right_before_the_version_and_says_the_version_is_the_default_one()
+    {
+        // A first line that is not the distribution (a notice with a colon) is not taken as one; lines after the version are not read.
+        var ready = ToolOutputParsers.Wsl("Notice: an update exists\r\nDefault Distribution: Ubuntu\r\nDefault Version: 2\r\nKernel version: 5.15.1\r\n", false)!;
+
+        Assert.True(ready.HasOwnDistribution);
+        Assert.Equal("Ubuntu", ready.DefaultDistribution);
+        Assert.False(ToolOutputParsers.Wsl("Default Version: 2\r\n", false)!.HasOwnDistribution);
+    }
+
+    [Fact]
+    public void The_message_of_wsl_without_wsl_is_recognized_by_its_untranslated_command_and_nothing_else_is()
+    {
+        Assert.True(ToolOutputParsers.WslNotInstalled(DoctorFixtures.Read("handmade-wsl-status-garbage.txt")));
+        Assert.True(ToolOutputParsers.WslNotInstalled("El subsistema de Windows para Linux no está instalado. Ejecuta wsl.exe --install."));
+        Assert.False(ToolOutputParsers.WslNotInstalled("Something went wrong."));
+        Assert.False(ToolOutputParsers.WslNotInstalled(DoctorFixtures.Read("handmade-wsl-status-en-ubuntu.txt")));
+        Assert.False(ToolOutputParsers.WslNotInstalled(null));
+    }
+
     [Fact]
     public void Npm_says_only_the_number()
     {

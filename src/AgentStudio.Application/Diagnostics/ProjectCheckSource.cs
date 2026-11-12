@@ -208,7 +208,7 @@ public sealed class ProjectCheckSource(
             DoctorSection.Project,
             DoctorStatus.Ok,
             [DoctorFact.Of("name", profile.Name), DoctorFact.Of("steps", profile.Steps.Count.ToString(System.Globalization.CultureInfo.InvariantCulture))]);
-        return [profileCheck, await ProfileToolsAsync(project, profile, ct).ConfigureAwait(false)];
+        return [profileCheck, await ProfileToolsAsync(project, profile, ct).ConfigureAwait(false), .. LocalExecutables(project, profile)];
     }
 
     /// <summary>
@@ -218,6 +218,7 @@ public sealed class ProjectCheckSource(
     private async Task<DoctorCheck> ProfileToolsAsync(ProjectContext project, VerificationProfile profile, CancellationToken ct)
     {
         var wanted = profile.Steps
+            .Where(s => !IsPath(s.Executable))
             .Select(s => Path.GetFileNameWithoutExtension(s.Executable.Trim()).ToLowerInvariant())
             .Where(n => n is "dotnet" or "node" or "npm" or "python" or "py" or "git")
             .Distinct(StringComparer.Ordinal)
@@ -237,6 +238,29 @@ public sealed class ProjectCheckSource(
         }
 
         return new DoctorCheck("doctor.project.profile-tools", DoctorSection.Project, missing.Count == 0 ? DoctorStatus.Ok : DoctorStatus.Warning, facts);
+    }
+
+    private static bool IsPath(string executable) => executable.IndexOfAny(['\\', '/', ':']) >= 0;
+
+    /// <summary>
+    /// A step whose program is a path of the project (<c>.\dotnet.cmd</c>, <c>tools\node.exe</c>, or an absolute path inside it) is not the tool of the system: it is an executable of the
+    /// repository. Auto Doctor does not run it and does not count it as installed; it says so. An absolute path outside the project is the choice of the person and is not judged.
+    /// </summary>
+    private static IEnumerable<DoctorCheck> LocalExecutables(ProjectContext project, VerificationProfile profile)
+    {
+        var root = Path.TrimEndingDirectorySeparator(project.RootPath) + Path.DirectorySeparatorChar;
+        var local = profile.Steps
+            .Select(s => s.Executable.Trim())
+            .Where(e => IsPath(e) && (!Path.IsPathFullyQualified(e) || e.StartsWith(root, StringComparison.OrdinalIgnoreCase)))
+            .Select(e => Path.GetFileName(e.Replace('/', '\\')))
+            .Where(n => n.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Order(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (local.Count > 0)
+        {
+            yield return new DoctorCheck("doctor.project.profile-local-tools", DoctorSection.Project, DoctorStatus.Warning, [DoctorFact.Of("tools", string.Join(", ", local))]);
+        }
     }
 
     private static bool IsInstalled(InstalledTools installed, string tool) => tool switch

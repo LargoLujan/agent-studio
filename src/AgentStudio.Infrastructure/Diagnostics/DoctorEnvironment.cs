@@ -59,7 +59,7 @@ public static class DoctorEnvironment
         environment["TMP"] = folders.TempFolder;
         environment["DOTNET_NOLOGO"] = "1";
         environment["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1";
-        if (tool == DoctorTool.DockerVersionJson)
+        if (tool is DoctorTool.DockerVersionJson or DoctorTool.DockerVersionDesktopPipe)
         {
             environment["DOCKER_CONFIG"] = folders.DockerConfigFolder;
         }

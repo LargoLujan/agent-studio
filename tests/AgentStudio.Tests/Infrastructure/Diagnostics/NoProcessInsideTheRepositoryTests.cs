@@ -58,7 +58,9 @@ public sealed class NoProcessInsideTheRepositoryTests : IDisposable
         var roots = new FixedRoots(repo);
         var locator = new ExecutableLocator(() => path, () => ".COM;.EXE;.BAT;.CMD", roots);
         var runner = new RecordingProcessRunner(spec => RecordingProcessRunner.Ok("v1.0.0"));
-        await using var door = new DoctorToolRunner(locator, runner, DoctorFolders.Under(_temp.Combine("local")), () => new Dictionary<string, string>());
+        // The process has variables that point into the repository (and its own PATH): none may reach a tool.
+        var ambient = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["NODE_PATH"] = repo, ["DOTNET_ROOT"] = Path.Combine(repo, ".dotnet"), ["PATH"] = path, ["PYTHONHOME"] = repo };
+        await using var door = new DoctorToolRunner(locator, runner, DoctorFolders.Under(_temp.Combine("local")), () => ambient);
 
         var results = new List<DoctorToolResult>();
         foreach (var tool in Enum.GetValues<DoctorTool>())
@@ -75,6 +77,14 @@ public sealed class NoProcessInsideTheRepositoryTests : IDisposable
             Assert.StartsWith(outside, spec.FileName, StringComparison.OrdinalIgnoreCase);
             Assert.False(Inside(spec.WorkingDirectory!, repo), $"{spec.WorkingDirectory} is inside the repository");
             Assert.False(string.Equals(repo, spec.WorkingDirectory, StringComparison.OrdinalIgnoreCase));
+
+            // The environment of the spec: PATH is not named (the runner of processes sets the clean one), what is named is removed, and nothing it sets points into the repository.
+            var env = spec.Environment!;
+            Assert.DoesNotContain(env.Keys, k => k.Equals("PATH", StringComparison.OrdinalIgnoreCase));
+            Assert.Null(env["NODE_PATH"]);
+            Assert.Null(env["DOTNET_ROOT"]);
+            Assert.Null(env["PYTHONHOME"]);
+            Assert.All(env.Where(e => e.Value is not null), e => Assert.False(e.Value!.Contains(repo, StringComparison.OrdinalIgnoreCase), e.Key));
         });
     }
 

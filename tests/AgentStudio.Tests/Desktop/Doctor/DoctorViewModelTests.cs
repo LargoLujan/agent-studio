@@ -310,12 +310,12 @@ public sealed class DoctorViewModelTests
         Assert.False(check.IsGuideOpen);
         check.RunFixCommand.Execute(null);
         Assert.True(check.IsGuideOpen);
-        Assert.Equal("winget install Git.Git", check.GuideCommand);
+        Assert.Equal("winget install --id Git.Git --exact", check.GuideCommand);
         Assert.Equal("Instala Git con la orden de abajo, o desde la página oficial.", check.FixSentence);
         check.CopyCommandCommand.Execute(null);
         check.OpenPageCommand.Execute(null);
-        Assert.Equal(["winget install Git.Git"], actions.Copied.ToArray());
-        Assert.Equal([new Uri("https://git-scm.com/downloads")], actions.Opened.ToArray());
+        Assert.Equal(["winget install --id Git.Git --exact"], actions.Copied.ToArray());
+        Assert.Equal([new Uri("https://git-scm.com/downloads/")], actions.Opened.ToArray());
         check.RunFixCommand.Execute(null);
         Assert.False(check.IsGuideOpen);
     }
@@ -398,6 +398,68 @@ public sealed class DoctorViewModelTests
         Assert.False(broken.IsBusy);
     }
 
+    [Fact]
+    public async Task Hiding_the_panel_cancels_the_run_in_course_without_an_error_and_without_showing_it()
+    {
+        var waiting = new WaitingSource();
+        var doctor = Panel([waiting]);
+
+        var run = doctor.RefreshCommand.ExecuteAsync(null);
+        await waiting.Started.Task;
+        Assert.True(doctor.IsBusy);
+        doctor.Cancel();
+        await run;
+
+        Assert.False(doctor.IsBusy);
+        Assert.Null(doctor.ErrorMessage);
+        Assert.Empty(doctor.Sections);
+        Assert.True(waiting.Cancelled);
+    }
+
+    [Fact]
+    public async Task Opening_the_panel_after_the_check_of_the_top_bar_does_not_launch_the_providers_again()
+    {
+        var probe = new CountingProbe("claude-code");
+        var diagnostics = new ProviderDiagnostics([probe]);
+        var providerSource = new ProviderCheckSource(diagnostics);
+        var providers = new ProviderDiagnosticsViewModel(diagnostics, TimeProvider.System);
+        var doctor = Panel([providerSource], providerSource: providerSource, providers: providers);
+
+        await providers.RefreshCommand.ExecuteAsync(null);
+        await doctor.OpenedAsync();
+
+        Assert.Equal(1, probe.Runs);
+        Assert.Single(doctor.Sections);
+
+        // The button of «Volver a comprobar» always asks again.
+        await doctor.RefreshCommand.ExecuteAsync(null);
+        Assert.Equal(2, probe.Runs);
+    }
+
+    private sealed class WaitingSource : IDoctorCheckSource
+    {
+        public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public bool Cancelled { get; private set; }
+
+        public DoctorSection Section => DoctorSection.Tools;
+
+        public async Task<IReadOnlyList<DoctorCheck>> CheckAsync(ProjectContext? project, CancellationToken ct)
+        {
+            Started.SetResult();
+            try
+            {
+                await Task.Delay(Timeout.Infinite, ct);
+            }
+            catch (OperationCanceledException)
+            {
+                Cancelled = true;
+                throw;
+            }
+
+            return [];
+        }
+    }
     private sealed class BrokenService : IDoctorService
     {
         public Task<DoctorReport> RunAsync(ProjectContext? project, CancellationToken ct) => throw new InvalidOperationException("broken");

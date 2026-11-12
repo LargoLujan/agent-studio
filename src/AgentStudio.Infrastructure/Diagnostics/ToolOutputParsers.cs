@@ -35,7 +35,8 @@ public static partial class ToolOutputParsers
     [GeneratedRegex(@"^git version (?<version>\d{1,9}(?:\.\d{1,9}){0,2})(?![0-9])", RegexOptions.CultureInvariant)]
     private static partial Regex GitVersion();
 
-    [GeneratedRegex(@"^Python (?<version>" + VersionShape + @")\s*$", RegexOptions.CultureInvariant)]
+    // «Python 3.13.0rc1», «Python 3.14.0a1» and «Python 3.12.3+» are real answers of a pre-release or a build from a repository: the suffix is read as a pre-release label (or dropped for «+»).
+    [GeneratedRegex(@"^Python (?<version>\d{1,9}(?:\.\d{1,9}){0,3})(?<suffix>[A-Za-z]+[0-9]*|\+)?\s*$", RegexOptions.CultureInvariant)]
     private static partial Regex PythonVersion();
 
     [GeneratedRegex(@"^(?<key>[^:\r\n]{1,100}):\s*(?<value>.{0,200})$", RegexOptions.CultureInvariant)]
@@ -101,7 +102,18 @@ public static partial class ToolOutputParsers
             DoctorTool.PythonVersion or DoctorTool.PyVersion => PythonVersion().Match(first),
             _ => Match.Empty,
         };
-        return match.Success && ToolVersion.TryParse(match.Groups["version"].Value, out var version) ? version : null;
+        if (!match.Success)
+        {
+            return null;
+        }
+
+        var text = match.Groups["version"].Value;
+        if (match.Groups["suffix"] is { Success: true, Value: var suffix } && suffix != "+")
+        {
+            text += "-" + suffix;
+        }
+
+        return ToolVersion.TryParse(text, out var version) ? version : null;
     }
 
     /// <summary>
@@ -149,39 +161,38 @@ public static partial class ToolOutputParsers
             return null;
         }
 
-        string? distribution = null;
-        int? version = null;
-        var first = true;
+        // The lines «name: value», in order. The default version is the first whose value is a number; the distribution is the line right before it, when its value is not a number
+        // (in both languages the status says the distribution and then the version). Any other line (kernel, updates, warnings) is not read as a distribution.
+        var pairs = new List<string>();
         foreach (var line in Lines(output))
         {
             var match = KeyValueLine().Match(line);
-            if (!match.Success)
+            var value = match.Success ? match.Groups["value"].Value.Trim() : string.Empty;
+            if (value.Length > 0)
             {
-                continue;
-            }
-
-            var isFirst = first;
-            first = false;
-
-            var value = match.Groups["value"].Value.Trim();
-            if (value.Length == 0)
-            {
-                continue;
-            }
-
-            if (int.TryParse(value, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var number) && value.Length <= 2)
-            {
-                version ??= number;
-            }
-            else if (isFirst)
-            {
-                // The distribution is the first line, and a value that is not a number is a name; any later line (kernel, updates) is not read.
-                distribution = value.Length <= 100 && !UntrustedText.HasHidden(value) ? value : null;
+                pairs.Add(value);
             }
         }
 
-        return version is null ? null : new WslReading(distribution, version.Value);
+        var index = pairs.FindIndex(v => v.Length <= 2 && v.All(char.IsAsciiDigit));
+        if (index < 0)
+        {
+            return null;
+        }
+
+        var version = int.Parse(pairs[index], System.Globalization.CultureInfo.InvariantCulture);
+        var candidate = index > 0 ? pairs[index - 1] : null;
+        var distribution = candidate is { Length: <= 100 } && !candidate.All(char.IsAsciiDigit) && !UntrustedText.HasHidden(candidate) ? candidate : null;
+        return new WslReading(distribution, version);
     }
+
+    /// <summary>
+    /// The message of <c>wsl.exe</c> when WSL is not installed: it tells to run <c>wsl.exe --install</c>, a command that is not translated, and it has no line with the default version.
+    /// Microsoft documents that without WSL the tool ends with a code other than zero and a message (Learn, «WSL interop»); the exact text is not documented, so only that command
+    /// and the absence of a status are used. Anything else is not recognized.
+    /// </summary>
+    public static bool WslNotInstalled(string? output) =>
+        output is not null && !IsBinary(output) && output.Contains("--install", StringComparison.OrdinalIgnoreCase) && Wsl(output, false) is null;
 
     private static bool TryVersion(JsonElement element, out ToolVersion version)
     {
@@ -246,4 +257,10 @@ public sealed record WslReading(string? DefaultDistribution, int DefaultVersion)
 
     /// <summary>A distribution the person can use, at the version 2 the design asks for.</summary>
     public bool IsReady => DefaultDistribution is not null && !IsDockerInternal && DefaultVersion == 2;
+
+    /// <summary>
+    /// <c>DefaultVersion</c> is the version new distributions get, not the one the default distribution runs with: <c>wsl --status</c> does not say that. «Ready» therefore means a
+    /// distribution of its own and WSL 2 for new ones, and the check says that the version of the distribution is not read.
+    /// </summary>
+    public bool HasOwnDistribution => DefaultDistribution is not null && !IsDockerInternal;
 }

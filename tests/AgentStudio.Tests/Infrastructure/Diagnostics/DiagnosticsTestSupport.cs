@@ -96,6 +96,7 @@ internal sealed class ScriptedDoor : IDoctorToolRunner
 
     public Task<DoctorToolResult> RunAsync(DoctorTool tool, string? projectRoot, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
         lock (Asked)
         {
             Asked.Add((tool, projectRoot));

@@ -24,10 +24,11 @@ public sealed class DoctorToolRunner : IDoctorToolRunner, IAsyncDisposable, IDis
     private readonly IProcessRunner _runner;
     private readonly DoctorFolders _folders;
     private readonly Func<IReadOnlyDictionary<string, string>> _ambient;
+    private readonly Func<bool> _storePythonInstalled;
     private readonly SerialQueue _queue = new();
 
     /// <param name="ambient">The environment variables the process has, to remove the ones that are not allowed; the ones of the current process by default.</param>
-    public DoctorToolRunner(IExecutableLocator locator, IProcessRunner runner, DoctorFolders folders, Func<IReadOnlyDictionary<string, string>>? ambient = null)
+    public DoctorToolRunner(IExecutableLocator locator, IProcessRunner runner, DoctorFolders folders, Func<IReadOnlyDictionary<string, string>>? ambient = null, Func<bool>? storePythonInstalled = null)
     {
         ArgumentNullException.ThrowIfNull(locator);
         ArgumentNullException.ThrowIfNull(runner);
@@ -36,6 +37,7 @@ public sealed class DoctorToolRunner : IDoctorToolRunner, IAsyncDisposable, IDis
         _runner = runner;
         _folders = folders;
         _ambient = ambient ?? DoctorEnvironment.CurrentProcess;
+        _storePythonInstalled = storePythonInstalled ?? StoreAlias.PythonPackageExists;
     }
 
     public Task<DoctorToolResult> RunAsync(DoctorTool tool, string? projectRoot, CancellationToken ct)
@@ -58,9 +60,10 @@ public sealed class DoctorToolRunner : IDoctorToolRunner, IAsyncDisposable, IDis
             return DoctorToolResult.Without(DoctorToolOutcome.InsideProject, path);
         }
 
-        if (entry.RefusesStoreAlias && StoreAlias.Is(path))
+        if (entry.RefusesStoreAlias && StoreAlias.Is(path) && !_storePythonInstalled())
         {
-            // Not started: the alias may open the Microsoft Store, and it is not an interpreter. The inventory reads the path.
+            // Not started: with no package of Python in the profile of the person the alias may be the empty one, which opens the Microsoft Store. The inventory reads the path
+            // and says «sin comprobar» (it cannot tell the empty alias from a Python that was never run). With the package there it is the real one and is asked like any other.
             return DoctorToolResult.Without(DoctorToolOutcome.NotInstalled, path);
         }
 
@@ -121,6 +124,24 @@ public sealed class DoctorToolRunner : IDoctorToolRunner, IAsyncDisposable, IDis
 /// <summary>The alias of the Microsoft Store (<c>%LOCALAPPDATA%\Microsoft\WindowsApps</c>) that stands in for a program that is not installed.</summary>
 public static class StoreAlias
 {
+    /// <summary>
+    /// Whether Python of the Store has a package folder in the profile of the person (<c>%LOCALAPPDATA%\Packages\PythonSoftwareFoundation.Python.*</c>, created when it is first run). Only names of
+    /// folders are listed. The real <c>python.exe</c> of the Store and the empty alias are the same kind of file in the same folder, so this is the only readable difference; a Python
+    /// installed and never run has no such folder yet, which is why the answer of the empty alias is «sin comprobar» and not «no instalado».
+    /// </summary>
+    public static bool PythonPackageExists()
+    {
+        try
+        {
+            var packages = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Packages");
+            return Directory.Exists(packages) && Directory.EnumerateDirectories(packages, "PythonSoftwareFoundation.Python.*").Any();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
     public static bool Is(string? path) =>
         !string.IsNullOrWhiteSpace(path) && path.Replace('/', '\\').Contains(@"\Microsoft\WindowsApps\", StringComparison.OrdinalIgnoreCase);
 }

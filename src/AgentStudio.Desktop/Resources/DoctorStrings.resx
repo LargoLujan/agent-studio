@@ -117,6 +117,10 @@
     <value>No se aplicó: no diste tu permiso.</value>
     <comment>Message after the approval of a fix was denied.</comment>
   </data>
+  <data name="Doctor_Checking" xml:space="preserve">
+    <value>Comprobando. Puede tardar hasta 30 segundos.</value>
+    <comment>Shown under the title while the checks run.</comment>
+  </data>
   <data name="Doctor_Fix_Failed" xml:space="preserve">
     <value>No se pudo aplicar. Nada cambió.</value>
     <comment>Message after a fix failed.</comment>
@@ -163,6 +167,10 @@
   </data>
   <data name="Doctor_Fact_version" xml:space="preserve">
     <value>Versión</value>
+    <comment>Label of a fact.</comment>
+  </data>
+  <data name="Doctor_Fact_default_version" xml:space="preserve">
+    <value>Versión de las distribuciones nuevas</value>
     <comment>Label of a fact.</comment>
   </data>
   <data name="Doctor_Fact_path" xml:space="preserve">
@@ -372,10 +380,10 @@
     <value>Python {0} está instalado.</value>
   </data>
   <data name="Doctor_Check_python_Warning" xml:space="preserve">
-    <value>No hay un Python instalado. El acceso directo de la Tienda de Windows no cuenta.</value>
+    <value>No hay un Python instalado fuera del proyecto.</value>
   </data>
   <data name="Doctor_Check_python_Unknown" xml:space="preserve">
-    <value>No se pudo leer la versión de Python.</value>
+    <value>No se pudo comprobar Python. Puede que Windows solo tenga el acceso directo de la Tienda.</value>
   </data>
   <data name="Doctor_Check_git_Title" xml:space="preserve">
     <value>Git</value>
@@ -488,6 +496,12 @@
   <data name="Doctor_Check_project_verification_profile_Unknown" xml:space="preserve">
     <value>No se pudo leer el fichero de pruebas.</value>
   </data>
+  <data name="Doctor_Check_project_profile_local_tools_Title" xml:space="preserve">
+    <value>Programas del proyecto en las pruebas</value>
+  </data>
+  <data name="Doctor_Check_project_profile_local_tools_Warning" xml:space="preserve">
+    <value>Las pruebas usan programas del propio proyecto: {0}. Auto Doctor no los ejecuta ni los cuenta como instalados.</value>
+  </data>
   <data name="Doctor_Check_project_profile_tools_Title" xml:space="preserve">
     <value>Herramientas de las pruebas</value>
   </data>
@@ -519,7 +533,7 @@
     <value>Docker está en marcha: motor {1}.</value>
   </data>
   <data name="Doctor_Check_docker_Warning" xml:space="preserve">
-    <value>Docker está instalado, pero su motor está parado.</value>
+    <value>Docker está instalado, pero su motor no responde.</value>
   </data>
   <data name="Doctor_Check_docker_Error" xml:space="preserve">
     <value>Docker no está instalado.</value>
@@ -534,10 +548,10 @@
     <value>WSL 2</value>
   </data>
   <data name="Doctor_Check_wsl_Ok" xml:space="preserve">
-    <value>WSL 2 está listo con la distribución {0}.</value>
+    <value>WSL tiene {0} como distribución por defecto. Las nuevas usan la versión {1}. Esta orden no dice qué versión usa {0}.</value>
   </data>
   <data name="Doctor_Check_wsl_Warning" xml:space="preserve">
-    <value>WSL no tiene una distribución propia con la versión 2.</value>
+    <value>WSL no tiene una distribución propia, o las nuevas usan la versión 1.</value>
   </data>
   <data name="Doctor_Check_wsl_Error" xml:space="preserve">
     <value>WSL no está instalado.</value>

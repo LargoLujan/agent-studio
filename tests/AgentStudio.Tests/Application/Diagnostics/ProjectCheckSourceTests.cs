@@ -229,6 +229,36 @@ public sealed class ProjectCheckSourceTests
         Assert.Equal(DoctorStatus.NotApplicable, tools.Status);
     }
 
+    [Theory]
+    [InlineData(@".\dotnet.cmd", "dotnet.cmd")]
+    [InlineData(@"tools\node.exe", "node.exe")]
+    [InlineData(@"C:\work\calc\bin\runner.exe", "runner.exe")]
+    public async Task A_step_whose_program_is_a_path_of_the_project_is_an_executable_of_the_repository_and_the_doctor_says_so(string executable, string name)
+    {
+        var rig = Healthy();
+        var step = rig.Profiles.Stored!.Steps[0] with { Executable = executable };
+        rig.Profiles.Stored = new VerificationProfile("custom", [step]);
+
+        var checks = await rig.RunAsync();
+
+        Assert.Equal(DoctorStatus.Warning, checks["doctor.project.profile-local-tools"].Status);
+        Assert.Equal(name, checks["doctor.project.profile-local-tools"].Fact("tools"));
+        // It is not counted as the tool of the system.
+        Assert.Equal(DoctorStatus.NotApplicable, checks["doctor.project.profile-tools"].Status);
+    }
+
+    [Fact]
+    public async Task An_absolute_path_outside_the_project_is_the_choice_of_the_person_and_is_not_judged()
+    {
+        var rig = Healthy();
+        var step = rig.Profiles.Stored!.Steps[0] with { Executable = @"C:\Program Files\dotnet\dotnet.exe" };
+        rig.Profiles.Stored = new VerificationProfile("custom", [step]);
+
+        var checks = await rig.RunAsync();
+
+        Assert.DoesNotContain("doctor.project.profile-local-tools", checks.Keys);
+    }
+
     [Fact]
     public async Task The_folders_of_the_path_inside_the_project_are_a_warning_that_names_them()
     {
