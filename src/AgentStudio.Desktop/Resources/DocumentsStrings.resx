@@ -50,16 +50,16 @@
     <value>Versión del documento</value>
   </data>
   <data name="Text_document_cover_commit" xml:space="preserve">
-    <value>Commit</value>
+    <value>Versión guardada (commit)</value>
   </data>
   <data name="Text_document_date_value" xml:space="preserve">
     <value>{0:yyyy-MM-dd HH:mm} UTC</value>
   </data>
   <data name="Text_document_agent_reviewed" xml:space="preserve">
-    <value>Redactado por un agente (ejecución {0}) · revisado por la persona responsable: sí</value>
+    <value>Redactado por un agente (ejecución {0}). Revisado por la persona responsable: sí.</value>
   </data>
   <data name="Text_document_agent_not_reviewed" xml:space="preserve">
-    <value>Redactado por un agente (ejecución {0}) · revisado por la persona responsable: no</value>
+    <value>Redactado por un agente (ejecución {0}). Revisado por la persona responsable: no.</value>
   </data>
   <data name="Text_document_summary_figures" xml:space="preserve">
     <value>El proyecto tiene {0} requisitos: {1} verificados por el juez y {2} sin verificar. Las pruebas capturadas por el sistema suman {3} superadas y {4} fallidas. Hay {5} riesgos o pendientes.</value>
@@ -68,7 +68,7 @@
     <value>Todavía no hay requisitos congelados en este proyecto.</value>
   </data>
   <data name="Text_document_scope_intro" xml:space="preserve">
-    <value>Cada requisito con su estado: implementado (lo cubren pruebas capturadas por el sistema que pasan), revisado (un veredicto válido y aprobado lo da por satisfecho) e integrado (se entregó a la rama).</value>
+    <value>Cada requisito tiene un estado. Implementado: lo cubren pruebas guardadas por el sistema que pasan. Revisado: un veredicto válido y aprobado lo da por satisfecho. Integrado: se entregó a la rama.</value>
   </data>
   <data name="Text_document_scope_none" xml:space="preserve">
     <value>No hay requisitos congelados.</value>
@@ -161,7 +161,7 @@
     <value>Alta</value>
   </data>
   <data name="Text_document_decisions_intro" xml:space="preserve">
-    <value>Decisiones, arquitectura y convenciones de la memoria de confianza vigente del proyecto.</value>
+    <value>Lo que el proyecto ha decidido, cómo está construido y qué normas sigue. Sale de su memoria de confianza.</value>
   </data>
   <data name="Text_document_decisions_none" xml:space="preserve">
     <value>No hay decisiones registradas.</value>
@@ -185,7 +185,7 @@
     <value>Convención</value>
   </data>
   <data name="Text_document_change_delivery" xml:space="preserve">
-    <value>Entrega a {0} con el commit {1} ({2:yyyy-MM-dd HH:mm} UTC).</value>
+    <value>Entrega a {0} con la versión guardada (commit) {1} ({2:yyyy-MM-dd HH:mm} UTC).</value>
   </data>
   <data name="Text_document_changes_none" xml:space="preserve">
     <value>No hay entregas registradas.</value>
@@ -215,10 +215,10 @@
     <value>No hay riesgos ni pendientes registrados.</value>
   </data>
   <data name="Text_document_annex_evidence_intro" xml:space="preserve">
-    <value>Índice de evidencias, con la huella SHA-256 de cada una:</value>
+    <value>Índice de pruebas guardadas, con la huella de cada una:</value>
   </data>
   <data name="Text_document_annex_evidence_none" xml:space="preserve">
-    <value>No hay evidencias capturadas por el sistema.</value>
+    <value>No hay pruebas guardadas por el sistema.</value>
   </data>
   <data name="Text_document_annex_glossary_intro" xml:space="preserve">
     <value>Glosario:</value>
@@ -227,19 +227,19 @@
     <value>Requisito: lo que el sistema debe cumplir, congelado antes de empezar a trabajar.</value>
   </data>
   <data name="Text_document_glossary_evidence" xml:space="preserve">
-    <value>Evidencia: un resultado que Agent Studio captura con su huella, de modo que cualquier cambio posterior se detecta.</value>
+    <value>Prueba guardada: un resultado que Agent Studio guarda con su huella, de modo que cualquier cambio posterior se detecta.</value>
   </data>
   <data name="Text_document_glossary_verdict" xml:space="preserve">
     <value>Veredicto: la valoración de un juez independiente, requisito a requisito.</value>
   </data>
   <data name="Text_document_glossary_fingerprint" xml:space="preserve">
-    <value>Huella: el SHA-256 del contenido.</value>
+    <value>Huella: un código único del contenido. Si el contenido cambia, la huella cambia.</value>
   </data>
   <data name="Text_document_unknown" xml:space="preserve">
     <value>Sin dato</value>
   </data>
   <data name="Text_document_scope_delivery_note" xml:space="preserve">
-    <value>Hay una entrega con el commit {0}; el sistema no puede decir por requisito si la cubre, y esos requisitos figuran «sin dato».</value>
+    <value>Hay una entrega con la versión guardada (commit) {0}. El sistema no puede decir por requisito si la cubre. Esos requisitos figuran «sin dato».</value>
   </data>
   <data name="Text_document_not_included_intro" xml:space="preserve">
     <value>No incluido en este documento:</value>
@@ -257,10 +257,10 @@
     <value>Si el cambio está desplegado: Agent Studio no despliega nada y no lo sabe.</value>
   </data>
   <data name="Documents_NotIncluded" xml:space="preserve">
-    <value>No incluido: el estado por requisito de los hitos, las solicitudes de cambio, los ficheros por zona y si está desplegado. El documento lo dice en sus anexos.</value>
+    <value>No incluido: el estado por requisito de los hitos y las solicitudes de cambio. Tampoco los ficheros por zona ni si está desplegado. El documento lo dice en sus anexos.</value>
   </data>
   <data name="Documents_Status_Approval" xml:space="preserve">
-    <value>La aprobación es sobre esta vista previa y esta lista: si cambias el hito o el idioma, hay que generarla de nuevo.</value>
+    <value>La aprobación es sobre esta vista previa y esta lista. Si cambias el hito o el idioma, hay que generarla de nuevo.</value>
   </data>
   <data name="Documents_MilestoneClosed" xml:space="preserve">
     <value>El hito «{0}» se ha cerrado: genera su documento para revisarlo. No se exporta nada sin tu aprobación.</value>
@@ -269,7 +269,7 @@
     <value>Documentación para clientes</value>
   </data>
   <data name="Documents_Intro" xml:space="preserve">
-    <value>Genera un documento para entregar a un cliente, construido por Agent Studio desde el registro verificado y la memoria de confianza. Revisa la vista previa y la lista de lo que sale antes de exportarlo.</value>
+    <value>Genera un documento para entregar a un cliente. Agent Studio lo construye desde el registro verificado y la memoria de confianza. Revisa la vista previa y la lista de lo que sale antes de exportarlo.</value>
   </data>
   <data name="Documents_Milestone_Label" xml:space="preserve">
     <value>Hito o entrega (opcional)</value>

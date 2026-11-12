@@ -6,7 +6,7 @@ info: Info_Consumption, Info_Quota
 This screen counts what the agents spend, so you get no surprises.
 
 ## What you see
-- **The quota** of each account and when it renews.
+- **The usage limit of your plan** for each account and when it renews.
 - **Which agent and which task** spent each part, including the help and the summaries.
 - **An analysis** of where most goes, with advice. You can also ask an agent for it, with your OK.
 

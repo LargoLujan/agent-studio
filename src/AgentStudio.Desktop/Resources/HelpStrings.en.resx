@@ -35,7 +35,7 @@
     <value>All topics</value>
   </data>
   <data name="Help_Article_None" xml:space="preserve">
-    <value>Pick a topic from the list or search for a word. The help here is free and does not use your quota.</value>
+    <value>Pick a topic from the list or search for a word. This help is free and does not use the usage limit of your plan.</value>
   </data>
   <data name="Help_Article_NoScreen" xml:space="preserve">
     <value>This screen has no article of its own. Look at the list of topics.</value>
@@ -44,7 +44,7 @@
     <value>Cannot find it? Ask an agent</value>
   </data>
   <data name="Help_Ask_Intro" xml:space="preserve">
-    <value>Look at the above first, which is free. Asking an agent uses a little of your quota and needs your OK each time.</value>
+    <value>Look at the above first, which is free. Asking an agent uses a little of the usage limit of your plan and needs your OK each time.</value>
   </data>
   <data name="Help_Ask_Question" xml:space="preserve">
     <value>Your question</value>

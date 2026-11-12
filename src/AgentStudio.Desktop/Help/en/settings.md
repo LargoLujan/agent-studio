@@ -6,7 +6,7 @@ info: Info_Language, Info_Unattended, Info_ContextSettings
 Here you change how Agent Studio works. Everything is saved with a single button, Save.
 
 ## What there is
-- **Context and quota**: when it warns that working memory is filling up and whether the Codex quota is read.
+- **Context and usage limit**: when it warns that working memory is filling up. And whether the Codex usage limit is read.
 - **Unattended work**: what happens when you close the window and whether the computer stays awake while there is work.
 - **Windows Hello and lock**: confirming it is you and locking the app.
 - **Project memory** and **Motion**.

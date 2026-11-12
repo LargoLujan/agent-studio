@@ -9,7 +9,7 @@ The canvas is the drawing of your work. It has two layers that you switch with t
 Each box is a task. The arrows say what comes first. You can move boxes, add tasks or remove them. If you change something after approving, the approval is withdrawn and you have to approve again.
 
 ## Team layer
-Each box is an agent. When you click one, the panel on the right lets you change its model, its memory and what it may use.
+Each box is an agent. When you click one, the panel on the right lets you change its model, memory and what it may use.
 
 ## Tools
 The **Tools** screen shows what each agent may use and how risky each thing is. Giving a high-risk tool asks you to confirm that it is you.
