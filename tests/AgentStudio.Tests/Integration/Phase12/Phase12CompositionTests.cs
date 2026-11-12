@@ -42,6 +42,10 @@ public sealed class Phase12CompositionTests
     {
         var services = new ServiceCollection();
         services.AddWindowsDoubles();
+
+        // The folders of the composition in %LOCALAPPDATA% go to the temporary folder (Windows denies the real one at Low integrity).
+
+        services.AddTestLocalData(folders.Local.BaseDirectory);
         services.AddAgentStudioApp(folders);
         return services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
     }

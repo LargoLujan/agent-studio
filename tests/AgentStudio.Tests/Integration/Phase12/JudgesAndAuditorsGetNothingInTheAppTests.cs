@@ -12,6 +12,7 @@ using AgentStudio.Desktop.Services;
 using AgentStudio.Domain.Agents;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Providers;
+using AgentStudio.Infrastructure.Persistence;
 using AgentStudio.Tests.Desktop;
 using AgentStudio.Tests.TestSupport;
 using Microsoft.Extensions.DependencyInjection;
@@ -59,6 +60,10 @@ public sealed class JudgesAndAuditorsGetNothingInTheAppTests
         var folders = new AppFolders(new AppDataPaths(temp.Combine("roaming")), new LocalDataPaths(temp.Combine("local")), null);
         var services = new ServiceCollection();
         services.AddWindowsDoubles();
+
+        // The folders of the composition in %LOCALAPPDATA% go to the temporary folder (Windows denies the real one at Low integrity).
+
+        services.AddTestLocalData(folders.Local.BaseDirectory);
         services.AddAgentStudioApp(folders);
         await using var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
         var root = temp.CreateDirectory("calc");

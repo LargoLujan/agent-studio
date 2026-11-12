@@ -81,6 +81,7 @@ public sealed class Phase5AuditDemoLiveTests
             }
         }
 
+        notes.Add(ProjectAuditExclusions.Line(ProjectAuditExclusions.Of(profile)));
         var suggested = failed.SelectMany(f => f.Categories).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).Select(c => "Category=" + c).ToList();
         var uncategorized = failed.Where(f => f.Categories.Count == 0).Select(f => f.Name).ToList();
         notes.Add(suggested.Count == 0
@@ -326,11 +327,27 @@ internal static class AuditDemo
             ]);
     }
 
-    /// <summary>The filters of the test step: <c>Category=ProviderLive</c> first, then each exclusion as a trait or as a class.</summary>
+    /// <summary>
+    /// What the test step of the audit never runs: the categories CI leaves out plus the one for tests that need Medium
+    /// integrity. <c>ProviderLive</c> spends quota; <c>LocalTools</c>, <c>ConPty</c> and <c>Measurement</c> need the machine
+    /// of the developer; <c>NeedsMediumIntegrity</c> cannot work at Low integrity (docs/08, F5-5, ADR-0017 addendum).
+    /// </summary>
+    public static readonly IReadOnlyList<string> AlwaysExcluded =
+    [
+        "Category=ProviderLive", "Category=LocalTools", "Category=ConPty", "Category=Measurement", "Category=NeedsMediumIntegrity",
+    ];
+
+    /// <summary>The filters of the test step: <see cref="AlwaysExcluded"/> first, then each exclusion as a trait or as a class.</summary>
     public static IReadOnlyList<string> Filters(IReadOnlyList<string> exclusions)
     {
-        var filters = new List<string> { "--filter-not-trait", "Category=ProviderLive" };
-        foreach (var item in exclusions.Where(e => !string.Equals(e, "Category=ProviderLive", StringComparison.OrdinalIgnoreCase)))
+        var filters = new List<string>();
+        foreach (var category in AlwaysExcluded)
+        {
+            filters.Add("--filter-not-trait");
+            filters.Add(category);
+        }
+
+        foreach (var item in exclusions.Where(e => !AlwaysExcluded.Contains(e, StringComparer.OrdinalIgnoreCase)))
         {
             filters.Add(item.Contains('=', StringComparison.Ordinal) ? "--filter-not-trait" : "--filter-not-class");
             filters.Add(item);

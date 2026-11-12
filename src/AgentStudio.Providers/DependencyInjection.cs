@@ -5,6 +5,7 @@ using AgentStudio.Providers.Cli;
 using AgentStudio.Providers.Cli.Codex.AppServer;
 using AgentStudio.Providers.Composition;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace AgentStudio.Providers;
 
@@ -30,6 +31,10 @@ public static class DependencyInjection
         // never registered as IAgentProvider. Needs an IPromptJournalFactory (AddAgentStudioMemory) and a TimeProvider.
         services.AddSingleton<IProjectAgentProviders, ProjectAgentProviders>();
 
+        // Where the adapters and the quota reader make the folder of each run: the user's, unless the composition (a test)
+        // registers another one first.
+        services.TryAddSingleton(RunTempFolderOptions.ForCurrentUser());
+
         // The skills of each agent run (F3-9), materialized without touching the user's CLI configuration.
         services.AddSingleton<Application.Skills.ISkillMaterializer>(_ => new Skills.SkillMaterializer());
         return services;
@@ -52,7 +57,8 @@ public static class DependencyInjection
             sp.GetRequiredService<IStreamingProcessRunner>(),
             sp.GetRequiredService<IProcessRunner>(),
             optedIn(sp),
-            sp.GetRequiredService<TimeProvider>()) { WorkingDirectory = NeutralFolder(sp) }));
+            sp.GetRequiredService<TimeProvider>(),
+            tempFolders: sp.GetService<RunTempFolderOptions>()) { WorkingDirectory = NeutralFolder(sp) }));
         return services;
     }
 

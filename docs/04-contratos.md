@@ -1675,6 +1675,11 @@ public sealed record ContextPartSnapshot(ContextPartKind Kind, int Characters);
     ejecutor a `outputsSaidByAgent` (`origin: ReportedByAgent`) y la evidencia lleva `saidByAgent: ["outputs"]` en
     `dossier.json` (`DossierEvidenceFile.SaidByAgent`); el registro guardado, que lee la reanudación, no cambia (P46, adenda de
     ADR-0051).
+    Desde P54 (2026-11-11) lo mismo vale para las preguntas del orquestador: queda fuera el prompt de su planificación (en cada
+    intento; lo nombra el `AgentRunStarted` sin tarea y con propósito `Planner`) y todo informe de esa planificación que traiga
+    `questions` o no se pueda leer, y el planificador captura la misma decisión, con `task` nulo, al registrar la respuesta. Si la
+    ejecución revisada se planificó en otra (`RunStarted.PlannedIn`), el dosier toma de aquella solo esos `QuestionAnswered` y esa
+    evidencia.
 
 ### 21.4 Estimación, análisis, idioma y presencia (`Application`)
 

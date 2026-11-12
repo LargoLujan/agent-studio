@@ -16,7 +16,10 @@ namespace AgentStudio.Tests.Debate;
 public sealed class AnchoredHashesTests
 {
     private const string DebateProposalHash = "7894532f037ea18871f152a0405cd083c2b704ba15ffd658840031ea2d6e168e";
-    private const string AuditProposalHash = "397cf41bea70ecbdbd681c64b7037fe9d4d19aa4e1999554becae5908434967c";
+
+    // Taken again when P23 reached this branch (2026-11-12): the request of a whole-project audit now says which tests its profile does
+    // not exercise (ADR-0017 addendum), which is part of the text the header anchors. The value before it was 397cf41b….
+    private const string AuditProposalHash = "86af7d6036369e649820f89fc3263a054ccc03ec06b0ac0bf39084c0ca6ebbb7";
     private const string MilestoneReportHash = "b16b76a4b73ac2d45d25176815f3876238a985a985e41583939b48aaf81a6a3b";
     private const string PendingMessagesHash = "e28c510b28852013475e31e5406c70522d5164d45ea0b40a7aa9a8cc2f71e6ed";
 
