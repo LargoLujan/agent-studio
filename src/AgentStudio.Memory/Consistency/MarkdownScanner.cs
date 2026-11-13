@@ -54,6 +54,12 @@ internal static class MarkdownScanner
             lineNumber++;
             var raw = text.AsSpan(position, end - position);
             var blank = raw.Trim().IsEmpty;
+            if (fence is { Quoted: true } && !StartsWithQuote(raw))
+            {
+                // The quote that held the fence ended: so did the fence.
+                fence = null;
+            }
+
             if (fence is { } open)
             {
                 if (ClosesFence(raw, open))
@@ -93,7 +99,7 @@ internal static class MarkdownScanner
                 else
                 {
                     inIndented = inIndented && blank;
-                    if (!inComment && OpensFence(raw) is { } opened)
+                    if (!inComment && OpensFence(raw, inList) is { } opened)
                     {
                         fence = opened;
                         span.Reset();
@@ -117,6 +123,8 @@ internal static class MarkdownScanner
         steps = cost;
         return (links, code);
     }
+
+    private static bool StartsWithQuote(ReadOnlySpan<char> line) => StripQuote(ref line);
 
     private static int NextLineEnd(string text, int from)
     {
@@ -189,17 +197,60 @@ internal static class MarkdownScanner
         public void Reset() => (OpenLength, Lines) = (0, 0);
     }
 
-    private readonly record struct Fence(char Mark, int Length);
+    /// <summary>An open fence: its mark and length, whether it began inside a quote (it ends where the quote does) and whether it may be indented any amount (it is under a list item).</summary>
+    private readonly record struct Fence(char Mark, int Length, bool Quoted, bool Deep);
 
-    private static Fence? OpensFence(ReadOnlySpan<char> line)
+    /// <summary>Takes the quote markers (<c>&gt;</c>, each with up to three spaces before and one after) off the start of <paramref name="line"/>; true when there was at least one.</summary>
+    private static bool StripQuote(ref ReadOnlySpan<char> line)
+    {
+        var quoted = false;
+        while (true)
+        {
+            var spaces = 0;
+            while (spaces < line.Length && spaces < 4 && line[spaces] == ' ')
+            {
+                spaces++;
+            }
+
+            if (spaces > 3 || spaces >= line.Length || line[spaces] != '>')
+            {
+                return quoted;
+            }
+
+            quoted = true;
+            line = line[(spaces + 1)..];
+            if (line.Length > 0 && line[0] == ' ')
+            {
+                line = line[1..];
+            }
+        }
+    }
+
+    /// <summary>The count of the leading spaces (a tab counts as four), or -1 when it passes <paramref name="limit"/>.</summary>
+    private static int Indentation(ReadOnlySpan<char> line, int limit)
     {
         var indent = 0;
-        while (indent < line.Length && indent < 4 && line[indent] == ' ')
+        var i = 0;
+        while (i < line.Length && line[i] is ' ' or '\t')
         {
-            indent++;
+            indent += line[i] == '\t' ? 4 : 1;
+            if (indent > limit)
+            {
+                return -1;
+            }
+
+            i++;
         }
 
-        if (indent > 3 || indent >= line.Length || line[indent] is not ('`' or '~'))
+        return i;
+    }
+
+    private static Fence? OpensFence(ReadOnlySpan<char> line, bool inList)
+    {
+        var quoted = StripQuote(ref line);
+        var deep = inList && !quoted;
+        var indent = Indentation(line, deep ? int.MaxValue : 3);
+        if (indent < 0 || indent >= line.Length || line[indent] is not ('`' or '~'))
         {
             return null;
         }
@@ -212,18 +263,18 @@ internal static class MarkdownScanner
         }
 
         // The information string of a backtick fence holds no backtick (otherwise it is inline code, not a fence).
-        return length >= 3 && !(mark == '`' && line[(indent + length)..].Contains('`')) ? new Fence(mark, length) : null;
+        return length >= 3 && !(mark == '`' && line[(indent + length)..].Contains('`')) ? new Fence(mark, length, quoted, deep) : null;
     }
 
     private static bool ClosesFence(ReadOnlySpan<char> line, Fence open)
     {
-        var indent = 0;
-        while (indent < line.Length && indent < 4 && line[indent] == ' ')
+        if (open.Quoted)
         {
-            indent++;
+            StripQuote(ref line);
         }
 
-        if (indent > 3)
+        var indent = Indentation(line, open.Deep ? int.MaxValue : 3);
+        if (indent < 0)
         {
             return false;
         }
@@ -236,7 +287,6 @@ internal static class MarkdownScanner
 
         return length >= open.Length && line[(indent + length)..].Trim().IsEmpty;
     }
-
     /// <summary>The next <c>&lt;!--</c> at or after <paramref name="from"/> that is not escaped, or -1.</summary>
     private static int IndexOfComment(ReadOnlySpan<char> line, int from, bool[] escaped)
     {
@@ -285,7 +335,7 @@ internal static class MarkdownScanner
         var runs = new List<(int Start, int Length)>();
         for (var i = 0; i < raw.Length;)
         {
-            if (raw[i] == '`' && !escaped[i])
+            if (raw[i] == '`')
             {
                 var start = i;
                 while (i < raw.Length && raw[i] == '`')
@@ -380,6 +430,14 @@ internal static class MarkdownScanner
             }
 
             var (start, length) = runs[run];
+            if (escaped[start])
+            {
+                // A backslash escapes a backtick only outside a code span: this one is a plain character (and its whole run, which is the rare case).
+                run++;
+                position = start + length;
+                continue;
+            }
+
             if (closing[run] < 0)
             {
                 // A run that nothing on this line closes: the span may close on a later line of the paragraph, and everything after it is code until then.

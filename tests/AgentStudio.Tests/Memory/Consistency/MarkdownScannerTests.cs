@@ -68,7 +68,8 @@ public sealed class MarkdownScannerTests
 
         // Without a budget each of the 500 candidates of a line read up to 500 characters (250 000 a line); with it, a line reads at most its budget and one destination more.
         Assert.True(steps <= 200L * (MarkdownScanner.LineBudget + line.Length + MarkdownScanner.MaxDestinationLength), steps.ToString());
-        Assert.True(steps < text.Length * 3L, $"{steps} for {text.Length} characters");
+        // Linear in the text: one character per character of each line, plus the fixed budget and the last destination of each line, whatever the lines hold.
+        Assert.True(steps <= text.Length + 200L * (MarkdownScanner.LineBudget + MarkdownScanner.MaxDestinationLength), $"{steps} for {text.Length} characters");
     }
 
     [Fact]
@@ -96,6 +97,46 @@ public sealed class MarkdownScannerTests
         var text = string.Join('\n', "- uno", "", "    - [anidado](a.md)", "", "    párrafo que sigue [aquí](b.md)", "", "Fuera de la lista.", "", "    [código](c.md)", "");
 
         Assert.Equal(["a.md", "b.md"], Destinations(text));
+    }
+
+    [Fact]
+    public void A_backslash_does_not_escape_the_closing_backtick_of_a_code_span()
+    {
+        var text = "La ruta `C:\\` y [uno](a.md) y `D:\\` [dos](b.md)\n\nUn \\` escapado y [tres](c.md)\n";
+
+        var (links, code) = MarkdownScanner.Scan(text);
+
+        Assert.Equal(["a.md", "b.md", "c.md"], links.Select(l => l.Destination));
+        Assert.Equal(["C:\\", "D:\\"], code.Select(c => c.Text));
+    }
+
+    [Fact]
+    public void A_fence_indented_under_a_list_item_or_inside_a_quote_is_a_fence_and_what_is_in_it_is_not_scanned()
+    {
+        var text = string.Join(
+            '\n',
+            "- elemento",
+            "",
+            "      ```",
+            "      [dentro](x.md)",
+            "      - [otro](y.md)",
+            "      # [titulo](z.md)",
+            "      ```",
+            "",
+            "- [fuera de la valla](a.md)",
+            "",
+            "> ```",
+            "> [en cita](q.md)",
+            "> | [tabla](t.md) |",
+            "> ```",
+            "> [tras la valla](b.md)",
+            "",
+            "> ~~~",
+            "> [sin cerrar](u.md)",
+            "",
+            "[fin de la cita](c.md)");
+
+        Assert.Equal(["a.md", "b.md", "c.md"], Destinations(text));
     }
 
     [Fact]

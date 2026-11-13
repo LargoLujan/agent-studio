@@ -27,13 +27,17 @@ public sealed class LiveConsistency
     /// The report with the two codes of the log and the cache recalculated. A check that cannot be done is a finding of <see cref="ConsistencyCodes.CheckFailed"/>, never a silent
     /// «nothing». Without the milestones (the check is not composed) the saved findings of <see cref="ConsistencyCodes.RequirementUncovered"/> stay.
     /// </summary>
-    public async Task<ConsistencyReport> RefreshAsync(ProjectContext project, CommitAnalysis saved, CancellationToken ct)
+    public Task<ConsistencyReport> RefreshAsync(ProjectContext project, CommitAnalysis saved, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(project);
         ArgumentNullException.ThrowIfNull(saved);
 
-        // The work below (the index, the rendering of the diagrams, the log) never starts on the thread that called, which may be the one of the interface.
-        await Task.Run(static () => { }).ConfigureAwait(false);
+        // All the work (the index, the rendering of the diagrams, the log) is queued to the pool from its first line: it never starts on the thread that called, which may be the one of the interface.
+        return Task.Run(() => RefreshCoreAsync(project, saved, ct), ct);
+    }
+
+    private async Task<ConsistencyReport> RefreshCoreAsync(ProjectContext project, CommitAnalysis saved, CancellationToken ct)
+    {
         var report = saved.Consistency;
         var notApplicable = report.NotApplicable.ToList();
         var findings = report.Findings
