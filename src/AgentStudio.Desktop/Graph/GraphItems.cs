@@ -125,14 +125,25 @@ public sealed class GraphWireItem
 }
 
 /// <summary>A line of the list that stands for the canvas: for the keyboard and the screen reader, the same graph as words (docs/20 D-22).</summary>
-public sealed record GraphRowItem(string Id, string Text, bool IsInferred);
+public sealed record GraphRowItem(string Id, string Text, bool IsInferred)
+{
+    /// <summary>A list item that is not a control is named by its text, not by its type.</summary>
+    public override string ToString() => Text;
+}
 
 /// <summary>A thing of the legend.</summary>
-public sealed record GraphLegendItem(string Text, bool IsDashed, bool IsPartial);
+public sealed record GraphLegendItem(string Text, bool IsDashed, bool IsPartial)
+{
+    /// <summary>A list item that is not a control is named by its text, not by its type.</summary>
+    public override string ToString() => Text;
+}
 
 /// <summary>A gap of the model painted: what it says, where and on which node.</summary>
 public sealed record GraphGapRow(string NodeName, string Text, string Where)
 {
+    /// <summary>A list item that is not a control is named by its text, not by its type.</summary>
+    public override string ToString() => NodeName + ": " + Text + " (" + Where + ")";
+
     internal static GraphGapRow From(CodeGraph graph, GraphGap gap)
     {
         var node = graph.Nodes.FirstOrDefault(n => n.Id == gap.NodeId);
@@ -142,7 +153,11 @@ public sealed record GraphGapRow(string NodeName, string Text, string Where)
 }
 
 /// <summary>A file that declares a namespace: where the person goes from a namespace of the graph (F6-5).</summary>
-public sealed record GraphFileRow(string Path);
+public sealed record GraphFileRow(string Path)
+{
+    /// <summary>A list item that is not a control is named by its text, not by its type.</summary>
+    public override string ToString() => Path;
+}
 
 /// <summary>A task whose attempts changed files of a project: where the person goes from a project of the graph to the work (F6-5).</summary>
 public sealed record GraphTaskRow(GraphTaskRef Task)
@@ -150,4 +165,6 @@ public sealed record GraphTaskRow(GraphTaskRef Task)
     public string Text => Texts.Format("Graph_Task_Line", Task.Title, Task.ChangedPaths.Count);
 
     public string AutomationName => Texts.Format("Graph_Task_Open", Task.Title);
+
+    public override string ToString() => AutomationName;
 }
