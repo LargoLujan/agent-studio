@@ -1,10 +1,14 @@
+using System.Reflection;
 using AgentStudio.Application.Diagnostics;
+using AgentStudio.Application.Verification;
 using AgentStudio.Desktop.Composition;
 using AgentStudio.Desktop.Doctor;
 using AgentStudio.Desktop.Services;
 using AgentStudio.Desktop.ViewModels;
 using AgentStudio.Domain.Diagnostics;
 using AgentStudio.Infrastructure.Diagnostics;
+using AgentStudio.Infrastructure.Environments;
+using AgentStudio.Orchestration.Verification;
 using AgentStudio.Tests.TestSupport;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -22,7 +26,7 @@ public sealed class DoctorCompositionTests
     }
 
     [Fact]
-    public void The_service_the_door_the_sources_and_the_runner_of_fixes_resolve_with_the_four_sections_of_this_package()
+    public void The_service_the_door_the_sources_and_the_runner_of_fixes_resolve_with_the_sections_of_this_package_and_the_declared_environment()
     {
         using var temp = new TempDirectory();
         using var provider = Build(temp);
@@ -34,7 +38,26 @@ public sealed class DoctorCompositionTests
         Assert.Same(provider.GetRequiredService<ToolSnapshotProvider>(), provider.GetRequiredService<IInstalledToolInventory>());
         Assert.Contains(provider.GetServices<IDoctorRunScope>(), s => ReferenceEquals(s, provider.GetRequiredService<ToolSnapshotProvider>()));
         var sections = provider.GetServices<IDoctorCheckSource>().Select(s => s.Section).Order().ToArray();
-        Assert.Equal([DoctorSection.Providers, DoctorSection.Tools, DoctorSection.Project, DoctorSection.Containers], sections);
+        Assert.Equal([DoctorSection.Providers, DoctorSection.Tools, DoctorSection.Project, DoctorSection.DeclaredEnvironment, DoctorSection.Containers], sections);
+    }
+
+    [Fact]
+    public void The_declared_environment_is_composed_after_the_inventory_it_compares_with_and_its_reader_of_versions_reaches_the_runner_of_verification()
+    {
+        using var temp = new TempDirectory();
+        using var provider = Build(temp);
+
+        // The source of the declared environment is the one of WP-E, built over the inventory of WP-A (one object for the sources of tools and the comparison).
+        Assert.Single(provider.GetServices<IDoctorCheckSource>(), s => s is DeclaredEnvironmentCheckSource);
+        Assert.Same(provider.GetRequiredService<ToolSnapshotProvider>(), provider.GetRequiredService<IInstalledToolInventory>());
+        Assert.IsType<DeclaredEnvironmentReader>(provider.GetRequiredService<IDeclaredEnvironmentReader>());
+
+        // The block «tools» of the proof of a step needs this reader in the runner the app really uses, not only in the container.
+        var reader = Assert.IsType<StepToolVersionReader>(provider.GetRequiredService<IStepToolVersionReader>());
+        var runner = Assert.IsType<VerificationRunner>(provider.GetRequiredService<IVerificationRunner>());
+        var held = typeof(VerificationRunner).GetField("_toolVersions", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(held);
+        Assert.Same(reader, held.GetValue(runner));
     }
 
     [Fact]

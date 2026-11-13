@@ -49,7 +49,7 @@ public sealed partial class DoctorCheckViewModel : ObservableObject
         Explanation = DoctorTexts.Explanation(texts, check);
         StatusName = texts.Get(DoctorTexts.StatusKey(check.Status));
         Glyph = GlyphOf(check.Status);
-        Facts = [.. check.Facts.Select(f => new DoctorFactItem(DoctorTexts.FactLabel(texts, f.Name), f.Value))];
+        Facts = [.. check.Facts.Select(f => new DoctorFactItem(DoctorTexts.FactLabel(texts, f.Name), DoctorTexts.FactValue(texts, check, f)))];
         AutomationName = texts.Format("Doctor_Check_AutomationName", Title, StatusName);
         FixKind = fix switch
         {
@@ -72,9 +72,11 @@ public sealed partial class DoctorCheckViewModel : ObservableObject
             GuidePage = guide.Page;
         }
 
-        Declared = check.Fact(DoctorFactNames.Declared) ?? "—";
+        Declared = ValueOf(DoctorFactNames.Declared) ?? "—";
         Source = check.Fact(DoctorFactNames.Source) ?? "—";
-        Installed = check.Fact(DoctorFactNames.Installed) ?? check.Fact(DoctorFactNames.Resolved) ?? "—";
+        Installed = ValueOf(DoctorFactNames.Installed) ?? ValueOf(DoctorFactNames.Resolved) ?? "—";
+
+        string? ValueOf(string name) => check.Facts.FirstOrDefault(f => f.Name == name) is { } fact ? DoctorTexts.FactValue(texts, check, fact) : null;
     }
 
     public DoctorCheck Check { get; }

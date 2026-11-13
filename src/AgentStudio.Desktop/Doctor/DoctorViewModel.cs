@@ -333,7 +333,7 @@ public sealed partial class DoctorViewModel : ObservableObject, IDisposable
             var checks = report.Checks.Where(c => c.Section == section).ToList();
             if (checks.Count == 0)
             {
-                // A section with no source registered (the declared environment until it is composed) is not shown as «no aplica»: it is not there.
+                // A section with no check (no source registered, or the declared environment with no project open) is not shown as «no aplica»: it is not there.
                 continue;
             }
 

@@ -4,7 +4,7 @@ namespace AgentStudio.Domain.Environments;
 
 /// <summary>
 /// The codes of the checks of the declared environment (docs/20 D-07 and D-08) and of the fixes they name. The panel paints a title and an explanation from each
-/// code (ADR-0054); the fix codes are the ones Auto Doctor registers (<c>IDoctorFixRunner</c>), which this package only names.
+/// code (ADR-0054); the fix codes are the ones of the closed list of Auto Doctor (<c>DoctorFixCatalog</c>, which the domain cannot call, so a test keeps both in step): this package only names them, and a fix that is not on the list paints no button.
 /// </summary>
 public static class EnvironmentCheckCodes
 {
@@ -22,12 +22,12 @@ public static class EnvironmentCheckCodes
     public const string Containers = "doctor.env.containers";
     public const string NotRead = "doctor.env.not-read";
 
-    public const string FixInstallDotNetSdk = "fix.install-dotnet-sdk";
-    public const string FixInstallNode = "fix.install-node";
-    public const string FixInstallPython = "fix.install-python";
-    public const string FixInstallDocker = "fix.install-docker";
-    public const string FixStartDocker = "fix.start-docker";
-    public const string FixRestoreDotNetTools = "fix.restore-dotnet-tools";
+    public const string FixInstallDotNetSdk = "doctor.fix.install-dotnet";
+    public const string FixInstallNode = "doctor.fix.install-node";
+    public const string FixInstallPython = "doctor.fix.install-python";
+    public const string FixInstallDocker = "doctor.fix.install-docker";
+    public const string FixStartDocker = "doctor.fix.start-docker";
+    public const string FixRestoreDotNetTools = "doctor.fix.restore-dotnet-tools";
 
     /// <summary>The checks, in the order the table of the declared environment shows them.</summary>
     public static IReadOnlyList<string> All { get; } =
