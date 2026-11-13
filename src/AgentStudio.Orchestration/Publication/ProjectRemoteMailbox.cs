@@ -677,11 +677,12 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
     /// <summary>One last try of what is parked and is only a write to the log (never a stretch of the person's work).</summary>
     private async Task FlushAsync()
     {
-        _noTakeBefore = DateTimeOffset.MinValue;
         foreach (var item in _parked.Where(p => p.Flow is null).ToList())
         {
             try
             {
+                // The courtesy second is waived for every item, not only the first: each one that takes the project would start it again and leave the rest parked.
+                _noTakeBefore = DateTimeOffset.MinValue;
                 var written = item.Note is { } note ? await note().ConfigureAwait(false) : item.Observation is { } observation && await AnnotateObservationAsync(observation, item.Run).ConfigureAwait(false);
                 if (written)
                 {

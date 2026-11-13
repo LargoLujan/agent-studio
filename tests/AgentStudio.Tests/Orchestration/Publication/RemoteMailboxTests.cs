@@ -249,13 +249,16 @@ public sealed class RemoteMailboxTests
         await rig.Sync.SyncNowAsync(PublicationRig.Project, CancellationToken.None);
         Assert.Equal(1, rig.Trace.Count("gh:observe"));
 
-        await rig.AdvanceAsync(TimeSpan.FromSeconds(30));
+        // Seconds from the start: the poll ticks at 30, 60, 90…; the first failure was at second 2 (after the follow), so the first wait ends at 62.
+        await rig.AdvanceAsync(TimeSpan.FromSeconds(60)); // second 62: the ticks at 30 and 60 fell inside the wait
         Assert.Equal(1, rig.Trace.Count("gh:observe"));
-        await rig.AdvanceAsync(TimeSpan.FromSeconds(30));
+        await rig.AdvanceAsync(TimeSpan.FromSeconds(30)); // second 92: the tick at 90 is the first after it
         Assert.Equal(2, rig.Trace.Count("gh:observe"));
-        await rig.AdvanceAsync(TimeSpan.FromSeconds(90));
+
+        // The second failure was at second 90 and its wait is two minutes: until 210.
+        await rig.AdvanceAsync(TimeSpan.FromSeconds(90)); // second 182: the ticks at 120, 150 and 180 fall inside it
         Assert.Equal(2, rig.Trace.Count("gh:observe"));
-        await rig.AdvanceAsync(TimeSpan.FromSeconds(30));
+        await rig.AdvanceAsync(TimeSpan.FromSeconds(30)); // second 212: the tick at 210 is the first after it
         Assert.Equal(3, rig.Trace.Count("gh:observe"));
         Assert.Empty(rig.Log.Observations());
         Assert.Equal(HostingOutcome.Unreachable, rig.Sync.Health("p1").LastOutcome);

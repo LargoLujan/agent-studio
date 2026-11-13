@@ -92,20 +92,20 @@ public sealed class PublicationThirdRoundTests
         await rig.Service.PublishAsync(Request(), CancellationToken.None);
         await rig.AdvanceAsync(TimeSpan.FromSeconds(2));
         var box = await rig.BoxAsync();
-        Assert.True(box.ParkedCount > 0);
+        Assert.True(box.ParkedCount > 0, "nothing parked before the close; trace: " + string.Join(",", rig.Trace.Events));
         var before = rig.Log.Count(DecisionKind.HostingOperationPerformed);
         rig.Provider.ObserveDelay = ct => Task.Delay(Timeout.Infinite, ct);
         rig.Provider.Observe = (_, _) => Seen(HostingP0Data.Open());
         var sync = rig.Sync.SyncNowAsync(PublicationRig.Project, CancellationToken.None);
-        while (rig.Trace.Count("gh:observe") == 0)
-        {
-            await Task.Yield();
-        }
+
+        // The signal that the consumer is inside the long call: the provider double completes it on entering. Nothing is assumed about how fast the consumer runs.
+        await rig.Provider.ObserveEntered.Task.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
 
         await rig.DisposeAsync();
 
-        Assert.True(sync.IsCompleted);
-        Assert.True(rig.Log.Count(DecisionKind.HostingOperationPerformed) > before);
+        // The click ends with the close: its task is awaited (its continuation runs on the pool, so it may not have run yet when the close returns); the ceiling only turns a hang into a failure.
+        await sync.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+        Assert.True(rig.Log.Count(DecisionKind.HostingOperationPerformed) > before, "nothing parked was written at the close; trace: " + string.Join(",", rig.Trace.Events));
         Assert.Null(rig.Activity.Current("p1"));
     }
 
