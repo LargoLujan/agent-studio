@@ -56,6 +56,15 @@ public sealed class VerificationTitleRulesTests
     }
 
     [Fact]
+    public void A_title_made_only_of_joiners_and_soft_hyphens_looks_empty_and_is_refused()
+    {
+        var invisible = char.ConvertFromUtf32(0x200D) + char.ConvertFromUtf32(0x200C) + char.ConvertFromUtf32(0x00AD);
+
+        Assert.Contains(VerificationRules.Check(Step(invisible)), p => p.Contains("no visible character", StringComparison.Ordinal));
+        Assert.Contains(VerificationRules.Check(Step(" " + invisible + " ")), p => p.Contains("no visible character", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void A_joiner_does_not_open_the_door_to_a_line_break_next_to_it()
     {
         var forged = "Compilar" + char.ConvertFromUtf32(0x200D) + "\n# falso";

@@ -137,6 +137,11 @@ public static partial class VerificationRules
         {
             problems.Add($"Step '{id}': the title contains a control character (it is written in the header of the evidence).");
         }
+        else if (!HasVisibleCharacter(step.Title))
+        {
+            // Only joiners and soft hyphens are admitted, and they draw nothing: such a title would look empty.
+            problems.Add($"Step '{id}': the title has no visible character.");
+        }
 
         if (string.IsNullOrWhiteSpace(step.Executable))
         {
@@ -255,6 +260,19 @@ public static partial class VerificationRules
     /// refused, because they would end the line or reorder what the person reads. The zero-width joiner and non-joiner and the soft hyphen are admitted: they are in real titles (emoji made
     /// of several, words of several scripts) and none of them ends a line, reorders text or draws anything, so they cannot forge a header.
     /// </summary>
+    private static bool HasVisibleCharacter(string title)
+    {
+        foreach (var rune in title.EnumerateRunes())
+        {
+            if (!AgentStudio.Domain.Common.UntrustedText.IsHidden(rune) && !System.Text.Rune.IsWhiteSpace(rune))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static bool HasHiddenInTitle(string title)
     {
         foreach (var rune in title.EnumerateRunes())
