@@ -46,6 +46,22 @@ public static class RepositoryTexts
         _ => kind.ToString(),
     };
 
+    /// <summary>
+    /// What happened, as the timeline names it, with what a remote entry says of itself (Phase 10): the operation the app did («Publicó la rama»…) and the changes it observed
+    /// («Se fusionó», «La rama base cambió»…), with the pull request. An entry that says nothing more is named by its kind.
+    /// </summary>
+    public static string Kind(RepositoryActivity activity)
+    {
+        ArgumentNullException.ThrowIfNull(activity);
+        var text = activity switch
+        {
+            { Kind: RepositoryActivityKind.RemoteOperation, Operation: { } operation } => Texts.Get("Hosting_Op_" + operation),
+            { Kind: RepositoryActivityKind.RemoteObservation, Changes: { Count: > 0 } changes } => string.Join(", ", changes.Select(c => Texts.Get("Hosting_Change_" + c))),
+            _ => Kind(activity.Kind),
+        };
+        return activity.PullRequest is { } number ? Texts.Format("Hosting_Activity_OfPr", text, number) : text;
+    }
+
     /// <summary>What failed in an event of the timeline, from its code (never the raw code alone).</summary>
     public static string Error(string code) => code switch
     {

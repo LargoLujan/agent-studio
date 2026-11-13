@@ -29,6 +29,9 @@ public sealed class PullRequestDetail
 
     public bool VerdictOnlyAsComment { get; init; }
 
+    /// <summary>«Actualizar el PR…»: publishing the same run again updates the pull request that exists (docs/21 D-18), with the text the person edits.</summary>
+    public bool CanUpdate { get; init; }
+
     public bool CanRequestReviewers { get; init; }
 
     public bool CanMerge { get; init; }

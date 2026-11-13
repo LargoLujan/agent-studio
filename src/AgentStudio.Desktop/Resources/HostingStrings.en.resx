@@ -333,13 +333,13 @@
     <value>It asks for reviews before merging.</value>
   </data>
   <data name="Hosting_Rule_RequiredReviews_Count" xml:space="preserve">
-    <value>It asks for at least {0} reviews before merging.</value>
+    <value>Reviews it asks for before merging: {0}.</value>
   </data>
   <data name="Hosting_Rule_RequiredChecks" xml:space="preserve">
     <value>It asks for some checks to pass.</value>
   </data>
   <data name="Hosting_Rule_RequiredChecks_Count" xml:space="preserve">
-    <value>It asks for {0} checks to pass.</value>
+    <value>Checks that must pass: {0}.</value>
   </data>
   <data name="Hosting_Rule_SignedCommits" xml:space="preserve">
     <value>It asks for signed saved versions (commit).</value>
@@ -836,5 +836,131 @@ If needed, reopen the milestone.</value>
   </data>
   <data name="Text_remote_merge_unknown" xml:space="preserve">
     <value>Merged, in a way that is not known</value>
+  </data>
+  <data name="Hosting_Pr_Loading" xml:space="preserve">
+    <value>Reading the pull requests of this project…</value>
+  </data>
+  <data name="Hosting_Pr_OtherRepository" xml:space="preserve">
+    <value>The history follows {0} pull requests of another repository. The remote of this project changed and they are not shown here.</value>
+  </data>
+  <data name="Hosting_Sync_TurnedOn" xml:space="preserve">
+    <value>Sync with GitHub is now on for this project.</value>
+  </data>
+  <data name="Hosting_Sync_TurnedOff" xml:space="preserve">
+    <value>Sync with GitHub is now off for this project.</value>
+  </data>
+  <data name="Hosting_Card_Stale" xml:space="preserve">
+    <value>The pull request changed and that action can no longer be done. The card was closed.</value>
+  </data>
+  <data name="Hosting_Merge_NoJudged" xml:space="preserve">
+    <value>It cannot be merged from here: it is not known which version the independent reviewer (judge) saw.</value>
+  </data>
+  <data name="Hosting_Merge_HeadMoved" xml:space="preserve">
+    <value>It cannot be merged from here: the head changed after the review. Ask for a new review.</value>
+  </data>
+  <data name="Hosting_Merge_Exact" xml:space="preserve">
+    <value>GitHub only merges if the head is still exactly that version.</value>
+  </data>
+  <data name="Hosting_Card_Where" xml:space="preserve">
+    <value>In {0}, head {1}.</value>
+  </data>
+  <data name="Hosting_Published_None" xml:space="preserve">
+    <value>The result of the review was not published on the pull request yet.</value>
+  </data>
+  <data name="Hosting_Published_Same" xml:space="preserve">
+    <value>Published on the pull request: {0}</value>
+  </data>
+  <data name="Hosting_Published_Stale" xml:space="preserve">
+    <value>The result of the review changed and the pull request still says the former one.</value>
+  </data>
+  <data name="Hosting_Milestone_Of" xml:space="preserve">
+    <value>Milestone {0}</value>
+  </data>
+  <data name="Hosting_Action_Update" xml:space="preserve">
+    <value>Update the PR…</value>
+  </data>
+  <data name="Hosting_Update_Heading" xml:space="preserve">
+    <value>Update pull request #{0}</value>
+  </data>
+  <data name="Hosting_Update_Confirm" xml:space="preserve">
+    <value>Update the pull request</value>
+  </data>
+  <data name="Hosting_Update_Replaces" xml:space="preserve">
+    <value>The title and the text below replace those of the pull request.</value>
+  </data>
+  <data name="Hosting_Update_NoUpdate" xml:space="preserve">
+    <value>This version of gh does not update pull requests.</value>
+  </data>
+  <data name="Hosting_Publish_OpenFor" xml:space="preserve">
+    <value>Publish and open PR of the run {0}</value>
+  </data>
+  <data name="Hosting_Permissions_RevokeFor" xml:space="preserve">
+    <value>Withdraw the permission: {0}, {1}</value>
+  </data>
+  <data name="Hosting_Activity_OfPr" xml:space="preserve">
+    <value>{0} · PR #{1}</value>
+  </data>
+  <data name="Hosting_Op_PushRunBranch" xml:space="preserve">
+    <value>Published the branch</value>
+  </data>
+  <data name="Hosting_Op_OpenPullRequest" xml:space="preserve">
+    <value>Opened the pull request</value>
+  </data>
+  <data name="Hosting_Op_UpdatePullRequest" xml:space="preserve">
+    <value>Updated the pull request</value>
+  </data>
+  <data name="Hosting_Op_RequestReviewers" xml:space="preserve">
+    <value>Asked for a review</value>
+  </data>
+  <data name="Hosting_Op_PublishVerdictStatus" xml:space="preserve">
+    <value>Published the verdict status</value>
+  </data>
+  <data name="Hosting_Op_PublishVerdictComment" xml:space="preserve">
+    <value>Published the verdict comment</value>
+  </data>
+  <data name="Hosting_Op_MergePullRequest" xml:space="preserve">
+    <value>Asked to merge</value>
+  </data>
+  <data name="Hosting_Op_ClosePullRequest" xml:space="preserve">
+    <value>Asked to close</value>
+  </data>
+  <data name="Hosting_Op_DeleteRemoteBranch" xml:space="preserve">
+    <value>Asked to delete the remote branch</value>
+  </data>
+  <data name="Hosting_Change_Opened" xml:space="preserve">
+    <value>Opened</value>
+  </data>
+  <data name="Hosting_Change_HeadMoved" xml:space="preserve">
+    <value>The head changed</value>
+  </data>
+  <data name="Hosting_Change_ForcePushed" xml:space="preserve">
+    <value>A forced push happened</value>
+  </data>
+  <data name="Hosting_Change_Merged" xml:space="preserve">
+    <value>Merged</value>
+  </data>
+  <data name="Hosting_Change_Closed" xml:space="preserve">
+    <value>Closed</value>
+  </data>
+  <data name="Hosting_Change_Reopened" xml:space="preserve">
+    <value>Reopened</value>
+  </data>
+  <data name="Hosting_Change_HeadBranchDeleted" xml:space="preserve">
+    <value>The branch was deleted</value>
+  </data>
+  <data name="Hosting_Change_ChecksChanged" xml:space="preserve">
+    <value>The checks changed</value>
+  </data>
+  <data name="Hosting_Change_ReviewsChanged" xml:space="preserve">
+    <value>The reviews changed</value>
+  </data>
+  <data name="Hosting_Change_RevertSuspected" xml:space="preserve">
+    <value>Possible revert</value>
+  </data>
+  <data name="Hosting_Change_DeploymentChanged" xml:space="preserve">
+    <value>The deployment changed</value>
+  </data>
+  <data name="Hosting_Change_BaseChanged" xml:space="preserve">
+    <value>The base branch changed</value>
   </data>
 </root>

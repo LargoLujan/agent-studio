@@ -68,6 +68,21 @@ public sealed partial class PublishingPermissionsViewModel : ObservableObject
     /// <summary>Whether a permission can be given: there is a project, a recognised repository and a gate.</summary>
     public bool CanGrant => _gate is not null && _project is not null && _repository is not null;
 
+    /// <summary>
+    /// Leaves the project: no permission of it stays on screen, and «Dar permiso…» and «Retirar» have nothing to act on until a project and its repository are loaded again. Every way out of
+    /// a project (a change, none, not available, no remote, an error of reading) comes through here.
+    /// </summary>
+    public void Reset()
+    {
+        _generation++;
+        _project = null;
+        _repository = null;
+        Grants.Clear();
+        Note = null;
+        IsBusy = false;
+        OnPropertyChanged(nameof(CanGrant));
+    }
+
     /// <summary>The permissions of the project for the repository, read again from the gate (it reads the log); null repository clears them.</summary>
     public async Task LoadAsync(ProjectContext? project, RemoteRepository? repository)
     {
@@ -76,7 +91,7 @@ public sealed partial class PublishingPermissionsViewModel : ObservableObject
         _repository = repository;
         OnPropertyChanged(nameof(CanGrant));
         Note = null;
-        if (_gate is null || project is null)
+        if (_gate is null || project is null || repository is null)
         {
             Grants.Clear();
             return;
@@ -163,7 +178,7 @@ public sealed partial class PublishingPermissionsViewModel : ObservableObject
     [RelayCommand]
     private async Task RevokeAsync(GrantRow? row)
     {
-        if (_gate is null || _project is not { } project || row is null)
+        if (_gate is null || _project is not { } project || row is null || !Grants.Contains(row))
         {
             return;
         }

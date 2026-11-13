@@ -81,9 +81,9 @@ public abstract partial class HostingCardViewModel : ObservableObject
             _sent(Texts.Get("Hosting_Card_Sent"));
             _close();
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (source.IsCancellationRequested)
         {
-            // The person closed the card: nothing to say.
+            // The person closed the card: nothing to say. A timeout inside a port is not that: it falls to the general answer below.
         }
         catch (UserTextException refusal)
         {
@@ -253,7 +253,11 @@ public sealed partial class PublishCardViewModel : HostingCardViewModel
         IPublicationService service,
         Action close,
         Action<string> sent)
-        : base(Texts.Get("Hosting_Publish_Button"), Texts.Get("Hosting_Publish_Confirm"), close, sent)
+        : base(
+            preview.Existing is { } existing ? Texts.Format("Hosting_Update_Heading", existing.Number) : Texts.Get("Hosting_Publish_Button"),
+            Texts.Get(preview.Existing is null ? "Hosting_Publish_Confirm" : "Hosting_Update_Confirm"),
+            close,
+            sent)
     {
         _project = project;
         _run = run;
@@ -284,7 +288,8 @@ public sealed partial class PublishCardViewModel : HostingCardViewModel
     public override bool ShowsConfirm { get; }
 
     private bool Offered =>
-        _preview.Ready && _preview.Repository is not null && _preview.BaseBranch is not null && _preview.Capabilities.Has(HostingCapability.OpenPullRequest);
+        _preview.Ready && _preview.Repository is not null && _preview.BaseBranch is not null
+        && _preview.Capabilities.Has(_preview.Existing is null ? HostingCapability.OpenPullRequest : HostingCapability.UpdatePullRequest);
 
     protected override bool CanConfirm => Offered && !string.IsNullOrWhiteSpace(Title);
 
@@ -319,6 +324,7 @@ public sealed partial class PublishCardViewModel : HostingCardViewModel
         if (preview.Existing is { } existing)
         {
             Lines.Add(new CardLine(Texts.Format("Hosting_Publish_Existing", existing.Number)));
+            Lines.Add(new CardLine(Texts.Get("Hosting_Update_Replaces")));
         }
 
         if (preview.Rules is { } rules && preview.BaseBranch is { } protectedBranch)
@@ -347,9 +353,9 @@ public sealed partial class PublishCardViewModel : HostingCardViewModel
             }
         }
 
-        if (!preview.Capabilities.Has(HostingCapability.OpenPullRequest))
+        if (!preview.Capabilities.Has(preview.Existing is null ? HostingCapability.OpenPullRequest : HostingCapability.UpdatePullRequest))
         {
-            Lines.Add(new CardLine(Texts.Get("Hosting_Publish_NoOpen"), true));
+            Lines.Add(new CardLine(Texts.Get(preview.Existing is null ? "Hosting_Publish_NoOpen" : "Hosting_Update_NoUpdate"), true));
         }
 
         if (preview.Capabilities.UntestedCliVersion)

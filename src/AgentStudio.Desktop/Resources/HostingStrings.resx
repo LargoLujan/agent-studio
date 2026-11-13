@@ -344,13 +344,13 @@
     <value>Pide revisiones antes de fusionar.</value>
   </data>
   <data name="Hosting_Rule_RequiredReviews_Count" xml:space="preserve">
-    <value>Pide al menos {0} revisiones antes de fusionar.</value>
+    <value>Revisiones que pide antes de fusionar: {0}.</value>
   </data>
   <data name="Hosting_Rule_RequiredChecks" xml:space="preserve">
     <value>Pide que pasen ciertos checks.</value>
   </data>
   <data name="Hosting_Rule_RequiredChecks_Count" xml:space="preserve">
-    <value>Pide que pasen {0} checks.</value>
+    <value>Checks que tienen que pasar: {0}.</value>
   </data>
   <data name="Hosting_Rule_SignedCommits" xml:space="preserve">
     <value>Pide versiones guardadas (commit) firmadas.</value>
@@ -849,5 +849,131 @@ Si hace falta, reabre el hito.</value>
   </data>
   <data name="Text_remote_merge_unknown" xml:space="preserve">
     <value>Fusionado, de una forma que no se sabe</value>
+  </data>
+  <data name="Hosting_Pr_Loading" xml:space="preserve">
+    <value>Leyendo las peticiones de fusión de este proyecto…</value>
+  </data>
+  <data name="Hosting_Pr_OtherRepository" xml:space="preserve">
+    <value>El historial sigue {0} peticiones de otro repositorio. El remoto de este proyecto cambió y no se enseñan aquí.</value>
+  </data>
+  <data name="Hosting_Sync_TurnedOn" xml:space="preserve">
+    <value>Sincronizar con GitHub queda activado en este proyecto.</value>
+  </data>
+  <data name="Hosting_Sync_TurnedOff" xml:space="preserve">
+    <value>Sincronizar con GitHub queda desactivado en este proyecto.</value>
+  </data>
+  <data name="Hosting_Card_Stale" xml:space="preserve">
+    <value>La petición cambió y esa acción ya no se puede hacer. Se cerró la tarjeta.</value>
+  </data>
+  <data name="Hosting_Merge_NoJudged" xml:space="preserve">
+    <value>No se puede fusionar desde aquí: no consta qué versión revisó el revisor independiente (juez).</value>
+  </data>
+  <data name="Hosting_Merge_HeadMoved" xml:space="preserve">
+    <value>No se puede fusionar desde aquí: la cabeza cambió después de la revisión. Pide una revisión nueva.</value>
+  </data>
+  <data name="Hosting_Merge_Exact" xml:space="preserve">
+    <value>GitHub solo fusiona si la cabeza sigue siendo exactamente esa versión.</value>
+  </data>
+  <data name="Hosting_Card_Where" xml:space="preserve">
+    <value>En {0}, cabeza {1}.</value>
+  </data>
+  <data name="Hosting_Published_None" xml:space="preserve">
+    <value>El resultado de la revisión aún no se publicó en la petición.</value>
+  </data>
+  <data name="Hosting_Published_Same" xml:space="preserve">
+    <value>Publicado en la petición: {0}</value>
+  </data>
+  <data name="Hosting_Published_Stale" xml:space="preserve">
+    <value>El resultado de la revisión cambió y la petición aún dice lo anterior.</value>
+  </data>
+  <data name="Hosting_Milestone_Of" xml:space="preserve">
+    <value>Hito {0}</value>
+  </data>
+  <data name="Hosting_Action_Update" xml:space="preserve">
+    <value>Actualizar el PR…</value>
+  </data>
+  <data name="Hosting_Update_Heading" xml:space="preserve">
+    <value>Actualizar la petición de fusión #{0}</value>
+  </data>
+  <data name="Hosting_Update_Confirm" xml:space="preserve">
+    <value>Actualizar la petición</value>
+  </data>
+  <data name="Hosting_Update_Replaces" xml:space="preserve">
+    <value>El título y el texto de abajo sustituyen a los de la petición.</value>
+  </data>
+  <data name="Hosting_Update_NoUpdate" xml:space="preserve">
+    <value>Esta versión de gh no actualiza peticiones de fusión.</value>
+  </data>
+  <data name="Hosting_Publish_OpenFor" xml:space="preserve">
+    <value>Publicar y abrir PR de la ejecución {0}</value>
+  </data>
+  <data name="Hosting_Permissions_RevokeFor" xml:space="preserve">
+    <value>Retirar el permiso: {0}, {1}</value>
+  </data>
+  <data name="Hosting_Activity_OfPr" xml:space="preserve">
+    <value>{0} · PR #{1}</value>
+  </data>
+  <data name="Hosting_Op_PushRunBranch" xml:space="preserve">
+    <value>Publicó la rama</value>
+  </data>
+  <data name="Hosting_Op_OpenPullRequest" xml:space="preserve">
+    <value>Abrió la petición</value>
+  </data>
+  <data name="Hosting_Op_UpdatePullRequest" xml:space="preserve">
+    <value>Actualizó la petición</value>
+  </data>
+  <data name="Hosting_Op_RequestReviewers" xml:space="preserve">
+    <value>Pidió revisión</value>
+  </data>
+  <data name="Hosting_Op_PublishVerdictStatus" xml:space="preserve">
+    <value>Publicó el estado del veredicto</value>
+  </data>
+  <data name="Hosting_Op_PublishVerdictComment" xml:space="preserve">
+    <value>Publicó el comentario del veredicto</value>
+  </data>
+  <data name="Hosting_Op_MergePullRequest" xml:space="preserve">
+    <value>Pidió fusionar</value>
+  </data>
+  <data name="Hosting_Op_ClosePullRequest" xml:space="preserve">
+    <value>Pidió cerrar</value>
+  </data>
+  <data name="Hosting_Op_DeleteRemoteBranch" xml:space="preserve">
+    <value>Pidió borrar la rama remota</value>
+  </data>
+  <data name="Hosting_Change_Opened" xml:space="preserve">
+    <value>Se abrió</value>
+  </data>
+  <data name="Hosting_Change_HeadMoved" xml:space="preserve">
+    <value>La cabeza cambió</value>
+  </data>
+  <data name="Hosting_Change_ForcePushed" xml:space="preserve">
+    <value>Hubo un envío forzado</value>
+  </data>
+  <data name="Hosting_Change_Merged" xml:space="preserve">
+    <value>Se fusionó</value>
+  </data>
+  <data name="Hosting_Change_Closed" xml:space="preserve">
+    <value>Se cerró</value>
+  </data>
+  <data name="Hosting_Change_Reopened" xml:space="preserve">
+    <value>Se reabrió</value>
+  </data>
+  <data name="Hosting_Change_HeadBranchDeleted" xml:space="preserve">
+    <value>Se borró la rama</value>
+  </data>
+  <data name="Hosting_Change_ChecksChanged" xml:space="preserve">
+    <value>Cambiaron los checks</value>
+  </data>
+  <data name="Hosting_Change_ReviewsChanged" xml:space="preserve">
+    <value>Cambiaron las revisiones</value>
+  </data>
+  <data name="Hosting_Change_RevertSuspected" xml:space="preserve">
+    <value>Posible reversión</value>
+  </data>
+  <data name="Hosting_Change_DeploymentChanged" xml:space="preserve">
+    <value>Cambió el despliegue</value>
+  </data>
+  <data name="Hosting_Change_BaseChanged" xml:space="preserve">
+    <value>La rama base cambió</value>
   </data>
 </root>

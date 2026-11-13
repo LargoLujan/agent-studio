@@ -30,9 +30,10 @@ public static class HostingTexts
         "text.description-invalid", "reviews.too-many", "merge.rejected", "comment.lookup-unknown", "repository.merge-settings-missing",
 
         // The git executor (WP1).
-        "configuration-refused", "inspection-failed", "inspection-output-too-large", "git-unavailable", "hooks-file-unsafe", "work-folder-unsafe", "project-unreadable",
-        "invalid-address", "invalid-commit", "timed-out", "output-too-large", "credentials-needed", "rejected-not-fast-forward", "remote-unreachable", "redirected",
-        "protocol-refused", "git-failed", "lfs-detected", "lfs-check-failed", "push-rejected", "partial-clone-unsupported",
+        RemoteGitCodes.ConfigurationRefused, RemoteGitCodes.InspectionFailed, RemoteGitCodes.InspectionOutputTooLarge, RemoteGitCodes.GitUnavailable, RemoteGitCodes.UnsafeHooksFile,
+        RemoteGitCodes.UnsafeFolder, RemoteGitCodes.ProjectUnreadable, RemoteGitCodes.InvalidAddress, RemoteGitCodes.InvalidCommit, RemoteGitCodes.TimedOut, RemoteGitCodes.OutputTooLarge,
+        RemoteGitCodes.CredentialsNeeded, RemoteGitCodes.RejectedNotFastForward, RemoteGitCodes.RemoteUnreachable, RemoteGitCodes.Redirected, RemoteGitCodes.ProtocolRefused,
+        RemoteGitCodes.GitFailed, RemoteGitCodes.LfsDetected, RemoteGitCodes.LfsCheckFailed, RemoteGitCodes.PushRejected, RemoteGitCodes.PartialCloneUnsupported,
 
         // The domain: the address of a remote and the name of a branch.
         RemoteRepository.RefusalUnrecognized, RemoteRepository.RefusalHost, RemoteRepository.RefusalCredentialsInUrl, RemoteRepository.RefusalPort, RemoteRepository.RefusalOwner,

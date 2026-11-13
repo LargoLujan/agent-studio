@@ -46,6 +46,9 @@ public sealed record MethodOption(MergeMethod Method, string Label)
 /// <summary>A run that has a branch in the repository and no pull request the log knows: it can be published.</summary>
 public sealed record PublishableRunRow(string Run)
 {
+    /// <summary>The name of its button for a screen reader: «Publicar y abrir PR de la ejecución …».</summary>
+    public string ButtonName => Desktop.Localization.Texts.Format("Hosting_Publish_OpenFor", Run);
+
     public override string ToString() => Run;
 }
 
@@ -58,6 +61,9 @@ public sealed record PendingLine(string Text)
 /// <summary>A standing permission to publish, as the log holds it, with who and when.</summary>
 public sealed record GrantRow(string GrantId, string ClassText, string WhereText, string WhoText, string WhenText)
 {
+    /// <summary>The name of its button for a screen reader: «Retirar el permiso …».</summary>
+    public string RevokeName => Desktop.Localization.Texts.Format("Hosting_Permissions_RevokeFor", ClassText, WhereText);
+
     public override string ToString() => $"{ClassText} · {WhereText} · {WhenText}";
 }
 
@@ -89,6 +95,20 @@ public sealed class PullRequestRow
 
     /// <summary>The run it comes from; empty when the log does not say.</summary>
     public string OriginText { get; init; } = string.Empty;
+
+    /// <summary>The milestone of the run, when the log says it; empty otherwise.</summary>
+    public string MilestoneText { get; init; } = string.Empty;
+
+    /// <summary>What the pull request says of the verdict (docs/21 D-22): that it says the same, that it was never published, or that the result changed and it still says the former one.</summary>
+    public string PublishedText { get; init; } = string.Empty;
+
+    public bool PublishedIsStale { get; init; }
+
+    /// <summary>What decides whether the row is the same as before a read: every text and the facts the detail depends on. A read that changes none of them leaves the row, and its detail and card, where they are.</summary>
+    internal string Signature => string.Join(
+        "\u001f",
+        NumberText, Title, StateText, OriginText, MilestoneText, PublishedText, VerdictText, JudgedText, ChecksText, ReviewsText, DeploymentText, EnvironmentText, SyncText,
+        View.Snapshot?.Fingerprint, View.JudgedCommit, View.HeadIsJudgedCommit, View.Run?.Value, View.Display.FailingCheckNames.Count, string.Join(",", View.Display.FailingCheckNames));
 
     /// <summary>The verdict in force, or that there is none.</summary>
     public string VerdictText { get; init; } = string.Empty;

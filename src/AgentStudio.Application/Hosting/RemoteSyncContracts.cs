@@ -89,7 +89,15 @@ public interface IRemoteSyncPermission
     event EventHandler<string>? Changed;
 }
 
-/// <summary>What the screen shows of a followed pull request: the last recorded snapshot from the verified log, with the display texts of the cache.</summary>
+/// <summary>What the log says was last published of the verdict on a pull request (docs/21 D-21 and D-22): the standing, the commit it was published for and when.</summary>
+public sealed record LastPublishedVerdict(VerdictStanding Standing, string? Commit, DateTimeOffset At);
+
+/// <summary>
+/// What the screen shows of a followed pull request: the last recorded snapshot from the verified log, with the display texts of the cache.
+/// </summary>
+/// <param name="ModeIsDeduced">The merge mode is a deduction (Agent Studio did not merge with that method itself, or the mode is «squash o rebase» or «desconocido»). Only meaningful for a merged pull request; the careful value is the default.</param>
+/// <param name="PublishedVerdict">The last verdict published on the pull request by an operation that ended well; null when the log has none.</param>
+/// <param name="Milestone">The id of the milestone the run belongs to (its links and those of the runs it follows), the first in ordinal order; null when it belongs to none or the pull request has no run.</param>
 public sealed record PullRequestView(
     PullRequestRef PullRequest,
     RunId? Run,
@@ -99,7 +107,10 @@ public sealed record PullRequestView(
     VerdictStanding? Verdict,
     RemoteDisplayTexts Display,
     DateTimeOffset? ObservedAt,
-    IReadOnlyList<RemoteWorkStatus> Pending);
+    IReadOnlyList<RemoteWorkStatus> Pending,
+    bool ModeIsDeduced = true,
+    LastPublishedVerdict? PublishedVerdict = null,
+    string? Milestone = null);
 
 /// <summary>The projection of the pull requests of a project from the verified log (WP4); it reads only.</summary>
 public interface IPullRequestProjector
