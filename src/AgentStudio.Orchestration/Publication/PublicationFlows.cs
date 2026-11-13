@@ -154,7 +154,10 @@ internal abstract class HostingFlow(RemoteWorkTicket ticket, string key, Hosting
     protected async Task<FlowResult?> PublishVerdictAsync(
         FlowContext context, ProjectContext project, RunId run, PullRequestRef pullRequest, string commit, RemoteBranch? baseBranch, string? head, VerdictChannels state)
     {
-        state.Package ??= await Deps.Notices.BuildAsync(project, run, head, context.Stopping).ConfigureAwait(false);
+        // Nothing is kept from an earlier attempt (D-26): the verdict is built again and both channels pass the whole gate again, so a log that broke, a grant that was withdrawn or a verdict
+        // that was challenged in the meantime stops the retry.
+        state.Allowed.Clear();
+        state.Package = await Deps.Notices.BuildAsync(project, run, head, context.Stopping).ConfigureAwait(false);
         if (state.Package is null)
         {
             return FlowResult.Failed(PublicationCodes.NoVerdict);
@@ -165,32 +168,29 @@ internal abstract class HostingFlow(RemoteWorkTicket ticket, string key, Hosting
             return FlowResult.Failed(PublicationCodes.StateChanged);
         }
 
+        UserText? missing = null;
+        foreach (var kind in VerdictKinds)
+        {
+            var operation = new HostingOperation(project, run, kind, pullRequest.Repository, baseBranch, pullRequest, commit, null);
+            var authorization = await Deps.Gate.AuthorizeUseAsync(operation, Lease, mayAsk: false, holdsProject: false, context.Stopping).ConfigureAwait(false);
+            if (authorization.Allowed)
+            {
+                Allowed(kind, authorization);
+                state.Allowed.Add(kind);
+            }
+            else if (authorization.Refusal?.Code == PublicationCodes.CapabilityMissing)
+            {
+                missing ??= authorization.Refusal;
+            }
+            else
+            {
+                return new FlowResult(FlowEnd.Failed, Message: authorization.Refusal);
+            }
+        }
+
         if (state.Allowed.Count == 0)
         {
-            UserText? missing = null;
-            foreach (var kind in VerdictKinds)
-            {
-                var operation = new HostingOperation(project, run, kind, pullRequest.Repository, baseBranch, pullRequest, commit, null);
-                var authorization = await Deps.Gate.AuthorizeUseAsync(operation, Lease, mayAsk: false, holdsProject: false, context.Stopping).ConfigureAwait(false);
-                if (authorization.Allowed)
-                {
-                    Allowed(kind, authorization);
-                    state.Allowed.Add(kind);
-                }
-                else if (authorization.Refusal?.Code == PublicationCodes.CapabilityMissing)
-                {
-                    missing ??= authorization.Refusal;
-                }
-                else
-                {
-                    return new FlowResult(FlowEnd.Failed, Message: authorization.Refusal);
-                }
-            }
-
-            if (state.Allowed.Count == 0)
-            {
-                return new FlowResult(FlowEnd.Failed, Message: missing ?? UserText.Of(PublicationCodes.CapabilityMissing));
-            }
+            return new FlowResult(FlowEnd.Failed, Message: missing ?? UserText.Of(PublicationCodes.CapabilityMissing));
         }
 
         var provider = Deps.Providers.For(pullRequest.Repository);
@@ -491,6 +491,7 @@ internal sealed class MergeFlow(
     : HostingFlow(ticket, pullRequest.TraceId, new HostingOperation(project, run, HostingOperationKind.MergePullRequest, pullRequest.Repository, baseBranch, pullRequest, expectedHead, method), deps, lease)
 {
     private bool _noted;
+    private bool _called;
 
     public override async Task<FlowResult> RunAsync(FlowContext context)
     {
@@ -510,12 +511,18 @@ internal sealed class MergeFlow(
         var before = await context.ObserveAsync(pullRequest).ConfigureAwait(false);
         if (before is null)
         {
-            return FlowResult.Failed(PublicationCodes.PullRequestUnreadable);
+            // Nothing was asked yet: it stops. After a merge was asked for, the answer may have been lost and the merge may have happened: it stays pending, and the next round reads before it decides.
+            return _called
+                ? FlowResult.WaitForSync(PendingReason.Offline, PublicationCodes.OfflineWait(0), PublicationCodes.Unreachable)
+                : FlowResult.Failed(PublicationCodes.PullRequestUnreadable);
         }
 
         if (before.State == PullRequestState.Merged)
         {
-            return await NoteAsync(context, operation, HostingOutcome.Ok, null).ConfigureAwait(false);
+            // Merged by another way (the web, a person): this approval did not do it and is not credited with it. The observation records the fact and who did it.
+            return _called
+                ? await NoteAsync(context, operation, HostingOutcome.Ok, null).ConfigureAwait(false)
+                : FlowResult.DoneWith(PublicationCodes.AlreadyMerged);
         }
 
         if (!string.Equals(before.HeadCommit, expectedHead, StringComparison.Ordinal))
@@ -528,6 +535,7 @@ internal sealed class MergeFlow(
             return FlowResult.Failed(PublicationCodes.BaseChanged);
         }
 
+        _called = true;
         var merged = await provider.MergeAsync(pullRequest, method, expectedHead, context.Stopping).ConfigureAwait(false);
         context.Outcome(merged.Outcome);
 
@@ -596,6 +604,21 @@ internal sealed class WriteFlow(
         if (await AuthorizeAsync(operation, false, context.Stopping, detail).ConfigureAwait(false) is { } refused)
         {
             return refused;
+        }
+
+        if (observeAfter && operation.PullRequest is { } closing && !_attempted)
+        {
+            // Closing: what the pull request is now decides. Already closed (or merged) by another way, this approval did not do it and is not credited with it.
+            var seen = await context.ObserveAsync(closing).ConfigureAwait(false);
+            if (seen is null)
+            {
+                return FlowResult.Failed(PublicationCodes.PullRequestUnreadable);
+            }
+
+            if (seen.State is PullRequestState.Closed or PullRequestState.Merged)
+            {
+                return FlowResult.DoneWith(seen.State == PullRequestState.Merged ? PublicationCodes.AlreadyMerged : PublicationCodes.AlreadyClosed);
+            }
         }
 
         var done = false;

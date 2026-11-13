@@ -3603,4 +3603,10 @@ Open the consumption analysis, if it is there, to see the detail.</value>
   <data name="Text_hosting_pending_annotation" xml:space="preserve">
     <value>It will be recorded when what is running ends.</value>
   </data>
+  <data name="Text_hosting_done_already_merged" xml:space="preserve">
+    <value>It was already merged another way.</value>
+  </data>
+  <data name="Text_hosting_done_already_closed" xml:space="preserve">
+    <value>It was already closed another way.</value>
+  </data>
 </root>

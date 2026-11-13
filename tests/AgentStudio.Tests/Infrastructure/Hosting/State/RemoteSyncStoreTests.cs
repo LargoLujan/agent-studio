@@ -208,7 +208,7 @@ public sealed class RemoteSyncStoreTests : IDisposable
     [Fact]
     public async Task ThePendingRevocationsAreSavedLoadedBackValidatedAndBounded()
     {
-        var ids = Enumerable.Range(0, 80).Select(i => "grant-" + i).Concat(["bad id!", "../x", new string('a', 65), "grant-1"]).ToList();
+        var ids = Enumerable.Range(0, 250).Select(i => "grant-" + i).Concat(["bad id!", "../x", new string('a', 65), "grant-1"]).ToList();
         await Store().SaveAsync(Project, RemoteSyncState.Empty with { PendingRevocations = ["g-1", "g-2"] }, CancellationToken.None);
 
         var loaded = await Store().LoadAsync(Project, CancellationToken.None);

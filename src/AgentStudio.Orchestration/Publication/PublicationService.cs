@@ -109,6 +109,14 @@ public sealed class PublicationService : IPublicationService
             try
             {
                 var graph = await _history.CommitsAsync(project, new CommitGraphQuery(MaxHistory, Branch: RemoteBranch.ForRun(run).Name), CancellationToken.None).ConfigureAwait(false);
+
+                // An empty graph is not a branch without commits: the branch of a run has at least the commit that is published. It means the history could not be read (the reader answers
+                // empty on a refusal), and the card is not ready.
+                if (graph.Count == 0)
+                {
+                    return new Located(false, repository, inspection, remote, HistoryFailed: true);
+                }
+
                 var annotated = await _annotator.AnnotateAsync(project, graph, CancellationToken.None).ConfigureAwait(false);
                 string? baseHead = null;
                 string? baseName = null;
@@ -176,7 +184,7 @@ public sealed class PublicationService : IPublicationService
 
         // The counts are of the history read with the project taken. Against the base head of the remote only when it is the base the card names; unknown (null) when that head is not in the
         // history read («no se puede saber», D-08).
-        var counts = CommitCounts.Of(local.Graph, local.Annotated, run, string.Equals(local.BaseName, target?.Name, StringComparison.Ordinal) ? local.BaseHead : null);
+        var counts = CommitCounts.Of(local.Graph, local.Annotated, string.Equals(local.BaseName, target?.Name, StringComparison.Ordinal) ? local.BaseHead : null);
         return new PublicationPreview(reason is null, reason, repo, readiness.Commit, target, counts.System, counts.OwnUnpublished, rules, local.Inspection, capabilities, text, existing);
     }
 
@@ -541,17 +549,22 @@ public static class PublicationServiceCollectionExtensions
 /// <summary>The counts of the card of publication (docs/21 D-08): the commits of the run on its branch, and those that would go up and are not of the run.</summary>
 internal static class CommitCounts
 {
-    public static (int System, int? OwnUnpublished) Of(IReadOnlyList<CommitNode>? graph, IReadOnlyList<AnnotatedCommit>? annotated, RunId run, string? baseHead)
+    /// <summary>
+    /// Of what would go up (reachable from the head of the run and not from the head of the base on the remote), «of Agent Studio» are the commits the log knows (they have an annotation, of this
+    /// run or another) and «own» those it does not. When the head of the base is not in the history read (it was not found, or the read reached its limit before it), what would go up cannot be
+    /// said: «own» is null, never a number, and «of Agent Studio» counts what the log knows in the history read.
+    /// </summary>
+    public static (int System, int? OwnUnpublished) Of(IReadOnlyList<CommitNode>? graph, IReadOnlyList<AnnotatedCommit>? annotated, string? baseHead)
     {
         if (graph is null || annotated is null)
         {
             return (0, null);
         }
 
-        var isRun = annotated.Where(a => string.Equals(a.Annotation?.Run, run.Value, StringComparison.Ordinal)).Select(a => a.Commit.Id).ToHashSet(StringComparer.Ordinal);
+        var isRun = annotated.Where(a => a.Annotation is not null).Select(a => a.Commit.Id).ToHashSet(StringComparer.Ordinal);
         if (baseHead is null || graph.All(c => !string.Equals(c.Id, baseHead, StringComparison.Ordinal)))
         {
-            return (isRun.Count, null);
+            return (graph.Count(c => isRun.Contains(c.Id)), null);
         }
 
         // What the base head already has: it, and everything reachable from it by the parents the graph holds.
@@ -570,6 +583,7 @@ internal static class CommitCounts
             }
         }
 
-        return (isRun.Count, graph.Count(c => !onRemote.Contains(c.Id) && !isRun.Contains(c.Id)));
+        var up = graph.Where(c => !onRemote.Contains(c.Id)).ToList();
+        return (up.Count(c => isRun.Contains(c.Id)), up.Count(c => !isRun.Contains(c.Id)));
     }
 }

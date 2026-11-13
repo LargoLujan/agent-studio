@@ -3604,4 +3604,10 @@ Abrir el análisis del consumo, si está disponible, para ver el detalle.</value
   <data name="Text_hosting_pending_annotation" xml:space="preserve">
     <value>Se anotará cuando termine lo que está en marcha.</value>
   </data>
+  <data name="Text_hosting_done_already_merged" xml:space="preserve">
+    <value>Ya estaba fusionado por otra vía.</value>
+  </data>
+  <data name="Text_hosting_done_already_closed" xml:space="preserve">
+    <value>Ya estaba cerrado por otra vía.</value>
+  </data>
 </root>
