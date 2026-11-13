@@ -169,6 +169,7 @@ public sealed class RemoteMailboxTests
         var box = await rig.BoxAsync();
         Assert.Equal(1, box.ParkedCount);
         Assert.Empty(rig.Log.Observations());
+        await rig.IdleAsync();
         Assert.Contains(rig.Store.State.Pending, p => p.Observation is not null);
 
         lease!.Dispose();
@@ -192,6 +193,7 @@ public sealed class RemoteMailboxTests
             Assert.Equal(1, (await first.BoxAsync()).ParkedCount);
         }
 
+        await first.IdleAsync();
         var saved = first.Store.State;
         Assert.Single(saved.Pending);
 
@@ -216,6 +218,7 @@ public sealed class RemoteMailboxTests
         await rig.Sync.SyncNowAsync(PublicationRig.Project, CancellationToken.None);
 
         Assert.Equal(0, rig.Trace.Count("gh:observe"));
+        await rig.IdleAsync();
         Assert.Equal(until, rig.Sync.Health("p1").RateLimitedUntil);
         Assert.Equal(until, rig.Store.State.RateLimitedUntil);
 
