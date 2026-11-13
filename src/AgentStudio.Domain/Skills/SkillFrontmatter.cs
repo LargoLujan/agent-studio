@@ -249,6 +249,7 @@ public sealed partial record SkillFrontmatter(
         });
         return checks;
     }
+
     /// <summary>
     /// Where the body of <paramref name="text"/> starts: right after its closing <c>---</c> line, found with the line rules
     /// of <see cref="Parse"/> (CRLF, LF or a lone CR end a line; the first line after the opening that trims to

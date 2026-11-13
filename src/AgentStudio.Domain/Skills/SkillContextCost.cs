@@ -49,7 +49,6 @@ public static class SkillContextCost
     }
 
     private static long Tokens(SkillEntry skill)
-
     {
         long characters = skill.Name.Length + skill.Summary.Length;
         return (characters + CharactersPerToken - 1) / CharactersPerToken;

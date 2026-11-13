@@ -96,6 +96,7 @@ public static class SkillHealthTextCodes
         LicenseCopyleft, LicenseRestricted, PinnedOk, PinnedMissing,
     ];
 }
+
 /// <summary>
 /// One health check result. When <see cref="TextCode"/> is set, the text the person reads is that coded text with <see cref="TextArguments"/> (docs/17 D-47, ADR-0054): the
 /// desktop paints it in the language of the person from its resources, and <see cref="Message"/> is only a technical fallback (the code). Without a code,

@@ -928,13 +928,13 @@ Marca los scripts como revisados cuando los hayas leído.</value>
     <value>El cuerpo tiene {0} líneas. Se recomiendan menos de {1}.</value>
   </data>
   <data name="Text_skills_size_long_cost" xml:space="preserve">
-    <value>El cuerpo tiene {0} líneas. Se recomiendan menos de {1}. Al usarla ocupa en contexto unos {2} tokens (estimado por Agent Studio).</value>
+    <value>El cuerpo tiene {0} líneas. Se recomiendan menos de {1}. Al usarla ocupa en contexto unos {2:N0} tokens (estimado por Agent Studio).</value>
   </data>
   <data name="Text_skills_size_ok" xml:space="preserve">
     <value>Cuerpo de {0} líneas.</value>
   </data>
   <data name="Text_skills_size_ok_cost" xml:space="preserve">
-    <value>Cuerpo de {0} líneas. Al usarla ocupa en contexto unos {1} tokens (estimado por Agent Studio).</value>
+    <value>Cuerpo de {0} líneas. Al usarla ocupa en contexto unos {1:N0} tokens (estimado por Agent Studio).</value>
   </data>
   <data name="Text_skills_license_missing" xml:space="preserve">
     <value>Sin licencia declarada. Revisa los términos de uso.</value>

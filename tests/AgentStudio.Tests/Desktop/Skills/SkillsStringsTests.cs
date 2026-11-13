@@ -115,11 +115,12 @@ public sealed class SkillsStringsTests
     public void The_size_of_a_skill_file_says_its_cost_in_context_in_both_languages()
     {
         var tokens = new UserText(SkillHealthTextCodes.SizeOkCost, [120, 12345L]);
-        Assert.Equal("Body of 120 lines. When used, it takes about 12345 tokens of context (estimated by Agent Studio).", English.Render(tokens));
+        Assert.Equal("Body of 120 lines. When used, it takes about 12,345 tokens of context (estimated by Agent Studio).", English.Render(tokens));
         Assert.Contains("tokens", Spanish.Render(tokens), StringComparison.Ordinal);
         Assert.Contains("120", Spanish.Render(tokens), StringComparison.Ordinal);
-        Assert.Contains("12345", Spanish.Render(tokens), StringComparison.Ordinal);
-        Assert.Contains("1234 tokens", English.Render(new UserText(SkillHealthTextCodes.SizeLongCost, [501, 500, 1234L])), StringComparison.Ordinal);    }
+        Assert.Contains("12.345", Spanish.Render(tokens), StringComparison.Ordinal);
+        Assert.Contains("1,234 tokens", English.Render(new UserText(SkillHealthTextCodes.SizeLongCost, [501, 500, 1234L])), StringComparison.Ordinal);
+    }
 
     [Fact]
     public void The_information_button_has_its_three_texts_in_short_sentences_and_the_screen_uses_it()

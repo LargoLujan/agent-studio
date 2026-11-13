@@ -6,6 +6,7 @@
              xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
              xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
              xmlns:docs="clr-namespace:AgentStudio.Desktop.Docs"
+             xmlns:local="clr-namespace:AgentStudio.Desktop.Views.Docs"
              xmlns:orchestratorViews="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=docs:DocsDiagramsSection}">
@@ -14,21 +15,37 @@
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="Docs.BoolToVisibility"/>
         <orchestratorViews:FalseToVisibilityConverter x:Key="Docs.InverseBoolToVisibility"/>
+        <local:VisibleToRowLengthConverter x:Key="Docs.VisibleToRowLength"/>
+        <local:VisibleToMinHeightConverter x:Key="Docs.VisibleToMinHeight"/>
+        <local:DiagramsMinHeightConverter x:Key="Docs.DiagramsMinHeight"/>
     </UserControl.Resources>
 
-    <!-- The list and the text of the diagram take the height there is (P69): the grid is as tall as the viewport, never less than MinHeight; below that the whole
-         screen scrolls, with the keyboard too, as in «Orquestador». -->
+    <!-- The list and the text of the diagram take the height there is (P69): the grid is as tall as the viewport but never less than what its blocks ask plus the least of the
+         list and of the text (MinHeight); below that the whole screen scrolls, with the keyboard too, and nothing is cut. A region that is collapsed has an Auto row and
+         no least, so it leaves no gap. -->
     <ScrollViewer x:Name="Scroller" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <Grid Height="{Binding ViewportHeight, ElementName=Scroller}" MinHeight="560">
+        <Grid x:Name="Layout" Height="{Binding ViewportHeight, ElementName=Scroller}">
+            <Grid.MinHeight>
+                <MultiBinding Converter="{StaticResource Docs.DiagramsMinHeight}" ConverterParameter="16;108;144">
+                    <Binding ElementName="HeaderBlock" Path="ActualHeight"/>
+                    <Binding ElementName="ActionsBar" Path="ActualHeight"/>
+                    <Binding ElementName="ConflictsCard" Path="ActualHeight"/>
+                    <Binding ElementName="SourceHeaderBlock" Path="ActualHeight"/>
+                    <Binding ElementName="DiagramList" Path="Visibility"/>
+                    <Binding ElementName="SourceBox" Path="Visibility"/>
+                </MultiBinding>
+            </Grid.MinHeight>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="2*"/>
+                <RowDefinition Height="{Binding Visibility, ElementName=DiagramList, Converter={StaticResource Docs.VisibleToRowLength}, ConverterParameter=2*}"
+                               MinHeight="{Binding Visibility, ElementName=DiagramList, Converter={StaticResource Docs.VisibleToMinHeight}, ConverterParameter=108}"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="3*"/>
+                <RowDefinition Height="{Binding Visibility, ElementName=SourceBox, Converter={StaticResource Docs.VisibleToRowLength}, ConverterParameter=3*}"
+                               MinHeight="{Binding Visibility, ElementName=SourceBox, Converter={StaticResource Docs.VisibleToMinHeight}, ConverterParameter=144}"/>
             </Grid.RowDefinitions>
-            <StackPanel Grid.Row="0">
+            <StackPanel x:Name="HeaderBlock" Grid.Row="0">
             <StackPanel Orientation="Horizontal">
                 <TextBlock Style="{StaticResource SectionTitleText}" VerticalAlignment="Center" Text="{Binding Title}"/>
                 <info:InfoButton InfoKey="Info_Docs_Diagrams" Margin="6,0,0,0" VerticalAlignment="Center"/>
@@ -46,7 +63,7 @@
             </StackPanel>
 
             <!-- The list: each diagram with its state in words and with a sign. -->
-            <ListBox Grid.Row="1" ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}" Margin="0,8,0,0" MinHeight="100"
+            <ListBox x:Name="DiagramList" Grid.Row="1" ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}" Margin="0,8,0,0" MinHeight="100"
                      AutomationProperties.Name="{l:T Docs_Diagrams_List_Name}"
                      Visibility="{Binding IsAvailable, Converter={StaticResource Docs.BoolToVisibility}}">
                 <ListBox.ItemTemplate>
@@ -64,7 +81,7 @@
             </ListBox>
 
             <!-- What the person can do with the diagram chosen. -->
-            <WrapPanel Grid.Row="2" Margin="0,8,0,0" Orientation="Horizontal" Visibility="{Binding IsAvailable, Converter={StaticResource Docs.BoolToVisibility}}">
+            <WrapPanel x:Name="ActionsBar" Grid.Row="2" Margin="0,8,0,0" Orientation="Horizontal" Visibility="{Binding IsAvailable, Converter={StaticResource Docs.BoolToVisibility}}">
                 <Button Style="{StaticResource ToolbarButton}" Content="{Binding GenerateLabel}" ToolTip="{l:T Docs_Generate_Hint}" Command="{Binding GenerateCommand}"/>
                 <Button Style="{StaticResource ToolbarButton}" Content="{l:T Docs_Undo}" ToolTip="{l:T Docs_Undo_Hint}" Command="{Binding UndoCommand}"/>
                 <Button Style="{StaticResource ToolbarButton}" Content="{l:T Docs_Copy}" ToolTip="{l:T Docs_Copy_Hint}" Command="{Binding CopyCommand}"
@@ -74,7 +91,7 @@
             </WrapPanel>
 
             <!-- A file of the repository that was changed outside, or that this computer did not write: nothing is overwritten until the person says so. -->
-            <Border Grid.Row="3" Style="{StaticResource InnerCard}" Margin="0,8,0,0" Padding="10" Visibility="{Binding HasConflicts, Converter={StaticResource Docs.BoolToVisibility}}">
+            <Border x:Name="ConflictsCard" Grid.Row="3" Style="{StaticResource InnerCard}" Margin="0,8,0,0" Padding="10" Visibility="{Binding HasConflicts, Converter={StaticResource Docs.BoolToVisibility}}">
                 <StackPanel>
                     <TextBlock Style="{StaticResource FieldLabel}" TextWrapping="Wrap" Text="{l:T Docs_Conflict_Heading}"/>
                     <ItemsControl ItemsSource="{Binding Conflicts}" Focusable="False" AutomationProperties.Name="{l:T Docs_Conflict_Heading}">
@@ -94,12 +111,12 @@
             </Border>
 
             <!-- The text of the diagram, read-only. «Editar» does not exist: what is generated is generated again; to change a diagram, copy it. -->
-            <StackPanel Grid.Row="4">
+            <StackPanel x:Name="SourceHeaderBlock" Grid.Row="4">
                 <TextBlock Style="{StaticResource FieldLabel}" Margin="0,10,0,0" Text="{l:T Docs_Source_Heading}"
                            Visibility="{Binding IsAvailable, Converter={StaticResource Docs.BoolToVisibility}}"/>
                 <TextBlock Style="{StaticResource OptionalSecondaryText}" TextWrapping="Wrap" Margin="0,2,0,0" Text="{Binding SourceNotice, TargetNullValue=''}"/>
             </StackPanel>
-            <TextBox Grid.Row="5" Style="{StaticResource MonoViewer}" Margin="0,4,0,0" MinHeight="140" IsReadOnly="True" TextWrapping="NoWrap"
+            <TextBox x:Name="SourceBox" Grid.Row="5" Style="{StaticResource MonoViewer}" Margin="0,4,0,0" MinHeight="140" IsReadOnly="True" TextWrapping="NoWrap"
                      HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
                      Text="{Binding SourceText, Mode=OneWay}" AutomationProperties.Name="{l:T Docs_Source_Name}"
                      Visibility="{Binding HasSource, Converter={StaticResource Docs.BoolToVisibility}}"/>

@@ -791,13 +791,13 @@ Mark the scripts as reviewed once you have read them.</value>
     <value>The body has {0} lines. Fewer than {1} are recommended.</value>
   </data>
   <data name="Text_skills_size_long_cost" xml:space="preserve">
-    <value>The body has {0} lines. Fewer than {1} are recommended. When used, it takes about {2} tokens of context (estimated by Agent Studio).</value>
+    <value>The body has {0} lines. Fewer than {1} are recommended. When used, it takes about {2:N0} tokens of context (estimated by Agent Studio).</value>
   </data>
   <data name="Text_skills_size_ok" xml:space="preserve">
     <value>Body of {0} lines.</value>
   </data>
   <data name="Text_skills_size_ok_cost" xml:space="preserve">
-    <value>Body of {0} lines. When used, it takes about {1} tokens of context (estimated by Agent Studio).</value>
+    <value>Body of {0} lines. When used, it takes about {1:N0} tokens of context (estimated by Agent Studio).</value>
   </data>
   <data name="Text_skills_license_missing" xml:space="preserve">
     <value>No license declared. Check the terms of use.</value>
