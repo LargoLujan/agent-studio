@@ -15,6 +15,7 @@ using AgentStudio.Domain.Evidence;
 using AgentStudio.Domain.Hosting;
 using AgentStudio.Orchestration.Publication;
 using AgentStudio.Tests.Domain.Hosting;
+using AgentStudio.Tests.TestSupport;
 using AgentStudio.Domain.Judging;
 using Microsoft.Extensions.Time.Testing;
 
@@ -112,15 +113,29 @@ internal sealed class RigRecorder(RigActivity activity, Trace trace, TimeProvide
 
     public Task<DecisionLogState> LoadAsync(string projectId, LogLoad load, CancellationToken cancellationToken) => LoadAsync(projectId, cancellationToken);
 
-    public Task<DecisionEntry> RecordAsync(string projectId, Actor actor, DecisionKind kind, string summary, DecisionPayload payload, long? corrects = null, CancellationToken cancellationToken = default)
+    /// <summary>When set, a write waits here after it announced itself in <see cref="Entered"/>: a test holds a write of the log to see what the close does around it.</summary>
+    public TaskCompletionSource? Hold { get; set; }
+
+    public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public int Writes { get; private set; }
+
+    public async Task<DecisionEntry> RecordAsync(string projectId, Actor actor, DecisionKind kind, string summary, DecisionPayload payload, long? corrects = null, CancellationToken cancellationToken = default)
     {
         if (activity.Current(projectId) != ProjectActivityKind.RemoteOperation)
         {
             throw new InvalidOperationException("Written to the log without the project taken by a remote operation.");
         }
 
+        Writes++;
         trace.Add("record:" + kind);
-        return Task.FromResult(Add(kind, actor, summary, payload));
+        if (Hold is { } hold)
+        {
+            Entered.TrySetResult();
+            await hold.Task;
+        }
+
+        return Add(kind, actor, summary, payload);
     }
 
     /// <summary>An entry that somebody else wrote (an approval of the gate, a grant of the past): it does not need the project.</summary>
@@ -204,6 +219,15 @@ internal sealed class RigProvider(RigActivity activity, Trace trace) : IHostingP
     public Queue<HostingResult<PullRequestRef?>> FoundQueue { get; } = new();
 
     public HostingResult<bool> Deleted { get; set; } = new(HostingOutcome.Ok, true);
+
+    public HostingResult<bool> Closed { get; set; } = new(HostingOutcome.Ok, true);
+
+    /// <summary>A merge in progress: it ends when this task does (the test releases it).</summary>
+    public Func<CancellationToken, Task>? MergeHold { get; set; }
+
+    public TaskCompletionSource MergeEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public CancellationToken LastMergeToken { get; private set; }
 
     public HostingResult<PublishedVerdict> VerdictResult { get; set; } = new(HostingOutcome.Ok, new PublishedVerdict(true, 7));
 
@@ -306,16 +330,23 @@ internal sealed class RigProvider(RigActivity activity, Trace trace) : IHostingP
         return Task.FromResult(VerdictResult);
     }
 
-    public Task<HostingResult<MergeOutcome>> MergeAsync(PullRequestRef pullRequest, MergeMethod method, string expectedHead, CancellationToken ct)
+    public async Task<HostingResult<MergeOutcome>> MergeAsync(PullRequestRef pullRequest, MergeMethod method, string expectedHead, CancellationToken ct)
     {
         Outside("merge");
-        return Task.FromResult(Merged);
+        LastMergeToken = ct;
+        MergeEntered.TrySetResult();
+        if (MergeHold is { } hold)
+        {
+            await hold(ct);
+        }
+
+        return Merged;
     }
 
     public Task<HostingResult<bool>> CloseAsync(PullRequestRef pullRequest, CancellationToken ct)
     {
         Outside("close");
-        return Task.FromResult(new HostingResult<bool>(HostingOutcome.Ok, true));
+        return Task.FromResult(Closed);
     }
 
     public Task<HostingResult<bool>> DeleteRunBranchAsync(RemoteRepository repository, RemoteBranch runBranch, string expectedCommit, CancellationToken ct)
@@ -475,7 +506,7 @@ internal sealed class PublicationRig : IAsyncDisposable
 
     public PublicationRig(RemoteSyncState? state = null, bool policy = true)
     {
-        Time = new FakeTimeProvider(new DateTimeOffset(2026, 11, 13, 10, 0, 0, TimeSpan.Zero));
+        Time = new RemoteWaitClock();
         Activity = new RigActivity(Trace);
         Log = new RigRecorder(Activity, Trace, Time);
         Git = new RigGit(Activity, Trace);
@@ -518,7 +549,8 @@ internal sealed class PublicationRig : IAsyncDisposable
     public void Observed(RemoteSnapshot snapshot) =>
         Log.Add(DecisionKind.RemoteStateObserved, new Actor(ActorKind.System, "remote-sync"), "observed", RemoteStateObservedPayload.Observing(snapshot, HostingP0Data.Run.Value, null, [RemoteChangeKind.Opened]));
 
-    public FakeTimeProvider Time { get; }
+    /// <summary>The clock of the tests: a fake that counts the timers asked of it, so a test knows that the code under test is waiting on one before it moves the time.</summary>
+    public RemoteWaitClock Time { get; }
 
     public RigActivity Activity { get; }
 
@@ -552,16 +584,16 @@ internal sealed class PublicationRig : IAsyncDisposable
         // The clock moves in steps, and after each one the mailbox is waited for until it is idle: what the consumer does in answer to a timer happens at the time of that step, never at some
         // later time of a clock that this thread went on moving. A single big jump would make the courtesy second and the retries depend on how fast the consumer thread runs.
         var box = await BoxAsync();
-        await box.WhenIdleAsync();
+        await box.WhenIdleAsync().WaitAsync(TimeSpan.FromMinutes(1));
         var step = by <= TimeSpan.FromMinutes(5) ? TimeSpan.FromMilliseconds(500) : TimeSpan.FromMinutes(5);
         for (var left = by; left > TimeSpan.Zero; left -= step)
         {
             Time.Advance(left < step ? left : step);
-            await box.WhenIdleAsync();
+            await box.WhenIdleAsync().WaitAsync(TimeSpan.FromMinutes(1));
         }
     }
 
-    public async Task IdleAsync() => await (await BoxAsync()).WhenIdleAsync();
+    public async Task IdleAsync() => await (await BoxAsync()).WhenIdleAsync().WaitAsync(TimeSpan.FromMinutes(1));
 
     public ValueTask DisposeAsync() => Sync.DisposeAsync();
 

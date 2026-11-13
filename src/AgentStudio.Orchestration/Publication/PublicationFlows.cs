@@ -199,7 +199,7 @@ internal abstract class HostingFlow(RemoteWorkTicket ticket, string key, Hosting
             return FlowResult.Failed(PublicationCodes.NoProvider);
         }
 
-        var result = await provider.PublishVerdictAsync(pullRequest, state.Package.Notice, state.Package.StatusDescription, state.Package.CommentBody, null, context.Stopping).ConfigureAwait(false);
+        var result = await provider.PublishVerdictAsync(pullRequest, state.Package.Notice, state.Package.StatusDescription, state.Package.CommentBody, null, CancellationToken.None).ConfigureAwait(false);
         if (Interrupted(context, result) is { } interrupted)
         {
             return interrupted;
@@ -259,7 +259,9 @@ internal sealed class PublishFlow(
     {
         while (true)
         {
-            if (_stage != Stage.Git && _stage != Stage.Finished && context.Closing)
+            // Closing stops what starts new work with the platform; the stages that annotate what already happened (the entry of the pull request, the entries of the verdict and the follow) go on,
+            // so that a write that was sent is annotated or parked and never lost.
+            if (_stage is Stage.PullRequest or Stage.Verdict && context.Closing)
             {
                 return FlowResult.WaitForSync(PendingReason.Offline, TimeSpan.FromMinutes(1));
             }
@@ -385,7 +387,7 @@ internal sealed class PublishFlow(
                 return refused;
             }
 
-            var updated = await provider.UpdatePullRequestAsync(existing, text, context.Stopping).ConfigureAwait(false);
+            var updated = await provider.UpdatePullRequestAsync(existing, text, CancellationToken.None).ConfigureAwait(false);
             if (Interrupted(context, updated) is { } failed)
             {
                 return failed;
@@ -395,11 +397,11 @@ internal sealed class PublishFlow(
         }
         else
         {
-            var opened = await provider.OpenPullRequestAsync(new PullRequestDraft(repository, Head, baseBranch, text, draft), context.Stopping).ConfigureAwait(false);
+            var opened = await provider.OpenPullRequestAsync(new PullRequestDraft(repository, Head, baseBranch, text, draft), CancellationToken.None).ConfigureAwait(false);
             if (opened.Outcome != HostingOutcome.Ok && Unclear(opened.Outcome))
             {
                 // It may have been opened although the answer did not say so: the platform is asked before the request is taken as failed.
-                var check = await provider.FindPullRequestAsync(repository, Head, context.Stopping).ConfigureAwait(false);
+                var check = await provider.FindPullRequestAsync(repository, Head, CancellationToken.None).ConfigureAwait(false);
                 if (check.Outcome == HostingOutcome.Ok && check.Value is { } there)
                 {
                     opened = new HostingResult<PullRequestRef>(HostingOutcome.Ok, there);
@@ -504,6 +506,13 @@ internal sealed class MergeFlow(
 
         if (await AuthorizeAsync(operation, false, context.Stopping).ConfigureAwait(false) is { } refused)
         {
+            // A merge was already asked for: the platform is read before the gate decides anything. If it is merged by that call, it is annotated (with what allowed it when it was asked); the gate
+            // only decides whether it is called again.
+            if (_called && await context.ObserveAsync(pullRequest).ConfigureAwait(false) is { State: PullRequestState.Merged })
+            {
+                return await NoteAsync(context, operation, HostingOutcome.Ok, null).ConfigureAwait(false);
+            }
+
             return refused;
         }
 
@@ -535,20 +544,26 @@ internal sealed class MergeFlow(
             return FlowResult.Failed(PublicationCodes.BaseChanged);
         }
 
-        _called = true;
-        var merged = await provider.MergeAsync(pullRequest, method, expectedHead, context.Stopping).ConfigureAwait(false);
+        // A write that was sent is not cancelled by the close: it ends (the adapter has its own limit) and its result is annotated or parked as always.
+        var merged = await provider.MergeAsync(pullRequest, method, expectedHead, CancellationToken.None).ConfigureAwait(false);
         context.Outcome(merged.Outcome);
 
-        // Whatever came back (the server may have applied it even if the answer was lost): the platform is read before anything is annotated or repeated.
-        var after = await context.ObserveAsync(pullRequest).ConfigureAwait(false);
-        if (after is { State: PullRequestState.Merged })
-        {
-            return await NoteAsync(context, operation, HostingOutcome.Ok, null).ConfigureAwait(false);
-        }
+        // Only an answer that is Ok or doubtful (no connection, unreadable) leaves it possible that this call merged: after a clear refusal (or a limit that stopped it) the call did not happen.
+        var mayBeOurs = merged.Outcome is HostingOutcome.Ok or HostingOutcome.Unreachable or HostingOutcome.InvalidAnswer;
+        _called = mayBeOurs;
 
         if (merged.Outcome == HostingOutcome.Ok && merged.Value is { Merged: false })
         {
             return await NoteAsync(context, operation, HostingOutcome.Refused, "merge.blocked", PublicationCodes.MergeBlocked).ConfigureAwait(false);
+        }
+
+        // Whatever came back (the server may have applied it even if the answer was lost): the platform is read before anything is annotated or repeated. It counts as this approval's merge only
+        // when the answer was Ok or doubtful (no connection, unreadable): after a clear refusal another person merging right after is not this approval's, and the observation records it.
+        var after = await context.ObserveAsync(pullRequest).ConfigureAwait(false);
+        if (mayBeOurs && (after is { State: PullRequestState.Merged } || merged is { Outcome: HostingOutcome.Ok, Value.Merged: true }))
+        {
+            // The platform's own answer that this call merged is enough when the close left nothing to read.
+            return await NoteAsync(context, operation, HostingOutcome.Ok, null).ConfigureAwait(false);
         }
 
         if (Interrupted(context, merged) is { } interrupted)
@@ -603,6 +618,19 @@ internal sealed class WriteFlow(
 
         if (await AuthorizeAsync(operation, false, context.Stopping, detail).ConfigureAwait(false) is { } refused)
         {
+            // The call was already made: the state is read before the gate decides anything. If it shows the write done, it is annotated (with what allowed it when it was asked); the gate only
+            // decides whether the call is made again.
+            if (_attempted)
+            {
+                var happened = observeAfter && operation.PullRequest is { } closed
+                    ? await context.ObserveAsync(closed).ConfigureAwait(false) is { State: PullRequestState.Closed }
+                    : verify is not null && await verify(context).ConfigureAwait(false) == WriteCheck.Done;
+                if (happened)
+                {
+                    return await NoteDoneAsync(context, operation).ConfigureAwait(false);
+                }
+            }
+
             return refused;
         }
 
@@ -636,15 +664,21 @@ internal sealed class WriteFlow(
 
         if (!done)
         {
-            _attempted = true;
-            var result = await call(provider, context.Stopping).ConfigureAwait(false);
+            // A write that was sent is never cancelled by the close: it ends (the adapter has its own limit) and its result is annotated or parked as always.
+            var result = await call(provider, CancellationToken.None).ConfigureAwait(false);
+
+            // Only an answer that leaves it possible that the call did it counts as «asked»: not a limit that stopped it, not a clear refusal.
+            _attempted = result.Outcome is HostingOutcome.Ok or HostingOutcome.Unreachable or HostingOutcome.InvalidAnswer or HostingOutcome.Forbidden;
             if (result.Outcome != HostingOutcome.Ok)
             {
                 if (Unclear(result.Outcome))
                 {
                     if (observeAfter && operation.PullRequest is not null)
                     {
-                        done = await context.ObserveAsync(operation.PullRequest).ConfigureAwait(false) is { State: PullRequestState.Closed };
+                        // It is credited to this call only when the answer was doubtful (no connection, unreadable); after a clear refusal another person closing it is not this call's.
+                        var doubtful = result.Outcome is HostingOutcome.Unreachable or HostingOutcome.InvalidAnswer;
+                        var seen = await context.ObserveAsync(operation.PullRequest).ConfigureAwait(false);
+                        done = doubtful && seen is { State: PullRequestState.Closed };
                     }
                     else if (verify is not null)
                     {
@@ -670,6 +704,11 @@ internal sealed class WriteFlow(
             }
         }
 
+        return await NoteDoneAsync(context, operation).ConfigureAwait(false);
+    }
+
+    private async Task<FlowResult> NoteDoneAsync(FlowContext context, HostingOperation operation)
+    {
         context.Outcome(HostingOutcome.Ok);
         await NoteAsync(
             context, Key,
