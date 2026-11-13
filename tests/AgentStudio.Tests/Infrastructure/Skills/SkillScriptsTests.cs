@@ -104,6 +104,24 @@ public sealed class SkillScriptsTests : IDisposable
     }
 
     [Fact]
+    public async Task A_scripts_folder_over_the_total_budget_is_listed_and_not_reviewable()
+    {
+        var folder = SkillFolder("huge", ("a.sh", "x"));
+        using (var stream = new FileStream(Path.Combine(folder, "scripts", "big.bin"), FileMode.Create, FileAccess.Write))
+        {
+            // Zeros that are never read: the budget is checked on the sizes, before any content is hashed.
+            stream.SetLength(SkillScriptsInspector.MaxTotalBytes + 1);
+        }
+
+        var info = (await new SkillScriptsInspector().InspectAsync(folder, Ct))!;
+
+        Assert.False(info.Reviewable);
+        Assert.Equal(["a.sh", "big.bin"], info.RelativePaths);
+        Assert.Equal(64, info.Sha256.Length);
+        Assert.True((await new SkillScriptsInspector().InspectAsync(SkillFolder("small", ("a.sh", "x")), Ct))!.Reviewable);
+    }
+
+    [Fact]
     public async Task A_skill_with_no_local_copy_or_no_reader_is_unknown_never_healthy()
     {
         var folder = SkillFolder("x", ("a.sh", "x"));

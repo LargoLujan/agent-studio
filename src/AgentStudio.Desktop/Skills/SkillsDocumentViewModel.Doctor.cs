@@ -234,6 +234,12 @@ public sealed partial class SkillsDocumentViewModel
         IReadOnlyList<SkillScriptLink> links = _openFile is null
             ? []
             : [.. info.RelativePaths.Take(SkillDetailViewModel.MaxScriptLines).Select(path => new SkillScriptLink(path, Texts.Format("Skills_Scripts_OpenName", path), new AsyncRelayCommand(() => OpenScriptAsync(item, path))))];
+        if (!info.Reviewable)
+        {
+            // Too big to be read: the list stays, there is nothing to mark, and the text says why.
+            return (info.RelativePaths, links, Texts.Get("Skills_Scripts_TooBig"), null);
+        }
+
         var reviewed = _reviewedScripts.TryGetValue(id, out var hash) && string.Equals(hash, info.Sha256, StringComparison.Ordinal);
         return (info.RelativePaths, links, reviewed ? Texts.Get("Skills_Scripts_Reviewed") : null, reviewed ? null : new AsyncRelayCommand(() => MarkScriptsReviewedAsync(item)));
     }

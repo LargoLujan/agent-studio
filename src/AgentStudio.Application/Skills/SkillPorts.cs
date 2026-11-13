@@ -296,8 +296,11 @@ public interface ISkillsDoctorTokenManager
     Task<SkillsDoctorTokenChange> DeleteAsync(CancellationToken ct);
 }
 
-/// <summary>What the scripts of a skill are right now: the SHA-256 of their content and their relative paths, for the review.</summary>
-public sealed record SkillScriptsInfo(string Sha256, IReadOnlyList<string> RelativePaths);
+/// <summary>
+/// What the scripts of a skill are right now: the SHA-256 of their content and their relative paths, for the review. <paramref name="Reviewable"/> is false when the folder is too
+/// big to be read (then the fingerprint is not one of content, and the skill is never shown as reviewed).
+/// </summary>
+public sealed record SkillScriptsInfo(string Sha256, IReadOnlyList<string> RelativePaths, bool Reviewable = true);
 
 /// <summary>
 /// Reads the <c>scripts/</c> folder of a skill without running anything (docs/20 D-14): the fingerprint of what is there, to compare with the one the person

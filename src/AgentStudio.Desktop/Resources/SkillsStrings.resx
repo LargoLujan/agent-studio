@@ -897,4 +897,7 @@ Marca los scripts como revisados cuando los hayas leído.</value>
   <data name="Skills_Scripts_OpenFailed" xml:space="preserve">
     <value>No se pudo abrir ese script: ya no existe o es un enlace.</value>
   </data>
+  <data name="Skills_Scripts_TooBig" xml:space="preserve">
+    <value>Esta carpeta de scripts es demasiado grande para revisarla aquí: no se puede marcar como revisada. Ábrela y léela fuera de la aplicación.</value>
+  </data>
 </root>

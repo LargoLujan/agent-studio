@@ -8,11 +8,15 @@ namespace AgentStudio.Infrastructure.Skills;
 /// The fingerprint of the <c>scripts/</c> folder of a skill (docs/20 D-14): the SHA-256 of the sorted relative paths and the content of every file. Nothing is
 /// run, and nothing is followed: a link (a file or a folder) counts by its name and is never opened, so a link planted in the folder cannot take the contents
 /// of anything else into the hash or out of the folder. The folder is limited (<see cref="MaxFiles"/> files; each is hashed whole, in chunks): past the limit
-/// the fingerprint says so and can never equal one of a smaller folder.
+/// the fingerprint says so and can never equal one of a smaller folder. The folder is also limited in bytes (<see cref="MaxTotalBytes"/>): past it nothing is hashed and the
+/// skill is not reviewable.
 /// </summary>
 public sealed class SkillScriptsInspector : ISkillScriptsInspector
 {
     public const int MaxFiles = 500;
+
+    /// <summary>The most bytes of all the files of one <c>scripts/</c> folder that are read: past it the skill is not reviewable.</summary>
+    public const long MaxTotalBytes = 32L * 1024 * 1024;
 
     private const string ScriptsFolder = "scripts";
 
@@ -71,7 +75,25 @@ public sealed class SkillScriptsInspector : ISkillScriptsInspector
         }
 
         files.Sort((a, b) => string.CompareOrdinal(a.Relative, b.Relative));
+        var names = files.Select(f => f.Relative).ToList();
+
+        // A folder over the total budget is not read at all (it would block the screen that asks for it): it is listed, and never reviewable.
+        long total = 0;
+        foreach (var (_, file, link) in files)
+        {
+            if (!link)
+            {
+                total += file.Length;
+            }
+        }
+
+        if (total > MaxTotalBytes)
+        {
+            return TooBig(names);
+        }
+
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        long readTotal = 0;
         foreach (var (relative, file, link) in files)
         {
             ct.ThrowIfCancellationRequested();
@@ -90,6 +112,13 @@ public sealed class SkillScriptsInspector : ISkillScriptsInspector
             while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
             {
                 ct.ThrowIfCancellationRequested();
+                readTotal += read;
+                if (readTotal > MaxTotalBytes)
+                {
+                    // A file that grew while it was read.
+                    return TooBig(names);
+                }
+
                 hash.AppendData(buffer.AsSpan(0, read));
             }
         }
@@ -99,8 +128,12 @@ public sealed class SkillScriptsInspector : ISkillScriptsInspector
             hash.AppendData(Encoding.UTF8.GetBytes("TRUNCATED"));
         }
 
-        return new SkillScriptsInfo(Convert.ToHexStringLower(hash.GetHashAndReset()), [.. files.Select(f => f.Relative)]);
+        return new SkillScriptsInfo(Convert.ToHexStringLower(hash.GetHashAndReset()), names);
     }
+
+    /// <summary>The answer for a folder over the budget: the names only, a fingerprint that is not a hash of content (it is never stored as a review), and not reviewable.</summary>
+    private static SkillScriptsInfo TooBig(List<string> names) =>
+        new(Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes("TOOBIG\0" + string.Join('\n', names)))), names, Reviewable: false);
 
     private static bool IsLink(FileSystemInfo info) => info.Attributes.HasFlag(FileAttributes.ReparsePoint) || info.LinkTarget is not null;
 }

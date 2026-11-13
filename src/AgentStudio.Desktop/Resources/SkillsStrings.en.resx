@@ -760,4 +760,7 @@ Mark the scripts as reviewed once you have read them.</value>
   <data name="Skills_Scripts_OpenFailed" xml:space="preserve">
     <value>That script could not be opened: it no longer exists or it is a link.</value>
   </data>
+  <data name="Skills_Scripts_TooBig" xml:space="preserve">
+    <value>This scripts folder is too big to review here: it cannot be marked as reviewed. Open it and read it outside the app.</value>
+  </data>
 </root>
