@@ -445,7 +445,7 @@ public sealed partial class MilestonesSection : WorkSection
     public bool HasDeployment => DeploymentText.Length > 0;
 
     /// <summary>The read that fills <see cref="IntegrationText"/> and <see cref="DeploymentText"/> for the milestone selected; tests await it.</summary>
-    internal Task IntegrationRead { get; private set; } = Task.CompletedTask;
+    public Task IntegrationRead { get; private set; } = Task.CompletedTask;
 
     private Task ClearIntegrationAsync()
     {
@@ -475,13 +475,22 @@ public sealed partial class MilestonesSection : WorkSection
                         : Texts.Format("Hosting_Milestone_Integrated", integrated.Count, projected.Requirements.Count);
                     if (byPullRequest > 0 && Context.Backend.PullRequests is { } projector)
                     {
-                        var views = await projector.ListAsync(project, CancellationToken.None).ConfigureAwait(true);
-                        var withDeployment = views.Where(v => v.Snapshot?.Deployment is not null).ToDictionary(v => v.PullRequest.TraceId, v => v.Snapshot!, StringComparer.Ordinal);
-                        var carried = integrated.Where(c => c.IntegratedByPullRequest is not null && withDeployment.ContainsKey(c.IntegratedByPullRequest)).ToList();
-                        if (carried.Count > 0)
+                        try
                         {
-                            var deployed = carried.Count(c => IntegrationByPullRequest.IsDeployed(withDeployment[c.IntegratedByPullRequest!]));
-                            deployment = Texts.Format("Hosting_Milestone_Deployed", deployed, carried.Count);
+                            var views = await projector.ListAsync(project, CancellationToken.None).ConfigureAwait(true);
+                            var withDeployment = views.Where(v => v.Snapshot?.Deployment is not null).ToDictionary(v => v.PullRequest.TraceId, v => v.Snapshot!, StringComparer.Ordinal);
+                            var carried = integrated.Where(c => c.IntegratedByPullRequest is not null && withDeployment.ContainsKey(c.IntegratedByPullRequest)).ToList();
+                            if (carried.Count > 0)
+                            {
+                                var deployed = carried.Count(c => IntegrationByPullRequest.IsDeployed(withDeployment[c.IntegratedByPullRequest!]));
+                                deployment = Texts.Format("Hosting_Milestone_Deployed", deployed, carried.Count);
+                            }
+                        }
+#pragma warning disable CA1031 // The projection is behind a port: without its answer there is no data about deployments, and none is invented.
+                        catch (Exception ex) when (ex is not OperationCanceledException)
+#pragma warning restore CA1031
+                        {
+                            deployment = string.Empty;
                         }
                     }
                 }
