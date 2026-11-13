@@ -26,8 +26,20 @@ internal static class DiagramFakes
 
         public bool Cached { get; set; } = true;
 
-        public Task<CommitAnalysis?> FindAsync(ProjectContext project, string commit, CancellationToken ct) =>
-            Task.FromResult(Cached && Graph is { } graph && graph.Commit == commit ? Make(graph) : null);
+        /// <summary>The discrepancies the analysis saved; none by default.</summary>
+        public IReadOnlyList<ConsistencyFinding> Findings { get; set; } = [];
+
+        public IReadOnlyList<string> NotApplicable { get; set; } = [];
+
+        public bool Truncated { get; set; }
+
+        public int Found { get; private set; }
+
+        public Task<CommitAnalysis?> FindAsync(ProjectContext project, string commit, CancellationToken ct)
+        {
+            Found++;
+            return Task.FromResult(Cached && Graph is { } graph && graph.Commit == commit ? Make(graph) : null);
+        }
 
         public Task<CommitAnalysis> AnalyzeAsync(ProjectContext project, string commit, CancellationToken ct)
         {
@@ -36,7 +48,7 @@ internal static class DiagramFakes
             return Task.FromResult(Make(Graph!));
         }
 
-        private static CommitAnalysis Make(CodeGraph graph) => new(graph, new ConsistencyReport(graph.Commit, [], [], truncated: false));
+        private CommitAnalysis Make(CodeGraph graph) => new(graph, new ConsistencyReport(graph.Commit, Findings, NotApplicable, Truncated));
     }
 
     public sealed class History(string commit) : IRepositoryHistoryReader

@@ -1,3 +1,4 @@
+using AgentStudio.Desktop.Docs;
 using AgentStudio.Desktop.Graph;
 using AgentStudio.Desktop.Localization;
 using AgentStudio.Domain.Tracing;
@@ -51,6 +52,33 @@ public sealed partial class MainViewModel
         {
             section.FileRequested += (_, path) => _ = OpenFileAsync(path);
             section.TaskRequested += OnGraphTaskRequested;
+        }
+
+        // «Discrepancias» (WP-D): the file of a discrepancy opens in the editor, and a requirement with no task goes to «Trabajo», where the board is.
+        foreach (var section in _graphDocument.Sections.OfType<DocsDiscrepanciesSection>())
+        {
+            section.FileRequested += (_, path) => _ = OpenFileAsync(path);
+            section.BoardRequested += (_, _) => _ = OpenWorkFromDiscrepanciesAsync();
+        }
+    }
+
+    private async Task OpenWorkFromDiscrepanciesAsync()
+    {
+        if (_workDocument is null)
+        {
+            StatusMessage = Texts.Get("Graph_NoWork");
+            return;
+        }
+
+        try
+        {
+            await OpenWorkAsync();
+        }
+#pragma warning disable CA1031 // A handler of the UI: a failure is said on the status bar, never thrown at the dispatcher.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            StatusMessage = Texts.Format("Shell_Work_ChainFailed", ex.Message);
         }
     }
 

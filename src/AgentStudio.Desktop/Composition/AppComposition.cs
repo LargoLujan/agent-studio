@@ -53,6 +53,7 @@ public static class AppComposition
         services.AddClientDocumentsServices();
         services.AddWorkUiServices(Path.Combine(app.Local.BaseDirectory, "budgets"));
         services.AddGraphUiServices(Path.Combine(app.Local.BaseDirectory, "graph"));
+        services.AddDocsUiServices(Path.Combine(app.Local.BaseDirectory, "diagrams"));
         return services;
     }
 }

@@ -56,6 +56,10 @@ public sealed class DiagramStaleCheck : IConsistencyCheck
 
     /// <summary>The fixed word of a kind of diagram, the value of the fact <c>diagram</c>.</summary>
     public static string DiagramWord(DiagramKind kind) => DiagramGrammar.Word(kind);
+
+    /// <summary>The kind a fixed word names (the other way round of <see cref="DiagramWord"/>), or null when it is not one of them.</summary>
+    public static DiagramKind? KindOf(string word) =>
+        Enum.GetValues<DiagramKind>().Where(k => string.Equals(DiagramGrammar.Word(k), word, StringComparison.Ordinal)).Select(k => (DiagramKind?)k).FirstOrDefault();
 }
 
 /// <summary>

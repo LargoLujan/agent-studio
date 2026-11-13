@@ -1,0 +1,94 @@
+<UserControl x:Class="AgentStudio.Desktop.Views.Docs.DocsDiagramsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
+             xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
+             xmlns:docs="clr-namespace:AgentStudio.Desktop.Docs"
+             xmlns:orchestratorViews="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=docs:DocsDiagramsSection}">
+    <!-- «Diagramas» (docs/20 D-25 and D-26, F6-10): the diagrams of the project as text, with their state and the one of their copy in the repository; the text, read-only; and
+         the actions on the diagram chosen. A diagram is not drawn here (Phase 16). Bindings only. -->
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="Docs.BoolToVisibility"/>
+        <orchestratorViews:FalseToVisibilityConverter x:Key="Docs.InverseBoolToVisibility"/>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Style="{StaticResource SectionTitleText}" VerticalAlignment="Center" Text="{Binding Title}"/>
+                <info:InfoButton InfoKey="Info_Docs_Diagrams" Margin="6,0,0,0" VerticalAlignment="Center"/>
+            </StackPanel>
+            <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Margin="0,4,0,0" Text="{l:T Docs_Diagrams_Intro}"/>
+
+            <TextBlock Style="{StaticResource OptionalSecondaryText}" TextWrapping="Wrap" Margin="0,4,0,0" Text="{l:T Docs_NoProject}"
+                       Visibility="{Binding HasProject, Converter={StaticResource Docs.InverseBoolToVisibility}}"/>
+            <TextBlock Style="{StaticResource OptionalSecondaryText}" TextWrapping="Wrap" Margin="0,4,0,0" Text="{Binding UnavailableText}"
+                       Visibility="{Binding IsAvailable, Converter={StaticResource Docs.InverseBoolToVisibility}}"/>
+            <TextBlock Style="{StaticResource OptionalSecondaryText}" TextWrapping="Wrap" Margin="0,4,0,0" Text="{Binding Message, TargetNullValue=''}" AutomationProperties.LiveSetting="Polite"/>
+            <TextBlock Style="{StaticResource ErrorText}" TextWrapping="Wrap" Margin="0,4,0,0" Text="{Binding Error, TargetNullValue=''}" AutomationProperties.LiveSetting="Assertive"/>
+            <TextBlock Style="{StaticResource OptionalSecondaryText}" TextWrapping="Wrap" Margin="0,4,0,0" Text="{l:T Docs_Diagrams_Empty}"
+                       Visibility="{Binding IsEmpty, Converter={StaticResource Docs.BoolToVisibility}}"/>
+
+            <!-- The list: each diagram with its state in words and with a sign. -->
+            <ListBox ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}" Margin="0,8,0,0" MaxHeight="260"
+                     AutomationProperties.Name="{l:T Docs_Diagrams_List_Name}"
+                     Visibility="{Binding IsAvailable, Converter={StaticResource Docs.BoolToVisibility}}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate DataType="{x:Type docs:DiagramRowItem}">
+                        <StackPanel Margin="0,2" AutomationProperties.Name="{Binding AutomationName}">
+                            <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" Text="{Binding Name}" FontWeight="SemiBold"/>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding StateSign}" VerticalAlignment="Center" Margin="0,0,6,0" Style="{StaticResource SecondaryText}"/>
+                                <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{Binding StateText}"/>
+                            </StackPanel>
+                            <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Text="{Binding ExportText}"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <!-- What the person can do with the diagram chosen. -->
+            <WrapPanel Margin="0,8,0,0" Orientation="Horizontal" Visibility="{Binding IsAvailable, Converter={StaticResource Docs.BoolToVisibility}}">
+                <Button Style="{StaticResource ToolbarButton}" Content="{Binding GenerateLabel}" ToolTip="{l:T Docs_Generate_Hint}" Command="{Binding GenerateCommand}"/>
+                <Button Style="{StaticResource ToolbarButton}" Content="{l:T Docs_Undo}" ToolTip="{l:T Docs_Undo_Hint}" Command="{Binding UndoCommand}"/>
+                <Button Style="{StaticResource ToolbarButton}" Content="{l:T Docs_Copy}" ToolTip="{l:T Docs_Copy_Hint}" Command="{Binding CopyCommand}"
+                        Visibility="{Binding CanCopyToClipboard, Converter={StaticResource Docs.BoolToVisibility}}"/>
+                <Button Style="{StaticResource ToolbarButton}" Content="{l:T Docs_Export}" ToolTip="{l:T Docs_Export_Hint}" Command="{Binding ExportCommand}"/>
+                <Button Style="{StaticResource ToolbarButton}" Content="{l:T Docs_Refresh}" ToolTip="{l:T Docs_Refresh_Hint}" Command="{Binding RefreshCommand}"/>
+            </WrapPanel>
+
+            <!-- A file of the repository that was changed outside, or that this computer did not write: nothing is overwritten until the person says so. -->
+            <Border Style="{StaticResource InnerCard}" Margin="0,8,0,0" Padding="10" Visibility="{Binding HasConflicts, Converter={StaticResource Docs.BoolToVisibility}}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource FieldLabel}" TextWrapping="Wrap" Text="{l:T Docs_Conflict_Heading}"/>
+                    <ItemsControl ItemsSource="{Binding Conflicts}" Focusable="False" AutomationProperties.Name="{l:T Docs_Conflict_Heading}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type docs:ExportConflictItem}">
+                                <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" Text="{Binding Text}" Margin="0,2"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Margin="0,6,0,0" Text="{l:T Docs_Conflict_Question}"/>
+                    <WrapPanel Margin="0,6,0,0">
+                        <Button Style="{StaticResource PrimaryButton}" Content="{l:T Docs_Conflict_Overwrite}" Command="{Binding ResolveConflictCommand}" CommandParameter="overwrite"/>
+                        <Button Style="{StaticResource GhostButton}" Margin="8,0,0,0" Content="{l:T Docs_Conflict_SaveAsNew}" Command="{Binding ResolveConflictCommand}" CommandParameter="new"/>
+                        <Button Style="{StaticResource GhostButton}" Margin="8,0,0,0" Content="{l:T Docs_Conflict_Skip}" Command="{Binding ResolveConflictCommand}" CommandParameter="skip"/>
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- The text of the diagram, read-only. «Editar» does not exist: what is generated is generated again; to change a diagram, copy it. -->
+            <TextBlock Style="{StaticResource FieldLabel}" Margin="0,10,0,0" Text="{l:T Docs_Source_Heading}"
+                       Visibility="{Binding IsAvailable, Converter={StaticResource Docs.BoolToVisibility}}"/>
+            <TextBlock Style="{StaticResource OptionalSecondaryText}" TextWrapping="Wrap" Margin="0,2,0,0" Text="{Binding SourceNotice, TargetNullValue=''}"/>
+            <TextBox Style="{StaticResource MonoViewer}" Margin="0,4,0,0" MinHeight="140" MaxHeight="360" IsReadOnly="True" TextWrapping="NoWrap"
+                     HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                     Text="{Binding SourceText, Mode=OneWay}" AutomationProperties.Name="{l:T Docs_Source_Name}"
+                     Visibility="{Binding HasSource, Converter={StaticResource Docs.BoolToVisibility}}"/>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

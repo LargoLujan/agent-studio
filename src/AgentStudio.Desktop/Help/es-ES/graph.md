@@ -1,7 +1,7 @@
 ---
 title: Auto Graph: cómo está hecho el proyecto
 screens: graph
-info: Info_Graph, Info_Graph_Map, Info_Graph_Coverage, Info_Graph_Propose
+info: Info_Graph, Info_Graph_Map, Info_Graph_Coverage, Info_Graph_Propose, Info_Docs_Diagrams, Info_Docs_Discrepancies
 ---
 Auto Graph dibuja cómo está hecha una solución de C#. Enseña sus proyectos, sus espacios de nombres y lo que usa cada uno.
 
@@ -18,6 +18,11 @@ Lee los ficheros como texto, sin compilar ni ejecutar nada del proyecto. Lo que 
 - Abrir el fichero de un proyecto o de un espacio de nombres, o ir a la tarea.
 - Desplegar un proyecto para ver sus espacios de nombres.
 - Usar la lista de debajo, que cuenta lo mismo que el dibujo, con el teclado.
+
+## Diagramas y discrepancias
+- Los diagramas se guardan en este equipo. Pulsa Exportar al repositorio solo si quieres una copia en tu proyecto, en docs/generado/diagramas.
+- Regenerar guarda el texto anterior. Deshacer lo recupera tal como estaba.
+- Calcular busca las discrepancias en la última versión guardada. Abrir la pantalla nunca lo lanza.
 
 ## Lo que propone una IA
 Las relaciones que propone una IA se dibujan con línea discontinua y la etiqueta IA, y nunca cuentan como leídas. Solo se piden con tu OK cada vez. Gastan el límite de uso de tu plan.

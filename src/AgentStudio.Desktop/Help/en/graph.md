@@ -1,7 +1,7 @@
 ---
 title: Auto Graph: how the project is built
 screens: graph
-info: Info_Graph, Info_Graph_Map, Info_Graph_Coverage, Info_Graph_Propose
+info: Info_Graph, Info_Graph_Map, Info_Graph_Coverage, Info_Graph_Propose, Info_Docs_Diagrams, Info_Docs_Discrepancies
 ---
 Auto Graph draws how a C# solution is built: its projects, its namespaces and what each one uses.
 
@@ -18,6 +18,11 @@ It reads the files as text, without building or running anything of the project.
 - Open the file of a project or of a namespace, or go to the task.
 - Unfold a project to see its namespaces.
 - Use the list below, which says the same as the drawing, with the keyboard.
+
+## Diagrams and discrepancies
+- Diagrams are kept on this computer. Press Export to the repository only if you want a copy in your project, in docs/generado/diagramas.
+- Regenerate keeps the earlier text. Undo gets it back exactly as it was.
+- Calculate looks for discrepancies in the latest saved version. Opening the screen never starts it.
 
 ## What an AI proposes
 The relations an AI proposes are drawn with a dashed line and the label AI, and never count as read. They are only asked for with your OK each time. They spend the usage limit of your plan.
