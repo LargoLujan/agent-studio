@@ -2001,6 +2001,35 @@ Dónde el diseño y el código real chocaron al escribir el P0, y cómo se resol
 - **Hecho cuando:** las pruebas de F10-2, F10-5, F10-11 y F10-12 de §9 pasan sin lanzar `gh`; el `README.md` de las
   respuestas grabadas dice que son a mano y de qué página sale cada una; Auto Doctor enseña las líneas nuevas con un `gh` de prueba.
 
+#### Ajustes de WP2
+
+Dónde el diseño y el código chocaron al escribir WP2 (2026-11-13). Lo que no está aquí, está como lo fijan D-09 a D-14, D-21 y §5.2. Todo se probó **sin lanzar `gh`** (un ejecutor de guion y respuestas escritas a mano: `Infrastructure/Hosting/GitHub/Fixtures/README.md`); en esta
+máquina solo se ejecutó `gh --version` y la ayuda (`gh api --help`, `gh help exit-codes`).
+
+- **Catálogo.** `GitHubEndpoint` tiene 25 entradas: las de D-10 más `Branch` (`GET …/branches/{rama}`: la cabeza de una rama, si existe y su flag de protección; D-10 la citaba dentro de `BranchRules`), `Commit` y `CommitList` (los padres del commit de la fusión, los commits que
+  deja un rebase y la búsqueda de un revert). **Sin `WorkflowRuns`** y `ReadWorkflowRuns` **no se declara:** ningún miembro de `IHostingProvider` ni campo de `RemoteSnapshot` lo entrega. Si hace falta, entra con su miembro.
+- **Rutas.** Con barra inicial (`/repos/…`, `/user`), como dice D-10 (el encargo decía `repos/…`; `gh` acepta las dos). `GhArguments.IsAllowedPath` la vuelve a comprobar en el lanzador: ni `.` ni `..` (tampoco codificados), ni llaves, ni espacios.
+- **Quién pregunta la versión.** `GhRunner` solo lanza `gh api`. `gh --version` va **siempre** por `IDoctorToolRunner` (la puerta con `GhOffline`): `ProbeAsync` y las dos fuentes de Auto Doctor llaman a `GitHubCli.ReadAsync`, así que dicen lo mismo y la fuente no necesita un
+  `IHostingProvider`. `GitHubCli` es público.
+- **Fuentes de Auto Doctor.** Dos clases en `Hosting/Diagnostics/HostingCheckSource.cs`: `GhToolCheckSource` («Herramientas»: `doctor.gh.installed` y `doctor.gh.version-untested`) y `HostingCheckSource` («Proyecto»: las seis `doctor.remote.*`). Solo dicen estados que tienen su texto
+  (una prueba lo recorre contra `DoctorStrings.resx`). Los servicios de WP3 (`IPublicationService`, `IRemoteSync`, `IRemoteSyncPolicy`) son opcionales: sin ellos la línea dice «sin comprobar» o «no aplica». Ninguna pregunta a la red; de `gh` solo se lanza `gh --version`.
+- **Acciones de arreglo.** Las líneas nombran `doctor.fix.install-gh`, `doctor.fix.login-gh` y `doctor.fix.open-pull-requests` (constantes en `HostingDoctorFixes`), pero **`DoctorFixCatalog` (Application, del P0) aún no las tiene:** el lead o el P0 añade las tres (dos guías, con `winget install --id GitHub.cli --exact` y
+  `gh auth login`, y una navegación a «Repositorio › PR»).
+- **Direcciones del remoto.** La capa de git de la app guarda las direcciones **sin el usuario** (`RepositoryRemote.Cleaned` quita `git@` de `git@github.com:o/r` y de `ssh://git@github.com/o/r`), pero `RemoteRepository.TryParseGitHub` (P0) pide `git@github.com:o/r`: con la dirección limpia de un remoto por ssh no la reconocía. `HostingProviders` y la fuente de Auto Doctor pasan antes por `GitHubRemoteAddress` (en `Hosting/GitHub`), que devuelve la forma limpia a la que el tipo conoce y no cambia nada más (otro host, un puerto o un identificador fuera de las reglas siguen rechazados por el tipo). Pedido al P0: que `TryParseGitHub` acepte también `github.com:o/r` y `ssh://github.com/o/r`.
+- **Sesión.** `RemoteSyncHealth` no trae la fecha del último resultado, solo la de la última sincronización buena: `doctor.remote.session` en aviso («no había sesión») sale sin fecha (el texto pinta «—»). Pedido al P0: `LastOutcomeAt`.
+- **Respuestas.** Un `login` que no pasa la regla del propietario es `InvalidAnswer` con `account.login-invalid` (D-12 decía «no consta»: `HostingResult<RemoteLogin>` no tiene un «Ok sin valor» útil). Los códigos de rechazo son `GitHubRefusal.*` (lista en ADR-0065); los textos de pantalla,
+  de WP5. Una fusión rechazada da `merge.blocked` (405 y 422) o `merge.head-moved` (409; D-20 decía `merge.blocked` para los tres), con el `mergeable_state` de una lectura del PR (vocabulario cerrado, `unknown` si es otro).
+- **Veredicto.** Las tres descripciones del estado (D-21) son constantes del adaptador, en castellano: `VerdictNotice` no tiene campo para ellas, así que no son recursos (ADR-0054). El estado `agent-studio/verdict` se deja fuera al resumir los checks de un commit. Si el cuerpo del comentario no empieza por la marca, el
+  adaptador se la antepone.
+- **Sondeo (D-23 y D-24).** Las peticiones condicionales son de **seis** recursos (el PR, las revisiones, los checks, el estado combinado, los commits de la rama base y los despliegues); los commits y la línea de tiempo del PR **no** llevan condición: se leen solo si la cabeza cambió o el PR acaba de
+  fusionarse o cerrarse (como dice la tabla de D-24), así que `ObservedResource.Commits`, `Timeline`, `MergeCommit` y `WorkflowRuns` no guardan `ETag`. Los checks y el estado combinado hacen **un** resumen: si solo uno da 304, el otro cambió y el que no cambió se pide otra vez entero. Si **todas** las lecturas
+  dan 304, el resultado es `NotModified` sin valor ni cursor. Un cursor con `ETag` pero sin instantánea se lee sin condición. Un fallo a medias no devuelve cursor: nada avanza. Los textos para la pantalla (`Display`) son solo los que esa vuelta leyó.
+- **Lo que el diseño no resolvía.** (1) La ventana para buscar un revert es una hora antes de la última actualización del PR (`RevertWindow`): la API no da la fecha de la fusión. (2) `HeadBranchExists` sale de la línea de tiempo, que solo se lee al cambiar la cabeza o al fusionar/cerrar: una rama borrada más tarde en un PR ya fusionado no se ve
+  (el sondeo de un fusionado no la lee). (3) Un rebase deja tantos commits como el PR; se leen con `GET commits?sha=<fusión>&per_page=<n>` (una petición). (4) `remote.moved` sale de un 301, 302, 307 o 308 que llegue al lector; si `gh` sigue por sí mismo las redirecciones de un `GET` (sin verificar, §13), solo saldría de las escrituras.
+- **Límites.** El estado vive en `GhQueue`; `GitHubHostingProvider.RateLimitedUntil` y `RestoreRateLimit` lo dan y lo cargan (para el fichero de WP3). Con una espera en marcha no se lanza **nada**, escrituras incluidas; las cabeceras se respetan con un mínimo de un segundo y un tope de dos horas.
+- **Pruebas.** Además de las de F10-2, F10-5, F10-11 y F10-12, hay una prueba en vivo `ProviderLive` (`Live/GitHubLiveTests.cs`, no ejecutada, con su guion `Live/README.md`) que sin `AGENTSTUDIO_PROVIDER_TESTS=1` y `AGENTSTUDIO_HOSTING_LIVE_REPO` se salta (la categoría del §9, `HostingLive`, no está en los filtros de la CI; se usó `ProviderLive`, que sí lo está).
+- **No se tocó** nada fuera de `Infrastructure/Hosting`, `tests/…/Infrastructure/Hosting`, este documento y los ADR 0065 y 0066.
+
 ### 10.5 WP3 · Compuerta, publicación, buzón y reconciliador (L)
 
 - `src/AgentStudio.Orchestration/Publication/**` (nuevo): `HostingPolicyGate`, `PublicationService`,
@@ -2166,6 +2195,10 @@ medir:** no se ejecutó nada con red ni con cuenta.
 - **`gh` y el entorno:** que con `GH_PROMPT_DISABLED`, `GH_NO_UPDATE_NOTIFIER` y `GH_TELEMETRY=false` no hace ninguna
   petición más que la pedida; y que con la lista blanca de D-11 encuentra su sesión (dónde guarda el token en Windows:
   el Administrador de credenciales o su fichero; Agent Studio no lo mira, pero necesita que `gh` lo encuentre).
+- **Tras WP2, sobre lo mismo (sigue sin ejecutarse nada con red):** el adaptador asume, y la prueba en vivo (`Infrastructure/Hosting/Live/README.md`) debe medir, por este orden: (1) que con `-i` un 304 imprime la línea de estado y las cabeceras en la salida estándar y sale con código distinto de 0; **si no, el sondeo no
+  puede ser condicional**; (2) qué imprime y por dónde un 4xx o un 5xx; (3) que `gh api` con ruta completa y `--hostname` no lanza `git`; (4) que `gh` encuentra su sesión con la lista blanca de D-11; (5) qué imprime sin conexión y con la sesión cerrada (código 4); (6) desde qué versión existen `--input`, `-i` y el código 4.
+  Y, de lo que el adaptador **supone** de la API sin haberlo visto: `merge_commit_sha` solo con `merged: true`; 409 para una fusión con la cabeza cambiada; el vocabulario de `conclusion` (`action_required` y `stale` se cuentan como «no pasa»); que `rules/branches/{rama}` es legible sin ser administrador y `branches/{rama}` trae `protected`;
+  que `statuses[].context` de otro sistema es lo único que cuenta como check (no `agent-studio/verdict`); que el estado de un despliegue es el del último estado de mayor `id`; y que la ventana de una hora hacia atrás basta para ver el revert; y, de `gh`, que sigue por sí mismo las redirecciones de un `GET` (se supone que sí, es un cliente de Go: entonces un repositorio renombrado no daría `remote.moved` en las lecturas) y que `Retry-After` llega en segundos o como fecha (el lector acepta las dos).
 - **`gh auth status --json hosts`:** qué campos trae y si incluye el token sin `--show-token`. Por eso no se usa (D-13).
 - **La API REST de GitHub** (las formas de D-10 son las de su documentación, no capturas):
   - los campos de `GET /repos/{o}/{r}/pulls/{n}` (`merged`, `merge_commit_sha`, `merged_by`, `mergeable_state`, `head.sha`,

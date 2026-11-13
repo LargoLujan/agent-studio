@@ -10,7 +10,7 @@ namespace AgentStudio.Infrastructure.Hosting.GitHub;
 /// the hardened reader of the git layer (no network, nothing the repository controls runs) and recognises the address by the rules of <see cref="RemoteRepository"/>: an unknown host, a port, a user or a
 /// token in the address, or an owner or a name outside the rules give no repository, never a corrected one.
 /// </summary>
-public sealed class HostingProviders(IHostingProvider gitHub, IRepositoryRemoteReader remotes) : IHostingProviders
+public sealed class HostingProviders(GitHubHostingProvider gitHub, IRepositoryRemoteReader remotes) : IHostingProviders
 {
     public IHostingProvider? For(RemoteRepository repository)
     {
@@ -24,6 +24,6 @@ public sealed class HostingProviders(IHostingProvider gitHub, IRepositoryRemoteR
         ArgumentException.ThrowIfNullOrWhiteSpace(remoteName);
         var listing = await remotes.ListRemotesAsync(project.RootPath, ct).ConfigureAwait(false);
         var remote = listing.Remotes.FirstOrDefault(r => string.Equals(r.Name, remoteName, StringComparison.Ordinal));
-        return remote is null ? null : RemoteRepository.TryParseGitHub(remote.Url, out _);
+        return remote is null ? null : GitHubRemoteAddress.TryParse(remote.Url, out _);
     }
 }

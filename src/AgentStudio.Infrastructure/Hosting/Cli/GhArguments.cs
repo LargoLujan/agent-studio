@@ -39,11 +39,11 @@ internal static partial class GhArguments
     internal const int MaxPathLength = 2048;
 
     // /user, or /repos/<owner>/<name> and segments of unreserved characters and %XX, and a query of names, = and values of the same kind.
-    [GeneratedRegex(@"^/(?:user|repos/[A-Za-z0-9-]{1,39}/[A-Za-z0-9._-]{1,100}(?:/[A-Za-z0-9._~%-]{1,300})*)(?:\?[A-Za-z0-9._~%=&-]{1,1500})?$", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"^/(?:user|repos/[A-Za-z0-9][A-Za-z0-9-]{0,38}/[A-Za-z0-9._-]{1,100}(?:/[A-Za-z0-9._~%-]{1,300})*)(?:\?[A-Za-z0-9._~%=&-]{1,1500})?\z", RegexOptions.CultureInvariant)]
     private static partial Regex AllowedPath();
 
     // W/ optional, and between double quotes 1 to 128 visible ASCII characters that are not a quote or a space (docs/21 D-10).
-    [GeneratedRegex("^(?:W/)?\"[\\x21\\x23-\\x7E]{1,128}\"$", RegexOptions.CultureInvariant)]
+    [GeneratedRegex("^(?:W/)?\"[\\x21\\x23-\\x7E]{1,128}\"\\z", RegexOptions.CultureInvariant)]
     private static partial Regex ETagShape();
 
     internal static string MethodName(GhMethod method) => method switch

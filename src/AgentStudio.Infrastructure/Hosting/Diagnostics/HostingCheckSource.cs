@@ -94,7 +94,7 @@ public sealed class HostingCheckSource(
             return NotApplicableExceptHost(Check("doctor.remote.host", DoctorStatus.NotApplicable));
         }
 
-        var repository = RemoteRepository.TryParseGitHub(remote.Url, out _);
+        var repository = GitHubRemoteAddress.TryParse(remote.Url, out var bySsh);
         if (repository is null)
         {
             return NotApplicableExceptHost(Check("doctor.remote.host", DoctorStatus.Warning));
@@ -105,7 +105,7 @@ public sealed class HostingCheckSource(
         return
         [
             Check("doctor.remote.host", DoctorStatus.Ok, HostingDoctorFixes.OpenPullRequests, DoctorFact.Of("repository", repository.Owner + "/" + repository.Name)),
-            remote.Url.StartsWith("https://", StringComparison.Ordinal) ? Check("doctor.remote.transport", DoctorStatus.Ok) : Check("doctor.remote.transport", DoctorStatus.Warning),
+            Check("doctor.remote.transport", bySsh ? DoctorStatus.Warning : DoctorStatus.Ok),
             Configuration(inspection),
             inspection is null || inspection.FailureCode is not null
                 ? Check("doctor.remote.lfs", DoctorStatus.Unknown)
