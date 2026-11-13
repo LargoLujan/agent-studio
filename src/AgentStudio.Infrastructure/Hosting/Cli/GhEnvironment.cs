@@ -12,10 +12,10 @@ namespace AgentStudio.Infrastructure.Hosting.Cli;
 /// </summary>
 internal static class GhEnvironment
 {
-    /// <summary>The variables of the person that cross the list because <c>gh</c> would not find its session or would not reach the network without them (D-11).</summary>
-    internal static readonly string[] ConfigurationFolders = ["XDG_CONFIG_HOME", "GH_CONFIG_DIR"];
+    /// <summary>The variables of the person that cross the list because <c>gh</c> would not find its session or would not reach the network without them (D-11). A path (the configuration folders and the file of certificates) crosses only when it is a full path outside the open projects.</summary>
+    internal static readonly string[] ConfigurationFolders = ["XDG_CONFIG_HOME", "GH_CONFIG_DIR", "SSL_CERT_FILE"];
 
-    internal static readonly string[] Network = ["HTTPS_PROXY", "HTTP_PROXY", "NO_PROXY", "SSL_CERT_FILE"];
+    internal static readonly string[] Network = ["HTTPS_PROXY", "HTTP_PROXY", "NO_PROXY"];
 
     /// <summary>What is never passed, named so that a test and a reader see the list (it is also removed by not being on the allow list).</summary>
     internal static readonly string[] Removed =

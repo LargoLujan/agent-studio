@@ -63,6 +63,13 @@ public sealed class GitHubLiveTests : IDisposable
         return (runner, process, new GitHubHostingProvider(new GhQueue(runner), door));
     }
 
+    private static bool IsPrivate(string body)
+    {
+        using var document = System.Text.Json.JsonDocument.Parse(body);
+        return document.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object
+            && document.RootElement.TryGetProperty("private", out var value) && value.ValueKind == System.Text.Json.JsonValueKind.True;
+    }
+
     private static string Shape(ProcessResult result)
     {
         var first = result.StandardOutput.Split('\n', 2)[0].TrimEnd('\r');
@@ -159,12 +166,18 @@ public sealed class GitHubLiveTests : IDisposable
         var head = Environment.GetEnvironmentVariable(HeadVariable);
         Assert.SkipWhen(!int.TryParse(Environment.GetEnvironmentVariable(PullRequestVariable), out var n) || n < 1 || !GitHubApiPath.IsCommitId(head), $"Set {PullRequestVariable} and {HeadVariable} (the head commit of that pull request).");
         var ct = TestContext.Current.CancellationToken;
-        var (_, process, provider) = Build();
+        var (runner, process, provider) = Build();
         var pullRequest = new PullRequestRef(repository, n);
+
+        // Nothing is written anywhere but in the private test repository that the owner named: it is read first and it has to say that it is private.
+        var info = await runner.RunAsync(GitHubApiPath.Repository(repository).Call(), ct);
+        process.Runs.Clear();
+        Assert.SkipUnless(info.Http is { Status: 200 } http && IsPrivate(http.Body), $"{RepositoryVariable} must name a private repository: nothing is written to a public one.");
         var notice = new VerdictNotice(new RunId("live-check"), head!, VerdictStanding.InReview, [new RequirementOutcome("R-1", true)], "live-test", "none", HeadIsJudgedCommit: true);
 
-        var first = await provider.PublishVerdictAsync(pullRequest, notice, "Comprobación en vivo del adaptador. Se puede borrar.", null, ct);
-        var edited = await provider.PublishVerdictAsync(pullRequest, notice with { Standing = VerdictStanding.Approved }, "Comprobación en vivo del adaptador, editada. Se puede borrar.", first.Value?.CommentId, ct);
+        // Only «pending»: the status of a test must not look like an approval of the commit.
+        var first = await provider.PublishVerdictAsync(pullRequest, notice, "Comprobación en vivo del adaptador", "Comprobación en vivo del adaptador. Se puede borrar.", null, ct);
+        var edited = await provider.PublishVerdictAsync(pullRequest, notice, "Comprobación en vivo del adaptador", "Comprobación en vivo del adaptador, editada. Se puede borrar.", first.Value?.CommentId, ct);
 
         foreach (var run in process.Runs)
         {

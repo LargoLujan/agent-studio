@@ -282,6 +282,10 @@ public sealed class HostingCheckSourceTests
         Assert.Equal(at.ToLocalTime().ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture), good.Facts[0].Value);
         Assert.Equal(DoctorStatus.Warning, gone.Status);
         Assert.Equal(HostingDoctorFixes.LoginGh, gone.FixCode);
+        var seen = at.AddDays(1);
+        var withDate = Of(await source(new RemoteSyncHealth(at, HostingOutcome.SignInNeeded, null, seen)).CheckAsync(Project, CancellationToken.None), "doctor.remote.session");
+        Assert.Equal(seen.ToLocalTime().ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture), withDate.Facts[0].Value);
+        Assert.Empty(gone.Facts);
         Assert.Equal(DoctorStatus.Unknown, offline.Status);
     }
 

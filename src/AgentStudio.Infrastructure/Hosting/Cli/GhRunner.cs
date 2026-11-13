@@ -32,7 +32,7 @@ internal sealed record GhRunResult(GhRunStatus Status, GhHttpResponse? Http = nu
 /// The one launcher of <c>gh</c> for GitHub (docs/21 D-10 to D-12), and it only ever launches <c>gh api</c> (the version goes through the door of Auto Doctor): the executable is
 /// <c>gh.exe</c> resolved by <see cref="ExecutableSearch"/> outside every untrusted root, the working folder is the neutral one, the environment is the allow list of
 /// <see cref="GhEnvironment"/>, the body goes through standard input, there are 20 seconds and 1 MB per answer, and the standard error is never read into anything: only the exit
-/// code 4 and the status line count. It does not queue and it does not know the limit: <see cref="GhQueue"/> does, and every call goes through it.
+/// code 4 and the status line count. <b>A timeout or a cancellation in the middle of a write is reported like any silence (no response), although the server may have applied it:</b> whoever retries a write that was not confirmed observes first (docs/21, notes for WP3). It does not queue and it does not know the limit: <see cref="GhQueue"/> does, and every call goes through it.
 /// </summary>
 internal sealed class GhRunner
 {

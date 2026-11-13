@@ -32,7 +32,7 @@ internal enum TimelineEvent
 
 internal sealed record TimelinePage(IReadOnlyList<TimelineEvent> Events, int Items);
 
-internal sealed record DeploymentEntry(long Id, string Environment);
+internal sealed record DeploymentEntry(long Id, string Environment, DateTimeOffset? CreatedAt);
 
 /// <summary>
 /// One reader for each response of GitHub (docs/21 D-12). Each one reads only the fields of its list, with their type and their bound, and answers null when the body is not what the endpoint
@@ -44,6 +44,9 @@ internal static partial class GitHubReaders
     /// <summary>The standard line git writes for a revert: the only thing read of the message of a commit (docs/21 D-27).</summary>
     [GeneratedRegex(@"^This reverts commit (?<sha>[0-9a-f]{40}|[0-9a-f]{64})\.\s*$", RegexOptions.Multiline | RegexOptions.CultureInvariant)]
     private static partial Regex RevertLine();
+
+    /// <summary>The code of a repository whose merge settings are not in the answer for an account that can write.</summary>
+    internal const string MergeSettingsMissing = "repository.merge-settings-missing";
 
     private const int MaxEntries = 300;
 
@@ -78,6 +81,16 @@ internal static partial class GitHubReaders
             return null;
         }
 
+        var canPush = GitHubJson.Obj(root, "permissions") is { } permissions && GitHubJson.Bool(permissions, "push") == true;
+
+        // The settings of the merge modes are documented fields. Without them an account that can write cannot be told what it may merge with: that is an answer that is not understood, not «no mode».
+        // An account that cannot write has no merge to offer either way.
+        if (canPush && (GitHubJson.Bool(root, "allow_merge_commit") is null || GitHubJson.Bool(root, "allow_squash_merge") is null || GitHubJson.Bool(root, "allow_rebase_merge") is null))
+        {
+            refusalCode = MergeSettingsMissing;
+            return null;
+        }
+
         var methods = new List<MergeMethod>(3);
         if (GitHubJson.Bool(root, "allow_merge_commit") == true)
         {
@@ -94,7 +107,6 @@ internal static partial class GitHubReaders
             methods.Add(MergeMethod.Rebase);
         }
 
-        var canPush = GitHubJson.Obj(root, "permissions") is { } permissions && GitHubJson.Bool(permissions, "push") == true;
         return new RemoteRepositoryFacts(branch, methods, canPush, GitHubJson.Bool(root, "archived") == true);
     }
 
@@ -109,6 +121,7 @@ internal static partial class GitHubReaders
 
         var list = new List<BranchRule>();
         var unknown = false;
+        var protectedByRule = false;
         foreach (var rule in rules.RootElement.EnumerateArray().Take(MaxEntries))
         {
             var parameters = GitHubJson.Obj(rule, "parameters");
@@ -129,6 +142,10 @@ internal static partial class GitHubReaders
                 case "merge_queue":
                     list.Add(new BranchRule(BranchRuleKind.MergeQueue, null));
                     break;
+                case "deletion" or "non_fast_forward" or "creation" or "update":
+                    // Documented types of the rules of a branch that mean the branch is protected; Unknown is for what is not known at all.
+                    protectedByRule = true;
+                    break;
                 default:
                     unknown = true;
                     break;
@@ -136,12 +153,14 @@ internal static partial class GitHubReaders
         }
 
         using var branch = GitHubJson.Parse(branchBody);
+        var flagged = branch is not null && branch.RootElement.ValueKind == JsonValueKind.Object && GitHubJson.Bool(branch.RootElement, "protected") == true;
+        if (protectedByRule || flagged)
+        {
+            list.Add(new BranchRule(BranchRuleKind.Protected, null));
+        }
+
         if (branch is not null && branch.RootElement.ValueKind == JsonValueKind.Object)
         {
-            if (GitHubJson.Bool(branch.RootElement, "protected") == true)
-            {
-                list.Add(new BranchRule(BranchRuleKind.Protected, null));
-            }
 
             if (GitHubJson.Obj(branch.RootElement, "protection") is { } protection
                 && GitHubJson.Obj(protection, "required_status_checks") is { } required
@@ -456,7 +475,7 @@ internal static partial class GitHubReaders
         {
             if (GitHubJson.Long(item, "id") is { } id and > 0)
             {
-                list.Add(new DeploymentEntry(id, GitHubJson.Display(GitHubJson.Str(item, "environment", 256)) ?? string.Empty));
+                list.Add(new DeploymentEntry(id, GitHubJson.Display(GitHubJson.Str(item, "environment", 256)) ?? string.Empty, GitHubJson.Date(item, "created_at")));
             }
         }
 
@@ -472,13 +491,25 @@ internal static partial class GitHubReaders
             return null;
         }
 
+        // The order of the list is not assumed: the latest status is the one created last (and, at the same time, the one with the highest id).
         long best = -1;
+        DateTimeOffset? bestAt = null;
         string? state = null;
         foreach (var item in document.RootElement.EnumerateArray().Take(10))
         {
-            if (GitHubJson.Long(item, "id") is { } id && id > best)
+            if (GitHubJson.Long(item, "id") is not { } id)
+            {
+                continue;
+            }
+
+            var at = GitHubJson.Date(item, "created_at");
+            var newer = bestAt is null && at is null
+                ? id > best
+                : (at ?? DateTimeOffset.MinValue) > (bestAt ?? DateTimeOffset.MinValue) || (at == bestAt && id > best);
+            if (newer)
             {
                 best = id;
+                bestAt = at;
                 state = GitHubJson.Str(item, "state", 32);
             }
         }
@@ -541,6 +572,41 @@ internal static partial class GitHubReaders
     {
         using var document = GitHubJson.Parse(body);
         return document is not null && GitHubJson.Obj(document.RootElement, "commit") is { } commit ? GitHubJson.CommitId(GitHubJson.Str(commit, "sha", 64)) : null;
+    }
+
+    /// <summary>
+    /// Whether a comment read by its id is the comment of the verdict of this pull request: its first line is <paramref name="mark"/>, its author is <paramref name="author"/> and it belongs to the issue
+    /// <paramref name="number"/> of <paramref name="repository"/> (by its <c>issue_url</c>, which is compared and never opened). Null when the body is not a comment.
+    /// </summary>
+    internal static bool? IsOwnVerdictComment(string? body, string mark, RemoteLogin author, RemoteRepository repository, int number)
+    {
+        using var document = GitHubJson.Parse(body);
+        if (document is null || document.RootElement.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        var root = document.RootElement;
+        var text = GitHubJson.Str(root, "body", 70000);
+        var issue = GitHubJson.Str(root, "issue_url", 512);
+        var login = GitHubJson.Obj(root, "user") is { } user ? GitHubJson.Str(user, "login", 64) : null;
+        if (text is null || issue is null || login is null)
+        {
+            return false;
+        }
+
+        var firstLine = text.AsSpan();
+        var end = firstLine.IndexOfAny('\r', '\n');
+        if (end >= 0)
+        {
+            firstLine = firstLine[..end];
+        }
+
+        var suffix = "/repos/" + repository.Owner + "/" + repository.Name + "/issues/" + number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return firstLine.SequenceEqual(mark)
+            && string.Equals(login, author.Value, StringComparison.OrdinalIgnoreCase)
+            && issue.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)
+            && issue.StartsWith("https://", StringComparison.Ordinal);
     }
 
     /// <summary>The id of a comment that was just written.</summary>

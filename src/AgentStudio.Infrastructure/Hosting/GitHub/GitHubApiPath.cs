@@ -32,10 +32,29 @@ internal sealed class GitHubApiQuery
 /// </summary>
 internal static class GitHubApiPath
 {
-    /// <summary>The most pages of a list: three of a hundred (docs/21 D-10).</summary>
-    internal const int MaxPages = 3;
-
+    /// <summary>The most entries a reader looks at in one page (the cap of the platform is 100).</summary>
     internal const int PageSize = 100;
+
+    // A page of the platform can carry long texts (the message of a commit, the body of a review or of a comment), and gh answers at most 1 MB: the lists are asked in small pages, up to a cap of entries.
+    // The commits of a pull request: 6 pages of 50 (300 is RemoteSnapshot.MaxCommits; the platform gives 250 at most).
+    internal const int CommitsPageSize = 50;
+    internal const int CommitsPages = 6;
+
+    // The timeline: 10 pages of 30. A page that still does not fit makes the observation go on with the timeline truncated.
+    internal const int TimelinePageSize = 30;
+    internal const int TimelinePages = 10;
+
+    // The reviews: 10 pages of 50; more than that is never counted by halves (reviews.too-many).
+    internal const int ReviewsPageSize = 50;
+    internal const int ReviewsPages = 10;
+
+    // The comments of a pull request, looked at to find the one of the verdict: 10 pages of 30.
+    internal const int CommentsPageSize = 30;
+    internal const int CommentsPages = 10;
+
+    // The commits of the base branch since a merge: 6 pages of 50.
+    internal const int BaseCommitsPageSize = 50;
+    internal const int BaseCommitsPages = 6;
 
     private static GitHubTarget Make(GitHubEndpoint endpoint, string path) => new(endpoint, path);
 
@@ -56,8 +75,8 @@ internal static class GitHubApiPath
     private static string Number(int value) =>
         value >= 1 ? value.ToString(CultureInfo.InvariantCulture) : throw new ArgumentOutOfRangeException(nameof(value), "A number is greater than 0.");
 
-    private static string Page(int page) =>
-        page is >= 1 and <= MaxPages ? page.ToString(CultureInfo.InvariantCulture) : throw new ArgumentOutOfRangeException(nameof(page), "A page is 1 to 3.");
+    private static string Page(int page, int last) =>
+        page >= 1 && page <= last ? page.ToString(CultureInfo.InvariantCulture) : throw new ArgumentOutOfRangeException(nameof(page), $"A page is 1 to {last}.");
 
     /// <summary>A full commit id: 40 or 64 lowercase hexadecimal characters (the rule of the domain is internal to it).</summary>
     internal static bool IsCommitId(string? value) =>
@@ -108,13 +127,13 @@ internal static class GitHubApiPath
     }
 
     internal static GitHubTarget PullRequestCommits(PullRequestRef pullRequest, int page) =>
-        Make(GitHubEndpoint.PullRequestCommits, PullRequestPath(pullRequest) + "/commits" + new GitHubApiQuery().Add("per_page", PageSize).Add("page", Page(page)));
+        Make(GitHubEndpoint.PullRequestCommits, PullRequestPath(pullRequest) + "/commits" + new GitHubApiQuery().Add("per_page", CommitsPageSize).Add("page", Page(page, CommitsPages)));
 
     internal static GitHubTarget PullRequestTimeline(PullRequestRef pullRequest, int page) =>
-        Make(GitHubEndpoint.PullRequestTimeline, IssuePath(pullRequest) + "/timeline" + new GitHubApiQuery().Add("per_page", PageSize).Add("page", Page(page)));
+        Make(GitHubEndpoint.PullRequestTimeline, IssuePath(pullRequest) + "/timeline" + new GitHubApiQuery().Add("per_page", TimelinePageSize).Add("page", Page(page, TimelinePages)));
 
-    internal static GitHubTarget Reviews(PullRequestRef pullRequest) =>
-        Make(GitHubEndpoint.Reviews, PullRequestPath(pullRequest) + "/reviews" + new GitHubApiQuery().Add("per_page", PageSize));
+    internal static GitHubTarget Reviews(PullRequestRef pullRequest, int page) =>
+        Make(GitHubEndpoint.Reviews, PullRequestPath(pullRequest) + "/reviews" + new GitHubApiQuery().Add("per_page", ReviewsPageSize).Add("page", Page(page, ReviewsPages)));
 
     internal static GitHubTarget RequestReviewers(PullRequestRef pullRequest) =>
         Make(GitHubEndpoint.RequestReviewers, PullRequestPath(pullRequest) + "/requested_reviewers");
@@ -131,12 +150,13 @@ internal static class GitHubApiPath
         Make(GitHubEndpoint.Commit, Repo(repository) + "/commits/" + Commit(sha));
 
     /// <summary>The commits of <paramref name="branch"/> since <paramref name="since"/> (UTC, to the second): where a revert of a merge shows up.</summary>
-    internal static GitHubTarget CommitsSince(RemoteRepository repository, RemoteBranch branch, DateTimeOffset since)
+    internal static GitHubTarget CommitsSince(RemoteRepository repository, RemoteBranch branch, DateTimeOffset since, int page = 1)
     {
         var query = new GitHubApiQuery()
             .Add("sha", branch.Name)
             .Add("since", since.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture))
-            .Add("per_page", 50);
+            .Add("per_page", BaseCommitsPageSize)
+            .Add("page", Page(page, BaseCommitsPages));
         return Make(GitHubEndpoint.CommitList, Repo(repository) + "/commits" + query);
     }
 
@@ -158,7 +178,11 @@ internal static class GitHubApiPath
     internal static GitHubTarget PostComment(PullRequestRef pullRequest) => Make(GitHubEndpoint.PostComment, IssuePath(pullRequest) + "/comments");
 
     internal static GitHubTarget Comments(PullRequestRef pullRequest, int page) =>
-        Make(GitHubEndpoint.Comments, IssuePath(pullRequest) + "/comments" + new GitHubApiQuery().Add("per_page", PageSize).Add("page", Page(page)));
+        Make(GitHubEndpoint.Comments, IssuePath(pullRequest) + "/comments" + new GitHubApiQuery().Add("per_page", CommentsPageSize).Add("page", Page(page, CommentsPages)));
+
+    /// <summary>One comment by its id: read before it is edited, to check that it is the comment of the verdict and not another.</summary>
+    internal static GitHubTarget Comment(RemoteRepository repository, long commentId) =>
+        Make(GitHubEndpoint.Comment, Repo(repository) + "/issues/comments/" + (commentId >= 1 ? commentId.ToString(CultureInfo.InvariantCulture) : throw new ArgumentOutOfRangeException(nameof(commentId), "An id is greater than 0.")));
 
     internal static GitHubTarget EditComment(RemoteRepository repository, long commentId) =>
         Make(GitHubEndpoint.EditComment, Repo(repository) + "/issues/comments/" + (commentId >= 1 ? commentId.ToString(CultureInfo.InvariantCulture) : throw new ArgumentOutOfRangeException(nameof(commentId), "An id is greater than 0.")));

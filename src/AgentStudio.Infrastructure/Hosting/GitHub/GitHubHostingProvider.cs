@@ -27,6 +27,9 @@ public static class GitHubRefusal
     public const string BranchHeadDiffers = "branch.head-differs";
     public const string ReviewersInvalid = "reviewers.invalid";
     public const string RunInvalid = "verdict.run-invalid";
+    public const string DescriptionInvalid = "text.description-invalid";
+    public const string ReviewsTooMany = "reviews.too-many";
+    public const string MergeRejected = "merge.rejected";
 
     /// <summary>The code of an HTTP status that has no code of its own: <c>http.&lt;status&gt;</c>.</summary>
     public static string Http(int status) => "http." + status.ToString(CultureInfo.InvariantCulture);
@@ -70,8 +73,15 @@ public sealed partial class GitHubHostingProvider : IHostingProvider
 
     public async Task<HostingAvailability> ProbeAsync(CancellationToken ct)
     {
-        var availability = GitHubCli.Availability(await GitHubCli.ReadAsync(_door, null, ct).ConfigureAwait(false));
-        _capabilities = availability.Capabilities;
+        var reading = await GitHubCli.ReadAsync(_door, null, ct).ConfigureAwait(false);
+        var availability = GitHubCli.Availability(reading);
+
+        // Only a reading that worked is kept: a probe that failed (the door timed out, gh was not there yet) must not leave «nothing declared» for good.
+        if (reading.State == GhInstallState.Installed)
+        {
+            _capabilities = availability.Capabilities;
+        }
+
         return availability;
     }
 
@@ -338,8 +348,10 @@ public sealed partial class GitHubHostingProvider : IHostingProvider
     }
 
     /// <summary>
-    /// Merges only with the method the repository allows and the head that was judged: GitHub refuses with 409 when the head is another (docs/21 D-20). No title, no message of the merge and no way to
-    /// ask for an administrator. A refusal (405, 409 or 422) says in what state the pull request is, from the closed vocabulary of GitHub.
+    /// Merges with a method that the adapter declares and the head that was judged: GitHub refuses with 409 when the head is another (docs/21 D-20). It does not check the modes that the repository allows or
+    /// the protections of the branch: the gate of the policies does, from <c>ReadRepositoryAsync</c> and <c>ReadBranchRulesAsync</c> (D-17). No title, no message of the merge and no way to ask for an
+    /// administrator. A refusal 405 (not mergeable) or 409 (the head does not match) says in what state the pull request is, from the closed vocabulary of GitHub; a 422 is not a block (validation failed)
+    /// and has its own code. <b>A timeout in the middle of the request is reported as unreachable although the server may have merged:</b> whoever finds it observes the pull request before it tries again.
     /// </summary>
     public async Task<HostingResult<MergeOutcome>> MergeAsync(PullRequestRef pullRequest, MergeMethod method, string expectedHead, CancellationToken ct)
     {
@@ -368,7 +380,12 @@ public sealed partial class GitHubHostingProvider : IHostingProvider
                 : Invalid<MergeOutcome>();
         }
 
-        if (step.Http is { Status: 405 or 409 or 422 })
+        if (step.Http is { Status: 422 })
+        {
+            return new HostingResult<MergeOutcome>(HostingOutcome.Refused, new MergeOutcome(false, null, null), RefusalCode: GitHubRefusal.MergeRejected);
+        }
+
+        if (step.Http is { Status: 405 or 409 })
         {
             var state = "unknown";
             var read = await SendAsync(GitHubApiPath.PullRequest(GitHubEndpoint.PullRequest, pullRequest), null, null, ct).ConfigureAwait(false);
@@ -431,6 +448,13 @@ public sealed partial class GitHubHostingProvider : IHostingProvider
         }
 
         var step = await SendAsync(GitHubApiPath.DeleteBranch(repository, runBranch), null, null, ct).ConfigureAwait(false);
+
+        // The documentation of the deletion gives 204, 409 and 422; a 422 is «the reference does not exist».
+        if (step.Http is { Status: 422 })
+        {
+            return new HostingResult<bool>(HostingOutcome.NotFound);
+        }
+
         return step.IsOk ? new HostingResult<bool>(HostingOutcome.Ok, true) : step.Fail<bool>();
     }
 
@@ -438,19 +462,11 @@ public sealed partial class GitHubHostingProvider : IHostingProvider
 
     internal static string VerdictMark(RunIdText run) => VerdictMarkPrefix + run.Value + " -->";
 
-    /// <summary>The fixed description of the status of each standing (a text of the system, never of the judge).</summary>
-    internal static string StatusDescription(VerdictStanding standing) => standing switch
-    {
-        VerdictStanding.Approved => "Revisor independiente (juez): aprobado",
-        VerdictStanding.Rejected => "Revisor independiente (juez): no aprobado",
-        VerdictStanding.InReview => "Revisor independiente (juez): en revisión",
-        _ => throw new ArgumentOutOfRangeException(nameof(standing), standing, "Unknown standing of a verdict."),
-    };
-
-    public async Task<HostingResult<PublishedVerdict>> PublishVerdictAsync(PullRequestRef pullRequest, VerdictNotice notice, string commentBody, long? commentId, CancellationToken ct)
+    public async Task<HostingResult<PublishedVerdict>> PublishVerdictAsync(PullRequestRef pullRequest, VerdictNotice notice, string statusDescription, string commentBody, long? commentId, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(pullRequest);
         ArgumentNullException.ThrowIfNull(notice);
+        ArgumentNullException.ThrowIfNull(statusDescription);
         ArgumentNullException.ThrowIfNull(commentBody);
         var capabilities = await CapabilitiesAsync(ct).ConfigureAwait(false);
         var withStatus = capabilities.Has(HostingCapability.CommitStatus);
@@ -470,6 +486,18 @@ public sealed partial class GitHubHostingProvider : IHostingProvider
             return Refuse<PublishedVerdict>(GitHubRefusal.RunInvalid);
         }
 
+        // The description of the status is a text of the system that the caller composed (its templates, D-19): the adapter only takes the control and format characters out and cuts it at 120.
+        var description = UntrustedText.Clean(statusDescription).Trim();
+        if (description.Length > GitHubRequestBodies.MaxStatusDescription)
+        {
+            description = description[..GitHubRequestBodies.MaxStatusDescription];
+        }
+
+        if (description.Length == 0)
+        {
+            return Refuse<PublishedVerdict>(GitHubRefusal.DescriptionInvalid);
+        }
+
         var mark = VerdictMark(run);
         var body = commentBody.StartsWith(mark, StringComparison.Ordinal) && (commentBody.Length == mark.Length || commentBody[mark.Length] is '\n' or '\r')
             ? commentBody
@@ -484,7 +512,7 @@ public sealed partial class GitHubHostingProvider : IHostingProvider
         {
             var status = await SendAsync(
                 GitHubApiPath.PostCommitStatus(pullRequest.Repository, notice.JudgedCommit),
-                GitHubRequestBodies.CommitStatus(notice.Standing, StatusDescription(notice.Standing)),
+                GitHubRequestBodies.CommitStatus(notice.Standing, description),
                 null,
                 ct).ConfigureAwait(false);
             if (status.IsOk)
@@ -515,20 +543,59 @@ public sealed partial class GitHubHostingProvider : IHostingProvider
         return new HostingResult<PublishedVerdict>(HostingOutcome.Ok, new PublishedVerdict(statusPublished, written.Id));
     }
 
+    /// <summary>
+    /// Writes the comment of the verdict. An id that is given is not trusted: before the comment is edited it is read, and it has to be the comment of this verdict (its first line is the mark of this run), written by
+    /// the account that publishes and on this pull request (its <c>issue_url</c>); if it is not (or it is gone) the comment is looked up by its mark, as when there is no id. <b>A timeout in the middle of a write is
+    /// reported as unreachable although the server may have applied it:</b> whoever finds it observes before it tries again, so a comment is not written twice (the lookup by mark finds the first).
+    /// </summary>
     private async Task<(Step? Step, long? Id)> WriteCommentAsync(PullRequestRef pullRequest, string mark, string body, long? commentId, CancellationToken ct)
     {
+        var account = await SendAsync(GitHubApiPath.Viewer(), null, null, ct).ConfigureAwait(false);
+        if (!account.IsOk)
+        {
+            return (account, null);
+        }
+
+        if (GitHubReaders.Viewer(account.Http!.Body) is not { } login)
+        {
+            return (new Step(HostingOutcome.InvalidAnswer, Code: GitHubRefusal.AccountInvalid), null);
+        }
+
         var id = commentId;
-        var lookedUp = id is not null;
+        if (id is { } given)
+        {
+            var read = await SendAsync(GitHubApiPath.Comment(pullRequest.Repository, given), null, null, ct).ConfigureAwait(false);
+            if (read.IsOk)
+            {
+                switch (GitHubReaders.IsOwnVerdictComment(read.Http!.Body, mark, login, pullRequest.Repository, pullRequest.Number))
+                {
+                    case null:
+                        return (new Step(HostingOutcome.InvalidAnswer, Code: GitHubRefusal.InvalidAnswer), null);
+                    case false:
+                        id = null;
+                        break;
+                }
+            }
+            else if (read.IsFatal && read.Outcome != HostingOutcome.InvalidAnswer)
+            {
+                return (read, null);
+            }
+            else
+            {
+                // Gone, or not readable: it is not the one to edit.
+                id = null;
+            }
+        }
+
         if (id is null)
         {
-            var found = await FindOwnCommentAsync(pullRequest, mark, ct).ConfigureAwait(false);
+            var found = await FindOwnCommentAsync(pullRequest, mark, login, ct).ConfigureAwait(false);
             if (found.Step is { } lookupFailure)
             {
                 return (lookupFailure, null);
             }
 
             id = found.Id;
-            lookedUp = true;
         }
 
         var json = GitHubRequestBodies.Comment(body);
@@ -540,8 +607,8 @@ public sealed partial class GitHubHostingProvider : IHostingProvider
                 return (null, edit);
             }
 
-            // The comment is gone (someone deleted it): it is written again, once.
-            if (step.Outcome != HostingOutcome.NotFound || !lookedUp)
+            // The comment was deleted between the read and the edit: it is written again, once.
+            if (step.Outcome != HostingOutcome.NotFound)
             {
                 return (step, null);
             }
@@ -556,21 +623,13 @@ public sealed partial class GitHubHostingProvider : IHostingProvider
         return GitHubReaders.CommentId(posted.Http!.Body) is { } created ? (null, created) : (new Step(HostingOutcome.InvalidAnswer, Code: GitHubRefusal.InvalidAnswer), null);
     }
 
-    /// <summary>The comment of the verdict that is ours: its first line is the mark and its author is the account that publishes (D-21). Reads at most three pages.</summary>
-    private async Task<(Step? Step, long? Id)> FindOwnCommentAsync(PullRequestRef pullRequest, string mark, CancellationToken ct)
+    /// <summary>
+    /// The comment of the verdict that is ours: its first line is the mark and its author is the account that publishes (D-21). Reads up to <see cref="GitHubApiPath.CommentsPages"/> pages of
+    /// <see cref="GitHubApiPath.CommentsPageSize"/> (300 comments): a pull request with more would get a second comment of the verdict, which the screen shows as it is; it is the limit of the lookup and it is documented.
+    /// </summary>
+    private async Task<(Step? Step, long? Id)> FindOwnCommentAsync(PullRequestRef pullRequest, string mark, RemoteLogin login, CancellationToken ct)
     {
-        var account = await SendAsync(GitHubApiPath.Viewer(), null, null, ct).ConfigureAwait(false);
-        if (!account.IsOk)
-        {
-            return (account, null);
-        }
-
-        if (GitHubReaders.Viewer(account.Http!.Body) is not { } login)
-        {
-            return (new Step(HostingOutcome.InvalidAnswer, Code: GitHubRefusal.AccountInvalid), null);
-        }
-
-        for (var page = 1; page <= GitHubApiPath.MaxPages; page++)
+        for (var page = 1; page <= GitHubApiPath.CommentsPages; page++)
         {
             var step = await SendAsync(GitHubApiPath.Comments(pullRequest, page), null, null, ct).ConfigureAwait(false);
             if (!step.IsOk)
@@ -589,7 +648,7 @@ public sealed partial class GitHubHostingProvider : IHostingProvider
                 return (null, id);
             }
 
-            if (items < GitHubApiPath.PageSize)
+            if (items < GitHubApiPath.CommentsPageSize)
             {
                 break;
             }
@@ -598,7 +657,6 @@ public sealed partial class GitHubHostingProvider : IHostingProvider
         return (null, null);
     }
 }
-
 /// <summary>The identifier of a run in the mark of the comment of a verdict: <c>[A-Za-z0-9_-]{1,64}</c>, so the mark cannot close the comment of HTML or carry anything else.</summary>
 internal readonly record struct RunIdText
 {

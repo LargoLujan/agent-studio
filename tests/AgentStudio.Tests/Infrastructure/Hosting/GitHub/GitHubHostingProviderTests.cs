@@ -344,7 +344,6 @@ public sealed class GitHubHostingProviderTests
     [Theory]
     [InlineData(405, "merge.blocked")]
     [InlineData(409, "merge.head-moved")]
-    [InlineData(422, "merge.blocked")]
     public async Task A_refused_merge_says_in_what_state_the_pull_request_is_from_the_closed_vocabulary_and_never_the_message_of_the_remote(int status, string code)
     {
         using var rig = new GhRig();
@@ -357,6 +356,103 @@ public sealed class GitHubHostingProviderTests
         Assert.Equal(code, result.RefusalCode);
         Assert.Equal(new MergeOutcome(false, null, "blocked"), result.Value);
         Assert.DoesNotContain("sentinel", result.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_422_is_not_a_block_it_is_a_failed_validation_with_its_own_code_and_no_state_is_read()
+    {
+        using var rig = new GhRig();
+        rig.Script.Route("PUT", "/repos/octo/hello/pulls/7/merge", "handmade-merge-422.http");
+
+        var result = await rig.Provider.MergeAsync(Pr, MergeMethod.Squash, Gh.Sha1, CancellationToken.None);
+
+        Assert.Equal(HostingOutcome.Refused, result.Outcome);
+        Assert.Equal("merge.rejected", result.RefusalCode);
+        Assert.Equal(new MergeOutcome(false, null, null), result.Value);
+        Assert.Single(rig.Script.Specs);
+    }
+
+    [Fact]
+    public async Task The_documented_types_of_rules_that_protect_a_branch_are_protection_and_only_what_is_not_known_is_unknown()
+    {
+        using var rig = new GhRig();
+        rig.Script.Route("GET", "/repos/octo/hello/rules/branches/main", Gh.Ok("[{\"type\":\"deletion\"},{\"type\":\"non_fast_forward\"},{\"type\":\"creation\"},{\"type\":\"update\"}]"));
+        rig.Script.Route("GET", "/repos/octo/hello/branches/main", Gh.Ok("{\"name\":\"main\",\"protected\":false}"));
+
+        var result = await rig.Provider.ReadBranchRulesAsync(Repo, Main, CancellationToken.None);
+
+        Assert.Equal([new BranchRule(BranchRuleKind.Protected, null)], result.Value!.Rules);
+        Assert.True(result.Value.Readable);
+    }
+
+    [Fact]
+    public async Task Merge_settings_that_are_missing_are_no_mode_for_an_account_that_cannot_write_and_an_answer_not_understood_for_one_that_can()
+    {
+        using var readOnly = new GhRig();
+        readOnly.Script.Route("GET", "/repos/octo/hello", Gh.Ok("{\"default_branch\":\"main\",\"permissions\":{\"push\":false}}"));
+        using var writer = new GhRig();
+        writer.Script.Route("GET", "/repos/octo/hello", Gh.Ok("{\"default_branch\":\"main\",\"allow_squash_merge\":true,\"permissions\":{\"push\":true}}"));
+        using var noPermissions = new GhRig();
+        noPermissions.Script.Route("GET", "/repos/octo/hello", Gh.Ok("{\"default_branch\":\"main\"}"));
+
+        var cannot = await readOnly.Provider.ReadRepositoryAsync(Repo, null, CancellationToken.None);
+        var can = await writer.Provider.ReadRepositoryAsync(Repo, null, CancellationToken.None);
+        var unknown = await noPermissions.Provider.ReadRepositoryAsync(Repo, null, CancellationToken.None);
+
+        Assert.Equal(HostingOutcome.Ok, cannot.Outcome);
+        Assert.False(cannot.Value!.CanPush);
+        Assert.Empty(cannot.Value.AllowedMergeMethods);
+        Assert.Equal(HostingOutcome.InvalidAnswer, can.Outcome);
+        Assert.Equal("repository.merge-settings-missing", can.RefusalCode);
+        Assert.Equal(HostingOutcome.Ok, unknown.Outcome);
+        Assert.False(unknown.Value!.CanPush);
+    }
+
+    [Fact]
+    public async Task A_422_when_deleting_a_branch_is_a_reference_that_does_not_exist()
+    {
+        using var rig = new GhRig();
+        rig.Script.Route("GET", "/repos/octo/hello/branches/agentstudio/run-run1", "handmade-branch-200.http");
+        rig.Script.Route("DELETE", "/repos/octo/hello/git/refs/heads/agentstudio/run-run1", Gh.Http(422, "{\"message\":\"Reference does not exist\"}"));
+
+        var result = await rig.Provider.DeleteRunBranchAsync(Repo, GhRig.RunBranch, Gh.Sha1, CancellationToken.None);
+
+        Assert.Equal(HostingOutcome.NotFound, result.Outcome);
+    }
+
+    [Fact]
+    public async Task The_secondary_limit_of_a_403_without_headers_is_a_rate_limited_outcome_for_the_provider_and_for_the_writes_after_it()
+    {
+        using var rig = new GhRig();
+        rig.Script.Route("GET", "/user", Gh.Http(403, "{\"message\":\"You have exceeded a secondary rate limit.\"}"));
+        var start = rig.Time.GetUtcNow();
+
+        var read = await rig.Provider.ReadAccountAsync(Repo, CancellationToken.None);
+        var write = await rig.Provider.CloseAsync(Pr, CancellationToken.None);
+
+        Assert.Equal(HostingOutcome.RateLimited, read.Outcome);
+        Assert.Equal(start.AddMinutes(1), read.RetryAt);
+        Assert.Equal(HostingOutcome.RateLimited, write.Outcome);
+        Assert.Single(rig.Script.Specs);
+    }
+
+    [Fact]
+    public void A_wait_that_a_local_file_gives_back_is_cut_at_two_hours_from_now_and_a_past_hour_or_a_null_is_no_wait()
+    {
+        using var rig = new GhRig();
+        var now = rig.Time.GetUtcNow();
+
+        rig.Provider.RestoreRateLimit(now.AddDays(400));
+        Assert.Equal(now.AddHours(2), rig.Provider.RateLimitedUntil);
+        rig.Provider.RestoreRateLimit(now.AddMinutes(20));
+        Assert.Equal(now.AddMinutes(20), rig.Provider.RateLimitedUntil);
+        rig.Provider.RestoreRateLimit(now.AddSeconds(-1));
+        Assert.Null(rig.Provider.RateLimitedUntil);
+        rig.Provider.RestoreRateLimit(DateTimeOffset.MinValue);
+        Assert.Null(rig.Provider.RateLimitedUntil);
+        rig.Provider.RestoreRateLimit(now.AddMinutes(5));
+        rig.Provider.RestoreRateLimit(null);
+        Assert.Null(rig.Provider.RateLimitedUntil);
     }
 
     [Fact]

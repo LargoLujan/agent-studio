@@ -6,4 +6,4 @@ X-Ratelimit-Remaining: 4990
 X-Ratelimit-Reset: 1794571200
 Etag: W/"d1"
 
-[{"id":501,"sha":"9999999999999999999999999999999999999999","environment":"production"},{"id":500,"sha":"9999999999999999999999999999999999999999","environment":"staging"}]
+[{"id":500,"sha":"9999999999999999999999999999999999999999","environment":"staging","created_at":"2026-11-13T11:05:00Z"},{"id":501,"sha":"9999999999999999999999999999999999999999","environment":"production","created_at":"2026-11-13T11:10:00Z"}]

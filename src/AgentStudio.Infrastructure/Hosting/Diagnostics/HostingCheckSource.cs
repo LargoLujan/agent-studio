@@ -149,10 +149,12 @@ public sealed class HostingCheckSource(
 
     private static DoctorCheck Session(RemoteSyncHealth? health) => health?.LastOutcome switch
     {
-        HostingOutcome.Ok or HostingOutcome.NotModified => health.LastGoodSync is { } at
+        HostingOutcome.Ok or HostingOutcome.NotModified => (health.LastOutcomeAt ?? health.LastGoodSync) is { } at
             ? Check("doctor.remote.session", DoctorStatus.Ok, null, DoctorFact.Of("date", Date(at)))
             : Check("doctor.remote.session", DoctorStatus.Ok),
-        HostingOutcome.SignInNeeded => Check("doctor.remote.session", DoctorStatus.Warning, HostingDoctorFixes.LoginGh),
+        HostingOutcome.SignInNeeded => health.LastOutcomeAt is { } seen
+            ? Check("doctor.remote.session", DoctorStatus.Warning, HostingDoctorFixes.LoginGh, DoctorFact.Of("date", Date(seen)))
+            : Check("doctor.remote.session", DoctorStatus.Warning, HostingDoctorFixes.LoginGh),
         _ => Check("doctor.remote.session", DoctorStatus.Unknown),
     };
 

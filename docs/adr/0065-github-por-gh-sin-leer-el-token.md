@@ -100,7 +100,7 @@ Implementado en `src/AgentStudio.Infrastructure/Hosting/{Cli,GitHub,Diagnostics}
 - **Una sola orden:** `gh api --hostname github.com -X <MÉTODO> -i -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" [-H "If-None-Match: <etag>"] [--input -] <ruta>`. La ruta empieza por `/repos/<o>/<r>/…` o es `/user`
   (con la barra inicial, como dice D-10) y la comprueba `GhArguments.IsAllowedPath` en el lanzador además del constructor (`GitHubApiPath`): ni `.` ni `..` (tampoco codificados), ni llaves, ni espacios; la consulta, solo de caracteres no reservados y `%XX`.
   El `ETag` solo pasa con su forma exacta (`W/` opcional y entre comillas de 1 a 128 caracteres ASCII visibles); si no, la petición va sin condición.
-- **El catálogo** (`GitHubEndpoint`, 25 entradas) es el de D-10 más dos que el diseño citaba sin nombre propio: `Branch` (`GET …/branches/{rama}`: el flag de protección, la cabeza de una rama y si existe) y `Commit`/`CommitList` (los padres de la fusión, los
+- **El catálogo** (`GitHubEndpoint`, 26 entradas) es el de D-10 más dos que el diseño citaba sin nombre propio: `Branch` (`GET …/branches/{rama}`: el flag de protección, la cabeza de una rama y si existe) y `Commit`/`CommitList` (los padres de la fusión, los
   commits que deja un rebase y la búsqueda de un revert). **Sin `WorkflowRuns`:** ningún miembro del contrato ni campo de `RemoteSnapshot` lo entrega, y `ReadWorkflowRuns` no se declara. Una prueba exige que cada entrada aparezca en la batería y que cada orden
   lanzada sea exactamente una de la lista.
 - **Quién lanza:** solo `GhRunner` (`gh.exe` por `ExecutableSearch` fuera de las raíces no fiables; nunca un `.cmd`; carpeta neutra; entorno de `GhEnvironment`; 20 s y 1 MB por salida; el cuerpo por la entrada estándar). **Siempre por `GhQueue`**
@@ -115,3 +115,13 @@ Implementado en `src/AgentStudio.Infrastructure/Hosting/{Cli,GitHub,Diagnostics}
   `merge.method-not-declared`, `merge.blocked`, `merge.head-moved`, `branch.not-run-branch`, `branch.head-differs`, `reviewers.invalid`, `verdict.run-invalid`. Los textos para la pantalla son de WP5.
 - **Sin verificar** (la prueba en vivo, `Live/README.md`): todo lo que dice §13 de docs/21 para `gh api`; en particular, que `-i` deje leer la línea de estado de un 304 (y con qué código de salida). **Si no la dejara,** el lector da `NoResponse` o `InvalidAnswer` y el sondeo no
   puede ser condicional: cada vuelta sería una lectura completa.
+
+### Ronda de arreglos (revisión de seguridad y contraste con la documentación, 2026-11-13)
+
+- **Tamaños:** `gh` responde 1 MB como mucho, así que las listas se piden en páginas pequeñas (commits 50, línea de tiempo 30, revisiones 50, comentarios 30, commits de la rama base 50) con un tope de páginas; lo que no cabe en la línea de tiempo o en los commits no hace fallar la observación (sale «truncado» con lo último conocido);
+  las revisiones se leen enteras o dan `reviews.too-many`.
+- **Límites:** se reconoce el límite secundario (403 sin cabeceras, por las palabras «rate limit» del cuerpo, que solo se mira para clasificar), `x-ratelimit-reset` solo vale con el límite a cero, y desde el segundo golpe seguido la espera es al menos el escalón de la escalera.
+  `RestoreRateLimit` (ya del puerto) recorta a dos horas lo que lee de un fichero local.
+- **Entorno:** `SSL_CERT_FILE` pasa con la regla de `GH_CONFIG_DIR`; `IUntrustedRoots` es obligatorio en la composición; el `ETag` no admite llaves.
+- **Escrituras sin confirmar:** un tiempo agotado a mitad de una escritura se devuelve como «sin conexión» aunque el servidor pudo aplicarla; quien reintenta observa antes (nota para WP3).
+- **Códigos nuevos:** `reviews.too-many`, `merge.rejected` (422), `text.description-invalid`, `repository.merge-settings-missing`.

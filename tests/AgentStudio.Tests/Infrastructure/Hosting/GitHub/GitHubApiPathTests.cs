@@ -26,19 +26,20 @@ public sealed class GitHubApiPathTests
         (GitHubApiPath.PullRequest(GitHubEndpoint.PullRequest, Pr), "/repos/octo/hello/pulls/7", GhMethod.Get),
         (GitHubApiPath.PullRequest(GitHubEndpoint.UpdatePullRequest, Pr), "/repos/octo/hello/pulls/7", GhMethod.Patch),
         (GitHubApiPath.PullRequest(GitHubEndpoint.ClosePullRequest, Pr), "/repos/octo/hello/pulls/7", GhMethod.Patch),
-        (GitHubApiPath.PullRequestCommits(Pr, 2), "/repos/octo/hello/pulls/7/commits?per_page=100&page=2", GhMethod.Get),
-        (GitHubApiPath.PullRequestTimeline(Pr, 3), "/repos/octo/hello/issues/7/timeline?per_page=100&page=3", GhMethod.Get),
-        (GitHubApiPath.Reviews(Pr), "/repos/octo/hello/pulls/7/reviews?per_page=100", GhMethod.Get),
+        (GitHubApiPath.PullRequestCommits(Pr, 2), "/repos/octo/hello/pulls/7/commits?per_page=50&page=2", GhMethod.Get),
+        (GitHubApiPath.PullRequestTimeline(Pr, 3), "/repos/octo/hello/issues/7/timeline?per_page=30&page=3", GhMethod.Get),
+        (GitHubApiPath.Reviews(Pr, 2), "/repos/octo/hello/pulls/7/reviews?per_page=50&page=2", GhMethod.Get),
         (GitHubApiPath.RequestReviewers(Pr), "/repos/octo/hello/pulls/7/requested_reviewers", GhMethod.Post),
         (GitHubApiPath.Merge(Pr), "/repos/octo/hello/pulls/7/merge", GhMethod.Put),
         (GitHubApiPath.CheckRuns(Repo, Gh.Sha1), "/repos/octo/hello/commits/" + Gh.Sha1 + "/check-runs?per_page=100", GhMethod.Get),
         (GitHubApiPath.CombinedStatus(Repo, Gh.Sha1), "/repos/octo/hello/commits/" + Gh.Sha1 + "/status?per_page=100", GhMethod.Get),
         (GitHubApiPath.Commit(Repo, Gh.Sha1), "/repos/octo/hello/commits/" + Gh.Sha1, GhMethod.Get),
-        (GitHubApiPath.CommitsSince(Repo, Main, new DateTimeOffset(2026, 11, 13, 10, 5, 7, TimeSpan.FromHours(2))), "/repos/octo/hello/commits?sha=main&since=2026-11-13T08%3A05%3A07Z&per_page=50", GhMethod.Get),
+        (GitHubApiPath.CommitsSince(Repo, Main, new DateTimeOffset(2026, 11, 13, 10, 5, 7, TimeSpan.FromHours(2))), "/repos/octo/hello/commits?sha=main&since=2026-11-13T08%3A05%3A07Z&per_page=50&page=1", GhMethod.Get),
         (GitHubApiPath.CommitsUpTo(Repo, Gh.Sha2, 3), "/repos/octo/hello/commits?sha=" + Gh.Sha2 + "&per_page=3", GhMethod.Get),
         (GitHubApiPath.PostCommitStatus(Repo, Gh.Sha1), "/repos/octo/hello/statuses/" + Gh.Sha1, GhMethod.Post),
         (GitHubApiPath.PostComment(Pr), "/repos/octo/hello/issues/7/comments", GhMethod.Post),
-        (GitHubApiPath.Comments(Pr, 1), "/repos/octo/hello/issues/7/comments?per_page=100&page=1", GhMethod.Get),
+        (GitHubApiPath.Comments(Pr, 1), "/repos/octo/hello/issues/7/comments?per_page=30&page=1", GhMethod.Get),
+        (GitHubApiPath.Comment(Repo, 4242), "/repos/octo/hello/issues/comments/4242", GhMethod.Get),
         (GitHubApiPath.EditComment(Repo, 4242), "/repos/octo/hello/issues/comments/4242", GhMethod.Patch),
         (GitHubApiPath.DeleteBranch(Repo, Run), "/repos/octo/hello/git/refs/heads/agentstudio/run-run1", GhMethod.Delete),
         (GitHubApiPath.Deployments(Repo, Gh.Sha1), "/repos/octo/hello/deployments?sha=" + Gh.Sha1 + "&per_page=20", GhMethod.Get),
@@ -126,9 +127,14 @@ public sealed class GitHubApiPathTests
     public void A_page_a_count_or_an_id_outside_their_range_is_never_built()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => GitHubApiPath.PullRequestCommits(Pr, 0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => GitHubApiPath.PullRequestCommits(Pr, 4));
+        Assert.Throws<ArgumentOutOfRangeException>(() => GitHubApiPath.PullRequestCommits(Pr, 7));
         Assert.Throws<ArgumentOutOfRangeException>(() => GitHubApiPath.PullRequestTimeline(Pr, -1));
-        Assert.Throws<ArgumentOutOfRangeException>(() => GitHubApiPath.Comments(Pr, 4));
+        Assert.Throws<ArgumentOutOfRangeException>(() => GitHubApiPath.PullRequestTimeline(Pr, 11));
+        Assert.Throws<ArgumentOutOfRangeException>(() => GitHubApiPath.Reviews(Pr, 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => GitHubApiPath.Reviews(Pr, 11));
+        Assert.Throws<ArgumentOutOfRangeException>(() => GitHubApiPath.Comments(Pr, 11));
+        Assert.Throws<ArgumentOutOfRangeException>(() => GitHubApiPath.CommitsSince(Repo, Main, DateTimeOffset.UnixEpoch, 7));
+        Assert.Throws<ArgumentOutOfRangeException>(() => GitHubApiPath.Comment(Repo, 0));
         Assert.Throws<ArgumentOutOfRangeException>(() => GitHubApiPath.CommitsUpTo(Repo, Gh.Sha1, 0));
         Assert.Throws<ArgumentOutOfRangeException>(() => GitHubApiPath.CommitsUpTo(Repo, Gh.Sha1, 101));
         Assert.Throws<ArgumentOutOfRangeException>(() => GitHubApiPath.EditComment(Repo, 0));

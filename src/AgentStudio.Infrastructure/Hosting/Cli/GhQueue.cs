@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AgentStudio.Infrastructure.Diagnostics;
 
 namespace AgentStudio.Infrastructure.Hosting.Cli;
@@ -42,6 +43,7 @@ internal sealed class GhQueue : IAsyncDisposable, IDisposable
     private readonly GhRunner _runner;
     private readonly TimeProvider _time;
     private readonly SerialQueue _queue = new();
+    private readonly CancellationTokenSource _stop = new();
     private long _limitedUntilTicks;
     private int _strikes;
 
@@ -77,8 +79,12 @@ internal sealed class GhQueue : IAsyncDisposable, IDisposable
         return _queue.RunAsync(token => SendCoreAsync(call, token), ct);
     }
 
-    private async Task<GhReply> SendCoreAsync(GhCall call, CancellationToken ct)
+    private async Task<GhReply> SendCoreAsync(GhCall call, CancellationToken caller)
     {
+        // After Dispose nothing more is launched: what was still queued ends as cancelled, and a gh in the air is cancelled too.
+        _stop.Token.ThrowIfCancellationRequested();
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(caller, _stop.Token);
+        var ct = linked.Token;
         if (RateLimitedUntil is { } waiting)
         {
             return new GhReply(GhReplyKind.RateLimited, RetryAt: waiting);
@@ -98,7 +104,7 @@ internal sealed class GhQueue : IAsyncDisposable, IDisposable
         }
 
         var http = run.Http!;
-        if (http.Status == 429 || (http.Status == 403 && (http.RateLimitRemaining == 0 || http.RetryAfter is not null)))
+        if (http.Status == 429 || (http.Status == 403 && (http.RateLimitRemaining == 0 || http.RetryAfter is not null || SaysRateLimit(http.Body))))
         {
             var until = Wait(http);
             return new GhReply(GhReplyKind.RateLimited, RetryAt: until);
@@ -108,30 +114,71 @@ internal sealed class GhQueue : IAsyncDisposable, IDisposable
         return new GhReply(GhReplyKind.Response, http);
     }
 
+    /// <summary>
+    /// The secondary limit of GitHub arrives as a 403 (or a 429) that may carry neither <c>retry-after</c> nor a limit at zero; the body says it in its message or in the address of its documentation. The body is read
+    /// only to classify the answer: nothing of it is kept or shown.
+    /// </summary>
+    private static bool SaysRateLimit(string body)
+    {
+        if (string.IsNullOrWhiteSpace(body) || body.Length > 16_384)
+        {
+            return false;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(body, new JsonDocumentOptions { MaxDepth = 8 });
+            if (document.RootElement.ValueKind != JsonValueKind.Object)
+            {
+                return false;
+            }
+
+            foreach (var name in new[] { "message", "documentation_url" })
+            {
+                if (document.RootElement.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String
+                    && value.GetString() is { } text
+                    && (text.Contains("rate limit", StringComparison.OrdinalIgnoreCase) || text.Contains("rate-limit", StringComparison.OrdinalIgnoreCase) || text.Contains("rate_limit", StringComparison.OrdinalIgnoreCase)))
+                {
+                    return true;
+                }
+            }
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// The hour to wait until. <c>retry-after</c> always counts; <c>x-ratelimit-reset</c> only when <c>x-ratelimit-remaining</c> is 0 (otherwise it is the reset of a limit that was not hit). From the second blow in a
+    /// row on, the wait is at least the step of the ladder, so a clock of this computer that is ahead (a reset that already looks past) cannot make it hammer: with no usable header, or a past one, a minute and then 2, 5, 15 and 60.
+    /// </summary>
     private DateTimeOffset Wait(GhHttpResponse http)
     {
         var now = _time.GetUtcNow();
-        DateTimeOffset until;
-        if ((http.RetryAfter ?? http.RateLimitReset) is { } asked)
-        {
-            until = Max(asked, now.AddSeconds(1));
-        }
-        else
-        {
-            until = now + Ladder[Math.Min(_strikes, Ladder.Length - 1)];
-        }
-
+        var step = now + Ladder[Math.Min(_strikes, Ladder.Length - 1)];
+        var asked = http.RetryAfter ?? (http.RateLimitRemaining == 0 ? http.RateLimitReset : null);
+        var until = asked is { } hour ? (_strikes == 0 ? Max(hour, now.AddSeconds(1)) : Max(hour, step)) : step;
         _strikes++;
         until = Min(until, now + MaxWait);
         Interlocked.Exchange(ref _limitedUntilTicks, until.UtcTicks);
         return until;
     }
-
     private static DateTimeOffset Min(DateTimeOffset a, DateTimeOffset b) => a <= b ? a : b;
 
     private static DateTimeOffset Max(DateTimeOffset a, DateTimeOffset b) => a >= b ? a : b;
 
-    public void Dispose() => _queue.Dispose();
+    public void Dispose()
+    {
+        _stop.Cancel();
+        _queue.Dispose();
+    }
 
-    public ValueTask DisposeAsync() => _queue.DisposeAsync();
+    public async ValueTask DisposeAsync()
+    {
+        await _stop.CancelAsync().ConfigureAwait(false);
+        await _queue.DisposeAsync().ConfigureAwait(false);
+    }
 }

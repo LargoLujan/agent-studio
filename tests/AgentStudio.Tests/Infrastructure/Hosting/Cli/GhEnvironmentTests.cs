@@ -82,8 +82,7 @@ public sealed class GhEnvironmentTests : IDisposable
     [InlineData("HTTPS_PROXY")]
     [InlineData("HTTP_PROXY")]
     [InlineData("NO_PROXY")]
-    [InlineData("SSL_CERT_FILE")]
-    public void The_proxy_and_the_certificates_cross_as_they_are_and_are_removed_when_empty(string name)
+    public void The_proxy_crosses_as_it_is_and_is_removed_when_empty(string name)
     {
         var passes = GhEnvironment.For(Folders, Ambient((name, "value")), null);
         var empty = GhEnvironment.For(Folders, Ambient((name, "  ")), null);
@@ -97,7 +96,8 @@ public sealed class GhEnvironmentTests : IDisposable
     [Theory]
     [InlineData("XDG_CONFIG_HOME")]
     [InlineData("GH_CONFIG_DIR")]
-    public void A_configuration_folder_crosses_only_when_it_is_a_full_path_outside_the_open_projects(string name)
+    [InlineData("SSL_CERT_FILE")]
+    public void A_configuration_folder_or_the_file_of_certificates_crosses_only_when_it_is_a_full_path_outside_the_open_projects(string name)
     {
         var project = _temp.CreateDirectory("project");
         var outside = _temp.CreateDirectory("config");

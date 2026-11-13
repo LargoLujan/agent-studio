@@ -189,4 +189,91 @@ public sealed class GhQueueTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => second);
         Assert.Single(rig.Script.Specs);
     }
-}
+
+    [Fact]
+    public async Task The_secondary_limit_arrives_as_a_403_with_no_headers_and_is_known_by_its_body_and_waits_a_minute_and_the_ladder()
+    {
+        using var rig = new GhRig();
+        rig.Script.Route("GET", "/repos/octo/hello/pulls/7", Gh.Http(403, "{\"message\":\"You have exceeded a secondary rate limit. Please wait a few minutes before you try again.\",\"documentation_url\":\"https://docs.github.com/rest/overview/rate-limits-for-the-rest-api\"}"));
+        rig.Script.Route("GET", "/repos/octo/hello/pulls/8", Gh.Http(403, "{\"message\":\"Forbidden\",\"documentation_url\":\"https://docs.github.com/rest/guides/best-practices-for-using-the-rest-api#dealing-with-rate-limits\"}"));
+        var start = rig.Time.GetUtcNow();
+
+        var first = await rig.Queue.SendAsync(Read, CancellationToken.None);
+
+        Assert.Equal(GhReplyKind.RateLimited, first.Kind);
+        Assert.Equal(start.AddMinutes(1), first.RetryAt);
+        rig.Time.Advance(TimeSpan.FromMinutes(1) + TimeSpan.FromSeconds(1));
+        var second = await rig.Queue.SendAsync(new GhCall(GhMethod.Get, "/repos/octo/hello/pulls/8"), CancellationToken.None);
+        Assert.Equal(GhReplyKind.RateLimited, second.Kind);
+        Assert.Equal(rig.Time.GetUtcNow().AddMinutes(2), second.RetryAt);
+    }
+
+    [Fact]
+    public async Task A_403_whose_body_says_nothing_of_a_limit_is_an_answer_even_if_it_is_long_or_not_json()
+    {
+        using var rig = new GhRig();
+        rig.Script.Route("GET", "/repos/octo/hello/pulls/7", Gh.Http(403, "{\"message\":\"Resource not accessible by integration\"}"));
+        rig.Script.Route("GET", "/repos/octo/hello/pulls/8", Gh.Http(403, "not json at all rate limit"));
+        rig.Script.Route("GET", "/repos/octo/hello/pulls/9", Gh.Http(403, "[\"rate limit\"]"));
+
+        Assert.Equal(GhReplyKind.Response, (await rig.Queue.SendAsync(Read, CancellationToken.None)).Kind);
+        Assert.Equal(GhReplyKind.Response, (await rig.Queue.SendAsync(new GhCall(GhMethod.Get, "/repos/octo/hello/pulls/8"), CancellationToken.None)).Kind);
+        Assert.Equal(GhReplyKind.Response, (await rig.Queue.SendAsync(new GhCall(GhMethod.Get, "/repos/octo/hello/pulls/9"), CancellationToken.None)).Kind);
+        Assert.Null(rig.Queue.RateLimitedUntil);
+    }
+
+    [Fact]
+    public async Task The_reset_header_only_counts_when_the_limit_is_at_zero()
+    {
+        using var rig = new GhRig();
+        var reset = rig.Time.GetUtcNow().AddMinutes(90).ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture);
+        rig.Script.Route("GET", "/repos/octo/hello/pulls/7", Gh.Http(429, "{}", "\r\n", ("X-Ratelimit-Remaining", "37"), ("X-Ratelimit-Reset", reset)));
+        var start = rig.Time.GetUtcNow();
+
+        var reply = await rig.Queue.SendAsync(Read, CancellationToken.None);
+
+        Assert.Equal(start.AddMinutes(1), reply.RetryAt);
+    }
+
+    [Fact]
+    public async Task With_the_clock_of_this_computer_ahead_the_second_blow_in_a_row_does_not_hammer()
+    {
+        using var rig = new GhRig();
+        // The reset that GitHub says is already in the past for this clock.
+        var past = rig.Time.GetUtcNow().AddHours(-1).ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture);
+        rig.Script.Route("GET", "/repos/octo/hello/pulls/7", Gh.Http(403, "{}", "\r\n", ("X-Ratelimit-Remaining", "0"), ("X-Ratelimit-Reset", past)));
+        var start = rig.Time.GetUtcNow();
+
+        var first = await rig.Queue.SendAsync(Read, CancellationToken.None);
+        Assert.Equal(start.AddSeconds(1), first.RetryAt);
+        rig.Time.Advance(TimeSpan.FromSeconds(2));
+        var now = rig.Time.GetUtcNow();
+        var second = await rig.Queue.SendAsync(Read, CancellationToken.None);
+        rig.Time.Advance(TimeSpan.FromMinutes(2) + TimeSpan.FromSeconds(1));
+        var third = await rig.Queue.SendAsync(Read, CancellationToken.None);
+
+        Assert.Equal(now.AddMinutes(2), second.RetryAt);
+        Assert.True(third.RetryAt >= rig.Time.GetUtcNow().AddMinutes(5));
+        Assert.Equal(3, rig.Script.Specs.Count);
+    }
+
+    [Fact]
+    public async Task After_dispose_no_gh_is_launched_and_what_was_queued_ends_cancelled()
+    {
+        var rig = new GhRig();
+        var release = new TaskCompletionSource();
+        rig.Script.Hold = release.Task;
+        rig.Script.Route("GET", "/repos/octo/hello/pulls/7", _ => Gh.Ok("{}"));
+        var first = rig.Queue.SendAsync(Read, CancellationToken.None);
+        await Spin(() => rig.Script.Specs.Count == 1);
+        var queued = rig.Queue.SendAsync(Read, CancellationToken.None);
+
+        rig.Queue.Dispose();
+        release.SetResult();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => queued);
+        await Assert.ThrowsAnyAsync<Exception>(() => rig.Queue.SendAsync(Read, CancellationToken.None));
+        Assert.Single(rig.Script.Specs);
+        _ = first;
+        rig.Dispose();
+    }}

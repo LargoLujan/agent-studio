@@ -35,13 +35,13 @@ internal enum GitHubEndpoint
     /// <summary><c>GET /repos/{o}/{r}/pulls/{n}</c>.</summary>
     PullRequest,
 
-    /// <summary><c>GET /repos/{o}/{r}/pulls/{n}/commits?per_page=100&amp;page={1..3}</c>.</summary>
+    /// <summary><c>GET /repos/{o}/{r}/pulls/{n}/commits?per_page=50&amp;page={1..6}</c>.</summary>
     PullRequestCommits,
 
-    /// <summary><c>GET /repos/{o}/{r}/issues/{n}/timeline?per_page=100&amp;page={1..3}</c>.</summary>
+    /// <summary><c>GET /repos/{o}/{r}/issues/{n}/timeline?per_page=30&amp;page={1..10}</c>.</summary>
     PullRequestTimeline,
 
-    /// <summary><c>GET /repos/{o}/{r}/pulls/{n}/reviews?per_page=100</c>. Only <c>GET</c>.</summary>
+    /// <summary><c>GET /repos/{o}/{r}/pulls/{n}/reviews?per_page=50&amp;page={1..10}</c>. Only <c>GET</c>.</summary>
     Reviews,
 
     /// <summary><c>POST /repos/{o}/{r}/pulls/{n}/requested_reviewers</c>.</summary>
@@ -56,7 +56,7 @@ internal enum GitHubEndpoint
     /// <summary><c>GET /repos/{o}/{r}/commits/{sha}</c>: the parents and the author of a commit (the way a merge was made).</summary>
     Commit,
 
-    /// <summary><c>GET /repos/{o}/{r}/commits?sha={branch}&amp;since={date}&amp;per_page=50</c> (a revert), or <c>?sha={commit}&amp;per_page={n}</c> (the commits a rebase left).</summary>
+    /// <summary><c>GET /repos/{o}/{r}/commits?sha={branch}&amp;since={date}&amp;per_page=50&amp;page={1..6}</c> (a revert), or <c>?sha={commit}&amp;per_page={n}</c> (the commits a rebase left).</summary>
     CommitList,
 
     /// <summary><c>POST /repos/{o}/{r}/statuses/{sha}</c>: the status of the verdict.</summary>
@@ -65,10 +65,13 @@ internal enum GitHubEndpoint
     /// <summary><c>POST /repos/{o}/{r}/issues/{n}/comments</c>.</summary>
     PostComment,
 
+    /// <summary><c>GET /repos/{o}/{r}/issues/comments/{id}</c>: read before an edit, to check that it is the comment of the verdict.</summary>
+    Comment,
+
     /// <summary><c>PATCH /repos/{o}/{r}/issues/comments/{id}</c>.</summary>
     EditComment,
 
-    /// <summary><c>GET /repos/{o}/{r}/issues/{n}/comments?per_page=100&amp;page={1..3}</c>.</summary>
+    /// <summary><c>GET /repos/{o}/{r}/issues/{n}/comments?per_page=30&amp;page={1..10}</c>.</summary>
     Comments,
 
     /// <summary><c>PUT /repos/{o}/{r}/pulls/{n}/merge</c> (<c>merge_method</c> and <c>sha</c>).</summary>
@@ -95,7 +98,7 @@ internal static class GitHubEndpoints
         GitHubEndpoint.DeleteBranch => GhMethod.Delete,
         GitHubEndpoint.Viewer or GitHubEndpoint.Repository or GitHubEndpoint.BranchRules or GitHubEndpoint.Branch or GitHubEndpoint.FindPullRequests or GitHubEndpoint.PullRequest
             or GitHubEndpoint.PullRequestCommits or GitHubEndpoint.PullRequestTimeline or GitHubEndpoint.Reviews or GitHubEndpoint.CheckRuns or GitHubEndpoint.CombinedStatus
-            or GitHubEndpoint.Commit or GitHubEndpoint.CommitList or GitHubEndpoint.Comments or GitHubEndpoint.Deployments or GitHubEndpoint.DeploymentStatuses => GhMethod.Get,
+            or GitHubEndpoint.Commit or GitHubEndpoint.CommitList or GitHubEndpoint.Comment or GitHubEndpoint.Comments or GitHubEndpoint.Deployments or GitHubEndpoint.DeploymentStatuses => GhMethod.Get,
         _ => throw new ArgumentOutOfRangeException(nameof(endpoint), endpoint, "Unknown entry of the catalog."),
     };
 }

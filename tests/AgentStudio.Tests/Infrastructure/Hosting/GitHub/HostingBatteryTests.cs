@@ -31,18 +31,19 @@ public sealed class HostingBatteryTests
         (GitHubEndpoint.UpdatePullRequest, "PATCH", new(@"^/repos/octo/hello/pulls/7$"), new(@"^\{""title"":.*,""body"":.*\}$", RegexOptions.Singleline)),
         (GitHubEndpoint.ClosePullRequest, "PATCH", new(@"^/repos/octo/hello/pulls/7$"), new(@"^\{""state"":""closed""\}$")),
         (GitHubEndpoint.PullRequest, "GET", new(@"^/repos/octo/hello/pulls/7$"), null),
-        (GitHubEndpoint.PullRequestCommits, "GET", new(@"^/repos/octo/hello/pulls/7/commits\?per_page=100&page=[1-3]$"), null),
-        (GitHubEndpoint.PullRequestTimeline, "GET", new(@"^/repos/octo/hello/issues/7/timeline\?per_page=100&page=[1-3]$"), null),
-        (GitHubEndpoint.Reviews, "GET", new(@"^/repos/octo/hello/pulls/7/reviews\?per_page=100$"), null),
+        (GitHubEndpoint.PullRequestCommits, "GET", new(@"^/repos/octo/hello/pulls/7/commits\?per_page=50&page=[1-6]$"), null),
+        (GitHubEndpoint.PullRequestTimeline, "GET", new(@"^/repos/octo/hello/issues/7/timeline\?per_page=30&page=([1-9]|10)$"), null),
+        (GitHubEndpoint.Reviews, "GET", new(@"^/repos/octo/hello/pulls/7/reviews\?per_page=50&page=([1-9]|10)$"), null),
         (GitHubEndpoint.RequestReviewers, "POST", new(@"^/repos/octo/hello/pulls/7/requested_reviewers$"), new(@"^\{""reviewers"":\[(""[A-Za-z0-9-]+"",?)+\]\}$")),
         (GitHubEndpoint.CheckRuns, "GET", new(@"^/repos/octo/hello/commits/[0-9a-f]{40}/check-runs\?per_page=100$"), null),
         (GitHubEndpoint.CombinedStatus, "GET", new(@"^/repos/octo/hello/commits/[0-9a-f]{40}/status\?per_page=100$"), null),
         (GitHubEndpoint.Commit, "GET", new(@"^/repos/octo/hello/commits/[0-9a-f]{40}$"), null),
-        (GitHubEndpoint.CommitList, "GET", new(@"^/repos/octo/hello/commits\?sha=(main&since=[0-9A-Za-z%.-]+&per_page=50|[0-9a-f]{40}&per_page=\d+)$"), null),
+        (GitHubEndpoint.CommitList, "GET", new(@"^/repos/octo/hello/commits\?sha=(main&since=[0-9A-Za-z%.-]+&per_page=50&page=[1-6]|[0-9a-f]{40}&per_page=\d+)$"), null),
         (GitHubEndpoint.PostCommitStatus, "POST", new(@"^/repos/octo/hello/statuses/[0-9a-f]{40}$"), new(@"^\{""state"":""(success|failure|pending)"",""context"":""agent-studio/verdict"",""description"":"".{1,120}""\}$")),
         (GitHubEndpoint.PostComment, "POST", new(@"^/repos/octo/hello/issues/7/comments$"), new(@"^\{""body"":"".*""\}$", RegexOptions.Singleline)),
+        (GitHubEndpoint.Comment, "GET", new(@"^/repos/octo/hello/issues/comments/[0-9]+$"), null),
         (GitHubEndpoint.EditComment, "PATCH", new(@"^/repos/octo/hello/issues/comments/[0-9]+$"), new(@"^\{""body"":"".*""\}$", RegexOptions.Singleline)),
-        (GitHubEndpoint.Comments, "GET", new(@"^/repos/octo/hello/issues/7/comments\?per_page=100&page=[1-3]$"), null),
+        (GitHubEndpoint.Comments, "GET", new(@"^/repos/octo/hello/issues/7/comments\?per_page=30&page=([1-9]|10)$"), null),
         (GitHubEndpoint.Merge, "PUT", new(@"^/repos/octo/hello/pulls/7/merge$"), new(@"^\{""merge_method"":""(merge|squash|rebase)"",""sha"":""[0-9a-f]{40}""\}$")),
         (GitHubEndpoint.DeleteBranch, "DELETE", new(@"^/repos/octo/hello/git/refs/heads/agentstudio/run-[A-Za-z0-9_-]+$"), null),
         (GitHubEndpoint.Deployments, "GET", new(@"^/repos/octo/hello/deployments\?sha=[0-9a-f]{40}&per_page=20$"), null),
@@ -85,6 +86,7 @@ public sealed class HostingBatteryTests
         script.Route("POST", "/repos/octo/hello/statuses/", "handmade-statuses-201.http");
         script.Route("POST", "/repos/octo/hello/issues/7/comments", "handmade-comment-201.http");
         script.Route("PATCH", "/repos/octo/hello/issues/comments/", Gh.Ok("{\"id\":4242}"));
+        script.Route("GET", "/repos/octo/hello/issues/comments/", "handmade-comment-200.http");
         script.Route("GET", "/repos/octo/hello/issues/7/comments", Gh.Ok("[]"));
         script.Route("PUT", "/repos/octo/hello/pulls/7/merge", "handmade-merge-200.http");
         script.Route("DELETE", "/repos/octo/hello/git/refs/heads/", Gh.Http(204));
@@ -120,8 +122,8 @@ public sealed class HostingBatteryTests
         foreach (var standing in Enum.GetValues<VerdictStanding>())
         {
             var notice = new VerdictNotice(new RunId("run1"), Gh.Sha1, standing, [new RequirementOutcome("R-1", true)], "claude-code", "model", true);
-            await provider.PublishVerdictAsync(Pr, notice, "texto del sistema", null, ct);
-            await provider.PublishVerdictAsync(Pr, notice, "texto del sistema", 4242, ct);
+            await provider.PublishVerdictAsync(Pr, notice, "descripcion del sistema", "texto del sistema", null, ct);
+            await provider.PublishVerdictAsync(Pr, notice, "descripcion del sistema", "texto del sistema", 4242, ct);
         }
 
         foreach (var method in Enum.GetValues<MergeMethod>())
@@ -300,7 +302,7 @@ public sealed class HostingBatteryTests
             rig.Script.Specs.Clear();
             await rig.Provider.OpenPullRequestAsync(new PullRequestDraft(Repo, GhRig.RunBranch, GhRig.Main, new PullRequestText(text, text), false), CancellationToken.None);
             await rig.Provider.UpdatePullRequestAsync(Pr, new PullRequestText(text, text), CancellationToken.None);
-            await rig.Provider.PublishVerdictAsync(Pr, new VerdictNotice(new RunId("run1"), Gh.Sha1, VerdictStanding.Approved, [], "p", "m", true), text, 4242, CancellationToken.None);
+            await rig.Provider.PublishVerdictAsync(Pr, new VerdictNotice(new RunId("run1"), Gh.Sha1, VerdictStanding.Approved, [], "p", "m", true), "descripcion", text, 4242, CancellationToken.None);
             return [.. rig.Script.Specs.Select(s => s.Arguments.ToList())];
         }
 

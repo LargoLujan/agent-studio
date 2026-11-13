@@ -67,10 +67,9 @@
 ## Lo que fija WP2 (2026-11-13)
 
 - **Cómo publica el adaptador** (`GitHubHostingProvider.PublishVerdictAsync`): `POST /repos/{o}/{r}/statuses/{commit juzgado}` con `{"state","context":"agent-studio/verdict","description"}` y un comentario (`POST …/issues/{n}/comments`, o `PATCH …/issues/comments/{id}` si hay
-  identificador; si no, lo busca en las tres primeras páginas por su marca en la primera línea **y** por que su autor sea la cuenta que publica, con `GET /user`). Un comentario borrado por otra persona se vuelve a escribir una vez. Sin permiso para el estado
+  identificador; si no, lo busca en las diez primeras páginas (de 30) por su marca en la primera línea **y** por que su autor sea la cuenta que publica, con `GET /user`). Un comentario borrado por otra persona se vuelve a escribir una vez. Sin permiso para el estado
   (403, 404 o rechazo), queda el comentario; una sesión caída, un límite o la falta de conexión paran todo y dicen qué se había publicado ya.
-- **El vocabulario del estado:** `success` / `failure` / `pending` para aprobado / rechazado / en revisión, con tres descripciones fijas del sistema de menos de 60 caracteres («Revisor independiente (juez): aprobado», «…: no aprobado», «…: en revisión»; el contrato
-  `VerdictNotice` no tiene campo para ellas, así que son constantes del adaptador y no recursos), cortadas a 120.
+- **El vocabulario del estado:** `success` / `failure` / `pending` para aprobado / rechazado / en revisión. **La descripción la compone quien llama** (WP3, con sus plantillas, D-19; `PublishVerdictAsync` la recibe): el adaptador solo quita los caracteres de control y de formato, la corta a 120 y rechaza una vacía. No hay textos en castellano en el adaptador.
 - **La marca** `<!-- agent-studio:verdict run=<id> -->` (el id, `[A-Za-z0-9_-]{1,64}`) la antepone el adaptador si el cuerpo que da quien llama no empieza por ella; el cuerpo lo compone el sistema (WP3) y el adaptador no le añade nada: ni el razonamiento del juez, ni su proveedor, ni
   los requisitos. Se rechaza antes de lanzar nada un cuerpo de más de 20 000 caracteres o con caracteres de control o de formato (salvo salto de línea y tabulador).
 - **Cómo se prueba que nunca es una revisión** (`HostingBatteryTests`, `VerdictPublicationTests`, `HostingArchitectureTests`, `HostingCapabilityTests`): la batería ejecuta todos los miembros del contrato, con texto hostil y variables hostiles, y recorre cada `ProcessSpec`:

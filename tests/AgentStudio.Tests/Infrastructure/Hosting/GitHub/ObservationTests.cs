@@ -123,11 +123,11 @@ public sealed class ObservationTests
         Assert.Equal(
             [
                 "GET /repos/octo/hello/pulls/7",
-                "GET " + Reviews + "?per_page=100",
+                "GET " + Reviews + "?per_page=50&page=1",
                 "GET " + CheckRuns(Gh.Sha1) + "?per_page=100",
                 "GET " + Status(Gh.Sha1) + "?per_page=100",
-                "GET " + Commits + "?per_page=100&page=1",
-                "GET " + Timeline + "?per_page=100&page=1",
+                "GET " + Commits + "?per_page=50&page=1",
+                "GET " + Timeline + "?per_page=30&page=1",
             ],
             rig.Script.Calls.Select(c => c.ToString()));
         Assert.All(rig.Script.Calls, c => Assert.Null(c.IfNoneMatch));
@@ -279,42 +279,145 @@ public sealed class ObservationTests
         Gh.Json([.. Enumerable.Range(offset, count).Select(i => CommitJson((i + 1).ToString("x", CultureInfo.InvariantCulture).PadLeft(40, '0')))]);
 
     [Fact]
-    public async Task Three_full_pages_of_commits_are_truncated_and_a_short_page_ends_the_list()
+    public async Task Six_full_pages_of_commits_are_truncated_and_a_short_page_ends_the_list()
     {
         using var full = new GhRig();
         RouteOpenPullRequest(full.Script);
-        full.Script.Route("GET", Commits, call => Gh.Ok(Page(100, call.Path.Contains("page=2", StringComparison.Ordinal) ? 100 : call.Path.Contains("page=3", StringComparison.Ordinal) ? 200 : 0)));
+        full.Script.Route("GET", Commits, call => Gh.Ok(Page(50, (PageNumber(call) - 1) * 50)));
 
         var truncated = await full.Provider.ObserveAsync(Pr, null, CancellationToken.None);
 
         Assert.Equal(300, truncated.Value!.Snapshot.OriginalCommits.Count);
         Assert.True(truncated.Value.Snapshot.CommitsTruncated);
-        Assert.Equal(3, full.Script.Calls.Count(c => c.Path.StartsWith(Commits, StringComparison.Ordinal)));
+        Assert.Equal(6, full.Script.Calls.Count(c => c.Path.StartsWith(Commits, StringComparison.Ordinal)));
 
         using var short1 = new GhRig();
         RouteOpenPullRequest(short1.Script);
-        short1.Script.Route("GET", Commits, call => Gh.Ok(call.Path.Contains("page=2", StringComparison.Ordinal) ? Page(30, 100) : Page(100)));
+        short1.Script.Route("GET", Commits, call => Gh.Ok(PageNumber(call) == 2 ? Page(30, 50) : Page(50)));
 
         var ended = await short1.Provider.ObserveAsync(Pr, null, CancellationToken.None);
 
-        Assert.Equal(130, ended.Value!.Snapshot.OriginalCommits.Count);
+        Assert.Equal(80, ended.Value!.Snapshot.OriginalCommits.Count);
         Assert.False(ended.Value.Snapshot.CommitsTruncated);
         Assert.Equal(2, short1.Script.Calls.Count(c => c.Path.StartsWith(Commits, StringComparison.Ordinal)));
     }
 
+    private static int PageNumber(GhCallSeen call) => int.Parse(call.Path[(call.Path.LastIndexOf("page=", StringComparison.Ordinal) + 5)..], CultureInfo.InvariantCulture);
+
+    private static ProcessResult TooBig() => new(-1, "HTTP/2.0 200 OK\n\n[", string.Empty, TimeSpan.Zero, false, OutputLimitExceeded: true);
+
     [Fact]
-    public async Task Three_full_pages_of_the_timeline_are_truncated_and_the_events_of_all_the_pages_count()
+    public async Task A_page_of_the_timeline_that_does_not_fit_in_a_megabyte_does_not_fail_the_observation_it_goes_on_truncated_with_the_last_known_force_pushes()
+    {
+        using var rig = new GhRig();
+        var first = await FirstRoundAsync(rig);
+        Assert.Equal(2, first.Snapshot.ForcePushes);
+        rig.Script.Specs.Clear();
+        rig.Script.Route("GET", "/repos/octo/hello/pulls/7", Gh.Ok("{\"number\":7,\"state\":\"open\",\"draft\":false,\"merged\":false,\"mergeable_state\":\"clean\",\"updated_at\":\"2026-11-13T10:30:00Z\",\"head\":{\"sha\":\"" + Gh.Sha3 + "\"},\"base\":{\"ref\":\"main\"}}", "W/\"p9\""));
+        rig.Script.Route("GET", CheckRuns(Gh.Sha3), Gh.Ok("{\"total_count\":0,\"check_runs\":[]}"));
+        rig.Script.Route("GET", Status(Gh.Sha3), Gh.Ok("{\"total_count\":0,\"statuses\":[]}"));
+        rig.Script.Route("GET", Commits, Gh.Ok(Gh.Json(CommitJson(Gh.Sha3))));
+        rig.Script.Route("GET", Timeline, _ => TooBig());
+
+        var second = await rig.Provider.ObserveAsync(Pr, first.Cursor, CancellationToken.None);
+
+        Assert.Equal(HostingOutcome.Ok, second.Outcome);
+        Assert.True(second.Value!.Snapshot.TimelineTruncated);
+        Assert.Equal(2, second.Value.Snapshot.ForcePushes);
+        Assert.True(second.Value.Snapshot.HeadBranchExists);
+        Assert.Equal(Gh.Sha3, second.Value.Snapshot.HeadCommit);
+        Assert.Single(rig.Script.Calls, c => c.Path.StartsWith(Timeline, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_page_of_commits_that_does_not_fit_ends_the_list_there_truncated_and_the_first_observation_has_no_known_force_pushes_to_keep()
     {
         using var rig = new GhRig();
         RouteOpenPullRequest(rig.Script);
-        var page = Gh.Json([.. Enumerable.Range(0, 100).Select(i => i == 0 ? "{\"event\":\"head_ref_force_pushed\"}" : "{\"event\":\"labeled\"}")]);
+        rig.Script.Route("GET", Commits, call => PageNumber(call) == 1 ? Gh.Ok(Page(50)) : TooBig());
+        rig.Script.Route("GET", Timeline, _ => TooBig());
+
+        var result = await rig.Provider.ObserveAsync(Pr, null, CancellationToken.None);
+
+        Assert.Equal(HostingOutcome.Ok, result.Outcome);
+        Assert.Equal(50, result.Value!.Snapshot.OriginalCommits.Count);
+        Assert.True(result.Value.Snapshot.CommitsTruncated);
+        Assert.True(result.Value.Snapshot.TimelineTruncated);
+        Assert.Equal(0, result.Value.Snapshot.ForcePushes);
+    }
+    [Fact]
+    public async Task Ten_full_pages_of_the_timeline_are_truncated_and_the_events_of_all_the_pages_count()
+    {
+        using var rig = new GhRig();
+        RouteOpenPullRequest(rig.Script);
+        var page = Gh.Json([.. Enumerable.Range(0, 30).Select(i => i == 0 ? "{\"event\":\"head_ref_force_pushed\"}" : "{\"event\":\"labeled\"}")]);
         rig.Script.Route("GET", Timeline, _ => Gh.Ok(page));
 
         var result = await rig.Provider.ObserveAsync(Pr, null, CancellationToken.None);
 
         Assert.True(result.Value!.Snapshot.TimelineTruncated);
-        Assert.Equal(3, result.Value.Snapshot.ForcePushes);
-        Assert.Equal(3, rig.Script.Calls.Count(c => c.Path.StartsWith(Timeline, StringComparison.Ordinal)));
+        Assert.Equal(10, result.Value.Snapshot.ForcePushes);
+        Assert.Equal(10, rig.Script.Calls.Count(c => c.Path.StartsWith(Timeline, StringComparison.Ordinal)));
+    }
+
+    // ---- The reviews: every page, or none ----
+
+    private static string ReviewJson(string login, string state) => "{\"user\":{\"login\":\"" + login + "\"},\"state\":\"" + state + "\"}";
+
+    private static string ReviewsPage(int count, string state = "COMMENTED", string prefix = "user") =>
+        Gh.Json([.. Enumerable.Range(0, count).Select(i => ReviewJson(prefix + i, state))]);
+
+    [Fact]
+    public async Task The_reviews_of_every_page_are_counted_and_the_etag_of_a_full_first_page_is_not_kept()
+    {
+        using var rig = new GhRig();
+        RouteOpenPullRequest(rig.Script);
+        rig.Script.Route("GET", Reviews, call => Gh.Ok(PageNumber(call) == 1 ? ReviewsPage(50, "APPROVED", "a") : Gh.Json(ReviewJson("late", "CHANGES_REQUESTED"), ReviewJson("a0", "COMMENTED")), "W/\"v7\""));
+
+        var first = await rig.Provider.ObserveAsync(Pr, null, CancellationToken.None);
+
+        var reviews = first.Value!.Snapshot.Reviews;
+        Assert.Equal(50, reviews.Approved);
+        Assert.Equal(1, reviews.ChangesRequested);
+        Assert.Equal(2, rig.Script.Calls.Count(c => c.Path.StartsWith(Reviews, StringComparison.Ordinal)));
+        Assert.False(first.Value.Cursor.ETags.ContainsKey(ObservedResource.Reviews));
+
+        rig.Script.Specs.Clear();
+        await rig.Provider.ObserveAsync(Pr, first.Value.Cursor, CancellationToken.None);
+        Assert.All(rig.Script.Calls.Where(c => c.Path.StartsWith(Reviews, StringComparison.Ordinal)), c => Assert.Null(c.IfNoneMatch));
+    }
+
+    [Fact]
+    public async Task More_reviews_than_the_cap_are_never_a_half_count_the_answer_is_invalid_with_its_own_code_and_no_cursor()
+    {
+        using var rig = new GhRig();
+        RouteOpenPullRequest(rig.Script);
+        rig.Script.Route("GET", Reviews, _ => Gh.Ok(ReviewsPage(50, "APPROVED", "a")));
+
+        var result = await rig.Provider.ObserveAsync(Pr, null, CancellationToken.None);
+
+        Assert.Equal(HostingOutcome.InvalidAnswer, result.Outcome);
+        Assert.Equal("reviews.too-many", result.RefusalCode);
+        Assert.Null(result.Value);
+        Assert.Equal(10, rig.Script.Calls.Count(c => c.Path.StartsWith(Reviews, StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public void An_account_that_does_not_pass_the_rule_of_a_login_is_the_same_account_in_every_review()
+    {
+        var summary = GitHubReviewReader.Summarize(
+        [
+            new GitHubReviewReader.ReviewEntry("x[bot]", ReviewVerdict.Approved), new GitHubReviewReader.ReviewEntry("x[bot]", ReviewVerdict.Approved), new GitHubReviewReader.ReviewEntry("alice", ReviewVerdict.Approved),
+        ]);
+        var dismissed = GitHubReviewReader.Summarize(
+        [
+            new GitHubReviewReader.ReviewEntry("x[bot]", ReviewVerdict.Approved), new GitHubReviewReader.ReviewEntry("X[bot]", ReviewVerdict.Dismissed),
+        ]);
+
+        Assert.Equal(2, summary.Approved);
+        Assert.Equal(["alice"], summary.Approvers.Select(a => a.Value));
+        Assert.Equal(0, dismissed.Approved);
+        Assert.Empty(dismissed.Approvers);
     }
     // ---- The way a merge was made, deduced from real commits (D-27) ----
 
@@ -498,7 +601,7 @@ public sealed class ObservationTests
         Assert.Equal(merged.Snapshot.UpdatedAt, snapshot.UpdatedAt);
         Assert.Equal(
             [
-                "GET /repos/octo/hello/commits?sha=main&since=2026-11-13T10%3A00%3A00Z&per_page=50",
+                "GET /repos/octo/hello/commits?sha=main&since=2026-11-13T10%3A00%3A00Z&per_page=50&page=1",
                 "GET /repos/octo/hello/deployments?sha=" + Gh.Merge + "&per_page=20",
                 "GET /repos/octo/hello/deployments/501/statuses?per_page=10",
             ],
@@ -544,6 +647,39 @@ public sealed class ObservationTests
         var snapshot = second.Value!.Snapshot;
         Assert.Equal([Gh.Sha4, Gh.Sha3], snapshot.RevertCommits);
         Assert.Equal(new RemoteDeployment(501, Gh.Merge, DeploymentState.Succeeded), snapshot.Deployment);
+    }
+
+    [Fact]
+    public async Task The_base_branch_is_read_in_pages_and_a_revert_on_a_later_page_is_found_and_the_etag_of_a_full_first_page_is_not_kept()
+    {
+        using var rig = new GhRig();
+        var merged = await MergedCursorAsync(rig);
+        RouteMergedPoll(rig.Script, () => string.Empty);
+        rig.Script.Route("GET", "/repos/octo/hello/commits?sha=main&", call => PageNumber(call) == 1 ? Gh.Ok(Page(50), "W/\"b1\"") : Gh.Ok(Gh.Json(CommitJson(Gh.Sha4, message: RevertMessage(Gh.Merge)))));
+        rig.Script.Specs.Clear();
+
+        var round = await rig.Provider.ObserveAsync(Pr, merged.Cursor, CancellationToken.None);
+
+        Assert.Equal([Gh.Sha4], round.Value!.Snapshot.RevertCommits);
+        Assert.Equal(2, rig.Script.Calls.Count(c => c.Path.StartsWith("/repos/octo/hello/commits?sha=main", StringComparison.Ordinal)));
+        Assert.False(round.Value.Cursor.ETags.ContainsKey(ObservedResource.BaseCommits));
+    }
+
+    [Fact]
+    public async Task A_revert_that_leaves_the_window_of_the_read_stays_in_the_snapshot_so_the_reconciler_never_sees_the_list_shrink()
+    {
+        using var rig = new GhRig();
+        var merged = await MergedCursorAsync(rig);
+        var commits = Gh.Json(CommitJson(Gh.Sha4, message: RevertMessage(Gh.Merge)));
+        RouteMergedPoll(rig.Script, () => commits);
+        var first = await rig.Provider.ObserveAsync(Pr, merged.Cursor, CancellationToken.None);
+
+        commits = Gh.Json(CommitJson(Gh.Sha3, message: "otra cosa"));
+        var cursor = first.Value!.Cursor with { ETags = new Dictionary<ObservedResource, string>() };
+        var second = await rig.Provider.ObserveAsync(Pr, cursor, CancellationToken.None);
+
+        Assert.Equal([Gh.Sha4], second.Value!.Snapshot.RevertCommits);
+        Assert.False(RemoteReconciler.Reconcile(first.Value.Snapshot, second.Value.Snapshot).Discarded);
     }
 
     [Fact]

@@ -125,20 +125,13 @@ public sealed partial class GitHubHostingProvider
             var checks = last?.Checks ?? NoChecks;
             if (open && capabilities.Has(HostingCapability.ReadReviews))
             {
-                var step = await AskAsync(ObservedResource.Reviews, GitHubApiPath.Reviews(pullRequest), conditional: true).ConfigureAwait(false);
-                if (step.IsOk)
+                var read1 = await ReadReviewsAsync().ConfigureAwait(false);
+                if (read1.Failure is { } reviewsFailure)
                 {
-                    if (GitHubReviewReader.Read(step.Http!.Body) is not { } reading)
-                    {
-                        return Invalid<PullRequestObservation>();
-                    }
+                    return reviewsFailure;
+                }
 
-                    reviews = reading;
-                }
-                else if (step.Outcome != HostingOutcome.NotModified)
-                {
-                    return step.Fail<PullRequestObservation>();
-                }
+                reviews = read1.Reviews ?? reviews;
             }
 
             if (open && capabilities.Has(HostingCapability.ReadChecks))
@@ -275,13 +268,71 @@ public sealed partial class GitHubHostingProvider
             return (null, new ChecksSummary(rollup, passing, failing, pending, runReading.Truncated || statusReading.Truncated));
         }
 
-        /// <summary>The commits of the pull request, up to three pages of a hundred; what still comes full after the third is truncated.</summary>
+        /// <summary>
+        /// The reviews, every page up to <see cref="GitHubApiPath.ReviewsPages"/>: a count that stopped halfway would be wrong, so beyond the cap the answer is invalid (<c>reviews.too-many</c>). The condition
+        /// goes in the first page only, and its ETag is kept only when that page was not full: a review that is added to a full page lands in the next one and would not change it.
+        /// </summary>
+        private async Task<(HostingResult<PullRequestObservation>? Failure, ReviewsSummary? Reviews)> ReadReviewsAsync()
+        {
+            var first = await AskAsync(ObservedResource.Reviews, GitHubApiPath.Reviews(pullRequest, 1), conditional: true).ConfigureAwait(false);
+            if (first.Outcome == HostingOutcome.NotModified)
+            {
+                return (null, null);
+            }
+
+            if (!first.IsOk)
+            {
+                return (first.Fail<PullRequestObservation>(), null);
+            }
+
+            var entries = new List<GitHubReviewReader.ReviewEntry>();
+            var step = first;
+            for (var page = 1; ; page++)
+            {
+                if (GitHubReviewReader.ReadPage(step.Http!.Body) is not { } read)
+                {
+                    return (Invalid<PullRequestObservation>(), null);
+                }
+
+                entries.AddRange(read.Entries);
+                if (page == 1 && read.Items >= GitHubApiPath.ReviewsPageSize)
+                {
+                    _after.Remove(ObservedResource.Reviews);
+                }
+
+                if (read.Items < GitHubApiPath.ReviewsPageSize)
+                {
+                    return (null, GitHubReviewReader.Summarize(entries));
+                }
+
+                if (page == GitHubApiPath.ReviewsPages)
+                {
+                    return (new HostingResult<PullRequestObservation>(HostingOutcome.InvalidAnswer, RefusalCode: GitHubRefusal.ReviewsTooMany), null);
+                }
+
+                step = await SendAsync(GitHubApiPath.Reviews(pullRequest, page + 1)).ConfigureAwait(false);
+                if (!step.IsOk)
+                {
+                    return (step.Fail<PullRequestObservation>(), null);
+                }
+            }
+        }
+
+        /// <summary>
+        /// The commits of the pull request, up to <see cref="GitHubApiPath.CommitsPages"/> pages of <see cref="GitHubApiPath.CommitsPageSize"/>; what still comes full after the last page is truncated. A page that does not fit in
+        /// what <c>gh</c> may answer (1 MB) ends the list there, truncated: a pull request is never left without observation for a long message.
+        /// </summary>
         private async Task<(HostingResult<PullRequestObservation>? Failure, IReadOnlyList<CommitInfo>? Infos, bool Truncated)> ReadCommitsAsync()
         {
             var all = new List<CommitInfo>();
-            for (var page = 1; page <= GitHubApiPath.MaxPages; page++)
+            for (var page = 1; page <= GitHubApiPath.CommitsPages; page++)
             {
                 var step = await SendAsync(GitHubApiPath.PullRequestCommits(pullRequest, page)).ConfigureAwait(false);
+                if (step is { Outcome: HostingOutcome.InvalidAnswer, Http: null })
+                {
+                    return (null, all, true);
+                }
+
                 if (!step.IsOk)
                 {
                     return (step.Fail<PullRequestObservation>(), null, false);
@@ -293,7 +344,7 @@ public sealed partial class GitHubHostingProvider
                 }
 
                 all.AddRange(commits);
-                if (commits.Count < GitHubApiPath.PageSize)
+                if (commits.Count < GitHubApiPath.CommitsPageSize)
                 {
                     return (null, all, false);
                 }
@@ -302,13 +353,22 @@ public sealed partial class GitHubHostingProvider
             return (null, all, true);
         }
 
+        /// <summary>
+        /// The force pushes and the state of the head branch from the timeline, in pages of <see cref="GitHubApiPath.TimelinePageSize"/> up to <see cref="GitHubApiPath.TimelinePages"/>. A page that does not fit in what <c>gh</c> may
+        /// answer (1 MB, the comments of a timeline can be long) does not fail the observation: it goes on with the timeline truncated and the force pushes never fewer than the last known.
+        /// </summary>
         private async Task<(HostingResult<PullRequestObservation>? Failure, int ForcePushes, bool Truncated, bool HeadExists)> ReadTimelineAsync()
         {
             var forcePushes = 0;
             var exists = true;
-            for (var page = 1; page <= GitHubApiPath.MaxPages; page++)
+            for (var page = 1; page <= GitHubApiPath.TimelinePages; page++)
             {
                 var step = await SendAsync(GitHubApiPath.PullRequestTimeline(pullRequest, page)).ConfigureAwait(false);
+                if (step is { Outcome: HostingOutcome.InvalidAnswer, Http: null })
+                {
+                    return (null, Math.Max(forcePushes, last?.ForcePushes ?? 0), true, page == 1 ? last?.HeadBranchExists ?? true : exists);
+                }
+
                 if (!step.IsOk)
                 {
                     return (step.Fail<PullRequestObservation>(), 0, false, true);
@@ -335,15 +395,14 @@ public sealed partial class GitHubHostingProvider
                     }
                 }
 
-                if (timeline.Items < GitHubApiPath.PageSize)
+                if (timeline.Items < GitHubApiPath.TimelinePageSize)
                 {
                     return (null, forcePushes, false, exists);
                 }
             }
 
-            return (null, forcePushes, true, exists);
+            return (null, Math.Max(forcePushes, last?.ForcePushes ?? 0), true, exists);
         }
-
         /// <summary>
         /// How the pull request was merged, deduced from real commits (docs/21 D-27): two parents is a merge commit; one parent whose author, date of authoring and message are those of the
         /// next to last commit of the pull request is a rebase; one parent that differs is a squash; with one commit only, squash or rebase. A rebase leaves as many commits as the pull request had,
@@ -430,13 +489,37 @@ public sealed partial class GitHubHostingProvider
             var baseStep = await AskAsync(ObservedResource.BaseCommits, GitHubApiPath.CommitsSince(Repository, merged.BaseBranch, since), conditional: true).ConfigureAwait(false);
             if (baseStep.IsOk)
             {
-                if (GitHubReaders.Reverts(baseStep.Http!.Body, mergeCommits) is not { } found)
+                // Up to 6 pages of 50. The ETag of the first page is kept only when it was not full: a commit added to a full page lands in the next one.
+                var found = new List<string>();
+                var step1 = baseStep;
+                for (var page = 1; ; page++)
                 {
-                    return Invalid<PullRequestObservation>();
+                    if (GitHubReaders.Commits(step1.Http!.Body) is not { } listed || GitHubReaders.Reverts(step1.Http.Body, mergeCommits) is not { } onPage)
+                    {
+                        return Invalid<PullRequestObservation>();
+                    }
+
+                    found.AddRange(onPage);
+                    if (page == 1 && listed.Count >= GitHubApiPath.BaseCommitsPageSize)
+                    {
+                        _after.Remove(ObservedResource.BaseCommits);
+                    }
+
+                    if (listed.Count < GitHubApiPath.BaseCommitsPageSize || page == GitHubApiPath.BaseCommitsPages)
+                    {
+                        break;
+                    }
+
+                    step1 = await SendAsync(GitHubApiPath.CommitsSince(Repository, merged.BaseBranch, since, page + 1)).ConfigureAwait(false);
+                    if (!step1.IsOk)
+                    {
+                        return step1.Fail<PullRequestObservation>();
+                    }
                 }
 
-                // Only grows: what was seen stays seen.
-                reverts = [.. merged.RevertCommits, .. found.Where(f => !merged.RevertCommits.Contains(f, StringComparer.Ordinal))];
+                // The reverts only accumulate: they are the union with those of the last snapshot. A revert that left the window (or the 300 commits) of this read stays seen, so the list never shrinks
+                // and the reconciler does not take the observation for one that goes backwards.
+                reverts = [.. merged.RevertCommits.Concat(found.Where(f => !merged.RevertCommits.Contains(f, StringComparer.Ordinal))).Distinct(StringComparer.Ordinal).Take(RemoteSnapshot.MaxCommits)];
             }
             else if (baseStep.Outcome != HostingOutcome.NotModified)
             {
@@ -458,7 +541,8 @@ public sealed partial class GitHubHostingProvider
                     // A read that shows none after one was seen is an old replica: the one seen stays.
                     if (entries.Count > 0)
                     {
-                        var newest = entries.MaxBy(e => e.Id)!;
+                        // The order of the list is not assumed: the newest is the one created last, and with the same date the one with the highest id.
+                        var newest = entries.OrderBy(e => e.CreatedAt ?? DateTimeOffset.MinValue).ThenBy(e => e.Id).Last();
                         var statuses = await SendAsync(GitHubApiPath.DeploymentStatuses(Repository, newest.Id)).ConfigureAwait(false);
                         if (!statuses.IsOk)
                         {

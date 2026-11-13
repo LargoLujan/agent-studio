@@ -26,20 +26,21 @@ public sealed class VerdictPublicationTests
         rig.Script.Route("POST", "/repos/octo/hello/statuses/", "handmade-statuses-201.http");
         rig.Script.Route("POST", "/repos/octo/hello/issues/7/comments", "handmade-comment-201.http");
         rig.Script.Route("PATCH", "/repos/octo/hello/issues/comments/", Gh.Ok("{\"id\":4242}"));
+        rig.Script.Route("GET", "/repos/octo/hello/issues/comments/", "handmade-comment-200.http");
         rig.Script.Route("GET", "/user", "handmade-user-200.http");
         rig.Script.Route("GET", "/repos/octo/hello/issues/7/comments", Gh.Ok("[]"));
         return rig;
     }
 
     [Theory]
-    [InlineData(VerdictStanding.Approved, "success", "Revisor independiente (juez): aprobado")]
-    [InlineData(VerdictStanding.Rejected, "failure", "Revisor independiente (juez): no aprobado")]
-    [InlineData(VerdictStanding.InReview, "pending", "Revisor independiente (juez): en revisión")]
-    public async Task The_status_of_the_judged_commit_has_the_fixed_context_the_state_of_the_standing_and_its_fixed_description(VerdictStanding standing, string state, string description)
+    [InlineData(VerdictStanding.Approved, "success", "Descripción compuesta por quien llama: aprobado")]
+    [InlineData(VerdictStanding.Rejected, "failure", "Descripción compuesta por quien llama: no aprobado")]
+    [InlineData(VerdictStanding.InReview, "pending", "Descripción compuesta por quien llama: en revisión")]
+    public async Task The_status_of_the_judged_commit_has_the_fixed_context_the_state_of_the_standing_and_the_description_the_caller_composed(VerdictStanding standing, string state, string description)
     {
         using var rig = WithRoutes();
 
-        var result = await rig.Provider.PublishVerdictAsync(Pr, Notice(standing), "Comentario del sistema", null, CancellationToken.None);
+        var result = await rig.Provider.PublishVerdictAsync(Pr, Notice(standing), description, "Comentario del sistema", null, CancellationToken.None);
 
         Assert.Equal(HostingOutcome.Ok, result.Outcome);
         Assert.True(result.Value!.StatusPublished);
@@ -51,7 +52,6 @@ public sealed class VerdictPublicationTests
         Assert.Equal(state, body.RootElement.GetProperty("state").GetString());
         Assert.Equal("agent-studio/verdict", body.RootElement.GetProperty("context").GetString());
         Assert.Equal(description, body.RootElement.GetProperty("description").GetString());
-        Assert.True(description.Length < 60);
     }
 
     [Fact]
@@ -59,7 +59,7 @@ public sealed class VerdictPublicationTests
     {
         using var rig = WithRoutes();
 
-        await rig.Provider.PublishVerdictAsync(Pr, Notice(VerdictStanding.Approved, Gh.Sha3), "c", null, CancellationToken.None);
+        await rig.Provider.PublishVerdictAsync(Pr, Notice(VerdictStanding.Approved, Gh.Sha3), "Estado del veredicto", "c", null, CancellationToken.None);
 
         Assert.Contains(rig.Script.Calls, c => c.Path == "/repos/octo/hello/statuses/" + Gh.Sha3);
     }
@@ -73,7 +73,7 @@ public sealed class VerdictPublicationTests
             "{\"id\":2,\"body\":\"texto\\n" + Mark + "\",\"user\":{\"login\":\"octocat\"}}",
             "{\"id\":3,\"body\":\"" + Mark + "\\nel nuestro\",\"user\":{\"login\":\"OctoCat\"}}")));
 
-        var result = await rig.Provider.PublishVerdictAsync(Pr, Notice(VerdictStanding.Approved), "Cuerpo", null, CancellationToken.None);
+        var result = await rig.Provider.PublishVerdictAsync(Pr, Notice(VerdictStanding.Approved), "Estado del veredicto", "Cuerpo", null, CancellationToken.None);
 
         Assert.Equal(3L, result.Value!.CommentId);
         Assert.Contains(rig.Script.Calls, c => c.ToString() == "PATCH /repos/octo/hello/issues/comments/3");
@@ -85,7 +85,7 @@ public sealed class VerdictPublicationTests
     {
         using var rig = WithRoutes();
 
-        var result = await rig.Provider.PublishVerdictAsync(Pr, Notice(VerdictStanding.Rejected), "Cuerpo", null, CancellationToken.None);
+        var result = await rig.Provider.PublishVerdictAsync(Pr, Notice(VerdictStanding.Rejected), "Estado del veredicto", "Cuerpo", null, CancellationToken.None);
 
         Assert.Equal(4242L, result.Value!.CommentId);
         var post = rig.Script.Calls.Single(c => c.Method == "POST" && c.Path.EndsWith("/comments", StringComparison.Ordinal));
@@ -99,10 +99,13 @@ public sealed class VerdictPublicationTests
     {
         using var rig = WithRoutes();
 
-        var result = await rig.Provider.PublishVerdictAsync(Pr, Notice(VerdictStanding.Approved), Mark + "\nYa lleva su marca", 777, CancellationToken.None);
+        var result = await rig.Provider.PublishVerdictAsync(Pr, Notice(VerdictStanding.Approved), "Estado del veredicto", Mark + "\nYa lleva su marca", 777, CancellationToken.None);
 
         Assert.Equal(777L, result.Value!.CommentId);
-        Assert.DoesNotContain(rig.Script.Calls, c => c.Path == "/user" || c.Path.Contains("issues/7/comments", StringComparison.Ordinal));
+        // The id is not trusted: the account and the comment are read first, and the comments of the pull request are not listed.
+        Assert.Equal(
+            ["GET /user", "GET /repos/octo/hello/issues/comments/777", "PATCH /repos/octo/hello/issues/comments/777"],
+            rig.Script.Calls.Where(c => c.Path != "/repos/octo/hello/statuses/" + Gh.Sha1).Select(c => c.ToString()));
         var edit = rig.Script.Calls.Single(c => c.Method == "PATCH");
         Assert.Equal("PATCH /repos/octo/hello/issues/comments/777", edit.ToString());
         using var body = JsonDocument.Parse(edit.Body!);
@@ -113,13 +116,58 @@ public sealed class VerdictPublicationTests
     public async Task A_comment_that_somebody_deleted_is_written_again_once()
     {
         using var rig = WithRoutes();
-        rig.Script.Route("PATCH", "/repos/octo/hello/issues/comments/777", Gh.Http(404, "{}"));
+        rig.Script.Route("GET", "/repos/octo/hello/issues/comments/777", Gh.Http(404, "{}"));
 
-        var result = await rig.Provider.PublishVerdictAsync(Pr, Notice(VerdictStanding.Approved), "Cuerpo", 777, CancellationToken.None);
+        var result = await rig.Provider.PublishVerdictAsync(Pr, Notice(VerdictStanding.Approved), "Estado del veredicto", "Cuerpo", 777, CancellationToken.None);
 
         Assert.Equal(HostingOutcome.Ok, result.Outcome);
         Assert.Equal(4242L, result.Value!.CommentId);
         Assert.Equal(1, rig.Script.Calls.Count(c => c.Method == "POST" && c.Path.EndsWith("/comments", StringComparison.Ordinal)));
+        Assert.DoesNotContain(rig.Script.Calls, c => c.Method == "PATCH");
+    }
+
+    [Theory]
+    [InlineData("{\"id\":777,\"body\":\"<!-- agent-studio:verdict run=run1 -->\\nx\",\"user\":{\"login\":\"mallory\"},\"issue_url\":\"https://api.github.com/repos/octo/hello/issues/7\"}")]
+    [InlineData("{\"id\":777,\"body\":\"<!-- agent-studio:verdict run=other -->\\nx\",\"user\":{\"login\":\"octocat\"},\"issue_url\":\"https://api.github.com/repos/octo/hello/issues/7\"}")]
+    [InlineData("{\"id\":777,\"body\":\"texto cualquiera\",\"user\":{\"login\":\"octocat\"},\"issue_url\":\"https://api.github.com/repos/octo/hello/issues/7\"}")]
+    [InlineData("{\"id\":777,\"body\":\"<!-- agent-studio:verdict run=run1 -->\\nx\",\"user\":{\"login\":\"octocat\"},\"issue_url\":\"https://api.github.com/repos/octo/hello/issues/8\"}")]
+    [InlineData("{\"id\":777,\"body\":\"<!-- agent-studio:verdict run=run1 -->\\nx\",\"user\":{\"login\":\"octocat\"},\"issue_url\":\"https://api.github.com/repos/evil/hello/issues/7\"}")]
+    [InlineData("{\"id\":777,\"body\":\"<!-- agent-studio:verdict run=run1 -->\\nx\",\"user\":{\"login\":\"octocat\"}}")]
+    public async Task An_id_that_is_not_the_comment_of_this_verdict_is_never_edited_the_comment_is_looked_up_by_its_mark_instead(string comment)
+    {
+        using var rig = WithRoutes();
+        rig.Script.Route("GET", "/repos/octo/hello/issues/comments/777", Gh.Ok(comment));
+        rig.Script.Route("GET", "/repos/octo/hello/issues/7/comments", Gh.Ok(Gh.Json("{\"id\":3,\"body\":\"" + Mark + "\\nel nuestro\",\"user\":{\"login\":\"octocat\"}}")));
+
+        var result = await rig.Provider.PublishVerdictAsync(Pr, Notice(VerdictStanding.Approved), "Estado del veredicto", "Cuerpo", 777, CancellationToken.None);
+
+        Assert.Equal(3L, result.Value!.CommentId);
+        Assert.DoesNotContain(rig.Script.Calls, c => c.Path == "/repos/octo/hello/issues/comments/777" && c.Method == "PATCH");
+        Assert.Contains(rig.Script.Calls, c => c.ToString() == "PATCH /repos/octo/hello/issues/comments/3");
+    }
+
+    [Fact]
+    public async Task The_description_of_the_status_loses_its_control_characters_is_cut_at_120_and_an_empty_one_publishes_nothing()
+    {
+        using var rig = WithRoutes();
+
+        await rig.Provider.PublishVerdictAsync(Pr, Notice(VerdictStanding.InReview), "uno\u001b[31m\ndos " + new string('x', 200), "Cuerpo", null, CancellationToken.None);
+
+        var status = rig.Script.Calls.Single(c => c.Path.Contains("/statuses/", StringComparison.Ordinal));
+        using var body = JsonDocument.Parse(status.Body!);
+        var description = body.RootElement.GetProperty("description").GetString()!;
+        Assert.Equal(120, description.Length);
+        Assert.StartsWith("uno [31m dos x", description, StringComparison.Ordinal);
+        Assert.DoesNotContain(description, c => char.IsControl(c));
+
+        rig.Script.Specs.Clear();
+        foreach (var empty in new[] { string.Empty, "   ", "\u001b\u0007\n" })
+        {
+            var refused = await rig.Provider.PublishVerdictAsync(Pr, Notice(VerdictStanding.InReview), empty, "Cuerpo", null, CancellationToken.None);
+            Assert.Equal("text.description-invalid", refused.RefusalCode);
+        }
+
+        Assert.Empty(rig.Script.Specs);
     }
 
     [Theory]
@@ -131,7 +179,7 @@ public sealed class VerdictPublicationTests
         using var rig = WithRoutes();
         rig.Script.Route("POST", "/repos/octo/hello/statuses/", Gh.Http(status, "{\"message\":\"Resource not accessible by integration\"}"));
 
-        var result = await rig.Provider.PublishVerdictAsync(Pr, Notice(VerdictStanding.Approved), "Cuerpo", null, CancellationToken.None);
+        var result = await rig.Provider.PublishVerdictAsync(Pr, Notice(VerdictStanding.Approved), "Estado del veredicto", "Cuerpo", null, CancellationToken.None);
 
         Assert.Equal(HostingOutcome.Ok, result.Outcome);
         Assert.False(result.Value!.StatusPublished);
@@ -145,7 +193,7 @@ public sealed class VerdictPublicationTests
         rig.Script.Route("POST", "/repos/octo/hello/issues/7/comments", Gh.Http(401, "{}"));
         rig.Script.Route("GET", "/repos/octo/hello/issues/7/comments", Gh.Ok("[]"));
 
-        var result = await rig.Provider.PublishVerdictAsync(Pr, Notice(VerdictStanding.Approved), "Cuerpo", null, CancellationToken.None);
+        var result = await rig.Provider.PublishVerdictAsync(Pr, Notice(VerdictStanding.Approved), "Estado del veredicto", "Cuerpo", null, CancellationToken.None);
 
         Assert.Equal(HostingOutcome.SignInNeeded, result.Outcome);
         Assert.True(result.Value!.StatusPublished);
@@ -157,7 +205,7 @@ public sealed class VerdictPublicationTests
     {
         using var rig = new GhRig("2.90.0");
 
-        var result = await rig.Provider.PublishVerdictAsync(Pr, Notice(VerdictStanding.Approved), "Cuerpo", null, CancellationToken.None);
+        var result = await rig.Provider.PublishVerdictAsync(Pr, Notice(VerdictStanding.Approved), "Estado del veredicto", "Cuerpo", null, CancellationToken.None);
 
         Assert.Equal(HostingOutcome.Unsupported, result.Outcome);
         Assert.Empty(rig.Script.Specs);
@@ -170,7 +218,7 @@ public sealed class VerdictPublicationTests
     {
         using var rig = WithRoutes();
 
-        var result = await rig.Provider.PublishVerdictAsync(Pr, Notice(VerdictStanding.Approved, commit), "Cuerpo", null, CancellationToken.None);
+        var result = await rig.Provider.PublishVerdictAsync(Pr, Notice(VerdictStanding.Approved, commit), "Estado del veredicto", "Cuerpo", null, CancellationToken.None);
 
         Assert.Equal(HostingOutcome.Refused, result.Outcome);
         Assert.Equal(GitHubRefusal.CommitInvalid, result.RefusalCode);
@@ -182,8 +230,8 @@ public sealed class VerdictPublicationTests
     {
         using var rig = WithRoutes();
 
-        var control = await rig.Provider.PublishVerdictAsync(Pr, Notice(VerdictStanding.Approved), "Cuerpo\u202E", null, CancellationToken.None);
-        var big = await rig.Provider.PublishVerdictAsync(Pr, Notice(VerdictStanding.Approved), new string('x', 20_001), null, CancellationToken.None);
+        var control = await rig.Provider.PublishVerdictAsync(Pr, Notice(VerdictStanding.Approved), "Estado del veredicto", "Cuerpo\u202E", null, CancellationToken.None);
+        var big = await rig.Provider.PublishVerdictAsync(Pr, Notice(VerdictStanding.Approved), "Estado del veredicto", new string('x', 20_001), null, CancellationToken.None);
 
         Assert.Equal(GitHubRefusal.BodyInvalid, control.RefusalCode);
         Assert.Equal(GitHubRefusal.BodyInvalid, big.RefusalCode);
@@ -195,7 +243,7 @@ public sealed class VerdictPublicationTests
     {
         using var rig = WithRoutes();
 
-        await rig.Provider.PublishVerdictAsync(Pr, Notice(VerdictStanding.Approved), "Solo esto", null, CancellationToken.None);
+        await rig.Provider.PublishVerdictAsync(Pr, Notice(VerdictStanding.Approved), "Estado del veredicto", "Solo esto", null, CancellationToken.None);
 
         var post = rig.Script.Calls.Single(c => c.Method == "POST" && c.Path.EndsWith("/comments", StringComparison.Ordinal));
         using var body = JsonDocument.Parse(post.Body!);
@@ -213,8 +261,8 @@ public sealed class VerdictPublicationTests
 
         foreach (var standing in Enum.GetValues<VerdictStanding>())
         {
-            await rig.Provider.PublishVerdictAsync(Pr, Notice(standing), "Cuerpo", null, CancellationToken.None);
-            await rig.Provider.PublishVerdictAsync(Pr, Notice(standing), "Cuerpo", 4242, CancellationToken.None);
+            await rig.Provider.PublishVerdictAsync(Pr, Notice(standing), "Estado del veredicto", "Cuerpo", null, CancellationToken.None);
+            await rig.Provider.PublishVerdictAsync(Pr, Notice(standing), "Estado del veredicto", "Cuerpo", 4242, CancellationToken.None);
         }
 
         Assert.NotEmpty(rig.Script.Specs);

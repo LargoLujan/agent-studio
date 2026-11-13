@@ -109,6 +109,7 @@ public sealed class HostingProvidersTests : IDisposable
         services.AddSingleton<IProcessRunner>(script);
         services.AddSingleton<IDoctorToolRunner>(door);
         services.AddSingleton<IRepositoryRemoteReader>(new Remotes(Listing(("origin", "https://github.com/octo/hello.git"))));
+        services.AddSingleton<IUntrustedRoots>(new FixedRoots(_temp.Combine("project")));
         services.AddAgentStudioGitHubHosting(_temp.Combine("local"));
         return services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
     }

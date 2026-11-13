@@ -13,7 +13,7 @@ public static class GitHubHostingServiceCollectionExtensions
 {
     /// <summary>
     /// The launcher of <c>gh</c>, its single queue, the provider, the registry of providers and the checks of Auto Doctor about <c>gh</c> and the remote. It needs <c>IProcessRunner</c> (<c>AddAgentStudioInfrastructure</c>),
-    /// <c>IDoctorToolRunner</c> (<c>AddAgentStudioDoctorTools</c>) and <c>IRepositoryRemoteReader</c>; <c>IUntrustedRoots</c>, <c>IPublicationService</c>, <c>IRemoteSync</c> and <c>IRemoteSyncPolicy</c> are used when
+    /// <c>IDoctorToolRunner</c> (<c>AddAgentStudioDoctorTools</c>), <c>IRepositoryRemoteReader</c> and <c>IUntrustedRoots</c> (required: without the roots <c>gh.exe</c> would be looked for in the whole PATH, projects included); <c>IPublicationService</c>, <c>IRemoteSync</c> and <c>IRemoteSyncPolicy</c> are used when
     /// they are registered. <paramref name="localBase"/> is <c>%LOCALAPPDATA%\AgentStudio</c>: the folders of <c>gh</c> live under it, in <c>hosting</c>.
     /// </summary>
     public static IServiceCollection AddAgentStudioGitHubHosting(this IServiceCollection services, string localBase)
@@ -21,7 +21,7 @@ public static class GitHubHostingServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         var folders = GhFolders.Under(localBase);
         services.TryAddSingleton(folders);
-        services.TryAddSingleton(provider => new GhRunner(provider.GetRequiredService<IProcessRunner>(), folders, provider.GetService<IUntrustedRoots>()));
+        services.TryAddSingleton(provider => new GhRunner(provider.GetRequiredService<IProcessRunner>(), folders, provider.GetRequiredService<IUntrustedRoots>()));
         services.TryAddSingleton(provider => new GhQueue(provider.GetRequiredService<GhRunner>(), provider.GetService<TimeProvider>()));
         services.TryAddSingleton(provider => new GitHubHostingProvider(provider.GetRequiredService<GhQueue>(), provider.GetRequiredService<IDoctorToolRunner>()));
         services.TryAddSingleton<IHostingProvider>(provider => provider.GetRequiredService<GitHubHostingProvider>());

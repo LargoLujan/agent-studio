@@ -140,6 +140,27 @@ public sealed class HostingCapabilityTests
     }
 
     [Fact]
+    public async Task A_probe_that_failed_is_not_kept_the_next_call_asks_again_and_a_probe_that_worked_is_kept()
+    {
+        using var rig = new GhRig();
+        rig.Door.Fails(DoctorTool.GhVersion, DoctorToolOutcome.TimedOut);
+        rig.Script.Route("GET", "/user", "handmade-user-200.http");
+
+        var failed = await rig.Provider.ProbeAsync(CancellationToken.None);
+        var refused = await rig.Provider.ReadAccountAsync(Repo, CancellationToken.None);
+        Assert.Equal(HostingCapabilities.None, failed.Capabilities);
+        Assert.Equal(HostingOutcome.Unsupported, refused.Outcome);
+
+        rig.Door.Says(DoctorTool.GhVersion, Says("2.96.0"));
+        var worked = await rig.Provider.ReadAccountAsync(Repo, CancellationToken.None);
+        var again = await rig.Provider.ReadAccountAsync(Repo, CancellationToken.None);
+
+        Assert.Equal(HostingOutcome.Ok, worked.Outcome);
+        Assert.Equal(HostingOutcome.Ok, again.Outcome);
+        Assert.Equal(3, rig.Door.Asked.Count);
+    }
+
+    [Fact]
     public async Task What_is_not_declared_launches_nothing_whatever_the_operation()
     {
         using var rig = new GhRig("2.90.0");
@@ -157,7 +178,7 @@ public sealed class HostingCapabilityTests
             (await rig.Provider.UpdatePullRequestAsync(pr, text, CancellationToken.None)).Outcome,
             (await rig.Provider.RequestReviewersAsync(pr, [RemoteLogin.TryParse("alice")!], CancellationToken.None)).Outcome,
             (await rig.Provider.ObserveAsync(pr, null, CancellationToken.None)).Outcome,
-            (await rig.Provider.PublishVerdictAsync(pr, notice, "c", null, CancellationToken.None)).Outcome,
+            (await rig.Provider.PublishVerdictAsync(pr, notice, "d", "c", null, CancellationToken.None)).Outcome,
             (await rig.Provider.MergeAsync(pr, MergeMethod.Squash, Gh.Sha1, CancellationToken.None)).Outcome,
             (await rig.Provider.CloseAsync(pr, CancellationToken.None)).Outcome,
             (await rig.Provider.DeleteRunBranchAsync(Repo, GhRig.RunBranch, Gh.Sha1, CancellationToken.None)).Outcome,
@@ -194,7 +215,7 @@ public sealed class HostingCapabilityTests
             new[]
             {
                 "ProbeAsync", "ReadAccountAsync", "ReadRepositoryAsync", "ReadBranchRulesAsync", "FindPullRequestAsync", "OpenPullRequestAsync", "UpdatePullRequestAsync", "RequestReviewersAsync",
-                "ObserveAsync", "PublishVerdictAsync", "MergeAsync", "CloseAsync", "DeleteRunBranchAsync", "get_Kind", "Kind",
+                "ObserveAsync", "PublishVerdictAsync", "MergeAsync", "CloseAsync", "DeleteRunBranchAsync", "get_Kind", "Kind", "get_RateLimitedUntil", "RateLimitedUntil", "RestoreRateLimit",
             }.Order(),
             members);
         Assert.DoesNotContain(members, m => m.Contains("Approve", StringComparison.OrdinalIgnoreCase) || m.Contains("SubmitReview", StringComparison.OrdinalIgnoreCase) || m.Contains("Admin", StringComparison.OrdinalIgnoreCase) || m.Contains("Force", StringComparison.OrdinalIgnoreCase));
