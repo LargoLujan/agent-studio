@@ -309,6 +309,12 @@ public sealed record SkillScriptsInfo(string Sha256, IReadOnlyList<string> Relat
 public interface ISkillScriptsInspector
 {
     Task<SkillScriptsInfo?> InspectAsync(string skillFolder, CancellationToken ct);
+
+    /// <summary>
+    /// The full path of one script of the skill, to be opened for reading, or null when it is not safe to open: it is gone, it is not a plain file, <c>scripts/</c> or any folder on the way
+    /// to it is a link or a junction, or the file Windows really reaches is not inside <c>scripts/</c>. <paramref name="relativePath"/> is one of the paths <see cref="InspectAsync"/> gave.
+    /// </summary>
+    Task<string?> ResolveScriptAsync(string skillFolder, string relativePath, CancellationToken ct);
 }
 
 // Phase 4 contracts (docs/14 section 5.5): the catalog screen and the assisted recommendation.

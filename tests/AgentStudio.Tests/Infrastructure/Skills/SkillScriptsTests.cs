@@ -122,6 +122,66 @@ public sealed class SkillScriptsTests : IDisposable
     }
 
     [Fact]
+    public async Task A_script_resolves_only_when_it_is_a_plain_file_inside_scripts()
+    {
+        var folder = SkillFolder("open", ("run.ps1", "x"), ("lib/deep/x.py", "y"));
+        var inspector = new SkillScriptsInspector();
+
+        Assert.Equal(Path.Combine(folder, "scripts", "run.ps1"), await inspector.ResolveScriptAsync(folder, "run.ps1", Ct));
+        Assert.Equal(Path.Combine(folder, "scripts", "lib", "deep", "x.py"), await inspector.ResolveScriptAsync(folder, "lib/deep/x.py", Ct));
+        Assert.Null(await inspector.ResolveScriptAsync(folder, "gone.ps1", Ct));
+        Assert.Null(await inspector.ResolveScriptAsync(folder, "lib", Ct));
+        Assert.Null(await inspector.ResolveScriptAsync(folder, "../SKILL.md", Ct));
+        Assert.Null(await inspector.ResolveScriptAsync(folder, "../../escape.txt", Ct));
+        Assert.Null(await inspector.ResolveScriptAsync(folder, Path.Combine(_root, "open", "SKILL.md"), Ct));
+        Assert.Null(await inspector.ResolveScriptAsync(folder, string.Empty, Ct));
+    }
+
+    [Fact]
+    [Trait("Category", "LocalTools")]
+    public async Task A_junction_planted_after_the_scan_on_any_stretch_of_the_path_is_never_opened()
+    {
+        var folder = SkillFolder("planted", ("run.ps1", "x"), ("lib/real.py", "y"));
+        var inspector = new SkillScriptsInspector();
+        var info = (await inspector.InspectAsync(folder, Ct))!;
+        Assert.Equal(["lib/real.py", "run.ps1"], info.RelativePaths);
+
+        // After the scan: scripts/lib becomes a junction to a folder outside the skill that holds a file of the same name.
+        var outside = Path.Combine(_root, "outside");
+        Directory.CreateDirectory(outside);
+        File.WriteAllText(Path.Combine(outside, "real.py"), "z");
+        Directory.Delete(Path.Combine(folder, "scripts", "lib"), recursive: true);
+        if (!TryJunction(Path.Combine(folder, "scripts", "lib"), outside))
+        {
+            Assert.Skip("A junction cannot be created on this computer.");
+        }
+
+        Assert.Null(await inspector.ResolveScriptAsync(folder, "lib/real.py", Ct));
+        Assert.NotNull(await inspector.ResolveScriptAsync(folder, "run.ps1", Ct));
+
+        // And scripts/ itself.
+        var other = SkillFolder("planted-root", ("run.ps1", "x"));
+        Directory.Delete(Path.Combine(other, "scripts"), recursive: true);
+        File.WriteAllText(Path.Combine(outside, "run.ps1"), "w");
+        Assert.True(TryJunction(Path.Combine(other, "scripts"), outside));
+        Assert.Null(await inspector.ResolveScriptAsync(other, "run.ps1", Ct));
+    }
+
+    private static bool TryJunction(string link, string target)
+    {
+        try
+        {
+            using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("cmd.exe", $"/c mklink /J \"{link}\" \"{target}\"") { CreateNoWindow = true, UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true });
+            process!.WaitForExit();
+            return process.ExitCode == 0 && Directory.Exists(link);
+        }
+        catch (Exception ex) when (ex is IOException or System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            return false;
+        }
+    }
+
+    [Fact]
     public async Task A_skill_with_no_local_copy_or_no_reader_is_unknown_never_healthy()
     {
         var folder = SkillFolder("x", ("a.sh", "x"));

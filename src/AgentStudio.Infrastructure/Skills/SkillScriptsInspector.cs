@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using AgentStudio.Application.Skills;
+using AgentStudio.Infrastructure.Processes.Isolation;
 
 namespace AgentStudio.Infrastructure.Skills;
 
@@ -134,6 +135,75 @@ public sealed class SkillScriptsInspector : ISkillScriptsInspector
     /// <summary>The answer for a folder over the budget: the names only, a fingerprint that is not a hash of content (it is never stored as a review), and not reviewable.</summary>
     private static SkillScriptsInfo TooBig(List<string> names) =>
         new(Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes("TOOBIG\0" + string.Join('\n', names)))), names, Reviewable: false);
+
+    public Task<string?> ResolveScriptAsync(string skillFolder, string relativePath, CancellationToken ct)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(skillFolder);
+        ArgumentNullException.ThrowIfNull(relativePath);
+        return Task.Run(() => ResolveScript(skillFolder, relativePath), ct);
+    }
+
+    private static string? ResolveScript(string skillFolder, string relativePath)
+    {
+        try
+        {
+            var scriptsRoot = Path.GetFullPath(Path.Combine(skillFolder, ScriptsFolder));
+            if (relativePath.Length == 0 || Path.IsPathRooted(relativePath))
+            {
+                return null;
+            }
+
+            var full = Path.GetFullPath(Path.Combine(scriptsRoot, relativePath));
+            if (!full.StartsWith(scriptsRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            // Every stretch from the folder of the skill: scripts/ and each folder under it is a plain folder, and the file a plain file.
+            var current = new DirectoryInfo(scriptsRoot);
+            if (!current.Exists || IsLink(current))
+            {
+                return null;
+            }
+
+            var segments = Path.GetRelativePath(scriptsRoot, full).Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+            var walked = scriptsRoot;
+            for (var i = 0; i < segments.Length - 1; i++)
+            {
+                walked = Path.Combine(walked, segments[i]);
+                var folder = new DirectoryInfo(walked);
+                if (!folder.Exists || IsLink(folder))
+                {
+                    return null;
+                }
+            }
+
+            var file = new FileInfo(full);
+            if (segments.Length == 0 || !file.Exists || IsLink(file) || file.Attributes.HasFlag(FileAttributes.Directory))
+            {
+                return null;
+            }
+
+            // What Windows really reaches by that path, asked of the open handle: a junction planted after the walk above is caught here.
+            if (OperatingSystem.IsWindows())
+            {
+                using var stream = new FileStream(full, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                var opened = IntegrityLabels.FinalPath(stream.SafeFileHandle);
+                var rootFinal = IntegrityLabels.FinalPath(scriptsRoot);
+                if (opened is null || rootFinal is null
+                    || !string.Equals(opened, Path.Combine(rootFinal, string.Join(Path.DirectorySeparatorChar, segments)), StringComparison.OrdinalIgnoreCase))
+                {
+                    return null;
+                }
+            }
+
+            return full;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            return null;
+        }
+    }
 
     private static bool IsLink(FileSystemInfo info) => info.Attributes.HasFlag(FileAttributes.ReparsePoint) || info.LinkTarget is not null;
 }

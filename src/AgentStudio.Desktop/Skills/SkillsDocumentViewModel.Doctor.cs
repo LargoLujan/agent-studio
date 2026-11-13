@@ -246,7 +246,8 @@ public sealed partial class SkillsDocumentViewModel
 
     /// <summary>
     /// Opens one script of the skill in the editor of the app, to read it. The path is rebuilt from the folder of the skill and a relative path that the reading of
-    /// <c>scripts/</c> gave, and checked again before it is opened: it must still be a plain file inside <c>scripts/</c>, never a link.
+    /// <c>scripts/</c> gave, and checked again before it is opened: it must still be a plain file inside <c>scripts/</c>, never a link, and neither <c>scripts/</c> nor a
+    /// folder under it may be a link or a junction.
     /// </summary>
     private async Task OpenScriptAsync(SkillItemViewModel item, string relativePath)
     {
@@ -255,13 +256,11 @@ public sealed partial class SkillsDocumentViewModel
             return;
         }
 
-        var scriptsRoot = Path.GetFullPath(Path.Combine(folder, "scripts"));
-        var full = Path.GetFullPath(Path.Combine(scriptsRoot, relativePath));
-        var file = new FileInfo(full);
-        if (!full.StartsWith(scriptsRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
-            || !file.Exists
-            || file.Attributes.HasFlag(FileAttributes.ReparsePoint)
-            || file.LinkTarget is not null)
+        // The inspector walks every stretch from the folder of the skill (no link or junction on the way) and asks Windows where the open file really is.
+        var full = _backend.ScriptsInspector is { } inspector
+            ? await inspector.ResolveScriptAsync(folder, relativePath, CancellationToken.None).ConfigureAwait(true)
+            : null;
+        if (full is null)
         {
             ActivationProblem = Texts.Get("Skills_Scripts_OpenFailed");
             return;
