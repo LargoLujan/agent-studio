@@ -470,7 +470,7 @@ Pendiente, sin bloquear el uso:
 F6-12 y F6-13 los añade [docs/20 §8](20-fase-6-auto-doctor-y-auto-graph.md) (decisión 12 (a)): F6-3 y F6-6 no dicen nada de seguridad y esta fase gira en torno a ella. Los fija el P0
 con la prueba de arquitectura (`tests/AgentStudio.Tests/GraphWorker/GraphArchitectureTests.cs`) y los validadores de origen (`GitHubSkillOrigin`); el resto lo cierran WP-G y WP-S.
 
-**Estado a 2026-11-13 (integrada en la rama de integración de la Fase 6, sin publicar; pendiente de dos demostraciones con tu OK).** Diseño en [20](20-fase-6-auto-doctor-y-auto-graph.md); ADR-0045 y ADR-0061 a ADR-0063.
+**Estado a 2026-11-13 (en `main` desde la PR #51, con su repaso en la PR #53; pendiente de dos demostraciones con tu OK).** Diseño en [20](20-fase-6-auto-doctor-y-auto-graph.md); ADR-0045 y ADR-0061 a ADR-0063.
 Pruebas de integración de punta a punta en `tests/AgentStudio.Tests/Integration/Phase6/` (la app compuesta con `AddAgentStudioApp`, carpetas temporales, sin lanzar ningún programa de un proveedor ni salir a la red): `Phase6AutoDoctorTests`
 (Auto Doctor por `IDoctorService` sobre un repositorio con `global.json`, con las fuentes reales, la del entorno declarado y la línea de discrepancias, y el acceso a Auto Graph y Auto Doctor desde la barra de actividad),
 `Phase6GraphDiagramsDiscrepanciesTests` (grafo, diagrama, discrepancia «desactualizado», línea de Auto Doctor y «Regenerar», con las costuras de la composición) y su variante `Phase6GraphDiagramsDiscrepanciesLocalToolsTests`
@@ -671,7 +671,7 @@ F10-8; decisiones 21, 20, 17, 2 y 19, 20 y 15) y Azure DevOps (F10-9) queda fuer
 | F10-12 | Ningún texto no fiable es un argumento ni cambia el punto de la API | Prueba adversaria con ramas, títulos, cuerpos, cuentas y remotos hostiles: o se rechazan antes de lanzar nada, o viajan solo en el JSON de la entrada estándar; los argumentos lanzados son los mismos que con datos inocuos, salvo la ruta validada y el valor de `If-None-Match`, los dos con patrón estricto |
 | F10-13 | Sin tu permiso no hay red en segundo plano, y Auto Doctor no la usa nunca | Con el permiso apagado y un reloj que avanza un día, el lanzador no recibe ningún `gh api`; Auto Doctor, con todas sus fuentes, de `gh` solo lanza `gh --version`; con el permiso dado, el sondeo solo lanza métodos `GET` |
 
-**Estado a 2026-11-13 (integrada en la rama `fase10-integracion`; a falta de la prueba en vivo con la app compuesta).** Diseño en [21](21-fase-10-git-remoto.md); ADR 0064 a 0068.
+**Estado a 2026-11-13 (en `main` desde la PR #54; a falta de la prueba en vivo con la app compuesta, que es el día 0 de [22](22-semana-de-uso-real-y-plan-revisado.md)).** Diseño en [21](21-fase-10-git-remoto.md); ADR 0064 a 0068.
 Cada paquete pasó una revisión independiente, y sus rondas de arreglos también (los hallazgos y lo que se hizo con cada uno están en los «Ajustes de…» de [21 §10](21-fase-10-git-remoto.md)).
 Pruebas de punta a punta en `tests/AgentStudio.Tests/Integration/Phase10/`, con la app compuesta (`AddAgentStudioApp`), un remoto bare local y git real: `RemoteJourneyLocalToolsTests`
 (una ejecución real se publica, se fusiona con squash, rebase o commit de fusión en una plataforma de prueba que usa git de verdad, y se revierte; el registro, la vista del PR y la cadena llevan los commits que hizo git;
