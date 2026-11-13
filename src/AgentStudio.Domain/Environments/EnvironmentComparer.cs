@@ -50,7 +50,7 @@ public static class EnvironmentComparer
     private const string Source = "source";
     private const string Installed = "installed";
     private const string Resolved = "resolved";
-    private const string None = "none";
+    private const string None = EnvironmentPhrases.None;
 
     /// <summary>The key of a local tool in the set the caller gives: <c>id@version</c> in lowercase.</summary>
     public static string LocalToolKey(string id, string version) => (id + "@" + version).ToLowerInvariant();
@@ -108,7 +108,7 @@ public static class EnvironmentComparer
                 facts.Add(F(Declared, "allowPrerelease " + allow.Value));
             }
 
-            facts.AddRange(paths.Take(5).Select(p => F(Declared, "path " + p.Value)));
+            facts.AddRange(paths.Take(5).Select(p => F(Declared, EnvironmentPhrases.Labelled(EnvironmentPhrases.PathLabel, p.Value))));
             facts.Add(F(Source, SourceOf(version ?? rollForward ?? allow ?? paths[0])));
             facts.Add(F(Installed, installed.DotNetSdks.Count == 0 ? None : string.Join(", ", installed.DotNetSdks.Reverse().Take(8).Select(s => s.Version.Text))));
             if (resolution.Selected is not null)
@@ -128,7 +128,7 @@ public static class EnvironmentComparer
         var inside = paths.Where(p => IsInsideProject(p.Value, projectRoot)).ToList();
         if (inside.Count > 0)
         {
-            var facts = inside.Take(10).Select(p => F(Declared, "path " + p.Value)).Append(F(Source, SourceOf(inside[0]))).ToList();
+            var facts = inside.Take(10).Select(p => F(Declared, EnvironmentPhrases.Labelled(EnvironmentPhrases.PathLabel, p.Value))).Append(F(Source, SourceOf(inside[0]))).ToList();
             checks.Add(new DoctorCheck(EnvironmentCheckCodes.DotNetSdkInRepo, DoctorSection.DeclaredEnvironment, DoctorStatus.Warning, facts));
         }
 
@@ -141,7 +141,7 @@ public static class EnvironmentComparer
             {
                 var present = cache?.Contains(LocalToolKey(tool.Name ?? string.Empty, tool.Value));
                 facts.Add(F(Declared, (tool.Name ?? "?") + " " + tool.Value));
-                facts.Add(F(Installed, present switch { true => "in the NuGet cache", false => "not in the NuGet cache", _ => "not checked" }));
+                facts.Add(F(Installed, present switch { true => EnvironmentPhrases.InNuGetCache, false => EnvironmentPhrases.NotInNuGetCache, _ => EnvironmentPhrases.NotChecked }));
                 status = present switch
                 {
                     false => DoctorStatus.Warning,
@@ -230,7 +230,7 @@ public static class EnvironmentComparer
         var venv = declared.Of(DeclaredKind.VenvVersion).FirstOrDefault();
         if (venv is not null)
         {
-            var facts = new List<DoctorFact> { F(Declared, "venv " + venv.Value), F(Source, SourceOf(venv)), F(Installed, installed.Python?.Version.Text ?? None) };
+            var facts = new List<DoctorFact> { F(Declared, EnvironmentPhrases.Labelled(EnvironmentPhrases.VenvLabel, venv.Value)), F(Source, SourceOf(venv)), F(Installed, installed.Python?.Version.Text ?? None) };
             var status = DoctorStatus.Ok;
             if (!ToolVersion.TryParse(venv.Value, out var venvVersion))
             {
@@ -248,7 +248,7 @@ public static class EnvironmentComparer
         {
             checks.Add(new DoctorCheck(
                 EnvironmentCheckCodes.PythonVenv, DoctorSection.DeclaredEnvironment, DoctorStatus.NotApplicable,
-                [F(Source, DeclaredFiles.PyVenvCfg), F(Installed, "absent")]));
+                [F(Source, DeclaredFiles.PyVenvCfg), F(Installed, EnvironmentPhrases.Absent)]));
         }
     }
 
@@ -274,23 +274,22 @@ public static class EnvironmentComparer
                 break;
             }
 
-            var label = entry.Kind switch
+            facts.Add(F(Declared, entry.Kind switch
             {
-                DeclaredKind.ContainerImage => "image ",
-                DeclaredKind.DevContainerDockerfile => "dockerfile ",
-                DeclaredKind.DevContainerComposeFile => "compose file ",
-                DeclaredKind.Extends => "extends ",
-                _ => "compose size ",
-            };
-            facts.Add(F(Declared, label + entry.Value + (entry.Kind == DeclaredKind.ComposeFile ? " bytes" : string.Empty)));
+                DeclaredKind.ContainerImage => EnvironmentPhrases.Labelled(EnvironmentPhrases.ImageLabel, entry.Value),
+                DeclaredKind.DevContainerDockerfile => EnvironmentPhrases.Labelled(EnvironmentPhrases.DockerfileLabel, entry.Value),
+                DeclaredKind.DevContainerComposeFile => EnvironmentPhrases.Labelled(EnvironmentPhrases.ComposeFileLabel, entry.Value),
+                DeclaredKind.Extends => EnvironmentPhrases.Labelled(EnvironmentPhrases.ExtendsLabel, entry.Value),
+                _ => EnvironmentPhrases.ComposeSize(entry.Value),
+            }));
         }
 
         var docker = installed.Docker;
         facts.Add(F(Installed, docker.State switch
         {
-            DockerState.Running => $"docker running (client {docker.ClientVersion}, engine {docker.ServerVersion})",
-            DockerState.EngineStopped => $"docker engine stopped (client {docker.ClientVersion})",
-            _ => "docker not installed",
+            DockerState.Running => EnvironmentPhrases.DockerRunning(docker.ClientVersion, docker.ServerVersion),
+            DockerState.EngineStopped => EnvironmentPhrases.DockerStopped(docker.ClientVersion),
+            _ => EnvironmentPhrases.DockerNotInstalled,
         }));
         var (status, fix) = docker.State switch
         {
@@ -336,7 +335,7 @@ public static class EnvironmentComparer
         {
             F(Declared, entry.Value),
             F(Source, SourceOf(entry)),
-            F(Installed, storeAlias ? "store-alias" : installedVersion?.Text ?? None),
+            F(Installed, storeAlias ? EnvironmentPhrases.StoreAlias : installedVersion?.Text ?? None),
         };
         if (toolMissing)
         {

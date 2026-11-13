@@ -249,6 +249,21 @@ public sealed class SkillsDoctorViewModelTests
     }
 
     [Fact]
+    public async Task A_scripts_folder_too_big_to_read_is_listed_but_never_markable_nor_shown_as_reviewed()
+    {
+        var world = new SkillsWorld();
+        var id = world.Catalog[0].Entry.Id;
+        var inspector = new FakeInspector { [world.Catalog[0].LocalPath!] = new SkillScriptsInfo(new string('b', 64), ["big.bin"], Reviewable: false) };
+        var document = await OpenAsync(world, world.Backend() with { ScriptsInspector = inspector, ScriptReviews = new FakeReviews() });
+        document.Sectors.SelectMany(s => s.Skills).Single(i => i.Id == id.Value).IsSelected = true;
+
+        Assert.Equal(["big.bin"], document.Detail!.ScriptFiles);
+        Assert.False(document.Detail.CanMarkScripts);
+        Assert.Contains("demasiado grande", document.Detail.ScriptsReviewedText, StringComparison.Ordinal);
+        Assert.DoesNotContain("Ya marcaste", document.Detail.ScriptsReviewedText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task A_coded_check_is_painted_from_its_resources_and_a_plain_one_keeps_its_message()
     {
         var world = new SkillsWorld();

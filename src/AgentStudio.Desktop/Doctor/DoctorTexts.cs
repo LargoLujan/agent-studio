@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using AgentStudio.Application.Diagnostics;
 using AgentStudio.Desktop.Localization;
 using AgentStudio.Domain.Diagnostics;
+using AgentStudio.Domain.Environments;
 
 namespace AgentStudio.Desktop.Doctor;
 
@@ -12,7 +13,7 @@ namespace AgentStudio.Desktop.Doctor;
 /// <c>doctor.provider.install</c>, with the name of the program as a fact), so a provider that appears later does not show a missing key.
 /// The facts of the check are the arguments of the explanation, in their order, up to <see cref="ArgumentCount"/>.
 /// </summary>
-public static partial class DoctorTexts
+public static class DoctorTexts
 {
     /// <summary>How many facts an explanation can quote; the rest of its placeholders show a dash instead of failing.</summary>
     public const int ArgumentCount = 6;
@@ -126,13 +127,13 @@ public static partial class DoctorTexts
     // The values the comparer writes as one fixed phrase, by the key of their text.
     private static readonly IReadOnlyDictionary<string, string> FixedValues = new Dictionary<string, string>(StringComparer.Ordinal)
     {
-        ["none"] = "Doctor_Value_none",
-        ["absent"] = "Doctor_Value_absent",
-        ["store-alias"] = "Doctor_Value_store_alias",
-        ["in the NuGet cache"] = "Doctor_Value_in_nuget_cache",
-        ["not in the NuGet cache"] = "Doctor_Value_not_in_nuget_cache",
-        ["not checked"] = "Doctor_Value_not_checked",
-        ["docker not installed"] = "Doctor_Value_docker_not_installed",
+        [EnvironmentPhrases.None] = "Doctor_Value_none",
+        [EnvironmentPhrases.Absent] = "Doctor_Value_absent",
+        [EnvironmentPhrases.StoreAlias] = "Doctor_Value_store_alias",
+        [EnvironmentPhrases.InNuGetCache] = "Doctor_Value_in_nuget_cache",
+        [EnvironmentPhrases.NotInNuGetCache] = "Doctor_Value_not_in_nuget_cache",
+        [EnvironmentPhrases.NotChecked] = "Doctor_Value_not_checked",
+        [EnvironmentPhrases.DockerNotInstalled] = "Doctor_Value_docker_not_installed",
     };
 
     // The values the comparer builds from a phrase and a datum, in the order the comparer writes them; the groups are the arguments of the text.
@@ -141,26 +142,33 @@ public static partial class DoctorTexts
         (DockerRunning(), "Doctor_Value_docker_running"),
         (DockerStopped(), "Doctor_Value_docker_stopped"),
         (ComposeSize(), "Doctor_Value_compose_size"),
-        (Labelled("path"), "Doctor_Value_path"),
-        (Labelled("venv"), "Doctor_Value_venv"),
-        (Labelled("image"), "Doctor_Value_image"),
-        (Labelled("dockerfile"), "Doctor_Value_dockerfile"),
-        (Labelled("compose file"), "Doctor_Value_compose_file"),
-        (Labelled("extends"), "Doctor_Value_extends"),
+        (Labelled(EnvironmentPhrases.PathLabel), "Doctor_Value_path"),
+        (Labelled(EnvironmentPhrases.VenvLabel), "Doctor_Value_venv"),
+        (Labelled(EnvironmentPhrases.ImageLabel), "Doctor_Value_image"),
+        (Labelled(EnvironmentPhrases.DockerfileLabel), "Doctor_Value_dockerfile"),
+        (Labelled(EnvironmentPhrases.ComposeFileLabel), "Doctor_Value_compose_file"),
+        (Labelled(EnvironmentPhrases.ExtendsLabel), "Doctor_Value_extends"),
     ];
 
     private static string Translated(IUiTextProvider texts, string key, string fallback) => texts.Has(key) ? texts.Get(key) : fallback;
 
-    private static Regex Labelled(string label) => new("^" + Regex.Escape(label) + " (.+)$", RegexOptions.CultureInvariant | RegexOptions.Singleline);
+    private static Regex Labelled(string label) => Phrase(Regex.Escape(label + EnvironmentPhrases.LabelSeparator) + AnyText);
 
-    [GeneratedRegex(@"^docker running \(client (.+), engine (.+)\)$", RegexOptions.CultureInvariant)]
-    private static partial Regex DockerRunning();
+    // The data of a phrase: any text, or the digits of a size.
+    private const string AnyText = "(.+)";
+    private const string Digits = @"(\d+)";
 
-    [GeneratedRegex(@"^docker engine stopped \(client (.+)\)$", RegexOptions.CultureInvariant)]
-    private static partial Regex DockerStopped();
+    /// <summary>The pattern of a phrase the comparer builds: its fixed text (the constants of <see cref="EnvironmentPhrases"/>, escaped) around the groups of its data.</summary>
+    private static Regex Phrase(string pattern) => new("^" + pattern + "$", RegexOptions.CultureInvariant | RegexOptions.Singleline);
 
-    [GeneratedRegex(@"^compose size (\d+) bytes$", RegexOptions.CultureInvariant)]
-    private static partial Regex ComposeSize();
+    private static Regex DockerRunning() =>
+        Phrase(Regex.Escape(EnvironmentPhrases.DockerRunningBeforeClient) + AnyText + Regex.Escape(EnvironmentPhrases.DockerRunningBetween) + AnyText + Regex.Escape(EnvironmentPhrases.DockerRunningAfter));
+
+    private static Regex DockerStopped() =>
+        Phrase(Regex.Escape(EnvironmentPhrases.DockerStoppedBeforeClient) + AnyText + Regex.Escape(EnvironmentPhrases.DockerStoppedAfter));
+
+    private static Regex ComposeSize() =>
+        Phrase(Regex.Escape(EnvironmentPhrases.ComposeSizeLabel + EnvironmentPhrases.LabelSeparator) + Digits + Regex.Escape(EnvironmentPhrases.ComposeSizeSuffix));
     private static object?[] Arguments(DoctorCheck check)
     {
         var arguments = new object?[ArgumentCount];

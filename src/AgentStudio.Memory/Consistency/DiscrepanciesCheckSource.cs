@@ -11,8 +11,9 @@ namespace AgentStudio.Memory.Consistency;
 
 /// <summary>
 /// The line of the discrepancies in the section «Proyecto» of Auto Doctor (docs/20 D-30): how many there are in the saved version the project is at. It
-/// <b>reads what is saved</b> for that version (<see cref="ICommitAnalysisService.FindAsync"/>) and never starts the copy nor the analysis, so opening the panel costs the same
-/// as before (the two codes that come from the cache and the log are worked out again, see <see cref="LiveConsistency"/>): with nothing saved it says «sin calcular» and offers to go to Auto Graph, where «Calcular» is. It is not saved as evidence (that is Phase 16).
+/// <b>reads what is saved</b> for that version (<see cref="ICommitAnalysisService.FindAsync"/>) and never starts the copy nor the analysis, so opening the panel never
+/// waits for the copy or the analysis. It does work out again, from the index of the cache and the log, the two codes that depend on them (see <see cref="LiveConsistency"/>: the
+/// models of the diagrams of the graph are compared once per model and the diagrams of a run are drawn again each time), on a thread of the pool: with nothing saved it says «sin calcular» and offers to go to Auto Graph, where «Calcular» is. It is not saved as evidence (that is Phase 16).
 /// </summary>
 public sealed class DiscrepanciesCheckSource(ICommitAnalysisService? analysis, IRepositoryHistoryReader? git, LiveConsistency? live = null) : IDoctorCheckSource
 {

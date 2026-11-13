@@ -67,6 +67,13 @@ public sealed class SkillHealthReader(ISkillScriptsInspector? scripts = null, IS
             }
 
             var count = info.RelativePaths.Count;
+
+            // Too big to be read: it is not «sin revisar» nor «cambiada» (nothing can be reviewed), and the card of the skill says the same.
+            if (!info.Reviewable)
+            {
+                return SkillHealthCheck.Coded(SkillHealthCodes.Scripts, SkillHealthStatus.Warning, SkillsUserTexts.ReaderScriptsTooBig);
+            }
+
             var reviewed = reviews is null ? null : await reviews.ReviewedSha256Async(skill.Entry.Id, ct).ConfigureAwait(false);
             if (string.Equals(reviewed, info.Sha256, StringComparison.Ordinal))
             {

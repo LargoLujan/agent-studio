@@ -958,4 +958,10 @@ Marca los scripts como revisados cuando los hayas leído.</value>
     <value>Desactivada ({0}): el agente se quitó y volvió con el mismo nombre. Actívala aquí si la quieres.</value>
     <comment>What an agent gets when the skill was closed by the removal of an agent with the same id (P57). {0}: which scope decided.</comment>
   </data>
+  <data name="Skills_Scripts_TooBig" xml:space="preserve">
+    <value>Esta carpeta de scripts es demasiado grande para revisarla aquí: no se puede marcar como revisada. Ábrela y léela fuera de la aplicación.</value>
+  </data>
+  <data name="Text_skills_reader_scripts_too_big" xml:space="preserve">
+    <value>Esta carpeta de scripts es demasiado grande para revisarla: no se puede marcar como revisada. Léela fuera de la aplicación. No se ejecuta ninguno.</value>
+  </data>
 </root>

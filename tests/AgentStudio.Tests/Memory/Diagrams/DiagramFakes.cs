@@ -73,8 +73,14 @@ internal static class DiagramFakes
     {
         public List<DecisionEntry> Entries { get; } = [.. entries ?? []];
 
-        public Task<DecisionLogState> LoadAsync(string projectId, CancellationToken cancellationToken) =>
-            Task.FromResult(new DecisionLogState([.. Entries], valid ? DecisionLogVerification.Valid : new DecisionLogVerification(false, 1, "broken")));
+        /// <summary>The thread the last read of the log was answered on.</summary>
+        public int ThreadId { get; private set; }
+
+        public Task<DecisionLogState> LoadAsync(string projectId, CancellationToken cancellationToken)
+        {
+            ThreadId = Environment.CurrentManagedThreadId;
+            return Task.FromResult(new DecisionLogState([.. Entries], valid ? DecisionLogVerification.Valid : new DecisionLogVerification(false, 1, "broken")));
+        }
 
         public Task<DecisionLogState> LoadAsync(string projectId, LogLoad load, CancellationToken cancellationToken) => LoadAsync(projectId, cancellationToken);
 

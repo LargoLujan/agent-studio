@@ -154,7 +154,7 @@ public sealed class ConsistencyChecksTests
         var hostile = new StringBuilder();
         foreach (var pattern in new[] { "[", "`", "](", "[a](", "`a``b```c", "[a](((((((", "![", "[[a]](", "`[`](" })
         {
-            var line = string.Concat(Enumerable.Repeat(pattern, MarkdownScanner.MaxLineLength / pattern.Length));
+            var line = string.Concat(Enumerable.Repeat(pattern, 2_000 / pattern.Length));
             for (var i = 0; i < 40; i++)
             {
                 hostile.Append(line).Append('\n');
