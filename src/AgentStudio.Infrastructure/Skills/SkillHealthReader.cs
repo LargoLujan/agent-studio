@@ -18,7 +18,7 @@ namespace AgentStudio.Infrastructure.Skills;
 /// </list>
 /// The messages are in Spanish: the catalog screen shows them as they are.
 /// </summary>
-public sealed class SkillHealthReader : ISkillHealthReader
+public sealed class SkillHealthReader(ISkillScriptsInspector? scripts = null, ISkillScriptReviews? reviews = null) : ISkillHealthReader
 {
     /// <summary>The largest <c>SKILL.md</c> read: far above any real skill (the specification recommends under 500 lines).</summary>
     public const long MaxSkillFileBytes = 1024 * 1024;
@@ -35,11 +35,52 @@ public sealed class SkillHealthReader : ISkillHealthReader
         {
             SkillHealthChecks.CheckLicense(entry.Source.License),
             SkillHealthChecks.CheckPinned(entry.Source.PinnedCommit),
-            new(SkillHealthCodes.Upstream, SkillHealthStatus.Unknown, "Sin comprobar (Fase 6): si el repositorio de origen cambió desde el commit fijado."),
-            new(SkillHealthCodes.Archived, SkillHealthStatus.Unknown, "Sin comprobar (Fase 6): si el repositorio de origen está archivado o borrado."),
-            new(SkillHealthCodes.Scripts, SkillHealthStatus.Unknown, "Sin comprobar (Fase 6): si trae scripts sin revisar."),
+            new(SkillHealthCodes.Upstream, SkillHealthStatus.Unknown, "Sin comprobar: hace falta «Comprobar en GitHub» (usa la red, apagada por defecto) para saber si el origen cambió desde el commit fijado."),
+            new(SkillHealthCodes.Archived, SkillHealthStatus.Unknown, "Sin comprobar: hace falta «Comprobar en GitHub» (usa la red, apagada por defecto) para saber si el repositorio de origen está archivado."),
+            await ReadScriptsAsync(skill, ct).ConfigureAwait(false),
         };
         return new SkillHealthReport(checks);
+    }
+
+    /// <summary>
+    /// The <c>scripts</c> check, local (docs/20 D-14): a skill without a <c>scripts/</c> folder is healthy; one with it is a warning until the person reviews
+    /// those scripts, and again whenever their fingerprint changes. Nothing is ever run.
+    /// </summary>
+    private async Task<SkillHealthCheck> ReadScriptsAsync(CatalogSkill skill, CancellationToken ct)
+    {
+        if (skill.LocalPath is null)
+        {
+            return new(SkillHealthCodes.Scripts, SkillHealthStatus.Unknown, "Sin comprobar: no hay copia local en la que mirar si trae scripts.");
+        }
+
+        if (scripts is null)
+        {
+            return new(SkillHealthCodes.Scripts, SkillHealthStatus.Unknown, "Sin comprobar: no hay lector de scripts en esta composición.");
+        }
+
+        try
+        {
+            var info = await scripts.InspectAsync(skill.LocalPath, ct).ConfigureAwait(false);
+            if (info is null)
+            {
+                return new(SkillHealthCodes.Scripts, SkillHealthStatus.Healthy, "No trae scripts.");
+            }
+
+            var count = info.RelativePaths.Count.ToString(CultureInfo.InvariantCulture);
+            var reviewed = reviews is null ? null : await reviews.ReviewedSha256Async(skill.Entry.Id, ct).ConfigureAwait(false);
+            if (string.Equals(reviewed, info.Sha256, StringComparison.Ordinal))
+            {
+                return new(SkillHealthCodes.Scripts, SkillHealthStatus.Healthy, $"Trae scripts ({count} ficheros) y ya los revisaste. Ninguno se ejecuta.");
+            }
+
+            return reviewed is null
+                ? new(SkillHealthCodes.Scripts, SkillHealthStatus.Warning, $"Trae scripts sin revisar ({count} ficheros): léelos antes de activarla. Ninguno se ejecuta.")
+                : new(SkillHealthCodes.Scripts, SkillHealthStatus.Warning, $"Los scripts ({count} ficheros) cambiaron desde que los revisaste: vuelve a leerlos. Ninguno se ejecuta.");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+        {
+            return new(SkillHealthCodes.Scripts, SkillHealthStatus.Unknown, "Sin comprobar: no se pudo leer la carpeta de scripts.");
+        }
     }
 
     /// <summary>The frontmatter and size checks of the local copy, or both unknown with the reason.</summary>
@@ -92,7 +133,11 @@ public sealed class SkillHealthReader : ISkillHealthReader
                 text = await reader.ReadToEndAsync(ct).ConfigureAwait(false);
             }
 
-            return SkillFrontmatter.Parse(text).Validate(folder.Name);
+            // The size check also says what the whole SKILL.md costs in context once the skill is used (docs/20 D-14), estimated like SkillContextCost.
+            var tokens = ((text.Length + SkillContextCost.CharactersPerToken - 1) / SkillContextCost.CharactersPerToken).ToString(CultureInfo.InvariantCulture);
+            return [.. SkillFrontmatter.Parse(text).Validate(folder.Name).Select(check => check.Code == SkillHealthCodes.Size
+                ? check with { Message = $"{check.Message} Al usarla ocupa en contexto unos {tokens} tokens (estimado por Agent Studio)." }
+                : check)];
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
