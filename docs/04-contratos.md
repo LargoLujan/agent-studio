@@ -2407,6 +2407,8 @@ La lógica de WP-E (`rollForward`, rangos de Node y de Python, el comparador) **
 | `DiagramKind`, `DiagramState`, `DiagramExportState`, `DiagramSource`, `DiagramRef`, `DiagramStatus`, `DiagramExportRequest`, `DiagramExportResult`, `IDiagramGenerator`, `IDiagramCatalog` | `Application/Diagrams/DiagramContracts.cs` | WP-D. El texto de un diagrama termina sus líneas con `\n` y no lleva BOM |
 | `ConsistencyCodes`, `ConsistencyFinding`, `ConsistencyReport`, `ConsistencyScope`, `IConsistencyCheck`, `IConsistencyService` | `Application/Consistency/ConsistencyContracts.cs` | WP-D. `IConsistencyCheck.RunAsync` devuelve `null` cuando la comprobación no aplica |
 | `ISkillHealthBatchChecker`, `SkillHealthBatchResult`, `SkillHealthFailure`, `ISkillsDoctorPolicy`, `ISkillScriptReviews`, `ISkillsDoctorSecrets`, `GitHubToken`, `SkillsDoctorTokenUse` | `Application/Skills/SkillPorts.cs` | WP-S. `ISkillHealthChecker` no cambia. `GitHubToken.ToString()` nunca da el token; `Reveal()` es el único camino |
+| `ISkillsDoctorPresence`, `SkillsDoctorPresenceReason`, `ISkillsDoctorTokenManager`, `SkillsDoctorTokenChange`, `ISkillScriptsInspector`, `SkillScriptsInfo` | ídem | **Añadidos por WP-S** (§25.6). `SkillHealthBatchResult` gana `TokenState` (parámetro opcional al final) |
+| `ICredentialVaultProbe` | `Application/Security/SecurityContracts.cs` | **Añadido por WP-S:** `ContainsAsync(nombre)` sin descifrar. `ICredentialVault` no cambia |
 
 `IUntrustedRoots` **no** está: lo trae WP-0 en `Application/Execution/ProcessContracts.cs`. `EvidenceToolVersions` (D-12) tampoco: lo completa WP-E, que
 es quien decide cómo se embebe el bloque `tools:` en la cabecera (que hoy son líneas `# …`).
@@ -2450,3 +2452,18 @@ para manejarlo; ningún módulo lo referencia.
   (que el documento anfitrión usa) y `Docs_Title`.
 - Códigos de ayuda `doctor` y `graph` en `HelpScreens` y la primera versión de sus artículos, sin claves ⓘ todavía (cada paquete añade las de sus vistas).
 - `UiScreensDoctor`, `UiScreensGraph` y `UiScreensDocs` con su lista vacía, ya sumadas en `UiScreens`.
+
+### 25.6 Lo que WP-S hizo con estos contratos (el doctor de skills, 2026-11-13)
+
+- **`Infrastructure/Skills/GitHub`:** `GitHubApiAddress` (el único constructor de direcciones, sobre `GitHubSkillOrigin`), `GitHubHostGuardHandler` (comprueba cada petición y falla cerrado), `GitHubApiClient` (cola de un
+  solo consumidor, redirecciones a mano, tiempos y tamaño acotados, `ETag`), `GitHubResponseCache` (`cache.json`), `GitHubSkillHealthChecker` (`ISkillHealthBatchChecker`) y `SkillsDoctorSecrets`
+  (`ISkillsDoctorSecrets` e `ISkillsDoctorTokenManager`). Las tres direcciones, el orden de una tanda y la protección del token están en [ADR-0063](adr/0063-doctor-de-skills-con-red.md).
+- **`Infrastructure/Security/DpapiCredentialVault`:** `ICredentialVault` e `ICredentialVaultProbe` sobre `ProtectedData` (`CurrentUser`), un fichero por secreto, carpeta inyectable.
+- **`Infrastructure/Skills/{SkillScriptsInspector,SkillScriptReviewStore}`:** la huella de `scripts/` y la que la persona revisó (`skill-script-reviews.json`, junto a las decisiones globales; **no** en
+  `SkillActivationStore` como decía docs/20 §5: un fichero propio evita tocar un almacén que es un historial de decisiones). `SkillHealthReader` recibe ambos como parámetros opcionales: `scripts` y `size` son locales.
+- **Contratos añadidos** (las dos últimas filas de §25.2): `ISkillsDoctorPresence` (Hello, que el escritorio implementa sobre `ReinforcedConfirmation` con `RemoteOrSecretOperation`), `ISkillsDoctorTokenManager` (guardar,
+  borrar y «¿hay token?», sin devolver nunca el token), `ISkillScriptsInspector`, y `ICredentialVaultProbe`. docs/20 §4.2 decía que `ICredentialVault` no cambia: no cambia; la sonda va aparte.
+- **Registro:** ningún valor nuevo de `DecisionKind` (§25.4 no lo pide); el resultado de una tanda no se anota en el registro.
+- **Escritorio:** `AppSettings.SkillsDoctorNetworkEnabled` (con `WithPreferencesOf`), `Desktop/Skills/{SkillsDoctorAdapters,SkillsDocumentViewModel.Doctor}.cs`, recursos `Skills_Doctor_*`, `Skills_Token_*`,
+  `Skills_Scripts_*`, `Skills_Hello_*` e `Info_SkillsDoctor_*` en `SkillsStrings*.resx`, y la ayuda `skills`. La composición: `AddAgentStudioSkillsDoctor(cache, bóveda)` (Infrastructure, con valores por defecto
+  seguros: red nunca permitida y toda confirmación un no) y `AddAgentStudioSkillsScreen` los sustituye por el ajuste y por Hello.

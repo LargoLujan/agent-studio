@@ -131,20 +131,25 @@ comprobaciones (orden de gravedad: sana < sin comprobar < aviso < crítico):
 | Comprobación | Cómo | Estado |
 |---|---|---|
 | `frontmatter` | `SKILL.md` cumple el estándar: nombre distinto de la carpeta → aviso; nombre inválido o descripción ausente o > 1024 → crítico | Implementado (parser propio) |
-| `size` | Cuerpo de más de 500 líneas → aviso. El coste de contexto del cuerpo, Fase 6 | Implementado en local |
+| `size` | Cuerpo de más de 500 líneas → aviso. Dice además lo que cuesta en contexto el `SKILL.md` entero (estimado) | Implementado en local |
 | `license` | Licencia presente y libre; «source-available» o ausente → aviso | Implementado |
 | `pinned` | Commit SHA fijado; sin fijar → aviso | Implementado |
-| `upstream` | GitHub `compare/{sha}...{rama}`: ¿cambió algo bajo la carpeta de la skill? → «actualización por revisar» | Fase 6 |
-| `archived` | Repositorio archivado → crítico | Fase 6 |
-| `scripts` | Tiene `scripts/` sin revisar → aviso hasta que el usuario los audite | Fase 6 |
+| `upstream` | GitHub, dos peticiones de `commits` (la del commit fijado y la de la rama, con `path` = la carpeta de la skill): si el último commit que tocó la carpeta no es el mismo → «actualización por revisar». No se usa `compare`: su respuesta trae el parche de cada fichero | Fase 6 (WP-S): solo al pulsar «Comprobar en GitHub» |
+| `archived` | `GET /repos/{owner}/{repo}`: archivado → crítico; 404 (borrado o privado) → aviso | Fase 6 (WP-S): ídem |
+| `scripts` | Tiene `scripts/` sin revisar → aviso hasta que el usuario los marque como revisados (se guarda la huella SHA-256 de la carpeta; si un script cambia, vuelve a «sin revisar»). Nunca se ejecuta ninguno | Fase 6 (WP-S): en local |
 
 La salud que enseña la pantalla es la local, sin red (`SkillHealthReader`): lee el `SKILL.md` de la copia local sin
-seguir enlaces y sin pasar de 1 MiB, y suma la licencia y la fijación. `upstream`, `archived` y `scripts` salen «sin
-comprobar (Fase 6)», que pesa más que «sana»: ninguna skill parece sana por lo que nunca se miró. Una skill enlazada no
+seguir enlaces y sin pasar de 1 MiB, suma la licencia y la fijación, y mira los scripts de la copia (la huella de `scripts/` contra la que la persona revisó). `upstream` y `archived` salen
+«sin comprobar» hasta que la persona pulsa «Comprobar en GitHub»; «sin comprobar» pesa más que «sana»: ninguna skill parece sana por lo que nunca se miró. Una skill enlazada no
 tiene copia que comprobar, así que su cabecera también sale «sin comprobar».
 
-Las consultas a GitHub usan token opcional del usuario (5 000 peticiones/h frente a 60 sin token) y `ETag` para no
-gastar cuota.
+Las consultas a GitHub (Fase 6, [docs/20](20-fase-6-auto-doctor-y-auto-graph.md) D-13 a D-15, [ADR-0063](adr/0063-doctor-de-skills-con-red.md)) son la única red del doctor:
+- **Apagadas por defecto** (ajuste «Permitir que Agent Studio pregunte a GitHub por las skills») y **solo al pulsar «Comprobar en GitHub»**: nunca al abrir la pantalla ni en segundo plano.
+- **Solo `https://api.github.com`**: tres direcciones, construidas desde la fijación de la skill ya validada (`GitHubSkillOrigin`); redirecciones a mano, solo al mismo host.
+- **Se dice qué sale:** el propietario, el repositorio, la rama, la carpeta y el commit fijado de cada skill. Nada del proyecto, ni rutas, ni el nombre de la persona.
+- **Clave de acceso opcional** (token de GitHub, de solo lectura): 5 000 peticiones/h frente a 60 sin ella. Se guarda cifrada con DPAPI; guardarla, borrarla y usarla en cada tanda pide Windows Hello.
+  Nunca se lee la de `gh`, la del gestor de credenciales de git ni ninguna de un CLI.
+- Las respuestas se guardan con su `ETag` (`%LOCALAPPDATA%\AgentStudio\skills-doctor\cache.json`) y un 304 no gasta límite.
 
 ## 7. Seguridad
 

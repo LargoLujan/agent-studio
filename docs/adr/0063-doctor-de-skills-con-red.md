@@ -1,6 +1,6 @@
 # ADR-0063 · El doctor de skills con red: solo `api.github.com`, apagado por defecto y a petición, y un token opcional en una bóveda DPAPI mínima
 
-- **Estado:** aceptada · 2026-11-12 (P0 de la Fase 6). Recoge D-13 a D-15 de [docs/20](../20-fase-6-auto-doctor-y-auto-graph.md) y las decisiones 5, 6 y 15 de su §13
+- **Estado:** aceptada · 2026-11-12 (P0 de la Fase 6); implementada por WP-S el 2026-11-13 (ver «Lo que hizo WP-S»). Recoge D-13 a D-15 de [docs/20](../20-fase-6-auto-doctor-y-auto-graph.md) y las decisiones 5, 6 y 15 de su §13
   (todas, la opción recomendada). **Amplía** [ADR-0007](0007-catalogo-de-skills.md). El P0 verifica la dependencia y fija los puertos y las validaciones; WP-S
   implementa el cliente, la cola, la caché, el comprobador y la bóveda, y añade aquí lo que haga.
 - **Contexto:**
@@ -43,3 +43,39 @@
   GitHub (su respuesta trae el parche de cada fichero y puede pasar de varios megas: se hacen dos peticiones de `commits` pequeñas, y la del commit fijado no cambia nunca);
   una llamada directa a `CryptProtectData` (decenas de líneas de interoperabilidad propias que revisar alrededor de un secreto).
 - **Residuales aceptados:** GitHub ve la dirección IP y qué repositorios públicos se consultan; el token de la bóveda lo puede descifrar cualquier proceso del mismo usuario.
+
+- **Lo que hizo WP-S** (2026-11-13). Todo en `AgentStudio.Infrastructure` salvo la pantalla y el permiso:
+  1. **Un solo constructor de direcciones** (`Skills/GitHub/GitHubApiAddress`). Recibe un `GitHubSkillOrigin`, nunca un texto suelto; escapa cada segmento con `Uri.EscapeDataString`;
+     pone la rama, el commit y la carpeta como valores de la consulta; y comprueba la dirección final (`https`, host `api.github.com`, puerto por defecto, sin credenciales ni
+     fragmento, ruta exacta). `IsAllowed` mira además **cómo se escribió** la dirección (`Uri` colapsa `..` y `%2e%2e` en `AbsolutePath`): una ruta escrita con ellos no pasa. Las
+     direcciones que construye son exactamente tres: `GET /repos/{owner}/{repo}` y `GET /repos/{owner}/{repo}/commits?sha={commit|rama}&path={carpeta}&per_page=1` (sin `path` si la
+     carpeta es la raíz).
+  2. **Un `HttpClient` propio** (`GitHubApiClient`) con `GitHubHostGuardHandler` justo encima de la red: cualquier petición que no sea un `GET` sin cuerpo a `https://api.github.com/repos/…`
+     (o `/repositories/…`, adonde GitHub manda un repositorio renombrado) lanza sin enviar nada. `AllowAutoRedirect = false`, sin cookies, sin credenciales del sistema, `User-Agent`
+     fijo (`AgentStudio-SkillsDoctor`), cabeceras de respuesta de 32 KB como mucho, **10 s para todo el intercambio, cuerpo incluido**, y cuerpo de 1 MB como mucho (por `Content-Length` y
+     además leyendo con tope). Una cola con un solo consumidor las envía en serie. Las redirecciones (301, 302, 307, 308) se siguen a mano, como mucho 3, solo a `https`, al mismo host y bajo
+     `/repos/` o `/repositories/`.
+  3. **El token solo va en la primera petición.** Corrige D-14, que decía que la cabecera se pone «tras esa comprobación»: ni siquiera una redirección al mismo host la lleva, y tampoco el
+     `ETag`. Lo que llega por una redirección no se guarda en la caché (su `ETag` es de otra dirección).
+  4. **Los fallos son un `GitHubApiException` sin la excepción que los causó** (su mensaje podría llevar lo enviado), con un mensaje fijo por código. `429`, `403` con
+     `x-ratelimit-remaining: 0` y `retry-after` son `RateLimited` con la hora de reinicio: la tanda se para y las skills que faltan salen «límite de GitHub, se reinicia a las HH:MM» sin más
+     peticiones. Si la última respuesta dijo «0 restantes», tampoco se envía la siguiente. Sin conexión también para la tanda.
+  5. **Las respuestas son datos no fiables:** `JsonDocument` con profundidad 16, solo los campos de D-14 con su tipo (`archived`: booleano; `sha`: 40 hexadecimales en minúscula). Ningún texto
+     de GitHub llega a un mensaje, y ninguna dirección de la respuesta se sigue salvo `Location` de una redirección, con las condiciones de arriba. La caché (`cache.json`) guarda el `ETag`
+     y esos dos valores, nunca el cuerpo, y se lee como no fiable (1 MB, 2 000 entradas, `ETag` de ASCII visible).
+  6. **Orden de una tanda** (`GitHubSkillHealthChecker`): permiso de Ajustes (`ISkillsDoctorPolicy`; apagado: ni una petición ni una llamada a los secretos) → validar cada origen (lo que no
+     pasa, o no tiene commit fijado, es «origen no válido») → si no queda nada que preguntar, fin: no se pide Hello por una tanda que no envía nada → `UseTokenAsync` una vez → las skills en serie.
+  7. **La bóveda** (`Security/DpapiCredentialVault`): un fichero `<nombre>.dpapi` por secreto, cifrado con `ProtectedData` (`DataProtectionScope.CurrentUser`, entropía fija de la app), nombre
+     `[a-z0-9._-]{1,64}`, escritura a un temporal y movimiento, lectura con tope de 64 KB, carpeta inyectable (por defecto `%LOCALAPPDATA%\AgentStudio\vault`). Para saber si hay token
+     **sin descifrarlo** se añade `ICredentialVaultProbe.ContainsAsync` (`ICredentialVault` no cambia): el orden de `SkillsDoctorSecrets` es ¿hay token? → Hello → `ReadAsync`.
+     Sin token no hay Hello; con Hello denegado, o que falla al preguntarse, la bóveda no recibe ninguna lectura. Guardar y borrar piden Hello antes de escribir.
+  8. **Hello** se pide con `ISkillsDoctorPresence`, que el escritorio implementa sobre el mismo `ReinforcedConfirmation` de las aprobaciones con `PresenceAction.RemoteOrSecretOperation`
+     («siempre»). Sin `ReinforcedConfirmation` en la composición, toda confirmación es un no.
+  9. **El permiso** vive en `AppSettings.SkillsDoctorNetworkEnabled` (apagado) y se enciende en la propia pantalla de Skills; sin ajustes en la composición, la red nunca está permitida.
+  10. **Scripts y tamaño, en local:** `SkillScriptsInspector` da la huella SHA-256 de `scripts/` (rutas ordenadas y contenido; un enlace cuenta por su nombre y no se abre; tope de 500 ficheros y
+      8 MiB cada uno) y `SkillScriptReviewStore` guarda la que la persona marcó en `skill-script-reviews.json`, junto a las decisiones globales. `scripts`: sin carpeta, sana; con ella, aviso hasta
+      marcarla y otra vez si cambia. `size` añade el coste en contexto del `SKILL.md` entero (estimado por Agent Studio).
+  11. **Qué se registra:** nada en el registro de decisiones. D-14 no pide una clase de entrada nueva (`DecisionKind` crece en dos valores, ambos de otras piezas), y un registro con «se comprobó y dio X»
+      sería un dato de un servidor externo en un registro anclado. Lo que queda es la caché (se puede borrar) y lo que muestra la pantalla; ninguno lleva el token.
+- **Residuales de esta implementación:** el nombre del repositorio y la rama viajan en la consulta (la tarjeta de la pantalla lo dice); un proxy del sistema ve el destino; el texto del
+  ⓘ y del artículo de ayuda dicen que el fichero de la bóveda no protege de un programa del mismo usuario.
