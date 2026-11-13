@@ -74,6 +74,21 @@ public interface IRemoteSyncPolicy
     TimeSpan Interval { get; }
 }
 
+/// <summary>
+/// The switch «Sincronizar con GitHub» of a project (docs/21 D-02 and §7.1): what the header of the pull requests section turns on and off. The desktop
+/// implements it over its settings, and <see cref="IRemoteSyncPolicy"/> reads the same value. Nothing but a click of the person calls <see cref="SetAsync"/>:
+/// no service, no restore of a file and no agent gives this permission.
+/// </summary>
+public interface IRemoteSyncPermission
+{
+    bool IsAllowed(string projectId);
+
+    Task SetAsync(string projectId, bool allowed, CancellationToken ct);
+
+    /// <summary>Raised with the id of the project when its permission changed.</summary>
+    event EventHandler<string>? Changed;
+}
+
 /// <summary>What the screen shows of a followed pull request: the last recorded snapshot from the verified log, with the display texts of the cache.</summary>
 public sealed record PullRequestView(
     PullRequestRef PullRequest,

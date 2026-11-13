@@ -132,6 +132,7 @@ public sealed class ContractSurfaceTests
             ["CancelAsync", "FollowAsync", "Health", "Pending", "SyncNowAsync", "UnfollowAsync", "add_Changed", "remove_Changed"],
             MethodNames(typeof(IRemoteSync)));
         Assert.Equal(["PeriodicSyncAllowed", "get_Interval"], MethodNames(typeof(IRemoteSyncPolicy)));
+        Assert.Equal(["IsAllowed", "SetAsync", "add_Changed", "remove_Changed"], MethodNames(typeof(IRemoteSyncPermission)));
         Assert.Equal(["ListAsync"], MethodNames(typeof(IPullRequestProjector)));
         Assert.Equal(["LoadAsync", "SaveAsync"], MethodNames(typeof(IRemoteSyncStore)));
         Assert.Equal(["EnterAsync"], typeof(ProjectActivityEntry).GetMethods().Where(m => m.DeclaringType == typeof(ProjectActivityEntry)).Select(m => m.Name));
