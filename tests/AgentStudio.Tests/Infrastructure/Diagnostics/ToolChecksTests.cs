@@ -284,8 +284,10 @@ public sealed class ToolChecksTests
         var installed = await provider.ReadAsync(Project.RootPath, CancellationToken.None);
         provider.End();
 
-        // Every tool once, except the launcher of Python, which is only asked when «python» is not found.
-        Assert.Equal(Enum.GetValues<DoctorTool>().Length - 1, door.Asked.Count);
+        // Every tool once, except the launcher of Python, which is only asked when «python» is not found, and gh, which is not part of the inventory of the
+        // machine: the source of the remote of Phase 10 (HostingCheckSource, docs/21 D-31) asks for it.
+        Assert.Equal(Enum.GetValues<DoctorTool>().Length - 2, door.Asked.Count);
+        Assert.DoesNotContain(door.Asked, asked => asked.Tool == DoctorTool.GhVersion);
         Assert.Equal(3, installed.DotNetSdks.Count);
         Assert.Equal(AgentStudio.Domain.Environments.DockerState.EngineStopped, installed.Docker.State);
         Assert.Equal(AgentStudio.Domain.Environments.WslState.NoDistribution, installed.Wsl.State);

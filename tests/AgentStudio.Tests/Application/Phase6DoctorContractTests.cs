@@ -120,7 +120,7 @@ public sealed class Phase6DoctorContractTests
     public void The_closed_list_of_tools_is_the_one_of_the_design_and_each_entry_is_appended_never_inserted()
     {
         Assert.Equal(
-            ["DotNetListSdks", "DotNetListRuntimes", "NodeVersion", "NpmVersion", "PythonVersion", "PyVersion", "GitVersion", "DockerVersionJson", "WslStatus", "DockerVersionDesktopPipe"],
+            ["DotNetListSdks", "DotNetListRuntimes", "NodeVersion", "NpmVersion", "PythonVersion", "PyVersion", "GitVersion", "DockerVersionJson", "WslStatus", "DockerVersionDesktopPipe", "GhVersion"],
             Enum.GetNames<DoctorTool>());
     }
 

@@ -229,6 +229,10 @@
     <value>el proyecto está ocupado con {0}; espera a que termine.</value>
     <comment>Reason. {0}: what holds the project, with its article.</comment>
   </data>
+  <data name="Panels_Tests_HeadBusyRemote" xml:space="preserve">
+    <value>Agent Studio está sincronizando con GitHub; inténtalo en unos segundos.</value>
+    <comment>Reason (docs/21 D-25): the project stayed held by a remote operation past the wait.</comment>
+  </data>
   <data name="Panels_Tests_BusyRun" xml:space="preserve">
     <value>una ejecución</value>
     <comment>What holds the project.</comment>

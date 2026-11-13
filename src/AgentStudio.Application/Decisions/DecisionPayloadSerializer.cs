@@ -86,6 +86,12 @@ public static class DecisionPayloadSerializer
         // Phase 6 (docs/20 §4.3): the fixes of Auto Doctor and the relations an AI proposed for Auto Graph, outside every run.
         [DecisionKind.DoctorFixApplied] = typeof(DoctorFixAppliedPayload),
         [DecisionKind.GraphRelationsProposed] = typeof(GraphRelationsProposedPayload),
+
+        // Phase 10 (docs/21 §5.3): the standing authorisations, what was done on the remote and what was observed there, outside every run.
+        [DecisionKind.HostingPolicyGranted] = typeof(HostingPolicyGrantedPayload),
+        [DecisionKind.HostingPolicyRevoked] = typeof(HostingPolicyRevokedPayload),
+        [DecisionKind.HostingOperationPerformed] = typeof(HostingOperationPerformedPayload),
+        [DecisionKind.RemoteStateObserved] = typeof(RemoteStateObservedPayload),
     };
 
     private static readonly JsonSerializerOptions Options = CreateOptions();
@@ -98,6 +104,13 @@ public static class DecisionPayloadSerializer
     {
         ArgumentNullException.ThrowIfNull(payload);
         return JsonSerializer.Serialize(payload, payload.GetType(), Options);
+    }
+
+    /// <summary>The canonical text of a part of a payload that is not a payload itself (a snapshot inside an observation), for the equality by content of the records that hold lists.</summary>
+    internal static string SerializeValue(object value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        return JsonSerializer.Serialize(value, value.GetType(), Options);
     }
 
     public static T Deserialize<T>(string json)

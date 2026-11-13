@@ -129,8 +129,8 @@ public sealed class MemoryEntryTextsTests
     {
         var code = new UserText("memory.reason.export-busy");
 
-        Assert.StartsWith("Agents are working", MemoryReasonTexts.Say(English, code, "Hay una ejecución"), StringComparison.Ordinal);
-        Assert.StartsWith("Hay agentes trabajando", MemoryReasonTexts.Say(Spanish, code, "x"), StringComparison.Ordinal);
+        Assert.StartsWith("The project is busy", MemoryReasonTexts.Say(English, code, "Hay una ejecución"), StringComparison.Ordinal);
+        Assert.StartsWith("El proyecto está ocupado", MemoryReasonTexts.Say(Spanish, code, "x"), StringComparison.Ordinal);
         Assert.Equal("Hay una ejecución", MemoryReasonTexts.Say(English, null, "Hay una ejecución"));
         Assert.Equal("Hay una ejecución", MemoryReasonTexts.Say(English, new UserText("memory.unknown"), "Hay una ejecución"));
         Assert.Equal(string.Empty, MemoryReasonTexts.Say(English, null, null));

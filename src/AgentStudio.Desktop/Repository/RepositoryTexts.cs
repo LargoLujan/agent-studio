@@ -1,5 +1,6 @@
 using AgentStudio.Application.Git;
 using AgentStudio.Desktop.Localization;
+using AgentStudio.Desktop.Repository.PullRequests;
 using AgentStudio.Domain.Tracing;
 using AgentStudio.Orchestration.Work;
 
@@ -40,14 +41,35 @@ public static class RepositoryTexts
         RepositoryActivityKind.Integration => Texts.Get("Repository_Activity_Integration"),
         RepositoryActivityKind.Delivery => Texts.Get("Repository_Activity_Delivery"),
         RepositoryActivityKind.WorktreeRemoved => Texts.Get("Repository_Activity_WorktreeRemoved"),
+        RepositoryActivityKind.RemoteOperation => Texts.Get("Hosting_Activity_Operation"),
+        RepositoryActivityKind.RemoteObservation => Texts.Get("Hosting_Activity_Observation"),
         _ => kind.ToString(),
     };
+
+    /// <summary>
+    /// What happened, as the timeline names it, with what a remote entry says of itself (Phase 10): the operation the app did («Publicó la rama»…) and the changes it observed
+    /// («Se fusionó», «La rama base cambió»…), with the pull request. An entry that says nothing more is named by its kind.
+    /// </summary>
+    public static string Kind(RepositoryActivity activity)
+    {
+        ArgumentNullException.ThrowIfNull(activity);
+        var text = activity switch
+        {
+            { Kind: RepositoryActivityKind.RemoteOperation, Operation: { } operation } => Texts.Get("Hosting_Op_" + operation),
+            { Kind: RepositoryActivityKind.RemoteObservation, Changes: { Count: > 0 } changes } => string.Join(", ", changes.Select(c => Texts.Get("Hosting_Change_" + c))),
+            _ => Kind(activity.Kind),
+        };
+        return activity.PullRequest is { } number ? Texts.Format("Hosting_Activity_OfPr", text, number) : text;
+    }
 
     /// <summary>What failed in an event of the timeline, from its code (never the raw code alone).</summary>
     public static string Error(string code) => code switch
     {
         RepositoryActivityReader.ConflictCode => Texts.Get("Repository_Activity_ErrorConflict"),
         RepositoryActivityReader.FailedCode => Texts.Get("Repository_Activity_ErrorNoCommit"),
+
+        // Phase 10: the failure of a remote operation is a code of the platform, of the adapter or of git (or hosting.outcome.*), said by the area of the hosting texts.
+        _ when AgentStudio.Application.Localization.UserText.IsCode(code) && Texts.Current.Has(AgentStudio.Application.Localization.UserText.KeyOf(code)) => HostingTexts.Code(code),
         _ => Texts.Format("Repository_Activity_ErrorOther", code),
     };
 

@@ -1,5 +1,6 @@
 using AgentStudio.Application.Execution;
 using AgentStudio.Application.Git;
+using AgentStudio.Application.Localization;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Verification;
@@ -48,7 +49,8 @@ public sealed class HeadTestsServices(
     IVerificationProfileSource? profiles,
     IWorktreeManager? git,
     IProjectWorkspace? workspace,
-    IProjectActivity? activity)
+    IProjectActivity? activity,
+    TimeProvider? time = null)
 {
     /// <summary>The service of the project <paramref name="projectRoot"/> names at the moment it runs; null when something is missing here.</summary>
     public IHeadTestsService? For(Func<string?> projectRoot)
@@ -56,7 +58,7 @@ public sealed class HeadTestsServices(
         ArgumentNullException.ThrowIfNull(projectRoot);
         return runner is null || profiles is null || git is null || workspace is null || activity is null
             ? null
-            : new HeadTestsService(runner, profiles, git, workspace, activity, projectRoot);
+            : new HeadTestsService(runner, profiles, git, workspace, activity, projectRoot, time: time);
     }
 }
 
@@ -83,6 +85,7 @@ public sealed class HeadTestsService : IHeadTestsService
     public static readonly TimeSpan DefaultBudgetSlack = TimeSpan.FromMinutes(1);
 
     private readonly TimeSpan _slack;
+    private readonly TimeProvider _time;
 
     private readonly IVerificationRunner _runner;
     private readonly IVerificationProfileSource _profiles;
@@ -100,9 +103,11 @@ public sealed class HeadTestsService : IHeadTestsService
         IProjectActivity activity,
         Func<string?> projectRoot,
         IUiTextProvider? texts = null,
-        TimeSpan? budgetSlack = null)
+        TimeSpan? budgetSlack = null,
+        TimeProvider? time = null)
     {
         _slack = budgetSlack ?? DefaultBudgetSlack;
+        _time = time ?? TimeProvider.System;
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(profiles);
         ArgumentNullException.ThrowIfNull(git);
@@ -123,7 +128,7 @@ public sealed class HeadTestsService : IHeadTestsService
         var root = _projectRoot() ?? throw new HeadTestsRefusedException("Panels_Tests_HeadNoProject", "No project is open.");
         var project = await _workspace.OpenAsync(root, cancellationToken).ConfigureAwait(false);
 
-        using var lease = _activity.TryEnter(project.ProjectId, ProjectActivityKind.Audit)
+        using var lease = await EnterAsync(project.ProjectId, cancellationToken).ConfigureAwait(false)
             ?? throw new HeadTestsRefusedException(
                 "Panels_Tests_HeadBusy",
                 $"Project '{project.ProjectId}' is busy ({_activity.Current(project.ProjectId)}): the tests of HEAD share the project with no other activity.",
@@ -159,6 +164,22 @@ public sealed class HeadTestsService : IHeadTestsService
         // The verifier stops at the first step that does not succeed: the steps after it were not run, and the panel says so.
         var stopped = steps.Skip(results.Count).Select(s => s.Id).ToList();
         return Present(results, notRun, stopped, root);
+    }
+
+    /// <summary>
+    /// Holds the project as an audit does. While what holds it is a remote operation of Agent Studio (docs/21 D-25) it waits, up to the cap of
+    /// <see cref="ProjectActivityEntry"/>, and past it the panel says so (<c>Panels_Tests_HeadBusyRemote</c>); with anything else it answers null at once, as before.
+    /// </summary>
+    private async Task<IDisposable?> EnterAsync(string projectId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await ProjectActivityEntry.EnterAsync(_activity, projectId, ProjectActivityKind.Audit, _time, cancellationToken).ConfigureAwait(false);
+        }
+        catch (UserTextException busy) when (busy.Text.Code == ProjectActivityEntry.BusyRemoteCode)
+        {
+            throw new HeadTestsRefusedException("Panels_Tests_HeadBusyRemote", busy.Message);
+        }
     }
 
     private HeadTestsResult Present(IReadOnlyList<VerificationResult> results, IReadOnlyList<string> notRun, IReadOnlyList<string> stopped, string projectRoot)

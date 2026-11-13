@@ -1,5 +1,6 @@
 using AgentStudio.Application.Projects;
 using AgentStudio.Domain.Common;
+using AgentStudio.Domain.Hosting;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Domain.Tracing;
 using AgentStudio.Domain.Work.Milestones;
@@ -19,6 +20,9 @@ public enum BranchKind
 
     /// <summary>A branch of the system for a run (<c>agentstudio/…</c>).</summary>
     Run,
+
+    /// <summary>The branch of a run on the remote (Phase 10, docs/21 §5.1): <c>agentstudio/run-&lt;id&gt;</c> as the platform has it.</summary>
+    RemoteRun,
 }
 
 /// <summary>
@@ -52,7 +56,8 @@ public interface IRepositoryHistoryReader
 }
 
 /// <summary>What the log knows of a commit: the run, task and attempt that produced it with the agent and model (a commit of the system), and its links and suggestions.</summary>
-public sealed record CommitAnnotation(string? Run, string? Task, int? Attempt, AgentId? Agent, string? Model, IReadOnlyList<TraceLink> Links, IReadOnlyList<TraceSuggestion> Suggestions);
+/// <remarks>Phase 10 (docs/21 D-28) adds <paramref name="Successor"/> at the end: what became of the commit on the remote (a squash, a rebase…), from the observations of the log; null when nothing merged names it.</remarks>
+public sealed record CommitAnnotation(string? Run, string? Task, int? Attempt, AgentId? Agent, string? Model, IReadOnlyList<TraceLink> Links, IReadOnlyList<TraceSuggestion> Suggestions, CommitSuccessor? Successor = null);
 
 /// <summary>A commit with its annotation, or none when the log knows nothing of it.</summary>
 public sealed record AnnotatedCommit(CommitNode Commit, CommitAnnotation? Annotation);
@@ -69,10 +74,32 @@ public enum RepositoryActivityKind
     Integration,
     Delivery,
     WorktreeRemoved,
+
+    /// <summary>Something the app did on the remote (Phase 10): a publication, a merge… from <c>HostingOperationPerformed</c>.</summary>
+    RemoteOperation,
+
+    /// <summary>What the app saw on the remote (Phase 10): a merge, a close, a deployment… from <c>RemoteStateObserved</c>.</summary>
+    RemoteObservation,
 }
 
 /// <summary>An event of the timeline with its real result: <paramref name="ErrorCode"/> is the code of what failed, null when it worked; <paramref name="Sequence"/> the entry of the log.</summary>
-public sealed record RepositoryActivity(DateTimeOffset At, RepositoryActivityKind Kind, string? Run, string? Task, string? Commit, bool Succeeded, string? ErrorCode, long Sequence);
+/// <remarks>
+/// Phase 10 (docs/21 §7.3) appends what a remote entry says of itself, so the screen can name it: <paramref name="Operation"/> and <paramref name="Outcome"/> of an operation the app did, <paramref name="Changes"/> of an observation
+/// (including <see cref="RemoteChangeKind.BaseChanged"/>) and <paramref name="PullRequest"/> the number it is about. They are null for what is not a remote entry.
+/// </remarks>
+public sealed record RepositoryActivity(
+    DateTimeOffset At,
+    RepositoryActivityKind Kind,
+    string? Run,
+    string? Task,
+    string? Commit,
+    bool Succeeded,
+    string? ErrorCode,
+    long Sequence,
+    HostingOperationKind? Operation = null,
+    Hosting.HostingOutcome? Outcome = null,
+    IReadOnlyList<RemoteChangeKind>? Changes = null,
+    int? PullRequest = null);
 
 /// <summary>The filters of the timeline, all dimensions the log or the links already have. Null lets everything through.</summary>
 public sealed record RepositoryActivityFilter(

@@ -188,7 +188,7 @@ public sealed partial class DerivedUserTextsTests
         // The reason as a string is anchored for the tests and the log; the screen says it with the words of the guide of texts.
         var expected = new[]
         {
-            (DerivationTexts.BusyReason, "Hay agentes trabajando en el proyecto. La memoria se actualiza cuando terminen.", "Agents are working in the project. The memory is updated when they finish."),
+            (DerivationTexts.BusyReason, "El proyecto está ocupado con otra tarea. La memoria se actualiza cuando termine.", "The project is busy with another task. The memory is updated when it finishes."),
             (DerivationTexts.StoppedReason, "Los agentes empezaron a trabajar. La actualización de la memoria se detuvo; la próxima la completa.", "Agents started working. The memory update stopped; the next one completes it."),
             (DerivationTexts.UnanchoredReason, "No se reconoce el historial del registro de decisiones en esta carpeta. La memoria no se actualiza hasta que lo aceptes como nuevo origen.", "The history of the decision log is not recognised in this folder. The memory is not updated until you accept it as a new origin."),
             (DerivationTexts.BrokenMidwayReason, "El registro de decisiones dejó de verificar durante la actualización. No se escribió nada más.", "The decision log stopped verifying during the update. Nothing more was written."),
@@ -208,8 +208,8 @@ public sealed partial class DerivedUserTextsTests
         var without = DerivationUserTexts.NotVerifiedReason(new DecisionLogVerification(false, null, "x"));
         Assert.Equal("El registro de decisiones no verifica. No se actualiza la memoria.", Spanish.Render(without));
         Assert.Null(DerivationUserTexts.ReasonOf("Otra razón"));
-        Assert.Equal("Hay agentes trabajando en el proyecto. La memoria se exporta cuando terminen.", Spanish.Render(DerivationUserTexts.ExportBusyReason()));
-        Assert.Equal("Agents are working in the project. The memory is exported when they finish.", English.Render(DerivationUserTexts.ExportBusyReason()));
+        Assert.Equal("El proyecto está ocupado con otra tarea. La memoria se exporta cuando termine.", Spanish.Render(DerivationUserTexts.ExportBusyReason()));
+        Assert.Equal("The project is busy with another task. The memory is exported when it finishes.", English.Render(DerivationUserTexts.ExportBusyReason()));
     }
 
     /// <summary>Each code has its text in both languages with the same markers: the number of an argument, and how a time or a number is written.</summary>

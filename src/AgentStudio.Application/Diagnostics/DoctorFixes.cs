@@ -30,6 +30,13 @@ public static class DoctorFixCatalog
     /// <summary>«Ir a…» Auto Graph, where the discrepancies of the project are (docs/20 D-30). Added by WP-D.</summary>
     public const string OpenGraph = "doctor.fix.open-graph";
 
+    /// <summary>The guides of the CLI of GitHub (Phase 10, docs/21 D-31): how to install it and how to sign in. The app runs neither: <c>gh auth</c> is never launched by it.</summary>
+    public const string InstallGh = "doctor.fix.install-gh";
+    public const string LoginGh = "doctor.fix.login-gh";
+
+    /// <summary>«Ir a…» the section of pull requests of «Repositorio y cambios», where the remote of the project is shown and the switch of the synchronisation is (Phase 10, docs/21 D-31).</summary>
+    public const string OpenPullRequests = "doctor.fix.open-pull-requests";
+
     private const string ProviderInstallPrefix = "doctor.fix.install-";
     private const string ProviderLoginPrefix = "doctor.fix.login-";
 
@@ -73,6 +80,7 @@ public static class DoctorFixCatalog
         {
             new DoctorFix.Navigate(OpenSetup, "setup"),
             new DoctorFix.Navigate(OpenGraph, "graph"),
+            new DoctorFix.Navigate(OpenPullRequests, "pull-requests"),
             new DoctorFix.Guide(InstallDotNet, "winget install --id Microsoft.DotNet.SDK.10 --exact", new Uri("https://dotnet.microsoft.com/en-us/download")),
             new DoctorFix.Guide(InstallNode, "winget install --id OpenJS.NodeJS.LTS --exact", new Uri("https://nodejs.org/en/download")),
             new DoctorFix.Guide(InstallPython, "winget install --id Python.Python.3.13 --exact", new Uri("https://www.python.org/downloads/")),
@@ -83,6 +91,8 @@ public static class DoctorFixCatalog
             new DoctorFix.Guide(InstallWsl, "wsl --install", new Uri("https://learn.microsoft.com/en-us/windows/wsl/install")),
             new DoctorFix.Guide(InstallWslDistribution, "wsl --install -d Ubuntu", new Uri("https://learn.microsoft.com/en-us/windows/wsl/install")),
             new DoctorFix.Guide(RestoreDotNetTools, "dotnet tool restore", new Uri("https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-tool-restore")),
+            new DoctorFix.Guide(InstallGh, "winget install --id GitHub.cli --exact", new Uri("https://cli.github.com/")),
+            new DoctorFix.Guide(LoginGh, "gh auth login", new Uri("https://cli.github.com/manual/gh_auth_login")),
         };
         foreach (var (id, provider) in Providers)
         {

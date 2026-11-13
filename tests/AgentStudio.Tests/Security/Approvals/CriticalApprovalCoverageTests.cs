@@ -1,6 +1,8 @@
 using System.IO;
 using System.Text.RegularExpressions;
+using AgentStudio.Application.Hosting;
 using AgentStudio.Application.Security;
+using AgentStudio.Domain.Hosting;
 using AgentStudio.Domain.Security;
 using AgentStudio.Security.Approvals;
 using AgentStudio.Tests.Desktop.Localization;
@@ -72,6 +74,32 @@ public sealed partial class CriticalApprovalCoverageTests
 
         Assert.True(found >= 20, $"Only {found} action constants found: the scan does not read the sources.");
         Assert.True(unknown.Count == 0, "Actions of approvals the list of the barrier does not name (add them to ApprovalRiskClassifier):\n" + string.Join('\n', unknown));
+    }
+
+    /// <summary>
+    /// Phase 10 (docs/21 D-15 and ADR-0066): everything that writes on the remote with the account of the person is known by name as a
+    /// <c>RemoteOrSecretOperation</c>, «siempre» whatever any setting says, with whatever risk its caller declares; and the action each operation asks
+    /// with is one of the six.
+    /// </summary>
+    [Fact]
+    public void Every_action_of_the_remote_is_known_by_name_as_a_remote_operation_that_always_asks_for_the_person()
+    {
+        Assert.Equal(6, HostingActions.All.Count);
+        foreach (var action in HostingActions.All)
+        {
+            Assert.Equal(PresenceAction.RemoteOrSecretOperation, ApprovalRiskClassifier.KnownPresenceActions[action]);
+            foreach (var risk in Enum.GetValues<RiskLevel>())
+            {
+                Assert.Equal(PresenceRequirement.Always, ApprovalRiskClassifier.PresenceOf(new ApprovalRequest(action, string.Empty, risk, null, [])));
+            }
+        }
+
+        foreach (var operation in Enum.GetValues<HostingOperationKind>())
+        {
+            Assert.Contains(HostingActions.ActionOf(operation), HostingActions.All);
+        }
+
+        Assert.DoesNotContain(HostingActions.GrantPolicyAction, Enum.GetValues<HostingOperationKind>().Select(HostingActions.ActionOf));
     }
 
     [Fact]

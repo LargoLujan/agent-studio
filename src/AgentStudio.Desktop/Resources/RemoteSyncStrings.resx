@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of «Git remoto» in «Ajustes» (Phase 10, docs/21 §7.5), in Spanish of Spain, the source language: the interval of the poll, the projects with
+       «Sincronizar con GitHub», what goes out and what does not, and the three texts of the ⓘ (Info_RemoteSync_*). Guide of ADR-0054. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="RemoteSync_Title" xml:space="preserve">
+    <value>Git remoto</value>
+    <comment>Title of the section of Settings.</comment>
+  </data>
+  <data name="RemoteSync_Intro" xml:space="preserve">
+    <value>Elige cada cuánto mira Agent Studio tus peticiones de fusión (PR) y en qué proyectos puede hacerlo.</value>
+  </data>
+  <data name="RemoteSync_Interval_Label" xml:space="preserve">
+    <value>Mirar GitHub cada</value>
+  </data>
+  <data name="RemoteSync_Interval_Item" xml:space="preserve">
+    <value>{0} minutos</value>
+    <comment>An item of the list of intervals: {0} is the number of minutes.</comment>
+  </data>
+  <data name="RemoteSync_Interval_Explanation" xml:space="preserve">
+    <value>Solo cuenta en los proyectos con el permiso. Sin permiso, Agent Studio no se conecta por su cuenta.</value>
+  </data>
+  <data name="RemoteSync_Projects_Title" xml:space="preserve">
+    <value>Proyectos con la sincronización permitida</value>
+  </data>
+  <data name="RemoteSync_Projects_None" xml:space="preserve">
+    <value>Ningún proyecto tiene el permiso. Se da con el interruptor de la sección de PR de cada proyecto.</value>
+  </data>
+  <data name="RemoteSync_Projects_Remove" xml:space="preserve">
+    <value>Quitar el permiso</value>
+  </data>
+  <data name="RemoteSync_Projects_RemoveName" xml:space="preserve">
+    <value>Quitar el permiso de {0}</value>
+    <comment>Name of the button for a screen reader: {0} is the folder of the project.</comment>
+  </data>
+  <data name="RemoteSync_Sends_Title" xml:space="preserve">
+    <value>Qué sale y qué no</value>
+  </data>
+  <data name="RemoteSync_Sends_Text" xml:space="preserve">
+    <value>Cada vez, Agent Studio pregunta a GitHub cómo van tus PR: su estado, las revisiones y las comprobaciones. Solo lee. Nunca sube tu código ni fusiona por su cuenta. Tampoco ve ni guarda tu clave de GitHub.</value>
+  </data>
+  <data name="RemoteSync_Publish_Button" xml:space="preserve">
+    <value>Publicar y abrir PR</value>
+    <comment>Button of the monitor of a run, beside «Entregar a mi rama»; only where the section of pull requests exists.</comment>
+  </data>
+  <data name="RemoteSync_Publish_Help" xml:space="preserve">
+    <value>Te lleva a la sección de PR de «Repositorio y cambios», con la ficha para publicar esta ejecución. No sube nada hasta que lo confirmes.</value>
+  </data>
+  <data name="RemoteSync_Publish_OtherProject" xml:space="preserve">
+    <value>Esa ejecución es de otro proyecto. Ábrelo primero y vuelve a pulsar el botón.</value>
+  </data>
+  <data name="RemoteSync_Publish_Failed" xml:space="preserve">
+    <value>No se pudo abrir la ficha de publicar: {0}</value>
+    <comment>{0} is what went wrong, as the exception says it.</comment>
+  </data>
+  <data name="Info_RemoteSync_Title" xml:space="preserve">
+    <value>Git remoto</value>
+  </data>
+  <data name="Info_RemoteSync_What" xml:space="preserve">
+    <value>Agent Studio puede mirar cómo van tus PR en GitHub cada pocos minutos. Solo lo hace en los proyectos que tú permites. Publicar y fusionar siguen pidiéndote permiso.</value>
+  </data>
+  <data name="Info_RemoteSync_Actions" xml:space="preserve">
+    <value>Elegir cada cuánto se mira GitHub.
+Quitar el permiso de un proyecto de la lista.
+Dar el permiso desde la sección de PR de cada proyecto.
+Guardar para que el cambio valga.</value>
+  </data>
+</root>

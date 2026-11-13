@@ -175,6 +175,9 @@
   <data name="Panels_Tests_HeadBusy" xml:space="preserve">
     <value>the project is busy with {0}; wait for it to finish.</value>
   </data>
+  <data name="Panels_Tests_HeadBusyRemote" xml:space="preserve">
+    <value>Agent Studio is syncing with GitHub; try again in a few seconds.</value>
+  </data>
   <data name="Panels_Tests_BusyRun" xml:space="preserve">
     <value>a run</value>
   </data>

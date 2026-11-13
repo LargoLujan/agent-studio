@@ -1,5 +1,6 @@
 using System.IO;
 using AgentStudio.Application.Execution;
+using AgentStudio.Application.Judging;
 using AgentStudio.Application.Models;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Providers;
@@ -95,6 +96,7 @@ internal static class PlatformServices
             .AddPreparationServices()
             .AddAgentStudioSetup(Path.Combine(folders.Local.BaseDirectory, "setup"))
             .AddDoctorServices(folders)
+            .AddHostingServices(folders)
             .AddSingleton<IVerificationProfileSource, FileVerificationProfileSource>()
             .AddDebateServices();
     }
@@ -155,6 +157,11 @@ internal static class PlatformServices
             .AddSingleton<IDebateTestProfiles>(provider => provider.GetRequiredService<VerificationProfilePorts>())
             .AddSingleton<IAuditVerificationProfiles>(provider => provider.GetRequiredService<VerificationProfilePorts>())
             .AddSingleton(provider => DebateModeRequirementSource.For(provider.GetService<TimeProvider>() ?? TimeProvider.System))
+            // The three that wait for a remote operation of Agent Studio before taking the project (docs/21 D-25) measure that wait on the clock of the engine,
+            // the awake one: a machine that sleeps does not run out the cap. The orchestrator already has it (AddEngineOnItsClock); the coordinator of debates and the
+            // audit are registered here with it, ahead of the TryAdd of their modules.
+            .AddSingleton<IProjectAuditService>(provider => ActivatorUtilities.CreateInstance<ProjectAuditService>(provider, provider.GetRequiredService<EngineClock>().Time))
+            .AddSingleton(provider => new DebateCoordinator(provider.GetRequiredService<DebateArenaPorts>() with { Time = provider.GetRequiredService<EngineClock>().Time }))
             .AddAgentStudioDebateArena()
             .AddAgentStudioAudits();
 

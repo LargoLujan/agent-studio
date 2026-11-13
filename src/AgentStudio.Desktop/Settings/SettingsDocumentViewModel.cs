@@ -54,7 +54,8 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
         LockSettingsViewModel? lockSettings = null,
         TimeProvider? time = null,
         MemorySettingsViewModel? memory = null,
-        LanguageSettingsViewModel? language = null)
+        LanguageSettingsViewModel? language = null,
+        RemoteSyncSettingsViewModel? remoteSync = null)
         : base(DocumentId, Texts.Get("SettingsDoc_Title"))
     {
         ArgumentNullException.ThrowIfNull(store);
@@ -66,7 +67,14 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
         Lock = lockSettings ?? unattended?.Lock;
         Memory = memory;
         Language = language;
+        RemoteSync = remoteSync;
         Motion = new MotionSettingsViewModel(store);
+
+        if (RemoteSync is not null)
+        {
+            RemoteSync.PropertyChanged += OnSectionChanged;
+            RemoteSync.Saved += OnSectionChanged;
+        }
 
         // A change on screen, or a save (which changes what is in force, often without changing what is on screen).
         Context.PropertyChanged += OnSectionChanged;
@@ -116,6 +124,9 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
 
     /// <summary>«Idioma»: the language of the interface, which applies on restart; null when it was not composed.</summary>
     public LanguageSettingsViewModel? Language { get; }
+
+    /// <summary>«Git remoto» (Phase 10, docs/21 §7.5): the interval of the poll and the projects with «Sincronizar con GitHub»; null when it was not composed.</summary>
+    public RemoteSyncSettingsViewModel? RemoteSync { get; }
 
     /// <summary>«Reducir movimiento» (Phase 13, docs/17 D-15): turns off the animations of the canvas; always there.</summary>
     public MotionSettingsViewModel Motion { get; }
@@ -202,6 +213,11 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
                 preferences = Language.Apply(preferences);
             }
 
+            if (RemoteSync is not null)
+            {
+                preferences = RemoteSync.Apply(preferences);
+            }
+
             preferences = Motion.Apply(preferences);
             _store.SavePreferences(preferences);
             saved = preferences;
@@ -217,6 +233,7 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
         Lock?.Accept(saved);
         Memory?.Accept(saved);
         Language?.Accept(saved);
+        RemoteSync?.Accept(saved);
         Motion.Accept(saved);
         Notice = Texts.Format("SettingsDoc_Saved", _time.GetLocalNow().ToString("HH:mm:ss", CultureInfo.InvariantCulture));
     }
@@ -229,6 +246,7 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
         Lock?.Revert();
         Memory?.Revert();
         Language?.Revert();
+        RemoteSync?.Revert();
         Motion.Revert();
         Notice = null;
         ErrorMessage = null;
@@ -237,5 +255,5 @@ public sealed partial class SettingsDocumentViewModel : DocumentViewModel
 
     private void OnSectionChanged(object? sender, EventArgs e) => IsDirty = HasChanges();
 
-    private bool HasChanges() => Context.HasChanges || Unattended?.HasChanges == true || Lock?.HasChanges == true || Memory?.HasChanges == true || Language?.HasChanges == true || Motion.HasChanges;
+    private bool HasChanges() => Context.HasChanges || Unattended?.HasChanges == true || Lock?.HasChanges == true || Memory?.HasChanges == true || Language?.HasChanges == true || RemoteSync?.HasChanges == true || Motion.HasChanges;
 }

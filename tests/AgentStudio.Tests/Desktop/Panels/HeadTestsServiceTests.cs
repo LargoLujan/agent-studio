@@ -10,6 +10,7 @@ using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Evidence;
 using AgentStudio.Orchestration.Engine;
 using AgentStudio.Tests.Debate.Fakes;
+using AgentStudio.Tests.TestSupport;
 
 namespace AgentStudio.Tests.Desktop.Panels;
 
@@ -40,8 +41,8 @@ public sealed class HeadTestsServiceTests
 
         public string? Root { get; set; } = Project.RootPath;
 
-        public HeadTestsService Service(TimeSpan? slack = null) =>
-            new(Runner, new FakeProfiles(() => Profile), Git, new FakeWorkspace(), Activity, () => Root, English, slack);
+        public HeadTestsService Service(TimeSpan? slack = null, TimeProvider? time = null) =>
+            new(Runner, new FakeProfiles(() => Profile), Git, new FakeWorkspace(), Activity, () => Root, English, slack, time);
     }
 
     private sealed class FakeRunner : IVerificationRunner
@@ -167,6 +168,65 @@ public sealed class HeadTestsServiceTests
         Assert.Equal("Panels_Tests_HeadBusy", refused.TextKey);
         Assert.Equal([said], refused.Arguments);
         Assert.Empty(world.Runner.Calls);
+    }
+
+    // ---- docs/21 D-25 (Phase 10): a remote operation of Agent Studio holds the project for seconds; the tests wait for it ----
+
+    [Fact]
+    public async Task It_waits_for_a_remote_operation_and_then_runs_the_tests_without_losing_anything()
+    {
+        var world = new World();
+        var clock = new RemoteWaitClock();
+        var remote = world.Activity.TryEnter(Project.ProjectId, ProjectActivityKind.RemoteOperation)!;
+
+        var running = world.Service(time: clock).RunAsync(Ct);
+        await clock.WaitForTimerAsync(1);
+        Assert.False(running.IsCompleted);
+        Assert.Empty(world.Runner.Calls);
+
+        remote.Dispose();
+        await clock.AdvanceUntilAsync(running, ProjectActivityEntry.RemoteWaitPoll);
+        var result = await running;
+
+        Assert.Single(world.Runner.Calls);
+        Assert.Equal(2, result.Lines.Count);
+        Assert.Null(world.Activity.Current(Project.ProjectId));
+    }
+
+    [Theory]
+    [InlineData(ProjectActivityKind.Run)]
+    [InlineData(ProjectActivityKind.Debate)]
+    [InlineData(ProjectActivityKind.Audit)]
+    public async Task With_another_activity_in_the_way_it_is_refused_at_once_with_the_text_of_always_and_asks_no_timer(ProjectActivityKind holder)
+    {
+        var world = new World();
+        var clock = new RemoteWaitClock();
+        using var held = world.Activity.TryEnter(Project.ProjectId, holder);
+
+        var running = world.Service(time: clock).RunAsync(Ct);
+
+        var refused = await Assert.ThrowsAsync<HeadTestsRefusedException>(() => running);
+        Assert.Equal("Panels_Tests_HeadBusy", refused.TextKey);
+        Assert.Equal(0, clock.Timers);
+        Assert.Empty(world.Runner.Calls);
+    }
+
+    [Fact]
+    public async Task A_remote_operation_that_never_lets_go_refuses_the_tests_with_its_own_text_after_the_cap()
+    {
+        var world = new World();
+        var clock = new RemoteWaitClock();
+        using var remote = world.Activity.TryEnter(Project.ProjectId, ProjectActivityKind.RemoteOperation);
+
+        var running = world.Service(time: clock).RunAsync(Ct);
+        await clock.AdvanceUntilAsync(running, ProjectActivityEntry.RemoteWaitPoll);
+
+        var refused = await Assert.ThrowsAsync<HeadTestsRefusedException>(() => running);
+        Assert.Equal("Panels_Tests_HeadBusyRemote", refused.TextKey);
+        Assert.True(English.Has(refused.TextKey));
+        Assert.Contains("remote operation", refused.Message, StringComparison.Ordinal);
+        Assert.Empty(world.Runner.Calls);
+        Assert.Equal(ProjectActivityKind.RemoteOperation, world.Activity.Current(Project.ProjectId));
     }
 
     [Fact]

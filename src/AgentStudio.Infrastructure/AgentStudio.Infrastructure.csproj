@@ -31,6 +31,11 @@
     <PackageReference Include="System.Security.Cryptography.ProtectedData" />
   </ItemGroup>
 
+  <!-- The seam of the tests of the remote executor of git (Phase 10, docs/21 D-06): RemoteTransport and the constructor of RemoteGitRunner that takes one are internal. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="AgentStudio.Tests" />
+  </ItemGroup>
+
   <ItemGroup>
     <EmbeddedResource Include="Persistence\Schema\*.sql" LogicalName="AgentStudio.Schema.%(Filename)%(Extension)" />
   </ItemGroup>

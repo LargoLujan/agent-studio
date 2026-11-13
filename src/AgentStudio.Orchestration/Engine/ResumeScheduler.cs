@@ -69,6 +69,9 @@ public sealed class ResumeScheduler
 
     private int _suspensions;
 
+    /// <summary>Cancelled by every <see cref="Suspend"/> and replaced: the waits of a resume for the project (docs/21 D-25) are linked to the one they started with, so suspending ends them at once.</summary>
+    private CancellationTokenSource _suspendSignal = new();
+
     /// <param name="orchestrator">The engine's orchestrator: only it resumes a run by the consent of its header.</param>
     public ResumeScheduler(IOrchestrator orchestrator, IDecisionRecorder decisions, IRunRegistry runs)
     {
@@ -319,12 +322,23 @@ public sealed class ResumeScheduler
                 return Said(run, null, null, "La reanudación sola está suspendida mientras la aplicación sale.");
             }
 
-            var resume = await _orchestrator.ResumeByConsentAsync(project, run, cancellationToken).ConfigureAwait(false);
+            // A remote operation may hold the project for up to 180 s (docs/21 D-25): suspending ends that wait, and a resume that did get the project asks again.
+            var resume = await _orchestrator.ResumeByConsentAsync(project, run, cancellationToken, () => !Suspended, Volatile.Read(ref _suspendSignal).Token).ConfigureAwait(false);
             return new ScheduledResume(run, resume.Cause, resume.Run, resume.Reason, resume.ReasonText ?? LoggedTexts.ResumeReason(resume.Reason));
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
+        }
+        catch (OperationCanceledException) when (Suspended)
+        {
+            // The wait for the project ended because the app is leaving: nothing was written, and it is not a failure of the run.
+            return Said(run, null, null, "La reanudación sola está suspendida mientras la aplicación sale.");
+        }
+        catch (UserTextException busy) when (busy.Text.Code == ProjectActivityEntry.BusyRemoteCode)
+        {
+            // The remote operation did not let go in time: the engine wrote nothing, so the run is not marked as failed for the session; the next pass tries again.
+            return Said(run, cause, null, "No se pudo reanudar: " + busy.Message);
         }
         catch (Exception ex)
         {
@@ -384,6 +398,7 @@ public sealed class ResumeScheduler
         {
             _owner = owner;
             Interlocked.Increment(ref owner._suspensions);
+            Interlocked.Exchange(ref owner._suspendSignal, new CancellationTokenSource()).Cancel();
         }
 
         public void Dispose()

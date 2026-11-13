@@ -1,4 +1,5 @@
 using AgentStudio.Application.Decisions;
+using AgentStudio.Application.Hosting;
 using AgentStudio.Application.Security;
 using AgentStudio.Debate.Arena;
 using AgentStudio.Debate.Audit;
@@ -65,6 +66,14 @@ public sealed class PresenceBarrierGateTests
             [ChallengeLog.RevisionAcceptanceAction] = PresenceAction.AcceptReview,
             [WorkspaceCleanup.ApprovalAction] = PresenceAction.DiscardAgentWork,
             [SkillsDocumentViewModel.AssistedAction] = PresenceAction.AuxiliaryQuotaConsent,
+
+            // Phase 10 (docs/21 D-15): everything that writes on the remote with the account of the person.
+            [HostingActions.GrantPolicyAction] = PresenceAction.RemoteOrSecretOperation,
+            [HostingActions.PublishAction] = PresenceAction.RemoteOrSecretOperation,
+            [HostingActions.PullRequestWriteAction] = PresenceAction.RemoteOrSecretOperation,
+            [HostingActions.MergeAction] = PresenceAction.RemoteOrSecretOperation,
+            [HostingActions.ClosePullRequestAction] = PresenceAction.RemoteOrSecretOperation,
+            [HostingActions.DeleteBranchAction] = PresenceAction.RemoteOrSecretOperation,
         };
 
         Assert.Equal(expected.OrderBy(p => p.Key, StringComparer.Ordinal), ApprovalRiskClassifier.KnownPresenceActions.OrderBy(p => p.Key, StringComparer.Ordinal));

@@ -62,6 +62,9 @@
                 <Border Style="{StaticResource Settings.Section}" Visibility="{Binding Language, Converter={StaticResource Settings.NotNullToVisibility}}">
                     <local:LanguageSettingsView DataContext="{Binding Language}"/>
                 </Border>
+                <Border Style="{StaticResource Settings.Section}" Visibility="{Binding RemoteSync, Converter={StaticResource Settings.NotNullToVisibility}}">
+                    <local:RemoteSyncSettingsView DataContext="{Binding RemoteSync}"/>
+                </Border>
                 <Border Style="{StaticResource Settings.Section}">
                     <local:MotionSettingsView DataContext="{Binding Motion}"/>
                 </Border>

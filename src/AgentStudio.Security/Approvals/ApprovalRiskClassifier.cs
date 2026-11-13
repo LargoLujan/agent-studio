@@ -50,6 +50,15 @@ public static class ApprovalRiskClassifier
         ["verdict.revision.accept"] = PresenceAction.AcceptReview,
         ["discard-run-work"] = PresenceAction.DiscardAgentWork,
         ["skills.recomendacion-asistida"] = PresenceAction.AuxiliaryQuotaConsent,
+
+        // Phase 10 (docs/21 D-15 and ADR-0066): everything that writes on the remote with the account of the person. The constants are
+        // those of HostingActions (Application); a test checks each one against its constant.
+        ["hosting.policy.grant"] = PresenceAction.RemoteOrSecretOperation,
+        ["hosting.publish"] = PresenceAction.RemoteOrSecretOperation,
+        ["hosting.pr.write"] = PresenceAction.RemoteOrSecretOperation,
+        ["hosting.pr.merge"] = PresenceAction.RemoteOrSecretOperation,
+        ["hosting.pr.close"] = PresenceAction.RemoteOrSecretOperation,
+        ["hosting.branch.delete"] = PresenceAction.RemoteOrSecretOperation,
     };
 
     /// <summary>The identifiers of the actions <see cref="PresenceActionOf"/> knows, with the action of the barrier of each.</summary>

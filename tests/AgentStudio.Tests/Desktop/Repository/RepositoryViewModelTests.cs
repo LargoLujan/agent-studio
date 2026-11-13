@@ -238,7 +238,7 @@ public sealed class RepositoryViewModelTests
 
         Assert.Equal("Agent Studio does not read this repository: it can launch a program of the repository. For safety, it is not read.", model.RefusalText);
         Assert.Equal("Repository and changes", model.Title);
-        Assert.Equal(["Summary", "Branches", "Saved versions", "Activity"], model.Sections.Select(s => s.Label));
+        Assert.Equal(["Summary", "Branches", "Saved versions", "Activity", "Pull requests (PR)"], model.Sections.Select(s => s.Label));
     }
 
     [Fact]

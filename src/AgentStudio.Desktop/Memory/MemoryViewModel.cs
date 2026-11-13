@@ -314,9 +314,12 @@ public sealed partial class MemoryViewModel : DocumentViewModel
     private bool _isBusy;
 
     /// <summary>Why «Exportar a Markdown» is not offered now (a run or a planning goes on); null when it is.</summary>
-    public string? ExportBlocked => RunIsActive ? Texts.Get("Memory_Export_Blocked") : null;
+    public string? ExportBlocked => RemoteOperationHolds ? Texts.Get("Memory_Export_BlockedRemote") : RunIsActive ? Texts.Get("Memory_Export_Blocked") : null;
 
     private bool RunIsActive => _project is { } project && _activity?.IsBusy(project.ProjectId) == true;
+
+    /// <summary>Whether what holds the project is only a remote operation of Agent Studio (docs/21 D-25): the writes wait a few seconds, and the texts do not talk of runs or debates.</summary>
+    private bool RemoteOperationHolds => _project is { } project && RemoteHold.Holds(_activity, project.ProjectId);
 
     /// <summary>
     /// The project open in the shell changed (null: none): it is opened, and everything is read for it once: the state of
@@ -649,7 +652,9 @@ public sealed partial class MemoryViewModel : DocumentViewModel
         }
 
         ErrorMessage = null;
-        entry.Pending = RunIsActive
+        entry.Pending = RemoteOperationHolds
+            ? Texts.Get("Memory_Decision_QueuedRemote")
+            : RunIsActive
             ? Texts.Get("Memory_Decision_Queued")
             : Texts.Get("Memory_Decision_Recording");
         RefreshEntryCommands();

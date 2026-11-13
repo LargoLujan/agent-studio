@@ -215,7 +215,34 @@ public sealed partial class RunMonitorViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(RetryBlockedCommand))]
     [NotifyCanExecuteChangedFor(nameof(CancelCommand))]
     [NotifyCanExecuteChangedFor(nameof(DeliverCommand))]
+    [NotifyCanExecuteChangedFor(nameof(PublishCommand))]
     private bool _isFinished;
+
+    /// <summary>
+    /// Phase 10 (docs/21 §7.2): the section of pull requests exists, so «Publicar y abrir PR» is offered beside «Entregar a mi rama». The shell sets it
+    /// when it composes the monitor; without the section (or a shell built by hand) the button is not there.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(PublishCommand))]
+    private bool _isPublishAvailable;
+
+    /// <summary>
+    /// The person asked to publish the finished run and open its pull request: the shell opens «Repositorio y cambios» on the section of pull requests with the
+    /// card of this run. Nothing is published by asking: the card says what would go and what covers it, and the person confirms there.
+    /// </summary>
+    public event EventHandler<RunId>? PublishRequested;
+
+    /// <summary>«Publicar y abrir PR»: asks the shell to show the card of publication of this run (it is not Phase 10's gate: the card is).</summary>
+    [RelayCommand(CanExecute = nameof(CanPublish))]
+    private void Publish()
+    {
+        if (RunId is { } run)
+        {
+            PublishRequested?.Invoke(this, run);
+        }
+    }
+
+    private bool CanPublish() => IsPublishAvailable && IsFinished && RunId is not null;
 
     /// <summary>What the delivery service found about delivering the finished run (null until it was asked).</summary>
     [ObservableProperty]

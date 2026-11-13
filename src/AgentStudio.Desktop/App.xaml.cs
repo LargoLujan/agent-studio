@@ -114,6 +114,11 @@ public partial class App : System.Windows.Application
             _unattended?.Dispose();
             if (_host is not null)
             {
+                // Phase 10: the mailbox of GitHub ends the stretch it is in (a push is not cut in half) before anything else goes; the container
+                // would only dispose it when the host does, with nothing left to wait for it. It blocks, and it comes before the first await of this
+                // method: WPF does not wait for an async void, so whatever comes after an await that does not complete at once may never run.
+                _host.Services.GetService<RemoteSyncAttachment>()?.ShutdownBlocking(HostingServices.ShutdownWait);
+
                 await _host.StopAsync(TimeSpan.FromSeconds(5));
                 _host.Dispose();
             }

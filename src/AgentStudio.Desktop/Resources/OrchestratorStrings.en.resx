@@ -3450,4 +3450,163 @@ Open the consumption analysis, if it is there, to see the detail.</value>
   <data name="Text_task_no_integration" xml:space="preserve">
     <value>{0} starts from the code of several tasks ({1}) without an integration.</value>
   </data>
+  <data name="Text_project_busy_remote" xml:space="preserve">
+    <value>Agent Studio is syncing with GitHub. Try again in a few seconds.</value>
+  </data>
+  <data name="Text_hosting_refused_log_not_verified" xml:space="preserve">
+    <value>The decision log does not verify. Nothing is done on the remote.</value>
+  </data>
+  <data name="Text_hosting_refused_verdict_not_approved" xml:space="preserve">
+    <value>The independent reviewer has not approved this run.</value>
+  </data>
+  <data name="Text_hosting_refused_no_verdict" xml:space="preserve">
+    <value>There is no valid verdict to publish.</value>
+  </data>
+  <data name="Text_hosting_refused_commit_not_judged" xml:space="preserve">
+    <value>That saved version (commit) is not the one the independent reviewer (judge) checked.</value>
+  </data>
+  <data name="Text_hosting_refused_config_refused" xml:space="preserve">
+    <value>The git configuration of the project fails the inspection. Nothing is published.</value>
+  </data>
+  <data name="Text_hosting_refused_no_provider" xml:space="preserve">
+    <value>There is no provider for this repository.</value>
+  </data>
+  <data name="Text_hosting_refused_capability_missing" xml:space="preserve">
+    <value>This version of the platform tool cannot do that operation.</value>
+  </data>
+  <data name="Text_hosting_refused_merge_method" xml:space="preserve">
+    <value>The repository does not allow that merge method.</value>
+  </data>
+  <data name="Text_hosting_refused_not_approved" xml:space="preserve">
+    <value>The operation was not approved.</value>
+  </data>
+  <data name="Text_hosting_refused_approval_mismatch" xml:space="preserve">
+    <value>The approval received is not the one for this operation.</value>
+  </data>
+  <data name="Text_hosting_refused_state_changed" xml:space="preserve">
+    <value>The state changed while you decided. Start again.</value>
+  </data>
+  <data name="Text_hosting_refused_needs_approval" xml:space="preserve">
+    <value>This operation needs your approval and none was given.</value>
+  </data>
+  <data name="Text_hosting_refused_project_busy" xml:space="preserve">
+    <value>A run is in progress. Wait for it to end.</value>
+  </data>
+  <data name="Text_hosting_refused_no_remote" xml:space="preserve">
+    <value>The project has no recognised GitHub remote.</value>
+  </data>
+  <data name="Text_hosting_refused_other_repository" xml:space="preserve">
+    <value>The remote of the project is not the repository of the operation.</value>
+  </data>
+  <data name="Text_hosting_refused_unknown_pull_request" xml:space="preserve">
+    <value>That pull request is not in the history of the project.</value>
+  </data>
+  <data name="Text_hosting_refused_branch_moved" xml:space="preserve">
+    <value>Someone changed the pull request. It no longer has the saved version (commit) that was checked.</value>
+  </data>
+  <data name="Text_hosting_failed_push" xml:space="preserve">
+    <value>The branch could not be published.</value>
+  </data>
+  <data name="Text_hosting_failed_push_rejected" xml:space="preserve">
+    <value>The remote has changes that are not here. Nothing is forced.</value>
+  </data>
+  <data name="Text_hosting_failed_credentials" xml:space="preserve">
+    <value>Your credential manager has no access to GitHub over HTTPS.</value>
+  </data>
+  <data name="Text_hosting_failed_unreachable" xml:space="preserve">
+    <value>No connection to GitHub. It stays pending to sync.</value>
+  </data>
+  <data name="Text_hosting_failed_sign_in" xml:space="preserve">
+    <value>Sign in with gh auth login.</value>
+  </data>
+  <data name="Text_hosting_failed_rate_limited" xml:space="preserve">
+    <value>GitHub asks to wait before the next request.</value>
+  </data>
+  <data name="Text_hosting_failed_redirected" xml:space="preserve">
+    <value>The repository moved. Change your remote.</value>
+  </data>
+  <data name="Text_hosting_failed_merge_blocked" xml:space="preserve">
+    <value>GitHub did not allow the merge.</value>
+  </data>
+  <data name="Text_hosting_failed_provider_refused" xml:space="preserve">
+    <value>GitHub refused the request.</value>
+  </data>
+  <data name="Text_hosting_failed_internal" xml:space="preserve">
+    <value>Something failed while syncing with GitHub.</value>
+  </data>
+  <data name="Text_hosting_expired" xml:space="preserve">
+    <value>It expired: it had been pending for more than 24 hours.</value>
+  </data>
+  <data name="Text_hosting_verdict_status_approved" xml:space="preserve">
+    <value>Independent reviewer (judge): approved</value>
+  </data>
+  <data name="Text_hosting_verdict_status_rejected" xml:space="preserve">
+    <value>Independent reviewer (judge): not approved</value>
+  </data>
+  <data name="Text_hosting_verdict_status_in_review" xml:space="preserve">
+    <value>Independent reviewer (judge): in review</value>
+  </data>
+  <data name="Text_hosting_pr_title" xml:space="preserve">
+    <value>Agent Studio · {0}</value>
+  </data>
+  <data name="Text_hosting_pr_body_run" xml:space="preserve">
+    <value>Run {0}, saved version (commit) {1}.</value>
+  </data>
+  <data name="Text_hosting_pr_body_requirement_met" xml:space="preserve">
+    <value>Requirement {0}: met.</value>
+  </data>
+  <data name="Text_hosting_pr_body_requirement_unmet" xml:space="preserve">
+    <value>Requirement {0}: not met.</value>
+  </data>
+  <data name="Text_hosting_pr_body_requirement_unverifiable" xml:space="preserve">
+    <value>Requirement {0}: could not be verified.</value>
+  </data>
+  <data name="Text_hosting_pr_body_judge" xml:space="preserve">
+    <value>Decision of the independent reviewer (judge): {0}. Checked by {1} with the model {2}.</value>
+  </data>
+  <data name="Text_hosting_pr_body_verification" xml:space="preserve">
+    <value>Tests: {0} passed, {1} failed, {2} skipped.</value>
+  </data>
+  <data name="Text_hosting_pr_body_evidence" xml:space="preserve">
+    <value>Saved proof {0}, fingerprint {1}.</value>
+  </data>
+  <data name="Text_hosting_pr_body_footer" xml:space="preserve">
+    <value>Published with Agent Studio. The verdict of the independent reviewer (judge) is not a GitHub review.</value>
+  </data>
+  <data name="Text_hosting_verdict_comment_approved" xml:space="preserve">
+    <value>Result: approved. Saved version (commit): {0}.</value>
+  </data>
+  <data name="Text_hosting_verdict_comment_rejected" xml:space="preserve">
+    <value>Result: not approved. Saved version (commit): {0}.</value>
+  </data>
+  <data name="Text_hosting_verdict_comment_in_review" xml:space="preserve">
+    <value>Result: in review. Saved version (commit): {0}.</value>
+  </data>
+  <data name="Text_hosting_verdict_comment_judge" xml:space="preserve">
+    <value>It was checked by {0} with the model {1}. The reviewer did not do the work.</value>
+  </data>
+  <data name="Text_hosting_verdict_comment_head_moved" xml:space="preserve">
+    <value>The pull request changed. It is no longer the saved version (commit) that was checked.</value>
+  </data>
+  <data name="Text_hosting_verdict_comment_footer" xml:space="preserve">
+    <value>This is not a GitHub review nor an approval by the account that publishes it.</value>
+  </data>
+  <data name="Text_hosting_refused_pr_unreadable" xml:space="preserve">
+    <value>The pull request could not be read on GitHub. Nothing is done.</value>
+  </data>
+  <data name="Text_hosting_refused_base_changed" xml:space="preserve">
+    <value>The base branch of the pull request is no longer the one you approved.</value>
+  </data>
+  <data name="Text_hosting_refused_history_unreadable" xml:space="preserve">
+    <value>The history of the project could not be read.</value>
+  </data>
+  <data name="Text_hosting_pending_annotation" xml:space="preserve">
+    <value>It will be recorded when what is running ends.</value>
+  </data>
+  <data name="Text_hosting_done_already_merged" xml:space="preserve">
+    <value>It was already merged another way.</value>
+  </data>
+  <data name="Text_hosting_done_already_closed" xml:space="preserve">
+    <value>It was already closed another way.</value>
+  </data>
 </root>

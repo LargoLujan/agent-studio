@@ -167,7 +167,40 @@ public sealed class DecisionKindCompatibilityTests
             Assert.Equal(Phase6Kinds[i], ((DecisionKind)(before + i)).ToString());
         }
 
-        Assert.Equal(before + Phase6Kinds.Length, Enum.GetValues<DecisionKind>().Length);
+        Assert.Equal(before + Phase6Kinds.Length + Phase10Kinds.Length, Enum.GetValues<DecisionKind>().Length);
+    }
+
+    /// <summary>
+    /// Phase 10 (docs/21 §5.1, Git remoto): the standing authorisations of the remote, what the app did there and what it saw there, appended after Phase 6.
+    /// Four kinds and no more: what waits to be synchronised has not happened, so it is not an entry (D-26).
+    /// </summary>
+    private static readonly string[] Phase10Kinds = ["HostingPolicyGranted", "HostingPolicyRevoked", "HostingOperationPerformed", "RemoteStateObserved"];
+
+    [Fact]
+    public void Phase_10_kinds_come_after_the_phase_6_ones_and_are_the_last()
+    {
+        var before = ExistingKinds.Length + Phase3Kinds.Length + Phase4Kinds.Length + Phase5Kinds.Length + Phase8Kinds.Length + Phase12Kinds.Length + Phase13Kinds.Length + Phase14Kinds.Length + Phase9Kinds.Length + Phase6Kinds.Length;
+        for (var i = 0; i < Phase10Kinds.Length; i++)
+        {
+            Assert.Equal(Phase10Kinds[i], ((DecisionKind)(before + i)).ToString());
+        }
+
+        Assert.Equal(Phase10Kinds[^1], Enum.GetNames<DecisionKind>()[^1]);
+    }
+
+    [Fact]
+    public void A_chain_with_the_kinds_of_phase_10_verifies_and_hashes_the_name_of_each_kind()
+    {
+        var user = new Actor(ActorKind.User, "manuel");
+        var log = new DecisionLog();
+
+        foreach (var kind in Phase10Kinds)
+        {
+            log.Append(T0, user, Enum.Parse<DecisionKind>(kind), kind, "{}");
+        }
+
+        Assert.True(DecisionLog.Load(log.Entries).Verify().IsValid);
+        Assert.Equal(Phase10Kinds.Length, log.Entries.Select(e => e.Hash).Distinct().Count());
     }
 
     [Fact]

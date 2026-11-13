@@ -1,5 +1,6 @@
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Git;
+using AgentStudio.Application.Hosting;
 using AgentStudio.Application.Projects;
 using AgentStudio.Domain.Decisions;
 using AgentStudio.Orchestration.Engine;
@@ -16,6 +17,8 @@ namespace AgentStudio.Orchestration.Work;
 /// <item><b>Result.</b> An integration or a delivery succeeded when it left a commit and no conflict; otherwise <see cref="RepositoryActivity.ErrorCode"/> is
 /// <see cref="ConflictCode"/> (it conflicted) or <see cref="FailedCode"/> (it left no commit). The cleaning of a worktree is always a success; its task is
 /// not in the entry, so a filter by task leaves it out.</item>
+/// <item><b>The remote</b> (Phase 10, docs/21 D-28): the operations the app did on the remote (<see cref="RepositoryActivityKind.RemoteOperation"/>) and the observations it
+/// recorded (<see cref="RepositoryActivityKind.RemoteObservation"/>) are in the timeline too. Their entries belong to no run, so the run is the one in their field.</item>
 /// <item><b>Filters</b> are dimensions the log already has: the run and the task of the entry; the milestone (its runs and their follow-ups); the agent, provider
 /// and model, by the attempts of the task (or, for what has no task such as a delivery, of any task of the run); and the time of the entry.</item>
 /// </list>
@@ -43,6 +46,17 @@ public sealed class RepositoryActivityReader(AgentStudio.Application.Decisions.I
         var activities = new List<RepositoryActivity>();
         foreach (var (entry, parsedPayload) in parsed)
         {
+            // The entries of the remote belong to no run (the run goes in a field), so they come before the filter on the run of the payload (docs/21 D-28).
+            if (entry.Kind is DecisionKind.HostingOperationPerformed or DecisionKind.RemoteStateObserved)
+            {
+                if (Remote(entry, parsedPayload) is { } remote && Matches(remote, filter, milestoneRuns, launches))
+                {
+                    activities.Add(remote);
+                }
+
+                continue;
+            }
+
             if (parsedPayload is not { } payload || string.IsNullOrEmpty(payload.RunId))
             {
                 continue;
@@ -61,6 +75,52 @@ public sealed class RepositoryActivityReader(AgentStudio.Application.Decisions.I
         }
 
         return activities;
+    }
+
+    /// <summary>
+    /// What the app did on the remote or saw there, validated as the log is read as data; an entry that does not validate is left out (the reader does not fail for it).
+    /// An operation succeeded when the platform answered <c>Ok</c> or <c>NotModified</c>; otherwise its code is the failure code it recorded or, without one, that of its
+    /// outcome. An observation always succeeded: it says what was seen, at the commit of the merge or, without one, at the head.
+    /// </summary>
+    private static RepositoryActivity? Remote(DecisionEntry entry, DecisionPayload? payload)
+    {
+        try
+        {
+            switch (payload)
+            {
+                case HostingOperationPerformedPayload operation:
+                    operation.EnsureValid();
+                    var succeeded = operation.Outcome is HostingOutcome.Ok or HostingOutcome.NotModified;
+                    return new RepositoryActivity(entry.RecordedAt, RepositoryActivityKind.RemoteOperation, operation.Run, null, operation.Commit, succeeded, succeeded ? null : operation.FailureCode ?? OutcomeCode(operation.Outcome), entry.Sequence, operation.Operation, operation.Outcome, null, operation.PullRequest);
+                case RemoteStateObservedPayload observed:
+                    observed.EnsureValid();
+                    var snapshot = observed.ToSnapshot();
+                    return new RepositoryActivity(entry.RecordedAt, RepositoryActivityKind.RemoteObservation, observed.Run, null, snapshot.MergeCommit ?? snapshot.HeadCommit, true, null, entry.Sequence, null, null, [.. observed.Changes], observed.PullRequest);
+                default:
+                    return null;
+            }
+        }
+        catch (Exception ex) when (RemoteLogReading.IsInvalidData(ex))
+        {
+            return null;
+        }
+    }
+
+    /// <summary>The stable code of an outcome that is not a success: <c>hosting.outcome.sign-in-needed</c>, <c>hosting.outcome.rate-limited</c>…</summary>
+    private static string OutcomeCode(HostingOutcome outcome)
+    {
+        var name = new System.Text.StringBuilder("hosting.outcome.");
+        foreach (var (c, index) in outcome.ToString().Select((c, index) => (c, index)))
+        {
+            if (char.IsUpper(c) && index > 0)
+            {
+                name.Append('-');
+            }
+
+            name.Append(char.ToLowerInvariant(c));
+        }
+
+        return name.ToString();
     }
 
     private static RepositoryActivity Integration(DecisionEntry entry, IntegrationPerformedPayload integration)

@@ -35,6 +35,10 @@ public static partial class ToolOutputParsers
     [GeneratedRegex(@"^git version (?<version>\d{1,9}(?:\.\d{1,9}){0,2})(?![0-9])", RegexOptions.CultureInvariant)]
     private static partial Regex GitVersion();
 
+    // «gh version 2.96.0 (2026-07-02)»: the first line of gh --version (Phase 10, docs/21 D-31); the date and the URL of the second line are not read.
+    [GeneratedRegex(@"^gh version (?<version>\d{1,9}(?:\.\d{1,9}){0,2})(?:-(?<suffix>[0-9A-Za-z][0-9A-Za-z.-]{0,40}))?(?:\s+\(\d{4}-\d{2}-\d{2}\))?\s*$", RegexOptions.CultureInvariant)]
+    private static partial Regex GhVersion();
+
     // «Python 3.13.0rc1», «Python 3.14.0a1» and «Python 3.12.3+» are real answers of a pre-release or a build from a repository: the suffix is read as a pre-release label (or dropped for «+»).
     [GeneratedRegex(@"^Python (?<version>\d{1,9}(?:\.\d{1,9}){0,3})(?<suffix>[A-Za-z]+[0-9]*|\+)?\s*$", RegexOptions.CultureInvariant)]
     private static partial Regex PythonVersion();
@@ -99,6 +103,7 @@ public static partial class ToolOutputParsers
         {
             DoctorTool.NodeVersion or DoctorTool.NpmVersion => PlainVersion().Match(first),
             DoctorTool.GitVersion => GitVersion().Match(first),
+            DoctorTool.GhVersion => GhVersion().Match(first),
             DoctorTool.PythonVersion or DoctorTool.PyVersion => PythonVersion().Match(first),
             _ => Match.Empty,
         };

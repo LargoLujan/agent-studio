@@ -1,0 +1,9 @@
+HTTP/2.0 200 OK
+Content-Type: application/json; charset=utf-8
+X-Github-Api-Version-Selected: 2022-11-28
+X-Ratelimit-Limit: 5000
+X-Ratelimit-Remaining: 4990
+X-Ratelimit-Reset: 1794571200
+Etag: W/"p1"
+
+{"number":7,"state":"open","draft":false,"merged":false,"title":"Agent Studio · hito 1","mergeable_state":"clean","merge_commit_sha":"3333333333333333333333333333333333333333","updated_at":"2026-11-13T10:00:00Z","head":{"ref":"agentstudio/run-run1","sha":"1111111111111111111111111111111111111111","repo":{"full_name":"octo/hello"}},"base":{"ref":"main","sha":"2222222222222222222222222222222222222222"},"merged_by":null}

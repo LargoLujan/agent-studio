@@ -1,0 +1,8 @@
+HTTP/2.0 200 OK
+Content-Type: application/json; charset=utf-8
+X-Github-Api-Version-Selected: 2022-11-28
+X-Ratelimit-Limit: 5000
+X-Ratelimit-Remaining: 4990
+X-Ratelimit-Reset: 1794571200
+
+{"name":"main","commit":{"sha":"1111111111111111111111111111111111111111"},"protected":true,"protection":{"enabled":true,"required_status_checks":{"enforcement_level":"everyone","contexts":["build"],"checks":[{"context":"build","app_id":null}]}}}

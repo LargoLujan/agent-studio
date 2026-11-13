@@ -29,7 +29,8 @@ public sealed partial class BackgroundStringsTests
     public void Every_name_an_enumeration_gives_to_the_tray_and_its_panel_exists_in_both_languages()
     {
         var keys = new List<string>();
-        keys.AddRange(Enum.GetNames<ProjectActivityKind>().Select(n => "Background_Work_Activity_" + n));
+        // A remote operation of Agent Studio itself (docs/21 D-25) is not shown as work in the tray: ProjectActivityWork ignores it.
+        keys.AddRange(Enum.GetNames<ProjectActivityKind>().Where(n => n != nameof(ProjectActivityKind.RemoteOperation)).Select(n => "Background_Work_Activity_" + n));
         foreach (var status in Enum.GetNames<WorkTaskStatus>())
         {
             keys.Add($"Background_Panel_TaskCount_{status}_One");

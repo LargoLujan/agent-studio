@@ -173,6 +173,8 @@ public sealed partial class JournalTrustViewModel : ObservableObject
 
     private bool RunIsActive => _project is { } project && _activity?.IsBusy(project.ProjectId) == true;
 
+    private bool RemoteOperationHolds => _project is { } project && RemoteHold.Holds(_activity, project.ProjectId);
+
     /// <summary>The project changed (null: none), or the memory was read again: reads the trust and the days.</summary>
     public async Task RefreshAsync(ProjectContext? project)
     {
@@ -235,7 +237,9 @@ public sealed partial class JournalTrustViewModel : ObservableObject
         }
 
         ErrorMessage = null;
-        Pending = RunIsActive
+        Pending = RemoteOperationHolds
+            ? Texts.Get("Memory_Decision_QueuedRemote")
+            : RunIsActive
             ? Texts.Get("Memory_Decision_Queued")
             : Texts.Get("Memory_Decision_Recording");
         try

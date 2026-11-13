@@ -66,6 +66,9 @@ internal static class ObservabilityUiServices
                 provider.GetRequiredService<ObservabilitySettingsViewModel>()))
             .AddSingleton(provider => new LanguageSettingsViewModel(provider.GetRequiredService<IAppSettingsStore>()))
             .AddSingleton(provider => new MemorySettingsViewModel(provider.GetRequiredService<IAppSettingsStore>()))
+
+            // Phase 10 (docs/21 §7.5): «Git remoto» is composed with the permission of HostingServices, so the section follows the switch of each project.
+            .AddSingleton(provider => new RemoteSyncSettingsViewModel(provider.GetRequiredService<IAppSettingsStore>(), provider.GetService<AppSettingsRemoteSyncPermission>()))
             .AddSingleton(provider => new SettingsDocumentViewModel(
                 provider.GetRequiredService<IAppSettingsStore>(),
                 provider.GetRequiredService<ObservabilitySettingsViewModel>(),
@@ -73,7 +76,8 @@ internal static class ObservabilityUiServices
                 provider.GetService<LockSettingsViewModel>(),
                 Time(provider),
                 provider.GetRequiredService<MemorySettingsViewModel>(),
-                provider.GetRequiredService<LanguageSettingsViewModel>()))
+                provider.GetRequiredService<LanguageSettingsViewModel>(),
+                provider.GetService<RemoteSyncSettingsViewModel>()))
             .AddSingleton(provider => new DailySummaryViewModel(provider.GetService<IDailySummaryService>(), Time(provider)))
             .AddSingleton(provider => new SemanticIndexUpkeep(
                 provider.GetService<ISemanticIndex>(),

@@ -135,6 +135,20 @@ public sealed class LockScreenViewModelTests
         Assert.Equal(expected, LockScreenViewModel.Running(kinds));
 
     [Fact]
+    public void A_remote_operation_of_agent_studio_is_not_listed_and_the_screen_says_nothing_goes_on()
+    {
+        var activity = new AgentStudio.Orchestration.Engine.OrchestrationActivity();
+        using var remote = activity.TryEnter("p1", ProjectActivityKind.RemoteOperation);
+        var work = new ProjectsWorkInProgress(activity, () => ["p1"]);
+
+        Assert.Empty(work.Current());
+        Assert.Equal(LockScreenViewModel.Running([]), LockScreenViewModel.Running(work.Current()));
+
+        using var other = activity.TryEnter("p2", ProjectActivityKind.Audit);
+        Assert.Equal([ProjectActivityKind.Audit], new ProjectsWorkInProgress(activity, () => ["p1", "p2"]).Current());
+    }
+
+    [Fact]
     public async Task Several_questions_waiting_are_listed_oldest_first()
     {
         var harness = new Harness();

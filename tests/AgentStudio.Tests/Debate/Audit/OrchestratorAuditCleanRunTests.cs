@@ -14,6 +14,9 @@ using AgentStudio.Tests.Debate.Audit.Fixtures;
 using AgentStudio.Tests.Orchestration.Fakes;
 using static AgentStudio.Tests.Orchestration.Fakes.OrchestrationFixtures;
 
+// Orchestration shares its internals with the tests (Phase 10): here RunLog is the one of the judge.
+using RunLog = AgentStudio.Debate.Judging.RunLog;
+
 namespace AgentStudio.Tests.Debate.Audit;
 
 /// <summary>

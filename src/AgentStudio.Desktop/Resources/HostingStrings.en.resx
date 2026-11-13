@@ -1,0 +1,969 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of the Hosting area in English: the same keys and placeholders as HostingStrings.resx. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Hosting_Publish_Button" xml:space="preserve">
+    <value>Publish and open the pull request</value>
+  </data>
+  <data name="Hosting_Publish_Button_What" xml:space="preserve">
+    <value>Uploads the branch of this run to GitHub and opens a pull request (PR). Your branch does not change.</value>
+  </data>
+  <data name="Hosting_Publish_Uploads" xml:space="preserve">
+    <value>{0} saved versions (commit) will be published: {1} from Agent Studio and {2} yours.</value>
+  </data>
+  <data name="Hosting_Publish_Uploads_What" xml:space="preserve">
+    <value>The branch of the run starts from yours. Whatever you had not published yet goes up with it.</value>
+  </data>
+  <data name="Hosting_Publish_NotReady" xml:space="preserve">
+    <value>This run cannot be published yet. Reason: {0}</value>
+  </data>
+  <data name="Hosting_Publish_NotReady_What" xml:space="preserve">
+    <value>Only work approved by an independent reviewer (judge) is published, just as when it is moved to your branch.</value>
+  </data>
+  <data name="Hosting_Publish_Busy" xml:space="preserve">
+    <value>The project is busy. You can publish when what is going on ends.</value>
+  </data>
+  <data name="Hosting_Publish_Busy_What" xml:space="preserve">
+    <value>A run, a debate or an audit is using the project. Agent Studio does not touch your repository until it ends.</value>
+  </data>
+  <data name="Hosting_Verdict_NotApproval" xml:space="preserve">
+    <value>The result of the review is published as a status and a comment. It is not an approval from you.</value>
+  </data>
+  <data name="Hosting_Verdict_NotApproval_What" xml:space="preserve">
+    <value>Agent Studio never approves a pull request with your account. Approving stays a task for a person.</value>
+  </data>
+  <data name="Hosting_Head_Moved" xml:space="preserve">
+    <value>The pull request changed after the review.</value>
+  </data>
+  <data name="Hosting_Head_Moved_What" xml:space="preserve">
+    <value>Someone uploaded changes that the independent reviewer did not see. If they are merged, this work will not count as integrated.</value>
+  </data>
+  <data name="Hosting_Merge_Hello" xml:space="preserve">
+    <value>Merging changes the branch {0} on GitHub. Windows Hello is asked every time.</value>
+  </data>
+  <data name="Hosting_Merge_Hello_What" xml:space="preserve">
+    <value>Merging and deleting on GitHub do not accept a saved permission.</value>
+  </data>
+  <data name="Hosting_Rules_Unreadable" xml:space="preserve">
+    <value>The protections of {0} could not be read. GitHub will apply them anyway.</value>
+  </data>
+  <data name="Hosting_Rules_Unreadable_What" xml:space="preserve">
+    <value>Your account has no permission to see them, or GitHub does not show them.</value>
+  </data>
+  <data name="Hosting_Pending_Offline" xml:space="preserve">
+    <value>Waiting to sync: there is no connection. It will be tried again at {0}.</value>
+  </data>
+  <data name="Hosting_Pending_Offline_What" xml:space="preserve">
+    <value>Nothing is taken as done until GitHub confirms it.</value>
+  </data>
+  <data name="Hosting_SignIn" xml:space="preserve">
+    <value>There is no GitHub session. Open a terminal and type: gh auth login</value>
+  </data>
+  <data name="Hosting_SignIn_What" xml:space="preserve">
+    <value>Agent Studio uses the session of the gh program. It never sees or stores your access key.</value>
+  </data>
+  <data name="Hosting_Credentials" xml:space="preserve">
+    <value>Git could not sign in to GitHub. Check your credential manager.</value>
+  </data>
+  <data name="Hosting_Credentials_What" xml:space="preserve">
+    <value>Git does the upload with your credential manager. Agent Studio does not see the key.</value>
+  </data>
+  <data name="Hosting_RateLimited" xml:space="preserve">
+    <value>GitHub asks to wait until {0}.</value>
+  </data>
+  <data name="Hosting_RateLimited_What" xml:space="preserve">
+    <value>This is the usage limit of GitHub for your account. Agent Studio does not insist.</value>
+  </data>
+  <data name="Hosting_Config_Refused" xml:space="preserve">
+    <value>It cannot be published: the repository defines {0} in {1}. Remove that line or publish with your own git program.</value>
+  </data>
+  <data name="Hosting_Config_Refused_What" xml:space="preserve">
+    <value>Your repository does not choose where the work goes. It does not choose how you sign in either.</value>
+  </data>
+  <data name="Hosting_Lfs_Refused" xml:space="preserve">
+    <value>This project uses Git LFS and Agent Studio does not upload those files. Publish the branch with your own git program.</value>
+  </data>
+  <data name="Hosting_Lfs_Refused_What" xml:space="preserve">
+    <value>Uploading them needs a program of the repository to run during the upload.</value>
+  </data>
+  <data name="Hosting_Sync_Permission" xml:space="preserve">
+    <value>Sync with GitHub</value>
+  </data>
+  <data name="Hosting_Sync_Permission_What" xml:space="preserve">
+    <value>Every few minutes it asks GitHub about your pull requests. The name of the repository and their numbers go out; nothing else of the project.</value>
+  </data>
+  <data name="Hosting_Deployed" xml:space="preserve">
+    <value>Deployed</value>
+  </data>
+  <data name="Hosting_Deployed_What" xml:space="preserve">
+    <value>GitHub says so. Agent Studio deploys nothing.</value>
+  </data>
+  <data name="Hosting_Revert_Suspected" xml:space="preserve">
+    <value>Possible revert, from the message of a saved version</value>
+  </data>
+  <data name="Hosting_Revert_Suspected_What" xml:space="preserve">
+    <value>This is a deduction. If it is true, you can reopen the milestone.</value>
+  </data>
+  <!-- WP5: the section «Pull requests (PR)», its cards, «Branches», «Activity» and «Work». -->
+  <data name="Hosting_Section_PullRequests" xml:space="preserve">
+    <value>Pull requests (PR)</value>
+  </data>
+  <data name="Hosting_Header_Repository" xml:space="preserve">
+    <value>GitHub · {0}</value>
+  </data>
+  <data name="Hosting_Header_SessionOk" xml:space="preserve">
+    <value>GitHub session open, last seen on {0}.</value>
+  </data>
+  <data name="Hosting_Header_SessionUnchecked" xml:space="preserve">
+    <value>The GitHub session has not been checked yet.</value>
+  </data>
+  <data name="Hosting_Header_LastSync" xml:space="preserve">
+    <value>Last good sync: {0}.</value>
+  </data>
+  <data name="Hosting_Header_NeverSynced" xml:space="preserve">
+    <value>There has been no good sync yet.</value>
+  </data>
+  <data name="Hosting_Header_SyncOn" xml:space="preserve">
+    <value>Sync with GitHub: on for this project. You change it in Settings.</value>
+  </data>
+  <data name="Hosting_Header_SyncOff" xml:space="preserve">
+    <value>Sync with GitHub: off for this project. You change it in Settings.</value>
+  </data>
+  <data name="Hosting_Header_SyncNow" xml:space="preserve">
+    <value>Sync now</value>
+  </data>
+  <data name="Hosting_Header_Check" xml:space="preserve">
+    <value>Check the connection</value>
+  </data>
+  <data name="Hosting_Connection_Ok" xml:space="preserve">
+    <value>Connected to GitHub as {0}.</value>
+  </data>
+  <data name="Hosting_Sync_Asked" xml:space="preserve">
+    <value>Sync requested. It will show here in a few seconds.</value>
+  </data>
+  <data name="Hosting_Unfollowed" xml:space="preserve">
+    <value>You no longer follow this pull request.</value>
+  </data>
+  <data name="Hosting_Pr_NoProject" xml:space="preserve">
+    <value>Open a project to see its pull requests (PR).</value>
+  </data>
+  <data name="Hosting_Pr_Unavailable" xml:space="preserve">
+    <value>Pull requests (PR) are not available in this window.</value>
+  </data>
+  <data name="Hosting_Pr_NoRemote" xml:space="preserve">
+    <value>This project has no GitHub remote that Agent Studio recognises. Add a remote called origin with a github.com address.</value>
+  </data>
+  <data name="Hosting_Pr_NoGh" xml:space="preserve">
+    <value>The GitHub program gh is not installed. Install it with: winget install --id GitHub.cli --exact</value>
+  </data>
+  <data name="Hosting_Pr_None" xml:space="preserve">
+    <value>You do not follow any pull request of this project yet.</value>
+  </data>
+  <data name="Hosting_Pr_Unreadable" xml:space="preserve">
+    <value>GitHub or the history could not be read. Press Refresh to try again.</value>
+  </data>
+  <data name="Hosting_Pr_Number" xml:space="preserve">
+    <value>#{0}</value>
+  </data>
+  <data name="Hosting_Pending_Title" xml:space="preserve">
+    <value>Waiting to sync</value>
+  </data>
+  <data name="Hosting_Pending_OfflineNoTime" xml:space="preserve">
+    <value>Waiting to sync: there is no connection. It will try again soon.</value>
+  </data>
+  <data name="Hosting_Pending_Busy" xml:space="preserve">
+    <value>Waiting to sync: the project is busy.</value>
+  </data>
+  <data name="Hosting_RateLimitedNoTime" xml:space="preserve">
+    <value>GitHub asks to wait a while.</value>
+  </data>
+  <data name="Hosting_Work_Queued" xml:space="preserve">
+    <value>Queued.</value>
+  </data>
+  <data name="Hosting_Work_WaitingForProject" xml:space="preserve">
+    <value>Waiting for the project to be free.</value>
+  </data>
+  <data name="Hosting_Work_Running" xml:space="preserve">
+    <value>Running.</value>
+  </data>
+  <data name="Hosting_Work_PendingSync" xml:space="preserve">
+    <value>Waiting to sync.</value>
+  </data>
+  <data name="Hosting_Work_Done" xml:space="preserve">
+    <value>Done.</value>
+  </data>
+  <data name="Hosting_Work_Failed" xml:space="preserve">
+    <value>It could not be done.</value>
+  </data>
+  <data name="Hosting_Work_Cancelled" xml:space="preserve">
+    <value>Cancelled.</value>
+  </data>
+  <data name="Hosting_Work_Expired" xml:space="preserve">
+    <value>Expired without being done.</value>
+  </data>
+  <data name="Hosting_Runs_Title" xml:space="preserve">
+    <value>Runs not published</value>
+  </data>
+  <data name="Hosting_Publish_Open" xml:space="preserve">
+    <value>Publish and open PR…</value>
+  </data>
+  <data name="Hosting_List_Name" xml:space="preserve">
+    <value>Pull requests you follow</value>
+  </data>
+  <data name="Hosting_State_Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Hosting_State_Draft" xml:space="preserve">
+    <value>Draft</value>
+  </data>
+  <data name="Hosting_State_Closed" xml:space="preserve">
+    <value>Closed without merging</value>
+  </data>
+  <data name="Hosting_State_Merged" xml:space="preserve">
+    <value>Merged</value>
+  </data>
+  <data name="Hosting_State_MergedDeduced" xml:space="preserve">
+    <value>{0} (deduced)</value>
+  </data>
+  <data name="Hosting_State_NotObserved" xml:space="preserve">
+    <value>Not observed yet</value>
+  </data>
+  <data name="Hosting_Verdict_Approved" xml:space="preserve">
+    <value>Verdict: approved</value>
+  </data>
+  <data name="Hosting_Verdict_Rejected" xml:space="preserve">
+    <value>Verdict: rejected</value>
+  </data>
+  <data name="Hosting_Verdict_InReview" xml:space="preserve">
+    <value>Verdict: in review</value>
+  </data>
+  <data name="Hosting_Verdict_None" xml:space="preserve">
+    <value>No verdict</value>
+  </data>
+  <data name="Hosting_Judged_Same" xml:space="preserve">
+    <value>The head is the saved version (commit) the reviewer judged.</value>
+  </data>
+  <data name="Hosting_Judged_Unknown" xml:space="preserve">
+    <value>It is not known which version the reviewer saw.</value>
+  </data>
+  <data name="Hosting_Origin_Run" xml:space="preserve">
+    <value>Run {0}</value>
+  </data>
+  <data name="Hosting_Checks" xml:space="preserve">
+    <value>{0} pass · {1} fail · {2} waiting</value>
+  </data>
+  <data name="Hosting_Checks_None" xml:space="preserve">
+    <value>No checks</value>
+  </data>
+  <data name="Hosting_Truncated" xml:space="preserve">
+    <value>(incomplete list)</value>
+  </data>
+  <data name="Hosting_Reviews_Approved" xml:space="preserve">
+    <value>Approvals: {0}</value>
+  </data>
+  <data name="Hosting_Reviews_Changes" xml:space="preserve">
+    <value>Changes requested</value>
+  </data>
+  <data name="Hosting_Reviews_None" xml:space="preserve">
+    <value>No reviews</value>
+  </data>
+  <data name="Hosting_Deployment_Pending" xml:space="preserve">
+    <value>Deployment pending</value>
+  </data>
+  <data name="Hosting_Deployment_Succeeded" xml:space="preserve">
+    <value>Deployment succeeded, but of another version</value>
+  </data>
+  <data name="Hosting_Deployment_Failed" xml:space="preserve">
+    <value>The deployment failed</value>
+  </data>
+  <data name="Hosting_Deployment_Inactive" xml:space="preserve">
+    <value>Deployment inactive</value>
+  </data>
+  <data name="Hosting_Deployment_Unknown" xml:space="preserve">
+    <value>Deployment in an unknown state</value>
+  </data>
+  <data name="Hosting_Sync_Never" xml:space="preserve">
+    <value>Not observed yet</value>
+  </data>
+  <data name="Hosting_Detail_Heading" xml:space="preserve">
+    <value>Pull request #{0}</value>
+  </data>
+  <data name="Hosting_Detail_Base" xml:space="preserve">
+    <value>Base branch: {0}</value>
+  </data>
+  <data name="Hosting_Detail_FailingChecks" xml:space="preserve">
+    <value>Failing checks</value>
+  </data>
+  <data name="Hosting_Detail_Originals" xml:space="preserve">
+    <value>{0} original saved versions (commit): {1}</value>
+  </data>
+  <data name="Hosting_Detail_OriginalsTruncated" xml:space="preserve">
+    <value>{0} original saved versions (commit) or more: {1}</value>
+  </data>
+  <data name="Hosting_Detail_Results" xml:space="preserve">
+    <value>{0} saved versions (commit) after the merge: {1}</value>
+  </data>
+  <data name="Hosting_Facts_Unreadable" xml:space="preserve">
+    <value>The settings of the repository could not be read. {0}</value>
+  </data>
+  <data name="Hosting_Facts_NotDeclared" xml:space="preserve">
+    <value>This version of gh does not read the settings of the repository. So merging is not offered.</value>
+  </data>
+  <data name="Hosting_Rules_None" xml:space="preserve">
+    <value>The branch {0} has no protections.</value>
+  </data>
+  <data name="Hosting_Rules_NotDeclared" xml:space="preserve">
+    <value>This version of gh does not read the protections of {0}.</value>
+  </data>
+  <data name="Hosting_Rule_Protected" xml:space="preserve">
+    <value>The branch is protected.</value>
+  </data>
+  <data name="Hosting_Rule_RequiredReviews" xml:space="preserve">
+    <value>It asks for reviews before merging.</value>
+  </data>
+  <data name="Hosting_Rule_RequiredReviews_Count" xml:space="preserve">
+    <value>Reviews it asks for before merging: {0}.</value>
+  </data>
+  <data name="Hosting_Rule_RequiredChecks" xml:space="preserve">
+    <value>It asks for some checks to pass.</value>
+  </data>
+  <data name="Hosting_Rule_RequiredChecks_Count" xml:space="preserve">
+    <value>Checks that must pass: {0}.</value>
+  </data>
+  <data name="Hosting_Rule_SignedCommits" xml:space="preserve">
+    <value>It asks for signed saved versions (commit).</value>
+  </data>
+  <data name="Hosting_Rule_LinearHistory" xml:space="preserve">
+    <value>It asks for a linear history.</value>
+  </data>
+  <data name="Hosting_Rule_MergeQueue" xml:space="preserve">
+    <value>It uses a merge queue.</value>
+  </data>
+  <data name="Hosting_Rule_Unknown" xml:space="preserve">
+    <value>It has another rule that Agent Studio does not recognise.</value>
+  </data>
+  <data name="Hosting_Action_Browser" xml:space="preserve">
+    <value>Open in the browser</value>
+  </data>
+  <data name="Hosting_Action_Chain" xml:space="preserve">
+    <value>See its chain</value>
+  </data>
+  <data name="Hosting_Action_Close" xml:space="preserve">
+    <value>Close without merging…</value>
+  </data>
+  <data name="Hosting_Action_DeleteBranch" xml:space="preserve">
+    <value>Delete the remote branch…</value>
+  </data>
+  <data name="Hosting_Action_Merge" xml:space="preserve">
+    <value>Merge…</value>
+  </data>
+  <data name="Hosting_Action_Reviewers" xml:space="preserve">
+    <value>Ask for a review…</value>
+  </data>
+  <data name="Hosting_Action_Unfollow" xml:space="preserve">
+    <value>Stop following</value>
+  </data>
+  <data name="Hosting_Action_Verdict" xml:space="preserve">
+    <value>Publish the verdict</value>
+  </data>
+  <data name="Hosting_Browser_Failed" xml:space="preserve">
+    <value>The browser could not be opened.</value>
+  </data>
+  <data name="Hosting_Card_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Hosting_Card_Sent" xml:space="preserve">
+    <value>Request sent. The result will show in the list and in the activity.</value>
+  </data>
+  <data name="Hosting_Card_Failed" xml:space="preserve">
+    <value>It could not be done. Try again in a moment.</value>
+  </data>
+  <data name="Hosting_Merge_Heading" xml:space="preserve">
+    <value>Merge pull request #{0}</value>
+  </data>
+  <data name="Hosting_Merge_Confirm" xml:space="preserve">
+    <value>Merge</value>
+  </data>
+  <data name="Hosting_Merge_Into" xml:space="preserve">
+    <value>It merges into the branch {0}.</value>
+  </data>
+  <data name="Hosting_Merge_Commit" xml:space="preserve">
+    <value>It merges the saved version (commit) {0}, the one the reviewer judged.</value>
+  </data>
+  <data name="Hosting_Merge_Method" xml:space="preserve">
+    <value>How to merge</value>
+  </data>
+  <data name="Hosting_Method_MergeCommit" xml:space="preserve">
+    <value>With a merge version</value>
+  </data>
+  <data name="Hosting_Method_Squash" xml:space="preserve">
+    <value>Squash: everything in one version</value>
+  </data>
+  <data name="Hosting_Method_Rebase" xml:space="preserve">
+    <value>Rebase: one version after another</value>
+  </data>
+  <data name="Hosting_Close_Heading" xml:space="preserve">
+    <value>Close pull request #{0}</value>
+  </data>
+  <data name="Hosting_Close_Confirm" xml:space="preserve">
+    <value>Close without merging</value>
+  </data>
+  <data name="Hosting_Close_Explain" xml:space="preserve">
+    <value>The pull request closes and its work does not enter the base branch.</value>
+  </data>
+  <data name="Hosting_Close_Hello" xml:space="preserve">
+    <value>Closing is confirmed with Windows Hello every time. The branch {0} does not change.</value>
+  </data>
+  <data name="Hosting_Delete_Heading" xml:space="preserve">
+    <value>Delete the remote branch of #{0}</value>
+  </data>
+  <data name="Hosting_Delete_Confirm" xml:space="preserve">
+    <value>Delete the remote branch</value>
+  </data>
+  <data name="Hosting_Delete_Explain" xml:space="preserve">
+    <value>The branch {0} is deleted from GitHub. Your local branch does not change.</value>
+  </data>
+  <data name="Hosting_Delete_Hello" xml:space="preserve">
+    <value>Deleting is confirmed with Windows Hello every time.</value>
+  </data>
+  <data name="Hosting_Reviewers_Heading" xml:space="preserve">
+    <value>Ask for a review of #{0}</value>
+  </data>
+  <data name="Hosting_Reviewers_Confirm" xml:space="preserve">
+    <value>Ask for a review</value>
+  </data>
+  <data name="Hosting_Reviewers_Explain" xml:space="preserve">
+    <value>GitHub notifies each person by name. Type their accounts.</value>
+  </data>
+  <data name="Hosting_Reviewers_Hello" xml:space="preserve">
+    <value>Asking for a review notifies people, so it is confirmed with Windows Hello every time.</value>
+  </data>
+  <data name="Hosting_Reviewers_Logins" xml:space="preserve">
+    <value>GitHub accounts</value>
+  </data>
+  <data name="Hosting_Verdict_Heading" xml:space="preserve">
+    <value>Publish the verdict on #{0}</value>
+  </data>
+  <data name="Hosting_Verdict_Confirm" xml:space="preserve">
+    <value>Publish the verdict</value>
+  </data>
+  <data name="Hosting_Verdict_OnlyComment" xml:space="preserve">
+    <value>This version of gh does not publish statuses. The verdict will show only as a comment.</value>
+  </data>
+  <data name="Hosting_Publish_Confirm" xml:space="preserve">
+    <value>Publish and open</value>
+  </data>
+  <data name="Hosting_Publish_Target" xml:space="preserve">
+    <value>It goes to {0}, branch {1}, towards {2}.</value>
+  </data>
+  <data name="Hosting_Publish_Commit" xml:space="preserve">
+    <value>The saved version (commit) {0} is published.</value>
+  </data>
+  <data name="Hosting_Publish_UploadsUnknown" xml:space="preserve">
+    <value>{0} saved versions (commit) from Agent Studio will be published. Your own unpublished ones could not be counted.</value>
+  </data>
+  <data name="Hosting_Publish_Existing" xml:space="preserve">
+    <value>There is already a pull request #{0} for this branch.</value>
+  </data>
+  <data name="Hosting_Publish_NoOpen" xml:space="preserve">
+    <value>This version of gh does not open pull requests.</value>
+  </data>
+  <data name="Hosting_Publish_TitleLabel" xml:space="preserve">
+    <value>Title</value>
+  </data>
+  <data name="Hosting_Publish_BodyLabel" xml:space="preserve">
+    <value>Text</value>
+  </data>
+  <data name="Hosting_Publish_Draft" xml:space="preserve">
+    <value>Open as a draft</value>
+  </data>
+  <data name="Hosting_Publish_CoverGrant" xml:space="preserve">
+    <value>With your permission of {0}</value>
+  </data>
+  <data name="Hosting_Publish_CoverHello" xml:space="preserve">
+    <value>It will ask you to confirm with Windows Hello</value>
+  </data>
+  <data name="Hosting_Cli_Untested" xml:space="preserve">
+    <value>This version of gh is not the one that was tested. Something may fail.</value>
+  </data>
+  <data name="Hosting_Permissions_Title" xml:space="preserve">
+    <value>Publishing permissions</value>
+  </data>
+  <data name="Hosting_Permissions_Explain" xml:space="preserve">
+    <value>A saved permission skips Windows Hello when publishing the branch and writing to the pull request. Merging and deleting always ask.</value>
+  </data>
+  <data name="Hosting_Permissions_Class" xml:space="preserve">
+    <value>What it covers</value>
+  </data>
+  <data name="Hosting_Permissions_Base" xml:space="preserve">
+    <value>Base branch (empty: any)</value>
+  </data>
+  <data name="Hosting_Permissions_Give" xml:space="preserve">
+    <value>Give permission…</value>
+  </data>
+  <data name="Hosting_Permissions_Revoke" xml:space="preserve">
+    <value>Withdraw</value>
+  </data>
+  <data name="Hosting_Permissions_Given" xml:space="preserve">
+    <value>Permission saved.</value>
+  </data>
+  <data name="Hosting_Permissions_NotGiven" xml:space="preserve">
+    <value>The permission was not saved.</value>
+  </data>
+  <data name="Hosting_Permissions_Revoked" xml:space="preserve">
+    <value>Permission withdrawn. Next time it will ask to confirm.</value>
+  </data>
+  <data name="Hosting_Permissions_Unreadable" xml:space="preserve">
+    <value>The saved permissions could not be read.</value>
+  </data>
+  <data name="Hosting_Permissions_Where" xml:space="preserve">
+    <value>{0}</value>
+  </data>
+  <data name="Hosting_Permissions_WhereBase" xml:space="preserve">
+    <value>{0}, towards {1}</value>
+  </data>
+  <data name="Hosting_Permissions_Who" xml:space="preserve">
+    <value>Given by {0}</value>
+  </data>
+  <data name="Hosting_Class_PublishRunBranch" xml:space="preserve">
+    <value>Publish the branch of a run</value>
+  </data>
+  <data name="Hosting_Class_PullRequestWrite" xml:space="preserve">
+    <value>Write to the pull request</value>
+  </data>
+  <data name="Hosting_Class_MergePullRequest" xml:space="preserve">
+    <value>Merge</value>
+  </data>
+  <data name="Hosting_Class_Destructive" xml:space="preserve">
+    <value>Close and delete</value>
+  </data>
+  <data name="Hosting_Branch_Published" xml:space="preserve">
+    <value>Published at version {0} · PR #{1}</value>
+  </data>
+  <data name="Hosting_Branch_NotObserved" xml:space="preserve">
+    <value>Published with PR #{0}, not observed yet</value>
+  </data>
+  <data name="Hosting_Branch_RemoteDeleted" xml:space="preserve">
+    <value>Its branch on GitHub was deleted · PR #{0}</value>
+  </data>
+  <data name="Hosting_Branch_RemoteRun" xml:space="preserve">
+    <value>On the remote</value>
+  </data>
+  <data name="Hosting_Activity_Operation" xml:space="preserve">
+    <value>Operation on GitHub</value>
+  </data>
+  <data name="Hosting_Activity_Observation" xml:space="preserve">
+    <value>Observed on GitHub</value>
+  </data>
+  <data name="Hosting_Board_IntegratedBy" xml:space="preserve">
+    <value>Integrated by PR #{0} of {1}</value>
+  </data>
+  <data name="Hosting_Chain_PullRequest" xml:space="preserve">
+    <value>Pull request #{0}</value>
+  </data>
+  <data name="Hosting_Chain_Deduced" xml:space="preserve">
+    <value>(deduced)</value>
+  </data>
+  <data name="Hosting_Milestone_Integrated" xml:space="preserve">
+    <value>Integrated: {0} of {1} requirements.</value>
+  </data>
+  <data name="Hosting_Milestone_IntegratedBoth" xml:space="preserve">
+    <value>Integrated: {0} of {1} requirements, {2} by pull request.</value>
+  </data>
+  <data name="Hosting_Milestone_Deployed" xml:space="preserve">
+    <value>Deployed, according to GitHub: {0} of {1}.</value>
+  </data>
+  <data name="Hosting_Code_Unknown" xml:space="preserve">
+    <value>Reason with no text of its own: {0}</value>
+  </data>
+  <data name="Hosting_Code_None" xml:space="preserve">
+    <value>no code</value>
+  </data>
+  <data name="Hosting_Ago_Now" xml:space="preserve">
+    <value>Now</value>
+  </data>
+  <data name="Hosting_Ago_Minutes" xml:space="preserve">
+    <value>{0} min ago</value>
+  </data>
+  <data name="Hosting_Ago_Hours" xml:space="preserve">
+    <value>{0} h ago</value>
+  </data>
+  <data name="Hosting_Ago_Days" xml:space="preserve">
+    <value>{0} d ago</value>
+  </data>
+  <data name="Info_Hosting_PullRequests_Title" xml:space="preserve">
+    <value>Pull requests (PR)</value>
+  </data>
+  <data name="Info_Hosting_PullRequests_What" xml:space="preserve">
+    <value>A pull request (PR) asks to move the work of a run into the main branch on GitHub. Here you see the ones you follow and how they are going.</value>
+  </data>
+  <data name="Info_Hosting_PullRequests_Actions" xml:space="preserve">
+    <value>Press a row to see its detail and its actions.
+Publish a run with Publish and open PR.
+Merging, closing and deleting ask for Windows Hello every time.</value>
+  </data>
+  <data name="Info_Hosting_Permissions_Title" xml:space="preserve">
+    <value>Publishing permissions</value>
+  </data>
+  <data name="Info_Hosting_Permissions_What" xml:space="preserve">
+    <value>A saved permission lets you publish the branch and write to the pull request without Windows Hello. It does not cover merging or deleting.</value>
+  </data>
+  <data name="Info_Hosting_Permissions_Actions" xml:space="preserve">
+    <value>Press Give permission to save one.
+Press Withdraw to be asked again.</value>
+  </data>
+  <data name="Info_Hosting_MergedUnjudged_Title" xml:space="preserve">
+    <value>Merged with changes the judge did not see</value>
+  </data>
+  <data name="Info_Hosting_MergedUnjudged_What" xml:space="preserve">
+    <value>Someone pushed changes after the review and it was merged like that. The independent reviewer (judge) did not see them, so it does not count as integrated.</value>
+  </data>
+  <data name="Info_Hosting_MergedUnjudged_Actions" xml:space="preserve">
+    <value>Ask for a new review of those changes.
+If needed, reopen the milestone.</value>
+  </data>
+  <data name="Text_hosting_outcome_ok" xml:space="preserve">
+    <value>GitHub accepted it.</value>
+  </data>
+  <data name="Text_hosting_outcome_not_modified" xml:space="preserve">
+    <value>GitHub says nothing changed.</value>
+  </data>
+  <data name="Text_hosting_outcome_sign_in_needed" xml:space="preserve">
+    <value>There is no GitHub session. Open a terminal and type: gh auth login</value>
+  </data>
+  <data name="Text_hosting_outcome_rate_limited" xml:space="preserve">
+    <value>GitHub asks to wait. Agent Studio does not insist.</value>
+  </data>
+  <data name="Text_hosting_outcome_unreachable" xml:space="preserve">
+    <value>There is no connection to GitHub. Check your network and try again.</value>
+  </data>
+  <data name="Text_hosting_outcome_forbidden" xml:space="preserve">
+    <value>GitHub does not let your account do this. Check its permissions on the repository.</value>
+  </data>
+  <data name="Text_hosting_outcome_not_found" xml:space="preserve">
+    <value>GitHub did not find what was asked for. It may no longer exist.</value>
+  </data>
+  <data name="Text_hosting_outcome_refused" xml:space="preserve">
+    <value>GitHub refused the request.</value>
+  </data>
+  <data name="Text_hosting_outcome_unsupported" xml:space="preserve">
+    <value>This version of gh cannot do this.</value>
+  </data>
+  <data name="Text_hosting_outcome_invalid_answer" xml:space="preserve">
+    <value>GitHub answered something Agent Studio does not understand, and it is not taken as good.</value>
+  </data>
+  <data name="Text_gh_not_installed" xml:space="preserve">
+    <value>The GitHub program gh is not installed.</value>
+  </data>
+  <data name="Text_capability_not_declared" xml:space="preserve">
+    <value>This version of gh does not declare this operation, so it is not done.</value>
+  </data>
+  <data name="Text_answer_invalid" xml:space="preserve">
+    <value>GitHub answered something Agent Studio does not understand.</value>
+  </data>
+  <data name="Text_account_login_invalid" xml:space="preserve">
+    <value>The name of the GitHub account is not valid.</value>
+  </data>
+  <data name="Text_remote_moved" xml:space="preserve">
+    <value>The repository moved or was renamed on GitHub. Check the remote.</value>
+  </data>
+  <data name="Text_server_error" xml:space="preserve">
+    <value>GitHub failed to answer. Try again later.</value>
+  </data>
+  <data name="Text_text_title_invalid" xml:space="preserve">
+    <value>The title is not valid. Write a shorter one without odd characters.</value>
+  </data>
+  <data name="Text_text_body_invalid" xml:space="preserve">
+    <value>The text is not valid. Shorten it and remove the odd characters.</value>
+  </data>
+  <data name="Text_commit_invalid" xml:space="preserve">
+    <value>The saved version (commit) is not valid.</value>
+  </data>
+  <data name="Text_merge_method_not_declared" xml:space="preserve">
+    <value>This version of gh cannot merge in that way.</value>
+  </data>
+  <data name="Text_merge_blocked" xml:space="preserve">
+    <value>GitHub does not allow the merge yet. Reviews or checks are missing, or there is a conflict.</value>
+  </data>
+  <data name="Text_merge_head_moved" xml:space="preserve">
+    <value>The pull request changed while the merge was asked for. Nothing was merged. Review it and ask again.</value>
+  </data>
+  <data name="Text_merge_rejected" xml:space="preserve">
+    <value>GitHub refused the merge because of its settings. Check the modes the repository allows.</value>
+  </data>
+  <data name="Text_branch_not_run_branch" xml:space="preserve">
+    <value>Only branches of an Agent Studio run are deleted.</value>
+  </data>
+  <data name="Text_branch_head_differs" xml:space="preserve">
+    <value>The branch on GitHub is no longer at the expected version. It was not deleted.</value>
+  </data>
+  <data name="Text_reviewers_invalid" xml:space="preserve">
+    <value>One of the reviewer accounts is not valid.</value>
+  </data>
+  <data name="Text_verdict_run_invalid" xml:space="preserve">
+    <value>The run of the verdict is not valid.</value>
+  </data>
+  <data name="Text_text_description_invalid" xml:space="preserve">
+    <value>The text of the verdict status is not valid.</value>
+  </data>
+  <data name="Text_reviews_too_many" xml:space="preserve">
+    <value>The pull request has too many reviews to count well. A half count is not shown.</value>
+  </data>
+  <data name="Text_comment_lookup_unknown" xml:space="preserve">
+    <value>The verdict comment was not found. Only the status was published.</value>
+  </data>
+  <data name="Text_repository_merge_settings_missing" xml:space="preserve">
+    <value>GitHub did not say which merge modes the repository allows.</value>
+  </data>
+  <data name="Text_configuration_refused" xml:space="preserve">
+    <value>The repository sets a configuration that stops publishing. Remove it or publish with your git program.</value>
+  </data>
+  <data name="Text_inspection_failed" xml:space="preserve">
+    <value>The configuration of the repository could not be checked, so nothing is published.</value>
+  </data>
+  <data name="Text_inspection_output_too_large" xml:space="preserve">
+    <value>The configuration of the repository is too large to check, so nothing is published.</value>
+  </data>
+  <data name="Text_git_unavailable" xml:space="preserve">
+    <value>The git program was not found. Install it and try again.</value>
+  </data>
+  <data name="Text_hooks_file_unsafe" xml:space="preserve">
+    <value>The git hooks file of the repository is not safe, so nothing is published.</value>
+  </data>
+  <data name="Text_work_folder_unsafe" xml:space="preserve">
+    <value>The git work folder is not safe, so nothing is published.</value>
+  </data>
+  <data name="Text_project_unreadable" xml:space="preserve">
+    <value>The project could not be read.</value>
+  </data>
+  <data name="Text_invalid_address" xml:space="preserve">
+    <value>The address of the remote is not valid.</value>
+  </data>
+  <data name="Text_invalid_commit" xml:space="preserve">
+    <value>The saved version (commit) is not valid.</value>
+  </data>
+  <data name="Text_timed_out" xml:space="preserve">
+    <value>Git took too long and was stopped. Try again.</value>
+  </data>
+  <data name="Text_output_too_large" xml:space="preserve">
+    <value>Git gave an answer that was too large and was stopped.</value>
+  </data>
+  <data name="Text_credentials_needed" xml:space="preserve">
+    <value>Git could not sign in to GitHub. Check your credential manager.</value>
+  </data>
+  <data name="Text_rejected_not_fast_forward" xml:space="preserve">
+    <value>GitHub has changes your branch does not have. Nothing was forced. Check the branch on GitHub.</value>
+  </data>
+  <data name="Text_remote_unreachable" xml:space="preserve">
+    <value>There is no connection to the remote. Check your network and try again.</value>
+  </data>
+  <data name="Text_redirected" xml:space="preserve">
+    <value>The remote redirects to another address. It is not followed. Check the address of the remote.</value>
+  </data>
+  <data name="Text_protocol_refused" xml:space="preserve">
+    <value>The remote uses a protocol Agent Studio does not allow. Only https is allowed.</value>
+  </data>
+  <data name="Text_git_failed" xml:space="preserve">
+    <value>Git failed. Try publishing with your git program.</value>
+  </data>
+  <data name="Text_lfs_detected" xml:space="preserve">
+    <value>This project uses Git LFS and Agent Studio does not upload those files. Publish the branch with your git program.</value>
+  </data>
+  <data name="Text_lfs_check_failed" xml:space="preserve">
+    <value>It could not be checked whether the project uses Git LFS, so nothing is published.</value>
+  </data>
+  <data name="Text_push_rejected" xml:space="preserve">
+    <value>GitHub refused the upload. Check the permissions and the rules of the branch.</value>
+  </data>
+  <data name="Text_partial_clone_unsupported" xml:space="preserve">
+    <value>This repository is a partial copy and Agent Studio does not publish it.</value>
+  </data>
+  <data name="Text_remote_unrecognized" xml:space="preserve">
+    <value>Agent Studio does not recognise the address of this remote.</value>
+  </data>
+  <data name="Text_remote_host_not_supported" xml:space="preserve">
+    <value>Only remotes of github.com are allowed.</value>
+  </data>
+  <data name="Text_remote_credentials_in_url" xml:space="preserve">
+    <value>The address of the remote carries a user or a password. Remove them: Agent Studio does not use them.</value>
+  </data>
+  <data name="Text_remote_port" xml:space="preserve">
+    <value>The address of the remote names a port, which is not allowed.</value>
+  </data>
+  <data name="Text_remote_owner_invalid" xml:space="preserve">
+    <value>The owner of the repository is not a valid name.</value>
+  </data>
+  <data name="Text_remote_name_invalid" xml:space="preserve">
+    <value>The name of the repository is not valid.</value>
+  </data>
+  <data name="Text_branch_unsupported_characters" xml:space="preserve">
+    <value>The name of the branch has characters that are not allowed.</value>
+  </data>
+  <data name="Text_branch_invalid_form" xml:space="preserve">
+    <value>The name of the branch is not valid for git.</value>
+  </data>
+  <data name="Text_board_merged_unjudged_changes" xml:space="preserve">
+    <value>Merged with changes the judge did not see</value>
+  </data>
+  <data name="Text_remote_reverted_by" xml:space="preserve">
+    <value>Possible revert, from the message of a saved version</value>
+  </data>
+  <data name="Text_remote_deployed" xml:space="preserve">
+    <value>Deployed</value>
+  </data>
+  <data name="Text_remote_merge_squash" xml:space="preserve">
+    <value>Merged with squash</value>
+  </data>
+  <data name="Text_remote_merge_rebase" xml:space="preserve">
+    <value>Merged with rebase</value>
+  </data>
+  <data name="Text_remote_merge_merge_commit" xml:space="preserve">
+    <value>Merged with a merge version</value>
+  </data>
+  <data name="Text_remote_merge_squash_or_rebase" xml:space="preserve">
+    <value>Merged with squash or with rebase</value>
+  </data>
+  <data name="Text_remote_merge_unknown" xml:space="preserve">
+    <value>Merged, in a way that is not known</value>
+  </data>
+  <data name="Hosting_Pr_Loading" xml:space="preserve">
+    <value>Reading the pull requests of this project…</value>
+  </data>
+  <data name="Hosting_Pr_OtherRepository" xml:space="preserve">
+    <value>The history follows {0} pull requests of another repository. The remote of this project changed and they are not shown here.</value>
+  </data>
+  <data name="Hosting_Sync_TurnedOn" xml:space="preserve">
+    <value>Sync with GitHub is now on for this project.</value>
+  </data>
+  <data name="Hosting_Sync_TurnedOff" xml:space="preserve">
+    <value>Sync with GitHub is now off for this project.</value>
+  </data>
+  <data name="Hosting_Card_Stale" xml:space="preserve">
+    <value>The pull request changed and that action can no longer be done. The card was closed.</value>
+  </data>
+  <data name="Hosting_Merge_NoJudged" xml:space="preserve">
+    <value>It cannot be merged from here: it is not known which version the independent reviewer (judge) saw.</value>
+  </data>
+  <data name="Hosting_Merge_HeadMoved" xml:space="preserve">
+    <value>It cannot be merged from here: the head changed after the review. Ask for a new review.</value>
+  </data>
+  <data name="Hosting_Merge_Exact" xml:space="preserve">
+    <value>GitHub only merges if the head is still exactly that version.</value>
+  </data>
+  <data name="Hosting_Card_Where" xml:space="preserve">
+    <value>In {0}, head {1}.</value>
+  </data>
+  <data name="Hosting_Published_None" xml:space="preserve">
+    <value>The result of the review was not published on the pull request yet.</value>
+  </data>
+  <data name="Hosting_Published_Same" xml:space="preserve">
+    <value>Published on the pull request: {0}</value>
+  </data>
+  <data name="Hosting_Published_Stale" xml:space="preserve">
+    <value>The result of the review changed and the pull request still says the former one.</value>
+  </data>
+  <data name="Hosting_Milestone_Of" xml:space="preserve">
+    <value>Milestone {0}</value>
+  </data>
+  <data name="Hosting_Action_Update" xml:space="preserve">
+    <value>Update the PR…</value>
+  </data>
+  <data name="Hosting_Update_Heading" xml:space="preserve">
+    <value>Update pull request #{0}</value>
+  </data>
+  <data name="Hosting_Update_Confirm" xml:space="preserve">
+    <value>Update the pull request</value>
+  </data>
+  <data name="Hosting_Update_Replaces" xml:space="preserve">
+    <value>The title and the text below replace those of the pull request.</value>
+  </data>
+  <data name="Hosting_Update_NoUpdate" xml:space="preserve">
+    <value>This version of gh does not update pull requests.</value>
+  </data>
+  <data name="Hosting_Publish_OpenFor" xml:space="preserve">
+    <value>Publish and open PR of the run {0}</value>
+  </data>
+  <data name="Hosting_Permissions_RevokeFor" xml:space="preserve">
+    <value>Withdraw the permission: {0}, {1}</value>
+  </data>
+  <data name="Hosting_Activity_OfPr" xml:space="preserve">
+    <value>{0} · PR #{1}</value>
+  </data>
+  <data name="Hosting_Op_PushRunBranch" xml:space="preserve">
+    <value>Published the branch</value>
+  </data>
+  <data name="Hosting_Op_OpenPullRequest" xml:space="preserve">
+    <value>Opened the pull request</value>
+  </data>
+  <data name="Hosting_Op_UpdatePullRequest" xml:space="preserve">
+    <value>Updated the pull request</value>
+  </data>
+  <data name="Hosting_Op_RequestReviewers" xml:space="preserve">
+    <value>Asked for a review</value>
+  </data>
+  <data name="Hosting_Op_PublishVerdictStatus" xml:space="preserve">
+    <value>Published the verdict status</value>
+  </data>
+  <data name="Hosting_Op_PublishVerdictComment" xml:space="preserve">
+    <value>Published the verdict comment</value>
+  </data>
+  <data name="Hosting_Op_MergePullRequest" xml:space="preserve">
+    <value>Asked to merge</value>
+  </data>
+  <data name="Hosting_Op_ClosePullRequest" xml:space="preserve">
+    <value>Asked to close</value>
+  </data>
+  <data name="Hosting_Op_DeleteRemoteBranch" xml:space="preserve">
+    <value>Asked to delete the remote branch</value>
+  </data>
+  <data name="Hosting_Change_Opened" xml:space="preserve">
+    <value>Opened</value>
+  </data>
+  <data name="Hosting_Change_HeadMoved" xml:space="preserve">
+    <value>The head changed</value>
+  </data>
+  <data name="Hosting_Change_ForcePushed" xml:space="preserve">
+    <value>A forced push happened</value>
+  </data>
+  <data name="Hosting_Change_Merged" xml:space="preserve">
+    <value>Merged</value>
+  </data>
+  <data name="Hosting_Change_Closed" xml:space="preserve">
+    <value>Closed</value>
+  </data>
+  <data name="Hosting_Change_Reopened" xml:space="preserve">
+    <value>Reopened</value>
+  </data>
+  <data name="Hosting_Change_HeadBranchDeleted" xml:space="preserve">
+    <value>The branch was deleted</value>
+  </data>
+  <data name="Hosting_Change_ChecksChanged" xml:space="preserve">
+    <value>The checks changed</value>
+  </data>
+  <data name="Hosting_Change_ReviewsChanged" xml:space="preserve">
+    <value>The reviews changed</value>
+  </data>
+  <data name="Hosting_Change_RevertSuspected" xml:space="preserve">
+    <value>Possible revert</value>
+  </data>
+  <data name="Hosting_Change_DeploymentChanged" xml:space="preserve">
+    <value>The deployment changed</value>
+  </data>
+  <data name="Hosting_Change_BaseChanged" xml:space="preserve">
+    <value>The base branch changed</value>
+  </data>
+  <data name="Hosting_Update_Mismatch" xml:space="preserve">
+    <value>That pull request was not found on GitHub. No card was opened and no other one was created.</value>
+  </data>
+</root>

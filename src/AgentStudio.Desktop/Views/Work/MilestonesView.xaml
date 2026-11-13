@@ -95,6 +95,11 @@
                 <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" Text="{Binding StatusText}"/>
                 <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding RequirementsText}"/>
                 <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding BudgetText}"/>
+                <!-- Phase 10 (docs/21 section 7.4): «integrado» (by delivery or by pull request) and «desplegado», this one only when the platform reported a deployment. -->
+                <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding IntegrationText}"
+                           Visibility="{Binding HasIntegration, Converter={StaticResource Work.BoolToVisibility}}"/>
+                <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding DeploymentText}"
+                           Visibility="{Binding HasDeployment, Converter={StaticResource Work.BoolToVisibility}}"/>
                 <ItemsControl ItemsSource="{Binding DetailProblems}" Focusable="False">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>

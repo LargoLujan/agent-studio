@@ -349,6 +349,9 @@ internal sealed class FakeProjectActivity : IProjectActivity
 
     public void Hold(ProjectActivityKind kind) => _held = kind;
 
+    /// <summary>Lets go of what <see cref="Hold"/> holds (the remote operation of Phase 10 that ends while an audit waits).</summary>
+    public void Release() => _held = null;
+
     public IDisposable? TryEnter(string projectId, ProjectActivityKind kind)
     {
         if (_held is not null)
@@ -361,7 +364,14 @@ internal sealed class FakeProjectActivity : IProjectActivity
         return new Lease(this);
     }
 
-    public ProjectActivityKind? Current(string projectId) => _held;
+    /// <summary>How often something asked what holds the project: an audit that waits for a remote operation asks again and again.</summary>
+    public int Polls { get; private set; }
+
+    public ProjectActivityKind? Current(string projectId)
+    {
+        Polls++;
+        return _held;
+    }
 
     public bool IsBusy(string projectId) => _held is not null;
 

@@ -5,8 +5,10 @@ using AgentStudio.Application.Git;
 using AgentStudio.Application.Projects;
 using AgentStudio.Desktop.Localization;
 using AgentStudio.Desktop.Observability;
+using AgentStudio.Desktop.Repository.PullRequests;
 using AgentStudio.Desktop.ViewModels;
 using AgentStudio.Domain.Common;
+using AgentStudio.Domain.Hosting;
 using AgentStudio.Domain.Providers;
 using AgentStudio.Domain.Tracing;
 using AgentStudio.Domain.Work.Milestones;
@@ -76,13 +78,15 @@ public sealed partial class RepositoryViewModel : DocumentViewModel
     /// <param name="activity">The timeline of the log; null leaves the section empty and says so.</param>
     /// <param name="remotes">The remotes of the repository; null shows none.</param>
     /// <param name="time">The local time of the dates shown and the periods of the filter.</param>
+    /// <param name="pullRequests">Phase 10 (docs/21 section 7.1): the section of pull requests, composed with the ports of the remote; null makes the section say it is not available.</param>
     public RepositoryViewModel(
         IProjectWorkspace? workspace,
         IRepositoryHistoryReader? history,
         IRepositoryAnnotator? annotator,
         IRepositoryActivityReader? activity,
         IRepositoryRemoteReader? remotes,
-        TimeProvider time)
+        TimeProvider time,
+        PullRequestsViewModel? pullRequests = null)
         : base(DocumentId, Texts.Get("Repository_Title"))
     {
         ArgumentNullException.ThrowIfNull(time);
@@ -92,9 +96,51 @@ public sealed partial class RepositoryViewModel : DocumentViewModel
         _activity = activity;
         _remotes = remotes;
         _time = time;
+        PullRequests = pullRequests ?? PullRequestsViewModel.Unavailable(time);
+        PullRequests.Reloaded += OnPullRequestsReloaded;
         _selectedSection = Sections[0];
         _selectedProvider = Providers[0];
         _selectedPeriod = Periods[0];
+    }
+
+    /// <summary>Phase 10 (docs/21 section 7.1): the pull requests of the repository, their actions and the permissions of publication.</summary>
+    public PullRequestsViewModel PullRequests { get; }
+
+    /// <summary>The reading of the pull requests that the last change of project or refresh started; it is not part of the «ocupado» of the repository, so tests await it here.</summary>
+    public Task PullRequestsLoaded { get; private set; } = Task.CompletedTask;
+
+    /// <summary>
+    /// Opens the section of pull requests with the card of publication of a run (docs/21 section 7.2): where the button beside «Entregar» of the monitor leads. The card asks the service what
+    /// it would do and says what covers it; nothing is published until the person confirms.
+    /// </summary>
+    public async Task ShowPublishCardAsync(AgentStudio.Domain.Orchestration.RunId run)
+    {
+        SelectedSection = Sections.Single(s => s.Value == RepositorySection.PullRequests);
+        await PullRequests.ShowPublishCardAsync(run).ConfigureAwait(true);
+    }
+
+    private void OnPullRequestsReloaded(object? sender, EventArgs e)
+    {
+        ApplyRemoteBranchMarks();
+        if (_project is { } project)
+        {
+            _ = ReadActivityAsync(project, _generation);
+        }
+    }
+
+    /// <summary>What the log says of the remote branch of each run, next to its branch (docs/21 section 7.3); nothing when it says nothing.</summary>
+    private void ApplyRemoteBranchMarks()
+    {
+        for (var i = 0; i < Branches.Count; i++)
+        {
+            var row = Branches[i];
+            var run = RemoteBranch.TryParse(row.Name)?.RunIdentifier;
+            var text = run is null ? string.Empty : PullRequests.RemoteBranchText(run) ?? string.Empty;
+            if (text != row.RemoteText)
+            {
+                Branches[i] = row with { RemoteText = text };
+            }
+        }
     }
 
     /// <summary>
@@ -126,6 +172,7 @@ public sealed partial class RepositoryViewModel : DocumentViewModel
         new(RepositorySection.Branches, Texts.Get("Repository_Section_Branches")),
         new(RepositorySection.Commits, Texts.Get("Repository_Section_Commits")),
         new(RepositorySection.Activity, Texts.Get("Repository_Section_Activity")),
+        new(RepositorySection.PullRequests, Texts.Get("Hosting_Section_PullRequests")),
     ];
 
     /// <summary>The section that is shown.</summary>
@@ -238,15 +285,20 @@ public sealed partial class RepositoryViewModel : DocumentViewModel
         _project = null;
         OnPropertyChanged(nameof(Project));
         Clear();
+
+        // The section of pull requests of the project before goes now, not when the history is read: nothing of it can be confirmed over the new one.
+        PullRequests.Reset();
         if (projectRoot is null)
         {
             StatusMessage = Texts.Get("Repository_Status_OpenFolder");
+            await PullRequests.SetProjectAsync(null).ConfigureAwait(true);
             return;
         }
 
         if (_workspace is null || _history is null)
         {
             StatusMessage = Texts.Get("Repository_Status_Unavailable");
+            await PullRequests.SetProjectAsync(null).ConfigureAwait(true);
             return;
         }
 
@@ -263,6 +315,11 @@ public sealed partial class RepositoryViewModel : DocumentViewModel
             _project = project;
             OnPropertyChanged(nameof(Project));
             await ReadAllAsync(project, generation).ConfigureAwait(true);
+            if (generation == _generation)
+            {
+                // The reading of GitHub is not part of the «ocupado» of the repository: a slow gh must not hold «Actualizar». The section says for itself that it is reading.
+                PullRequestsLoaded = PullRequests.SetProjectAsync(project);
+            }
         }
 #pragma warning disable CA1031 // The workspace is behind a port: a failure is shown in the screen, never thrown into the UI.
         catch (Exception exception) when (exception is not OperationCanceledException)
@@ -272,6 +329,7 @@ public sealed partial class RepositoryViewModel : DocumentViewModel
             {
                 RefusalText = Texts.Format("Repository_Refused", RepositoryTexts.Refusal("unreadable"));
                 StatusMessage = null;
+                PullRequestsLoaded = PullRequests.SetProjectAsync(null);
             }
         }
         finally
@@ -298,6 +356,10 @@ public sealed partial class RepositoryViewModel : DocumentViewModel
         try
         {
             await ReadAllAsync(_project, generation).ConfigureAwait(true);
+            if (generation == _generation)
+            {
+                PullRequestsLoaded = PullRequests.ReloadAsync();
+            }
         }
         finally
         {
@@ -416,10 +478,19 @@ public sealed partial class RepositoryViewModel : DocumentViewModel
         Replace(Branches, branches.Select(b => new BranchRow(
             b.Name,
             Texts.Format("Repository_Branch_Points", ShortId(b.Commit)),
-            string.Join(" · ", new[] { b.IsCurrent ? Texts.Get("Repository_Branch_Current") : null, b.Kind == BranchKind.Run ? Texts.Get("Repository_Branch_Run") : null }.OfType<string>()),
+            string.Join(
+                " · ",
+                new[]
+                {
+                    b.IsCurrent ? Texts.Get("Repository_Branch_Current") : null,
+                    b.Kind == BranchKind.Run ? Texts.Get("Repository_Branch_Run") : null,
+                    b.Kind == BranchKind.RemoteRun ? Texts.Get("Hosting_Branch_RemoteRun") : null,
+                }.OfType<string>()),
             b.IsCurrent,
-            b.Kind == BranchKind.Run)));
+            b.Kind is BranchKind.Run or BranchKind.RemoteRun)));
         BranchesNote = branches.Count == 0 ? Texts.Get("Repository_Branches_None") : null;
+        PullRequests.SetBranches(branches.Where(b => b.Kind != BranchKind.RemoteRun).Select(b => b.Name));
+        ApplyRemoteBranchMarks();
     }
 
     private async Task ReadCommitsAsync(ProjectContext project, int generation)
@@ -696,7 +767,7 @@ public sealed partial class RepositoryViewModel : DocumentViewModel
             : string.Empty;
         return new ActivityRow(
             TimeZoneInfo.ConvertTime(activity.At, _time.LocalTimeZone).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture),
-            RepositoryTexts.Kind(activity.Kind),
+            RepositoryTexts.Kind(activity),
             where,
             activity.Commit is { } commit ? ShortId(commit) : string.Empty,
             activity.Succeeded ? Texts.Get("Repository_Activity_Succeeded") : Texts.Format("Repository_Activity_FailedWith", RepositoryTexts.Error(activity.ErrorCode ?? RepositoryActivityReader.FailedCode)),
@@ -711,8 +782,23 @@ public sealed partial class RepositoryViewModel : DocumentViewModel
         }
     }
 
+    private void OpenPullRequestChain(object? sender, TraceRef node)
+    {
+        if (_project is { } project && _chainRequested is { } handler)
+        {
+            handler(this, new RepositoryChainRequest(project, node));
+        }
+    }
+
     private void ChainAvailabilityChanged()
     {
+        // The pull requests offer «Ver su cadena» only while a way to open it is connected, like the versions do.
+        PullRequests.ChainRequested -= OpenPullRequestChain;
+        if (CanOpenChain)
+        {
+            PullRequests.ChainRequested += OpenPullRequestChain;
+        }
+
         OnPropertyChanged(nameof(CanOpenChain));
         foreach (var row in Commits)
         {
@@ -730,6 +816,7 @@ public sealed partial class RepositoryViewModel : DocumentViewModel
         RemotesNote = null;
         Branches.Clear();
         BranchesNote = null;
+        PullRequests.SetBranches([]);
         Commits.Clear();
         CommitsNote = null;
         Activities.Clear();

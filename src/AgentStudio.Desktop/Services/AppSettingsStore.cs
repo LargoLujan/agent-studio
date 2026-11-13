@@ -183,6 +183,13 @@ public sealed class JsonAppSettingsStore(AppDataPaths paths, string? defaultSkil
             IdleLockMinutes = AppSettings.IsValidIdleLockMinutes(settings.IdleLockMinutes) ? settings.IdleLockMinutes : AppSettings.DefaultIdleLockMinutes,
             MainWindowPlacement = settings.MainWindowPlacement is { IsValid: true } placement ? placement : null,
             Language = UiLanguages.Find(settings.Language)?.CultureName,
+            RemoteSyncIntervalMinutes = AppSettings.IsValidRemoteSyncInterval(settings.RemoteSyncIntervalMinutes) ? settings.RemoteSyncIntervalMinutes : AppSettings.DefaultRemoteSyncMinutes,
+            RemoteSyncProjects = (settings.RemoteSyncProjects ?? [])
+                .Where(g => g is not null && !string.IsNullOrWhiteSpace(g.ProjectId))
+                .Select(g => new RemoteSyncGrant(g.ProjectId.Trim(), string.IsNullOrWhiteSpace(g.Folder) ? null : g.Folder))
+                .DistinctBy(g => g.ProjectId, StringComparer.Ordinal)
+                .Take(AppSettings.MaxRemoteSyncProjects)
+                .ToList(),
         };
 
     private static bool ValidThresholds(AppSettings settings) =>

@@ -28,6 +28,7 @@ namespace AgentStudio.Desktop.Work;
 /// <param name="Debates">The debates of the project, to link them to a milestone.</param>
 /// <param name="Evidence">Opens the saved proof a node of the chain names (a diff, a report).</param>
 /// <param name="Verdicts">Opens the verdict a node of the chain names.</param>
+/// <param name="PullRequests">Phase 10 (docs/21 D-29): the pull requests the log follows, so that a milestone says «desplegado» only when the platform reported a deployment; null: it never does.</param>
 public sealed record WorkBackend(
     IProjectWorkspace? Workspace = null,
     IMilestoneService? Milestones = null,
@@ -43,7 +44,8 @@ public sealed record WorkBackend(
     IRunRegistry? Runs = null,
     IDebateCoordinator? Debates = null,
     IEvidenceStore? Evidence = null,
-    IVerdictStore? Verdicts = null)
+    IVerdictStore? Verdicts = null,
+    AgentStudio.Application.Hosting.IPullRequestProjector? PullRequests = null)
 {
     public static WorkBackend None { get; } = new();
 }

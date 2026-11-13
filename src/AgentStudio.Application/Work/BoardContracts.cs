@@ -42,13 +42,21 @@ public static class BoardCardReasons
 
     /// <summary>The run failed or was cancelled (returned).</summary>
     public const string RunFailed = "board.run-failed";
+
+    /// <summary>
+    /// The pull request of the run was merged, but not with the commit the judge saw (or the log does not say which it was): it does not count as integrated (docs/21 D-29)
+    /// and the card stays in «hecho». The text: «fusionado con cambios que el juez no vio».
+    /// </summary>
+    public const string MergedWithUnjudgedChanges = "board.merged-unjudged-changes";
 }
 
 /// <summary>
 /// One card of the board. <paramref name="Id"/> is the id of the requirement or the task, <paramref name="Run"/> the run it comes
 /// from when it is a task or the requirement is covered, and <paramref name="Reason"/> one of <see cref="BoardCardReasons"/> or null.
+/// <paramref name="IntegratedByPullRequest"/> (Phase 10, docs/21 D-29) is the <c>TraceId</c> of the pull request that integrated the requirement, or null when it was integrated
+/// by the local delivery or is not integrated: whoever needs to know which pull request carried a requirement (the report of the milestone, for «desplegado») asks the card.
 /// </summary>
-public sealed record BoardCard(BoardCardKind Kind, string Id, string Title, BoardColumn Column, string? Run, string? Reason);
+public sealed record BoardCard(BoardCardKind Kind, string Id, string Title, BoardColumn Column, string? Run, string? Reason, string? IntegratedByPullRequest = null);
 
 /// <summary>
 /// The board of a milestone, as it is when the verified log has <paramref name="LogEntries"/> entries and

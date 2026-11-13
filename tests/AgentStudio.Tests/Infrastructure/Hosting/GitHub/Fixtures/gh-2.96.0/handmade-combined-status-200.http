@@ -1,0 +1,9 @@
+HTTP/2.0 200 OK
+Content-Type: application/json; charset=utf-8
+X-Github-Api-Version-Selected: 2022-11-28
+X-Ratelimit-Limit: 5000
+X-Ratelimit-Remaining: 4990
+X-Ratelimit-Reset: 1794571200
+Etag: W/"s1"
+
+{"state":"pending","total_count":2,"statuses":[{"state":"success","context":"ci/legacy"},{"state":"pending","context":"agent-studio/verdict"}]}

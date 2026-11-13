@@ -221,6 +221,14 @@
     <value>En cola: se registrará cuando termine la ejecución o la planificación en curso.</value>
     <comment>A decision waits for the run.</comment>
   </data>
+  <data name="Memory_Decision_QueuedRemote" xml:space="preserve">
+    <value>En cola: se registrará en unos segundos, cuando acabe la sincronización con GitHub.</value>
+    <comment>A decision waits for a remote operation of Agent Studio (docs/21 D-25).</comment>
+  </data>
+  <data name="Memory_Export_BlockedRemote" xml:space="preserve">
+    <value>Se sincroniza con GitHub. La exportación espera unos segundos.</value>
+    <comment>Why the export is not offered while a remote operation holds the project (docs/21 D-25).</comment>
+  </data>
   <data name="Memory_Decision_Recording" xml:space="preserve">
     <value>Registrando tu decisión…</value>
     <comment>A decision is being recorded.</comment>
@@ -1492,7 +1500,7 @@ El de hoy es provisional y no se guarda.</value>
     <comment>Text of the memory (memory.verdict-note).</comment>
   </data>
   <data name="Text_memory_reason_busy" xml:space="preserve">
-    <value>Hay agentes trabajando en el proyecto. La memoria se actualiza cuando terminen.</value>
+    <value>El proyecto está ocupado con otra tarea. La memoria se actualiza cuando termine.</value>
     <comment>Text of the memory (memory.reason.busy).</comment>
   </data>
   <data name="Text_memory_reason_stopped" xml:space="preserve">
@@ -1516,7 +1524,7 @@ El de hoy es provisional y no se guarda.</value>
     <comment>Text of the memory (memory.reason.not-verified-at).</comment>
   </data>
   <data name="Text_memory_reason_export_busy" xml:space="preserve">
-    <value>Hay agentes trabajando en el proyecto. La memoria se exporta cuando terminen.</value>
+    <value>El proyecto está ocupado con otra tarea. La memoria se exporta cuando termine.</value>
     <comment>Text of the memory (memory.reason.export-busy).</comment>
   </data>
   <data name="Text_memory_export_header" xml:space="preserve">

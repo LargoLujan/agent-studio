@@ -29,7 +29,8 @@ public sealed class LockStringsTests
         keys.AddRange(Enum.GetNames<UserPresenceAvailability>().Where(n => n != nameof(UserPresenceAvailability.Available)).Select(n => "Lock_Absent_" + n));
         keys.AddRange(Enum.GetNames<UserPresenceResult>().Select(n => "Lock_NotConfirmed_" + n));
         keys.AddRange(Enum.GetNames<RiskLevel>().Select(n => "Lock_Risk_" + n));
-        foreach (var kind in Enum.GetNames<ProjectActivityKind>())
+        // A remote operation of Agent Studio itself (docs/21 D-25) is not shown on the lock screen: it lasts seconds and has nothing to stop.
+        foreach (var kind in Enum.GetNames<ProjectActivityKind>().Where(n => n != nameof(ProjectActivityKind.RemoteOperation)))
         {
             keys.Add($"Lock_Kind_{kind}_One");
             keys.Add($"Lock_Kind_{kind}_Other");

@@ -63,7 +63,7 @@ internal static class UiScreens
 
     private static IReadOnlyList<UiScreen> Build() =>
         [.. Core(), .. UiScreensShell.All, .. UiScreensOrchestrator.All, .. UiScreensDebate.All, .. UiScreensServices.All, .. UiScreensRepository.All, .. UiScreensWork.All,
-         .. UiScreensDoctor.All, .. UiScreensGraph.All, .. UiScreensDocs.All];
+         .. UiScreensDoctor.All, .. UiScreensGraph.All, .. UiScreensDocs.All, .. UiScreensHosting.All];
 
     private static IReadOnlyList<UiScreen> Core() =>
     [
@@ -115,13 +115,18 @@ internal static class UiScreens
 
     private static SettingsDocumentViewModel SettingsDocument()
     {
-        var store = new InMemorySettingsStore(AppSettings.Default with { IdleLockEnabled = true });
+        var store = new InMemorySettingsStore(AppSettings.Default with
+        {
+            IdleLockEnabled = true,
+            RemoteSyncProjects = [new RemoteSyncGrant("11111111-2222-3333-4444-555555555555", @"C:\Proyectos\ejemplo")],
+        });
         return new SettingsDocumentViewModel(
             store,
             new ObservabilitySettingsViewModel(store),
             new UnattendedSettingsViewModel(store, new LockSettingsViewModel(store)),
             time: new FakeTimeProvider(T0),
             memory: new MemorySettingsViewModel(store),
-            language: new LanguageSettingsViewModel(store));
+            language: new LanguageSettingsViewModel(store),
+            remoteSync: new RemoteSyncSettingsViewModel(store));
     }
 }

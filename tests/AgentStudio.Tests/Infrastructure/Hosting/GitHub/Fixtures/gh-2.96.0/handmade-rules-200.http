@@ -1,0 +1,8 @@
+HTTP/2.0 200 OK
+Content-Type: application/json; charset=utf-8
+X-Github-Api-Version-Selected: 2022-11-28
+X-Ratelimit-Limit: 5000
+X-Ratelimit-Remaining: 4990
+X-Ratelimit-Reset: 1794571200
+
+[{"type":"pull_request","ruleset_source_type":"Repository","ruleset_source":"octo/hello","ruleset_id":2,"parameters":{"required_approving_review_count":2,"dismiss_stale_reviews_on_push":false}},{"type":"required_status_checks","parameters":{"strict_required_status_checks_policy":false,"required_status_checks":[{"context":"build"},{"context":"test"}]}},{"type":"required_signatures"},{"type":"deletion"},{"type":"non_fast_forward"},{"type":"some_future_rule"}]

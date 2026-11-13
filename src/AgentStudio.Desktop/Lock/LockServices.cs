@@ -18,7 +18,8 @@ namespace AgentStudio.Desktop.Lock;
 public sealed class ProjectsWorkInProgress(IProjectActivity activity, Func<IEnumerable<string>> projects) : IWorkInProgress
 {
     public IReadOnlyList<ProjectActivityKind> Current() =>
-        [.. projects().Distinct(StringComparer.Ordinal).Select(activity.Current).OfType<ProjectActivityKind>()];
+        // A remote operation of Agent Studio itself (docs/21 D-25) lasts seconds and has nothing to show or to stop: it is not listed.
+        [.. projects().Distinct(StringComparer.Ordinal).Select(activity.Current).OfType<ProjectActivityKind>().Where(kind => kind != ProjectActivityKind.RemoteOperation)];
 }
 
 public static class LockServices

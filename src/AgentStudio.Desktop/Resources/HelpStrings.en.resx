@@ -187,6 +187,9 @@
   <data name="Help_Screen_doctor" xml:space="preserve">
     <value>Auto Doctor</value>
   </data>
+  <data name="Help_Screen_publishing" xml:space="preserve">
+    <value>Publish and pull request (PR)</value>
+  </data>
   <data name="Help_Screen_graph" xml:space="preserve">
     <value>Auto Graph</value>
   </data>

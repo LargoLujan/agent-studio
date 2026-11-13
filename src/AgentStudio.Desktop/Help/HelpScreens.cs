@@ -42,6 +42,9 @@ public static class HelpScreens
     public const string Doctor = "doctor";
     public const string Graph = "graph";
 
+    // Phase 10 (docs/21 section 7): publishing and the pull request. The P0 adds the code with the first version of its article; WP5 maps its view to it and completes the article.
+    public const string Publishing = "publishing";
+
     /// <summary>The screen shown by the content of the dock (a document, or a panel's view); null when it is none of the screens that have help (the welcome tab, a file).</summary>
     public static string? Of(object? content) => content switch
     {
@@ -53,6 +56,7 @@ public static class HelpScreens
         MemoryViewModel => Memory,
         SkillsDocumentViewModel => Skills,
         UsageDashboardViewModel => Consumption,
+        RepositoryViewModel { SelectedSection.Value: RepositorySection.PullRequests } => Publishing,
         RepositoryViewModel => Repository,
         SettingsDocumentViewModel => Settings,
         WorkDocumentViewModel => Work,
@@ -84,5 +88,5 @@ public static class HelpScreens
     }
 
     /// <summary>Every screen code that has an article, for the tests of the corpus.</summary>
-    public static IReadOnlyList<string> All { get; } = [Preparation, Canvas, Monitor, Debates, Audit, Memory, Skills, Consumption, Settings, Lock, Repository, Work, Doctor, Graph];
+    public static IReadOnlyList<string> All { get; } = [Preparation, Canvas, Monitor, Debates, Audit, Memory, Skills, Consumption, Settings, Lock, Repository, Work, Doctor, Graph, Publishing];
 }

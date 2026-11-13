@@ -1,0 +1,51 @@
+<UserControl x:Class="AgentStudio.Desktop.Views.Settings.RemoteSyncSettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:l="clr-namespace:AgentStudio.Desktop.Localization"
+             xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
+             xmlns:settings="clr-namespace:AgentStudio.Desktop.Settings"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=settings:RemoteSyncSettingsViewModel}"
+             AutomationProperties.Name="{l:T RemoteSync_Title}">
+    <!-- «Git remoto», a section of «Ajustes» (docs/21 §7.5): the interval of the poll, the projects with «Sincronizar con GitHub» (each can be
+         taken out from here, never added: the switch of the pull requests section of a project gives the permission) and what goes out and what
+         does not. «Guardar» is the document's, for every section at once. Bindings only. -->
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="RemoteSync.BoolToVisibility"/>
+    </UserControl.Resources>
+    <StackPanel>
+        <DockPanel>
+            <info:InfoButton DockPanel.Dock="Right" InfoKey="Info_RemoteSync" VerticalAlignment="Center"/>
+            <TextBlock Style="{StaticResource SectionTitleText}" Text="{l:T RemoteSync_Title}" VerticalAlignment="Center"/>
+        </DockPanel>
+        <TextBlock Style="{StaticResource SecondaryText}" Margin="0,2,0,0" TextWrapping="Wrap" Text="{l:T RemoteSync_Intro}"/>
+
+        <TextBlock Style="{StaticResource BodyText}" Margin="0,14,0,0" Text="{l:T RemoteSync_Interval_Label}"/>
+        <ComboBox Margin="0,4,0,0" Width="200" HorizontalAlignment="Left" ItemsSource="{Binding Intervals}" SelectedItem="{Binding SelectedInterval}"
+                  AutomationProperties.Name="{l:T RemoteSync_Interval_Label}"
+                  AutomationProperties.HelpText="{l:T RemoteSync_Interval_Explanation}"/>
+        <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" TextWrapping="Wrap" Text="{l:T RemoteSync_Interval_Explanation}"/>
+
+        <TextBlock Style="{StaticResource BodyText}" Margin="0,16,0,0" Text="{l:T RemoteSync_Projects_Title}"/>
+        <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" TextWrapping="Wrap" Text="{l:T RemoteSync_Projects_None}"
+                   Visibility="{Binding HasNoProjects, Converter={StaticResource RemoteSync.BoolToVisibility}}"/>
+        <ItemsControl Margin="0,4,0,0" ItemsSource="{Binding Projects}" Visibility="{Binding HasProjects, Converter={StaticResource RemoteSync.BoolToVisibility}}"
+                      AutomationProperties.Name="{l:T RemoteSync_Projects_Title}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <DockPanel Margin="0,4,0,0">
+                        <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Margin="12,0,0,0" Content="{l:T RemoteSync_Projects_Remove}"
+                                Command="{Binding DataContext.RemoveCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                CommandParameter="{Binding}" AutomationProperties.Name="{Binding RemoveName}"/>
+                        <TextBlock Style="{StaticResource BodyText}" VerticalAlignment="Center" TextWrapping="Wrap" Text="{Binding Label}"/>
+                    </DockPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <TextBlock Style="{StaticResource BodyText}" Margin="0,16,0,0" Text="{l:T RemoteSync_Sends_Title}"/>
+        <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0" TextWrapping="Wrap" Text="{l:T RemoteSync_Sends_Text}"/>
+    </StackPanel>
+</UserControl>
