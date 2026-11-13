@@ -97,7 +97,7 @@
 ## Lo que fija el P0 (2026-11-13)
 
 - **`RemoteTransport`** existe ya como tipo `internal` de `Infrastructure/Git/Remote`: el esquema que se permite a git (`Scheme`, una sola constante para `GIT_ALLOW_PROTOCOL` y para `protocol.<esquema>.allow`), la función que da la
-  dirección de un `RemoteRepository` (`AddressOf`) y su única instancia de producción, `RemoteTransport.GitHubHttps`. Un constructor público (dentro de lo `internal`) lo usan las pruebas de WP1 para empujar a una carpeta bare. El resto de
+  dirección de un `RemoteRepository` (`AddressOf`) y su única instancia de producción, `RemoteTransport.GitHubHttps`. El constructor es privado y la única otra vía es `RemoteTransport.ForTests` (fichero aparte, que ningún código de `src/` llama), que usan las pruebas de WP1 para empujar a una carpeta bare. El resto de
   la carpeta es de WP1.
 - **`InternalsVisibleTo`** de `AgentStudio.Infrastructure` hacia `AgentStudio.Tests`, en el `.csproj`.
 - **`IRemoteGitRunner`** tiene tres miembros y ninguno recibe un `string`: ni orden, ni argumento, ni refspec, ni dirección. `RemotePush` lleva el proyecto, el destino validado, la ejecución y el commit; nada más. Una prueba de
@@ -114,3 +114,18 @@ Medido con git 2.45.2 en Windows contra un remoto bare local (transporte `file`,
 - **Git LFS:** la configuración del sistema de Git for Windows ya trae `filter.lfs.*`, así que se combina con los atributos del árbol de trabajo.
 - **Decisión de detalle:** `--` antes de la dirección; `LC_ALL=C`; el nombre de una clave rechazada escribe la subsección como `*`.
 - **Sin verificar:** el gestor de credenciales, HTTPS y sus redirecciones, el `pre-push` de git-lfs.
+
+## Adenda de la ronda de arreglos de WP1 (2026-11-13)
+
+- **Un remoto que se llama como la dirección.** Medido con git 2.45.2 (remoto bare local): git busca el remoto por el nombre que se le pasa, y se le pasa la dirección, así que un `[remote "<dirección>"]` del repositorio se aplica al `push`. Con
+  `mirror = true` y un refspec explícito termina con «--mirror can't be combined with refspecs» sin empujar; con `pushurl` el `push` fue a otro repositorio; con `url` también (y `ls-remote --get-url` lo delata); con `receivepack` corrió el programa
+  (falló al arrancar por la ruta, pero se lanzó). Se rechaza cualquier clave `remote.<subsección>.*` del repositorio cuya subsección contenga `:`, `/` o `\`, escrita `remote.*.<variable>`.
+- **Git LFS por el commit que sube.** Una orden local más, cerrada y sin red: `git grep -l -i -E --no-color -e "^[^#]*filter=lfs" <commit> -- ":(glob)**/.gitattributes"` (salida 0 con coincidencia, 1 sin ella; en cualquier carpeta; un
+  comentario no cuenta). Solo se lanza con el filtro `lfs` configurado; `info/attributes` se lee del disco; sin commit (`InspectAsync`) se pregunta por `HEAD`; si no se puede saber, `lfs-check-failed` y no se publica. Entra en el catálogo de órdenes
+  (`config`, `grep`, `ls-remote`, `push`) y en la prueba que recorre cada `ProcessSpec`.
+- **Un `push` cortado.** Si agota el tiempo o pasa del tope de salida, el árbol de procesos muere a mitad y el remoto puede tener ya la rama: se hace el `ls-remote` de confirmación y el resultado es `Pushed` o `NotConfirmed`. La cancelación sale como
+  excepción: quien cancela da el resultado por desconocido y lee la rama antes de reintentar.
+- **`PATH`, carpetas y errores.** El `PATH` de git se compone sin entradas relativas ni dentro del proyecto ni de raíces no fiables. La carpeta temporal y la del fichero de hooks no pueden ser enlaces (residual: la ventana hasta el arranque de git, un proceso
+  del mismo usuario, ADR-0018). Los clasificadores del error estándar son líneas que empiezan como las escribe git, no palabras sueltas.
+- **`trace2.*`:** según la documentación de git, solo se leen de la configuración de sistema y global (no del repositorio ni de `-c`); las variables `GIT_TRACE2*` se quitan con el resto de `GIT_*`. Sin medir.
+- **Códigos:** `RemoteGitCodes` vive en `Application/Hosting` y viaja en los tres resultados del puerto (`RemotePushResult.FailureCode` incluido).

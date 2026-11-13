@@ -77,6 +77,12 @@ internal sealed class RemoteGitScript : IProcessRunner
 
     public ProcessResult PushResult { get; set; } = Ok(string.Empty);
 
+    /// <summary>What the local <c>git grep</c> of the attributes of the commit answers; null is «no line says filter=lfs» (exit code 1).</summary>
+    public ProcessResult? GrepResult { get; set; }
+
+    /// <summary>The answer of a <c>git grep</c> that found a <c>.gitattributes</c> with <c>filter=lfs</c> in the commit.</summary>
+    public static ProcessResult LfsFound(string commit = RemoteGitFixture.Commit) => Ok(commit + ":.gitattributes\n");
+
     public IReadOnlyList<ProcessSpec> Specs
     {
         get
@@ -130,6 +136,9 @@ internal sealed class RemoteGitScript : IProcessRunner
                     return LsRemote.Count == 0 ? Ok(string.Empty) : LsRemote[Math.Min(asked, LsRemote.Count) - 1];
                 }
 
+            case "grep":
+                // No match (exit code 1) unless the test says the attributes of the commit say filter=lfs.
+                return GrepResult ?? new ProcessResult(1, string.Empty, string.Empty, TimeSpan.Zero, false);
             case "push":
                 return PushResult;
             default:

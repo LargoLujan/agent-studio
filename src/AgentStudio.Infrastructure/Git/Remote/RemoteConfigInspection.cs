@@ -91,12 +91,16 @@ internal static class RemoteConfigInspection
         "http" => !(subsection is null && variable == "followredirects"),
         "remote" => subsection is null
             ? variable == "pushdefault"
-            : variable is "pushurl" or "push" or "receivepack" or "uploadpack" or "proxy" or "proxyauthmethod" or "vcs",
+            : IsAddress(subsection) || variable is "pushurl" or "push" or "receivepack" or "uploadpack" or "proxy" or "proxyauthmethod" or "vcs",
         "branch" => subsection is not null && variable == "pushremote",
         "push" => subsection is null && variable == "pushoption",
         "core" => subsection is null && variable == "alternaterefscommand",
         _ => false,
     };
+
+    // git looks the remote up by the name it is given, and the executor gives it the address: a remote of the repository called like the address (it holds a «:», a «/» or a «\», which no name of a remote does) would apply
+    // every one of its keys to the push. Measured with git 2.45.2: its pushurl and its url took the push to another repository, its receivepack ran a program, and its mirror stopped the push. So any key of it is refused.
+    private static bool IsAddress(string subsection) => subsection.AsSpan().IndexOfAny(':', '/', '\\') >= 0;
 
     private static void Add(List<RemoteConfigRefusal> refusals, GitCallbacks.ConfigEntry entry, string section, string? subsection, string variable)
     {

@@ -1,3 +1,6 @@
+using System.Text.RegularExpressions;
+using AgentStudio.Application.Hosting;
+
 namespace AgentStudio.Infrastructure.Git.Remote;
 
 /// <summary>What the line of a ref in the <c>--porcelain</c> output of <c>git push</c> said.</summary>
@@ -83,61 +86,43 @@ internal static class RemoteGitOutput
         return found;
     }
 
+    private const RegexOptions Options = RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.CultureInvariant;
+
+    // The messages of git that were measured (docs/21 «Ajustes de WP1»), written as the start of a line (fatal:, error:, warning:, remote:) and not as loose words: a word inside another word, or inside a hint or the text of
+    // a commit, is not a code. A hostile remote can still write «remote: Repository not found»; the code is only what the screen says, and it is not trusted to do anything else.
+    private static readonly (string Code, Regex Pattern)[] Classifiers =
+    [
+        (RemoteGitCodes.Redirected, new Regex(@"^(fatal: unable to update url base from redirection|warning: redirecting to |(fatal|error): .*The requested URL returned error: 30[1278]\b)", Options)),
+        (RemoteGitCodes.ProtocolRefused, new Regex(@"^fatal: (transport '[^']*' not allowed|protocol '[^']*' is not supported)", Options)),
+        (
+            RemoteGitCodes.CredentialsNeeded,
+            new Regex(
+                @"^(fatal: (could not read (Username|Password) for|Authentication failed for|.*terminal prompts disabled|repository '[^']*' not found|unable to access '[^']*': The requested URL returned error: 40[13]\b)"
+                + @"|remote: (Invalid username or password|Permission to .* denied|Repository not found|Support for password authentication was removed))",
+                Options)),
+        (
+            RemoteGitCodes.RemoteUnreachable,
+            new Regex(
+                @"^fatal: (unable to access '[^']*': (Could not resolve host|Failed to connect|Couldn't connect|Connection (timed out|refused|reset)|Recv failure|Operation timed out|Network is unreachable|Empty reply|SSL |schannel|OpenSSL)"
+                + @"|'[^']*' does not appear to be a git repository|Could not read from remote repository)",
+                Options)),
+    ];
+
     /// <summary>
-    /// The code of a failed command, from its error output. The order matters: a redirect and a refused protocol are said first, then what asks for credentials (GitHub answers «Repository not found» to a private repository
-    /// it does not let you see), then what could not be reached. Anything else is <see cref="RemoteGitCodes.GitFailed"/>. Nothing of the text is kept.
+    /// The code of a failed command, from its error output: a redirect and a refused protocol first, then what asks for credentials (GitHub answers «Repository not found» to a private repository it does not let you see),
+    /// then what could not be reached. Each is a line that starts as git writes it. Anything else is <see cref="RemoteGitCodes.GitFailed"/>. Nothing of the text is kept.
     /// </summary>
     public static string ClassifyError(string standardError)
     {
         ArgumentNullException.ThrowIfNull(standardError);
-        if (Has(standardError, "redirect", "returned error: 301", "returned error: 302", "returned error: 307", "returned error: 308"))
+        foreach (var (code, pattern) in Classifiers)
         {
-            return RemoteGitCodes.Redirected;
-        }
-
-        if (Has(standardError, "not allowed", "is not supported") && Has(standardError, "transport", "protocol"))
-        {
-            return RemoteGitCodes.ProtocolRefused;
-        }
-
-        if (Has(
-            standardError,
-            "terminal prompts disabled",
-            "could not read username",
-            "could not read password",
-            "authentication failed",
-            "invalid username or password",
-            "invalid credentials",
-            "permission denied",
-            "returned error: 401",
-            "returned error: 403",
-            "repository not found",
-            "access denied"))
-        {
-            return RemoteGitCodes.CredentialsNeeded;
-        }
-
-        if (Has(
-            standardError,
-            "could not resolve host",
-            "failed to connect",
-            "couldn't connect",
-            "connection timed out",
-            "connection refused",
-            "connection reset",
-            "network is unreachable",
-            "unable to access",
-            "ssl",
-            "does not appear to be a git repository",
-            "could not read from remote repository",
-            "timed out"))
-        {
-            return RemoteGitCodes.RemoteUnreachable;
+            if (pattern.IsMatch(standardError))
+            {
+                return code;
+            }
         }
 
         return RemoteGitCodes.GitFailed;
     }
-
-    private static bool Has(string text, params string[] needles) =>
-        needles.Any(needle => text.Contains(needle, StringComparison.OrdinalIgnoreCase));
 }

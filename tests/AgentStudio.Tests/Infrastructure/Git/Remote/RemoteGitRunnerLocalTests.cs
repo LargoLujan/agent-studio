@@ -110,7 +110,8 @@ public sealed class RemoteGitRunnerLocalTests : IDisposable
         Assert.Equal(commit, first.RemoteCommit);
         Assert.True(first.Inspection.Accepted);
         Assert.Equal([$"refs/heads/{RunBranch} {commit}"], RemoteRefs());
-        Assert.Equal(["config", "ls-remote", "ls-remote", "push", "ls-remote"], Launched);
+        // «grep» is there when the filter of git-lfs is configured (the system configuration of Git for Windows does it): the commit that goes up is asked about its attributes.
+        Assert.Equal(["config", "ls-remote", "ls-remote", "push", "ls-remote"], Launched.Where(c => c != "grep"));
 
         var pushesBefore = Launched.Count(c => c == "push");
         var second = await runner.PushRunBranchAsync(Push(), Ct);
@@ -218,10 +219,21 @@ public sealed class RemoteGitRunnerLocalTests : IDisposable
         var before = _repo.Snapshot();
         var stateBefore = await manager.CaptureUserRepositoryStateAsync(_repo.Root, Ct);
 
+        // Besides the snapshot (which leaves out the refs of Agent Studio, because its internal layer creates them): the bytes of the configuration, the packed refs and the whole list of refs, unfiltered. The executor
+        // creates no ref in the repository of the person, so nothing is left out here.
+        var configBefore = File.ReadAllBytes(Path.Combine(_repo.Root, ".git", "config"));
+        var packedPath = Path.Combine(_repo.Root, ".git", "packed-refs");
+        var packedBefore = File.Exists(packedPath) ? File.ReadAllBytes(packedPath) : null;
+        var refsBefore = TempGitRepo.Git(_repo.Root, "for-each-ref", "--format=%(refname) %(objectname)");
+
         var result = await NewRunner().PushRunBranchAsync(Push(), Ct);
 
         Assert.Equal(RemotePushOutcome.Pushed, result.Outcome);
         Assert.Equal(before, _repo.Snapshot());
+        Assert.Equal(configBefore, File.ReadAllBytes(Path.Combine(_repo.Root, ".git", "config")));
+        Assert.Equal(packedBefore, File.Exists(packedPath) ? File.ReadAllBytes(packedPath) : null);
+        Assert.Equal(refsBefore, TempGitRepo.Git(_repo.Root, "for-each-ref", "--format=%(refname) %(objectname)"));
+        Assert.DoesNotContain("agentstudio", TempGitRepo.Git(_repo.Root, "for-each-ref", "--format=%(refname)"), StringComparison.Ordinal);
         var stateAfter = await manager.CaptureUserRepositoryStateAsync(_repo.Root, Ct);
         Assert.Empty(UserRepositoryState.Compare(stateBefore, stateAfter));
         Assert.False(File.Exists(Path.Combine(_repo.Root, ".git", "FETCH_HEAD")));
@@ -243,6 +255,14 @@ public sealed class RemoteGitRunnerLocalTests : IDisposable
         { "http.extraHeader", "http.extraHeader", "Authorization: Basic eDp5", "http.extraheader" },
         { "http.url proxy", "http.https://github.com/.proxy", "http://proxy.example:8080", "http.*.proxy" },
         { "push.pushOption", "push.pushOption", "ci.skip", "push.pushoption" },
+        { "remote.origin.receivepack", "remote.origin.receivepack", "sh -c 'exit 1'", "remote.*.receivepack" },
+        { "remote.origin.uploadpack", "remote.origin.uploadpack", "sh -c 'exit 1'", "remote.*.uploadpack" },
+        { "remote.origin.vcs", "remote.origin.vcs", "sentinel", "remote.*.vcs" },
+        { "remote.origin.proxy", "remote.origin.proxy", "http://proxy.example:8080", "remote.*.proxy" },
+        { "remote.origin.push", "remote.origin.push", "refs/heads/main:refs/heads/other", "remote.*.push" },
+        { "remote.pushDefault", "remote.pushDefault", "origin", "remote.pushdefault" },
+        { "branch.main.pushRemote", "branch.main.pushRemote", "origin", "branch.*.pushremote" },
+        { "core.alternateRefsCommand", "core.alternateRefsCommand", "sh -c 'exit 1'", "core.alternaterefscommand" },
     };
 
     [Theory]
@@ -383,7 +403,7 @@ public sealed class RemoteGitRunnerLocalTests : IDisposable
     }
 
     [Fact]
-    public async Task A_fsmonitor_an_ssh_command_a_proxy_command_and_an_askpass_of_the_repository_do_not_run_and_the_push_goes_up()
+    public async Task A_fsmonitor_an_ssh_command_a_proxy_command_and_an_askpass_of_the_repository_do_not_run_and_the_pairs_that_override_them_are_on_every_command()
     {
         var programs = new[] { "fsmonitor", "ssh", "proxy", "askpass" }.ToDictionary(n => n, n => Sentinel(n));
         static string Writing(string file) => "sh -c 'echo ran > \"" + file.Replace('\\', '/') + "\"'";
@@ -392,13 +412,32 @@ public sealed class RemoteGitRunnerLocalTests : IDisposable
         _repo.Run("config", "core.gitProxy", Writing(programs["proxy"]));
         _repo.Run("config", "core.askPass", Writing(programs["askpass"]));
 
+        // The settings are live: without the protection, the programs of the repository do run. (askPass needs a server that asks for credentials, and gitProxy a git:// connection that measured no better here: for those two only the pair is checked.)
+        TempGitRepo.TryGit(_repo.Root, "status");
+        TempGitRepo.TryGit(_repo.Root, "ls-remote", "ssh://localhost/x.git");
+
+        Assert.True(File.Exists(programs["fsmonitor"]), "core.fsmonitor is not live: the test proves nothing.");
+        Assert.True(File.Exists(programs["ssh"]), "core.sshCommand is not live: the test proves nothing.");
+
+        foreach (var file in programs.Values.Where(File.Exists).ToList())
+        {
+            File.Delete(file);
+        }
+
         var result = await NewRunner().PushRunBranchAsync(Push(), Ct);
 
         Assert.Equal(RemotePushOutcome.Pushed, result.Outcome);
         Assert.All(programs, p => Assert.False(File.Exists(p.Value), p.Key + " ran."));
         Assert.Equal([$"refs/heads/{RunBranch} {_repo.Head}"], RemoteRefs());
+        foreach (var spec in _process.Specs)
+        {
+            var settings = RemoteGitCommands.Settings(spec);
+            Assert.Contains("core.fsmonitor=false", settings);
+            Assert.Contains("core.sshCommand=", settings);
+            Assert.Contains("core.gitProxy=", settings);
+            Assert.Contains("core.askPass=", settings);
+        }
     }
-
     [Fact]
     public async Task Follow_tags_and_a_default_push_of_the_repository_do_not_send_a_tag_nor_another_branch()
     {
@@ -423,22 +462,119 @@ public sealed class RemoteGitRunnerLocalTests : IDisposable
         Assert.Equal([$"refs/heads/{RunBranch} {_repo.Head}"], RemoteRefs());
     }
 
-    [Fact]
-    public async Task A_repository_with_git_lfs_in_its_attributes_is_not_published()
+    private void ConfigureLfsFilter()
     {
         _repo.Run("config", "filter.lfs.clean", "git-lfs clean -- %f");
         _repo.Run("config", "filter.lfs.smudge", "git-lfs smudge -- %f");
         _repo.Run("config", "filter.lfs.process", "git-lfs filter-process");
-        File.WriteAllText(Path.Combine(_repo.Root, ".gitattributes"), "*.psd filter=lfs diff=lfs merge=lfs -text\n");
+    }
+
+    private void CommitAttributes(string relative, string content)
+    {
+        _repo.Write(relative, content);
+        TempGitRepo.Git(_repo.Root, "add", "-f", "--", relative);
+        TempGitRepo.Git(_repo.Root, "commit", "-q", "-m", "atributos");
+    }
+
+    [Theory]
+    [InlineData(".gitattributes")]
+    [InlineData("deep/er/.gitattributes")]
+    public async Task A_commit_with_git_lfs_in_its_attributes_is_not_published_wherever_the_file_is(string relative)
+    {
+        ConfigureLfsFilter();
+        CommitAttributes(relative, "*.psd filter=lfs diff=lfs merge=lfs -text\n");
 
         var result = await NewRunner().PushRunBranchAsync(Push(), Ct);
 
         Assert.Equal(RemotePushOutcome.LfsRefused, result.Outcome);
+        Assert.Equal(RemoteGitCodes.LfsDetected, result.FailureCode);
         Assert.True(result.Inspection.UsesLfs);
-        Assert.Equal(["config", "ls-remote"], Launched);
+        Assert.Equal(["config", "ls-remote", "grep"], Launched);
         Assert.Empty(RemoteRefs());
     }
 
+    [Fact]
+    public async Task The_commit_that_goes_up_decides_and_not_the_working_tree_in_either_direction()
+    {
+        ConfigureLfsFilter();
+        var clean = _repo.Head;
+        CommitAttributes(".gitattributes", "*.psd filter=lfs diff=lfs merge=lfs -text\n");
+        var withLfs = _repo.Head;
+
+        // The working tree does not say it (the file was removed from the checkout) and the commit does: refused.
+        File.Delete(Path.Combine(_repo.Root, ".gitattributes"));
+        var refused = await NewRunner().PushRunBranchAsync(Push(withLfs), Ct);
+
+        // The working tree says it (an uncommitted file) and the commit that goes up does not: published.
+        File.WriteAllText(Path.Combine(_repo.Root, ".gitattributes"), "*.psd filter=lfs\n");
+        var published = await NewRunner().PushRunBranchAsync(Push(clean), Ct);
+
+        Assert.Equal(RemotePushOutcome.LfsRefused, refused.Outcome);
+        Assert.Equal(RemotePushOutcome.Pushed, published.Outcome);
+        Assert.Equal([$"refs/heads/{RunBranch} {clean}"], RemoteRefs());
+    }
+
+    [Fact]
+    public async Task A_commit_with_only_a_commented_line_about_lfs_is_published()
+    {
+        CommitAttributes(".gitattributes", "# *.psd filter=lfs\n*.cs text\n");
+        ConfigureLfsFilter();
+        var commented = await NewRunner().PushRunBranchAsync(Push(), Ct);
+
+        Assert.Equal(RemotePushOutcome.Pushed, commented.Outcome);
+    }
+
+    [Fact]
+    public async Task A_commit_that_cannot_be_asked_about_lfs_is_not_published()
+    {
+        ConfigureLfsFilter();
+
+        var result = await NewRunner().PushRunBranchAsync(Push("0123456789012345678901234567890123456789"), Ct);
+
+        Assert.Equal(RemotePushOutcome.Failed, result.Outcome);
+        Assert.Equal(RemoteGitCodes.LfsCheckFailed, result.FailureCode);
+        Assert.Empty(RemoteRefs());
+    }
+    [Theory]
+    [InlineData("pushurl")]
+    [InlineData("url")]
+    [InlineData("mirror")]
+    public async Task A_remote_of_the_repository_called_like_the_address_is_refused_and_nothing_reaches_either_remote(string variable)
+    {
+        var other = Path.Combine(_container, "other.git");
+        TempGitRepo.Git(_container, "init", "-q", "--bare", other);
+        _repo.Run("config", $"remote.{BareAddress}.{variable}", variable == "mirror" ? "true" : other.Replace('\\', '/'));
+        var before = _repo.Snapshot();
+
+        var result = await NewRunner().PushRunBranchAsync(Push(), Ct);
+
+        Assert.Equal(RemotePushOutcome.ConfigurationRefused, result.Outcome);
+        var refusal = Assert.Single(result.Inspection.Refusals);
+        Assert.Equal("remote.*." + variable, refusal.Key);
+        Assert.Equal("local", refusal.Scope);
+        Assert.Equal(["config"], Launched);
+        Assert.Empty(RemoteRefs());
+        Assert.Equal(string.Empty, TempGitRepo.Git(other, "for-each-ref").Trim());
+        Assert.Equal(before, _repo.Snapshot());
+    }
+
+    [Fact]
+    public async Task A_nested_include_from_a_file_outside_the_repository_to_one_inside_it_is_refused()
+    {
+        File.WriteAllText(Path.Combine(_repo.Root, "inner.cfg"), "[http]\n\tsslVerify = false\n");
+        File.WriteAllText(Path.Combine(_container, "outer.cfg"), "[include]\n\tpath = " + Path.Combine(_repo.Root, "inner.cfg").Replace('\\', '/') + "\n");
+        WriteGlobal("[include]\n\tpath = " + Path.Combine(_container, "outer.cfg").Replace('\\', '/') + "\n");
+
+        var result = await NewRunner().PushRunBranchAsync(Push(), Ct);
+
+        Assert.Equal(RemotePushOutcome.ConfigurationRefused, result.Outcome);
+        var refusal = Assert.Single(result.Inspection.Refusals);
+        Assert.Equal("http.sslverify", refusal.Key);
+        Assert.Equal("global", refusal.Scope);
+        Assert.EndsWith("inner.cfg", refusal.OriginFile, StringComparison.Ordinal);
+        Assert.Equal(["config"], Launched);
+        Assert.Empty(RemoteRefs());
+    }
     [Fact]
     public async Task A_configuration_that_is_not_readable_is_an_inspection_that_failed_and_nothing_is_pushed()
     {

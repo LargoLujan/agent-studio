@@ -6,7 +6,7 @@ namespace AgentStudio.Infrastructure.Git.Remote;
 /// <summary>
 /// The exact command lines of the remote executor of git (docs/21 D-06 and D-07): a closed list. The arguments are constants; the only data in them is the address (written by the transport from a validated
 /// <see cref="RemoteRepository"/>), the refspec (written by <see cref="TryRefspec"/>, the only function that writes one) and the name of a branch, which is validated and goes behind <c>refs/heads/</c>. There is no
-/// <c>--force</c>, no <c>+</c> refspec, no deletion, no <c>--mirror</c>, <c>--all</c> or <c>--tags</c>, and no <c>fetch</c>.
+/// <c>--force</c>, no <c>+</c> refspec, no deletion, no <c>--mirror</c>, <c>--all</c> or <c>--tags</c>, and no <c>fetch</c>. The five commands are <c>config</c>, <c>grep</c> (local), <c>ls-remote</c> (three times) and <c>push</c>.
 /// </summary>
 internal static class RemoteGitCommandLine
 {
@@ -75,6 +75,20 @@ internal static class RemoteGitCommandLine
 
     /// <summary>The question of the address git would use after rewriting it with <c>url.&lt;base&gt;.insteadOf</c>; it opens no transport.</summary>
     public static IReadOnlyList<string> GetUrl(string address) => ["ls-remote", "--get-url", "--", address];
+
+    /// <summary>
+    /// Whether the tree of a commit has a <c>.gitattributes</c> (at any depth) with a line that says <c>filter=lfs</c> and is not a comment: a local command, read-only and with no network. <c>git grep</c> of a tree reads the objects and runs
+    /// no filter or conversion; it exits with 0 when there is a match, 1 when there is none and more for a failure. <paramref name="treeish"/> is a commit (40 hexadecimal characters) or <c>HEAD</c>, never other text.
+    /// </summary>
+    public static IReadOnlyList<string> LfsAttributes(string treeish)
+    {
+        if (treeish != "HEAD" && !IsCommit(treeish))
+        {
+            throw new ArgumentException("A commit of 40 lowercase hexadecimal characters, or HEAD.", nameof(treeish));
+        }
+
+        return ["grep", "-l", "-i", "-E", "--no-color", "-e", "^[^#]*filter=lfs", treeish, "--", ":(glob)**/.gitattributes"];
+    }
 
     /// <summary><c>ls-remote --refs</c> of one branch of the repository.</summary>
     public static IReadOnlyList<string> LsRemote(string address, RemoteBranch branch)

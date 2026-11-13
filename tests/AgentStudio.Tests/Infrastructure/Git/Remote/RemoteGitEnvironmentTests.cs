@@ -61,7 +61,7 @@ public sealed class RemoteGitEnvironmentTests
     }
 
     [Fact]
-    public void The_variables_git_and_its_credential_manager_need_go_on_with_the_value_of_the_snapshot_and_path_is_left_to_the_runner_of_processes()
+    public void The_variables_git_and_its_credential_manager_need_go_on_with_the_value_of_the_snapshot_and_path_is_cleaned()
     {
         var ambient = new Dictionary<string, string>
         {
@@ -78,7 +78,7 @@ public sealed class RemoteGitEnvironmentTests
         }
 
         Assert.Equal(@"C:\Users\ana", environment["HOME"]);
-        Assert.False(environment.ContainsKey("PATH"));
+        Assert.Equal(@"C:\Program Files\Git\cmd", environment["PATH"]);
         Assert.False(environment.ContainsKey("NoDefaultCurrentDirectoryInExePath"));
     }
 

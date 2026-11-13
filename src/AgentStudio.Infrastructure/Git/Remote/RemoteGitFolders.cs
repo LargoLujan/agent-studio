@@ -25,6 +25,7 @@ internal sealed record RemoteGitFolders(string HooksFile, string TempFolder)
     /// Creates the temporary folder and the empty file when they are missing, and checks the file every time: it must be a file with no content and no link. Anything else (a folder, a link, a file with
     /// content) is refused and nothing is emptied or replaced: the person looks at it first.
     /// </summary>
+    /// <exception cref="UnsafeFolderException">A folder is a link.</exception>
     /// <exception cref="InvalidOperationException">The path of the hooks file is not an empty file.</exception>
     /// <exception cref="IOException">A folder or the file could not be created.</exception>
     /// <exception cref="UnauthorizedAccessException">A folder or the file could not be created.</exception>
@@ -32,6 +33,17 @@ internal sealed record RemoteGitFolders(string HooksFile, string TempFolder)
     {
         Directory.CreateDirectory(TempFolder);
         Directory.CreateDirectory(Path.GetDirectoryName(HooksFile)!);
+
+        // Neither the folders nor the file may be a link (a junction or a symbolic link leads what git writes, or reads as «no hooks», somewhere else). They are checked before they are used, every time. What is left
+        // is the window between this and the start of git, for a process of the same user: the residual of ADR-0018.
+        foreach (var folder in new[] { TempFolder, Path.GetDirectoryName(HooksFile)!, Path.GetDirectoryName(Path.GetDirectoryName(HooksFile))! }.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            if (new DirectoryInfo(folder).Attributes.HasFlag(FileAttributes.ReparsePoint))
+            {
+                throw new UnsafeFolderException($"'{folder}' is a link: the temporary folder and the hooks file of the remote executor must be real folders; refusing to run git until it is deleted.");
+            }
+        }
+
         if (!File.Exists(HooksFile) && !Directory.Exists(HooksFile))
         {
             try
@@ -52,3 +64,6 @@ internal sealed record RemoteGitFolders(string HooksFile, string TempFolder)
         }
     }
 }
+
+/// <summary>A folder of the executor is a link (docs/21 D-06): git does not run.</summary>
+internal sealed class UnsafeFolderException(string message) : InvalidOperationException(message);

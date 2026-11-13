@@ -45,7 +45,7 @@ internal static class RemoteGitEnvironment
     /// that opens <c>protocol.&lt;scheme&gt;.allow</c>), <c>GCM_INTERACTIVE=never</c> (git credential manager fails instead of opening a window; another helper has no window to avoid) and <c>LC_ALL=C</c>, so
     /// the error output has the one language the classifier of the executor reads.
     /// </summary>
-    public static IReadOnlyDictionary<string, string?> Build(RemoteTransport transport, string tempFolder, IReadOnlyDictionary<string, string> ambient)
+    public static IReadOnlyDictionary<string, string?> Build(RemoteTransport transport, string tempFolder, IReadOnlyDictionary<string, string> ambient, Func<string, bool>? excludePathEntry = null)
     {
         ArgumentNullException.ThrowIfNull(transport);
         ArgumentException.ThrowIfNullOrWhiteSpace(tempFolder);
@@ -62,6 +62,19 @@ internal static class RemoteGitEnvironment
             {
                 // Allowed, so it goes on as the snapshot has it: the environment of the command is what this says, not what the child happens to inherit.
                 environment[name] = value;
+            }
+        }
+
+        // PATH: the runner of processes cleans it too, but only knows the projects it was told about, and what a spec sets wins. So it is set here without the relative entries and without the ones the caller excludes (the folder of
+        // the project, with its links resolved, and the untrusted roots).
+        foreach (var (name, value) in ambient)
+        {
+            if (string.Equals(name, "PATH", StringComparison.OrdinalIgnoreCase))
+            {
+                environment["PATH"] = string.Join(
+                    Path.PathSeparator,
+                    value.Split(Path.PathSeparator).Select(entry => entry.Trim().Trim('"'))
+                        .Where(entry => entry.Length > 0 && Path.IsPathFullyQualified(entry) && (excludePathEntry is null || !excludePathEntry(entry))));
             }
         }
 

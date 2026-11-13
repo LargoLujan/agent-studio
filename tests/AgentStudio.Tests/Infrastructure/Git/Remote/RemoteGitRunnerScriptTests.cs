@@ -125,7 +125,7 @@ public sealed class RemoteGitRunnerScriptTests : IDisposable
             }
 
             Assert.Equal(@"C:\Users\ana", environment["USERPROFILE"]);
-            Assert.False(environment.ContainsKey("PATH"));
+            Assert.Equal(string.Empty, environment["PATH"]);
             Assert.Equal("0", environment["GIT_TERMINAL_PROMPT"]);
             Assert.Equal("0", environment["GIT_OPTIONAL_LOCKS"]);
             Assert.Equal("cat", environment["GIT_PAGER"]);
@@ -216,26 +216,72 @@ public sealed class RemoteGitRunnerScriptTests : IDisposable
     }
 
     [Fact]
-    public async Task A_push_that_timed_out_is_not_confirmed_and_nothing_else_is_launched()
+    public async Task A_push_that_timed_out_is_looked_up_on_the_remote_and_is_not_confirmed_when_the_branch_is_not_there()
     {
+        _script.LsRemote.Add(RemoteGitScript.Ok(string.Empty));
         _script.LsRemote.Add(RemoteGitScript.Ok(string.Empty));
         _script.PushResult = RemoteGitScript.TimedOut();
 
         var result = await Runner().PushRunBranchAsync(_fixture.Push(), Ct);
 
         Assert.Equal(RemotePushOutcome.NotConfirmed, result.Outcome);
-        Assert.Equal(["config", "get-url", "ls-remote", "push"], _script.Kinds);
+        Assert.Null(result.RemoteCommit);
+        Assert.Equal(RemoteGitCodes.TimedOut, result.FailureCode);
+        Assert.Equal(["config", "get-url", "ls-remote", "push", "ls-remote"], _script.Kinds);
     }
 
     [Fact]
-    public async Task A_push_that_wrote_more_than_the_cap_failed()
+    public async Task A_push_that_was_killed_halfway_but_got_there_is_pushed_because_the_remote_is_read_and_not_guessed()
     {
         _script.LsRemote.Add(RemoteGitScript.Ok(string.Empty));
+        _script.LsRemote.Add(RemoteGitScript.Ok(RemoteGitScript.BranchLine(RemoteGitFixture.Commit)));
+        _script.PushResult = RemoteGitScript.TimedOut();
+
+        var timedOut = await Runner().PushRunBranchAsync(_fixture.Push(), Ct);
+
+        Assert.Equal(RemotePushOutcome.Pushed, timedOut.Outcome);
+        Assert.Equal(RemoteGitFixture.Commit, timedOut.RemoteCommit);
+        Assert.Null(timedOut.FailureCode);
+    }
+
+    [Fact]
+    public async Task A_push_that_wrote_more_than_the_cap_is_looked_up_on_the_remote_and_never_failed_without_looking()
+    {
+        _script.LsRemote.Add(RemoteGitScript.Ok(string.Empty));
+        _script.LsRemote.Add(RemoteGitScript.Ok(RemoteGitScript.BranchLine(RemoteGitFixture.OtherCommit)));
         _script.PushResult = RemoteGitScript.TooLarge();
 
-        var result = await Runner().PushRunBranchAsync(_fixture.Push(), Ct);
+        var notThere = await Runner().PushRunBranchAsync(_fixture.Push(), Ct);
+
+        Assert.Equal(RemotePushOutcome.NotConfirmed, notThere.Outcome);
+        Assert.Equal(RemoteGitFixture.OtherCommit, notThere.RemoteCommit);
+        Assert.Equal(RemoteGitCodes.OutputTooLarge, notThere.FailureCode);
+        Assert.Equal(["config", "get-url", "ls-remote", "push", "ls-remote"], _script.Kinds);
+
+        var script = new RemoteGitScript { PushResult = RemoteGitScript.TooLarge() };
+        script.LsRemote.Add(RemoteGitScript.Ok(string.Empty));
+        script.LsRemote.Add(RemoteGitScript.Ok(RemoteGitScript.BranchLine(RemoteGitFixture.Commit)));
+        var there = await _fixture.NewRunner(script).PushRunBranchAsync(_fixture.Push(), Ct);
+
+        Assert.Equal(RemotePushOutcome.Pushed, there.Outcome);
+    }
+
+    [Fact]
+    public async Task A_push_that_git_could_not_start_failed_with_a_code_and_nothing_was_sent()
+    {
+        _script.LsRemote.Add(RemoteGitScript.Ok(string.Empty));
+        var runner = _fixture.NewRunner(new FailingToStartOnPush(_script));
+
+        var result = await runner.PushRunBranchAsync(_fixture.Push(), Ct);
 
         Assert.Equal(RemotePushOutcome.Failed, result.Outcome);
+        Assert.Equal(RemoteGitCodes.GitFailed, result.FailureCode);
+    }
+
+    private sealed class FailingToStartOnPush(RemoteGitScript inner) : IProcessRunner
+    {
+        public Task<ProcessResult> RunAsync(ProcessSpec spec, CancellationToken cancellationToken) =>
+            RemoteGitCommands.Kind(spec) == "push" ? throw new InvalidOperationException("cannot start") : inner.RunAsync(spec, cancellationToken);
     }
 
     // ---- «la rama del remoto cambió; no se sobrescribe» ----
@@ -306,6 +352,7 @@ public sealed class RemoteGitRunnerScriptTests : IDisposable
 
         Assert.Equal(expected, result.Outcome);
         Assert.Null(result.RemoteCommit);
+        Assert.False(string.IsNullOrEmpty(result.FailureCode));
     }
 
     [Theory]
@@ -725,75 +772,131 @@ public sealed class RemoteGitRunnerScriptTests : IDisposable
         Assert.Empty(_script.Specs);
     }
 
-    // ---- LFS ----
+    // ---- LFS: the commit that goes up decides ----
+
+    private void TheLfsFilterIsConfigured() =>
+        Plant("system", "file:C:/Program Files/Git/etc/gitconfig", "filter.lfs.clean", "git-lfs clean -- %f");
 
     [Fact]
-    public async Task A_repository_that_says_filter_lfs_in_its_attributes_with_the_filter_configured_is_not_published()
+    public async Task A_commit_whose_attributes_say_filter_lfs_with_the_filter_configured_is_not_published()
     {
-        Plant("system", "file:C:/Program Files/Git/etc/gitconfig", "filter.lfs.clean", "git-lfs clean -- %f");
-        File.WriteAllText(Path.Combine(_fixture.Root, ".gitattributes"), "*.psd filter=lfs diff=lfs merge=lfs -text\n");
+        TheLfsFilterIsConfigured();
+        _script.GrepResult = RemoteGitScript.LfsFound();
 
         var result = await Runner().PushRunBranchAsync(_fixture.Push(), Ct);
 
         Assert.Equal(RemotePushOutcome.LfsRefused, result.Outcome);
+        Assert.Equal(RemoteGitCodes.LfsDetected, result.FailureCode);
         Assert.True(result.Inspection.UsesLfs);
         Assert.False(result.Inspection.Accepted);
         Assert.Empty(result.Inspection.Refusals);
-        Assert.Equal(["config", "get-url"], _script.Kinds);
-    }
-
-    [Theory]
-    [InlineData("sub/dir/.gitattributes")]
-    [InlineData(".git/info/attributes")]
-    public async Task The_attributes_of_a_folder_and_of_the_repository_count_too(string relative)
-    {
-        Plant("global", "file:C:/Users/ana/.gitconfig", "filter.lfs.smudge", "git-lfs smudge -- %f");
-        var file = Path.Combine(_fixture.Root, relative.Replace('/', Path.DirectorySeparatorChar));
-        Directory.CreateDirectory(Path.GetDirectoryName(file)!);
-        File.WriteAllText(file, "# comment\n*.bin filter=lfs -text\n");
-
-        var result = await Runner().PushRunBranchAsync(_fixture.Push(), Ct);
-
-        Assert.Equal(RemotePushOutcome.LfsRefused, result.Outcome);
+        Assert.Equal(["config", "get-url", "grep"], _script.Kinds);
+        Assert.Equal(RemoteGitCommandLine.LfsAttributes(RemoteGitFixture.Commit), RemoteGitCommands.CommandOf(_script.Specs[2]));
+        AssertAllClosed();
     }
 
     [Fact]
-    public async Task The_filter_of_git_lfs_in_the_configuration_of_the_system_alone_is_not_lfs()
+    public async Task The_attributes_of_the_working_tree_do_not_count_only_those_of_the_commit_that_goes_up()
     {
         ThePushWorks();
-        Plant("system", "file:C:/Program Files/Git/etc/gitconfig", "filter.lfs.clean", "git-lfs clean -- %f");
-        File.WriteAllText(Path.Combine(_fixture.Root, ".gitattributes"), "*.cs text eol=crlf\n# *.bin filter=lfs\n");
+        TheLfsFilterIsConfigured();
+        File.WriteAllText(Path.Combine(_fixture.Root, ".gitattributes"), "*.psd filter=lfs diff=lfs merge=lfs -text\n");
 
         var result = await Runner().PushRunBranchAsync(_fixture.Push(), Ct);
 
         Assert.Equal(RemotePushOutcome.Pushed, result.Outcome);
         Assert.False(result.Inspection.UsesLfs);
+        Assert.Equal(["config", "get-url", "grep", "ls-remote", "push", "ls-remote"], _script.Kinds);
     }
 
     [Fact]
-    public async Task Attributes_that_say_filter_lfs_without_the_filter_configured_are_not_lfs()
+    public async Task The_attributes_of_the_repository_info_file_count_too_and_the_commit_is_not_asked()
+    {
+        TheLfsFilterIsConfigured();
+        Directory.CreateDirectory(Path.Combine(_fixture.Root, ".git", "info"));
+        File.WriteAllText(Path.Combine(_fixture.Root, ".git", "info", "attributes"), "# comment\n*.bin filter=lfs -text\n");
+
+        var result = await Runner().PushRunBranchAsync(_fixture.Push(), Ct);
+
+        Assert.Equal(RemotePushOutcome.LfsRefused, result.Outcome);
+        Assert.Equal(["config", "get-url"], _script.Kinds);
+    }
+
+    [Fact]
+    public async Task A_commented_line_in_the_info_file_is_not_lfs()
     {
         ThePushWorks();
-        File.WriteAllText(Path.Combine(_fixture.Root, ".gitattributes"), "*.psd filter=lfs\n");
+        TheLfsFilterIsConfigured();
+        Directory.CreateDirectory(Path.Combine(_fixture.Root, ".git", "info"));
+        File.WriteAllText(Path.Combine(_fixture.Root, ".git", "info", "attributes"), "# *.bin filter=lfs\n*.cs text\n");
 
         var result = await Runner().PushRunBranchAsync(_fixture.Push(), Ct);
 
         Assert.Equal(RemotePushOutcome.Pushed, result.Outcome);
+    }
+
+    [Fact]
+    public async Task Without_the_filter_configured_the_commit_is_not_even_asked()
+    {
+        ThePushWorks();
+        _script.GrepResult = RemoteGitScript.LfsFound();
+
+        var result = await Runner().PushRunBranchAsync(_fixture.Push(), Ct);
+
+        Assert.Equal(RemotePushOutcome.Pushed, result.Outcome);
+        Assert.DoesNotContain("grep", _script.Kinds);
+    }
+
+    public static TheoryData<string> LfsCheckFailures => new() { "exit", "timeout", "large", "start" };
+
+    [Theory]
+    [MemberData(nameof(LfsCheckFailures))]
+    public async Task When_it_cannot_be_known_whether_the_commit_uses_lfs_nothing_is_published(string failure)
+    {
+        TheLfsFilterIsConfigured();
+        _script.GrepResult = failure switch
+        {
+            "exit" => RemoteGitScript.Failure(128, "fatal: unable to parse object"),
+            "timeout" => RemoteGitScript.TimedOut(),
+            "large" => RemoteGitScript.TooLarge(),
+            _ => RemoteGitScript.Failure(2, "fatal: bad"),
+        };
+
+        var push = await Runner().PushRunBranchAsync(_fixture.Push(), Ct);
+        var inspection = await Runner().InspectAsync(_fixture.Project, RemoteGitFixture.Repository, Ct);
+
+        Assert.Equal(RemotePushOutcome.Failed, push.Outcome);
+        Assert.Equal(RemoteGitCodes.LfsCheckFailed, push.FailureCode);
+        Assert.Equal(RemoteGitCodes.LfsCheckFailed, inspection.FailureCode);
+        Assert.DoesNotContain("push", _script.Kinds);
+        Assert.DoesNotContain("ls-remote", _script.Kinds);
+        Assert.Equal(2, _script.Kinds.Count(kind => kind == "grep"));
+    }
+
+    [Fact]
+    public async Task Inspecting_without_a_commit_asks_for_head()
+    {
+        TheLfsFilterIsConfigured();
+
+        var inspection = await Runner().InspectAsync(_fixture.Project, RemoteGitFixture.Repository, Ct);
+
+        Assert.True(inspection.Accepted);
+        Assert.Equal(RemoteGitCommandLine.LfsAttributes("HEAD"), RemoteGitCommands.CommandOf(_script.Specs[^1]));
     }
 
     [Fact]
     public async Task Reading_a_branch_of_a_repository_that_uses_lfs_is_allowed_because_nothing_is_sent()
     {
         _script.LsRemote.Add(RemoteGitScript.Ok(RemoteGitScript.BranchLine(RemoteGitFixture.Commit)));
-        Plant("system", "file:C:/Program Files/Git/etc/gitconfig", "filter.lfs.clean", "git-lfs clean -- %f");
-        File.WriteAllText(Path.Combine(_fixture.Root, ".gitattributes"), "*.psd filter=lfs\n");
+        TheLfsFilterIsConfigured();
+        _script.GrepResult = RemoteGitScript.LfsFound();
 
         var read = await Runner().ReadBranchAsync(_fixture.Project, RemoteGitFixture.Repository, RemoteBranch.ForRun(RemoteGitFixture.Run), Ct);
 
         Assert.True(read.Reached);
         Assert.Equal(RemoteGitFixture.Commit, read.Commit);
+        Assert.DoesNotContain("grep", _script.Kinds);
     }
-
     // ---- ReadBranchAsync ----
 
     [Fact]
@@ -869,23 +972,143 @@ public sealed class RemoteGitRunnerScriptTests : IDisposable
         Assert.Equal(RemoteGitCodes.OutputTooLarge, large.FailureCode);
     }
 
+    // ---- a remote of the repository that is called like the address ----
+
+    [Theory]
+    [InlineData("url")]
+    [InlineData("pushurl")]
+    [InlineData("mirror")]
+    [InlineData("fetch")]
+    [InlineData("tagopt")]
+    [InlineData("anything")]
+    public async Task A_remote_of_the_repository_called_like_the_address_is_refused_whatever_its_key(string variable)
+    {
+        Plant("local", "file:.git/config", "remote.https://github.com/o/r.git." + variable);
+
+        var result = await Runner().PushRunBranchAsync(_fixture.Push(), Ct);
+
+        Assert.Equal(RemotePushOutcome.ConfigurationRefused, result.Outcome);
+        Assert.Equal("remote.*." + variable, Assert.Single(result.Inspection.Refusals).Key);
+        Assert.Equal(["config"], _script.Kinds);
+    }
+
+    [Theory]
+    [InlineData("C:/Users/ana/repo.git")]
+    [InlineData(@"C:\Users\ana\repo.git")]
+    [InlineData("git@github.com:o/r.git")]
+    [InlineData("../elsewhere")]
+    public async Task A_remote_named_like_a_path_or_an_address_is_refused_too(string name)
+    {
+        Plant("worktree", "file:.git/config.worktree", "remote." + name + ".mirror", "true");
+
+        var result = await Runner().PushRunBranchAsync(_fixture.Push(), Ct);
+
+        Assert.Equal(RemotePushOutcome.ConfigurationRefused, result.Outcome);
+        Assert.Equal("remote.*.mirror", Assert.Single(result.Inspection.Refusals).Key);
+    }
+
+    [Fact]
+    public async Task A_remote_with_an_ordinary_name_keeps_not_stopping_anything()
+    {
+        ThePushWorks();
+        foreach (var variable in new[] { "url", "fetch", "tagopt", "mirror", "prune" })
+        {
+            Plant("local", "file:.git/config", "remote.origin-2." + variable);
+        }
+
+        var result = await Runner().PushRunBranchAsync(_fixture.Push(), Ct);
+
+        Assert.Equal(RemotePushOutcome.Pushed, result.Outcome);
+    }
+
+    // ---- PATH and the folders of the executor ----
+
+    [Fact]
+    public async Task The_path_git_gets_has_no_relative_entry_no_entry_inside_the_project_and_no_untrusted_one()
+    {
+        ThePushWorks();
+        var inside = Path.Combine(_fixture.Root, "tools");
+        var untrusted = Path.Combine(Path.GetDirectoryName(_fixture.Root)!, "untrusted-bin");
+        var fine = Path.GetDirectoryName(_fixture.GitPath)!;
+        Directory.CreateDirectory(inside);
+        var ambient = new Dictionary<string, string> { ["Path"] = string.Join(';', @".\planted", "bin", inside, fine, "\"" + Path.Combine(inside, "deep") + "\"", untrusted, string.Empty) };
+        var runner = _fixture.NewRunner(_script, locator: new PathLocator(_fixture.GitPath, untrusted), ambient: () => ambient);
+
+        await runner.PushRunBranchAsync(_fixture.Push(), Ct);
+
+        Assert.NotEmpty(_script.Specs);
+        foreach (var spec in _script.Specs)
+        {
+            Assert.Equal(fine, spec.Environment!["PATH"]);
+        }
+    }
+
+    private sealed class PathLocator(string git, string untrusted) : IExecutableLocator
+    {
+        public string? Find(string command) => command == "git" ? git : null;
+
+        public bool IsUntrusted(string path) => path.StartsWith(untrusted, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task A_temporary_folder_or_a_folder_above_the_hooks_file_that_is_a_link_stops_everything_with_its_code()
+    {
+        var real = Path.Combine(Path.GetDirectoryName(_fixture.Root)!, "real-tmp");
+        Directory.CreateDirectory(real);
+        Directory.CreateDirectory(Path.GetDirectoryName(_fixture.Folders.TempFolder)!);
+        GitManagerTestBase.CreateJunction(_fixture.Folders.TempFolder, real);
+
+        var result = await Runner().PushRunBranchAsync(_fixture.Push(), Ct);
+
+        Assert.Equal(RemotePushOutcome.Failed, result.Outcome);
+        Assert.Equal(RemoteGitCodes.UnsafeFolder, result.FailureCode);
+        Assert.Equal(RemoteGitCodes.UnsafeFolder, result.Inspection.FailureCode);
+        Assert.Empty(_script.Specs);
+        Directory.Delete(_fixture.Folders.TempFolder);
+    }
+
     // ---- D-07 over the whole battery ----
 
     [Fact]
     public async Task No_command_of_the_whole_battery_forces_deletes_mirrors_or_fetches()
     {
-        // Every way a push can go, in one script: new, up to date, fast-forward, rejected, refused, not confirmed, and reads.
-        foreach (var (lsRemote, push) in new[]
+        var lfsSystem = RemoteGitCommands.ConfigEntry("system", "file:C:/etc/gitconfig", "filter.lfs.clean", "git-lfs clean -- %f");
+        var rewrite = RemoteGitCommands.ConfigEntry("global", "file:C:/Users/ana/.gitconfig", "url.https://m.example/.insteadof", "https://github.com/");
+        var refused = RemoteGitCommands.ConfigEntry("local", "file:.git/config", "credential.helper", "x");
+        var hostile = new ProcessResult(128, string.Empty, "fatal: could not read Username for 'https://github.com': terminal prompts disabled", TimeSpan.Zero, false);
+
+        // Every way a push can go, one script each: new, up to date, fast-forward, rejected, refused, not confirmed, credentials, time out, cap, LFS, rewrite, configuration, failures of the inspection.
+        var scripts = new List<RemoteGitScript>();
+        RemoteGitScript Make(Action<RemoteGitScript> configure, params string[] lsRemote)
         {
-            (new[] { string.Empty, RemoteGitScript.BranchLine(RemoteGitFixture.Commit) }, RemoteGitScript.PorcelainOutput("*", Refspec, "[new branch]")),
-            (new[] { RemoteGitScript.BranchLine(RemoteGitFixture.Commit) }, string.Empty),
-            (new[] { RemoteGitScript.BranchLine(RemoteGitFixture.OtherCommit), RemoteGitScript.BranchLine(RemoteGitFixture.Commit) }, RemoteGitScript.PorcelainOutput(" ", Refspec, "a..b")),
-            (new[] { RemoteGitScript.BranchLine(RemoteGitFixture.OtherCommit) }, RemoteGitScript.PorcelainOutput("!", Refspec, "[rejected] (non-fast-forward)")),
-            (new[] { string.Empty, string.Empty }, RemoteGitScript.PorcelainOutput("*", Refspec, "[new branch]")),
-        })
-        {
-            var script = new RemoteGitScript { PushResult = RemoteGitScript.Ok(push) };
+            var script = new RemoteGitScript();
             script.LsRemote.AddRange(lsRemote.Select(RemoteGitScript.Ok));
+            configure(script);
+            scripts.Add(script);
+            return script;
+        }
+
+        var commit = RemoteGitScript.BranchLine(RemoteGitFixture.Commit);
+        var other = RemoteGitScript.BranchLine(RemoteGitFixture.OtherCommit);
+        Make(s => s.PushResult = RemoteGitScript.Ok(RemoteGitScript.PorcelainOutput("*", Refspec, "[new branch]")), string.Empty, commit);
+        Make(_ => { }, commit);
+        Make(s => s.PushResult = RemoteGitScript.Ok(RemoteGitScript.PorcelainOutput(" ", Refspec, "a..b")), other, commit);
+        Make(s => s.PushResult = RemoteGitScript.Ok(RemoteGitScript.PorcelainOutput("!", Refspec, "[rejected] (non-fast-forward)")), other);
+        Make(s => s.PushResult = RemoteGitScript.Ok(RemoteGitScript.PorcelainOutput("*", Refspec, "[new branch]")), string.Empty, string.Empty);
+        Make(s => s.PushResult = hostile, string.Empty);
+        Make(s => s.PushResult = RemoteGitScript.TimedOut(), string.Empty, string.Empty);
+        Make(s => s.PushResult = RemoteGitScript.TooLarge(), string.Empty, commit);
+        Make(s => s.LsRemote.Insert(0, hostile));
+        Make(s => { s.ConfigOutput = lfsSystem; s.GrepResult = RemoteGitScript.LfsFound(); });
+        Make(s => { s.ConfigOutput = lfsSystem; s.GrepResult = RemoteGitScript.Failure(128, "fatal"); });
+        Make(s => { s.ConfigOutput = lfsSystem; s.PushResult = RemoteGitScript.Ok(RemoteGitScript.PorcelainOutput("*", Refspec, "[new branch]")); }, string.Empty, commit);
+        Make(s => { s.ConfigOutput = rewrite; s.GetUrlOutput = "https://m.example/o/r.git"; });
+        Make(s => s.ConfigOutput = refused);
+        Make(s => s.ConfigResult = RemoteGitScript.Failure(128, "fatal"));
+        Make(s => s.GetUrlResult = RemoteGitScript.TimedOut());
+
+        foreach (var script in scripts)
+        {
             var runner = _fixture.NewRunner(script);
             await runner.PushRunBranchAsync(_fixture.Push(), Ct);
             await runner.ReadBranchAsync(_fixture.Project, RemoteGitFixture.Repository, RemoteBranch.TryParse("main")!, Ct);
@@ -897,5 +1120,8 @@ public sealed class RemoteGitRunnerScriptTests : IDisposable
                 RemoteGitCommandLineTests.AssertClosed(spec);
             }
         }
+
+        var kinds = scripts.SelectMany(s => s.Kinds).Distinct().Order().ToList();
+        Assert.Equal(["config", "get-url", "grep", "ls-remote", "push"], kinds);
     }
 }

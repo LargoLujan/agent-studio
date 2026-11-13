@@ -121,6 +121,35 @@ public sealed class RemoteConfigInspectionTests
     public void The_ordinary_keys_of_a_repository_do_not_stop_a_publication(string key) =>
         Assert.Empty(Analyze(true, Entry("local", key)).Refusals);
 
+    [Theory]
+    [InlineData("remote.https://github.com/o/r.git.url", "remote.*.url")]
+    [InlineData("remote.https://github.com/o/r.git.mirror", "remote.*.mirror")]
+    [InlineData("remote.https://github.com/o/r.git.fetch", "remote.*.fetch")]
+    [InlineData("remote.https://github.com/o/r.git.pushurl", "remote.*.pushurl")]
+    [InlineData("remote.https://github.com/o/r.git.tagopt", "remote.*.tagopt")]
+    [InlineData("remote.C:/path/to/remote.git.anything", "remote.*.anything")]
+    [InlineData(@"remote.C:\path\to\remote.git.mirror", "remote.*.mirror")]
+    [InlineData("remote.git@github.com:o/r.git.url", "remote.*.url")]
+    [InlineData("remote.../elsewhere.mirror", "remote.*.mirror")]
+    public void A_remote_of_the_repository_called_like_an_address_or_a_path_is_refused_whatever_its_key(string key, string shown)
+    {
+        var local = Assert.Single(Analyze(false, Entry("local", key)).Refusals);
+        var inside = Assert.Single(Analyze(true, Entry("global", key, origin: @"file:C:\repo\x.cfg")).Refusals);
+
+        Assert.Equal(shown, local.Key);
+        Assert.Equal("global", inside.Scope);
+        Assert.Empty(Analyze(false, Entry("global", key, origin: "file:C:/Users/ana/.gitconfig")).Refusals);
+    }
+
+    [Theory]
+    [InlineData("remote.origin.mirror")]
+    [InlineData("remote.origin.url")]
+    [InlineData("remote.origin.prune")]
+    [InlineData("remote.upstream.fetch")]
+    [InlineData("remote.my-fork_2.tagopt")]
+    public void A_remote_with_a_plain_name_is_not_refused_for_its_key(string key) =>
+        Assert.Empty(Analyze(true, Entry("local", key)).Refusals);
+
     [Fact]
     public void A_scope_that_is_not_one_of_the_files_of_the_person_counts_as_the_repository_s()
     {

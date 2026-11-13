@@ -2038,22 +2038,32 @@ Lo que difiere del diseño, y lo medido en este equipo (git 2.45.2, Windows, rem
   (un `includeIf` global da ámbito `global` con el fichero del repositorio como origen; un `include.path` local, `local` con la ruta con barras invertidas).
 - **`pushInsteadOf`:** medido que `ls-remote --get-url` aplica `url.*.insteadOf` y **no** `url.*.pushInsteadOf`. Una entrada `pushinsteadof` (de cualquier ámbito) cuyo valor sea prefijo de la dirección se rechaza en código
   (un valor vacío es prefijo de todo). Es la única predicción en código; el resto lo dice git.
-- **Git LFS:** medido que la configuración **del sistema** de este equipo ya trae `filter.lfs.*`; solo eso rechazaría todo. `UsesLfs` es: filtro `lfs` configurado **y** `filter=lfs` en un `.gitattributes` del árbol de trabajo
-  (recorrido acotado: 20 000 carpetas, 500 ficheros, 1 MiB por fichero, sin `node_modules` ni enlaces; pasado el tope, «sí») o en `info/attributes`. No mira los atributos del commit que sube (necesitaría `ls-tree`, fuera de la lista cerrada).
+- **Git LFS (ronda de arreglos):** medido que la configuración **del sistema** de este equipo ya trae `filter.lfs.*`; solo eso rechazaría todo. `UsesLfs` es: filtro `lfs` configurado **y** el commit que sube tiene un `.gitattributes`
+  (en cualquier carpeta) con una línea que no sea comentario y diga `filter=lfs`, o `info/attributes` del repositorio lo dice. Se pregunta a git con una orden local más, cerrada y sin red:
+  `grep -l -i -E --no-color -e "^[^#]*filter=lfs" <commit> -- ":(glob)**/.gitattributes"` (medido: salida 0 con coincidencia, 1 sin ella, 128 con un objeto que no existe; encuentra la raíz y las carpetas hondas, y ignora los
+  comentarios). Sin commit (`InspectAsync`), pregunta por `HEAD`. Si no se puede saber (fallo, tiempo, salida cortada), `LfsCheckFailed` y no se publica. El árbol de trabajo ya no cuenta, ni se recorre.
+- **Un remoto que se llama como la dirección (ronda de arreglos):** git busca el remoto por el nombre que se le da, y se le da la dirección. Medido con git 2.45.2: `[remote "<dirección>"]` con `mirror = true` y un refspec explícito
+  termina en «--mirror can't be combined with refspecs» sin empujar; con `pushurl` o con `url` el `push` **fue a otro repositorio** (y `ls-remote --get-url` delata el `url`); con `receivepack` corrió el programa. Se rechaza **cualquier**
+  clave `remote.<subsección>.*` del repositorio cuya subsección contenga `:`, `/` o `\` (un nombre de remoto no los lleva), con la clave escrita `remote.*.<variable>`.
 - **Flujo de `PushRunBranchAsync`:** inspección → `ls-remote` previo (si ya está en ese commit, `AlreadyUpToDate` sin `push`) → `push` → `ls-remote` de confirmación. `ReadBranchAsync` inspecciona antes (no rechaza por LFS: no envía nada).
-  `push` caducado → `NotConfirmed`; remoto ilegible antes del `push` → `CredentialsNeeded`/`Unreachable`/`Redirected`/`Failed` sin empujar. `RemotePushResult` no lleva código de fallo: `Failed` no dice por qué (ver «Peticiones al P0»).
-- **Medido:** `push --porcelain`: línea por ref `<indicador>\t<origen>:<destino>\t<resumen>` y `Done`; `*` rama nueva, ` ` avance, `=` al día, `!` con `[rejected] (non-fast-forward)` (código 1); un objeto inexistente da `[remote rejected] (unpacker error)`;
+  Un `push` que agota el tiempo o pasa del tope de salida mata el árbol de procesos a mitad: **se lee el remoto** y es `Pushed` o `NotConfirmed` (con `timed-out` u `output-too-large`), nunca `Failed` sin mirar. Remoto ilegible antes del `push`:
+  `CredentialsNeeded`/`Unreachable`/`Redirected`/`Failed` sin empujar. `RemotePushResult.FailureCode` lleva siempre el código cuando el resultado solo no lo dice.
+  **Cancelación (nota para WP3):** `OperationCanceledException` sale como excepción y el `push` pudo llegar o no; quien cancela debe dar el resultado por desconocido y leer la rama (`ReadBranchAsync`) antes de reintentar.
+- **`PATH`:** el que recibe git se compone aquí (sin entradas relativas, sin las que caen dentro de la carpeta del proyecto con sus enlaces resueltos y sin las de raíces no fiables), además de lo que filtra el lanzador de procesos.
+- **Carpetas del ejecutor:** la temporal, la que guarda el fichero de hooks y la de arriba se comprueban en cada uso: si alguna es un punto de reanálisis, `work-folder-unsafe` y no se lanza nada. Residual: la ventana entre la comprobación y el arranque de git,
+  para un proceso del mismo usuario (ADR-0018).
+- **Clasificación de errores:** líneas que empiezan como las escribe git (`fatal:`, `error:`, `warning:`, `remote:`), no palabras sueltas; solo afecta al código que se enseña.- **Medido:** `push --porcelain`: línea por ref `<indicador>\t<origen>:<destino>\t<resumen>` y `Done`; `*` rama nueva, ` ` avance, `=` al día, `!` con `[rejected] (non-fast-forward)` (código 1); un objeto inexistente da `[remote rejected] (unpacker error)`;
   una ruta inexistente da 128 y «does not appear to be a git repository». `ls-remote --refs <url> refs/heads/x` solo casa con el nombre completo (un patrón parcial no devuelve nada) y sin rama da código 0 y salida vacía.
   `push` a una dirección no crea `refs/remotes/*` ni `FETCH_HEAD`, y `remote.origin.pushurl` no interviene. Sin la protección, un `pre-push` corre (también el de `core.hooksPath` de husky); con `core.hooksPath` al fichero vacío y `--no-verify`, ninguno.
   `GIT_ALLOW_PROTOCOL=https` rechaza `file` («transport 'file' not allowed»).
 - **Sin verificar (necesita HTTPS real, decisión 14):** el gestor de credenciales y `GCM_INTERACTIVE=never`, el texto de error sin credenciales, `http.followRedirects=false` con un repositorio renombrado, `GIT_ALLOW_PROTOCOL=https` con `protocol.https.allow=always` dejando pasar HTTPS, el `pre-push` de git-lfs.
 - **Escaneo de `src/`:** `file://` se busca en el código (sin comentarios) de `AgentStudio.Infrastructure`, no en todo `src/`: `Application/Security/LocalPaths.cs` lo usa legítimamente en una expresión regular. `RemoteTransportSeamTests` del P0 se conserva; lo nuevo está en `RemoteTransportSourceScanTests`.
 - **La prueba con `AddAgentStudioApp`** (composición de la aplicación) es del lead: WP1 prueba que `AddAgentStudioRemoteGit()` resuelve un ejecutor con `GitHubHttps`.
-- **Códigos de fallo:** `RemoteGitCodes` (público, en `Infrastructure/Git/Remote`); el lead añade sus recursos `UserText` (ADR-0054).
-- **Pruebas:** `Category=LocalTools` en las que lanzan `git` real; el resto, con un `git` de guion y sin esperas por reloj.
+- **Códigos de fallo:** `RemoteGitCodes` está en `Application/Hosting` (público; lo autorizó el lead): viajan en `RemoteGitInspection.FailureCode`, `RemoteBranchRead.FailureCode` y `RemotePushResult.FailureCode`. Los textos de pantalla (ADR-0054) los pone el lead.
+- **Pruebas:** `Category=LocalTools` en las que lanzan `git` real; el resto, con un `git` de guion y sin esperas por reloj. `AssertClosed` comprueba en cada orden los `-c` primero y en su orden, `--porcelain`/`--no-verify` del `push` y el entorno.
+  Las claves de D-05 tienen prueba de extremo a extremo con git real (`receivepack`, `uploadpack`, `vcs`, `remote.pushDefault`, `branch.*.pushRemote`, `core.alternateRefsCommand`, el remoto con nombre de dirección y un `include` anidado).
 
-**Peticiones al P0/lead:** (1) `RemotePushResult` sin código de fallo: si la pantalla debe distinguir `Failed`, falta un campo `FailureCode`; (2) mover `RemoteGitCodes` a `Application` si Desktop no debe referenciar Infrastructure; (3) la composición `AddAgentStudioRemoteGit()` y su prueba contra `AddAgentStudioApp`; (4) la bitácora (`.agentstudio/`) es del lead.
-
+**Peticiones al P0/lead:** la composición `AddAgentStudioRemoteGit()` y su prueba contra `AddAgentStudioApp`; la pasada completa de `Infrastructure.Git*` con `LocalTools`; la bitácora (`.agentstudio/`).
 ### 10.4 WP2 · GitHub por `gh` (M-L)
 
 - `src/AgentStudio.Infrastructure/Hosting/{Cli,GitHub}/**` (nuevo): lo de §5.4, `HostingProviders` (identifica el remoto
@@ -2260,11 +2270,11 @@ medir:** no se ejecutó nada con red ni con cuenta.
   Manager: que `GCM_INTERACTIVE=never` hace que falle en vez de abrir una ventana, qué variables de entorno necesita de
   la lista blanca para encontrar su almacén, y qué imprime al fallar. Con el ayudante de `gh` (`gh auth git-credential`):
   que funciona con el entorno de D-06 y que no pide nada por pantalla.
-- **Detectar Git LFS** sin ejecutar `git lfs`: **medido en parte (WP1):** en este equipo la configuración **del sistema**
-  ya trae `filter.lfs.clean|smudge|process|required` (Git for Windows), así que ese primer indicio solo no sirve (rechazaría
-  todo). WP1 lo combina con los atributos del árbol de trabajo (`filter=lfs` en un `.gitattributes` o en `info/attributes`).
-  **Sin verificar:** que baste para los commits que suben con ficheros LFS bajo un `.gitattributes` que no esté en el árbol.
-- **`IProjectActivity`:** `ProjectActivityKind` aparece en nueve ficheros de `src/` (búsqueda completa; §10.2 dice qué se
+- **Detectar Git LFS** sin ejecutar `git lfs`: **medido (WP1):** la configuración **del sistema** de Git for Windows ya trae `filter.lfs.*`, así que ese indicio solo rechazaría todo. WP1 lo combina con los atributos **del commit que
+  sube** (`git grep` local de `.gitattributes`, medido con git 2.45.2) y con `info/attributes`. **Sin verificar:** con un repositorio con objetos LFS reales y el `pre-push` de git-lfs instalado.
+- **Remoto con nombre de dirección (ronda de arreglos):** **medido** que `[remote "<dirección>"]` con `pushurl`/`url` desvía el `push` y con `receivepack` ejecuta un programa; con `mirror` y refspec, git aborta sin empujar. Se rechaza toda clave de un remoto
+  cuya subsección parezca una dirección o una ruta.
+- **`trace2.*`:** según la documentación de git, solo se leen de la configuración de sistema y global (no del repositorio ni de `-c`); las variables `GIT_TRACE2*` se quitan con el resto de `GIT_*`. **Sin verificar** con una medición.- **`IProjectActivity`:** `ProjectActivityKind` aparece en nueve ficheros de `src/` (búsqueda completa; §10.2 dice qué se
   hace en cada uno). Sin comprobar: las pruebas que lo recorren. Lo que hace la reanudación de la Fase 8 ante un proyecto
   tomado sí se leyó (se niega y no reintenta), y por eso D-25 pone la espera; **sin comprobar** que los cuatro sitios que
   toman el proyecto lo hagan antes de escribir nada en todos sus caminos (lo dicen sus comentarios; el P0 lo confirma con

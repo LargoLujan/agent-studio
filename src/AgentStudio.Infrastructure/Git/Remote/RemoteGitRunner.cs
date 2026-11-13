@@ -58,7 +58,9 @@ internal sealed class RemoteGitRunner : IRemoteGitRunner
     {
         ArgumentNullException.ThrowIfNull(project);
         ArgumentNullException.ThrowIfNull(destination);
-        return (await InspectCoreAsync(project, destination, ct).ConfigureAwait(false)).Inspection;
+
+        // Without a commit to go up, what Git LFS would carry is read from the commit HEAD points at.
+        return (await InspectCoreAsync(project, destination, null, checkLfs: true, ct).ConfigureAwait(false)).Inspection;
     }
 
     public async Task<RemoteBranchRead> ReadBranchAsync(ProjectContext project, RemoteRepository destination, RemoteBranch branch, CancellationToken ct)
@@ -68,7 +70,7 @@ internal sealed class RemoteGitRunner : IRemoteGitRunner
         ArgumentNullException.ThrowIfNull(branch);
 
         // The inspection comes before every ls-remote (D-05). A repository that uses LFS is not refused here: reading a branch sends nothing.
-        var (inspection, prepared) = await InspectCoreAsync(project, destination, ct).ConfigureAwait(false);
+        var (inspection, prepared) = await InspectCoreAsync(project, destination, null, checkLfs: false, ct).ConfigureAwait(false);
         if (prepared is null || inspection.FailureCode is not null || inspection.Refusals.Count > 0)
         {
             return new RemoteBranchRead(false, null, inspection.FailureCode ?? RemoteGitCodes.ConfigurationRefused);
@@ -77,6 +79,11 @@ internal sealed class RemoteGitRunner : IRemoteGitRunner
         return await LsRemoteAsync(prepared, branch, ct).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Publishes the commit of a run to <c>refs/heads/agentstudio/run-&lt;id&gt;</c>: inspection, <c>ls-remote</c>, <c>push</c>, and <c>ls-remote</c> again to confirm. A push that ran out of time or wrote more than the cap is not a failure
+    /// before the remote has been looked at: the tree of processes was killed halfway and the remote may already have the branch, so the answer is «pushed» or «not confirmed» by what <c>ls-remote</c> says. Cancellation is the exception:
+    /// it leaves as <see cref="OperationCanceledException"/> and the push may or may not have reached the remote, so whoever cancels must take the result as unknown and read the branch before trying again.
+    /// </summary>
     public async Task<RemotePushResult> PushRunBranchAsync(RemotePush push, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(push);
@@ -86,23 +93,24 @@ internal sealed class RemoteGitRunner : IRemoteGitRunner
         var refspec = RemoteGitCommandLine.TryRefspec(push.Commit, push.Run);
         if (refspec is null)
         {
-            return new RemotePushResult(RemotePushOutcome.Failed, null, FailedInspection(RemoteGitCodes.InvalidCommit));
+            var invalid = FailedInspection(RemoteGitCodes.InvalidCommit);
+            return new RemotePushResult(RemotePushOutcome.Failed, null, invalid, RemoteGitCodes.InvalidCommit);
         }
 
-        var (inspection, prepared) = await InspectCoreAsync(push.Project, push.Destination, ct).ConfigureAwait(false);
+        var (inspection, prepared) = await InspectCoreAsync(push.Project, push.Destination, push.Commit, checkLfs: true, ct).ConfigureAwait(false);
         if (prepared is null || inspection.FailureCode is not null)
         {
-            return new RemotePushResult(RemotePushOutcome.Failed, null, inspection);
+            return new RemotePushResult(RemotePushOutcome.Failed, null, inspection, inspection.FailureCode ?? RemoteGitCodes.InspectionFailed);
         }
 
         if (inspection.Refusals.Count > 0)
         {
-            return new RemotePushResult(RemotePushOutcome.ConfigurationRefused, null, inspection);
+            return new RemotePushResult(RemotePushOutcome.ConfigurationRefused, null, inspection, RemoteGitCodes.ConfigurationRefused);
         }
 
         if (inspection.UsesLfs)
         {
-            return new RemotePushResult(RemotePushOutcome.LfsRefused, null, inspection);
+            return new RemotePushResult(RemotePushOutcome.LfsRefused, null, inspection, RemoteGitCodes.LfsDetected);
         }
 
         var branch = RemoteBranch.ForRun(push.Run);
@@ -111,7 +119,7 @@ internal sealed class RemoteGitRunner : IRemoteGitRunner
         var before = await LsRemoteAsync(prepared, branch, ct).ConfigureAwait(false);
         if (!before.Reached)
         {
-            return new RemotePushResult(OutcomeOf(before.FailureCode), null, inspection);
+            return new RemotePushResult(OutcomeOf(before.FailureCode), null, inspection, before.FailureCode);
         }
 
         if (string.Equals(before.Commit, push.Commit, StringComparison.Ordinal))
@@ -122,29 +130,30 @@ internal sealed class RemoteGitRunner : IRemoteGitRunner
         var result = await RunAsync(prepared, RemoteGitCommandLine.Push(prepared.Address, refspec), RemoteGitCommandLine.PushTimeout, ct).ConfigureAwait(false);
         if (result is null)
         {
-            return new RemotePushResult(RemotePushOutcome.Failed, null, inspection);
+            // git did not even start: nothing was sent.
+            return new RemotePushResult(RemotePushOutcome.Failed, null, inspection, RemoteGitCodes.GitFailed);
         }
 
-        if (result.TimedOut)
+        var line = RemotePushLine.Missing;
+        string? lost = null;
+        if (result.TimedOut || result.OutputLimitExceeded)
         {
-            // What the remote got is not known: «not confirmed», never «published».
-            return new RemotePushResult(RemotePushOutcome.NotConfirmed, null, inspection);
+            // Killed halfway: what the remote got is read, not guessed.
+            lost = result.TimedOut ? RemoteGitCodes.TimedOut : RemoteGitCodes.OutputTooLarge;
         }
-
-        if (result.OutputLimitExceeded)
+        else
         {
-            return new RemotePushResult(RemotePushOutcome.Failed, null, inspection);
-        }
-
-        var line = RemoteGitOutput.ReadPush(result.StandardOutput, refspec);
-        switch (line)
-        {
-            case RemotePushLine.RejectedNotFastForward:
-                return new RemotePushResult(RemotePushOutcome.RejectedNotFastForward, null, inspection);
-            case RemotePushLine.Other:
-                return new RemotePushResult(RemotePushOutcome.Failed, null, inspection);
-            case RemotePushLine.Missing when result.ExitCode != 0:
-                return new RemotePushResult(OutcomeOf(RemoteGitOutput.ClassifyError(result.StandardError)), null, inspection);
+            line = RemoteGitOutput.ReadPush(result.StandardOutput, refspec);
+            switch (line)
+            {
+                case RemotePushLine.RejectedNotFastForward:
+                    return new RemotePushResult(RemotePushOutcome.RejectedNotFastForward, null, inspection, RemoteGitCodes.RejectedNotFastForward);
+                case RemotePushLine.Other:
+                    return new RemotePushResult(RemotePushOutcome.Failed, null, inspection, RemoteGitCodes.PushRejected);
+                case RemotePushLine.Missing when result.ExitCode != 0:
+                    var code = RemoteGitOutput.ClassifyError(result.StandardError);
+                    return new RemotePushResult(OutcomeOf(code), null, inspection, code);
+            }
         }
 
         // After the push the commit is checked on the remote: anything else is «not confirmed».
@@ -154,9 +163,8 @@ internal sealed class RemoteGitRunner : IRemoteGitRunner
             return new RemotePushResult(line == RemotePushLine.UpToDate ? RemotePushOutcome.AlreadyUpToDate : RemotePushOutcome.Pushed, push.Commit, inspection);
         }
 
-        return new RemotePushResult(RemotePushOutcome.NotConfirmed, after.Reached ? after.Commit : null, inspection);
+        return new RemotePushResult(RemotePushOutcome.NotConfirmed, after.Reached ? after.Commit : null, inspection, lost ?? after.FailureCode);
     }
-
     private static RemotePushOutcome OutcomeOf(string? code) => code switch
     {
         RemoteGitCodes.CredentialsNeeded => RemotePushOutcome.CredentialsNeeded,
@@ -169,7 +177,7 @@ internal sealed class RemoteGitRunner : IRemoteGitRunner
 
     private sealed record Prepared(string Git, string WorkingDirectory, IReadOnlyList<string> Configuration, IReadOnlyDictionary<string, string?> Environment, RemoteConfigRoots Roots, string Address);
 
-    private async Task<(RemoteGitInspection Inspection, Prepared? Prepared)> InspectCoreAsync(ProjectContext project, RemoteRepository destination, CancellationToken ct)
+    private async Task<(RemoteGitInspection Inspection, Prepared? Prepared)> InspectCoreAsync(ProjectContext project, RemoteRepository destination, string? commit, bool checkLfs, CancellationToken ct)
     {
         var failure = TryPrepare(project, destination, out var prepared);
         if (failure is not null || prepared is null)
@@ -205,7 +213,24 @@ internal sealed class RemoteGitRunner : IRemoteGitRunner
             return (new RemoteGitInspection(false, [RemoteConfigInspection.NameRewrite(entries, prepared.Address)], false, null), prepared);
         }
 
-        var usesLfs = analysis.LfsFilterConfigured && RemoteLfsDetector.UsesLfs(prepared.Roots);
+        if (!checkLfs || !analysis.LfsFilterConfigured)
+        {
+            return (new RemoteGitInspection(true, [], false, null), prepared);
+        }
+
+        // Git LFS: the filter is configured, so the files of the commit can be pointers. The commit that goes up decides (its .gitattributes, asked of git locally); info/attributes is read from the disk. If it cannot be known, nothing is published.
+        if (RemoteLfsDetector.InfoAttributesMention(prepared.Roots))
+        {
+            return (new RemoteGitInspection(false, [], true, null), prepared);
+        }
+
+        var attributes = await RunAsync(prepared, RemoteGitCommandLine.LfsAttributes(commit ?? "HEAD"), RemoteGitCommandLine.QueryTimeout, ct).ConfigureAwait(false);
+        if (attributes is null || attributes.TimedOut || attributes.OutputLimitExceeded || attributes.ExitCode is < 0 or > 1)
+        {
+            return (FailedInspection(RemoteGitCodes.LfsCheckFailed), prepared);
+        }
+
+        var usesLfs = attributes.ExitCode == 0;
         return (new RemoteGitInspection(!usesLfs, [], usesLfs, null), prepared);
     }
 
@@ -296,6 +321,10 @@ internal sealed class RemoteGitRunner : IRemoteGitRunner
         {
             _folders.Ensure();
         }
+        catch (UnsafeFolderException)
+        {
+            return RemoteGitCodes.UnsafeFolder;
+        }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
             return RemoteGitCodes.UnsafeHooksFile;
@@ -317,10 +346,17 @@ internal sealed class RemoteGitRunner : IRemoteGitRunner
             git,
             project.RootPath,
             RemoteGitCommandLine.Configuration(Transport, _folders.HooksFile),
-            RemoteGitEnvironment.Build(Transport, _folders.TempFolder, _ambient()),
+            RemoteGitEnvironment.Build(Transport, _folders.TempFolder, _ambient(), ExcludedFromPath(project.RootPath)),
             roots,
             address);
         return null;
+    }
+
+    // The entries of the PATH git does not get: the ones inside the folder of the project (links resolved) and the ones inside an untrusted root.
+    private Func<string, bool> ExcludedFromPath(string projectRoot)
+    {
+        var project = UntrustedPaths.Resolve([projectRoot]);
+        return entry => UntrustedPaths.IsInside(entry, project) || _locator.IsUntrusted(entry);
     }
 
     // git.exe by full path: an .exe (never a .cmd or .bat shim), outside every untrusted root and outside the project, as it is now.
