@@ -1,6 +1,7 @@
 using AgentStudio.Application.Git;
 using AgentStudio.Application.Projects;
 using AgentStudio.Desktop.Repository;
+using AgentStudio.Desktop.Repository.PullRequests;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AgentStudio.Desktop.Composition;
@@ -22,6 +23,10 @@ internal static class RepositoryUiServices
             provider.GetService<IRepositoryAnnotator>(),
             provider.GetService<IRepositoryActivityReader>(),
             provider.GetService<IRepositoryRemoteReader>(),
-            provider.GetService<TimeProvider>() ?? TimeProvider.System));
+            provider.GetService<TimeProvider>() ?? TimeProvider.System,
+
+            // Phase 10: the section of the pull requests (HostingServices). It is resolved here, on the thread that builds the shell, because the view model
+            // captures the synchronisation context of the interface in its constructor.
+            provider.GetService<PullRequestsViewModel>()));
     }
 }

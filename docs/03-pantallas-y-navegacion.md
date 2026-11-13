@@ -409,6 +409,11 @@ bloqueo («Interrumpida», «Esperando cuota hasta las 10:15», «proveedor no d
 última actividad; el registro de actividad y las evidencias con su hash. La salud del grafo lista las tareas
 abandonadas, inalcanzables y sin reintentos, y la alerta de bloqueo solo aparece con la fase «Bloqueada»: una ejecución
 interrumpida o que espera cuota no está bloqueada. Botones: pausar, reanudar, reintentar una tarea bloqueada y cancelar.
+Con la ejecución terminada, junto a «Entregar a mi rama» aparece **«Publicar y abrir PR»** (Fase 10,
+[21 §7.2](21-fase-10-git-remoto.md)), solo cuando la sección de PR de «Repositorio y cambios» está disponible. Te lleva a
+esa sección, con la ficha de publicar la ejecución, y no sube nada por sí mismo: la ficha dice qué subiría y qué lo
+ampara, y confirmas allí. Si la ejecución es de otro proyecto que el abierto, la barra de estado dice que abras ese
+primero.
 Mientras dura, el lienzo queda en solo lectura y colorea los nodos según la ejecución; «Editar el plan» lo libera al
 terminar. «Ejecuciones anteriores» lista las del proyecto y permite reanudar una interrumpida (gasta cuota). Bajo la fase,
 una línea dice si la ejecución tiene tu consentimiento para reanudarse sola, leído de su cabecera, la empezaras o la
@@ -789,6 +794,14 @@ su propio documento, «Ajustes», que se describe al final de este apartado.
     castellano de España si Windows está en catalán, euskera o gallego). El cambio **se aplica al reiniciar** Agent
     Studio, para no dejar textos a medio cambiar; mientras lo elegido cambiaría el idioma en uso, la sección dice «El
     idioma cambia al reiniciar Agent Studio.».
+  - **Git remoto** (Fase 10, [21 §7.5](21-fase-10-git-remoto.md)): una lista con el intervalo del sondeo de GitHub
+    (2, 5, 15 o 60 minutos; 5 por defecto), la lista de los **proyectos con «Sincronizar con GitHub» permitido** y un texto
+    que dice qué sale y qué no (solo lecturas de tus PR con tu sesión de `gh`; nunca código, claves ni fusiones por su
+    cuenta). El permiso **está apagado en cada proyecto** y solo se da con el interruptor de la sección de PR de ese
+    proyecto: desde aquí solo se puede quitar («Quitar el permiso»), y el cambio vale al guardar. Lo que se quita aquí se
+    aplica a los ajustes leídos al guardar, así que un permiso dado o quitado desde otro proyecto mientras tanto no se
+    deshace. Tiene su ⓘ (`Info_RemoteSync`) y su artículo de ayuda (en «Ajustes»). Sin él, el sondeo no usa nunca la red
+    (F10-13).
   - **Reducir movimiento:** todavía no hay interruptor. Agent Studio no tiene hoy ninguna animación que apagar; el
     ajuste (`ReduceMotion`, y también si Windows tiene desactivadas las animaciones, `SystemParameters.ClientAreaAnimation`,
     [17 D-15](17-constructor-visual-de-agentes.md)) lo traen los paquetes que añaden movimiento (el lienzo y el monitor).

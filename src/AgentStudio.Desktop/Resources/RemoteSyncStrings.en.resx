@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The texts of «Git remoto» in Settings in English: the same keys and placeholders as RemoteSyncStrings.resx. -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="RemoteSync_Title" xml:space="preserve">
+    <value>Remote Git</value>
+  </data>
+  <data name="RemoteSync_Intro" xml:space="preserve">
+    <value>Choose how often Agent Studio looks at your pull requests (PR), and in which projects it may do so.</value>
+  </data>
+  <data name="RemoteSync_Interval_Label" xml:space="preserve">
+    <value>Look at GitHub every</value>
+  </data>
+  <data name="RemoteSync_Interval_Item" xml:space="preserve">
+    <value>{0} minutes</value>
+  </data>
+  <data name="RemoteSync_Interval_Explanation" xml:space="preserve">
+    <value>It only counts in the projects with the permission. Without it, Agent Studio does not connect by itself.</value>
+  </data>
+  <data name="RemoteSync_Projects_Title" xml:space="preserve">
+    <value>Projects where syncing is allowed</value>
+  </data>
+  <data name="RemoteSync_Projects_None" xml:space="preserve">
+    <value>No project has the permission. You give it with the switch in the PR section of each project.</value>
+  </data>
+  <data name="RemoteSync_Projects_Remove" xml:space="preserve">
+    <value>Remove the permission</value>
+  </data>
+  <data name="RemoteSync_Projects_RemoveName" xml:space="preserve">
+    <value>Remove the permission of {0}</value>
+  </data>
+  <data name="RemoteSync_Sends_Title" xml:space="preserve">
+    <value>What goes out and what does not</value>
+  </data>
+  <data name="RemoteSync_Sends_Text" xml:space="preserve">
+    <value>Each time, Agent Studio asks GitHub how your PRs are doing: their state, reviews and checks. It only reads. It never uploads your code or merges by itself. It does not see or keep your GitHub key either.</value>
+  </data>
+  <data name="RemoteSync_Publish_Button" xml:space="preserve">
+    <value>Publish and open PR</value>
+  </data>
+  <data name="RemoteSync_Publish_Help" xml:space="preserve">
+    <value>Takes you to the PR section of Repository and changes, with the card to publish this run. Nothing is uploaded until you confirm.</value>
+  </data>
+  <data name="RemoteSync_Publish_OtherProject" xml:space="preserve">
+    <value>That run belongs to another project. Open it first and press the button again.</value>
+  </data>
+  <data name="RemoteSync_Publish_Failed" xml:space="preserve">
+    <value>The card to publish could not be opened: {0}</value>
+  </data>
+  <data name="Info_RemoteSync_Title" xml:space="preserve">
+    <value>Remote Git</value>
+  </data>
+  <data name="Info_RemoteSync_What" xml:space="preserve">
+    <value>Agent Studio can look at how your PRs are doing on GitHub every few minutes. It only does so in the projects you allow. Publishing and merging still ask for your permission.</value>
+  </data>
+  <data name="Info_RemoteSync_Actions" xml:space="preserve">
+    <value>Choose how often GitHub is looked at.
+Remove the permission of a project from the list.
+Give the permission from the PR section of each project.
+Save so the change applies.</value>
+  </data>
+</root>

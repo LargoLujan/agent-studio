@@ -16,6 +16,15 @@ public enum CloseWindowAction
     Exit,
 }
 
+/// <summary>A project with «Sincronizar con GitHub» on: its id (the one of the log) and, to name it in «Ajustes», the folder it had when the person turned it on.</summary>
+/// <param name="ProjectId">The id of the project, as <c>ProjectContext.ProjectId</c> says it.</param>
+/// <param name="Folder">The folder of the project when the permission was given; null when it was not known. Only a name for the list: nothing is opened from it.</param>
+public sealed record RemoteSyncGrant(string ProjectId, string? Folder = null)
+{
+    /// <summary>What a list of «Ajustes» says and a screen reader reads: the folder when it is known, else the id.</summary>
+    public override string ToString() => string.IsNullOrWhiteSpace(Folder) ? ProjectId : Folder;
+}
+
 /// <summary>Per-user application settings persisted as JSON.</summary>
 public sealed record AppSettings
 {
@@ -140,6 +149,31 @@ public sealed record AppSettings
     /// </summary>
     public WindowPlacement? MainWindowPlacement { get; init; }
 
+    // ---- Phase 10 (docs/21 D-02, §6 and §7.5): «Sincronizar con GitHub» per project and the interval of the poll ----
+
+    /// <summary>The minutes between two polls that «Ajustes» offers (docs/21 D-23): 2, 5, 15 or 60.</summary>
+    public static IReadOnlyList<int> RemoteSyncIntervals { get; } = [2, 5, 15, 60];
+
+    /// <summary>The interval of the poll while nothing else is chosen: five minutes.</summary>
+    public const int DefaultRemoteSyncMinutes = 5;
+
+    /// <summary>The most projects that can hold the permission «Sincronizar con GitHub»; a file with more is read with the first ones.</summary>
+    public const int MaxRemoteSyncProjects = 200;
+
+    /// <summary>
+    /// The projects where the person turned «Sincronizar con GitHub» on (docs/21 D-02): the only permission to use the network in the background.
+    /// Empty by default (off for every project); a project is on only while it is here. Only a click of the person adds to it (the switch of the
+    /// pull requests section, through <c>IRemoteSyncPermission</c>); «Ajustes» can take a project out. A file that lists a project is not trusted
+    /// for more than this: it can switch the poll on, never anything else (publishing and merging still ask the gate).
+    /// </summary>
+    public IReadOnlyList<RemoteSyncGrant> RemoteSyncProjects { get; init; } = [];
+
+    /// <summary>The minutes between two polls of a project that has the permission: one of <see cref="RemoteSyncIntervals"/>; a file with another reads as <see cref="DefaultRemoteSyncMinutes"/>.</summary>
+    public int RemoteSyncIntervalMinutes { get; init; } = DefaultRemoteSyncMinutes;
+
+    /// <summary>Whether <paramref name="minutes"/> is an interval of the poll that «Ajustes» accepts.</summary>
+    public static bool IsValidRemoteSyncInterval(int minutes) => RemoteSyncIntervals.Contains(minutes);
+
     public static AppSettings Default { get; } = new();
 
     /// <summary>Whether <paramref name="minutes"/> is a time the idle lock accepts: from 1 to <see cref="MaxIdleLockMinutes"/>.</summary>
@@ -159,6 +193,10 @@ public sealed record AppSettings
     {
         _ = ContextThresholds();
         ThrowIfInvalidIdleLock(IdleLockMinutes);
+        if (!IsValidRemoteSyncInterval(RemoteSyncIntervalMinutes))
+        {
+            throw new ArgumentOutOfRangeException(nameof(RemoteSyncIntervalMinutes), RemoteSyncIntervalMinutes, "The interval of the poll must be 2, 5, 15 or 60 minutes.");
+        }
     }
 
     private static void ThrowIfInvalidIdleLock(int minutes)
@@ -215,6 +253,8 @@ public sealed record AppSettings
             PreventSleepWhileWorking = other.PreventSleepWhileWorking,
             Language = other.Language,
             ReduceMotion = other.ReduceMotion,
+            RemoteSyncProjects = other.RemoteSyncProjects,
+            RemoteSyncIntervalMinutes = other.RemoteSyncIntervalMinutes,
         };
 
     private static ContextHealthThresholds Thresholds(int warning, int compress, int critical) =>

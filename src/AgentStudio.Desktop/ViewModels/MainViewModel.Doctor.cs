@@ -10,6 +10,7 @@ public sealed partial class MainViewModel
     private const string DoctorSettings = "settings";
     private const string DoctorSkills = "skills";
     private const string DoctorGraph = "graph";
+    private const string DoctorPullRequests = "pull-requests";
 
     /// <summary>The panel of Auto Doctor: five sections over one run of every source, with the rows of the providers inside (docs/20 D-04).</summary>
     public DoctorViewModel Doctor { get; private set; } = null!;
@@ -36,6 +37,12 @@ public sealed partial class MainViewModel
             targets.Add(DoctorGraph);
         }
 
+        // Phase 10: «Ir a…» the section of pull requests, only where the screen has what it needs (the providers and the projection of the remote).
+        if (_repository is { PullRequests.IsAvailable: true })
+        {
+            targets.Add(DoctorPullRequests);
+        }
+
         Doctor.Navigation = new DoctorNavigation(targets, GoFromDoctor);
     }
 
@@ -48,6 +55,7 @@ public sealed partial class MainViewModel
             DoctorSettings => OpenSettingsCommand,
             DoctorSkills => OpenSkillsCommand,
             DoctorGraph => OpenGraphCommand,
+            DoctorPullRequests => ShowPullRequestsCommand,
             _ => null,
         };
         if (command?.CanExecute(null) == true)

@@ -86,6 +86,7 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
     private readonly BackgroundWorkRegistry? _work;
     private readonly IConsentedResumes? _resumes;
     private readonly OpenProjectRoots? _projectRoots;
+    private readonly RemoteSyncAttachment? _remoteSync;
     private readonly SettingsDocumentViewModel? _settingsDocument;
     private readonly ContextWindowCatalogs? _contextWindows;
     private readonly SynchronizationContext? _ui;
@@ -184,8 +185,10 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         HeadTestsServices? headTests = null,
         OpenProjectRoots? projectRoots = null,
         DoctorViewModel? doctor = null,
-        GraphDocumentViewModel? graphDocument = null)
+        GraphDocumentViewModel? graphDocument = null,
+        RemoteSyncAttachment? remoteSync = null)
     {
+        _remoteSync = remoteSync;
         ArgumentNullException.ThrowIfNull(settingsStore);
         ArgumentNullException.ThrowIfNull(folderPicker);
         ArgumentNullException.ThrowIfNull(unsavedPrompt);
@@ -656,6 +659,10 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
         document.Monitor.Finished += (_, _) => OnRunFinished(document.ProjectRoot);
         document.RunHandedOff += OnRunHandedOff;
         document.ConfigureProjectRequested += OnConfigureProjectRequested;
+
+        // Phase 10: «Publicar y abrir PR» beside «Entregar a mi rama», only where the section of pull requests exists.
+        document.Monitor.IsPublishAvailable = _repository is { PullRequests.IsAvailable: true };
+        document.Monitor.PublishRequested += (_, run) => _ = ShowPublishCardAsync(document, run);
         if (SameProject(document.ProjectRoot, ProjectPath))
         {
             AttachPanels();
@@ -920,6 +927,13 @@ public sealed partial class MainViewModel : ObservableObject, IReviewNavigation
             : null;
         await Journal.SetProjectAsync(normalized);
         await KeepMemoryAsync(normalized, afterRun: false);
+
+        // Phase 10: the remote mailbox of the project opens apart; opening the project does not wait for it, and it never throws.
+        if (_remoteSync is { IsAvailable: true } remote)
+        {
+            _ = remote.OnProjectOpenedAsync(normalized);
+        }
+
         await ShowProjectInScreensAsync(normalized);
         ProjectChanged?.Invoke(this, normalized);
         CheckConsentedResumes(normalized);

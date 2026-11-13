@@ -2361,6 +2361,44 @@ Dónde el diseño y el código chocaron al escribir las pantallas, qué dato no 
   > `agent-studio-privado` y con OK expreso para cada tanda (dado para la de la Fase 10 el 2026-11-13).
 - **Falta siempre, con tu OK:** la prueba en vivo (decisión 14).
 
+#### Ajustes de la integración
+
+Dónde el diseño y el código chocaron al componer los cinco paquetes, los fallos de paquete que salieron y qué queda sin verificar (2026-11-13). Lo que no está aquí está como lo fija §10.9.
+
+- **Qué se compuso y dónde.** `Composition/HostingServices.cs` (nuevo, llamado desde `PlatformServices` tras `AddDoctorServices`) registra `AddAgentStudioRemoteGit()`, `AddAgentStudioGitHubHosting(<local>)`, `AddAgentStudioHostingProjections()`,
+  `AddAgentStudioRemoteSyncStore()` (con `RemoteSyncStoreOptions` bajo `<local>\hosting` de **las carpetas de la app**, no las de `%LOCALAPPDATA%`: una prueba con carpetas propias no escribe en tu perfil) y `AddAgentStudioPublication()`; el permiso
+  (`AppSettingsRemoteSyncPermission`, que es a la vez `IRemoteSyncPermission` e `IRemoteSyncPolicy` y lee `AppSettings` en cada llamada); `RemoteSyncAttachment` (el buzón al abrir un proyecto y su cierre en orden); `ShellAddressOpener` y
+  `PullRequestsViewModel`, que `RepositoryUiServices` pasa como último parámetro de `RepositoryViewModel` (se resuelve donde se construye el shell, en el hilo de la interfaz, porque captura el contexto de sincronización). `WorkUiServices` pasa
+  `IPullRequestProjector` a `WorkBackend`. Las dos fuentes de Auto Doctor del adaptador entran solas en el panel (`DiagnosticsServices` las toma con `GetServices<IDoctorCheckSource>`).
+- **Ajustes.** `AppSettings.RemoteSyncProjects` (lista de `RemoteSyncGrant(ProjectId, Folder?)`, **vacía por defecto**) y `RemoteSyncIntervalMinutes` (2, 5, 15 o 60; 5 por defecto), los dos en `WithPreferencesOf` y saneados al leer (un intervalo fuera
+  de la lista vale 5; la lista pierde nulos, vacíos y repetidos y se corta en 200). **Choque:** el puerto da el permiso por `projectId` (un GUID) y la lista de Ajustes debe nombrar algo que se reconozca: la carpeta se guarda **al dar el permiso**,
+  y solo se sabe si la app abrió ese proyecto en la sesión (`RemoteSyncAttachment` se lo dice al permiso al abrirlo); si no, la lista enseña el id. «Guardar» no escribe la lista de la pantalla entera: aplica solo las **bajas** a los ajustes
+  leídos en ese momento, para que un permiso dado o quitado desde el interruptor de otro proyecto mientras Ajustes estaba abierto no se deshaga; y avisa (`Changed`) de cada baja.
+- **El buzón al abrir y al salir.** Al abrir un proyecto, sin esperarlo ni lanzar nada al interfaz, y solo si el proyecto **ya tiene almacén** (`.agentstudio/agentstudio.db`, como el mantenimiento de la memoria): abrir una carpeta para mirarla no crea nada.
+  Al salir, `App.OnExit` espera `RemoteSyncService.DisposeAsync()` antes que a lo demás (el buzón termina el tramo en curso, un `push` no se corta a medias), con un tope de 170 s; el contenedor lo vuelve a liberar al final y ya no hay nada.
+- **Fallo de paquete, tocado por necesidad (WP3, `Orchestration/Publication/RemoteSyncService.cs`).** `RemoteSyncService` solo era `IAsyncDisposable`, y `ServiceProvider.Dispose()` lanza si un singleton solo lo es: todas las pruebas y hosts que
+  componen la app y la liberan de forma síncrona (veinte ficheros de pruebas) fallaban en cuanto resolvían el buzón, que llega por `MainViewModel`, por Auto Doctor y por la pantalla del repositorio. Se añadió `IDisposable` (una línea más un método que
+  bloquea sobre `DisposeAsync`), en un commit aparte para que el dueño del paquete lo conserve o lo cambie. **Pedido:** que WP3 lo mantenga.
+- **Fallo de paquete (WP1): `RemoteGitFolders.Default` no tiene costura.** `AddAgentStudioRemoteGit()` crea el ejecutor con las carpetas de `%LOCALAPPDATA%\AgentStudio\hosting\{no-hooks,tmp}` sea cual sea `AppFolders`: una composición con carpetas
+  de prueba, al usar el ejecutor, escribe en el perfil real. Las pruebas de integración registran su propio ejecutor (`RemoteGitFolders.Under`) y la de composición no lo usa. **Pedido:** que la composición pueda pasarle la base (`Under(local)`).
+- **Fallo de paquete (WP3): la cortesía de un segundo rechaza, no espera.** Tras soltar el proyecto el buzón no lo toma otra vez durante `Courtesy` (1 s, D-25) y, **durante** ese tiempo, una acción de la persona (`PublishAsync`, `PreviewAsync`, `MergeAsync`…)
+  recibe `hosting.refused.project-busy`: «ocupado», no «espera». Solo se ve en el recorrido «abrir la ficha» (que consulta con `PreviewAsync`) y «Publicar» en menos de un segundo, pero la prueba de integración lo destapó a la primera. D-25 dice que lo remoto
+  de la persona espera. **Pedido:** que esas acciones esperen la cortesía (reintento de 500 ms, como lo aparcado) en vez de rechazar.
+- **El interruptor de la cabecera de PR.** `PullRequestsViewModel` solo recibe `IRemoteSyncPolicy` (lee). La implementación del permiso ya está en el contenedor (`IRemoteSyncPermission`); quien cablee el interruptor (el agente de las pantallas) la toma de ahí.
+- **«Publicar y abrir PR».** `RunMonitorViewModel` gana `IsPublishAvailable` (lo pone el shell al seguir el documento: la sección de PR está disponible), `PublishCommand` (solo con la ejecución terminada) y el evento `PublishRequested(RunId)`. El shell abre
+  «Repositorio y cambios» (con su proyecto puesto primero) y llama a `ShowPublishCardAsync(RunId)`; con una ejecución de **otro** proyecto que el abierto no cambia de proyecto en silencio: lo dice en la barra de estado. Los textos viven en
+  `Resources/RemoteSyncStrings*.resx` (no en `OrchestratorStrings`, que estaba en ronda de arreglos). Los monitores sin documento (los que el shell crea para las ejecuciones reanudadas) no ofrecen el botón.
+- **«Ir a…» de Auto Doctor.** `doctor.fix.open-pull-requests` es un `DoctorFix.Navigate` a `pull-requests`, que `MainViewModel.Doctor` añade a los destinos solo si la pantalla de PR está disponible (`RepositoryViewModel.PullRequests.IsAvailable`) y abre con el
+  comando de «Repositorio» y la sección de PR.
+- **Pruebas de la fase** (`tests/.../Integration/Phase10/`): `LocalRemoteHostingProvider` es la plataforma sin guion (squash, rebase y fusión con commit, revert y observación leyendo la carpeta bare con git real; el modo se deduce de los commits leídos);
+  `Phase10World` compone la app con `AppWorld`, una ejecución real del motor (agentes guionizados) y el ejecutor real con el transporte de pruebas; el reloj del buzón (y solo el suyo) es de prueba, y `SettleAsync` lo mueve más allá de la cortesía y del reintento
+  de lo aparcado. `Phase10CompositionTests` cubre la composición, F10-13 (con su control: con el permiso, el sondeo lanza `GET` y nada más), Auto Doctor (solo `gh --version`, con control) y F10-11 (variables de token puestas en el proceso).
+- **Sin verificar:** el tablero de «Trabajo» en «Integrado» y el informe del hito con una ejecución real (la prueba comprueba la vista del PR, la cadena y el registro, no el tablero: exige un hito con requisitos y no se montó); la pantalla de PR con la
+  plataforma de pruebas (el aspecto, el paso del evento `Changed` al hilo de la interfaz, el interruptor); el arranque real de la app con la sección «Git remoto» en pantalla; el botón «Publicar y abrir PR» pulsado de verdad (hay pruebas del comando y del evento,
+  no de la interfaz); que el cierre en orden espere de verdad a un `push` (el tope de 170 s no se midió); la prueba en vivo (decisión 14); y todo lo de §13 que no tocó a la integración.
+- **No se hizo (no era de este encargo):** el nombre de la actividad nueva en la bandeja y en la pantalla de bloqueo (D-25 dice que no se enseña como trabajo), los textos de los códigos de rechazo de los dos adaptadores, `ClientDocumentBuilder` (sigue diciendo que
+  el despliegue no está incluido), `docs/08`, el README y `CLAUDE.md`.
+
 ### 10.10 Orden y dependencias
 
 | Paquete | Depende de | Tamaño | Tanda |
