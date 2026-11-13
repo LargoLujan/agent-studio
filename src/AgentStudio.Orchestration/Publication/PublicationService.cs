@@ -60,7 +60,7 @@ public sealed class PublicationService : IPublicationService
         var box = await _mailboxes.OfAsync(project, ct).ConfigureAwait(false);
         return await box.ExecAsync(async context =>
         {
-            using var taken = context.Take();
+            using var taken = context.TakeNow();
             if (taken is null)
             {
                 return null;
@@ -84,7 +84,7 @@ public sealed class PublicationService : IPublicationService
         // The part of git, with the project in hand: with it busy nothing is launched.
         var local = await box.ExecAsync(async context =>
         {
-            using var taken = context.Take();
+            using var taken = context.TakeNow();
             if (taken is null)
             {
                 return new Located(true, null);
@@ -207,7 +207,7 @@ public sealed class PublicationService : IPublicationService
 
         var identified = await box.ExecAsync(async context =>
         {
-            using var taken = context.Take();
+            using var taken = context.TakeNow();
             if (taken is null)
             {
                 return new Located(true, null);
@@ -374,7 +374,7 @@ public sealed class PublicationService : IPublicationService
         // The head of the branch on the remote is read just before (the API of deletion admits no condition, so a minimal window remains: it is a residual of ADR-0067).
         var read = await box.ExecAsync(async context =>
         {
-            using var taken = context.Take();
+            using var taken = context.TakeNow();
             if (taken is null)
             {
                 return new Located(true, null);

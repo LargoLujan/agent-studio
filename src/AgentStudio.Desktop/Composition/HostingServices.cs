@@ -64,7 +64,8 @@ internal static class HostingServices
             provider.GetService<IHostingPolicyGate>(),
             provider.GetService<IRemoteSyncPolicy>(),
             provider.GetService<TimeProvider>() ?? TimeProvider.System,
-            provider.GetService<IAddressOpener>()));
+            provider.GetService<IAddressOpener>(),
+            provider.GetService<IRemoteSyncPermission>()));
         return services;
     }
 }

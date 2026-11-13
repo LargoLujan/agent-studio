@@ -77,6 +77,13 @@ internal sealed class FlowContext(ProjectRemoteMailbox mailbox)
     public IDisposable? Take() => mailbox.Take();
 
     /// <summary>
+    /// The take of something the person just asked for and is waiting to see (the card of the publication, the click, a line of Auto Doctor). The courtesy does not apply to it: the
+    /// courtesy is the pause between two takes of the mailbox's own work, so that whoever waits for the project gets in, and a click right after the card would otherwise be answered
+    /// «busy» with nothing holding the project. A project that something else holds is still busy: null.
+    /// </summary>
+    public IDisposable? TakeNow() => mailbox.TakeNow();
+
+    /// <summary>
     /// Annotates something in the log without holding the consumer: <paramref name="record"/> takes the project, writes and returns true, or returns false when the project was not free;
     /// then it is parked (in memory) behind the earlier annotations of the same key and the timer of the mailbox tries it again (docs/21 D-25).
     /// </summary>

@@ -338,15 +338,11 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
     // ---- what the flows use (only on the consumer) ----
 
     /// <summary>See <see cref="FlowContext.Take"/>.</summary>
-    public IDisposable? Take()
-    {
-        if (_services.Time.GetUtcNow() < _noTakeBefore)
-        {
-            return null;
-        }
+    public IDisposable? Take() => _services.Time.GetUtcNow() < _noTakeBefore ? null : TakeNow();
 
-        return _services.Activity.TryEnter(Project.ProjectId, ProjectActivityKind.RemoteOperation) is { } lease ? new Lease(this, lease) : null;
-    }
+    /// <summary>See <see cref="FlowContext.TakeNow"/>.</summary>
+    public IDisposable? TakeNow() =>
+        _services.Activity.TryEnter(Project.ProjectId, ProjectActivityKind.RemoteOperation) is { } lease ? new Lease(this, lease) : null;
 
     private sealed class Lease(ProjectRemoteMailbox mailbox, IDisposable inner) : IDisposable
     {

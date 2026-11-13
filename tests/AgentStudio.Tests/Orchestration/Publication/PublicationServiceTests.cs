@@ -81,6 +81,29 @@ public sealed class PublicationServiceTests
         Assert.Empty(rig.Approvals.Requests);
     }
 
+    /// <summary>
+    /// The courtesy of one second after a take (docs/21 D-25) is for the mailbox's own work. A person who opens the card and presses «Publicar» at once is not told «busy» with nothing
+    /// holding the project: the card took the project a moment ago, and the click takes it again.
+    /// </summary>
+    [Fact]
+    public async Task AClickRightAfterTheCardIsNotRefusedAsBusyByTheCourtesy()
+    {
+        await using var rig = new PublicationRig();
+
+        var preview = await rig.Service.PreviewAsync(PublicationRig.Project, HostingP0Data.Run, null, CancellationToken.None);
+        var again = await rig.Service.PreviewAsync(PublicationRig.Project, HostingP0Data.Run, null, CancellationToken.None);
+        var ticket = await rig.Service.PublishAsync(Request(), CancellationToken.None);
+
+        Assert.NotEqual(PublicationCodes.ProjectBusy, preview.NotReadyReason?.Code);
+        Assert.NotEqual(PublicationCodes.ProjectBusy, again.NotReadyReason?.Code);
+        var atOnce = await StatusAsync(rig, ticket);
+        Assert.NotEqual(RemoteWorkState.Failed, atOnce.State);
+        Assert.NotEqual(PublicationCodes.ProjectBusy, atOnce.Message?.Code);
+
+        await rig.AdvanceAsync(TimeSpan.FromSeconds(3));
+        Assert.Equal(RemoteWorkState.Done, (await StatusAsync(rig, ticket)).State);
+    }
+
     [Fact]
     public async Task ThePreviewAndTheInspectionSayBusyWithoutLaunchingAnything()
     {
