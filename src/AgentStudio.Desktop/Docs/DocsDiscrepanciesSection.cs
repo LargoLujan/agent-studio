@@ -39,6 +39,9 @@ public sealed class FindingRowItem
 
     public ConsistencyFinding Finding { get; }
 
+    /// <summary>What a screen reader says for the row: its text, not the name of the type.</summary>
+    public override string ToString() => AutomationName;
+
     /// <summary>The title of its group, only on the first finding of each code, so the list reads as groups without nesting.</summary>
     public string? GroupTitle { get; }
 

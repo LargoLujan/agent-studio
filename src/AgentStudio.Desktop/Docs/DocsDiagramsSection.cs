@@ -49,6 +49,9 @@ public sealed class ExportConflictItem(DiagramExportConflict conflict, IUiTextPr
     public DiagramExportConflict Conflict { get; } = conflict;
 
     public string Text { get; } = texts.Format("Docs_Conflict_Item", conflict.Path, DocsTexts.Export(texts, conflict.State));
+
+    /// <summary>What a screen reader says for the row: its text, not the name of the type.</summary>
+    public override string ToString() => Text;
 }
 
 /// <summary>
