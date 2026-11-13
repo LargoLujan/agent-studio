@@ -15,8 +15,9 @@ namespace AgentStudio.Application.Graph;
 /// <remarks>
 /// Progress: before it opens each file, the process writes one line <c>progress:&lt;relative path&gt;</c> to the standard error and flushes it. If the
 /// process dies (an exhausted stack cannot be caught), the host knows which file it was reading and launches it again with <c>--skip</c>
-/// for that file; that file is then a <c>graph.file-skipped</c> gap and its project partial. At most <see cref="MaxRelaunches"/> times; after that
-/// the graph is partial with what there is.
+/// for that file; that file is then a <c>graph.file-skipped</c> gap and its project partial. At most <see cref="MaxRelaunches"/> times (as many as files
+/// that can be skipped); after that one last launch reads no source file at all (<see cref="SourcesArgument"/>), so the graph is partial with every
+/// project marked, and only a process that dies even then fails the analysis.
 /// <para>
 /// What the host (WP-G) must do when it reads the process, because the process is not trusted: <b>apply <see cref="MaxOutputBytes"/> while it reads</b> the
 /// standard output (stop reading, kill the process and fail the analysis when the cap is passed; never read it all to check afterwards), apply the same
@@ -42,13 +43,22 @@ public static class GraphWorkerProtocol
     public const int SchemaVersion = 1;
 
     /// <summary>The times the host launches the process again after it died on a file (docs/20 D-18).</summary>
-    public const int MaxRelaunches = 3;
+    public const int MaxRelaunches = 16;
+
+    /// <summary>The option that says the process reads solutions and projects but no <c>.cs</c> file: the last resort of the host when files keep killing it (every project is then partial).</summary>
+    public const string SourcesArgument = "--sources";
+
+    /// <summary>The value of <see cref="SourcesArgument"/> that skips every source file.</summary>
+    public const string NoSources = "none";
 
     /// <summary>Most files that a launch is told to skip: one per relaunch, with room to spare.</summary>
     public const int MaxSkipped = 16;
 
     /// <summary>The longest the process may run before the host kills it (docs/20 D-18).</summary>
     public static readonly TimeSpan MaxRuntime = TimeSpan.FromSeconds(120);
+
+    /// <summary>The most memory the process may commit (the limit of its Job Object): a file made to eat memory fails the allocation of the process, not the RAM of the person.</summary>
+    public const long MaxProcessMemoryBytes = 1536L * 1024 * 1024;
 
     /// <summary>The most the host reads from the standard output of the process, in bytes; a longer output is a failed analysis.</summary>
     public const int MaxOutputBytes = 32 * 1024 * 1024;
@@ -94,6 +104,9 @@ public static class GraphWorkerExitCodes
 
     /// <summary>The analysis failed; the standard error has the reason, with no path and no text of the repository.</summary>
     public const int Failed = 5;
+
+    /// <summary>A file kept the parser busy past its time and the process ended itself: the host reads it as a crash on the last file named in the progress, and skips it.</summary>
+    public const int FileStuck = 6;
 }
 
 /// <summary>
@@ -102,7 +115,7 @@ public static class GraphWorkerExitCodes
 /// </summary>
 public sealed record GraphWorkerRequest
 {
-    public GraphWorkerRequest(string root, string commit, IReadOnlyList<string>? skipped = null)
+    public GraphWorkerRequest(string root, string commit, IReadOnlyList<string>? skipped = null, bool withoutSources = false)
     {
         if (string.IsNullOrWhiteSpace(root) || UntrustedText.HasHidden(root) || !Path.IsPathFullyQualified(root))
         {
@@ -123,7 +136,11 @@ public sealed record GraphWorkerRequest
         Root = root;
         Commit = commit;
         Skipped = [.. skipped];
+        WithoutSources = withoutSources;
     }
+
+    /// <summary>No <c>.cs</c> file is read: the projects are, and each says so with a gap.</summary>
+    public bool WithoutSources { get; }
 
     public string Root { get; }
 
@@ -141,6 +158,12 @@ public sealed record GraphWorkerRequest
             arguments.Add(path);
         }
 
+        if (WithoutSources)
+        {
+            arguments.Add(GraphWorkerProtocol.SourcesArgument);
+            arguments.Add(GraphWorkerProtocol.NoSources);
+        }
+
         return arguments;
     }
 
@@ -151,6 +174,7 @@ public sealed record GraphWorkerRequest
         request = null;
         string? root = null;
         string? commit = null;
+        var withoutSources = false;
         var skipped = new List<string>();
         if (arguments.Count % 2 != 0)
         {
@@ -171,6 +195,9 @@ public sealed record GraphWorkerRequest
                 case GraphWorkerProtocol.SkipArgument:
                     skipped.Add(value);
                     break;
+                case GraphWorkerProtocol.SourcesArgument when !withoutSources && value == GraphWorkerProtocol.NoSources:
+                    withoutSources = true;
+                    break;
                 default:
                     return false;
             }
@@ -183,7 +210,7 @@ public sealed record GraphWorkerRequest
 
         try
         {
-            request = new GraphWorkerRequest(root, commit, skipped);
+            request = new GraphWorkerRequest(root, commit, skipped, withoutSources);
             return true;
         }
         catch (ArgumentException)
@@ -193,7 +220,7 @@ public sealed record GraphWorkerRequest
     }
 
     public bool Equals(GraphWorkerRequest? other) =>
-        other is not null && Root == other.Root && Commit == other.Commit && Skipped.SequenceEqual(other.Skipped);
+        other is not null && Root == other.Root && Commit == other.Commit && Skipped.SequenceEqual(other.Skipped) && WithoutSources == other.WithoutSources;
 
     public override int GetHashCode() => HashCode.Combine(Root, Commit, Skipped.Count);
 }

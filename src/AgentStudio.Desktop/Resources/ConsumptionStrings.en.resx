@@ -113,4 +113,8 @@
     <value>Draft of the document for clients</value>
     <comment>The purpose of a run that drafts a part of a document for clients (AgentRunPurpose.ClientDocumentDraft), as the usage panel names it in each attempt.</comment>
   </data>
+  <data name="Usage_Purpose_GraphRelations" xml:space="preserve">
+    <value>Relations proposed for the graph</value>
+    <comment>The purpose of a run that proposes relations between the nodes of Auto Graph (AgentRunPurpose.GraphRelations), as the usage panel names it in each attempt.</comment>
+  </data>
 </root>

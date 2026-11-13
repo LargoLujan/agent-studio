@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!-- The texts of the Auto Graph area (docs/20 section 6.4, ADR-0054) in English: the same keys and placeholders as GraphStrings.resx. -->
+  <!-- The texts of the Auto Graph area (docs/20 section 6.4, ADR-0054) in English. -->
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
   </resheader>
@@ -15,6 +15,295 @@
   </resheader>
   <data name="Graph_Title" xml:space="preserve">
     <value>Auto Graph</value>
-    <comment>Title of the tab and of the entry of the bar.</comment>
+  </data>
+  <data name="Graph_Intro" xml:space="preserve">
+    <value>How the project is built: its projects, its namespaces and what each one uses.</value>
+  </data>
+  <data name="Graph_Sections_Name" xml:space="preserve">
+    <value>Sections of Auto Graph</value>
+  </data>
+  <data name="Graph_NoProject" xml:space="preserve">
+    <value>Open a project to see its graph.</value>
+  </data>
+  <data name="Graph_Unavailable" xml:space="preserve">
+    <value>The graph is not available: a service of the app is missing.</value>
+  </data>
+  <data name="Graph_Empty" xml:space="preserve">
+    <value>There is no graph of this project yet. Press Refresh.</value>
+  </data>
+  <data name="Graph_Refresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="Graph_Refresh_Hint" xml:space="preserve">
+    <value>Calculates the graph of the latest saved version. It spends no usage limit.</value>
+  </data>
+  <data name="Graph_Version" xml:space="preserve">
+    <value>Describes the saved version (commit) {0}.</value>
+  </data>
+  <data name="Graph_Version_WithChanges" xml:space="preserve">
+    <value>Describes the saved version (commit) {0}. Your folder has changes that are not in it yet.</value>
+  </data>
+  <data name="Graph_Coverage" xml:space="preserve">
+    <value>{0} projects: {1} complete and {2} partial. Gaps: {3}.</value>
+  </data>
+  <data name="Graph_Status_Calculating" xml:space="preserve">
+    <value>Calculating the graph. If a verification is running, it waits for it to end.</value>
+  </data>
+  <data name="Graph_Status_Proposing" xml:space="preserve">
+    <value>Asking an agent. It can take a minute.</value>
+  </data>
+  <data name="Graph_Error_Analysis" xml:space="preserve">
+    <value>The graph could not be calculated: {0}</value>
+  </data>
+  <data name="Graph_Error_NoVersion" xml:space="preserve">
+    <value>The project has no saved version yet. Save one to see its graph.</value>
+  </data>
+  <data name="Graph_Error_Proposal" xml:space="preserve">
+    <value>Relations could not be proposed: {0}</value>
+  </data>
+  <data name="Graph_Kind_Solution" xml:space="preserve">
+    <value>Solution</value>
+  </data>
+  <data name="Graph_Kind_Project" xml:space="preserve">
+    <value>Project</value>
+  </data>
+  <data name="Graph_Kind_Namespace" xml:space="preserve">
+    <value>Namespace</value>
+  </data>
+  <data name="Graph_Kind_Package" xml:space="preserve">
+    <value>Package</value>
+  </data>
+  <data name="Graph_Kind_SolutionFolder" xml:space="preserve">
+    <value>Solution folder</value>
+  </data>
+  <data name="Graph_Edge_Contains" xml:space="preserve">
+    <value>contains</value>
+  </data>
+  <data name="Graph_Edge_ProjectReference" xml:space="preserve">
+    <value>uses the project</value>
+  </data>
+  <data name="Graph_Edge_PackageReference" xml:space="preserve">
+    <value>uses the package</value>
+  </data>
+  <data name="Graph_Edge_NamespaceUse" xml:space="preserve">
+    <value>uses the namespace</value>
+  </data>
+  <data name="Graph_Node_Partial" xml:space="preserve">
+    <value>Partial</value>
+  </data>
+  <data name="Graph_Node_Name" xml:space="preserve">
+    <value>{0} {1}</value>
+  </data>
+  <data name="Graph_Node_NamePartial" xml:space="preserve">
+    <value>{0} {1}, partial</value>
+  </data>
+  <data name="Graph_Wire_Label_Inferred" xml:space="preserve">
+    <value>AI</value>
+  </data>
+  <data name="Graph_Wire_Name" xml:space="preserve">
+    <value>{0} {1} {2}</value>
+  </data>
+  <data name="Graph_Wire_NameInferred" xml:space="preserve">
+    <value>{0} {1} {2}, relation proposed by {3}</value>
+  </data>
+  <data name="Graph_Wire_ProposedBy" xml:space="preserve">
+    <value>Proposed by {0} with the model {1}.</value>
+  </data>
+  <data name="Graph_Legend_Name" xml:space="preserve">
+    <value>Legend of the graph</value>
+  </data>
+  <data name="Graph_Legend_Static" xml:space="preserve">
+    <value>Read from the files</value>
+  </data>
+  <data name="Graph_Legend_Partial" xml:space="preserve">
+    <value>Partial: something could not be read</value>
+  </data>
+  <data name="Graph_Legend_Inferred" xml:space="preserve">
+    <value>Proposed by an AI: dashed line and the label AI</value>
+  </data>
+  <data name="Graph_Show_Packages" xml:space="preserve">
+    <value>Show the packages</value>
+  </data>
+  <data name="Graph_Show_Inferred" xml:space="preserve">
+    <value>Show the relations an AI proposed</value>
+  </data>
+  <data name="Graph_Canvas_Name" xml:space="preserve">
+    <value>Canvas of the graph, read only</value>
+  </data>
+  <data name="Graph_List_Name" xml:space="preserve">
+    <value>List of the graph, with the same as the canvas</value>
+  </data>
+  <data name="Graph_List_Heading" xml:space="preserve">
+    <value>The graph as a list</value>
+  </data>
+  <data name="Graph_Row_Uses" xml:space="preserve">
+    <value>{0} {1} {2} uses: {3}</value>
+  </data>
+  <data name="Graph_Row_NoUses" xml:space="preserve">
+    <value>{0} {1} {2}</value>
+  </data>
+  <data name="Graph_Selected_Title" xml:space="preserve">
+    <value>{0} chosen: {1}</value>
+  </data>
+  <data name="Graph_Selected_None" xml:space="preserve">
+    <value>Choose a node to see its files and its tasks.</value>
+  </data>
+  <data name="Graph_Expand" xml:space="preserve">
+    <value>Unfold or fold its namespaces</value>
+  </data>
+  <data name="Graph_OpenProjectFile" xml:space="preserve">
+    <value>Open its project file</value>
+  </data>
+  <data name="Graph_Files_Heading" xml:space="preserve">
+    <value>Files that declare it</value>
+  </data>
+  <data name="Graph_Files_Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Graph_Tasks_Heading" xml:space="preserve">
+    <value>Tasks that changed files of this project</value>
+  </data>
+  <data name="Graph_Tasks_None" xml:space="preserve">
+    <value>No task changed files of this project.</value>
+  </data>
+  <data name="Graph_Task_Line" xml:space="preserve">
+    <value>{0}, {1} files</value>
+  </data>
+  <data name="Graph_Task_Open" xml:space="preserve">
+    <value>Go to the task {0}</value>
+  </data>
+  <data name="Graph_NoWork" xml:space="preserve">
+    <value>The Work screen is not available in this session.</value>
+  </data>
+  <data name="Graph_Task_Button" xml:space="preserve">
+    <value>Go to the task</value>
+  </data>
+  <data name="Graph_Message_TooMany" xml:space="preserve">
+    <value>Too many nodes are in view, more than {0}. Fold a project before unfolding another.</value>
+  </data>
+  <data name="Graph_Message_FileGone" xml:space="preserve">
+    <value>The file {0} is no longer in your folder.</value>
+  </data>
+  <data name="Graph_Message_TasksFailed" xml:space="preserve">
+    <value>The tasks could not be read: {0}</value>
+  </data>
+  <data name="Graph_Message_NothingToRelate" xml:space="preserve">
+    <value>There are no projects or namespaces to relate.</value>
+  </data>
+  <data name="Graph_Message_Proposed" xml:space="preserve">
+    <value>New relations: {0}. Discarded: {1}.</value>
+  </data>
+  <data name="Graph_Propose" xml:space="preserve">
+    <value>Propose relations</value>
+  </data>
+  <data name="Graph_Propose_Hint" xml:space="preserve">
+    <value>Asks an agent which relations are missing. It spends the usage limit of your plan and asks for your OK.</value>
+  </data>
+  <data name="Graph_Card_Heading" xml:space="preserve">
+    <value>What will be sent</value>
+  </data>
+  <data name="Graph_Card_Nodes" xml:space="preserve">
+    <value>The names of {0} projects and namespaces.</value>
+  </data>
+  <data name="Graph_Card_Known" xml:space="preserve">
+    <value>The {0} relations already read from the files.</value>
+  </data>
+  <data name="Graph_Card_Agent" xml:space="preserve">
+    <value>Claude Code will do it with a light model, read only.</value>
+  </data>
+  <data name="Graph_Card_Never" xml:space="preserve">
+    <value>No file and no path of your computer is sent.</value>
+  </data>
+  <data name="Graph_Card_ConsentDescription" xml:space="preserve">
+    <value>Propose relations of the graph</value>
+  </data>
+  <data name="Graph_Card_Send" xml:space="preserve">
+    <value>Give my OK and send</value>
+  </data>
+  <data name="Graph_Card_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Graph_Gaps_Heading" xml:space="preserve">
+    <value>What could not be read</value>
+  </data>
+  <data name="Graph_Gaps_None" xml:space="preserve">
+    <value>Everything could be read.</value>
+  </data>
+  <data name="Graph_Gap_Where" xml:space="preserve">
+    <value>{0}, line {1}</value>
+  </data>
+  <data name="Text_graph_unevaluated" xml:space="preserve">
+    <value>Something in the project file depends on rules that only the build tool resolves. It was not guessed.</value>
+  </data>
+  <data name="Text_graph_build_props" xml:space="preserve">
+    <value>A file of common rules sits above this project. It is noted, not applied.</value>
+  </data>
+  <data name="Text_graph_outside_root" xml:space="preserve">
+    <value>A path led out of the copy or was absolute. It was not opened.</value>
+  </data>
+  <data name="Text_graph_invalid_path" xml:space="preserve">
+    <value>A path cannot be read safely. It was not opened.</value>
+  </data>
+  <data name="Text_graph_link" xml:space="preserve">
+    <value>There was a link on the way. It was not followed.</value>
+  </data>
+  <data name="Text_graph_missing" xml:space="preserve">
+    <value>A file that was named is not in the copy.</value>
+  </data>
+  <data name="Text_graph_file_skipped" xml:space="preserve">
+    <value>A file could not be read: it was too big, too slow, too deep or it failed.</value>
+  </data>
+  <data name="Text_graph_limit" xml:space="preserve">
+    <value>A cap of the analysis was reached. What comes after it was not read.</value>
+  </data>
+  <data name="Text_graph_duplicate" xml:space="preserve">
+    <value>The same project was in the solution twice. Only the first one counts.</value>
+  </data>
+  <data name="Text_graph_ignored_solution" xml:space="preserve">
+    <value>There is more than one solution at the root. Only the first one was read.</value>
+  </data>
+  <data name="Info_Graph_Title" xml:space="preserve">
+    <value>Auto Graph</value>
+  </data>
+  <data name="Info_Graph_What" xml:space="preserve">
+    <value>Auto Graph draws how your C# project is built. It reads the files as text. It never builds or runs your code.</value>
+  </data>
+  <data name="Info_Graph_Actions" xml:space="preserve">
+    <value>Look at the graph of the latest saved version.
+Press Refresh to calculate it again.
+Open files and tasks from each node.</value>
+  </data>
+  <data name="Info_Graph_Map_Title" xml:space="preserve">
+    <value>Graph</value>
+  </data>
+  <data name="Info_Graph_Map_What" xml:space="preserve">
+    <value>Each box is a project. The arrows say which project uses which. You can look inside a project at its namespaces.</value>
+  </data>
+  <data name="Info_Graph_Map_Actions" xml:space="preserve">
+    <value>Choose a box to see its files and its tasks.
+Unfold a project to see its namespaces.
+Hide the packages or the relations of an AI with the switches.</value>
+  </data>
+  <data name="Info_Graph_Coverage_Title" xml:space="preserve">
+    <value>What could be read</value>
+  </data>
+  <data name="Info_Graph_Coverage_What" xml:space="preserve">
+    <value>It says how much of the project was read whole. What cannot be known without running anything shows as partial. Each gap gives its reason and its line.</value>
+  </data>
+  <data name="Info_Graph_Coverage_Actions" xml:space="preserve">
+    <value>See which projects are partial.
+Read the reason of each gap.
+See which saved version the graph describes.</value>
+  </data>
+  <data name="Info_Graph_Propose_Title" xml:space="preserve">
+    <value>Proposed relations</value>
+  </data>
+  <data name="Info_Graph_Propose_What" xml:space="preserve">
+    <value>An agent can suggest relations that are missing. It spends the usage limit of your plan, so it asks for your OK each time. What it suggests is drawn differently and never counts as read.</value>
+  </data>
+  <data name="Info_Graph_Propose_Actions" xml:space="preserve">
+    <value>Press Propose relations and see what will be sent.
+Give your OK only if you want to go on.
+Hide what it proposes with the switch.</value>
   </data>
 </root>

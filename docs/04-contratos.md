@@ -2401,7 +2401,10 @@ La lógica de WP-E (`rollForward`, rangos de Node y de Python, el comparador) **
 | Los lectores de salidas | `Infrastructure/Diagnostics/ToolOutputParsers.cs` | WP-A. Totales y acotados: nunca lanzan, deciden por estructura (`Client`/`Server` de `docker version --format json`; las líneas `nombre: valor` de `wsl --status`, sin mirar las palabras del idioma) y dan «no entendido» (null) ante una salida de otra forma, truncada o con NUL (UTF-16 leído como UTF-8) |
 | `IDeclaredEnvironmentReader` | `Application/Diagnostics/EnvironmentContracts.cs` | WP-E |
 | `IRepositorySnapshots`, `IRepositorySnapshot` | `Application/Git/RepositorySnapshotContracts.cs` | WP-G, sobre `IWorktreeManager.ArchiveCommitAsync` |
-| `ICodeGraphBuilder`, `CommitAnalysis`, `ICommitAnalysisService`, `IGraphInferenceStore`, `IGraphTaskIndex`, `GraphTaskRef` | `Application/Graph/GraphContracts.cs` | WP-G |
+| `ICodeGraphBuilder`, `GraphAnalysisException`, `CommitAnalysis`, `ICommitAnalysisService`, `IGraphInferenceStore`, `IGraphTaskIndex`, `GraphTaskRef` | `Application/Graph/GraphContracts.cs` | WP-G (§25.6: `BuildAsync` devuelve `GraphBuild`; `CommitAnalysis` lleva `Files`; el almacén tiene `AddAsync`) |
+| `NamespaceFiles`, `GraphBuild`, `GraphGapCodes` | `Application/Graph/NamespaceFiles.cs`, `GraphGapCodes.cs` | WP-G (§25.6) |
+| `CommitAnalysisService`, `ICommitAnalysisCache`, `CachedAnalysis` | `Application/Graph/CommitAnalysisService.cs` | WP-G (§25.6) |
+| `IGraphRelationProposer`, `GraphInferenceService`, `GraphProposalRequest`, `GraphProposalReply`, `GraphRelationsAgent` | `Application/Graph/GraphInferenceService.cs` | WP-G, decisión 7 (a) (§25.6) |
 | `GraphWorkerProtocol`, `GraphWorkerRequest`, `GraphWorkerExitCodes` | `Application/Graph/GraphWorkerProtocol.cs` | Los dos lados del proceso de análisis (§25.3) |
 | `CodeGraphJson` | `Application/Graph/CodeGraphJson.cs` | El texto del modelo, escrito en una forma fija y leído como dato no fiable (§25.3) |
 | `DiagramKind`, `DiagramState`, `DiagramExportState`, `DiagramSource`, `DiagramRef`, `DiagramStatus`, `DiagramExportRequest`, `DiagramExportResult`, `IDiagramGenerator`, `IDiagramCatalog` | `Application/Diagrams/DiagramContracts.cs` | WP-D. El texto de un diagrama termina sus líneas con `\n` y no lleva BOM |
@@ -2424,9 +2427,11 @@ para manejarlo; ningún módulo lo referencia.
   las invariantes de `CodeGraph` mandan; todo lo que falla es `InvalidDataException` sin citar el texto.
 - **Lo que debe hacer el anfitrión (WP-G):** aplicar el tope de bytes (`MaxOutputBytes`) **mientras lee** la salida estándar (dejar de leer, matar el proceso y fallar al pasarlo), acotar las líneas del error estándar, matar tras `MaxRuntime` y recortar el `\r` final de cada línea antes de compararla (`TryParseProgress` lo hace).
 - **Error estándar:** una línea `progress:<ruta relativa>` antes de abrir cada fichero, para que un fallo del proceso nombre su fichero y el anfitrión
-  lo relance con `--skip` (hasta tres veces, después el grafo sale parcial). Cualquier otra línea es un diagnóstico sin rutas ni texto del repositorio.
-- **Códigos de salida:** 0 completado, 2 uso, 3 la raíz no es una carpeta, 4 análisis no disponible, 5 fallo del análisis.
-- **El esqueleto del P0 no analiza nada:** termina con el código 4 y la salida estándar vacía. No devuelve un grafo vacío porque parecería uno.
+  lo relance con `--skip` (hasta 16 veces; después, un último lanzamiento con `--sources none` que no lee ningún `.cs` y da el grafo parcial: §25.6). Cualquier otra línea es un diagnóstico sin rutas ni texto del repositorio.
+- **Códigos de salida:** 0 completado, 2 uso, 3 la raíz no es una carpeta, 4 análisis no disponible, 5 fallo del análisis, 6 `FileStuck` (el analizador no devolvió un fichero a tiempo y el proceso terminó por sí mismo: el anfitrión lo trata como una caída).
+- **Opción `--sources none`:** el proceso lee solución y proyectos y ningún `.cs`; cada proyecto sale parcial con `graph.limit`.
+- **El esqueleto del P0 no analizaba nada** (terminaba con el código 4 y la salida vacía). WP-G lo sustituye por el análisis real (§25.6); `UnavailableGraphAnalysis` queda
+  como el doble de ese caso en las pruebas. Una copia vacía da un modelo con cero nodos: es un modelo, no un fallo.
 
 ### 25.4 Registro (`Application/Decisions/DoctorPayloads.cs`)
 
@@ -2443,10 +2448,47 @@ para manejarlo; ningún módulo lo referencia.
 ### 25.5 Escritorio
 
 - `Desktop/Graph/GraphDocumentViewModel.cs` y `GraphSection.cs`: el anfitrión del documento «Auto Graph» y el contrato de sección. El documento recibe sus
-  secciones inyectadas, no conoce ninguna concreta y tolera cero; WP-G aporta «Grafo» y WP-D «Diagramas» y «Discrepancias». No tiene vista aún: la plantilla
-  la añade el lead con la primera sección.
+  secciones inyectadas, no conoce ninguna concreta y tolera cero; WP-G aporta «Grafo» y WP-D «Diagramas» y «Discrepancias». Su vista (`Views/Graph/GraphView`) y su plantilla
+  en `Themes/DocumentTemplates.xaml` las añadió WP-G (§25.6); WP-D añade la plantilla de cada una de sus secciones en `GraphView`.
 - Recursos `DoctorStrings`, `GraphStrings` y `DocsStrings`, cada uno con su par `.en.resx`, en `PendingExtraction` de la guía de textos hasta que su paquete los
   cierre. No pueden estar vacíos (`LocalizationResourcesTests` exige claves en cada fichero), así que cada uno trae su título: `Doctor_Title`, `Graph_Title`
   (que el documento anfitrión usa) y `Docs_Title`.
 - Códigos de ayuda `doctor` y `graph` en `HelpScreens` y la primera versión de sus artículos, sin claves ⓘ todavía (cada paquete añade las de sus vistas).
 - `UiScreensDoctor`, `UiScreensGraph` y `UiScreensDocs` con su lista vacía, ya sumadas en `UiScreens`.
+
+### 25.6 Auto Graph (WP-G)
+
+Lo que WP-G añadió o cambió respecto a §25.2 y §25.3 (todo con prueba; ver [ADR-0062](adr/0062-auto-graph-sin-msbuild.md)):
+
+- **Los ficheros que declaran cada espacio de nombres (F6-5).** El modelo no tiene dónde llevarlos y no deben mover su huella: viajan al lado.
+  `NamespaceFiles` (id de nodo de espacio de nombres → rutas relativas, ordenadas, a lo sumo 200 por espacio y 100 000 en total) y `GraphBuild(Graph, Files)`.
+  `CodeGraphJson` escribe un campo opcional `files` (`Serialize(graph, files)`) y lo lee estricto (`ParseBuild`; una lista para algo que no es un espacio de nombres del
+  modelo es `InvalidDataException`); `Parse` y `Serialize(graph)` siguen como estaban. **Cambio de contrato:** `ICodeGraphBuilder.BuildAsync` devuelve `GraphBuild` (nadie
+  lo usaba aún), `CommitAnalysis` lleva `Files` (parámetro opcional del constructor) y `IGraphAnalysis` (la costura del proceso) devuelve `GraphBuild`.
+- **Códigos de hueco** (`GraphGapCodes`): `graph.unevaluated` (con su línea), `graph.build-props` (el fichero `Directory.Build.props` o `.targets` por encima: se anota y no se
+  aplica), `graph.outside-root`, `graph.invalid-path`, `graph.link`, `graph.missing`, `graph.file-skipped`, `graph.limit`, `graph.duplicate` y `graph.ignored-solution`.
+  La ruta de un hueco es siempre el fichero que lo dice, nunca el destino hostil.
+- **El proceso.** `.slnx` y `.csproj` con `XDocument` sobre un `XmlReader` sin DTD, sin resolvedor, sin expansión de entidades y con tope de 2 millones de caracteres, y a lo
+  sumo 64 niveles de elementos; `.sln` con un lector de líneas; los `.cs` con `CSharpSyntaxTree.ParseText` (solo `Usings` y declaraciones de espacios de nombres, hasta 64
+  niveles, 1 MB y 5 s por fichero). Cada ruta del repositorio se resuelve contra la carpeta del fichero que la nombra, se colapsa de forma léxica, se valida con
+  `RepositoryPaths` y se comprueba en disco sin enlaces ni uniones en ningún tramo (`RepositoryFiles`). Antes de parsear, una cuenta de corchetes anidados (`> 256`) devuelve el
+  fichero como hueco: es barata y evita el desbordamiento de pila más corriente; lo que pasa y aun así mata al proceso lo cubre el relanzamiento (el analizador corre en un
+  hilo de 64 MB, y con una pila pequeña de prueba tumban al proceso 20 000 casts, asignaciones, condicionales, `if`, `await` o lambdas anidados). Topes: 2 000 proyectos, 50 000 ficheros `.cs`, los de `CodeGraph`. Un tope alcanzado es hueco, no fallo.
+- **El anfitrión** (`Infrastructure/Graph`): `RepositorySnapshots` (copia del commit en un área aislada por `IIsolatedWorkAreaFactory`, con el cerrojo de «una a la vez»),
+  `GraphWorkerHost` (`ICodeGraphBuilder`: relanza saltando el fichero que mató al proceso, 16 veces como mucho, después lanza una vez sin fuentes y se queda con el resultado del primer lanzamiento que termina; no relanza ante un código propio, un tiempo agotado ni
+  una salida que pasa su tope; ningún mensaje de excepción cita lo que escribió el proceso), `LowIntegrityGraphWorkerLauncher` (ejecutable por ruta absoluta junto a la app, carpeta de trabajo y `TEMP` en el área, sin entrada
+  estándar), `BoundedProcessReaders` (tope en bytes **mientras lee** la salida; el error estándar, en líneas acotadas a 1 024 caracteres, solo se cree una línea
+  `progress:` con una ruta segura, terminada en `\n` y con el `\r` recortado), `CommitAnalysisFileCache` y `GraphInferenceFileStore`.
+- **El servicio** (`CommitAnalysisService`): una copia abierta por análisis para el grafo y las discrepancias y cerrada después, caché por commit
+  (`%LOCALAPPDATA%\AgentStudio\graph\<proyecto>\<commit>.json`, versión de formato 1, leída como dato no fiable) y una cola de uno. `IConsistencyService` es opcional: sin él, las
+  discrepancias salen vacías con todos los códigos «no aplica» y la caché lo apunta (`ConsistencyChecked = false`); con él, un análisis guardado sin comprobar se calcula de nuevo.
+- **Relaciones propuestas** (decisión 7 (a)): `AgentRunPurpose.GraphRelations` (al final del enum; consumo `Usage_Purpose_GraphRelations`, actividad «Análisis»),
+  auxiliar de solo lectura en carpeta vacía como el agente de la ayuda; `IGraphRelationProposer` / `GraphInferenceService` (el OK reciente, para este grafo y este agente,
+  se gasta una vez; esquema cerrado de a lo sumo 50 relaciones `ProjectReference` o `NamespaceUse`; los extremos deben haberse enviado; una relación ya leída no es una
+  propuesta; el motivo es texto de un agente, una línea de 200). `IGraphInferenceStore` gana `AddAsync`; el almacén es derivado (`inferred.json`, a lo sumo 1 000 relaciones).
+  `GraphRelationsProposed` lleva el excedente descartado recortado a las 50 relaciones que admite la entrada.
+- **`IGraphTaskIndex`** (`Orchestration/Graph/GraphTaskIndex`): lee los registros de intento anclados en el registro (`AttemptRecord`), cada uno solo como el registro lo anclaba (su
+  huella debe ser la registrada), cuenta el último intento de cada tarea, pone el título que le dio el plan y no da nada con un registro que no verifica.
+- **Escritorio.** `GraphMapSection` («Grafo», ⓘ `Info_Graph_Map`) y su `GraphBackend`; `GraphLayout` (capas por profundidad de dependencias, determinista); `GraphFileTarget`
+  (la comprobación de la ruta antes de abrir); `GraphDocumentViewModel` gana `SetProjectRootAsync` (abre el proyecto con `IProjectWorkspace`) y la plantilla `GraphView`; `MainViewModel.Graph.cs` y
+  `Composition/GraphUiServices.cs`. `GraphStrings` pasa a `ClosedAreas` de la guía de textos.

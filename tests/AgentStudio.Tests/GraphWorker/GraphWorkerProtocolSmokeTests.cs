@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.Text;
 using AgentStudio.Application.Graph;
@@ -46,10 +46,10 @@ public sealed class GraphWorkerProtocolSmokeTests : IDisposable
     {
         public GraphWorkerRequest? Received { get; private set; }
 
-        public Task<CodeGraph> AnalyzeAsync(GraphWorkerRequest request, Action<string> fileStarted, CancellationToken ct)
+        public Task<GraphBuild> AnalyzeAsync(GraphWorkerRequest request, Action<string> fileStarted, CancellationToken ct)
         {
             Received = request;
-            return Task.FromResult(analyze(request, fileStarted));
+            return Task.FromResult(new GraphBuild(analyze(request, fileStarted), NamespaceFiles.Empty));
         }
     }
 
@@ -206,7 +206,7 @@ public sealed class GraphWorkerProtocolSmokeTests : IDisposable
 
     [Fact]
     [Trait("Category", "LocalTools")]
-    public async Task The_real_executable_keeps_the_protocol_it_ends_with_the_usage_without_arguments_and_with_its_own_code_when_it_has_no_analysis()
+    public async Task The_real_executable_keeps_the_protocol_it_ends_with_the_usage_without_arguments_and_writes_the_model_of_an_empty_copy()
     {
         var (usageCode, usageOut, usageError) = await LaunchAsync([]);
         var (code, output, error) = await LaunchAsync(Arguments());
@@ -214,9 +214,9 @@ public sealed class GraphWorkerProtocolSmokeTests : IDisposable
         Assert.Equal(GraphWorkerExitCodes.UsageError, usageCode);
         Assert.Equal(string.Empty, usageOut);
         Assert.StartsWith("Usage:", usageError, StringComparison.Ordinal);
-        Assert.Equal(GraphWorkerExitCodes.AnalysisUnavailable, code);
-        Assert.Equal(string.Empty, output);
-        Assert.Contains("not implemented", error, StringComparison.Ordinal);
+        Assert.Equal(GraphWorkerExitCodes.Completed, code);
+        Assert.Empty(CodeGraphJson.Parse(output).Nodes);
+        Assert.Equal(string.Empty, error);
     }
 
     private static async Task<(int Code, string Out, string Error)> LaunchAsync(string[] args)

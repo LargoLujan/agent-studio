@@ -33,6 +33,7 @@ internal static partial class IsolationNativeMethods
 
     // Job Object: JOBOBJECT_EXTENDED_LIMIT_INFORMATION and its limits.
     internal const uint JobObjectLimitDieOnUnhandledException = 0x00000400;
+    internal const uint JobObjectLimitProcessMemory = 0x00000100;
     internal const uint JobObjectLimitKillOnJobClose = 0x00002000;
     internal const int JobObjectExtendedLimitInformationClass = 9;
 

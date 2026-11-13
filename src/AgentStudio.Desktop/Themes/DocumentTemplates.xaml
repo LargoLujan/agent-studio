@@ -16,6 +16,8 @@
                     xmlns:documentsViews="clr-namespace:AgentStudio.Desktop.Views.Documents"
                     xmlns:work="clr-namespace:AgentStudio.Desktop.Work"
                     xmlns:workViews="clr-namespace:AgentStudio.Desktop.Views.Work"
+                    xmlns:graph="clr-namespace:AgentStudio.Desktop.Graph"
+                    xmlns:graphViews="clr-namespace:AgentStudio.Desktop.Views.Graph"
                     xmlns:debate="clr-namespace:AgentStudio.Desktop.Debate"
                     xmlns:debateViews="clr-namespace:AgentStudio.Desktop.Views.Debate"
                     xmlns:audit="clr-namespace:AgentStudio.Desktop.Audit"
@@ -71,6 +73,11 @@
     <!-- Phase 9 (docs/16 section 4.6): «Trabajo» (milestones, backlog, board, chain, participants, links and budgets). -->
     <DataTemplate DataType="{x:Type work:WorkDocumentViewModel}">
         <workViews:WorkView/>
+    </DataTemplate>
+
+    <!-- Phase 6 (docs/20 section 6.4): «Auto Graph» (the graph of the solution; WP-D adds the diagrams and the discrepancies as sections). -->
+    <DataTemplate DataType="{x:Type graph:GraphDocumentViewModel}">
+        <graphViews:GraphView/>
     </DataTemplate>
 
     <!-- Phase 5 (docs/15 section 4.10): «Debates» (room, history, new debate, verdict cards) and «Auditoría». -->

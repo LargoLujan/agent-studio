@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using AgentStudio.Application.Decisions;
@@ -44,6 +44,7 @@ public sealed class AuxiliaryAgentRunnerGuardTests
     [Theory]
     [InlineData(AgentRunPurpose.Help)]
     [InlineData(AgentRunPurpose.ClientDocumentDraft)]
+    [InlineData(AgentRunPurpose.GraphRelations)]
     public async Task An_empty_list_of_allowed_tools_is_refused_before_anything_is_recorded(AgentRunPurpose purpose)
     {
         using var world = new World();
@@ -106,6 +107,7 @@ public sealed class AuxiliaryAgentRunnerGuardTests
     [Theory]
     [InlineData(AgentRunPurpose.Help)]
     [InlineData(AgentRunPurpose.ClientDocumentDraft)]
+    [InlineData(AgentRunPurpose.GraphRelations)]
     public async Task A_file_that_appears_after_the_first_check_stops_the_launch_and_closes_the_attempt_as_failed(AgentRunPurpose purpose)
     {
         using var world = new World();

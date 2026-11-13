@@ -659,7 +659,7 @@ primero. Sin texto libre ni rutas de tu equipo en el payload.
   saltan), y los ficheros generados (`*.g.cs`, `*.Designer.cs`) fuera.
 - **Si aun así el proceso cae** (una pila agotada no se puede capturar): antes de cada fichero escribe su ruta en su
   salida de progreso. El cliente lo relanza saltando ese fichero, que sale `graph.file-skipped`; como mucho tres veces, y
-  después el grafo sale «parcial» con lo que haya.
+  hasta el tope de ficheros que se pueden saltar (16, `MaxSkipped`); si aun así cae, un último lanzamiento no lee ningún fichero `.cs` (`--sources none`) y el grafo sale «parcial» con todos los proyectos marcados. Solo falla el análisis si el proceso cae también sin leer fuentes (lo ajustó WP-G, §4.4).
 - **La salida del proceso es un dato no fiable para la app:** se lee con un esquema estricto y los mismos topes. **El anfitrión (WP-G) aplica el
   tope de bytes mientras lee** (deja de leer, mata el proceso y falla el análisis al pasarlo; no lee todo para comprobarlo después), acota también las
   líneas del error estándar, recorta el `\r` final de cada línea `progress:` antes de compararla (`TryParseProgress` ya lo hace) y solo cree una ruta segura. Ningún
@@ -1088,6 +1088,10 @@ Los contratos de arriba son los del diseño; al escribirlos el P0 cambió esto, 
 - **`ISkillHealthBatchChecker`** es la tanda contra GitHub (una entrada por skill, con su código de fallo); `ISkillHealthChecker` no cambia. `GitHubToken` y `SkillsDoctorTokenUse` modelan el
   token y el estado de la presencia para que el token no pueda salir en un texto.
 - **`DoctorFix.Guide`** solo admite una página `https` sin credenciales, y **`DoctorToolResult`** lleva el resultado de una herramienta que no corrió (`NotInstalled`, `InsideProject`, `TimedOut`, `FailedToStart`).
+- **Lo que WP-G ajustó (2026-11-13), documentado en [04 §25.6](04-contratos.md#256-auto-graph-wp-g) y en la adenda de ADR-0062:** `ICodeGraphBuilder.BuildAsync` devuelve `GraphBuild` (el modelo y los ficheros que
+  declaran cada espacio de nombres, que viajan al lado y no entran en la huella); `CommitAnalysis` lleva `Files`; `IGraphInferenceStore` tiene `AddAsync`; `AgentRunPurpose.GraphRelations`; los códigos de hueco
+  son los de `GraphGapCodes`; el desbordamiento de pila de Roslyn con anidamiento extremo está medido (§12 queda resuelto en este punto: sí ocurre, y el relanzamiento lo cubre); y los relanzamientos suben a 16, con un último lanzamiento sin fuentes (`--sources none`) que da el grafo «parcial» con todos los proyectos marcados (D-18); el worker termina por sí mismo (código 6, `FileStuck`) si el analizador no devuelve un fichero en 10 s, y el anfitrión lo salta; todo tope de
+  la lectura **trunca con un hueco `graph.limit`** y sigue, nunca lanza; el analizador corre en un hilo con 64 MB de pila; el proceso tiene un tope de 1,5 GB de memoria en su Job Object.
 - **No están en el P0:** `IUntrustedRoots` (WP-0), `EvidenceToolVersions` (WP-E, que decide cómo embebe el bloque `tools:` en la cabecera de la evidencia, hoy líneas `# …`) y el escapador de
   Mermaid (WP-D, en Memory). `DoctorFactNames` se reduce a lo que el §4.2 listaba.
 
@@ -1182,6 +1186,8 @@ El modelo de amenaza no cambia: el contenido del repositorio es no fiable. Lo qu
 | Exportar diagramas al repositorio (D-25) | Sobrescribir algo tuyo; leerlo de vuelta como verdad | Solo si lo pides; nombres de lista cerrada; nunca durante una ejecución; pregunta antes de pisar un fichero cambiado; nunca se interpreta |
 | Nombres del repositorio dentro de un diagrama (D-24) | Inyectar sintaxis de Mermaid (un `click` con una URL) | Identificadores propios; un escapador único (también `;` y `%`); los mensajes de la secuencia, de un vocabulario cerrado; sin directivas. Prueba adversaria en F6-10 |
 | Arreglos (D-10) | Que la app cambie algo sin que lo sepas | Tres clases en el tipo; «aplicar» solo con deshacer o con aprobación; rastro en el registro |
+
+**Sobre la red del proceso de análisis.** La integridad baja **no** bloquea la red (ADR-0017). La garantía de Auto Graph es otra: `AgentStudio.GraphWorker` **no tiene código de red** (no referencia ningún ensamblado `System.Net.*` y sus fuentes no nombran `HttpClient` ni sockets; una prueba de arquitectura lo vigila), y solo lee ficheros de la copia. Si el analizador de Roslyn fuera vulnerable, el proceso podría abrir una conexión: es el residual de abajo.
 
 **Residuales que se aceptan y se escriben en los ADR:**
 

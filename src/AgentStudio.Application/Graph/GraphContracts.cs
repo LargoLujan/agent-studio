@@ -10,17 +10,36 @@ namespace AgentStudio.Application.Graph;
 // Phase 6 contracts (docs/20 D-16 to D-22 and section 4.2, ADR-0062). The builder, the service, the store and the index are WP-G; the analysis
 // itself runs in AgentStudio.GraphWorker (docs/20 D-18), which shares GraphWorkerProtocol and CodeGraphJson with its host.
 
-/// <summary>Runs the analysis process over an open copy of a commit and returns the static model (docs/20 D-18).</summary>
+/// <summary>
+/// Runs the analysis process over an open copy of a commit and returns the static model with the files that declare each namespace (docs/20 D-18).
+/// The P0 returned the model alone; the files that declare each namespace (F6-5) have nowhere in the model, so they travel beside it (<see cref="GraphBuild"/>).
+/// </summary>
 public interface ICodeGraphBuilder
 {
-    Task<CodeGraph> BuildAsync(IRepositorySnapshot snapshot, CancellationToken ct);
+    /// <exception cref="GraphAnalysisException">The process failed, crashed on every launch, ran too long or wrote something that is not a model.</exception>
+    Task<GraphBuild> BuildAsync(IRepositorySnapshot snapshot, CancellationToken ct);
+}
+
+/// <summary>The analysis of a commit could not be completed. The message never quotes what the process wrote: it is data that is not trusted.</summary>
+public sealed class GraphAnalysisException : Exception
+{
+    public GraphAnalysisException(string message)
+        : base(message)
+    {
+    }
+
+    public GraphAnalysisException(string message, Exception innerException)
+        : base(message, innerException)
+    {
+    }
 }
 
 /// <summary>The graph and the discrepancies of one commit, calculated from the same copy (docs/20 D-19): both describe the same commit.</summary>
 public sealed record CommitAnalysis
 {
     /// <exception cref="ArgumentException">The two describe different commits.</exception>
-    public CommitAnalysis(CodeGraph graph, ConsistencyReport consistency)
+    /// <param name="files">The files that declare each namespace of the graph (F6-5); none when the analysis does not list them.</param>
+    public CommitAnalysis(CodeGraph graph, ConsistencyReport consistency, NamespaceFiles? files = null)
     {
         ArgumentNullException.ThrowIfNull(graph);
         ArgumentNullException.ThrowIfNull(consistency);
@@ -31,9 +50,13 @@ public sealed record CommitAnalysis
 
         Graph = graph;
         Consistency = consistency;
+        Files = files ?? NamespaceFiles.Empty;
     }
 
     public CodeGraph Graph { get; }
+
+    /// <summary>The files that declare each namespace of <see cref="Graph"/>; not part of its hash.</summary>
+    public NamespaceFiles Files { get; }
 
     public ConsistencyReport Consistency { get; }
 
@@ -56,7 +79,14 @@ public interface ICommitAnalysisService
 /// <summary>The relations an AI proposed, kept apart from the static model (docs/20 D-21). They never enter the hash of the model nor a generated diagram.</summary>
 public interface IGraphInferenceStore
 {
+    /// <summary>The relations proposed for the project, newest proposal last. They are all <see cref="GraphEdgeOrigin.Inferred"/>.</summary>
     Task<IReadOnlyList<GraphEdge>> ListAsync(ProjectContext project, CancellationToken ct);
+
+    /// <summary>
+    /// Keeps the relations of one proposal. The store is derived data (the log has the ends and the kind of each relation, the evidence the text of the
+    /// agent): losing it loses only the reasons and the proposals can be asked again. A relation that is already there is not kept twice.
+    /// </summary>
+    Task AddAsync(ProjectContext project, IReadOnlyList<GraphEdge> edges, CancellationToken ct);
 }
 
 /// <summary>A task whose attempts changed files under a folder (docs/20 D-22, F6-5): where the person goes from a node of the graph to its work.</summary>

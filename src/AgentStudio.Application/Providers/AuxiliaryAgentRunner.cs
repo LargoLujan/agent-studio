@@ -69,7 +69,7 @@ public sealed class AuxiliaryAgentRunner(IDecisionRecorder decisions, IEvidenceS
     public static bool IsAuxiliary(AgentRunPurpose purpose) =>
         purpose is AgentRunPurpose.SkillRecommendation or AgentRunPurpose.DailySummary
             or AgentRunPurpose.OrderReview or AgentRunPurpose.ConsumptionAnalysis or AgentRunPurpose.PreparationChat
-            or AgentRunPurpose.Help or AgentRunPurpose.ClientDocumentDraft;
+            or AgentRunPurpose.Help or AgentRunPurpose.ClientDocumentDraft or AgentRunPurpose.GraphRelations;
 
     /// <summary>
     /// Whether the end of a run of <paramref name="purpose"/> is recorded with its class (<c>AgentRunFinished</c> version 3,
@@ -77,7 +77,7 @@ public sealed class AuxiliaryAgentRunner(IDecisionRecorder decisions, IEvidenceS
     /// </summary>
     public static bool RecordsEndClass(AgentRunPurpose purpose) =>
         purpose is AgentRunPurpose.OrderReview or AgentRunPurpose.ConsumptionAnalysis or AgentRunPurpose.PreparationChat
-            or AgentRunPurpose.Help or AgentRunPurpose.ClientDocumentDraft;
+            or AgentRunPurpose.Help or AgentRunPurpose.ClientDocumentDraft or AgentRunPurpose.GraphRelations;
 
     /// <summary>The only tools a read-only auxiliary run of Phase 14 may be allowed.</summary>
     private static readonly string[] ReadOnlyTools = ["Read", "Grep", "Glob"];
@@ -86,7 +86,7 @@ public sealed class AuxiliaryAgentRunner(IDecisionRecorder decisions, IEvidenceS
     /// Whether the runner holds <paramref name="purpose"/> to a read-only launch in an empty folder: the agent of the help and the
     /// draft of a document for clients (docs/17 D-56 and D-59). The other purposes leave the launch to their service.
     /// </summary>
-    public static bool RequiresReadOnlyLaunch(AgentRunPurpose purpose) => purpose is AgentRunPurpose.Help or AgentRunPurpose.ClientDocumentDraft;
+    public static bool RequiresReadOnlyLaunch(AgentRunPurpose purpose) => purpose is AgentRunPurpose.Help or AgentRunPurpose.ClientDocumentDraft or AgentRunPurpose.GraphRelations;
 
     /// <summary>
     /// What a read-only launch (<see cref="RequiresReadOnlyLaunch"/>) must not have, in English; empty when it is one: no file writes,
@@ -375,6 +375,7 @@ public sealed class AuxiliaryAgentRunner(IDecisionRecorder decisions, IEvidenceS
         AgentRunPurpose.PreparationChat => "el chat de preparación",
         AgentRunPurpose.Help => "la ayuda",
         AgentRunPurpose.ClientDocumentDraft => "el borrador del documento para clientes",
+        AgentRunPurpose.GraphRelations => "las relaciones propuestas del grafo",
         _ => purpose.ToString(),
     };
 }

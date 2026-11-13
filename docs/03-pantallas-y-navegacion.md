@@ -60,8 +60,8 @@ debajo.
     usar cada agente de la plantilla del proyecto abierto, y su «Dar a un agente…» lleva a esa capa con el inspector.
     **Pruebas** muestra u oculta el panel de abajo del mismo nombre. Sus títulos salen de los recursos
     (`IntegrationStrings`, castellano de España e inglés).
-  - Una entrada solo aparece si su pantalla existe en la app: no hay iconos que no hagan nada. Git y Auto Graph tendrán entrada
-    cuando llegue la suya.
+  - Una entrada solo aparece si su pantalla existe en la app: no hay iconos que no hagan nada. Auto Graph tiene la suya (entre
+    «Trabajo» y «Debates», [sección 8.3](#83-auto-graph-fase-6-wp-g)); Git tendrá entrada cuando llegue la suya.
   - El anillo de foco va en el botón que tiene el teclado, nunca alrededor de toda la barra.
 - **Pestañas de abajo.** Junto a «Terminal», en el mismo grupo, «Problemas», «Salida» y «Pruebas» (Fase 13, [sección 5.5](#55-monitor-vivo-preguntas-análisis-del-consumo-paneles-y-herramientas-fase-13-wp8)):
   siguen al monitor de la ejecución del proyecto abierto (con otro proyecto, o sin ejecución, quedan vacíos, nunca con lo del
@@ -1337,6 +1337,55 @@ castellano y en inglés, y todo sale del historial verificado: ningún apartado 
 Lo que no hace esta pantalla, y por qué: no revisa los requisitos de un hito después de abrirlo (`ReviseRequirementsAsync` existe, sin
 pantalla todavía), no reordena el backlog (`ReorderAsync` tampoco) y no enseña el consumo por hito y por actividad: eso es de «Consumo»
 (`UsageDashboardViewModel`, fuera de este paquete).
+
+### 8.3 Auto Graph (Fase 6, WP-G)
+
+El documento «Auto Graph» del proyecto abierto: [20 §6.4](20-fase-6-auto-doctor-y-auto-graph.md#64-auto-graph-documento-nuevo-con-tres-secciones) (F6-3 a F6-5),
+[04 §25](04-contratos.md#25-fase-6-auto-doctor-auto-graph-entorno-declarado-y-diagramas) y [ADR-0062](adr/0062-auto-graph-sin-msbuild.md). Es una pestaña
+por sesión, con su entrada «Auto Graph» en la barra lateral (entre «Trabajo» y «Debates»), que sigue al proyecto abierto. Como «Trabajo», tiene a la izquierda
+la lista de apartados y a la derecha el elegido; WP-G aporta «Grafo», y «Diagramas» y «Discrepancias» las aporta WP-D. Cada apartado y cada parte compleja lleva su
+ⓘ en castellano y en inglés, y el artículo de ayuda `graph` los recoge. Si falta un servicio, el apartado lo dice y no ofrece nada que lo necesite.
+
+```text
+┌ Auto Graph ⓘ ──────────────────────────────────────────────────────────────────────────────────────────┐
+│ ┌ Apartados ───────┐  Grafo ⓘ                                                                           │
+│ │ Grafo            │  [Actualizar] [Proponer relaciones ⓘ]  ☐ Mostrar los paquetes  ☑ Mostrar las de la IA│
+│ └──────────────────┘  Describe la versión guardada (commit) a1b2c3d. Tu carpeta tiene cambios…          │
+│                       ┌ lienzo, solo para mirar ──────────────────────────────────────────────────┐   │
+│                       │  [Core] ──▶ [App ◐ Parcial] ──▶ [Web]     - - IA - -▶ (propuesta por una IA)│   │
+│                       └────────────────────────────────────────────────────────────────────────────┘   │
+│                       Leída de los ficheros · ◐ Parcial · - - Propuesta por una IA                     │
+│                       Proyecto elegido: App · [Desplegar] [Abrir su fichero de proyecto] · tareas ·…   │
+│                       Lo que no se pudo leer (ⓘ): 3 proyectos: 2 completos y 1 parcial · huecos…       │
+│                       El grafo en una lista (teclado y lector de pantalla)                             │
+└────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+- **El grafo (F6-3).** Describe una versión guardada concreta, no tu carpeta (D-19): la pantalla dice cuál y avisa si tu carpeta tiene cambios. Se
+  calcula al abrir si no hay nada guardado para esa versión, o con «Actualizar», y se guarda en `%LOCALAPPDATA%\AgentStudio\graph` (derivado: se
+  puede borrar). Lo lee un proceso aparte a integridad baja sobre una copia de esa versión, sin compilar ni ejecutar nada del repositorio
+  ([ADR-0062](adr/0062-auto-graph-sin-msbuild.md)). Con una verificación en marcha espera (comparte su cerrojo) y lo dice.
+- **El lienzo (D-22).** Nodify en solo lectura (los nodos no se arrastran). Por defecto, los proyectos; «Desplegar» enseña los espacios de nombres de
+  uno, y los paquetes salen con su interruptor. La disposición es la de la app, sin librería: cada nodo en la capa de la profundidad de sus
+  dependencias (lo usado, a la izquierda de quien lo usa) y, dentro de la capa, por nombre; el mismo grafo se dibuja siempre igual. Con más de 200
+  nodos a la vista, no se despliega otro proyecto y se dice. Un proyecto **parcial** lleva la palabra «Parcial» y un signo (◐), no solo el color.
+- **Lo que propone una IA (F6-4, D-21).** Una relación leída es una línea continua; una que propuso una IA va con línea discontinua, otro color y la
+  etiqueta «IA», tiene su entrada en la leyenda (que solo sale si hay alguna) y su nombre para el lector de pantalla dice «relación propuesta por
+  <agente>». Un interruptor las oculta. **«Proponer relaciones»** gasta el límite de uso de tu plan: abre una tarjeta con lo que se enviaría
+  (los nombres de los nodos y las relaciones ya leídas; ningún fichero ni ruta de tu equipo) y la estimación, y no lanza nada hasta que das tu OK;
+  cada pulsación pide el suyo. Es un solo lanzamiento de solo lectura, en una carpeta vacía, con el propósito propio `GraphRelations` en el
+  consumo. Lo aceptado queda en el almacén aparte y en el registro (`GraphRelationsProposed`, con el texto del agente como prueba guardada); la huella
+  del modelo no se mueve. Sin el servicio, el botón no se ofrece.
+- **Del nodo al fichero y a la tarea (F6-5, D-22).** De un proyecto, «Abrir su fichero de proyecto» abre su `.csproj` en el editor; de un espacio de
+  nombres, la lista de ficheros que lo declaran, y «Abrir» el que elijas. Antes de abrir, la ruta se vuelve a comprobar contra tu carpeta
+  (relativa, sin salir de ella, sin enlaces en el camino y que exista): la copia de la que salió ya no está y la carpeta pudo cambiar; si el
+  fichero ya no está, lo dice y no abre nada. De un proyecto, las tareas cuyos intentos cambiaron ficheros bajo su carpeta (de los registros
+  anclados de cada intento), y «Ir a la tarea» abre «Trabajo» en la cadena de esa tarea (F9-4).
+- **Lo que no se pudo leer.** La cobertura (proyectos completos y parciales, huecos) y la lista de huecos con su motivo, su fichero y su línea. Lo que
+  MSBuild resolvería (condiciones, importaciones, comodines, `Directory.Build.props`) sale parcial, nunca se evalúa; un fichero que falla (grande, lento,
+  muy anidado, mal formado) o que mató al proceso sale como hueco, y el resto del grafo se enseña entero.
+- **Teclado y lector de pantalla.** Debajo del lienzo, una lista con lo mismo en palabras (cada nodo y lo que usa; las propuestas por una IA, marcadas);
+  elegir una fila elige el nodo. El lienzo y los nodos llevan su nombre accesible.
 
 ### Lista de comprobación de la demostración de las pantallas de la Fase 5
 

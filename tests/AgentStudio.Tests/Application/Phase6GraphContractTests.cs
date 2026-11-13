@@ -138,7 +138,7 @@ public sealed class Phase6GraphContractTests
     public void The_constants_of_the_protocol_are_the_ones_of_the_design()
     {
         Assert.Equal((0, 2, 3, 4, 5), (GraphWorkerExitCodes.Completed, GraphWorkerExitCodes.UsageError, GraphWorkerExitCodes.RootError, GraphWorkerExitCodes.AnalysisUnavailable, GraphWorkerExitCodes.Failed));
-        Assert.Equal(3, GraphWorkerProtocol.MaxRelaunches);
+        Assert.Equal(GraphWorkerProtocol.MaxSkipped, GraphWorkerProtocol.MaxRelaunches);
         Assert.Equal(TimeSpan.FromSeconds(120), GraphWorkerProtocol.MaxRuntime);
         Assert.Equal(1, GraphWorkerProtocol.SchemaVersion);
         Assert.True(GraphWorkerProtocol.MaxOutputBytes > 0);

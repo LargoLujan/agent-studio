@@ -44,6 +44,11 @@ public abstract partial class GraphSection(string infoKey) : ObservableObject
     /// <summary>Reads what the section shows again (the project changed, or the commit did, or something was written).</summary>
     public abstract Task ReloadAsync(CancellationToken ct);
 
+    /// <summary>The document closed or the project changed: what the section is still waiting for (an analysis, a copy of a commit) is cancelled and cleans up after itself.</summary>
+    public virtual void CancelPending()
+    {
+    }
+
     /// <summary>The project open changed (or was closed): what the section holds of the other one goes. Called by the host before <see cref="ReloadAsync"/>.</summary>
     protected virtual void ProjectChanged()
     {
