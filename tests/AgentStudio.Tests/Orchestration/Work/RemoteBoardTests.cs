@@ -202,8 +202,10 @@ public sealed class RemoteBoardTests
         }
     }
 
-    [Fact]
-    public async Task A_pull_request_reopened_after_it_was_closed_is_as_open_as_before_and_the_board_does_not_change()
+    [Theory]
+    [InlineData(Head, true)]
+    [InlineData(Unjudged, false)]
+    public async Task A_pull_request_closed_then_reopened_and_then_merged_integrates_only_with_the_judged_head(string mergedHead, bool integrates)
     {
         var (world, milestone) = await JudgedRunAsync();
         using (world)
@@ -212,8 +214,32 @@ public sealed class RemoteBoardTests
             await world.ObserveAsync(Open(Head));
             await world.ObserveAsync(Open(Head) with { State = PullRequestState.Closed, UpdatedAt = At.AddMinutes(1) });
             await world.ObserveAsync(Open(Head) with { UpdatedAt = At.AddMinutes(2) });
-
             Assert.Equal(before, Shape(await world.Board.ProjectAsync(world.Project, milestone, Ct)));
+
+            await world.ObserveAsync(Merged(RemoteMergeMode.Squash, mergedHead));
+
+            var card = R1(await world.Board.ProjectAsync(world.Project, milestone, Ct));
+            (BoardColumn Column, string? Reason) expected = integrates ? (BoardColumn.Integrated, null) : (BoardColumn.Done, BoardCardReasons.MergedWithUnjudgedChanges);
+            Assert.Equal(expected, (card.Column, card.Reason));
+        }
+    }
+
+    [Fact]
+    public async Task The_card_says_which_pull_request_integrated_it_and_none_when_the_local_delivery_did_or_when_it_is_not_integrated()
+    {
+        var (world, milestone) = await JudgedRunAsync();
+        using (world)
+        {
+            Assert.Null(R1(await world.Board.ProjectAsync(world.Project, milestone, Ct)).IntegratedByPullRequest);
+
+            await world.ObserveAsync(Merged(RemoteMergeMode.Squash, Unjudged) with { PullRequest = new PullRequestRef(Repository, 13) });
+            Assert.Null(R1(await world.Board.ProjectAsync(world.Project, milestone, Ct)).IntegratedByPullRequest);
+
+            await world.ObserveAsync(Merged(RemoteMergeMode.Squash, Head));
+            Assert.Equal(PullRequest.TraceId, R1(await world.Board.ProjectAsync(world.Project, milestone, Ct)).IntegratedByPullRequest);
+
+            await world.DeliverAsync(Run);
+            Assert.Null(R1(await world.Board.ProjectAsync(world.Project, milestone, Ct)).IntegratedByPullRequest);
         }
     }
 

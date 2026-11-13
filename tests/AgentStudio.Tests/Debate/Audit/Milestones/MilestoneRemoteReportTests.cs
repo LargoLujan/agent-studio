@@ -69,23 +69,15 @@ public sealed class MilestoneRemoteReportTests
         Assert.Equal(2, report.GetProperty("notIncluded").GetArrayLength());
     }
 
-    /// <summary>The commit the judge saw for the run of the bench: the one of the dossier of its approved verdict, as the log up to the head that verdict names has it.</summary>
-    private static string JudgedCommit(MilestoneBench bench)
-    {
-        var issued = bench.Entries.Where(e => e.Kind == DecisionKind.VerdictIssued)
-            .Select(e => DecisionPayloadSerializer.Deserialize<VerdictIssuedPayload>(e.PayloadJson))
-            .Last(v => v.RunId == RunId && v.Valid && v.Decision == AgentStudio.Domain.Judging.VerdictDecision.Approved);
-        var at = bench.Entries.First(e => e.Hash == issued.DecisionLogHeadHash);
-        return AgentStudio.Debate.Judging.RunLog.CandidateCommit(AgentStudio.Debate.Judging.RunLog.EntriesOf(bench.Entries.Where(e => e.Sequence <= at.Sequence), RunId))!;
-    }
+    private const string PullRequestId = "github.com/LargoLujan/agent-studio#12";
 
     [Fact]
-    public async Task A_deployed_pull_request_the_judge_did_not_see_is_not_the_deployment_of_the_requirement_even_if_the_card_is_integrated_by_another_way()
+    public async Task A_deployed_pull_request_is_not_the_deployment_of_a_requirement_the_local_delivery_integrated()
     {
+        // RQ-1 is integrated by the local delivery (the card names no pull request); another pull request of the run was merged with something else and deployed.
         using var bench = await MilestoneBench.WithRunAsync();
         bench.Board.Runs["RQ-01"] = RunId;
-        Assert.NotEqual(Head, JudgedCommit(bench));
-        await ObserveAsync(bench, Merged(RemoteMergeMode.Squash, Head) with { Deployment = new RemoteDeployment(5, Result, DeploymentState.Succeeded) });
+        await ObserveAsync(bench, Merged(RemoteMergeMode.Squash) with { Deployment = new RemoteDeployment(5, Result, DeploymentState.Succeeded) });
 
         var report = await CloseAsync(bench);
 
@@ -95,11 +87,36 @@ public sealed class MilestoneRemoteReportTests
     }
 
     [Fact]
-    public async Task Deployed_exists_only_for_an_integrated_requirement_whose_run_the_platform_said_it_deployed()
+    public async Task A_requirement_the_card_says_a_pull_request_integrated_is_deployed_with_that_deployment_whatever_the_other_verdicts_of_the_run_say()
+    {
+        // The report has no rule of its own for which pull request carried the requirement: the card says it, so a later verdict on another commit changes nothing here.
+        using var bench = await MilestoneBench.WithRunAsync();
+        bench.Board.ByPullRequest["RQ-01"] = PullRequestId;
+        await ObserveAsync(bench, Merged(RemoteMergeMode.Squash) with { Deployment = new RemoteDeployment(5, Result, DeploymentState.Succeeded) });
+
+        var report = await CloseAsync(bench);
+
+        Assert.True(Requirement(report, "RQ-01").GetProperty("deployed").GetBoolean());
+    }
+
+    [Fact]
+    public async Task The_deployment_of_a_pull_request_other_than_the_one_the_card_names_is_not_the_one_of_the_requirement()
     {
         using var bench = await MilestoneBench.WithRunAsync();
-        bench.Board.Runs["RQ-01"] = RunId;
-        await ObserveAsync(bench, Merged(RemoteMergeMode.Squash, JudgedCommit(bench)) with { Deployment = new RemoteDeployment(5, Result, DeploymentState.Succeeded) });
+        bench.Board.ByPullRequest["RQ-01"] = "github.com/LargoLujan/agent-studio#99";
+        await ObserveAsync(bench, Merged(RemoteMergeMode.Squash) with { Deployment = new RemoteDeployment(5, Result, DeploymentState.Succeeded) });
+
+        var report = await CloseAsync(bench);
+
+        Assert.False(Requirement(report, "RQ-01").TryGetProperty("deployed", out _));
+    }
+
+    [Fact]
+    public async Task Deployed_exists_only_for_an_integrated_requirement_whose_pull_request_the_platform_said_it_deployed()
+    {
+        using var bench = await MilestoneBench.WithRunAsync();
+        bench.Board.ByPullRequest["RQ-01"] = PullRequestId;
+        await ObserveAsync(bench, Merged(RemoteMergeMode.Squash) with { Deployment = new RemoteDeployment(5, Result, DeploymentState.Succeeded) });
 
         var report = await CloseAsync(bench);
 
@@ -120,7 +137,7 @@ public sealed class MilestoneRemoteReportTests
     public async Task A_deployment_that_did_not_succeed_makes_no_state_and_the_report_still_says_it_has_no_deployment_data(DeploymentState state)
     {
         using var bench = await MilestoneBench.WithRunAsync();
-        bench.Board.Runs["RQ-01"] = RunId;
+        bench.Board.ByPullRequest["RQ-01"] = PullRequestId;
         await ObserveAsync(bench, Merged(RemoteMergeMode.Squash) with { Deployment = new RemoteDeployment(5, Result, state) });
 
         var report = await CloseAsync(bench);
@@ -216,13 +233,13 @@ public sealed class MilestoneRemoteReportTests
     public async Task Repeated_and_reordered_observations_give_the_same_pull_requests_and_requirements()
     {
         using var bench = await MilestoneBench.WithRunAsync();
-        bench.Board.Runs["RQ-01"] = RunId;
+        bench.Board.ByPullRequest["RQ-01"] = PullRequestId;
         await bench.CloseAsync();
         var closed = DecisionPayloadSerializer.Deserialize<MilestoneClosedPayload>(bench.Entries[^1].PayloadJson);
         var notice = Assert.Single(bench.Listener.Notices);
         var log = bench.Entries.Take(bench.Entries.Count - 2).ToList();
         var frozen = (await bench.Audit.World.Requirements.FindAsync(bench.Project.ProjectId, notice.Milestone.CurrentRequirementSetHash, Ct))!;
-        var cards = bench.Board.Columns.Select(c => new BoardCard(BoardCardKind.Requirement, c.Key, c.Key, c.Value, bench.Board.Runs.GetValueOrDefault(c.Key), null)).ToList();
+        var cards = bench.Board.Columns.Select(c => new BoardCard(BoardCardKind.Requirement, c.Key, c.Key, c.Value, bench.Board.Runs.GetValueOrDefault(c.Key), null, bench.Board.ByPullRequest.GetValueOrDefault(c.Key))).ToList();
         var board = new MilestoneBoard(MilestoneBench.Id, log.Count, log[^1].Hash, cards, []);
         var scope = new AgentStudio.Application.Judging.AuditMilestoneScope(MilestoneBench.Id.Value, "Multiplicar", bench.Header.Objective, [RunId], []);
         var before = notice.Milestone with { Status = MilestoneStatus.Open, Reports = [] };

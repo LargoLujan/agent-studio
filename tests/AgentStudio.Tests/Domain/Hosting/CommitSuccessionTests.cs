@@ -157,6 +157,20 @@ public sealed class CommitSuccessionTests
     }
 
     [Fact]
+    public void A_commit_that_differs_from_the_head_only_in_case_or_in_length_does_not_integrate()
+    {
+        // The comparison is exact: it is what IntegrationByPullRequest.Of reaches once the head is a valid (lowercase, full) one.
+        var merged = Merged(RemoteMergeMode.Squash);
+        var differsInCase = Head[..1] + char.ToUpperInvariant(Head[1]) + Head[2..];
+
+        Assert.NotEqual(Head, differsInCase);
+        Assert.Equal(PullRequestIntegration.MergedWithUnjudgedChanges, IntegrationByPullRequest.Of(merged, differsInCase));
+        Assert.Equal(PullRequestIntegration.MergedWithUnjudgedChanges, IntegrationByPullRequest.Of(merged, Head[..39]));
+        Assert.False(IntegrationByPullRequest.HeadIsJudgedCommit(merged, Head.ToUpperInvariant()));
+        Assert.True(IntegrationByPullRequest.HeadIsJudgedCommit(merged, Head));
+    }
+
+    [Fact]
     public void A_revert_does_not_change_what_a_merge_counts_for()
     {
         var reverted = Merged(RemoteMergeMode.Squash) with { RevertCommits = [Revert] };

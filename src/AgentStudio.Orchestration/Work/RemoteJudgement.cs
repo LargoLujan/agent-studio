@@ -21,7 +21,9 @@ internal static class RemoteJudgement
     /// the store with the same decision, never the verdict of a revision (it reaches the work through the verdict it revises), and its standing after a person's challenge
     /// (<see cref="VerdictReach.Standing"/>). The mapping is the one of docs/21 D-21: approved and not challenged is <c>Approved</c>; rejected or with changes requested is <c>Rejected</c>;
     /// challenged, escalated or unresolved is <c>InReview</c>. (None, none) when no valid verdict judged the run. The view of the pull requests and, from <c>Orchestration/Publication</c>,
-    /// the verdict notice call this, so that what is shown and what is published cannot say different things.
+    /// the verdict notice call this, so that what is shown of a pull request and what is published about it agree: both are by run, because the publication is authorized for a run.
+    /// <b>The board is stricter, and by requirement:</b> it asks of each requirement the verdict that decides that requirement (<c>VerdictFor</c>), which may not be the last of the run, so with two
+    /// requirements judged by different verdicts the view can say «the head is the commit the judge saw» while the board says «fusionado con cambios que el juez no vio» for one of them.
     /// </summary>
     public static (string? JudgedCommit, HostingStanding? Standing) VerdictInForce(
         IReadOnlyList<(DecisionEntry Entry, DecisionPayload? Payload)> parsed, IReadOnlyList<DecisionEntry> log, string run, IReadOnlyDictionary<string, StoredVerdict> storedVerdicts)

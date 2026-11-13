@@ -163,6 +163,17 @@ public sealed class RemoteLogReadingTests
     }
 
     [Fact]
+    public void The_lists_it_gives_are_read_only_for_real()
+    {
+        var reading = RemoteLogReading.Read([Observed(1, Open(), RunA), Operation(2, HostingOperationKind.OpenPullRequest)]);
+
+        foreach (var list in new System.Collections.IList[] { (System.Collections.IList)reading.PullRequests, (System.Collections.IList)reading.Operations, (System.Collections.IList)reading.Ignored, (System.Collections.IList)RemoteLogReading.Empty.PullRequests })
+        {
+            Assert.True(list.IsReadOnly);
+        }
+    }
+
+    [Fact]
     public void A_log_with_no_remote_entry_reads_as_empty()
     {
         var reading = RemoteLogReading.ReadEntries([]);
