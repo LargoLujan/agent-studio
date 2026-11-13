@@ -538,7 +538,7 @@ primero. Sin texto libre ni rutas de tu equipo en el payload.
 
 **D-13 · La única pieza con red, y con cuatro cerrojos.**
 
-- **Apagada por defecto.** Un ajuste nuevo, «Comprobar las skills en GitHub», en Ajustes. Sin él, `upstream` y `archived`
+- **Apagada por defecto.** Un ajuste nuevo, «Comprobar las skills en GitHub», que se maneja en la pantalla de Skills. Sin él, `upstream` y `archived`
   siguen en «sin comprobar», y no sale ni una petición.
 - **Solo cuando pulsas** «Comprobar en GitHub», en la pantalla de skills. Nunca al abrir, nunca en segundo plano.
 - **Solo `https://api.github.com`.** El cliente rechaza cualquier otro host; las redirecciones se siguen a mano y solo al
@@ -600,7 +600,7 @@ primero. Sin texto libre ni rutas de tu equipo en el payload.
 - **Hello, según la lista fija de ADR-0053.** `RemoteOrSecretOperation` cubre «usar o revelar un secreto» y está en
   «siempre». Por tanto: guardar, sustituir o borrar el token pide Hello, y **cada tanda de «Comprobar en GitHub» que use el
   token pide Hello una vez** (una confirmación para toda la tanda, no una por skill). Sin token no hay secreto ni operación
-  que cambie nada en el remoto (son lecturas de datos públicos): no pide Hello, solo el permiso de Ajustes y tu clic.
+  que cambie nada en el remoto (son lecturas de datos públicos): no pide Hello, solo el permiso (en la pantalla de Skills) y tu clic.
 - **Dónde se comprueba ese Hello: en el comprobador, no en la pantalla.** `GitHubSkillHealthChecker` solo recibe el token de
   un puerto (`ISkillsDoctorSecrets.UseTokenAsync`) que primero pide la presencia y, sin ella, no lee la bóveda: la tanda sigue
   sin token y lo dice. Una prueba lo fija: con la aprobación denegada, la bóveda no recibe ninguna lectura.
@@ -1172,12 +1172,12 @@ automático.
 - **Ficheros:** `src/AgentStudio.Desktop/Skills/**` y `src/AgentStudio.Desktop/Views/Skills/SkillsView.xaml` (existen).
 - **Ayuda:** el artículo `skills` se amplía.
 
-### 6.3 Ajustes
+### 6.3 Permiso y clave del doctor de skills (en la pantalla de Skills, no en Ajustes)
 
-> **Corregido por WP-S (2026-11-13):** el permiso y la clave de acceso se manejan en la propia pantalla de Skills (la petición de WP-S lo pidió así), no solo en Ajustes. El permiso vive en
-> `AppSettings.SkillsDoctorNetworkEnabled` y la clave en la bóveda; el lead puede repetirlos en Ajustes sobre `ISkillsDoctorNetworkSetting` e `ISkillsDoctorTokenManager`, que ya existen.
+> **Corregido en la integración (2026-11-13):** el permiso y la clave de acceso se manejan **solo** en la pantalla de Skills (la petición de WP-S lo pidió así) y **no se repiten en Ajustes**; lo que sigue de este apartado es lo que se pensó para Ajustes y ya no se hace allí. El permiso vive en
+> `AppSettings.SkillsDoctorNetworkEnabled` y la clave en la bóveda; `ISkillsDoctorNetworkSetting` e `ISkillsDoctorTokenManager`, que ya existen, los sirven a la pantalla de Skills.
 > **Auto Doctor no aloja ninguna comprobación de skills:** D-01 fija cinco secciones (proveedores, herramientas, proyecto, entorno declarado y contenedores) y D-10 solo nombra los arreglos
-> «Ver la skill» y «Desactivar la skill archivada», que §9.8 deja al lead («cruzan paquetes»). WP-S no añadió una fuente a `IDoctorService`.
+> «Ver la skill» y «Desactivar la skill archivada»; la integración los **deja fuera** (ver §9.8 y §12). WP-S no añadió una fuente a `IDoctorService`.
 
 - El permiso «Comprobar las skills en GitHub» (apagado), y debajo «Token de GitHub (opcional)»: guardar, sustituir y borrar,
   cada uno con Hello. El token nunca se vuelve a mostrar: solo «hay un token guardado». Un texto avisa de que, con token,
@@ -1396,7 +1396,7 @@ del paquete, su artículo de ayuda, su pantalla en el inventario y nada simulado
 - Pruebas: `tests/AgentStudio.Tests/Infrastructure/Skills/GitHub/**` con `Fixtures/`, `Infrastructure/Security/**` y
   `Desktop/Skills/**`.
 - Criterios: F6-6 y F6-13. ADR-0063 y [10 §6](10-catalogo-de-skills.md#6-salud-doctor) al día.
-- Lo de Ajustes (el permiso y el token) lo pone el lead en la integración, sobre los puertos de este paquete.
+- El permiso y el token **no van en Ajustes**: WP-S los puso en la pantalla de Skills y ahí se quedan (decisión de la integración, 2026-11-13; `ISkillsDoctorNetworkSetting` e `ISkillsDoctorTokenManager` sirven a esa pantalla).
 
 ### 9.6 WP-G · Auto Graph (L)
 
@@ -1428,18 +1428,21 @@ del paquete, su artículo de ayuda, su pantalla en el inventario y nada simulado
 
 ### 9.8 Integración (el lead; M)
 
-- La composición (`Composition/{DiagnosticsServices,GraphServices}.cs`, nuevos, con `IUntrustedRoots` e
-  `ISkillsDoctorPolicy`), «Auto Graph» en la barra de actividad, las plantillas de documento, y el permiso y el token en
-  Ajustes. Los textos de WP-E y de WP-S que salen en el panel van en `DoctorStrings` y `SkillsStrings`: los de WP-E los
-  añade el lead al integrar, para que WP-E no toque el fichero de recursos de WP-A.
-- La línea de discrepancias en Auto Doctor (D-30) y los arreglos «Regenerar los diagramas» y «Desactivar la skill», que cruzan
-  paquetes.
-- `tests/AgentStudio.Tests/Integration/Phase6/**`: Auto Doctor sobre este repositorio; el grafo, los diagramas y las
-  discrepancias de este repositorio de punta a punta; una verificación de dos pasos con sus versiones.
-- Documentos: [03](03-pantallas-y-navegacion.md), [08](08-plan-y-criterios-de-aceptacion.md) (el estado, y F6-12 y F6-13),
-  [18](18-peticiones-y-pendientes.md) (P25 y el hallazgo de `sdk.paths`) y el README.
-- La demostración de F6-5, y la prueba en vivo del doctor de skills contra GitHub, con tu OK.
+**Estado (2026-11-13): hecho**, salvo las dos demostraciones con tu OK de la última línea.
 
+- La composición (`Composition/{DiagnosticsServices,GraphUiServices,DocsUiServices}.cs`, con `IUntrustedRoots` e `ISkillsDoctorPolicy`): hecha. «Auto Graph» y «Auto Doctor» se alcanzan desde la barra de actividad
+  (entradas `graph` y `autodoctor` de `MainViewModel`; Auto Doctor además desde el resumen de proveedores de la barra superior), y «Ir a…» del panel abre Auto Graph, Skills, Ajustes y el configurador. Los textos de WP-E
+  están en `DoctorStrings` y los de WP-S en `SkillsStrings`.
+- **El permiso y el token del doctor de skills se quedan en la pantalla de Skills,** donde WP-S los puso: no se duplican en Ajustes (§6.3).
+- **La línea de discrepancias en Auto Doctor (D-30):** hecha (`DiscrepanciesCheckSource` sobre `LiveConsistency`, la misma cuenta que la pantalla de «Discrepancias»).
+- **Arreglos que cruzan paquetes:** el catálogo cerrado `DoctorFixCatalog` ofrece solo lo que es real de punta a punta.
+  - «Regenerar los diagramas» **no es un arreglo del panel**: regenerar es la acción «Regenerar» de «Diagramas», dentro de Auto Graph. Lo real desde Auto Doctor es `doctor.fix.open-graph` («Ir a Auto Graph»), que lleva la línea de discrepancias.
+  - «Ver la skill» y «Desactivar la skill archivada» **no se ofrecen**: ninguna comprobación de Auto Doctor habla de skills (D-01 fija cinco apartados, sin skills), así que ningún arreglo tendría una fila donde colgar. Quedan anotados en §12.
+- `tests/AgentStudio.Tests/Integration/Phase6/**`: Auto Doctor sobre un repositorio de prueba con `global.json` (todas las fuentes reales menos las de proveedores, con la puerta de herramientas con respuestas grabadas);
+  el grafo, los diagramas y las discrepancias de punta a punta con las costuras de la composición, y la misma historia con git y el `AgentStudio.GraphWorker` reales (`LocalTools`); y una verificación de dos pasos con su bloque `tools:`.
+  Ya no son «este repositorio» (cambia con cada commit): son repositorios de prueba.
+- Documentos: [03](03-pantallas-y-navegacion.md), [08](08-plan-y-criterios-de-aceptacion.md) (el estado, y F6-12 y F6-13), [18](18-peticiones-y-pendientes.md) (P25, el hallazgo de `sdk.paths` y los pendientes nuevos) y el README: hechos.
+- **Falta, con tu OK:** la demostración de F6-5 y la prueba en vivo del doctor de skills contra GitHub, con Windows Hello real.
 ### 9.9 Orden y dependencias
 
 | Paquete | Depende de | Tamaño |
@@ -1553,6 +1556,7 @@ docs/19. Ninguno de ellos existe todavía. Esta fase usa el 0045 y propone 0061 
   - **El límite de tiempo (10 s con el cuerpo) y la conexión real:** ninguna prueba espera diez segundos ni abre un socket; `GitHubApiClient.CreateTransport()` solo se comprueba por sus propiedades (`AllowAutoRedirect = false`, sin cookies ni credenciales).
   - **DPAPI y Hello en la aplicación:** la bóveda se prueba con DPAPI real en una carpeta temporal (ida y vuelta, el fichero no lleva el texto en claro), pero Windows Hello y el bloqueo de Windows de `ReinforcedConfirmation` no se ejercen en una prueba. **Prueba manual que lo cierra, con tu OK:** abrir Skills, encender el permiso, guardar una clave de solo lectura (Hello), pulsar «Comprobar en GitHub» (Hello una vez) y comprobar el estado, el límite y que «Borrar» pide Hello.
 - **`git archive` y `export-ignore`:** que la copia de la verificación se comporta así en esta capa.
+- **Arreglos de skills fuera de Auto Doctor (integración, 2026-11-13).** «Ver la skill» y «Desactivar la skill archivada» (D-10) no están en `DoctorFixCatalog`: sin una fuente de skills en el panel no hay comprobación que los nombre, y D-01 no añade apartado. Si más adelante el panel mostrara el estado de las skills, bastaría un `DoctorFix.Navigate` a `skills` (el destino ya existe en la app) y, para desactivar, un `DoctorFix.Approved` o `Reversible` sobre `SkillActivationStore`.
 - **El coste de «Proponer relaciones»** (D-21): tokens por lanzamiento. Es una estimación hasta medirlo.
 - **Los tamaños de los paquetes** son estimaciones del diseño.
 - **No se compiló ni se ejecutó nada** para escribir este documento: las firmas de §4 son propuestas.

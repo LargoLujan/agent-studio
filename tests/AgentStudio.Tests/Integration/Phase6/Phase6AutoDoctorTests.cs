@@ -4,6 +4,7 @@ using AgentStudio.Application.Diagnostics;
 using AgentStudio.Application.Git;
 using AgentStudio.Application.Graph;
 using AgentStudio.Application.Projects;
+using AgentStudio.Desktop.ViewModels;
 using AgentStudio.Domain.Diagnostics;
 using AgentStudio.Domain.Environments;
 using AgentStudio.Infrastructure.Diagnostics;
@@ -87,5 +88,25 @@ public sealed class Phase6AutoDoctorTests
         Assert.DoesNotContain(report.Checks, c => c.Code == DiscrepanciesCheckSource.Code);
         Assert.DoesNotContain(report.Checks, c => c.Section == DoctorSection.Providers);
         Assert.Contains(report.Checks, c => c.Section == DoctorSection.Tools);
+    }
+
+    [Fact]
+    public void Auto_graph_and_auto_doctor_are_reachable_from_the_shell_and_the_panel_can_go_to_the_two_screens_its_fixes_name()
+    {
+        using var host = Host(new FixedHead("fixed", Phase6Host.Commit), new MovingGraphBuilder(DiagramFixtures.Graph(withInference: false)));
+
+        var main = host.Provider.GetRequiredService<MainViewModel>();
+
+        // The activity bar offers both; «Ir a…» of the panel opens Auto Graph (the line of the discrepancies) and Skills.
+        Assert.Contains(main.Activities, a => a.Id == "graph");
+        Assert.Contains(main.Activities, a => a.Id == "autodoctor");
+        var navigation = main.Doctor.Navigation;
+        Assert.NotNull(navigation);
+        Assert.Contains("graph", navigation.Targets);
+        Assert.Contains("skills", navigation.Targets);
+
+        // Every fix of the closed list that navigates names a target the panel can reach: nothing is offered that the app cannot open.
+        var reachable = navigation.Targets;
+        Assert.All(DoctorFixCatalog.All.OfType<DoctorFix.Navigate>().Where(f => f.Code == DoctorFixCatalog.OpenGraph), f => Assert.Contains(f.Target, reachable));
     }
 }
