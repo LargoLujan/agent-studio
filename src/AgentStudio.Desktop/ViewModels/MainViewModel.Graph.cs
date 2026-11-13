@@ -1,3 +1,4 @@
+using AgentStudio.Desktop.Docs;
 using AgentStudio.Desktop.Graph;
 using AgentStudio.Desktop.Localization;
 using AgentStudio.Domain.Tracing;
@@ -51,6 +52,46 @@ public sealed partial class MainViewModel
         {
             section.FileRequested += (_, path) => _ = OpenFileAsync(path);
             section.TaskRequested += OnGraphTaskRequested;
+        }
+
+        // «Discrepancias» (WP-D): the file of a discrepancy opens in the editor, and a requirement with no task goes to «Trabajo», where the board is.
+        foreach (var section in _graphDocument.Sections.OfType<DocsDiscrepanciesSection>())
+        {
+            section.FileRequested += (_, path) => _ = OpenFileAsync(path);
+            section.BoardRequested += (_, milestone) => _ = OpenWorkFromDiscrepanciesAsync(milestone);
+        }
+    }
+
+    /// <summary>Opens «Trabajo» and, when the discrepancy names a milestone, chooses it (<c>SelectMilestone</c>, as its own list does), so its board is the one in view.</summary>
+    private async Task OpenWorkFromDiscrepanciesAsync(string? milestone)
+    {
+        if (_workDocument is null)
+        {
+            StatusMessage = Texts.Get("Graph_NoWork");
+            return;
+        }
+
+        try
+        {
+            await OpenWorkAsync();
+            if (milestone is { Length: > 0 } id)
+            {
+                // The id came from the log through a finding: it is checked again, and one that is not an id of a milestone chooses nothing.
+                try
+                {
+                    _workDocument.Context.SelectMilestone(new AgentStudio.Domain.Work.Milestones.MilestoneId(id));
+                }
+                catch (ArgumentException)
+                {
+                    // Opened «Trabajo» without a milestone chosen.
+                }
+            }
+        }
+#pragma warning disable CA1031 // A handler of the UI: a failure is said on the status bar, never thrown at the dispatcher.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            StatusMessage = Texts.Format("Shell_Work_ChainFailed", ex.Message);
         }
     }
 

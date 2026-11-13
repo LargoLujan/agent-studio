@@ -9,6 +9,7 @@ public sealed partial class MainViewModel
     private const string DoctorSetup = "setup";
     private const string DoctorSettings = "settings";
     private const string DoctorSkills = "skills";
+    private const string DoctorGraph = "graph";
 
     /// <summary>The panel of Auto Doctor: five sections over one run of every source, with the rows of the providers inside (docs/20 D-04).</summary>
     public DoctorViewModel Doctor { get; private set; } = null!;
@@ -30,6 +31,11 @@ public sealed partial class MainViewModel
             targets.Add(DoctorSettings);
         }
 
+        if (_graphDocument is not null)
+        {
+            targets.Add(DoctorGraph);
+        }
+
         Doctor.Navigation = new DoctorNavigation(targets, GoFromDoctor);
     }
 
@@ -41,6 +47,7 @@ public sealed partial class MainViewModel
             DoctorSetup => (System.Windows.Input.ICommand)OpenSetupCommand,
             DoctorSettings => OpenSettingsCommand,
             DoctorSkills => OpenSkillsCommand,
+            DoctorGraph => OpenGraphCommand,
             _ => null,
         };
         if (command?.CanExecute(null) == true)

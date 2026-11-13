@@ -22,7 +22,7 @@ public sealed class Phase6DiagramAndSkillContractTests
     public void The_four_kinds_state_and_export_states_are_the_ones_of_the_design_and_are_appended_never_inserted()
     {
         Assert.Equal(["Solution", "ProjectNamespaces", "RunPlan", "RunSequence"], Enum.GetNames<DiagramKind>());
-        Assert.Equal(["NotGenerated", "Current", "Stale"], Enum.GetNames<DiagramState>());
+        Assert.Equal(["NotGenerated", "Current", "Stale", "Unavailable"], Enum.GetNames<DiagramState>());   // Unavailable: appended by WP-D (a diagram that cannot be built)
         Assert.Equal(["NotExported", "SameAsCache", "Older", "ChangedOutside", "Unknown"], Enum.GetNames<DiagramExportState>());
         Assert.Equal(["Ask", "Overwrite", "SaveAsNew", "Skip"], Enum.GetNames<DiagramExportConflictChoice>());
     }

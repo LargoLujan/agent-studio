@@ -27,6 +27,9 @@ public static class DoctorFixCatalog
     public const string InstallWslDistribution = "doctor.fix.install-wsl-distribution";
     public const string RestoreDotNetTools = "doctor.fix.restore-dotnet-tools";
 
+    /// <summary>«Ir a…» Auto Graph, where the discrepancies of the project are (docs/20 D-30). Added by WP-D.</summary>
+    public const string OpenGraph = "doctor.fix.open-graph";
+
     private const string ProviderInstallPrefix = "doctor.fix.install-";
     private const string ProviderLoginPrefix = "doctor.fix.login-";
 
@@ -69,6 +72,7 @@ public static class DoctorFixCatalog
         var fixes = new List<DoctorFix>
         {
             new DoctorFix.Navigate(OpenSetup, "setup"),
+            new DoctorFix.Navigate(OpenGraph, "graph"),
             new DoctorFix.Guide(InstallDotNet, "winget install --id Microsoft.DotNet.SDK.10 --exact", new Uri("https://dotnet.microsoft.com/en-us/download")),
             new DoctorFix.Guide(InstallNode, "winget install --id OpenJS.NodeJS.LTS --exact", new Uri("https://nodejs.org/en/download")),
             new DoctorFix.Guide(InstallPython, "winget install --id Python.Python.3.13 --exact", new Uri("https://www.python.org/downloads/")),

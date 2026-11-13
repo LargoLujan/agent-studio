@@ -63,7 +63,11 @@ internal static class GraphUiServices
             Optional<IGraphRelationProposer>(provider),
             provider.GetService<IUsageEstimator>()));
         services.TryAddSingleton(provider => new GraphMapSection(provider.GetRequiredService<GraphBackend>(), provider.GetService<TimeProvider>() ?? TimeProvider.System));
-        services.TryAddSingleton(provider => new GraphDocumentViewModel([provider.GetRequiredService<GraphMapSection>()], provider.GetService<IProjectWorkspace>()));
+
+        // «Grafo» first, then the sections other packages register as GraphSection («Diagramas» and «Discrepancias», WP-D), in the order they were registered.
+        services.TryAddSingleton(provider => new GraphDocumentViewModel(
+            [provider.GetRequiredService<GraphMapSection>(), .. provider.GetServices<GraphSection>()],
+            provider.GetService<IProjectWorkspace>()));
         return services;
     }
 

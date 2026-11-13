@@ -2522,3 +2522,85 @@ Lo que WP-G añadió o cambió respecto a §25.2 y §25.3 (todo con prueba; ver 
 - **Escritorio:** `AppSettings.SkillsDoctorNetworkEnabled` (con `WithPreferencesOf`), `Desktop/Skills/{SkillsDoctorAdapters,SkillsDocumentViewModel.Doctor}.cs`, recursos `Skills_Doctor_*`, `Skills_Token_*`,
   `Skills_Scripts_*`, `Skills_Hello_*` e `Info_SkillsDoctor_*` en `SkillsStrings*.resx`, y la ayuda `skills`. La composición: `AddAgentStudioSkillsDoctor(cache, bóveda)` (Infrastructure, con valores por defecto
   seguros: red nunca permitida y toda confirmación un no) y `AddAgentStudioSkillsScreen` los sustituye por el ajuste y por Hello.
+
+### 25.8 Diagramas y discrepancias (WP-D)
+
+Lo que WP-D construyó sobre los contratos de §25.2 ([20 D-23 a D-30](20-fase-6-auto-doctor-y-auto-graph.md#38-diagramas-f6-10), [ADR-0045](adr/0045-diagramas-generados-con-su-version.md)).
+Todo vive en `src/AgentStudio.Memory/{Diagrams,Consistency}` y depende solo de Application; el escritorio los compone.
+
+**Contratos que WP-D tocó (el mínimo):**
+
+- **`IDiagramTextReader`** (`Application/Diagrams/DiagramContracts.cs`, nuevo): `ReadAsync(project, diagram, ct)` da el texto de la caché de la versión actual del diagrama, comprobado contra la huella que
+  guarda el índice, o `null`. `IDiagramCatalog` no cambia (nada de lo que lo implementa se rompe); lo implementa la misma clase. El apartado «Diagramas» necesita el texto para enseñarlo y copiarlo.
+- **`ConsistencyScope.Graph`** y **`IConsistencyService.RunAsync(project, snapshot, graph, ct)`** (`Application/Consistency`): el análisis que está corriendo entrega el modelo que acaba de hacer a las
+  comprobaciones. Sin él, `doc.diagram-stale` no podía conocer la huella del commit que se analiza (el análisis aún no la había guardado) y preguntarlo a `ICommitAnalysisService` cerraba un ciclo
+  (catálogo → análisis → comprobaciones → catálogo). La sobrecarga nueva es un miembro con implementación por defecto (llama a la de tres argumentos): lo que ya implementaba el servicio sigue valiendo.
+  `CommitAnalysisService` la llama con `build.Graph` (una línea).
+- **`ConsistencyCodes.CheckFailed`** (`consistency.check-failed`): una comprobación que lanza (por ejemplo, el tablero con un registro que no verifica) no tumba el análisis ni pasa por «no aplica»:
+  sale como un hallazgo de este código, con un solo hecho (`check`, el código de la comprobación) y sin citar la excepción. No está en `ConsistencyCodes.All`.
+- **`DoctorFixCatalog.OpenGraph`** (`doctor.fix.open-graph`, `Navigate` a `graph`): el arreglo de la línea de discrepancias de Auto Doctor.
+
+**Los generadores (`Memory/Diagrams`).**
+
+| Pieza | Qué fija |
+|---|---|
+| `MermaidText` | **El único escapador.** Una pasada por caracteres: limpia con `UntrustedText.Clean`, junta los espacios, corta a 80 caracteres **antes** de escapar (nunca parte una entidad ni un par sustituto) y escribe como entidad decimal (`#NN;`) `"`, `#`, `&`, `;`, `<`, `>`, `%`, el acento grave, `\` y `|`, y `:` en el nombre de un participante. Lo vacío sale como `(sin nombre)` |
+| `DiagramGrammar` | La versión de los generadores (`GeneratorVersion` = 1), los topes (200 nodos, 400 relaciones, 300 mensajes), el vocabulario cerrado de la secuencia y la cabecera: tres líneas `%%` (diagrama y versión; commit o ejecución, huella del modelo y fecha). La fecha sale de un `TimeProvider` |
+| `GraphDiagrams`, `RunDiagrams` | Funciones puras (modelo e instante → `DiagramSource`) que fijan los dorados: la solución (`flowchart LR`, un `subgraph` por carpeta de la solución, sin carpetas vacías ni el nodo de la solución), los espacios de nombres de un proyecto, el plan (`flowchart TD`, una condición como rombo, una aprobación como cápsula) y la secuencia (`sequenceDiagram`: persona, orquestador, sistema, juez y un participante por agente; el mensaje es de un vocabulario cerrado y el título de la tarea va en una nota escapada) |
+| `GraphModels`, `RunModels`, `RenderContext`, `DiagramRenderer` | De dónde sale cada modelo: el análisis de la versión en la que está el proyecto (solo lo guardado, salvo que la persona genere), y el registro verificado y el almacén de planes. Un solo despachador convierte un tipo y un tema en un diagrama: lo usan los generadores, el catálogo y la comprobación de «desactualizado» |
+| `SolutionDiagramGenerator`, `ProjectNamespacesDiagramGenerator`, `RunPlanDiagramGenerator`, `RunSequenceDiagramGenerator` | Las cuatro implementaciones de `IDiagramGenerator`, finas |
+
+La **huella del modelo** de cada tipo: la solución, `CodeGraph.ModelHash`; los espacios de nombres de un proyecto, el SHA-256 de su propio texto (un proyecto solo se queda «desactualizado» si cambia su diagrama);
+el plan, `PlanDefinition.ContentHash`; la secuencia, el hash de la última entrada **de esa ejecución que el diagrama dibuja** (una entrada de otra ejecución o de una clase que no se dibuja no la mueve).
+
+**La caché y la vigencia.** `DiagramCacheStore` (`<carpeta>/<proyecto>/index.json`, y por diagrama `<tipo>-<huella del tema>.mmd` y `.prev`: el tema nunca es un nombre de fichero) guarda por diagrama la huella
+del modelo, la versión de los generadores, el commit que describe, la fecha y el SHA-256 del texto; la versión anterior; y lo exportado (ruta, SHA-256 del fichero escrito y del texto de que salió). Se lee como dato
+no fiable (un índice que no se lee es un índice vacío). **«Desactualizado» = la huella del modelo de ahora, o la versión de los generadores, no es la del índice** (`DiagramStaleness.Of`); no se lee ningún texto
+ni ningún fichero exportado para decidirlo. Sin análisis guardado de la versión actual, un diagrama de la solución solo está «al día» si describe esa misma versión. Una cola de uno (un semáforo por caché) serializa las escrituras.
+
+**`DiagramCatalog`.** `ListAsync` lista la solución, los espacios de nombres de cada proyecto del modelo, y el plan y la secuencia de las últimas 50 ejecuciones, más lo que la caché tiene y la lista no nombra; no calcula nada.
+`GenerateAsync` renderiza y, si el índice ya tiene esa huella y el texto sigue ahí, no escribe nada; si no, guarda el texto de antes como `.prev` (y su línea del índice) y escribe el nuevo. `RestorePreviousAsync` devuelve
+el texto y la línea del índice (byte a byte) y borra el `.prev`. `ExportAsync` rechaza con una ejecución en marcha (`IRunActivity`; sin él, también) y con un diagrama sin generar, antes de escribir nada; el destino es
+`<carpeta>/<nombre de la lista cerrada>.md` (`solucion`, `proyecto-<nombre>`, `plan-<ejecución>`, `secuencia-<ejecución>`; los nombres que vienen de datos se limpian y llevan una huella si cambian), cada tramo de la ruta se comprueba
+(no se sigue un enlace ni una unión) y el fichero va a un temporal y se mueve. Un destino que existe y no es el que esta aplicación escribió (su SHA-256 no es el del índice) es un conflicto según la elección de la petición; **un enlace
+nunca se sobrescribe**, ni con «Sobrescribir». Del fichero exportado solo se calcula el SHA-256; nunca se interpreta.
+
+**Las comprobaciones (`Memory/Consistency`).**
+
+| Pieza | Qué fija |
+|---|---|
+| `MarkdownScanner` | El único lector de Markdown: sin expresiones regulares, de coste lineal (los tramos de código se emparejan con la siguiente tirada de acentos graves de la misma longitud, calculada en una pasada desde la derecha; los corchetes, con una pila). Enlaces e imágenes `[t](d)`, tramos de código, fuera de los bloques de código con tres o más `` ` `` o `~`. Lee como mucho 2 000 caracteres por línea y 500 por destino |
+| `SnapshotFiles` | Los ficheros, las carpetas (todos los prefijos) y lo mismo sin mayúsculas, calculados una vez por análisis |
+| `LinkBrokenCheck` (`doc.link-broken`) | Resuelve el destino desde la carpeta del fichero, dentro de la copia; salta esquemas (`https:`, `mailto:`, `//`), anclas puras y consultas; decodifica `%20` y admite `<…>` y título; `/x` es desde la raíz; una unidad de Windows o salir del repositorio es `outside`; solo mayúsculas es `case` (con el nombre real). Hechos: `target`, `reason` (`missing`, `outside`, `case`) y `found` |
+| `AdrCitesMissingCheck` (`doc.adr-cites-missing`) | Un ADR es `NNNN-*.md` bajo una carpeta `adr`; cita una ruta quien tiene `/` o `\`, no tiene espacios, acaba en una extensión o en `/` y no lleva `<`, `{`, `%`, `:` ni `~`; un patrón con `*` se comprueba por su prefijo; solo mayúsculas no cuenta. Una cita repetida sale una vez. Hecho: `cited` |
+| `DiagramStaleCheck` (`doc.diagram-stale`) | Lee el modelo del ámbito y el índice de la caché (nunca el análisis, nunca un fichero exportado); no aplica sin modelo. Sin ruta ni línea. Hechos: `diagram` (`solucion`, `proyecto`, `plan`, `secuencia`), `subject` y `describes` |
+| `RequirementUncoveredCheck` (`requirement.uncovered`) | Para cada hito abierto (`IMilestoneService`), el tablero (`IBoardProjector`); una tarjeta de requisito en `Backlog` es un hallazgo. No aplica sin hitos abiertos. Hechos: `milestone`, `milestone-id`, `requirement` y `title` |
+| `ConsistencyService` | Corre cada comprobación aislada (una que lanza es `consistency.check-failed`; solo pasa la cancelación), descarta lo que no lleva el código de su comprobación, ordena por los códigos de la pantalla y corta a 2 000 con `Truncated` |
+| `DiscrepanciesCheckSource` (`doctor.project.discrepancies`) | La línea de Auto Doctor (D-30): lee lo **guardado** para la versión de HEAD (`FindAsync`) y nunca lanza la copia ni el análisis. Sin nada guardado, «sin comprobar» con el arreglo «Ir a Auto Graph». Hechos: `count`, `describes` y la cuenta de cada código |
+
+Los topes de lectura (`MarkdownFiles`: 5 000 ficheros, 1 MB cada uno y 64 MB en total; se saltan `docs/generado/` y las carpetas donde esta aplicación exportó) y el corte de los hallazgos (cada comprobación devuelve
+hasta 2 001 para que el servicio sepa que cortó, antes de construir el informe) están en `Consistency/DocumentChecks.cs`.
+
+**Composición.** `AddAgentStudioDiagrams(carpeta)` (`Memory/DependencyInjection.cs`) registra la caché, los modelos, el catálogo (como `IDiagramCatalog` e `IDiagramTextReader`), los cuatro generadores, las cuatro
+comprobaciones, `IConsistencyService` y la línea de Auto Doctor. `Composition/DocsUiServices.cs` la llama con `%LOCALAPPDATA%\AgentStudio\diagrams` y registra `DocsBackend` y las dos secciones como `GraphSection`,
+que `GraphUiServices` entrega al documento detrás de «Grafo».
+
+**Escritorio (`Desktop/Docs`, `Views/Docs`).** `DocsDiagramsSection` (ⓘ `Info_Docs_Diagrams`) y `DocsDiscrepanciesSection` (ⓘ `Info_Docs_Discrepancies`), con `DocsBackend` (todo opcional: sin el catálogo o sin el análisis
+el apartado lo dice y no ofrece nada), `DocsTexts`, `IDocsClipboard` y las plantillas en `GraphView`. Los textos son `DocsStrings` (y `Text_doc_…`, `Text_requirement_…`, `Text_consistency_…`, y las claves de la línea de Auto Doctor,
+que cualquier área de recursos puede aportar porque el proveedor busca en todas); `DocsStrings` pasa a `ClosedAreas`. `MainViewModel.Graph.cs` conecta «Abrir el fichero» con el editor y «Ir a Trabajo» con «Trabajo»; `MainViewModel.Doctor.cs`
+añade el destino `graph` a «Ir a…».
+
+**Ajustes de la revisión independiente (2026-11-13).**
+
+- `LiveConsistency` (`Memory/Consistency`): vuelve a calcular al vuelo `doc.diagram-stale` y `requirement.uncovered` (salen de la caché y del registro, no de los ficheros del commit) y toma del informe guardado los demás. La pantalla
+  de «Discrepancias» y `DiscrepanciesCheckSource` pasan por él, así que dan la misma cuenta, y regenerar baja la cuenta sin un análisis nuevo. Una comprobación que falla sale como `consistency.check-failed`.
+- Toda lectura del índice pasa por el `Gate` de la caché (`DiagramCacheStore.LoadAsync`; el catálogo, que ya lo tiene, usa `LoadLockedAsync`). Un índice que no existe es vacío; uno que existe y no se lee, tras un reintento corto,
+  es `DiagramIndexUnreadableException` (Application): las comprobaciones lo dan como `consistency.check-failed` y la lista como error, nunca como «todo bien».
+- `DiagramExportBusyException` (Application): «hay una ejecución en marcha», que se pregunta antes del cerrojo, dentro y antes de cada fichero. La exportación guarda el índice tras cada fichero escrito.
+- `DiagramState.Unavailable` (añadido al final): un diagrama que no se puede construir (`ArgumentException` al hacer su texto) sale como una fila «No se pudo generar» y la lista sigue. `DiagramStaleness` da como desactualizado
+  un diagrama que no puede comprobar (registro que no verifica, plan que no se lee): no lo salta.
+- `SafeName`: un nombre solo se escribe tal cual si ya está en minúsculas; cualquier otro lleva la huella del original, así que `Abc` y `abc` no coinciden en Windows.
+- `MarkdownScanner` también deja fuera los bloques de código con sangría de cuatro espacios, los comentarios HTML (también de varias líneas) y los tramos de código de varias líneas (hasta 20 líneas de un párrafo), y limita lo que
+  leen todos los destinos de una línea (`LineBudget`); `Scan(texto, out pasos)` cuenta los caracteres leídos y las pruebas fijan el coste con ese número, no con un reloj.
+- Los métodos del catálogo empiezan saltando a un hilo del grupo (`Task.Run`), así que ni la lectura de ficheros ni la generación de los textos corren en el hilo de la interfaz.
+- La pantalla dice por qué falla algo con textos de recursos por clase de fallo (`Docs_Failure_*`), nunca con el mensaje de la excepción. «Ir a Trabajo» elige el hito del requisito (`Context.SelectMilestone`).

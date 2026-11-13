@@ -1387,6 +1387,45 @@ la lista de apartados y a la derecha el elegido; WP-G aporta «Grafo», y «Diag
 - **Teclado y lector de pantalla.** Debajo del lienzo, una lista con lo mismo en palabras (cada nodo y lo que usa; las propuestas por una IA, marcadas);
   elegir una fila elige el nodo. El lienzo y los nodos llevan su nombre accesible.
 
+#### 8.3.1 «Diagramas» y «Discrepancias» (Fase 6, WP-D)
+
+Los dos apartados que faltaban del documento: [20 D-23 a D-30](20-fase-6-auto-doctor-y-auto-graph.md#38-diagramas-f6-10) (F6-10 y F6-11),
+[04 §25.8](04-contratos.md#258-diagramas-y-discrepancias-wp-d) y [ADR-0045](adr/0045-diagramas-generados-con-su-version.md). Sus textos son `DocsStrings`
+(castellano e inglés), cada uno lleva su ⓘ (`Info_Docs_Diagrams`, `Info_Docs_Discrepancies`) y el artículo de ayuda `graph` los recoge.
+
+```text
+┌ Auto Graph ⓘ ──────────────────────────────────────────────────────────────────────────────────────────────┐
+│ ┌ Apartados ───────┐  Diagramas ⓘ                                                                           │
+│ │ Grafo            │  Aquí ves los diagramas del proyecto como texto. Se guardan en este equipo…            │
+│ │ Diagramas        │  ┌ Diagramas del proyecto ───────────────────────────────────────────────────────┐   │
+│ │ Discrepancias    │  │ La solución            ⚠ Desactualizado: describe la versión guardada a1b2c3d  │   │
+│ └──────────────────┘  │                          Sin exportar al repositorio                           │   │
+│                       │ Plan de la ejecución R ✓ Al día · Exportado y al día                           │   │
+│                       └────────────────────────────────────────────────────────────────────────────────┘   │
+│                       [Regenerar] [Deshacer] [Copiar] [Exportar al repositorio] [Actualizar la lista]      │
+│                       Texto del diagrama   ┌ solo lectura ──────────────────────────────────────────┐      │
+│                                            │ %% Generado por Agent Studio. Editarlo no cambia nada… │      │
+│                                            └────────────────────────────────────────────────────────┘      │
+└────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+- **Diagramas (F6-10, D-25 y D-26).** La lista trae la solución, los espacios de nombres de cada proyecto, y el plan y la secuencia de las últimas 50 ejecuciones,
+  cada uno con su estado en palabras y con un signo (✓ al día, ⚠ desactualizado, ○ sin generar) y el de su copia en el repositorio (sin exportar, exportado y al
+  día, exportado pero anterior, exportado pero cambiado fuera, o «hay un fichero que no escribió este equipo»). Abrir el apartado **no genera nada ni lanza el
+  análisis**: «Generar» crea el texto en la caché de este equipo (`%LOCALAPPDATA%\AgentStudio\diagrams`; para la solución puede calcular el análisis de la versión
+  guardada), y sobre uno que ya está al día no cambia nada y lo dice. «Regenerar» guarda el texto anterior y **«Deshacer»** lo devuelve byte a byte. «Copiar» pone
+  el texto en el portapapeles. «Exportar al repositorio» es una orden tuya: escribe un Markdown con un bloque `mermaid` en `docs/generado/diagramas/` (nombres de
+  una lista cerrada, sin seguir enlaces, nunca con una ejecución en marcha) y, si el fichero ya existe y no es el que escribió esta aplicación, **pregunta**:
+  sobrescribir, guardar con otro nombre o dejarlo. El texto se enseña en solo lectura: el dibujo es de la Fase 16 (la solución ya se dibuja en «Grafo»).
+- **Discrepancias (F6-11, D-27 a D-30).** Cuatro clases, agrupadas y con su acción: enlaces rotos (abrir el fichero), decisiones que citan ficheros que ya no existen
+  (abrir el fichero), diagramas desactualizados (**Regenerar**) y requisitos sin ninguna tarea (**Ir a Trabajo**, que abre el tablero). Una quinta clase solo sale cuando una
+  comprobación no pudo hacerse («Comprobaciones que no se pudieron hacer»): un fallo nunca se enseña como «no hay nada». El apartado lee lo guardado para la versión en
+  la que está el proyecto y **nunca lanza la copia ni el análisis por sí solo**: sin resultado, dice «sin calcular» y ofrece **Calcular**. Los diagramas desactualizados se leen
+  de la caché cada vez, porque regenerar uno lo cambia sin un análisis nuevo. La línea «Discrepancias del proyecto» de la sección «Proyecto» de Auto Doctor cuenta lo
+  guardado para esa versión y lleva a este documento.
+- **Teclado y lector de pantalla.** Cada fila de la lista de diagramas lleva su nombre (diagrama, estado y copia), cada botón de una discrepancia nombra el fichero o la
+  discrepancia sobre la que actúa, y el estado nunca se dice solo con el color.
+
 ### Lista de comprobación de la demostración de las pantallas de la Fase 5
 
 Para tu demostración, con la composición real (cada paso que gasta cuota pide tu aprobación antes):

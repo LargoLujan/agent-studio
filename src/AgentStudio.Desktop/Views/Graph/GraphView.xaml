@@ -7,6 +7,8 @@
              xmlns:info="clr-namespace:AgentStudio.Desktop.Controls.Info"
              xmlns:graph="clr-namespace:AgentStudio.Desktop.Graph"
              xmlns:views="clr-namespace:AgentStudio.Desktop.Views.Graph"
+             xmlns:docs="clr-namespace:AgentStudio.Desktop.Docs"
+             xmlns:docsViews="clr-namespace:AgentStudio.Desktop.Views.Docs"
              xmlns:orchestratorViews="clr-namespace:AgentStudio.Desktop.Views.Orchestrator"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=graph:GraphDocumentViewModel}">
@@ -16,6 +18,8 @@
         <BooleanToVisibilityConverter x:Key="Graph.BoolToVisibility"/>
         <orchestratorViews:FalseToVisibilityConverter x:Key="Graph.InverseBoolToVisibility"/>
         <DataTemplate DataType="{x:Type graph:GraphMapSection}"><views:GraphMapView/></DataTemplate>
+        <DataTemplate DataType="{x:Type docs:DocsDiagramsSection}"><docsViews:DocsDiagramsView/></DataTemplate>
+        <DataTemplate DataType="{x:Type docs:DocsDiscrepanciesSection}"><docsViews:DocsDiscrepanciesView/></DataTemplate>
     </UserControl.Resources>
 
     <Grid Background="{StaticResource SurfaceBrush}">

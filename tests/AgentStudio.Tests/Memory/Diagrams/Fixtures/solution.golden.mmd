@@ -1,0 +1,13 @@
+%% Generado por Agent Studio. Editarlo no cambia nada: se regenera.
+%% diagrama: solucion · generador: 1
+%% commit: 0123456789abcdef0123456789abcdef01234567 · modelo: sha256:2cc363169d21ae59e74f48bc694c50d7f9b5a004f01646d5f4d91227e3716066 · fecha: 2026-11-12T10:00:00Z
+flowchart LR
+  subgraph n2["src"]
+    subgraph n3["libs"]
+      n5["Core"]
+    end
+    n4["App"]
+  end
+  n6["Core.Tests (parcial)"]
+  n4 --> n5
+  n6 --> n5

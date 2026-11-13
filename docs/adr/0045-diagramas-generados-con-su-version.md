@@ -53,3 +53,26 @@
   - Un diagrama es un dato derivado que se reconstruye: borrar la caché no pierde nada.
   - La Fase 16 hereda los puertos (`IDiagramGenerator`, `IDiagramCatalog`) y añade valores a `DiagramKind`, más generadores y una adenda con el motor.
   - **Residual aceptado:** sin motor, «que compila» lo garantizan la gramática y los dorados, no `mermaid.parse`; eso llega con la Fase 16.
+
+## Adenda de WP-D (2026-11-13): lo que se construyó y en qué se separó del diseño
+
+Detalle de contratos y piezas en [04 §25.8](../04-contratos.md#258-diagramas-y-discrepancias-wp-d); aquí, lo que cambia respecto al texto de arriba y de docs/20.
+
+- **El escapador, algo más estricto que D-24.** Además de `"`, `#`, `&`, `;`, `<`, `>` y `%` escapa el acento grave (en un `flowchart` una etiqueta que empieza por `` "` `` es un texto en Markdown), `\` y `|` (cierra la etiqueta de una
+  arista). Lo hace en **una sola pasada** por caracteres, así que el orden de las sustituciones no existe; corta a 80 antes de escapar, nunca parte una entidad ni un par sustituto y deja un marcador fijo (`(sin nombre)`)
+  para lo que queda vacío. La prueba adversaria pasa nombres con `;`, `%%`, `%%{init}%%`, `-->>`, `click`, `end`, `Note over`, comillas, saltos de línea, `U+2028` y `U+2029` y marcas de dirección, y comprueba que el diagrama
+  conserva las mismas sentencias: mismo número de líneas, mismas palabras de la gramática al principio de cada una y ningún carácter de la lista fuera de una entidad.
+- **La cabecera es parte del texto Mermaid, en comentarios `%%`** (no `<!-- -->`, que dentro de un bloque `mermaid` no es un comentario): tres líneas con la versión de los generadores, el commit o la ejecución, la huella del modelo y
+  la fecha. El Markdown que se exporta lleva además, antes del bloque, un comentario HTML que dice que está generado. **Los comentarios `%%` que vienen de datos no existen**: el `%` se escapa.
+- **«Desactualizado» es la huella del modelo o la versión de los generadores** (no solo la huella): al cambiar una forma del texto, `DiagramGrammar.GeneratorVersion` sube y todo lo guardado se queda desactualizado sin tocar el modelo.
+- **La huella del modelo de un diagrama de proyecto es el SHA-256 de su propio texto** (sin cabecera), no la de todo el grafo: un proyecto no se queda desactualizado porque cambió otro. La de la secuencia es el hash de la última
+  entrada de esa ejecución que el diagrama dibuja (no la cabeza del registro del proyecto, que cualquier entrada ajena movería).
+- **Un fallo de una comprobación es un hallazgo, no un «no aplica».** `consistency.check-failed` (un solo hecho: la comprobación) deja al análisis y al grafo en pie cuando el tablero falla cerrado con un registro que no verifica, y
+  la pantalla lo dice.
+- **`doc.diagram-stale` lee el modelo que le da el análisis** (`ConsistencyScope.Graph`) y el índice de la caché, no el servicio del análisis: así no hay ciclo y no hace falta que el análisis se haya guardado. En pantalla, las filas
+  de este código se calculan de la caché cada vez, porque regenerar un diagrama las cambia sin un análisis nuevo.
+- **Un enlace nunca se sobrescribe.** Al exportar, una unión o un enlace simbólico en la carpeta de destino, o como fichero de destino, es un conflicto que ni «Sobrescribir» resuelve; «Guardar con otro nombre» tampoco encuentra sitio
+  a través de él y falla.
+- **La línea de Auto Doctor** (`doctor.project.discrepancies`, D-30) la da `DiscrepanciesCheckSource`: lee lo guardado para la versión de HEAD y nunca lanza la copia ni el análisis.
+- **Sin verificar:** el texto generado no se ha pasado por `mermaid.parse` (la Fase 16 trae el motor); en concreto, que `participant p3 as "…"` con comillas se lea como alias en todas las versiones de Mermaid. El motor de la Fase 16
+  debe comprobarlo con los dorados de `tests/AgentStudio.Tests/Memory/Diagrams/Fixtures`.
