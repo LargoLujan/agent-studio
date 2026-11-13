@@ -2333,6 +2333,29 @@ variables de `gh help environment` son las de su ayuda; los códigos de salida, 
 `git push`, las de `git push -h`. **Todo lo demás de este apartado es lectura de documentación o conocimiento previo, sin
 medir:** no se ejecutó nada con red ni con cuenta.
 
+**Medido en vivo el 2026-11-13** (con tu OK, sobre el repositorio privado de prueba `agent-studio-privado`; `gh` 2.96.0, las
+cuatro pruebas de `Infrastructure/Hosting/Live/GitHubLiveTests`, que pasan). Lo de abajo que lo contradiga queda superado:
+
+- **Un 304 se lee.** `gh api -i` con `If-None-Match` imprime `HTTP/2.0 304 Not Modified` y las cabeceras en la salida
+  estándar, termina con **código 1** y deja 13 caracteres en el error estándar. El sondeo condicional funciona como está
+  diseñado; una respuesta 200 sale con código 0 y la línea `HTTP/2.0 200 OK`.
+- **`gh` encuentra su sesión con el entorno recortado** (la lista blanca de D-11) y desde la carpeta neutra: `GET /user` da
+  la cuenta sin `GH_TOKEN` ni `gh auth`.
+- **El repositorio:** se leen los tres modos de fusión y el permiso de escritura; una relectura con su `ETag` es
+  `NotModified`. **Las reglas de `main` salen «no legibles»** en un repositorio privado sin reglas: la pantalla dirá «No se
+  pudieron leer las protecciones», que es lo previsto (D-17). Falta medirlo con reglas activas.
+- **Observar un PR abierto:** la primera vuelta son seis lecturas (el PR, revisiones, checks, estado combinado, commits y
+  línea de tiempo). En la segunda, revisiones, checks y estado combinado dan 304; **el PR dio 200 otra vez** porque su
+  respuesta cambió entre las dos lecturas (GitHub calcula si es fusionable después de la primera petición). Una vuelta más
+  tarde ya no cambia. El estado propio `agent-studio/verdict` no cuenta en el resumen de checks.
+- **El veredicto:** `POST …/statuses/{sha}` da 201 con una descripción en castellano y estado `pending`; el comentario se
+  crea con 201, y la segunda publicación lo lee por su identificador (`GET …/issues/comments/{id}`), comprueba que es el
+  suyo y lo edita con `PATCH` (200). Ninguna orden lleva `review`.
+- **Sigue sin medir:** las tres formas de fusión y `merge_commit_sha`, un revert desde la web, un force-push en la línea de
+  tiempo, los despliegues, cerrar un PR y borrar su rama, las reglas activas, los límites (429 y el secundario), `gh` sin
+  conexión o sin sesión, y el `push` por HTTPS del ejecutor remoto. Van en la prueba en vivo del final de la integración,
+  con la app compuesta.
+
 - **`gh api`:**
   - la forma exacta de la salida con `-i` en Windows (versión de HTTP en la línea de estado, fin de línea, orden de las
     cabeceras);
