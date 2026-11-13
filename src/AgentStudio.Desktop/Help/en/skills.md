@@ -11,7 +11,10 @@ A skill is a package of instructions an agent receives to do a specific task bet
 - Ask for a recommendation. The free version uses rules. The agent version uses the usage limit of your plan and asks for your OK.
 
 ## Mind the cost
-Each active skill takes room in the agent's working memory in all its runs. Turn on few and good ones.
+Each active skill takes room in the agent's working memory in all its runs. Turn on few and good ones. The size check says how much its SKILL.md takes when used.
+
+## An agent that comes back
+If you remove an agent and add another with the same name, the first one's skills start off. The card says so.
 
 ## Who turns them on
 Only you. A recommendation never turns anything on by itself.

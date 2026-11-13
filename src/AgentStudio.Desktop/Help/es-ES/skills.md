@@ -11,7 +11,10 @@ Una skill es un paquete de instrucciones que un agente recibe para hacer mejor u
 - Pedir una recomendación. La versión gratuita usa reglas. La de un agente gasta el límite de uso de tu plan y te pide tu OK.
 
 ## Cuidado con el coste
-Cada skill activada ocupa sitio en la memoria de trabajo del agente en todas sus ejecuciones. Activa pocas y buenas.
+Cada skill activada ocupa sitio en la memoria de trabajo del agente en todas sus ejecuciones. Activa pocas y buenas. La comprobación del tamaño dice cuánto ocupa su SKILL.md al usarla.
+
+## Un agente que vuelve
+Si quitas un agente y añades otro con el mismo nombre, las skills del anterior empiezan apagadas. La ficha lo dice.
 
 ## Quién activa
 Solo tú. Una recomendación nunca activa nada sola.

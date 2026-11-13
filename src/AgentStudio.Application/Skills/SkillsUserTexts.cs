@@ -3,7 +3,7 @@ namespace AgentStudio.Application.Skills;
 /// <summary>
 /// The texts of the health checks of a skill that the doctor and the local reader give (docs/17 D-47, ADR-0054): a code and its arguments in
 /// <see cref="AgentStudio.Domain.Skills.SkillHealthCheck.TextCode"/>, painted by the desktop in the language of the person (<c>Text_</c> + the code, in
-/// <c>SkillsStrings</c>). The checks of the frontmatter, the license and the pinning, still sentences of the domain, are listed as pending in docs/18.
+/// <c>SkillsStrings</c>). The pure checks of the domain (frontmatter, size, license, pinning) have their codes in <see cref="AgentStudio.Domain.Skills.SkillHealthTextCodes"/>, because Domain cannot see Application; <see cref="All"/> lists them too.
 /// </summary>
 public static class SkillsUserTexts
 {
@@ -67,5 +67,6 @@ public static class SkillsUserTexts
         DoctorUpToDate, DoctorUpdateToReview, ReaderUpstreamUnchecked, ReaderArchivedUnchecked, ReaderScriptsNoCopy, ReaderScriptsNoReader, ReaderScriptsNone,
         ReaderScriptsReviewed, ReaderScriptsUnreviewed, ReaderScriptsChanged, ReaderScriptsUnreadable, ReaderUnreadNoCopy, ReaderUnreadNoFolder,
         ReaderUnreadFolderLink, ReaderUnreadFileMissing, ReaderUnreadFileLink, ReaderUnreadFailed, ReaderSizeUnread, ReaderTooLargeFrontmatter, ReaderTooLargeSize,
+        .. AgentStudio.Domain.Skills.SkillHealthTextCodes.All,
     ];
 }
