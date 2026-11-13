@@ -2048,6 +2048,25 @@ Lo que WP1, WP2 y WP4 pidieron al P0 al terminar, y lo que se decidió. Va en un
   toma del proyecto, y la del alcance falla si un `gh` se lanza con el proyecto tomado; ninguna clase de la carpeta lanza
   un proceso; ningún fichero de la carpeta nombra `WorkWriteGate`.
 
+#### Ajustes de WP3
+
+Dónde el diseño y el código real chocaron al escribir la compuerta, la publicación, el buzón y el almacén, y cómo se resolvió (2026-11-13). El detalle de lo fijado está en las adendas de [ADR-0067](adr/0067-reconciliacion-por-sondeo-con-buzon.md) y [ADR-0068](adr/0068-politicas-por-clase-de-operacion-remota.md).
+
+- **El diálogo y el consumidor.** La compuerta pide la aprobación en el clic y la recuerda en memoria (`ApprovalLease`) para los tramos del buzón, que la vuelven a pasar sin poder preguntar. Es dos llamadas a la misma función en vez de una.
+- **Leer el registro sin la toma.** La compuerta y la vista de PR leen el registro (solo leen) fuera de la toma, como ya hacen la entrega y `PullRequestProjector`; escribir y lanzar git, nunca. Dentro de la toma se lee otra vez lo que se va a anotar.
+- **«La última huella registrada».** `RemoteLogReading.Find(pr).Latest` es la mayor por contenido, no la última por secuencia. Se usa como «lo registrado» para reconciliar, y además se compara la huella con la de la última entrada por secuencia (leyendo solo
+  ese campo) para no duplicar tras perder la caché. **Petición al lead:** si se quiere «la última por secuencia» como dato del lector, hace falta en `RemoteLogReading`; no se escribió otro lector.
+- **Autorizaciones y anotaciones aparcadas en memoria.** `PendingRemoteWork` no lleva el resultado, la cuenta ni qué amparó una operación, y un fichero que pudiera escribir historia sería el fichero autorizando. Del fichero solo vuelven observaciones, que
+  se piden otra vez a la plataforma. **Petición al P0 si se quiere persistirlas:** campos para el resultado, la cuenta, el comentario, la evidencia y la autorización, validados contra el registro.
+- **La cortesía de un segundo** es un «no antes de T» de la toma, no una espera: tras identificar el remoto en el clic, el primer tramo de git espera un segundo aparcado. Las pruebas mueven el reloj.
+- **El repositorio del proyecto** sale de `IHostingProviders.IdentifyAsync` con la toma, en esta sesión; el sondeo solo observa PR de ese repositorio. `RemoteSyncState.Repository` del fichero es una pista y solo sirve para devolver el freno al proveedor.
+- **Lo que no se hizo.** El recuento de commits de la tarjeta (`SystemCommits`, `OwnUnpublishedCommits`) no tiene puerto; el nombre del hito en el título del PR (se usa el id de la ejecución); `x-poll-interval` (el puerto no lo expone); la hora real de lo anotado
+  tarde; el modo «solo comentario» cuando falta `CommitStatus` (el proveedor publica estado y comentario en una llamada; la compuerta rechaza si falta la capacidad del estado). El requisito y el modelo del juez salen del último veredicto válido del almacén, no del que
+  decide por la regla de `VerdictReach` (el estado y el commit sí salen de `VerdictInForce`).
+- **Marca del comentario.** El comentario empieza por `<!-- agent-studio:verdict run=<id> -->`, puesta por el sistema; si el adaptador de GitHub también la añadiera, saldría dos veces: hay que comprobarlo con el adaptador real.
+- **Sin verificar:** ninguna prueba con `gh`, red o git reales; la composición real (`AddAgentStudioPublication` con `IRemoteSyncPolicy` e `IResponseLanguage` del escritorio) es del lead; el «Ejecutar» y la reanudación frente a una toma remota ya los probó el P0.
+- **Pruebas:** `tests/.../Orchestration/Publication/**` (compuerta, buzón y sondeo, publicación, composición y textos), `Domain/Hosting/RemoteReconcilerTests.cs` e `Infrastructure/Hosting/State/RemoteSyncStoreTests.cs`. Los dobles fallan si el proveedor se llama con la toma, o git o el registro sin ella.
+
 ### 10.6 WP4 · Proyecciones: cadena, tablero, participación e hito (M)
 
 - `src/AgentStudio.Orchestration/Work/{TraceChainReader,BoardProjector,ParticipationProjector}.cs` (existen) y, junto a
@@ -2296,6 +2315,7 @@ medir:** no se ejecutó nada con red ni con cuenta.
     **solo si la petición va autenticada,** que es el caso de `gh`.
 - **`GIT_ALLOW_PROTOCOL=-`** («ningún transporte») no está documentado así: es lo que la capa interna midió con git
   2.45.2. No se cambia. La documentación de git sugiere `core.hooksPath=/dev/null`; aquí se usa el fichero vacío medido.
+- **WP3 (compuerta, publicación y buzón), sin verificar con la red:** todo se probó con dobles del ejecutor de git y del proveedor y un reloj de prueba; no se ejecutó `gh`, `git push` ni una sesión real. Sin comprobar contra el adaptador real: que la marca del comentario no se duplique, que `ObserveAsync` con el cursor sin ETag devuelva siempre la instantánea completa, y los tiempos de la cortesía y del reintento de 500 ms con un proyecto de verdad ocupado.
 - **Los tamaños de los paquetes** son estimaciones del diseño.
 - **No se compiló ni se ejecutó nada** para escribir este documento: las firmas de §5 son propuestas.
 
