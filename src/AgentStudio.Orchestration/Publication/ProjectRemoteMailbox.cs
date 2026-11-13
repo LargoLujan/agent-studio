@@ -156,17 +156,36 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
     /// <summary>Every status the mailbox knows, for the tests and for a screen that wants the finished ones too.</summary>
     public RemoteWorkStatus? StatusOf(string ticketId) => _statuses.GetValueOrDefault(ticketId);
 
-    /// <summary>Returns once nothing is queued or running (the parked work waits for its timer and does not count). A test calls it after it moved the clock, never a wall clock.</summary>
-    public async Task WhenIdleAsync()
-    {
-        for (var spin = 0; Volatile.Read(ref _inFlight) != 0; spin++)
-        {
-            if (spin > 20_000_000)
-            {
-                throw new TimeoutException("The mailbox never went idle.");
-            }
+    /// <summary>
+    /// A task that is complete while nothing is queued or running and that the consumer completes when it goes back to rest (the parked work waits for its timer and does not count). It is a real
+    /// signal: no polling. Only the tests use it, to know that the consumer reached a point before they look at the state or move a clock; the product never waits for the mailbox to rest.
+    /// </summary>
+    internal Task WhenIdleAsync() => Volatile.Read(ref _idle).Task;
 
-            await Task.Yield();
+    private TaskCompletionSource _idle = CompletedIdle();
+
+    private static TaskCompletionSource CompletedIdle()
+    {
+        var done = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        done.SetResult();
+        return done;
+    }
+
+    /// <summary>One more thing is queued: from rest to busy there is a new signal that is not complete.</summary>
+    private void Enter()
+    {
+        if (Interlocked.Increment(ref _inFlight) == 1)
+        {
+            Volatile.Write(ref _idle, new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously));
+        }
+    }
+
+    /// <summary>One thing is done: when it was the last one the signal completes.</summary>
+    private void Leave()
+    {
+        if (Interlocked.Decrement(ref _inFlight) == 0)
+        {
+            Volatile.Read(ref _idle).TrySetResult();
         }
     }
 
@@ -290,10 +309,10 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
 
     private void Post(Message message)
     {
-        Interlocked.Increment(ref _inFlight);
+        Enter();
         if (!_channel.Writer.TryWrite(message))
         {
-            Interlocked.Decrement(ref _inFlight);
+            Leave();
             throw new ObjectDisposedException(nameof(ProjectRemoteMailbox), "The mailbox of the project is closed.");
         }
     }
@@ -416,7 +435,18 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
     }
 
     /// <summary>Observes a pull request now (after a merge or a close that may or may not have happened) and annotates what was seen; the snapshot, or null when the platform did not answer.</summary>
-    public async Task<RemoteSnapshot?> ObserveNowAsync(PullRequestRef pullRequest) => await ObserveAsync(pullRequest, manual: true).ConfigureAwait(false);
+    public async Task<RemoteSnapshot?> ObserveNowAsync(PullRequestRef pullRequest)
+    {
+        try
+        {
+            return await ObserveAsync(pullRequest, manual: true).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (_stopping.IsCancellationRequested)
+        {
+            // The close cancels the reads: a flow that was reading after a write gets «nothing read», never an exception that would lose what it is about to annotate.
+            return null;
+        }
+    }
 
     // ---- the consumer ----
 
@@ -443,7 +473,7 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
             }
             finally
             {
-                Interlocked.Decrement(ref _inFlight);
+                Leave();
             }
         }
     }
@@ -465,7 +495,7 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
                 await RevokeAsync(revoke).ConfigureAwait(false);
                 break;
             case FlushMessage flush:
-                await FlushAsync().ConfigureAwait(false);
+                await FlushAsync(CancellationToken.None).ConfigureAwait(false);
                 flush.Done.TrySetResult();
                 break;
             case ObserveMessage observe:
@@ -675,10 +705,16 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
     }
 
     /// <summary>One last try of what is parked and is only a write to the log (never a stretch of the person's work).</summary>
-    private async Task FlushAsync()
+    private async Task FlushAsync(CancellationToken limit)
     {
         foreach (var item in _parked.Where(p => p.Flow is null).ToList())
         {
+            // Past the limit nothing more is started: an item being written ends (a write to the log is not cut), the next ones are not tried.
+            if (limit.IsCancellationRequested)
+            {
+                break;
+            }
+
             try
             {
                 // The courtesy second is waived for every item, not only the first: each one that takes the project would start it again and leave the rest parked.
@@ -1202,13 +1238,18 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
         await _stopping.CancelAsync().ConfigureAwait(false);
         await _consumer.ConfigureAwait(false);
 
+        // The limit cancels the flush, and the close waits for the item it is writing (a write to the log is never cut), so that nothing is written once the close has returned.
+        using var flushLimit = new CancellationTokenSource();
+        var flush = FlushAsync(flushLimit.Token);
         try
         {
-            await FlushAsync().WaitAsync(PublicationCodes.ClosingLimit, _services.Time).ConfigureAwait(false);
+            await flush.WaitAsync(PublicationCodes.ClosingLimit, _services.Time).ConfigureAwait(false);
         }
         catch (TimeoutException)
         {
             // it could not be done in time: it is a residual, and the close goes on
+            await flushLimit.CancelAsync().ConfigureAwait(false);
+            await flush.ConfigureAwait(false);
         }
 
         _stopping.Dispose();
