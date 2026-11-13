@@ -41,11 +41,24 @@
   8. **Un buzón por proyecto con un solo consumidor** (`Channel` con un único lector): pone en serie observaciones y
      acciones. Y **una sola cola hacia `gh`** en toda la app: un proceso a la vez, que es lo que pide GitHub, y donde vive
      el estado de los límites. Sin cerrojos nuevos.
-  9. **El proyecto ocupado.** Leer por `gh` no toca git ni el registro, así que sigue con una ejecución en marcha. Para
-     lanzar `git` o escribir en el registro, el buzón **entra** en el proyecto con
-     `IProjectActivity.TryEnter(…, RemoteOperation)` (un valor nuevo al final de `ProjectActivityKind`); si no puede, el
-     mensaje espera en el buzón. Mientras lo tiene, ninguna ejecución, debate ni auditoría empieza; lo suelta tras cada
-     mensaje.
+  9. **El proyecto se toma lo mínimo.** Leer por `gh` no toca git ni el registro, así que sigue con una ejecución en
+     marcha, y **`gh` nunca corre con el proyecto tomado.** El buzón **entra** en el proyecto con
+     `IProjectActivity.TryEnter(…, RemoteOperation)` (un valor nuevo al final de `ProjectActivityKind`) solo para dos
+     cosas: el tramo de git de una publicación (inspección → `push` → `ls-remote`, **de una vez:** soltarlo en medio
+     dejaría a un agente cambiar `.git/config` después de inspeccionada) y **cada anotación del registro,** una a una. El
+     sondeo solo lo toma si hay una huella nueva que anotar. El buzón anota con `IDecisionRecorder` directamente, nunca por
+     un servicio que espere detrás de `WorkWriteGate` (se esperaría a sí mismo).
+  9 bis. **Un mensaje que encuentra el proyecto ocupado no detiene al consumidor:** se aparca y se reintenta con un
+     temporizador de 500 ms (`IProjectActivity` no tiene eventos). Las observaciones aparcadas se funden por PR: tras una
+     ejecución larga queda la última de cada uno. Lo hecho en GitHub que aún no se anotó se dice en la pantalla y sobrevive
+     a un cierre.
+  9 ter. **Quien llega durante una toma remota espera; no se rechaza.** Hoy quien encuentra el proyecto tomado se niega
+     (`Orchestrator.Enter` lanza; el planificador de reanudaciones lo da por «no se pudo» y no reintenta; la pantalla
+     olvida la aprobación del plan). Con una toma de segundos eso sería un fallo sin motivo. `ProjectActivityEntry.EnterAsync`
+     (Application) espera, solo cuando lo que tiene el proyecto es `RemoteOperation`, hasta 180 segundos, y después llama a
+     `TryEnter` como siempre; la usan el orquestador, el debate, la auditoría y las pruebas de cabecera. Agotado el tope,
+     una `UserTextException` con `project.busy-remote`, ante la que la aprobación del plan no se olvida. Con un debate o
+     una auditoría delante, nada cambia. Es la decisión 18 de docs/21.
   10. **Sin conexión, sin sesión o sin credenciales: «pendiente de sincronizar», con su motivo.** Lo pendiente vive en un
       fichero local, no en el registro: no ha pasado. Sin conexión, reintento con espera progresiva; sin sesión, se para
       hasta que la persona pulse. Antes de cada reintento la acción vuelve a pasar la compuerta entera (ADR-0068). Caduca
@@ -71,6 +84,12 @@
 - **Residuales aceptados:** el estado se conoce con el retraso del intervalo; el modo de fusión y la reversión son
   deducciones; un PR con más de 250 commits se une «truncado»; los ficheros locales del buzón los puede editar un programa
   del mismo usuario (por eso lo pendiente vuelve a pasar la compuerta y la caché se lee como no fiable).
-- **Sin verificar al escribirlo:** que un 304 no cuenta contra el límite con una petición autenticada por `gh`; el código
+- **Guardas contra respuestas viejas, por recurso:** `updated_at` solo es del PR. Los commits y la línea de tiempo solo
+  crecen; el identificador del estado de un despliegue solo crece; y un cambio en el resumen de checks o de revisiones,
+  que no traen marca fiable, solo se anota si se repite en dos vueltas seguidas. La prueba de propiedad es sobre el
+  **estado final y su monotonía,** no sobre el conjunto de observaciones (que depende del orden).
+- **La hora hasta la que GitHub pide esperar se guarda** en el fichero local y tiene un tope de dos horas.
+- **Sin verificar al escribirlo:** que `gh api -i` deja leer la línea de estado de un 304, que para `gh` es un error (código
+  de salida distinto de 0): de ello depende el ahorro del sondeo condicional, y es lo primero que mide WP2; que un 304 no cuenta contra el límite con una petición autenticada por `gh`; el código
   de salida de `gh api` con un 304; los eventos de force-push y la forma de los despliegues en la API; y que añadir un
   valor a `ProjectActivityKind` no rompe más `switch` que los de la bandeja y el bloqueo.

@@ -26,16 +26,25 @@
      **catálogo cerrado** (`GitHubEndpoint`) que fija el método y la plantilla de la ruta de cada punto (docs/21 D-10).
      Quien llama pide una entrada con valores tipados; no puede pasar una ruta ni un argumento.
   3. **La ruta la construye un solo constructor** desde tipos validados (`RemoteRepository`, número de PR, commit de 40
-     hexadecimales, rama validada), con cada segmento escapado y la ruta final comprobada contra su plantilla.
+     hexadecimales, rama validada), con cada segmento escapado y la ruta final comprobada contra su plantilla. **La
+     consulta, con otro constructor único,** que escapa cada valor (una rama admite `&`, `#`, `%`, `+`, `{` y `}`).
+     **Ninguna llave llega a `gh`:** sustituye `{owner}`, `{repo}` y `{branch}` desde la carpeta actual o `GH_REPO`;
+     `RemoteBranch` las rechaza, el escapado las convierte, y una prueba exige que ningún argumento contenga `{` ni `}`.
+     Las listas largas llevan un `page` tipado (hasta tres páginas) y, si aún llegan llenas, se marcan «truncadas» y se
+     dice.
   4. **Los datos de una escritura van en un JSON por la entrada estándar** (`--input -`). Ningún texto libre es un
-     argumento. Nunca `-f`, `-F`, los marcadores `{owner}`/`{repo}`/`{branch}`, `--paginate`, `--cache`, `--jq`,
-     `--template` ni `--verbose`.
+     argumento. Nunca `-F` (lee un fichero si el valor empieza por `@`, y convierte tipos) ni `-f` (cadena literal, pero el
+     dato iría como argumento); nunca `--paginate`, `--cache`, `--jq`, `--template` ni `--verbose`.
   5. **`gh` arranca en una carpeta neutra** (`%LOCALAPPDATA%\AgentStudio\hosting\cwd`), nunca dentro de un repositorio,
      y con `gh.exe` resuelto fuera de los proyectos abiertos.
   6. **Entorno por lista blanca.** No pasan `GH_TOKEN`, `GITHUB_TOKEN`, `GH_ENTERPRISE_TOKEN`,
-     `GITHUB_ENTERPRISE_TOKEN`, `GH_HOST`, `GH_REPO`, `GH_CONFIG_DIR`, `GH_DEBUG` ni `DEBUG`. Se ponen
+     `GITHUB_ENTERPRISE_TOKEN`, `GH_HOST`, `GH_REPO`, `GH_DEBUG` ni `DEBUG`. Se ponen
      `GH_PROMPT_DISABLED`, `GH_NO_UPDATE_NOTIFIER`, `GH_NO_EXTENSION_UPDATE_NOTIFIER`, `GH_TELEMETRY=false`,
-     `DO_NOT_TRACK`, `NO_COLOR` y `GH_SPINNER_DISABLED`.
+     `DO_NOT_TRACK`, `NO_COLOR` y `GH_SPINNER_DISABLED`. **Pasan seis variables de la persona, de forma explícita:**
+     `XDG_CONFIG_HOME` y `GH_CONFIG_DIR` (dónde tiene `gh` su configuración; solo si son una ruta absoluta fuera de los
+     proyectos abiertos) y `HTTPS_PROXY`, `HTTP_PROXY`, `NO_PROXY` y `SSL_CERT_FILE` (`gh` no tiene un equivalente al
+     `http.proxy` global de git). Las mismas variables sin red van también en `gh --version` de Auto Doctor: el aviso de
+     actualización y la telemetría salen con cualquier orden.
   7. **El token no se lee, no se pasa y no se mira.** Ninguna orden `gh auth` (ni `token`, ni `status`), ningún
      `--show-token`; no se lee la configuración de `gh`, el Administrador de credenciales ni el almacén del gestor de git.
      La sesión se **deduce** de la primera petición real (código de salida 4 o 401 → «inicia sesión con `gh auth login`»);
@@ -47,8 +56,13 @@
   9. **El texto del PR lo compone el sistema** con una plantilla en recursos, con cada dato variable dentro de un tramo de
      código (ahí GitHub no interpreta menciones, referencias ni enlaces); la persona puede editarlo; **ningún texto de un
      agente** va en él. Lo enviado queda como evidencia con su SHA-256.
-  10. **Versiones:** `gh --version` (sin red) entra en la puerta de Auto Doctor. Probada, la 2.96.0; por debajo de la
-      mínima, ninguna capacidad; otra, «versión no probada».
+  10. **Versiones:** `gh --version` (sin red) entra en la puerta de Auto Doctor. Probada, la 2.96.0, que es también la
+      mínima hasta que se confirme desde cuándo existen `--input`, `-i` y el código de salida 4; por debajo, ninguna
+      capacidad; por encima, «versión no probada».
+  10 bis. **Un 304 es un error para `gh`** (su manual: cualquier estado por encima de 299; código de salida distinto de 0
+      y `gh: HTTP 304` en el error estándar). El lector no se fía del código de salida para saber si hubo respuesta: lee
+      la línea de estado de la salida estándar (con `-i`), y nunca toma el error estándar por cuerpo. *Probable, sin
+      ejecutar.*
   11. **La costura para Azure DevOps** (F10-9), sin construirlo: `HostingProviderKind.AzureDevOps` sin adaptador, y
       modelos comunes de revisiones (que cubren sus votos numéricos), reglas de rama y checks. Entra con su propio ADR.
 - **Las respuestas de las pruebas son fixtures escritas a mano** desde la documentación oficial y la ayuda de `gh`

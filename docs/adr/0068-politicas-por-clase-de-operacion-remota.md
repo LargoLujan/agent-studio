@@ -20,17 +20,21 @@
      | Clase | Operaciones | Autorización |
      |---|---|---|
      | Publicar la rama | `push` de `agentstudio/run-<id>` | Persistente por proyecto si se da; si no, por uso |
-     | Escribir en el PR | Abrir, actualizar, pedir revisores, publicar el veredicto | Persistente por proyecto si se da; si no, por uso |
+     | Escribir en el PR | Abrir, actualizar, publicar el veredicto | Persistente por proyecto si se da; si no, por uso |
+     | Escribir en el PR avisando a otras personas | Pedir revisores | Siempre por uso: avisa a alguien por su nombre |
      | Fusionar | Fusionar el PR con un modo permitido | Siempre por uso, con Hello |
      | Destructivas | Cerrar un PR sin fusionar; borrar la rama remota de una ejecución | Siempre por uso, con Hello |
 
      El commit local del sistema y la entrega local a la rama de la persona no cambian y no pasan por aquí.
-  2. **Qué clase admite un permiso guardado lo decide el tipo:** `HostingPolicy.CanBePersistent` es falso para fusionar y
-     para lo destructivo; la compuerta rechaza concederlo y el payload no se puede construir. Ningún ajuste lo cambia.
+  2. **Qué admite un permiso guardado lo decide el tipo, por operación:** `HostingPolicy.CanBePersistent` es falso para
+     fusionar, para lo destructivo y para pedir revisores; la compuerta rechaza concederlo y el payload no se puede construir. Ningún ajuste lo cambia.
   3. **Una autorización persistente es una entrada del registro** (`HostingPolicyGranted`: clase, proveedor, host,
      propietario, repositorio, rama base opcional y quién), dada con aprobación y Hello, y se retira con otra
      (`HostingPolicyRevoked`). Su alcance es el **identificador del repositorio remoto:** si el remoto del proyecto pasa a
-     ser otro, deja de aplicar. Vale para el proyecto, no caduca sola y se ve y se retira en la pantalla.
+     ser otro, deja de aplicar. Vale para el proyecto, no caduca sola y se ve y se retira en la pantalla. Una autorización
+     sin rama base cubre cualquier base; con ella, solo esa; la de «publicar la rama» nunca la lleva. **Darla y retirarla
+     son anotaciones del registro:** pasan por el buzón y toman el proyecto un instante (ADR-0067); con una ejecución en
+     marcha quedan aparcadas, y hasta anotarse la autorización no vale.
   4. **Una sola compuerta** (`IHostingPolicyGate`): toda operación remota pasa por ella antes de ejecutarse, y solo el
      servicio de publicación tiene los puertos del ejecutor remoto y del proveedor (una prueba de arquitectura lo vigila).
   5. **Cada uso exige, con o sin permiso guardado:** que el registro verifique; que el destino sea el de la autorización

@@ -33,12 +33,17 @@
      `https://github.com/<propietario>/<nombre>.git`; nunca el nombre del remoto ni su URL tal cual. El refspec lo escribe
      una sola función: `<commit>:refs/heads/agentstudio/run-<id>`, sin `+`. Solo HTTPS.
   5. **La configuración se inspecciona por ámbito y por origen** (`git config --show-scope --show-origin`, que no abre
-     ningún transporte) antes de cada operación. Se rechaza si una clave de la lista de docs/21 D-05 (`credential.*`,
-     `url.*.insteadOf` y `pushInsteadOf`, `remote.*.pushurl` y afines, `http.*`, `core.sshCommand`, `core.gitProxy`,
-     `core.fsmonitor`, `core.hooksPath`, `push.*`, `submodule.recurse`…) tiene ámbito `local` o `worktree`, o viene de un
-     fichero dentro del repositorio (un `include` de la configuración global que apunte dentro). También si un `insteadOf`
-     global reescribe la dirección construida: lo que se enseña es lo que se usa. Fallo cerrado. La pantalla nombra la
-     clave y su fichero, nunca su valor.
+     ningún transporte) antes de cada operación, y con cada clave se hace una de dos cosas (docs/21 D-05). **Se anula con
+     `-c`** lo que se puede anular (`core.hooksPath`, `core.fsmonitor`, `core.sshCommand`, `core.gitProxy`, `protocol.*`,
+     las `push.*` de un valor, `submodule.recurse`): un repositorio con husky o con `core.fsmonitor` es normal y **no** deja
+     de poder publicar. **Se rechaza** solo lo que un `-c` no puede anular, cuando tiene ámbito `local` o `worktree` o viene
+     de un fichero dentro del repositorio (un `include` de la configuración global que apunte dentro): `credential.*`,
+     `url.*.insteadOf` y `pushInsteadOf`, `http.<url>.*` y las demás `http.*` locales (anularlas con `-c` quitaría también
+     el proxy global de la persona), `remote.*.pushurl`, `push`, `receivepack`, `uploadpack`, `proxy` y `vcs`, y
+     `push.pushOption`. `remote.*.url` y `remote.*.fetch` no se rechazan. Si un `insteadOf` **global** reescribe la
+     dirección construida, también se rechaza; se comprueba preguntando a git (`git ls-remote --get-url`, sin red), no
+     prediciéndolo. Fallo cerrado. La pantalla nombra la clave y su fichero, nunca su valor. Las raíces «dentro del
+     repositorio» las calcula este componente con código propio: las de la capa interna viven en `GitCommandRunner`.
   6. **Las claves que mandan se fijan en la línea de órdenes:** `core.hooksPath` al fichero vacío de siempre y
      `--no-verify` (ningún hook, tampoco `pre-push`), `protocol.https.allow=always` con todos los demás en `never`,
      `http.followRedirects=false`, `core.sshCommand=`, `core.gitProxy=`, `push.default=nothing`, `push.followTags=false`,
@@ -72,7 +77,19 @@
     de su usuario que los cambie engaña a este componente (el residual del proceso concurrente de ADR-0018).
   - `git push` arranca con la carpeta de trabajo en el repositorio, y el gestor de credenciales corre como hijo suyo.
   - GitHub ve la dirección IP y la cuenta.
-- **Sin verificar al escribirlo** (lo mide WP1 y lo anota aquí): que un `push` a una dirección no escribe nada en el
+- **La costura de pruebas no abre nada en producción.** Las pruebas necesitan empujar a una carpeta bare, que
+  `RemoteRepository` (solo `github.com`, solo HTTPS) no puede representar. El transporte es un tipo `internal`
+  (`RemoteTransport`) cuya única instancia que nombra producción es `GitHubHttps`; `AddAgentStudioRemoteGit()` no tiene
+  parámetros; las pruebas usan un constructor `internal` (esquema y una función que da la dirección), con
+  `InternalsVisibleTo` a `AgentStudio.Tests`; `GIT_ALLOW_PROTOCOL` y `protocol.<x>.allow` salen de la misma constante; y
+  una prueba escanea `src/` y prohíbe `file://` y cualquier ajuste o variable que abra la costura. Lo que un remoto
+  `file` no ejerce (el gestor de credenciales, HTTPS, las redirecciones) queda para la prueba en vivo.
+- **Inspección, `push` y `ls-remote` van en una sola toma del proyecto** (ADR-0067): soltarlo entre la inspección y el
+  envío dejaría cambiar la configuración después de inspeccionada.
+- **Anotado, no cambiado:** el valor `-` de `GIT_ALLOW_PROTOCOL` en la capa interna no está documentado como «ninguno» (la
+  documentación habla de una lista separada por dos puntos); es lo que esa capa midió. Y la documentación de git sugiere
+  `core.hooksPath=/dev/null`; aquí se usa el fichero vacío que la capa interna midió en Windows con git-lfs.
+- **Sin verificar al escribirlo** (lo mide WP1 y lo anota aquí): que `remote.*` no interviene al empujar a una dirección; que un `push` a una dirección no escribe nada en el
   repositorio local; que `GCM_INTERACTIVE=never` hace fallar al gestor en vez de abrir su ventana; que
   `http.followRedirects=false` rechaza un repositorio renombrado; la salida de `--porcelain`; y cómo detectar LFS sin
   ejecutar `git lfs`.
