@@ -114,6 +114,13 @@ public partial class App : System.Windows.Application
             _unattended?.Dispose();
             if (_host is not null)
             {
+                // Phase 10: the mailbox of GitHub ends the stretch it is in (a push is not cut in half) before anything else goes; the container
+                // would only dispose it when the host does, with nothing left to wait for it.
+                if (_host.Services.GetService<RemoteSyncAttachment>() is { } remote)
+                {
+                    await remote.ShutdownAsync(HostingServices.ShutdownWait);
+                }
+
                 await _host.StopAsync(TimeSpan.FromSeconds(5));
                 _host.Dispose();
             }

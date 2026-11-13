@@ -34,6 +34,9 @@ public static class DoctorFixCatalog
     public const string InstallGh = "doctor.fix.install-gh";
     public const string LoginGh = "doctor.fix.login-gh";
 
+    /// <summary>«Ir a…» the section of pull requests of «Repositorio y cambios», where the remote of the project is shown and the switch of the synchronisation is (Phase 10, docs/21 D-31).</summary>
+    public const string OpenPullRequests = "doctor.fix.open-pull-requests";
+
     private const string ProviderInstallPrefix = "doctor.fix.install-";
     private const string ProviderLoginPrefix = "doctor.fix.login-";
 
@@ -77,6 +80,7 @@ public static class DoctorFixCatalog
         {
             new DoctorFix.Navigate(OpenSetup, "setup"),
             new DoctorFix.Navigate(OpenGraph, "graph"),
+            new DoctorFix.Navigate(OpenPullRequests, "pull-requests"),
             new DoctorFix.Guide(InstallDotNet, "winget install --id Microsoft.DotNet.SDK.10 --exact", new Uri("https://dotnet.microsoft.com/en-us/download")),
             new DoctorFix.Guide(InstallNode, "winget install --id OpenJS.NodeJS.LTS --exact", new Uri("https://nodejs.org/en/download")),
             new DoctorFix.Guide(InstallPython, "winget install --id Python.Python.3.13 --exact", new Uri("https://www.python.org/downloads/")),

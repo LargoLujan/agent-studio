@@ -40,7 +40,10 @@ internal static class WorkUiServices
             provider.GetService<IRunRegistry>(),
             provider.GetService<IDebateCoordinator>(),
             provider.GetService<IEvidenceStore>(),
-            provider.GetService<IVerdictStore>()));
+            provider.GetService<IVerdictStore>(),
+
+            // Phase 10 (docs/21 D-29): the pull requests the log follows, so a milestone says «desplegado» only on a report of the platform.
+            provider.GetService<AgentStudio.Application.Hosting.IPullRequestProjector>()));
         services.TryAddSingleton(provider => new WorkDocumentViewModel(
             provider.GetRequiredService<WorkBackend>(),
             provider.GetService<TimeProvider>() ?? TimeProvider.System));

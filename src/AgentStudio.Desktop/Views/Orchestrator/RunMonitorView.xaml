@@ -56,6 +56,13 @@
                                 ToolTipService.ShowOnDisabled="True"
                                 AutomationProperties.Name="{l:T Orchestrator_MonView_Deliver}"
                                 AutomationProperties.HelpText="{Binding DeliveryMessage}"/>
+                        <!-- Phase 10: only where the section of pull requests exists; it opens the card of publication of this run, and publishes nothing by itself. -->
+                        <Button Style="{StaticResource ToolbarButton}" Content="{l:T RemoteSync_Publish_Button}" Command="{Binding PublishCommand}"
+                                ToolTip="{l:T RemoteSync_Publish_Help}"
+                                ToolTipService.ShowOnDisabled="True"
+                                Visibility="{Binding IsPublishAvailable, Converter={StaticResource Orchestrator.BoolToVisibility}}"
+                                AutomationProperties.Name="{l:T RemoteSync_Publish_Button}"
+                                AutomationProperties.HelpText="{l:T RemoteSync_Publish_Help}"/>
                         <Button Style="{StaticResource ToolbarButton}" Content="{l:T Orchestrator_MonView_Close}" Command="{Binding CloseInspectionCommand}"
                                 ToolTip="{l:T Orchestrator_MonView_CloseHelp}"
                                 Visibility="{Binding IsInspecting, Converter={StaticResource Orchestrator.BoolToVisibility}}"

@@ -96,6 +96,7 @@ internal static class PlatformServices
             .AddPreparationServices()
             .AddAgentStudioSetup(Path.Combine(folders.Local.BaseDirectory, "setup"))
             .AddDoctorServices(folders)
+            .AddHostingServices(folders)
             .AddSingleton<IVerificationProfileSource, FileVerificationProfileSource>()
             .AddDebateServices();
     }
