@@ -1,6 +1,6 @@
 # ADR-0067 · Reconciliación por sondeo condicional con un buzón de un consumidor por proyecto: se observa estado, no eventos, y la unión de commits es una proyección
 
-- **Estado:** propuesta · 2026-11-13, pendiente de las decisiones 2 y 3 de [docs/21 §14](../21-fase-10-git-remoto.md#14-decisiones-que-necesitan-a-la-persona)
+- **Estado:** aceptada · 2026-11-13, con la opción recomendada de las decisiones 2 y 3 de [docs/21 §14](../21-fase-10-git-remoto.md#14-decisiones-que-necesitan-a-la-persona)
   (se redacta con la opción recomendada de cada una). Recoge D-02 y D-23 a D-30 de [docs/21](../21-fase-10-git-remoto.md) y
   las D-31 y D-46 a D-48 de [docs/16](../16-ampliacion-plataforma-de-proyectos.md). Ocupa, con
   [ADR-0065](0065-github-por-gh-sin-leer-el-token.md), el lugar del ADR-0042 que docs/16 reservó. **Amplía**

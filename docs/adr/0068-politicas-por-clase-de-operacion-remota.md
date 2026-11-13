@@ -1,6 +1,6 @@
 # ADR-0068 · Políticas por clase de operación remota: autorizaciones persistentes en el registro, fusionar y lo destructivo por uso y con Windows Hello, y las protecciones a la vista
 
-- **Estado:** propuesta · 2026-11-13, pendiente de la decisión 7 de [docs/21 §14](../21-fase-10-git-remoto.md#14-decisiones-que-necesitan-a-la-persona)
+- **Estado:** aceptada · 2026-11-13, con la opción recomendada de la decisión 7 de [docs/21 §14](../21-fase-10-git-remoto.md#14-decisiones-que-necesitan-a-la-persona)
   (se redacta con la opción recomendada). Recoge D-15 a D-18 de [docs/21](../21-fase-10-git-remoto.md), las D-26 y D-27 de
   [docs/16](../16-ampliacion-plataforma-de-proyectos.md) y la decisión 3 (a) que la persona tomó allí el 2026-10-20.
   **Amplía** [ADR-0053](0053-windows-hello-como-barrera-fija.md) (la barrera fija) y sigue el patrón de la entrega de

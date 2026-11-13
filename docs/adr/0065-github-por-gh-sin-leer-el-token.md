@@ -1,6 +1,6 @@
 # ADR-0065 · GitHub por la CLI `gh` de la persona, sin leer su token: `IHostingProvider` con capacidades, solo `gh api` con un catálogo cerrado y el entorno por lista blanca
 
-- **Estado:** propuesta · 2026-11-13, pendiente de las decisiones 1, 6 y 9 de [docs/21 §14](../21-fase-10-git-remoto.md#14-decisiones-que-necesitan-a-la-persona)
+- **Estado:** aceptada · 2026-11-13, con la opción recomendada de las decisiones 1, 6 y 9 de [docs/21 §14](../21-fase-10-git-remoto.md#14-decisiones-que-necesitan-a-la-persona)
   (se redacta con la opción recomendada de cada una). Recoge D-09 a D-14 y D-19 de [docs/21](../21-fase-10-git-remoto.md) y
   las D-25 y D-28 de [docs/16](../16-ampliacion-plataforma-de-proyectos.md). Ocupa, con [ADR-0067](0067-reconciliacion-por-sondeo-con-buzon.md),
   el lugar del ADR-0042 que docs/16 reservó. **Amplía** [ADR-0003](0003-integracion-por-clis-oficiales.md) (las plataformas,

@@ -1,6 +1,6 @@
 # ADR-0064 · El ejecutor remoto de git: separado de la capa interna, sin credenciales propias, con dos operaciones y el destino construido por el código
 
-- **Estado:** propuesta · 2026-11-13, pendiente de las decisiones 3, 4, 5, 13 y 16 de [docs/21 §14](../21-fase-10-git-remoto.md#14-decisiones-que-necesitan-a-la-persona)
+- **Estado:** aceptada · 2026-11-13, con la opción recomendada de las decisiones 3, 4, 5, 13 y 16 de [docs/21 §14](../21-fase-10-git-remoto.md#14-decisiones-que-necesitan-a-la-persona)
   (se redacta con la opción recomendada de cada una). Recoge D-01 y D-03 a D-08 de [docs/21](../21-fase-10-git-remoto.md) y
   la D-24 de [docs/16](../16-ampliacion-plataforma-de-proyectos.md). Ocupa el lugar del ADR-0041 que docs/16 reservó y que
   nunca se escribió. **Enmienda** la frase «Nunca hay `push` ni red» de [ADR-0012](0012-worktrees-fuera-del-repo.md) **solo

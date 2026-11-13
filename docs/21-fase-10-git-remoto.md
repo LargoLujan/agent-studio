@@ -2194,8 +2194,15 @@ Dónde el diseño y el código real chocaron al escribir las proyecciones, y có
     que la composición entera lanza las órdenes que debe y ninguna con el proyecto tomado.
 - Documentos: [03](03-pantallas-y-navegacion.md), [08](08-plan-y-criterios-de-aceptacion.md) (el estado, y F10-11 a
   F10-13), [18](18-peticiones-y-pendientes.md) (los pendientes nuevos, desde P70) y el README.
-- `CLAUDE.md`: si eliges la decisión 6 (a), la lista de lo que se puede lanzar gana `gh --version` y las lecturas de
-  `gh api` con tu permiso.
+- `CLAUDE.md`: con la decisión 6 (a), aceptada el 2026-11-13, la lista de lo que se puede lanzar gana `gh --version` y las
+  lecturas de `gh api` con tu permiso. **La línea la escribes tú** (es una regla del orquestador, y no la cambia él). Texto
+  propuesto, para «Proveedores y seguridad»:
+
+  > GitHub (Fase 10, OK del usuario, 2026-11-13; docs/21 decisión 6): de `gh` se lanza `gh --version` siempre, y `gh api`
+  > solo con las rutas de la lista cerrada del adaptador (`GitHubEndpoint`), con el permiso de sincronización del proyecto
+  > o con un clic de la persona. Nunca `gh auth …` ni nada que lea, enseñe o cambie el token. `git push` y
+  > `git ls-remote`, solo por el ejecutor remoto (ADR-0064) y a la dirección que escribe el código: nunca `fetch`, ni
+  > forzar, ni borrar. La prueba en vivo va aparte, con OK expreso y sobre un repositorio privado de prueba (decisión 14).
 - **Falta siempre, con tu OK:** la prueba en vivo (decisión 14).
 
 ### 10.10 Orden y dependencias
@@ -2349,6 +2356,19 @@ medir:** no se ejecutó nada con red ni con cuenta.
 
 Veintiuna decisiones: de alcance, de red, de credenciales, de qué se publica con tu cuenta y de cómo leer un criterio. La
 recomendada va primero, marcada.
+
+> **Aceptadas el 2026-11-13, todas con la opción recomendada (a).** Con ello: F10-11 a F10-13 entran en
+> [docs/08](08-plan-y-criterios-de-aceptacion.md) y los seis criterios de abajo se leen como dice su fila (decisiones 10, 2,
+> 15, 17, 19, 20 y 21); y los ADR 0064 a 0068 pasan a «aceptada». Dos cosas siguen en tus manos:
+>
+> - **La línea de `CLAUDE.md` de la decisión 6** (qué se puede lanzar de `gh`) **no la escribe el orquestador:** es una regla
+>   suya, y la cambias tú. Hasta entonces, de `gh` solo se lanzan `gh --version` y su ayuda al desarrollar. El texto
+>   propuesto está en §10.9.
+> - **La prueba en vivo (decisión 14):** su opción (a) es hacerla al final de la integración, con tu OK en ese momento y
+>   sobre un repositorio privado de prueba que creas tú.
+>
+> Una precisión posterior a la decisión 17: un remoto del repositorio **con nombre de dirección** sí se rechaza (lo midió
+> WP1: desviaba el envío).
 
 **Tres no las puede tomar el orquestador por ti,** aunque tenga permiso para seguir sin esperar: la **6** (amplía lo que
 `CLAUDE.md` deja lanzar: hasta tu OK, de `gh` solo se lanzan `gh --version` y su ayuda, también al implementar), la **10**

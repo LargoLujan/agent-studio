@@ -1,6 +1,6 @@
 # ADR-0066 · El veredicto del juez llega al PR como un estado del commit y un comentario etiquetado, nunca como una aprobación de la cuenta de la persona
 
-- **Estado:** propuesta · 2026-11-13, pendiente de las decisiones 8 y 15 de [docs/21 §14](../21-fase-10-git-remoto.md#14-decisiones-que-necesitan-a-la-persona)
+- **Estado:** aceptada · 2026-11-13, con la opción recomendada de las decisiones 8 y 15 de [docs/21 §14](../21-fase-10-git-remoto.md#14-decisiones-que-necesitan-a-la-persona)
   (se redacta con la opción recomendada de cada una). Recoge D-20 a D-22 y D-29 de [docs/21](../21-fase-10-git-remoto.md).
   **Amplía** [ADR-0006](0006-juez-independiente-verificable.md) (el veredicto verificable) y
   [ADR-0038](0038-hito-backlog-y-tablero.md) (ninguna tarjeta llega a «hecho» sin veredicto). WP2 implementa el canal y WP3
