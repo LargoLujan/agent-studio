@@ -671,6 +671,30 @@ F10-8; decisiones 21, 20, 17, 2 y 19, 20 y 15) y Azure DevOps (F10-9) queda fuer
 | F10-12 | Ningún texto no fiable es un argumento ni cambia el punto de la API | Prueba adversaria con ramas, títulos, cuerpos, cuentas y remotos hostiles: o se rechazan antes de lanzar nada, o viajan solo en el JSON de la entrada estándar; los argumentos lanzados son los mismos que con datos inocuos, salvo la ruta validada y el valor de `If-None-Match`, los dos con patrón estricto |
 | F10-13 | Sin tu permiso no hay red en segundo plano, y Auto Doctor no la usa nunca | Con el permiso apagado y un reloj que avanza un día, el lanzador no recibe ningún `gh api`; Auto Doctor, con todas sus fuentes, de `gh` solo lanza `gh --version`; con el permiso dado, el sondeo solo lanza métodos `GET` |
 
+**Estado a 2026-11-13 (integrada en la rama `fase10-integracion`; a falta de la prueba en vivo con la app compuesta).** Diseño en [21](21-fase-10-git-remoto.md); ADR 0064 a 0068.
+Cada paquete pasó una revisión independiente, y sus rondas de arreglos también (los hallazgos y lo que se hizo con cada uno están en los «Ajustes de…» de [21 §10](21-fase-10-git-remoto.md)).
+Pruebas de punta a punta en `tests/AgentStudio.Tests/Integration/Phase10/`, con la app compuesta (`AddAgentStudioApp`), un remoto bare local y git real: `RemoteJourneyLocalToolsTests`
+(una ejecución real se publica, se fusiona con squash, rebase o commit de fusión en una plataforma de prueba que usa git de verdad, y se revierte; el registro, la vista del PR y la cadena llevan los commits que hizo git;
+con el proyecto tomado no se lanza git ni se escribe nada; una ejecución que arranca a mitad de un envío espera y entra) y `Phase10CompositionTests` (la composición entera, la red sin permiso, Auto Doctor y los tokens del entorno).
+**Medido en vivo el 2026-11-13,** con tu OK y contra el repositorio privado de prueba: las cuatro pruebas del adaptador (`Infrastructure/Hosting/Live/GitHubLiveTests`); el detalle, en [21 §13](21-fase-10-git-remoto.md).
+**Nadie ha visto todavía las pantallas con datos reales,** y el envío por HTTPS del ejecutor remoto no se ha lanzado contra GitHub: van en la prueba en vivo con la app, que necesita Windows Hello.
+
+| ID | Estado | Evidencia |
+|---|---|---|
+| F10-1 | Cumplido | `tests/.../Desktop/Repository/PullRequests/**` (una acción sin su capacidad no tiene botón; los modos de fusión se estrechan con el repositorio y las protecciones) y `Domain/Hosting/**` (`HostingCapabilities.NarrowedBy`) |
+| F10-2 | A falta de la prueba en vivo con la app | `tests/.../Infrastructure/Hosting/**`, con respuestas escritas a mano y contrastadas con la documentación de GitHub. **En vivo:** leer el repositorio y la cuenta, la relectura con `ETag` (un 304 se lee), observar un PR y publicar el veredicto. **Sin medir:** abrir el PR por el adaptador, pedir revisores, fusionar, cerrar, borrar la rama y las reglas activas |
+| F10-3 | Cumplido con un remoto local; sin medir contra GitHub | `tests/.../Infrastructure/Git/Remote/**` (560 pruebas con git real): destino escrito por el código, configuración rechazada por ámbito y origen (también un remoto con nombre de dirección y un clon parcial), hooks anulados, nunca forzar, y el commit comprobado en el remoto. El envío por HTTPS con tu gestor de credenciales no se ha lanzado |
+| F10-4 | Cumplido | `tests/.../Orchestration/Publication/**`: la compuerta se pasa antes de cada operación y de cada reintento; fusionar, cerrar, borrar y pedir revisores, siempre por uso; las revocaciones valen desde que se piden |
+| F10-5 | Cumplido; medido en vivo | `tests/.../Infrastructure/Hosting/GitHub/**` (ninguna llamada de revisión; `HostingArchitectureTests`) y `Orchestration/Publication/**` (textos del sistema). **En vivo:** el estado se publica como `pending` y el comentario se edita en su sitio |
+| F10-6 | Cumplido | `tests/.../Domain/Hosting/RemoteReconcilerTests.cs` (repeticiones y desorden, con permutaciones), `Orchestration/Publication/RemoteMailboxTests.cs` (aparcado, fusión por PR, límites, sin conexión) y `Integration/Phase10/RemoteJourneyLocalToolsTests` (proyecto tomado; la ejecución que espera y entra) |
+| F10-7 | A falta de la prueba en vivo con la app | `Integration/Phase10/RemoteJourneyLocalToolsTests` (squash, rebase, fusión y revert con git real), `Domain/Hosting/CommitSuccessionTests.cs` y `Orchestration/Work/RemoteChainTests.cs`. La forma de los datos de GitHub tras una fusión, sin medir |
+| F10-8 | Cumplido en pruebas de ViewModel | `tests/.../Desktop/Repository/**`, `Desktop/Work/**`, `Orchestration/Work/Remote*Tests.cs` y `Debate/Audit/Milestones/MilestoneRemoteReportTests.cs`. La prueba de integración no comprueba el tablero en «Integrado» ni el informe del hito con una ejecución real ([P75](18-peticiones-y-pendientes.md)) |
+| F10-9 | Fuera de esta entrega | Decisión 1 de [21 §14](21-fase-10-git-remoto.md) |
+| F10-10 | Cumplido | `tests/.../Infrastructure/Git/InternalLayerHasNoNetworkTests.cs` |
+| F10-11 | Cumplido | `Integration/Phase10/Phase10CompositionTests` (los tokens del entorno no llegan a ningún proceso), las baterías de `Infrastructure/Hosting/Cli/**` y `Infrastructure/Git/Remote/**`. **En vivo:** `gh` encuentra su sesión con el entorno recortado |
+| F10-12 | Cumplido | `tests/.../Infrastructure/Hosting/{Cli,GitHub}/**` (rutas y argumentos con datos hostiles, `ETag`) y `Infrastructure/Git/Remote/**` (todo lo variable tras `--`) |
+| F10-13 | Cumplido | `Integration/Phase10/Phase10CompositionTests` (un día sin permiso, ningún `gh api`; con permiso, solo `GET`; Auto Doctor solo lanza `gh --version`) y `Orchestration/Publication/**` (lo guardado en el fichero local tampoco sale sin permiso) |
+
 ## Fase 11 — Entornos y servicios por proyecto (opcional)
 
 | ID | Criterio de aceptación | Cómo se verifica |
