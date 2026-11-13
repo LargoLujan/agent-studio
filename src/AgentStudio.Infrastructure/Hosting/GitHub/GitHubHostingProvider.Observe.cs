@@ -489,7 +489,7 @@ public sealed partial class GitHubHostingProvider
             var baseStep = await AskAsync(ObservedResource.BaseCommits, GitHubApiPath.CommitsSince(Repository, merged.BaseBranch, since), conditional: true).ConfigureAwait(false);
             if (baseStep.IsOk)
             {
-                // Up to 6 pages of 50. The ETag of the first page is kept only when it was not full: a commit added to a full page lands in the next one.
+                // Up to 6 pages of 50, newest first: a new commit always changes the first page, so the ETag of that page is always kept (a 304 of it says the whole list is the same). It is the reviews, oldest first, that keep it only when the first page was not full.
                 var found = new List<string>();
                 var step1 = baseStep;
                 for (var page = 1; ; page++)
@@ -500,11 +500,6 @@ public sealed partial class GitHubHostingProvider
                     }
 
                     found.AddRange(onPage);
-                    if (page == 1 && listed.Count >= GitHubApiPath.BaseCommitsPageSize)
-                    {
-                        _after.Remove(ObservedResource.BaseCommits);
-                    }
-
                     if (listed.Count < GitHubApiPath.BaseCommitsPageSize || page == GitHubApiPath.BaseCommitsPages)
                     {
                         break;

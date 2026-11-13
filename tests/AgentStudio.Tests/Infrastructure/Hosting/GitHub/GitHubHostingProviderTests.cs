@@ -409,17 +409,59 @@ public sealed class GitHubHostingProviderTests
     }
 
     [Fact]
-    public async Task A_422_when_deleting_a_branch_is_a_reference_that_does_not_exist()
+    public async Task A_422_when_deleting_a_branch_is_not_found_only_if_reading_the_branch_again_says_404_and_a_rejection_if_it_is_still_there()
     {
-        using var rig = new GhRig();
-        rig.Script.Route("GET", "/repos/octo/hello/branches/agentstudio/run-run1", "handmade-branch-200.http");
-        rig.Script.Route("DELETE", "/repos/octo/hello/git/refs/heads/agentstudio/run-run1", Gh.Http(422, "{\"message\":\"Reference does not exist\"}"));
+        using var gone = new GhRig();
+        var reads = 0;
+        gone.Script.Route("GET", "/repos/octo/hello/branches/agentstudio/run-run1", _ => ++reads == 1 ? Gh.Fixture("handmade-branch-200.http") : Gh.Http(404, "{}"));
+        gone.Script.Route("DELETE", "/repos/octo/hello/git/refs/heads/agentstudio/run-run1", Gh.Http(422, "{\"message\":\"Reference does not exist\"}"));
+        using var still = new GhRig();
+        still.Script.Route("GET", "/repos/octo/hello/branches/agentstudio/run-run1", "handmade-branch-200.http");
+        still.Script.Route("DELETE", "/repos/octo/hello/git/refs/heads/agentstudio/run-run1", Gh.Http(422, "{\"message\":\"Validation Failed\"}"));
 
-        var result = await rig.Provider.DeleteRunBranchAsync(Repo, GhRig.RunBranch, Gh.Sha1, CancellationToken.None);
+        var missing = await gone.Provider.DeleteRunBranchAsync(Repo, GhRig.RunBranch, Gh.Sha1, CancellationToken.None);
+        var refused = await still.Provider.DeleteRunBranchAsync(Repo, GhRig.RunBranch, Gh.Sha1, CancellationToken.None);
 
-        Assert.Equal(HostingOutcome.NotFound, result.Outcome);
+        Assert.Equal(HostingOutcome.NotFound, missing.Outcome);
+        Assert.Equal(HostingOutcome.Refused, refused.Outcome);
+        Assert.Equal("http.422", refused.RefusalCode);
     }
 
+    [Fact]
+    public async Task A_description_with_a_pair_exactly_at_the_limit_is_cut_before_the_pair_and_a_lone_half_of_a_pair_is_refused_without_throwing_anywhere()
+    {
+        using var rig = new GhRig();
+        rig.Script.Route("POST", "/repos/octo/hello/statuses/", "handmade-statuses-201.http");
+        rig.Script.Route("POST", "/repos/octo/hello/issues/7/comments", "handmade-comment-201.http");
+        rig.Script.Route("GET", "/repos/octo/hello/issues/7/comments", Gh.Ok("[]"));
+        rig.Script.Route("GET", "/user", "handmade-user-200.http");
+        rig.Script.Route("POST", "/repos/octo/hello/pulls", "handmade-open-pr-201.http");
+        rig.Script.Route("PATCH", "/repos/octo/hello/pulls/7", Gh.Ok("{}"));
+        var notice = new VerdictNotice(new AgentStudio.Domain.Orchestration.RunId("run1"), Gh.Sha1, VerdictStanding.InReview, [], "p", "m", true);
+
+        // 119 letters and an emoji (two chars) at positions 119 and 120: the cut falls in the middle of the pair.
+        var result = await rig.Provider.PublishVerdictAsync(Pr, notice, new string('x', 119) + "\U0001F600" + "y", "Cuerpo", null, CancellationToken.None);
+
+        Assert.Equal(HostingOutcome.Ok, result.Outcome);
+        using var body = JsonDocument.Parse(rig.Script.Calls.Single(c => c.Path.Contains("/statuses/", StringComparison.Ordinal)).Body!);
+        Assert.Equal(new string('x', 119), body.RootElement.GetProperty("description").GetString());
+
+        var lone = "mal\uD83D";
+        var loneLow = "\uDE00mal";
+        rig.Script.Specs.Clear();
+        var outcomes = new[]
+        {
+            (await rig.Provider.PublishVerdictAsync(Pr, notice, lone + "x", "Cuerpo", null, CancellationToken.None)).Outcome,
+            (await rig.Provider.PublishVerdictAsync(Pr, notice, "Estado", "Cuerpo " + lone, null, CancellationToken.None)).Outcome,
+            (await rig.Provider.OpenPullRequestAsync(new PullRequestDraft(Repo, GhRig.RunBranch, Main, new PullRequestText(loneLow, "b"), false), CancellationToken.None)).Outcome,
+            (await rig.Provider.OpenPullRequestAsync(new PullRequestDraft(Repo, GhRig.RunBranch, Main, new PullRequestText("t", loneLow), false), CancellationToken.None)).Outcome,
+            (await rig.Provider.UpdatePullRequestAsync(Pr, new PullRequestText(lone, "b"), CancellationToken.None)).Outcome,
+        };
+
+        // The description with a lone half is cleaned (it becomes the replacement character); the texts of free form are refused.
+        Assert.Equal(HostingOutcome.Ok, outcomes[0]);
+        Assert.All(outcomes.Skip(1), o => Assert.Equal(HostingOutcome.Refused, o));        Assert.All(rig.Script.Specs.Where(s => s.StandardInput is not null), s => Assert.NotNull(JsonDocument.Parse(s.StandardInput!)));
+    }
     [Fact]
     public async Task The_secondary_limit_of_a_403_without_headers_is_a_rate_limited_outcome_for_the_provider_and_for_the_writes_after_it()
     {
@@ -437,7 +479,7 @@ public sealed class GitHubHostingProviderTests
     }
 
     [Fact]
-    public void A_wait_that_a_local_file_gives_back_is_cut_at_two_hours_from_now_and_a_past_hour_or_a_null_is_no_wait()
+    public void A_wait_that_a_local_file_gives_back_is_cut_at_two_hours_from_now_and_never_shortens_or_clears_a_wait_that_is_on()
     {
         using var rig = new GhRig();
         var now = rig.Time.GetUtcNow();
@@ -445,14 +487,14 @@ public sealed class GitHubHostingProviderTests
         rig.Provider.RestoreRateLimit(now.AddDays(400));
         Assert.Equal(now.AddHours(2), rig.Provider.RateLimitedUntil);
         rig.Provider.RestoreRateLimit(now.AddMinutes(20));
-        Assert.Equal(now.AddMinutes(20), rig.Provider.RateLimitedUntil);
         rig.Provider.RestoreRateLimit(now.AddSeconds(-1));
-        Assert.Null(rig.Provider.RateLimitedUntil);
-        rig.Provider.RestoreRateLimit(DateTimeOffset.MinValue);
-        Assert.Null(rig.Provider.RateLimitedUntil);
-        rig.Provider.RestoreRateLimit(now.AddMinutes(5));
         rig.Provider.RestoreRateLimit(null);
-        Assert.Null(rig.Provider.RateLimitedUntil);
+        Assert.Equal(now.AddHours(2), rig.Provider.RateLimitedUntil);
+
+        using var idle = new GhRig();
+        idle.Provider.RestoreRateLimit(now.AddSeconds(-1));
+        idle.Provider.RestoreRateLimit(DateTimeOffset.MinValue);
+        Assert.Null(idle.Provider.RateLimitedUntil);
     }
 
     [Fact]

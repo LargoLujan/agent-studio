@@ -650,7 +650,7 @@ public sealed class ObservationTests
     }
 
     [Fact]
-    public async Task The_base_branch_is_read_in_pages_and_a_revert_on_a_later_page_is_found_and_the_etag_of_a_full_first_page_is_not_kept()
+    public async Task The_base_branch_is_read_in_pages_and_a_revert_on_a_later_page_is_found_and_the_etag_of_the_first_page_is_kept()
     {
         using var rig = new GhRig();
         var merged = await MergedCursorAsync(rig);
@@ -662,7 +662,26 @@ public sealed class ObservationTests
 
         Assert.Equal([Gh.Sha4], round.Value!.Snapshot.RevertCommits);
         Assert.Equal(2, rig.Script.Calls.Count(c => c.Path.StartsWith("/repos/octo/hello/commits?sha=main", StringComparison.Ordinal)));
-        Assert.False(round.Value.Cursor.ETags.ContainsKey(ObservedResource.BaseCommits));
+        Assert.Equal("W/\"b1\"", round.Value.Cursor.ETags[ObservedResource.BaseCommits]);
+    }
+
+    [Fact]
+    public async Task A_busy_base_branch_with_more_than_a_page_and_no_new_commit_is_one_request_with_a_304_not_six()
+    {
+        using var rig = new GhRig();
+        var merged = await MergedCursorAsync(rig);
+        RouteMergedPoll(rig.Script, () => string.Empty);
+        rig.Script.Route("GET", "/repos/octo/hello/commits?sha=main&", call => call.IfNoneMatch is not null ? Gh.NotModified() : PageNumber(call) == 1 ? Gh.Ok(Page(50), "W/\"b1\"") : Gh.Ok(Page(50, 50)));
+        var first = await rig.Provider.ObserveAsync(Pr, merged.Cursor, CancellationToken.None);
+        Assert.Equal(HostingOutcome.Ok, first.Outcome);
+        rig.Script.Specs.Clear();
+
+        var second = await rig.Provider.ObserveAsync(Pr, first.Value!.Cursor, CancellationToken.None);
+
+        Assert.Equal(HostingOutcome.NotModified, second.Outcome);
+        var lists = rig.Script.Calls.Where(c => c.Path.StartsWith("/repos/octo/hello/commits?sha=main", StringComparison.Ordinal)).ToList();
+        Assert.Single(lists);
+        Assert.Equal("W/\"b1\"", lists[0].IfNoneMatch);
     }
 
     [Fact]

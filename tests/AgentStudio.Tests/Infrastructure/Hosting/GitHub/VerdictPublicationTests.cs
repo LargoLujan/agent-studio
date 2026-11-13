@@ -1,4 +1,5 @@
 using System.Text.Json;
+using AgentStudio.Application.Execution;
 using AgentStudio.Application.Hosting;
 using AgentStudio.Domain.Hosting;
 using AgentStudio.Domain.Orchestration;
@@ -133,6 +134,8 @@ public sealed class VerdictPublicationTests
     [InlineData("{\"id\":777,\"body\":\"<!-- agent-studio:verdict run=run1 -->\\nx\",\"user\":{\"login\":\"octocat\"},\"issue_url\":\"https://api.github.com/repos/octo/hello/issues/8\"}")]
     [InlineData("{\"id\":777,\"body\":\"<!-- agent-studio:verdict run=run1 -->\\nx\",\"user\":{\"login\":\"octocat\"},\"issue_url\":\"https://api.github.com/repos/evil/hello/issues/7\"}")]
     [InlineData("{\"id\":777,\"body\":\"<!-- agent-studio:verdict run=run1 -->\\nx\",\"user\":{\"login\":\"octocat\"}}")]
+    [InlineData("{\"id\":777,\"body\":\"<!-- agent-studio:verdict run=run1 -->\\nx\",\"user\":{\"login\":\"octocat\"},\"issue_url\":\"https://evil.example/repos/octo/hello/issues/7\"}")]
+    [InlineData("{\"id\":777,\"body\":\"<!-- agent-studio:verdict run=run1 -->\\nx\",\"user\":{\"login\":\"octocat\"},\"issue_url\":\"http://api.github.com/repos/octo/hello/issues/7\"}")]
     public async Task An_id_that_is_not_the_comment_of_this_verdict_is_never_edited_the_comment_is_looked_up_by_its_mark_instead(string comment)
     {
         using var rig = WithRoutes();
@@ -184,6 +187,22 @@ public sealed class VerdictPublicationTests
         Assert.Equal(HostingOutcome.Ok, result.Outcome);
         Assert.False(result.Value!.StatusPublished);
         Assert.Equal(4242L, result.Value.CommentId);
+    }
+
+    [Fact]
+    public async Task A_page_of_comments_that_does_not_fit_leaves_the_status_published_and_writes_no_comment_that_could_be_a_duplicate()
+    {
+        using var rig = WithRoutes();
+        rig.Script.Route("GET", "/repos/octo/hello/issues/7/comments", new ProcessResult(-1, "HTTP/2.0 200 OK\n\n[", string.Empty, TimeSpan.Zero, false, OutputLimitExceeded: true));
+
+        var result = await rig.Provider.PublishVerdictAsync(Pr, Notice(VerdictStanding.InReview), "Estado", "Cuerpo", null, CancellationToken.None);
+
+        Assert.Equal(HostingOutcome.InvalidAnswer, result.Outcome);
+        Assert.Equal("comment.lookup-unknown", result.RefusalCode);
+        Assert.True(result.Value!.StatusPublished);
+        Assert.Null(result.Value.CommentId);
+        Assert.DoesNotContain(rig.Script.Calls, c => c.Method == "POST" && c.Path.EndsWith("/comments", StringComparison.Ordinal));
+        Assert.Contains(rig.Script.Calls, c => c.Path.Contains("/statuses/", StringComparison.Ordinal));
     }
 
     [Fact]

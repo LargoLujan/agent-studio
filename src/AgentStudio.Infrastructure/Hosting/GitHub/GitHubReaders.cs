@@ -602,11 +602,10 @@ internal static partial class GitHubReaders
             firstLine = firstLine[..end];
         }
 
-        var suffix = "/repos/" + repository.Owner + "/" + repository.Name + "/issues/" + number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var expected = "https://api.github.com/repos/" + repository.Owner + "/" + repository.Name + "/issues/" + number.ToString(System.Globalization.CultureInfo.InvariantCulture);
         return firstLine.SequenceEqual(mark)
             && string.Equals(login, author.Value, StringComparison.OrdinalIgnoreCase)
-            && issue.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)
-            && issue.StartsWith("https://", StringComparison.Ordinal);
+            && string.Equals(issue, expected, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>The id of a comment that was just written.</summary>

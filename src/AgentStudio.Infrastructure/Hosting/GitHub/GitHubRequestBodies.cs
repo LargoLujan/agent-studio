@@ -78,7 +78,7 @@ internal static class GitHubRequestBodies
         {
             w.WriteString("state", StatusState(standing));
             w.WriteString("context", VerdictContext);
-            w.WriteString("description", description.Length > MaxStatusDescription ? description[..MaxStatusDescription] : description);
+            w.WriteString("description", GitHubHostingProvider.CutAt(description, MaxStatusDescription));
         });
 
     internal static string StatusState(VerdictStanding standing) => standing switch

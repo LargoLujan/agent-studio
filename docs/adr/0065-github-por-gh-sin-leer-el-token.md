@@ -100,7 +100,7 @@ Implementado en `src/AgentStudio.Infrastructure/Hosting/{Cli,GitHub,Diagnostics}
 - **Una sola orden:** `gh api --hostname github.com -X <MÉTODO> -i -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" [-H "If-None-Match: <etag>"] [--input -] <ruta>`. La ruta empieza por `/repos/<o>/<r>/…` o es `/user`
   (con la barra inicial, como dice D-10) y la comprueba `GhArguments.IsAllowedPath` en el lanzador además del constructor (`GitHubApiPath`): ni `.` ni `..` (tampoco codificados), ni llaves, ni espacios; la consulta, solo de caracteres no reservados y `%XX`.
   El `ETag` solo pasa con su forma exacta (`W/` opcional y entre comillas de 1 a 128 caracteres ASCII visibles); si no, la petición va sin condición.
-- **El catálogo** (`GitHubEndpoint`, 26 entradas) es el de D-10 más dos que el diseño citaba sin nombre propio: `Branch` (`GET …/branches/{rama}`: el flag de protección, la cabeza de una rama y si existe) y `Commit`/`CommitList` (los padres de la fusión, los
+- **El catálogo** (`GitHubEndpoint`, 26 entradas) es el de D-10 más tres que el diseño citaba sin nombre propio (y `Comment`, que se añadió al leer un comentario antes de editarlo): `Branch` (`GET …/branches/{rama}`: el flag de protección, la cabeza de una rama y si existe) y `Commit`/`CommitList` (los padres de la fusión, los
   commits que deja un rebase y la búsqueda de un revert). **Sin `WorkflowRuns`:** ningún miembro del contrato ni campo de `RemoteSnapshot` lo entrega, y `ReadWorkflowRuns` no se declara. Una prueba exige que cada entrada aparezca en la batería y que cada orden
   lanzada sea exactamente una de la lista.
 - **Quién lanza:** solo `GhRunner` (`gh.exe` por `ExecutableSearch` fuera de las raíces no fiables; nunca un `.cmd`; carpeta neutra; entorno de `GhEnvironment`; 20 s y 1 MB por salida; el cuerpo por la entrada estándar). **Siempre por `GhQueue`**
@@ -125,3 +125,10 @@ Implementado en `src/AgentStudio.Infrastructure/Hosting/{Cli,GitHub,Diagnostics}
 - **Entorno:** `SSL_CERT_FILE` pasa con la regla de `GH_CONFIG_DIR`; `IUntrustedRoots` es obligatorio en la composición; el `ETag` no admite llaves.
 - **Escrituras sin confirmar:** un tiempo agotado a mitad de una escritura se devuelve como «sin conexión» aunque el servidor pudo aplicarla; quien reintenta observa antes (nota para WP3).
 - **Códigos nuevos:** `reviews.too-many`, `merge.rejected` (422), `text.description-invalid`, `repository.merge-settings-missing`.
+### Tercera ronda de arreglos (2026-11-13)
+
+- **Condiciones por el orden de la lista:** la página 1 de los commits de la rama base va del más nuevo al más viejo, así que un commit nuevo siempre la cambia: su `ETag` se conserva siempre y un 304 dice que toda la lista es la misma (una petición por vuelta aunque haya más de 50 commits). Las revisiones van de viejo a nuevo: su `ETag` solo se guarda si la primera página no iba llena.
+- **Límite conocido:** los commits de la rama base se leen hasta 300 por vuelta sin marca de truncado. Los reverts ya vistos se conservan por la unión con la instantánea anterior; uno nuevo solo se perdería con más de 300 commits nuevos entre dos vueltas.
+- **Textos raros:** un sustituto suelto de UTF-16 no es texto: se rechaza (título, cuerpo, comentario) o se limpia (descripción del estado, que además se recorta sin partir un par). Ningún método del proveedor lanza por un texto.
+- **`RestoreRateLimit` nunca acorta ni borra una espera en curso:** se queda con la mayor. Un `issue_url` se compara por igualdad exacta con `https://api.github.com/repos/{o}/{r}/issues/{n}`. Un 422 al borrar una referencia es `NotFound` solo si la relectura de la rama da 404; si no, es un rechazo.
+- **Una página de comentarios que no cabe en 1 MB** no impide publicar el estado: el resultado dice que se publicó y que el comentario no (`comment.lookup-unknown`), y no se escribe otro que podría duplicarse.

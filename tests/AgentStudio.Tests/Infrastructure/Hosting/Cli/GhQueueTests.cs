@@ -133,7 +133,7 @@ public sealed class GhQueueTests
     }
 
     [Fact]
-    public void A_stored_wait_is_loaded_cut_at_two_hours_and_a_past_one_clears_it()
+    public void A_stored_wait_is_loaded_cut_at_two_hours_and_never_shortens_or_clears_a_wait_that_is_on()
     {
         using var rig = new GhRig();
         var now = rig.Time.GetUtcNow();
@@ -141,15 +141,22 @@ public sealed class GhQueueTests
         rig.Queue.RestoreRateLimit(now.AddMinutes(10));
         Assert.Equal(now.AddMinutes(10), rig.Queue.RateLimitedUntil);
 
+        rig.Queue.RestoreRateLimit(now.AddMinutes(5));
+        Assert.Equal(now.AddMinutes(10), rig.Queue.RateLimitedUntil);
+
         rig.Queue.RestoreRateLimit(now.AddDays(30));
         Assert.Equal(now.AddHours(2), rig.Queue.RateLimitedUntil);
 
         rig.Queue.RestoreRateLimit(now.AddMinutes(-1));
-        Assert.Null(rig.Queue.RateLimitedUntil);
-
-        rig.Queue.RestoreRateLimit(now.AddMinutes(5));
         rig.Queue.RestoreRateLimit(null);
-        Assert.Null(rig.Queue.RateLimitedUntil);
+        rig.Queue.RestoreRateLimit(DateTimeOffset.MinValue);
+        Assert.Equal(now.AddHours(2), rig.Queue.RateLimitedUntil);
+
+        // With no wait on, a past time or a null is no wait.
+        using var idle = new GhRig();
+        idle.Queue.RestoreRateLimit(now.AddMinutes(-1));
+        idle.Queue.RestoreRateLimit(null);
+        Assert.Null(idle.Queue.RateLimitedUntil);
     }
 
     [Fact]

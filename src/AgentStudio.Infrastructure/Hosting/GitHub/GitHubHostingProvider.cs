@@ -30,6 +30,7 @@ public static class GitHubRefusal
     public const string DescriptionInvalid = "text.description-invalid";
     public const string ReviewsTooMany = "reviews.too-many";
     public const string MergeRejected = "merge.rejected";
+    public const string CommentLookupUnknown = "comment.lookup-unknown";
 
     /// <summary>The code of an HTTP status that has no code of its own: <c>http.&lt;status&gt;</c>.</summary>
     public static string Http(int status) => "http." + status.ToString(CultureInfo.InvariantCulture);
@@ -141,11 +142,51 @@ public sealed partial class GitHubHostingProvider : IHostingProvider
 
     // ---- Text that goes to GitHub ----
 
-    private static bool IsOneLineOfText(string text) => text.Length > 0 && !string.IsNullOrWhiteSpace(text) && !UntrustedText.HasHidden(text);
+    /// <summary>A lone half of a surrogate pair is not text: the JSON writer cannot encode it, so it is refused before any body is built (no method of the provider throws for a strange text).</summary>
+    internal static bool HasLoneSurrogate(string text)
+    {
+        for (var i = 0; i < text.Length; i++)
+        {
+            if (char.IsHighSurrogate(text[i]))
+            {
+                if (i + 1 >= text.Length || !char.IsLowSurrogate(text[i + 1]))
+                {
+                    return true;
+                }
+
+                i++;
+            }
+            else if (char.IsLowSurrogate(text[i]))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>The text cut at <paramref name="maximum"/> characters without splitting a surrogate pair.</summary>
+    internal static string CutAt(string text, int maximum)
+    {
+        if (text.Length <= maximum)
+        {
+            return text;
+        }
+
+        var length = char.IsHighSurrogate(text[maximum - 1]) ? maximum - 1 : maximum;
+        return text[..length];
+    }
+
+    private static bool IsOneLineOfText(string text) => text.Length > 0 && !string.IsNullOrWhiteSpace(text) && !HasLoneSurrogate(text) && !UntrustedText.HasHidden(text);
 
     /// <summary>A body may span lines and hold tabs; no other control or format character (a mark of direction would reorder what the reader sees).</summary>
     private static bool IsBodyText(string text)
     {
+        if (HasLoneSurrogate(text))
+        {
+            return false;
+        }
+
         foreach (var rune in text.EnumerateRunes())
         {
             if (UntrustedText.IsHidden(rune) && rune.Value is not ('\n' or '\r' or '\t'))
@@ -452,7 +493,14 @@ public sealed partial class GitHubHostingProvider : IHostingProvider
         // The documentation of the deletion gives 204, 409 and 422; a 422 is «the reference does not exist».
         if (step.Http is { Status: 422 })
         {
-            return new HostingResult<bool>(HostingOutcome.NotFound);
+            // «The reference does not exist» or a rejection: the branch is read again. Only a 404 says it is gone; if it is still there, it was refused.
+            var again = await SendAsync(GitHubApiPath.Branch(repository, runBranch), null, null, ct).ConfigureAwait(false);
+            if (again.Outcome == HostingOutcome.NotFound)
+            {
+                return new HostingResult<bool>(HostingOutcome.NotFound);
+            }
+
+            return again.IsOk || !again.IsFatal ? step.Fail<bool>() : again.Fail<bool>();
         }
 
         return step.IsOk ? new HostingResult<bool>(HostingOutcome.Ok, true) : step.Fail<bool>();
@@ -488,10 +536,7 @@ public sealed partial class GitHubHostingProvider : IHostingProvider
 
         // The description of the status is a text of the system that the caller composed (its templates, D-19): the adapter only takes the control and format characters out and cuts it at 120.
         var description = UntrustedText.Clean(statusDescription).Trim();
-        if (description.Length > GitHubRequestBodies.MaxStatusDescription)
-        {
-            description = description[..GitHubRequestBodies.MaxStatusDescription];
-        }
+        description = CutAt(description, GitHubRequestBodies.MaxStatusDescription).TrimEnd();
 
         if (description.Length == 0)
         {
@@ -632,6 +677,13 @@ public sealed partial class GitHubHostingProvider : IHostingProvider
         for (var page = 1; page <= GitHubApiPath.CommentsPages; page++)
         {
             var step = await SendAsync(GitHubApiPath.Comments(pullRequest, page), null, null, ct).ConfigureAwait(false);
+
+            // A page that does not fit in what gh may answer (1 MB): it cannot be known whether the comment of the verdict is in it, and writing another could duplicate it. Nothing is written; the status was.
+            if (step is { Outcome: HostingOutcome.InvalidAnswer, Http: null })
+            {
+                return (new Step(HostingOutcome.InvalidAnswer, Code: GitHubRefusal.CommentLookupUnknown), null);
+            }
+
             if (!step.IsOk)
             {
                 return (step, null);

@@ -64,12 +64,19 @@ internal sealed class GhQueue : IAsyncDisposable, IDisposable
         }
     }
 
-    /// <summary>Loads the wait that was stored (it is cut at two hours from now, whatever the file says). A null or a past time clears it.</summary>
+    /// <summary>
+    /// Loads the wait that was stored (it is cut at two hours from now, whatever the file says; a null or a past time is no wait). A restoration never shortens or clears a wait that is on: the longer of the two stays.
+    /// </summary>
     internal void RestoreRateLimit(DateTimeOffset? until)
     {
         var now = _time.GetUtcNow();
-        var ticks = until is { } value && value > now ? Min(value, now + MaxWait).UtcTicks : 0;
-        Interlocked.Exchange(ref _limitedUntilTicks, ticks);
+        var restored = until is { } value && value > now ? Min(value, now + MaxWait).UtcTicks : 0;
+        long current;
+        do
+        {
+            current = Interlocked.Read(ref _limitedUntilTicks);
+        }
+        while (restored > current && Interlocked.CompareExchange(ref _limitedUntilTicks, restored, current) != current);
     }
 
     /// <summary>Queues the call and answers when it ended. A call whose wait is on does not start <c>gh</c>.</summary>
