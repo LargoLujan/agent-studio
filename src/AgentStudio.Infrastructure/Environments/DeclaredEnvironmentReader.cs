@@ -24,6 +24,14 @@ public sealed class DeclaredEnvironmentReader : IDeclaredEnvironmentReader
 
     private static readonly UTF8Encoding StrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
+    private readonly Func<string, string?> _rootFinalPath;
+
+    /// <param name="rootFinalPath">Where Windows really reaches the root of the project; by default <c>GetFinalPathNameByHandle</c>. A test gives one that fails.</param>
+    public DeclaredEnvironmentReader(Func<string, string?>? rootFinalPath = null)
+    {
+        _rootFinalPath = rootFinalPath ?? (path => OperatingSystem.IsWindows() ? IntegrityLabels.FinalPath(path) : null);
+    }
+
     /// <summary>
     /// Whether an entry of the path is a link that is not read through: a symbolic link or a junction, which .NET reports with a target. A reparse point with no target,
     /// such as the placeholder of a file that lives in OneDrive, is a regular file for this purpose.
@@ -56,7 +64,7 @@ public sealed class DeclaredEnvironmentReader : IDeclaredEnvironmentReader
             return DeclaredEnvironment.Empty;
         }
 
-        var finalRoot = OperatingSystem.IsWindows() ? IntegrityLabels.FinalPath(root) : null;
+        var finalRoot = _rootFinalPath(root);
         foreach (var file in DeclaredFiles.All)
         {
             ct.ThrowIfCancellationRequested();
@@ -111,10 +119,20 @@ public sealed class DeclaredEnvironmentReader : IDeclaredEnvironmentReader
             await using (stream.ConfigureAwait(false))
             {
                 // What was opened is what was checked: a file swapped for a link after the inspection ends elsewhere.
-                if (OperatingSystem.IsWindows() && finalRoot is not null && !IsExpected(stream.SafeFileHandle, finalRoot, file))
+                if (OperatingSystem.IsWindows())
                 {
-                    builder.Issue(source, DeclaredIssueKind.IsLink);
-                    return;
+                    // Without the final path of the root there is nothing to compare with: the file is not read (it never fails open).
+                    if (finalRoot is null)
+                    {
+                        builder.Issue(source, DeclaredIssueKind.Unreadable);
+                        return;
+                    }
+
+                    if (!IsExpected(stream.SafeFileHandle, finalRoot, file))
+                    {
+                        builder.Issue(source, DeclaredIssueKind.IsLink);
+                        return;
+                    }
                 }
 
                 // One byte more than the cap tells a file that is too large from one that is exactly at it.

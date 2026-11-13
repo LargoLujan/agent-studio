@@ -198,6 +198,21 @@ public sealed class DeclaredFileParserTests
     }
 
     [Theory]
+    [InlineData("3.12 3.11\n")]
+    [InlineData("3.12\t3.11")]
+    [InlineData("3.12 # latest")]
+    public void A_version_file_with_more_than_one_token_is_a_list_and_is_not_interpreted(string text)
+    {
+        var environment = Read(DeclaredFiles.PythonVersionFile, text);
+
+        Assert.Empty(environment.Entries);
+        var issue = Assert.Single(environment.Issues);
+        Assert.Equal(DeclaredIssueKind.NotInterpreted, issue.Kind);
+        Assert.Equal(1, issue.Source.Line);
+        Assert.Equal(text.Split('\n')[0].Replace('\t', ' '), issue.Text);
+    }
+
+    [Theory]
     [InlineData("")]
     [InlineData("\n\n")]
     [InlineData("   ")]

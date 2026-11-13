@@ -66,6 +66,11 @@ public sealed class StepToolVersionReader : IStepToolVersionReader
             string path;
             if (Path.IsPathFullyQualified(executable))
             {
+                if (Refused(executable) is { } why)
+                {
+                    return EvidenceToolVersion.Unknown(tool, why);
+                }
+
                 path = executable;
             }
             else if (ExecutableSearch.IsBareName(executable))
@@ -107,6 +112,17 @@ public sealed class StepToolVersionReader : IStepToolVersionReader
         }
     }
 
+    /// <summary>Why a full path is not looked at, or null: a network (UNC) or device path would reach out of the computer or to a device, and a file inside an open project is not trusted.</summary>
+    private string? Refused(string path)
+    {
+        if (path.Replace('/', '\\').StartsWith(@"\\", StringComparison.Ordinal))
+        {
+            return "a network or device path is not read";
+        }
+
+        return _search.IsUntrusted(path) ? "the file is inside a project folder, which is not trusted" : null;
+    }
+
     /// <summary>The version of a resource: the first word of the product version if it is one (<c>24.14.0</c>, <c>11.0.0-preview.2.26159.112</c>), else the three numbers of the file version.</summary>
     private static string? VersionOf(FileVersionInfo info)
     {
@@ -133,10 +149,15 @@ public sealed class StepToolVersionReader : IStepToolVersionReader
             : null;
     }
 
-    private static EvidenceToolVersion NpmVersion(string script)
+    private EvidenceToolVersion NpmVersion(string script)
     {
         try
         {
+            if (Refused(script) is { } why)
+            {
+                return EvidenceToolVersion.Unknown("npm", why);
+            }
+
             // <npm>\bin\npm-cli.js: the package.json of npm is two levels up.
             var package = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(script) ?? string.Empty, "..", "package.json"));
             var info = new FileInfo(package);

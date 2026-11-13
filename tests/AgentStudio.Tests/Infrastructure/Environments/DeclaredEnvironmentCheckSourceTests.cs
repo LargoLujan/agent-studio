@@ -1,9 +1,12 @@
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Reflection.Emit;
 using AgentStudio.Application.Diagnostics;
 using AgentStudio.Application.Execution;
 using AgentStudio.Application.Projects;
+using AgentStudio.Application.Verification;
+using AgentStudio.Domain.Evidence;
 using AgentStudio.Domain.Diagnostics;
 using AgentStudio.Domain.Environments;
 using AgentStudio.Infrastructure.Environments;
@@ -40,6 +43,14 @@ public sealed class DeclaredEnvironmentCheckSourceTests : IDisposable
 
         return root;
     }
+
+    private sealed class FakeRoots(params string[] roots) : IUntrustedRoots
+    {
+        public IReadOnlyList<string> Roots { get; } = roots;
+    }
+
+    private static VerificationStep Verification(string executable) => new(
+        "s", "s", executable, ["--version"], EvidenceKind.CommandOutput, TestReportFormat.None, null, TimeSpan.FromMinutes(1));
 
     private sealed class FakeInventory(InstalledTools tools) : IInstalledToolInventory
     {
@@ -201,7 +212,75 @@ public sealed class DeclaredEnvironmentCheckSourceTests : IDisposable
             }
 
             Assert.DoesNotContain(used, u => forbidden.Contains(u.Name, StringComparer.Ordinal));
+
+            // And what the bodies call, read from the IL: no call, new object or token of a member of Process or ProcessStartInfo.
+            foreach (var method in type.GetMethods(all).Cast<MethodBase>().Concat(type.GetConstructors(all)))
+            {
+                Assert.DoesNotContain(MembersReferencedBy(method), m => StartsProcesses(m));
+            }
         }
+    }
+
+    [Fact]
+    public void The_scan_of_the_il_does_see_a_reference_to_process_when_there_is_one()
+    {
+        // Positive control: RunningFrom of this class calls Process.GetProcesses, so the scan must find it.
+        var method = typeof(DeclaredEnvironmentCheckSourceTests).GetMethod(nameof(RunningFrom), BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        Assert.Contains(MembersReferencedBy(method), m => StartsProcesses(m));
+    }
+
+    private static bool StartsProcesses(MemberInfo member) =>
+        ((member as Type)?.FullName ?? member.DeclaringType?.FullName) is "System.Diagnostics.Process" or "System.Diagnostics.ProcessStartInfo";
+
+    /// <summary>The members, types and fields that the IL of <paramref name="method"/> names in a call, a new object, a load of a field or a token.</summary>
+    private static List<MemberInfo> MembersReferencedBy(MethodBase method)
+    {
+        var members = new List<MemberInfo>();
+        var il = method.GetMethodBody()?.GetILAsByteArray();
+        if (il is null)
+        {
+            return members;
+        }
+
+        var opCodes = typeof(OpCodes).GetFields(BindingFlags.Public | BindingFlags.Static).Select(f => (OpCode)f.GetValue(null)!).ToDictionary(o => (ushort)o.Value);
+        var typeArguments = method.DeclaringType!.IsGenericType ? method.DeclaringType.GetGenericArguments() : null;
+        var methodArguments = method.IsGenericMethod ? method.GetGenericArguments() : null;
+        var at = 0;
+        while (at < il.Length)
+        {
+            ushort value = il[at++];
+            if (value == 0xFE)
+            {
+                value = (ushort)(0xFE00 | il[at++]);
+            }
+
+            var op = opCodes[value];
+            var size = op.OperandType switch
+            {
+                OperandType.InlineNone => 0,
+                OperandType.ShortInlineBrTarget or OperandType.ShortInlineI or OperandType.ShortInlineVar => 1,
+                OperandType.InlineVar => 2,
+                OperandType.InlineI8 or OperandType.InlineR => 8,
+                OperandType.InlineSwitch => 4 + (4 * BitConverter.ToInt32(il, at)),
+                _ => 4,
+            };
+            if (op.OperandType is OperandType.InlineMethod or OperandType.InlineTok or OperandType.InlineType or OperandType.InlineField)
+            {
+                try
+                {
+                    members.Add(method.Module.ResolveMember(BitConverter.ToInt32(il, at), typeArguments, methodArguments)!);
+                }
+                catch (Exception ex) when (ex is ArgumentException or BadImageFormatException)
+                {
+                    // A token that does not resolve here is not a member of Process.
+                }
+            }
+
+            at += size;
+        }
+
+        return members;
     }
 
     [Fact]
@@ -216,13 +295,30 @@ public sealed class DeclaredEnvironmentCheckSourceTests : IDisposable
             File.Copy(marker, target);
         }
 
-        await File.WriteAllTextAsync(Path.Combine(root, "claude.cmd"), "@echo planted", Ct);
+        // Scripts that leave a witness file if anything ever runs them, and a witness beside each executable too.
+        var witness = Path.Combine(root, "WITNESS.txt");
+        foreach (var script in new[] { "claude.cmd", "codex.cmd", "dotnet.cmd", "node.cmd" })
+        {
+            await File.WriteAllTextAsync(Path.Combine(root, script), $"@echo ran > \"{witness}\"", Ct);
+        }
+
         await File.WriteAllTextAsync(Path.Combine(root, "global.json"), "{\"sdk\":{\"version\":\"10.0.100\",\"paths\":[\".dotnet\"]}}", Ct);
+        var decoys = new[] { "dotnet.exe", "node.exe", "git.exe", "python.exe", Path.Combine(".venv", "Scripts", "python.exe"), "claude.cmd", "dotnet.cmd" }.Select(d => Path.Combine(root, d)).ToArray();
 
         try
         {
             var checks = await Source(new FakeInventory(Machine())).CheckAsync(new ProjectContext("p1", root), Ct);
             Assert.NotEmpty(checks);
+
+            // The real readers of the package, against the decoys: once trusting the project and once with it as an untrusted root.
+            var declared = await new DeclaredEnvironmentReader().ReadAsync(root, Ct);
+            Assert.NotEmpty(declared.Entries);
+            var trusting = new StepToolVersionReader().Read([.. decoys.Select(Verification)]);
+            var guarded = new StepToolVersionReader(new FakeRoots(root)).Read([.. decoys.Select(Verification)]);
+            Assert.NotEmpty(trusting);
+            Assert.All(guarded, t => Assert.Null(t.Version));
+
+            Assert.False(File.Exists(witness), "something ran a script of the repository");
             Assert.Empty(RunningFrom(root));
         }
         finally

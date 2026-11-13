@@ -288,6 +288,31 @@ public sealed class DeclaredEnvironmentReaderTests : IDisposable
     }
 
     [Fact]
+    public async Task When_the_final_path_of_the_root_cannot_be_told_nothing_is_read_it_never_fails_open()
+    {
+        var reader = new DeclaredEnvironmentReader(_ => null);
+
+        var environment = await reader.ReadAsync(Fixture("dotnet-repo"), Ct);
+
+        Assert.Empty(environment.Entries);
+        Assert.Equal(["global.json", ".config/dotnet-tools.json"], environment.FilesFound);
+        Assert.Equal(2, environment.Issues.Count);
+        Assert.All(environment.Issues, i => Assert.Equal(DeclaredIssueKind.Unreadable, i.Kind));
+    }
+
+    [Fact]
+    public async Task When_the_file_opened_is_not_the_one_under_the_root_it_is_a_link_and_is_not_read()
+    {
+        var reader = new DeclaredEnvironmentReader(_ => Path.Combine(_temp, "otra raiz"));
+
+        var environment = await reader.ReadAsync(Fixture("node-repo"), Ct);
+
+        Assert.Empty(environment.Entries);
+        Assert.All(environment.Issues, i => Assert.Equal(DeclaredIssueKind.IsLink, i.Kind));
+        Assert.Equal(2, environment.Issues.Count);
+    }
+
+    [Fact]
     public async Task A_cancelled_reading_is_cancelled()
     {
         using var source = new CancellationTokenSource();

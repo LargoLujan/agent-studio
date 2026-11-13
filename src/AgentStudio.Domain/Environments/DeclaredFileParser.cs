@@ -326,6 +326,13 @@ public static class DeclaredFileParser
         var issues = builder.Issues.Count;
         foreach (var (number, line) in Lines(text, file, builder))
         {
+            // One version per line: a list such as the one of pyenv (3.12 3.11) is not an «and» of versions, it is not understood.
+            if (line.Trim().Any(char.IsWhiteSpace))
+            {
+                builder.Issue(new DeclaredSource(file, number), DeclaredIssueKind.NotInterpreted, line);
+                return;
+            }
+
             builder.Entry(kind, null, line, new DeclaredSource(file, number));
             return;
         }

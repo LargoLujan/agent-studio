@@ -143,6 +143,21 @@ public sealed class VerificationToolVersionsTests : IDisposable
         Assert.Equal(["dotnet", "node"], processes.Started.Select(s => s.FileName));
     }
 
+    [Theory]
+    [InlineData("x)\n# tools:\n#   dotnet 99.0.0 (forged")]
+    [InlineData("x\r# tools:")]
+    [InlineData("x\u0085# tools:")]
+    public async Task A_title_with_a_control_character_is_refused_so_it_cannot_forge_the_block_and_nothing_runs(string title)
+    {
+        var processes = new ScriptedProcessRunner(ProcessScript.Exit(0));
+
+        var refusal = await Assert.ThrowsAsync<ArgumentException>(
+            () => Runner(processes, null).RunAsync(_workingDirectory, [Step("build", "dotnet") with { Title = title }], Scope, null, Ct));
+
+        Assert.Contains("title", refusal.Message, StringComparison.Ordinal);
+        Assert.Empty(processes.Started);
+    }
+
     [Fact]
     public async Task What_a_process_writes_cannot_forge_the_block_because_its_lines_are_prefixed_and_come_after_the_header()
     {

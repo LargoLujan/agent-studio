@@ -130,6 +130,7 @@ public static class EvidenceToolVersions
         var tools = new List<EvidenceToolVersion>();
         var inBlock = false;
         var start = 0;
+        var index = 0;
         while (start < content.Length)
         {
             var end = content.IndexOf('\n', start);
@@ -142,6 +143,22 @@ public static class EvidenceToolVersions
 
             if (!inBlock)
             {
+                // The block has one place: after the title line, the command line, the isolation line and, when there is one, the source line.
+                // Anything else that looks like a block (a title or a command that spans lines) is not it.
+                var expected = index switch
+                {
+                    0 => line.StartsWith("# Agent Studio", StringComparison.Ordinal),
+                    1 => line.StartsWith("# command: ", StringComparison.Ordinal),
+                    2 => line.StartsWith("# isolation:", StringComparison.Ordinal),
+                    3 => line.StartsWith("# source: ", StringComparison.Ordinal) || line == BlockLine,
+                    _ => line == BlockLine,
+                };
+                if (!expected || index > 4)
+                {
+                    break;
+                }
+
+                index++;
                 inBlock = line == BlockLine;
                 continue;
             }

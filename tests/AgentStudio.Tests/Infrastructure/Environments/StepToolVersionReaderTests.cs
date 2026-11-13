@@ -169,6 +169,53 @@ public sealed class StepToolVersionReaderTests : IDisposable
         Assert.Equal(["node"], tools.Select(t => t.Tool));
     }
 
+    [Theory]
+    [InlineData(@"\\no-such-host\share\tool.exe")]
+    [InlineData("//no-such-host/share/tool.exe")]
+    [InlineData(@"\\?\C:\Windows\System32\cmd.exe")]
+    [InlineData(@"\\.\pipe\x.exe")]
+    public void A_network_or_device_path_is_not_read_and_says_so(string path)
+    {
+        var tool = Assert.Single(new StepToolVersionReader().Read([Step(path)]));
+
+        Assert.Null(tool.Version);
+        Assert.Equal("a network or device path is not read", tool.Note);
+    }
+
+    [Fact]
+    public void A_full_path_inside_an_open_project_is_not_read_and_outside_it_is()
+    {
+        var inside = Plant(@"proyecto\bin\dotnet.exe");
+        var outside = Plant(@"fuera\dotnet.exe");
+        var reader = new StepToolVersionReader(new FakeRoots(Path.Combine(_temp, "proyecto")));
+
+        var refused = Assert.Single(reader.Read([Step(inside)]));
+        var allowed = Assert.Single(reader.Read([Step(outside)]));
+
+        Assert.Null(refused.Version);
+        Assert.Contains("inside a project folder", refused.Note, StringComparison.Ordinal);
+        Assert.Equal(Product(outside), allowed.Version);
+    }
+
+    [Fact]
+    public void An_npm_script_inside_an_open_project_or_on_the_network_is_not_read()
+    {
+        var node = Plant(@"nodejs\node.exe");
+        var project = Path.Combine(_temp, "proyecto");
+        var npmRoot = Path.Combine(project, "node_modules", "npm");
+        Directory.CreateDirectory(Path.Combine(npmRoot, "bin"));
+        var script = Path.Combine(npmRoot, "bin", "npm-cli.js");
+        File.WriteAllText(script, "// npm");
+        File.WriteAllText(Path.Combine(npmRoot, "package.json"), "{\"name\":\"npm\",\"version\":\"10.9.0\"}");
+
+        var inside = new StepToolVersionReader(new FakeRoots(project)).Read([Step(node, script, "ci")])[1];
+        var trusted = new StepToolVersionReader().Read([Step(node, script, "ci")])[1];
+
+        Assert.Null(inside.Version);
+        Assert.Contains("inside a project folder", inside.Note, StringComparison.Ordinal);
+        Assert.Equal("10.9.0", trusted.Version);
+    }
+
     [Fact]
     public void The_reader_never_throws_for_a_hostile_executable_name_and_every_note_is_valid_for_the_header()
     {

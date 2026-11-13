@@ -5,6 +5,9 @@ namespace AgentStudio.Tests.Application.Verification;
 /// <summary>docs/20 D-12 (WP-E): the <c>tools:</c> block of the header of an evidence, written by the runner and read back by the card of the evidence and by Phase 16.</summary>
 public sealed class EvidenceToolVersionsTests
 {
+    /// <summary>The first lines of a header as the runner writes them: the block comes right after them.</summary>
+    private const string Head = "# Agent Studio · verification step 'b' (B)\n# command: dotnet build\n# isolation: none (the profile turns it off)\n";
+
     [Fact]
     public void The_block_has_one_line_per_tool_and_reads_back_as_it_was_written()
     {
@@ -20,7 +23,7 @@ public sealed class EvidenceToolVersionsTests
         Assert.Equal(
             "# tools:\n#   dotnet 10.0.303 (version resource of the dotnet host; the SDK is the one global.json picks)\n#   node 22.11.0\n#   npm unknown (the package.json of npm was not found)",
             text);
-        Assert.Equal(tools, EvidenceToolVersions.Parse(text + "\n# working directory: C:\\x\nstdout| 1\n"));
+        Assert.Equal(tools, EvidenceToolVersions.Parse(Head + text + "\n# working directory: C:\\x\nstdout| 1\n"));
     }
 
     [Fact]
@@ -42,7 +45,7 @@ public sealed class EvidenceToolVersionsTests
     [Fact]
     public void Only_the_header_counts_and_the_first_block_wins()
     {
-        const string content = "# Agent Studio\n# tools:\n#   dotnet 10.0.303\n# started: now\nstdout| # tools:\n#   node 1.0\n# tools:\n#   python 3.12";
+        var content = Head + "# tools:\n#   dotnet 10.0.303\n# started: now\nstdout| # tools:\n#   node 1.0\n# tools:\n#   python 3.12";
 
         var tools = EvidenceToolVersions.Parse(content);
 
@@ -51,9 +54,27 @@ public sealed class EvidenceToolVersionsTests
     }
 
     [Fact]
+    public void A_block_is_only_read_in_its_own_place_after_the_isolation_and_source_lines()
+    {
+        const string block = "# tools:\n#   dotnet 1.0\n";
+        const string title = "# Agent Studio · verification step 'b' (B)\n";
+        const string command = "# command: dotnet build\n";
+
+        Assert.Single(EvidenceToolVersions.Parse(title + command + "# isolation: low integrity\n# source: commit abc\n" + block));
+        Assert.Single(EvidenceToolVersions.Parse(title + command + "# isolation: none\n" + block));
+        // A title that spans lines puts a block where the command line should be.
+        Assert.Empty(EvidenceToolVersions.Parse(title.TrimEnd() + "\n" + block + command + "# isolation: none\n"));
+        Assert.Empty(EvidenceToolVersions.Parse(title + block + command + "# isolation: none\n" + block));
+        // A block with no header before it, or after the working directory, is not the block.
+        Assert.Empty(EvidenceToolVersions.Parse(block));
+        Assert.Empty(EvidenceToolVersions.Parse(title + command + "# isolation: none\n# working directory: x\n" + block));
+        Assert.Empty(EvidenceToolVersions.Parse(title + command + "# isolation: none\n# source: a\n# source: b\n" + block));
+    }
+
+    [Fact]
     public void An_entry_that_is_not_well_formed_is_skipped_and_the_others_are_kept()
     {
-        const string content = "# tools:\n#   dotnet 10.0.303\n#   lonely\n#   node 22 not-in-parentheses\n#   bad$name 1.0\n#   python 3.12.5 (note)\n";
+        var content = Head + "# tools:\n#   dotnet 10.0.303\n#   lonely\n#   node 22 not-in-parentheses\n#   bad$name 1.0\n#   python 3.12.5 (note)\n";
 
         Assert.Equal(["dotnet", "python"], EvidenceToolVersions.Parse(content).Select(t => t.Tool));
     }
@@ -61,7 +82,7 @@ public sealed class EvidenceToolVersionsTests
     [Fact]
     public void The_block_ends_at_the_first_line_that_is_not_an_entry()
     {
-        const string content = "# tools:\n#   dotnet 1.0\n# working directory: x\n#   node 2.0\n";
+        var content = Head + "# tools:\n#   dotnet 1.0\n# working directory: x\n#   node 2.0\n";
 
         Assert.Equal(["dotnet"], EvidenceToolVersions.Parse(content).Select(t => t.Tool));
     }
@@ -69,7 +90,7 @@ public sealed class EvidenceToolVersionsTests
     [Fact]
     public void Windows_line_endings_are_read_too_and_the_number_of_entries_is_bounded()
     {
-        var many = "# tools:\r\n" + string.Concat(Enumerable.Range(0, 100).Select(i => $"#   tool{i} 1.0\r\n"));
+        var many = Head.Replace("\n", "\r\n") + "# tools:\r\n" + string.Concat(Enumerable.Range(0, 100).Select(i => $"#   tool{i} 1.0\r\n"));
 
         var tools = EvidenceToolVersions.Parse(many);
 
@@ -80,7 +101,7 @@ public sealed class EvidenceToolVersionsTests
     [Fact]
     public void The_version_of_a_tool_is_looked_up_ignoring_case_and_unknown_is_null()
     {
-        const string content = "# tools:\n#   Node 22.11.0\n#   npm unknown (why)\n";
+        var content = Head + "# tools:\n#   Node 22.11.0\n#   npm unknown (why)\n";
 
         Assert.Equal("22.11.0", EvidenceToolVersions.VersionOf(content, "node"));
         Assert.Null(EvidenceToolVersions.VersionOf(content, "npm"));
