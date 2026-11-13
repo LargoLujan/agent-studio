@@ -1,0 +1,9 @@
+{
+  // Dev container of the sample.
+  "name": "sample",
+  "image": "mcr.microsoft.com/devcontainers/dotnet:10.0",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "22" }
+  },
+  "customizations": { "vscode": { "extensions": [ "ms-dotnettools.csdevkit" ] } },
+}

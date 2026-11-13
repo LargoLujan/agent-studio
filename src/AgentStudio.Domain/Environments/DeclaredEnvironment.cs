@@ -112,6 +112,9 @@ public enum DeclaredKind
 
     /// <summary>A compose file exists; the value is its size in bytes. It is not interpreted.</summary>
     ComposeFile,
+
+    /// <summary>The <c>extends</c> of a Dev Container (docs/20 D-06): the file it names. Named, never opened.</summary>
+    Extends,
 }
 
 /// <summary>
