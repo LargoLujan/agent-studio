@@ -146,6 +146,27 @@ public sealed class UnattendedCompositionTests
         Assert.Same(engineClock.Time, EngineTime(provider));
     }
 
+    /// <summary>
+    /// docs/21 D-25 (Phase 10): the four that wait for a remote operation of Agent Studio before taking a project (the orchestrator, the coordinator of debates,
+    /// the audit and the tests of HEAD) measure that wait on the clock of the engine, the awake one: a machine that sleeps does not run out the cap.
+    /// </summary>
+    [Fact]
+    public void The_four_that_wait_for_a_remote_operation_measure_the_wait_on_the_clock_of_the_engine()
+    {
+        using var temp = new TempDirectory();
+        using var provider = new Phase8Doubles().BuildApp(temp);
+        var engine = provider.GetRequiredService<EngineClock>().Time;
+
+        Assert.Same(engine, EngineTime(provider));
+        Assert.Same(engine, Wiring.Property(Wiring.Field(provider.GetRequiredService<AgentStudio.Debate.Arena.DebateCoordinator>(), "_ports")!, "Time"));
+        Assert.Same(engine, CapturedClock(provider.GetRequiredService<AgentStudio.Application.Judging.IProjectAuditService>()));
+        Assert.Same(engine, CapturedClock(provider.GetRequiredService<AgentStudio.Desktop.Panels.HeadTestsServices>()));
+    }
+
+    private static TimeProvider CapturedClock(object owner) =>
+        (TimeProvider)owner.GetType().GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+            .Single(f => f.FieldType == typeof(TimeProvider)).GetValue(owner)!;
+
     [Fact]
     public void A_clock_registered_before_the_composition_drives_the_engine_too()
     {

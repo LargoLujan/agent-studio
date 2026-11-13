@@ -1,3 +1,4 @@
+using System.IO;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using AgentStudio.Domain.Hosting;
@@ -36,7 +37,7 @@ public sealed class RemoteTransportSeamTests
     [Fact]
     public void A_transport_of_the_tests_takes_any_scheme_of_lowercase_letters_and_an_address_of_its_own()
     {
-        var local = new RemoteTransport("file", repository => $@"C:\bare\{repository.Owner}\{repository.Name}.git");
+        var local = RemoteTransport.ForTests("file", repository => $@"C:\bare\{repository.Owner}\{repository.Name}.git");
 
         Assert.Equal("file", local.Scheme);
         Assert.Equal(@"C:\bare\LargoLujan\agent-studio.git", local.AddressOf(Repository));
@@ -50,12 +51,27 @@ public sealed class RemoteTransportSeamTests
     [InlineData("a,b")]
     [InlineData("ssh2")]
     public void A_scheme_that_is_not_lowercase_letters_is_refused_because_it_goes_into_a_list_of_protocols(string scheme) =>
-        Assert.ThrowsAny<ArgumentException>(() => new RemoteTransport(scheme, r => r.PushUrl));
+        Assert.ThrowsAny<ArgumentException>(() => RemoteTransport.ForTests(scheme, r => r.PushUrl));
 
     [Fact]
     public void A_transport_needs_a_function_and_a_repository()
     {
-        Assert.Throws<ArgumentNullException>(() => new RemoteTransport("https", null!));
+        Assert.Throws<ArgumentNullException>(() => RemoteTransport.ForTests("https", null!));
         Assert.Throws<ArgumentNullException>(() => RemoteTransport.GitHubHttps.AddressOf(null!));
+    }
+
+    [Fact]
+    public void The_constructor_is_private_and_the_test_factory_is_called_by_nothing_under_src()
+    {
+        Assert.DoesNotContain(typeof(RemoteTransport).GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance), c => !c.IsPrivate);
+
+        var src = Path.Combine(AgentStudio.Tests.Desktop.Localization.LocalizationTestSupport.RepositoryRoot, "src");
+        var callers = Directory.EnumerateFiles(src, "*.cs", SearchOption.AllDirectories)
+            .Where(f => !f.Split(Path.DirectorySeparatorChar).Any(p => p is "bin" or "obj"))
+            .Where(f => Path.GetFileName(f) is not ("RemoteTransport.ForTests.cs" or "RemoteTransport.cs"))
+            .Where(f => File.ReadAllText(f).Contains("RemoteTransport.ForTests", StringComparison.Ordinal) || File.ReadAllText(f).Contains("new RemoteTransport(", StringComparison.Ordinal))
+            .ToList();
+
+        Assert.True(callers.Count == 0, "Production code must use RemoteTransport.GitHubHttps only:\n" + string.Join('\n', callers));
     }
 }

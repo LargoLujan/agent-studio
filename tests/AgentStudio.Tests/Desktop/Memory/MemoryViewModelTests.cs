@@ -227,6 +227,27 @@ public sealed class MemoryViewModelTests
     }
 
     [Fact]
+    public async Task While_only_a_remote_operation_of_agent_studio_holds_the_project_the_export_waits_without_saying_a_run_or_a_debate_goes_on()
+    {
+        var (memory, _, exporter, activity, _) = Create(Entry("m-2", MemoryTrust.Proposed, origin: MemoryOrigin.Agent));
+        await memory.SetProjectAsync(Root);
+
+        activity.Busy = true;
+        activity.Remote = true;
+        memory.RefreshRunActivity();
+
+        Assert.False(memory.ExportCommand.CanExecute(null));
+        Assert.Equal("Se sincroniza con GitHub. La exportación espera unos segundos.", memory.ExportBlocked);
+        Assert.DoesNotContain("ejecución", memory.ExportBlocked, StringComparison.Ordinal);
+        await memory.AcceptCommand.ExecuteAsync(memory.Entries[0]);
+        Assert.Empty(exporter.Exports);
+
+        activity.Busy = false;
+        memory.RefreshRunActivity();
+        Assert.Null(memory.ExportBlocked);
+    }
+
+    [Fact]
     public async Task An_export_says_what_it_wrote()
     {
         var (memory, _, exporter, _, _) = Create();

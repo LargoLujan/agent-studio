@@ -106,6 +106,13 @@ public static class DecisionPayloadSerializer
         return JsonSerializer.Serialize(payload, payload.GetType(), Options);
     }
 
+    /// <summary>The canonical text of a part of a payload that is not a payload itself (a snapshot inside an observation), for the equality by content of the records that hold lists.</summary>
+    internal static string SerializeValue(object value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        return JsonSerializer.Serialize(value, value.GetType(), Options);
+    }
+
     public static T Deserialize<T>(string json)
         where T : DecisionPayload => (T)Deserialize(typeof(T), json);
 

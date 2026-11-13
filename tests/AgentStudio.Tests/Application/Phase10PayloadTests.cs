@@ -204,6 +204,61 @@ public sealed class Phase10PayloadTests
     }
 
     [Fact]
+    public void Every_payload_validates_as_it_is_read_and_one_that_skips_the_factories_is_caught()
+    {
+        foreach (var sample in Samples)
+        {
+            var read = DecisionPayloadSerializer.Deserialize(sample.GetType(), DecisionPayloadSerializer.Serialize(sample));
+            switch (read)
+            {
+                case HostingPolicyGrantedPayload p: p.EnsureValid(); break;
+                case HostingPolicyRevokedPayload p: p.EnsureValid(); break;
+                case HostingOperationPerformedPayload p: p.EnsureValid(); break;
+                case RemoteStateObservedPayload p: p.EnsureValid(); break;
+                default: Assert.Fail("A payload of the phase without a validator: " + read.GetType().Name); break;
+            }
+        }
+
+        // Built with the public constructor, which is what a log altered by hand amounts to.
+        Assert.Throws<ArgumentException>(() => (Performed with { Class = HostingOperationClass.MergePullRequest }).EnsureValid());
+        Assert.Throws<ArgumentException>(() => (Performed with { RunId = "r1" }).EnsureValid());
+        Assert.Throws<ArgumentException>(() => (Performed with { Run = "a b" }).EnsureValid());
+        Assert.Throws<ArgumentException>(() => (Performed with { Account = "bad login" }).EnsureValid());
+        Assert.Throws<ArgumentException>(() => (Performed with { Owner = "a/b" }).EnsureValid());
+        Assert.Throws<ArgumentException>(() => (Performed with { ApprovalSequence = 3 }).EnsureValid());
+        Assert.Throws<ArgumentException>(() => (Performed with { Operation = HostingOperationKind.MergePullRequest, Class = HostingOperationClass.MergePullRequest }).EnsureValid());
+        Assert.Throws<ArgumentException>(() => (Performed with { Operation = (HostingOperationKind)99 }).EnsureValid());
+        Assert.Throws<ArgumentException>(() => (Performed with { TextSha256 = null }).EnsureValid());
+        Assert.Throws<ArgumentException>(() => (Performed with { Verdict = "Maybe" }).EnsureValid());
+        Assert.Throws<ArgumentException>(() => (Granted with { RunId = "r1" }).EnsureValid());
+        Assert.Throws<ArgumentException>(() => (Revoked with { RunId = "r1" }).EnsureValid());
+        Assert.Throws<ArgumentException>(() => (Revoked with { GrantId = "" }).EnsureValid());
+        Assert.Throws<ArgumentException>(() => (Observed with { RunId = "r1" }).EnsureValid());
+        Assert.Throws<ArgumentException>(() => (Observed with { Run = "a b" }).EnsureValid());
+        Assert.Throws<ArgumentException>(() => (Observed with { Fingerprint = "short" }).EnsureValid());
+        Assert.Throws<ArgumentException>(() => (Observed with { Changes = [(RemoteChangeKind)99] }).EnsureValid());
+        Assert.Throws<ArgumentException>(() => (Observed with { Snapshot = null! }).EnsureValid());
+    }
+
+    [Fact]
+    public void Entries_with_lists_are_equal_when_their_content_is_not_when_their_lists_are_the_same_object()
+    {
+        var again = RemoteStateObservedPayload.Observing(
+            Merged() with { Deployment = new RemoteDeployment(7, Result, DeploymentState.Succeeded), RevertCommits = [Revert] },
+            Run.Value, HashA, [RemoteChangeKind.Merged, RemoteChangeKind.DeploymentChanged]);
+        var read = DecisionPayloadSerializer.Deserialize<RemoteStateObservedPayload>(DecisionPayloadSerializer.Serialize(Observed));
+
+        Assert.Equal(Observed, again);
+        Assert.Equal(Observed, read);
+        Assert.Equal(Observed.GetHashCode(), read.GetHashCode());
+        Assert.Equal(Observed.Snapshot, again.Snapshot);
+        Assert.Equal(Observed.Snapshot.GetHashCode(), again.Snapshot.GetHashCode());
+        Assert.NotEqual(Observed, Observed with { Changes = [RemoteChangeKind.Merged] });
+        Assert.NotEqual(Observed.Snapshot, Observed.Snapshot with { RevertCommits = [] });
+        Assert.NotEqual(Observed.Snapshot, Observed.Snapshot with { OriginalCommits = [Original2, Original1] });
+    }
+
+    [Fact]
     public void No_payload_of_the_phase_has_a_field_that_could_hold_text_of_the_remote_or_a_credential()
     {
         var forbidden = new[] { "Title", "Body", "Message", "Name", "Token", "Password", "Secret", "Credential", "Url", "Path", "Environment", "CheckName", "Error", "Stderr", "Output" };

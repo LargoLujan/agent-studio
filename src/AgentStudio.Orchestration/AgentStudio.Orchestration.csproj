@@ -5,6 +5,11 @@
     <RootNamespace>AgentStudio.Orchestration</RootNamespace>
   </PropertyGroup>
 
+  <!-- The wait of a resume by consent for the project (Phase 10, docs/21 D-25) is checked on Orchestrator.ResumeByConsentAsync, which is internal to the scheduler. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="AgentStudio.Tests" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\AgentStudio.Application\AgentStudio.Application.csproj" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />

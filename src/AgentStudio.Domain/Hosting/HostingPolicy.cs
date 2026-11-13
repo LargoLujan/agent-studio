@@ -138,12 +138,16 @@ public sealed record HostingPolicyGrant
     public DateTimeOffset At { get; }
 
     /// <summary>
-    /// Whether an operation of <paramref name="class"/> on <paramref name="repository"/> towards <paramref name="baseBranch"/> is covered: the same
-    /// class and repository; and, when the grant names a base, only that one (an operation that names none is not covered by a grant that does).
+    /// Whether <paramref name="operation"/> on <paramref name="repository"/> towards <paramref name="baseBranch"/> is covered: the operation may be persistent
+    /// (<see cref="HostingPolicy.CanBePersistent"/>: never asking for reviewers, merging or the destructive ones, whatever the class of the grant), it is of the class of the
+    /// grant, the repository is the same and, when the grant names a base, the base is that one (an operation that names none is not covered by a grant that does).
     /// </summary>
-    public bool Covers(HostingOperationClass @class, RemoteRepository repository, RemoteBranch? baseBranch)
+    public bool Covers(HostingOperationKind operation, RemoteRepository repository, RemoteBranch? baseBranch)
     {
         ArgumentNullException.ThrowIfNull(repository);
-        return Class == @class && Repository == repository && (BaseBranch is null || BaseBranch == baseBranch);
+        return HostingPolicy.CanBePersistent(operation)
+            && HostingPolicy.ClassOf(operation) == Class
+            && Repository == repository
+            && (BaseBranch is null || BaseBranch == baseBranch);
     }
 }

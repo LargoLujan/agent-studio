@@ -117,17 +117,29 @@ public sealed class ProjectAuditService(
                 $"No se lanza la auditoría, y no se ejecuta ni se escribe nada: {string.Join(" ", reasons)}");
         }
 
+        var readAt = time.GetTimestamp();
         var (fresh, material) = await ProposeAsync(proposal.Request, ct).ConfigureAwait(false);
         if (material is null || !fresh.CanJudge || !string.Equals(fresh.HeaderHash, proposal.HeaderHash, StringComparison.Ordinal))
         {
-            throw new UserTextException(
-                UserText.Of(AuditUserTexts.ProposalOutdated),
-                "What the audit would do now is not what was shown (HEAD, the requirements, the judge, the producers or the profile changed): prepare it again.");
+            throw Outdated();
         }
 
         // Waits while a remote operation of Agent Studio holds the project (docs/21 D-25): nothing was written yet and no approval was asked.
         using var lease = await ProjectActivityEntry.EnterAsync(activity, projectId, ProjectActivityKind.Audit, time, ct).ConfigureAwait(false)
             ?? throw new UserTextException(UserText.Of(AuditUserTexts.ProjectBusy), $"Project '{projectId}' is busy ({activity.Current(projectId)}): an audit shares the project with no other activity.");
+
+        // What was read above (HEAD, the requirements, the judge, the producers, the profile) may be up to the cap old if the wait lasted: read again, now that the project is held and
+        // before the person is asked, and refuse as outdated if it is not what was shown. The log, the id of the audit and the pending problems need no new read: the entries of a remote
+        // operation belong to no run and cannot take the id, and the dossier and the report are built on the log as it is when they are built.
+        if (time.GetElapsedTime(readAt) >= ProjectActivityEntry.RemoteWaitPoll)
+        {
+            (fresh, material) = await ProposeAsync(proposal.Request, ct).ConfigureAwait(false);
+            if (material is null || !fresh.CanJudge || !string.Equals(fresh.HeaderHash, proposal.HeaderHash, StringComparison.Ordinal))
+            {
+                throw Outdated();
+            }
+        }
+
         var decision = await approvals.RequestAsync(
             new ApprovalRequest(ApprovalAction, proposal.ApprovalText, RiskLevel.Critical, null, [], projectId, audit.Value, Binding: proposal.HeaderHash),
             ct).ConfigureAwait(false);
@@ -144,6 +156,10 @@ public sealed class ProjectAuditService(
 
         return await RunAsync(project, audit, proposal, material, pending, progress, ct).ConfigureAwait(false);
     }
+
+    private static UserTextException Outdated() => new(
+        UserText.Of(AuditUserTexts.ProposalOutdated),
+        "What the audit would do now is not what was shown (HEAD, the requirements, the judge, the producers or the profile changed): prepare it again.");
 
     private async Task<AuditReport> RunAsync(
         ProjectContext project,

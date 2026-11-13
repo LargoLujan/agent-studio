@@ -205,37 +205,57 @@ public sealed record RemoteBranch
     /// <summary>The branch of a run: <c>agentstudio/run-&lt;id&gt;</c>.</summary>
     public static RemoteBranch ForRun(RunId run) => new(RunPrefix + run.Value);
 
-    /// <summary>The branch of that name, or null when it breaks the rules of <c>git check-ref-format</c> or starts with <c>-</c>.</summary>
-    public static RemoteBranch? TryParse(string? name) => IsValidName(name) ? new RemoteBranch(name!) : null;
+    /// <summary>The refusal of a name with a character outside <see cref="Alphabet"/>.</summary>
+    public const string RefusalCharacters = "branch.unsupported-characters";
+
+    /// <summary>The refusal of a name that breaks the rules of <c>git check-ref-format</c> (even with only safe characters), starts with <c>-</c> or is <c>HEAD</c>.</summary>
+    public const string RefusalForm = "branch.invalid-form";
+
+    /// <summary>What a branch name may be made of in Phase 10: <c>[A-Za-z0-9._/-]</c>. git allows more; the app does not (a name travels as data to the CLI and the API, and to the screen), so a branch with other characters is not admitted.</summary>
+    public const string Alphabet = "[A-Za-z0-9._/-]";
+
+    /// <summary>The branch of that name, or null when it is outside <see cref="Alphabet"/>, breaks the rules of <c>git check-ref-format</c>, starts with <c>-</c> or is <c>HEAD</c>.</summary>
+    public static RemoteBranch? TryParse(string? name) => TryParse(name, out _);
+
+    /// <summary>The same, with the code of the refusal (<see cref="RefusalCharacters"/> or <see cref="RefusalForm"/>) when there is one: a base branch with other characters is refused with a code, never fixed.</summary>
+    public static RemoteBranch? TryParse(string? name, out string? refusalCode)
+    {
+        refusalCode = null;
+        if (string.IsNullOrEmpty(name) || name.Length > MaxLength)
+        {
+            refusalCode = RefusalForm;
+            return null;
+        }
+
+        if (!name.All(c => HostingIdentifiers.IsAsciiLetterOrDigit(c) || c is '.' or '_' or '/' or '-'))
+        {
+            refusalCode = RefusalCharacters;
+            return null;
+        }
+
+        if (!HasValidForm(name))
+        {
+            refusalCode = RefusalForm;
+            return null;
+        }
+
+        return new RemoteBranch(name);
+    }
 
     private static bool IsRunId(string value) =>
         value.Length is >= 1 and <= RunId.MaxLength && value.All(c => HostingIdentifiers.IsAsciiLetterOrDigit(c) || c is '_' or '-');
 
-    private static bool IsValidName(string? name)
+    // Only safe characters reach here: no control character, no space and none of ~ ^ : ? * [ \ @ remain to be checked.
+    private static bool HasValidForm(string name)
     {
-        if (string.IsNullOrEmpty(name) || name.Length > MaxLength || name[0] is '-' or '/' || name[^1] is '/' or '.' || name == "@")
+        if (name[0] is '-' or '/' || name[^1] is '/' or '.' || name.Equals("HEAD", StringComparison.OrdinalIgnoreCase))
         {
             return false;
         }
 
-        if (name.Contains("..", StringComparison.Ordinal) || name.Contains("//", StringComparison.Ordinal) || name.Contains("@{", StringComparison.Ordinal))
+        if (name.Contains("..", StringComparison.Ordinal) || name.Contains("//", StringComparison.Ordinal))
         {
             return false;
-        }
-
-        foreach (var c in name)
-        {
-            if (char.IsControl(c) || char.IsWhiteSpace(c) || c is '~' or '^' or ':' or '?' or '*' or '[' or '\\' or '\u007f')
-            {
-                return false;
-            }
-
-            // Invisible and direction-changing characters would let a name read as another one on the screen.
-            if (char.GetUnicodeCategory(c) is UnicodeCategory.Format or UnicodeCategory.LineSeparator or UnicodeCategory.ParagraphSeparator
-                or UnicodeCategory.Surrogate or UnicodeCategory.PrivateUse or UnicodeCategory.OtherNotAssigned)
-            {
-                return false;
-            }
         }
 
         // No component starts with '.' or ends with ".lock".
@@ -248,8 +268,7 @@ public sealed record RemoteBranch
         }
 
         return true;
-    }
-}
+    }}
 
 /// <summary>A pull request: its repository and its number (greater than 0).</summary>
 public sealed record PullRequestRef

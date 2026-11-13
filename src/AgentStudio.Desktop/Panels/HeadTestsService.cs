@@ -49,7 +49,8 @@ public sealed class HeadTestsServices(
     IVerificationProfileSource? profiles,
     IWorktreeManager? git,
     IProjectWorkspace? workspace,
-    IProjectActivity? activity)
+    IProjectActivity? activity,
+    TimeProvider? time = null)
 {
     /// <summary>The service of the project <paramref name="projectRoot"/> names at the moment it runs; null when something is missing here.</summary>
     public IHeadTestsService? For(Func<string?> projectRoot)
@@ -57,7 +58,7 @@ public sealed class HeadTestsServices(
         ArgumentNullException.ThrowIfNull(projectRoot);
         return runner is null || profiles is null || git is null || workspace is null || activity is null
             ? null
-            : new HeadTestsService(runner, profiles, git, workspace, activity, projectRoot);
+            : new HeadTestsService(runner, profiles, git, workspace, activity, projectRoot, time: time);
     }
 }
 

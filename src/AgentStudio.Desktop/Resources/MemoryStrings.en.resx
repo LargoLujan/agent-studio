@@ -169,6 +169,12 @@
   <data name="Memory_Decision_Queued" xml:space="preserve">
     <value>Queued: it will be recorded when the current run or planning ends.</value>
   </data>
+  <data name="Memory_Decision_QueuedRemote" xml:space="preserve">
+    <value>Queued: it will be recorded in a few seconds, when the sync with GitHub ends.</value>
+  </data>
+  <data name="Memory_Export_BlockedRemote" xml:space="preserve">
+    <value>It is syncing with GitHub. The export waits a few seconds.</value>
+  </data>
   <data name="Memory_Decision_Recording" xml:space="preserve">
     <value>Recording your decision…</value>
   </data>
@@ -1306,7 +1312,7 @@ Today's is provisional and is not saved.</value>
     <comment>Text of the memory (memory.verdict-note).</comment>
   </data>
   <data name="Text_memory_reason_busy" xml:space="preserve">
-    <value>Agents are working in the project. The memory is updated when they finish.</value>
+    <value>The project is busy with another task. The memory is updated when it finishes.</value>
     <comment>Text of the memory (memory.reason.busy).</comment>
   </data>
   <data name="Text_memory_reason_stopped" xml:space="preserve">
@@ -1330,7 +1336,7 @@ Today's is provisional and is not saved.</value>
     <comment>Text of the memory (memory.reason.not-verified-at).</comment>
   </data>
   <data name="Text_memory_reason_export_busy" xml:space="preserve">
-    <value>Agents are working in the project. The memory is exported when they finish.</value>
+    <value>The project is busy with another task. The memory is exported when it finishes.</value>
     <comment>Text of the memory (memory.reason.export-busy).</comment>
   </data>
   <data name="Text_memory_export_header" xml:space="preserve">

@@ -77,11 +77,18 @@ internal sealed class FakeMemoryExporter(MemoryExportResult? result = null) : IM
 }
 
 /// <summary>Whether a run or a planning goes on, as the test says.</summary>
-internal sealed class FakeRunActivity : IRunActivity
+internal sealed class FakeRunActivity : IProjectActivity
 {
     public bool Busy { get; set; }
 
+    /// <summary>What holds the project is a remote operation of Agent Studio (docs/21 D-25), not a run: set together with <see cref="Busy"/>.</summary>
+    public bool Remote { get; set; }
+
     public bool IsBusy(string projectId) => Busy;
+
+    public ProjectActivityKind? Current(string projectId) => !Busy ? null : Remote ? ProjectActivityKind.RemoteOperation : ProjectActivityKind.Run;
+
+    public IDisposable? TryEnter(string projectId, ProjectActivityKind kind) => null;
 }
 
 /// <summary>Answers the summary the test sets and records the days it was asked.</summary>

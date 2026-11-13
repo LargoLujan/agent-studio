@@ -164,6 +164,24 @@ public sealed class JournalTrustViewModelTests
     }
 
     [Fact]
+    public async Task A_decision_asked_while_only_a_remote_operation_holds_the_project_waits_and_does_not_blame_a_run()
+    {
+        var (journal, trust, _, activity, _) = Create(new JournalTrustState(false, [], 3), Quarantined());
+        await journal.RefreshAsync(Project);
+        activity.Busy = true;
+        activity.Remote = true;
+        trust.Hold = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var decision = journal.ToggleProjectCommand.ExecuteAsync(null);
+
+        Assert.Equal("En cola: se registrará en unos segundos, cuando acabe la sincronización con GitHub.", journal.Pending);
+        activity.Busy = false;
+        trust.Hold.SetResult();
+        await decision;
+        Assert.Single(trust.Decisions);
+    }
+
+    [Fact]
     public async Task A_decision_that_fails_is_shown_and_not_thrown()
     {
         var (journal, trust, _, _, changes) = Create(new JournalTrustState(false, [], 3), Quarantined());

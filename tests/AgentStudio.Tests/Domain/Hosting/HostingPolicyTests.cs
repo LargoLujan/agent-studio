@@ -103,12 +103,12 @@ public sealed class HostingPolicyTests
     {
         var grant = new HostingPolicyGrant("g1", HostingOperationClass.PullRequestWrite, Repository, null, "manuel", HostingP0Data.At);
 
-        Assert.True(grant.Covers(HostingOperationClass.PullRequestWrite, Repository, Main));
-        Assert.True(grant.Covers(HostingOperationClass.PullRequestWrite, Repository, null));
-        Assert.False(grant.Covers(HostingOperationClass.PublishRunBranch, Repository, Main));
-        Assert.False(grant.Covers(HostingOperationClass.MergePullRequest, Repository, Main));
-        Assert.False(grant.Covers(HostingOperationClass.Destructive, Repository, Main));
-        Assert.False(grant.Covers(HostingOperationClass.PullRequestWrite, Other, Main));
+        Assert.True(grant.Covers(HostingOperationKind.OpenPullRequest, Repository, Main));
+        Assert.True(grant.Covers(HostingOperationKind.OpenPullRequest, Repository, null));
+        Assert.False(grant.Covers(HostingOperationKind.PushRunBranch, Repository, Main));
+        Assert.False(grant.Covers(HostingOperationKind.MergePullRequest, Repository, Main));
+        Assert.False(grant.Covers(HostingOperationKind.ClosePullRequest, Repository, Main));
+        Assert.False(grant.Covers(HostingOperationKind.OpenPullRequest, Other, Main));
     }
 
     [Fact]
@@ -117,10 +117,10 @@ public sealed class HostingPolicyTests
         var toMain = new HostingPolicyGrant("g1", HostingOperationClass.PullRequestWrite, Repository, Main, "manuel", HostingP0Data.At);
         var toAny = new HostingPolicyGrant("g2", HostingOperationClass.PullRequestWrite, Repository, null, "manuel", HostingP0Data.At);
 
-        Assert.True(toMain.Covers(HostingOperationClass.PullRequestWrite, Repository, Main));
-        Assert.False(toMain.Covers(HostingOperationClass.PullRequestWrite, Repository, Develop));
-        Assert.False(toMain.Covers(HostingOperationClass.PullRequestWrite, Repository, null));
-        Assert.True(toAny.Covers(HostingOperationClass.PullRequestWrite, Repository, Develop));
+        Assert.True(toMain.Covers(HostingOperationKind.OpenPullRequest, Repository, Main));
+        Assert.False(toMain.Covers(HostingOperationKind.OpenPullRequest, Repository, Develop));
+        Assert.False(toMain.Covers(HostingOperationKind.OpenPullRequest, Repository, null));
+        Assert.True(toAny.Covers(HostingOperationKind.OpenPullRequest, Repository, Develop));
     }
 
     [Fact]
@@ -128,9 +128,9 @@ public sealed class HostingPolicyTests
     {
         var grant = new HostingPolicyGrant("g1", HostingOperationClass.PublishRunBranch, Repository, null, "manuel", HostingP0Data.At);
 
-        Assert.True(grant.Covers(HostingOperationClass.PublishRunBranch, Repository, null));
-        Assert.True(grant.Covers(HostingOperationClass.PublishRunBranch, Repository, Develop));
-        Assert.False(grant.Covers(HostingOperationClass.PublishRunBranch, Other, null));
+        Assert.True(grant.Covers(HostingOperationKind.PushRunBranch, Repository, null));
+        Assert.True(grant.Covers(HostingOperationKind.PushRunBranch, Repository, Develop));
+        Assert.False(grant.Covers(HostingOperationKind.PushRunBranch, Other, null));
     }
 
     [Fact]
@@ -148,6 +148,39 @@ public sealed class HostingPolicyTests
         // A class that admits a grant still holds operations that it never covers: asking for reviewers.
         Assert.True(HostingPolicy.ClassAdmitsGrant(HostingPolicy.ClassOf(HostingOperationKind.RequestReviewers)));
         Assert.False(HostingPolicy.CanBePersistent(HostingOperationKind.RequestReviewers));
+    }
+
+    [Fact]
+    public void No_grant_covers_merging_the_destructive_operations_or_asking_for_reviewers_whatever_its_class_or_its_scope()
+    {
+        var grants = new[]
+        {
+            new HostingPolicyGrant("g1", HostingOperationClass.PullRequestWrite, Repository, null, "manuel", HostingP0Data.At),
+            new HostingPolicyGrant("g2", HostingOperationClass.PullRequestWrite, Repository, Main, "manuel", HostingP0Data.At),
+            new HostingPolicyGrant("g3", HostingOperationClass.PublishRunBranch, Repository, null, "manuel", HostingP0Data.At),
+        };
+
+        foreach (var grant in grants)
+        {
+            foreach (var operation in new[]
+            {
+                HostingOperationKind.RequestReviewers, HostingOperationKind.MergePullRequest, HostingOperationKind.ClosePullRequest, HostingOperationKind.DeleteRemoteBranch,
+            })
+            {
+                Assert.False(grant.Covers(operation, Repository, Main), $"{grant.GrantId} must not cover {operation}");
+            }
+        }
+
+        // And what it does cover is exactly the persistent operations of its class.
+        Assert.True(grants[0].Covers(HostingOperationKind.OpenPullRequest, Repository, Main));
+        Assert.True(grants[0].Covers(HostingOperationKind.PublishVerdictComment, Repository, Main));
+        Assert.False(grants[0].Covers(HostingOperationKind.PushRunBranch, Repository, Main));
+        Assert.True(grants[2].Covers(HostingOperationKind.PushRunBranch, Repository, null));
+        Assert.False(grants[2].Covers(HostingOperationKind.OpenPullRequest, Repository, Main));
+        foreach (var operation in Enum.GetValues<HostingOperationKind>().Where(o => !HostingPolicy.CanBePersistent(o)))
+        {
+            Assert.All(grants, g => Assert.False(g.Covers(operation, Repository, Main)));
+        }
     }
 
     [Fact]

@@ -84,7 +84,8 @@ internal static class OrchestrationUiServices
                 provider.GetService<IVerificationProfileSource>(),
                 provider.GetService<IWorktreeManager>(),
                 provider.GetService<IProjectWorkspace>(),
-                provider.GetService<IProjectActivity>()))
+                provider.GetService<IProjectActivity>(),
+                provider.GetService<EngineClock>()?.Time))
             .AddSingleton(provider => new ReduceMotionSetting(provider.GetRequiredService<IAppSettingsStore>()))
             .AddSingleton(provider => new MonitorServices(
                 provider.GetService<IDecisionRecorder>() is { } decisions ? new DecisionLogContextPartsSource(decisions) : null,

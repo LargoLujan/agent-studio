@@ -708,7 +708,9 @@ aquella (el commit local y la entrega local) no cambian y no pasan por esta comp
 - **El alcance es el identificador del repositorio remoto:** si cambias la URL de `origin` a otro repositorio, la
   autorización deja de aplicar (y se dice), porque estaba dada para otro destino.
 - **Vale para el proyecto, no para una ejecución,** y no caduca sola (decisión 7). Se ve y se retira en la sección «PR».
-- **Qué cubre** (`HostingPolicyGrant.Covers`): la misma clase y el mismo repositorio. La rama base solo cuenta para
+- **Qué cubre** (`HostingPolicyGrant.Covers(operación, repositorio, base)`): una operación que puede ser persistente
+  (`CanBePersistent`: nunca pedir revisores, fusionar ni lo destructivo, aunque la clase de la autorización sea la suya),
+  de la misma clase y del mismo repositorio. La rama base solo cuenta para
   «escribir en el PR»: una autorización **sin** rama base cubre cualquier base, y una **con** rama base, solo esa.
   «Publicar la rama» no tiene base: su autorización nunca la lleva.
 - **Dar y retirar una autorización son anotaciones del registro:** pasan por el buzón y toman el proyecto un instante
@@ -995,7 +997,8 @@ final del enum y no comparte el proyecto con nada (en `OrchestrationActivity.Try
 | Quién | Qué hace hoy con `IsBusy` | Con una toma remota |
 |---|---|---|
 | `WorkWriteGate` (las escrituras de «Trabajo») | Espera, preguntando cada 500 ms | Espera un instante más. Correcto |
-| `MemoryDerivation` | No espera: dice por qué y no escribe | Una derivación que coincida con la toma no escribe y lo dice; la siguiente completa. Aceptado |
+| `MemoryDerivation` | No espera: dice por qué y no escribe | Una derivación que coincida con la toma no escribe y lo dice («el proyecto está ocupado con otra tarea», que vale para cualquier toma); la siguiente completa. Aceptado |
+| `MemoryViewModel` y `JournalTrustViewModel` (la pantalla de la memoria) | `RunIsActive` por `IsBusy`: bloquea la exportación y encola las decisiones, con un texto de «ejecución, debate…» | Siguen bloqueando y encolando (escriben), pero con texto propio ante una toma remota: «Agent Studio está sincronizando con GitHub» (`Memory_Export_BlockedRemote`, `Memory_Decision_QueuedRemote`) |
 | `DiagramCatalog`, `ClientDocumentExporter`, `MemoryMarkdownExporter` | No exportan al repositorio con el proyecto ocupado | Dirán «ocupado» si coinciden con la toma. Aceptado: dura segundos, y es cierto |
 | `ProjectActivityWork` (la bandeja) | `Kind` da `Audit` para lo que no conoce e `IsActive` es verdadero | **Hay que cambiarlo** (P0): una toma remota no es trabajo con agentes. `Current` la ignora, y no gana valor en `BackgroundWorkKind` ni clave `Background_Work_Activity_*` |
 | `LockScreenViewModel.Kinds` (el bloqueo) | Lista las cuatro clases | No la incluye: no hay nada que enseñar ni que parar |
@@ -1194,7 +1197,8 @@ public static class HostingPolicy
 public sealed record HostingPolicyGrant(string GrantId, HostingOperationClass Class, RemoteRepository Repository,
     RemoteBranch? BaseBranch, string GrantedBy, DateTimeOffset At)
 {
-    public bool Covers(HostingOperationClass @class, RemoteRepository repository, RemoteBranch? baseBranch);
+    /// By operation, not by class: false when HostingPolicy.CanBePersistent(operation) is false (asking for reviewers, merging, the destructive ones), whatever the class of the grant.
+    public bool Covers(HostingOperationKind operation, RemoteRepository repository, RemoteBranch? baseBranch);
 }
 ```
 
@@ -1939,6 +1943,35 @@ Dónde el diseño y el código real chocaron al escribir el P0, y cómo se resol
   payloads (`Granting`, `Of`, `Revoking`, `Observing`), `HostingPolicyGrantedPayload.ToGrant` y `RemoteStateObservedPayload.ToPullRequest`/`ToSnapshot`.
 - **La ayuda `publishing`** llega sin cabecera `info:` y sin que `HelpScreens.Of` la devuelva para ninguna vista: WP5 monta la vista, la enlaza y completa el artículo.
 - **No se tocó** `docs/08` (F10-11 a F10-13 siguen «propuestos»), `CLAUDE.md` ni la bitácora (`.agentstudio/` es de la copia principal).
+
+#### Ajustes de la revisión independiente del P0 (2026-11-13)
+
+- **Reanudación desatendida y la espera.** `ResumeScheduler.Suspend()` corta la espera de un `ResumeByConsentAsync` (un token que cancela cada suspensión, solo para la espera de la toma, nunca para una reanudación ya empezada), y
+  `ResumeByConsentAsync` vuelve a preguntar `!Suspended` tras entrar, antes de reservar ni escribir nada: suspender durante la espera no reanuda ni escribe, y `WaitForIdleAsync` termina enseguida. Una reanudación que agota el tope
+  (`project.busy-remote`) no pasa por `WroteAsync` ni por `_failed`: se dice «No se pudo reanudar» y la pasada siguiente lo intenta otra vez, haya o no entradas nuevas en el registro.
+- **`HostingPolicyGrant.Covers(operación, repositorio, base)`** recibe la operación (la clase se deduce dentro y se exige `CanBePersistent`): ninguna autorización cubre pedir revisores, fusionar ni lo destructivo, sea cual sea su clase.
+- **Reloj.** El orquestador, el coordinador de debates, `ProjectAuditService` y `HeadTestsService` miden la espera con el reloj del motor (`EngineClock`, el despierto): el orquestador ya lo tenía; los otros tres se registran con él en
+  `PlatformServices.AddDebateServices` y `OrchestrationUiServices` (cedido por el lead para esta línea). Una prueba de composición lo fija.
+- **Consumidores de la tabla de D-25.** Lo que ignora una toma remota es solo lo que no escribe: `ProjectActivityWork` y el bloqueo. Todo lo que escribe en el registro o en el repositorio sigue esperando o diciendo «ocupado»
+  (`WorkWriteGate`, la derivación y la exportación de la memoria, `DiagramCatalog`, `ClientDocumentExporter`), pero sin decir una mentira: los textos de la pantalla de memoria (`Memory_Export_BlockedRemote`,
+  `Memory_Decision_QueuedRemote`) dicen que se sincroniza con GitHub, y los motivos `Text_memory_reason_busy` y `Text_memory_reason_export_busy` dicen «el proyecto está ocupado con otra tarea», que vale para cualquier toma.
+- **`RemoteBranch`** admite solo `[A-Za-z0-9._/-]` (sin `..`, sin tramos que empiecen por `.` o acaben en `.lock`, sin `//`, sin `/` al principio o al final, ni `HEAD`): una rama base con otros caracteres (`@`, `{`, acentos…) **no se
+  admite** y se rechaza con un código (`branch.unsupported-characters` o `branch.invalid-form`, en `TryParse(nombre, out código)`), nunca se corrige.
+- **Payloads:** los cuatro tienen `EnsureValid()` de lectura (el de `HostingOperationPerformedPayload` aplica las mismas reglas que su fábrica, y que la clase es la de la operación y que no pertenece a ninguna ejecución), y
+  `RemoteStateObservedPayload` y `RemoteSnapshotPayload` se comparan por contenido (su texto canónico). Los constructores posicionales siguen públicos, como en todos los payloads del proyecto: lo que protege es la fábrica al escribir y el
+  validador al leer.
+- **`RemoteTransport`** tiene el constructor privado; la única otra forma de obtener uno es `RemoteTransport.ForTests`, en `RemoteTransport.ForTests.cs`, y `RemoteTransportSeamTests` comprueba que nada de `src/` la llama. **Para WP1:** sumad
+  `RemoteTransport.ForTests` a la prueba que escanea `src/` (junto a `file://`) o conservad la de este paquete.
+- **`ProjectAuditService`** vuelve a leer la propuesta (HEAD, requisitos, juez, productores y perfil) tras entrar si la espera duró un sondeo o más, y se niega como desactualizada antes de pedir la aprobación; el registro, el id de la
+  auditoría y los problemas pendientes no necesitan relectura (las entradas remotas no son de ninguna ejecución y el dossier se construye sobre el registro de entonces).
+
+#### Notas para WP3 (el buzón)
+
+- **`IProjectActivity` no tiene evento de liberación:** quien espera sondea (`ProjectActivityEntry.RemoteWaitPoll`, 250 ms; el buzón, 500 ms para lo aparcado). No esperéis un evento que no existe.
+- **Anotad con `IDecisionRecorder` directamente,** con la toma `RemoteOperation` ya tomada: nunca por un servicio que escriba detrás de `WorkWriteGate` (se esperaría a sí mismo).
+- **La salida de la aplicación no avisa de una toma remota:** el buzón termina el tramo en curso (un `push` no se corta a medias) y para cuando la salida se lo pide; la salida gestionada espera lo que tarde ese tramo (hasta unos 160 s).
+- **Si una anotación remota llevara `RunId` de una ejecución,** contaría para `RunLog.Of(run)` y cambiaría el recuento con el que `ResumeScheduler` decide si una reanudación fallida «escribió». Los cuatro payloads de §5.3 llevan `RunId = NoRun` justo para
+  evitarlo: no los cambiéis; y una espera agotada (`project.busy-remote`) ya no pasa por ese recuento, así que tampoco depende de él.
 
 ### 10.3 WP1 · Ejecutor remoto de git (M-L)
 

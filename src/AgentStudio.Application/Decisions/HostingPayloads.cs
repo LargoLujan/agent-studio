@@ -62,14 +62,38 @@ public sealed record HostingPolicyGrantedPayload(
     /// <exception cref="ArgumentException">The entry does not describe a valid grant.</exception>
     public HostingPolicyGrant ToGrant(DateTimeOffset at)
     {
-        _ = Of(GrantId, Class, Provider, Host, Owner, Repository, BaseBranch, GrantedBy);
+        EnsureValid();
         return new HostingPolicyGrant(GrantId, Class, RemoteRepository.TryCreateGitHub(Owner, Repository)!, BaseBranch is null ? null : RemoteBranch.TryParse(BaseBranch), GrantedBy, at);
+    }
+
+    /// <summary>Checks the entry as the log is read as data: what <see cref="Of"/> checks, and that it belongs to no run.</summary>
+    /// <exception cref="ArgumentException">Something is outside its rules.</exception>
+    public void EnsureValid()
+    {
+        if (RunId != NoRun)
+        {
+            throw new ArgumentException("The entries of the remote belong to no run.", nameof(RunId));
+        }
+
+        _ = Of(GrantId, Class, Provider, Host, Owner, Repository, BaseBranch, GrantedBy);
     }
 }
 
 /// <summary>A standing authorisation was withdrawn (docs/21 D-16): the first grant is named, and nothing is edited.</summary>
 public sealed record HostingPolicyRevokedPayload(string GrantId, string RevokedBy) : DecisionPayload
 {
+    /// <exception cref="ArgumentException">A field that is empty.</exception>
+    public void EnsureValid()
+    {
+        if (RunId != NoRun)
+        {
+            throw new ArgumentException("The entries of the remote belong to no run.", nameof(RunId));
+        }
+
+        HostingPayloadRules.RequireText(GrantId, nameof(GrantId));
+        HostingPayloadRules.RequireText(RevokedBy, nameof(RevokedBy));
+    }
+
     /// <exception cref="ArgumentException">A field that is empty.</exception>
     public static HostingPolicyRevokedPayload Revoking(string grantId, string revokedBy)
     {
@@ -130,69 +154,86 @@ public sealed record HostingOperationPerformedPayload(
         long? commentId)
     {
         ArgumentNullException.ThrowIfNull(repository);
-        _ = new RunId(run);
-        if ((grantId is null) == (approvalSequence is null))
+        var payload = new HostingOperationPerformedPayload(
+            operation, Enum.IsDefined(operation) ? HostingPolicy.ClassOf(operation) : default, run, repository.Provider, repository.Host, repository.Owner, repository.Name, pullRequest, branch, commit,
+            method, grantId, approvalSequence, outcome, failureCode, account?.Value, text, textSha256, verdict, commentId) { RunId = NoRun };
+        payload.EnsureValid();
+        return payload;
+    }
+
+    /// <summary>
+    /// Checks the entry as the log is read as data: the same rules <see cref="Of"/> applies when it is built, and that the class is the one of the operation, the run is an
+    /// identifier of a run, the repository is one of the supported provider and the entry belongs to no run.
+    /// </summary>
+    /// <exception cref="ArgumentException">Something is outside its rules.</exception>
+    public void EnsureValid()
+    {
+        if (!Enum.IsDefined(Operation) || !Enum.IsDefined(Outcome) || (Method is { } method && !Enum.IsDefined(method)))
         {
-            throw new ArgumentException("An operation was allowed by exactly one of a standing grant and an approval.", nameof(grantId));
+            throw new ArgumentException("The operation, its outcome and its merge method are known ones.", nameof(Operation));
         }
 
-        if (grantId is not null)
+        if (Class != HostingPolicy.ClassOf(Operation))
         {
-            HostingPayloadRules.RequireText(grantId, nameof(grantId));
-            if (!HostingPolicy.CanBePersistent(operation))
+            throw new ArgumentException("The class of an operation is the one of its kind.", nameof(Class));
+        }
+
+        if (RunId != NoRun)
+        {
+            throw new ArgumentException("The entries of the remote belong to no run: the run goes in a field.", nameof(RunId));
+        }
+
+        _ = new RunId(Run);
+        HostingPayloadRules.RequireRepository(Provider, Host, Owner, Repository);
+        if ((GrantId is null) == (ApprovalSequence is null))
+        {
+            throw new ArgumentException("An operation was allowed by exactly one of a standing grant and an approval.", nameof(GrantId));
+        }
+
+        if (GrantId is not null)
+        {
+            HostingPayloadRules.RequireText(GrantId, nameof(GrantId));
+            if (!HostingPolicy.CanBePersistent(Operation))
             {
-                throw new ArgumentException($"The operation {operation} cannot be allowed by a standing grant.", nameof(grantId));
+                throw new ArgumentException($"The operation {Operation} cannot be allowed by a standing grant.", nameof(GrantId));
             }
         }
 
-        if (approvalSequence is < 1)
+        if (ApprovalSequence is < 1 || PullRequest is < 1 || CommentId is < 1)
         {
-            throw new ArgumentException("The sequence of an approval starts at 1.", nameof(approvalSequence));
+            throw new ArgumentException("A sequence, a pull request number and a comment id start at 1.");
         }
 
-        if (pullRequest is < 1)
+        if (Branch is not null && RemoteBranch.TryParse(Branch) is null)
         {
-            throw new ArgumentException("A pull request number starts at 1.", nameof(pullRequest));
+            throw new ArgumentException("The branch is outside the rules of a branch name.", nameof(Branch));
         }
 
-        if (branch is not null && RemoteBranch.TryParse(branch) is null)
+        if (Commit is not null && !AgentStudio.Domain.Tracing.TraceRef.IsFullCommitId(Commit))
         {
-            throw new ArgumentException("The branch is outside the rules of a branch name.", nameof(branch));
+            throw new ArgumentException("A commit is 40 or 64 lowercase hexadecimal characters.", nameof(Commit));
         }
 
-        if (commit is not null && !TraceCommit(commit))
+        if (FailureCode is not null && !UserText.IsCode(FailureCode))
         {
-            throw new ArgumentException("A commit is 40 or 64 lowercase hexadecimal characters.", nameof(commit));
+            throw new ArgumentException("A failure is a code: lowercase words joined by '.' and '-', never text of the remote.", nameof(FailureCode));
         }
 
-        if (failureCode is not null && !UserText.IsCode(failureCode))
+        if (Account is not null && RemoteLogin.TryParse(Account) is null)
         {
-            throw new ArgumentException("A failure is a code: lowercase words joined by '.' and '-', never text of the remote.", nameof(failureCode));
+            throw new ArgumentException("An account is an account name of the platform.", nameof(Account));
         }
 
-        if ((text is null) != (textSha256 is null) || (textSha256 is not null && !Hex64(textSha256)))
+        if ((TextEvidence is null) != (TextSha256 is null) || (TextSha256 is not null && !HostingPayloadRules.IsSha256(TextSha256)))
         {
-            throw new ArgumentException("The text sent is evidence with its SHA-256 (64 lowercase hexadecimal characters), or neither.", nameof(textSha256));
+            throw new ArgumentException("The text sent is evidence with its SHA-256 (64 lowercase hexadecimal characters), or neither.", nameof(TextSha256));
         }
 
-        if (verdict is not null && !(Enum.TryParse<VerdictStanding>(verdict, ignoreCase: false, out var standing) && Enum.IsDefined(standing) && standing.ToString() == verdict))
+        if (Verdict is not null && !(Enum.TryParse<VerdictStanding>(Verdict, ignoreCase: false, out var standing) && Enum.IsDefined(standing) && standing.ToString() == Verdict))
         {
-            throw new ArgumentException("The verdict is a standing: Approved, Rejected or InReview.", nameof(verdict));
+            throw new ArgumentException("The verdict is a standing: Approved, Rejected or InReview.", nameof(Verdict));
         }
-
-        if (commentId is < 1)
-        {
-            throw new ArgumentException("A comment id starts at 1.", nameof(commentId));
-        }
-
-        return new HostingOperationPerformedPayload(
-            operation, HostingPolicy.ClassOf(operation), run, repository.Provider, repository.Host, repository.Owner, repository.Name, pullRequest, branch, commit, method,
-            grantId, approvalSequence, outcome, failureCode, account?.Value, text, textSha256, verdict, commentId) { RunId = NoRun };
     }
-
-    private static bool TraceCommit(string commit) => AgentStudio.Domain.Tracing.TraceRef.IsFullCommitId(commit);
-
-    private static bool Hex64(string value) => value.Length == 64 && value.All(c => c is (>= '0' and <= '9') or (>= 'a' and <= 'f'));
 }
 
 /// <summary>
@@ -223,7 +264,7 @@ public sealed record RemoteStateObservedPayload(
             _ = new RunId(run);
         }
 
-        if (previousFingerprint is not null && !(previousFingerprint.Length == 64 && previousFingerprint.All(c => c is (>= '0' and <= '9') or (>= 'a' and <= 'f'))))
+        if (previousFingerprint is not null && !HostingPayloadRules.IsSha256(previousFingerprint))
         {
             throw new ArgumentException("A fingerprint is 64 lowercase hexadecimal characters.", nameof(previousFingerprint));
         }
@@ -259,6 +300,39 @@ public sealed record RemoteStateObservedPayload(
 
         return snapshot;
     }
+
+    /// <summary>Checks the entry as the log is read as data: what <see cref="Observing"/> checks, the run, the changes and that it belongs to no run.</summary>
+    /// <exception cref="ArgumentException">Something is outside its rules.</exception>
+    public void EnsureValid()
+    {
+        if (RunId != NoRun)
+        {
+            throw new ArgumentException("The entries of the remote belong to no run: the run goes in a field.", nameof(RunId));
+        }
+
+        if (Run is not null)
+        {
+            _ = new RunId(Run);
+        }
+
+        if (!HostingPayloadRules.IsSha256(Fingerprint ?? string.Empty) || (PreviousFingerprint is not null && !HostingPayloadRules.IsSha256(PreviousFingerprint)))
+        {
+            throw new ArgumentException("A fingerprint is 64 lowercase hexadecimal characters.", nameof(Fingerprint));
+        }
+
+        if (Changes is null || Changes.Any(c => !Enum.IsDefined(c)))
+        {
+            throw new ArgumentException("A change is one of the known kinds.", nameof(Changes));
+        }
+
+        _ = ToSnapshot();
+    }
+
+    // The lists are compared by content, as the log writes them: two entries are the same when their canonical text is.
+    public bool Equals(RemoteStateObservedPayload? other) =>
+        other is not null && string.Equals(DecisionPayloadSerializer.Serialize(this), DecisionPayloadSerializer.Serialize(other), StringComparison.Ordinal);
+
+    public override int GetHashCode() => StringComparer.Ordinal.GetHashCode(DecisionPayloadSerializer.Serialize(this));
 }
 
 /// <summary>
@@ -292,6 +366,12 @@ public sealed record RemoteSnapshotPayload(
     DeploymentState? DeploymentState,
     DateTimeOffset UpdatedAt)
 {
+    // The lists are compared by content, as the log writes them: two snapshots are the same when their canonical text is.
+    public bool Equals(RemoteSnapshotPayload? other) =>
+        other is not null && string.Equals(DecisionPayloadSerializer.SerializeValue(this), DecisionPayloadSerializer.SerializeValue(other), StringComparison.Ordinal);
+
+    public override int GetHashCode() => StringComparer.Ordinal.GetHashCode(DecisionPayloadSerializer.SerializeValue(this));
+
     public static RemoteSnapshotPayload From(RemoteSnapshot snapshot)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
@@ -341,6 +421,8 @@ public sealed record RemoteSnapshotPayload(
 
 internal static class HostingPayloadRules
 {
+    public static bool IsSha256(string value) => value.Length == 64 && value.All(c => c is (>= '0' and <= '9') or (>= 'a' and <= 'f'));
+
     public static void RequireText(string? value, string name)
     {
         if (string.IsNullOrWhiteSpace(value) || value.Length > 200 || value != value.Trim() || value.Any(char.IsControl))

@@ -130,8 +130,6 @@ public sealed class RemoteIdentifiersTests
     [InlineData("feature/x")]
     [InlineData("release-1.2")]
     [InlineData("agentstudio/run-20261113-a1b2c3")]
-    [InlineData("a@b")]
-    [InlineData("ñandú")]
     [InlineData("user/topic_1")]
     public void A_valid_name_of_a_branch_is_kept(string name) => Assert.Equal(name, RemoteBranch.TryParse(name)?.Name);
 
@@ -166,7 +164,52 @@ public sealed class RemoteIdentifiersTests
     [InlineData("a/b.lock/c")]
     [InlineData("a\u202eb")]
     [InlineData("a\u200bb")]
+    [InlineData("a@b")]
+    [InlineData("ñandú")]
+    [InlineData("a{b")]
+    [InlineData("a}b")]
+    [InlineData("a$b")]
+    [InlineData("a;b")]
+    [InlineData("a&b")]
+    [InlineData("a|b")]
+    [InlineData("a%b")]
+    [InlineData("a<b")]
+    [InlineData("a>b")]
+    [InlineData("a#b")]
+    [InlineData("a'b")]
+    [InlineData("a\"b")]
+    [InlineData("a`b")]
+    [InlineData("a=b")]
+    [InlineData("a+b")]
+    [InlineData("a,b")]
+    [InlineData("a!b")]
+    [InlineData("a(b")]
+    [InlineData("a)b")]
+    [InlineData("HEAD")]
+    [InlineData("head")]
+    [InlineData("Head")]
     public void A_name_that_git_check_ref_format_refuses_or_that_could_be_an_option_is_not_a_branch(string name) => Assert.Null(RemoteBranch.TryParse(name));
+
+    [Theory]
+    [InlineData("a{b", RemoteBranch.RefusalCharacters)]
+    [InlineData("ñandú", RemoteBranch.RefusalCharacters)]
+    [InlineData("a b", RemoteBranch.RefusalCharacters)]
+    [InlineData("HEAD", RemoteBranch.RefusalForm)]
+    [InlineData("-x", RemoteBranch.RefusalForm)]
+    [InlineData("a..b", RemoteBranch.RefusalForm)]
+    [InlineData("a/.b", RemoteBranch.RefusalForm)]
+    [InlineData("a.lock", RemoteBranch.RefusalForm)]
+    [InlineData("a//b", RemoteBranch.RefusalForm)]
+    [InlineData("/a", RemoteBranch.RefusalForm)]
+    [InlineData("a/", RemoteBranch.RefusalForm)]
+    [InlineData("", RemoteBranch.RefusalForm)]
+    public void A_branch_outside_the_safe_alphabet_or_form_is_refused_with_a_code_never_fixed(string name, string code)
+    {
+        Assert.Null(RemoteBranch.TryParse(name, out var refusal));
+        Assert.Equal(code, refusal);
+        Assert.NotNull(RemoteBranch.TryParse("feature/ok-1.2_x", out var none));
+        Assert.Null(none);
+    }
 
     [Fact]
     public void A_name_too_long_is_not_a_branch_and_null_is_not_one()

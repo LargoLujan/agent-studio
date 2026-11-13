@@ -418,10 +418,21 @@ public sealed class Orchestrator : IOrchestrator, IRunInspector
     /// error is never resumed this way: the error is here, and a person decides. <c>RunResumed</c> records the cause before
     /// anything is launched.
     /// </summary>
-    internal async Task<ConsentResume> ResumeByConsentAsync(ProjectContext project, RunId run, CancellationToken cancellationToken)
+    internal async Task<ConsentResume> ResumeByConsentAsync(ProjectContext project, RunId run, CancellationToken cancellationToken, Func<bool>? stillAllowed = null, CancellationToken leaveWait = default)
     {
         ArgumentNullException.ThrowIfNull(project);
-        using var busy = await EnterAsync(project.ProjectId, ProjectActivityKind.Run, cancellationToken).ConfigureAwait(false);
+        // The wait for the project may be cut by leaveWait (the scheduler was suspended: the app is leaving), but nothing after it is: a resume that has begun goes on.
+        using var waiting = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, leaveWait);
+        using var busy = await EnterAsync(project.ProjectId, ProjectActivityKind.Run, waiting.Token).ConfigureAwait(false);
+
+        // The wait for a remote operation (docs/21 D-25) may have lasted up to the cap: whoever asked (the scheduler) may not want the resume any more (the app is
+        // leaving). Asked again here, once the project is held and before anything is reserved or written.
+        if (stillAllowed is not null && !stillAllowed())
+        {
+            const string leaving = "La reanudación sola está suspendida mientras la aplicación sale.";
+            return new ConsentResume(null, null, leaving, LoggedTexts.ResumeReason(leaving));
+        }
+
         using var reservation = Reserve(project.ProjectId, run);
         var log = await LoadVerifiedAsync(project.ProjectId, LogLoad.Full, cancellationToken).ConfigureAwait(false);
         var (cause, reason) = _stoppedByError.TryGetValue(Key(project.ProjectId, run), out var error)
