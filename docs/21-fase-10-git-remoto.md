@@ -371,7 +371,9 @@ cosas:
 | **Se rechazan** si las define el repositorio | `credential.*` (también `credential.<url>.*`) | Un ayudante del repositorio recibiría tu token; `credential.helper` **no** se puede vaciar aquí, porque es justo lo que hace falta |
 | | `url.*.insteadOf` y `url.*.pushInsteadOf` | Otra dirección; su clave lleva la dirección dentro |
 | | `http.<url>.*` | Lo mismo: un proxy o una cabecera por dirección |
-| | De `remote.*`, solo lo que cambia el destino o el programa: `pushurl`, `push`, `receivepack`, `uploadpack`, `proxy`, `vcs`; y `remote.pushDefault`, `branch.*.pushRemote` | Con el `push` a una dirección no deberían intervenir (sin verificar, §13); se rechazan por si acaso. `remote.*.url` y `remote.*.fetch` son normales y **no** se rechazan |
+| | De `remote.*`, solo lo que cambia el destino o el programa: `pushurl`, `push`, `receivepack`, `uploadpack`, `proxy`, `vcs`; y `remote.pushDefault`, `branch.*.pushRemote` | Con el `push` a una dirección no deberían intervenir (medido solo `pushurl`, §13); se rechazan por si acaso. `remote.<nombre>.url` y `remote.<nombre>.fetch` de un remoto **de nombre llano** son normales y **no** se rechazan |
+| | **Cualquier** clave de `remote.<subsección>.*` cuya subsección contenga `:`, `/` o `\` (un remoto que se llama como una dirección o una ruta); y, **en cualquier ámbito**, `url`, `pushurl`, `push`, `receivepack`, `uploadpack`, `proxy`, `proxyauthmethod` y `vcs` del remoto que se llama **igual que la dirección construida** | git busca el remoto por el nombre que se le da, y se le da la dirección: su `pushurl`, su `url` y su `receivepack` desvían el `push` o lanzan un programa (medido, ronda de arreglos). `ls-remote --get-url` ve `url` pero no `pushurl` |
+| | `extensions.partialClone`, `remote.*.promisor` y `remote.*.partialclonefilter` (clon parcial), con el código `partial-clone-unsupported` | git traería objetos sueltos desde un remoto que elige el repositorio; no se depende de `GIT_NO_LAZY_FETCH` (git 2.44 o posterior) |
 | | `push.pushOption` | Opciones al servidor |
 | | Cualquier otra `http.*` local (`proxy`, `extraHeader`, `sslVerify`, `sslCAInfo`, `cookieFile`…) | Un intermediario o una cabecera. No se anulan con `-c` porque la línea de órdenes gana también a tu configuración **global:** anular `http.proxy` te quitaría tu proxy |
 
@@ -2017,6 +2019,60 @@ Lo que WP1, WP2 y WP4 pidieron al P0 al terminar, y lo que se decidió. Va en un
   deja el repositorio del usuario igual está escrita en el ADR; cada punto de §13 que le toca queda «medido» o «sigue sin
   verificar», con su motivo.
 
+#### Ajustes de WP1 (2026-11-13)
+
+Lo que difiere del diseño, y lo medido en este equipo (git 2.45.2, Windows, remoto bare local con transporte `file`, sin red):
+
+- **Constructor del ejecutor:** recibe un `RemoteTransport` (lo que dejó el P0), no `(scheme, address)`. `RemoteGitRunner` es `internal`; las pruebas
+  usan `RemoteTransport.ForTests("file", …)`. Los `protocol.<x>.allow` salen de `transport.Scheme`: el esquema del transporte es `always` y los demás `never`.
+- **`--` antes de la dirección** en `push`, `ls-remote` y `ls-remote --get-url` (git 2.45.2 lo acepta en los tres; medido). No estaba en la línea de D-06.
+- **Entorno:** además de la lista blanca, las variables permitidas pasan **con el valor de la instantánea** (salvo `PATH` y
+  `NoDefaultCurrentDirectoryInExePath`, que pone el lanzador de procesos), y hay una lista de nombres que se quitan siempre (`AlwaysRemoved`), estén o no en la
+  instantánea. `LC_ALL=C` se añade a lo de D-06 para que el error estándar tenga un solo idioma (el clasificador lo lee en inglés). Se usa `GIT_ALLOW_PROTOCOL=<esquema>`.
+  `GIT_CONFIG_PARAMETERS` solo aparece para quitarse. No se incluye `XDG_CONFIG_HOME`: sin él git usa `~/.config/git`.
+- **El fichero vacío de hooks y `TEMP`/`TMP`** viven en `%LOCALAPPDATA%\AgentStudio\hosting\{no-hooks,tmp}` (no bajo la raíz de worktrees: el ejecutor no usa `GitCommandRunner`).
+  Se comprueba en cada uso (fichero, vacío, sin enlace); si no, `hooks-file-unsafe` y no se lanza nada.
+- **La consulta de configuración** va con el mismo prefijo de `-c` y el patrón `^(credential|url|http|remote|branch|push|core|include|includeif|filter)\.`.
+  Se ignora el ámbito `command`. Un ámbito que no sea `system` ni `global` cuenta como del repositorio (fallo cerrado).
+  Además de D-05 se rechaza (si lo define el repositorio) `core.alternateRefsCommand` y `remote.<n>.proxyauthmethod`.
+  **El nombre de la clave sale con la subsección como `*`** (`url.*.insteadof`, `credential.*.helper`): la subsección es una dirección que puede llevar un token.
+- **`include`/`includeIf`:** no se rechazan por existir (D-05, no el texto del encargo): lo que traen se juzga por el ámbito y por el fichero de origen. Medido: el ámbito de lo incluido es el de quien incluye
+  (un `includeIf` global da ámbito `global` con el fichero del repositorio como origen; un `include.path` local, `local` con la ruta con barras invertidas).
+- **`pushInsteadOf`:** medido que `ls-remote --get-url` aplica `url.*.insteadOf` y **no** `url.*.pushInsteadOf`. Una entrada `pushinsteadof` (de cualquier ámbito) cuyo valor sea prefijo de la dirección se rechaza en código
+  (un valor vacío es prefijo de todo). Es la única predicción en código; el resto lo dice git.
+- **Git LFS (ronda de arreglos):** medido que la configuración **del sistema** de este equipo ya trae `filter.lfs.*`; solo eso rechazaría todo. `UsesLfs` es: filtro `lfs` configurado **y** el commit que sube tiene un `.gitattributes`
+  (en cualquier carpeta) con una línea que no sea comentario y diga `filter=lfs`, o `info/attributes` del repositorio lo dice. Se pregunta a git con una orden local más, cerrada y sin red:
+  `grep -l -i -E --no-color -e "^[[:space:]]*[^#[:space:]].*filter=lfs" <commit> -- ":(glob)**/.gitattributes"` (medido: salida 0 con coincidencia, 1 sin ella, 128 con un objeto que no existe; encuentra la raíz y las carpetas hondas, y ignora los
+  comentarios). Sin commit (`InspectAsync`), pregunta por `HEAD`. Si no se puede saber (fallo, tiempo, salida cortada), `LfsCheckFailed` y no se publica. El árbol de trabajo ya no cuenta, ni se recorre.
+- **Un remoto que se llama como la dirección (ronda de arreglos):** git busca el remoto por el nombre que se le da, y se le da la dirección. Medido con git 2.45.2: `[remote "<dirección>"]` con `mirror = true` y un refspec explícito
+  termina en «--mirror can't be combined with refspecs» sin empujar; con `pushurl` o con `url` el `push` **fue a otro repositorio** (y `ls-remote --get-url` delata el `url`); con `receivepack` corrió el programa. Se rechaza **cualquier**
+  clave `remote.<subsección>.*` del repositorio cuya subsección contenga `:`, `/` o `\` (un nombre de remoto no los lleva), con la clave escrita `remote.*.<variable>`.
+- **Flujo de `PushRunBranchAsync`:** inspección → `ls-remote` previo (si ya está en ese commit, `AlreadyUpToDate` sin `push`) → `push` → `ls-remote` de confirmación. `ReadBranchAsync` inspecciona antes (no rechaza por LFS: no envía nada).
+  Un `push` que agota el tiempo o pasa del tope de salida mata el árbol de procesos a mitad: **se lee el remoto** y es `Pushed` o `NotConfirmed` (con `timed-out` u `output-too-large`), nunca `Failed` sin mirar. Remoto ilegible antes del `push`:
+  `CredentialsNeeded`/`Unreachable`/`Redirected`/`Failed` sin empujar. `RemotePushResult.FailureCode` lleva siempre el código cuando el resultado solo no lo dice.
+  **Cancelación (nota para WP3):** `OperationCanceledException` sale como excepción y el `push` pudo llegar o no; quien cancela debe dar el resultado por desconocido y leer la rama (`ReadBranchAsync`) antes de reintentar.
+- **`PATH`:** el que recibe git se compone aquí (sin entradas relativas, sin las que caen dentro de la carpeta del proyecto con sus enlaces resueltos y sin las de raíces no fiables), además de lo que filtra el lanzador de procesos.
+- **Carpetas del ejecutor:** la temporal, la que guarda el fichero de hooks y la de arriba se comprueban en cada uso: si alguna es un punto de reanálisis, `work-folder-unsafe` y no se lanza nada. Residual: la ventana entre la comprobación y el arranque de git,
+  para un proceso del mismo usuario (ADR-0018).
+- **Un `push` cuyo proceso llegó a arrancar** y no trae una línea de `--porcelain` que diga con certeza que el remoto lo rechazó (`!`) **siempre** va seguido del `ls-remote` de confirmación: la conexión puede caer después de que el servidor aplicara la
+  referencia. En la rama → `Pushed`; sin poder leerla → `NotConfirmed` con el código de lo ocurrido; leída y sin estar → el resultado de su error (`CredentialsNeeded`, `Unreachable`, `Redirected`, `Failed`) o `NotConfirmed` si fue tiempo o tope. Si git ni arrancó, `Failed` sin leer.
+- **Clon parcial:** se rechaza con `partial-clone-unsupported` si el repositorio define `extensions.partialClone` o algún `remote.*.promisor`/`partialclonefilter`; no se depende de la versión de git (`GIT_NO_LAZY_FETCH` existe desde la 2.44).
+- **Remoto con el nombre de la dirección, en los ficheros de la persona:** `pushurl`, `url`, `push`, `receivepack`, `uploadpack`, `proxy`, `proxyauthmethod` y `vcs` se rechazan en cualquier ámbito (`ls-remote --get-url` no ve `pushurl`).
+- **Carpetas:** cada nivel (`AgentStudio`, `hosting`, `tmp`) se comprueba **antes** de crear el siguiente: una unión en el camino no recibe carpetas en su destino.
+- **«Dentro del proyecto»** (PATH y `git.exe`): se compara con `project.RootPath` y con la raíz de los worktrees de la app tal cual, por la ruta y por la ruta final, **sin** la excepción de raíces demasiado anchas (carpeta de perfil, raíz de unidad) de la resolución de raíces no fiables.
+- **`RemoteGitOutput`:** «terminal prompts disabled» lo puede provocar el servidor (o un texto suyo en `remote:`): es solo el código que se enseña, no decide nada de seguridad.
+- **Clasificación de errores:** líneas que empiezan como las escribe git (`fatal:`, `error:`, `warning:`, `remote:`), no palabras sueltas; solo afecta al código que se enseña.- **Medido:** `push --porcelain`: línea por ref `<indicador>\t<origen>:<destino>\t<resumen>` y `Done`; `*` rama nueva, ` ` avance, `=` al día, `!` con `[rejected] (non-fast-forward)` (código 1); un objeto inexistente da `[remote rejected] (unpacker error)`;
+  una ruta inexistente da 128 y «does not appear to be a git repository». `ls-remote --refs <url> refs/heads/x` solo casa con el nombre completo (un patrón parcial no devuelve nada) y sin rama da código 0 y salida vacía.
+  `push` a una dirección no crea `refs/remotes/*` ni `FETCH_HEAD`, y `remote.origin.pushurl` no interviene. Sin la protección, un `pre-push` corre (también el de `core.hooksPath` de husky); con `core.hooksPath` al fichero vacío y `--no-verify`, ninguno.
+  `GIT_ALLOW_PROTOCOL=https` rechaza `file` («transport 'file' not allowed»).
+- **Sin verificar (necesita HTTPS real, decisión 14):** el gestor de credenciales y `GCM_INTERACTIVE=never`, el texto de error sin credenciales, `http.followRedirects=false` con un repositorio renombrado, `GIT_ALLOW_PROTOCOL=https` con `protocol.https.allow=always` dejando pasar HTTPS, el `pre-push` de git-lfs.
+- **Escaneo de `src/`:** `file://` se busca en el código (sin comentarios) de `AgentStudio.Infrastructure`, no en todo `src/`: `Application/Security/LocalPaths.cs` lo usa legítimamente en una expresión regular. `RemoteTransportSeamTests` del P0 se conserva; lo nuevo está en `RemoteTransportSourceScanTests`.
+- **La prueba con `AddAgentStudioApp`** (composición de la aplicación) es del lead: WP1 prueba que `AddAgentStudioRemoteGit()` resuelve un ejecutor con `GitHubHttps`.
+- **Códigos de fallo:** `RemoteGitCodes` está en `Application/Hosting` (público; lo autorizó el lead): viajan en `RemoteGitInspection.FailureCode`, `RemoteBranchRead.FailureCode` y `RemotePushResult.FailureCode`. Los textos de pantalla (ADR-0054) los pone el lead.
+- **Pruebas:** `Category=LocalTools` en las que lanzan `git` real; el resto, con un `git` de guion y sin esperas por reloj. `AssertClosed` comprueba en cada orden los `-c` primero y en su orden, `--porcelain`/`--no-verify` del `push` y el entorno.
+  Las claves de D-05 tienen prueba de extremo a extremo con git real (`receivepack`, `uploadpack`, `vcs`, `remote.pushDefault`, `branch.*.pushRemote`, `core.alternateRefsCommand`, el remoto con nombre de dirección y un `include` anidado).
+
+**Peticiones al P0/lead:** la composición `AddAgentStudioRemoteGit()` y su prueba contra `AddAgentStudioApp`; la pasada completa de `Infrastructure.Git*` con `LocalTools`; la bitácora (`.agentstudio/`).
 ### 10.4 WP2 · GitHub por `gh` (M-L)
 
 - `src/AgentStudio.Infrastructure/Hosting/{Cli,GitHub}/**` (nuevo): lo de §5.4, `HostingProviders` (identifica el remoto
@@ -2316,19 +2372,23 @@ medir:** no se ejecutó nada con red ni con cuenta.
     la barra de `agentstudio/run-…` literal o escapada;
   - el autor y el committer del commit de un squash, y si `refs/pull/N/head` conserva los commits tras borrar la rama (ya
     estaba en docs/16 §8).
-- **`git push`:**
-  - que a una **dirección** no escribe nada en el repositorio local (ni ramas de seguimiento ni `FETCH_HEAD`);
-  - que con `core.hooksPath` en el fichero vacío y `--no-verify` no corre `pre-push`, tampoco el de git-lfs;
-  - la salida de `--porcelain` y el texto del error cuando faltan credenciales;
-  - que `-c http.followRedirects=false` hace fallar un repositorio renombrado en vez de seguirlo;
-  - que `GIT_ALLOW_PROTOCOL=https` junto a `protocol.https.allow=always` deja pasar HTTPS y nada más;
-  - que un `url.*.insteadOf` global se ve en la consulta por ámbito y que la reescritura se puede predecir en código.
+- **`git push`** (WP1 midió con `git` 2.45.2 contra un remoto bare local, sin red; detalle en «Ajustes de WP1», §10.3):
+  - **medido:** que a una **dirección** no escribe nada en el repositorio local (ni ramas de seguimiento ni `FETCH_HEAD`), y que `remote.origin.pushurl` no interviene;
+  - **medido:** que con `core.hooksPath` en el fichero vacío y `--no-verify` no corre `pre-push` del repositorio ni el de husky (sin esa protección, sí corren). **Sin verificar:** el de git-lfs (sin `git lfs` instalado como hook en la prueba);
+  - **medido:** la salida de `--porcelain` (una línea por ref: `<indicador>\t<origen>:<destino>\t<resumen>`, `Done` al final) y el error de un remoto que no existe. **Sin verificar:** el texto del error cuando faltan credenciales (necesita HTTPS real);
+  - **sin verificar:** que `-c http.followRedirects=false` hace fallar un repositorio renombrado en vez de seguirlo (necesita HTTPS real);
+  - **medido en parte:** que `GIT_ALLOW_PROTOCOL=https` rechaza `file` («transport 'file' not allowed»). **Sin verificar:** que junto a `protocol.https.allow=always` deja pasar HTTPS;
+  - **medido:** que un `url.*.insteadOf` global se ve en la consulta por ámbito y que `ls-remote --get-url` lo aplica; **y que no aplica `url.*.pushInsteadOf`**: una reescritura de ese tipo se detecta por prefijo en código.
 - **El ayudante de credenciales:** cuál es el global de este equipo (no se leyó la configuración). Con Git Credential
   Manager: que `GCM_INTERACTIVE=never` hace que falle en vez de abrir una ventana, qué variables de entorno necesita de
   la lista blanca para encontrar su almacén, y qué imprime al fallar. Con el ayudante de `gh` (`gh auth git-credential`):
   que funciona con el entorno de D-06 y que no pide nada por pantalla.
-- **Detectar Git LFS** sin ejecutar `git lfs`: qué combinación de configuración y atributos basta para decidir «este
-  `push` llevaría objetos LFS».
+- **Detectar Git LFS** sin ejecutar `git lfs`: **medido (WP1):** la configuración **del sistema** de Git for Windows ya trae `filter.lfs.*`, así que ese indicio solo rechazaría todo. WP1 lo combina con los atributos **del commit que
+  sube** (`git grep` local de `.gitattributes`, medido con git 2.45.2) y con `info/attributes`. **Sin verificar:** con un repositorio con objetos LFS reales y el `pre-push` de git-lfs instalado.
+- **Remoto con nombre de dirección (ronda de arreglos):** **medido** que `[remote "<dirección>"]` con `pushurl`/`url` desvía el `push` y con `receivepack` ejecuta un programa; con `mirror` y refspec, git aborta sin empujar. Se rechaza toda clave de un remoto
+  cuya subsección parezca una dirección o una ruta.
+- **`trace2.*`:** según la documentación de git, solo se leen de la configuración de sistema y global (no del repositorio ni de `-c`); las variables `GIT_TRACE2*` se quitan con el resto de `GIT_*`. **Sin verificar** con una medición.
+- **Atributos fuera de cualquier commit (residual):** unos atributos de LFS puestos solo en `core.attributesFile` o en la configuración global de atributos de la persona no se ven (la orden de LFS mira los `.gitattributes` del commit y `info/attributes` del repositorio).
 - **`IProjectActivity`:** `ProjectActivityKind` aparece en nueve ficheros de `src/` (búsqueda completa; §10.2 dice qué se
   hace en cada uno). Sin comprobar: las pruebas que lo recorren. Lo que hace la reanudación de la Fase 8 ante un proyecto
   tomado sí se leyó (se niega y no reintenta), y por eso D-25 pone la espera; **sin comprobar** que los cuatro sitios que
@@ -2336,7 +2396,8 @@ medir:** no se ejecutó nada con red ni con cuenta.
   una prueba por sitio). Las escrituras sin ejecución de la Fase 9 esperan preguntando `IsBusy`
   (`Orchestration/Work/WorkLog.cs`): si conviene que tomen el proyecto como aquí, es un pendiente para docs/18.
 - **Lo que las pruebas con un remoto `file` no ejercen:** el gestor de credenciales, HTTPS y sus redirecciones. Y que
-  `remote.*` no interviene cuando se empuja a una dirección y no a un nombre.
+  `remote.*` no interviene cuando se empuja a una dirección y no a un nombre: **medido por WP1** con `remote.origin.pushurl`
+  (el `push` fue a la dirección dada); `remote.<n>.receivepack`, `uploadpack`, `proxy` y `vcs` no se midieron: se rechazan por si acaso.
 - **De la documentación, sin confirmar con una respuesta real:**
   - qué punto trae `head_ref_force_pushed` y `head_ref_deleted` (la línea de tiempo o los eventos) y con qué campos;
   - el vocabulario de `mergeable_state` y del `state` de una revisión; un valor que no se conozca sale «desconocido»;
