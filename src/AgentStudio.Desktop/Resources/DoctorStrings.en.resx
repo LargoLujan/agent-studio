@@ -672,4 +672,238 @@ If something is missing, press «How to fix it».</value>
 See whether WSL has a distribution.
 Agent Studio starts and installs nothing: the guide tells you what to do.</value>
   </data>
+  <data name="Doctor_Check_env_none_Title" xml:space="preserve">
+    <value>Project environment</value>
+  </data>
+  <data name="Doctor_Check_env_none_NotApplicable" xml:space="preserve">
+    <value>The project declares no version or tool to check.</value>
+  </data>
+  <data name="Doctor_Check_env_dotnet_sdk_Title" xml:space="preserve">
+    <value>.NET SDK the project asks for</value>
+  </data>
+  <data name="Doctor_Check_env_dotnet_sdk_Ok" xml:space="preserve">
+    <value>The .NET SDK the project asks for is installed.</value>
+  </data>
+  <data name="Doctor_Check_env_dotnet_sdk_Error" xml:space="preserve">
+    <value>The project asks for a .NET SDK that you do not have installed.</value>
+  </data>
+  <data name="Doctor_Check_env_dotnet_sdk_Unknown" xml:space="preserve">
+    <value>It cannot be compared with what is installed. Check by hand which .NET SDK the project will use.</value>
+  </data>
+  <data name="Doctor_Check_env_dotnet_sdk_in_repo_Title" xml:space="preserve">
+    <value>.NET SDK inside the project</value>
+  </data>
+  <data name="Doctor_Check_env_dotnet_sdk_in_repo_Warning" xml:space="preserve">
+    <value>The global.json file looks for an SDK in a folder of the project itself. That folder could bring programs you do not know.</value>
+  </data>
+  <data name="Doctor_Check_env_dotnet_local_tools_Title" xml:space="preserve">
+    <value>.NET tools of the project</value>
+  </data>
+  <data name="Doctor_Check_env_dotnet_local_tools_Ok" xml:space="preserve">
+    <value>The .NET tools the project asks for are already downloaded on this computer.</value>
+  </data>
+  <data name="Doctor_Check_env_dotnet_local_tools_Warning" xml:space="preserve">
+    <value>Some .NET tools the project asks for are not downloaded yet.</value>
+  </data>
+  <data name="Doctor_Check_env_dotnet_local_tools_Unknown" xml:space="preserve">
+    <value>It could not be checked whether the .NET tools are downloaded, so it cannot be compared.</value>
+  </data>
+  <data name="Doctor_Check_env_node_nvmrc_Title" xml:space="preserve">
+    <value>Node the .nvmrc file asks for</value>
+  </data>
+  <data name="Doctor_Check_env_node_nvmrc_Ok" xml:space="preserve">
+    <value>You have Node {2} and it meets what the project asks for ({0}).</value>
+  </data>
+  <data name="Doctor_Check_env_node_nvmrc_Warning" xml:space="preserve">
+    <value>You have Node {2}, but the project asks for {0}.</value>
+  </data>
+  <data name="Doctor_Check_env_node_nvmrc_Error" xml:space="preserve">
+    <value>The project asks for Node ({0}) and it is not installed.</value>
+  </data>
+  <data name="Doctor_Check_env_node_nvmrc_Unknown" xml:space="preserve">
+    <value>The project asks for "{0}". It cannot be compared with Node {2}; check it by hand.</value>
+  </data>
+  <data name="Doctor_Check_env_node_version_file_Title" xml:space="preserve">
+    <value>Node the version file asks for</value>
+  </data>
+  <data name="Doctor_Check_env_node_version_file_Ok" xml:space="preserve">
+    <value>You have Node {2} and it meets what the project asks for ({0}).</value>
+  </data>
+  <data name="Doctor_Check_env_node_version_file_Warning" xml:space="preserve">
+    <value>You have Node {2}, but the project asks for {0}.</value>
+  </data>
+  <data name="Doctor_Check_env_node_version_file_Error" xml:space="preserve">
+    <value>The project asks for Node ({0}) and it is not installed.</value>
+  </data>
+  <data name="Doctor_Check_env_node_version_file_Unknown" xml:space="preserve">
+    <value>The project asks for "{0}". It cannot be compared with Node {2}; check it by hand.</value>
+  </data>
+  <data name="Doctor_Check_env_node_engine_Title" xml:space="preserve">
+    <value>Node that package.json asks for</value>
+  </data>
+  <data name="Doctor_Check_env_node_engine_Ok" xml:space="preserve">
+    <value>You have Node {2} and it meets what the project asks for ({0}).</value>
+  </data>
+  <data name="Doctor_Check_env_node_engine_Warning" xml:space="preserve">
+    <value>You have Node {2}, but the project asks for {0}.</value>
+  </data>
+  <data name="Doctor_Check_env_node_engine_Error" xml:space="preserve">
+    <value>The project asks for Node ({0}) and it is not installed.</value>
+  </data>
+  <data name="Doctor_Check_env_node_engine_Unknown" xml:space="preserve">
+    <value>The project asks for "{0}". It cannot be compared with Node {2}; check it by hand.</value>
+  </data>
+  <data name="Doctor_Check_env_npm_engine_Title" xml:space="preserve">
+    <value>npm that package.json asks for</value>
+  </data>
+  <data name="Doctor_Check_env_npm_engine_Ok" xml:space="preserve">
+    <value>You have npm {2} and it meets what the project asks for ({0}).</value>
+  </data>
+  <data name="Doctor_Check_env_npm_engine_Warning" xml:space="preserve">
+    <value>You have npm {2}, but the project asks for {0}.</value>
+  </data>
+  <data name="Doctor_Check_env_npm_engine_Error" xml:space="preserve">
+    <value>The project asks for npm ({0}) and it is not installed.</value>
+  </data>
+  <data name="Doctor_Check_env_npm_engine_Unknown" xml:space="preserve">
+    <value>The project asks for "{0}". It cannot be compared with npm {2}; check it by hand.</value>
+  </data>
+  <data name="Doctor_Check_env_python_version_file_Title" xml:space="preserve">
+    <value>Python the version file asks for</value>
+  </data>
+  <data name="Doctor_Check_env_python_version_file_Ok" xml:space="preserve">
+    <value>You have Python {2} and it meets what the project asks for ({0}).</value>
+  </data>
+  <data name="Doctor_Check_env_python_version_file_Warning" xml:space="preserve">
+    <value>You have Python {2}, but the project asks for {0}.</value>
+  </data>
+  <data name="Doctor_Check_env_python_version_file_Error" xml:space="preserve">
+    <value>The project asks for Python ({0}) and none is installed. The Windows Store shortcut does not count.</value>
+  </data>
+  <data name="Doctor_Check_env_python_version_file_Unknown" xml:space="preserve">
+    <value>The project asks for "{0}". It cannot be compared with Python {2}; check it by hand.</value>
+  </data>
+  <data name="Doctor_Check_env_python_requires_Title" xml:space="preserve">
+    <value>Python that pyproject.toml asks for</value>
+  </data>
+  <data name="Doctor_Check_env_python_requires_Ok" xml:space="preserve">
+    <value>You have Python {2} and it meets what the project asks for ({0}).</value>
+  </data>
+  <data name="Doctor_Check_env_python_requires_Warning" xml:space="preserve">
+    <value>You have Python {2}, but the project asks for {0}.</value>
+  </data>
+  <data name="Doctor_Check_env_python_requires_Error" xml:space="preserve">
+    <value>The project asks for Python ({0}) and none is installed. The Windows Store shortcut does not count.</value>
+  </data>
+  <data name="Doctor_Check_env_python_requires_Unknown" xml:space="preserve">
+    <value>The project asks for "{0}". It cannot be compared with Python {2}; check it by hand.</value>
+  </data>
+  <data name="Doctor_Check_env_python_venv_Title" xml:space="preserve">
+    <value>Python virtual environment</value>
+  </data>
+  <data name="Doctor_Check_env_python_venv_Ok" xml:space="preserve">
+    <value>The Python virtual environment does not contradict what the project asks for.</value>
+  </data>
+  <data name="Doctor_Check_env_python_venv_Warning" xml:space="preserve">
+    <value>The virtual environment uses a Python version that does not fit what the project asks for.</value>
+  </data>
+  <data name="Doctor_Check_env_python_venv_Unknown" xml:space="preserve">
+    <value>The version of the virtual environment cannot be compared with what the project asks for.</value>
+  </data>
+  <data name="Doctor_Check_env_python_venv_NotApplicable" xml:space="preserve">
+    <value>The project asks for Python, but it has no virtual environment yet.</value>
+  </data>
+  <data name="Doctor_Check_env_containers_Title" xml:space="preserve">
+    <value>Containers the project asks for</value>
+  </data>
+  <data name="Doctor_Check_env_containers_Ok" xml:space="preserve">
+    <value>The project uses containers and Docker is running.</value>
+  </data>
+  <data name="Doctor_Check_env_containers_Warning" xml:space="preserve">
+    <value>The project uses containers. Docker is installed, but its engine does not answer.</value>
+  </data>
+  <data name="Doctor_Check_env_containers_Error" xml:space="preserve">
+    <value>The project uses containers and Docker is not installed.</value>
+  </data>
+  <data name="Doctor_Check_env_not_read_Title" xml:space="preserve">
+    <value>Files that could not be read</value>
+  </data>
+  <data name="Doctor_Check_env_not_read_Warning" xml:space="preserve">
+    <value>Some files of the project could not be read or are not understood. What is not read is not compared.</value>
+  </data>
+  <data name="Doctor_Fix_restore_dotnet_tools" xml:space="preserve">
+    <value>Download the tools with the command below. First look at what the dotnet-tools.json file asks for, because they will run on your computer.</value>
+  </data>
+  <data name="Doctor_Fact_too_large" xml:space="preserve">
+    <value>Too large</value>
+  </data>
+  <data name="Doctor_Fact_is_link" xml:space="preserve">
+    <value>Is a link</value>
+  </data>
+  <data name="Doctor_Fact_not_interpreted" xml:space="preserve">
+    <value>Not interpreted</value>
+  </data>
+  <data name="Doctor_Fact_malformed" xml:space="preserve">
+    <value>Malformed</value>
+  </data>
+  <data name="Doctor_Fact_too_deep" xml:space="preserve">
+    <value>Nested too deep</value>
+  </data>
+  <data name="Doctor_Fact_duplicate_key" xml:space="preserve">
+    <value>Repeated key</value>
+  </data>
+  <data name="Doctor_Fact_line_too_long" xml:space="preserve">
+    <value>Line too long</value>
+  </data>
+  <data name="Doctor_Fact_unreadable" xml:space="preserve">
+    <value>Could not be read</value>
+  </data>
+  <data name="Doctor_Value_none" xml:space="preserve">
+    <value>none</value>
+  </data>
+  <data name="Doctor_Value_absent" xml:space="preserve">
+    <value>does not exist</value>
+  </data>
+  <data name="Doctor_Value_store_alias" xml:space="preserve">
+    <value>only the Store shortcut</value>
+  </data>
+  <data name="Doctor_Value_in_nuget_cache" xml:space="preserve">
+    <value>downloaded</value>
+  </data>
+  <data name="Doctor_Value_not_in_nuget_cache" xml:space="preserve">
+    <value>not downloaded</value>
+  </data>
+  <data name="Doctor_Value_not_checked" xml:space="preserve">
+    <value>not checked</value>
+  </data>
+  <data name="Doctor_Value_docker_not_installed" xml:space="preserve">
+    <value>Docker is not installed</value>
+  </data>
+  <data name="Doctor_Value_docker_running" xml:space="preserve">
+    <value>Docker running (client {0}, engine {1})</value>
+  </data>
+  <data name="Doctor_Value_docker_stopped" xml:space="preserve">
+    <value>Docker installed, engine stopped (client {0})</value>
+  </data>
+  <data name="Doctor_Value_compose_size" xml:space="preserve">
+    <value>compose file of {0} bytes</value>
+  </data>
+  <data name="Doctor_Value_path" xml:space="preserve">
+    <value>path {0}</value>
+  </data>
+  <data name="Doctor_Value_venv" xml:space="preserve">
+    <value>virtual environment {0}</value>
+  </data>
+  <data name="Doctor_Value_image" xml:space="preserve">
+    <value>image {0}</value>
+  </data>
+  <data name="Doctor_Value_dockerfile" xml:space="preserve">
+    <value>Dockerfile {0}</value>
+  </data>
+  <data name="Doctor_Value_compose_file" xml:space="preserve">
+    <value>compose file {0}</value>
+  </data>
+  <data name="Doctor_Value_extends" xml:space="preserve">
+    <value>extends {0}</value>
+  </data>
 </root>

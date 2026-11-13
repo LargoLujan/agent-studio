@@ -5,6 +5,7 @@ using AgentStudio.Application.Security;
 using AgentStudio.Desktop.Doctor;
 using AgentStudio.Desktop.ViewModels;
 using AgentStudio.Infrastructure.Diagnostics;
+using AgentStudio.Infrastructure.Environments;
 using AgentStudio.Providers.Cli;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -22,6 +23,10 @@ internal static class DiagnosticsServices
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(folders);
         services.AddAgentStudioDoctorTools(folders.Local.BaseDirectory);
+
+        // The declared environment (WP-E) comes after the inventory of tools it compares with (it needs IInstalledToolInventory). It adds its own source of checks and the
+        // reader of the tool versions of a verification step, which the runner of verification takes from the container when it resolves.
+        services.AddAgentStudioEnvironments();
 
         // The probes of the providers are not rewritten (D-01): the source adapts them, and the panel hands the same results to the rows of today.
         services.AddSingleton(provider => new ProviderCheckSource(

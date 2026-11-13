@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using AgentStudio.Application.Diagnostics;
 using AgentStudio.Desktop.Localization;
 using AgentStudio.Domain.Diagnostics;
@@ -11,7 +12,7 @@ namespace AgentStudio.Desktop.Doctor;
 /// <c>doctor.provider.install</c>, with the name of the program as a fact), so a provider that appears later does not show a missing key.
 /// The facts of the check are the arguments of the explanation, in their order, up to <see cref="ArgumentCount"/>.
 /// </summary>
-public static class DoctorTexts
+public static partial class DoctorTexts
 {
     /// <summary>How many facts an explanation can quote; the rest of its placeholders show a dash instead of failing.</summary>
     public const int ArgumentCount = 6;
@@ -57,7 +58,7 @@ public static class DoctorTexts
     {
         var key = TitleKey(check.Code);
 
-        // A check of another package that has no text yet (the declared environment, until the integration adds its own) is named by what it declares, or by its code: never by a missing key.
+        // A check of another package that has no text yet is named by what it declares, or by its code: never by a missing key.
         return texts.Has(key) ? texts.Format(key, Arguments(check)) : check.Fact(DoctorFactNames.Declared) ?? check.Code;
     }
 
@@ -81,6 +82,85 @@ public static class DoctorTexts
         return texts.Has(key) ? texts.Get(key) : name;
     }
 
+    /// <summary>
+    /// The value of a fact as the panel paints it. The declared environment writes some values as fixed English words and phrases
+    /// (<c>not in the NuGet cache</c>, <c>docker running (client 27.0, engine 27.0)</c>, <c>image redis:7</c>): they are painted by code in the language in use, with
+    /// the part that came from a file of the project (a version, a path) as an argument. Any other value, and every fact of another section, is shown as it is.
+    /// </summary>
+    public static string FactValue(IUiTextProvider texts, DoctorCheck check, DoctorFact fact)
+    {
+        if (!check.Code.StartsWith(EnvironmentPrefix, StringComparison.Ordinal))
+        {
+            return fact.Value;
+        }
+
+        if (fact.Name is DoctorFactNames.Installed or DoctorFactNames.Declared)
+        {
+            // A fixed phrase is only the state of «Installed»: the same word in «Declared» came from a file of the project and is data.
+            if (fact.Name == DoctorFactNames.Installed && FixedValues.TryGetValue(fact.Value, out var token))
+            {
+                return Translated(texts, token, fact.Value);
+            }
+
+            foreach (var (pattern, key) in ValuePatterns)
+            {
+                var match = pattern.Match(fact.Value);
+                if (match.Success)
+                {
+                    var arguments = new object?[match.Groups.Count - 1];
+                    for (var i = 1; i < match.Groups.Count; i++)
+                    {
+                        arguments[i - 1] = match.Groups[i].Value;
+                    }
+
+                    return texts.Has(key) ? texts.Format(key, arguments) : fact.Value;
+                }
+            }
+        }
+
+        return fact.Value;
+    }
+
+    private const string EnvironmentPrefix = "doctor.env.";
+
+    // The values the comparer writes as one fixed phrase, by the key of their text.
+    private static readonly IReadOnlyDictionary<string, string> FixedValues = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["none"] = "Doctor_Value_none",
+        ["absent"] = "Doctor_Value_absent",
+        ["store-alias"] = "Doctor_Value_store_alias",
+        ["in the NuGet cache"] = "Doctor_Value_in_nuget_cache",
+        ["not in the NuGet cache"] = "Doctor_Value_not_in_nuget_cache",
+        ["not checked"] = "Doctor_Value_not_checked",
+        ["docker not installed"] = "Doctor_Value_docker_not_installed",
+    };
+
+    // The values the comparer builds from a phrase and a datum, in the order the comparer writes them; the groups are the arguments of the text.
+    private static readonly (Regex Pattern, string Key)[] ValuePatterns =
+    [
+        (DockerRunning(), "Doctor_Value_docker_running"),
+        (DockerStopped(), "Doctor_Value_docker_stopped"),
+        (ComposeSize(), "Doctor_Value_compose_size"),
+        (Labelled("path"), "Doctor_Value_path"),
+        (Labelled("venv"), "Doctor_Value_venv"),
+        (Labelled("image"), "Doctor_Value_image"),
+        (Labelled("dockerfile"), "Doctor_Value_dockerfile"),
+        (Labelled("compose file"), "Doctor_Value_compose_file"),
+        (Labelled("extends"), "Doctor_Value_extends"),
+    ];
+
+    private static string Translated(IUiTextProvider texts, string key, string fallback) => texts.Has(key) ? texts.Get(key) : fallback;
+
+    private static Regex Labelled(string label) => new("^" + Regex.Escape(label) + " (.+)$", RegexOptions.CultureInvariant | RegexOptions.Singleline);
+
+    [GeneratedRegex(@"^docker running \(client (.+), engine (.+)\)$", RegexOptions.CultureInvariant)]
+    private static partial Regex DockerRunning();
+
+    [GeneratedRegex(@"^docker engine stopped \(client (.+)\)$", RegexOptions.CultureInvariant)]
+    private static partial Regex DockerStopped();
+
+    [GeneratedRegex(@"^compose size (\d+) bytes$", RegexOptions.CultureInvariant)]
+    private static partial Regex ComposeSize();
     private static object?[] Arguments(DoctorCheck check)
     {
         var arguments = new object?[ArgumentCount];

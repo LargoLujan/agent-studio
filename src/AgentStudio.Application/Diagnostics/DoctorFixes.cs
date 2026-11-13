@@ -25,6 +25,7 @@ public static class DoctorFixCatalog
     public const string StartDocker = "doctor.fix.start-docker";
     public const string InstallWsl = "doctor.fix.install-wsl";
     public const string InstallWslDistribution = "doctor.fix.install-wsl-distribution";
+    public const string RestoreDotNetTools = "doctor.fix.restore-dotnet-tools";
 
     private const string ProviderInstallPrefix = "doctor.fix.install-";
     private const string ProviderLoginPrefix = "doctor.fix.login-";
@@ -77,6 +78,7 @@ public static class DoctorFixCatalog
             new DoctorFix.Guide(StartDocker, null, new Uri("https://docs.docker.com/desktop/use-desktop/")),
             new DoctorFix.Guide(InstallWsl, "wsl --install", new Uri("https://learn.microsoft.com/en-us/windows/wsl/install")),
             new DoctorFix.Guide(InstallWslDistribution, "wsl --install -d Ubuntu", new Uri("https://learn.microsoft.com/en-us/windows/wsl/install")),
+            new DoctorFix.Guide(RestoreDotNetTools, "dotnet tool restore", new Uri("https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-tool-restore")),
         };
         foreach (var (id, provider) in Providers)
         {
