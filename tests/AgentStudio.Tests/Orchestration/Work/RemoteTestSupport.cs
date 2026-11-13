@@ -24,6 +24,13 @@ internal static class RemoteTestSupport
     public static Task ObserveWithAWrongFingerprintAsync(this WorkWorld world, RemoteSnapshot snapshot) =>
         world.RecordAsync(Run, DecisionKind.RemoteStateObserved, RemoteStateObservedPayload.Observing(snapshot, Run, null, []) with { Fingerprint = new string('0', 64) });
 
+    /// <summary>An observation whose head is written as given (in capitals, abbreviated…): the log holds it, and it is not what a snapshot holds, so it is left out when it is read.</summary>
+    public static Task ObserveWithHeadAsync(this WorkWorld world, RemoteSnapshot snapshot, string rawHead)
+    {
+        var payload = RemoteStateObservedPayload.Observing(snapshot, Run, null, []);
+        return world.RecordAsync(Run, DecisionKind.RemoteStateObserved, payload with { Snapshot = payload.Snapshot with { HeadCommit = rawHead } });
+    }
+
     public static Task OperationAsync(
         this WorkWorld world,
         HostingOperationKind operation,
@@ -40,11 +47,12 @@ internal static class RemoteTestSupport
                 account is null ? null : RemoteLogin.TryParse(account), null, null, null, null));
 
     /// <summary>The integration of the run into its own branch (what the dossier of the judge is built on), then the verdict of the judge on the head of the log that has it.</summary>
-    public static async Task JudgeAsync(this WorkWorld world, VerdictDecision decision = VerdictDecision.Approved, string candidate = Head, string run = Run)
+    public static async Task JudgeAsync(
+        this WorkWorld world, VerdictDecision decision = VerdictDecision.Approved, string candidate = Head, string run = Run, string id = "v1", IReadOnlyList<string>? assessing = null)
     {
         await world.RecordAsync(run, DecisionKind.IntegrationPerformed, new IntegrationPerformedPayload(null, "agentstudio/run-" + run, [], candidate, [], false) { RunId = run });
         var log = await world.Instance.Recorder.LoadAsync(world.ProjectId, WorkWorld.Ct);
-        await world.VerdictAsync(run, decision, head: log.HeadHash);
+        await world.VerdictAsync(run, decision, id: id, head: log.HeadHash, assessing: assessing);
     }
 
     /// <summary>A started and linked run whose T1 completed and finished, judged on <see cref="Head"/>: the board has R1 in «hecho» (an approval) or in review.</summary>

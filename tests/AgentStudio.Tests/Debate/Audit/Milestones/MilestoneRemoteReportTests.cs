@@ -69,12 +69,37 @@ public sealed class MilestoneRemoteReportTests
         Assert.Equal(2, report.GetProperty("notIncluded").GetArrayLength());
     }
 
+    /// <summary>The commit the judge saw for the run of the bench: the one of the dossier of its approved verdict, as the log up to the head that verdict names has it.</summary>
+    private static string JudgedCommit(MilestoneBench bench)
+    {
+        var issued = bench.Entries.Where(e => e.Kind == DecisionKind.VerdictIssued)
+            .Select(e => DecisionPayloadSerializer.Deserialize<VerdictIssuedPayload>(e.PayloadJson))
+            .Last(v => v.RunId == RunId && v.Valid && v.Decision == AgentStudio.Domain.Judging.VerdictDecision.Approved);
+        var at = bench.Entries.First(e => e.Hash == issued.DecisionLogHeadHash);
+        return AgentStudio.Debate.Judging.RunLog.CandidateCommit(AgentStudio.Debate.Judging.RunLog.EntriesOf(bench.Entries.Where(e => e.Sequence <= at.Sequence), RunId))!;
+    }
+
+    [Fact]
+    public async Task A_deployed_pull_request_the_judge_did_not_see_is_not_the_deployment_of_the_requirement_even_if_the_card_is_integrated_by_another_way()
+    {
+        using var bench = await MilestoneBench.WithRunAsync();
+        bench.Board.Runs["RQ-01"] = RunId;
+        Assert.NotEqual(Head, JudgedCommit(bench));
+        await ObserveAsync(bench, Merged(RemoteMergeMode.Squash, Head) with { Deployment = new RemoteDeployment(5, Result, DeploymentState.Succeeded) });
+
+        var report = await CloseAsync(bench);
+
+        Assert.True(Requirement(report, "RQ-01").GetProperty("integrated").GetBoolean());
+        Assert.False(Requirement(report, "RQ-01").TryGetProperty("deployed", out _));
+        Assert.True(report.GetProperty("remote").GetProperty("pullRequests")[0].GetProperty("deployed").GetBoolean(), "The platform said it; the requirement does not take it.");
+    }
+
     [Fact]
     public async Task Deployed_exists_only_for_an_integrated_requirement_whose_run_the_platform_said_it_deployed()
     {
         using var bench = await MilestoneBench.WithRunAsync();
         bench.Board.Runs["RQ-01"] = RunId;
-        await ObserveAsync(bench, Merged(RemoteMergeMode.Squash) with { Deployment = new RemoteDeployment(5, Result, DeploymentState.Succeeded) });
+        await ObserveAsync(bench, Merged(RemoteMergeMode.Squash, JudgedCommit(bench)) with { Deployment = new RemoteDeployment(5, Result, DeploymentState.Succeeded) });
 
         var report = await CloseAsync(bench);
 
@@ -134,6 +159,44 @@ public sealed class MilestoneRemoteReportTests
         Assert.True(report.GetProperty("remote").GetProperty("pullRequests")[0].GetProperty("revertSuspected").GetBoolean());
         var message = report.GetProperty("deviations").EnumerateArray().Single(d => d.GetProperty("code").GetString() == MilestoneReport.RevertSuspected).GetProperty("message").GetString();
         Assert.Contains("deducida", message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task An_entry_that_does_not_validate_and_names_another_run_adds_nothing_to_the_report_of_the_milestone()
+    {
+        using var bench = await MilestoneBench.WithRunAsync();
+        await ObserveAsync(bench, Merged(RemoteMergeMode.Squash), run: "20261019-ffffff", wrongFingerprint: true);
+
+        var report = await CloseAsync(bench);
+
+        Assert.False(report.TryGetProperty("remote", out _));
+    }
+
+    private static async Task<MilestoneReportInput> InputOfAsync(MilestoneBench bench, MilestoneClosedNotice notice, IReadOnlyList<DecisionEntry> log)
+    {
+        var frozen = (await bench.Audit.World.Requirements.FindAsync(bench.Project.ProjectId, notice.Milestone.CurrentRequirementSetHash, Ct))!;
+        var cards = bench.Board.Columns.Select(c => new BoardCard(BoardCardKind.Requirement, c.Key, c.Key, c.Value, bench.Board.Runs.GetValueOrDefault(c.Key), null)).ToList();
+        var board = new MilestoneBoard(MilestoneBench.Id, log.Count, log[^1].Hash, cards, []);
+        var scope = new AgentStudio.Application.Judging.AuditMilestoneScope(MilestoneBench.Id.Value, "Multiplicar", bench.Header.Objective, [RunId], []);
+        return new MilestoneReportInput(notice.Milestone with { Status = MilestoneStatus.Open, Reports = [] }, frozen, log, scope, notice.Audit, board);
+    }
+
+    [Fact]
+    public async Task The_report_of_a_log_with_no_remote_is_byte_for_byte_the_one_phase_9_built()
+    {
+        // The comparison is with the builder as it was at 1eb2c56a (Phase9MilestoneReportBaseline: that class copied, nothing else changed) on the same input, and with what the close stored.
+        using var bench = await MilestoneBench.WithRunAsync();
+        await bench.CloseAsync();
+        var closed = DecisionPayloadSerializer.Deserialize<MilestoneClosedPayload>(bench.Entries[^1].PayloadJson);
+        var notice = Assert.Single(bench.Listener.Notices);
+        var input = await InputOfAsync(bench, notice, [.. bench.Entries.Take(bench.Entries.Count - 2)]);
+
+        var baseline = Phase9MilestoneReportBaseline.Build(input).ToJson();
+        var today = MilestoneReportBuilder.Build(input).ToJson();
+
+        Assert.Equal(baseline, today);
+        Assert.Equal(baseline, bench.Audit.World.Evidence.ContentText(closed.Report));
+        Assert.Equal(MilestoneReportBuilder.Build(input).Sha256(), AgentStudio.Domain.Common.ContentHash.Sha256Hex(System.Text.Encoding.UTF8.GetBytes(baseline)));
     }
 
     [Fact]

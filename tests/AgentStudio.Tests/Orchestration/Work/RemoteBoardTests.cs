@@ -133,6 +133,90 @@ public sealed class RemoteBoardTests
         }
     }
 
+    /// <summary>V1 approves the commit X for R1 and R2; after a rework there is another integration, Y, and V2 (rejected, of R2 only) is the last verdict of the run.</summary>
+    private static async Task<(WorkWorld World, MilestoneId Milestone)> ReworkedAsync()
+    {
+        var (world, milestone) = await JudgedRunAsync();
+        await world.JudgeAsync(VerdictDecision.Rejected, Unjudged, id: "v2", assessing: ["R2"]);
+        return (world, milestone);
+    }
+
+    [Fact]
+    public async Task The_commit_that_counts_is_the_one_the_verdict_that_decides_the_requirement_saw_and_not_the_last_of_the_run()
+    {
+        var (world, milestone) = await ReworkedAsync();
+        using (world)
+        {
+            // The pull request carries Y, which only the verdict of R2 saw: R1 was approved on X.
+            await world.ObserveAsync(Merged(RemoteMergeMode.Squash, Unjudged));
+
+            var card = R1(await world.Board.ProjectAsync(world.Project, milestone, Ct));
+
+            Assert.Equal((BoardColumn.Done, BoardCardReasons.MergedWithUnjudgedChanges), (card.Column, card.Reason));
+        }
+    }
+
+    [Fact]
+    public async Task And_a_pull_request_with_the_commit_the_deciding_verdict_saw_integrates_it_though_another_verdict_came_after()
+    {
+        var (world, milestone) = await ReworkedAsync();
+        using (world)
+        {
+            await world.ObserveAsync(Merged(RemoteMergeMode.Squash, Head));
+
+            var card = R1(await world.Board.ProjectAsync(world.Project, milestone, Ct));
+
+            Assert.Equal((BoardColumn.Integrated, null), (card.Column, card.Reason));
+        }
+    }
+
+    [Fact]
+    public async Task Of_two_pull_requests_of_the_same_run_the_one_with_the_judged_commit_integrates_and_the_other_does_not_take_it_back()
+    {
+        var (world, milestone) = await JudgedRunAsync();
+        using (world)
+        {
+            await world.ObserveAsync(Merged(RemoteMergeMode.Squash, Unjudged) with { PullRequest = new PullRequestRef(Repository, 13) });
+            Assert.Equal(BoardCardReasons.MergedWithUnjudgedChanges, R1(await world.Board.ProjectAsync(world.Project, milestone, Ct)).Reason);
+
+            await world.ObserveAsync(Merged(RemoteMergeMode.Squash, Head));
+
+            var card = R1(await world.Board.ProjectAsync(world.Project, milestone, Ct));
+            Assert.Equal((BoardColumn.Integrated, null), (card.Column, card.Reason));
+        }
+    }
+
+    [Theory]
+    [InlineData("9C4DA5D1F2E3A4B5C6D7E8F9A0B1C2D3E4F5A6B7")]
+    [InlineData("9c4da5d")]
+    public async Task A_head_in_capitals_or_abbreviated_is_not_an_observation_and_never_integrates(string rawHead)
+    {
+        var (world, milestone) = await JudgedRunAsync();
+        using (world)
+        {
+            await world.ObserveWithHeadAsync(Merged(RemoteMergeMode.Squash, Head), rawHead);
+
+            var card = R1(await world.Board.ProjectAsync(world.Project, milestone, Ct));
+
+            Assert.Equal((BoardColumn.Done, null), (card.Column, card.Reason));
+        }
+    }
+
+    [Fact]
+    public async Task A_pull_request_reopened_after_it_was_closed_is_as_open_as_before_and_the_board_does_not_change()
+    {
+        var (world, milestone) = await JudgedRunAsync();
+        using (world)
+        {
+            var before = Shape(await world.Board.ProjectAsync(world.Project, milestone, Ct));
+            await world.ObserveAsync(Open(Head));
+            await world.ObserveAsync(Open(Head) with { State = PullRequestState.Closed, UpdatedAt = At.AddMinutes(1) });
+            await world.ObserveAsync(Open(Head) with { UpdatedAt = At.AddMinutes(2) });
+
+            Assert.Equal(before, Shape(await world.Board.ProjectAsync(world.Project, milestone, Ct)));
+        }
+    }
+
     [Fact]
     public async Task A_remote_entry_that_does_not_validate_is_left_out_and_the_board_goes_on()
     {

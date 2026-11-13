@@ -1,5 +1,6 @@
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Git;
+using AgentStudio.Application.Hosting;
 using AgentStudio.Application.Projects;
 using AgentStudio.Domain.Hosting;
 using AgentStudio.Domain.Tracing;
@@ -42,7 +43,7 @@ public sealed class RepositoryAnnotator(IDecisionRecorder recorder, TraceSuggest
 
         // What the remote did with the commits (docs/21 D-28): a commit of a merged pull request knows what became of it, and a commit its merge left knows where it comes
         // from. The mode and a revert are deductions and the annotation says so (CommitSuccessor); a commit no merged pull request names has none.
-        var remote = RemoteLog.ReadEntries(state.Entries);
+        var remote = RemoteLogReading.ReadEntries(state.Entries);
         var succession = remote.Succession(p => p.Run is { } run ? RemoteJudgement.LastAnnouncedCommit(state.Entries, run) : null);
         var resultOf = new Dictionary<string, CommitSuccessor>(StringComparer.Ordinal);
         foreach (var observed in remote.PullRequests)

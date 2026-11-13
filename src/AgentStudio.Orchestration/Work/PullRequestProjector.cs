@@ -4,7 +4,6 @@ using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Projects;
 using AgentStudio.Domain.Decisions;
 using AgentStudio.Domain.Hosting;
-using AgentStudio.Domain.Judging;
 using AgentStudio.Domain.Orchestration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -19,11 +18,11 @@ namespace AgentStudio.Orchestration.Work;
 /// </summary>
 /// <remarks>
 /// <list type="bullet">
-/// <item><b>What is read as data.</b> Every remote entry is validated when it is read; one that does not validate is left out (<see cref="RemoteLog"/>), and the
+/// <item><b>What is read as data.</b> Every remote entry is validated when it is read; one that does not validate is left out (<see cref="RemoteLogReading"/>), and the
 /// projection goes on. Of the observations of a pull request only the final one counts, whatever the order or the repetitions.</item>
-/// <item><b>The standing of the verdict</b> is the one the board uses (<see cref="VerdictReach"/>) for the last valid verdict that judged the run: approved is
-/// <see cref="HostingStanding.Approved"/>; rejected or with changes requested, <see cref="HostingStanding.Rejected"/>; challenged, escalated or unresolved, <see cref="HostingStanding.InReview"/>.
-/// Null when the run has no valid verdict, or the pull request has no run.</item>
+/// <item><b>The standing of the verdict</b> and the commit the judge saw come from <see cref="RemoteJudgement.VerdictInForce"/> (the rule of <see cref="VerdictReach"/>), once for
+/// each run: approved is <see cref="HostingStanding.Approved"/>; rejected or with changes requested, <see cref="HostingStanding.Rejected"/>; challenged, escalated or unresolved,
+/// <see cref="HostingStanding.InReview"/>. Null when the run has no valid verdict, or the pull request has no run.</item>
 /// <item><b>The texts of the remote</b> (<see cref="PullRequestView.Display"/>) are the cache's, shown as data; without the cache (it may be deleted) there are none.
 /// What is waiting to synchronise comes from the mailbox (<see cref="IRemoteSync.Pending"/>); without one, nothing.</item>
 /// <item><b>The cost:</b> it is a read of the log of its own, because this screen has no other that reads it (the board, the chain and the participation share theirs).</item>
@@ -40,12 +39,13 @@ public sealed class PullRequestProjector(
         ArgumentNullException.ThrowIfNull(project);
         var entries = await WorkLog.LoadAsync(recorder, project.ProjectId, ct).ConfigureAwait(false);
         var parsed = WorkLog.Parse(entries);
-        var remote = RemoteLog.Read(parsed);
+        var remote = RemoteLogReading.Read(parsed);
 
-        // The pull requests Agent Studio opened and has not observed yet: they are in the list too, without a snapshot.
+        // The pull requests Agent Studio opened and has not observed yet: they are in the list too, without a snapshot. An attempt to open one that did not work (the platform
+        // refused, there was no session…) is not a pull request to show.
         var views = remote.PullRequests.Select(p => (p.PullRequest, Run: p.Run, Observed: (ObservedPullRequest?)p)).ToList();
         var known = views.Select(v => v.PullRequest.TraceId).ToHashSet(StringComparer.Ordinal);
-        foreach (var opened in remote.Operations.Where(o => o.Payload.Operation == HostingOperationKind.OpenPullRequest && o.Payload.PullRequest is not null))
+        foreach (var opened in remote.Operations.Where(o => o.Payload is { Operation: HostingOperationKind.OpenPullRequest, Outcome: HostingOutcome.Ok, PullRequest: not null }))
         {
             var payload = opened.Payload;
             var pullRequest = new PullRequestRef(RemoteRepository.TryCreateGitHub(payload.Owner, payload.Repository)!, payload.PullRequest!.Value);
@@ -66,10 +66,18 @@ public sealed class PullRequestProjector(
             : (await cache.LoadAsync(project.ProjectId, ct).ConfigureAwait(false)).Followed.GroupBy(f => f.PullRequest.TraceId, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.Last(), StringComparer.Ordinal);
         var pending = sync?.Pending(project.ProjectId) ?? [];
 
+        // The verdict in force is a fact of the run, not of the pull request: it is worked out once for each run, however many pull requests it has.
+        var byRun = new Dictionary<string, (string? JudgedCommit, HostingStanding? Standing)>(StringComparer.Ordinal);
         var result = new List<PullRequestView>();
         foreach (var (pullRequest, run, observed) in views.OrderBy(v => v.PullRequest.Repository.Id, StringComparer.Ordinal).ThenBy(v => v.PullRequest.Number))
         {
-            var (judgedCommit, standing) = run is null ? (null, null) : VerdictOf(parsed, entries, run, storedVerdicts);
+            (string? JudgedCommit, HostingStanding? Standing) verdict = default;
+            if (run is not null && !byRun.TryGetValue(run, out verdict))
+            {
+                byRun[run] = verdict = RemoteJudgement.VerdictInForce(parsed, entries, run, storedVerdicts);
+            }
+
+            var (judgedCommit, standing) = verdict;
             var snapshot = observed?.Latest;
             result.Add(new PullRequestView(
                 pullRequest,
@@ -84,40 +92,6 @@ public sealed class PullRequestProjector(
         }
 
         return result;
-    }
-
-    /// <summary>The commit the judge saw and the standing of the verdict that decided for the run, by the board's rule; (null, null) when no valid verdict judged it.</summary>
-    private static (string? JudgedCommit, HostingStanding? Standing) VerdictOf(
-        IReadOnlyList<(DecisionEntry Entry, DecisionPayload? Payload)> parsed, IReadOnlyList<DecisionEntry> entries, string run, IReadOnlyDictionary<string, StoredVerdict> storedVerdicts)
-    {
-        // Valid in the log and in the store with the same decision, and not the verdict of a revision (it reaches the work through the verdict it revises): the board's list.
-        VerdictIssuedPayload? deciding = null;
-        StoredVerdict? stored = null;
-        foreach (var issued in parsed.Select(p => p.Payload).OfType<VerdictIssuedPayload>().Where(v => string.Equals(v.RunId, run, StringComparison.Ordinal)))
-        {
-            if (issued.Valid && storedVerdicts.TryGetValue(issued.VerdictId, out var found) && found.Valid && found.Verdict.Decision == issued.Decision
-                && VerdictReach.Revises(parsed, found, storedVerdicts) is null)
-            {
-                deciding = issued;
-                stored = found;
-            }
-        }
-
-        if (deciding is null || stored is null)
-        {
-            return (null, null);
-        }
-
-        var state = VerdictReach.Standing(parsed, stored, storedVerdicts);
-        HostingStanding standing = state.Challenged
-            ? HostingStanding.InReview
-            : state.Decision switch
-            {
-                VerdictDecision.Approved => HostingStanding.Approved,
-                VerdictDecision.Rejected or VerdictDecision.ChangesRequested => HostingStanding.Rejected,
-                _ => HostingStanding.InReview,
-            };
-        return (RemoteJudgement.JudgedCommit(entries, run, deciding), standing);
     }
 
     private static RunId? SafeRun(string run)

@@ -100,7 +100,7 @@ public sealed class RepositoryActivityReader(AgentStudio.Application.Decisions.I
                     return null;
             }
         }
-        catch (Exception ex) when (RemoteLog.IsInvalidData(ex))
+        catch (Exception ex) when (RemoteLogReading.IsInvalidData(ex))
         {
             return null;
         }

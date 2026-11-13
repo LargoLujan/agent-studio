@@ -249,6 +249,42 @@ public sealed class RemoteViewsTests
         Assert.Equal(new RunId(Run), view.Run);
     }
 
+    [Fact]
+    public async Task An_attempt_to_open_a_pull_request_that_did_not_work_is_not_a_pull_request_to_show()
+    {
+        using var world = await JudgedAsync();
+        await world.OperationAsync(HostingOperationKind.OpenPullRequest, 12, outcome: HostingOutcome.RateLimited);
+        await world.OperationAsync(HostingOperationKind.OpenPullRequest, 13, outcome: HostingOutcome.Forbidden);
+
+        Assert.Empty(await Views(world).ListAsync(world.Project, Ct));
+    }
+
+    [Fact]
+    public async Task The_same_repository_written_in_another_case_is_another_pull_request_because_the_identity_is_exact()
+    {
+        using var world = await JudgedAsync();
+        await world.ObserveAsync(Open());
+        await world.ObserveAsync(Open() with { PullRequest = new PullRequestRef(RemoteRepository.TryCreateGitHub("largolujan", "AGENT-STUDIO")!, 12) });
+
+        var views = await Views(world).ListAsync(world.Project, Ct);
+
+        Assert.Equal(2, views.Count);
+        Assert.Equal(2, views.Select(v => v.PullRequest.TraceId).Distinct().Count());
+    }
+
+    [Fact]
+    public async Task The_verdict_is_worked_out_once_for_each_run_and_two_pull_requests_of_it_get_the_same()
+    {
+        using var world = await JudgedAsync();
+        await world.ObserveAsync(Open());
+        await world.ObserveAsync(Open() with { PullRequest = new PullRequestRef(Repository, 13) });
+
+        var views = await Views(world).ListAsync(world.Project, Ct);
+
+        Assert.Equal(2, views.Count);
+        Assert.All(views, v => Assert.Equal((Head, AgentStudio.Application.Hosting.VerdictStanding.Approved), (v.JudgedCommit, v.Verdict)));
+    }
+
     private sealed class FixedCache(RemoteSyncState state) : IRemoteSyncStore
     {
         public Task<RemoteSyncState> LoadAsync(string projectId, CancellationToken ct) => Task.FromResult(state);

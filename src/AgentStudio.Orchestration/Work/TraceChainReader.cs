@@ -1,4 +1,5 @@
 using AgentStudio.Application.Decisions;
+using AgentStudio.Application.Hosting;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Projects;
 using AgentStudio.Application.Work;
@@ -453,7 +454,7 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
         }
 
         // What the remote did (docs/21 D-28): the pull requests the log observed, from their final observation, with what their merge left. It reads the log already parsed.
-        AddRemote(graph, RemoteLog.Read(parsed));
+        AddRemote(graph, RemoteLogReading.Read(parsed));
 
         // The explicit links in force, between nodes that have a place on the chain.
         foreach (var link in state.Links.Active)
@@ -476,7 +477,7 @@ public sealed class TraceChainReader(IDecisionRecorder recorder, IRequirementSto
     /// so. Nothing is removed: the original commits stay whether git pruned them or not. A repeated or out-of-order observation changes nothing: only the final one of each
     /// pull request is drawn, and every node and edge is added once.
     /// </summary>
-    private static void AddRemote(ChainGraph graph, RemoteLog remote)
+    private static void AddRemote(ChainGraph graph, RemoteLogReading remote)
     {
         var succession = remote.Succession(_ => null);
         var order = 0;

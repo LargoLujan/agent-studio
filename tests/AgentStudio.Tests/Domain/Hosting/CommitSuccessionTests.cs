@@ -148,7 +148,8 @@ public sealed class CommitSuccessionTests
         var merged = Merged(RemoteMergeMode.Squash);
 
         Assert.Equal(PullRequestIntegration.Integrated, IntegrationByPullRequest.Of(merged, Head));
-        Assert.Equal(PullRequestIntegration.Integrated, IntegrationByPullRequest.Of(merged, Head.ToUpperInvariant()));
+        Assert.Equal(PullRequestIntegration.MergedWithUnjudgedChanges, IntegrationByPullRequest.Of(merged, Head.ToUpperInvariant()));
+        Assert.Equal(PullRequestIntegration.MergedWithUnjudgedChanges, IntegrationByPullRequest.Of(merged, Head[..7]));
         Assert.Equal(PullRequestIntegration.MergedWithUnjudgedChanges, IntegrationByPullRequest.Of(merged, Other));
         Assert.Equal(PullRequestIntegration.MergedWithUnjudgedChanges, IntegrationByPullRequest.Of(merged, null));
         Assert.Equal(PullRequestIntegration.NotMerged, IntegrationByPullRequest.Of(Open(), Head));
@@ -217,6 +218,33 @@ public sealed class CommitSuccessionTests
             Assert.Equal(expected, RemoteSnapshotOrder.Latest(order).Fingerprint);
             Assert.Equal(expected, RemoteSnapshotOrder.Latest([.. order, .. order]).Fingerprint);
         }
+    }
+
+    [Fact]
+    public void A_pull_request_reopened_after_it_was_closed_is_open_whatever_the_order_the_observations_come_in()
+    {
+        var opened = Open();
+        var closed = Open() with { State = PullRequestState.Closed, UpdatedAt = At.AddMinutes(1) };
+        var reopened = Open() with { UpdatedAt = At.AddMinutes(2), Checks = new ChecksSummary(ChecksRollup.Pending, 0, 0, 1, false) };
+
+        foreach (var order in Permutations([opened, closed, reopened]))
+        {
+            Assert.Equal(reopened.Fingerprint, RemoteSnapshotOrder.Latest(order).Fingerprint);
+            Assert.Equal(reopened.Fingerprint, RemoteSnapshotOrder.Latest([.. order, closed]).Fingerprint);
+        }
+    }
+
+    [Fact]
+    public void A_pull_request_that_is_the_same_repository_in_another_case_is_another_pull_request_because_the_equality_is_exact()
+    {
+        var other = new PullRequestRef(RemoteRepository.TryCreateGitHub("largolujan", "AGENT-STUDIO")!, 12);
+        var elsewhere = Merged(RemoteMergeMode.Squash) with { PullRequest = other, OriginalCommits = [Other], ResultCommits = [ResultTwo], MergeCommit = ResultTwo };
+
+        var succession = CommitSuccession.From([Merged(RemoteMergeMode.Squash), elsewhere], _ => null);
+
+        Assert.NotEqual(PullRequest.TraceId, other.TraceId);
+        Assert.Equal([Result], succession.SuccessorOf(Original1)!.ResultCommits);
+        Assert.Equal(other, succession.SuccessorOf(Other)!.PullRequest);
     }
 
     [Fact]

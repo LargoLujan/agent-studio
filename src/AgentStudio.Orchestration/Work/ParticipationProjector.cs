@@ -141,7 +141,7 @@ public sealed class ParticipationProjector(IDecisionRecorder recorder, IVerdictS
 
         // The remote roles (docs/21 D-30), from the entries of the remote the log holds (read as data: one that does not validate counts for nothing). What has no task
         // (a pull request is the run's) counts for every task of the run, as the delivery does. A role without a source stays «no consta».
-        var remote = RemoteLog.Read(parsed);
+        var remote = RemoteLogReading.Read(parsed);
 
         // Publishing account: the login that stayed in the operation that pushed the branch or opened the pull request, if the platform answered.
         foreach (var operation in remote.Operations.Where(o => o.Payload.Operation is HostingOperationKind.PushRunBranch or HostingOperationKind.OpenPullRequest

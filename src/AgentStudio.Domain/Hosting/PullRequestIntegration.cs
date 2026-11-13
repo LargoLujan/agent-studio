@@ -43,7 +43,8 @@ public static class IntegrationByPullRequest
     public static bool HeadIsJudgedCommit(RemoteSnapshot snapshot, string? judgedCommit)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
-        return judgedCommit is not null && string.Equals(snapshot.HeadCommit, judgedCommit, StringComparison.OrdinalIgnoreCase);
+        // Exact: a head of a snapshot is a full lowercase id (it validates as such), so a commit of the log in capitals or abbreviated is not the same commit and never integrates.
+        return judgedCommit is not null && string.Equals(snapshot.HeadCommit, judgedCommit, StringComparison.Ordinal);
     }
 
     /// <summary>The commits a merge left on the base branch: the results the platform listed, or else the merge commit; empty for what is not merged.</summary>
