@@ -1,4 +1,5 @@
 using AgentStudio.Application.Decisions;
+using AgentStudio.Application.Hosting;
 using AgentStudio.Application.Orchestration;
 using AgentStudio.Application.Persistence;
 using AgentStudio.Application.Projects;
@@ -6,6 +7,7 @@ using AgentStudio.Application.Work;
 using AgentStudio.Domain.Common;
 using AgentStudio.Application.Judging;
 using AgentStudio.Domain.Decisions;
+using AgentStudio.Domain.Hosting;
 using AgentStudio.Domain.Judging;
 using AgentStudio.Domain.Orchestration;
 using AgentStudio.Domain.Requirements;
@@ -61,10 +63,12 @@ public sealed class BoardProjector(
             ?? throw new InvalidOperationException($"The requirement set {view.CurrentRequirementSetHash} of milestone '{milestone.Value}' is not stored.");
         var storedVerdicts = (await verdicts.ListAsync(project.ProjectId, null, cancellationToken).ConfigureAwait(false)).GroupBy(v => v.Id, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.Last(), StringComparer.Ordinal);
 
+        // The pull requests the log observed (docs/21 D-29), read once from the log already parsed: a project without a remote has none, and nothing below changes for it.
+        var remote = RemoteLogReading.Read(parsed);
         var facts = new List<RunFacts>();
         foreach (var run in LinkedRuns(view, parsed))
         {
-            if (await FactsOfAsync(project.ProjectId, run, parsed, storedVerdicts, cancellationToken).ConfigureAwait(false) is { } found)
+            if (await FactsOfAsync(project.ProjectId, run, parsed, entries, remote, storedVerdicts, cancellationToken).ConfigureAwait(false) is { } found)
             {
                 facts.Add(found);
             }
@@ -82,14 +86,17 @@ public sealed class BoardProjector(
 
             var covering = deciding.Covering(requirement.Id);
             var verdict = deciding.VerdictFor(requirement.Id);
+
+            // «Integrado» by pull request is asked of the verdict that decides THIS requirement: what was approved for it is what the merge must have carried (D-29).
+            var (delivered, mergedUnjudged) = deciding.DeliveryFor(verdict);
             var column = BoardRules.ColumnOf(new RequirementBoardFacts(
                 [.. covering.Select(t => t.Status)],
                 deciding.Ended,
                 deciding.Failed,
                 verdict?.Facts,
                 verdict?.Challenged ?? false,
-                deciding.Delivered));
-            requirements.Add(new BoardCard(BoardCardKind.Requirement, requirement.Id.Value, requirement.Statement, column, deciding.Run, ReasonOfRequirement(column, covering, deciding, verdict)));
+                delivered));
+            requirements.Add(new BoardCard(BoardCardKind.Requirement, requirement.Id.Value, requirement.Statement, column, deciding.Run, ReasonOfRequirement(column, covering, deciding, verdict, mergedUnjudged)));
         }
 
         var tasks = new List<BoardCard>();
@@ -120,7 +127,7 @@ public sealed class BoardProjector(
     private static List<string> LinkedRuns(MilestoneView view, IReadOnlyList<(DecisionEntry Entry, DecisionPayload? Payload)> parsed) =>
         WorkLog.Followed(parsed, view.Targets.Where(t => t.Kind == MilestoneTargetKind.Run).Select(t => t.Id).ToHashSet(StringComparer.Ordinal));
 
-    private async Task<RunFacts?> FactsOfAsync(string projectId, string run, IReadOnlyList<(DecisionEntry Entry, DecisionPayload? Payload)> log, IReadOnlyDictionary<string, StoredVerdict> storedVerdicts, CancellationToken cancellationToken)
+    private async Task<RunFacts?> FactsOfAsync(string projectId, string run, IReadOnlyList<(DecisionEntry Entry, DecisionPayload? Payload)> log, IReadOnlyList<DecisionEntry> entriesOfLog, RemoteLogReading remote, IReadOnlyDictionary<string, StoredVerdict> storedVerdicts, CancellationToken cancellationToken)
     {
         var entries = log
             .Where(item => item.Payload is not null && string.Equals(item.Payload.RunId, run, StringComparison.Ordinal))
@@ -163,7 +170,10 @@ public sealed class BoardProjector(
         }
 
         var standing = judged.Select(j => (j.Issued, j.Stored.Verdict, Standing: VerdictReach.Standing(log, j.Stored, storedVerdicts))).ToList();
-        return new RunFacts(run, tasks, finished is not null, finished?.Phase is RunPhase.Failed or RunPhase.Cancelled, delivered, standing);
+
+        // The merged pull requests of the run (D-29): whether each integrates a requirement is decided per requirement, by the verdict that decides it (RunFacts.DeliveryFor).
+        var pullRequests = remote.OfRun(run).Where(p => p.Latest.State == PullRequestState.Merged).ToList();
+        return new RunFacts(run, tasks, finished is not null, finished?.Phase is RunPhase.Failed or RunPhase.Cancelled, delivered, standing, pullRequests, entriesOfLog);
     }
 
     private static BlockKind? BlockedKind(IReadOnlyList<(DecisionEntry Entry, DecisionPayload Payload)> entries, TaskId task) =>
@@ -171,13 +181,16 @@ public sealed class BoardProjector(
             ? BlockReason.Parse(blocked.BlockReason)?.Kind
             : null;
 
-    private static string? ReasonOfRequirement(BoardColumn column, IReadOnlyList<TaskFacts> covering, RunFacts run, RequirementVerdict? verdict) => column switch
+    private static string? ReasonOfRequirement(BoardColumn column, IReadOnlyList<TaskFacts> covering, RunFacts run, RequirementVerdict? verdict, bool mergedUnjudged) => column switch
     {
         BoardColumn.InProgress => covering.Select(ReasonOfActive).FirstOrDefault(r => r is not null),
         BoardColumn.InReview when verdict is { Challenged: true } => BoardCardReasons.Challenged,
         BoardColumn.InReview when verdict?.Facts.Decision == VerdictDecision.EscalateToHuman => BoardCardReasons.EscalatedToPerson,
         BoardColumn.InReview when verdict?.Facts.Decision == VerdictDecision.Unresolved => BoardCardReasons.Unresolved,
         BoardColumn.Returned when verdict is null && run.Failed => BoardCardReasons.RunFailed,
+
+        // Done, and its pull request was merged with something other than what the judge saw (D-29): it does not count as integrated, and says why.
+        BoardColumn.Done when mergedUnjudged => BoardCardReasons.MergedWithUnjudgedChanges,
         _ => null,
     };
 
@@ -203,7 +216,7 @@ public sealed class BoardProjector(
 
     private sealed record TaskFacts(TaskId Id, string Title, WorkTaskStatus Status, IReadOnlyList<RequirementId> Covers, BlockKind? Block, bool IsReview);
 
-    private sealed record RequirementVerdict(BoardVerdictFacts Facts, bool Challenged);
+    private sealed record RequirementVerdict(BoardVerdictFacts Facts, bool Challenged, VerdictIssuedPayload Issued);
 
     private sealed record RunFacts(
         string Run,
@@ -211,8 +224,27 @@ public sealed class BoardProjector(
         bool Ended,
         bool Failed,
         bool Delivered,
-        IReadOnlyList<(VerdictIssuedPayload Issued, Verdict Verdict, VerdictStanding Standing)> Verdicts)
+        IReadOnlyList<(VerdictIssuedPayload Issued, Verdict Verdict, VerdictStanding Standing)> Verdicts,
+        IReadOnlyList<ObservedPullRequest> MergedPullRequests,
+        IReadOnlyList<DecisionEntry> Log)
     {
+        /// <summary>
+        /// Whether the requirement is delivered, and whether a pull request of the run was merged without counting as its integration. The local delivery counts as it always did; a
+        /// merged pull request counts when <see cref="IntegrationByPullRequest"/> says so for the commit the judge saw when it issued the verdict that decides the requirement (none: null).
+        /// </summary>
+        public (bool Delivered, bool MergedUnjudged) DeliveryFor(RequirementVerdict? verdict)
+        {
+            if (MergedPullRequests.Count == 0)
+            {
+                return (Delivered, false);
+            }
+
+            var judgedCommit = RemoteJudgement.JudgedCommit(Log, Run, verdict?.Issued);
+            var counts = MergedPullRequests.Select(p => IntegrationByPullRequest.Of(p.Latest, judgedCommit)).ToList();
+            var integrated = Delivered || counts.Contains(PullRequestIntegration.Integrated);
+            return (integrated, !integrated && counts.Contains(PullRequestIntegration.MergedWithUnjudgedChanges));
+        }
+
         public IReadOnlyList<TaskFacts> Covering(RequirementId requirement) => [.. Tasks.Where(t => t.Covers.Contains(requirement))];
 
         /// <summary>
@@ -253,7 +285,7 @@ public sealed class BoardProjector(
                 var onOrdinaryTask = issued.Task is { } one && Tasks.Any(t => t.Id == one && !t.IsReview);
                 if (covering.Any(t => VerdictReach.Judges(verdict, issued.Task, onOrdinaryTask, t.Id, requirement)))
                 {
-                    return new RequirementVerdict(new BoardVerdictFacts(standing.Decision, verdict.Assessments.FirstOrDefault(a => a.Requirement == requirement)?.Status), standing.Challenged);
+                    return new RequirementVerdict(new BoardVerdictFacts(standing.Decision, verdict.Assessments.FirstOrDefault(a => a.Requirement == requirement)?.Status), standing.Challenged, issued);
                 }
             }
 

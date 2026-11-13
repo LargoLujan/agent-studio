@@ -1,6 +1,8 @@
 using AgentStudio.Application.Decisions;
 using AgentStudio.Application.Git;
+using AgentStudio.Application.Hosting;
 using AgentStudio.Application.Projects;
+using AgentStudio.Domain.Hosting;
 using AgentStudio.Domain.Tracing;
 using AgentStudio.Orchestration.Engine;
 
@@ -39,6 +41,22 @@ public sealed class RepositoryAnnotator(IDecisionRecorder recorder, TraceSuggest
             .ToHashSet();
         var suggestions = suggester.SuggestForCommits(state, commits);
 
+        // What the remote did with the commits (docs/21 D-28): a commit of a merged pull request knows what became of it, and a commit its merge left knows where it comes
+        // from. The mode and a revert are deductions and the annotation says so (CommitSuccessor); a commit no merged pull request names has none.
+        var remote = RemoteLogReading.ReadEntries(state.Entries);
+        var succession = remote.Succession(p => p.Run is { } run ? RemoteJudgement.LastAnnouncedCommit(state.Entries, run) : null);
+        var resultOf = new Dictionary<string, CommitSuccessor>(StringComparer.Ordinal);
+        foreach (var observed in remote.PullRequests)
+        {
+            if (succession.OfPullRequest(observed.PullRequest) is { } merged)
+            {
+                foreach (var result in merged.ResultCommits)
+                {
+                    resultOf[result] = merged;
+                }
+            }
+        }
+
         var annotated = new List<AnnotatedCommit>(commits.Count);
         foreach (var commit in commits)
         {
@@ -54,11 +72,15 @@ public sealed class RepositoryAnnotator(IDecisionRecorder recorder, TraceSuggest
                 }
             }
 
+            // An original commit of a merged pull request has its successor; a commit the merge left (a squash, a rebased copy, a merge commit) has the same pull request.
+            var successor = succession.SuccessorOf(commit.Id) ?? resultOf.GetValueOrDefault(commit.Id);
+            var remoteRun = successor is null ? null : remote.Find(successor.PullRequest)?.Run;
+
             annotated.Add(new AnnotatedCommit(
                 commit,
-                attempt is null && links.Count == 0 && offered.Count == 0
+                attempt is null && links.Count == 0 && offered.Count == 0 && successor is null
                     ? null
-                    : new CommitAnnotation(attempt?.RunId, attempt?.Task?.Value, attempt?.Attempt, attempt?.Agent, attempt?.Model, links, offered)));
+                    : new CommitAnnotation(attempt?.RunId ?? remoteRun, attempt?.Task?.Value, attempt?.Attempt, attempt?.Agent, attempt?.Model, links, offered, successor)));
         }
 
         return annotated;

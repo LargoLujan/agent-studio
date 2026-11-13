@@ -3,11 +3,14 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AgentStudio.Application.Decisions;
+using AgentStudio.Application.Hosting;
 using AgentStudio.Application.Judging;
 using AgentStudio.Application.Security;
 using AgentStudio.Application.Work;
+using AgentStudio.Debate.Judging;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Decisions;
+using AgentStudio.Domain.Hosting;
 using AgentStudio.Domain.Judging;
 using AgentStudio.Domain.Requirements;
 using AgentStudio.Domain.Work.Milestones;
@@ -35,10 +38,36 @@ public sealed record MilestoneReportRequirementSet(int Version, string Hash, boo
 /// <summary>
 /// A requirement of the frozen set, and its states (D-50). <c>Implemented</c>: the trustworthy audit judged it satisfied (D-49: its
 /// verdict is the functionality really implemented). <c>Reviewed</c> and <c>Integrated</c>: the board (D-19) has its card in «hecho» or in
-/// «integrado». «Desplegado» is not here: Agent Studio deploys nothing, and without the platform's word that state does not appear.
-/// <c>Column</c> is the card's column, or null when the board gave none.
+/// «integrado» (by the local delivery or, in Phase 10, by a pull request merged with the commit the judge saw, docs/21 D-29). «Desplegado» (<c>Deployed</c>) is there only when
+/// the platform said it deployed what the merge left (docs/21 D-29): Agent Studio deploys nothing, and without the platform's word that state does not appear (the key is
+/// omitted, there is no «no desplegado»). <c>MergedWithUnjudgedChanges</c> (omitted when false) says its pull request was merged with something the judge did not see: it is not
+/// integrated. <c>Column</c> is the card's column, or null when the board gave none.
 /// </summary>
-public sealed record MilestoneReportRequirement(string Id, string Priority, string Statement, string? Column, string Assessment, bool Implemented, bool Reviewed, bool Integrated);
+public sealed record MilestoneReportRequirement(
+    string Id,
+    string Priority,
+    string Statement,
+    string? Column,
+    string Assessment,
+    bool Implemented,
+    bool Reviewed,
+    bool Integrated,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool MergedWithUnjudgedChanges = false,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? Deployed = null);
+
+/// <summary>
+/// A pull request of a run of the milestone, as the log last observed it (docs/21 D-28). <c>ModeDeduced</c>: the mode of the merge is a deduction (a merge made outside, or one
+/// the platform leaves ambiguous), never a fact; <c>RevertSuspected</c>: a commit of the base branch says it reverts the merge (read from its message: deduced as well).
+/// </summary>
+public sealed record MilestoneReportPullRequest(string Id, string Run, string State, string? MergeCommit, string? MergeMode, bool ModeDeduced, bool RevertSuspected, bool Deployed);
+
+/// <summary>
+/// What the log holds of the remote for the milestone (Phase 10): its pull requests, and the entries of the remote the report left out because they did not validate (their
+/// sequence in the log). The section is omitted when the log has nothing of the remote, so the report of a project without one is the one of Phase 9, byte for byte.
+/// </summary>
+public sealed record MilestoneReportRemote(
+    IReadOnlyList<MilestoneReportPullRequest> PullRequests,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<long>? IgnoredEntries = null);
 
 public sealed record MilestoneReportAgent(string Agent, string Role, string Provider, string Vendor);
 
@@ -105,7 +134,8 @@ public sealed record MilestoneReport(
     IReadOnlyList<MilestoneReportDeviation> Deviations,
     IReadOnlyList<MilestoneReportPending> Pending,
     IReadOnlyList<MilestoneReportEarlier> EarlierReports,
-    IReadOnlyList<string> NotIncluded)
+    IReadOnlyList<string> NotIncluded,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] MilestoneReportRemote? Remote = null)
 {
     public const string CurrentFormat = "agent-studio/milestone-report/1";
 
@@ -119,6 +149,10 @@ public sealed record MilestoneReport(
     public const string RequirementUncovered = "requirement.uncovered";
     public const string RequirementNotReviewed = "requirement.not-reviewed";
     public const string RequirementNotIntegrated = "requirement.not-integrated";
+
+    // Phase 10 (docs/21 D-27 and D-29).
+    public const string RequirementMergedUnjudged = "requirement.merged-unjudged-changes";
+    public const string RevertSuspected = "remote.revert-suspected";
     public const string RunAlert = "run.alert";
     public const string VerdictChallenged = "verdict.challenged";
     public const string AuditNotTrustworthy = "audit.not-trustworthy";
@@ -182,7 +216,8 @@ public static class MilestoneReportBuilder
         var runs = input.Scope.Runs.Order(StringComparer.Ordinal).Select(run => RunOf(run, linked.Contains(run), items, challenged)).ToList();
         var debates = input.Scope.Debates.Order(StringComparer.Ordinal).Select(id => DebateOf(id, items)).ToList();
         var audit = AuditOf(input.Audit, items);
-        var requirements = RequirementsOf(input);
+        var remote = RemoteOf(input.Log, items, input.Scope.Runs);
+        var requirements = RequirementsOf(input, remote);
         var units = input.Scope.Runs.Concat(input.Scope.Debates).Append(input.Audit.Audit.Value).ToHashSet(StringComparer.Ordinal);
         var pending = PendingProblems.From(input.Log).Where(p => units.Contains(p.Source)).Select(p => new MilestoneReportPending(p.Code, p.Source, Clean(p.Message))).ToList();
 
@@ -200,18 +235,81 @@ public static class MilestoneReportBuilder
             runs,
             debates,
             audit,
-            Deviations(input, requirements, runs, audit),
+            Deviations(input, requirements, runs, audit, remote),
             pending,
             earlier,
-            NotIncludedSections);
+
+            // The deployment line says «ninguna plataforma lo ha informado»: it goes only when one did (D-29).
+            remote is not null && remote.Observed.Any(p => p.Deployed) ? [NotIncludedSections[0]] : NotIncludedSections,
+            remote?.Section);
     }
 
-    private static List<MilestoneReportRequirement> RequirementsOf(MilestoneReportInput input)
+    /// <summary>The pull requests the log observed for the runs of the milestone (final observation of each, whatever the order of the entries) and the remote entries left out.</summary>
+    private sealed record RemoteView(IReadOnlyList<ObservedPullRequest> Observed, IReadOnlyList<long> Ignored)
     {
-        var columns = (input.Board?.Requirements ?? [])
+        public MilestoneReportRemote Section => new(
+            [.. Observed.Select(p => new MilestoneReportPullRequest(
+                p.Latest.PullRequest.TraceId, p.Run, p.Latest.State.ToString(), p.Latest.MergeCommit, p.Latest.MergeMode?.ToString(), p.ModeDeduced, p.Latest.RevertCommits.Count > 0, p.Deployed))],
+            Ignored.Count > 0 ? Ignored : null);
+    }
+
+    /// <summary>
+    /// A pull request of a run of the milestone as the shared reading gives it. <paramref name="JudgedCommit"/> is the commit the judge saw for its run (null: the log does not say);
+    /// <paramref name="ModeDeduced"/> comes from the succession of commits, where the rule lives.
+    /// </summary>
+    private sealed record ObservedPullRequest(string Run, RemoteSnapshot Latest, bool ModeDeduced, string? JudgedCommit)
+    {
+        /// <summary>What the platform says: a successful deployment of a commit the merge left.</summary>
+        public bool Deployed => IntegrationByPullRequest.IsDeployed(Latest);
+
+        /// <summary>Whether the rule of D-29 counts it as the integration of its run: merged with the commit the judge saw.</summary>
+        public bool Integrated => IntegrationByPullRequest.Of(Latest, JudgedCommit) == PullRequestIntegration.Integrated;
+    }
+
+    /// <summary>
+    /// The remote entries of the log (docs/21 D-28) for the runs of the milestone, from the one reading of them (<see cref="RemoteLogReading"/>, in Application): of the observations of a
+    /// pull request only the final one counts, so a repeated or out-of-order entry changes nothing. The section exists only when there is something to say: a valid pull request of one of
+    /// the runs of the milestone, or an entry that does not validate and that names one of them (<c>IgnoredEntries</c>, by sequence). What cannot be attributed to a run of the milestone, an
+    /// invalid entry that names no run or another one, is not in its report. Null: the report is the one of Phase 9.
+    /// </summary>
+    private static RemoteView? RemoteOf(IReadOnlyList<DecisionEntry> log, List<RunItem> items, IReadOnlyList<string> runsOfMilestone)
+    {
+        var reading = RemoteLogReading.Read(items.Select(i => (i.Entry, i.Payload)));
+        var scope = runsOfMilestone.ToHashSet(StringComparer.Ordinal);
+        var succession = reading.Succession(_ => null);
+        var observed = reading.PullRequests
+            .Where(p => p.Run is not null && scope.Contains(p.Run))
+            .Select(p => new ObservedPullRequest(p.Run!, p.Latest, succession.OfPullRequest(p.PullRequest)?.ModeIsDeduced ?? true, JudgedCommitOf(log, items, p.Run!)))
+            .ToList();
+        var ignored = reading.Ignored.Where(i => i.Run is not null && scope.Contains(i.Run)).Select(i => i.Sequence).ToList();
+
+        return observed.Count == 0 && ignored.Count == 0 ? null : new RemoteView(observed, ignored);
+    }
+
+    /// <summary>
+    /// The commit the judge saw for a run: the one of the dossier of its last approved valid verdict, which is the result of the last clean integration into the branch of the run in the log up
+    /// to the head that verdict names (the reading <c>RunLog.CandidateCommit</c> gives the judge, and the delivery and the board use). Null when there is none or the log does not have that head.
+    /// It does not look at revisions of a challenge (the board does): for a card in «integrado» an approval stands, and this is the commit of that approval.
+    /// </summary>
+    private static string? JudgedCommitOf(IReadOnlyList<DecisionEntry> log, List<RunItem> items, string run)
+    {
+        var deciding = items.Select(i => i.Payload).OfType<VerdictIssuedPayload>()
+            .LastOrDefault(v => string.Equals(v.RunId, run, StringComparison.Ordinal) && v.Valid && v.Decision == VerdictDecision.Approved);
+        if (deciding is null || log.FirstOrDefault(e => string.Equals(e.Hash, deciding.DecisionLogHeadHash, StringComparison.Ordinal)) is not { } at)
+        {
+            return null;
+        }
+
+        return RunLog.CandidateCommit(RunLog.EntriesOf(log.Where(e => e.Sequence <= at.Sequence), run));
+    }
+
+    private static List<MilestoneReportRequirement> RequirementsOf(MilestoneReportInput input, RemoteView? remote)
+    {
+        var cards = (input.Board?.Requirements ?? [])
             .Where(c => c.Kind == BoardCardKind.Requirement)
             .GroupBy(c => c.Id, StringComparer.Ordinal)
-            .ToDictionary(g => g.Key, g => g.First().Column, StringComparer.Ordinal);
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
+        var columns = cards.ToDictionary(c => c.Key, c => c.Value.Column, StringComparer.Ordinal);
         var assessments = input.Audit.Verdict.Assessments
             .GroupBy(a => a.Requirement.Value, StringComparer.Ordinal)
             .ToDictionary(g => g.Key, g => g.Last().Status, StringComparer.Ordinal);
@@ -220,6 +318,13 @@ public static class MilestoneReportBuilder
         {
             BoardColumn? column = columns.TryGetValue(requirement.Id.Value, out var found) ? found : null;
             AssessmentStatus? status = assessments.TryGetValue(requirement.Id.Value, out var assessed) ? assessed : null;
+
+            // Phase 10: the card says it (the board applies the rule of D-29), and «desplegado» exists only when the platform said so for the run that decided the card.
+            var card = cards.GetValueOrDefault(requirement.Id.Value);
+            var mergedUnjudged = string.Equals(card?.Reason, BoardCardReasons.MergedWithUnjudgedChanges, StringComparison.Ordinal);
+            bool? deployed = column is BoardColumn.Integrated && card?.Run is { } deciding && remote is not null && remote.Observed.Any(p => string.Equals(p.Run, deciding, StringComparison.Ordinal) && p.Deployed && p.Integrated)
+                ? true
+                : null;
             result.Add(new MilestoneReportRequirement(
                 requirement.Id.Value,
                 requirement.Priority.ToString(),
@@ -228,7 +333,9 @@ public static class MilestoneReportBuilder
                 status?.ToString() ?? "NotAssessed",
                 Implemented: input.Audit.IsTrustworthy && status == AssessmentStatus.Satisfied,
                 Reviewed: column is BoardColumn.Done or BoardColumn.Integrated,
-                Integrated: column is BoardColumn.Integrated));
+                Integrated: column is BoardColumn.Integrated,
+                MergedWithUnjudgedChanges: mergedUnjudged,
+                Deployed: deployed));
         }
 
         return result;
@@ -302,7 +409,7 @@ public static class MilestoneReportBuilder
     }
 
     /// <summary>The deviations (D-49), in a fixed order of kinds and, within each, in the order of the requirements, runs and alerts.</summary>
-    private static List<MilestoneReportDeviation> Deviations(MilestoneReportInput input, List<MilestoneReportRequirement> requirements, List<MilestoneReportRun> runs, MilestoneReportAudit audit)
+    private static List<MilestoneReportDeviation> Deviations(MilestoneReportInput input, List<MilestoneReportRequirement> requirements, List<MilestoneReportRun> runs, MilestoneReportAudit audit, RemoteView? remote)
     {
         var deviations = new List<MilestoneReportDeviation>();
         if (!audit.Trustworthy)
@@ -342,6 +449,10 @@ public static class MilestoneReportBuilder
             {
                 deviations.Add(new MilestoneReportDeviation(MilestoneReport.RequirementNotReviewed, requirement.Id, $"Ningún veredicto aprobado y válido da por satisfecho el requisito {requirement.Id} (columna {requirement.Column ?? "desconocida"})."));
             }
+            else if (requirement.MergedWithUnjudgedChanges)
+            {
+                deviations.Add(new MilestoneReportDeviation(MilestoneReport.RequirementMergedUnjudged, requirement.Id, $"El requisito {requirement.Id} está revisado, pero su pull request se fusionó con cambios que el juez no vio: no cuenta como integrado."));
+            }
             else if (!requirement.Integrated)
             {
                 deviations.Add(new MilestoneReportDeviation(MilestoneReport.RequirementNotIntegrated, requirement.Id, $"El requisito {requirement.Id} está revisado pero su ejecución no se entregó a tu rama."));
@@ -364,6 +475,12 @@ public static class MilestoneReportBuilder
         foreach (var alert in audit.Alerts)
         {
             deviations.Add(new MilestoneReportDeviation(MilestoneReport.AuditAlert, audit.Id, $"Alerta {alert.Code} en la auditoría: {alert.Message}"));
+        }
+
+        // A revert read from the message of a commit of the base branch (D-27) is a deduction: it is said as one, and a person decides whether to reopen the milestone.
+        foreach (var pullRequest in (remote?.Observed ?? []).Where(p => p.Latest.RevertCommits.Count > 0))
+        {
+            deviations.Add(new MilestoneReportDeviation(MilestoneReport.RevertSuspected, pullRequest.Latest.PullRequest.TraceId, $"Posible reversión de {pullRequest.Latest.PullRequest.TraceId} (deducida del mensaje de un commit de la rama base): una persona decide si reabre el hito."));
         }
 
         return deviations;
