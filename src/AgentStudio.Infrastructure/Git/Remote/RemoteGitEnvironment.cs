@@ -2,7 +2,7 @@ namespace AgentStudio.Infrastructure.Git.Remote;
 
 /// <summary>
 /// The environment of every command of the remote executor of git (docs/21 D-06, ADR-0064 point 7): an allow list, not a block list. A block list goes stale with every variable of every tool; the allow list fails towards
-/// safe. <c>ProcessSpec.Environment</c> is a change over what the child inherits, so every variable the process has that is not on the list goes in as null, which removes it: no <c>GIT_*</c>, no <c>GH_*</c>,
+/// safe. <c>ProcessSpec.Environment</c> is a change over what the child inherits, so every variable the process has that is not on the list goes in as null, which removes it (and the ones on the list go in with the value the snapshot has): no <c>GIT_*</c>, no <c>GH_*</c>,
 /// no <c>GCM_*</c> and no proxy variable gets through, whatever it is called. What the executor sets itself is the rest.
 /// </summary>
 internal static class RemoteGitEnvironment
@@ -20,6 +20,9 @@ internal static class RemoteGitEnvironment
         // The folder of the commands of Windows is set by the runner of processes so that CreateProcess skips the current folder: it must survive.
         "NoDefaultCurrentDirectoryInExePath",
     ];
+
+    // The runner of processes sets these two itself (the clean PATH, and the flag that stops the current folder from being searched), and what a spec sets wins: they are never named here.
+    private static readonly string[] RunnerOwned = ["PATH", "NoDefaultCurrentDirectoryInExePath"];
 
     /// <summary>
     /// The names removed whether or not the snapshot of the environment has them (the snapshot may be an injected one, and the child inherits the real one): the ones that redirect git, choose how it
@@ -49,11 +52,16 @@ internal static class RemoteGitEnvironment
         ArgumentNullException.ThrowIfNull(ambient);
 
         var environment = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
-        foreach (var name in ambient.Keys)
+        foreach (var (name, value) in ambient)
         {
             if (!Allowed.Contains(name, StringComparer.OrdinalIgnoreCase))
             {
                 environment[name] = null;
+            }
+            else if (!RunnerOwned.Contains(name, StringComparer.OrdinalIgnoreCase))
+            {
+                // Allowed, so it goes on as the snapshot has it: the environment of the command is what this says, not what the child happens to inherit.
+                environment[name] = value;
             }
         }
 

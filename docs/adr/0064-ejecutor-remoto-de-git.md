@@ -103,3 +103,14 @@
 - **`IRemoteGitRunner`** tiene tres miembros y ninguno recibe un `string`: ni orden, ni argumento, ni refspec, ni dirección. `RemotePush` lleva el proyecto, el destino validado, la ejecución y el commit; nada más. Una prueba de
   superficie (`ContractSurfaceTests`) lo exige.
 - **La rama de una ejecución** es `RemoteBranch.ForRun(RunId)`, con la regla de `git check-ref-format` y sin empezar nunca por `-`.
+
+## Adenda de WP1: lo medido (2026-11-13)
+
+Medido con git 2.45.2 en Windows contra un remoto bare local (transporte `file`, sin red). El detalle y lo que sigue sin verificar están en [docs/21 §10.3 «Ajustes de WP1»](../21-fase-10-git-remoto.md#ajustes-de-wp1-2026-11-13) y §13.
+
+- **Publicar a una dirección deja el repositorio de la persona igual:** sin `refs/remotes/*`, sin `FETCH_HEAD`, y con `remote.origin.pushurl` configurado el envío fue a la dirección dada. Lo fija una prueba que compara `Snapshot()` y `UserRepositoryState.Compare` antes y después, con `remote.origin.url`, `fetch` y `branch.main.*` normales.
+- **Los hooks no corren:** un `pre-push` de `.git/hooks` y otro de un `core.hooksPath` tipo husky corren en un `push` normal y no con el fichero vacío y `--no-verify`.
+- **`ls-remote --get-url` aplica `insteadOf` pero no `pushInsteadOf`:** una reescritura de este tipo se rechaza por prefijo en código.
+- **Git LFS:** la configuración del sistema de Git for Windows ya trae `filter.lfs.*`, así que se combina con los atributos del árbol de trabajo.
+- **Decisión de detalle:** `--` antes de la dirección; `LC_ALL=C`; el nombre de una clave rechazada escribe la subsección como `*`.
+- **Sin verificar:** el gestor de credenciales, HTTPS y sus redirecciones, el `pre-push` de git-lfs.
