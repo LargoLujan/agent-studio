@@ -145,10 +145,10 @@
     <value>Todavía no hubo ninguna sincronización buena.</value>
   </data>
   <data name="Hosting_Header_SyncOn" xml:space="preserve">
-    <value>Sincronizar con GitHub: activado para este proyecto. Se cambia en Ajustes.</value>
+    <value>Sincronizar con GitHub está activado en este proyecto. Lo cambias en Ajustes.</value>
   </data>
   <data name="Hosting_Header_SyncOff" xml:space="preserve">
-    <value>Sincronizar con GitHub: desactivado para este proyecto. Se cambia en Ajustes.</value>
+    <value>Sincronizar con GitHub está desactivado en este proyecto. Lo cambias en Ajustes.</value>
   </data>
   <data name="Hosting_Header_SyncNow" xml:space="preserve">
     <value>Sincronizar ahora</value>
@@ -160,7 +160,7 @@
     <value>Conectado a GitHub como {0}.</value>
   </data>
   <data name="Hosting_Sync_Asked" xml:space="preserve">
-    <value>Sincronización pedida. Se verá aquí en unos segundos.</value>
+    <value>Pedido hecho. Lo verás aquí en unos segundos.</value>
   </data>
   <data name="Hosting_Unfollowed" xml:space="preserve">
     <value>Dejas de seguir esta petición de fusión.</value>
@@ -320,7 +320,7 @@
     <value>{0} versiones guardadas (commit) originales: {1}</value>
   </data>
   <data name="Hosting_Detail_OriginalsTruncated" xml:space="preserve">
-    <value>Al menos {0} versiones guardadas (commit) originales: {1}. La lista está incompleta.</value>
+    <value>Hay {0} versiones guardadas (commit) originales o más: {1}</value>
   </data>
   <data name="Hosting_Detail_Results" xml:space="preserve">
     <value>{0} versiones guardadas (commit) tras la fusión: {1}</value>
@@ -533,7 +533,7 @@
     <value>No se guardó el permiso.</value>
   </data>
   <data name="Hosting_Permissions_Revoked" xml:space="preserve">
-    <value>Permiso retirado. La próxima vez se pedirá confirmación.</value>
+    <value>Has retirado el permiso. Te lo volverá a pedir.</value>
   </data>
   <data name="Hosting_Permissions_Unreadable" xml:space="preserve">
     <value>No se pudieron leer los permisos guardados.</value>
@@ -740,13 +740,13 @@ Si hace falta, reabre el hito.</value>
     <value>GitHub no dijo qué modos de fusión admite el repositorio.</value>
   </data>
   <data name="Text_configuration_refused" xml:space="preserve">
-    <value>El repositorio define una configuración que impide publicar. Quítala o publica con tu programa de git.</value>
+    <value>El repositorio tiene una configuración que impide publicar. Quítala, o publica con tu programa de git.</value>
   </data>
   <data name="Text_inspection_failed" xml:space="preserve">
     <value>No se pudo revisar la configuración del repositorio, así que no se publica.</value>
   </data>
   <data name="Text_inspection_output_too_large" xml:space="preserve">
-    <value>La configuración del repositorio es demasiado grande para revisarla, así que no se publica.</value>
+    <value>La configuración del repositorio es muy grande. No se pudo revisar y no se publica.</value>
   </data>
   <data name="Text_git_unavailable" xml:space="preserve">
     <value>No se encuentra el programa git. Instálalo y vuelve a intentarlo.</value>

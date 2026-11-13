@@ -11,7 +11,7 @@ This screen tells what happened in the repository of the project. Its first four
 - **The saved versions:** each one says who made it. If Agent Studio did, it says the run, the task, the attempt, the agent and the model.
 - **The activity:** the integrations and the deliveries, and whether they worked. Also what Agent Studio did on GitHub or saw there, with its real result. What waits to sync goes on top, with its reason.
 - **The pull requests (PR):** the ones you follow on GitHub and their actions. The article «Publish and open a pull request (PR)» explains it.
-- On the branches of a run you will see whether it is published, at which version and whether it was deleted on GitHub. It only says so when the history knows it.
+- A run branch says whether it is published and at which version. It also says whether it was deleted on GitHub. It only says so when the history knows it.
 
 ## How to read it
 Agent Studio only says it made a version if the log backs it. If not, at most it marks it as a **suggestion**: it may be true, but nobody has confirmed it.

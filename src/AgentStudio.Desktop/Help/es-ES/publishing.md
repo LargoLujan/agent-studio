@@ -24,8 +24,8 @@ Publicar sube a GitHub el trabajo de una ejecución que un revisor independiente
 ## Dónde está
 En «Repositorio y cambios», en la pestaña **Peticiones de fusión (PR)**. Arriba ves el repositorio de GitHub, la sesión y la última sincronización. Debajo, las peticiones que sigues, una fila cada una.
 
-- Pulsa una fila para ver su detalle: las protecciones de la rama base, los checks que fallan y las versiones guardadas antes y después de fusionar.
-- Cada botón solo sale si tu versión de gh sabe hacerlo y la petición está en un estado que lo admite.
+- Pulsa una fila para ver su detalle. Verás las protecciones de la rama base, los checks que fallan y las versiones guardadas, antes y después de fusionar.
+- Un botón solo sale si tu versión de gh sabe hacerlo y la petición lo admite.
 - Fusionar, cerrar y borrar la rama remota enseñan primero una tarjeta con lo que harán. Piden Windows Hello cada vez.
 - Lo que escribe GitHub (el título, el nombre de un check) se enseña como dato, tal cual llega.
 - Lo que Agent Studio deduce lleva la marca «(deducido)»: el modo de fusión y una posible reversión.

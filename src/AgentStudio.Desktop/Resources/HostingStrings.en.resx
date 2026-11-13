@@ -309,7 +309,7 @@
     <value>{0} original saved versions (commit): {1}</value>
   </data>
   <data name="Hosting_Detail_OriginalsTruncated" xml:space="preserve">
-    <value>At least {0} original saved versions (commit): {1}. The list is incomplete.</value>
+    <value>{0} original saved versions (commit) or more: {1}</value>
   </data>
   <data name="Hosting_Detail_Results" xml:space="preserve">
     <value>{0} saved versions (commit) after the merge: {1}</value>
