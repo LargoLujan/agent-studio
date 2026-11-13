@@ -251,6 +251,23 @@ public sealed class DocsSectionTests
     }
 
     [Fact]
+    public async Task Calculate_looks_again_even_when_something_is_saved_and_refresh_only_reads_it()
+    {
+        using var world = new DiagramFakes.World();
+
+        var section = await OpenDiscrepanciesAsync(world);
+        Assert.Equal(0, world.Analysis.Analyzed);
+        Assert.True(section.HasResult);
+
+        await section.RefreshCommand.ExecuteAsync(null);
+        Assert.Equal(0, world.Analysis.Analyzed);
+
+        await section.CalculateCommand.ExecuteAsync(null);
+        Assert.Equal(1, world.Analysis.Analyzed);
+        Assert.True(section.HasResult);
+    }
+
+    [Fact]
     public async Task The_findings_come_grouped_by_code_with_their_sentence_and_where_they_are()
     {
         using var world = new DiagramFakes.World();

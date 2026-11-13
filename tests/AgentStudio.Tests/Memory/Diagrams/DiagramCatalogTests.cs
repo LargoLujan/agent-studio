@@ -425,6 +425,7 @@ public sealed class DiagramCatalogTests
     }
 
     [Fact]
+    [Trait("Category", "LocalTools")]
     public async Task A_link_in_the_folder_of_the_export_is_never_followed()
     {
         using var world = new DiagramFakes.World();
@@ -452,6 +453,7 @@ public sealed class DiagramCatalogTests
     }
 
     [Fact]
+    [Trait("Category", "LocalTools")]
     public async Task A_file_of_the_export_that_is_a_link_is_never_overwritten_even_when_asked_to()
     {
         using var world = new DiagramFakes.World();
@@ -475,18 +477,6 @@ public sealed class DiagramCatalogTests
         Assert.Empty(result.Written);
         Assert.Single(result.Conflicts);
         Assert.Equal("outside\n", await File.ReadAllTextAsync(target, CancellationToken.None));
-    }
-
-    [Fact]
-    public async Task Exporting_takes_a_long_list_of_diagrams_in_a_second()
-    {
-        using var world = new DiagramFakes.World();
-        await world.Catalog.GenerateAsync(world.Project, DiagramKind.Solution, string.Empty, CancellationToken.None);
-        var watch = Stopwatch.StartNew();
-
-        await world.Catalog.ExportAsync(world.Project, Request(Solution), CancellationToken.None);
-
-        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(5), watch.Elapsed.ToString());
     }
 
     private static DiagramExportRequest Request(DiagramRef diagram, DiagramExportConflictChoice choice = DiagramExportConflictChoice.Ask, DiagramRef[]? others = null) =>

@@ -217,11 +217,13 @@ public sealed partial class DocsDiscrepanciesSection : GraphSection
                 return;
             }
 
-            var analysis = await _backend.Analysis!.FindAsync(project, head, token).ConfigureAwait(true);
+            // «Calcular» is the person's order to look again (the checks of the requirements and of a check that failed do not depend on the version), so it does not take
+            // what is saved; opening the section and «Actualizar» only read it.
+            var analysis = calculate ? null : await _backend.Analysis!.FindAsync(project, head, token).ConfigureAwait(true);
             if (analysis is null && calculate)
             {
                 Notice = T.Get("Docs_Disc_Calculating");
-                analysis = await _backend.Analysis.AnalyzeAsync(project, head, token).ConfigureAwait(true);
+                analysis = await _backend.Analysis!.AnalyzeAsync(project, head, token).ConfigureAwait(true);
             }
 
             if (generation != _generation)

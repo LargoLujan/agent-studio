@@ -172,7 +172,8 @@ public sealed class ConsistencyChecksTests
         var watch = Stopwatch.StartNew();
         var findings = await Links(new FakeSnapshot([.. files]));
 
-        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(10), watch.Elapsed.ToString());
+        // A generous bound: it only has to tell a linear scan (well under a second) from one that grows with the square of the line (minutes), also on a computer that is busy.
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(60), watch.Elapsed.ToString());
         Assert.Contains(findings, f => f.Path == "docs/muchos/00.md");
     }
 
