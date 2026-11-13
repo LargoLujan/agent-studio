@@ -173,6 +173,9 @@ internal sealed class ProjectRemoteMailbox : IAsyncDisposable
         return first.Task;
     }
 
+    /// <summary>Shows a request the gate refused as a ticket that failed at once, so that the screen has a status to read.</summary>
+    public void Reject(RemoteWorkTicket ticket, UserText message) => SetStatus(ticket, RemoteWorkState.Failed, null, null, message);
+
     /// <summary>Runs something on the consumer, in its turn, with the context of a flow (to look at the project with the lease in hand and give back what it saw).</summary>
     public Task<T> ExecAsync<T>(Func<FlowContext, Task<T>> work)
     {
