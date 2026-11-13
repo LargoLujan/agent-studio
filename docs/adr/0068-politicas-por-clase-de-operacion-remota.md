@@ -79,3 +79,18 @@
   admite ninguna autorización persistente, ni con rama base salvo en «escribir en el PR»; `Covers` exige la misma clase, el mismo repositorio y, si lleva rama base, esa misma.
 - **Las fábricas de los payloads validan** lo mismo (una autorización persistente de fusionar no se puede anotar; una operación se anota con exactamente una de la autorización y la aprobación, y una autorización no puede amparar una
   operación que no admite ser persistente).
+
+
+## Lo que fija WP3 (2026-11-13)
+
+- **Una sola compuerta:** `HostingPolicyGate` (`IHostingPolicyGate`, más `IHostingUseGate` para la publicación). Por cada uso comprueba, en este orden: el registro verifica (carga completa); el veredicto según la operación (`IDeliveryService.CheckAsync` y que el
+  commit sea el juzgado, o, para publicar el veredicto, que haya uno que contar según `RemoteJudgement.VerdictInForce`, la misma función de la vista de PR); la capacidad declarada (y el modo de fusión); la inspección de git (solo el `push`, con el proyecto
+  tomado); y la autorización persistente (`HostingPolicyGrant.Covers`) o la aprobación atada, con el estado vuelto a comprobar tras aprobar.
+- **El `ApprovalSequence`** del payload se toma del último `ApprovalGranted` de esa acción del registro, justo tras la aprobación: `HostingAuthorization` solo trae la atadura. Si no se encontrara, la entrada de la operación no se escribe en vez de inventar
+  una secuencia.
+- **Dar o retirar una autorización** pasa por el buzón y toma el proyecto un instante; con el proyecto ocupado queda aparcada en memoria y **no vale** hasta anotarse. Retirar no pide aprobación. `GrantAsync` de una clase que no admite ninguna operación
+  persistente lanza `ArgumentException`.
+- **Los textos** del PR, del comentario y del estado del veredicto son plantillas de `OrchestratorStrings` (`Text_hosting_pr_*`, `Text_hosting_verdict_*`), pintadas con `IUserTextRenderer` en el idioma de `IResponseLanguage`. Todo dato variable va en un tramo de
+  código sin sus acentos graves (`PullRequestTextComposer.Fence`); el comentario empieza por la marca `<!-- agent-studio:verdict run=<id> -->`; nada del razonamiento del juez ni de un agente sale. Queda sin cumplir el nombre del hito en el título: se usa el id
+  de la ejecución.
+- **Pedir revisores, fusionar y lo destructivo** piden siempre; ninguna autorización los cubre aunque su clase sea la suya (prueba).

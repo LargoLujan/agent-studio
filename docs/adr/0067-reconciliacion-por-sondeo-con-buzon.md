@@ -105,3 +105,24 @@
 - **`DecisionKind`** crece en cuatro valores al final (`HostingPolicyGranted`, `HostingPolicyRevoked`, `HostingOperationPerformed`, `RemoteStateObserved`) y sus payloads (`RemoteSnapshotPayload` plano, solo primitivos), con `RunId = NoRun`.
 - **`RemoteSnapshot.Fingerprint`** (SHA-256 de la forma canónica, sin `UpdatedAt`) está fijada con una prueba de huella dorada: si cambia, las observaciones ya anotadas parecerían nuevas. `RemoteReconciler` y `CommitSuccession` traen la
   lógica mínima; la completan WP3 y WP4.
+
+
+## Lo que fija WP3 (2026-11-13)
+
+- **El buzón** (`Orchestration/Publication/ProjectRemoteMailbox`) es un `Channel` con un único lector por proyecto. Mensajes: observar, ejecutar un flujo de la persona (`RemoteFlow`, reanudable) y anotar; el resto es fontanería (el tic del
+  temporizador, cancelar, seguir). El consumidor **no duerme nunca**: la cortesía de un segundo tras soltar el proyecto es un «no antes de T» de la toma; el mensaje que lo encuentra cerrado se aparca y lo recoge el temporizador de 500 ms
+  (`TimeProvider` inyectado). Las observaciones aparcadas se funden por PR (queda la de mayor orden de contenido), el orden de una misma clave (el PR, o `run:<id>` antes de tener PR) se conserva, caducan a las 24 h y se pueden cancelar.
+- **La compuerta se pasa dos veces, con la misma función.** En el clic, fuera de la toma y en la tarea de quien llama, `AuthorizeUseAsync(…, mayAsk: true)` pide la aprobación atada (`Binding`: acción, repositorio, ejecución, commit, rama base, modo y,
+  si la operación ya tiene PR, su número) y vuelve a comprobar el estado después de aprobar. En el consumidor, justo antes de ejecutar y antes de **cada reintento**, `mayAsk: false`: vale una autorización persistente o la aprobación que el clic dejó en el
+  `ApprovalLease` de ese trabajo (solo en memoria; nunca va a un fichero y se olvida con el trabajo); si hiciera falta preguntar, **rechaza**. Un diálogo es una persona y el consumidor no espera a nadie.
+  Las operaciones de «escribir en el PR» de una publicación (abrir, estado y comentario) comparten una aprobación sin número de PR, porque el PR aún no existe al pedirla; el resto lleva el número.
+- **`gh` nunca con el proyecto tomado; git y el registro, solo con él.** El tramo A (identificar el remoto → inspección → `push` → `ls-remote` → su anotación) va con una sola toma, sin soltar y con `CancellationToken.None`: un `push` no se corta. Los
+  tramos de `gh` van sin toma; las anotaciones de B a E se intentan al momento y, si el proyecto no está libre, se aparcan sin parar el flujo. Tras fusionar o cerrar, y tras cualquier respuesta que no confirme, se **observa** antes de anotar o de repetir.
+- **La repetición del cambio de checks o de revisiones en dos vueltas** es del buzón (`FollowedPullRequest.PendingConfirmation`). Se decide antes de tomar el proyecto con lo ya registrado en la sesión y, la primera vez, dentro de la toma contra el registro.
+  Una vuelta sin huella nueva no toma el proyecto.
+- **El fichero local no crea autoridad.** Las ETag no se restauran (la primera vuelta pregunta sin condición); lo aparcado que vuelve del fichero **no se escribe**: se vuelve a preguntar a la plataforma y solo eso se anota; las acciones pendientes que
+  no habían pasado se listan (caducan o se cancelan) y no se ejecutan solas tras un reinicio; el repositorio del proyecto sale de `IdentifyAsync` hecho con la toma en esta sesión, nunca del fichero, y solo se observan PR de ese repositorio.
+- **Lo que no se guarda en el fichero de pendientes:** las anotaciones de operaciones ya hechas en GitHub y las autorizaciones aparcadas (`PendingRemoteWork` no lleva el resultado, la cuenta ni qué las amparó, y un fichero que pudiera
+  escribir historia sería el fichero autorizando). Viven en memoria; si la app se cierra antes de anotarlas, la siguiente observación recoge el estado real del PR.
+- **Residuales:** el sondeo no respeta `x-poll-interval` (el puerto no lo expone); la hora en que pasó cada cosa no se puede dar al anotar (el registrador pone «ahora»); entre leer la rama remota y borrarla hay una ventana mínima; el recuento de commits de la
+  tarjeta de publicación (`SystemCommits`, `OwnUnpublishedCommits`) queda sin dar: ningún puerto de este paquete lee la historia.
