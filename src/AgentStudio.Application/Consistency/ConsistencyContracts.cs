@@ -2,6 +2,7 @@ using AgentStudio.Application.Git;
 using AgentStudio.Application.Projects;
 using AgentStudio.Domain.Common;
 using AgentStudio.Domain.Diagnostics;
+using AgentStudio.Domain.Graph;
 using AgentStudio.Domain.Tracing;
 
 namespace AgentStudio.Application.Consistency;
@@ -26,6 +27,12 @@ public static class ConsistencyCodes
 
     /// <summary>A requirement of an open milestone that no task covers.</summary>
     public const string RequirementUncovered = "requirement.uncovered";
+
+    /// <summary>
+    /// A check that could not run (an exception, a log that does not verify): added by WP-D so a failure is never shown as «no aplica» or as «nothing found». Its only fact is
+    /// the code of the check that failed; it never quotes the exception. It is not in <see cref="All"/>, the codes the checks of Phase 6 answer for.
+    /// </summary>
+    public const string CheckFailed = "consistency.check-failed";
 
     /// <summary>The codes of Phase 6, in the order the screen groups them.</summary>
     public static IReadOnlyList<string> All { get; } = [LinkBroken, AdrCitesMissing, DiagramStale, RequirementUncovered];
@@ -128,8 +135,12 @@ public sealed record ConsistencyReport
     public override int GetHashCode() => HashCode.Combine(Commit, Findings.Count, Truncated);
 }
 
-/// <summary>What a check reads: the project (for the log and the board) and the copy of the commit (for the files).</summary>
-public sealed record ConsistencyScope(ProjectContext Project, IRepositorySnapshot Snapshot);
+/// <summary>
+/// What a check reads: the project (for the log and the board), the copy of the commit (for the files) and, when the analysis made one, the model of that
+/// commit. The model is added by WP-D: the check of the diagrams cannot ask for it (the analysis that is running has not stored it yet, and asking its
+/// service would loop), so the service that runs the checks hands it over.
+/// </summary>
+public sealed record ConsistencyScope(ProjectContext Project, IRepositorySnapshot Snapshot, CodeGraph? Graph = null);
 
 /// <summary>One check (docs/20 D-27).</summary>
 public interface IConsistencyCheck
@@ -148,4 +159,10 @@ public interface IConsistencyCheck
 public interface IConsistencyService
 {
     Task<ConsistencyReport> RunAsync(ProjectContext project, IRepositorySnapshot snapshot, CancellationToken ct);
+
+    /// <summary>
+    /// The same, with the model of the commit the analysis just made (WP-D). A service that does not use it keeps the answer of the call above; the one of Phase 6 overrides
+    /// this one, and <c>CommitAnalysisService</c> calls it.
+    /// </summary>
+    Task<ConsistencyReport> RunAsync(ProjectContext project, IRepositorySnapshot snapshot, CodeGraph? graph, CancellationToken ct) => RunAsync(project, snapshot, ct);
 }

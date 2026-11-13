@@ -66,7 +66,7 @@ public sealed class CommitAnalysisService(
                 var build = await builder.BuildAsync(snapshot, ct).ConfigureAwait(false);
                 var report = consistency is null
                     ? new ConsistencyReport(commit, [], ConsistencyCodes.All, truncated: false)
-                    : await consistency.RunAsync(project, snapshot, ct).ConfigureAwait(false);
+                    : await consistency.RunAsync(project, snapshot, build.Graph, ct).ConfigureAwait(false);
                 var analysis = new CommitAnalysis(build.Graph, report, build.Files);
                 await cache.SaveAsync(project, new CachedAnalysis(analysis, consistency is not null), ct).ConfigureAwait(false);
                 _last = (project.ProjectId, commit, analysis);

@@ -321,6 +321,17 @@ public interface IDiagramGenerator
 }
 
 /// <summary>
+/// The text of a diagram kept in the cache (docs/20 D-26: «la fuente en solo lectura» and «Copiar»). Added by WP-D: <see cref="IDiagramCatalog"/> is left as the P0
+/// wrote it so nothing that implements it changes. What is read is the text the cache holds for the current version, checked against the fingerprint the index
+/// keeps of it; the file that was exported is never read.
+/// </summary>
+public interface IDiagramTextReader
+{
+    /// <summary>The cached text of the diagram, or null when it is not generated or the cache no longer holds the text the index fingerprinted (it is generated again, never repaired).</summary>
+    Task<string?> ReadAsync(ProjectContext project, DiagramRef diagram, CancellationToken ct);
+}
+
+/// <summary>
 /// The diagrams of a project (docs/20 D-25 and D-26): the cache with its index, the state of each diagram and the export to the repository. It
 /// never reads back what was exported, and it never exports with a run going.
 /// </summary>
