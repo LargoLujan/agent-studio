@@ -15,7 +15,7 @@ namespace AgentStudio.Orchestration.Publication;
 /// used in the background). <see cref="SyncNowAsync"/> is the person's click and works with the periodic poll off.
 /// </summary>
 /// <remarks>The poll starts for a project when something asks for its mailbox; the composition calls <see cref="AttachAsync"/> when it opens a project, so the pull requests it was following are watched again.</remarks>
-public sealed class RemoteSyncService : IRemoteSync, IRemoteMailboxes, IAsyncDisposable
+public sealed class RemoteSyncService : IRemoteSync, IRemoteMailboxes, IAsyncDisposable, IDisposable
 {
     private readonly MailboxServices _services;
     private readonly ConcurrentDictionary<string, Lazy<Task<ProjectRemoteMailbox>>> _boxes = new(StringComparer.Ordinal);
@@ -94,6 +94,13 @@ public sealed class RemoteSyncService : IRemoteSync, IRemoteMailboxes, IAsyncDis
 
     private ProjectRemoteMailbox? Existing(string projectId) =>
         _boxes.TryGetValue(projectId, out var lazy) && lazy.Value.IsCompletedSuccessfully ? lazy.Value.Result : null;
+
+    /// <summary>
+    /// The same ordered release for a container that is disposed with <c>Dispose()</c>: a service that is only <see cref="IAsyncDisposable"/> makes
+    /// <c>ServiceProvider.Dispose()</c> throw, and every test or host that builds the composition and disposes it that way would fail. The app releases it
+    /// with <see cref="DisposeAsync"/> first (the exit), so this finds nothing left to wait for. (Added by the integration of Phase 10.)
+    /// </summary>
+    public void Dispose() => DisposeAsync().AsTask().GetAwaiter().GetResult();
 
     /// <summary>When the app closes: each mailbox ends the stretch it is in (a <c>push</c> is not cut) and stops. No task is left behind.</summary>
     public async ValueTask DisposeAsync()
