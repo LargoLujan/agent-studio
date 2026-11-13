@@ -337,8 +337,10 @@ documento; las demás son de este.
 - **De dónde sale:** la URL del remoto que elijas (por defecto `origin`), leída por `IRepositoryRemoteReader`. Es
   configuración del repositorio: **no fiable**. De ella solo se extrae un identificador: host, propietario y nombre.
 - **Se valida antes de construir nada** (`RemoteRepository`, en Domain; lo que no pasa se rechaza, no se corrige):
-  - host: exactamente `github.com` (sin puerto, sin usuario); se reconocen las formas `https://github.com/o/r(.git)` y
-    `git@github.com:o/r(.git)` solo para **identificar** el repositorio;
+  - host: exactamente `github.com` (sin puerto, sin usuario); se reconocen las formas `https://github.com/o/r(.git)`,
+    `git@github.com:o/r(.git)` y `ssh://git@github.com/o/r(.git)` solo para **identificar** el repositorio; las dos de
+    ssh valen también sin su usuario `git`, que es como la capa de git de la app guarda un remoto (le quita el usuario,
+    porque puede llevar un secreto);
   - propietario: `[A-Za-z0-9]` y hasta 38 caracteres más de `[A-Za-z0-9-]`;
   - nombre: `[A-Za-z0-9._-]{1,100}`, nunca `.` ni `..`, ni con `..` dentro;
   - las mismas reglas que `GitHubSkillOrigin` (docs/20 D-14), comprobadas carácter a carácter.
@@ -1352,13 +1354,19 @@ public interface IHostingProvider
 
     Task<HostingResult<PullRequestObservation>> ObserveAsync(PullRequestRef pullRequest, ObservationCursor? cursor, CancellationToken ct);
 
-    /// The status of the judged commit and the tagged comment (D-21). commentId is the comment to edit; null looks it up by its mark and its author.
-    Task<HostingResult<PublishedVerdict>> PublishVerdictAsync(PullRequestRef pullRequest, VerdictNotice notice, string commentBody, long? commentId, CancellationToken ct);
+    /// The status of the judged commit and the tagged comment (D-21). statusDescription and commentBody are texts of the system, composed by the caller from its
+    /// templates (D-19): the adapter only carries them. commentId is the comment to edit; null looks it up by its mark and its author.
+    Task<HostingResult<PublishedVerdict>> PublishVerdictAsync(PullRequestRef pullRequest, VerdictNotice notice, string statusDescription, string commentBody, long? commentId, CancellationToken ct);
 
     /// Merges only when the head of the pull request is still expectedHead (D-20).
     Task<HostingResult<MergeOutcome>> MergeAsync(PullRequestRef pullRequest, MergeMethod method, string expectedHead, CancellationToken ct);
     Task<HostingResult<bool>> CloseAsync(PullRequestRef pullRequest, CancellationToken ct);
     Task<HostingResult<bool>> DeleteRunBranchAsync(RemoteRepository repository, RemoteBranch runBranch, string expectedCommit, CancellationToken ct);
+
+    /// Until when the platform asked to wait (D-24), already capped; while it is in the future the provider launches nothing. The mailbox stores it.
+    DateTimeOffset? RateLimitedUntil { get; }
+    /// Gives back the wait a previous session stored. It comes from a local file, read as not trusted: the provider applies its own cap.
+    void RestoreRateLimit(DateTimeOffset? until);
 }
 
 /// The provider of a repository: by the kind its identifier carries. Unknown host, no provider.
@@ -1377,7 +1385,7 @@ public sealed record RemoteGitInspection(bool Accepted, IReadOnlyList<RemoteConf
 
 public enum RemotePushOutcome { Pushed, AlreadyUpToDate, RejectedNotFastForward, CredentialsNeeded, Unreachable, Redirected, ConfigurationRefused, LfsRefused, NotConfirmed, Failed }
 public sealed record RemotePush(ProjectContext Project, RemoteRepository Destination, RunId Run, string Commit);   // no force, no refspec, no branch name, no address: the transport of the runner gives it
-public sealed record RemotePushResult(RemotePushOutcome Outcome, string? RemoteCommit, RemoteGitInspection Inspection);
+public sealed record RemotePushResult(RemotePushOutcome Outcome, string? RemoteCommit, RemoteGitInspection Inspection, string? FailureCode = null);   // a stable code, never text of git
 public sealed record RemoteBranchRead(bool Reached, string? Commit, string? FailureCode);
 
 /// The remote executor of git (D-03): three members and no overload with arguments. Separate from the internal git layer, which never opens a transport.
@@ -1458,7 +1466,7 @@ public interface IRemoteSync
     RemoteSyncHealth Health(string projectId);                           // last good sync, session as last seen, rate limit until
     event EventHandler<string>? Changed;                                 // the project id
 }
-public sealed record RemoteSyncHealth(DateTimeOffset? LastGoodSync, HostingOutcome? LastOutcome, DateTimeOffset? RateLimitedUntil);
+public sealed record RemoteSyncHealth(DateTimeOffset? LastGoodSync, HostingOutcome? LastOutcome, DateTimeOffset? RateLimitedUntil, DateTimeOffset? LastOutcomeAt = null);
 
 /// The permission of the network (D-02). AppSettings lives in Desktop, so the mailbox asks a port; without one in the composition, the network is never allowed.
 public interface IRemoteSyncPolicy
@@ -1481,7 +1489,8 @@ public sealed record FollowedPullRequest(PullRequestRef PullRequest, string? Run
 public sealed record PendingRemoteWork(RemoteWorkTicket Ticket, HostingOperation? Operation, RemoteSnapshot? Observation,
     string Stage, PendingReason Reason, DateTimeOffset Since, DateTimeOffset? RetryAt);   // parked or waiting to sync; expires after 24 h
 public sealed record RemoteSyncState(RemoteRepository? Repository, IReadOnlyList<FollowedPullRequest> Followed,
-    IReadOnlyList<PendingRemoteWork> Pending, DateTimeOffset? RateLimitedUntil, DateTimeOffset? LastGoodSync, HostingOutcome? LastOutcome);
+    IReadOnlyList<PendingRemoteWork> Pending, DateTimeOffset? RateLimitedUntil, DateTimeOffset? LastGoodSync, HostingOutcome? LastOutcome,
+    DateTimeOffset? LastOutcomeAt = null);
 
 public interface IRemoteSyncStore
 {
@@ -1964,6 +1973,26 @@ Dónde el diseño y el código real chocaron al escribir el P0, y cómo se resol
   `RemoteTransport.ForTests` a la prueba que escanea `src/` (junto a `file://`) o conservad la de este paquete.
 - **`ProjectAuditService`** vuelve a leer la propuesta (HEAD, requisitos, juez, productores y perfil) tras entrar si la espera duró un sondeo o más, y se niega como desactualizada antes de pedir la aprobación; el registro, el id de la
   auditoría y los problemas pendientes no necesitan relectura (las entradas remotas no son de ninguna ejecución y el dossier se construye sobre el registro de entonces).
+
+#### Ajustes de contratos tras la primera tanda (2026-11-13)
+
+Lo que WP1, WP2 y WP4 pidieron al P0 al terminar, y lo que se decidió. Va en un commit del lead sobre la rama de integración, antes de abrir WP3.
+
+- **El límite de la plataforma está en el puerto.** `IHostingProvider` gana `RateLimitedUntil` y `RestoreRateLimit(until)`: el freno es del proveedor (no lanza nada hasta esa hora, D-24) y quien lo guarda es el buzón (`RemoteSyncState.RateLimitedUntil`),
+  que solo ve el puerto. El valor que vuelve viene de un fichero local, que no es fiable: el proveedor le aplica su tope de dos horas.
+- **El texto del estado del veredicto lo compone quien llama.** `PublishVerdictAsync` recibe `statusDescription` junto a `commentBody`: las tres frases de la tabla de D-21 salen de las plantillas del sistema (D-19), no de constantes en el adaptador, que
+  solo transporta y recorta.
+- **La fecha del último resultado.** `RemoteSyncHealth` y `RemoteSyncState` ganan `LastOutcomeAt` (al final, con valor por defecto): Auto Doctor dice «sesión caducada» con su fecha.
+- **Por qué no se publicó.** `RemotePushResult` gana `FailureCode` (al final, con valor por defecto): un código estable, nunca texto de git.
+- **Direcciones de ssh sin usuario.** `RemoteRepository.TryParseGitHub` reconoce también `ssh://git@github.com/o/r(.git)` y las dos formas de ssh sin su usuario (`github.com:o/r`, `ssh://github.com/o/r`): la capa de git guarda el remoto así. Otro usuario
+  o una contraseña se rechazan (`remote.credentials-in-url`), y un puerto también (`remote.port`). La forma corta sin usuario solo se reconoce si empieza exactamente por `github.com:`, para que una ruta de Windows siga siendo «no reconocida».
+- **Lo que se queda como está, a sabiendas:**
+  - la igualdad de `RemoteRepository` es exacta: `Foo/bar` y `foo/bar` son dos repositorios para una autorización (que vuelve a pedirse) y para el nodo de un PR;
+  - `RemoteSnapshot` no gana `MergedAt`: «el fusionado después», cuando dos PR dan sucesor al mismo commit, se ordena por `UpdatedAt`;
+  - `ReviewsSummary` solo nombra a quien aprobó; quien pide cambios o comenta se cuenta;
+  - las vistas (`MilestoneBoard`, `TraceChain`, `ParticipationView`, `PullRequestView`) no dicen cuántas entradas remotas se ignoraron por inválidas: lo dice el informe del hito. Queda como pendiente para Auto Doctor.
+- **Para la integración (el lead):** las tres entradas de `DoctorFixCatalog` (`doctor.fix.install-gh`, `doctor.fix.login-gh`, `doctor.fix.open-pull-requests`), los textos de los códigos de rechazo de los dos adaptadores y `ClientDocumentBuilder`, que
+  sigue diciendo que el despliegue no está incluido.
 
 #### Notas para WP3 (el buzón)
 

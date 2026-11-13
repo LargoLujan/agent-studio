@@ -37,7 +37,8 @@ public enum RemotePushOutcome
 /// </summary>
 public sealed record RemotePush(ProjectContext Project, RemoteRepository Destination, RunId Run, string Commit);
 
-public sealed record RemotePushResult(RemotePushOutcome Outcome, string? RemoteCommit, RemoteGitInspection Inspection);
+/// <param name="FailureCode">A stable code of why it did not push, when the outcome alone does not say it (<see cref="RemotePushOutcome.Failed"/> above all); never text of git or of the remote.</param>
+public sealed record RemotePushResult(RemotePushOutcome Outcome, string? RemoteCommit, RemoteGitInspection Inspection, string? FailureCode = null);
 
 /// <summary>What <c>ls-remote</c> said of a branch: whether the remote was reached, the commit the branch points at (null when it does not exist) and a stable code of the failure.</summary>
 public sealed record RemoteBranchRead(bool Reached, string? Commit, string? FailureCode);
