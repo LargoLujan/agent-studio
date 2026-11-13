@@ -133,7 +133,7 @@ public static partial class VerificationRules
         {
             problems.Add($"Step '{id}' has no title.");
         }
-        else if (HasControlCharacter(step.Title) || AgentStudio.Domain.Common.UntrustedText.HasHidden(step.Title))
+        else if (HasControlCharacter(step.Title) || HasHiddenInTitle(step.Title))
         {
             problems.Add($"Step '{id}': the title contains a control character (it is written in the header of the evidence).");
         }
@@ -249,4 +249,22 @@ public static partial class VerificationRules
     }
 
     private static bool HasControlCharacter(string text) => text.AsSpan().IndexOfAnyInRange('\0', '\u001f') >= 0;
+
+    /// <summary>
+    /// A hidden character in a title (it is written on one line of the header of the evidence): the controls, the line and paragraph separators and the marks of direction are still
+    /// refused, because they would end the line or reorder what the person reads. The zero-width joiner and non-joiner and the soft hyphen are admitted: they are in real titles (emoji made
+    /// of several, words of several scripts) and none of them ends a line, reorders text or draws anything, so they cannot forge a header.
+    /// </summary>
+    private static bool HasHiddenInTitle(string title)
+    {
+        foreach (var rune in title.EnumerateRunes())
+        {
+            if (AgentStudio.Domain.Common.UntrustedText.IsHidden(rune) && rune.Value is not (0x200D or 0x200C or 0x00AD))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }
