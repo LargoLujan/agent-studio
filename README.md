@@ -561,7 +561,8 @@ means the acceptance criterion is covered by automated tests but its manual demo
   search seen on the real journal (P40) are still open. Both are listed in [docs/18](docs/18-peticiones-y-pendientes.md);
   design in [ADR-0047](docs/adr/0047-indice-semantico-local.md).
 - **Phase 6 · Auto Doctor and Auto Graph.** Integrated on its integration branch on 2026-11-13 and not published yet: Auto Doctor with its five sections (agent programs, tools, project,
-  the environment the project declares, containers), Auto Graph (a Roslyn dependency graph read in a separate low-integrity process, generated Mermaid diagrams as text and four deterministic discrepancies) and a skills doctor that\n  only asks GitHub when you press the button. F6-1 to F6-13 are verified by tests ([docs/08](docs/08-plan-y-criterios-de-aceptacion.md#fase-6--auto-doctor-y-auto-graph)); the demonstration of F6-5 and the live check of the skills doctor against GitHub with Windows Hello are pending.
+  the environment the project declares, containers), Auto Graph (a Roslyn dependency graph read in a separate low-integrity process, generated Mermaid diagrams as text and four deterministic discrepancies) and a skills doctor that
+  only asks GitHub when you press the button. F6-1 to F6-13 are verified by tests ([docs/08](docs/08-plan-y-criterios-de-aceptacion.md#fase-6--auto-doctor-y-auto-graph)); the demonstration of F6-5 and the live check of the skills doctor against GitHub with Windows Hello are pending.
 - **Manual demonstrations** of the criteria marked "verified by tests" in Phases 1, 3, 4, 5, 8 and 12.
 - **Self-audit.** 93 tests fail when run under Low integrity (mostly tests that create temporary folders in
   `LocalAppData`), so "Audit whole project" cannot yet approve this repository.
