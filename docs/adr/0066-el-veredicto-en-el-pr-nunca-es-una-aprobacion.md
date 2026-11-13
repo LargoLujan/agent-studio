@@ -55,3 +55,11 @@
   estado con el mismo contexto (lo que cuenta para Agent Studio es su registro, no lo que diga el remoto).
 - **Sin verificar al escribirlo:** el permiso que exige publicar un estado de commit, el tope de su descripción y los
   códigos con que la plataforma rechaza una fusión con la cabeza cambiada.
+
+## Lo que fija el P0 (2026-11-13)
+
+- **`VerdictNotice`** es el vocabulario cerrado de lo que se publica del veredicto: la ejecución, el commit juzgado, `VerdictStanding` (aprobado, rechazado, en revisión), los requisitos con su id y si se cumplieron, el proveedor y el modelo
+  del juez, y si la cabeza del PR es el commit juzgado. Ningún texto del juez.
+- **`HostingPolicy.RequiresApprovedVerdict`** decide por operación, no por clase: publicar el estado y el comentario del veredicto no lo exigen (tienen que poder decir «no aprobado» y «en revisión»), y tampoco cerrar un PR ni
+  borrar su rama; todo lo demás sí.
+- **`IHostingProvider.PublishVerdictAsync`** es el único miembro que escribe un veredicto, y no hay ninguno que envíe una revisión.

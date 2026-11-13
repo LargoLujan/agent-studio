@@ -80,3 +80,14 @@
 - **Sin verificar al escribirlo** (lo cierra WP2 y la prueba en vivo): la forma exacta de la salida con `-i`; el código de
   salida con un 304 y con un 4xx; que con una ruta completa `gh api` no lanza `git`; la versión mínima con `--input` y el
   código 4; y los campos reales de cada punto de la API.
+
+## Lo que fija el P0 (2026-11-13)
+
+- **`IHostingProvider` e `IHostingProviders`** (Application) tal como los fija el diseño: sin ningún miembro que envíe una revisión, apruebe o fusione como administrador, y sin parámetros que se llamen `force` o `admin` (una prueba de
+  superficie lo exige). `HostingCapability` son marcas y `HostingCapabilities.NarrowedBy` recorta por repositorio (métodos de fusión, y sin escrituras si la cuenta no puede escribir o el repositorio está archivado); los tipos que usa
+  (`RemoteRepositoryFacts`, `BranchRules`) viven en Domain.
+- **Identificadores validados** en Domain (`RemoteRepository`, `RemoteBranch`, `PullRequestRef`, `RemoteLogin`): sin expresiones regulares, solo ASCII, y lo que no pasa se rechaza, no se corrige.
+- **Auto Doctor sin red:** `DoctorTool.GhVersion` (`gh --version`) con `GH_NO_UPDATE_NOTIFIER=1`, `GH_NO_EXTENSION_UPDATE_NOTIFIER=1`, `GH_TELEMETRY=false`, `DO_NOT_TRACK=1` y `GH_PROMPT_DISABLED=1` en `DoctorEnvironment`
+  (`GhOffline`); la lista blanca ya quita `GH_TOKEN`, `GH_HOST`, `GH_REPO`, `GH_CONFIG_DIR` y `GH_DEBUG`. `ToolOutputParsers.Version` lee `gh version 2.96.0 (2026-07-02)`.
+- **Primer paso de §10.2, comprobado en el equipo del P0** (sin red ni cuenta, con esas cinco variables): `gh --version` da `gh version 2.96.0 (2026-07-02)`; `gh api --help` trae `--input`, `--method`, `--include`, `--header`,
+  `--hostname`, `--paginate`, `--cache` y `-F/--field` con `@` para leer de un fichero; `git push -h` trae `--porcelain`, `--no-verify`, `--no-follow-tags`, `--recurse-submodules` y `--signed`. Coincide con §13.

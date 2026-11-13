@@ -93,3 +93,13 @@
   repositorio local; que `GCM_INTERACTIVE=never` hace fallar al gestor en vez de abrir su ventana; que
   `http.followRedirects=false` rechaza un repositorio renombrado; la salida de `--porcelain`; y cómo detectar LFS sin
   ejecutar `git lfs`.
+
+## Lo que fija el P0 (2026-11-13)
+
+- **`RemoteTransport`** existe ya como tipo `internal` de `Infrastructure/Git/Remote`: el esquema que se permite a git (`Scheme`, una sola constante para `GIT_ALLOW_PROTOCOL` y para `protocol.<esquema>.allow`), la función que da la
+  dirección de un `RemoteRepository` (`AddressOf`) y su única instancia de producción, `RemoteTransport.GitHubHttps`. Un constructor público (dentro de lo `internal`) lo usan las pruebas de WP1 para empujar a una carpeta bare. El resto de
+  la carpeta es de WP1.
+- **`InternalsVisibleTo`** de `AgentStudio.Infrastructure` hacia `AgentStudio.Tests`, en el `.csproj`.
+- **`IRemoteGitRunner`** tiene tres miembros y ninguno recibe un `string`: ni orden, ni argumento, ni refspec, ni dirección. `RemotePush` lleva el proyecto, el destino validado, la ejecución y el commit; nada más. Una prueba de
+  superficie (`ContractSurfaceTests`) lo exige.
+- **La rama de una ejecución** es `RemoteBranch.ForRun(RunId)`, con la regla de `git check-ref-format` y sin empezar nunca por `-`.

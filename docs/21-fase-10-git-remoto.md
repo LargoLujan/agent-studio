@@ -1910,6 +1910,36 @@ ayuda, su pantalla en el inventario y nada simulado en la interfaz.
 - **Hecho cuando:** compila con 0 avisos; todos los contratos de §5 existen y `ContractSurfaceTests` los cubre; las
   pruebas de compatibilidad del registro pasan; ninguna implementación de red existe todavía.
 
+#### Ajustes del P0
+
+Dónde el diseño y el código real chocaron al escribir el P0, y cómo se resolvió (2026-11-13). Lo que no está aquí, está como lo fija §5.
+
+- **Primer paso comprobado** (sin red ni cuenta): `gh version 2.96.0 (2026-07-02)`, `gh api --help` con `--input`, `--method`, `--include`, `--header`, `--hostname`, `--paginate`, `--cache` y `-F/--field`, y `git push -h` con `--porcelain`,
+  `--no-verify`, `--no-follow-tags`, `--recurse-submodules` y `--signed`. Coincide con §13: nada que devolver.
+- **Capas.** `RemoteRepositoryFacts`, `BranchRuleKind`, `BranchRule` y `BranchRules` van en `Domain/Hosting` (el bloque de §5.2 los pone en Application, y su propia nota de §5.1 dice que viven en Domain): `HostingCapabilities.NarrowedBy` los usa
+  y Domain no depende de nada.
+- **Una clave vive en un solo fichero** (`LocalizationResourcesTests`). El texto de `project.busy-remote` es **una** clave, `Text_project_busy_remote`, en `OrchestratorStrings` (el proveedor busca en todos los ficheros), y no cuatro. El panel
+  de pruebas de HEAD, que pinta con una clave de su propio panel y no con un código, tiene `Panels_Tests_HeadBusyRemote` en `PanelsStrings`.
+- **Ese texto** es «Agent Studio está sincronizando con GitHub. Prueba otra vez en unos segundos.»: «Inténtalo» lo deja bajo el INFLESZ 55 de la guía de textos.
+- **`HostingOperationPerformedPayload.Text` se llama `TextEvidence`:** la prueba de los payloads prohíbe cualquier campo llamado `Text`, por si guardara un prompt o una salida de agente.
+- **Los textos de §7.7** van como `Hosting_<Nombre>` (el texto visible) y `Hosting_<Nombre>_What` (su «qué es esto»), sin `Info_*_Title`, `_What` y `_Actions`: una sección con ⓘ necesita sus tres textos, un artículo que la enlace y un `InfoKey` en
+  una vista, y eso es de WP5, que convierte cada explicación al montar su ⓘ. `Hosting_Publish_Uploads` dice «(commit)» en singular, la única forma que admite la guía. Se reescribieron además tres textos que quedaban bajo el INFLESZ 55
+  (`Hosting_Publish_Busy_What`, `Hosting_Config_Refused_What` y `Doctor_Check_remote_sync_NotApplicable`). `HostingStrings` está en `ClosedAreas` de `TextGuide`.
+- **Las claves de Auto Doctor** (D-31) son `Doctor_Check_<código>_<estado>` de los ocho códigos, y se añadieron tres frases de arreglo (`Doctor_Fix_install_gh`, `Doctor_Fix_login_gh`, `Doctor_Fix_open_pull_requests`); los códigos de los
+  arreglos son de WP2: si los llama de otra forma, lo dice en su informe y el lead renombra la clave.
+- **Pruebas que recorren los enums** y que el P0 ajusta: la bandeja (`BackgroundStringsTests`) y el bloqueo (`LockStringsTests`) no piden texto para `RemoteOperation` (es la decisión de D-25: no se enseña como trabajo); `WorkStringsTests`
+  pide texto para cada etapa de la cadena y cada clase de nodo, así que `WorkStrings` gana `Work_Stage_Publication`, `Work_Stage_RemoteMerge`, `Work_Stage_Deployment` y `Work_Node_PullRequest`; el inventario de Auto Doctor no pregunta
+  por `gh` (lo pregunta la fuente de WP2) y `NoProcessInsideTheRepositoryTests` planta también `gh.exe`.
+- **`ProjectsWorkInProgress`** (el bloqueo, `LockServices.cs`) también ignora la toma remota: sin eso `Running(...)` recibiría una lista con un elemento que no sabe nombrar.
+- **`ProjectActivityEntry.EnterAsync`** rechaza `RemoteOperation` como clase pedida (una toma remota no espera a otra: entra con `TryEnter`) y, si lo que tenía el proyecto se soltó entre su `TryEnter` y su pregunta, vuelve a intentarlo al
+  momento en vez de dar nulo. `HeadTestsService` gana al final de su constructor un `TimeProvider? time` opcional (por defecto el del sistema), para no tocar `Composition/**`, que es del lead; el lead puede pasarle el del contenedor.
+- **Tipos con constructor explícito** (no posicionales) donde la validación importa: `RemoteRepository`, `RemoteBranch`, `PullRequestRef`, `RemoteLogin` y `HostingPolicyGrant`. Los demás son registros posicionales.
+- **Miembros añadidos** a lo de §5 (los usan las pruebas y los paquetes): `RemoteRepository.TryCreateGitHub`/`TryParseId` y sus códigos de rechazo; `RemoteBranch.RunIdentifier`; `PullRequestRef.TryParseTraceId`; `TraceRef.PullRequest`;
+  `HostingPolicy.ClassAdmitsGrant`; `HostingActions.All` y `ActionOf`; `RemoteSnapshot.EnsureValid` y `MaxCommits`; `BranchRules.Unreadable`; `CommitSuccession.Empty`; `RemoteDisplayTexts.None`; `RemoteSyncState.Empty`; las fábricas de los
+  payloads (`Granting`, `Of`, `Revoking`, `Observing`), `HostingPolicyGrantedPayload.ToGrant` y `RemoteStateObservedPayload.ToPullRequest`/`ToSnapshot`.
+- **La ayuda `publishing`** llega sin cabecera `info:` y sin que `HelpScreens.Of` la devuelva para ninguna vista: WP5 monta la vista, la enlaza y completa el artículo.
+- **No se tocó** `docs/08` (F10-11 a F10-13 siguen «propuestos»), `CLAUDE.md` ni la bitácora (`.agentstudio/` es de la copia principal).
+
 ### 10.3 WP1 · Ejecutor remoto de git (M-L)
 
 - `src/AgentStudio.Infrastructure/Git/Remote/**` (nuevo): lo de §5.4, y `AddAgentStudioRemoteGit` en esa carpeta.

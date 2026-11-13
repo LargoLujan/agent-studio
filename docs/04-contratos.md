@@ -2604,3 +2604,49 @@ añade el destino `graph` a «Ir a…».
   leen todos los destinos de una línea (`LineBudget`); `Scan(texto, out pasos)` cuenta los caracteres leídos y las pruebas fijan el coste con ese número, no con un reloj.
 - Los métodos del catálogo empiezan saltando a un hilo del grupo (`Task.Run`), así que ni la lectura de ficheros ni la generación de los textos corren en el hilo de la interfaz.
 - La pantalla dice por qué falla algo con textos de recursos por clase de fallo (`Docs_Failure_*`), nunca con el mensaje de la excepción. «Ir a Trabajo» elige el hito del requisito (`Context.SelectMilestone`).
+
+## 26. Fase 10: Git remoto, publicación, PR y sincronización
+
+Los escribe el P0 de la Fase 10 ([21](21-fase-10-git-remoto.md) §5 y §10.2; ADR [0064](adr/0064-ejecutor-remoto-de-git.md) a [0068](adr/0068-politicas-por-clase-de-operacion-remota.md)). Aquí va lo que existe y lo que **no** tiene; las
+implementaciones son de los paquetes WP1 a WP5. Ningún tipo de este apartado abre una conexión, lanza `gh` o `git`, ni lee una credencial. Los ajustes respecto al diseño están en [21 §10.2](21-fase-10-git-remoto.md#ajustes-del-p0).
+
+**Dominio (`Domain/Hosting`).**
+
+- `RemoteRepository` (`TryParseGitHub`, `TryCreateGitHub`, `TryParseId`; `Host`, `Owner`, `Name`, `PushUrl`, `Id`), `RemoteBranch` (`ForRun`, `TryParse`, `IsRunBranch`), `PullRequestRef` (`TraceId`, `TryParseTraceId`) y `RemoteLogin`
+  (`TryParse`): identificadores validados carácter a carácter (ASCII; sin expresiones regulares). Una cadena que no pasa se rechaza, no se corrige; ninguna propiedad tiene `set` ni `init`, así que un `with` no puede fabricar un valor
+  sin validar. La dirección del `push` la escribe el código (`https://github.com/<propietario>/<nombre>.git`).
+- `HostingPolicy` (`ClassOf`, `CanBePersistent`, `RequiresApprovedVerdict`, `ClassAdmitsGrant`) y `HostingPolicyGrant` (`Covers`): la regla de las cuatro clases de [21](21-fase-10-git-remoto.md) D-15, pura. Una autorización persistente
+  de una clase que no admite ninguna (fusionar, lo destructivo) no se puede construir; pedir revisores no es nunca persistente.
+- `HostingCapability` (marcas), `HostingCapabilities` (`Has`, `NarrowedBy`), `RemoteRepositoryFacts`, `BranchRuleKind`, `BranchRule` y `BranchRules` (con `Readable`: «no se pudo leer» no es «sin reglas»).
+- `RemoteSnapshot` (con `Fingerprint`, SHA-256 de su forma canónica, sin `UpdatedAt`, y `EnsureValid`), `ChecksSummary`, `ReviewsSummary`, `RemoteDeployment`, `RemoteChangeKind`, `RemoteReconciler` y `CommitSuccession`: estos dos últimos
+  con la lógica mínima (la completan WP3 y WP4).
+- Enums que crecen al final: `DecisionKind` (+`HostingPolicyGranted`, `HostingPolicyRevoked`, `HostingOperationPerformed`, `RemoteStateObserved`), `TraceNodeKind` (+`PullRequest`, con la regla de su id en `TraceRef`).
+
+**Application.**
+
+- `Hosting/HostingContracts.cs`: `IHostingProvider` (sin ningún miembro que envíe una revisión ni fusione como administrador), `IHostingProviders`, `HostingResult<T>`, `HostingOutcome`, `HostingAvailability`, `PullRequestText`,
+  `PullRequestDraft`, `ObservedResource`, `ObservationCursor`, `PullRequestObservation`, `RemoteDisplayTexts` (textos del remoto solo para la pantalla), `VerdictNotice`, `PublishedVerdict`, `MergeOutcome`.
+- `Hosting/RemoteGitContracts.cs`: `IRemoteGitRunner` (tres miembros y ningún `string`: ni orden, ni argumento, ni refspec, ni dirección), `RemotePush`, `RemotePushResult`, `RemotePushOutcome`, `RemoteGitInspection`,
+  `RemoteConfigRefusal` (la clave y el fichero, nunca el valor) y `RemoteBranchRead`.
+- `Hosting/PublicationContracts.cs`: `HostingActions` (los seis identificadores de aprobación, y `ActionOf` por operación), `HostingOperation`, `HostingAuthorization`, `IHostingPolicyGate`, `PublicationPreview`,
+  `PublicationRequest` e `IPublicationService`.
+- `Hosting/RemoteSyncContracts.cs`: `IRemoteSync`, `IRemoteSyncPolicy`, `IRemoteSyncStore`, `RemoteSyncState` (estado local que se puede borrar), `FollowedPullRequest`, `PendingRemoteWork`, `RemoteWorkTicket`, `RemoteWorkStatus`,
+  `RemoteWorkState`, `PendingReason`, `RemoteSyncHealth`, `PullRequestView` e `IPullRequestProjector`.
+- `Decisions/HostingPayloads.cs`: `HostingPolicyGrantedPayload`, `HostingPolicyRevokedPayload`, `HostingOperationPerformedPayload`, `RemoteStateObservedPayload` y `RemoteSnapshotPayload` (plano, solo primitivos). Las cuatro con
+  `RunId = NoRun` (la ejecución va en un campo), sin texto libre y con fábricas que validan; el texto enviado va como evidencia (`TextEvidence` y `TextSha256`).
+- `Orchestration/ProjectActivity.cs`: `ProjectActivityKind.RemoteOperation` y `ProjectActivityEntry.EnterAsync` (espera de hasta 180 s, sondeando cada 250 ms con un `TimeProvider`, solo mientras lo que tiene el proyecto es una toma
+  remota; pasado el tope, `UserTextException` con `project.busy-remote`). Con una ejecución, un debate o una auditoría delante responde nulo al momento, como antes. La usan `Orchestrator`, `DebateCoordinator`, `ProjectAuditService` y
+  `HeadTestsService`.
+- Enums que crecen al final: `TraceChainStage` (+`Publication`, `RemoteMerge`, `Deployment`), `BranchKind` (+`RemoteRun`), `RepositoryActivityKind` (+`RemoteOperation`, `RemoteObservation`), `DoctorTool` (+`GhVersion`).
+  `ParticipationSources` gana `RemotePublication`, `RemoteReview` y `RemoteMerge`; `CommitAnnotation` gana un `CommitSuccessor?` opcional al final.
+
+**Seguridad e infraestructura.**
+
+- `ApprovalRiskClassifier` lista los seis identificadores de `HostingActions` como `RemoteOrSecretOperation` («siempre»); `CriticalApprovalCoverageTests` y `PresenceBarrierGateTests` los vigilan.
+- Auto Doctor: `DoctorToolCatalog` gana `gh --version`; `DoctorEnvironment` le pone `GH_NO_UPDATE_NOTIFIER`, `GH_NO_EXTENSION_UPDATE_NOTIFIER`, `GH_TELEMETRY=false`, `DO_NOT_TRACK` y `GH_PROMPT_DISABLED` (sin ellas, `gh` sale a la
+  red con cualquier orden) y la lista blanca ya quita `GH_TOKEN`, `GH_HOST`, `GH_REPO`, `GH_CONFIG_DIR` y `GH_DEBUG`; `ToolOutputParsers.Version` lee la primera línea de `gh --version`.
+- `AgentStudio.Infrastructure` ve sus `internal` desde `AgentStudio.Tests` (`InternalsVisibleTo`), y `Infrastructure/Git/Remote/RemoteTransport` (`internal`) trae `GitHubHttps`, la única instancia que nombra el código de producción.
+
+**Escritorio.** `HostingStrings` (es y en) con los textos de [21 §7.7](21-fase-10-git-remoto.md#77-textos-y-sus-) que el P0 da de alta (cada texto visible y su explicación `<clave>_What`); `Text_project_busy_remote`
+(`OrchestratorStrings`) y `Panels_Tests_HeadBusyRemote`; las ocho líneas de Auto Doctor de D-31 en `DoctorStrings`; `Work_Stage_*` y `Work_Node_PullRequest`; el código de ayuda `publishing` con su artículo; y `UiScreensHosting` (vacío)
+sumado en el inventario. `ProjectActivityWork` (la bandeja) y `ProjectsWorkInProgress` (el bloqueo) ignoran la toma remota, que no es trabajo con agentes.

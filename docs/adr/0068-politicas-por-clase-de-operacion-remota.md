@@ -70,3 +70,12 @@
 - **Residuales aceptados:** entre releer el estado y actuar hay una ventana mínima en la plataforma (para fusionar la
   cierra el commit de cabeza esperado; para borrar una rama, no hay condición en la API); la plataforma impone sus reglas
   aunque Agent Studio no haya podido leerlas.
+
+## Lo que fija el P0 (2026-11-13)
+
+- **`HostingActions`** (Application) con los seis identificadores de aprobación; `ApprovalRiskClassifier` los lista todos como `RemoteOrSecretOperation` («siempre»), con cualquier riesgo que declare quien pide, y `CriticalApprovalCoverageTests` y
+  `PresenceBarrierGateTests` los vigilan.
+- **`HostingPolicy`** (Domain, pura): `ClassOf`, `CanBePersistent` (falso para pedir revisores, fusionar y lo destructivo), `RequiresApprovedVerdict` y `ClassAdmitsGrant`. **`HostingPolicyGrant`** no se puede construir para una clase que no
+  admite ninguna autorización persistente, ni con rama base salvo en «escribir en el PR»; `Covers` exige la misma clase, el mismo repositorio y, si lleva rama base, esa misma.
+- **Las fábricas de los payloads validan** lo mismo (una autorización persistente de fusionar no se puede anotar; una operación se anota con exactamente una de la autorización y la aprobación, y una autorización no puede amparar una
+  operación que no admite ser persistente).

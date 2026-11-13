@@ -93,3 +93,15 @@
   de salida distinto de 0): de ello depende el ahorro del sondeo condicional, y es lo primero que mide WP2; que un 304 no cuenta contra el límite con una petición autenticada por `gh`; el código
   de salida de `gh api` con un 304; los eventos de force-push y la forma de los despliegues en la API; y que añadir un
   valor a `ProjectActivityKind` no rompe más `switch` que los de la bandeja y el bloqueo.
+
+## Lo que fija el P0 (2026-11-13)
+
+- **`ProjectActivityKind.RemoteOperation`** (al final del enum) y **`ProjectActivityEntry.EnterAsync(activity, proyecto, clase, tiempo, ct)`**: espera mientras lo que tiene el proyecto es una toma remota, hasta 180 s y sondeando cada 250 ms
+  con un `TimeProvider` (las pruebas mueven el reloj, nadie espera el real); pasado el tope, `UserTextException` con `project.busy-remote`. Con una ejecución, una planificación, un debate o una auditoría delante responde nulo al momento y con
+  los mismos textos y códigos de siempre. Nunca devuelve nulo mientras la toma remota sigue: espera o rechaza.
+- **Los cuatro sitios** la usan: `Orchestrator` (planificar, empezar, reanudar y reanudar por consentimiento; `Track` sigue con `TryEnter` porque ya tiene el proyecto para una ejecución), `DebateCoordinator`, `ProjectAuditService` y
+  `HeadTestsService` (con su texto `Panels_Tests_HeadBusyRemote`). `OrchestratorDocumentViewModel` no olvida la aprobación del plan ante ese código.
+- **Lo que ve el resto:** `ProjectActivityWork` (la bandeja) y `ProjectsWorkInProgress` (el bloqueo) ignoran la toma remota; no hay claves `Background_Work_Activity_RemoteOperation` ni de bloqueo.
+- **`DecisionKind`** crece en cuatro valores al final (`HostingPolicyGranted`, `HostingPolicyRevoked`, `HostingOperationPerformed`, `RemoteStateObserved`) y sus payloads (`RemoteSnapshotPayload` plano, solo primitivos), con `RunId = NoRun`.
+- **`RemoteSnapshot.Fingerprint`** (SHA-256 de la forma canónica, sin `UpdatedAt`) está fijada con una prueba de huella dorada: si cambia, las observaciones ya anotadas parecerían nuevas. `RemoteReconciler` y `CommitSuccession` traen la
+  lógica mínima; la completan WP3 y WP4.
